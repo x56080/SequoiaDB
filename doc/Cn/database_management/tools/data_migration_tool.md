@@ -254,29 +254,61 @@ $ sdbimprt --type=csv --file=../data,./foo_bar_data.csv -c foo -l bar --timestam
 $ other | sdbimprt --hosts=localhost:11810 --type=json -c foo -l bar --headerline=true</pre>
 
 ##数据迁移 — 导出##
-sdbexprt 是一个实用的工具。它可以从 SequoiaDB 数据库导出一个 JSON 格式或者 CSV 格式的数据存储文件。
+sdbexprt 是一个实用的工具。它可以将集合从 SequoiaDB 数据库导出到 JSON 格式或者 CSV 格式的数据存储文件。
+sdbexprt 支持将一个集合导出到一个文件中，同时也支持将多个集合批量导出到指定目录下。
 
 ###选项###
-
+**通用选项**
   参数          缩写   描述
   ------------- ------ -------------------------------------------------------------------------------
-  --help        -h     返回基本帮助和用法文本。
-  --version            返回版本信息。
-  --hostname    -s     从指定主机名的 SequoiaDB 中导出数据。默认情况下 sdbexprt 尝试连接到本地主机。
-  --svcname     -p     指定的端口号。默认情况下 sdbexprt 尝试连接到端口号11810的主机。
+  --help        -h     显示帮助信息。
+  --version            显示版本信息。
+  --hostname    -s     指定主机名，默认为'localhost'。
+  --svcname     -p     指定的端口号，默认为'11810'。
   --user        -u     数据库用户名。
-  --password    -w     数据库密码。
-  --delchar     -a     指定字符分隔符。默认是（"），csv 格式有效。
-  --delfield    -e     指定字段分隔符。默认是（,），csv 格式有效。
-  --delrecord   -r     指定记录分隔符。默认是（\\n）。
-  --csname      -c     指定导出数据的集合空间名。
-  --clname      -l     指定导出数的集合名。
-  --fields             指定一个或多个字段来导出数据，使用逗号分隔多个字段。csv 格式有效。
-  --included           指定是否导出字段名到 csv 首行，默认 true，csv 格式有效。
-  --file               指定要导出的文件名。
-  --type               指定的导出数据格式。默认 csv，数据格式可以是 csv 或 json。
-  --errorstop          如果遇到错误就停止，默认 false。
+  --delrecord   -r     记录分隔符。默认是'\\n'。
+  --type               导出数据格式，为 csv 或j son，默认为 csv。
+  --filelimit					 指定单个导出文件的大小上限，单位可以为k/K/M/m/G/g/T/t，默认值为16G，当导出文件将超过限制时，会切分为多个文件，具有编号后缀，如file.csv，file.csv.1，file.csv.2
+  --fields             导出集合的字段。该选项可以指定多次以指定多个导出集合的字段。格式为<CLFullName>:<field-list>，当确定只导出一个集合时，可以仅指定<field-list>，其中<field-list>中多个字段使用逗号分隔。
+  --withid						 强制导出或者在配置文件中生成字段时，是否包含'_id'字段，默认为false。
+  --errorstop          导出数据时遇到错误就停止，默认 false。
   --ssl                使用 SSL 连接，默认 false。
+**单集合选项**
+  --csname      -c     导出数据的集合空间名。
+  --clname      -l     导出数的集合名。
+  --file               要导出的文件名。
+  --select						 选择规则，如 --select '{ age:"", address:{$trim:1} }，不能和选项fields同时使用。
+  --filter						 导出过滤条件，例如：--filter '{ age: 18 }'。
+  --sort						   导出数据排序条件，例如：--sort '{ name: 1 }'。
+**多集合选项**
+  参数          缩写   描述
+  ------------- ------ -------------------------------------------------------------------------------
+  --cscl							 导出的若干个导出集合或集合空间，多个名称使用逗号分隔，如 --cscl cs1,cs2.cla
+  --excludecscl				 不包含的集合或集合空间，类似--cscl。
+  --dir                导出的目录。导出的每一个集合对应目录中的同名文件，如foo.bar.csv。
+**CSV选项**
+  参数          缩写   描述
+  ------------- ------ -------------------------------------------------------------------------------
+  --delchar     -a     字符分隔符，默认是'"'。
+  --delfield    -e     字段分隔符，默认是','。
+  --included           是否导出字段名到文件首行。
+  --includebinary			 是否导出完整二进制数据，默认为false。
+  --includeregex 			 是否导出完整的正则表达式，默认为false。
+  --force							 对于导出csv格式，每个集合必须指定对应的字段，否则不允许导出；force选项可以强制导出，未指定字段的集合默认为第一行记录中除了'_id'以外的字段
+**配置文件选项**
+  参数          缩写   描述
+  ------------- ------ -------------------------------------------------------------------------------
+  --genconf						 指定一个配置文件名，将当前命令行中所指定的选项和值按照"键=值"的方式写入到配置文件，不执行导出工作。
+	--genfields					 生成配置文件时，是否对每一个集合生成对应的fields选项，默认为true。
+	--conf							 指定一个配置文件作为输入，如果命令中和配置文件中存在相同的选项，优先选择命令行中的值。
+
+补充：
+- 导出工具支持单集合导出和多集合批量导出，**单集合选项**只能用于导出一个集合，但具有更灵活的导出条件选项，如过滤、排序。
+- 导出多集合到csv格式时，必须使用fields选项对每一个集合指定字段，工具提供的genconf选项将每一个集合的第一行记录的字段导出到配置文件中的fields选项，可以比较方便地编辑每一个集合的字段。
+- genconf选项将当前命令行的选项写入到配置文件中，下次使用conf选项指定配置文件执行即可，这提供一种多次执行相似命令的便捷方式，另外这种方式主要用于在多集合导出csv情况下，对每一个集合生成对应的fields选项。
+- 导出单集合时，select具有和fields选项一样的作用，但select选项更加灵活。
+- 当不指定导出任何集合或者集合空间，即-c、-l、--cscl都不指定，则导出数据库中所有的集合
+- 当使用配置文件的选项和命令行选项一样时，优先选择命令行值；而对于fields选项，可以多次指定，则合并配置文件和命令行的值
 
 ###返回值###
 
@@ -288,9 +320,37 @@ sdbexprt 是一个实用的工具。它可以从 SequoiaDB 数据库导出一个
 
 -   127：参数错误
 
-###用法###
+###示例###
 
-在下面的例子，sdbexprt 从本地数据库端口11810中导出集合空间 foo 的集合 bar 的数据，导出类型是 csv，导出文件为 contact，导出字段是 field1 和 field2。
-
+1. 导出集合foo.bar，导出格式为csv，导出文件为foo.bar.csv，指定字段field1,fieldNotExist,field3，其中字段在集合中不存在。
 <pre class="prettyprint lang-javascript">
-$ sdbexprt -s localhost -p 11810 --type csv --file contace --fields field1,field2 -c foo -l bar</pre>
+$ sdbexprt -s localhost -p 11810 --type csv --file foo.bar.csv --fields field1,fieldNotExist,field3 -c foo -l bar</pre>
+导出的foo.bar.csv的内容可能如下：
+<pre class="prettyprint lang-diy">
+field1, fieldNotExist, field3
+"Jack",,"China"
+"Mike",,"USA"</pre>
+2. 导出数据库中所有的集合，排除集合空间cs1和集合cs2.cla以外，导出文件到目录exportpath下
+<pre class="prettyprint lang-javascript">
+$ sdbexprt --type json --dir exportpath --excludecscl cs1,cs2.cla </pre>
+3. 导出一个集合空间中所有的集合和另外一个集合，排除一个集合，导出csv格式，由于必须指定每一个集合的fields，使用force选项强制导出
+<pre class="prettyprint lang-javascript">
+$ sdbexprt --dir exportpath --cscl cs1.cla,cs2 --excludecscl cs2.cla --force </pre>
+4. 同上例，生成配置文件模板，其中配置文件中包含每一个所对应的fields选项；根据需求修改配置文件之后，再执行导出
+生成配置文件：
+<pre class="prettyprint lang-javascript">
+$ sdbexprt --dir exportpath --cscl cs1.cla,cs2 --excludecscl cs2.cla --genconf export.conf </pre>
+配置文件文件内容可能如下：
+<pre class="prettyprint lang-diy">
+hostname = localhost
+. . .
+dir = exportpath/
+cscl = cs1.cla,cs2
+excludecscl = cs2.cla
+fields = cs1.cla: a1, a2, a3
+fields = cs2.clb: b1, b2, b3
+fields = cs2.clc: c1, c2
+fields = cs2.cld: d1, d2, d3, d4</pre>
+执行导出：
+<pre class="prettyprint lang-javascript">
+$ sdbexprt --conf export.conf </pre>
