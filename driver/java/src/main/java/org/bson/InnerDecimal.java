@@ -90,56 +90,10 @@ public class InnerDecimal {
 	// values for input decimal info
 	private String _rawStrData;
 
-	// // get and set raw decimal data
-	// public int getRawSize() {
-	// return _rawSize;
-	// }
-	//
-	// public int getRawTypeMod() {
-	// return _rawTypeMod;
-	// }
-	//
-	// public short getRawDscale() {
-	// return _rawDscale;
-	// }
-	//
-	// public short getRawWeight() {
-	// return _rawWeight;
-	// }
-	//
-	// public short[] getRawDigits() {
-	// int ndigits = _rawDigits.length;
-	// short[] retDigits = new short[ndigits];
-	// System.arraycopy(_rawDigits, 0, retDigits, 0, ndigits);
-	// return retDigits;
-	// }
-
-	// // set raw decimal data
-	// public void setRawSize(int size) {
-	// _rawSize = size;
-	// }
-	//
-	// public void setRawTypeMod(int typemod) {
-	// _rawTypeMod = typemod;
-	// }
-	//
-	// public void setRawDscale(short dscale) {
-	// _rawDscale = dscale;
-	// }
-	//
-	// public void setRawWeight(short weight) {
-	// _rawWeight = weight;
-	// }
-	//
-	// public void setRawDigits(short[] digits) {
-	// int ndigits = digits.length;
-	// _rawDigits = new short[ndigits];
-	// System.arraycopy(digits, 0, _rawDigits, 0, ndigits);
-	// }
-
 	// get decimal info for calculating
 	public int getTypeMod() {
-		return _typemod;
+		// when input nan/max/min, _digits is null
+		return  (_digits != null && _digits.length > 0) ? _typemod : -1;
 	}
 
 	public int getNDigits() {
@@ -164,10 +118,13 @@ public class InnerDecimal {
 
 	public short[] getDigits() {
 		short[] retDigits = new short[_ndigits];
-		if (!_hasCarry) {
-			System.arraycopy(_digits, 1, retDigits, 0, _ndigits);
-		} else {
-			System.arraycopy(_digits, 0, retDigits, 0, _ndigits);
+		// when input nan/max/min, _digits is null
+		if (_digits != null && _digits.length > 0) {
+			if (!_hasCarry) {
+				System.arraycopy(_digits, 1, retDigits, 0, _ndigits);
+			} else {
+				System.arraycopy(_digits, 0, retDigits, 0, _ndigits);
+			}
 		}
 		return retDigits;
 	}
