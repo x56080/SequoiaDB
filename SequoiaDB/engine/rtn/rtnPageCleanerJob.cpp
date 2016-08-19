@@ -97,7 +97,7 @@ namespace engine
 
          cleanSUID = DMS_INVALID_SUID ;
 
-         // _tryToSyncDB() ;
+         _tryToSyncDB() ;
          // dispatch the first storage unit in clean pending list
          // 1) suLock to lock the collection space, so that no one is able to
          // drop the cs during the time
@@ -115,20 +115,18 @@ namespace engine
          // otherwise perform clean and reset the time
          // mark su's page cleaner is working, so that cs can't be destroyed
          // before page cleaner stop
-         //su->data()->lockPageCleaner() ;
-         //su->index()->lockPageCleaner() ;
+         su->data()->lockPageCleaner() ;
+         su->index()->lockPageCleaner() ;
          // unlock the cs
-         //su->lob()->syncCacheDirtys( eduCB() ) ;
-         //su->lob()->recycleCache( 3 ) ;
          dmsCB->suUnlock ( cleanSUID, SHARED ) ;
          // flush dirty pages
-         //su->data()->flushDirtySegments() ;
+         su->data()->flushDirtySegments() ;
          // unlock page cleaner, so that the object can be destroyed
-         //su->data()->unlockPageCleaner () ;
+         su->data()->unlockPageCleaner () ;
          // flush dirty pages for index
-         //su->index()->flushDirtySegments() ;
+         su->index()->flushDirtySegments() ;
          // unlock page cleaners
-         //su->index()->unlockPageCleaner () ;
+         su->index()->unlockPageCleaner () ;
          // if we can't lock the su, let's try to join the su back to list
          rc = dmsCB->joinPageCleanSU ( cleanSUID ) ;
          // joinPageCleanSU may fail with SDB_DMS_CS_NOTEXIST, and it's fully
