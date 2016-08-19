@@ -607,12 +607,6 @@ sdbinspect = toolEnv.Program("sdbinspect",
          inspectFiles,
          LIBDEPS=["oss", "bson", "pmd", "util", "pd", "client", "clientcpp"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
-
-hb2Files = [ "/home/users/lyb/ds/hb2.cpp" ]
-hb2 = toolEnv.Program("hb2", hb2Files,
-          LIBDEPS=["oss","pd","pmd","bson","dps", "util"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-
          
 if linux:         
    sdbomtool = toolEnv.Program("sdbomtool",
