@@ -664,7 +664,7 @@ int sdbGetIndexInfos( SdbExecState *sdbState, sdbIndexInfo *indexInfo,
                       INT32 maxNum, INT32 *indexNum )
 {
    INT32 rc = SDB_OK ;
-   sdbCursorHandle cursor ;
+   sdbCursorHandle cursor = 0;
    sdbbson obj ;
    INT32 count = 0 ;
 
@@ -759,6 +759,11 @@ done:
    {
       sdbReleaseCollection(sdbState->hCollection) ;
       sdbState->hCollection = SDB_INVALID_HANDLE ;
+   }
+
+   if (0 != cursor)
+   {
+      sdbReleaseCursor(cursor);
    }
 
    return rc ;
