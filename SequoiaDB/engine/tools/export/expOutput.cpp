@@ -30,6 +30,7 @@
 *******************************************************************************/
 #include "expOutput.hpp"
 #include "pd.hpp"
+#include "ossUtil.hpp"
 #include <sstream>
 #include <iostream>
 
@@ -156,14 +157,51 @@ namespace exprt
       goto done ;
    }
 
+   static void appendCSVField( fieldResolve *pFieldRe, string &fieldList )
+   {
+      fieldList += pFieldRe->pField ;
+      while ( pFieldRe->pSubField )
+      {
+         pFieldRe = pFieldRe->pSubField ;
+         fieldList += '.' ;
+         fieldList += pFieldRe->pField ;
+      }
+   }
+
    INT32 expCSVConvertor::head( const CHAR *&toBuf, UINT32 &toSize ) 
    {
+      INT32 rc = SDB_OK ;
+
       if ( _options.headLine() )
       {
-         toBuf = _cl.fields.c_str() ;
-         toSize = (UINT32)( _cl.fields.size() ) ;
+         INT32 fieldsNum = 0 ;
+         fieldResolve *pFieldRe = NULL ;
+         string fieldList ;
+         fieldsNum = _decodeBson._vFields.size() ;
+         for ( INT32 i = 0; i < fieldsNum; ++i )
+         {
+            pFieldRe = _decodeBson._vFields[i] ;
+            appendCSVField( pFieldRe, fieldList ) ;
+            if ( i + 1 < fieldsNum )
+            {
+               fieldList += _options.delField() ;
+            }
+         } // end for
+
+         toSize = fieldList.size() ;
+         toBuf = _getBuf( toSize + 1 ) ;
+         if ( !toBuf )
+         {
+            PD_LOG ( PDERROR, "Failed to alloc buf sized %u ", toSize ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+         ossStrncpy( (CHAR*)toBuf, fieldList.c_str(), toSize + 1 ) ;
       }
-      return SDB_OK ;
+done:
+   return rc ;
+error:
+   goto done ;
    }
 
    INT32 expCSVConvertor::convert( bson &fromRecord, 
