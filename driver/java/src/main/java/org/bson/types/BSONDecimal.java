@@ -203,6 +203,11 @@ public class BSONDecimal implements Serializable {
 		return _scale;
 	}
 
+    /**
+     * @fn boolean equals(Object obj)
+     * @brief test current object equals with the other object or not, not care about the precision and scale
+     * @return true or false
+     */
     @Override
     public boolean equals(Object obj) {
         if (obj == this)
