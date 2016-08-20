@@ -1257,6 +1257,20 @@ namespace engine
             INT64 v = e.Bool() ? 1 : 0 ;
             builder.append( fieldName, v ) ;
          }
+         else if ( NumberDouble == e.type() )
+         {
+            INT64 l = 0 ;
+            double d = e.Double() ;
+            if ( d >= 0 && d < 9223372036854775808.0 )
+            {
+               l = (INT64)d ;
+            }
+            else if ( d < 0 && d >= -9223372036854775808.0 )
+            {
+               l = (INT64)d ;
+            }
+            builder.appendNumber( fieldName, l ) ;
+         }
          else if ( String != e.type() )
          {
             builder.appendNumber( fieldName, e.numberLong() ) ;
@@ -1271,8 +1285,17 @@ namespace engine
                     ossStrchr ( e.valuestr (), 'e' ) != NULL )
                {
                   double d = 0  ;
+                  INT64 l = 0 ;
                   d = boost::lexical_cast<double>( e.valuestr () ) ;
-                  builder.appendNumber( fieldName, ( INT64 )d ) ;
+                  if ( d >= 0 && d < 9223372036854775808.0 )
+                  {
+                     l = (INT64)d ;
+                  }
+                  else if ( d < 0 && d >= -9223372036854775808.0 )
+                  {
+                     l = (INT64)d ;
+                  }
+                  builder.appendNumber( fieldName, l ) ;
                }
                else
                {
