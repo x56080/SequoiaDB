@@ -329,7 +329,7 @@
                     <description>${msg(Install.Paramers.processAutoStart.Description)}</description>
                     <explanation>${msg(Install.Paramers.processAutoStart.explanation)}</explanation>
                     <value></value>
-                    <default>false</default>
+                    <default>true</default>
                     <cliOptionText>${msg(Install.Paramers.processAutoStart.explanation)}</cliOptionText>                   
                 </booleanParameter>
                 <stringParameter>
