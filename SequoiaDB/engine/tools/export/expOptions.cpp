@@ -146,7 +146,7 @@ namespace exprt
       ( OPTION_SVCNAME",p",            _TYPE(string),    EXPLAIN_SVCNAME ) \
       ( OPTION_USER",u",               _TYPE(string),    EXPLAIN_USER ) \
       ( OPTION_PASSWORD",w",           _TYPE(string),    EXPLAIN_PASSWORD ) \
-      ( OPTION_DELRECORD,              _TYPE(string),    EXPLAIN_DELRECORD ) \
+      ( OPTION_DELRECORD",r",          _TYPE(string),    EXPLAIN_DELRECORD ) \
       ( OPTION_FILELIMIT,              _TYPE(string),    EXPLAIN_FILELIMIT ) \
       ( OPTION_TYPE,                   _TYPE(string),    EXPLAIN_TYPE ) \
       ( OPTION_WITHID,                 _TYPE(bool),      EXPLAIN_WITHID ) \
@@ -168,8 +168,8 @@ namespace exprt
       ( OPTION_DIRNAME,                _TYPE(string),    EXPLAIN_DIRNAME ) 
 
    #define EXP_CSV_OPTIONS \
-      ( OPTION_DELCHAR,                _TYPE(CHAR),      EXPLAIN_DELCHAR ) \
-      ( OPTION_DELFIELD,               _TYPE(CHAR),      EXPLAIN_DELFIELD ) \
+      ( OPTION_DELCHAR",a",            _TYPE(CHAR),      EXPLAIN_DELCHAR ) \
+      ( OPTION_DELFIELD",e",           _TYPE(CHAR),      EXPLAIN_DELFIELD ) \
       ( OPTION_INCLUDE,                _TYPE(bool),      EXPLAIN_INCLUDE ) \
       ( OPTION_INCLUDEBINARY,          _TYPE(bool),      EXPLAIN_INCLUDEBINARY)\
       ( OPTION_INCLUDEREGEX,           _TYPE(bool),      EXPLAIN_INCLUDEREGEX )\
