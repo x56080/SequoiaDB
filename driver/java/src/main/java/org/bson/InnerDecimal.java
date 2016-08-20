@@ -56,19 +56,6 @@ public class InnerDecimal {
 	static final int DECIMAL_DIV_GUARD_DIGITS = 4;
 
 	final int[] round_powers = { 0, 1000, 100, 10 };
-	// // values for raw decimal data
-	// private int _rawSize; /* total byte size of decimal data after encoding
-	// */
-	// private int _rawTypeMod; /*
-	// * precision + scale, precision = (typemod >> 16) &
-	// * 0xffff, scale = typemod & 0xffff
-	// */
-	// private short _rawDscale; /*
-	// * sign + dscale, sign = dscale & 0xc000, scale =
-	// * dscale & 0x3fff
-	// */
-	// private short _rawWeight; /* weigh of the decimal(NBASE=10000) */
-	// private short[] _rawDigits; /* read data */
 
 	// values for decimal for calculating
 	private int _typemod; /*

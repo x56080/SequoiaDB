@@ -211,9 +211,7 @@ public class BSONDecimal implements Serializable {
         	BSONDecimal d2 = (BSONDecimal) obj;
         	BigDecimal self = new BigDecimal(getValue());
         	BigDecimal other = new BigDecimal(d2.getValue());
-        	return self.compareTo(other) == 0 && 
-        			getPrecision() == d2.getPrecision() && 
-        			getScale() == d2.getScale();
+        	return self.compareTo(other) == 0;
         }
         return false;
     }
