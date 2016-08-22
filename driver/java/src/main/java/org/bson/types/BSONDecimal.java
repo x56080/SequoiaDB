@@ -28,23 +28,21 @@ import org.bson.util.JSON;
  * number of digits.
  * <p>
  * We use the following terms below: The <code>scale</code> of a
- * <code>BSONDecimal</code> is the count of decimal digits in the fractional
- * part, to the right of the decimal point. The <code>precision</code> of a
- * BSONDecimal is the total count of significant digits in the whole number,
+ * <code>BSONDecimal</code> is the max number of digits after the decimal point. 
+ * The <code>precision</code> of a <code>BSONDecimal</code> is the total count 
+ * of significant digits in the whole number,
  * that is, the number of digits to both sides of the decimal point. So the
  * number 23.5141 has a <code>precision</code> of 6 and a <code>scale</code> of
  * 4. Integers can be considered to have a <code>scale</code> of zero. Besides,
  * when user does not specified <code>precision</code> and <code>scale</code> to
  * build a <code>BSONDecimal</code> object, set both of them as -1. That means
  * the <code>precision</code> and <code>scale</code> are determined by the upper
- * limit of accuracy of the database. So far, the database can handle a decimal
- * which <code>precision</code> is not more than 1000. So, when specified
- * <code>precision</code> and <code>scale</code>, the range of
- * <code>precision</code> is [1, 1000], and the range of <code>scale</code> is
- * [0, <code>precision</code>].
+ * limit of accuracy of the database. Database allow 131072 digits before decimal 
+ * point and 16383 digits after decimal point at most.
  * </p>
  * <p>
- * By the way, when the fractional part of the offered decimal is greater the
+ * By the way, when user specified the <code>precision</code> and <code>scale</code>, 
+ * if the fractional part of the offered decimal is greater the
  * <code>scale</code>, BSONDecimal will round the fractional part to the
  * specified <code>scale</code> with the mode of HALP_UP.
  * </p>
@@ -168,7 +166,7 @@ public class BSONDecimal implements Serializable {
 
 	/**
 	 * @fn String getValue()
-	 * @brief get he value of decimal
+	 * @brief get the value of decimal
 	 * @return the value of decimal
 	 */
 	public String getValue() {
@@ -180,10 +178,10 @@ public class BSONDecimal implements Serializable {
 	 * @brief get the precision of decimal
 	 * @return return the <code>precision</code> specified by user or -1 for
 	 *         user did not specify it.
-	 * @note when user did not specify the <code>precision</code>, that means
-	 *       the <code>precision</code> is determined by the upper limit of
-	 *       accuracy of the database. So far, the range of
-	 *       <code>precision</code> is [1, 1000].
+	 * @note  When user specify <code>precision</code>, the range of it is [1, 1000]. When user did not specify 
+     * <code>precision</code>, it will be set to -1. That means the <code>precision</code> is determined 
+     * by database. For decimal, database allow 131072 digits before decimal point and 16383 digits
+     * after decimal point at most. 
 	 */
 	public int getPrecision() {
 		return _precision;
@@ -194,10 +192,11 @@ public class BSONDecimal implements Serializable {
 	 * @brief get the scale of the decimal
 	 * @return return the <code>scale</code> specified by user or -1 for user
 	 *         did not specify it.
-	 * @note when user did not specify the <code>scale</code>, that means the
-	 *       <code>scale</code> is determined by the upper limit of accuracy of
-	 *       the database. So far, the range of <code>scale</code> is [0,
-	 *       <code>precision</code>].
+	 * @note When user specify <code>scale</code>, the range of it is [0, <code>precision</code>]. 
+     * When user did not specify <code>scale</code>, it will be set to -1. 
+     * That means the <code>scale</code> is determined 
+     * by database. For decimal, database allow 131072 digits before decimal point and 16383 digits
+     * after decimal point at most. 
 	 */
 	public int getScale() {
 		return _scale;
