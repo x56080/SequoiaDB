@@ -109,10 +109,35 @@ INT32 clientConnect ( const CHAR *pHostName,
 
    ossMemset ( &sockAddress, 0, sizeof(sockAddress) ) ;
    sockAddress.sin_family = AF_INET ;
+   // get host info
+#if defined (_WINDOWS)
    if ( (hp = gethostbyname ( pHostName ) ) )
-      sockAddress.sin_addr.s_addr = *((UINT32*)hp->h_addr_list[0] ) ;
+#elif defined (_LINUX)
+   struct hostent hent ;
+   struct hostent *retval = NULL ;
+   INT32 error             = 0 ;
+   CHAR hbuf[8192]         = { 0 } ;
+   hp                       = &hent ;
+   if ( (0 == gethostbyname_r ( pHostName, &hent, hbuf, sizeof(hbuf), 
+   	                              &retval, &error )) && NULL != retval )
+#elif defined (_AIX)
+   struct hostent hent ;
+   struct hostent_data hent_data ;
+   hp = &hent ;
+   if ( (0 == gethostbyname_r ( pHostname, &hent, &hent_data ) ) )
+#endif
+   {
+      UINT32 *pAddr = (UINT32 *)hp->h_addr_list[0] ;
+      if ( pAddr )
+      {
+         sockAddress.sin_addr.s_addr = *( pAddr ) ;  
+      }
+   }
    else
+   {
       sockAddress.sin_addr.s_addr = inet_addr ( pHostName ) ;
+   }
+   // get service info
    servinfo = getservbyname ( pServiceName, "tcp" ) ;
    if ( !servinfo )
    {
