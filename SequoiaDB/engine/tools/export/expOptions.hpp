@@ -46,9 +46,15 @@ namespace exprt
    enum EXP_FILE_FORMAT
    {
       FORMAT_CSV = 0,
-      FORMAT_JSON
-   } ;
+      FORMAT_JSON,
 
+      // new format here
+
+      FORMAT_COUNT
+   } ;
+   extern const CHAR *formatNames[FORMAT_COUNT] ;
+   INT32 formatOfName( const string & name, EXP_FILE_FORMAT &format ) ;
+   
    class expOptions : public SDBObject
    {
    public :

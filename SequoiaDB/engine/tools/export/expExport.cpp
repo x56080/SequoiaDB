@@ -140,10 +140,12 @@ namespace exprt
       UINT64 accumulatedSize = 0 ;
       UINT64 _exportedCount = 0 ;
       UINT64 _failCount = 0 ;
+      UINT64 recordIdx = 0 ;
       bson_init ( &record ) ;
 
       while ( TRUE )
       {
+         ++recordIdx ;
          rc = sdbNext( hCusor, &record ) ;
          if ( SDB_DMS_EOC == rc )
          {
@@ -152,32 +154,35 @@ namespace exprt
          }
          else if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "Failed to get the next record, rc = %d", rc ) ;
+            PD_LOG( PDERROR, "Failed to get the %lluth record, rc = %d", 
+                    recordIdx, rc ) ;
             goto error ;
          }
 
          rc = _convertor.convert( record, buf, size ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "Failed to convert a record, rc = %d", rc ) ;
+            PD_LOG( PDERROR, "Failed to convert the %lluth record, rc = %d", 
+                    recordIdx, rc ) ;
             ++failCount ;
             if ( _options.errorStop() )
             {
                goto error ;
             }
-            continue ;
+            goto recordDone ;
          }
 
          rc = _out.output( buf, size ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "Failed to output record, rc = %d", rc ) ;
+            PD_LOG( PDERROR, "Failed to output the %lluth record, rc = %d", 
+                    recordIdx, rc ) ;
             ++_failCount ;
             if ( _options.errorStop() )
             {
                goto error ;
             }
-            continue ;
+            goto recordDone ;
          }
          ++_exportedCount ;
 
@@ -190,14 +195,17 @@ namespace exprt
             accumulatedSize = 0 ;
          }
 
+      recordDone :
+
          buf = _options.delRecord().c_str() ;
          size = (UINT32)_options.delRecord().size() ;
          accumulatedSize += size ;
-         rc = _out.output( buf, size );
+         rc = _out.output( buf, size ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "Failed to output the record delimiter, rc = %d",
-                    rc ) ;
+            PD_LOG( PDERROR, "Failed to output record-delimiter after"
+                             " the %lluth record , rc = %d",
+                    recordIdx, rc ) ;
             goto error ;
          }
       }

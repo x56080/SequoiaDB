@@ -40,6 +40,10 @@ namespace exprt
 {
    using namespace engine ;
 
+   #ifndef W_OK
+   #define W_OK         2
+   #endif
+
    // general
    #define OPTION_HELP              "help"
    #define OPTION_VERSION           "version"
@@ -135,8 +139,6 @@ namespace exprt
 
    #define FILELIMIT_MAX            ( 16LL * 1024 * 1024 * 1024 * 1024 ) // 16T
 
-   static const CHAR *EXP_FILE_FORMAT_STR[] = { "csv", "json" } ;
-
    #define _TYPE(T) po::value< T >()
 
    #define EXP_GENERAL_OPTIONS \
@@ -168,8 +170,8 @@ namespace exprt
       ( OPTION_DIRNAME,                _TYPE(string),    EXPLAIN_DIRNAME ) 
 
    #define EXP_CSV_OPTIONS \
-      ( OPTION_DELCHAR",a",            _TYPE(CHAR),      EXPLAIN_DELCHAR ) \
-      ( OPTION_DELFIELD",e",           _TYPE(CHAR),      EXPLAIN_DELFIELD ) \
+      ( OPTION_DELCHAR",a",            _TYPE(string),      EXPLAIN_DELCHAR ) \
+      ( OPTION_DELFIELD",e",           _TYPE(string),      EXPLAIN_DELFIELD ) \
       ( OPTION_INCLUDE,                _TYPE(bool),      EXPLAIN_INCLUDE ) \
       ( OPTION_INCLUDEBINARY,          _TYPE(bool),      EXPLAIN_INCLUDEBINARY)\
       ( OPTION_INCLUDEREGEX,           _TYPE(bool),      EXPLAIN_INCLUDEREGEX )\
@@ -197,17 +199,15 @@ namespace exprt
          buf += OSS_NEWLINE ; \
       }
 
-   // get the EXP_FILE_FORMAT value from string representation
-   static INT32 getFormatType( const string &typeStr, EXP_FILE_FORMAT &type )
+   const CHAR *formatNames[FORMAT_COUNT] = { "csv", "json" } ;
+   INT32 formatOfName( const string & name, EXP_FILE_FORMAT &format )
    {
       INT32 rc = SDB_INVALIDARG ;
-      for ( INT32 i = 0; 
-            i < (INT32)( sizeof(EXP_FILE_FORMAT_STR)/sizeof(const CHAR*) );
-            ++i )
+      for ( INT32 i = 0; i < FORMAT_COUNT; ++i )
       {
-         if ( typeStr == EXP_FILE_FORMAT_STR[i] )
+         if ( formatNames[i] == name )
          {
-            type = (EXP_FILE_FORMAT)i ;
+            format = (EXP_FILE_FORMAT)i ;
             rc = SDB_OK ;
             break ;
          }
@@ -260,7 +260,7 @@ namespace exprt
                               _hostName      (DEFAULT_HOSTNAME),
                               _svcName       (DEFAULT_SVCNAME),
                               _delRecord     ("\n"),
-                              _typeName      (EXP_FILE_FORMAT_STR[FORMAT_CSV]),
+                              _typeName      (formatNames[FORMAT_CSV]),
                               _type          (FORMAT_CSV),
                               _withId        (FALSE),
                               _errorStop     (FALSE),
@@ -503,6 +503,71 @@ namespace exprt
          return _confVm[option].as<T>() ;
    }
 
+   #define IS_HEX( c )  \
+      ( ( (c) >= '0' && (c) <= '9' ) || \
+        ( (c) >= 'a' && (c) <= 'f' ) || \
+        ( (c) >= 'A' && (c) <= 'F' ) )
+
+   static INT32 hexValue( CHAR c )
+   {
+      INT32 i = 0 ;
+      if ( c >= '0' && c <= '9' )
+      {
+         i = c - '0' ;
+      }
+      else if ( c >= 'a' && c <= 'f' )
+      {
+         i = 10 + c - 'a' ;
+      }
+      else
+      {
+         i = 10 + c - 'A' ;
+      }
+      return i ;
+   }
+        
+   static INT32 getDel( const string &rawChar, CHAR &chr ) 
+   {
+      INT32 rc = SDB_OK ;
+      if ( 1 == rawChar.size() )
+      {
+         chr = rawChar[0] ;
+         goto done ;
+      }
+      if ( rawChar.size() < 3 || rawChar.size() > 4 )
+      {
+         PD_LOG( PDERROR, "Invalid value for char" ) ;
+         goto error ;
+      }
+      if ( '0' != rawChar[0] || 'x' != rawChar[1] )
+      {
+         PD_LOG( PDERROR, "Invalid value for char" ) ;
+         goto error ;
+      }
+      
+      if ( 3 == rawChar.size() && IS_HEX( rawChar[2] ) )
+      {
+         chr = (CHAR)hexValue( rawChar[2] ) ;
+      }
+      else if ( 4 == rawChar.size() && 
+                IS_HEX( rawChar[2] ) && IS_HEX( rawChar[3] ) )
+      {
+         chr = (CHAR)( 16 * hexValue( rawChar[2] ) + hexValue( rawChar[3] ) );
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Invalid value for char" ) ;
+         goto error ;
+      }
+
+         
+   done:
+      return rc ;
+   error:
+      rc = SDB_INVALIDARG ;
+      goto done ;
+   }
+
    // check and set the delimiter options
    INT32 expOptions::_setDelOptions() 
    {
@@ -510,15 +575,39 @@ namespace exprt
 
       if ( _has(OPTION_DELCHAR) )   
       { 
-         _delChar = _get<CHAR>(OPTION_DELCHAR) ; 
+         string rawStr = _get<string>(OPTION_DELCHAR) ; 
+         rc = getDel( rawStr, _delChar ) ;
+         if ( SDB_OK != rc )
+         {
+            cerr << "invalid value for option \""  OPTION_DELCHAR "\"" 
+                 << endl ;
+            PD_LOG( PDERROR, "Invalid value for option \""  
+                             OPTION_DELCHAR "\"" ) ;
+            goto error ;
+         }
       }
       if ( _has(OPTION_DELFIELD) )   
       { 
-         _delField = _get<CHAR>(OPTION_DELFIELD) ; 
+         string rawStr = _get<string>(OPTION_DELFIELD) ; 
+         rc = getDel( rawStr, _delField ) ;
+         if ( SDB_OK != rc )
+         {
+            cerr << "invalid value for option \""  OPTION_DELFIELD "\"" 
+                 << endl ;
+            PD_LOG( PDERROR, "Invalid value for option \""  
+                             OPTION_DELFIELD "\"" ) ;
+            goto error ;
+         }
       }
       if ( _has(OPTION_DELRECORD) )   
       { 
+         // delRecord can be one char or a string
+         CHAR chr = 0 ;
          _delRecord = _get<string>(OPTION_DELRECORD) ; 
+         if ( SDB_OK == getDel( _delRecord, chr ) )
+         {
+            _delRecord = string( 1, chr ) ;
+         }
       }
 
       if ( ' ' == _delChar  || '\t' == _delChar || 
@@ -809,7 +898,7 @@ namespace exprt
       if ( _has(OPTION_TYPE) )
       {
          _typeName = _get<string>(OPTION_TYPE) ;
-         rc = getFormatType( _typeName, _type ) ;
+         rc = formatOfName( _typeName, _type ) ;
          if ( SDB_OK != rc )
          {
             cerr << "invalid value for option \"" << OPTION_TYPE << "\"" <<endl;

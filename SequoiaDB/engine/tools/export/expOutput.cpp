@@ -198,10 +198,10 @@ namespace exprt
          }
          ossStrncpy( (CHAR*)toBuf, fieldList.c_str(), toSize + 1 ) ;
       }
-done:
-   return rc ;
-error:
-   goto done ;
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 expCSVConvertor::convert( bson &fromRecord, 
