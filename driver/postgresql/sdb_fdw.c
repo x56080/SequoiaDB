@@ -4147,25 +4147,23 @@ TupleTableSlot *SdbExecForeignInsert( EState *estate, ResultRelInfo *rinfo,
 TupleTableSlot *SdbExecForeignDelete( EState *estate, ResultRelInfo *rinfo,
       TupleTableSlot *slot, TupleTableSlot *planSlot )
 {
+   int i   = 0 ;
    sdbbson sdbbsonCondition ;
-   sdbbson_iterator iter ;
    sdbbson *original ;
    int rc = SDB_OK ;
    SdbExecState *fdw_state = ( SdbExecState * )rinfo->ri_FdwState ;
 
    sdbbson_init( &sdbbsonCondition ) ;
    original = sdbGetRecordPointer( fdw_state->bson_record_addr ) ;
-
-   sdbbson_iterator_init( &iter, original ) ;
-   while ( sdbbson_iterator_more( &iter ) )
+   for ( i = 0 ; i < fdw_state->key_num ; i++ )
    {
-       sdbbson_iterator_next( &iter ) ;
-       sdbbson_append_element( &sdbbsonCondition, NULL, &iter ) ;
+      sdbbson_iterator ite ;
+      sdbbson_find( &ite, original, fdw_state->key_name[i] ) ;
+      sdbbson_append_element( &sdbbsonCondition, NULL, &ite ) ;
    }
    sdbbson_finish( &sdbbsonCondition ) ;
 
    //delete the bson from the sdb
-   sdbPrintBson( &sdbbsonCondition, DEBUG1, "delete's filter" ) ;
    rc = sdbDelete( fdw_state->hCollection, &sdbbsonCondition, NULL ) ;
    if ( rc != SDB_OK )
    {
@@ -4195,7 +4193,6 @@ TupleTableSlot *SdbExecForeignUpdate( EState *estate, ResultRelInfo *rinfo,
    Datum datum ;
    int rc = SDB_OK ;
    bool isnull ;
-   sdbbson_iterator iter ;
    SdbExecState *fdw_state = ( SdbExecState * )rinfo->ri_FdwState ;
 
    sdbbson_init( &sdbbsonTempValue ) ;
@@ -4223,12 +4220,11 @@ TupleTableSlot *SdbExecForeignUpdate( EState *estate, ResultRelInfo *rinfo,
 
    sdbbson_init( &sdbbsonCondition ) ;
    original = sdbGetRecordPointer( fdw_state->bson_record_addr ) ;
-
-   sdbbson_iterator_init( &iter, original ) ;
-   while ( sdbbson_iterator_more( &iter ) )
+   for ( i = 0 ; i < fdw_state->key_num ; i++ )
    {
-       sdbbson_iterator_next( &iter ) ;
-       sdbbson_append_element( &sdbbsonCondition, NULL, &iter ) ;
+      sdbbson_iterator ite ;
+      sdbbson_find( &ite, original, fdw_state->key_name[i] ) ;
+      sdbbson_append_element( &sdbbsonCondition, NULL, &ite ) ;
    }
    sdbbson_finish( &sdbbsonCondition ) ;
 
