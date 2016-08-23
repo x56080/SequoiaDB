@@ -89,7 +89,9 @@ public class SequoiadbDatasourceImpl
 	    public void run() {
 	    	try {
 	    		close();
-	    	} catch(Exception e){}
+	    	} catch(Exception e){
+	    		// do nothing
+	    	}
 	    }
 	}
 
@@ -103,7 +105,11 @@ public class SequoiadbDatasourceImpl
 					Lock rlock = _rwLock.readLock();
 					rlock.lock();
 					try {
-						_createConnections();	
+						if (Thread.interrupted()) {
+							return;
+						} else {
+							_createConnections();
+						}
 					} finally {
 						rlock.unlock();
 					}
@@ -126,7 +132,6 @@ public class SequoiadbDatasourceImpl
 					}
 				}
 			} catch(InterruptedException e) {
-				// todo: test
 				try {
 					Sequoiadb[] arr = (Sequoiadb[])_destroyConnQueue.toArray();
 					for(Sequoiadb db : arr) {
@@ -134,7 +139,6 @@ public class SequoiadbDatasourceImpl
 					}
 				} catch(Exception exp) {
 				}
-				
 			}
 		}
 	}
@@ -145,11 +149,15 @@ public class SequoiadbDatasourceImpl
 			Lock wlock = _rwLock.readLock();
 			wlock.lock();
 			try {
-			    if (_hasClosed)
+				if (Thread.interrupted()) {
+					return;
+				}
+			    if (_hasClosed) {
 			        return;
-				if (false == _isDatasourceOn)
+			    }
+				if (false == _isDatasourceOn) {
 					return ;
-				
+				}
 				// check keep alive timeout
 				if (_dsOpt.getKeepAliveTimeout() > 0) {
 					long lastTime = 0;
@@ -193,10 +201,15 @@ public class SequoiadbDatasourceImpl
 		public void run() {
 			Lock rlock = _rwLock.readLock(); rlock.lock();
 			try {
-		    	if (_hasClosed)
-		    		return;
-				if (0 == _abnormalAddrs.size())
+				if (Thread.interrupted()) {
 					return;
+				}
+		    	if (_hasClosed) {
+		    		return;
+		    	}
+				if (0 == _abnormalAddrs.size()) {
+					return;
+				}
 				Iterator<String> itr = _abnormalAddrs.iterator();
 				ConfigOptions nwOpt = new ConfigOptions();
 				String addr = "";
@@ -214,7 +227,9 @@ public class SequoiadbDatasourceImpl
 					_normalAddrs.add(addr);
 					_strategy.addAddress(addr);
 				}
-			} finally {rlock.unlock();}
+			} finally {
+				rlock.unlock();
+			}
 		}
 	}
 	
@@ -225,10 +240,15 @@ public class SequoiadbDatasourceImpl
 		public void run() {
 			Lock wlock = _rwLock.writeLock(); wlock.lock();
 			try {
-		    	if (_hasClosed)
+				if (Thread.interrupted()) {
+					return;
+				}
+		    	if (_hasClosed) {
 		    		return;
-		    	if (0 == _dsOpt.getSyncCoordInterval())
+		    	}
+		    	if (0 == _dsOpt.getSyncCoordInterval()) {
 		    		return;
+		    	}
 				if (null == _sdb || !_sdb.isValid()) {
 					_sdb = null;
 					// we don't need "synchronized(_normalAddrs)" here, for 
@@ -296,7 +316,9 @@ public class SequoiadbDatasourceImpl
 						_removeAddrInStrategy(addr);
 					}
 				}				
-			} finally {wlock.unlock();}
+			} finally {
+				wlock.unlock();
+			}
 		}
 		
 		private void _synchronizeCoordAddr(Sequoiadb sdb) {
