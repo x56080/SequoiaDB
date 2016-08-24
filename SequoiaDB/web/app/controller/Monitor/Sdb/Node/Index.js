@@ -6,6 +6,8 @@
       var moduleType = SdbFunction.LocalData( 'SdbModuleType' ) ;
       var moduleMode = SdbFunction.LocalData( 'SdbModuleMode' ) ;
       var moduleName = SdbFunction.LocalData( 'SdbModuleName' ) ;
+      var HostName = SdbFunction.LocalData( 'SdbHostName' ) ;
+      var svcname = SdbFunction.LocalData( 'SdbServiceName' ) ;
       $scope.clusterName = clusterName ;
       $scope.moduleName = moduleName ;
       $scope.moduleType = moduleType ;
@@ -16,8 +18,7 @@
       var sql = '' ;
 
       //节点信息，后期根据 跳转函数 获取节点名（主机名+端口号）
-      var HostName = 'ubuntu-test-03' ;
-      var svcname = 11830 ;
+      
 
       var getChartInfo = function(){
          var chartInfo = { 'TotalInsert':0, 'TotalUpdate': 0, 'TotalDelete':0, 'TotalRead':0 } ;

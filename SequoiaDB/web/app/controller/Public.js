@@ -134,6 +134,23 @@
          $rootScope.WindowWidth = $( 'body' ).width() ;
          $rootScope.WindowHeight = $( 'body' ).height() ;
       } ) ;
+
+      var getOMSysInfo = function(){
+         var data = { 'cmd': 'get system info' } ;
+         SdbRest.OmOperation( data, function( systemInfo ){
+            $.each( systemInfo[0], function( key, value ){
+               window.Config[ key ] = value ;
+            } ) ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               getOMSysInfo() ;
+               return true ;
+            } ) ;
+         }, function(){
+            _IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
+         } ) ;
+      }
+      getOMSysInfo() ;
    } ) ;
 
    //顶部
@@ -389,13 +406,20 @@
             case 'sequoiadb':
                $location.path( '/Data/SDB-Database/Index' ).search( params ) ; break ;
             case 'sequoiasql':
-               if( moduleMode == '' || moduleMode == 'oltp' )
+               if( window.Config['Edition'] == 'Enterprise' )
                {
-                  $location.path( '/Data/SQL-Metadata/Index' ).search( params ) ; break ;
+                  if( moduleMode == '' || moduleMode == 'oltp' )
+                  {
+                     $location.path( '/Data/SQL-Metadata/Index' ).search( params ) ; break ;
+                  }
+                  else
+                  {
+                     $location.path( '/Data/NotSupport' ).search( params ) ; break ;
+                  }
                }
                else
                {
-                  $location.path( '/Data/NotSupport' ).search( params ) ; break ;
+                  $location.path( '/Data/Edition' ).search( params ) ; break ;
                }
             case 'hdfs':
                $location.path( '/Data/HDFS-web/Index' ).search( params ) ; break ;

@@ -59,6 +59,7 @@
                   } ) ;
                }
             } ) ;
+            gridShowColumn() ;
          }, function( errorInfo ){
             _IndexPublic.createRetryModel( $scope, errorInfo, function(){
                $scope.getGroupList() ;
@@ -70,9 +71,10 @@
       }
 
       var getGroupList = function(){
-         $scope.queryList( {}, function( test ){
-            $scope.GroupList = test ;
-            $.each( $scope.GroupList, function( index, value ){
+         var data = { 'cmd': 'list groups' } ;
+         SdbRest.DataOperation( data, function( groups ){
+            $scope.GroupList = groups ;
+            $.each( groups, function( index, value ){
                $scope.groupNameList.push(
                   { "key":value['GroupName'], "value": index }
                ) ;
@@ -92,10 +94,17 @@
                $scope.dataNumber = index + 1 ;
             } ) ;
             getClInfo() ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               getGroupList() ;
+               return true ;
+            } ) ;
+         }, function(){
+            _IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
          } ) ;
-         gridShowColumn() ;
-      }
-      getGroupList()
+      } ;
+      getGroupList() ;
+      
 
 
 
@@ -153,7 +162,6 @@
              var isAllClear = $scope.Components.Modal.form.check();
              if (isAllClear) {
                  var formVal = $scope.Components.Modal.form.getValue();
-                 alert(JSON.stringify(formVal))
              }
              //return isAllClear;
          }
@@ -254,12 +262,15 @@
       } ;
 
       //跳转至分区组信息
-      $scope.GotoGroup = function(){
+      $scope.GotoGroup = function( GroupName ){
+         SdbFunction.LocalData( 'SdbGroupName', GroupName ) ;
          $location.path( '/Monitor/SDB-Group/Index' ) ;
       } ;
 
       //跳转至节点信息
-      $scope.GotoNode = function(){
+      $scope.GotoNode = function( HostName, ServiceName ){
+         SdbFunction.LocalData( 'SdbHostName', HostName ) ;
+         SdbFunction.LocalData( 'SdbServiceName', ServiceName ) ;
          $location.path( '/Monitor/SDB-Node/Index' ) ;
       } ;
 

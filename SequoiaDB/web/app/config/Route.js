@@ -92,6 +92,12 @@
            resolve: resolveFun( [ './app/controller/Data/Other/notsupport.js' ] )
         }
       },
+      { path: '/Data/Edition',
+        options: {
+           templateUrl: './app/template/Data/Other/edition.html',
+           resolve: resolveFun( [ './app/controller/Data/Other/edition.js' ] )
+        }
+      },
       { path: '/Strategy/SDB/Index',
         options: {
            templateUrl: './app/template/Strategy/Sdb/Index.html',

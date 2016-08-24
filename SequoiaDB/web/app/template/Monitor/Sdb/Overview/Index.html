@@ -1,20 +1,20 @@
 <div style="padding:10px 15px;" ng-controller="Monitor.SdbOverview.Index.Ctrl" ng-container="{}">
    <div style="border-bottom:3px solid #ddd;" ng-style="" ng-container="{height:30}">
-      <div class="linkButton" style="float:left;font-size:120%;">
+      <div class="linkButton" style="float:left;font-size:120%;" ng-click="GotoModule()">
          Monitor
       </div>
       <div style="float:left;padding-top:3px;">
          &nbsp;>
       </div>
       <div class="linkButton" style="float:left;font-size:120%;">
-         &nbsp;Group
+         &nbsp;Groups
       </div>
-      <div style="float:left;padding-top:3px;">
+      <!--<div style="float:left;padding-top:3px;">
          &nbsp;>
       </div>
       <div class="linkButton" style="float:left;font-size:120%;">
          &nbsp;Node
-      </div>
+      </div>-->
 
       <!--<div style="float:left;color:#808080;">
          <div style="height:50px;width:45px;float:left;">
@@ -102,7 +102,6 @@
                            <div ng-if="groupInfo['Status'] == '0'">
                               <i class="fa fa-circle" style="color:#F9A937;" ng-attr="{'data-desc':autoLanguage('分区组未激活')}"></i>&nbsp;{{autoLanguage("分区组未激活")}}
                            </div>
-
                         </td>
                      </tr>
                   </table>
@@ -112,7 +111,7 @@
                      <tr>
                         <td style="width:75px;font-weight:bold;">{{autoLanguage("分区组")}}</td>
                         <td class="Ellipsis" ng-repeat="groupInfo in GroupList track by $index" ng-if="groupInfo['Role'] == 1">
-                           <span class="linkButton" ng-click="GotoGroup()">
+                           <span class="linkButton" ng-click="GotoGroup( groupInfo['GroupName'] )">
                               {{groupInfo['GroupName']}}
                            </span>
                         </td>
@@ -163,7 +162,7 @@
                      <tr>
                         <td style="width:75px;font-weight:bold;">{{autoLanguage("分区组")}}</td>
                         <td class="Ellipsis" ng-repeat="groupInfo in GroupList track by $index" ng-if="groupInfo['Role'] == 2">
-                           <span class="linkButton" ng-click="GotoGroup()">
+                           <span class="linkButton" ng-click="GotoGroup( groupInfo['GroupName'] )">
                               {{groupInfo['GroupName']}}
                            </span>
                         </td>
@@ -252,7 +251,7 @@
                         </td>
                         <td>
                            <div class="Ellipsis">
-                              <span class="linkButton" ng-click="GotoGroup()">{{groupInfo['GroupName']}}</span>
+                              <span class="linkButton" ng-click="GotoGroup( groupInfo['GroupName'] )">{{groupInfo['GroupName']}}</span>
                            </div>
                         </td>
                         <td>
@@ -262,7 +261,7 @@
                         </td>
                         <td>
                            <div class="Ellipsis">
-                              <span class="linkButton" ng-click="GotoNode()" ng-repeat="nodeInfo in groupInfo['Group'] track by $index" ng-if="nodeInfo['NodeID']==groupInfo['PrimaryNode']">
+                              <span class="linkButton" ng-click="GotoNode( nodeInfo['HostName'], nodeInfo['Service'][0]['Name'] )" ng-repeat="nodeInfo in groupInfo['Group'] track by $index" ng-if="nodeInfo['NodeID']==groupInfo['PrimaryNode']">
                                  {{nodeInfo['HostName']}}:{{nodeInfo['Service'][0]['Name']}}
                               </span>
                               <span ng-if="groupInfo['Group'].length == 0">none</span>

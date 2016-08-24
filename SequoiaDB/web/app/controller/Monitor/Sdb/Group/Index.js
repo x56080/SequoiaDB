@@ -6,6 +6,7 @@
       var clusterName = SdbFunction.LocalData( 'SdbClusterName' ) ;
       var moduleType = SdbFunction.LocalData( 'SdbModuleType' ) ;
       var moduleName = SdbFunction.LocalData( 'SdbModuleName' ) ;
+      var groupName = SdbFunction.LocalData( 'SdbGroupName' ) ;
       $scope.clusterName = clusterName ;
       $scope.moduleName = moduleName ;
       $scope.moduleType = moduleType ;
@@ -13,22 +14,23 @@
       $scope.PrimaryNode = '' ;
       var i = 0 ;
 
-      $scope.queryList = function( data, success, failed, error, complete ){
-         SdbRest._postTest( './test/groupInfo', success, failed, error ) ;
-      }
-
-      $scope.getGroupInfo = function(){
-         $scope.queryList( {}, function( test ){
-            $.each( test, function( index, value ){
-               if( value['Role'] == 0 )
+      $scope.GroupList = [] ;
+      var getGroupList = function(){
+         var data = { 'cmd': 'list groups' } ;
+         SdbRest.DataOperation( data, function( groups ){
+            $.each( groups, function( index, groupInfo ){
+               if( groupInfo['GroupName'] == groupName )
                {
-                  value['Role'] = '数据组' ;
+                  if( groupInfo['Role'] == 0 )
+                  {
+                     groupInfo['Role'] = '数据组' ;
+                  }
+                  else if ( groupInfo['Role'] == 2 )
+                  {
+                     groupInfo['Role'] = '编目组' ;
+                  }
+                  $scope.groupInfo = groupInfo ;
                }
-               else if ( value['Role'] == 2 )
-               {
-                  value['Role'] = '编目组' ;
-               }
-               $scope.groupInfo = value ;
             } ) ;
             $.each( $scope.groupInfo['Group'], function( index, value ){
                $scope.hostList.push( { "key": value['HostName'] + ':' + value['Service'][0]['Name'], "value": index } ) ;
@@ -38,10 +40,31 @@
                   $scope.PrimaryNode = value['HostName'] + ':' + value['Service'][0]['Name'] ;
                }
             } ) ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               getGroupList() ;
+               return true ;
+            } ) ;
+         }, function(){
+            _IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
          } ) ;
-      }
-      
-      $scope.getGroupInfo() ;
+      } ;
+
+      var getDbList = function(){
+         var sql  = 'SELECT NodeName, HostName, GroupName, IsPrimary, ServiceName, ServiceStatus, NodeID FROM $SNAPSHOT_DB WHERE Groups = "' + groupName + '"' ;
+         SdbRest.Exec( sql, function( DbList ){
+            $scope.DbList = DbList ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               getDbList() ;
+               return true ;
+            } ) ;
+         }, function(){
+            _IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
+         } ) ;
+      } ;
+      getDbList() ;
+      getGroupList() ;
 
       //创建节点
       $scope.addNode = function(){

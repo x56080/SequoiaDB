@@ -103,7 +103,7 @@
       var isFirstQueryHostStatus = true ;
       //查询主机状态
       var queryHostStatus = function(){
-         var isFirst = true ;
+         var isFirst = false ;
          var queryHostList = { 'HostInfo': [] } ;
          if( $scope.HostList.length == 0 )
          {
@@ -167,7 +167,14 @@
                         diskFree += diskInfo['Free'] ;
                         diskSize += diskInfo['Size'] ;
                      } ) ;
-                     host_module_table[index2]['Info']['Disk'] = ( 1 - diskFree / diskSize ) * 100 ;
+                     if( diskSize == 0 )
+                     {
+                        host_module_table[index2]['Info']['Disk'] = 0 ;
+                     }
+                     else
+                     {
+                        host_module_table[index2]['Info']['Disk'] = ( 1 - diskFree / diskSize ) * 100 ;
+                     }
                      host_module_table[index2]['Info']['Memory'] = statusInfo['Memory']['Used'] / statusInfo['Memory']['Size'] * 100 ;
                      host_module_table[index2]['Error']['Flag'] = 0 ;
                      var index3 = hostListIsExist( statusInfo['HostName'] ) ;

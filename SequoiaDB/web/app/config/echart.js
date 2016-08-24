@@ -636,7 +636,7 @@
    window.SdbSacManagerConf.RecordInsertEchart = {
       title: {
          show: true,
-         text: '插入记录',
+         text: 'Insert',
          textStyle: {
             color: '#666',
             fontFamily: 'Verdana,Georgia,宋体',
@@ -677,7 +677,7 @@
       grid: {
          x: 60,
          y: 40,
-         x2: 35,
+         x2: 10,
          y2: 40,
          borderColor: '#000'
       },
@@ -694,7 +694,7 @@
    window.SdbSacManagerConf.RecordUpdateEchart = {
       title: {
          show: true,
-         text: '更新记录',
+         text: 'Update',
          textStyle: {
             color: '#666',
             fontFamily: 'Verdana,Georgia,宋体',
@@ -735,7 +735,7 @@
       grid: {
          x: 60,
          y: 40,
-         x2: 35,
+         x2: 10,
          y2: 40,
          borderColor: '#000'
       },
@@ -752,7 +752,7 @@
    window.SdbSacManagerConf.RecordDeleteEchart = {
       title: {
          show: true,
-         text: '删除记录',
+         text: 'Remove',
          textStyle: {
             color: '#666',
             fontFamily: 'Verdana,Georgia,宋体',
@@ -765,7 +765,7 @@
          formatter: '{a0}: {c0}/s'
       },
       legend: {
-         data: ['Record Delete']
+         data: ['Record Remove']
       },
       animation: false,
       addDataAnimation: false,
@@ -793,14 +793,14 @@
       grid: {
          x: 60,
          y: 40,
-         x2: 35,
+         x2: 10,
          y2: 40,
          borderColor: '#000'
       },
       series: [
          {
             smooth: true,
-            name: 'Record Delete',
+            name: 'Record Remove',
             type: 'line',
             data: [0, 0, 0, 0, 0, 0, 0]
          }
@@ -810,7 +810,7 @@
    window.SdbSacManagerConf.RecordReadEchart = {
       title: {
          show: true,
-         text: '查询记录',
+         text: 'Read',
          textStyle: {
             color: '#666',
             fontFamily: 'Verdana,Georgia,宋体',
@@ -851,7 +851,7 @@
       grid: {
          x: 60,
          y: 40,
-         x2: 35,
+         x2: 10,
          y2: 40,
          borderColor: '#000'
       },

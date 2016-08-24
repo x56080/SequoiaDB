@@ -142,7 +142,7 @@
             $scope.GridData = gridData ;
             if( isEnd == true && state['rc'] == false )
             {
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               _IndexPublic.createRetryModel( $scope, null, function(){
                   queryTable() ;
                   return true ;
                }, null, state['result'] ) ;

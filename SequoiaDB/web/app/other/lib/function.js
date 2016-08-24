@@ -305,7 +305,7 @@ function specifyTypeConvert( val, type )
       }
       break ;
    case 'Decimal':
-      retval = parseDecimal( field['val'] ) ;
+      retval = parseDecimal( val ) ;
       break ;
    case 'String':
       retval = val ;
@@ -1786,7 +1786,7 @@ function convertJsonValueString( json )
    function json2Obj(str, func) {
       var json;
       try {
-         json = _json_parse(str, func);
+         json = _json_parse( str ) ;
       } catch (e) {
          try {
             var newStr = filterInviChart(str);
@@ -1842,17 +1842,16 @@ function convertJsonValueString( json )
    var rep;
 
 
-   function quote(string) {
-
+   function quote(str) {
       rx_escapable.lastIndex = 0;
-      return rx_escapable.test(string)
-          ? "\"" + string.replace(rx_escapable, function (a) {
+      return rx_escapable.test(str)
+          ? "\"" + str.replace(rx_escapable, function (a) {
              var c = meta[a];
              return typeof c === "string"
                  ? c
                  : "\\u" + ("0000" + a.charCodeAt(0).toString(16)).slice(-4);
           }) + "\""
-          : "\"" + string + "\"";
+          : "\"" + str + "\"";
    }
 
 

@@ -18,54 +18,86 @@
       $scope.NodesList = [] ;
       $scope.DbList = [] ;
       $scope.ClList = [] ;
+      var nodesList = [] ;
 
        //获取节点列表
       var getNodesList = function(){
-         var data = {
-            'cmd': 'list nodes',
-            'BusinessName': moduleName
-         } ;
-         SdbRest.OmOperation( data, function( nodeList ){
-            $scope.NodesList = nodeList ;
-            $.each( nodeList, function( index, nodeInfo ){
-               if( nodeInfo['Role'] == 'coord' || nodeInfo['Role'] == 'catalog' )
+         var data = { 'cmd': 'list groups' } ;
+         SdbRest.DataOperation( data, function( groups ){
+            $scope.GroupList = groups ;
+            $.each( groups, function( index, groupInfo ){
+               if( groupInfo['Role'] == 2 )
                {
-                  nodeList[index]['GroupName'] = nodeInfo['Role'] ;
+                  groupInfo['Role'] = 'catalog' ;
                }
-               nodeList[index]['NodeName'] = nodeInfo['HostName'] + ':' + nodeInfo['ServiceName'] ;
-               nodeList[index]['IsPrimary'] = false ;
-               nodeList[index]['Status'] = true ;
-               nodeList[index]['TotalRecords'] = 0 ;
-               nodeList[index]['TotalLobs'] = 0 ;
-               nodeList[index]['TotalCL'] = 0 ;
-               
+               else if( groupInfo['Role'] == 1 )
+               {
+                  groupInfo['Role'] = 'coord' ;
+               }
+               else if( groupInfo['Role'] == 0 )
+               {
+                  groupInfo['Role'] = 'data' ;
+               }
+               $.each( groupInfo['Group'], function( index2, nodeInfo ){
+                  nodesList.push( { 'HostName': nodeInfo['HostName'], 'ServiceName': nodeInfo['Service']['0']['Name'], 'GroupName': groupInfo['GroupName'], 'Role': groupInfo['Role']  } )
+               } ) ;
+            } ) ;
+            $.each( nodesList, function( index, nodeInfo ){
+               nodesList[index]['NodeName'] = nodeInfo['HostName'] + ':' + nodeInfo['ServiceName'] ;
+               nodesList[index]['IsPrimary'] = false ;
+               nodesList[index]['Status'] = true ;
+               nodesList[index]['TotalRecords'] = 0 ;
+               nodesList[index]['TotalLobs'] = 0 ;
+               nodesList[index]['TotalCL'] = 0 ;
+               nodesList[index]['NodeID'] = 0 ;
                //LSN 虚构
-               nodeList[index]['LSN'] = 1 ;
+               nodesList[index]['LSN'] = 1 ;
+               
+               if( $scope.DbList[0]['ErrNodes'] != undefined )
+               {
+                  if( $scope.DbList[0]['ErrNodes'].length > 0 )
+                  {
+                     $.each( $scope.DbList[0]['ErrNodes'], function( nodeIndex, errNodeInfo ){
+
+                        if( nodesList[index]['NodeName'] == errNodeInfo['NodeName'] )
+                        {
+                           nodesList[index]['Status'] = false ;
+                           nodesList[index]['Flag'] = -79 ;
+                           nodesList[index]['TotalRecords'] = '' ;
+                           nodesList[index]['TotalLobs'] = '' ;
+                           nodesList[index]['TotalCL'] = '' ;
+                        }
+                     
+                     } )
+                  }
+               }
+               
                
                $.each( $scope.DbList, function( index2, DbInfo ){
-                  if( nodeList[index]['NodeName'] == DbInfo['NodeName'] )
+                  if( nodesList[index]['NodeName'] == DbInfo['NodeName'] )
                   {
-                     nodeList[index]['GroupName'] = DbInfo['GroupName'] ;
+                     nodesList[index]['ServiceName'] = DbInfo['ServiceName'] ;
+                     nodesList[index]['GroupName'] = DbInfo['GroupName'] ;
                      if( DbInfo['IsPrimary'] == true )
                      {
-                        nodeList[index]['IsPrimary'] = true ;
+                        nodesList[index]['IsPrimary'] = true ;
                      }
                      if( DbInfo['ServiceStatus'] == false )
                      {
-                        nodeList[index]['Status'] = false ;
+                        nodesList[index]['Status'] = false ;
                      }
                   }
                } ) ;
                $.each( $scope.ClList, function( index3, ClInfo ){
-                  if( nodeList[index]['NodeName'] == ClInfo['NodeName'] )
+                  if( nodesList[index]['NodeName'] == ClInfo['NodeName'] )
                   {
-                     nodeList[index]['TotalCL'] += 1 ;
-                     nodeList[index]['TotalRecords'] += ClInfo['TotalRecords'] ;
-                     nodeList[index]['TotalLobs'] += ClInfo['TotalLobs'] ;
+                     nodesList[index]['TotalCL'] += 1 ;
+                     nodesList[index]['TotalRecords'] += ClInfo['TotalRecords'] ;
+                     nodesList[index]['TotalLobs'] += ClInfo['TotalLobs'] ;
                   }
                } ) ;
             } ) ;
-
+            $scope.NodesList = nodesList ;
             var keyList = [ "NodeName", "HostName", "GroupName", "IsPrimary", "Role", "TotalCL", "TotalRecords", "TotalLobs", "LSN" ] ;
             $scope.ShowKey = [] ;
             $scope.SelectMenu = [] ;
@@ -110,9 +142,10 @@
 
       //获取DB快照
       var getDbList = function(){
-         var sql  = 'SELECT NodeName, HostName, GroupName, IsPrimary, ServiceName, ServiceStatus FROM $SNAPSHOT_DB' ;
+         var sql  = 'SELECT NodeName, HostName, GroupName, IsPrimary, ServiceName, ServiceStatus, NodeID FROM $SNAPSHOT_DB' ;
          SdbRest.Exec( sql, function( DbList ){
             $scope.DbList = DbList ;
+            
             getClList() ;
          }, function( errorInfo ){
             _IndexPublic.createRetryModel( $scope, errorInfo, function(){
@@ -252,12 +285,15 @@
       } ;
       
       //跳转至节点信息
-      $scope.GotoNode = function(){
+      $scope.GotoNode = function( HostName, ServiceName ){
+         SdbFunction.LocalData( 'SdbHostName', HostName ) ;
+         SdbFunction.LocalData( 'SdbServiceName', ServiceName ) ;
          $location.path( '/Monitor/SDB-Node/Index' ) ;
       } ;
 
       //跳转至分区组信息
-      $scope.GotoGroup = function(){
+      $scope.GotoGroup = function( GroupName ){
+         SdbFunction.LocalData( 'SdbGroupName', GroupName ) ;
          $location.path( '/Monitor/SDB-Group/Index' ) ;
       } ;
 

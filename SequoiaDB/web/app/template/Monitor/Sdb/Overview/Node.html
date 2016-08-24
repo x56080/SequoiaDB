@@ -99,14 +99,17 @@
                   <td>
                      <div class="Ellipsis">
                         <i class="fa fa-circle" style="color:#00CC66;" ng-if="nodeInfo['Status'] == true" ng-attr="{'data-desc':autoLanguage('正常运行')}"></i>
-                        <i class="fa fa-circle" style="color:#F9A937;" ng-if="nodeInfo['Status'] == false" ng-attr="{'data-desc':'节点异常'}"></i>
+                        <i class="fa fa-circle" style="color:#D9534F;" ng-if="nodeInfo['Status'] == false" ng-attr="{'data-desc':nodeInfo['Flag']}"></i>
                      </div>
                   </td>
                   <td ng-repeat="fieldName in ShowKeyList track by $index">
                      <div class="Ellipsis" ng-switch on="fieldName">
-                        <span class="Ellipsis linkButton" ng-switch-when="NodeName" ng-click="GotoNode()">{{nodeInfo[fieldName]}}</span>
+                        <span ng-switch-when="NodeName">
+                           <span class="Ellipsis" ng-if="nodeInfo['Status'] == false">{{nodeInfo[fieldName]}}</span>
+                           <span class="Ellipsis linkButton" ng-if="nodeInfo['Status'] == true" ng-click="GotoNode( nodeInfo['HostName'], nodeInfo['ServiceName'] )">{{nodeInfo[fieldName]}}</span>
+                        </span>
                         <span class="Ellipsis linkButton" ng-switch-when="HostName" ng-click="GotoHost()">{{nodeInfo[fieldName]}}</span>
-                        <span class="Ellipsis linkButton" ng-switch-when="GroupName" ng-click="GotoGroup()">{{nodeInfo[fieldName]}}</span>
+                        <span class="Ellipsis linkButton" ng-switch-when="GroupName" ng-click="GotoGroup( nodeInfo[fieldName] )">{{nodeInfo[fieldName]}}</span>
                         <span class="Ellipsis linkButton" ng-switch-when="TotalCL" ng-click="GotoDatabase()">{{nodeInfo[fieldName]}}</span>
                         <span class="Ellipsis linkButton" ng-switch-when="TotalRecords" ng-click="GotoDatabase()">{{nodeInfo[fieldName]}}</span>
                         <span class="Ellipsis linkButton" ng-switch-when="TotalLobs" ng-click="GotoDatabase()">{{nodeInfo[fieldName]}}</span>

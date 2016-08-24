@@ -17,6 +17,7 @@
       var idleCpu = 0 ;
       //后期跳转到该页面时获取到的主机名
       var hostName = 'ubuntu-test-02' ;
+      $scope.HostName = hostName ;
       var getCpuInfo = function(){
          var data = {
             'cmd': 'query host',
@@ -80,7 +81,6 @@
                   sumCpu = sumCpuOld ;
                   idleCpu = idleCpuOld ;
                }
-               
 
                //alert(( idleCpuOld/sumCpuOld ).toFixed(2) * 100)
             }, function( errorInfo ){
@@ -97,7 +97,6 @@
       getChartInfo() ;
 
 
-      $scope.hostName = '' ;
       $scope.hostInfo = [] ;
       var s = 0 ;
       var d = 0 ;

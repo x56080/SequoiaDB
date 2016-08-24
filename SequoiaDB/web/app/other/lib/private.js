@@ -2,6 +2,42 @@
 // --------------------- Index ---------------------
 var _IndexPublic = {} ;
 
+//创建社区版不支持提示的弹窗
+_IndexPublic.createCommunityModel = function( $scope ){
+   $scope.Components.Confirm.type = 1 ;
+   $scope.Components.Confirm.noOK = false ;
+   $scope.Components.Confirm.noClose = true ;
+   $scope.Components.Confirm.title = $scope.autoLanguage( '提示' ) ;
+   $scope.Components.Confirm.context = $scope.autoLanguage( '社区版不支持这个操作。' ) ;
+   $scope.Components.Confirm.isShow = true ;
+}
+
+//创建操作不支持提示的弹窗
+_IndexPublic.createNotSupportModel = function( $scope ){
+   $scope.Components.Confirm.type = 1 ;
+   $scope.Components.Confirm.noOK = false ;
+   $scope.Components.Confirm.noClose = true ;
+   $scope.Components.Confirm.title = $scope.autoLanguage( '提示' ) ;
+   $scope.Components.Confirm.context = $scope.autoLanguage( '目前不支持这个操作。' ) ;
+   $scope.Components.Confirm.isShow = true ;
+}
+
+//检查当前操作是不是不支持的
+_IndexPublic.checkEditionAndSupport = function( $scope, moduleType, modelName ){
+   var rc = true ;
+   if( window.Config['Edition'] != 'Enterprise' )
+   {
+      _IndexPublic.createCommunityModel( $scope ) ;
+      rc = false ;
+   }
+   else if( window.Config['Controller'][moduleType][modelName] == false )
+   {
+      _IndexPublic.createNotSupportModel( $scope ) ;
+      rc = false ;
+   }
+   return rc ;
+}
+
 //创建错误弹窗
 _IndexPublic.createErrorModel = function( $scope, context ){
    $scope.Components.Confirm.type = 3 ;

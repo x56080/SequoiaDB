@@ -457,6 +457,10 @@
 
       //创建插入弹窗
       $scope.Insert = function( recordIndex ){
+         if( _IndexPublic.checkEditionAndSupport( $scope, 'sequoiadb', 'Data' ) == false )
+         {
+            return ;
+         }
          $scope.Components.Modal.icon = 'fa-plus' ;
          $scope.Components.Modal.title = $scope.autoLanguage( '插入' ) ;
          $scope.Components.Modal.isShow = true ;
@@ -499,6 +503,10 @@
 
       //创建编辑记录弹窗
       $scope.Edit = function( recordIndex ){
+         if( _IndexPublic.checkEditionAndSupport( $scope, 'sequoiadb', 'Data' ) == false )
+         {
+            return ;
+         }
          var newObject = jQuery.extend( true, {}, $scope.records[recordIndex] ) ;
          delete newObject['_id'] ;
          $scope.Components.Modal.icon = 'fa-edit' ;
@@ -680,6 +688,10 @@
 
       //创建更新弹窗
       $scope.Update = function(){
+         if( _IndexPublic.checkEditionAndSupport( $scope, 'sequoiadb', 'Data' ) == false )
+         {
+            return ;
+         }
          $scope.Components.Modal.icon = 'fa-edit' ;
          $scope.Components.Modal.title = $scope.autoLanguage( '更新' ) ;
          $scope.Components.Modal.isShow = true ;
@@ -803,6 +815,10 @@
 
       //创建删除弹窗
       $scope.Delete = function(){
+         if( _IndexPublic.checkEditionAndSupport( $scope, 'sequoiadb', 'Data' ) == false )
+         {
+            return ;
+         }
          $scope.Components.Modal.icon = 'fa-remove' ;
          $scope.Components.Modal.title = $scope.autoLanguage( '删除' ) ;
          $scope.Components.Modal.isShow = true ;
@@ -928,6 +944,10 @@
 
       //创建删除记录提示
       $scope.DeleteRecord = function( recordIndex ){
+         if( _IndexPublic.checkEditionAndSupport( $scope, 'sequoiadb', 'Data' ) == false )
+         {
+            return ;
+         }
          var _id = $scope.records[recordIndex]['_id']['$oid'] ;
          _IndexPublic.createRetryModel( $scope, null, function(){
             var deletor = JSON.stringify( { '_id': { '$oid': _id } } ) ;

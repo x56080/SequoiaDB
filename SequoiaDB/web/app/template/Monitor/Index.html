@@ -1,22 +1,7 @@
 <div style="padding:10px 15px;" ng-controller="Monitor.Preview.Index.Ctrl" ng-container="{}">
-   <div style="border-bottom:3px solid #ddd;" ng-style="" ng-container="{height:30}">
-      <div class="linkButton" style="float:left;font-size:120%;">
-         Monitor
-      </div>
-      <div style="float:left;padding-top:3px;">
-         &nbsp;>
-      </div>
-      <div class="linkButton" style="float:left;font-size:120%;">
-         &nbsp;Group
-      </div>
-      <div style="float:left;padding-top:3px;">
-         &nbsp;>
-      </div>
-      <div class="linkButton" style="float:left;font-size:120%;">
-         &nbsp;Node
-      </div>
+   <div style="border-bottom:3px solid #ddd;" ng-style="" ng-container="{height:60}">
 
-         <!--<div style="float:left;color:#808080;">
+         <div style="float:left;color:#808080;">
          <div style="height:50px;width:45px;float:left;">
             <i style="color:#ccc;padding-top:8px;font-size:218%;" class="fa fa-cubes"></i>
          </div>
@@ -48,16 +33,16 @@
                <span class="Ellipsis linkButton" ng-click="GotoHosts()">主机列表</span>
             </div>
          </div>
-      </div>-->
+      </div>
       </div>
    <div class="well Ellipsis" style="margin-top:10px;">
       <i class="fa fa-circle" style="color:#00CC66;"></i>
       <span style="font-weight:bold;color:#006699;">{{moduleName}}</span>
    </div>
-   <div ng-container="{offsetY:-100,marginTop:10,marginBottom:10}">
+   <div ng-container="{offsetY:-130,marginTop:10,marginBottom:10}">
       <div style="min-height:206px;font-size:90%;" ng-container="{height:'70%',marginTop:10}">
          <!--主机信息-->
-         <div style="float:left;" ng-container="{width:360,offsetY:-10}">
+         <div style="float:left;" ng-container="{width:'32%',offsetY:-10}">
             <div style="padding:0 10px 10px 0;font-weight:bold;">{{autoLanguage("主机信息")}}</div>
             <div style="padding:10px;border:1px solid #ddd;overflow-y:auto;color:#666;" ng-container="{offsetY:-27}">
                <table class="table loosen">
@@ -74,103 +59,123 @@
                      <td>{{DiskNum}}</td>
                   </tr>
                   <tr>
-                     <td style="font-weight:bold;">{{autoLanguage("处理器")}}</td>
+                     <td style="font-weight:bold;">{{autoLanguage("CPU")}}</td>
                      <td>
-                        <div style="width:180px;height:22px;" progress-bar="charts.Host.CPU"></div>
+                        <div style="width:100%;height:22px;" progress-bar="charts.Host.CPU"></div>
                      </td>
                   </tr>
                   <tr>
-                     <td style="font-weight:bold;">{{autoLanguage("内存")}}</td>
+                     <td style="font-weight:bold;">{{autoLanguage("Memory")}}</td>
                      <td>
-                        <div style="width:180px;height:22px;" progress-bar="charts.Host.Memory"></div>
+                        <div style="width:100%;height:22px;" progress-bar="charts.Host.Memory"></div>
                      </td>
                   </tr>
                   <tr>
-                     <td style="font-weight:bold;">{{autoLanguage("磁盘")}}</td>
+                     <td style="font-weight:bold;">{{autoLanguage("Disk")}}</td>
                      <td>
-                        <div style="width:180px;height:22px;" progress-bar="charts.Host.Disk"></div>
+                        <div style="width:100%;height:22px;" progress-bar="charts.Host.Disk"></div>
                      </td>
                   </tr>
                </table>
             </div>
          </div>
          <!--业务信息-->
-         <div style="float:left;" ng-container="{offsetX:-370,offsetY:-10,marginLeft:10}">
+         <div style="float:left;min-width:430px;" ng-container="{width:'68%',offsetX:-10,offsetY:-10,marginLeft:10}">
             <div style="padding:0 10px 10px 0;font-weight:bold;">{{autoLanguage("业务信息")}}</div>
             <div style="padding:10px;border:1px solid #ddd;overflow-y:auto;color:#666;" ng-container="{offsetY:-27}">
-               <div style="float:left;width:250px;">
-                  <table class="table loosen" style="width:250px;">
+               <div style="float:left;width:210px;">
+                  <table class="table loosen" style="width:210px;">
                      <tr>
-                        <td style="width:40%;font-weight:bold;">{{autoLanguage("数据库版本")}}</td>
-                        <td style="width:60%;" class="Ellipsis">{{moduleInfo['version']}}</td>
+                        <td style="width:55%;font-weight:bold;">{{autoLanguage("数据库版本")}}</td>
+                        <td style="width:45%;">
+                           <div class="Ellipsis">
+                              <span>
+                                 {{moduleInfo['version']}}
+                              </span>
+                           </div>
+                        </td>
                      </tr>
                      <tr>
                         <td style="font-weight:bold;">{{autoLanguage("会话数")}}</td>
                         <td>
-                           <span class="Ellipsis linkButton" ng-click="GotoSessions()">
-                              {{moduleInfo['sessions']}}
-                           </span>
+                           <div class="Ellipsis ">
+                              <span class="linkButton" ng-click="GotoSessions()">
+                                 {{moduleInfo['sessions']}}
+                              </span>
+                           </div>
                         </td>
                      </tr>
                      <tr>
                         <td style="font-weight:bold;">{{autoLanguage("域")}}</td>
                         <td>
-                           <span class="Ellipsis linkButton" ng-click="GotoDomains()">
-                              {{moduleInfo['domains']}}
-                           </span>
+                           <div class="Ellipsis ">
+                              <span class="linkButton" ng-click="GotoDomains()">
+                                 {{moduleInfo['domains']}}
+                              </span>
+                           </div>
                         </td>
                      </tr>
                      <tr>
                         <td style="font-weight:bold;">{{autoLanguage("分区组数")}}</td>
                         <td>
-                           <span class="Ellipsis linkButton" ng-click="GotoGroups()">
-                              {{moduleInfo['groups']}}
-                           </span>
+                           <div class="Ellipsis ">
+                              <span class="linkButton" ng-click="GotoGroups()">
+                                 {{moduleInfo['groups']}}
+                              </span>
+                           </div>
                         </td>
                      </tr>
                      <tr>
                         <td style="font-weight:bold;">{{autoLanguage("节点数")}}</td>
                         <td>
-                           <span class="Ellipsis linkButton" ng-click="GotoNodes()">
-                              {{moduleInfo['nodes']}}
-                           </span>
+                           <div class="Ellipsis ">
+                              <span class="linkButton" ng-click="GotoNodes()">
+                                 {{moduleInfo['nodes']}}
+                              </span>
+                           </div>
                         </td>
                      </tr>
                      <tr>
                         <td style="font-weight:bold;">{{autoLanguage("集合数")}}</td>
                         <td>
-                           <span class="Ellipsis linkButton" ng-click="GotoDatabase()">
-                              {{moduleInfo['cl']}}
-                           </span>
+                           <div class="Ellipsis ">
+                              <span class="linkButton" ng-click="GotoDatabase()">
+                                 {{moduleInfo['cl']}}
+                              </span>
+                           </div>
                         </td>
                      </tr>
                      <tr>
                         <td style="font-weight:bold;">{{autoLanguage("记录数")}}</td>
                         <td>
-                           <span class="Ellipsis linkButton" ng-click="GotoDatabase()">
-                              {{moduleInfo['records']}}
-                           </span>
+                           <div class="Ellipsis">
+                              <span class="linkButton" ng-click="GotoDatabase()">
+                                 {{moduleInfo['records']}}
+                              </span>
+                           </div>
                         </td>
                      </tr>
                      <tr>
                         <td style="font-weight:bold;">{{autoLanguage("Lob数")}}</td>
                         <td>
-                           <span class="Ellipsis linkButton" ng-click="GotoDatabase()">
-                              {{moduleInfo['lobs']}}
-                           </span>
+                           <div class="Ellipsis ">
+                              <span class="linkButton" ng-click="GotoDatabase()">
+                                 {{moduleInfo['lobs']}}
+                              </span>
+                           </div>
                         </td>
                      </tr>
                   </table>
                </div>
                <!--图表选择-->
-               <div style="min-width:320px;max-width:900px;float:left;" ng-container="{width:'60%',height:'90%'}">
-                  <div style="padding-left:15px;float:right;">
+               <div style="min-height:150px;max-width:900px;float:left;" ng-container="{offsetX:-230,height:'90%'}">
+                  <div style="padding-right:15px;float:right;">
                      <button class="btn btn-default btn-lg" dropdown-menu="DropdownMenu">
                         {{chartName}}
                         <span class="caret caret-bottom"></span>
                      </button>
                   </div>
-                  <div style="min-width:320px;max-width:940px;min-height:220px;max-height:350px;" ng-container="{}" create-chart="charts.Module"></div>
+                  <div style="max-width:940px;max-height:350px;" ng-container="{}" create-chart="charts.Module"></div>
                </div>
             </div>
          </div>

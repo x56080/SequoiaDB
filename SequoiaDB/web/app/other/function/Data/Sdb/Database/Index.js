@@ -153,8 +153,8 @@ _DataDatabaseIndex.buildClList = function( $scope, clList ){
                'UpBound':             null,
                'Metadata Ratio':      '0%',
                'CataInfo':            clInfo['CataInfo'],
-               'Attribute':           clInfo['AttributeDesc'],
-               'CompressionType':     clInfo['CompressionTypeDesc'],
+               'Attribute':           $scope.moduleMode == 'standalone' ? clInfo['Attribute'] : clInfo['AttributeDesc'],
+               'CompressionType':     $scope.moduleMode == 'standalone' ? clInfo['CompressionType'] : clInfo['CompressionTypeDesc'],
                'HasDict':             clInfo['HasDict']
             }
          } ) ;
@@ -184,7 +184,7 @@ _DataDatabaseIndex.getCSInfo = function( $scope, SdbRest ){
    var sql ;
    if( $scope.moduleMode == 'standalone' )
    {
-      sql = 'SELECT Name, PageSize/1024, LobPageSize/1024, GroupName, TotalRecords, FreeDataSize/1048576, FreeIndexSize/1048576, FreeLobSize/1048576, FreeSize/1048576, MaxDataCapSize/1073741824, MaxIndexCapSize/1073741824, MaxLobCapSize/1073741824, TotalDataSize/1048576, TotalIndexSize/1048576, TotalLobSize/1048576, TotalSize/1048576 FROM $SNAPSHOT_CS ORDER BY Name ' ;
+      sql = 'SELECT Name, PageSize/1024, LobPageSize/1024, GroupName, TotalRecords, FreeDataSize/1048576, FreeIndexSize/1048576, FreeLobSize/1048576, FreeSize/1048576, MaxDataCapSize/1073741824, MaxIndexCapSize/1073741824, MaxLobCapSize/1073741824, TotalDataSize/1048576, TotalIndexSize/1048576, TotalLobSize/1048576, TotalSize/1048576 FROM $SNAPSHOT_CS ORDER BY Name' ;
    }
    else
    {
@@ -360,7 +360,7 @@ _DataDatabaseIndex.getCLInfo = function( $scope, SdbRest )
    var sql ;
    if( $scope.moduleMode == 'standalone' )
    {
-      sql = 'SELECT t1.Name, t1.Details.ID, t1.Details.LogicalID, t1.Details.Sequence, t1.Details.GroupName, t1.Details.Status,t1.Details.Attribute, t1.Details.Status,t1.Details.AttributeDesc, t1.Details.CompressionType, t1.Details.CompressionTypeDesc, t1.Details.HasDict, t1.Details.Indexes, t1.Details.TotalRecords, t1.Details.TotalLobs, t1.Details.TotalDataPages, t1.Details.TotalIndexPages, t1.Details.TotalLobPages, t1.Details.TotalDataFreeSpace/1048576, t1.Details.TotalIndexFreeSpace/1048576 FROM (SELECT * FROM $SNAPSHOT_CL split BY Details) AS t1 ORDER BY t1.Name' ;
+      sql = 'SELECT t1.Name, t1.Details.ID, t1.Details.LogicalID, t1.Details.Sequence, t1.Details.Status,t1.Details.Attribute, t1.Details.Status,t1.Details.CompressionType, t1.Details.CompressionType, t1.Details.Indexes, t1.Details.TotalRecords, t1.Details.TotalLobs, t1.Details.TotalDataPages, t1.Details.HasDict, t1.Details.TotalIndexPages, t1.Details.TotalLobPages, t1.Details.TotalDataFreeSpace/1048576, t1.Details.TotalIndexFreeSpace/1048576 FROM (SELECT * FROM $SNAPSHOT_CL split BY Details) AS t1 ORDER BY t1.Name' ;
    }
    else
    {
@@ -822,6 +822,10 @@ _DataDatabaseIndex.showCLInfo = function( $scope, csIndex, clIndex ){
 
 //打开 创建集合空间 的窗口
 _DataDatabaseIndex.showCreateCS = function( $scope, SdbRest ){
+   if( _IndexPublic.checkEditionAndSupport( $scope, 'sequoiadb', 'Metadata' ) == false )
+   {
+      return ;
+   }
    $scope.Components.Modal.icon = 'fa-plus' ;
    $scope.Components.Modal.title = $scope.autoLanguage( '创建集合空间' ) ;
    $scope.Components.Modal.isShow = true ;
@@ -915,6 +919,10 @@ _DataDatabaseIndex.showCreateCS = function( $scope, SdbRest ){
 
 //打开 删除集合空间 的窗口
 _DataDatabaseIndex.showRemoveCS = function( $scope, SdbRest ){
+   if( _IndexPublic.checkEditionAndSupport( $scope, 'sequoiadb', 'Metadata' ) == false )
+   {
+      return ;
+   }
    var csValid = [] ;
    //获取集合空间名显示在列表中
    $.each( $scope.csList, function( index, csInfo ){
@@ -982,6 +990,10 @@ _DataDatabaseIndex.showRemoveCS = function( $scope, SdbRest ){
 
 //打开 创建集合 的窗口
 _DataDatabaseIndex.showCreateCL = function( $scope, SdbRest ){
+   if( _IndexPublic.checkEditionAndSupport( $scope, 'sequoiadb', 'Metadata' ) == false )
+   {
+      return ;
+   }
    //把获取表单的值转换成请求参数
    var modalValue2Create = function( valueJson ){
       var fullName = $scope.csList[ valueJson['csName'] ]['Name'] + '.' + valueJson['clName'] ;
@@ -1731,6 +1743,10 @@ _DataDatabaseIndex.showCreateCL = function( $scope, SdbRest ){
 
 //打开 删除集合 的窗口
 _DataDatabaseIndex.showRemoveCL = function( $scope, SdbRest ){
+   if( _IndexPublic.checkEditionAndSupport( $scope, 'sequoiadb', 'Metadata' ) == false )
+   {
+      return ;
+   }
    var clValid = [] ;
    var clIndex = -1 ;
    $.each( $scope.clList, function( index, clInfo ){
@@ -1813,6 +1829,10 @@ _DataDatabaseIndex.showRemoveCL = function( $scope, SdbRest ){
 
 //打开 挂载集合 的窗口
 _DataDatabaseIndex.showAttachCL = function( $scope, SdbRest ){
+   if( _IndexPublic.checkEditionAndSupport( $scope, 'sequoiadb', 'Metadata' ) == false )
+   {
+      return ;
+   }
    var mainCL = [] ;
    var childCL = [] ;
    //获取主分区集合
@@ -1976,6 +1996,10 @@ _DataDatabaseIndex.showAttachCL = function( $scope, SdbRest ){
 
 //打开 切分数据 的窗口
 _DataDatabaseIndex.showSplit = function( $scope, SdbRest ){
+   if( _IndexPublic.checkEditionAndSupport( $scope, 'sequoiadb', 'Metadata' ) == false )
+   {
+      return ;
+   }
    var clValid = [] ;
    var clIndex = -1 ;
    var sourceGroupValid = [] ;
@@ -2358,6 +2382,10 @@ _DataDatabaseIndex.showGroupInfo = function( $scope, index ){
 
 //打开 创建索引 的窗口
 _DataDatabaseIndex.showCreateIndex = function( $scope, SdbRest ){
+   if( _IndexPublic.checkEditionAndSupport( $scope, 'sequoiadb', 'Metadata' ) == false )
+   {
+      return ;
+   }
    var clValid = [] ;
    $.each( $scope.clList, function( index, clInfo ){
       clValid.push( { 'key': clInfo['csName'] + '.' + clInfo['Name'], 'value': index } ) ;
@@ -2416,6 +2444,10 @@ _DataDatabaseIndex.showCreateIndex = function( $scope, SdbRest ){
 
 //打开 删除索引 的窗口
 _DataDatabaseIndex.showRemoveIndex = function( $scope, SdbRest ){
+   if( _IndexPublic.checkEditionAndSupport( $scope, 'sequoiadb', 'Metadata' ) == false )
+   {
+      return ;
+   }
    var clValid = [] ;
    var indexValid = [] ; 
    var fullName = '' ;
