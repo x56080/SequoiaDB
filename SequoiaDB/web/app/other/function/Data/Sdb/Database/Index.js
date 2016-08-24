@@ -54,6 +54,7 @@ _DataDatabaseIndex.buildClList = function( $scope, clList ){
       if( clListIndex >= 0 )
       {
          $scope.clList[clListIndex]['Record']                      += clInfo['TotalRecords'] ;
+         $scope.clList[clListIndex]['TotalLobs']                   += clInfo['TotalLobs'] ;
          $scope.clList[clListIndex]['Info']['TotalLobs']           += clInfo['TotalLobs'] ;
          $scope.clList[clListIndex]['Info']['TotalRecords']        += clInfo['TotalRecords'] ;
          $scope.clList[clListIndex]['Info']['TotalDataPages']      += clInfo['TotalDataPages'] ;
