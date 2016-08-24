@@ -977,6 +977,10 @@ namespace engine
          {
             commandIf = SDB_OSS_NEW omUpdateHostInfoCommand( pAdptor, this ) ;
          }
+         else if ( ossStrcasecmp( pSubCommand, OM_GET_SYSTEM_INFO_REQ ) == 0 )
+         {
+            commandIf = SDB_OSS_NEW omGetSystemInfoCommand( pAdptor, this ) ;
+         }
          else
          {
             rc = SDB_INVALIDARG ;

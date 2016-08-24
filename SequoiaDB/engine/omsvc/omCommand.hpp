@@ -1166,6 +1166,20 @@ namespace engine
 
          ~omTaskStrategyDel() ;
    };
+
+   class omGetSystemInfoCommand : public omAuthCommand
+   {
+      public:
+
+         virtual INT32   doCommand() ;
+
+      public:
+
+         omGetSystemInfoCommand( restAdaptor *pRestAdaptor, 
+                                 pmdRestSession *pRestSession ) ;
+
+         ~omGetSystemInfoCommand() ;
+   };
 }
 
 #endif /* OM_GETFILECOMMAND_HPP__ */

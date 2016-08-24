@@ -409,6 +409,7 @@ namespace engine
    #define  OM_UPDATE_HOST_INFO_REQ          "update host info"
    
    #define  OM_SSQL_EXEC_REQ                 "ssql exec"
+   #define  OM_GET_SYSTEM_INFO_REQ           "get system info"
    //**************************************************************************
 
    //*********************param between rest and om****************************

@@ -40,6 +40,7 @@
 #include "../bson/lib/md5.hpp"
 #include "ossPath.hpp"
 #include "ossProc.hpp"
+#include "ossVer.hpp"
 #include <set>
 #include <stdlib.h>
 #include <sstream>
@@ -10717,5 +10718,59 @@ namespace engine
               errorDetail.c_str(), rc ) ;
       goto done ;
    }
+
+   omGetSystemInfoCommand::omGetSystemInfoCommand( restAdaptor *pRestAdaptor, 
+                                                   pmdRestSession *pRestSession )
+   : omAuthCommand( pRestAdaptor, pRestSession )
+   {
+   }
+
+   omGetSystemInfoCommand::~omGetSystemInfoCommand()
+   {
+   }
+
+   INT32 omGetSystemInfoCommand::doCommand()
+   {
+      INT32 rc = SDB_OK ;
+      INT32 major        = 0 ;
+      INT32 minor        = 0 ;
+      INT32 fix          = 0 ;
+      INT32 release      = 0 ;
+      const CHAR *pBuild = NULL ;
+      BSONObj ob ;
+      BSONObjBuilder systemInfo ;
+      BSONObjBuilder obVersion ;
+
+      ossGetVersion ( &major, &minor, &fix, &release, &pBuild ) ;
+      try
+      {
+         obVersion.append ( FIELD_NAME_MAJOR, major ) ;
+         obVersion.append ( FIELD_NAME_MINOR, minor ) ;
+         obVersion.append ( FIELD_NAME_FIX, fix ) ;
+         obVersion.append ( FIELD_NAME_RELEASE, release ) ;
+         obVersion.append ( FIELD_NAME_BUILD, pBuild ) ;
+         systemInfo.append ( FIELD_NAME_VERSION, obVersion.obj () ) ;
+#ifdef SDB_ENTERPRISE
+         systemInfo.append ( FIELD_NAME_EDITION, "Enterprise" ) ;
+#endif // SDB_ENTERPRISE
+      }
+      catch ( std::exception &e )
+      {
+         _errorDetail = string( "Failed to append version information" ) ;
+         PD_LOG ( PDWARNING, "Failed to append version information, %s",
+                  e.what() ) ;
+         goto error ;
+      }
+      ob = systemInfo.obj() ;
+      _restAdaptor->appendHttpBody( _restSession, ob.objdata(), 
+                                    ob.objsize(), 1 ) ;
+      _sendOKRes2Web() ;
+   done:
+      return rc ;
+   error:
+      _sendErrorRes2Web( rc, _errorDetail ) ;
+      goto done ;
+   }
+
 }
 
