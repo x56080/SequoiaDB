@@ -2372,6 +2372,7 @@ namespace import
          }
 
          // reset
+         fieldValue.reset( fieldType ) ;
          str = (CHAR*)data;
          len = length;
       }

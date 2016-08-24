@@ -110,6 +110,28 @@ namespace import
       {
          ossMemset(this, 0, sizeof(CSVFieldValue));
       }
+
+      void reset( CSV_TYPE type, CSV_TYPE subType = CSV_TYPE_AUTO )
+      {
+         if (CSV_TYPE_BINARY == type)
+         {
+            SAFE_OSS_FREE(binaryVal.bin);
+            binaryVal.binLen = 0;
+         }
+         else if (CSV_TYPE_STRING == type)
+         {
+            if (strVal.escaped)
+            {
+               SAFE_OSS_FREE(strVal.str);
+            }
+         }
+         else if (CSV_TYPE_DECIMAL == type ||
+                  (CSV_TYPE_NUMBER == type && CSV_TYPE_DECIMAL == subType))
+         {
+            decimal_free(&decimalVal);
+         }
+         ossMemset(this, 0, sizeof(CSVFieldValue));
+      }
    };
 
    struct CSVDecimalOpt
@@ -155,23 +177,7 @@ namespace import
       {
          if (hasDefault)
          {
-            if (CSV_TYPE_BINARY == type)
-            {
-               SAFE_OSS_FREE(defaultValue.binaryVal.bin);
-               defaultValue.binaryVal.binLen = 0;
-            }
-            else if (CSV_TYPE_STRING == type)
-            {
-               if (defaultValue.strVal.escaped)
-               {
-                  SAFE_OSS_FREE(defaultValue.strVal.str);
-               }
-            }
-            else if (CSV_TYPE_DECIMAL == type ||
-                     (CSV_TYPE_NUMBER == type && CSV_TYPE_DECIMAL == subType))
-            {
-               decimal_free(&(defaultValue.decimalVal));
-            }
+            defaultValue.reset( type, subType ) ;
          }
       }
    };
