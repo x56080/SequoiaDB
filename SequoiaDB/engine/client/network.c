@@ -117,9 +117,9 @@ INT32 clientConnect ( const CHAR *pHostName,
    struct hostent *retval = NULL ;
    INT32 error             = 0 ;
    CHAR hbuf[8192]         = { 0 } ;
-   hp                       = &hent ;
+   hp                      = &hent ;
    if ( (0 == gethostbyname_r ( pHostName, &hent, hbuf, sizeof(hbuf), 
-   	                              &retval, &error )) && NULL != retval )
+                                &retval, &error )) && NULL != retval )
 #elif defined (_AIX)
    struct hostent hent ;
    struct hostent_data hent_data ;
@@ -131,6 +131,11 @@ INT32 clientConnect ( const CHAR *pHostName,
       if ( pAddr )
       {
          sockAddress.sin_addr.s_addr = *( pAddr ) ;  
+      }
+      else 
+      {
+         rc = SDB_SYS ;
+         goto error ;
       }
    }
    else
