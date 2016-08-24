@@ -166,13 +166,13 @@ def object_hook(dct, compile_re=True):
     if "$numberLong" in dct:
         return int(dct["$numberLong"])
     if "$decimal" in dct:
+        v = str(dct["$decimal"])
         if "$precision" in dct:
             precision = dct["$precision"][0]
             scale = dct["$precision"][1]
-            d = Decimal(precision, scale)
+            d = Decimal(v, precision, scale)
         else:
-            d = Decimal()
-        d.parse(str(dct["$decimal"]))
+            d = Decimal(v)
         return d
     if "$ref" in dct:
         return DBRef(dct["$ref"], dct["$id"], dct.get("$db", None))

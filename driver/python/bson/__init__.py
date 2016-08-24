@@ -289,8 +289,8 @@ def _get_long(data, position, as_class, tz_aware, uuid_subtype, compile_re):
     return value, position
 
 def __get_decimal(data, position, as_class, tz_aware, uuid_subtype, compile_re):
-   d = Decimal()
-   l = d.from_bson_element_value(data[position:])
+   d = Decimal(0)
+   l = d._from_bson_element_value(data[position:])
    value = str(d)
    position += l
 
@@ -479,7 +479,7 @@ def _element_to_bson(key, value, check_keys, uuid_subtype):
     if isinstance(value, MaxKey):
         return BSONMAX + name
     if isinstance(value, Decimal):
-        return BSONDECIMAL + name + value.to_bson_element_value() #struct.pack(fmt, a) #value.to_bson_element_value()
+        return BSONDECIMAL + name + value._to_bson_element_value() #struct.pack(fmt, a) #value.to_bson_element_value()
 
     raise InvalidDocument("cannot convert value of type %s to bson" %
                           type(value))

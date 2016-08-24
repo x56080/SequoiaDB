@@ -16,6 +16,7 @@
 """
 import bson
 from bson.py3compat import binary_type as bstr
+from bson.py3compat import PY3
 try:
    import bsondecimal as decimal
 except:
@@ -28,8 +29,7 @@ class Decimal(object):
 
    >>> import bson
    >>> from bson import Decimal
-   >>> obj =  Decimal(1000, 100) // precision 1000, scale 100
-   >>> obj.parse("12345.67890987654321012345678909876543210123")
+   >>> obj =  Decimal("12345.6789098765", 1000, 100) // precision 1000, scale 100
       
    # use a decimal into bson as blow:
    >>> doc = { 'rest':obj }
@@ -52,7 +52,7 @@ class Decimal(object):
 
    methods can be listed by using dir(obj) 
    """
-   def __init__(self, precision = None, scale = None):
+   def __init__(self, value, precision = None, scale = None):
       """ create an decimal object, precision and scale are 0 by default
       and precision is limited under 1000
       """
@@ -73,7 +73,9 @@ class Decimal(object):
          _ = decimal.init2(self.__decimal, precision, scale)
       if 0 != _:
          raise Exception("invalid parameter, code: %d" % _)
-      
+
+      self.__parse(value)
+
    def __del__(self):
       decimal.destroy(self.__decimal)
 
@@ -142,7 +144,7 @@ class Decimal(object):
       return v
 
    def __from_float(self, value):
-      _ = decimal.fromDouble(self.__decimal, value)
+      _ = decimal.fromFloat(self.__decimal, value)
       if _ != 0:
          raise Exception("invalid parameter, code: %d" % _)
 
@@ -167,11 +169,13 @@ class Decimal(object):
          raise Exception("invalid parameter, code: %d" % _)
       return v
 
-   def parse(self, value):
+   def __parse(self, value):
       """set the value of decimal, only int(long)/float(double)/str is accepted
       """
       if isinstance(value, int):
          return self.__from_int(value)
+      elif (not PY3) and isinstance(value, long):
+         return self.__from_string(str(value))
       elif isinstance(value, float):
          return self.__from_float(value)
       elif isinstance(value, bstr):
@@ -185,22 +189,18 @@ class Decimal(object):
          raise Exception("invalid parameter, code: %d" % _)
       return v
 
-   def from_bson_element_value(self, value):
-      """the method is used by bson.BSON.decode to decode the binary string(an bson element value) into an decimal value
-      """
-      _, l = decimal.fromBsonValue(self.__decimal, value)
-      if _ != 0:
-         raise Exception("invalid parameter, code: %d" % _)
-      return l
-
    def compare(self, rhs):
       """compare between two decimal object.
       if int is specified, int value will be converted to an decimal object, then compare
       """
       if isinstance(rhs, int):
          _ = decimal.compareInt(self.__decimal, rhs)
+      elif (not PY3) and isinstance(rhs, long):
+         _ = self.compare(Decimal(rhs))
+      elif isinstance(rhs, float):
+         _ = self.compare(Decimal(rhs))
       elif isinstance(rhs, Decimal):
-         _ = decimal.compare(self.__decimal, rhs)
+         _ = decimal.compare(self.__decimal, rhs.__decimal)
       else:
          raise TypeError('invalid comparation: between Decimal and %s' % type(rhs))
 
@@ -208,7 +208,15 @@ class Decimal(object):
          raise Exception("invalid return value or process failed, code %d" % _)
       return _
 
-   def to_bson_element_value(self):
+   def _from_bson_element_value(self, value):
+      """the method is used by bson.BSON.decode to decode the binary string(an bson element value) into an decimal value
+      """
+      _, l = decimal.fromBsonValue(self.__decimal, value)
+      if _ != 0:
+         raise Exception("invalid parameter, code: %d" % _)
+      return l
+
+   def _to_bson_element_value(self):
       """the method is used to encode an decimal object into the value of bson element
       """
       _, s = decimal.toBsonElement(self.__decimal)
