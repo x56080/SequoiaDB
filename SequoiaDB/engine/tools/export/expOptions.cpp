@@ -199,7 +199,7 @@ namespace exprt
          buf += OSS_NEWLINE ; \
       }
 
-   const CHAR *formatNames[FORMAT_COUNT] = { "csv", "json" } ;
+   static const CHAR *formatNames[FORMAT_COUNT] = { "csv", "json" } ;
    INT32 formatOfName( const string & name, EXP_FILE_FORMAT &format )
    {
       INT32 rc = SDB_INVALIDARG ;

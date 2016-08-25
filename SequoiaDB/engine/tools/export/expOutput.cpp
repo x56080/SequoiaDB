@@ -332,7 +332,8 @@ namespace exprt
    {
       INT32 rc = SDB_OK ;
       SINT64 writed = 0 ;
-      UINT64 allWrited = 0 ;
+      UINT32 allWrited = 0 ;
+      UINT32 szSave = sz ;
 
       if ( _writedSize + sz > _options.fileLimit() )
       {
@@ -344,7 +345,6 @@ namespace exprt
          }
          _writedSize = 0 ;
       }
-      _writedSize +=  sz ;
 
       while ( sz > 0 )
       {
@@ -354,10 +354,12 @@ namespace exprt
             PD_LOG ( PDERROR, "Failed to write to file, rc = %d", rc ) ;
             goto error ;
          }
-         sz -= writed ;
-         allWrited += writed ;
+         sz -= ( (UINT32)writed ) ;
+         allWrited += ( (UINT32)writed ) ;
          rc = SDB_OK ;
       }
+
+      _writedSize += szSave ;
 
    done :
       return rc ;

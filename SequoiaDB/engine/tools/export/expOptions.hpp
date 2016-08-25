@@ -52,7 +52,6 @@ namespace exprt
 
       FORMAT_COUNT
    } ;
-   extern const CHAR *formatNames[FORMAT_COUNT] ;
    INT32 formatOfName( const string & name, EXP_FILE_FORMAT &format ) ;
    
    class expOptions : public SDBObject

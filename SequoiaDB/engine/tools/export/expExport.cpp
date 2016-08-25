@@ -140,12 +140,10 @@ namespace exprt
       UINT64 accumulatedSize = 0 ;
       UINT64 _exportedCount = 0 ;
       UINT64 _failCount = 0 ;
-      UINT64 recordIdx = 0 ;
       bson_init ( &record ) ;
 
       while ( TRUE )
       {
-         ++recordIdx ;
          rc = sdbNext( hCusor, &record ) ;
          if ( SDB_DMS_EOC == rc )
          {
@@ -154,35 +152,28 @@ namespace exprt
          }
          else if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "Failed to get the %lluth record, rc = %d", 
-                    recordIdx, rc ) ;
+            PD_LOG( PDERROR, "Failed to get the next record, rc = %d", rc ) ;
             goto error ;
          }
 
          rc = _convertor.convert( record, buf, size ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "Failed to convert the %lluth record, rc = %d", 
-                    recordIdx, rc ) ;
+            PD_LOG( PDERROR, "Failed to convert the record, rc = %d",  rc ) ;
             ++failCount ;
-            if ( _options.errorStop() )
-            {
-               goto error ;
-            }
-            goto recordDone ;
+            // TODO: may continue to export when option 'errorstop' is false,
+            //       not handle yet
+            goto error ;
          }
 
          rc = _out.output( buf, size ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "Failed to output the %lluth record, rc = %d", 
-                    recordIdx, rc ) ;
+            PD_LOG( PDERROR, "Failed to output the record, rc = %d", rc ) ;
             ++_failCount ;
-            if ( _options.errorStop() )
-            {
-               goto error ;
-            }
-            goto recordDone ;
+            // TODO: may continue to export when option 'errorstop' is false,
+            //       not handle yet
+            goto error ;
          }
          ++_exportedCount ;
 
@@ -195,8 +186,6 @@ namespace exprt
             accumulatedSize = 0 ;
          }
 
-      recordDone :
-
          buf = _options.delRecord().c_str() ;
          size = (UINT32)_options.delRecord().size() ;
          accumulatedSize += size ;
@@ -204,8 +193,7 @@ namespace exprt
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Failed to output record-delimiter after"
-                             " the %lluth record , rc = %d",
-                    recordIdx, rc ) ;
+                             " the record , rc = %d", rc ) ;
             goto error ;
          }
       }
@@ -414,20 +402,18 @@ namespace exprt
             PD_LOG( PDINFO, "Failed to export collection %s.%s, rc = %d", 
                     it->csName.c_str(), it->clName.c_str(), rc ) ;
             ++_failCLCount ;
-            if ( _options.errorStop() )
-            {
-               goto error ;
-            }
-            continue ;
+            // TODO: may continue to export when option 'errorstop' is false,
+            //       not handle yet
+            goto error ;
          }
          ++_exportedCLCount ;
       }
       
    done :
-      if ( _exportedCLCount > 0 || _exportedRecordCount > 0 )
-      {
-         rc = SDB_OK ;
-      }
+      //if ( _exportedCLCount > 0 || _exportedRecordCount > 0 )
+      //{
+      //   rc = SDB_OK ;
+      //}
       return rc ;
    error :
       goto done ;
@@ -525,18 +511,36 @@ namespace exprt
 
    void expRoutine::printStatistics()
    {
+      // TODO: may print the failed count of collections and records
+      //       when option 'errorstop' is supported
       if ( !_options.hasGenConf() )
       {
-         PD_LOG( PDINFO, "exported collections : %llu successful, %llu failed; "
-                         "exported records : %llu successful, %llu failed",
-                 _exportedCLCount, _failCLCount,
-                 _exportedRecordCount, _failRecordCount ) ;
-         cout << "exported collections : " << _exportedCLCount 
-              << " successful, " << _failCLCount << " failed"
-              << endl ;
-         cout << "exported records : " << _exportedRecordCount 
-              << " successful, " << _failRecordCount << " failed"
-              << endl ;
+         if ( 0 == _failCLCount && 0 == _failRecordCount )
+         {
+            PD_LOG( PDINFO, "Exported successfully with"
+                            " %u successful collections, "
+                            " %llu successful records",
+                    _exportedCLCount, _exportedRecordCount ) ;
+            cout << "Exported successfully with " << _exportedCLCount 
+                 << " successful collections, " << _exportedRecordCount
+                 << " successful records" << endl ;
+         }
+         else if( _exportedRecordCount > 0 &&
+                  ( _failCLCount > 0 || _failRecordCount > 0 ) )
+         {
+            PD_LOG( PDINFO, "Exported partial-successfully with"
+                            " %u successful collections, "
+                            " %llu successful records",
+                    _exportedCLCount, _exportedRecordCount ) ;
+            cout << "Exported partial-successfully with " << _exportedCLCount 
+                 << " successful collections, " << _exportedRecordCount
+                 << " successful records" << endl ;
+         }
+         else 
+         {
+            PD_LOG( PDINFO, "Failed to export!" ) ;
+            cerr << "Failed to export!" << endl ;
+         }
       }
    }
 }
