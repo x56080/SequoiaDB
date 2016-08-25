@@ -139,7 +139,7 @@
          var data = { 'cmd': 'get system info' } ;
          SdbRest.OmOperation( data, function( systemInfo ){
             $.each( systemInfo[0], function( key, value ){
-               window.Config[ key ] = value ;
+               //window.Config[ key ] = value ;
             } ) ;
          }, function( errorInfo ){
             _IndexPublic.createRetryModel( $scope, errorInfo, function(){
@@ -277,52 +277,93 @@
       $scope.Left.nav2Btn = { 'visibility': 'hidden' } ;
       //初始化导航列表
       $rootScope.initNav = function(){
-         $scope.Left.navMenu = [
-            {
-               'text': $scope.autoLanguage( '数据' ),
-               'module': 'Data',
-               'icon': 'fa-database',
-               'list': [
-                  {
-                     'title': 'SequoiaDB',
-                     'list': []
-                  },
-                  {
-                     'title': 'SequoiaSQL',
-                     'list': []
-                  },
-                  {
-                     'title': 'Hdfs',
-                     'list': []
-                  },
-                  {
-                     'title': 'Spark',
-                     'list': []
-                  },
-                  {
-                     'title': 'Yarn',
-                     'list': []
-                  }
-               ]
-            },
-            /*{
-               'text': $scope.autoLanguage( '监控' ),
-               'module': 'Monitor',
-               'icon': 'fa-flash',
-               'list': [
-                  {
-                     'title': 'SequoiaDB',
-                     'list': []
-                  }
-               ]
-            },*/
-            {
-               'text': $scope.autoLanguage( '部署' ),
-               'module': 'Deploy',
-               'icon': 'fa-share-alt',
-               'action': '/#/Deploy/Index'
-            }
-         ] ;
+         if( window.Config['Edition'] == 'Enterprise' )
+         {
+            $scope.Left.navMenu = [
+               {
+                  'text': $scope.autoLanguage( '数据' ),
+                  'module': 'Data',
+                  'icon': 'fa-database',
+                  'list': [
+                     {
+                        'title': 'SequoiaDB',
+                        'list': []
+                     },
+                     {
+                        'title': 'SequoiaSQL',
+                        'list': []
+                     },
+                     {
+                        'title': 'Hdfs',
+                        'list': []
+                     },
+                     {
+                        'title': 'Spark',
+                        'list': []
+                     },
+                     {
+                        'title': 'Yarn',
+                        'list': []
+                     }
+                  ]
+               },
+               {
+                  'text': $scope.autoLanguage( '部署' ),
+                  'module': 'Deploy',
+                  'icon': 'fa-share-alt',
+                  'action': '/#/Deploy/Index'
+               }
+            ] ;
+         }
+         else
+         {
+            $scope.Left.navMenu = [
+               {
+                  'text': $scope.autoLanguage( '数据' ),
+                  'module': 'Data',
+                  'icon': 'fa-database',
+                  'list': [
+                     {
+                        'title': 'SequoiaDB',
+                        'list': []
+                     },
+                     {
+                        'title': 'SequoiaSQL',
+                        'list': []
+                     },
+                     {
+                        'title': 'Hdfs',
+                        'list': []
+                     },
+                     {
+                        'title': 'Spark',
+                        'list': []
+                     },
+                     {
+                        'title': 'Yarn',
+                        'list': []
+                     }
+                  ]
+               },
+               {
+                  'text': $scope.autoLanguage( '监控' ),
+                  'module': 'Monitor',
+                  'icon': 'fa-flash',
+                  'list': [
+                     {
+                        'title': 'SequoiaDB',
+                        'list': []
+                     }
+                  ]
+               },
+               {
+                  'text': $scope.autoLanguage( '部署' ),
+                  'module': 'Deploy',
+                  'icon': 'fa-share-alt',
+                  'action': '/#/Deploy/Index'
+               }
+            ] ;
+         }
       } ;
       $rootScope.initNav() ;
 
@@ -436,7 +477,10 @@
             switch( moduleType )
             {
             case 'sequoiadb':
-               $location.path( '/Monitor/Index' ).search( params ) ; break ;
+               if( window.Config['Edition'] != 'Enterprise' )
+               {
+                  $location.path( '/Monitor/Preview' ).search( params ) ; break ;
+               }
             default:
                break ;
             }

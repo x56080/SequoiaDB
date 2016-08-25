@@ -59,7 +59,7 @@ html,body{ width:100%; height:100%; /*overflow:hidden; */ }
 .unselect{ -moz-user-select: none; -webkit-user-select:none; -ms-user-select:none; -khtml-user-select:none; user-select:none; }
 
 /* 新弹窗 */
-.modal2{ position:absolute; z-index:1001; top:0; left:0; background:#FFF; border:#AAA solid 1px; -webkit-box-shadow:0px 2px 8px rgba(0,0,0,0.5); box-shadow:0px 2px 8px rgba(0,0,0,0.5); -moz-user-select:none; -webkit-user-select:none; -ms-user-select:none; -khtml-user-select:none; user-select:none; }
+.modal2{ position:absolute; z-index:1001; top:0; left:0; background:#FFF; border:#AAA solid 1px; -webkit-box-shadow:0px 2px 8px rgba(0,0,0,0.5); box-shadow:0px 2px 8px rgba(0,0,0,0.5); }
 .modal2 > .header { border-bottom:#E5E5E5 solid 0px; border-top:3px solid #00B8E6; font-weight:bold; font-size:90%; word-wrap:break-word; overflow:hidden; height:30px; line-height:30px; color:#00A3CC; background:url('../images/modal_title.png') repeat-x; }
 .modal2 > .header > table{ width:100%; }
 .modal2 > .header .icon{ color:#AAA; line-height:30px; padding-left:10px; width:30px; }

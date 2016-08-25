@@ -26,7 +26,74 @@
       var sql = '' ;
       var RecordsNum = 0 ;
 
-      sql = 'SELECT Name, PageSize/1024, LobPageSize/1024, GroupName, TotalRecords, FreeDataSize/1048576, FreeIndexSize/1048576, FreeLobSize/1048576, FreeSize/1048576, MaxDataCapSize/1073741824, MaxIndexCapSize/1073741824, MaxLobCapSize/1073741824, TotalDataSize/1048576, TotalIndexSize/1048576, TotalLobSize/1048576, TotalSize/1048576 FROM $SNAPSHOT_CS WHERE NodeSelect="master" ORDER BY Name' ;
+      $scope.ModuleInfo1 = { 'Version': '', 'Domain': 0, 'Session': 0,  'Groups': 0, 'Collections':0, 'TotalLobs': 0, 'TotalRecords':0 } ;
+      //获取集合列表
+      var getClList = function(){
+         var cls = [] ;
+         sql = 'SELECT t1.Name,t1.Details.TotalRecords,t1.Details.TotalLobs FROM (SELECT Name, Details FROM $SNAPSHOT_CL WHERE NodeSelect = "master" SPLIT By Details) As t1' ;
+         SdbRest.Exec( sql, function( clList ){
+            $.each( clList, function( index, clInfo ){
+               
+               $scope.ModuleInfo1['TotalLobs'] += clInfo['TotalLobs'] ;
+               $scope.ModuleInfo1['TotalRecords'] += clInfo['TotalRecords'] ;
+            } ) ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               getClList() ;
+               return true ;
+            } ) ;
+         }, function(){
+            _IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
+         } ) ;
+      } ;
+      getClList() ;
+
+      var getDbList = function(){
+         var SumInfo = {} ;
+         $scope.DbInfo = { 'TotalInsert':0, 'TotalUpdate': 0, 'TotalDelete':0, 'TotalRead':0 } ;
+         sql = 'SELECT Version, TotalInsert, TotalUpdate, TotalDelete, TotalRead FROM $SNAPSHOT_DB WHERE NodeSelect = "master"' ;
+         SdbRest.Exec( sql, function( dbList ){
+            $scope.ModuleInfo1['Version'] = dbList[0]['Version']['Major'] + '.' + dbList[0]['Version']['Minor']
+            $.each( dbList, function( index, DbInfo ){
+                  $scope.DbInfo['TotalInsert'] += DbInfo['TotalInsert'] ;
+                  $scope.DbInfo['TotalUpdate'] += DbInfo['TotalUpdate'] ;
+                  $scope.DbInfo['TotalDelete'] += DbInfo['TotalDelete'] ;
+                  $scope.DbInfo['TotalRead'] += DbInfo['TotalRead'] ;
+            } ) ;
+
+            if( typeof( SumInfo['TotalInsert'] ) == 'undefined' )
+            {
+               SumInfo['TotalInsert'] = $scope.DbInfo['TotalInsert'] ;
+               SumInfo['TotalUpdate'] = $scope.DbInfo['TotalUpdate'] ;
+               SumInfo['TotalDelete'] = $scope.DbInfo['TotalDelete'] ;
+               SumInfo['TotalRead'] = $scope.DbInfo['TotalRead'] ;
+            }
+            else
+            {
+               $scope.charts['Insert']['value'] = [ [ 0, ( $scope.DbInfo['TotalInsert'] - SumInfo['TotalInsert'] )/5, true, false ] ] ;
+               $scope.charts['Update']['value'] = [ [ 0, ( $scope.DbInfo['TotalUpdate'] - SumInfo['TotalUpdate'] )/5, true, false ] ] ;
+               $scope.charts['Delete']['value'] = [ [ 0, ( $scope.DbInfo['TotalDelete'] - SumInfo['TotalDelete'] )/5, true, false ] ] ;
+               $scope.charts['Query']['value'] = [ [ 0, ( $scope.DbInfo['TotalRead'] - SumInfo['TotalRead'] )/5, true, false ] ] ;
+
+               SumInfo['TotalInsert'] = $scope.DbInfo['TotalInsert'] ;
+               SumInfo['TotalUpdate'] = $scope.DbInfo['TotalUpdate'] ;
+               SumInfo['TotalDelete'] = $scope.DbInfo['TotalDelete'] ;
+               SumInfo['TotalRead'] = $scope.DbInfo['TotalRead'] ;
+            }
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               getDbList() ;
+               return true ;
+            } ) ;
+         }, function(){
+            _IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
+         }, null, false ) ;
+      } ;
+      getDbList() ;
+
+
+
+
 
       var queryHost = function(){
          var data = {

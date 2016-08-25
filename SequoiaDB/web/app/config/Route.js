@@ -264,6 +264,13 @@
            resolve: resolveFun( [ './app/controller/Monitor/Host/Warning/Index.js' ] )
          }
       },
+      //监控-社区版提示页面
+      { path: '/Monitor/Preview',
+        options: {
+           templateUrl: './app/template/Monitor/other/Preview.html',
+           resolve: resolveFun( [ './app/controller/Monitor/other/Preview.js' ] )
+         }
+      },
       //部署
       { path: '/Deploy/Index',
         options: {
