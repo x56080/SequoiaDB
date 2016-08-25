@@ -341,14 +341,27 @@ typedef _ciGroup ciGroup ;
 
 struct _ciNode
 {
+   enum 
+   {
+      STATE_NORMAL = 0,    // normal
+      STATE_DISCONN,       // failed to connect to
+      STATE_CLNOTEXIST,    // the corresponding collection does not exist
+      STATE_CLFAILED,      // failed to get the corresponding collection
+      STATE_CUSURFAILED,    // failed to get cusur of the collection
+
+      STATE_COUNT
+   } ;
+   static const CHAR *stateDesc[STATE_COUNT] ;
+   
    INT32           _index ;
    INT32           _nodeID ;
-   INT32           _state ; // 0:normal 1:disconnected 2:lost connection
+   INT32           _state ; 
    sdbclient::sdb *_db ;
    _ciNode        *_next ;
    CHAR            _hostname[ CI_HOSTNAME_SIZE + 1 ] ;
    CHAR            _serviceName[ CI_SERVICENAME_SIZE + 1 ] ;
-   _ciNode() : _index( 0 ), _nodeID( 0 ), _state( 0 ), _db( NULL ), _next( NULL )
+   _ciNode() : _index( 0 ), _nodeID( 0 ), 
+               _state( STATE_NORMAL ), _db( NULL ), _next( NULL )
    {
       ossMemset( _hostname, 0, CI_HOSTNAME_SIZE + 1 ) ;
       ossMemset( _serviceName, 0, CI_SERVICENAME_SIZE + 1 ) ;
@@ -510,12 +523,13 @@ struct _ciTail
    INT32  _exitCode ;
    UINT32 _groupCount ;
    UINT32 _clCount ;
+   UINT32 _diffCLCount ;
    UINT32 _mainClCount ;
    INT64  _recordCount ;
    UINT64 _timeCount ;
    mainCl _mainCls ;
    ciLinkList< ciOffset > _groupOffset ;
-   _ciTail() : _exitCode( 0 ), _groupCount( 0 ), _clCount( 0 ),
+   _ciTail() : _exitCode( 0 ), _groupCount( 0 ), _clCount( 0 ), _diffCLCount(0),
                _mainClCount( 0 ), _recordCount( 0 ), _timeCount( 0 )
    {}
 } ;

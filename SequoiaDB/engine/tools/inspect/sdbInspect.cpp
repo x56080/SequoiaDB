@@ -225,18 +225,59 @@ error:
    goto done ;
 }
 
+INT32 dumpCiNodeSimple( ciLinkList< ciNode > &nodes, CHAR *&buffer,
+                        INT64 &bufferSize, INT64 &validSize )
+{
+   INT32 rc     = SDB_OK ;
+   ciNode *node = NULL ;
+   INT64 len    = 0 ;
+   
+retry:
+   if ( bufferSize - 1 <= len )
+   {
+      bufferSize += CI_BUFFER_BLOCK ;
+      buffer = ( CHAR *)SDB_OSS_REALLOC( buffer, bufferSize ) ;
+      if ( NULL == buffer )
+      {
+         std::cout << "Error: failed to allocate buffer, size = "
+                   << bufferSize << std::endl ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+   }
+
+   len = 0 ;
+   nodes.resetCurrentNode() ;
+   node = nodes.getHead() ;
+   while ( NULL != node )
+   {   
+      if ( ciNode::STATE_NORMAL != node->_state )
+      {
+         len += ossSnprintf( buffer + len, 
+                             bufferSize - len,
+                             "    \"%s\" in node( ServiceName : %s )"
+                             OSS_NEWLINE OSS_NEWLINE,
+                             ciNode::stateDesc[ node->_state], 
+                             node->_serviceName ) ;
+         CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
+      }
+      node = nodes.next() ;
+   }
+   validSize = len ;
+
+done:
+   return rc ;
+error:
+   OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
+   goto done ;
+}
+
 INT32 dumpCiNode( ciLinkList< ciNode > &link, CHAR *&buffer,
                   INT64 &bufferSize, INT64 &validSize )
 {
    INT32 rc     = SDB_OK ;
    ciNode *node = NULL ;
    INT64 len    = 0 ;
-   const CHAR * nodeState[] =
-   {
-      "Normal",
-      "Cannot connect to node or cannot get collection",
-      "Cannot get cursor"
-   } ;
 
 retry:
    if ( bufferSize - 1 <= len )
@@ -275,7 +316,7 @@ retry:
       CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
       len += ossSnprintf( buffer + len, bufferSize - len,
                           "    Node State       : %s"OSS_NEWLINE,
-                          nodeState[ node->_state ] ) ;
+                          ciNode::stateDesc[ node->_state ] ) ;
       len += ossSnprintf( buffer + len, bufferSize - len, OSS_NEWLINE ) ;
       CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
 
@@ -411,7 +452,7 @@ retry:
          ciState st( rd->_state ) ;
          if ( st.hit( idx ) )
          {
-            if ( 0 != node->_state )
+            if ( ciNode::STATE_NORMAL != node->_state )
             {
                pst = nodeState[ 2 ] ;
             }
@@ -471,19 +512,23 @@ retry:
                        "Inspect result:"OSS_NEWLINE ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Total inspected group count   : %d"OSS_NEWLINE,
+                       "Total inspected group count       : %d"OSS_NEWLINE,
                        tail._groupCount ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Total inspected collection    : %d"OSS_NEWLINE,
+                       "Total inspected collection        : %d"OSS_NEWLINE,
                        tail._clCount ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Total different records count : %d"OSS_NEWLINE,
+                       "Total different collections count : %d"OSS_NEWLINE,
+                       tail._diffCLCount ) ;
+   CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
+   len += ossSnprintf( buffer + len, bufferSize - len,
+                       "Total different records count     : %d"OSS_NEWLINE,
                        tail._recordCount ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Total time cost               : %d ms"OSS_NEWLINE,
+                       "Total time cost                   : %d ms"OSS_NEWLINE,
                        tail._timeCount ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
 
@@ -941,6 +986,26 @@ error:
    goto done ;
 }
 
+BOOLEAN normalNodes( ciLinkList< ciNode > &nodes ) 
+{
+   BOOLEAN normal = TRUE ;
+   ciNode *curNode = NULL ;
+
+   nodes.resetCurrentNode() ;
+   curNode = nodes.getHead() ;
+   while ( NULL != curNode )
+   {
+      if ( ciNode::STATE_NORMAL != curNode->_state )
+      {
+         normal = FALSE ;
+         break ;
+      }
+      curNode = nodes.next() ;
+   }
+
+   return normal ;
+}
+
 /**
 ** read ciNode from file
 ***/
@@ -1166,20 +1231,24 @@ INT32 getCiCursor( ciLinkList< ciNode > &nodes, const CHAR* clName,
                            g_username, g_password ) ;
          if ( SDB_OK != rc )
          {
-            curNode->_state = 1 ;// cannot connect to node
+            curNode->_state = ciNode::STATE_DISCONN ;
          }
       }
 
-      if ( 1 != curNode->_state )
+      if ( ciNode::STATE_DISCONN != curNode->_state )
       {
          rc = db->getCollection( clName, cl ) ;
-         if ( SDB_OK != rc )
+         if ( SDB_DMS_NOTEXIST == rc )
          {
-            curNode->_state = 2 ;//cannot get collection
+            curNode->_state = ciNode::STATE_CLNOTEXIST ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            curNode->_state = ciNode::STATE_CLFAILED ;
          }
       }
 
-      if ( 0 == curNode->_state )
+      if ( ciNode::STATE_NORMAL == curNode->_state )
       {
          cr = new sdbclient::sdbCursor() ;
          if ( NULL == cr )
@@ -1203,7 +1272,7 @@ INT32 getCiCursor( ciLinkList< ciNode > &nodes, const CHAR* clName,
          if ( SDB_OK != rc )
          {
             DELETE_PTR(cr);
-            curNode->_state = 2 ;//cannot get cursor
+            curNode->_state = ciNode::STATE_CUSURFAILED ;
          }
       }
       cursor->_db = db ;
@@ -1245,11 +1314,15 @@ BOOLEAN recordQuery( ciLinkList< ciNode > &nodes,
 
    for ( INT32 idx = 0 ; idx < nodeCount ; ++idx, node = nodes.next() )
    {
-      if ( 1 == node->_state )   // node is not available
+      // the collection exists but is not available in node,
+      // we assume the record exists
+      if ( ciNode::STATE_NORMAL != node->_state &&
+           ciNode::STATE_CLNOTEXIST != node->_state )
       {
          state.set( idx ) ;
       }
-      else if ( 0 == node->_state && docs.objs[idx].equal( obj ) )
+      else if ( ciNode::STATE_NORMAL == node->_state && 
+                docs.objs[idx].equal( obj ) )
       {
          state.set( idx ) ;
       }
@@ -1659,7 +1732,11 @@ INT32 readCiTail( OSSFILE &in, const INT64 offset, ciTail *tail )
    CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
    rc = readFromFile( in, tmpOffset,
-      ( CHAR * )&tail->_clCount, sizeof( UINT32 ) ) ;
+                      ( CHAR * )&tail->_clCount, sizeof( UINT32 ) ) ;
+   CHECK_VALUE( ( SDB_OK != rc ), error ) ;
+
+   rc = readFromFile( in, tmpOffset,
+                      ( CHAR * )&tail->_diffCLCount, sizeof( UINT32 ) ) ;
    CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
    rc = readFromFile( in, tmpOffset,
@@ -1715,6 +1792,11 @@ INT32 writeCiTail( OSSFILE &out, ciTail *tail,
    len += sizeof( UINT32 ) ;
 
    rc = writeToFile( out,
+                     ( const CHAR * )&tail->_diffCLCount, sizeof( UINT32 ) ) ;
+   CHECK_VALUE( ( SDB_OK != rc ), error ) ;
+   len += sizeof( UINT32 ) ;
+
+   rc = writeToFile( out,
                      ( const CHAR * )&tail->_mainClCount, sizeof( UINT32 ) ) ;
    CHECK_VALUE( ( SDB_OK != rc ), error ) ;
    len += sizeof( UINT32 ) ;
@@ -1766,7 +1848,7 @@ INT32 dumpOneCl( OSSFILE &in, OSSFILE &out, ciOffset *groupOffset,
    rc = readCiGroupHeader( in, offset, &header ) ;
    CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
-   // read nodes
+   // read global nodes info
    nodes.clear() ;
    rc = readCiNode( in, offset, header, nodes ) ;
    CHECK_VALUE( ( SDB_OK != rc ), error ) ;
@@ -1775,6 +1857,8 @@ INT32 dumpOneCl( OSSFILE &in, OSSFILE &out, ciOffset *groupOffset,
    {
       ciClHeader clHeader ;
       ciLinkList< ciRecord > records ;
+      ciLinkList< ciNode > nodesForCL ;
+
       if ( !findCiOffset ( clOffsets, offset ) )
       {
          INT64 clOffset = offset ;
@@ -1782,6 +1866,13 @@ INT32 dumpOneCl( OSSFILE &in, OSSFILE &out, ciOffset *groupOffset,
          if ( SDB_OK != rc )
          {
             std::cout << "Error: failed to get ciClHeader" << std::endl ;
+            goto error ;
+         }
+
+         rc = readCiNode( in, offset, header, nodesForCL ) ;
+         if ( SDB_OK != rc )
+         {
+            std::cout << "Error: failed to get ciNode" << std::endl ;
             goto error ;
          }
 
@@ -1805,14 +1896,16 @@ INT32 dumpOneCl( OSSFILE &in, OSSFILE &out, ciOffset *groupOffset,
             CHECK_VALUE( ( SDB_OK != rc ), error ) ;
             rc = writeToFile( out, buffer, validSize ) ;
             CHECK_VALUE( ( SDB_OK != rc ), error ) ;
+
             // dump group and node, if view option is "collection"
             // dump group
             rc = dumpCiGroupHeader( &header, buffer, bufferSize, validSize );
             CHECK_VALUE( ( SDB_OK != rc ), error ) ;
             rc = writeToFile( out, buffer, validSize ) ;
             CHECK_VALUE( ( SDB_OK != rc ), error ) ;
+
             // dump nodes
-            rc = dumpCiNode( nodes, buffer, bufferSize, validSize ) ;
+            rc = dumpCiNode( nodesForCL, buffer, bufferSize, validSize ) ;
             CHECK_VALUE( ( SDB_OK != rc ), error ) ;
             rc = writeToFile( out, buffer, validSize ) ;
             CHECK_VALUE( ( SDB_OK != rc ), error ) ;
@@ -1821,10 +1914,10 @@ INT32 dumpOneCl( OSSFILE &in, OSSFILE &out, ciOffset *groupOffset,
             {
                records.clear() ;
 
-               rc = readCiRecord( in, offset, nodes,
+               rc = readCiRecord( in, offset, nodesForCL,
                                   clHeader, records, TRUE ) ;
                CHECK_VALUE( ( SDB_OK != rc ), error ) ;
-               rc = dumpCiRecord( nodes, records,
+               rc = dumpCiRecord( nodesForCL, records,
                                   buffer, bufferSize, validSize ) ;
                CHECK_VALUE( ( SDB_OK != rc ), error ) ;
                rc = writeToFile( out, buffer, validSize ) ;
@@ -2192,7 +2285,7 @@ INT32 getCiNode( sdbclient::sdb *coord, ciGroup *group,
                                 g_username, g_password ) ;
                if ( SDB_OK != rc )
                {
-                  node->_state = 1 ;
+                  node->_state = ciNode::STATE_DISCONN ;
                   rc = SDB_OK ;
                }
             }
@@ -2427,11 +2520,15 @@ BOOLEAN compare( ciLinkList< ciNode > &nodes,
 
    for ( INT32 idx = 0 ; idx < nodeCount ; ++idx, node = nodes.next() )
    {
-      if ( 1 == node->_state )// node is not available, we assume the record exist
+      // the collection exists but is not available in node,
+      // we assume the record exists
+      if ( ciNode::STATE_NORMAL != node->_state &&
+           ciNode::STATE_CLNOTEXIST != node->_state )
       {
          state.set( idx ) ;
       }
-      else if ( 0 == node->_state && doc.objs[idx].equal( obj ) )
+      else if ( ciNode::STATE_NORMAL == node->_state && 
+                doc.objs[idx].equal( obj ) )
       {
          state.set( idx ) ;
       }
@@ -2565,7 +2662,6 @@ INT32 inspectWithoutFile( sdbclient::sdb *coord, ciHeader *header,
                                          header->_groupName,
                                          CI_GROUPNAME_SIZE ) )
       {
-         BOOLEAN writeNode = FALSE ;
          nodeList.clear() ;
          collections.clear() ;
 
@@ -2600,15 +2696,10 @@ INT32 inspectWithoutFile( sdbclient::sdb *coord, ciHeader *header,
 
          curCollection = collections.getHead() ;
 
-         // write node data to file first, if collection not NULL
-         if ( NULL == curCollection )
-         {
-            rc = writeCiNode( file, nodeList, buffer,
-                              bufferSize, validSize ) ;
-            CHECK_VALUE( ( SDB_OK != rc ), error ) ;
-            offset += validSize ;
-            writeNode = TRUE ;
-         }
+         // write the global nodes info
+         rc = writeCiNode( file, nodeList, buffer, bufferSize, validSize ) ;
+         CHECK_VALUE( ( SDB_OK != rc ), error ) ;
+         offset += validSize ;
 
          while ( NULL != curCollection )
          {
@@ -2617,15 +2708,6 @@ INT32 inspectWithoutFile( sdbclient::sdb *coord, ciHeader *header,
             rc = getCiCursor( nodeList, curCollection->_clName,
                               cursors, order, TRUE ) ;
             CHECK_VALUE( ( SDB_OK != rc ), error ) ;
-
-            if ( !writeNode )
-            {
-               rc = writeCiNode( file, nodeList, buffer,
-                                 bufferSize, validSize ) ;
-               CHECK_VALUE( ( SDB_OK != rc ), error ) ;
-               offset += validSize ;
-               writeNode = TRUE ;
-            }
 
             ossMemset( clHeader._fullname, 0, CI_CL_FULLNAME_SIZE ) ;
             ossMemcpy( clHeader._fullname, curCollection->_clName,
@@ -2644,12 +2726,23 @@ INT32 inspectWithoutFile( sdbclient::sdb *coord, ciHeader *header,
 
             clHeader._recordCount = records.count() ;
             tail._recordCount += records.count() ;
+            if ( !normalNodes( nodeList ) || records.count() > 0 )
+            {
+               tail._diffCLCount++ ;
+            }
 
-            // write collection header to file
+            // 1. write collection header 
             rc = writeCiClHeader( file, &clHeader ) ;
             CHECK_VALUE( ( SDB_OK != rc ), error ) ;
             offset += CI_CL_HEADER_SIZE ;
 
+            // 2. write nodes info
+            // write the nodes info from perspective of each collection
+            rc = writeCiNode( file, nodeList, buffer, bufferSize, validSize ) ;
+            CHECK_VALUE( ( SDB_OK != rc ), error ) ;
+            offset += validSize ;
+
+            // 3. write diff-records info
             if ( clHeader._recordCount > 0 )
             {
                count += clHeader._recordCount ;
@@ -2798,6 +2891,7 @@ INT32 inspectWithFile( ciHeader *header, const CHAR *inFile,
    tail._groupCount = 0 ;
    tail._groupOffset.clear() ;
    tail._recordCount = 0 ;
+   tail._diffCLCount = 0 ;
 
    rc = writeCiHeader( out, header, buffer, bufferSize, validSize ) ;
    if ( SDB_OK != rc )
@@ -2811,7 +2905,6 @@ INT32 inspectWithFile( ciHeader *header, const CHAR *inFile,
    offset = CI_HEADER_SIZE ;
    while ( offset < tailOffset )
    {
-      BOOLEAN writeNode = FALSE ;
       rc = readCiGroupHeader( in, offset, &groupHeader ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
@@ -2843,24 +2936,23 @@ INT32 inspectWithFile( ciHeader *header, const CHAR *inFile,
       rc = readCiNode( in, offset, groupHeader, ciNodes ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
-      if ( 0 >= groupHeader._clCount )
+      // write the global nodes info
+      rc = writeCiNode( out, ciNodes, buffer, bufferSize, validSize ) ;
+      if ( SDB_OK != rc )
       {
-         rc = writeCiNode( out, ciNodes, buffer,
-                           bufferSize, validSize ) ;
-         if ( SDB_OK != rc )
-         {
-            std::cout << "Error: failed to write ciNodes to file"
-                      << std::endl ;
-            goto error ;
-         }
-         writeOffset += validSize ;
+         std::cout << "Error: failed to write ciNodes to file" << std::endl ;
+         goto error ;
       }
+      writeOffset += validSize ;
 
       UINT32 idx = 0 ;
       while ( idx < groupHeader._clCount )
       {
          ciClHeader clHeader ;
          ciLinkList< ciRecord > records ;
+         ciLinkList< ciNode > nodesForEachCL ;
+
+         // 1. read collection header
          rc = readCiClHeader( in, offset, &clHeader ) ;
          if ( SDB_OK != rc )
          {
@@ -2868,6 +2960,15 @@ INT32 inspectWithFile( ciHeader *header, const CHAR *inFile,
             goto error ;
          }
 
+         // 2. read nodes-info for each collection
+         rc = readCiNode( in, offset, groupHeader, nodesForEachCL ) ;
+         if ( SDB_OK != rc )
+         {
+            std::cout << "Error: failed to get ciNode" << std::endl ;
+            goto error ;
+         }
+
+         // 3. read diff-records info
          if ( clHeader._recordCount > 0 )
          {
             records.clear() ;
@@ -2876,23 +2977,15 @@ INT32 inspectWithFile( ciHeader *header, const CHAR *inFile,
             CHECK_VALUE( ( SDB_OK != rc ), error ) ;
          }
 
-         if ( !writeNode )
-         {
-            rc = writeCiNode( out, ciNodes, buffer,
-                              bufferSize, validSize ) ;
-            if ( SDB_OK != rc )
-            {
-               std::cout << "Error: failed to write ciNodes to file"
-                         << std::endl ;
-               goto error ;
-            }
-            writeOffset += validSize ;
-            writeNode = TRUE ;
-         }
-
+         // 4. count the final result
          clHeader._recordCount = records.count() ;
          tail._recordCount += records.count() ;
+         if ( !normalNodes( ciNodes ) || records.count() > 0 )
+         {
+            tail._diffCLCount++ ;
+         }
 
+         // 5. write collection header
          rc = writeCiClHeader( out, &clHeader ) ;
          if ( SDB_OK != rc )
          {
@@ -2902,6 +2995,16 @@ INT32 inspectWithFile( ciHeader *header, const CHAR *inFile,
          }
          writeOffset += CI_CL_HEADER_SIZE ;
 
+         // 6. write nodes-info for each collection
+         rc = writeCiNode( out, ciNodes, buffer, bufferSize, validSize ) ;
+         if ( SDB_OK != rc )
+         {
+            std::cout << "Error: failed to write ciNodes to file" << std::endl ;
+            goto error ;
+         }
+         writeOffset += validSize ;
+
+         // 7. write diff-records info
          if ( records.count() > 0 )
          {
             totalRecord += records.count() ;
@@ -2976,6 +3079,15 @@ error:
    OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
    goto done ;
 }
+
+const CHAR *_ciNode::stateDesc[ _ciNode::STATE_COUNT ] = 
+{
+   "Normal",
+   "Failed to connect to node",
+   "Collection does not exist",
+   "Failed to get the collection",
+   "Failed to get cursor"
+} ;
 
 _sdbCi::_sdbCi()
 {
@@ -3173,7 +3285,7 @@ INT32 _sdbCi::handle( const po::options_description &desc,
                            tailBuffer, tailBufferSize ) ;
 
    CHECK_VALUE( (SDB_OK != rc ), error ) ;
-   std::cout << _header._action << " successfully" << std::endl ;
+   std::cout << _header._action << " done" << std::endl ;
    std::cout << tailBuffer << std::endl ;
 
 done:
@@ -3379,7 +3491,7 @@ INT32 _sdbCi::report ( const CHAR *inFile, const CHAR *reportFile,
       rc = writeToFile( out, buffer, validSize ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
-      // read nodes
+      // read global nodes info
       ciNodes.clear() ;
       rc = readCiNode( in, offset, groupHeader, ciNodes ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
@@ -3393,6 +3505,8 @@ INT32 _sdbCi::report ( const CHAR *inFile, const CHAR *reportFile,
       {
          ciClHeader clHeader ;
          ciLinkList< ciRecord > records ;
+         ciLinkList< ciNode > nodesForCL ;
+
          rc = readCiClHeader( in, offset, &clHeader ) ;
          if ( SDB_OK != rc )
          {
@@ -3400,6 +3514,17 @@ INT32 _sdbCi::report ( const CHAR *inFile, const CHAR *reportFile,
             goto error ;
          }
          rc = dumpCiClHeader( &clHeader, buffer, bufferSize, validSize ) ;
+         CHECK_VALUE( ( SDB_OK != rc ), error ) ;
+         rc = writeToFile( out, buffer, validSize ) ;
+         CHECK_VALUE( ( SDB_OK != rc ), error ) ;
+
+         rc = readCiNode( in, offset, groupHeader, nodesForCL ) ;
+         if ( SDB_OK != rc )
+         {
+            std::cout << "Error: failed to get ciNode" << std::endl ;
+            goto error ;
+         }
+         rc = dumpCiNodeSimple( nodesForCL, buffer, bufferSize, validSize ) ;
          CHECK_VALUE( ( SDB_OK != rc ), error ) ;
          rc = writeToFile( out, buffer, validSize ) ;
          CHECK_VALUE( ( SDB_OK != rc ), error ) ;
