@@ -132,7 +132,7 @@ class lob(object):
       if not isinstance(len, int):
          raise SDBTypeError("len must be an instance of int")
       try:
-         rc, data, size = sdb.lob_read(self._handle, len)
+         rc, data = sdb.lob_read(self._handle, len)
          pysequoiadb._raise_if_error("Failed to read data from lob", rc)
       except SDBBaseError:
          raise

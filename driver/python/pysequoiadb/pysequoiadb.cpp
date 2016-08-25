@@ -3170,7 +3170,7 @@ __METHOD_IMP(lob_read)
    UINT32 len = 0 ;
    UINT32 realLen = 0 ;
    CHAR *buffer = NULL ;
-   std::string str_data;
+   PyObject* retObj = NULL ;
 
    if ( !PARSE_PYTHON_ARGS(args, "OI", &obj, &len ) )
    {
@@ -3184,19 +3184,25 @@ __METHOD_IMP(lob_read)
       goto error ;
    }
 
-   CAST_PYOBJECT_TO_COBJECT(obj, sdbLob, lob) ;
    buffer = new CHAR[len + 1] ;
+   if ( NULL == buffer )
+   {
+      rc = SDB_OOM ;
+      goto error ;
+   }
    ossMemset( buffer, 0, len + 1) ;
+
+   CAST_PYOBJECT_TO_COBJECT(obj, sdbLob, lob) ;
    rc = lob->read( len, buffer, &realLen ) ;
-   str_data = buffer ;
 
 done:
+   retObj = MAKE_RETURN_INT_PYSTRING_SIZE( rc, buffer, realLen ) ;
    if ( NULL != buffer )
    {
       delete [] buffer ;
       buffer = NULL ;
    }
-   return MAKE_RETURN_INT_PYSTRING_UINT( rc, str_data.c_str(), realLen ) ;
+   return retObj ;
 error:
    goto done ;
 }
@@ -3210,20 +3216,20 @@ __METHOD_IMP(lob_write)
    INT32 realLen = 0 ;
    CHAR *str = NULL ;
 
-   if ( !PARSE_PYTHON_ARGS(args, "Osi", &obj, &str, &len ) )
+   if ( !PARSE_PYTHON_ARGS(args, "Os#i", &obj, &str, &len, &realLen ) )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
 
-   if ( len <= 0 )
+   if ( realLen <= 0 || realLen > len )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
 
    CAST_PYOBJECT_TO_COBJECT(obj, sdbLob, lob) ;
-   rc = lob->write( str, len ) ;
+   rc = lob->write( str, realLen ) ;
 
 done:
    return MAKE_RETURN_INT( rc ) ;
