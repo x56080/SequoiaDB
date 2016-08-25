@@ -139,7 +139,7 @@
          var data = { 'cmd': 'get system info' } ;
          SdbRest.OmOperation( data, function( systemInfo ){
             $.each( systemInfo[0], function( key, value ){
-               //window.Config[ key ] = value ;
+               window.Config[ key ] = value ;
             } ) ;
          }, function( errorInfo ){
             _IndexPublic.createRetryModel( $scope, errorInfo, function(){
