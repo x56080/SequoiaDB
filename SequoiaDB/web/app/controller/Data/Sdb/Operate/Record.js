@@ -376,7 +376,7 @@
             SdbRest.DataOperation( newdata, function( countData ){
                $scope.recordTotal = sprintf( $scope.autoLanguage( '一共 ? 条记录。' ), countData[0]['Total'] ) ;
                $scope.total = parseInt( countData[0]['Total'] / $scope.limit ) ;
-               if( countData[0]['Total'] % $scope.limit > 1 )
+               if( countData[0]['Total'] % $scope.limit > 0 )
                {
                   ++$scope.total ;
                }
