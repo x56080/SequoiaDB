@@ -1,40 +1,32 @@
 SequoiaDB 数据库是一款新型企业级分布式非关系型数据库，帮助企业用户降低 IT 成本，并对大数据的存储与分析提供了一个坚实，可靠，高效与灵活的底层平台。
 
-##SequoiaDB version 2.0 版本说明##
+##SequoiaDB version 2.6 版本说明##
 
 **接口变更：**
 
-- 增加事务锁超时时间配置transactiontimeout
-- createIndex接口增加SortBufferSize参数
-- createCS接口增加IndexEngineType参数（社区版）
-- upsert增加$setOnInsert操作符
-- update增加$replace操作符
-- 增加findAndRemove和findAndUpdate接口
-- 增加createIdIndex和dropIdIndex接口
-- 复制组增加对节点的attach及detach接口
-- C驱动增加sdbGetCLName 及 sdbGetCLFullName接口
+- BSON和JSON增加Decimal类型的Element。
+- JSON格式支持{fieldName:{$numberLong:"xxx"}}的长整型数据类型。
+- 驱动提供“连接池”的操作管理接口。
+- fdw驱动库增加版本号信息。
 
 **主要特性：**
 
-- 新版SequoiaDB OM（业务操作管理系统）
-- Rocksdb作为可选索引存储引擎（社区版）
-- 基于字典的数据压缩算法功能
-- 索引重建机制优化
-- 支持事务超时机制
-- 支持手动触发深度刷盘机制
-- 优化数据组节点心跳检测
-- 优化sdb_fdw访问性能
-- 支持findAndRemove和findAndModify原子操作
-- 支持update $replace操作符
-- 支持内置SQL使用hint语法选择指定索引
-- 支持selector的数学运算，字符串和cast操作
-- 支持手工创建删除ID索引功能
-- 增加SYSSpare组，用于管理后备节点
+- 提供高精度数据类型(Decimal)存储和计算能力。
+- 提供数据库审计功能，支持对用户访问、元数据定义、数据变更、数据访问等进行日志审计。
+- 提供基于字典的数据压缩功能。
+- 实现内存池和块级锁技术提升大对象的写入和读取性能。
+- 提供版本升级功能。
+- 提供基于WEB的SequoiaDB数据操作管理功能。
+- 提供基于WEB的SequoiaDB监控管理功能。
+- 提供基于WEB的SequoiaSQL数据操作管理功能。
+- 集成Spark、HDFS、Yarn等的统一监控管理功能。
 
 
 **工具优化：**
 
-- 新版高性能多并发导入工具
+- 在各驱动中增加对象信息缓存，提升性能。
+- 基于WEB的OM管理中提供修改机器IP地址的能力。
+- 导入工具能够清除UTF-8全角空格字符。
 
 **注意事项：**
 
