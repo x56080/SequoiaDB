@@ -32,6 +32,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -983,7 +984,15 @@ public class SequoiadbDatasourceImpl
 	}
 	
 	private void _startTimer() {
-		_timerExec = Executors.newScheduledThreadPool(1);
+		_timerExec = Executors.newScheduledThreadPool(1,
+			new ThreadFactory(){
+				public Thread newThread(Runnable r) {
+					Thread t = Executors.defaultThreadFactory().newThread(r);
+					t.setDaemon(true);
+					return t;
+				}
+			}
+		);
 		if (_dsOpt.getSyncCoordInterval() > 0)
 			_timerExec.scheduleAtFixedRate(new SynchronizeAddressTask(), 0, _dsOpt.getSyncCoordInterval(), TimeUnit.MILLISECONDS);
 		_timerExec.scheduleAtFixedRate(new CheckConnectionTask(), _dsOpt.getCheckInterval(), 
@@ -996,7 +1005,15 @@ public class SequoiadbDatasourceImpl
 	}
 	
 	private void _startThreads() {
-		_threadExec = Executors.newCachedThreadPool();
+		_threadExec = Executors.newCachedThreadPool(
+			new ThreadFactory(){
+				public Thread newThread(Runnable r) {
+					Thread t = Executors.defaultThreadFactory().newThread(r);
+					t.setDaemon(true);
+					return t;
+				}
+			}
+		);
 		_threadExec.execute(new CreateConnectionTask());
 		_threadExec.execute(new DestroyConnectionTask());
 		// stop adding task
