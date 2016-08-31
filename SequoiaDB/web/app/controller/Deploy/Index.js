@@ -198,6 +198,26 @@
                      }
                   }
                }
+               else
+               {
+                  if( statusInfo['errno'] == 0 || typeof( statusInfo['errno'] ) == 'undefined' )
+                  {
+                     var index3 = hostListIsExist( statusInfo['HostName'] ) ;
+                     if( index3 >= 0 )
+                     {
+                        $scope.HostList[index3]['Error']['Flag'] = 0 ;
+                     }
+                  }
+                  else
+                  {
+                     var index3 = hostListIsExist( statusInfo['HostName'] ) ;
+                     if( index3 >= 0 )
+                     {
+                        $scope.HostList[index3]['Error']['Flag'] = statusInfo['errno'] ;
+                        $scope.HostList[index3]['Error']['Message'] = statusInfo['detail'] ;
+                     }
+                  }
+               }
             } ) ;
             countModule_Host() ;
             SdbFunction.Timeout( queryHostStatus, isFirst ? 2000 : 5000 ) ;
@@ -416,10 +436,7 @@
                }
             } ) ;
             $scope.SwitchCluster( $scope.currentCluster ) ;
-            if( $scope.moduleList.length > 0 )
-            {
-               queryHostStatus() ;
-            }
+            queryHostStatus() ;
          }, function( errorInfo ){
             _IndexPublic.createRetryModel( $scope, errorInfo, function(){
                queryModule() ;
