@@ -1354,7 +1354,7 @@ namespace engine
          }
          else if ( !eduDestroyed )
          {
-            PD_LOG( PDINFO, "Push thread[%] for EDU[ID:%lld, Type:%s, "
+            PD_LOG( PDINFO, "Push thread[%d] for EDU[ID:%lld, Type:%s, "
                     "Name: %s] to thread pool", ossGetCurrentThreadID(),
                     myEDUID, getEDUName( type ), eduName ) ;
          }
