@@ -139,8 +139,10 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DPSLGRECD_LOADROWBODY ) ;
       INT32 rc = SDB_OK ;
 
-      PD_CHECK( _head._length > sizeof( dpsLogRecordHeader) && _head._length < DPS_RECORD_MAX_LEN,
-                SDB_DPS_CORRUPTED_LOG, error, PDERROR, "the length of record is out of range: %d",
+      PD_CHECK( _head._length >= sizeof( dpsLogRecordHeader) &&
+                _head._length <= DPS_RECORD_MAX_LEN,
+                SDB_DPS_CORRUPTED_LOG, error, PDERROR,
+                "the length of record is out of range: %d",
                 _head._length) ;
       if ( LOG_TYPE_DUMMY == _head._type )
       {

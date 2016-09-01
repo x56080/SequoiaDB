@@ -228,7 +228,6 @@ namespace engine
       UINT64 baseOffset = 0 ;
       dpsLogRecordHeader lsnHeader ;
       CHAR *lastRecord = NULL ;
-      UINT64 lastOffset = 0 ;
       UINT32 lastLen = 0 ;
 
       _inRestore = TRUE ;
@@ -362,14 +361,25 @@ namespace engine
                      lsnHeader._length, sizeof (dpsLogRecordHeader) ) ;
             break ;
          }
+         else if ( lsnHeader._length > DPS_RECORD_MAX_LEN )
+         {
+            PD_LOG( PDEVENT, "LSN length[%d] more than max[%d], invalid LSN",
+                    lsnHeader._length, DPS_RECORD_MAX_LEN ) ;
+            break ;
+         }
+         else if ( lsnHeader._length % sizeof( UINT32 ) != 0 )
+         {
+            PD_LOG( PDEVENT, "LSN length[%d] is not 4 bytes aligned, "
+                    "invalid LSN", lsnHeader._length ) ;
+            break ;
+         }
 
          offSet += lsnHeader._length ;
-         lastOffset = offSet ;
          lastLen = lsnHeader._length ;
       }
 
       /// ensure that the last record is valid.
-      if ( 0 < lastLen && 0 < lastOffset )
+      if ( 0 < lastLen && 0 < offSet )
       {
          _dpsLogRecord lr ;
          lastRecord = ( CHAR * )SDB_OSS_MALLOC( lastLen ) ;
@@ -380,7 +390,7 @@ namespace engine
             goto error ;
          }
 
-         rc = read( lastOffset + baseOffset - lastLen,
+         rc = read( offSet + baseOffset - lastLen,
                     lastLen,
                     lastRecord ) ;
          if ( SDB_OK != rc )
