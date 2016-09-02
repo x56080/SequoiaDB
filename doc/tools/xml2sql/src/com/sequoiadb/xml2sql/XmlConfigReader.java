@@ -280,9 +280,9 @@ public class XmlConfigReader {
 			}
 			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(String.valueOf(new File(rootDir + "/" + path))),  "UTF-8"));
 			StringBuffer sb = new  StringBuffer();
-			String comm_url = "./";
-			String image_dir = "./index/Public/Home/images/" + edition + "/";
-			String api_dir = "./index/Public/Home/document/" + edition;
+			String comm_url = "/cn/";
+			String image_dir = "/cn/index/Public/Home/images/" + edition + "/";
+			String api_dir = "/cn/index/Public/Home/document/" + edition;
 			String mao_str = "h2 key=\"title\" data-alt=\"alt\"";
 			String temp = null;
 			String str = null;
