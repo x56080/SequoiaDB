@@ -32,122 +32,29 @@
    Last Changed =
 
 *******************************************************************************/
-
+#include "oss.hpp"
+#include "ossUtil.hpp"
 #include "utilPath.hpp"
+#include "ossProc.hpp"
 #include "pd.hpp"
-#include "ossUtil.h"
 
-CHAR progName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-
-const CHAR* getProgramName()
-{
-   return progName ;
-}
-
-INT32 setProgramName( const CHAR* name )
+INT32 getProgramPath( CHAR *pOutputPath, INT32 maxLen )
 {
    INT32 rc = SDB_OK ;
-   if ( !name || ossStrlen( name ) > OSS_MAX_PATHSIZE + 1 )
+
+   rc = ossGetEWD( pOutputPath, maxLen ) ;
+   if ( SDB_OK != rc )
    {
-      rc = SDB_INVALIDARG ;
+      PD_LOG( PDERROR, "failed to get the path of excutable file" ) ;
       goto error ;
    }
-   ossStrncpy ( progName, name, ossStrlen( name ) ) ;
+
+   ossStrncat( pOutputPath, OSS_FILE_SEP, ossStrlen(OSS_FILE_SEP) ) ;
+
 done :
    return rc ;
 error :
    goto done ;
 }
 
-INT32 getProgramPath( CHAR *pOutputPath )
-{
-//   PD_TRACE_ENTRY ( SDB_ENGINEPATH );
-   INT32 rc = SDB_OK ;
-   CHAR *t = OSS_FILE_SEP ;
-   const CHAR *p = NULL ;
-   // check
-   if ( !pOutputPath )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-   if ( progName[0] == '\0' )
-   {
-      pOutputPath[0] = '\0' ;
-      goto done ;
-   }
-   // find '\\' or '/'
-   p = ossStrrchr ( progName, t[0] ) ;
-   // if we can find it
-   if ( p )
-   {
-      INT32 pathLen = p - progName + 1 ;
-      // let's move to the next character after '\\' or '/'
-      if ( pathLen > OSS_MAX_PATHSIZE + 1 )
-      {
-         pOutputPath[0] = '\0' ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      // copy everything before '\\' or '/' to output
-      ossMemcpy ( pOutputPath, progName, pathLen ) ;
-      pOutputPath[pathLen] = '\0' ;
-   }
-   else
-   {
-      // if we can't find path spliter
-       pOutputPath[0] = '\0' ;
-   }
-done :
-//   PD_TRACE_EXIT ( SDB_ENGINEPATH );
-   return rc ;
-error :
-   goto done ;
-
-}
-
-
-/*
-INT32 getProgramPath( const CHAR *pInputPath, const CHAR *pOutputPath )
-{
-//   PD_TRACE_ENTRY ( SDB_ENGINEPATH );
-   INT32 rc = SDB_OK ;
-   CHAR *t = OSS_FILE_SEP_CHAR ;
-   const CHAR *p = NULL ;
-   // check
-   if ( pInputPath || pOutputPath )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-   // find '\\' or '/'
-   p = ossStrrchr ( pInputPath, t[0] ) ;
-   // if we can find it
-   if ( p )
-   {
-      INT32 pathLen = p - pInputPath + 1 ;
-      // let's move to the next character after '\\' or '/'
-      if ( pathLen > OSS_MAX_PATHSIZE + 1 )
-      {
-         pOutputPath[0] = 0 ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      // copy everything before '\\' or '/' to output
-      ossMemcpy ( pOutputPath, pInputPath, pathLen ) ;
-      pOutputPath[pathLen] = 0 ;
-   }
-   else
-   {
-      // if we can't find path spliter
-       pOutputPath[0] = 0 ;
-   }
-done :
-//   PD_TRACE_EXIT ( SDB_ENGINEPATH );
-   return rc ;
-error :
-   goto done ;
-
-}
-*/
 

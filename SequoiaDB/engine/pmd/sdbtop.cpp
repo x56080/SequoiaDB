@@ -6081,15 +6081,8 @@ INT32 main( INT32 argc, CHAR **argv)
    Event sdbtop ;
    po::options_description desc ( "Command options" ) ;
    init ( desc ) ;
-   // save the program's path
-   rc = setProgramName( argv[0] ) ;
-   if ( rc )
-   {
-      ossPrintf( "Failed to set program's path"OSS_NEWLINE ) ;
-      goto error ;
-   }
    // get the program's path
-   rc = getProgramPath( progPath ) ;
+   rc = getProgramPath( progPath, OSS_MAX_PATHSIZE ) ;
    if ( rc )
    {
       ossPrintf( "Failed to get program's path"OSS_NEWLINE ) ;
