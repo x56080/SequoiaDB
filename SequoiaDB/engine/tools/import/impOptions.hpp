@@ -70,10 +70,10 @@ namespace import
       ~Options();
       INT32 parse(INT32 argc, CHAR* argv[]);
       void printHelpInfo();
-      void printHelpfulInfo();
+      void printHelpfullInfo();
       BOOLEAN hasHelp();
       BOOLEAN hasVersion();
-      BOOLEAN hasHelpful();
+      BOOLEAN hasHelpfull();
 
       /* general */
       inline const string& hostname() const { return _hostname; }

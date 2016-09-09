@@ -73,7 +73,7 @@ namespace import
    #define IMP_OPTION_COORD             "coord"
    #define IMP_OPTION_TRANSACTION       "transaction"
    #define IMP_OPTION_ALLOWKEYDUP       "allowkeydup"
-   #define IMP_OPTION_HELPFUL           "helpful"
+   #define IMP_OPTION_HELPFULL          "helpfull"
    #define IMP_OPTION_RECORDSMEM        "recordsmem"
    #define IMP_OPTION_CAST              "cast"
    #define IMP_OPTION_DATEFMT           "datefmt"
@@ -114,7 +114,7 @@ namespace import
    #define IMP_EXPLAIN_COORD            "find coordinators automatically, default: true"
    #define IMP_EXPLAIN_TRANSACTION      "enable transaction, default: false"
    #define IMP_EXPLAIN_ALLOWKEYDUP      "allow key duplication, default: true"
-   #define IMP_EXPLAIN_HELPFUL          "print all options"
+   #define IMP_EXPLAIN_HELPFULL         "print all options"
    #define IMP_EXPLAIN_RECORDSMEM       "the maximum memory size used by records, the unit is MB, range is [128~81920], default: 2048"
    #define IMP_EXPLAIN_CAST             "allow type cast when lost precision, default: false"
    #define IMP_EXPLAIN_DATEFMT          "set date format, default: YYYY-MM-DD"
@@ -179,7 +179,7 @@ namespace import
       (IMP_OPTION_CAST,                _TYPE(string),    IMP_EXPLAIN_CAST) \
 
    #define IMP_HELPFUL_OPTIONS \
-      (IMP_OPTION_HELPFUL,              /* no arg */     IMP_EXPLAIN_HELPFUL) \
+      (IMP_OPTION_HELPFULL,             /* no arg */     IMP_EXPLAIN_HELPFULL) \
       (IMP_OPTION_BUFFERSIZE,          _TYPE(INT32),     IMP_EXPLAIN_BUFFER) \
       (IMP_OPTION_DRYRUN,               /* no arg */     IMP_EXPLAIN_DRYRUN) \
       (IMP_OPTION_RECORDSMEM,          _TYPE(INT32),     IMP_EXPLAIN_RECORDSMEM) \
@@ -526,7 +526,7 @@ namespace import
 
       if (has(IMP_OPTION_HELP) ||
           has(IMP_OPTION_VERSION) ||
-          has(IMP_OPTION_HELPFUL))
+          has(IMP_OPTION_HELPFULL))
       {
          goto done;
       }
@@ -549,9 +549,9 @@ namespace import
       return has(IMP_OPTION_VERSION);
    }
 
-   BOOLEAN Options::hasHelpful()
+   BOOLEAN Options::hasHelpfull()
    {
-      return has(IMP_OPTION_HELPFUL);
+      return has(IMP_OPTION_HELPFULL);
    }
 
    BOOLEAN Options::has(CHAR* option)
@@ -608,7 +608,7 @@ namespace import
       std::cout << import << std::endl;
    }
 
-   void Options::printHelpfulInfo()
+   void Options::printHelpfullInfo()
    {
       po::options_description helpful;
 
