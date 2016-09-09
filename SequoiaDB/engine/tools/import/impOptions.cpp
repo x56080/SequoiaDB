@@ -618,7 +618,7 @@ namespace import
 
       printHelpInfo();
 
-      std::cout << "Helpful Options:" << std::endl;
+      std::cout << "Helpfull Options:" << std::endl;
       std::cout << helpful << std::endl;
    }
 
