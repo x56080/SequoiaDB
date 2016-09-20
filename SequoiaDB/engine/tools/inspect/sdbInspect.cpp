@@ -3097,7 +3097,6 @@ _sdbCi::_sdbCi()
 
 _sdbCi::~_sdbCi()
 {
-
 }
 
 void _sdbCi::displayArgs( const po::options_description &desc )
@@ -3146,6 +3145,9 @@ INT32 _sdbCi::handle( const po::options_description &desc,
    CHAR outReport[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
    CHAR *tailBuffer = NULL ;
    INT64 tailBufferSize = 0 ;
+   OSSFILE startupFile ; 
+   BOOLEAN startupFileOpened = FALSE ;
+   BOOLEAN startupFileLocked = FALSE ;
 
    if ( vm.empty() || vm.count( CONSISTENCY_INSPECT_HELP ) )
    {
@@ -3230,7 +3232,7 @@ INT32 _sdbCi::handle( const po::options_description &desc,
                               tailBuffer, tailBufferSize );
       //rc = report2( _header._filepath ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
-      std::cout << _header._action << " successfully" << std::endl ;
+      std::cout << _header._action << " done" << std::endl ;
       std::cout << tailBuffer << std::endl ;
 
       goto done ;
@@ -3261,6 +3263,28 @@ INT32 _sdbCi::handle( const po::options_description &desc,
       goto error ;
    }
 
+   // in one dir, sdbinspect can be started only once
+   rc = ossOpen( CI_START_TMP_FILE, OSS_CREATE | OSS_READWRITE,
+                 OSS_RU | OSS_WU | OSS_RG, startupFile ) ;
+   if ( SDB_OK != rc )
+   {
+      std::cout << "Error: failed to open startup-file: " CI_START_TMP_FILE
+                << ", rc = " << rc << std::endl ;
+      goto error ;
+   }
+
+   startupFileOpened = TRUE ;
+   rc = ossLockFile( &startupFile, OSS_LOCK_EX ) ;
+   if ( SDB_OK != rc )
+   {
+      std::cout << "Error: failed to lock startup-file while starting"
+                << ", rc = " << rc << std::endl 
+                << "       There's another sdbinspect running in the same dir"
+                << endl ;
+      goto error ;
+   }
+   startupFileLocked = TRUE ;
+
    rc = inspect() ;
    if ( CI_INSPECT_CL_NOT_FOUND == rc )
    {
@@ -3289,6 +3313,21 @@ INT32 _sdbCi::handle( const po::options_description &desc,
    std::cout << tailBuffer << std::endl ;
 
 done:
+   if ( startupFileLocked )
+   {
+      // if we have locked, we have all priority of this file. 
+      // and we should delete it
+      ossLockFile( &startupFile, OSS_LOCK_UN ) ;
+      ossClose( startupFile ) ;
+      ossDelete( CI_START_TMP_FILE ) ;
+   }
+   else if ( startupFileOpened )
+   {
+      // if we have opened, but lock failed. 
+      // we do not have priority of this file. just close the file.
+      ossClose( startupFile ) ;
+   }
+
    if ( NULL != tailBuffer )
    {
       SDB_OSS_FREE( tailBuffer ) ;
@@ -3305,10 +3344,11 @@ INT32 _sdbCi::inspect()
    INT32 curLoop      = 0 ;
    UINT64 totalRecord = 0 ;
    BOOLEAN finish     = FALSE ;
+   sdbclient::sdb *coord = NULL ;
    CHAR inFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-   CHAR tmpFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-
-   sdbclient::sdb *coord = new sdbclient::sdb() ;
+   CHAR tmpFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 }  ;
+   
+   coord = new sdbclient::sdb() ;
    if( NULL == coord )
    {
       std::cout << "Error: failed to allocate sdbclient::sdb" << std::endl ;

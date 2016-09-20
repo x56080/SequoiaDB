@@ -90,6 +90,7 @@ CHAR g_password[ CI_PASSWD_SIZE + 1 ] = { 0 } ;
 #define CI_FILE_NAME       "inspect.bin"
 #define CI_TMP_FILE        "inspect.bin.tmp.%d"
 #define CI_FILE_REPORT     ".report"
+#define CI_START_TMP_FILE  "inspect.start.tmp"
 // action option
 #define CI_ACTION_INSPECT  "inspect"
 #define CI_ACTION_REPORT   "report"
@@ -352,7 +353,7 @@ struct _ciNode
       STATE_COUNT
    } ;
    static const CHAR *stateDesc[STATE_COUNT] ;
-   
+
    INT32           _index ;
    INT32           _nodeID ;
    INT32           _state ; 
