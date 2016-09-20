@@ -579,8 +579,8 @@ namespace bson {
         case NumberDouble: {
             double left = l.number();
             double right = r.number();
-            bool lNan = (left != left) ;
-            bool rNan = (right != right ) ;
+            bool lNan = isNaN( left ) ;
+            bool rNan = isNaN( right ) ;
             if ( lNan ) {
                 if ( rNan ) {
                     return 0;
