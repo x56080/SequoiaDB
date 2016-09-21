@@ -3164,6 +3164,8 @@ namespace engine
            SDB_CLS_DATA_NODE_CAT_VER_OLD != rc &&
            SDB_CLS_NO_CATALOG_INFO != rc )
       {
+         // Do not re-create
+         _pCollectionName = NULL ;
          rtnCB->contextDelete( context->contextID(), _pEDUCB ) ;
       }
       goto done ;
@@ -3310,6 +3312,8 @@ namespace engine
            SDB_CLS_DATA_NODE_CAT_VER_OLD != rc &&
            SDB_CLS_NO_CATALOG_INFO != rc )
       {
+         // Do not re-create
+         _pCollectionName = NULL ;
          rtnCB->contextDelete ( context->contextID(), _pEDUCB ) ;
       }
       goto done ;
@@ -3428,6 +3432,8 @@ namespace engine
            SDB_CLS_DATA_NODE_CAT_VER_OLD != rc &&
            SDB_CLS_NO_CATALOG_INFO != rc )
       {
+         // Do not re-create
+         _pCollectionName = NULL ;
          rtnCB->contextDelete ( context->contextID(), _pEDUCB ) ;
       }
       goto done ;
@@ -3549,6 +3555,8 @@ namespace engine
            SDB_CLS_DATA_NODE_CAT_VER_OLD != rc &&
            SDB_CLS_NO_CATALOG_INFO != rc )
       {
+         // Do not re-create
+         _pCollectionName = NULL ;
          rtnCB->contextDelete( context->contextID(), _pEDUCB ) ;
       }
       goto done ;
