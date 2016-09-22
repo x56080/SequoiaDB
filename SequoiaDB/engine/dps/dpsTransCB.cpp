@@ -614,6 +614,7 @@ namespace engine
          {
             iterMap->second->postEvent( pmdEDUEvent(
                                         PMD_EDU_EVENT_TRANS_STOP ) ) ;
+            _cbMap.erase( iterMap++ );
          }
       }
       PD_TRACE_EXIT ( SDB_DPSTRANSCB_TERMALLTRANS );
