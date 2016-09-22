@@ -1456,7 +1456,8 @@ namespace engine
          }
          su = cscb->_su ;
          SDB_ASSERT ( su, "storage unit pointer can't be NULL" ) ;
-         if ( !sys && dmsIsSysCSName(su->CSName()) )
+         if ( ( !sys && dmsIsSysCSName(su->CSName()) ) ||
+              ( ossStrcmp ( su->CSName(), SDB_DMSTEMP_NAME ) == 0 ) )
          {
             continue ;
          }
