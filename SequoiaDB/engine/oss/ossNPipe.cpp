@@ -1291,17 +1291,26 @@ INT32 ossWriteNamedPipe ( OSSNPIPE &handle,
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB__OSSWTNP );
    INT64 len = bufSize ;
+   INT64 hasWrite = 0 ;
    ssize_t writeSize = 0 ;
-   if ( bufSize > handle._bufSize )
+
+   if ( bufSize <= 0 )
    {
-      PD_LOG ( PDERROR, "bufSize is too big, handle bufSize = %d",
-               handle._bufSize ) ;
-      rc = SDB_OSS_NPIPE_DATA_TOO_BIG ;
       goto done ;
    }
    do
    {
-      writeSize = write ( handle._handle, pBuffer, len ) ;
+      len = bufSize > handle._bufSize ? handle._bufSize : bufSize ;
+      writeSize = write ( handle._handle, &pBuffer[hasWrite], len ) ;
+      if ( writeSize > 0 )
+      {
+         bufSize -= writeSize ;
+         hasWrite += writeSize ;
+      }
+      if ( bufSize <= 0 )
+      {
+         break ;
+      }
    } while ( -1 == writeSize && ( rc = ossGetLastError()) == EINTR ) ;
    if ( -1 == writeSize )
    {
@@ -1311,7 +1320,7 @@ INT32 ossWriteNamedPipe ( OSSNPIPE &handle,
       goto error ;
    }
    if ( bufWrite )
-      *bufWrite = writeSize ;
+      *bufWrite = hasWrite ;
    rc = SDB_OK ;
 done :
    PD_TRACE_EXITRC ( SDB__OSSWTNP, rc );
