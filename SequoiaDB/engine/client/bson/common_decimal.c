@@ -71,6 +71,9 @@ static const char json_str_end[]          = " }" ;
 #define Max(x, y)          ((x) > (y) ? (x) : (y))
 #define Min(x, y)          ((x) < (y) ? (x) : (y))
 
+#define DECIMAL_MAX_WEIGHT  32768    //DECIMAL_MAX_DWEIGHT/DECIMAL_DEC_DIGITS
+
+
 static void _decimal_free_buff( bson_decimal *decimal ) ;
 static void _decimal_strip( bson_decimal *decimal ) ;
 static int _decimal_apply_typmod( bson_decimal *decimal, int typmod ) ;
@@ -99,6 +102,8 @@ static int _decimal_div( const bson_decimal *left, const bson_decimal *right,
 static int _decimal_sprint_len( int sign, int weight, int scale ) ;
 
 static int _decimal_alloc( bson_decimal *decimal, int ndigits ) ;
+
+static int _decimal_is_out_of_bound( bson_decimal *decimal ) ;
 
 void _decimal_free_buff( bson_decimal *decimal )
 {
@@ -524,6 +529,7 @@ int _decimal_add_abs( const bson_decimal *left, const bson_decimal *right,
 
    /* Remove leading/trailing zeroes */
    _decimal_strip( result ) ;
+
 done:
    return rc ;
 error:
@@ -1490,6 +1496,49 @@ int _decimal_sprint_len( int sign, int weight, int scale )
    return tmpSize ;
 }
 
+int _decimal_alloc( bson_decimal *decimal, int ndigits )
+{
+   int rc = 0 ;
+   if ( NULL == decimal )
+   {
+      rc = -6 ;
+      goto error ;
+   }
+   _decimal_free_buff( decimal ) ;
+
+   decimal->buff = bson_malloc( (ndigits + 1) * sizeof(short) ) ;
+   if ( NULL == decimal->buff )
+   {
+      rc = -2 ;
+      goto error ;
+   }
+
+   decimal->buff[0] = 0 ;
+   decimal->digits  = decimal->buff + 1 ;
+   decimal->ndigits = ndigits ;
+   decimal->isOwn   = 1 ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+int _decimal_is_out_of_bound( bson_decimal *decimal )
+{
+   if ( decimal->weight >= DECIMAL_MAX_WEIGHT )
+   {
+      return 1 ;
+   }
+
+   if ( decimal->dscale > DECIMAL_MAX_DSCALE )
+   {
+      return 1 ;
+   }
+
+   return 0 ;
+}
+
 void decimal_init( bson_decimal *decimal )
 {
    decimal->typemod = -1 ;
@@ -1525,34 +1574,6 @@ int decimal_init1( bson_decimal *decimal, int precision, int scale )
 
    decimal_init( decimal ) ;
    decimal->typemod = ( ( precision << 16 ) | scale ) ;
-
-done:
-   return rc ;
-error:
-   goto done ;
-}
-
-int _decimal_alloc( bson_decimal *decimal, int ndigits )
-{
-   int rc = 0 ;
-   if ( NULL == decimal )
-   {
-      rc = -6 ;
-      goto error ;
-   }
-   _decimal_free_buff( decimal ) ;
-
-   decimal->buff = bson_malloc( (ndigits + 1) * sizeof(short) ) ;
-   if ( NULL == decimal->buff )
-   {
-      rc = -2 ;
-      goto error ;
-   }
-
-   decimal->buff[0] = 0 ;
-   decimal->digits  = decimal->buff + 1 ;
-   decimal->ndigits = ndigits ;
-   decimal->isOwn   = 1 ;
 
 done:
    return rc ;
@@ -2472,6 +2493,12 @@ int decimal_from_str( const char *value, bson_decimal *decimal )
       goto error ;
    }
 
+   if ( _decimal_is_out_of_bound( decimal ) )
+   {
+      rc = -6 ;
+      goto error ;
+   }
+
 done:
    if ( NULL != decdigits )
    {
@@ -2858,6 +2885,12 @@ SDB_EXPORT int decimal_add( const bson_decimal *left,
 
    _decimal_strip( result ) ;
 
+   if ( _decimal_is_out_of_bound( result ) )
+   {
+      rc = -6 ;
+      goto error ;
+   }
+
 done:
    return rc ;
 error:
@@ -2888,6 +2921,13 @@ SDB_EXPORT int decimal_sub( const bson_decimal *left,
    }
 
    _decimal_strip( result ) ;
+
+   if ( _decimal_is_out_of_bound( result ) )
+   {
+      rc = -6 ;
+      goto error ;
+   }
+
 done:
    return rc ;
 error:
@@ -2914,6 +2954,12 @@ SDB_EXPORT int decimal_mul( const bson_decimal *left,
    rc = _decimal_mul( left, right, result, left->dscale + right->dscale ) ;
    if ( 0 != rc )
    {
+      goto error ;
+   }
+
+   if ( _decimal_is_out_of_bound( result ) )
+   {
+      rc = -6 ;
       goto error ;
    }
 
@@ -2945,6 +2991,12 @@ SDB_EXPORT int decimal_div( const bson_decimal *left,
    rc = _decimal_div( left, right, result, rscale, 1 ) ;
    if ( 0 != rc )
    {
+      goto error ;
+   }
+
+   if ( _decimal_is_out_of_bound( result ) )
+   {
+      rc = -6 ;
       goto error ;
    }
 
@@ -3059,6 +3111,12 @@ SDB_EXPORT int decimal_floor( const bson_decimal *decimal,
    rc = decimal_copy( &tmp, result ) ;
    if ( 0 != rc )
    {
+      goto error ;
+   }
+
+   if ( _decimal_is_out_of_bound( result ) )
+   {
+      rc = -6 ;
       goto error ;
    }
 
