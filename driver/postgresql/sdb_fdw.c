@@ -1148,11 +1148,11 @@ INT32 sdbOperExprParamVar( OpExpr *expr, SdbExprTreeState *expr_state,
          if ( var->varno != expr_state->foreign_table_index 
               || var->varlevelsup != 0 )
          {
-            rc = SDB_INVALIDARG ;
-            elog( DEBUG1, "column is not reconigzed:table_index=%d, varno=%d, "
+            //rc = SDB_INVALIDARG ;
+            elog( DEBUG1, "##column is not reconigzed:table_index=%d, varno=%d, "
                "valevelsup=%d", expr_state->foreign_table_index, 
                var->varno, var->varlevelsup ) ;
-            goto error ;
+            //goto error ;
          }
 
          if ( NUMERICOID == var->vartype && !expr_state->is_use_decimal )
