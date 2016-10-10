@@ -107,7 +107,7 @@
 		<Name>numpagecleaners</Name>
 		<WebName>Dirty page cleaner number</WebName>
 		<Type>int</Type>
-		<Default>1</Default>
+		<Default>0</Default>
 		<Valid>0-50</Valid>
 		<Display>edit box</Display>
 		<Edit>true</Edit>
