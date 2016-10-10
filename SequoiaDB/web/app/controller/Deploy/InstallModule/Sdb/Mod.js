@@ -157,7 +157,7 @@
       }
 
       //创建 设置节点配置 弹窗
-      $scope.CreateSetNodeConfModel = function( type, groupIndex, hostIndex, nodeIndex ){
+      $scope.CreateSetNodeConfModel = function( type, groupIndex, hostIndex, nodeIndex, isShow ){
          $scope.Components.Modal.icon = '' ;
          $scope.Components.Modal.title = $scope.autoLanguage( '编辑节点配置' ) ;
          $scope.Components.Modal.ShowType = 1 ;
@@ -434,7 +434,14 @@
                }
             } ) ;
          }
-         $scope.Components.Modal.isShow = true ;
+         if( isShow )
+         {
+            $scope.Components.Modal.isShow = true ;
+         }
+         else
+         {
+            $scope.Components.Modal.isRepaint = new Date().getTime() ;
+         }
          $scope.Components.Modal.Context = '\
 <div class="underlineTab" style="height:50px;">\
    <ul class="left">\
@@ -692,11 +699,7 @@
             if( isAllClear )
             {
                var formVal = form.getValue() ;
-               $scope.Components.Modal.isShow = false ;
-               setTimeout( function(){
-                  $scope.CreateSetNodeConfModel( formVal['createModel'], index, formVal['hostname'], formVal['copyNode'] ) ;
-                  $scope.$apply() ;
-               } ) ;
+               $scope.CreateSetNodeConfModel( formVal['createModel'], index, formVal['hostname'], formVal['copyNode'], false ) ;
             }
             else
             {

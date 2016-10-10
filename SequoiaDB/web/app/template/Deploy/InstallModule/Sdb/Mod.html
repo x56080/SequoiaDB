@@ -59,7 +59,7 @@
                <div>
                   <button class="btn btn-default" ng-click="SelectAll()">{{autoLanguage("全选")}}</button>
                   <button class="btn btn-default" ng-click="Unselect()">{{autoLanguage("反选")}}</button>
-                  <button class="btn btn-default" ng-click="CreateSetNodeConfModel(4,-1,-1,-1)">{{autoLanguage("批量修改节点")}}</button>
+                  <button class="btn btn-default" ng-click="CreateSetNodeConfModel(4,-1,-1,-1,true)">{{autoLanguage("批量修改节点")}}</button>
                </div>
 
                <div class="Grid" style="border-bottom:1px solid #E3E7E8;" ng-grid="NodeListOptions" ng-container="{offsetY:-70,marginTop:10}">
@@ -96,19 +96,19 @@
                         <div class="GridTd">
                            <input type="checkbox" ng-model="nodeInfo['checked']" />
                         </div>
-                        <div class="GridTd Ellipsis linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,$index)">
+                        <div class="GridTd Ellipsis linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,$index,true)">
                            {{nodeInfo['HostName']}}
                         </div>
-                        <div class="GridTd Ellipsis linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,$index)">
+                        <div class="GridTd Ellipsis linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,$index,true)">
                            {{nodeInfo['svcname']}}
                         </div>
-                        <div class="GridTd Ellipsis linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,$index)">
+                        <div class="GridTd Ellipsis linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,$index,true)">
                            {{nodeInfo['dbpath']}}
                         </div>
-                        <div class="GridTd Ellipsis linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,$index)">
+                        <div class="GridTd Ellipsis linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,$index,true)">
                            {{nodeInfo['role']}}
                         </div>
-                        <div class="GridTd Ellipsis linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,$index)">
+                        <div class="GridTd Ellipsis linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,$index,true)">
                            {{nodeInfo['datagroupname']}}
                         </div>
                         <div class="clear-float"></div>

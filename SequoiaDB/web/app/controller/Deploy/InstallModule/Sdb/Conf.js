@@ -149,7 +149,7 @@
                } ) ;
             } )  ;
             getBusinessTemplate() ;
-            $scope.$apply() ;
+            //$scope.$apply() ;
          }, function( errorInfo ){
             _IndexPublic.createRetryModel( $scope, errorInfo, function(){
                getHostList() ;
@@ -320,7 +320,7 @@
 
             hostBox.append( grid ) ;
             $compile( bodyEle )( $scope ).append( div ).append( hostBox ) ;
-            $scope.$apply() ;
+            //$scope.$apply() ;
          }
          $scope.Components.Modal.onResize = function( width, height ){
             $( grid ).css( {

@@ -1146,8 +1146,10 @@
                      {
                         if( scope.data.isShow == true )
                         {
+                           scope.data.isClose = false ;
                            scope.Setting.BodyStyle['overflow-y'] = scope.data.isScroll == false ? 'hidden' : 'auto' ;
-                           setTimeout( function(){
+                           var timer = null ;
+                           timer = setTimeout( function(){
                               $( document.body ).append( $compile( scope.Setting.Mask )( scope ) ) ;
                               var bodyEle = $( '> .modal2 > .body', element ) ;
                               var contextType = typeof( scope.data.Context ) ;
@@ -1169,6 +1171,8 @@
                               }
                               modalResize( scope ) ;
                               scope.$apply() ;
+                              clearTimeout( timer ) ;
+                              timer = null ;
                            } ) ;
                         }
                         else
@@ -1176,6 +1180,38 @@
                            scope.recoveryModal() ;
                            scope.Setting.Mask.detach() ;
                            scope.data.noOK = false ;
+                           scope.data.isClose = true ;
+                        }
+                     }
+                  } ) ;
+
+                  scope.$watch( 'data.isRepaint', function(){
+                     if( typeof( scope.data ) == 'object' )
+                     {
+                        if( scope.data.isShow == true && typeof( scope.data.isRepaint ) == 'number' )
+                        {
+                           scope.data.isRepaint = null ;
+                           scope.Setting.BodyStyle['overflow-y'] = scope.data.isScroll == false ? 'hidden' : 'auto' ;
+                           $( document.body ).append( $compile( scope.Setting.Mask )( scope ) ) ;
+                           var bodyEle = $( '> .modal2 > .body', element ) ;
+                           var contextType = typeof( scope.data.Context ) ;
+                           if( contextType == 'string' )
+                           {
+                              bodyEle.html( $compile( scope.data.Context )( scope ) ) ;
+                           }
+                           else if( contextType == 'object' )
+                           {
+                              bodyEle.html( scope.data.Context ) ;
+                           }
+                           else if( contextType == 'function' )
+                           {
+                              $compile( scope.data.Context( bodyEle ) )( scope ) ;
+                           }
+                           if( typeof( scope.data.onResize ) == 'function' )
+                           {
+                              scope.data.onResize( parseInt( scope.Setting.BodyStyle.width ), parseInt( scope.Setting.BodyStyle.height ) ) ;
+                           }
+                           modalResize( scope ) ;
                         }
                      }
                   } ) ;
@@ -1337,6 +1373,7 @@
                   scope.closeModal = function(){
                      scope.recoveryModal() ;
                      scope.data.isShow = false ;
+                     //scope.Setting.Mask.detach() ;
                      scope.data.onResize = null ;
                   }
 
