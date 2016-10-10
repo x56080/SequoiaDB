@@ -63,7 +63,7 @@
 
          </div>
       </div>
-      <div style="height:0" create-modal para="Components.Modal"></div>
+      <div style="height:0" create-modal para="Components.Modal" ng-if="Components.Modal.isShow || !Components.Modal.isClose"></div>
       <div style="height:0" create-confirm para="Components.Confirm"></div>
       <div french-window="Components.French"></div>
    </div>

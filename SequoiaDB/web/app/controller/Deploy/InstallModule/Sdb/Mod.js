@@ -41,28 +41,6 @@
       var deployType     = $rootScope.tempData( 'Deploy', 'Model' ) ;
       var clusterName    = $rootScope.tempData( 'Deploy', 'ClusterName' ) ;
       $scope.ModuleName  = $rootScope.tempData( 'Deploy', 'ModuleName' ) ;
-      /*
-      deployType = "Install_Module" ;
-      clusterName = "myCluster1" ;
-      installType = 'module' ;
-      $scope.ModuleName = 'myModulevvv' ;
-      $scope.Configure          = {
-         "ClusterName": "myCluster1",
-         "BusinessName": "myModulevvv",
-         "DeployMod": "standalone",
-         "BusinessType": "sequoiadb",
-         "Property": [
-            { "Name": "replicanum", "Value":"1" },
-            { "Name": "datagroupnum", "Value": "1" },
-            { "Name": "catalognum", "Value": "1" },
-            { "Name": "coordnum", "Value": "1" }
-         ],
-         "HostInfo": [
-            { "HostName": "ubuntu-test-03" },
-            { "HostName": "ubuntu-test-05" }
-         ]
-      } ; 
-      */
       if( deployType == null || clusterName == null || $scope.ModuleName == null || $scope.Configure == null )
       {
          $location.path( '/Deploy/Index' ) ;
@@ -106,6 +84,9 @@
             {
                $scope.NodeList[index]['show'] = true ;
             }
+         } ) ;
+         setTimeout( function(){
+            $scope.NodeListOptions.onResize() ;
          } ) ;
       }
 
@@ -895,6 +876,9 @@
             $scope.search_role.text = '' ;
             $scope.search_group.text = '' ;
          }
+         setTimeout( function(){
+            $scope.NodeListOptions.onResize() ;
+         } ) ;
       }
 
       //从节点列表中，聚合成分区组列表
