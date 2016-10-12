@@ -200,6 +200,7 @@ namespace engine
                                                 _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+      INT32 rcTmp = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNCOORDLOBSTREAM__OPENOTHERSTREAMS ) ;
 
       MsgOpLob header ;
@@ -279,17 +280,18 @@ namespace engine
          }
 
          rc = _getReply( header, cb, _canRetry( retryTime++ ), FALSE, tag ) ;
+         /// need to add succeed nodes to subs whether successful or not,
+         /// because it can close all opened contexts that on data node
+         /// when some nodes failed
+         rcTmp = _addSubStreamsFromReply() ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to get reply msg:%d", rc ) ;
             goto error ;
          }
-
-         /// when retry is true, we need to close contexts on nodes 
-         /// those returned ok.
-         rc = _addSubStreamsFromReply() ;
-         if ( SDB_OK != rc )
+         if ( SDB_OK != rcTmp )
          {
+            rc = rcTmp ;
             goto error ;
          }
 
@@ -1273,7 +1275,7 @@ namespace engine
          if ( SDB_OK != ( *itr )->flags )
          {
             rc = ( *itr )->flags ;
-            PD_LOG( PDERROR, "failed to write lob on node[%d:%hd], rc:%d",
+            PD_LOG( PDERROR, "failed to open lob on node[%d:%d], rc:%d",
                     ( *itr )->header.routeID.columns.groupID,
                     ( *itr )->header.routeID.columns.nodeID, rc ) ;
             continue ;
