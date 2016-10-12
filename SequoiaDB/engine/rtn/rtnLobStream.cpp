@@ -200,10 +200,7 @@ namespace engine
       PD_TRACE_EXITRC( SDB_RTNLOBSTREAM_OPEN, rc ) ;
       return rc ;
    error:
-      if ( _opened )
-      {
-         closeWithException( cb ) ;
-      }
+      closeWithException( cb ) ;
       goto done ;
    }
 

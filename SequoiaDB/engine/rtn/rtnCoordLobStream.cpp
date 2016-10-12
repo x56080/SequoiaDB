@@ -78,7 +78,8 @@ namespace engine
 
    _rtnCoordLobStream::~_rtnCoordLobStream()
    {
-
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      _closeSubStreamsWithException( cb ) ;
    }
 
    //PD_TRACE_DECLARE_FUNCTION( SDB_RTNCOORDLOBSTREAM__PREPARE, "_rtnCoordLobStream::_prepare" )
