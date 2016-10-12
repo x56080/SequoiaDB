@@ -906,6 +906,7 @@ namespace engine
       {
          pTransCB->transLockReleaseAll( this );
       }
+      delTransaction() ;
    }
    
    void _pmdEDUCB::setWaitLock( const dpsTransLockId &lockId )
