@@ -140,6 +140,7 @@ namespace engine
          goto done ;
       }
       else if ( _isFirstToSync &&
+                CLS_SESSION_STATUS_FULL_SYNC != _status &&
                 pmdGetKRCB()->getEDUMgr()->getWritingEDUCount() > 0 )
       {
          PD_LOG( PDWARNING, "Session[%s]: Has some writing edus don't "
