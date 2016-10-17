@@ -71,6 +71,9 @@ static const char json_str_end[]          = " }" ;
 #define Max(x, y)          ((x) > (y) ? (x) : (y))
 #define Min(x, y)          ((x) < (y) ? (x) : (y))
 
+#define DECIMAL_MAX_DWEIGHT 131072
+#define DECIMAL_MAX_DSCALE  16383
+
 #define DECIMAL_MAX_WEIGHT  32768    //DECIMAL_MAX_DWEIGHT/DECIMAL_DEC_DIGITS
 
 
