@@ -1289,8 +1289,9 @@ namespace engine
          }
       }
 
-      _ossMmapFile::CONST_ITR itr = pSU->begin() ;
-      while ( itr != pSU->end() )
+      UINT32 pos = pSU->begin() ;
+      ossMmapFile::ossMmapSegment *pSegment = NULL ;
+      while ( NULL != ( pSegment = pSU->next( pos ) ) )
       {
          if ( cb->isInterrupted() )
          {
@@ -1298,8 +1299,8 @@ namespace engine
             goto error ;
          }
 
-         ptr = (*itr)._ptr ;
-         length = (*itr)._length ;
+         ptr = pSegment->_ptr ;
+         length = pSegment->_length ;
 
          if ( segmentID < pSU->dataStartSegID() || !thinCopy )
          {
@@ -1364,7 +1365,6 @@ namespace engine
          }
 
          ++segmentID ;
-         ++itr ;
       }
 
    done:

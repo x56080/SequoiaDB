@@ -460,7 +460,7 @@ namespace engine
       {
          return 0 ;
       }
-      return _segments[ segID ]._ptr +
+      return getSegmentInfo( segID ) +
              (ossValuePtr)( segOffset << _pageSizeSquare ) ;
       // the same with: segOffset * _segmentPages
    }
@@ -473,13 +473,15 @@ namespace engine
       // find seg ID
       INT32 segID = 0 ;
       UINT32 segOffset = 0 ;
+      ossValuePtr tmpPtr = 0 ;
+      UINT32 tmpLength = 0 ;
       while ( segID <= _maxSegID )
       {
-         if ( _segments[segID]._ptr >= extendAddr &&
-              extendAddr < _segments[segID]._ptr +
-                           (ossValuePtr)_segments[segID]._length )
+         tmpPtr = getSegmentInfo( segID, &tmpLength ) ;
+         if ( tmpPtr >= extendAddr &&
+              extendAddr < tmpPtr + (ossValuePtr)tmpLength )
          {
-            segOffset = (UINT32)((extendAddr - _segments[segID]._ptr) >>
+            segOffset = (UINT32)((extendAddr - tmpPtr) >>
                                   _pageSizeSquare) ;
             break ;
          }

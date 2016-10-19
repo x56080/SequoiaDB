@@ -270,7 +270,7 @@ namespace engine
       if ( SDB_OK == rc && !isDirty() )
       {
          makeDirty() ;
-         setDirty = TRUE ;         
+         setDirty = TRUE ;
       }
       return rc ;      
    }
@@ -298,7 +298,7 @@ namespace engine
       ossGetCurrentTime( t ) ;
       _lastTime = t.time * 1000 + t.microtm / 1000 ;
 
-      if ( ~0 == _length || offset < _start )
+      if ( (UINT32)~0 == _length || offset < _start )
       {
          _start = offset ;
       }
@@ -370,6 +370,20 @@ namespace engine
          }
          offset += blockSz ;
       }
+
+      /// other value
+      _start = right._start ;
+      _length = right._length ;
+      _dirtyStart = right._dirtyStart ;
+      _dirtyLength = right._dirtyLength ;
+      _lastTime = right._lastTime ;
+      _lastWriteTime = right._lastWriteTime ;
+      _readTimes = right._readTimes ;
+      _writeTimes = right._writeTimes ;
+      _status = right._status ;
+      _beginLSN = right._beginLSN ;
+      _endLSN = right._endLSN ;
+      _lsnNum = right._lsnNum ;
 
    done:
       return rc ;
@@ -462,7 +476,7 @@ namespace engine
       _utilCacheMgr implement
    */
    _utilCacheMgr::_utilCacheMgr()
-   :_freeSize( 0 ), _totalSize( 0 ), _totalUseTimes( 0 )
+   :_freeSize( 0 ), _totalSize( 0 ), _totalUseTimes( 0 ), _nonEmptySlotNum( 0 )
    {
       _beginPageSizeSqrt = 0 ;
       _maxCacheSize = 0 ;
@@ -965,6 +979,7 @@ namespace engine
       CHAR *pPage = NULL ;
       UINT32 pageSize = 0 ;
       UINT32 slot = 0 ;
+      BOOLEAN addNonEmpty = FALSE ;
 
       if ( 0 == size )
       {
@@ -1001,6 +1016,11 @@ namespace engine
 
          _latch[ slot ]->get() ;
          /// push to vector
+         if ( !addNonEmpty && 0 == _getBucketCache( slot )._totalSize &&
+              pageSize > 0 )
+         {
+            addNonEmpty = TRUE ;
+         }
          _slot[ slot ].push_back( pPage ) ;
          _getBucketCache( slot )._totalSize += pageSize ;
          _getBucketCache( slot )._freeSize += pageSize ;
@@ -1009,6 +1029,11 @@ namespace engine
          _totalSize.add( pageSize ) ;
          _freeSize.add( pageSize ) ;
          ++count ;
+      }
+
+      if ( addNonEmpty )
+      {
+         _nonEmptySlotNum.inc() ;
       }
 
    done:
@@ -1080,7 +1105,7 @@ namespace engine
                 statItem._freeSize * 100 / statItem._totalSize >=
                 UTIL_BLOCK_RECYCLE_FREE_RATIO ) ||
               ( totalUseTimes() > 0 &&
-                statItem._useTimes * UTIL_PAGE_SLOT_SIZE < totalUseTimes() ) )
+                statItem._useTimes * _nonEmptySlotNum.peek() < totalUseTimes() ) )
          {
             /// recycle the bucket
             recycleSize += _recycleBucket( slotItem, &statItem ) ;
@@ -1102,7 +1127,7 @@ namespace engine
                                          utilCacheStat *pStat )
    {
       UINT64 recycleSize = 0 ;
-      UINT32 size = slotItem.size() / 2 ;
+      UINT32 size = ( slotItem.size() + 1 ) / 2 ;
       CHAR *pBuff = NULL ;
 
       for ( UINT32 i = 0 ; i < size ; ++i )
@@ -1124,6 +1149,11 @@ namespace engine
       pStat->_totalSize -= recycleSize ;
       _freeSize.sub( recycleSize ) ;
       _totalSize.sub( recycleSize ) ;
+
+      if ( 0 == pStat->_totalSize && recycleSize > 0 )
+      {
+         _nonEmptySlotNum.dec() ;
+      }
 
       return recycleSize ;
    }
@@ -1882,9 +1912,11 @@ namespace engine
       utilCachePage* pPage = NULL ;
       UINT32 bucketID = calcBucketID( pageID ) ;
       utilCacheBucket* pBucket = NULL ;
+      OSS_LATCH_MODE tmpMode = mode ;
+      BOOLEAN lockPage = FALSE ;
 
       pBucket = _vecBucket[ bucketID ] ;
-      pBucket->lock( mode ) ;
+      pBucket->lock( tmpMode ) ;
       *ppBucket = pBucket ;
 
       if ( pageID < 0 )
@@ -1903,6 +1935,7 @@ namespace engine
          size = _pageSize ;
       }
 
+   reget:
       pPage = pBucket->getPage( pageID ) ;
       if ( !pPage && alloc && size > 0 )
       {
@@ -1913,6 +1946,14 @@ namespace engine
          if ( _pMgr->maxCacheSize() < size || _closed )
          {
             goto done ;
+         }
+         if ( tmpMode != EXCLUSIVE )
+         {
+            /// need to switch to exclusive
+            pBucket->unlock( tmpMode ) ;
+            tmpMode = EXCLUSIVE ;
+            pBucket->lock( tmpMode ) ;
+            goto reget ;
          }
          rc = _pMgr->alloc( size, tmpPage, _wholePage ) ;
          if ( SDB_OK == rc )
@@ -1933,7 +1974,13 @@ namespace engine
       }
       else if ( pPage && pPage->size() < size )
       {
-         BOOLEAN lockPage = FALSE ;
+         if ( tmpMode != EXCLUSIVE )
+         {
+            pBucket->unlock( tmpMode ) ;
+            tmpMode = EXCLUSIVE ;
+            pBucket->lock( tmpMode ) ;
+            goto reget ;
+         }
          INT32 rc = _pMgr->alloc( size, *pPage, _wholePage,
                                   pPage->isInvalid() ? FALSE : TRUE ) ;
          if ( rc )
@@ -1943,16 +1990,17 @@ namespace engine
                pPage->lock() ;
                lockPage = TRUE ;
             }
-            pBucket->unlock( mode ) ;
+            pBucket->unlock( tmpMode ) ;
 
             /// recycle and try again
             recyclePages( TRUE, size ) ;
 
-            pBucket->lock( mode ) ;
+            pBucket->lock( tmpMode ) ;
 
             if( lockPage )
             {
                pPage->unlock() ;
+               lockPage = FALSE ;
             }
 
             rc = _pMgr->alloc( size, *pPage, _wholePage,
@@ -1983,6 +2031,21 @@ namespace engine
       }
 
    done:
+      if ( mode != tmpMode )
+      {
+         /// switch to mode
+         if ( pPage && !pPage->isLocked() )
+         {
+            pPage->lock() ;
+            lockPage = TRUE ;
+         }
+         pBucket->unlock( tmpMode ) ;
+         pBucket->lock( mode ) ;
+         if ( pPage && lockPage )
+         {
+            pPage->unlock() ;
+         }
+      }
       return pPage ;
    }
 
@@ -2106,14 +2169,28 @@ namespace engine
       goto done ;
    }
 
-   void _utilCacheUnit::lockPageCleaner()
+   void _utilCacheUnit::lockPageCleaner( INT32 mode )
    {
-      _pageCleaner.lock_r() ;
+      if ( SHARED == mode )
+      {     
+         _pageCleaner.lock_r() ;
+      }
+      else
+      {
+         _pageCleaner.lock_w() ;
+      }
    }
 
-   void _utilCacheUnit::unlockPageCleaner()
+   void _utilCacheUnit::unlockPageCleaner( INT32 mode )
    {
-      _pageCleaner.release_r() ;
+      if ( SHARED == mode )
+      {
+         _pageCleaner.release_r() ;
+      }
+      else
+      {
+         _pageCleaner.release_w() ;
+      }
    }
 
    BOOLEAN _utilCacheUnit::canSync( BOOLEAN &force )

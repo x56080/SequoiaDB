@@ -46,6 +46,8 @@
 #include "dms.hpp"
 #endif
 
+#define OSS_MMAP_INIT_CAPACITY         ( 32 )
+
 // PD_TRACE_DECLARE_FUNCTION ( SDB__OSSMMF_OPEN, "_ossMmapFile::open" )
 INT32 _ossMmapFile::open ( const CHAR *pFilename,
                            UINT32 iMode,
@@ -53,7 +55,6 @@ INT32 _ossMmapFile::open ( const CHAR *pFilename,
 {
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB__OSSMMF_OPEN );
-   OSSMMAP_XLOCK
    rc = ossOpen ( pFilename, iMode, iPermission, _file ) ;
    if ( SDB_OK == rc )
    {
@@ -76,23 +77,24 @@ error :
 // PD_TRACE_DECLARE_FUNCTION ( SDB__OSSMMF_CLOSE, "_ossMmapFile::close" )
 void _ossMmapFile::close ()
 {
-   PD_TRACE_ENTRY ( SDB__OSSMMF_CLOSE );
-   OSSMMAP_XLOCK
+   PD_TRACE_ENTRY ( SDB__OSSMMF_CLOSE ) ;
+
+   engine::ossScopedRWLock lock( &_rwMutex, EXCLUSIVE ) ;
+
    // clear all maped regions
-   for ( vector< ossMmapSegment >::iterator i = _segments.begin();
-         i != _segments.end(); i++ )
+   for ( UINT32 i = 0 ; i < _size ; ++i )
    {
 #if defined (_LINUX)
-      munmap((void*)(*i)._ptr, (*i)._length) ;
+      munmap((void*)(_pSegArray[i]._ptr), _pSegArray[i]._length) ;
 #elif defined (_WINDOWS)
-      if ( (*i)._maphandle )
+      if ( _pSegArray[i]._maphandle )
       {
-         CloseHandle ( (*i)._maphandle ) ;
+         CloseHandle ( _pSegArray[i]._maphandle ) ;
       }
-      UnmapViewOfFile((LPCVOID)(*i)._ptr) ;
+      UnmapViewOfFile((LPCVOID)(_pSegArray[i]._ptr)) ;
 #endif
    }
-   _segments.clear() ;
+   _clearSeg() ;
    // close opened file
    if ( _opened )
    {
@@ -106,7 +108,6 @@ void _ossMmapFile::close ()
 INT32 _ossMmapFile::size ( UINT64 &fileSize )
 {
    PD_TRACE_ENTRY ( SDB__OSSMMF_SIZE ) ;
-   OSSMMAP_SLOCK
    SDB_ASSERT ( _opened, "file is not opened" ) ;
    INT32 rc = SDB_OK ;
    rc = ossGetFileSize ( &_file, (INT64*)&fileSize ) ;
@@ -128,7 +129,6 @@ error :
 INT32 _ossMmapFile::map ( UINT64 offset, UINT32 length, void **pAddress )
 {
    PD_TRACE_ENTRY ( SDB__OSSMMF_MAP );
-   OSSMMAP_XLOCK
    SDB_ASSERT ( _opened, "file is not opened" ) ;
    INT32 rc = SDB_OK ;
    INT32 err = 0 ;
@@ -165,6 +165,12 @@ INT32 _ossMmapFile::map ( UINT64 offset, UINT32 length, void **pAddress )
    }
 
    SDB_ASSERT ( length!=0, "invalid length to map" ) ;
+
+   rc = _ensureSpace( _size + 1 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    // map region into memory
 #if defined (_LINUX)
@@ -229,10 +235,14 @@ INT32 _ossMmapFile::map ( UINT64 offset, UINT32 length, void **pAddress )
       goto error ;
    }
 #endif
+   _totalLength += length ;
    seg._ptr = (ossValuePtr)segment;
    seg._length = length ;
    seg._offset = offset ;
-   _segments.push_back ( seg ) ;
+
+   _pSegArray[ _size ] = seg ;
+   ++_size ;
+
    if ( pAddress )
    {
       *pAddress = segment ;
@@ -249,8 +259,9 @@ error :
 INT32 _ossMmapFile::flushAll ( BOOLEAN sync )
 {
    INT32 rc = SDB_OK ;
-   PD_TRACE_ENTRY ( SDB__OSSMMF_FLHALL );
-   for ( UINT32 i = 0; i<_segments.size(); i++ )
+   PD_TRACE_ENTRY ( SDB__OSSMMF_FLHALL ) ;
+
+   for ( UINT32 i = 0; i < _size ; i++ )
    {
       rc = flush ( i, sync ) ;
       if ( SDB_OK != rc )
@@ -272,13 +283,16 @@ INT32 _ossMmapFile::flush ( UINT32 segmentID, BOOLEAN sync )
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB__OSSMMF_FLUSH );
    INT32 err = 0 ;
-   if  ( segmentID >= _segments.size() )
+
+   engine::ossScopedRWLock lock( &_rwMutex, SHARED ) ;
+
+   if  ( segmentID >= _size )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
 #if defined (_LINUX)
-   if ( msync((void*)_segments[segmentID]._ptr, _segments[segmentID]._length,
+   if ( msync((void*)_pSegArray[segmentID]._ptr, _pSegArray[segmentID]._length,
               sync ? MS_SYNC:MS_ASYNC) )
    {
       err = ossGetLastError () ;
@@ -286,8 +300,8 @@ INT32 _ossMmapFile::flush ( UINT32 segmentID, BOOLEAN sync )
       goto error ;
    }
 #elif defined (_WINDOWS)
-   if ( !FlushViewOfFile((LPCVOID)_segments[segmentID]._ptr,
-                        _segments[segmentID]._length ) )
+   if ( !FlushViewOfFile((LPCVOID)_pSegArray[segmentID]._ptr,
+                        _pSegArray[segmentID]._length ) )
    {
       err = ossGetLastError () ;
       PD_LOG ( PDERROR, "Failed to FlushViewOfFile, err=%d", err );
@@ -318,13 +332,15 @@ INT32 _ossMmapFile::flushBlock( UINT32 segmentID, UINT32 offset,
    ossMmapSegment *pSegment = NULL ;
    ossValuePtr ptr = 0 ;
 
-   if( segmentID >= _segments.size() )
+   engine::ossScopedRWLock lock( &_rwMutex, SHARED ) ;
+
+   if( segmentID >= _size )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
 
-   pSegment = &_segments[segmentID] ;
+   pSegment = &_pSegArray[segmentID] ;
    if ( offset > pSegment->_length )
    {
       /// offset more than segment size
@@ -381,5 +397,79 @@ INT32 _ossMmapFile::unlink ()
    rc = ossDelete ( _fileName ) ;
    PD_TRACE_EXITRC ( SDB__OSSMMF_UNLINK, rc );
    return rc ;
+}
+
+void _ossMmapFile::_clearSeg()
+{
+   _capacity = 0 ;
+   _size = 0 ;
+   if ( _pSegArray )
+   {
+      SDB_OSS_DEL [] _pSegArray ;
+      _pSegArray = NULL ;
+   }
+   if ( _pTmpArray )
+   {
+      SDB_OSS_DEL [] _pTmpArray ;
+      _pTmpArray = NULL ;
+   }
+}
+
+INT32 _ossMmapFile::_ensureSpace( UINT32 size )
+{
+   INT32 rc = SDB_OK ;
+   ossMmapSegment* pTmp = NULL ;
+   UINT32 newSize = 0 ;
+
+   /// first check
+   if ( size <= _capacity )
+   {
+      return rc ;
+   }
+
+   engine::ossScopedRWLock lock( &_rwMutex, EXCLUSIVE ) ;
+
+   /// double check
+   if ( size <= _capacity )
+   {
+      goto done ;
+   }
+
+   newSize = _capacity << 1 ;
+   if ( 0 == newSize )
+   {
+      newSize = OSS_MMAP_INIT_CAPACITY ;
+   }
+   if ( newSize < size )
+   {
+      newSize = size ;
+   }
+
+   pTmp = SDB_OSS_NEW ossMmapSegment[ newSize ] ;
+   if ( !pTmp )
+   {
+      rc = SDB_OOM ;
+      goto error ;
+   }
+   /// copy data
+   for ( UINT32 i = 0 ; i < _size ; ++i )
+   {
+      pTmp[ i ] = _pSegArray[ i ] ;
+   }
+
+   /// if tmp is not null, need to free first
+   if ( _pTmpArray )
+   {
+      SDB_OSS_DEL [] _pTmpArray ;
+      _pTmpArray = NULL ;
+   }
+   _pTmpArray = _pSegArray ;
+   _pSegArray = pTmp ;
+   _capacity = newSize ;
+
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
