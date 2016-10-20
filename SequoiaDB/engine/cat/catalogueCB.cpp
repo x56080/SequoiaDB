@@ -61,6 +61,7 @@ namespace engine
       _iCurGrpId           = CAT_DATA_GROUP_ID_BEGIN;
       _curSysNodeId        = SYS_NODE_ID_BEGIN;
       _primaryID.value     = MSG_INVALID_ROUTEID ;
+      _isActived           = FALSE ;
    }
 
    sdbCatalogueCB::~sdbCatalogueCB()
@@ -79,7 +80,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       isDelay = FALSE ;
 
-      if ( pRepl->primaryIsMe() )
+      if ( pRepl->primaryIsMe() && _isActived )
       {
          goto done ;
       }
@@ -733,6 +734,15 @@ namespace engine
                _catMainCtrl.getChangeEvent()->signal() ;
             }
             _catMainCtrl.getChangeEvent()->wait( OSS_ONE_SEC * 120 ) ;
+         }
+
+         if ( primary )
+         {
+            _isActived = TRUE ;
+         }
+         else
+         {
+            _isActived = FALSE ;
          }
       }
    }
