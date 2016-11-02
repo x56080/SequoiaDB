@@ -1548,7 +1548,8 @@ namespace engine
       rc = rtnDelete( CAT_TASK_INFO_COLLECTION, match, dummyObj, 0, cb,
                       dmsCB, dpsCB, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to remove task from collection[%s], "
-                   "rc: %d, del cond: %s", rc , match.toString().c_str() ) ;
+                   "rc: %d, del cond: %s", CAT_TASK_INFO_COLLECTION, rc,
+                   match.toString().c_str() ) ;
    done:
       PD_TRACE_EXITRC ( SDB_CATREMOVETASK1, rc ) ;
       return rc ;
