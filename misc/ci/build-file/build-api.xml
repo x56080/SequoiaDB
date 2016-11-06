@@ -39,6 +39,8 @@
 
 	<target name="deploy_api_images" depends="build_offline_doc">
 		<var name="op" value="*" />
+      <propertyregex property="${projects.version}" input="${projects.version}" defaultValue="${projects.version}"
+                           regexp="(.*)\.(.*)\.(.*)" replace="\1.\2" override="true"/>
 		<math result="edition" operand1="${projects.version}" operation="${op}" operand2="100" datatype="int" />
 		<echo message="The edition is ${edition}" />
 
