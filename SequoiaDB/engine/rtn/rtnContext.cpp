@@ -4026,8 +4026,7 @@ namespace engine
       pmdKRCB *pKrcb = pmdGetKRCB();
       SDB_RTNCB *pRtncb = pKrcb->getRTNCB();
       pmdEDUCB *cb = pKrcb->getEDUMgr()->getEDUByID( eduID() );
-      SubCLBufList::iterator iterLst
-                        = _subCLBufList.begin();
+      SubCLBufList::iterator iterLst = _subCLBufList.begin();
       while( iterLst != _subCLBufList.end() )
       {
          pRtncb->contextDelete( iterLst->first, cb );
@@ -4079,7 +4078,7 @@ namespace engine
       INT32 rc = SDB_OK;
       _options._orderBy = orderBy.getOwned();
       _numToSkip = numToSkip ;
-      _numToReturn = numToReturn ; 
+      _numToReturn = numToReturn ;
       _keyGen = SDB_OSS_NEW _ixmIndexKeyGen( _options._orderBy ) ;
       PD_CHECK( _keyGen != NULL, SDB_OOM, error, PDERROR,
                 "malloc failed!" ) ;
@@ -4101,7 +4100,7 @@ namespace engine
       loop = ( !(_options._orderBy.isEmpty()) &&
                !_includeShardingOrder ) ?
              _subs.size() : 5 ;
-             
+
 
       while ( 0 < loop-- )
       {
@@ -4244,7 +4243,7 @@ namespace engine
 
    BOOLEAN _rtnContextMainCL::requireOrder () const
    {
-      return 1 < _subs.size() && !(_options._orderBy.isEmpty() ) ;
+      return 1 < _subCLBufList.size() && !(_options._orderBy.isEmpty() ) ;
    }
 
    INT32 _rtnContextMainCL::getMore( INT32 maxNumToReturn,
@@ -4409,7 +4408,7 @@ namespace engine
       }
       else if ( SDB_DMS_EOC == rc )
       {
-         INT32 rcTmp = SDB_OK ; 
+         INT32 rcTmp = SDB_OK ;
          SINT64 context = -1 ;
          rcTmp = _getNextContext( cb, context ) ;
          if ( SDB_OK != rcTmp )
@@ -4464,7 +4463,7 @@ namespace engine
             << ",IsShardingOrder:" << _includeShardingOrder ;
       }
       if ( _numToReturn > 0 )
-      {         
+      {
          ss << ",NumToReturn:" << _numToReturn ;
       }
       if ( _numToSkip > 0 )
@@ -4713,11 +4712,11 @@ namespace engine
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to rebuild selector:%d", rc ) ;
-               goto error ;      
+               goto error ;
             }
          }
       }
-      
+
    done:
       return rc ;
    error:
@@ -4861,7 +4860,7 @@ namespace engine
             {
                record = &obj ;
             }
-   
+
             rc = append( *record ) ;
             PD_RC_CHECK( rc, PDERROR, "Append obj[%s] failed, rc: %d",
                       obj.toString().c_str(), rc ) ;
