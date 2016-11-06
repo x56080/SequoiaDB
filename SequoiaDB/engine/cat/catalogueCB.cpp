@@ -86,10 +86,11 @@ namespace engine
       }
       rc = SDB_CLS_NOT_PRIMARY ;
 
-      // if know primary exist or no majority size, return at now,
-      // otherwise, need to wait some time
+      // if know primary exist( and not self ) or no majority size,
+      // return at now, otherwise, need to wait some time
       if ( MSG_INVALID_ROUTEID !=
            ( _primaryID.value = pRepl->getPrimary().value ) &&
+           !pRepl->primaryIsMe() &&
            pRepl->isSendNormal( _primaryID.value ) )
       {
          goto error ;
