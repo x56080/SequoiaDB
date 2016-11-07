@@ -77,7 +77,7 @@ public class CLGetQueryMeta {
 			// orderBy
 			BSONObject orderBy = new BasicBSONObject();
 			orderBy.put("Indexblocks", 1);
-			cursor = cl.getQueryMeta(condition, orderBy, empty, 0, 0, 0);
+			cursor = cl.getQueryMeta(condition, orderBy, empty, 0, -1, 0);
 //			cursor = cl.getQueryMeta(empty, empty, empty, 0, 0, 0);
 		    long i = 0 ;
 		    while(cursor.hasNext()){
@@ -86,7 +86,7 @@ public class CLGetQueryMeta {
 			    BSONObject hint = new BasicBSONObject();
 			    hint.put("Indexblocks", temp.get("Indexblocks"));
 			    System.out.println("hint is: "+hint.toString());
-			    datacursor = cl.query(null, null, null, hint, 0, 0, 0);
+			    datacursor = cl.query(null, null, null, hint, 0, -1, 0);
 			    while( datacursor.hasNext()){
 			    	i++ ;
 			    	datacursor.getNext();

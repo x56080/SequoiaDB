@@ -1,6 +1,8 @@
 package com.sequoiadb.test.common;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.bson.BSONObject;
 import org.bson.types.BSONDecimal;
@@ -16,18 +18,27 @@ public class DecimalTmpA {
 	private ObjectId fieldC;
 	private BSONTimestamp fieldD;
 	private BSONDecimal fieldE;
-	private ArrayList fieldF = new ArrayList();
+	private List<Integer> fieldF = new ArrayList<Integer>();
+	private BigDecimal fieldZ;
 	
-	
-	public ArrayList getFieldF() {
+	public DecimalTmpA() {
+		this.fieldA = 10;
+		this.fieldB = "10";
+		this.fieldC = new ObjectId();
+		this.fieldD = new BSONTimestamp(1000, 1000);
+		this.fieldE = new BSONDecimal("10.0", 10, 1);
+		this.fieldF = new ArrayList<Integer>();
+		this.fieldF.add(10);
+		this.fieldF.add(20);
+	}
+
+	public List<Integer> getFieldF() {
 		return fieldF;
 	}
 
-	public void setFieldF(ArrayList fieldF) {
+	public void setFieldF(List<Integer> fieldF) {
 		this.fieldF = fieldF;
 	}
-
-	public DecimalTmpA() {}
 	
 	public BSONTimestamp getFieldD() {
 		return fieldD;
@@ -58,18 +69,35 @@ public class DecimalTmpA {
 		this.fieldB = fieldB;
 	}
 	
-	public String toString() {
-		return "fieldA: " + fieldA + ", fieldB: " + fieldB +
-				", fieldC: " + fieldC.toString() + ", fieldD: " + 
-				fieldD.toString() + ", fieldE: " + fieldE.toString() +
-				", fieldF: " + fieldF.toString();
-	}
-	
 	public ObjectId getFieldC() {
 		return fieldC;
 	}
 
 	public void setFieldC(ObjectId fieldC) {
 		this.fieldC = fieldC;
+	}
+	
+	/**
+	 * @return the fieldZ
+	 */
+	public BigDecimal getFieldZ() {
+		return fieldZ;
+	}
+
+	/**
+	 * @param fieldZ the fieldZ to set
+	 */
+	public void setFieldZ(BigDecimal fieldZ) {
+		this.fieldZ = fieldZ;
+	}
+	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "DecimalTmpA [fieldZ=" + fieldZ + ", fieldA=" + fieldA
+				+ ", fieldB=" + fieldB + ", fieldC=" + fieldC + ", fieldD="
+				+ fieldD + ", fieldE=" + fieldE + ", fieldF=" + fieldF + "]";
 	}
 }

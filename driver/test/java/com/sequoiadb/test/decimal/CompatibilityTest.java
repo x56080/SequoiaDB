@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import org.bson.BSONObject;
@@ -113,8 +114,23 @@ public class CompatibilityTest {
 	}
 	
 	@Test
-	@Ignore
+//	@Ignore
 	public void tmpTest2() {
+		List<String> list = new ArrayList<String>();
+		list.add("a");
+		list.add("b");
+		list.add("c");
+        BSONObject obj = new BasicBSONObject();
+        obj.put("list",list);
+        
+        // obj = new BasicBSONObject("a", new BSONTimestamp(1000, 123456));
+        
+        System.out.println("inserted record is: " + obj);
+        cl.insert(obj);
+        cur = cl.query();
+        assertTrue(cur.hasNext());
+        obj = cur.getNext();
+        System.out.println("queried record is: " + obj);
 	}
 
 	/**
@@ -194,16 +210,87 @@ public class CompatibilityTest {
 	public void api_BasicBSONObject_as() {
 		ArrayList<Integer> list = new ArrayList<Integer>();
 		list.add(0);list.add(1);list.add(2);
-		BSONObject obj1 = new BasicBSONObject().
-				append("fieldA", 10).append("fieldB", "abc").
-				append("fieldC", new ObjectId()).append("fieldD", new BSONTimestamp(1000, 1000))
-				.append("fieldE", new BSONDecimal("123.456")).append("fieldF", list);
-		try {
-			DecimalTmpA retTmp1 = obj1.as(DecimalTmpA.class);
-			System.out.println(retTmp1);
+		int num = 10;
+		String str = "abc";
+		ObjectId oid = new ObjectId();
+		BSONTimestamp ts = new BSONTimestamp(1000, 1000);
+		BSONDecimal decimal = new BSONDecimal("123.456");
+		BigDecimal bd = new BigDecimal("12345.56789");
+		
+		BSONObject obj1 = new BasicBSONObject("case1", "test_in_java").
+				append("fieldZ", bd).
+				append("fieldA", num).
+				append("fieldB", str).
+				append("fieldC", oid).
+				append("fieldD", ts).
+				append("fieldE", decimal).
+				append("fieldF", list);
+		
+		// case 1
+		DecimalTmpA myObj = new DecimalTmpA();
+		cl.save(myObj);
+        cur = cl.query();
+        assertTrue(cur.hasNext());
+        BSONObject retDoc = cur.getNext();
+        System.out.println("case3: query return record is: " + retDoc);
+        DecimalTmpA retObj = null;
+        try {
+			retObj = retDoc.as(DecimalTmpA.class);
 		} catch (Exception e) {
 			e.printStackTrace();
+			Assert.fail();
 		}
+		// check
+		Assert.assertEquals(myObj.getFieldA(), retObj.getFieldA());
+		Assert.assertEquals(myObj.getFieldB(), retObj.getFieldB());
+		Assert.assertEquals(myObj.getFieldC(), retObj.getFieldC());
+		Assert.assertEquals(myObj.getFieldD(), retObj.getFieldD());
+		Assert.assertEquals(myObj.getFieldE(), retObj.getFieldE());
+		Assert.assertEquals(myObj.getFieldF(), retObj.getFieldF());
+		Assert.assertEquals(myObj.getFieldZ(), retObj.getFieldZ());
+		
+		// case 2: as before insert
+		retObj = null;
+		try {
+			retObj = obj1.as(DecimalTmpA.class);
+			System.out.println("case 2 result: " + retObj);
+		} catch (Exception e) {
+			e.printStackTrace();
+			Assert.fail();
+		}
+		// check
+		Assert.assertEquals(num, retObj.getFieldA());
+		Assert.assertEquals(str, retObj.getFieldB());
+		Assert.assertEquals(oid.toString(), retObj.getFieldC().toString());
+		Assert.assertEquals(ts, retObj.getFieldD());
+		Assert.assertEquals(decimal, retObj.getFieldE());
+		Assert.assertEquals(list, retObj.getFieldF());
+		Assert.assertEquals(bd, retObj.getFieldZ());
+		
+		// case 3: as after query
+		obj1.removeField("case2");
+		obj1.put("case3", "test_in_java");
+		cl.insert(obj1);
+        cur = cl.query(new BasicBSONObject("case3", "test_in_java"),
+        		null, null, null);
+        assertTrue(cur.hasNext());
+        retDoc = cur.getNext();
+        System.out.println("case 3: query return record is: " + retDoc);
+        try {
+			retObj = retDoc.as(DecimalTmpA.class);
+		} catch (Exception e) {
+			e.printStackTrace();
+			Assert.fail();
+		}
+		// check
+		Assert.assertEquals(num, retObj.getFieldA());
+		Assert.assertEquals(str, retObj.getFieldB());
+		Assert.assertEquals(oid.toString(), retObj.getFieldC().toString());
+		Assert.assertEquals(ts, retObj.getFieldD());
+		Assert.assertEquals(decimal, retObj.getFieldE());
+		Assert.assertEquals(list, retObj.getFieldF());
+		Assert.assertEquals(bd, retObj.getFieldZ());
+		
 	}
 	
 	@Test
@@ -250,7 +337,7 @@ public class CompatibilityTest {
         b.setFieldB("hello");
         b.setFieldC(new ObjectId());
         b.setFieldD(new BSONTimestamp(1000, 1000));
-        b.setFieldE(new BSONDecimal("12332.456", 10, 9));
+        b.setFieldE(new BSONDecimal("1.2332456", 10, 9));
         
         ArrayList<DecimalTmpA> list = new ArrayList<DecimalTmpA>();
         list.add(a);

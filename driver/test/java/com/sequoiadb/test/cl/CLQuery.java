@@ -83,7 +83,7 @@ public class CLQuery {
         con_gt.put("$gt", 90);
         query.put("Id", con_gt);
 
-        DBCursor cursor = cl.query(query, null, null, null, 0, 0);
+        DBCursor cursor = cl.query(query, null, null, null, 0, -1);
         int gt = 0;
         while (cursor.hasNext()) {
             cursor.getNext();
@@ -399,7 +399,6 @@ public class CLQuery {
         BSONObject con_type = new BasicBSONObject();
         // {Id:{$type:16}}
         con_type.put("$type", 16);
-
         query.put("Id", con_type);
 
         cursor = cl.query(query, null, null, null);

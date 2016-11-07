@@ -1,6 +1,6 @@
 package com.sequoiadb.testdata;
 
-import java.sql.Date;
+import java.util.Date;
 
 import org.bson.types.ObjectId;
 
@@ -15,7 +15,7 @@ public class BasicClass {
 	private Long idLong = 0L;
 	private Double scodeDouble = 9999.001;
 	private Float floatvalue = 012121.212f;
-	private Date  date = Date.valueOf("2012-12-24");
+	private Date  date = new Date();
 	
 
 //	public ObjectId get_id() {
@@ -82,6 +82,34 @@ public class BasicClass {
 		scodeDouble = value;
 	}
 	
+	/**
+	 * @return the floatvalue
+	 */
+	public Float getFloatvalue() {
+		return floatvalue;
+	}
+
+	/**
+	 * @param floatvalue the floatvalue to set
+	 */
+	public void setFloatvalue(Float floatvalue) {
+		this.floatvalue = floatvalue;
+	}
+
+	/**
+	 * @return the date
+	 */
+	public Date getDate() {
+		return date;
+	}
+	
+	/**
+	 * @param date the date to set
+	 */
+	public void setDate(Date date) {
+		this.date = date;
+	}
+
 	@Override
 	public boolean equals(Object other) {
 		
@@ -119,11 +147,19 @@ public class BasicClass {
 		{
 			return false;
 		}
-		if (this.scode - otherObj.scode > 0.1)
+		if (this.scode - otherObj.scode > 0.01)
 		{
 			return false;
 		}
 		if (!this.scodeDouble.equals(otherObj.scodeDouble))
+		{
+			return false;
+		}
+		if (this.floatvalue - otherObj.floatvalue > 0.01)
+		{
+			return false;
+		}
+		if (!this.date.equals(otherObj.date))
 		{
 			return false;
 		}

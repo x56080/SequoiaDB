@@ -72,7 +72,7 @@ public class BSONDecimalTest {
 
 	@After
 	public void tearDown() throws Exception {
-//		cl.truncate();
+		cl.truncate();
 	}
 	
 	/**
@@ -157,9 +157,243 @@ public class BSONDecimalTest {
 		Assert.assertEquals(0, big.compareTo(big2));
 		
 		// case 5: getValue
-		Assert.assertEquals(big.toString(), decimal.getValue());
+		Assert.assertEquals(big.toPlainString(), decimal.getValue());
 		Assert.assertEquals(big.toPlainString(), retDecimal.getValue());
 		
 	}
+	
+	/**
+	 * 用户构建BSONDecimal对象后，对象持有的内容是否正确。
+	 */
+	@Test
+	public void BSONDecimalEqualsTest() {
+		String str = null;
+		String lhs = null;
+		String rhs = null;
+		BSONDecimal decimal = null;
+		BSONDecimal decimal1 = null;
+		BSONDecimal decimal2 = null;
+		int precision = 0;
+		int scale = 0;
+		
+		// case 1: no precision and scale
+		decimal = DecimalCommon.genBSONDecimal(false, true, false, 0);
+		str = decimal.getValue();
+		decimal1 = new BSONDecimal(str);
+		decimal2 = new BSONDecimal(str);
+		Assert.assertTrue(decimal1.equals(decimal2));
+		
+		
+		// case 2: have precision and scale
+//		decimal = DecimalCommon.genBSONDecimal(true, true, false, 0);
+		str = "123456789.1234567890123456789";
+		decimal = new BSONDecimal(str, 30, 15);
+		str = decimal.getValue();
+		precision = decimal.getPrecision();
+		scale = decimal.getScale();
+		System.out.println("precision is: " +decimal);
+		decimal1 = new BSONDecimal(str, precision, scale);
+		decimal2 = new BSONDecimal(str, precision, scale);
+		Assert.assertTrue(decimal1.equals(decimal2));
+		
+		// case 3: one has but another not 
+//		decimal = DecimalCommon.genBSONDecimal(true, true, false, 0);
+		str = "123456789.1234567890123456789";
+		decimal1 = new BSONDecimal(str, 100, 50);
+		decimal2 = new BSONDecimal(str);
+		decimal1 = new BSONDecimal(str, precision, scale);
+		decimal2 = new BSONDecimal(str, precision, scale);
+		Assert.assertTrue(decimal1.equals(decimal2));
+		
+		// case 4: compare with itself
+		str = "123456789.1234567890123456789";
+		decimal1 = new BSONDecimal(str, 100, 50);
+		decimal2 = new BSONDecimal(str);
+		decimal1 = new BSONDecimal(str, precision, scale);
+		decimal2 = new BSONDecimal(str, precision, scale);
+		Assert.assertTrue(decimal1.equals(decimal1));
+		Assert.assertTrue(decimal2.equals(decimal2));
+		
+		// case 5: has the same value, but different expression
+		lhs = "1.23456789E8";
+		rhs = "123456789";
+		decimal1 = new BSONDecimal(lhs);
+		decimal2 = new BSONDecimal(rhs);
+		Assert.assertTrue(decimal1.equals(decimal2));
+		Assert.assertTrue(decimal1.equals(decimal1));
+		Assert.assertTrue(decimal2.equals(decimal2));
+		
+		// case 6: not equal
+		lhs = "1.23456789";
+		rhs = "123456789";
+		decimal1 = new BSONDecimal(lhs);
+		decimal2 = new BSONDecimal(rhs);
+		Assert.assertFalse(decimal1.equals(decimal2));
 
+	}
+	
+	/**
+	 * 用户使用不同的精度构建BSONDecimal对象
+	 */
+	@Test
+	public void buildBSONDecimalTest2() {
+		BSONObject obj = null;
+		BSONDecimal decimal = null;
+		
+		// case 1: specify invalid scale
+        String value = "12345.6789";
+        try {
+            decimal = new BSONDecimal(value, 1, -1);
+        	Assert.fail();
+            obj = new BasicBSONObject().append("case1", decimal);
+            System.out.println("inserted obj is: " + obj);
+        	cl.insert(obj);
+        } catch(IllegalArgumentException e) {
+        	// ok
+        } catch(Exception e) {
+        	Assert.fail();
+        }
+	}
+	
+	/**
+	 * 用户直接append/add BigDecimal对象
+	 */
+	@Test
+	public void buildBSONDecimalTest3() {
+		String str1 = "1.23";
+		String str2 = "3.14";
+		BasicBSONObject ret = null;
+		BSONObject obj = new BasicBSONObject("case1", "test_in_java");
+		obj.put("a", new BigDecimal("1.23"));
+		
+		BasicBSONObject obj2 = new BasicBSONObject("case2", "test_in_java");
+		obj2.append("a", new BigDecimal("3.14"));
+		
+		cl.insert(obj);
+		cl.insert(obj2);
+		
+		cur = cl.query(new BasicBSONObject("case1", new BasicBSONObject("$exists", 1)), 
+				new BasicBSONObject("a", ""), null, null);
+	    ret = (BasicBSONObject) cur.getNext();
+		BigDecimal bDecimal1 =  ret.getBigDecimal("a");
+		Assert.assertEquals(new BigDecimal(str1), bDecimal1);
+		
+		
+		cur = cl.query(new BasicBSONObject("case2", new BasicBSONObject("$exists", 1)), 
+				new BasicBSONObject("a", ""), null, null);
+		ret = (BasicBSONObject) cur.getNext();
+		BigDecimal bDecimal2 =  ret.getBigDecimal("a");
+		Assert.assertEquals(new BigDecimal(str2), bDecimal2);
+	}
+	
+	@Test
+	public void buildBSONDecimalTest4() {
+		String str1 = "0.6789";
+		String str2 = "1.2345";
+		BasicBSONObject ret = null;
+		
+		/// 使用decimal内容构建bson
+		// 方式一（原始方式）：
+		BasicBSONObject obj1 = new BasicBSONObject("case1", "test_in_java");
+		obj1.put("field1", new BSONDecimal(str1));
+		System.out.println("obj1 is: " + obj1); // 输出： { "field1" : { "$decimal" : "0.6789"}}
+		// 方式二（新增方式）：
+		BasicBSONObject obj2 = new BasicBSONObject("case2", "test_in_java");
+		obj2.put("field2", new BigDecimal(str2));
+		System.out.println("obj2 is: " + obj2); // 输出：{ "field2" : { "$decimal" : "1.2345"}}
+		
+		/// 从bson中获取decimal内容
+		// 方式一（原始方式）：
+		BSONDecimal bsonDecimal = (BSONDecimal)obj1.get("field1");
+		BigDecimal decimal1 = bsonDecimal.toBigDecimal();
+		System.out.println("decimal1 is: " + decimal1); // 输出：0.6789
+		
+		// 方式二（新增方式）：
+		BigDecimal decimal3 = obj1.getBigDecimal("field1");
+		System.out.println("decimal3 is: " + decimal3); // 输出：0.6789
+		BigDecimal decimal4 = obj2.getBigDecimal("field2");
+		System.out.println("decimal4 is: " + decimal4); // 输出：1.2345
+		
+		cl.insert(obj1);
+		cl.insert(obj2);
+		
+		cur = cl.query(new BasicBSONObject("case1", new BasicBSONObject("$exists", 1)), 
+				new BasicBSONObject("field1", ""), null, null);
+	    ret = (BasicBSONObject) cur.getNext();
+		BigDecimal bDecimal1 =  ret.getBigDecimal("field1");
+		Assert.assertEquals(new BigDecimal(str1), bDecimal1);
+		
+		cur = cl.query(new BasicBSONObject("case2", new BasicBSONObject("$exists", 1)), 
+				new BasicBSONObject("field2", ""), null, null);
+		ret = (BasicBSONObject) cur.getNext();
+		BigDecimal bDecimal2 =  ret.getBigDecimal("field2");
+		Assert.assertEquals(new BigDecimal(str2), bDecimal2);
+	}
+	
+	@Test
+	public void buildBSONDecimalSample() {
+		
+		/// 使用decimal内容构建bson
+		// 方式一（原始方式）：
+		BasicBSONObject obj1 = new BasicBSONObject();
+		obj1.put("field1", new BSONDecimal("0.6789"));
+		System.out.println("obj1 is: " + obj1); // 输出： { "field1" : { "$decimal" : "0.6789"}}
+		// 方式二（新增方式）：
+		BasicBSONObject obj2 = new BasicBSONObject();
+		obj2.put("field2", new BigDecimal("1.2345"));
+		System.out.println("obj2 is: " + obj2); // 输出：{ "field2" : { "$decimal" : "1.2345"}}
+		
+		/// 从bson中获取decimal内容
+		// 方式一（原始方式）：
+		BSONDecimal bsonDecimal = (BSONDecimal)obj1.get("field1");
+		BigDecimal decimal1 = bsonDecimal.toBigDecimal();
+		System.out.println("decimal1 is: " + decimal1); // 输出：0.6789
+		
+		// 方式二（新增方式）：
+		BigDecimal decimal3 = obj1.getBigDecimal("field1");
+		System.out.println("decimal3 is: " + decimal3); // 输出：0.6789
+		BigDecimal decimal4 = obj2.getBigDecimal("field2");
+		System.out.println("decimal4 is: " + decimal4); // 输出：1.2345
+		
+	}
+	
+	@Test
+	public void bug_jira_1990_q1_q2_q3() {
+		// TODO: test more
+		String str = null;
+		int precision = 0;
+		int scale = 0;
+		BSONDecimal d = null;
+		
+		// q1
+		str = "112233.112233445566778899";precision = 21;scale = 18;
+		try {
+			d = new BSONDecimal(str, precision, scale);
+			Assert.fail();
+		}	catch(IllegalArgumentException e) {
+		}
+
+		// q2
+		str = "123";precision = 6;scale = 4;
+		try {
+			d = new BSONDecimal(str, precision, scale);
+			Assert.fail();
+		}	catch(IllegalArgumentException e) {
+		}
+		
+		// q3
+		str = "1";precision = 1000;scale = 1000;
+		try {
+			d = new BSONDecimal(str, precision, scale);
+			Assert.fail();
+		}	catch(IllegalArgumentException e) {
+		}
+		str = "123";precision = 5;scale = 5;
+		try {
+			d = new BSONDecimal(str, precision, scale);
+			Assert.fail();
+		}	catch(IllegalArgumentException e) {
+		}
+	}
+	
 }
