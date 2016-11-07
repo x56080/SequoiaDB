@@ -488,7 +488,7 @@ public class ReplicaGroup {
 				SequoiadbConstants.NODE, config);
 		int flags = rtn.getFlags();
 		if (flags != 0) {
-			throw new BaseException(hostName, port, configure);
+			throw new BaseException(flags, port, configure);
 		}
 	}
 

@@ -245,7 +245,9 @@ public class DatasourceOptions implements Cloneable
 	 * @param  initConnectionNum default to be 10
 	 * @deprecated Does not work since v1.12.6 and v2.2. 
 	 *             When the connection pool is enabled, the first time to get connection, 
-	 *             the pool increases "deltaIncCount" number of connections. 
+	 *             the pool increases "deltaIncCount" number of connections. Used
+	 *             setDeltaIncCount() instead.
+	 * @see setDeltaIncCount()
 	 */
 	public void setInitConnectionNum(int initConnectionNum) {
 	}
@@ -257,6 +259,7 @@ public class DatasourceOptions implements Cloneable
 	 * @param maxIdeNum default to be 10
 	 * @deprecated Does not work since v1.12.6 and v2.2. 
 	 *             Used setMaxIdleCount() instead.
+	 * @see setMaxIdleCount()
 	 */
 	public void setMaxIdeNum(int maxIdeNum) {
 		setMaxIdleCount(maxIdeNum);
@@ -271,6 +274,7 @@ public class DatasourceOptions implements Cloneable
 	 * @param  maxConnectionNum default to be 500 
 	 * @deprecated Does not work since v1.12.6 and v2.2. 
 	 *             Used setMaxCount() instead.
+	 * @see setMaxCount()
 	 */
 	public void setMaxConnectionNum(int maxConnectionNum) {
 		setMaxCount(maxConnectionNum);
@@ -284,8 +288,8 @@ public class DatasourceOptions implements Cloneable
 	 *        still no available connection, connection pool throws exception  
 	 * @param timeout Default to be 5 * 1000ms.
 	 * @deprecated Does not work since v1.12.6 and v2.2. 
-	 *             Used Sequoiadb::getConnection(int timeout) instead.
-	 * @see Sequoiadb::getConnection(int timeout)
+	 *             Used Sequoiadb.getConnection(int timeout) instead.
+	 * @see Sequoiadb.getConnection(int timeout)
 	 * @since v1.12.6 and 1.12.6
 	 */	
 	public void setTimeout(int timeout) {

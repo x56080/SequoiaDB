@@ -17,6 +17,7 @@
 package org.bson.util;
 
 import java.lang.reflect.Array;
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -66,6 +67,7 @@ public class JSONSerializers {
 		serializer.addObjectSerializer(Date.class, new LegacyDateSerializer(serializer));
 		serializer.addObjectSerializer(BSONTimestamp.class, new LegacyBSONTimestampSerializer(serializer));
 		serializer.addObjectSerializer(BSONDecimal.class, new LegacyBSONDecimalSerializer(serializer));
+		serializer.addObjectSerializer(BigDecimal.class, new LegacyBSONDecimalSerializer(serializer));
 		serializer.addObjectSerializer(Binary.class, new LegacyBinarySerializer());
 		serializer.addObjectSerializer(byte[].class, new LegacyBinarySerializer());
 		return serializer;
@@ -422,11 +424,16 @@ public class JSONSerializers {
 		
 		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
-			BSONDecimal t = (BSONDecimal) obj;
+			BasicBSONObject temp = new BasicBSONObject();
+			BSONDecimal t = null;
+			if (obj instanceof BigDecimal) {
+				t = new BSONDecimal((BigDecimal)obj);
+			} else {
+				t = (BSONDecimal)obj;
+			}
 			String data = t.getValue();
 			int precision = t.getPrecision();
 			int scale = t.getScale();
-			BasicBSONObject temp = new BasicBSONObject();
 			temp.put("$decimal", data);
 			if (precision != -1 || scale != -1) {
 				BSONObject arr = new BasicBSONList();

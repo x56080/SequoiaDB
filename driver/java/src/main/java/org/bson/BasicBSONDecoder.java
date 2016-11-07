@@ -151,28 +151,15 @@ public class BasicBSONDecoder implements BSONDecoder {
         case NUMBER_DECIMAL:
         	int size = _in.readInt();
         	int typemod = _in.readInt();
-        	short scale = _in.readShort();
+        	short signscale = _in.readShort();
         	short weight = _in.readShort();
-        	int ndig = (size - InnerDecimal.DECIMAL_HEADER_SIZE) / (Short.SIZE / Byte.SIZE);
-        	short[] digits = new short[ndig + 1];
-        	// the first position is set to 0, it's placed carry, so we 
-        	// need another short
-        	digits[0] = 0;
-        	for( int i = 0; i < ndig; i++ ) {
-        		digits[1 + i] = _in.readShort();
+        	int ndigits = (size - BSONDecimal.DECIMAL_HEADER_SIZE) / (Short.SIZE / Byte.SIZE);
+        	short[] digits = new short[ndigits];
+        	for( int i = 0; i < ndigits; i++ ) {
+        		digits[i] = _in.readShort();
         	}
-        	// set the raw decimal data
-        	int sign = scale & InnerDecimal.DECIMAL_SIGN_MASK;
-        	int dscale = scale & InnerDecimal.DECIMAL_DSCALE_MASK;
-        	InnerDecimal inner = new InnerDecimal();
-        	inner.setTypeMod(typemod);
-        	inner.setNDigits(ndig);
-        	inner.setSign(sign);
-        	inner.setDScale(dscale);
-        	inner.setWeight(weight);
-        	inner.setDigits(digits);
-        	// get BSONDecimal
-        	BSONDecimal decimal = inner.toBSONDecimal();
+        	// set the decimal data
+        	BSONDecimal decimal = new BSONDecimal(size, typemod, signscale, weight, digits);
         	_callback.gotDecimal( name, decimal );
         	break;
         	

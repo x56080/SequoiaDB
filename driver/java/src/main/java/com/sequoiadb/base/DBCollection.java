@@ -991,8 +991,9 @@ public class DBCollection {
 			orderBy = dummy;
 		if (hint == null)
 			hint = dummy;
-		if (returnRows == 0)
+		if (returnRows < 0) {
 			returnRows = -1;
+		}
 		if ( returnRows == 1) {
 			newFlag |= DBQuery.FLG_QUERY_WITH_RETURNDATA;
 		}
@@ -1218,7 +1219,7 @@ public class DBCollection {
 	 * @param name
 	 *            The index name, returns all of the indexes if this parameter
 	 *            is null
-	 * @return dbCursor of indexes
+	 * @return DBCursor of indexes
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
 	public DBCursor getIndex(String name) throws BaseException {
@@ -1836,8 +1837,9 @@ public class DBCollection {
 			orderBy = dummy;
 		if (hint == null)
 			hint = dummy;
-		if (returnRows == 0)
+		if (returnRows < 0) {
 			returnRows = -1;
+		}
 	    BSONObject hint1 = new BasicBSONObject();
 	    hint1.put("Collection", this.collectionFullName);
 		String command = SequoiadbConstants.ADMIN_PROMPT+SequoiadbConstants.GET_QUERYMETA;

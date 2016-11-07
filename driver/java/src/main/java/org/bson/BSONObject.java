@@ -47,8 +47,8 @@ public interface BSONObject {
 	 *            Corresponding value
 	 * @return <tt>v</tt>
 	 */
-	//public <T> boolean putBasicType(String key, T object);
-	
+	// public <T> boolean putBasicType(String key, T object);
+
 	/**
 	 * Sets all key/value pairs from an object into this object
 	 * 
@@ -57,6 +57,11 @@ public interface BSONObject {
 	 */
 	public void putAll(BSONObject o);
 
+	/**
+	 * The current bson object keeps any elements or not
+	 * 
+	 * @return true for empty, false for not
+	 */
 	public boolean isEmpty();
 
 	/**
@@ -119,25 +124,25 @@ public interface BSONObject {
 	 * @return The names of the fields in this object
 	 */
 	public Set<String> keySet();
-	
-	/**
-	 * Returns an instance of the class "type"
-	 * 		only for BasicBsonObject
-	 * @param type
-	 * @return the instance of the class
-	 * @throws Exception
-	 */
-	public <T> T as(Class<T> type, Type eleType) throws Exception;
-	
-	
-	/**
-	 * Returns an instance of the class "type"
-	 * 		only for BasicBsonObject
-	 * @param type
-	 * @return the instance of the class
-	 * @throws Exception
-	 */
-	public <T> T as(Class<T> type) throws Exception;
 
+	/**
+	 * @fn <T> T as(Class<T> cls, Type eleType)
+	 * @brief an instance of the class "cls", only for BasicBSONObject
+	 * @param cls
+	 *            target class object
+	 * @return the instance of the class
+	 * @throws Exception
+	 */
+	public /*! @cond x*/ <T> /*! @endcond */ T as(Class<T> cls, Type eleType) throws Exception;
+
+	/**
+	 * @fn <T> T as(Class<T> cls)
+	 * @brief Returns an instance of the class "cls", only for BasicBSONObject
+	 * @param cls
+	 *            target class object
+	 * @return the instance of the class
+	 * @throws Exception
+	 */
+	public /*! @cond x*/ <T> /*! @endcond */ T as(Class<T> cls) throws Exception;
 
 }

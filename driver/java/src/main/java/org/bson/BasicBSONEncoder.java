@@ -45,6 +45,7 @@ import static org.bson.BSON.NUMBER_DECIMAL;
 import static org.bson.BSON.regexFlags;
 
 import java.lang.reflect.Array;
+import java.math.BigDecimal;
 import java.nio.Buffer;
 import java.util.Date;
 import java.util.List;
@@ -311,14 +312,11 @@ public class BasicBSONEncoder implements BSONEncoder {
 	} 
 	
 	protected void putDecimal(String name, BSONDecimal decimal) {
-		InnerDecimal innerDecimal = new InnerDecimal();
-		innerDecimal.fromBSONDecimal(decimal);
-		
-		int size = innerDecimal.size();
-		int typemod = innerDecimal.getTypeMod();
-		short dscale = (short)innerDecimal.getDScaleWithSign();
-		short weight = (short)innerDecimal.getWeight();
-		short[] digits = innerDecimal.getDigits();
+		int size = decimal.getSize();
+		int typemod = decimal.getTypemod();
+		short signscale = decimal.getSignScale();
+		short weight = decimal.getWeight();
+		short[] digits = decimal.getDigits();
 
 		// decimal is kept in bson in follow format:
 		// type+name+size+typemod+dscale+weight+digits
@@ -329,7 +327,7 @@ public class BasicBSONEncoder implements BSONEncoder {
 		// size+typemod+dscale+weight+data
 		_buf.writeInt(size);
 		_buf.writeInt(typemod);
-		_buf.writeShort(dscale);
+		_buf.writeShort(signscale);
 		_buf.writeShort(weight);
 		for (int i = 0; i < digits.length; i++) {
 			_buf.writeShort(digits[i]);
@@ -371,6 +369,8 @@ public class BasicBSONEncoder implements BSONEncoder {
 		} else if (n instanceof Float || n instanceof Double) {
 			_put(NUMBER, name);
 			_buf.writeDouble(n.doubleValue());
+		} else if (n instanceof BigDecimal) {
+			putDecimal(name, new BSONDecimal((BigDecimal)n));
 		} else {
 			throw new IllegalArgumentException("can't serialize " + n.getClass());
 		}

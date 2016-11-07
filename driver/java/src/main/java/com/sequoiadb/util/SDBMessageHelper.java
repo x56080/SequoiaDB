@@ -38,9 +38,9 @@ import org.bson.BasicBSONCallback;
 import org.bson.BasicBSONDecoder;
 import org.bson.BasicBSONEncoder;
 import org.bson.BasicBSONObject;
-import org.bson.InnerDecimal;
 import org.bson.io.BasicOutputBuffer;
 import org.bson.io.OutputBuffer;
+import org.bson.types.BSONDecimal;
 import org.bson.types.ObjectId;
 
 import com.google.gson.Gson;
@@ -1420,7 +1420,8 @@ public class SDBMessageHelper {
 				arrayReverse(inBytes, offset, 2);
 				offset += 2;
 				// digits
-				int ndigits = ((l2r ? newLength : length) - InnerDecimal.DECIMAL_HEADER_SIZE) / (Short.SIZE / 8);
+				int ndigits = ((l2r ? newLength : length) - 
+						BSONDecimal.DECIMAL_HEADER_SIZE) / (Short.SIZE/Byte.SIZE);
 				for (int i = 0; i < ndigits; i++) {
 					arrayReverse(inBytes, offset, 2);
 					offset += 2;

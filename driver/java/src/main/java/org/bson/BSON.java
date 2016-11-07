@@ -18,6 +18,7 @@
 
 package org.bson;
 
+import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.util.Date;
 import java.util.HashMap;
@@ -395,6 +396,8 @@ public class BSON {
 		else if (obj instanceof BSONTimestamp)
 			return true;
 		else if (obj instanceof BSONDecimal)
+			return true;
+		else if (obj instanceof BigDecimal)
 			return true;
 		else if (obj instanceof CodeWScope)
 			return true;
