@@ -1575,8 +1575,7 @@ namespace engine
       // find a slot
       for ( UINT32 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
-         if ( DMS_IS_MB_FREE ( _dmsMME->_mbList[i]._flag ) ||
-              DMS_IS_MB_DROPPED ( _dmsMME->_mbList[i]._flag ) )
+         if ( DMS_IS_MB_FREE ( _dmsMME->_mbList[i]._flag ) )
          {
             newCollectionID = i ;
             break ;
@@ -1814,7 +1813,7 @@ namespace engine
       }
 
       // change mb meta data
-      DMS_SET_MB_FREE( context->mb()->_flag ) ;
+      DMS_SET_MB_DROPPED( context->mb()->_flag ) ;
       context->mb()->_logicalID-- ;
 
       /*
@@ -1841,6 +1840,7 @@ namespace engine
       ossLatch( &_metadataLatch, EXCLUSIVE ) ;
       metalocked = TRUE ;
       _collectionNameRemove( pName ) ;
+      DMS_SET_MB_FREE( context->mb()->_flag ) ;
       _dmsHeader->_numMB-- ;
 
       // write dps log
