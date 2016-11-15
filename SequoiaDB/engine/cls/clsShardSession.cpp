@@ -3007,11 +3007,18 @@ namespace engine
          goto error ;
       }
 
-      rc = _calculateW( &replSize, &( header->w ), w ) ;
-      if ( SDB_OK != rc )
+      if ( SDB_LOB_MODE_R != mode.Int() )
       {
-         PD_LOG( PDERROR, "failed to calculate w:%d", rc ) ;
-         goto error ;
+         rc = _calculateW( &replSize, &( header->w ), w ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to calculate w:%d", rc ) ;
+            goto error ;
+         }
+      }
+      else
+      {
+         w = 1 ;
       }
 
       rc = rtnCB->contextNew( RTN_CONTEXT_SHARD_OF_LOB,
