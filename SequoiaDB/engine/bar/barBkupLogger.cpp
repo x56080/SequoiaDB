@@ -1422,12 +1422,25 @@ namespace engine
 
          if ( _curOffset < metaLen || !thinCopy )
          {
-            while ( _curOffset < metaLen )
+            UINT64 onceLen = 0 ;
+            if ( _curOffset < metaLen )
+            {
+               onceLen = metaLen ;
+            }
+            else
+            {
+               onceLen = _curOffset + DMS_SEGMENT_SZ ;
+               if ( onceLen > pLobData->getFileSz() )
+               {
+                  onceLen = pLobData->getFileSz() ;
+               }
+            }
+            while ( _curOffset < onceLen )
             {
                pHeader = _nextDataExtent( _curDataType ) ;
-               pHeader->_dataSize = metaLen - _curOffset <
+               pHeader->_dataSize = onceLen - _curOffset <
                                     BAR_MAX_EXTENT_DATA_SIZE ?
-                                    metaLen - _curOffset :
+                                    onceLen - _curOffset :
                                     BAR_MAX_EXTENT_DATA_SIZE ;
                metaObj = _makeExtentMeta( pLobSU ) ;
                pHeader->setMetaData( metaObj.objdata(), metaObj.objsize() ) ;
