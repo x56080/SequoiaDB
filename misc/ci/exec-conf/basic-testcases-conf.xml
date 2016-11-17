@@ -42,5 +42,6 @@
         <testsuite>insert</testsuite>
         <testsuite>listCL</testsuite>
         <testsuite>sqlHint</testsuite>
+        <testsuite>idIndex</testsuite>
     </machine3>
 </shell>
