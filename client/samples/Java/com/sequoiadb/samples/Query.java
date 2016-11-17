@@ -36,7 +36,7 @@ public class Query {
 			sdb = new Sequoiadb(connString, "", "");
 		} catch (BaseException e) {
 			System.out.println("Failed to connect to database: " + connString
-					+ ", error description" + e.getErrorType());
+					+ ", error description: " + e.getErrorType());
 			e.printStackTrace();
 			System.exit(1);
 		}
@@ -53,9 +53,16 @@ public class Query {
 
 		try {
 			BSONObject index = null;
-			DBCursor indexCursor = cl.getIndex(Constants.INDEX_NAME);
-			if (indexCursor.hasNext())
-				index = indexCursor.getNext();
+			DBCursor indexCursor = null;
+			try {
+				indexCursor = cl.getIndex(Constants.INDEX_NAME);
+				if (indexCursor.hasNext())
+					index = indexCursor.getNext();
+			} finally {
+				if (indexCursor != null) 
+					indexCursor.close();
+			}
+			
 			// result cursor
 			DBCursor dataCursor = null;
 			// query condition
@@ -71,18 +78,23 @@ public class Query {
 			// order by ASC(1)/DESC(-1)
 			BSONObject orderBy = new BasicBSONObject();
 			orderBy.put("Id", -1);
-			if (index == null)
-				dataCursor = cl.query(query, selector, orderBy, null, 0, -1);
+			try {
+				if (index == null)
+					dataCursor = cl.query(query, selector, orderBy, null, 0, -1);
+					// or
+					// dataCursor = cl.query("{'Id':{'$gte':0,'$lte':9}}", "{'Id':null,'Age':null}", "{'Id':-1}", null, 0, -1);
+				else
+					dataCursor = cl.query(query, selector, orderBy, index, 0, -1);
 				// or
-				// dataCursor = cl.query("{'Id':{'$gte':0,'$lte':9}}", "{'Id':null,'Age':null}", "{'Id':-1}", null, 0, -1);
-			else
-				dataCursor = cl.query(query, selector, orderBy, index, 0, -1);
-			// or
-			// dataCursor = cl.query("{'Id':{'$gte':0,'$lte':9}}", "{'Id':null,'Age':null}", "{'Id':-1}", index, 0, -1);
-			
-			// operate data by cursor
-			while (dataCursor.hasNext()) {
-				System.out.println(dataCursor.getNext());
+				// dataCursor = cl.query("{'Id':{'$gte':0,'$lte':9}}", "{'Id':null,'Age':null}", "{'Id':-1}", index, 0, -1);
+				
+				// operate data by cursor
+				while (dataCursor.hasNext()) {
+					System.out.println(dataCursor.getNext());
+				}
+			} finally {
+				if (dataCursor != null)
+					dataCursor.close();
 			}
 			// get count by match condition
 			long count = cl.getCount(query);

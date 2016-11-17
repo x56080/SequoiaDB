@@ -31,6 +31,7 @@ public class Snapshot {
 		// the database server address
 		String connString = args[0];
 		Sequoiadb sdb = null;
+		DBCursor cursor = null;
 
 		try {
 			sdb = new Sequoiadb(connString, "", "");
@@ -43,11 +44,15 @@ public class Snapshot {
 		
 		BSONObject matcher = new BasicBSONObject();
 		matcher.put("Name", "SAMPLE.employee");
-		DBCursor cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_COLLECTIONS,
-				matcher, null, null);
-		while (cursor.hasNext())
-			System.out.println(cursor.getNext());
-
+		try {
+			cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_COLLECTIONS,
+					matcher, null, null);
+			while (cursor.hasNext())
+				System.out.println(cursor.getNext());
+		} finally {
+			if (cursor != null) 
+				cursor.close();
+		}
 		sdb.disconnect();
 	}
 }

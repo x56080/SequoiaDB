@@ -128,9 +128,14 @@ class QueryTask implements Runnable {
 		cs = db.getCollectionSpace(csName);
 		cl = cs.getCollection(clName);
 		// 使用集合对象查询
-		cursor = cl.query();
-		while(cursor.hasNext()) {
-			System.out.println("The inserted record is: " + cursor.getNext());
+		try {
+			cursor = cl.query();
+			while(cursor.hasNext()) {
+				System.out.println("The inserted record is: " + cursor.getNext());
+			}
+		} finally {
+            if (cursor != null)
+            	cursor.close();
 		}
 		// 将连接对象归还连接池
 		ds.releaseConnection(db);
