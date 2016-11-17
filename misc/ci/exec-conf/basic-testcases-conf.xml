@@ -32,7 +32,7 @@
         <testsuite>truncate</testsuite>        
         <testsuite>selectorQuery</testsuite>
         <testsuite>lob</testsuite>
-        <testsuite>findAndMOdify</testsuite>
+        <testsuite>findAndModify</testsuite>
         <testsuite>index</testsuite>
         <testsuite>decimal</testsuite>
         <testsuite>matches</testsuite>
