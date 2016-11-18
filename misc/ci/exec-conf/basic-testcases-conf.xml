@@ -43,5 +43,6 @@
         <testsuite>listCL</testsuite>
         <testsuite>sqlHint</testsuite>
         <testsuite>idIndex</testsuite>
+        <testsuite>sdbMigrate</testsuite>
     </machine3>
 </shell>
