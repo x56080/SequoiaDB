@@ -42,16 +42,13 @@ public class Snapshot {
 			System.exit(1);
 		}
 		
-		BSONObject matcher = new BasicBSONObject();
-		matcher.put("Name", "SAMPLE.employee");
+		cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_COLLECTIONS,
+				new BasicBSONObject(), null, null);
 		try {
-			cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_COLLECTIONS,
-					matcher, null, null);
 			while (cursor.hasNext())
 				System.out.println(cursor.getNext());
 		} finally {
-			if (cursor != null) 
-				cursor.close();
+			cursor.close();
 		}
 		sdb.disconnect();
 	}

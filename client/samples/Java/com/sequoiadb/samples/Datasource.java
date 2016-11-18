@@ -128,14 +128,13 @@ class QueryTask implements Runnable {
 		cs = db.getCollectionSpace(csName);
 		cl = cs.getCollection(clName);
 		// 使用集合对象查询
+		cursor = cl.query();
 		try {
-			cursor = cl.query();
 			while(cursor.hasNext()) {
 				System.out.println("The inserted record is: " + cursor.getNext());
 			}
 		} finally {
-            if (cursor != null)
-            	cursor.close();
+            cursor.close();
 		}
 		// 将连接对象归还连接池
 		ds.releaseConnection(db);
@@ -152,7 +151,7 @@ public class Datasource {
 		DatasourceOptions dsOpt = new DatasourceOptions();
 		SequoiadbDatasource ds = null;
 		// 提供coord节点地址	
-		addrs.add("192.168.20.165:11810");
+		addrs.add("192.168.20.42:50000");
 		addrs.add("192.168.20.166:11810");
 		addrs.add("ubuntu1504:11810");
 		
