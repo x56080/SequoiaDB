@@ -74,7 +74,7 @@ namespace engine
       ossAtomic64                   _globalID ;
 
       _pmdSysInfo()
-      :_isPrimary( 0 ), _globalID( 0 )
+      :_isPrimary( 0 ), _globalID( 1 )
       {
          _dbrole        = SDB_ROLE_STANDALONE ;
          _nodeID.value  = MSG_INVALID_ROUTEID ;
