@@ -538,6 +538,17 @@ namespace engine
       {
          ++count ;
          BSONElement ie = i.next () ;
+
+         // Check key name first
+         const CHAR *fieldName = ie.fieldName() ;
+         if ( NULL == fieldName ||
+              '\0' == fieldName[0] ||
+              NULL != ossStrchr( fieldName, '$' ) )
+         {
+            return FALSE ;
+         }
+
+         // Check key order
          if ( ie.type() != NumberInt ||
               ( ie.numberInt() != -1 &&
                 ie.numberInt() != 1 ) )
