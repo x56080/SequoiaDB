@@ -2097,7 +2097,8 @@ namespace engine
          else
          {
             // be sure the splitKey is in self range
-            std::string mainCLName;
+            std::string mainCLName ;
+            BOOLEAN hasSplit = FALSE ;
             catAgent *pCatAgent = _pShardMgr->getCataAgent() ;
             pCatAgent->lock_r () ;
             _clsCatalogSet* catSet = pCatAgent->collectionSet(
@@ -2105,18 +2106,13 @@ namespace engine
             if ( catSet )
             {
                mainCLName = catSet->getMainCLName();
-               NodeID selfNode = _pShardMgr->nodeID () ;
+               NodeID selfNode = _pShardMgr->nodeID() ;
                // the catalog is already correct
                if ( catSet->isKeyInGroup( _pTask->splitKeyObj(),
                                           selfNode.columns.groupID ) )
                {
-                  PD_LOG ( PDEVENT, "Session[%s]: catalog is valid, "
-                           "task: %s", sessionName(), _pTask->taskName() ) ;
-                  pmdGetKRCB()->getClsCB()->invalidateCata(
-                     _pTask->clFullName() ) ;
+                  hasSplit = TRUE ;
                   _collectionW = catSet->getW() ;
-                  _step = STEP_END_NTY ;
-                  _lend () ;
                }
             }
             pCatAgent->release_r() ;
@@ -2130,6 +2126,21 @@ namespace engine
                           "of main-collection(%s) failed, rc: %d",
                           sessionName(), mainCLName.c_str(), rcTmp ) ;
                }
+            }
+
+            if ( hasSplit )
+            {
+               PD_LOG ( PDEVENT, "Session[%s]: Catalog is valid, "
+                        "task: %s", sessionName(), _pTask->taskName() ) ;
+               pmdGetKRCB()->getClsCB()->invalidateCata(
+                  _pTask->clFullName() ) ;
+               if ( !mainCLName.empty() )
+               {
+                  pmdGetKRCB()->getClsCB()->invalidateCata(
+                     mainCLName.c_str() ) ;
+               }
+               _step = STEP_END_NTY ;
+               _lend () ;
             }
          }
       }
