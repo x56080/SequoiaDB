@@ -79,8 +79,11 @@ namespace engine
          virtual INT32   _needData () const = 0 ;
          virtual INT32   _dataSessionType () const = 0 ;
          virtual BOOLEAN _isReady () = 0 ;
-         virtual void    _endLog () = 0 ;
-         virtual INT32   _onNotify () = 0 ;
+         /*
+            return FALSE, will not continue to run after
+            return TRUE, will run after code
+         */
+         virtual BOOLEAN _onNotify ( MsgClsFSNotifyRes *pMsg ) = 0 ;
 
       //message function
       protected:
@@ -133,7 +136,10 @@ namespace engine
          BOOLEAN              _quit ;
          UINT64               _requestID ;
          DPS_LSN              _expectLSN ;
-         BOOLEAN              _needMoreDoc ;  /// when we begin to get lob, we do not want to sync doc any more.
+         UINT64               _lastOprLSN ;
+         /// when we begin to get lob, we do not want to sync doc any more.
+         BOOLEAN              _needMoreDoc ;
+
          struct pageSzTuple
          {
             INT32 pageSize ;
@@ -194,8 +200,7 @@ namespace engine
       virtual BSONObj   _keyObjE () ;
       virtual INT32     _dataSessionType () const ;
       virtual BOOLEAN   _isReady () ;
-      virtual void      _endLog () ;
-      virtual INT32     _onNotify () { return SDB_OK ; }
+      virtual BOOLEAN   _onNotify ( MsgClsFSNotifyRes *pMsg ) ;
 
    private:
       TRANS_SYNC_STEP   _tsStep;
@@ -252,8 +257,7 @@ namespace engine
          virtual void      _onDetach () ;
          virtual INT32     _dataSessionType () const ;
          virtual BOOLEAN   _isReady () ;
-         virtual void      _endLog () ;
-         virtual INT32     _onNotify () ;
+         virtual BOOLEAN   _onNotify ( MsgClsFSNotifyRes *pMsg ) ;
 
       private:
          void              _taskNotify ( INT32 msgType ) ;

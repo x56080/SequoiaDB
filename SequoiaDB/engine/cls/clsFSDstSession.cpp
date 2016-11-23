@@ -89,6 +89,7 @@ namespace engine
       _recvTimeout = 0 ;
       _quit = FALSE ;
       _requestID = 0 ;
+      _lastOprLSN = DPS_INVALID_LSN_OFFSET ;
       _needMoreDoc = TRUE ;
    }
 
@@ -786,6 +787,10 @@ namespace engine
       _index() ;
 
    done:
+      if ( eduCB()->getLsnCount() > 0 )
+      {
+         _lastOprLSN = eduCB()->getEndLsn() ;
+      }
       PD_TRACE_EXIT ( SDB__CLSDATADBS_HNDMETARES );
       return SDB_OK ;
    }
@@ -843,6 +848,10 @@ namespace engine
          _notify( CLS_FS_NOTIFY_TYPE_DOC ) ;
       }
    done:
+      if ( eduCB()->getLsnCount() > 0 )
+      {
+         _lastOprLSN = eduCB()->getEndLsn() ;
+      }
       PD_TRACE_EXIT ( SDB__CLSDATADBS_HNDINXRES2 );
       return SDB_OK ;
    }
@@ -862,17 +871,10 @@ namespace engine
       {
          goto done ;
       }
-
-      rc = _onNotify() ;
-      if ( rc )
-      {
-         goto done ;
-      }
-
-      if ( CLS_FS_STATUS_NOTIFY_LOG != _status &&
-           CLS_FS_STATUS_NOTIFY_DOC != _status &&
-           CLS_FS_STATUS_NOTIFY_LOB != _status &&
-           CLS_FS_STATUS_END != _status )
+      else if ( CLS_FS_STATUS_NOTIFY_LOG != _status &&
+                CLS_FS_STATUS_NOTIFY_DOC != _status &&
+                CLS_FS_STATUS_NOTIFY_LOB != _status &&
+                CLS_FS_STATUS_END != _status )
       {
          PD_LOG( PDWARNING, "Session[%s]: ignore msg. local status:%d",
                  sessionName(), _status ) ;
@@ -884,12 +886,13 @@ namespace engine
                  "local:%d", sessionName(), msg->packet, _packet ) ;
          goto done ;
       }
-      else if ( CLS_FS_STATUS_END == _status &&
-                CLS_FS_EOF == msg->eof )
+
+      if ( !_onNotify( msg ) )
       {
-         _endLog() ;
+         goto done ;
       }
-      else if ( CLS_FS_NOTIFY_TYPE_DOC == msg->type )
+
+      if ( CLS_FS_NOTIFY_TYPE_DOC == msg->type )
       {
          ++_packet ;
          if ( CLS_FS_EOF != msg->eof )
@@ -977,6 +980,10 @@ namespace engine
       }
 
    done:
+      if ( eduCB()->getLsnCount() > 0 )
+      {
+         _lastOprLSN = eduCB()->getEndLsn() ;
+      }
       PD_TRACE_EXIT ( SDB__CLSDATADBS_HNDNTFRES );
       return SDB_OK ;
    error:
@@ -1382,6 +1389,9 @@ namespace engine
       pmdGetStartup().ok( FALSE ) ;
       // clear all log
       dpsCB->move ( 0, 0 ) ;
+      /*
+      Don't to move the lsn to expect to prevent the node change to primary
+      when the primary node crashed
       if ( SDB_OK != dpsCB->move( _expectLSN.offset, _expectLSN.version ) )
       {
          PD_LOG( PDWARNING, "Session[%s]: Failed to move dps[%d,%lld], "
@@ -1390,6 +1400,7 @@ namespace engine
          _disconnect() ;
          goto done ;
       }
+      */
       {
          DPS_LSN expect = dpsCB->expectLsn() ;
          PD_LOG( PDEVENT, "Session[%s]: begin to get meta. expect lsn is "
@@ -1638,9 +1649,9 @@ namespace engine
       PD_TRACE_EXIT ( SDB__CLSFSDS__ONDETACH );
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFSDS__ENDLOG, "_clsFSDstSession::_endLog" )
-   void _clsFSDstSession::_endLog ()
+   BOOLEAN _clsFSDstSession::_onNotify( MsgClsFSNotifyRes *pMsg )
    {
+      return TRUE ;
    }
 
    void _clsFSDstSession::_pullTransLog( DPS_LSN &begin )
@@ -1950,20 +1961,22 @@ namespace engine
       return ret ;
    }
 
-   void _clsSplitDstSession::_endLog ()
-   {
-      _step = STEP_POST_SYNC ;
-      _end () ;
-   }
-
-   INT32 _clsSplitDstSession::_onNotify ()
+   BOOLEAN _clsSplitDstSession::_onNotify ( MsgClsFSNotifyRes *pMsg )
    {
       if ( CLS_TASK_STATUS_CANCELED == _pTask->status() )
       {
          _status = CLS_FS_STATUS_END ;
-         return SDB_TASK_HAS_CANCELED ;
+         _end() ;
+         return FALSE ;  /// SDB_TASK_HAS_CANCELED
       }
-      return SDB_OK ;
+      else if ( CLS_FS_STATUS_END == _status &&
+                CLS_FS_EOF == pMsg->eof )
+      {
+         _step = STEP_POST_SYNC ;
+         _end() ;
+         return FALSE ;
+      }
+      return TRUE ;
    }
 
    // this function prepare a split begin request and send to source
@@ -2362,7 +2375,7 @@ namespace engine
       if ( _collectionW > 1 )
       {
          // wait the group other nodes sync complete, ignored result
-         sdbGetReplCB()->sync( eduCB()->getEndLsn(), eduCB(),
+         sdbGetReplCB()->sync( _lastOprLSN, eduCB(),
                                _collectionW, CLS_SPLIT_DST_SYNC_TIME ) ;
       }
 

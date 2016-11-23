@@ -1815,6 +1815,7 @@ namespace engine
       _lastEndNtyOffset = DPS_INVALID_LSN_OFFSET ;
       _getLastEndNtyOffset = FALSE ;
       _collectionW      = 1 ;
+      _lastOprLSN       = DPS_INVALID_LSN_OFFSET ;
       _internalV        = 0 ;
    }
 
@@ -2291,10 +2292,15 @@ namespace engine
             goto done ;
          }
 
+         if ( DPS_INVALID_LSN_OFFSET == _lastOprLSN )
+         {
+            _lastOprLSN = pmdGetKRCB()->getDPSCB()->getCurrentLsn().offset ;
+         }
+
          // need wait the group other nodes sync complete
          if ( _collectionW > 1 )
          {
-            INT32 rc = sdbGetReplCB()->sync( eduCB()->getEndLsn(),
+            INT32 rc = sdbGetReplCB()->sync( _lastOprLSN,
                                              eduCB(), _collectionW, 1 ) ;
             if ( SDB_TIMEOUT == rc )
             {
