@@ -755,6 +755,7 @@ namespace engine
          msg.beat.role = _vote.primaryIsMe() ?
                          CLS_GROUP_ROLE_PRIMARY : CLS_GROUP_ROLE_SECONDARY ;
          msg.beat.beatID = _info.nextBeatID() ;
+         msg.header.requestID = msg.beat.beatID ;
          msg.beat.serviceStatus = pmdGetStartup().isOK() ?
                                   SERVICE_NORMAL : SERVICE_ABNORMAL ;
          UINT8 weight = pmdGetOptionCB()->weight() ;

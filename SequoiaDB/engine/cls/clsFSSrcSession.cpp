@@ -1113,8 +1113,8 @@ namespace engine
                        sizeof(MsgClsFSMetaReq) ) ;
          PD_LOG( PDEVENT, "Session[%s]: get meta req [%s]", sessionName(),
                  obj.toString().c_str() ) ;
-         CHAR cs[DMS_COLLECTION_SPACE_NAME_SZ + 1] ;
-         CHAR collection[DMS_COLLECTION_NAME_SZ + 1] ;
+         CHAR cs[DMS_COLLECTION_SPACE_NAME_SZ + 1] = { 0 } ;
+         CHAR collection[DMS_COLLECTION_NAME_SZ + 1] = { 0 } ;
 
          if ( SDB_OK != ( rc = _getCSName( obj, cs,
                                DMS_COLLECTION_SPACE_NAME_SZ + 1) ) )
@@ -1145,29 +1145,35 @@ namespace engine
          _curCollecitonName += "." ;
          _curCollecitonName += collection ;
 
+         /// clean indexes
+         _indexs.clear() ;
+
          rc = dmsCB->nameToSUAndLock( cs, suID, &su ) ;
-         PD_RC_CHECK( rc, PDWARNING,
-                      "Session[%s]: can not find cs: %s [rc=%d]",
-                      sessionName(), cs, rc ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Session[%s]: Lock collectionspace[%s] failed, "
+                    "rc: %d", sessionName(), cs, rc ) ;
+            goto error ;
+         }
 
          // get cur cs and cl logical id
          rc = su->data()->getMBContext( &mbContext, collection, SHARED ) ;
          if ( rc )
          {
-            PD_LOG ( PDWARNING, "Session[%s]: lock collection[%s] failed[rc:%d]",
-                     sessionName(), collection, rc ) ;
+            PD_LOG ( PDWARNING, "Session[%s]: Lock collection[%s] failed, "
+                     "rc: %d", sessionName(), collection, rc ) ;
             goto error ;
          }
 
          curCollection = ossPack32To64 ( su->LogicalCSID(),
                                          mbContext->clLID() ) ;
-
-         _indexs.clear() ;
+         /// get indexes
          rc = su->getIndexes( collection, _indexs, mbContext ) ;
          if ( rc )
          {
-            PD_LOG( PDWARNING, "Session[%s]:failed to get indexs of "
-                    "collecton[%s,rc:%d]", sessionName(), collection, rc ) ;
+            PD_LOG( PDWARNING, "Session[%s]:Failed to get indexs of "
+                    "collecton[%s], rc:%d", sessionName(),
+                    collection, rc ) ;
             goto error ;
          }
          su->data()->releaseMBContext( mbContext ) ;
@@ -1495,8 +1501,9 @@ namespace engine
                                           obj.objsize() ) )
          {
             PD_LOG( PDEVENT, "Session[%s]: Established the full sync session "
-                    "with node[%s]", sessionName(),
-                    routeID2String( header->routeID ).c_str() ) ;
+                    "with node[%s], Expect LSN:[%d:%lld]", sessionName(),
+                    routeID2String( header->routeID ).c_str(),
+                    _lsn.version, _lsn.offset ) ;
 
             _init = TRUE ;
             _quit = FALSE ;

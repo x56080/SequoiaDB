@@ -713,67 +713,65 @@ namespace engine
       if ( SDB_DMS_CS_NOTEXIST == msg->header.res ||
            SDB_DMS_NOTEXIST == msg->header.res )
       {
-         _status = CLS_FS_STATUS_META ;
-         ++_current ;
-         _notify( CLS_FS_NOTIFY_TYPE_OVER ) ;
-
-         //get next collection
-         _meta() ;
+         _status = CLS_FS_STATUS_INDEX ;
+         /// when collection is not exist, go to next step(index) directly
+         _index() ;
          goto done ;
       }
 
       try
       {
-      INT32 rc = SDB_OK ;
-      string cs ;
-      string collection ;
-      UINT32 pageSize = 0 ;
-      UINT32 attributes = 0 ;
-      UTIL_COMPRESSOR_TYPE compType = UTIL_COMPRESSOR_INVALID ;
-      CHAR fullName[DMS_COLLECTION_NAME_SZ +
-                    DMS_COLLECTION_SPACE_NAME_SZ + 2] ;
-      CHAR *objdata = ( CHAR *)( &( msg->header ) ) +
-                                 sizeof( MsgClsFSMetaRes ) ;
-      INT32 lobPageSize = 0 ;
-      // extract the meta response
-      if ( SDB_OK != _extractMeta( objdata,
-                                   cs, collection,
-                                   pageSize,
-                                   attributes,
-                                   lobPageSize,
-                                   compType) )
-      {
-         _disconnect() ;
-         goto done ;
-      }
+         INT32 rc = SDB_OK ;
+         string cs ;
+         string collection ;
+         UINT32 pageSize = 0 ;
+         UINT32 attributes = 0 ;
+         UTIL_COMPRESSOR_TYPE compType = UTIL_COMPRESSOR_INVALID ;
+         CHAR fullName[DMS_COLLECTION_NAME_SZ +
+                       DMS_COLLECTION_SPACE_NAME_SZ + 2] ;
+         CHAR *objdata = ( CHAR *)( &( msg->header ) ) +
+                                    sizeof( MsgClsFSMetaRes ) ;
+         INT32 lobPageSize = 0 ;
+         // extract the meta response
+         if ( SDB_OK != _extractMeta( objdata,
+                                      cs, collection,
+                                      pageSize,
+                                      attributes,
+                                      lobPageSize,
+                                      compType) )
+         {
+            _disconnect() ;
+            goto done ;
+         }
 
-      // join space + collection to a full collection name
-      clsJoin2Full( cs.c_str(), collection.c_str(), fullName ) ;
-      // sanity check to make sure we are on the right collection
-      if ( 0 != _fullNames.at( _current ).compare( fullName ) )
-      {
-         PD_LOG( PDWARNING, "Session[%s]: ignore msg. msg meta: %s, local: %s",
-                 sessionName(), fullName, _fullNames.at( _current ).c_str() ) ;
-         goto done ;
-      }
+         // join space + collection to a full collection name
+         clsJoin2Full( cs.c_str(), collection.c_str(), fullName ) ;
+         // sanity check to make sure we are on the right collection
+         if ( 0 != _fullNames.at( _current ).compare( fullName ) )
+         {
+            PD_LOG( PDWARNING, "Session[%s]: ignore msg. msg meta: %s, "
+                    "local: %s", sessionName(), fullName,
+                    _fullNames.at( _current ).c_str() ) ;
+            goto done ;
+         }
 
-      PD_LOG( PDEVENT, "Session[%s]: Begin to sync collection[%s]",
-              sessionName(), fullName ) ;
+         PD_LOG( PDEVENT, "Session[%s]: Begin to sync collection[%s]",
+                 sessionName(), fullName ) ;
 
-      // create local cs and collection
-      rc = _replayer.replayCrtCS( cs.c_str(), pageSize, lobPageSize,
-                                  eduCB(),
-                                  SDB_SESSION_FS_DST == sessionType() ?
-                                  TRUE : FALSE ) ;
-      rc = _replayer.replayCrtCollection( fullName, attributes,
-                                          eduCB(), compType ) ;
-      if ( SDB_OK != rc && SDB_DMS_EXIST != rc )
-      {
-         PD_LOG( PDERROR, "Session[%s]: failed to replay collection crt "
-                 "[%s][%d]", sessionName(), fullName, rc ) ;
-         _disconnect() ;
-         goto done ;
-      }
+         // create local cs and collection
+         rc = _replayer.replayCrtCS( cs.c_str(), pageSize, lobPageSize,
+                                     eduCB(),
+                                     SDB_SESSION_FS_DST == sessionType() ?
+                                     TRUE : FALSE ) ;
+         rc = _replayer.replayCrtCollection( fullName, attributes,
+                                             eduCB(), compType ) ;
+         if ( SDB_OK != rc && SDB_DMS_EXIST != rc )
+         {
+            PD_LOG( PDERROR, "Session[%s]: Failed to create collection"
+                    "[%s], rc: %d", sessionName(), fullName, rc ) ;
+            _disconnect() ;
+            goto done ;
+         }
       }
       catch ( std::exception &e )
       {
@@ -843,9 +841,9 @@ namespace engine
          }
 
          ++_packet ;
-         _status = CLS_FS_STATUS_NOTIFY_DOC ;
+         _status = CLS_FS_STATUS_NOTIFY_LOG ;
          // we are ready to receive actual data
-         _notify( CLS_FS_NOTIFY_TYPE_DOC ) ;
+         _notify( CLS_FS_NOTIFY_TYPE_LOG ) ;
       }
    done:
       if ( eduCB()->getLsnCount() > 0 )
@@ -1369,8 +1367,10 @@ namespace engine
 
       // disconnect all collection
       PD_LOG( PDEVENT, "Session[%s]: Established the full sync session with "
-              "node[%s], Then close all shard connections", sessionName(),
-              routeID2String( _selector.src() ).c_str() ) ;
+              "node[%s], Remote Expect LSN:[%d,%lld]. "
+              "Then close all shard connections", sessionName(),
+              routeID2String( _selector.src() ).c_str(),
+              _expectLSN.version, _expectLSN.offset ) ;
       sdbGetClsCB()->getShardRouteAgent()->disconnectAll() ;
 
       //clear all catalog info
