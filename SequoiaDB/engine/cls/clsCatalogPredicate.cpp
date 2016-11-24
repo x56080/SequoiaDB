@@ -249,16 +249,8 @@ namespace engine
       director = beShardingKey.numberInt() > 0 ? 1 : -1 ;
       ssKeyPos = 0 ;
 
-      if ( director > 0 )
-      {
-         lowBound = itrLB.next() ;
-         upBound = itrUB.next() ;
-      }
-      else
-      {
-         lowBound = itrUB.next() ;
-         upBound = itrLB.next() ;
-      }
+      lowBound = itrLB.next() ;
+      upBound = itrUB.next() ;
 
       itr = predicates.find( beShardingKey.fieldName() ) ;
       if ( itr == predicates.end() )
@@ -277,13 +269,26 @@ namespace engine
       {
          const rtnStartStopKey &matcherBound =
             itr->second._startStopKeys[ ssKeyPos ] ;
+         const rtnKeyBoundary *pStartKey = NULL ;
+         const rtnKeyBoundary *pStopKey = NULL ;
+
+         if ( director > 0 )
+         {
+            pStartKey = &(matcherBound._startKey) ;
+            pStopKey = &(matcherBound._stopKey) ;
+         }
+         else
+         {
+            pStartKey = &(matcherBound._stopKey) ;
+            pStopKey = &(matcherBound._startKey) ;
+         }
 
          if ( compareLU <= 0 )
          {
             // compare low bound
-            rsCmp = rtnKeyCompare( lowBound, matcherBound._stopKey._bound ) ;
-            if ( rsCmp > 0 || ( rsCmp == 0 &&
-                 !matcherBound._stopKey._inclusive ) )
+            rsCmp = rtnKeyCompare( lowBound, pStopKey->_bound ) ;
+            rsCmp *= director ;
+            if ( rsCmp > 0 || ( rsCmp == 0 && !pStopKey->_inclusive ) )
             {
                // low bound > stop key, goto next start stop key
                ++ssKeyPos ;
@@ -302,9 +307,9 @@ namespace engine
          if ( 0 <= compareLU )
          {
             // compare up bound
-            rsCmp = rtnKeyCompare( upBound, matcherBound._startKey._bound ) ;
-            if ( rsCmp < 0 || ( rsCmp == 0 &&
-                 !matcherBound._startKey._inclusive ) )
+            rsCmp = rtnKeyCompare( upBound, pStartKey->_bound ) ;
+            rsCmp *= director ;
+            if ( rsCmp < 0 || ( rsCmp == 0 && !pStartKey->_inclusive ) )
             {
                // up bound < start key, goto next start stop key
                ++ssKeyPos ;
