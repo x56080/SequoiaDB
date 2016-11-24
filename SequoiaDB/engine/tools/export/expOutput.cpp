@@ -71,7 +71,8 @@ namespace exprt
       rc = _decodeBson.init( _options.delChar(), 
                              _options.delField(), 
                              _options.includeBinary(), 
-                             _options.includeRegex() ) ;
+                             _options.includeRegex(),
+                             _options.kickNull() ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Failed to int the _decodeBson, rc = %d", rc ) ;

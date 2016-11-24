@@ -94,6 +94,7 @@ namespace exprt
       inline BOOLEAN useSSL()             const { return _useSSL ; }
       inline BOOLEAN includeBinary()      const { return _includeBinary ; }
       inline BOOLEAN includeRegex()       const { return _includeRegex ; }
+      inline BOOLEAN kickNull()           const { return _kickNull ; }
       inline BOOLEAN headLine()           const { return _headLine ; }
       inline BOOLEAN force()              const { return _force ; }
       inline BOOLEAN withId()             const { return _withId ; }
@@ -158,6 +159,7 @@ namespace exprt
       BOOLEAN        _includeBinary ;
       BOOLEAN        _includeRegex ;
       BOOLEAN        _force ;
+      BOOLEAN        _kickNull ;
 
       /* conf */
       string         _conf ;

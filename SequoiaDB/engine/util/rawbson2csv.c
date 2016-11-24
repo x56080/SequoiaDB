@@ -258,7 +258,8 @@ error:
 INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
                     CHAR **ppBuffer, INT32 *pCSVSize,
                     BOOLEAN includeBinary,
-                    BOOLEAN includeRegex )
+                    BOOLEAN includeRegex,
+                    BOOLEAN kickNull )
 {
    INT32 rc = SDB_OK ;
    bson_type type    = bson_iterator_type( pIt ) ;
@@ -281,12 +282,15 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
         type == BSON_NULL || type == BSON_INT ||
         type == BSON_LONG )
    {
-      rc = _appendNonString( delChar, pIt, ppBuffer, pCSVSize ) ;
-      if ( rc )
+      if( type != BSON_NULL || kickNull != TRUE )
       {
-         UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendNonString, rc=%d",
-                                   rc ) ;
-         goto error ;
+         rc = _appendNonString( delChar, pIt, ppBuffer, pCSVSize ) ;
+         if ( rc )
+         {
+            UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendNonString, rc=%d",
+                                      rc ) ;
+            goto error ;
+         }
       }
    }
    else if ( type == BSON_DECIMAL )
@@ -631,12 +635,14 @@ void setPrintfLog( void (*pFun)( const CHAR *pFunc,
 INT32 getCSVSize ( CHAR delChar, CHAR delField,
                    CHAR *pbson, INT32 *pCSVSize,
                    BOOLEAN includeBinary,
-                   BOOLEAN includeRegex )
+                   BOOLEAN includeRegex,
+                   BOOLEAN kickNull )
 {
    INT32 rc = SDB_OK ;
    rc = bson2csv( delChar, delField, pbson, NULL, pCSVSize,
                   includeBinary,
-                  includeRegex ) ;
+                  includeRegex,
+                  kickNull ) ;
    if ( rc )
    {
       UTIL_RAW2BSON_PRINTF_LOG( "Failed to call bson2csv, rc=%d", rc ) ;
@@ -652,7 +658,8 @@ error:
 INT32 bson2csv( CHAR delChar, CHAR delField, CHAR *pbson,
                 CHAR **ppBuffer, INT32 *pCSVSize,
                 BOOLEAN includeBinary,
-                BOOLEAN includeRegex )
+                BOOLEAN includeRegex,
+                BOOLEAN kickNull )
 {
    INT32 rc = SDB_OK ;
    BOOLEAN isFirst = TRUE ;
@@ -692,7 +699,8 @@ INT32 bson2csv( CHAR delChar, CHAR delField, CHAR *pbson,
       //then we check the data type
       rc = _appendValue( delChar, &it, ppBuffer, pCSVSize,
                          includeBinary,
-                         includeRegex ) ;
+                         includeRegex,
+                         kickNull ) ;
       if ( rc )
       {
          UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendValue, rc=%d", rc ) ;

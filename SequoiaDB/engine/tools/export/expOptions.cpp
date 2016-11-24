@@ -79,6 +79,7 @@ namespace exprt
    #define OPTION_INCLUDEBINARY     "includebinary"
    #define OPTION_INCLUDEREGEX      "includeregex"
    #define OPTION_FORCE             "force"
+   #define OPTION_KICKNULL          "kicknull"
      
    // conf
    #define OPTION_CONF              "conf"
@@ -111,7 +112,8 @@ namespace exprt
    #define EXPLAIN_INCLUDEBINARY    "whether to output a compelete binary, default: false"
    #define EXPLAIN_INCLUDEREGEX     "whether to output a compelete regex, default: false"
    #define EXPLAIN_FORCE            "for csv, force to export collections without field-names being specified, " \
-                                    "the fields(except '_id') of first record in collection will be taken by default"              
+                                    "the fields(except '_id') of first record in collection will be taken by default"
+   #define EXPLAIN_KICKNULL         "whether kick null value, default: false"
 
    // single collection
    #define EXPLAIN_COLLECTSPACE     "collection space name"
@@ -170,12 +172,13 @@ namespace exprt
       ( OPTION_DIRNAME,                _TYPE(string),    EXPLAIN_DIRNAME ) 
 
    #define EXP_CSV_OPTIONS \
-      ( OPTION_DELCHAR",a",            _TYPE(string),      EXPLAIN_DELCHAR ) \
-      ( OPTION_DELFIELD",e",           _TYPE(string),      EXPLAIN_DELFIELD ) \
+      ( OPTION_DELCHAR",a",            _TYPE(string),    EXPLAIN_DELCHAR ) \
+      ( OPTION_DELFIELD",e",           _TYPE(string),    EXPLAIN_DELFIELD ) \
       ( OPTION_INCLUDE,                _TYPE(bool),      EXPLAIN_INCLUDE ) \
       ( OPTION_INCLUDEBINARY,          _TYPE(bool),      EXPLAIN_INCLUDEBINARY)\
       ( OPTION_INCLUDEREGEX,           _TYPE(bool),      EXPLAIN_INCLUDEREGEX )\
-      ( OPTION_FORCE,                  _TYPE(bool),      EXPLAIN_FORCE ) 
+      ( OPTION_FORCE,                  _TYPE(bool),      EXPLAIN_FORCE ) \
+      ( OPTION_KICKNULL,               _TYPE(bool),      EXPLAIN_KICKNULL ) 
 
    #define EXP_CONF_OPTIONS \
       ( OPTION_CONF,                   _TYPE(string),    EXPLAIN_CONF ) \
@@ -344,6 +347,7 @@ namespace exprt
       WRITE_BOOL_OPTION( writeBuf, OPTION_INCLUDEBINARY, _includeBinary, TRUE );
       WRITE_BOOL_OPTION( writeBuf, OPTION_INCLUDEREGEX, _includeRegex, TRUE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_FORCE, _force, FALSE ) ;
+      WRITE_BOOL_OPTION( writeBuf, OPTION_KICKNULL, _kickNull, TRUE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_WITHID, _withId, FALSE ) ;
 
       // single collection options
@@ -889,6 +893,10 @@ namespace exprt
       if ( _has(OPTION_FORCE) )
       {  
          _force = _get<bool>(OPTION_FORCE) ;
+      }
+      if ( _has(OPTION_KICKNULL) )
+      {  
+         _kickNull = _get<bool>(OPTION_KICKNULL) ;
       }
       if ( _has(OPTION_WITHID) )
       {  

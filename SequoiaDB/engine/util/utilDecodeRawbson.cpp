@@ -126,7 +126,8 @@ void _utilPrintLog( const CHAR *pFunc,
 
 INT32 utilDecodeBson::init( CHAR delChar, CHAR delField,
                             BOOLEAN includeBinary,
-                            BOOLEAN includeRegex )
+                            BOOLEAN includeRegex,
+                            BOOLEAN kickNull )
 {
    INT32 rc = SDB_OK ;
    if ( delChar == delField )
@@ -165,6 +166,7 @@ INT32 utilDecodeBson::init( CHAR delChar, CHAR delField,
    _delField = delField ;
    _includeBinary = includeBinary ;
    _includeRegex = includeRegex ;
+   _kickNull = kickNull ;
    setPrintfLog( _utilPrintLog ) ;
 done:
    return rc ;
@@ -175,7 +177,8 @@ error:
 utilDecodeBson::utilDecodeBson() : _delChar(0),
                                    _delField(0),
                                    _includeBinary(FALSE),
-                                   _includeRegex(FALSE)
+                                   _includeRegex(FALSE),
+                                   _kickNull(FALSE)
 {
 }
 
@@ -376,7 +379,7 @@ INT32 utilDecodeBson::parseCSVSize( CHAR *pbson, INT32 *pCSVSize )
 {
    INT32 rc = SDB_OK ;
    rc = getCSVSize( _delChar, _delField, pbson, pCSVSize,
-                    _includeBinary, _includeRegex ) ;
+                    _includeBinary, _includeRegex, _kickNull ) ;
    if ( rc )
    {
       PD_LOG ( PDERROR, "Failed to get csv size, rc = %d", rc ) ;
@@ -498,7 +501,7 @@ INT32 utilDecodeBson::bsonCovertCSV( CHAR *pbson,
    }
    bson_finish ( &obj ) ;
    rc = bson2csv( _delChar, _delField, obj.data, ppBuffer, pCSVSize,
-                  _includeBinary, _includeRegex ) ;
+                  _includeBinary, _includeRegex, _kickNull ) ;
    if ( rc )
    {
       PD_LOG ( PDERROR, "Failed to bson convert csv, rc = %d", rc ) ;
