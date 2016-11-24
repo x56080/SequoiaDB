@@ -1332,7 +1332,8 @@ namespace engine
             item->_groupID = groupID ;
             item->_groupName = groupName ;
          }
-         else
+         // Recheck the endKey to make sure the bounds inside item bounds
+         else if ( *endKey > item->getLowBoundKey( getOrdering() ) )
          {
             newItem = SDB_OSS_NEW clsCatalogItem( _saveName ) ;
             PD_CHECK( newItem, SDB_OOM, error, PDERROR, "Alloc failed" ) ;
