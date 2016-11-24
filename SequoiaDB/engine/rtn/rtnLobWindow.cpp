@@ -38,7 +38,7 @@
 namespace engine
 {
 const UINT32 RTN_MIN_READ_LEN = DMS_PAGE_SIZE512K ;
-const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 1024 ;
+const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
 
    _rtnLobWindow::_rtnLobWindow()
    :_pageSize( DMS_DO_NOT_CREATE_LOB ),
