@@ -450,6 +450,8 @@ namespace engine
       // lock
       _latchBucket[ index ]->get() ;
 
+      _idleUnitCount.inc() ;
+
       // start replsync job
       if ( 0 == curAgentNum() || ( !_dataBucket[ index ]->isAttached() &&
            idleAgentNum() < idleUnitCount() &&
@@ -492,8 +494,10 @@ namespace engine
       {
          _ntyQueue.push( index ) ;
          _dataBucket[ index ]->pushToQue() ;
-
-         _idleUnitCount.inc() ;
+      }
+      else
+      {
+         _idleUnitCount.dec() ;
       }
 
       _latchBucket[ index ]->release() ;
@@ -885,7 +889,7 @@ namespace engine
       }
 
       PD_LOG( PDWARNING, "Repl bucket begin to force complete, expect lsn: "
-              "[%d,%lld]", _expectLSN.offset, _expectLSN.offset ) ;
+              "[%d,%lld]", _expectLSN.version, _expectLSN.offset ) ;
 
       it = _completeMap.begin() ;
       while ( it != _completeMap.end() )
@@ -989,12 +993,27 @@ namespace engine
       _pBucket->decIdelAgent() ;
       _pBucket->decCurAgent() ;
 
-      if ( _pBucket->curAgentNum() == 0 && 0 != _pBucket->size() )
+      if ( _pBucket->curAgentNum() == 0 )
       {
-         PD_LOG( PDERROR, "Repl bucket info has error: %s",
-                 _pBucket->toBson().toString().c_str() ) ;
+         if ( _pBucket->idleUnitCount() > 0 && PMD_IS_DB_UP() )
+         {
+            rc = startReplSyncJob( NULL, _pBucket, 60*OSS_ONE_SEC ) ;
+            if ( SDB_OK == rc )
+            {
+               _pBucket->incCurAgent() ;
+               _pBucket->incIdleAgent() ;
+            }
+         }
+         else
+         {
+            if ( 0 != _pBucket->size() )
+            {
+               PD_LOG( PDERROR, "Repl bucket info has error: %s",
+                       _pBucket->toBson().toString().c_str() ) ;
 
-         _pBucket->forceCompleteAll() ;
+               _pBucket->forceCompleteAll() ;
+            }
+         }
       }
 
       return SDB_OK ;
