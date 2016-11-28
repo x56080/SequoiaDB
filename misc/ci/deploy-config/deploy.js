@@ -75,7 +75,7 @@ function deployStandalone()
       var oma = new Oma( hostname, cmPort );
       oma.createData( standalonePort, 
                       databaseDir+"/standalone/"+standalonePort,
-                      {diaglevel:5, fap:fapValue} );
+                      {diaglevel:4, fap:fapValue} );
       oma.startNode( standalonePort );     
    }
    
@@ -107,7 +107,7 @@ function deployClster( mode )
    
    //2 create cata group
    println("-----begin to create cata group");
-   var config = { diaglevel:5,
+   var config = { diaglevel:4,
                   sharingbreak:30000,
                   diagnum:30,
                   optimeout:60000,
@@ -145,7 +145,7 @@ function deployClster( mode )
    var coordRG = db.createCoordRG();
    for( var i in hostList )
    {
-      var config = {  diaglevel:5,                      
+      var config = {  diaglevel:4,                      
                       diagnum:30,
                       optimeout:60000,
                       fap:fapValue 
@@ -166,7 +166,7 @@ function deployClster( mode )
       var dataRG = db.createRG( datargName );
       for( var i in hostList )
       {
-         var config = { diaglevel:5,
+         var config = { diaglevel:4,
                         sharingbreak:30000,
                         diagnum:30,
                         optimeout:60000,
