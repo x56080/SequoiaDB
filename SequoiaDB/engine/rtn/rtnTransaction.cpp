@@ -99,6 +99,8 @@ namespace engine
       {
          sdbGetTransCB()->delTransCB( curTransID ) ;
          cb->setTransID( DPS_INVALID_TRANS_ID ) ;
+         // release all transactions lock
+         sdbGetTransCB()->transLockReleaseAll( cb ) ;
          goto done ;
       }
 
