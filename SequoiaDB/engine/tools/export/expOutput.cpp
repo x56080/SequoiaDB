@@ -97,7 +97,7 @@ namespace exprt
       if ( SDB_OK !=  rc )
       {
          PD_LOG ( PDERROR, "Failed to parse fields of %s.%s, rc = %d", 
-                  rc, _cl.csName.c_str(), _cl.clName.c_str() ) ;
+                  _cl.csName.c_str(), _cl.clName.c_str(), rc ) ;
          goto error ;
       }
 
