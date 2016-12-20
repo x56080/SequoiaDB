@@ -410,4 +410,43 @@ public class BSON {
 		else
 			return false;
 	}
+    
+    // setting display mode
+    private static boolean _compatible = false;
+	/**
+	 * @fn void setJSCompatibility(boolean compatible)
+	 * @brief When "compatible" is true, the content of BasicBSONObject method "toString" is show 
+	 *        absolutely the same with that is show in sdb shell.
+	 * @param compatible true or false, default to be false;
+	 * @exception
+	 *  we have a bson as below:
+	 *  <pre>BSONObject obj = new BasicBSONObject("a", Long.MAX_VALUE);</pre>
+	 *  sdb shell shows this bson like this:
+	 *  <pre>{"a" : { "$numberLong" : "9223372036854775807"}}</pre>
+	 *  sdb shell use javascript grammer, so, it can't display number
+	 *  which is great that 2^53 - 1. So it use "$numberLong" to represent
+	 *  the type, and keep the number between the quotes.
+	 *  However, in java, when we use <pre>obj.toString()<pre>, 
+	 *  most of the time, we don't hope to get a result with 
+	 *  the format "$numberLong", we hope to see the result as 
+	 *  below:
+	 *  <pre>{"a" : 9223372036854775807}</pre>
+	 *  When parameter "compatible" is false, we get this kind of result
+	 *  all the time. Otherwise, we get a result which is show as the sdb shell shows.
+	 */
+	public static void setJSCompatibility(boolean compatible) {
+		_compatible = compatible;
+	}
+	
+	/**
+	 * @fn boolean getJSCompatibility()
+	 * @brief Get whether the display mode of BSON is the same with that in sdb shell or not.
+	 * @return true or false.
+	 * @see setJSCompatibility
+	 */
+	public static boolean getJSCompatibility() {
+		return _compatible;
+	}
+	
+	
 }

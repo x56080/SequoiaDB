@@ -66,8 +66,8 @@ public class JSONSerializers {
 
 		serializer.addObjectSerializer(Date.class, new LegacyDateSerializer(serializer));
 		serializer.addObjectSerializer(BSONTimestamp.class, new LegacyBSONTimestampSerializer(serializer));
-		serializer.addObjectSerializer(BSONDecimal.class, new LegacyBSONDecimalSerializer(serializer));
-		serializer.addObjectSerializer(BigDecimal.class, new LegacyBSONDecimalSerializer(serializer));
+		serializer.addObjectSerializer(BSONDecimal.class, new BSONDecimalSerializer(serializer));
+		serializer.addObjectSerializer(BigDecimal.class, new BSONDecimalSerializer(serializer));
 		serializer.addObjectSerializer(Binary.class, new LegacyBinarySerializer());
 		serializer.addObjectSerializer(byte[].class, new LegacyBinarySerializer());
 		return serializer;
@@ -86,7 +86,7 @@ public class JSONSerializers {
 
 		serializer.addObjectSerializer(Date.class, new DateSerializer(serializer));
 		serializer.addObjectSerializer(BSONTimestamp.class, new BSONTimestampSerializer(serializer));
-		serializer.addObjectSerializer(BSONDecimal.class, new LegacyBSONDecimalSerializer(serializer));
+		serializer.addObjectSerializer(BSONDecimal.class, new BSONDecimalSerializer(serializer));
 		serializer.addObjectSerializer(Binary.class, new BinarySerializer(serializer));
 		serializer.addObjectSerializer(byte[].class, new ByteArraySerializer(serializer));
 
@@ -354,8 +354,18 @@ public class JSONSerializers {
 		}
 
 		////@Override
-		public void serialize(Object obj, StringBuilder buf) {
-			serializer.serialize(new BasicBSONObject("$numberLong", obj.toString()), buf);
+		public void serialize(Object obj, StringBuilder buf) { 
+			if (!BSON.getJSCompatibility()) {
+				buf.append(obj.toString());
+			} else {
+				Long number = (Long)obj;
+				// 2^53 - 1
+				if (number >= -9007199254740991L && number <= 9007199254740991L) {
+					buf.append(obj.toString());
+				} else {
+					serializer.serialize(new BasicBSONObject("$numberLong", obj.toString()), buf);
+				}
+			}
 		}
 	}
 	
@@ -416,9 +426,9 @@ public class JSONSerializers {
 
 	}
 
-	private static class LegacyBSONDecimalSerializer extends CompoundObjectSerializer {
+	private static class BSONDecimalSerializer extends CompoundObjectSerializer {
 		
-		LegacyBSONDecimalSerializer(ObjectSerializer serializer) {
+		BSONDecimalSerializer(ObjectSerializer serializer) {
 			super(serializer);
 		}
 		
