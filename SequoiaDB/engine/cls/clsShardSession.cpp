@@ -630,6 +630,7 @@ namespace engine
       UINT32 attribute        = 0 ;
       BOOLEAN isMainCL        = FALSE;
       UINT32 groupCount       = 0 ;
+      UTIL_COMPRESSOR_TYPE compressType = UTIL_COMPRESSOR_INVALID ;
       BSONObj shardingKey ;
       vector< string > subCLList ;
 
@@ -663,6 +664,7 @@ namespace engine
       attribute = set->getAttribute() ;
       isMainCL = set->isMainCL() ;
       groupCount = set->groupCount() ;
+      compressType = set->getCompressType() ;
 
       if ( isMainCL )
       {
@@ -707,8 +709,7 @@ namespace engine
 
          rc = rtnCreateCollectionCommand( clFullName, shardingKey, attribute,
                                           _pEDUCB, _pDmsCB, _pDpsCB,
-                                          UTIL_COMPRESSOR_INVALID,
-                                          0, FALSE ) ;
+                                          compressType, 0, FALSE ) ;
          if ( SDB_DMS_EXIST == rc )
          {
             rc = SDB_OK ;
@@ -1698,7 +1699,7 @@ namespace engine
                              _pEDUCB, _pDmsCB, _pDpsCB, w,
                              &subInsertNum, &subIgnoredNum ) ;
             insertedNum += subInsertNum ;
-            ignoredNum += subIgnoredNum ;            
+            ignoredNum += subIgnoredNum ;
             if ( rc )
             {
                rc = _processSubCLResult( rc, pSubCLName, _pCollectionName ) ;

@@ -46,6 +46,7 @@
 #include "../bson/bson.h"
 #include "../bson/ordering.h"
 #include "msgCatalogDef.h"
+#include "utilCompression.hpp"
 
 using namespace bson ;
 
@@ -239,6 +240,8 @@ namespace engine
          UINT32 getInternalV() const { return _internalV ; }
          UINT32 getShardingKeySiteID() const { return _skSiteID ; }
 
+         UTIL_COMPRESSOR_TYPE getCompressType() const { return _compressType ; }
+
       protected:
          _clsCatalogSet    *next () ;
          INT32             next ( _clsCatalogSet * next ) ;
@@ -296,6 +299,7 @@ namespace engine
          /// sharding key site id, 0: invalid
          UINT32            _skSiteID ;
          _clsShardingKeySite *_pSite ;
+         UTIL_COMPRESSOR_TYPE _compressType ;
 
    };
    typedef class _clsCatalogSet clsCatalogSet ;

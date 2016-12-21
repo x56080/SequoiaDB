@@ -1795,8 +1795,7 @@ namespace engine
                    "rc: %d", pName, rc ) ;
 
       // truncate the collection
-      if ( UTIL_COMPRESSOR_INVALID !=
-           (UTIL_COMPRESSOR_TYPE)context->mb()->_compressorType )
+      if ( DMS_INVALID_COMPRESSOR_TYPE != context->mb()->_compressorType )
       {
          rmCompressor( context ) ;
       }

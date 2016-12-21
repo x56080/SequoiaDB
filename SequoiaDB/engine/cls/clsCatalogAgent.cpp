@@ -429,6 +429,7 @@ namespace engine
       _maxID = 0 ;
       _skSiteID = 0 ;
       _pSite = NULL ;
+      _compressType = UTIL_COMPRESSOR_INVALID ;
    }
 
    _clsCatalogSet::~_clsCatalogSet ()
@@ -1566,6 +1567,33 @@ namespace engine
          _attribute = ele.numberInt() ;
       }
 
+      // get the CompressionType. It's optional. Its value can be: -1, 0, 1.
+      ele = catSet.getField( CAT_COMPRESSIONTYPE ) ;
+      if ( ele.eoo() )
+      {
+         _compressType = UTIL_COMPRESSOR_INVALID ;
+      }
+      else if ( NumberInt == ele.type() )
+      {
+         INT32 compressType = ele.numberInt() ;
+         if ( compressType > UTIL_COMPRESSOR_LZW
+              || compressType < UTIL_COMPRESSOR_INVALID )
+         {
+            PD_LOG( PDERROR, "invalid value of compression type: %d",
+                       compressType ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+         _compressType = (UTIL_COMPRESSOR_TYPE)compressType ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Catalog [%s] type error: %d" ,
+                 CAT_COMPRESSIONTYPE, ele.type() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
       //update sharding key, optional, default false
       ele = catSet.getField( CAT_SHARDINGKEY_NAME ) ;
       if ( ele.eoo() )
@@ -1653,7 +1681,7 @@ namespace engine
 
          /// InternalV
          /// when internal version is old, we broadcast the query request to every group.
-         /// since of SEQUOIADBMAINSTREAM-610, we changed the partition function. 
+         /// since of SEQUOIADBMAINSTREAM-610, we changed the partition function.
          ele = catSet.getField( CAT_INTERNAL_VERSION ) ;
          if ( NumberInt == ele.type() )
          {
