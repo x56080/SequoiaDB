@@ -3291,7 +3291,7 @@ namespace engine
          }
          else if ( Bool == ele.type() )
          {
-            onlyDetach = ele.Bool() ; 
+            onlyDetach = ele.Bool() ;
          }
          else
          {
@@ -3347,7 +3347,7 @@ namespace engine
          }
       }
 
-      // notify cm to stop and remove node 
+      // notify cm to stop and remove node
       {
          SINT32 retCode;
 
@@ -3499,7 +3499,7 @@ namespace engine
                {
                   rc = retCode;
                   PD_LOG( PDERROR, "remote node execute(start) failed "
-                          "(HostName=%s, LocalService=%s, rc=%d)", 
+                          "(HostName=%s, LocalService=%s, rc=%d)",
                           strHostName.c_str(), strServiceName.c_str(), rc ) ;
                }
                BSONObjBuilder bobReply;
@@ -3562,7 +3562,7 @@ namespace engine
          {
             rc = retCode ;
             PD_LOG( PDERROR, "remote node execute(start) failed "
-                    "(HostName=%s, LocalService=%s, rc=%d)", 
+                    "(HostName=%s, LocalService=%s, rc=%d)",
                     hostName.c_str(), svcName.c_str(), rc ) ;
          }
          BSONObjBuilder bobReply ;
@@ -6460,7 +6460,7 @@ namespace engine
          goto error ;
       }
 
-      // restore opcode 
+      // restore opcode
       pReqMsg->header.opCode = MSG_BS_QUERY_REQ ;
       rc = executeOnCL( pMsg, cb, strMainCLName.c_str(), TRUE,
                         &groupLst, NULL, NULL ) ;
@@ -6720,7 +6720,7 @@ namespace engine
       queryOptions._query = BSON( CAT_DOMAIN_NAME << domain.valuestr() ) ;
       queryOptions._fullName = CAT_COLLECTION_SPACE_COLLECTION ;
 
-      rc = queryOnCataAndPushToVec( queryOptions, cb, replyFromCata ) ; 
+      rc = queryOnCataAndPushToVec( queryOptions, cb, replyFromCata ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to execute query on catalog:%d", rc ) ;
@@ -6756,7 +6756,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( CMD_RTNCOCMDLISTCLINDOMAIN__REBUILDRESULT, "rtnCoordCMDListCLInDomain::_rebuildListResult" )
    INT32 rtnCoordCMDListCLInDomain::_rebuildListResult(
                                     const vector<BSONObj> &infoFromCata,
-                                    pmdEDUCB *cb,                       
+                                    pmdEDUCB *cb,
                                     SINT64 &contextID )
    {
       INT32 rc = SDB_OK ;
@@ -6802,7 +6802,7 @@ namespace engine
                     itr->toString().c_str() ) ;
             rc = SDB_SYS ;
             goto error ;
-              
+
          }
 
          {
@@ -6889,7 +6889,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( CMD_RTNCOCMDLISTLOBS_EXEC, "rtnCoordListLobs::execute" )   
+   // PD_TRACE_DECLARE_FUNCTION( CMD_RTNCOCMDLISTLOBS_EXEC, "rtnCoordListLobs::execute" )
    INT32 rtnCoordCMDListLobs::execute( MsgHeader *pMsg,
                                        pmdEDUCB *cb,
                                        INT64 &contextID,
@@ -7029,7 +7029,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( CMD_RTNCOCMDTRUNCATE_EXEC, "rtnCoordCMDTruncate::execute" ) 
+   // PD_TRACE_DECLARE_FUNCTION( CMD_RTNCOCMDTRUNCATE_EXEC, "rtnCoordCMDTruncate::execute" )
    INT32 rtnCoordCMDTruncate::execute( MsgHeader *pMsg,
                                        pmdEDUCB *cb,
                                        INT64 &contextID,
@@ -7058,6 +7058,7 @@ namespace engine
             PD_LOG( PDERROR, "invalid truncate msg:%s",
                     boQuery.toString( FALSE, TRUE ).c_str() ) ;
             rc = SDB_INVALIDARG ;
+            goto error ;
          }
          fullName = e.valuestr() ;
       }
