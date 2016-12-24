@@ -679,8 +679,7 @@ namespace engine
       qgmConditionNodePtrVec::iterator itSub = subConds.begin() ;
       while ( itSub != subConds.end() )
       {
-         if ( isCondSameRele( *itSub, FALSE ) &&
-              !isCondIncludedNull( *itSub ) )
+         if ( isCondSameRele( *itSub, FALSE ) )
          {
             pushConds.push_back( *itSub ) ;
             filterUnit->removeCondition( *itSub ) ;

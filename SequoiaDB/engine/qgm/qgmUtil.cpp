@@ -36,6 +36,7 @@
 ******************************************************************************/
 
 #include "qgmUtil.hpp"
+#include "qgmConditionNode.hpp"
 #include "pd.hpp"
 #include "ossUtil.hpp"
 #include "pdTrace.hpp"
@@ -989,5 +990,98 @@ namespace engine
    done:
       return builder.obj() ;
    }
+
+   const CHAR* qgmGetNodeTypeStr( INT32 type )
+   {
+      switch( type )
+      {
+         case SQL_GRAMMAR::EG:
+            return "$et" ;
+         case SQL_GRAMMAR::NE:
+            return "$ne" ;
+         case SQL_GRAMMAR::LT:
+            return "$lt" ;
+         case SQL_GRAMMAR::GT:
+            return "$gt" ;
+         case SQL_GRAMMAR::LTE:
+            return "$lte" ;
+         case SQL_GRAMMAR::GTE:
+            return "$gte" ;
+         case SQL_GRAMMAR::IS:
+            return "$et" ;
+         case SQL_GRAMMAR::ISNOT:
+            return "$ne" ;
+         case SQL_GRAMMAR::INN:
+            return "$in" ;
+         case SQL_GRAMMAR::LIKE:
+            return "$regex" ;
+         case SQL_GRAMMAR::AND:
+            return "$and" ;
+         case SQL_GRAMMAR::OR:
+            return "$or" ;
+         case SQL_GRAMMAR::NOT:
+            return "$not" ;
+         default:
+            break ;
+      }
+
+      return "" ;
+   }
+
+   INT32 qgmBuildANodeItem( BSONObjBuilder &bb,
+                            const CHAR *pKeyName,
+                            const _qgmConditionNode *node )
+   {
+      INT32 rc = SDB_OK ;
+
+      switch( node->type )
+      {
+         case SQL_GRAMMAR::STR:
+            bb.append( pKeyName, node->value.toString() ) ;
+            break ;
+         case SQL_GRAMMAR::DBATTR:
+         {
+            BSONObjBuilder subBB( bb.subobjStart( pKeyName ) ) ;
+            subBB.append( "$field", node->value.toString() ) ;
+            subBB.done() ;
+            break ;
+         }
+         case SQL_GRAMMAR::DIGITAL:
+            bb.appendAsNumber( pKeyName, node->value.toString() ) ;
+            break ;
+         case SQL_GRAMMAR::BOOL_TRUE:
+            bb.appendBool( pKeyName, 1 ) ;
+            break ;
+         case SQL_GRAMMAR::BOOL_FALSE:
+            bb.appendBool( pKeyName, 0 ) ;
+            break ;
+         case SQL_GRAMMAR::NULLL:
+            bb.appendNull( pKeyName ) ;
+            break ;
+         default:
+         {
+            if ( node->type > SQL_GRAMMAR::SQLMAX )
+            {
+               if ( NULL != node->var && !node->var->eoo() )
+               {
+                  bb.appendAs( *(node->var), pKeyName ) ;
+               }
+               else
+               {
+                  bb.append( pKeyName, "$var" ) ;
+               }
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Node[Type:%d] is unknow", node->type ) ;
+               rc = SDB_INVALIDARG ;
+            }
+            break ;
+         }
+      }
+
+      return rc ;
+   }
+
 }
 

@@ -128,14 +128,15 @@ typedef SQL_CONTAINER::const_iterator SQL_CON_ITR ;
       const static INT32   NOT = 52;
       const static INT32   NULLL = 53;
       const static INT32   IS = 54;
+      const static INT32   ISNOT = 55;
          /// trem end
 
       /// math start
-      const static INT32 ADD = 55 ;
-      const static INT32 SUB = 56 ;
-      const static INT32 MULTIPLY = 57 ;
-      const static INT32 DIVIDE = 58 ;
-      const static INT32 MOD = 59 ;
+      const static INT32 ADD = 80 ;
+      const static INT32 SUB = 81 ;
+      const static INT32 MULTIPLY = 82 ;
+      const static INT32 DIVIDE = 83 ;
+      const static INT32 MOD = 84 ;
       /// math end
 
          /// factor start
@@ -211,6 +212,7 @@ typedef SQL_CONTAINER::const_iterator SQL_CON_ITR ;
          SQL_RULE(SPLITBY) splitby ;
          SQL_RULE(NULLL) nulll ;
          SQL_RULE(IS) is;
+         SQL_RULE(ISNOT) isnot ;
 
          SQL_RULE(DBATTR) dbattr ;
 
@@ -334,6 +336,8 @@ typedef SQL_CONTAINER::const_iterator SQL_CON_ITR ;
             nulll = as_lower_d[str_p("null")] ;
 
             is = as_lower_d[str_p("is")] ;
+
+            isnot = as_lower_d[str_p("isnot")] ;
 
             lbrackets = ch_p('(') ;
 
@@ -482,9 +486,14 @@ typedef SQL_CONTAINER::const_iterator SQL_CON_ITR ;
             wFactor = ( dbattr
                         >> SQL_BLANKORNO
                         >> root_node_d[(eg|lte|gte
-                                        |ne|lt|gt|is)]
+                                        |ne|lt|gt)]
                         >> SQL_BLANKORNO
                         >> ( digital | nulll |str | date |(dbattr - (bool_true | bool_false)) ) )
+                      | ( dbattr
+                         >> SQL_BLANK
+                         >> root_node_d[isnot|is]
+                         >> SQL_BLANK
+                         >> ( digital | nulll |str | date |(dbattr - (bool_true | bool_false)) ) )
                       |( dbattr
                          >> SQL_BLANK
                          >> root_node_d[in]

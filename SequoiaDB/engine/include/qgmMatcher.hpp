@@ -39,16 +39,40 @@
 #define QGMMATCHER_HPP_
 
 #include "qgmDef.hpp"
+#include <utilMap.hpp>
+
+using namespace bson ;
 
 namespace engine
 {
    struct _qgmConditionNode ;
 
+   struct _qgmMatcherDataNode
+   {
+      BSONObj        _obj ;
+      BSONElement    _element ;
+
+      _qgmMatcherDataNode( BSONObj obj = BSONObj() )
+      {
+         _obj = obj ;
+         _element = _obj.firstElement() ;
+      }
+   } ;
+   typedef _qgmMatcherDataNode qgmMatcherDataNode ;
+
+   /*
+      _qgmMatcher define
+   */
    class _qgmMatcher : public SDBObject
    {
+   typedef _utilMap< void*, qgmMatcherDataNode, 8 >      MAP_DATA_NODE ;
+   typedef MAP_DATA_NODE::iterator                       MAP_DATA_NODE_IT ;
+
    public:
       _qgmMatcher( _qgmConditionNode *node ) ;
       virtual ~_qgmMatcher() ;
+
+      void     resetDataNode() ;
 
    public:
       OSS_INLINE BOOLEAN ready(){return _ready ;}
@@ -65,7 +89,10 @@ namespace engine
 
    private:
       _qgmConditionNode *_condition ;
-      BOOLEAN _ready ;
+      BOOLEAN           _ready ;
+
+      MAP_DATA_NODE     _mapDataNode ;
+
    } ;
 
    typedef class _qgmMatcher qgmMatcher ;

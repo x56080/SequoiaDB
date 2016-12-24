@@ -623,13 +623,7 @@ namespace engine
             SDB_ASSERT( _varList.empty(), "must be empty" ) ;
             _qgmConditionNodeHelper ctree( _condition ) ;
             qgmDbAttrPtrVec attrVec ;
-            rc = ctree.getAllAttr( attrVec ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDERROR, "failed to get all attrs from condition tree:%d", rc ) ;
-               goto error ;
-            }
-
+            ctree.getAllAttr( attrVec ) ;
             qgmDbAttrPtrVec::const_iterator itr = attrVec.begin() ;
             for ( ; itr != attrVec.end(); itr++ )
             {
@@ -901,11 +895,7 @@ namespace engine
          vector<qgmDbAttr*>::iterator citr ;
          _qgmConditionNodeHelper cTree( _condition ) ;
 
-         rc = cTree.getAllAttr( conditionFields ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
+         cTree.getAllAttr( conditionFields ) ;
          rc = left->outputStream( lstream ) ;
          if ( SDB_OK != rc )
          {

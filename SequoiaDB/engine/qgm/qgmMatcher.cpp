@@ -38,11 +38,13 @@
 #include "qgmMatcher.hpp"
 #include "pd.hpp"
 #include "qgmConditionNodeHelper.hpp"
+#include "qgmUtil.hpp"
 #include "pdTrace.hpp"
 #include "qgmTrace.hpp"
 #define PCRE_STATIC
 #include "../pcre/pcrecpp.h"
 
+using namespace bson ;
 namespace engine
 {
    _qgmMatcher::_qgmMatcher( _qgmConditionNode *node )
@@ -62,13 +64,18 @@ namespace engine
       _ready = FALSE ;
    }
 
+   void _qgmMatcher::resetDataNode()
+   {
+      _mapDataNode.clear() ;
+   }
+
    string _qgmMatcher::toString() const
    {
       qgmConditionNodeHelper tree( _condition ) ;
       return tree.toJson() ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION( SDB__QGMMATCHER_MATCH, "_qgmMatcher::match" )
+   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMMATCHER_MATCH, "_qgmMatcher::match" )
    INT32 _qgmMatcher::match( const qgmFetchOut &fetch, BOOLEAN &r )
    {
       PD_TRACE_ENTRY( SDB__QGMMATCHER_MATCH ) ;
@@ -93,7 +100,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION( SDB__QGMMATCHER__MATCH, "_qgmMatcher::_match" )
+   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMMATCHER__MATCH, "_qgmMatcher::_match" )
    INT32 _qgmMatcher::_match( const _qgmConditionNode *node,
                               const qgmFetchOut &fetch,
                               BOOLEAN &r )
@@ -102,19 +109,20 @@ namespace engine
       SDB_ASSERT( NULL != node, "impossible" ) ;
 
       INT32 rc = SDB_OK ;
-      BSONObj obj ;
       BSONElement fromFetch ;
       BSONElement fromCondition ;
+      MAP_DATA_NODE_IT it ;
 
       try
       {
-         if ( SQL_GRAMMAR::EG == node->type
-              || SQL_GRAMMAR::NE == node->type
-              || SQL_GRAMMAR::GT == node->type
-              || SQL_GRAMMAR::LT == node->type
-              || SQL_GRAMMAR::GTE == node->type
-              || SQL_GRAMMAR::LTE == node->type
-              || SQL_GRAMMAR::IS == node->type )
+         if ( SQL_GRAMMAR::EG == node->type ||
+              SQL_GRAMMAR::NE == node->type ||
+              SQL_GRAMMAR::GT == node->type ||
+              SQL_GRAMMAR::LT == node->type ||
+              SQL_GRAMMAR::GTE == node->type ||
+              SQL_GRAMMAR::LTE == node->type ||
+              SQL_GRAMMAR::IS == node->type ||
+              SQL_GRAMMAR::ISNOT == node->type )
          {
             rc = fetch.element( node->left->value, fromFetch ) ;
             if ( SDB_OK != rc )
@@ -124,18 +132,44 @@ namespace engine
                goto error ;
             }
 
-            if ( fromFetch.eoo() )
+            if ( fromFetch.eoo() && SQL_GRAMMAR::NULLL == node->right->type )
             {
-               r = SQL_GRAMMAR::NULLL == node->right->type ? TRUE : FALSE ;
-               goto done ;
+               if ( SQL_GRAMMAR::IS == node->type )
+               {
+                  r = TRUE ;
+                  goto done ;
+               }
+               else if ( SQL_GRAMMAR::ISNOT == node->type )
+               {
+                  r = FALSE ;
+                  goto done ;
+               }
             }
 
-            /// TODO: no need to create a new bsonobj everytime when it's type is not a
-            /// variable.
-            obj = _qgmConditionNodeHelper::toBson( node->right,
-                                             node->left->value.attr().begin(),
-                                             node->left->value.attr().size() ) ;
-            fromCondition = obj.firstElement() ;
+            /// 1. find from data nodes map
+            it = _mapDataNode.find( (void*)node ) ;
+            if ( it != _mapDataNode.end() )
+            {
+               fromCondition = it->second._element ;
+            }
+            else
+            {
+               /// create and add to map
+               BSONObjBuilder bb ;
+               BSONObj obj ;
+
+               rc = qgmBuildANodeItem( bb, "", node->right ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Build the node item to BSONObj "
+                          "failed, rc: %d", rc ) ;
+                  goto error ;
+               }
+               obj = bb.obj() ;
+               _mapDataNode[ (void*)node ] = qgmMatcherDataNode( obj ) ;
+               fromCondition = obj.firstElement() ;
+            }
+
             if ( fromCondition.eoo() )
             {
                SDB_ASSERT( FALSE, "impossible" ) ;
@@ -149,7 +183,8 @@ namespace engine
                r = (0 == fromCondition.woCompare( fromFetch, FALSE )) ?
                    TRUE : FALSE ;
             }
-            else if ( SQL_GRAMMAR::NE == node->type )
+            else if ( SQL_GRAMMAR::NE == node->type ||
+                      SQL_GRAMMAR::ISNOT == node->type )
             {
                r = (0 == fromCondition.woCompare( fromFetch, FALSE )) ?
                    FALSE : TRUE ;
@@ -170,11 +205,15 @@ namespace engine
                r = ( 0 > wo ) || ( 0 == wo )?
                    TRUE : FALSE ;
             }
-            else
+            else if ( SQL_GRAMMAR::LTE == node->type )
             {
                INT32 wo = fromCondition.woCompare( fromFetch, FALSE ) ;
                r = ( 0 < wo ) || ( 0 == wo )?
                    TRUE : FALSE ;
+            }
+            else
+            {
+               r = FALSE ;
             }
          }
          else if ( SQL_GRAMMAR::LIKE == node->type )
@@ -187,19 +226,39 @@ namespace engine
                goto error ;
             }
 
-            if ( fromFetch.eoo() )
+            if ( String != fromFetch.type() )
             {
                r = FALSE ;
                goto done ;
             }
 
-            if ( String != fromFetch.type() )
+            /// 1. find from data nodes map
+            it = _mapDataNode.find( (void*)node ) ;
+            if ( it != _mapDataNode.end() )
             {
-               r = FALSE ;
+               fromCondition = it->second._element ;
             }
             else
             {
-               pcrecpp::RE regexMatch( node->right->value.toString().c_str() ) ;
+               /// create and add to map
+               BSONObj obj = BSON( "" << node->right->value.toString() ) ;
+               _mapDataNode[ (void*)node ] = qgmMatcherDataNode( obj ) ;
+               fromCondition = obj.firstElement() ;
+            }
+
+            if ( String != fromCondition.type() )
+            {
+               SDB_ASSERT( FALSE, "impossible" ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
+            else
+            {
+               pcrecpp::RE_Options reOptions ;
+               reOptions.set_utf8( true ) ;
+               reOptions.set_dotall( true ) ;
+               pcrecpp::RE regexMatch( fromCondition.valuestr(),
+                                       reOptions ) ;
                r = regexMatch.PartialMatch( fromFetch.valuestr() ) ;
             }
          }
@@ -224,7 +283,7 @@ namespace engine
             r = FALSE ;
 
             {
-               BSONObjIterator itr( node->right->var->embeddedObject()) ;
+               BSONObjIterator itr( node->right->var->embeddedObject() ) ;
                while ( itr.more() )
                {
                   if ( 0 == itr.next().woCompare( fromFetch, FALSE ) )

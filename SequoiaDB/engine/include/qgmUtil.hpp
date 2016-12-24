@@ -48,6 +48,8 @@ using namespace bson ;
 namespace engine
 {
 
+   struct _qgmConditionNode ;
+
    BOOLEAN qgmUtilFirstDot( const CHAR *str, UINT32 len, UINT32 &pos ) ;
    BOOLEAN qgmUtilLastDot( const CHAR *str, UINT32 len, UINT32 &pos ) ;
 
@@ -114,6 +116,12 @@ namespace engine
    string qgmHintToString( const QGM_HINS &hint ) ;
 
    BSONObj qgmUseIndexHintToBson( const qgmHint &h ) ;
+
+   const CHAR* qgmGetNodeTypeStr( INT32 type ) ;
+
+   INT32    qgmBuildANodeItem( BSONObjBuilder &bb,
+                               const CHAR *pKeyName,
+                               const _qgmConditionNode *node ) ;
 
 }
 

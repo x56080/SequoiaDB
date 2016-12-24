@@ -234,18 +234,16 @@ namespace engine
       return SDB_OK ;
    }
 
-   INT32 _qgmFilterUnit::getCondFields( qgmDbAttrPtrVec & fields )
+   void _qgmFilterUnit::getCondFields( qgmDbAttrPtrVec & fields )
    {
-      INT32 rc = SDB_OK ;
       qgmConditionNodeHelper condHelper( NULL ) ;
       qgmConditionNodePtrVec::iterator it = _conds.begin() ;
       while ( it != _conds.end() )
       {
          condHelper.setRoot( *it ) ;
-         rc = condHelper.getAllAttr( fields ) ;
+         condHelper.getAllAttr( fields ) ;
          ++it ;
       }
-      return rc ;
    }
 
    INT32 _qgmFilterUnit::_separateCond( qgmConditionNode * cond,

@@ -946,11 +946,7 @@ namespace engine
       vector<qgmDbAttr*> conditionFields ;
       vector<qgmDbAttr*>::iterator citr ;
       _qgmConditionNodeHelper cTree( _condition ) ;
-      rc = cTree.getAllAttr( conditionFields ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
+      cTree.getAllAttr( conditionFields ) ;
       for ( citr = conditionFields.begin()
             ; citr != conditionFields.end()
             ; citr++ )

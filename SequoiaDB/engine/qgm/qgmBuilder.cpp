@@ -1929,7 +1929,7 @@ namespace engine
             PD_LOG( PDERROR, "failed to add selector from expr:%d", rc ) ;
             goto error ;
          }
-      } 
+      }
       else
       {
          PD_LOG( PDERROR, "invalid type:%d", type ) ;
@@ -2328,7 +2328,8 @@ namespace engine
                 || SQL_GRAMMAR::OR == type
                 || SQL_GRAMMAR::LIKE == type
                 || SQL_GRAMMAR::INN == type
-                || SQL_GRAMMAR::IS == type )
+                || SQL_GRAMMAR::IS == type
+                || SQL_GRAMMAR::ISNOT == type )
       {
          PD_CHECK( 2 == root->children.size(),
                    SDB_INVALIDARG,
@@ -3032,7 +3033,7 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to build left tree:%d", rc ) ;
-            goto error ; 
+            goto error ;
          }
 
          rc = _buildExprTree( root->children.begin() + 1,

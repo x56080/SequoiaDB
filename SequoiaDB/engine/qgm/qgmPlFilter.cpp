@@ -102,6 +102,8 @@ namespace engine
       SDB_ASSERT( 1 == inputSize(), "impossible" ) ;
       _currentSkip = 0 ;
       _currentReturn = 0 ;
+      _matcher.resetDataNode() ;
+
       rc = input( 0 )->execute( eduCB ) ;
       if ( SDB_OK != rc )
       {
@@ -114,7 +116,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLFILTER__FETCHNEXT, "_qgmPlFilter::_fetchNext" )
+   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLFILTER__FETCHNEXT, "_qgmPlFilter::_fetchNext" )
    INT32 _qgmPlFilter::_fetchNext( qgmFetchOut &next )
    {
       PD_TRACE_ENTRY( SDB__QGMPLFILTER__FETCHNEXT ) ;

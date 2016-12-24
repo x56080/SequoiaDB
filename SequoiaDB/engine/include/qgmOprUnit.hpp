@@ -87,7 +87,7 @@ namespace engine
          qgmConditionNode* getMergeCondition() ;
          qgmConditionNodePtrVec getConditions() ;
 
-         INT32 getCondFields( qgmDbAttrPtrVec &fields ) ;
+         void getCondFields( qgmDbAttrPtrVec &fields ) ;
 
       protected:
          virtual void   _toString( stringstream &ss ) const ;
