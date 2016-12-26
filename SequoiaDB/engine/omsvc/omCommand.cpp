@@ -2088,7 +2088,7 @@ namespace engine
             string port = oneResult.getStringField( OM_BSON_FIELD_AGENT_PORT ) ;
             if ( SDB_OK != rc )
             {
-               hostResult.push_back( oneResult ) ;
+               hostResult.push_back( oneResult.getOwned() ) ;
                _eraseFromListByIP( hostInfoList, ip ) ;
             }
             else
