@@ -2379,6 +2379,16 @@ namespace engine
             PD_CHECK( cataInfo.isMainCL(), SDB_INVALID_MAIN_CL, error, PDERROR,
                       "Source collection must be main-collection!" );
 
+            // Check if the mainCL contain the subCL, if so, still need
+            // to update mainCL to remove the item in its the subCL list
+            // If neither mainCL nor subCL needs update, we report
+            // SDB_INVALID_SUB_CL
+            PD_CHECK( needUpdateSubCL || cataInfo.isContainSubCL( subCLName ),
+                      SDB_INVALID_SUB_CL, error, PDERROR,
+                      "Failed to unlink sub-collection, the main-collection"
+                      "[%s] doesn't contain sub-collection [%s]",
+                      mainCLName, subCLName ) ;
+
             rc = cataInfo.delSubCL( subCLName );
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to delete the sub-collection(rc=%d)",
