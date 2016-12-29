@@ -46,7 +46,7 @@
 #include "ossSSLWrapper.h"
 #endif
 
-const UINT32 MAX_INTR_RETRIES = 5 ;
+const UINT32 MAX_INTR_RETRIES = 5000 ;
 
 // Create a listening socket
 // PD_TRACE_DECLARE_FUNCTION ( SDB__OSSSK__OSSSK, "_ossSocket::_ossSocket" )
@@ -366,6 +366,7 @@ INT32 _ossSocket::send ( const CHAR *pMsg, INT32 len,
    PD_TRACE_ENTRY ( SDB_OSSSK_SEND );
    SDB_ASSERT ( pMsg, "message is NULL" ) ;
 
+   UINT32 retries = 0 ;
    sentLen = 0 ;
    SOCKET maxFD = _fd ;
    struct timeval maxSelectTime ;
@@ -461,6 +462,12 @@ INT32 _ossSocket::send ( const CHAR *pMsg, INT32 len,
          {
             rc = SDB_TIMEOUT ;
             goto error ;
+         }
+         if ( SOCKET_EINTR == rc && retries < MAX_INTR_RETRIES )
+         {
+            // less than max_recv_retries number, let's retry
+            retries ++ ;
+            continue ;
          }
          PD_LOG ( PDERROR, "Failed to send, rc = %d", SOCKET_GETLASTERROR ) ;
          rc = SDB_NETWORK ;
