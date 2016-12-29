@@ -272,7 +272,8 @@ namespace engine
          INT32           _notifyAgentTask( INT64 taskID ) ;
          INT32           _sendMsgToLocalAgent( omManager *om,
                                                pmdRemoteSession *remoteSession, 
-                                               MsgHeader *pMsg ) ;
+                                               MsgHeader *pMsg,
+                                               BOOLEAN isUseLocalHost = FALSE ) ;
          INT32           _getScanHostList( string &clusterName, 
                                            list<omScanHostInfo> &hostInfo ) ;
          void            _clearSession( omManager *om, 
