@@ -67,14 +67,14 @@ namespace engine
       boost::mutex::scoped_lock lock ( _mutex ) ;
 
       ++_waitNum ;
-      if ( !_signal )
+      while ( !_signal )
       {
          if ( millisec < 0 )
          {
             _cond.wait ( lock ) ;
          }
-         else if ( boost::cv_status::timeout
-                   == _cond.wait_for( lock, timeout ) )
+         else if ( boost::cv_status::timeout ==
+                   _cond.wait_for( lock, timeout ) )
          {
             --_waitNum ;
             rc = SDB_TIMEOUT ;
