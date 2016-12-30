@@ -11,10 +11,7 @@ Install.Paramers.port.explanation=配置SequoiaDB集群管理服务端口,集群
 Install.Paramers.processAutoStart.explanation=是否允许Sequoiadb相关进程开机自启动？
 Install.Paramers.processAutoStart.Description=Sequoiadb相关进程开机自启动
 Install.Paramers.sms.description=是否安装OM服务
-Install.Paramers.installationType.explanation=是否安装OM服务?
-Install.Paramers.svcnamePort.explanation=svcname端口
-Install.Paramers.dbpath.explanation=SMS服务数据路径
-Install.Paramers.restPort.explanation=restname端口
+Install.Paramers.sms.explanation=是否安装OM服务?
 Install.Paramers.LicenseRead.Agree.Description=同意以上协议
 Install.Paramers.LicenseRead.Agree.Explanation=了解更多的协议内容，可以在安装后查看协议文件
 Install.Paramers.LicenseRead.Read.Description=查看详细的协议内容
@@ -24,25 +21,26 @@ Install.Paramers.Force.Explanation=是否强制安装？强制安装时可能会
 Install.Paramers.Force.Check=无效参数: --force ${force}, 参数值必须是true或者false
 Install.Paramers.SMS.Check=无效参数: --SMS ${SMS}, 参数值必须是true或者false
 Install.Paramers.ProcessAutoStart.Check=无效参数: --processAutoStart ${processAutoStart}, 参数值必须是true或者false
+Install.Parameter.Upgrade.explanation=检测到${installdir_inconf}下已有安装版本。
+Install.Parameter.Upgrade.description=是否切换到升级模式？
 
 Install.ErrorMsg.CheckGroup=用户${username}存在，但该用户不属于用户组${groupname}
 Install.ErrorMsg.CreateGroup=创建用户组${groupname}失败
 Install.ErrorMsg.CreateUser=创建用户${username}失败
 Install.ErrorMsg.CreateWindowsService.error=创建集群管理服务(sdbcm)失败
 Install.ErrorMsg.CreateLinuxService.error=创建集群管理服务(sdbcm)失败
-Install.ErrorMsg.ChangeInsallerPathPermissions.error=修改安装目录(${installdir}/bin)权限失败
 Install.ErrorMsg.StartWindowsService.error=启动集群管理服务(sdbcm)失败
 Install.ErrorMsg.StopSdbCm.error=停止集群管理服务(sdbcm)失败
 Install.ErrorMsg.StopSequoiadb.error=停止SequoiaDB数据库服务失败
 Install.ErrorMsg.DeleteUser.error=删除用户${username}失败
 Install.ErrorMsg.IntallationOM.error=创建OM失败
+Install.ErrorMsg.checkDisk.error=磁盘剩余空间不足1.3G
 
 Install.WarnMsg.CheckUmask=umask值异常！当前umask=${full_mask}，建议改成0022
 
 Upgrade.Paramers.Upgrade.Explanation=是否升级
 Upgrade.Paramers.Upgrade.Check=无效参数: --upgrade ${is_upgrade_mode}, 参数值必须是true或者false
 
-Upgrade.NormalMsg.AskUpgrade=检测到${installdir_inconf}下已有安装版本，是否切换为升级模式？
 Upgrade.NormalMsg.BeginUpgrade=开始升级
 Upgrade.NormalMsg.CheckList=**************************  检查列表 *************************************
 Upgrade.NormalMsg.SystemConfExist=检查：系统配置文件${sys_conf_file}存在 ...... 
@@ -52,6 +50,7 @@ Upgrade.NormalMsg.JudgeComatible=检查：旧版本 ${old_version} ${old_edition
 Upgrade.NormalMsg.DiskSpace=检查：磁盘空间足够 ...... 
 Upgrade.NormalMsg.UserExist=检查：用户${username}存在，并获取用户组 ...... 
 Upgrade.NormalMsg.StopProcess=检查：相关进程已停止 ...... 
+Upgrade.NormalMsg.Umask=检查：umask配置 ...... 
 
 Upgrade.NormalMsg.BeginRollback=发生错误，升级中止，开始回滚 ...... 
 Upgrade.NormalMsg.Rollback.RestoreFile=开始恢复文件 ...... 

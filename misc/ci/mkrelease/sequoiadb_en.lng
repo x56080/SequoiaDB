@@ -11,10 +11,7 @@ Install.Paramers.port.explanation=SequoiaDB Cluster Manager port
 Install.Paramers.processAutoStart.explanation=Do You Want To Start Sequoiadb Processes When Machine Restart?
 Install.Paramers.processAutoStart.Description=Process Auto Start
 Install.Paramers.sms.description=Do You Want To Install OM Service
-Install.Paramers.installationType.explanation=Do You Want To Install OM Service?
-Install.Paramers.svcnamePort.explanation=Svcname Port
-Install.Paramers.dbpath.explanation=SMS data path
-Install.Paramers.restPort.explanation=Restname Port
+Install.Paramers.sms.explanation=Do You Want To Install OM Service?
 Install.Paramers.LicenseRead.Agree.Description=Agree The License
 Install.Paramers.LicenseRead.Agree.Explanation=For More License's Detail, Please Check The License File After Installation
 Install.Paramers.LicenseRead.Read.Description=Read The License
@@ -24,34 +21,36 @@ Install.Paramers.Force.Explanation=Do you want to force the install? It may kill
 Install.Paramers.Force.Check=Invalid parameter: --force ${force}, should be true or false
 Install.Paramers.SMS.Check=Invalid parameter: --SMS ${SMS}, should be true or false
 Install.Paramers.ProcessAutoStart.Check=Invalid parameter: --processAutoStart ${processAutoStart}, should be true or false
+Install.Parameter.Upgrade.explanation=An existing installation has been detected in ${installdir_inconf}.
+Install.Parameter.Upgrade.description=Do you want to change to upgrade mode?
 
 Install.ErrorMsg.CheckGroup=User ${username} exists, but it does not belong to group ${groupname}
 Install.ErrorMsg.CreateGroup=Failed to create group ${groupname}
 Install.ErrorMsg.CreateUser=Failed to create user ${username}
 Install.ErrorMsg.CreateWindowsService.error=Failed to create Sequoiadb Cluster Manager Service(sdbcm)
 Install.ErrorMsg.CreateLinuxService.error=Failed to create Sequoiadb Cluster Manager Service(sdbcm)
-Install.ErrorMsg.ChangeInsallerPathPermissions.error=Failed to change file permissions: ${installdir}/bin
 Install.ErrorMsg.StartWindowsService.error=Failed to start Sequoiadb Cluster Manager Service(sdbcm)
 Install.ErrorrMsg.StopSdbCm.error=Failed to stop Sequoiadb Cluster Manager Service(sdbcm)
 Install.ErrorMsg.StopSequoiadb.error=Failed to stop SequoiaDB database service
 Install.ErrorMsg.DeleteUser.error=Failed to delete user:${username}
 Install.ErrorMsg.IntallationOM.error=Create OM failed
+Install.ErrorMsg.checkDisk.error=There is not enough disk space for installation. It needs at lease 1.3G.
 
 Install.WarnMsg.CheckUmask=Umask abnormal! Current umask = ${full_mask}, recommended value is 0022
 
 Upgrade.Paramers.Upgrade.Explanation=Do You Want To Upgrade
 Upgrade.Paramers.Upgrade.Check=Invalid parameter: --upgrade ${is_upgrade_mode}, should be true or false
 
-Upgrade.NormalMsg.AskUpgrade=An existing installation has been detected in ${installdir_inconf}. Change to upgrade mode?
 Upgrade.NormalMsg.BeginUpgrade=Begin to upgrade package ......
 Upgrade.NormalMsg.CheckList=**************************  check list *************************************
-Upgrade.NormalMsg.SystemConfExist=Check: configure file ${sys_conf_file} is exists ...... 
+Upgrade.NormalMsg.SystemConfExist=Check: configure file ${sys_conf_file} exists ...... 
 Upgrade.NormalMsg.GetInstallDir.GetUser=Check: get install directory and user in ${sys_conf_file} ...... 
 Upgrade.NormalMsg.InstallationExist=Check: install dir ${installdir} is not empty ...... 
 Upgrade.NormalMsg.JudgeComatible=Check: compatibility between version ${old_version} ${old_edition_full} and ${new_version} ${new_edition_full} ...... 
 Upgrade.NormalMsg.DiskSpace=Check: disk space is enough ...... 
-Upgrade.NormalMsg.UserExist=Check: user ${username} is exist, and get group ......  
+Upgrade.NormalMsg.UserExist=Check: user ${username} exists, and get group ...... 
 Upgrade.NormalMsg.StopProcess=Check: relevant processes are stoped ...... 
+Upgrade.NormalMsg.Umask=Check: umask value ...... 
 
 Upgrade.NormalMsg.BeginRollback=Upgrade aborted for error, begin to rollback ...... 
 Upgrade.NormalMsg.Rollback.RestoreFile=Begin to restore files ......  
@@ -76,4 +75,4 @@ Upgrade.ErrorMsg.StartProcess=sdbcm or sdbcmd has not been started.
 Upgrade.ErrorMsg.GetGoup=Failed to get group of user ${username} 
 
 
-Uninstall.ErrorMsg.CheckProcess=Revelant processes still exist after excuting 'service sdbcm sdbtop'.
+Uninstall.ErrorMsg.CheckProcess=Revelant processes still exist after excuting 'service sdbcm stop'.
