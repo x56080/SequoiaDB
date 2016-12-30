@@ -21,6 +21,8 @@
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="sequoiadb database service"
 NAME=sequoiadb
+LOCK_FILE_DIR=/var/lock/subsys
+LOCK_FILE=${LOCK_FILE_DIR}/sdbcm
 
 DAEMON_START=sdbcmart
 DAEMON_STOP=sdbcmtop
@@ -201,6 +203,8 @@ do_start()
   ulimit -Sf `ulimit -Hf` #file size 
   ulimit -Sv `ulimit -Hv` #virtual memory 
   ulimit -Sn `ulimit -Hn` #open files
+  mkdir -p ${LOCK_FILE_DIR}
+  touch ${LOCK_FILE}
 
 	# Return
 	#   0 if daemon has been started
