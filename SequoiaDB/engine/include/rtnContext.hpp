@@ -343,7 +343,11 @@ namespace engine
                              ossValuePtr recordDataPtr,
                              BSONObj& obj ) ;
          virtual INT32     _prepareData( _pmdEDUCB *cb ) ;
-         virtual BOOLEAN   _canPrefetch () const { return TRUE ; }
+         virtual BOOLEAN   _canPrefetch () const
+         {
+            // If contain modifier, do not use prefetch
+            return ( _queryModifier ? FALSE : TRUE ) ;
+         }
          virtual void      _toString( stringstream &ss ) ;
 
       protected:
