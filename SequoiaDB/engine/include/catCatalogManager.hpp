@@ -221,6 +221,7 @@ namespace engine
 
       INT32 _buildCatalogRecord( const catCollectionInfo &clInfo,
                                  UINT32 mask,
+                                 UINT32 attribute,
                                  UINT32 groupID,
                                  const CHAR *groupName,
                                  BSONObj &catRecord ) ;

@@ -1724,7 +1724,7 @@ namespace engine
       }
 
       // build new collection record for meta data.
-      rc = _buildCatalogRecord( clInfo, fieldMask, groupID,
+      rc = _buildCatalogRecord( clInfo, fieldMask, 0, groupID,
                                 strGroupName.c_str(),
                                 newCLRecordObj ) ;
       PD_RC_CHECK( rc, PDERROR, "Build new collection catalog record failed, "
@@ -1780,6 +1780,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR_BUILDCATALOGRECORD, "catCatalogueManager::_buildCatalogRecord" )
    INT32 catCatalogueManager::_buildCatalogRecord( const catCollectionInfo & clInfo,
                                                    UINT32 mask,
+                                                   UINT32 attribute,
                                                    UINT32 groupID,
                                                    const CHAR *groupName,
                                                    BSONObj & catRecord )
@@ -1788,18 +1789,17 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_CATALOGMGR_BUILDCATALOGRECORD ) ;
 
       BSONObjBuilder builder ;
-      UINT32 attr = 0 ;
       CHAR szAttr[ 100 ] = { 0 } ;
 
       if ( ( mask & CAT_MASK_COMPRESSED ) && clInfo._isCompressed )
       {
-         attr |= DMS_MB_ATTR_COMPRESSED ;
+         attribute |= DMS_MB_ATTR_COMPRESSED ;
       }
       if ( ( mask & CAT_MASK_AUTOINDEXID ) && !clInfo._autoIndexId )
       {
-         attr |= DMS_MB_ATTR_NOIDINDEX ;
+         attribute |= DMS_MB_ATTR_NOIDINDEX ;
       }
-      mbAttr2String( attr, szAttr, sizeof( szAttr ) - 1 ) ;
+      mbAttr2String( attribute, szAttr, sizeof( szAttr ) - 1 ) ;
 
       if ( mask & CAT_MASK_CLNAME )
       {
@@ -1817,11 +1817,11 @@ namespace engine
          builder.append( CAT_CATALOG_W_NAME, clInfo._replSize ) ;
       }
 
-      builder.append( CAT_ATTRIBUTE_NAME, attr ) ;
+      builder.append( CAT_ATTRIBUTE_NAME, attribute ) ;
       builder.append( FIELD_NAME_ATTRIBUTE_DESC, szAttr ) ;
 
       /// only record the options specified by user.
-      if ( attr & DMS_MB_ATTR_COMPRESSED )
+      if ( ( mask & CAT_MASK_COMPRESSED ) && clInfo._isCompressed )
       {
          builder.append( CAT_COMPRESSIONTYPE, clInfo._compressorType ) ;
          builder.append( FIELD_NAME_COMPRESSIONTYPE_DESC,
@@ -3190,6 +3190,7 @@ namespace engine
       BSONElement groupID ;
       BSONElement groupName ;
       BSONObj groupObj ;
+      UINT32 attribute = 0 ;
       _clsCatalogSet::POSITION pos ;
       clsCatalogItem *item = NULL ;
 
@@ -3211,7 +3212,7 @@ namespace engine
      if ( CAT_MASK_COMPRESSED & mask )
      {
         rc = SDB_OPTION_NOT_SUPPORT ;
-        PD_LOG( PDERROR, "can not alter attribute \"compressed\"" ) ;
+        PD_LOG( PDERROR, "can not alter attribute \"Compressed\"" ) ;
         goto error ;
      }
 
@@ -3253,7 +3254,9 @@ namespace engine
          goto error ;
       }
 
-      rc = _buildCatalogRecord( alterInfo, mask, item->getGroupID(),
+      attribute = catSet.getAttribute() ;
+
+      rc = _buildCatalogRecord( alterInfo, mask, attribute, item->getGroupID(),
                                 item->getGroupName().c_str(),
                                 alterObj ) ;
       if ( SDB_OK != rc )
