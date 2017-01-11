@@ -112,27 +112,14 @@ namespace engine
          {
             return _state ;
          }
-         OSS_INLINE void close()
-         {
-            UINT32 timeout = 0 ;
-            _mtx.get() ;
-            _isConnected = FALSE ;
-            while ( _isInAsync && timeout < 60000 )
-            {
-               ossSleep( 50 ) ;
-               timeout += 50 ;
-            }
-            SDB_ASSERT( timeout < 60000, "socket is dead locked" ) ;
-            _sock.close() ;
-            _mtx.release() ;
-         }
+
+         void  close() ;
+
          UINT64 getLastSendTick() const { return _lastSendTick ; }
          UINT64 getLastRecvTick() const { return _lastRecvTick ; }
          UINT64 getLastBeatTick() const { return _lastBeatTick ; }
 
          void   syncLastBeatTick() ;
-
-         BOOLEAN isAcitve() const { return _isAcitve ; }
 
       public:
          void asyncRead() ;
@@ -169,14 +156,11 @@ namespace engine
          _netFrame                        *_frame ;
          NET_HANDLE                       _handle ;
          volatile BOOLEAN                 _isConnected ;
-         volatile BOOLEAN                 _isInAsync ;
          BOOLEAN                          _hasRecvMsg ;
          UINT64                           _lastSendTick ;
          UINT64                           _lastRecvTick ;
          UINT64                           _lastBeatTick ;
          UINT64                           _msgid ;
-
-         BOOLEAN                          _isAcitve ;
 
    };
 
