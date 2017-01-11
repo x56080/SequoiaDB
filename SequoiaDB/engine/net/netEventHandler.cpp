@@ -58,18 +58,18 @@ namespace engine
    {
       _id.value      = MSG_INVALID_ROUTEID ;
       _isConnected   = FALSE ;
-      _isInAsync     = FALSE ;
       _hasRecvMsg    = FALSE ;
       _lastSendTick  = pmdGetDBTick() ;
       _lastRecvTick  = pmdGetDBTick() ;
       _lastBeatTick  = pmdGetDBTick() ;
-      _isAcitve      = FALSE ;
       _msgid         = 0 ;
    }
 
    _netEventHandler::~_netEventHandler()
    {
+      boost::system::error_code ec ;
       close() ;
+      _sock.close( ec ) ;
       if ( NULL != _buf )
       {
          SDB_OSS_FREE( _buf ) ;
@@ -224,12 +224,11 @@ namespace engine
       if ( _isConnected )
       {
          close() ;
+         boost::system::error_code ec ;
+         _sock.close( ec ) ;
       }
 
-      _isAcitve = TRUE ;
-
-/*
-      try
+      /*try
       {
 
          boost::system::error_code ec ;
@@ -275,8 +274,8 @@ namespace engine
          rc = SDB_NET_CANNOT_CONNECT ;
          _sock.close() ;
          goto error ;
-      }
-*/
+      }*/
+
       UINT16 port = 0 ;
       rc = ossGetPort( serviceName, port ) ;
       if ( SDB_OK != rc )
@@ -332,7 +331,6 @@ namespace engine
       if ( NET_EVENT_HANDLER_STATE_HEADER == _state ||
            NET_EVENT_HANDLER_STATE_HEADER_LAST == _state )
       {
-         _isInAsync = TRUE ;
          if ( !_isConnected )
          {
             PD_LOG( PDWARNING, "Connection[routeID: %u,%u,%u; Handel: %u] "
@@ -375,7 +373,6 @@ namespace engine
          }
          ossMemcpy( _buf, &_header, sizeof( _MsgHeader ) ) ;
 
-         _isInAsync = TRUE ;
          if ( !_isConnected )
          {
             PD_LOG( PDWARNING, "Connection[routeID: %u,%u,%u; Handel: %u] "
@@ -392,11 +389,9 @@ namespace engine
       }
 
    done:
-      _isInAsync = FALSE ;
       PD_TRACE_EXIT ( SDB__NETEVNHND_ASYNCRD ) ;
       return ;
    error:
-      _isInAsync = FALSE ;
       if ( _isConnected )
       {
          close() ;
@@ -611,6 +606,20 @@ namespace engine
       _frame->handleClose( shared_from_this(), _id ) ;
       _frame->_erase( handle() ) ;
       goto done ;
+   }
+
+   void _netEventHandler::close()
+   {
+      boost::system::error_code ec ;
+
+      /// only shutdown, don't call _sock.close
+      /// because when close, the net-thread will be in asyncRead code.
+      /// then close will release socket's descriptor, but asyncRead
+      /// will used after, so it cuase null poiniter exception
+      /// To fix the bug, we call _sock.close in destructor
+      _sock.shutdown( boost::asio::ip::tcp::socket::shutdown_both,
+                      ec ) ;
+      _isConnected = FALSE ;
    }
 
 }
