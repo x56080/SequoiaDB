@@ -544,7 +544,6 @@ do                                                            \
       if ( _connection )
       {
          _connection->_unregCursor ( this ) ;
-         _connection = NULL ;
       }
       if ( _collection )
       {
@@ -555,6 +554,10 @@ do                                                            \
       if ( locked )
       {
          _connection->unlock () ;
+      }
+      if ( SDB_OK == rc )
+      {
+         _connection = NULL ;
       }
       return rc ;
    error :
@@ -8105,19 +8108,28 @@ error :
    error :
       goto done ;
    }
-
+   
    INT32 _sdbImpl::closeAllCursors()
    {
       INT32 rc = SDB_OK ;
 
       // set all the cursors' status to be closed
-      for ( std::set<ossValuePtr>::iterator it = _cursors.begin();
-            it != _cursors.end(); ++it )
+      while( TRUE )
       {
-         rc = ((_sdbCursorImpl *)(*it))->close() ;
-         if ( rc )
+         std::set<ossValuePtr>::iterator it = _cursors.begin();
+         if ( it != _cursors.end() )
          {
-            goto error ;
+            // for cursor.close() will unregister itself from "_cursors"
+            // so, we don't need to ++it to get next cursor
+            rc = ((_sdbCursorImpl *)(*it))->close() ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
+         else
+         {
+            break ;
          }
       }
    done :
