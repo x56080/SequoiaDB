@@ -494,8 +494,8 @@ namespace engine
 
       /// a:1 or a:{$et:1}
       if ( ( !e.isABSONObj() ||
-             0 != ossStrcmp( e.embeddedObject().firstElement().fieldName(),
-                           "$in") ) &&
+             0 == ossStrcmp( e.embeddedObject().firstElement().fieldName(),
+                             "$et") ) &&
            ( mask & RTN_COORD_PARSE_MASK_ET ) )
       {
          rc = _rtnCoordParseInt( e, value, mask ) ;
@@ -521,7 +521,10 @@ namespace engine
          }
       }
       /// a:{$in:[1,2,3]}
-      else if ( mask & RTN_COORD_PARSE_MASK_IN_OPR )
+      else if ( Object == e.type() &&
+                0 == ossStrcmp( e.embeddedObject().firstElement().fieldName(),
+                                "$in") &&
+                ( mask & RTN_COORD_PARSE_MASK_IN_OPR ) )
       {
          BSONObj obj = e.embeddedObject() ;
          BSONElement tmpE = obj.firstElement() ;
@@ -568,8 +571,8 @@ namespace engine
 
       /// a:"xxx" or a:{$et:"xxx"}
       if ( ( !e.isABSONObj() ||
-             0 != ossStrcmp( e.embeddedObject().firstElement().fieldName(),
-                             "$in") ) &&
+             0 == ossStrcmp( e.embeddedObject().firstElement().fieldName(),
+                             "$et") ) &&
            ( mask & RTN_COORD_PARSE_MASK_ET ) )
       {
          rc = _rtnCoordParseString( e, value, mask ) ;
@@ -595,7 +598,10 @@ namespace engine
          }
       }
       /// a:{$in:["xxx", "yyy", "zzz"]}
-      else if ( mask & RTN_COORD_PARSE_MASK_IN_OPR )
+      else if ( Object == e.type() &&
+                0 == ossStrcmp( e.embeddedObject().firstElement().fieldName(),
+                                "$in") &&
+                ( mask & RTN_COORD_PARSE_MASK_IN_OPR ) )
       {
          BSONObj obj = e.embeddedObject() ;
          BSONElement tmpE = obj.firstElement() ;
