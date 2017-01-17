@@ -786,6 +786,7 @@ int sdbSetBsonValue( sdbbson *bsonObj, const char *name, Datum valueDatum,
       case 1182:
       case 1014:
       case 1231:
+      case 1016:
       {
          INT32 i = 0 ;
          Datum datumTmp ;
