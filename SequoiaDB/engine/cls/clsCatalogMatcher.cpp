@@ -191,10 +191,19 @@ namespace engine
                while ( iter.more() )
                {
                   BSONElement beTmp = iter.next();
-                  BSONObj boTmp = beTmp.embeddedObject();
-                  rc = parseAnObj( boTmp, *pPredicateSet );
-                  PD_RC_CHECK( rc, PDERROR, "Failed to parse the field(rc=%d)",
-                               rc ) ;
+                  if ( Object == beTmp.type() )
+                  {
+                     BSONObj boTmp = beTmp.embeddedObject();
+                     rc = parseAnObj( boTmp, *pPredicateSet );
+                     PD_RC_CHECK( rc, PDERROR, "Failed to parse the field(rc=%d)",
+                                  rc ) ;
+                  }
+                  else
+                  {
+                     PD_LOG( PDERROR, "Wrong type of logic field" ) ;
+                     rc = SDB_INVALIDARG ;
+                     goto error ;
+                  }
                }
                if ( isNew )
                {
