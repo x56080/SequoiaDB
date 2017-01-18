@@ -15,13 +15,13 @@
  * Manual Compile:
  *    Dynamic Linking:
  *    Linux:
- *       g++ query.cpp common.cpp -o query -I../../include \
- *       -L../../lib -lsdbcpp
+ *       g++ query.cpp common.cpp -o query -I../../include  -O0 -ggdb \
+ *       -Wno-deprecated -L../../lib -lsdbcpp -lm -ldl
  *    Win:
- *       cl /Foquery.obj /c query.cpp /I..\..\include /wd4047
- *       cl /Focommon.obj /c common.cpp /I..\..\include /wd4047
- *       link /OUT:query.exe /LIBPATH:..\..\lib sdbcpp.lib query.obj common.obj
- *       copy ..\..\lib\sdbcpp.dll .
+ *       cl /Foquery.obj /c query.cpp /I..\..\include /wd4047 /Od /MDd /RTC1 /Z7 /TP
+ *       cl /Focommon.obj /c common.cpp /I..\..\include /wd4047 /Od /MDd /RTC1 /Z7 /TP
+ *       link /OUT:query.exe /LIBPATH:..\..\lib\cpp\debug\dll sdbcppd.lib query.obj common.obj /build
+ *       copy ..\..\lib\cpp\debug\dll\sdbcppd.dll .
  *    Static Linking:
  *    Linux: g++ query.cpp common.cpp -o query.static -I../../include -O0
  *           -ggdb -Wno-deprecated ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread
