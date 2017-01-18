@@ -1446,40 +1446,6 @@ namespace bson {
         }
     }
 
-    BSONObjBuilder& BSONObjBuilder::append( const StringData& fieldName, 
-                                            const bsonDecimal& decimal )
-    {
-        int i        = 0 ;
-        int size     = 0 ;
-        short weight = 0 ;
-        int typemod  = 0 ;
-        short scale  = 0 ;
-        int ndigit   = 0 ;
-        const short *digits = NULL ;
-
-        weight  = decimal.getWeight() ;
-        typemod = decimal.getTypemod() ;
-        scale   = decimal.getStorageScale() ;
-        ndigit  = decimal.getNdigit() ;
-        digits  = decimal.getDigits() ;
-        size    = decimal.getSize() ;
-
-        //define in common_decimal.h __decimal
-        _b.appendNum( (char) NumberDecimal ) ;
-        _b.appendStr( fieldName ) ;
-        _b.appendNum( size ) ;         // size
-        _b.appendNum( typemod ) ;      // typemod
-        _b.appendNum( scale ) ;        // sign + dscale
-        _b.appendNum( weight ) ;       // weight
-        
-        for ( i = 0 ; i < ndigit ; i++ )
-        {
-            _b.appendNum( digits[i] ) ;
-        }
-
-        return *this;
-    }
-
     bool BSONObjBuilder::appendDecimal( const StringData& fieldName, 
                                         const StringData& strDecimal, 
                                         int precision, int scale )
@@ -1658,4 +1624,4 @@ namespace bson {
         return v;
     }
 
-} // namespace mongo
+} // namespace bson

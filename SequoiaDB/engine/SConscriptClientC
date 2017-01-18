@@ -7,7 +7,31 @@ Import("windows")
 Import("ssllib_file")
 Import("ssllib_file1")
 Import("mergeStaticLibrary")
+Import("release")
+Import("debugBuild")
 
+
+# release or debug build
+release_build = release
+debug_build = debugBuild
+
+
+# set the compile options
+dllLibEnv = clientCEnv.Clone()
+staticLibEnv = clientCEnv.Clone()
+
+
+# set compile options for building in windows 
+if windows:
+    if release_build:
+        dllLibEnv.Append( CPPFLAGS= " /MD " )
+        staticLibEnv.Append( CPPFLAGS= " /MT " )
+    elif debug_build:
+        dllLibEnv.Append( CPPFLAGS= " /MDd " )
+        staticLibEnv.Append( CPPFLAGS= " /MTd " )
+
+
+# files
 clientCFiles = [
       "client/client.c"
       ]
@@ -37,27 +61,41 @@ clientCLibFiles = [
 
 #Shared Library
 if aix:
-    clientCLib = clientCEnv.SharedLibrary('sdbc', [clientCLibFiles, ssllib_file1, ssllib_file])
-    clientCEnv.Install( '#/client/lib', clientCLib )
-else:
-    clientCLib = clientCEnv.SharedLibrary('sdbc', clientCLibFiles)
-    clientCEnv.Install( '#/client/lib', clientCLib )
+    dllLib = dllLibEnv.SharedLibrary('sdbc', [clientCLibFiles, ssllib_file1, ssllib_file])
+    dllLibEnv.Install( '#/client/lib', dllLib )
+elif linux:
+    dllLib = dllLibEnv.SharedLibrary('sdbc', clientCLibFiles)
+    dllLibEnv.Install( '#/client/lib', dllLib )
+elif windows:
+    if release_build:
+        dllLib = dllLibEnv.SharedLibrary( 'sdbc', clientCLibFiles, OBJSUFFIX='_dll' )
+        dllLibEnv.Install( '#/client/lib/c/release/dll', dllLib )
+    elif debug_build:
+        dllLib = dllLibEnv.SharedLibrary( 'sdbcd', clientCLibFiles, OBJSUFFIX='_dll' )
+        dllLibEnv.Install( '#/client/lib/c/debug/dll', dllLib )
 
 #Static Library
 dir = ''
-def merge(target, source = None, env = clientCEnv):
+def merge(target, source = None, env = staticLibEnv):
     pureLib = dir + '/libstaticpuresdbc.a'
-    clientCLibStatic = dir + '/libstaticsdbc.a'
-    mergeStaticLibrary(clientCLibStatic, aix, ssllib_file, ssllib_file1, pureLib)
-    clientCEnv.Install( '#/client/lib/', clientCLibStatic )
+    staticLib = dir + '/libstaticsdbc.a'
+    mergeStaticLibrary(staticLib, aix, ssllib_file, ssllib_file1, pureLib)
+    staticLibEnv.Install( '#/client/lib/', staticLib )
 
 if linux or aix:
-   staticPureSdbCLib = clientCEnv.StaticLibrary('staticpuresdbc', clientCLibFiles)
-   dir = os.path.dirname(staticPureSdbCLib[0].get_abspath())
-   clientCEnv.AddPostAction(staticPureSdbCLib, Action(merge))
+    staticPureSdbCLib = staticLibEnv.StaticLibrary('staticpuresdbc', clientCLibFiles)
+    dir = os.path.dirname(staticPureSdbCLib[0].get_abspath())
+    staticLibEnv.AddPostAction(staticPureSdbCLib, Action(merge))
 elif windows:
-   clientCLibStatic = clientCEnv.StaticLibrary('staticsdbc', [clientCLibFiles, ssllib_file, ssllib_file1])
-   clientCEnv.Install( '#/client/lib/', clientCLibStatic )
+    ""
+    ## we are not going to issue static library, although there is no error.
+    #if release_build:
+    #    staticLib = staticLibEnv.StaticLibrary('staticsdbc', [clientCLibFiles, ssllib_file, ssllib_file1])
+    #    staticLibEnv.Install( '#/client/lib/c/release/static', staticLib )
+    #elif debug_build:
+    #    staticLib = staticLibEnv.StaticLibrary('staticsdbcd', [clientCLibFiles, ssllib_file, ssllib_file1])
+    #    staticLibEnv.Install( '#/client/lib/c/debug/static', staticLib )
+
 
 #Header files
 clientCEnv.Install( '#/client/include', "client/client.h" )
@@ -72,4 +110,3 @@ clientCEnv.Install( '#/client/include/', "include/ossTypes.h" )
 clientCEnv.Install( '#/client/include/', "include/spd.h" )
 clientCEnv.Install( '#/client/include/', "include/common_decimal.h" )
 clientCEnv.Install( '#/client/include/', "client/clientDef.h" )
-

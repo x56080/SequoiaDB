@@ -724,12 +724,12 @@ elif "win32" == guess_os:
     if release:
         env.Append( CPPDEFINES=[ "NDEBUG" ] )
         env.Append( CPPFLAGS= " /O2 /Gy " )
-        env.Append( CPPFLAGS= " /MT /Zi /errorReport:none " )
+        env.Append( CPPFLAGS= " /Zi /errorReport:none " )
         env.Append( CPPFLAGS= " /GL " )
         env.Append( LINKFLAGS=" /LTCG " )
         env.Append( LINKFLAGS=" /DEBUG " )
     else:
-        env.Append( CPPFLAGS=" /RTC1 /MDd /Z7 /errorReport:none " )
+        env.Append( CPPFLAGS=" /RTC1 /Z7 /errorReport:none " )
 
         if debugBuild:
             env.Append( LINKFLAGS=" /debug " )
@@ -741,13 +741,7 @@ elif "win32" == guess_os:
     else:
         env.Append( EXTRALIBPATH=[ winSDKHome + "/Lib" ] )
 
-    if release:
-        env.Append( LINKFLAGS=" /NODEFAULTLIB:MSVCPRT  " )
-    else:
-        env.Append( LINKFLAGS=" /NODEFAULTLIB:MSVCPRT  /NODEFAULTLIB:MSVCRT  " )
-
     winLibString = "ws2_32.lib kernel32.lib advapi32.lib Psapi.lib"
-
     winLibString += " user32.lib gdi32.lib winspool.lib comdlg32.lib  shell32.lib ole32.lib oleaut32.lib "
     winLibString += " odbc32.lib odbccp32.lib uuid.lib dbghelp.lib "
 
@@ -868,6 +862,19 @@ fapEnv["BUILD_DIR"] = fapVariantDir
 clientCppEnv["BUILD_DIR"] = clientCppVariantDir
 clientCEnv["BUILD_DIR"] = clientCVariantDir
 
+# we do not want c/cpp client to have those "CPPFLAGS",
+# so just append them here
+# those flags "LINKFLAGS" will cause LNK2001 errors
+# when we build dlls of cpp, so just append them here.
+if windows:
+    if release:
+        env.Append( CPPFLAGS= " /MT " )
+        env.Append( LINKFLAGS=" /NODEFAULTLIB:MSVCPRT  " )
+    else:
+        env.Append( CPPFLAGS= " /MDd " )
+        env.Append( LINKFLAGS=" /NODEFAULTLIB:MSVCPRT  /NODEFAULTLIB:MSVCRT  " )
+
+
 # --- append boost library to env ---
 if nix:
    for b in boostLibs:
@@ -937,6 +944,7 @@ if fmpEnv is not None:
     fmpEnv['INSTALL_DIR'] = installDir
 if fapEnv is not None:
     fapEnv['INSTALL_DIR'] = installDir
+
 # The following symbols are exported for use in subordinate SConscript files.
 # Ideally, the SConscript files would be purely declarative.  They would only
 # import build environment objects, and would contain few or no conditional
@@ -970,6 +978,8 @@ Export("driverDir")
 Export("guess_os")
 Export("mergeStaticLibrary")
 Export("hasSSL")
+Export("release")
+Export("debugBuild")
 
 # Generating Versioning information
 # In order to change the file location, we have to modify both win32 and linux

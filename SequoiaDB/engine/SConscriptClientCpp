@@ -7,7 +7,31 @@ Import("windows")
 Import("ssllib_file")
 Import("ssllib_file1")
 Import("mergeStaticLibrary")
+Import("release")
+Import("debugBuild")
 
+
+# release or debug build
+release_build = release
+debug_build = debugBuild
+
+
+# set the compile options
+dllLibEnv = clientCppEnv.Clone()
+staticLibEnv = clientCppEnv.Clone()
+
+
+# set compile options for building in windows 
+if windows:
+    if release_build:
+        dllLibEnv.Append( CPPFLAGS= " /MD " )
+        staticLibEnv.Append( CPPFLAGS= " /MT " )
+    elif debug_build:
+        dllLibEnv.Append( CPPFLAGS= " /MDd " )
+        staticLibEnv.Append( CPPFLAGS= " /MTd " )
+
+
+# files
 clientCPPFiles = [
       "client/clientcpp.cpp"
       ]
@@ -49,30 +73,50 @@ clientCPPLibFiles = [
       "bson/bsonDecimal.cpp"
       ]
 
-#Shared Library
-if aix:
-    clientCPPLib = clientCppEnv.SharedLibrary('sdbcpp', [clientCPPLibFiles, ssllib_file1, ssllib_file])
-    clientCppEnv.Install( '#/client/lib/', clientCPPLib )
-else:
-    clientCPPLib = clientCppEnv.SharedLibrary('sdbcpp', clientCPPLibFiles)
-    clientCppEnv.Install( '#/client/lib/', clientCPPLib )
 
 #Static Library
 dir = ''
-def merge(target, source = None, env = clientCppEnv):
+def merge(target, source = None, env = staticLibEnv):
     pureLib = dir + '/libstaticpuresdbcpp.a'
-    clientCPPLibStatic = dir + '/libstaticsdbcpp.a'
-    mergeStaticLibrary(clientCPPLibStatic, aix, ssllib_file, ssllib_file1, pureLib)
-    clientCppEnv.Install( '#/client/lib/', clientCPPLibStatic )
+    mergeStaticLib = dir + '/libstaticsdbcpp.a'
+    mergeStaticLibrary( mergeStaticLib, aix, ssllib_file, ssllib_file1, pureLib )
+    staticLibEnv.Install( '#/client/lib/', mergeStaticLib )
 
 if linux or aix:
-   staticPureSdbCPPLib = clientCppEnv.StaticLibrary('staticpuresdbcpp', clientCPPLibFiles)
-   dir = os.path.dirname(staticPureSdbCPPLib[0].get_abspath())
-   clientCPPLibStatic = dir + '/libstaticsdbcpp.a'
-   clientCppEnv.AddPostAction(staticPureSdbCPPLib, Action(merge))
+    staticPureSdbCPPLib = staticLibEnv.StaticLibrary('staticpuresdbcpp', clientCPPLibFiles)
+    dir = os.path.dirname(staticPureSdbCPPLib[0].get_abspath())
+    staticLib = dir + '/libstaticsdbcpp.a'
+    staticLibEnv.AddPostAction(staticPureSdbCPPLib, Action(merge))
 elif windows:
-   clientCPPLibStatic = clientCppEnv.StaticLibrary('staticsdbcpp', [clientCPPLibFiles, ssllib_file, ssllib_file1])
-   clientCppEnv.Install( '#/client/lib/', clientCPPLibStatic )
+    ""
+    ## static library of cpp is unavailable. app may crash by using static library
+    #if release_build:
+    #    staticLib = staticLibEnv.StaticLibrary('staticsdbcpp', [clientCPPLibFiles, ssllib_file, ssllib_file1] )
+    #    staticLibEnv.Install( '#/client/lib/cpp/release/static', staticLib )
+    #elif debug_build:
+    #    staticLib = staticLibEnv.StaticLibrary('staticsdbcppd', [clientCPPLibFiles, ssllib_file, ssllib_file1] )
+    #    staticLibEnv.Install( '#/client/lib/cpp/debug/static', staticLib )
+
+
+#Shared Library
+if aix:
+    dllLib = dllLibEnv.SharedLibrary('sdbcpp', [clientCPPLibFiles, ssllib_file1, ssllib_file])
+    dllLibEnv.Install( '#/client/lib/', dllLib )
+elif linux:
+    dllLib = dllLibEnv.SharedLibrary('sdbcpp', clientCPPLibFiles)
+    dllLibEnv.Install( '#/client/lib/', dllLib )
+elif windows:
+    if release_build:
+    		#print "dllLibEnv is:"
+    		#print dllLibEnv.Dump()
+        dllLib = dllLibEnv.SharedLibrary( 'sdbcpp', clientCPPLibFiles, OBJSUFFIX='_dll' )
+        dllLibEnv.Install( '#/client/lib/cpp/release/dll', dllLib )
+    elif debug_build:
+        #print "dllLibEnv is:"
+        #print dllLibEnv.Dump()
+        dllLib = dllLibEnv.SharedLibrary( 'sdbcppd', clientCPPLibFiles, OBJSUFFIX='_dll' )
+        dllLibEnv.Install( '#/client/lib/cpp/debug/dll', dllLib )
+
 
 #Header files
 clientCppEnv.Install( '#/client/include/', "client/client.hpp" )
