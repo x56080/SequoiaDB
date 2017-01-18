@@ -18,15 +18,15 @@
  *    Win:
  *       cl /Foinsert.obj /c insert.c /I..\..\include /wd4047
  *       cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *       link /OUT:insert.exe /LIBPATH:..\..\lib sdbc.lib insert.obj common.obj
- *       copy ..\..\lib\sdbc.dll .
+ *       link /OUT:insert.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib insert.obj common.obj
+ *       copy ..\..\lib\c\debug\dll\sdbcd.dll .
  *    Static Linking:
  *    Linux: cc insert.c common.c -o insert.static -I../../include -O0
  *           -ggdb ../../lib/libstaticsdbc.a -lm -ldl -lpthread
  *    Win:
  *       cl /Foinsertstatic.obj /c insert.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
  *       cl /Focommonstatic.obj /c common.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       link /OUT:insertstatic.exe /LIBPATH:..\..\lib staticsdbc.lib insertstatic.obj commonstatic.obj
+ *       link /OUT:insertstatic.exe /LIBPATH:..\..\lib\c\debug\static staticsdbcd.lib insertstatic.obj commonstatic.obj
  * Run:
  *    Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./insert <hostname> <servicename> \
  *           <Username> <Username>

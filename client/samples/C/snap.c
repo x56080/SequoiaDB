@@ -17,15 +17,15 @@
  *    Win:
  *       cl /Fosnap.obj /c snap.c /I..\..\include /wd4047
  *       cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *       link /OUT:snap.exe /LIBPATH:..\..\lib sdbc.lib snap.obj common.obj
- *       copy ..\..\lib\sdbc.dll .
+ *       link /OUT:snap.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib snap.obj common.obj
+ *       copy ..\..\lib\c\debug\dll\sdbcd.dll .
  *    Static Linking:
  *    Linux: cc snap.c common.c -o snap.static -I../../include -O0
  *           -ggdb ../../lib/libstaticsdbc.a -lm -ldl -lpthread
  *    Win:
  *       cl /Fosnapstatic.obj /c snap.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
  *       cl /Focommonstatic.obj /c common.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       link /OUT:snapstaic.exe /LIBPATH:..\..\lib staticsdbc.lib snapstatic.obj commonstatic.obj
+ *       link /OUT:snapstaic.exe /LIBPATH:..\..\lib\c\debug\static staticsdbcd.lib snapstatic.obj commonstatic.obj
  * Run:
  *    Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./snap <hostname> <servicename> \
  *           <Username> <Username>

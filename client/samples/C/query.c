@@ -16,15 +16,15 @@
  *    Win:
  *       cl /Foquery.obj /c query.c /I..\..\include /wd4047
  *       cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *       link /OUT:query.exe /LIBPATH:..\..\lib sdbc.lib query.obj common.obj
- *       copy ..\..\lib\sdbc.dll .
+ *       link /OUT:query.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib query.obj common.obj
+ *       copy ..\..\lib\c\debug\dll\sdbcd.dll .
  *    Static Linking:
  *    Linux: cc query.c common.c -o query.static -I../../include -O0
  *           -ggdb ../../lib/libstaticsdbc.a -lm -ldl -lpthread
  *    Win:
  *       cl /Foquerystatic.obj /c query.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
  *       cl /Focommonstatic.obj /c common.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       link /OUT:querystaic.exe /LIBPATH:..\..\lib staticsdbc.lib querystatic.obj commonstatic.obj
+ *       link /OUT:querystaic.exe /LIBPATH:..\..\lib\c\debug\static staticsdbcd.lib querystatic.obj commonstatic.obj
  * Run:
  *    Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./query <hostname> <servicename> \
  *           <Username> <Username>

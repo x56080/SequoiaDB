@@ -16,19 +16,19 @@
  *    Win:
  *       cl /Foquery.obj /c lob.c /I..\..\include /wd4047
  *       cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *       link /OUT:lob.exe /LIBPATH:..\..\lib sdbc.lib lob.obj common.obj
- *       copy ..\..\lib\sdbc.dll .
+ *       link /OUT:lob.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib lob.obj common.obj
+ *       copy ..\..\lib\c\debug\dll\sdbcd.dll .
  *    Static Linking:
  *    Linux: cc lob.c common.c -o lob.static -I../../include -O0
  *           -ggdb ../../lib/libstaticsdbc.a -lm -ldl -lpthread
  *    Win:
  *       cl /Foquerystatic.obj /c lob.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
  *       cl /Focommonstatic.obj /c common.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       link /OUT:lobstaic.exe /LIBPATH:..\..\lib staticsdbc.lib lobstatic.obj commonstatic.obj
+ *       link /OUT:lobstaic.exe /LIBPATH:..\..\lib\c\debug\static staticsdbcd.lib lobstatic.obj commonstatic.obj
  * Run:
- *    Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./query <hostname> <servicename> \
+ *    Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./lob <hostname> <servicename> \
  *           <Username> <Username>
- *    Win: query.exe <hostname> <servicename> <Username> <Username>
+ *    Win: lob.exe <hostname> <servicename> <Username> <Username>
  * Note: While the appended data invalid, C BSON API will return error code,
  *       we need to handle this kind of error. Please see bson.h for more
  *       detail.

@@ -20,15 +20,15 @@
  *    Win:
  *       cl /Fosampledb.obj /c sampledb.c /I..\..\include /wd4047
  *       cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *       link /OUT:sampledb.exe /LIBPATH:..\..\lib sdbc.lib sampledb.obj common.obj
- *       copy ..\..\lib\sdbc.dll .
+ *       link /OUT:sampledb.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib sampledb.obj common.obj
+ *       copy ..\..\lib\c\debug\dll\sdbcd.dll .
  *    Static Linking:
  *    Linux: cc sampledb.c common.c -o sampledb.static -I../../include -O0
  *           -ggdb ../../lib/libstaticsdbc.a -lm -ldl -lpthread
  *    Win:
  *       cl /Fosampledbstatic.obj /c sampledb.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
  *       cl /Focommonstatic.obj /c common.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       link /OUT:sampledbstaic.exe /LIBPATH:..\..\lib staticsdbc.lib sampledbstatic.obj commonstatic.obj
+ *       link /OUT:sampledbstaic.exe /LIBPATH:..\..\lib\c\debug\static staticsdbcd.lib sampledbstatic.obj commonstatic.obj
  * Run:
  *    Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./sampledb <hostname> <servicename> \
  *           <Username> <Username>

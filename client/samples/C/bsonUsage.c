@@ -13,15 +13,15 @@
  *    Win:
  *       cl /FobsonUsage.obj /c bsonUsage.c /I..\..\include /wd4047
  *       cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *       link /OUT:bsonUsage.exe /LIBPATH:..\..\lib sdbc.lib bsonUsage.obj common.obj
- *       copy ..\..\lib\sdbc.dll .
+ *       link /OUT:bsonUsage.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib bsonUsage.obj common.obj
+ *       copy ..\..\lib\c\debug\dll\sdbcd.dll .
  *    Static Linking:
  *    Linux: cc bsonUsage.c common.c -o bsonUsage.static -I../../include -O0
  *           -ggdb ../../lib/libstaticsdbc.a -lm -ldl -lpthread
  *    Win:
  *       cl /FobsonUsagestatic.obj /c bsonUsage.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
  *       cl /Focommonstatic.obj /c common.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       link /OUT:bsonUsagestaic.exe /LIBPATH:..\..\lib staticsdbc.lib bsonUsagestatic.obj commonstatic.obj
+ *       link /OUT:bsonUsagestaic.exe /LIBPATH:..\..\c\debug\static\lib staticsdbcd.lib bsonUsagestatic.obj commonstatic.obj
  * Run:
  *    Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./bsonUsage
  *    Win: bsonUsage.exe

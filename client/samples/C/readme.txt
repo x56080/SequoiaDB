@@ -7,8 +7,8 @@ Compile and run example:
  * Win:
  *    cl /Foquery.obj /c query.c /I..\..\include /wd4047
  *    cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *    link /OUT:query.exe /LIBPATH:..\..\lib sdbc.lib query.obj common.obj
- *    copy ..\..\lib\sdbc.dll .
+ *    link /OUT:query.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib query.obj common.obj
+ *    copy ..\..\lib\c\debug\dll\sdbcd.dll .
  * Run:
  * Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./query <hostname> <servicename> \
  *        <Username> <Username>

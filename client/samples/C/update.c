@@ -17,15 +17,15 @@
  *    Win:
  *       cl /Foupdate.obj /c update.c /I..\..\include /wd4047
  *       cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *       link /OUT:update.exe /LIBPATH:..\..\lib sdbc.lib update.obj common.obj
- *       copy ..\..\lib\sdbc.dll .
+ *       link /OUT:update.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib update.obj common.obj
+ *       copy ..\..\lib\c\debug\dll\sdbcd.dll .
  *    Static Linking:
  *    Linux: cc update.c common.c -o update.static -I../../include -O0
  *           -ggdb ../../lib/libstaticsdbc.a -lm -ldl -lpthread
  *    Win:
  *       cl /Foupdatestatic.obj /c update.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
  *       cl /Focommonstatic.obj /c common.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       link /OUT:updatestaic.exe /LIBPATH:..\..\lib staticsdbc.lib updatestatic.obj commonstatic.obj
+ *       link /OUT:updatestaic.exe /LIBPATH:..\..\lib\c\debug\static staticsdbcd.lib updatestatic.obj commonstatic.obj
  * Run:
  *    Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./update <hostname> <servicename> \
  *           <Username> <Username>

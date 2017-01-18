@@ -17,15 +17,15 @@
  *    Win:
  *       cl /Foupdate.obj /c upsert.c /I..\..\include /wd4047
  *       cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *       link /OUT:upsert.exe /LIBPATH:..\..\lib sdbc.lib upsert.obj common.obj
- *       copy ..\..\lib\sdbc.dll .
+ *       link /OUT:upsert.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib upsert.obj common.obj
+ *       copy ..\..\lib\c\debug\dll\sdbcd.dll .
  *    Static Linking:
  *       Linux: cc upsert.c common.c -o upsert.static -I../../include -O0
  *              -ggdb ../../lib/libstaticsdbc.a -lm -ldl -lpthread
  *       Win:
  *          cl /Foupsertstatic.obj /c upsert.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
  *          cl /Focommonstatic.obj /c common.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *          link /OUT:upsertstaic.exe /LIBPATH:..\..\lib staticsdbc.lib upsertstatic.obj commonstatic.obj
+ *          link /OUT:upsertstaic.exe /LIBPATH:..\..\lib\c\debug\static staticsdbcd.lib upsertstatic.obj commonstatic.obj
  * Run:
  * Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./upsert <hostname> <servicename> \
  *        <Username> <Username>

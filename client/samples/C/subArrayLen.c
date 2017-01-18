@@ -12,15 +12,15 @@
  *    Win:
  *       cl /FosubArrayLen.obj /c subArrayLen.c /I..\..\include /wd4047
  *       cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *       link /OUT:subArrayLen.exe /LIBPATH:..\..\lib sdbc.lib subArrayLen.obj common.obj
- *       copy ..\..\lib\sdbc.dll .
+ *       link /OUT:subArrayLen.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib subArrayLen.obj common.obj
+ *       copy ..\..\lib\c\debug\dll\sdbcd.dll .
  *    Static Linking:
  *    Linux: cc subArrayLen.c common.c -o subArrayLen.static -I../../include -O0
  *           -ggdb ../../lib/libstaticsdbc.a -lm -ldl -lpthread
  *    Win:
  *       cl /FosubArrayLenstatic.obj /c subArrayLen.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
  *       cl /Focommonstatic.obj /c common.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       link /OUT:subArrayLenstaic.exe /LIBPATH:..\..\lib staticsdbc.lib subArrayLenstatic.obj commonstatic.obj
+ *       link /OUT:subArrayLenstaic.exe /LIBPATH:..\..\lib\c\debug\dll staticsdbcd.lib subArrayLenstatic.obj commonstatic.obj
  * Run:
  *    Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./subArrayLen
  *    Win: subArrayLen.exe

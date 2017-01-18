@@ -17,15 +17,15 @@
  *    Win:
  *       cl /Foupdate_use_id.obj /c update_use_id.c /I..\..\include /wd4047
  *       cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *       link /OUT:update_use_id.exe /LIBPATH:..\..\lib sdbc.lib update_use_id.obj common.obj
- *       copy ..\..\lib\sdbc.dll .
+ *       link /OUT:update_use_id.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib update_use_id.obj common.obj
+ *       copy ..\..\lib\c\debug\dll\sdbcd.dll .
  *    Static Linking:
  *    Linux: cc update_use_id.c common.c -o update_use_id.static -I../../include -O0
  *           -ggdb ../../lib/libstaticsdbc.a -lm -ldl -lpthread
  *    Win:
  *       cl /Foupdate_use_idstatic.obj /c update_use_id.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
  *       cl /Focommonstatic.obj /c common.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       link /OUT:update_use_idstaic.exe /LIBPATH:..\..\lib staticsdbc.lib update_use_idstatic.obj commonstatic.obj
+ *       link /OUT:update_use_idstaic.exe /LIBPATH:..\..\lib\c\debug\static staticsdbcd.lib update_use_idstatic.obj commonstatic.obj
  * Run:
  *    Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./update_use_id <hostname> <servicename> \
  *           <Username> <Username>

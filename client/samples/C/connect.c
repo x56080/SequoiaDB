@@ -17,19 +17,19 @@
  *    Win:
  *       cl /Foconnect.obj /c connect.c /I..\..\include /wd4047
  *       cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *       link /OUT:connect.exe /LIBPATH:..\..\lib sdbc.lib connect.obj common.obj
- *       copy ..\..\lib\sdbc.dll .
+ *       link /OUT:connect.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib connect.obj common.obj
+ *       copy ..\..\lib\c\debug\dll\sdbcd.dll .
  *    Static Linking:
  *    Linux: cc connect.c common.c -o connect.static -I../../include -O0
  *           -ggdb ../../lib/libstaticsdbc.a -lm -ldl -lpthread
  *    Win:
  *       cl /Foconnectstatic.obj /c connect.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
  *       cl /Focommonstatic.obj /c common.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       link /OUT:connectstaic.exe /LIBPATH:..\..\lib staticsdbc.lib connectstatic.obj commonstatic.obj
+ *       link /OUT:connectstaic.exe /LIBPATH:..\..\lib\c\debug\static staticsdbcd.lib connectstatic.obj commonstatic.obj
  * Run:
  *    Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./connect <hostname> <servicename> \
  *           <Username> <Username>
- *    Win: insert.exe <hostname> <servicename> <Username> <Username>
+ *    Win: connect.exe <hostname> <servicename> <Username> <Username>
  *
  ******************************************************************************/
 #include <stdio.h>

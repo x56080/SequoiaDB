@@ -18,15 +18,15 @@
  *    Win:
  *       cl /Fosql.obj /c sql.c /I..\..\include /wd4047
  *       cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *       link /OUT:sql.exe /LIBPATH:..\..\lib sdbc.lib sql.obj common.obj
- *       copy ..\..\lib\sdbc.dll .
+ *       link /OUT:sql.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib sql.obj common.obj
+ *       copy ..\..\lib\c\debug\dll\sdbcd.dll .
  *    Static Linking:
  *    Linux: cc sql.c common.c -o sql.static -I../../include -O0
  *           -ggdb ../../lib/libstaticsdbc.a -lm -ldl -lpthread
  *    Win:
  *       cl /Fosqlstatic.obj /c sql.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
  *       cl /Focommonstatic.obj /c common.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       link /OUT:sqlstaic.exe /LIBPATH:..\..\lib staticsdbc.lib sqlstatic.obj commonstatic.obj
+ *       link /OUT:sqlstaic.exe /LIBPATH:..\..\lib\c\debug\static staticsdbcd.lib sqlstatic.obj commonstatic.obj
  * Run:
  *    Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./sql <hostname> <servicename> \
  *           <Username> <Username>
