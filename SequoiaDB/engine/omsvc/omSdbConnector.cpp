@@ -271,7 +271,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omSdbConnector::_setAttr( const string &preferedInstance )
+   INT32 _omSdbConnector::_setAttr( INT32 preferedInstance )
    {
       INT32 rc = SDB_OK ;
       MsgHeader *reqMsg     = NULL ;
@@ -281,7 +281,7 @@ namespace engine
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SETSESS_ATTR ;
 
-      if ( "" == preferedInstance )
+      if ( 0 > preferedInstance )
       {
          goto done ;
       }
@@ -335,7 +335,7 @@ namespace engine
 
    INT32 _omSdbConnector::init( const string &hostName, UINT32 port, 
                                 const string &user, const string &passwd,
-                                const string &preferedInstance )
+                                INT32 preferedInstance )
    {
       INT32 rc = SDB_OK ;
       if ( _init )
@@ -363,8 +363,8 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDWARNING, "set attribute failed:host=%s,port=%u,user=%s,"
-                 "preferedInstance=%s,rc=%d", hostName.c_str(), port, 
-                 user.c_str(), preferedInstance.c_str(), rc ) ;
+                 "preferedInstance=%d,rc=%d", hostName.c_str(), port, 
+                 user.c_str(), preferedInstance, rc ) ;
          rc = SDB_OK ;
       }
 

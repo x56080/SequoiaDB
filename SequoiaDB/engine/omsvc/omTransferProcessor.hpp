@@ -49,7 +49,7 @@ namespace engine
       string service ;
       string user ;
       string passwd ;
-      string preferedInstance ;
+      INT32 preferedInstance ;
 
       _omNodeInfo() 
       {
@@ -57,7 +57,7 @@ namespace engine
          service  = "" ;
          user     = "" ;
          passwd   = "" ;
-         preferedInstance = "" ;
+         preferedInstance = 1 ;
       }
 
       _omNodeInfo( const _omNodeInfo& nodeInfo )

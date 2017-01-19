@@ -439,11 +439,11 @@ namespace engine
                   node.passwd   = passwd ;
                   if ( role == SDB_ROLE_STANDALONE_STR )
                   {
-                     node.preferedInstance = "" ;
+                     node.preferedInstance = 1 ;
                   }
                   else
                   {
-                     node.preferedInstance = "M" ;
+                     node.preferedInstance = 8 ;
                   }
                   nodeList.push_back( node ) ;
                }

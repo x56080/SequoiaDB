@@ -55,7 +55,7 @@ namespace engine
          ~_omSdbConnector() ;
          INT32    init( const string &hostName, UINT32 port, 
                         const string &user, const string &passwd,
-                        const string &preferedInstance ) ;
+                        INT32 preferedInstance ) ;
 
          INT32    sendMessage( const MsgHeader *msg ) ;
          INT32    recvMessage( MsgHeader **msg ) ;
@@ -69,7 +69,7 @@ namespace engine
          INT32    _requestSysInfo() ;
          INT32    _authority( const string &user, const string &passwd ) ;
          INT32    _negotiation( const string &user, const string &passwd ) ;
-         INT32    _setAttr( const string &preferedInstance ) ;
+         INT32    _setAttr( INT32 preferedInstance ) ;
 
       private:
          string      _hostName ;
