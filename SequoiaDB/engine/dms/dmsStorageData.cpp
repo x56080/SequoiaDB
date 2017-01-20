@@ -2219,6 +2219,8 @@ namespace engine
       UINT32 oidLen                 = 0 ;
       UINT32 dmsRecordSize          = 0 ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
+      CHAR *pMergedData             = NULL ;
+      BOOLEAN hasInsert             = FALSE ;
       dpsTransCB *pTransCB          = pmdGetKRCB()->getTransCB() ;
       UINT32 logRecSize             = 0 ;
       monAppCB * pMonAppCB          = cb ? cb->getMonAppCB() : NULL ;
@@ -2238,7 +2240,6 @@ namespace engine
       dmsRecordID foundDeletedID ;
       ossValuePtr extentPtr         = 0 ;
       ossValuePtr deletedRecordPtr  = 0 ;
-      ossValuePtr insertedDataPtr   = 0 ;
       BSONObj insertObj ;
       BOOLEAN dataModified          = FALSE ;
       UINT8 compressRatio           = 0 ;
@@ -2263,6 +2264,26 @@ namespace engine
          oidLen = oidEle.size() ;
          addOID = TRUE ;
          dataModified = TRUE ;
+         rc = cb->allocBuff( oidEle.size() + record.objsize(),
+                             &pMergedData ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Alloc memory[size:%u] failed, rc: %d",
+                    oidEle.size() + record.objsize(), rc ) ;
+            goto error ;
+         }
+         /// copy to new data
+         *(INT32*)pMergedData = oidEle.size() + record.objsize() ;
+         ossMemcpy( pMergedData + sizeof(INT32), oidEle.rawdata(),
+                    oidEle.size() ) ;
+         ossMemcpy( pMergedData + sizeof(INT32) + oidEle.size(),
+                    record.objdata() + sizeof(INT32),
+                    record.objsize() - sizeof(INT32) ) ;
+         insertObj = BSONObj( ( const CHAR* )pMergedData ) ;
+      }
+      else
+      {
+         insertObj = record ;
       }
       // check
       if ( record.objsize() + DMS_RECORD_METADATA_SZ + oidLen >
@@ -2334,11 +2355,11 @@ namespace engine
       {
          _clFullName( context->mb()->_collectionName, fullName,
                       sizeof(fullName) ) ;
-         rc = dpsInsert2Record( fullName, record, transID,
+         rc = dpsInsert2Record( fullName, insertObj, transID,
                                 preTransLsn, relatedLsn, logRecord ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
 
-         logRecSize = ossAlign4( logRecord.alignedLen() + oidLen ) ;
+         logRecSize = ossAlign4( logRecord.alignedLen() ) ;
 
          rc = dpscb->checkSyncControl( logRecSize, cb ) ;
          if ( SDB_OK != rc )
@@ -2406,33 +2427,19 @@ namespace engine
                                 compressRatio, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to append record, rc: %d", rc ) ;
 
+      hasInsert = TRUE ;
+
       // update totalInsert monitor counter
       DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INSERT, 1 ) ;
 
       // mark the segment dirty
       _markDirty ( foundDeletedID._extent ) ;
 
-      // we have to create new object from deletedRecordPtr instead of using
-      // record object, because we may have to add OID into the object
-      {
-         if ( dataModified )
-         {
-            DMS_RECORD_EXTRACTDATA( deletedRecordPtr, insertedDataPtr,
-                                    compressorEntry ) ;
-            insertObj = BSONObj( ( const CHAR* )insertedDataPtr ) ;
-            DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
-            DMS_MON_OP_COUNT_INC( pMonAppCB, MON_READ, 1 ) ;
-         }
-         else
-         {
-            insertedDataPtr = (ossValuePtr)record.objdata() ;
-            insertObj = record ;
-         }
-         rc = _pIdxSU->indexesInsert( context,
-                                      ((dmsExtent*)extentPtr)->_logicID,
-                                      insertObj, foundDeletedID, cb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to insert to index, rc: %d", rc ) ;
-      }
+      // insert index
+      rc = _pIdxSU->indexesInsert( context,
+                                   ((dmsExtent*)extentPtr)->_logicID,
+                                   insertObj, foundDeletedID, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to insert to index, rc: %d", rc ) ;
 
       if ( dpscb )
       {
@@ -2441,12 +2448,6 @@ namespace engine
                                insertObj.toString().c_str() ) ;
 
          dmsExtentID extLID = ((dmsExtent*)extentPtr)->_logicID ;
-         info.clear() ;
-
-         rc = dpsInsert2Record( fullName, insertObj, transID,
-                                preTransLsn, relatedLsn, logRecord ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to build insert record, rc: %d",
-                      rc ) ;
 
          rc = _logDPS( dpscb, info, cb, context, extLID, canUnLock ) ;
          PD_RC_CHECK ( rc, PDERROR, "Failed to insert record into log, rc: %d",
@@ -2480,13 +2481,17 @@ namespace engine
       {
          _updateLastLSN( cb->getEndLsn() ) ;
       }
-
+      if ( pMergedData )
+      {
+         cb->releaseBuff( pMergedData ) ;
+      }
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATA_INSERTRECORD, rc ) ;
       return rc ;
    error:
-      if ( 0 != insertedDataPtr )
+      if ( hasInsert )
       {
-         INT32 rc1 = deleteRecord( context, foundDeletedID, insertedDataPtr,
+         INT32 rc1 = deleteRecord( context, foundDeletedID,
+                                   (ossValuePtr)insertObj.objdata(),
                                    cb, dropDps ) ;
          if ( rc1 )
          {
