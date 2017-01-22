@@ -125,6 +125,7 @@ namespace engine
       }
 
       INT32 pushToTempDataBlock ( dmsMBContext *mbContext,
+                                  pmdEDUCB *cb,
                                   BSONObj &record,
                                   BOOLEAN isLast,
                                   BOOLEAN isAsynchr ) ;

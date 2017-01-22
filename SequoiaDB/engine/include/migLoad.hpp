@@ -180,7 +180,8 @@ namespace engine
                         dmsStorageUnit *su,
                         UINT16 collectionID,
                         UINT32 clLID,
-                        BOOLEAN isAsynchr ) ;
+                        BOOLEAN isAsynchr,
+                        pmdEDUCB *cb ) ;
    } ;
 
 }

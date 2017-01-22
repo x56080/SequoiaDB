@@ -116,9 +116,8 @@ namespace engine
                                  compressedLen, dictionary ) ;
       if ( rc )
       {
-         PDLEVEL level ;
-         level = ( SDB_UTIL_COMPRESS_ABORT == rc ) ? PDDEBUG : PDERROR ;
-         PD_LOG( level, "Failed to compress data, rc: %d", rc ) ;
+         PD_LOG( ( SDB_UTIL_COMPRESS_ABORT == rc ) ? PDINFO : PDERROR,
+                   "Failed to compress data, rc: %d", rc ) ;
          goto error ;
       }
 

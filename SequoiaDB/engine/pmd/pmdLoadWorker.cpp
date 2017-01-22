@@ -58,7 +58,8 @@ namespace engine
                               su,
                               dataWorker->collectionID,
                               dataWorker->clLID,
-                              dataWorker->isAsynchr ) ;
+                              dataWorker->isAsynchr,
+                              cb ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to import data, rc=%d", rc ) ;

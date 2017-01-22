@@ -236,7 +236,7 @@ namespace engine
       _autoAddField   = TRUE ;
       _autoCompletion = FALSE ;
       _isHeaderline   = _pParameters->headerline ;
-      
+
 
       if ( _isHeaderline )
       {
@@ -257,7 +257,7 @@ namespace engine
             }
          }
       }
-      
+
       if ( _pParameters->pFieldArray )
       {
          _pFields = _pParameters->pFieldArray ;
@@ -420,7 +420,7 @@ namespace engine
       rc = su->data()->getMBContext( &mbContext, _pParameters->pCollectionName,
                                      EXCLUSIVE ) ;
       if ( rc )
-      { 
+      {
          if ( SDB_DMS_NOTEXIST == rc )
          {
             sendMsgToClient ( "Error: collection not exist" ) ;
@@ -713,13 +713,13 @@ namespace engine
                                  dmsStorageUnit *su,
                                  UINT16 collectionID,
                                  UINT32 clLID,
-                                 BOOLEAN isAsynchr )
+                                 BOOLEAN isAsynchr,
+                                 pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__MIGWORKER__IMPORT );
       pmdKRCB     *krcb           = pmdGetKRCB () ;
       pmdEDUMgr   *eduMgr         = krcb->getEDUMgr () ;
-      pmdEDUCB    *eduCB          = eduMgr->getEDU() ;
       BOOLEAN      isLast         = FALSE ;
       BOOLEAN      isFirst        = TRUE ;
       BSONObj      record ;
@@ -767,10 +767,10 @@ namespace engine
       }
 
       while ( !_master->_exitSignal &&
-              !eduCB->isInterrupted() &&
-              !eduCB->isDisconnected() )
+              !cb->isInterrupted() &&
+              !cb->isDisconnected() )
       {
-         rc = _getBsonFromQueue ( eduCB, record ) ;
+         rc = _getBsonFromQueue ( cb, record ) ;
          if ( rc )
          {
             if ( SDB_MIG_END_OF_QUEUE == rc )
@@ -794,6 +794,7 @@ namespace engine
             }
          }
          rc = dmsLoadExtent.pushToTempDataBlock( mbContext,
+                                                 cb,
                                                  record,
                                                  isLast,
                                                  isAsynchr ) ;

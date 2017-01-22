@@ -95,7 +95,7 @@ namespace engine
          if ( ++codeNum > maxCodeNum )
          {
             rc = SDB_UTIL_COMPRESS_ABORT ;
-            PD_LOG( PDDEBUG, "Compression abort as it is not up to the ratio "
+            PD_LOG( PDINFO, "Compression abort as it dosen't meet the ratio "
                     "requirement, rc: %d", rc ) ;
             goto error ;
          }
@@ -170,7 +170,7 @@ namespace engine
          if ( totalBitNum > maxBitNum )
          {
             rc = SDB_UTIL_COMPRESS_ABORT ;
-            PD_LOG( PDDEBUG, "Compression abort as it is not up to the ratio "
+            PD_LOG( PDINFO, "Compression abort as it dosen't meet the ratio "
                     "requirement, rc: %d", rc ) ;
             goto error ;
          }
@@ -255,6 +255,10 @@ namespace engine
 
       fixLenTotalBits = codeVec.size() * dictionary->getCodeSize() ;
 
+      // Whether to use variable length compression or fixed length compression.
+      // If ( Variable Length Compression Length )
+      //    <= 95% * ( Fixed Length Compression Length )
+      // use variable length compression.
       useVarLenComp = ( ( varLenTotalBits * 100 / fixLenTotalBits ) <= 95 ) ?
                       TRUE : FALSE ;
 
@@ -263,6 +267,8 @@ namespace engine
          if ( varLenTotalBits > ( maxSize * 8 ) )
          {
             rc = SDB_UTIL_COMPRESS_ABORT ;
+            PD_LOG( PDINFO, "Compression abort as it dosen't meet the ratio "
+                    "requirement, rc: %d", rc ) ;
             goto error ;
          }
 
@@ -277,6 +283,8 @@ namespace engine
          if ( fixLenTotalBits > ( maxSize * 8 ) )
          {
             rc = SDB_UTIL_COMPRESS_ABORT ;
+            PD_LOG( PDINFO, "Compression abort as it dosen't meet the ratio "
+                    "requirement, rc: %d", rc ) ;
             goto error ;
          }
 
@@ -467,8 +475,8 @@ namespace engine
 
       if ( rc )
       {
-         PDLEVEL level = ( SDB_UTIL_COMPRESS_ABORT == rc ) ? PDDEBUG : PDERROR ;\
-         PD_LOG( level, "Failed to compress data, rc: %d", rc ) ;
+         PD_LOG( ( SDB_UTIL_COMPRESS_ABORT == rc ) ? PDINFO : PDERROR,
+                   "Failed to compress data, rc: %d", rc ) ;
          goto error ;
       }
 

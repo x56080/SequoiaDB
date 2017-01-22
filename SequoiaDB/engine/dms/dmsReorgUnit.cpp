@@ -411,12 +411,7 @@ namespace engine
       {
          rc = dmsCompress ( cb, compressorEntry, obj, NULL, 0, &compressedData,
                             &compressedDataSize, compressRatio ) ;
-         if ( rc )
-         {
-            // In case of compression failure, store the record in original format.
-            dmsrecordSize = obj.objsize() ;
-         }
-         else
+         if ( SDB_OK == rc )
          {
             // 4 bytes len + compressed record
             dmsrecordSize = compressedDataSize + sizeof(INT32) ;
@@ -430,6 +425,22 @@ namespace engine
             {
                isCompressed = TRUE ;
             }
+         }
+         else
+         {
+            // In any case of error, leave it, and use the original data.
+            if ( SDB_UTIL_COMPRESS_ABORT == rc )
+            {
+               PD_LOG( PDINFO, "Record compression aborted. "
+                       "Insert the original data. rc: %d", rc ) ;
+            }
+            else
+            {
+               PD_LOG( PDWARNING, "Record compression failed. "
+                       "Insert the original data. rc: %d", rc ) ;
+            }
+            dmsrecordSize = obj.objsize() ;
+            rc = SDB_OK ;
          }
       }
       else

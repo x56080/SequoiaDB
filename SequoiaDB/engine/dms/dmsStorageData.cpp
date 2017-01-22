@@ -2293,32 +2293,24 @@ namespace engine
          goto error ;
       }
 
+      dmsRecordSize = record.objsize() ;
+
       if ( compressorEntry->ready() )
       {
          rc = dmsCompress( cb, compressorEntry, record, ((CHAR*)(&oid)), oidLen,
                            &compressedData, &compressedDataSize,
                            compressRatio ) ;
-         if ( rc )
-         {
-            // If compression failed, store the record in its original format.
-            dmsRecordSize = record.objsize() ;
-         }
-         else
+         if ( SDB_OK == rc )
          {
             // 4 bytes len + compressed record
-            dmsRecordSize = compressedDataSize + sizeof(INT32) ;
             PD_TRACE2 ( SDB__DMSSTORAGEDATA_INSERTRECORD,
                         PD_PACK_STRING ( "size after compress" ),
-                        PD_PACK_UINT ( dmsRecordSize ) ) ;
+                        PD_PACK_UINT ( compressedDataSize + sizeof(INT32) ) ) ;
 
-            // if we find the record size is greater than non-compression, let's
-            // save non-compressed version
-            if ( dmsRecordSize > (UINT32)(record.objsize() + oidLen) )
+            if ( ( compressedDataSize + sizeof(INT32) ) <
+                 (UINT32)(record.objsize() + oidLen) )
             {
-               dmsRecordSize = record.objsize() ;
-            }
-            else
-            {
+               dmsRecordSize = compressedDataSize + sizeof(INT32) ;
                // oid is already added into compression buffer, so let's unset
                // addOID stuff
                addOID = FALSE ;
@@ -2327,11 +2319,21 @@ namespace engine
                isCompressed = TRUE ;
             }
          }
-      }
-      else
-      {
-         // if not compressed, let's use object size
-         dmsRecordSize = record.objsize() ;
+         else
+         {
+            // In any case of error, leave it, and use the original data.
+            if ( SDB_UTIL_COMPRESS_ABORT == rc )
+            {
+               PD_LOG( PDINFO, "Record compression aborted. "
+                       "Insert the original data. rc: %d", rc ) ;
+            }
+            else
+            {
+               PD_LOG( PDWARNING, "Record compression failed. "
+                       "Insert the original data. rc: %d", rc ) ;
+            }
+            rc = SDB_OK ;
+         }
       }
 
       /*

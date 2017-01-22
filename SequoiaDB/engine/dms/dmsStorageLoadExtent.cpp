@@ -128,6 +128,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOADEXT__IMPRTBLOCK, "dmsStorageLoadOp::pushToTempDataBlock" )
    INT32 dmsStorageLoadOp::pushToTempDataBlock ( dmsMBContext *mbContext,
+                                                 pmdEDUCB *cb,
                                                  BSONObj &record,
                                                  BOOLEAN isLast,
                                                  BOOLEAN isAsynchr )
@@ -142,11 +143,17 @@ namespace engine
       BSONElement ele ;
       _IDToInsert oid ;
       idToInsertEle oidEle((CHAR*)(&oid)) ;
-      BOOLEAN addOID = FALSE ;
-      INT32 oidLen = 0 ;
+      CHAR *pNewRecordData = NULL ;
+      const CHAR *recordData = NULL ;
+      UINT32 recordDataSize = 0 ;
+      BOOLEAN compressed = FALSE ;
+      dmsCompressorEntry *compressorEntry = NULL ;
 
       SDB_ASSERT( mbContext, "mb context can't be NULL" ) ;
 
+      compressorEntry = _su->data()->getCompressorEntry( mbContext->mbID() ) ;
+      /* For concurrency protection with drop CL and set compresor. */
+      dmsCompressorGuard compGuard( compressorEntry, SHARED ) ;
       /* (0) */
       // verify whether the record got "_id" inside
       ele = record.getField ( DMS_ID_KEY_NAME ) ;
@@ -158,24 +165,81 @@ namespace engine
          goto error ;
       }
 
+      recordData = record.objdata() ;
+      recordDataSize = record.objsize() ;
+      dmsrecordSize = recordDataSize ;
       // if the record is not for temp, and
       // "_id" doesn't exist, let's create the object
       if ( ele.eoo() )
       {
          oid._oid.init() ;
-         oidLen += oidEle.size() ;
-         addOID = TRUE ;
+         rc = cb->allocBuff( oidEle.size() + record.objsize(),
+                             &pNewRecordData ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Alloc memory[size:%u] failed, rc: %d",
+                    oidEle.size() + record.objsize(), rc ) ;
+            goto error ;
+         }
+         /// copy to new data
+         *(UINT32*)pNewRecordData = oidEle.size() + record.objsize() ;
+         ossMemcpy( pNewRecordData + sizeof(UINT32), oidEle.rawdata(),
+                    oidEle.size() ) ;
+         ossMemcpy( pNewRecordData + sizeof(UINT32) + oidEle.size(),
+                    record.objdata() + sizeof(UINT32),
+                    record.objsize() - sizeof(UINT32) ) ;
+
+         record = BSONObj( pNewRecordData ) ;
+         recordData = pNewRecordData ;
+         recordDataSize = oidEle.size() + record.objsize() ;
+         dmsrecordSize = recordDataSize ;
       }
 
-      if ( ( dmsrecordSize =
-             (record.objsize() + DMS_RECORD_METADATA_SZ + oidLen) )
-             > DMS_RECORD_MAX_SZ )
+      if ( ( dmsrecordSize + DMS_RECORD_METADATA_SZ ) > DMS_RECORD_USER_MAX_SZ )
       {
-         rc = SDB_CORRUPTED_RECORD ;
+         rc = SDB_DMS_RECORD_TOO_BIG ;
          goto error ;
       }
 
+      if ( compressorEntry->ready() )
+      {
+         const CHAR *compressedData = NULL ;
+         INT32 compressedDataSize = 0 ;
+
+         rc = dmsCompress( cb, compressorEntry, recordData, recordDataSize,
+                           &compressedData, &compressedDataSize ) ;
+         if ( SDB_OK == rc &&
+              compressedDataSize + sizeof(UINT32) < recordDataSize )
+         {
+            recordData = compressedData ;
+            recordDataSize = compressedDataSize ;
+            // 4 bytes len + compressed record
+            dmsrecordSize = compressedDataSize + sizeof(UINT32) ;
+            compressed = TRUE ;
+         }
+         else
+         {
+            // In any case of error, leave it, and use the original data.
+            if ( SDB_UTIL_COMPRESS_ABORT == rc )
+            {
+               PD_LOG( PDINFO, "Record compression aborted. "
+                       "Insert the original data. rc: %d", rc ) ;
+            }
+            else
+            {
+               PD_LOG( PDWARNING, "Record compression failed. "
+                       "Insert the original data. rc: %d", rc ) ;
+            }
+            rc = SDB_OK ;
+         }
+      }
+
+      /*
+       * Release the guard to avoid deadlock with truncate/drop collection.
+       */
+      compGuard.release() ;
       dmsrecordSize *= DMS_RECORD_OVERFLOW_RATIO ;
+      dmsrecordSize += DMS_RECORD_METADATA_SZ ;
       dmsrecordSize = OSS_MIN(DMS_RECORD_MAX_SZ, ossAlignX(dmsrecordSize,4)) ;
       if ( !_pCurrentExtent )
       {
@@ -244,17 +308,16 @@ namespace engine
       DMS_RECORD_SETFLAG ( recordPtr, DMS_RECORD_FLAG_NORMAL ) ;
       DMS_RECORD_SETMYOFFSET ( recordPtr, recordOffset ) ;
       DMS_RECORD_SETSIZE ( recordPtr, dmsrecordSize ) ;
-      if ( !addOID )
+      if ( compressed )
       {
-         DMS_RECORD_SETDATA ( recordPtr, record.objdata(), record.objsize() ) ;
+         DMS_RECORD_SETATTR ( recordPtr, DMS_RECORD_FLAG_COMPRESSED ) ;
       }
       else
       {
-         DMS_RECORD_SETDATA_OID ( recordPtr,
-                                  record.objdata(),
-                                  record.objsize(),
-                                  oidEle ) ;
+         DMS_RECORD_UNSETATTR ( recordPtr, DMS_RECORD_FLAG_COMPRESSED ) ;
       }
+
+      DMS_RECORD_SETDATA ( recordPtr, recordData, recordDataSize ) ;
       DMS_RECORD_SETNEXTOFFSET ( recordPtr, DMS_INVALID_OFFSET ) ;
       DMS_RECORD_SETPREVOFFSET ( recordPtr, DMS_INVALID_OFFSET ) ;
       // set extent header
