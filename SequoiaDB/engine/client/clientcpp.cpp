@@ -8111,27 +8111,23 @@ error :
    
    INT32 _sdbImpl::closeAllCursors()
    {
+      std::set<ossValuePtr>::iterator it ;
+      std::set<ossValuePtr> cursors ;
       INT32 rc = SDB_OK ;
 
       // set all the cursors' status to be closed
-      while( TRUE )
+      cursors = _cursors ;
+      for ( it = cursors.begin(); it != cursors.end(); ++it )
       {
-         std::set<ossValuePtr>::iterator it = _cursors.begin();
-         if ( it != _cursors.end() )
+         // for cursor.close() will unregister itself from "_cursors"
+         // so, we don't need to ++it to get next cursor
+         rc = ((_sdbCursorImpl *)(*it))->close() ;
+         if ( rc )
          {
-            // for cursor.close() will unregister itself from "_cursors"
-            // so, we don't need to ++it to get next cursor
-            rc = ((_sdbCursorImpl *)(*it))->close() ;
-            if ( rc )
-            {
-               goto error ;
-            }
-         }
-         else
-         {
-            break ;
+            goto error ;
          }
       }
+
    done :
       return rc ;
    error :
