@@ -536,6 +536,9 @@ public class ReplicaGroup {
 	}
 
 	private int getNodePort(BSONObject node) {
+    	if (node == null) {
+    		throw new BaseException("SDB_SYS", "invalid information of node");
+    	}
 		Object services = node.get(SequoiadbConstants.FIELD_NAME_GROUPSERVICE);
 		if (services == null)
 			throw new BaseException("SDB_SYS", node);
