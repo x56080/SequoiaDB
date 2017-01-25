@@ -69,7 +69,7 @@ public class CollectionSpace {
 	 *            Collection space name
 	 */
 	CollectionSpace(Sequoiadb sequoiadb, String name) {
-		this.name = name.trim();
+		this.name = name;
 		this.sequoiadb = sequoiadb;
 	}
 
@@ -203,7 +203,7 @@ public class CollectionSpace {
 			throw new BaseException(flags, collectionFullName, options);
 		}
 		sequoiadb.upsertCache(collectionFullName);
-		return getCollection(collectionName);
+		return new DBCollection(sequoiadb, this, collectionName);
 	}
 
 	/**

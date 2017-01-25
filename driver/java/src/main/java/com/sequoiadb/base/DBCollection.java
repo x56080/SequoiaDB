@@ -155,11 +155,11 @@ public class DBCollection {
 	 *            Collection name
 	 */
 	DBCollection(Sequoiadb sequoiadb, CollectionSpace cs, String name) {
-		this.name = name.trim();
+		this.name = name;
 		this.sequoiadb = sequoiadb;
 		this.collectionSpace = cs;
 		this.csName = cs.getName();
-		this.collectionFullName = csName + "." + name.trim();
+		this.collectionFullName = csName + "." + name;
 		this.connection = sequoiadb.getConnection();
 		this.insert_buffer = null;
 		this.mainKeys = new HashSet<String>();

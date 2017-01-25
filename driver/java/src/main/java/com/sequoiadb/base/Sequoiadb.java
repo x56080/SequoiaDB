@@ -648,7 +648,7 @@ public class Sequoiadb {
 		if (flags != 0)
 			throw new BaseException(flags);
 		upsertCache(csName);
-		return getCollectionSpace(csName);
+		return new CollectionSpace(this, csName);
 	}
 	
 	/**
