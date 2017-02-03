@@ -492,7 +492,7 @@ public class DBCollection {
 	 * @fn void delete(BSONObject matcher)
 	 * @brief Delete the matching BSONObject of current collection
 	 * @param matcher
-	 *            The matching condition
+	 *            The matching condition, delete all the documents if null
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
 	public void delete(BSONObject matcher) throws BaseException {
@@ -503,7 +503,7 @@ public class DBCollection {
 	 * @fn void delete(String matcher)
 	 * @brief Delete the matching of current collection
 	 * @param matcher
-	 *            The matching condition
+	 *            The matching condition, delete all the documents if null
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
 	public void delete(String matcher) throws BaseException {
@@ -517,7 +517,7 @@ public class DBCollection {
 	 * @fn void delete(String matcher, String hint)
 	 * @brief Delete the matching bson's string of current collection
 	 * @param matcher
-	 *            The matching condition
+	 *            The matching condition, delete all the documents if null
 	 * @param hint
 	 *            Hint
 	 * @exception com.sequoiadb.exception.BaseException
@@ -536,7 +536,7 @@ public class DBCollection {
 	 * @fn void delete(BSONObject matcher, BSONObject hint)
 	 * @brief Delete the matching BSONObject of current collection
 	 * @param matcher
-	 *            The matching condition
+	 *            The matching condition, delete all the documents if null
 	 * @param hint
 	 *            Hint
 	 * @exception com.sequoiadb.exception.BaseException
@@ -596,13 +596,16 @@ public class DBCollection {
 
 	/**
 	 * @fn void update(BSONObject matcher, BSONObject modifier, BSONObject hint)
-	 * @brief Update the BSONObject of current collection
-	 * @param matcher
-	 *            The matching condition
-	 * @param modifier
-	 *            The updating rule
-	 * @param hint
-	 *            Hint
+     * @brief Update the BSONObject of current collection
+     * @param matcher
+     *            The matching condition, update all the documents if null
+     * @param modifier
+     *            The updating rule, can't be null
+     * @param hint
+     *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+     *            using index "ageIndex" to scan data(index scan); {"":null} means not using 
+     *            any index to scan data(table scan). when hint is null, 
+     *            database automatically match the optimal index to scan data.
 	 * @exception com.sequoiadb.exception.BaseException
 	 * @note when save include update shardingKey field, the shardingKey modify action is not take effect, but the other
 	 *       field update is take effect.
@@ -616,12 +619,15 @@ public class DBCollection {
 	/**
 	 * @fn void update(String matcher, String modifier, String hint)
 	 * @brief Update the BSONObject of current collection
-	 * @param matcher
-	 *            The matching condition
-	 * @param modifier
-	 *            The updating rule
-	 * @param hint
-	 *            Hint
+     * @param matcher
+     *            The matching condition, update all the documents if null
+     * @param modifier
+     *            The updating rule, can't be null
+     * @param hint
+     *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+     *            using index "ageIndex" to scan data(index scan); {"":null} means not using 
+     *            any index to scan data(table scan). when hint is null, 
+     *            database automatically match the optimal index to scan data.
 	 * @exception com.sequoiadb.exception.BaseException
 	 * @note when save include update shardingKey field, the shardingKey modify action is not take effect, but the other
 	 *       field update is take effect.
@@ -644,12 +650,16 @@ public class DBCollection {
 	/**
 	 * @fn void upsert(BSONObject matcher, BSONObject modifier, BSONObject hint)
 	 * @brief Update the BSONObject of current collection, insert if no matching
-	 * @param matcher
-	 *            The matching condition
-	 * @param modifier
-	 *            The updating rule
-	 * @param hint
-	 *            Hint
+     * @param matcher
+     *            The matching condition, update all the documents 
+     *            if null(that's to say, we match all the documents)
+     * @param modifier
+     *            The updating rule, can't be null
+     * @param hint
+     *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+     *            using index "ageIndex" to scan data(index scan); {"":null} means not using 
+     *            any index to scan data(table scan). when hint is null, 
+     *            database automatically match the optimal index to scan data.
 	 * @exception com.sequoiadb.exception.BaseException
 	 * @note when save include update shardingKey field, the shardingKey modify action is not take effect, but the other
 	 *       field update is take effect.
@@ -663,12 +673,16 @@ public class DBCollection {
 	/**
 	 * @fn void upsert(BSONObject matcher, BSONObject modifier, BSONObject hint, BSONObject setOnInsert)
 	 * @brief Update the BSONObject of current collection, insert if no matching
-	 * @param matcher
-	 *            The matching condition
-	 * @param modifier
-	 *            The updating rule
-	 * @param hint
-	 *            Hint
+     * @param matcher
+     *            The matching condition, update all the documents 
+     *            if null(that's to say, we match all the documents)
+     * @param modifier
+     *            The updating rule, can't be null
+     * @param hint
+     *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+     *            using index "ageIndex" to scan data(index scan); {"":null} means not using 
+     *            any index to scan data(table scan). when hint is null, 
+     *            database automatically match the optimal index to scan data.
 	 * @param setOnInsert
 	 *            The setOnInsert assigns the specified values to the fileds when insert
 	 * @exception com.sequoiadb.exception.BaseException
@@ -1804,13 +1818,13 @@ public class DBCollection {
 	}
 	
 	/**
-	 * @fn DBCursor getQueryMeta(BSONObject query, BSONObject
+	 * @fn DBCursor getQueryMeta(BSONObject matcher, BSONObject
 	 *     orderBy, BSONObject hint, long skipRows, long returnRows)
 	 * @brief Get index blocks' or data blocks' infomation for concurrent query
-	 * @param query
-	 *            The matching condition
-	 * @param orderBy
-	 *            The ordered rule
+     * @param matcher
+     *            the matching rule, return all the meta information if null
+     * @param orderBy
+     *            the ordered rule, never sort if null
 	 * @param hint
 	 *            One of the indexs of current collection,
 	 *            using default index to query if not provided
@@ -1827,12 +1841,12 @@ public class DBCollection {
 	 * @exception com.sequoiadb.exception.BaseException
      * 
 	 */
-	public DBCursor getQueryMeta(BSONObject query,BSONObject orderBy,
+	public DBCursor getQueryMeta(BSONObject matcher,BSONObject orderBy,
 			                     BSONObject hint,long skipRows, 
 			                     long returnRows, int flag) throws BaseException {
 		BSONObject dummy = new BasicBSONObject();
-		if (query == null)
-			query = dummy;
+		if (matcher == null)
+			matcher = dummy;
 		if (orderBy == null)
 			orderBy = dummy;
 		if (hint == null)
@@ -1843,7 +1857,7 @@ public class DBCollection {
 	    BSONObject hint1 = new BasicBSONObject();
 	    hint1.put("Collection", this.collectionFullName);
 		String command = SequoiadbConstants.ADMIN_PROMPT+SequoiadbConstants.GET_QUERYMETA;
-		SDBMessage rtnSDBMessage = adminCommand(command, query, hint, orderBy, hint1,
+		SDBMessage rtnSDBMessage = adminCommand(command, matcher, hint, orderBy, hint1,
 				                                skipRows, returnRows, flag);
 		DBCursor cursor = null;
 		int flags = rtnSDBMessage.getFlags();
@@ -1851,7 +1865,7 @@ public class DBCollection {
 			if (flags == SequoiadbConstants.SDB_DMS_EOC) {
 				return cursor;
 			} else {
-				throw new BaseException(flags, query, hint, orderBy, hint1,
+				throw new BaseException(flags, matcher, hint, orderBy, hint1,
 						skipRows, returnRows);
 			}
 		}
