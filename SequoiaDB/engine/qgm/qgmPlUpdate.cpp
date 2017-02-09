@@ -85,17 +85,17 @@ namespace engine
              else if ( SQL_GRAMMAR::DATE == it2->type )
              {
                 Date_t t ;
-                time_t tm ;
-                rc = utilStr2TimeT( it2->value.attr().toString().c_str(),
-                                    tm ) ;
+                UINT64 millis = 0 ;
+                rc = utilStr2Date( it2->value.attr().toString().c_str(),
+                                   millis ) ;
                 if ( SDB_OK != rc )
                 {
-                   PD_LOG( PDDEBUG, "failed to parse to Date_t:%s",
+                   PD_LOG( PDERROR, "failed to parse to Date_t:%s",
                            it2->value.toString().c_str() ) ;
                    goto done ;
                 }
 
-                t = tm ;
+                t.millis = millis ;
                 vbuilder.appendDate( it1->toString(), t ) ;
              }
              else

@@ -121,7 +121,7 @@ namespace engine
                                   millis ) ;
                if ( SDB_OK != rc )
                {
-                   PD_LOG( PDDEBUG, "failed to parse to Date_t:%s",
+                   PD_LOG( PDERROR, "failed to parse to Date_t:%s",
                            itr2->value.toString().c_str() ) ;
                    rc = SDB_INVALIDARG ;
                    goto error ;

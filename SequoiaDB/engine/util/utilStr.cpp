@@ -269,8 +269,8 @@ namespace engine
 
       if( ossStrchr( str, 'T' ) || ossStrchr( str, 't' ) )
       {
-         // the format {$date:"2000-01-01T(t)01:30:24:999999Z(z)"} or
-         // {$date:"2000-01-01T(t)01:30:24:000000+0800"}
+         // the format "2000-01-01T(t)01:30:24:999999Z(z)" or
+         // "2000-01-01T(t)01:30:24:000000+0800"
          /* for mongo date type, iso8601 */
          sdbTimestamp sdbTime ;
          if( timestampParse( str, ossStrlen( str ), &sdbTime ) )
@@ -283,7 +283,7 @@ namespace engine
       }
       else
       {
-         // the format is {$date:"2000-01-01-13.14.26.123456"}
+         // the format is "2000-01-01-13.14.26.123456"
          // the bound is
          // timestamp min 1901-12-13-20.45.52.000000 +/- TZ
          // timestamp max 2038-01-19-03.14.07.999999 +/- TZ
@@ -340,8 +340,8 @@ namespace engine
 
       if( ossStrchr( str, 'T' ) || ossStrchr( str, 't' ) )
       {
-         // the format {$date:"2000-01-01T(t)01:30:24:999999Z(z)"} or
-         // {$date:"2000-01-01T(t)01:30:24:000000+0800"}
+         // the format "2000-01-01T(t)01:30:24:999999Z(z)" or
+         // "2000-01-01T(t)01:30:24:000000+0800"
          /* for mongo date type, iso8601 */
          INT32 micros = 0 ;
          sdbTimestamp sdbTime ;
@@ -356,8 +356,8 @@ namespace engine
       }
       else
       {
-         // the format is {$date:"2000-01-01"}
-         // the bound is {$date:"1900-01-01"} - {$date:"9999-12-31"}
+         // the format is "2000-01-01"
+         // the bound is "1900-01-01" - "9999-12-31"
          static cregex reg = cregex::compile("^((((19|[2-9]\\d)\\d{2})-(0?[13578]|1[02])-(0?[1-9]|[12]\\d|3[01]))|(((19|[2-9]\\d)\\d{2})-(0?[13456789]|1[012])-(0?[1-9]|[12]\\d|30))|(((19|[2-9]\\d)\\d{2})-0?2-(0?[1-9]|1\\d|2[0-8]))|(((19|[2-9]\\d)(0[48]|[2468][048]|[13579][26])|(([2468][048]|[3579][26])00))-0?2-29))$") ;
          if ( !( regex_match( str, reg ) ) )
          {
@@ -382,7 +382,7 @@ namespace engine
          timep = mktime( &t ) ;
          millis = timep * 1000 ;
       }
-      
+
    done:
       return rc ;
    error:
