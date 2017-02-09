@@ -51,7 +51,7 @@ namespace engine
    } ;
 
    typedef std::list<_qgmBsonPair>                 QGM_CONST_TABLE ;
-   typedef _utilMap<qgmDbAttr, BSONElement, 8 >    QGM_VAR_TABLE ;
+   typedef std::map<qgmDbAttr, BSONElement >       QGM_VAR_TABLE ;
 
    class _qgmParamTable : public SDBObject
    {
