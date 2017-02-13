@@ -518,7 +518,7 @@ namespace engine
                                       ( _mb.offset(0) ))->_version ;
                search.offset = ((dpsLogRecordHeader *)
                                 (_mb.offset(0)))->_preLsn ;
-            } while ( _consultLsn.compare( msg->returnTo ) >= 0 ) ;
+            } while ( _consultLsn.compareOffset( msg->returnTo ) >= 0 ) ;
 
             _sendConsultReq () ;
             goto done ;
