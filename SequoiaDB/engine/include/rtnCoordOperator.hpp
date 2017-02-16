@@ -195,9 +195,9 @@ namespace engine
       }
       BOOLEAN pushNokReply( UINT64 id, MsgHeader *pMsg )
       {
-         if ( _pOkReply )
+         if ( _pNokReply )
          {
-            return _pOkReply->insert( std::make_pair( id, pMsg ) ).second ;
+            return _pNokReply->insert( std::make_pair( id, pMsg ) ).second ;
          }
          return FALSE ;
       }
