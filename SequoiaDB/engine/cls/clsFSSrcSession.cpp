@@ -1187,27 +1187,32 @@ namespace engine
                     collection, rc ) ;
             goto error ;
          }
-         su->data()->releaseMBContext( mbContext ) ;
-
-         /// erase index of "_id"
-         _eraseDefaultIndex() ;
-
-         // must release su lock, because _openContext will get lock again
-         dmsCB->suUnlock ( suID ) ;
-         suID = DMS_INVALID_SUID ;
-
-         rc = _onFSMeta( _curCollecitonName.c_str() ) ;
-         if ( SDB_OK != rc )
          {
-            goto error ;
-         }
+            // Lock _LSNlatch to avoid other write operations, e.g. createIndex
+            // on this collection before updating _curCollection
+            ossScopedLock lock( &_LSNlatch ) ;
 
-         if ( SDB_OK != ( rc = _openContext( cs, collection ) ) )
-         {
-            goto error ;
-         }
-         _curCollection = curCollection ;
+            su->data()->releaseMBContext( mbContext ) ;
 
+            /// erase index of "_id"
+            _eraseDefaultIndex() ;
+
+            // must release su lock, because _openContext will get lock again
+            dmsCB->suUnlock ( suID ) ;
+            suID = DMS_INVALID_SUID ;
+
+            rc = _onFSMeta( _curCollecitonName.c_str() ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+
+            if ( SDB_OK != ( rc = _openContext( cs, collection ) ) )
+            {
+               goto error ;
+            }
+            _curCollection = curCollection ;
+         }
          _constructMeta( meta, cs, collection, su ) ;
          PD_LOG( PDDEBUG, "Session[%s]: get meta [%s]", sessionName(),
                  meta.toString().c_str() ) ;
@@ -1861,7 +1866,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSPLSS_NTFLSN );
       INT32 rc = SDB_OK ;
       UINT32 curSULID, curCLLID ;
-      ossUnpack32From64( _curCollection, curSULID, curCLLID ) ;
       BOOLEAN locked = FALSE ;
       BOOLEAN inEndMap = FALSE ;
       dpsLogRecord record ;
@@ -1878,6 +1882,9 @@ namespace engine
 
       _LSNlatch.get() ;
       locked = TRUE ;
+
+      // Access to _curCollection should be protected by _LSNlatch
+      ossUnpack32From64( _curCollection, curSULID, curCLLID ) ;
 
       if ( (UINT64)~0 != _curCollection )
       {
