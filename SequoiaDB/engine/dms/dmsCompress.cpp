@@ -98,6 +98,13 @@ namespace engine
       _utilCompressor *compressor = compressorEntry->getCompressor() ;
       const utilDictHandle dictionary = compressorEntry->getDictionary() ;
       SDB_ASSERT( compressor, "Compressor pointer can't be NULL" ) ;
+      if ( !compressor )
+      {
+         PD_LOG( PDERROR, "Occur serious error: "
+                 "The compressor handle is NULL" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
 
       rc = compressor->compressBound( inputSize, compressedLen,
                                       dictionary ) ;
@@ -213,6 +220,13 @@ namespace engine
 
       _utilCompressor *compressor = compressorEntry->getCompressor() ;
       SDB_ASSERT( compressor, "Compressor pointer can't be NULL" ) ;
+      if ( !compressor )
+      {
+         PD_LOG( PDERROR, "Occur serious error: "
+                 "The compressor handle is NULL" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
 
       rc = compressor->getUncompressedLen( pInputData, inputSize,
                                            uncompressedLen ) ;
