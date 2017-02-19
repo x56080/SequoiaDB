@@ -90,10 +90,10 @@
          <property name="cdh.hive_connector.filename" value="${cdh.hive_connector.filename}" />
       </ant>
       
-      <ant antfile="${WORKSPACE}/sequoiadb/driver/spark/build.xml">
+      <!--ant antfile="${WORKSPACE}/sequoiadb/driver/spark/build.xml">
         <property name="SPARK_VERSION" value="${SPARK_VERSION}" />
         <property name="spark_connector_root_dir" value="${WORKSPACE}/sequoiadb/driver/spark" />
-      </ant>
+      </ant-->
 
       <ant antfile="${WORKSPACE}/sequoiadb/driver/hadoop/hadoop-connector/build.xml">
          <property name="hadoop.version" value="1.2" />
