@@ -155,6 +155,11 @@ namespace engine
          return rc ;
       }
 
+      INT32 compareOffset( const DPS_LSN &lsn ) const
+      {
+         return compareOffset( lsn.offset ) ;
+      }
+
       /// 0 means this = lsn
       /// < 0 means this < lsn
       /// > 0 means this > lsn
