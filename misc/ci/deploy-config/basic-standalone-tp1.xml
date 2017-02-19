@@ -69,7 +69,8 @@
          property="hostList"
          input="${machineList}"
          regexp=","
-         replace="','"/>  
+         replace="','"
+         defaultValue="${machineList}"/>
 	   <property name="deploy.cmd" value=" -f '${test.machine.deploy.path}/deploy.js' -e &quot;var hostList=['${hostList}'];var installDir='${install.path}/sequoiadb';var mode='standalone';var osArch='${os.arch}';&quot;" />	   
       <sshexec host="${machine_control}" 
                username="${remote.user}" 
