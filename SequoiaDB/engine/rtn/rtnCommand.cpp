@@ -1098,7 +1098,7 @@ namespace engine
       BOOLEAN isSys = FALSE ;
       BSONElement ele = _index.firstElement() ;
 
-      if ( !pmdGetOptionCB->authEnabled() )
+      if ( !pmdGetOptionCB()->authEnabled() )
       {
          isSys = TRUE ;
       }
@@ -1502,7 +1502,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__RTNRENAMECL_DOIT ) ;
       dmsStorageUnit *su = NULL ;
       dmsStorageUnitID suID = DMS_INVALID_CS ;
-      SDB_DMSCB *pDmsCB = pmdGetKRCB()->getDMSCB() ;
 
       rc = dmsCB->writable ( cb ) ;
       if ( rc )
@@ -1510,7 +1509,7 @@ namespace engine
          // do not call writeDown if writable fail
          goto not_locked ;
       }
-      rc = rtnCollectionSpaceLock ( _csName, pDmsCB, FALSE, &su, suID ) ;
+      rc = rtnCollectionSpaceLock ( _csName, dmsCB, FALSE, &su, suID ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Failed to get collection space:%s", _csName ) ;
@@ -1541,7 +1540,7 @@ namespace engine
    not_locked:
       if ( suID != DMS_INVALID_CS )
       {
-         pDmsCB->suUnlock ( suID ) ;
+         dmsCB->suUnlock ( suID ) ;
       }
       PD_TRACE_EXITRC ( SDB__RTNRENAMECL_DOIT, rc ) ;
       return rc ;
