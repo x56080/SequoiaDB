@@ -31,7 +31,7 @@
 		<exec executable="/bin/tar" dir="${install.path}/sequoiadb/python">
 			<arg line=" -zxvf ${python.tar}" />
 		</exec>
-		<exec executable="python" dir="${install.path}/sequoiadb/python">
+		<exec executable="python2.6" dir="${install.path}/sequoiadb/python">
 			<arg line=" setup.py install" />
 		</exec>
 	</target>
@@ -105,7 +105,7 @@
 				<property name="command" value="python ${test.case.fullname} -H ${test.host.NAME} -p ${coord.service.port}" />
 				<echo message="Command:${command}" />
 				<echo message="The testcase ${test.case.name}.py path on ${testcases.path}" />
-				<exec executable="python" dir="${testcases.path}" timeout="1200000" outputproperty="screen.output" resultproperty="ret.code">
+				<exec executable="python2.6" dir="${testcases.path}" timeout="1200000" outputproperty="screen.output" resultproperty="ret.code">
 					<arg line=" ${test.case.fullname} -H ${test.host.NAME} -p ${coord.service.port}" />
 				</exec>
 				<echo message="${screen.output}" />
@@ -118,7 +118,7 @@
 				<property name="command" value="python ${test.case.fullname}" />
 				<echo message="Command:${command}" />
 				<echo message="The testcase ${test.case.fullname} path on ${testcases.path}" />
-				<exec executable="python" dir="${testcases.path}" timeout="1200000" outputproperty="screen.output" resultproperty="ret.code">
+				<exec executable="python2.6" dir="${testcases.path}" timeout="1200000" outputproperty="screen.output" resultproperty="ret.code">
 					<arg line=" ${test.case.fullname}" />
 				</exec>
 				<echo message="${screen.output}" />
