@@ -23,9 +23,9 @@ sharingbreak=20000
 all.spare.port.start=26000
 all.spare.port.stop=29000
 
-jenkins_master=rh-ci001
-trunk_machine=rh-ci004,rh-ci003,rh-ci002
-trunk_machine_control=rh-ci004
+jenkins_master=ci-test-suse1
+trunk_machine=ci-test-suse1
+trunk_machine_control=ci-test-suse1
 branch_machine=rh-ci007,rh-ci006,rh-ci005
 branch_machine_control=rh-ci007
 

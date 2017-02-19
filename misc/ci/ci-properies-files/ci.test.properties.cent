@@ -24,8 +24,8 @@ all.spare.port.start=26000
 all.spare.port.stop=29000
 
 jenkins_master=ci-test-cent1
-trunk_machine=ci-test-suse3,ci-test-cent1,ci-test-rhel2
-trunk_machine_control=ci-test-suse3
+trunk_machine=ci-test-cent1,ci-test-suse3,ci-test-rhel2
+trunk_machine_control=ci-test-cent1
 branch_machine=centos-ci007,centos-ci006,centos-ci005
 branch_machine_control=centos-ci007
 
