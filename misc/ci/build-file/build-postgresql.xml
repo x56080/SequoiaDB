@@ -74,7 +74,8 @@
    </target>
 
    <target name="compile_sequoiadb" depends="compile_pg">
-      <echo message="Compile the sequoiadb..." />     
+      <echo message="Compile the sequoiadb..." />
+      <echo message="exec cmd: scons --enterprise --client -j 4" />
       <exec executable="scons" dir="${SEQUOIADB_CODE_DIR}" failonerror="true">
          <arg line=" --enterprise --client -j 4" />
       </exec>
