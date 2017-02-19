@@ -113,7 +113,7 @@
       <property name="num" value="1" />
       <for list="${machineList}" param="machine" >
          <sequential>
-            <replace file="${basedir}/exec-conf/basic-testcases-conf.xml" token="machine${num}" value="@{machine}" />
+            <replace file="${basedir}/exec-conf/basic-testcases-conf-standalone.xml" token="machine${num}" value="@{machine}" />
             <var name="op" value="+" />
             <math result="num" operand1="${num}" operation="${op}" operand2="1" datatype="int" />
          </sequential>
@@ -121,7 +121,7 @@
       <for list="${machineList}" param="hostName">
          <sequential>
             <var name="assignList" value="tmp" />
-            <xmlproperty file="${basedir}/exec-conf/basic-testcases-conf.xml" />
+            <xmlproperty file="${basedir}/exec-conf/basic-testcases-conf-standalone.xml" />
             <for list="${shell.@{hostName}.testsuite}" param="testsuite">
                <sequential>
                   <var name="assignList" value="@{testsuite},${assignList}" />
@@ -141,7 +141,7 @@
 		<property name="num" value="1" />
 		<for list="${machineList}" param="machine" >
 			<sequential>
-				<replace file="${basedir}/exec-conf/sdv-testcases-conf.xml" token="machine${num}" value="@{machine}" />
+				<replace file="${basedir}/exec-conf/sdv-testcases-conf-standalone.xml" token="machine${num}" value="@{machine}" />
 				<var name="op" value="+" />
 				<math result="num" operand1="${num}" operation="${op}" operand2="1" datatype="int" />
 			</sequential>
@@ -149,7 +149,7 @@
 		<for list="${machineList}" param="hostName">
 			<sequential>
 				<var name="assignList" value="tmp" />
-				<xmlproperty file="${basedir}/exec-conf/sdv-testcases-conf.xml" />
+				<xmlproperty file="${basedir}/exec-conf/sdv-testcases-conf-standalone.xml" />
 				<for list="${shell.@{hostName}.testsuite}" param="testsuite">
 					<sequential>
 						<var name="assignList" value="@{testsuite},${assignList}" />

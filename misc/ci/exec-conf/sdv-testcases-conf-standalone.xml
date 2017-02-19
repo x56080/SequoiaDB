@@ -1,0 +1,11 @@
+<shell>
+    <machine1>
+        <testsuite>aggregate</testsuite>
+        <testsuite>subCL</testsuite>
+        <testsuite>split</testsuite>
+        <testsuite>basicOperation</testsuite>
+        <testsuite>rest</testsuite>
+        <testsuite>datasync</testsuite>
+        <testsuite>metaOperation</testsuite>
+    </machine1>
+</shell>
