@@ -83,7 +83,8 @@ namespace fs = boost::filesystem ;
    "-mb support key:\n"\
    "  IndexPages(u)      LID(u)            Attr(u)\n"\
    "  IndexFreeSpace(u)  DataPages(u)      Flag(u)\n"\
-   "  DataFreeSpace(u)   LobPages(u)       Records(u)"
+   "  DataFreeSpace(u)   LobPages(u)       Records(u)"\
+   "  IndexNum(u)        CompressType(u)   Lobs(u)"
 
 #define ADD_PARAM_OPTIONS_BEGIN( desc )\
         desc.add_options()
@@ -188,6 +189,9 @@ UINT32        gRepaireMask                           = 0 ;
 #define PMD_REPAIRE_MB_MASK_LOBPAGE          0x00000040
 #define PMD_REPAIRE_MB_MASK_DATAFREE         0x00000080
 #define PMD_REPAIRE_MB_MASK_IDXFREE          0x00000100
+#define PMD_REPAIRE_MB_MASK_IDXNUM           0x00000200
+#define PMD_REPAIRE_MB_MASK_COMPRESSTYPE     0x00000400
+#define PMD_REPAIRE_MB_MASK_LOBS             0x00000800
 
 
 #define RETRY_COUNT 5
@@ -269,7 +273,10 @@ BOOLEAN pmdUtilIsNum( const CHAR *str )
    {
       if ( str[i] < '0' || str[i] > '9' )
       {
-         return FALSE ;
+         if ( 0 != i || ( '-' != str[i] && '+' != str[i] ) )
+         {
+            return FALSE ;
+         }
       }
       ++i ;
    }
@@ -361,6 +368,21 @@ INT32 parseRepaireString( const std::string &str )
       {
          gRepaireMask |= PMD_REPAIRE_MB_MASK_IDXFREE ;
          gRepaireMB._totalIndexFreeSpace = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "IndexNum" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_IDXNUM ;
+         gRepaireMB._numIndexes = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "CompressType" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_COMPRESSTYPE ;
+         gRepaireMB._compressorType = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "Lobs" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_LOBS ;
+         gRepaireMB._totalLobs = value ;
       }
       else
       {
@@ -697,7 +719,7 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
                        gNumPages ) ;
    dumpAndShowPrintf ( "   Show record: %s"OSS_NEWLINE,
                        gShowRecordContent ? "True":"False") ;
-   dumpAndShowPrintf ( "   Only Meta:   %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "   Only Meta  : %s"OSS_NEWLINE,
                        gOnlyMeta ? "True":"False" ) ;
    dumpAndShowPrintf ( OSS_NEWLINE ) ;
 done :
@@ -2674,6 +2696,24 @@ void repaireCollection( OSSFILE &file, dmsMB *pMB,
       dumpPrintf( "   IndexFreeSpace[%llu] ==> [%llu]"OSS_NEWLINE,
                   pMB->_totalIndexFreeSpace, gRepaireMB._totalIndexFreeSpace ) ;
       pMB->_totalIndexFreeSpace = gRepaireMB._totalIndexFreeSpace ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_IDXNUM )
+   {
+      dumpPrintf( "   IndexNum[%u] ==> [%u]"OSS_NEWLINE,
+                  pMB->_numIndexes, gRepaireMB._numIndexes ) ;
+      pMB->_numIndexes = gRepaireMB._numIndexes ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_COMPRESSTYPE )
+   {
+      dumpPrintf( "   CompressType[%u] ==> [%u]"OSS_NEWLINE,
+                  pMB->_compressorType, gRepaireMB._compressorType ) ;
+      pMB->_compressorType = gRepaireMB._compressorType ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_LOBS )
+   {
+      dumpPrintf( "   Lobs[%llu] ==> [%llu]"OSS_NEWLINE,
+                  pMB->_totalLobs, gRepaireMB._totalLobs ) ;
+      pMB->_totalLobs = gRepaireMB._totalLobs ;
    }
 
    INT64 written = 0 ;
