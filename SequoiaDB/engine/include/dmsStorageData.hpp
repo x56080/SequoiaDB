@@ -1005,6 +1005,13 @@ namespace engine
       return 16 + 14 - pageSizeSquareRoot() ;
    }
 
+   /*
+      Tool Functions
+   */
+   BOOLEAN  dmsIsRecordIDValid( const BSONElement &oidEle,
+                                BOOLEAN allowEOO,
+                                const CHAR **pErrStr = NULL ) ;
+
 }
 
 #endif //DMSSTORAGE_DATA_HPP_

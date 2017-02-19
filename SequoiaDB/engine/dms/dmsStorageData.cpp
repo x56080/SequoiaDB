@@ -2250,13 +2250,15 @@ namespace engine
 
       // verify whether the record got "_id" inside
       BSONElement ele = record.getField ( DMS_ID_KEY_NAME ) ;
-      if ( ele.type() == Array )
+      const CHAR *pCheckErr = "" ;
+      if ( !dmsIsRecordIDValid( ele, TRUE, &pCheckErr ) )
       {
-         PD_LOG ( PDERROR, "record id can't be array: %s",
-                  record.toString().c_str() ) ;
+         PD_LOG( PDERROR, "Record[%s] _id is error: %s",
+                 record.toString().c_str(), pCheckErr ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+
       // judge must oid
       if ( mustOID && ele.eoo() )
       {
@@ -3616,5 +3618,82 @@ namespace engine
       }
       goto done ;
    }
+   /*
+      Tool Fuctions
+   */
+   BOOLEAN dmsIsKeyNameValid( const BSONObj &obj,
+                              const CHAR **pErrStr )
+   {
+      const CHAR *pTmpStr = NULL ;
+      BOOLEAN valid = TRUE ;
+
+      BSONObjIterator itr( obj ) ;
+      while ( itr.more() )
+      {
+         BSONElement e = itr.next() ;
+
+         if ( '$' == e.fieldName()[ 0 ] )
+         {
+            pTmpStr = "field name can't start with \'$\'" ;
+            valid = FALSE ;
+            break ;
+         }
+         else if ( ossStrchr( e.fieldName(), '.' ) )
+         {
+            pTmpStr = "field name can't include \'.\'" ;
+            valid = FALSE ;
+            break ;
+         }
+         else if ( e.isABSONObj() &&
+                   !dmsIsKeyNameValid( e.embeddedObject(), pErrStr ) )
+         {
+            valid = FALSE ;
+            break ;
+         }
+      }
+
+      if ( !valid && pErrStr && pTmpStr )
+      {
+         *pErrStr = pTmpStr ;
+      }
+
+      return valid ;
+   }
+
+   BOOLEAN dmsIsRecordIDValid( const BSONElement &oidEle,
+                               BOOLEAN allowEOO,
+                               const CHAR **pErrStr )
+   {
+      const CHAR *pTmpStr = NULL ;
+      BOOLEAN valid = TRUE ;
+
+      switch ( oidEle.type() )
+      {
+         case EOO :
+            if ( !allowEOO )
+            {
+               pTmpStr = "is not exist" ;
+               valid = FALSE ;
+            }
+            break ;
+         case Array :
+            pTmpStr = "can't be Array" ;
+            valid = FALSE ;
+            break ;
+         case Object :
+            valid = dmsIsKeyNameValid( oidEle.embeddedObject(), pErrStr ) ;
+            break ;
+         default :
+            break ;            
+      }
+
+      if ( !valid && pErrStr && pTmpStr )
+      {
+         *pErrStr = pTmpStr ;
+      }
+
+      return valid ;
+   }
+
 }
 

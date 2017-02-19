@@ -157,10 +157,11 @@ namespace engine
       /* (0) */
       // verify whether the record got "_id" inside
       ele = record.getField ( DMS_ID_KEY_NAME ) ;
-      if ( ele.type() == Array )
+      const CHAR *pCheckErr = "" ;
+      if ( !dmsIsRecordIDValid( ele, TRUE, &pCheckErr ) )
       {
-         PD_LOG ( PDERROR, "record id can't be array: %s",
-                  record.toString().c_str()) ;
+         PD_LOG( PDERROR, "Record[%s] _id is error: %s",
+                 record.toString().c_str(), pCheckErr ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
