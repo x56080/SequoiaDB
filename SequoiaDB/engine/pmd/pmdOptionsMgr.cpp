@@ -1548,11 +1548,11 @@ namespace engine
 #endif /* SDB_ENTERPRISE */
       // --auth
       rdxBooleanS( pEX, PMD_OPTION_AUTH, _auth,
-                   FALSE, FALSE, TRUE, FALSE ) ;
+                   FALSE, TRUE, TRUE, FALSE ) ;
       // --planbuckets
       rdxUInt( pEX, PMD_OPTION_PLAN_BUCKETS, _planBucketNum,
                FALSE, TRUE, 500, FALSE ) ;
-      // --operatortimeout
+      // --optimeout
       rdxUInt( pEX, PMD_OPTION_OPERATOR_TIMEOUT, _oprtimeout, FALSE, TRUE,
                PMD_OPTION_OPR_TIME_DEFAULT, FALSE ) ;
       // --overflowratio

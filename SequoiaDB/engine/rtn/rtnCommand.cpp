@@ -836,8 +836,14 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNCREATEINDEX_DOIT ) ;
 
+      BOOLEAN isSys = FALSE ;
+      if ( !pmdGetOptionCB()->authEnabled() )
+      {
+         isSys = TRUE ;
+      }
+
       rc = rtnCreateIndexCommand ( _collectionName, _index, cb,
-                                   dmsCB, dpsCB, FALSE, _sortBufferSize ) ;
+                                   dmsCB, dpsCB, isSys, _sortBufferSize ) ;
 
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
@@ -1089,9 +1095,15 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNDROPINDEX_DOIT ) ;
+      BOOLEAN isSys = FALSE ;
       BSONElement ele = _index.firstElement() ;
-      rc = rtnDropIndexCommand ( _collectionName, ele, cb, dmsCB, dpsCB ) ;
 
+      if ( !pmdGetOptionCB->authEnabled() )
+      {
+         isSys = TRUE ;
+      }
+      rc = rtnDropIndexCommand ( _collectionName, ele, cb, dmsCB,
+                                 dpsCB, isSys ) ;
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          /// AUDIT

@@ -72,6 +72,11 @@ namespace engine
       return SDB_OK ;
    }
 
+   void _authCB::onConfigChange()
+   {
+      _authEnabled = pmdGetOptionCB()->authEnabled() ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_AUTHCB_AUTHENTICATE, "_authCB::authenticate" )
    INT32 _authCB::authenticate( BSONObj &obj, _pmdEDUCB *cb,
                                 BOOLEAN chkPasswd )
