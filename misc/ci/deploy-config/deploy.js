@@ -25,10 +25,6 @@ if ( hostList.constructor !== Array )
 { 
    throw "invalid para: hostList, should be array"; 
 }
-if ( hostList.length !== 3 ) 
-{ 
-   throw "invalid para: hostList, should has 3 element"; 
-}
 if ( typeof(installDir) === "undefined" ) 
 { 
    throw "invalid para: installDir, can not be null"; 
