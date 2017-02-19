@@ -308,7 +308,7 @@ namespace engine
             }
 
             DMS_RECORD_EXTRACTDATA( _curRecordPtr, recordDataPtr,
-                                 _pSu->getCompressorEntry( _context->mbID() )) ;
+                                    _pSu->getCompressorEntry( _context->mbID() )) ;
 
             DMS_MON_OP_COUNT_INC( _pMonAppCB, MON_DATA_READ, 1 ) ;
             DMS_MON_OP_COUNT_INC( _pMonAppCB, MON_READ, 1 ) ;
