@@ -200,6 +200,7 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    public :
       _MsgHeader        header ;
       DPS_LSN           current ;
+      DPS_LSN           lastConsult ;
       MsgRouteID        identity ;
       UINT32            hashValue ;
       CHAR              reserved[ 16 ] ;

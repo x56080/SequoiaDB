@@ -121,6 +121,7 @@ namespace engine
 
          DPS_LSN                       _completeLSN ;
          DPS_LSN                       _consultLsn ;
+         DPS_LSN                       _lastRecvConsultLsn ;
    } ;
 
    typedef _clsReplDstSession clsReplDstSession ;

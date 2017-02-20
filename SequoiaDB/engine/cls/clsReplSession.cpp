@@ -63,7 +63,8 @@ namespace engine
        _quit( FALSE ),
        _addFSSession(0),
        _timeout( 0 ),
-       _consultLsn()
+       _consultLsn(),
+       _lastRecvConsultLsn()
    {
       PD_TRACE_ENTRY ( SDB__CLSDSTREPSN__CLSDSTREPSN );
       _logger = pmdGetKRCB()->getDPSCB() ;
@@ -480,6 +481,8 @@ namespace engine
             goto done ;
          }
 
+         _lastRecvConsultLsn = msg->returnTo ;
+
          /// can not find rollback point, will find the consult lsn again
          if ( SDB_OK != _logger->search( msg->returnTo, &_mb ) )
          {
@@ -599,8 +602,8 @@ namespace engine
             _status = CLS_SESSION_STATUS_SYNC ;
             ++_requestID ;
             _syncFailedNum = 0 ;
-            _consultLsn.offset = DPS_INVALID_LSN_OFFSET ;
-            _consultLsn.version = DPS_INVALID_LSN_VERSION ;
+            _consultLsn.reset() ;
+            _lastRecvConsultLsn.reset() ;
          }
       }
       }
@@ -843,6 +846,7 @@ namespace engine
          msg.header.TID = CLS_TID( _sessionID ) ;
          msg.header.requestID = _requestID ;
          msg.current =  _consultLsn ;
+         msg.lastConsult = _lastRecvConsultLsn ;
          msg.identity = routeAgent()->localID() ;
 
          if ( !_consultLsn.invalid() )
@@ -1228,8 +1232,16 @@ namespace engine
          /// not found the search lsn
          if ( SDB_OK != _logger->search( search, &_mb ) )
          {
-            search.offset = eLsn.offset ;
-            baseVersion = eLsn.version ;
+            if ( msg->lastConsult.invalid() )
+            {
+               search.offset = eLsn.offset ;
+               baseVersion = eLsn.version ;
+            }
+            else
+            {
+               search = msg->lastConsult ;
+               baseVersion = search.version ;
+            }
          }
          else
          {
