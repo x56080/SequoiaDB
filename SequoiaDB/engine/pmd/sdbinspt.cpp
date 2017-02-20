@@ -83,7 +83,7 @@ namespace fs = boost::filesystem ;
    "-mb support key:\n"\
    "  IndexPages(u)      LID(u)            Attr(u)\n"\
    "  IndexFreeSpace(u)  DataPages(u)      Flag(u)\n"\
-   "  DataFreeSpace(u)   LobPages(u)       Records(u)"\
+   "  DataFreeSpace(u)   LobPages(u)       Records(u)\n"\
    "  IndexNum(u)        CompressType(u)   Lobs(u)"
 
 #define ADD_PARAM_OPTIONS_BEGIN( desc )\
