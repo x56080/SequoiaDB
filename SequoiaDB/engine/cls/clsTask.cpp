@@ -118,6 +118,7 @@ namespace engine
       {
          clsTask *pTask = it->second ;
          if ( pTask->collectionName() &&
+              '\0' != pTask->collectionName()[0] &&
               0 == ossStrcmp( pCLName, pTask->collectionName() ) )
          {
             ++taskCount ;
