@@ -103,7 +103,8 @@ namespace engine
                                  CHAR * addrPrefix,
                                  UINT32 options,
                                  const CHAR *collectionName,
-                                 std::vector<UINT16> &collections ) ;
+                                 std::vector<UINT16> &collections,
+                                 BOOLEAN force ) ;
 
          static UINT32 dumpMB( void * inBuf,
                                UINT32 inSize,
@@ -112,7 +113,8 @@ namespace engine
                                CHAR * addrPrefix,
                                UINT32 options,
                                const CHAR *collectionName,
-                               std::vector<UINT16> &collections ) ;
+                               std::vector<UINT16> &collections,
+                               BOOLEAN force ) ;
 
          static UINT32 dumpMBEx( void * inBuf,
                                  UINT32 inSize,

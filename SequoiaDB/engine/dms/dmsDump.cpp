@@ -190,6 +190,12 @@ namespace engine
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " Secret value: %d"OSS_NEWLINE,
                               header->_secretValue ) ;
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              " Lob Page Sz : %d"OSS_NEWLINE,
+                              header->_lobdPageSize ) ;
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              " Lob Flag    : %d"OSS_NEWLINE,
+                              header->_createLobs ) ;
       }
       len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
 
@@ -278,7 +284,8 @@ namespace engine
                              CHAR *outBuf, UINT32 outSize,
                              CHAR *addrPrefix, UINT32 options,
                              const CHAR *collectionName,
-                             vector< UINT16 > &collections )
+                             vector< UINT16 > &collections,
+                             BOOLEAN force )
    {
       UINT32 len = 0 ;
 
@@ -298,7 +305,7 @@ namespace engine
       {
          len += dumpMB ( (CHAR*)inBuf + (i*DMS_MB_SIZE), DMS_MB_SIZE,
                          outBuf + len, outSize -len, addrPrefix, options,
-                         collectionName, collections ) ;
+                         collectionName, collections, force ) ;
          if ( len == outSize )
          {
             goto exit ;
@@ -316,7 +323,8 @@ namespace engine
                             CHAR *outBuf, UINT32 outSize,
                             CHAR *addrPrefix, UINT32 options,
                             const CHAR *collectionName,
-                            vector< UINT16 > &collections )
+                            vector< UINT16 > &collections,
+                            BOOLEAN force )
    {
       UINT32 len = 0 ;
       UINT32 hexDumpOption = 0 ;
@@ -349,6 +357,11 @@ namespace engine
            !OSS_BIT_TEST ( mb->_flag, DMS_MB_FLAG_DROPED ) )
       {
          collections.push_back ( mb->_blockID ) ;
+      }
+      else if ( !force )
+      {
+         // if not enable force, when mb is invalid, ignored
+         goto exit ;
       }
 
       if ( DMS_SU_DMP_OPT_HEX & options )
@@ -385,7 +398,7 @@ namespace engine
                              " Collection ID     : %u"OSS_NEWLINE,
                               mb->_blockID ) ;
 
-         CHAR *compressorType = NULL ;
+         const CHAR *compressorType = NULL ;
          if ( 1 == mb->_compressorType )
          {
             compressorType = "lzw" ;
@@ -404,22 +417,14 @@ namespace engine
          }
 
          len += ossSnprintf( outBuf + len, outSize - len,
-                             " First extent ID   : 0x%08lx (%d)"OSS_NEWLINE
-                             " Last extent ID    : 0x%08lx (%d)"OSS_NEWLINE
-                             " Logical ID        : 0x%08lx (%d)"OSS_NEWLINE
-                             " Index HWM         : 0x%d"OSS_NEWLINE
+                             " First extent ID   : 0x%08x (%d)"OSS_NEWLINE
+                             " Last extent ID    : 0x%08x (%d)"OSS_NEWLINE
+                             " Logical ID        : 0x%08x (%d)"OSS_NEWLINE
+                             " Index HWM         : %u"OSS_NEWLINE
                              " Number of indexes : %u"OSS_NEWLINE
-                             " First Load ExtID  : 0x%08lx (%d)"OSS_NEWLINE
-                             " Last Load ExtID   : 0x%08lx (%d)"OSS_NEWLINE
-                             " Expand extent ID  : 0x%08lx (%d)"OSS_NEWLINE
-                             " Total records     : %llu"OSS_NEWLINE
-                             " Total data pages  : %u"OSS_NEWLINE
-                             " Total data free sp: %llu"OSS_NEWLINE
-                             " Total index pages : %u"OSS_NEWLINE
-                             " Total idx free sp : %llu"OSS_NEWLINE
-                             " Dictionary extent ID: 0x%08lx (%d)"OSS_NEWLINE
-                             " Dictionary version: %u"OSS_NEWLINE
-                             " Compression Type  : %s"OSS_NEWLINE,
+                             " First Load ExtID  : 0x%08x (%d)"OSS_NEWLINE
+                             " Last Load ExtID   : 0x%08x (%d)"OSS_NEWLINE
+                             " Expand extent ID  : 0x%08x (%d)"OSS_NEWLINE,
                              mb->_firstExtentID, mb->_firstExtentID,
                              mb->_lastExtentID, mb->_lastExtentID,
                              mb->_logicalID, mb->_logicalID,
@@ -427,13 +432,40 @@ namespace engine
                              mb->_numIndexes,
                              mb->_loadFirstExtentID, mb->_loadFirstExtentID,
                              mb->_loadLastExtentID, mb->_loadLastExtentID,
-                             mb->_mbExExtentID, mb->_mbExExtentID,
-                             mb->_totalRecords, mb->_totalDataPages,
-                             mb->_totalDataFreeSpace, mb->_totalIndexPages,
+                             mb->_mbExExtentID, mb->_mbExExtentID ) ;
+
+         /// stat
+         len += ossSnprintf( outBuf + len, outSize - len,
+                             " Total records     : %llu"OSS_NEWLINE
+                             " Total lobs        : %llu"OSS_NEWLINE
+                             " Total data pages  : %u"OSS_NEWLINE
+                             " Total data free sp: %llu"OSS_NEWLINE
+                             " Total index pages : %u"OSS_NEWLINE
+                             " Total idx free sp : %llu"OSS_NEWLINE
+                             " Total lob pages   : %u"OSS_NEWLINE,
+                             mb->_totalRecords,
+                             mb->_totalLobs,
+                             mb->_totalDataPages,
+                             mb->_totalDataFreeSpace,
+                             mb->_totalIndexPages,
                              mb->_totalIndexFreeSpace,
+                             mb->_totalLobPages ) ;
+
+         /// compress
+         len += ossSnprintf( outBuf + len, outSize - len,
+                             " Dict extent ID    : 0x%08x (%d)"OSS_NEWLINE
+                             " New Dict extent ID: 0x%08x (%d)"OSS_NEWLINE
+                             " Dict stat page ID : 0x%08x (%d)"OSS_NEWLINE
+                             " Dictionary version: %u"OSS_NEWLINE
+                             " Compression Type  : 0x%02x (%s)"OSS_NEWLINE
+                             " Last comp ratio   : %d"OSS_NEWLINE,
                              mb->_dictExtentID, mb->_dictExtentID,
+                             mb->_newDictExtentID, mb->_newDictExtentID,
+                             mb->_dictStatPageID, mb->_dictStatPageID,
                              mb->_dictVersion,
-                             compressorType ) ;
+                             mb->_compressorType, compressorType,
+                             mb->_lastCompressRatio ) ;
+
          // Delete list
          len += ossSnprintf( outBuf + len, outSize - len,
                              " Deleted list :"OSS_NEWLINE ) ;
@@ -456,8 +488,14 @@ namespace engine
                tmpSize = tmpInt >> 20 ;  // tmpInt / 1048576
                uom = 'M' ;
             }
+            if ( !force &&
+                 DMS_INVALID_EXTENT == mb->_deleteList[i]._extent &&
+                 DMS_INVALID_OFFSET == mb->_deleteList[i]._offset )
+            {
+               continue ;
+            }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                "   %3u%c : %08lx %08lx"OSS_NEWLINE,
+                                "   %3u%c : %08x %08x"OSS_NEWLINE,
                                 tmpSize, uom,
                                 mb->_deleteList[i]._extent,
                                 mb->_deleteList[i]._offset ) ;
@@ -469,8 +507,12 @@ namespace engine
 
          for ( UINT16 i = 0 ; i < DMS_COLLECTION_MAX_INDEX ; i++ )
          {
+            if ( !force && DMS_INVALID_EXTENT == mb->_indexExtent[i] )
+            {
+               continue ;
+            }
             len += ossSnprintf( outBuf + len, outSize - len,
-                                "   %2u : 0x%08lx"OSS_NEWLINE,
+                                "   %2u : 0x%08x"OSS_NEWLINE,
                                 i, mb->_indexExtent[i] ) ;
          }
       }
@@ -571,7 +613,7 @@ namespace engine
                }
 
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "  %6u : [0x%08lx, 0x%08lx]"OSS_NEWLINE,
+                                    "  %6u : [0x%08x, 0x%08x]"OSS_NEWLINE,
                                     i, firstID, lastID ) ;
             }
          } // end for
@@ -644,7 +686,7 @@ namespace engine
       }
 
       len += ossSnprintf( outBuf + len, outSize - len,
-                          " ExtentId: 0x%08lx (%d)"OSS_NEWLINE,
+                          " ExtentId: 0x%08x (%d)"OSS_NEWLINE,
                           extID, extID ) ;
       if ( DMS_SU_DMP_OPT_HEX & options )
       {
@@ -1280,19 +1322,19 @@ namespace engine
       keyOfst   = keyNode->_keyOffset ;
 
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Left Ptr     : 0x%08lx (%d)"OSS_NEWLINE,
+                           "       Left Ptr     : 0x%08x (%d)"OSS_NEWLINE,
                            left, left ) ;
       if ( rid._offset & 1 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "       Record ID    : 0x%08lx : 0x%08lx "
+                              "       Record ID    : 0x%08x : 0x%08x "
                               "(Unused)"OSS_NEWLINE,
                               rid._extent, rid._offset ) ;
       }
       else
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "       Record ID    : 0x%08lx : 0x%08lx "
+                              "       Record ID    : 0x%08x : 0x%08x "
                               "(extent: %d; offset: %d)"OSS_NEWLINE,
                               rid._extent, rid._offset, rid._extent,
                               rid._offset ) ;

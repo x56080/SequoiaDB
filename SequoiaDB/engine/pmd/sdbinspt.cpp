@@ -77,6 +77,7 @@ namespace fs = boost::filesystem ;
 #define OPTION_SHOW_CONTENT "record"
 #define OPTION_ONLY_META    "meta"
 #define OPTION_REPAIRE      "repaire"
+#define OPTION_FORCE        "force"
 
 #define OPTION_REPAIRE_DESP \
    "repaire the db info, like --repaire mb:Flag=0,Attr=1\n"\
@@ -108,6 +109,7 @@ namespace fs = boost::filesystem ;
        ( COMMANDS_STRING(OPTION_NUMPAGE, ",n"), boost::program_options::value<SINT32>(), "number of pages" ) \
        ( COMMANDS_STRING(OPTION_SHOW_CONTENT, ",p"), boost::program_options::value<string>(), "display data/index content(true/false)" ) \
        ( OPTION_ONLY_META, boost::program_options::value<string>(), "inspect only meta(Header, SME, MME), true/false" ) \
+       ( OPTION_FORCE, "force dump all invalid mb, delete list and index list and so on" ) \
        ( COMMANDS_STRING(OPTION_REPAIRE, ",r"), boost::program_options::value<string>(), OPTION_REPAIRE_DESP )
 
 // bitwise operation
@@ -173,6 +175,7 @@ CHAR   *gMMEBuff                                     = NULL ;
 BOOLEAN gInitMME                                     = FALSE ;
 BOOLEAN gShowRecordContent                           = FALSE ;
 BOOLEAN gOnlyMeta                                    = FALSE ;
+BOOLEAN gForce                                       = FALSE ;
 BOOLEAN gReachEnd                                    = FALSE ;
 BOOLEAN gHitCS                                       = FALSE ;
 SDB_INSPT_TYPE gCurInsptType                         = SDB_INSPT_DATA ;
@@ -664,6 +667,10 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
       ossStrToBoolean( vm[OPTION_ONLY_META].as<string>().c_str(),
                        &gOnlyMeta ) ;
    }
+   if ( vm.count( OPTION_FORCE ) )
+   {
+      gForce = TRUE ;
+   }
 
    if ( vm.count( OPTION_REPAIRE ) )
    {
@@ -721,6 +728,8 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
                        gShowRecordContent ? "True":"False") ;
    dumpAndShowPrintf ( "   Only Meta  : %s"OSS_NEWLINE,
                        gOnlyMeta ? "True":"False" ) ;
+   dumpAndShowPrintf ( "   force      : %s"OSS_NEWLINE,
+                       gForce ? "True":"False" ) ;
    dumpAndShowPrintf ( OSS_NEWLINE ) ;
 done :
    PD_TRACE_EXITRC ( SDB_SDBINSPT_RESVARG, rc );
@@ -2805,7 +2814,8 @@ retry :
                             DMS_SU_DMP_OPT_HEX_PREFIX_AS_ADDR |
                             gDumpType,
                             ossStrlen ( gCLName ) ? gCLName : NULL,
-                            collections ) ;
+                            collections,
+                            gForce ) ;
    PD_TRACE1 ( SDB_DUMPCOLLECTIONS, PD_PACK_UINT(len) );
    if ( len >= gBufferSize-1 )
    {
