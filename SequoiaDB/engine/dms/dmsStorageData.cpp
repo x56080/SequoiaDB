@@ -2321,7 +2321,7 @@ namespace engine
                isCompressed = TRUE ;
             }
          }
-         else
+         else if ( rc )
          {
             // In any case of error, leave it, and use the original data.
             if ( SDB_UTIL_COMPRESS_ABORT == rc )

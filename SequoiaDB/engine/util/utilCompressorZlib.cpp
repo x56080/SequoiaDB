@@ -87,7 +87,7 @@ namespace engine
       if ( stream.total_out + sizeof( UINT32 ) > maxExpectedLen )
       {
          rc = SDB_UTIL_COMPRESS_ABORT ;
-         PD_LOG( PDINFO, "Compression abort as it dosen't meet the ratio "
+         PD_LOG( PDDEBUG, "Compression abort as it dosen't meet the ratio "
                  "requirement, rc: %d", rc ) ;
          goto error ;
       }
