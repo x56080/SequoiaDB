@@ -35,6 +35,9 @@ Install.ErrorMsg.StopSequoiadb.error=停止SequoiaDB数据库服务失败
 Install.ErrorMsg.DeleteUser.error=删除用户${username}失败
 Install.ErrorMsg.IntallationOM.error=创建OM失败
 Install.ErrorMsg.checkDisk.error=磁盘剩余空间不足1.3G
+Install.ErrorMsg.checkHostname.error=主机名不能为空，请配置主机名。
+Install.ErrorMsg.checkHostnameIp.error=无法解析主机名${machine_hostname}到本机ip地址，你可能要检查一下/etc/hosts中的映射关系。
+Install.ErrorMsg.StartCM.error=启动cm失败，执行命令：service sdbcm start。
 
 Install.WarnMsg.CheckUmask=umask值异常！当前umask=${full_mask}，建议改成0022
 
@@ -48,6 +51,7 @@ Upgrade.NormalMsg.GetInstallDir.GetUser=检查：在${sys_conf_file}中获取安
 Upgrade.NormalMsg.InstallationExist=检查：安装目录${installdir}不为空 ...... 
 Upgrade.NormalMsg.JudgeComatible=检查：旧版本 ${old_version} ${old_edition_full} 与新版本 ${new_version} ${new_edition_full} 兼容 ...... 
 Upgrade.NormalMsg.DiskSpace=检查：磁盘空间足够 ...... 
+Upgrade.NormalMsg.HostnameIp=检查：主机名存在，主机名能映射到本机ip地址 ...... 
 Upgrade.NormalMsg.UserExist=检查：用户${username}存在，并获取用户组 ...... 
 Upgrade.NormalMsg.StopProcess=检查：相关进程已停止 ...... 
 Upgrade.NormalMsg.Umask=检查：umask配置 ...... 
@@ -72,8 +76,6 @@ Upgrade.ErrorMsg.DiskSpace=磁盘空间不够
 Upgrade.ErrorMsg.UserExist=用户${username}不存在
 Upgrade.ErrorMsg.StopProcess=数据库相关进程未停止
 Upgrade.ErrorMsg.StartProcess=sdbcm或者sdbcmd未启动
-Install.ErrorMsg.IntallOM=拷贝安装包到packet目录失败
 Upgrade.ErrorMsg.GetGoup=获取用户${username}的用户组失败
-
 
 Uninstall.ErrorMsg.CheckProcess=执行service sdbcm stop后仍然有进程残留

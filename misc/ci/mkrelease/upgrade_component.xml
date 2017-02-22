@@ -146,9 +146,14 @@
         </throwError>                                    
         <consoleWrite text="ok&#xA;"/>                                                                  
                    
-        <!--check disk-->                  
+        <!--check disk-->
         <consoleWrite text="${msg(Upgrade.NormalMsg.DiskSpace)}"/>                                                                          
         <checkFreeDiskSpaceFunction/>
+        <consoleWrite text="ok&#xA;"/>
+        
+        <!--check hostname and ip-->
+        <consoleWrite text="${msg(Upgrade.NormalMsg.HostnameIp)}"/>                                                                          
+        <checkHostnameIp/>
         <consoleWrite text="ok&#xA;"/>
         
         <!--check umask-->
@@ -363,7 +368,7 @@
             <execArgs>'${has_om}' | sed 's/^\s*//g'</execArgs>
             <name>has_om</name>
         </setInstallerVariableFromScriptOutput>
-        <runProgram>           
+        <runProgram>
             <program>${installdir}/install_om.sh</program>
             <programArguments>${project.installationType} "${installdir}" "${installer_pathname}"</programArguments>          
             <ruleList>

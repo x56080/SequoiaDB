@@ -88,6 +88,28 @@
                 </throwError>
             </actionList>    
         </actionDefinition>
+        <actionDefinition name="checkHostnameIp">
+            <actionList>
+                <throwError text="${msg(Install.ErrorMsg.checkHostname.error)}">
+                    <ruleEvaluationLogic>or</ruleEvaluationLogic>
+                    <ruleList>
+                        <compareText text="${machine_hostname}" logic="equals" value="(none)"/>
+                        <compareTextLength text="${machine_hostname}" logic="equals" length="0"/>
+                    </ruleList>
+                </throwError>
+                <throwError text="${msg(Install.ErrorMsg.checkHostnameIp.error)}">
+                    <ruleEvaluationLogic>or</ruleEvaluationLogic>
+                    <ruleList>
+                        <hostValidation>
+                            <host>${machine_hostname}</host>
+                            <type>hostname</type>
+                            <condition>is_not_valid</condition>
+                        </hostValidation>
+                        <compareText logic="equals" text="${machine_ipaddr}" value="127.0.0.1"/>
+                    </ruleList>
+                </throwError>
+            </actionList>    
+        </actionDefinition>
         <actionDefinition name="linkPhpLibFunction">
             <actionList>
                 <setInstallerVariable name="php_lib_dir" value="${installdir}/tools/server/php/libxml2/lib"/>                     
@@ -183,14 +205,18 @@
                     <programArguments>daemon-reload</programArguments>
                 </runProgram>             
                 <runProgram>
+                    <customErrorMessage>${msg(Install.ErrorMsg.StartCM.error)}</customErrorMessage>
                     <program>service</program>
-                    <programArguments> sdbcm start</programArguments>            
+                    <programArguments>sdbcm start</programArguments>
+                    <onErrorActionList>
+                        <consoleWrite text="&#xA;error message:&#xA;${program_stdout}&#xA;"/>
+                    </onErrorActionList>
                 </runProgram>
             </actionList>    
         </actionDefinition>
     </functionDefinitionList>
        
-    <!--exist installation? different mode has different parameterLis-->
+    <!--exist installation? different mode has different parameterList-->
     <preInstallationActionList>
         <!-- parameter check -->                         
         <throwError>

@@ -12,7 +12,10 @@
     <readyToInstallActionList>  
         <!--check disk--> 
         <checkFreeDiskSpaceFunction/>
-         
+        
+        <!--check hostname and ip-->
+        <checkHostnameIp/>
+        
         <!--check umask-->
         <checkUmaskFunction/> 
         

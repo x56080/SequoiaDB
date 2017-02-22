@@ -35,6 +35,9 @@ Install.ErrorMsg.StopSequoiadb.error=Failed to stop SequoiaDB database service
 Install.ErrorMsg.DeleteUser.error=Failed to delete user:${username}
 Install.ErrorMsg.IntallationOM.error=Create OM failed
 Install.ErrorMsg.checkDisk.error=There is not enough disk space for installation. It needs at lease 1.3G.
+Install.ErrorMsg.checkHostname.error=Hostname can't be none. You need to configure hostname.
+Install.ErrorMsg.checkHostnameIp.error=Hostname ${machine_hostname} can't be resolved to local ip address. Maybe you need to check file /etc/hosts.
+Install.ErrorMsg.StartCM.error=Failed to start cm, execute: service sdbcm start.
 
 Install.WarnMsg.CheckUmask=Umask abnormal! Current umask = ${full_mask}, recommended value is 0022
 
@@ -48,6 +51,7 @@ Upgrade.NormalMsg.GetInstallDir.GetUser=Check: get install directory and user in
 Upgrade.NormalMsg.InstallationExist=Check: install dir ${installdir} is not empty ...... 
 Upgrade.NormalMsg.JudgeComatible=Check: compatibility between version ${old_version} ${old_edition_full} and ${new_version} ${new_edition_full} ...... 
 Upgrade.NormalMsg.DiskSpace=Check: disk space is enough ...... 
+Upgrade.NormalMsg.HostnameIp=Check: hostname exists, resolve hostname into ip ...... 
 Upgrade.NormalMsg.UserExist=Check: user ${username} exists, and get group ...... 
 Upgrade.NormalMsg.StopProcess=Check: relevant processes are stoped ...... 
 Upgrade.NormalMsg.Umask=Check: umask value ...... 
@@ -72,7 +76,6 @@ Upgrade.ErrorMsg.DiskSpace=There is not enough disk space for installation.
 Upgrade.ErrorMsg.UserExist=User ${username} does not exist.
 Upgrade.ErrorMsg.StopProcess=Revelant processes still exist.
 Upgrade.ErrorMsg.StartProcess=sdbcm or sdbcmd has not been started.
-Upgrade.ErrorMsg.GetGoup=Failed to get group of user ${username} 
-
+Upgrade.ErrorMsg.GetGoup=Failed to get group of user ${username}.
 
 Uninstall.ErrorMsg.CheckProcess=Revelant processes still exist after excuting 'service sdbcm stop'.
