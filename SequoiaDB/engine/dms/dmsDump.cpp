@@ -188,8 +188,8 @@ namespace engine
                               " Page Num    : %d"OSS_NEWLINE,
                               header->_pageNum ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Secret value: %d"OSS_NEWLINE,
-                              header->_secretValue ) ;
+                              " Secret value: 0x%016lx (%llu)"OSS_NEWLINE,
+                              header->_secretValue, header->_secretValue ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " Lob Page Sz : %d"OSS_NEWLINE,
                               header->_lobdPageSize ) ;
