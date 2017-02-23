@@ -90,14 +90,15 @@
         </actionDefinition>
         <actionDefinition name="checkHostnameIp">
             <actionList>
-                <throwError text="${msg(Install.ErrorMsg.checkHostname.error)}">
+                <showWarning text="${msg(Install.WarnMsg.checkHostname)}">
                     <ruleEvaluationLogic>or</ruleEvaluationLogic>
                     <ruleList>
+                        <compareText text="${machine_hostname}" logic="equals" value="localhost"/>
                         <compareText text="${machine_hostname}" logic="equals" value="(none)"/>
                         <compareTextLength text="${machine_hostname}" logic="equals" length="0"/>
                     </ruleList>
-                </throwError>
-                <throwError text="${msg(Install.ErrorMsg.checkHostnameIp.error)}">
+                </showWarning>
+                <showWarning text="${msg(Install.WarnMsg.checkHostnameIp)}">
                     <ruleEvaluationLogic>or</ruleEvaluationLogic>
                     <ruleList>
                         <hostValidation>
@@ -107,7 +108,7 @@
                         </hostValidation>
                         <compareText logic="equals" text="${machine_ipaddr}" value="127.0.0.1"/>
                     </ruleList>
-                </throwError>
+                </showWarning>
             </actionList>    
         </actionDefinition>
         <actionDefinition name="linkPhpLibFunction">
