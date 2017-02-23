@@ -453,6 +453,20 @@ namespace engine
                            }
                            continue ;
                         }
+                        /*
+                         * Scan all the collections, to check if any one should be
+                         * put into the dictionary creating list. This should be
+                         * done if the system restarted before the dictionary was
+                         * created.
+                         */
+                        if ( !storageUnit->data()->isTempSU() )
+                        {
+                           rc = rtnResumeClDictCreate( storageUnit, dmsCB ) ;
+                           PD_RC_CHECK( rc, PDERROR,
+                                        "Failed to resume dictionary creating "
+                                        "job for %s, rc: %d",
+                                        csName, rc ) ;
+                        }
                      }
 
                      rc = SDB_OK ;
@@ -619,7 +633,7 @@ namespace engine
                         rc = rtnResumeClDictCreate( storageUnit, dmsCB ) ;
                         PD_RC_CHECK( rc, PDERROR,
                                      "Failed to resume dictionary creating "
-                                     "job, rc: %d", rc ) ;
+                                     "job for %s, rc: %d", csName, rc ) ;
                      }
                   } // if ( rtnVerifyCollectionSpaceFileName
                   else if ( SDB_FILE_UNKNOW == rtnParseFileName( pFileName ) )
