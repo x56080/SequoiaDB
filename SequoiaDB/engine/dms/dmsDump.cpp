@@ -464,7 +464,7 @@ namespace engine
                              mb->_dictStatPageID, mb->_dictStatPageID,
                              mb->_dictVersion,
                              mb->_compressorType, compressorType,
-                             mb->_lastCompressRatio ) ;
+                             mb->_compressionRatio ) ;
 
          // Delete list
          len += ossSnprintf( outBuf + len, outSize - len,
