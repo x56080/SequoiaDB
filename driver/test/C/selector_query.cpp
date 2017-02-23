@@ -15,6 +15,7 @@
 #include <string>
 #include "testcommon.h"
 #include "client.h"
+#include "jstobs.h"
 
 // create collection
 void selectCreateCL( sdbCollectionHandle *cl )
@@ -67,41 +68,21 @@ TEST( selector, elementMatch )
    sdbCollectionHandle cl = SDB_OK ;
    sdbCursorHandle cursor = SDB_OK ;
    INT32 rc = SDB_OK ;
+   bson recordObj ;
+   const CHAR *pStr = "{ Group: [ { \"GroupInfo\":[ { \"GroupName\":\"group1\", \"SvcType\": 1000, \"SvcName\": 41000 } ] } ] }" ;
 
    // create colleciton and insert data
    selectCreateCL( &cl ) ;
    // { Group: [{"GroupInfo":[ { "GroupName":"group1", "SvcType": 1000, "SvcName": 41000},...]}]}
-   bson recordObj ;
-   bson subObj ;
-   bson_init( &recordObj ) ;
-   bson_append_start_array( &recordObj, "Group" ) ;
-   bson_append_start_object ( &recordObj, "Group" ) ;
-   bson_append_start_array( &recordObj, "GroupInfo" ) ;
-   bson_append_start_object ( &recordObj, "GroupInfo" ) ;
-   bson_append_string( &recordObj, "HostName", "host1" ) ;
-   bson_append_int( &recordObj, "SvcType", 1000 ) ;
-   bson_append_int( &recordObj, "SvcName", 41000 ) ;
-   bson_append_finish_object( &recordObj ) ;
-   bson_append_start_object ( &recordObj, "Group" ) ;
-   bson_append_string( &recordObj, "HostName", "host2" ) ;
-   bson_append_int( &recordObj, "SvcType", 1001 ) ;
-   bson_append_int( &recordObj, "SvcName", 42000 ) ;
-   bson_append_finish_object( &recordObj ) ;
-   bson_append_start_object ( &recordObj, "Group" ) ;
-   bson_append_string( &recordObj, "HostName", "host3" ) ;
-   bson_append_int( &recordObj, "SvcType", 1002 ) ;
-   bson_append_int( &recordObj, "SvcName", 41000 ) ;
-   bson_append_finish_object( &recordObj ) ;
-   bson_append_finish_array( &recordObj ) ;
-   bson_append_finish_object( &recordObj ) ;
-   bson_append_finish_array( &recordObj ) ;
-   bson_append_finish_object( &recordObj ) ;
+   rc = jsonToBson( &recordObj, pStr ) ;
+   ASSERT_EQ( TRUE, rc ) ; 
+
    bson_print( &recordObj ) ;
    rc = sdbInsert( cl, &recordObj ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    bson_destroy( &recordObj ) ;
 
-   // $elementMatch: {"Group.GroupInfo":{"$elemMatch":{"Name":41000}}}
+   // $elementMatch: {"Group.GroupInfo":{"$elemMatch":{"SvcName":41000}}}
    bson selectObj ;
    bson_init( &selectObj ) ;
    bson_append_start_object( &selectObj, "Group.GroupInfo" ) ;
@@ -132,35 +113,16 @@ TEST( selector, elementMatchOne )
    sdbCollectionHandle cl = SDB_OK ;
    sdbCursorHandle cursor = SDB_OK ;
    INT32 rc = SDB_OK ;
+   const CHAR *pStr = "{ Group: [ { \"GroupInfo\":[ { \"GroupName\":\"group1\", \"SvcType\": 1000, \"SvcName\": 41000 } ] } ] }" ;
 
    // create colleciton and insert data
    selectCreateCL( &cl ) ;
    // { Group: [{"GroupInfo":[ { "GroupName":"group1", "SvcType": 1000, "SvcName": 41000},...]}]}
+
    bson recordObj ;
-   bson subObj ;
-   bson_init( &recordObj ) ;
-   bson_append_start_array( &recordObj, "Group" ) ;
-   bson_append_start_object ( &recordObj, "Group" ) ;
-   bson_append_start_array( &recordObj, "GroupInfo" ) ;
-   bson_append_start_object ( &recordObj, "GroupInfo" ) ;
-   bson_append_string( &recordObj, "HostName", "host1" ) ;
-   bson_append_int( &recordObj, "SvcType", 1000 ) ;
-   bson_append_int( &recordObj, "SvcName", 41000 ) ;
-   bson_append_finish_object( &recordObj ) ;
-   bson_append_start_object ( &recordObj, "Group" ) ;
-   bson_append_string( &recordObj, "HostName", "host2" ) ;
-   bson_append_int( &recordObj, "SvcType", 1001 ) ;
-   bson_append_int( &recordObj, "SvcName", 42000 ) ;
-   bson_append_finish_object( &recordObj ) ;
-   bson_append_start_object ( &recordObj, "Group" ) ;
-   bson_append_string( &recordObj, "HostName", "host3" ) ;
-   bson_append_int( &recordObj, "SvcType", 1002 ) ;
-   bson_append_int( &recordObj, "SvcName", 41000 ) ;
-   bson_append_finish_object( &recordObj ) ;
-   bson_append_finish_array( &recordObj ) ;
-   bson_append_finish_object( &recordObj ) ;
-   bson_append_finish_array( &recordObj ) ;
-   bson_append_finish_object( &recordObj ) ;
+   rc = jsonToBson( &recordObj, pStr ) ;
+   ASSERT_EQ( TRUE, rc ) ;
+    
    bson_print( &recordObj ) ;
    rc = sdbInsert( cl, &recordObj ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
