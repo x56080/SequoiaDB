@@ -108,8 +108,8 @@
 				<property name="jdk_name" value="${jdk_name_os}32" />
 			</else>
 		</if>
-    	<echo level="info" message="Step1 : Copy the file &lt;${driver_dir}/java/sequoiadb.jar&gt; to &lt;${deploy_dir}/hlt/drivers_testcases/java/lib/sequoiadb.jar&gt;." />
-		<copy file="${driver_dir}/java/sequoiadb.jar" tofile="${deploy_dir}/hlt/drivers_testcases/java/lib/sequoiadb.jar" />
+    	<echo level="info" message="Step1 : Copy the file &lt;${driver_dir}/Java/sequoiadb.jar&gt; to &lt;${deploy_dir}/hlt/drivers_testcases/java/lib/sequoiadb.jar&gt;." />
+		<copy file="${driver_dir}/Java/sequoiadb.jar" tofile="${deploy_dir}/hlt/drivers_testcases/java/lib/sequoiadb.jar" />
 		<echo level="info" message="Step2 : Compile the java driver testcases." />
 		<javac executable="${WORKSPACE}/sequoiadb/java/${jdk_name}/bin/javac" 
 		       srcdir="${testcases_dir}/java" 
@@ -181,21 +181,22 @@
 		<tstamp>
 			<format property="c_testcases_begintime" pattern="yyyy-MM-dd-hh.mm.ss a" />
 		</tstamp>
-		<echo level="info" message="Step1 : Rebuild folder &lt;${WORKSPACE}/sequoiadb/client/lib&gt;,copy folder &lt;${driver_dir}/lib&gt; to &lt;${WORKSPACE}/sequoiadb/client/lib&gt;." />
+		<echo level="info" message="Step1 : Rebuild folder &lt;${WORKSPACE}/sequoiadb/client/lib&gt;,copy folder &lt;${driver_dir}/C&amp;CPP/lib&gt; to &lt;${WORKSPACE}/sequoiadb/client/lib&gt;." />
 		<delete dir="${WORKSPACE}/sequoiadb/client/lib" failonerror="false"/>
 		<mkdir dir="${WORKSPACE}/sequoiadb/client/lib" />
 		<copy todir="${WORKSPACE}/sequoiadb/client/lib">
-			<fileset dir="${driver_dir}/lib" includes="*" />
+			<fileset dir="${driver_dir}/C&amp;CPP/lib" includes="*" />
 		</copy>
-		<echo level="info" message="Step2 : Rebuild folder &lt;${WORKSPACE}/sequoiadb/client/include&gt;,copy folder &lt;${driver_dir}/include&gt; to &lt;${WORKSPACE}/sequoiadb/client/include&gt;." />
+		<echo level="info" message="Step2 : Rebuild folder &lt;${WORKSPACE}/sequoiadb/client/include&gt;,copy folder &lt;${driver_dir}/C&amp;CPP/include&gt; to &lt;${WORKSPACE}/sequoiadb/client/include&gt;." />
 		<delete dir="${WORKSPACE}/sequoiadb/client/include" failonerror="false"/>
 		<mkdir dir="${WORKSPACE}/sequoiadb/client/include" />
 		<copy todir="${WORKSPACE}/sequoiadb/client/include">
-			<fileset dir="${driver_dir}/include" includes="**/*" />
+			<fileset dir="${driver_dir}/C&amp;CPP/include" includes="**/*" />
 		</copy>
 		<echo level="info" message="Step3 : Compile the C driver dynamic testcases,command: &lt;scons ${testcases_dir}/C lib_path=${driver_dir}/lib include_path=${driver_dir}/include&gt;." />
 		<exec executable="scons" dir="${testcases_dir}/C" failonerror="true">
-			<arg line=" --lib_path=${driver_dir}/lib --include_path=${driver_dir}/include" />
+			<!--arg line=" --lib_path=${driver_dir}/lib --include_path=${driver_dir}/include" /-->
+         <arg line=" --dd " />
 		</exec>
 		<!--echo level="info" message="Step4 : Compile the C driver static testcases,command: &lt;scons ${testcases_dir}/C/staticlib ==dd lib_path=${driver_dir}/lib include_path=${driver_dir}/include&gt;." />
 		<exec executable="scons" dir="${testcases_dir}/C/staticlib" failonerror="false">
@@ -224,7 +225,8 @@
 		</tstamp>
 		<echo level="info" message="Step1 : Compile the CPP driver dynamic testcases,command: &lt;scons ${testcases_dir}/CPP lib_path=${driver_dir}/lib include_path=${driver_dir}/include&gt;." />
 		<exec executable="scons" dir="${testcases_dir}/CPP" failonerror="true">
-			<arg line=" --lib_path=${driver_dir}/lib --include_path=${driver_dir}/include" />
+			<!--arg line=" --lib_path=${driver_dir}/lib --include_path=${driver_dir}/include" /-->
+         <arg line=" --dd " />
 		</exec>
 		<!--echo level="info" message="Step2 : Compile the CPP driver static testcases,command: &lt;scons ${testcases_dir}/CPP/staticlib ==dd lib_path=${driver_dir}/lib include_path=${driver_dir}/include&gt;." />
 		<exec executable="scons" dir="${testcases_dir}/CPP/staticlib" failonerror="false">
@@ -253,7 +255,8 @@
 		</tstamp>
 		<echo level="info" message="Step1 : Compile the Lob testcases,command: &lt;scons ${lob_testcases_dir} lib_path=${driver_dir}/lib include_path=${driver_dir}/include&gt;." />
 		<exec executable="scons" dir="${lob_testcases_dir}" failonerror="true">
-			<arg line=" --lib_path=${driver_dir}/lib --include_path=${driver_dir}/include" />
+			<!--arg line=" --lib_path=${driver_dir}/lib --include_path=${driver_dir}/include" /-->
+         <arg line=" --dd " />
 		</exec>
 		<echo level="info" message="Step2 : Copy the Lob testcases from &lt;${lob_testcases_dir}/build_test&gt; to &lt;${deploy_dir}/hlt/lob_testcases/build&gt;." />
 		<copy todir="${deploy_dir}/hlt/lob_testcases/build">
@@ -321,7 +324,8 @@
 		
 		<echo level="info" message="Step1 : Compile the C driver testcases,command: &lt;scons ${testcases_dir}/../../testcases/hlt/drivers_testcases/c lib_path=${driver_dir}/lib include_path=${driver_dir}/include&gt;." />
 		<exec executable="scons" dir="${testcases_dir}/../../testcases/hlt/drivers_testcases/c" failonerror="true">
-			<arg line=" --lib_path=${driver_dir}/lib --include_path=${driver_dir}/include" />
+			<!--arg line=" --lib_path=${driver_dir}/lib --include_path=${driver_dir}/include" /-->
+         <arg line=" --dd --lib_path=${driver_dir}/C&amp;CPP/lib --include_path=${driver_dir}/C&amp;CPP/include" />
 		</exec>
 
 		<echo level="info" message="Step2 : Copy the C driver testcases from &lt;${testcases_dir}/../../testcases/hlt/drivers_testcases/c/build_test&gt; to &lt;${deploy_dir}/hlt/drivers_testcases/story_C/build&gt;." />
@@ -345,7 +349,8 @@
 		
 		<echo level="info" message="Step1 : Compile the CPP driver testcases,command: &lt;scons ${testcases_dir}/../../testcases/hlt/drivers_testcases/cpp lib_path=${driver_dir}/lib include_path=${driver_dir}/include&gt;." />
 		<exec executable="scons" dir="${testcases_dir}/../../testcases/hlt/drivers_testcases/cpp" failonerror="true">
-			<arg line=" --lib_path=${driver_dir}/lib --include_path=${driver_dir}/include" />
+			<!--arg line=" --lib_path=${driver_dir}/lib --include_path=${driver_dir}/include" /-->
+         <arg line=" --dd " />
 		</exec>
 
 		<echo level="info" message="Step2 : Copy the CPP driver testcases from &lt;${testcases_dir}/../../testcases/hlt/drivers_testcases/cpp/build_test&gt; to &lt;${deploy_dir}/hlt/drivers_testcases/story_CPP/build&gt;." />
@@ -394,8 +399,8 @@
 		<property name="sjava_src_path"    value="${testcases_dir}/../../testcases/hlt/drivers_testcases/java/" />
 		<property name="sjava_deploy_path" value="${deploy_dir}/hlt/drivers_testcases/story_java" />
 		
-    	<echo level="info" message="1 : Copy ${driver_dir}/java/sequoiadb.jar to ${sjava_deploy_path}/lib/sequoiadb.jar." />
-		<copy file="${driver_dir}/java/sequoiadb.jar"   todir="${sjava_deploy_path}/lib" />
+    	<echo level="info" message="1 : Copy ${driver_dir}/Java/sequoiadb.jar to ${sjava_deploy_path}/lib/sequoiadb.jar." />
+		<copy file="${driver_dir}/Java/sequoiadb.jar"   todir="${sjava_deploy_path}/lib" />
 		<copy file="${sjava_src_path}/testng.xml"       todir="${sjava_deploy_path}" />
 		<copy todir="${sjava_deploy_path}/lib">
 		   <fileset dir="${sjava_src_path}/lib">

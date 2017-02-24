@@ -115,6 +115,12 @@
       <echo message="&#10;projects.version=${projects.version}" file="${CODE_DIR}/misc/ci/ci.build.properties" append="true" />
       <echo message="projects.version=${projects.version}" />
       <echo message="compile source code completed." />
+      
+      <chmod perm="u+x" file="${CODE_DIR}/bin/sequoiadb" />
+      <exec executable="bin/sequoiadb" dir="${CODE_DIR}" outputproperty="version_output" failonerror="true">
+         <arg line="--version" />
+      </exec>
+      <echo file="${RELEASE_DIR}/sequoiadb.version" message="${version_output}"/>
    </target>
 
    <target name="mk-driver" depends="compile-src">
@@ -311,9 +317,19 @@
       <copy file="${CODE_DIR}/driver/hadoop/hive/${open.source.hive_connector.filename}" tofile="${RELEASE_DIR}/sequoiadb/hadoop/${open.source.hive_connector.filename}" />
       <copy file="${CODE_DIR}/driver/hadoop/hive/${cdh.hive_connector.filename}" tofile="${RELEASE_DIR}/sequoiadb/hadoop/${cdh.hive_connector.filename}" />
 
+      <mkdir dir="${CODE_DIR}/driver/hadoop/hive/build"/>
+      <copy file="${CODE_DIR}/driver/hadoop/hive/${open.source.hive_connector.filename}" tofile="${CODE_DIR}/driver/hadoop/hive/build/${open.source.hive_connector.filename}" />
+      <copy file="${CODE_DIR}/driver/hadoop/hive/${cdh.hive_connector.filename}" tofile="${CODE_DIR}/driver/hadoop/hive/build/${cdh.hive_connector.filename}" />
+      
       <copy file="${CODE_DIR}/driver/postgresql/sdb_fdw.so" tofile="${RELEASE_DIR}/sequoiadb/postgresql/${fdw_name}" />
       <copy file="${CODE_DIR}/driver/postgresql/sdb_fdw.control" tofile="${RELEASE_DIR}/sequoiadb/postgresql/sdb_fdw.control" />
       <copy file="${CODE_DIR}/driver/postgresql/sdb_fdw--1.0.sql" tofile="${RELEASE_DIR}/sequoiadb/postgresql/sdb_fdw--1.0.sql" />
+      
+      <mkdir dir="${CODE_DIR}/driver/sequoiadb/postgresql/build"/>
+      <copy file="${CODE_DIR}/driver/postgresql/sdb_fdw.so"       tofile="${CODE_DIR}/driver/postgresql/build/${fdw_name}" />
+      <copy file="${CODE_DIR}/driver/postgresql/sdb_fdw.control"  tofile="${CODE_DIR}/driver/postgresql/build/sdb_fdw.control" />
+      <copy file="${CODE_DIR}/driver/postgresql/sdb_fdw--1.0.sql" tofile="${CODE_DIR}/driver/postgresql/build/sdb_fdw--1.0.sql" />
+      
       <chmod file="${RELEASE_DIR}/sequoiadb/postgresql/${fdw_name}" perm="a+x" />
       
       <if>
@@ -426,6 +442,9 @@
             <delete file="${WORKSPACE}/sequoiadb/script/sequoiadb-${projects.version}-1.x86_64.rpm" />
          </then>
       </if> -->
+    
+      <antcall target="build_bin_package"/>
+      <antcall target="build_driver_package"/>
    </target>
 
    <target name="mk-doc">
@@ -450,4 +469,110 @@
       </copy>
       <copydir src="${CODE_DIR}/doc/manual" dest="${RELEASE_DIR}/sequoiadb/doc/manual" includes="**/*" />
    </target>
+
+
+   <target name="build_bin_package">
+      <if>
+         <equals arg1="${BIN_PACKAGE}" arg2="true" />
+         <then>
+         <tar destfile="${RELEASE_DIR}/sequoiadb-${projects.version}-${os.and.platform}${version.name}-bin.tar.gz" 
+              compression="gzip" basedir="${RELEASE_DIR}/sequoiadb/" includes="bin/**" />
+         </then>
+      </if>
+   </target>
+
+   <target name="build_driver_package" >
+      <echo message="code_dir : ${CODE_DIR}"/>
+      <property name="release_driver_dir" location="${RELEASE_DIR}/driver" />
+      <delete dir="${release_driver_dir}" failonerror="false"/>
+      <mkdir dir="${release_driver_dir}"/>
+      
+      <mkdir dir="${release_driver_dir}/C#"/>
+      <mkdir dir="${release_driver_dir}/C&amp;CPP"/>
+      <mkdir dir="${release_driver_dir}/Hadoop"/>
+      <mkdir dir="${release_driver_dir}/Java" /> 
+      <mkdir dir="${release_driver_dir}/PHP"/>
+      <mkdir dir="${release_driver_dir}/Postgresql" />
+      <mkdir dir="${release_driver_dir}/Python" />
+      
+      <copy file="${CODE_DIR}/driver/C#.Net/build/release/sequoiadb.dll" 
+            tofile="${release_driver_dir}/C#/sequoiadb.dll" />
+      
+      <copy todir="${release_driver_dir}/C&amp;CPP">
+         <fileset dir="${CODE_DIR}/client" includes="include/**/*" />
+      </copy>
+      <copy todir="${release_driver_dir}/C&amp;CPP">
+         <fileset dir="${CODE_DIR}/client" includes="lib/*" />
+      </copy>
+
+      <copy todir="${release_driver_dir}/Hadoop" >
+         <fileset dir="${CODE_DIR}/driver/hadoop/hive/build" includes="**/*" />
+      </copy>     
+      <copy todir="${release_driver_dir}/Hadoop" >
+         <fileset dir="${CODE_DIR}/driver/hadoop/hadoop-connector" includes="**/hadoop-connector-*.jar" />
+      </copy>
+      
+      <copy todir="${release_driver_dir}/Java" 
+            file="${CODE_DIR}/driver/java/${java.driver.jar.name}" />
+      <if>
+         <equals arg1="${compile.debug}" arg2="true" />
+         <then>
+            <copy todir="${release_driver_dir}/PHP" >
+               <fileset dir="${CODE_DIR}/driver/php5/build/dd" includes="**/*.so" />
+            </copy>
+         </then>
+         <else>
+            <copy todir="${release_driver_dir}/PHP" >
+               <fileset dir="${CODE_DIR}/driver/php5/build/normal" includes="**/*.so" />
+            </copy>
+         </else>
+      </if>
+   
+      <copy todir="${release_driver_dir}/Postgresql" >
+         <fileset dir="${CODE_DIR}/driver/postgresql/build/">
+            <include name="sdb_fdw.control"/>
+            <include name="sdb_fdw--1.0.sql"/>
+            <include name="sdb_fdw.so_${projects.version}_${fdw_svn}"/>
+         </fileset>
+      </copy>     
+      <chmod dir="${release_driver_dir}/Postgresql" includes="*sdb_fdw.so*" perm="a+x" />
+      
+      <copy todir="${release_driver_dir}/Python" >
+         <fileset dir="${CODE_DIR}/driver/python/" includes="pysequoiadb.tar.gz" />
+      </copy>
+      
+      <tar destfile="${RELEASE_DIR}/sequoiadb-driver-${projects.version}-${os.and.platform}.tar.gz" 
+           longfile="gnu" compression="gzip" 
+           basedir="${RELEASE_DIR}" includes="driver/**/*"/>
+                 
+      <if>
+         <equals arg1="${UNPACK_DRIVER}" arg2="true" />
+         <then>
+            <move file ="${release_driver_dir}/C#" tofile="${release_driver_dir}/C#-${projects.version}-${os.and.platform}"/>
+            <move file ="${release_driver_dir}/C&amp;CPP" tofile="${release_driver_dir}/C&amp;CPP-${projects.version}-${os.and.platform}"/>
+            <move file ="${release_driver_dir}/Hadoop" tofile="${release_driver_dir}/Hadoop-${projects.version}-${os.and.platform}"/>
+            <move file ="${release_driver_dir}/Java" tofile="${release_driver_dir}/Java-${projects.version}-${os.and.platform}"/>
+            <move file ="${release_driver_dir}/PHP" tofile="${release_driver_dir}/PHP-${projects.version}-${os.and.platform}"/>
+            <move file ="${release_driver_dir}/Postgresql" tofile="${release_driver_dir}/Postgresql-${projects.version}-${os.and.platform}"/>
+            <move file ="${release_driver_dir}/Python" tofile="${release_driver_dir}/Python-${projects.version}-${os.and.platform}"/>
+            
+            <tar destfile="${release_driver_dir}/C#-${projects.version}-${os.and.platform}.tar.gz" compression="gzip" longfile="gnu" 
+                 basedir="${release_driver_dir}" includes="C#-${projects.version}-${os.and.platform}/**/*"/>
+            <tar destfile="${release_driver_dir}/C&amp;CPP-${projects.version}-${os.and.platform}.tar.gz" compression="gzip" longfile="gnu" 
+                 basedir="${release_driver_dir}" includes="C&amp;CPP-${projects.version}-${os.and.platform}/**/*"/>
+            <tar destfile="${release_driver_dir}/Hadoop-${projects.version}-${os.and.platform}.tar.gz" compression="gzip" longfile="gnu" 
+                 basedir="${release_driver_dir}" includes="Hadoop-${projects.version}-${os.and.platform}/**/*"/>
+            <tar destfile="${release_driver_dir}/Java-${projects.version}-${os.and.platform}.tar.gz" compression="gzip" longfile="gnu" 
+                 basedir="${release_driver_dir}" includes="Java-${projects.version}-${os.and.platform}/**/*"/>
+            <tar destfile="${release_driver_dir}/PHP-${projects.version}-${os.and.platform}.tar.gz" compression="gzip" longfile="gnu" 
+                 basedir="${release_driver_dir}" includes="PHP-${projects.version}-${os.and.platform}/**/*"/>
+            <tar destfile="${release_driver_dir}/Postgresql-${projects.version}-${os.and.platform}.tar.gz" compression="gzip" longfile="gnu" 
+                 basedir="${release_driver_dir}" includes="Postgresql-${projects.version}-${os.and.platform}/**/*"/>
+            <tar destfile="${release_driver_dir}/Python-${projects.version}-${os.and.platform}.tar.gz" compression="gzip" longfile="gnu" 
+                 basedir="${release_driver_dir}" includes="Python-${projects.version}-${os.and.platform}/**/*"/>     
+         </then>
+      </if>
+      
+   </target>
+   
 </project>
