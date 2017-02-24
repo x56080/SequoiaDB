@@ -65,7 +65,7 @@ namespace engine
       _result = SDB_OK ;
    }
 
-   _dpsLogRecord::_dpsLogRecord( const _dpsLogRecord &record ) 
+   _dpsLogRecord::_dpsLogRecord( const _dpsLogRecord &record )
    :_head(record._head),
     _write( record._write )
    {
@@ -640,13 +640,31 @@ namespace engine
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  " CLName : %s"OSS_NEWLINE,
                                  itrCL.value() ) ;
+
+            itrCL = this->find( DPS_LOG_CLCRT_ATTRIBUTE ) ;
+            if ( itrCL.valid() )
+            {
+               UINT32 attribute = *((UINT32 *)itrCL.value() ) ;
+               len += ossSnprintf ( outBuf + len, outSize - len,
+                                    " Attr   : 0x%08x (%u)"OSS_NEWLINE,
+                                    attribute, attribute ) ;
+            }
+
+            itrCL = this->find( DPS_LOG_CLCRT_COMPRESS_TYPE ) ;
+            if ( itrCL.valid() )
+            {
+               UINT8 comType = *((UINT8 *)itrCL.value() ) ;
+               len += ossSnprintf ( outBuf + len, outSize - len,
+                                    " ComType: 0x%02x (%u)"OSS_NEWLINE,
+                                    comType, comType ) ;
+            }
             break ;
          }
          case LOG_TYPE_CL_DELETE :
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  " Type   : %s(%d)"OSS_NEWLINE,
-                                 "CL CREATE", LOG_TYPE_CL_DELETE ) ;
+                                 "CL DROP", LOG_TYPE_CL_DELETE ) ;
             dpsLogRecord::iterator itrCL =
                       this->find( DPS_LOG_PUBLIC_FULLNAME ) ;
             if ( !itrCL.valid() )
