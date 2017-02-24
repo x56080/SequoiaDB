@@ -321,7 +321,7 @@
 		
 		<echo level="info" message="Step1 : Compile the C driver testcases,command: &lt;scons ${testcases_dir}/../../testcases/hlt/drivers_testcases/c lib_path=${driver_dir}/lib include_path=${driver_dir}/include&gt;." />
 		<exec executable="scons" dir="${testcases_dir}/../../testcases/hlt/drivers_testcases/c" failonerror="true">
-         <arg line=" --dd --lib_path=${driver_dir}/C&amp;CPP/lib --include_path=${driver_dir}/C&amp;CPP/include" />
+         <arg line=" --dd " />
 		</exec>
 
 		<echo level="info" message="Step2 : Copy the C driver testcases from &lt;${testcases_dir}/../../testcases/hlt/drivers_testcases/c/build_test&gt; to &lt;${deploy_dir}/hlt/drivers_testcases/story_C/build&gt;." />
