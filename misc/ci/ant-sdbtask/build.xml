@@ -50,11 +50,11 @@
 		<javac srcdir="${sdbtask_path}/src" destdir="${build_dir}" debug="true" debuglevel="lines,vars,source" fork="yes" executable="${WORKSPACE}/sequoiadb/java/${jdk_name}/bin/javac">
 			<classpath>
 				<fileset dir="${sdbtask_path}/lib" includes="**/*.jar"/>
-				<pathelement location="${WORKSPACE}/release/driver/java/sequoiadb.jar"/>
+				<pathelement location="${WORKSPACE}/release/driver/Java/sequoiadb.jar"/>
 			</classpath>
 		</javac>
 		<echo level="info" message="Step2 : Unjar the jar packages &lt;sequoiadb.jar&gt;,&lt;JSTAF.jar&gt;,&lt;ant-contrib.jar&gt;,&lt;junit.jar&gt;,&lt;junit-suse.jar&gt;,&lt;ant-junit.jar&gt; in folder &lt;${sdbtask_path}/lib&gt; and &lt;${WORKSPACE}/release/driver/java&gt; to &lt;${build_dir}&gt;." />
-		<unjar src="${WORKSPACE}/release/driver/java/sequoiadb.jar" dest="${build_dir}"  />
+		<unjar src="${WORKSPACE}/release/driver/Java/sequoiadb.jar" dest="${build_dir}"  />
 		<unjar src="${sdbtask_path}/lib/JSTAF.jar" dest="${build_dir}" />
 		<unjar src="${sdbtask_path}/lib/ant-contrib.jar" dest="${build_dir}" />
 		<unjar src="${sdbtask_path}/lib/junit.jar" dest="${build_dir}" />
@@ -83,9 +83,9 @@
 		<echo level="info" message="Step2 : Rebuild the folder &lt;ant-sdbtasks&gt;." />
 		<delete dir="${deploy_dir}/ant-sdbtasks" failonerror="false" />
 		<mkdir dir="${deploy_dir}/ant-sdbtasks" />
-		<echo level="info" message="Step3 : Copy the files &lt;${sdbtask_path}/ant-sdbtasks.jar&gt; and &lt;${WORKSPACE}/release/driver/java/sequoiadb.jar&gt; to folder &lt;${deploy_dir}/ant-sdbtasks&gt;." />
+		<echo level="info" message="Step3 : Copy the files &lt;${sdbtask_path}/ant-sdbtasks.jar&gt; and &lt;${WORKSPACE}/release/driver/Java/sequoiadb.jar&gt; to folder &lt;${deploy_dir}/ant-sdbtasks&gt;." />
 		<copy file="${sdbtask_path}/ant-sdbtasks.jar" todir="${deploy_dir}/ant-sdbtasks" />
-		<copy file="${WORKSPACE}/release/driver/java/sequoiadb.jar" todir="${deploy_dir}/ant-sdbtasks" />
+		<copy file="${WORKSPACE}/release/driver/Java/sequoiadb.jar" todir="${deploy_dir}/ant-sdbtasks" />
 		<tstamp>
 			<format property="sdbtasks_jar_endtime" pattern="yyyy-MM-dd-hh.mm.ss a" />
 		</tstamp>
