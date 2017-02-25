@@ -293,11 +293,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSREP_REPLAY );
       SDB_ASSERT( NULL != recordHeader, "head should not be NULL" ) ;
-
-      if ( !_dpsCB )
-      {
-         eduCB->insertLsn( recordHeader->_lsn ) ;
-      }
+      eduCB->insertLsn( recordHeader->_lsn ) ;
 
       try
       {
@@ -721,11 +717,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSREP_ROLBCK );
       SDB_ASSERT( NULL != recordHeader, "head should not be NULL" ) ;
-
-      if ( !_dpsCB )
-      {
-         eduCB->insertLsn( recordHeader->_lsn, TRUE ) ;
-      }
 
       try
       {
