@@ -399,15 +399,15 @@ namespace engine
                               mb->_blockID ) ;
 
          const CHAR *compressorType = NULL ;
-         if ( 1 == mb->_compressorType )
+         if ( UTIL_COMPRESSOR_LZW == mb->_compressorType )
          {
             compressorType = "lzw" ;
          }
-         else if ( 0 == mb->_compressorType )
+         else if ( UTIL_COMPRESSOR_SNAPPY == mb->_compressorType )
          {
             compressorType = "snappy" ;
          }
-         else if ( DMS_INVALID_COMPRESSOR_TYPE == mb->_compressorType )
+         else if ( UTIL_COMPRESSOR_INVALID == mb->_compressorType )
          {
             compressorType = "none" ;
          }
@@ -1113,7 +1113,7 @@ namespace engine
          {
             ossValuePtr recordPtr = 0 ;
             DMS_RECORD_EXTRACTDATA ( (ossValuePtr)(inBuf), recordPtr,
-                                      compressorEntry ) ;
+                                     compressorEntry ) ;
             BSONObj obj ( (CHAR*)recordPtr ) ;
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "       Record: %s"OSS_NEWLINE,

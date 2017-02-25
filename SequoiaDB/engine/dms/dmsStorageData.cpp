@@ -302,6 +302,7 @@ namespace engine
    :_dmsStorageBase( pSuFileName, pInfo )
    {
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA ) ;
+      _dmsMME           = NULL ;
       _pIdxSU           = NULL ;
       _pLobSU           = NULL ;
       _logicalCSID      = 0 ;
@@ -512,6 +513,14 @@ namespace engine
 
       compressor = getCompressorByType( type ) ;
       SDB_ASSERT( compressor, "compressor pointer should not be NULL" ) ;
+      if ( !compressor )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Failed to get compressor for collection[%s], "
+                 "type: %d, rc: %d", _dmsMME->_mbList[mbID]._collectionName,
+                 type, rc ) ;
+         goto error ;
+      }
       _compressorEntry[mbID].setCompressor( compressor ) ;
 
       if ( UTIL_COMPRESSOR_LZW == type )
@@ -593,17 +602,16 @@ namespace engine
             /*
              * In version before 2.0, the byte _compressorType is taking now was
              * set to 0. But in the new version, 0 means using snappy to
-             * compress. So during the upgrading, set the _comrpessorType to -1
+             * compress. So during the upgrading, set the _comrpessorType to 255
              * ( UTIL_COMPRESSOR_INVALID).
              */
             if ( upgradeDictInfo
                  && !OSS_BIT_TEST( _dmsMME->_mbList[i]._attributes,
                                    DMS_MB_ATTR_COMPRESSED )
-                 && ( DMS_INVALID_COMPRESSOR_TYPE
+                 && ( UTIL_COMPRESSOR_INVALID
                       != _dmsMME->_mbList[i]._compressorType ) )
             {
-               _dmsMME->_mbList[i]._compressorType
-                  = DMS_INVALID_COMPRESSOR_TYPE ;
+               _dmsMME->_mbList[i]._compressorType = UTIL_COMPRESSOR_INVALID ;
             }
          }
       }
@@ -622,9 +630,11 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA__ONOPENED ) ;
       /* Initialize compressor entries for collections. */
-      for ( UINT16 i = 0; i < DMS_MME_SLOTS; ++i )
+      for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
-         if ( DMS_INVALID_COMPRESSOR_TYPE != _dmsMME->_mbList[i]._compressorType )
+         if ( DMS_IS_MB_INUSE ( _dmsMME->_mbList[i]._flag ) &&
+              OSS_BIT_TEST( _dmsMME->_mbList[i]._attributes,
+                            DMS_MB_ATTR_COMPRESSED ) )
          {
             rc = _initCompressorEntry( i ) ;
             PD_RC_CHECK( rc, PDERROR,
@@ -1592,14 +1602,11 @@ namespace engine
       // set mb meta data and header data
       logicalID = _dmsHeader->_MBHWM++ ;
       mb = &_dmsMME->_mbList[newCollectionID] ;
-      // attribuites should contain the compress type.
-      mb->reset( pName, newCollectionID, logicalID, attributes ) ;
-      if ( !isTempSU() && ( DMS_INVALID_COMPRESSOR_TYPE != compressionType ) )
-      {
-         mb->_compressorType = compressionType ;
-      }
-
+      mb->reset( pName, newCollectionID, logicalID,
+                 attributes, compressionType ) ;
       _mbStatInfo[ newCollectionID ].reset() ;
+      _compressorEntry[ newCollectionID ].reset() ;
+
       _dmsHeader->_numMB++ ;
       _collectionNameInsert( pName, newCollectionID ) ;
 
@@ -1647,6 +1654,9 @@ namespace engine
          }
          goto error ;
       }
+
+      /// set compressor when snappy
+      _setCompressor( context ) ;
 
       // allocate new extent
       if ( 0 != initPages )
@@ -1795,10 +1805,8 @@ namespace engine
                    "rc: %d", pName, rc ) ;
 
       // truncate the collection
-      if ( DMS_INVALID_COMPRESSOR_TYPE != context->mb()->_compressorType )
-      {
-         rmCompressor( context ) ;
-      }
+      _rmCompressor( context ) ;
+
       rc = _truncateCollection( context ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to truncate the collection[%s], rc: %d",
                    pName, rc ) ;
@@ -1814,15 +1822,6 @@ namespace engine
       // change mb meta data
       DMS_SET_MB_DROPPED( context->mb()->_flag ) ;
       context->mb()->_logicalID-- ;
-
-      /*
-       * The space of dictionary has been release in _truncateCollection. In
-       * drop case, the compression type should be set to invalid.
-       */
-      if ( DMS_INVALID_COMPRESSOR_TYPE != context->mb()->_compressorType)
-      {
-         context->mb()->_compressorType = DMS_INVALID_COMPRESSOR_TYPE ;
-      }
 
       // free meta extent
       metaExt = ( dmsMetaExtent* )extentAddr( context->mb()->_mbExExtentID ) ;
@@ -1991,11 +1990,10 @@ namespace engine
        * truncate. In case of snappy, the compressor should be reserved.
        */
       if ( UTIL_COMPRESSOR_LZW ==
-           (UTIL_COMPRESSOR_TYPE)(context->mb()->_compressorType)
-           && _compressorEntry[context->mbID()].ready()
-           && needChangeCLID )
+           (UTIL_COMPRESSOR_TYPE)(context->mb()->_compressorType) &&
+           needChangeCLID )
       {
-         rmCompressor( context ) ;
+         _rmCompressor( context ) ;
       }
       rc = _truncateCollection( context, needChangeCLID ) ;
       PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] data failed, rc: %d",
@@ -3510,18 +3508,31 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA_SETCOMPRESSOR, "_dmsStorageData::setCompressor" )
-   void _dmsStorageData::setCompressor( UINT16 mbID,
-                                        UTIL_COMPRESSOR_TYPE type )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA_SETCOMPRESSOR, "_dmsStorageData::_setCompressor" )
+   void _dmsStorageData::_setCompressor( dmsMBContext *context )
    {
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA_SETCOMPRESSOR ) ;
-      dmsCompressorGuard guard( &_compressorEntry[ mbID ], EXCLUSIVE ) ;
-      _compressorEntry[mbID].setCompressor( getCompressorByType( type ) ) ;
+
+      if ( OSS_BIT_TEST( context->mb()->_attributes,
+                         DMS_MB_ATTR_COMPRESSED ) )
+      {
+         UINT16 mbID = context->mbID() ;
+         UTIL_COMPRESSOR_TYPE type =
+            (UTIL_COMPRESSOR_TYPE)context->mb()->_compressorType ;
+
+         /// only set when snappy
+         if ( UTIL_COMPRESSOR_SNAPPY == type )
+         {
+            dmsCompressorGuard guard( &_compressorEntry[ mbID ], EXCLUSIVE ) ;
+            _compressorEntry[mbID].setCompressor( getCompressorByType( type ) ) ;
+         }
+      }
+
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATA_SETCOMPRESSOR ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA_RMCOMPRESSOR, "_dmsStorageData::rmCompressor" )
-   void _dmsStorageData::rmCompressor( _dmsMBContext *context )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA_RMCOMPRESSOR, "_dmsStorageData::_rmCompressor" )
+   void _dmsStorageData::_rmCompressor( _dmsMBContext *context )
    {
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA_RMCOMPRESSOR ) ;
       dmsCompressorGuard compGuard( &_compressorEntry[context->mbID()],
@@ -3539,25 +3550,14 @@ namespace engine
       dmsExtentID dictExtID = DMS_INVALID_EXTENT ;
       dmsDictExtent *dictExtent = NULL ;
       dmsMBContext *context = NULL ;
-      UINT32 currClLID = DMS_INVALID_CLID ;
       dmsCompressorEntry *compressorEntry = &_compressorEntry[ mbID ] ;
 
       /* Number of pages to store the dictionary, including the extent header.*/
       UINT32 pageNum =
       ( sizeof( dmsDictExtent ) + dictLen + ( pageSize() - 1 ) ) / pageSize() ;
 
-      rc = getMBContext( &context, mbID, currClLID, EXCLUSIVE ) ;
+      rc = getMBContext( &context, mbID, clLID, EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;
-
-      if ( clLID != context->clLID() )
-      {
-         /*
-          * If the collection logical ID changed, the original collection has
-          * been dropped.
-          */
-         rc = SDB_DMS_NOTEXIST ;
-         goto error ;
-      }
 
       if ( !dmsAccessAndFlagCompatiblity( context->mb()->_flag,
                                           DMS_ACCESS_TYPE_CRT_DICT ) )
@@ -3565,6 +3565,19 @@ namespace engine
          PD_LOG( PDERROR, "Incompatible collection mode: %d",
                  context->mb()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
+         goto error ;
+      }
+
+      if ( !OSS_BIT_TEST( context->mb()->_attributes,
+                          DMS_MB_ATTR_COMPRESSED ) ||
+           UTIL_COMPRESSOR_LZW != context->mb()->_compressorType ||
+           DMS_INVALID_EXTENT != context->mb()->_dictExtentID )
+      {
+         PD_LOG( PDERROR, "Some system error occurs[MBID:%u, Attribute:%u"
+                 "CompressorType:%u, DictExtentID:%d]", mbID,
+                 context->mb()->_attributes, context->mb()->_compressorType,
+                 context->mb()->_dictExtentID ) ;
+         rc = SDB_SYS ;
          goto error ;
       }
 

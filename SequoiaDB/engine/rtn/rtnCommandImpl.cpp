@@ -1280,24 +1280,15 @@ namespace engine
          }
       }
 
-      if ( !su->data()->isTempSU() )
+      if ( OSS_BIT_TEST( attributes, DMS_MB_ATTR_COMPRESSED ) &&
+           UTIL_COMPRESSOR_LZW == compressorType )
       {
          /*
           * If the compression type is snappy, set it directly. If it's lzw, push
           * it to the dictionary creating list.
           */
-         if ( UTIL_COMPRESSOR_LZW == compressorType )
-         {
-            dmsCB->pushDictJob( dmsDictJob( suID, su->LogicalCSID(),
-                                            collectionID, logicalID ) ) ;
-         }
-         else
-         {
-            if ( UTIL_COMPRESSOR_SNAPPY == compressorType )
-            {
-               su->data()->setCompressor( collectionID, compressorType ) ;
-            }
-         }
+         dmsCB->pushDictJob( dmsDictJob( suID, su->LogicalCSID(),
+                                         collectionID, logicalID ) ) ;
       }
 
    done :
@@ -1673,6 +1664,7 @@ namespace engine
       const CHAR *pCollectionShortName = NULL ;
       BOOLEAN writable                 = FALSE ;
       dmsMBContext *context            = NULL ;
+      dmsMB *mb                        = NULL ;
 
       rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
@@ -1700,13 +1692,15 @@ namespace engine
        * truncation. So it should be pushed to the dictionary creating list
        * again after truncation.
        */
-      rc = su->data()->getMBContext( &context, pCollectionShortName ) ;
+      rc = su->data()->getMBContext( &context, pCollectionShortName, SHARED ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get mb context of collection %s, rc: %d",
                    pCollection, rc ) ;
+      mb = context->mb() ;
 
-      if ( UTIL_COMPRESSOR_LZW ==
-           (UTIL_COMPRESSOR_TYPE)context->mb()->_compressorType )
+      if ( OSS_BIT_TEST( mb->_attributes, DMS_MB_ATTR_COMPRESSED ) &&
+           UTIL_COMPRESSOR_LZW == mb->_compressorType &&
+           DMS_INVALID_EXTENT == mb->_dictExtentID )
       {
          dmsCB->pushDictJob( dmsDictJob( suID, su->LogicalCSID(),
                              context->mbID(), context->clLID() ) ) ;

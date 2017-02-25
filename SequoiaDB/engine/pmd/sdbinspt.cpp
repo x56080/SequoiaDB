@@ -1529,7 +1529,8 @@ void inspectOverflowedRecords ( OSSFILE &file, SINT32 pageSize,
                                 UINT16 collectionID, dmsExtentID ovfFromExtent,
                                 std::set<dmsRecordID> &overRIDList,
                                 SINT32 &err,
-                                dmsCompressorEntry *compressorEntry )
+                                dmsCompressorEntry *compressorEntry,
+                                UINT64 &compressedNum )
 {
    INT32 rc        = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_INSPOVFLWRECRDS );
@@ -1540,6 +1541,7 @@ void inspectOverflowedRecords ( OSSFILE &file, SINT32 pageSize,
    std::set<dmsRecordID>::iterator it ;
    INSPECT_EXTENT_TYPE extentType = INSPECT_EXTENT_TYPE_DATA ;
    dmsExtentID currentExtentID = DMS_INVALID_EXTENT ;
+   BOOLEAN isCompressed = FALSE ;
 
    dumpPrintf ( " Inspect Overflow-Records for Collection [%d]'s extent [%d]"
                 OSS_NEWLINE, collectionID, ovfFromExtent ) ;
@@ -1580,7 +1582,7 @@ retry :
       len = dmsInspect::inspectDataRecord ( cb, gExtentBuffer + offset,
               ((dmsExtent*)gExtentBuffer)->_blockSize * pageSize - offset,
               gBuffer, gBufferSize, count, offset, NULL, localErr,
-              compressorEntry ) ;
+              compressorEntry, isCompressed ) ;
       if ( len >= gBufferSize-1 )
       {
          if ( reallocBuffer () )
@@ -1593,6 +1595,11 @@ retry :
       flushOutput ( gBuffer, len ) ;
       err += localErr ;
       ++count ;
+
+      if ( isCompressed )
+      {
+         ++compressedNum ;
+      }
    } // end for
 
 done :
@@ -2044,7 +2051,8 @@ void inspectDictPageState( CHAR *pExpBuffer, dmsExtentID extentID,
 }
 
 void inspectCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id,
-                            SINT32 hwm, CHAR *pExpBuffer, SINT32 &err )
+                            SINT32 hwm, CHAR *pExpBuffer, SINT32 &err,
+                            UINT64 &ovfNum, UINT64 &compressedNum )
 {
    INT32 rc        = SDB_OK ;
    INT32 len       = 0 ;
@@ -2057,6 +2065,8 @@ void inspectCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id,
    dmsExtent *pExtent = NULL ;
    CHAR collectionName[ DMS_COLLECTION_NAME_SZ + 1 ] = { 0 } ;
    dmsCompressorEntry compressorEntry ;
+   UINT64 totalRecord = 0 ;
+   BOOLEAN extScan = FALSE ;
 
    rc = loadMB ( id, mb ) ;
    if ( rc )
@@ -2066,6 +2076,7 @@ void inspectCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id,
       ++err ;
       goto error ;
    }
+
    firstExtent = mb->_firstExtentID ;
    ossStrncpy( collectionName, mb->_collectionName, DMS_COLLECTION_NAME_SZ ) ;
    dumpPrintf ( " Inspect Data for collection [%d : %s]"OSS_NEWLINE,
@@ -2106,17 +2117,8 @@ void inspectCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id,
       }
    }
 
-   if ( DMS_INVALID_COMPRESSOR_TYPE != mb->_compressorType )
-   {
-      rc = prepareCompressor( file, pageSize, mb, id,
-                              pExpBuffer, compressorEntry, err ) ;
-      if ( rc )
-      {
-         dumpPrintf( "Error: Failed to prepare compressor for collection, "
-                     "rc = %d"OSS_NEWLINE, rc ) ;
-         goto error ;
-      }
-   }
+   prepareCompressor( file, pageSize, mb, id,
+                      pExpBuffer, compressorEntry, err ) ;
 
    extentType = INSPECT_EXTENT_TYPE_DATA ;
    // loop through all extents
@@ -2167,8 +2169,12 @@ void inspectCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id,
          firstExtent = pExtent->_nextExtent ;
          continue ;
       }
+      extScan = TRUE ;
 
 retry_data :
+      UINT64 extTotalRecord = 0 ;
+      UINT64 extCompressedNum = 0 ;
+
       extentRIDList.clear() ;
       tempExtent = firstExtent ;
       localErr = 0 ;
@@ -2178,7 +2184,9 @@ retry_data :
                                ((dmsExtent*)gExtentBuffer)->_blockSize*pageSize,
                                gBuffer, gBufferSize, hwm, id, tempExtent,
                                &extentRIDList, localErr,
-                               &compressorEntry ) ;
+                               &compressorEntry,
+                               extTotalRecord,
+                               extCompressedNum ) ;
       if ( (UINT32)len >= gBufferSize-1 )
       {
          // if our buffer is not large enough, let's allocate more memory and
@@ -2191,18 +2199,46 @@ retry_data :
          goto retry_data ;
       }
 
+      totalRecord += extTotalRecord ;
+      compressedNum += extCompressedNum ;
+      ovfNum += extentRIDList.size() ;
+
       flushOutput ( gBuffer, len ) ;
 
       // inspect the extent's ovf recrods
       if ( extentRIDList.size() != 0 )
       {
+         extCompressedNum = 0 ;
          inspectOverflowedRecords( file, pageSize, id, firstExtent,
-                                   extentRIDList, err, &compressorEntry ) ;
+                                   extentRIDList, err, &compressorEntry,
+                                   extCompressedNum ) ;
+         compressedNum += extCompressedNum ;
       }
 
       firstExtent = tempExtent ;
       err += localErr ;
    } //end while
+
+   /// inspect the stat info
+   if ( !OSS_BIT_TEST( mb->_attributes, DMS_MB_ATTR_COMPRESSED ) &&
+        0 != compressedNum )
+   {
+      dumpPrintf ( "Error: Collection is not compressed, but has %llu "
+                   "compressed records"OSS_NEWLINE, compressedNum ) ;
+   }
+   else if ( gMBStat._totalRecords != mb->_totalRecords )
+   {
+      dumpPrintf ( "Error: Collection records is not the same[ "
+                   "mb->_totalRecords: %llu, ext total records: %llu"
+                   OSS_NEWLINE, mb->_totalRecords,
+                   gMBStat._totalRecords ) ;
+   }
+   else if ( extScan && totalRecord != mb->_totalRecords )
+   {
+      dumpPrintf ( "Error: Collection records is not the same[ "
+                   "mb->_totalRecords: %llu, scan total records: %llu"
+                   OSS_NEWLINE, mb->_totalRecords, totalRecord ) ;
+   }
 
 done :
    return ;
@@ -2269,16 +2305,24 @@ void inspectCollection ( OSSFILE &file, SINT32 pageSize, UINT16 id,
    gMBStat.reset() ;
    if ( SDB_INSPT_DATA == gCurInsptType )
    {
-      inspectCollectionData( file, pageSize, id, hwm, pExpBuffer, err ) ;
+      UINT64 ovfNum = 0 ;
+      UINT64 compressedNum = 0 ;
+      inspectCollectionData( file, pageSize, id, hwm,
+                             pExpBuffer, err, ovfNum,
+                             compressedNum ) ;
       /// flush data info
       len = ossSnprintf( gBuffer, gBufferSize,
                          " ****The collection data info****"OSS_NEWLINE
                          "   Total Record           : %llu"OSS_NEWLINE
                          "   Total Data Pages       : %u"OSS_NEWLINE
-                         "   Total Data Free Space  : %llu"OSS_NEWLINE,
+                         "   Total Data Free Space  : %llu"OSS_NEWLINE
+                         "   Total OVF Record       : %llu"OSS_NEWLINE
+                         "   Total Compressed Record: %llu"OSS_NEWLINE,
                          gMBStat._totalRecords,
                          gMBStat._totalDataPages,
-                         gMBStat._totalDataFreeSpace ) ;
+                         gMBStat._totalDataFreeSpace,
+                         ovfNum,
+                         compressedNum ) ;
       flushOutput( gBuffer, len ) ;
    }
    else if ( SDB_INSPT_INDEX == gCurInsptType )
@@ -2359,15 +2403,9 @@ void dumpCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id )
       goto done ;
    }
 
-   if ( UTIL_COMPRESSOR_INVALID != (UTIL_COMPRESSOR_TYPE)(mb->_compressorType) )
    {
       SINT32 err = 0 ;
-      rc = prepareCompressor(file, pageSize, mb, id, NULL, compressorEntry, err  ) ;
-      if ( rc )
-      {
-         dumpPrintf( "Failed to prepare compressor for collection, rc: %d", rc ) ;
-         goto error ;
-      }
+      prepareCompressor(file, pageSize, mb, id, NULL, compressorEntry, err  ) ;
    }
 
    if ( DMS_INVALID_EXTENT != mb->_dictExtentID )
@@ -3269,7 +3307,10 @@ INT32 prepareCompressor( OSSFILE &file, SINT32 pageSize, dmsMB *mb, UINT16 id,
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY( SDB_PREPARECOMPRESSOR ) ;
    UTIL_COMPRESSOR_TYPE type = (UTIL_COMPRESSOR_TYPE)( mb->_compressorType ) ;
+
    dmsCompressorGuard gard( &compressorEntry, EXCLUSIVE ) ;
+
+   compressorEntry.setCompressor( getCompressorByType( type ) ) ;
 
    if ( DMS_INVALID_EXTENT != mb->_dictExtentID )
    {
@@ -3288,9 +3329,12 @@ INT32 prepareCompressor( OSSFILE &file, SINT32 pageSize, dmsMB *mb, UINT16 id,
          inspectDictPageState( pExpBuffer, mb->_dictExtentID, err ) ;
       }
 
-      compressorEntry.setDictionary( gDictBuffer + DMS_DICTEXTENT_HEADER_SZ ) ;
+      if ( compressorEntry.getCompressor() &&
+           UTIL_COMPRESSOR_LZW == type )
+      {
+         compressorEntry.setDictionary( gDictBuffer + DMS_DICTEXTENT_HEADER_SZ ) ;
+      }
    }
-   compressorEntry.setCompressor( getCompressorByType( type ) ) ;
 
 done:
    PD_TRACE_EXITRC( SDB_PREPARECOMPRESSOR, rc ) ;
@@ -3392,8 +3436,8 @@ INT32 main ( INT32 argc, CHAR **argv )
 
    if ( 0 != ossStrlen( gCSName ) && !gHitCS )
    {
-      dumpPrintf( "Warning: Cannot find any collection space named %s",
-                  gCSName ) ;
+      dumpPrintf( "Warning: Cannot find any collection space "
+                  "named %s"OSS_NEWLINE, gCSName ) ;
    }
 
 done :

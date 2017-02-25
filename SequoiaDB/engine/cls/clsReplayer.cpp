@@ -293,7 +293,11 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSREP_REPLAY );
       SDB_ASSERT( NULL != recordHeader, "head should not be NULL" ) ;
-      eduCB->insertLsn( recordHeader->_lsn ) ;
+
+      if ( !_dpsCB )
+      {
+         eduCB->insertLsn( recordHeader->_lsn ) ;
+      }
 
       try
       {
@@ -443,7 +447,7 @@ namespace engine
          {
             const CHAR *cl = NULL ;
             UINT32 attribute = 0 ;
-            UINT8 compType = DMS_INVALID_COMPRESSOR_TYPE ;
+            UINT8 compType = UTIL_COMPRESSOR_INVALID ;
             rc = dpsRecord2CLCrt( (CHAR *)recordHeader, &cl, attribute,
                                   compType ) ;
             if ( SDB_OK != rc )
@@ -718,6 +722,11 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSREP_ROLBCK );
       SDB_ASSERT( NULL != recordHeader, "head should not be NULL" ) ;
 
+      if ( !_dpsCB )
+      {
+         eduCB->insertLsn( recordHeader->_lsn, TRUE ) ;
+      }
+
       try
       {
          switch ( recordHeader->_type )
@@ -826,7 +835,7 @@ namespace engine
          {
             const CHAR *fullname = NULL ;
             UINT32 attribute = 0 ;
-            UINT8 compType = DMS_INVALID_COMPRESSOR_TYPE ;
+            UINT8 compType = UTIL_COMPRESSOR_INVALID ;
             rc = dpsRecord2CLCrt( (const CHAR *)recordHeader,
                                   &fullname, attribute, compType) ;
             if ( SDB_OK != rc )

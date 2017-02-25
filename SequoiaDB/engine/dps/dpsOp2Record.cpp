@@ -603,16 +603,13 @@ namespace engine
          goto error ;
       }
 
-      if ( 0 != attribute )
+      rc = record.push( DPS_LOG_CLCRT_ATTRIBUTE,
+                        sizeof( attribute ),
+                        (const CHAR *)(&attribute)) ;
+      if ( SDB_OK != rc )
       {
-         rc = record.push( DPS_LOG_CLCRT_ATTRIBUTE,
-                           sizeof( attribute ),
-                           (const CHAR *)(&attribute)) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "Failed to push attribute to record, rc: %d",rc ) ;
-            goto error ;
-         }
+         PD_LOG( PDERROR, "Failed to push attribute to record, rc: %d",rc ) ;
+         goto error ;
       }
 
       record.push( DPS_LOG_CLCRT_COMPRESS_TYPE, sizeof( UINT8 ),

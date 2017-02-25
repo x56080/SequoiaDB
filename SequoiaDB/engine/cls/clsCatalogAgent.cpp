@@ -1576,11 +1576,11 @@ namespace engine
       else if ( NumberInt == ele.type() )
       {
          INT32 compressType = ele.numberInt() ;
-         if ( compressType > UTIL_COMPRESSOR_LZW
-              || compressType < UTIL_COMPRESSOR_INVALID )
+         if ( compressType < UTIL_COMPRESSOR_SNAPPY ||
+              compressType > UTIL_COMPRESSOR_INVALID )
          {
             PD_LOG( PDERROR, "invalid value of compression type: %d",
-                       compressType ) ;
+                    compressType ) ;
             rc = SDB_SYS ;
             goto error ;
          }

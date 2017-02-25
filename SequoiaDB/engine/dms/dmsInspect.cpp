@@ -213,7 +213,7 @@ namespace engine
               pSME->getBitMask(i) )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 "Error: Page State 0x%08lx (%d) doesn't "
+                                 "Error: Page State 0x%08x (%d) doesn't "
                                  "match"OSS_NEWLINE,
                                  i, i ) ;
             smeMask2String ( pSME->getBitMask(i), stateBuf,
@@ -393,19 +393,49 @@ namespace engine
             mbFlag2String ( mb->_flag, tmpStr, DMS_COLLECTION_STATUS_LEN ) ;
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "Error: Invalid collection flag: "
-                                 "0x%04lx (%s)"OSS_NEWLINE,
+                                 "0x%08x (%s)"OSS_NEWLINE,
                                  mb->_flag, tmpStr ) ;
             ++localErr ;
          }
-         if ( mb->_attributes & ~DMS_MB_ATTR_COMPRESSED )
+
+         if ( OSS_BIT_TEST( mb->_attributes, DMS_MB_ATTR_COMPRESSED ) )
+         {
+            if ( UTIL_COMPRESSOR_LZW != mb->_compressorType &&
+                 UTIL_COMPRESSOR_SNAPPY != mb->_compressorType )
+            {
+               mbAttr2String ( mb->_attributes, tmpStr,
+                               DMS_COLLECTION_STATUS_LEN ) ;
+               len += ossSnprintf( outBuf + len, outSize - len,
+                                   "Error: Imcompatible attribute[0x%08x (%s)] "
+                                   "and compressor type[%u]"OSS_NEWLINE,
+                                   mb->_attributes, tmpStr,
+                                   mb->_compressorType ) ;
+               ++localErr ;
+            }
+         }
+         else
+         {
+            if ( UTIL_COMPRESSOR_INVALID != mb->_compressorType )
+            {
+               len += ossSnprintf( outBuf + len, outSize - len,
+                                   "Error: Imcompatible attribute[0x%08x] "
+                                   "and compressor type[%u]"OSS_NEWLINE,
+                                   mb->_attributes,
+                                   mb->_compressorType ) ;
+               ++localErr ;
+            }
+         }
+
+         if ( mb->_attributes & ~(DMS_MB_ATTR_COMPRESSED|DMS_MB_ATTR_NOIDINDEX) )
          {
             mbAttr2String ( mb->_attributes, tmpStr, DMS_COLLECTION_STATUS_LEN ) ;
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "Error: Invalid collection attributes: "
-                                 "0x%04lx (%s)"OSS_NEWLINE,
+                                 "0x%08x (%s)"OSS_NEWLINE,
                                  mb->_attributes, tmpStr ) ;
             ++localErr ;
          }
+
          if ( mb->_blockID != expCollectionID )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
@@ -520,7 +550,9 @@ namespace engine
                                           dmsExtentID &nextExtent,
                                           set< dmsRecordID > *ridList,
                                           SINT32 &err,
-                                          dmsCompressorEntry *compressorEntry )
+                                          dmsCompressorEntry *compressorEntry,
+                                          UINT64 &recordNum,
+                                          UINT64 &compressedNum )
    {
       UINT32 len           = 0 ;
       SINT32 localErr      = 0 ;
@@ -560,6 +592,8 @@ namespace engine
 
       {
          INT32 recordCount = 0 ;
+         BOOLEAN isCompressed = FALSE ;
+
          len += inspectExtentHeader ( inBuf, inSize, outBuf + len,
                                       outSize - len, collectionID, localErr ) ;
          // make sure the extent is valid and in use
@@ -586,8 +620,14 @@ namespace engine
                                        outBuf + len, outSize - len,
                                        recordCount,
                                        nextRecord, ridList, localErr,
-                                       compressorEntry ) ;
+                                       compressorEntry,
+                                       isCompressed ) ;
             ++recordCount ;
+            ++recordNum ;
+            if ( isCompressed )
+            {
+               ++compressedNum ;
+            }
          }
       }
 
@@ -612,15 +652,16 @@ namespace engine
                                           dmsOffset &nextRecord,
                                           set< dmsRecordID > *ridList,
                                           SINT32 &err,
-                                          dmsCompressorEntry *compressorEntry )
+                                          dmsCompressorEntry *compressorEntry,
+                                          BOOLEAN &isCompressed )
    {
       INT32 rc          = SDB_OK ;
       UINT32 len        = 0 ;
       dmsRecord *record = (dmsRecord*)inBuf ;
       CHAR flag         = 0 ;
       CHAR state        = 0 ;
-      BOOLEAN   isOvf   = FALSE ;
       BOOLEAN   isDel   = FALSE ;
+      BOOLEAN   isOvf   = FALSE ;
 
       if ( NULL == inBuf  || NULL == outBuf || inSize < sizeof(dmsRecord) )
       {
@@ -636,10 +677,20 @@ namespace engine
       flag       = DMS_RECORD_GETFLAG(inBuf) ;
       state      = DMS_RECORD_GETSTATE(inBuf) ;
 
+      if ( flag & DMS_RECORD_FLAG_COMPRESSED )
+      {
+         isCompressed = TRUE ;
+      }
+      else
+      {
+         isCompressed = FALSE ;
+      }
+
       if ( OSS_BIT_TEST ( flag, DMS_RECORD_FLAG_OVERFLOWF ) )
       {
          isOvf = TRUE ;
       }
+
       if ( OSS_BIT_TEST ( flag, DMS_RECORD_FLAG_DELETED ) )
       {
          isDel = TRUE ;
@@ -664,6 +715,11 @@ namespace engine
          nextRecord = DMS_INVALID_OFFSET ;
          ++err ;
       }
+      else
+      {
+         nextRecord = record->_nextOffset ;
+      }
+
       if ( isDel )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
@@ -685,6 +741,9 @@ namespace engine
          // for normal and ovfto types, let's inspect data
          try
          {
+            /// first to inc error
+            ++err ;
+
             ossValuePtr recordPtr = 0 ;
             DMS_RECORD_EXTRACTDATA ( (ossValuePtr)(inBuf), recordPtr,
                                      compressorEntry ) ;
@@ -694,7 +753,11 @@ namespace engine
                len += ossSnprintf ( outBuf + len, outSize - len,
                                     "Error: Detected invalid record (0x%08x)"
                                     OSS_NEWLINE, nextRecord ) ;
-               ++err ;
+            }
+            /// dec error
+            else
+            {
+               --err ;
             }
          }
          catch ( std::exception &e )
@@ -703,11 +766,8 @@ namespace engine
                                  "Error: Failed to format "
                                  "record: %s"OSS_NEWLINE,
                                  e.what() ) ;
-            ++err ;
          }
       }
-
-      nextRecord = record->_nextOffset ;
 
    exit :
       return len ;

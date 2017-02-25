@@ -362,19 +362,32 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNRESUMECLDICTCREATE, "rtnResumeClDictCreate" )
-   static INT32 rtnResumeClDictCreate( dmsStorageUnit *su, SDB_DMSCB *dmsCB )
+   static INT32 rtnResumeClDictCreate( const CHAR *csName, SDB_DMSCB *dmsCB )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNRESUMECLDICTCREATE ) ;
 
+      dmsStorageUnit *su = NULL ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
       UINT32 clLID = DMS_INVALID_CLID ;
       dmsMBContext *context = NULL ;
       dmsMB *mb = NULL ;
+
+      rc = dmsCB->nameToSUAndLock( csName, suID, &su, EXCLUSIVE, -1 ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to get and lock collectionspace[%s], "
+                 "rc: %d", csName, rc ) ;
+         goto error ;
+      }
+
       for ( UINT16 mbID = 0; mbID < DMS_MME_SLOTS; ++mbID )
       {
-         rc = su->data()->getMBContext( &context, mbID, clLID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;
+         rc = su->data()->getMBContext( &context, mbID, clLID, -1 ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d",
+                      rc ) ;
          mb = context->mb() ;
+
          if ( DMS_IS_MB_INUSE( mb->_flag ) )
          {
             /*
@@ -400,6 +413,11 @@ namespace engine
       if ( context )
       {
          su->data()->releaseMBContext( context ) ;
+      }
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID, EXCLUSIVE ) ;
+         suID = DMS_INVALID_SUID ;
       }
       PD_TRACE_EXIT( SDB_RTNRESUMECLDICTCREATE ) ;
       return rc ;
@@ -499,20 +517,18 @@ namespace engine
                            }
                            continue ;
                         }
+                        storageUnit = NULL ;
                         /*
                          * Scan all the collections, to check if any one should be
                          * put into the dictionary creating list. This should be
                          * done if the system restarted before the dictionary was
                          * created.
                          */
-                        if ( !storageUnit->data()->isTempSU() )
-                        {
-                           rc = rtnResumeClDictCreate( storageUnit, dmsCB ) ;
-                           PD_RC_CHECK( rc, PDERROR,
-                                        "Failed to resume dictionary creating "
-                                        "job for %s, rc: %d",
-                                        csName, rc ) ;
-                        }
+                        rc = rtnResumeClDictCreate( csName, dmsCB ) ;
+                        PD_RC_CHECK( rc, PDERROR,
+                                     "Failed to resume dictionary creating "
+                                     "job for %s, rc: %d",
+                                     csName, rc ) ;
                      }
 
                      rc = SDB_OK ;
@@ -621,6 +637,7 @@ namespace engine
                         PMD_RESTART_DB( rc ) ;
                         goto error ;
                      }
+                     storageUnit = NULL ;
 
                      /*
                       * Scan all the collections, to check if any one should be
@@ -628,13 +645,10 @@ namespace engine
                       * done if the system restarted before the dictionary was
                       * created.
                       */
-                     if ( !storageUnit->data()->isTempSU() )
-                     {
-                        rc = rtnResumeClDictCreate( storageUnit, dmsCB ) ;
-                        PD_RC_CHECK( rc, PDERROR,
-                                     "Failed to resume dictionary creating "
-                                     "job for %s, rc: %d", csName, rc ) ;
-                     }
+                     rc = rtnResumeClDictCreate( csName, dmsCB ) ;
+                     PD_RC_CHECK( rc, PDERROR,
+                                  "Failed to resume dictionary creating "
+                                  "job for %s, rc: %d", csName, rc ) ;
                   } // if ( rtnVerifyCollectionSpaceFileName
                   else if ( SDB_FILE_UNKNOW == rtnParseFileName( pFileName ) )
                   {

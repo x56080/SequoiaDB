@@ -252,11 +252,11 @@ namespace engine
       // end stat
       CHAR           _pad [ 380 ] ;
 
-
       void reset ( const CHAR *clName = NULL,
                    UINT16 mbID = DMS_INVALID_MBID,
                    UINT32 clLID = DMS_INVALID_CLID,
-                   UINT32 attr = 0 )
+                   UINT32 attr = 0,
+                   UINT8 comType = UTIL_COMPRESSOR_INVALID )
       {
          INT32 i = 0 ;
          ossMemset( _collectionName, 0, sizeof( _collectionName ) ) ;
@@ -298,12 +298,19 @@ namespace engine
          _totalIndexFreeSpace    = 0 ;
          _totalLobPages          = 0 ;
          _totalLobs              = 0 ;
-         _compressorType         = DMS_INVALID_COMPRESSOR_TYPE ;
+         _compressorType         = UTIL_COMPRESSOR_INVALID ;
          _dictVersion            = 0 ;
          _dictExtentID           = DMS_INVALID_EXTENT ;
          _newDictExtentID        = DMS_INVALID_EXTENT ;
          _dictStatPageID         = DMS_INVALID_EXTENT ;
          _compressionRatio       = 0 ;
+
+
+         /// set compressor type
+         if ( OSS_BIT_TEST( attr, DMS_MB_ATTR_COMPRESSED ) )
+         {
+            _compressorType      = comType ;
+         }
 
          // pad
          ossMemset( _pad1, 0, sizeof( _pad1 ) ) ;
@@ -622,8 +629,7 @@ namespace engine
                                UINT16 initPages = 0,
                                BOOLEAN sysCollection = FALSE,
                                BOOLEAN noIDIndex = FALSE,
-                               UINT8 compressionType
-                                 = DMS_INVALID_COMPRESSOR_TYPE,
+                               UINT8 compressionType = UTIL_COMPRESSOR_INVALID,
                                UINT32 *logicID = NULL ) ;
 
          INT32 dropCollection ( const CHAR *pName,
@@ -683,8 +689,6 @@ namespace engine
          virtual INT32 tryToFlush( BOOLEAN ignoreTick, BOOLEAN &failed ) ;
 
          /* Create the compressor, and set the dictionry for it. */
-         void setCompressor( UINT16 mbID, UTIL_COMPRESSOR_TYPE type ) ;
-         void rmCompressor( _dmsMBContext *context ) ;
          INT32 dictPersist( UINT16 mbID, UINT32 clLID,
                             const CHAR *dict, UINT32 dictLen ) ;
          OSS_INLINE _dmsCompressorEntry *getCompressorEntry( UINT16 mbID ) ;
@@ -710,6 +714,9 @@ namespace engine
 
          void                 _attachLob( _dmsStorageLob *pLobSu ) ;
          void                 _detachLob() ;
+
+         void                 _setCompressor( dmsMBContext *context ) ;
+         void                 _rmCompressor( _dmsMBContext *context ) ;
 
       private:
          void           _initializeMME () ;

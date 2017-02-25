@@ -118,7 +118,9 @@ namespace engine
                                            dmsExtentID &nextExtent,
                                            set<dmsRecordID> *ridList,
                                            SINT32 &err,
-                                           dmsCompressorEntry *compressorEntry ) ;
+                                           dmsCompressorEntry *compressorEntry,
+                                           UINT64 &recordNum,
+                                           UINT64 &compressedNum ) ;
 
          static UINT32 inspectDataRecord ( _pmdEDUCB *cb,
                                            void * inBuf,
@@ -129,7 +131,8 @@ namespace engine
                                            dmsOffset &nextRecord,
                                            set<dmsRecordID> *ridList,
                                            SINT32 &err,
-                                           dmsCompressorEntry *compressorEntry ) ;
+                                           dmsCompressorEntry *compressorEntry,
+                                           BOOLEAN &isCompressed ) ;
 
          static UINT32 inspectExtentHeader ( void * inBuf,
                                              UINT32 inSize,

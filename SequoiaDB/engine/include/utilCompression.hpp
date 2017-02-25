@@ -42,11 +42,12 @@ namespace engine
 {
    enum UTIL_COMPRESSOR_TYPE
    {
-      UTIL_COMPRESSOR_INVALID = -1,
       UTIL_COMPRESSOR_SNAPPY  = 0,
       UTIL_COMPRESSOR_LZW     = 1,
       UTIL_COMPRESSOR_LZ4     = 2,
       UTIL_COMPRESSOR_ZLIB    = 3,
+
+      UTIL_COMPRESSOR_INVALID = 255
    } ;
 
    enum UTIL_COMPRESSION_LEVEL
