@@ -220,6 +220,15 @@ namespace engine
 
       _utilCompressor *compressor = compressorEntry->getCompressor() ;
       SDB_ASSERT( compressor, "Compressor pointer can't be NULL" ) ;
+      /// To compitable with the bug:'When not use compress, the compressor
+      /// be set to snappy, so the data maybe compressed with snappy. But,
+      /// restart the node, the compressor be set to null, so can't
+      /// uncompressed'.
+      if ( !compressor )
+      {
+         compressor = getCompressorByType( UTIL_COMPRESSOR_SNAPPY ) ;
+      }
+
       if ( !compressor )
       {
          PD_LOG( PDERROR, "Occur serious error: "
