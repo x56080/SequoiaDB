@@ -438,6 +438,7 @@ TEST(collection,sdbBulkInsert)
    SINT64 NUM                     = 10 ;
    int count                      = 0 ;
    SINT64 totalNum                = 0 ;
+   bson attr ;
    bson obj ;
    bson *objList [ NUM ] ;
    rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
@@ -445,6 +446,12 @@ TEST(collection,sdbBulkInsert)
    // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
+   // set read from master
+   bson_init( &attr ) ;
+   bson_append_string( &attr, "PreferedInstance", "m" ) ;
+   bson_finish( &attr ) ;
+   rc = sdbSetSessionAttr( connection, &attr ) ;
+   bson_destroy( &attr ) ;
    // get cl
    rc = getCollection ( connection, COLLECTION_FULL_NAME , &collection ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
