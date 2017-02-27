@@ -514,19 +514,10 @@
       
       <copy todir="${release_driver_dir}/Java" 
             file="${CODE_DIR}/driver/java/${java.driver.jar.name}" />
-      <if>
-         <equals arg1="${compile.debug}" arg2="true" />
-         <then>
-            <copy todir="${release_driver_dir}/PHP" >
-               <fileset dir="${CODE_DIR}/driver/php5/build/dd" includes="**/*.so" />
-            </copy>
-         </then>
-         <else>
-            <copy todir="${release_driver_dir}/PHP" >
-               <fileset dir="${CODE_DIR}/driver/php5/build/normal" includes="**/*.so" />
-            </copy>
-         </else>
-      </if>
+            
+      <copy todir="${release_driver_dir}/PHP" >
+         <fileset dir="${RELEASE_DIR}/sequoiadb/lib/phplib" includes="**/*.so" />
+      </copy>
    
       <copy todir="${release_driver_dir}/Postgresql" >
          <fileset dir="${CODE_DIR}/driver/postgresql/build/">
