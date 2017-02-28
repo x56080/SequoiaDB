@@ -43,6 +43,7 @@ static const CHAR* readMinKey( const CHAR *pStr,
 static const CHAR* readNumberLong( const CHAR *pStr,
                                    const CJSON_MACHINE *pMachine,
                                    CJSON_READ_INFO **ppReadInfo ) ;
+static void _appendFunction() ;
 
 CHAR *_pEmptyString = "" ;
 
@@ -67,61 +68,46 @@ CHAR *_cJsonDollarCmdKey[] = {
 #define CJSON_STR_MAXKEY    _cJsonDollarCmdKey[8]
 
 #define CJSON_LEN_STR( str ) sizeof(str)-1,str
-SDB_EXPORT BOOLEAN cJsonExtAppendFunction()
+SDB_EXPORT void cJsonExtAppendFunction()
 {
-   BOOLEAN rc = TRUE ;
-   if( FALSE == cJsonExtendAppend( CJSON_MATCH_FUNC,
-                                   readBinary,
-                                   CJSON_LEN_STR( "BinData" ) ) )
-   {
-      goto error ;
-   }
-   if( FALSE == cJsonExtendAppend( CJSON_MATCH_FUNC,
-                                   readMaxKey,
-                                   CJSON_LEN_STR( "MaxKey" ) ) )
-   {
-      goto error ;
-   }
-   if( FALSE == cJsonExtendAppend( CJSON_MATCH_FUNC,
-                                   readMinKey,
-                                   CJSON_LEN_STR( "MinKey" ) ) )
-   {
-      goto error ;
-   }
-   if( FALSE == cJsonExtendAppend( CJSON_MATCH_FUNC,
-                                   readNumberLong,
-                                   CJSON_LEN_STR( "NumberLong" ) ) )
-   {
-      goto error ;
-   }
-   if( FALSE == cJsonExtendAppend( CJSON_MATCH_FUNC,
-                                   readObjectId,
-                                   CJSON_LEN_STR( "ObjectId" ) ) )
-   {
-      goto error ;
-   }
-   if( FALSE == cJsonExtendAppend( CJSON_MATCH_FUNC,
-                                   readRegex,
-                                   CJSON_LEN_STR( "Regex" ) ) )
-   {
-      goto error ;
-   }
-   if( FALSE == cJsonExtendAppend( CJSON_MATCH_FUNC,
-                                   readDate,
-                                   CJSON_LEN_STR( "SdbDate" ) ) )
-   {
-      goto error ;
-   }
-   if( FALSE == cJsonExtendAppend( CJSON_MATCH_FUNC,
-                                   readTimestamp,
-                                   CJSON_LEN_STR( "Timestamp" ) ) )
-   {
-      goto error ;
-   }
-done:
-   return rc ;
-error:
-   goto done ;
+   static ossOnce initOnce = OSS_ONCE_INIT ;
+
+   ossOnceRun( &initOnce, _appendFunction ) ;
+}
+
+static void _appendFunction()
+{
+   cJsonExtendAppend( CJSON_MATCH_FUNC,
+                      readBinary,
+                      CJSON_LEN_STR( "BinData" ) ) ;
+
+   cJsonExtendAppend( CJSON_MATCH_FUNC,
+                      readMaxKey,
+                      CJSON_LEN_STR( "MaxKey" ) ) ;
+
+   cJsonExtendAppend( CJSON_MATCH_FUNC,
+                      readMinKey,
+                      CJSON_LEN_STR( "MinKey" ) ) ;
+
+   cJsonExtendAppend( CJSON_MATCH_FUNC,
+                      readNumberLong,
+                      CJSON_LEN_STR( "NumberLong" ) ) ;
+
+   cJsonExtendAppend( CJSON_MATCH_FUNC,
+                      readObjectId,
+                      CJSON_LEN_STR( "ObjectId" ) ) ;
+
+   cJsonExtendAppend( CJSON_MATCH_FUNC,
+                      readRegex,
+                      CJSON_LEN_STR( "Regex" ) ) ;
+
+   cJsonExtendAppend( CJSON_MATCH_FUNC,
+                      readDate,
+                      CJSON_LEN_STR( "SdbDate" ) ) ;
+
+   cJsonExtendAppend( CJSON_MATCH_FUNC,
+                      readTimestamp,
+                      CJSON_LEN_STR( "Timestamp" ) ) ;
 }
 
 static const CHAR* readBinary( const CHAR *pStr,

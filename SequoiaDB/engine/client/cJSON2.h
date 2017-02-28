@@ -229,10 +229,10 @@ SDB_EXPORT BOOLEAN cJsonParseNumber( const CHAR *pStr,
 SDB_EXPORT void* cJsonMalloc( INT32 bytesNum,
                               const CJSON_MACHINE *pMachine ) ;
 SDB_EXPORT void cJsonFree( void *pBuffer, const CJSON_MACHINE *pMachine ) ;
-SDB_EXPORT BOOLEAN cJsonExtendAppend( CJSON_MATCH_TYPE matchType,
-                                      INPUT_FUNC parseFun,
-                                      UINT32 strLen,
-                                      CHAR *pString ) ;
+SDB_EXPORT void cJsonExtendAppend( CJSON_MATCH_TYPE matchType,
+                                   INPUT_FUNC parseFun,
+                                   UINT32 strLen,
+                                   CHAR *pString ) ;
 
 /* ReadInfo function */
 SDB_EXPORT CJSON_READ_INFO*

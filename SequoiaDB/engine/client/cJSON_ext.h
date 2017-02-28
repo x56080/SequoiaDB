@@ -26,7 +26,7 @@
 
 SDB_EXTERN_C_START
 
-SDB_EXPORT BOOLEAN cJsonExtAppendFunction() ;
+SDB_EXPORT void cJsonExtAppendFunction() ;
 
 SDB_EXTERN_C_END
 

@@ -19,6 +19,13 @@
 #include "ossUtil.h"
 #include "cJSON2.h"
 
+#ifdef _DEBUG
+   #include <assert.h>
+   #define SDB_ASSERT(cond,str) assert(cond)
+#else
+   #define SDB_ASSERT(cond,str) do{ if( !(cond) ){} } while( 0 )
+#endif   //_DEBUG
+
 typedef enum _stringType {
    TYPE_STRING_NONE = 0,
    TYPE_STRING_QUOTE,
@@ -2906,27 +2913,18 @@ SDB_EXPORT void cJsonSetPrintfLog( void (*pFun)( const CHAR *pFunc,
    _pCJsonPrintfLogFun = (CJSON_PLOG_FUNC)pFun ;
 }
 
-SDB_EXPORT BOOLEAN cJsonExtendAppend( CJSON_MATCH_TYPE matchType,
-                                      INPUT_FUNC parseFun,
-                                      UINT32 strLen,
-                                      CHAR *pString )
+SDB_EXPORT void cJsonExtendAppend( CJSON_MATCH_TYPE matchType,
+                                   INPUT_FUNC parseFun,
+                                   UINT32 strLen,
+                                   CHAR *pString )
 {
-   if( _valueListMaxSize > _valueListSize )
-   {
-      _valueList[ _valueListSize ].matchType = matchType ;
-      _valueList[ _valueListSize ].strLen = strLen ;
-      _valueList[ _valueListSize ].parseFun = parseFun ;
-      ossStrncpy( _valueList[ _valueListSize ].string,
-                  pString,
-                  CJSON_VALU_MATCH_MAX_SIZE ) ;
-      ++_valueListSize ;
-      return TRUE ;
-   }
-   else
-   {
-      CJSON_PRINTF_LOG( "Max type: %d, current type: %d",
-                        _valueListMaxSize,
-                        _valueListSize ) ;
-      return FALSE ;
-   }
+   SDB_ASSERT( _valueListMaxSize > _valueListSize, "out of array size" ) ;
+
+   _valueList[ _valueListSize ].matchType = matchType ;
+   _valueList[ _valueListSize ].strLen = strLen ;
+   _valueList[ _valueListSize ].parseFun = parseFun ;
+   ossStrncpy( _valueList[ _valueListSize ].string,
+               pString,
+               CJSON_VALU_MATCH_MAX_SIZE ) ;
+   ++_valueListSize ;
 }
