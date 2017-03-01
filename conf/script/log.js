@@ -65,7 +65,7 @@ if( "LINUX" == OS_TYPE_IN_JS_LOG )
       LOG_FILE_PATH = currentPath + "/../conf/log/" ;
    else
       LOG_FILE_PATH = currentPath + "../conf/log/" ;
-   
+
    JS_LOG_FILE   = LOG_FILE_PATH + LOG_FILE_NAME ;
    LOG_NEW_LINE  = "\n" ;
 }
@@ -77,7 +77,7 @@ else
       LOG_FILE_PATH = currentPath + "\\..\\conf\\log\\" ;
    else
       LOG_FILE_PATH = currentPath + "..\\conf\\log\\" ;
-   
+
    JS_LOG_FILE  = LOG_FILE_PATH + LOG_FILE_NAME ;
    LOG_NEW_LINE = "\r\n" ;
 }
@@ -189,7 +189,7 @@ function _genSpace( num )
 }
 
 /* *****************************************************************************
-@discretion: format one line of the log information 
+@discretion: format one line of the log information
 @author: Tanzhaobo
 @parameter
    inputStr[string]: one line of content to be formatted
@@ -211,13 +211,13 @@ function _formatOneLine( inputStr, key, indent )
    }
    else
    {
-      retStr = arr[0] + " " + key + arr[1] + LOG_NEW_LINE ; 
+      retStr = arr[0] + " " + key + arr[1] + LOG_NEW_LINE ;
    }
    return retStr ;
-} 
+}
 
 /* *****************************************************************************
-@discretion: format the log information 
+@discretion: format the log information
 @author: Tanzhaobo
 @parameter
    contentStr[string]: the content to be formatted
@@ -231,7 +231,7 @@ function _formatLogInfo( contentStr, keyArr, indent )
    var i = 0 ;
    var arr = contentStr.split( LOG_NEW_LINE ) ;
    for( i = 0; i < keyArr.length; i++ )
-      retStr += _formatOneLine( arr[i], keyArr[i], 42 ) ; 
+      retStr += _formatOneLine( arr[i], keyArr[i], 42 ) ;
    for( ; i < arr.length; i++ )
       retStr += arr[i] + LOG_NEW_LINE ;
 
@@ -305,7 +305,7 @@ function _sprintf() {
 @return the log file
 ***************************************************************************** */
 function _getJsLogFile( type )
-{  
+{
    switch( type )
    {
    case LOG_GENERIC:
@@ -326,26 +326,26 @@ function _getJsLogFile( type )
 @discretion: write the log message to the log file
 @author: Tanzhaobo
 @parameter
-   type[number]: 
+   type[number]:
    infoStr[string]: the log message to write
 @return void
 ***************************************************************************** */
 function _write2File( type, infoStr )
-{  
+{
    var file            = null ;
    var logFileFullName = "" ;
    var errMsg          = "" ;
-      
+
    if ( LOG_NONE == type )
    {
       print( infoStr ) ;
       return ;
    }
-      
+
    try
    {
       logFileFullName = _getJsLogFile( type ) ;
-      file = new File( logFileFullName ) ;
+      file = new File( logFileFullName, 0644 ) ;
    }
    catch( e )
    {
@@ -422,7 +422,7 @@ function getLogLevel()
    type[number]: the log type, -1 for none, -2 for general log,
       when type > 0, it is task type
    level[number]: 0-5, the log level
-   funcName[string]: the function name PD_LOG2 is invoked 
+   funcName[string]: the function name PD_LOG2 is invoked
    line[number]: which line PD_LOG2 is invoked
    file[string]: which file PD_LOG is invoked
    message[string]: the log message
@@ -480,7 +480,7 @@ function PD_LOG_BASIC( type, level, funcName, line, file, message )
       when type > 0, it is task type
    argsObj[object]: the arguments object of the function which invoked PD_LOG
    level[number]: 0-5, the log level
-   func[string]: which function PD_LOG2 is invoked 
+   func[string]: which function PD_LOG2 is invoked
    line[number]: which line PD_LOG2 is invoked
    file[string]: which file PD_LOG is invoked
    message[string]: the log message

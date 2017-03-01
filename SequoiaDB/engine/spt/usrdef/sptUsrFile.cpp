@@ -87,7 +87,9 @@ JS_MAPPING_END()
                                  bson::BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
+      INT32 permission = OSS_RWXU ;
 
+      // get filename
       rc = arg.getString( 0, _filename ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -99,9 +101,60 @@ JS_MAPPING_END()
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get filename, rc: %d", rc ) ;
 
+      // get mode
+      if ( arg.argc() > 1 )
+      {
+         INT32 mode = 0 ;
+         rc = arg.getNative( 1, (void*)&mode, SPT_NATIVE_INT32 ) ;
+         if ( rc )
+         {
+            detail = BSON( SPT_ERR << "mode must be INT32" ) ;
+            goto error ;
+         }
+         permission = 0 ;
+
+         if ( mode & 0x0001 )
+         {
+            permission |= OSS_XO ;
+         }
+         if ( mode & 0x0002 )
+         {
+            permission |= OSS_WO ;
+         }
+         if ( mode & 0x0004 )
+         {
+            permission |= OSS_RO ;
+         }
+         if ( mode & 0x0008 )
+         {
+            permission |= OSS_XG ;
+         }
+         if ( mode & 0x0010 )
+         {
+            permission |= OSS_WG ;
+         }
+         if ( mode & 0x0020 )
+         {
+            permission |= OSS_RG ;
+         }
+         if ( mode & 0x0040 )
+         {
+            permission |= OSS_XU ;
+         }
+         if ( mode & 0x0080 )
+         {
+            permission |= OSS_WU ;
+         }
+         if ( mode & 0x0100 )
+         {
+            permission |= OSS_RU ;
+         }
+      }
+
+      // open file
       rc = ossOpen( _filename.c_str(),
                     OSS_READWRITE | OSS_CREATE,
-                    OSS_RWXU,
+                    permission,
                     _file ) ;
       if ( SDB_OK != rc )
       {
@@ -614,7 +667,7 @@ JS_MAPPING_END()
             PD_LOG( PDERROR, "failed to close file:%d", rc ) ;
             goto error ;
          }
-      } 
+      }
    done:
       return rc ;
    error:
