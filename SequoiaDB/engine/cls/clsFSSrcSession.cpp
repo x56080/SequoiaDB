@@ -2431,15 +2431,17 @@ namespace engine
 
       if ( hasSplit )
       {
+         UINT64 blockOpID = _ntyOverTime ;
+
          _ntyOverTime = 0 ;
          /// Unblock
-         _pFreezingWindow->unregisterCL( _curCollecitonName.c_str() ) ;
+         _pFreezingWindow->unregisterCL( _curCollecitonName.c_str(), blockOpID ) ;
          PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
                  "of collection[%s]", sessionName(),
                  _curCollecitonName.c_str() ) ;
          if ( !_mainCLName.empty() )
          {
-            _pFreezingWindow->unregisterCL( _mainCLName.c_str() ) ;
+            _pFreezingWindow->unregisterCL( _mainCLName.c_str(), blockOpID ) ;
             PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
                     "of the main collection[%s]", sessionName(),
                     _mainCLName.c_str() ) ;
@@ -2727,14 +2729,15 @@ namespace engine
 
       if ( !_curCollecitonName.empty() && _ntyOverTime > 0 )
       {
-         _pFreezingWindow->unregisterCL( _curCollecitonName.c_str() ) ;
+         _pFreezingWindow->unregisterCL( _curCollecitonName.c_str(),
+                                         _ntyOverTime ) ;
          PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
                  "of collection[%s]", sessionName(),
                  _curCollecitonName.c_str() ) ;
       }
       if ( !_mainCLName.empty() && _ntyOverTime > 0 )
       {
-         _pFreezingWindow->unregisterCL( _mainCLName.c_str() ) ;
+         _pFreezingWindow->unregisterCL( _mainCLName.c_str(), _ntyOverTime ) ;
          PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
                  "of the main collection[%s]", sessionName(),
                  _mainCLName.c_str() ) ;
