@@ -137,6 +137,7 @@ namespace engine
    */
    _clsFreezingWindow::_clsFreezingWindow()
    {
+      _clCount = 0 ;
    }
 
    _clsFreezingWindow::~_clsFreezingWindow()
@@ -153,8 +154,11 @@ namespace engine
 
       if ( _mapWindow.end() == it )
       {
+         ++_clCount ;
+
          OP_SET newOpSet ;
          newOpSet.insert( opID ) ;
+
          _mapWindow[ pName ] = newOpSet ;
       }
       else
@@ -180,6 +184,7 @@ namespace engine
          if ( it->second.empty() )
          {
             _mapWindow.erase( pName ) ;
+            --_clCount ;
          }
       }
 
@@ -230,7 +235,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      if ( isWrite )
+      if ( isWrite && _clCount > 0 )
       {
          string clName = pName ;
          BOOLEAN needBlock = TRUE ;

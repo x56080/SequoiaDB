@@ -119,6 +119,7 @@ namespace engine
                            BOOLEAN isWrite ) ;
 
       private:
+         UINT32            _clCount ;
          MAP_WINDOW        _mapWindow ;
          ossSpinXLatch     _latch ;
          ossEvent          _event ;
