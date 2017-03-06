@@ -79,7 +79,8 @@ public:
    INT32 init( CHAR delChar, CHAR delField,
                BOOLEAN includeBinary,
                BOOLEAN includeRegex,
-               BOOLEAN kickNull ) ;
+               BOOLEAN kickNull,
+               INT32 presicion ) ;
    INT32 parseFields( CHAR *pFields, INT32 size ) ;
    INT32 parseCSVSize( CHAR *pbson, INT32 *pCSVSize ) ;
    INT32 parseJSONSize( CHAR *pbson, INT32 *pJSONSize ) ;

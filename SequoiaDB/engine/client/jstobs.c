@@ -62,6 +62,8 @@ static char *intToString ( int value, char *string, int radix )
    return string ;
 }
 
+static CHAR _precision[16] = "%.16g" ;
+
 static const char onethousand_num[1000][4] = {
     "0",  "1",  "2",  "3",  "4",  "5",  "6",  "7",  "8",  "9",
     "10", "11", "12", "13", "14", "15", "16", "17", "18", "19",
@@ -455,11 +457,11 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
 #ifdef WIN32
             _snprintf ( temp,
                         BSON_TEMP_SIZE_512,
-                        "%.16g", bson_iterator_double( &i ) ) ;
+                        _precision, bson_iterator_double( &i ) ) ;
 #else
             snprintf ( temp,
                        BSON_TEMP_SIZE_512,
-                       "%.16g", bson_iterator_double( &i ) ) ;
+                       _precision, bson_iterator_double( &i ) ) ;
 #endif
             bsonConvertJsonRawConcat ( pbuf, left, temp, FALSE ) ;
             CHECK_LEFT ( left )
@@ -1492,6 +1494,26 @@ BOOLEAN jsonToBson ( bson *bs, const CHAR *json_str )
 {
    return jsonToBson2 ( bs, json_str, FALSE, FALSE ) ;
 }
+
+void setJsonPrecision( INT32 precision )
+{
+   if( precision <= 0 || precision > 16 )
+   {
+      _precision[0] = '%' ;
+      _precision[1] = 'g' ;
+      _precision[2] = 0 ;
+   }
+   else
+   {
+#ifdef WIN32
+      _snprintf( _precision, 16, "%%.%dg", precision ) ;
+#else
+      snprintf ( _precision, 16, "%%.%dg", precision ) ;
+#endif
+   }
+}
+
+
 /*
  * bson convert json interface
  * buffer : output bson convert json string

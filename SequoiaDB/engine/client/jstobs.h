@@ -84,6 +84,9 @@ SDB_EXPORT BOOLEAN jsonToBson2 ( bson *bs,
                                  const CHAR *json_str,
                                  BOOLEAN isMongo,
                                  BOOLEAN isBatch ) ;
+
+SDB_EXPORT void setJsonPrecision( INT32 precision ) ;
+
 /** \fn BOOLEAN bsonToJson ( CHAR *buffer, INT32 bufsize, const bson *b,
                              BOOLEAN toCSV, BOOLEAN skipUndefined) 
     \brief Bson converts to json.

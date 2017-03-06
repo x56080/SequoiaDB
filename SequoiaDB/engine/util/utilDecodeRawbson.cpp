@@ -127,7 +127,8 @@ void _utilPrintLog( const CHAR *pFunc,
 INT32 utilDecodeBson::init( CHAR delChar, CHAR delField,
                             BOOLEAN includeBinary,
                             BOOLEAN includeRegex,
-                            BOOLEAN kickNull )
+                            BOOLEAN kickNull,
+                            INT32 precision )
 {
    INT32 rc = SDB_OK ;
    if ( delChar == delField )
@@ -161,6 +162,22 @@ INT32 utilDecodeBson::init( CHAR delChar, CHAR delField,
       PD_LOG ( PDERROR, "delfield can not be a tab" ) ;
       goto error ;
    }
+
+   if( precision < 0 )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "float precision can not be less than 0" ) ;
+      goto error ;
+   }
+   else if( precision > 16 )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "float precision can not be greater than 16" ) ;
+      goto error ;
+   }
+
+   setCsvPrecision( precision ) ;
+   setJsonPrecision( precision ) ;
 
    _delChar = delChar ;
    _delField = delField ;

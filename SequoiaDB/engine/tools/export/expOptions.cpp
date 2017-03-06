@@ -58,6 +58,7 @@ namespace exprt
    #define OPTION_WITHID            "withid"
    #define OPTION_ERRORSTOP         "errorstop"
    #define OPTION_SSL               "ssl"
+   #define OPTION_PRECISION         "fprecision"
 
    // single collection
    #define OPTION_COLLECTSPACE      "csname"
@@ -104,6 +105,7 @@ namespace exprt
                                     "format as <field>[,<field>,...] for single collection, " \
                                     "or format as <csName>.<clName>:<field>[,<field>,...] for each collection " \
                                     "when specify multi collections"
+   #define EXPLAIN_PRECISION        "float precision, default: 16, 0 is automatic precision ( float only )"
 
    // csv
    #define EXPLAIN_DELCHAR          "string delimiter, default: '\"'"
@@ -156,7 +158,8 @@ namespace exprt
       ( OPTION_WITHID,                 _TYPE(bool),      EXPLAIN_WITHID ) \
       ( OPTION_FIELDS,         _TYPE(vector<string>),    EXPLAIN_FIELDS ) \
       ( OPTION_ERRORSTOP,              _TYPE(bool),      EXPLAIN_ERRORSTOP ) \
-      ( OPTION_SSL,                    _TYPE(bool),      EXPLAIN_SSL) 
+      ( OPTION_SSL,                    _TYPE(bool),      EXPLAIN_SSL) \
+      ( OPTION_PRECISION,              _TYPE(INT32),     EXPLAIN_PRECISION )
 
    #define EXP_SINGLE_COLLECTION_OPTIONS \
       ( OPTION_COLLECTSPACE",c",       _TYPE(string),    EXPLAIN_COLLECTSPACE )\
@@ -201,6 +204,34 @@ namespace exprt
          buf += ( value ? "true" : "false" ) ; \
          buf += OSS_NEWLINE ; \
       }
+
+   inline void WRITE_INT32_OPTION( string &buf, const CHAR *pOption,
+                                   INT32 value, BOOLEAN has )
+   {
+      if( has )
+      {
+         CHAR tmpBuff[32] = { 0 } ;
+         buf += pOption ;
+         buf += " = " ;
+         ossSnprintf( tmpBuff, 32, "%d", value ) ;
+         buf += tmpBuff ;
+         buf += OSS_NEWLINE ;
+      }
+   }
+
+   inline void WRITE_INT64_OPTION( string &buf, const CHAR *pOption,
+                                   INT64 value, BOOLEAN has )
+   {
+      if( has )
+      {
+         CHAR tmpBuff[32] = { 0 } ;
+         buf += pOption ;
+         buf += " = " ;
+         ossSnprintf( tmpBuff, 32, "%lld", value ) ;
+         buf += tmpBuff ;
+         buf += OSS_NEWLINE ;
+      }
+   }
 
    static const CHAR *formatNames[FORMAT_COUNT] = { "csv", "json" } ;
    INT32 formatOfName( const string & name, EXP_FILE_FORMAT &format )
@@ -269,6 +300,7 @@ namespace exprt
                               _errorStop     (FALSE),
                               _useSSL        (FALSE),
                               _fileLimit     (DEFAULT_FILELIMIT),
+                              _precision     (16),
                               _delChar       (DEFAULT_DELCHAR_CHAR),
                               _delField      (DEFAULT_DELFIELD_CHAR),
                               _headLine      (TRUE),
@@ -339,6 +371,7 @@ namespace exprt
       WRITE_STR_OPTION( writeBuf, OPTION_FILELIMIT, _fileLimit, _has(OPTION_FILELIMIT));
       WRITE_BOOL_OPTION( writeBuf, OPTION_ERRORSTOP, _errorStop, TRUE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_SSL, _useSSL, TRUE ) ;
+      WRITE_INT32_OPTION( writeBuf, OPTION_PRECISION, _precision, TRUE ) ;
 
       // csv options
       WRITE_STR_OPTION( writeBuf, OPTION_DELCHAR, _delChar, TRUE ) ; 
@@ -926,7 +959,26 @@ namespace exprt
             goto error ;
          }
       }
-      
+
+      if ( _has( OPTION_PRECISION ) )
+      {
+         _precision = _get<INT32>( OPTION_PRECISION ) ;
+         if( _precision < 0 )
+         {
+            rc = SDB_INVALIDARG ;
+            cerr << OPTION_PRECISION" can not be less than 0" << endl ;
+            PD_LOG ( PDERROR, OPTION_PRECISION" can not be less than 0" ) ;
+            goto error ;
+         }
+         else if( _precision > 16 )
+         {
+            rc = SDB_INVALIDARG ;
+            cerr << OPTION_PRECISION" can not be greater than 16" << endl ;
+            PD_LOG ( PDERROR, OPTION_PRECISION" can not be greater than 16" ) ;
+            goto error ;
+         }
+      }
+
       rc = _setDelOptions() ;
       if ( SDB_OK != rc )
       {

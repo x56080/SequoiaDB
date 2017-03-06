@@ -63,20 +63,21 @@ namespace exprt
       INT32 rc = SDB_OK ;
       INT32 fieldsBufSize = 0 ;
 
-      if ( _cl.fields.empty() )
-      {
-         goto done ;
-      }
-
       rc = _decodeBson.init( _options.delChar(), 
                              _options.delField(), 
                              _options.includeBinary(), 
                              _options.includeRegex(),
-                             _options.kickNull() ) ;
+                             _options.kickNull(),
+                             _options.precision() ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Failed to int the _decodeBson, rc = %d", rc ) ;
          goto error ;
+      }
+
+      if ( _cl.fields.empty() )
+      {
+         goto done ;
       }
 
       fieldsBufSize = (INT32)_cl.fields.size() ;

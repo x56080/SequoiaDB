@@ -52,6 +52,8 @@
 #define CSV_STR_RIGHTBRACKET   ")"
 #define CSV_STR_BACKSLASH      "/"
 
+static CHAR _precision[16] = "%.16g" ;
+
 static void local_time ( time_t *Time, struct tm *TM )
 {
    if ( !Time || !TM )
@@ -82,7 +84,8 @@ UTIL_PLOG _pPrintfLogFun = NULL ;
    }\
 }
 
-INT32 _appendString( CHAR delChar, const CHAR *pBuffer, INT32 size,
+INT32 _appendString( CHAR delChar, BOOLEAN isConvert,
+                     const CHAR *pBuffer, INT32 size,
                      CHAR **ppCSVBuf, INT32 *pCSVSize )
 {
    INT32 rc = SDB_OK ;
@@ -109,7 +112,10 @@ INT32 _appendString( CHAR delChar, const CHAR *pBuffer, INT32 size,
       {
          if ( *(pBuffer + i) == delChar )
          {
-            isDoubleChar = TRUE ;
+            if( isConvert == TRUE )
+            {
+               isDoubleChar = TRUE ;
+            }
          }
          if ( ppCSVBuf )
          {
@@ -117,6 +123,23 @@ INT32 _appendString( CHAR delChar, const CHAR *pBuffer, INT32 size,
          }
          ++i ;
       }
+      if ( ppCSVBuf )
+      {
+         ++(*ppCSVBuf) ;
+         --(*pCSVSize) ;
+      }
+      else
+      {
+         ++(*pCSVSize) ;
+      }
+   }
+   if( isDoubleChar )
+   {
+      if ( ppCSVBuf )
+      {
+         *(*ppCSVBuf) = delChar ;
+      }
+      isDoubleChar = FALSE ;
       if ( ppCSVBuf )
       {
          ++(*ppCSVBuf) ;
@@ -179,7 +202,7 @@ INT32 _appendObj( CHAR delChar, bson_iterator *pIt,
       goto error ;
    }
 
-   rc = _appendString( delChar, pBuffer, objSize,
+   rc = _appendString( delChar, TRUE, pBuffer, objSize,
                        ppCSVBuf, pCSVSize ) ;
    if ( rc )
    {
@@ -267,6 +290,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
    INT32 base64Size  = 0 ;
    INT32 binType     = 0 ;
    INT32 decimalSize = 0 ;
+   FLOAT64 doubleNum = 0.0 ;
    const CHAR *pTemp = NULL ;
    CHAR *pBase64     = NULL ;
    CHAR *pDecimalStr = NULL ;
@@ -278,9 +302,20 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
 
    decimal_init( &decimal ) ;
 
-   if ( type == BSON_DOUBLE || type == BSON_BOOL ||
-        type == BSON_NULL || type == BSON_INT ||
-        type == BSON_LONG )
+   if ( type == BSON_DOUBLE )
+   {
+      doubleNum = bson_iterator_double( pIt ) ;
+      tempSize = ossSnprintf ( temp, 64, _precision, doubleNum ) ;
+      rc = _appendString( delChar, TRUE, temp, tempSize, ppBuffer, pCSVSize ) ;
+      if ( rc )
+      {
+         UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendString, rc=%d",
+                                   rc ) ;
+         goto error ;
+      }
+   }
+   else if ( type == BSON_BOOL || type == BSON_NULL ||
+             type == BSON_INT || type == BSON_LONG )
    {
       if( type != BSON_NULL || kickNull != TRUE )
       {
@@ -342,7 +377,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
       if( psr.tm_year + 1900 >= 1900 &&
           psr.tm_year + 1900 <= 9999 )
       {
-         rc = _appendString( delChar, &delChar, 1, ppBuffer, pCSVSize ) ;
+         rc = _appendString( delChar, FALSE, &delChar, 1, ppBuffer, pCSVSize ) ;
          if ( rc )
          {
             UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendString, rc=%d", rc ) ;
@@ -352,14 +387,14 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
                                   psr.tm_year + 1900,
                                   psr.tm_mon + 1,
                                   psr.tm_mday ) ;
-         rc = _appendString( delChar, temp, tempSize, ppBuffer, pCSVSize ) ;
+         rc = _appendString( delChar, TRUE, temp, tempSize, ppBuffer, pCSVSize ) ;
          if ( rc )
          {
             UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendString, rc=%d",
                                       rc ) ;
             goto error ;
          }
-         rc = _appendString( delChar, &delChar, 1, ppBuffer, pCSVSize ) ;
+         rc = _appendString( delChar, FALSE, &delChar, 1, ppBuffer, pCSVSize ) ;
          if ( rc )
          {
             UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendString, rc=%d", rc ) ;
@@ -388,7 +423,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
    }
    else
    {
-      rc = _appendString( delChar, &delChar, 1, ppBuffer, pCSVSize ) ;
+      rc = _appendString( delChar, FALSE, &delChar, 1, ppBuffer, pCSVSize ) ;
       if ( rc )
       {
          UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendString, rc=%d", rc ) ;
@@ -408,7 +443,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
                                   psr.tm_min,
                                   psr.tm_sec,
                                   ts.i ) ;
-         rc = _appendString( delChar, temp, tempSize, ppBuffer, pCSVSize ) ;
+         rc = _appendString( delChar, TRUE, temp, tempSize, ppBuffer, pCSVSize ) ;
          if ( rc )
          {
             UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendString, rc=%d",
@@ -418,7 +453,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
       }
       else if ( type == BSON_UNDEFINED )
       {
-         rc = _appendString( delChar, CSV_STR_UNDEFINED,
+         rc = _appendString( delChar, TRUE, CSV_STR_UNDEFINED,
                              CSV_STR_UNDEFINED_SIZE,
                              ppBuffer, pCSVSize ) ;
          if ( rc )
@@ -430,7 +465,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
       }
       else if ( type == BSON_MINKEY )
       {
-         rc = _appendString( delChar, CSV_STR_MINKEY,
+         rc = _appendString( delChar, TRUE, CSV_STR_MINKEY,
                              CSV_STR_MINKEY_SIZE, ppBuffer, pCSVSize ) ;
          if ( rc )
          {
@@ -441,7 +476,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
       }
       else if ( type == BSON_MAXKEY )
       {
-         rc = _appendString( delChar, CSV_STR_MAXKEY,
+         rc = _appendString( delChar, TRUE, CSV_STR_MAXKEY,
                              CSV_STR_MAXKEY_SIZE, ppBuffer, pCSVSize ) ;
          if ( rc )
          {
@@ -453,7 +488,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
       else if ( type == BSON_CODE )
       {
          pTemp = bson_iterator_code( pIt ) ;
-         rc = _appendString( delChar, pTemp, ossStrlen( pTemp ),
+         rc = _appendString( delChar, TRUE, pTemp, ossStrlen( pTemp ),
                              ppBuffer, pCSVSize ) ;
          if ( rc )
          {
@@ -465,7 +500,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
       else if ( type == BSON_STRING || type == BSON_SYMBOL )
       {
          pTemp = bson_iterator_string( pIt ) ;
-         rc = _appendString( delChar, pTemp, ossStrlen( pTemp ),
+         rc = _appendString( delChar, TRUE, pTemp, ossStrlen( pTemp ),
                              ppBuffer, pCSVSize ) ;
          if ( rc )
          {
@@ -479,6 +514,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
          if( TRUE == includeBinary )
          {
             rc = _appendString( delChar,
+                                TRUE,
                                 CSV_STR_LEFTBRACKET,
                                 1,
                                 ppBuffer,
@@ -491,7 +527,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
             }
             binType = (INT32)bson_iterator_bin_type( pIt ) ;
             tempSize = ossSnprintf ( temp, 64, "%d", binType ) ;
-            rc = _appendString( delChar, temp, tempSize, ppBuffer, pCSVSize ) ;
+            rc = _appendString( delChar, TRUE, temp, tempSize, ppBuffer, pCSVSize ) ;
             if ( rc )
             {
                UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendString, rc=%d",
@@ -499,6 +535,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
                goto error ;
             }
             rc = _appendString( delChar,
+                                TRUE,
                                 CSV_STR_RIGHTBRACKET,
                                 1,
                                 ppBuffer,
@@ -534,7 +571,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
                                          rc ) ;
                goto error ;
             }
-            rc = _appendString( delChar, pBase64, base64Size - 1,
+            rc = _appendString( delChar, TRUE, pBase64, base64Size - 1,
                                 ppBuffer, pCSVSize ) ;
             if ( rc )
             {
@@ -548,7 +585,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
       {
          if( TRUE == includeRegex )
          {
-            rc = _appendString( delChar, CSV_STR_BACKSLASH, 1,
+            rc = _appendString( delChar, TRUE, CSV_STR_BACKSLASH, 1,
                                 ppBuffer, pCSVSize ) ;
             if ( rc )
             {
@@ -558,7 +595,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
             }
          }
          pTemp = bson_iterator_regex( pIt ) ;
-         rc = _appendString( delChar, pTemp, ossStrlen( pTemp ),
+         rc = _appendString( delChar, TRUE, pTemp, ossStrlen( pTemp ),
                              ppBuffer, pCSVSize ) ;
          if ( rc )
          {
@@ -568,7 +605,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
          }
          if( TRUE == includeRegex )
          {
-            rc = _appendString( delChar, CSV_STR_BACKSLASH, 1,
+            rc = _appendString( delChar, TRUE, CSV_STR_BACKSLASH, 1,
                                 ppBuffer, pCSVSize ) ;
             if ( rc )
             {
@@ -577,7 +614,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
                goto error ;
             }
             pTemp = bson_iterator_regex_opts( pIt ) ;
-            rc = _appendString( delChar, pTemp, ossStrlen( pTemp ),
+            rc = _appendString( delChar, TRUE, pTemp, ossStrlen( pTemp ),
                                 ppBuffer, pCSVSize ) ;
             if ( rc )
             {
@@ -590,7 +627,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
       else if ( type == BSON_OID )
       {
          bson_oid_to_string( bson_iterator_oid( pIt ), temp ) ;
-         rc = _appendString( delChar, temp, 24, ppBuffer, pCSVSize ) ;
+         rc = _appendString( delChar, TRUE, temp, 24, ppBuffer, pCSVSize ) ;
          if ( rc )
          {
             UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendString, rc=%d",
@@ -607,7 +644,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
             goto error ;
          }
       }
-      rc = _appendString( delChar, &delChar, 1, ppBuffer, pCSVSize ) ;
+      rc = _appendString( delChar, FALSE, &delChar, 1, ppBuffer, pCSVSize ) ;
       if ( rc )
       {
          UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendString, rc=%d", rc ) ;
@@ -621,6 +658,20 @@ done:
    return rc ;
 error:
    goto done ;
+}
+
+void setCsvPrecision( INT32 precision )
+{
+   if( precision <= 0 || precision > 16 )
+   {
+      _precision[0] = '%' ;
+      _precision[1] = 'g' ;
+      _precision[2] = 0 ;
+   }
+   else
+   {
+      ossSnprintf( _precision, 16, "%%.%dg", precision ) ;
+   }
 }
 
 void setPrintfLog( void (*pFun)( const CHAR *pFunc,
@@ -684,7 +735,7 @@ INT32 bson2csv( CHAR delChar, CHAR delField, CHAR *pbson,
       }
       else
       {
-         rc = _appendString( delChar, &delField, 1, ppBuffer, pCSVSize ) ;
+         rc = _appendString( delChar, TRUE, &delField, 1, ppBuffer, pCSVSize ) ;
          if ( rc )
          {
             UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendString, rc=%d",
