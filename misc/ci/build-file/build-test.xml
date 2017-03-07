@@ -57,7 +57,7 @@
 		</copy>
 		<copy file="${SCRIPT_DIR}/ci.test.properties" todir="${deploy_dir}" />
 		<copy todir="${deploy_dir}">
-			<fileset dir="${SCRIPT_DIR}/exec-testcases" includes="exec*.xml" />
+			<fileset dir="${SCRIPT_DIR}/exec-testcases" includes="*.xml" />
 		</copy>
 	</target>
 
@@ -96,7 +96,7 @@
 		<copy file="${SCRIPT_DIR}/ci.test.properties" todir="${deploy_dir}" />
 		<echo level="info" message="Step6 : Copy the exec scripts from &lt;${SCRIPT_DIR}/exec-testcases&gt; to folder &lt;${deploy_dir}&gt;." />
 		<copy todir="${deploy_dir}">
-			<fileset dir="${SCRIPT_DIR}/exec-testcases" includes="exec*.xml" />
+			<fileset dir="${SCRIPT_DIR}/exec-testcases" includes="*.xml" />
 		</copy>
 		<copy todir="${deploy_dir}">
 			<fileset dir="${SCRIPT_DIR}/exec-conf" includes="*.xml" />
