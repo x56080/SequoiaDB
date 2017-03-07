@@ -1,0 +1,5 @@
+<!--this is a test report temple, which the testcase succeed-->
+<testsuite name="TESTSUIT_NAME">
+<testcase classname="TESTCASE_TYPE.TESTSUIT_NAME" name="TESTCASE_NAME" time="0000" >
+</testcase>
+</testsuite>
