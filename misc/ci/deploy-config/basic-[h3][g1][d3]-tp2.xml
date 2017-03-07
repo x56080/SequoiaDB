@@ -202,7 +202,15 @@
 			    </antcall>
 			</else>
 		</if>
-
+      
+      <mkdir dir="${test.log.path}" />
+      <!--before backUpLog, detect testcase core , node core , node exception restart -->
+      <ant antfile="exec_env_detect.xml" dir="${test.machine.deploy.path}/deploy" inheritAll="true" useNativeBaseDir="true" >
+         <property name="ci.properties.path" value="${test.machine.software.path}/deploy/ci.test.properties"/>
+         <property name="antTask.jar.path" value="${test.machine.deploy.path}/deploy"/>
+         <property name="test.log.path" value="${test.reports.path}" />
+      </ant>
+      
 		<if>
 			<equals arg1="${BACKUP_LOG}" arg2="true" />
 			<then>
@@ -214,7 +222,7 @@
 	<target name="backUpLog">
 		<trycatch>
 			<try>	
-				<mkdir dir="${test.log.path}" />
+				<!--mkdir dir="${test.log.path}" /-->
 				<stafTools workType="shell" 
                        workHost="${save.testLog.hostname}" 
                        workDir="${save.testLog.dir}"
