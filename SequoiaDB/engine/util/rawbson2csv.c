@@ -52,7 +52,7 @@
 #define CSV_STR_RIGHTBRACKET   ")"
 #define CSV_STR_BACKSLASH      "/"
 
-static CHAR _precision[16] = "%.16g" ;
+static CHAR _precision[20] = "%.16g" ;
 
 static void local_time ( time_t *Time, struct tm *TM )
 {
@@ -660,17 +660,14 @@ error:
    goto done ;
 }
 
-void setCsvPrecision( INT32 precision )
+void setCsvPrecision( const CHAR *pFloatFmt )
 {
-   if( precision <= 0 || precision > 16 )
+   if( pFloatFmt != NULL )
    {
-      _precision[0] = '%' ;
-      _precision[1] = 'g' ;
-      _precision[2] = 0 ;
-   }
-   else
-   {
-      ossSnprintf( _precision, 16, "%%.%dg", precision ) ;
+      INT32 length = ossStrlen( pFloatFmt ) ;
+      length = length > 16 ? 16 : length ;
+      ossStrncpy( _precision, pFloatFmt, length ) ;
+      _precision[ length ] = 0 ;
    }
 }
 

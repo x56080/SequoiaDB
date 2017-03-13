@@ -124,11 +124,65 @@ void _utilPrintLog( const CHAR *pFunc,
    pdLog( PDERROR, pFunc, pFile, line, userInfo ) ;
 }
 
+INT32 utilDecodeBson::_checkFormat( const CHAR *pFloatFmt )
+{
+   INT32 rc = SDB_OK ;
+
+   if( pFloatFmt == NULL )
+   {
+      goto done ;
+   }
+
+   if( pFloatFmt[0] != '%' )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "floatfmt is invalid, format is %[+][.Precision]Type" ) ;
+      goto error ;
+   }
+
+   ++pFloatFmt ;
+
+   if( pFloatFmt[0] == '+' )
+   {
+      ++pFloatFmt ;
+   }
+
+   if( pFloatFmt[0] == '.' )
+   {
+      ++pFloatFmt ;
+      for( ; pFloatFmt[0] >= '0' && pFloatFmt[0] <= '9'; ++pFloatFmt )
+      {
+      }
+   }
+
+   if( pFloatFmt[0] != 'f' && pFloatFmt[0] != 'e' && pFloatFmt[0] != 'E' &&
+       pFloatFmt[0] != 'g' && pFloatFmt[0] != 'G' )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "floatfmt is invalid, type is f|e|E|g|G" ) ;
+      goto error ;
+   }
+
+   ++pFloatFmt ;
+
+   if( pFloatFmt[0] != 0 )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "floatfmt is invalid, format is %[+][.Precision]Type" ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 INT32 utilDecodeBson::init( CHAR delChar, CHAR delField,
                             BOOLEAN includeBinary,
                             BOOLEAN includeRegex,
                             BOOLEAN kickNull,
-                            INT32 precision )
+                            const CHAR *pFloatFmt )
 {
    INT32 rc = SDB_OK ;
    if ( delChar == delField )
@@ -163,21 +217,25 @@ INT32 utilDecodeBson::init( CHAR delChar, CHAR delField,
       goto error ;
    }
 
-   if( precision < 0 )
+   if( pFloatFmt != NULL )
    {
-      rc = SDB_INVALIDARG ;
-      PD_LOG ( PDERROR, "float precision can not be less than 0" ) ;
-      goto error ;
+      if( ossStrncmp( pFloatFmt, "db2", 3 ) == 0 )
+      {
+         setCsvPrecision( "%+.14E" ) ;
+         setJsonPrecision( "%+.14E" ) ;
+      }
+      else
+      {
+         rc = _checkFormat( pFloatFmt ) ;
+         if( rc )
+         {
+            PD_LOG ( PDERROR, "failed to parse format" ) ;
+            goto error ;
+         }
+         setCsvPrecision( pFloatFmt ) ;
+         setJsonPrecision( pFloatFmt ) ;
+      }
    }
-   else if( precision > 16 )
-   {
-      rc = SDB_INVALIDARG ;
-      PD_LOG ( PDERROR, "float precision can not be greater than 16" ) ;
-      goto error ;
-   }
-
-   setCsvPrecision( precision ) ;
-   setJsonPrecision( precision ) ;
 
    _delChar = delChar ;
    _delField = delField ;

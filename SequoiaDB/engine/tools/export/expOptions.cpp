@@ -58,7 +58,7 @@ namespace exprt
    #define OPTION_WITHID            "withid"
    #define OPTION_ERRORSTOP         "errorstop"
    #define OPTION_SSL               "ssl"
-   #define OPTION_PRECISION         "fprecision"
+   #define OPTION_FLOATFMT          "floatfmt"
 
    // single collection
    #define OPTION_COLLECTSPACE      "csname"
@@ -105,7 +105,8 @@ namespace exprt
                                     "format as <field>[,<field>,...] for single collection, " \
                                     "or format as <csName>.<clName>:<field>[,<field>,...] for each collection " \
                                     "when specify multi collections"
-   #define EXPLAIN_PRECISION        "float precision, default: 16, 0 is automatic precision ( float only )"
+   #define EXPLAIN_FLOATFMT         "float format, default: '%.16g', input 'db2' is '%+.14E', " \
+                                    "fmtmat %[+][.precision](f|e|E|g|G) ( float only )"
 
    // csv
    #define EXPLAIN_DELCHAR          "string delimiter, default: '\"'"
@@ -159,7 +160,7 @@ namespace exprt
       ( OPTION_FIELDS,         _TYPE(vector<string>),    EXPLAIN_FIELDS ) \
       ( OPTION_ERRORSTOP,              _TYPE(bool),      EXPLAIN_ERRORSTOP ) \
       ( OPTION_SSL,                    _TYPE(bool),      EXPLAIN_SSL) \
-      ( OPTION_PRECISION,              _TYPE(INT32),     EXPLAIN_PRECISION )
+      ( OPTION_FLOATFMT,               _TYPE(string),    EXPLAIN_FLOATFMT )
 
    #define EXP_SINGLE_COLLECTION_OPTIONS \
       ( OPTION_COLLECTSPACE",c",       _TYPE(string),    EXPLAIN_COLLECTSPACE )\
@@ -300,7 +301,6 @@ namespace exprt
                               _errorStop     (FALSE),
                               _useSSL        (FALSE),
                               _fileLimit     (DEFAULT_FILELIMIT),
-                              _precision     (16),
                               _delChar       (DEFAULT_DELCHAR_CHAR),
                               _delField      (DEFAULT_DELFIELD_CHAR),
                               _headLine      (TRUE),
@@ -371,7 +371,7 @@ namespace exprt
       WRITE_STR_OPTION( writeBuf, OPTION_FILELIMIT, _fileLimit, _has(OPTION_FILELIMIT));
       WRITE_BOOL_OPTION( writeBuf, OPTION_ERRORSTOP, _errorStop, TRUE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_SSL, _useSSL, TRUE ) ;
-      WRITE_INT32_OPTION( writeBuf, OPTION_PRECISION, _precision, TRUE ) ;
+      WRITE_STR_OPTION( writeBuf, OPTION_FLOATFMT, _floatFmt, TRUE ) ;
 
       // csv options
       WRITE_STR_OPTION( writeBuf, OPTION_DELCHAR, _delChar, TRUE ) ; 
@@ -960,23 +960,13 @@ namespace exprt
          }
       }
 
-      if ( _has( OPTION_PRECISION ) )
+      if( _has( OPTION_FLOATFMT ) )
       {
-         _precision = _get<INT32>( OPTION_PRECISION ) ;
-         if( _precision < 0 )
-         {
-            rc = SDB_INVALIDARG ;
-            cerr << OPTION_PRECISION" can not be less than 0" << endl ;
-            PD_LOG ( PDERROR, OPTION_PRECISION" can not be less than 0" ) ;
-            goto error ;
-         }
-         else if( _precision > 16 )
-         {
-            rc = SDB_INVALIDARG ;
-            cerr << OPTION_PRECISION" can not be greater than 16" << endl ;
-            PD_LOG ( PDERROR, OPTION_PRECISION" can not be greater than 16" ) ;
-            goto error ;
-         }
+         _floatFmt = _get<string>( OPTION_FLOATFMT ) ;
+      }
+      else
+      {
+         _floatFmt = "%.16g" ;
       }
 
       rc = _setDelOptions() ;
