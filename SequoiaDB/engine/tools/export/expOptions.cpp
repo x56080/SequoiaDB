@@ -106,7 +106,7 @@ namespace exprt
                                     "or format as <csName>.<clName>:<field>[,<field>,...] for each collection " \
                                     "when specify multi collections"
    #define EXPLAIN_FLOATFMT         "float format, default: '%.16g', input 'db2' is '%+.14E', " \
-                                    "fmtmat %[+][.precision](f|e|E|g|G) ( float only )"
+                                    "format %[+][.precision](f|e|E|g|G) ( float only )"
 
    // csv
    #define EXPLAIN_DELCHAR          "string delimiter, default: '\"'"
