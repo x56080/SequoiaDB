@@ -2375,7 +2375,6 @@ namespace engine
                             UINT32 random,
                             UINT32 &pos )
    {
-      PD_TRACE_ENTRY ( SDB_RTNCOGETNODEPOS ) ;
       UINT32 posTmp = 0 ;
 
       switch( preferReplicaType )
@@ -2434,8 +2433,7 @@ namespace engine
             tmpPos = ( curPos + 1 ) % groupItem->nodeCount() ;
          }
 
-         if ( PREFER_REPL_ANYONE != preferReplicaType &&
-              PREFER_REPL_MASTER != preferReplicaType )
+         if ( PREFER_REPL_SLAVE == preferReplicaType )
          {
             UINT32 pimaryPos = groupItem->getPrimaryPos() ;
 

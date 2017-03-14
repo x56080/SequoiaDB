@@ -64,6 +64,8 @@ namespace engine
       typedef std::map<std::string, UINT32>     GROUP_NAME_MAP ;
       typedef GROUP_NAME_MAP::iterator          GROUP_NAME_MAP_IT ;
 
+      typedef std::map< UINT32, CoordGroupInfoPtr >  MAP_GROUP_INFO ;
+
    public:
       _CoordCB() ;
       virtual ~_CoordCB() ;
@@ -196,7 +198,7 @@ namespace engine
       rtnCoordProcesserFactory            _processerFactory;
 
       ossSpinSLatch                       _nodeGroupMutex;
-      CoordGroupMap                       _nodeGroupInfo;
+      MAP_GROUP_INFO                      _nodeGroupInfo;
       GROUP_NAME_MAP                      _groupNameMap ;
 
       ossSpinSLatch                       _cataInfoMutex;

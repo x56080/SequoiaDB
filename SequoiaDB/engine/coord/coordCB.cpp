@@ -281,7 +281,7 @@ namespace engine
    {
       ossScopedLock _lock( &_nodeGroupMutex, SHARED ) ;
 
-      CoordGroupMap::iterator it = _nodeGroupInfo.find( id ) ;
+      MAP_GROUP_INFO::iterator it = _nodeGroupInfo.find( id ) ;
       if ( it == _nodeGroupInfo.end() )
       {
          return SDB_COOR_NO_NODEGROUP_INFO ;
@@ -311,7 +311,7 @@ namespace engine
    {
       UINT32 count = 0 ;
       ossScopedLock _lock( &_nodeGroupMutex, SHARED ) ;
-      CoordGroupMap::iterator it = _nodeGroupInfo.begin() ;
+      MAP_GROUP_INFO::iterator it = _nodeGroupInfo.begin() ;
       while( it != _nodeGroupInfo.end() )
       {
          if ( CATALOG_GROUPID == it->first && exceptCata )
@@ -337,7 +337,7 @@ namespace engine
    {
       UINT32 count = 0 ;
       ossScopedLock _lock( &_nodeGroupMutex, SHARED ) ;
-      CoordGroupMap::iterator it = _nodeGroupInfo.begin() ;
+      MAP_GROUP_INFO::iterator it = _nodeGroupInfo.begin() ;
       while( it != _nodeGroupInfo.end() )
       {
          if ( CATALOG_GROUPID == it->first && exceptCata )
@@ -385,7 +385,7 @@ namespace engine
    {
       INT32 rc = SDB_OK;
       ossScopedLock _lock( &_nodeGroupMutex, SHARED ) ;
-      CoordGroupMap::iterator iter = _nodeGroupInfo.find ( groupID );
+      MAP_GROUP_INFO::iterator iter = _nodeGroupInfo.find ( groupID );
       if ( _nodeGroupInfo.end() == iter )
       {
          rc = SDB_COOR_NO_NODEGROUP_INFO;
@@ -522,7 +522,7 @@ namespace engine
       }
       else
       {
-         CoordGroupMap::iterator it = _nodeGroupInfo.begin() ;
+         MAP_GROUP_INFO::iterator it = _nodeGroupInfo.begin() ;
          while( it != _nodeGroupInfo.end() )
          {
             if ( it->second->getIdentify() <= identify )
