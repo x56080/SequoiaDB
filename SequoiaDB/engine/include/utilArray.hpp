@@ -64,7 +64,7 @@ namespace engine
       class iterator
       {
       public:
-         iterator( _utilArray<T> &t )
+         iterator( _utilArray<T,stackSize> &t )
          :_t( &t ),
           _now( 0 )
          {
@@ -89,7 +89,7 @@ namespace engine
          }
 
       private:
-         _utilArray<T> *_t ;
+         _utilArray<T,stackSize> *_t ;
          UINT32 _now ;
       } ;
 
