@@ -34,7 +34,7 @@ TEST( sdbDomainTest, abnormal )
    const CHAR *getDomName1        = "NoCreateDomainName" ;
    const CHAR *altDomName1        = "AlterCorrectDomainName" ;
    INT32 rc                       = SDB_OK ;
-   CHAR pDomainName[256] ;
+   CHAR pDomainName[512] ;
    CHAR pDomName1[20] ;
    CHAR getDomName[40] ;
    CHAR altDomName[50] ;
@@ -53,6 +53,8 @@ TEST( sdbDomainTest, abnormal )
    if ( SDB_RTN_COORD_ONLY == rc )
    {
       printf( "Run mode is standalone.\n" ) ;
+      sdbDisconnect( db ) ;
+      sdbReleaseConnection( db ) ;
       return ;
    }
    ASSERT_EQ( SDB_OK, rc ) << "Failed to getList 'SDB_LIST_GROUPS', "
@@ -152,6 +154,8 @@ TEST( sdbDomainTest, normal )
    if ( SDB_RTN_COORD_ONLY == rc )
    {
       printf( "Run mode is standalone.\n" ) ;
+      sdbDisconnect( db ) ;
+      sdbReleaseConnection( db ) ;
       return ;
    }
    ASSERT_EQ( SDB_OK, rc ) << "Failed to getList 'SDB_LIST_GROUPS', "
