@@ -35,8 +35,8 @@ TEST( sdbDomainTest, abnormal )
    const CHAR *altDomName1        = "AlterCorrectDomainName" ;
    INT32 rc                       = SDB_OK ;
    CHAR pDomainName[512] ;
-   CHAR pDomName1[20] ;
-   CHAR getDomName[40] ;
+   CHAR pDomName1[50] ;
+   CHAR getDomName[50] ;
    CHAR altDomName[50] ;
 
    // Deal with domain name
@@ -109,7 +109,7 @@ TEST( sdbDomainTest, normal )
    const CHAR *pDomainName1       = "DomainNameNormalRunAll" ;
    INT32 rc                       = SDB_OK ;
    CHAR  bson_itValue[5][1000] ;
-   CHAR  pDomainName[32] ;
+   CHAR  pDomainName[50] ;
    const CHAR * key ;
    bson  domObj ;
    bson  altObj ;
