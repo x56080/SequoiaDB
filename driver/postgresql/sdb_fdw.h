@@ -203,12 +203,21 @@ struct SdbConnectionPool
 } ;
 typedef struct SdbConnectionPool  SdbConnectionPool ;
 
+typedef struct
+{
+   int keyNum ;
+   char indexKey[SDB_MAX_KEY_COLUMN_COUNT][SDB_MAX_KEY_COLUMN_LENGTH];
+} sdbIndexInfo;
+
 struct SdbCLStatistics
 {
    Oid tableID ;
    char shardingKeys[SDB_MAX_KEY_COLUMN_COUNT][SDB_MAX_KEY_COLUMN_LENGTH] ;
    int keyNum ;
    SINT64 recordCount ;
+
+   int indexNum;
+   sdbIndexInfo indexInfo[SDB_MAX_INDEX_NUM + 1];
 
    /// clHandle should not exist here actually.
    sdbCollectionHandle clHandle ;
@@ -221,13 +230,17 @@ struct SdbStatisticsCache
 } ;
 typedef struct SdbStatisticsCache SdbStatisticsCache ;
 
-INT32 sdbRecurExprTree( Node *node, SdbExprTreeState *expr_state, 
+INT32 sdbRecurExprTree( Node *node, SdbExprTreeState *expr_state,
                         sdbbson *condition, ExprContext *exprContext ) ;
 
-int sdbSetBsonValue( sdbbson *bsonObj, const char *name, Datum valueDatum, 
+int sdbSetBsonValue( sdbbson *bsonObj, const char *name, Datum valueDatum,
                      Oid columnType, INT32 columnTypeMod, INT32 isUseDecimal ) ;
 
 List *serializeSdbExecState( SdbExecState *fdwState ) ;
+
+SdbStatisticsCache *SdbGetStatisticsCache();
+SdbCLStatistics * SdbGetCLStatFromCache( Oid foreignTableId ) ;
+
 
 
 extern Datum sdb_fdw_handler(PG_FUNCTION_ARGS);
