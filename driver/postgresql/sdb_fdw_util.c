@@ -738,8 +738,7 @@ int sdbGetIndexInfosFromDB( SdbExecState *sdbState, sdbIndexInfo *indexInfo,
    rc = sdbGetIndexes(sdbState->hCollection, NULL, &cursor) ;
    if ( SDB_OK != rc )
    {
-      ereport(WARNING, (errcode(ERRCODE_FDW_INVALID_OPTION_INDEX),
-            errmsg("Cannot get sdb's indexinfo"), errhint(" "))) ;
+      elog( WARNING, "Cannot get sdb's indexinfo:rc=%d", rc ) ;
       goto error ;
    }
 
