@@ -57,9 +57,9 @@ TEST( domainTest, abnormal )
    BSONObjBuilder autoObj ;
    autoObj.append( "AutoSplit",true) ;
    BSONObj options = autoObj.obj() ;
-   CHAR gtdomname[256] ;
-   CHAR domname[32] ;
-   CHAR notexistdom[64] ;
+   CHAR gtdomname[512] ;
+   CHAR domname[50] ;
+   CHAR notexistdom[50] ;
    // Deal with domain name
    getUniqueName(  gtDomName, gtdomname ) ;
    getUniqueName( domName, domname ) ;
@@ -74,6 +74,7 @@ TEST( domainTest, abnormal )
    if ( SDB_RTN_COORD_ONLY == rc )
    {
       cout << "Run mode is standalone" << endl ;
+      db.disconnect() ;
       return ;
    }
    ASSERT_EQ( SDB_OK, rc ) << "Failed to getList 'SDB_LIST_GROUPS', "
@@ -144,9 +145,9 @@ TEST(domainTest, normalAll )
    const CHAR *pPasswd                      = PASSWD ;
    INT32 rc                                 = SDB_OK ;
    BSONObj obj ;
-   CHAR pCS[32] ;
-   CHAR pCL[32] ;
-   CHAR pDM[16] ;
+   CHAR pCS[50] ;
+   CHAR pCL[50] ;
+   CHAR pDM[50] ;
    // Deal with name
    getUniqueName( pCS1, pCS ) ;
    getUniqueName( pCL1, pCL ) ;
@@ -163,6 +164,7 @@ TEST(domainTest, normalAll )
    if ( SDB_RTN_COORD_ONLY == rc )
    {
       cout << "Run mode is standalone." << endl ;
+      db.disconnect() ;
       return ;
    }
    ASSERT_EQ( SDB_OK, rc ) << "Failed to getList 'SDB_LIST_GROUPS', "
