@@ -483,15 +483,17 @@ namespace engine
          if ( error.value() == boost::system::errc::operation_canceled ||
               error.value() == boost::system::errc::no_such_file_or_directory )
          {
-            PD_LOG ( PDINFO, "connection aborted, node:%d, %d, %d",
+            PD_LOG ( PDINFO, "connection aborted with node[%d,%d,%d]: %s, %d",
                      _id.columns.groupID, _id.columns.nodeID,
-                     _id.columns.serviceID ) ;
+                     _id.columns.serviceID, error.message().c_str(),
+                     error.value() ) ;
          }
          else
          {
-            PD_LOG ( PDERROR, "Error received, node:%d, %d, %d, err=%d",
+            PD_LOG ( PDERROR, "Error received with node[%d,%d,%d]: %s, %d",
                      _id.columns.groupID, _id.columns.nodeID,
-                     _id.columns.serviceID, error.value() ) ;
+                     _id.columns.serviceID, error.message().c_str(),
+                     error.value() ) ;
          }
 
          goto error_close ;
