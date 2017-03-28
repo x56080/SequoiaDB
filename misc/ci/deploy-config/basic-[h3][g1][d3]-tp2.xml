@@ -222,12 +222,15 @@
 	<target name="backUpLog">
 		<trycatch>
 			<try>	
+            
 				<!--mkdir dir="${test.log.path}" /-->
 				<stafTools workType="shell" 
                        workHost="${save.testLog.hostname}" 
                        workDir="${save.testLog.dir}"
                        common="find *tar.gz* -mtime +7 -exec rm -rf {} \;" 
                        failonerror="true"/>
+            
+            <antcall target="backUpClusterInfo"/>
             
 				<for list="${machineList}" param="hostname">
 					<sequential>
@@ -251,4 +254,20 @@
 			</finally>
 		</trycatch>
 	</target>
+   
+   <target name="backUpClusterInfo">
+      
+      <echo file="${test.log.path}/ReplicaGroup.info" 
+            message="execute db.list(7):&#10;" append="false" />
+      <var name="exec_db_list7" 
+           value="${install.path}/sequoiadb/bin/sdb -s &quot;db = new Sdb('localhost',${coord.service.port}); db.list(7);&quot; &gt;&gt; ${test.log.path}/ReplicaGroup.info"/>
+
+      <stafTools workType="shell" 
+                 workHost="${host.NAME}" 
+                 workDir="${install.path}"
+                 common="${exec_db_list7}" 
+                 failonerror="true"/>
+   </target>
+
+   
 </project>
