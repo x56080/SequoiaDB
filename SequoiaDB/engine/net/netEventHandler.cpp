@@ -44,10 +44,15 @@
 #include "pdTrace.hpp"
 #include "netTrace.hpp"
 #include <boost/bind.hpp>
+#if defined (_WINDOWS)
+#include <mstcpip.h>
+#endif
 
 using namespace boost::asio::ip ;
 namespace engine
 {
+   #define NET_SOCKET_SNDTIMEO         ( 2 )
+
    _netEventHandler::_netEventHandler( _netFrame *frame ):
                                        _sock(frame->ioservice()),
                                        _buf(NULL),
@@ -147,25 +152,26 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND_SETOPT, "_netEventHandler::setOpt" )
    void _netEventHandler::setOpt()
    {
+      INT32 res = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__NETEVNHND_SETOPT );
 
       _isConnected = TRUE ;
 
+      INT32 keepAlive = 1 ;
+      INT32 keepIdle = OSS_SOCKET_KEEP_IDLE ;
+      INT32 keepInterval = OSS_SOCKET_KEEP_INTERVAL ;
+      INT32 keepCount = OSS_SOCKET_KEEP_CONTER ;
+
       try
       {
          _sock.set_option( tcp::no_delay(TRUE) ) ;
-         _sock.set_option( tcp::socket::keep_alive(TRUE) ) ;
+
 #if defined (_LINUX)
-         INT32 keepAlive = 1 ;
-         INT32 keepIdle = 15 ;
-         INT32 keepInterval = 5 ;
-         INT32 keepCount = 3 ;
-         INT32 res = SDB_OK ;
          struct timeval sendtimeout ;
-         sendtimeout.tv_sec = 1 ;
+         sendtimeout.tv_sec = NET_SOCKET_SNDTIMEO ;
          sendtimeout.tv_usec = 0 ;
          SOCKET nativeSock = _sock.native() ;
-         /// duplicate set?
+
          res = setsockopt( nativeSock, SOL_SOCKET, SO_KEEPALIVE,
                      ( void *)&keepAlive, sizeof(keepAlive) ) ;
          if ( SDB_OK != res )
@@ -201,6 +207,28 @@ namespace engine
             PD_LOG( PDERROR, "failed to set sndtimeout of sock[%d],"
                     "err:%d", nativeSock, res ) ;
          }
+#else
+         struct tcp_keepalive alive_in ;
+         DWORD ulBytesReturn       = 0 ;
+         SOCKET nativeSock          = _sock.native() ;
+         alive_in.onoff             = keepAlive ;
+         alive_in.keepalivetime     = keepIdle * 1000 ; // ms
+         alive_in.keepaliveinterval = keepInterval * 1000 ; // ms
+         res = setsockopt( nativeSock, SOL_SOCKET, SO_KEEPALIVE,
+                           ( CHAR *)&keepAlive, sizeof(keepAlive) ) ;
+         if ( SDB_OK != res )
+         {
+            PD_LOG( PDERROR, "failed to set keepalive of sock[%d],"
+                    "err:%d", nativeSock, res ) ;
+         }
+         res = WSAIoctl( nativeSock, SIO_KEEPALIVE_VALS,
+                         &alive_in, sizeof(alive_in),
+                         NULL, 0, &ulBytesReturn, NULL, NULL ) ;
+         if ( SDB_OK != res )
+         {
+            PD_LOG( PDERROR, "failed to set keepalive vals of sock[%d],"
+                    "err:%d", nativeSock, res ) ;
+         }
 #endif
       }
       catch( std::exception &e )
@@ -208,7 +236,6 @@ namespace engine
          PD_LOG( PDERROR, "failed to set no delay:%s", e.what() ) ;
       }
       PD_TRACE_EXIT ( SDB__NETEVNHND_SETOPT );
-      return ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND_SYNCCONN, "_netEventHandler::syncConnect" )
@@ -230,7 +257,6 @@ namespace engine
 
       /*try
       {
-
          boost::system::error_code ec ;
          tcp::resolver::query query ( tcp::v4(), hostName, serviceName ) ;
          tcp::resolver resolver ( _frame->ioservice() ) ;
@@ -242,24 +268,22 @@ namespace engine
          /// may return ok when we in a local area network.
          if ( ec )
          {
-            if ( boost::asio::error::would_block ==
-                 ec )
+            if ( boost::asio::error::would_block == ec )
             {
-            rc = _complete( _sock.native() ) ;
-            if ( SDB_OK != rc )
-            {
-               _sock.close() ;
-               PD_LOG ( PDWARNING,
-                  "Failed to connect to %s: %s: timeout",
-                  hostName, serviceName ) ;
-               goto error ;
-            }
+               rc = _complete( _sock.native() ) ;
+               if ( SDB_OK != rc )
+               {
+                  _sock.close() ;
+                  PD_LOG ( PDWARNING, "Failed to connect to %s:%s, rc: %d",
+                           hostName, serviceName, rc ) ;
+                  goto error ;
+               }
             }
             else
             {
-               PD_LOG ( PDWARNING,
-                  "Failed to connect to %s: %s: %s", hostName, serviceName,
-                  ec.message().c_str()) ;
+               PD_LOG ( PDWARNING, "Failed to connect to %s:%s, error:%s,%d",
+                        hostName, serviceName, ec.message().c_str(),
+                        ec.value() ) ;
                rc = SDB_NET_CANNOT_CONNECT ;
                _sock.close() ;
                goto error ;
@@ -268,9 +292,8 @@ namespace engine
       }
       catch ( boost::system::system_error &e )
       {
-         PD_LOG ( PDWARNING,
-                  "Failed to connect to %s: %s: %s", hostName, serviceName,
-                  e.what() ) ;
+         PD_LOG ( PDWARNING, "Failed to connect to %s:%s, error:%s",
+                  hostName, serviceName, e.what() ) ;
          rc = SDB_NET_CANNOT_CONNECT ;
          _sock.close() ;
          goto error ;
@@ -402,8 +425,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND_SYNCSND, "_netEventHandler::syncSend" )
-   INT32 _netEventHandler::syncSend( const void *buf,
-                                     UINT32 len )
+   INT32 _netEventHandler::syncSend( const void *buf, UINT32 len )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__NETEVNHND_SYNCSND );
@@ -417,24 +439,28 @@ namespace engine
          try
          {
             send +=  _sock.send( buffer( (const void*)((ossValuePtr)buf + send),
-                                         len - send) );
+                                         len - send) ) ;
          }
          catch ( boost::system::system_error &e )
          {
             if ( e.code().value() == boost::system::errc::interrupted )
             {
-               PD_LOG( PDDEBUG, "interrupted system call" ) ;
+               PD_LOG( PDDEBUG, "Send message interrupted" ) ;
+               continue ;
+            }
+            if ( e.code().value() == boost::system::errc::timed_out )
+            {
+               PD_LOG( PDDEBUG, "Send message timeout" ) ;
                continue ;
             }
 
-            PD_LOG( PDERROR, "Failed to send to node :%d, %d, %d, %s, errno=%d",
+            PD_LOG( PDERROR, "Failed to send to node[%d,%d,%d]: %s,%d",
                     _id.columns.groupID, _id.columns.nodeID,
                     _id.columns.serviceID, e.what(), e.code().value() ) ;
             rc = SDB_NET_SEND_ERR ;
             goto error ;
          }
       }
-
 
    done:
       PD_TRACE_EXITRC ( SDB__NETEVNHND_SYNCSND, rc );

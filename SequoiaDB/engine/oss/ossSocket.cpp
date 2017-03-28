@@ -922,14 +922,6 @@ INT32 _ossSocket::disableNagle ()
                SOCKET_GETLASTERROR ) ;
    }
 
-   rc = setsockopt ( _fd, SOL_SOCKET, SO_KEEPALIVE, (CHAR *) &temp,
-                     sizeof ( INT32 ) ) ;
-   if ( rc )
-   {
-      PD_LOG ( PDWARNING, "Failed to setsockopt, rc = %d",
-               SOCKET_GETLASTERROR ) ;
-   }
-
 done:
    PD_TRACE_EXITRC ( SDB_OSSSK_DISNAG, rc );
    return rc ;
@@ -1336,7 +1328,12 @@ INT32 ossGetPort( const CHAR * pServiceName, UINT16 & port )
       servinfo = getservbyname ( pServiceName, "tcp" ) ;
       if ( !servinfo )
       {
-         port = atoi ( pServiceName ) ;
+         INT32 tmpPort = atoi ( pServiceName ) ;
+         if ( 0 >= tmpPort || 65535 < tmpPort )
+         {
+            rc = SDB_INVALIDARG ;
+         }
+         port = tmpPort ;
       }
       else
       {

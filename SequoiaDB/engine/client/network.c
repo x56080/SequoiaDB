@@ -169,7 +169,9 @@ INT32 clientConnect ( const CHAR *pHostName,
       goto error ;
    }
 
-   setKeepAlive( rawSocket, 1, 15, 5, 3 ) ;
+   setKeepAlive( rawSocket, 1, OSS_SOCKET_KEEP_IDLE,
+                 OSS_SOCKET_KEEP_INTERVAL,
+                 OSS_SOCKET_KEEP_CONTER ) ;
    _disableNagle( rawSocket ) ;
 
    s = (Socket*) SDB_OSS_MALLOC ( sizeof( Socket ) ) ;
@@ -297,7 +299,7 @@ error:
 }
 
 INT32 setKeepAlive( SOCKET sock, INT32 keepAlive, INT32 keepIdle,
-                   INT32 keepInterval, INT32 keepCount )
+                    INT32 keepInterval, INT32 keepCount )
 {
    INT32 rc = SDB_OK ;
 #if defined (_WINDOWS)
@@ -381,12 +383,6 @@ static INT32 _disableNagle( SOCKET sock )
       goto error ;
    }
 
-   rc = setsockopt ( sock, SOL_SOCKET, SO_KEEPALIVE, (CHAR *) &temp,
-                     sizeof ( INT32 ) ) ;
-   if ( rc )
-   {
-      goto error ;
-   }
 done:
    return rc ;
 error:
@@ -462,8 +458,17 @@ INT32 clientSend ( Socket* sock, const CHAR *pMsg, INT32 len, INT32 timeout )
    }
 
    rawSocket = sock->rawSocket ;
-   maxSelectTime.tv_sec = timeout / 1000000 ;
-   maxSelectTime.tv_usec = timeout % 1000000 ;
+   if ( timeout >= 0 )
+   {
+      maxSelectTime.tv_sec = timeout / 1000000 ;
+      maxSelectTime.tv_usec = timeout % 1000000 ;
+   }
+   else
+   {
+      maxSelectTime.tv_sec = 1000000 ;
+      maxSelectTime.tv_usec = 0 ;
+   }
+
    while ( TRUE )
    {
       FD_ZERO ( &fds ) ;
@@ -602,8 +607,16 @@ INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len, INT32 timeout )
    }
 #endif /* SDB_SSL */
    rawSocket = sock->rawSocket ;
-   maxSelectTime.tv_sec = timeout / 1000000 ;
-   maxSelectTime.tv_usec = timeout % 1000000 ;
+   if ( timeout >= 0 )
+   {
+      maxSelectTime.tv_sec = timeout / 1000000 ;
+      maxSelectTime.tv_usec = timeout % 1000000 ;
+   }
+   else
+   {
+      maxSelectTime.tv_sec = 1000000 ;
+      maxSelectTime.tv_usec = 0 ;
+   }
    // wait loop until either we timeout or get a message
    while ( TRUE )
    {

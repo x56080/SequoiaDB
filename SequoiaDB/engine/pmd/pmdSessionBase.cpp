@@ -57,6 +57,7 @@ namespace engine
       _awaitingHandshake = TRUE ;
 
       _socket.disableNagle() ;
+      _socket.setKeepAlive() ;
 
       // make session name
       if ( SOCKET_INVALIDSOCKET != fd )

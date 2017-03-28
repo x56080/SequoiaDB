@@ -149,8 +149,15 @@ namespace engine
                      hostname, port, rc ) ;
             goto error ;
          }
+         rc = sock.disableNagle() ;
+         if ( rc )
+         {
+            PD_LOG( PDWARNING, "Failed to disable nagle, rc: %d", rc ) ;
+         }
          // set keep alive
-         rc = sock.setKeepAlive( 1, 15, 5, 3 ) ;
+         rc = sock.setKeepAlive( 1, OSS_SOCKET_KEEP_IDLE,
+                                 OSS_SOCKET_KEEP_INTERVAL,
+                                 OSS_SOCKET_KEEP_CONTER ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDWARNING, "Failed to set keep alive, rc=%d", rc ) ;
