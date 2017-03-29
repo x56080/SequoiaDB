@@ -41,6 +41,7 @@
 #include "msgDef.h"
 #include "pmdEnv.hpp"
 #include "pd.hpp"
+#include "msgMessageFormat.hpp"
 #include "pdTrace.hpp"
 #include "netTrace.hpp"
 #include <boost/bind.hpp>
@@ -200,10 +201,10 @@ namespace engine
               spanTime >= timeout )
          {
             routeid = eh->id() ;
-            PD_LOG( PDERROR, "Connection[Handle: %d, GroupID: %d, NodeID: %d, "
-                    "Service: %d] is broken[BrokenTime: %lld(ms)]",
-                    handle, routeid.columns.groupID, routeid.columns.nodeID,
-                    routeid.columns.serviceID, spanTime ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d, Node:%s] is "
+                    "broken[BrokenTime: %lld(ms)]",
+                    handle, routeID2String( routeid ).c_str(),
+                    spanTime ) ;
             eh->close() ;
          }
       }

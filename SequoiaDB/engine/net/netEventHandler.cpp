@@ -43,6 +43,7 @@
 #include "pd.hpp"
 #include "pdTrace.hpp"
 #include "netTrace.hpp"
+#include "msgMessageFormat.hpp"
 #include <boost/bind.hpp>
 #if defined (_WINDOWS)
 #include <mstcpip.h>
@@ -176,36 +177,36 @@ namespace engine
                      ( void *)&keepAlive, sizeof(keepAlive) ) ;
          if ( SDB_OK != res )
          {
-            PD_LOG( PDERROR, "failed to set keepalive of sock[%d],"
-                    "err:%d", nativeSock, res ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d] failed to set keepalive,"
+                    "err:%d", _handle, res ) ;
          }
          res = setsockopt( nativeSock, SOL_TCP, TCP_KEEPIDLE,
                      ( void *)&keepIdle, sizeof(keepIdle) ) ;
          if ( SDB_OK != res )
          {
-            PD_LOG( PDERROR, "failed to set keepidle of sock[%d],"
-                    "err:%d", nativeSock, res ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d] failed to set keepidle,"
+                    "err:%d", _handle, res ) ;
          }
          res = setsockopt( nativeSock, SOL_TCP, TCP_KEEPINTVL,
                      ( void *)&keepInterval, sizeof(keepInterval) ) ;
          if ( SDB_OK != res )
          {
-            PD_LOG( PDERROR, "failed to set keepintvl of sock[%d],"
-                    "err:%d", nativeSock, res ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d] failed to set keepintvl,"
+                    "err:%d", _handle, res ) ;
          }
          res = setsockopt( nativeSock, SOL_TCP, TCP_KEEPCNT,
                      ( void *)&keepCount, sizeof(keepCount) ) ;
          if ( SDB_OK != res )
          {
-            PD_LOG( PDERROR, "failed to set keepcnt of sock[%d],"
-                    "err:%d", nativeSock, res ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d] failed to set keepcnt,"
+                    "err:%d", _handle, res ) ;
          }
          res = setsockopt( nativeSock, SOL_SOCKET, SO_SNDTIMEO,
                            ( CHAR * )&sendtimeout, sizeof(struct timeval) ) ;
          if ( SDB_OK != res )
          {
-            PD_LOG( PDERROR, "failed to set sndtimeout of sock[%d],"
-                    "err:%d", nativeSock, res ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d] failed to set sndtimeout,"
+                    "err:%d", _handle, res ) ;
          }
 #else
          struct tcp_keepalive alive_in ;
@@ -218,22 +219,23 @@ namespace engine
                            ( CHAR *)&keepAlive, sizeof(keepAlive) ) ;
          if ( SDB_OK != res )
          {
-            PD_LOG( PDERROR, "failed to set keepalive of sock[%d],"
-                    "err:%d", nativeSock, res ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d] failed to set keepalive,"
+                    "err:%d", _handle, res ) ;
          }
          res = WSAIoctl( nativeSock, SIO_KEEPALIVE_VALS,
                          &alive_in, sizeof(alive_in),
                          NULL, 0, &ulBytesReturn, NULL, NULL ) ;
          if ( SDB_OK != res )
          {
-            PD_LOG( PDERROR, "failed to set keepalive vals of sock[%d],"
-                    "err:%d", nativeSock, res ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d] failed to set keepalive "
+                    "vals, err:%d", _handle, res ) ;
          }
 #endif
       }
       catch( std::exception &e )
       {
-         PD_LOG( PDERROR, "failed to set no delay:%s", e.what() ) ;
+         PD_LOG( PDERROR, "Connection[Handle:%d] failed to set no delay:%s",
+                 _handle, e.what() ) ;
       }
       PD_TRACE_EXIT ( SDB__NETEVNHND_SETOPT );
    }
@@ -274,14 +276,16 @@ namespace engine
                if ( SDB_OK != rc )
                {
                   _sock.close() ;
-                  PD_LOG ( PDWARNING, "Failed to connect to %s:%s, rc: %d",
+                  PD_LOG ( PDWARNING, "Connection[Handle:%d] failed to connect "
+                           "to %s:%s, rc: %d", _handle,
                            hostName, serviceName, rc ) ;
                   goto error ;
                }
             }
             else
             {
-               PD_LOG ( PDWARNING, "Failed to connect to %s:%s, error:%s,%d",
+               PD_LOG ( PDWARNING, "Connection[Handle:%d] failed to connect "
+                        "to %s:%s, error:%s,%d", _handle,
                         hostName, serviceName, ec.message().c_str(),
                         ec.value() ) ;
                rc = SDB_NET_CANNOT_CONNECT ;
@@ -292,7 +296,8 @@ namespace engine
       }
       catch ( boost::system::system_error &e )
       {
-         PD_LOG ( PDWARNING, "Failed to connect to %s:%s, error:%s",
+         PD_LOG ( PDWARNING, "Connection[Handle:%d] failed to connect "
+                  "to %s:%s, error:%s", _handle,
                   hostName, serviceName, e.what() ) ;
          rc = SDB_NET_CANNOT_CONNECT ;
          _sock.close() ;
@@ -303,7 +308,8 @@ namespace engine
       rc = ossGetPort( serviceName, port ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to get port :%s", serviceName ) ;
+         PD_LOG( PDERROR, "Connection[Handle:%d] convert svc[%s] to port "
+                 "failed, rc: %d", _handle, serviceName, rc ) ;
          goto error ;
       }
 
@@ -312,15 +318,17 @@ namespace engine
          rc = sock.initSocket() ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to init socket:%d", rc ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d] init socket failed, "
+                    "rc: %d", _handle, rc ) ;
             goto error ;
          }
          sock.closeWhenDestruct( FALSE ) ;
          rc = sock.connect() ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to connect remote[%s:%s], rc:%d",
-                    hostName, serviceName, rc ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d] connect to %s:%d(%s) "
+                    "failed, rc: %d", _handle, hostName, port,
+                    serviceName, rc ) ;
             goto error ;
          }
 
@@ -330,7 +338,8 @@ namespace engine
          }
          catch ( std::exception &e )
          {
-            PD_LOG( PDERROR, "unexpected err happened:%s", e.what() ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d] occur unexpected: %s",
+                    _handle, e.what() ) ;
             rc = SDB_SYS ;
             sock.close() ;
             _sock.close() ;
@@ -356,9 +365,8 @@ namespace engine
       {
          if ( !_isConnected )
          {
-            PD_LOG( PDWARNING, "Connection[routeID: %u,%u,%u; Handel: %u] "
-                    "already closed", _id.columns.groupID, _id.columns.nodeID,
-                    _id.columns.serviceID, _handle ) ;
+            PD_LOG( PDWARNING, "Connection[Handle:%d, Node:%s] is "
+                    "already closed", _handle, routeID2String( _id ).c_str() ) ;
             goto error ;
          }
 
@@ -398,9 +406,8 @@ namespace engine
 
          if ( !_isConnected )
          {
-            PD_LOG( PDWARNING, "Connection[routeID: %u,%u,%u; Handel: %u] "
-                    "already closed", _id.columns.groupID, _id.columns.nodeID,
-                    _id.columns.serviceID, _handle ) ;
+            PD_LOG( PDWARNING, "Connection[Handle:%d, Node:%s] is already "
+                    "closed", _handle, routeID2String( _id ).c_str() ) ;
             goto error ;
          }
          async_read( _sock, buffer(
@@ -445,18 +452,25 @@ namespace engine
          {
             if ( e.code().value() == boost::system::errc::interrupted )
             {
-               PD_LOG( PDDEBUG, "Send message interrupted" ) ;
+               PD_LOG( PDDEBUG, "Connection[Handle:%d, Node:%s] send message "
+                       "interrupted: %s,%d", _handle,
+                       routeID2String( _id ).c_str(), e.what(),
+                       e.code().value() ) ;
                continue ;
             }
-            if ( e.code().value() == boost::system::errc::timed_out )
+            if ( e.code().value() == boost::system::errc::timed_out ||
+                 e.code().value() == boost::system::errc::resource_unavailable_try_again )
             {
-               PD_LOG( PDDEBUG, "Send message timeout" ) ;
+               PD_LOG( PDWARNING, "Connection[Handle:%d, Node:%s] send "
+                       "message timeout: %s:%d", _handle,
+                       routeID2String( _id ).c_str(), e.what(),
+                       e.code().value() ) ;
                continue ;
             }
 
-            PD_LOG( PDERROR, "Failed to send to node[%d,%d,%d]: %s,%d",
-                    _id.columns.groupID, _id.columns.nodeID,
-                    _id.columns.serviceID, e.what(), e.code().value() ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d, Node:%s] send message "
+                    "failed: %s,%d", _handle, routeID2String( _id ).c_str(),
+                    e.what(), e.code().value() ) ;
             rc = SDB_NET_SEND_ERR ;
             goto error ;
          }
@@ -484,7 +498,8 @@ namespace engine
          _buf = (CHAR *)SDB_OSS_MALLOC( len ) ;
          if ( NULL == _buf )
          {
-            PD_LOG( PDERROR, "mem allocate failed, len: %u", len ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d] allocate memeory[Len:%u] "
+                    "failed", _handle, len ) ;
             rc = SDB_OOM ;
             goto error ;
          }
@@ -499,27 +514,33 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND__RDCALLBK, "_netEventHandler::_readCallback" )
-   void _netEventHandler::_readCallback( const boost::system::error_code &
-                                         error )
+   void _netEventHandler::_readCallback( const boost::system::error_code &error )
    {
       PD_TRACE_ENTRY ( SDB__NETEVNHND__RDCALLBK ) ;
 
       if ( error )
       {
-         if ( error.value() == boost::system::errc::operation_canceled ||
-              error.value() == boost::system::errc::no_such_file_or_directory )
+         if ( error.value() == boost::system::errc::timed_out ||
+              error.value() == boost::system::errc::resource_unavailable_try_again )
          {
-            PD_LOG ( PDINFO, "connection aborted with node[%d,%d,%d]: %s, %d",
-                     _id.columns.groupID, _id.columns.nodeID,
-                     _id.columns.serviceID, error.message().c_str(),
-                     error.value() ) ;
+            PD_LOG( PDWARNING, "Connection[Handle:%d, Node:%s] recieve "
+                    "timeout: %s,%d", _handle, routeID2String( _id ).c_str(),
+                    error.message().c_str(), error.value() ) ;
+            asyncRead() ;
+            goto done ;
+         }
+         else if ( error.value() == boost::system::errc::operation_canceled ||
+                   error.value() == boost::system::errc::no_such_file_or_directory )
+         {
+            PD_LOG ( PDINFO, "Connection[Handle:%d, Node:%s] has been "
+                     "closed: %s,%d", _handle, routeID2String( _id ).c_str(),
+                     error.message().c_str(), error.value() ) ;
          }
          else
          {
-            PD_LOG ( PDERROR, "Error received with node[%d,%d,%d]: %s, %d",
-                     _id.columns.groupID, _id.columns.nodeID,
-                     _id.columns.serviceID, error.message().c_str(),
-                     error.value() ) ;
+            PD_LOG ( PDERROR, "Connection[Handle:%d, Node:%s] occur "
+                     "error: %s,%d", _handle, routeID2String( _id ).c_str(),
+                     error.message().c_str(), error.value() ) ;
          }
 
          goto error_close ;
@@ -548,12 +569,11 @@ namespace engine
          else if ( sizeof(_MsgHeader) > (UINT32)_header.messageLength ||
                    SDB_MAX_MSG_LENGTH < (UINT32)_header.messageLength )
          {
-            PD_LOG( PDERROR, "Error header[len: %d, opCode: (%d)%d, TID:%d] "
-                    "received, node:%d, %d, %d", _header.messageLength,
-                    IS_REPLY_TYPE(_header.opCode) ? 1 : 0,
-                    GET_REQUEST_TYPE(_header.opCode), _header.TID,
-                    _id.columns.groupID,
-                    _id.columns.nodeID, _id.columns.serviceID ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d, Node:%s] recieved invalid "
+                    "message[%s] from %s:%d", _handle,
+                    routeID2String( _id ).c_str(),
+                    msg2String( &_header ).c_str(),
+                    remoteAddr().c_str(), remotePort() ) ;
             goto error_close ;
          }
          else
@@ -568,14 +588,12 @@ namespace engine
                goto done ;
             }
 
-            PD_LOG( PDDEBUG, "msg header: [len:%d], [opCode: [%d]%d], "
-                             "[TID:%d], [groupID:%d], [nodeID:%d], "
-                             "[ADDR:%s], [PORT:%d]",
-                    _header.messageLength, IS_REPLY_TYPE(_header.opCode)?1:0,
-                    GET_REQUEST_TYPE(_header.opCode),
-                    _header.TID, _header.routeID.columns.groupID,
-                    _header.routeID.columns.nodeID,
+            PD_LOG( PDDEBUG, "Connection[Handle:%d, Node:%s] recieved "
+                    "message[%s] from %s:%d", _handle,
+                    routeID2String( _id ).c_str(),
+                    msg2String( &_header ).c_str(),
                     remoteAddr().c_str(), remotePort() ) ;
+
             /// add to route table
             if ( MSG_INVALID_ROUTEID == _id.value )
             {
@@ -609,7 +627,8 @@ namespace engine
          }
          catch ( boost::system::system_error &e )
          {
-            PD_LOG ( PDERROR, "Failed to quick ack: %s", e.what() ) ;
+            PD_LOG ( PDERROR, "Connection[Handle:%d] quick ack failed: %s",
+                     _handle, e.what() ) ;
          }
 #endif // _LINUX
 

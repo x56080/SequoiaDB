@@ -86,7 +86,7 @@ enum OSS_MATCH_TYPE
 /*
    Socket attribute define
 */
-#define OSS_SOCKET_KEEP_IDLE              ( 600 )
+#define OSS_SOCKET_KEEP_IDLE              ( 240 )
 #define OSS_SOCKET_KEEP_INTERVAL          ( 10 )
 #define OSS_SOCKET_KEEP_CONTER            ( 5 )
 
