@@ -53,6 +53,8 @@
       <antcall target="generate_node_start_report"/>
       <!-- cp report to ${WORKSPACE}/report-->
       <!--delete dir="${test.log.path}"/-->
+      <antcall target="collect_core_file"/>
+      
       <copy todir="${test.log.path}">
          <fileset dir="${report_dir}" includes="*.xml"/>
       </copy>
@@ -378,4 +380,49 @@
          </else>
       </if> 
    </target>
+   
+   <target name="collect_core_file">
+      <property file="${ci.properties.path}" />
+      <property file="${test.machine.deploy.path}/deploy/ci.test.properties"/>
+      <var name="exec_cmd_collect_core" 
+           value="ant -f ${test.machine.deploy.path}/deploy/exec_env_detect.xml collect_remote_core_file -Dcontrol_host=${host.NAME} -Dci.properties.path=${test.machine.software.path}/ci.test.properties -DantTask.jar.path=${test.machine.deploy.path}/deploy/ant-sdbtasks"/>
+     
+      <for list="${branch_machine}" param="testhost">
+         <sequential>
+            <stafTools workType="shell" 
+                       workHost="@{testhost}" 
+                       workDir="${test.machine.deploy.path}/deploy"
+                       common="${exec_cmd_collect_core}" 
+                       failonerror="true"/>  
+         </sequential>
+      </for>
+   </target>
+   
+   <target name="collect_remote_core_file">
+   
+      <property file="${ci.properties.path}" />
+      <property file="${test.machine.deploy.path}/deploy/ci.test.properties"/>
+      <hostinfo prefix="host" />
+      
+      <delete dir="${test.machine.deploy.path}/${host.NAME}_corefile"/>
+      <mkdir dir="${test.machine.deploy.path}/${host.NAME}_corefile"/>
+      
+      <copy todir="${test.machine.deploy.path}/${host.NAME}_corefile">
+         <fileset dir="${install.path}/sequoiadb" includes="**/*core*" excludes="**/*core*.jar"/>
+      </copy>
+      <copy todir="${test.machine.deploy.path}/${host.NAME}_corefile">
+         <fileset dir="${test.machine.deploy.path}/deploy/hlt" includes="**/*core*" excludes="**/*core*.jar"/>
+      </copy>
+      <!--compress-->
+      <tar destfile="${test.machine.deploy.path}/${host.NAME}_corefile.tar.gz" longfile="gnu" compression="gzip" 
+           basedir="${test.machine.deploy.path}" includes="${host.NAME}_corefile/**/*"/>
+
+      <stafTools workType="copy" 
+                 workHost="${host.NAME}" 
+                 fileName="${test.machine.deploy.path}/${host.NAME}_corefile.tar.gz"  
+                 toHost="${control_host}"  
+                 saveDir="${test.log.path}" 
+                 failonerror="true"/> 
+   </target>
+   
 </project>
