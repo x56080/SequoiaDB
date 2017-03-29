@@ -572,7 +572,7 @@ namespace engine
             PD_LOG( PDERROR, "Connection[Handle:%d, Node:%s] recieved invalid "
                     "message[%s] from %s:%d", _handle,
                     routeID2String( _id ).c_str(),
-                    msg2String( &_header ).c_str(),
+                    msg2String( &_header, MSG_MASK_ALL, 0 ).c_str(),
                     remoteAddr().c_str(), remotePort() ) ;
             goto error_close ;
          }
@@ -591,7 +591,7 @@ namespace engine
             PD_LOG( PDDEBUG, "Connection[Handle:%d, Node:%s] recieved "
                     "message[%s] from %s:%d", _handle,
                     routeID2String( _id ).c_str(),
-                    msg2String( &_header ).c_str(),
+                    msg2String( &_header, MSG_MASK_ALL, 0 ).c_str(),
                     remoteAddr().c_str(), remotePort() ) ;
 
             /// add to route table
