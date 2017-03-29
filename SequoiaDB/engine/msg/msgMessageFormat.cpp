@@ -191,7 +191,7 @@ string msg2String( const MsgHeader *pMsg,
    {
       ss << "OpCode: (" << IS_REPLY_TYPE( pMsg->opCode ) << ")"
          << GET_REQUEST_TYPE( pMsg->opCode ) ;
-      if ( pItem->_opDesp )
+      if ( pItem && pItem->_opDesp )
       {
          ss << "(" << pItem->_opDesp << ")" ;
       }
