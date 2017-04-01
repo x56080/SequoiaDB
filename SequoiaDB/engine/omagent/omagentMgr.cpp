@@ -73,6 +73,7 @@ namespace engine
       // defaut service name
       ossSnprintf( _dftSvcName, OSS_MAX_SERVICENAME, "%u",
                    SDBCM_DFT_PORT ) ;
+      ossStrcpy( _cmServiceName, _dftSvcName ) ;
 
       _useCurUser = FALSE ;
       _useStandAlone = FALSE ;
@@ -381,6 +382,7 @@ namespace engine
       {
          ossStrncpy( _cmServiceName, serviceName, OSS_MAX_SERVICENAME ) ;
          _cmServiceName[ OSS_MAX_SERVICENAME ] = 0 ;
+         ossGetPort( _cmServiceName, _localPort ) ;
       }
    }
 
@@ -917,7 +919,7 @@ namespace engine
       }
       else if ( _immediatelyTimer == timerID )
       {
-         PD_LOG( PDDEBUG, "deal immediately timer:timer=%d", 
+         PD_LOG( PDDEBUG, "deal immediately timer:timer=%d",
                  _immediatelyTimer ) ;
          _prepareTask() ;
 
@@ -1060,17 +1062,17 @@ namespace engine
          // add a immediatelyTimer
          if ( _immediatelyTimer == NET_INVALID_TIMER_ID )
          {
-            rc = _netAgent.addTimer( OMAGENT_IMMEDIATELY_TIMEOUT, 
+            rc = _netAgent.addTimer( OMAGENT_IMMEDIATELY_TIMEOUT,
                                      &_timerHandler, _immediatelyTimer ) ;
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDERROR, "start check task immediately failed:rc=%d", 
+               PD_LOG( PDERROR, "start check task immediately failed:rc=%d",
                        rc ) ;
                //just log a message here, do not return rc.
                //because we have the one_second_timer to active this task too.
             }
 
-            PD_LOG( PDDEBUG, "add immediately timer:timer=%d", 
+            PD_LOG( PDDEBUG, "add immediately timer:timer=%d",
                     _immediatelyTimer ) ;
          }
       }
@@ -1266,13 +1268,13 @@ namespace engine
       ossScopedLock lock( &_mgrLatch, EXCLUSIVE ) ;
       return ++_requestID ;
    }
-   
+
    void _omAgentMgr::registerTaskEvent( UINT64 reqID, ossAutoEvent *pEvent )
    {
       ossScopedLock lock( &_mgrLatch, EXCLUSIVE ) ;
       _mapTaskEvent[ reqID ] = pEvent ;
    }
-   
+
    void _omAgentMgr::unregisterTaskEvent( UINT64 reqID )
    {
       ossScopedLock lock( &_mgrLatch, EXCLUSIVE ) ;
@@ -1384,7 +1386,7 @@ namespace engine
                PD_LOG_MSG( PDERROR, "Unknow task sub type with name[%s], "
                            "rc = %d", pBusinessType, rc ) ;
                goto error ;
-            }   
+            }
          }
          else
          {
@@ -1410,7 +1412,7 @@ namespace engine
                PD_LOG_MSG( PDERROR, "Unknow task sub type with name[%s], "
                            "rc = %d", pBusinessType, rc ) ;
                goto error ;
-            } 
+            }
          }
       }
       else
@@ -1418,7 +1420,7 @@ namespace engine
          *type = taskType ;
          goto done ;
       }
-      
+
    done:
       return rc ;
    error:
