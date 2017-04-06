@@ -2437,7 +2437,7 @@ namespace engine
             /// release the page
             totalSize += page.size() ;
             _pMgr->release( page ) ;
-            it = pPages->erase( it ) ;
+            pPages->erase( it++ ) ;
             /// update the meta
             _totalPage.dec() ;
          }

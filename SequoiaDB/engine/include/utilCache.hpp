@@ -410,7 +410,7 @@ namespace engine
    class _utilCacheBucket : public SDBObject
    {
       public:
-         typedef _utilMap< INT32, utilCachePage >        MAP_BLK_PAGE ;
+         typedef std::map< INT32, utilCachePage >        MAP_BLK_PAGE ;
 
          _utilCacheBucket( UINT32 blkID ) ;
          ~_utilCacheBucket() ;

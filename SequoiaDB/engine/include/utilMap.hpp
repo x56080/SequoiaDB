@@ -974,6 +974,7 @@ namespace engine
             for ( UINT32 i = 0 ; i < _eleSize ; ++i )
             {
                (*_pMap)[ _staticBuf[ i ].first ] = _staticBuf[ i ].second ;
+               _staticBuf[ i ].second = T() ;
             }
             _eleSize = 0 ;
          }
