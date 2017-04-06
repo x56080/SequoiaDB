@@ -231,7 +231,7 @@
                        failonerror="true"/>
             
             <antcall target="backUpClusterInfo"/>
-            
+            <antcall target="backup_sdbcm_log"/>
 				<for list="${machineList}" param="hostname">
 					<sequential>
 						<sdbCopyAndTar fileHostName="@{hostname}" saveHostName="${host.NAME}" diaglogPath="${install.path}/sequoiadb/database" savePath="${test.log.path}" />
@@ -269,5 +269,20 @@
                  failonerror="true"/>
    </target>
 
-   
+   <target name="backup_sdbcm_log">
+      <property file="${ci.properties.path}" />
+      <property file="${test.machine.deploy.path}/deploy/ci.test.properties"/>
+      <var name="exec_cmd_collect_core" 
+           value="ant -f ${test.machine.deploy.path}/deploy/exec_env_detect.xml backup_remote_sdbcm_log -Dtest.log.path=${test.log.path} -Dci.properties.path=${test.machine.software.path}/ci.test.properties -DantTask.jar.path=${test.machine.deploy.path}/deploy/ant-sdbtasks"/>
+     
+      <for list="${branch_machine}" param="testhost">
+         <sequential>
+            <stafTools workType="shell" 
+                       workHost="@{testhost}" 
+                       workDir="${test.machine.deploy.path}/deploy"
+                       common="${exec_cmd_collect_core}" 
+                       failonerror="true"/>  
+         </sequential>
+      </for>
+   </target>
 </project>
