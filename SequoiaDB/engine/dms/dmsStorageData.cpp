@@ -3581,7 +3581,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _findFreeSpace( pageNum, dictExtID, NULL ) ;
+      rc = _findFreeSpace( pageNum, dictExtID, context ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to allocate space for dictionary "
                    "extent" ) ;
       dictExtent = ( dmsDictExtent *)extentAddr( dictExtID ) ;
