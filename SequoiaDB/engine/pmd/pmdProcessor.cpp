@@ -148,6 +148,10 @@ namespace engine
             case MSG_BS_LOB_REMOVE_REQ:
                rc = _onRemoveLobMsg( msg, getDPSCB() ) ;
                break ;
+            case MSG_AUTH_CRTUSR_REQ:
+            case MSG_AUTH_DELUSR_REQ:
+               rc = SDB_RTN_COORD_ONLY ;
+               break ;
             default :
                PD_LOG( PDWARNING, "Session[%s] recv unknow msg[type:[%d]%d, "
                        "len: %d, tid: %d, routeID: %d.%d.%d, reqID: %lld]",
