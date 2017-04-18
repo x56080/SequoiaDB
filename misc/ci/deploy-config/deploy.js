@@ -106,6 +106,7 @@ function deployClster( mode )
    var config = { diaglevel:5,
                   sharingbreak:30000,
                   diagnum:30,
+                  optimeout:300000,
                   fap:fapValue
                 };
    db.createCataRG( controlHost, cataPort, 
@@ -142,6 +143,7 @@ function deployClster( mode )
    {
       var config = {  diaglevel:5,                      
                       diagnum:30,
+                      optimeout:300000,
                       fap:fapValue 
                    };
       coordRG.createNode( hostList[i], coordPort, 
@@ -163,6 +165,7 @@ function deployClster( mode )
          var config = { diaglevel:5,
                         sharingbreak:30000,
                         diagnum:30,
+                        optimeout:300000,
                         fap:fapValue
                       };
          dataRG.createNode( hostList[i], dataPort, 
