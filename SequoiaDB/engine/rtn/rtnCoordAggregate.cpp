@@ -101,7 +101,7 @@ namespace engine
       }
       catch ( std::exception &e )
       {
-         PD_RC_CHECK( rc, PDERROR,
+         PD_RC_CHECK( SDB_SYS, PDERROR,
                       "Failed to execute aggregate, received unexpecte error:%s",
                       e.what() );
       }
