@@ -65,7 +65,7 @@ def clean( username, password ):
    try:      
       db.remove_user( username, password )
    except SDBBaseError, e:
-      if ( -159 != e.code and -300 != e.code ): #standalone throw -6  
+      if ( -159 != e.code and -300 != e.code ): #standalone throw -159  
          pysequoiadb._print(e.detail)          
          raise e 
          
