@@ -28,7 +28,7 @@
 * 所属域必须已经存在，且不能为 SYSDOMAIN。
 * 为兼容较早版本接口，db.createCS(&lt;name&gt;,[ PageSize ]) 同样可以工作。
 * LobPageSize只能选填0，4096，8192，16384，32768，65536，131072，262144，524288之一，0即为默认值262144。
-* IndexEngineType可选填mmap，rocksdb。
+* IndexEngineType可选填mmap。
 
 ##示例##
 
@@ -40,8 +40,4 @@
 * 创建名为 foo 的集合空间，指定数据页大小为4096B，所属域为“mydomain”
 <pre class="prettyprint lang-javascript">
 > db.createCS("foo",{PageSize:4096,Domain:"mydomain"})</pre>
-
-* 创建名为 foo 的集合空间，指定其索引存储引擎使用RocksDB
-<pre class="prettyprint lang-javascript">
-> db.createCS("foo",{IndexEngineType:"rocksdb"})</pre>
 
