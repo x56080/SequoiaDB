@@ -532,6 +532,8 @@ namespace engine
                      }
 
                      rc = SDB_OK ;
+                     PD_LOG( PDEVENT, "Load collectionspace[%s] succeed",
+                             pCSName ) ;
                      goto done ;
                   } // if ( rtnVerifyCollectionSpaceFileName
                } //  if ( fs::is_regular_file(dir_iter->status()))
@@ -773,7 +775,7 @@ namespace engine
                                                FALSE ) ;
       if ( SDB_OK == rc )
       {
-         PD_LOG( PDEVENT, "Unload collectionspace %s succeed.",
+         PD_LOG( PDEVENT, "Unload collectionspace %s succeed",
                  pCollectionSpace ) ;
       }
       return rc ;
