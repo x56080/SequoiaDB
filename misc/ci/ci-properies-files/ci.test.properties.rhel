@@ -26,8 +26,8 @@ all.spare.port.stop=29000
 jenkins_master=ci-test-suse1
 trunk_machine=ci-test-suse1
 trunk_machine_control=ci-test-suse1
-branch_machine=rh-ci007,rh-ci006,rh-ci005
-branch_machine_control=rh-ci007
+branch_machine=ci-test-suse1,ci-test-suse1,ci-test-suse1
+branch_machine_control=ci-test-suse1
 
 testcase.path=/tmp/sequoiadb_test/deploy/hlt
 deploy.tar.file.name=deploy.tar.gz
