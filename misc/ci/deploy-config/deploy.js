@@ -106,14 +106,14 @@ function deployClster( mode )
    var config = { diaglevel:5,
                   sharingbreak:30000,
                   diagnum:30,
-                  optimeout:300000,
-                  fap:fapValue
+                  fap:fapValue,
+                  optimeout:300000
                 };
    db.createCataRG( controlHost, cataPort, 
                     databaseDir+"/cata/"+cataPort,
                     config  ); 
-                                     
-   for(var i = 0; i < 600; i++ )  //wait for cata group to select primary node 
+                    
+   for(var i = 0; i < 600; i++ )   
    {  
       try
       {
@@ -135,6 +135,7 @@ function deployClster( mode )
                                   config );
    node1.start();
    node2.start();
+   checkeCataPrimary( db, "SYSCatalogGroup" );
    
    //3 create coord group
    println("-----begin to create coord group");
@@ -160,7 +161,11 @@ function deployClster( mode )
       println( "-----begin to create data group: " + datargName );
       
       var dataRG = db.createRG( datargName );
-      for( var i in hostList )
+      
+      // random array
+      var tmpHostList = hostList.sort(function(){return 0.5-Math.random()});
+      
+      for( var i in tmpHostList )
       {
          var config = { diaglevel:5,
                         sharingbreak:30000,
@@ -168,15 +173,71 @@ function deployClster( mode )
                         optimeout:300000,
                         fap:fapValue
                       };
-         dataRG.createNode( hostList[i], dataPort, 
+         dataRG.createNode( tmpHostList[i], dataPort, 
                             databaseDir+"/data/"+dataPort,
                             config );
       }
       dataRG.start();
+      
+      checkeDataPrimary( db, datargName );
    } 
    
    println("-----begin to remove temp coord");
    oma.removeCoord(18800); 
    
    println("------succed to deploy");
+}
+
+function checkeCataPrimary( db, rgname )
+{
+   var hasPrimary = false;                                 
+   for(var i = 0; i < 5*600; i++ )  //wait for cata group to select primary node 
+   {  
+      try
+      {
+         sleep(100); 
+         var cataRG = db.getRG("SYSCatalogGroup"); 
+         hasPrimary = true;
+         break;       
+      } 
+      catch(e)
+      {
+         if( e !== -71 ) 
+         {
+            println("excute: db.getRG('SYSCatalogGroup')");
+            throw e;
+         }            
+      }   
+   }
+   if( hasPrimary === false )
+   {
+      throw "fail to select primary node after 5 minute";
+   }    
+}
+
+function checkeDataPrimary( db, rgname )
+{
+   var hasPrimary = false;
+   for(var i = 0; i < 5*600; i++ )  //wait for data group to select primary node 
+   {  
+      try
+      {
+         sleep(100); 
+         db.getRG(rgname).getMaster(); 
+         hasPrimary = true;
+         break;       
+      } 
+      catch(e)
+      {
+         if( e !== -155 ) 
+         {
+            println("excute: db.getRG(" + rgname + ").getMaster()");
+            throw e;  
+         }          
+      }   
+   }
+   if( hasPrimary === false )
+   {
+      throw "fail to select primary node after 5 minute";
+   }
 }
