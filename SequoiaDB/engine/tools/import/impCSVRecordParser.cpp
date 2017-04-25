@@ -2240,8 +2240,9 @@ namespace import
    static const INT32 CSV_UTF8_FULL_WIDTH_SPACE_LEN =
       (INT32)(sizeof(CSV_UTF8_FULL_WIDTH_SPACE) / sizeof(CSV_UTF8_FULL_WIDTH_SPACE[0]) - 1) ;
 
-   static inline void _trimLeft(CHAR*& str, INT32& length)
+   static inline INT32 _trimLeft(CHAR*& str, INT32& length, BOOLEAN escaped)
    {
+      INT32 rc = SDB_OK;
       CHAR* head = str;
       INT32 len = length;
 
@@ -2267,11 +2268,39 @@ namespace import
          }
       }
 
-      str = head;
-      length = len;
+      if (str != head)
+      {
+         if (escaped)
+         {
+            // we can not move escaped str pointer,
+            // otherwise it will cause panic when free the memory
+            CHAR* trimedStr = (CHAR*)SDB_OSS_MALLOC(len + 1);
+            if (NULL == trimedStr)
+            {
+               rc = SDB_OOM;
+               goto error;
+            }
+
+            memcpy(trimedStr, head, len);
+            trimedStr[len] = '\0';
+
+            SAFE_OSS_FREE(str);
+
+            str = trimedStr;
+            length = len;
+         } else {
+            str = head;
+            length = len;
+         }
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
-   static inline void _trimRight(CHAR*& str, INT32& length)
+   static inline INT32 _trimRight(CHAR*& str, INT32& length)
    {
       CHAR* tail = str + length - 1;
       INT32 len = length;
@@ -2298,15 +2327,19 @@ namespace import
       }
 
       length = len;
+
+      return SDB_OK;
    }
 
-   static inline void _trimString(CSVString& value, STR_TRIM_TYPE trimType)
+   static inline INT32 _trimString(CSVString& value, STR_TRIM_TYPE trimType)
    {
+      INT32 rc = SDB_OK;
+      
       SDB_ASSERT(NULL != value.str, "CSVString.str can't be NULL");
 
       if (0 == value.length)
       {
-         return;
+         goto done;
       }
 
       switch (trimType)
@@ -2314,18 +2347,27 @@ namespace import
       case STR_TRIM_NO:
          break;
       case STR_TRIM_RIGHT:
-         _trimRight(value.str, value.length);
+         rc = _trimRight(value.str, value.length);
          break;
       case STR_TRIM_LEFT:
-         _trimLeft(value.str, value.length);
+         rc = _trimLeft(value.str, value.length, value.escaped);
          break;
       case STR_TRIM_BOTH:
-         _trimRight(value.str, value.length);
-         _trimLeft(value.str, value.length);
+         rc = _trimRight(value.str, value.length);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+         rc = _trimLeft(value.str, value.length, value.escaped);
          break;
       default:
          SDB_ASSERT(FALSE, "invalid trim type");
       }
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    // support INT/LONG/DOUBLE/BOOL/NULL/STRING
@@ -2408,7 +2450,11 @@ namespace import
 
       if (STR_TRIM_NO != _stringTrimType)
       {
-         _trimString(fieldValue.strVal, _stringTrimType);
+         rc = _trimString(fieldValue.strVal, _stringTrimType);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
       }
 
    done:
@@ -3363,7 +3409,11 @@ namespace import
          }
          if (STR_TRIM_NO != _stringTrimType)
          {
-            _trimString(fieldValue.strVal, _stringTrimType);
+            rc = _trimString(fieldValue.strVal, _stringTrimType);
+            if (SDB_OK != rc)
+            {
+               goto error;
+            }
          }
          goto done;
       case CSV_TYPE_AUTO_TIMESTAMP:
@@ -4197,11 +4247,6 @@ namespace import
       INT32 fieldDefNum = _fieldVec.size();
       INT32 fieldCount = 0;
 
-      CSVField* field = NULL;
-      CSVFieldData fieldData;
-      INT32 valueLength = 0;
-      BOOLEAN fieldEnd = FALSE;
-
       SDB_ASSERT(NULL != data, "data can't be NULL");
       SDB_ASSERT(length > 0, "length must be greater than 0");
 
@@ -4226,14 +4271,17 @@ namespace import
 
       while (len > 0 && fieldCount < fieldDefNum)
       {
+         CSVFieldData fieldData;
+         INT32 valueLength = 0;
+         BOOLEAN fieldEnd = FALSE;
+
          _skipSpace(&str, len);
          if (len == 0)
          {
             break;
          }
 
-         field = _fieldVec[fieldCount];
-         fieldData.reset();
+         CSVField* field = _fieldVec[fieldCount];
          fieldData.type = field->type;
          fieldData.subType = field->subType;
 
@@ -4286,8 +4334,8 @@ namespace import
          {
             while (fieldCount < fieldDefNum)
             {
-               field = _fieldVec[fieldCount];
-               fieldData.reset();
+               CSVFieldData fieldData;
+               CSVField* field = _fieldVec[fieldCount];
                fieldData.type = CSV_TYPE_NULL;
 
                rc = _bsonAppendField(obj, *field, fieldData);
@@ -4310,13 +4358,15 @@ namespace import
 
             while (len > 0)
             {
+               CSVFieldData fieldData;
+               INT32 valueLength = 0;
+               BOOLEAN fieldEnd = FALSE;
+
                _skipSpace(&str, len);
                if (len == 0)
                {
                   break;
                }
-
-               fieldData.reset();
 
                rc = _parseFieldValue(str, len,
                                      fieldDel, fieldDelLen,
