@@ -445,6 +445,7 @@
     
       <antcall target="build_bin_package"/>
       <antcall target="build_driver_package"/>
+      <antcall target="build_tar_package"/>
    </target>
 
    <target name="mk-doc">
@@ -564,6 +565,30 @@
          </then>
       </if>
       
+   </target>
+   
+   <target name="build_tar_package">
+      <if>
+         <equals arg1="${TAR_PACKAGE}" arg2="true"/>
+         <then>
+            <if>
+               <equals arg1="${enterprise}" arg2="true" />
+               <then>
+                  <echo message="the verion is enterprise" />
+                  <property name="version.name" value="-${enterprise.name}" />
+                  <echo message="${version.name}" />
+               </then>
+               <else>
+                  <echo message="the version is not enterprise" />
+                  <property name="version.name" value="" />
+                  <echo message="${version.name}" />
+               </else>
+            </if>
+            <tar destfile="${RELEASE_DIR}/sequoiadb-${sequoiadb_version}-${platform}${version.name}-installer.tar.gz" 
+                 longfile="gnu" compression="gzip" 
+                 basedir="${RELEASE_DIR}" includes="sequoiadb-${sequoiadb_version}-${platform}*installer.run"/>
+         </then>
+      </if>
    </target>
    
 </project>
