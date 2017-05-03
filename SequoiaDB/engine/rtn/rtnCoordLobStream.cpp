@@ -570,7 +570,7 @@ namespace engine
                                          _sendMap ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to send msg to node[%d:%hd], rc:%d",
+            PD_LOG( PDERROR, "failed to send msg to node[%d:%d], rc:%d",
                     sub->id.columns.groupID, sub->id.columns.nodeID, rc ) ;
             goto error ;
          }
