@@ -18,14 +18,14 @@
    
    <target name="clean" depends="">
       <property environment="env" />
-      <exec executable="make" dir="${FDW_CODE_DIR}" failonerror="false">
+      <exec executable="make" dir="${FDW_CODE_DIR}" failonerror="false" logError="true" logError="true">
          <env key="PATH" path="${SEQUOIASQL_DIR}/bin:${env.PATH}" />
          <arg line=" clean" />
       </exec>
-      <exec executable="make" dir="${PG_CODE_DIR}" failonerror="false">
+      <exec executable="make" dir="${PG_CODE_DIR}" failonerror="false" logError="true" logError="true">
          <arg line=" uninstall" />
       </exec>
-      <exec executable="make" dir="${PG_CODE_DIR}" failonerror="false">
+      <exec executable="make" dir="${PG_CODE_DIR}" failonerror="false" logError="true" logError="true">
          <arg line=" clean" />
       </exec>
       
@@ -52,7 +52,7 @@
       
       <!--get svn-->
       <echo message="svn info | grep Revision | awk '{print $2}', dir = ${PG_CODE_DIR}" /> 
-      <exec executable="bash" dir="${PG_CODE_DIR}" failonerror="true" outputproperty="pg_svn">
+      <exec executable="bash" dir="${PG_CODE_DIR}" failonerror="true" outputproperty="pg_svn" logError="true">
          <arg value="-c" />
          <arg line="&quot;svn info | grep Revision | awk '{print $2}'&quot;" />
       </exec>     
@@ -62,13 +62,13 @@
       
       <!--compile pg-->
       <chmod file="${PG_CODE_DIR}/configure" perm="u+x" />
-      <exec executable="./configure" dir="${PG_CODE_DIR}" failonerror="true">
+      <exec executable="./configure" dir="${PG_CODE_DIR}" failonerror="true" logError="true">
          <arg line=" --without-readline --without-zlib ${compile.arg.line} --prefix=${SEQUOIASQL_DIR}" />
       </exec>
-      <exec executable="make" dir="${PG_CODE_DIR}" failonerror="true">
+      <exec executable="make" dir="${PG_CODE_DIR}" failonerror="true" logError="true">
          <arg line=" all" />
       </exec>
-      <exec executable="make" dir="${PG_CODE_DIR}" failonerror="true">
+      <exec executable="make" dir="${PG_CODE_DIR}" failonerror="true" logError="true">
          <arg line=" install" />
       </exec>
    </target>
@@ -76,7 +76,7 @@
    <target name="compile_sequoiadb" depends="compile_pg">
       <echo message="Compile the sequoiadb..." />
       <echo message="exec cmd: scons --enterprise --client -j 4" />
-      <exec executable="scons" dir="${SEQUOIADB_CODE_DIR}" failonerror="true">
+      <exec executable="scons" dir="${SEQUOIADB_CODE_DIR}" failonerror="true" logError="true">
          <arg line=" --enterprise --client -j 4" />
       </exec>
    </target>
@@ -99,36 +99,37 @@
       <!--fdw for changed pg-->
       <replace file="${FDW_CODE_DIR}/Makefile" token="DEBUG?=-ggdb" value="DEBUG?=-ggdb -DSDB_USE_OWN_POSTGRES" />
          
-      <exec executable="make" dir="${FDW_CODE_DIR}" failonerror="true">
+      <exec executable="make" dir="${FDW_CODE_DIR}" failonerror="true" logError="true">
          <env key="PATH" path="${SEQUOIASQL_DIR}/bin:${env.PATH}" />
          <arg line=" local" />
       </exec>
-      <exec executable="make" dir="${FDW_CODE_DIR}" failonerror="true">
+      <exec executable="make" dir="${FDW_CODE_DIR}" failonerror="true" logError="true">
          <env key="PATH" path="${SEQUOIASQL_DIR}/bin:${env.PATH}" />
          <arg line=" all" />
       </exec>
       
       <!--get sequoiadb version-->
       <echo message="/usr/bin/gcc  ${SEQUOIADB_CODE_DIR}/misc/ci/exec-tools/print_version.c -o ${SEQUOIADB_CODE_DIR}/misc/ci/exec-tools/print_version -I${SEQUOIADB_CODE_DIR}/SequoiaDB/engine/include" />
-      <exec executable="/usr/bin/gcc" dir="${SEQUOIADB_CODE_DIR}/misc/ci/exec-tools" failonerror="true">
+      <exec executable="/usr/bin/gcc" dir="${SEQUOIADB_CODE_DIR}/misc/ci/exec-tools" failonerror="true" logError="true">
          <arg line="print_version.c -o print_version -I${SEQUOIADB_CODE_DIR}/SequoiaDB/engine/include" />
       </exec>
       <exec executable="./print_version" 
             dir="${SEQUOIADB_CODE_DIR}/misc/ci/exec-tools" 
             failonerror="true" 
-            outputproperty="db_version" />
+            outputproperty="db_version" 
+            logError="true"/>
       <echo message="sequoiadb version = ${db_version}" />
 
       <!--get svn version--> 
       <echo message="svn info | grep Revision | awk '{print $2}', dir = ${FDW_CODE_DIR}" /> 
-      <exec executable="bash" dir="${FDW_CODE_DIR}" failonerror="true" outputproperty="fdw_svn">
+      <exec executable="bash" dir="${FDW_CODE_DIR}" failonerror="true" outputproperty="fdw_svn" logError="true">
          <arg value="-c" />
          <arg line="&quot;svn info | grep Revision | awk '{print $2}'&quot;" />
       </exec>     
       <echo message="fdw svn revision = ${fdw_svn}" />
       
       <!--get edition (judge changed or original) -->
-      <exec executable="bash" dir="${FDW_CODE_DIR}" outputproperty="fdw_output">
+      <exec executable="bash" dir="${FDW_CODE_DIR}" outputproperty="fdw_output" logError="true">
          <arg value="-c" />
          <arg line="&quot;nm sdb_fdw.so | grep sdbuseownpostgres&quot;" />
       </exec>  
@@ -151,11 +152,11 @@
    <target  name="compile_pg_hint" depends="build_pg_connector">
       <echo message="Begin to compile pg_hint in dir ${PG_HINT_DIR}"/>
       <property environment="env" />
-      <exec executable="make" dir="${PG_HINT_DIR}" failonerror="true">
+      <exec executable="make" dir="${PG_HINT_DIR}" failonerror="true" logError="true">
          <env key="PATH" path="${SEQUOIASQL_DIR}/bin:${env.PATH}" />
          <arg line=" clean" />
       </exec>
-      <exec executable="make" dir="${PG_HINT_DIR}" failonerror="true">
+      <exec executable="make" dir="${PG_HINT_DIR}" failonerror="true" logError="true">
          <env key="PATH" path="${SEQUOIASQL_DIR}/bin:${env.PATH}" />
          <arg line=" all" />
       </exec>          
@@ -169,7 +170,7 @@
       <copy file="${FDW_CODE_DIR}/sdb_fdw--1.0.sql" tofile="${SEQUOIASQL_DIR}/share/extension/sdb_fdw--1.0.sql" />
       <copy file="${FDW_CODE_DIR}/sdb_fdw.so"       tofile="${SEQUOIASQL_DIR}/lib/${fdw_name}" />
       <chmod file="${SEQUOIASQL_DIR}/lib/${fdw_name}" perm="a+x" />
-      <exec executable="ln" dir="${SEQUOIASQL_DIR}/lib" failonerror="true">
+      <exec executable="ln" dir="${SEQUOIASQL_DIR}/lib" failonerror="true" logError="true">
          <arg line="-sf ${fdw_name} sdb_fdw.so" />
       </exec> 
       
@@ -181,14 +182,14 @@
       <copy file="${PG_HINT_DIR}/pg_hint_plan--1.1.2--1.1.3.sql" todir="${SEQUOIASQL_DIR}/share/extension" />
       <copy file="${PG_HINT_DIR}/pg_hint_plan.so"       tofile="${SEQUOIASQL_DIR}/lib/pg_hint_plan.so.93.1.1.3" />      
       <chmod file="${SEQUOIASQL_DIR}/lib/pg_hint_plan.so.93.1.1.3" perm="a+x" />
-      <exec executable="ln" dir="${SEQUOIASQL_DIR}/lib" failonerror="true">
+      <exec executable="ln" dir="${SEQUOIASQL_DIR}/lib" failonerror="true" logError="true">
          <arg line="-sf pg_hint_plan.so.93.1.1.3 pg_hint_plan.so" />
       </exec>     
       
       <!--3 make run package-->
-      <exec executable="arch" failonerror="true" outputproperty="platform"/>
+      <exec executable="arch" failonerror="true" outputproperty="platform" logError="true"/>
       
-      <exec executable="bash" dir="${SEQUOIASQL_DIR}" failonerror="true" outputproperty="edition_output">
+      <exec executable="bash" dir="${SEQUOIASQL_DIR}" failonerror="true" outputproperty="edition_output" logError="true">
          <arg value="-c" />
          <arg line="&quot;./bin/postgres --version | grep SequoiaDB&quot;" />
       </exec> 
@@ -214,7 +215,7 @@
       <property name="PACKAGE_NAME" value="${project.name}-${sql_type}-${db_version}-${platform}${edition_str}-installer.run" />      
       <echo message="Begin to copy ${PACKAGE_NAME} to ${archive.dir}"/>
       <copy file="${RELEASE_DIR}/${PACKAGE_NAME}" tofile="${archive.dir}/${PACKAGE_NAME}.${BUILD_NUMBER}" />
-      <exec executable="bash" dir="${archive.dir}" failonerror="true">
+      <exec executable="bash" dir="${archive.dir}" failonerror="true" logError="true">
          <arg value="-c" />
          <arg line="&quot;find *.run* -mtime +7 -exec rm -rf {} \;&quot;" />
       </exec>  

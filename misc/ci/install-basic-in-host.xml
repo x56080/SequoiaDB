@@ -18,7 +18,7 @@
 	</taskdef>
 
 	<target name="clean-install" depends="">
-		<exec executable="${db.path}/uninstall" dir="${db.path}" failonerror="true">
+		<exec executable="${db.path}/uninstall" dir="${db.path}" failonerror="true" logError="true">
 			<arg line=" --mode unattended" />
 		</exec>
 		<delete dir="${db.path}" />
@@ -26,7 +26,7 @@
 
 	<target name="install-software" depends="">
 		<chmod file="${test.basedir}/${install.package.filename}" perm="u+x" />
-		<exec executable="${test.basedir}/${install.package.filename}">
+		<exec executable="${test.basedir}/${install.package.filename}" logError="true">
 			<arg line="--mode unattended --prefix ${db.path} --username ${install.user} --userpasswd ${install.password}" />
 		</exec>		
 	</target>

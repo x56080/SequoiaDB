@@ -31,7 +31,7 @@
 		<echo message="Begin test ant testcases..." />
 		<echo message="Perform the ant testcases,with testcase.path=${ant.testcase.path}" />
 		
-		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;var db = new Sdb('${host.NAME}', '${coord.service.port}');&quot;" />
 		</exec>
 				
@@ -44,7 +44,7 @@
 			<param name="excludes.case.patterns" value="query_and_create_delete_index.xml" />
 		</foreach>
 		
-		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;db.close();&quot;" />
 		</exec>	
 	</target>
@@ -74,7 +74,7 @@
 		</tstamp>
 
 		<basename property="test.case.name" file="${test.case.fullname}" suffix=".xml" />
-		<exec executable="sed">
+		<exec executable="sed" logError="true">
 			<arg line="-i 's/^\xEF\xBB\xBF//g'  ${test.case.fullname}"/>
 		</exec>
 		
@@ -88,7 +88,7 @@
 		</sdbprefix>
 		<echo message="Now testcase ${test.case.name}.xml begin with ${testcase.begin.time}"/>
 
-		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;db.msg('Begin testcase[${test.case.fullname}]');&quot;" />
 		</exec>
 		<trycatch property="e">
@@ -96,7 +96,7 @@
 				<property name="command" value=" -f ${test.case.fullname} test -Dhost.NAME=${host.NAME} -Dcoord.service.port=${coord.service.port} -DCS_PRIX=${CS_PRIX} -Dinstall.path=${install.path} -DantTask.jar.path=${antTask.jar.path}" />
 				<echo message="Command:ant ${command}" />
 				<echo message="The testcase ${test.case.fullname} path on ${testcases.path}" />
-				<exec executable="ant" dir="." timeout="900000" outputproperty="error.msg"  resultproperty="ret.code">
+				<exec executable="ant" dir="." timeout="900000" outputproperty="error.msg"  resultproperty="ret.code" logError="true">
 					<arg line="${command}" />
 				</exec>
 			</try>
@@ -106,7 +106,7 @@
 				<echo message="${error.msg}" />
 			</catch>
 		</trycatch>
-		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;db.msg('End testcase[${test.case.fullname}]');&quot;" />
 		</exec>
 		   

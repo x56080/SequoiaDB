@@ -19,18 +19,18 @@
       <basename property="deploy.name" file="${deploy.case.fullname}" suffix=".xml" />
       <property name="test.suite.class.name" value="testcases-driver-mongoc.${deploy.name}-${host.NAME}-${parallel.num}" />
 
-		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;var db = new Sdb('${host.NAME}', '${coord.service.port}');&quot;" />
 		</exec>
 		
       <echo message="Begin test driver mongoc testcases..." />
       <echo message="Perform the driver mongoc testcases,with testcase.path=${mongoc.testcase.path}" />
       <chmod file="${mongoc.testcase.path}/test-mongo" perm="u+x" />     
-      <exec executable="./test-mongo" dir="${mongoc.testcase.path}" timeout="60000" output="${mongoc.testcase.path}/testcases.txt" resultproperty="ret.code" failonerror="true">
+      <exec executable="./test-mongo" dir="${mongoc.testcase.path}" timeout="60000" output="${mongoc.testcase.path}/testcases.txt" resultproperty="ret.code" failonerror="true" logError="true">
          <arg line=" --help" />
          <env key="LD_LIBRARY_PATH" path="${LD_LIBRARY_PATH}:${mongoc.testcase.libpath}" />
       </exec>
-      <exec executable="grep" timeout="60000" input="${mongoc.testcase.path}/testcases.txt" output="${mongoc.testcase.path}/testcases.txt" resultproperty="ret.code" failonerror="true">
+      <exec executable="grep" timeout="60000" input="${mongoc.testcase.path}/testcases.txt" output="${mongoc.testcase.path}/testcases.txt" resultproperty="ret.code" failonerror="true" logError="true">
          <arg line="'^    '" />
          <env key="LD_LIBRARY_PATH" path="${LD_LIBRARY_PATH}:${mongoc.testcase.libpath}" />
       </exec>
@@ -48,10 +48,10 @@
       <echo message="Env:LD_LIBRARY_PATH=${mongoc.testcase.libpath}" />
       <echo message="The testcases path on ${mongoc.testcase.path}" />
       
-		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;db.msg('Begin testcase[${mongoc.testcase.path}/test-mongo]');&quot;" />
 		</exec>      
-      <exec executable="./test-mongo" dir="${mongoc.testcase.path}" timeout="60000" outputproperty="mongo.screen.output" resultproperty="mongo.ret.code" failonerror="false">
+      <exec executable="./test-mongo" dir="${mongoc.testcase.path}" timeout="60000" outputproperty="mongo.screen.output" resultproperty="mongo.ret.code" failonerror="false" logError="true">
          <!--arg line=" -f -F ${reports.path}/Concurrent.xml" /-->
          <arg line=" -f " /> 
          <env key="LD_LIBRARY_PATH" path="${LD_LIBRARY_PATH}:${mongoc.testcase.libpath}" />
@@ -59,11 +59,11 @@
       </exec>
       <echo message="${mongo.screen.output}" />
       <echo message="The result = ${mongo.ret.code} after exec parallel testcase." />
-		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;db.msg('End testcase[${mongoc.testcase.path}/test-mongo]');&quot;" />
 		</exec>
 		      
-      <exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+      <exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;db.close();&quot;" />
 		</exec>
 		
@@ -86,10 +86,10 @@
       <echo message="Env:LD_LIBRARY_PATH=${mongoc.testcase.libpath}" />
       <echo message="The testcase ${test.case.name} path on ${testcases.path}" />
       
-		<exec executable="${bin_dir}/sdb" dir="" timeout="2000" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="2000" failonerror="false" logError="true">
 			<arg line="-s &quot;db.msg('Begin testcase[${testcases.path}/test-mongo ${test.case.name}]');&quot;" />
 		</exec>      
-      <exec executable="./test-mongo" dir="${testcases.path}" timeout="60000" outputproperty="screen.output" resultproperty="ret.code" failonerror="false">
+      <exec executable="./test-mongo" dir="${testcases.path}" timeout="60000" outputproperty="screen.output" resultproperty="ret.code" failonerror="false" logError="true">
          <arg line=" -f -p -l ${test.case.name} -F ${reports.path}/${test.case.name}.xml" />
          <env key="LD_LIBRARY_PATH" path="${LD_LIBRARY_PATH}:${mongoc.testcase.libpath}" />
          <env key="MONGOC_TEST_HOST" value="${mongoc.test.host}" />
@@ -105,7 +105,7 @@
       </if>
       <echo message="${screen.output}" />
       <echo message="The result = ${ret.code} after exec ${test.case.name} testcase." />
-		<exec executable="${bin_dir}/sdb" dir="" timeout="2000" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="2000" failonerror="false" logError="true">
 			<arg line="-s &quot;db.msg('End test[${testcases.path}/test-mongo ${test.case.name}]');&quot;" />
 		</exec>
    </target> 

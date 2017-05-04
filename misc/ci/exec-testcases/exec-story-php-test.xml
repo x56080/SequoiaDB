@@ -20,7 +20,7 @@
 		<echo message="Begin test story php testcases..." />
 		<echo message="Perform the story php testcases,with testcase.path=${php.testcase.path}" />
 		
-		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;var db = new Sdb('${host.NAME}', '${coord.service.port}');&quot;" />
 		</exec>
 				
@@ -34,7 +34,7 @@
 			<param name="excludes.case.patterns" value="" />
 		</foreach>
 		
-		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;db.close();&quot;" />
 		</exec>			
 	</target>
@@ -50,18 +50,18 @@
 		</tstamp>
 		<echo message="Now testsuit ${test.suite.name} begin with ${testsuit.begin.time} on ${testcases.path}" />
 
-		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;db.msg('Begin testcase[${test.suite.name}]');&quot;" />
 		</exec>
 		
 		<echo message="Now testsuite ${test.suite.name} ..." />		
 		<echo message="exec: ${php-bin.dir}/php-bin ${phpunit.phar.dir} --log-junit ${reports.path}/${test.suite.class.name}.xml ${test.suite.fullname}"/>    
-		<exec executable="${php-bin.dir}/php-bin" dir="${php-bin.dir}" timeout="1200000" outputproperty="screen.output" resultproperty="ret.code" failonerror="false" >
+		<exec executable="${php-bin.dir}/php-bin" dir="${php-bin.dir}" timeout="1200000" outputproperty="screen.output" resultproperty="ret.code" failonerror="false" logError="true">
 			<arg line="${phpunit.phar.dir} --log-junit ${reports.path}/${test.suite.class.name}.xml ${test.suite.fullname}"/>
 		</exec>
 		<echo message="${screen.output}" />	
 		
-		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;db.msg('End testcase[${test.suite.name}]');&quot;" />
 		</exec>	
 		

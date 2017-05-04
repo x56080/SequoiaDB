@@ -60,7 +60,7 @@
 		<property name="sdb.cmd.argument" value=" '${test.case.dir}/${test.case.name}.md' -o '${test.case.dir}/${test.case.name}.html'" />
 		<property name="command" value="pandoc${sdb.cmd.argument}" />
 		<echo message="Command:${command}" />
-		<exec executable="pandoc" dir="" timeout="60000" outputproperty="screen.output" resultproperty="ret.code" failonerror="false">
+		<exec executable="pandoc" dir="" timeout="60000" outputproperty="screen.output" resultproperty="ret.code" failonerror="false" logError="true">
 			<arg line="${sdb.cmd.argument}" />
 		</exec>
 		<echo message="${screen.output}" />
@@ -77,7 +77,7 @@
 		<basename property="change.case.name" file="${change.case.fullname}" suffix=".html" />
 		<dirname property="change.case.dir" file="${change.case.fullname}" />
 
-        <exec executable="mv" dir="" timeout="60000" outputproperty="screen.output.conv" resultproperty="ret.code.conv" failonerror="false">
+        <exec executable="mv" dir="" timeout="60000" outputproperty="screen.output.conv" resultproperty="ret.code.conv" failonerror="false" logError="true">
             <arg line=" '${change.case.fullname}' '${change.case.dir}/${change.case.name}_en.html'" />
         </exec>
         <echo message="${screen.output.conv}" />
@@ -165,7 +165,7 @@
 		<property name="sdb.cmd.argument" value="  -f html -t docbook -s '${build.case.dir}/${build.case.name}.html' -o '${build.case.dir}/${build.case.name}.xml'" />
 		<property name="command" value="pandoc${sdb.cmd.argument}" />
 		<echo message="Command:${command}" />
-		<exec executable="pandoc" dir="" timeout="60000" outputproperty="screen.output" resultproperty="ret.code" failonerror="false">
+		<exec executable="pandoc" dir="" timeout="60000" outputproperty="screen.output" resultproperty="ret.code" failonerror="false" logError="true">
 			<arg line="${sdb.cmd.argument}" />
 		</exec>
 		<echo message="${screen.output}" />
@@ -182,7 +182,7 @@
 		<basename property="conv.case.name" file="${conv.case.fullname}" suffix=".xml" />
 		<dirname property="conv.case.dir" file="${conv.case.fullname}" />
 
-        <exec executable="mv" dir="" timeout="60000" outputproperty="screen.output.conv" resultproperty="ret.code.conv" failonerror="false">
+        <exec executable="mv" dir="" timeout="60000" outputproperty="screen.output.conv" resultproperty="ret.code.conv" failonerror="false" logError="true">
             <arg line=" '${conv.case.fullname}' '${conv.case.dir}/${conv.case.name}_en.xml'" />
         </exec>
         <echo message="${screen.output.conv}" />

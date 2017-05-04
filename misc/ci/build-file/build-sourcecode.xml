@@ -61,24 +61,24 @@
       </if>
 
       <echo message="exec scons ${compile.arg.line}${enterprise.line} --all -j 4" />
-      <exec executable="scons" dir="${WORKSPACE}/sequoiadb" failonerror="true">
+      <exec executable="scons" dir="${WORKSPACE}/sequoiadb" failonerror="true" logError="true">
          <arg line="${compile.arg.line}${enterprise.line} --all -j 4" />
       </exec>
          
       <echo message="Compile the connector of postgresql..." />
-      <exec executable="make" dir="${CODE_DIR}/driver/postgresql" failonerror="true">
+      <exec executable="make" dir="${CODE_DIR}/driver/postgresql" failonerror="true" logError="true">
          <arg line=" clean" />
       </exec>
-      <exec executable="make" dir="${CODE_DIR}/driver/postgresql" failonerror="true">
+      <exec executable="make" dir="${CODE_DIR}/driver/postgresql" failonerror="true" logError="true">
          <arg line=" local" />
       </exec>
-      <exec executable="make" dir="${CODE_DIR}/driver/postgresql" failonerror="true">
+      <exec executable="make" dir="${CODE_DIR}/driver/postgresql" failonerror="true" logError="true">
          <arg line=" all" />
       </exec>
       
       <echo message="Build java driver..." />
       <echo message="exec scons ${compile.arg.line}" />
-      <exec executable="scons" dir="${WORKSPACE}/sequoiadb/driver/java" failonerror="true">
+      <exec executable="scons" dir="${WORKSPACE}/sequoiadb/driver/java" failonerror="true" logError="true">
          <arg line="${compile.arg.line}" />
       </exec>
       
@@ -108,16 +108,16 @@
 
       <chmod file="${WORKSPACE}/sequoiadb/thirdparty/php/retriConfig.sh" perm="a+x" />
       <echo message="/usr/bin/gcc  ${CODE_DIR}/misc/ci/exec-tools/print_version.c -o ${CODE_DIR}/misc/ci/exec-tools/print_version -I${CODE_DIR}/SequoiaDB/engine/include" />
-      <exec executable="/usr/bin/gcc" dir="${CODE_DIR}/misc/ci/exec-tools" failonerror="true">
+      <exec executable="/usr/bin/gcc" dir="${CODE_DIR}/misc/ci/exec-tools" failonerror="true" logError="true">
          <arg line="${CODE_DIR}/misc/ci/exec-tools/print_version.c -o ${CODE_DIR}/misc/ci/exec-tools/print_version -I${CODE_DIR}/SequoiaDB/engine/include" />
       </exec>
-      <exec executable="./print_version" dir="${CODE_DIR}/misc/ci/exec-tools" failonerror="true" outputproperty="projects.version" />
+      <exec executable="./print_version" dir="${CODE_DIR}/misc/ci/exec-tools" failonerror="true" outputproperty="projects.version" logError="true" />
       <echo message="&#10;projects.version=${projects.version}" file="${CODE_DIR}/misc/ci/ci.build.properties" append="true" />
       <echo message="projects.version=${projects.version}" />
       <echo message="compile source code completed." />
       
       <chmod perm="u+x" file="${CODE_DIR}/bin/sequoiadb" />
-      <exec executable="bin/sequoiadb" dir="${CODE_DIR}" outputproperty="version_output" failonerror="true">
+      <exec executable="bin/sequoiadb" dir="${CODE_DIR}" outputproperty="version_output" failonerror="true" logError="true">
          <arg line="--version" />
       </exec>
       <echo file="${RELEASE_DIR}/sequoiadb.version" message="${version_output}"/>
@@ -166,14 +166,14 @@
 
       <!--get svn version--> 
       <echo message="svn info | grep Revision | awk '{print $2}', dir = ${CODE_DIR}/driver/postgresql" /> 
-      <exec executable="bash" dir="${CODE_DIR}/driver/postgresql" failonerror="true" outputproperty="fdw_svn">
+      <exec executable="bash" dir="${CODE_DIR}/driver/postgresql" failonerror="true" outputproperty="fdw_svn" logError="true">
          <arg value="-c" />
          <arg line="&quot;svn info | grep Revision | awk '{print $2}'&quot;" />
       </exec>     
       <echo message="fdw svn revision = ${fdw_svn}" />
       
       <!--get edition (judge changed or original) -->
-      <exec executable="bash" dir="${CODE_DIR}/driver/postgresql" outputproperty="fdw_output">
+      <exec executable="bash" dir="${CODE_DIR}/driver/postgresql" outputproperty="fdw_output" logError="true">
          <arg value="-c" />
          <arg line="&quot;nm sdb_fdw.so | grep sdbuseownpostgres&quot;" />
       </exec>  
@@ -212,7 +212,7 @@
          <param name="DRIVER.DIR" value="${DRIVER.DIR}" />
       </antcall>
 
-      <exec executable="tar" dir="${RELEASE_DIR}" failonerror="true">
+      <exec executable="tar" dir="${RELEASE_DIR}" failonerror="true" logError="true">
          <arg line="zcvf ${project.name}-driver-${projects.version}-${os.and.platform}.tar.gz driver" />
       </exec>
       <echo message="Make driver package completed." />
@@ -223,10 +223,10 @@
       <mkdir dir="${RELEASE_DIR}/sequoiadb/lib/phplib" />
 
       <chmod perm="u+x" file="${WORKSPACE}/sequoiadb/thirdparty/php/linux/retriConfig.sh" />
-      <exec executable="${WORKSPACE}/sequoiadb/thirdparty/php/linux/retriConfig.sh" dir="${WORKSPACE}/sequoiadb/thirdparty/php/linux" failonerror="true">
+      <exec executable="${WORKSPACE}/sequoiadb/thirdparty/php/linux/retriConfig.sh" dir="${WORKSPACE}/sequoiadb/thirdparty/php/linux" failonerror="true" logError="true">
          <arg line="  ${php.version} " />
       </exec>
-      <exec executable="scons" dir="${WORKSPACE}/sequoiadb/driver/php5" failonerror="true">
+      <exec executable="scons" dir="${WORKSPACE}/sequoiadb/driver/php5" failonerror="true" logError="true">
          <arg line=" ${compile.arg.line} --phpversion=${php.version}" />
       </exec>
 
@@ -236,10 +236,10 @@
 
    <target name="build-and-copy-python" depends="">
       <property name="python.tar" value="pysequoiadb.tar.gz" />
-      <exec executable="scons" dir="${python.dir}">
+      <exec executable="scons" dir="${python.dir}" logError="true">
          <arg line=" " />
       </exec>
-      <exec executable="/bin/chmod" dir="${python.dir}">
+      <exec executable="/bin/chmod" dir="${python.dir}" logError="true">
          <arg line=" u+x ${python.tar}" />
       </exec>
       <copy file="${python.dir}/${python.tar}" todir="${DRIVER.DIR}/python" />

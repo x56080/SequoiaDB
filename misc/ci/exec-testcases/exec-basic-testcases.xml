@@ -36,7 +36,7 @@
 			<format property="test_js_begintime" pattern="yyyy-MM-dd-hh.mm.ss a" />
 		</tstamp>
 		
-		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;var db = new Sdb('${host.NAME}', '${coord.service.port}');&quot;" />
 		</exec>
 
@@ -51,7 +51,7 @@
 
 		<property name="sdb.cmd.allPrepare" value=" -e &quot;var CHANGEDPREFIX='${CHANGEDSTRING}'; var COORDSVCNAME=${coord.service.port};&quot; -f &quot;${basic.testcase.path}/libs/func.js,${basic.testcase.path}/libs/all_prepare.js&quot;" />
 		<echo message="Exec:sdb ${sdb.cmd.allPrepare}" />
-		<exec executable="${bin_dir}/sdb" dir="" timeout="100000" outputproperty="allPrepare.screen.output"  resultproperty="allPrepare.ret.code">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="100000" outputproperty="allPrepare.screen.output"  resultproperty="allPrepare.ret.code" logError="true">
 			<arg line="${sdb.cmd.allPrepare}" />
 		</exec>
 		<echo message="${allPrepare.screen.output}" />
@@ -69,12 +69,12 @@
 
 		<property name="sdb.cmd.allClean" value=" -e &quot;var CHANGEDPREFIX='${CHANGEDSTRING}'; var COORDSVCNAME=${coord.service.port};&quot; -f &quot;${basic.testcase.path}/libs/func.js,${basic.testcase.path}/libs/all_clean.js&quot;" />
 		<echo message="Exec:sdb ${sdb.cmd.allClean}" />
-		<exec executable="${bin_dir}/sdb" dir="" timeout="100000" outputproperty="allClean.screen.output" resultproperty="allClean.ret.code">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="100000" outputproperty="allClean.screen.output" resultproperty="allClean.ret.code" logError="true">
 			<arg line="${sdb.cmd.allClean}" />
 		</exec>
 		<echo message="${allClean.screen.output}" />
 		
-		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;db.close();&quot;" />
 		</exec>		
 
@@ -164,7 +164,7 @@
 
 	<target name="test-one-case" depends="">
 	    <echo message="********************************************"/>
-		<exec executable="${bin_dir}/sdb" timeout="100000" dir="" outputproperty="SDB.VERSION.INFO" resultproperty="ret.sdb.version.exec">
+		<exec executable="${bin_dir}/sdb" timeout="100000" dir="" outputproperty="SDB.VERSION.INFO" resultproperty="ret.sdb.version.exec" logError="true">
 			<arg line=" --version" />
 		</exec>
 		<if>
@@ -184,41 +184,41 @@
 		<basename property="test.case.name" file="${test.case.fullname}" suffix=".js" />
 		<dirname property="testcase.dirname" file="${test.case.fullname}" />
 		
-		<exec executable="sed">
+		<exec executable="sed" logError="true">
 			<arg line="-i 's/^\xEF\xBB\xBF//g'  ${test.case.fullname}"/>
 		</exec>
-		<exec executable="sed">
+		<exec executable="sed" logError="true">
 			<arg line="-i 's/^\xEF\xBB\xBF//g'  ${testcases.path}/libs/func.js"/>
 		</exec>
 		<echo message="Now testcase ${test.case.name}.js begin with ${testcase.begin.time}"/>
 
 		<property name="sdb.cmd.beforeTestcase" value=" -e &quot;var CHANGEDPREFIX='${CHANGEDSTRING}'; var COORDSVCNAME='${coord.service.port}' ;&quot; -f &quot;${testcases.path}/libs/func.js,${testcases.path}/libs/before_usecase.js&quot;" />
 		<echo message="Exec:sdb${sdb.cmd.beforeTestcase}" />
-		<exec executable="${bin_dir}/sdb" dir="" timeout="900000" outputproperty="beforeTestcase.screen.output" resultproperty="beforeTestcase.ret.code">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="900000" outputproperty="beforeTestcase.screen.output" resultproperty="beforeTestcase.ret.code" logError="true">
 			<arg line="${sdb.cmd.beforeTestcase}" />
 		</exec>
 		<echo message="${beforeTestcase.screen.output}" />
 
-      <exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+      <exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;db.msg('Begin testcase[${test.case.fullname}]');&quot;" />
 		</exec>
 		
 		<echo message="--------------------begin testcase----------------------------"/>
 		<property name="sdb.cmd.argument" value=" -e &quot;var CHANGEDPREFIX='${CHANGEDSTRING}';var COORDSVCNAME='${coord.service.port}';var TESTCASEDIR='${testcase.dirname}';&quot; -f &quot;${testcases.path}/libs/func.js,${commlib.option},${test.case.fullname}&quot;" />
 		<echo message="Exec: ${bin_dir}/sdb${sdb.cmd.argument}" />				
-		<exec executable="${bin_dir}/sdb" dir="" timeout="3600000" outputproperty="screen.output" resultproperty="ret.code" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="3600000" outputproperty="screen.output" resultproperty="ret.code" failonerror="false" logError="true">
 			<arg line="${sdb.cmd.argument}" />
 		</exec>		
 		<echo message="${screen.output}" />
 		<echo message="--------------------end testcase----------------------------"/>
 		
-		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;db.msg('End testcase[${test.case.fullname}]');&quot;" />
 		</exec>
 
 		<property name="sdb.cmd.afterTestcase" value=" -e &quot;var CHANGEDPREFIX='${CHANGEDSTRING}'; var COORDSVCNAME='${coord.service.port}' ;&quot; -f &quot;${testcases.path}/libs/func.js,${testcases.path}/libs/after_usecase.js&quot;" />
 		<echo message="Exec:sdb ${sdb.cmd.afterTestcase}" />
-		<exec executable="${bin_dir}/sdb" dir="" timeout="900000" outputproperty="afterTestcase.screen.output" resultproperty="afterTestcase.ret.code">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="900000" outputproperty="afterTestcase.screen.output" resultproperty="afterTestcase.ret.code" logError="true">
 			<arg line="${sdb.cmd.afterTestcase}" />
 		</exec>
 		<echo message="${afterTestcase.screen.output}" />

@@ -194,7 +194,7 @@
 			<fileset dir="${driver_dir}/C&amp;CPP/include" includes="**/*" />
 		</copy>
 		<echo level="info" message="Step3 : Compile the C driver dynamic testcases,command: &lt;scons ${testcases_dir}/C lib_path=${driver_dir}/lib include_path=${driver_dir}/include&gt;." />
-		<exec executable="scons" dir="${testcases_dir}/C" failonerror="true">
+		<exec executable="scons" dir="${testcases_dir}/C" failonerror="true" logError="true">
          <arg line=" --dd " />
 		</exec>
 		<!--echo level="info" message="Step4 : Compile the C driver static testcases,command: &lt;scons ${testcases_dir}/C/staticlib ==dd lib_path=${driver_dir}/lib include_path=${driver_dir}/include&gt;." />
@@ -223,7 +223,7 @@
 			<format property="cpp_testcases_begintime" pattern="yyyy-MM-dd-hh.mm.ss a" />
 		</tstamp>
 		<echo level="info" message="Step1 : Compile the CPP driver dynamic testcases,command: &lt;scons ${testcases_dir}/CPP lib_path=${driver_dir}/lib include_path=${driver_dir}/include&gt;." />
-		<exec executable="scons" dir="${testcases_dir}/CPP" failonerror="true">
+		<exec executable="scons" dir="${testcases_dir}/CPP" failonerror="true" logError="true">
          <arg line=" --dd " />
 		</exec>
 		<!--echo level="info" message="Step2 : Compile the CPP driver static testcases,command: &lt;scons ${testcases_dir}/CPP/staticlib ==dd lib_path=${driver_dir}/lib include_path=${driver_dir}/include&gt;." />
@@ -252,7 +252,7 @@
 			<format property="lob_testcases_begintime" pattern="yyyy-MM-dd-hh.mm.ss a" />
 		</tstamp>
 		<echo level="info" message="Step1 : Compile the Lob testcases,command: &lt;scons ${lob_testcases_dir} lib_path=${driver_dir}/lib include_path=${driver_dir}/include&gt;." />
-		<exec executable="scons" dir="${lob_testcases_dir}" failonerror="true">
+		<exec executable="scons" dir="${lob_testcases_dir}" failonerror="true" logError="true">
          <arg line=" --dd " />
 		</exec>
 		<echo level="info" message="Step2 : Copy the Lob testcases from &lt;${lob_testcases_dir}/build_test&gt; to &lt;${deploy_dir}/hlt/lob_testcases/build&gt;." />
@@ -276,7 +276,7 @@
 			<equals arg1="${os.arch}" arg2="amd64" />
 			<then>
 				<echo level="info" message="Step1 : Compile the mongoc testcases,command: &lt;scons ${testcases_dir}/mongoc&gt;." />
-				<exec executable="scons" dir="${testcases_dir}/mongoc" failonerror="false" />
+				<exec executable="scons" dir="${testcases_dir}/mongoc" failonerror="false" logError="true" />
 				<echo level="info" message="Step2 : Copy the mongoc testcases from &lt;${testcases_dir}/mongoc/build_test&gt; to &lt;${deploy_dir}/hlt/drivers_testcases/mongoc/build&gt;." />
 				<copy todir="${deploy_dir}/hlt/drivers_testcases/mongoc/build">
 					<fileset dir="${testcases_dir}/mongoc/build_test" includes="*" />
@@ -320,7 +320,7 @@
 		</tstamp>
 		
 		<echo level="info" message="Step1 : Compile the C driver testcases,command: &lt;scons ${testcases_dir}/../../testcases/hlt/drivers_testcases/c lib_path=${driver_dir}/lib include_path=${driver_dir}/include&gt;." />
-		<exec executable="scons" dir="${testcases_dir}/../../testcases/hlt/drivers_testcases/c" failonerror="true">
+		<exec executable="scons" dir="${testcases_dir}/../../testcases/hlt/drivers_testcases/c" failonerror="true" logError="true">
          <arg line=" --dd " />
 		</exec>
 
@@ -344,7 +344,7 @@
 		</tstamp>
 		
 		<echo level="info" message="Step1 : Compile the CPP driver testcases,command: &lt;scons ${testcases_dir}/../../testcases/hlt/drivers_testcases/cpp lib_path=${driver_dir}/lib include_path=${driver_dir}/include&gt;." />
-		<exec executable="scons" dir="${testcases_dir}/../../testcases/hlt/drivers_testcases/cpp" failonerror="true">
+		<exec executable="scons" dir="${testcases_dir}/../../testcases/hlt/drivers_testcases/cpp" failonerror="true" logError="true">
          <arg line=" --dd " />
 		</exec>
 

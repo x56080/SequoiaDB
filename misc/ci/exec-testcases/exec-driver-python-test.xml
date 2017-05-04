@@ -28,10 +28,10 @@
 		<property name="python.tar" value="pysequoiadb.tar.gz" />
 
 		<echo message="Begin to init python driver..." />
-		<exec executable="/bin/tar" dir="${install.path}/sequoiadb/python">
+		<exec executable="/bin/tar" dir="${install.path}/sequoiadb/python" logError="true">
 			<arg line=" -zxvf ${python.tar}" />
 		</exec>
-		<exec executable="python2.6" dir="${install.path}/sequoiadb/python">
+		<exec executable="python2.6" dir="${install.path}/sequoiadb/python" logError="true">
 			<arg line=" setup.py install" />
 		</exec>
 	</target>
@@ -41,7 +41,7 @@
 		<echo message="Begin test driver python testcases..." />
 		<echo message="Perform the driver python testcases,with testcase.path=${python.testcase.path}" />
 		
-		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;var db = new Sdb('${host.NAME}', '${coord.service.port}');&quot;" />
 		</exec>
 				
@@ -55,7 +55,7 @@
 			<param name="excludes.case.patterns" value="" />
 		</foreach>
 		
-		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;db.close();&quot;" />
 		</exec>	
 	</target>
@@ -91,7 +91,7 @@
 		<echo message="#########################################################" />
 
 		<basename property="test.case.name" file="${test.case.fullname}" suffix=".py" />
-		<exec executable="sed">
+		<exec executable="sed" logError="true">
 			<arg line="-i 's/^\xEF\xBB\xBF//g'  ${test.case.fullname}"/>
 		</exec>
 		<echo message="Now testcase ${test.case.name}.py begin with ${testcase.begin.time}"/>
@@ -99,18 +99,18 @@
 		<if>
 			<equals arg1="${test-type}" arg2="driver-python" />
 			<then>
-      		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+      		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
       			<arg line="-s &quot;db.msg('Begin testcase[${test.case.fullname}]');&quot;" />
       		</exec>			   
 				<property name="command" value="python ${test.case.fullname} -H ${test.host.NAME} -p ${coord.service.port}" />
 				<echo message="Command:${command}" />
 				<echo message="The testcase ${test.case.name}.py path on ${testcases.path}" />
-				<exec executable="python2.6" dir="${testcases.path}" timeout="1200000" outputproperty="screen.output" resultproperty="ret.code">
+				<exec executable="python2.6" dir="${testcases.path}" timeout="1200000" outputproperty="screen.output" resultproperty="ret.code" logError="true">
 					<arg line=" ${test.case.fullname} -H ${test.host.NAME} -p ${coord.service.port}" />
 				</exec>
 				<echo message="${screen.output}" />
 				<echo message="The result = ${ret.code} after exec ${test.case.fullname} testcase." />
-      		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false">
+      		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
       			<arg line="-s &quot;db.msg('End testcase[${test.case.fullname}]');&quot;" />
       		</exec>			
 			</then>
@@ -118,7 +118,7 @@
 				<property name="command" value="python ${test.case.fullname}" />
 				<echo message="Command:${command}" />
 				<echo message="The testcase ${test.case.fullname} path on ${testcases.path}" />
-				<exec executable="python2.6" dir="${testcases.path}" timeout="1200000" outputproperty="screen.output" resultproperty="ret.code">
+				<exec executable="python2.6" dir="${testcases.path}" timeout="1200000" outputproperty="screen.output" resultproperty="ret.code" logError="true">
 					<arg line=" ${test.case.fullname}" />
 				</exec>
 				<echo message="${screen.output}" />

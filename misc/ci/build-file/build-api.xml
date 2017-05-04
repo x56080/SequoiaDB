@@ -18,7 +18,7 @@
 		<property name="sdb.cmd.argument" value=" ${test.case.fullname}" />
 		<property name="command" value="doxygen${sdb.cmd.argument}" />
 		<echo message="Command:${command}" />
-		<exec executable="doxygen" dir="" timeout="60000" outputproperty="screen.output" resultproperty="ret.code" failonerror="false">
+		<exec executable="doxygen" dir="" timeout="60000" outputproperty="screen.output" resultproperty="ret.code" failonerror="false" logError="true">
 			<arg line="${sdb.cmd.argument}" />
 		</exec>
 		<echo message="${screen.output}" />

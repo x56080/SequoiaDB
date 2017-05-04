@@ -27,7 +27,7 @@ import.file -->
    	<sleep seconds="5" /> -->
 
    	<echo message="${import.bin} -s bl465-4 -p ${coord.service.port} --type json --file ${install.path}/${import.file} -c ${cs.name} -l ${cl.name}" />
-   	<exec executable="${import.bin}" failonerror="true" >
+   	<exec executable="${import.bin}" failonerror="true" logError="true">
       	<arg line=" -s bl465-4 -p ${coord.service.port} --type json --file ${install.path}/${import.file} -c ${cs.name} -l ${cl.name} "/>
    	</exec>
    	<sleep seconds="5" />
