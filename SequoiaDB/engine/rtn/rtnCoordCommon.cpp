@@ -1635,6 +1635,8 @@ namespace engine
 
       while( sendPos < cataNodeAddrList.size() )
       {
+         BOOLEAN disconnected = FALSE ;
+
          for ( ; sendPos < cataNodeAddrList.size() ; ++sendPos )
          {
             rc = pRouteAgent->syncSendWithoutCheck( cataNodeAddrList[sendPos]._id,
@@ -1671,6 +1673,8 @@ namespace engine
             {
                PD_LOG ( PDWARNING, "Received unknown event(eventType=%d)",
                         pmdEvent._eventType ) ;
+               pmdEduEventRelase( pmdEvent, cb ) ;
+               pmdEvent.reset () ;
                continue ;
             }
             MsgHeader *pMsg = (MsgHeader *)(pmdEvent._Data) ;
@@ -1679,6 +1683,47 @@ namespace engine
                PD_LOG ( PDWARNING, "Received invalid msg-event(data is null)" );
                continue ;
             }
+
+            // Process MSG_COM_REMOTE_DISC first
+            if ( MSG_COM_REMOTE_DISC == pMsg->opCode )
+            {
+               PD_LOG ( PDERROR, "Get reply failed, remote-node[%s] disconnected",
+                        routeID2String( pMsg->routeID ).c_str() ) ;
+
+               // The Catalog is not transaction node, so no need to remove
+               // transactions
+
+               // The disconnected is later than we send, the reply would not
+               // return, remove the request ID
+               // Otherwise, the node might be restarted, we could wait
+               if ( reqID <= pMsg->requestID )
+               {
+                  cb->getCoordSession()->delRequest( reqID ) ;
+                  disconnected = TRUE ;
+               }
+
+               if ( cb->getCoordSession()->isValidResponse( pMsg->routeID,
+                                                            pMsg->requestID ) )
+               {
+                  // For later process
+                  tmpQue.push( pmdEvent ) ;
+               }
+               else
+               {
+                  SDB_OSS_FREE( pmdEvent._Data ) ;
+                  pmdEvent.reset () ;
+               }
+
+               if ( disconnected )
+               {
+                  break ;
+               }
+               else
+               {
+                  continue ;
+               }
+            }
+
             if ( pMsg->opCode != MSG_CAT_GRP_RES ||
                  pMsg->requestID != reqID )
             {
@@ -1705,6 +1750,15 @@ namespace engine
             cb->getCoordSession()->delRequest( reqID ) ;
             pReply = (MsgHeader *)pMsg ;
             break ;
+         }
+
+         // Current one is disconnected, goto to the next one
+         if ( disconnected )
+         {
+            // Set the rc in case that disconnected one is the last one to try
+            rc = SDB_NETWORK_CLOSE ;
+            ++sendPos ;
+            continue ;
          }
 
          if ( rc != SDB_OK || NULL == pReply )
