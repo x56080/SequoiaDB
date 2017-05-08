@@ -376,6 +376,14 @@ namespace engine
       else
       {
          SDB_ASSERT( _context->scanType() == _scanType(), "scan type error" ) ;
+         if ( _context->eof() )
+         {
+            // Empty collection, hit end already
+            rtnKillContexts( 1, &_contextID , eduCB(), pRtnCB ) ;
+            _contextID = -1 ;
+            _context = NULL ;
+            _findEnd = TRUE ;
+         }
       }
 
       /// create lob context
