@@ -365,6 +365,18 @@ namespace engine
 
       if ( SDB_DMS_EOC == rc )
       {
+         // Empty collection, hit end already
+         // Make sure the context is closed
+         if ( -1 != _contextID )
+         {
+            rtnKillContexts( 1, &_contextID , eduCB(), pRtnCB ) ;
+            _contextID = -1 ;
+            _context = NULL ;
+         }
+
+         _findEnd = TRUE ;
+
+         // Ignore error
          rc = SDB_OK ;
       }
       else if ( rc )
