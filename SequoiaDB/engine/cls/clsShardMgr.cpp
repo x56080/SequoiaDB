@@ -146,19 +146,87 @@ namespace engine
 
    void _clsFreezingWindow::registerCL( const CHAR *pName, UINT64 opID )
    {
+      MAP_WINDOW::iterator it ;
+
       _latch.get() ;
-      ++_clCount ;
-      _mapWindow[ pName ] = opID ;
+
+      it = _mapWindow.find( pName ) ;
+
+      if ( _mapWindow.end() == it )
+      {
+         ++_clCount ;
+
+         OP_SET newOpSet ;
+         newOpSet.insert( opID ) ;
+
+         _mapWindow[ pName ] = newOpSet ;
+      }
+      else
+      {
+         it->second.insert( opID ) ;
+      }
+
       _latch.release() ;
    }
 
-   void _clsFreezingWindow::unregisterCL( const CHAR *pName )
+   void _clsFreezingWindow::unregisterCL( const CHAR *pName, UINT64 opID )
    {
+      MAP_WINDOW::iterator it ;
+
       _latch.get() ;
-      _mapWindow.erase( pName ) ;
-      --_clCount ;
+
+      it = _mapWindow.find( pName ) ;
+
+      if ( _mapWindow.end() != it )
+      {
+         it->second.erase( opID ) ;
+
+         if ( it->second.empty() )
+         {
+            _mapWindow.erase( pName ) ;
+            --_clCount ;
+         }
+      }
+
       _latch.release() ;
       _event.signalAll() ;
+   }
+
+   BOOLEAN _clsFreezingWindow::needBlockOpr( const CHAR *pName,
+                                             UINT64 testOpID )
+   {
+      MAP_WINDOW::iterator it ;
+      BOOLEAN needBlock = FALSE ;
+
+      _latch.get() ;
+
+      if ( !_mapWindow.empty() &&
+           _mapWindow.end() != ( it = _mapWindow.find( pName ) ) )
+      {
+         OP_SET::iterator opIt = it->second.begin() ;
+
+         while ( opIt != it->second.end () )
+         {
+            if ( *opIt == testOpID )
+            {
+               // Self
+               needBlock = FALSE ;
+               break ;
+            }
+            else if ( *opIt < testOpID )
+            {
+               // Should not break, we need to test if testOpID matches
+               // the remaining blocking op IDs which may be the blocking op
+               // itself
+               needBlock = TRUE ;
+            }
+            opIt ++ ;
+         }
+      }
+
+      _latch.release() ;
+
+      return needBlock ;
    }
 
    INT32 _clsFreezingWindow::waitForOpr( const CHAR *pName,
@@ -181,13 +249,8 @@ namespace engine
                rc = SDB_APP_INTERRUPT ;
                break ;
             }
-            _latch.get() ;
-            if ( _mapWindow.end() == ( it = _mapWindow.find( clName ) ) ||
-                 opID <= it->second )
-            {
-               needBlock = FALSE ;
-            }
-            _latch.release() ;
+
+            needBlock = needBlockOpr( clName.c_str(), opID ) ;
 
             if ( needBlock )
             {

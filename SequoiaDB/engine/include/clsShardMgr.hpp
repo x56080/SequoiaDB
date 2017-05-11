@@ -102,14 +102,17 @@ namespace engine
    */
    class _clsFreezingWindow : public SDBObject
    {
-      typedef _utilMap<std::string, UINT64>     MAP_WINDOW ;
+      typedef std::set< UINT64 > OP_SET ;
+      typedef _utilMap< std::string, OP_SET > MAP_WINDOW ;
 
       public:
          _clsFreezingWindow() ;
          ~_clsFreezingWindow() ;
 
          void registerCL( const CHAR *pName, UINT64 opID ) ;
-         void unregisterCL( const CHAR *pName ) ;
+         void unregisterCL( const CHAR *pName, UINT64 opID ) ;
+
+         BOOLEAN needBlockOpr( const CHAR *pName, UINT64 testOpID ) ;
 
          INT32 waitForOpr( const CHAR *pName,
                            _pmdEDUCB *cb,
