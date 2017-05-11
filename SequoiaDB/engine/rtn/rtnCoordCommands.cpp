@@ -345,7 +345,9 @@ namespace engine
          ROUTE_REPLY_MAP::iterator itNok = nokReply.begin() ;
          while( itNok != nokReply.end() )
          {
-            nokRC[ itNok->first ] = coordErrorInfo( (MsgOpReply*)itNok->second ) ;
+            MsgOpReply *pReply = (MsgOpReply*)itNok->second ;
+            nokRC[ itNok->first ] = coordErrorInfo( pReply ) ;
+            SDB_OSS_FREE( pReply ) ;
             ++itNok ;
          }
       }

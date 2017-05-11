@@ -80,6 +80,7 @@ namespace engine
    {
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
       _closeSubStreamsWithException( cb ) ;
+      _clearMsgData() ;
    }
 
    void _rtnCoordLobStream::getErrorInfo( INT32 rc,
