@@ -830,7 +830,7 @@ if nix:
         env.Append( CPPFLAGS=" -qpic=large -qalias=noansi -g " )
     else:
         env.Append( CPPFLAGS="-fPIC -fno-strict-aliasing -ggdb -pthread -Wno-write-strings -Wall -Wsign-compare -Wno-unknown-pragmas -Winvalid-pch -Wno-address" )
-        env.Append( CXXFLAGS=" -Wnon-virtual-dtor " )
+        env.Append( CXXFLAGS=" -Wnon-virtual-dtor -fcheck-new" )
         if aix:
             env.Append( LINKFLAGS=" -fPIC -pthread " )
         else:
