@@ -96,8 +96,8 @@ namespace engine
       {
          pSession->addRequest( reqID, id, handle );
       }
+	  PD_TRACE_EXITRC ( SDB_NETMLTRTAGT_SYNCSENDWITHOUTSESSION, rc );
       return rc;
-      PD_TRACE_EXITRC ( SDB_NETMLTRTAGT_SYNCSENDWITHOUTSESSION, rc );
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_NETMLTRTAGT_SYNCSEND, "netMultiRouteAgent::syncSend" )

@@ -532,12 +532,14 @@ BOOLEAN _ossSocket::isConnected ()
    return TRUE ;
 }
 
+PD_TRACE_DECLARE_FUNCTION ( SDB_OSSSK_RECV, "ossSocket::recv" )
 INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
                          INT32 &receivedLen,
                          INT32 timeout, INT32 flags,
                          BOOLEAN block, BOOLEAN recvRawData )
 {
    INT32 rc = SDB_OK ;
+   PD_TRACE_ENTRY ( SDB_OSSSK_RECV );
    SDB_ASSERT ( pMsg, "message is NULL" ) ;
    UINT32 retries = 0 ;
    SOCKET maxFD = _fd ;
@@ -704,6 +706,7 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
    // Everything is fine when get here
    rc = SDB_OK ;
 done :
+   PD_TRACE_EXITRC ( SDB_OSSSK_RECV, rc );
    return rc ;
 error :
    if ( SDB_NETWORK == rc || SDB_NETWORK_CLOSE == rc )
