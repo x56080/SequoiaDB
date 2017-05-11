@@ -4040,7 +4040,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _findFreeSpace( pageNum, dictExtID, NULL ) ;
+      rc = _findFreeSpace( pageNum, dictExtID, context ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to allocate space for dictionary "
                    "extent" ) ;
 
@@ -4249,7 +4249,7 @@ namespace engine
             valid = dmsIsKeyNameValid( oidEle.embeddedObject(), pErrStr ) ;
             break ;
          default :
-            break ;            
+            break ;
       }
 
       if ( !valid && pErrStr && pTmpStr )
