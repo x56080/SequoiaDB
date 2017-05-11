@@ -41,6 +41,7 @@
 #include "msgDef.h"
 #include "pmdEnv.hpp"
 #include "pd.hpp"
+#include "msgMessageFormat.hpp"
 #include "pdTrace.hpp"
 #include "netTrace.hpp"
 #include <boost/bind.hpp>
@@ -200,10 +201,10 @@ namespace engine
               spanTime >= timeout )
          {
             routeid = eh->id() ;
-            PD_LOG( PDERROR, "Connection[Handle: %d, GroupID: %d, NodeID: %d, "
-                    "Service: %d] is broken[BrokenTime: %lld(ms)]",
-                    handle, routeid.columns.groupID, routeid.columns.nodeID,
-                    routeid.columns.serviceID, spanTime ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d, Node:%s] is "
+                    "broken[BrokenTime: %lld(ms)]",
+                    handle, routeID2String( routeid ).c_str(),
+                    spanTime ) ;
             eh->close() ;
          }
       }
@@ -940,7 +941,6 @@ namespace engine
    void _netFrame::handleClose( NET_EH eh , _MsgRouteID id)
    {
       _handler->handleClose( eh->handle(), id ) ;
-      return ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME__ADDRT, "_netFrame::_addRoute" )
@@ -965,19 +965,19 @@ namespace engine
                                          handler,
                                          boost::asio::placeholders::error)) ;
       PD_TRACE_EXIT ( SDB__NETFRAME__ASYNCAPT );
-      return ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME__APTCALLBCK, "_netFrame::_acceptCallback" )
    void _netFrame::_acceptCallback( NET_EH eh,
-                                    const boost::system::error_code &
-                                    error )
+                                    const boost::system::error_code &error )
    {
       PD_TRACE_ENTRY ( SDB__NETFRAME__APTCALLBCK );
       if ( error )
       {
-         PD_LOG ( PDERROR, "Error received when handling accept" ) ;
-         return ;
+         PD_LOG ( PDERROR, "Error received when handling accept: %s, %d",
+                  error.message().c_str(), error.value() ) ;
+         _asyncAccept() ;
+         goto done ;
       }
 
       eh->setOpt() ;
@@ -988,7 +988,9 @@ namespace engine
       _handler->handleConnect( eh->handle(), eh->id(), FALSE ) ;
       _asyncAccept() ;
       eh->asyncRead() ;
-      PD_TRACE_EXIT ( SDB__NETFRAME__APTCALLBCK );
+
+   done:
+      PD_TRACE_EXIT ( SDB__NETFRAME__APTCALLBCK ) ;
       return ;
    }
 
@@ -997,8 +999,7 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__NETFRAME__ERASE );
       _mtx.get() ;
-      map<NET_HANDLE, NET_EH>::iterator itr =
-                                _opposite.find( handle ) ;
+      map<NET_HANDLE, NET_EH>::iterator itr = _opposite.find( handle ) ;
       if ( _opposite.end() == itr )
       {
          goto done ;
@@ -1006,12 +1007,9 @@ namespace engine
       {
       pair<MULTI_ITR, MULTI_ITR> pitr = _route.equal_range(
                                         itr->second->id().value) ;
-      for ( MULTI_ITR mitr=pitr.first;
-            mitr != pitr.second;
-            mitr++ )
+      for ( MULTI_ITR mitr=pitr.first ; mitr != pitr.second ; mitr++ )
       {
-         if ( mitr->second->handle() ==
-              handle )
+         if ( mitr->second->handle() == handle )
          {
             _route.erase( mitr ) ;
             break ;
