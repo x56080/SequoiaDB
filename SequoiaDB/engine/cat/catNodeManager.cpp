@@ -266,7 +266,7 @@ namespace engine
          rc = SDB_CLS_NOT_PRIMARY ;
          PD_LOG ( PDWARNING, "service deactive but received primary-change "
                   "request" );
-         goto done;
+         goto error ;
       }
 
       try
