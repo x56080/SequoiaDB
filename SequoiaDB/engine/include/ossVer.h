@@ -72,8 +72,9 @@
       SequoiaDB Engine Fix version
 */
 #define SDB_ENGINE_FIXVERSION_1        1
+#define SDB_ENGINE_FIXVERSION_2        2
 
-#define SDB_ENGINE_FIXVERSION_CURRENT  SDB_ENGINE_FIXVERSION_1
+#define SDB_ENGINE_FIXVERSION_CURRENT  SDB_ENGINE_FIXVERSION_2
 
 /*
       Build time
