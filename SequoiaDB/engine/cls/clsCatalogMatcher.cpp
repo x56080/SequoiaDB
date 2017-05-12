@@ -322,6 +322,20 @@ namespace engine
                }
                else if ( op == BSONObj::opMOD && beTmp.isNumber() )
                {
+                  // $mod:num is a function
+                  // Note: $mod:[num,num] is a recognized operator
+                  result = TRUE ;
+                  break ;
+               }
+               else if ( op == BSONObj::opTYPE )
+               {
+                  // $type is a function now
+                  result = TRUE ;
+                  break ;
+               }
+               else if ( op == BSONObj::opSIZE )
+               {
+                  // $size is a function now
                   result = TRUE ;
                   break ;
                }
