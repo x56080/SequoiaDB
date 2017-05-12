@@ -86,6 +86,12 @@ namespace engine
       _dmsData->_detachLob() ;
       _dmsData = NULL ;
       _dmsBME = NULL ;
+
+      for ( UINT32 i = 0 ; i < _vecBucketLacth.size() ; ++i )
+      {
+         SDB_OSS_DEL _vecBucketLacth[ i ] ;
+      }
+      _vecBucketLacth.clear() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB_OPEN, "_dmsStorageLob::open" )
@@ -165,6 +171,20 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__OPENLOB ) ;
+      ossSpinSLatch *pLatch = NULL ;
+      /// create bucket latch
+      for ( UINT32 i = 0 ; i < DMS_BUCKETS_LATCH_SIZE ; ++i )
+      {
+         pLatch = SDB_OSS_NEW ossSpinSLatch ;
+         if ( !pLatch )
+         {
+            PD_LOG( PDERROR, "Create bucket latch[%d] failed", i ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+         _vecBucketLacth.push_back( pLatch ) ;
+      }
+
       rc = openStorage( path, createNew, rmWhenExist ) ;
       if ( SDB_OK != rc )
       {
@@ -1124,6 +1144,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__FIND ) ;
       UINT32 bucketNumber = _getBucket( record._hash ) ;
+      ossScopedLock lock( _getBucketLatch( bucketNumber ), SHARED ) ;
+
       DMS_LOB_PAGEID pageInBucket = _dmsBME->_buckets[bucketNumber] ;
       while ( DMS_LOB_INVALID_PAGEID != pageInBucket )
       {
@@ -1178,10 +1200,12 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__PUSH2BUCKET ) ;
-      DMS_LOB_PAGEID &pageInBucket = _dmsBME->_buckets[bucket] ;
 
       blk.setNormal() ;
 
+      ossScopedLock lock( _getBucketLatch( bucket ), EXCLUSIVE ) ;
+
+      DMS_LOB_PAGEID &pageInBucket = _dmsBME->_buckets[bucket] ;
       /// empty bucket
       if ( DMS_LOB_INVALID_PAGEID == pageInBucket )
       {
@@ -1584,6 +1608,8 @@ namespace engine
          DMS_LOB_GET_HASH_FROM_BLK( blk, hash ) ;
          bucketNumber = _getBucket( hash ) ;
       }
+
+      ossScopedLock lock( _getBucketLatch( bucketNumber ), EXCLUSIVE ) ;
 
       if ( DMS_LOB_INVALID_PAGEID == blk->_prevPageInBucket )
       {
