@@ -47,6 +47,7 @@ namespace engine
    /// must be power of 2
    const UINT32 DMS_BUCKETS_NUM =   16777216 ; // 16MB
    #define DMS_BUCKETS_MODULO       16777215
+   #define DMS_BUCKETS_LATCH_SIZE   128
 
    /*
       _dmsBucketsManagementExtent define
@@ -194,6 +195,11 @@ namespace engine
          return hash & DMS_BUCKETS_MODULO ;
       }
 
+      OSS_INLINE ossSpinSLatch* _getBucketLatch( UINT32 bucketID )
+      {
+         return _vecBucketLacth[ bucketID % DMS_BUCKETS_LATCH_SIZE ] ;
+      }
+
       INT32 _push2Bucket( UINT32 bucket, DMS_LOB_PAGEID pageId,
                           _dmsLobDataMapBlk &blk) ;
 
@@ -240,6 +246,8 @@ namespace engine
 
       utilCacheUnit                 *_pCacheUnit ;
       IDataSyncManager              *_pSyncMgrTmp ;
+
+      vector< ossSpinSLatch* >      _vecBucketLacth ;
 
       BOOLEAN                       _isRename ;
 
