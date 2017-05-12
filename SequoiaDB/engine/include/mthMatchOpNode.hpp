@@ -872,6 +872,8 @@ namespace engine
          virtual BOOLEAN isTotalConverted() ;
          virtual void release() ;
 
+         virtual INT32 calcPredicate( _rtnPredicateSet &predicateSet ) ;
+
       protected:
          virtual INT32 _valueMatch( const BSONElement &left,
                                     const BSONElement &right,
