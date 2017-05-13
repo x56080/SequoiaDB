@@ -1,0 +1,51 @@
+【发生时间】2016-3-8 
+【问题描述】测试工程部署集群时，创建编目节点失败，无相应配置文件和数据文件
+【解决办法】正常停掉机器上的cm进程
+
+【问题详情】
+1、CI测试工程创建power-suse-2:11800节点时，抛错信息如下：
+[sdbdeploy] create Catalog master node , info is :
+[sdbdeploy] nodeInfo.getHost() = power-suse-2,
+[sdbdeploy] nodeInfo.getBasePort() = 11800,
+[sdbdeploy] nodeInfo.getDbpath() = /opt/sequoiadb/database/cata/11800,
+[sdbdeploy] nodeInfo.getConfigMap() = {diaglevel=5……
+[sdbdeploy] create CataRG , 
+[sdbdeploy] host :power-suse-2
+[sdbdeploy] port : 11800
+[sdbdeploy] path : /opt/sequoiadb/database/cata/11800
+[sdbdeploy] configMap :{diaglevel=5……
+……
+BUILD FAILED
+……basic-[h3][g1][d3]-tp2.xml:72: Group:SYSCatalogGroup select master timeout.
+
+2、到power-suse-2机器上查看无配置文件和数据文件
+conf/local中无11800目录
+database中无cata/11800目录
+
+【解决过程】
+1、尝试重启数据库，报系统错误
+power-suse-2:~ # service sdbcm stop
+Stopping sequoiadb database service: sdbcmTerminating process 313: sdbcmd
+FAILED
+Failed to stop sdbcm, rc: -10
+
+2、查看sdbcm进程，发现进程启动时间为3月3号，当天时间为3月8号
+power-suse-2:~ # ps -ef | grep sdbcm
+1001       313     1  0 Mar03 ?        00:00:01 sdbcmd                                                                                                                                                                                                                                                       
+1001       315     1  0 Mar03 ?        00:01:33 sdbcm(11790)  
+
+3、重启sdbcm
+power-suse-2:~ # kill 313
+power-suse-2:~ # service sdbcm start  
+power-suse-2:~ # ps -ef | grep sdbcm
+sdbadmin  9025     1  0 22:55 ?        00:00:00 sdbcmd                   
+sdbadmin  9027     1  0 22:55 ?        00:00:00 sdbcm(11790)  
+
+4、重新启动测试工程
+过程中会卸载数据库，重新安装和部署，查看到cm进程再次重启
+power-suse-2:~ # ps -ef | grep sdb
+sdbadmin  9865     1  0 23:00 ?        00:00:00 sdbcmd                   
+sdbadmin  9867     1  0 23:00 ?        00:00:00 sdbcm(11790)   
+                                                                                                                                                                                        
+【遗留问题】
+不知为何3月3号的cm进程一直残留

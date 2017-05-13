@@ -1,0 +1,186 @@
+<!-- ============================================================================
+@description:  generate code coverage
+@parameter:    
+@author:       Ting YU 2017-4-6
+============================================================================= -->
+
+<project default="get_coverage" basedir="../../">     
+   <taskdef resource="net/sf/antcontrib/antlib.xml">
+      <classpath>
+         <pathelement location="${basedir}/lib/ant-contrib-1.0b2.jar" />
+      </classpath>
+   </taskdef>
+   <taskdef name="staf" classname="com.ibm.staf.ant.taskdef.STAF" >
+      <classpath>
+         <pathelement location="${basedir}/lib/STAFAnt.jar" />
+      </classpath>
+   </taskdef>
+   <property file="${basedir}/src/conf/test.conf" />
+   <property file="${WORKSPACE}/archive/current/coverage.conf" />
+   
+   <target name="get_coverage">
+      <antcall target="gene_each_cov" />
+      <antcall target="gene_total_cov" />
+      <antcall target="gene_html" />
+   </target>
+   
+   <target name="gene_each_cov">
+      <mkdir dir="${CI_WORK_DIR}/coverage"/>
+      
+      <for list="${testhost_list}" param="testhost" parallel="true">
+         <sequential>
+            <staf location="@{testhost}" service="PROCESS"
+                  request="START SHELL COMMAND service sdbcm stop WAIT 2m RETURNSTDERR"
+                  resultPrefix="remote_exec1" 
+                  throwBuildException="1"/>
+            <propertyregex property="remote_exec_rc1" input="${remote_exec1.result}" regexp="Return\ Code:\ (.*)\n" select="\1"/>
+            <if>
+               <equals arg1="${remote_exec_rc1}" arg2="0" />
+               <else>
+                  <fail message="exec: service sdbcm stop, in host: @{testhost}, return code: ${remote_exec_rc1}"/>
+               </else>
+            </if>
+         
+            <var name="cmd1" value="cd ${source_code_dir}"/>
+            <local name="cmd2"/>
+            <property name="cmd2" value="lcov -c -q --rc lcov_branch_coverage=1 --no-external -b SequoiaDB/ -d build/ -o @{testhost}.info"/>
+            <staf location="@{testhost}" service="PROCESS"
+                  request="START SHELL COMMAND ${cmd1};${cmd2} WAIT 25m RETURNSTDERR"
+                  resultPrefix="remote_exec2" 
+                  throwBuildException="1"/>
+            <propertyregex property="remote_exec_rc2" input="${remote_exec2.result}" regexp="Return\ Code:\ (.*)\n" select="\1"/>
+            <if>
+               <equals arg1="${remote_exec_rc2}" arg2="0" />
+               <else>
+                  <fail message="exec: ${cmd1};${cmd2}, in host: @{testhost}, return code: ${remote_exec_rc2}"/>
+               </else>
+            </if>
+            
+            <staf location="@{testhost}" service="FS"
+                  request="COPY FILE ${source_code_dir}/@{testhost}.info TODIRECTORY ${CI_WORK_DIR}/coverage"
+                  throwBuildException="1"/>
+                  
+            <staf location="@{testhost}" service="PROCESS"
+                  request="START SHELL COMMAND service sdbcm 'start' WAIT 2m RETURNSTDERR"
+                  resultPrefix="remote_exec3" 
+                  throwBuildException="1"/>
+            <propertyregex property="remote_exec_rc3" input="${remote_exec3.result}" regexp="Return\ Code:\ (.*)\n" select="\1"/>
+            <if>
+               <equals arg1="${remote_exec_rc3}" arg2="0" />
+               <else>
+                  <fail message="exec: service sdbcm start, in host: @{testhost}, return code: ${remote_exec_rc3}"/>
+               </else>
+            </if>
+         </sequential>
+      </for>
+   </target>
+   
+   <target name="gene_total_cov">
+      <var name="tracfile_num" unset="true"/>
+      <resourcecount property="tracfile_num">
+         <fileset dir="${CI_WORK_DIR}/coverage" includes="*.info" />
+      </resourcecount>
+
+      <if>
+         <equals arg1="${tracfile_num}" arg2="1"/>
+         <then>
+         
+            <!--only one tracfile, just move this file to total.info-->
+            <for param="tracefile">
+               <path>
+                  <fileset dir="${CI_WORK_DIR}/coverage" includes="*.info" />
+               </path>
+               <sequential>
+                  <move file="@{tracefile}" tofile="${CI_WORK_DIR}/coverage/total.info"/>
+               </sequential>
+            </for>
+            
+         </then>
+         <else>
+         
+            <!--more than one tracfile, you need to add trace file-->
+            <var name="total_cmd" value="--rc lcov_branch_coverage=1"/>
+            <for param="tracefile">
+               <path>
+                  <fileset dir="${CI_WORK_DIR}/coverage" includes="*.info" />
+               </path>
+               <sequential>
+                  <var name="total_cmd" value="${total_cmd} -a @{tracefile}"/>
+               </sequential>
+            </for>
+            <var name="total_cmd" value="${total_cmd} -o total.info"/>
+            <echo message="exec cmd: lcov ${total_cmd}, in dir: ${CI_WORK_DIR}/coverage"/>
+            <exec executable="lcov" 
+                  dir="${CI_WORK_DIR}/coverage" 
+                  outputproperty="total_output" 
+                  logError="true"
+                  failonerror="true" >
+               <arg line="${total_cmd}"/>
+            </exec>
+            <echo message="${total_output}" />
+            
+         </else>
+      </if>
+               
+      
+   </target>
+
+   <target name="gene_html">
+      <var name="html_cmd" value="--rc lcov_branch_coverage=1 -o lcov_result total.info"/>
+      <echo message="exec cmd: genhtml ${html_cmd}, in dir: ${CI_WORK_DIR}/coverage"/>
+      <exec executable="genhtml" 
+            dir="${CI_WORK_DIR}/coverage" 
+            outputproperty="html_output" 
+            logError="true"
+            failonerror="true" >
+         <arg line="${html_cmd}"/>
+      </exec>
+      <echo message="${html_output}" />
+      
+      <copy todir="${WORKSPACE}/release">
+         <fileset dir="${CI_WORK_DIR}/coverage" includes="lcov_result/**/*"/>
+      </copy>
+      <copy todir="${WORKSPACE}/release" file="${CI_WORK_DIR}/coverage/total.info"/>
+   </target>
+
+   <target name="ready_coverage">
+      <for list="${testhost_list}" param="testhost" parallel="false">
+         <sequential>
+            <!--ready tar package-->
+            <staf location="@{testhost}" service="FS"
+                  request="DELETE ENTRY ${CI_WORK_DIR}/coverage RECURSE CONFIRM"
+                  throwBuildException=""/>
+            <staf location="@{testhost}" service="FS"
+                  request="CREATE DIRECTORY ${CI_WORK_DIR}/coverage FULLPATH"
+                  throwBuildException="1"/>
+            <staf location="local" service="FS"
+                  request="COPY FILE ${WORKSPACE}/archive/current/coverage_srccode.tar.gz TODIRECTORY ${CI_WORK_DIR}/coverage TOMACHINE @{testhost}"
+                  throwBuildException="1"/>
+            <!--untar-->
+            <staf location="@{testhost}" service="FS"
+                  request="DELETE ENTRY ${source_code_dir} RECURSE CONFIRM"
+                  throwBuildException=""/>
+            <staf location="@{testhost}" service="FS"
+                  request="CREATE DIRECTORY ${source_code_dir} FULLPATH"
+                  throwBuildException="1"/>
+            <staf location="@{testhost}" service="PROCESS"
+                  request="START SHELL COMMAND chmod 755 /home/jenkins WAIT 1m RETURNSTDERR"
+                  throwBuildException="1"/>
+            <var name="tar_cmd" value="tar zxvf ${CI_WORK_DIR}/coverage/coverage_srccode.tar.gz -C ${source_code_dir}"/>
+            <staf location="@{testhost}" service="PROCESS"
+                  request="START SHELL COMMAND ${tar_cmd} WAIT 5m RETURNSTDERR"
+                  resultPrefix="remote_exec4"
+                  throwBuildException="1"/>
+            <propertyregex property="remote_exec_rc4" input="${remote_exec4.result}" regexp="Return\ Code:\ (.*)\n" select="\1"/>
+            <if>
+               <equals arg1="${remote_exec_rc4}" arg2="0" />
+               <else>
+                  <fail message="exec: ${tar_cmd}, in host: @{testhost}, return code: ${remote_exec_rc4}"/>
+               </else>
+            </if> 
+         </sequential>
+      </for>
+              
+   </target>
+   
+</project>

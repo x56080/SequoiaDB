@@ -1,0 +1,24 @@
+【发生时间】2016-11-19 
+【问题描述】jenkins界面无法反应，进程kill不了
+【解决办法】扩大分配的内存
+
+【问题详情】
+在jenkins2.6版本上，jenkins跑了一段时间后，触发工程后
+
+1、点击jenkins界面无法跳转
+
+2、在master机器上kill [jenkins pid]，jenkins进程无法退出
+
+【解决过程】
+1、执行jstack [jenkins pid]，没有发现死锁
+
+2、查看/proc/[pid]/fd/1 进程的输出文件
+OutOfMemory  Permgen space
+说明分配的Permgen space内存空间不足
+
+3、查看top，进程占用的内存为654MB
+  PID USER      PR  NI  VIRT  RES  SHR S %CPU %MEM    TIME+  COMMAND                                             
+22388 root      20   0 1539m 654m  24m S    1 17.1  19:43.78 java 
+
+4、kill -9 jenkins进程，重启nohup java -XX:MaxPermSize=1024m -jar jenkins_2.7.4.war &
+

@@ -1,0 +1,41 @@
+【发生时间】2016-11-1 
+【问题描述】power机编译时机器挂掉
+【解决办法】删除物理机上的一台虚拟机，删除对应的img文件
+
+【问题详情】
+1、CI编译power时，机器挂掉，ping不通，需要索男重启机器才能恢复
+2、所有的power机在执行编译时均出现这个问题
+3、所有的power虚机在同一台物理机上
+
+【解决过程】
+1、怀疑CPU过高
+执行编译scons --all -j 4时抓取top信息top -d 1 -b >> top.log
+cpu占有率高达96%
+
+2、降低编译的并发数scons --all -j 1，CPU占有率下降到25%左右
+但机器依然异常
+
+3、怀疑是磁盘问题 
+拷贝编译目录到/opt下时也发生异常
+
+4、在虚拟机上检测是否有磁盘坏道
+没有
+
+5、在物理机上检测是否有磁盘坏道
+badblocks -v /dev/mapper/images-image_host   
+Checking blocks 0 to 1572863999
+Checking for bad blocks (read-only test): 
+done                                                 
+Pass completed, 0 bad blocks found. (0/0/0 errors)
+
+6、怀疑是否磁盘满，确实是磁盘满
+[root@pkvm111 home]# df
+Filesystem                                     1K-blocks       Used  Available Use% Mounted on
+……
+/dev/mapper/images-image_host                 1548046564 1469386980          0 100% /image_host
+[root@pkvm111 home]# df -Th
+
+7、删除一台虚拟机
+发现还是磁盘满
+
+8、需要删除/image_host目录下虚机对应的img文件

@@ -1,0 +1,47 @@
+【发生时间】2016-3-25 
+【问题描述】CI机器从svn更新代码时报错：403 Forbidden
+【解决办法】手动checkout再删除
+
+【问题详情】
+1、CI上svn更新代码时控制台报错
+ERROR: Failed to check out http://192.168.20.11/sequoiadb/branches/sequoiadb_2.0
+org.tmatesoft.svn.core.SVNException: svn: OPTIONS /sequoiadb/branches/sequoiadb_2.0 failed
+	at org.tmatesoft.svn.core.internal.io.dav.http.HTTPConnection.request(HTTPConnection.java:298)
+	at org.tmatesoft.svn.core.internal.io.dav.http.HTTPConnection.request(HTTPConnection.java:283)
+……
+Caused by: org.tmatesoft.svn.core.SVNErrorMessage: svn: OPTIONS /sequoiadb/branches/sequoiadb_2.0 failed
+	at org.tmatesoft.svn.core.SVNErrorMessage.create(SVNErrorMessage.java:200)
+……
+Caused by: org.tmatesoft.svn.core.SVNAuthenticationException: svn: OPTIONS request failed on '/sequoiadb/branches/sequoiadb_2.0'
+svn: OPTIONS of /sequoiadb/branches/sequoiadb_2.0: 403 Forbidden (http://192.168.20.11)
+	at org.tmatesoft.svn.core.internal.wc.SVNErrorManager.error(SVNErrorManager.java:62)
+……
+Caused by: org.tmatesoft.svn.core.SVNErrorMessage: svn: OPTIONS request failed on '/sequoiadb/branches/sequoiadb_2.0'
+	at org.tmatesoft.svn.core.SVNErrorMessage.create(SVNErrorMessage.java:200)
+……
+Caused by: org.tmatesoft.svn.core.SVNErrorMessage: svn: OPTIONS of /sequoiadb/branches/sequoiadb_2.0: 403 Forbidden (http://192.168.20.11)
+	at org.tmatesoft.svn.core.SVNErrorMessage.create(SVNErrorMessage.java:200)
+	at org.tmatesoft.svn.core.SVNErrorMessage.create(SVNErrorMessage.java:181)
+	at org.tmatesoft.svn.core.SVNErrorMessage.create(SVNErrorMessage.java:133)
+	at org.tmatesoft.svn.core.internal.io.dav.http.HTTPRequest.createDefaultErrorMessage(HTTPRequest.java:444)
+	at org.tmatesoft.svn.core.internal.io.dav.http.HTTPRequest.dispatch(HTTPRequest.java:189)
+	at org.tmatesoft.svn.core.internal.io.dav.http.HTTPConnection._request(HTTPConnection.java:379)
+	... 28 more
+FATAL: null
+java.lang.NullPointerException
+	at java.util.ArrayList.addAll(ArrayList.java:559)
+	at hudson.scm.SubversionSCM.checkout(SubversionSCM.java:743)
+……
+【解决过程】
+1、重连节点（该工程的控制机）
+此时重新构建，依然报错
+
+2、删除工程目录
+此时重新构建，依然报错
+
+3、手动svn checkout，checkout操作成功，终止checkout，删除checkout出来的目录
+此时重新构建，构建成功
+                                                                                                                                                                                      
+【遗留问题】
+是jenkins的一个bug？
+

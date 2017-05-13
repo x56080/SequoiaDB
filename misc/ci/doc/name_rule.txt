@@ -1,0 +1,58 @@
+
+缩写：
+   arch:    ppc ppcle x86
+   os:      rhel suse ubun cent
+   product: db pg
+   subtype: trunk branch1.12 branch2.6
+
+
+编译：
+
+   机器命名：                       
+   ci-cmpl-[arch][number]              eg: ci-cmpl-ppc1
+   
+   
+   slave节点名称：
+   COMPILE-[ARCH]                      eg: COMPILE-PPC
+   TEST-TRUNK1
+   
+   工程名称：
+   compile_[product]_[arch]_[subtype]  eg: compile_db_ppc_trunk
+      
+   
+测试：
+
+   机器命名：
+   ci-test-[os][number]                eg: ci-test-suse2
+      
+   slave节点名称：
+   TEST-[ARCH][number]                 eg: TEST-X861
+      
+   工程名称：
+   test_[product]_[branch/trunk]_[test_type]_[deploy_mode]_[arch]    
+                                       eg: test_db_trunk_ppc     
+                                       _[arch]不填表示为x86
+
+
+备注：
+   1 编译机os都为suse, 所以命名中不需要加入OS一项  
+   
+   2 arch均为64位，所以ppc64简写为ppc
+   
+   3 修改主机名  
+   
+      suse：
+      $ export HOSTNAME=myname
+      $ echo $HOSTNAME>/etc/HOSTNAME
+      $ /etc/rc.d/boot.localnet start
+
+      centos：
+      $ vi /etc/sysconfig/network
+      HOSTNAME=ci-test-cent3
+      $ reboot
+      
+      ubuntu:
+      $ vi /etc/hostname
+      $ reboot
+   
+   

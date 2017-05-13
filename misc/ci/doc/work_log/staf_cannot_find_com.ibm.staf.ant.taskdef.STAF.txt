@@ -1,0 +1,30 @@
+【发生时间】2017-04-13
+【问题描述】测试机重启后，staf能ping通，使用时报taskdef class com.ibm.staf.ant.taskdef.STAF cannot be found
+
+【问题详情】
+1.CI工程Project test_pg_trunk_changed在执行远程部署pg环境时控制台报taskdef class com.ibm.staf.ant.taskdef.STAF cannot be found
+2.到该测试机手动执行命令：
+staf  ci-test-suse7 PROCESS START SHELL COMMAND ant -f /tmp/postgresql/deploy-config/install_deploy_pg.xml 
+deploy_remote_pg -DINSTALL_PG_DIR=/opt/SequoiaSQL STDOUTAPPEND /tmp/postgresql/install_deploy_pg.log STDERRTOSTDOUT WAIT
+重现该问题
+
+【解决过程】
+方法一：
+修改前ant调度代码中依赖staf定义如下：
+   <taskdef name="staf" classname="com.ibm.staf.ant.taskdef.STAF" >
+修改后：
+   <taskdef name="staf" classname="com.ibm.staf.ant.taskdef.STAF" >
+      <classpath>
+         <pathelement location="${basedir}/lib/STAFAnt.jar" />
+      </classpath>
+   </taskdef>    
+   
+方法二：
+在开机自启前
+export LD_LIBRARY_PATH="/usr/local/staf/lib:${LD_LIBRARY_PATH}"
+export CLASSPATH="/usr/local/staf/lib/STAFAnt.jar:/usr/local/staf/samples/demo/STAFDemo.jar:/usr/local/staf/lib/JSTAF.jar:${CLASSPATH}"
+
+【原因】
+定义staf任务需要指定依赖的类路径所在的jar包,机器重启前手动启动staf，此时会先加载环境变量CLASSPATH；
+机器重启后staf是通过配置在开机启动里面的命令进行启动，而开机启动脚本中并未先进行export CLASSPATH,
+因此重启后定义staf时<taskdef name="staf" classname="com.ibm.staf.ant.taskdef.STAF" >会报cannot be found

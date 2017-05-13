@@ -1,0 +1,27 @@
+【发生时间】2016-3-7 
+【问题描述】服务器异常掉电后，staf远程连接机器时异常
+【解决办法】执行export（不确定）
+
+【问题详情】
+1、执行staf远程连接机器ubun-test2，该命令立即返回
+staf ubun-test2 PROCESS START SHELL COMMAND ant -f /tmp/sequoiadb_test/deploy/exec-basic-testcases.xml ……
+
+2、ubun-test2上的staf日志nohup.out上报错误日志
+Error occurred during initialization of VM
+java.lang.Error: Properties init: Could not determine current working directory.
+	at java.lang.System.initProperties(Native Method)
+	at java.lang.System.initializeSystemClass(System.java:1119)
+
+3、执行java -version错误也同上
+# java -version
+Error occurred during initialization of VM
+java.lang.Error: Properties init: Could not determine current working directory.
+	at java.lang.System.initProperties(Native Method)
+	at java.lang.System.initializeSystemClass(System.java:1119)
+
+【解决过程】
+1、执行了export
+2、再执行java -version
+
+【遗留问题】
+不知为何export后就正常了

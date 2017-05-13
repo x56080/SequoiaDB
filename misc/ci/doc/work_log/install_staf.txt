@@ -1,0 +1,23 @@
+安装staf
+
+【准备】
+tar包 STAF3424-linux-ppc64le.tar
+
+【安装】
+1、解压STAF3424-linux-ppc64le.tar，解压后为staf目录
+2、执行staf/STAFInst，默认安装到/usr/local/staf下
+3、设置环境变量到/etc/profile
+export PATH="/usr/local/staf/bin:${PATH}"
+export STAFCONVDIR=/usr/local/staf/codepage
+export LD_LIBRARY_PATH="/usr/local/staf/lib:${LD_LIBRARY_PATH}"
+export CLASSPATH="/usr/local/staf/lib/JSTAF.jar:${CLASSPATH}"
+export CLASSPATH="/usr/local/staf/samples/demo/STAFDemo.jar:${CLASSPATH}"
+4、配置/usr/local/staf/bin/STAF.cfg 
+TRUST LEVEL 5 MACHINE 192.168.20.*
+TRUST LEVEL 5 MACHINE 192.168.30.*
+TRUST LEVEL 5 MACHINE 192.168.28.*
+5、配置/etc/hosts
+配置本机ip与主机名的映射
+6、启动staf进程
+/usr/local/staf/startSTAFProc.sh 
+7、查看日志：当前目录下的nohup.out

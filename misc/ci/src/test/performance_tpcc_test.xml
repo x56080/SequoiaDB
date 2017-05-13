@@ -1,0 +1,185 @@
+<!-- ============================================================================
+@description:  performance test
+@parameter:    WAREHOST_NUM,     from jenkins user page
+               CONCURRENT_NUM,   from jenkins user page
+               RUN_TIME,         from jenkins user page
+               testhost_list,    from build.xml
+@author:       Ting YU 2017-1-24
+============================================================================= -->
+
+<project default="main" basedir="../../">       
+   <taskdef resource="net/sf/antcontrib/antlib.xml">
+      <classpath>
+         <pathelement location="${basedir}/lib/ant-contrib-1.0b2.jar" />
+      </classpath>
+   </taskdef>
+   <taskdef name="staf" classname="com.ibm.staf.ant.taskdef.STAF" >
+      <classpath>
+         <pathelement location="${basedir}/lib/STAFAnt.jar" />
+      </classpath>
+   </taskdef>
+
+   <property file="${basedir}/src/conf/test.conf" /> 
+   
+   <target name="main">     
+      <if>
+         <isset property="WAREHOST_NUM"/>
+         <else>           
+            <var name="WAREHOST_NUM" value="10" />
+         </else>
+      </if>
+      <if>
+         <isset property="CONCURRENT_NUM"/>
+         <else>
+            <var name="CONCURRENT_NUM" value="2,4" />
+         </else>
+      </if>
+      <if>
+         <isset property="RUN_TIME"/>
+         <else>
+            <var name="RUN_TIME" value="5" />
+         </else>
+      </if>
+      
+      <antcall target="execute_testcase" />
+      
+   </target>
+
+   <target name="execute_testcase">
+      <property name="testcase_dir" location="${WORKSPACE}/sequoiadb/testcase/tpcc/run" />
+      <var name="release_dir" value="${WORKSPACE}/report"/>
+      <delete dir="${release_dir}" failonerror="false"/>
+      <mkdir dir="${release_dir}"/>
+      
+      <propertyregex property="testhost_shellarr" input="${testhost_list}" regexp="," replace=" "/>
+      <arraylen array="${testhost_list}" len="host_num"/>
+      <echo>${line.separator}exec cmd: ./createDatabase.sh sdbadmin ${INSTALL_PG_DIR} ${host_num} ${testhost_shellarr}, in dir: ${testcase_dir}</echo>
+      <exec executable="./createDatabase.sh" dir="${testcase_dir}" failonerror="true" logError="true">
+         <arg line="sdbadmin ${INSTALL_PG_DIR} ${host_num} ${testhost_shellarr}" />
+      </exec>
+      
+      <for list="${WAREHOST_NUM}" param="warehost" parallel="false">
+         <sequential>
+            <for list="${CONCURRENT_NUM}" param="concurrent" parallel="false">
+               <sequential>
+                  <execonecase ware="@{warehost}" conc="@{concurrent}" rtime="${RUN_TIME}"/>
+               </sequential>
+            </for>
+         </sequential>
+      </for>
+   </target>
+   
+   <macrodef name="execonecase">
+      <attribute name="ware" />
+      <attribute name="conc" />
+      <attribute name="rtime" />
+      <sequential>
+         <!--clean environment-->
+         <delete dir="${testcase_dir}/tpc_result" failonerror="false"/>
+         <echo>${line.separator}exec cmd: ./cleanEnv.sh ${host_num} ${testhost_shellarr}, in dir: ${testcase_dir}</echo>
+         <exec executable="./cleanEnv.sh" dir="${testcase_dir}" failonerror="true" logError="true">
+            <arg line="${host_num} ${testhost_shellarr}" />
+         </exec>
+         
+         <!--record begin time-->
+         <var name="begin_time" unset="true"/>
+         <tstamp>
+            <format property="begin_time" pattern="yyyy-MM-dd_HH:mm:ss" />
+         </tstamp>       
+         <script language="javascript">
+            project.setProperty('start_ms', new Date().getTime());
+         </script>
+
+         <!--execute tpcc-->
+         <var name="py_cmd" value="runtpcc.py -m -f ./props.pg -w @{ware} -t @{conc} -r @{rtime}"/>
+         <echo>${line.separator}exec cmd: python ${py_cmd}, in dir: ${testcase_dir}</echo>
+         <var name="screen_output" unset="true"/>
+         <var name="rc" unset="true"/>
+         <exec executable="python" 
+               dir="${testcase_dir}"
+               timeout="36000000" 
+               outputproperty="screen_output" 
+               resultproperty="rc"
+               failonerror="false">
+            <arg line="${py_cmd}" />
+         </exec>
+         <echo message="${screen_output}" />
+         
+         <!--record end time-->
+         <var name="end_time" unset="true"/>
+         <tstamp>
+            <format property="end_time" pattern="yyyy-MM-dd_HH:mm:ss" />
+         </tstamp>
+         <script language="javascript">
+            project.setProperty('total_time', ( new Date().getTime() - start_ms ) / 1000 );
+         </script>
+         <echo message="the result code is ${rc}, begin at ${begin_time}, end at ${end_time}" />
+         
+         <!--handle report-->
+         <var name="testcase_name" value="w@{ware}t@{conc}r@{rtime}" />
+         <var name="xml_report" value="${release_dir}/${testcase_name}.xml"/>
+         <if>
+            <equals arg1="${rc}" arg2="0" />
+            <then>
+               <copy file="${basedir}/src/test/exec_testcase/report_succ_temple.xml" tofile="${xml_report}"/>
+            </then>
+            <else>
+               <copy file="${basedir}/src/test/exec_testcase/report_fail_temple.xml" tofile="${xml_report}"/>            
+            </else>
+         </if>
+         
+         <replace file="${xml_report}" token='TESTCASE_TYPE' value='tpcc'/>
+         <replace file="${xml_report}" token='TESTSUIT_NAME' value='testsuit'/>
+         <replace file="${xml_report}" token='TESTCASE_NAME' value='${testcase_name}'/>
+         <replace file="${xml_report}" token='0000' value='${total_time}'/>
+         
+         <if>
+            <equals arg1="${rc}" arg2="0" />
+            <then>
+               <move file="${testcase_dir}/tpc_result" tofile="${release_dir}/${testcase_name}"/>
+            </then>
+            <else>
+               <hostinfo prefix="localhost" />
+               <getip hostarr="${testhost_list}" hostiparr="hostip_list"/>
+               <var name="ms1" value="EXECUTE HOST: ${localhost.NAME} ${localhost.ADDR4}&#10;&#10;"/>
+               <var name="ms2" value="CLUSTER HOST: ${hostip_list}&#10;&#10;"/>
+               <var name="ms3" value="EXECUTE CMD: python ${py_cmd}&#10;"/>
+               <var name="ms4" value="EXECUTE DIR: ${testcase_dir}&#10;"/>
+               <var name="ms5" value="RETURN CODE: ${rc}&#10;"/>
+               <var name="ms6" value="OUTPUT MESSAGE:&#10;${screen_output}&#10;"/>
+               <replace file="${xml_report}" token="ERROR_MESSAGE" value="${ms1}${ms2}${ms3}${ms4}${ms5}${ms6}"/>
+            </else>
+         </if>
+      </sequential>
+   </macrodef>
+   
+   <macrodef name="getip">
+      <attribute name="hostarr" />
+      <attribute name="hostiparr" />
+      <sequential>
+         <var name="@{hostiparr}" value=" "/>
+         <for list="@{hostarr}" param="hostname" parallel="false">
+            <sequential>   
+               <var name="host.NAME" unset="true"/>
+               <var name="host.ADDR4" unset="true"/>
+               <hostinfo prefix="host" host="@{hostname}"/>
+               <var name="@{hostiparr}" value="${host.NAME} ${host.ADDR4}, ${@{hostiparr}}"/>
+            </sequential>
+         </for>
+      </sequential>
+   </macrodef>
+   
+    <macrodef name="arraylen">    
+      <attribute name="array"/>
+      <attribute name="len"/>    
+      <sequential>    
+         <var name="@{len}" value="0"/>
+         <for list="@{array}" param="ele" parallel="false">
+            <sequential>    
+               <math result="@{len}" operand1="${@{len}}" operation="+" operand2="1" datatype="int"/>
+            </sequential>
+         </for>
+      </sequential>
+   </macrodef>
+   
+</project>

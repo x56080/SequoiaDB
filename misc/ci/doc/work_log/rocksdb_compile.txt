@@ -1,0 +1,79 @@
+rocksdb编译环境搭建
+
+【环境要求】
+编译2.0社区版-PPC64 环境要求：
+glibc 2.15
+libstdc++ 6.0.18
+gcc/g++ 4.8.2
+
+【升级前】
+ppc64编译机系统为SUSE11 SP4，默认glibc版本2.11，gcc版本4.3.4，libstdc++版本6.0.18
+查询命令分别如下：
+$ ldd --version 或者 $ /lib64/libc.so.6 
+$ ll /usr/lib64/libstdc++.so.6
+$ gcc --version
+
+【操作步骤】
+一、编译glibc 2.15
+   tar zxvf glibc-2.15.tar.gz
+   ./glibc-2.15/configure --prefix=/usr/
+   make 
+   make install
+   ln -s /lib64/libc-2.15.so /lib64/libc.so.6 
+
+二、编译libstdc++ 6.0.18
+   rpm -ivh libstdc++6-4.8.1_20130909-3.2.7.ppc64.rpm
+   rpm -ivh libstdc++48-devel-4.8.1_20130909-3.2.7.ppc64.rpm
+   rpm -ivh libstdc++6-locale-4.8.1_20130909-3.2.7.ppc64.rpm
+   ln -s /usr/lib64/libstdc++.so.6.0.18 /usr/lib64/libstdc++.so.6
+   
+三、编译gcc
+
+1、解压gcc-4.8.2-ppc64.tar.gz
+
+2、编译gmp
+   cd gmp-4.3.2
+   mkdir gmp_install
+   cd gmp_install
+   ../configure --prefix=/home/gmp-4.3.2/gmp_install
+   make
+   make install
+
+3、编译mpfr
+   与gmp类似，configure加一项--with-gmp=/home/gmp-4.3.2/gmp_install
+
+4、编译mpc
+   与gmp类似，configure加两项--with-gmp=/home/gmp-4.3.2/gmp_install 
+                             --with-mpfr=/home/mpfr-2.4.2/mpfr_install
+
+5、导入环境变量，否则编译gcc会报错     
+   export LD_LIBRARY_PATH=/home/mpc-0.8.1/lib:/home/gmp-4.3.2/lib:/home/mpfr-2.4.2/lib:$LD_LIBRARY_PATH                  
+
+6、编译gcc
+   cd gcc-4.8.2
+   mkdir gcc_install
+   cd gcc_install
+   ../configure --prefix=/home/gcc-4.8.2/gcc_install --with-gmp=/home/gmp-4.3.2/gmp_install 
+                --with-mpfr=/home/mpfr-2.4.2/mpfr_install --with-mpc=/home/mpc-4.3.2/mpc_install
+                --enable-checking=release --enable-languages=c,c++
+   make
+   make install  
+   备注：编译过程中报gun/stubs-32.h: No such file or directory，解决：安装32位的glibc-devel  
+             
+7、建立软连接                                   
+   ln -sf /home/mpc-0.8.1/lib/libmpc.so.2.0.0   /usr/lib64/libmpc.so
+   ln -sf /home/mpc-0.8.1/lib/libmpc.so.2.0.0   /usr/lib64/libmpc.so.2
+   
+   ln -sf /home/mpfr-2.4.2/lib/libmpfr.so.1.2.2 /usr/lib64/libmpfr.so
+   ln -sf /home/mpfr-2.4.2/lib/libmpfr.so.1.2.2 /usr/lib64/libmpfr.so.1
+   
+   ln -sf /home/gmp-4.3.2/lib/libgmp.so.3.5.2   /usr/lib64/libgmp.so
+   ln -sf /home/gmp-4.3.2/lib/libgmp.so.3.5.2   /usr/lib64/libgmp.so.3
+   
+   ln -sf /home/gcc-4.8.2/bin/gcc               /usr/bin/gcc
+   ln -sf /home/gcc-4.8.2/bin/g++               /usr/bin/g++
+   ln -sf /home/gcc-4.8.2/bin/c++               /usr/bin/c++
+   ln -sf /home/gcc-4.8.2/bin/cpp               /usr/bin/cpp
+   ln -sf /home/gcc-4.8.2/bin/gcov              /usr/bin/gcov
+   
+
