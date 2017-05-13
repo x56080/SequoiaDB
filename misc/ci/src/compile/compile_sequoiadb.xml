@@ -469,7 +469,7 @@
       <mkdir dir="${release_db_dir}/conf/local" />
       <mkdir dir="${release_db_dir}/conf/log" />
       <mkdir dir="${release_db_dir}/conf/script" />
-      <mkdir dir="${release_db_dir}/doc" />
+      <!--mkdir dir="${release_db_dir}/doc" /-->
       <mkdir dir="${release_db_dir}/hadoop" />
       <mkdir dir="${release_db_dir}/include" />
       <mkdir dir="${release_db_dir}/java/jdk" />
@@ -504,12 +504,12 @@
       </copy>
       <copy file="${srccode_dir}/conf/sdbcm.conf" todir="${release_db_dir}/conf" />
       
-      <copy todir="${release_db_dir}/doc">
+      <!--copy todir="${release_db_dir}/doc">
          <fileset dir="${srccode_dir}/../archive/" includes="*.pdf,*.chm"/>
       </copy>
       <copy todir="${release_db_dir}/doc/manual">
          <fileset dir="${srccode_dir}/doc/manual" />
-      </copy>
+      </copy-->
       
       <copy todir="${release_db_dir}/hadoop" >
          <fileset dir="${srccode_dir}/driver/hadoop/hadoop-connector/build" includes="**/*" />
