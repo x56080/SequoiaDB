@@ -1,4 +1,0 @@
-archive.dir=/opt/test_tar
-project.name=SequoiaSQL
-os.and.platform=linux_x86_64
-sequoiasql.version=1.0
