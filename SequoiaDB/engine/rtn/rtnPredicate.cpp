@@ -905,6 +905,14 @@ namespace engine
          // and we want equality match {c1:{$et:[1,2,3]}}
          set<BSONElement, element_lt> vals ;
          vector<rtnPredicate> regexes ;
+
+         if ( e.type() != Array )
+         {
+            pdLog ( PDERROR, __FUNC__, __FILE__, __LINE__,
+                    "Only array is allowed within $in" ) ;
+            return ;
+         }
+
          BSONObjIterator i ( e.embeddedObject() ) ;
 
          // if e is an empty array. just add it to vals.(this will be add to the _startStopKeys)
