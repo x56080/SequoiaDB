@@ -1,0 +1,354 @@
+﻿<!-- ============================================================================
+@description:  run java testcase, junit or testng
+@parameter:    TEST_TYPE              eg: NORMALTEST
+               TEST_LEVEL_TYPE        eg: PACKAGE or CLASS
+               EXEC_TESTCASE_NAME     eg: com.story.sdb or com.story.sdb.testADD
+               TESTCASE_TYPE          eg: tdd_java
+               testcase_dir           eg: /tmp/ci/testcase/tdd/java
+               report_dir             eg：/tmp/ci/report/tdd_java
+@author:       CSQ 2016-12-09
+============================================================================= -->
+
+<project basedir="./" default="main_target">
+   <taskdef resource="net/sf/antcontrib/antlib.xml">
+      <classpath>
+         <pathelement location="${basedir}/ant-contrib-1.0b2.jar" />
+      </classpath>
+   </taskdef>
+   
+   <target name="main_target">
+
+      <switch value="${TESTCASE_TYPE}">
+         <case value="driver_java">             
+            <property name="testcase_dir" value="${basedir}../../testcase_new/driver/java"/>
+            <property name="report_dir" value="${basedir}../../testcase_new/driver/java"/>
+         </case>
+         <case value="tdd_java">             
+            <property name="testcase_dir" value="${basedir}../../testcase_new/tdd/java"/>
+            <property name="report_dir" value="${basedir}../../testcase_new/tdd/java"/>
+         </case>
+         <case value="story_java">             
+            <property name="testcase_dir" value="${basedir}../../testcase_new/story/java"/>
+            <property name="report_dir" value="${basedir}../../testcase_new/story/java"/>
+         </case>
+         <case value="reliability">
+            <property name="testcase_dir" value="${basedir}../../testcase_new/reliability"/>
+            <property name="report_dir" value="${basedir}../../testcase_new/reliability"/>
+         </case>
+         <default>
+            <property name="testcase_dir" value="${basedir}../../testcase_new/sdv/java"/>
+            <property name="report_dir" value="${basedir}../../testcase_new/sdv/java"/>
+         </default>
+      </switch>
+      <mkdir dir="${report_dir}"/>
+      <compilecase srcdir="${testcase_dir}"/>
+      <!--exec_testcase casedir="${testcase_dir}" reportdir="${report_dir}" /-->
+      <antcall target="exec_testcase">
+         <param name="casedir" value="${testcase_dir}"/>
+         <param name="reportdir" value="${report_dir}"/>
+      </antcall>
+   </target>
+   
+   <target name="exec_testcase"> 
+      <var name="begin_time" unset="true"/>
+      <tstamp>
+         <format property="begin_time" pattern="yyyy-MM-dd_HH:mm:ss" />
+      </tstamp>
+      <property name="tmp_report_dir" value="${casedir}/output" />
+      <delete dir="${tmp_report_dir}" failonerror="false"/>
+      <mkdir dir="${tmp_report_dir}"/>
+      <!--get src xml-->
+      <switch value="${TEST_TYPE}">
+         <case value="NORMALTEST">
+            <var name="srcxmlfile" value="testng.xml"/>
+         </case>
+         <case value="LARGEDATATEST">
+            <var name="srcxmlfile" value="largedata.xml"/>
+         </case>
+         <case value="CONFIGURETEST">
+            <var name="srcxmlfile" value="configure.xml"/>
+         </case>
+         <case value="SMOKETEST">
+            <var name="srcxmlfile" value="smoke.xml"/>
+         </case>
+         <case value="SYNCTEST">
+            <var name="srcxmlfile" value="sync.xml"/>
+         </case>
+         <case value="RELIABILITYTEST">
+            <if>
+               <equals arg1="${serial_number}" arg2="1"/>
+               <then>
+                  <var name="srcxmlfile" value="testng.xml"/>
+               </then>
+               <elseif>
+                  <equals arg1="${serial_number}" arg2="2"/>
+                  <then>
+                    <var name="srcxmlfile" value="testng_release.xml"/>
+                  </then>
+               </elseif>
+               <else>
+                  <var name="srcxmlfile" value="testng.xml,testng_release.xml"/>
+               </else>
+            </if>
+         </case>
+         <default/>
+      </switch>
+      
+      <!--get proxy xml-->
+      <switch value="${TEST_TYPE}">
+         <case value="SYNCTEST">
+            <delete file="${casedir}/proxyxml.xml"/>
+            <copyfile src="${casedir}/${srcxmlfile}" dest="${casedir}/proxyxml.xml"/>
+            <var name="xmlfile" value="proxyxml.xml"/>
+            <if>
+               <not>
+                  <isset property="TEST_LEVEL_TYPE"/>
+               </not>
+               <else>
+                  <generatexml filename="${xmlfile}"/>
+               </else>
+            </if>
+            <execsynctest xmlfile="${xmlfile}" reportdir="${reportdir}"/>
+         </case>
+         <case value="RELIABILITYTEST">
+            <delete file="${casedir}/proxyxml.xml"/>
+            <delete file="${casedir}/proxyxml_release.xml"/>
+            
+            <for list="${srcxmlfile}" param="onexml">
+               <sequential>
+                  <if>
+                     <equals arg1="@{onexml}" arg2="testng.xml"/>
+                     <then>
+                        <copyfile src="${casedir}/@{onexml}" dest="${casedir}/proxyxml.xml"/>
+                        <var name="xmlfile" value="proxyxml.xml"/>
+                     </then>
+                     <else>
+                        <copyfile src="${casedir}/@{onexml}" dest="${casedir}/proxyxml_release.xml"/>
+                        <var name="xmlfile" value="${xmlfile},proxyxml_release.xml"/>
+                     </else>
+                  </if>
+               </sequential>
+            </for>
+  
+            <if>
+               <not>
+                  <isset property="TEST_LEVEL_TYPE"/>
+               </not>
+               <else>
+                  <for list="${srcxmlfile}" param="onexml">
+                     <sequential>
+                        <generatexml filename="@{onexml}"/>
+                     </sequential>
+                  </for>
+               </else>
+            </if>
+            <execreliabilitytest xmlfile="${xmlfile}"/>
+         </case>
+         <default>
+            <delete file="${casedir}/proxyxml.xml"/>
+            <copyfile src="${casedir}/${srcxmlfile}" dest="${casedir}/proxyxml.xml"/>
+            <var name="xmlfile" value="proxyxml.xml"/>
+            <if>
+               <not>
+                  <isset property="TEST_LEVEL_TYPE"/>
+               </not>
+               <else>
+                  <generatexml filename="${xmlfile}"/>
+               </else>
+            </if>
+            <execnormalandlargedatatest xmlfile="${xmlfile}"/>
+         </default>
+      </switch>
+
+      <var name="end_time" unset="true"/>
+      <tstamp>
+         <format property="end_time" pattern="yyyy-MM-dd_HH:mm:ss" />
+      </tstamp>
+      <echo message="begin at ${begin_time}, end at ${end_time}" />           
+   </target>
+   
+   <macrodef name="execreliabilitytest">
+      <attribute name="xmlfile"/>
+      <sequential>
+         <path id="testcasecalsspath">
+            <pathelement path="${casedir}/build" /> 
+            <fileset dir="${casedir}/lib" includes="**/*.jar"/>                  
+         </path>
+         <taskdef resource="testngtasks" classpath="${casedir}/lib/testng-6.10.1-SNAPSHOT.jar"/>
+         <for list="@{xmlfile}" param="xmlname">
+            <sequential>
+               <!--如果有失败的则中断-->
+               <var name="fail_num" value="0"/>
+               <if>
+                  <available file="${tmp_report_dir}/junitreports" type="dir"/>
+                  <then>
+                     <countstr str="&lt;failure&gt;"  resultproperty="fail_num">
+                        <path-elements>
+                           <fileset dir="${WORKSPACE}/report" includes="**/*.xml"/>
+                        </path-elements>
+                     </countstr>
+                  </then>
+               </if>
+               <if>
+                  <equals arg1="${fail_num}" arg2="0"/>
+                  <then>
+                     <testng outputDir="${tmp_report_dir}" classpathref="testcasecalsspath">
+                        <xmlfileset dir="${casedir}" includes="@{xmlname}"/>
+                     </testng>
+                  </then>
+               </if>
+            </sequential>
+         </for>
+      </sequential>
+   </macrodef>
+   
+   <macrodef name="execnormalandlargedatatest">
+      <attribute name="xmlfile"/>
+      <sequential>
+         <path id="testcasecalsspath">
+            <pathelement path="${casedir}/build" /> 
+            <fileset dir="${casedir}/lib" includes="**/*.jar"/>                  
+         </path>
+         <taskdef resource="testngtasks" classpath="${casedir}/lib/testng-6.10.1-SNAPSHOT.jar"/>
+         <testng outputDir="${tmp_report_dir}" classpathref="testcasecalsspath">
+            <xmlfileset dir="${casedir}" includes="@{xmlfile}"/>
+         </testng>
+      </sequential>
+   </macrodef>
+   
+   <macrodef name="execsynctest">
+      <attribute name="xmlfile"/>
+      <attribute name="reportdir"/>
+      <sequential>
+         <path id="testcasecalsspath">
+            <pathelement path="${casedir}/build" /> 
+            <fileset dir="${casedir}/lib" includes="**/*.jar"/>                  
+         </path>
+         <taskdef resource="testngtasks" classpath="${casedir}/lib/testng-6.10.1-SNAPSHOT.jar"/>
+         <testng outputDir="${tmp_report_dir}" classpathref="testcasecalsspath" failureProperty="rc">
+            <xmlfileset dir="${testcase_dir}" includes="@{xmlfile}"/>
+         </testng>
+      
+      </sequential>
+   </macrodef>
+
+   
+   <macrodef name="generatexml">
+      <!--judge TEST_LEVEL_TYPE=PACKAGE or CLASS-->
+      <attribute name="filename"/>
+      <sequential>
+      <if>
+         <equals arg1="${TEST_LEVEL_TYPE}" arg2="PACKAGE"/>
+         <then>
+            <!--tag contains class line #-->
+            <markContainsStrline strValue="class" filename="@{filename}"/>
+            <!--delete contains # line-->
+            <delContainsStrline filename="@{filename}"/>
+            <!--tag contains package line #-->
+            <markContainsStrline strValue="package" filename="@{filename}"/>
+            <!--remove comtains some char line #-->
+            <removeMarkWhoContainsStr filename="@{filename}"/>
+            <!--delete contains # line-->
+            <delContainsStrline filename="@{filename}"/>
+         </then>
+         <elseif>
+            <equals arg1="${TEST_LEVEL_TYPE}" arg2="CLASS"/>
+            <then>
+               <!--tag contains package line #-->
+               <markContainsStrline strValue="package" filename="@{filename}"/>
+               <!--delete contains # line-->
+               <delContainsStrline filename="@{filename}"/>
+               <!--tag contains class line #-->
+               <markContainsStrline strValue="class" filename="@{filename}"/>
+               <!--remove comtains some char line #-->
+               <removeMarkWhoContainsStr filename="@{filename}"/>
+               <!--delete contains # line-->
+               <delContainsStrline filename="@{filename}"/>
+            </then>
+         </elseif>
+         <else>
+            <fail message="TEST_LEVEL_TYPE only suppor PACKAGE or CLASS"/>
+         </else>
+      </if>
+      </sequential>
+   </macrodef>
+   
+   <macrodef name="markContainsStrline">
+      <attribute name="strValue"/>
+      <attribute name="filename"/>
+      <sequential>
+         <exec executable="sed">
+            <arg value="-i"/>
+            <arg line="'/@{strValue} / s/^/#/' ${testcase_dir}/@{filename}"/>
+         </exec>
+      </sequential>
+   </macrodef>
+   
+   <macrodef name="delContainsStrline">
+      <attribute name="filename"/>
+      <sequential>
+         <exec executable="sed">
+            <arg value="-i"/>
+            <arg line="'/#/d' ${testcase_dir}/@{filename}"/>
+         </exec>
+      </sequential>
+   </macrodef>
+   
+   <macrodef name="removeMarkWhoContainsStr">
+      <attribute name="filename"/>
+      <sequential>
+         <exec executable="sed">
+            <arg value="-i"/>
+            <arg line="'/${EXEC_TESTCASE_NAME}/ s/^#//' ${testcase_dir}/@{filename}"/>
+         </exec>
+      </sequential>
+   </macrodef>
+   
+   <macrodef name="compilecase">
+      <attribute name="srcdir"/>
+
+      <sequential>
+         <delete dir="@{srcdir}/build" failonerror="false" />
+         <mkdir dir="@{srcdir}/build"/>
+         <copy file="/opt/sequoiadb/java/sequoiadb.jar" todir="@{srcdir}/lib" overwrite="true" />
+         <copy file="${basedir}../thirdparty/testng-master/lib/linux64/testng-6.10.1-SNAPSHOT.jar" todir="@{srcdir}/lib" overwrite="true" />
+         <javac executable="javac" 
+                srcdir="@{srcdir}" 
+                destdir="@{srcdir}/build"
+                encoding="UTF-8"
+                debug="true" 
+                debuglevel="lines,vars,source"
+                fork="true" 
+                includeAntRuntime="false"
+                failonerror="true">
+            <classpath>
+               <fileset dir="@{srcdir}/lib" includes="**/*.jar"/>               
+            </classpath>
+         </javac>
+         <copy todir="@{srcdir}/build">
+            <fileset dir="@{srcdir}" includes="**/node.conf"/>
+         </copy>
+      </sequential>
+   </macrodef>
+   
+   <macrodef name="countstr">
+      <attribute name="resultproperty"/>
+      <attribute name="str"/>
+      <element name="path-elements"/>
+      <sequential>
+         <var name="@{resultproperty}" unset="true"/>
+         <resourcecount property="@{resultproperty}">
+         <tokens>
+            <concat>
+               <filterchain>
+                  <tokenfilter>
+                     <containsstring contains="@{str}"/>
+                  </tokenfilter>
+               </filterchain>
+               <path-elements/>
+            </concat>
+         </tokens>
+         </resourcecount>
+      </sequential>
+   </macrodef>
+</project>
