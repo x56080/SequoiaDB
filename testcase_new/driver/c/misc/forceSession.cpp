@@ -128,30 +128,15 @@ TEST( forceSession, currentSession )
 
      	// force node current session
     	rc = getCurrentSessionId( db, &sessionId ) ;
-    	ASSERT_EQ( rc, SDB_OK ) ;
+    	ASSERT_EQ( rc, SDB_OK ) << "fail to get current session id before force";
     	rc = sdbForceSession( db, sessionId, NULL ) ;
-    	ASSERT_EQ( rc, SDB_NETWORK_CLOSE ) << "fail to test force curent session" ;
+    	ASSERT_EQ( rc, SDB_OK ) << "fail to test force curent session" ;
     	
 		// reconect and check session id
-		sdbDisconnect( db ) ;
-        sdbReleaseConnection( db ) ;
-    	rc = sdbConnect( hostName, svcName, USER, PASSWD, &db ) ;
-    	ASSERT_EQ( rc, SDB_OK ) << "fail to connect node after force session" ;
-		SINT64 sessionIds[1024] ;
-    	char sessionTypes[1024][20] ;
-    	memset( sessionIds, 0, sizeof(sessionIds) ) ;
-		rc = getNodeSessionIds( db, nodeName, sessionIds, sessionTypes, 1024 ) ;
-    	ASSERT_EQ( rc, SDB_OK ) ;
-    	bool found = false ;
-    	for( int i = 0;i < 1024 && sessionIds[i] != 0;i++ )
-    	{
-        	if( sessionId == sessionIds[i] )
-        	{
-            	found = true ;
-            	break ;
-        	}
-    	}
-    	ASSERT_FALSE( found ) ;	
+		SINT64 sessionId1 = -1 ;
+		rc = getCurrentSessionId( db, &sessionId1 ) ;
+		ASSERT_EQ( rc, SDB_OK ) << "fail to get current session id after force" ;
+		ASSERT_EQ( sessionId, sessionId1 ) << "fail to check session id unchanged when force current session" ;	
 	
         // reconect to coord
     	sdbDisconnect( db ) ;
@@ -230,24 +215,6 @@ TEST( forceSession, withOption )
 	rc = sdbConnect( HOSTNAME, SVCNAME, USER, PASSWD, &db ) ;
 	rc = sdbForceSession( db, sessionId, &option ) ;
 	ASSERT_EQ( rc, SDB_OK ) << "fail to force session " << sessionId ;
-	
-	// check
-	memset( sessionIds, 0, sizeof(sessionIds) ) ;
-	sdbDisconnect( db ) ;
-    sdbReleaseConnection( db ) ;
-    rc = sdbConnect( hostName, svcName, USER, PASSWD, &db ) ;
-    rc = getNodeSessionIds( db, nodeName, sessionIds, sessionTypes, 1024 ) ;
-    ASSERT_EQ( rc, SDB_OK ) ;
-	bool found = false ;
-	for( int i = 0;i < 1024 && sessionIds[i] != 0;i++ )
-    {
-        if( sessionId == sessionIds[i] )
-		{ 
-			found = true ;
-			break ;
-		}
-    }
-	ASSERT_FALSE( found ) ;
 	
 	sdbDisconnect( db ) ;
     sdbReleaseConnection( db ) ;		 
