@@ -42,10 +42,16 @@ FileTest.prototype.testChown = function()
    if( this.isLocal )
    {
       if( currUser !== "root" )
+      {
+         this.release() ;
          return ;
+      }
    }
    else if( cmUser !== "root" )
+   {
+      this.release() ;
       return ;
+   }
 
    var tmpFilename = "/tmp/testOwn.txt" ;
    var tmpFile ;   
@@ -77,10 +83,16 @@ FileTest.prototype.testChgrp = function()
    if( this.isLocal )
    {
       if( currUser !== "root" )
+      {
+         this.release() ;
          return ;
+      }
    }
    else if( cmUser !== "root" )
+   {
+      this.release() ;
       return ;
+   }
    
    var tmpFilename = "/tmp/testGrp.txt" ;
    var tmpFile ;   
@@ -107,7 +119,7 @@ function main()
    var localhost = toolGetLocalhost() ;
    var remotehost = toolGetRemotehost() ;
    
-   var filename = "/tmp/testfile.txt" ;
+   var filename = "/tmp/testFileMode10817.txt" ;
    var ft1 = new FileTest( localhost, CMSVCNAME ) ;     // 本地File类类型
    var ft2 = new FileTest( localhost, CMSVCNAME, filename ) ;  // 本地file对象
    var ft3 = new FileTest( remotehost, CMSVCNAME ) ;    // 远程File类类型

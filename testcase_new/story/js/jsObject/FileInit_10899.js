@@ -8,7 +8,7 @@
 // 测试本地文件对象初始化时指定权限
 function testInitLocal()
 {
-   var filename = "/tmp/testfile.txt" ;
+   var filename = "/tmp/testInitLocal.txt" ;
    var modeNumber = [ 0755, 0x1ED, 493 ] ;
    var modeString = "-rwxr-xr-x" ;
    var command = "ls -al " + filename + " | awk '{print $1}'" ;
@@ -36,7 +36,7 @@ function testInitRemote()
    var remote = new Remote( remotehost, CMSVCNAME ) ;
    var cmd = remote.getCmd() ;
    
-   var filename = "/tmp/testfile.txt" ;
+   var filename = "/tmp/testInitRemote.txt" ;
    var modeNumber = [ 0755, 0x1ED, 493 ] ;
    var modeString = "-rwxr-xr-x" ;
    var command = "ls -al " + filename + " | awk '{print $1}'" ;

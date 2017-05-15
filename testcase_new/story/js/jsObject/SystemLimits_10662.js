@@ -24,6 +24,8 @@ SystemTest.prototype.testGetProcUlimitConfigs = function()
          limit = -1 ;
       else if( info.indexOf( "kbytes" ) !== -1 )
          limit = 1024 * limit ;
+      else if( info.indexOf( "blocks" ) !== -1 )
+         limit = 1024 * limit ;
       if( limits[k] !== limit*1 )
       {
          throw buildException( "testGetProcUlimits", null, 
@@ -82,7 +84,6 @@ SystemTest.prototype.testSetProcUlimitConfigs = function()
    
    this.release() ;
 }
-
 
 function main()
 {

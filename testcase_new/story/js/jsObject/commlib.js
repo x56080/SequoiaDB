@@ -159,16 +159,38 @@ FileTest.prototype.init = function()
       if( this.filename === undefined )
          this.file = File ;                           // 本地File类类型
       else
-         this.file = new File( this.filename ) ;      // 本地file对象
+      {
+         try
+         {
+            this.file = new File( this.filename ) ;      // 本地file对象
+         }
+         catch( e )
+         {
+            var dirmode = toolGetDirMode( File, this.filename ) ;
+            throw buildException( "init", e, "new file " + this.filename + " " + this +
+                  " dir mode: " + dirmode, 0, e ) ;
+         }
+      }
    }
    else
    {
       this.remote = new Remote( this.hostname, this.svcname ) ;
+      this.cmd = this.remote.getCmd() ;   // 远程cmd对象
       if( this.filename === undefined )
          this.file = this.remote.getFile() ;          // 远程File类类型
       else
-         this.file = this.remote.getFile( this.filename ) ;  // 远程file对象
-      this.cmd = this.remote.getCmd() ;   // 远程cmd对象
+      {
+         try
+         {
+            this.file = this.remote.getFile( this.filename ) ;  // 远程file对象
+         }
+         catch( e )
+         {
+            var dirmode = toolGetDirMode( this.remote.getFile(), this.filename ) ;
+            throw buildException( "init", e, "new file " + this.filename + " " + this +
+                  " dir mode: " + dirmode, 0, e ) ;
+         }
+      }
    }
 }
 
@@ -528,4 +550,16 @@ function isGroupExist( hostname, svcname, groupname )
    }
    remote.close() ;
    return exist ;
+}
+
+/******************************************************************************
+*@Description : check group exist or not
+*@author      : Liang XueWang              
+******************************************************************************/
+function toolGetDirMode( f, filename )
+{
+   var ind = filename.lastIndexOf( "/" ) ;
+   var dir = filename.slice( 0, ind ) ;
+   var mode = f.stat( dir ).toObj().mode ;
+   return mode ;
 }

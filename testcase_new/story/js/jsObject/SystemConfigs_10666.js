@@ -12,7 +12,7 @@ SystemTest.prototype.testGetSystemConfigs = function()
    var type = [ "kernel", "vm", "fs", "debug", "dev", "abi", "net", "all" ] ;
    // 动态变化的字段
    var except = [ "fs.dentry-state", "fs.inode-nr", "fs.inode-state",
-                  "fs.file-nr" ] ;
+                  "fs.file-nr", "kernel.ns_last_pid" ] ;
    for( var i = 0;i < type.length;i++ )
    {
       try 
@@ -136,7 +136,7 @@ function main()
    for( var i = 0;i < systems.length;i++ )
    {
       // 测试获取系统配置信息
-      // systems[i].testGetSystemConfigs() ;
+      systems[i].testGetSystemConfigs() ;
    }
 }
 

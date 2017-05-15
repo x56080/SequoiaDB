@@ -6,7 +6,6 @@
 *                          10833 删除文件
 *@auhor       : Liang XueWang
 ******************************************************************************/
-
 // 测试创建目录，移动文件，拷贝文件，删除文件
 FileTest.prototype.testFileOperation = function()
 {
@@ -57,9 +56,19 @@ FileTest.prototype.testCopyWithMode = function()
    var srcFile = sdbDir[0] + "/bin/sdb" ;      // -rwxr-xr-x
    var dstFile = sdbDir[0] + "/bin/sdb.bak" ;
    var mode = this.file.stat( srcFile ).toObj().mode.slice( 0, 10 ) ;
-   if( mode !== "rwxr-xr-x" )  return ;
+   if( mode !== "rwxr-xr-x" )
+   {
+      println( srcFile + " mode: " + mode + " " + this ) ;
+      this.release() ;
+      return ;
+   }
    var umask = this.file.getUmask( '8' ) ;
-   if( umask !== "0022" ) return ;
+   if( umask !== "0022" )
+   {
+      println( "umask: " + umask + " " + this ) ;
+      this.release() ;
+      return ;
+   }
    this.cmd.run( "rm -rf " + dstFile ) ;
    
    // 测试目标文件不存在时指定权限需要与umask运算
@@ -176,7 +185,7 @@ function main()
    var localhost = toolGetLocalhost() ;
    var remotehost = toolGetRemotehost() ;
    
-   var filename = "/tmp/testfile.txt" ;
+   var filename = "/tmp/testFileOperation10833.txt" ;
    var ft1 = new FileTest( localhost, CMSVCNAME ) ;     // 本地File类类型
    var ft2 = new FileTest( localhost, CMSVCNAME, filename ) ;  // 本地file对象
    var ft3 = new FileTest( remotehost, CMSVCNAME ) ;    // 远程File类类型

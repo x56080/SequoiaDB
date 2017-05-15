@@ -293,7 +293,8 @@ SystemTest.prototype.testGetCurrentUser = function()
    var userObj = this.system.getCurrentUser().toObj() ;
    var name = this.cmd.run( "whoami 2>/dev/null" ).split( "\n" )[0] ;
    var gid = this.cmd.run( "id -g " + name + " 2>/dev/null" ).split( "\n" )[0] ;
-   var dir = this.cmd.run( "echo ~" ).split( "\n" )[0] ;
+   var tmp = this.cmd.run( "echo ~" + name ).split( "\n" ) ;
+   var dir = tmp[tmp.length-2] ;
    if( name !== userObj.user || gid !== userObj.gid ||
        dir !== userObj.dir )
    {

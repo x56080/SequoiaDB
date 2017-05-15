@@ -101,7 +101,7 @@ function main()
    var localhost = toolGetLocalhost() ;
    var remotehost = toolGetRemotehost() ;
    
-   var filename = "/tmp/testfile.txt" ;
+   var filename = "/tmp/testFileReadAndWrite10828.txt" ;
    var ft1 = new FileTest( localhost, CMSVCNAME, filename ) ;   // 本地file对象
    var ft2 = new FileTest( remotehost, CMSVCNAME, filename ) ;  // 远程file对象
    

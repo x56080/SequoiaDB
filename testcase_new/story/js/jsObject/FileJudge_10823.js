@@ -6,7 +6,6 @@
 *                          10834 检查文件是否存在　
 *@auhor       : Liang XueWang
 ******************************************************************************/
-
 // 测试判断是否是文件
 FileTest.prototype.testIsFile = function()
 {
@@ -67,7 +66,7 @@ FileTest.prototype.testIsEmptyDir = function()
    this.init() ;
    
    var sdbDir = toolGetSequoiadbDir( this.hostname, this.svcname ) ;
-   var emptyDir = "/tmp/lxw/emptydir" ;
+   var emptyDir = "/tmp/emptydir" ;
    this.cmd.run( "mkdir -p " + emptyDir ) ;
    var fileName = sdbDir[0] + "/conf/sdbcm.conf" ;
 
@@ -126,7 +125,7 @@ function main()
    var localhost = toolGetLocalhost() ;
    var remotehost = toolGetRemotehost() ;
    
-   var filename = "/tmp/testfile.txt" ;
+   var filename = "/tmp/testFileJudge10823.txt" ;
    var ft1 = new FileTest( localhost, CMSVCNAME ) ;     // 本地File类类型
    var ft2 = new FileTest( localhost, CMSVCNAME, filename ) ;  // 本地file对象
    var ft3 = new FileTest( remotehost, CMSVCNAME ) ;    // 远程File类类型
