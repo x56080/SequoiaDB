@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <gtest/gtest.h>
 #include <string>
@@ -152,31 +153,54 @@ void getLocalIpAddr()
     struct sockaddr_in sin ;
     struct ifreq ifr ;
 
-    sock = socket(AF_INET,SOCK_DGRAM,0) ;
-    if(sock == -1)
+    sock = socket( AF_INET, SOCK_DGRAM,0 ) ;
+    if( sock == -1 )
 	{
-        printf("Error in socket.\n") ;
+        printf( "Error in socket.\n" ) ;
 	}
 
-    strncpy(ifr.ifr_name,ETH_NAME,IFNAMSIZ) ;
+    strncpy( ifr.ifr_name, ETH_NAME,IFNAMSIZ ) ;
     ifr.ifr_name[IFNAMSIZ-1] = 0 ;
 
-    if(ioctl(sock,SIOCGIFADDR,&ifr) < 0)
+    if( ioctl( sock, SIOCGIFADDR,&ifr ) < 0)
     {
-        printf("Error in ioctl.\n") ;
+        printf( "Error in ioctl.\n" ) ;
     }
 
-    memcpy(&sin,&ifr.ifr_addr,sizeof(sin)) ;
-    sprintf(IPADDR,"%s",inet_ntoa(sin.sin_addr)) ;
-	printf("Local Ip Address: %s\n",IPADDR) ;
+    memcpy( &sin, &ifr.ifr_addr, sizeof(sin) ) ;
+    sprintf( IPADDR, "%s", inet_ntoa(sin.sin_addr) ) ;
+	printf( "Local Ip Address: %s\n", IPADDR ) ;
+	close( sock ) ;
 }
 
 void getHost()
 {
-	FILE *fp = fopen("/etc/hostname","r") ;
-	if(fp == NULL)
-		printf("Error open /etc/hostname") ;
-	fscanf(fp,"%s",HOST) ;
-	fclose(fp) ;
-	printf("Host: %s\n",HOST) ;
+	int rc = gethostname( HOST, sizeof(HOST)-1 ) ;
+	if( rc != 0 )
+	{
+	   printf( "fail to gethostname, rc = %d\n", rc ) ;
+	   exit( EXIT_FAILURE ) ;
+	}
+	printf( "Host: %s\n", HOST ) ;
+}
+
+void getIdlePort( char* port )
+{
+	int start = atoi( RSRVPORTBEGIN ) ;
+	int end = atoi( RSRVPORTEND ) ;
+	struct sockaddr_in servaddr ;
+	int sock, i, serverport, ret ;
+	
+	bzero( &servaddr, sizeof(servaddr) ) ;
+	servaddr.sin_family = AF_INET ;
+	inet_pton( AF_INET, "127.0.0.1", &servaddr.sin_addr ) ;
+	for( i = start; i <= end; i += 5 )
+	{
+		servaddr.sin_port = htons(i) ;
+		ret = connect( sock, (struct sockaddr*)&servaddr, sizeof(servaddr) ) ;
+		if( EISCONN == ret )  continue ;
+		close( sock ) ;
+		sprintf( port, "%d", i ) ;
+		break ;
+	}
 }

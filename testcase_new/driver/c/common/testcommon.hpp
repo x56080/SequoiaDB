@@ -36,6 +36,9 @@ void getLocalIpAddr() ;
 // get hostname like sdbserver1
 void getHost() ;
 
+// get idle port between RSRVPORTBEGIN and RSRVPORTEND
+void getIdlePort( char* port ) ;
+
 SDB_EXTERN_C_END
 
 #endif
