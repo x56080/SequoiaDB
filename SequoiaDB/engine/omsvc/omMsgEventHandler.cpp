@@ -104,7 +104,7 @@ namespace engine
          rc = _pRSManager->pushMessage( handle, header ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "Push message[opCode: %d, len] failed, rc: %d",
+            PD_LOG( PDERROR, "Push message[opCode: %d, len: %d] failed, rc: %d",
                     header->opCode, header->messageLength, rc ) ;
             goto error ;
          }
