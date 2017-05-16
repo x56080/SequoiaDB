@@ -43,37 +43,37 @@ class globalParameter
    }
    static public function getSpareportStart()
    {
-      if ( !isset( $_POST['SPAREPORTSTART'] ) && empty( $_POST['SPAREPORTSTART'] ) )
+      if ( !isset( $_POST['RSRVPORTBEGIN'] ) && empty( $_POST['RSRVPORTBEGIN'] ) )
       {
          return 26000 ;
       }
       else
       {
-         return $_POST['SPAREPORTSTART'] ;
+         return $_POST['RSRVPORTBEGIN'] ;
       }
    }
    
    static public function getSpareportStop()
    {
-      if ( !isset( $_POST['SPAREPORTSTOP'] ) && empty( $_POST['SPAREPORTSTOP'] ) )
+      if ( !isset( $_POST['RSRVPORTEND'] ) && empty( $_POST['RSRVPORTEND'] ) )
       {
          return 27000 ;
       }
       else
       {
-         return $_POST['SPAREPORTSTOP'] ;
+         return $_POST['RSRVPORTEND'] ;
       }
    }
    
    static public function getDbPathPrefix()
    {
-      if ( !isset( $_POST['DBPATHPREFIX'] ) && empty( $_POST['DBPATHPREFIX'] ) )
+      if ( !isset( $_POST['RSRVNODEDIR'] ) && empty( $_POST['RSRVNODEDIR'] ) )
       {
-         return "/data/disk5/sequoiadb/database/data" ;
+         return "/opt/sequoiadb/database/" ;
       }
       else
       {
-         return $_POST['DBPATHPREFIX'] ;
+         return $_POST['RSRVNODEDIR'] ;
       }
    }
 
