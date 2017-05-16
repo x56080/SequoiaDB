@@ -18,11 +18,6 @@
          <package name="com.sequoiadb.transaction"/>
      </packages>  
    </test>
-   <test name="ssl">
-     <packages> 
-         <package name="com.sequoiadb.ssl"/>
-     </packages>  
-   </test>
 
 </suite>
    
