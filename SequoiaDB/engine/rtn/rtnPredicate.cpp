@@ -986,6 +986,18 @@ namespace engine
          return ;
       }
 
+      // Below operators with Array should generate full range predicate
+      if ( Array == e.type() &&
+           ( BSONObj::GT == op ||
+             BSONObj::GTE == op ||
+             BSONObj::LT == op ||
+             BSONObj::LTE == op ||
+             BSONObj::NE == op ) )
+      {
+         _isInitialized = TRUE ;
+         return ;
+      }
+
       BOOLEAN existsSpec = FALSE ;
       if ( BSONObj::opEXISTS == op )
       {

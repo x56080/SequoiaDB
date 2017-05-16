@@ -70,12 +70,12 @@ function checkResult( arrRc, objRc, rawData, indexName )
 {
    println("\n---Begin to check index.");
    
-   //compare scanType
+   //compare scanType: $ne with array should not generate predicates
    var tmpExp = arrRc.explain().current().toObj();
-   if( tmpExp["ScanType"] !== "ixscan" || tmpExp["IndexName"] !== indexName )
+   if( tmpExp["ScanType"] !== "tbscan" )
    {
       throw buildException("checkResult", null, "[compare index]", 
-                           "[ScanType:ixscan,IndexName:"+ indexName +"]", 
+                           "[ScanType:tbscan]", 
                            "[ScanType:"+ tmpExp["ScanType"] +",IndexName:"+ tmpExp["IndexName"] +"]");
    }
    
