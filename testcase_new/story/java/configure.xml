@@ -10,9 +10,9 @@
    <parameter name="RSRVPORTEND" value="27000" />
    <parameter name="RSRVNODEDIR" value="/opt/sequoiadb/database/" />
    <parameter name="WORKDIR" value="/tmp/javatest" />
+   <parameter name="CONFTOOL" value="trunk/misc/ci_new/src/test/exec_testcase/changeConf.js" />
 
-
-   
+   <!--The testcases of different configure should be placed in different <test> -->
    <test name="transaction" >
          <packages>
             <package name="com.sequoiadb.transaction"/>

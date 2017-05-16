@@ -20,6 +20,7 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.testcommon.SdbConfTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
@@ -31,12 +32,18 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  *
  */
 
-public class Split10537 extends SdbTestBase {
+public class Split10537 extends SdbConfTestBase {
 	private String clName = "testcaseCL10537";
 	private String srcGroupName;
 	private String destGroupName;
 	private Sequoiadb commSdb = null;
 
+   @Override
+    protected void setNodeConf(){
+        dataConf.put("transactionon", true);
+        stdalnConf.put("transactionon", true);
+    }
+    
 	@BeforeClass()
 	public void setUp() {
 
