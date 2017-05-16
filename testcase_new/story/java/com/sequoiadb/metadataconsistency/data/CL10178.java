@@ -14,6 +14,7 @@ import org.testng.Assert;
 import org.testng.SkipException;
 
 import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.metadataconsistency.data.CommLib;
@@ -105,8 +106,9 @@ public class CL10178 extends SdbTestBase{
 				
 				BSONObject opt = new BasicBSONObject();
 				opt.put("ReplSize", 2 );
-				if(csDB.isCollectionExist(clName)){
-					csDB.getCollection(clName).alterCollection(opt);
+				DBCollection clDB = csDB.getCollection(clName);
+				if(clDB != null){
+					clDB.alterCollection(opt);
 				}
 			}catch(BaseException e){
 				int eCode = e.getErrorCode();

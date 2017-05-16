@@ -131,7 +131,17 @@ public class Split10192 extends SdbTestBase {
 			{
 				db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 				attachCL(db);
-				CommLib.insertData(db, csName, mCLName);
+				
+				try
+				{
+				   CommLib.insertData(db, csName, mCLName);
+				}catch(BaseException e){
+	   				int eCode = e.getErrorCode();
+	   				if( eCode != -135){
+	   					throw e;
+	   				}
+				}
+				
 			}catch(BaseException e){
 				int eCode = e.getErrorCode();
 				if( eCode != -235){
