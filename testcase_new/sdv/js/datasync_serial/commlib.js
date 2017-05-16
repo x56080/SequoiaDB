@@ -866,7 +866,7 @@ function(group)
       }
       else if (prevLsn !== currentLsn)
       {
-         println("prev is " + prevLsn + " current is " + currentLsn)
+         //println("prev is " + prevLsn + " current is " + currentLsn)
          return false;
       }
    }
@@ -939,7 +939,7 @@ function(group, coll, cond)
 }
 
 replicaGroup.prototype.checkConsistency =
-function()
+function(coll)
 {
    try
    {
@@ -958,16 +958,19 @@ function()
          var cmd = new command(installPath + "/bin/sdbinspect");
          cmd.addOption("-g " + this.name);
          cmd.addOption("-d " + this.db.toString());
+         cmd.addOption("-c " + coll.csName);
+         cmd.addOption("-l " + coll.clName);
          
          var result = cmd.exec();
          
-         if (result.lastIndexOf("inspect successfully") === 0)
+         if (result.lastIndexOf("inspect done") === 0 &&
+             result.lastIndexOf("exit with no records different") !== -1)
          {
             return true;
          }
          else
          {
-            println("sdbinspect exec result:" + result )
+            //println("sdbinspect exec result:" + result )
             sleep(1000);
             sleepTimeLen += 1000;
             continue;

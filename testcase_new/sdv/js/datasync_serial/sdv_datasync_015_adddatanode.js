@@ -41,7 +41,7 @@ function main()
       
       var node = createNodeOfDataGroup(group);
       assert(group.checkResult(true, group.checkLSN), "the LSN is not consistent");
-      assert(group.checkConsistency(), "the data is not consistent");
+      assert(group.checkConsistency(cl), "the data is not consistent");
    }
    catch(e)
    {
