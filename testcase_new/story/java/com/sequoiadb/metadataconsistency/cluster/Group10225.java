@@ -28,7 +28,7 @@ public class Group10225 extends SdbTestBase {
 	private String rgName = "rg10225";
 	private Random random = new Random();
 	private int number = 3;
-	private int msec = 100;
+	private int msec = 1000;
 	
 	@BeforeClass
 	public void setUp(){
@@ -66,7 +66,7 @@ public class Group10225 extends SdbTestBase {
 		
 		CreateRG createRG = new CreateRG();
 		createRG.start();
-
+		
 		RemoveRG removeRG = new RemoveRG();
 		CommLib.sleep(random.nextInt(msec));
 		removeRG.start();
@@ -105,7 +105,8 @@ public class Group10225 extends SdbTestBase {
 			try
 			{
 				db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-				db.removeReplicaGroup(rgName + "_"  + random.nextInt(number));
+				String rgName2 = rgName + "_"  + random.nextInt(number);
+				db.removeReplicaGroup(rgName2);
 			}catch(BaseException e){
 				int eCode = e.getErrorCode();
 				if( eCode != -154){

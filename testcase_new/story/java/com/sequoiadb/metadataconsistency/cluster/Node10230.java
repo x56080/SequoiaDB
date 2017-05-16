@@ -27,7 +27,7 @@ public class Node10230 extends SdbTestBase {
 	private static Sequoiadb sdb = null;
 	private String rgName = "rg10230";
 	private Random random = new Random();
-	private int msec = 100;
+	private int msec = 1000;
 	
 	@BeforeClass
 	public void setUp(){

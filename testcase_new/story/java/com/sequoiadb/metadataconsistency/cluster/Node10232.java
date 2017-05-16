@@ -89,11 +89,13 @@ public class Node10232 extends SdbTestBase {
 			try{
 				db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 				
-				ReplicaGroup rgDB = db.getReplicaGroup(rgName);
-				Node node = rgDB.getSlave();
-				String hostName = node.getHostName();
-				int svcName = node.getPort();
-				rgDB.removeNode(hostName, svcName, null);
+				ReplicaGroup rgDB = db.getReplicaGroup("rgName");
+				if (rgDB != null) {
+					Node node = rgDB.getSlave();
+					String hostName = node.getHostName();
+					int svcName = node.getPort();
+					rgDB.removeNode(hostName, svcName, null);
+				}
 			}catch(BaseException e){
 				int eCode = e.getErrorCode();
 				if( eCode != -155){  //-155:Node does not exist
@@ -112,7 +114,10 @@ public class Node10232 extends SdbTestBase {
 				db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 				db.removeReplicaGroup(rgName);
 			}catch(BaseException e){
-				throw e;
+				int eCode = e.getErrorCode();
+				if( eCode != -154){  //-154:Group does not exist
+					throw e;
+				}
 			}finally{
 				db.disconnect();
 			}
