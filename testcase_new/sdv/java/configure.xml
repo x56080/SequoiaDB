@@ -1,6 +1,6 @@
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
 <!--this xml is for ci, please don't modify it-->
-<!--sync testcase, which should be excute serially-->
+<!--testcase which should configure node -->
 
 <suite name="sdv" verbose="1"> 
    <parameter name="HOSTNAME"       value="localhost" />
@@ -10,11 +10,14 @@
    <parameter name="RSRVPORTEND"    value="27000" />
    <parameter name="RSRVNODEDIR"    value="/opt/sequoiadb/database/" />
    <parameter name="WORKDIR"        value="/tmp/javatest" />
+   <parameter name="CONFTOOL"       value="trunk/misc/ci_new/src/test/exec_testcase/changeConf.js" />
    
+   <!--The testcases of different configure should be placed in different <test> -->
    <test name="lzwtransaction">
-      <packages>
-          <package name="com.sequoiadb.lzwtransaction"/>
-      </packages>
+      <classes>
+          <class name="com.sequoiadb.lzwtransaction.TestCompress6668"/>
+          <class name="com.sequoiadb.lzwtransaction.TestCompress6669"/>
+      </classes>
    </test>
 
 </suite>
