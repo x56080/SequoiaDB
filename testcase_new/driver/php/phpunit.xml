@@ -4,5 +4,8 @@
       <post name="HOSTNAME" value="localhost" />
       <post name="SVCNAME" value="11810" />
       <post name="CHANGEDPREFIX" value="sdv_php_test" />
+      <post name="RSRVPORTBEGIN" value="2600" />
+      <post name="RSRVPORTEND" value="2700" />
+      <post name="RSRVNODEDIR" value="/opt/sequoiadb/database/" />
    </php>
 </phpunit>
