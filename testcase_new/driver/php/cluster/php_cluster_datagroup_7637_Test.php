@@ -83,9 +83,7 @@ class dataGroupTest extends PHPUnit_Framework_TestCase
       $hosts = self::$groupMgr->getAllHostNamesOfDeploy() ;
       $hostName = $hosts[mt_rand(0,count($hosts)-1)] ;
       $port = mt_rand(globalParameter::getSpareportStart(), globalParameter::getSpareportStop()) ;
-      
-      var_dump($hostName);
-      var_dump($port);
+
       $ret = $group->addNode($hostName, $port,globalParameter::getDbPathPrefix()."/".$port, $options);
       $this->assertEquals(0, $ret ) ;
       $node = $group->getNode($hostName.":".$port);

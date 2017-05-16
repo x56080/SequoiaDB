@@ -17,7 +17,6 @@ class reelectTest extends PHPUnit_Framework_TestCase
    
    public static function setUpBeforeClass()
    {
-      echo "enter setUp\n" ;
       self::$db = new Sequoiadb() ;
       $err = self::$db -> connect(globalParameter::getHostName().':'. 
                                   globalParameter::getCoordPort()) ;
@@ -36,7 +35,6 @@ class reelectTest extends PHPUnit_Framework_TestCase
          echo "Failed to call listGroup, error code: ".$err['errno'] ;
          self::$skipTestCase = true ;
       }
-      echo "leave setUp\n";
    }
    
    public function setUp()
@@ -49,7 +47,6 @@ class reelectTest extends PHPUnit_Framework_TestCase
   
    private function findNode( $nodes, $node )
    {
-      echo "enter findNode\n";
       for ( $i = 0; $i < count($nodes); ++$i )
       { 
          $tmp = $nodes[$i];
@@ -59,7 +56,6 @@ class reelectTest extends PHPUnit_Framework_TestCase
             return true;
          }
       }
-      echo "leave findNode\n";
       return false;
    }
 
@@ -87,13 +83,11 @@ class reelectTest extends PHPUnit_Framework_TestCase
     */
    public function testReelect($options)
    {
-      echo "enter testReelect\n";
       if (empty( self::$groups )) return;
       for ($i =0; $i < count( self::$groups ); ++$i)
       {
          $group = self::$groups[$i];
          $groupName = $group->getName();
-         var_dump( $groupName );
          
          if ( $group->getNodeNum() > 1 &&
              ( $groupName != "SYSCoord" &&
@@ -126,9 +120,7 @@ class reelectTest extends PHPUnit_Framework_TestCase
    
    public static function tearDownAfterClass()
    {
-      echo "enter tearDown\n";
       $err = self::$db->close();
-      echo "leave tearDown\n";
    }
 }
 ?>

@@ -144,7 +144,6 @@ class ReplicaGroupMgr
           }
        }
        
-       var_dump($hosts);
        return $hosts;
     }
     

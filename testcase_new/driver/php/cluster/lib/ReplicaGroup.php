@@ -187,7 +187,6 @@ class ReplicaGroup
         {
            $repliNode = $this->nodes[$i];
            if ($repliNode->getName() == $name){
-              var_dump($repliNode);
               return $repliNode;
            }
         }
@@ -197,7 +196,6 @@ class ReplicaGroup
     
     public function addNode( $hostName, $serviceName, $dbpath, $cfg = NULL )
     {
-        echo "addNode***************8";
         $err = $this->group->createNode( $hostName, $serviceName,
                                         $dbpath, $cfg );
                                         
@@ -242,7 +240,6 @@ class ReplicaGroup
         if ($exist)
         {
            array_pop($this->nodes) ;   
-           var_dump( $this->nodes) ;
         }
     }
 
@@ -297,7 +294,6 @@ class ReplicaGroup
     
     public function detachNode( $node, $options=NULL )
     {
-        echo "detachNode:";
         $err = $this->group->detachNode( $node->getHostName(), $node->getServiceName(), $options );
         if (0 == $err['errno'])
         {

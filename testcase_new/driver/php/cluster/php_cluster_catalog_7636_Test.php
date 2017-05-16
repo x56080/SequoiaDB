@@ -71,7 +71,6 @@ class cataLogGroupTest extends PHPUnit_Framework_TestCase
     */
    public function testCreateByfullParameters($options)
    {
-      echo "testCreateByfullParameters";
       $hosts = self::$groupMgr->getAllHostNamesOfDeploy() ;
    
       $hostName = $hosts[mt_rand(0,count($hosts)-1)] ;
