@@ -15,9 +15,10 @@ if ( typeof(CATASVCNAME) == "undefined" ) { CATASVCNAME = "11800"; }
 if ( typeof(COORDHOSTNAME) == "undefined" ) { COORDHOSTNAME = 'localhost'; }
 if ( typeof(UUID) == "undefined" ) { UUID = 1 ; }
 if ( typeof(UUNAME) == "undefined" ) { UUNAME = "ID"+UUID+"NAME" ; }
-if ( typeof(SPAREPORTSTART) == "undefined" ) 	{ SPAREPORTSTART = '26000'; }
-if ( typeof(SPAREPORTSTOP)   == "undefined" ) 	{ SPAREPORTSTOP   = '27000'; }
+if ( typeof(RSRVPORTBEGIN) == "undefined" ) 	{ RSRVPORTBEGIN = '26000'; }
+if ( typeof(RSRVPORTEND)   == "undefined" ) 	{ RSRVPORTEND   = '27000'; }
 if ( typeof(SPAREPORTPATH)   == "undefined" ) 	{ SPAREPORTPATH = "/opt/sequoiadb/database/"; }
+if ( typeof(WORKDIR)   == "undefined" ) 	{ WORKDIR   = "/tmp/jstest"; }
 
 var COMMCSNAME = CHANGEDPREFIX + "_cs" ;
 var COMMCLNAME = CHANGEDPREFIX + "_cl" ;
