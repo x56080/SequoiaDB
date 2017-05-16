@@ -147,6 +147,7 @@ function execTransaction()
 function checkResult( cl, isSuccess, operate )
 { 
    var operName = operate.name;  
+   db.setSessionAttr( { PreferedInstance: "M" } );
         
    if ( isSuccess === true )
    {      

@@ -4,7 +4,7 @@
 *@Author:  		TingYU  2015/11/25
                wuyan 2017/1/6(修改重复执行回滚不报错) 
 ************************************************************************/
-main();
+/*main();
 
 function main()
 {
@@ -82,7 +82,7 @@ function readyCL( csName, mainclName, subclName )
 	commDropCL( db, csName, mainclName, true, true, "drop main cl in begin" );	
 	commDropCL( db, csName, subclName , true, true, "drop sub cl in begin" );	
 	
-	var mainOpt = {ShardingKey:{mainSk:1}, ShardingType:"range", IsMainCL:true };
+	var mainOpt = {ShardingKey:{mainSk:1}, ShardingType:"range", IsMainCL:true, ReplSize:0 };
 	var subOpt  = {ReplSize:0};
    var maincl = 
    commCreateCLByOption( db, csName, mainclName, mainOpt, true, false, "create mian cl in begin" ); 
@@ -94,4 +94,4 @@ function readyCL( csName, mainclName, subclName )
    maincl.attachCL( csName+"."+subclName, attaOpt );
    
    return maincl;
-}
+}*/
