@@ -7,7 +7,7 @@ var csName = CHANGEDPREFIX + "_cs"; ;
 var cmd = new Cmd() ;
 var installDir = initPath();
 
-var dbs = new SecureSdb( "192.168.31.2", COORDSVCNAME ); 
+var dbs = new SecureSdb( COORDHOSTNAME, COORDSVCNAME ); 
 
 //inspect the index is created success or not.
 function inspecIndex( cl, indexName , indexKey , keyValue , idxUnique , idxEnforced )
