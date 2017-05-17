@@ -122,7 +122,7 @@ class Group_Test extends PHPUnit_Framework_TestCase
    {
       if( $group != null && $isStandlone == false )
       {
-         $err = $group -> reelect( array( 'Seconds' => 30 ) ) ;
+         $err = $group -> reelect( array( 'Seconds' => 90 ) ) ;
          $this -> assertEquals( 0, $err['errno'], 'reelect错误' ) ;
                  
          $node = $group -> getMaster() ;
