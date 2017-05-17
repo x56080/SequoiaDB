@@ -2180,8 +2180,9 @@ namespace engine
          {
             goto done ;
          }
-         // not the cl
-         if ( (UINT32)~0 != clLID && curCLLID != clLID )
+         // not the cl or it is a drop cs
+         if ( ( (UINT32)~0 != clLID && curCLLID != clLID ) ||
+              ( (UINT32)~0 == clLID ) )
          {
             goto done ;
          }
