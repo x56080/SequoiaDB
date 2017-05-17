@@ -26,7 +26,7 @@ function main() {
     var conn = db;
 
     var currentSession = conn.list(SDB_LIST_SESSIONS_CURRENT, {Global: false}).next().toObj();
-
+   
     // TODO 2.a
     try {
         conn.forceSession(currentSession.SessionID, {Host: "testtest"});
@@ -46,12 +46,14 @@ function main() {
     try {
         conn.forceSession(currentSession.SessionID, {});
         // throw new Error(0);
-    } catch (e) {
+    } 
+    catch (e) 
+    {
         if (e == "Error: 0") {
             throw buildException("TODO 2.b not validate the options {}", e);
         } else {
             println(e);
-            throw buildException("TODO 2.b conn.forceSession(currentSession.SessionID, {Host: \"testtest\"}) fail", e);
+            throw buildException("TODO 2.b conn.forceSession(currentSession.SessionID, {}) fail", e);
         }
     }
 
@@ -69,13 +71,13 @@ function main() {
     var currentSession = conn.list(SDB_LIST_SESSIONS_CURRENT, {Global: false}).next().toObj();
     try {
         conn.forceSession(currentSession.SessionID, {NodeID: "abcd"});
-        // throw new Error(0);
-    } catch (e) {
-        if (e == "Error: 0") {
+        throw new Error(-6);
+    } 
+    catch (e)
+    {
+        if (e !== -6)
+        {
             throw buildException("TODO 2.d not validate the options {NodeID: \"abcd\"}", e);
-        } else {
-            println(e);
-            throw buildException("TODO 2.d conn.forceSession(currentSession.SessionID, {Host: \"testtest\"}) fail", e);
-        }
+        } 
     }
 }

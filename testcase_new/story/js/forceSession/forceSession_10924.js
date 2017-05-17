@@ -22,22 +22,29 @@ function main() {
     if (commIsStandalone(db)) return;
 
     // TODO 2.a
-    try {
+    var error = "Error: Sdb.forceSession(): wrong arguments";
+    try 
+    {
         db.forceSession();
-    } catch (e) {
-        if (e !== "Error: Sdb.forceSession(): wrong arguments") {
-            println(e);
-            throw buildException("forceSession", new Error(), "forceSession but sessionid is null", "throw exception", "don't throw exception");
+    } 
+    catch (e) 
+    {       
+        if (String(e) !== error) 
+        {
+            throw buildException("forceSession", new Error(), "forceSession is null", error, e);
         }
     }
 
     // TODO 2.b 因为sessionid传入字符串，不报错，这里类型非法采用其他类型验证
-    try {
+    try 
+    {
         db.forceSession(true);
-    } catch (e) {
-        if (e !== "Error: Sdb.forceSession(): wrong arguments") {
-            println(e);
-            throw buildException("forceSession", new Error(), "forceSession but sessionid type is error", "throw exception", "don't throw exception");
+    } 
+    catch (e) 
+    {
+        if (String(e) !== error)
+        {   
+            throw buildException("forceSession", new Error(), "forceSession but sessionid type is error", error, e);
         }
     }
 }
