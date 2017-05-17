@@ -39,7 +39,7 @@ function main( db )
          }
          catch( e )
          {
-            if( -67 == e || -240 == e )
+            if( -67 == e || -264 == e )
             {
                println( "backup description is already started" ) ;
                alreadStart1 = true ;
@@ -59,14 +59,15 @@ function main( db )
          try
          {
             bakBackup( db, backup1 ) ;
+            println( "Backup offline second" ) ;
          }
          catch( e )
          {
-            if( -67 == e || -240 == e )
+            if( -67 == e || -264 == e )
             {
                //println( "backup description is already started" ) ;
                alreadStart2 = false ;
-               println( "Backup offline second" ) ;
+               
             }
             else
             {
@@ -88,7 +89,7 @@ function main( db )
          }
          catch( e )
          {
-            if( -67 == e || -240 == e )
+            if( -67 == e || -264 == e )
             {
                println( "backup description is already started" ) ;
                alreadStart3 = true ;
@@ -131,7 +132,7 @@ function main( db )
       }
       catch( e )
       {
-         if( -67 == e || -240 == e )
+         if( -67 == e || -264 == e )
          {
             println( "backup description is already started" ) ;
             alreadStart1 = true ;
@@ -153,7 +154,7 @@ function main( db )
       }
       catch( e )
       {
-         if( -67 == e || -240 == e )
+         if( -67 == e || -264 == e )
          {
             //println( "backup description is already started" ) ;
             alreadStart2 = false ;
@@ -178,7 +179,7 @@ function main( db )
       }
       catch( e )
       {
-         if( -67 == e || -240 == e )
+         if( -67 == e || -264 == e )
          {
             println( "backup description is already started" ) ;
             alreadStart3 = true ;
