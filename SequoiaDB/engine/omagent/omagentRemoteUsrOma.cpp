@@ -1456,7 +1456,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       BSONObj optionObj ;
       CHAR currentPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      omAgentOptions option ;
+      omAgentOptions option( PMD_CFG_MASK_SHOWALL ) ;
 
       // Get current path
       ossGetEWD( currentPath, OSS_MAX_PATHSIZE ) ;

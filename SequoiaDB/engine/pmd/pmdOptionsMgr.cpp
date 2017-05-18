@@ -95,9 +95,10 @@ namespace engine
    _pmdCfgExchange::_pmdCfgExchange( const BSONObj &dataObj,
                                      BOOLEAN load,
                                      PMD_CFG_STEP step,
-                                     BOOLEAN onlyMem,
+                                     UINT32 mask,
                                      MAP_K2V *pMapField )
-   :_cfgStep( step ), _isLoad( load ), _dataObj( dataObj ), _onlyMem( onlyMem )
+   :_cfgStep( step ), _isLoad( load ), _dataObj( dataObj ),
+    _mask( mask )
    {
       _dataType   = PMD_CFG_DATA_BSON ;
       _pVMFile    = NULL ;
@@ -113,10 +114,10 @@ namespace engine
                                      po::variables_map * pVMFile,
                                      BOOLEAN load,
                                      PMD_CFG_STEP step,
-                                     BOOLEAN onlyMem,
+                                     UINT32 mask,
                                      MAP_K2V *pMapField )
-   :_cfgStep( step ), _isLoad( load ), _pVMFile( pVMFile ), _pVMCmd( pVMCmd ),
-    _onlyMem( onlyMem )
+   :_cfgStep( step ), _isLoad( load ), _pVMFile( pVMFile ),
+    _pVMCmd( pVMCmd ), _mask( mask )
    {
       _dataType   = PMD_CFG_DATA_CMD ;
 
@@ -278,7 +279,7 @@ namespace engine
       MAP_K2V::iterator it = _mapKeyField.find( pFieldName ) ;
       if ( it != _mapKeyField.end() && ! it->second._hasMapped )
       {
-         if ( _onlyMem )
+         if ( _mask & PMD_CFG_MASK_ONLYMEM )
          {
             it->second._hasMapped = TRUE ;
          }
@@ -287,7 +288,7 @@ namespace engine
             goto done ;
          }
       }
-      
+
       if ( PMD_CFG_DATA_BSON == _dataType )
       {
          _dataBuilder.append( pFieldName, value ) ;
@@ -313,7 +314,7 @@ namespace engine
       MAP_K2V::iterator it = _mapKeyField.find( pFieldName ) ;
       if ( it != _mapKeyField.end() && ! it->second._hasMapped )
       {
-         if ( _onlyMem )
+         if ( _mask & PMD_CFG_MASK_ONLYMEM )
          {
             it->second._hasMapped = TRUE ;
          }
@@ -322,7 +323,7 @@ namespace engine
             goto done ;
          }
       }
-      
+
       if ( PMD_CFG_DATA_BSON == _dataType )
       {
          _dataBuilder.append( pFieldName, pValue ) ;
@@ -482,11 +483,12 @@ namespace engine
    /*
       _pmdCfgRecord implement
    */
-   _pmdCfgRecord::_pmdCfgRecord ()
+   _pmdCfgRecord::_pmdCfgRecord ( UINT32 mask )
    {
       _result = SDB_OK ;
       _changeID = 0 ;
       _pConfigHander = NULL ;
+      _mask = mask ;
    }
    _pmdCfgRecord::~_pmdCfgRecord ()
    {
@@ -505,10 +507,14 @@ namespace engine
    INT32 _pmdCfgRecord::restore( const BSONObj & objData,
                                  po::variables_map *pVMCMD )
    {
+      INT32 rc = SDB_OK ;
       MAP_K2V mapKeyValue ;
       MAP_K2V::iterator it ;
       pmdCfgExchange ex( objData, TRUE, PMD_CFG_STEP_INIT ) ;
-      INT32 rc = doDataExchange( &ex ) ;
+
+      ossScopedLock lock( &_mutex ) ;
+
+      rc = doDataExchange( &ex ) ;
       if ( rc )
       {
          goto error ;
@@ -558,11 +564,16 @@ namespace engine
       BSONObj oldCfg ;
       MAP_K2V mapKeyField ;
       MAP_K2V::iterator it ;
+      BOOLEAN locked = FALSE ;
       pmdCfgExchange ex( objData, TRUE, PMD_CFG_STEP_CHG ) ;
 
       // save old cfg
       rc = toBSON( oldCfg ) ;
       PD_RC_CHECK( rc, PDERROR, "Save old config failed, rc: %d", rc ) ;
+
+      _mutex.get() ;
+      locked = TRUE ;
+
       // update new cfg
       rc = doDataExchange( &ex ) ;
       if ( rc )
@@ -591,10 +602,19 @@ namespace engine
       }
 
    done:
+      if ( locked )
+      {
+         _mutex.release() ;
+      }
       return rc ;
    error:
       goto done ;
    restore:
+      if ( locked )
+      {
+         _mutex.release() ;
+         locked = FALSE ;
+      }
       restore( oldCfg, NULL ) ;
       goto done ;
    }
@@ -602,8 +622,12 @@ namespace engine
    INT32 _pmdCfgRecord::init( po::variables_map *pVMFile,
                               po::variables_map *pVMCMD )
    {
+      INT32 rc = SDB_OK ;
       pmdCfgExchange ex( pVMCMD, pVMFile, TRUE, PMD_CFG_STEP_INIT ) ;
-      INT32 rc = doDataExchange( &ex ) ;
+
+      ossScopedLock lock( &_mutex ) ;
+
+      rc = doDataExchange( &ex ) ;
       if ( rc )
       {
          goto error ;
@@ -632,12 +656,17 @@ namespace engine
       goto done ;
    }
 
-   INT32 _pmdCfgRecord::toBSON( BSONObj & objData )
+   INT32 _pmdCfgRecord::toBSON( BSONObj &objData, UINT32 mask )
    {
-      INT32 rc = preSaving() ;
+      INT32 rc = SDB_OK ;
+
+      ossScopedLock lock( &_mutex ) ;
+
+      rc = preSaving() ;
       if ( SDB_OK == rc )
       {
-         pmdCfgExchange ex( BSONObj(), FALSE, PMD_CFG_STEP_INIT ) ;
+         pmdCfgExchange ex( BSONObj(), FALSE, PMD_CFG_STEP_INIT,
+                            mask, &_mapKeyValue ) ;
          rc = doDataExchange( &ex ) ;
          if ( SDB_OK == rc )
          {
@@ -657,12 +686,17 @@ namespace engine
       return rc ;
    }
 
-   INT32 _pmdCfgRecord::toString( string & str )
+   INT32 _pmdCfgRecord::toString( string &str, UINT32 mask )
    {
-      INT32 rc = preSaving() ;
+      INT32 rc = SDB_OK ;
+
+      ossScopedLock lock( &_mutex ) ;
+
+      rc = preSaving() ;
       if ( SDB_OK == rc )
       {
-         pmdCfgExchange ex( NULL, NULL, FALSE, PMD_CFG_STEP_INIT ) ;
+         pmdCfgExchange ex( NULL, NULL, FALSE, PMD_CFG_STEP_INIT,
+                            mask, &_mapKeyValue ) ;
          INT32 rc = doDataExchange( &ex ) ;
          if ( SDB_OK == rc )
          {
@@ -884,13 +918,6 @@ namespace engine
          {
             if ( FALSE == allowRunChg )
             {
-               /*if ( pEX->hasField( pFieldName ) )
-               {
-                  _result = SDB_PERM ;
-                  PD_LOG ( PDWARNING, "Field[%s] do not support changing in "
-                           "runtime", pFieldName ) ;
-                  goto error ;
-               }*/
                goto done ;
             }
             if ( !pEX->hasField( pFieldName ) )
@@ -919,7 +946,8 @@ namespace engine
       }
       else
       {
-         if ( hideParam && 0 == ossStrcmp( pValue, pDefaultValue ) )
+         if ( hideParam && !( _mask & PMD_CFG_MASK_SHOWALL ) &&
+              0 == ossStrcmp( pValue, pDefaultValue ) )
          {
             goto done ;
          }
@@ -1005,13 +1033,6 @@ namespace engine
          {
             if ( FALSE == allowRunChg )
             {
-               /*if ( pEX->hasField( pFieldName ) )
-               {
-                  _result = SDB_PERM ;
-                  PD_LOG ( PDWARNING, "Field[%s] do not support changing in "
-                           "runtime", pFieldName ) ;
-                  goto error ;
-               }*/
                goto done ;
             }
             if ( !pEX->hasField( pFieldName ) )
@@ -1040,7 +1061,8 @@ namespace engine
       }
       else
       {
-         if ( hideParam && value == defaultValue )
+         if ( hideParam && !( _mask & PMD_CFG_MASK_SHOWALL ) &&
+              value == defaultValue )
          {
             goto done ;
          }
@@ -1313,7 +1335,8 @@ namespace engine
    /*
       _pmdOptionsMgr implement
    */
-   _pmdOptionsMgr::_pmdOptionsMgr()
+   _pmdOptionsMgr::_pmdOptionsMgr( UINT32 mask )
+   :_pmdCfgRecord( mask )
    {
       // rdx members
       ossMemset( _krcbDbPath, 0, OSS_MAX_PATHSIZE + 1 ) ;
@@ -2469,14 +2492,18 @@ namespace engine
          goto error;
       }
 
-      rc = utilWriteConfigFile( conf, line.c_str(), FALSE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to write config[%s], rc: %d",
-                   conf, rc ) ;
-
-      // save notify
-      if ( getConfigHandler() )
       {
-         getConfigHandler()->onConfigSave() ;
+         ossScopedLock lock( &_mutex ) ;
+
+         rc = utilWriteConfigFile( conf, line.c_str(), FALSE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to write config[%s], rc: %d",
+                      conf, rc ) ;
+
+         // save notify
+         if ( getConfigHandler() )
+         {
+            getConfigHandler()->onConfigSave() ;
+         }
       }
 
    done:

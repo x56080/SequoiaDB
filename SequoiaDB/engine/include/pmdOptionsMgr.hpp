@@ -103,6 +103,12 @@ namespace engine
    typedef map< string, pmdParamValue >      MAP_K2V ;
 
    /*
+      Mask define
+   */
+   #define PMD_CFG_MASK_ONLYMEM           0x00000001
+   #define PMD_CFG_MASK_SHOWALL           0x00000002
+
+   /*
       _pmdCfgExchange define
    */
    class _pmdCfgExchange : public SDBObject
@@ -113,13 +119,13 @@ namespace engine
          _pmdCfgExchange ( const BSONObj &dataObj,
                            BOOLEAN load = TRUE,
                            PMD_CFG_STEP step = PMD_CFG_STEP_INIT,
-                           BOOLEAN onlyMem = FALSE,
+                           UINT32 mask = 0,
                            MAP_K2V *pMapField = NULL ) ;
          _pmdCfgExchange ( po::variables_map *pVMCmd,
                            po::variables_map *pVMFile = NULL,
                            BOOLEAN load = TRUE,
                            PMD_CFG_STEP step = PMD_CFG_STEP_INIT,
-                           BOOLEAN onlyMem = FALSE,
+                           UINT32 mask = 0,
                            MAP_K2V *pMapField = NULL ) ;
          ~_pmdCfgExchange () ;
 
@@ -165,7 +171,7 @@ namespace engine
          string                  _dataStr ;
 
          MAP_K2V                 _mapKeyField ;
-         BOOLEAN                 _onlyMem ;    //set configure in memory to file
+         UINT32                  _mask ;
 
    } ;
    typedef _pmdCfgExchange pmdCfgExchange ;
@@ -211,7 +217,7 @@ namespace engine
                                        const CHAR *pDefault = NULL ) ;
 
       public:
-         _pmdCfgRecord () ;
+         _pmdCfgRecord ( UINT32 mask = 0 ) ;
          virtual ~_pmdCfgRecord () ;
 
          void  setConfigHandler( IConfigHandle *pConfigHandler ) ;
@@ -225,8 +231,8 @@ namespace engine
                         po::variables_map *pVMCMD ) ;
          INT32 change( const BSONObj &objData ) ;
 
-         INT32 toBSON ( BSONObj &objData ) ;
-         INT32 toString( string &str ) ;
+         INT32 toBSON ( BSONObj &objData, UINT32 mask = 0 ) ;
+         INT32 toString( string &str, UINT32 mask = 0 ) ;
 
          UINT32 getChangeID () const { return _changeID ; }
 
@@ -306,6 +312,9 @@ namespace engine
          IConfigHandle                       *_pConfigHander ;
 
          MAP_K2V                             _mapKeyValue ;
+      protected:
+         ossSpinXLatch                       _mutex ;
+         UINT32                              _mask ;
 
    } ;
    typedef _pmdCfgRecord pmdCfgRecord ;
@@ -316,7 +325,7 @@ namespace engine
    class _pmdOptionsMgr : public _pmdCfgRecord
    {
       public:
-         _pmdOptionsMgr() ;
+         _pmdOptionsMgr( UINT32 mask = 0 ) ;
          ~_pmdOptionsMgr() ;
 
       protected:
