@@ -51,7 +51,8 @@ namespace engine
    /*
       _omAgentOptions implement
    */
-   _omAgentOptions::_omAgentOptions()
+   _omAgentOptions::_omAgentOptions( UINT32 mask )
+   :_pmdCfgRecord( mask )
    {
       ossMemset( _dftSvcName, 0, sizeof( _dftSvcName ) ) ;
       ossMemset( _cmServiceName, 0, sizeof( _cmServiceName ) ) ;
