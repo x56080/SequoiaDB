@@ -15,7 +15,20 @@ runAll=0
 # common function
 function display()
 {
-   echo "$0 [-c compile] [-nocompile] [-release] [-noup] [-start] [-install] [-test] [-dbpath <db home path>] [-full]"
+   echo "$0 --help | -h"
+   echo "$0 [-noup] [-nocompile] [-c arg] [-release] [-install] [-start] [-dbpath path] [-test] [-full]"
+   echo ""
+   echo " -noup        : 不更新svn，不加表示更新svn"
+   echo " -nocompile   : 不执行编译，不加表示重新编译"
+   echo " -c arg       : arg指定编译参数"
+   echo " -release     : 编译release版本"
+   echo " -install     : 执行安装部署"
+   echo " -start       : 启动集群"  
+   echo " -dbpath path : 指定节点路径"
+   echo " -test        : 调用runtest.sh执行测试"
+   echo " -full        : 执行story测试用例，不加表示执行basic用例"
+
+   echo ""
    exit $1
 }
 
@@ -260,6 +273,8 @@ while [ "$1" != "" ]; do
                           homePath=$1
                           ;;
       -full )             runAll=1
+                          ;;
+      --help | -h )       display 0
                           ;;
       * )                 echo "Invalid argument: $p"
                           display 1
