@@ -112,11 +112,15 @@ namespace engine
       public:
          _pmdCfgExchange ( const BSONObj &dataObj,
                            BOOLEAN load = TRUE,
-                           PMD_CFG_STEP step = PMD_CFG_STEP_INIT ) ;
+                           PMD_CFG_STEP step = PMD_CFG_STEP_INIT,
+                           BOOLEAN onlyMem = FALSE,
+                           MAP_K2V *pMapField = NULL ) ;
          _pmdCfgExchange ( po::variables_map *pVMCmd,
                            po::variables_map *pVMFile = NULL,
                            BOOLEAN load = TRUE,
-                           PMD_CFG_STEP step = PMD_CFG_STEP_INIT ) ;
+                           PMD_CFG_STEP step = PMD_CFG_STEP_INIT,
+                           BOOLEAN onlyMem = FALSE,
+                           MAP_K2V *pMapField = NULL ) ;
          ~_pmdCfgExchange () ;
 
          PMD_CFG_STEP   getCfgStep() const { return _cfgStep ; }
@@ -161,6 +165,7 @@ namespace engine
          string                  _dataStr ;
 
          MAP_K2V                 _mapKeyField ;
+         BOOLEAN                 _onlyMem ;    //set configure in memory to file
 
    } ;
    typedef _pmdCfgExchange pmdCfgExchange ;
