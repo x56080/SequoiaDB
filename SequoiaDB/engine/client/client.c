@@ -435,7 +435,7 @@ static INT32 _recv ( sdbConnectionHandle cHandle, Socket* sock,
       #endif
       // quick ack
       {
-         INT32 i = 0 ;
+         INT32 i = 1 ;
          setsockopt( clientGetRawSocket ( sock ), IPPROTO_TCP, TCP_QUICKACK, (void*)&i, sizeof(i) ) ;
       }
 #endif

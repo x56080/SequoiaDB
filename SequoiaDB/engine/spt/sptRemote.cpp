@@ -348,7 +348,7 @@ do                                                                          \
       #endif
       // quick ack
       {
-         INT32 i = 0 ;
+         INT32 i = 1 ;
          setsockopt( clientGetRawSocket ( connection->_sock ),
                      IPPROTO_TCP, TCP_QUICKACK, (void*)&i, sizeof(i) ) ;
       }
