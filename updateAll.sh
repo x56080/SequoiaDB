@@ -20,7 +20,7 @@ function display()
    echo ""
    echo " -noup        : 不更新svn，不加表示更新svn"
    echo " -nocompile   : 不执行编译，不加表示重新编译"
-   echo " -c arg       : arg指定编译参数"
+   echo ' -c arg       : arg指定编译参数，如"--engine --dd --enterprise"'
    echo " -release     : 编译release版本"
    echo " -install     : 执行安装部署"
    echo " -start       : 启动集群"  
