@@ -362,6 +362,8 @@ namespace engine
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnListDomains)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnListGroups)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnListProcedures)
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnCreateProcedure)
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnRemoveProcedure)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnListCSInDomain)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnListCLInDomain)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnCreateCataGroup)
