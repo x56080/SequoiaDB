@@ -1035,6 +1035,12 @@ namespace engine
             pValue[ len - 1 ] = 0 ;
             utilCatPath( pValue, len, "" ) ;
          }
+         /// update map's value
+         MAP_K2V::iterator it = _mapKeyValue.find( pFieldName ) ;
+         if ( it != _mapKeyValue.end() )
+         {
+            it->second._value = pValue ;
+         }
       }
       return _result ;
    }
@@ -1055,6 +1061,13 @@ namespace engine
       if ( SDB_OK == _result && pEX->isLoad() )
       {
          ossStrToBoolean( szTmp, &value ) ;
+
+         /// update map's value
+         MAP_K2V::iterator it = _mapKeyValue.find( pFieldName ) ;
+         if ( it != _mapKeyValue.end() )
+         {
+            it->second._value = value ? "TRUE" : "FALSE" ;
+         }
       }
       return _result ;
    }
@@ -2169,11 +2182,19 @@ namespace engine
       ossStrncpy( _catAddrLine, addr.c_str(), OSS_MAX_PATHSIZE ) ;
       _catAddrLine[ OSS_MAX_PATHSIZE ] = 0 ;
       /// make sure hasField
-      _addToFieldMap( PMD_OPTION_CATALOG_ADDR, _catAddrLine, TRUE, TRUE ) ;
+      if ( 0 != _catAddrLine[ 0 ] )
+      {
+         _addToFieldMap( PMD_OPTION_CATALOG_ADDR, _catAddrLine, TRUE, TRUE ) ;
+      }
 
       addr = makeAddressLine( _vecOm ) ;
       ossStrncpy( _omAddrLine, addr.c_str(), OSS_MAX_PATHSIZE ) ;
       _omAddrLine[ OSS_MAX_PATHSIZE ] = 0 ;
+      /// make sure PMD_OPTION_OM_ADDR hasField
+      if ( 0 != _omAddrLine[ 0 ] )
+      {
+         _addToFieldMap( PMD_OPTION_OM_ADDR, _omAddrLine, TRUE, TRUE ) ;
+      }
 
       clsStrategy2String( _syncStrategy, _syncStrategyStr,
                           sizeof( _syncStrategyStr ) ) ;
@@ -2226,6 +2247,8 @@ namespace engine
       {
          ossStrcpy( _krcbConfPath, PMD_CURRENT_PATH ) ;
       }
+      /// update conf path
+      _addToFieldMap( PMD_OPTION_CONFPATH, _krcbConfPath, TRUE, FALSE ) ;
 
    done:
       return rc ;
@@ -2357,6 +2380,8 @@ namespace engine
       else
       {
          ossStrcpy( _krcbConfPath, cfgTempPath ) ;
+         /// update conf path
+         _addToFieldMap( PMD_OPTION_CONFPATH, _krcbConfPath, TRUE, FALSE ) ;
       }
 
    done:
