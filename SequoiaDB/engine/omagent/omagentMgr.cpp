@@ -222,7 +222,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       std::string line ;
 
-      rc = pmdCfgRecord::toString( line, PMD_CFG_MASK_SKIP_UNFIELD ) ;
+      rc = pmdCfgRecord::toString( line ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to get the line str:%d", rc ) ;

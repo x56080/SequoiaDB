@@ -2544,7 +2544,7 @@ namespace engine
       std::string line ;
       CHAR conf[ OSS_MAX_PATHSIZE + 1 ] = {0} ;
 
-      rc = pmdCfgRecord::toString( line, PMD_CFG_MASK_SKIP_UNFIELD ) ;
+      rc = pmdCfgRecord::toString( line ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to get the line str:%d", rc ) ;
