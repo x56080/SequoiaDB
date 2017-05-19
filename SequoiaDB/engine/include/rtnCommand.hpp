@@ -286,6 +286,26 @@ namespace engine
          virtual RTN_COMMAND_TYPE type () { return CMD_LIST_PROCEDURES ; }
    } ;
 
+   class _rtnCreateProcedure : public _rtnCoordOnly
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+      public:
+         _rtnCreateProcedure () {}
+         virtual ~_rtnCreateProcedure () {}
+         virtual const CHAR * name () { return NAME_CREATE_PROCEDURE ; }
+         virtual RTN_COMMAND_TYPE type () { return CMD_CREATE_PROCEDURE ; }
+   } ;
+
+   class _rtnRemoveProcedure : public _rtnCoordOnly
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+      public:
+         _rtnRemoveProcedure () {}
+         virtual ~_rtnRemoveProcedure () {}
+         virtual const CHAR * name () { return NAME_REMOVE_PROCEDURE ; }
+         virtual RTN_COMMAND_TYPE type () { return CMD_REMOVE_PROCEDURE ; }
+   } ;
+   
    class _rtnListCSInDomain : public _rtnCoordOnly
    {
       DECLARE_CMD_AUTO_REGISTER()

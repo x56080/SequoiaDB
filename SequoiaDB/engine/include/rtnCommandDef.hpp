@@ -117,6 +117,8 @@ namespace engine
 #define NAME_LIST_DOMAINS                    CMD_NAME_LIST_DOMAINS
 #define NAME_LIST_GROUPS                     CMD_NAME_LIST_GROUPS
 #define NAME_LIST_PROCEDURES                 CMD_NAME_LIST_PROCEDURES
+#define NAME_CREATE_PROCEDURE                CMD_NAME_CRT_PROCEDURE
+#define NAME_REMOVE_PROCEDURE                CMD_NAME_RM_PROCEDURE
 #define NAME_LIST_CS_IN_DOMAIN               CMD_NAME_LIST_CS_IN_DOMAIN
 #define NAME_LIST_CL_IN_DOMAIN               CMD_NAME_LIST_CL_IN_DOMAIN
 #define NAME_CREATE_CATAGROUP                CMD_NAME_CREATE_CATA_GROUP
@@ -166,6 +168,8 @@ namespace engine
       CMD_LIST_PROCEDURES                    = 52,
       CMD_LIST_CS_IN_DOMAIN                  = 53,
       CMD_LIST_CL_IN_DOMAIN                  = 54,
+      CMD_CREATE_PROCEDURE                   = 57,
+      CMD_REMOVE_PROCEDURE                   = 58,
 
       CMD_RENAME_COLLECTION                  = 60,
 
