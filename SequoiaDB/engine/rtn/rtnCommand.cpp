@@ -1984,7 +1984,7 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
-      pmdOptionsCB tmpCB( PMD_CFG_MASK_SHOWALL ) ;
+      pmdOptionsCB tmpCB ;
       BSONObj cfgObj ;
 
       rc = tmpCB.initFromFile( optCB->getConfFile(), FALSE ) ;
@@ -1995,14 +1995,14 @@ namespace engine
          goto error ;
       }
 
-      rc = tmpCB.toBSON( cfgObj ) ;
+      rc = tmpCB.toBSON( cfgObj, PMD_CFG_MASK_SKIP_UNFIELD ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Convert config to bson failed, rc: %d", rc ) ;
          goto error ;
       }
 
-      rc = optCB->change( cfgObj ) ;
+      rc = optCB->change( cfgObj, TRUE ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Reload config[%s] failed, rc: %d",
@@ -2010,7 +2010,7 @@ namespace engine
          goto error ;
       }
       /// dump memory config
-      optCB->toBSON( cfgObj, PMD_CFG_MASK_ONLYMEM ) ;
+      optCB->toBSON( cfgObj ) ;
 
       PD_LOG( PDEVENT, "Reload config succeed. All configs: %s",
               cfgObj.toString().c_str() ) ;

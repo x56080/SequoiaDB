@@ -217,8 +217,7 @@ namespace engine
    class _rsOptionMgr : public _pmdCfgRecord
    {
       public:
-         _rsOptionMgr ( UINT32 mask = 0 )
-         :_pmdCfgRecord( mask )
+         _rsOptionMgr ()
          {
             ossMemset( _bkPath, 0, sizeof( _bkPath ) ) ;
             ossMemset( _bkName, 0, sizeof( _bkName ) ) ;

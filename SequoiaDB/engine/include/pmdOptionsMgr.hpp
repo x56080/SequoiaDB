@@ -80,22 +80,26 @@ namespace engine
    {
       string         _value ;
       BOOLEAN        _hasMapped ;
+      BOOLEAN        _hasField ;
 
       _pmdParamValue()
       {
          _hasMapped = FALSE ;
+         _hasField = FALSE ;
       }
-      _pmdParamValue( INT32 value, BOOLEAN hasMappe = TRUE )
+      _pmdParamValue( INT32 value, BOOLEAN hasMappe, BOOLEAN hasField )
       {
          CHAR tmp[ 15 ] = { 0 } ;
          ossItoa( value, tmp, sizeof( tmp ) - 1 ) ;
          _value = tmp ;
          _hasMapped = hasMappe ;
+         _hasField = hasField ;
       }
-      _pmdParamValue( const string &value, BOOLEAN hasMappe = TRUE )
+      _pmdParamValue( const string &value, BOOLEAN hasMappe, BOOLEAN hasField )
       {
          _value = value ;
          _hasMapped = hasMappe ;
+         _hasField = hasField ;
       }
    } ;
    typedef _pmdParamValue pmdParamValue ;
@@ -105,8 +109,9 @@ namespace engine
    /*
       Mask define
    */
-   #define PMD_CFG_MASK_ONLYMEM           0x00000001
-   #define PMD_CFG_MASK_SHOWALL           0x00000002
+   #define PMD_CFG_MASK_SKIP_UNFIELD         0x00000001
+   #define PMD_CFG_MASK_SKIP_NORMALDFT       0x00000002
+   #define PMD_CFG_MASK_SKIP_HIDEDFT         0x00000004
 
    /*
       _pmdCfgExchange define
@@ -116,17 +121,17 @@ namespace engine
       friend class _pmdCfgRecord ;
 
       public:
-         _pmdCfgExchange ( const BSONObj &dataObj,
+         _pmdCfgExchange ( MAP_K2V *pMapField,
+                           const BSONObj &dataObj,
                            BOOLEAN load = TRUE,
                            PMD_CFG_STEP step = PMD_CFG_STEP_INIT,
-                           UINT32 mask = 0,
-                           MAP_K2V *pMapField = NULL ) ;
-         _pmdCfgExchange ( po::variables_map *pVMCmd,
+                           UINT32 mask = 0 ) ;
+         _pmdCfgExchange ( MAP_K2V *pMapField,
+                           po::variables_map *pVMCmd,
                            po::variables_map *pVMFile = NULL,
                            BOOLEAN load = TRUE,
                            PMD_CFG_STEP step = PMD_CFG_STEP_INIT,
-                           UINT32 mask = 0,
-                           MAP_K2V *pMapField = NULL ) ;
+                           UINT32 mask = 0 ) ;
          ~_pmdCfgExchange () ;
 
          PMD_CFG_STEP   getCfgStep() const { return _cfgStep ; }
@@ -136,6 +141,7 @@ namespace engine
          void           setLoad() { _isLoad = TRUE ; }
          void           setSave() { _isLoad = FALSE ; }
          void           setCfgStep( PMD_CFG_STEP step ) { _cfgStep = step ; }
+         void           setWhole( BOOLEAN isWhole ) { _isWhole = isWhole ; }
 
       public:
          INT32 readInt( const CHAR *pFieldName, INT32 &value,
@@ -150,14 +156,28 @@ namespace engine
          INT32 writeString( const CHAR *pFieldName, const CHAR *pValue ) ;
 
          BOOLEAN hasField( const CHAR *pFieldName ) ;
+         BOOLEAN isSkipUnField() const
+         {
+            return ( _mask & PMD_CFG_MASK_SKIP_UNFIELD ) ? TRUE : FALSE ;
+         }
+         BOOLEAN isSkipHideDefault() const
+         {
+            return ( _mask & PMD_CFG_MASK_SKIP_HIDEDFT ) ? TRUE : FALSE ;
+         }
+         BOOLEAN isSkipNormalDefault() const
+         {
+            return ( _mask & PMD_CFG_MASK_SKIP_NORMALDFT ) ? TRUE : FALSE ;
+         }
+         BOOLEAN isWhole() const { return _isWhole ; }
 
       private:
          const CHAR *getData( UINT32 &dataLen, MAP_K2V &mapKeyValue ) ;
-         MAP_K2V     getKVMap() ;
+         MAP_K2V*    getKVMap() ;
 
          void        _makeKeyValueMap( po::variables_map *pVM ) ;
 
       private:
+         MAP_K2V*                _pMapKeyField ;
          PMD_CFG_STEP            _cfgStep ;
          BOOLEAN                 _isLoad ;
 
@@ -170,8 +190,8 @@ namespace engine
          stringstream            _strStream ;
          string                  _dataStr ;
 
-         MAP_K2V                 _mapKeyField ;
          UINT32                  _mask ;
+         BOOLEAN                 _isWhole ;
 
    } ;
    typedef _pmdCfgExchange pmdCfgExchange ;
@@ -217,7 +237,7 @@ namespace engine
                                        const CHAR *pDefault = NULL ) ;
 
       public:
-         _pmdCfgRecord ( UINT32 mask = 0 ) ;
+         _pmdCfgRecord () ;
          virtual ~_pmdCfgRecord () ;
 
          void  setConfigHandler( IConfigHandle *pConfigHandler ) ;
@@ -229,10 +249,13 @@ namespace engine
          INT32 init( po::variables_map *pVMFile, po::variables_map *pVMCMD ) ;
          INT32 restore( const BSONObj &objData,
                         po::variables_map *pVMCMD ) ;
-         INT32 change( const BSONObj &objData ) ;
+         INT32 change( const BSONObj &objData,
+                       BOOLEAN isWhole = FALSE ) ;
 
-         INT32 toBSON ( BSONObj &objData, UINT32 mask = 0 ) ;
-         INT32 toString( string &str, UINT32 mask = 0 ) ;
+         INT32 toBSON ( BSONObj &objData,
+                        UINT32 mask = PMD_CFG_MASK_SKIP_HIDEDFT ) ;
+         INT32 toString( string &str,
+                         UINT32 mask = PMD_CFG_MASK_SKIP_HIDEDFT ) ;
 
          UINT32 getChangeID () const { return _changeID ; }
 
@@ -252,8 +275,12 @@ namespace engine
                                  CHAR chInnerSep = ':' ) const ;
 
       protected:
-         INT32  _addToFieldMap( const string &key, INT32 value ) ;
-         INT32  _addToFieldMap( const string &key, const string &value ) ;
+         INT32  _addToFieldMap( const string &key, INT32 value,
+                                BOOLEAN hasMapped = TRUE,
+                                BOOLEAN hasField = TRUE ) ;
+         INT32  _addToFieldMap( const string &key, const string &value,
+                                BOOLEAN hasMapped = TRUE,
+                                BOOLEAN hasField = TRUE ) ;
 
       protected:
          virtual INT32 doDataExchange( pmdCfgExchange *pEX ) = 0 ;
@@ -314,7 +341,6 @@ namespace engine
          MAP_K2V                             _mapKeyValue ;
       protected:
          ossSpinXLatch                       _mutex ;
-         UINT32                              _mask ;
 
    } ;
    typedef _pmdCfgRecord pmdCfgRecord ;
@@ -325,7 +351,7 @@ namespace engine
    class _pmdOptionsMgr : public _pmdCfgRecord
    {
       public:
-         _pmdOptionsMgr( UINT32 mask = 0 ) ;
+         _pmdOptionsMgr() ;
          ~_pmdOptionsMgr() ;
 
       protected:

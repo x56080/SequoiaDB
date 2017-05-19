@@ -1456,14 +1456,14 @@ namespace engine
       INT32 rc = SDB_OK ;
       BSONObj optionObj ;
       CHAR currentPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      omAgentOptions option( PMD_CFG_MASK_SHOWALL ) ;
+      omAgentOptions option ;
 
       // Get current path
       ossGetEWD( currentPath, OSS_MAX_PATHSIZE ) ;
       option.init( currentPath ) ;
-      option.toBSON( optionObj ) ;
+      option.toBSON( optionObj, PMD_CFG_MASK_SKIP_UNFIELD ) ;
 
-      rc = sdbGetOMAgentOptions()->change( optionObj ) ;
+      rc = sdbGetOMAgentOptions()->change( optionObj, TRUE ) ;
       if ( rc )
       {
          PD_LOG_MSG( PDERROR, "Failed to change option" ) ;

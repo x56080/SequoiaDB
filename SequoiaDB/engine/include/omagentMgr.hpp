@@ -63,7 +63,7 @@ namespace engine
    class _omAgentOptions : public _pmdCfgRecord
    {
       public:
-         _omAgentOptions( UINT32 mask = 0 ) ;
+         _omAgentOptions() ;
          virtual ~_omAgentOptions() ;
 
          INT32    init ( const CHAR *pRootPath ) ;

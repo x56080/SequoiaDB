@@ -51,8 +51,7 @@ namespace engine
    /*
       _omAgentOptions implement
    */
-   _omAgentOptions::_omAgentOptions( UINT32 mask )
-   :_pmdCfgRecord( mask )
+   _omAgentOptions::_omAgentOptions()
    {
       ossMemset( _dftSvcName, 0, sizeof( _dftSvcName ) ) ;
       ossMemset( _cmServiceName, 0, sizeof( _cmServiceName ) ) ;
@@ -223,7 +222,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       std::string line ;
 
-      rc = pmdCfgRecord::toString( line ) ;
+      rc = pmdCfgRecord::toString( line, PMD_CFG_MASK_SKIP_UNFIELD ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to get the line str:%d", rc ) ;
