@@ -651,6 +651,19 @@ namespace engine
                goto done ;
             }
          }
+         else if ( beField.type() == RegEx )
+         {
+            // Special case for regex matcher, which should not be added
+            // to hash predicates
+            if ( predicateSet.getLogicType() != CLS_CATA_LOGIC_AND )
+            {
+               // $or: upgrade to universe set.
+               // CLS_CATA_LOGIC_INVALID means it is the only element also
+               // upgrade to universe set.
+               predicateSet.upgradeToUniverse() ;
+            }
+            goto done ;
+         }
          rc = predicateSet.addPredicate( pFieldName, beField ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to add predicate(rc=%d)", rc ) ;
       }
