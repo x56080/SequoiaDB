@@ -67,8 +67,8 @@ function main() {
     // // 	println(e);
     // // }
 
-    // TODO 2.d
-    var currentSession = conn.list(SDB_LIST_SESSIONS_CURRENT, {Global: false}).next().toObj();
+    // TODO 2.d(2.8分支版本不校验该参数)
+   /* var currentSession = conn.list(SDB_LIST_SESSIONS_CURRENT, {Global: false}).next().toObj();
     try {
         conn.forceSession(currentSession.SessionID, {NodeID: "abcd"});
         throw new Error(-6);
@@ -79,5 +79,5 @@ function main() {
         {
             throw buildException("TODO 2.d not validate the options {NodeID: \"abcd\"}", e);
         } 
-    }
+    }*/
 }
