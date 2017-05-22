@@ -135,7 +135,7 @@ def clean():
    try:
       db.remove_procedure( 'sum' )
    except SDBBaseError, e:
-      if ( -233 != e.code and -6 != e.code ): 
+      if ( -233 != e.code and -159 != e.code ): 
          pysequoiadb._print(e.detail)          
          raise e
       
