@@ -339,6 +339,24 @@ namespace engine
                   result = TRUE ;
                   break ;
                }
+               else if ( op == BSONObj::Equality &&
+                         pFieldName[1] == 'f' && pFieldName[2] == 'i' &&
+                         pFieldName[3] == 'e' && pFieldName[4] == 'l' &&
+                         pFieldName[5] == 'd' && pFieldName[6] == 0 )
+               {
+                  // $field should not be used to generate predicate
+                  result = TRUE ;
+                  break ;
+               }
+            }
+            if ( beTmp.type() == Object )
+            {
+               // Recursively check inner object
+               result = _isExistUnreconigzeOp( beTmp.embeddedObject() ) ;
+               if ( result )
+               {
+                  break ;
+               }
             }
          }
       }
