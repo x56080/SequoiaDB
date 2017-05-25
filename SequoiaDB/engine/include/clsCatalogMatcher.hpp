@@ -71,6 +71,8 @@ namespace engine
                           clsCatalogPredicateTree &predicateSet ) ;
       BOOLEAN isOpObj( const bson::BSONObj obj ) ;
 
+      BOOLEAN _isExistUnreconigzeOp( const bson::BSONObj obj ) ;
+
    private:
       clsCatalogPredicateTree    _predicateSet;
       bson::BSONObj              _shardingKey;
