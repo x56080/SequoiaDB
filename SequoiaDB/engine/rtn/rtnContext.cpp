@@ -121,16 +121,10 @@ namespace engine
             return "CAT_DROP_CL" ;
          case RTN_CONTEXT_CAT_ALTER_CL :
             return "CAT_ALTER_CL" ;
-         case RTN_CONTEXT_CAT_SPLIT_CL :
-            return "CAT_SPLIT_CL" ;
          case RTN_CONTEXT_CAT_LINK_CL :
             return "CAT_LINK_CL" ;
          case RTN_CONTEXT_CAT_UNLINK_CL :
             return "CAT_UNLINK_CL" ;
-         case RTN_CONTEXT_CAT_CREATE_ID_IDX :
-            return "CAT_CREATE_ID_IDX" ;
-         case RTN_CONTEXT_CAT_DROP_ID_IDX :
-            return "CAT_DROP_ID_IDX" ;
          case RTN_CONTEXT_CAT_CREATE_IDX :
             return "CAT_CREATE_IDX" ;
          case RTN_CONTEXT_CAT_DROP_IDX :

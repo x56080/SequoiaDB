@@ -2265,9 +2265,6 @@ namespace engine
       case MSG_CAT_CREATE_COLLECTION_REQ :
          contextType = RTN_CONTEXT_CAT_CREATE_CL ;
          break ;
-      case MSG_CAT_SPLIT_PREPARE_REQ :
-         contextType = RTN_CONTEXT_CAT_SPLIT_CL ;
-         break ;
       case MSG_CAT_DROP_COLLECTION_REQ :
          contextType = RTN_CONTEXT_CAT_DROP_CL ;
          break ;
