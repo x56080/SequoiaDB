@@ -680,7 +680,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCATAHASHMATCHER_CHECKOPOBJ, "clsCataHashMatcher::isOpObj" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCATAHASHMATCHER_CHECKOPOBJ, "clsCataHashMatcher::checkOpObj" )
    INT32 clsCataHashMatcher::checkOpObj( const bson::BSONObj obj,
                                          INT32 &result )
    {
@@ -705,7 +705,27 @@ namespace engine
                   }
                   else
                   {
-                     result = PREDICATE_OBJ_TYPE_OP_EQ ;
+                     if ( beTmp.type() == Object )
+                     {
+                        INT32 tmpResult = PREDICATE_OBJ_TYPE_NOT_OP ;
+                        rc = checkETInnerObj( beTmp.embeddedObject(),
+                                              tmpResult ) ;
+                        PD_RC_CHECK( rc, PDERROR, "Failed to parse object "
+                                     "inside $et, rc: %d", rc ) ;
+                        if ( tmpResult == PREDICATE_OBJ_TYPE_NOT_OP )
+                        {
+                           result = PREDICATE_OBJ_TYPE_OP_EQ ;
+                        }
+                        else
+                        {
+                           // Contain other operations
+                           result = PREDICATE_OBJ_TYPE_OP_NOT_EQ ;
+                        }
+                     }
+                     else
+                     {
+                        result = PREDICATE_OBJ_TYPE_OP_EQ ;
+                     }
                   }
                }
                else
@@ -726,6 +746,71 @@ namespace engine
    done:
       PD_TRACE_EXIT ( SDB_CLSCATAHASHMATCHER_CHECKOPOBJ ) ;
       return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCATAHASHMATCHER_CHECKETINNER, "clsCataHashMatcher::checkETInnerObj" )
+   INT32 clsCataHashMatcher::checkETInnerObj( const bson::BSONObj obj,
+                                              INT32 &result )
+   {
+      INT32 rc = SDB_OK ;
+
+      result = PREDICATE_OBJ_TYPE_NOT_OP ;
+
+      PD_TRACE_ENTRY ( SDB_CLSCATAHASHMATCHER_CHECKETINNER ) ;
+
+      try
+      {
+         BSONObjIterator iter( obj ) ;
+         while ( iter.more() )
+         {
+            BSONElement beTmp = iter.next() ;
+            const CHAR *pFieldName = beTmp.fieldName() ;
+            if ( MTH_OPERATOR_EYECATCHER == pFieldName[0] )
+            {
+               INT32 opType = beTmp.getGtLtOp() ;
+               if ( opType != BSONObj::opREGEX &&
+                    opType != BSONObj::opOPTIONS )
+               {
+                  // Neither $regex nor $options, so the whole inner object
+                  // will not be parsed as a simple $et
+                  result = PREDICATE_OBJ_TYPE_OP_NOT_EQ ;
+                  break ;
+               }
+               else
+               {
+                  // Check if it is a valid $regex or $options, the expression
+                  // is $et:{$regex:xxx} to find RegEx objects
+                  PD_CHECK( beTmp.type() == String, SDB_INVALIDARG, error,
+                            PDERROR, "Failed to parse regex operator" ) ;
+               }
+            }
+            else if ( beTmp.type() == Object )
+            {
+               // Recursively check the object
+               rc = checkETInnerObj( beTmp.embeddedObject(), result ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to parse inner object, "
+                            "rc: %d", rc ) ;
+               if ( result != PREDICATE_OBJ_TYPE_NOT_OP )
+               {
+                  break ;
+               }
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Failed to check the obj occured unexpected error:%s",
+                 e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXIT ( SDB_CLSCATAHASHMATCHER_CHECKETINNER ) ;
+      return rc ;
+
    error:
       goto done ;
    }
