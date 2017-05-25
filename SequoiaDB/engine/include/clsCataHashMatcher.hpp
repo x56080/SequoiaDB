@@ -130,6 +130,8 @@ namespace engine
       INT32 checkOpObj( const bson::BSONObj obj,
                         INT32 &result );
 
+      INT32 checkETInnerObj( const bson::BSONObj obj, INT32 &result ) ;
+
    private:
       clsCataHashPredTree        _predicateSet;
       bson::BSONObj              _shardingKey;
