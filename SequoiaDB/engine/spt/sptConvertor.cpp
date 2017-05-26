@@ -1279,7 +1279,7 @@ done:
    if ( properties )
    {
       /// free
-      JS_DestroyIdArray( cx, properties ) ;
+      JS_DestroyIdArray( _cx, properties ) ;
    }
    return rc ;
 error:
