@@ -94,7 +94,8 @@ function main( db )
    checkExplain( idxCL, {timestamp:{"$timestamp":"2014-5-21-9.17.30.111111"}} );
    checkExplain( idxCL, {binary:{"$binary":"aGVsbG8gd29ybGQ=", "$type":"1"}} );
    checkExplain( idxCL, {object:{"subobj":"can't"}} );
-   checkExplain( idxCL, {array:["abc",123,"def","噆"]} );
+   checkExplain( idxCL, {array:"abc"} );
+   //checkExplain( idxCL, {array:["abc",123,"def","噆"]} );
    checkExplain( idxCL, {NULL:null} );
    checkExplain( idxCL, {regex:{"$regex":"^张"}} );
    

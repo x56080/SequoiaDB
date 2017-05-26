@@ -48,7 +48,7 @@ function main()
       
       println("---begin to exec: cl.find({a:[1,2,3]})");
       var rc = cl.find({a:[1,2,3]});
-      checkExplain( rc, idxName );
+//      checkExplain( rc, idxName ); by tbscan
       var expRecs = [ recs[0] ];      
       checkRec( rc, expRecs );
       

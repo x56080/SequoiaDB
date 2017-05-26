@@ -54,8 +54,7 @@ function findRecs( cl, rawData, dataType )
    
    if( dataType === "array" )
    {
-      var rc = cl.find( {"b":{$et:[{b1: rawData[0]["int"][0]}, 
-                                   {b2: rawData[0]["int"][1]}]}} ).sort({a:1});
+      var rc = cl.find( {"b":{$et:{b1: rawData[0]["int"][0]}}} ).sort({a:1});
    }
    else if( dataType === "object" )
    {
