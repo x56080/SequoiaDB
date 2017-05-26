@@ -3845,9 +3845,6 @@ static JSBool cs_create_cl ( JSContext *cx , uintN argc , jsval *vp )
    rc = sdbCreateCollection1 ( *cs , clName , bsonOptions , collection ) ;
    REPORT_RC ( SDB_OK == rc , "SdbCS.createCL()" , rc ) ;
 
-   rc = sdbGetCollection1 ( *cs , clName , collection ) ;
-   REPORT_RC ( SDB_OK == rc , "SdbCS.createCL()" , rc ) ;
-
    objCL = JS_NewObject ( cx , &collection_class , 0 , 0 ) ;
    VERIFY ( objCL ) ;
 
