@@ -295,10 +295,14 @@ namespace engine
       ss << "ID: " << _eduID << ", Type: " << _eduType << "["
          << getEDUName( _eduType ) << "], TID: " << _tid ;
 
-      if ( _pSession )
       {
-         ss << ", Session: " << _pSession->sessionName() ;
+         ossScopedLock lock( &_mutex, SHARED ) ;
+         if ( _pSession )
+         {
+            ss << ", Session: " << _pSession->sessionName() ;
+         }
       }
+
       return ss.str() ;
    }
 
@@ -315,6 +319,7 @@ namespace engine
 
    void _pmdEDUCB::detachSession()
    {
+      ossScopedLock lock( &_mutex, EXCLUSIVE ) ;
       _pSession = NULL ;
    }
 
