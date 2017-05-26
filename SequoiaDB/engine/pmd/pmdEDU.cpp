@@ -297,10 +297,14 @@ namespace engine
       ss << "ID: " << _eduID << ", Type: " << _eduType << "["
          << getEDUName( _eduType ) << "], TID: " << _tid ;
 
-      if ( _pSession )
       {
-         ss << ", Session: " << _pSession->sessionName() ;
+         ossScopedLock lock( &_mutex, SHARED ) ;
+         if ( _pSession )
+         {
+            ss << ", Session: " << _pSession->sessionName() ;
+         }
       }
+
       return ss.str() ;
    }
 
@@ -316,6 +320,7 @@ namespace engine
 
    void _pmdEDUCB::detachSession()
    {
+      ossScopedLock lock( &_mutex, EXCLUSIVE ) ;
       _pSession = NULL ;
    }
 
@@ -1162,16 +1167,21 @@ namespace engine
       transInfo._eduID        = _eduID ;
       transInfo._transID      = _curTransID ;
       transInfo._curTransLsn  = _curTransLSN ;
-      if ( _pSession )
+
       {
-         transInfo._relatedNID = _pSession->identifyID() ;
-         transInfo._relatedTID = _pSession->identifyTID() ;
+         ossScopedLock lock( &_mutex, SHARED ) ;
+         if ( _pSession )
+         {
+            transInfo._relatedNID = _pSession->identifyID() ;
+            transInfo._relatedTID = _pSession->identifyTID() ;
+         }
+         else
+         {
+            transInfo._relatedTID = _tid ;
+            transInfo._relatedNID = 0 ;
+         }
       }
-      else
-      {
-         transInfo._relatedTID = _tid ;
-         transInfo._relatedNID = 0 ;
-      }
+
       {
          ossScopedLock _lock( &_transLockLstMutex ) ;
          transInfo._lockList  = _transLockLst ;
