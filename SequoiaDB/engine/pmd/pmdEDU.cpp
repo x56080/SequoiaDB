@@ -297,12 +297,9 @@ namespace engine
       ss << "ID: " << _eduID << ", Type: " << _eduType << "["
          << getEDUName( _eduType ) << "], TID: " << _tid ;
 
+      if ( _pSession )
       {
-         ossScopedLock lock( &_mutex, SHARED ) ;
-         if ( _pSession )
-         {
-            ss << ", Session: " << _pSession->sessionName() ;
-         }
+         ss << ", Session: " << _pSession->sessionName() ;
       }
 
       return ss.str() ;
