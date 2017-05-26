@@ -1276,6 +1276,11 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
    }
 
 done:
+   if ( properties )
+   {
+      /// free
+      JS_DestroyIdArray( cx, properties ) ;
+   }
    return rc ;
 error:
    //ret = FALSE ;
