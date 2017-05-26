@@ -987,12 +987,15 @@ namespace engine
       }
 
       // Below operators with Array should generate full range predicate
+      // Note: $et with array could generate predicate if the array is
+      // expanded recursively, but now it is only expanded for one level
       if ( Array == e.type() &&
            ( BSONObj::GT == op ||
              BSONObj::GTE == op ||
              BSONObj::LT == op ||
              BSONObj::LTE == op ||
-             BSONObj::NE == op ) )
+             BSONObj::NE == op ||
+             BSONObj::Equality == op ) )
       {
          _isInitialized = TRUE ;
          return ;
