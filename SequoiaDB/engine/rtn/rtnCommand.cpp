@@ -387,7 +387,7 @@ namespace engine
       _path             = NULL ;
       _desp             = NULL ;
       _ensureInc        = FALSE ;
-      _rewrite          = TRUE ;
+      _rewrite          = FALSE ;
    }
 
    _rtnBackup::~_rtnBackup ()
