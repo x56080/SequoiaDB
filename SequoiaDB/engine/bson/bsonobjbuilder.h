@@ -127,7 +127,7 @@ namespace bson {
         /** add all the fields from the object specified to this object */
         BSONObjBuilder& appendElements(BSONObj x);
 
-        //add all the fields(without fieldName) from the object 
+        //add all the fields(without fieldName) from the object
         //specified to this object
         BSONObjBuilder& appendElementsWithoutName(BSONObj x);
 
@@ -311,7 +311,7 @@ namespace bson {
             return *this;
         }
 
-        BSONObjBuilder& append( const StringData& fieldName, 
+        BSONObjBuilder& append( const StringData& fieldName,
                                 const bsonDecimal& decimal )
         {
             int i        = 0 ;
@@ -345,11 +345,11 @@ namespace bson {
             return *this;
         }
 
-        bool appendDecimal( const StringData& fieldName, 
-                            const StringData& strDecimal, 
+        bool appendDecimal( const StringData& fieldName,
+                            const StringData& strDecimal,
                             int precision, int scale ) ;
 
-        bool appendDecimal( const StringData& fieldName, 
+        bool appendDecimal( const StringData& fieldName,
                             const StringData& strDecimal ) ;
 
         /** tries to append the data as a number
@@ -477,7 +477,7 @@ namespace bson {
            char t = '\0';
            _b.appendBuf(&t, 1);
            return *this;
-        }       
+        }
 
         /** Append a string element */
         BSONObjBuilder& append(const StringData& fieldName, const char *str) {
@@ -573,12 +573,17 @@ namespace bson {
         */
         BSONObjBuilder& appendBinData( const StringData& fieldName, int len,
           BinDataType type, const char *data ) {
-            _b.appendNum( (char) BinData );
-            _b.appendStr( fieldName );
-            _b.appendNum( len );
-            _b.appendNum( (char) type );
-            _b.appendBuf( (void *) data, len );
-            return *this;
+            if ( type == ByteArrayDeprecated ) {
+                return appendBinDataArrayDeprecated( fieldName.data(), data, len );
+            }
+            else {
+                _b.appendNum( (char) BinData );
+                _b.appendStr( fieldName );
+                _b.appendNum( len );
+                _b.appendNum( (char) type );
+                _b.appendBuf( (void *) data, len );
+                return *this;
+            }
         }
         BSONObjBuilder& appendBinData( const StringData& fieldName, int len,
           BinDataType type, const unsigned char *data ) {
@@ -801,7 +806,7 @@ namespace bson {
             _b.append(num(), x);
             return *this;
         }
-        
+
         BSONArrayBuilder& appendTimestamp(unsigned long long val) {
             _b.appendTimestamp(num(),val);
             return *this;
