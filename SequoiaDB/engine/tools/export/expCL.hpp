@@ -46,9 +46,9 @@ namespace exprt
    #define EXPCL_FIELDS_SEP_STR     ":"
 
    struct expCL : public SDBObject
-   {  
+   {
       string csName ;
-      string clName ; 
+      string clName ;
       string fields ;
       string select ;
       string filter ;
@@ -61,17 +61,18 @@ namespace exprt
              const string &fields_ = "",
              const string &select_ = "",
              const string &filter_ = "",
-             const string &sort_ = "" ) : 
+             const string &sort_ = "" ) :
              csName(csName_), clName(clName_), fields(fields_),
              select(select_), filter(filter_), sort(sort_), skip(0), limit(-1)
       {
       }
 
-      expCL() 
+      expCL() : csName(""), clName(""), fields(""), select(""),
+                filter(""), sort(""), skip(0), limit(-1)
       {
       }
 
-      inline string fullName() const 
+      inline string fullName() const
       {
          string name = csName ;
          name += "." ;
@@ -103,9 +104,9 @@ namespace exprt
    public :
       typedef vector<expCL>::iterator iterator ;
       typedef vector<expCL>::const_iterator const_iterator ;
-      
+
    public :
-      explicit expCLSet( expOptions &options ) : 
+      explicit expCLSet( expOptions &options ) :
          _options(options), _includeAll(FALSE)
       {
       }
@@ -114,14 +115,14 @@ namespace exprt
       inline const_iterator begin() const { return _collections.begin() ; }
       inline iterator       end()         { return _collections.end() ; }
       inline const_iterator end()   const { return _collections.end() ; }
-      
+
    private :
       INT32 _completeCLListFields( sdbConnectionHandle hConn ) ;
       INT32 _parseRawFileds( set<expCL> &clFields ) ;
       INT32 _generateCLList( sdbConnectionHandle hConn,
-                             const set<string> &includeCS, 
+                             const set<string> &includeCS,
                              const set<expCL> &includeCollection,
-                             const set<string> &excludeCS, 
+                             const set<string> &excludeCS,
                              const set<expCL> &excludeCollection ) ;
       // should be call after parsing
       INT32 _parsePost() ;
