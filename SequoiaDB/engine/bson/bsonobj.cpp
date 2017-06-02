@@ -301,10 +301,10 @@ namespace bson {
             }
             break;
         case BinData: {
-            int len = *(int *)( value() );
-            BinDataType type = BinDataType( *(char *)( (int *)(value()) + 1) );
             s << "{ \"$binary\" : \"";
-            char *start = ( char * )( value() ) + sizeof( int ) + 1;
+            int len;
+            const char* start = binDataClean( len );
+            BinDataType type = binDataType();
             base64::encode( s , start , len );
             s << "\", \"$type\" : \"" << hex;
             s.width( (streamsize)2 );
@@ -531,7 +531,7 @@ namespace bson {
             /// r is date
             else
             {
-               long long L_Macro = ( long long ) l.timestampTime() 
+               long long L_Macro = ( long long ) l.timestampTime()
                                    + l.timestampInc() / 1000 ;
                long long R_Macro = r.date() ;
                if ( L_Macro - R_Macro != 0 )
@@ -539,7 +539,7 @@ namespace bson {
                   return L_Macro > R_Macro ? 1 : -1 ;
                }
                /// Macro-second is same, compare millisec
-               return ( l.timestampInc() % 1000 ) > 0 ? 1 : 0 ; 
+               return ( l.timestampInc() % 1000 ) > 0 ? 1 : 0 ;
             }
         }
         case Date:
@@ -556,7 +556,7 @@ namespace bson {
             else
             {
                long long L_Macro = l.date() ;
-               long long R_Macro = ( long long ) r.timestampTime() 
+               long long R_Macro = ( long long ) r.timestampTime()
                                    + r.timestampInc() / 1000 ;
                if ( L_Macro - R_Macro != 0 )
                {
@@ -1448,8 +1448,8 @@ namespace bson {
         }
     }
 
-    bool BSONObjBuilder::appendDecimal( const StringData& fieldName, 
-                                        const StringData& strDecimal, 
+    bool BSONObjBuilder::appendDecimal( const StringData& fieldName,
+                                        const StringData& strDecimal,
                                         int precision, int scale )
     {
         int rc = 0 ;
@@ -1471,7 +1471,7 @@ namespace bson {
         return true ;
     }
 
-    bool BSONObjBuilder::appendDecimal( const StringData& fieldName, 
+    bool BSONObjBuilder::appendDecimal( const StringData& fieldName,
                                         const StringData& strDecimal )
     {
         int rc = 0 ;
