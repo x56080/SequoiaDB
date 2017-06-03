@@ -77,7 +77,7 @@ Backup Database.
 .br
               Prefix:"%g_bk_"
 .sp 2
-       \fBEnableDataDir\fR
+       \fBEnableDateDir\fR
 .br
               Whether to enable the date-subdirectory function or
               not. It will automatically create subdirectories
@@ -85,7 +85,7 @@ Backup Database.
               current date if the function is enabled. False in
               default.
 .br
-              EnableDataDir:false
+              EnableDateDir:false
 .sp 2
        \fBDescription\fR
 .br

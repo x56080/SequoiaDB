@@ -19,7 +19,7 @@
 | Path | 备份路径，缺省为配置参数指定的备份路径。该路径支持通配符（%g/%G: group name, %h/%H: host name, %s/%S:service name）| Path:"/opt/sequoiadb/backup/%g" |
 | IsSubDir | 上述 Path 参数所配置的路径是否为配置参数指定的备份路径的子目录，缺省为 false | IsSubDir:false |
 | Prefix | 备份前缀名，支持通配符（%g,%G,%h,%H,%s,%S），缺省为空 | Prefix:"%g_bk_" |
-| EnableDataDir | 是否开启日期子目录功能，如果开启则会自动根据当前日期创建“YYYY-MM-DD”的子目录，缺省为 false | EnableDataDir:false |
+| EnableDateDir | 是否开启日期子目录功能，如果开启则会自动根据当前日期创建“YYYY-MM-DD”的子目录，缺省为 false | EnableDateDir:false |
 | Description | 备份描述 | Description:"First backup" |
 | EnsureInc | 是否开启增量备份，缺省为 false | EnsureInc:false |
 | OverWrite | 存在同名备份是否覆盖，缺省为 false | OverWrite:false |
