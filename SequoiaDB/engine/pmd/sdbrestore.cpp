@@ -106,6 +106,10 @@ namespace engine
       ( PMD_OPTION_CATANAME, boost::program_options::value<string>(),    "override catalog service name or port" )     \
       ( PMD_OPTION_RESTNAME, boost::program_options::value<string>(),    "override REST service name or port" )        \
 
+   #define PMD_RS_HIDE_OPTIONS \
+      ( PMD_OPTION_HELPFULL, "help all configs" ) \
+      ( PMD_OPTION_CURUSER, "use current user" ) \
+
    #define RS_BK_ACTION_NAME_LEN          (20)
 
 
@@ -314,12 +318,20 @@ namespace engine
 
       po::variables_map vm ;
       po::options_description desc( "Command options" ) ;
+      po::options_description all( "Command options" ) ;
 
+      //init description
       PMD_ADD_PARAM_OPTIONS_BEGIN( desc )
          PMD_RS_OPTIONS
       PMD_ADD_PARAM_OPTIONS_END
 
-      rc = utilReadCommandLine( argc, argv,  desc, vm ) ;
+      PMD_ADD_PARAM_OPTIONS_BEGIN ( all )
+         PMD_RS_OPTIONS
+         PMD_RS_HIDE_OPTIONS
+      PMD_ADD_PARAM_OPTIONS_END
+
+      // read command line
+      rc = utilReadCommandLine( argc, argv, all, vm ) ;
       if ( rc )
       {
          std::cerr << "read command line failed: " << rc << std::endl ;
@@ -327,10 +339,17 @@ namespace engine
       }
 
       rsOptMgr._vm = vm ;
-      /// read cmd first
+
+      // resolve --help --version
       if ( vm.count( PMD_OPTION_HELP ) )
       {
          std::cout << desc << std::endl ;
+         rc = SDB_PMD_HELP_ONLY ;
+         goto done ;
+      }
+      if ( vm.count( PMD_OPTION_HELPFULL ) )
+      {
+         std::cout << all << std::endl ;
          rc = SDB_PMD_HELP_ONLY ;
          goto done ;
       }
@@ -341,6 +360,13 @@ namespace engine
          goto done ;
       }
 
+      // change user
+      if ( !vm.count( PMD_OPTION_CURUSER ) )
+      {
+         UTIL_CHECK_AND_CHG_USER() ;
+      }
+
+      // init optionMgr
       rc = rsOptMgr.init( NULL, &vm ) ;
       if ( rc )
       {
@@ -453,7 +479,7 @@ namespace engine
       rsOptionMgr optMgr ;
 
       // 1. read command line first
-      rc = resolveArguments ( argc, argv, optMgr ) ;
+      rc = resolveArguments( argc, argv, optMgr ) ;
       if ( SDB_PMD_HELP_ONLY == rc || SDB_PMD_VERSION_ONLY == rc )
       {
          PMD_SHUTDOWN_DB( SDB_OK ) ;
