@@ -215,6 +215,69 @@
                 </runProgram>
             </actionList>    
         </actionDefinition>
+        <actionDefinition name="deleteEnv">
+            <actionList>
+                <!--delete export line and its empty line-->
+                <setInstallerVariableFromScriptOutput>
+                    <exec>grep</exec>
+                    <execArgs>-n "^export PATH=\"\$PATH:${installdir}\/bin\"$" ${envFile} | awk -F ":" '{print $1}'</execArgs>
+                    <name>line_num1</name>
+                </setInstallerVariableFromScriptOutput>
+                <if>
+                    <conditionRuleList>
+                        <compareValues value1="${line_num1}" logic="greater" value2="0"/>
+                    </conditionRuleList> 
+                    <actionList>
+                        <runProgram>
+                            <program>sed</program>
+                            <programArguments>-i '${line_num1}d' ${envFile}</programArguments>
+                        </runProgram>
+                        <mathExpression text="${line_num1}-1" variable="line_num1"/>
+                        <runProgram>
+                            <program>test</program>
+                            <programArguments>-z `sed -n '${line_num1}p' ${envFile}` &amp;&amp; sed -i '${line_num1}d' ${envFile}</programArguments>
+                        </runProgram>
+                    </actionList>
+                </if>
+                
+                <setInstallerVariableFromScriptOutput>
+                    <exec>grep</exec>
+                    <execArgs>-n "^export LD_LIBRARY_PATH=\"\$LD_LIBRARY_PATH:${installdir}\/lib\"$" ${envFile} | awk -F ":" '{print $1}'</execArgs>
+                    <name>line_num2</name>
+                </setInstallerVariableFromScriptOutput>
+                <if>
+                    <conditionRuleList>
+                        <compareValues value1="${line_num2}" logic="greater" value2="0"/>
+                    </conditionRuleList> 
+                    <actionList>
+                        <runProgram>
+                            <program>sed</program>
+                            <programArguments>-i '${line_num2}d' ${envFile}</programArguments>
+                        </runProgram>
+                        <mathExpression text="${line_num2}-1" variable="line_num2"/>
+                        <runProgram>
+                            <program>test</program>
+                            <programArguments>-z `sed -n '${line_num2}p' ${envFile}` &amp;&amp; sed -i '${line_num2}d' ${envFile}</programArguments>
+                        </runProgram>
+                    </actionList>
+                </if>
+                
+                <!--delete empty file-->
+                <runProgram>
+                    <program>test</program>
+                    <programArguments>-s ${envFile}</programArguments>
+                    <abortOnError>0</abortOnError>
+                    <showMessageOnError>0</showMessageOnError>
+                    <onErrorActionList>
+                        <deleteFile path="${envFile}"/>
+                    </onErrorActionList>
+                </runProgram>
+
+            </actionList>    
+            <parameterList>
+                <stringParameter name="envFile" value="" default=""/>
+            </parameterList>
+        </actionDefinition>
     </functionDefinitionList>
        
     <!--exist installation? different mode has different parameterList-->
@@ -579,7 +642,7 @@
         </runProgram> 
         
         <!--check process has been stoped or not-->        
-       <setInstallerVariable name="process_num" value="-1"/>      
+        <setInstallerVariable name="process_num" value="-1"/>      
         <setInstallerVariableFromScriptOutput>
             <name>process_num</name>
             <exec>${installdir}/bin/sdblist</exec>
@@ -597,7 +660,6 @@
             </actionList>
         </if>        
         
-        
         <!--other-->
         <removeUnixService>
             <name>sdbcm</name>            
@@ -607,14 +669,9 @@
     
     <postUninstallationActionList>
         <deleteFile path="${sys_conf_file}"/>
-        <removeDirectoryFromPath>
-            <path>${installdir}</path>
-            <scope>user</scope>
-        </removeDirectoryFromPath>
-        <removeDirectoryFromPath>
-            <path>${installdir}/bin</path>
-            <scope>user</scope>
-        </removeDirectoryFromPath>
+        <deleteEnv envFile="~${username}/.bashrc"/>
+        <deleteEnv envFile="~${username}/.profile"/>
+        <deleteEnv envFile="~${username}/.bash_profile"/>
         
     </postUninstallationActionList> 
                       
