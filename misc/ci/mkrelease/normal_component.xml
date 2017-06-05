@@ -146,15 +146,6 @@
             <program>echo</program>
             <programArguments> ${username}:${userpasswd} | chpasswd</programArguments>     
         </runProgram> 
-        <touchFile path="~${username}/.bashrc"/>   
-        <runProgram> <!--<changeOwnerAndGroup> isnt effective for hidden files-->
-            <program>chown</program>
-            <programArguments>-R ${username}:${groupname} ~${username}</programArguments>
-        </runProgram>               
-        <changePermissions>
-            <files>~${username}</files>
-            <permissions>0755</permissions>           
-        </changePermissions>        
                                                                                               
     </readyToInstallActionList>
                    
@@ -245,34 +236,26 @@
         </propertiesFileSet>       
         
         <!--set environment variable-->
-        <runProgram>
-            <program>grep</program>
-            <programArguments>-q "^export PATH=\$PATH:${installdir}\/bin$" ~${username}/.bashrc</programArguments> 
-            <abortOnError>0</abortOnError>   
-            <showMessageOnError>0</showMessageOnError>       
-        </runProgram>          
-        <runProgram>
-            <abortOnError>0</abortOnError>
-            <program>echo</program>
-            <programArguments>'export PATH=$PATH:${installdir}/bin' &gt;&gt; ~${username}/.bashrc</programArguments>
-            <ruleList> 
-                <compareText logic="does_not_equal" text="${program_exit_code}" value="0"/>                                                                  
-            </ruleList>
-        </runProgram>  
-        <runProgram>
-            <program>grep</program>
-            <programArguments>-q "^export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${installdir}\/lib$" ~${username}/.bashrc</programArguments> 
-            <abortOnError>0</abortOnError>   
-            <showMessageOnError>0</showMessageOnError>       
-        </runProgram>          
-        <runProgram>
-            <abortOnError>0</abortOnError>
-            <program>echo</program>
-            <programArguments>'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${installdir}/lib' &gt;&gt; ~${username}/.bashrc</programArguments>
-            <ruleList> 
-                <compareText logic="does_not_equal" text="${program_exit_code}" value="0"/>                                                                  
-            </ruleList>
-        </runProgram>            
+        <addEnvironmentVariable>
+            <name>PATH</name>
+            <scope>user</scope>
+            <username>${username}</username>
+            <value>$PATH:${installdir}/bin</value>
+        </addEnvironmentVariable>
+        <addEnvironmentVariable>
+            <name>LD_LIBRARY_PATH</name>
+            <scope>user</scope>
+            <username>${username}</username>
+            <value>$LD_LIBRARY_PATH:${installdir}/lib</value>
+        </addEnvironmentVariable> <!--create .bashrc if not exists, but its group is root-->
+        <runProgram> 
+            <program>chown</program><!--<changeOwnerAndGroup> isnt effective for hidden files-->
+            <programArguments>-R ${username}:${groupname} ~${username}</programArguments>
+        </runProgram>
+        <changePermissions>
+            <files>~${username}</files>
+            <permissions>0755</permissions>           
+        </changePermissions>
                     
         <!--you should place 'start service' and 'create om' in last of <postInstallationActionList>-->
         <!--because if this step failed, <postInstallationActionList> will abort and next steps will not be excuted-->   
