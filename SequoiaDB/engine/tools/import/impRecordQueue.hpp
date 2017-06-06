@@ -137,7 +137,7 @@ namespace import
          _array[_size] = obj;
          _size++;
 
-         _bsonSize += bson_size(obj);
+         _bsonSize += bson_size(obj) + sizeof(bson);
       }
 
       // return the bson* in position id

@@ -365,10 +365,17 @@ namespace import
       }
 
    done:
-      if (NULL != recordArray && !recordArray->empty())
+      if (NULL != recordArray)
       {
-         workQueue->push(recordArray);
-         recordArray = NULL;
+         if (!recordArray->empty())
+         {
+            workQueue->push(recordArray);
+            recordArray = NULL;
+         }
+         else
+         {
+            freeRecordArray(&recordArray);
+         }
       }
       self->_stopped = TRUE;
       if (NULL != input)
@@ -384,12 +391,12 @@ namespace import
       SAFE_OSS_FREE(buffer);
 
       {
-         CHAR* str= "parser stopped\n";
+         CHAR* str= "parser stopped";
 
-         PD_LOG(PDEVENT, "%s", str);
+         PD_LOG(PDEVENT, "%s, rc=%d", str, rc);
          if (options->verbose())
          {
-            std::cout << str;
+            std::cout << str << std::endl;
          }
       }
       return;
@@ -457,14 +464,15 @@ namespace import
 
       SDB_ASSERT(_inited, "must be inited");
 
+      _stopped = FALSE;
+
       rc = _worker->start();
       if (SDB_OK != rc)
       {
+         _stopped = TRUE;
          PD_LOG(PDERROR, "failed to start parser");
          goto error;
       }
-
-      _stopped = FALSE;
 
    done:
       return rc;

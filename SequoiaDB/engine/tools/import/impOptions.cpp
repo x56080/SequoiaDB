@@ -115,7 +115,7 @@ namespace import
    #define IMP_EXPLAIN_TRANSACTION      "enable transaction, default: false"
    #define IMP_EXPLAIN_ALLOWKEYDUP      "allow key duplication, default: true"
    #define IMP_EXPLAIN_HELPFULL         "print all options"
-   #define IMP_EXPLAIN_RECORDSMEM       "the maximum memory size used by records, the unit is MB, range is [128~81920], default: 2048"
+   #define IMP_EXPLAIN_RECORDSMEM       "the maximum memory size used by records, the unit is MB, range is [128~81920], default: 512"
    #define IMP_EXPLAIN_CAST             "allow type cast when lost precision, default: false"
    #define IMP_EXPLAIN_DATEFMT          "set date format, default: YYYY-MM-DD"
    #define IMP_EXPLAIN_TIMESTAMPFMT     "set timestamp format, default: YYYY-MM-DD-HH.mm.ss.ffffff"
@@ -493,7 +493,7 @@ namespace import
 
       _bufferSize = 64;
       _dryRun = FALSE;
-      _recordsMem = (INT64)1024 * 1024 * 1024 * 2; // 2GB
+      _recordsMem = (INT64)1024 * 1024 * 512; // 512MB
       _ignoreNull = FALSE;
    }
 
