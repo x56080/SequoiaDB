@@ -365,10 +365,17 @@ namespace import
       }
 
    done:
-      if (NULL != recordArray && !recordArray->empty())
+      if (NULL != recordArray)
       {
-         workQueue->push(recordArray);
-         recordArray = NULL;
+         if (!recordArray->empty())
+         {
+            workQueue->push(recordArray);
+            recordArray = NULL;
+         }
+         else
+         {
+            freeRecordArray(&recordArray);
+         }
       }
       self->_stopped = TRUE;
       if (NULL != input)
