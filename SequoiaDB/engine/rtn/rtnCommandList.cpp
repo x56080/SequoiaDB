@@ -707,16 +707,18 @@ namespace engine
 
    BSONObj _rtnListBackupsInner::_getOptObj() const
    {
+      BSONObj obj ;
       try
       {
-         BSONObj hintObj( _hintBuff ) ;
-         return hintObj ;
+         BSONObjBuilder builder ;
+         builder.appendBool( FIELD_NAME_DETAIL, TRUE ) ;
+         obj = builder.obj() ;
       }
       catch( std::exception &e )
       {
          PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
       }
-      return BSONObj() ;
+      return obj ;
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnListTrans)
