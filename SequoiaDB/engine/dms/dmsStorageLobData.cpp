@@ -293,7 +293,7 @@ namespace engine
          }
       }
 
-      if ( fileSize < sizeof( dmsStorageUnitHeader ) )
+      if ( fileSize < (INT64)sizeof( dmsStorageUnitHeader ) )
       {
          PD_LOG ( PDERROR, "Invalid storage unit size: %s",
                   _fileName.c_str() ) ;
@@ -555,7 +555,7 @@ namespace engine
       dmsLobDirectInBuffer buffer( pData, len, offset, cb ) ;
       dmsLobDirectBuffer::tuple t ;
       INT64 readOffset = 0 ;
-      
+
       if ( !OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) )
       {
          t.buf = pData ;
@@ -615,8 +615,17 @@ namespace engine
       SDB_ASSERT( ( 0 == ( offset & ( OSS_FILE_DIRECT_IO_ALIGNMENT - 1 ) ) ) &&
                   ( 0 == ( len & ( OSS_FILE_DIRECT_IO_ALIGNMENT - 1 ) ) ), "must be aligned" ) ;
       SINT64 readFromFile = 0 ;
+      INT32  pageID = -1 ;
+      if ( offset >= sizeof( _dmsStorageUnitHeader ) )
+      {
+         offset -= sizeof( _dmsStorageUnitHeader ) ;
+         pageID = offset >> _logarithmic ;
+         offset %= _pageSz ;
+      }
+
       dmsLobDirectInBuffer buffer( buf, len, offset, cb ) ;
       dmsLobDirectBuffer::tuple t ;
+      INT64 readOffset = 0 ;
 
       if ( !OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) )
       {
@@ -637,21 +646,30 @@ namespace engine
       SDB_ASSERT( offset == t.offset &&
                   len == t.size, "must be same" ) ;
 
-      if ( ( SINT64 )(t.offset + t.size) > _fileSz )
+      if ( pageID >= 0 )
+      {
+         readOffset = getSeek( pageID, t.offset ) ;
+      }
+      else
+      {
+         readOffset = offset ;
+      }
+
+      if ( ( SINT64 )(readOffset + t.size) > _fileSz )
       {
          PD_LOG( PDERROR, "Offset[%lld] grater than file size[%lld] in "
-                 "file[%s]", t.offset, _fileSz, _fileName.c_str() ) ;
+                 "file[%s]", readOffset, _fileSz, _fileName.c_str() ) ;
          rc = SDB_SYS ;
          goto error ;
       }
 
-      rc = ossSeekAndReadN( &_file, t.offset,
+      rc = ossSeekAndReadN( &_file, readOffset,
                             t.size, ( CHAR * )( t.buf ),
                             readFromFile ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to read data[offset: %lld, len: %d], rc: %d",
-                 t.offset, t.size, rc ) ;
+                 readOffset, t.size, rc ) ;
          goto error ;
       }
 
