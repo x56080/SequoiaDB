@@ -580,16 +580,20 @@ namespace engine
             {
                goto error ;
             }
-            pCatAgent->lock_w() ;
-            if ( ossStrchr( name, '.' ) )
+            /// when sdbrestore, the cata agent is NULL
+            if ( pCatAgent )
             {
-               pCatAgent->clear( name ) ;
+               pCatAgent->lock_w() ;
+               if ( ossStrchr( name, '.' ) )
+               {
+                  pCatAgent->clear( name ) ;
+               }
+               else
+               {
+                  pCatAgent->clearBySpaceName( name ) ;
+               }
+               pCatAgent->release_w() ;
             }
-            else
-            {
-               pCatAgent->clearBySpaceName( name ) ;
-            }
-            pCatAgent->release_w() ;
 
             rc = SDB_OK ;
             break ;
