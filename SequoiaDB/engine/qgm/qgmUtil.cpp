@@ -232,6 +232,7 @@ namespace engine
                       BOOLEAN useAlias, UINT32 *pPos )
    {
       PD_TRACE_ENTRY( SDB__QGMISFROMONE ) ;
+      BOOLEAN ret = FALSE ;
       UINT32 i = 0 ;
       while ( i < right.size() )
       {
@@ -241,24 +242,32 @@ namespace engine
             {
                *pPos = i ;
             }
-            return TRUE ;
+            ret = TRUE ;
+            goto error ;
          }
          ++i ;
       }
-      PD_TRACE_EXIT( SDB__QGMISFROMONE) ;
-      return FALSE ;
+      
+   done:
+      PD_TRACE_EXIT( SDB__QGMISFROMONE ) ;
+      return ret ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__QGMISSAMEFROM, "isSameFrom" )
    BOOLEAN isSameFrom( const qgmOPFieldVec & left, const qgmOPFieldVec & right )
    {
       PD_TRACE_ENTRY( SDB__QGMISSAMEFROM ) ;
+      BOOLEAN ret = TRUE ;
+      UINT32 i = 0 ;
+
       if ( left.size() != right.size() )
       {
-         return FALSE ;
+         ret = FALSE ;
+         goto error ;
       }
 
-      UINT32 i = 0 ;
       while ( i < left.size() )
       {
          qgmOpField field ;
@@ -268,12 +277,17 @@ namespace engine
               ( right[i].alias.empty() &&
                 left[i].value.attr() != right[i].value.attr() ) )
          {
-            return FALSE ;
+            ret = FALSE ;
+            goto error ;
          }
          ++i ;
       }
+
+   done:
       PD_TRACE_EXIT( SDB__QGMISSAMEFROM ) ;
-      return TRUE ;
+      return ret ;
+   error:
+      goto done ;
    }
 
    BOOLEAN isFrom( const qgmDbAttr &left, const qgmOpField &right,

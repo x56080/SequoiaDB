@@ -2015,7 +2015,8 @@ namespace engine
 
       if ( _isReplace )
       {
-         return _buildNewObjReplace( b, es ) ;
+         rc = _buildNewObjReplace( b, es ) ;
+         goto done ;
       }
 
       e = es.next() ;

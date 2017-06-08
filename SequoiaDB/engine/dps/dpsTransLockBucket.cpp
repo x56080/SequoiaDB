@@ -71,6 +71,7 @@ namespace engine
                                  const dpsTransLockId &lockId,
                                  DPS_TRANSLOCK_TYPE lockType )
    {
+      PD_TRACE_ENTRY( SDB_DPSLOCKBUCKET_ACQUIRE ) ;
       INT32 rc = SDB_OK;
       dpsTransLockUnit *pLockUnit = NULL;
       {
@@ -149,6 +150,7 @@ namespace engine
    INT32 dpsLockBucket::waitLockX( _pmdEDUCB *eduCB,
                                    const dpsTransLockId &lockId )
    {
+      PD_TRACE_ENTRY( SDB_DPSLOCKBUCKET_WAITLOCKX ) ;
       INT32 rc = SDB_OK;
       dpsTransLockUnit *pLockUnit = NULL;
       {
@@ -201,6 +203,7 @@ namespace engine
                                  const dpsTransLockId &lockId,
                                  DPS_TRANSLOCK_TYPE lockType )
    {
+      PD_TRACE_ENTRY( SDB_DPSLOCKBUCKET_UPGRADE ) ;
       SDB_ASSERT( eduCB, "eduCB can't be null" ) ;
       INT32 rc = SDB_OK;
 
@@ -278,6 +281,7 @@ namespace engine
    void dpsLockBucket::release( _pmdEDUCB *eduCB,
                                 const dpsTransLockId &lockId )
    {
+      PD_TRACE_ENTRY( SDB_DPSLOCKBUCKET_LOCKID ) ;
       SDB_ASSERT( eduCB, "eduCB can't be null" ) ;
 
       dpsTransLockUnit *pLockUnit = NULL;
@@ -310,6 +314,7 @@ namespace engine
                                      DPS_TRANSLOCK_TYPE lockType,
                                      dpsTransLockUnit *pLockUnit )
    {
+      PD_TRACE_ENTRY( SDB_DPSLOCKBUCKET_APPENDTORUN ) ;
       SDB_ASSERT( eduCB, "eduCB can't be null" ) ;
       SDB_ASSERT( pLockUnit, "pLockUnit can't be null" ) ;
       INT32 rc = SDB_OK;
@@ -333,6 +338,7 @@ namespace engine
                                      const dpsTransLockId &lockId,
                                      dpsTransLockUnit *pLockUnit  )
    {
+      PD_TRACE_ENTRY( SDB_DPSLOCKBUCKET_APPENDTOWAIT ) ;
       SDB_ASSERT( eduCB, "eduCB can't be null" ) ;
       SDB_ASSERT( pLockUnit, "pLockUnit can't be null" ) ;
       dpsTransCBLockInfo *pLockInfo = NULL ;
@@ -362,6 +368,7 @@ namespace engine
                                          const dpsTransLockId &lockId,
                                          dpsTransLockUnit *pLockUnit  )
    {
+      PD_TRACE_ENTRY( SDB_DPSLOCKBUCKET_APPENDHEADTOWAIT ) ;
       SDB_ASSERT( eduCB, "eduCB can't be null" ) ;
       SDB_ASSERT( pLockUnit, "pLockUnit can't be null" ) ;
       dpsTransCBLockInfo *pLockInfo = NULL ;
@@ -381,6 +388,7 @@ namespace engine
    void dpsLockBucket::removeFromRun( _pmdEDUCB *eduCB,
                                       dpsTransLockUnit *pLockUnit  )
    {
+      PD_TRACE_ENTRY( SDB_DPSLOCKBUCKET_REMOVEFROMRUN ) ;
       SDB_ASSERT( eduCB, "eduCB can't be null" ) ;
       SDB_ASSERT( pLockUnit, "pLockUnit can't be null" ) ;
 
@@ -401,6 +409,7 @@ namespace engine
                                        dpsTransLockUnit *pLockUnit,
                                        const dpsTransLockId &lockId )
    {
+      PD_TRACE_ENTRY ( SDB_DPSLOCKBUCKET_REMOVEFROMWAIT ) ;
       SDB_ASSERT( eduCB, "eduCB can't be null" ) ;
       SDB_ASSERT( pLockUnit, "pLockUnit can't be null" ) ;
       dpsTransCBLockInfo *pLockInfo = NULL ;
@@ -455,6 +464,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSLOCKBUCKET_WAITLOCK, "dpsLockBucket::waitLock" )
    INT32 dpsLockBucket::waitLock( _pmdEDUCB *eduCB )
    {
+      PD_TRACE_ENTRY ( SDB_DPSLOCKBUCKET_WAITLOCK ) ;
       INT32 rc = SDB_OK ;
       pmdEDUEvent event;
 
@@ -482,6 +492,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSLOCKBUCKET_WAKEUP, "dpsLockBucket::wakeUp" )
    void dpsLockBucket::wakeUp( _pmdEDUCB *eduCB )
    {
+      PD_TRACE_ENTRY( SDB_DPSLOCKBUCKET_WAKEUP ) ;
       eduCB->postEvent( pmdEDUEvent( PMD_EDU_EVENT_LOCKWAKEUP,
                                      PMD_EDU_MEM_NONE, NULL ));
       PD_TRACE_EXIT ( SDB_DPSLOCKBUCKET_WAKEUP );
@@ -502,6 +513,7 @@ namespace engine
                                            DPS_TRANSLOCK_TYPE lockType,
                                            dpsTransLockUnit *pLockUnit )
    {
+      PD_TRACE_ENTRY( SDB_DPSLOCKBUCKET_CHECKCOMPATIBLE ) ;
       BOOLEAN isCompatible = TRUE;
       dpsTransLockRunList::iterator iterLst
                               = pLockUnit->_runList.begin() ;
@@ -538,6 +550,7 @@ namespace engine
                               const dpsTransLockId &lockId,
                               DPS_TRANSLOCK_TYPE lockType )
    {
+      PD_TRACE_ENTRY( SDB_DPSLOCKBUCKET_TEST ) ;
       INT32 rc = SDB_OK;
       dpsTransLockUnit *pLockUnit = NULL;
       {
@@ -574,6 +587,7 @@ namespace engine
                                     const dpsTransLockId &lockId,
                                     DPS_TRANSLOCK_TYPE lockType )
    {
+      PD_TRACE_ENTRY( SDB_DPSLOCKBUCKET_TRYACQUIRE ) ;
       INT32 rc = SDB_OK;
       dpsTransLockUnit *pLockUnit = NULL;
       {
@@ -618,6 +632,7 @@ namespace engine
                                             DPS_TRANSLOCK_TYPE lockType,
                                             BOOLEAN appendHead )
    {
+      PD_TRACE_ENTRY( SDB_DPSLOCKBUCKET_TRYACQUIREORAPPEND ) ;
       INT32 rc = SDB_OK;
       dpsTransLockUnit *pLockUnit = NULL;
       {
@@ -673,6 +688,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSLOCKBUCKET_HASWAIT, "dpsLockBucket::hasWait" )
    BOOLEAN dpsLockBucket::hasWait( const dpsTransLockId &lockId )
    {
+      PD_TRACE_ENTRY( SDB_DPSLOCKBUCKET_HASWAIT ) ;
       BOOLEAN result = FALSE;
       dpsTransLockUnit *pLockUnit = NULL;
       {
