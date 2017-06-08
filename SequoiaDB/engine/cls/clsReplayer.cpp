@@ -1148,12 +1148,19 @@ namespace engine
          }
       }
 
-      sdbGetShardCB()->getAndLockCataSet( fullname, &pCatSet, TRUE ) ;
-      if ( pCatSet && CLS_REPLSET_MAX_NODE_SIZE == pCatSet->getW() )
+      if ( pmdGetKRCB()->isRestore() )
       {
          useSync = TRUE ;
       }
-      sdbGetShardCB()->unlockCataSet( pCatSet ) ;
+      else
+      {
+         sdbGetShardCB()->getAndLockCataSet( fullname, &pCatSet, TRUE ) ;
+         if ( pCatSet && CLS_REPLSET_MAX_NODE_SIZE == pCatSet->getW() )
+         {
+            useSync = TRUE ;
+         }
+         sdbGetShardCB()->unlockCataSet( pCatSet ) ;
+      }
 
       indexJob = SDB_OSS_NEW rtnIndexJob( type, fullname, index, dpsCB ) ;
       if ( NULL == indexJob )
