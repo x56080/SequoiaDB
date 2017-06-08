@@ -1463,20 +1463,24 @@ namespace engine
       //BOOLEAN mayBalanceRight ;
       //BOOLEAN mayBalanceLeft ;
       // let's return if it's root
-      if ( DMS_INVALID_EXTENT == getParent() )
+      do 
       {
-         return rc ;
-      }
-      // get the parent extent
-      ixmExtent parent( getParent(), _pIndexSu ) ;
-      // find the key pointing to this extent
-      rc = parent._findChildExtent( _me, pos ) ;
-      // if we can't find the key, something really bad happened
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Unable to find the extent in it's parent" ) ;
-         goto error ;
-      }
+         if ( DMS_INVALID_EXTENT == getParent() )
+         {
+            break ;
+         }
+         // get the parent extent
+         ixmExtent parent( getParent(), _pIndexSu ) ;
+         // find the key pointing to this extent
+         rc = parent._findChildExtent( _me, pos ) ;
+         // if we can't find the key, something really bad happened
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Unable to find the extent in it's parent" ) ;
+            goto error ;
+         }
+      } while (0);
+      
       // if we are not the _right, and our next slot got child, we may do right
       // balance
       /*mayBalanceRight = (pos < parent.getNumKeyNode() &&

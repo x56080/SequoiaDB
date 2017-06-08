@@ -190,7 +190,8 @@ namespace engine
          {
             // if doing goto here, compile will get error for the following
             // indexExtent object declare
-            return SDB_IXM_EOC ;
+            rc = SDB_IXM_EOC ;
+            goto done ;
          }
          ixmExtent indexExtent ( _curIndexRID._extent, _su->index() ) ;
          // in readonly mode, _savedRID should always be NULL unless pauseScan()
@@ -333,7 +334,8 @@ namespace engine
          {
             // if doing goto here, compile will get error for the following
             // indexExtent object declare
-            return SDB_IXM_EOC ;
+            rc = SDB_IXM_EOC ;
+            goto done ;
          }
          // now let's get the binary key and create BSONObj from it
          ixmExtent indexExtent ( _curIndexRID._extent, _su->index() ) ;

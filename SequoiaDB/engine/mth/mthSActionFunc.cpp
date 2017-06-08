@@ -393,7 +393,7 @@ namespace engine
                           bson::BSONObjBuilder &builder )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__MTHABSGET ) ;
+      PD_TRACE_ENTRY( SDB__MTHCEILINGBUILD ) ;
       SDB_ASSERT( NULL != action, "can not be null" ) ;
 
       rc = mthCeiling( fieldName, e, builder ) ;
@@ -417,7 +417,7 @@ namespace engine
                         bson::BSONElement &out )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__MTHABSGET ) ;
+      PD_TRACE_ENTRY( SDB__MTHCEILINGGET ) ;
       SDB_ASSERT( NULL != action, "can not be null" ) ;
       BSONObjBuilder builder ;
       BSONObj obj ;
@@ -436,6 +436,7 @@ namespace engine
          out = action->getObj().getField( fieldName ) ;
       }
    done:
+      PD_TRACE_EXITRC( SDB__MTHCEILINGGET, rc ) ;
       return rc ;
    error:
       goto done ;

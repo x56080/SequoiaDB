@@ -1389,7 +1389,7 @@ namespace engine
       SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
       SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
 
-      PD_TRACE_ENTRY ( SDB_CATUPDATECATALOG ) ;
+      PD_TRACE_ENTRY ( SDB_CATUPDATECATALOGBYUNSET ) ;
       BSONObj dummy ;
       BSONObj match = BSON( CAT_CATALOGNAME_NAME << clFullName ) ;
       BSONObj updator = BSON( "$inc" << BSON( CAT_VERSION_NAME << 1 ) <<

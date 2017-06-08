@@ -341,6 +341,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_ADDTRANSCB, "dpsTransCB::addTransCB" )
    void dpsTransCB::addTransCB( DPS_TRANS_ID transID, _pmdEDUCB *eduCB )
    {
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_ADDTRANSCB ) ;
       {
          transID = getTransID( transID );
          ossScopedLock _lock( &_CBMapMutex );
@@ -352,6 +353,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_DELTRANSCB, "dpsTransCB::delTransCB" )
    void dpsTransCB::delTransCB( DPS_TRANS_ID transID )
    {
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_DELTRANSCB ) ;
       {
          transID = getTransID( transID );
          ossScopedLock _lock( &_CBMapMutex ) ;

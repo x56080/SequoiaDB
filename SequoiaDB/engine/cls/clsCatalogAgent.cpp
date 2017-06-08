@@ -525,12 +525,14 @@ namespace engine
       {
          if ( *it == groupID )
          {
-            return ;
+            goto done ;
          }
          ++it ;
       }
       _vecGroupID.push_back ( groupID ) ;
       _groupCount = _vecGroupID.size() ;
+      
+   done:
       PD_TRACE_EXIT ( SDB__CLSCTSET_ADDGPID ) ;
    }
 
