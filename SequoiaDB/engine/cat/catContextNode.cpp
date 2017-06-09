@@ -150,9 +150,6 @@ namespace engine
 
       try
       {
-         BSONObj boIdx ;
-         BSONElement beIdx ;
-
          rc = rtnGetSTDStringElement( _boQuery, CAT_GROUPNAME_NAME, _targetName ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get field [%s], rc: %d",
@@ -289,9 +286,6 @@ namespace engine
 
       try
       {
-         BSONObj boIdx ;
-         BSONElement beIdx ;
-
          rc = rtnGetSTDStringElement( _boQuery, CAT_GROUPNAME_NAME, _targetName ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get field [%s], rc: %d",
@@ -386,9 +380,6 @@ namespace engine
 
       try
       {
-         BSONObj boIdx ;
-         BSONElement beIdx ;
-
          rc = rtnGetSTDStringElement( _boQuery, CAT_GROUPNAME_NAME, _targetName ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get field [%s], rc: %d",
@@ -594,9 +585,6 @@ namespace engine
 
       try
       {
-         BSONObj boIdx ;
-         BSONElement beIdx ;
-
          rc = rtnGetSTDStringElement( _boQuery, CAT_GROUPNAME_NAME, _targetName ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get field [%s], rc: %d",
@@ -941,9 +929,6 @@ namespace engine
 
       try
       {
-         BSONObj boIdx ;
-         BSONElement beIdx ;
-
          rc = rtnGetSTDStringElement( _boQuery, CAT_GROUPNAME_NAME, _targetName ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get field [%s], rc: %d",
