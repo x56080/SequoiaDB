@@ -1300,18 +1300,26 @@ namespace engine
    const rtnPredicate &_rtnPredicateSet::predicate (const CHAR *fieldName) const
    {
       PD_TRACE_ENTRY ( SDB__RTNPRED_PRED ) ;
+
+      const rtnPredicate *pRet = NULL ;
       map<string, rtnPredicate>::const_iterator f = _predicates.find(fieldName);
       if ( _predicates.end() == f )
       {
          // we assign rtnPredicate object to a static pointer
          // this memory is not released until process terminate
          if ( !genericPredicate )
-            genericPredicate = SDB_OSS_NEW rtnPredicate
+         {
+		    genericPredicate = SDB_OSS_NEW rtnPredicate
                                      (BSONObj().firstElement(),FALSE);
-         return *genericPredicate ;
+		 }
+         pRet = genericPredicate ;
+      }
+      else
+      {
+         pRet = &(f->second) ;
       }
       PD_TRACE_EXIT ( SDB__RTNPRED_PRED ) ;
-      return f->second ;
+      return *pRet ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDSET_MALEFORINDEX, "_rtnPredicateSet::matchLevelForIndex" )

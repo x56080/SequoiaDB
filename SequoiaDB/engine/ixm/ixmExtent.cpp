@@ -1039,15 +1039,19 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__REORG );
-      if ( isCompact() )
-      {
-         return rc ;
-      }
-      ixmExtentHead *pHeader = _extRW.writePtr<ixmExtentHead>( 0, _pageSize ) ;
+
+      ixmExtentHead *pHeader = NULL ;
       UINT16 beginFreeOffset = _pageSize-1 ;
       UINT16 totalKeyNodeNum = 0 ;
       UINT16 totalFreeSize = beginFreeOffset - sizeof(ixmExtentHead) ;
       CHAR   buffer[DMS_PAGE_SIZE_MAX] ;
+
+      if ( isCompact() )
+      {
+         goto done ;
+      }
+
+      pHeader = _extRW.writePtr<ixmExtentHead>( 0, _pageSize ) ;
 
       // loop through all keys in the page
       for ( UINT16 i = 0 ; i < pHeader->_totalKeyNodeNum; i++ )
@@ -1463,12 +1467,13 @@ namespace engine
       //BOOLEAN mayBalanceRight ;
       //BOOLEAN mayBalanceLeft ;
       // let's return if it's root
-      do 
+       
+      
+      if ( DMS_INVALID_EXTENT == getParent() )
       {
-         if ( DMS_INVALID_EXTENT == getParent() )
-         {
-            break ;
-         }
+         goto error ;
+      }
+      {
          // get the parent extent
          ixmExtent parent( getParent(), _pIndexSu ) ;
          // find the key pointing to this extent
@@ -1479,7 +1484,7 @@ namespace engine
             PD_LOG ( PDERROR, "Unable to find the extent in it's parent" ) ;
             goto error ;
          }
-      } while (0);
+      } 
       
       // if we are not the _right, and our next slot got child, we may do right
       // balance
