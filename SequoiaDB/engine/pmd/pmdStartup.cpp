@@ -343,6 +343,7 @@ namespace engine
       if ( _fileOpened )
       {
          ossClose( _file ) ;
+         _fileOpened = FALSE ;
       }
       if ( _ok && !_restart )
       {
