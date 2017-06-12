@@ -43,6 +43,8 @@
 #include "dmsStorageUnit.hpp"
 #include "monDump.hpp"
 #include "clsReplayer.hpp"
+#include "ossPath.hpp"
+#include "pmdStartup.hpp"
 #include "pdTrace.hpp"
 #include "barTrace.hpp"
 
@@ -74,7 +76,7 @@ namespace engine
    #define BAR_SU_FILE_TYPE_LOBM          "lobm"
    #define BAR_SU_FILE_TYPE_LOBD          "lobd"
 
-   #define BAR_MAX_EXTENT_DATA_SIZE       (16777216)           // 16MB
+   #define BAR_MAX_EXTENT_DATA_SIZE       (67108864)           // 64MB
    #define BAR_THINCOPY_THRESHOLD_SIZE    (16)                 // MB
    #define BAR_THINCOPY_THRESHOLD_RATIO   (0.1)
 
@@ -188,6 +190,22 @@ namespace engine
       return fileName ;
    }
 
+   BOOLEAN _barBaseLogger::parseDateFile( const string &fileName,
+                                          string &backupName,
+                                          UINT32 &seq )
+   {
+      const CHAR *pFileName = fileName.c_str() ;
+      const CHAR *pSeq = ossStrrchr( pFileName, '.' ) ;
+
+      if ( !pSeq || pSeq == pFileName ||
+           FALSE == _isDigital( pSeq + 1, &seq ) )
+      {
+         return FALSE ;
+      }
+      backupName = fileName.substr( 0, pSeq - pFileName ) ;
+      return TRUE ;
+   }
+
    BOOLEAN _barBaseLogger::parseMainFile( const string &fileName,
                                           string &backupName )
    {
@@ -201,6 +219,62 @@ namespace engine
       }
 
       backupName = fileName.substr( 0, pExt - pFileName ) ;
+      return TRUE ;
+   }
+
+   BOOLEAN _barBaseLogger::parseIncFile( const string &fileName,
+                                         string &backupName,
+                                         UINT32 &incID )
+   {
+      const CHAR *pFileName = fileName.c_str() ;
+      const CHAR *pInc = ossStrrchr( pFileName, '.' ) ;
+
+      if ( !pInc || pInc == pFileName ||
+           FALSE == _isDigital( pInc + 1, &incID ) )
+      {
+         return FALSE ;
+      }
+
+      string leftStr = fileName.substr( 0, pInc - pFileName ) ;
+      return parseMainFile( leftStr, backupName ) ;
+   }
+
+   BOOLEAN _barBaseLogger::parseMetaFile( const string &fileName,
+                                          string &backupName,
+                                          UINT32 &incID )
+   {
+      if ( parseIncFile( fileName, backupName, incID ) )
+      {
+         return TRUE ;
+      }
+      else if ( parseMainFile( fileName, backupName ) )
+      {
+         incID = 0 ;
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+
+   BOOLEAN _barBaseLogger::_isDigital( const CHAR *pStr,
+                                       UINT32 *pNum )
+   {
+      const CHAR *pTmp = pStr ;
+      if ( !pStr || !*pStr )
+      {
+         return FALSE ;
+      }
+      while( *pTmp )
+      {
+         if ( *pTmp < '0' || *pTmp > '9' )
+         {
+            return FALSE ;
+         }
+         ++pTmp ;
+      }
+      if ( pNum )
+      {
+         *pNum = (UINT32)ossAtoi( pStr ) ;
+      }
       return TRUE ;
    }
 
@@ -221,31 +295,58 @@ namespace engine
       return fileName ;
    }
 
-   UINT32 _barBaseLogger::_ensureMetaFileSeq ()
+   UINT32 _barBaseLogger::_ensureMetaFileSeq ( set< UINT32 > *pSetSeq )
    {
-      return _ensureMetaFileSeq( _path, _backupName ) ;
+      return _ensureMetaFileSeq( _path, _backupName, pSetSeq ) ;
    }
 
-   UINT32 _barBaseLogger::_ensureMetaFileSeq( const string &backupName )
+   UINT32 _barBaseLogger::_ensureMetaFileSeq( const string &backupName,
+                                              set< UINT32 > *pSetSeq )
    {
-      return _ensureMetaFileSeq( _path, backupName ) ;
+      return _ensureMetaFileSeq( _path, backupName, pSetSeq ) ;
    }
 
    UINT32 _barBaseLogger::_ensureMetaFileSeq( const string &path,
-                                              const string &backupName )
+                                              const string &backupName,
+                                              set< UINT32 > *pSetSeq )
    {
-      string fileName ;
       UINT32 metaFileSeq = 0 ;
+      INT32 rc = SDB_OK ;
+      string filter = backupName + BAR_BACKUP_META_FILE_EXT ;
+      multimap < string, string > mapFiles ;
+      multimap < string, string >::iterator it ;
 
-      while ( TRUE )
+      string tmpName ;
+      UINT32 tmpID = 0 ;
+
+      rc = ossEnumFiles2( path, mapFiles, filter.c_str(),
+                          OSS_MATCH_LEFT, 1 ) ;
+      if ( rc )
       {
-         fileName = getIncFileName( path, backupName, metaFileSeq ) ;
-         if ( SDB_OK != ossAccess( fileName.c_str(), 0 ) )
-         {
-            break ;
-         }
-         ++metaFileSeq ;
+         goto done ;
       }
+
+      it = mapFiles.begin() ;
+      while( it != mapFiles.end() )
+      {
+         const string &fileName = it->first ;
+
+         if ( parseMetaFile( fileName, tmpName, tmpID ) &&
+              backupName == tmpName )
+         {
+            if ( pSetSeq )
+            {
+               pSetSeq->insert( tmpID ) ;
+            }
+            if ( tmpID + 1 > metaFileSeq )
+            {
+               metaFileSeq = tmpID + 1 ;
+            }
+         }
+         ++it ;
+      }
+
+   done:
       return metaFileSeq ;
    }
 
@@ -318,9 +419,12 @@ namespace engine
       while ( 0 < needRead )
       {
          rc = ossRead( &file, buf + bufOffset, needRead, &read );
-         if ( rc && SDB_INTERRUPT != rc )
+         if ( rc )
          {
-            PD_LOG( PDWARNING, "Failed to read data, rc: %d", rc ) ;
+            if ( SDB_INTERRUPT != rc && SDB_EOF != rc )
+            {
+               PD_LOG( PDWARNING, "Failed to read data, rc: %d", rc ) ;
+            }
             goto error ;
          }
          needRead -= read ;
@@ -511,6 +615,9 @@ namespace engine
       _metaFileSeq   = 0 ;
       _curFileSize   = 0 ;
       _isOpened      = FALSE ;
+
+      _lastLSN       = ~0 ;
+      _lastLSNCode   = 0 ;
    }
 
    _barBkupBaseLogger::~_barBkupBaseLogger ()
@@ -584,26 +691,35 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BOOLEAN hasPrepared = FALSE ;
+      BOOLEAN isEmpty = FALSE ;
 
       PD_LOG( PDEVENT, "Begin to backup[%s]...", backupName() ) ;
 
       // 1. prepare for backup
-      rc = _prepareBackup( cb ) ;
+      rc = _prepareBackup( cb, isEmpty ) ;
       PD_RC_CHECK( rc, PDERROR, "Prepare for backup failed, rc: %d", rc ) ;
 
       hasPrepared = TRUE ;
 
-      // 2. backup config
-      rc = _backupConfig() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to backup config, rc: %d", rc ) ;
+      if ( !isEmpty )
+      {
+         // 2. backup config
+         rc = _backupConfig() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to backup config, rc: %d", rc ) ;
 
-      // 3. do backup data
-      rc = _doBackup ( cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to do backup, rc: %d", rc ) ;
+         // 3. do backup data
+         rc = _doBackup ( cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to do backup, rc: %d", rc ) ;
 
-      // 4. write meta file
-      rc = _writeMetaFile () ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to write meta file, rc: %d", rc ) ;
+         // 4. write meta file
+         rc = _writeMetaFile () ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to write meta file, rc: %d", rc ) ;
+      }
+      else
+      {
+         PD_LOG( PDWARNING, "Backup[%s] is empty, will ignored",
+                 backupName() ) ;
+      }
 
       // 5. clean up after backup
       rc = _afterBackup ( cb ) ;
@@ -722,6 +838,9 @@ namespace engine
       {
          _metaHeader._secretValue      = pHeader->_secretValue ;
       }
+
+      _lastLSN = pHeader->_lastLSN ;
+      _lastLSNCode = pHeader->_lastLSNCode ;
 
    done:
       if ( pHeader )
@@ -970,6 +1089,7 @@ namespace engine
       _curOffset   = 0 ;
       _curSequence = 0 ;
       _replStatus  = -1 ;
+      _hasRegBackup = FALSE ;
       _pExtentBuff = NULL ;
    }
 
@@ -987,69 +1107,117 @@ namespace engine
       return BAR_BACKUP_TYPE_OFFLINE ;
    }
 
-   INT32 _barBKOfflineLogger::_prepareBackup ( _pmdEDUCB *cb )
+   INT32 _barBKOfflineLogger::_prepareBackup ( _pmdEDUCB *cb, BOOLEAN &isEmpty )
    {
       pmdKRCB *krcb = pmdGetKRCB() ;
       INT32 rc = SDB_OK ;
-      BOOLEAN hasReg = FALSE ;
-      DPS_LSN lsn ;
+      DPS_LSN beginlsn, expectlsn ;
 
-      if ( SDB_ROLE_STANDALONE != krcb->getDBRole() )
+      isEmpty = FALSE ;
+
+      if ( BAR_BACKUP_OP_TYPE_FULL == _metaHeader._opType )
       {
-         _replStatus = PMD_DB_STATUS() ;
-         PMD_SET_DB_STATUS( SDB_DB_OFFLINE_BK ) ;
-
-         // wait all log complete
-         while ( TRUE )
+         if ( SDB_ROLE_STANDALONE != krcb->getDBRole() )
          {
-            if ( cb->isInterrupted() )
+            _replStatus = PMD_DB_STATUS() ;
+            PMD_SET_DB_STATUS( SDB_DB_OFFLINE_BK ) ;
+
+            _pClsCB->getReplCB()->getSyncEmptyEvent()->wait() ;
+
+            // wait all log complete
+            while ( TRUE )
             {
-               rc = SDB_APP_INTERRUPT ;
+               if ( cb->isInterrupted() )
+               {
+                  rc = SDB_APP_INTERRUPT ;
+                  goto error ;
+               }
+               if ( SDB_OK == _pClsCB->getReplCB()->getBucket()->waitEmpty(
+                              OSS_ONE_SEC ) )
+               {
+                  break ;
+               }
+            }
+         }
+
+         rc = _pDMSCB->registerBackup( cb, TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register backup, rc: %d", rc ) ;
+         _hasRegBackup = TRUE ;
+
+         /// sync
+         rtnSyncDB( cb, -1, NULL, FALSE ) ;
+      }
+      else
+      {
+         rc = _pDMSCB->registerBackup( cb, FALSE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register backup, rc: %d", rc ) ;
+         _hasRegBackup = TRUE ;
+      }
+
+      // if increase backup, need to check lsn
+      beginlsn = _pDPSCB->getStartLsn( FALSE ) ;
+      expectlsn = _pDPSCB->expectLsn() ;
+
+      if ( BAR_BACKUP_OP_TYPE_INC == _metaHeader._opType )
+      {
+         if ( beginlsn.compareOffset( _metaHeader._beginLSNOffset ) > 0 )
+         {
+            PD_LOG( PDERROR, "Begin lsn[%lld] is smaller than log's begin "
+                    "lsn[%u,%lld]", _metaHeader._beginLSNOffset,
+                    beginlsn.version, beginlsn.offset ) ;
+            rc = SDB_DPS_LOG_NOT_IN_BUF ;
+            goto error ;
+         }
+         else if ( expectlsn.compareOffset( _metaHeader._beginLSNOffset ) <= 0 )
+         {
+            isEmpty = TRUE ;
+            goto done ;
+         }
+
+         /// when need to check last lsn's hash code
+         if ( 0 != _lastLSNCode && (UINT64)~0 != _lastLSN )
+         {
+            dpsMessageBlock mb( DPS_MSG_BLOCK_DEF_LEN ) ;
+            DPS_LSN searchLsn ;
+            searchLsn.offset = _lastLSN ;
+            UINT32 hashValue = 0 ;
+            rc = _pDPSCB->search( searchLsn, &mb ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Search last check lsn[%lld] failed, rc: %d",
+                       _lastLSN, rc ) ;
                goto error ;
             }
-            if ( SDB_OK == _pClsCB->getReplCB()->getBucket()->waitEmpty(
-                           OSS_ONE_SEC ) )
+            hashValue = ossHash( mb.offset( 0 ), mb.length() ) ;
+            if ( _lastLSNCode != hashValue )
             {
-               break ;
+               PD_LOG( PDERROR, "Last lsn[%lld]'s hash value[%u] is not the "
+                       "same[%u]", _lastLSN, _lastLSNCode, hashValue ) ;
+               rc = SDB_DPS_CORRUPTED_LOG ;
+               goto error ;
             }
          }
       }
-
-      rc = _pDMSCB->registerBackup( cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to register backup, rc: %d", rc ) ;
-      hasReg = TRUE ;
-
-      /// sync
-      rtnSyncDB( cb, -1, NULL, FALSE ) ;
-
-      // if increase backup, need to check lsn
-      lsn = _pDPSCB->getStartLsn( FALSE ) ;
-      if ( BAR_BACKUP_OP_TYPE_INC == _metaHeader._opType &&
-           lsn.compareOffset( _metaHeader._beginLSNOffset ) > 0 )
-      {
-         PD_LOG( PDERROR, "LSN[%lld] is out of dps log, begin lsn[%u,%lld]",
-                 _metaHeader._beginLSNOffset, lsn.version, lsn.offset ) ;
-         rc = SDB_DPS_LSN_OUTOFRANGE ;
-         goto error ;
-      }
       else if ( BAR_BACKUP_OP_TYPE_FULL == _metaHeader._opType )
       {
-         _metaHeader._beginLSNOffset = lsn.offset ;
+         _metaHeader._beginLSNOffset = beginlsn.offset ;
       }
 
-      _metaHeader._endLSNOffset   = _pDPSCB->expectLsn().offset ;
+      _metaHeader._endLSNOffset   = expectlsn.offset ;
       _metaHeader._transLSNOffset = _pTransCB->getOldestBeginLsn() ;
 
    done:
       return rc ;
    error:
-      if ( hasReg )
+      if ( _hasRegBackup )
       {
          _pDMSCB->backupDown( cb ) ;
+         _hasRegBackup = FALSE ;
       }
       if ( -1 != _replStatus )
       {
          PMD_SET_DB_STATUS( (SDB_DB_STATUS)_replStatus ) ;
+         _replStatus = -1 ;
       }
       goto done ;
    }
@@ -1061,10 +1229,15 @@ namespace engine
 
    INT32 _barBKOfflineLogger::_afterBackup ( _pmdEDUCB *cb )
    {
-      _pDMSCB->backupDown( cb ) ;
+      if ( _hasRegBackup )
+      {
+         _pDMSCB->backupDown( cb ) ;
+         _hasRegBackup = FALSE ;
+      }
       if ( -1 != _replStatus )
       {
          PMD_SET_DB_STATUS( (SDB_DB_STATUS)_replStatus ) ;
+         _replStatus = -1 ;
       }
       return SDB_OK ;
    }
@@ -1430,7 +1603,7 @@ namespace engine
             else
             {
                onceLen = _curOffset + DMS_SEGMENT_SZ ;
-               if ( onceLen > pLobData->getFileSz() )
+               if ( onceLen > (UINT64)pLobData->getFileSz() )
                {
                   onceLen = pLobData->getFileSz() ;
                }
@@ -1545,8 +1718,11 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       DPS_LSN lsn ;
+      DPS_LSN_OFFSET oldTransLsn = DPS_INVALID_LSN_OFFSET ;
       barBackupExtentHeader *pHeader = NULL ;
       dpsMessageBlock mb( BAR_MAX_EXTENT_DATA_SIZE ) ;
+      BOOLEAN endLoop = FALSE ;
+      const dpsLogRecordHeader *pLastLSN = NULL ;
 
       if ( DPS_INVALID_LSN_OFFSET == _metaHeader._beginLSNOffset )
       {
@@ -1554,7 +1730,7 @@ namespace engine
       }
 
       lsn.offset = _metaHeader._beginLSNOffset ;
-      while ( lsn.compareOffset( _metaHeader._endLSNOffset ) < 0 )
+      while ( !endLoop )
       {
          if ( cb->isInterrupted() )
          {
@@ -1564,11 +1740,16 @@ namespace engine
 
          mb.clear() ;
 
-         while ( lsn.compareOffset( _metaHeader._endLSNOffset ) < 0 &&
-                 mb.length() < BAR_MAX_EXTENT_DATA_SIZE )
+         while ( mb.length() < BAR_MAX_EXTENT_DATA_SIZE )
          {
             rc = _pDPSCB->search( lsn, &mb ) ;
-            if ( rc )
+            if ( SDB_DPS_LSN_OUTOFRANGE == rc )
+            {
+               rc = SDB_OK ;
+               endLoop = TRUE ;
+               break ;
+            }
+            else if ( rc )
             {
                /// Print current dps info
                DPS_LSN fileBegin ;
@@ -1584,10 +1765,16 @@ namespace engine
                        expectLsn.offset, rc ) ;
                goto error ;
             }
-            dpsLogRecordHeader *header = (dpsLogRecordHeader*)mb.readPtr() ;
+            pLastLSN = (const dpsLogRecordHeader*)mb.readPtr() ;
             mb.readPtr( mb.length() ) ;
-            lsn.offset += header->_length ;
-            lsn.version = header->_version ;
+            lsn.offset += pLastLSN->_length ;
+            lsn.version = pLastLSN->_version ;
+         }
+
+         oldTransLsn = _pTransCB->getOldestBeginLsn() ;
+         if ( 0 == mb.length() )
+         {
+            break ;
          }
 
          pHeader = _nextDataExtent( BAR_DATA_TYPE_REPL_LOG ) ;
@@ -1601,6 +1788,37 @@ namespace engine
          // write data
          rc = _writeData( mb.startPtr(), mb.length(), FALSE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to write repl-log, rc: %d", rc ) ;
+      }
+
+      /// check lsn
+      if ( lsn.compareOffset( _metaHeader._endLSNOffset ) < 0 )
+      {
+         PD_LOG( PDWARNING, "Real end lsn[%u,%llu] is smaller than expect "
+                 "end lsn[%llu]", lsn.version, lsn.offset,
+                 _metaHeader._endLSNOffset ) ;
+         _metaHeader._endLSNOffset = lsn.offset ;
+      }
+      else if ( lsn.compareOffset( _metaHeader._endLSNOffset ) > 0 )
+      {
+         PD_LOG( PDINFO, "Real end lsn[%u,%llu] is grater than expect "
+                 "end lsn[%llu]", lsn.version, lsn.offset,
+                 _metaHeader._endLSNOffset ) ;
+         _metaHeader._endLSNOffset = lsn.offset ;
+      }
+      /// check trans lsn
+      if ( oldTransLsn != _metaHeader._transLSNOffset )
+      {
+         PD_LOG( PDWARNING, "Old trans lsn[%lld] is not the same with "
+                 "expect trans lsn[%lld]", oldTransLsn,
+                 _metaHeader._transLSNOffset ) ;
+         _metaHeader._transLSNOffset = oldTransLsn ;
+      }
+
+      if ( pLastLSN )
+      {
+         _metaHeader._lastLSN = pLastLSN->_lsn ;
+         _metaHeader._lastLSNCode = ossHash( (const CHAR*)pLastLSN,
+                                             pLastLSN->_length ) ;
       }
 
    done:
@@ -1623,6 +1841,7 @@ namespace engine
       _curOffset           = 0 ;
       _pBuff               = NULL ;
       _buffSize            = 0 ;
+      _beginID             = -1 ;
    }
 
    _barRSBaseLogger::~_barRSBaseLogger ()
@@ -1718,7 +1937,7 @@ namespace engine
       {
          goto error ;
       }
-      _curOffset = BAR_BACKUP_HEADER_EYECATCHER_LEN ;
+      _curOffset = BAR_BACKUPDATA_HEADER_SIZE ;
 
    done:
       if ( pHeader )
@@ -1731,9 +1950,13 @@ namespace engine
    }
 
    INT32 _barRSBaseLogger::init( const CHAR *path, const CHAR *backupName,
-                                 const CHAR *prefix, INT32 incID )
+                                 const CHAR *prefix, INT32 incID,
+                                 INT32 beginID )
    {
       INT32 rc = SDB_OK ;
+      set< UINT32 > setSeq ;
+
+      _beginID = beginID ;
 
       rc = _initInner( path, backupName, prefix ) ;
       PD_RC_CHECK( rc, PDWARNING, "Init inner failed, rc: %d", rc ) ;
@@ -1746,10 +1969,10 @@ namespace engine
       }
 
       // 1. ensure meta file seq
-      _metaFileSeq = _ensureMetaFileSeq() ;
+      _metaFileSeq = _ensureMetaFileSeq( &setSeq ) ;
 
       // 2. init check and prepare for restore
-      rc = _initCheckAndPrepare ( incID ) ;
+      rc = _initCheckAndPrepare ( incID, beginID, setSeq ) ;
       PD_RC_CHECK( rc, PDWARNING, "Prepare check for resotre failed, rc: %d",
                    rc ) ;
 
@@ -1759,12 +1982,25 @@ namespace engine
       goto done ;
    }
 
-   INT32 _barRSBaseLogger::_initCheckAndPrepare( INT32 incID )
+   INT32 _barRSBaseLogger::_initCheckAndPrepare( INT32 incID,
+                                                 INT32 beginID,
+                                                 set< UINT32 > &setSeq )
    {
       INT32 rc = SDB_OK ;
+      UINT32 tmpID = 0 ;
+      set< UINT32 >::iterator it ;
+      barBackupHeader *pHeader = NULL ;
+
+      pHeader = SDB_OSS_NEW barBackupHeader ;
+      if ( !pHeader )
+      {
+         PD_LOG( PDERROR, "Alloc backup data header failed" ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
 
       // 1. backup file exist check
-      if ( 0 == _metaFileSeq )
+      if ( 0 == _metaFileSeq || setSeq.empty() )
       {
          rc = SDB_BAR_BACKUP_NOTEXIST ;
          PD_LOG( PDWARNING, "Full backup[%s] not exist", backupName() ) ;
@@ -1774,14 +2010,40 @@ namespace engine
 
       if ( incID >= 0 )
       {
-         if ( (UINT32)incID > _metaFileSeq )
+         if ( (UINT32)incID > _metaFileSeq ||
+              0 == setSeq.count( incID ) )
          {
             rc = SDB_BAR_BACKUP_NOTEXIST ;
-            PD_LOG( PDWARNING, "Increase backup[%s,%d] not exist",
+            PD_LOG( PDWARNING, "Increase backup[%s,%d] does not exist",
                     backupName(), incID ) ;
             goto error ;
          }
          _metaFileSeq = (UINT32)incID ;
+      }
+
+      /// check value
+      if ( beginID >= 0 )
+      {
+         if ( (UINT32)beginID > _metaFileSeq )
+         {
+            PD_LOG( PDERROR, "Backup begin increase id[%d] is grather than "
+                    "backup end increase id[%d]", beginID, _metaFileSeq ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         else if ( 0 == setSeq.count( beginID ) )
+         {
+            rc = SDB_BAR_BACKUP_NOTEXIST ;
+            PD_LOG( PDERROR, "Begin increase backup[%s,%d] does not exist",
+                    backupName(), beginID ) ;
+            goto error ;
+         }
+         tmpID = beginID ;
+      }
+      else
+      {
+         it = setSeq.begin() ;
+         tmpID = *it ;
       }
 
       // 2. read meta file header
@@ -1789,14 +2051,42 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to read meta file[%d], rc: %d",
                    _metaFileSeq, rc ) ;
 
-      // 3. load config
-      rc = _loadConf () ;
+      // 3. init _mapBackupInfo
+      while( tmpID < _metaFileSeq )
+      {
+         rc = _readMetaHeader( tmpID, pHeader, TRUE, _secretValue ) ;
+         PD_RC_CHECK( rc, PDERROR, "Read meta header[Name:%s,ID:%d] failed, "
+                      "rc: %d", backupName(), tmpID, rc ) ;
+         _mapBackupInfo[ tmpID ] = barBackupHeaderSimple( pHeader ) ;
+
+         if ( beginID >= 0 )
+         {
+            break ;
+         }
+         else if ( it != setSeq.end() )
+         {
+            ++it ;
+            tmpID = *it ;
+         }
+         else
+         {
+            break ;
+         }
+      }
+      _mapBackupInfo[ _metaFileSeq ] = barBackupHeaderSimple( &_metaHeader ) ;
+
+      // 4. load config
+      rc = _loadConf() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to load config, rc: %d", rc ) ;
 
-      // 4. reset
-      _reset () ;
+      // 5. reset
+      _reset() ;
 
    done:
+      if ( pHeader )
+      {
+         SDB_OSS_DEL pHeader ;
+      }
       return rc ;
    error:
       goto done ;
@@ -1872,27 +2162,34 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BOOLEAN prepared = FALSE ;
+      BOOLEAN isEmpty = FALSE ;
 
       PD_LOG( PDEVENT, "Begin to restore[%s]...", backupName() ) ;
 
       // 1. prepare for restore
-      rc = _prepareRestore( cb ) ;
+      rc = _prepareRestore( cb, isEmpty ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to prepare for restore, rc: %d", rc ) ;
 
       prepared = TRUE ;
 
-      // 2. restore config
-      rc = _restoreConfig () ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to restore config, rc: %d", rc ) ;
+      if ( !isEmpty )
+      {
+         // 2. restore config
+         rc = _restoreConfig () ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to restore config, rc: %d", rc ) ;
 
-      // 3. do restore data
-      rc = _doRestore( cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to do restore, rc: %d", rc ) ;
+         // 3. do restore data
+         rc = _doRestore( cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to do restore, rc: %d", rc ) ;
+      }
 
       // 4. after restore
       rc = _afterRestore( cb ) ;
       prepared = FALSE ;
       PD_RC_CHECK( rc, PDERROR, "Failed to clean up after restore", rc ) ;
+
+      pmdGetStartup().ok( TRUE ) ;
+      pmdGetStartup().final() ;
 
       PD_LOG( PDEVENT, "Complete restore[%s]", backupName() ) ;
 
@@ -1901,10 +2198,18 @@ namespace engine
       return rc ;
    error:
       {
-         INT32 tempRC = cleanDMSData () ;
-         if ( tempRC )
+         INT32 tempRC = SDB_OK ;
+         /// only when restore full need to rollback
+         if ( 0 == _beginID )
          {
-            PD_LOG( PDWARNING, "Rollback restore failed, rc: %d", tempRC ) ;
+            tempRC = cleanDMSData () ;
+            if ( tempRC )
+            {
+               PD_LOG( PDWARNING, "Rollback restore failed, rc: %d", tempRC ) ;
+            }
+            _pDPSCB->move( 0, 1 ) ;
+
+            _metaHeader._transLSNOffset = DPS_INVALID_LSN_OFFSET ;
          }
 
          if ( prepared )
@@ -1948,7 +2253,28 @@ namespace engine
 
    INT32 _barRSBaseLogger::_restoreConfig ()
    {
-      return _pOptCB->reflush2File() ;
+      INT32 rc = SDB_OK ;
+      if ( 0 != ossAccess( _pOptCB->getConfPath() ) )
+      {
+         rc = ossMkdir( _pOptCB->getConfPath() ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Create config directory[%s] failed, rc: %d",
+                    _pOptCB->getConfPath(), rc ) ;
+            goto error ;
+         }
+      }
+      rc = _pOptCB->reflush2File() ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Flush config to file failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _barRSBaseLogger::_readData( barBackupExtentHeader **pExtHeader,
@@ -2020,6 +2346,10 @@ namespace engine
             goto error ;
          }
          ++_expectExtID ;
+      }
+      else
+      {
+         _expectExtID = _pDataExtent->_extentID + 1 ;
       }
 
       *pExtHeader = _pDataExtent ;
@@ -2150,28 +2480,102 @@ namespace engine
       goto done ;
    }
 
-   INT32 _barRSOfflineLogger::_prepareRestore( pmdEDUCB * cb )
+   INT32 _barRSOfflineLogger::_prepareRestore( pmdEDUCB * cb,
+                                               BOOLEAN &isEmpty )
    {
       INT32 rc = SDB_OK ;
+      MAP_BACKUP_INFO_IT it ;
+      barBackupHeaderSimple *pInfo = NULL ;
+      DPS_LSN expectLSN = _pDPSCB->expectLsn() ;
       DPS_LSN_OFFSET beginLSN = DPS_INVALID_LSN_OFFSET ;
 
-      // need to read main backup file meta
-      if ( 0 != _metaFileSeq )
+      isEmpty = FALSE ;
+
+      /// find the right beginID
+      if ( 0 == expectLSN.offset && _beginID < 0 )
       {
-         barBackupHeader mainMetaHeader ;
-         rc = _readMetaHeader( 0, &mainMetaHeader, TRUE, _secretValue ) ;
-         if ( rc )
+         _beginID = 0 ;
+      }
+
+      if ( _beginID < 0 )
+      {
+         it = _mapBackupInfo.begin() ;
+         while( it != _mapBackupInfo.end() )
          {
-            goto error ;
+            pInfo = &(it->second) ;
+            if ( expectLSN.compareOffset( pInfo->_beginLSNOffset ) < 0 )
+            {
+               PD_LOG( PDERROR, "Data node's expect lsn[%lld] is less than "
+                       "backup[Name:%s,ID:%d]'s begin lsn[%lld]",
+                       expectLSN.offset, backupName(), it->first,
+                       pInfo->_beginLSNOffset ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
+            else if ( expectLSN.compareOffset( pInfo->_endLSNOffset ) < 0 )
+            {
+               /// find it
+               _beginID = it->first ;
+               PD_LOG( PDEVENT, "Find the begin increase id[%d]", _beginID ) ;
+               std::cout << "Find the begin increase id: " << _beginID
+                         << std::endl ;
+               break ;
+            }
+            else
+            {
+               pInfo = NULL ;
+               ++it ;
+            }
          }
-         beginLSN = mainMetaHeader._beginLSNOffset ;
-         _incDataFileBeginSeq = mainMetaHeader._lastDataSequence + 1 ;
       }
       else
       {
-         beginLSN = _metaHeader._beginLSNOffset ;
+         it = _mapBackupInfo.find( _beginID ) ;
+         if ( it == _mapBackupInfo.end() )
+         {
+            PD_LOG( PDERROR, "The begin backup[Name:%s,ID:%d] is not exist",
+                    backupName(), _beginID ) ;
+            rc = SDB_BAR_BACKUP_NOTEXIST ;
+            goto error ;
+         }
+         pInfo = &( it->second ) ;
       }
 
+      if ( !pInfo || _beginID < 0 )
+      {
+         PD_LOG( PDEVENT, "Data node is newer than backup[Name:%s,ID:%d]",
+                 backupName(), _metaFileSeq ) ;
+         isEmpty = TRUE ;
+         goto done ;
+      }
+
+      /// full restore
+      if ( 0 == _beginID )
+      {
+         _incDataFileBeginSeq = pInfo->_lastDataSequence + 1 ;
+         beginLSN = pInfo->_beginLSNOffset ;
+         rc = cleanDMSData() ;
+         PD_RC_CHECK( rc, PDERROR, "Clear all data failed, rc: %d", rc ) ;
+      }
+      /// inc restore
+      else
+      {
+         _curDataFileSeq = pInfo->_lastDataSequence - pInfo->_dataFileNum ;
+         _incDataFileBeginSeq = _curDataFileSeq + 1 ;
+         _expectExtID = 0 ;
+
+         if ( expectLSN.offset != pInfo->_beginLSNOffset )
+         {
+            PD_LOG( PDERROR, "Data node's expect lsn[%lld] is not the "
+                    "same with backup[Name:%s,ID:%d]'s begin lsn[%lld]",
+                    expectLSN.offset, pInfo->_beginLSNOffset,
+                    backupName(), it->first ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
+      /// move lsn
       if ( DPS_INVALID_LSN_OFFSET != beginLSN )
       {
          rc = _pDPSCB->move( beginLSN, 1 ) ;
@@ -2179,7 +2583,8 @@ namespace engine
                       beginLSN, rc ) ;
       }
 
-      rc = cleanDMSData() ;
+      /// forbidden trans rollback
+      _metaHeader._transLSNOffset = DPS_INVALID_LSN_OFFSET ;
 
    done:
       return rc ;
@@ -2245,11 +2650,9 @@ namespace engine
                   std::cout << "Begin to load all collection spaces..."
                             << std::endl ;
                   // need to load dms
-                  rc = rtnLoadCollectionSpaces ( _pOptCB->getDbPath(),
-                                                 _pOptCB->getIndexPath(),
-                                                 _pOptCB->getLobPath(),
-                                                 _pOptCB->getLobMetaPath(),
-                                                 _pDMSCB ) ;
+                  pmdGetKRCB()->setIsRestore( FALSE ) ;
+                  rc = _pDMSCB->init() ;
+                  pmdGetKRCB()->setIsRestore( TRUE ) ;
                   PD_RC_CHECK( rc, PDERROR, "Failed to load collection spaces, "
                                "rc: %d", rc ) ;
                   _hasLoadDMS = TRUE ;
@@ -2468,11 +2871,9 @@ namespace engine
             std::cout << "Begin to load all collection spaces..." << std::endl ;
 
             // load all collectionspaces
-            rc = rtnLoadCollectionSpaces ( _pOptCB->getDbPath(),
-                                           _pOptCB->getIndexPath(),
-                                           _pOptCB->getLobPath(),
-                                           _pOptCB->getLobMetaPath(),
-                                           _pDMSCB ) ;
+            pmdGetKRCB()->setIsRestore( FALSE ) ;
+            rc = _pDMSCB->init() ;
+            pmdGetKRCB()->setIsRestore( TRUE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to load collection spaces, "
                          "rc: %d", rc ) ;
             _hasLoadDMS = TRUE ;
@@ -2532,9 +2933,13 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       barBackupInfo info ;
+      set< barBackupInfo > tmpSet ;
+      UINT32 incID = 0 ;
 
       fs::path dbDir ( fullPath ) ;
       fs::directory_iterator end_iter ;
+
+      info._relPath = subPath ;
 
       if ( fs::exists ( dbDir ) && fs::is_directory ( dbDir ) )
       {
@@ -2545,16 +2950,19 @@ namespace engine
             {
                const std::string fileName =
                   dir_iter->path().filename().string() ;
-               if ( parseMainFile ( fileName, info._name ) &&
-                    ( info._maxIncID = _ensureMetaFileSeq( fullPath,
-                      info._name ) ) > 0 )
+
+               /// clear info
+               info._setSeq.clear() ;
+
+               if ( parseMetaFile( fileName, info._name, incID ) &&
+                    ( _backupName.empty() ||
+                      0 == _backupName.compare( info._name ) ) &&
+                    0 == tmpSet.count( info ) &&
+                    _ensureMetaFileSeq( fullPath, info._name,
+                                        &(info._setSeq) ) > 0 )
                {
-                  if ( _backupName.empty() ||
-                       0 == _backupName.compare( info._name ) )
-                  {
-                     info._relPath = subPath ;
-                     _backupInfo.push_back( info ) ;
-                  }
+                  _backupInfo.push_back( info ) ;
+                  tmpSet.insert( info ) ;
                }
             }
             else if ( fs::is_directory( dir_iter->path() ) )
@@ -2620,8 +3028,12 @@ namespace engine
       BOOLEAN hasError = FALSE ;
       BSONObj obj ;
 
-      while ( incID < info._maxIncID )
+      set< UINT32 >::const_iterator it = info._setSeq.begin() ;
+      while ( it != info._setSeq.end() )
       {
+         incID = *it ;
+         ++it ;
+
          rc = _readMetaHeader( incID, &_metaHeader, TRUE, secretValue ) ;
          if ( SDB_BAR_DAMAGED_BK_FILE == rc )
          {
@@ -2659,13 +3071,11 @@ namespace engine
             secretValue = _metaHeader._secretValue ;
          }
 
-         rc = _metaHeaderToBSON( &_metaHeader, info._relPath, hasError,
-                                 obj, detail ) ;
+         rc = _metaHeaderToBSON( &_metaHeader, incID, info._relPath,
+                                 hasError, obj, detail ) ;
          PD_RC_CHECK( rc, PDERROR, "Meta header to bson failed, rc: %d", rc ) ;
 
          vecBackup.push_back( obj ) ;
-
-         ++incID ;
       }
 
    done:
@@ -2675,6 +3085,7 @@ namespace engine
    }
 
    INT32 _barBackupMgr::_metaHeaderToBSON( barBackupHeader *pHeader,
+                                           UINT32 incID,
                                            const string &relPath,
                                            BOOLEAN hasError, BSONObj &obj,
                                            BOOLEAN detail )
@@ -2682,6 +3093,7 @@ namespace engine
       BSONObjBuilder builder ;
 
       builder.append( FIELD_NAME_NAME, pHeader->_name ) ;
+      builder.append( FIELD_NAME_ID, (INT32)incID ) ;
       if ( 0 != pHeader->_description[0] )
       {
          builder.append( FIELD_NAME_DESP, pHeader->_description ) ;
@@ -2718,10 +3130,8 @@ namespace engine
       // stat info
       builder.append( "BeginLSNOffset", (INT64)pHeader->_beginLSNOffset ) ;
       builder.append( "EndLSNOffset", (INT64)pHeader->_endLSNOffset ) ;
-      if ( DPS_INVALID_LSN_OFFSET != pHeader->_transLSNOffset )
-      {
-         builder.append( "TransLSNOffset", (INT64)pHeader->_transLSNOffset ) ;
-      }
+      builder.append( "TransLSNOffset", (INT64)pHeader->_transLSNOffset ) ;
+
       builder.append( "StartTime", pHeader->_startTimeStr ) ;
       if ( detail )
       {
@@ -2729,11 +3139,16 @@ namespace engine
          builder.append( "UseTime", (INT32)pHeader->_useTime ) ;
          builder.append( "CSNum", (INT32)pHeader->_csNum ) ;
          builder.append( "DataFileNum", (INT32)pHeader->_dataFileNum ) ;
+         builder.append( "BeginDataFileSeq",
+                         (INT32)pHeader->_lastDataSequence -
+                         (INT32)pHeader->_dataFileNum + 1 ) ;
          builder.append( "LastDataFileSeq", (INT32)pHeader->_lastDataSequence ) ;
          builder.append( "LastExtentID", (INT64)pHeader->_lastExtentID ) ;
          builder.append( "DataSize", (INT64)pHeader->_dataSize ) ;
       }
 
+      builder.append( "LastLSN", (INT64)pHeader->_lastLSN ) ;
+      builder.append( "LastLSNCode", pHeader->_lastLSNCode ) ;
       builder.append( "HasError", hasError ? true : false ) ;
       obj = builder.obj () ;
 
@@ -2747,7 +3162,7 @@ namespace engine
       BSONObj backupObj ;
       string tmpPath = _path ;
       string tmpName = _backupName ;
-      
+
       vecBackup.clear() ;
 
       vector< barBackupInfo >::iterator it = _backupInfo.begin() ;
@@ -2779,42 +3194,117 @@ namespace engine
       goto done ;
    }
 
-   INT32 _barBackupMgr::_drop ( const string &backupName )
+   INT32 _barBackupMgr::_dropAllInc( const string &backupName )
+   {
+      INT32 rc = SDB_OK ;
+      multimap< string, string > mapFiles ;
+      multimap< string, string >::iterator it ;
+      string filterMeta = backupName + BAR_BACKUP_META_FILE_EXT ;
+      string filterData = backupName + "." ;
+
+      string tmpName ;
+      UINT32 seq = 0 ;
+
+      /// enum data and remove
+      rc = ossEnumFiles2( _path, mapFiles, filterData.c_str(),
+                          OSS_MATCH_LEFT, 1 ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Enum directory[%s]'s data failed, rc: %d",
+                 _path.c_str(), rc ) ;
+         goto error ;
+      }
+
+      it = mapFiles.begin() ;
+      while( it != mapFiles.end() )
+      {
+         if ( !parseDateFile( it->first, tmpName, seq ) ||
+              tmpName != backupName )
+         {
+            ++it ;
+            continue ;
+         }
+         if ( SDB_OK == ossAccess( it->second.c_str() ) )
+         {
+            rc = ossDelete( it->second.c_str() ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to delete file[%s], rc: %d",
+                         it->second.c_str(), rc ) ;
+         }
+         ++it ;
+      }
+      mapFiles.clear() ;
+
+      /// enum meta and remove
+      rc = ossEnumFiles2(_path, mapFiles, filterMeta.c_str(),
+                          OSS_MATCH_LEFT, 1 ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Enum directory[%s]'s meta file failed, rc: %d",
+                 _path.c_str(), rc ) ;
+         goto error ;
+      }
+
+      it = mapFiles.begin() ;
+      while( it != mapFiles.end() )
+      {
+         if ( !parseMetaFile( it->first, tmpName, seq ) ||
+              tmpName != backupName )
+         {
+            ++it ;
+            continue ;
+         }
+         if ( SDB_OK == ossAccess( it->second.c_str() ) )
+         {
+            rc = ossDelete( it->second.c_str() ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to delete file[%s], rc: %d",
+                         it->second.c_str(), rc ) ;
+         }
+         ++it ;
+      }
+      mapFiles.clear() ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _barBackupMgr::_dropByInc ( const string &backupName, UINT32 incID )
    {
       INT32 rc = SDB_OK ;
       string fileName ;
 
-      UINT32 sequence = _findMaxSeq( backupName, TRUE ) ;
+      rc = _readMetaHeader( incID, &_metaHeader, TRUE, 0 ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Read meta header failed in "
+                 "backup[Name:%s, IncID:%d], rc: %d",
+                 backupName.c_str(), incID, rc ) ;
+         goto error ;
+      }
 
       // drop data file
-      while ( sequence > 0 )
+      while ( _metaHeader._dataFileNum > 0 )
       {
-         fileName = getDataFileName( backupName, sequence ) ;
+         fileName = getDataFileName( backupName,
+                                     _metaHeader._lastDataSequence ) ;
          if ( SDB_OK == ossAccess( fileName.c_str() ) )
          {
             rc = ossDelete( fileName.c_str() ) ;
             PD_RC_CHECK( rc, PDWARNING, "Failed to delete file[%s], rc: %d",
                          fileName.c_str(), rc ) ;
          }
-         --sequence ;
+         --_metaHeader._dataFileNum ;
+         --_metaHeader._lastDataSequence ;
       }
 
       // drop meta file
-      sequence = _findMaxSeq( backupName, FALSE ) ;
-      while ( sequence >= 0 )
+      fileName = getIncFileName( backupName, incID ) ;
+      if ( SDB_OK == ossAccess( fileName.c_str() ) )
       {
-         fileName = getIncFileName( backupName, sequence ) ;
-         if ( SDB_OK == ossAccess( fileName.c_str() ) )
-         {
-            rc = ossDelete( fileName.c_str() ) ;
-            PD_RC_CHECK( rc, PDWARNING, "Failed to delete file[%s], rc: %d",
-                         fileName.c_str(), rc ) ;
-         }
-         if ( 0 == sequence )
-         {
-            break ;
-         }
-         --sequence ;
+         rc = ossDelete( fileName.c_str() ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to delete file[%s], rc: %d",
+                      fileName.c_str(), rc ) ;
       }
 
    done:
@@ -2823,7 +3313,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _barBackupMgr::drop ()
+   INT32 _barBackupMgr::drop ( INT32 incID )
    {
       INT32 rc = SDB_OK ;
       string tmpPath = _path ;
@@ -2833,8 +3323,6 @@ namespace engine
       while ( it != _backupInfo.end() )
       {
          barBackupInfo &info = ( *it ) ;
-
-         vector< BSONObj > objList ;
 
          if ( info._relPath.empty() )
          {
@@ -2846,17 +3334,21 @@ namespace engine
          }
          _backupName = info._name ;
 
-         // check
-         rc = _backupToBSON( info, objList, FALSE ) ;
-         PD_RC_CHECK( rc, PDWARNING, "back up to bson failed, rc: %d", rc ) ;
-
-         if ( objList.size() == 0 )
+         if ( incID < 0 )
          {
-            ++it ;
-            continue ;
+            rc = _dropAllInc( info._name ) ;
          }
-
-         rc = _drop ( info._name ) ;
+         else
+         {
+            if ( 0 == info._setSeq.count( (UINT32)incID ) )
+            {
+               rc = SDB_BAR_BACKUP_NOTEXIST ;
+            }
+            else
+            {
+               rc = _dropByInc( info._name, (UINT32)incID ) ;
+            }
+         }
          PD_RC_CHECK( rc, PDERROR, "Failed to drop backup[%s], rc: %d",
                       (*it)._name.c_str(), rc ) ;
          ++it ;
@@ -2868,61 +3360,6 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   }
-
-   UINT32 _barBackupMgr::_findMaxSeq( const string &backupName,
-                                      BOOLEAN isDataFile )
-   {
-      string fileName ;
-      UINT32 step = 1000 ;
-      UINT32 low = 1 ;
-      UINT32 high = 1 ;
-      UINT32 mid = 0 ;
-
-      while ( TRUE )
-      {
-         if ( isDataFile )
-         {
-            fileName = getDataFileName( backupName, high ) ;
-         }
-         else
-         {
-            fileName = getIncFileName( backupName, high ) ;
-         }
-         if ( 0 == ossAccess( fileName.c_str() ) )
-         {
-            high += step ;
-         }
-         else
-         {
-            break ;
-         }
-      }
-
-      mid = ( low + high ) / 2 ;
-      while ( mid != low && mid != high )
-      {
-         if ( isDataFile )
-         {
-            fileName = getDataFileName( backupName, mid ) ;
-         }
-         else
-         {
-            fileName = getIncFileName( backupName, mid ) ;
-         }
-
-         if ( 0 == ossAccess( fileName.c_str() ) )
-         {
-            low = mid ;
-         }
-         else
-         {
-            high = mid ;
-         }
-         mid = ( low + high ) / 2 ;
-      }
-
-      return mid ;
    }
 
 }

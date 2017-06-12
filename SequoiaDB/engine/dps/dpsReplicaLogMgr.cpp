@@ -442,7 +442,7 @@ namespace engine
          }
          else
          {
-          _transCB->saveTransInfoFromLog( info.getMergeBlock().record() ) ;
+            _transCB->saveTransInfoFromLog( info.getMergeBlock().record() ) ;
          }
       }
 

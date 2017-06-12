@@ -76,6 +76,7 @@ namespace engine
    #define RS_BK_PATH            "bkpath"
    #define RS_BK_NAME            "bkname"
    #define RS_INC_ID             "increaseid"
+   #define RS_BEGIN_INC_ID       "beginincreaseid"
    #define RS_BK_ACTION          "action"
    #define RS_BK_RESTORE         "restore"
    #define RS_BK_LIST            "list"
@@ -85,7 +86,8 @@ namespace engine
       ( PMD_COMMANDS_STRING (PMD_OPTION_HELP, ",h"), "help" ) \
       ( PMD_OPTION_VERSION, "show version" ) \
       ( PMD_COMMANDS_STRING (RS_BK_PATH, ",p"), boost::program_options::value<string>(), "backup path" ) \
-      ( PMD_COMMANDS_STRING (RS_INC_ID, ",i"), boost::program_options::value<int>(), "increase id, default is -1" ) \
+      ( PMD_COMMANDS_STRING (RS_INC_ID, ",i"), boost::program_options::value<int>(), "the end increase id for restore, default is -1" ) \
+      ( PMD_COMMANDS_STRING (RS_BEGIN_INC_ID, ",b"), boost::program_options::value<int>(), "the begin increase id for restore, default is 0, -1 for auto" ) \
       ( PMD_COMMANDS_STRING (RS_BK_NAME, ",n"), boost::program_options::value<string>(), "backup name" ) \
       ( PMD_COMMANDS_STRING (RS_BK_ACTION, ",a"), boost::program_options::value<string>(), "action(restore/list), defalut is restore" ) \
       ( PMD_COMMANDS_STRING (PMD_OPTION_DIAGLEVEL, ",v"), boost::program_options::value<int>(), "diag level,default:3,value range:[0-5]" ) \
@@ -97,7 +99,7 @@ namespace engine
       ( PMD_OPTION_LOBPATH, boost::program_options::value<string>(),     "override lob data file path" )               \
       ( PMD_OPTION_CONFPATH, boost::program_options::value<string>(),    "override configure file path" )              \
       ( PMD_OPTION_DIAGLOGPATH, boost::program_options::value<string>(), "override diagnostic log file path" )         \
-      ( PMD_OPTION_AUDITLOGPATH, boost::program_options::value<string>(),"Audit log file path" )                       \
+      ( PMD_OPTION_AUDITLOGPATH, boost::program_options::value<string>(),"override audit log file path" )                       \
       ( PMD_OPTION_BKUPPATH, boost::program_options::value<string>(),    "override backup path" )                      \
       ( PMD_OPTION_ARCHIVE_PATH, boost::program_options::value<string>(),"override archive path" )                     \
       ( PMD_OPTION_SVCNAME, boost::program_options::value<string>(),     "override local service name or port" )       \
@@ -198,7 +200,13 @@ namespace engine
                     DMS_DATA_SU_EXT_NAME ) ||
                     rtnVerifyCollectionSpaceFileName( fileName.c_str(), csName,
                     DMS_COLLECTION_SPACE_NAME_SZ, sequence,
-                    DMS_INDEX_SU_EXT_NAME ) )
+                    DMS_INDEX_SU_EXT_NAME ) ||
+                    rtnVerifyCollectionSpaceFileName( fileName.c_str(), csName,
+                    DMS_COLLECTION_SPACE_NAME_SZ, sequence,
+                    DMS_LOB_META_SU_EXT_NAME ) ||
+                    rtnVerifyCollectionSpaceFileName( fileName.c_str(), csName,
+                    DMS_COLLECTION_SPACE_NAME_SZ, sequence,
+                    DMS_LOB_DATA_SU_EXT_NAME ) )
                {
                   const std::string pathName = dir_iter->path().string() ;
                   rc = ossDelete( pathName.c_str() ) ;
@@ -231,6 +239,7 @@ namespace engine
             ossMemset( _cfgPath, 0, sizeof( _cfgPath ) ) ;
             ossMemset( _svcName, 0, sizeof( _svcName ) ) ;
             _incID = -1 ;
+            _beginIncID = -1 ;
             _isSelf = TRUE ;
             _diagLevel = (UINT16)PDWARNING ;
 
@@ -256,6 +265,7 @@ namespace engine
                        FALSE, FALSE, "" ) ;
             rdxBooleanS( pEX, RS_BK_IS_SELF, _isSelf, FALSE, FALSE, TRUE ) ;
             rdxInt( pEX, RS_INC_ID, _incID, FALSE, FALSE, -1 ) ;
+            rdxInt( pEX, RS_BEGIN_INC_ID, _beginIncID, FALSE, FALSE, -1 ) ;
             rdxUShort( pEX, PMD_OPTION_DIAGLEVEL, _diagLevel, FALSE, TRUE,
                        (UINT16)PDWARNING ) ;
             rdvMinMax( pEX, _diagLevel, PDSEVERE, PDDEBUG, TRUE ) ;
@@ -300,6 +310,7 @@ namespace engine
          CHAR              _action[ RS_BK_ACTION_NAME_LEN + 1 ] ;
          CHAR              _dialogPath[ OSS_MAX_PATHSIZE + 1 ] ;
          INT32             _incID ;
+         INT32             _beginIncID ;
 
          BOOLEAN           _isSelf ;
          CHAR              _dbPath[ OSS_MAX_PATHSIZE + 1 ] ;
@@ -388,7 +399,7 @@ namespace engine
       PMD_REGISTER_CB( sdbGetRTNCB() ) ;
    }
 
-   INT32 restoreSysInit ()
+   INT32 restoreSysInit ( rsOptionMgr *pOption )
    {
       INT32 rc = SDB_OK ;
 
@@ -405,28 +416,61 @@ namespace engine
                 << pmdGetOptionCB()->getServiceAddr()
                 << ") is not running...OK" << std::endl ;
 
-      // clean dps logs
-      std::cout << "Begin to clean dps logs..." << std::endl ;
-      rc = sdbCleanDirFiles( pmdGetOptionCB()->getReplLogPath() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to clean dps logs[%s], rc: %d",
-                   pmdGetOptionCB()->getReplLogPath(), rc ) ;
-
-      // clean dms storages
-      std::cout << "Begin to clean dms storages..." << std::endl ;
-      rc = sdbCleanDirSUFiles( pmdGetOptionCB()->getDbPath() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to clean data[%s] su, rc: %d",
-                   pmdGetOptionCB()->getDbPath(), rc ) ;
-      if ( 0 != ossStrcmp( pmdGetOptionCB()->getDbPath(),
-                           pmdGetOptionCB()->getIndexPath() ) )
+      /// when node is crashed, need restore full
+      if ( pOption->_beginIncID < 0 && !pmdGetStartup().isOK() )
       {
-         rc = sdbCleanDirSUFiles( pmdGetOptionCB()->getIndexPath() ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to clean index[%s], rc: %d",
-                      pmdGetOptionCB()->getIndexPath(), rc ) ;
+         pOption->_beginIncID = 0 ;
+         std::cout << "The node's data is not ok, will restore full"
+                   << std::endl ;
       }
 
-      // remove start file
-      pmdGetStartup().ok( TRUE ) ;
-      pmdGetStartup().final() ;
+      if ( 0 == pOption->_beginIncID )
+      {
+         // clean dps logs
+         std::cout << "Begin to clean dps logs..." << std::endl ;
+         rc = sdbCleanDirFiles( pmdGetOptionCB()->getReplLogPath() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to clean dps logs[%s], rc: %d",
+                      pmdGetOptionCB()->getReplLogPath(), rc ) ;
+
+         // clean dms storages
+         std::cout << "Begin to clean dms storages..." << std::endl ;
+         rc = sdbCleanDirSUFiles( pmdGetOptionCB()->getDbPath() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to clean data[%s] su, rc: %d",
+                      pmdGetOptionCB()->getDbPath(), rc ) ;
+         if ( 0 != ossStrcmp( pmdGetOptionCB()->getDbPath(),
+                              pmdGetOptionCB()->getIndexPath() ) )
+         {
+            rc = sdbCleanDirSUFiles( pmdGetOptionCB()->getIndexPath() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to clean index[%s], rc: %d",
+                         pmdGetOptionCB()->getIndexPath(), rc ) ;
+         }
+         if ( 0 != ossStrcmp( pmdGetOptionCB()->getDbPath(),
+                              pmdGetOptionCB()->getLobMetaPath() ) &&
+              0 != ossStrcmp( pmdGetOptionCB()->getIndexPath(),
+                              pmdGetOptionCB()->getLobMetaPath() ) )
+         {
+            rc = sdbCleanDirSUFiles( pmdGetOptionCB()->getLobMetaPath() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to clean lob meta[%s], rc: %d",
+                         pmdGetOptionCB()->getLobMetaPath(), rc ) ;
+         }
+         if ( 0 != ossStrcmp( pmdGetOptionCB()->getDbPath(),
+                              pmdGetOptionCB()->getLobPath() ) &&
+              0 != ossStrcmp( pmdGetOptionCB()->getIndexPath(),
+                              pmdGetOptionCB()->getLobPath() ) &&
+              0 != ossStrcmp( pmdGetOptionCB()->getLobMetaPath(),
+                              pmdGetOptionCB()->getLobPath() ) )
+         {
+            rc = sdbCleanDirSUFiles( pmdGetOptionCB()->getLobPath() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to clean lob data[%s], rc: %d",
+                         pmdGetOptionCB()->getLobPath(), rc ) ;
+         }
+      }
+      else
+      {
+         // remove start file
+         pmdGetStartup().ok( TRUE ) ;
+         pmdGetStartup().final() ;
+      }
 
       std::cout << "Begin to init dps logs..." << std::endl ;
 
@@ -523,7 +567,7 @@ namespace engine
                SDB_ENGINE_RELEASE_CURRENT, SDB_ENGINE_BUILD_TIME ) ;
 
       rc = g_restoreLogger.init( optMgr._bkPath, optMgr._bkName, NULL,
-                                 optMgr._incID ) ;
+                                 optMgr._incID, optMgr._beginIncID ) ;
       if ( rc )
       {
          std::cerr << "Init restore failed: " << rc << std::endl ;
@@ -548,7 +592,7 @@ namespace engine
       }
 
       // initialize variables
-      rc = restoreSysInit () ;
+      rc = restoreSysInit( &optMgr ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to initialize, rc: %d", rc ) ;
 
       krcb->setIsRestore( TRUE ) ;
@@ -581,6 +625,7 @@ namespace engine
       PMD_SHUTDOWN_DB( rc ) ;
       pmdSetQuit() ;
       krcb->destroy () ;
+      pmdGetStartup().final() ;
       PD_LOG ( PDEVENT, "Stop sdbrestore, exit code: %d",
                krcb->getShutdownCode() ) ;
 
@@ -598,11 +643,10 @@ namespace engine
       }
       std::cout << "*****************************************************"
                 << std::endl ;
-      return rc ;
+      return SDB_OK == rc ? 0 : utilRC2ShellRC( rc ) ;
    error :
       goto done ;
    }
-
 }
 
 /**************************************/
@@ -610,8 +654,6 @@ namespace engine
 /**************************************/
 INT32 main ( INT32 argc, CHAR** argv )
 {
-   INT32 rc = SDB_OK ;
-   rc = engine::pmdRestoreThreadMain ( argc, argv ) ;
-   return rc ;
+   return engine::pmdRestoreThreadMain ( argc, argv ) ;
 }
 

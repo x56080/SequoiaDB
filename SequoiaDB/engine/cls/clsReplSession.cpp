@@ -255,6 +255,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSDSTREPSN_HNDSYNCRES );
 
+      _repl->getSyncEmptyEvent()->reset() ;
+
       /// 1. some validate.
       MsgReplSyncRes *msg = ( MsgReplSyncRes * )header ;
       if ( CLS_SESSION_STATUS_SYNC != _status )
@@ -390,6 +392,7 @@ namespace engine
       }
 
    done:
+      _repl->getSyncEmptyEvent()->signalAll() ;
       PD_TRACE_EXITRC ( SDB__CLSDSTREPSN_HNDSYNCRES, rc ) ;
       return rc ;
    }

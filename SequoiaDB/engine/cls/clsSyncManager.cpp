@@ -77,6 +77,8 @@ namespace engine
          _checkList[i] = DPS_INVALID_LSN_OFFSET ;
       }
 
+      _enableSync = TRUE ;
+
       PD_TRACE_EXIT ( SDB__CLSSYNCMAG__CLSSYNCMAG ) ;
    }
 

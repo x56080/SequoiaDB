@@ -90,6 +90,7 @@ namespace engine
    #define DMS_INVALID_CS DMS_INVALID_SUID
    #define DMS_STATE_NORMAL            0
    #define DMS_STATE_READONLY          1
+   #define DMS_STATE_ONLINE_BACKUP     2
    #define DMS_CHANGESTATE_WAIT_LOOP   100
 
    struct _dmsDictJob
@@ -299,7 +300,7 @@ namespace engine
                         SDB_DB_STATUS byStatus = SDB_DB_NORMAL ) ;
       void  unblockWrite( _pmdEDUCB *cb ) ;
 
-      INT32 registerBackup( _pmdEDUCB *cb ) ;
+      INT32 registerBackup( _pmdEDUCB *cb, BOOLEAN offline = TRUE ) ;
       void  backupDown( _pmdEDUCB *cb ) ;
 
       INT32 registerRebuild( _pmdEDUCB *cb ) ;

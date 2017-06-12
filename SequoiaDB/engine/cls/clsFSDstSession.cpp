@@ -1541,6 +1541,9 @@ namespace engine
       /// set full sync status
       PMD_SET_DB_STATUS( SDB_DB_FULLSYNC ) ;
       sdbGetReplCB()->getFaultEvent()->signalAll( SDB_CLS_FULL_SYNC ) ;
+
+      /// block write
+      sdbGetDMSCB()->blockWrite( eduCB(), SDB_DB_FULLSYNC ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFSDS__ONDETACH, "_clsFSDstSession::_onDetach" )
@@ -1562,6 +1565,9 @@ namespace engine
       PD_LOG( PDEVENT, "Session[%s]: start sync session.", sessionName() ) ;
       pmdGetKRCB()->getClsCB()->startInnerSession( CLS_REPL,
                                                    CLS_TID_REPL_SYC ) ;
+
+      /// unblock write
+      sdbGetDMSCB()->unblockWrite( eduCB() ) ;
 
       /// end full sync status
       sdbGetReplCB()->getFaultEvent()->reset() ;

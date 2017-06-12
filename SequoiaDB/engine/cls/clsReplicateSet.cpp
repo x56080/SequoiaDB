@@ -103,6 +103,7 @@ namespace engine
       memset( _timeThreshold, 0, sizeof( _timeThreshold ) ) ;
 
       _faultEvent.reset() ;
+      _syncEmptyEvent.signal() ;
    }
 
    _clsReplicateSet::~_clsReplicateSet()
@@ -235,6 +236,8 @@ namespace engine
    {
       SDB_ASSERT( PMD_IS_DB_DOWN(), "DB must be down" ) ;
 
+      _syncEmptyEvent.wait() ;
+
       if ( _replBucket.maxReplSync() > 0 )
       {
          // wait all repl-sync log processed
@@ -264,7 +267,14 @@ namespace engine
    {
       if ( pmdGetOptionCB()->maxReplSync() != getBucket()->maxReplSync() )
       {
+         _sync.enableSync( FALSE ) ;
+         _syncEmptyEvent.wait() ;
          getBucket()->enforceMaxReplSync( pmdGetOptionCB()->maxReplSync() ) ;
+         _sync.enableSync( TRUE ) ;
+      }
+      if ( g_startShiftTime >= 0 )
+      {
+         g_startShiftTime = (INT32)pmdGetOptionCB()->startShiftTime() ;
       }
    }
 
@@ -429,6 +439,11 @@ namespace engine
    ossEvent* _clsReplicateSet::getFaultEvent()
    {
       return &_faultEvent ;
+   }
+
+   ossEvent* _clsReplicateSet::getSyncEmptyEvent()
+   {
+      return &_syncEmptyEvent ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_GETPRMY, "_clsReplicateSet::getPrimary" )

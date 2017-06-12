@@ -1029,14 +1029,51 @@ namespace engine
       }
    }
 
-   INT32 _SDB_DMSCB::registerBackup( _pmdEDUCB *cb )
+   INT32 _SDB_DMSCB::registerBackup( _pmdEDUCB *cb, BOOLEAN offline )
    {
-      return blockWrite( cb, SDB_DB_OFFLINE_BK ) ;
+      INT32 rc = SDB_OK ;
+
+      if ( offline )
+      {
+         rc = blockWrite( cb, SDB_DB_OFFLINE_BK ) ;
+      }
+      else
+      {
+         _stateMtx.get() ;
+         if ( DMS_STATE_NORMAL != _dmsCBState )
+         {
+            if ( SDB_DB_OFFLINE_BK == PMD_DB_STATUS() ||
+                 DMS_STATE_ONLINE_BACKUP == _dmsCBState )
+            {
+               rc = SDB_BACKUP_HAS_ALREADY_START ;
+            }
+            else
+            {
+               rc = SDB_DMS_STATE_NOT_COMPATIBLE ;
+            }
+         }
+         else
+         {
+            _dmsCBState = DMS_STATE_ONLINE_BACKUP ;
+         }
+         _stateMtx.release () ;
+      }
+
+      return rc ;
    }
 
    void _SDB_DMSCB::backupDown( _pmdEDUCB *cb )
    {
-      unblockWrite( cb ) ;
+      if ( DMS_LOCK_WHOLE == cb->getLockItem(SDB_LOCK_DMS)->getMode() )
+      {
+         unblockWrite( cb ) ;
+      }
+      else
+      {
+         _stateMtx.get() ;
+         _dmsCBState = DMS_STATE_NORMAL ;
+         _stateMtx.release() ;
+      }
    }
 
    INT32 _SDB_DMSCB::registerRebuild( _pmdEDUCB *cb )

@@ -253,6 +253,7 @@ namespace engine
       BOOLEAN isSubDir        = FALSE ;
       const CHAR *prefix      = NULL ;
       string bkpath ;
+      INT32 incID             = -1 ;
 
       barBackupMgr bkMgr( krcb->getGroupName() ) ;
 
@@ -273,6 +274,14 @@ namespace engine
       PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
                    FIELD_NAME_PREFIX, rc ) ;
 
+      rc = rtnGetIntElement( option, FIELD_NAME_ID, incID ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
+                   FIELD_NAME_ID, rc ) ;
+
       // make path
       if ( isSubDir && path )
       {
@@ -290,9 +299,9 @@ namespace engine
       rc = bkMgr.init( bkpath.c_str(), backupName, prefix ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to init backup manager, rc: %d", rc ) ;
 
-      rc = bkMgr.drop() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to drop backup[%s], rc: %d",
-                   bkMgr.backupName(), rc ) ;
+      rc = bkMgr.drop( incID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to drop backup[%s], ID:%d, rc: %d",
+                   bkMgr.backupName(), incID, rc ) ;
 
    done:
       return rc ;

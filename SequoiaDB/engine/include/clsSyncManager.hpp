@@ -55,6 +55,9 @@ namespace engine
 
    typedef multiset<DPS_LSN_OFFSET> CLS_WAKE_PLAN ;
 
+   /*
+      _clsSyncManager define
+   */
    class _clsSyncManager : public SDBObject
    {
    public:
@@ -88,14 +91,21 @@ namespace engine
 
       OSS_INLINE BOOLEAN isReadyToReplay()
       {
-         _info->mtx.lock_r() ;
-         BOOLEAN rc = _info->primary.value ==
-                      _info->local.value &&
-                      _info->primary.value !=
-                      MSG_INVALID_ROUTEID ?
-                      FALSE : TRUE ;
-         _info->mtx.release_r() ;
+         BOOLEAN rc = _enableSync ;
+         if ( rc )
+         {
+            _info->mtx.lock_r() ;
+            rc = ( _info->primary.value == _info->local.value &&
+                   _info->primary.value != MSG_INVALID_ROUTEID ) ?
+                 FALSE : TRUE ;
+            _info->mtx.release_r() ;
+         }
          return rc ;
+      }
+
+      void  enableSync( BOOLEAN enable )
+      {
+         _enableSync = enable ;
       }
 
       void cut( UINT32 alives ) ;
@@ -137,7 +147,8 @@ namespace engine
       UINT32 _timeout ;
       UINT32 _aliveCount ;
 
-      UINT32 _wakeTimeout ;
+      UINT32   _wakeTimeout ;
+      BOOLEAN  _enableSync ;
 
    } ;
 }

@@ -1467,11 +1467,10 @@ namespace engine
       //BOOLEAN mayBalanceRight ;
       //BOOLEAN mayBalanceLeft ;
       // let's return if it's root
-       
-      
+
       if ( DMS_INVALID_EXTENT == getParent() )
       {
-         goto error ;
+         goto done ;
       }
       {
          // get the parent extent
@@ -1485,7 +1484,7 @@ namespace engine
             goto error ;
          }
       } 
-      
+
       // if we are not the _right, and our next slot got child, we may do right
       // balance
       /*mayBalanceRight = (pos < parent.getNumKeyNode() &&

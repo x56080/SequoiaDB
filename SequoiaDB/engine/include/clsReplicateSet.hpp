@@ -255,6 +255,7 @@ namespace engine
          BOOLEAN        isSendNormal( UINT64 nodeID ) ;
 
          ossEvent*      getFaultEvent() ;
+         ossEvent*      getSyncEmptyEvent() ;
 
          INT64 netIn() ;
          INT64 netOut() ;
@@ -328,6 +329,7 @@ namespace engine
          BOOLEAN                 _inSyncCtrl ;
 
          ossEvent                _faultEvent ;
+         ossEvent                _syncEmptyEvent ;
    } ;
 
    typedef class _clsReplicateSet clsReplicateSet ;
