@@ -2628,6 +2628,7 @@ SDB_EXPORT void* cJsonMalloc( INT32 bytesNum, const CJSON_MACHINE *pMachine )
             }
             else
             {
+               pStateMachine->pMemBlock = pBlock ;
                pBlock = cJsonCreateBlock( bytesNum ) ;
                if( pBlock == NULL )
                {
