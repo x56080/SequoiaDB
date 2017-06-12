@@ -395,6 +395,7 @@ namespace engine
    {
       PMD_REGISTER_CB( sdbGetDPSCB() ) ;
       PMD_REGISTER_CB( sdbGetTransCB() ) ;
+      PMD_REGISTER_CB( sdbGetBPSCB() ) ;
       PMD_REGISTER_CB( sdbGetDMSCB() ) ;
       PMD_REGISTER_CB( sdbGetRTNCB() ) ;
    }
