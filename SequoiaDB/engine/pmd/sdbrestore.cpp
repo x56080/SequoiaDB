@@ -192,7 +192,13 @@ namespace engine
                     DMS_DATA_SU_EXT_NAME ) ||
                     rtnVerifyCollectionSpaceFileName( fileName.c_str(), csName,
                     DMS_COLLECTION_SPACE_NAME_SZ, sequence,
-                    DMS_INDEX_SU_EXT_NAME ) )
+                    DMS_INDEX_SU_EXT_NAME ) ||
+                    rtnVerifyCollectionSpaceFileName( fileName.c_str(), csName,
+                    DMS_COLLECTION_SPACE_NAME_SZ, sequence,
+                    DMS_LOB_META_SU_EXT_NAME ) ||
+                    rtnVerifyCollectionSpaceFileName( fileName.c_str(), csName,
+                    DMS_COLLECTION_SPACE_NAME_SZ, sequence,
+                    DMS_LOB_DATA_SU_EXT_NAME ) )
                {
                   const std::string pathName = dir_iter->path().string() ;
                   rc = ossDelete( pathName.c_str() ) ;
@@ -378,6 +384,7 @@ namespace engine
    {
       PMD_REGISTER_CB( sdbGetDPSCB() ) ;
       PMD_REGISTER_CB( sdbGetTransCB() ) ;
+      PMD_REGISTER_CB( sdbGetBPSCB() ) ;
       PMD_REGISTER_CB( sdbGetDMSCB() ) ;
       PMD_REGISTER_CB( sdbGetRTNCB() ) ;
    }
@@ -575,6 +582,7 @@ namespace engine
       PMD_SHUTDOWN_DB( rc ) ;
       pmdSetQuit() ;
       krcb->destroy () ;
+      pmdGetStartup().final() ;
       PD_LOG ( PDEVENT, "Stop sdbrestore, exit code: %d",
                krcb->getShutdownCode() ) ;
 
@@ -592,11 +600,10 @@ namespace engine
       }
       std::cout << "*****************************************************"
                 << std::endl ;
-      return rc ;
+      return SDB_OK == rc ? 0 : utilRC2ShellRC( rc ) ;
    error :
       goto done ;
    }
-
 }
 
 /**************************************/
@@ -604,8 +611,6 @@ namespace engine
 /**************************************/
 INT32 main ( INT32 argc, CHAR** argv )
 {
-   INT32 rc = SDB_OK ;
-   rc = engine::pmdRestoreThreadMain ( argc, argv ) ;
-   return rc ;
+   return engine::pmdRestoreThreadMain ( argc, argv ) ;
 }
 
