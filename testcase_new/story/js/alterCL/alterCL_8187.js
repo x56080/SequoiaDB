@@ -187,9 +187,9 @@ catch( e )
 		}	
 	}catch(e)
 	{
-		if(e==-1)
+		if(e==1)
 			println("result-records count not expected. expect:1 return:"+size);
-		else if(e==-2)
+		else if(e==2)
 		{	
 			println("record not expected!");
 			println("expected:{id:1,b:10001,c:'abcdefghijkl10001'}");
@@ -231,6 +231,7 @@ catch( e )
 try
 {
    var db = new Sdb(COORDHOSTNAME, COORDSVCNAME) ;
+   db.setSessionAttr( { PreferedInstance: "M" } );
    // Inspect the run mode is standalone or not
    if( true == commIsStandalone( db ) )
       throw "ModeStandAlone" ;
