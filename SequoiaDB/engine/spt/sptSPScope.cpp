@@ -64,7 +64,7 @@ namespace engine
    } ;
 
    #define SPT_RVAL_KEY          ""
-   const UINT32 RUNTIME_SIZE = 32 * 1024 * 1024 ;
+   const UINT32 RUNTIME_SIZE = 64 * 1024 * 1024 ;
 
    /*
       _sptSPResultVal implement
@@ -453,11 +453,11 @@ namespace engine
 
       JSClass cDef = { ( CHAR * )objName,
                     flags,
-                    JS_PropertyStub, 
+                    JS_PropertyStub,
                     JS_PropertyStub,
                     JS_PropertyStub,
                     JS_StrictPropertyStub,
-                    JS_EnumerateStub,       
+                    JS_EnumerateStub,
                     resolveOp,
                     JS_ConvertStub,
                     destruct,
@@ -483,7 +483,7 @@ namespace engine
          }
          parent_proto = (JSObject*)parentDesc->getPrototypeDef() ;
       }
- 
+
       /// +1 for FS_END
       fSpecs = new JSFunctionSpec[memberFuncs.size() + 1] ;
       if ( NULL == fSpecs )
