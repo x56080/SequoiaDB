@@ -948,11 +948,9 @@ namespace engine
                      "Dms lock count error" ) ;
          UINT32 count = cb->getLockItem(SDB_LOCK_DMS)->decCount() ;
 
-         if ( 0 == count )
+         if ( 0 == count &&
+              DMS_LOCK_WRITE == cb->getLockItem(SDB_LOCK_DMS)->getMode() )
          {
-            SDB_ASSERT( DMS_LOCK_WRITE ==
-                        cb->getLockItem(SDB_LOCK_DMS)->getMode(),
-                        "Dms lock mode error" ) ;
             cb->getLockItem(SDB_LOCK_DMS)->setMode(DMS_LOCK_NONE) ;
          }
       }
