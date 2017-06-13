@@ -598,6 +598,10 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 		if ((cp_idx < cp.length) && (cp[cp_idx] == 'e' || cp[cp_idx] == 'E')) {
 			long exponent = 0L;
 			cp_idx++;
+			// Long.parseLong() in JDK1.6 can't resolve '+'
+			if (cp_idx < cp.length && cp[cp_idx] == '+') {
+				cp_idx++;
+			}
 			String strexponent = String.valueOf(cp, cp_idx, cp.length - cp_idx);
 			try {
 				exponent = Long.parseLong(strexponent);
