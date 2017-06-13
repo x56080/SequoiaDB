@@ -77,7 +77,7 @@ namespace po = boost::program_options;
 #define SDBTOP_VERSION "sdbtop 1.0"
 #define SDBTOP_DEFAULT_CONFPATH "../conf/samples/sdbtop.xml"
 #define SDBTOP_DEFAULT_HOSTNAME "localhost"
-#define SDBTOP_DEFAULT_SERVICENAME "50000"
+#define SDBTOP_DEFAULT_SERVICENAME "11810"
 #define SDBTOP_REFRESH_QUIT_HELP "Refresh: F5, Quit: q, Help: h"
 #define NULLSTRING ""
 #define STRING_NULL "NULL"
@@ -399,7 +399,7 @@ CHAR errStr[errStrLength] = {0} ;
 CHAR errStrBuf[errStrLength] = {0} ;
 CHAR progPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 string confPath = SDBTOP_DEFAULT_CONFPATH ;
-string hostname  = SDBTOP_DEFAULT_HOSTNAME ;
+string hostname = SDBTOP_DEFAULT_HOSTNAME ;
 string serviceName = SDBTOP_DEFAULT_SERVICENAME ;
 string usrName = NULLSTRING ;
 string password = NULLSTRING ;
@@ -424,11 +424,11 @@ BOOLEAN useSSL = FALSE ;
 #define COMMANDS_OPTIONS \
        ( COMMANDS_STRING(OPTION_HELP, ",h"), "help" )\
        ( COMMANDS_STRING(OPTION_VERSION, ",v"), "version" ) \
-       ( COMMANDS_STRING(OPTION_CONFPATH, ",c"),boost::program_options::value<string>(), "configuration file path" ) \
-       ( COMMANDS_STRING(OPTION_HOSTNAME, ",i"), boost::program_options::value<string>(), "host name" ) \
-       ( COMMANDS_STRING(OPTION_SERVICENAME, ",s"), boost::program_options::value<string>(), "service name" ) \
-       ( COMMANDS_STRING(OPTION_USRNAME, ",u"), boost::program_options::value<string>(), "username" ) \
-       ( COMMANDS_STRING(OPTION_PASSWORD, ",p"),boost::program_options::value<string>(), "password" )
+       ( COMMANDS_STRING(OPTION_CONFPATH, ",c"),boost::program_options::value<string>(), "configuration file path, default: conf/samples/sdbtop.xml" ) \
+       ( COMMANDS_STRING(OPTION_HOSTNAME, ",i"), boost::program_options::value<string>(), "host name, default: localhost" ) \
+       ( COMMANDS_STRING(OPTION_SERVICENAME, ",s"), boost::program_options::value<string>(), "service name, default: 11810" ) \
+       ( COMMANDS_STRING(OPTION_USRNAME, ",u"), boost::program_options::value<string>(), "username, default: \"\"" ) \
+       ( COMMANDS_STRING(OPTION_PASSWORD, ",p"),boost::program_options::value<string>(), "password, default: \"\"" )
 
 struct Colours
 {
@@ -6026,23 +6026,9 @@ INT32 resolveArgument ( po::options_description &desc,
    {
       hostname= vm[OPTION_HOSTNAME].as<string>();
    }
-   else
-   {
-      std::cout << "hostname must be specified"OSS_NEWLINE ;
-      displayArg ( desc ) ;
-      rc = SDB_PMD_HELP_ONLY ;
-      goto done ;
-   }
    if( vm.count( OPTION_SERVICENAME) )
    {
       serviceName = vm[OPTION_SERVICENAME].as<string>();
-   }
-   else
-   {
-      std::cout << "servicename must be specified"OSS_NEWLINE ;
-      displayArg ( desc ) ;
-      rc = SDB_PMD_HELP_ONLY ;
-      goto done ;
    }
    if( vm.count( OPTION_USRNAME) )
    {
