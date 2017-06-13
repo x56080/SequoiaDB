@@ -999,6 +999,8 @@ namespace engine
          _replStatus = PMD_DB_STATUS() ;
          PMD_SET_DB_STATUS( SDB_DB_OFFLINE_BK ) ;
 
+         _pClsCB->getReplCB()->getSyncEmptyEvent()->wait() ;
+
          // wait all log complete
          while ( TRUE )
          {

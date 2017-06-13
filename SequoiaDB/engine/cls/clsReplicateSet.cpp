@@ -103,6 +103,7 @@ namespace engine
       memset( _timeThreshold, 0, sizeof( _timeThreshold ) ) ;
 
       _faultEvent.reset() ;
+      _syncEmptyEvent.signal() ;
    }
 
    _clsReplicateSet::~_clsReplicateSet()
@@ -234,6 +235,8 @@ namespace engine
    INT32 _clsReplicateSet::deactive ()
    {
       SDB_ASSERT( PMD_IS_DB_DOWN(), "DB must be down" ) ;
+
+      _syncEmptyEvent.wait() ;
 
       if ( _replBucket.maxReplSync() > 0 )
       {
@@ -429,6 +432,11 @@ namespace engine
    ossEvent* _clsReplicateSet::getFaultEvent()
    {
       return &_faultEvent ;
+   }
+
+   ossEvent* _clsReplicateSet::getSyncEmptyEvent()
+   {
+      return &_syncEmptyEvent ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_GETPRMY, "_clsReplicateSet::getPrimary" )
