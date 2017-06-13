@@ -59,13 +59,14 @@ struct _sdbConnectionStruct
 } ;
 typedef struct _sdbConnectionStruct sdbConnectionStruct ;
 
-INT32 createCollectionSpace(sdbConnectionHandle conn, char *name, int len, sdbCSHandle *cs)
+INT32 createCollectionSpace(sdbConnectionHandle conn, char *name, int len, sdbCSHandle *cs,
+							const char* prefixname)
 {
    pid_t pid;
    INT32 rc = SDB_OK;
    //以PID为后缀，创建CS
    pid = getpid();
-   snprintf(name, len, "cs_%d", pid);
+   snprintf(name, len, "%s_cs_%d", prefixname, pid);
    
    rc = sdbGetCollectionSpace(conn, name, cs);
    if (rc == SDB_OK){
@@ -78,12 +79,13 @@ INT32 createCollectionSpace(sdbConnectionHandle conn, char *name, int len, sdbCS
    
 }
 
-INT32 createCollection(sdbCSHandle cs, char *name, int len, sdbCollectionHandle* cl)
+INT32 createCollection(sdbCSHandle cs, char *name, int len, sdbCollectionHandle* cl,
+					   const char* prefixname)
 {
    pid_t pid; 
    //以PID为后缀，创建CL
    pid = getpid();
-   snprintf(name, len, "cl_%d", pid);
+   snprintf(name, len, "%s_cl_%d", prefixname, pid);
    return sdbCreateCollection(cs, name, cl);
 }
 
@@ -207,8 +209,8 @@ TEST( turnonCache, createCollection)
    char clName[127];
    
    ASSERT_EQ(SDB_OK, connect(&conn, 0));
-   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs));
-   ASSERT_EQ(SDB_OK, createCollection(cs, clName, sizeof(clName), &cl));
+   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs, "createCollection"));
+   ASSERT_EQ(SDB_OK, createCollection(cs, clName, sizeof(clName), &cl, "createCollection"));
  
    ASSERT_EQ(SDB_OK, dropCollection(cs, cl, clName));
    ASSERT_EQ(SDB_OK, dropCollectionSpace(conn, cs, csName));
@@ -225,7 +227,7 @@ TEST( turnonCache, getCollectionSpace )
    clock_t diff1, diff2;
   
    ASSERT_EQ(SDB_OK, connect(&conn, 0));
-   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs));
+   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs, "getCollectionSpace"));
   
    getConf() ;
    rc = sdbConnect(HOSTNAME, SVCNAME, USER, PASSWD, &conn2);
@@ -257,8 +259,8 @@ TEST( turnonCache, getCollection)
    clock_t diff1, diff2;
    
    ASSERT_EQ(SDB_OK, connect(&conn, 0));
-   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs));
-   ASSERT_EQ(SDB_OK, createCollection(cs, clName, sizeof(clName), &cl));
+   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs, "getCollection"));
+   ASSERT_EQ(SDB_OK, createCollection(cs, clName, sizeof(clName), &cl, "getCollection"));
    
    getConf() ;
    rc = sdbConnect(HOSTNAME, SVCNAME, USER, PASSWD, &conn2);
@@ -292,8 +294,8 @@ TEST( turnonCache, getCollection1)
    clock_t diff1, diff2;
    
    ASSERT_EQ(SDB_OK, connect(&conn, 0));
-   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs));
-   ASSERT_EQ(SDB_OK, createCollection(cs, clName, sizeof(clName), &cl));
+   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs, "getCollection1"));
+   ASSERT_EQ(SDB_OK, createCollection(cs, clName, sizeof(clName), &cl, "getCollection1"));
    
    // 创建另一连接
    getConf() ;
@@ -331,7 +333,7 @@ TEST( turnonCache, getCollectionSpaceOfTimeOut)
    //初始化客户端，启用缓存
    ASSERT_EQ(SDB_OK, connect(&conn, 1, 0)); 
    // 以进程ID为后缀，创建CS
-   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs));
+   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs, "getCollectionSpaceOfTimeOut"));
    
    // 统计获取CS的时间
    ASSERT_EQ(SDB_OK,getTimeofGetCS(conn, csName, &cs1, &diff1));
@@ -362,9 +364,9 @@ TEST( turnonCache, getCollectionOfTimeOut)
    //初始化客户端，启用缓存
    ASSERT_EQ(SDB_OK, connect(&conn, 1, 0)); 
    // 以进程ID为后缀，创建CS
-   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs));
+   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs, "getCollectionOfTimeOut"));
    // 以进程ID为后缀，创建CL
-   ASSERT_EQ(SDB_OK, createCollection(cs, clName, sizeof(clName), &cl));
+   ASSERT_EQ(SDB_OK, createCollection(cs, clName, sizeof(clName), &cl, "getCollectionOfTimeOut"));
    
    // 统计获取CL的时间(processor time)
    ASSERT_EQ(SDB_OK,getTimeofGetCLByName(cs, clName, &cl1, &diff1));
@@ -391,7 +393,7 @@ TEST( turnonCache, getCollectionSpaceAfterDrop)
    //初始化客户端，启用缓存
    ASSERT_EQ(SDB_OK, connect(&conn, 0, 0)); 
    // 以进程ID为后缀，创建CS
-   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs));
+   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs, "getCollectionSpaceAfterDrop"));
    
    //先drop再获取，验证缓存被清除
    ASSERT_EQ(SDB_OK, dropCollectionSpace(conn, cs, csName));
@@ -415,9 +417,9 @@ TEST( turnonCache, getCollectionAfterDrop)
    //初始化客户端，启用缓存
    ASSERT_EQ(SDB_OK, connect(&conn, 0, 0)); 
    // 以进程ID为后缀，创建CS
-   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs));
+   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs, "getCollectionAfterDrop"));
    // 以进程ID为后缀，创建CL
-   ASSERT_EQ(SDB_OK, createCollection(cs, clName, sizeof(clName), &cl));
+   ASSERT_EQ(SDB_OK, createCollection(cs, clName, sizeof(clName), &cl, "getCollectionAfterDrop"));
    
    snprintf(fullName, sizeof(fullName), "%s.%s", csName, clName);
    rc = sdbGetCollection(conn, fullName, &cl1);
@@ -449,9 +451,9 @@ TEST( turnonCache, testUpdateTimeStamp)
    //初始化客户端，启用缓存
    ASSERT_EQ(SDB_OK, connect(&conn, 1, 10)); 
    // 以进程ID为后缀，创建CS
-   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs));
+   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs, "testUpdateTimeStamp"));
    // 以进程ID为后缀，创建CL
-   ASSERT_EQ(SDB_OK, createCollection(cs, clName, sizeof(clName), &cl));
+   ASSERT_EQ(SDB_OK, createCollection(cs, clName, sizeof(clName), &cl, "testUpdateTimeStamp"));
    
    strConn = (sdbConnectionStruct*)conn;
    hashTable *ht = strConn->_tb;
@@ -508,10 +510,10 @@ TEST( turnonCache, getCLOfTimeOutandDropbyOtherConn)
    ASSERT_EQ(SDB_OK, connect(&conn, 1)); 
    
    // 以进程ID为后缀，创建CS
-   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs));
+   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs, "getCLOfTimeOutandDropbyOtherConn"));
  
    // 以进程ID为后缀，创建CL
-   ASSERT_EQ(SDB_OK, createCollection(cs, clName, sizeof(clName), &cl));
+   ASSERT_EQ(SDB_OK, createCollection(cs, clName, sizeof(clName), &cl, "getCLOfTimeOutandDropbyOtherConn"));
    
    //新建连接，删除上述cl
    getConf() ;
@@ -547,7 +549,7 @@ TEST( turnonCache, getCSOfTimeOutandDropbyOtherConn)
    char clName[127];
    
    ASSERT_EQ(SDB_OK, connect(&conn, 1)); 
-   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs));
+   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs, "getCSOfTimeOutandDropbyOtherConn"));
    
    //新建连接，删除上述cl
    getConf() ;
@@ -580,7 +582,7 @@ TEST( turnonCache, getMulCLAfterDropCS)
    char fullName[256];
    
    ASSERT_EQ(SDB_OK, connect(&conn, 1, 0)); 
-   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs));
+   ASSERT_EQ(SDB_OK, createCollectionSpace(conn, csName, sizeof(csName), &cs, "getMulCLAfterDropCS"));
    
    for (int i = 0; i <5; ++i)
    {
