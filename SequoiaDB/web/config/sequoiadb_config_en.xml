@@ -159,11 +159,11 @@
 		<Name>sortbuf</Name>
 		<WebName>Sorting buffer size</WebName>
 		<Type>int</Type>
-		<Default>512</Default>
+		<Default>256</Default>
 		<Valid>128-</Valid>
 		<Display>edit box</Display>
 		<Edit>true</Edit>
-		<Desc>Sorting buffer size(MB), default value :512, min value:128</Desc>
+		<Desc>Sorting buffer size(MB), default value :256, min value:128</Desc>
 		<Level>1</Level>
 		<DynamicEdit>false</DynamicEdit>
 		<BatchEdit>true</BatchEdit>
