@@ -662,10 +662,10 @@ public:
 
    // the number of hotKey of the keySuite
    INT32 hotKeyLength ;
-   
+
    // the number of hotKey of the keySuite from conf
    INT32 hotKeyLengthFromConf ;
-   
+
    // hotKey list
    HotKey *hotKey ;
 } ;
@@ -840,7 +840,7 @@ public: // operation
    void initAllColourPairs() ;
 
    INT32 addFixedHotKey() ;
-   
+
    INT32 matchNameInFieldStruct( const FieldStruct *src,
                                  const string DisplayName ) ;
    INT32 matchSourceFieldByDisplayName( const string DisplayName ) ;
@@ -1445,7 +1445,7 @@ INT32 storeDS( ptree pt_display,
                   mobile->warningValue.absoluteMinLimitValue = 0 ;
                }
 
-               mobile->canSwitch= 
+               mobile->canSwitch=
                      child_pMobile->
                            second.get<INT32>(
                                  CANSWITCH ) ;
@@ -1764,7 +1764,7 @@ INT32 storeHeaders( ptree pt_HDs, RootWindow &root )
             rc = SDB_ERROR ;
             goto error ;
          }
-         for( BOOST_AUTO( pt_HValue, pt_header->second.begin() ); 
+         for( BOOST_AUTO( pt_HValue, pt_header->second.begin() );
               pt_HValue != pt_header->second.end();
               ++pt_HValue )
          {
@@ -2664,7 +2664,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
       actualPosition.length_Y =
             ( INT32 )( referPosition.length_Y * SCALE_ROW ) ;
       actualPosition.referUpperLeft_X= referPosition.referUpperLeft_X ;
-      actualPosition.referUpperLeft_Y= 
+      actualPosition.referUpperLeft_Y=
             ( INT32 )( referPosition.referUpperLeft_Y * ( FLOAT32 )row /
             ( FLOAT32 )root.referWindowRow ) ;
    }
@@ -2803,7 +2803,7 @@ INT32 Event::mvprintw_SDBTOP( const string &expression, INT32 expressionLength,
                               INT32 start_col )
 {
    INT32 rc           = SDB_OK ;
-   
+
    // before print on the terminal, format it
    rc = formattingOutput( sdbtopBuffer, expressionLength, expression.c_str() ) ;
    if( rc )
@@ -2869,7 +2869,7 @@ void Event::getColourPN( Colours colour, INT32 &colourPairNumber )
 // "result" store the specific field value of "bsonobj"
 // "sourceField" is the position of the specific field on the "bsonobj"
 // "canSwitch" decide the way to get the field value of "bsonobj"
-// if "canSwitch" is true, baseField distinguish field 
+// if "canSwitch" is true, baseField distinguish field
 // between last snapshot and current snapshot
 // waringValue is the scope of every value
 INT32 Event::getResultFromBSONObj( const BSONObj &bsonobj,
@@ -3116,7 +3116,7 @@ INT32 Event::getResultFromBSONObj( const BSONObj &bsonobj,
                   {
                      colourPairNumber = minPairNumber ;
                   }
-                  else if( 
+                  else if(
                         isExist( input.last_absoluteMap, new_+sourceField ) &&
                            result != input.last_absoluteMap[new_+sourceField] )
                   {
@@ -3189,7 +3189,7 @@ INT32 Event::getResultFromBSONObj( const BSONObj &bsonobj,
       rc = SDB_ERROR ;
       goto error ;
    }
-   
+
    // trim "\""
    doubleQuotesTrim( result ) ;
 done :
@@ -3726,7 +3726,7 @@ INT32 Event::refreshDH( DynamicHelp &DH, Position &position )
    if( DH.wndOptionRow + DH.optionsRow > position.length_Y )
    {
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
-      ossSnprintf( errStr, errStrLength, 
+      ossSnprintf( errStr, errStrLength,
                    "%s refreshDisplayContent failed,"
                    "tableRow is too small"OSS_NEWLINE,
                    errStrBuf ) ;
@@ -3999,7 +3999,7 @@ error :
 INT32 Event::refreshDE( DynamicExpressionOutPut &DE, Position &position )
 {
 // step 1: get total length of all expressions'result which can
-// print on the specific row 
+// print on the specific row
 // step 2: use total length to fix position and print
 // the specific expression's reult in the specific row
 // step 3: if on the end of expression list or
@@ -4172,7 +4172,7 @@ INT32 Event::refreshDS_Table( DynamicSnapshotOutPut &DS, INT32 ROW, INT32 COL,
    // use it to sign the start position of
    // fixedFieldStruct or mobileFieldStruct on every row
    INT32 start_fixed_mobile      = 0 ;
-   string displayMode            = 
+   string displayMode            =
          DISPLAYMODECHOOSER[input.displayModeChooser] ;
 
    // store the field title
@@ -4408,7 +4408,7 @@ INT32 Event::refreshDS_List( DynamicSnapshotOutPut &DS, Position &position,
 // step 3: if on the end of mobile FieldStruct list or
 //         on the bottom of window, print over
 // step 4: if print isn't over , locate the next row, and then goto step 1
-// waring: the snapshot field is come from the FieldStruct list 
+// waring: the snapshot field is come from the FieldStruct list
 //         which is added by fixed FieldStruct and mobile FieldStruct,
 //         it firstly come from the fixed FieldStruct and if on the end of
 //         fixed FieldStruct ,it will come from mobile FieldStruct
@@ -4478,7 +4478,7 @@ INT32 Event::refreshDS_List( DynamicSnapshotOutPut &DS, Position &position,
          break ;
       sum += Mobile->contentLength ;
    }
-   // use the max scope to get the best start_X to display field 
+   // use the max scope to get the best start_X to display field
    rc = fixedOutputLocation( start_Y, X, start_Y, start_X,
                              0, length_X - sum, autoSetType );
    if( rc )
@@ -4513,7 +4513,7 @@ INT32 Event::refreshDS_List( DynamicSnapshotOutPut &DS, Position &position,
          goto error;
       }
       attroff( COLOR_PAIR( pairNumber ) ) ;
-      
+
       // print the dividingLine
       attron( COLOR_PAIR( dividingColour ) ) ;
       dividingLine = getDividingLine( DIVIDINGCHAR, Fixed->contentLength ) ;
@@ -5227,7 +5227,7 @@ done :
    return rc ;
 }
 
-// judge which event should do with the key come from the result 
+// judge which event should do with the key come from the result
 // of function Event::getTopKey_SDBTOP()
 // if isFirstStart is true and the key is no meaning ,don't show anything
 // if isFirstStart is false, it is meaning the body is help panel, when the key
@@ -5610,7 +5610,7 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
                displayName = sdbtopBuffer ;
                trim( displayName ) ;
                rc = strToNum( displayName.c_str(), filterNum ) ;
-               // illegal input 
+               // illegal input
                if( rc )
                {
                  filterNum = 0 ;
@@ -5667,7 +5667,7 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
                displayName = sdbtopBuffer ;
                trim( displayName ) ;
                rc = strToNum( displayName.c_str(), refreshInterval ) ;
-               // illegal input 
+               // illegal input
                if( rc || 0 > refreshInterval )
                {
                  // it isn't a tool error, restore status
@@ -5750,7 +5750,7 @@ INT32 Event::runSDBTOP( BOOLEAN useSSL )
                    errStrBuf ) ;
       goto error ;
    }
-   // extend the root.keySuite 
+   // extend the root.keySuite
    rc = addFixedHotKey() ;
    if( rc )
    {
@@ -5859,7 +5859,7 @@ INT32 Event::runSDBTOP( BOOLEAN useSSL )
             waitTime.tv_usec += 1000000 ;
          }
       }
-      
+
       while( 1 )
       {
          FD_ZERO ( &fds ) ;
@@ -5877,7 +5877,7 @@ INT32 Event::runSDBTOP( BOOLEAN useSSL )
          }
          else if( rc > 0 )
          {
-            if ( FD_ISSET ( STDIN, &fds ) ) 
+            if ( FD_ISSET ( STDIN, &fds ) )
             {
                ossMemset( sdbtopBuffer, 0, BUFFERSIZE ) ;
                read( STDIN, sdbtopBuffer, BUFFERSIZE ) ;
@@ -5929,7 +5929,7 @@ void init ( po::options_description &desc )
    ADD_PARAM_OPTIONS_BEGIN ( desc )
       COMMANDS_OPTIONS
 #ifdef SDB_SSL
-      ( OPTION_SSL, "use SSL connection" ) 
+      ( OPTION_SSL, "use SSL connection" )
 #endif
    ADD_PARAM_OPTIONS_END
 }
