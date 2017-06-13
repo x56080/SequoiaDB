@@ -374,7 +374,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
    {
       timer = bson_iterator_date( pIt ) / 1000 ;
       local_time( &timer, &psr ) ;
-      if( psr.tm_year + 1900 >= 1900 &&
+      if( psr.tm_year + 1900 >= 0 &&
           psr.tm_year + 1900 <= 9999 )
       {
          rc = _appendString( delChar, FALSE, &delChar, 1, ppBuffer, pCSVSize ) ;

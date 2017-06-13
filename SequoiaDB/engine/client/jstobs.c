@@ -545,7 +545,7 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
          time_t timer = bson_iterator_date( &i ) / 1000 ;
          memset ( temp, 0, BSON_TEMP_SIZE_64 ) ;
          local_time ( &timer, &psr ) ;
-         if( psr.tm_year + RELATIVE_YEAR >= RELATIVE_YEAR &&
+         if( psr.tm_year + RELATIVE_YEAR >= INT64_FIRST_YEAR &&
              psr.tm_year + RELATIVE_YEAR <= INT64_LAST_YEAR )
          {
 #ifdef WIN32
@@ -1059,7 +1059,7 @@ static BOOLEAN jsonConvertBson ( cJSON *cj, bson *bs, BOOLEAN isObj )
             eg. before 1927-12-31-23.54.07,
             will be more than 352 seconds
             UTC time
-            date min 1900-01-01-00.00.00.000000
+            date min 0000-01-01-00.00.00.000000
             date max 9999-12-31-23.59.59.999999
             timestamp min 1901-12-13-20.45.52.000000 +/- TZ
             timestamp max 2038-01-19-03.14.07.999999 +/- TZ
@@ -1146,8 +1146,8 @@ static BOOLEAN jsonConvertBson ( cJSON *cj, bson *bs, BOOLEAN isObj )
             }
    
             if( cJSON_Date == cj->type && (
-                year    >     INT64_LAST_YEAR   || //[1900,9999]
-                year    <     RELATIVE_YEAR     ||
+                year    >     INT64_LAST_YEAR   || //[0000,9999]
+                year    <     INT64_FIRST_YEAR  ||
                 month   >     RELATIVE_MON      || //[1,12]
                 month   <     1                 ||
                 day     >     RELATIVE_DAY      || //[1,31]

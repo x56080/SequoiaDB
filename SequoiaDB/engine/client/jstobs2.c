@@ -21,6 +21,7 @@
 
 #define INT_NUM_SIZE 32
 
+#define INT64_FIRST_YEAR 0
 #define INT64_LAST_YEAR 9999
 #define INT32_LAST_YEAR 2038
 
@@ -344,16 +345,16 @@ static BOOLEAN date2Time( const CHAR *pDate,
       }
       else if( valType == CJSON_DATE )
       {
-         //[1900,9999]
+         //[0000,9999]
          if( year > INT64_LAST_YEAR )
          {
             JSON_PRINTF_LOG( "Date year not greater than %d",
                              INT64_LAST_YEAR ) ;
             goto error ;
          }
-         else if( year < RELATIVE_YEAR )
+         else if( year < INT64_FIRST_YEAR )
          {
-            JSON_PRINTF_LOG( "Date year not less than %d", RELATIVE_YEAR ) ;
+            JSON_PRINTF_LOG( "Date year not less than %d", INT64_FIRST_YEAR ) ;
             goto error ;
          }
 
