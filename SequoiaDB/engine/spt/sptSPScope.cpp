@@ -62,7 +62,7 @@ namespace engine
    } ;
 
    #define SPT_RVAL_KEY          ""
-   const UINT32 RUNTIME_SIZE = 32 * 1024 * 1024 ;
+   const UINT32 RUNTIME_SIZE = 64 * 1024 * 1024 ;
 
    /*
       _sptSPScope define
@@ -153,7 +153,7 @@ namespace engine
 
    void _sptSPScope::shutdown()
    {
-      
+
       if ( NULL != _context )
       {
          void *p = JS_GetContextPrivate( _context ) ;
@@ -254,7 +254,7 @@ namespace engine
       JS_INVOKER::MEMBER_FUNC construct = fMap.getConstructor() ;
       JS_INVOKER::DESTRUCT_FUNC destruct = fMap.getDestructor() ;
       JS_INVOKER::RESLOVE_FUNC resolve = fMap.getResolver() ;
-      
+
       uint32 flags = NULL == resolve ?
                      JSCLASS_HAS_PRIVATE :
                      JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE ;
@@ -264,11 +264,11 @@ namespace engine
 
       JSClass cDef = { ( CHAR * )objName,
                     flags,
-                    JS_PropertyStub, 
+                    JS_PropertyStub,
                     JS_PropertyStub,
                     JS_PropertyStub,
                     JS_StrictPropertyStub,
-                    JS_EnumerateStub,       
+                    JS_EnumerateStub,
                     resolveOp,
                     JS_ConvertStub,
                     destruct,
@@ -281,7 +281,7 @@ namespace engine
 
       JSFunctionSpec *fSpecs = NULL ;
       JSFunctionSpec *sfSpecs = NULL ;
- 
+
       /// +1 for FS_END
       fSpecs = new JSFunctionSpec[memberFuncs.size() + 1] ;
       if ( NULL == fSpecs )
