@@ -39,6 +39,9 @@
 
 #include "core.hpp"
 #include <string>
+#include "ossProc.hpp"
+#include "ossUtil.h"
+#include "utilStr.hpp"
 
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -109,9 +112,29 @@ namespace engine
    #define UTIL_CHECK_AND_CHG_USER() \
       do \
       { \
-         rc = utilCheckAndChangeUserInfo( argv[ 0 ] ) ; \
+         CHAR filePath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ; \
+         rc = ossGetEWD( filePath, OSS_MAX_PATHSIZE ) ; \
          if ( rc ) \
          { \
+            ossPrintf( "Error: Failed to get self path: %d"OSS_NEWLINE, \
+                       rc ) ; \
+            goto error ; \
+         } \
+         CHAR *filename = ossStrrchr( argv[0], OSS_FILE_SEP_CHAR ); \
+         if ( !filename ) filename = argv[0]; \
+         rc = utilCatPath( filePath, OSS_MAX_PATHSIZE, \
+                                   filename ) ; \
+         if ( rc ) \
+         { \
+            ossPrintf( "Error: Failed to build self full path: %d"OSS_NEWLINE, \
+                       rc ) ; \
+            goto error ; \
+         } \
+         rc = utilCheckAndChangeUserInfo( filePath ) ; \
+         if ( rc ) \
+         { \
+            ossPrintf( "Error: Failed to check and change user info: %d"OSS_NEWLINE, \
+                       rc ) ; \
             goto error ; \
          } \
       } while ( 0 )
