@@ -618,6 +618,8 @@ namespace engine
 
       _lastLSN       = ~0 ;
       _lastLSNCode   = 0 ;
+
+      _needBackupLog = FALSE ;
    }
 
    _barBkupBaseLogger::~_barBkupBaseLogger ()
@@ -633,6 +635,11 @@ namespace engine
          return ossClose( _curFile ) ;
       }
       return SDB_OK ;
+   }
+
+   void _barBkupBaseLogger::setBackupLog( BOOLEAN backupLog )
+   {
+      _needBackupLog = backupLog ;
    }
 
    INT32 _barBkupBaseLogger::init( const CHAR *path,
@@ -1111,7 +1118,8 @@ namespace engine
    {
       pmdKRCB *krcb = pmdGetKRCB() ;
       INT32 rc = SDB_OK ;
-      DPS_LSN beginlsn, expectlsn ;
+      DPS_LSN beginlsn, expectlsn, currentLSN ;
+      DPS_LSN_OFFSET transLSN = DPS_INVALID_LSN_OFFSET ;
 
       isEmpty = FALSE ;
 
@@ -1157,6 +1165,8 @@ namespace engine
       // if increase backup, need to check lsn
       beginlsn = _pDPSCB->getStartLsn( FALSE ) ;
       expectlsn = _pDPSCB->expectLsn() ;
+      currentLSN = _pDPSCB->getCurrentLsn() ;
+      transLSN = _pTransCB->getOldestBeginLsn() ;
 
       if ( BAR_BACKUP_OP_TYPE_INC == _metaHeader._opType )
       {
@@ -1200,11 +1210,23 @@ namespace engine
       }
       else if ( BAR_BACKUP_OP_TYPE_FULL == _metaHeader._opType )
       {
-         _metaHeader._beginLSNOffset = beginlsn.offset ;
+         if ( _needBackupLog )
+         {
+            _metaHeader._beginLSNOffset = beginlsn.offset ;
+         }
+         else if ( DPS_INVALID_LSN_OFFSET != transLSN &&
+                   transLSN < currentLSN.offset )
+         {
+            _metaHeader._beginLSNOffset = transLSN ;
+         }
+         else
+         {
+            _metaHeader._beginLSNOffset = currentLSN.offset ;
+         }
       }
 
       _metaHeader._endLSNOffset   = expectlsn.offset ;
-      _metaHeader._transLSNOffset = _pTransCB->getOldestBeginLsn() ;
+      _metaHeader._transLSNOffset = transLSN ;
 
    done:
       return rc ;

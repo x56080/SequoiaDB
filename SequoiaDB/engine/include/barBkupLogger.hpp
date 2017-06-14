@@ -430,6 +430,8 @@ namespace engine
                         BOOLEAN rewrite = TRUE,
                         const CHAR *backupDesp = NULL ) ;
 
+         void     setBackupLog( BOOLEAN backupLog ) ;
+
          INT32    backup ( _pmdEDUCB *cb ) ;
 
       protected:
@@ -465,6 +467,8 @@ namespace engine
          UINT64                        _curFileSize ;
          OSSFILE                       _curFile ;
          BOOLEAN                       _isOpened ;
+
+         BOOLEAN                       _needBackupLog ;
 
    } ;
    typedef _barBkupBaseLogger barBkupBaseLogger ;
