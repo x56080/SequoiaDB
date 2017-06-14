@@ -2568,6 +2568,7 @@ namespace engine
          PD_LOG( PDEVENT, "Data node is newer than backup[Name:%s,ID:%d]",
                  backupName(), _metaFileSeq ) ;
          isEmpty = TRUE ;
+         _metaHeader._transLSNOffset = DPS_INVALID_LSN_OFFSET ;
          goto done ;
       }
 
