@@ -2605,10 +2605,9 @@ namespace engine
                       beginLSN, rc ) ;
       }
 
+   done:
       /// forbidden trans rollback
       _metaHeader._transLSNOffset = DPS_INVALID_LSN_OFFSET ;
-
-   done:
       return rc ;
    error:
       goto done ;
