@@ -65,7 +65,7 @@ aggregate() 方法与 [find()](reference/Sequoiadb_command/SdbCollection/find.md
 * 按条件选择记录，并对记录进行分组。如下操作首先使用 $match 选择匹配条件的记录，然后使用 $group 对记录按字段 major 进行分组，并使用 $avg 返回每个分组中嵌套对象 age 字段的平均值。
 
  ```lang-javascript
- > db.foo.bar( { $match: { dep:  "计算机学院" } },{ $group: { _id:  "$major", Major: { $first: "$major" }, avg_age: { $avg: "$info.age" } } } ) 
+ > db.foo.bar.aggregate( { $match: { dep:  "计算机学院" } },{ $group: { _id:  "$major", Major: { $first: "$major" }, avg_age: { $avg: "$info.age" } } } ) 
  {
       "Major": "计算机工程",
       "avg_age": 25
