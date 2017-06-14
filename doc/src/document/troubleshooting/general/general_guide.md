@@ -9,7 +9,7 @@
 
 2. SDB_DPS_FILE_SIZE_NOT_SAME(-123)、SDB_DPS_FILE_NOT_RECOGNISE(-124)
    * 当前节点的同步日志大小/个数与配置文件中的大小/个数不相符，目前SequoiaDB不支持在初始化后更改同步日志文件大小和个数
-   * 问题修复：调整到原配置即可。若需要强行更改同步日志文件大小和个数，则首先需要确保同一分区组内的所有节点同步日志已经一致（可以通过直连节点并执行 *"db.snapshot( SDB_SNAP_SYSTEM )"* 查看 "CompleteLSN"是否相同），然后停止分区组内的所有节点，并删除每一个节点上的同步日志目录（默认为 \<dbpath\>/replicalog），再修改到新的配置并重启节点即可。
+   * 问题修复：调整到原配置即可。若需要强行更改同步日志文件大小和个数，则首先需要确保同一分区组内的所有节点同步日志已经一致（可以通过直连节点并执行 *"[db.snapshot( SDB_SNAP_SYSTEM )](database_management/monitoring/snapshot/SDB_SNAP_SYSTEM.md)"* 查看 "CompleteLSN"是否相同），然后停止分区组内的所有节点，并删除每一个节点上的同步日志目录（默认为 \<dbpath\>/replicalog），再修改到新的配置并重启节点即可。
 
 ##网络问题##
 
@@ -130,8 +130,8 @@
    * 集合不存在
    * 问题诊断：
       * 检查操作中的集合名是否拼写错误；
-      * 使用 *"db.listCollections()"* 确认该集合是否存在，若该集合存在，而其它操作依然报该错误，原因可能为：1）操作位于备节点，而备节点还未同步；2）创建该集合由于节点故障导致在实际节点上不存在。
-   * 问题修复：设置会话访问"主节点"的属性 *"db.setSessionAttr({PreferedInstanace:"M"})"* ，并执行 *"db.\<cs\>.\<cl\>.find()"* 操作进行自动重建修复。
+      * 使用 *"[db.listCollections()](reference/Sequoiadb_command/Sdb/listCollections.md)"* 确认该集合是否存在，若该集合存在，而其它操作依然报该错误，原因可能为：1）操作位于备节点，而备节点还未同步；2）创建该集合由于节点故障导致在实际节点上不存在。
+   * 问题修复：设置会话访问"主节点"的属性 *"[db.setSessionAttr({PreferedInstanace:"M"})](reference/Sequoiadb_command/Sdb/setSessionAttr.md)"* ，并执行 *"[db.\<cs\>.\<cl\>.find()](reference/Sequoiadb_command/SdbCollection/find.md)"* 操作进行自动重建修复。
 
 9. SDB_DMS_RECORD_TOO_BIG(-24)
    * 记录超过最大限制
@@ -146,7 +146,7 @@
    * 问题诊断：
       * 请检查集合空间名是否拼写错误；
       * 使用 *"db.listCollectionSpaces()"* 确认该集合空间是否存在，若该集合空间存在，而其它操作仍然报该错误，原因可能为：1）操作位于备节点，而备节点还未同步；2）创建该集合空间空由于节点故障导致在实际节点上不存在。
-   * 问题修复：设置会话访问"主节点"的属性 *"db.setSessionAttr({PreferedInstance:"M"})"*，并重试该操作。
+   * 问题修复：设置会话访问"主节点"的属性 *"[db.setSessionAttr({PreferedInstance:"M"})](reference/Sequoiadb_command/Sdb/setSessionAttr.md)"*，并重试该操作。
 
 12. SDB_IXM_MULTIPLE_ARRAY(-37)
    * 复合索引字段中数组类型过多，目前复合索引只允许1个字段为数组类型
@@ -182,12 +182,12 @@
 
 20. SDB_IXM_DROP_ID(-56)、SDB_IXM_DROP_SHARD(-164)
    * 系统索引不允许删除（包括 "$id"和"$shard"）
-   * 问题修复：若要删除 "$id" 索引，请使用 *"db.\<cs\>.\<cl\>.dropIdIndex()"* 接口，但删除后该集合不支持"更新"和"删除"。
+   * 问题修复：若要删除 "$id" 索引，请使用 *"[db.\<cs\>.\<cl\>.dropIdIndex()](reference/Sequoiadb_command/SdbCollection/dropIdIndex.md)"* 接口，但删除后该集合不支持"更新"和"删除"。
 
 21. SDB_PMD_RG_NOT_EXIST(-59)、SDB_COOR_NO_NODEGROUP_INFO(-138)、SDB_CLS_GRP_NOT_EXIST(-154)、SDB_CLS_NO_GROUP_INFO(-167)
    * 分区组不存在
-   * 问题诊断：请使用 *"db.listReplicaGroups()"* 检查分区组是否存在。
-   * 问题修复：若上述检查分区组存在，请使用 *"db.invalidateCache({Global:true})"* 清空所有节点的缓存，并重试操作。
+   * 问题诊断：请使用 *"[db.listReplicaGroups()](reference/Sequoiadb_command/Sdb/listReplicaGroups.md)"* 检查分区组是否存在。
+   * 问题修复：若上述检查分区组存在，请使用 *"[db.invalidateCache({Global:true})](reference/Sequoiadb_command/Sdb/invalidateCache.md)"* 清空所有节点的缓存，并重试操作。
 
 22. SDB_PMD_RG_EXIST(-60)、SDB_CAT_GRP_EXIST(-153)
    * 分区组已存在
@@ -195,7 +195,7 @@
 
 23. SDB_PMD_SESSION_NOT_EXIST(-62)
    * 指定会话不存在
-   * 问题诊断：可以通过直连该节点，并执行 *"db.snapshot( SDB_SNAP_SESSIONS )"* 确认该会话是否存在。
+   * 问题诊断：可以通过直连该节点，并执行 *"[db.snapshot( SDB_SNAP_SESSIONS )](database_management/monitoring/snapshot/SDB_SNAP_SESSIONS.md)"* 确认该会话是否存在。
 
 24. SDB_PMD_FORCE_SYSTEM_EDU(-63)
    * 系统会话不允许被强制结束
@@ -212,23 +212,23 @@
    * 分区组不存在主节点
    * 问题诊断：
       * 检查分区组的所有节点是否都已经启动（1、在分区组所有节点都异常后，需要所有节点都启动才能选举；2、在分区组节点正常重启时，若存在节点未启动，则其它节点需要等待一定周期才能开始选举，默认时间是10分钟；3、在分区组节点正常重启时，需要有 N/2 +1 个节点成功启动才会选举）。
-      * 直连分区组的每一个节点，执行 *"db.snapshot( SDB_SNAP_SYSTEM )"* 并查看 "IsPrimary" 是否为 "true"；
+      * 直连分区组的每一个节点，执行 *"[db.snapshot( SDB_SNAP_SYSTEM )](database_management/monitoring/snapshot/SDB_SNAP_SYSTEM.md)"* 并查看 "IsPrimary" 是否为 "true"；
       * 检查分区组的每一个节点的诊断日志，查看节点当前的错误信息。
    * 问题修复：
-      * 若检查当前分区组存在 "IsPrimary" 为 "true" 的节点，则执行 *"db.invalidateCache({Global:true})"* 清除所有缓存并重试；
+      * 若检查当前分区组存在 "IsPrimary" 为 "true" 的节点，则执行 *"[db.invalidateCache({Global:true})](reference/Sequoiadb_command/Sdb/invalidateCache.md)"* 清除所有缓存并重试；
       * 若存在节点未启，请启动节点。
 
 28. SDB_REPL_GROUP_NOT_ACTIVE(-90)
    * 分区组未激活，不能被分配给域、集合空间和集合
-   * 问题修复：请执行 *"db.getRG(\<name\>).start()"* 对该分区组进行激活操作。
+   * 问题修复：请执行 *"[db.getRG(\<name\>).start()](reference/Sequoiadb_command/SdbReplicaGroup/start.md)"* 对该分区组进行激活操作。
 
 29. SDB_DMS_INCOMPATIBLE_MODE(-92)
    * 集合当前状态和操作不兼容
    * 问题诊断：
-      * 执行 *"db.snapshot( SDB_SNAP_COLLECTIONS )"* 查看对应集合的 "Status" 状态，或通过执行 *"sdbdmsdump -d \<dbpath\> -o \<output_file\> -c \<cs\> -l \<cl\> -a dump --meta true"* 查看对应集合的 "Status"；
+      * 执行 *"[db.snapshot( SDB_SNAP_COLLECTIONS )](database_management/monitoring/snapshot/SDB_SNAP_COLLECTIONS.md)"* 查看对应集合的 "Status" 状态，或通过执行 *"[sdbdmsdump -d \<dbpath\> -o \<output_file\> -c \<cs\> -l \<cl\> -a dump --meta true](database_management/tools/sdbdmsdump.md)"* 查看对应集合的 "Status"；
       * 若集合状态为 "OFFLINE REORG"，则不允许从外部对该集合进行任何操作；
    * 问题修复：
-      * 出现上述现象，系统会自行重组修复；若无法自动修复，则可以通过执行 *"sdbdmsdump -d \<dbpath\> -o \<output_file\> -c \<cs\> -l \<cl\> -r mb:Flag=0"* 进行强制修复。
+      * 出现上述现象，系统会自行重组修复；若无法自动修复，则可以通过执行 *"[sdbdmsdump -d \<dbpath\> -o \<output_file\> -c \<cs\> -l \<cl\> -r mb:Flag=0](database_management/tools/sdbdmsdump.md)"* 进行强制修复。
 
 30. SDB_DMS_INCOMPATIBLE_VERSION(-93)
    * SequoiaDB程序与当前的数据文件版本不兼容，当前不支持从高版本回退到低版本
@@ -241,7 +241,7 @@
 
 32. SDB_CLS_DATA_NODE_CAT_VER_OLD(-107)、SDB_CLS_COORD_NODE_CAT_VER_OLD(-108)
    * 数据节点/协调节点编目信息过旧
-   * 问题修复：该错误系统会自动修复，如未能自动修复，可以通过执行 *"db.invalidateCache({Global:true})"* 清空所有节点缓存并重试。
+   * 问题修复：该错误系统会自动修复，如未能自动修复，可以通过执行 *"[db.invalidateCache({Global:true})](reference/Sequoiadb_command/Sdb/invalidateCache.md)"* 清空所有节点缓存并重试。
 
 33. SDB_APP_INTERRUPT(-116)
    * 当前操作被中断
@@ -259,7 +259,7 @@
 
 36. SDB_CAT_NO_MATCH_CATALOG(-135)
    * 不能匹配到有效的分区信息
-   * 问题诊断：可以通过执行 *"db.snapshot( SDB_SNAP_CATALOG )"* 查看对应集合的分区信息，并与操作的记录进行比较，确保记录能够匹配到已有的分区信息。
+   * 问题诊断：可以通过执行 *"[db.snapshot( SDB_SNAP_CATALOG )](database_management/monitoring/snapshot/SDB_SNAP_CATALOG.md)"* 查看对应集合的分区信息，并与操作的记录进行比较，确保记录能够匹配到已有的分区信息。
    * 问题修复：通过 *"[db.\<cs\>.\<cl\>.attachCL()](reference/Sequoiadb_command/SdbCollection/attachCL.md)"*持载记录对应的分区即可。
 
 37. SDBCM_FAIL(-140)
@@ -269,17 +269,17 @@
 
 38. SDBCM_NODE_EXISTED(-145)
    * 指定节点已存在
-   * 问题诊断：可以通过执行 *"db.listReplicaGroups()"* 查看节点是否存在。
+   * 问题诊断：可以通过执行 *"[db.listReplicaGroups()](reference/Sequoiadb_command/Sdb/listReplicaGroups.md)"* 查看节点是否存在。
    * 问题修复：若检查节点不存在，则手动停止对应机器的 "sdbcm"，并删除 "conf/local/" 下该节点的目录，然后重启 "sdbcm" 并重试操作。
 
 39. SDBCM_NODE_NOTEXISTED(-146)、SDB_CLS_NODE_NOT_EXIST(-155)
    * 指定节点不存在
-   * 问题诊断： 可以通过执行 *"db.listReplicaGroups()"* 查看节点是否存在。
+   * 问题诊断： 可以通过执行 *"[db.listReplicaGroups()](reference/Sequoiadb_command/Sdb/listReplicaGroups.md)"* 查看节点是否存在。
 
 40. SDB_LOCK_FAILED(-147)
    * 加锁失败
-   * 问题诊断：当删除集合空间出现该错误时，是由于还有其它在该集合空间上的查询或大对象游标未关闭导致，可以查看诊断日志，找到出错的节点，并直连该节点，执行 *"db.snapshot( SDB_SNAP_CONTEXTS)"* 找到对应的游标和会话。
-   * 问题修复：直连该节点，并且可以通过执行 *"db.forceSession(\<sessionID\>)"* 强制终止该会话，并重试操作。
+   * 问题诊断：当删除集合空间出现该错误时，是由于还有其它在该集合空间上的查询或大对象游标未关闭导致，可以查看诊断日志，找到出错的节点，并直连该节点，执行 *"[db.snapshot( SDB_SNAP_CONTEXTS)](database_management/monitoring/snapshot/SDB_SNAP_CONTEXTS.md)"* 找到对应的游标和会话。
+   * 问题修复：直连该节点，并且可以通过执行 *"[db.forceSession(\<sessionID\>)](reference/Sequoiadb_command/Sdb/forceSession.md)"* 强制终止该会话，并重试操作。
 
 41. SDB_COLLECTION_NOTSHARD(-169)
    * 该集合为非分区集合
@@ -287,14 +287,14 @@
 
 42. SDB_CL_NOT_EXIST_ON_GROUP(-172)
    * 集合的指定分区不存在于指定分区组上
-   * 问题诊断：通过 *"db.snapshot( SDB_SNAP_CATALOG )"* 查看指定集合的分区信息，确认分区信息是否正确。
+   * 问题诊断：通过 *"[db.snapshot( SDB_SNAP_CATALOG )](database_management/monitoring/snapshot/SDB_SNAP_CATALOG.md)"* 查看指定集合的分区信息，确认分区信息是否正确。
 
 43. SDB_MULTI_SHARDING_KEY(-174)
    * 分区键含有数组，且该数组中有多个值，目前分区键中若含有数组类型，需要保证数组中只有1个元素
 
 44. SDB_CLS_BAD_SPLIT_KEY(-176)
    * 分区范围已经在目标分区组
-   * 问题诊断：通过 *"db.snapshot( SDB_SNAP_CATALOG )"* 查看指定集合的分区信息，确认分区信息是否正确。
+   * 问题诊断：通过 *"[db.snapshot( SDB_SNAP_CATALOG )](database_management/monitoring/snapshot/SDB_SNAP_CATALOG.md)"* 查看指定集合的分区信息，确认分区信息是否正确。
 
 45. SDB_DPS_TRANS_DOING_ROLLBACK(-191)
    * 节点正在执行事务回滚操作
@@ -306,7 +306,7 @@
 
 47. SDB_DMS_INVALID_INDEXCB(-199)
    * 该索引被删除
-   * 问题诊断：通过执行 *"db.\<cs\>.\<cl\>.listIndexes()"* 确认该索引是否存在。
+   * 问题诊断：通过执行 *"[db.\<cs\>.\<cl\>.listIndexes()](reference/Sequoiadb_command/SdbCollection/listIndexes.md)"* 确认该索引是否存在。
 
 48. SDB_DPS_LOG_FILE_OUT_OF_SIZE(-203)
    * 事务日志空间不足
@@ -314,16 +314,16 @@
 
 49. SDB_CATA_RM_NODE_FORBIDDEN(-204)
    * 不允许删除分区组内的主节点或最后一个节点
-   * 问题修复：可以使用 *"db.removeRG(\<name\>)"* 接口删除整个分区组。
+   * 问题修复：可以使用 *"[db.removeRG(\<name\>)](reference/Sequoiadb_command/Sdb/removeRG.md)"* 接口删除整个分区组。
 
 50. SDB_CAT_RM_GRP_FORBIDDEN(-208)
    * 不允许删除非空分区数
-   * 问题诊断：执行 *"db.snapshot( SDB_SNAP_CATALOG )"* 检查各集合中的 "CataInfo" 是否包含待删除的分区组。
+   * 问题诊断：执行 *"[db.snapshot( SDB_SNAP_CATALOG )](database_management/monitoring/snapshot/SDB_SNAP_CATALOG.md)"* 检查各集合中的 "CataInfo" 是否包含待删除的分区组。
    * 问题修复：需要确保待删除的分区组中不存在集合，可以删除对应的集合，或将该集合切分至其它分区组。
 
 51. SDB_CAT_DOMAIN_NOT_EXIST(-215)、SDB_CAT_DOMAIN_EXIST(-216)
    * 指定域不存在/已存在
-   * 问题诊断：执行 *"db.listDomains()"* 检查指定域是否存在或不存在。
+   * 问题诊断：执行 *"[db.listDomains()](reference/Sequoiadb_command/Sdb/listDomains.md)"* 检查指定域是否存在或不存在。
 
 52. SDB_CAT_GROUP_NOT_IN_DOMAIN(-216)
    * 指定切分的分区组不在集合空间所属域内

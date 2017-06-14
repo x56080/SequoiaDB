@@ -43,7 +43,7 @@
 |--usessl|--|boolean|允许客户端使用SSL连接（仅限企业版），默认为false|
 |--auth|--|boolean|开启鉴权功能.默认为true|
 |--arbiter|--|boolean|将节点设置成为一个仲裁节点。默认为false。|
-|--planbuckets|--|num|访问计划缓存内桶的个数。当其为零时Sdb将不会缓存任何访问计划|
+|--planbuckets|--|num|访问计划缓存内桶的个数。当其为零时Sdb将不会缓存任何访问计划。默认为500。|
 |--optimeout|--|num|判定操作中断的时间(ms),默认值:300000, 0表示不超时|
 |--overflowratio|--|num|记录大小预留空间扩展比(%),默认为12,取值范围:[0,10000]|
 |--omaddr|--|str|1.指定om节点的地址。配置形式为"hostname:omservicename"。|

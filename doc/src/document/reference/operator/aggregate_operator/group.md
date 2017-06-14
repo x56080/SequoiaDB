@@ -30,11 +30,11 @@ $group使用如下：
 > db.foo.bar.aggregate({ $group: { _id: "$major", avg_score: { $avg: "$score" }, Major: { $first: "$major" } } })
 {
   "avg_score": 82,
-  "major": "光学"
+  "Major": "光学"
 }
 {
   "avg_score": 77.25,
-  "major": "物理学"
+  "Major": "物理学"
 }
 ```
 
