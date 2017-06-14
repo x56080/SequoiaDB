@@ -2568,8 +2568,8 @@ namespace engine
          {
             PD_LOG( PDERROR, "Data node's expect lsn[%lld] is not the "
                     "same with backup[Name:%s,ID:%d]'s begin lsn[%lld]",
-                    expectLSN.offset, pInfo->_beginLSNOffset,
-                    backupName(), it->first ) ;
+                    expectLSN.offset, backupName(), it->first,
+                    pInfo->_beginLSNOffset ) ;
             rc = SDB_SYS ;
             goto error ;
          }
