@@ -46,8 +46,16 @@ namespace engine
    INT32 _bpsCB::init ()
    {
       // 1. init param
-      _numPreLoad = pmdGetOptionCB()->numPreLoaders() ;
-      _maxPrefPool = pmdGetOptionCB()->maxPrefPool() ;
+      if ( pmdGetKRCB()->isRestore() )
+      {
+         _numPreLoad = 0 ;
+         _maxPrefPool = 0 ;
+      }
+      else
+      {
+         _numPreLoad = pmdGetOptionCB()->numPreLoaders() ;
+         _maxPrefPool = pmdGetOptionCB()->maxPrefPool() ;
+      }
 
       return SDB_OK ;
    }
@@ -104,8 +112,11 @@ namespace engine
 
    void _bpsCB::onConfigChange ()
    {
-      _numPreLoad = pmdGetOptionCB()->numPreLoaders() ;
-      _maxPrefPool = pmdGetOptionCB()->maxPrefPool() ;
+      if ( !pmdGetKRCB()->isRestore() )
+      {
+         _numPreLoad = pmdGetOptionCB()->numPreLoaders() ;
+         _maxPrefPool = pmdGetOptionCB()->maxPrefPool() ;
+      }
    }
 
    INT32 _bpsCB::_addPreLoader ()
