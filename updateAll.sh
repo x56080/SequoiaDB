@@ -26,7 +26,7 @@ function display()
    echo " -start       : 启动集群"  
    echo " -dbpath path : 指定节点路径"
    echo " -test        : 调用runtest.sh执行测试"
-   echo " -full        : 执行story测试用例，不加表示执行basic用例"
+   echo " -full        : 执行hlt测试用例，不加表示执行basic用例"
 
    echo ""
    exit $1
@@ -245,7 +245,7 @@ function autoTest()
    if [ $runAll -eq 0 ]; then
       ./runtest.sh -s 0
    else
-      ./runtest.sh -s 0 -t story 
+      ./runtest.sh -s 0 -t hlt 
    fi
    echo "=============================End test usecases================================="
 }
