@@ -87,7 +87,7 @@ namespace engine
       ( PMD_OPTION_VERSION, "show version" ) \
       ( PMD_COMMANDS_STRING (RS_BK_PATH, ",p"), boost::program_options::value<string>(), "backup path" ) \
       ( PMD_COMMANDS_STRING (RS_INC_ID, ",i"), boost::program_options::value<int>(), "the end increase id for restore, default is -1" ) \
-      ( PMD_COMMANDS_STRING (RS_BEGIN_INC_ID, ",b"), boost::program_options::value<int>(), "the begin increase id for restore, default is 0, -1 for auto" ) \
+      ( PMD_COMMANDS_STRING (RS_BEGIN_INC_ID, ",b"), boost::program_options::value<int>(), "the begin increase id for restore, default is -1, -1 for auto" ) \
       ( PMD_COMMANDS_STRING (RS_BK_NAME, ",n"), boost::program_options::value<string>(), "backup name" ) \
       ( PMD_COMMANDS_STRING (RS_BK_ACTION, ",a"), boost::program_options::value<string>(), "action(restore/list), defalut is restore" ) \
       ( PMD_COMMANDS_STRING (PMD_OPTION_DIAGLEVEL, ",v"), boost::program_options::value<int>(), "diag level,default:3,value range:[0-5]" ) \
@@ -133,6 +133,8 @@ namespace engine
               0 == ossStrcmp( ele.fieldName(), PMD_OPTION_DIAGLOGPATH ) ||
               0 == ossStrcmp( ele.fieldName(), PMD_OPTION_AUDITLOGPATH ) ||
               0 == ossStrcmp( ele.fieldName(), PMD_OPTION_BKUPPATH ) ||
+              0 == ossStrcmp( ele.fieldName(), PMD_OPTION_WWWPATH ) ||
+              0 == ossStrcmp( ele.fieldName(), PMD_OPTION_DMS_TMPBLKPATH ) ||
               0 == ossStrcmp( ele.fieldName(), PMD_OPTION_SVCNAME ) ||
               0 == ossStrcmp( ele.fieldName(), PMD_OPTION_REPLNAME ) ||
               0 == ossStrcmp( ele.fieldName(), PMD_OPTION_SHARDNAME ) ||
