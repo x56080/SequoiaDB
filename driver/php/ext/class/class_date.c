@@ -157,7 +157,7 @@ PHP_METHOD( SequoiaDate, __toString )
    timep = (time_t)( pDriverDate->milli / 1000 ) ;
    ossMemset( pDateStr, 0, 64 ) ;
    local_time( &timep, &tmTime ) ;
-   if( tmTime.tm_year + 1900 >= 1900 &&
+   if( tmTime.tm_year + 1900 >= 0 &&
        tmTime.tm_year + 1900 <= 9999 )
    {
       ossSnprintf( pDateStr,

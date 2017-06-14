@@ -746,8 +746,8 @@ namespace bson {
             memset ( buffer, 0, 64 ) ;
             time_t timer = (time_t)( ( (long long)milli ) / 1000 ) ;
             local_time ( &timer, &psr ) ;
-            //[ 1900-01-01, 9999-12-31 ]
-            if( psr.tm_year + 1900 >= 1900 &&
+            //[ 0000-01-01, 9999-12-31 ]
+            if( psr.tm_year + 1900 >= 0 &&
                 psr.tm_year + 1900 <= 9999 )
             {
                sprintf ( buffer,

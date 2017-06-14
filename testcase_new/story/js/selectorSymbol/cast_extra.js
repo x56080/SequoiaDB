@@ -61,7 +61,7 @@ function main()
 	                {b:2147483647,c:{$numberLong:"9223372036854775807"},i:{$oid:"123abcd00ef12358902300ef"}},
 	                {b:-2147483648,c:{$numberLong:"-9223372036854775808"}},
 	                {b:2147483647,c:{$numberLong:"9223372036854775807"}},
-					    {a:0,b:0,c:0,f:null},
+					    {a:0,b:0,c:0,f:{$date:"1889-12-30"}},
 					    {a:0,b:0,c:0,f:null}
 	               ];
    checkResult( dbcl, null, selectCondition1, expRecs1, {_id:1} );

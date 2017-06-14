@@ -137,7 +137,7 @@ namespace import
 
    #define DATE_FORMAT        (_dateFormat.c_str())
    #define DATE_FORMAT_LEN    (_dateFormat.length())
-   #define DATE_START_YEAR    1900
+   #define DATE_START_YEAR    0
    #define DATE_LAST_YEAR     9999
    #define DATE_MAX_NUM       ((INT64)253402271999)
    #define DATE_MIN_NUM       ((INT64)-377705145943)

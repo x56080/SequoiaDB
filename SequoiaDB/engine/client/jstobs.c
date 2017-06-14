@@ -22,8 +22,9 @@
 
 #define INT_NUM_SIZE 32
 
-#define INT64_LAST_YEAR 9999
-#define INT32_LAST_YEAR 2038
+#define INT64_FIRST_YEAR 0
+#define INT64_LAST_YEAR  9999
+#define INT32_LAST_YEAR  2038
 
 #define RELATIVE_YEAR 1900
 #define RELATIVE_MON 12
@@ -245,7 +246,7 @@ static BOOLEAN date2Time( const CHAR *pDate,
       eg. before 1927-12-31-23.54.07,
       will be more than 352 seconds
       UTC time
-      date min 1900-01-01-00.00.00.000000
+      date min 0000-01-01-00.00.00.000000
       date max 9999-12-31-23.59.59.999999
       timestamp min 1901-12-13-20.45.52.000000 +/- TZ
       timestamp max 2038-01-19-03.14.07.999999 +/- TZ
@@ -393,16 +394,16 @@ static BOOLEAN date2Time( const CHAR *pDate,
       }
       else if( valType == CJSON_DATE )
       {
-         //[1900,9999]
+         //[0000,9999]
          if( year > INT64_LAST_YEAR )
          {
             JSON_PRINTF_LOG( "Date year not greater than %d",
                              INT64_LAST_YEAR ) ;
             goto error ;
          }
-         else if( year < RELATIVE_YEAR )
+         else if( year < INT64_FIRST_YEAR)
          {
-            JSON_PRINTF_LOG( "Date year not less than %d", RELATIVE_YEAR ) ;
+            JSON_PRINTF_LOG( "Date year not less than %d", INT64_FIRST_YEAR ) ;
             goto error ;
          }
 
@@ -1535,7 +1536,7 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
          time_t timer = bson_iterator_date( &i ) / 1000 ;
          memset ( temp, 0, BSON_TEMP_SIZE_64 ) ;
          local_time ( &timer, &psr ) ;
-         if( psr.tm_year + RELATIVE_YEAR >= RELATIVE_YEAR &&
+         if( psr.tm_year + RELATIVE_YEAR >= INT64_FIRST_YEAR &&
              psr.tm_year + RELATIVE_YEAR <= INT64_LAST_YEAR )
          {
 #ifdef WIN32

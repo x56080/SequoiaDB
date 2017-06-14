@@ -514,9 +514,9 @@ SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
          time_t timer = bson_iterator_date( i ) / 1000 ;
          struct tm psr;
          LocalTime ( &timer, &psr ) ;
-         if ( (psr.tm_year + 1900) >= 1900 && (psr.tm_year + 1900) <= 9999 )
+         if ( (psr.tm_year + 1900) >= 0 && (psr.tm_year + 1900) <= 9999 )
          {         
-            // [ 1900-01-01, 9999-12-31 ]
+            // [ 0000-01-01, 9999-12-31 ]
             sprintf ( temp, "{ \"$date\": \"%04d-%02d-%02d\" }", psr.tm_year + 1900, psr.tm_mon + 1, psr.tm_mday ) ;
          }
          else
