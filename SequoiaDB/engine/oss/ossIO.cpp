@@ -2082,6 +2082,8 @@ CHAR  *ossGetRealPath( const CHAR  *pPath,
    CHAR *ret = NULL ;
    CHAR *pPos = NULL ;
 
+   resolvedPath[ 0 ] = '\0' ;
+
    while ( TRUE )
    {
       // if we had changed the first / to '\0',
