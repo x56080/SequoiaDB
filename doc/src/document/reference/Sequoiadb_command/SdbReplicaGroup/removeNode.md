@@ -1,5 +1,5 @@
 ##语法##
-***rg.removeNode( \<host\>, \<service\>, [config] )***
+***rg.removeNode( \<host\>, \<service\>, [options] )***
 
 删除当前分区组中的指定节点。
 
@@ -9,10 +9,13 @@
 |---------|------------|----------------|----------|
 | host    | string     | 节点主机名。   | 是       |
 | service | int/string | 节点端口号。   | 是       |
-| config  | Json 对象  | 节点配置信息。 | 否       |
+| options | Json 对象 | 可选项，详见如下options选项说明。 | 否 |
 
-> **Note:**  
-> 格式：( "<主机名>", "<端口号>", [ { <configParam>: value, ... } ] )
+##options选项##
+
+| 参数名  |  参数类型  |  描述                        |  默认值 | 
+| ------- | ---------- | ---------------------------- | ------- | 
+| enforced | bool     | 是否在没有CM进程的情况下强制删除节点。 |  false  |
 
 ##返回值##
 
