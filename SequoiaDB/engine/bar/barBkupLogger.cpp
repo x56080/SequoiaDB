@@ -2605,6 +2605,11 @@ namespace engine
                     "same with backup[Name:%s,ID:%d]'s begin lsn[%lld]",
                     expectLSN.offset, backupName(), it->first,
                     pInfo->_beginLSNOffset ) ;
+            std::cout << "Data node's expect lsn[" << expectLSN.offset
+                      << "] is not the same with backup[Name:"
+                      << backupName() << ",ID:" << it->first
+                      << "]'s begin lsn[" << pInfo->_beginLSNOffset
+                      << "], can't do restore." << std::endl ;
             rc = SDB_SYS ;
             goto error ;
          }
