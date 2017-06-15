@@ -3303,6 +3303,17 @@ namespace engine
             goto error ;
          }
 
+         if ( onlyDetach )
+         {
+            if ( 0 == ossStrcmp( groupName.c_str(), CATALOG_GROUPNAME ) ||
+                 0 == ossStrcmp( groupName.c_str(), COORD_GROUPNAME ) )
+            {
+               PD_LOG( PDERROR, "only data-group surpports \"detachNode\" now" ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+         }
+
          keepData = rInfo.getBoolField( FIELD_NAME_KEEP_DATA ) ;
       }
       catch ( std::exception &e )
