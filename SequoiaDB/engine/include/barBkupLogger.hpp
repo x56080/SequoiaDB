@@ -614,6 +614,8 @@ namespace engine
          MAP_BACKUP_INFO               _mapBackupInfo ;
          INT32                         _beginID ;
 
+         BOOLEAN                       _isDoRestoring ;
+
    } ;
    typedef _barRSBaseLogger barRSBaseLogger ;
 

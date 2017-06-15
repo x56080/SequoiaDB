@@ -1864,6 +1864,8 @@ namespace engine
       _pBuff               = NULL ;
       _buffSize            = 0 ;
       _beginID             = -1 ;
+
+      _isDoRestoring       = FALSE ;
    }
 
    _barRSBaseLogger::~_barRSBaseLogger ()
@@ -1927,7 +1929,7 @@ namespace engine
       barBackupDataHeader *pHeader = NULL ;
       string fileName = getDataFileName( _curDataFileSeq ) ;
 
-      if ( 0 != _expectExtID )
+      if ( _isDoRestoring )
       {
          std::cout << "Begin to restore data file: " << fileName.c_str()
                    << " ..." << std::endl ;
@@ -2200,6 +2202,7 @@ namespace engine
          rc = _restoreConfig () ;
          PD_RC_CHECK( rc, PDERROR, "Failed to restore config, rc: %d", rc ) ;
 
+         _isDoRestoring = TRUE ;
          // 3. do restore data
          rc = _doRestore( cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to do restore, rc: %d", rc ) ;
