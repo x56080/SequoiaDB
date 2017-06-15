@@ -1695,6 +1695,15 @@ namespace engine
                       "Failed to %s: failed to get the field [%s] from query",
                       _getCommandName(), FIELD_NAME_ONLY_DETACH ) ;
 
+         if ( onlyDetach )
+         {
+            PD_CHECK( 0 != groupName.compare( COORD_GROUPNAME ) &&
+                      0 != groupName.compare( CATALOG_GROUPNAME ),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to %s: only data-group supports \"detachNode\" now",
+                      _getCommandName() ) ;
+         }
+
          rc = rtnGetBooleanElement( pSelfArgs->_boQuery,
                                     FIELD_NAME_KEEP_DATA, keepData ) ;
          if ( SDB_FIELD_NOT_EXIST == rc )
