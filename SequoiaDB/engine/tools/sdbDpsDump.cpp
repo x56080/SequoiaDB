@@ -126,7 +126,7 @@ INT32 writeToFile( OSSFILE &file, const CHAR* pContent, BOOLEAN console )
    ///< write buffer
    if ( console )
    {
-      std::cout << console ;
+      std::cout << pContent ;
    }
    else
    {
