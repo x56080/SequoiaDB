@@ -120,7 +120,7 @@ do                                                                             \
 {                                                                              \
    writeLog( out, LEVEL, __FUNCTION__, __FILE__, __LINE__, fmt, __VA_ARGS__ ) ;\
 } while ( FALSE )
-   
+
 
 #define LogError( fmt, ... )                    \
    __LOG_WRAPPER( TRUE, "Error", fmt, __VA_ARGS__ )
@@ -520,7 +520,7 @@ error:
 
 
 
-_dpsDumper::_dpsDumper() : _metaContent(NULL), _filter(NULL) 
+_dpsDumper::_dpsDumper() : _metaContent(NULL), _filter(NULL)
 {
 
 }
@@ -703,7 +703,7 @@ INT32 _dpsDumper::dump()
    INT32   rc      = SDB_OK ;
    BOOLEAN fOpened = FALSE ;
    OSSFILE fileFrom, fileTo ;
-   CHAR dstFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ; 
+   CHAR dstFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
    dpsCmdData data ;
 
    if( isDir( dstPath ) )
@@ -712,7 +712,7 @@ INT32 _dpsDumper::dump()
       if ( OSS_FILE_SEP_CHAR == dstPath[ len - 1 ] )
       {
          ossSnprintf( dstFile, OSS_MAX_PATHSIZE, "%s%s",
-                      dstPath, "tmpLog.log" ) ; 
+                      dstPath, "tmpLog.log" ) ;
       }
       else
       {
@@ -727,7 +727,7 @@ INT32 _dpsDumper::dump()
 
    if( !consolePrint )
    {
-      rc = ossOpen( dstFile, OSS_REPLACE | OSS_READWRITE, 
+      rc = ossOpen( dstFile, OSS_REPLACE | OSS_READWRITE,
                     OSS_RU | OSS_WU | OSS_RG, fileTo ) ;
       if( rc )
       {
@@ -767,10 +767,10 @@ INT32 _dpsDumper::dump()
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-	  
+
       INT32 fileCount = 0 ;
       INT32 retVal = getFileCount( srcPath, fileCount ) ;
-      if ( SDB_INVALIDARG == retVal ) 
+      if ( SDB_INVALIDARG == retVal )
       {
          LogError( "Permission error or dir not exist: %s", srcPath ) ;
          rc = SDB_INVALIDARG ;
@@ -782,7 +782,7 @@ INT32 _dpsDumper::dump()
          rc = SDB_SYS ;
          goto error ;
       }
-	  
+
       if( 0 >= fileCount )
       {
          LogError( "Cannot find any Log files from: %s, "
@@ -940,7 +940,7 @@ INT32 _dpsDumper::_analysisMeta()
 
    INT32 fileCount = 0;
    INT32 retVal = getFileCount( dirPath, fileCount ) ;
-   if ( SDB_INVALIDARG == retVal ) 
+   if ( SDB_INVALIDARG == retVal )
    {
       LogError( "Permission error or dir not exist: %s", dirPath ) ;
       rc = SDB_INVALIDARG ;
@@ -1123,7 +1123,7 @@ INT32 _dpsDumper::sortFiles( dpsMetaData &meta )
    UINT32 begin = meta.fileBegin ;
    UINT32 work = meta.fileWork ;
    UINT32 idx = begin ;
-   /* 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 
+   /* 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
     * begin from -->|                     |
     *                         work-here-->|------------
     * ----------->|<--end here
