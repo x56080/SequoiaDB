@@ -45,6 +45,7 @@
 #include "msgDef.h"
 #include "dms.hpp"
 #include "utilStr.hpp"
+#include "clsReplBucket.hpp"
 
 using namespace bson ;
 
@@ -671,6 +672,9 @@ namespace engine
 
          OSSFILE              _curSUFile ;
          BOOLEAN              _openedSU ;
+
+         /// reply dps
+         clsBucket            _replBucket ;
    } ;
    typedef _barRSOfflineLogger barRSOfflineLogger ;
 

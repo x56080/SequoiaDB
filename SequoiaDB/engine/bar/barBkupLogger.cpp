@@ -2421,6 +2421,7 @@ namespace engine
    _barRSOfflineLogger::~_barRSOfflineLogger ()
    {
       _closeSUFile () ;
+      _replBucket.fini() ;
    }
 
    INT32 _barRSOfflineLogger::_closeSUFile ()
@@ -2515,6 +2516,10 @@ namespace engine
       DPS_LSN_OFFSET beginLSN = DPS_INVALID_LSN_OFFSET ;
 
       isEmpty = FALSE ;
+
+      /// init repl bucket
+      rc = _replBucket.init() ;
+      PD_RC_CHECK( rc, PDERROR, "Init repl bucket failed, rc: %d", rc ) ;
 
       /// find the right beginID
       if ( 0 == expectLSN.offset && _beginID < 0 )
@@ -2711,6 +2716,41 @@ namespace engine
 
    done:
       _closeSUFile() ;
+      /// wait all log complete
+      if ( _replBucket.maxReplSync() > 0 )
+      {
+         // wait all repl-sync log processed
+         PD_LOG( PDEVENT, "Begin to wait repl bucket empty[%s]",
+                 _replBucket.toBson().toString().c_str() ) ;
+         std::cout << "Begin to wait repl bucket empty..." << std::endl ;
+
+         INT32 rcTmp = _replBucket.waitEmptyAndRollback() ;
+         if ( SDB_OK == rc && rcTmp )
+         {
+            rc = rcTmp ;
+            PD_LOG( PDERROR, "Reply log failed, rc: %d", rc ) ;
+            std::cout << "Reply log failed: " << rc << std::endl ;
+         }
+
+         if ( rcTmp )
+         {
+            DPS_LSN expectLSN = _replBucket.completeLSN() ;
+            rcTmp = _pDPSCB->move( expectLSN.offset, expectLSN.version ) ;
+            if ( rcTmp )
+            {
+               PD_LOG( PDERROR, "Failed to move lsn to [%u, %llu], rc: %d",
+                       expectLSN.version, expectLSN.offset, rcTmp ) ;
+            }
+            else
+            {
+               PD_LOG( PDEVENT, "Move lsn to [%u, %llu]",
+                       expectLSN.version, expectLSN.offset ) ;
+            }
+         }
+
+         PD_LOG( PDEVENT, "Wait repl bucket empty completed" ) ;
+         _replBucket.close() ;
+      }
       return rc ;
    error:
       goto done ;
@@ -2773,10 +2813,22 @@ namespace engine
          // if in inc backup data file
          if ( isIncData )
          {
-            rc = replayer.replay( pHeader, cb ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to reply log[ lsn: %lld, type: "
-                         "%d, len: %d ], rc: %d", pHeader->_lsn, pHeader->_type,
-                         pHeader->_length, rc ) ;
+            if ( _replBucket.maxReplSync() > 0 )
+            {
+               rc = replayer.replayByBucket( pHeader, cb, &_replBucket ) ;
+            }
+            else
+            {
+               rc = replayer.replay( pHeader, cb ) ;
+            }
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to reply log[ lsn: %lld, type: "
+                       "%d, len: %d ], rc: %d", pHeader->_lsn, pHeader->_type,
+                       pHeader->_length, rc ) ;
+               std::cout << "Reply log failed: " << rc << std::endl ;
+               goto error ;
+            }
          }
          // write lsn
          rc = _pDPSCB->recordRow( pLogIndex, pHeader->_length ) ;
