@@ -939,11 +939,11 @@
       <type>int</type>
       <description>
          <en>The buckets of access plan cache. Sdb will not cache any access plan if it is zero</en>
-         <cn>访问计划缓存内桶的个数。当其为零时Sdb将不会缓存任何访问计划</cn>
+         <cn>访问计划缓存内桶的个数。当其为零时Sdb将不会缓存任何访问计划。默认为500。</cn>
       </description>
       <detail>
          <en>The buckets of access plan cache. Sdb will not cache any access plan if it is zero</en>
-         <cn>访问计划缓存内桶的个数。当其为零时Sdb将不会缓存任何访问计划</cn>
+         <cn>访问计划缓存内桶的个数。当其为零时Sdb将不会缓存任何访问计划。默认为500。</cn>
       </detail>
       <typeofweb>num</typeofweb>
   </opt>
