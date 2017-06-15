@@ -2531,6 +2531,10 @@ namespace engine
                        "backup[Name:%s,ID:%d]'s begin lsn[%lld]",
                        expectLSN.offset, backupName(), it->first,
                        pInfo->_beginLSNOffset ) ;
+               std::cout << "Data node's expect lsn[" << expectLSN.offset
+                         << "] is less than backup[Name:" << backupName()
+                         << ",ID" << it->first << "] 's begin lsn["
+                         << pInfo->_beginLSNOffset << "]" << std::endl ;
                rc = SDB_SYS ;
                goto error ;
             }
@@ -2565,8 +2569,13 @@ namespace engine
 
       if ( !pInfo || _beginID < 0 )
       {
-         PD_LOG( PDEVENT, "Data node is newer than backup[Name:%s,ID:%d]",
-                 backupName(), _metaFileSeq ) ;
+         PD_LOG( PDEVENT, "Data node is newer than or the same with "
+                 "backup[Name:%s,ID:%d]", backupName(), _metaFileSeq ) ;
+         std::cout << "Data node is newer than or the same with backup[Name:"
+                   << backupName() << ",ID:" << _metaFileSeq
+                   << "], don't need to restore. "
+                   << "You can use param '-b n' to force restore."
+                   << std::endl ;
          isEmpty = TRUE ;
          _metaHeader._transLSNOffset = DPS_INVALID_LSN_OFFSET ;
          goto done ;
