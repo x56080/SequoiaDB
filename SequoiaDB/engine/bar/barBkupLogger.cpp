@@ -2577,7 +2577,7 @@ namespace engine
          std::cout << "Data node is newer than or the same with backup[Name:"
                    << backupName() << ",ID:" << _metaFileSeq
                    << "], don't need to restore. "
-                   << "You can use param '-b n' to force restore."
+                   << "You can use param '-b 0' to force restore."
                    << std::endl ;
          isEmpty = TRUE ;
          _metaHeader._transLSNOffset = DPS_INVALID_LSN_OFFSET ;
