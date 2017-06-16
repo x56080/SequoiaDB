@@ -4,12 +4,104 @@
 *                         10624 Oma启动本地cm，alivetime设置为0
 *@author      : Liang XueWang
 ******************************************************************************/
-
-main()
-
-function main()
+function testStandaloneCM( svcname )
 {
-   testOmaStart() ;
+	// option为port:svcname standalone:true alivetime:10时启动cm
+	var option = {} ;
+   	option["port"] = svcname ;
+   	option["alivetime"] = 10 ;
+   	option["standalone"] = true ;
+   	try
+   	{
+    	Oma.start( option ) ;
+      	println( "start standalone cm: " + svcname + " time: " + getCurrentTime() ) ;
+   	}
+   	catch( e )
+   	{
+      	throw buildException( "testStandaloneCM", e, "start 10s standalone cm", 0, e ) ;
+   	}
+	
+	var begin = new Date().getTime() ;	
+	var end ;
+
+	// 检查cm是否启动
+	var oma ;
+   	try
+   	{
+        oma = new Oma( COORDHOSTNAME, svcname ) ;
+		oma.close() ;
+	}
+	catch( e )
+	{
+    	throw buildException( "testStandaloneCM", null,
+                              "check standalone cm started", 0, e ) ;
+    }
+     
+	// 检查cm超时
+	var len = Sdbtool.listNodes( { type: "cm", showalone: true } ).toArray().length ;
+	while( len !== 0 )
+   	{
+    	sleep( 1000 ) ;
+		len = Sdbtool.listNodes( { type: "cm", showalone: true } ).toArray().length
+        end = new Date().getTime() ;
+        if( end - begin > 60*1000 )  break ;
+    }
+	if( len !== 0 )
+	{
+		throw buildException( "testStandaloneCM", null, "10s standalone cm don't exit after 60s", 
+							  10, (end-begin)/1000 ) ;
+	} 
+}
+
+function testCM( svcname )
+{
+	// option为port:svcname standalone:false alivetime:0时启动cm
+   	var option = {} ;
+   	option["port"] = svcname ;
+   	option["alivetime"] = 0 ;
+   	option["standalone"] = false ;
+
+   	try
+   	{
+    	Oma.start( option ) ;   // 启动的cm为当前用户所有
+      	println( "start cm: " + svcname + " time: " + getCurrentTime() ) ;
+   	}
+   	catch( e )
+   	{
+      	throw buildException( "testCM", e, "start cm", 0, e ) ;
+   	}
+
+	var begin = new Date().getTime() ;
+    var end ;
+
+	// 检查cm是否启动
+    var oma ;
+    try
+    {
+        oma = new Oma( COORDHOSTNAME, svcname ) ;
+        oma.close() ;
+    }
+    catch( e )
+    {
+        throw buildException( "testCM", null,
+                              "check cm started", 0, e ) ;
+    }
+
+		
+	// 检查cm不超时
+	var len = Sdbtool.listNodes( { type: "cm" } ).toArray().length ;
+    while( len === 2 )
+    {   
+        sleep( 1000 ) ;
+        len = Sdbtool.listNodes( { type: "cm" } ).toArray().length
+        end = new Date().getTime() ;
+        if( end - begin > 60*1000 )  break ;
+    }   
+    if( len !== 2 )
+    {
+        throw buildException( "testCM", null, "alivetime=0 cm exits after 60s",
+                              2, len ) ;
+    }
 }
    
 /******************************************************************************
@@ -17,109 +109,40 @@ function main()
 *               测试oma对象启动cm（静态方法，不具备远程能力）
 *@author      : Liang XueWang
 ******************************************************************************/
-function testOmaStart()
+function main()
 {
-   // 获取空闲端口
-   var svcname = toolGetIdleSvcName( COORDHOSTNAME, CMSVCNAME ) ;
-   if( svcname === undefined )
-   {
-      println( "No idle svcname between RSRVPORTBEGIN and RSRVPORTEND" ) ;
-      return ;
-   }
-   
-   // option为port:svcname standalone:true alivetime:2时启动cm
-   var option = {} ;
-   option["port"] = svcname ;
-   option["alivetime"] = 2 ;
-   option["standalone"] = true ;
-   
-   try
-   {
-   
-      Oma.start( option ) ;
-   }
-   catch( e )
-   {
-      throw buildException( "testOmaStart", e, "start standalone cm", 0, e ) ;
-   }
-   
-   // 检查cm端口及超时
-   var oma = new Oma() ;
-   var num = oma.listNodes( { type: "cm", showalone: true } ).toArray().length ;
-   if( num !== 3 )  // cm, cmd, standalone cm
-   {
-      throw buildException( "testOmaStart", null, 
-                            "check cm after start a standalone cm", 3, num ) ;
-   }
-   var start = new Date().getTime() ;
-   while( num !== 2 )
-   {
-      sleep( 1000 ) ;
-      num = oma.listNodes( { type: "cm", showalone: true } ).toArray().length ;
-      var end = new Date().getTime() ;
-      if( end - start > 5*1000 )
-         break ;
-   }
-   if( num !== 2 )
-   {
-      throw buildException( "testOmaStart", null, 
-                            "check cm after standalone cm timeout", 2, num ) ;
-   }
-   
-   // 启动一个非standalone的cm时，首先需要先停止当前的cm
-   var InstallPath = commGetInstallPath() ;
-   var cmd = new Cmd() ;
-   cmd.run( InstallPath + "/bin/sdbcmtop" ) ;
-   
-   // option为port:svcname standalone:false alivetime:0时启动cm
-   var option = {} ;
-   option["port"] = svcname ;
-   option["alivetime"] = 0 ;
-   option["standalone"] = false ; 
-   
-   try
-   {  
-      Oma.start( option ) ;   // 启动的cm为当前用户所有
-   }
-   catch( e )
-   {
-      throw buildException( "testOmaStart", e, "start cm", 0, e ) ;
-   }
-   
-   try
-   {
-      // 检查cm端口及超时
-      oma = new Oma( COORDHOSTNAME, svcname ) ;
-      num = oma.listNodes( { type: "cm" } ).toArray().length ;
-      if( num !== 2 )
-      {
-         throw buildException( "testOmaStart", 0, 
-                               "check cm after start new cm", 2, num ) ;
-      }
-      start = new Date().getTime() ;
-      while( num === 2 )
-      {
-         sleep( 1000 ) ;
-         num = oma.listNodes( { type: "cm" } ).toArray().length ;
-         var end = new Date().getTime() ;
-         if( end - start > 5*1000 )
-            break ;
-      }
-      if( num !== 2 )
-      {
-         throw buildException( "testOmaStart", 0, 
-                               "check cm when alivetime is 0", 2, num ) ;
-      }
-      oma.close() ;
-   }
-   catch( e )
-   {
-      throw e ;
-   }
-   finally
-   {
-      // 测试完成后，恢复原有的cm端口
-      cmd.run( InstallPath + "/bin/sdbcmtop --I" ) ;
-      cmd.run( InstallPath + "/bin/sdbcmart" ) ;
-   }
+	// 获取空闲端口
+   	var svcname = toolGetIdleSvcName( COORDHOSTNAME, CMSVCNAME ) ;
+   	if( svcname === undefined )
+   	{
+      	println( "No idle svcname between RSRVPORTBEGIN and RSRVPORTEND" ) ;
+      	return ;
+   	}
+
+	try
+	{
+   		// 先停止当前的cm
+   		var InstallPath = commGetInstallPath() ;
+   		var cmd = new Cmd() ;
+   		cmd.run( InstallPath + "/bin/sdbcmtop" ) ;
+	
+		// 测试启动超时时间不为0的独立模式cm并等待其超时
+		testStandaloneCM( svcname ) ;  
+
+		// 测试启动超时时间为0的cm并检查其不超时
+		testCM( svcname ) ;
+	}
+   	catch( e )
+   	{
+      	throw e ;
+   	}
+   	finally
+   	{
+      	// 测试完成后，恢复原有的cm端口
+      	cmd.run( InstallPath + "/bin/sdbcmtop --I" ) ;
+      	cmd.run( InstallPath + "/bin/sdbcmart" ) ;
+	  	println( "start cm in the end: " + CMSVCNAME + " time: " + getCurrentTime() ) ;
+   	}
 }
+
+main() ;

@@ -2,7 +2,6 @@
 *@Description : common function for js object System/Oma
 *@auhor       : Liang XueWang
 ******************************************************************************/
-
 function OmaTest( hostName, cmSvcName, isLegalHost, isLegalSvc )
 {
    if( hostName === undefined )
@@ -144,8 +143,10 @@ function toolGetHosts()
 ******************************************************************************/
 function toolGetLocalhost()
 {
-   var cmd = new Cmd() ;
+   var remote = new Remote( COORDHOSTNAME, CMSVCNAME ) ;
+   var cmd = remote.getCmd() ;
    var localhost = cmd.run( "hostname" ).split( "\n" )[0] ;
+   remote.close() ;
    return localhost ;
 }
 
@@ -363,4 +364,26 @@ function isGroupExist( hostname, svcname, groupname )
    }
    remote.close() ;
    return exist ;
+}
+
+/*******************************************************************
+* get current time, return time like --> 2017-06-16 17:42:24
+*
+********************************************************************/
+function getCurrentTime()
+{
+	var date = new Date() ;
+    var year = date.getFullYear() ;
+    var month = date.getMonth() + 1 ;
+    if( month < 10 ) month = "0" + month ;
+    var day = date.getDate() ;
+    if( day < 10 ) day = "0" + day ;
+    var hour = date.getHours() ;
+    if( hour < 10 ) hour = "0" + hour ;
+    var minute = date.getMinutes() ;
+    if( minute < 10 ) minute = "0" + minute ;
+    var second = date.getSeconds() ;
+    if( second < 10 ) second = "0" + second ;
+    var time = year + "-" + month + "-" + day + " " + hour + ":" + minute + ":" + second ;
+    return time ;
 }
