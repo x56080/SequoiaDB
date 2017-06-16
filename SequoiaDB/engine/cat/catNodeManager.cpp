@@ -1514,12 +1514,20 @@ namespace engine
             rc = SDB_INVALIDARG ;
             goto error ;
          }
+         // Hostname is case-insensitive, we need to use $regex to match
+         // Hostname contains 'a-z', '0-9', '-' and '.', we need to replace
+         // '.' with '\\.' in PCRE.
+         StringBuilder regHostName ;
+         string hostName = beHostName.valuestr() ;
+         boost::replace_all( hostName, ".", "\\\\." ) ;
+         regHostName << "^" << hostName << "$" ;
          BSONElement beHostIP = boReq.getField( CAT_IP_FIELD_NAME );
          if ( beHostIP.type() == Array )
          {
-            BSONArrayBuilder hostNameArrayBuilder;
+            BSONArrayBuilder hostNameArrayBuilder ;
             hostNameArrayBuilder.append( BSON( CAT_MATCHER_HOST_NAME <<
-                                               beHostName.valuestr() ) );
+                                               BSON( "$regex" << regHostName.str() <<
+                                                     "$options" << "i" ) ) ) ;
             BSONObjIterator iter( beHostIP.embeddedObject() );
             while ( iter.more() )
             {
@@ -1531,7 +1539,10 @@ namespace engine
                hostNameArrayBuilder.append( BSON( CAT_MATCHER_HOST_NAME <<
                                                   ip.valuestr() ) ) ;
             }
-            //{Group:{$elemMatch:{ $or:[{HostName:***},{HostName:*ip*},***], Service.Name:***}}}
+            //{Group:{$elemMatch:{ $or:[
+            //           {HostName:{$regex:'^*****$', $options:'i'}},
+            //           {HostName:*ip*},***],
+            //           Service.Name:***}}}
             boMatcher = BSON( FIELD_NAME_GROUP
                               << BSON("$elemMatch"
                                     << BSON( "$or" << hostNameArrayBuilder.arr()
@@ -1540,11 +1551,14 @@ namespace engine
          }
          else
          {
-            //{Group:{$elemMatch:{HostName:*****, Service.Name:****}}}
+            //{Group:{$elemMatch:{
+            //           HostName:{$regex:'^*****$', $options:'i'},
+            //           Service.Name:****}}}
             boMatcher = BSON( FIELD_NAME_GROUP
                               << BSON("$elemMatch"
-                                    << BSON( CAT_MATCHER_HOST_NAME
-                                             << beHostName.valuestr()
+                                    << BSON( CAT_MATCHER_HOST_NAME <<
+                                             BSON( "$regex" << regHostName.str() <<
+                                                   "$options" << "i" )
                                           << CAT_MATCHER_SERVICE_NAME
                                           << strShardServiceName ) ) ) ;
          }
@@ -1622,8 +1636,8 @@ namespace engine
                      }
                      // if it's not the host we want to find, let's continue the
                      // loop
-                     if ( ossStrcmp ( beHostNameTmp.valuestr(),
-                                      beHostName.valuestr() ) != 0 )
+                     if ( ossStrcasecmp ( beHostNameTmp.valuestr(),
+                                          beHostName.valuestr() ) != 0 )
                      {
                         if ( beHostIP.type() != Array )
                         {
