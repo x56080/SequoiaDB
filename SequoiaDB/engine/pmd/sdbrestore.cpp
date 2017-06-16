@@ -81,6 +81,7 @@ namespace engine
    #define RS_BK_RESTORE         "restore"
    #define RS_BK_LIST            "list"
    #define RS_BK_IS_SELF         "isSelf"
+   #define RS_BK_SKIP_CONF       "skipconf"
 
    #define PMD_RS_OPTIONS  \
       ( PMD_COMMANDS_STRING (PMD_OPTION_HELP, ",h"), "help" ) \
@@ -91,6 +92,7 @@ namespace engine
       ( PMD_COMMANDS_STRING (RS_BK_NAME, ",n"), boost::program_options::value<string>(), "backup name" ) \
       ( PMD_COMMANDS_STRING (RS_BK_ACTION, ",a"), boost::program_options::value<string>(), "action(restore/list), defalut is restore" ) \
       ( PMD_COMMANDS_STRING (PMD_OPTION_DIAGLEVEL, ",v"), boost::program_options::value<int>(), "diag level,default:3,value range:[0-5]" ) \
+      ( PMD_COMMANDS_STRING (RS_BK_SKIP_CONF, ",s"), boost::program_options::value<string>(), "whether skip the config or not in restore, value:true/false" ) \
       ( RS_BK_IS_SELF, boost::program_options::value<string>(),          "whether restore self node(true/false),default is true" ) \
       ( PMD_OPTION_DBPATH, boost::program_options::value<string>(),      "override database path" )                    \
       ( PMD_OPTION_IDXPATH, boost::program_options::value<string>(),     "override index path" )                       \
@@ -242,6 +244,7 @@ namespace engine
             ossMemset( _svcName, 0, sizeof( _svcName ) ) ;
             _incID = -1 ;
             _beginIncID = -1 ;
+            _skipConf = FALSE ;
             _isSelf = TRUE ;
             _diagLevel = (UINT16)PDWARNING ;
 
@@ -265,6 +268,7 @@ namespace engine
                        FALSE, FALSE, "" ) ;
             rdxString( pEX, PMD_OPTION_SVCNAME, _svcName, sizeof( _svcName ),
                        FALSE, FALSE, "" ) ;
+            rdxBooleanS( pEX, RS_BK_SKIP_CONF, _skipConf, FALSE, FALSE, FALSE ) ;
             rdxBooleanS( pEX, RS_BK_IS_SELF, _isSelf, FALSE, FALSE, TRUE ) ;
             rdxInt( pEX, RS_INC_ID, _incID, FALSE, FALSE, -1 ) ;
             rdxInt( pEX, RS_BEGIN_INC_ID, _beginIncID, FALSE, FALSE, -1 ) ;
@@ -314,6 +318,7 @@ namespace engine
          INT32             _incID ;
          INT32             _beginIncID ;
 
+         BOOLEAN           _skipConf ;
          BOOLEAN           _isSelf ;
          CHAR              _dbPath[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR              _svcName[ OSS_MAX_SERVICENAME + 1 ] ;
@@ -570,7 +575,8 @@ namespace engine
                SDB_ENGINE_RELEASE_CURRENT, SDB_ENGINE_BUILD_TIME ) ;
 
       rc = g_restoreLogger.init( optMgr._bkPath, optMgr._bkName, NULL,
-                                 optMgr._incID, optMgr._beginIncID ) ;
+                                 optMgr._incID, optMgr._beginIncID,
+                                 optMgr._skipConf ) ;
       if ( rc )
       {
          std::cerr << "Init restore failed: " << rc << std::endl ;

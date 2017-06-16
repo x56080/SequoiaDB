@@ -570,7 +570,7 @@ namespace engine
 
          INT32    init( const CHAR *path, const CHAR *backupName,
                         const CHAR *prefix = NULL, INT32 incID = -1,
-                        INT32 beginID = -1 ) ;
+                        INT32 beginID = -1, BOOLEAN skipConf = FALSE ) ;
 
          INT32    restore ( _pmdEDUCB *cb ) ;
 
@@ -615,6 +615,7 @@ namespace engine
          MAP_BACKUP_INFO               _mapBackupInfo ;
          INT32                         _beginID ;
 
+         BOOLEAN                       _skipConf ;
          BOOLEAN                       _isDoRestoring ;
 
    } ;

@@ -1866,6 +1866,7 @@ namespace engine
       _beginID             = -1 ;
 
       _isDoRestoring       = FALSE ;
+      _skipConf            = FALSE ;
    }
 
    _barRSBaseLogger::~_barRSBaseLogger ()
@@ -1975,12 +1976,13 @@ namespace engine
 
    INT32 _barRSBaseLogger::init( const CHAR *path, const CHAR *backupName,
                                  const CHAR *prefix, INT32 incID,
-                                 INT32 beginID )
+                                 INT32 beginID, BOOLEAN skipConf )
    {
       INT32 rc = SDB_OK ;
       set< UINT32 > setSeq ;
 
       _beginID = beginID ;
+      _skipConf = skipConf ;
 
       rc = _initInner( path, backupName, prefix ) ;
       PD_RC_CHECK( rc, PDWARNING, "Init inner failed, rc: %d", rc ) ;
@@ -2279,21 +2281,25 @@ namespace engine
    INT32 _barRSBaseLogger::_restoreConfig ()
    {
       INT32 rc = SDB_OK ;
-      if ( 0 != ossAccess( _pOptCB->getConfPath() ) )
+
+      if ( !_skipConf )
       {
-         rc = ossMkdir( _pOptCB->getConfPath() ) ;
+         if ( 0 != ossAccess( _pOptCB->getConfPath() ) )
+         {
+            rc = ossMkdir( _pOptCB->getConfPath() ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Create config directory[%s] failed, rc: %d",
+                       _pOptCB->getConfPath(), rc ) ;
+               goto error ;
+            }
+         }
+         rc = _pOptCB->reflush2File() ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "Create config directory[%s] failed, rc: %d",
-                    _pOptCB->getConfPath(), rc ) ;
+            PD_LOG( PDERROR, "Flush config to file failed, rc: %d", rc ) ;
             goto error ;
          }
-      }
-      rc = _pOptCB->reflush2File() ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Flush config to file failed, rc: %d", rc ) ;
-         goto error ;
       }
 
    done:
