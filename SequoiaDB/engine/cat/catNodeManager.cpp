@@ -1519,7 +1519,7 @@ namespace engine
          // '.' with '\\.' in PCRE.
          StringBuilder regHostName ;
          string hostName = beHostName.valuestr() ;
-         boost::replace_all( hostName, ".", "\\\\." ) ;
+         boost::replace_all( hostName, ".", "\\." ) ;
          regHostName << "^" << hostName << "$" ;
          BSONElement beHostIP = boReq.getField( CAT_IP_FIELD_NAME );
          if ( beHostIP.type() == Array )
