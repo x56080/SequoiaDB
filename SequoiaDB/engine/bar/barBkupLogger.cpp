@@ -2583,13 +2583,18 @@ namespace engine
 
       if ( !pInfo || _beginID < 0 )
       {
-         PD_LOG( PDEVENT, "Data node is newer than or the same with "
-                 "backup[Name:%s,ID:%d]", backupName(), _metaFileSeq ) ;
-         std::cout << "Data node is newer than or the same with backup[Name:"
+         PD_LOG( PDEVENT, "Data node[LSN:%lld] is newer than or the "
+                 "same with backup[Name:%s,ID:%d,LSN:%lld]",
+                 expectLSN.offset, backupName(), _metaFileSeq,
+                 _metaHeader._endLSNOffset ) ;
+         std::cout << "Data node[LSN:" << expectLSN.offset
+                   << "] is newer than or the same with backup[Name:"
                    << backupName() << ",ID:" << _metaFileSeq
-                   << "], don't need to restore. "
-                   << "You can use param '-b 0' to force restore."
+                   << ",LSN:" << _metaHeader._endLSNOffset
+                   << "], don't need to restore."
+                   << "You can use param '-b 0' to force full restore."
                    << std::endl ;
+
          isEmpty = TRUE ;
          _metaHeader._transLSNOffset = DPS_INVALID_LSN_OFFSET ;
          goto done ;

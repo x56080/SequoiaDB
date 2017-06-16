@@ -92,7 +92,7 @@ namespace engine
       ( PMD_COMMANDS_STRING (RS_BK_NAME, ",n"), boost::program_options::value<string>(), "backup name" ) \
       ( PMD_COMMANDS_STRING (RS_BK_ACTION, ",a"), boost::program_options::value<string>(), "action(restore/list), defalut is restore" ) \
       ( PMD_COMMANDS_STRING (PMD_OPTION_DIAGLEVEL, ",v"), boost::program_options::value<int>(), "diag level,default:3,value range:[0-5]" ) \
-      ( PMD_COMMANDS_STRING (RS_BK_SKIP_CONF, ",s"), boost::program_options::value<string>(), "whether skip the config or not in restore, value:true/false" ) \
+      ( PMD_COMMANDS_STRING (RS_BK_SKIP_CONF, ",s"), boost::program_options::value<string>(), "whether skip the config or not in restore, value:true/false, default:false" ) \
       ( RS_BK_IS_SELF, boost::program_options::value<string>(),          "whether restore self node(true/false),default is true" ) \
       ( PMD_OPTION_DBPATH, boost::program_options::value<string>(),      "override database path" )                    \
       ( PMD_OPTION_IDXPATH, boost::program_options::value<string>(),     "override index path" )                       \
