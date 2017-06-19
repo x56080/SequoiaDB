@@ -45,6 +45,7 @@
 #include "clsReplayer.hpp"
 #include "ossPath.hpp"
 #include "pmdStartup.hpp"
+#include "utilCompressor.hpp"
 #include "pdTrace.hpp"
 #include "barTrace.hpp"
 
@@ -80,6 +81,10 @@ namespace engine
    #define BAR_THINCOPY_THRESHOLD_SIZE    (16)                 // MB
    #define BAR_THINCOPY_THRESHOLD_RATIO   (0.1)
 
+   #define BAR_COMPRESS_MIN_SIZE          (4096)               // 4K
+   #define BAR_COMPRSSS_MAX_SIZE          BAR_MAX_EXTENT_DATA_SIZE
+   #define BAR_COMPRESS_RATIO_THRESHOLD   (0.8)                // 80%
+
    /*
       _barBaseLogger implement
    */
@@ -92,6 +97,10 @@ namespace engine
       _pClsCB        = NULL ;
 
       _pDataExtent   = NULL ;
+      _pCompressor   = NULL ;
+
+      _pCompressBuff = NULL ;
+      _buffSize      = 0 ;
    }
 
    _barBaseLogger::~_barBaseLogger ()
@@ -101,11 +110,18 @@ namespace engine
          SDB_OSS_DEL _pDataExtent ;
          _pDataExtent = NULL ;
       }
+      if ( _pCompressBuff )
+      {
+         SDB_OSS_FREE( _pCompressBuff ) ;
+         _pCompressBuff = NULL ;
+      }
+      _buffSize = 0 ;
       _pDMSCB        = NULL ;
       _pDPSCB        = NULL ;
       _pTransCB      = NULL ;
       _pOptCB        = NULL ;
       _pClsCB        = NULL ;
+      _pCompressor   = NULL ;
    }
 
    string _barBaseLogger::_replaceWildcard( const CHAR * source )
@@ -361,6 +377,7 @@ namespace engine
       _pTransCB = krcb->getTransCB() ;
       _pOptCB = krcb->getOptionCB() ;
       _pClsCB = krcb->getClsCB() ;
+      _pCompressor = getCompressorByType( UTIL_COMPRESSOR_ZLIB ) ;
 
       if ( !_pDataExtent )
       {
@@ -606,6 +623,34 @@ namespace engine
       goto done ;
    }
 
+   CHAR* _barBaseLogger::_allocCompressBuff( UINT64 buffSize )
+   {
+      CHAR *pBuff = NULL ;
+
+      if ( _buffSize >= buffSize )
+      {
+         pBuff = _pCompressBuff ;
+      }
+      else
+      {
+         if ( _pCompressBuff )
+         {
+            SDB_OSS_FREE( _pCompressBuff ) ;
+            _pCompressBuff = NULL ;
+            _buffSize = 0 ;
+         }
+
+         _pCompressBuff = (CHAR*) SDB_OSS_MALLOC( buffSize ) ;
+         if ( _pCompressBuff )
+         {
+            _buffSize = buffSize ;
+            pBuff = _pCompressBuff ;
+         }
+      }
+
+      return pBuff ;
+   }
+
    /*
       _barBkupBaseLogger implement
    */
@@ -620,6 +665,7 @@ namespace engine
       _lastLSNCode   = 0 ;
 
       _needBackupLog = FALSE ;
+      _compressed    = TRUE ;
    }
 
    _barBkupBaseLogger::~_barBkupBaseLogger ()
@@ -640,6 +686,11 @@ namespace engine
    void _barBkupBaseLogger::setBackupLog( BOOLEAN backupLog )
    {
       _needBackupLog = backupLog ;
+   }
+
+   void _barBkupBaseLogger::enableCompress( BOOLEAN compressed )
+   {
+      _compressed = compressed ;
    }
 
    INT32 _barBkupBaseLogger::init( const CHAR *path,
@@ -867,8 +918,12 @@ namespace engine
       if ( isExtHeader )
       {
          barBackupExtentHeader *pHeader = (barBackupExtentHeader*)buf ;
-         UINT32 dataLen = ( 0 == pHeader->_thinCopy ) ?
-                          pHeader->_dataSize : 0 ;
+         UINT32 dataLen = pHeader->_dataSize ;
+         if ( 0 != pHeader->_thinCopy )
+         {
+            _metaHeader._thinDataSize += dataLen ;
+            dataLen = 0 ;
+         }
          if ( _curFileSize + len + dataLen > _metaHeader._maxDataFileSize )
          {
             _closeCurFile() ;
@@ -890,6 +945,61 @@ namespace engine
       _metaHeader._dataSize += len ;
 
    done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _barBkupBaseLogger::_writeExtent( barBackupExtentHeader *pHeader,
+                                           const CHAR *pData )
+   {
+      INT32 rc = SDB_OK ;
+      UINT64 srcDataSize = pHeader->_dataSize ;
+      UINT8 srcCompressed = pHeader->_compressed ;
+
+      if ( _compressed && _pCompressor &&
+           0 == pHeader->_thinCopy &&
+           0 == srcCompressed &&
+           srcDataSize >= BAR_COMPRESS_MIN_SIZE &&
+           srcDataSize <= BAR_COMPRSSS_MAX_SIZE )
+      {
+         CHAR *pBuff = _allocCompressBuff( srcDataSize ) ;
+         if ( pBuff )
+         {
+            UINT32 destLen = srcDataSize ;
+            rc = _pCompressor->compress( pData, srcDataSize, pBuff,
+                                         destLen, NULL, NULL ) ;
+            if ( SDB_OK == rc &&
+                 ( (FLOAT64)destLen / srcDataSize ) <=
+                 BAR_COMPRESS_RATIO_THRESHOLD  )
+            {
+               _metaHeader._compressDataSize += ( srcDataSize - destLen ) ;
+
+               pHeader->_compressed = 1 ;
+               pHeader->_dataSize = destLen ;
+               pData = pBuff ;
+            }
+         } // if ( pBuff )
+      }
+
+      /// write header
+      rc = _writeData( (const CHAR*)pHeader, BAR_BACKUP_EXTENT_HEADER_SIZE,
+                       TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to write extent header, rc: %d",
+                   rc ) ;
+
+      /// write data
+      if ( 0 == pHeader->_thinCopy )
+      {
+         rc = _writeData( pData, pHeader->_dataSize, FALSE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to write extent data, rc: %d",
+                      rc ) ;
+      }
+
+   done:
+      /// restore
+      pHeader->_dataSize = srcDataSize ;
+      pHeader->_compressed = srcCompressed ;
       return rc ;
    error:
       goto done ;
@@ -1507,14 +1617,10 @@ namespace engine
                metaObj = _makeExtentMeta( pSU ) ;
                pHeader->setMetaData( metaObj.objdata(), metaObj.objsize() ) ;
 
-               // write extent header
-               rc = _writeData( (const CHAR *)pHeader,
-                                BAR_BACKUP_EXTENT_HEADER_SIZE, TRUE ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to write extent header, "
-                            "rc: %d", rc ) ;
-               // write data
-               rc = _writeData( (const CHAR*)ptr, pHeader->_dataSize, FALSE ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to write data, rc: %d", rc ) ;
+               // write extent
+               rc = _writeExtent( pHeader, (const CHAR *)ptr ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to write extent, rc: %d",
+                            rc ) ;
 
                length -= pHeader->_dataSize ;
                ptr += pHeader->_dataSize ;
@@ -1539,19 +1645,10 @@ namespace engine
                metaObj = _makeExtentMeta( pSU ) ;
                pHeader->setMetaData( metaObj.objdata(), metaObj.objsize() ) ;
 
-               // write extent header
-               rc = _writeData( (const CHAR *)pHeader,
-                                BAR_BACKUP_EXTENT_HEADER_SIZE, TRUE ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to write extent header, "
-                            "rc: %d", rc ) ;
-               if ( used )
-               {
-                  // write data
-                  rc = _writeData( (const CHAR*)ptr, pHeader->_dataSize,
-                                   FALSE ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Failed to write data, rc: %d",
-                               rc ) ;
-               }
+               // write extent
+               rc = _writeExtent( pHeader, (const CHAR*)ptr ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to write extent, rc: %d",
+                            rc ) ;
 
                ptr += pHeader->_dataSize ;
                _curOffset += pHeader->_dataSize ;
@@ -1660,14 +1757,10 @@ namespace engine
                   goto error ;
                }
 
-               // write extent header
-               rc = _writeData( (const CHAR *)pHeader,
-                                BAR_BACKUP_EXTENT_HEADER_SIZE, TRUE ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to write extent header, "
-                            "rc: %d", rc ) ;
-               // write data
-               rc = _writeData( _pExtentBuff, pHeader->_dataSize, FALSE ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to write data, rc: %d", rc ) ;
+               // write extent
+               rc = _writeExtent( pHeader, _pExtentBuff ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to write extent, rc: %d",
+                            rc ) ;
 
                _curOffset += pHeader->_dataSize ;
             }
@@ -1710,19 +1803,10 @@ namespace engine
                   goto error ;
                }
 
-               // write extent header
-               rc = _writeData( (const CHAR *)pHeader,
-                                BAR_BACKUP_EXTENT_HEADER_SIZE, TRUE ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to write extent header, "
-                            "rc: %d", rc ) ;
-               if ( used )
-               {
-                  // write data
-                  rc = _writeData( _pExtentBuff, pHeader->_dataSize,
-                                   FALSE ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Failed to write data, rc: %d",
-                               rc ) ;
-               }
+               // write extent
+               rc = _writeExtent( pHeader, _pExtentBuff ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to write extent, rc: %d",
+                            rc ) ;
 
                _curOffset += pHeader->_dataSize ;
                curExtentID += num ;
@@ -1802,14 +1886,9 @@ namespace engine
          pHeader = _nextDataExtent( BAR_DATA_TYPE_REPL_LOG ) ;
          pHeader->_dataSize = mb.length() ;
 
-         // write extent header
-         rc = _writeData( (const CHAR*)pHeader, BAR_BACKUP_EXTENT_HEADER_SIZE,
-                          TRUE );
-         PD_RC_CHECK( rc, PDERROR, "Failed to write extent header, rc: %d",
-                      rc ) ;
-         // write data
-         rc = _writeData( mb.startPtr(), mb.length(), FALSE ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to write repl-log, rc: %d", rc ) ;
+         /// write extent
+         rc = _writeExtent( pHeader, mb.startPtr() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to write extent, rc: %d", rc ) ;
       }
 
       /// check lsn
@@ -2403,7 +2482,38 @@ namespace engine
          {
             ossMemset( _pBuff, 0, _pDataExtent->_dataSize ) ;
          }
-         *pBuff = _pBuff ;
+
+         /// uncompress
+         if ( 0 != _pDataExtent->_compressed )
+         {
+            CHAR *pBuffTmp = NULL ;
+            UINT32 destLen = BAR_MAX_EXTENT_DATA_SIZE ;
+            if ( !_pCompressor )
+            {
+               PD_LOG( PDERROR, "Compressor is NULL" ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
+            pBuffTmp = _allocCompressBuff( destLen ) ;
+            if ( !pBuffTmp )
+            {
+               PD_LOG( PDERROR, "Alloc uncompressed buffer failed" ) ;
+               rc = SDB_OOM ;
+               goto error ;
+            }
+            // uncompress data
+            rc = _pCompressor->decompress( _pBuff, _pDataExtent->_dataSize,
+                                           pBuffTmp, destLen, NULL ) ;
+            PD_RC_CHECK( rc, PDERROR, "Uncompress data failed, rc: %d",
+                         rc ) ;
+
+            *pBuff = pBuffTmp ;
+            _pDataExtent->_dataSize = destLen ;
+         }
+         else
+         {
+            *pBuff = _pBuff ;
+         }
       }
 
    done:
@@ -3247,6 +3357,14 @@ namespace engine
          builder.append( "LastDataFileSeq", (INT32)pHeader->_lastDataSequence ) ;
          builder.append( "LastExtentID", (INT64)pHeader->_lastExtentID ) ;
          builder.append( "DataSize", (INT64)pHeader->_dataSize ) ;
+         builder.append( "ThinDataSize", (INT64)pHeader->_thinDataSize ) ;
+         builder.append( "CompressedDataSize",
+                         (INT64)pHeader->_compressDataSize ) ;
+
+         UINT64 totalSize = pHeader->_dataSize + pHeader->_thinDataSize +
+                            pHeader->_compressDataSize ;
+         INT32 ratio = (INT32)((FLOAT64)(pHeader->_dataSize*100)/totalSize) ;
+         builder.append( "CompressedRatio", ratio ) ;
       }
 
       builder.append( "LastLSN", (INT64)pHeader->_lastLSN ) ;

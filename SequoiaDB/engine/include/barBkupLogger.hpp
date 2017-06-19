@@ -145,7 +145,9 @@ namespace engine
       UINT64            _nodeID ;
       UINT64            _lastLSN ;
       UINT32            _lastLSNCode ;
-      CHAR              _pad[61952] ;
+      UINT64            _thinDataSize ;
+      UINT64            _compressDataSize ;
+      CHAR              _pad[61936] ;
 
       _barBackupHeader ()
       {
@@ -170,6 +172,8 @@ namespace engine
                                        (UINT32)(ossRand()*239641) ) ;
          _lastLSN          = ~0 ;
          _lastLSNCode      = 0 ;
+         _thinDataSize     = 0 ;
+         _compressDataSize = 0 ;
       }
       void createTime( UINT64 &curTime, CHAR *pBuff, UINT32 size )
       {
@@ -265,8 +269,9 @@ namespace engine
       UINT32            _metaSize ;
       UINT64            _dataSize ;
       CHAR              _md5Value[BAR_BACKUP_MD5_LEN] ;
-      CHAR              _thinCopy ;
-      CHAR              _reserved[11] ;
+      UINT8             _thinCopy ;
+      UINT8             _compressed ;
+      CHAR              _reserved[10] ;
       // up for header(64B), down for meta bson obj data(max 960B)
       CHAR              _metaData[960] ;
 
@@ -281,6 +286,7 @@ namespace engine
          _dataType         = BAR_DATA_TYPE_RAW_DATA ;
          _dataSize         = 0 ;
          _thinCopy         = 0 ;
+         _compressed       = 0 ;
       }
       _barBackupExtentHeader ()
       {
@@ -321,6 +327,7 @@ namespace engine
 
 #pragma pack()
 
+   class _utilCompressor ;
    /*
       _barBaseLogger define
    */
@@ -394,6 +401,8 @@ namespace engine
 
          BOOLEAN     _isDigital( const CHAR *pStr, UINT32 *pNum = NULL ) ;
 
+         CHAR*       _allocCompressBuff( UINT64 buffSize ) ;
+
       protected:
          barBackupHeader               _metaHeader ;
          string                        _path ;
@@ -406,6 +415,10 @@ namespace engine
          dpsTransCB                    *_pTransCB ;
          _pmdOptionsMgr                *_pOptCB ;
          _clsMgr                       *_pClsCB ;
+         /// compressor
+         _utilCompressor               *_pCompressor ;
+         CHAR                          *_pCompressBuff ;
+         UINT64                        _buffSize ;
 
    } ;
    typedef _barBaseLogger barBaseLogger ;
@@ -432,6 +445,7 @@ namespace engine
                         const CHAR *backupDesp = NULL ) ;
 
          void     setBackupLog( BOOLEAN backupLog ) ;
+         void     enableCompress( BOOLEAN compressed ) ;
 
          INT32    backup ( _pmdEDUCB *cb ) ;
 
@@ -449,6 +463,9 @@ namespace engine
 
          INT32       _writeData( const CHAR *buf, INT64 len,
                                  BOOLEAN isExtHeader ) ;
+
+         INT32       _writeExtent( barBackupExtentHeader *pHeader,
+                                   const CHAR *pData ) ;
 
          barBackupExtentHeader *_nextDataExtent ( UINT32 dataType ) ;
 
@@ -470,6 +487,7 @@ namespace engine
          BOOLEAN                       _isOpened ;
 
          BOOLEAN                       _needBackupLog ;
+         BOOLEAN                       _compressed ;
 
    } ;
    typedef _barBkupBaseLogger barBkupBaseLogger ;
