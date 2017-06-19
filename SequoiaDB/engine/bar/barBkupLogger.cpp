@@ -3304,6 +3304,7 @@ namespace engine
    {
       BSONObjBuilder builder ;
 
+      builder.append( FIELD_NAME_VERSION, pHeader->_version ) ;
       builder.append( FIELD_NAME_NAME, pHeader->_name ) ;
       builder.append( FIELD_NAME_ID, (INT32)incID ) ;
       if ( 0 != pHeader->_description[0] )
