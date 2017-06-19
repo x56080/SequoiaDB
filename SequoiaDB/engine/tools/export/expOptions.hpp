@@ -97,6 +97,7 @@ namespace exprt
       inline BOOLEAN includeBinary()      const { return _includeBinary ; }
       inline BOOLEAN includeRegex()       const { return _includeRegex ; }
       inline BOOLEAN kickNull()           const { return _kickNull ; }
+      inline BOOLEAN strict()             const { return _strict ; }
       inline BOOLEAN headLine()           const { return _headLine ; }
       inline BOOLEAN force()              const { return _force ; }
       inline BOOLEAN withId()             const { return _withId ; }
@@ -155,6 +156,9 @@ namespace exprt
       string         _cscl ;
       string         _excludeCscl ;
       string         _dir ;
+
+      /* JSON */
+      BOOLEAN        _strict ;
 
       /* CSV */
       CHAR           _delChar ;

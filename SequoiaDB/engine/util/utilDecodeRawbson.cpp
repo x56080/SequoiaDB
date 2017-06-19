@@ -127,7 +127,8 @@ void _utilPrintLog( const CHAR *pFunc,
 INT32 utilDecodeBson::init( CHAR delChar, CHAR delField,
                             BOOLEAN includeBinary,
                             BOOLEAN includeRegex,
-                            BOOLEAN kickNull )
+                            BOOLEAN kickNull,
+                            BOOLEAN isStrict )
 {
    INT32 rc = SDB_OK ;
    if ( delChar == delField )
@@ -167,6 +168,7 @@ INT32 utilDecodeBson::init( CHAR delChar, CHAR delField,
    _includeBinary = includeBinary ;
    _includeRegex = includeRegex ;
    _kickNull = kickNull ;
+   _isStrict = isStrict ;
    setPrintfLog( _utilPrintLog ) ;
 done:
    return rc ;
@@ -178,7 +180,8 @@ utilDecodeBson::utilDecodeBson() : _delChar(0),
                                    _delField(0),
                                    _includeBinary(FALSE),
                                    _includeRegex(FALSE),
-                                   _kickNull(FALSE)
+                                   _kickNull(FALSE),
+                                   _isStrict(FALSE)
 {
 }
 
@@ -548,7 +551,7 @@ INT32 utilDecodeBson::bsonCovertJson( CHAR *pbson,
       }
    }
    bson_finish ( &obj ) ;
-   if ( !bsonToJson ( *ppBuffer, *pJSONSize, &obj, FALSE, TRUE ) )
+   if ( !bsonToJson2 ( *ppBuffer, *pJSONSize, &obj, _isStrict ) )
    {
       rc = SDB_OOM ;
       PD_LOG ( PDERROR, "Failed to convert bson to json, rc=%d", rc ) ;
