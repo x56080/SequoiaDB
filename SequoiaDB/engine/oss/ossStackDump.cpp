@@ -217,6 +217,11 @@ void ossDumpSystemTime( ossPrimitiveFileOp * trapFile )
    struct timeval tv ;
    struct timezone tz ;
    time_t tt ;
+
+   // Avoid catching signal to cause deadlock
+   ossSignalShield sigShield ;
+   sigShield.doNothing() ;
+
    gettimeofday ( &tv, &tz ) ;
    tt = tv.tv_sec ;
    localtime_r ( &tt, &otm ) ;
