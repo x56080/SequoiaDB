@@ -203,7 +203,7 @@ namespace engine
                _pSrc          = pSrc ;
                _pEleSize      = pEleSize ;
             }
-            iterator( typename set<T>::iterator &it )
+            iterator( typename set<T>::iterator it )
             {
                _pData         = NULL ;
                _pSrc          = NULL ;
@@ -368,16 +368,12 @@ namespace engine
             UINT32 pos = _eleSize ;
             while( pos > 0 )
             {
-               if ( _staticBuf[ pos - 1 ] > val )
+               if ( val < _staticBuf[ pos - 1 ] )
                {
                   _staticBuf[ pos ] = _staticBuf[ pos - 1 ] ;
                   --pos ;
                }
-               else if ( _staticBuf[ pos - 1 ] == val )
-               {
-                  return pair<iterator, BOOLEAN>( end(), FALSE ) ;
-               }
-               else
+               else if ( _staticBuf[ pos - 1 ] < val )
                {
                   /// find the position
                   _staticBuf[ pos ] = val ;
@@ -386,6 +382,18 @@ namespace engine
                                                             _staticBuf,
                                                             &_eleSize ),
                                                   TRUE ) ;
+               }
+               else
+               {
+                  /// restore
+                  while( pos < _eleSize )
+                  {
+                     _staticBuf[ pos ] = _staticBuf[ pos + 1 ] ;
+                     ++pos ;
+                  }
+                  _staticBuf[ pos ] = T() ;
+
+                  return pair<iterator, BOOLEAN>( end(), FALSE ) ;
                }
             }
             /// insert to the begin
@@ -444,7 +452,7 @@ namespace engine
          }
          for ( UINT32 i = 0 ; i < _eleSize ; ++i )
          {
-            if ( _staticBuf[ i ] >= val )
+            if ( !(_staticBuf[ i ] < val) )
             {
                return iterator( &_staticBuf[ i ], _staticBuf, &_eleSize ) ;
             }
@@ -460,7 +468,7 @@ namespace engine
          }
          for ( UINT32 i = 0 ; i < _eleSize ; ++i )
          {
-            if ( _staticBuf[ i ] > val )
+            if ( val < _staticBuf[ i ] )
             {
                return iterator( &_staticBuf[ i ], _staticBuf, &_eleSize ) ;
             }
@@ -483,7 +491,8 @@ namespace engine
             iterator itEnd = end() ;
             for ( UINT32 i = 0 ; i < _eleSize ; ++i )
             {
-               if ( _staticBuf[ i ] == val )
+               if ( !( _staticBuf[ i ] < val ) &&
+                    !( val < _staticBuf[ i ] ) )
                {
                   if ( itBegin == end() )
                   {
@@ -532,7 +541,8 @@ namespace engine
          UINT32 i = 0 ;
          while( i < _eleSize )
          {
-            if ( _staticBuf[ i ] == value )
+            if ( !( _staticBuf[ i ] < value ) &&
+                 !( value < _staticBuf[ i ] ) )
             {
                return i ;
             }
@@ -566,6 +576,7 @@ namespace engine
             for ( UINT32 i = 0 ; i < _eleSize ; ++i )
             {
                _pSet->insert( _staticBuf[ i ] ) ;
+               _staticBuf[ i ] = T() ;
             }
             _eleSize = 0 ;
          }
