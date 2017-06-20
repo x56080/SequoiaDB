@@ -77,6 +77,13 @@ Delete the database backup.
 .br
               Prefix:"%g_bk_"
 .sp 2
+       \fBID\fR
+.br
+              The backup ID. -1 for all backups with the specified
+              name, default is -1.
+.br
+              ID:-1
+.sp 2
 
 .SH "Examples"
 

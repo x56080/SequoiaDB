@@ -107,6 +107,20 @@ Backup Database.
 .br
               OverWrite:false
 .sp 2
+       \fBCompressed\fR
+.br
+              Whether to enable data compression or not.
+              True in default.
+.br
+              Compressed:true
+.sp 2
+       \fBBackupLog\fR
+.br
+              Whether to backup replica logs in full backup.
+              False in default.
+.br
+              BackupLog:false
+.sp 2
 
 .SH "Examples"
 

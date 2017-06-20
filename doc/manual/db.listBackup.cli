@@ -75,6 +75,12 @@ View database backup.
               wildcards(%g,%G,%h,%H,%s,%S), default is empty.
 .br
               Prefix:"%g_bk_"
+       \fBDetail\fR
+.br
+              Whether to show detail information.
+              default is false.
+.br
+              Detail:true
 .sp 2
 
 .sp 2
@@ -85,6 +91,12 @@ View database backup.
 \fBsel (json object)\fR
 .br
        Output fields.
+.sp 2
+\fBsort (json object)\fR
+.br
+       Sorts the returned records according to the selected
+       fields. 1 for ascending order, -1 for descending order.
+
 .SH "Examples"
 
 .sp 2
