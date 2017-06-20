@@ -22,6 +22,7 @@
 | Name 		| 指定备份名称，缺省为所有备份 			| Name:"backup-2014-1-1" 				|
 | Path 		| 指定备份路径，缺省为配置参数指定的备份路径。该路径支持通配符（%g/%G: group name, %h/%H: host name, %s/%S:service name） 														| Path:"/opt/sequoiadb/backup/%g" |
 | IsSubDir 	| 上述 Path 参数所配置的路径是否为配置参数指定的备份路径的子目录，缺省为 false IsSubDir:false 																				| Prefix 备份前缀名，支持通配符（%g,%G,%h,%H,%s,%S），缺省为空 Prefix:"%g_bk_" 				|
+| Detail    | 是否显示详细信息，缺省为 false        | Detail: true |
 
 ##返回值##
 返回游标对象，出错抛异常，并输出错误信息，可以通过[getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](reference/Sequoiadb_command/Global/getLastError.md)获取错误码。
@@ -37,13 +38,18 @@
 	```lang-javascript
 	> db.listBackup()
 	{
-	  "Name": "FullBackup1",
-	  "NodeName": "ubuntu-200-043:11830",
-	  "GroupName": "group1",
+	  "Version": 2,
+	  "Name": "test",
+	  "ID": 0,
+	  "NodeName": "vmsvr2-suse-x64-1:20000",
+	  "GroupName": "db1",
 	  "EnsureInc": false,
-	  "BeginLSNOffset": 0,
-	  "EndLSNOffset": 429733096,
-	  "StartTime": "2016-10-27-10:03:31",
+	  "BeginLSNOffset": 195652020,
+	  "EndLSNOffset": 195652068,
+	  "TransLSNOffset": -1,
+	  "StartTime": "2017-06-20-13:02:22",
+	  "LastLSN": 195652020,
+	  "LastLSNCode": 1845751176,
 	  "HasError": false
 	}
 	```

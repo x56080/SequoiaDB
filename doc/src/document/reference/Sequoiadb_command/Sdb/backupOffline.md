@@ -23,47 +23,38 @@
  | Description | 备份描述 | Description: "First backup" |
  | EnsureInc | 是否开启增量备份，缺省为 false | EnsureInc: false |
  | OverWrite | 存在同名备份是否覆盖，缺省为 false | OverWrite: false |
+ | Compressed | 是否开启数据压缩，缺少为 true | Compressed: true |
+ | BackupLog | 当全量备份时是否需要备份所有日志，缺省为 false | BackupLog: false |
 
 ##返回值##
 
 无返回值，出错抛异常，并输出错误信息，可以通过 [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) 获取错误信息 或 通过 [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) 获取错误码。关于错误处理可以参考[常见错误处理指南](troubleshooting/general/general_guide.md) 。
 
+##版本##
+
+v1.2及以上版本。  
+v2.8.2及以上版本增加 `Compressed` 和 `BackupLog` 参数。
+
 ##示例##
 
-**对整个数据库进行全量备份**
+**对数据库节点进行全量备份**
 
 ```lang-javascript
 > db.backupOffline( { Name: "FullBackup1" } )
 > db.listBackup()
 {
+  "Version": 2,
   "Name": "FullBackup1",
-  "NodeName": "susetzb:30000",
-  "GroupName": "SYSCatalogGroup",
-  "EnsureInc": false,
-  "BeginLSNOffset": 0,
-  "EndLSNOffset": 5299104,
-  "StartTime": "2015-10-20-16:52:42",
-  "HasError": false
-}
-{
-  "Name": "FullBackup1",
-  "NodeName": "susetzb:40000",
-  "GroupName": "db2",
-  "EnsureInc": false,
-  "BeginLSNOffset": 0,
-  "EndLSNOffset": 230209508,
-  "StartTime": "2015-10-20-16:52:42",
-  "HasError": false
-}
-{
-  "Name": "FullBackup1",
-  "NodeName": "susetzb:20000",
+  "ID": 0,
+  "NodeName": "susetzb:11830",
   "GroupName": "db1",
   "EnsureInc": false,
   "BeginLSNOffset": 0,
-  "EndLSNOffset": 272453160,
+  "EndLSNOffset": 195652068,
   "StartTime": "2015-10-20-16:52:42",
+  "LastLSN": 195652020,
+  "LastLSNCode": 1845751176,
   "HasError": false
 }
-Return 3 row(s).
+Return 1 row(s).
 ```

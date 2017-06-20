@@ -19,6 +19,7 @@
 | Path 		| 备份路径，缺省为配置参数指定的备份路径。该路径支持通配符（%g/%G: group name, %h/%H: host name, %s/%S:service name） 						| Path:"/opt/sequoiadb/backup/%g" |
 | IsSubDir 	| 上述 Path 参数所配置的路径是否为配置参数指定的备份路径的子目录，缺省为 false 																	| IsSubDir:false |
 | Prefix 	| 备份前缀名，支持通配符（%g,%G,%h,%H,%s,%S），缺省为空 | Prefix:"%g_bk_" |
+| ID        | 备份 ID，-1表示该名字的所有备份, 缺少为 -1 | ID: -1 |
 
 ##返回值##
 无返回值，出错抛异常，并输出错误信息，可以通过[getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](reference/Sequoiadb_command/Global/getLastError.md)获取错误码。
@@ -26,6 +27,9 @@
 
 ##错误##
 常见错误可参考[错误码](reference/Sequoiadb_error_code.md)。
+
+##版本##
+v2.8.2及以上版本增加 `ID` 参数。
 
 ##示例##
 
