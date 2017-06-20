@@ -295,13 +295,17 @@ namespace engine
                return SDB_INVALIDARG ;
             }
 
-            if ( !_isSelf && ( 0 == _dbPath[0] || 0 == _cfgPath[0] ||
-                 0 == _svcName[0] ) )
+            if ( !_isSelf )
             {
-               std::cerr << "Restore not self node, must config "
-                         << PMD_OPTION_DBPATH << ", " << PMD_OPTION_CONFPATH
-                         << ", " << PMD_OPTION_SVCNAME << std::endl ;
-               return SDB_INVALIDARG ;
+               if ( 0 == _dbPath[0] ||
+                    ( FALSE == _skipConf &&
+                      ( 0 == _cfgPath[0] || 0 == _svcName[0] ) ) )
+               {
+                  std::cerr << "Restore not self node, must config "
+                            << PMD_OPTION_DBPATH << ", " << PMD_OPTION_CONFPATH
+                            << ", " << PMD_OPTION_SVCNAME << std::endl ;
+                  return SDB_INVALIDARG ;
+               }
             }
 
             // make dir
