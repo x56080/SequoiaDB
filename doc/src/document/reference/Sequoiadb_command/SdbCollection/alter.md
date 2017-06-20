@@ -15,7 +15,7 @@
 | ------ | ------ | ------ |
 | ReplSize | 一次写请求完成副本数。 | ReplSize: \<int32\> |
 | ShardingKey | 分区键。| ShardingKey:{\<字段1\>:\<1&#124;-1\>,[\<字段2\>:\<1&#124;-1\>, ...]} |
-| ShardingType | 分区方式，默认为 range 分区。 | ShardingType:"hash"&#124;"range" |
+| ShardingType | 分区方式，默认为 hash 分区。 | ShardingType:"hash"&#124;"range" |
 | Partition | 分区数，hash 分区时填写，代表了 hash 分区的个数。其值必须是2的幂。范围在[2^3 , 2^20]。 | Partition:\<分区数\>|
 
 > **Note:**
