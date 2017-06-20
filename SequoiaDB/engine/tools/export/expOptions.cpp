@@ -73,6 +73,9 @@ namespace exprt
    #define OPTION_EXCLUDECSCL       "excludecscl"
    #define OPTION_DIRNAME           "dir"
 
+   //json
+   #define OPTION_STRICT            "strict"
+
    // csv
    #define OPTION_DELCHAR           "delchar"
    #define OPTION_DELFIELD          "delfield"
@@ -107,6 +110,9 @@ namespace exprt
                                     "when specify multi collections"
    #define EXPLAIN_FLOATFMT         "float format, default: '%.16g', input 'db2' is '%+.14E', " \
                                     "format %[+][.precision](f|e|E|g|G) ( float only )"
+
+   //json
+   #define EXPLAIN_STRICT           "strict export of data types, default: false"
 
    // csv
    #define EXPLAIN_DELCHAR          "string delimiter, default: '\"'"
@@ -174,6 +180,9 @@ namespace exprt
       ( OPTION_CSCL,                   _TYPE(string),    EXPLAIN_CSCL ) \
       ( OPTION_EXCLUDECSCL,            _TYPE(string),    EXPLAIN_EXCLUDECSCL ) \
       ( OPTION_DIRNAME,                _TYPE(string),    EXPLAIN_DIRNAME ) 
+
+   #define EXP_JSON_OPTIONS \
+      ( OPTION_STRICT,                 _TYPE(bool),      EXPLAIN_STRICT ) 
 
    #define EXP_CSV_OPTIONS \
       ( OPTION_DELCHAR",a",            _TYPE(string),    EXPLAIN_DELCHAR ) \
@@ -301,6 +310,7 @@ namespace exprt
                               _errorStop     (FALSE),
                               _useSSL        (FALSE),
                               _fileLimit     (DEFAULT_FILELIMIT),
+                              _strict        (FALSE),
                               _delChar       (DEFAULT_DELCHAR_CHAR),
                               _delField      (DEFAULT_DELFIELD_CHAR),
                               _headLine      (TRUE),
@@ -340,6 +350,7 @@ namespace exprt
       po::options_description general("General Options") ;
       po::options_description sCL("Single-collection Options") ;
       po::options_description mCL("Multi-collection Options") ;
+      po::options_description json("JSON Options") ;
       po::options_description csv("CSV Options") ;
       po::options_description conf("Configure-file Options") ;
 
@@ -348,12 +359,14 @@ namespace exprt
       general.add_options()EXP_GENERAL_OPTIONS ;
       sCL.add_options()EXP_SINGLE_COLLECTION_OPTIONS ;
       mCL.add_options()EXP_MULTI_COLLECTION_OPTIONS ;
+      json.add_options()EXP_JSON_OPTIONS ;
       csv.add_options()EXP_CSV_OPTIONS ;
       conf.add_options()EXP_CONF_OPTIONS ;
 
       cout << general << endl ;
       cout << sCL << endl ;
       cout << mCL << endl ;
+      cout << json << endl ;
       cout << csv << endl ;
       cout << conf << endl ;
    }
@@ -372,6 +385,9 @@ namespace exprt
       WRITE_BOOL_OPTION( writeBuf, OPTION_ERRORSTOP, _errorStop, TRUE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_SSL, _useSSL, TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_FLOATFMT, _floatFmt, TRUE ) ;
+
+      // json options
+      WRITE_BOOL_OPTION( writeBuf, OPTION_STRICT, _strict, _has(OPTION_STRICT) ) ;
 
       // csv options
       WRITE_STR_OPTION( writeBuf, OPTION_DELCHAR, _delChar, TRUE ) ; 
@@ -440,6 +456,7 @@ namespace exprt
          EXP_GENERAL_OPTIONS
          EXP_SINGLE_COLLECTION_OPTIONS
          EXP_MULTI_COLLECTION_OPTIONS
+         EXP_JSON_OPTIONS
          EXP_CSV_OPTIONS
          EXP_CONF_OPTIONS ;
 
@@ -496,6 +513,7 @@ namespace exprt
          EXP_GENERAL_OPTIONS
          EXP_SINGLE_COLLECTION_OPTIONS
          EXP_MULTI_COLLECTION_OPTIONS
+         EXP_JSON_OPTIONS
          EXP_CSV_OPTIONS
          EXP_CONF_OPTIONS ;
 
@@ -930,6 +948,10 @@ namespace exprt
       if ( _has(OPTION_KICKNULL) )
       {  
          _kickNull = _get<bool>(OPTION_KICKNULL) ;
+      }
+      if ( _has(OPTION_STRICT) )
+      {  
+         _strict = _get<bool>(OPTION_STRICT) ;
       }
       if ( _has(OPTION_WITHID) )
       {  

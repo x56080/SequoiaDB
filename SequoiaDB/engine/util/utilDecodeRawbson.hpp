@@ -62,6 +62,8 @@ private:
    BOOLEAN _includeBinary ;
    BOOLEAN _includeRegex ;
    BOOLEAN _kickNull ;
+   BOOLEAN _isStrict ;
+   
 public:
    std::vector<fieldResolve *> _vFields ;
 private:
@@ -81,6 +83,7 @@ public:
                BOOLEAN includeBinary,
                BOOLEAN includeRegex,
                BOOLEAN kickNull,
+               BOOLEAN isStrict,
                const CHAR *pFloatFmt ) ;
    INT32 parseFields( CHAR *pFields, INT32 size ) ;
    INT32 parseCSVSize( CHAR *pbson, INT32 *pCSVSize ) ;

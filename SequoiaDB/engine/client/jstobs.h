@@ -104,6 +104,24 @@ SDB_EXPORT void setJsonPrecision( const CHAR *pFloatFmt ) ;
 */
 SDB_EXPORT BOOLEAN bsonToJson ( CHAR *buffer, INT32 bufsize, const bson *b,
                                 BOOLEAN toCSV, BOOLEAN skipUndefined ) ;
+
+/** \fn BOOLEAN bsonToJson2 ( CHAR *buffer, INT32 bufsize, const bson *b,
+                              BOOLEAN isStrict )
+    \brief Bson converts to json.
+    \param [in] buffer the buffer to convert
+    \param [in] bufsize the buffer's size
+    \param [in] b The bson object to convert
+    \param [in] isStrict Strict export of data types
+    \param [out] buffer The return json string
+    \retval TRUE Operation Success
+    \retval FALSE Operation Fail
+    \note Before calling this funtion,need to build up
+             a buffer for the convertion result.
+*/
+
+SDB_EXPORT BOOLEAN bsonToJson2 ( CHAR *buffer, INT32 bufsize, const bson *b,
+                                 BOOLEAN isStrict ) ;
+
 SDB_EXPORT BOOLEAN bsonElementToChar ( CHAR **buffer, INT32 *bufsize,
                                        bson_iterator *in ) ;
 

@@ -68,6 +68,7 @@ namespace exprt
                              _options.includeBinary(), 
                              _options.includeRegex(),
                              _options.kickNull(),
+                             _options.strict(),
                              _options.floatFmt().c_str() ) ;
       if ( SDB_OK != rc )
       {
