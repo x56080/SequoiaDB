@@ -45,6 +45,8 @@ testFiles13 = [ "./misc/lob.cpp" ]
 
 testFiles14 = [ "./misc/code.cpp" ]
 
+testFiles15 = [ "./misc/date.cpp" ]
+
 # compile common lib
 gtestall = env.StaticLibrary('gtest', gtestFiles)
 gtestMainObj = env.Object('gtestMainObj', gtestMainFile)
@@ -64,6 +66,7 @@ DS_InvalidUsrTest  = dllBuildEnv.Program("DS_InvalidUsrTest", [testFiles11, gtes
 #DS_CoordTest       = dllBuildEnv.Program("DS_CoordTest", [testFiles12, gtestMainObj, testCommonFiles])    
 lob                = dllBuildEnv.Program("lob", [testFiles13, gtestMainObj, testCommonFiles])
 code               = dllBuildEnv.Program("code", [testFiles14, gtestMainObj, testCommonFiles])
+date               = dllBuildEnv.Program("date", [testFiles15, gtestMainObj, testCommonFiles])
 
 # static compile
 # dll compile
@@ -80,15 +83,16 @@ DS_ClTest.static          = staticBuildEnv.Program("DS_ClTest.static",[testFiles
 DS_InvalidUsrTest.static  = staticBuildEnv.Program("DS_InvalidUsrTest.static",[testFiles11, gtestMainObj, testCommonFiles])
 lob.static                = staticBuildEnv.Program("lob.static",[testFiles13, gtestMainObj, testCommonFiles])
 code.static               = staticBuildEnv.Program("code.static",[testFiles14, gtestMainObj, testCommonFiles])
+date.static               = staticBuildEnv.Program("date.static",[testFiles15, gtestMainObj, testCommonFiles])
 
 # dll compile
 env.Install( '#/build_test',[ decimal,numberLong,trunOncache,time,DS_InvalidArgTest,
 			                  DS_InvalidConnTest,DS_ConnTest,DS_ThreadTest,DS_ChecktimeTest,DS_ClTest,DS_InvalidUsrTest,
-                              lob,code ] )
+                              lob,code,date ] )
 
 # static compile
 env.Install( '#/build_test',[ decimal.static,numberLong.static,trunOncache.static,
 							  time.static,DS_InvalidArgTest.static,DS_InvalidConnTest.static,
 							  DS_ConnTest.static,DS_ThreadTest.static,DS_ChecktimeTest.static,
-							  DS_ClTest.static,DS_InvalidUsrTest.static,lob.static,code.static ] )
+							  DS_ClTest.static,DS_InvalidUsrTest.static,lob.static,code.static,date.static ] )
 
