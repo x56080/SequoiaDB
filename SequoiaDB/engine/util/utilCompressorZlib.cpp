@@ -60,11 +60,13 @@ namespace engine
             break;
          }
 
-         maxExpectedLen = sourceLen * strategy->_minRatio / 100 ;
+         maxExpectedLen = (UINT32)( (UINT64)sourceLen *
+                                     strategy->_minRatio / 100 ) ;
       }
       else
       {
-         maxExpectedLen = sourceLen * UTIL_COMPRESSOR_DFT_MIN_RATIO / 100 ;
+         maxExpectedLen = (UINT32)( (UINT64)sourceLen *
+                                    UTIL_COMPRESSOR_DFT_MIN_RATIO / 100 ) ;
          level = Z_DEFAULT_COMPRESSION ;
       }
 
@@ -93,6 +95,7 @@ namespace engine
       }
 
       destLen = stream.total_out + sizeof( UINT32 ) ;
+      *(UINT32*)dest = sourceLen ;
       rc = SDB_OK ;
 
    done:

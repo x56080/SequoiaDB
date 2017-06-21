@@ -449,7 +449,7 @@ namespace engine
          level = strategy->_level ;
       }
 
-      maxSize = sourceLen * minRatio / 100 ;
+      maxSize = (UINT32)( (UINT64)sourceLen * minRatio / 100 ) ;
 
       dictionary.attach( (void *)dictHandle ) ;
       context.setDictionary( &dictionary ) ;
@@ -475,7 +475,7 @@ namespace engine
 
       if ( rc )
       {
-         PD_LOG( ( SDB_UTIL_COMPRESS_ABORT == rc ) ? PDINFO : PDERROR,
+         PD_LOG( ( ( SDB_UTIL_COMPRESS_ABORT == rc ) ? PDINFO : PDERROR ),
                    "Failed to compress data, rc: %d", rc ) ;
          goto error ;
       }
