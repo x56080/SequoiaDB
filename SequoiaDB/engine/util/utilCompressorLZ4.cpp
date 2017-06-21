@@ -61,12 +61,14 @@ namespace engine
       if ( strategy )
       {
          acceleration = UTIL_COMP_BEST_COMPRESSION - strategy->_level + 1 ;
-         maxExpectedLen = sourceLen * strategy->_minRatio / 100 ;
+         maxExpectedLen = (UINT32)( (UINT64)sourceLen *
+                                    strategy->_minRatio / 100 ) ;
       }
       else
       {
          acceleration = 1 ;
-         maxExpectedLen = sourceLen * UTIL_COMPRESSOR_DFT_MIN_RATIO / 100 ;
+         maxExpectedLen = (UINT32)( (UINT64)sourceLen *
+                                    UTIL_COMPRESSOR_DFT_MIN_RATIO / 100 ) ;
       }
 
       /* The first 4 bytes of the output always contain the original length. */
