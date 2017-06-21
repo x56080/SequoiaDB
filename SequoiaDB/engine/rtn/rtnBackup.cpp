@@ -79,6 +79,8 @@ namespace engine
       BOOLEAN backupLog       = FALSE ;
       const CHAR *prefix      = NULL ;
       BOOLEAN compressed      = TRUE ;
+      const CHAR *pCompType   = VALUE_NAME_SNAPPY ;
+      UTIL_COMPRESSOR_TYPE compType = UTIL_COMPRESSOR_INVALID ;
 
       // option config
       rc = rtnGetBooleanElement( option, FIELD_NAME_ISSUBDIR, isSubDir ) ;
@@ -131,6 +133,26 @@ namespace engine
       PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
                    FIELD_NAME_COMPRESSED, rc ) ;
 
+      rc = rtnGetStringElement( option, FIELD_NAME_COMPRESSIONTYPE,
+                                &pCompType ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
+                   FIELD_NAME_COMPRESSIONTYPE, rc ) ;
+
+      compType = utilString2CompressType( pCompType ) ;
+      if ( UTIL_COMPRESSOR_INVALID == compType ||
+           UTIL_COMPRESSOR_LZW == compType )
+      {
+         PD_LOG( PDERROR, "Field[%s]'s value[%s] is invalid, only support: %s",
+                 FIELD_NAME_COMPRESSIONTYPE, pCompType,
+                 "snappy/lz4/zlib" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
       if ( maxDataFileSize < BAR_MIN_DATAFILE_SIZE ||
            maxDataFileSize > BAR_MAX_DATAFILE_SIZE )
       {
@@ -162,7 +184,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Init off line backup logger failed, rc: %d",
                    rc ) ;
       logger.setBackupLog( backupLog ) ;
-      logger.enableCompress( compressed ) ;
+      logger.enableCompress( compressed, compType ) ;
 
       rc = logger.backup( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Off line backup failed, rc: %d", rc ) ;

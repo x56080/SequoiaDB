@@ -297,9 +297,8 @@ namespace engine
 
             if ( !_isSelf )
             {
-               if ( 0 == _dbPath[0] ||
-                    ( FALSE == _skipConf &&
-                      ( 0 == _cfgPath[0] || 0 == _svcName[0] ) ) )
+               if ( 0 == _dbPath[0] || 0 == _svcName[0] ||
+                    ( FALSE == _skipConf && 0 == _cfgPath[0] ) )
                {
                   std::cerr << "Restore not self node, must config "
                             << PMD_OPTION_DBPATH << ", " << PMD_OPTION_CONFPATH

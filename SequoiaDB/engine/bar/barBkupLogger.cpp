@@ -377,7 +377,6 @@ namespace engine
       _pTransCB = krcb->getTransCB() ;
       _pOptCB = krcb->getOptionCB() ;
       _pClsCB = krcb->getClsCB() ;
-      _pCompressor = getCompressorByType( UTIL_COMPRESSOR_ZLIB ) ;
 
       if ( !_pDataExtent )
       {
@@ -666,6 +665,7 @@ namespace engine
 
       _needBackupLog = FALSE ;
       _compressed    = TRUE ;
+      _metaHeader._compressionType = UTIL_COMPRESSOR_SNAPPY ;
    }
 
    _barBkupBaseLogger::~_barBkupBaseLogger ()
@@ -688,9 +688,25 @@ namespace engine
       _needBackupLog = backupLog ;
    }
 
-   void _barBkupBaseLogger::enableCompress( BOOLEAN compressed )
+   void _barBkupBaseLogger::enableCompress( BOOLEAN compressed,
+                                            UTIL_COMPRESSOR_TYPE compType )
    {
       _compressed = compressed ;
+
+      if ( _compressed )
+      {
+         if ( UTIL_COMPRESSOR_INVALID == compType ||
+              UTIL_COMPRESSOR_LZW == compType )
+         {
+            compType = UTIL_COMPRESSOR_SNAPPY ;
+         }
+         _metaHeader._compressionType = compType ;
+      }
+      else
+      {
+         _metaHeader._compressionType = UTIL_COMPRESSOR_INVALID ;
+         _pCompressor = NULL ;
+      }
    }
 
    INT32 _barBkupBaseLogger::init( const CHAR *path,
@@ -752,6 +768,13 @@ namespace engine
       BOOLEAN isEmpty = FALSE ;
 
       PD_LOG( PDEVENT, "Begin to backup[%s]...", backupName() ) ;
+
+      // init compressor
+      if ( _compressed )
+      {
+         _pCompressor = getCompressorByType(
+            (UTIL_COMPRESSOR_TYPE)_metaHeader._compressionType ) ;
+      }
 
       // 1. prepare for backup
       rc = _prepareBackup( cb, isEmpty ) ;
@@ -963,10 +986,26 @@ namespace engine
            srcDataSize >= BAR_COMPRESS_MIN_SIZE &&
            srcDataSize <= BAR_COMPRSSS_MAX_SIZE )
       {
-         CHAR *pBuff = _allocCompressBuff( srcDataSize ) ;
+         UINT32 maxCompSize = 0 ;
+         UINT32 destLen = 0 ;
+         CHAR *pBuff = NULL ;
+
+         rc = _pCompressor->compressBound( srcDataSize, maxCompSize, NULL ) ;
+         if ( SDB_OK == rc )
+         {
+            if ( maxCompSize > srcDataSize )
+            {
+               destLen = maxCompSize ;
+            }
+            else
+            {
+               destLen = srcDataSize ;
+            }
+            pBuff = _allocCompressBuff( srcDataSize ) ;
+         }
+
          if ( pBuff )
          {
-            UINT32 destLen = srcDataSize ;
             rc = _pCompressor->compress( pData, srcDataSize, pBuff,
                                          destLen, NULL, NULL ) ;
             if ( SDB_OK == rc &&
@@ -1037,6 +1076,7 @@ namespace engine
 
       pHeader->_secretValue   = _metaHeader._secretValue ;
       pHeader->_sequence      = _metaHeader._lastDataSequence ;
+      pHeader->_compressionType = _metaHeader._compressionType ;
 
       rc = _flush( _curFile, (const CHAR *)pHeader,
                    BAR_BACKUPDATA_HEADER_SIZE ) ;
@@ -2042,6 +2082,8 @@ namespace engine
          goto error ;
       }
       _curOffset = BAR_BACKUPDATA_HEADER_SIZE ;
+      _pCompressor = getCompressorByType(
+         (UTIL_COMPRESSOR_TYPE)pHeader->_compressionType ) ;
 
    done:
       if ( pHeader )
@@ -2488,12 +2530,25 @@ namespace engine
          {
             CHAR *pBuffTmp = NULL ;
             UINT32 destLen = BAR_MAX_EXTENT_DATA_SIZE ;
+            UINT32 unCompLen = 0 ;
+
             if ( !_pCompressor )
             {
                PD_LOG( PDERROR, "Compressor is NULL" ) ;
                rc = SDB_SYS ;
                goto error ;
             }
+            rc = _pCompressor->getUncompressedLen( _pBuff,
+                                                   _pDataExtent->_dataSize,
+                                                   unCompLen ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get uncompressed length, "
+                         "rc: %d", rc ) ;
+
+            if ( unCompLen > destLen )
+            {
+               destLen = unCompLen ;
+            }
+
             pBuffTmp = _allocCompressBuff( destLen ) ;
             if ( !pBuffTmp )
             {
@@ -3366,6 +3421,10 @@ namespace engine
                             pHeader->_compressDataSize ;
          INT32 ratio = (INT32)((FLOAT64)(pHeader->_dataSize*100)/totalSize) ;
          builder.append( "CompressedRatio", ratio ) ;
+
+         builder.append( FIELD_NAME_COMPRESSIONTYPE,
+                         utilCompressType2String(
+                         (UINT8)(pHeader->_compressionType) ) ) ;
       }
 
       builder.append( "LastLSN", (INT64)pHeader->_lastLSN ) ;

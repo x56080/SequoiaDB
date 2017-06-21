@@ -72,17 +72,52 @@ namespace engine
 
    const CHAR *utilCompressType2String( UINT8 type )
    {
+      const CHAR *pStr = "Invalid" ;
       switch( type )
       {
          case UTIL_COMPRESSOR_SNAPPY :
-            return VALUE_NAME_SNAPPY ;
+            pStr = VALUE_NAME_SNAPPY ;
             break ;
          case UTIL_COMPRESSOR_LZW :
-            return VALUE_NAME_LZW ;
+            pStr = VALUE_NAME_LZW ;
+            break ;
+         case UTIL_COMPRESSOR_LZ4 :
+            pStr = VALUE_NAME_LZ4 ;
+            break ;
+         case UTIL_COMPRESSOR_ZLIB :
+            pStr = VALUE_NAME_ZLIB ;
             break ;
          default :
-            return "Invalid" ;
+            break ;
       }
+      return pStr ;
    }
+
+   UTIL_COMPRESSOR_TYPE utilString2CompressType( const CHAR *pStr )
+   {
+      UTIL_COMPRESSOR_TYPE type = UTIL_COMPRESSOR_INVALID ;
+      if ( pStr )
+      {
+         if ( 0 == ossStrcasecmp( pStr, VALUE_NAME_SNAPPY ) )
+         {
+            type = UTIL_COMPRESSOR_SNAPPY ;
+         }
+         else if ( 0 == ossStrcasecmp( pStr, VALUE_NAME_LZW ) )
+         {
+            type = UTIL_COMPRESSOR_LZW ;
+         }
+         else if ( 0 == ossStrcasecmp( pStr, VALUE_NAME_LZ4 ) )
+         {
+            type = UTIL_COMPRESSOR_LZ4 ;
+         }
+         else if ( 0 == ossStrcasecmp( pStr, VALUE_NAME_ZLIB ) )
+         {
+            type = UTIL_COMPRESSOR_ZLIB ;
+         }
+      }
+
+      return type ;
+   }
+
 } /* engine */
 

@@ -147,7 +147,8 @@ namespace engine
       UINT32            _lastLSNCode ;
       UINT64            _thinDataSize ;
       UINT64            _compressDataSize ;
-      CHAR              _pad[61936] ;
+      INT32             _compressionType ;
+      CHAR              _pad[61932] ;
 
       _barBackupHeader ()
       {
@@ -174,6 +175,7 @@ namespace engine
          _lastLSNCode      = 0 ;
          _thinDataSize     = 0 ;
          _compressDataSize = 0 ;
+         _compressionType  = UTIL_COMPRESSOR_INVALID ;
       }
       void createTime( UINT64 &curTime, CHAR *pBuff, UINT32 size )
       {
@@ -225,7 +227,8 @@ namespace engine
       UINT32            _sequence ;
       UINT64            _time ;
       UINT64            _secretValue ;
-      CHAR              _pad[4064] ;
+      INT32             _compressionType ;
+      CHAR              _pad[4060] ;
 
       _barBackupDataHeader ()
       {
@@ -236,6 +239,7 @@ namespace engine
          ossStrncpy( _eyeCatcher, BAR_BACKUP_DATA_EYECATCHER,
                      BAR_BACKUP_HEADER_EYECATCHER_LEN ) ;
          _version       = BAR_BACKUP_CUR_VERSION ;
+         _compressionType = UTIL_COMPRESSOR_INVALID ;
          _time          = time( NULL ) ;
       }
    } ;
@@ -445,7 +449,8 @@ namespace engine
                         const CHAR *backupDesp = NULL ) ;
 
          void     setBackupLog( BOOLEAN backupLog ) ;
-         void     enableCompress( BOOLEAN compressed ) ;
+         void     enableCompress( BOOLEAN compressed,
+                                  UTIL_COMPRESSOR_TYPE compType ) ;
 
          INT32    backup ( _pmdEDUCB *cb ) ;
 
