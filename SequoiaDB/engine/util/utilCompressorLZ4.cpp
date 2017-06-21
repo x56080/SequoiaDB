@@ -55,7 +55,7 @@ namespace engine
 
       PD_CHECK( destLen >= maxLen, SDB_UTIL_COMPRESS_BUFF_SMALL,
                 error, PDERROR,
-                "Compression buffer too small, expected: u, actual: %u",
+                "Compression buffer too small, expected: %u, actual: %u",
                 maxLen, destLen ) ;
 
       if ( strategy )
