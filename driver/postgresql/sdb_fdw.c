@@ -765,10 +765,8 @@ int sdbSetBsonValue( sdbbson *bsonObj, const char *name, Datum valueDatum,
       case BYTEAOID :
       {
 			CHAR *buff = VARDATA_ANY( ( bytea * )DatumGetPointer( valueDatum ) ) ;
-			INT32 len  = VARSIZE_ANY( ( bytea * )DatumGetPointer( valueDatum ) ) ;
-			// eat the last '\0'
-			len-- ;
-			elog(DEBUG1, "len=%d, VARHDRSZ=%d", len, VARHDRSZ) ;
+			INT32 len  = VARSIZE_ANY_EXHDR( ( bytea * )DatumGetPointer( valueDatum ) ) ;
+			elog(DEBUG1, "len=%d", len) ;
          sdbbson_append_binary( bsonObj, name, BSON_BIN_BINARY, buff, len ) ;
          break ;
       }
