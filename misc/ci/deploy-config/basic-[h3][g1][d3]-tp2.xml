@@ -209,6 +209,7 @@
          <property name="ci.properties.path" value="${test.machine.software.path}/deploy/ci.test.properties"/>
          <property name="antTask.jar.path" value="${test.machine.deploy.path}/deploy"/>
          <property name="test.log.path" value="${test.reports.path}" />
+         <property name="deploy.mode" value="[H3][G1][D3]"/>
       </ant>
       
 		<if>

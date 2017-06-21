@@ -267,10 +267,10 @@
       <if>
          <equals arg1="${exception_flag}" arg2="true"/>
          <then>
-            <copy file="report_fail_temple.xml" tofile="${report_dir}/node_exception_report.xml"/>
+            <copy file="report_fail_temple.xml" tofile="${report_dir}/node_exception_report_${deploy.mode}.xml"/>
          </then>
          <else>
-            <copy file="report_succ_temple.xml" tofile="${report_dir}/node_exception_report.xml"/>
+            <copy file="report_succ_temple.xml" tofile="${report_dir}/node_exception_report_${deploy.mode}.xml"/>
          </else>
       </if>
       
@@ -305,10 +305,10 @@
          </sequential>
       </for>
       <var name="err_msg" value="${node_core_msg}&#10;$${node_start_error_msg}"/>
-      <replace file="${report_dir}/node_exception_report.xml" token="ERROR_MESSAGE" value="${err_msg}"/>
-      <replace file="${report_dir}/node_exception_report.xml" token="TESTCASE_TYPE" value="detect_env"/>
-      <replace file="${report_dir}/node_exception_report.xml" token="TESTSUIT_NAME" value="detect_node"/>
-      <replace file="${report_dir}/node_exception_report.xml" token="TESTCASE_NAME" value="node_exception"/>
+      <replace file="${report_dir}/node_exception_report_${deploy.mode}.xml" token="ERROR_MESSAGE" value="${err_msg}"/>
+      <replace file="${report_dir}/node_exception_report_${deploy.mode}.xml" token="TESTCASE_TYPE" value="detect_env"/>
+      <replace file="${report_dir}/node_exception_report_${deploy.mode}.xml" token="TESTSUIT_NAME" value="detect_node"/>
+      <replace file="${report_dir}/node_exception_report_${deploy.mode}.xml" token="TESTCASE_NAME" value="node_exception"/>
       <var name="str_count" unset="true"/>
       
    </target>
@@ -328,10 +328,10 @@
       <if>
          <equals arg1="${str_count}" arg2="0"/>
          <then>
-            <copy file="report_succ_temple.xml" tofile="${report_dir}/testcase_core_dump_report.xml"/>
+            <copy file="report_succ_temple.xml" tofile="${report_dir}/testcase_core_dump_report_${deploy.mode}.xml"/>
          </then>
          <else>
-            <copy file="report_fail_temple.xml" tofile="${report_dir}/testcase_core_dump_report.xml"/>
+            <copy file="report_fail_temple.xml" tofile="${report_dir}/testcase_core_dump_report_${deploy.mode}.xml"/>
             <var name="error_msg" value="core dump total : ${str_count}&#10;"/>
             <for param="corelogname">
                <path>
@@ -348,12 +348,12 @@
                   </if>
                </sequential>
             </for>
-            <replace file="${report_dir}/testcase_core_dump_report.xml" token='ERROR_MESSAGE' value='${error_msg}'/>
+            <replace file="${report_dir}/testcase_core_dump_report_${deploy.mode}.xml" token='ERROR_MESSAGE' value='${error_msg}'/>
          </else>
       </if>
-      <replace file="${report_dir}/testcase_core_dump_report.xml" token='TESTCASE_TYPE' value='detect_env'/>
-      <replace file="${report_dir}/testcase_core_dump_report.xml" token='TESTSUIT_NAME' value='detect_testcase_core'/>
-      <replace file="${report_dir}/testcase_core_dump_report.xml" token='TESTCASE_NAME' value='testcase_core_exception'/>
+      <replace file="${report_dir}/testcase_core_dump_report_${deploy.mode}.xml" token='TESTCASE_TYPE' value='detect_env'/>
+      <replace file="${report_dir}/testcase_core_dump_report_${deploy.mode}.xml" token='TESTSUIT_NAME' value='detect_testcase_core'/>
+      <replace file="${report_dir}/testcase_core_dump_report_${deploy.mode}.xml" token='TESTCASE_NAME' value='testcase_core_exception'/>
       <var name="str_count" unset="true"/>
    </target>
   
