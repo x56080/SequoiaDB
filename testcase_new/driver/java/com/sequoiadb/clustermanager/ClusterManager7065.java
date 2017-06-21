@@ -217,6 +217,7 @@ public class ClusterManager7065 extends SdbTestBase{
 		try{
 			Node node = dataRGAdd.createNode(coordIP, dataPortAdd2, dataPathAdd2, dataConfigue2 );
 			node.start();
+			
 		}catch(BaseException e){
 			Assert.fail("create or start data Node 2 failed" + e.getMessage());
 		}
@@ -225,6 +226,18 @@ public class ClusterManager7065 extends SdbTestBase{
 		String actualMasterNodeName = null;
 		String actualSlaveNodeName = null;
 		try{
+			for(int i=0;i<60;i++){
+				if(dataRG.getMaster() == null){
+					try {
+						System.out.println("i:"+i);
+						Thread.sleep(3000);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}else{
+					break;
+				}
+			}
 			actualMasterNodeName = dataRG.getMaster().getNodeName();
 			actualSlaveNodeName = dataRG.getSlave().getNodeName();
 		}catch(BaseException e){
