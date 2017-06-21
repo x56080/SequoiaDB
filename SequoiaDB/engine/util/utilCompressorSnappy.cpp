@@ -119,15 +119,21 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__UTILCOMPRESSORSNAPPY_DECOMPRESS ) ;
 
+      UINT32 unCompLen = 0 ;
+
       SDB_ASSERT( UTIL_INVALID_DICT == dictionary,
                  "snappy does not use any dictionary" ) ;
 
-      if ( !snappy::RawUncompress ( source, (size_t)sourceLen, dest ) )
+      if ( SDB_OK != getUncompressedLen( source, sourceLen, unCompLen ) ||
+           destLen < unCompLen ||
+           !snappy::RawUncompress ( source, (size_t)sourceLen, dest ) )
       {
          rc = SDB_CORRUPTED_RECORD ;
          PD_LOG( PDERROR, "Failed to uncompress record" )  ;
          goto error ;
       }
+      destLen = unCompLen ;
+
    done:
       PD_TRACE_EXITRC( SDB__UTILCOMPRESSORSNAPPY_DECOMPRESS, rc ) ;
       return rc ;
