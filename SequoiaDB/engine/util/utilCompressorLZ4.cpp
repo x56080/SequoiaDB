@@ -82,7 +82,7 @@ namespace engine
          goto error ;
       }
 
-      *(UINT32*)dest = sourceLen ;
+      *(UINT32*)dest = compressedSize ;
 
    done:
       PD_TRACE_EXITRC( SDB__UTILCOMPRESSORLZ4_COMPRESS, rc ) ;
