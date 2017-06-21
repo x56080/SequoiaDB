@@ -328,7 +328,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR_INIT );
       UINT32 catGID = CATALOG_GROUPID ;
-      UINT16 catNID = SYS_NODE_ID_BEGIN + CLS_REPLSET_MAX_NODE_SIZE ;
+      // Make sure the node IDs are invalid
+      UINT16 catNID = DATA_NODE_ID_END + 1 ;
       MsgRouteID id ;
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
       // catAddrs is pointing to option control block
