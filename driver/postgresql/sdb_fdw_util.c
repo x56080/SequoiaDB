@@ -50,10 +50,10 @@ typedef struct
 } sdb_ec_member_matches_arg;
 
 
-AppendRelInfo * sdb_find_childrel_appendrelinfo(PlannerInfo *root, 
+AppendRelInfo * sdb_find_childrel_appendrelinfo(PlannerInfo *root,
                                                 RelOptInfo *rel) ;
 
-static Oid sdb_select_equality_operator(EquivalenceClass *ec, Oid lefttype, 
+static Oid sdb_select_equality_operator(EquivalenceClass *ec, Oid lefttype,
                                  Oid righttype) ;
 
 static RestrictInfo *sdb_create_join_clause(PlannerInfo *root,
@@ -67,16 +67,19 @@ static List *sdbGenerateImpliedEqualitiesForColumn(PlannerInfo *root,
                               sdbIndexInfo *indexInfo, int indexcol,
                               Relids prohibited_rels) ;
 
-static bool sdbMatchColumn(RelOptInfo *rel, Oid foreignID, Node *operand, 
+static bool sdbMatchColumn(RelOptInfo *rel, Oid foreignID, Node *operand,
                            sdbIndexInfo *indexInfo, int indexcol) ;
 
 static bool sdbIsVarNode( Node *node ) ;
 
 static double sdb_get_loop_count(PlannerInfo *root, Relids outer_relids) ;
 
-static void sdb_expand_indexqual_conditions(List *indexclauses, 
-                     List *indexclausecols, List **indexquals_p, 
+static void sdb_expand_indexqual_conditions(List *indexclauses,
+                     List *indexclausecols, List **indexquals_p,
                      List **indexqualcols_p) ;
+
+static int sdbGetIndexInfosFromDB( SdbExecState *sdbState, sdbIndexInfo *indexInfo,
+                                   INT32 maxNum, INT32 *indexNum ) ;
 
 void debugArgumentInfo( Oid tableID, Expr *node )
 {
@@ -97,7 +100,7 @@ void debugArgumentInfo( Oid tableID, Expr *node )
       Const *con = (Const *)node ;
 
       sdbbson_init(&obj) ;
-      sdbSetBsonValue( &obj, "const", con->constvalue, 
+      sdbSetBsonValue( &obj, "const", con->constvalue,
                        con->consttype, con->consttypmod, 0 ) ;
 
       elog(DEBUG1, "const()");
@@ -149,7 +152,7 @@ void debugRestrictInfo(RestrictInfo *restrictInfo, Oid tableID)
    foreach( argumentCell, argumentList )
    {
       Expr *argument = ( Expr * )lfirst( argumentCell ) ;
-      
+
       if ( nodeTag( argument ) == T_RelabelType )
       {
          RelabelType *relabel = (RelabelType *)argument ;
@@ -192,7 +195,7 @@ void sdbuseownpostgres()
 #endif /* SDB_USE_OWN_POSTGRES */
 
 void sdbGetIndexEqclause( PlannerInfo *root, RelOptInfo *baserel, Oid tableID,
-                          sdbIndexInfo *indexInfo, 
+                          sdbIndexInfo *indexInfo,
                           sdbIndexClauseSet *clauseset )
 {
    int indexcol;
@@ -231,7 +234,7 @@ void sdbGetIndexEqclause( PlannerInfo *root, RelOptInfo *baserel, Oid tableID,
    }
 }
 
-void sdbMatchJoinClausesToIndex( PlannerInfo *root, RelOptInfo *rel, 
+void sdbMatchJoinClausesToIndex( PlannerInfo *root, RelOptInfo *rel,
                                  Oid tableID, sdbIndexInfo *index,
                                  sdbIndexClauseSet *clauseset )
 {
@@ -286,8 +289,8 @@ bool sdbIsVarNode( Node *node )
    return false ;
 }
 
-bool sdbMatchClauseToIndexcol( RelOptInfo *rel, Oid tableID, 
-                               sdbIndexInfo *index, int indexcol, 
+bool sdbMatchClauseToIndexcol( RelOptInfo *rel, Oid tableID,
+                               sdbIndexInfo *index, int indexcol,
                                RestrictInfo *rinfo )
 {
    Expr *clause      = rinfo->clause;
@@ -295,7 +298,7 @@ bool sdbMatchClauseToIndexcol( RelOptInfo *rel, Oid tableID,
    Node *leftop      = NULL ;
    Node *rightop     = NULL ;
    Relids left_relids ;
-   Relids right_relids ; 
+   Relids right_relids ;
 
    if ( rinfo->pseudoconstant )
    {
@@ -373,8 +376,8 @@ List *sdbGenerateImpliedEqualitiesForColumn(PlannerInfo *root,
       foreach(lc2, cur_ec->ec_members)
       {
          cur_em = (EquivalenceMember *) lfirst(lc2);
-         if (bms_equal(cur_em->em_relids, rel->relids) && 
-             sdbMatchColumn(rel, tableID, (Node *) cur_em->em_expr, 
+         if (bms_equal(cur_em->em_relids, rel->relids) &&
+             sdbMatchColumn(rel, tableID, (Node *) cur_em->em_expr,
                             indexInfo, indexcol))
             break;
          cur_em = NULL;
@@ -423,9 +426,9 @@ List *sdbGenerateImpliedEqualitiesForColumn(PlannerInfo *root,
    return result;
 }
 
-bool sdbMatchColumn(RelOptInfo *rel, Oid foreignID, Node *operand, 
+bool sdbMatchColumn(RelOptInfo *rel, Oid foreignID, Node *operand,
                     sdbIndexInfo *indexInfo, int indexcol)
-{   
+{
    if (operand && IsA(operand, RelabelType))
    {
       operand = (Node *) ((RelabelType *) operand)->arg;
@@ -433,7 +436,7 @@ bool sdbMatchColumn(RelOptInfo *rel, Oid foreignID, Node *operand,
 
    if (operand && IsA(operand, Var))
    {
-      Var *var = (Var *) operand; 
+      Var *var = (Var *) operand;
       if (rel->relid == var->varno && var->varlevelsup == 0)
       {
          AttrNumber columnId = var->varattno ;
@@ -520,7 +523,7 @@ RestrictInfo *sdb_create_join_clause(PlannerInfo *root,
    return rinfo;
 }
 
-AppendRelInfo * sdb_find_childrel_appendrelinfo(PlannerInfo *root, 
+AppendRelInfo * sdb_find_childrel_appendrelinfo(PlannerInfo *root,
                                                 RelOptInfo *rel)
 {
    Index    relid = rel->relid;
@@ -542,7 +545,7 @@ AppendRelInfo * sdb_find_childrel_appendrelinfo(PlannerInfo *root,
 }
 
 
-Oid sdb_select_equality_operator(EquivalenceClass *ec, Oid lefttype, 
+Oid sdb_select_equality_operator(EquivalenceClass *ec, Oid lefttype,
                                  Oid righttype)
 {
    ListCell   *lc;
@@ -562,20 +565,20 @@ Oid sdb_select_equality_operator(EquivalenceClass *ec, Oid lefttype,
 
 
 
-int sdbGetIndexInfo( SdbExecState *sdbState, sdbIndexInfo *indexInfo )
+/*int sdbGetIndexInfo( SdbExecState *sdbState, sdbIndexInfo *indexInfo )
 {
    INT32 rc = SDB_OK ;
    sdbCursorHandle cursor = SDB_INVALID_HANDLE ;
    sdbbson obj ;
 
-   sdbState->hConnection = sdbGetConnectionHandle( 
+   sdbState->hConnection = sdbGetConnectionHandle(
                                         (const char **)sdbState->sdbServerList,
-                                        sdbState->sdbServerNum, 
-                                        sdbState->usr, 
-                                        sdbState->passwd, 
+                                        sdbState->sdbServerNum,
+                                        sdbState->usr,
+                                        sdbState->passwd,
                                         sdbState->preferenceInstance,
                                         sdbState->transaction ) ;
-   sdbState->hCollection = sdbGetSdbCollection(sdbState->hConnection, 
+   sdbState->hCollection = sdbGetSdbCollection(sdbState->hConnection,
                            sdbState->sdbcs, sdbState->sdbcl) ;
 
    rc = sdbGetIndexes(sdbState->hCollection, NULL, &cursor) ;
@@ -592,12 +595,12 @@ int sdbGetIndexInfo( SdbExecState *sdbState, sdbIndexInfo *indexInfo )
       sdbbson_iterator sdbbsonIter1 = {NULL, 0} ;
       sdbbson_iterator_init(&sdbbsonIter1, &obj) ;
 
-      /* for each element in sdbbson object */
+      // for each element in sdbbson object
       while(sdbbson_iterator_next(&sdbbsonIter1))
       {
          const CHAR *sdbbsonKey   = sdbbson_iterator_key(&sdbbsonIter1) ;
          sdbbson_type sdbbsonType = sdbbson_iterator_type(&sdbbsonIter1) ;
-         if ( strcmp(sdbbsonKey, "IndexDef") == 0 
+         if ( strcmp(sdbbsonKey, "IndexDef") == 0
               && sdbbsonType == BSON_OBJECT )
          {
             sdbbson indexDef ;
@@ -622,7 +625,7 @@ int sdbGetIndexInfo( SdbExecState *sdbState, sdbIndexInfo *indexInfo )
                      const CHAR *key3 = sdbbson_iterator_key(&sdbbsonIter3) ;
                      if ( strcmp(key3, "_id") != 0 )
                      {
-                        strncpy( indexInfo->indexKey[i], key3, 
+                        strncpy( indexInfo->indexKey[i], key3,
                               SDB_MAX_KEY_COLUMN_LENGTH ) ;
                         indexInfo->indexKey[i][SDB_MAX_KEY_COLUMN_LENGTH-1] = 0 ;
                         i++ ;
@@ -654,40 +657,88 @@ done:
       sdbReleaseCollection(sdbState->hCollection) ;
       sdbState->hCollection = SDB_INVALID_HANDLE ;
    }
-   
+
    if ( SDB_INVALID_HANDLE != cursor )
    {
-      sdbReleaseCursor(cursor);         
-   }    
+      sdbReleaseCursor(cursor);
+   }
 
    return rc ;
 error:
    goto done ;
 }
+*/
 
-int sdbGetIndexInfos( SdbExecState *sdbState, sdbIndexInfo *indexInfo, 
+int sdbGetIndexInfosFromCache( SdbCLStatistics *clCache, sdbIndexInfo *indexInfo,
+                               INT32 maxNum, INT32 *indexNum )
+{
+   int i = 0;
+   for ( i = 0; ( i < clCache->indexNum && i < maxNum ); i++ )
+   {
+      memcpy( &indexInfo[i], &clCache->indexInfo[i], sizeof(sdbIndexInfo) ) ;
+      elog( DEBUG1, "i=%d,keynum=%d,key[0]=%s", i, indexInfo[i].keyNum,
+            indexInfo[i].indexKey[0] ) ;
+   }
+
+   *indexNum = i ;
+   return SDB_OK ;
+}
+
+int sdbGetIndexInfos( SdbExecState *sdbState, sdbIndexInfo *indexInfo,
                       INT32 maxNum, INT32 *indexNum )
+{
+   INT32 rc = SDB_OK ;
+   SdbStatisticsCache *cache = NULL ;
+   SdbCLStatistics *clCache = NULL ;
+
+   cache = SdbGetStatisticsCache() ;
+   clCache = SdbGetCLStatFromCache( sdbState->tableID ) ;
+   if ( clCache->indexNum >= 0 )
+   {
+      elog( DEBUG1, "get index from cache" ) ;
+      rc = sdbGetIndexInfosFromCache( clCache, indexInfo, maxNum, indexNum ) ;
+   }
+   else
+   {
+      elog( DEBUG1, "get index from db" ) ;
+      rc = sdbGetIndexInfosFromDB( sdbState, indexInfo, maxNum, indexNum ) ;
+      if ( SDB_OK == rc )
+      {
+         int i = 0;
+         clCache->indexNum = *indexNum ;
+         for ( i = 0; i < clCache->indexNum; i++ )
+         {
+            memcpy( &clCache->indexInfo[i], &indexInfo[i], sizeof(sdbIndexInfo) ) ;
+         }
+      }
+   }
+
+   return rc ;
+}
+
+
+int sdbGetIndexInfosFromDB( SdbExecState *sdbState, sdbIndexInfo *indexInfo,
+                            INT32 maxNum, INT32 *indexNum )
 {
    INT32 rc = SDB_OK ;
    sdbCursorHandle cursor = SDB_INVALID_HANDLE ;
    sdbbson obj ;
    INT32 count = 0 ;
 
-   sdbState->hConnection = sdbGetConnectionHandle( 
+   sdbState->hConnection = sdbGetConnectionHandle(
                                         (const char **)sdbState->sdbServerList,
-                                        sdbState->sdbServerNum, 
-                                        sdbState->usr, 
-                                        sdbState->passwd, 
+                                        sdbState->sdbServerNum,
+                                        sdbState->usr,
+                                        sdbState->passwd,
                                         sdbState->preferenceInstance,
                                         sdbState->transaction ) ;
-   sdbState->hCollection = sdbGetSdbCollection(sdbState->hConnection, 
+   sdbState->hCollection = sdbGetSdbCollection(sdbState->hConnection,
                            sdbState->sdbcs, sdbState->sdbcl) ;
 
    rc = sdbGetIndexes(sdbState->hCollection, NULL, &cursor) ;
    if ( SDB_OK != rc )
    {
-      ereport(WARNING, (errcode(ERRCODE_FDW_INVALID_OPTION_INDEX),
-            errmsg("Cannot get sdb's indexinfo"), errhint(" "))) ;
+      elog( WARNING, "Cannot get sdb's indexinfo:rc=%d", rc ) ;
       goto error ;
    }
 
@@ -702,7 +753,7 @@ int sdbGetIndexInfos( SdbExecState *sdbState, sdbIndexInfo *indexInfo,
       {
          const CHAR *sdbbsonKey   = sdbbson_iterator_key(&sdbbsonIter1) ;
          sdbbson_type sdbbsonType = sdbbson_iterator_type(&sdbbsonIter1) ;
-         if ( strcmp(sdbbsonKey, "IndexDef") == 0 
+         if ( strcmp(sdbbsonKey, "IndexDef") == 0
               && sdbbsonType == BSON_OBJECT )
          {
             sdbbson indexDef ;
@@ -727,7 +778,7 @@ int sdbGetIndexInfos( SdbExecState *sdbState, sdbIndexInfo *indexInfo,
                      const CHAR *key3 = sdbbson_iterator_key(&sdbbsonIter3) ;
                      if ( strcmp(key3, "_id") != 0 )
                      {
-                        strncpy( indexInfo[count].indexKey[i], key3, 
+                        strncpy( indexInfo[count].indexKey[i], key3,
                               SDB_MAX_KEY_COLUMN_LENGTH ) ;
                         indexInfo[count].indexKey[i][SDB_MAX_KEY_COLUMN_LENGTH-1] = 0 ;
                         i++ ;
@@ -752,9 +803,14 @@ int sdbGetIndexInfos( SdbExecState *sdbState, sdbIndexInfo *indexInfo,
             sdbbson_destroy(&indexDef) ;
          }
       }
-      
+
       sdbbson_destroy(&obj) ;
       sdbbson_init(&obj);
+   }
+
+   if ( rc == SDB_DMS_EOC )
+   {
+      rc = SDB_OK ;
    }
 
 done:
@@ -789,10 +845,10 @@ BOOLEAN sdbIsInterrupt()
    return FALSE ;
 }
 
-sdbConnectionHandle sdbGetConnectionHandle( const char **serverList, 
-                                            int serverNum, 
-                                            const char *usr, 
-                                            const char *passwd, 
+sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
+                                            int serverNum,
+                                            const char *usr,
+                                            const char *passwd,
                                             const char *preference_instance,
                                             const char *transaction )
 {
@@ -838,7 +894,7 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
                rc = sdbTransactionBegin( tmpConnection->hConnection ) ;
                if ( SDB_OK != rc )
                {
-                  ereport( ERROR, ( errcode( ERRCODE_FDW_ERROR ), 
+                  ereport( ERROR, ( errcode( ERRCODE_FDW_ERROR ),
                            errmsg( "begin transaction failed:rc=%d", rc ) ) ) ;
                   return SDB_INVALID_HANDLE ;
                }
@@ -850,7 +906,7 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
    }
 
    /* when we get here, we don't have the connection so let's create one */
-   ereport( DEBUG1, (errcode( ERRCODE_FDW_UNABLE_TO_ESTABLISH_CONNECTION ), 
+   ereport( DEBUG1, (errcode( ERRCODE_FDW_UNABLE_TO_ESTABLISH_CONNECTION ),
             errmsg( "connecting :list=%s,num=%d", connName->data, serverNum ) )) ;
    rc = sdbConnect1( serverList, serverNum, usr, passwd, &hConnection ) ;
    if ( rc )
@@ -873,11 +929,11 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
    rc = sdbSetConnectionPreference( hConnection, preference_instance ) ;
    if ( rc )
    {
-      ereport( WARNING, ( errcode( ERRCODE_WITH_CHECK_OPTION_VIOLATION ), 
+      ereport( WARNING, ( errcode( ERRCODE_WITH_CHECK_OPTION_VIOLATION ),
                           errmsg( "set connection's preference instance failed"
-                                  ":rc=%d,preference=%s", rc, 
+                                  ":rc=%d,preference=%s", rc,
                                   preference_instance ),
-                          errhint( "Make sure the OPTION_NAME_PREFEREDINSTANCE " 
+                          errhint( "Make sure the OPTION_NAME_PREFEREDINSTANCE "
                                    "are valid" ) ) ) ;
    }
 
@@ -917,7 +973,7 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
       rc = sdbTransactionBegin( connect->hConnection ) ;
       if ( SDB_OK != rc )
       {
-         ereport( ERROR, ( errcode( ERRCODE_FDW_ERROR ), 
+         ereport( ERROR, ( errcode( ERRCODE_FDW_ERROR ),
                   errmsg( "begin transaction failed:rc=%d", rc ) ) ) ;
          return SDB_INVALID_HANDLE ;
       }
@@ -930,7 +986,7 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
    return hConnection ;
 }
 
-sdbCollectionHandle sdbGetSdbCollection( sdbConnectionHandle connectionHandle, 
+sdbCollectionHandle sdbGetSdbCollection( sdbConnectionHandle connectionHandle,
       const char *sdbcs, const char *sdbcl )
 
 {
@@ -982,7 +1038,7 @@ void sdbReleaseConnectionFromPool( int index )
    pool->numConnections-- ;
 }
 
-int sdbSetConnectionPreference( sdbConnectionHandle hConnection, 
+int sdbSetConnectionPreference( sdbConnectionHandle hConnection,
    const CHAR *preference_instance )
 {
    int intPreferenece_instance = 0 ;
@@ -993,20 +1049,20 @@ int sdbSetConnectionPreference( sdbConnectionHandle hConnection,
       intPreferenece_instance = atoi( preference_instance ) ;
       if ( 0 == intPreferenece_instance )
       {
-         sdbbson_append_string( &recordObj, FIELD_NAME_PREFERED_INSTANCE, 
+         sdbbson_append_string( &recordObj, FIELD_NAME_PREFERED_INSTANCE,
                                 preference_instance ) ;
       }
       else
       {
-         sdbbson_append_int( &recordObj, FIELD_NAME_PREFERED_INSTANCE, 
+         sdbbson_append_int( &recordObj, FIELD_NAME_PREFERED_INSTANCE,
                              intPreferenece_instance ) ;
       }
 
       rc = sdbbson_finish( &recordObj ) ;
       if ( rc != SDB_OK )
       {
-         ereport( WARNING, ( errcode( ERRCODE_FDW_ERROR ), 
-               errmsg( "finish bson failed:rc = %d", rc ), 
+         ereport( WARNING, ( errcode( ERRCODE_FDW_ERROR ),
+               errmsg( "finish bson failed:rc = %d", rc ),
                errhint( "Make sure the data is all right" ) ) ) ;
 
          sdbbson_destroy( &recordObj ) ;
@@ -1016,8 +1072,8 @@ int sdbSetConnectionPreference( sdbConnectionHandle hConnection,
       rc = sdbSetSessionAttr( hConnection, &recordObj ) ;
       if ( rc != SDB_OK )
       {
-         ereport( WARNING, ( errcode( ERRCODE_FDW_ERROR ), 
-               errmsg( "set session attribute failed:rc = %d", rc ), 
+         ereport( WARNING, ( errcode( ERRCODE_FDW_ERROR ),
+               errmsg( "set session attribute failed:rc = %d", rc ),
                errhint( "Make sure the session is all right" ) ) ) ;
 
          sdbbson_destroy( &recordObj ) ;
@@ -1040,7 +1096,7 @@ SdbConnectionPool *sdbGetConnectionPool()
 }
 
 IndexPath *sdb_create_index_path(PlannerInfo *root,
-              RelOptInfo *rel, 
+              RelOptInfo *rel,
               IndexOptInfo *index,
               List *indexclauses,
               List *indexclausecols,
@@ -1111,8 +1167,8 @@ IndexPath *sdb_create_index_path(PlannerInfo *root,
    return pathnode;
 }
 
-void sdb_expand_indexqual_conditions(List *indexclauses, 
-                     List *indexclausecols, List **indexquals_p, 
+void sdb_expand_indexqual_conditions(List *indexclauses,
+                     List *indexclausecols, List **indexquals_p,
                      List **indexqualcols_p)
 {
    List     *indexquals = NIL;
@@ -1144,7 +1200,7 @@ void sdb_expand_indexqual_conditions(List *indexclauses,
 }
 
 IndexPath *sdb_build_index_paths(PlannerInfo *root, RelOptInfo *rel,
-              sdbIndexInfo *sdbIndex, sdbIndexClauseSet *clauses, 
+              sdbIndexInfo *sdbIndex, sdbIndexClauseSet *clauses,
               SdbExecState *fdw_state)
 {
    IndexPath  *ipath;
@@ -1204,7 +1260,7 @@ IndexPath *sdb_build_index_paths(PlannerInfo *root, RelOptInfo *rel,
                           NoMovementScanDirection,
                           index_only_scan,
                           outer_relids,
-                          loop_count, 
+                          loop_count,
                           fdw_state);
    return ipath;
 }
@@ -1317,11 +1373,11 @@ EnumSdbArgType getArgumentType(List *arguments)
    {
       return SDB_PARAM_VAR ;
    }
-   
+
    return SDB_UNSUPPORT_ARG_TYPE ;
 }
 
-int sdbGenerateRescanCondition(SdbExecState *fdw_state, PlanState *planState, 
+int sdbGenerateRescanCondition(SdbExecState *fdw_state, PlanState *planState,
                                sdbbson *rescanCondition)
 {
    ListCell *cell     = NULL ;
@@ -1346,7 +1402,7 @@ int sdbGenerateRescanCondition(SdbExecState *fdw_state, PlanState *planState,
       sdbbson subBson ;
       RestrictInfo *info =(RestrictInfo *)lfirst(cell) ;
       sdbbson_init( &subBson ) ;
-      rcTmp = sdbRecurExprTree( (Node *)info->clause, &expr_state, 
+      rcTmp = sdbRecurExprTree( (Node *)info->clause, &expr_state,
                                 &subBson, planState->ps_ExprContext ) ;
       sdbbson_finish( &subBson ) ;
       if( SDB_OK == rcTmp )
@@ -1391,7 +1447,7 @@ void sdbPrintBson( sdbbson *bson, int log_level, const char *label )
    p = ( char* )malloc( bufferSize ) ;
    sdbbson_sprint( p, bufferSize, bson ) ;
 
-   ereport( log_level, ( errcode( ERRCODE_FDW_ERROR ), 
+   ereport( log_level, ( errcode( ERRCODE_FDW_ERROR ),
             errmsg( "bson value=%s,label[%s]", p, myLabel ) ) ) ;
 
    free( p ) ;
@@ -1415,14 +1471,14 @@ void SdbFiniRecordCache()
 {
    INT32 i = 0 ;
    SdbRecordCache *cache = SdbGetRecordCache() ;
-   
+
    for (; i < cache->size; i++ )
    {
       sdbbson_destroy( cache->recordArray[i].record ) ;
       free( cache->recordArray[i].record ) ;
       cache->recordArray[i].record = NULL ;
    }
-   
+
    cache->usedCount = 0 ;
    cache->size      = 0 ;
 }
@@ -1447,13 +1503,13 @@ sdbbson *SdbAllocRecord( SdbRecordCache *recordCache, UINT64 *recordID )
          *recordID = i ;
 
          recordCache->usedCount++ ;
-         elog( DEBUG1, "SdbAllocRecord:usedCount=%d,index=%d", 
+         elog( DEBUG1, "SdbAllocRecord:usedCount=%d,index=%d",
                recordCache->usedCount, i ) ;
          return pRecord ;
       }
    }
 
-   elog( ERROR, "SdbAllocRecord failed:usedCount=%d,index=%d", 
+   elog( ERROR, "SdbAllocRecord failed:usedCount=%d,index=%d",
          recordCache->usedCount, i) ;
    return NULL ;
 }
@@ -1461,7 +1517,7 @@ sdbbson *SdbAllocRecord( SdbRecordCache *recordCache, UINT64 *recordID )
 sdbbson *SdbGetRecord( SdbRecordCache *recordCache, UINT64 recordID )
 {
    INT32 index = ( INT32 ) recordID ;
-//   elog( DEBUG1, "SdbGetRecord:usedCount=%d,index=%d", 
+//   elog( DEBUG1, "SdbGetRecord:usedCount=%d,index=%d",
 //         recordCache->usedCount, index ) ;
 
    if ( index >= recordCache->size )
@@ -1483,7 +1539,7 @@ sdbbson *SdbGetRecord( SdbRecordCache *recordCache, UINT64 recordID )
 void SdbReleaseRecord( SdbRecordCache *recordCache, UINT64 recordID )
 {
    INT32 index = ( INT32 ) recordID ;
-//   elog( DEBUG1, "SdbReleaseRecord:usedCount=%d,index=%d", 
+//   elog( DEBUG1, "SdbReleaseRecord:usedCount=%d,index=%d",
 //         recordCache->usedCount, index ) ;
 
    if ( index >= recordCache->size || index < 0 )

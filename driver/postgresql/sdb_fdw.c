@@ -135,8 +135,6 @@ static void SdbFdwXactCallback( XactEvent event, void *arg ) ;
 static void SdbDestroyCLStatistics( SdbCLStatistics *clStat, bool freeObj );
 static INT32 SdbInitCLStatistics( SdbCLStatistics *clStat );
 static void SdbFiniCLStatisticsCache( SdbStatisticsCache *cache );
-static SdbStatisticsCache *SdbGetStatisticsCache();
-static const SdbCLStatistics * SdbGetCLStatFromCache( Oid foreignTableId ) ;
 
 static BOOLEAN isNormalChar( CHAR c ) ;
 static CHAR *changeToRegexFormat( CHAR *outputString ) ;
@@ -767,10 +765,8 @@ int sdbSetBsonValue( sdbbson *bsonObj, const char *name, Datum valueDatum,
       case BYTEAOID :
       {
 			CHAR *buff = VARDATA_ANY( ( bytea * )DatumGetPointer( valueDatum ) ) ;
-			INT32 len  = VARSIZE_ANY( ( bytea * )DatumGetPointer( valueDatum ) ) ;
-			// eat the last '\0'
-			len-- ;
-			elog(DEBUG1, "len=%d, VARHDRSZ=%d", len, VARHDRSZ) ;
+			INT32 len  = VARSIZE_ANY_EXHDR( ( bytea * )DatumGetPointer( valueDatum ) ) ;
+			elog(DEBUG1, "len=%d", len) ;
          sdbbson_append_binary( bsonObj, name, BSON_BIN_BINARY, buff, len ) ;
          break ;
       }
@@ -3130,7 +3126,7 @@ static void SdbGetForeignRelSize( PlannerInfo *root,
    rc = sdbRowsCount( foreignTableId, &fdw_state->row_count ) ;
    if ( rc )
    {
-      ereport( DEBUG1, ( errmsg( "Unable to retrieve the row count for collection" ),
+      ereport( ERROR, ( errmsg( "Unable to retrieve the row count for collection" ),
             errhint( "Falling back to default estimates in planning" ) ) ) ;
       return ;
    }
@@ -4325,7 +4321,7 @@ static void SdbFdwXactCallback( XactEvent event, void *arg )
    }
 }
 
-static const SdbCLStatistics *SdbGetCLStatFromCache( Oid foreignTableId )
+SdbCLStatistics *SdbGetCLStatFromCache( Oid foreignTableId )
 {
    INT32 rc = SDB_OK ;
    SdbStatisticsCache *cache = NULL ;
@@ -4430,7 +4426,7 @@ error:
 //}
 
 
-static SdbStatisticsCache *SdbGetStatisticsCache()
+SdbStatisticsCache *SdbGetStatisticsCache()
 {
    static SdbStatisticsCache cache ;
    return &cache ;
@@ -4505,6 +4501,8 @@ static INT32 SdbInitCLStatistics( SdbCLStatistics *clStat )
    Oid oid = clStat->tableID ;
 
    memset( clStat, 0, sizeof( SdbCLStatistics ) ) ;
+
+   clStat->indexNum = -1;
 
    sdbGetOptions( oid, &options ) ;
    clStat->tableID = oid ;
