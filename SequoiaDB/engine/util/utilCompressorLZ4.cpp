@@ -82,16 +82,6 @@ namespace engine
          goto error ;
       }
 
-      {
-         UINT32 actualLen = 0 ;
-         CHAR decompressBuff[2048] = { 0 } ;
-         actualLen = LZ4_decompress_fast( dest + sizeof(UINT32),
-                                          decompressBuff, sourceLen ) ;
-         SDB_ASSERT( compressedSize == actualLen, "Decompressed length wrong" ) ;
-         SDB_ASSERT( 0 == ossMemcmp( decompressBuff, source, sourceLen ),
-                     "String not match" ) ;
-      }
-
       *(UINT32*)dest = sourceLen ;
 
    done:
