@@ -82,7 +82,8 @@ namespace engine
          goto error ;
       }
 
-      *(UINT32*)dest = compressedSize ;
+      *(UINT32*)dest = sourceLen ;
+      destLen = compressedSize + sizeof(UINT32) ;
 
    done:
       PD_TRACE_EXITRC( SDB__UTILCOMPRESSORLZ4_COMPRESS, rc ) ;
@@ -127,7 +128,13 @@ namespace engine
 
       actualLen = LZ4_decompress_fast( source + sizeof(UINT32),
                                        dest, uncompressLen ) ;
-      //SDB_ASSERT( uncompressLen == actualLen, "Decompressed length wrong" ) ;
+      if ( actualLen != uncompressLen )
+      {
+         PD_LOG( PDERROR, "Actual length[%d] is not the same with expect[%d]",
+                 actualLen, uncompressLen ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
       destLen = uncompressLen ;
 
    done:
