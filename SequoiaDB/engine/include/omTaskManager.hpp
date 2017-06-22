@@ -177,6 +177,8 @@ namespace engine
 
          INT32             _removeConfigInfo( BSONObj &taskInfoValue ) ;
 
+         INT32             _removeAuthInfo( BSONObj &taskInfoValue ) ;
+
       private:
          INT64             _taskID ;
          INT32             _taskType ;
