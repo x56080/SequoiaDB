@@ -1043,6 +1043,34 @@ namespace engine
       goto done ;
    }
 
+   INT32 omRemoveBusinessTask::_removeAuthInfo( BSONObj &taskInfoValue )
+   {
+      INT32 rc     = SDB_OK ;
+      pmdEDUCB *cb = NULL ;
+      string businessName ;
+      BSONObj condition ;
+      BSONObj hint ;
+
+      businessName = taskInfoValue.getStringField( OM_BSON_BUSINESS_NAME ) ;
+
+      cb        = pmdGetThreadEDUCB() ;
+      condition = BSON( OM_BUSINESS_FIELD_NAME << businessName ) ;
+
+      rc = rtnDelete( OM_CS_DEPLOY_CL_BUSINESS_AUTH, condition, hint, 0, cb );
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "failed to delete business auth from table:%s,"
+                     "business=%s,rc=%d", OM_CS_DEPLOY_CL_BUSINESS_AUTH, 
+                     businessName.c_str(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 omRemoveBusinessTask::_removeConfigInfo( BSONObj &taskInfoValue )
    {
       INT32 rc     = SDB_OK ;
@@ -1094,16 +1122,24 @@ namespace engine
       rc = _removeBusinessInfo( taskInfoValue ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "store business info failed:rc=%d", rc ) ;
+         PD_LOG( PDERROR, "delete business info failed:rc=%d", rc ) ;
          goto error ;
       }
 
       rc = _removeConfigInfo( taskInfoValue ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "store configure info failed:rc=%d", rc ) ;
+         PD_LOG( PDERROR, "delete configure info failed:rc=%d", rc ) ;
          goto error ;
       }
+
+      rc = _removeAuthInfo( taskInfoValue ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "delete auth info failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
    done:
       return rc ;
    error:
