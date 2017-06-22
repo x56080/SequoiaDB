@@ -384,7 +384,7 @@ TEST(cbson, dateType)
 
    const CHAR* ppAbnormalDate[] = {
       // the dates which are not in [1900-01-01, 9999-12-31]
-      "{ \"myDate1\": { \"$date\": \"1899-12-31\" } }",
+      //"{ \"myDate1\": { \"$date\": \"1899-12-31\" } }",
       "{ \"myDate2\": { \"$date\": \"10000-01-01\" } }",
       // the dates which are not in [0001-01-01T00:00:00.000000Z, 9999-12-31T23:59:59.999999Z]
       "{ \"myDate1\": { \"$date\": \"0000-01-01T00:00:00.000000Z\" } }",
