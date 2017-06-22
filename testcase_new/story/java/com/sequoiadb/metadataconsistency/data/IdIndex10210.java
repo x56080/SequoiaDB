@@ -93,7 +93,8 @@ public class IdIndex10210 extends SdbTestBase {
 				clDB.dropIdIndex();
 			}catch(BaseException e){
 				int eCode = e.getErrorCode();
-				if( eCode != -248 && eCode != -23){ //-248: Dropping the collection space is in progress
+				if( eCode != -248 && eCode != -23 && eCode != -34 && 
+						!e.getMessage().toString().contains("null")){ //-248: Dropping the collection space is in progress
 					throw e;
 				}
 			}finally{
