@@ -114,6 +114,13 @@ Backup Database.
 .br
               Compressed:true
 .sp 2
+       \fBCompressionType\fR
+.br
+              Compression type, value: "lz4", "snappy" or "zlib".
+              "snappy" in default.
+.br
+              CompressionType:"zlib"
+.sp 2
        \fBBackupLog\fR
 .br
               Whether to backup replica logs in full backup.

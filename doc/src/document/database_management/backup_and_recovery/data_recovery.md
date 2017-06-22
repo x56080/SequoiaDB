@@ -19,7 +19,7 @@
 | --isSelf      |      | 是否为恢复本节点数据，缺省为“true”；<br>当取值为“false”时，根据如下参数将数据恢复至指定路径：--dppath，--confpath，--svcname，--indexpath，--logpath，--diagpath，--bkuppath，--replname，--shardname，--catalogname，--httpname。 |
 | --dbpath      |      | 必须配置，数据文件目录。 |
 | --confpath    |      | 必须配置，配置文件路径， 当 `-s true` 可缺省。 |
-| --svcname     |      | 必须配置，本地服务名或端口，当 `-s true` 可缺省。 |
+| --svcname     |      | 必须配置，本地服务名或端口。 |
 | --indexpath   |      | 索引文件目录。 |
 | --logpath     |      | 日志文件目录。 |
 | --diagpath    |      | 诊断日志文件目录。 |
@@ -62,6 +62,7 @@
 
     ```lang-javascript
     sdbadmin@hostname1:/opt/sequoiadb> bin/sdbrestore -p database/11820/bakfile -n test_bk
+    Check sequoiadb(11820) is not running...OK
     Begin to clean dps logs...
     Begin to clean dms storages...
     Begin to init dps logs...
@@ -70,6 +71,7 @@
     Begin to restore su: test.1.data ...
     Begin to restore su: test.1.idx ...
     Begin to restore dps logs...
+    Begin to wait repl bucket empty...
     *****************************************************
     Restore succeed!
     *****************************************************
@@ -93,12 +95,13 @@
 
 1.  准备用于恢复离线数据的目录
 
-    假定目录为： /backupdata/node1
+    假定目录为： /backupdata/11820
 
 2.  通过终端登入相应的节点，执行数据恢复。
 
     ```lang-javascript
-    sdbadmin@hostname1:/opt/sequoiadb> bin/sdbrestore -p database/11820/bakfile -n test_bk -s true --isSelf false --dbpath /backupdata/node1 
+    sdbadmin@hostname1:/opt/sequoiadb> bin/sdbrestore -p database/11820/bakfile -n test_bk -s true --isSelf false --dbpath /backupdata/11820 --svcname 11820
+    Check sequoiadb(11820) is not running...OK
     Begin to clean dps logs...
     Begin to clean dms storages...
     Begin to init dps logs...
@@ -107,6 +110,7 @@
     Begin to restore su: test.1.data ...
     Begin to restore su: test.1.idx ...
     Begin to restore dps logs...
+    Begin to wait repl bucket empty...
     *****************************************************
     Restore succeed!
     *****************************************************
