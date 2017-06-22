@@ -130,10 +130,10 @@ namespace engine
 
       actualLen = LZ4_decompress_fast( source + sizeof(UINT32),
                                        dest, uncompressLen ) ;
-      if ( actualLen != uncompressLen )
+      if ( actualLen != sourceLen - sizeof(UINT32) )
       {
-         PD_LOG( PDERROR, "Actual length[%d] is not the same with expect[%d]",
-                 actualLen, uncompressLen ) ;
+         PD_LOG( PDERROR, "Actual length[%d] is not the same with source[%d]",
+                 actualLen, sourceLen - sizeof(UINT32) ) ;
          rc = SDB_SYS ;
          goto error ;
       }
