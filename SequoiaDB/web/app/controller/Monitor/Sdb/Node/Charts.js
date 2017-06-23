@@ -56,10 +56,32 @@
 
                if( isFirstBuild == false )
                {
-                  $scope.charts['Insert']['value'] = [ [ 0, ( currentInfo['TotalInsert'] - lastInfo['TotalInsert'] ) / 5, true, false ] ] ;
-                  $scope.charts['Update']['value'] = [ [ 0, ( currentInfo['TotalUpdate'] - lastInfo['TotalUpdate'] ) / 5, true, false ] ] ;
-                  $scope.charts['Delete']['value'] = [ [ 0, ( currentInfo['TotalDelete'] - lastInfo['TotalDelete'] ) / 5, true, false ] ] ;
-                  $scope.charts['Query']['value']  = [ [ 0, ( currentInfo['TotalRead']   - lastInfo['TotalRead'] )   / 5, true, false ] ] ;
+                  var tempInsert = 0 ;
+                  var tempUpdate = 0 ;
+                  var tempDelete = 0 ;
+                  var tempRead = 0 ;
+
+                  if( currentInfo['TotalInsert'] > lastInfo['TotalInsert'] )
+                  {
+                     tempInsert = ( currentInfo['TotalInsert'] - lastInfo['TotalInsert'] ) / 5 ;
+                  }
+                  if( currentInfo['TotalUpdate'] > lastInfo['TotalUpdate'] )
+                  {
+                     tempUpdate = ( currentInfo['TotalUpdate'] - lastInfo['TotalUpdate'] ) / 5 ;
+                  }
+                  if( currentInfo['TotalDelete'] > lastInfo['TotalDelete'] )
+                  {
+                     tempDelete = ( currentInfo['TotalDelete'] - lastInfo['TotalDelete'] ) / 5 ;
+                  }
+                  if( currentInfo['TotalRead'] > lastInfo['TotalRead'] )
+                  {
+                     tempRead = ( currentInfo['TotalRead'] - lastInfo['TotalRead'] ) / 5 ;
+                  }
+
+                  $scope.charts['Insert']['value'] = [ [ 0, tempInsert, true, false ] ] ;
+                  $scope.charts['Update']['value'] = [ [ 0, tempUpdate, true, false ] ] ;
+                  $scope.charts['Delete']['value'] = [ [ 0, tempDelete, true, false ] ] ;
+                  $scope.charts['Query']['value']  = [ [ 0, tempRead, true, false ] ] ;
                }
                lastInfo['TotalInsert'] = currentInfo['TotalInsert'] ;
                lastInfo['TotalUpdate'] = currentInfo['TotalUpdate'] ;

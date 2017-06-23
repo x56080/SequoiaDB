@@ -45,10 +45,32 @@
                   }
                   else
                   {
-                     $scope.charts['Insert']['value'] = [ [ 0, ( dbInfo['TotalInsert'] - SumInfo['TotalInsert'] ) / 5, true, false ] ] ;
-                     $scope.charts['Update']['value'] = [ [ 0, ( dbInfo['TotalUpdate'] - SumInfo['TotalUpdate'] ) / 5, true, false ] ] ;
-                     $scope.charts['Delete']['value'] = [ [ 0, ( dbInfo['TotalDelete'] - SumInfo['TotalDelete'] ) / 5, true, false ] ] ;
-                     $scope.charts['Read']['value'] = [ [ 0, ( dbInfo['TotalRead'] - SumInfo['TotalRead'] ) / 5, true, false ] ] ;
+                     var tempInsert = 0 ;
+                     var tempUpdate = 0 ;
+                     var tempDelete = 0 ;
+                     var tempRead = 0 ;
+
+                     if( dbInfo['TotalInsert'] > SumInfo['TotalInsert'] )
+                     {
+                        tempInsert = ( dbInfo['TotalInsert'] - SumInfo['TotalInsert'] ) / 5 ;
+                     }
+                     if( dbInfo['TotalUpdate'] > SumInfo['TotalUpdate'] )
+                     {
+                        tempUpdate = ( dbInfo['TotalUpdate'] - SumInfo['TotalUpdate'] ) / 5 ;
+                     }
+                     if( dbInfo['TotalDelete'] > SumInfo['TotalDelete'] )
+                     {
+                        tempDelete = ( dbInfo['TotalDelete'] - SumInfo['TotalDelete'] ) / 5 ;
+                     }
+                     if( dbInfo['TotalRead'] > SumInfo['TotalRead'] )
+                     {
+                        tempRead = ( dbInfo['TotalRead'] - SumInfo['TotalRead'] ) / 5 ;
+                     }
+
+                     $scope.charts['Insert']['value'] = [ [ 0, tempInsert, true, false ] ] ;
+                     $scope.charts['Update']['value'] = [ [ 0, tempUpdate, true, false ] ] ;
+                     $scope.charts['Delete']['value'] = [ [ 0, tempDelete, true, false ] ] ;
+                     $scope.charts['Read']['value']   = [ [ 0, tempRead, true, false ] ] ;
 
                      SumInfo['TotalInsert'] = dbInfo['TotalInsert'] ;
                      SumInfo['TotalUpdate'] = dbInfo['TotalUpdate'] ;

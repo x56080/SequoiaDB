@@ -71,10 +71,32 @@
                dbInfo = data[0] ;
                if( isInit == true )
                {
-                  $scope.charts['Insert']['value'] = [ [ 0, ( dbInfo['TotalInsert'] - lastInfo['TotalInsert'] ) / 5, true, false ] ] ;
-                  $scope.charts['Update']['value'] = [ [ 0, ( dbInfo['TotalUpdate'] - lastInfo['TotalUpdate'] ) / 5, true, false ] ] ;
-                  $scope.charts['Delete']['value'] = [ [ 0, ( dbInfo['TotalDelete'] - lastInfo['TotalDelete'] ) / 5, true, false ] ] ;
-                  $scope.charts['Query']['value']  = [ [ 0, ( dbInfo['TotalRead'] - lastInfo['TotalRead'] ) / 5, true, false ] ] ;
+                  var tempInsert = 0 ;
+                  var tempUpdate = 0 ;
+                  var tempDelete = 0 ;
+                  var tempRead = 0 ;
+
+                  if( dbInfo['TotalInsert'] > lastInfo['TotalInsert'] )
+                  {
+                     tempInsert = ( dbInfo['TotalInsert'] - lastInfo['TotalInsert'] ) / 5 ;
+                  }
+                  if( dbInfo['TotalUpdate'] > lastInfo['TotalUpdate'] )
+                  {
+                     tempUpdate = ( dbInfo['TotalUpdate'] - lastInfo['TotalUpdate'] ) / 5 ;
+                  }
+                  if( dbInfo['TotalDelete'] > lastInfo['TotalDelete'] )
+                  {
+                     tempDelete = ( dbInfo['TotalDelete'] - lastInfo['TotalDelete'] ) / 5 ;
+                  }
+                  if( dbInfo['TotalRead'] > lastInfo['TotalRead'] )
+                  {
+                     tempRead = ( dbInfo['TotalRead'] - lastInfo['TotalRead'] ) / 5 ;
+                  }
+
+                  $scope.charts['Insert']['value'] = [ [ 0, tempInsert, true, false ] ] ;
+                  $scope.charts['Update']['value'] = [ [ 0, tempUpdate, true, false ] ] ;
+                  $scope.charts['Delete']['value'] = [ [ 0, tempDelete, true, false ] ] ;
+                  $scope.charts['Query']['value']  = [ [ 0, tempRead, true, false ] ] ;
                }
                lastInfo['TotalInsert'] = dbInfo['TotalInsert'] ;
                lastInfo['TotalUpdate'] = dbInfo['TotalUpdate'] ;
