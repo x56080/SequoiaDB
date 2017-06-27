@@ -92,6 +92,7 @@ namespace engine
       BSONElement idEle ;
       const bson::OID *oidPtr = NULL ;
       BOOLEAN paralla = FALSE ;
+      BOOLEAN updateSameOID = FALSE ;
       UINT32 bucketID = ~0 ;
 
       SDB_ASSERT( recordHeader && pBucket, "Invalid param" ) ;
@@ -100,11 +101,9 @@ namespace engine
       switch( recordHeader->_type )
       {
          case LOG_TYPE_DATA_INSERT :
-            paralla = FALSE ;
             rc = dpsRecord2Insert( (CHAR *)recordHeader, &fullname, obj ) ;
             break ;
          case LOG_TYPE_DATA_DELETE :
-            paralla = FALSE ;
             rc = dpsRecord2Delete( (CHAR *)recordHeader, &fullname, obj ) ;
             break ;
          case LOG_TYPE_DATA_UPDATE :
@@ -119,7 +118,7 @@ namespace engine
                  0 == match.woCompare( newMatch, BSONObj(), false ) )
             {
                obj = match ;
-               paralla = TRUE ;
+               updateSameOID = TRUE ;
             }
             break ;
          }
@@ -193,7 +192,8 @@ namespace engine
 
       /// when collection has multi unique index, can't use paralla sync
       if ( LOG_TYPE_DATA_INSERT == recordHeader->_type ||
-           LOG_TYPE_DATA_DELETE == recordHeader->_type )
+           LOG_TYPE_DATA_DELETE == recordHeader->_type ||
+           ( LOG_TYPE_DATA_UPDATE == recordHeader->_type && updateSameOID ) )
       {
          dmsStorageUnit *su = NULL ;
          const CHAR *pShortName = NULL ;
