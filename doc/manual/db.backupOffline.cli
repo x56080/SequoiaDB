@@ -58,7 +58,9 @@ Backup Database.
               Backup path, the default path is the one specified
               in the configuration. The path supports
               wildcards(%g%G: group name, %h%H:host name,
-              %s%S:service name).
+              %s%S:service name). When running on coord, use
+              wildcards to avoid IO errors caused by multiple 
+              nodes operating under the same path.
 .br
               Path:"/opt/sequoiadb/backup/%g"
 .sp 2
@@ -66,7 +68,9 @@ Backup Database.
 .br
               Whether the path configured in the above Path
               parameter is a subdirectory of the backup path in
-              the configuration. False in default.
+              the configuration. If true, the real backup path
+              is: "Path in configure" / "Path above parameter".
+              False in default.
 .br
               IsSubDir:false
 .sp 2

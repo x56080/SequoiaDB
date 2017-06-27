@@ -16,8 +16,8 @@
 | GroupID 	| 备份的复制组 ID，缺省为所有复制组 		| GroupID:1000 或 GroupID:[1000, 1001] |
 | GroupName | 备份的复制组名，缺省为所有复制组 			| GroupName:"data1" 或 GroupName:["data1", "data2"] |
 | Name 		| 备份名称，缺省删除所有备份 				| Name:"backup-2014-1-1" |
-| Path 		| 备份路径，缺省为配置参数指定的备份路径。该路径支持通配符（%g/%G: group name, %h/%H: host name, %s/%S:service name） 						| Path:"/opt/sequoiadb/backup/%g" |
-| IsSubDir 	| 上述 Path 参数所配置的路径是否为配置参数指定的备份路径的子目录，缺省为 false 																	| IsSubDir:false |
+| Path 		| 备份路径，缺省为配置参数指定的备份路径。该路径支持通配符（%g/%G: group name, %h/%H: host name, %s/%S:service name）。当在协调节点上执行命令使用该参数时，需要使用通配符，以避免所有的节点往同一个路径下进行操作而导致未知IO错误。 | Path:"/opt/sequoiadb/backup/%g" |
+| IsSubDir 	| 上述 Path 参数所配置的路径是否为配置参数指定的备份路径的子目录，如果为true，则真实的备份目录为：" 配置参数中指定的备份目录 / `Path`目录 "；缺省为 false。 | IsSubDir:false |
 | Prefix 	| 备份前缀名，支持通配符（%g,%G,%h,%H,%s,%S），缺省为空 | Prefix:"%g_bk_" |
 | ID        | 备份 ID，-1表示该名字的所有备份, 缺少为 -1 | ID: -1 |
 
