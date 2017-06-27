@@ -67,7 +67,7 @@ BSON 是 JSON 的二进制表现形式，通过记录每个对象，元素，以
 
 ##读取对象##
 
-* 读取 BSON 对象使用一个 bson_iterator，对一个完整的例子，可以使用 bson_print_raw 方法来读取。但是首先得初始化 bson_iterator 对象，然后使用 bson_iterator_next 遍历每一个元素。
+* 可以使用 bson_print 方法来打印 BSON 内容。也可以使用 bson_iterator 来遍历 BSON 的所有字段内容。要遍历 BSON，首先要初始化 bson_iterator，然后使用 bson_iterator_next 遍历 BSON 每一个元素。
 
   ```lang-javascript
   bson newobj;
