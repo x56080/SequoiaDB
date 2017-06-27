@@ -393,9 +393,6 @@ namespace engine
 
       _isActive = FALSE ;
 
-      // set quit flag
-      _eduMgr.setQuiesced( TRUE ) ;
-
       // Deactive all registered cbs
       for ( index = SDB_CB_MAX ; index > 0 ; --index )
       {
@@ -412,7 +409,9 @@ namespace engine
       }
 
       // stop all io services and edus(thread)
+      // The quit flag is set inside reset()
       _eduMgr.reset () ;
+
       /// sync complete lsn
       _syncMgr.syncAndGetLastLSN() ;
 
