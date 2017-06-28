@@ -97,6 +97,12 @@
                "en": "Upgrade"
             },
             {
+               "id": 1498628396,
+               "file": "compatibility",
+               "cn": "版本兼容性",
+               "en": "Compatibility"
+            },
+            {
                "id": 1432190598,
                "file": "uninstall",
                "cn": "卸载",
