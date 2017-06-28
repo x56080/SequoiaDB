@@ -1867,6 +1867,9 @@ namespace engine
                    "Failed to create new main-collection context(rc=%d)",
                    rc );
 
+      /// must set before open
+      pContextMainCL->setWriteInfo( _pDpsCB, w ) ;
+
       rc = pContextMainCL->open( options,
                                  strSubCLList,
                                  includeShardingOrder,
@@ -1874,8 +1877,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Open main-collection context failed(rc=%d)",
                    rc );
-
-      pContextMainCL->setWriteInfo( _pDpsCB, w ) ;
 
       if ( FLG_QUERY_EXPLAIN & flags )
       {
