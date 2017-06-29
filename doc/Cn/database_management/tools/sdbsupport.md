@@ -68,17 +68,17 @@ $ ./sdbsupport.sh --all</pre>
 4.收集指定主机信息。
 
 <pre class="prettyprint lang-javascript">
-$ ./sdbsuport.sh -s htest2</pre>
+$ ./sdbsupport.sh -s htest2</pre>
 
 5.收集指定主机指定端口信息。
 
 <pre class="prettyprint lang-javascript">
-$ ./sdbsuppor.sh -s htest3 -p 50000</pre>
+$ ./sdbsupport.sh -s htest3 -p 50000</pre>
 
 6.收集操作系统信息。
 
 <pre class="prettyprint lang-javascript">
-$ ./sdbsupport.h --osinfo</pre>
+$ ./sdbsupport.sh --osinfo</pre>
 
 7.收集特定主机特定端口的日志信息及快照信息。
 
