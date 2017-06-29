@@ -104,7 +104,7 @@ $ ./sdbsupport.sh -s htest2 -p 11810 --snapshot --log</pre>
 数据库集群内的机器，如果没有配置信任关系，在收集时，需要输入密码，如：
 
 <pre class="prettyprint lang-javascript">
-$ /opt/sequoiadb/tools/sdbsupport/expect/expect
+$ /opt/sequoiadb/tools/expect/expect/expect
 
 Success to export System environment variable : /opt/sequoiadb/tools/sdbsupport/expect/
 Check over Environment!
