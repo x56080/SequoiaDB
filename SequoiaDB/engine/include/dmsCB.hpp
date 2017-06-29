@@ -317,6 +317,21 @@ namespace engine
    typedef class _SDB_DMSCB SDB_DMSCB ;
 
    /*
+      _dmsCSMutexScope define
+   */
+   class _dmsCSMutexScope
+   {
+      public:
+         _dmsCSMutexScope( SDB_DMSCB *pDMSCB, const CHAR *pName ) ;
+         ~_dmsCSMutexScope() ;
+
+      private:
+         SDB_DMSCB            *_pDMSCB ;
+         const CHAR           *_pName ;
+   } ;
+   typedef _dmsCSMutexScope dmsCSMutexScope ;
+
+   /*
       get global SDB_DMSCB
    */
    SDB_DMSCB* sdbGetDMSCB () ;

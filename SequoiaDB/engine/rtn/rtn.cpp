@@ -1516,6 +1516,8 @@ namespace engine
             continue ;
          }
          ++syncCSNum ;
+
+         dmsCSMutexScope csLock( dmsCB, csName ) ;
          /// get cs lock
          rc = dmsCB->nameToSUAndLock ( csName, suID, &su, SHARED ) ;
          if ( SDB_DMS_CS_NOTEXIST == rc )
