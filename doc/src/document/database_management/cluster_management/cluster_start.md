@@ -1,6 +1,6 @@
 ##操作系统重启动##
 
-操作系统启动后会自动启动服务 sdbcm（SequoiaDB Cluster Manager）。该服务启动后会自动启动该物理机中所有注册在 /opt/sequoiadb/conf/local 目录下的节点。使用命令 ```ps –elf | grep sequoiadb``` 能看到当前正在启动的节点与启动完毕的节点。启动完毕的进程名为：sequoiadb（服务名）正在启动的进程名一般为：
+操作系统启动后会自动启动服务 sdbcm（SequoiaDB Cluster Manager）。该服务启动后会自动启动该物理机中所有注册在 /opt/sequoiadb/conf/local 目录下的节点。使用命令 ```ps –elf | grep sequoiadb``` 能看到当前正在启动的节点与启动完毕的节点。启动完毕的进程名为：sequoiadb（服务名）, 正在启动的进程名一般为：
 
 ```lang-javascript
 $ /opt/sequoiadb/bin/sequoiadb –c /opt/sequoiadb/conf/local/（服务名）

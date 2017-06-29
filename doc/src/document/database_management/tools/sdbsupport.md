@@ -72,19 +72,19 @@ $ chmod 755 sdbsupport.sh
 4.  收集指定主机信息。
 
     ```lang-javascript
-    $ ./sdbsuport.sh -s hostname1
+    $ ./sdbsupport.sh -s hostname1
     ```
 
 5.  收集指定主机指定端口信息。
 
     ```lang-javascript
-    $ ./sdbsuppor.sh -s hostname1 -p 11810
+    $ ./sdbsupport.sh -s hostname1 -p 11810
     ```
 
 6.  收集操作系统信息。
 
     ```lang-javascript
-    $ ./sdbsupport.h --osinfo
+    $ ./sdbsupport.sh --osinfo
     ```
 
 7.  收集特定主机特定端口的日志信息及快照信息。

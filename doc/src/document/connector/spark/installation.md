@@ -126,7 +126,7 @@ res2: Long = 19
  >
  >推荐在每个 SequoiaDB 集群的主机中，运行一个 Worker 节点。
 
- SequoiaDB 和 Apache Spark 对接需要相应的驱动，登录 [https://oss.sonatype.org](https://oss.sonatype.org)，搜索 sequoiadb-driver 下载 SequoiaDB 最新的 java 驱动， 搜索 spark-sequoiadb 下载 SequoiaDB 最新的 spark 驱动，注意 scala 版本，然后把他们复制集群中的每个节点 $SPARK_HOME/lib 目录。
+ SequoiaDB 和 Apache Spark 对接需要相应的驱动，登录 [https://oss.sonatype.org](https://oss.sonatype.org)，搜索 sequoiadb-driver 下载 SequoiaDB 最新的 java 驱动， 搜索 spark-sequoiadb 下载 SequoiaDB 最新的 spark 驱动，注意 scala 版本，然后把他们复制到集群中的每个节点 $SPARK_HOME/lib 目录。
 
  Apache Spark 配置文件默认位于conf/spark-env.sh，假设 SequoiaDB 安装在 /opt/sequoiadb，你可以复制一个 spark-env.sh.template 后作出以下的配置修改：
 
