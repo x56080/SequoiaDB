@@ -633,12 +633,16 @@
         <!--stop process-->
         <runProgram>
             <program>service</program>
-            <programArguments>sdbcm stop</programArguments>            
+            <programArguments>sdbcm stop</programArguments>
+            <abortOnError>0</abortOnError>
+            <showMessageOnError>0</showMessageOnError>
         </runProgram>
         <runProgram>
             <program>${installdir}/bin/sdbstop</program>
             <programArguments>-t all</programArguments> 
-            <runAs>${username}</runAs>          
+            <runAs>${username}</runAs>
+            <abortOnError>0</abortOnError>
+            <showMessageOnError>0</showMessageOnError>
         </runProgram> 
         
         <!--check process has been stoped or not-->        
