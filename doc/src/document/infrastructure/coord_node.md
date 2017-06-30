@@ -29,7 +29,7 @@
 2. 拷贝协调节点样例配置文件；
 
   ```lang-javascript
-  $cp /opt/sequoiadb/conf/samples/sdb.conf.coord/opt/sequoiadb/conf/local/11810/sdb.conf
+  $cp /opt/sequoiadb/conf/samples/sdb.conf.coord /opt/sequoiadb/conf/local/11810/sdb.conf
   ```
 
 3. 修改配置文件；

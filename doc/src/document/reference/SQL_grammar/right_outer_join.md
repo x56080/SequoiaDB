@@ -16,7 +16,7 @@ right outer join 会从右边的集合(collection2_name)那里返回所有的记
 
 ##示例##
 
-   * 集合 foo.persions 中记录如下：
+   * 集合 foo.persons 中记录如下：
 
    ```
    { "Id_P": 1, "LastName": "Adams", "FirstName": "John", "Address": "Oxford Street", "City": "London" }

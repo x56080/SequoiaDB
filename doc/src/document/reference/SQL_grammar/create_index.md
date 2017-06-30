@@ -11,7 +11,7 @@
 | cs_name | string | 集合空间名。 | 是 |
 | cl_name | string | 集合名。 | 是 |
 | field1_name | string | 创建索引所使用的字段名。可使用多个字段创建组合索引。 | 是 |
-| asc/desc | string | asc表示创建索引所指定的字段的值将按升序排列；dasc表示创建索引所指定的字段的值将按降序排列。 | 否 |
+| asc/desc | string | asc表示创建索引所指定的字段的值将按升序排列；desc表示创建索引所指定的字段的值将按降序排列。 | 否 |
 
 ##返回值##
 无。
