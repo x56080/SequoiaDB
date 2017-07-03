@@ -2393,7 +2393,7 @@ namespace engine
                    "Failed to get info of collection [%s], rc: %d",
                    clName.c_str(), rc ) ;
       PD_CHECK( isExist,
-                SDB_DMS_NOTEXIST, error, PDWARNING,
+                SDB_DMS_NOTEXIST, error, PDDEBUG,
                 "Collection [%s] does not exist!",
                 clName.c_str() ) ;
    done :
