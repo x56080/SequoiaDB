@@ -203,11 +203,11 @@ dpsDumpFilter* _dpsFilterFactory::createFilter( int type )
          filter = SDB_OSS_NEW dpsLsnFilter() ;
          break ;
       }
-//    case SDB_LOG_FILTER_META :
-//       {
-//          filter = SDB_OSS_NEW dpsMetaFilter() ;
-//          break ;
-//       }
+   case SDB_LOG_FILTER_META :
+      {
+         filter = SDB_OSS_NEW dpsMetaFilter() ;
+         break ;
+      }
    case SDB_LOG_FILTER_NONE :
       {
          filter = SDB_OSS_NEW dpsNoneFilter() ;
@@ -330,6 +330,19 @@ done:
 
 error:
    goto done;
+}
+
+////////////////////////////////////////////////////////////////////
+///< for _dpsMetaFilter
+BOOLEAN _dpsMetaFilter::match( dpsDumper *dumper, CHAR *pRecord )
+{
+   return dpsDumpFilter::match( dumper, pRecord ) ;
+}
+
+INT32 _dpsMetaFilter::doFilte( dpsDumper *dumper, OSSFILE &out,
+                               const CHAR *logFilePath )
+{
+   return SDB_OK ;
 }
 
 /*
@@ -667,7 +680,6 @@ INT32 _dpsDumper::process( const po::options_description &desc,
       _filter = dpsFilterFactory::getInstance()
                 ->createFilter( SDB_LOG_FILTER_META ) ;
       CHECK_FILTER( _filter ) ;
-      goto done ;
    }
 
    if( NULL == _filter )
