@@ -189,8 +189,11 @@ def object_hook(dct, compile_re=True):
     if "$ref" in dct:
         return DBRef(dct["$ref"], dct["$id"], dct.get("$db", None))
     if "$date" in dct:
-        secs = float(dct["$date"]) / 1000.0
-        return EPOCH_AWARE + datetime.timedelta(seconds=secs)
+        try:
+            secs = float(dct["$date"]) / 1000.0
+            return EPOCH_AWARE + datetime.timedelta(seconds=secs)
+        except ValueError:
+            return datetime.datetime.strptime(dct["$date"], "%Y-%m-%d")
     if "$regex" in dct:
         flags = 0
         # PyMongo always adds $options but some other tools may not.
@@ -239,11 +242,11 @@ def default(obj):
         return _json_convert(obj.as_doc())
     if isinstance(obj, datetime.datetime):
         # TODO share this code w/ bson.py?
-        if obj.utcoffset() is not None:
-            obj = obj - obj.utcoffset()
-        millis = int(calendar.timegm(obj.timetuple()) * 1000 +
-                     obj.microsecond / 1000)
-        return {"$date": millis}
+        #if obj.utcoffset() is not None:
+        #    obj = obj - obj.utcoffset()
+        #millis = int(calendar.timegm(obj.timetuple()) * 1000 +
+        #             obj.microsecond / 1000)
+        return {"$date": obj.strftime("%Y-%m-%d")}
     if isinstance(obj, (RE_TYPE, Regex)):
         flags = ""
         if obj.flags & re.IGNORECASE:
