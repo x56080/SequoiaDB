@@ -342,7 +342,7 @@ namespace engine
    #define DMS_SYNC_RECORDNUM_DFT         ( 0 )
    #define DMS_SYNC_DIRTYRATIO_DFT        ( 50 )
    #define DMS_SYNC_INTERVAL_DFT          ( 10000 )
-   #define DMS_SYNC_NOWRITE_DFT           ( 10000 )
+   #define DMS_SYNC_NOWRITE_DFT           ( 5000 )
 
    /*
       _dmsStorageBase : implement
@@ -532,16 +532,15 @@ namespace engine
          force = TRUE ;
          return TRUE ;
       }
-      else if ( pmdGetTickSpanTime( _lastWriteTick ) < _syncNoWriteTime )
-      {
-         return FALSE ;
-      }
-
-      if ( _syncRecordNum > 0 && _writeReordNum >= _syncRecordNum )
+      else if ( _syncRecordNum > 0 && _writeReordNum >= _syncRecordNum )
       {
          PD_LOG( PDDEBUG, "Write record number[%u] more than threshold[%u]",
                  _writeReordNum, _syncRecordNum ) ;
          return TRUE ;
+      }
+      else if ( pmdGetTickSpanTime( _lastWriteTick ) < _syncNoWriteTime )
+      {
+         return FALSE ;
       }
       else if ( _syncInterval > 0 )
       {

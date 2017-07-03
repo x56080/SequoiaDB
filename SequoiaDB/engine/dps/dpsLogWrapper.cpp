@@ -511,17 +511,19 @@ namespace engine
    {
       force = FALSE ;
 
-      if ( pmdGetTickSpanTime( _lastWriteTick ) < DPS_NO_WRITE_TIME ||
-           !_buf.hasDirty() )
+      if ( !_buf.hasDirty() )
       {
          return FALSE ;
       }
-
-      if ( _syncRecordNum > 0 && _writeReordNum >= _syncRecordNum )
+      else if ( _syncRecordNum > 0 && _writeReordNum >= _syncRecordNum )
       {
          PD_LOG( PDDEBUG, "Write record number[%u] more than threshold[%u]",
                  _writeReordNum, _syncRecordNum ) ;
          return TRUE ;
+      }
+      else if ( pmdGetTickSpanTime( _lastWriteTick ) < DPS_NO_WRITE_TIME )
+      {
+         return FALSE ;
       }
       else if ( _syncInterval > 0 )
       {
