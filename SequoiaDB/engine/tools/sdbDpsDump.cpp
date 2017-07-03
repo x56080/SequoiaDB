@@ -983,7 +983,7 @@ INT32 _dpsDumper::_analysisMeta()
       CHAR filename[ OSS_MAX_PATHSIZE * 2 ] = { 0 } ;
       dpsFileMeta meta ;
       ossMemcpy( filename, srcPath, OSS_MAX_PATHSIZE ) ;
-      CHAR *pos = ossStrchr( filename, '.' ) ;
+      CHAR *pos = ossStrrchr( filename, '.' ) ;
       UINT32 index = 0 ;
       if ( NULL == pos )
       {
