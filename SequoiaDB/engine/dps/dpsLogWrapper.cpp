@@ -519,6 +519,7 @@ namespace engine
       {
          PD_LOG( PDDEBUG, "Write record number[%u] more than threshold[%u]",
                  _writeReordNum, _syncRecordNum ) ;
+         force = TRUE ;
          return TRUE ;
       }
       else if ( pmdGetTickSpanTime( _lastWriteTick ) < DPS_NO_WRITE_TIME )
