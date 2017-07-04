@@ -1,4 +1,4 @@
-﻿// --------------------- Data.Database.Index ---------------------
+// --------------------- Data.Database.Index ---------------------
 var _DataDatabaseIndex = {} ;
 
 //控制是否显示子集合
@@ -1556,7 +1556,7 @@ _DataDatabaseIndex.showCreateCL = function( $scope, SdbRest ){
                   {
                      $scope.Components.Modal.formShow = 4 ;
                   }
-                  $scope.Components.Modal.form4.inputList[1]['value'] = '' ;
+                  $scope.Components.Modal.form4.inputList[1]['value'] = 'main' ;
                   $scope.Components.Modal.form1.inputList[0]['value'] = $scope.Components.Modal.form4.inputList[0]['value'] ;
                   $scope.Components.Modal.form2.inputList[0]['value'] = $scope.Components.Modal.form4.inputList[0]['value'] ;
                   $scope.Components.Modal.form3.inputList[0]['value'] = $scope.Components.Modal.form4.inputList[0]['value'] ;
