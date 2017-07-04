@@ -1,4 +1,4 @@
-﻿(function(){
+(function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
    sacApp.controllerProvider.register( 'Data.Database.Index.Ctrl', function( $scope, $location, SdbFunction, SdbRest ){
@@ -1138,7 +1138,7 @@
                         {
                            $scope.Components.Modal.formShow = 4 ;
                         }
-                        $scope.Components.Modal.form4.inputList[1]['value'] = '' ;
+                        $scope.Components.Modal.form4.inputList[1]['value'] = 'main' ;
                         $scope.Components.Modal.form1.inputList[0]['value'] = $scope.Components.Modal.form4.inputList[0]['value'] ;
                         $scope.Components.Modal.form2.inputList[0]['value'] = $scope.Components.Modal.form4.inputList[0]['value'] ;
                         $scope.Components.Modal.form3.inputList[0]['value'] = $scope.Components.Modal.form4.inputList[0]['value'] ;
