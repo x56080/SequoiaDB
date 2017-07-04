@@ -4101,11 +4101,15 @@ namespace sdbclient
                               const bson::BSONObj &selector = _sdbStaticObject,
                               const bson::BSONObj &orderBy = _sdbStaticObject);
     \brief List the backups.
-    \param [in] options Contains configuration infomations for remove backups, list all the backups in the default backup path if null. The "options" contains 3 options as below. All the elements in options are optional. eg: {"GroupName":["rgame1", "rgName2"], "Path":"/opt/sequoiadb/backup", "Name":"backupName"}
+    \param [in] options Contains configuration information for listing backups, list all the backups in the default backup path if null. The "options" contains several options as below. All the elements in options are optional. eg: {"GroupName":["RGName1", "RGName2"], "Path":"/opt/sequoiadb/backup", "Name":"backupName"}
 
-        GroupName   : Assign the backups of specifed replica groups to be list
-        Path        : Assign the backups in specifed path to be list, if not assign, use the backup path asigned in the configuration file
-        Name        : Assign the backups with specifed name to be list
+        GroupID     : Specified the group id of the backups, default to list all the backups of all the groups.
+        GroupName   : Specified the group name of the backups, default to list all the backups of all the groups.
+        Path        : Specified the path of the backups, default to use the backup path asigned in the configuration file.
+        Name        : Specified the name of backup, default to list all the backups.
+        IsSubDir    : Specified the "Path" is a subdirectory of the backup path assigned in the configuration file or not, default to be false.
+        Prefix      : Specified the prefix name of the backups, support for using wildcards("%g","%G","%h","%H","%s","%s"),such as: Prefix:"%g_bk_", default to not using wildcards.
+        Detail      : Display the detail of the backups or not, default to be false.
     \param [in] condition The matching rule, return all the documents if not provided
     \param [in] selector The selective rule, return the whole document if null
     \param [in] orderBy The ordered rule, never sort if null
@@ -4126,11 +4130,15 @@ namespace sdbclient
 
 /** \fn INT32 removeBackup ( const bson::BSONObj &options);
     \brief Remove the backups.
-    \param [in] options Contains configuration infomations for remove backups, remove all the backups in the default backup path if null. The "options" contains 3 options as below. All the elements in options are optional. eg: {"GroupName":["rgName1", "rgName2"], "Path":"/opt/sequoiadb/backup", "Name":"backupName"}
+    \param [in] options Contains configuration infomations for removing backups, remove all the backups in the default backup path if null. The "options" contains several options as below. All the elements in options are optional. eg: {"GroupName":["RGName1", "RGName2"], "Path":"/opt/sequoiadb/backup", "Name":"backupName"}
 
-        GroupName   : Assign the backups of specifed replica groups to be remove
-        Path        : Assign the backups in specifed path to be remove, if not assign, use the backup path asigned in the configuration file
-        Name        : Assign the backups with specifed name to be remove
+        GroupID     : Specified the group id of the backups, default to list all the backups of all the groups.
+        GroupName   : Specified the group name of the backups, default to list all the backups of all the groups.
+        Path        : Specified the path of the backups, default to use the backup path asigned in the configuration file.
+        Name        : Specified the name of backup, default to list all the backups.
+        IsSubDir    : Specified the "Path" is a subdirectory of the backup path assigned in the configuration file or not, default to be false.
+        Prefix      : Specified the prefix name of the backups, support for using wildcards("%g","%G","%h","%H","%s","%s"),such as: Prefix:"%g_bk_", default to not using wildcards.
+        Detail      : Display the detail of the backups or not, default to be false.
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
