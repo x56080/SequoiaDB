@@ -14,14 +14,14 @@ BSON 是 JSON 的二进制表现形式，通过记录每个对象，元素，以
 
 2）使用对象
 
-3）清除对象(bson_dispose(与bson_create配对使用) ; bson_destory(与bson_init配对使用))
+3）清除对象(bson_dispose(与bson_create配对使用) ; bson_destroy(与bson_init配对使用))
 
 * 创建一个简单的 BSON 对象{age:20}。
 
   ```lang-javascript
   bson obj;
   bson_init( &obj );
-  bson_appent_int( &obj, "age", 20 );
+  bson_append_int( &obj, "age", 20 );
   if ( BSON_OK != bson_finish( &obj ) )
   {
       printf( "Error." ) ;
@@ -31,9 +31,9 @@ BSON 是 JSON 的二进制表现形式，通过记录每个对象，元素，以
       bson_print( &obj );
   }
   // never use "bson_dispose" here,
-  // for "bson_destory" is used with
+  // for "bson_destroy" is used with
   // "bson_init"
-  bson_destory( &obj );
+  bson_destroy( &obj );
   ```
 
 * 创建一个复杂的 BSON 对象
@@ -134,6 +134,7 @@ BSON 是 JSON 的二进制表现形式，通过记录每个对象，元素，以
   ```lang-javascript
   bson newobj;
   bson_iterator i;
+  bson_type type;
 
   // build a bson
   bson_init( &newobj );
