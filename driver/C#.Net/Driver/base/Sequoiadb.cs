@@ -1016,14 +1016,18 @@ namespace SequoiaDB
         /** \fn DBCursor ListBackup(BsonDocument options, BsonDocument matcher,
 		 *	                        BsonDocument selector, BsonDocument orderBy)
          *  \brief List the backups.
-         *  \param options Contains configuration infomations for remove backups, list all the backups in the default backup path if null.
-         *         The "options" contains 3 options as below. All the elements in options are optional. 
+         *  \param options Contains configuration information for listing backups, list all the backups in the default backup path if null.
+         *         The "options" contains several options as below. All the elements in options are optional. 
          *         eg: {"GroupName":["rgName1", "rgName2"], "Path":"/opt/sequoiadb/backup", "Name":"backupName"}
-         *         <ul>
-         *          <li>GroupName   : Assign the backups of specifed replica groups to be list
-         *          <li>Path        : Assign the backups in specifed path to be list, if not assign, use the backup path asigned in the configuration file
-         *          <li>Name        : Assign the backups with specifed name to be list
-         *         </ul>
+         *                 <ul>
+         *                 <li>GroupID     : Specified the group id of the backups, default to list all the backups of all the groups.
+         *                 <li>GroupName   : Specified the group name of the backups, default to list all the backups of all the groups.
+         *                 <li>Path        : Specified the path of the backups, default to use the backup path asigned in the configuration file.
+         *                 <li>Name        : Specified the name of backup, default to list all the backups.
+         *                 <li>IsSubDir    : Specified the "Path" is a subdirectory of the backup path asigned in the configuration file or not, default to be false.
+         *                 <li>Prefix      : Specified the prefix name of the backups, support for using wildcards("%g","%G","%h","%H","%s","%s"),such as: Prefix:"%g_bk_", default to not using wildcards.
+         *                 <li>Detail      : Display the detail of the backups or not, default to be false.
+         *                 </ul>
          *  \param matcher The matching rule, return all the documents if null
          *  \param selector The selective rule, return the whole document if null
          *  \param orderBy The ordered rule, never sort if null
@@ -1034,19 +1038,6 @@ namespace SequoiaDB
         public DBCursor ListBackup(BsonDocument options, BsonDocument matcher,
 	   	                           BsonDocument selector, BsonDocument orderBy)
         {
-            // check argument
-            if (options != null)
-            {
-                foreach (string key in options.Names)
-                {
-                    if (key.Equals(SequoiadbConstants.FIELD_GROUPNAME) ||
-                        key.Equals(SequoiadbConstants.FIELD_NAME) ||
-                        key.Equals(SequoiadbConstants.FIELD_PATH))
-                        continue;
-                    else
-                        throw new BaseException("INVALIDARG");
-                }
-            }
             // build command
             string commandString = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.LIST_BACKUP_CMD;
             // run command
@@ -1068,13 +1059,17 @@ namespace SequoiaDB
 
         /** \fn void RemoveBackup ( BsonDocument options )
          *  \brief Remove the backups.
-         *  \param options Contains configuration infomations for remove backups, remove all the backups in the default backup path if null.
-         *                 The "options" contains 3 options as below. All the elements in options are optional.
+         *  \param options Contains configuration information for removing backups, remove all the backups in the default backup path if null.
+         *                 The "options" contains several options as below. All the elements in options are optional.
          *                 eg: {"GroupName":["rgName1", "rgName2"], "Path":"/opt/sequoiadb/backup", "Name":"backupName"}
          *                 <ul>
-         *                  <li>GroupName   : Assign the backups of specifed replica grouops to be remove
-         *                  <li>Path        : Assign the backups in specifed path to be remove, if not assign, use the backup path asigned in the configuration file
-         *                  <li>Name        : Assign the backups with specifed name to be remove
+         *                 <li>GroupID     : Specified the group id of the backups, default to list all the backups of all the groups.
+         *                 <li>GroupName   : Specified the group name of the backups, default to list all the backups of all the groups.
+         *                 <li>Path        : Specified the path of the backups, default to use the backup path asigned in the configuration file.
+         *                 <li>Name        : Specified the name of backup, default to list all the backups.
+         *                 <li>IsSubDir    : Specified the "Path" is a subdirectory of the backup path asigned in the configuration file or not, default to be false.
+         *                 <li>Prefix      : Specified the prefix name of the backups, support for using wildcards("%g","%G","%h","%H","%s","%s"),such as: Prefix:"%g_bk_", default to not using wildcards.
+         *                 <li>Detail      : Display the detail of the backups or not, default to be false.
          *                 </ul>
          *  \return void
          *  \exception SequoiaDB.BaseException
@@ -1082,19 +1077,6 @@ namespace SequoiaDB
          */
         public void RemoveBackup(BsonDocument options)
         {
-            // check argument
-            if (options != null)
-            {
-                foreach (string key in options.Names)
-                {
-                    if (key.Equals(SequoiadbConstants.FIELD_GROUPNAME) ||
-                        key.Equals(SequoiadbConstants.FIELD_NAME) ||
-                        key.Equals(SequoiadbConstants.FIELD_PATH))
-                        continue;
-                    else
-                        throw new BaseException("INVALIDARG");
-                }
-            }
             // build command
             string commandString = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.REMOVE_BACKUP_CMD;
             // run command
