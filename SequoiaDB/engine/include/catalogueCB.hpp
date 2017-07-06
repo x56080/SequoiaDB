@@ -92,6 +92,7 @@ namespace engine
          void     removeGroupID( UINT32 grpID ) ;
          void     insertNodeID( UINT16 nodeID ) ;
          void     activeGroup( UINT32 groupID ) ;
+         void     deactiveGroup( UINT32 groupID ) ;
          UINT32   allocGroupID() ;
          INT32    getAGroupRand( UINT32 &groupID) ;
          UINT16   allocNodeID() ;

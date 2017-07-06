@@ -227,8 +227,10 @@ namespace engine
 
       virtual INT32 _makeReply ( rtnContextBuf &buffObj ) ;
 
-      INT32 _getRemovedGroupsObj( const BSONObj &boNodeList,
-                                  UINT16 &removeNodeID ) ;
+      INT32 _getRemovedGroupsObj ( const BSONObj &boNodeList,
+                                   UINT16 &removeNodeID ) ;
+
+      INT32 _deactiveGroup ( _pmdEDUCB *cb, INT16 w ) ;
 
    protected :
       std::string _hostName ;
@@ -237,6 +239,7 @@ namespace engine
       INT32 _nodeCount ;
       UINT16 _nodeID ;
       BOOLEAN _forced ;
+      BOOLEAN _needDeactive ;
    } ;
 
    typedef class _catCtxRemoveNode catCtxRemoveNode ;

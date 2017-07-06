@@ -910,6 +910,7 @@ namespace engine
       _nodeCount = 0 ;
       _nodeID = CAT_INVALID_NODEID ;
       _forced = FALSE ;
+      _needDeactive = FALSE ;
    }
 
    _catCtxRemoveNode::~_catCtxRemoveNode ()
@@ -975,6 +976,10 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_CATCTXRMNODE_CHECK_INT ) ;
 
       BSONObj boNodeList ;
+      BOOLEAN lockGroup = FALSE ;
+      INT32 groupRole = SDB_ROLE_DATA ;
+
+      BOOLEAN isSpareGroup = FALSE ;
 
       rc = catGetGroupObj( _targetName.c_str(), FALSE, _boTarget, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -991,11 +996,18 @@ namespace engine
                    "Failed to get field [%s], rc: %d",
                    CAT_GROUP_NAME, rc ) ;
 
+      rc = rtnGetIntElement( _boTarget, CAT_ROLE_NAME, groupRole ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get field [%s], rc: %d",
+                   CAT_ROLE_NAME, rc ) ;
+
+      isSpareGroup = ( _targetName.compare( SPARE_GROUPNAME ) == 0 ) ;
+
       rc = _getRemovedGroupsObj( boNodeList, _nodeID ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get removed node ID" ) ;
 
-      if ( 0 == _targetName.compare( CATALOG_GROUPNAME ) )
+      if ( SDB_ROLE_CATALOG == groupRole )
       {
          MsgRouteID localID = pmdGetNodeID() ;
          if ( _nodeID == localID.columns.nodeID )
@@ -1007,12 +1019,11 @@ namespace engine
          }
       }
 
-      if ( !_forced &&
-            ( 0 != _targetName.compare( SPARE_GROUPNAME ) &&
-              0 != _targetName.compare( COORD_GROUPNAME ) ) )
+      if ( !_forced && SDB_ROLE_COORD != groupRole && !isSpareGroup )
       {
          UINT16 primaryID = CAT_INVALID_NODEID ;
-         rc = rtnGetIntElement( _boTarget, FIELD_NAME_PRIMARY, (INT32 &)primaryID ) ;
+         rc = rtnGetIntElement( _boTarget, FIELD_NAME_PRIMARY,
+                                (INT32 &)primaryID ) ;
          if ( SDB_OK == rc )
          {
             if ( primaryID == _nodeID )
@@ -1030,15 +1041,24 @@ namespace engine
          rc = SDB_OK ;
       }
 
+      _nodeCount = boNodeList.nFields() ;
+
       // node num judge
-      if ( 0 != _targetName.compare( SPARE_GROUPNAME ) &&
-           1 == boNodeList.nFields() && !_forced )
+      if ( !isSpareGroup && 1 == _nodeCount && !_forced )
       {
          rc = SDB_CATA_RM_NODE_FORBIDDEN ;
          PD_LOG( PDERROR,
                  "Can not remove node when group [%s] is only one node",
                  _boTarget.toString().c_str() ) ;
          goto error ;
+      }
+
+      // Forced to remove last data node, should deavtive the group
+      if ( _forced &&  1 == _nodeCount && !isSpareGroup &&
+           SDB_ROLE_DATA == groupRole )
+      {
+         lockGroup = TRUE ;
+         _needDeactive = TRUE ;
       }
 
       // check if 'localhost' or '127.0.0.1' is used
@@ -1055,12 +1075,20 @@ namespace engine
 
       // lock node
       _nodeName = _hostName + ":" + _localSvc ;
-      PD_CHECK( _lockMgr.tryLockNode( _targetName, _nodeName, EXCLUSIVE ),
-                SDB_LOCK_FAILED, error, PDERROR,
-                "Failed to lock node [%s] on group [%s]",
-                _nodeName.c_str(), _targetName.c_str() ) ;
 
-      _nodeCount = boNodeList.nFields() ;
+      if ( lockGroup )
+      {
+         PD_CHECK( _lockMgr.tryLockGroup( _targetName, EXCLUSIVE ),
+                   SDB_LOCK_FAILED, error, PDERROR,
+                   "Failed to lock group [%s]", _targetName.c_str() ) ;
+      }
+      else
+      {
+         PD_CHECK( _lockMgr.tryLockNode( _targetName, _nodeName, EXCLUSIVE ),
+                   SDB_LOCK_FAILED, error, PDERROR,
+                   "Failed to lock node [%s] on group [%s]",
+                   _nodeName.c_str(), _targetName.c_str() ) ;
+      }
 
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXRMNODE_CHECK_INT, rc ) ;
@@ -1109,10 +1137,17 @@ namespace engine
       rc = catRemoveNodeStep( _targetName, _nodeID, cb, _pDmsCB, _pDpsCB, w ) ;
       PD_RC_CHECK ( rc, PDERROR,
                     "Failed to remove node [%s] from group [%s], rc: %d",
-                    _targetName.c_str(), _nodeName.c_str(), rc ) ;
+                    _nodeName.c_str(), _targetName.c_str(), rc ) ;
 
       // release node
       _pCatCB->releaseNodeID( _nodeID ) ;
+
+      if ( _needDeactive )
+      {
+         rc = _deactiveGroup( cb, w ) ;
+         PD_RC_CHECK ( rc, PDERROR, "Failed to deactive group [%s], rc: %d",
+                       _targetName.c_str(), rc ) ;
+      }
 
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXRMNODE_EXECUTE_INT, rc ) ;
@@ -1194,4 +1229,33 @@ namespace engine
    error :
       goto done ;
    }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXRMNODE_DEACTIVEGRP, "_catCtxRemoveNode::_deactiveGroup" )
+   INT32 _catCtxRemoveNode::_deactiveGroup ( _pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATCTXRMNODE_DEACTIVEGRP ) ;
+
+      BSONObj boStatus = BSON( CAT_GROUP_STATUS << SDB_CAT_GRP_DEACTIVE ) ;
+      BSONObj boUpdater = BSON( "$set" << boStatus ) ;
+      BSONObj boMatcher = BSON( CAT_GROUPNAME_NAME << _targetName ) ;
+      BSONObj boHint;
+
+      rc = rtnUpdate( CAT_NODE_INFO_COLLECTION,
+                      boMatcher, boUpdater, boHint, FLG_UPDATE_UPSERT,
+                      cb, _pDmsCB, _pDpsCB, w );
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to update catalog info of group[%s], rc=%d",
+                   _targetName.c_str(), rc ) ;
+
+      _pCatCB->deactiveGroup( _groupID ) ;
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATCTXRMNODE_DEACTIVEGRP, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
 }

@@ -513,6 +513,20 @@ namespace engine
       PD_TRACE_EXIT ( SDB_CATALOGCB_ACTIVEGROUP ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB_DEACTIVEGROUP, "sdbCatalogueCB::deactiveGroup" )
+   void sdbCatalogueCB::deactiveGroup( UINT32 groupID )
+   {
+      PD_TRACE_ENTRY ( SDB_CATALOGCB_DEACTIVEGROUP ) ;
+      GRP_ID_MAP::iterator it = _grpIdMap.find( groupID ) ;
+      if ( it != _grpIdMap.end() )
+      {
+         _deactiveGrpIdMap.insert( GRP_ID_MAP::value_type( groupID, it->second ) ) ;
+         _grpIdMap.erase( it ) ;
+      }
+      PD_TRACE_EXIT ( SDB_CATALOGCB_DEACTIVEGROUP ) ;
+   }
+
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB_INSERTNODEID, "sdbCatalogueCB::insertNodeID" )
    void sdbCatalogueCB::insertNodeID( UINT16 nodeID )
    {
