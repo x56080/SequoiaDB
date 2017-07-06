@@ -201,7 +201,7 @@ class TestSyncSplit04 extends PHPUnit_Framework_TestCase
       echo "\n-------------------check results of targetGroup------------------------\n";
       
       //--------------------------connect sourceGroup-------------------------
-      echo "\n---Begin to getGroup[souceGroup].\n";
+      echo "\n---Begin to getGroup[targetGroup].\n";
       $rgDB = self::$dbh -> getGroup( self::$groupNames, 'targetGroup' );
       
       echo "\n---Begin to getMaster.\n";
@@ -212,9 +212,13 @@ class TestSyncSplit04 extends PHPUnit_Framework_TestCase
       
       echo "\n---Begin to getCS of the targetGroup.\n";
       $csDB  = self::$dbh -> getCS( $nodeDB, self::$csName );
+      $errno = self::$dbh -> getErrno();
+      $this -> assertEquals( 0, $errno );
       
       echo "\n---Begin to getCL of the targetGroup.\n";
       $rgClDB = self::$dbh -> getCL( $csDB, self::$clName );
+      $errno = self::$dbh -> getErrno();
+      $this -> assertEquals( 0, $errno );
       
       //--------------------------check results of sourceGroup-------------------------
       echo "\n---Begin to find of source group.\n";
