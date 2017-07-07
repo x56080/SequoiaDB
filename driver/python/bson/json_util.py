@@ -246,11 +246,8 @@ def default(obj):
         #    obj = obj - obj.utcoffset()
         #millis = int(calendar.timegm(obj.timetuple()) * 1000 +
         #             obj.microsecond / 1000)
-        if PY3:
-            return {"$date": obj.strftime("%Y-%m-%d")}
-        else:
-            # PY2 do not support year before 1900
-            return {"$date": "{0.year:04d}-{0.month:02d}-{0.day:02d}".format(obj)}
+        # PY2 do not support year before 1900
+        return {"$date": "{0.year:04d}-{0.month:02d}-{0.day:02d}".format(obj)}
     if isinstance(obj, (RE_TYPE, Regex)):
         flags = ""
         if obj.flags & re.IGNORECASE:
