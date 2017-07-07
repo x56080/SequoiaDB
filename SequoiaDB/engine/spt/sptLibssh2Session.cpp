@@ -52,7 +52,7 @@ namespace engine
 
    #define MAX_OUT_STRING_LEN    ( 1024 * 1024 )
    #define READ_OUT_STR_LINE_LEN ( 1024 )
-   
+
    static ossSpinSLatch *locks = NULL ;
 
    // callback function 1
@@ -428,7 +428,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       CHAR *sig = NULL ;
-      
+
       if ( NULL != _channel )
       {
          rc = libssh2_channel_close( _channel ) ;
@@ -459,7 +459,7 @@ namespace engine
    {
       errMsg = _errmsg ;
       _errmsg.clear() ;
-      return ; 
+      return ;
    }
 
    void _sptLibssh2Session::_getLastError( std::string &errMsg )
@@ -566,7 +566,7 @@ namespace engine
          goto error ;
       }
 
-      _channel = libssh2_scp_send64( _session, dst, 0755, fileSize, 0, 0 ) ;
+      _channel = libssh2_scp_send64( _session, dst, mode, fileSize, 0, 0 ) ;
       if ( NULL == _channel )
       {
          _getLastError( _errmsg ) ;
@@ -610,7 +610,7 @@ namespace engine
       PD_LOG( PDDEBUG, "%lld bytes were written this time", sendLen ) ;
 
       libssh2_channel_send_eof( _channel ) ;
-      
+
       }
    done:
       if ( file.isOpened() )
@@ -650,7 +650,7 @@ namespace engine
 
       rc = ossOpen( local,
                     fMode,
-                    OSS_DEFAULTFILE, file ) ;
+                    mode, file ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to open file:%s, rc:%d", local, rc ) ;
