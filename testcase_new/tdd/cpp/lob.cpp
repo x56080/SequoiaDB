@@ -362,6 +362,11 @@ TEST( lob, lobWriteZeroSizeAndRead )
    ASSERT_EQ( SDB_OK, rc ) ;
    ASSERT_EQ( 0, retNum ) ;
 
+   // close
+   rc = lob2.close() ;
+   CHECK_MSG("%s%d\n","rc = ",rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
    db.disconnect() ;
 }
 
@@ -414,6 +419,10 @@ TEST( lob, lob_write_not_close )
    // write
    memset( buf, 'a', bufSize ) ;
    rc = lob.write( buf, bufSize ) ;
+   CHECK_MSG("%s%d\n","rc = ",rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // close
+   rc = lob.close() ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    }
@@ -480,6 +489,10 @@ TEST( lob, lob_write_not_close )
       }
       ASSERT_EQ ( TRUE, flag ) ;
    }
+   // close
+   rc = lob2.close() ;
+   CHECK_MSG("%s%d\n","rc = ",rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
    }
    // check after object out of bound
    // listLobs
@@ -694,6 +707,10 @@ TEST( lob, lobWithReturnData )
    rc = lob.close() ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( rc, SDB_OK ) ;
+   rc = lob2.close() ;
+   CHECK_MSG("%s%d\n","rc = ",rc) ;
+   ASSERT_EQ( rc, SDB_OK ) ;
+
    // remove lob
    rc = cl.removeLob( oid ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
