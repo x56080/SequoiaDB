@@ -189,7 +189,7 @@ static OSS_INLINE SINT64 ossCompareAndSwap64WithReturn
 //          0 failure
 #if defined (_LINUX) || defined (_AIX)
 #define ossCompareAndSwap64(pAddr,iCompareValue,iNewValue)                   \
-   ( __sync_bool_compare_and_swap((volatile SINT64*)pAddr,                   \
+   ( __sync_val_compare_and_swap((volatile SINT64*)pAddr,                    \
        (SINT64)iCompareValue,(SINT64)iNewValue) == (SINT64)iCompareValue )
 #elif defined (_WINDOWS)
 #define ossCompareAndSwap64(pAddr,iCompareValue,iNewValue)                   \
@@ -522,7 +522,7 @@ static OSS_INLINE SINT64 ossFetchAndDecrement64( volatile SINT64 * const pAddr )
 // return: previous value
 #if defined (_LINUX) || defined (_AIX)
 #define ossAtomicExchange32(pAddr,iNewValue) \
-        __sync_lock_test_and_set((volatile SINT64*)pAddr,(SINT32)iNewValue)
+        __sync_lock_test_and_set((volatile INT32*)pAddr,(SINT32)iNewValue)
 #elif defined (_WINDOWS)
 #define ossAtomicExchange32(pAddr,iNewValue) \
         InterlockedExchange( (long*)pAddr, (long)iNewValue )
