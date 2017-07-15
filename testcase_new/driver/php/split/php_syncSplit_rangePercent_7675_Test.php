@@ -66,10 +66,12 @@ class SyncSplitOper01 extends BaseOperator
    
    function splitAsync( $clDB, $groupNames )
    {
-      $clDB -> splitAsync( $groupNames[0], $groupNames[1], 50 );
+      $rc = $clDB -> splitAsync( $groupNames[0], $groupNames[1], 50 );
+      echo "   sourceGroup = ".$groupNames[0].", targetGroup = ".$groupNames[1];
       
-      echo "\n   sleep 8s for completion of the splitAsync.\n";
-      sleep(8);
+      echo "\n   waiting for splitAsync task to finish.\n";
+      $taskID = $rc['taskID'];
+      $this -> db -> waitTask( $taskID );
    }
    
    function getCS( $nodeDB, $csName )
@@ -127,8 +129,9 @@ class TestSyncSplit01 extends PHPUnit_Framework_TestCase
          self::$groupNames = self::$dbh -> commGetGroupNames();
          
          echo "\n---Begin to ready parameter.\n";
-         self::$csName = self::$dbh -> COMMCSNAME;
+         self::$csName = self::$dbh -> COMMCSNAME."_7675";
          self::$clName = self::$dbh -> COMMCLNAME;
+         echo "   cl = ".self::$csName.".".self::$clName."\n";
          
          echo "\n---Begin to drop cl in the begin.\n";
          self::$dbh -> dropCL( self::$csName, self::$clName, true );
@@ -175,7 +178,7 @@ class TestSyncSplit01 extends PHPUnit_Framework_TestCase
       echo "\n-------------------check results of sourceGroup------------------------\n";
       
       //--------------------------connect sourceGroup-------------------------
-      echo "\n---Begin to getGroup[souceGroup].\n";
+      echo "\n---Begin to getGroup.\n";
       $rgDB = self::$dbh -> getGroup( self::$groupNames, 'sourceGroup' );
       
       echo "\n---Begin to getMaster.\n";
@@ -184,10 +187,10 @@ class TestSyncSplit01 extends PHPUnit_Framework_TestCase
       echo "\n---Begin to connect masterNode.\n";
       $nodeDB = self::$dbh -> connect( $nodeObj );
       
-      echo "\n---Begin to getCS of the sourceGroup.\n";
+      echo "\n---Begin to getCS.\n";
       $csDB  = self::$dbh -> getCS( $nodeDB, self::$csName );
       
-      echo "\n---Begin to getCL of the sourceGroup.\n";
+      echo "\n---Begin to getCL.\n";
       $rgClDB = self::$dbh -> getCL( $csDB, self::$clName );
       
       //--------------------------check results of sourceGroup-------------------------
@@ -204,7 +207,7 @@ class TestSyncSplit01 extends PHPUnit_Framework_TestCase
       echo "\n-------------------check results of targetGroup------------------------\n";
       
       //--------------------------connect targetGroup-------------------------
-      echo "\n---Begin to getGroup[souceGroup].\n";
+      echo "\n---Begin to getGroup.\n";
       $rgDB = self::$dbh -> getGroup( self::$groupNames, 'targetGroup' );
       
       echo "\n---Begin to getMaster.\n";
@@ -213,12 +216,12 @@ class TestSyncSplit01 extends PHPUnit_Framework_TestCase
       echo "\n---Begin to connect masterNode.\n";
       $nodeDB = self::$dbh -> connect( $nodeObj );
       
-      echo "\n---Begin to getCS of the targetGroup.\n";
+      echo "\n---Begin to getCS.\n";
       $csDB  = self::$dbh -> getCS( $nodeDB, self::$csName );
       $errno = self::$dbh -> getErrno();
       $this -> assertEquals( 0, $errno );
       
-      echo "\n---Begin to getCL of the targetGroup.\n";
+      echo "\n---Begin to getCL.\n";
       $rgClDB = self::$dbh -> getCL( $csDB, self::$clName );
       $errno = self::$dbh -> getErrno();
       $this -> assertEquals( 0, $errno );

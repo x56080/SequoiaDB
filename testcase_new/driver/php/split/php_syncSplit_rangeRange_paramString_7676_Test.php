@@ -66,8 +66,12 @@ class SyncSplitOper04 extends BaseOperator
    
    function splitAsync( $clDB, $groupNames )
    {
-      $clDB -> splitAsync( $groupNames[0], $groupNames[1], '{a:50}', '{a:100}' );
-      sleep(18);
+      $rc = $clDB -> splitAsync( $groupNames[0], $groupNames[1], '{a:50}', '{a:100}' );
+      echo "   sourceGroup = ".$groupNames[0].", targetGroup = ".$groupNames[1];
+      
+      echo "\n   waiting for splitAsync task to finish.\n";
+      $taskID = $rc['taskID'];
+      $this -> db -> waitTask( $taskID );
    }
    
    function getCS( $nodeDB, $csName )
@@ -125,8 +129,9 @@ class TestSyncSplit04 extends PHPUnit_Framework_TestCase
          self::$groupNames = self::$dbh -> commGetGroupNames();
          
          echo "\n---Begin to ready parameter.\n";
-         self::$csName = self::$dbh -> COMMCSNAME;
+         self::$csName = self::$dbh -> COMMCSNAME."7976_02";
          self::$clName = self::$dbh -> COMMCLNAME;
+         echo "   cl = ".self::$csName.".".self::$clName."\n";
          
          echo "\n---Begin to drop cl in the begin.\n";
          self::$dbh -> dropCL( self::$csName, self::$clName, true );
