@@ -16,15 +16,6 @@
 using namespace std ;
 using namespace sdbclient ;
 
-TEST( lob, not_connect )
-{
-   sdbLob lob ;
-   INT32 rc = SDB_OK ;
-
-   rc = lob.read( 0, NULL, NULL ) ;
-   ASSERT_EQ( SDB_NOT_CONNECTED, rc ) ;
-}
-
 // run all or most APIs in lob
 TEST( lob, global )
 {
@@ -290,7 +281,7 @@ TEST( lob, lob_connection_was_destruct )
    // close
    rc = lob.close() ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
-   ASSERT_EQ( SDB_NOT_CONNECTED, rc ) ;   
+   ASSERT_EQ( SDB_NOT_CONNECTED, rc ) ;    
 }
 
 TEST( lob, lobWriteZeroSizeAndRead )
@@ -362,11 +353,6 @@ TEST( lob, lobWriteZeroSizeAndRead )
    ASSERT_EQ( SDB_OK, rc ) ;
    ASSERT_EQ( 0, retNum ) ;
 
-   // close
-   rc = lob2.close() ;
-   CHECK_MSG("%s%d\n","rc = ",rc) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-
    db.disconnect() ;
 }
 
@@ -419,10 +405,6 @@ TEST( lob, lob_write_not_close )
    // write
    memset( buf, 'a', bufSize ) ;
    rc = lob.write( buf, bufSize ) ;
-   CHECK_MSG("%s%d\n","rc = ",rc) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // close
-   rc = lob.close() ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    }
@@ -489,10 +471,6 @@ TEST( lob, lob_write_not_close )
       }
       ASSERT_EQ ( TRUE, flag ) ;
    }
-   // close
-   rc = lob2.close() ;
-   CHECK_MSG("%s%d\n","rc = ",rc) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
    }
    // check after object out of bound
    // listLobs
@@ -541,12 +519,9 @@ TEST( lob, lob_write_getSize_getCreateTime_then_close )
    const UINT32 bufSize = 1000 ;
    CHAR buf[bufSize] = { 0 } ;
    CHAR readBuf[bufSize] = { 0 } ;
-   BOOLEAN flag      = FALSE ;
-   INT32 writeNum    = 0 ;
-   INT32 lobSize     = 0 ;
-   INT32 lobSize2    = 0 ;
-   INT32 createTime  = 0 ;
-   INT32 createTime2 = 0 ;
+   BOOLEAN flag = FALSE ;
+   INT32 lobSize = 0 ;
+   INT32 createTime = 0 ;
 
    // initialize the work environment
    rc = initEnv() ;
@@ -589,17 +564,15 @@ TEST( lob, lob_write_getSize_getCreateTime_then_close )
    rc = lob.write( buf, bufSize ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   writeNum += bufSize ;
    // get size
    lobSize = lob.getSize();
    ASSERT_EQ(lobSize, bufSize);
    // write
    rc = lob.write( buf, bufSize ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   writeNum += bufSize ;
    // get size
    lobSize = lob.getSize();
-   ASSERT_EQ(lobSize, writeNum);
+   ASSERT_EQ(lobSize, 2 * bufSize);
    // get create time
    createTime = lob.getCreateTime();
    ASSERT_EQ(0, createTime);
@@ -608,114 +581,12 @@ TEST( lob, lob_write_getSize_getCreateTime_then_close )
    ASSERT_EQ(SDB_OK, rc);
    // get size
    lobSize = lob.getSize();
-   ASSERT_EQ(writeNum, lobSize);
+   ASSERT_EQ(-1, lobSize);
    // get create time
-   createTime2 = lob.getCreateTime();
-   ASSERT_EQ(createTime, createTime2);
+   createTime = lob.getCreateTime();
+   ASSERT_EQ(-1, createTime);
 
    // disconnect the connection
-   db.disconnect() ;
-}
-
-TEST( lob, lobWithReturnData )
-{
-   sdb db ;
-   sdbCollectionSpace cs ;
-   sdbCollection cl ;
-   sdbCursor cur ;
-   sdbLob lob ;
-   // initialize local variables
-   const CHAR *pHostName                    = HOST ;
-   const CHAR *pPort                        = SERVER ;
-   const CHAR *pUsr                         = USER ;
-   const CHAR *pPasswd                      = PASSWD ;
-   INT32 rc                                 = SDB_OK ;
-   BSONObj obj ;
-   #define BUFSIZE1 (1024 * 1024 * 3)
-   #define BUFSIZE2 (1024 * 1024 * 2)
-   CHAR buf[BUFSIZE1] = { 0 } ;
-   CHAR readBuf[BUFSIZE2] = { 0 } ;
-   BOOLEAN flag = FALSE ;
-   CHAR c = 'a' ;
-
-   // initialize the work environment
-   rc = initEnv() ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
-   rc = db.connect( pHostName, pPort, pUsr, pPasswd ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
-   rc = getCollectionSpace( db, COLLECTION_SPACE_NAME, cs );
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl
-   rc = getCollection( cs, COLLECTION_NAME, cl ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-
-   /// case 1: create a new lob
-
-   // createLob
-   rc = cl.createLob( lob ) ;
-   CHECK_MSG("%s%d\n","rc = ",rc) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // write
-   memset( buf, c, BUFSIZE1 ) ;
-   rc = lob.write( buf, BUFSIZE1 ) ;
-   CHECK_MSG("%s%d\n","rc = ",rc) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // write
-   rc = lob.write( buf, BUFSIZE1 ) ;
-   CHECK_MSG("%s%d\n","rc = ",rc) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // get oid
-   bson::OID oid ;
-   rc = lob.getOid( oid ) ;
-   CHECK_MSG("%s%d\n","rc = ",rc) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-
-   // close
-   rc = lob.close() ;
-   CHECK_MSG("%s%d\n","rc = ",rc) ;
-   ASSERT_EQ( rc, SDB_OK ) ;
-
-   // open lob
-   sdbLob lob2 ;
-   rc = cl.openLob( lob2, oid ) ;
-   CHECK_MSG("%s%d\n","rc = ",rc) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // read
-   UINT32 readNum = 1000 ;
-   UINT32 retNum = 0 ;
-   rc = lob2.read( readNum, readBuf, &retNum ) ;
-   CHECK_MSG("%s%d\n","rc = ",rc) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   ASSERT_EQ( readNum, retNum ) ;
-   for ( INT32 i = 0; i < retNum; i++ )
-   {
-      ASSERT_EQ( c, readBuf[i] ) ;
-   }
-   // read
-   readNum = BUFSIZE2 ;
-   rc = lob2.read( readNum, readBuf, &retNum ) ;
-   CHECK_MSG("%s%d\n","rc = ",rc) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   ASSERT_EQ( readNum, retNum ) ;
-   for ( INT32 i = 0; i < retNum; i++ )
-   {
-      ASSERT_EQ( c, readBuf[i] ) ;
-   }
-   // close lob
-   rc = lob.close() ;
-   CHECK_MSG("%s%d\n","rc = ",rc) ;
-   ASSERT_EQ( rc, SDB_OK ) ;
-   rc = lob2.close() ;
-   CHECK_MSG("%s%d\n","rc = ",rc) ;
-   ASSERT_EQ( rc, SDB_OK ) ;
-
-   // remove lob
-   rc = cl.removeLob( oid ) ;
-   CHECK_MSG("%s%d\n","rc = ",rc) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-
    db.disconnect() ;
 }
 
@@ -881,6 +752,7 @@ TEST( lob, lobWriteZeroSize )
    cout << "success to test write lob, which lob buffer equal ''" << endl ;
    db.disconnect() ;
    ASSERT_EQ( SDB_OK, rc ) ;
+   
    db.disconnect() ;
 }
 
@@ -1007,6 +879,7 @@ TEST( lob, lobApiBasicOperation )
    lobBuffer = NULL ;
    db.disconnect() ;
    ASSERT_EQ( SDB_OK, rc ) ;
+   
    db.disconnect() ;
 }
 
@@ -1072,10 +945,10 @@ TEST( lob, NotExistLob )
    ASSERT_EQ( SDB_FNE, rc ) ;
    SINT64 getSize = 0 ;
    rc = lob.getSize( &getSize ) ;
-   ASSERT_EQ( SDB_NOT_CONNECTED, rc ) ;
+   ASSERT_EQ( SDB_SYS, rc ) ;
    UINT64 millis = 0 ;
    rc = lob.getCreateTime( &millis ) ;
-   ASSERT_EQ( SDB_NOT_CONNECTED, rc ) ;
+   ASSERT_EQ( SDB_SYS, rc ) ;
    rc = lob.close() ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = cl.removeLob( oid ) ;
@@ -1087,134 +960,5 @@ TEST( lob, NotExistLob )
    free( lobBuffer ) ;
    lobBuffer = NULL ;
    db.disconnect() ;
-}
-
-TEST( lob, use_lob_after_close_contexts )
-{
-   sdb db ;
-   sdbCollectionSpace cs ;
-   sdbCollection cl ;
-   sdbCursor cur ;
-   sdbLob lob ;
-   // initialize local variables
-   const CHAR *pHostName    = HOST ;
-   const CHAR *pPort        = SERVER ;
-   const CHAR *pUsr         = USER ;
-   const CHAR *pPasswd      = PASSWD ;
-   INT32 rc                 = SDB_OK ;
-
-   UINT64 createTime        = 0 ;
-   UINT64 createTime2       = 0 ;
-   SINT64 lobSize           = 0 ;
-   SINT64 lobSize2          = 0 ;
-   bson::OID oid ;
-   bson::OID oid2 ;
-#define writeBuffSize (2 * 1024 * 1024)
-#define readBuffSize (writeBuffSize/2)
-   CHAR buf[10]                  = { 0 } ;
-   CHAR writeBuff[writeBuffSize] = { 0 };
-   CHAR readBuff[readBuffSize]   = { 0 };
-   UINT32 readNum                = 0 ;
-
-   // initialize the work environment
-   rc = initEnv() ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
-   rc = db.connect( pHostName, pPort, pUsr, pPasswd ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
-   rc = getCollectionSpace( db, COLLECTION_SPACE_NAME, cs );
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl
-   rc = getCollection( cs, COLLECTION_NAME, cl ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-
-   /// case 1: create a new lob then close the context
-   // createLob
-   rc = cl.createLob( lob ) ;
-   CHECK_MSG("%s%d\n","rc = ",rc) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-
-   // get oid/create time/size
-   oid = lob.getOid() ;
-   createTime = lob.getCreateTime() ;
-   lobSize = lob.getSize() ;
-
-   // write lob
-   rc = lob.write( buf, 10 ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   lobSize += 10 ;
-
-   // kill all the context
-   rc = db.closeAllCursors() ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-
-   // write lob
-   rc = lob.write( buf, 10 ) ;
-   ASSERT_EQ( SDB_DMS_CONTEXT_IS_CLOSE, rc ) ;
-
-   rc = lob.close() ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // isClosed
-   BOOLEAN flag = FALSE ;
-   rc = lob.isClosed( flag ) ;
-   CHECK_MSG("%s%d\n","rc = ",rc) ;
-   ASSERT_EQ( TRUE, flag ) ;
-
-   // get oid/create time/lob size
-   oid2 = lob.getOid() ;
-   createTime2 = lob.getCreateTime() ;
-   lobSize2 = lob.getSize() ;
-
-   ASSERT_EQ(0, oid.compare(oid2)) ;
-   ASSERT_EQ(createTime, createTime2) ;
-   ASSERT_EQ(lobSize, lobSize2) ;
-
-
-   // case2: open an exist lob, and read something,
-   // then kill the contexd
-   // createLob
-   rc = cl.createLob( lob ) ;
-   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   rc = lob.write( writeBuff, writeBuffSize ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   rc = lob.close() ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   oid = lob.getOid() ;
-
-   // read lob
-   rc = cl.openLob( lob, oid ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // get oid/create time/lob size
-   createTime = lob.getCreateTime() ;
-   lobSize = lob.getSize() ;
-   rc = lob.read( readBuffSize, readBuff, &readNum ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // kill contexts
-   rc = db.closeAllCursors() ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // check is closed or not
-   flag = FALSE ;
-   rc = lob.isClosed( flag ) ;
-   ASSERT_EQ( TRUE, flag ) ;
-   // read lob again
-   rc = lob.seek( 10, SDB_LOB_SEEK_CUR ) ;
-   ASSERT_EQ( SDB_DMS_CONTEXT_IS_CLOSE, rc ) ;
-   rc = lob.read( readBuffSize, readBuff, &readNum ) ;
-   ASSERT_EQ( SDB_DMS_CONTEXT_IS_CLOSE, rc ) ;
-
-   // close lob
-   rc = lob.close() ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-
-   //get oid/create time/lob size
-   oid2 = lob.getOid() ;
-   createTime2 = lob.getCreateTime() ;
-   lobSize2 = lob.getSize() ;
-
-   ASSERT_EQ(0, oid.compare(oid2)) ;
-   ASSERT_EQ(createTime, createTime2) ;
-   ASSERT_EQ(lobSize, lobSize2) ;
 }
 
