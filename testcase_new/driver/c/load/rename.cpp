@@ -24,27 +24,18 @@ char csNewName[100]      = "" ;
 const char* clOldName    = "renameCLTestCl1" ;
 const char* clNewName    = "renameCLTestCl2" ;
 
-#define CHECK_RC_CODE( rc, msg )\
-do\
-{\
-   if( SDB_OK != rc )\
-   {\
-      printf( "%s[%d]: %s, rc = %d\n", __FILE__, __LINE__, msg, rc ) ;\
-      return rc ; \
-   }\
-}\
-while( 0 ) ;
-
-INT32 checkCsExist( sdbConnectionHandle db, const char* csName, bool* exist )
+int checkCsExist( sdbConnectionHandle db, const char* csName, bool* exist )
 {
-	INT32 rc = SDB_OK ;
+	int rc = SDB_OK ;
 	sdbCursorHandle cursor = SDB_INVALID_HANDLE ;
-    rc = sdbListCollectionSpaces( db, &cursor ) ;
-    CHECK_RC_CODE( rc, "fail to list cs" )
-    bson obj ;
+	bson obj ;
     bson_init( &obj ) ;
-    *exist = false ;
-    while( !(rc = sdbNext( cursor, &obj)) )
+	*exist = false ;
+
+    rc = sdbListCollectionSpaces( db, &cursor ) ;
+    CHECK_RC( rc, "fail to list cs, rc = %d\n", rc ) ;
+   
+    while( !( rc = sdbNext( cursor, &obj ) ) )
     {
         bson_iterator it ;
         bson_iterator_init( &it, &obj ) ;
@@ -57,21 +48,28 @@ INT32 checkCsExist( sdbConnectionHandle db, const char* csName, bool* exist )
         bson_destroy( &obj ) ;
         bson_init( &obj ) ;
     }
+	rc = SDB_OK ;
+
+done:
     bson_destroy( &obj ) ;
     sdbReleaseCursor( cursor ) ;
-	return SDB_OK ;
+	return rc ;
+error:
+	goto done ;
 }
 
-INT32 checkClExist( sdbConnectionHandle db, const char* clFullName, bool* exist )
+int checkClExist( sdbConnectionHandle db, const char* clFullName, bool* exist )
 {
-    INT32 rc = SDB_OK ;
+    int rc = SDB_OK ;
     sdbCursorHandle cursor = SDB_INVALID_HANDLE ;
-    rc = sdbListCollections( db, &cursor ) ;
-    CHECK_RC_CODE( rc, "fail to list cl" )
-    bson obj ;
+	bson obj ;
     bson_init( &obj ) ;
     *exist = false ;
-    while( !(rc = sdbNext( cursor, &obj)) )
+
+    rc = sdbListCollections( db, &cursor ) ;
+    CHECK_RC( rc, "fail to list cl, rc = %d\n", rc ) ;
+    
+    while( !( rc = sdbNext( cursor, &obj ) ) )
     {
         bson_iterator it ;
         bson_iterator_init( &it, &obj ) ;
@@ -84,52 +82,66 @@ INT32 checkClExist( sdbConnectionHandle db, const char* clFullName, bool* exist 
         bson_destroy( &obj ) ;
         bson_init( &obj ) ;
     }
+	rc = SDB_OK ;
+
+done:
     bson_destroy( &obj ) ;
     sdbReleaseCursor( cursor ) ;
-    return SDB_OK ;
+    return rc ;
+error:
+	goto done ;
 }
 
-INT32 checkBasicOperation( sdbCollectionHandle cl )
+int checkBasicOperation( sdbCollectionHandle cl )
 {
-	INT32 rc = SDB_OK ;
-	// insert
+	int rc = SDB_OK ;
 	bson record ;
-	bson_init( &record ) ;
+    bson_init( &record ) ;
+	bson selector ;
+    bson_init( &selector ) ;
+	bson obj ;
+    bson_init( &obj ) ;
+	sdbCursorHandle cursor = SDB_INVALID_HANDLE ;
+	bson_iterator it ;
+	int result ;
+
+	// insert
 	bson_append_int( &record, "a", 1 ) ;
 	bson_finish( &record ) ;
 	rc = sdbInsert( cl, &record ) ;
-	CHECK_RC_CODE( rc, "fail to insert record" )
+	CHECK_RC( rc, "fail to insert record, rc = %d\n", rc ) ;
+
 	// query
-	bson selector ;
-	bson_init( &selector ) ;
 	bson_append_string( &selector, "a", "" ) ;
 	bson_finish( &selector ) ;
-    sdbCursorHandle cursor = SDB_INVALID_HANDLE ;
 	rc = sdbQuery( cl, &record, &selector, NULL, NULL, 0, -1, &cursor ) ;
-	bson_destroy( &record ) ;
-	bson_destroy( &selector ) ;
-	CHECK_RC_CODE( rc, "fail to query record" )
+	CHECK_RC( rc, "fail to query record, rc = %d\n", rc ) ;
+
 	// check query result
-	bson obj ;
-	bson_init( &obj ) ;
 	rc = sdbNext( cursor, &obj ) ;
-	sdbReleaseCursor( cursor ) ;
-	CHECK_RC_CODE( rc, "fail to get next in cursor" )
-	bson_iterator it ;
+	CHECK_RC( rc, "fail to get next in cursor, rc = %d\n", rc ) ;
 	bson_iterator_init( &it, &obj ) ;
-	INT32 result = bson_iterator_int( &it ) ;
-    bson_destroy( &obj ) ;
+	result = bson_iterator_int( &it ) ;
 	if( result != 1 )
 	{
 		printf( "fail to check query result,expect: %d,actual: %d\n", 1, result ) ;
-		return SDB_DMS_RECORD_NOTEXIST ;
+		rc = SDB_DMS_RECORD_NOTEXIST ;
+		goto error ;
 	}
-	return SDB_OK ; 
+
+done:
+	bson_destroy( &record ) ;
+    bson_destroy( &selector ) ;
+	bson_destroy( &obj ) ;
+	sdbReleaseCursor( cursor ) ;
+	return rc ; 
+error:
+	goto done ;
 }
 
 TEST( rename, renameCS )
 {
-	INT32 rc = SDB_OK ;
+	int rc = SDB_OK ;
 
 	// connect to sdb
 	getConf() ;

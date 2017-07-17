@@ -11,71 +11,66 @@
 #include <string.h>
 #include "../common/testcommon.hpp"
 
-#define CHECK_RC_CODE( rc, msg )\
-do\
-{\
-   if( SDB_OK != rc )\
-   {\
-      printf( "%s[%d]: %s, rc = %d\n", __FILE__, __LINE__, msg, rc ) ;\
-      return rc ; \
-   }\
-}\
-while( 0 ) ;
-
-INT32 getCurrentSessionId( sdbConnectionHandle db, SINT64* sessionId )
+int getCurrentSessionId( sdbConnectionHandle db, SINT64* sessionId )
 {
-    INT32 rc = SDB_OK ;
-    // list current session
+    int rc = SDB_OK ;
 	sdbCursorHandle cursor = SDB_INVALID_HANDLE ;
     bson condition ;
     bson_init( &condition ) ;
+	bson selector ;
+    bson_init( &selector ) ;
+	bson obj ;
+    bson_init( &obj ) ;
+	bson_iterator it ;
+
+    // list current session
     bson_append_bool( &condition, "Global", false ) ;
     bson_finish( &condition ) ;
-    bson selector ;
-    bson_init( &selector ) ;
     bson_append_string( &selector, "SessionID", "" ) ;
     bson_finish( &selector ) ;
     rc = sdbGetList( db, SDB_LIST_SESSIONS_CURRENT, &condition, &selector, NULL, &cursor ) ;
-    CHECK_RC_CODE( rc, "fail to list current session" )
-	bson_destroy( &condition ) ;
-	bson_destroy( &selector ) ;
+    CHECK_RC( rc, "fail to list current session, rc = %d\n", rc ) ;
 
 	// get session id
-    bson obj ;
-    bson_init( &obj ) ;
     rc = sdbNext( cursor, &obj ) ;
-    CHECK_RC_CODE( rc, "fail to get next in listCurrentSession cursor" )
-    bson_iterator it ;
+    CHECK_RC( rc, "fail to get next in cursor, rc = %d\n", rc ) ;
     bson_iterator_init( &it, &obj ) ;
     *sessionId = bson_iterator_int( &it ) ;
+
+done:
+	bson_destroy( &condition ) ;                            
+    bson_destroy( &selector ) ;
 	bson_destroy( &obj ) ;	
 	sdbReleaseCursor( cursor ) ;
-	return SDB_OK ;
+	return rc ;
+error:
+	goto done ;
 }
 
-INT32 getNodeSessionIds( sdbConnectionHandle db, const char* nodeName, SINT64 sessionId[], char sessionType[1024][20], int size )
+int getNodeSessionIds( sdbConnectionHandle db, const char* nodeName, SINT64 sessionId[], 
+						 char sessionType[1024][20], int size )
 {
-	INT32 rc = SDB_OK ;
-	// get node sessions
-    bson condition ;
+	int rc = SDB_OK ;
+	bson condition ;
     bson_init( &condition ) ;
+	bson selector ;
+    bson_init( &selector ) ;
+	sdbCursorHandle cursor = SDB_INVALID_HANDLE ;
+	bson obj ;
+    bson_init( &obj ) ;
+	int i = 0 ;
+
+	// get node sessions
     bson_append_string( &condition, "NodeName", nodeName ) ;
     bson_append_bool( &condition, "Global", false ) ;
     bson_finish( &condition ) ;
-    bson selector ;
-    bson_init( &selector ) ;
     bson_append_string( &selector, "SessionID", "" ) ;
 	bson_append_string( &selector, "Type", "" ) ;
     bson_finish( &selector ) ;
-    sdbCursorHandle cursor = SDB_INVALID_HANDLE ;
     rc = sdbGetList( db, SDB_LIST_SESSIONS, &condition, &selector, NULL, &cursor ) ;
-    CHECK_RC_CODE( rc, "fail to list sessions on node" )
-    bson_destroy( &condition ) ;
-    bson_destroy( &selector ) ;
+    CHECK_RC( rc, "fail to list sessions on node, rc = %d\n", rc ) ;
+
     // get session ids
-    bson obj ;
-    bson_init( &obj ) ;
-    int i = 0 ;
     while( !( rc = sdbNext( cursor, &obj ) ) && i < size )
     {
         bson_iterator it ;
@@ -87,14 +82,21 @@ INT32 getNodeSessionIds( sdbConnectionHandle db, const char* nodeName, SINT64 se
         bson_destroy( &obj ) ;
         bson_init( &obj ) ;
     }
+	rc = SDB_OK ;
+
+done:
+	bson_destroy( &condition ) ;
+    bson_destroy( &selector ) ;
     bson_destroy( &obj ) ;
     sdbReleaseCursor( cursor ) ;
-	return SDB_OK ;
+	return rc ;
+error:
+	goto done ;
 }
 
 TEST( forceSession, currentSession )
 {
-	INT32 rc = SDB_OK ;
+	int rc = SDB_OK ;
     sdbConnectionHandle db = SDB_INVALID_HANDLE ;
 	getConf() ;
 	rc = sdbConnect( HOSTNAME, SVCNAME, USER, PASSWD, &db ) ;
@@ -107,7 +109,7 @@ TEST( forceSession, currentSession )
 	const char* hostName = NULL ;
     const char* svcName = NULL ;
     const char* nodeName = NULL ;
-    INT32 nodeId = -1 ;
+    int nodeId = -1 ;
 
 	for( int i = 0;i < sizeof(groupId)/sizeof(groupId[0]);i++ )
 	{
@@ -151,7 +153,7 @@ TEST( forceSession, currentSession )
 
 TEST( forceSession, withOption )
 {
-	INT32 rc = SDB_OK ;
+	int rc = SDB_OK ;
     sdbConnectionHandle db = SDB_INVALID_HANDLE ;
     rc = sdbConnect( HOSTNAME, SVCNAME, USER, PASSWD, &db ) ;
     ASSERT_EQ( rc, SDB_OK ) << "fail to connect sdb" ;
@@ -165,7 +167,7 @@ TEST( forceSession, withOption )
 	const char* hostName = NULL ;
 	const char* svcName = NULL ;
 	const char* nodeName = NULL ;
-	INT32 nodeId = -1 ;
+	int nodeId = -1 ;
 	
 	// get node addr and connect
     sdbReplicaGroupHandle rg = SDB_INVALID_HANDLE ;

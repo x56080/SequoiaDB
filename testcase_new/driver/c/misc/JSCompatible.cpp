@@ -14,59 +14,51 @@
 sdbConnectionHandle db = SDB_INVALID_HANDLE ;
 sdbCSHandle cs         = SDB_INVALID_HANDLE ;
 sdbCollectionHandle cl = SDB_INVALID_HANDLE ;
-char CsName[100] ;
-char ClName[100] ;
+const char* csModName = "C_drivertest_syncCs" ;
+char csName[100] ;
+const char* clName = "C_drivertest_syncCl" ;
 
-class NumberLongTest : public testing::Test
+int setUp()
 {
-public :
-	// run before every test
-	void SetUp() ;
-	// run after every test
-	void TearDown() ;
-} ; 
+	int rc = SDB_OK ;
 
-void NumberLongTest::SetUp()
-{
-	INT32 rc = SDB_OK ;
+    getUniqueName( csModName, csName ) ;
+    rc = createNormalCl( &db, &cs, &cl, csName, clName ) ;
+    CHECK_RC( rc, "fail to create normal cl, rc = %d\n", rc ) ;
 
-    // connect to sdb   
-    getConf() ;
-    rc = sdbConnect( HOSTNAME, SVCNAME, USER, PASSWD, &db ) ;
-    EXPECT_EQ( rc, SDB_OK ) << "fail to connect sdb" ;
-
-    // create cs cl
-    const char* CsModName = "C_drivertest_syncCs" ;
-    getUniqueName( CsModName, CsName ) ;
-    rc = sdbCreateCollectionSpace( db, CsName, SDB_PAGESIZE_4K, &cs ) ;
-    EXPECT_EQ( rc, SDB_OK ) << "fail to create cs" ;
-    const char* ClModName = "C_drivertest_syncCl" ;
-    getUniqueName( ClModName, ClName ) ;
-    rc = sdbCreateCollection( cs, ClName, &cl ) ;
-    EXPECT_EQ( rc, SDB_OK ) << "fail to create cl" ;	
+done:
+	return rc ;
+error:
+	goto done ;
 }
 
-void NumberLongTest::TearDown()
+int tearDown()
 {
-	INT32 rc = SDB_OK ;
+	int rc = SDB_OK ;
 	
-	// drop cs release handle
-	rc = sdbDropCollectionSpace( db, CsName ) ;
-	EXPECT_EQ( rc, SDB_OK ) << "fail to drop cs" ;
+	rc = sdbDropCollectionSpace( db, csName ) ;
+	CHECK_RC( rc, "fail to drop cs %s, rc = %d\n", csName, rc ) ;
 	sdbDisconnect( db ) ;
 	sdbReleaseCollection( cl ) ;
 	sdbReleaseCS( cs ) ;
 	sdbReleaseConnection( db ) ;
+
+done:
+	return rc ;
+error:
+	goto done ;
 }
 
-TEST_F( NumberLongTest, JSfalse )
+TEST( NumberLongTest, JSfalse )
 {
-	INT32 rc = SDB_OK ;
+	int rc = SDB_OK ;
+	rc = setUp() ;
+	ASSERT_EQ( rc, SDB_OK ) ;
 
 	// insert int/long/double max min 
-	int a[] = { -2147483648, 0, 2147483647 } ;  // -2^31 0 2^31-1
+	int  a[] = { -2147483648, 0, 2147483647 } ;  // -2^31 0 2^31-1
 	long b[] = { -9223372036854775808, -9007199254740992, -9007199254740991, 1, 
-				  9007199254740991, 9007199254740992, 9223372036854775807 } ; // -2^63 -2^53 -2^53+1 1 2^53-1 2^53 2^63-1
+				 9007199254740991, 9007199254740992, 9223372036854775807 } ; // -2^63 -2^53 -2^53+1 1 2^53-1 2^53 2^63-1
 	bson obj ;
 	bson_init( &obj ) ;
 	for( int i = 0;i < sizeof(a)/sizeof(a[0]);i++ )
@@ -100,22 +92,30 @@ TEST_F( NumberLongTest, JSfalse )
 	rc = sdbNext( cursor, &obj ) ;
 	ASSERT_EQ( rc, SDB_OK ) << "fail to get next in cursor" ;
 
-	const char* expect = "{ \"int0\": -2147483648, \"int1\": 0, \"int2\": 2147483647, \"long0\": -9223372036854775808, \"long1\": -9007199254740992, \"long2\": -9007199254740991, \"long3\": 1, \"long4\": 9007199254740991, \"long5\": 9007199254740992, \"long6\": 9223372036854775807 }" ; 
+	const char* expect = "{ \"int0\": -2147483648, \"int1\": 0, \"int2\": 2147483647,"
+						 " \"long0\": -9223372036854775808, \"long1\": -9007199254740992,"
+						 " \"long2\": -9007199254740991, \"long3\": 1, \"long4\": 9007199254740991,"
+						 " \"long5\": 9007199254740992, \"long6\": 9223372036854775807 }" ; 
 	char real[1024] ;
 	bson_sprint( real, 1024, &obj ) ;
 	ASSERT_STREQ( expect, real ) << "fail to check query data" ;
 	bson_destroy( &obj ) ;
-	
 	sdbReleaseCursor( cursor ) ;
+
+	rc = tearDown() ;
+	ASSERT_EQ( rc, SDB_OK ) ;
 }
 
-TEST_F( NumberLongTest, JStrue )
+TEST( NumberLongTest, JStrue )
 {
-    INT32 rc = SDB_OK ;
+    int rc = SDB_OK ;
+	rc = setUp() ;
+	ASSERT_EQ( rc, SDB_OK ) ;
+
 	bson_set_js_compatibility( true ) ;
 	
     // insert int/long/double max min 
-    int a[] = { -2147483648, 0, 2147483647 } ;  // -2^31 0 2^31-1
+    int  a[] = { -2147483648, 0, 2147483647 } ;  // -2^31 0 2^31-1
     long b[] = { -9223372036854775808, -9007199254740992, -9007199254740991, 1,
                   9007199254740991, 9007199254740992, 9223372036854775807 } ; // -2^63 -2^53 -2^53+1 1 2^53-1 2^53 2^63-1
     bson obj ;
@@ -150,12 +150,19 @@ TEST_F( NumberLongTest, JStrue )
     bson_init( &obj ) ;
     rc = sdbNext( cursor, &obj ) ;
     ASSERT_EQ( rc, SDB_OK ) << "fail to get next in cursor" ;
-	const char* expect = "{ \"int0\": -2147483648, \"int1\": 0, \"int2\": 2147483647, \"long0\": { \"$numberLong\": \"-9223372036854775808\" }, \"long1\": { \"$numberLong\": \"-9007199254740992\" }, \"long2\": -9007199254740991, \"long3\": 1, \"long4\": 9007199254740991, \"long5\": { \"$numberLong\": \"9007199254740992\" }, \"long6\": { \"$numberLong\": \"9223372036854775807\" } }" ;
+	const char* expect = "{ \"int0\": -2147483648, \"int1\": 0, \"int2\": 2147483647,"
+						 " \"long0\": { \"$numberLong\": \"-9223372036854775808\" },"
+						 " \"long1\": { \"$numberLong\": \"-9007199254740992\" },"
+						 " \"long2\": -9007199254740991, \"long3\": 1, \"long4\": 9007199254740991,"
+						 " \"long5\": { \"$numberLong\": \"9007199254740992\" },"
+						 " \"long6\": { \"$numberLong\": \"9223372036854775807\" } }" ;
     char real[1024] ;
     bson_sprint( real, 1024, &obj ) ;
     ASSERT_STREQ( expect, real ) << "fail to check query data" ;
     bson_destroy( &obj ) ;
-
     sdbReleaseCursor( cursor ) ;
+
+	rc = tearDown() ;
+	ASSERT_EQ( rc, SDB_OK ) ;
 }
 

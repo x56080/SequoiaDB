@@ -12,6 +12,7 @@
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include <stdarg.h>
 #include "testcommon.hpp"
 
 using namespace std ;
@@ -33,80 +34,79 @@ char WORKDIR[100]       = "/tmp/ctest" ;
 char IPADDR[100]        = "192.168.31.61" ;
 char HOST[100]          = "sdbserver1" ;
 
-INT32 createCollection( sdbCollectionHandle *cl,
-                        CHAR *csName,
-                        CHAR *clName )
+/*****************************************************************
+* Print err msg
+*
+*****************************************************************/
+void printMsg( const char* fmt, ... )
 {
-   INT32 rc = SDB_OK;
-   sdbConnectionHandle db = 0;
-   sdbCSHandle cs = 0;
-   bson clOptions;   
-
-   // connect to sdb
-   getConf() ;
-   rc = sdbConnect( HOSTNAME, SVCNAME, USER, PASSWD, &db );
-   if ( rc )
-   {
-      printf( "Failed to connect database, hostname=%s, coord= %s\n",
-              HOSTNAME, SVCNAME );     
-      goto error ;
-   }
-   
-   // create cs   
-   rc = sdbCreateCollectionSpace( db, csName, 65536, &cs );
-   if( SDB_DMS_CS_EXIST == rc )
-   {
-      rc = sdbGetCollectionSpace( db, csName, &cs );
-   }
-   if( rc )
-   {
-      printf( "Failed to get cs %s\n", csName );
-      goto error ;
-   }
-   
-   // create cl
-   bson_init( &clOptions );
-   bson_append_int( &clOptions, "ReplSize", 0 );
-   bson_finish( &clOptions );
-   
-   rc = sdbDropCollection( cs, clName );
-   if( SDB_DMS_NOTEXIST != rc && SDB_OK != rc )
-   {
-      printf( "Failed to drop cl %s.%s in ready\n", csName, clName );
-   }
-
-   rc = sdbCreateCollection1( cs, clName, &clOptions, cl );
-   if( rc )
-   {
-      printf( "Failed to create cl %s.%s\n", csName, clName );
-      goto error ;
-   }
-   
-   bson_destroy( &clOptions );
-   
-done:   
-   return rc;
-error:
-   goto done;  
+    va_list ap ;
+    va_start( ap, fmt ) ;
+    vprintf( fmt, ap ) ;
+    va_end( ap ) ;
 }
 
-BOOLEAN isStandalone( sdbConnectionHandle db )
+/*****************************************************************
+* create normal collection with csname clname
+* return SDB_OK if success, return others if error
+*
+******************************************************************/
+int createNormalCl( sdbConnectionHandle* db, sdbCSHandle* cs, sdbCollectionHandle* cl,
+                	  const char* csname, const char* clname )
 {
-   BOOLEAN isStdalone = FALSE;
-   INT32 rc = SDB_OK;
+	int rc = SDB_OK ;
+	// connect sdb
+ 	getConf() ;
+    rc = sdbConnect( HOSTNAME, SVCNAME, USER, PASSWD, db ) ;
+    CHECK_RC( rc, "fail to connect sdb, rc = %d\n", rc ) ;
+	// create cs
+	rc = sdbCreateCollectionSpace( *db, csname, SDB_PAGESIZE_4K, cs ) ;
+    CHECK_RC( rc, "fail to create cs %s, rc = %d\n", csname, rc ) ;
+	// create cl
+	rc = sdbCreateCollection( *cs, clname, cl ) ;
+    CHECK_RC( rc, "fail to create cl %s, rc = %d\n", clname, rc ) ;	
+done:
+	return rc ;
+error:
+	goto done ;
+}
+
+/*************************************************************
+* check db is standalone or not, 
+* if standalone return true, otherwise return false
+*
+*************************************************************/
+bool isStandalone( sdbConnectionHandle db )
+{
+   bool ret = false ;
+   int rc = SDB_OK ;
    sdbCursorHandle cursor = SDB_INVALID_HANDLE ;
 
    rc = sdbListReplicaGroups( db, &cursor ) ;
    if( SDB_RTN_COORD_ONLY == rc )
    {
-      isStdalone = TRUE;
+      ret = true ;
    }
    sdbReleaseCursor(cursor) ;
-   return isStdalone;
+   return ret ;
 }
 
+/****************************************************************
+* get args like HOSTNAME SVCNAME ....
+*
+****************************************************************/
 void getConf()
 {
+	static bool inited = false ;
+	if( inited )
+	{
+		return ;
+	} 
+	else
+	{
+		inited = true ;
+	}
+
     printf( "Print command args:\n" ) ;
     for( int i = 0;i < g_argvs.size();i++ )
       printf( "%s ",g_argvs[i].c_str() ) ;
@@ -131,40 +131,50 @@ void getConf()
 		 strcpy( WORKDIR,g_argvs[i+1].c_str() ) ; 
     }
     
-    printf("HOSTNAME: %s\n",HOSTNAME) ;
-    printf("SVCNAME: %s\n",SVCNAME) ;
-    printf("CHANGEDPREFIX: %s\n",CHANGEDPREFIX) ;
-	printf("RSPVPORTBEGIN: %s\n",RSRVPORTBEGIN) ;
-	printf("RSPVPORTEND: %s\n",RSRVPORTEND) ;
-	printf("RSPVNODEDIR: %s\n",RSRVNODEDIR) ;
-	printf("WORKDIR: %s\n",WORKDIR) ;
-    printf("\n") ;
+    printf( "HOSTNAME: %s\n", HOSTNAME ) ;
+    printf( "SVCNAME: %s\n", SVCNAME ) ;
+    printf( "CHANGEDPREFIX: %s\n", CHANGEDPREFIX ) ;
+	printf( "RSPVPORTBEGIN: %s\n", RSRVPORTBEGIN ) ;
+	printf( "RSPVPORTEND: %s\n", RSRVPORTEND ) ;
+	printf( "RSPVNODEDIR: %s\n", RSRVNODEDIR ) ;
+	printf( "WORKDIR: %s\n", WORKDIR ) ;
+    printf( "\n" ) ;
 }
 
-void getUniqueName(const char* modName,char name[])
+/****************************************************************
+* get a unique name with pid, make sure name length is enough!!
+*
+****************************************************************/
+void getUniqueName( const char* modName, char name[] )
 {
    pid_t pid = getpid() ;
-   sprintf( name,"%s_%d_%s",CHANGEDPREFIX,pid,modName ) ;
+   sprintf( name, "%s_%d_%s", CHANGEDPREFIX, pid, modName ) ;
 }
 
+/***************************************************************
+* get local ip address
+*
+***************************************************************/
 void getLocalIpAddr()
 {
 	int sock ;
     struct sockaddr_in sin ;
     struct ifreq ifr ;
 
-    sock = socket( AF_INET, SOCK_DGRAM,0 ) ;
+    sock = socket( AF_INET, SOCK_DGRAM, 0 ) ;
     if( sock == -1 )
 	{
         printf( "Error in socket.\n" ) ;
+		exit(1) ;
 	}
 
-    strncpy( ifr.ifr_name, ETH_NAME,IFNAMSIZ ) ;
-    ifr.ifr_name[IFNAMSIZ-1] = 0 ;
+    strncpy( ifr.ifr_name, ETH_NAME, IFNAMSIZ ) ;
+    ifr.ifr_name[ IFNAMSIZ-1 ] = 0 ;
 
-    if( ioctl( sock, SIOCGIFADDR,&ifr ) < 0)
+    if( ioctl( sock, SIOCGIFADDR, &ifr ) < 0)
     {
         printf( "Error in ioctl.\n" ) ;
+		exit(1) ;
     }
 
     memcpy( &sin, &ifr.ifr_addr, sizeof(sin) ) ;
@@ -173,17 +183,25 @@ void getLocalIpAddr()
 	close( sock ) ;
 }
 
+/**********************************************************
+* get local hostname 
+*
+**********************************************************/
 void getHost()
 {
 	int rc = gethostname( HOST, sizeof(HOST)-1 ) ;
 	if( rc != 0 )
 	{
 	   printf( "fail to gethostname, rc = %d\n", rc ) ;
-	   exit( EXIT_FAILURE ) ;
+	   exit(1) ;
 	}
 	printf( "Host: %s\n", HOST ) ;
 }
 
+/*******************************************************************************
+* get a idle port between RSRVPORTBEGIN and RSRVPORTEND in localhost
+*
+*******************************************************************************/
 void getIdlePort( char* port )
 {
 	int start = atoi( RSRVPORTBEGIN ) ;
@@ -203,4 +221,111 @@ void getIdlePort( char* port )
 		sprintf( port, "%d", i ) ;
 		break ;
 	}
+}
+
+/***********************************************************************************
+* get nodes of a group to a vector
+* vector ex [ "sdbserver1:20100", "sdbserver2:20100", ... ]
+* return SDB_OK if success, return others if error
+*
+***********************************************************************************/
+int getGroupNodes( sdbConnectionHandle db, const char* groupname,
+                     vector<string>& vec )
+{
+    int rc = SDB_OK ;
+    sdbCursorHandle cursor = SDB_INVALID_HANDLE ;
+    bson cond, obj ;
+    bson_init( &cond ) ;
+    bson_init( &obj ) ;
+
+    rc = bson_append_string( &cond, "GroupName", groupname ) ;
+    CHECK_RC( rc, "bson fail to append GroupName:%s, rc = %d\n", groupname, rc ) ;
+    rc = bson_finish( &cond ) ;
+    CHECK_RC( rc, "bson fail to finish, rc = %d\n", rc ) ;
+    rc = sdbGetList( db, SDB_LIST_GROUPS, &cond, NULL, NULL, &cursor ) ;
+    CHECK_RC( rc, "fail to get list groups, rc = %d\n", rc ) ;
+
+    rc = sdbNext( cursor, &obj ) ;
+    CHECK_RC( rc, "fail to get sdb next, rc = %d\n", rc ) ;
+    bson_iterator it, sub ;
+    bson_find( &it, &obj, "Group" ) ;
+    bson_iterator_subiterator( &it, &sub ) ;
+    bson_iterator_next( &sub ) ;
+    while( bson_iterator_more( &sub ) )
+    {
+        bson tmp1 ;
+        bson_init( &tmp1 ) ;
+        bson_iterator_subobject( &sub, &tmp1 ) ;
+		bson_iterator i1 ;
+        bson_find( &i1, &tmp1, "HostName" ) ;
+        string hostname = bson_iterator_string( &i1 ) ;
+
+        bson_find( &i1, &tmp1, "Service" ) ;
+        bson tmp2 ;
+        bson_init( &tmp2 ) ;
+        bson_iterator_subobject( &i1, &tmp2 ) ;
+        bson_iterator i2 ;
+        bson_iterator_init( &i2, &tmp2 ) ;
+        bson_iterator_next( &i2 ) ;
+        bson tmp3 ;
+        bson_init( &tmp3 ) ;
+        bson_iterator_subobject( &i2, &tmp3 ) ;
+        bson_iterator i3 ;
+        bson_find( &i3, &tmp3, "Name" ) ;
+        string svcname = bson_iterator_string( &i3 ) ;
+
+        string nodename = hostname + ":" + svcname ;
+        // cout << nodename << endl ;
+        vec.push_back( nodename ) ;
+
+        bson_destroy( &tmp3 ) ;
+        bson_destroy( &tmp2 ) ;
+        bson_destroy( &tmp1 ) ;
+        bson_iterator_next( &sub ) ;
+    }
+
+done:
+    bson_destroy( &cond ) ;
+    bson_destroy( &obj ) ;
+    sdbReleaseCursor( cursor ) ;
+    return rc ;
+error:
+    goto done ;
+}
+
+/*****************************************************************
+* get all data groups to a vector, 
+* vector ex [ "group1", "group2", ... ]
+* return SDB_OK if success, return others if error
+*
+*****************************************************************/
+int getGroups( sdbConnectionHandle db, vector<string>& vec )
+{
+    int rc = SDB_OK ;
+    sdbCursorHandle cursor = SDB_INVALID_HANDLE ;
+    bson obj ;
+    bson_init( &obj ) ;
+
+    rc = sdbListReplicaGroups( db, &cursor ) ;
+    CHECK_RC( rc, "fail to list replica groups, rc = %d\n", rc ) ;
+    while( !sdbNext( cursor, &obj ) )
+    {
+        bson_iterator it ;
+        bson_find( &it, &obj, "GroupName" ) ;
+        string groupname = bson_iterator_string( &it ) ;
+        if( groupname != "SYSCoord" && groupname != "SYSCatalogGroup" )
+        {
+            // cout << groupname << endl ;
+            vec.push_back( groupname ) ;
+        }
+        bson_destroy( &obj ) ;
+        bson_init( &obj ) ;
+    }
+
+done:
+    bson_destroy( &obj ) ;
+	sdbReleaseCursor( cursor ) ;
+    return rc ;
+error:
+    goto done ;
 }

@@ -19,12 +19,12 @@ TEST( codeTest, codeBSON )
 	rc = sdbConnect( HOSTNAME, SVCNAME, USER, PASSWD, &db ) ;
 	ASSERT_EQ( rc, SDB_OK ) << "fail to connect sdb" ;
 	if( isStandalone( db ) )
-   {
-      printf( "Run mode is standalone,cannot create procedure.\n" ) ;
-      sdbDisconnect( db ) ;
-      sdbReleaseConnection( db ) ;
-      return ;
-   }
+	{
+    	printf( "Run mode is standalone,cannot create procedure.\n" ) ;
+      	sdbDisconnect( db ) ;
+      	sdbReleaseConnection( db ) ;
+      	return ;
+   	}
 
 	// create procedure
 	const char *function = "function add(a,b) { return a+b ; }" ;

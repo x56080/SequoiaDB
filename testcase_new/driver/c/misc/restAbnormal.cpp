@@ -118,7 +118,7 @@ TEST( restAbnormal, multi_send )
         pos += rc ;
    }
    printf("%s\n", totalrecvbuf);
-   char *p = strstr(totalrecvbuf, "\r\n\r\n{ \"errno\": 0 }{ \"Name\":");
+   char *p = strstr(totalrecvbuf, "\r\n\r\n{ \"errno\": 0 }");
    ASSERT_STRNE(NULL, p) << "check recieve message error";
    free( totalrecvbuf ) ;
 

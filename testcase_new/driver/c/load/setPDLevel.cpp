@@ -11,11 +11,11 @@
 #include "../common/testcommon.hpp"
 
 sdbConnectionHandle db = SDB_INVALID_HANDLE ;
-INT32 pdLevel = 5 ;   // 0 SERVER 1 ERROR 2 EVENT 3 WARNING 4 INFO 5 DEBUG 默认为3
+int pdLevel = 5 ;   // 0 SERVER 1 ERROR 2 EVENT 3 WARNING 4 INFO 5 DEBUG 默认为3
 
 TEST( setPDLevel, debugLevel )
 {
-	INT32 rc = SDB_OK ;
+	int rc = SDB_OK ;
 
 	// connect to sdb
 	getConf() ;

@@ -533,9 +533,11 @@ TEST( decimal, append )
    double expRst3 = 922330.123451;
    
    //create cl
+   sdbConnectionHandle db = 0;
+   sdbCSHandle cs = 0 ;
    sdbCollectionHandle cl = 0;
    getUniqueName( CsModName,CSNAME ) ;
-   rc = createCollection( &cl, CSNAME, CLNAME );   
+   rc = createNormalCl( &db, &cs, &cl, CSNAME, CLNAME );   
    ASSERT_EQ( SDB_OK, rc );
    
    //construct bson 
@@ -599,7 +601,13 @@ TEST( decimal, append )
    rc = sdbCloseCursor( cursor );
    ASSERT_EQ( SDB_OK, rc );
    decimal_free( &dec );
-   bson_destroy( &obj );   
+   bson_destroy( &obj );
+   rc = sdbDropCollectionSpace( db, CSNAME ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   sdbDisconnect( db ) ;
+   sdbReleaseCollection( cl ) ;
+   sdbReleaseCS( cs ) ;
+   sdbReleaseConnection( db ) ;	   
 }
 
 TEST( decimal, boundary ) //str
@@ -631,9 +639,11 @@ TEST( decimal, boundary ) //str
    printf("string len: %zd\n", strlen(strVal) );
    
    //create cl
+   sdbConnectionHandle db = 0;
+   sdbCSHandle cs = 0 ;
    sdbCollectionHandle cl = 0;
    getUniqueName( CsModName,CSNAME ) ;
-   rc = createCollection( &cl, CSNAME, CLNAME );   
+   rc = createNormalCl( &db, &cs, &cl, CSNAME, CLNAME );   
    ASSERT_EQ( SDB_OK, rc );
    
    //construct bson        
@@ -685,6 +695,12 @@ TEST( decimal, boundary ) //str
    decimal_free( &dec );
    bson_destroy( &obj );
    free( strVal );
+   rc = sdbDropCollectionSpace( db, CSNAME ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   sdbDisconnect( db ) ;
+   sdbReleaseCollection( cl ) ;
+   sdbReleaseCS( cs ) ;
+   sdbReleaseConnection( db ) ;
 }
 
 TEST( decimal, out_scale )

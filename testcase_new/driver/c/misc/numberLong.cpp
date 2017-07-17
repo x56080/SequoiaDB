@@ -115,16 +115,25 @@ void checkLongVal( const sdbCollectionHandle &cl, const long long longVal )
 TEST( numberLong, boundary )
 {         
    //create cl
-   sdbCollectionHandle cl = 0 ;
    INT32 rc = SDB_OK;
    getUniqueName( CsModName,CSNAME ) ;
-   rc = createCollection( &cl, CSNAME, CLNAME ); 
-//   createCollection( &cl ) ;
+   sdbConnectionHandle db = 0 ;
+   sdbCSHandle cs = 0 ;
+   sdbCollectionHandle cl = 0 ;
+   rc = createNormalCl( &db, &cs, &cl, CSNAME, CLNAME ); 
+   ASSERT_EQ( rc, SDB_OK ) ;
    
    long long longMax = 9223372036854775807;
    long long longMin = -9223372036854775808;
    checkLongVal( cl, longMax ); 
    checkLongVal( cl, longMin ); 
+
+   rc = sdbDropCollectionSpace( db, CSNAME ) ;
+   ASSERT_EQ( rc, SDB_OK ) ;
+   sdbDisconnect( db ) ;
+   sdbReleaseCollection( cl ) ;
+   sdbReleaseCS( cs ) ;
+   sdbReleaseConnection( db ) ;
 }
 
 TEST( numberLong, outofBoundary )

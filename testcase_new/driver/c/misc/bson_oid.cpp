@@ -12,8 +12,6 @@
 
 using namespace import ;
 
-const char* user   = "" ;
-const char* passwd = "" ;
 const char* csModName = "bsonTestCS" ;
 char csName[100] ;
 const char* clName = "bsonTestCL" ;
@@ -21,117 +19,112 @@ sdbConnectionHandle _db = SDB_INVALID_HANDLE ;
 sdbCSHandle         _cs = SDB_INVALID_HANDLE ;
 sdbCollectionHandle _cl = SDB_INVALID_HANDLE ;
 
-#define ASSERT_RC_CODE( rc, msg ) \
-if( rc != SDB_OK ) \
-{ \
-   printf( "%s,rc=%d\n", msg, rc ) ; \
-   exit(1) ; \
+int setup()
+{
+	int rc = SDB_OK ;
+   	
+   	getUniqueName( csModName, csName ) ;
+   	rc = createNormalCl( &_db, &_cs, &_cl, csName, clName ) ;
+   	CHECK_RC( rc, "fail to create normal cl, rc = %d\n", rc ) ;
+
+done:
+	return rc ;
+error:
+	goto done ;
 }
 
-class BsonTest : public testing::Test
+int teardown()
 {
-public:
-	static void SetUpTestCase() ;
-	static void TearDownTestCase() ;
-} ;
+   	int rc = SDB_OK ;
+   	
+   	rc = sdbDropCollectionSpace( _db, csName ) ;
+   	CHECK_RC( rc, "fail to drop cs %s, rc = %d\n", csName, rc ) ;
+   	sdbDisconnect( _db ) ;
+   	sdbReleaseCollection( _cl ) ;
+   	sdbReleaseCS( _cs ) ;
+   	sdbReleaseConnection( _db ) ;
 
-void BsonTest::SetUpTestCase()
-{
-   INT32 rc = SDB_OK ;
-   // connect sdb
-   getConf() ;
-   rc = sdbConnect( HOSTNAME, SVCNAME, user, passwd, &_db ) ;
-   ASSERT_RC_CODE( rc, "fail to connect sdb" )
-   // create cs cl
-   getUniqueName( csModName, csName ) ;
-   rc = sdbCreateCollectionSpace( _db, csName, SDB_PAGESIZE_4K, &_cs ) ;
-   ASSERT_RC_CODE( rc, "fail to create cs" )
-   rc = sdbCreateCollection( _cs, clName, &_cl ) ;
-   ASSERT_RC_CODE( rc, "fail to create cl" )      
-}
-
-void BsonTest::TearDownTestCase()
-{
-   INT32 rc = SDB_OK ;
-   // drop cs
-   rc = sdbDropCollectionSpace( _db, csName ) ;
-   ASSERT_RC_CODE( rc, "fail to drop cs" )
-   // disconnect and release handle
-   sdbDisconnect( _db ) ;
-   sdbReleaseCollection( _cl ) ;
-   sdbReleaseCS( _cs ) ;
-   sdbReleaseConnection( _db ) ;
+done:
+	return rc ;
+error:
+	goto done ;
 }
 
 class ThreadArgs : public WorkerArgs
 {
 public:
-   INT32 num ;
-   INT32 tid ;
+	int num ;
+   	int tid ;
 } ;
 
 void bulkInsert( ThreadArgs* args )
 {
-   INT32 num = args->num ;
-   INT32 tid = args->tid ;
-   INT32 rc = SDB_OK ;
-   sdbConnectionHandle db ;
-   sdbCSHandle cs ;
-   sdbCollectionHandle cl ;
+   	int num = args->num ;
+   	int tid = args->tid ;
+   	int rc = SDB_OK ;
+   	sdbConnectionHandle db ;
+   	sdbCSHandle cs ;
+   	sdbCollectionHandle cl ;
 
-   // connect and get cs cl
-   rc = sdbConnect( HOSTNAME, SVCNAME, user, passwd, &db ) ;
-   ASSERT_RC_CODE( rc, "fail to connect in thread" )
-   rc = sdbGetCollectionSpace( db, csName, &cs ) ;
-   ASSERT_RC_CODE( rc, "fail to get cs in thread" )
-   rc = sdbGetCollection1( cs, clName, &cl ) ;
-   ASSERT_RC_CODE( rc, "fail to get cl in thread" )  
+   	// connect and get cs cl
+   	rc = sdbConnect( HOSTNAME, SVCNAME, USER, PASSWD, &db ) ;
+   	ASSERT_EQ( rc, SDB_OK ) << "fail to connect in thread " << tid ;
+   	rc = sdbGetCollectionSpace( db, csName, &cs ) ;
+   	ASSERT_EQ( rc, SDB_OK ) << "fail to get cs " << csName << " in thread " << tid ;
+   	rc = sdbGetCollection1( cs, clName, &cl ) ;
+   	ASSERT_EQ( rc, SDB_OK ) << "fail to get cl " << clName << " in thread " << tid ; 
 
-   // bulk insert record
-   INT32 i = 0 ;
-   bson* rec[num] ;
-   while( i < num )
-   {
-      rec[i] = bson_create() ;
-      bson_append_int( rec[i], "a", i + tid * num ) ;
-      bson_finish( rec[i] ) ;
-      i++ ;
-   }
-   rc = sdbBulkInsert( cl, 0, rec, num ) ;
-   ASSERT_RC_CODE( rc, "fail to bulk insert" )
-   i = 0 ;
-   while( i < num )
-   {
-      bson_dispose( rec[i] ) ;
-	  i++ ;
-   }
+   	// bulk insert record
+   	int i = 0 ;
+   	bson* rec[num] ;
+   	while( i < num )
+   	{
+    	rec[i] = bson_create() ;
+      	bson_append_int( rec[i], "a", i + tid * num ) ;
+      	bson_finish( rec[i] ) ;
+      	i++ ;
+   	}
+   	rc = sdbBulkInsert( cl, 0, rec, num ) ;
+   	ASSERT_EQ( rc, SDB_OK ) << "fail to bulk insert in thread " << tid ;
+   	i = 0 ;
+   	while( i < num )
+   	{
+    	bson_dispose( rec[i] ) ;
+	  	i++ ;
+   	}
 
-   // disconnect and release handle
-   sdbDisconnect( db ) ;
-   sdbReleaseCollection( cl ) ;
-   sdbReleaseCS( cs ) ;
-   sdbReleaseConnection( db ) ;
+   	// disconnect and release handle
+   	sdbDisconnect( db ) ;
+   	sdbReleaseCollection( cl ) ;
+   	sdbReleaseCS( cs ) ;
+   	sdbReleaseConnection( db ) ;
 }
 
-TEST_F( BsonTest, multiBulkInsert )
+TEST( BsonTest, multiBulkInsert )
 {
-   INT32 rc = SDB_OK ;
-   INT32 ThreadNum = 20 ;
-   INT32 RecordNum = 100 ;
-   Worker* workers[ThreadNum] ;
-   ThreadArgs args[ThreadNum] ;
-   for( INT32 i = 0;i < ThreadNum;i++ )
-   {
-      args[i].num = RecordNum ;
-      args[i].tid = i ;
-      workers[i] = new Worker( (WorkerRoutine)bulkInsert, &args[i], false ) ;
-      workers[i]->start() ;
-   }
-   for( INT32 i = 0;i < ThreadNum;i++ )
-   {
-      workers[i]->waitStop() ;
-   }
-   SINT64 count = 0 ;
-   rc = sdbGetCount( _cl, NULL, &count ) ;
-   ASSERT_EQ( RecordNum * ThreadNum, count ) ;
+	int rc = SDB_OK ;
+	rc = setup() ;
+	ASSERT_EQ( rc, SDB_OK ) ;
+
+   	int ThreadNum = 20 ;
+   	int RecordNum = 100 ;
+   	Worker* workers[ThreadNum] ;
+   	ThreadArgs args[ThreadNum] ;
+   	for( int i = 0;i < ThreadNum;i++ )
+   	{
+    	args[i].num = RecordNum ;
+      	args[i].tid = i ;
+      	workers[i] = new Worker( (WorkerRoutine)bulkInsert, &args[i], false ) ;
+      	workers[i]->start() ;
+   	}
+   	for( int i = 0;i < ThreadNum;i++ )
+   	{
+      	workers[i]->waitStop() ;
+   	}
+   	SINT64 count = 0 ;
+   	rc = sdbGetCount( _cl, NULL, &count ) ;
+   	ASSERT_EQ( RecordNum * ThreadNum, count ) ;
+
+	rc = teardown() ;
+	ASSERT_EQ( rc, SDB_OK ) ;
 }
