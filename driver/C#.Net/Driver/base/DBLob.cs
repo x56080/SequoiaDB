@@ -45,8 +45,8 @@ namespace SequoiaDB
 
         // the max lob data size to send for one message
         private const int SDB_LOB_MAX_WRITE_DATA_LENGTH = 2097152; // 2M;
-        private const int SDB_LOB_WRITE_DATA_LENGTH = 131072; // 128k;
-        private const int SDB_LOB_READ_DATA_LENGTH = 131072; // 128k;
+        private const int SDB_LOB_WRITE_DATA_LENGTH = 524288; // 512k;
+        private const int SDB_LOB_READ_DATA_LENGTH = 65536; // 64k;
 
         private const int SDB_LOB_ALIGNED_LEN = 524288; // 512k
         private const int FLG_LOBOPEN_WITH_RETURNDATA = 0x00000002;
