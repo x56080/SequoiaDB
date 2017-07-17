@@ -178,8 +178,8 @@ class DBLobConcrete implements DBLob {
 
     // the max lob data size to send for one message
     private final static int SDB_LOB_MAX_WRITE_DATA_LENGTH = 2097152; // 2M;
-    private final static int SDB_LOB_WRITE_DATA_LENGTH = 131072; // 128k;
-    private final static int SDB_LOB_READ_DATA_LENGTH = 131072; // 128k;
+    private final static int SDB_LOB_WRITE_DATA_LENGTH = 524288; // 512k;
+    private final static int SDB_LOB_READ_DATA_LENGTH = 65536; // 64k;
 
     private final static long SDB_LOB_DEFAULT_OFFSET = -1;
     private final static int SDB_LOB_DEFAULT_SEQ = 0;
