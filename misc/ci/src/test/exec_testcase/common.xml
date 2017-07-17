@@ -22,12 +22,15 @@
       <attribute name="casename"/>
       <attribute name="marktype"/>
       <sequential>
+         <property file="${basedir}/src/conf/test.conf" /> 
          <switch value="@{marktype}">
             <case value="begin">
-               <var name="mark_cmd" value="-s &quot;db=new Sdb('localhost',${SVCNAME}); db.msg('Begin testcase[@{casename}]'); db.close();&quot;" />
+               <var name="mark_cmd" value="-s &quot;db=new Sdb('localhost',${SVCNAME}); db.msg('Begin testcase[@{casename}]'); 
+               db.close();&quot; -f ${CI_WORK_DIR}/@{casename}.js" />
             </case>
             <case value="end">
-               <var name="mark_cmd" value="-s &quot;db=new Sdb('localhost',${SVCNAME}); db.msg('End testcase[@{casename}]'); db.close();&quot;" />
+               <var name="mark_cmd" value="-s &quot;db=new Sdb('localhost',${SVCNAME}); db.msg('End testcase[@{casename}]'); 
+               db.close();&quot; -f ${CI_WORK_DIR}/@{casename}.js" />
             </case>
          </switch>
          <echo message="exec cmd: ${INSTALL_DIR}/bin/sdb ${mark_cmd}"/>
