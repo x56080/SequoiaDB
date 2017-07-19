@@ -218,7 +218,7 @@ namespace engine
 
          pNewUpdate->version = cataInfo->getVersion() ;
          pNewUpdate->w = 0 ;
-         if ( pNewUpdate->flags | FLG_UPDATE_UPSERT )
+         if ( pNewUpdate->flags & FLG_UPDATE_UPSERT )
          {
             pNewUpdate->flags &= ~FLG_UPDATE_UPSERT ;
          }
