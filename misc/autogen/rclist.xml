@@ -2521,6 +2521,22 @@
            <cn>连接池未初始化</cn>
         </description>
       </code>
-      
+
+      <code>
+        <name>SDB_OPERATION_INCOMPATIBLE</name>
+        <description>
+           <en>Operation is incompatible with the object</en>
+           <cn>操作类型与操作对象不兼容</cn>
+        </description>
+      </code>
+
+      <code>
+         <name>SDB_CAT_CLUSTER_IS_DEACTIVED</name>
+         <description>
+            <en>This cluster is deactived</en>
+            <cn>集群为非激活状态</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>
