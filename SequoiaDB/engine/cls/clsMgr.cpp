@@ -793,7 +793,9 @@ namespace engine
       }
 
       // let's ignore the event if the node is still starting up
-      if ( !pmdGetStartup().isOK() )
+      if ( !pmdGetStartup().isOK() ||
+           _shdObj.getDCMgr()->getDCBaseInfo()->isReadonly() ||
+           !_shdObj.getDCMgr()->getDCBaseInfo()->isActivated() )
       {
          return ;
       }
@@ -1456,7 +1458,7 @@ namespace engine
 
    //message function
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR__ONCATREGRES, "_clsMgr::_onCatRegisterRes" )
-   INT32 _clsMgr::_onCatRegisterRes ( NET_HANDLE handle, MsgHeader*msg )
+   INT32 _clsMgr::_onCatRegisterRes ( NET_HANDLE handle, MsgHeader* msg )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSMGR__ONCATREGRES );
@@ -1515,6 +1517,24 @@ namespace engine
              * Here we ensure the KRCB's HostName is consistent with catalog.
              */
             pmdGetKRCB()->setHostName( hostEle.String().c_str() ) ;
+         }
+
+         /// update dc base info
+         if ( msgIsInnerOpReply( msg ) &&
+              msg->messageLength > (INT32)sizeof( MsgOpReply ) +
+              object.objsize() + 5 )
+         {
+            MsgOpReply *pReply = ( MsgOpReply* )msg ;
+            if ( pReply->numReturned > 1 )
+            {
+               clsDCBaseInfo *pInfo = _shdObj.getDCMgr()->getDCBaseInfo() ;
+               BSONObj objDCInfo( ( const CHAR* )msg + sizeof( MsgOpReply ) +
+                                  ossAlign4( (UINT32)object.objsize() ) ) ;
+               _shdObj.getDCMgr()->updateDCBaseInfo( objDCInfo ) ;
+
+               pmdGetKRCB()->setDBReadonly( pInfo->isReadonly() ) ;
+               pmdGetKRCB()->setDBDeactivated( !pInfo->isActivated() ) ;
+            }
          }
       }
 

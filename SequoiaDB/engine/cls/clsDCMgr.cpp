@@ -67,7 +67,7 @@ namespace engine
       _imageAddress = "" ;
       _hasImage = FALSE ;
       _imageIsEnabled = FALSE ;
-      _activated = FALSE ;
+      _activated = TRUE ;
       _readonly = FALSE ;
 
       _orgObj = BSONObj() ;

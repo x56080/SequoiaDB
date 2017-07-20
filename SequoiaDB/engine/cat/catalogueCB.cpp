@@ -86,11 +86,14 @@ namespace engine
    INT32 sdbCatalogueCB::primaryCheck( _pmdEDUCB *cb, BOOLEAN canDelay,
                                        BOOLEAN &isDelay )
    {
-      replCB *pRepl = sdbGetReplCB() ;
+      pmdKRCB *pKRCB = pmdGetKRCB() ;
+      replCB *pRepl = pKRCB->getClsCB()->getReplCB() ;
       INT32 rc = SDB_OK ;
       isDelay = FALSE ;
 
-      if ( pRepl->primaryIsMe() && _isActived )
+      if ( pRepl->primaryIsMe() &&
+           ( _isActived || pKRCB->isDBReadonly() ||
+             pKRCB->isDBDeactivated() ) )
       {
          goto done ;
       }

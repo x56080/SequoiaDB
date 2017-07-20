@@ -92,6 +92,9 @@ namespace engine
    void catNodeManager::attachCB( pmdEDUCB * cb )
    {
       _pEduCB = cb ;
+
+      /// load group info and ignore the error info
+      _loadGroupInfo() ;
    }
 
    void catNodeManager::detachCB( pmdEDUCB * cb )
@@ -103,15 +106,44 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_ACTIVE, "catNodeManager::active" )
    INT32 catNodeManager::active()
    {
-      //get all of the nodes's id
-      INT32 rc            = SDB_OK;
-      rtnContextBuf buffObj ;
-      PD_TRACE_ENTRY ( SDB_CATNODEMGR_ACTIVE ) ;
+      INT32 rc = SDB_OK ;
 
-      BSONObj boEmpty;
-      SINT64 sContextID   = -1;
-      CHAR szBuf[ OP_MAXNAMELENGTH+1 ] = {0} ;
-      ossStrncpy( szBuf, CAT_NODE_INFO_COLLECTION, OP_MAXNAMELENGTH );
+      _pCatCB->clearInfo() ;
+      rc = _loadGroupInfo() ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATNODEMGR_ACTIVE, rc ) ;
+      return rc;
+   error :
+      PD_LOG( PDSEVERE, "Stop program because of active node manager failed, "
+              "rc: %d", rc ) ;
+      // need to restart engine
+      PMD_RESTART_DB( rc ) ;
+      goto done ;
+   }
+
+   INT32 catNodeManager::deactive()
+   {
+      _pCatCB->clearInfo() ;
+      return SDB_OK ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_LOADGROUPINFO, "catNodeManager::_loadGroupInfo" )
+   INT32 catNodeManager::_loadGroupInfo()
+   {
+      //get all of the nodes's id
+      INT32 rc            = SDB_OK ;
+      rtnContextBuf buffObj ;
+      PD_TRACE_ENTRY ( SDB_CATNODEMGR_LOADGROUPINFO ) ;
+
+      BSONObj boEmpty ;
+      SINT64 sContextID   = -1 ;
+      CHAR szBuf[ OP_MAXNAMELENGTH+1 ] = { 0 } ;
+      ossStrncpy( szBuf, CAT_NODE_INFO_COLLECTION, OP_MAXNAMELENGTH ) ;
       // query from collection table
       rc = rtnQuery ( szBuf, boEmpty, boEmpty,
                       boEmpty, boEmpty, 0, _pEduCB, 0, -1, _pDmsCB,
@@ -131,9 +163,9 @@ namespace engine
             if ( SDB_DMS_EOC == rc )
             {
                // loop until EOC
-               rc = SDB_OK;
+               rc = SDB_OK ;
                sContextID = -1 ;
-               break;
+               break ;
             }
             PD_LOG ( PDERROR, "Failed to fetch from %s collection, rc = %d",
                      CAT_NODE_INFO_COLLECTION, rc );
@@ -147,7 +179,7 @@ namespace engine
                BSONObj bsGrpInfo( buffObj.data() );
                PD_TRACE1 ( SDB_CATNODEMGR_ACTIVE,
                            PD_PACK_STRING ( bsGrpInfo.toString().c_str() ) ) ;
-               rc = parseIDInfo( bsGrpInfo );
+               rc = parseIDInfo( bsGrpInfo ) ;
                if ( rc )
                {
                   // if we cannot parse it, something wrong
@@ -156,7 +188,7 @@ namespace engine
                      rc = SDB_CAT_CORRUPTION ;
                   }
                   PD_LOG( PDERROR, "Failed to parse node info: %s",
-                          bsGrpInfo.toString().c_str());
+                          bsGrpInfo.toString().c_str() ) ;
                   goto error ;
                }
             }
@@ -171,24 +203,14 @@ namespace engine
       } // while ( TRUE );
 
    done :
-      PD_TRACE_EXITRC ( SDB_CATNODEMGR_ACTIVE, rc ) ;
+      PD_TRACE_EXITRC ( SDB_CATNODEMGR_LOADGROUPINFO, rc ) ;
       return rc;
    error :
       if ( -1 != sContextID )
       {
          _pRtnCB->contextDelete( sContextID, _pEduCB );
       }
-      PD_LOG( PDSEVERE, "Stop program because of active node manager failed, "
-              "rc: %d", rc ) ;
-      // need to restart engine
-      PMD_RESTART_DB( rc ) ;
       goto done ;
-   }
-
-   INT32 catNodeManager::deactive()
-   {
-      _pCatCB->clearInfo() ;
-      return SDB_OK ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_PROCESSMSG, "catNodeManager::processMsg" )
@@ -499,11 +521,18 @@ namespace engine
       INT32 nodeRole = SDB_ROLE_DATA ;
       BSONObj boReq ;
       MsgCatRegisterRsp replyHeader ;
-      SINT32 dataLen = 0;
       MsgCatRegisterReq *pRegReq = (MsgCatRegisterReq *)pMsg ;
       PD_TRACE_ENTRY ( SDB_CATNODEMGR_REGREQ ) ;
       BSONObj boNodeInfo ;
       INT32 realRole = SDB_ROLE_DATA ;
+
+      BOOLEAN isExisted = FALSE ;
+      BSONObj boDCInfo ;
+
+      UINT32 dataLen = 0 ;
+      CHAR *pData = NULL ;
+      BOOLEAN ownedData = FALSE ;
+      INT32 objNumber = 0 ;
 
       /// fill reply header
       _fillRspHeader( &replyHeader.header, pMsg ) ;
@@ -540,7 +569,7 @@ namespace engine
                 "service deactive but received register-request:%s",
                 boReq.toString().c_str() );
 
-      rc = getNodeInfo( boReq, boNodeInfo, realRole );
+      rc = getNodeInfo( boReq, boNodeInfo, realRole ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to get node-info:%s (rc=%d)",
@@ -572,8 +601,41 @@ namespace engine
          goto error ;
       }
 
+      /// get dc base info
+      rc = catCheckBaseInfoExist( CAT_BASE_TYPE_GLOBAL_STR, isExisted,
+                                  boDCInfo, _pEduCB ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Check base info failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
       // build the response message
       dataLen = boNodeInfo.objsize() ;
+      pData = ( CHAR* )boNodeInfo.objdata() ;
+      ownedData = FALSE ;
+      objNumber = 1 ;
+
+      if ( isExisted && !boDCInfo.isEmpty() )
+      {
+         dataLen = ossAlign4( dataLen ) ;
+         dataLen += boDCInfo.objsize() ;
+
+         pData = ( CHAR* )SDB_OSS_MALLOC( dataLen ) ;
+         if ( !pData )
+         {
+            PD_LOG( PDERROR, "Alloc memory[%u] failed, rc: %d",
+                    dataLen, rc ) ;
+            goto error ;
+         }
+         ownedData = TRUE ;
+         objNumber = 2 ;
+
+         /// copy data
+         ossMemcpy( pData, boNodeInfo.objdata(), boNodeInfo.objsize() ) ;
+         ossMemcpy( pData + ossAlign4( (UINT32)boNodeInfo.objsize() ),
+                    boDCInfo.objdata(), boDCInfo.objsize() ) ;
+      }
 
    done:
       PD_TRACE1 ( SDB_CATNODEMGR_REGREQ, PD_PACK_INT ( rc ) ) ;
@@ -584,14 +646,19 @@ namespace engine
       else
       {
          replyHeader.header.messageLength += dataLen ;
-         replyHeader.numReturned = 1 ;
+         replyHeader.numReturned = objNumber ;
          rc = _pCatCB->sendReply( handle, &replyHeader, rc,
-                                  (void *)boNodeInfo.objdata(), dataLen ) ;
+                                  (void *)pData, dataLen ) ;
+      }
+      if ( ownedData && pData )
+      {
+         SDB_OSS_FREE( pData ) ;
       }
       PD_TRACE_EXITRC ( SDB_CATNODEMGR_REGREQ, rc ) ;
       return rc;
    error:
       replyHeader.flags = rc ;
+      dataLen = 0 ;
       goto done ;
    }
 

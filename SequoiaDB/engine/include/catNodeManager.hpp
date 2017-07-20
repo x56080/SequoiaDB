@@ -98,6 +98,8 @@ namespace engine
                                      INT32 role,
                                      const BSONObj &nodeObj ) ;
 
+      INT32 _loadGroupInfo() ;
+
    protected:
       void  _fillRspHeader( MsgHeader *rspMsg, const MsgHeader *reqMsg ) ;
 

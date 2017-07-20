@@ -650,7 +650,62 @@ namespace engine
                             _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                             INT16 w, INT64 *pContextID )
    {
-      return SDB_OK ;
+      INT32 rc = SDB_OK ;
+      clsCB *pClsCB = pmdGetKRCB()->getClsCB() ;
+      clsDCBaseInfo *pInfo = NULL ;
+
+      if ( !pClsCB )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      pInfo = pClsCB->getShardCB()->getDCMgr()->getDCBaseInfo() ;
+
+      if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_ENABLE_READONLY,
+                               _pAction ) )
+      {
+         pInfo->setReadonly( TRUE ) ;
+         pmdGetKRCB()->setDBReadonly( TRUE ) ;
+      }
+      else if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_READONLY,
+                                    _pAction ) )
+      {
+         pInfo->setReadonly( FALSE ) ;
+         pmdGetKRCB()->setDBReadonly( FALSE ) ;
+      }
+      else if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_ACTIVATE, _pAction ) )
+      {
+         pInfo->setAcitvated( TRUE ) ;
+         pmdGetKRCB()->setDBDeactivated( FALSE ) ;
+      }
+      else if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_DEACTIVATE, _pAction ) )
+      {
+         pInfo->setAcitvated( FALSE ) ;
+         pmdGetKRCB()->setDBDeactivated( TRUE ) ;
+      }
+      else
+      {
+         rc = pClsCB->getShardCB()->updateDCBaseInfo() ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
+      /// when is active or disable readonly
+      if ( pClsCB->isPrimary() &&
+           ( 0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_READONLY,
+                                 _pAction ) ||
+             0 == ossStrcasecmp( CMD_VALUE_NAME_ACTIVATE, _pAction ) ) )
+      {
+         pClsCB->getReplCB()->voteMachine()->force( CLS_ELECTION_STATUS_SEC ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 }
 

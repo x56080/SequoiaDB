@@ -281,6 +281,8 @@ namespace engine
 
          INT32 _checkReplStatus() ;
 
+         INT32 _checkClusterActive( MsgHeader *msg ) ;
+
          void  _login() ;
 
       protected:

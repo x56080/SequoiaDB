@@ -38,6 +38,7 @@
 #include "msgCatalog.hpp"
 #include "pmdController.hpp"
 #include "../bson/bson.h"
+#include "rtnQueryOptions.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
 
@@ -379,6 +380,14 @@ namespace engine
       SAFE_NEW_GOTO_ERROR  ( _pCatAgent, _clsCatalogAgent ) ;
       SAFE_NEW_GOTO_ERROR  ( _pNodeMgrAgent, _clsNodeMgrAgent ) ;
       SAFE_NEW_GOTO_ERROR  ( _pFreezingWindow, _clsFreezingWindow ) ;
+      SAFE_NEW_GOTO_ERROR  ( _pDCMgr, _clsDCMgr ) ;
+
+      rc = _pDCMgr->initialize() ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Init datacenter manager failed, rc: %d", rc ) ;
+         goto error ;
+      }
 
    done:
       PD_TRACE_EXITRC ( SDB__CLSSHDMGR_INIT, rc );
@@ -480,6 +489,11 @@ namespace engine
    clsFreezingWindow* _clsShardMgr::getFreezingWindow()
    {
       return _pFreezingWindow ;
+   }
+
+   clsDCMgr* _clsShardMgr::getDCMgr()
+   {
+      return _pDCMgr ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR_SYNCSND, "_clsShardMgr::syncSend" )
@@ -2155,6 +2169,127 @@ namespace engine
       if ( item )
       {
          SDB_OSS_DEL item ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsShardMgr::updateDCBaseInfo()
+   {
+      INT32 rc = SDB_OK ;
+      rtnQueryOptions queryOpt ;
+      CHAR *pBuff = NULL ;
+      INT32 bufSize = 0 ;
+      MsgHeader *pRecvMsg = NULL ;
+      MsgOpReply *pReply = NULL ;
+      const UINT32 maxRetryTimes = 3 ;
+      UINT32 retryTimes = 0 ;
+
+      queryOpt._fullName = CAT_SYSDCBASE_COLLECTION_NAME ;
+      queryOpt._flag = FLG_QUERY_WITH_RETURNDATA ;
+      queryOpt._query = BSON( FIELD_NAME_TYPE << CAT_BASE_TYPE_GLOBAL_STR ) ;
+
+      rc = queryOpt.toQueryMsg( &pBuff, bufSize, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Build query message failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      while( retryTimes++ < maxRetryTimes )
+      {
+         /// send message
+         rc = syncSend( ( MsgHeader* )pBuff, CATALOG_GROUPID, TRUE,
+                        &pRecvMsg ) ;
+         if ( rc )
+         {
+            rc = syncSend( ( MsgHeader* )pBuff, CATALOG_GROUPID, FALSE,
+                           &pRecvMsg ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
+
+         /// extrace reply
+         pReply = ( MsgOpReply* )pRecvMsg ;
+         rc = pReply->flags ;
+         SDB_ASSERT( pReply->contextID == -1, "Context id must be -1" ) ;
+
+         if ( SDB_CLS_NOT_PRIMARY == rc )
+         {
+            INT32 rcTmp = SDB_OK ;
+            rcTmp = updatePrimaryByReply( pRecvMsg ) ;
+
+            if ( SDB_NET_CANNOT_CONNECT == rcTmp )
+            {
+               /// the node is crashed, sleep some seconds
+               PD_LOG( PDWARNING, "Catalog group primary node is crashed "
+                       "but other nodes not aware, sleep %d seconds",
+                       NET_NODE_FAULTUP_MIN_TIME ) ;
+               ossSleep( NET_NODE_FAULTUP_MIN_TIME * OSS_ONE_SEC ) ;
+            }
+
+            if ( rcTmp )
+            {
+               updateCatGroup( OSS_ONE_SEC ) ;
+            }
+
+            SDB_OSS_FREE( ( CHAR* )pRecvMsg ) ;
+            pRecvMsg = NULL ;
+            continue ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Update datacenter base info failed, rc: %d",
+                    rc ) ;
+            goto error ;
+         }
+         else if ( 1 == pReply->numReturned &&
+                   pReply->header.messageLength >
+                   (INT32)sizeof( MsgOpReply ) + 5 )
+         {
+            clsDCBaseInfo *pInfo = _pDCMgr->getDCBaseInfo() ;
+            try
+            {
+               BSONObj obj( ( CHAR* )pRecvMsg + sizeof( MsgOpReply ) ) ;
+               rc = _pDCMgr->updateDCBaseInfo( obj ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Update datacenter base info failed, "
+                          "rc: %d", rc ) ;
+                  goto error ;
+               }
+               pmdGetKRCB()->setDBReadonly( pInfo->isReadonly() ) ;
+               pmdGetKRCB()->setDBDeactivated( !pInfo->isActivated() ) ;
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
+         }
+         else
+         {
+            PD_LOG( PDERROR, "No data center info" ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         /// quit
+         break ;
+      }
+
+   done:
+      if ( pBuff )
+      {
+         SDB_OSS_FREE( pBuff ) ;
+      }
+      if ( pRecvMsg )
+      {
+         SDB_OSS_FREE( ( CHAR* )pRecvMsg ) ;
       }
       return rc ;
    error:

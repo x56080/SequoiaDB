@@ -326,6 +326,12 @@ namespace engine
 
       while ( loop )
       {
+         rc = _checkClusterActive( msg ) ;
+         if ( rc )
+         {
+            break ;
+         }
+
          MON_START_OP( _pEDUCB->getMonAppCB() ) ;
          _pEDUCB->getMonAppCB()->setLastOpType( msg->opCode ) ;
 
@@ -3811,6 +3817,16 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSSHDSESS__CKWRITESTATUS ) ;
+
+      clsDCBaseInfo *pInfo = _pShdMgr->getDCMgr()->getDCBaseInfo() ;
+
+      /// dc data judge
+      if ( pInfo->isReadonly() )
+      {
+         rc = SDB_CAT_CLUSTER_IS_READONLY ;
+         goto error ;
+      }
+
       rc = _checkPrimaryStatus() ;
       if ( SDB_OK != rc )
       {
@@ -4039,6 +4055,35 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _clsShdSession::_checkClusterActive( MsgHeader *msg )
+   {
+      INT32 rc = SDB_CAT_CLUSTER_IS_DEACTIVED ;
+
+      if ( MSG_BS_INTERRUPTE == msg->opCode ||
+           MSG_COM_SESSION_INIT_REQ == msg->opCode ||
+           MSG_BS_MSG_REQ == msg->opCode ||
+           MSG_BS_LOB_CLOSE_REQ == msg->opCode ||
+           MSG_BS_KILL_CONTEXT_REQ == msg->opCode )
+      {
+         rc = SDB_OK ;
+      }
+      else if ( !pmdGetKRCB()->isDBDeactivated() )
+      {
+         rc = SDB_OK ;
+      }
+      else if ( MSG_BS_QUERY_REQ == msg->opCode )
+      {
+         MsgOpQuery *pQuery = ( MsgOpQuery* )msg ;
+         if ( 0 == ossStrcmp( &pQuery->name[0],
+                              CMD_ADMIN_PREFIX CMD_NAME_ALTER_DC ) )
+         {
+            rc = SDB_OK ;
+         }
+      }
+
+      return rc ;
    }
 }
 
