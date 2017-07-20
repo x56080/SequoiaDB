@@ -294,7 +294,7 @@
       <property name="deploy_cmd1" value="-f '${basedir}/src/conf/deploy_conf_${DEPLOY_MODE}.js,${basedir}/src/install_deploy/deploy.js'" />
       <property name="deploy_cmd2" value="-e &quot;var hostList=${testhost_jsarr};var diagLevel=${diagLevel};&quot;" />
       <echo message="exec cmd: ${sdb_shell} ${deploy_cmd1} ${deploy_cmd2}"/>
-      <exec executable="${sdb_shell}" timeout="600000" outputproperty="deploy_out" failonerror="true" logError="true">                                   
+      <exec executable="${sdb_shell}" timeout="1200000" outputproperty="deploy_out" failonerror="true" logError="true">                                   
          <arg line="${deploy_cmd1} ${deploy_cmd2}" />
       </exec>
       <echo message="${deploy_out}"/>
