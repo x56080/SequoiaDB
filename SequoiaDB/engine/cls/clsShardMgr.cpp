@@ -2190,7 +2190,7 @@ namespace engine
       queryOpt._flag = FLG_QUERY_WITH_RETURNDATA ;
       queryOpt._query = BSON( FIELD_NAME_TYPE << CAT_BASE_TYPE_GLOBAL_STR ) ;
 
-      rc = queryOpt.toQueryMsg( &pBuff, bufSize, NULL ) ;
+      rc = queryOpt.toQueryMsg( &pBuff, bufSize ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Build query message failed, rc: %d", rc ) ;
