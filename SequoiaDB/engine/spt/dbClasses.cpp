@@ -462,7 +462,7 @@ static JSBool global_help ( JSContext *cx , uintN argc , jsval *vp )
    }
 
 #if defined (SDB_SHELL)
-   // get the troff file path 
+   // get the troff file path
    rc = ossGetEWD( pwdPath, OSS_MAX_PATHSIZE ) ;
    REPORT_RC ( SDB_OK == rc, "help()", rc ) ;
    rc = engine::utilBuildFullPath( pwdPath, TF_REL_PATH,
@@ -1329,7 +1329,7 @@ static JSBool collection_remove ( JSContext *cx , uintN argc , jsval *vp )
    REPORT ( collection , "SdbCollection.remove(): no collection handle" ) ;
    // get option bsons
    GET_OBJ_FROM_ARG_ARR( cx, argc, argv, 1, objCond, bsonCond, "SdbCollection.remove()" ) ;
-   GET_OBJ_FROM_ARG_ARR( cx, argc, argv, 2, objHint, bsonHint, "SdbCollection.remove()" ) ;   
+   GET_OBJ_FROM_ARG_ARR( cx, argc, argv, 2, objHint, bsonHint, "SdbCollection.remove()" ) ;
    // delete
    rc = sdbDelete ( *collection , bsonCond , bsonHint ) ;
    REPORT_RC ( SDB_OK == rc , "SdbCollection.remove()" , rc ) ;
@@ -1374,7 +1374,7 @@ static JSBool collection_delete_lob( JSContext *cx , uintN argc , jsval *vp )
 
    JS_SET_RVAL ( cx , vp , JSVAL_VOID ) ;
 done:
-   SAFE_JS_FREE( cx, oidStr ) ; 
+   SAFE_JS_FREE( cx, oidStr ) ;
    PD_TRACE_EXIT( SDB_COLL_DELETE_LOB ) ;
    return ret ;
 error:
@@ -1508,7 +1508,7 @@ static JSBool collection_get_lob( JSContext *cx , uintN argc , jsval *vp )
    {
       mode |= OSS_CREATEONLY ;
    }
-   
+
    rc = ossOpen( path, mode, OSS_DEFAULTFILE, file ) ;
    REPORT_RC( SDB_OK == rc, "SdbCollection.getLob(): failed to open local file", rc ) ;
 
@@ -1529,7 +1529,7 @@ static JSBool collection_get_lob( JSContext *cx , uintN argc , jsval *vp )
       readSize += read ;
       rc = ossWriteN( &file, buf, read ) ;
       REPORT_RC( SDB_OK == rc, "SdbCollection.getLob(): failed to write local file", rc ) ;
-      
+
    }
 
    rc = ossClose( file ) ;
@@ -1991,7 +1991,7 @@ static JSBool collection_split_async ( JSContext *cx , uintN argc , jsval *vp )
    REPORT ( collection , "SdbCollection.splitAsync(): no collection handle" ) ;
 
    REPORT( argc >= 3, "SdbCollection.splitAsync(): invalid argument" ) ;
-   
+
    if ( !JSVAL_IS_STRING( argv[0] ) )
    {
       REPORT ( FALSE , "SdbCollection.splitAsync(): the 1st argument "
@@ -2019,7 +2019,7 @@ static JSBool collection_split_async ( JSContext *cx , uintN argc , jsval *vp )
       // bsonCond is freed in done:
       ret = objToBson ( cx , objCond , &bsonCond ) ;
       VERIFY ( ret ) ;
-      
+
       // if contains end condition
       GET_OBJ_FROM_ARG_ARR( cx, argc, argv, 4, objEndCond, bsonEndCond, "SdbCollection.splitAsync()" ) ;
    }
@@ -2593,8 +2593,8 @@ static JSBool collection_truncate ( JSContext *cx , uintN argc , jsval *vp )
                                collection->_collectionFullName ) ;
    REPORT_RC ( SDB_OK == rc,
                "SdbCollection.truncate()" , rc ) ;
-  
-   JS_SET_RVAL( cx, vp, JSVAL_VOID ) ; 
+
+   JS_SET_RVAL( cx, vp, JSVAL_VOID ) ;
 done:
    PD_TRACE_EXIT( SDB_COLL_TRUNCATE ) ;
    return ret ;
@@ -2611,7 +2611,7 @@ static JSBool collection_crt_id_index ( JSContext *cx , uintN argc , jsval *vp )
    sdbCollectionHandle *clHandle = NULL ;
    JSObject *jsOptions = NULL ;
    bson *obj = NULL ;
-   
+
    ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
                                "/o" , &jsOptions ) ;
    REPORT ( ret , "SdbCollection.createIdIndex(): wrong arguments" ) ;
@@ -3973,7 +3973,7 @@ static JSBool domain_alter( JSContext *cx, uintN argc, jsval *vp )
    INT32 rc = SDB_OK ;
    JSBool ret = JS_TRUE ;
    sdbDomainHandle *domain = NULL ;
-   
+
    JSObject *argJSObj = NULL ;
    jsval *argv = NULL ;
    bson argObj ;
@@ -4801,7 +4801,7 @@ static JSClass secure_sdb_class = {
 
 static INT32 _sdb_connect ( const CHAR *hostName, const CHAR *serviceName,
                               const CHAR *userName, const CHAR *passwd,
-                              BOOLEAN secure, 
+                              BOOLEAN secure,
                               sdbConnectionHandle *handle )
 {
    INT32 ret ;
@@ -4891,16 +4891,16 @@ static JSBool _sdb_constructor ( JSContext *cx , uintN argc , jsval *vp , BOOLEA
       {
          portNameLen = ossStrlen ( pSplit+1 ) ;
          VERIFY ( portNameLen != 0 ) ;
-   
+
          host = ( CHAR* ) JS_malloc ( cx, pSplit-pNodename+1 ) ;
          VERIFY ( host ) ;
-   
+
          ossStrncpy ( host, pNodename, pSplit-pNodename ) ;
          host[pSplit-pNodename] = '\0' ;
-   
+
          port = ( CHAR* ) JS_malloc ( cx, portNameLen+1 );
          VERIFY ( port ) ;
-   
+
          ossStrncpy ( port, pSplit+1, portNameLen );
          port[portNameLen] = '\0' ;
       }
@@ -5374,7 +5374,7 @@ static JSBool sdb_create_domain ( JSContext *cx, uintN argc, jsval *vp )
       {
          sptConvertor convertor( cx ) ;
          bson_iterator itr ;
-         JSObject *optionsObj = JSVAL_TO_OBJECT( argv[2] ) ;         
+         JSObject *optionsObj = JSVAL_TO_OBJECT( argv[2] ) ;
          VERIFY ( optionsObj ) ;
          rc = convertor.toBson( optionsObj, &options ) ;
          VERIFY( SDB_OK == rc ) ;
@@ -6113,7 +6113,7 @@ static JSBool sdb_create_cata_rg ( JSContext *cx, uintN argc, jsval *vp )
       // bsonConfig is freed in done:
       ret = objToBson ( cx , objConfig , &bsonConfig ) ;
       VERIFY ( ret ) ;
-   }  
+   }
    // create the replica catalog group
    // the handle contained by rg is released in done
    rc = sdbCreateReplicaCataGroup ( *connection, host,
@@ -6150,7 +6150,7 @@ static JSBool sdb_create_cs ( JSContext *cx , uintN argc , jsval *vp )
    jsval                valConn     = JSVAL_VOID ;
    jsval                valName     = JSVAL_VOID ;
    jsval                valCS       = JSVAL_VOID ;
-   jsval               *argv        = JS_ARGV( cx, vp ) ; 
+   jsval               *argv        = JS_ARGV( cx, vp ) ;
    bson                 options ;
 
    bson_init( &options ) ;
@@ -6172,7 +6172,7 @@ static JSBool sdb_create_cs ( JSContext *cx , uintN argc , jsval *vp )
                                "S" , &strCSName ) ;
    REPORT ( ret , "Sdb.createCS(): wrong arguments" ) ;
 
-   
+
    if ( 2 == argc )
    {
       if ( JSVAL_IS_INT( argv[1] ) )
@@ -6217,7 +6217,7 @@ static JSBool sdb_create_cs ( JSContext *cx , uintN argc , jsval *vp )
    }
    else
    {
-      
+
    }
 
    bson_finish( &options ) ;
@@ -6988,11 +6988,12 @@ error :
 static JSBool sdb_trace_resume ( JSContext *cx, uintN argc, jsval *vp )
 {
    PD_TRACE_ENTRY ( SDB_SDB_TRACE_RESUME );
-   JSBool                  ret          = JS_FALSE ;
+   JSBool                  ret          = JS_TRUE ;
    INT32                   rc           = SDB_OK;
    sdbConnectionHandle *   connection   = NULL ;
    connection = ( sdbConnectionHandle * )
          JS_GetPrivate ( cx, JS_THIS_OBJECT ( cx, vp ) ) ;
+   REPORT ( connection, "Sdb.traceResume(): no connection handle" ) ;
 
    rc = sdbTraceResume ( *connection ) ;
    REPORT_RC ( SDB_OK == rc, "Sdb.traceResume()", rc ) ;
@@ -7010,7 +7011,7 @@ error :
 static JSBool sdb_trace_off ( JSContext *cx, uintN argc, jsval *vp )
 {
    PD_TRACE_ENTRY ( SDB_SDB_TRACE_OFF );
-   JSBool                  ret          = JS_FALSE ;
+   JSBool                  ret          = JS_TRUE ;
    INT32                   rc           = SDB_OK ;
    jsval *                 argv         = JS_ARGV ( cx, vp ) ;
    CHAR                   *pFileName    = NULL ;
@@ -7984,7 +7985,7 @@ static JSBool bindata_constructor( JSContext *cx, uintN argc, jsval *vp )
    CHAR *binData = NULL ;
    CHAR *binType = NULL ;
    std::string strType ;
-   
+
    jsval *argv = JS_ARGV ( cx , vp ) ;
    VERIFY( argv ) ;
 
@@ -7998,7 +7999,7 @@ static JSBool bindata_constructor( JSContext *cx, uintN argc, jsval *vp )
       REPORT_RC ( FALSE , "BinData(): wrong arguments", SDB_INVALIDARG ) ;
    }
 
-   if ( !JSVAL_IS_STRING(argv[1]) && 
+   if ( !JSVAL_IS_STRING(argv[1]) &&
         !JSVAL_IS_INT(argv[1]) )
    {
       REPORT_RC ( FALSE , "BinData(): wrong arguments", SDB_INVALIDARG ) ;
@@ -8148,7 +8149,7 @@ static JSBool timestamp_constructor( JSContext *cx, uintN argc, jsval *vp )
       time_t t ;
       UINT32 inc = 0 ;
       CHAR buf[128] ;
- 
+
       if ( !JSVAL_IS_INT( argv[0]) ||
            !JSVAL_IS_INT( argv[1] ))
       {
@@ -8390,7 +8391,7 @@ static JSBool numberlong_constructor( JSContext *cx, uintN argc, jsval *vp )
    string parsedStr ;
    jsval *argv = JS_ARGV ( cx , vp ) ;
    VERIFY( argv ) ;
-   
+
    if ( 1 != argc ||
         ( !JSVAL_IS_NUMBER( argv[0]) &&
           !JSVAL_IS_STRING( argv[0]) ) )
@@ -8528,7 +8529,7 @@ static JSBool sdbdate_constructor( JSContext *cx, uintN argc, jsval *vp )
          {
             REPORT_RC ( SDB_OK == rc , "SdbDate(): wrong arguments", SDB_INVALIDARG ) ;
          }
-         mills = dp ;  
+         mills = dp ;
          retFlag = JS_NewNumberValue ( cx , mills , &valTime ) ;
          VERIFY ( retFlag ) ;
       }
@@ -8554,7 +8555,7 @@ done:
    return ret ;
 error:
    ret = JS_FALSE ;
-   goto done ; 
+   goto done ;
 }
 
 /// sdbdate end
@@ -8764,7 +8765,7 @@ JSBool InitDbClasses( JSContext *cx, JSObject *obj )
    VERIFY ( JS_InitClass ( cx, obj, NULL, &domain_class,
                            domain_constructor, 0,
                            0, domain_functions, 0, 0 ) ) ;
-   
+
    VERIFY ( JS_InitClass ( cx, obj, NULL, &dc_class,
                            dc_constructor, 0,
                            0, dc_functions, 0, 0 ) ) ;
