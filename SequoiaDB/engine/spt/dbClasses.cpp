@@ -7094,11 +7094,12 @@ static JSBool sdb_trace_resume ( JSContext *cx, uintN argc, jsval *vp )
 {
    PD_TRACE_ENTRY ( SDB_SDB_TRACE_RESUME );
    engine::sdbClearErrorInfo() ;
-   JSBool                  ret          = JS_FALSE ;
+   JSBool                  ret          = JS_TRUE ;
    INT32                   rc           = SDB_OK;
    sdbConnectionHandle *   connection   = NULL ;
    connection = ( sdbConnectionHandle * )
          JS_GetPrivate ( cx, JS_THIS_OBJECT ( cx, vp ) ) ;
+   REPORT ( connection, "Sdb.traceResume(): no connection handle" ) ;
 
    rc = sdbTraceResume ( *connection ) ;
    REPORT_RC ( SDB_OK == rc, "Sdb.traceResume()", rc ) ;
@@ -7117,7 +7118,7 @@ static JSBool sdb_trace_off ( JSContext *cx, uintN argc, jsval *vp )
 {
    PD_TRACE_ENTRY ( SDB_SDB_TRACE_OFF );
    engine::sdbClearErrorInfo() ;
-   JSBool                  ret          = JS_FALSE ;
+   JSBool                  ret          = JS_TRUE ;
    INT32                   rc           = SDB_OK ;
    jsval *                 argv         = JS_ARGV ( cx, vp ) ;
    CHAR                   *pFileName    = NULL ;
