@@ -279,7 +279,7 @@ namespace engine
                                 pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
-      while ( timePassed < timeout )
+      while ( timePassed <= timeout )
       {
          if ( cb->isInterrupted() )
          {
@@ -287,7 +287,7 @@ namespace engine
             goto error ;
          }
 
-         rc = _event.wait( 1000 ) ;
+         rc = _event.wait( OSS_ONE_SEC ) ;
          if ( SDB_OK == rc )
          {
             break ;
