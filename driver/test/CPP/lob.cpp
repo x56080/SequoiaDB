@@ -945,10 +945,10 @@ TEST( lob, NotExistLob )
    ASSERT_EQ( SDB_FNE, rc ) ;
    SINT64 getSize = 0 ;
    rc = lob.getSize( &getSize ) ;
-   ASSERT_EQ( SDB_SYS, rc ) ;
+   ASSERT_EQ( SDB_NOT_CONNECTED, rc ) ;
    UINT64 millis = 0 ;
    rc = lob.getCreateTime( &millis ) ;
-   ASSERT_EQ( SDB_SYS, rc ) ;
+   ASSERT_EQ( SDB_NOT_CONNECTED, rc ) ;
    rc = lob.close() ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = cl.removeLob( oid ) ;
