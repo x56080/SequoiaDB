@@ -164,7 +164,12 @@
                 <changePermissions permissions="0755" files="${installdir}/conf/script/{*.sh,*/*.sh}"/>
                 <changePermissions permissions="0755" files="${installdir}/java/jdk/bin/*"/>
                 <changePermissions permissions="0755" files="${installdir}/postgresql/*.so*"/>                               
-                <changePermissions permissions="0777" files="/tmp"/>   
+                <changePermissions permissions="0777" files="/tmp"/>
+                <changePermissions permissions="0777" files="/tmp/sequoiadb">
+                    <ruleList>
+                        <fileExists path="/tmp/sequoiadb"/>
+                    </ruleList>
+                </changePermissions>
                 <changeOwnerAndGroup><!--root owner should be set before suid -->
                     <files>${installdir}/bin/sdbomtool</files>
                     <group>root</group>
@@ -633,7 +638,7 @@
         <!--stop process-->
         <runProgram>
             <program>service</program>
-            <programArguments>sdbcm stop</programArguments>
+            <programArguments>sdbcm stop</programArguments>            
             <abortOnError>0</abortOnError>
             <showMessageOnError>0</showMessageOnError>
         </runProgram>
