@@ -1623,6 +1623,7 @@ namespace engine
                                                MsgHeader* header )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__CLSFSSS_HNDTRANSREQ );
       MsgClsFSTransSyncReq *pMsg = (MsgClsFSTransSyncReq *)header;
       MsgClsFSTransSyncRes msgRsp;
       msgRsp.header.header.requestID = pMsg->header.requestID;

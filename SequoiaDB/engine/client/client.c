@@ -1240,16 +1240,22 @@ static INT32 sdbTraceStrtok ( bson *obj, CHAR *pLine )
    INT32 rc     = SDB_OK ;
    INT32 len    = 0 ;
    INT32 pos    = 0 ;
-   CHAR *pStart = pLine ;
-   CHAR *pStop  = pLine ;
+   CHAR *pStart = NULL ;
+   CHAR *pStop  = NULL ;
    CHAR pos_buf[128] = { 0 } ;
+   CHAR  buff[ OSS_MAX_PATHSIZE ] = { 0 } ;
+
    if ( !pLine )
    {
       goto done ;
    }
-   len = ossStrlen ( pLine ) ;
-   while ( pStart - pLine <= len &&
-           pStop  - pLine <= len )
+   ossStrncpy( buff, pLine, ossStrlen(pLine) ) ;
+   pStart = buff ;
+   pStop  = buff ;
+   
+   len = ossStrlen ( buff ) ;
+   while ( pStart - buff <= len &&
+           pStop  - buff <= len )
    {
       // skip all empty chars in front
       if ( ( pStart == pStop ) &&
