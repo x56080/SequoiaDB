@@ -1165,49 +1165,39 @@ static INT32 sdbTraceStrtok ( bson *obj, CHAR *pLine )
    INT32 rc     = SDB_OK ;
    INT32 len    = 0 ;
    INT32 pos    = 0 ;
-   CHAR *pStart = pLine ;
-   CHAR *pStop  = pLine ;
+   CHAR *pStart = NULL ;
    CHAR pos_buf[128] = { 0 } ;
+   CHAR  *pBuff = NULL ;
+   CHAR  *pTemp = NULL ;
+
    if ( !pLine )
    {
       goto done ;
    }
-   len = ossStrlen ( pLine ) ;
-   while ( pStart - pLine <= len &&
-           pStop  - pLine <= len )
+   len = ossStrlen( pLine ) ;
+   pBuff = (CHAR*)SDB_OSS_MALLOC( len + 1 ) ;
+   if ( NULL == pBuff )
    {
-      // skip all empty chars in front
-      if ( ( pStart == pStop ) &&
-             isspace( *pStop ) )
-         ++pStart ;
-      // when we hit separator
-      else if ( TRACE_FIELD_SEP == *pStop ||
-                !*pStop )
-      {
-         // set to newline char
-         *pStop = '\0' ;
-         // we only process if it's not empty string
-         if ( pStart != pStop )
-         {
-            // scan back to remove all empty chars
-            CHAR *pTmp = pStop - 1 ;
-            while ( ( pTmp > pStart ) &&
-                    isspace ( *pTmp ) )
-            {
-               *pTmp = '\0' ;
-               --pTmp ;
-            }
-            // append query object
-            ossSnprintf ( pos_buf, sizeof(pos_buf), "%d", pos++ ) ;
-            BSON_APPEND( *obj, pos_buf, pStart, string ) ;
-         }
-         // set pstart to stop + 1
-         pStart = pStop + 1 ;
-      }
-      // increase pstop, keep pstart remains
-      ++pStop ;
+      rc = SDB_OOM ;
+      goto error ;
    }
+   ossStrncpy( pBuff, pLine, len + 1 ) ;
+
+   pStart = ossStrtok( pBuff, ", ", &pTemp ) ;
+   while ( pStart != NULL )
+   {
+      ossSnprintf ( pos_buf, sizeof(pos_buf), "%d", pos++ ) ;
+      BSON_APPEND( *obj, pos_buf, pStart, string ) ;
+      pBuff = NULL ;
+      pStart = ossStrtok( pBuff, ", ", &pTemp ) ;
+   }
+
 done :
+   if (pBuff)
+   {
+      SDB_OSS_FREE( pBuff ) ;
+      pBuff = NULL ;
+   }
    return rc ;
 error :
    goto done ;
