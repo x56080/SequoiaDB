@@ -1050,10 +1050,7 @@ namespace engine
                     "open files upto limits, restart listening" ) ;
             _innerTimeHandle.startTimer() ;
          }
-         else
-         {
-            _asyncAccept() ;
-         }
+
          goto done ;
       }
 
