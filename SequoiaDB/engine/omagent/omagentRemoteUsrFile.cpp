@@ -2379,7 +2379,7 @@ namespace engine
             << rc
             << ",exit:"
             << exitCode ;
-         PD_LOG_MSG( PDERROR, ss.str().c_str() ) ;
+         PD_LOG_MSG( PDERROR, "%s", ss.str().c_str() ) ;
          goto error ;
       }
 
@@ -2390,7 +2390,7 @@ namespace engine
          stringstream ss ;
          ss << "failed to read msg from cmd \"" << cmd.str() << "\", rc:"
             << rc ;
-         PD_LOG_MSG( PDERROR, ss.str().c_str() ) ;
+         PD_LOG_MSG( PDERROR, "%s", ss.str().c_str() ) ;
          goto error ;
       }
       else if ( SDB_OK != exitCode )
