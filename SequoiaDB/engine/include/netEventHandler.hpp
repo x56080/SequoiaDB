@@ -42,6 +42,7 @@
 #include "oss.hpp"
 #include "netDef.hpp"
 #include "ossLatch.hpp"
+#include "ossAtomic.hpp"
 
 #include <string>
 #include <boost/enable_shared_from_this.hpp>

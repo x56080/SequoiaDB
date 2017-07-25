@@ -54,11 +54,42 @@ using namespace std ;
 namespace engine
 {
    class _netMsgHandler ;
+   class _netFrame ;
+
+   /*
+      _netInnerTimeHandle define
+   */
+   class _netInnerTimeHandle : public _netTimeoutHandler
+   {
+      public:
+         _netInnerTimeHandle( _netFrame *pFrame ) ;
+         virtual ~_netInnerTimeHandle() ;
+
+         virtual void handleTimeout( const UINT32 &millisec,
+                                     const UINT32 &id ) ;
+
+      public:
+         void         setInfo( const CHAR *pHostName,
+                               const CHAR *pSvcName ) ;
+
+         void         startTimer() ;
+
+      private:
+         _netFrame            *_pFrame ;
+         UINT32               _timeID ;
+         string               _hostName ;
+         string               _svcName ;
+   } ;
+   typedef _netInnerTimeHandle netInnerTimeHandle ;
 
    #define NET_HEARTBEAT_INTERVAL            ( 5000 )
 
+   /*
+      _netFrame define
+   */
    class _netFrame : public SDBObject
    {
+      friend class _netInnerTimeHandle ;
       public:
          /// handler will not be freed by frame
          _netFrame( _netMsgHandler *handler ) ;
@@ -101,10 +132,6 @@ namespace engine
          /// can only be called for once. non-reentrant
          INT32 listen( const CHAR *hostName,
                        const CHAR *serviceName ) ;
-
-//         INT32 asyncConnect( const CHAR *hostName,
-//                             const CHAR *serviceName,
-//                             const NET_HANDLE &id ) ;
 
          /// if call this func with same params for twice,
          /// will create two connections.
@@ -203,6 +230,8 @@ namespace engine
          UINT32                           _beatTimeout ;
          UINT64                           _beatLastTick ;
          BOOLEAN                          _checkBeat ;
+
+         netInnerTimeHandle               _innerTimeHandle ;
 
    } ;
 

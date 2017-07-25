@@ -45,10 +45,15 @@
 #include "netTrace.hpp"
 #include "msgMessageFormat.hpp"
 #include <boost/bind.hpp>
+#if defined (_WINDOWS)
+#include <mstcpip.h>
+#endif
 
 using namespace boost::asio::ip ;
 namespace engine
 {
+   #define NET_SOCKET_SNDTIMEO         ( 2 )
+
    _netEventHandler::_netEventHandler( _netFrame *frame ):
                                        _sock(frame->ioservice()),
                                        _buf(NULL),
@@ -148,59 +153,82 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND_SETOPT, "_netEventHandler::setOpt" )
    void _netEventHandler::setOpt()
    {
+      INT32 res = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__NETEVNHND_SETOPT );
 
       _isConnected = TRUE ;
 
+      INT32 keepAlive = 1 ;
+      INT32 keepIdle = OSS_SOCKET_KEEP_IDLE ;
+      INT32 keepInterval = OSS_SOCKET_KEEP_INTERVAL ;
+      INT32 keepCount = OSS_SOCKET_KEEP_CONTER ;
+
       try
       {
          _sock.set_option( tcp::no_delay(TRUE) ) ;
-         _sock.set_option( tcp::socket::keep_alive(TRUE) ) ;
+
 #if defined (_LINUX)
-         INT32 keepAlive = 1 ;
-         INT32 keepIdle = 15 ;
-         INT32 keepInterval = 5 ;
-         INT32 keepCount = 3 ;
-         INT32 res = SDB_OK ;
          struct timeval sendtimeout ;
-         sendtimeout.tv_sec = 1 ;
+         sendtimeout.tv_sec = NET_SOCKET_SNDTIMEO ;
          sendtimeout.tv_usec = 0 ;
          SOCKET nativeSock = _sock.native() ;
-         /// duplicate set?
+
          res = setsockopt( nativeSock, SOL_SOCKET, SO_KEEPALIVE,
                      ( void *)&keepAlive, sizeof(keepAlive) ) ;
          if ( SDB_OK != res )
          {
-            PD_LOG( PDERROR, "failed to set keepalive of sock[%d],"
-                    "err:%d", nativeSock, res ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d] failed to set keepalive,"
+                    "err:%d", _handle, res ) ;
          }
          res = setsockopt( nativeSock, SOL_TCP, TCP_KEEPIDLE,
                      ( void *)&keepIdle, sizeof(keepIdle) ) ;
          if ( SDB_OK != res )
          {
-            PD_LOG( PDERROR, "failed to set keepidle of sock[%d],"
-                    "err:%d", nativeSock, res ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d] failed to set keepidle,"
+                    "err:%d", _handle, res ) ;
          }
          res = setsockopt( nativeSock, SOL_TCP, TCP_KEEPINTVL,
                      ( void *)&keepInterval, sizeof(keepInterval) ) ;
          if ( SDB_OK != res )
          {
-            PD_LOG( PDERROR, "failed to set keepintvl of sock[%d],"
-                    "err:%d", nativeSock, res ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d] failed to set keepintvl,"
+                    "err:%d", _handle, res ) ;
          }
          res = setsockopt( nativeSock, SOL_TCP, TCP_KEEPCNT,
                      ( void *)&keepCount, sizeof(keepCount) ) ;
          if ( SDB_OK != res )
          {
-            PD_LOG( PDERROR, "failed to set keepcnt of sock[%d],"
-                    "err:%d", nativeSock, res ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d] failed to set keepcnt,"
+                    "err:%d", _handle, res ) ;
          }
          res = setsockopt( nativeSock, SOL_SOCKET, SO_SNDTIMEO,
                            ( CHAR * )&sendtimeout, sizeof(struct timeval) ) ;
          if ( SDB_OK != res )
          {
-            PD_LOG( PDERROR, "failed to set sndtimeout of sock[%d],"
-                    "err:%d", nativeSock, res ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d] failed to set sndtimeout,"
+                    "err:%d", _handle, res ) ;
+         }
+#else
+         struct tcp_keepalive alive_in ;
+         DWORD ulBytesReturn       = 0 ;
+         SOCKET nativeSock          = _sock.native() ;
+         alive_in.onoff             = keepAlive ;
+         alive_in.keepalivetime     = keepIdle * 1000 ; // ms
+         alive_in.keepaliveinterval = keepInterval * 1000 ; // ms
+         res = setsockopt( nativeSock, SOL_SOCKET, SO_KEEPALIVE,
+                           ( CHAR *)&keepAlive, sizeof(keepAlive) ) ;
+         if ( SDB_OK != res )
+         {
+            PD_LOG( PDERROR, "Connection[Handle:%d] failed to set keepalive,"
+                    "err:%d", _handle, res ) ;
+         }
+         res = WSAIoctl( nativeSock, SIO_KEEPALIVE_VALS,
+                         &alive_in, sizeof(alive_in),
+                         NULL, 0, &ulBytesReturn, NULL, NULL ) ;
+         if ( SDB_OK != res )
+         {
+            PD_LOG( PDERROR, "Connection[Handle:%d] failed to set keepalive "
+                    "vals, err:%d", _handle, res ) ;
          }
 #endif
       }
@@ -448,7 +476,6 @@ namespace engine
          }
       }
 
-
    done:
       PD_TRACE_EXITRC ( SDB__NETEVNHND_SYNCSND, rc );
       return rc ;
@@ -542,12 +569,11 @@ namespace engine
          else if ( sizeof(_MsgHeader) > (UINT32)_header.messageLength ||
                    SDB_MAX_MSG_LENGTH < (UINT32)_header.messageLength )
          {
-            PD_LOG( PDERROR, "Error header[len: %d, opCode: (%d)%d, TID:%d] "
-                    "received, node:%d, %d, %d", _header.messageLength,
-                    IS_REPLY_TYPE(_header.opCode) ? 1 : 0,
-                    GET_REQUEST_TYPE(_header.opCode), _header.TID,
-                    _id.columns.groupID,
-                    _id.columns.nodeID, _id.columns.serviceID ) ;
+            PD_LOG( PDERROR, "Connection[Handle:%d, Node:%s] recieved invalid "
+                    "message[%s] from %s:%d", _handle,
+                    routeID2String( _id ).c_str(),
+                    msg2String( &_header, MSG_MASK_ALL, 0 ).c_str(),
+                    remoteAddr().c_str(), remotePort() ) ;
             goto error_close ;
          }
          else
@@ -562,14 +588,6 @@ namespace engine
                goto done ;
             }
 
-            PD_LOG( PDDEBUG, "msg header: [len:%d], [opCode: [%d]%d], "
-                             "[TID:%d], [groupID:%d], [nodeID:%d], "
-                             "[ADDR:%s], [PORT:%d]",
-                    _header.messageLength, IS_REPLY_TYPE(_header.opCode)?1:0,
-                    GET_REQUEST_TYPE(_header.opCode),
-                    _header.TID, _header.routeID.columns.groupID,
-                    _header.routeID.columns.nodeID,
-                    remoteAddr().c_str(), remotePort() ) ;
             /// add to route table
             if ( MSG_INVALID_ROUTEID == _id.value )
             {
@@ -579,6 +597,12 @@ namespace engine
                   _frame->_addRoute( shared_from_this() ) ;
                }
             }
+
+            PD_LOG( PDDEBUG, "Connection[Handle:%d, Node:%s] recieved "
+                    "message[%s] from %s:%d", _handle,
+                    routeID2String( _id ).c_str(),
+                    msg2String( &_header, MSG_MASK_ALL, 0 ).c_str(),
+                    remoteAddr().c_str(), remotePort() ) ;
          }
          /// msg has only header
          if ( (UINT32)sizeof(_MsgHeader) == (UINT32)_header.messageLength )

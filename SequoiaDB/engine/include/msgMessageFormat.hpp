@@ -81,5 +81,15 @@ void msgExpandComSessionInit2String( stringstream &ss,
                                      const MsgHeader *pMsg,
                                      UINT32 expandMask ) ;
 
+#define MSG_EXP_MASK_CLNAME            0x00000001
+#define MSG_EXP_MASK_MATCHER           0x00000002
+#define MSG_EXP_MASK_SELECTOR          0x00000004
+#define MSG_EXP_MASK_ORDERBY           0x00000008
+#define MSG_EXP_MASK_HINT              0x00000010
+#define MSG_EXP_MASK_OTHER             0x00000020
+void msgExpandBSQuery2String( stringstream &ss,
+                              const MsgHeader *pMsg,
+                              UINT32 expandMask ) ;
+
 #endif // MSGMESSAGE_FORMAT_HPP_
 
