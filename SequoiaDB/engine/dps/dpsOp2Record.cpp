@@ -729,6 +729,7 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2CLDEL, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1222,6 +1223,7 @@ namespace engine
       *clFullName = itrFullName.value() ;
       }
    done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2INVALIDCATA, rc ) ;
       return rc ;
    error:
       goto done ;
