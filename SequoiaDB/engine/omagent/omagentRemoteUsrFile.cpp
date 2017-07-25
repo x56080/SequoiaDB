@@ -2646,7 +2646,8 @@ namespace engine
       filename = _matchObj.getStringField( "filename" ) ;
 
       // open the file
-      rc = ossOpen( filename.c_str(), OSS_READONLY, 0, file ) ;
+      rc = ossOpen( filename.c_str(), OSS_READONLY | OSS_SHAREREAD,
+                    OSS_DEFAULTFILE, file ) ;
       if ( rc )
       {
          ss << "open file[" << filename.c_str() << "] failed: " << rc ;
