@@ -50,6 +50,66 @@ using namespace boost::asio::ip ;
 
 namespace engine
 {
+   #define NET_INNER_TIMER_INTERVAL       ( 2000 )
+
+   /*
+      _netInnerTimeHandle implement
+   */
+   _netInnerTimeHandle::_netInnerTimeHandle( _netFrame *pFrame )
+   {
+      _pFrame = pFrame ;
+      _timeID = 0 ;
+   }
+
+   _netInnerTimeHandle::~_netInnerTimeHandle()
+   {
+   }
+
+   void _netInnerTimeHandle::handleTimeout( const UINT32 &millisec,
+                                            const UINT32 &id )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _pFrame->listen( _hostName.c_str(),
+                            _svcName.c_str() ) ;
+      if ( SDB_OK == rc || SDB_NET_ALREADY_LISTENED == rc )
+      {
+         _pFrame->removeTimer( _timeID ) ;
+
+         if ( SDB_OK == rc )
+         {
+            _pFrame->_asyncAccept() ;
+         }
+         PD_LOG( PDEVENT, "Restart listening on %s:%s succeed",
+                 _hostName.c_str(), _svcName.c_str() ) ;
+      }
+   }
+
+   void _netInnerTimeHandle::setInfo( const CHAR *pHostName,
+                                      const CHAR *pSvcName )
+   {
+      if ( _hostName.empty() )
+      {
+         _hostName = pHostName ;
+      }
+      if ( _svcName.empty() )
+      {
+         _svcName = pSvcName ;
+      }
+   }
+
+   void _netInnerTimeHandle::startTimer()
+   {
+      INT32 rc = _pFrame->addTimer( NET_INNER_TIMER_INTERVAL,
+                                    this, _timeID ) ;
+      if ( rc )
+      {
+         PD_LOG( PDSEVERE, "Restore listen error when open files upto "
+                 "limit, stop network, rc: %d", rc ) ;
+         _pFrame->stop() ;
+      }
+   }
+
    #define NET_INSERT_OPPO( a )\
            _opposite.insert(make_pair( a->handle(), a))
    #define NET_INSERT_ROUTE( a )\
@@ -64,7 +124,8 @@ namespace engine
                          _handle(1),
                          _timerID( NET_INVALID_TIMER_ID ),
                          _netOut(0),
-                         _netIn(0)
+                         _netIn(0),
+                         _innerTimeHandle(this)
    {
       _local.value = MSG_INVALID_ROUTEID ;
       _beatInterval = NET_HEARTBEAT_INTERVAL ;
@@ -318,11 +379,14 @@ namespace engine
       }
       catch ( boost::system::system_error &e )
       {
-         PD_LOG ( PDERROR, "Failed to listen  %s: %s: %s", hostName,
+         PD_LOG ( PDERROR, "Failed to listen on %s:%s, error:%s", hostName,
                   serviceName, e.what() ) ;
          rc = SDB_NET_CANNOT_LISTEN ;
          goto error ;
       }
+      /// set info
+      _innerTimeHandle.setInfo( hostName, serviceName ) ;
+
       PD_LOG( PDDEBUG, "listening on port %s", serviceName ) ;
 
    done:
@@ -383,8 +447,10 @@ namespace engine
       SDB_ASSERT( MSG_INVALID_ROUTEID != id.value,
                   "id.value should not be zero" ) ;
       INT32 rc = SDB_OK ;
+      MsgHeader *msgHeader = NULL ;
       PD_TRACE_ENTRY ( SDB__NETFRAME_SYNCSEND );
       NET_EH eh;
+
       _mtx.get_shared() ;
       MULTI_ITR itr =  _route.find( id.value ) ;
       if ( _route.end() == itr )
@@ -395,8 +461,8 @@ namespace engine
       }
       eh = itr->second ;
       _mtx.release_shared() ;
-      {
-      _MsgHeader *msgHeader = ( _MsgHeader * )header ;
+
+      msgHeader = ( MsgHeader* )header ;
       if ( MSG_INVALID_ROUTEID == msgHeader->routeID.value )
       {
          msgHeader->routeID = _local ;
@@ -414,7 +480,7 @@ namespace engine
          goto error ;
       }
       _netOut.add( msgHeader->messageLength ) ;
-      }
+
    done:
       PD_TRACE_EXITRC ( SDB__NETFRAME_SYNCSEND, rc );
       return rc ;
@@ -430,11 +496,12 @@ namespace engine
       SDB_ASSERT( NET_INVALID_HANDLE != handle,
                   "handle should not be invalid" ) ;
       INT32 rc = SDB_OK ;
+      MsgHeader *msgHeader = NULL ;
       PD_TRACE_ENTRY ( SDB__NETFRAME_SYNCSEND2 );
       NET_EH eh ;
+
       _mtx.get_shared() ;
-      map<NET_HANDLE, NET_EH>::iterator itr =
-                                _opposite.find( handle ) ;
+      map<NET_HANDLE, NET_EH>::iterator itr = _opposite.find( handle ) ;
       if ( _opposite.end() == itr )
       {
          _mtx.release_shared() ;
@@ -443,8 +510,8 @@ namespace engine
       }
       eh = itr->second ;
       _mtx.release_shared() ;
-      {
-      _MsgHeader *msgHeader = ( _MsgHeader * )header ;
+
+      msgHeader = ( MsgHeader * )header ;
       if ( MSG_INVALID_ROUTEID == msgHeader->routeID.value )
       {
          msgHeader->routeID = _local ;
@@ -458,7 +525,7 @@ namespace engine
          goto error ;
       }
       _netOut.add( msgHeader->messageLength ) ;
-      }
+
    done:
       PD_TRACE_EXITRC ( SDB__NETFRAME_SYNCSEND2, rc );
       return rc ;
@@ -694,6 +761,8 @@ namespace engine
                   "id.value should not be zero" ) ;
       PD_TRACE_ENTRY( SDB__NETFRAME_SYNCSENDV ) ;
       INT32 rc = SDB_OK ;
+      NET_EH eh ;
+      MULTI_ITR itr ;
 
       header->messageLength = sizeof( MsgHeader ) + netCalcIOVecSize( iov ) ;
       if ( header->messageLength > SDB_MAX_MSG_LENGTH )
@@ -707,10 +776,8 @@ namespace engine
          header->routeID = _local ;
       }
 
-      {
-      NET_EH eh;
       _mtx.get_shared() ;
-      MULTI_ITR itr =  _route.find( id.value ) ;
+      itr = _route.find( id.value ) ;
       if ( _route.end() == itr )
       {
          _mtx.release_shared() ;
@@ -752,9 +819,8 @@ namespace engine
             _netOut.add( itr->iovLen ) ;
          }
       }
-
       eh->mtx().release() ;
-      }
+
    done:
       PD_TRACE_EXITRC( SDB__NETFRAME_SYNCSENDV, rc ) ;
       return rc ;
@@ -868,8 +934,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__NETFRAME_REMTIMER );
       _mtx.get() ;
-      map<UINT32, NET_TH>::iterator itr=
-                                 _timers.find( id ) ;
+      map<UINT32, NET_TH>::iterator itr = _timers.find( id ) ;
       if ( _timers.end() == itr )
       {
          rc = SDB_NET_TIMER_ID_NOT_FOUND ;
@@ -916,10 +981,9 @@ namespace engine
          MsgOpReply *pReply = ( MsgOpReply* )pMsg ;
          if ( SDB_OK != pReply->flags )
          {
-            PD_LOG( PDERROR, "Connection[Handle:%d, GroupID:%d, NodeID:%d, "
-                    "Service:%d] is broken because of node is abnormal[%d]",
-                    eh->handle(), eh->id().columns.groupID,
-                    eh->id().columns.nodeID, eh->id().columns.serviceID,
+            PD_LOG( PDERROR, "Connection[Handle:%d, Node:%s] is broken "
+                    "because of node is abnormal[%d]",
+                    eh->handle(), routeID2String( eh->id() ).c_str(),
                     pReply->flags ) ;
             eh->close() ;
          }
@@ -974,9 +1038,22 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__NETFRAME__APTCALLBCK );
       if ( error )
       {
-         PD_LOG ( PDERROR, "Error received when handling accept: %s, %d",
+         PD_LOG ( PDERROR, "Accept connection occur exception: %s, %d",
                   error.message().c_str(), error.value() ) ;
-         _asyncAccept() ;
+
+         if ( boost::system::errc::too_many_files_open == error.value() ||
+              boost::system::errc::too_many_files_open_in_system ==
+              error.value() )
+         {
+            closeListen() ;
+            PD_LOG( PDERROR, "Can not accept more connections because of "
+                    "open files upto limits, restart listening" ) ;
+            _innerTimeHandle.startTimer() ;
+         }
+         else
+         {
+            _asyncAccept() ;
+         }
          goto done ;
       }
 

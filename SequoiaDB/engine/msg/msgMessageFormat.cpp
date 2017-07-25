@@ -36,6 +36,7 @@
 *******************************************************************************/
 #include "core.hpp"
 #include "msgMessageFormat.hpp"
+#include "msgMessage.hpp"
 #include "pd.hpp"
 #include "msgDef.h"
 #include "utilStr.hpp"
@@ -159,6 +160,8 @@ msgMsgFuncItem* msgGetExpand2StringFunc( const MsgHeader *pMsg )
       /// Begin to map expand msg to string functions
       MSG_MAP_2_STRING_FUNC( MSG_COM_SESSION_INIT_REQ,
                              msgExpandComSessionInit2String ),
+      MSG_MAP_2_STRING_FUNC( MSG_BS_QUERY_REQ,
+                             msgExpandBSQuery2String ),
       /// End map
       { MSG_NULL, NULL }
    } ;
@@ -270,7 +273,67 @@ void msgExpandComSessionInit2String( stringstream &ss,
          }
       }
    }
-   
+
 }
 
+void msgExpandBSQuery2String( stringstream &ss,
+                              const MsgHeader *pMsg,
+                              UINT32 expandMask )
+{
+   INT32 rc         = SDB_OK ;
+   INT32 flag       = 0 ;
+   CHAR *collection = NULL ;
+   SINT64 skip      =  0;
+   SINT64 limit     = -1 ;
+   CHAR *query      = NULL ;
+   CHAR *selector   = NULL ;
+   CHAR *orderby    = NULL ;
+   CHAR *hint       = NULL ;
+   rc = msgExtractQuery( (CHAR*)pMsg, &flag, &collection,
+                         &skip, &limit, &query, &selector,
+                         &orderby, &hint ) ;
+   if ( SDB_OK != rc )
+   {
+      ss << "Error: Extract failed: " << rc ;
+   }
+   else
+   {
+      try
+      {
+         BSONObj objQuery( query ) ;
+         BSONObj objSelector( selector ) ;
+         BSONObj objOrderby( orderby ) ;
+         BSONObj objHint( hint ) ;
+
+         if ( expandMask | MSG_EXP_MASK_CLNAME )
+         {
+            ss << "Collection Name: " << collection << "," ;
+         }
+         if ( expandMask | MSG_EXP_MASK_OTHER )
+         {
+            ss << "Limit: " << limit << ", Skip: " << skip << "," ;
+         }
+         if ( expandMask | MSG_EXP_MASK_MATCHER )
+         {
+            ss << "Matcher: " << objQuery.toString() << "," ;
+         }
+         if ( expandMask | MSG_EXP_MASK_SELECTOR )
+         {
+            ss << "Selector: " << objSelector.toString() << "," ;
+         }
+         if ( expandMask | MSG_EXP_MASK_ORDERBY )
+         {
+            ss << "Orderby: " << objOrderby.toString() << "," ;
+         }
+         if ( expandMask | MSG_EXP_MASK_HINT )
+         {
+            ss << "Hint: " << objHint.toString() << "," ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         ss << "Detail: Occur exception(" << e.what() << ")" ;
+      }
+   }
+}
 

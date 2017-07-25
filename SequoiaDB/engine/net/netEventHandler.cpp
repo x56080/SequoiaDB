@@ -588,12 +588,6 @@ namespace engine
                goto done ;
             }
 
-            PD_LOG( PDDEBUG, "Connection[Handle:%d, Node:%s] recieved "
-                    "message[%s] from %s:%d", _handle,
-                    routeID2String( _id ).c_str(),
-                    msg2String( &_header, MSG_MASK_ALL, 0 ).c_str(),
-                    remoteAddr().c_str(), remotePort() ) ;
-
             /// add to route table
             if ( MSG_INVALID_ROUTEID == _id.value )
             {
@@ -603,6 +597,12 @@ namespace engine
                   _frame->_addRoute( shared_from_this() ) ;
                }
             }
+
+            PD_LOG( PDDEBUG, "Connection[Handle:%d, Node:%s] recieved "
+                    "message[%s] from %s:%d", _handle,
+                    routeID2String( _id ).c_str(),
+                    msg2String( &_header, MSG_MASK_ALL, 0 ).c_str(),
+                    remoteAddr().c_str(), remotePort() ) ;
          }
          /// msg has only header
          if ( (UINT32)sizeof(_MsgHeader) == (UINT32)_header.messageLength )

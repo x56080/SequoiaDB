@@ -169,10 +169,8 @@ namespace engine
                                    void *header,
                                    NET_HANDLE *pHandle )
    {
-      SDB_ASSERT( NULL != header,
-                  "should not be NULL" ) ;
+      SDB_ASSERT( NULL != header, "should not be NULL" ) ;
 
-      /// todo: trans to _netFrame
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__NETRTAG_SYNCSND );
       rc = _frame.syncSend( id, header, pHandle ) ;
@@ -239,8 +237,7 @@ namespace engine
                                    UINT32 bodyLen,
                                    NET_HANDLE *pHandle )
    {
-      SDB_ASSERT( NULL != header && NULL != body,
-                  "should not be NULL" ) ;
+      SDB_ASSERT( NULL != header && NULL != body, "should not be NULL" ) ;
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__NETRTAG_SYNCSND2 );
       rc = _frame.syncSend( id, header, body, bodyLen, pHandle ) ;
@@ -286,8 +283,7 @@ namespace engine
                                    MsgHeader *header, void *body,
                                    UINT32 bodyLen )
    {
-      SDB_ASSERT( NULL != header && NULL != body,
-                  "should not be NULL" ) ;
+      SDB_ASSERT( NULL != header && NULL != body, "should not be NULL" ) ;
 
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__NETRTAG_SYNCSND3 );
