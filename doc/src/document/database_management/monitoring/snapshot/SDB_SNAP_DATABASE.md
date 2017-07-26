@@ -54,11 +54,11 @@ SDB_SNAP_DATABASE
 | ActivateTimestamp     | 时间戳 | 数据库节点启动时间                                                              |
 | UserCPU               | 浮点数 | 用户 CPU（单位：秒）                                                            |
 | SysCPU                | 浮点数 | 系统 CPU（单位：秒）                                                            |
-| freeLogSpace          | 长整型 | 空闲日志空间                                                                    |
+| freeLogSpace          | 长整型 | 空闲日志空间（单位：字节）                                                      |
 | vsize                 | 长整型 | 虚拟内存使用量（单位：字节）                                                    |
 | rss                   | 长整型 | 物理内存使用量（单位：字节）                                                    |
 | fault                 | 长整型 | 每秒访问失败数（仅支持 Linux），数据被交换出物理内存，放到 swap                 |
-| TotalMapped           | 长整型 | mmap 的总数据量                                                                 |
+| TotalMapped           | 长整型 | mmap 的总数据量（单位：字节）                                                                 |
 | svcNetIn              | 长整型 | 本地服务端口收到的网络流量（单位：字节）                                        |
 | svcNetOut             | 长整型 | 本地服务端口发送的网络流量（单位：字节）                                        |
 | shardNetIn            | 长整型 | shard 平面端口收到的网络流量（单位：字节）                                      |
@@ -89,7 +89,7 @@ SDB_SNAP_DATABASE
 | vsize             | 长整型 | 虚拟内存使用量（单位：字节）                  |
 | rss               | 长整型 | 物理内存使用量（单位：字节）                  |
 | fault             | 长整型 | 每秒访问失败数（仅支持 Linux），数据被交换出物理内存，放到 swap |
-| TotalMapped       | 长整型 | mmap 的总数据量                               |
+| TotalMapped       | 长整型 | mmap 的总数据量（单位：字节）                 |
 | svcNetIn          | 长整型 | 本地服务端口收到的网络流量（单位：字节）      |
 | svcNetOut         | 长整型 | 本地服务端口发送的网络流量（单位：字节）      |
 | shardNetIn        | 长整型 | shard 平面端口收到的网络流量（单位：字节）    |

@@ -24,8 +24,8 @@ SDB_SNAP_COLLECTIONS
 | Details.TotalDataPages      | 整型          | 集合的数据页总数                                        |
 | Details.TotalIndexPages     | 整型          | 集合的索引页总数                                        |
 | Details.TotalLobPages       | 整型          | 集合的大对象页总数                                      |
-| Details.TotalDataFreeSpace  | 长整型        | 集合的数据空闲空间                                      |
-| Details.TotalIndexFreeSpace | 长整型        | 集合的索引空闲空间                                      |
+| Details.TotalDataFreeSpace  | 长整型        | 集合的数据空闲空间（单位：字节）                        |
+| Details.TotalIndexFreeSpace | 长整型        | 集合的索引空闲空间（单位：字节）                        |
 | Details.CurrentCompressionRatio | 浮点型    | 集合的的压缩率                                          |
 | DataCommitLSN   | 长整型     | 集合数据文件最后提交LSN    |
 | IndexCommitLSN  | 长整型     | 集合索引文件最后提交LSN    |
