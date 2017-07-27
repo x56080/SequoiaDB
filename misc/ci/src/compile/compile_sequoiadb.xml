@@ -576,6 +576,9 @@
       <copy todir="${release_db_dir}/tools/server/php">
          <fileset dir="${srccode_dir}/tools/server/${php_version_arch}/" />
       </copy>
+      <copy todir="${release_db_dir}/tools/dr_ha">
+         <fileset dir="${srccode_dir}/tools/dr_ha" includes="**/*" />
+      </copy>
       
       <copy todir="${release_db_dir}/web" >
          <fileset dir="${srccode_dir}/SequoiaDB/web" includes="**/*"/>
