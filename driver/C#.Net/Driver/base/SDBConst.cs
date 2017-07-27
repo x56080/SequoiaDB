@@ -23,6 +23,8 @@
         public const int SDB_SNAP_DATABASE         = 6;
         public const int SDB_SNAP_SYSTEM           = 7;
         public const int SDB_SNAP_CATALOG          = 8;
+        public const int SDB_SNAP_TRANSACTIONS = 9;
+        public const int SDB_SNAP_TRANSACTIONS_CURRENT = 10;
 
         public const int SDB_LIST_CONTEXTS         = 0;
         public const int SDB_LIST_CONTEXTS_CURRENT = 1;
@@ -35,8 +37,10 @@
         public const int SDB_LIST_STOREPROCEDURES  = 8;
         public const int SDB_LIST_DOMAINS          = 9;
         public const int SDB_LIST_TASKS            = 10;
-        public const int SDB_LIST_CS_IN_DOMAIN     = 11;
-        public const int SDB_LIST_CL_IN_DOMAIN     = 12;
+        public const int SDB_LIST_TRANSACTIONS     = 11;
+        public const int SDB_LIST_TRANSACTIONS_CURRENT = 12;
+        public const int SDB_LIST_CL_IN_DOMAIN     = 129;
+        public const int SDB_LIST_CS_IN_DOMAIN     = 130;
 
         public enum NodeStatus
         {

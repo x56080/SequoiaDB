@@ -54,6 +54,8 @@ namespace SequoiaDB
         public const string DOMAIN = "domain";
         public const string DOMAINS = "domains";
         public const string TASKS = "tasks";
+        public const string TRANSACTIONS = "transactions";
+        public const string TRANSACTIONS_CURRENT = "transactions current";
         public const string CS_IN_DOMAIN = "collectionspaces in domain";
         public const string CL_IN_DOMAIN = "collections in domain";
 

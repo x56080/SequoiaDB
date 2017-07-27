@@ -385,6 +385,30 @@ namespace DriverTest
                 Assert.IsNotNull(obj);
             }
             sdb2.Disconnect();
+
+            // snapshot transation
+            sdb.TransactionBegin();
+            try
+            {
+                BsonDocument o = null;
+                coll.Insert(new BsonDocument());
+                cursor = sdb.GetSnapshot(SDBConst.SDB_SNAP_TRANSACTIONS, dummy, dummy, dummy);
+                Console.WriteLine("the result of SDB_SNAP_TRANSACTIONS is: ");
+                while (null != (o = cursor.Next()))
+                {
+                    Console.WriteLine(o);
+                }
+                cursor = sdb.GetSnapshot(SDBConst.SDB_SNAP_TRANSACTIONS_CURRENT, dummy, dummy, dummy);
+                Console.WriteLine("the result of SDB_SNAP_TRANSACTIONS_CURRENT is: ");
+                while (null != (o = cursor.Next()))
+                {
+                    Console.WriteLine(o);
+                }
+            }
+            finally
+            {
+                sdb.TransactionCommit();
+            }
         }
 
         [TestMethod()]
@@ -395,6 +419,31 @@ namespace DriverTest
             DBCursor cursor = null;
             Sequoiadb db = new Sequoiadb(config.conf.Coord.Address);
             db.Connect();
+
+            // list transation
+            sdb.TransactionBegin();
+            try
+            {
+                BsonDocument o = null;
+                coll.Insert(new BsonDocument());
+                cursor = sdb.GetList(SDBConst.SDB_LIST_TRANSACTIONS, dummy, dummy, dummy);
+                Console.WriteLine("the result of SDB_LIST_TRANSACTIONS is: ");
+                while (null != (o = cursor.Next()))
+                {
+                    Console.WriteLine(o);
+                }
+                cursor = sdb.GetList(SDBConst.SDB_LIST_TRANSACTIONS_CURRENT, dummy, dummy, dummy);
+                Console.WriteLine("the result of SDB_LIST_TRANSACTIONS_CURRENT is: ");
+                while (null != (o = cursor.Next()))
+                {
+                    Console.WriteLine(o);
+                }
+            }
+            finally
+            {
+                sdb.TransactionCommit();
+            }
+
             // list cs
             cursor = db.GetList(SDBConst.SDB_LIST_COLLECTIONSPACES, dummy, dummy, dummy);
             Assert.IsNotNull(cursor);
