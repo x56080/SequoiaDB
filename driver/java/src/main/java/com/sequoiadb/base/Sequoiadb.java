@@ -80,8 +80,10 @@ public class Sequoiadb {
     public final static int SDB_LIST_STOREPROCEDURES = 8;
     public final static int SDB_LIST_DOMAINS = 9;
     public final static int SDB_LIST_TASKS = 10;
-    public final static int SDB_LIST_CS_IN_DOMAIN = 11;
-    public final static int SDB_LIST_CL_IN_DOMAIN = 12;
+    public final static int SDB_LIST_TRANSACTIONS = 11;
+    public final static int SDB_LIST_TRANSACTIONS_CURRENT = 12;
+    public final static int SDB_LIST_CL_IN_DOMAIN = 129;
+    public final static int SDB_LIST_CS_IN_DOMAIN = 130;
 
     public final static int SDB_SNAP_CONTEXTS = 0;
     public final static int SDB_SNAP_CONTEXTS_CURRENT = 1;
@@ -92,6 +94,8 @@ public class Sequoiadb {
     public final static int SDB_SNAP_DATABASE = 6;
     public final static int SDB_SNAP_SYSTEM = 7;
     public final static int SDB_SNAP_CATALOG = 8;
+    public final static int SDB_SNAP_TRANSACTIONS = 9;
+    public final static int SDB_SNAP_TRANSACTIONS_CURRENT = 10;
 
     public final static int FMP_FUNC_TYPE_INVALID = -1;
     public final static int FMP_FUNC_TYPE_JS = 0;
@@ -951,20 +955,22 @@ public class Sequoiadb {
     BSONObject orderBy)
      * @brief Get the informations of specified type.
      * @param listType The list type as below:
-     *<dl>
-     *<dt>Sequoiadb.SDB_LIST_CONTEXTS   : Get all contexts list
-     *<dt>Sequoiadb.SDB_LIST_CONTEXTS_CURRENT        : Get contexts list for the current session
-     *<dt>Sequoiadb.SDB_LIST_SESSIONS        : Get all sessions list
-     *<dt>Sequoiadb.SDB_LIST_SESSIONS_CURRENT        : Get the current session
-     *<dt>Sequoiadb.SDB_LIST_COLLECTIONS        : Get all collections list
-     *<dt>Sequoiadb.SDB_LIST_COLLECTIONSPACES        : Get all collection spaces list
-     *<dt>Sequoiadb.SDB_LIST_STORAGEUNITS        : Get storage units list
-     *<dt>Sequoiadb.SDB_LIST_GROUPS        : Get replica group list ( only applicable in sharding env )
-     *<dt>Sequoiadb.SDB_LIST_STOREPROCEDURES           : Get stored procedure list ( only applicable in sharding env )
-     *<dt>Sequoiadb.SDB_LIST_DOMAINS        : Get all the domains list ( only applicable in sharding env )
-     *<dt>Sequoiadb.SDB_LIST_TASKS        : Get all the running split tasks ( only applicable in sharding env )
-     *</dl>
-     * @param query The matching rule, match all the documents if null.
+     *                 <dl>
+     *                 <dt>Sequoiadb.SDB_LIST_CONTEXTS   : Get all contexts list
+     *                 <dt>Sequoiadb.SDB_LIST_CONTEXTS_CURRENT        : Get contexts list for the current session
+     *                 <dt>Sequoiadb.SDB_LIST_SESSIONS        : Get all sessions list
+     *                 <dt>Sequoiadb.SDB_LIST_SESSIONS_CURRENT        : Get the current session
+     *                 <dt>Sequoiadb.SDB_LIST_COLLECTIONS        : Get all collections list
+     *                 <dt>Sequoiadb.SDB_LIST_COLLECTIONSPACES        : Get all collection spaces list
+     *                 <dt>Sequoiadb.SDB_LIST_STORAGEUNITS        : Get storage units list
+     *                 <dt>Sequoiadb.SDB_LIST_GROUPS        : Get replica group list ( only applicable in sharding env )
+     *                 <dt>Sequoiadb.SDB_LIST_STOREPROCEDURES           : Get stored procedure list ( only applicable in sharding env )
+     *                 <dt>Sequoiadb.SDB_LIST_DOMAINS        : Get all the domains list ( only applicable in sharding env )
+     *                 <dt>Sequoiadb.SDB_LIST_TASKS        : Get all the running split tasks ( only applicable in sharding env )
+     *                 <dt>Sequoiadb.SDB_LIST_TRANSACTIONS        : Get all the transactions information.
+     *                 <dt>Sequoiadb.SDB_LIST_TRANSACTIONS_CURRENT        : Get the transactions information of current session.
+     *                 </dl>
+     * @param query    The matching rule, match all the documents if null.
      * @param selector The selective rule, return the whole document if null.
      * @param orderBy The ordered rule, never sort if null.
      * @exception com.sequoiadb.exception.BaseException
@@ -1052,25 +1058,22 @@ public class Sequoiadb {
      *     String orderBy)
      * @brief Get snapshot of the database.
      * @param snapType The snapshot types are as below:
-     * <dl>
-     * <dt>Sequoiadb.SDB_SNAP_CONTEXTS   : Get all contexts' snapshot
-     * <dt>Sequoiadb.SDB_SNAP_CONTEXTS_CURRENT        : Get the current context's snapshot
-     * <dt>Sequoiadb.SDB_SNAP_SESSIONS        : Get all sessions' snapshot
-     * <dt>Sequoiadb.SDB_SNAP_SESSIONS_CURRENT        : Get the current session's snapshot
-     * <dt>Sequoiadb.SDB_SNAP_COLLECTIONS        : Get the collections' snapshot
-     * <dt>Sequoiadb.SDB_SNAP_COLLECTIONSPACES        : Get the collection spaces' snapshot
-     * <dt>Sequoiadb.SDB_SNAP_DATABASE        : Get database's snapshot
-     * <dt>Sequoiadb.SDB_SNAP_SYSTEM        : Get system's snapshot
-     * <dt>Sequoiadb.SDB_SNAP_CATALOG        : Get catalog's snapshot
-     * <dt>Sequoiadb.SDB_LIST_GROUPS        : Get replica group list ( only applicable in sharding env )
-     * <dt>Sequoiadb.SDB_LIST_STOREPROCEDURES           : Get stored procedure list ( only applicable in sharding env )
-     * </dl>
-     * @param matcher
-     *            the matching rule, match all the documents if null
-     * @param selector
-     *            the selective rule, return the whole document if null
-     * @param orderBy
-     *            the ordered rule, never sort if null
+     *                 <dl>
+     *                 <dt>Sequoiadb.SDB_SNAP_CONTEXTS   : Get all contexts' snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_CONTEXTS_CURRENT        : Get the current context's snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_SESSIONS        : Get all sessions' snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_SESSIONS_CURRENT        : Get the current session's snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_COLLECTIONS        : Get the collections' snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_COLLECTIONSPACES        : Get the collection spaces' snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_DATABASE        : Get database's snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_SYSTEM        : Get system's snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_CATALOG        : Get catalog's snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS           : Get the snapshot of all the transactions
+     *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT        : Get the snapshot of current transactions
+     *                 </dl>
+     * @param matcher  the matching rule, match all the documents if null
+     * @param selector the selective rule, return the whole document if null
+     * @param orderBy  the ordered rule, never sort if null
      * @return the DBCursor instance of the result
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -1094,25 +1097,22 @@ public class Sequoiadb {
      *     selector, BSONObject orderBy)
      * @brief Get snapshot of the database.
      * @param snapType The snapshot types are as below:
-     * <dl>
-     * <dt>Sequoiadb.SDB_SNAP_CONTEXTS   : Get all contexts' snapshot
-     * <dt>Sequoiadb.SDB_SNAP_CONTEXTS_CURRENT        : Get the current context's snapshot
-     * <dt>Sequoiadb.SDB_SNAP_SESSIONS        : Get all sessions' snapshot
-     * <dt>Sequoiadb.SDB_SNAP_SESSIONS_CURRENT        : Get the current session's snapshot
-     * <dt>Sequoiadb.SDB_SNAP_COLLECTIONS        : Get the collections' snapshot
-     * <dt>Sequoiadb.SDB_SNAP_COLLECTIONSPACES        : Get the collection spaces' snapshot
-     * <dt>Sequoiadb.SDB_SNAP_DATABASE        : Get database's snapshot
-     * <dt>Sequoiadb.SDB_SNAP_SYSTEM        : Get system's snapshot
-     * <dt>Sequoiadb.SDB_SNAP_CATALOG        : Get catalog's snapshot
-     * <dt>Sequoiadb.SDB_LIST_GROUPS        : Get replica group list ( only applicable in sharding env )
-     * <dt>Sequoiadb.SDB_LIST_STOREPROCEDURES           : Get stored procedure list ( only applicable in sharding env )
-     * </dl>
-     * @param matcher
-     *            the matching rule, match all the documents if null
-     * @param selector
-     *            the selective rule, return the whole document if null
-     * @param orderBy
-     *            the ordered rule, never sort if null
+     *                 <dl>
+     *                 <dt>Sequoiadb.SDB_SNAP_CONTEXTS   : Get all contexts' snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_CONTEXTS_CURRENT        : Get the current context's snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_SESSIONS        : Get all sessions' snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_SESSIONS_CURRENT        : Get the current session's snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_COLLECTIONS        : Get the collections' snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_COLLECTIONSPACES        : Get the collection spaces' snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_DATABASE        : Get database's snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_SYSTEM        : Get system's snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_CATALOG        : Get catalog's snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS        : Get snapshot of transactions in current session
+     *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT           : Get snapshot of all the transactions
+     *                 </dl>
+     * @param matcher  the matching rule, match all the documents if null
+     * @param selector the selective rule, return the whole document if null
+     * @param orderBy  the ordered rule, never sort if null
      * @return the DBCursor instance of the result
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -1145,8 +1145,14 @@ public class Sequoiadb {
                 command += " " + SequoiadbConstants.SYSTEM;
                 break;
             case SDB_SNAP_CATALOG:
-                command += " " + SequoiadbConstants.CATA;
+            	command += " " + SequoiadbConstants.CATA;
                 break;
+            case SDB_SNAP_TRANSACTIONS:
+            	command += " " + SequoiadbConstants.TRANSACTIONS;
+                break;
+            case SDB_SNAP_TRANSACTIONS_CURRENT:
+            	command += " " + SequoiadbConstants.TRANSACTIONS_CURRENT;
+            	break;
             default:
                 throw new BaseException(SDBError.SDB_INVALIDARG);
         }
@@ -1976,11 +1982,17 @@ public class Sequoiadb {
             case SDB_LIST_TASKS:
                 command = SequoiadbConstants.CMD_NAME_LIST_TASKS;
                 break;
-            case SDB_LIST_CS_IN_DOMAIN:
-                command = SequoiadbConstants.CMD_NAME_LIST_CS_IN_DOMAIN;
+		    case SDB_LIST_TRANSACTIONS:
+                command = SequoiadbConstants.CMD_NAME_LIST_TRANSACTIONS;
+                break;
+            case SDB_LIST_TRANSACTIONS_CURRENT:
+                command = SequoiadbConstants.CMD_NAME_LIST_TRANSACTIONS_CURRENT;
                 break;
             case SDB_LIST_CL_IN_DOMAIN:
                 command = SequoiadbConstants.CMD_NAME_LIST_CL_IN_DOMAIN;
+                break;
+            case SDB_LIST_CS_IN_DOMAIN:
+                command = SequoiadbConstants.CMD_NAME_LIST_CS_IN_DOMAIN;
                 break;
             default:
                 throw new BaseException(SDBError.SDB_INVALIDARG);

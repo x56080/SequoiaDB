@@ -69,6 +69,8 @@ public class SequoiadbConstants {
     public final static String DATABASE = "database";
     public final static String SYSTEM = "system";
     public final static String CATA = "catalog";
+    public final static String TRANSACTIONS = "transactions";
+    public final static String TRANSACTIONS_CURRENT = "transactions current";
     public final static String RESET = "reset";
     public final static String RENAME_COLLECTION = "rename collection";
     public final static String GROUP = "group";
@@ -89,8 +91,10 @@ public class SequoiadbConstants {
     public final static String CMD_NAME_LIST_PROCEDURES = "list procedures";
     public final static String CMD_NAME_LIST_DOMAINS = "list domains";
     public final static String CMD_NAME_LIST_TASKS = "list tasks";
-    public final static String CMD_NAME_LIST_CS_IN_DOMAIN = "list collectionspaces in domain";
+    public final static String CMD_NAME_LIST_TRANSACTIONS = "list transactions";
+    public final static String CMD_NAME_LIST_TRANSACTIONS_CURRENT = "list transactions current";
     public final static String CMD_NAME_LIST_CL_IN_DOMAIN = "list collections in domain";
+    public final static String CMD_NAME_LIST_CS_IN_DOMAIN = "list collectionspaces in domain";
     public final static String CMD_NAME_CREATE_GROUP = "create group";
     public final static String CMD_NAME_REMOVE_GROUP = "remove group";
     public final static String CMD_NAME_REMOVE_NODE = "remove node";
