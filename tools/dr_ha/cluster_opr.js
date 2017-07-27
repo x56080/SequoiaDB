@@ -379,11 +379,12 @@ function readGroupsInfo( filename ) {
               active:true  -> readonly:false
               active:false -> readonly:true
 @cataAddr : catalog address(string)
+@newAddrLine : string, ex : vmsvr2-suse-x64-1:30003,vmsvr2-suse-x64-1:30013
 @active: true/false
 @author: Jianhui Xu
 @return: true / false
 ***************************************************************************** */
-function updateDCInfoInCatalog( cataAddr, active ) {
+function updateDCInfoInCatalog( cataAddr, newAddrLine, active ) {
    var db ;
    var isReadOnly = false ;
 
@@ -396,7 +397,7 @@ function updateDCInfoInCatalog( cataAddr, active ) {
    }
 
    try {
-      db.SYSINFO.SYSDCBASE.update( {$set:{Readonly:isReadOnly}}, {Type:"GLOBAL"} ) ;
+      db.SYSINFO.SYSDCBASE.update( {$set:{Readonly:isReadOnly}, $set:{'DataCenter.Address':newAddrLine} }, {Type:"GLOBAL"} ) ;
    } catch ( e ) {
       println( "Update readonly to " + isReadOnly + " in " + cataAddr + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
       db.close() ;
@@ -900,6 +901,7 @@ function prepareEnv( filename, keepHosts ) {
 @return: true/false
 ***************************************************************************** */
 function splitCluster( cataAddrs, keepHosts, active ) {
+   var newAddrLine = makeAddrLineWithKeepHosts( CATAADDRLINE, keepHosts ) ;
    for ( var i = 0 ; i < cataAddrs.length ; ++i  ) {
       /* 1. Change catalog to standalone */
       if ( change2Standalone( cataAddrs[ i ] ) ) {
@@ -916,7 +918,7 @@ function splitCluster( cataAddrs, keepHosts, active ) {
          return false ;
       }
       /* 3. Update catalog datacenter readonly prop */
-      if ( updateDCInfoInCatalog( cataAddrs[i], active ) ) {
+      if ( updateDCInfoInCatalog( cataAddrs[i], newAddrLine, active ) ) {
          println( "Update " + cataAddrs[i] + " catalog's readonly prop succeed" ) ;
       } else {
          println( "Update " + cataAddrs[i] + " catalog's readonly prop failed" ) ;
@@ -933,7 +935,6 @@ function splitCluster( cataAddrs, keepHosts, active ) {
    }
 
    /* 5. Update all node's addr--kick host */
-   var newAddrLine = makeAddrLineWithKeepHosts( CATAADDRLINE, keepHosts ) ;
    var allNodes = mergeArrayWithoutRepeat( CURCATAS, mergeArrayWithoutRepeat( CURDATAS, CURCOORDS ) ) ;
    if ( updateNodesConfig( allNodes, "catalogaddr", newAddrLine ) ) {
       println( "Update all nodes's catalogaddr to " + newAddrLine + " succeed" ) ;
@@ -1056,22 +1057,32 @@ function mergeCluster( cataAddrs, keepHosts, filename, active ) {
          return false ;
       }
       /* 3. Update catalog datacenter readonly prop */
-      if ( updateDCInfoInCatalog( cataAddrs[i], true ) ) {
+      if ( updateDCInfoInCatalog( cataAddrs[i], CATAADDRLINE, true ) ) {
          println( "Update " + cataAddrs[i] + " catalog's readonly prop succeed" ) ;
       } else {
          println( "Update " + cataAddrs[i] + " catalog's readonly prop failed" ) ;
          return false ;
       }
       /* 4. Restore to catalog */
+      /* Not change, at last restart all nodes
       if ( change2Catalog( cataAddrs[ i ] ) ) {
          println( "Restore " + cataAddrs[ i ] + " to catalog succeed"  ) ;
       } else {
          println( "Restore " + cataAddrs[ i ] + " to catalog failed"  ) ;
          return false ;
-      }
+      } */
    }
 
-   /* 2. Restart all keepHosts's nodes */
+   /* 6. Update all all node's addr */
+   var allNodes = mergeArrayWithoutRepeat( CURCATAS, mergeArrayWithoutRepeat( CURDATAS, CURCOORDS ) ) ;
+   if ( updateNodesConfig( allNodes, "catalogaddr", CATAADDRLINE ) ) {
+      println( "Update all nodes's catalogaddr to " + CATAADDRLINE + " succeed" ) ;
+   } else {
+      println( "Update all nodes's catalogaddr to " + CATAADDRLINE + " failed" ) ;
+      return false ;
+   }
+
+   /* 7. Restart all keepHosts's nodes */
    for ( var j = 0 ; j < keepHosts.length ; ++j ) {
       if ( restartAllNode( keepHosts[j] ) ) {
          println( "Restart " + keepHosts[ j ] + " all nodes succeed"  ) ;
