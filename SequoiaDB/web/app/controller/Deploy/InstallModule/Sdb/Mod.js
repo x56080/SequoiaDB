@@ -85,7 +85,6 @@
          $location.path( '/Deploy/Index' ).search( { 'r': new Date().getTime() } ) ;
          return ;
       }
-
       $scope.stepList = _Deploy.BuildSdbStep( $scope, $location, deployType, $scope['Url']['Action'], 'sequoiadb' ) ;
       if( $scope.stepList['info'].length == 0 )
       {
@@ -1223,11 +1222,29 @@
          SdbRest.OmOperation( data, {
             'success': function( configure ){
                $scope.installConfig = configure[0] ;
-               $scope.Template = configure[0]['Property'] ;
                $scope.NodeList = configure[0]['Config'] ;
                $.each( $scope.NodeList, function( index ){
                   $scope.NodeList[index]['i'] = index ;
                } ) ;
+               //删除单机版不需要的配置项
+               if( $scope.Configure['DeployMod'] == 'standalone' )
+               {
+                  $scope.Template = [] ;
+                  $.each( configure[0]['Property'], function( index, info ){
+                     if( info['Name'] == 'preferedinstance' ||
+                         info['Name'] == 'syncstrategy' ||
+                         info['Name'] == 'weight' ||
+                         info['Name'] == 'maxreplsync' )
+                     {
+                        return true ;
+                     }
+                     $scope.Template.push( info ) ;
+                  } ) ;
+               }
+               else
+               {
+                  $scope.Template = configure[0]['Property'] ;
+               }
                $scope.NodeTable['body'] = $scope.NodeList ;
                if( $scope.Configure['DeployMod'] == 'standalone' )
                {
