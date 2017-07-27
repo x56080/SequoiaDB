@@ -52,6 +52,8 @@
 
 SDB_EXTERN_C_START
 
+SDB_EXPORT void setCsvPrecision( const CHAR *pFloatFmt ) ;
+
 SDB_EXPORT void setPrintfLog( void (*pFun)( const CHAR *pFunc,
                                             const CHAR *pFile,
                                             UINT32 line,

@@ -18,13 +18,12 @@
 #include "cJSON_ext.h"
 #include "base64c.h"
 #include "timestamp.h"
-#include "oss.h"
 
 #define INT_NUM_SIZE 32
 
 #define INT64_FIRST_YEAR 0
-#define INT64_LAST_YEAR  9999
-#define INT32_LAST_YEAR  2038
+#define INT64_LAST_YEAR 9999
+#define INT32_LAST_YEAR 2038
 
 #define RELATIVE_YEAR 1900
 #define RELATIVE_MON 12
@@ -39,8 +38,9 @@
 #define LONG_JS_MIN (-9007199254740991LL)
 #define LONG_JS_MAX  (9007199254740991LL)
 
-#define TIME_FORMAT "%d-%d-%d-%d.%d.%d.%d"
-#define DATE_FORMAT "%d-%d-%d"
+#define TIME_FORMAT  "%d-%d-%d-%d.%d.%d.%d"
+#define TIME_FORMAT2 "%d-%d-%d-%d:%d:%d.%d"
+#define DATE_FORMAT  "%d-%d-%d"
 
 #define DATE_OUTPUT_CSV_FORMAT "%04d-%02d-%02d"
 #define DATE_OUTPUT_FORMAT "{ \"$date\": \"" DATE_OUTPUT_CSV_FORMAT "\" }"
@@ -214,6 +214,19 @@ error:
    goto done ;
 }
 
+static CHAR _precision[20] = "%.16g" ;
+
+void setJsonPrecision( const CHAR *pFloatFmt )
+{
+   if( pFloatFmt != NULL )
+   {
+      INT32 length = strlen( pFloatFmt ) ;
+      length = length > 16 ? 16 : length ;
+      strncpy( _precision, pFloatFmt, length ) ;
+      _precision[ length ] = 0 ;
+   }
+}
+
 /*
  * bson convert json interface
  * buffer : output bson convert json string
@@ -313,8 +326,14 @@ static BOOLEAN date2Time( const CHAR *pDate,
       if( valType == CJSON_TIMESTAMP )
       {
          /* for timestamp type, we provide yyyy-mm-dd-hh.mm.ss.uuuuuu */
+         BOOLEAN hasColon = FALSE ;
+         if( ossStrchr( pDate, ':' ) )
+         {
+            hasColon = TRUE ;
+         }
+
          if( !sscanf ( pDate,
-                       TIME_FORMAT,
+                       hasColon ? TIME_FORMAT2 : TIME_FORMAT,
                        &year,
                        &month,
                        &day,
@@ -1478,11 +1497,11 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
 #ifdef WIN32
             _snprintf ( temp,
                         BSON_TEMP_SIZE_512,
-                        "%.16g", bson_iterator_double( &i ) ) ;
+                        _precision, bson_iterator_double( &i ) ) ;
 #else
             snprintf ( temp,
                        BSON_TEMP_SIZE_512,
-                       "%.16g", bson_iterator_double( &i ) ) ;
+                       _precision, bson_iterator_double( &i ) ) ;
 #endif
             bsonConvertJsonRawConcat ( pbuf, left, temp, FALSE ) ;
             CHECK_LEFT ( left )

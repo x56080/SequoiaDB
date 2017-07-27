@@ -75,6 +75,8 @@ SDB_EXPORT BOOLEAN json2bson( const CHAR *pJson,
                               BOOLEAN isCheckEnd,
                               bson *pBson ) ;
 
+SDB_EXPORT void setJsonPrecision( const CHAR *pFloatFmt ) ;
+
 /** \fn BOOLEAN bsonToJson ( CHAR *buffer, INT32 bufsize, const bson *b,
                              BOOLEAN toCSV, BOOLEAN skipUndefined)
     \brief Bson converts to json.

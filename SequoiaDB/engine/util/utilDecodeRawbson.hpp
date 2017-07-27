@@ -65,6 +65,7 @@ private:
    BOOLEAN _isStrict ;
 public:
    std::vector<fieldResolve *> _vFields ;
+
 private:
    CHAR *_trimLeft( CHAR *pCursor, INT32 &size ) ;
    CHAR *_trimRight( CHAR *pCursor, INT32 &size ) ;
@@ -74,6 +75,8 @@ private:
    INT32 _parseSubField( CHAR *pField, fieldResolve *pParent ) ;
    INT32 _appendBsonElement( void *pObj, fieldResolve *pFieldRe,
                              const CHAR *pData ) ;
+   INT32 _checkFormat( const CHAR *pFloatFmt ) ;
+
 public:
    utilDecodeBson() ;
    ~utilDecodeBson() ;
@@ -81,7 +84,8 @@ public:
                BOOLEAN includeBinary,
                BOOLEAN includeRegex,
                BOOLEAN kickNull,
-               BOOLEAN isStrict ) ;
+               BOOLEAN isStrict,
+               const CHAR *pFloatFmt ) ;
    INT32 parseFields( CHAR *pFields, INT32 size ) ;
    INT32 parseCSVSize( CHAR *pbson, INT32 *pCSVSize ) ;
    INT32 parseJSONSize( CHAR *pbson, INT32 *pJSONSize ) ;

@@ -102,6 +102,7 @@ namespace exprt
       inline BOOLEAN force()              const { return _force ; }
       inline BOOLEAN withId()             const { return _withId ; }
       inline EXP_FILE_FORMAT type()       const { return _type ; }
+      inline const string &floatFmt()     const { return _floatFmt ; }
       
       inline const vector<string> &fieldsList() const 
       { 
@@ -141,6 +142,7 @@ namespace exprt
       BOOLEAN              _useSSL ;
       UINT64               _fileLimit ;
       vector<string>       _fields ;
+      string               _floatFmt ;
 
       /* single collection */
       string         _csName ;

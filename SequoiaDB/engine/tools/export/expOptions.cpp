@@ -58,6 +58,7 @@ namespace exprt
    #define OPTION_WITHID            "withid"
    #define OPTION_ERRORSTOP         "errorstop"
    #define OPTION_SSL               "ssl"
+   #define OPTION_FLOATFMT          "floatfmt"
 
    // single collection
    #define OPTION_COLLECTSPACE      "csname"
@@ -109,6 +110,8 @@ namespace exprt
                                     "format as <field>[,<field>,...] for single collection, " \
                                     "or format as <csName>.<clName>:<field>[,<field>,...] for each collection " \
                                     "when specify multi collections"
+   #define EXPLAIN_FLOATFMT         "float format, default: '%.16g', input 'db2' is '%+.14E', " \
+                                    "format %[+][.precision](f|e|E|g|G) ( float only )"
 
    //json
    #define EXPLAIN_STRICT           "strict export of data types, default: false"
@@ -166,7 +169,8 @@ namespace exprt
       ( OPTION_WITHID,                 _TYPE(bool),      EXPLAIN_WITHID ) \
       ( OPTION_FIELDS,         _TYPE(vector<string>),    EXPLAIN_FIELDS ) \
       ( OPTION_ERRORSTOP,              _TYPE(bool),      EXPLAIN_ERRORSTOP ) \
-      ( OPTION_SSL,                    _TYPE(bool),      EXPLAIN_SSL) 
+      ( OPTION_SSL,                    _TYPE(bool),      EXPLAIN_SSL) \
+      ( OPTION_FLOATFMT,               _TYPE(string),    EXPLAIN_FLOATFMT )
 
    #define EXP_SINGLE_COLLECTION_OPTIONS \
       ( OPTION_COLLECTSPACE",c",       _TYPE(string),    EXPLAIN_COLLECTSPACE )\
@@ -375,6 +379,7 @@ namespace exprt
       WRITE_STR_OPTION( writeBuf, OPTION_FILELIMIT, _fileLimit, _has(OPTION_FILELIMIT));
       WRITE_BOOL_OPTION( writeBuf, OPTION_ERRORSTOP, _errorStop, TRUE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_SSL, _useSSL, TRUE ) ;
+      WRITE_STR_OPTION( writeBuf, OPTION_FLOATFMT, _floatFmt, TRUE ) ;
 
       // json options
       WRITE_BOOL_OPTION( writeBuf, OPTION_STRICT, _strict, _has(OPTION_STRICT) ) ;
@@ -981,7 +986,16 @@ namespace exprt
             goto error ;
          }
       }
-      
+
+      if( _has( OPTION_FLOATFMT ) )
+      {
+         _floatFmt = _get<string>( OPTION_FLOATFMT ) ;
+      }
+      else
+      {
+         _floatFmt = "%.16g" ;
+      }
+
       rc = _setDelOptions() ;
       if ( SDB_OK != rc )
       {
