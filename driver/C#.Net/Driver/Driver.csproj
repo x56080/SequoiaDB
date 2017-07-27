@@ -41,6 +41,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="base\ClientOptions.cs" />
     <Compile Include="base\CollectionSpace.cs" />
     <Compile Include="base\DataCenter.cs" />
     <Compile Include="base\DBCollection.cs" />
@@ -75,6 +76,9 @@
       <Project>{0E9A3A2A-49CD-4F6C-847C-DC79B4B65CE6}</Project>
       <Name>Bson</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
