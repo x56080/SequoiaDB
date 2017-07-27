@@ -2740,7 +2740,7 @@ namespace engine
          PD_LOG_MSG( PDERROR, "Failed to get file's size" ) ;
          goto error ;
       }
-      size = offset.offset + 1 ;
+      size = offset.offset ;
       retObj = BSON( "size" << size ) ;
    done:
       op.Close() ;

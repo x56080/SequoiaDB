@@ -2320,11 +2320,11 @@ File.prototype.seek = function( offset, where ) {
                                                  { "name": this._filename } ) ;
          var size = recvObj.toObj().size ;
 
-         if ( 0 > size - 1 + offset )
+         if ( 0 > size + offset )
          {
             throw SDB_INVALIDARG ;
          }
-         this._location = size -1 + offset ;
+         this._location = size + offset ;
       }
       else
       {
