@@ -1416,28 +1416,71 @@ static INT32 _sdbGetList ( sdbConnectionHandle cHandle,
    INT32 rc                        = SDB_OK ;
    sdbCursorStruct *cursor         = NULL ;
    SINT64 contextID                = -1 ;
-   sdbConnectionStruct *connection = (sdbConnectionStruct *)cHandle ;
+   const CHAR *p                   = NULL ;
+   sdbConnectionStruct *connection = NULL ;
 
-   static char *pcmd[] = {
-      CMD_ADMIN_PREFIX CMD_NAME_LIST_CONTEXTS         ,
-      CMD_ADMIN_PREFIX CMD_NAME_LIST_CONTEXTS_CURRENT ,
-      CMD_ADMIN_PREFIX CMD_NAME_LIST_SESSIONS         ,
-      CMD_ADMIN_PREFIX CMD_NAME_LIST_SESSIONS_CURRENT ,
-      CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONS      ,
-      CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONSPACES ,
-      CMD_ADMIN_PREFIX CMD_NAME_LIST_STORAGEUNITS ,
-      CMD_ADMIN_PREFIX CMD_NAME_LIST_GROUPS       ,
-      CMD_ADMIN_PREFIX CMD_NAME_LIST_PROCEDURES   ,
-      CMD_ADMIN_PREFIX CMD_NAME_LIST_DOMAINS      ,
-      CMD_ADMIN_PREFIX CMD_NAME_LIST_TASKS        ,
-      CMD_ADMIN_PREFIX CMD_NAME_LIST_CS_IN_DOMAIN ,
-      CMD_ADMIN_PREFIX CMD_NAME_LIST_CL_IN_DOMAIN ,
+   if ( !handle )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   switch ( listType )
+   {
+   case SDB_LIST_CONTEXTS :
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_CONTEXTS ;
+      break ;
+   case SDB_LIST_CONTEXTS_CURRENT :
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_CONTEXTS_CURRENT ;
+      break ;
+   case SDB_LIST_SESSIONS :
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_SESSIONS ;
+      break ;
+   case SDB_LIST_SESSIONS_CURRENT :
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_SESSIONS_CURRENT ;
+      break ;
+   case SDB_LIST_COLLECTIONS :
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONS ;
+      break ;
+   case SDB_LIST_COLLECTIONSPACES :
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONSPACES ;
+      break ;
+   case SDB_LIST_STORAGEUNITS :
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_STORAGEUNITS ;
+      break ;
+   case SDB_LIST_GROUPS :
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_GROUPS ;
+      break ;
+   case SDB_LIST_STOREPROCEDURES :
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_PROCEDURES ;
+      break ;
+   case SDB_LIST_DOMAINS :
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_DOMAINS ;
+      break ;
+   case SDB_LIST_TASKS :
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_TASKS ;
+      break ;
+   case SDB_LIST_TRANSACTIONS :
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_TRANSACTIONS ;
+      break ;
+   case SDB_LIST_TRANSACTIONS_CURRENT :
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_TRANSACTIONS_CUR ;
+      break ;
+   case SDB_LIST_CS_IN_DOMAIN :
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_CS_IN_DOMAIN ;
+      break ;
+   case SDB_LIST_CL_IN_DOMAIN :
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_CL_IN_DOMAIN ;
+      break ;
+   default :
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
 
-   } ;
-
+   connection = (sdbConnectionStruct *)cHandle ;
+   HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
    rc = clientBuildQueryMsg ( &connection->_pSendBuffer,
                               &connection->_sendBufferSize,
-                              pcmd[listType], 0, 0, 0, -1, condition, selector, orderBy,
+                              p, 0, 0, 0, -1, condition, selector, orderBy,
                               NULL, connection->_endianConvert ) ;
    if ( SDB_OK != rc )
    {
@@ -2176,37 +2219,59 @@ SDB_EXPORT INT32 sdbGetSnapshot ( sdbConnectionHandle cHandle,
    INT32 rc                        = SDB_OK ;
    sdbCursorStruct *cursor         = NULL ;
    SINT64 contextID                = -1 ;
-   sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
-   static char *pcmd[] = {
-      CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_CONTEXTS ,
-      CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_CONTEXTS_CURRENT ,
-      CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_SESSIONS ,
-      CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_SESSIONS_CURRENT ,
-      CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_COLLECTIONS ,
-      CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_COLLECTIONSPACES ,
-      CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_DATABASE ,
-      CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_SYSTEM ,
-      CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_CATA,
-      CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSACTIONS_CUR ,
-      CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSACTIONS
-   } ;
-
-   HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
-   if ( snapType >= SDB_SNAP_END || snapType < SDB_SNAP_CONTEXTS )
-   {
-      rc = SDB_INVALIDARG ;
-       goto error ;
-   }
+   const CHAR *p                   = NULL ;
+   sdbConnectionStruct *connection = NULL ;
 
    if ( !handle )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+   switch ( snapType )
+   {
+   case SDB_SNAP_CONTEXTS :
+      p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_CONTEXTS ;
+      break ;
+   case SDB_SNAP_CONTEXTS_CURRENT :
+      p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_CONTEXTS_CURRENT ;
+      break ;
+   case SDB_SNAP_SESSIONS :
+      p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_SESSIONS ;
+      break ;
+   case SDB_SNAP_SESSIONS_CURRENT :
+      p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_SESSIONS_CURRENT ;
+      break ;
+   case SDB_SNAP_COLLECTIONS :
+      p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_COLLECTIONS ;
+      break ;
+   case SDB_SNAP_COLLECTIONSPACES :
+      p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_COLLECTIONSPACES ;
+      break ;
+   case SDB_SNAP_DATABASE :
+      p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_DATABASE ;
+      break ;
+   case SDB_SNAP_SYSTEM :
+      p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_SYSTEM ;
+      break ;
+   case SDB_SNAP_CATALOG :
+      p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_CATA ;
+      break;
+   case SDB_SNAP_TRANSACTIONS :
+      p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSACTIONS ;
+      break;
+   case SDB_SNAP_TRANSACTIONS_CURRENT :
+      p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSACTIONS_CUR ;
+      break;
+   default :
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
 
+   connection = (sdbConnectionStruct*)cHandle ;
+   HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
    rc = clientBuildQueryMsg ( &connection->_pSendBuffer,
                               &connection->_sendBufferSize,
-                              pcmd[snapType], 0, 0, 0, -1,
+                              p, 0, 0, 0, -1,
                               condition, selector, orderBy,
                               NULL, connection->_endianConvert ) ;
    if ( SDB_OK != rc )
@@ -2421,20 +2486,12 @@ SDB_EXPORT INT32 sdbGetList ( sdbConnectionHandle cHandle,
                               sdbCursorHandle *handle )
 {
    INT32 rc                        = SDB_OK ;
-   sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
 
-   HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
-   if ( listType >= SDB_LIST_END|| listType < SDB_LIST_CONTEXTS )
-   {
-      rc = SDB_INVALIDARG ;
-     goto error ;
-   }
    if ( !handle )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-
    rc = _sdbGetList ( cHandle,
                       listType,
                       condition, selector, orderBy, handle ) ;
