@@ -72,7 +72,7 @@ typedef void (*UTIL_PLOG)( const CHAR *pFunc, \
                            const CHAR *pFmt, \
                            ... ) ;
 
-UTIL_PLOG _pPrintfLogFun = NULL ; 
+UTIL_PLOG _pPrintfLogFun = NULL ;
 
 #define UTIL_RAW2BSON_PRINTF_LOG( fmt, ... )\
 {\
@@ -490,7 +490,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
                goto error ;
             }
             binType = (INT32)bson_iterator_bin_type( pIt ) ;
-            tempSize = ossSnprintf ( temp, 64, "%d", binType ) ;
+            tempSize = ossSnprintf ( temp, 64, "%d", (UINT8)binType ) ;
             rc = _appendString( delChar, temp, tempSize, ppBuffer, pCSVSize ) ;
             if ( rc )
             {
