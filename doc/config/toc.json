@@ -572,15 +572,15 @@
                         },
                         {
                            "id": 1479173720,
-                           "file": "SDB_SNAP_TRANSACTION",
+                           "file": "SDB_SNAP_TRANSACTIONS",
                            "cn": "事务快照",
-                           "en": "SDB_SNAP_TRANSACTION"
+                           "en": "SDB_SNAP_TRANSACTIONS"
                         },
                         {
                            "id": 1479173721,
-                           "file": "SDB_SNAP_TRANSACTION_CURRENT",
+                           "file": "SDB_SNAP_TRANSACTIONS_CURRENT",
                            "cn": "当前事务快照",
-                           "en": "SDB_SNAP_TRANSACTION_CURRENT"
+                           "en": "SDB_SNAP_TRANSACTIONS_CURRENT"
                         }
                      ]
                   },
@@ -643,6 +643,18 @@
                            "file": "SDB_LIST_GROUPS",
                            "cn": "分区组列表",
                            "en": "SDB_LIST_GROUPS"
+                        },
+                        {
+                           "id": 1501230617,
+                           "file": "SDB_LIST_TRANSACTIONS",
+                           "cn": "事务列表",
+                           "en": "SDB_LIST_TRANSACTIONS"
+                        },
+                        {
+                           "id": 1501230618,
+                           "file": "SDB_LIST_TRANSACTIONS_CURRENT",
+                           "cn": "当前事务列表",
+                           "en": "SDB_LIST_TRANSACTIONS_CURRENT"
                         }
                      ]
                   },
