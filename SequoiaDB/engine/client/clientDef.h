@@ -26,6 +26,38 @@
 
 #include "ossTypes.h"
 
+// define value for snapshot
+#define SDB_SNAP_CONTEXTS         0
+#define SDB_SNAP_CONTEXTS_CURRENT 1
+#define SDB_SNAP_SESSIONS         2
+#define SDB_SNAP_SESSIONS_CURRENT 3
+#define SDB_SNAP_COLLECTIONS      4
+#define SDB_SNAP_COLLECTIONSPACES 5
+#define SDB_SNAP_DATABASE         6
+#define SDB_SNAP_SYSTEM           7
+#define SDB_SNAP_CATALOG          8
+#define SDB_SNAP_TRANSACTIONS     9
+#define SDB_SNAP_TRANSACTIONS_CURRENT 10
+
+// define value for list
+#define SDB_LIST_CONTEXTS         0
+#define SDB_LIST_CONTEXTS_CURRENT 1
+#define SDB_LIST_SESSIONS         2
+#define SDB_LIST_SESSIONS_CURRENT 3
+#define SDB_LIST_COLLECTIONS      4
+#define SDB_LIST_COLLECTIONSPACES 5
+#define SDB_LIST_STORAGEUNITS     6
+#define SDB_LIST_GROUPS           7
+#define SDB_LIST_STOREPROCEDURES  8
+#define SDB_LIST_DOMAINS          9
+#define SDB_LIST_TASKS            10
+#define SDB_LIST_TRANSACTIONS     11
+#define SDB_LIST_TRANSACTIONS_CURRENT 12
+#define SDB_LIST_CL_IN_DOMAIN     129
+#define SDB_LIST_CS_IN_DOMAIN     130
+
+
+
 typedef BOOLEAN (*socketInterruptFunc)(void) ;
 
 typedef struct _sdbClientConf

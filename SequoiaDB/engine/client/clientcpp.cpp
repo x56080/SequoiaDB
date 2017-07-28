@@ -6109,6 +6109,12 @@ error :
       case SDB_SNAP_CATALOG :
          p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_CATA ;
          break;
+      case SDB_SNAP_TRANSACTIONS :
+         p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSACTIONS ;
+         break;
+      case SDB_SNAP_TRANSACTIONS_CURRENT :
+         p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSACTIONS_CUR ;
+         break;
       default :
          rc = SDB_INVALIDARG ;
          goto exit ;
@@ -6235,11 +6241,17 @@ error :
       case SDB_LIST_TASKS :
          p = CMD_ADMIN_PREFIX CMD_NAME_LIST_TASKS ;
          break ;
-      case SDB_LIST_CS_IN_DOMAIN :
-         p = CMD_ADMIN_PREFIX CMD_NAME_LIST_CS_IN_DOMAIN ;
+      case SDB_LIST_TRANSACTIONS :
+         p = CMD_ADMIN_PREFIX CMD_NAME_LIST_TRANSACTIONS ;
+         break ;
+      case SDB_LIST_TRANSACTIONS_CURRENT :
+         p = CMD_ADMIN_PREFIX CMD_NAME_LIST_TRANSACTIONS_CUR ;
          break ;
       case SDB_LIST_CL_IN_DOMAIN :
          p = CMD_ADMIN_PREFIX CMD_NAME_LIST_CL_IN_DOMAIN ;
+         break ;
+      case SDB_LIST_CS_IN_DOMAIN :
+         p = CMD_ADMIN_PREFIX CMD_NAME_LIST_CS_IN_DOMAIN ;
          break ;
       default :
          rc = SDB_INVALIDARG ;

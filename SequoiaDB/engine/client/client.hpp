@@ -61,30 +61,6 @@
 /** 0 means using database's default pagesize, it 64k now */
 #define SDB_PAGESIZE_DEFAULT      0
 
-#define SDB_SNAP_CONTEXTS         0
-#define SDB_SNAP_CONTEXTS_CURRENT 1
-#define SDB_SNAP_SESSIONS         2
-#define SDB_SNAP_SESSIONS_CURRENT 3
-#define SDB_SNAP_COLLECTIONS      4
-#define SDB_SNAP_COLLECTIONSPACES 5
-#define SDB_SNAP_DATABASE         6
-#define SDB_SNAP_SYSTEM           7
-#define SDB_SNAP_CATALOG          8
-
-#define SDB_LIST_CONTEXTS         0
-#define SDB_LIST_CONTEXTS_CURRENT 1
-#define SDB_LIST_SESSIONS         2
-#define SDB_LIST_SESSIONS_CURRENT 3
-#define SDB_LIST_COLLECTIONS      4
-#define SDB_LIST_COLLECTIONSPACES 5
-#define SDB_LIST_STORAGEUNITS     6
-#define SDB_LIST_GROUPS           7
-#define SDB_LIST_STOREPROCEDURES  8
-#define SDB_LIST_DOMAINS          9
-#define SDB_LIST_TASKS            10
-#define SDB_LIST_CS_IN_DOMAIN     11
-#define SDB_LIST_CL_IN_DOMAIN     12
-
 /** The flags represent whether bulk insert continue when hitting index key duplicate error */
 #define FLG_INSERT_CONTONDUP  0x00000001
 
@@ -3305,21 +3281,24 @@ namespace sdbclient
     \brief Get the snapshots of specified type.
     \param [in] snapType The snapshot type as below
 
-        SDB_SNAP_CONTEXTS         : Get all contexts' snapshot
-        SDB_SNAP_CONTEXTS_CURRENT : Get the current context's snapshot
-        SDB_SNAP_SESSIONS         : Get all sessions' snapshot
-        SDB_SNAP_SESSIONS_CURRENT : Get the current session's snapshot
-        SDB_SNAP_COLLECTIONS        : Get the collections' snapshot
-        SDB_SNAP_COLLECTIONSPACES        : Get the collection spaces' snapshot
-        SDB_SNAP_DATABASE         : Get database's snapshot
-        SDB_SNAP_SYSTEM           : Get system's snapshot
-        SDB_SNAP_CATA           : Get catalog's snapshot
-       \param [in] condition The matching rule, match all the documents if not provided.
-       \param [in] select The selective rule, return the whole document if not provided.
-       \param [in] orderBy The ordered rule, result set is unordered if not provided.
-       \param [out] cursor The return cursor object of query.
-       \retval SDB_OK Operation Success
-       \retval Others Operation Fail
+        SDB_SNAP_CONTEXTS         : Get the snapshot of all the contexts
+        SDB_SNAP_CONTEXTS_CURRENT : Get the snapshot of current context
+        SDB_SNAP_SESSIONS         : Get the snapshot of all the sessions
+        SDB_SNAP_SESSIONS_CURRENT : Get the snapshot of current session
+        SDB_SNAP_COLLECTIONS      : Get the snapshot of all the collections
+        SDB_SNAP_COLLECTIONSPACES : Get the snapshot of all the collection spaces
+        SDB_SNAP_DATABASE         : Get the snapshot of the database
+        SDB_SNAP_SYSTEM           : Get the snapshot of the system
+        SDB_SNAP_CATA             : Get the snapshot of the catalog
+        SDB_SNAP_TRANSACTIONS     : Get snapshot of transactions in current session
+        SDB_SNAP_TRANSACTIONS_CURRENT : Get snapshot of all the transactions
+        
+    \param [in] condition The matching rule, match all the documents if not provided.
+    \param [in] select The selective rule, return the whole document if not provided.
+    \param [in] orderBy The ordered rule, result set is unordered if not provided.
+    \param [out] cursor The return cursor object of query.
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
 */
       INT32 getSnapshot ( sdbCursor &cursor,
                           INT32 snapType,
@@ -3344,15 +3323,18 @@ namespace sdbclient
     \brief Get the snapshots of specified type.
     \param [in] snapType The snapshot type as below
 
-        SDB_SNAP_CONTEXTS         : Get all contexts' snapshot
-        SDB_SNAP_CONTEXTS_CURRENT : Get the current context's snapshot
-        SDB_SNAP_SESSIONS         : Get all sessions' snapshot
-        SDB_SNAP_SESSIONS_CURRENT : Get the current session's snapshot
-        SDB_SNAP_COLLECTIONS        : Get the collections' snapshot
-        SDB_SNAP_COLLECTIONSPACES        : Get the collection spaces' snapshot
-        SDB_SNAP_DATABASE         : Get database snapshot
-        SDB_SNAP_SYSTEM           : Get system snapshot
-        SDB_SNAP_CATALOG           : Get catalog snapshot
+        SDB_SNAP_CONTEXTS         : Get the snapshot of all the contexts
+        SDB_SNAP_CONTEXTS_CURRENT : Get the snapshot of current context
+        SDB_SNAP_SESSIONS         : Get the snapshot of all the sessions
+        SDB_SNAP_SESSIONS_CURRENT : Get the snapshot of current session
+        SDB_SNAP_COLLECTIONS      : Get the snapshot of all the collections
+        SDB_SNAP_COLLECTIONSPACES : Get the snapshot of all the collection spaces
+        SDB_SNAP_DATABASE         : Get the snapshot of the database
+        SDB_SNAP_SYSTEM           : Get the snapshot of the system
+        SDB_SNAP_CATA             : Get the snapshot of the catalog
+        SDB_SNAP_TRANSACTIONS     : Get snapshot of transactions in current session
+        SDB_SNAP_TRANSACTIONS_CURRENT : Get snapshot of all the transactions
+        
      \param [in] condition The matching rule, match all the documents if not provided.
      \param [in] select The selective rule, return the whole document if not provided.
      \param [in] orderBy The ordered rule, result set is unordered if not provided.
@@ -3403,8 +3385,13 @@ namespace sdbclient
         SDB_LIST_COLLECTIONS      : Get all collections list
         SDB_LIST_COLLECTIONSPACES : Get all collecion spaces' list
         SDB_LIST_STORAGEUNITS     : Get storage units list
-        SDB_LIST_GROUPS           : Get replica groups list ( only applicable in sharding env )
-        SDB_LIST_STOREPROCEDURES           : Get stored procedure list ( only applicable in sharding env )
+        SDB_LIST_GROUPS           : Get replicaGroup list ( only applicable in sharding env )
+        SDB_LIST_STOREPROCEDURES  : Get all the stored procedure list
+        SDB_LIST_DOMAINS          : Get all the domains list
+        SDB_LIST_TASKS            : Get all the running split tasks ( only applicable in sharding env )
+        SDB_LIST_TRANSACTIONS     : Get all the transactions information.
+        SDB_LIST_TRANSACTIONS_CURRENT : Get the transactions information of current session.
+        
    \param [in] condition The matching rule, match all the documents if null.
    \param [in] select The selective rule, return the whole document if null.
    \param [in] orderBy The ordered rule, never sort if null.
@@ -3446,6 +3433,12 @@ namespace sdbclient
         SDB_LIST_COLLECTIONSPACES : Get all collecion spaces' list
         SDB_LIST_STORAGEUNITS     : Get storage units list
         SDB_LIST_GROUPS           : Get replicaGroup list ( only applicable in sharding env )
+        SDB_LIST_STOREPROCEDURES  : Get all the stored procedure list
+        SDB_LIST_DOMAINS          : Get all the domains list
+        SDB_LIST_TASKS            : Get all the running split tasks ( only applicable in sharding env )
+        SDB_LIST_TRANSACTIONS     : Get all the transactions information.
+        SDB_LIST_TRANSACTIONS_CURRENT : Get the transactions information of current session.
+        
    \param [in] condition The matching rule, match all the documents if null.
    \param [in] select The selective rule, return the whole document if null.
    \param [in] orderBy The ordered rule, never sort if null.
