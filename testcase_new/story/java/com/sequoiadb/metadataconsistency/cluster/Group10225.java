@@ -61,7 +61,7 @@ public class Group10225 extends SdbTestBase {
 		}
 	}
 	
-	@Test(invocationCount = 10, threadPoolSize = 10)
+	@Test(invocationCount = 1, threadPoolSize = 1)
 	public void test(){
 		
 		CreateRG createRG = new CreateRG();
