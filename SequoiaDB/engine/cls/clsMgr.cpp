@@ -810,6 +810,7 @@ namespace engine
       // if we are switching to slave, let's interrupt all EDUs that doing write
       else if ( !primary && SDB_EVT_OCCUR_BEFORE == type )
       {
+         sdbGetDPSCB()->cancelIncVersion() ;
          // interrupt writing edus
          pmdGetKRCB()->getEDUMgr()->interruptWritingEDUS() ;
       }

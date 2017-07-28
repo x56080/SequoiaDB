@@ -237,9 +237,14 @@ namespace engine
          return _buf.flushAll() ;
       }
 
-      OSS_INLINE DPS_LSN_VER incVersion()
+      OSS_INLINE void incVersion()
       {
-         return _buf.incVersion() ;
+         _buf.incVersion() ;
+      }
+
+      OSS_INLINE void cancelIncVersion()
+      {
+         _buf.cancelIncVersion() ;
       }
 
       OSS_INLINE INT32 checkSyncControl( UINT32 reqLen, _pmdEDUCB *cb )

@@ -434,11 +434,6 @@ namespace engine
          _pCatAgent->clearAll() ;
          _pCatAgent->release_w() ;
       }
-      else if ( primary && SDB_EVT_OCCUR_AFTER == type )
-      {
-         const CHAR *pDummyName = "SYS" ;
-         sdbGetClsCB()->invalidateCata( pDummyName ) ;
-      }
    }
 
    void _clsShardMgr::attachCB( _pmdEDUCB * cb )

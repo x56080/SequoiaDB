@@ -77,6 +77,7 @@ namespace engine
       _restoreFlag = FALSE ;
 
       _transCB = NULL ;
+      _incVersion = FALSE ;
    }
 
    _dpsReplicaLogMgr::~_dpsReplicaLogMgr()
@@ -297,9 +298,10 @@ namespace engine
          goto error ;
       }
 
-      if ( DPS_INVALID_LSN_VERSION == _lsn.version )
+      if ( DPS_INVALID_LSN_VERSION == _lsn.version || _incVersion )
       {
          ++_lsn.version ;
+         _incVersion = FALSE ;
       }
 
       if ( !block.isRow() )
