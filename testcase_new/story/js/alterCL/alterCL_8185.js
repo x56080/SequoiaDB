@@ -6,6 +6,8 @@
 ******************************************************************************/
 function main()
 {
+   var clName = COMMCLNAME + "_8185";
+   db.setSessionAttr( { PreferedInstance: "M" } );
 	//get ReplicaGroups
 	try{
 		var grouplist = Array();
@@ -25,7 +27,7 @@ function main()
 
 try
 {
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
+   commDropCL( db, COMMCSNAME, clName, true, true,
                "drop colleciton in the beginning" );
 }
 catch( e )
@@ -36,16 +38,16 @@ catch( e )
 
 	//create normal-CL
 	try{
-      var normalCL= commCreateCL( db, COMMCSNAME, COMMCLNAME, -1, true, true,
+      var normalCL= commCreateCL( db, COMMCSNAME, clName, -1, true, true,
                                   false, "failed to create collection" ) ;
-		var sn1 = db.snapshot(8,{Name:COMMCSNAME+"."+COMMCLNAME});
+		var sn1 = db.snapshot(8,{Name:COMMCSNAME+"."+clName});
 		var sourceGroup = sn1.current().toObj()['CataInfo'][0]['GroupName'];
 	}catch(e)
 	{
-		println("can't create normal-CL:" + COMMCLNAME + " rc="+e);
+		println("can't create normal-CL:" + clName + " rc="+e);
 		throw e;
 	}
-	println("createCL " + COMMCLNAME + " at ReplicaGroup:" + sourceGroup + " finished");
+	println("createCL " + clName + " at ReplicaGroup:" + sourceGroup + " finished");
 	
 	//insert data
 	try{
@@ -53,6 +55,7 @@ catch( e )
 	}catch(e)
 	{
 		println("insert-data fail! rc="+e);
+		throw e;
 	}
 	println("insert-data succ!");
 	
@@ -86,7 +89,7 @@ catch( e )
 				lowPar = i*stepPar;
 				highPar = (i+1)*stepPar;
 				normalCL.split(sourceGroup, grouplist[tarGroupIndex],{Partition:lowPar},{Partition:highPar});
-				println(COMMCLNAME+" split from "+sourceGroup+" to "+ grouplist[tarGroupIndex]+" {Partition:"+lowPar+"} {Partition:"+highPar+"}");
+				println(clName+" split from "+sourceGroup+" to "+ grouplist[tarGroupIndex]+" {Partition:"+lowPar+"} {Partition:"+highPar+"}");
 			}
 			println("split succ!");
 		}
@@ -116,31 +119,31 @@ catch( e )
 		}
 		if(size!=1)
 		{
-			throw 1;
+			throw -1;
 		}
 		if(!flag)
 		{
-			throw 2;
+			throw -2;
 		}	
 	}catch(e)
 	{
-		if(e==-1)
+		if( e == -1)
 			println("result-records count not expected. expect:1 return:"+size);
-		else if(e==-2)
+		else if( e == -2)
 		{	
 			println("record not expected!");
 			println("expected:{id:1,b:1001,c:'abcdefghijkl1001'}");
 			println("returned:"+ret);
 		}
 		else
-			println("select " + COMMCLNAME + " fail! rc="+e);
+			println("select " + clName + " fail! rc="+e);
 		throw e;
 	}
 	println("data-verify succ!");
 	
 	//clean test-env
 	try{
-      commDropCL( db, COMMCSNAME, COMMCLNAME, false, false,
+      commDropCL( db, COMMCSNAME, clName, false, false,
                   "drop colleciton in the end" );
 	}catch(e)
 	{
