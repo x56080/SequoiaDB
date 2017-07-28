@@ -11,7 +11,7 @@
 
 **Note:**
 
-> * 若指定的分区组不存在，将抛异常；若不指定任何分区组，该操作为空操作。
+> * 若指定的分区组不存在，将抛异常。
 
 ##返回值##
 无返回值，出错抛异常，并输出错误信息，可以通过[getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](reference/Sequoiadb_command/Global/getLastError.md)获取错误码。
