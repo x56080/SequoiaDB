@@ -4,8 +4,12 @@
 *               2014-07-08  pusheng Ding  Init
 *               2015-03-28  xiaojun Hu    Changed
 ******************************************************************************/
+clName = COMMCLNAME + "_8181";
+
 try{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
+   db.setSessionAttr( { PreferedInstance: "M" } );
+   
+   commDropCL( db, COMMCSNAME, clName, true, true,
                "drop colleciton in the beginning" );
 	var isStandalone = commIsStandalone( db ) ;
 }catch(e)
@@ -17,19 +21,19 @@ try{
 //create normal-CL
 try{
    var optionObj = {Compressed:true};
-   var normalCL = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, optionObj, true,
+   var normalCL = commCreateCLByOption( db, COMMCSNAME, clName, optionObj, true,
                                        false, "create collecton failed" );
 }catch(e)
 {
-	println("can't create normal-CL:" + COMMCLNAME + " rc="+e);
+	println("can't create normal-CL:" + clName + " rc="+e);
 	throw e;
 }
-println("createCL " + COMMCLNAME + " finished");
+println("createCL " + clName + " finished");
 
 //normalCL alters replsize once
 try{
 	normalCL.alter({ReplSize:2});
-	var sn1 = db.snapshot(8,{Name:COMMCSNAME + "." + COMMCLNAME});
+	var sn1 = db.snapshot(8,{Name:COMMCSNAME + "." + clName});
 	var replsize = sn1.current().toObj()['ReplSize'];
 	if(replsize == 2)
 	{
@@ -69,7 +73,7 @@ println("insert-data into normalCL succ!");
 //normalCL alters replsize twice
 try{
 	normalCL.alter({ReplSize:3});
-	var sn1 = db.snapshot(8,{Name:COMMCSNAME + "." + COMMCLNAME});
+	var sn1 = db.snapshot(8,{Name:COMMCSNAME + "." + clName});
 	var replsize = sn1.current().toObj()['ReplSize'];
 	if(replsize == 3)
 	{
@@ -78,7 +82,7 @@ try{
 	else
 	{
 		println("normalCL alters replsize fail twice! ReplSize=" + replsize);
-		throw 1;
+		throw -1;
 	}	
 }catch(e)
 {
@@ -149,14 +153,14 @@ try{
 		println("returned:"+ret);
 	}
 	else
-		println("select " + COMMCLNAME + " fail! rc="+e);
+		println("select " + clName + " fail! rc="+e);
 	throw e;
 }
 println("data-verify succ!");
 
 //clean test-env
 try{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, false, false, "drop colleciton" );
+   commDropCL( db, COMMCSNAME, clName, false, false, "drop colleciton" );
 }catch(e)
 {
 	println("clean test-evn fail! rc="+e);

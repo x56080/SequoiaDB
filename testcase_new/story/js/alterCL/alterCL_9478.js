@@ -19,8 +19,8 @@ function main(  )
          return ;
       else
       {
-         var newCS = CHANGEDPREFIX + '_newcs';
-         var newCL = CHANGEDPREFIX + '_newcl';
+         var newCS = CHANGEDPREFIX + '_9478_newcs';
+         var newCL = CHANGEDPREFIX + '_9478__newcl';
          var domainName = CHANGEDPREFIX + '_domain';
          
          // Drop CS and domain in the beginning

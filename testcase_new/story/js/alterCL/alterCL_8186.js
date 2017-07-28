@@ -4,12 +4,13 @@
 *               2014-07-08  pusheng Ding  Init
 *               2015-03-28  xiaojun Hu    Changed
 ******************************************************************************/
-MAINCLNAME = CHANGEDPREFIX+"bar" ;
-SUBCL1NAME = CHANGEDPREFIX+"_sub1";
-SUBCL2NAME = CHANGEDPREFIX+"_sub2";
-SUBCL3NAME = CHANGEDPREFIX+"_sub3";
+MAINCLNAME = CHANGEDPREFIX+"_8186_bar" ;
+SUBCL1NAME = CHANGEDPREFIX+"_8186_sub1";
+SUBCL2NAME = CHANGEDPREFIX+"_8186_sub2";
+SUBCL3NAME = CHANGEDPREFIX+"_8186_sub3";
 function main()
 {
+   db.setSessionAttr( { PreferedInstance: "M" } );
    //get ReplicaGroups
    try{
       var grouplist = Array();
@@ -178,11 +179,11 @@ function main()
       }
       if(size!=1)
       {
-         throw 1;
+         throw -1;
       }
       if(!flag)
       {
-         throw 2;
+         throw -2;
       }	
    }catch(e)
    {

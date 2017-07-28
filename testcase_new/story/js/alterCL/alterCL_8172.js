@@ -6,8 +6,10 @@
 
 function main()
 {
+   var clName = COMMCLNAME + "_8172";
 	try{
 		var db = new Sdb(COORDHOSTNAME, COORDSVCNAME) ;
+      db.setSessionAttr( { PreferedInstance: "M" } );
 	}catch(e)
 	{
 		println("can't connect to db");
@@ -15,7 +17,7 @@ function main()
 	}
 	
 	try{
-      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
+      commDropCL( db, COMMCSNAME, clName, true, true,
                   "drop cl in the beginning" ) ;
 	}catch( e ){}
 	
@@ -31,20 +33,20 @@ function main()
 	
 	//create cl
 	try{
-		var varCL = varCS.createCL(COMMCLNAME,{ReplSize:1});
-		var sn1 = db.snapshot(8,{Name:COMMCSNAME+"."+COMMCLNAME});
+		var varCL = varCS.createCL(clName,{ReplSize:1});
+		var sn1 = db.snapshot(8,{Name:COMMCSNAME+"."+clName});
 		var sourceGroup = sn1.current().toObj()['CataInfo'][0]['GroupName'];
 	}catch(e)
 	{
-		println("can't create CL:" + COMMCLNAME + " rc="+e);
+		println("can't create CL:" + clName + " rc="+e);
 		throw e;
 	}
-	println("createCL " + COMMCLNAME + " at ReplicaGroup:" + sourceGroup + " finished");
+	println("createCL " + clName + " at ReplicaGroup:" + sourceGroup + " finished");
 
 	//alters replsize
 	try{
 		varCL.alter({ReplSize:3});
-		var sn1 = db.snapshot(8,{Name:COMMCSNAME + "." + COMMCLNAME});
+		var sn1 = db.snapshot(8,{Name:COMMCSNAME + "." + clName});
 		var replsize = sn1.current().toObj()['ReplSize'];
 		if(replsize == 3)
 		{
@@ -67,7 +69,7 @@ function main()
 	
 	//clean test-env
 	try{
-      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
+      commDropCL( db, COMMCSNAME, clName, true, true,
                   "drop cl in the end" ) ;
 	}catch(e)
 	{

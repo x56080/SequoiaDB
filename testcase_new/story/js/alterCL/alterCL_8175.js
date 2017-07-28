@@ -3,10 +3,10 @@
 @Modify list :
                2014-07-10 pusheng Ding  Init
 ******************************************************************************/
-CLNAME_1 = CHANGEDPREFIX+"bar1" ;
-CLNAME_2 = CHANGEDPREFIX+"bar2" ;
-CLNAME_3 = CHANGEDPREFIX+"bar3" ;
-CLNAME_4 = CHANGEDPREFIX+"bar4" ;
+CLNAME_1 = CHANGEDPREFIX+"_8175_bar1" ;
+CLNAME_2 = CHANGEDPREFIX+"_8175_bar2" ;
+CLNAME_3 = CHANGEDPREFIX+"_8175_bar3" ;
+CLNAME_4 = CHANGEDPREFIX+"_8175_bar4" ;
 
 try
 {

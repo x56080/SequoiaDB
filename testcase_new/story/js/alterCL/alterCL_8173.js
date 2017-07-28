@@ -3,8 +3,8 @@
 @Modify list :
                2015-01-22  pusheng Ding  Init
 ******************************************************************************/
-clName_1 = CHANGEDPREFIX+"bar1" ;
-clName_2 = CHANGEDPREFIX+"bar2" ;
+clName_1 = CHANGEDPREFIX+"_8173_bar1" ;
+clName_2 = CHANGEDPREFIX+"_8173_bar2" ;
 
 function main()
 {

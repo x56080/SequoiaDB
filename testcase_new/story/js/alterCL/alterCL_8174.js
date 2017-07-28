@@ -4,10 +4,10 @@
 *               2014-07-10 pusheng Ding  Init
 *               2015-03-28 xiaojun Hu    Changed
 ******************************************************************************/
-CLNAME_1 = CHANGEDPREFIX+"bar1" ;
-CLNAME_2 = CHANGEDPREFIX+"bar2" ;
-CLNAME_3 = CHANGEDPREFIX+"bar3" ;
-CLNAME_4 = CHANGEDPREFIX+"bar4" ;
+CLNAME_1 = CHANGEDPREFIX+"_8174_bar1" ;
+CLNAME_2 = CHANGEDPREFIX+"_8174_bar2" ;
+CLNAME_3 = CHANGEDPREFIX+"_8174_bar3" ;
+CLNAME_4 = CHANGEDPREFIX+"_8174_bar4" ;
 
 try
 {

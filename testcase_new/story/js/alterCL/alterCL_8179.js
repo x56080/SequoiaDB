@@ -4,12 +4,13 @@
 *               2014-07-04  pusheng Ding  Init
 *               2015-03-28 xiaojun Hu    Changed
 ******************************************************************************/
-MAINCLNAME = CHANGEDPREFIX+"main" ;
-SUBCL1NAME = CHANGEDPREFIX+"_sub1";
-SUBCL2NAME = CHANGEDPREFIX+"_sub2";
-SUBCL3NAME = CHANGEDPREFIX+"_sub3";
+MAINCLNAME = CHANGEDPREFIX+"_8179_main" ;
+SUBCL1NAME = CHANGEDPREFIX+"_8179_sub1";
+SUBCL2NAME = CHANGEDPREFIX+"_8179_sub2";
+SUBCL3NAME = CHANGEDPREFIX+"_8179_sub3";
 
 try{
+   db.setSessionAttr( { PreferedInstance: "M" } );
 	var isStandalone = commIsStandalone( db ) ;
 }catch(e)
 {
@@ -54,7 +55,7 @@ try{
 	else
 	{
 		println("mainCL-noSubCL alters replsize fail! ReplSize=" + replsize);
-		throw 1;
+		throw -1;
 	}	
 }catch(e)
 {
@@ -117,7 +118,7 @@ try{
 	else
 	{
 		println("mainCL-SubCL alters replsize fail! ReplSize=" + replsize);
-		throw 1;
+		throw -1;
 	}	
 }catch(e)
 {

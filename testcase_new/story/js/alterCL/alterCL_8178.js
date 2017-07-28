@@ -7,6 +7,8 @@
 ******************************************************************************/
 function main()
 {
+   var clName = COMMCLNAME + "_8178";
+   db.setSessionAttr( { PreferedInstance: "M" } );
 	//get ReplicaGroups
 	try{
 		var grouplist = Array();
@@ -31,7 +33,7 @@ function main()
 
    try
    {
-      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop colleciton" );
+      commDropCL( db, COMMCSNAME, clName, true, true, "drop colleciton" );
    }
    catch( e )
    {
@@ -43,21 +45,21 @@ function main()
 	try{
       var optionObj = {ShardingKey:{id:1,b:-1},ShardingType:'hash',
                        Partition:4096,ReplSize:2};
-      var hashCL = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, optionObj, true,
+      var hashCL = commCreateCLByOption( db, COMMCSNAME, clName, optionObj, true,
                                        false, "create collecton 3 failed" );
-		var sn1 = db.snapshot(8,{Name:COMMCSNAME+"."+COMMCLNAME});
+		var sn1 = db.snapshot(8,{Name:COMMCSNAME+"."+clName});
 		var sourceGroup = sn1.current().toObj()['CataInfo'][0]['GroupName'];
 	}catch(e)
 	{
-		println("can't create hash-CL:" + COMMCLNAME + " rc="+e);
+		println("can't create hash-CL:" + clName + " rc="+e);
 		throw e;
 	}
-	println("createCL " + COMMCLNAME + " at ReplicaGroup:" + sourceGroup + " finished");
+	println("createCL " + clName + " at ReplicaGroup:" + sourceGroup + " finished");
 	
 	//hashCL-noSplit alters replsize
 	try{
 		hashCL.alter({ReplSize:2});
-		var sn1 = db.snapshot(8,{Name:COMMCSNAME + "." + COMMCLNAME});
+		var sn1 = db.snapshot(8,{Name:COMMCSNAME + "." + clName});
 		var replsize = sn1.current().toObj()['ReplSize'];
 		if(replsize == 2)
 		{
@@ -97,7 +99,7 @@ function main()
 			lowPar = i*stepPar;
 			highPar = (i+1)*stepPar;
 			hashCL.split(sourceGroup, grouplist[tarGroupIndex],{Partition:lowPar},{Partition:highPar});
-			println(COMMCLNAME+" split from "+sourceGroup+" to "+ grouplist[tarGroupIndex]+" {Partition:"+lowPar+"} {Partition:"+highPar+"}");
+			println(clName+" split from "+sourceGroup+" to "+ grouplist[tarGroupIndex]+" {Partition:"+lowPar+"} {Partition:"+highPar+"}");
 		}
 	}catch(e)
 	{
@@ -109,7 +111,7 @@ function main()
 	//hashCL-split alters replsize
 	try{
 		hashCL.alter({ReplSize:1});
-		var sn1 = db.snapshot(8,{Name:COMMCSNAME + "." + COMMCLNAME});
+		var sn1 = db.snapshot(8,{Name:COMMCSNAME + "." + clName});
 		var replsize = sn1.current().toObj()['ReplSize'];
 		if(replsize == 1)
 		{
@@ -118,7 +120,7 @@ function main()
 		else
 		{
 			println("hashCL-split alters replsize fail! ReplSize=" + replsize);
-			throw 1;
+			throw -1;
 		}	
 	}catch(e)
 	{
@@ -156,11 +158,11 @@ function main()
 		}
 		if(size!=1)
 		{
-			throw 1;
+			throw -1;
 		}
 		if(!flag)
 		{
-			throw 2;
+			throw -2;
 		}	
 	}catch(e)
 	{
@@ -173,14 +175,14 @@ function main()
 			println("returned:"+ret);
 		}
 		else
-			println("select " + COMMCLNAME + " fail! rc="+e);
+			println("select " + clName + " fail! rc="+e);
 		throw e;
 	}
 	println("data-verify succ!");
 	
 	//clean test-env
 	try{
-      commDropCL( db, COMMCSNAME, COMMCLNAME, false, false, "drop colleciton 1" );
+      commDropCL( db, COMMCSNAME, clName, false, false, "drop colleciton 1" );
 	}catch(e)
 	{
 		println("clean test-evn fail! rc="+e);

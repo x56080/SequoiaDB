@@ -5,13 +5,14 @@
 *               2015-03-28  xiaojun Hu    Changed
 ******************************************************************************/
 
-MAINCLNAME = CHANGEDPREFIX+"bar" ;
-SUBCL1NAME = CHANGEDPREFIX+"_sub1";
-SUBCL2NAME = CHANGEDPREFIX+"_sub2";
-SUBCL3NAME = CHANGEDPREFIX+"_sub3";
+MAINCLNAME = CHANGEDPREFIX+"_8187_bar" ;
+SUBCL1NAME = CHANGEDPREFIX+"_8187_sub1";
+SUBCL2NAME = CHANGEDPREFIX+"_8187_sub2";
+SUBCL3NAME = CHANGEDPREFIX+"_8187_sub3";
 
 function main()
 {
+   db.setSessionAttr( { PreferedInstance: "M" } );
 	//get ReplicaGroups
 	try{
 		var grouplist = Array();

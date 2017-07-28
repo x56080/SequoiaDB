@@ -6,6 +6,8 @@
 ******************************************************************************/
 function main()
 {
+   var clName = COMMCLNAME + "_8182";
+   db.setSessionAttr( { PreferedInstance: "M" } );
 	//get ReplicaGroups
 	try{
 		var grouplist = Array();
@@ -25,7 +27,7 @@ function main()
 
 try
 {
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
+   commDropCL( db, COMMCSNAME, clName, true, true,
                "drop colleciton in the beginning" );
 }
 catch( e )
@@ -37,16 +39,16 @@ catch( e )
 	//create normal-CL
 	try{
       var optionObj = {ReplSize:0};
-      var normalCL = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, optionObj, true,
+      var normalCL = commCreateCLByOption( db, COMMCSNAME, clName, optionObj, true,
                                           false, "create collecton failed" );
-		var sn1 = db.snapshot(8,{Name:COMMCSNAME+"."+COMMCLNAME});
+		var sn1 = db.snapshot(8,{Name:COMMCSNAME+"."+clName});
 		var sourceGroup = sn1.current().toObj()['CataInfo'][0]['GroupName'];
 	}catch(e)
 	{
-		println("can't create normal-CL:" + COMMCLNAME + " rc="+e);
+		println("can't create normal-CL:" + clName + " rc="+e);
 		throw e;
 	}
-	println("createCL " + COMMCLNAME + " at ReplicaGroup:" + sourceGroup + " finished");
+	println("createCL " + clName + " at ReplicaGroup:" + sourceGroup + " finished");
 	
 	//normalCL with no data altered to range-collection
 	try{
@@ -78,7 +80,7 @@ catch( e )
 				lowId = (i-1)*stepId;
 				highId = i*stepId;
 				normalCL.split(sourceGroup, grouplist[tarGroupIndex],{id:lowId},{id:highId});
-				println(COMMCLNAME+" split from "+sourceGroup+" to "+ grouplist[tarGroupIndex]+" {id:"+lowId+"} {id:"+highId+"}");
+				println(clName+" split from "+sourceGroup+" to "+ grouplist[tarGroupIndex]+" {id:"+lowId+"} {id:"+highId+"}");
 			}
 			println("split succ!");
 		}
@@ -135,14 +137,14 @@ catch( e )
 			println("returned:"+ret);
 		}
 		else
-			println("select " + COMMCLNAME + " fail! rc="+e);
+			println("select " + clName + " fail! rc="+e);
 		throw e;
 	}
 	println("data-verify succ!");
 	
 	//clean test-env
 	try{
-      commDropCL( db, COMMCSNAME, COMMCLNAME, false, false,
+      commDropCL( db, COMMCSNAME, clName, false, false,
                   "drop colleciton in the end" );
 	}catch(e)
 	{

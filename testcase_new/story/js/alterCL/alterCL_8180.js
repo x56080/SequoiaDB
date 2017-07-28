@@ -5,13 +5,14 @@
 *               2015-03-28  xiaojun Hu    Changed
 *               2017-02-08  zhaoyu   Changed
 ******************************************************************************/
-MAINCLNAME = CHANGEDPREFIX+"subm" ;
-SUBCL1NAME = CHANGEDPREFIX+"_sub1";
-SUBCL2NAME = CHANGEDPREFIX+"_sub2";
-SUBCL3NAME = CHANGEDPREFIX+"_sub3";
+MAINCLNAME = CHANGEDPREFIX+"_8180_subm" ;
+SUBCL1NAME = CHANGEDPREFIX+"_8180_sub1";
+SUBCL2NAME = CHANGEDPREFIX+"_8180_sub2";
+SUBCL3NAME = CHANGEDPREFIX+"_8180_sub3";
 
 function main()
 {
+   db.setSessionAttr( { PreferedInstance: "M" } );
 try
 {
    commDropCL( db, COMMCSNAME, SUBCL1NAME, true, true, "drop sub colleciton 1" );

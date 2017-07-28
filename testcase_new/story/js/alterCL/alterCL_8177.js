@@ -7,6 +7,8 @@
 ******************************************************************************/
 function main()
 {
+   var clName = COMMCLNAME + "_8177";
+   db.setSessionAttr( { PreferedInstance: "M" } );
 	//get ReplicaGroups
 	try{
 		var grouplist = Array();
@@ -31,7 +33,7 @@ function main()
 	
    try
    {
-      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop colleciton" );
+      commDropCL( db, COMMCSNAME, clName, true, true, "drop colleciton" );
    }
    catch( e )
    {
@@ -42,21 +44,21 @@ function main()
 	//create range-cl
 	try{
       var optionObj = {ShardingKey:{id:1},ShardingType:'range',ReplSize:1};
-      var rangeCL = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, optionObj, true,
+      var rangeCL = commCreateCLByOption( db, COMMCSNAME, clName, optionObj, true,
                                        false, "create collecton failed" );
-		var sn1 = db.snapshot(8,{Name:COMMCSNAME+"."+COMMCLNAME});
+		var sn1 = db.snapshot(8,{Name:COMMCSNAME+"."+clName});
 		var sourceGroup = sn1.current().toObj()['CataInfo'][0]['GroupName'];
 	}catch(e)
 	{
-		println("can't create range-CL:" + COMMCLNAME + " rc="+e);
+		println("can't create range-CL:" + clName + " rc="+e);
 		throw e;
 	}
-	println("createCL " + COMMCLNAME + " at ReplicaGroup:" + sourceGroup + " finished");
+	println("createCL " + clName + " at ReplicaGroup:" + sourceGroup + " finished");
 	
 	//rangeCL-noSplit alters replsize
 	try{
 		rangeCL.alter({ReplSize:2});
-		var sn1 = db.snapshot(8,{Name:COMMCSNAME + "." + COMMCLNAME});
+		var sn1 = db.snapshot(8,{Name:COMMCSNAME + "." + clName});
 		var replsize = sn1.current().toObj()['ReplSize'];
 		if(replsize == 2)
 		{
@@ -96,7 +98,7 @@ function main()
 			lowId = (i-1)*stepId;
 			highId = i*stepId;
 			rangeCL.split(sourceGroup, grouplist[tarGroupIndex],{id:lowId},{id:highId});
-			println(COMMCLNAME+" split from "+sourceGroup+" to "+ grouplist[tarGroupIndex]+" {id:"+lowId+"} {id:"+highId+"}");
+			println(clName+" split from "+sourceGroup+" to "+ grouplist[tarGroupIndex]+" {id:"+lowId+"} {id:"+highId+"}");
 		}
 	}catch(e)
 	{
@@ -108,7 +110,7 @@ function main()
 	//rangeCL-split alters replsize
 	try{
 		rangeCL.alter({ReplSize:3});
-		var sn1 = db.snapshot(8,{Name:COMMCSNAME + "." + COMMCLNAME});
+		var sn1 = db.snapshot(8,{Name:COMMCSNAME + "." + clName});
 		var replsize = sn1.current().toObj()['ReplSize'];
 		if(replsize == 3)
 		{
@@ -117,7 +119,7 @@ function main()
 		else
 		{
 			println("rangeCL-split alters replsize fail! ReplSize=" + replsize);
-			throw 1;
+			throw -1;
 		}	
 	}catch(e)
 	{
@@ -155,11 +157,11 @@ function main()
 		}
 		if(size!=1)
 		{
-			throw 1;
+			throw -1;
 		}
 		if(!flag)
 		{
-			throw 2;
+			throw -2;
 		}	
 	}catch(e)
 	{
@@ -172,14 +174,14 @@ function main()
 			println("returned:"+ret);
 		}
 		else
-			println("select " + COMMCLNAME + " fail! rc="+e);
+			println("select " + clName + " fail! rc="+e);
 		throw e;
 	}
 	println("data-verify succ!");
 	
 	//clean test-env
 	try{
-      commDropCL( db, COMMCSNAME, COMMCLNAME, false, false, "drop colleciton 4" );
+      commDropCL( db, COMMCSNAME, clName, false, false, "drop colleciton 4" );
 	}catch(e)
 	{
 		println("clean test-evn fail! rc="+e);
