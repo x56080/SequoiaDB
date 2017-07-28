@@ -889,7 +889,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATMAINCT_REMOTEDISC, "catMainController::_processRemoteDisc" )
    INT32 catMainController::_processRemoteDisc( const NET_HANDLE &handle,
-                                                        MsgHeader *pMsg )
+                                                MsgHeader *pMsg )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATMAINCT_REMOTEDISC ) ;
