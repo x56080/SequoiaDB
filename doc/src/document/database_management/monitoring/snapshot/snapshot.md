@@ -11,8 +11,8 @@
 | [SDB_SNAP_DATABASE](database_management/monitoring/snapshot/SDB_SNAP_DATABASE.md) | 数据库快照 | 数据库快照列出当前数据库节点的数据库监视信息 |
 | [SDB_SNAP_SYSTEM](database_management/monitoring/snapshot/SDB_SNAP_SYSTEM.md) | 系统快照 | 系统快照列出当前数据库节点的系统监视信息 |
 | [SDB_SNAP_CATALOG](database_management/monitoring/snapshot/SDB_SNAP_CATALOG.md) | 编目信息快照 | 用于查看编目信息 |
-| [SDB_SNAP_TRANSACTION](database_management/monitoring/snapshot/SDB_SNAP_TRANSACTION.md) | 事务快照 | 事务快照列出数据库中正在进行的事务信息 |
-| [SDB_SNAP_TRANSACTION_CURRENT](database_management/monitoring/snapshot/SDB_SNAP_TRANSACTION_CURRENT.md) | 当前事务快照 | 当前事务快照列出当前会话正在进行的事务信息 |
+| [SDB_SNAP_TRANSACTIONS](database_management/monitoring/snapshot/SDB_SNAP_TRANSACTIONS.md) | 事务快照 | 事务快照列出数据库中正在进行的事务信息 |
+| [SDB_SNAP_TRANSACTIONS_CURRENT](database_management/monitoring/snapshot/SDB_SNAP_TRANSACTIONS_CURRENT.md) | 当前事务快照 | 当前事务快照列出当前会话正在进行的事务信息 |
 
 
 >   **Note:**
