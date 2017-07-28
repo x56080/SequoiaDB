@@ -90,6 +90,7 @@ namespace engine
 
       dpsTransCB                 *_transCB ;
       vector< dpsEventHandler* > _vecEventHandler ;
+      BOOLEAN                    _incVersion ;
 
    public:
       _dpsReplicaLogMgr();
@@ -120,13 +121,18 @@ namespace engine
          return lsn;
       }
 
-      OSS_INLINE DPS_LSN_VER incVersion()
+      OSS_INLINE void incVersion()
       {
-         DPS_LSN_VER version = DPS_INVALID_LSN_VERSION ;
-         _mtx.get();
-         version = ++_lsn.version ;
-         _mtx.release();
-         return version ;
+         _mtx.get() ;
+         _incVersion = TRUE ;
+         _mtx.release() ;
+      }
+
+      OSS_INLINE void cancelIncVersion()
+      {
+         _mtx.get() ;
+         _incVersion = FALSE ;
+         _mtx.release() ;
       }
 
       void regEventHandler( dpsEventHandler *pEventHandler ) ;
