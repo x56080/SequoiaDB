@@ -122,6 +122,7 @@ namespace engine
       INT32 _processAuthCrt( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
       INT32 _processAuthDel( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
       INT32 _processSessionInit( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
+      INT32 _processRemoteDisc ( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
       INT32 _processInterruptMsg( const NET_HANDLE &handle,
                                   MsgHeader *header ) ;
       INT32 _processDisconnectMsg( const NET_HANDLE &handle,

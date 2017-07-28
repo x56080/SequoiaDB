@@ -270,7 +270,20 @@ namespace engine
    void catMainController::handleClose( const NET_HANDLE & handle,
                                         _MsgRouteID id )
    {
-      _delContextByHandle( handle );
+      MsgOpReply msg ;
+      msg.contextID = -1 ;
+      msg.flags = SDB_NETWORK_CLOSE ;
+      msg.header.messageLength = sizeof( MsgOpReply ) ;
+      msg.header.opCode = MSG_COM_REMOTE_DISC ;
+      msg.header.requestID = 0 ;
+      msg.header.routeID.value = id.value ;
+      msg.header.TID = 0 ;
+      msg.numReturned = 0 ;
+      msg.startFrom = 0 ;
+
+      PD_LOG ( PDDEBUG, "posting event handle close %u", (UINT32)handle ) ;
+
+      _postMsg( handle, (_MsgHeader *)&msg ) ;
    }
 
    void catMainController::handleTimeout( const UINT32 &millisec,
@@ -787,6 +800,18 @@ namespace engine
       return rc;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATMAINCT_REMOTEDISC, "catMainController::_processRemoteDisc" )
+   INT32 catMainController::_processRemoteDisc( const NET_HANDLE &handle,
+                                                MsgHeader *pMsg )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATMAINCT_REMOTEDISC ) ;
+      PD_LOG ( PDDEBUG, "Killing handle contexts %u", handle ) ;
+      _delContextByHandle( handle ) ;
+      PD_TRACE_EXITRC ( SDB_CATMAINCT_REMOTEDISC, rc ) ;
+      return rc ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATMAINCT_QUERYMSG, "catMainController::_processQueryMsg" )
    INT32 catMainController::_processQueryMsg( const NET_HANDLE &handle,
                                               MsgHeader *pMsg )
@@ -1093,9 +1118,14 @@ namespace engine
             rc = _processSessionInit( handle, pMsg ) ;
             break;
          }
+      case MSG_COM_REMOTE_DISC :
+         {
+            rc = _processRemoteDisc( handle, pMsg ) ;
+            break ;
+         }
       default :
          {
-            PD_LOG( PDERROR, "Recieve unknow msg[opCode:(%d)%d, len: %d, "
+            PD_LOG( PDERROR, "Receive unknown msg[opCode:(%d)%d, len: %d, "
                     "tid: %d, reqID: %lld, nodeID: %u.%u.%u]",
                     IS_REPLY_TYPE(pMsg->opCode), GET_REQUEST_TYPE(pMsg->opCode),
                     pMsg->messageLength, pMsg->TID, pMsg->requestID,
