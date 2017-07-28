@@ -6791,7 +6791,11 @@ static JSBool sdb_start_rg ( JSContext *cx , uintN argc , jsval *vp )
    UINT32                  count      = 0 ;
    sdbReplicaGroupHandle * rg         = NULL ;
    sdbConnectionHandle *   connection = NULL ;
-
+   
+   if ( argc < 1 )
+   {
+      REPORT ( FALSE, "Sdb.startRG(<name>): wrong arguments" ) ;
+   }
    connection = ( sdbConnectionHandle * )
          JS_GetPrivate ( cx, JS_THIS_OBJECT ( cx, vp ) ) ;
    REPORT ( connection, "Sdb.startRG: no connection handle" ) ;
