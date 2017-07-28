@@ -474,6 +474,15 @@ namespace engine
             rc = rcTmp ;
             goto error ;
          }
+         else if ( _curAgentNum.compare( 0 ) )
+         {
+            rc = rcTmp ;
+            PD_LOG( PDSEVERE, "Start repl-sync session failed, rc: %d."
+                    "The node can't to sync data from other node, need to "
+                    "restart", rc ) ;
+            PMD_RESTART_DB( rc ) ;
+            goto error ;
+         }
       }
 
       _dataBucket[ index ]->push( pNewData, newLen ) ;
