@@ -16,6 +16,7 @@ sdbexprt 是一个实用的工具。它可以将集合从 SequoiaDB 数据库导
 | --filelimit |      | 指定单个导出文件的大小上限，单位可以为 k、K、M、m、G、g、T 或 t，默认值为 16G。<br>当导出文件将超过限制时，会切分为多个文件，具有编号后缀，如 file.csv，file.csv.1，file.csv.2 |
 | --fields    |      | 导出集合的字段。该选项可以指定多次以指定多个导出集合的字段。<br>格式为 ```[csName.clName:][field1[,...]]``` ，当确定只导出一个集合时，可以仅指定字段列表 ```[field1[,...]]``` |
 | --withid    |      | 强制导出或者在配置文件中生成字段时，是否包含 _id 字段，默认为false |
+| --floatfmt  |      | 指定浮点数格式，默认是'%.16g'，输入'db2'表示'%+.14E'，其他格式 %[+][.precision]\(f\|e\|E\|g\|G\) |
 | --errorstop |      | 导出数据时遇到错误就停止，默认 false |
 | --ssl       |      | 使用 SSL 连接，默认 false |
 
