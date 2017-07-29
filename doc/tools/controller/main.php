@@ -249,7 +249,7 @@ if( $param['m'] == "website" )
       exit( 1 ) ;
    }
 
-   $website = "$root/tools/$mdConvert -v $major -e $minor -d website -l false" ;
+   $website = "$root/tools/$mdConvert -v $major -e $minor -d website -l false -u false" ;
    if( execCmd( $website ) != 0 )
    {
       printLog( 'Failed to convert website middle file: '.$website ) ;
