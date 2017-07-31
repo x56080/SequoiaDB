@@ -80,6 +80,8 @@ namespace engine
       _syncSrc.value = MSG_INVALID_ROUTEID ;
       _lastSyncNode.value = MSG_INVALID_ROUTEID ;
 
+      _fullSyncIgnoreTimes = 0 ;
+
       PD_TRACE_EXIT ( SDB__CLSDSTREPSN__CLSDSTREPSN );
    }
 
@@ -629,6 +631,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSDSTREPSN__FULLSYNC ) ;
       clsCB *pClsCB = pmdGetKRCB()->getClsCB() ;
+      pmdOptionsCB *optionCB = pmdGetKRCB()->getOptionCB() ;
 
       _status = CLS_SESSION_STATUS_FULL_SYNC ;
 
@@ -648,6 +651,25 @@ namespace engine
       }
 
       SDB_ASSERT( 0 < sdbGetReplCB()->groupSize(), "impossible" ) ;
+
+      if ( PMD_OPT_VALUE_NONE == optionCB->getDataErrorOp() )
+      {
+         if ( 0 == _fullSyncIgnoreTimes )
+         {
+            PD_LOG( PDERROR, "The node's data is error, forbidden "
+                    "fullsync by configure" ) ;
+         }
+         ++_fullSyncIgnoreTimes ;
+         goto done ;
+      }
+      else if ( PMD_OPT_VALUE_SHUTDOWN == optionCB->getDataErrorOp() )
+      {
+         PD_LOG( PDSEVERE, "The node's data is error, shutdown by configure" ) ;
+         PMD_SHUTDOWN_DB( SDB_CLS_FULL_SYNC ) ;
+         goto done ;
+      }
+
+      _fullSyncIgnoreTimes = 0 ;
 
       // if the group size is 1, then rebuild, otherwise full sync
       if ( 1 >=  pClsCB->getReplCB()->groupSize() || pmdIsPrimary() )

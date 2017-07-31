@@ -1446,6 +1446,7 @@ namespace engine
       _maxSubQuery         = PMD_MAX_SUB_QUERY ;
       _maxReplSync         = PMD_DEFAULT_MAX_REPLSYNC ;
       _syncStrategy        = CLS_SYNC_NONE ;
+      _dataErrorOp         = PMD_OPT_VALUE_FULLSYNC ;
       _preferReplica       = PREFER_REPL_ANYONE ;
       _replBucketSize      = PMD_DFT_REPL_BUCKET_SIZE ;
       _memDebugEnabled     = FALSE ;
@@ -1629,6 +1630,11 @@ namespace engine
       // --preferedreplica
       rdxString( pEX, PMD_OPTION_PREFINST, _prefReplStr, sizeof(_prefReplStr),
                  FALSE, TRUE, "A" ) ;
+      // --dataerrorop
+      rdxUInt( pEX, PMD_OPTION_DATAERROR_OP, _dataErrorOp,
+               FALSE, TRUE, PMD_OPT_VALUE_FULLSYNC, FALSE ) ;
+      rdvMinMax( pEX, _dataErrorOp, PMD_OPT_VALUE_NONE,
+                 PMD_OPT_VALUE_SHUTDOWN, TRUE ) ;
       // --memdebug
       rdxBooleanS( pEX, PMD_OPTION_MEMDEBUG, _memDebugEnabled, FALSE, TRUE,
                    FALSE, TRUE ) ;

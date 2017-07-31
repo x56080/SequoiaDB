@@ -122,6 +122,8 @@ namespace engine
          DPS_LSN                       _completeLSN ;
          DPS_LSN                       _consultLsn ;
          DPS_LSN                       _lastRecvConsultLsn ;
+
+         UINT32                        _fullSyncIgnoreTimes ;
    } ;
 
    typedef _clsReplDstSession clsReplDstSession ;
