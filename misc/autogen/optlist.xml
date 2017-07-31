@@ -1239,6 +1239,28 @@
    </opt>
 
    <opt>
+      <name>PMD_OPTION_DATAERROR_OP</name>
+      <long>dataerrorop</long>
+      <description>
+         <en>The node's operation when its data lost. Value is 0/1/2. 0 for none, 1 for fullsync, 2 for shutdown. Default is 1.</en>
+         <cn>节点在发生数据丢失错误时的处理操作，取值为 0/1/2。 0表示不作处理，1表示全量同步，2表示停止运行。缺省为1。</cn>
+      </description>
+      <detail>
+         <en>1. The node's operation when its data lost. Value is 0/1/2. Default is 1.<fig></fig>
+             2. 0: do nothing, run with error.<fig></fig>
+             3. 1: auto sync full data from other nodes. <fig></fig>
+             4. 2: shutdown the node.</en>
+         <cn>1、节点在发生数据丢失错误时的处理操作，取值为 0/1/2。 缺省为1。<fig></fig>
+             2、0: 不作任何处理，保持节点运行。<fig></fig>
+             3、1: 自动从该数据组的其它节点进行全量同步。<fig></fig>
+             4、2: 该节点停止运行。</cn>
+      </detail>
+      <type>int</type>
+      <default>1</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+
+   <opt>
       <name>PMD_OPTION_DMS_CHK_INTERVAL</name>
       <long>dmschkinterval</long>
       <description>
