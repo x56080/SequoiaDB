@@ -112,7 +112,11 @@ public class SdbSnapshotList {
         } catch(BaseException e) {
             Assert.assertTrue(e.getErrorType().equals("SDB_DPS_TRANS_DIABLED"));
         } finally {
-            sdb.commit();
+        	try {
+        		sdb.commit();
+        	} catch(BaseException e) {
+        		Assert.assertTrue(e.getErrorType().equals("SDB_DPS_TRANS_NO_TRANS"));	
+        	}
         }
 
     }
@@ -203,7 +207,11 @@ public class SdbSnapshotList {
         } catch(BaseException e) {
             Assert.assertTrue(e.getErrorType().equals("SDB_DPS_TRANS_DIABLED"));
         } finally {
-            sdb.commit();
+        	try {
+        		sdb.commit();
+        	} catch(BaseException e) {
+        		Assert.assertTrue(e.getErrorType().equals("SDB_DPS_TRANS_NO_TRANS"));	
+        	}
         }
     }
 }
