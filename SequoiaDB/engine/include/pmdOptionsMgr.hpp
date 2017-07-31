@@ -305,6 +305,10 @@ namespace engine
    } ;
    typedef _pmdCfgRecord pmdCfgRecord ;
 
+   #define PMD_OPT_VALUE_NONE                ( 0 )
+   #define PMD_OPT_VALUE_FULLSYNC            ( 1 )
+   #define PMD_OPT_VALUE_SHUTDOWN            ( 2 )
+
    /*
       _pmdOptionsMgr define
    */
@@ -490,6 +494,7 @@ namespace engine
          OSS_INLINE INT32  getSignalInterval() const { return _signalInterval ; }
          OSS_INLINE UINT32 getMaxCacheSize() const { return _maxCacheSize ; }
          OSS_INLINE UINT32 getMaxCacheJob() const { return _maxCacheJob ; }
+         OSS_INLINE UINT32  getDataErrorOp() const { return _dataErrorOp ; }
 
          std::string getOmAddr() const ;
 
@@ -529,6 +534,7 @@ namespace engine
          UINT32      _maxReplSync ;
          UINT32      _replBucketSize ;
          INT32       _syncStrategy ;
+         UINT32      _dataErrorOp ;
          BOOLEAN     _memDebugEnabled ;
          UINT32      _memDebugSize ;
          UINT32      _indexScanStep ;
