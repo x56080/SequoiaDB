@@ -380,6 +380,7 @@ namespace engine
       }
       if ( !_mutex.try_get() )
       {
+         ossSleep( 100 ) ;
          _latchVec[suID]->release_w () ;
          goto retry ;
       }
