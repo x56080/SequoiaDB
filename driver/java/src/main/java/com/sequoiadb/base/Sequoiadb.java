@@ -82,8 +82,6 @@ public class Sequoiadb {
 	public final static int SDB_LIST_STOREPROCEDURES = 8;
 	public final static int SDB_LIST_DOMAINS = 9;
     public final static int SDB_LIST_TASKS = 10;
-    public final static int SDB_LIST_TRANSACTIONS = 11;
-    public final static int SDB_LIST_TRANSACTIONS_CURRENT = 12;
     public final static int SDB_LIST_CL_IN_DOMAIN = 129;
     public final static int SDB_LIST_CS_IN_DOMAIN = 130;
 
@@ -845,8 +843,6 @@ public class Sequoiadb {
      *                 <dt>Sequoiadb.SDB_LIST_STOREPROCEDURES           : Get stored procedure list ( only applicable in sharding env )
      *                 <dt>Sequoiadb.SDB_LIST_DOMAINS        : Get all the domains list ( only applicable in sharding env )
      *                 <dt>Sequoiadb.SDB_LIST_TASKS        : Get all the running split tasks ( only applicable in sharding env )
-     *                 <dt>Sequoiadb.SDB_LIST_TRANSACTIONS        : Get all the transactions information.
-     *                 <dt>Sequoiadb.SDB_LIST_TRANSACTIONS_CURRENT        : Get the transactions information of current session.
      *                 </dl>
      * @param query    The matching rule, match all the documents if null.
      * @param selector The selective rule, return the whole document if null.
@@ -1851,18 +1847,12 @@ public class Sequoiadb {
 		case SDB_LIST_TASKS:
 			command = SequoiadbConstants.CMD_NAME_LIST_TASKS;
 			break;
-		    case SDB_LIST_TRANSACTIONS:
-                command = SequoiadbConstants.CMD_NAME_LIST_TRANSACTIONS;
-                break;
-            case SDB_LIST_TRANSACTIONS_CURRENT:
-                command = SequoiadbConstants.CMD_NAME_LIST_TRANSACTIONS_CURRENT;
-                break;
-            case SDB_LIST_CL_IN_DOMAIN:
-                command = SequoiadbConstants.CMD_NAME_LIST_CL_IN_DOMAIN;
-                break;
-            case SDB_LIST_CS_IN_DOMAIN:
-                command = SequoiadbConstants.CMD_NAME_LIST_CS_IN_DOMAIN;
-                break;
+        case SDB_LIST_CL_IN_DOMAIN:
+            command = SequoiadbConstants.CMD_NAME_LIST_CL_IN_DOMAIN;
+            break;
+        case SDB_LIST_CS_IN_DOMAIN:
+            command = SequoiadbConstants.CMD_NAME_LIST_CS_IN_DOMAIN;
+            break;
 		default:
 			throw new BaseException("SDB_INVALIDARG");
 		}

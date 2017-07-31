@@ -186,32 +186,5 @@ public class SdbSnapshotList {
             cursor = sdb.getList(10, null, null, null);
             assertTrue(null != cursor);
         }
-
-        // 11
-        try {
-            sdb.beginTransaction();
-            BSONObject dump = new BasicBSONObject();
-            BSONObject obj = new BasicBSONObject();
-            cl.insert(obj);
-            cursor = sdb.getList(Sequoiadb.SDB_LIST_TRANSACTIONS_CURRENT, dump, dump, dump);
-            System.out.println("result of SDB_LIST_TRANSACTIONS_CURRENT is: ");
-            while(cursor.hasNext()){
-                System.out.println(cursor.getNext());
-            }
-            // 12
-            cursor = sdb.getList(Sequoiadb.SDB_LIST_TRANSACTIONS, dump, dump, dump);
-            System.out.println("result of SDB_LIST_TRANSACTIONS is: ");
-            while(cursor.hasNext()){
-                System.out.println(cursor.getNext());
-            }
-        } catch(BaseException e) {
-            Assert.assertTrue(e.getErrorType().equals("SDB_DPS_TRANS_DIABLED"));
-        } finally {
-        	try {
-            sdb.commit();
-        	} catch(BaseException e) {
-        		Assert.assertTrue(e.getErrorType().equals("SDB_DPS_TRANS_NO_TRANS"));	
-        	}
-        }
     }
 }

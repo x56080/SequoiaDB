@@ -835,8 +835,6 @@ namespace SequoiaDB
          *      SDB_LIST_STOREPROCEDURES
          *      SDB_LIST_DOMAINS
          *      SDB_LIST_TASKS
-         *      SDB_LIST_TRANSACTIONS
-         *      SDB_LIST_TRANSACTIONS_CURRENT
          *      
          *  \return A DBCursor of all the fitted objects or null
          *  \exception SequoiaDB.BaseException
@@ -864,8 +862,6 @@ namespace SequoiaDB
          *      SDB_LIST_STOREPROCEDURES
          *      SDB_LIST_DOMAINS
          *      SDB_LIST_TASKS
-         *      SDB_LIST_TRANSACTIONS
-         *      SDB_LIST_TRANSACTIONS_CURRENT
          *      
          *  \param matcher The matching condition or null
          *  \param selector The selective rule or null
@@ -923,14 +919,6 @@ namespace SequoiaDB
                 case SDBConst.SDB_LIST_TASKS:
                     command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.LIST_CMD + " " +
                            SequoiadbConstants.TASKS;
-                    break;
-                case SDBConst.SDB_LIST_TRANSACTIONS:
-                    command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.LIST_CMD + " " +
-                           SequoiadbConstants.TRANSACTIONS;
-                    break;
-                case SDBConst.SDB_LIST_TRANSACTIONS_CURRENT:
-                    command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.LIST_CMD + " " +
-                           SequoiadbConstants.TRANSACTIONS_CURRENT;
                     break;
                 case SDBConst.SDB_LIST_CL_IN_DOMAIN:
                     command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.LIST_CMD + " " +
