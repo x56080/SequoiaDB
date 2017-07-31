@@ -1387,12 +1387,6 @@ static INT32 _sdbGetList ( sdbConnectionHandle cHandle,
    case SDB_LIST_TASKS :
       p = CMD_ADMIN_PREFIX CMD_NAME_LIST_TASKS ;
       break ;
-   case SDB_LIST_TRANSACTIONS :
-      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_TRANSACTIONS ;
-      break ;
-   case SDB_LIST_TRANSACTIONS_CURRENT :
-      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_TRANSACTIONS_CUR ;
-      break ;
    case SDB_LIST_CS_IN_DOMAIN :
       p = CMD_ADMIN_PREFIX CMD_NAME_LIST_CS_IN_DOMAIN ;
       break ;

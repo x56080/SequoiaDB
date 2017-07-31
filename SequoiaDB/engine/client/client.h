@@ -425,8 +425,6 @@ SDB_EXPORT INT32 sdbTraceStatus ( sdbConnectionHandle cHandle,
         SDB_LIST_STOREPROCEDURES  : Get all the stored procedure list
         SDB_LIST_DOMAINS          : Get all the domains list
         SDB_LIST_TASKS            : Get all the running split tasks ( only applicable in sharding env )
-        SDB_LIST_TRANSACTIONS     : Get all the transactions information.
-        SDB_LIST_TRANSACTIONS_CURRENT : Get the transactions information of current session.
 
     \param [in] condition The matching rule, match all the documents if null
     \param [in] select The selective rule, return the whole document if null

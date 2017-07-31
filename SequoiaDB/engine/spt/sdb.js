@@ -29,8 +29,6 @@ var SDB_LIST_GROUPS              = 7 ;
 var SDB_LIST_STOREPROCEDURES     = 8 ;
 var SDB_LIST_DOMAINS             = 9 ;
 var SDB_LIST_TASKS               = 10 ;
-var SDB_LIST_TRANSACTIONS        = 11 ;
-var SDB_LIST_TRANSACTIONS_CURRENT = 12 ;
 
 var SDB_INSERT_CONTONDUP         = 1 ;
 var SDB_INSERT_RETURN_ID         = 2 ; // only available when inserting only one document
