@@ -349,6 +349,9 @@ public class Sequoiadb {
                 this.password = password;
                 auth();
             } catch (BaseException e) {
+                if (e.getErrorCode() == SDBError.SDB_AUTH_AUTHORITY_FORBIDDEN.getErrorCode()) {
+                    throw e;
+                }
                 if (mark == count) {
                     throw new BaseException(SDBError.SDB_NET_CANNOT_CONNECT);
                 }
