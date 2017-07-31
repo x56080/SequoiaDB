@@ -367,6 +367,9 @@ public class Sequoiadb {
 			}
 			catch (BaseException e)
 			{
+                if (e.getErrorType().equals("SDB_AUTH_AUTHORITY_FORBIDDEN")) {
+                    throw e;
+                }
 				if ( mark == count)
 				{
 					throw new BaseException("SDB_NET_CANNOT_CONNECT");
