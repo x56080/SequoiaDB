@@ -201,7 +201,7 @@ class SequoiaDB_Test extends PHPUnit_Framework_TestCase
     */
    public function test_list( $db )
    {
-      for( $i = 0; $i < 12; ++ $i )
+      for( $i = 0; $i <= 9; ++ $i )
       {
          $cursor = $db -> list( $i ) ;
          $err = $db -> getError() ;
