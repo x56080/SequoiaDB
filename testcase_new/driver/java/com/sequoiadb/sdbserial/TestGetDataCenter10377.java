@@ -23,6 +23,11 @@ public class TestGetDataCenter10377 extends SdbTestBase{
            boolean isActive = (Boolean)detail.get("Activated");
            Assert.assertEquals(isActive, false);
            dc.activate();
+           try {
+               Thread.sleep(1000*50);
+           } catch (InterruptedException e) {
+               e.printStackTrace();
+           }
            detail = dc.getDetail();
            isActive = (Boolean)detail.get("Activated");
            Assert.assertEquals(isActive, true);
@@ -32,6 +37,11 @@ public class TestGetDataCenter10377 extends SdbTestBase{
            boolean isEnable  = (Boolean)detail.get("Readonly");
            Assert.assertEquals(isEnable, true);
            dc.disableReadonly();
+           try {
+               Thread.sleep(1000*50);
+           } catch (InterruptedException e) {
+               e.printStackTrace();
+           }
            detail = dc.getDetail();
            isEnable  = (Boolean)detail.get("Readonly");
            Assert.assertEquals(isEnable, false);
