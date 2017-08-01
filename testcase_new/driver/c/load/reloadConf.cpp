@@ -276,7 +276,12 @@ TEST( reloadConf, weight )
     ASSERT_EQ( rc, SDB_OK ) << "fail to reload conf" ;
 
 	// reelect and check master
-	rc = sdbReelect( rg, NULL ) ;
+	bson option ;
+	bson_init( &option ) ;
+	bson_append_int( &option, "Seconds", 60 ) ;
+	bson_finish( &option ) ;
+	rc = sdbReelect( rg, &option ) ;
+	bson_destroy( &option ) ;
 	ASSERT_EQ( rc, SDB_OK ) << "fail to reelect in rg" ;
 	bool isMaster = false ;
 	rc = isMasterNode( rg, host, svc, &isMaster ) ;
