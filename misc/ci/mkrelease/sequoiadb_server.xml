@@ -200,16 +200,6 @@
                     <owner>${username}</owner>
                 </changeOwnerAndGroup>                                                   
 
-                <runProgram>
-                    <program>mkdir</program>
-                    <programArguments>-p /var/sequoiadb</programArguments>
-                </runProgram>
-                <changeOwnerAndGroup>
-                    <files>/var/sequoiadb</files>
-                    <group>${groupname}</group>
-                    <owner>${username}</owner>
-                </changeOwnerAndGroup>
-                <changePermissions permissions="0777" files="/var/sequoiadb"/>
             </actionList>    
         </actionDefinition>
         <actionDefinition name="startServiceFunction">

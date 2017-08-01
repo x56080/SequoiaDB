@@ -106,7 +106,7 @@ typedef class _OSSNPIPE OSSNPIPE ;
 #define OSS_NPIPE_PREFIX              "\\\\"
 #define OSS_NPIPE_LOCAL_PREFIX        OSS_NPIPE_PREFIX".\\pipe\\"
 #else
-#define OSS_NPIPE_LOCAL_PREFIX        "/var/sequoiadb"
+#define OSS_NPIPE_LOCAL_PREFIX        "/tmp/sequoiadb"
 #endif
 
 #define OSS_NPIPE_INBOUND            0x00000001
