@@ -930,10 +930,6 @@
          SdbRest.OmOperation( data, function( configure ){
             $scope.installConfig = configure[0] ;
             $scope.NodeList = configure[0]['Config'] ;
-            $.each( $scope.NodeList, function( index ){
-               $scope.NodeList[index]['i'] = index ;
-            } ) ;
-            //删除单机版不需要的配置项
             if( $scope.Configure['DeployMod'] == 'standalone' )
             {
                $scope.Template = [] ;
