@@ -1061,14 +1061,40 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNCREATECLCOMMAND, rc ) ;
       return rc ;
    error_rollback :
+      // In case of error, drop the collection. And, if the collection is empty,
+      // drop it also.
       rcTmp = rtnDropCollectionCommand ( pCollection, cb, dmsCB, dpsCB ) ;
       if ( rcTmp )
       {
          PD_LOG ( PDERROR, "Failed to rollback creating collection %s, rc = %d",
                   pCollection, rcTmp ) ;
       }
-      goto done ;
+      goto error ;
    error :
+      // If any error happens, and the collection space exists, which is empty,
+      // drop it also.
+      if ( DMS_INVALID_CS != suID )
+      {
+         dmsStorageUnitStat suStat ;
+         su->getStatInfo( suStat ) ;
+         if ( 0 == suStat._clNum )
+         {
+            // Need to release the lock first, as lock on cs will be taken in
+            // dropEmptyCollectionSpace. It's OK if any collection is created
+            // after unlock here, as dropEmptyCollectionSpace will check once
+            // again after taking su lock. If it's not empty, nothing will be
+            // done.
+            dmsCB->suUnlock ( suID ) ;
+            INT32 rcTmp = dmsCB->dropEmptyCollectionSpace( su->CSName(),
+                                                           cb, dpsCB ) ;
+            if ( rcTmp && SDB_DMS_CS_NOT_EMPTY != rcTmp )
+            {
+               PD_LOG( PDERROR, "Failed to drop empty collection space %s, "
+                       "rc = %d", su->CSName(), rcTmp ) ;
+            }
+            suID = DMS_INVALID_CS ;
+         }
+      }
       goto done ;
    }
 
