@@ -397,7 +397,7 @@ function updateDCInfoInCatalog( cataAddr, newAddrLine, active ) {
    }
 
    try {
-      db.SYSINFO.SYSDCBASE.update( {$set:{Readonly:isReadOnly}, $set:{'DataCenter.Address':newAddrLine} }, {Type:"GLOBAL"} ) ;
+      db.SYSINFO.SYSDCBASE.update( {$set:{Readonly:isReadOnly, 'DataCenter.Address':newAddrLine} }, {Type:"GLOBAL"} ) ;
    } catch ( e ) {
       println( "Update readonly to " + isReadOnly + " in " + cataAddr + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
       db.close() ;
