@@ -46,7 +46,7 @@ function main ( db )
          }
 
          // 2.Start minority nodes in group
-         for( var j = 1 ; j < nodeSize/2 ; ++j )    //many groups,begin 1 not 0
+         for( var j = 1 ; j < Math.floor(nodeSize/2) ; ++j )    //many groups,begin 1 not 0
          {
             var node = group[i][j].svcname ;    // svcname
             var nodeHost = group[i][j].HostName ;    // HostName
@@ -70,7 +70,7 @@ function main ( db )
 
          // 4.Start the majority nodes
          println( "Inspect Over" ) ;
-         for( var j = nodeSize/2 ; j < nodeSize ; ++j )    //many groups,begin 1 not 0
+         for( var j = Math.floor(nodeSize/2) ; j < nodeSize ; ++j )    //many groups,begin 1 not 0
          {
             var node = group[i][j].svcname ;    // svcname
             var nodeHost = group[i][j].HostName ;    // HostName

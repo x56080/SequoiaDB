@@ -33,7 +33,7 @@ function main ( db )
                var primHost = group[i][j].HostName ;
                var master = group[i][j].svcname ;    // Master node
             }
-            if( mino < (nodeSize/2+1) )
+            if( mino < Math.floor(nodeSize/2)+1 )
             {
                // Stop no primary node
                stopNode( db, getRG, nodeHost, node ) ;
@@ -60,7 +60,7 @@ function main ( db )
          startNode( db, getRG, primHost, master ) ;
 
          // 5.Start majority nodes
-         for( var j = 1 ; j < (nodeSize/2+1) ; ++j )    //many groups,begin 1 not 0
+         for( var j = 1 ; j < Math.floor(nodeSize/2)+1; ++j )    //many groups,begin 1 not 0
          {
             var node = group[i][j].svcname ;    // svcname
             var nodeHost = group[i][j].HostName ;    // HostName
