@@ -58,6 +58,7 @@ namespace engine
       ON_MSG( MSG_CLS_BALLOT_RES, handleMsg )
       ON_MSG( MSG_CAT_PAIMARY_CHANGE_RES, handleMsg )
       ON_MSG( MSG_CLS_GINFO_UPDATED, handleMsg )
+      ON_MSG( MSG_CLS_NODE_STATUS_NOTIFY, handleMsg )
       ON_EVENT( PMD_EDU_EVENT_STEP_DOWN, handleEvent )
       ON_EVENT( PMD_EDU_EVENT_STEP_UP, handleEvent )
    END_OBJ_MSG_MAP ()
@@ -656,6 +657,15 @@ namespace engine
             MsgCatGroupReq msg ;
             msg.id = _info.local ;
             _cata.call( (MsgHeader *)(&msg) ) ;
+            break ;
+         }
+         case MSG_CLS_NODE_STATUS_NOTIFY :
+         {
+            MsgClsNodeStatusNotify *pNty = ( MsgClsNodeStatusNotify* )msg ;
+            if ( SDB_DB_FULLSYNC == pNty->status )
+            {
+               _sync.notifyFullSync( msg->routeID ) ;
+            }
             break ;
          }
          default :

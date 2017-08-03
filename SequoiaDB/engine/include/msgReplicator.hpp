@@ -524,6 +524,24 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    } ;
 
    typedef class _MsgClsGInfoUpdated MsgClsGInfoUpdated ;
+
+   class _MsgClsNodeStatusNotify : public SDBObject
+   {
+   public:
+      _MsgHeader header ;
+      INT32      status ;  /// SDB_DB_STATUS
+
+      _MsgClsNodeStatusNotify()
+      {
+         header.messageLength = sizeof( _MsgClsNodeStatusNotify ) ;
+         header.opCode = MSG_CLS_NODE_STATUS_NOTIFY ;
+         header.routeID.value = MSG_INVALID_ROUTEID ;
+         header.TID = 0 ;
+         header.requestID = 0 ;
+         status = 0 ;
+      }
+   } ;
+   typedef _MsgClsNodeStatusNotify MsgClsNodeStatusNotify ;
 }
 
 #pragma pack()

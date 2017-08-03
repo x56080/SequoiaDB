@@ -654,10 +654,18 @@ namespace engine
 
       if ( PMD_OPT_VALUE_NONE == optionCB->getDataErrorOp() )
       {
-         if ( 0 == _fullSyncIgnoreTimes )
+         if ( 0 == ( _fullSyncIgnoreTimes % 150 ) )
          {
             PD_LOG( PDERROR, "The node's data is error, forbidden "
                     "fullsync by configure" ) ;
+
+            MsgRouteID primaryID = _repl->getPrimary() ;
+            if ( MSG_INVALID_ROUTEID != primaryID.value )
+            {
+               MsgClsNodeStatusNotify ntyMsg ;
+               ntyMsg.status = SDB_DB_FULLSYNC ;
+               routeAgent()->syncSend( primaryID, (void*)&ntyMsg ) ;
+            }
          }
          ++_fullSyncIgnoreTimes ;
          goto done ;

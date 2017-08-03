@@ -295,6 +295,7 @@ enum MSG_TYPE
    MSG_CLS_FULL_SYNC_TRANS_REQ         = 4013,
    MSG_CLS_FULL_SYNC_TRANS_RES         = MAKE_REPLY_TYPE(MSG_CLS_FULL_SYNC_TRANS_REQ),
    MSG_CLS_GINFO_UPDATED               = 4014,
+   MSG_CLS_NODE_STATUS_NOTIFY          = 4015,
    MSG_CLS_END                         = 4999,
 
    /// common msg
