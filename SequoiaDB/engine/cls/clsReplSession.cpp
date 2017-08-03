@@ -632,6 +632,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSDSTREPSN__FULLSYNC ) ;
       clsCB *pClsCB = pmdGetKRCB()->getClsCB() ;
       pmdOptionsCB *optionCB = pmdGetKRCB()->getOptionCB() ;
+      BOOLEAN needNotify = FALSE ;
 
       _status = CLS_SESSION_STATUS_FULL_SYNC ;
 
@@ -658,14 +659,7 @@ namespace engine
          {
             PD_LOG( PDERROR, "The node's data is error, forbidden "
                     "fullsync by configure" ) ;
-
-            MsgRouteID primaryID = _repl->getPrimary() ;
-            if ( MSG_INVALID_ROUTEID != primaryID.value )
-            {
-               MsgClsNodeStatusNotify ntyMsg ;
-               ntyMsg.status = SDB_DB_FULLSYNC ;
-               routeAgent()->syncSend( primaryID, (void*)&ntyMsg ) ;
-            }
+            needNotify = TRUE ;
          }
          ++_fullSyncIgnoreTimes ;
          goto done ;
@@ -674,6 +668,7 @@ namespace engine
       {
          PD_LOG( PDSEVERE, "The node's data is error, shutdown by configure" ) ;
          PMD_SHUTDOWN_DB( SDB_CLS_FULL_SYNC ) ;
+         needNotify = TRUE ;
          goto done ;
       }
 
@@ -717,6 +712,17 @@ namespace engine
       }
 
    done:
+      if ( needNotify )
+      {
+         /* Notify the node status to the primary node */
+         MsgRouteID primaryID = _repl->getPrimary() ;
+         if ( MSG_INVALID_ROUTEID != primaryID.value )
+         {
+            MsgClsNodeStatusNotify ntyMsg ;
+            ntyMsg.status = SDB_DB_FULLSYNC ;
+            routeAgent()->syncSend( primaryID, (void*)&ntyMsg ) ;
+         }
+      }
       PD_TRACE_EXIT ( SDB__CLSDSTREPSN__FULLSYNC ) ;
       return ;
    error:
