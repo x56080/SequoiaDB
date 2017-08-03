@@ -136,6 +136,9 @@ namespace engine
    {
       _pEduCB = cb ;
       _pLogMgr->attachCB( cb ) ;
+
+      /// ignore result
+      _mapData2DCMgr( _pDCMgr ) ;
    }
 
    void _catDCManager::detachCB( pmdEDUCB * cb )
