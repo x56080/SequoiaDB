@@ -28,7 +28,9 @@ catch ( e )
    throw e ;
 }
 
-var rc ;
+checkResult( varCL, {}, [{a:2}]);
+
+/*var rc ;
 try
 {
    rc = varCL.find({a:2}) ;
@@ -45,7 +47,7 @@ if ( 1 != size )
    println( " get more than one record after upsert($set:{a:2}}, {a:1})" ) ;
    throw -1 ;
 }
-
+*/
 try
 {
    varCL.upsert( {$set:{a:4}}, {a:3}) ;
@@ -56,6 +58,7 @@ catch ( e )
    throw e ;
 }
 
+/*
 try
 {
    rc = varCL.find() ;
@@ -86,7 +89,8 @@ if (size != 2 || !bAddNew)
 	println(varCL.find());
 	throw -1;
 }
-
+*/
+checkResult( varCL, {}, [{a:2},{a:4}]);
 //zhaoyu add
 try
 {
@@ -97,7 +101,8 @@ catch ( e )
    println( "failed to insert record, rc= " + e ) ;
    throw e ;
 }
-
+checkResult( varCL, {}, [{a:2},{a:4},{a:5, b:1}]);
+/*
 try
 {
    rc = varCL.find() ;
@@ -128,6 +133,7 @@ if (size != 3 || !bAddNew)
 	println(varCL.find());
 	throw -1;
 }
+*/
 
 
 // clear end
