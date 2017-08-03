@@ -290,6 +290,11 @@ namespace engine
                   "request" );
          goto error ;
       }
+      else if ( pmdGetKRCB()->isDBReadonly() ||
+                pmdGetKRCB()->isDBDeactivated() )
+      {
+         goto done ;
+      }
 
       try
       {
