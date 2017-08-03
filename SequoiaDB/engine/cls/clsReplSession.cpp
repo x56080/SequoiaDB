@@ -655,6 +655,10 @@ namespace engine
 
       if ( PMD_OPT_VALUE_NONE == optionCB->getDataErrorOp() )
       {
+         if ( PMD_IS_DB_AVAILABLE() )
+         {
+            PMD_SET_DB_STATUS( SDB_DB_FULLSYNC ) ;
+         }
          if ( 0 == ( _fullSyncIgnoreTimes % 150 ) )
          {
             PD_LOG( PDERROR, "The node's data is error, forbidden "
@@ -673,6 +677,10 @@ namespace engine
       }
 
       _fullSyncIgnoreTimes = 0 ;
+      if ( SDB_DB_FULLSYNC == PMD_DB_STATUS() )
+      {
+         PMD_SET_DB_STATUS( SDB_DB_NORMAL ) ;
+      }
 
       // if the group size is 1, then rebuild, otherwise full sync
       if ( 1 >=  pClsCB->getReplCB()->groupSize() || pmdIsPrimary() )
@@ -714,13 +722,22 @@ namespace engine
    done:
       if ( needNotify )
       {
+         BOOLEAN hasSend = FALSE ;
          /* Notify the node status to the primary node */
          MsgRouteID primaryID = _repl->getPrimary() ;
          if ( MSG_INVALID_ROUTEID != primaryID.value )
          {
             MsgClsNodeStatusNotify ntyMsg ;
             ntyMsg.status = SDB_DB_FULLSYNC ;
-            routeAgent()->syncSend( primaryID, (void*)&ntyMsg ) ;
+            if ( SDB_OK == routeAgent()->syncSend( primaryID,
+                                                   (void*)&ntyMsg ) )
+            {
+               hasSend = TRUE ;
+            }
+         }
+         if ( !hasSend )
+         {
+            _fullSyncIgnoreTimes = 0 ;
          }
       }
       PD_TRACE_EXIT ( SDB__CLSDSTREPSN__FULLSYNC ) ;
