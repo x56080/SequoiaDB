@@ -21,8 +21,10 @@ try
 
 try
 {
-   varCL.insert({a:1}) ;
-   varCL.insert({b:[1,2],salary:10,name:"Tom"}) ;
+   var docs = [] ;
+   docs.push( {a:1} ) ;
+   docs.push( {b:[1,2],salary:10,name:"Tom"} ) ;
+   varCL.insert( docs ) ;
 }
 catch ( e )
 {
@@ -92,7 +94,7 @@ if ( 1 != size )
    println( " get the number of records is wrong,rc1" ) ;
    throw -1 ;
 }
-
+checkResult( varCL, {}, [{a:1},{b:[1,2],salary:10,name:"Tom"}] );
 try
 {
    varCL.remove( {a:1} ) ;
@@ -129,6 +131,7 @@ if (0 != size )
    throw -1 ;
 }
 
+checkResult( varCL, {}, [ {b:[1,2],salary:10,name:"Tom"} ]);
 try
 {
    commDropCL( db, COMMCSNAME, COMMCLNAME, false, false,

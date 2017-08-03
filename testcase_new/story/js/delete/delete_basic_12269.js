@@ -42,9 +42,12 @@ println("createCL " + COMMCLNAME + " finished");
 
 //insert data
 try{
+  var docs = [] ;
 	for(var i=0; i<rowcnt; i++){
-		varCL.insert({a:rowcnt-i,b:i,c:"abcdefghijkl"+i});
+	  docs.push( {a:rowcnt-i,b:i,c:"abcdefghijkl"+i} ) ;
+		
 	}
+	varCL.insert(docs);
 }catch(e)
 {
 	println("insert-data to " + COMMCLNAME1 + " fail! rc="+e);
@@ -69,6 +72,8 @@ try{
 	throw e;
 }
 
+docs.splice( 0, 50 ) ;
+checkResult( varCL, {}, docs );
 //clean test-env
 try{
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
