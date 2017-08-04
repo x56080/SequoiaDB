@@ -185,10 +185,10 @@ namespace engine
 
          void        incCurAgent() { _curAgentNum.inc() ; }
          void        decCurAgent() { _curAgentNum.dec() ; }
-         UINT32      curAgentNum() { return _curAgentNum.peek() ; }
+         UINT32      curAgentNum() { return _curAgentNum.fetch() ; }
          void        incIdleAgent() { _idleAgentNum.inc() ; }
          void        decIdelAgent() { _idleAgentNum.dec() ; }
-         UINT32      idleAgentNum() { return _idleAgentNum.peek() ; }
+         UINT32      idleAgentNum() { return _idleAgentNum.fetch() ; }
 
          DPS_LSN     completeLSN ()
          {
