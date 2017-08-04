@@ -82,7 +82,10 @@ class forceSessionTest extends PHPUnit_Framework_TestCase
       $this->assertEquals( 0, $curerr['errno'], 'forceSession failed' );
      
       $curerr = $this->testdb->forceSession( $sessionID ) ;
-      $this->assertEquals( -15, $curerr['errno'], 'is exist' );
+      #$this->assertEquals( -16, $curerr['errno'], 'is exist' );
+      if ($curerr['errno'] != -15 && $curerr['errno'] != -16) {
+         throw new Exception("expect errno is -15 or -16, but actual errno is ".$curerr['errno']);
+      }
    }
    
    public function testForceSessionWithOption()
