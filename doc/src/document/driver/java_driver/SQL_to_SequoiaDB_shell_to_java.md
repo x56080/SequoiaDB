@@ -12,7 +12,7 @@ SequoiaDB 的查询用 json（bson）对象表示，下表以例子的形式显�
 | create index testIndex on bar(name)                             | db.foo.bar.createIndex( "testIndex", { name: 1 }, false )  | bar.createIndex( "testIndex", "{ 'name': 1 }", false, false )  |
 | select * from bar limit 20 offset 10                              | db.foo.bar.find().limit( 20 ).skip( 10 )                   | bar.query( "", "", "", "", 10, 20 )                            |
 | select count(*) from bar where age > 20                         | db.foo.bar.find( { age: { $gt: 20 } } ).count()            | bar.getCount( "{ 'age': { '$gt': 20 } }" )                     |
-| update bar set a=a+2 where b=-1                                 | db.foo.bar.update( { $set: { a: 2 } }, { b: -1 } )         | bar.update( "{ 'b': -1 }", "{ '$inc': { 'a': 2 } }", "" )      |
+| update bar set a=a+2 where b=-1                                 | db.foo.bar.update( { $inc: { a: 2 } }, { b: -1 } )         | bar.update( "{ 'b': -1 }", "{ '$inc': { 'a': 2 } }", "" )      |
 | delete from bar where a=1                                       | db.foo.bar.remove( { a: 1 } )                              | bar.delete( "{ 'a': 1 }" )                                     |
 
 
