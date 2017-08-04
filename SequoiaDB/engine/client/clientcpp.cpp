@@ -145,7 +145,7 @@ do                                                            \
    done :
       return rc ;
    }
-   
+
    /*
     * sdbCursorImpl
     * Cursor Implementation
@@ -992,7 +992,7 @@ do                                                            \
          rc = SDB_SYS ;
          goto error ;
       }
-     
+
       // there should only 1 record read
       rc = pCursor->next ( countObj ) ;
       if ( rc )
@@ -1323,7 +1323,7 @@ do                                                            \
       INT32 rc              = SDB_OK ;
       INT32 newFlags        = flag ;
       _sdbCursor *pCursor   = NULL ;
-      
+
       // check
       if ( _collectionFullName [0] == '\0' || !_connection || !cursor )
       {
@@ -1339,7 +1339,7 @@ do                                                            \
             goto error ;
          }
       }
-      // try to set flag to be find one      
+      // try to set flag to be find one
       if ( 1 == numToReturn )
       {
          newFlags |= FLG_QUERY_WITH_RETURNDATA ;
@@ -1830,7 +1830,7 @@ do                                                            \
          delete *cursor ;
          *cursor = NULL ;
       }
-      
+
       goto done ;
 
    }
@@ -2615,7 +2615,7 @@ error:
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         
+
          newObj = bob.obj() ;
       }
       catch ( std::exception )
@@ -2717,7 +2717,7 @@ error:
 
    }
 
-   INT32 _sdbCollectionImpl::explain ( 
+   INT32 _sdbCollectionImpl::explain (
                               _sdbCursor **cursor,
                               const bson::BSONObj &condition,
                               const bson::BSONObj &select,
@@ -2861,7 +2861,7 @@ error:
       // set attribute of the newly created _sdbLob object
       ((_sdbLobImpl*)*lob)->_setConnection( _connection ) ;
       ((_sdbLobImpl*)*lob)->_setCollection( this ) ;
-      ((_sdbLobImpl*)*lob)->_oid = oidObj ;      
+      ((_sdbLobImpl*)*lob)->_oid = oidObj ;
       ((_sdbLobImpl*)*lob)->_contextID = contextID ;
       ((_sdbLobImpl*)*lob)->_isOpen = TRUE ;
       ((_sdbLobImpl*)*lob)->_mode = SDB_LOB_CREATEONLY ;
@@ -2889,7 +2889,7 @@ error:
       BOOLEAN locked = FALSE ;
       BSONObjBuilder bob ;
       BSONObj meta ;
-      
+
       // check
       if ( '\0' == _collectionFullName[0] || NULL == _connection )
       {
@@ -2901,7 +2901,7 @@ error:
       {
          bob.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
          bob.appendOID( FIELD_NAME_LOB_OID, (OID *)(&oid) ) ;
-         meta = bob.obj() ;         
+         meta = bob.obj() ;
       }
       catch ( std::exception &e )
       {
@@ -3038,7 +3038,7 @@ error:
       // set attribute of the newly created _sdbLob object
       ((_sdbLobImpl*)*lob)->_setConnection( _connection ) ;
       ((_sdbLobImpl*)*lob)->_setCollection( this ) ;
-      ((_sdbLobImpl*)*lob)->_oid = oid ;    
+      ((_sdbLobImpl*)*lob)->_oid = oid ;
       ((_sdbLobImpl*)*lob)->_contextID = contextID ;
       ((_sdbLobImpl*)*lob)->_isOpen = TRUE ;
       ((_sdbLobImpl*)*lob)->_mode = SDB_LOB_READ ;
@@ -3083,15 +3083,15 @@ error:
          rc = SDB_SYS ;
          goto error ;
       }
-      /// prepare cache from return data 
+      /// prepare cache from return data
       {
       // the return message format is as below:
       // "MsgOpReply  |  Meta Object  |  _MsgLobTuple   | Data"
       const MsgLobTuple *tuple = NULL ;
       const CHAR *body = NULL ;
-      UINT32 retMsgLen = 
+      UINT32 retMsgLen =
          (UINT32)(((MsgHeader*)_pReceiveBuffer)->messageLength);
-      UINT32 tupleOffset = 
+      UINT32 tupleOffset =
          ossRoundUpToMultipleX( sizeof( MsgOpReply ) + obj.objsize(), 4 ) ;
       if ( retMsgLen > tupleOffset )
       {
@@ -3101,7 +3101,7 @@ error:
          ((_sdbLobImpl*)*lob)->_receiveBufferSize = _receiveBufferSize ;
          _receiveBufferSize = 0 ;
          // initialize lob with the return data
-         tuple = (MsgLobTuple *)(((_sdbLobImpl*)*lob)->_pReceiveBuffer + 
+         tuple = (MsgLobTuple *)(((_sdbLobImpl*)*lob)->_pReceiveBuffer +
                                   tupleOffset) ;
          // "tuple->columns.offset" is the offset of lob content
          // in engine, at the very beginning, the offset must be 0,
@@ -3111,7 +3111,7 @@ error:
             rc = SDB_SYS ;
             goto error ;
          }
-         else if ( retMsgLen < 
+         else if ( retMsgLen <
                    ( tupleOffset + sizeof( MsgLobTuple ) + tuple->columns.len )
                  )
          {
@@ -3146,7 +3146,7 @@ error:
       INT32 rc = SDB_OK ;
       BSONObjBuilder bob ;
       BSONObj obj ;
-      
+
       // check
       if ( '\0' == _collectionFullName[0] || NULL == _connection )
       {
@@ -3195,7 +3195,7 @@ error:
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // build msg      
+      // build msg
       rc = clientBuildQueryMsgCpp ( &_pSendBuffer, &_sendBufferSize,
                                     cmd, 0, 0, -1, -1,
                                     obj.objdata(), NULL, NULL, NULL,
@@ -3334,7 +3334,7 @@ error:
       bob.append( FIELD_NAME_NAME, SDB_ALTER_CRT_ID_INDEX ) ;
       if ( options.isEmpty() )
       {
-         bob.appendNull( FIELD_NAME_ARGS ) ; 
+         bob.appendNull( FIELD_NAME_ARGS ) ;
       }
       else
       {
@@ -3342,7 +3342,7 @@ error:
       }
       subObj = bob.obj() ;
       obj = BSON( FIELD_NAME_ALTER << subObj ) ;
-      
+
       rc = alterCollection( obj ) ;
       if ( SDB_OK != rc )
       {
@@ -3371,7 +3371,7 @@ error:
       {
          goto error ;
       }
-      
+
    done:
       return rc ;
    error:
@@ -4790,7 +4790,7 @@ error :
                                         const CHAR *pBusinessName )
    {
       INT32 rc = SDB_OK ;
-      INT32 nameLength = ossStrlen( pClusterName ) + 
+      INT32 nameLength = ossStrlen( pClusterName ) +
                          ossStrlen( pBusinessName ) + 1 ;
       const CHAR *pStr = ":" ;
       if ( nameLength > CLIENT_DC_NAMESZ )
@@ -4822,7 +4822,7 @@ error :
       BSONObjBuilder bob ;
       BSONObj newObj ;
 
-      // check 
+      // check
       if ( NULL == _connection )
       {
          rc = SDB_NOT_CONNECTED ;
@@ -4861,7 +4861,7 @@ error :
       INT32 rc                  = SDB_OK ;
       const CHAR *pCommand      = CMD_ADMIN_PREFIX CMD_NAME_GET_DCINFO ;
       _sdbCursor *retInfoCursor = NULL ;
-      
+
       // check
       if ( NULL == _connection )
       {
@@ -4882,7 +4882,7 @@ error :
          rc = SDB_SYS ;
          goto error ;
       }
-      
+
       // get dc detail
       rc = retInfoCursor->next( retInfo ) ;
       if ( SDB_OK != rc )
@@ -4916,7 +4916,7 @@ error :
    {
       INT32 rc = SDB_OK ;
       if ( TRUE == isReadOnly )
-      {  
+      {
          rc = _DCCommon( CMD_VALUE_NAME_ENABLE_READONLY, NULL ) ;
       }
       else
@@ -4938,7 +4938,7 @@ error :
          goto error ;
       }
 
-      // build obj 
+      // build obj
       newObj = BSON( FIELD_NAME_ADDRESS << pCataAddrList ) ;
 
       // run command
@@ -4982,7 +4982,7 @@ error :
       INT32 rc = _DCCommon( CMD_VALUE_NAME_DETACH, &info ) ;
       return rc ;
    }
-      
+
 
    /*
     * sdbLobImpl
@@ -5094,7 +5094,7 @@ error :
       }
 
       *read = readInCache ;
-      return ;                        
+      return ;
    }
 
    UINT32 _sdbLobImpl::_reviseReadLen( UINT32 needLen )
@@ -5179,7 +5179,7 @@ error :
          rc = SDB_SYS ;
          goto error ;
       }
-      else if ( ( UINT32 )( reply->header.messageLength ) < 
+      else if ( ( UINT32 )( reply->header.messageLength ) <
                 ( sizeof( MsgOpReply ) + sizeof( MsgLobTuple ) +
                 tuple->columns.len ) )
       {
@@ -5318,7 +5318,7 @@ error :
          *read = 0 ;
          goto done ;
       }
-      
+
       if ( _currentOffset == _lobSize )
       {
          rc = SDB_EOF ;
@@ -5433,7 +5433,7 @@ error :
          CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
          locked = FALSE ;
          _connection->unlock() ;
-         
+
          totalLen += sendLen ;
       } while ( totalLen < len ) ;
       // for read lob's size while creating a lob and write things to it
@@ -5451,8 +5451,7 @@ error :
    INT32 _sdbLobImpl::seek ( SINT64 size, SDB_LOB_SEEK whence )
    {
       INT32 rc = SDB_OK ;
-      BOOLEAN locked = FALSE ;
-      
+
       // check
       if ( !_connection && !_isOpen )
       {
@@ -5525,7 +5524,7 @@ error :
       oid = getOid() ;
       return SDB_OK ;
    }
-   
+
    INT32 _sdbLobImpl::getSize( SINT64 *size )
    {
       *size = getSize() ;
@@ -5547,7 +5546,7 @@ error :
    {
       return _oid ;
    }
-   
+
    SINT64 _sdbLobImpl::getSize()
    {
       return _lobSize ;
@@ -6439,7 +6438,7 @@ error :
 
       // return cursor
       *ppCursor = cursor ;
-      
+
    done :
       return rc ;
    error :
@@ -6532,10 +6531,10 @@ error :
             goto error ;
          }
       }
-      
+
       // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
-      
+
       // try to get retObj
       if ( NULL != ppCursor )
       {
@@ -6577,7 +6576,7 @@ error :
    error:
       goto done ;
    }
-   
+
 
    INT32 _sdbImpl::getCollection ( const CHAR *pCollectionFullName,
                                    _sdbCollection **collection )
@@ -6618,7 +6617,7 @@ error :
             goto error ;
          }
       }
-      
+
       *collection = (_sdbCollection*)( new(std::nothrow) sdbCollectionImpl ()) ;
       if ( !*collection )
       {
@@ -8036,8 +8035,6 @@ error :
    {
       INT32 rc = SDB_OK ;
       BOOLEAN locked = FALSE ;
-      BOOLEAN result ;
-      SINT64 contextID = 0 ;
       std::set<ossValuePtr>::iterator it ;
       std::set<ossValuePtr> cursors ;
       std::set<ossValuePtr> lobs ;
@@ -8057,7 +8054,7 @@ error :
       }
 
       // release resource of cursors in local
-      // remember to handle cursor._connection, 
+      // remember to handle cursor._connection,
       // cursor._collection, cursor._isClose
       cursors = _cursors ;
       for ( it = cursors.begin(); it != cursors.end(); ++it )
@@ -8316,7 +8313,7 @@ error :
          rc = SDB_OOM ;
          goto error ;
       }
-      
+
       // register
       ((sdbDataCenterImpl*)pDC)->_setConnection ( this ) ;
 
@@ -8429,7 +8426,7 @@ error :
       {
          return SDB_OK ;
       }
-      
+
       return initCacheStrategy( config->enableCacheStrategy,
                                 config->cacheTimeInterval ) ;
    }

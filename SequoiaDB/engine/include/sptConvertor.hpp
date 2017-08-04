@@ -51,7 +51,7 @@ class sptConvertor
 {
 public:
    sptConvertor( JSContext *cx )
-   :_cx( cx ), _hasSetErrMsg( FALSE )
+   :_hasSetErrMsg( FALSE ), _cx( cx )
    {
 
    }
@@ -79,7 +79,7 @@ private:
                         const jsval &val,
                         bson *bs ) ;
 
-   INT32 _getDecimalPrecision( const CHAR *precisionStr, 
+   INT32 _getDecimalPrecision( const CHAR *precisionStr,
                                INT32 *precision, INT32 *scale ) ;
    INT32 _addSpecialObj( JSObject *obj,
                          const CHAR *key,

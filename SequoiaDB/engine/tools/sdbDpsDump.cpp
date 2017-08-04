@@ -1011,7 +1011,7 @@ INT32 _dpsDumper::_analysisMeta()
    }
    else
    {
-      UINT32 index = 0 ;
+      INT32 index = 0 ;
       ossMemcpy( dirPath, srcPath, OSS_MAX_PATHSIZE ) ;
       rc = getFileCount( dirPath, fileCount ) ;
       if( SDB_OK != rc )
