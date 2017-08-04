@@ -460,7 +460,7 @@ namespace engine
          /*PD_LOG( PDEVENT, "CurAgentNum: %u, IdleAgentNum: %u, "
                  "TotalCount: %u, AllCount: %u, IdleUnitCount: %u, "
                  "index: %u, nty que size: %u, index size: %u", curAgentNum(),
-                 idleAgentNum(), _totalCount.peek(), size(), idleUnitCount(),
+                 idleAgentNum(), _totalCount.fetch(), size(), idleUnitCount(),
                  index, _ntyQueue.size(), _dataBucket[ index ]->size() ) ;*/
          INT32 rcTmp = startReplSyncJob( NULL, this, 60*OSS_ONE_SEC ) ;
          if ( SDB_OK == rcTmp )
@@ -634,7 +634,7 @@ namespace engine
 
    UINT32 _clsBucket::size ()
    {
-      return _allCount.peek() ;
+      return _allCount.fetch() ;
    }
 
    BOOLEAN _clsBucket::isEmpty ()
@@ -644,12 +644,12 @@ namespace engine
 
    UINT32 _clsBucket::bucketSize ()
    {
-      return _totalCount.peek() ;
+      return _totalCount.fetch() ;
    }
 
    UINT32 _clsBucket::idleUnitCount ()
    {
-      return _idleUnitCount.peek() ;
+      return _idleUnitCount.fetch() ;
    }
 
    INT32 _clsBucket::beginUnit( pmdEDUCB * cb, UINT32 & unitID,
@@ -892,7 +892,7 @@ namespace engine
       _bucketLatch.get() ;
 
       // if has agent process, do nothing
-      if ( _curAgentNum.peek() > 0 )
+      if ( !_curAgentNum.compare( 0 ) )
       {
          goto done ;
       }
@@ -921,6 +921,7 @@ namespace engine
       _submitEvent.signal() ;
 
       _allEmptyEvent.signalAll() ;
+      _emptyEvent.signalAll() ;
 
    done:
       _bucketLatch.release() ;
