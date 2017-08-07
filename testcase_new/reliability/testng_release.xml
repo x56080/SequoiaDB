@@ -1,0 +1,29 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<!--This xml is for ci. -->
+<!--These testcases can be excuted only in sequoiadb release version, eg: 
+	disk-full testcase. -->
+
+<suite name="reliability" verbose="1" stop-all-when-occur-failure="true">
+	<parameter name="HOSTNAME" value="localhost" />
+	<parameter name="SVCNAME" value="11810" />
+	<parameter name="CHANGEDPREFIX" value="reliability_test" />
+	<parameter name="RSRVPORTBEGIN" value="26000" />
+	<parameter name="RSRVPORTEND" value="27000" />
+	<parameter name="RSRVNODEDIR" value="/data/sequoiadb/cidatabase" />
+	<parameter name="WORKDIR" value="/tmp/ci_reliability" />
+	<parameter name="ROOTPASSWD" value="jenkins" />
+	<parameter name="REMOTEUSER" value="sdbadmin" />
+	<parameter name="REMOTEPASSWD" value="sdbadmin" />
+	<parameter name="SCRIPTDIR" value="/trunk/testcase_new/reliability/script" />
+
+	<test name="reliability">
+		<packages>
+			<package name="com.sequoiadb.subcl.diskfull" />
+			<package name="com.sequoiadb.split.diskfull" />
+			<package name="com.sequoiadb.metaopr.diskfull" />
+			<package name="com.sequoiadb.datasync.diskfull" />
+		</packages>
+	</test>
+
+</suite>
+   
