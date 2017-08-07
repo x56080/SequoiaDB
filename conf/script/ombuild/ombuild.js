@@ -2042,9 +2042,10 @@ CheckHost.prototype._collOSInfo =
 CheckHost.prototype._collCPUInfo = 
    function CheckHost__collCPUInfo( ssh, installPath ) {
    var infoObjArr = [] ;
-   var str        = this.execCommand( ssh, installPath,
-                                       SYSTEM_CPU_INFO, true ) ;
+   
    try {
+      var str        = this.execCommand( ssh, installPath,
+                                         SYSTEM_CPU_INFO, true ) ;
       var cpuInfo   = this.changeToObj( str ) ;
       var arr        = cpuInfo[Cpus] ;
       for ( var i = 0; i < arr.length; i++ )
@@ -2062,7 +2063,7 @@ CheckHost.prototype._collCPUInfo =
       var exp = new SdbError( e, 
          sprintf( "failed to get cpu info of host[?]", ssh.getPeerIP() ) ) ;
       logger.log( PDERROR, exp ) ;
-      throw exp ;
+      return [] ;
    }
    return infoObjArr ;
 } ;
