@@ -870,22 +870,22 @@ namespace engine
       rc = indexCB->getKeysFromObject ( inputObj, keySet ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
                     inputObj.toString().c_str() ) ;
-
+/*
 #if defined (_DEBUG)
       PD_LOG ( PDDEBUG, "IndexInsert\nIndex: %s\nRecord: %s",
                indexCB->keyPattern().toString().c_str(),
                inputObj.toString().c_str() ) ;
-#endif
+#endif*/
 
       {
          BSONObjSet::iterator it ;
          Ordering order = Ordering::make( indexCB->keyPattern() ) ;
 
          for ( it = keySet.begin() ; it != keySet.end() ; ++it )
-         {
+         {/*
 #if defined (_DEBUG)
             PD_LOG ( PDDEBUG, "Key %s", (*it).toString().c_str() ) ;
-#endif
+#endif*/
             ixmKeyOwned ko ((*it)) ;
 
             rc = _indexInsert ( indexCB, ko, rid, order, cb, dupAllowed, dropDups ) ;
