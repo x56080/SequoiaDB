@@ -255,6 +255,13 @@ static INT32 sdbNullTestExpr( NullTest *ntest, SdbExprTreeState *expr_state,
 static INT32 sdbRecurBoolExpr( BoolExpr *boolexpr, SdbExprTreeState *expr_state,
                                sdbbson *condition, ExprContext *exprContext ) ;
 
+static INT32 sdbBooleanTestIsNotExpr( const char *columnName, sdbbson *condition,
+                                      BOOLEAN value ) ;
+
+static INT32 sdbBooleanTestExpr( BooleanTest *boolTest,
+                                 SdbExprTreeState *expr_state,
+                                 sdbbson *condition ) ;
+
 static INT32 sdbGenerateFilterCondition( Oid foreign_id, RelOptInfo *baserel,
                                          INT32 isUseDecimal, sdbbson *condition ) ;
 
@@ -1636,6 +1643,151 @@ error:
    goto done ;
 }
 
+INT32 sdbBooleanTestIsNotExpr( const char *columnName, sdbbson *condition,
+                               BOOLEAN value )
+{
+   INT32 rc = SDB_OK ;
+   sdbbson tmpCondition ;
+   sdbbson subCondition ;
+   sdbbson_init( &subCondition ) ;
+   sdbbson_init( &tmpCondition ) ;
+
+   rc = sdbbson_append_bool( &subCondition, columnName, value ) ;
+   if ( SDB_OK != rc )
+   {
+      elog( WARNING, "sdbbson_append_bool failed:rc=%d", rc ) ;
+      goto error ;
+   }
+
+   rc = sdbbson_finish( &subCondition ) ;
+   if ( SDB_OK != rc )
+   {
+      elog( WARNING, "sdbbson_finish subCondition failed:rc=%d", rc ) ;
+      goto error ;
+   }
+
+   rc = sdbbson_append_start_array( &tmpCondition, "$not" ) ;
+   if ( SDB_OK != rc )
+   {
+      elog( WARNING, "sdbbson_append_start_array failed:rc=%d", rc ) ;
+      goto error ;
+   }
+
+   rc = sdbbson_append_sdbbson( &tmpCondition, "0", &subCondition ) ;
+   if ( SDB_OK != rc )
+   {
+      elog( WARNING, "sdbbson_append_sdbbson failed:rc=%d", rc ) ;
+      goto error ;
+   }
+
+   rc = sdbbson_append_finish_array( &tmpCondition ) ;
+   if ( SDB_OK != rc )
+   {
+      elog( WARNING, "sdbbson_append_finish_array failed:rc=%d", rc ) ;
+      goto error ;
+   }
+
+   rc = sdbbson_finish( &tmpCondition ) ;
+   if ( SDB_OK != rc )
+   {
+      elog( WARNING, "sdbbson_finish failed:rc=%d", rc ) ;
+      goto error ;
+   }
+
+   rc = sdbbson_append_elements( condition, &tmpCondition ) ;
+   if ( SDB_OK != rc )
+   {
+      elog( WARNING, "sdbbson_append_elements failed:rc=%d", rc ) ;
+      goto error ;
+   }
+
+done:
+   sdbbson_destroy( &subCondition ) ;
+   sdbbson_destroy( &tmpCondition ) ;
+
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 sdbBooleanTestExpr( BooleanTest *boolTest, SdbExprTreeState *expr_state,
+                          sdbbson *condition )
+{
+   INT32 rc         = SDB_OK ;
+   char *columnName = NULL ;
+   Node *node       = NULL ;
+   Var *var         = NULL ;
+   AttrNumber columnId ;
+
+   node = ( Node * )boolTest->arg ;
+   if ( NULL == node )
+   {
+      rc = SDB_INVALIDARG ;
+      elog( DEBUG1, "boolTest'a arg is NULL" ) ;
+      goto error;
+   }
+
+   if ( !IsA( node, Var ) )
+   {
+      rc = SDB_INVALIDARG ;
+      elog( DEBUG1, "boolTest'a arg must be Var type" ) ;
+      goto error;
+   }
+
+   var = ( Var *) node ;
+
+   if ( ( var->varno != expr_state->foreign_table_index )
+          || ( var->varlevelsup != 0 ) )
+   {
+      rc = SDB_INVALIDARG ;
+      elog( DEBUG1, "column is not reconigzed:table_index=%d, varno=%d, valevelsup=%d",
+            expr_state->foreign_table_index, var->varno, var->varlevelsup ) ;
+      goto error ;
+   }
+
+   columnId = var->varattno ;
+   columnName = get_relid_attribute_name( expr_state->foreign_table_id,
+                                          columnId ) ;
+
+   if ( IS_TRUE == boolTest->booltesttype )
+   {
+      sdbbson_append_bool( condition, columnName, TRUE ) ;
+   }
+   else if ( IS_FALSE == boolTest->booltesttype )
+   {
+      sdbbson_append_bool( condition, columnName, FALSE ) ;
+   }
+   else if ( IS_NOT_TRUE == boolTest->booltesttype )
+   {
+      rc = sdbBooleanTestIsNotExpr( columnName, condition, TRUE );
+      if ( SDB_OK != rc )
+      {
+         elog( DEBUG1, "sdbBooleanTestIsNotExpr TRUE failed:rc=%d", rc ) ;
+         goto error ;
+      }
+   }
+   else if ( IS_NOT_FALSE == boolTest->booltesttype )
+   {
+      rc = sdbBooleanTestIsNotExpr( columnName, condition, FALSE );
+      if ( SDB_OK != rc )
+      {
+         elog( DEBUG1, "sdbBooleanTestIsNotExpr FALSE failed:rc=%d", rc ) ;
+         goto error ;
+      }
+   }
+   else
+   {
+      rc = SDB_INVALIDARG ;
+      elog( DEBUG1, "unreconigzed booltesttype:type=%d",
+            boolTest->booltesttype ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
 
 INT32 sdbNullTestExpr( NullTest *ntest, SdbExprTreeState *expr_state,
                        sdbbson *condition )
@@ -1864,6 +2016,15 @@ INT32 sdbRecurExprTree( Node *node, SdbExprTreeState *expr_state,
       if ( rc != SDB_OK )
       {
          elog( DEBUG1, "sdbRecurOperExpr" ) ;
+         goto error ;
+      }
+   }
+   else if ( IsA( node, BooleanTest ) )
+   {
+      rc = sdbBooleanTestExpr( ( BooleanTest * )node, expr_state, condition );
+      if ( rc != SDB_OK )
+      {
+         elog( DEBUG1, "sdbBooleanTestExpr failed:rc=%d", rc ) ;
          goto error ;
       }
    }
