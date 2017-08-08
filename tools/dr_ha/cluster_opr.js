@@ -8,9 +8,9 @@
 /* SequoiaDB 安装目录定义，必须以 '/' 结尾 */
 if ( typeof(SEQPATH) != "string" || SEQPATH.length == 0 ) { SEQPATH = "/opt/sequoiadb/" ; }
 /* 机器登入用户名定义 */
-if ( typeof(USERNAME) != "string" ) { USERNAME = "sdbamdin" ; }
+if ( typeof(USERNAME) != "string" ) { USERNAME = "sdbadmin" ; }
 /* 机器登入密码定义 */
-if ( typeof(PASSWD) != "string" ) { PASSWD = "sdbamdin" ; }
+if ( typeof(PASSWD) != "string" ) { PASSWD = "sdbadmin" ; }
 /* 子网1机器定义，必须为字符串数组 */
 if ( typeof(SUB1HOSTS) == "undefined" ) { SUB1HOSTS = [ "vmsvr2-suse-x64-1" ] ; }
 /* 子网2机器定义，必须为字符串数组 */
