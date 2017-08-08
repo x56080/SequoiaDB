@@ -105,6 +105,8 @@ static List *SdbPlanForeignModify ( PlannerInfo *root,
 
 static void sdb_slot_deform_tuple( TupleTableSlot *slot, int natts ) ;
 
+static Var *getRealVar(Var *arg);
+
 
 typedef struct
 {
@@ -244,6 +246,10 @@ static INT32 sdbOperExpr( OpExpr *opr, SdbExprTreeState *expr_state,
 static INT32 sdbScalarArrayOpExpr( ScalarArrayOpExpr *scalaExpr,
                                  SdbExprTreeState *expr_state,
                                  sdbbson *condition ) ;
+
+static INT32 sdbVarExpr( Var *var, SdbExprTreeState *expr_state,
+                  sdbbson *condition ) ;
+
 static INT32 sdbNullTestExpr( NullTest *ntest, SdbExprTreeState *expr_state,
                               sdbbson *condition ) ;
 static INT32 sdbRecurBoolExpr( BoolExpr *boolexpr, SdbExprTreeState *expr_state,
@@ -783,6 +789,8 @@ int sdbSetBsonValue( sdbbson *bsonObj, const char *name, Datum valueDatum,
       case 1014:
       case 1231:
       case 1016:
+      case 1000:
+      case 1001:
       {
          INT32 i = 0 ;
          Datum datumTmp ;
@@ -1219,6 +1227,43 @@ error:
    goto done ;
 }
 
+Var *getRealVar(Var *arg)
+{
+   if (NULL == arg)
+   {
+      return NULL;
+   }
+
+   if (T_Var == nodeTag(arg))
+   {
+      return arg;
+   }
+   else if (T_RelabelType == nodeTag(arg))
+   {
+      RelabelType* rtype = (RelabelType *)arg;
+      if (NULL == rtype->arg)
+      {
+         return NULL;
+      }
+
+      if (T_Var == nodeTag(rtype->arg))
+      {
+         return (Var *)rtype->arg;
+      }
+      else
+      {
+         elog(DEBUG1, "unreconigzed RelabelType's arg nodeType:nodeTag[%d]",
+              nodeTag(rtype->arg));
+         return NULL;
+      }
+   }
+   else
+   {
+      elog(DEBUG1, "unreconigzed nodeType:nodeTag[%d]", nodeTag(arg));
+      return NULL;
+   }
+}
+
 INT32 sdbOperExprTwoVar( OpExpr *opr_two_argument, SdbExprTreeState *expr_state,
                          sdbbson *condition )
 {
@@ -1239,7 +1284,13 @@ INT32 sdbOperExprTwoVar( OpExpr *opr_two_argument, SdbExprTreeState *expr_state,
    {
       if ( count == 0 )
       {
-         argument1 = ( Var * )lfirst( argumentCell ) ;
+         argument1 = getRealVar((Var *)lfirst(argumentCell));
+         if (NULL == argument1)
+         {
+            elog(DEBUG1, "argument1 is NULL") ;
+            goto error ;
+         }
+
          if ( ( argument1->varno != expr_state->foreign_table_index )
           || ( argument1->varlevelsup != 0 ) )
          {
@@ -1258,7 +1309,13 @@ INT32 sdbOperExprTwoVar( OpExpr *opr_two_argument, SdbExprTreeState *expr_state,
       }
       else
       {
-         argument2 = ( Var * )lfirst( argumentCell ) ;
+         argument2 = getRealVar((Var *)lfirst(argumentCell));
+         if (NULL == argument2)
+         {
+            elog(DEBUG1, "argument2 is NULL") ;
+            goto error ;
+         }
+
          if ( ( argument2->varno != expr_state->foreign_table_index )
                    || ( argument2->varlevelsup != 0 ) )
          {
@@ -1552,6 +1609,34 @@ error:
    goto done ;
 }
 
+INT32 sdbVarExpr( Var *var, SdbExprTreeState *expr_state,
+                  sdbbson *condition )
+{
+   INT32 rc         = SDB_OK ;
+   char *columnName = NULL ;
+   AttrNumber columnId ;
+
+   if ( ( var->varno != expr_state->foreign_table_index )
+          || ( var->varlevelsup != 0 ) )
+   {
+      rc = SDB_INVALIDARG ;
+      elog( DEBUG1, "column is not reconigzed:table_index=%d, varno=%d, valevelsup=%d",
+            expr_state->foreign_table_index, var->varno, var->varlevelsup ) ;
+      goto error ;
+   }
+
+   columnId = var->varattno ;
+   columnName = get_relid_attribute_name( expr_state->foreign_table_id,
+                                          columnId ) ;
+   sdbbson_append_bool( condition, columnName, TRUE ) ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+
 INT32 sdbNullTestExpr( NullTest *ntest, SdbExprTreeState *expr_state,
                        sdbbson *condition )
 {
@@ -1779,6 +1864,15 @@ INT32 sdbRecurExprTree( Node *node, SdbExprTreeState *expr_state,
       if ( rc != SDB_OK )
       {
          elog( DEBUG1, "sdbRecurOperExpr" ) ;
+         goto error ;
+      }
+   }
+   else if ( IsA( node, Var ) )
+   {
+      rc = sdbVarExpr( ( Var * )node, expr_state, condition );
+      if ( rc != SDB_OK )
+      {
+         elog( DEBUG1, "sdbVarExpr failed:rc=%d", rc ) ;
          goto error ;
       }
    }
