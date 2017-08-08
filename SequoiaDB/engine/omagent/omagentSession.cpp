@@ -128,6 +128,8 @@ namespace engine
 
    void _omaSession::_onDetach()
    {
+      /// clear self scopes
+      sdbGetOMAgentMgr()->clearScopeBySession() ;
    }
 
    void _omaSession::_onAttach()
@@ -139,8 +141,6 @@ namespace engine
       /// register edu exit hook func
       pmdSetEDUHook( (PMD_ON_EDU_EXIT_FUNC)sdbHookFuncOnThreadExit ) ;
       _pNodeMgr = sdbGetOMAgentMgr()->getNodeMgr() ;
-      /// clear self scopes
-      sdbGetOMAgentMgr()->clearScopeBySession() ;
    }
 
    INT32 _omaSession::_defaultMsgFunc( NET_HANDLE handle, MsgHeader * msg )
@@ -199,7 +199,7 @@ namespace engine
 
       //Build reply message
       _replyHeader.header.opCode = MAKE_REPLY_TYPE( pSrcReqMsg->opCode ) ;
-      _replyHeader.header.messageLength = sizeof ( MsgOpReply ) + bLen ; 
+      _replyHeader.header.messageLength = sizeof ( MsgOpReply ) + bLen ;
       _replyHeader.header.requestID = pSrcReqMsg->requestID ;
       _replyHeader.header.TID = pSrcReqMsg->TID ;
       _replyHeader.header.routeID.value = 0 ;
@@ -208,7 +208,7 @@ namespace engine
 
       /// when we have more than one record to return,
       /// rewrite here.
-      _replyHeader.numReturned = ( ( SINT32 )sizeof( MsgOpReply ) 
+      _replyHeader.numReturned = ( ( SINT32 )sizeof( MsgOpReply )
                                           < _replyHeader.header.messageLength )
                                  ?  1 : 0 ;
       _replyHeader.startFrom = 0 ;
