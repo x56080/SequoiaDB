@@ -382,6 +382,7 @@ function restartNodes( role )
 
 function markRestart( hostname, diagpath )
 {
+   println('-------begin to mark '+hostname+' restart '+diagpath);
    var remote = new Remote( hostname, 11790 );
    
    var cmd = remote.getCmd();
@@ -481,31 +482,33 @@ function setStaticConf( oma, role, svcname )
 // set dynamic configure of one node
 function setDynaConf( oma, role, svcname )
 {
+   
    switch( role )
    {
       case "catalog":
-         if( isEmptyObj( catalogConf ) === false )
+         if( isEmptyObj( catalogDynaConf ) === false )
          {
             oma.updateNodeConfigs( svcname, catalogDynaConf );
          }
          break;
          
       case "coord":
-         if( isEmptyObj( coordConf ) === false )
+         if( isEmptyObj( coordDynaConf ) === false )
          {
             oma.updateNodeConfigs( svcname, coordDynaConf );
          }
          break;  
          
       case "data":
-         if( isEmptyObj( dataConf ) === false )
+         if( isEmptyObj( dataDynaConf ) === false )
          {
+            println("222setDynaConf :" + role);
             oma.updateNodeConfigs( svcname, dataDynaConf );
          }
          break;
          
       case "standalone":
-         if( isEmptyObj( standaloneConf ) === false )
+         if( isEmptyObj( standaloneDynaConf ) === false )
          {
             oma.updateNodeConfigs( svcname, standaloneDynaConf );
          }
