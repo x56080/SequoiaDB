@@ -83,7 +83,7 @@ public class CRUDAndAddNode3218 extends SdbTestBase {
             taskMgr.init();
         } catch (BaseException | ReliabilityException e) {
             if (db != null) {
-                db.close();
+                db.disconnect();
             }
             Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
                     + Utils.getKeyStack(e, this));
@@ -132,7 +132,7 @@ public class CRUDAndAddNode3218 extends SdbTestBase {
             Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
         } finally {
             if (db != null) {
-                db.close();
+                db.disconnect();
             }
             System.out.println(this.getClass().getName() + " end at " + sdf.format(new Date()));
         }
@@ -157,7 +157,7 @@ public class CRUDAndAddNode3218 extends SdbTestBase {
                 cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
             } catch (BaseException e) {
                 if (db != null) {
-                    db.close();
+                    db.disconnect();
                 }
                 throw e;
             }
@@ -202,7 +202,7 @@ public class CRUDAndAddNode3218 extends SdbTestBase {
 
         public void fini() {
             if (db != null) {
-                db.close();
+                db.disconnect();
             }
         }
     }
@@ -231,7 +231,7 @@ public class CRUDAndAddNode3218 extends SdbTestBase {
                 newNode.start();
             } catch (BaseException e) {
                 if (db != null) {
-                    db.close();
+                    db.disconnect();
                 }
                 throw e;
             }
@@ -250,7 +250,7 @@ public class CRUDAndAddNode3218 extends SdbTestBase {
                 throw e;
             } finally {
                 if (db != null) {
-                    db.close();
+                    db.disconnect();
                 }
             }
         }
@@ -262,7 +262,7 @@ public class CRUDAndAddNode3218 extends SdbTestBase {
                 BSONObject rec = (BSONObject) JSON.parse("{ a: 1 }");
                 recs.add(rec);
             }
-            cl.insert(recs, DBCollection.FLG_INSERT_CONTONDUP);
+            cl.bulkInsert(recs, DBCollection.FLG_INSERT_CONTONDUP);
         }
 
         private void removeNewNode(Sequoiadb db) {

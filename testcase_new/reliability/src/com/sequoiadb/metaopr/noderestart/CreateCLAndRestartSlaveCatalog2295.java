@@ -107,7 +107,7 @@ public class CreateCLAndRestartSlaveCatalog2295 extends SdbTestBase {
             Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
         }finally {
         	if (sdb != null) {
-        		sdb.close();
+        		sdb.disconnect();
         	}
         	System.out.println(this.getClass().getName() + " end at:"
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
@@ -117,8 +117,10 @@ public class CreateCLAndRestartSlaveCatalog2295 extends SdbTestBase {
     
     private class CreateCLTask extends OperateTask {
         @Override
-        public void exec() throws Exception {       
-            try( Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {                
+        public void exec() throws Exception {    
+            Sequoiadb db = null;
+            try {            
+                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
                 CollectionSpace commCS = db.getCollectionSpace(SdbTestBase.csName);
                 for (int i = 0; i < CL_NUM; i++) {
                     String clName = preCLName + "_" + i;
@@ -126,7 +128,11 @@ public class CreateCLAndRestartSlaveCatalog2295 extends SdbTestBase {
                 }     
             } catch (BaseException e) {            	
             	throw e;  
-            } 
+            } finally {
+                if(db!=null) {
+                    db.disconnect();
+                }
+            }
         }
     }
     

@@ -113,7 +113,7 @@ public class CreateIndexAndRestartPrimaryNode3186 extends SdbTestBase {
             Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
         }finally {
         	if (sdb != null) {
-        		sdb.close();
+        		sdb.disconnect();
         	}
         	System.out.println(this.getClass().getName() + " end at:"
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
@@ -133,13 +133,15 @@ public class CreateIndexAndRestartPrimaryNode3186 extends SdbTestBase {
             BSONObject rec = (BSONObject)JSON.parse("{ a" + i + ": " + i + " , b:'test'}");
             recs.add(rec);
         }
-        cl.insert(recs, DBCollection.FLG_INSERT_CONTONDUP);
+        cl.bulkInsert(recs, DBCollection.FLG_INSERT_CONTONDUP);
     }
     
     private class CreateIdxTask extends OperateTask {
         @Override
-        public void exec() throws Exception {            
-            try ( Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "") ){                
+        public void exec() throws Exception { 
+            Sequoiadb db = null;
+            try{   
+                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
                 DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
                 for (int i = 0; i < INDEX_NUM; i++) {
                     String idxName = "idx_" + i;
@@ -152,7 +154,11 @@ public class CreateIndexAndRestartPrimaryNode3186 extends SdbTestBase {
                 }
             } catch (BaseException e) {            	
             	System.out.println("the create index error i is ="+count); 
-            } 
+            } finally{
+                if(db!=null){
+                    db.disconnect();
+                }
+            }
         }
     }
     
@@ -204,7 +210,7 @@ public class CreateIndexAndRestartPrimaryNode3186 extends SdbTestBase {
                 }
                 results.add(result);
                 cursor.close();
-                dataDB.close();
+                dataDB.disconnect();
             }
             
             List<BSONObject> compareA = results.get(0);
@@ -267,7 +273,7 @@ public class CreateIndexAndRestartPrimaryNode3186 extends SdbTestBase {
                     Assert.fail(idxName + " does not work");
                 }
             }
-            dataDB.close();
+            dataDB.disconnect();
         }
     }
     

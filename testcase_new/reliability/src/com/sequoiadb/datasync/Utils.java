@@ -7,6 +7,7 @@ import java.util.Random;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
+import org.testng.Assert;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
@@ -17,6 +18,7 @@ import com.sequoiadb.commlib.GroupCheckResult;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.SdbTestBase;
+import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 
 public class Utils {
@@ -26,9 +28,13 @@ public class Utils {
      * @param groupName
      */
     public static void makeReplicaLogFull(String groupName) {
-        try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
+        Sequoiadb db = null;
+        try  {
+            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
             ReplicaGroup group = db.getReplicaGroup(groupName);
-            try (Sequoiadb dataDB = group.getMaster().connect()) {
+            Sequoiadb dataDB = null ;
+            try  {
+                dataDB = group.getMaster().connect();
                 long fullLSN = 20 * 64 * 1024 * 1024; // 默认20份同步日志，1份64M
                 long currentLSN = 0;
                 
@@ -49,6 +55,18 @@ public class Utils {
                     System.out.println("currentLSN: " + currentLSN);
                 }
                 db.dropCollectionSpace(tmpCSName);
+            }catch (BaseException e) {
+                Assert.fail(e.getMessage());
+            }finally{
+                if (dataDB !=null) {
+                    dataDB.disconnect();
+                }
+            }
+        } catch (BaseException e) {
+            Assert.fail(e.getMessage());
+        }finally{
+            if (db !=null) {
+                db.disconnect();
             }
         }
     }

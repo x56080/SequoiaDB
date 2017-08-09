@@ -47,7 +47,7 @@ public abstract class DBoperateTask extends OperateTask {
         } catch (InterruptedException e) {
             log.warning(e.toString());
         }
-        db.close();
+        db.disconnect();
     }
 
 

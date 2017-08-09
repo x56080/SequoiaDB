@@ -125,7 +125,7 @@ public class RangeSplitAndKillDestNode2765 extends SdbTestBase {
             Assert.fail(e.getMessage() + "\r\n" + Utils.getStackString(e));
         }finally {
         	if (sdb != null) {
-        		sdb.close();
+        		sdb.disconnect();
         	}
         	System.out.println(this.getClass().getName() + " end at:"
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
@@ -183,7 +183,7 @@ public class RangeSplitAndKillDestNode2765 extends SdbTestBase {
 				 obj.put("binary", regex);			
 				 list.add(obj);				
 			 }
-		 	 cl.insert(list, DBCollection.FLG_INSERT_CONTONDUP);		
+		 	 cl.bulkInsert(list, DBCollection.FLG_INSERT_CONTONDUP);		
 		 }catch(BaseException e){
 			 Assert.assertTrue(false,"bulkinsert fail "+e.getErrorCode()+e.getMessage());
 		 }		
@@ -203,7 +203,7 @@ public class RangeSplitAndKillDestNode2765 extends SdbTestBase {
                 throw e;
             }finally {
             	if (db1 != null) {
-                    db1.close();
+                    db1.disconnect();
                 }
             }
         }
@@ -224,7 +224,7 @@ public class RangeSplitAndKillDestNode2765 extends SdbTestBase {
         }
         finally { 
             if (dataNode != null) {
-                dataNode.close();
+                dataNode.disconnect();
             }
         }  
         return count;

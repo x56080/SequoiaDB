@@ -28,7 +28,7 @@ public class Utils {
             }
             cursor.close();
             resList.add(res);
-            cataDB.close();
+            cataDB.disconnect();
         }
         // check catalog count
         if (resList.get(0).size() != resList.get(1).size() || resList.get(1).size() != resList.get(2).size()) {

@@ -130,7 +130,7 @@ public class WriteLobAndRestartPrimaryNode3189 extends SdbTestBase {
             Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
         }finally {
         	if (sdb != null) {
-        		sdb.close();
+        		sdb.disconnect();
         	}
         	System.out.println(this.getClass().getName() + " end at:"
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
@@ -140,7 +140,9 @@ public class WriteLobAndRestartPrimaryNode3189 extends SdbTestBase {
     private class OprLobTask extends OperateTask {
         @Override
         public void exec() throws Exception {  
-            try ( Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "") ){               
+            Sequoiadb db = null;
+            try {         
+                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
                 DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
                 int lobSize = random.nextInt(1048576);
                 byte[] lobBytes = new byte[lobSize];               
@@ -161,7 +163,11 @@ public class WriteLobAndRestartPrimaryNode3189 extends SdbTestBase {
                 }                
             } catch (BaseException e) { 
             	System.out.println("write/remove lob nums is ="+opreateLobNum);
-            } 
+            } finally{
+                if(db!=null){
+                    db.disconnect();
+                }
+            }
         }
     }
     
@@ -206,7 +212,9 @@ public class WriteLobAndRestartPrimaryNode3189 extends SdbTestBase {
 		//check the list lobs of every node
 		int preno =0;
         for(int i=0;i<dataUrls.size();i++){
-        	try( Sequoiadb dataDB = new Sequoiadb(dataUrls.get(i), "", "")){               
+            Sequoiadb dataDB = null;
+        	try{ 
+        	    dataDB = new Sequoiadb(dataUrls.get(i), "", "");
                 DBCollection cl = dataDB.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
                 DBCursor listCursor = cl.listLobs();
                 int count = 0;
@@ -229,6 +237,10 @@ public class WriteLobAndRestartPrimaryNode3189 extends SdbTestBase {
                 listCursor.close();
         	}catch(BaseException e){
             	Assert.fail("the lob is not exist: "+e.getErrorCode()+e.getErrorType());
+            }finally{
+                if(dataDB!=null){
+                    dataDB.disconnect();
+                }
             }
         	
         }
@@ -238,7 +250,9 @@ public class WriteLobAndRestartPrimaryNode3189 extends SdbTestBase {
     	ObjectId oid = result.get(oidNo);
     	String preMd5 ="";
         for(int i=0;i<dataUrls.size();i++){
-        	try( Sequoiadb dataDB = new Sequoiadb(dataUrls.get(i), "", "")){        		
+            Sequoiadb dataDB = null;
+            try{      
+        	    dataDB = new Sequoiadb(dataUrls.get(i), "", "");
         		DBCollection cl1 = dataDB.getCollectionSpace(SdbTestBase.csName).getCollection(clName);                 
                 DBLob rLob = cl1.openLob(oid);                
                 byte[] rbuff = new byte[1024];
@@ -260,6 +274,10 @@ public class WriteLobAndRestartPrimaryNode3189 extends SdbTestBase {
                 }                
         	}catch(BaseException e){
             	Assert.fail("the lob different on the group node: "+e.getErrorCode()+e.getErrorType());
+            }finally{
+                if(dataDB!=null){
+                    dataDB.disconnect();
+                }
             }
         	
         }        

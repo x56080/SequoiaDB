@@ -71,7 +71,7 @@ public class KillNodeSplit2771 extends SdbTestBase {
         }
         catch (ReliabilityException e) {
             if (commSdb != null) {
-                commSdb.close();
+                commSdb.disconnect();
             }
             Assert.fail(this.getClass().getName() + " setUp error, error description:"
                     + e.getMessage() + "\r\n" + Utils.getStackString(e));
@@ -153,7 +153,7 @@ public class KillNodeSplit2771 extends SdbTestBase {
                 cursor.close();
             }
             if (dataNode != null) {
-                dataNode.close();
+                dataNode.disconnect();
             }
         }
         return 0;
@@ -173,7 +173,7 @@ public class KillNodeSplit2771 extends SdbTestBase {
         }
         finally {
             if (commSdb != null) {
-                commSdb.close();
+                commSdb.disconnect();
             }
             System.out.println(
                     "the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
@@ -202,7 +202,7 @@ public class KillNodeSplit2771 extends SdbTestBase {
             }
             finally {
                 if (sdb != null) {
-                    sdb.close();
+                    sdb.disconnect();
                 }
             }
         }

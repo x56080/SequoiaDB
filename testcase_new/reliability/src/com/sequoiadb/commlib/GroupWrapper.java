@@ -296,7 +296,7 @@ public class GroupWrapper {
             }
             finally {
                 db.closeAllCursors();
-                db.close();
+                db.disconnect();
             }
             res.put(url + ":" + clName, tmp);
         }

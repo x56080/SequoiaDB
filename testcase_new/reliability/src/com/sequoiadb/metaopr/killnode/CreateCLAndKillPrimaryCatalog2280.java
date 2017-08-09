@@ -117,7 +117,7 @@ public class CreateCLAndKillPrimaryCatalog2280 extends SdbTestBase {
             Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
         }finally {
         	if (sdb != null) {
-        		sdb.close();
+        		sdb.disconnect();
         	}
         	System.out.println(this.getClass().getName() + " end at:"
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
@@ -128,7 +128,9 @@ public class CreateCLAndKillPrimaryCatalog2280 extends SdbTestBase {
     private class CreateCLTask extends OperateTask {    
         @Override
         public void exec() throws Exception {       
-            try( Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {                
+            Sequoiadb db = null;
+            try {             
+                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
                 CollectionSpace commCS = db.getCollectionSpace(csName);                
                 BSONObject options = (BSONObject)JSON.parse("{ShardingKey:{no:1},ShardingType:'hash',Partition:4096}");
                 for (int i = 0; i < CL_NUM; i++) {
@@ -139,7 +141,11 @@ public class CreateCLAndKillPrimaryCatalog2280 extends SdbTestBase {
             } catch (BaseException e) {
             	int successCLnums = count ;
             	System.out.println("the create cl num is ="+successCLnums);  
-            } 
+            } finally {
+                if(db!=null){
+                    db.disconnect();
+                }
+            }
         }
     }
     
@@ -238,7 +244,7 @@ public class CreateCLAndKillPrimaryCatalog2280 extends SdbTestBase {
 				 list.add(obj);				
 			 }			 
 			 DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-		 	 cl.insert(list, DBCollection.FLG_INSERT_CONTONDUP);		
+		 	 cl.bulkInsert(list, DBCollection.FLG_INSERT_CONTONDUP);		
 		 }catch(BaseException e){
 			 Assert.assertTrue(false,"insert fail "+e.getErrorCode()+e.getMessage());
 		 }		
@@ -248,7 +254,9 @@ public class CreateCLAndKillPrimaryCatalog2280 extends SdbTestBase {
     	long recsNum = 0;
     	for (int i = 0; i < groupNames.size(); i++) {
     		String groupName = groupNames.get(i);
-    		try (Sequoiadb dataNode = sdb.getReplicaGroup(groupName).getMaster().connect() ){    			
+    		Sequoiadb dataNode = null;
+    		try {    	
+    		    dataNode = sdb.getReplicaGroup(groupName).getMaster().connect();
     			DBCollection cl = dataNode.getCollectionSpace(csName).getCollection(clName);
     			dataCount = cl.getCount();
     			recsNum += dataCount;
@@ -257,7 +265,11 @@ public class CreateCLAndKillPrimaryCatalog2280 extends SdbTestBase {
     			}    				
     		}catch (BaseException e) {                
                 Assert.fail(e.getMessage() + e.getErrorCode());
-            }    		
+            }finally {
+                if (dataNode != null ){
+                    dataNode.disconnect();
+                }
+            }
         }
     	Assert.assertEquals(recsNum, insertNum, "incorrect number of the cl,actnum="+recsNum );    	
     }

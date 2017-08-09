@@ -145,7 +145,7 @@ public class Utils {
                     res.add(cursor.getNext());
                 }
                 cursor.close();
-                cataDB.close();
+                cataDB.disconnect();
                 resList.add(res);
             }
             // check catalog count

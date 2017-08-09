@@ -56,7 +56,7 @@ public class NodeWrapper {
         }
         finally {
             if (sdb != null) {
-                sdb.close();
+                sdb.disconnect();
             }
         }
         return retObj;

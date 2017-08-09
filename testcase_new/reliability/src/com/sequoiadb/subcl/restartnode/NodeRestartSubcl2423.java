@@ -66,7 +66,7 @@ public class NodeRestartSubcl2423 extends SdbTestBase {
         }
         catch (ReliabilityException e) {
             if (commSdb != null) {
-                commSdb.close();
+                commSdb.disconnect();
             }
             Assert.fail(this.getClass().getName() + " setUp error, error description:"
                     + e.getMessage() + "\r\n" + Utils.getStackString(e));
@@ -137,7 +137,7 @@ public class NodeRestartSubcl2423 extends SdbTestBase {
         }
         finally {
             if (commSdb != null) {
-                commSdb.close();
+                commSdb.disconnect();
             }
             System.out.println(
                     "the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
@@ -164,7 +164,7 @@ public class NodeRestartSubcl2423 extends SdbTestBase {
             finally {
                 System.out.println("bound:" + bound);
                 if (sdb != null) {
-                    sdb.close();
+                    sdb.disconnect();
                 }
             }
         }

@@ -69,7 +69,7 @@ public class KillNodeSubcl2441 extends SdbTestBase {
         }
         catch (ReliabilityException e) {
             if (commSdb != null) {
-                commSdb.close();
+                commSdb.disconnect();
             }
             Assert.fail(this.getClass().getName() + " setUp error, error description:"
                     + e.getMessage() + "\r\n" + Utils.getStackString(e));
@@ -132,7 +132,7 @@ public class KillNodeSubcl2441 extends SdbTestBase {
         }
         finally {
             if (commSdb != null) {
-                commSdb.close();
+                commSdb.disconnect();
             }
             System.out.println(
                     "the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
@@ -154,7 +154,7 @@ public class KillNodeSubcl2441 extends SdbTestBase {
 
             finally {
                 if (sdb != null) {
-                    sdb.close();
+                    sdb.disconnect();
                 }
             }
         }

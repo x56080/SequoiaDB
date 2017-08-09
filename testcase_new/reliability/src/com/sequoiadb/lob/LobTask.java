@@ -3,9 +3,11 @@ package com.sequoiadb.lob;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBLob;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.metaopr.commons.MyUtil;
 import com.sequoiadb.task.OperateTask;
 import org.bson.types.ObjectId;
+import org.testng.Assert;
 
 import java.util.List;
 import java.util.Map;
@@ -23,9 +25,17 @@ public abstract class LobTask extends OperateTask {
 
     @Override
     public void exec() {
-        try (Sequoiadb db = getSdb()) {
+        Sequoiadb db = null;
+        try  {
+            db = getSdb();
             DBCollection cl = db.getCollectionSpace(LobUtil.csName).getCollection(LobUtil.clName);
             lobOperate(cl);
+        }catch (BaseException e) {
+            Assert.fail(e.getMessage());
+        }finally {
+            if ( db != null) {
+                db.disconnect();
+            }
         }
     }
 

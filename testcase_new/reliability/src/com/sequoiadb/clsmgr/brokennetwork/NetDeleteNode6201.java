@@ -58,7 +58,7 @@ public class NetDeleteNode6201 extends SdbTestBase {
                     + e.getMessage() + "\r\n" + Utils.getStackString(e));
         }
         finally {
-            sdb.close();
+            sdb.disconnect();
         }
     }
 
@@ -100,7 +100,7 @@ public class NetDeleteNode6201 extends SdbTestBase {
                 }
                 finally {
                     if (tmpDb != null) {
-                        tmpDb.close();
+                        tmpDb.disconnect();
                     }
                 }
             }
@@ -110,7 +110,7 @@ public class NetDeleteNode6201 extends SdbTestBase {
         }
         finally {
             if (db != null) {
-                db.close();
+                db.disconnect();
             }
         }
 
@@ -126,7 +126,7 @@ public class NetDeleteNode6201 extends SdbTestBase {
             Assert.fail(e.getMessage() + "\r\n" + Utils.getStackString(e));
         }
         finally {
-            sdb.close();
+            sdb.disconnect();
             System.out.println(
                     "the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
                             + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
@@ -142,13 +142,13 @@ public class NetDeleteNode6201 extends SdbTestBase {
                 ReplicaGroup coordGroup = db.getReplicaGroup("SYSCoord");
                 coordGroup.removeNode(connectUrl.split(":")[0], coordPort, null);
                 deleteFlag = true;
-                db.close();
+                db.disconnect();
             }
             catch (BaseException e) {
                 System.out.println(e.getMessage());
             }finally {
                if(db!=null){
-                   db.close();
+                   db.disconnect();
                }
             }
         }

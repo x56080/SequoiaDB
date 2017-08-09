@@ -51,7 +51,7 @@ public class GroupMgr {
         DBCursor cursor = null;
         try {
             if (sdb != null) {
-                sdb.close();
+                sdb.disconnect();
             }
             sdb = new Sequoiadb(coordUrl, "", "");
             cursor = sdb.getList(Sequoiadb.SDB_LIST_GROUPS, null, null, null);
@@ -224,7 +224,7 @@ public class GroupMgr {
                                     + e.getErrorCode());
                 }
             } finally {
-                db.close();
+                db.disconnect();
             }
         }
         if (ret == false) {
@@ -281,7 +281,7 @@ public class GroupMgr {
             }
         } finally {
             if (db != null) {
-                db.close();
+                db.disconnect();
             }
         }
         return ret;
@@ -315,7 +315,7 @@ public class GroupMgr {
             }
         } finally {
             if (db != null) {
-                db.close();
+                db.disconnect();
             }
         }
         return result;
@@ -544,7 +544,7 @@ public class GroupMgr {
 
     public void close() {
         if (sdb != null) {
-            sdb.close();
+            sdb.disconnect();
         }
     }
 

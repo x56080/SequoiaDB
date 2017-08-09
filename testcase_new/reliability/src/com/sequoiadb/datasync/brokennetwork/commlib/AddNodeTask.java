@@ -27,7 +27,7 @@ public class AddNodeTask extends OperateTask {
         String nodePath = SdbTestBase.reservedDir + "/data/" + port;
         Node newNode = randomGroup.createNode(host, port, nodePath, (BSONObject)null);
         newNode.start();
-        db.close();
+        db.disconnect();
     }
     
     @Override

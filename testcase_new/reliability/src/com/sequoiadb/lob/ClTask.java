@@ -2,9 +2,11 @@ package com.sequoiadb.lob;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.metaopr.commons.MyUtil;
 import com.sequoiadb.task.OperateTask;
 import org.bson.BasicBSONObject;
+import org.testng.Assert;
 
 /**
  * @FileName
@@ -23,7 +25,9 @@ public abstract class ClTask extends OperateTask {
         return new ClTask() {
             @Override
             public void exec() throws Exception {
-                try (Sequoiadb db = MyUtil.getSdb()) {
+                Sequoiadb db = null;
+                try{
+                    db = MyUtil.getSdb();
                     String csName = LobUtil.csName;
                     String clName = LobUtil.clName;
                     db.beginTransaction();
@@ -37,6 +41,12 @@ public abstract class ClTask extends OperateTask {
                         cl.insert(new BasicBSONObject("a", i));
                     }
                     db.commit();
+                }catch (BaseException e) {
+                    Assert.fail(e.getMessage());
+                } finally{
+                    if (db!=null) {
+                        db.disconnect();
+                    }
                 }
             }
         };

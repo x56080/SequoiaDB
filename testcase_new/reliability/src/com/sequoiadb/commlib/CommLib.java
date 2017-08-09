@@ -250,7 +250,7 @@ public class CommLib {
                             }
                         }
                         cursor.close();
-                        dataDB.close();
+                        dataDB.disconnect();
                         // all node data within the group
                         allNodeData.add(j, oneNodeData.toString());
 
@@ -351,7 +351,7 @@ public class CommLib {
                                 oneNodeData.add(idxList);
                             }
                             cur.close();
-                            dataDB.close();
+                            dataDB.disconnect();
                             // all node data within the group
                             allNodeData.add(j, oneNodeData.toString());
 
@@ -426,15 +426,15 @@ public class CommLib {
                         while (cur.hasNext()) {
                             String name = (String) cur.getNext().get("Name");
                             if (name.isEmpty()) {
-                                cataDB.close();
-                                dataDB.close();
+                                cataDB.disconnect();
+                                dataDB.disconnect();
                                 return false;
                             }
                         }
-                        cataDB.close();
+                        cataDB.disconnect();
                     }
                 }
-                dataDB.close();
+                dataDB.disconnect();
             }
         }
         catch (BaseException e) {
@@ -466,11 +466,11 @@ public class CommLib {
                                 .getNodeName();
                         Sequoiadb dataDB = new Sequoiadb(dataMAddr, "", "");
                         dataDB.getCollectionSpace(csName).getCollection(tmpCLName);
-                        dataDB.close();
+                        dataDB.disconnect();
                     }
                 }
             }
-            cataDB.close();
+            cataDB.disconnect();
         }
         catch (BaseException e) {
             if (e.getErrorCode() == -23) { // -23:Collection does not exist
@@ -515,7 +515,7 @@ public class CommLib {
                         oneNodeData.add(csInfo);
                     }
                     cursor.close();
-                    dataDB.close();
+                    dataDB.disconnect();
                     // all node data within the group
                     allNodeData.add(i, oneNodeData.toString());
 

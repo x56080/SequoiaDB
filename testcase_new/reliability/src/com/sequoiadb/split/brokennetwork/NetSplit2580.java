@@ -82,7 +82,7 @@ public class NetSplit2580 extends SdbTestBase {
         }
         finally {
             if (sdb != null) {
-                sdb.close();
+                sdb.disconnect();
             }
         }
     }
@@ -135,7 +135,7 @@ public class NetSplit2580 extends SdbTestBase {
         }
         finally {
             if (db != null) {
-                db.close();
+                db.disconnect();
             }
         }
 
@@ -162,7 +162,7 @@ public class NetSplit2580 extends SdbTestBase {
                 cursor.close();
             }
             if (dataNode != null) {
-                dataNode.close();
+                dataNode.disconnect();
             }
         }
     }
@@ -181,7 +181,7 @@ public class NetSplit2580 extends SdbTestBase {
             Assert.fail(e.getMessage() + "\r\n" + Utils.getStackString(e));
         }
         finally {
-            sdb.close();
+            sdb.disconnect();
             System.out.println(
                     "the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
                             + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
@@ -194,7 +194,7 @@ public class NetSplit2580 extends SdbTestBase {
             Sequoiadb db = new Sequoiadb(connectUrl, "", "");
             DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
             insertData(cl, 5000, 9000);
-            db.close();
+            db.disconnect();
         }
     }
 
@@ -214,7 +214,7 @@ public class NetSplit2580 extends SdbTestBase {
             }
             finally {
                 if (sdb != null) {
-                    sdb.close();
+                    sdb.disconnect();
                 }
             }
         }

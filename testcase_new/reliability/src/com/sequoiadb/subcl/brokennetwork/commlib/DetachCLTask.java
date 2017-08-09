@@ -32,7 +32,7 @@ public class DetachCLTask extends OperateTask {
         } catch (BaseException e) {
         } finally {
             if (db != null) {
-                db.close();
+                db.disconnect();
             }
         }
     }

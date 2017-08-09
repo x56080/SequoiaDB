@@ -56,7 +56,7 @@ public class NodeRestart extends Fault {
         }
         finally {
             if (db != null) {
-                db.close();
+                db.disconnect();
             }
         }
     }

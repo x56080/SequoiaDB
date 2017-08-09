@@ -117,7 +117,7 @@ public class CreateCLAndPrimaryNodeCutNet2933 extends SdbTestBase {
             Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
         }finally {
         	if (sdb != null) {
-        		sdb.close();
+        		sdb.disconnect();
         	}
         	System.out.println(this.getClass().getName() + " end at:"
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
@@ -127,8 +127,10 @@ public class CreateCLAndPrimaryNodeCutNet2933 extends SdbTestBase {
    
     private class CreateCLTask extends OperateTask {
         @Override
-        public void exec() throws Exception {            
-            try (Sequoiadb db = new Sequoiadb(connectUrl, "", "") ){                
+        public void exec() throws Exception {         
+            Sequoiadb db = null;
+            try {          
+                db = new Sequoiadb(connectUrl, "", "");
                 CollectionSpace commCS = db.getCollectionSpace(SdbTestBase.csName);
                 for (int i = 0; i < CL_NUM; i++) {
                     String clName = preCLName + "_" + i;
@@ -141,7 +143,11 @@ public class CreateCLAndPrimaryNodeCutNet2933 extends SdbTestBase {
                 }
             } catch (BaseException e) {
             	System.out.println("the create cl error i is ="+count); 
-            } 
+            } finally{
+                if(db!=null){
+                    db.disconnect();
+                }
+            }
         }
     }
 
@@ -200,7 +206,7 @@ public class CreateCLAndPrimaryNodeCutNet2933 extends SdbTestBase {
             }
             results.add(result);
             cursor.close();
-            dataDB.close();
+            dataDB.disconnect();
         }
 
         List<BSONObject> compareA = results.get(0);

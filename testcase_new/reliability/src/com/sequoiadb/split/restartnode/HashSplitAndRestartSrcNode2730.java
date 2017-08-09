@@ -121,7 +121,7 @@ public class HashSplitAndRestartSrcNode2730 extends SdbTestBase {
             Assert.fail(e.getMessage() + "\r\n" + Utils.getStackString(e));
         }finally {
         	if (sdb != null) {
-        		sdb.close();
+        		sdb.disconnect();
         	}
         	System.out.println(this.getClass().getName() + " end at:"
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
@@ -187,7 +187,7 @@ public class HashSplitAndRestartSrcNode2730 extends SdbTestBase {
 				 obj.put("binary", regex);			
 				 list.add(obj);				
 			 }
-		 	 cl.insert(list, DBCollection.FLG_INSERT_CONTONDUP);		
+		 	 cl.bulkInsert(list, DBCollection.FLG_INSERT_CONTONDUP);		
 		 }catch(BaseException e){
 			 Assert.assertTrue(false,"bulkinsert fail "+e.getErrorCode()+e.getMessage());
 		 }		
@@ -195,20 +195,28 @@ public class HashSplitAndRestartSrcNode2730 extends SdbTestBase {
 
     class Split extends OperateTask {
         @Override
-        public void exec() throws Exception {            
-            try ( Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "") ){                
+        public void exec() throws Exception {    
+            Sequoiadb db = null;
+            try {    
+                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
                 db.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
                 DBCollection dbcl = db.getCollectionSpace(csName).getCollection(clName);
                 dbcl.split(srcGroupName, destGroupName, 50);
             }catch (BaseException e) {
                 throw e;
+            }finally{
+                if(db!=null){
+                    db.disconnect();
+                }
             }
         }
     }
     
     private long checkGroupData(long expectRecNums, String groupName) {       
         long count = 0;
-        try ( Sequoiadb dataNode = sdb.getReplicaGroup(groupName).getMaster().connect() ){            
+        Sequoiadb dataNode = null;
+        try {   
+            dataNode = sdb.getReplicaGroup(groupName).getMaster().connect();
             DBCollection cl1 = dataNode.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
             count = cl1.getCount();
             
@@ -221,6 +229,10 @@ public class HashSplitAndRestartSrcNode2730 extends SdbTestBase {
         catch (BaseException e) {
             e.printStackTrace();
             Assert.fail(e.getMessage() + "\r\n" + Utils.getStackString(e));
+        } finally {
+            if(dataNode!=null) {
+                dataNode.disconnect();
+            }
         }
         return count;
     }

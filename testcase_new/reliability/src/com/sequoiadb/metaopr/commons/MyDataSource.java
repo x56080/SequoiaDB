@@ -1,9 +1,9 @@
 package com.sequoiadb.metaopr.commons;
 
-import com.sequoiadb.base.ConfigOptions;
+import com.sequoiadb.base.SequoiadbDatasource;
 import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.datasource.DatasourceOptions;
-import com.sequoiadb.datasource.SequoiadbDatasource;
+import com.sequoiadb.net.ConfigOptions;
 
 import java.util.ArrayList;
 import java.util.List;

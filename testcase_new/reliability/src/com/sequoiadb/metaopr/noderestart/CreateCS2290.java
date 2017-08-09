@@ -144,7 +144,9 @@ public class CreateCS2290 implements StandTestInterface {
 
         @Override
         public void exec() {
-            try (Sequoiadb db = MyUtil.getSdb()) {
+            Sequoiadb db = null;
+            try  {
+                db = MyUtil.getSdb();
                 MyUtil.dropCS(csNames);
                 for (int i = 0; i < csNames.size(); i++) {
                     Thread.sleep(delayMillis);
@@ -152,6 +154,10 @@ public class CreateCS2290 implements StandTestInterface {
                     brokenIndex = i;
                 }
             } catch (InterruptedException e) {
+            }finally {
+                if(db!=null) {
+                    db.disconnect();
+                }
             }
         }
     }

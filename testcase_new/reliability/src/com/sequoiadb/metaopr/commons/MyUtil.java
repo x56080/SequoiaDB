@@ -5,13 +5,13 @@ import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.NodeWrapper;
 import com.sequoiadb.commlib.SdbTestBase;
-import com.sequoiadb.datasource.SequoiadbDatasource;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
 import org.bson.util.JSON;
+import org.testng.Assert;
 import org.testng.SkipException;
 
 import java.io.ByteArrayOutputStream;
@@ -95,7 +95,7 @@ public class MyUtil {
     public static void closeDb(Sequoiadb db) {
         if (db.isClosed() == false) {
             db.closeAllCursors();
-            db.close();
+            db.disconnect();
         }
     }
 
@@ -125,7 +125,7 @@ public class MyUtil {
             }
             db.getCollectionSpace(csName)
                     .getCollection(clName)
-                    .insert(list);
+                    .bulkInsert(list, 0);
         }
     }
 
@@ -650,7 +650,7 @@ public class MyUtil {
             if (mgr != null)
                 mgr.close();
             if (db != null)
-                db.close();
+                db.disconnect();
         }
     }
 
@@ -665,7 +665,7 @@ public class MyUtil {
             return 0;
         } finally {
             if (db != null)
-                db.close();
+                db.disconnect();
         }
 
     }
@@ -795,13 +795,21 @@ public class MyUtil {
 
     public static int getNumOfLobFromDataNode(String csName, String clname, NodeWrapper node) {
         int count = 0;
-        try (Sequoiadb db = node.connect()) {
+        Sequoiadb db = null;
+        try  {
+            db = node.connect();
             DBCollection cl = db.getCollectionSpace(csName)
                     .getCollection(clname);
             DBCursor cursor = cl.listLobs();
             while (cursor.hasNext()) {
                 cursor.getNext();
                 count++;
+            }
+        }catch (BaseException e) {
+            Assert.fail(e.getMessage());
+        }finally{
+            if(db!=null){
+                db.disconnect();
             }
         }
         return count;
@@ -827,7 +835,9 @@ public class MyUtil {
         GroupWrapper groupWrapper = groupMgr.getGroupByName(groupName);
 
         for (NodeWrapper node : groupWrapper.getNodes()) {
-            try (Sequoiadb db = node.connect()) {
+            Sequoiadb db = null;
+            try  {
+                db = node.connect();
                 DBCollection cl = db.getCollectionSpace(csName)
                         .getCollection(clName);
                 DBCursor cursor = cl.listLobs();
@@ -839,6 +849,12 @@ public class MyUtil {
                         continue;
                     if (compareMd5(bytes, targetMd5Value) == false)
                         return false;
+                }
+            }catch (BaseException e) {
+                Assert.fail(e.getMessage());
+            }finally{
+                if(db!=null){
+                    db.disconnect();
                 }
             }
         }

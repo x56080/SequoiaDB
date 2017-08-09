@@ -1,8 +1,8 @@
 package com.sequoiadb.metaopr.commons;
 
 import com.sequoiadb.base.*;
-import com.sequoiadb.datasource.SequoiadbDatasource;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.net.ConfigOptions;
 import com.sequoiadb.net.ServerAddress;
 import org.bson.BSONObject;
 
@@ -40,11 +40,11 @@ class MySequoiadb implements Closeable{
     }
 
     public String getHost() {
-        return _db.getHost();
+        return _db.getServerAddress().getHost();
     }
 
     public int getPort() {
-        return _db.getPort();
+        return _db.getServerAddress().getPort();
     }
 
     @Deprecated
@@ -52,13 +52,13 @@ class MySequoiadb implements Closeable{
         return _db.isEndianConvert();
     }
 
-    public ByteOrder getByteOrder() {
-        return _db.getByteOrder();
-    }
+//    public ByteOrder getByteOrder() {
+//        return _db.getByteOrder();
+//    }
 
-    public long getLastUseTime() {
-        return _db.getLastUseTime();
-    }
+//    public long getLastUseTime() {
+//        return _db.getLastUseTime();
+//    }
 
     public void createUser(String username, String password) throws BaseException {
         _db.createUser(username, password);

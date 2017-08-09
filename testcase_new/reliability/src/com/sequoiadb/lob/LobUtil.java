@@ -38,7 +38,7 @@ public class LobUtil {
                 .getCollection(clName);
 
         cl.split("group1", "group2", 50);
-        db.close();
+        db.disconnect();
     }
 
     public static void dropLobCS(){
@@ -48,7 +48,7 @@ public class LobUtil {
         }catch (BaseException e){
             log.severe("dropcs fail "+csName);
         }
-        db.close();
+        db.disconnect();
     }
 
 }

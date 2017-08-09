@@ -62,7 +62,7 @@ public class DetachCL2176 extends SdbTestBase {
                     + Utils.getKeyStack(e, this));
         } finally {
             if (db != null) {
-                db.close();
+                db.disconnect();
             }
         }
     }
@@ -96,7 +96,7 @@ public class DetachCL2176 extends SdbTestBase {
             Assert.fail(e.getMessage());
         } finally {
             if (db != null) {
-                db.close();
+                db.disconnect();
             }
         }
     }
@@ -114,7 +114,7 @@ public class DetachCL2176 extends SdbTestBase {
             Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
         } finally {
             if (db != null) {
-                db.close();
+                db.disconnect();
             }
             System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));

@@ -85,7 +85,7 @@ public class CRUDAndAddNodeWithIndex3182 extends SdbTestBase {
 					+ Utils.getKeyStack(e, this));
 		} finally {
 			if (db != null) {
-				db.close();
+				db.disconnect();
 			}
 		}
 	}
@@ -127,7 +127,7 @@ public class CRUDAndAddNodeWithIndex3182 extends SdbTestBase {
 			Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
 		} finally {
 			if (db != null) {
-				db.close();
+				db.disconnect();
 			}
 			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
 					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
@@ -149,7 +149,7 @@ public class CRUDAndAddNodeWithIndex3182 extends SdbTestBase {
 				insertData(cl);
 			} catch (BaseException e) {
 				if (db != null) {
-					db.close();
+					db.disconnect();
 				}
 				throw e;
 			}
@@ -179,7 +179,7 @@ public class CRUDAndAddNodeWithIndex3182 extends SdbTestBase {
 			} catch (BaseException e) {
 			} finally {
 				if (db != null) {
-					db.close();
+					db.disconnect();
 				}
 			}
 		}
@@ -211,7 +211,7 @@ public class CRUDAndAddNodeWithIndex3182 extends SdbTestBase {
 		@Override
 		public void fini() {
 			if (db != null) {
-				db.close();
+				db.disconnect();
 			}
 		}
 
@@ -234,7 +234,7 @@ public class CRUDAndAddNodeWithIndex3182 extends SdbTestBase {
 				}
 				j++;
 			}
-			cl.insert(recs, DBCollection.FLG_INSERT_CONTONDUP);
+			cl.bulkInsert(recs, DBCollection.FLG_INSERT_CONTONDUP);
 		}
 
 		private void createIndexes(DBCollection cl) {
@@ -279,7 +279,7 @@ public class CRUDAndAddNodeWithIndex3182 extends SdbTestBase {
 				throw e;
 			} finally {
 				if (db != null) {
-					db.close();
+					db.disconnect();
 				}
 			}
 		}
