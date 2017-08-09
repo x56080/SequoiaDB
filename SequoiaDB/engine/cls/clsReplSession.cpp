@@ -509,6 +509,7 @@ namespace engine
 
             //find the first lsn which is less than returnTo lsn
             DPS_LSN search = _consultLsn ;
+            UINT32 count = 0 ;
             do
             {
                _mb.clear() ;
@@ -527,7 +528,10 @@ namespace engine
                                       ( _mb.offset(0) ))->_version ;
                search.offset = ((dpsLogRecordHeader *)
                                 (_mb.offset(0)))->_preLsn ;
-            } while ( _consultLsn.compareOffset( msg->returnTo ) >= 0 ) ;
+               ++count ;
+            } while ( _consultLsn.compareOffset( msg->returnTo ) >= 0 ||
+                      _consultLsn.compareVersion( msg->returnTo.version ) > 0 ||
+                      count <= 1 ) ;
 
             _sendConsultReq () ;
             goto done ;
