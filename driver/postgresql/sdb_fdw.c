@@ -1343,14 +1343,21 @@ INT32 sdbOperExprTwoVar( OpExpr *opr_two_argument, SdbExprTreeState *expr_state,
 
       count++ ;
    }
-   /* the caller make sure the argument have two var! */
 
+   /* the caller make sure the argument have two var! */
    pgOpName    = get_opname( opr_two_argument->opno ) ;
    sdbOpName   = sdbOperatorName( pgOpName, TRUE ) ;
    if( !sdbOpName )
    {
       rc = SDB_INVALIDARG ;
       elog( DEBUG1, "operator is not supported2:op=%s", pgOpName ) ;
+      goto error ;
+   }
+
+   if ( strcmp( sdbOpName, "$regex" ) == 0 )
+   {
+      rc = SDB_INVALIDARG ;
+      elog( DEBUG1, "$regex is not supported(a:{$regex:{$field:'a'}}})") ;
       goto error ;
    }
 
