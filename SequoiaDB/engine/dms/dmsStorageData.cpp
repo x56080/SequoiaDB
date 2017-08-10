@@ -2338,7 +2338,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to insert CLDel record to log, rc: "
                       "%d", rc ) ;
       }
-      PD_LOG( PDEVENT, "Drop collection[%s] succeed", fullName ) ;
 
    done:
       if ( metalocked )

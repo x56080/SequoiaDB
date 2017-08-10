@@ -903,6 +903,9 @@ namespace engine
          goto error ;
       }
 
+      PD_LOG( PDEVENT, "Create collectionspace[%s] succeed, PageSize:%u, "
+              "LobPageSize:%u", pCollectionSpace, pageSize, lobPageSize ) ;
+
    done :
       if ( DMS_INVALID_CS != suID )
       {
@@ -1049,6 +1052,16 @@ namespace engine
                                          collectionID, logicalID ) ) ;
       }
 
+      {
+         CHAR attrStr[ 64 + 1 ] = { 0 } ;
+         mbAttr2String( attributes, attrStr, sizeof( attrStr ) - 1 ) ;
+         PD_LOG( PDEVENT, "Create collection[%s] succeed, ShardingKey:%s, "
+                 "Attr:%s(0x%08x), CompressType:%s(%d)", pCollection,
+                 shardingKey.toString().c_str(), attrStr, attributes,
+                 utilCompressType2String( (UINT8)compType ),
+                 compType ) ;
+      }
+
    done :
       if ( DMS_INVALID_CS != suID )
       {
@@ -1116,6 +1129,9 @@ namespace engine
       }
       apm = su->getAPM() ;
       apm->invalidatePlans ( pCollectionShortName ) ;
+
+      PD_LOG( PDEVENT, "Create index[%s] for collection[%s] succeed",
+              indexObj.toString().c_str(), pCollection ) ;
 
    done :
       if ( DMS_INVALID_CS != suID )
@@ -1196,6 +1212,9 @@ namespace engine
       apm = su->getAPM() ;
       apm->invalidatePlans ( pCollectionShortName ) ;
 
+      PD_LOG( PDEVENT, "Drop index[%s] for collection[%s] succeed",
+              identifier.toString().c_str(), pCollection ) ;
+
    done :
       if ( DMS_INVALID_CS != suID )
       {
@@ -1222,6 +1241,11 @@ namespace engine
       INT32 rc = rtnDelCollectionSpaceCommand( pCollectionSpace, cb,
                                                dmsCB, dpsCB, sysCall,
                                                TRUE ) ;
+      if ( SDB_OK == rc )
+      {
+         PD_LOG( PDEVENT, "Drop collectionspace[%s] succeed",
+                 pCollectionSpace ) ;
+      }
       PD_TRACE_EXITRC ( SDB_RTNDROPCSCOMMAND, rc ) ;
       return rc ;
    }
@@ -1323,8 +1347,11 @@ namespace engine
       rc = dmsCB->dropCollectionSpaceP2( pCollectionSpace, cb, dpsCB );
       dmsCB->releaseCSMutex( pCollectionSpace ) ;
       PD_RC_CHECK( rc, PDERROR,
-                  "failed to drop cs(name:%s, rc=%d)",
-                  pCollectionSpace, rc );
+                   "Failed to drop cs(name:%s, rc=%d)",
+                   pCollectionSpace, rc ) ;
+
+      PD_LOG( PDEVENT, "Drop collectionspace[%s] succeed", pCollectionSpace ) ;
+
    done:
       PD_TRACE_EXITRC ( SDB_RTNDROPCSP2, rc ) ;
       return rc ;
@@ -1371,6 +1398,7 @@ namespace engine
       apm = su->getAPM() ;
       apm->invalidatePlans ( pCollectionShortName ) ;
 
+      PD_LOG( PDEVENT, "Drop collection[%s] succeed", pCollection ) ;
    done :
       if ( DMS_INVALID_CS != suID )
       {
@@ -1440,6 +1468,9 @@ namespace engine
          dmsCB->pushDictJob( dmsDictJob( suID, su->LogicalCSID(),
                              context->mbID(), context->clLID() ) ) ;
       }
+
+      PD_LOG( PDEVENT, "Truncate collection[%s] succeed",
+              pCollection ) ;
 
    done :
       if ( context )
