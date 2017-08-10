@@ -640,7 +640,12 @@ public class MyUtil {
             if (node == null)
                 return 0;
             db = node.connect();
-            return db.getCollectionSpace(csName).getCollection(clName).getCount();
+            DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
+            if (cl != null) {
+                return cl.getCount();
+            } else {
+                return 0;
+            }
         } catch (BaseException e) {
             e.printStackTrace();
             return 0;
@@ -796,7 +801,7 @@ public class MyUtil {
     public static int getNumOfLobFromDataNode(String csName, String clname, NodeWrapper node) {
         int count = 0;
         Sequoiadb db = null;
-        try  {
+        try {
             db = node.connect();
             DBCollection cl = db.getCollectionSpace(csName)
                     .getCollection(clname);
@@ -805,10 +810,10 @@ public class MyUtil {
                 cursor.getNext();
                 count++;
             }
-        }catch (BaseException e) {
+        } catch (BaseException e) {
             Assert.fail(e.getMessage());
-        }finally{
-            if(db!=null){
+        } finally {
+            if (db != null) {
                 db.disconnect();
             }
         }
@@ -823,7 +828,7 @@ public class MyUtil {
         for (NodeWrapper nodeWrapper : group.getNodes()) {
             int numInNode = getNumOfLobFromDataNode(csName, clName, nodeWrapper);
             if (num != numInNode) {
-                log.severe("num:"+String.valueOf(num)+" numInNode"+String.valueOf(numInNode));
+                log.severe("num:" + String.valueOf(num) + " numInNode" + String.valueOf(numInNode));
                 return false;
             }
         }
@@ -836,7 +841,7 @@ public class MyUtil {
 
         for (NodeWrapper node : groupWrapper.getNodes()) {
             Sequoiadb db = null;
-            try  {
+            try {
                 db = node.connect();
                 DBCollection cl = db.getCollectionSpace(csName)
                         .getCollection(clName);
@@ -850,10 +855,10 @@ public class MyUtil {
                     if (compareMd5(bytes, targetMd5Value) == false)
                         return false;
                 }
-            }catch (BaseException e) {
+            } catch (BaseException e) {
                 Assert.fail(e.getMessage());
-            }finally{
-                if(db!=null){
+            } finally {
+                if (db != null) {
                     db.disconnect();
                 }
             }
