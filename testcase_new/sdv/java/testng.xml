@@ -18,6 +18,7 @@
             <package name="com.sequoiadb.index" />
             <package name="com.sequoiadb.crud" />
             <package name="com.sequoiadb.crud.compress.snappy" />
+            <package name="com.sequoiadb.subcl" />
         </packages>
    </test>
  
