@@ -1058,8 +1058,8 @@ namespace engine
          PD_LOG( PDEVENT, "Create collection[%s] succeed, ShardingKey:%s, "
                  "Attr:%s(0x%08x), CompressType:%s(%d)", pCollection,
                  shardingKey.toString().c_str(), attrStr, attributes,
-                 utilCompressType2String( (UINT8)compType ),
-                 compType ) ;
+                 utilCompressType2String( (UINT8)compressorType ),
+                 compressorType ) ;
       }
 
    done :
