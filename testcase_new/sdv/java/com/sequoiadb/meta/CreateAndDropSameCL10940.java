@@ -4,7 +4,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Random;
 
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -15,7 +14,6 @@ import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -31,7 +29,6 @@ public class CreateAndDropSameCL10940 extends SdbTestBase {
 	
 	private String clName = "cl10940";
 	private static Sequoiadb sdb = null;
-	private Random random = new Random();	
 	String clGroupName = null;
 	
 	@BeforeClass
@@ -131,7 +128,9 @@ public class CreateAndDropSameCL10940 extends SdbTestBase {
 			cl.insert("{a:1}");	
 			Assert.assertEquals(cl.getCount(), 1);
 		}catch(BaseException e){
-			Assert.assertTrue(false,"insert fail "+e.getMessage());
+			if (e.getErrorCode() != -23) {
+				Assert.fail("insert fail, " + e.getMessage());
+			}
 		}
 	}
 }
