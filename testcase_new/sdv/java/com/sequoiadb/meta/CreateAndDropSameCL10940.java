@@ -36,7 +36,7 @@ public class CreateAndDropSameCL10940 extends SdbTestBase {
 		System.out.println(this.getClass().getName()+" begin at "
 				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
-			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+			sdb = new Sequoiadb(SdbTestBase.coordUrl, "sdbadmin", "sdbadmin");
 		}catch(BaseException e){			
 			Assert.assertTrue(false,"connect %s failed,"+SdbTestBase.coordUrl+e.getMessage());
 		}		
@@ -89,7 +89,7 @@ public class CreateAndDropSameCL10940 extends SdbTestBase {
             DBCollection dbcl = null;
             
             try{
-                db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+                db1 = new Sequoiadb(SdbTestBase.coordUrl, "sdbadmin", "sdbadmin");
                 cs1 = db1.getCollectionSpace(SdbTestBase.csName);
                 dbcl = cs1.createCollection(clName);     
                 checkCreateCl(dbcl);
@@ -109,7 +109,7 @@ public class CreateAndDropSameCL10940 extends SdbTestBase {
             Sequoiadb db2 = null;
             CollectionSpace cs2 = null;     
             try{
-                db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+                db2 = new Sequoiadb(SdbTestBase.coordUrl, "sdbadmin", "sdbadmin");
                 cs2 = db2.getCollectionSpace(SdbTestBase.csName);    
                 cs2.dropCollection(clName);   
                 Assert.assertNull(cs2.getCollection(clName));

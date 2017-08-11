@@ -36,8 +36,8 @@ import com.sequoiadb.testcommon.SdbThreadBase;
 */
 public class CreateAndDropCL10944 extends SdbTestBase {	
 	
-	private String csName = "cs10940";
-	private String clName = "cl10940";
+	private String csName = "cs10944";
+	private String clName = "cl10944";
 	private static Sequoiadb sdb = null;
 	private Stack<String> preClNames = new Stack<String>();
 	private Random random = new Random();	
