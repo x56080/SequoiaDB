@@ -25,6 +25,7 @@
             <var name="BREAK_ON_FAILURE" value="false"/>
          </else>
       </if>
+      
       <pythondriver type="install"/>
       
       <!--execute-->
@@ -32,6 +33,8 @@
       <execallcase pyversion="python2" testcasedir="${testcase_dir}" reportdir="${report_dir}"/>
       <execallcase pyversion="python3" testcasedir="${testcase_dir}" reportdir="${report_dir}"/>
             
+      <pythondriver type="uninstall"/>
+      
    </target>
 
    <macrodef name="execallcase">
@@ -257,36 +260,34 @@
    <macrodef name="pythondriver">
       <attribute name="type"/>
       <sequential>
-         <var name="pythondir" value="${INSTALL_DIR}/python"/>
-         <switch value="@{type}">
-         
-            <case value="install">
-               <for param="pytarfullname">
-                  <path>
-                     <fileset  dir="${pythondir}" includes="pysequoiadb*.tar.gz"/>
-                  </path>
-                  <sequential>
-                  
-                     <var name="py_version" unset="true"/>
-                     <propertyregex property="py_version" input="@{pytarfullname}" 
-                                    regexp="${pythondir}/pysequoiadb-(.*)-py(.*).tar.gz" select="\2" casesensitive="false"/>
-                                    
+         <var name="pythondir" value="${INSTALL_DIR}/python"/>         
+         <for param="pytarfullname">
+            <path>
+               <fileset  dir="${pythondir}" includes="pysequoiadb*.tar.gz"/>
+            </path>
+            <sequential>
+            
+               <var name="py_version" unset="true"/>
+               <propertyregex property="py_version" input="@{pytarfullname}" 
+                              regexp="${pythondir}/pysequoiadb-(.*)-py(.*).tar.gz" select="\2" casesensitive="false"/>
+               <switch value="@{type}">
+                  <case value="install">
                      <delete dir="${pythondir}/py${py_version}" failonerror="false"/>
                      <mkdir dir="${pythondir}/py${py_version}"/>
                      <untar src="@{pytarfullname}" dest="${pythondir}/py${py_version}" compression="gzip"/>
                      <exec executable="python${py_version}" dir="${pythondir}/py${py_version}" failonerror="true" logError="true">
-                        <arg line=" setup.py install" />
+                        <arg line=" setup.py install --force --record files.txt" />
                      </exec>
-                     
-                  </sequential>
-               </for>
-               
-            </case>
+                  </case>
             
-            <case value="uninstall">
-               <!--delete dir="${pythondir}/py*" failonerror="false"/-->
-            </case>
-         </switch>
+                  <case value="uninstall">
+                     <exec executable="/bin/bash" dir="${pythondir}/py${py_version}" failonerror="true" logError="true">
+                        <arg line=" -c 'cat files.txt |xargs rm -rf'  " />
+                     </exec>
+                  </case>
+               </switch>
+            </sequential>
+         </for>
       </sequential>
    </macrodef>
 
