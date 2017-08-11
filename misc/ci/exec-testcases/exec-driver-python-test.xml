@@ -57,7 +57,8 @@
 		
 		<exec executable="${bin_dir}/sdb" dir="" timeout="20000" failonerror="false" logError="true">
 			<arg line="-s &quot;db.close();&quot;" />
-		</exec>	
+		</exec>
+      <antcall target="Uninstall-Driver-Python"/>
 	</target>
 
 	<target name="test-one-suite" depends="">
@@ -153,4 +154,11 @@
 
 		<echo file="${reports.path}/TEST-${test.suite.class.name}.xml" append="true" message="&lt;/testcase&gt;&#10;" />
 	</target>
+
+   <target name="Uninstall-Driver-Python">
+      <exec executable="/bin/bash" dir="${install.path}/sequoiadb/python" failonerror="true" logError="true">
+         <arg line=" -c 'cat files.txt |xargs rm -rf'  " />
+      </exec>
+   </target>
+   
 </project>
