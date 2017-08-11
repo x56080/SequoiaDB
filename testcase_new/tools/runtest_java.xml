@@ -150,7 +150,7 @@
                   </for>
                </else>
             </if>
-            <execreliabilitytest xmlfile="${xmlfile}"/>
+            <execreliabilitytest xmlfile="${xmlfile}" serialnumber="${serial_number}"/>
          </case>
          <default>
             <delete file="${casedir}/proxyxml.xml"/>
@@ -177,12 +177,22 @@
    
    <macrodef name="execreliabilitytest">
       <attribute name="xmlfile"/>
+      <attribute name="serialnumber"/>
       <sequential>
          <path id="testcasecalsspath">
             <pathelement path="${casedir}/build" /> 
             <fileset dir="${casedir}/lib" includes="**/*.jar"/>                  
          </path>
          <taskdef resource="testngtasks" classpath="${casedir}/lib/testng-6.10.1-SNAPSHOT.jar"/>
+         <!--serialnumber=2: only install and deploy once release db,the testng will exec twice, the first report will not be collected to WORKSPACE, so report_detect_dir is not the same-->
+         <var name="report_detect_dir" value="${WORKSPACE}/report"/>
+         <if>
+             <equals arg1="@{serialnumber}" arg2="2"/>
+             <then>
+                <var name="report_detect_dir" unset="true"/>
+                <var name="report_detect_dir" value="${CI_WORK_DIR}/report/reliability"/>
+             </then>
+         </if>
          <for list="@{xmlfile}" param="xmlname">
             <sequential>
                <!--如果有失败的则中断-->
@@ -193,12 +203,12 @@
                   <then>
                      <countstr str="&lt;failure&gt;"  resultproperty="fail_num">
                         <path-elements>
-                           <fileset dir="${WORKSPACE}/report" includes="**/*.xml"/>
+                           <fileset dir="${report_detect_dir}" includes="**/*.xml"/>
                         </path-elements>
                      </countstr>
                      <countstr str="&lt;/error&gt;"  resultproperty="error_num">
                         <path-elements>
-                           <fileset dir="${WORKSPACE}/report" includes="**/*.xml"/>
+                           <fileset dir="${report_detect_dir}" includes="**/*.xml"/>
                         </path-elements>
                      </countstr>
                   </then>
