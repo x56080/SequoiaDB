@@ -11,6 +11,7 @@ import org.bson.BasicBSONObject;
 import org.testng.Assert;
 import org.testng.SkipException;
 
+import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;

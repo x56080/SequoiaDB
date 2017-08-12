@@ -1,4 +1,4 @@
-package com.sequoiadb.subcl;
+package com.sequoiadb.split;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
