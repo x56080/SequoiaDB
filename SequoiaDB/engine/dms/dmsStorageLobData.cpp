@@ -904,20 +904,27 @@ namespace engine
       }
    error:
       {
-         SINT64 nowSize = 0 ;
-         INT32 rcTmp = ossGetFileSize( &file, &nowSize ) ;
-         if ( SDB_OK != rcTmp )
+         if ( !file.isOpened() )
          {
-            PD_LOG( PDERROR, "failed to get file size:%d", rcTmp ) ;
-            goto truncate ;
-         }
-         else if ( nowSize != _fileSz )
-         {
-            goto truncate ;
+            goto done ;
          }
          else
          {
-            goto done ;
+            SINT64 nowSize = 0 ;
+            INT32 rcTmp = ossGetFileSize( &file, &nowSize ) ;
+            if ( SDB_OK != rcTmp )
+            {
+               PD_LOG( PDERROR, "failed to get file size:%d", rcTmp ) ;
+               goto truncate ;
+            }
+            else if ( nowSize != _fileSz )
+            {
+               goto truncate ;
+            }
+            else
+            {
+               goto done ;
+            }
          }
       }
    }
