@@ -14,6 +14,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import org.testng.SkipException;
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
@@ -21,14 +22,14 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 /**
- * FileName: Sdv6190.java
+ * FileName: CreateMoreSubCLs6190.java
  * test content: 创建多个子表，指定的ShardingKey字段不同_SD.subCL.01.023 
  * testlink case: seqDB-6190
  * @author zengxianquan
  * @date 2016年12月22日
  * @version 1.00
  */
-public class Sdv6190 extends SdbTestBase{
+public class CreateMoreSubCLs6190 extends SdbTestBase{
 		
 	private Sequoiadb sdb = null;
 	private CollectionSpace cs = null;
@@ -46,6 +47,13 @@ public class Sdv6190 extends SdbTestBase{
 			e.printStackTrace();
 			Assert.fail(e.getMessage());
 		}
+		
+		if (Commlib.isStandAlone(sdb)){
+            throw new SkipException("is standalone skip testcase");
+        }
+		if (Commlib.getDataGroups(sdb).size() < 2){
+            throw new SkipException("current environment less than tow groups");
+        }
 	}
 	
 	@AfterClass

@@ -17,14 +17,14 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 /**
- * FileName: Sdv834.java
+ * FileName: CreateMainCLSplitHash834.java
  * test content: 主表为hash分区
  * testlink case: seqDB-834
  * @author zengxianquan
  * @date 2016年12月22日
  * @version 1.00
  */
-public class Sdv834 extends SdbTestBase{
+public class CreateMainCLSplitHash834 extends SdbTestBase{
 		
 	private Sequoiadb sdb = null;
 	private CollectionSpace maincs = null;
@@ -42,6 +42,9 @@ public class Sdv834 extends SdbTestBase{
 		}
         if (Commlib.isStandAlone(sdb)){
             throw new SkipException("is standalone skip testcase");
+        }
+		if (Commlib.getDataGroups(sdb).size() < 2){
+            throw new SkipException("current environment less than tow groups");
         }
 	}
 	

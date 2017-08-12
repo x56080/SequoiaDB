@@ -23,17 +23,18 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 /**
- * FileName: Sdv831.java
+ * FileName: QueryMainCLIndex831.java
  * test content: 查询主表下数据,并使用query.explain访问计划查看查询状态
  * testlink case: seqDB-831
  * @author zengxianquan
- * @date 2016年12月20日
+ * @date 2016.12.20
  * @version 1.00
  */
-public class Sdv831 extends SdbTestBase{
+public class QueryMainCLIndex831 extends SdbTestBase{
 		
 	private Sequoiadb sdb = null;
 	private CollectionSpace maincs = null;
+	private String maincsName = "maincs831";
 	private String mainclName = "maincl831";
 	private int groupSize = 0;
 	private String index;
@@ -44,7 +45,7 @@ public class Sdv831 extends SdbTestBase{
 				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl,"","");
-			maincs = sdb.getCollectionSpace(SdbTestBase.csName);
+			createMainCS();
 		}catch(BaseException e){
 			e.printStackTrace();
 			Assert.fail(e.getMessage());
@@ -52,23 +53,39 @@ public class Sdv831 extends SdbTestBase{
         if (Commlib.isStandAlone(sdb)){
             throw new SkipException("is standalone skip testcase");
         }
+		if (Commlib.getDataGroups(sdb).size() < 2){
+            throw new SkipException("current environment less than tow groups");
+        }
 	    createMaincl();
 	    createSubcls();
 	    attachSubcls();
 	    createIndexAndInsertData();
 	}
+	
 	@AfterClass
 	public void tearDown(){
 		try{		
-			maincs.dropCollection(mainclName);
+			sdb.dropCollectionSpace(maincsName);
 		}catch(BaseException e){
-			Assert.assertEquals(-23, e.getErrorCode(), e.getMessage());
+			Assert.fail("drop cs failed: " + e.getMessage());
 		}finally{
 			System.out.println("End to run " + this.getClass().getName() 
 						+ ", end in: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 			sdb.disconnect();
 		}
 	}	
+	
+	public void createMainCS() {
+		BSONObject options = new BasicBSONObject();	
+		options.put("PageSize", 4096);
+		try{			
+			maincs = sdb.createCollectionSpace(maincsName);
+		}catch(BaseException e){
+			if(-33 != e.getErrorCode()) {
+				Assert.assertTrue(false, "create Maincs failed "+e.getMessage());
+			}		
+		}
+	}
 	
 	public void createMaincl(){	
 		BSONObject options = new BasicBSONObject();	
@@ -80,15 +97,15 @@ public class Sdv831 extends SdbTestBase{
 		try{			
 			maincs.createCollection(mainclName,options);
 		}catch(BaseException e){
-			Assert.assertTrue(false, "createMaincl failed "+e.getMessage());
+			Assert.assertTrue(false, "create Maincl failed "+e.getMessage());
 		}
 	}
-	/**
-	 * 每个数据组创建一个子表
-	 */
+	
+	
 	public void createSubcls(){
 		ArrayList<String> groupNames=Commlib.getDataGroups(sdb);
 		groupSize = groupNames.size();
+		System.out.println("groupSize: " + groupSize);
 		try{
 			for(int j = 0;j<groupSize;j++){
 				BSONObject options = new BasicBSONObject();
@@ -109,9 +126,9 @@ public class Sdv831 extends SdbTestBase{
 		}
 		try{
 			for(int j = 0;j<groupSize;j++){
-				String jsonStr = "{'LowBound':{'a':"+j*100+"},UpBound:{'a':"+(j+1)*100+"}}";
+				String jsonStr = "{'LowBound':{'a':"+j*300+"},UpBound:{'a':"+(j+1)*300+"}}";//every subcl has 300 records
 				BSONObject options = (BSONObject) JSON.parse(jsonStr);
-				maincl.attachCollection(SdbTestBase.csName+".subcl831_"+j, options);
+				maincl.attachCollection(maincsName+".subcl831_"+j, options);
 			}
 		}catch(BaseException e){
 			Assert.assertTrue(false, "attachSubcl  failed "+e.getMessage());
@@ -119,23 +136,27 @@ public class Sdv831 extends SdbTestBase{
 	}
 	
 	public void createIndexAndInsertData(){
-		//构造插入的数据
 		List <BSONObject> insertor = new ArrayList<>();
-		for(int i = 0; i<groupSize*100; i++){
+		StringBuffer strBuffer = new StringBuffer();
+		for(int j = 0; j < 512; j++) {
+			strBuffer.append("a");
+		}
+		for(int i = 0; i<groupSize*300; i++){
 			BSONObject bson = new BasicBSONObject();
 			bson.put("a", i);
-			bson.put("test", "testData");
+			bson.put("test", strBuffer.toString());
 			insertor.add(bson);
 		}
 		DBCollection maincl;
 		try{
-			maincl=sdb.getCollectionSpace(csName).getCollection(mainclName);
+			maincl=sdb.getCollectionSpace(maincsName).getCollection(mainclName);
 			BSONObject indexBson = new BasicBSONObject();
 			indexBson.put("a", 1);
 			index = "Idx";
 			maincl.createIndex(index,indexBson,false,false);
 			maincl.bulkInsert(insertor, 1);			
 		}catch(BaseException e){
+			System.out.println("create index error: " + e.getErrorCode() +" " + e.getMessage());
 			e.printStackTrace();
 			Assert.fail(e.getMessage());
 		}
@@ -150,9 +171,10 @@ public class Sdv831 extends SdbTestBase{
 		BSONObject queryDetail = null;
 		try{
 			maincl = maincs.getCollection(mainclName);
-			BSONObject matcher = (BSONObject) JSON.parse("{a:{$gt:10}}");
+			BSONObject matcher = (BSONObject) JSON.parse("{a:{$gt:200,$lt:800}}");
 			BSONObject options = (BSONObject) JSON.parse("{Run:true}");
-			BSONObject query = (BSONObject) JSON.parse("{$and:[{a:{$gt:10}}]}");
+          
+			BSONObject query = (BSONObject) JSON.parse("{$and:[{a:{$gt:200}},{a:{$lt:800}}]}");
 			expRes = maincl.explain(matcher, null, null, null, 0, -1, 0, options);			
 			while(expRes.hasNext()){
 				expDets=(BasicBSONList) expRes.getNext().get("SubCollections");
@@ -161,10 +183,12 @@ public class Sdv831 extends SdbTestBase{
 				String indexName = (String) expDet.get("IndexName");
 				queryDetail = (BSONObject) JSON.parse(expDet.get("Query").toString());
 				if(!scanType.equals("ixscan")||!indexName.equals(index)||!queryDetail.equals(query)){
+					System.out.println("scanType: " + scanType + " " + "name: " + indexName + " " + "Detail: " + JSON.parse(queryDetail.toString()));
 					Assert.fail("query().explain() has false");
 				}
 			}
 		}catch(BaseException e){
+			System.out.println("testQueryExplain error: " + e.getMessage());
 			e.printStackTrace();
 			Assert.fail(e.getMessage());
 		}finally{

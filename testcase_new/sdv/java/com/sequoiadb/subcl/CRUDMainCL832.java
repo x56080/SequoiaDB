@@ -24,14 +24,14 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 /**
- * FileName: Sdv832.java
+ * FileName: CRUDMainCL832.java
  * test content: 多子表大数据量时对主表做增删改操作_SD.subCL.01.019
  * testlink case: seqDB-832
  * @author zengxianquan
  * @date 2016年12月21日
  * @version 1.00
  */
-public class Sdv832 extends SdbTestBase{
+public class CRUDMainCL832 extends SdbTestBase{
 		
 	private Sequoiadb sdb = null;
 	private CollectionSpace maincs = null;
@@ -52,6 +52,9 @@ public class Sdv832 extends SdbTestBase{
 		}
         if (Commlib.isStandAlone(sdb)){
             throw new SkipException("is standalone skip testcase");
+        }
+		if (Commlib.getDataGroups(sdb).size() < 2){
+            throw new SkipException("current environment less than tow groups");
         }
 		createMaincl();
 		createSubcls();

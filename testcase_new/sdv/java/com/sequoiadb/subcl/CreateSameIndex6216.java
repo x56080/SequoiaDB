@@ -23,17 +23,18 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 /**
- * FileName: MainSub6216.java
- * test content: 子表创建索引后在主表创建相同索引_SD.subCL.01.024 
+ * FileName: CreateSameIndex6216.java
+ * test content: 子表创建索引后在主表创建相同索引_SD.subCL.01.024
  * testlink case: seqDB-6216
  * @author zengxianquan
- * @date 2016年12月28日
+ * @date 2016.12.28
  * @version 1.00
  */
-public class Sdv6216 extends SdbTestBase{
+public class CreateSameIndex6216 extends SdbTestBase{
 		
 	private Sequoiadb db = null;
 	private CollectionSpace maincs = null;
+	private String maincsName = "maincs6216";
 	private String mainclName = "maincl6216";
 	private DBCollection subcl1 = null;
 	private DBCollection subcl2 = null;
@@ -46,24 +47,27 @@ public class Sdv6216 extends SdbTestBase{
 				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			db = new Sequoiadb(SdbTestBase.coordUrl,"","");
-			maincs = db.getCollectionSpace(SdbTestBase.csName);
+			createMainCS();
 		}catch(BaseException e){
 			Assert.fail(e.getMessage()+e.getMessage());
 		}
         if (Commlib.isStandAlone(db)){
             throw new SkipException("is standalone skip testcase");
         }
+		if (Commlib.getDataGroups(db).size() < 2){
+            throw new SkipException("current environment less than tow groups");
+        }
 		createMaincl();
-		//创建普通子表，每个子表还不存在索引，并挂载到主表中
+
 		createAndAttachSubcls();
 	}
 
 	@AfterClass
 	public void tearDown(){
 		try{		
-			maincs.dropCollection(mainclName);
+			db.dropCollectionSpace(maincsName);
 		}catch(BaseException e){
-			Assert.assertEquals(e.getErrorCode(), -23, e.getMessage());
+			 Assert.fail("drop cs failed: " + e.getMessage());
 		}finally{
 			System.out.println("End to run " + this.getClass().getName() 
 						+ ", end in: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
@@ -73,29 +77,28 @@ public class Sdv6216 extends SdbTestBase{
 	
 	@Test
 	public void testCreateIndex(){
-		//覆盖非唯一索引
+		
 		boolean isUnique = false;
-		//subcl1创建索引
+		
 		createIndexInSub(isUnique);
-		//在主表创建索引之前，检验每个子表的索引情况
+		
 		checkIndexBeforeMainclCreateIndex();
-		//主表创建一个相同的索引
+		
 		createIndexInMaincl(isUnique);
-		//在主表创建索引之后，检验每个子表的索引情况
+		
 		checkIndexAfterMainclCreateIndex();
 		insertData();
 		checkQueryExplain();
-		//覆盖唯一索引
-		//先把前面的创建的索引删除
+		
 		dropIndex();
 		isUnique = true;
-		//subcl1创建索引
+		
 		createIndexInSub(isUnique);
-		//在主表创建索引之前，检验每个子表的索引情况
+		
 		checkIndexBeforeMainclCreateIndex();
-		//主表创建一个相同的索引
+		
 		createIndexInMaincl(isUnique);
-		//在主表创建索引之后，检验每个子表的索引情况
+		
 		checkIndexAfterMainclCreateIndex();
 		insertData();
 		checkQueryExplain();
@@ -119,6 +122,18 @@ public class Sdv6216 extends SdbTestBase{
 		}
 	}
 	
+	public void createMainCS() {
+		BSONObject options = new BasicBSONObject();	
+		options.put("PageSize", 4096);
+		try{			
+			maincs = db.createCollectionSpace(maincsName);
+		}catch(BaseException e){
+			if(-33 != e.getErrorCode()) {
+				Assert.assertTrue(false, "createMaincl failed "+e.getMessage());
+			}		
+		}
+	}
+	
 	public void createMaincl(){	
 		BSONObject options = new BasicBSONObject();	
 		options.put("IsMainCL", true);
@@ -133,22 +148,20 @@ public class Sdv6216 extends SdbTestBase{
 		}
 	}
 	
-	/**
-	 * 创建普通的不存在索引的表，并挂载到主表中
-	 */
+	
 	public void createAndAttachSubcls(){	
 		BSONObject options = new BasicBSONObject();
 		options.put("AutoIndexId", false);	
-		String jsonStr1 = "{'LowBound':{'time':0},UpBound:{'time':100}}";
-		String jsonStr2 = "{'LowBound':{'time':100},UpBound:{'time':200}}";	
+		String jsonStr1 = "{'LowBound':{'time':0},UpBound:{'time':300}}";
+		String jsonStr2 = "{'LowBound':{'time':300},UpBound:{'time':600}}";	
 		BSONObject options1 = (BSONObject) JSON.parse(jsonStr1);
 		BSONObject options2 = (BSONObject) JSON.parse(jsonStr2);
 		try{
 			maincl = maincs.getCollection(mainclName);
 			subcl1 = maincs.createCollection("subcl626_1",options);					
 			subcl2 = maincs.createCollection("subcl626_2",options);
-			maincl.attachCollection(SdbTestBase.csName+"."+"subcl626_1", options1);
-			maincl.attachCollection(SdbTestBase.csName+"."+"subcl626_2", options2);
+			maincl.attachCollection(maincsName+"."+"subcl626_1", options1);
+			maincl.attachCollection(maincsName+"."+"subcl626_2", options2);
 		}catch(BaseException e){
 			e.printStackTrace();
 			Assert.fail( "createAndAttachCl failed "+e.getMessage());
@@ -200,12 +213,12 @@ public class Sdv6216 extends SdbTestBase{
 		BSONObject key = null;
 		String name = null;
 		try{
-			//判断不存在索引的情况
+			
 			cursor = cl.getIndexes();
 			if(cursor.hasNext() == false && (expectIndexName != null || expectIndexKey != null)){
 				Assert.fail("index message is error");
 			}
-			//判断存在索引的情况
+			
 			while(cursor.hasNext()){
 				indexDetail = cursor.getNext();
 				indexDef = (BSONObject) indexDetail.get("IndexDef");
@@ -225,16 +238,16 @@ public class Sdv6216 extends SdbTestBase{
 		}
 	}
 	public void insertData(){
-		//构造插入的数据
+		
 		List <BSONObject> insertor = new ArrayList<>();
-		for(int i = 0; i < 200; i++){
+		for(int i = 0; i < 600; i++){
 			BSONObject bson = new BasicBSONObject();
 			bson.put("time", i);
 			bson.put("test", "test");
 			insertor.add(bson);
 		}	
 		try{
-			//插入数据
+			
 			maincl.bulkInsert(insertor, 1);		
 		}catch(BaseException e){
 			Assert.fail(e.getMessage());
@@ -247,9 +260,9 @@ public class Sdv6216 extends SdbTestBase{
 		BasicBSONList expDets = null ;
 		BSONObject queryDetail = null;
 		try{
-			BSONObject matcher = (BSONObject) JSON.parse("{time:{$gt:10}}");
+			BSONObject matcher = (BSONObject) JSON.parse("{time:{$gt:200,$lt:400}}");
 			BSONObject options = (BSONObject) JSON.parse("{Run:true}");
-			BSONObject query = (BSONObject) JSON.parse("{$and:[{time:{$gt:10}}]}");
+			BSONObject query = (BSONObject) JSON.parse("{$and:[{time:{$gt:200}},{time:{$lt:400}}]}");
 			expRes = maincl.explain(matcher, null, null, null, 0, -1, 0, options);			
 			while(expRes.hasNext()){
 				expDets=(BasicBSONList) expRes.getNext().get("SubCollections");
@@ -258,6 +271,7 @@ public class Sdv6216 extends SdbTestBase{
 				String name = (String) expDet.get("IndexName");
 				queryDetail = (BSONObject) JSON.parse(expDet.get("Query").toString());
 				if(!scanType.equals("ixscan")||!indexName.equals(name)||!queryDetail.equals(query)){
+					System.out.println("scanType: " + scanType + " " + "name: " + name + " " + "Detail: " + JSON.parse(queryDetail.toString()));
 					Assert.fail("query().explain() has false");
 				}
 			}

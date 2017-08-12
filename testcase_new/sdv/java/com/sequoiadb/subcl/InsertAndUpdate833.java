@@ -23,14 +23,14 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 /**
- * FileName: Sdv833.java
+ * FileName: InsertAndUpdate833.java
  * test content: 挂载子表,批量插入数据的同时修改子表_SD.subCL.01.020
  * testlink case: seqDB-833
  * @author zengxianquan
  * @date 2016年12月21日
  * @version 1.00
  */
-public class Sdv833 extends SdbTestBase{
+public class InsertAndUpdate833 extends SdbTestBase{
 		
 	private Sequoiadb sdb = null;
 	private CollectionSpace maincs = null;
@@ -50,6 +50,9 @@ public class Sdv833 extends SdbTestBase{
 		}
         if (Commlib.isStandAlone(sdb)){
             throw new SkipException("is standalone skip testcase");
+        }
+		if (Commlib.getDataGroups(sdb).size() < 2){
+            throw new SkipException("current environment less than tow groups");
         }
 		createMaincl();
 		createAndattachSubcl();

@@ -23,14 +23,14 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 /**
- * FileName: Sdv830.java
+ * FileName: DeleteAndDoCount830.java
  * test content: 多线程并发删除数据的同时做count操作_SD.subCL.01.017 
  * testlink case: seqDB-830
  * @author zengxianquan
  * @date 2016年12月13日
  * @version 1.00
  */
-public class Sdv830 extends SdbTestBase{
+public class DeleteAndDoCount830 extends SdbTestBase{
 		
 	private Sequoiadb sdb = null;
 	private CollectionSpace maincs = null;
@@ -51,6 +51,9 @@ public class Sdv830 extends SdbTestBase{
 		}
         if (Commlib.isStandAlone(sdb)){
             throw new SkipException("is standalone skip testcase");
+        }
+		if (Commlib.getDataGroups(sdb).size() < 2){
+            throw new SkipException("current environment less than tow groups");
         }
 	    createMaincl();
 	    createSubcls();
