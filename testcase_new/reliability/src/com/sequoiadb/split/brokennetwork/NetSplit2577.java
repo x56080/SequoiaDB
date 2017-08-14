@@ -204,10 +204,15 @@ public class NetSplit2577 extends SdbTestBase {
     class Insert extends OperateTask {
         @Override
         public void exec() throws Exception {
-            Sequoiadb db = new Sequoiadb(connectUrl, "", "");
-            DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-            insertData(cl, 2000, 8000);
-            db.disconnect();
+        	try {
+	            Sequoiadb db = new Sequoiadb(connectUrl, "", "");
+	            DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
+	            insertData(cl, 2000, 8000);
+	            db.disconnect();
+        	} catch(BaseException e) {
+        		// do nothing
+        		System.out.println("insert have exception:" + e.getMessage());
+        	}
         }
     }
 
@@ -219,13 +224,13 @@ public class NetSplit2577 extends SdbTestBase {
                 sdb = new Sequoiadb(connectUrl, "", "");
                 sdb.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
                 DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-                try {
-                    cl.split(srcGroupName, destGroupName, 50);
-                    splitComplete = true;
+                try{
+                	cl.split(srcGroupName, destGroupName, 50);
+                    splitComplete = true;    
                 }
-                catch (BaseException e) {
-                    System.out.println("split have exception:" + e.getMessage());
-                }
+                catch(BaseException e){
+                	System.out.println("split have exception:" + e.getMessage());
+                }        
             }
             catch (BaseException e) {
                 throw e;
