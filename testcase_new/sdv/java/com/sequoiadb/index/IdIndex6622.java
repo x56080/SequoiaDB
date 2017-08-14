@@ -68,8 +68,10 @@ public class IdIndex6622 extends SdbTestBase {
 			if (!DropIdIndexThread.isSuccess()) {
 				Assert.fail(DropIdIndexThread.getErrorMsg());
 			}
+			
 			Assert.fail("dropIdIndex not begin" + actRecs);
 		} catch (BaseException e) {
+			System.out.println("e:" + e);
 			Assert.assertEquals(-48, e.getErrorCode(), e.getMessage());
 
 		} finally {
@@ -118,9 +120,9 @@ public class IdIndex6622 extends SdbTestBase {
 	@AfterClass
 	public void tearDown() {
 		try {
-			if (this.cs.isCollectionExist(clName)) {
-				this.cs.dropCollection(clName);
-			}
+//			if (this.cs.isCollectionExist(clName)) {
+//				this.cs.dropCollection(clName);
+//			}
 		} catch (BaseException e) {
 			Assert.fail(e.getMessage());
 		} finally {
@@ -156,7 +158,7 @@ public class IdIndex6622 extends SdbTestBase {
 	public void insertData() {
 		try {
 			insertData = new ArrayList<BSONObject>();
-			for (int i = 0; i < 5000; i++) {
+			for (int i = 0; i < 20000; i++) {
 				BSONObject bson = new BasicBSONObject();
 				bson.put("age", i);
 				bson.put("name", "Json" + i);
