@@ -18,7 +18,9 @@ function test_range_attach_hash_upsert_basic()// NOT Error, test mainCL'Sharding
    }
 	try
 	{
-      var cs = commCreateCS( db, COMMCSNAME, true, "create cs in the beginning" );
+		 //set priority from masterNode
+        db.setSessionAttr( {PreferedInstance:"M"} );
+        var cs = commCreateCS( db, COMMCSNAME, true, "create cs in the beginning" );
 		var mainCL = cs.createCL( MainCL_Name, { ShardingKey:{ a:1 }, ShardingType: "range", Partition:4096, ReplSize:0, Compressed:true, IsMainCL:true } ) ;
 		println( "mainCL" );
 		var subCL1 = cs.createCL( subCl_Name + "1", { ShardingKey:{ a:1}, ShardingType: "hash", ReplSize:0, Compressed:true, IsMainCL:false } ) ;
@@ -166,9 +168,6 @@ function test_range_attach_hash_upsert_basic()// NOT Error, test mainCL'Sharding
 
 function main()
 {
-   //set priority from masterNode
-   db.setSessionAttr( {PreferedInstance:"M"} );
-   
 	try
 	{
 		db.listReplicaGroups();

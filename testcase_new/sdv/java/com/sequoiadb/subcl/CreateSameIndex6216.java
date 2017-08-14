@@ -47,6 +47,7 @@ public class CreateSameIndex6216 extends SdbTestBase{
 				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			db = new Sequoiadb(SdbTestBase.coordUrl,"","");
+			db.setSessionAttr((BSONObject)JSON.parse("{PreferedInstance:'M'}"));
 			createMainCS();
 		}catch(BaseException e){
 			Assert.fail(e.getMessage()+e.getMessage());

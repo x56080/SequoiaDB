@@ -6,6 +6,7 @@ import java.util.Date;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
+import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
@@ -36,6 +37,7 @@ public class CreateMainCLSplitHash834 extends SdbTestBase{
 				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl,"","");
+			sdb.setSessionAttr((BSONObject)JSON.parse("{PreferedInstance:'M'}"));
 			maincs = sdb.getCollectionSpace(SdbTestBase.csName);
 		}catch(BaseException e){
 			Assert.assertTrue(false, "connect  failed,"+SdbTestBase.coordUrl+e.getMessage());

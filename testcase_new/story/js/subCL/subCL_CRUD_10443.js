@@ -28,6 +28,7 @@ function main()
    commDropCL( db, csName, mainCLName, true, true,"Fail to drop CL in the beginning" ) ;
 
    // create mainCL and subCL
+   db.setSessionAttr( { PreferedInstance: "M" } );
    var mainCL = createMainCL( csName, mainCLName );
    var subCLName = COMMCLNAME + "_scl";
    var lowBound = -3000;
@@ -142,7 +143,6 @@ function bulkinsertValidRecs( mainCL, recs )
 function checkResult( mainCL, validRecs )
 {
    println( "\n---Begin to check records." );
-   db.setSessionAttr( { PreferedInstance: "M" } );
    var rc = mainCL.find().sort( { _id: 1 } );
    lsqCheckRec( rc, validRecs );
 }

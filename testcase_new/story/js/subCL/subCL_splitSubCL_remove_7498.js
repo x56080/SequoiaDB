@@ -28,6 +28,8 @@ function test_range_attach_hash_insert_remove()
 
    try 
    {
+	   //set priority from masterNode
+      db.setSessionAttr( {PreferedInstance:"M"} );
       var cs = commCreateCS( db, csName, true, "create cs in the beginning" );
    }
    catch(e)
@@ -143,9 +145,6 @@ function test_range_attach_hash_insert_remove()
 
 try
 {
-   //set priority from masterNode
-   db.setSessionAttr( {PreferedInstance:"M"} );
-   
    // Inspect the run mode is standalone or not
    if( true == commIsStandalone( db ) )
       throw "ModeStandAlone" ;

@@ -20,6 +20,7 @@ function main()
 	println("\n---Begin to drop cs in the pre-condition.");
 	commDropCS( db, csName, true, "Failed to drop CS.");
 
+	db.setSessionAttr({PreferedInstance:"M"});
 	commCreateCS( db, csName, false, "Failed to create CS.");
 	var mainCL = createMainCL( csName, mainCLName );
 

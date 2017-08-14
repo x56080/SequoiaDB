@@ -59,6 +59,7 @@ function init() {
 	println( "LOG:clean the environment" );
 
    //create maincl and subcl
+   db.setSessionAttr( {PreferedInstance:"M"} );
    var mainCLOption = { IsMainCL:true, ShardingKey:{ a:1 }, ShardingType: "range", ReplSize:0, Compressed:true };
    mainCl = commCreateCLByOption( db, COMMCSNAME, mainClName, mainCLOption, true, true );
    subCls.push( commCreateCL( db, COMMCSNAME, subClNames[0], 0) );

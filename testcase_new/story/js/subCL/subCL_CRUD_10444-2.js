@@ -29,6 +29,7 @@ function main()
    // unset variable
    commDropCL( db, csName, mainCLName, true, true,"Fail to drop CL in the beginning" );
    // create mainCL and subCLs
+   db.setSessionAttr( { PreferedInstance: "M" } );
    var mainCL = createMainCL( csName, mainCLName );
    // special subCL for testing some special data( arrRecs & strRecs )
    var subCLName = COMMCLNAME + "_scl";
@@ -160,7 +161,6 @@ function cleanUpData( mainCL )
 
 function testMatch( mainCL, option, expRes, matchName )
 {
-   db.setSessionAttr( { PreferedInstance: "M" } );
    actRes = mainCL.find( option ).sort( { _id: 1 } );
    try
    {

@@ -44,6 +44,7 @@ public class DeleteAndDoCount830 extends SdbTestBase{
 				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl,"","");
+			sdb.setSessionAttr((BSONObject)JSON.parse("{PreferedInstance:'M'}"));
 			maincs = sdb.getCollectionSpace(SdbTestBase.csName);
 		}catch(BaseException e){
 			e.printStackTrace();

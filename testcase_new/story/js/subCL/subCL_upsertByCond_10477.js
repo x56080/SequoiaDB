@@ -48,6 +48,7 @@ function main(){
 	println( "LOG:clean the environment" );
 
    //create maincl for range split
+   db.setSessionAttr( {PreferedInstance:"M"} );
    var mainCLOption = { IsMainCL:true, ShardingKey:{ a:1 }, ShardingType: "range", ReplSize:0, Compressed:true };
    mainCl = commCreateCLByOption( db, COMMCSNAME, mainClName, mainCLOption, true, true );
    //create subcl

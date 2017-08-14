@@ -27,6 +27,7 @@ function main()
    // unset variable
    commDropCL( db, csName, mainCLName, true, true,"Fail to drop CL in the beginning" ) ;
    // create mainCL and subCL
+   db.setSessionAttr( { PreferedInstance: "M" } );
    var mainCL = createMainCL( csName, mainCLName );
    var subCLName = COMMCLNAME + "_scl";
    var lowBound = -3000;

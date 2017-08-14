@@ -53,6 +53,7 @@ function main(){
 	commDropCL( db, COMMCSNAME, subClNames[3], true, true, "clean sub collection" );
 	commDropCL( db, COMMCSNAME, mainClName, true, true, "clean main collection" );
    //create maincl for range split
+   db.setSessionAttr( {PreferedInstance:"M"} );
    var mainCLOption = { IsMainCL:true, ShardingKey:{ a:-1 }, ShardingType: "range", ReplSize:0, Compressed:true };
    mainCl = commCreateCLByOption( db, COMMCSNAME, mainClName, mainCLOption, true, true );
    var subCLOptions = [

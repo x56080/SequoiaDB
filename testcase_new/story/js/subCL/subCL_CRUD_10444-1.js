@@ -29,6 +29,7 @@ function main()
    // unset variable
    commDropCL( db, csName, mainCLName, true, true,"Fail to drop CL in the beginning" ) ;
    // create mainCL and subCLs
+   db.setSessionAttr( { PreferedInstance: "M" } );
    var mainCL = createMainCL( csName, mainCLName );
 
    // left subCL, occupying [ 0, 100 )
@@ -157,7 +158,6 @@ function buildIntRecs( lowBound, upBound )
 
 function testMatch( mainCL, option, expRes, matchName )
 {
-   db.setSessionAttr( { PreferedInstance: "M" } );
    actRes = mainCL.find( option ).sort( { _id: 1 } );
    try
    {

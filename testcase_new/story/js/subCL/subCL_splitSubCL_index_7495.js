@@ -37,6 +37,8 @@ function test_range_attach_hash_index_BoundTest()
 
    try
    {
+	    //set priority from masterNode
+      db.setSessionAttr( {PreferedInstance:"M"} );
       var mainCL = cs.createCL( MainCL_Name, { ShardingKey:{ a:1,b:-1 }, ShardingType: "range", ReplSize:0, Compressed:true, IsMainCL:true } ) ;
       println( "mainCL" );
       var subCL1 = cs.createCL( subCl_Name + "1", { ShardingKey:{ a:1 }, ShardingType: "hash", ReplSize:0, Compressed:true, IsMainCL:false } ) ;
@@ -278,9 +280,6 @@ function test_range_attach_hash_index_BoundTest()
 // Add inspect standalone run mode
 try
 {
-   //set priority from masterNode
-   db.setSessionAttr( {PreferedInstance:"M"} );
-   
    // Inspect the run mode is standalone or not
    if( true == commIsStandalone( db ) )
       throw "ModeStandAlone" ;

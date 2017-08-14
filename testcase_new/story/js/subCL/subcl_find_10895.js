@@ -41,6 +41,7 @@ function main()
    }
    
    //create maincl for range split
+   db.setSessionAttr( { PreferedInstance: "M" } );
    var mainCLOption = {ShardingKey:{"a":1},ShardingType:"range", IsMainCL:true};
    var dbcl = commCreateCLByOption( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
    

@@ -40,6 +40,7 @@ function main()
    commDropCL( db, COMMCSNAME, subCL_Name2, true, true, 
                   "clean sub collection" ); 
    //get all groups to groupsArray
+   db.setSessionAttr( {PreferedInstance:"M"} );
    var groupsArray = commGetGroups(db, false, "", false, true, true );
    //获取其中两个数据组的名字
    var groupName1 = groupsArray[1][0].GroupName;

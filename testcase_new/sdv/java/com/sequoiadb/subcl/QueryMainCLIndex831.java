@@ -45,6 +45,7 @@ public class QueryMainCLIndex831 extends SdbTestBase{
 				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl,"","");
+			sdb.setSessionAttr((BSONObject)JSON.parse("{PreferedInstance:'M'}"));
 			createMainCS();
 		}catch(BaseException e){
 			e.printStackTrace();

@@ -32,6 +32,7 @@ function main()
    commDropCL( db, csName, mainCLName, true, true,"Fail to drop CL in the beginning" ) ;
 
    // create mainCL and subCL
+   db.setSessionAttr( { PreferedInstance: "M" } );
    var mainCL = createMainCL( csName, mainCLName, mclKeyPM );
    var subCLName = COMMCLNAME + "_scl";
    var sclKeyPM = [ 1, -1, 1];
@@ -157,7 +158,6 @@ function insertRecs( mainCL, recs, isValid, keyMsg )
 function checkResult( mainCL, validRecs )
 {
    println( "\n---Begin to check records." );
-   db.setSessionAttr( { PreferedInstance: "M" } );
    var rc = mainCL.find().sort( { _id: 1 } );
    lsqCheckRec( rc, validRecs );
 }

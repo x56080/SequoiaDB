@@ -21,6 +21,8 @@ function main( db ) {
    commDropCL( db, COMMCSNAME, CHANGEDPREFIX, true, true,
                "clean collection" );
    println( "clean colleciton successful" );
+   //set priority from masterNode
+   db.setSessionAttr( {PreferedInstance:"M"} );
    var clOptionObj = { ShardingKey: {no:1}, ShardingType:"range", ReplSize:0,
                        Compressed:true, IsMainCL:true };
    var mainCL = commCreateCLByOption( db, COMMCSNAME, CHANGEDPREFIX, clOptionObj,
@@ -81,9 +83,6 @@ function main( db ) {
 
 try 
 {
-   //set priority from masterNode
-   db.setSessionAttr( {PreferedInstance:"M"} );
-   
    if ( false != commIsStandalone( db ) ) 
    {
       println( "run mode is standalone" );

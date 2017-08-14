@@ -38,6 +38,7 @@ function main()
    commDropCL( db, COMMCSNAME, subCL_Name2, true, true, 
                   "clean sub collection" );
    //获取所有的数据组
+   db.setSessionAttr( {PreferedInstance:"M"} );
    var groupsArray=commGetGroups(db, false, "", false, true, true );
    //创建主表
    var mainCLOption = { ShardingKey:{"a":1},ShardingType:"range",IsMainCL:true};

@@ -107,6 +107,7 @@ function testDropSubCLThenCURD( db )
                      "drop sub sub1 collection begin, " + funcName );
          commDropCL( db, subCsName2, COMMCLNAME, true, true,
                      "drop sub sub2 collection begin, " + funcName );
+	     db.setSessionAttr( { PreferedInstance: "M" } );
          var cl = commCreateCLByOption( db, COMMCSNAME, mainClName, optionObj, true,
                                         false,
                                         "failed create main cl in the beginning" );
