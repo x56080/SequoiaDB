@@ -219,7 +219,8 @@ namespace engine
       // Whether the given extent is a valid control block
       OSS_INLINE BOOLEAN _verify() const
       {
-         if ( IXM_EXTENT_CB_EYECATCHER0 != _extent->_eyeCatcher[0] ||
+         if ( NULL == _extent ||
+              IXM_EXTENT_CB_EYECATCHER0 != _extent->_eyeCatcher[0] ||
               IXM_EXTENT_CB_EYECATCHER1 != _extent->_eyeCatcher[1] )
          {
             return FALSE ;
