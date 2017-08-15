@@ -16,7 +16,7 @@
 | --action      | -a   | 恢复行为，“restore”表示恢复，“list”表示查看备份信息，缺省为“restore”。 |
 | --diaglevel   | -v   | 恢复工具自身的日志级别，缺省为 WARNING ( 3 ) |
 | --skipconf    | -s   | 是否需要忽略恢复配置，为 true 时不会改成配置文件 |
-| --isSelf      |      | 是否为恢复本节点数据，缺省为“true”；<br>当取值为“false”时，根据如下参数将数据恢复至指定路径：--dppath，--confpath，--svcname，--indexpath，--logpath，--diagpath，--bkuppath，--replname，--shardname，--catalogname，--httpname。 |
+| --isSelf      |      | 是否为恢复本节点数据，缺省为“true”；<br>当取值为“false”时，根据如下参数将数据恢复至指定路径：--dbpath，--confpath，--svcname，--indexpath，--logpath，--diagpath，--bkuppath，--replname，--shardname，--catalogname，--httpname。 |
 | --dbpath      |      | 必须配置，数据文件目录。 |
 | --confpath    |      | 必须配置，配置文件路径， 当 `-s true` 可缺省。 |
 | --svcname     |      | 必须配置，本地服务名或端口。 |
