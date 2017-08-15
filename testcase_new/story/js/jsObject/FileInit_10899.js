@@ -33,7 +33,7 @@ function testInitLocal()
 function testInitRemote()
 {
    var remotehost = toolGetRemotehost() ;
-   var remote = new Remote( remotehost, CMSVCNAME ) ;
+   var remote = new Remote( remotehost["hostname"], CMSVCNAME ) ;
    var cmd = remote.getCmd() ;
    
    var filename = "/tmp/testInitRemote.txt" ;
@@ -53,13 +53,14 @@ function testInitRemote()
       }
       cmd.run( "rm -rf " + filename ) ;
    }
+	remote.close() ;
 }
 
 // 测试远程文件初始化时文件名参数非法
 function testInitRemoteAbnormal()
 {
    var remotehost = toolGetRemotehost() ;
-   var remote = new Remote( remotehost, CMSVCNAME ) ;
+   var remote = new Remote( remotehost["hostname"], CMSVCNAME ) ;
    
    var errFilename = [ undefined, 123, "" ] ;
    var errno = [ -6, -6, -4 ] ;
@@ -79,6 +80,7 @@ function testInitRemoteAbnormal()
          }
       }
    }
+	remote.close() ;
 }
 
 function main()

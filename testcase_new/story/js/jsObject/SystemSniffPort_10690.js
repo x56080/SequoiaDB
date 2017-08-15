@@ -80,8 +80,8 @@ function main()
    var systems = [ localSystem, remoteSystem ] ;
    
    // 获取空闲端口号
-   var svcname1 = toolGetIdleSvcName( localhost, CMSVCNAME ) ;
-   var svcname2 = toolGetIdleSvcName( remotehost, CMSVCNAME ) ;
+   var svcname1 = toolGetIdleSvcName( localhost["hostname"], CMSVCNAME ) ;
+   var svcname2 = toolGetIdleSvcName( remotehost["hostname"], CMSVCNAME ) ;
    var svcnames = [ svcname1, svcname2 ] ;
    
    for( var i = 0;i < systems.length;i++ )

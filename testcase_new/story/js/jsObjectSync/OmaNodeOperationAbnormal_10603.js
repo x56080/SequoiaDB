@@ -236,13 +236,13 @@ function main()
    var remotehost = toolGetRemotehost() ;
    
    // 获取本地和远程空闲的端口号
-   var svcname1 = toolGetIdleSvcName( localhost, CMSVCNAME ) ;
+   var svcname1 = toolGetIdleSvcName( localhost["hostname"], CMSVCNAME ) ;
    if( svcname1 === undefined )
    {
       println( "No idle svcname between RSRVPORTBEGIN and RSRVPORTEND local" ) ;
       return ;
    }
-   var svcname2 = toolGetIdleSvcName( remotehost, CMSVCNAME ) ;
+   var svcname2 = toolGetIdleSvcName( remotehost["hostname"], CMSVCNAME ) ;
    if( svcname2 === undefined )
    {
       println( "No idle svcname between RSRVPORTBEGIN and RSRVPORTEND remote" ) ;

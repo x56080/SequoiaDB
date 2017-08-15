@@ -62,15 +62,26 @@ SystemTest.prototype.testAddDelUser = function( createDir )
    if( this.system === System )
    {
       if( currUser !== "root" )
+      {
+         println( "current user is not root, can't add del user" ) ;
          return ;
+      }
    }
    else if( cmUser !== "root" )
+   {
+      println( "cm user is not root, can't add del user" ) ;
       return ;
+   }
+      
    // 检查用户组tmpGroup testGroup是否存在
    if( isGroupExist( this.hostname, this.svcname, "tmpGroup" ) || 
        isGroupExist( this.hostname, this.svcname, "testGroup" ) ||
        isUserExist( this.hostname, this.svcname, "createUser" ) )
+   {
+      println( "tmpGroup testGroup or createUser existed" ) ;
       return ;
+   }
+      
    // 创建用户组tmpGroup testGroup
    this.system.addGroup( { name: "tmpGroup" } ) ;
    this.system.addGroup( { name: "testGroup" } ) ;
@@ -112,11 +123,19 @@ SystemTest.prototype.testAddDelUser = function( createDir )
    if( isUserExist( this.hostname, this.svcname, userObj.name ) )
    {
       throw buildException( "testAddDelUser", null, "check user after del",
-            userObj.name + " should be deled", "not deled" ) ;
+            userObj.name + " should be deleted", "not deleted" ) ;
    }
+   checkDir( this.cmd, userObj.dir, false ) ;
+   
    this.system.delGroup( "tmpGroup" ) ;
    this.system.delGroup( "testGroup" ) ;
-   
+   if( isGroupExist( this.hostname, this.svcname, "tmpGroup" ) || 
+       isGroupExist( this.hostname, this.svcname, "testGroup" ) )
+   {
+      throw buildException( "testAddDelUser", null, "check del group in the end",
+            "tmpGroup testGroup should be deleted", "not delete" ) ;
+   }
+       
    this.release() ;
 }
 
@@ -218,8 +237,15 @@ SystemTest.prototype.testSetUserConfigs = function()
       throw buildException( "testSetUserConfigs", null, "check user after del",
             userObj.name + " should be deled", "not deled" ) ;
    }
+   
    this.system.delGroup( "tmpGroup" ) ;
    this.system.delGroup( "testGroup" ) ;
+   if( isGroupExist( this.hostname, this.svcname, "tmpGroup" ) || 
+       isGroupExist( this.hostname, this.svcname, "testGroup" ) )
+   {
+      throw buildException( "testSetUserConfigs", null, "check del group in the end",
+            "tmpGroup testGroup should be deleted", "not delete" ) ;
+   }
    
    this.release() ;
 }
@@ -363,6 +389,8 @@ function checkDir( cmd, dir, createDir )
    try
    {
       cmd.run( "ls -al " + dir ) ;
+      if( !createDir )
+        throw buildException( "checkDir", null, "check user without dir", 2, 0 ) ;
    }
    catch( e )
    {

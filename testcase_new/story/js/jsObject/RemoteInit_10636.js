@@ -10,11 +10,12 @@ function main()
    var remotehost = toolGetRemotehost() ;
    
    // 测试使用不存在的主机初始化
-   var rt = new RemoteTest( "IllegalHost", CMSVCNAME, false, true ) ;
+	var obj = { "hostname": "IllegalHost", "isLocal": true } ;
+   var rt = new RemoteTest( obj, CMSVCNAME, false, true ) ;
    rt.testInit() ;
    
    // 获取空闲端口
-   var svcname = toolGetIdleSvcName( remotehost, CMSVCNAME ) ;
+   var svcname = toolGetIdleSvcName( remotehost["hostname"], CMSVCNAME ) ;
    if( svcname === undefined )
    {
       println( "No idle svcname between RSRVPORTBEGIN and RSRVPORTEND" ) ;

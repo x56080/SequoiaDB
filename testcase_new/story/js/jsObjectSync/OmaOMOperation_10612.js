@@ -51,13 +51,13 @@ function main()
    var remotehost = toolGetRemotehost() ;
    
    // 获取本地和远程空闲的端口号
-   var svcname1 = toolGetIdleSvcName( localhost, CMSVCNAME ) ;
+   var svcname1 = toolGetIdleSvcName( localhost["hostname"], CMSVCNAME ) ;
    if( svcname1 === undefined )
    {
       println( "No idle svcname between RSRVPORTBEGIN and RSRVPORTEND local" ) ;
       return ;
    }
-   var svcname2 = toolGetIdleSvcName( remotehost, CMSVCNAME ) ;
+   var svcname2 = toolGetIdleSvcName( remotehost["hostname"], CMSVCNAME ) ;
    if( svcname2 === undefined )
    {
       println( "No idle svcname between RSRVPORTBEGIN and RSRVPORTEND remote" ) ;
@@ -65,8 +65,8 @@ function main()
    }
    
    // 判断OM是否存在
-   var OmExist1 = isOmExist( localhost, CMSVCNAME ) ;
-   var OmExist2 = isOmExist( remotehost, CMSVCNAME ) ;
+   var OmExist1 = isOmExist( localhost["hostname"], CMSVCNAME ) ;
+   var OmExist2 = isOmExist( remotehost["hostname"], CMSVCNAME ) ;
    
    var localOma = new OmaTest( localhost, CMSVCNAME ) ;
    var remoteOma = new OmaTest( remotehost, CMSVCNAME ) ;

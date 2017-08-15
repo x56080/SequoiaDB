@@ -9,30 +9,57 @@
 *                          10688 System对象获取IpTables信息 
 *@author      : Liang XueWang
 ******************************************************************************/
+function isLsbReleaseExist( cmd )
+{    
+   try
+   {
+      cmd.run( "lsb_release -a" ) ;
+      return true ;
+   }
+   catch( e )
+   {
+      return false ;
+   }
+}
 
 function toolGetReleaseInfo( hostName, svcName )
-{
+{  
    var remote = new Remote( hostName, svcName ) ;
    var cmd = remote.getCmd() ;
-   var result = [] ;
-   
-   var command = "lsb_release -a | grep Description | awk -F ':' '{print $2}'" ;
-   var tmpInfo = cmd.run( command ).split( "\n" ) ;
-   result[0] = tmpInfo[tmpInfo.length-2] ; 
-   result[0] = result[0].replace( /[\t ]/g, '' ) ;
-   
-   command = "uname -s" ;
-   tmpInfo = cmd.run( command ).split( "\n" ) ;
-   var osType = tmpInfo[tmpInfo.length-2] ;
-   command = "uname -r" ;
-   tmpInfo = cmd.run( command ).split( "\n" ) ;
-   var release = tmpInfo[tmpInfo.length-2] ;
-   command = "uname -m" ;
-   tmpInfo = cmd.run( command ).split( "\n" ) ;
-   var machine = tmpInfo[tmpInfo.length-2] ; 
-   result[1] = osType + release + "(" + machine + ")" ;
-   
+   var result ;
+    
+   if( isLsbReleaseExist( cmd ) )
+   {
+      // use lsb_release to get release info
+      var command = "lsb_release -a | grep Description | awk -F ':' '{print $2}'" ;
+      var tmpInfo = cmd.run( command ).split( "\n" ) ;
+      result = tmpInfo[ tmpInfo.length-2 ] ;
+   }
+   else
+   {
+      // if cannot use lsb_release, use release file    
+      var files = [ "/etc/SuSE-release", "/etc/redhat-release", "/etc/os-release" ] ;
+      var file = remote.getFile() ;
+      for( var i = 0;i < files.length;i++ )
+      {
+         if( file.exist( files[i] ) )
+         {
+            if( i == 0 || i == 1 )
+            {
+               result = cmd.run( "cat " + files[i] ).split( "\n" )[0] ;
+            }
+            else
+            {
+               var tmpInfo = cmd.run( "cat /etc/os-release | grep PRETTY_NAME" ).split("\n")[0] ;
+               tmpInfo = tmpInfo.split("=")[1] ;
+               result = tmpInfo.replace( /\"/g, '' ) ;
+            }
+            break ;
+         }
+      }    
+   }
    remote.close() ;
+   result = result.replace( /[\t ]/g, '' ) ;
    return result ;
 }
 
@@ -120,10 +147,9 @@ SystemTest.prototype.testGetReleaseInfo = function()
    
    // 测试获取的系统发行版本信息
    var descript1 = this.system.getReleaseInfo().toObj().Description ;
-   descript1 = descript1.replace( /[\t ]/g, '' ) ;
+   descript1 = descript1.replace( /[\t ]/g, '' ) ; 
    var descript2 = toolGetReleaseInfo( this.hostname, this.svcname ) ;
-   
-   if( descript1 !== descript2[0] &&  descript1 !== descript2[1] )
+   if( descript1 !== descript2 )
    {
       throw buildException( "testGetReleaseInfo", null, "test description " + this, 
                             descript2, descript1 ) ;
