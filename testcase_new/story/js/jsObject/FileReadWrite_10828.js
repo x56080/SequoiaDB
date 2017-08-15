@@ -15,6 +15,7 @@ FileTest.prototype.testReadWrite = function()
    
    var content = generateContent( 'a', 1025 ) ;
    this.file.write( content ) ;     // 写文件
+   
    this.file.seek( 0, 'b' ) ;       
    var readPart = this.file.read( 4 ) ;   // 偏移读部分字符
    if( readPart !== "aaaa" )
@@ -22,6 +23,7 @@ FileTest.prototype.testReadWrite = function()
       throw buildException( "testReadWrite", null, 
                             "test read part " + this, "aaaa", readPart ) ;
    }
+   
    this.file.seek( 0, 'b' ) ;
    var readMax = this.file.read() ;       // 偏移读1024个字符
    if( readMax !== generateContent( 'a', 1024 ) )
@@ -29,12 +31,14 @@ FileTest.prototype.testReadWrite = function()
       throw buildException( "testReadWrite", null, 
             "test read 1024 " + this, generateContent( 'a', 1024 ), readMax ) ;
    }
+   
    var readRest = this.file.read() ;      // 读取剩余字符
    if( readRest !==  'a' )
    {
       throw buildException( "testReadWrite", null, 
                             "test read rest " + this, 'a', readRest ) ;
    }
+   
    this.file.close() ;      // 关闭文件
    checkClose( this.file ) ;
    
@@ -49,6 +53,7 @@ FileTest.prototype.testSeekBoundary = function()
    try
    {
       this.file.seek( -1, 'b' ) ;  // 测试偏移超出文件头边界
+      throw 0 ;
    }
    catch( e )
    {
@@ -56,6 +61,23 @@ FileTest.prototype.testSeekBoundary = function()
       {
          throw buildException( "testSeekBoundary", e, 
                                "test exceed head boundary " + this, -6, e ) ;
+      }
+   }
+   
+   try
+   {
+      this.file.seek( 0, 'b' ) ;
+      this.file.write( "abcdefg" ) ;   // 测试偏移到文件尾部读取
+      this.file.seek( 0, 'e' ) ;
+      this.file.read() ;
+      throw 0 ;
+   }
+   catch( e )
+   {
+      if( e !== -9 )
+      {
+         throw buildException( "testSeekBoundary", e, 
+                               "test seek end and read " + this, -9, e ) ;
       }
    }
    
