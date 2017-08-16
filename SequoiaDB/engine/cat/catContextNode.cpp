@@ -858,7 +858,7 @@ namespace engine
       BSONObj matcher ;
       UINT64 count = 0 ;
 
-      rc = _countNodes( CAT_COLLECTION_INFO_COLLECTION, matcher, count, cb ) ;
+      rc = _countNodes( CAT_NODE_INFO_COLLECTION, matcher, count, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get number of nodes" ) ;
 
@@ -874,7 +874,7 @@ namespace engine
       matcher = BSON(
             CAT_GROUP_NAME"."CAT_HOST_FIELD_NAME <<
             BSON ( "$in" << BSON_ARRAY( OSS_LOCALHOST << OSS_LOOPBACK_IP ) ) ) ;
-      rc = _countNodes( CAT_COLLECTION_INFO_COLLECTION, matcher, count, cb ) ;
+      rc = _countNodes( CAT_NODE_INFO_COLLECTION, matcher, count, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get number of nodes" ) ;
 
