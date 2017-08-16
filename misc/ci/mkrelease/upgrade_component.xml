@@ -417,6 +417,11 @@
                 <actionGroup> 
                     <actionList>
                         <consoleWrite text="${msg(Upgrade.NormalMsg.Rollbak.StartProcess)}"/>
+                        <waitForPort>
+                           <port>${port}</port>
+                           <state>free</state>
+                           <timeout>60000</timeout>
+                        </waitForPort>  
                         <runProgram>
                             <program>service</program>
                             <programArguments> sdbcm start</programArguments>        
