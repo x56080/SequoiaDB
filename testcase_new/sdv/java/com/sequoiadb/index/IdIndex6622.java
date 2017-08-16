@@ -163,7 +163,7 @@ public class IdIndex6622 extends SdbTestBase {
 	public void insertData() {
 		try {
 			insertData = new ArrayList<BSONObject>();
-			for (int i = 0; i < 100000; i++) {
+			for (int i = 0; i < 20000; i++) {
 				BSONObject bson = new BasicBSONObject();
 				bson.put("age", i);
 				bson.put("name", "Json" + i);
