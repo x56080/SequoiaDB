@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          skeleton
 # Required-Start:    $remote_fs $syslog
@@ -287,7 +287,14 @@ case "$1" in
 	# 'force-reload' alias
 	#
 	log_daemon_msg "Restarting $DESC" "$NAME"
-	do_stop "false"
+   
+   if [ "X$2" != "Xall-nodes" ]
+   then
+      do_stop "false"
+   else
+      do_stop "true"
+   fi
+   
 	case "$?" in
 	  0)
 		do_start
@@ -303,8 +310,8 @@ case "$1" in
 	esac
 	;;
   *)
-	#echo "Usage: $SCRIPTNAME {start|stop|restart|reload|force-reload}" >&2
-	echo "Usage: $SCRIPTNAME {start|stop|status|restart|force-reload}" >&2
+   echo "Usage: $SCRIPTNAME { start | stop | status | restart | force-reload }" >&2
+   echo "       $SCRIPTNAME { restart all-nodes | force-reload all-nodes }" >&2
 	exit 3
 	;;
 esac
