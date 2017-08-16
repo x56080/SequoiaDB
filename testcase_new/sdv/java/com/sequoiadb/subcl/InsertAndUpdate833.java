@@ -44,7 +44,6 @@ public class InsertAndUpdate833 extends SdbTestBase{
 				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl,"","");
-			sdb.setSessionAttr((BSONObject)JSON.parse("{PreferedInstance:'M'}"));
 			maincs = sdb.getCollectionSpace(SdbTestBase.csName);
 		}catch(BaseException e){
 			Assert.assertTrue(false, "connect  failed,"+SdbTestBase.coordUrl+e.getMessage());
@@ -173,6 +172,7 @@ public class InsertAndUpdate833 extends SdbTestBase{
 		DBCursor cursor = null;
 		try{
 			db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+			db.setSessionAttr((BSONObject)JSON.parse("{PreferedInstance:'M'}"));
 			cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(subclName);
 			BSONObject order = new BasicBSONObject();
 			order.put("a", 1);			
@@ -210,6 +210,7 @@ public class InsertAndUpdate833 extends SdbTestBase{
 		BSONObject detail = new BasicBSONObject();
 		try{
 			db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+			db.setSessionAttr((BSONObject)JSON.parse("{PreferedInstance:'M'}"));
 			cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(subclName);
 			cursor = db.getSnapshot(8, "{Name:'"+cl.getFullName()+"'}", null, null);
 			while(cursor.hasNext()){

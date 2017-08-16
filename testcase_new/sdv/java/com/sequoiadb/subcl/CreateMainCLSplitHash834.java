@@ -37,7 +37,6 @@ public class CreateMainCLSplitHash834 extends SdbTestBase{
 				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl,"","");
-			sdb.setSessionAttr((BSONObject)JSON.parse("{PreferedInstance:'M'}"));
 			maincs = sdb.getCollectionSpace(SdbTestBase.csName);
 		}catch(BaseException e){
 			Assert.assertTrue(false, "connect  failed,"+SdbTestBase.coordUrl+e.getMessage());
