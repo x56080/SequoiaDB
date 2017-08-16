@@ -51,44 +51,20 @@ public class IdIndex6622 extends SdbTestBase {
 
 	@Test
 	public void queryData() {
-		Sequoiadb db2 = null;
-		DBCursor cursor = null;
-		BSONObject actRecs = null;
-		DropIdIndex DropIdIndexThread = new DropIdIndex();
-		DropIdIndexThread.start();
-		try {
-			db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-			DBCollection cl2 = db2.getCollectionSpace(csName).getCollection(
-					this.clName);
-			// 查询一定要遍历
-			cursor = cl2.query(null, null, null, "{'':'$id'}");
-			while (cursor.hasNext()) {
-				actRecs = cursor.getNext();
-			}
-			if (!DropIdIndexThread.isSuccess()) {
-				Assert.fail(DropIdIndexThread.getErrorMsg());
-			}
-			
-			Assert.fail("dropIdIndex not begin" + actRecs);
-		} catch (BaseException e) {
-			System.out.println("e:" + e);
-			Assert.assertEquals(-48, e.getErrorCode(), e.getMessage());
-
-		} finally {
-			if (cursor != null) {
-				cursor.close();
-			}
-			if (db2 != null) {
-				db2.disconnect();
-			}
-		}
+		DropIdIndex dropIdIndexThread = new DropIdIndex();
+		QueryData queryData = new QueryData();
+		queryData.start();
+		dropIdIndexThread.start();
+		
+		Assert.assertTrue((dropIdIndexThread.isSuccess() && queryData.isSuccess()),
+				           dropIdIndexThread.getErrorMsg() + queryData.getErrorMsg());
 	}
 
 	class DropIdIndex extends SdbThreadBase {
 		@Override
 		public void exec() throws Exception {
-			DBCursor cursor1 = null;
 			Sequoiadb db3 = null;
+			DBCursor cursor1 = null;
 			try {
 				db3 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 				DBCollection cl3 = db3.getCollectionSpace(csName)
@@ -112,6 +88,35 @@ public class IdIndex6622 extends SdbTestBase {
 				cursor1.close();
 				if (db3 != null) {
 					db3.disconnect();
+				}
+			}
+		}
+	}
+	
+	class QueryData extends SdbThreadBase {
+		@Override
+		public void exec() throws Exception {
+			Sequoiadb db2 = null;
+			DBCollection cl2 = null;
+			DBCursor cursor = null;
+			try{
+				db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+				cl2 = db2.getCollectionSpace(csName).getCollection(clName);
+				// 查询一定要遍历
+				cursor = cl2.query(null, null, null, "{'':'$id'}");
+				while (cursor.hasNext()) {
+					BSONObject actRecs = cursor.getNext();
+				}
+				//Assert.fail("need error code: -48");
+			}catch(BaseException e){
+				System.out.println("e:" + e );
+				if(e.getErrorCode() != -48){
+					throw e;
+				}
+			}finally {
+				cursor.close();
+				if (db2 != null) {
+					db2.disconnect();
 				}
 			}
 		}
@@ -158,7 +163,7 @@ public class IdIndex6622 extends SdbTestBase {
 	public void insertData() {
 		try {
 			insertData = new ArrayList<BSONObject>();
-			for (int i = 0; i < 20000; i++) {
+			for (int i = 0; i < 100000; i++) {
 				BSONObject bson = new BasicBSONObject();
 				bson.put("age", i);
 				bson.put("name", "Json" + i);
