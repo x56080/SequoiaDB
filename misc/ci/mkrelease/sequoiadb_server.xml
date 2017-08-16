@@ -209,7 +209,12 @@
                     <showMessageOnError>0</showMessageOnError>
                     <program>systemctl</program>
                     <programArguments>daemon-reload</programArguments>
-                </runProgram>             
+                </runProgram>   
+                <waitForPort>
+                   <port>${port}</port>
+                   <state>free</state>
+                   <timeout>60000</timeout>
+                </waitForPort>                  
                 <runProgram>
                     <customErrorMessage>${msg(Install.ErrorMsg.StartCM.error)}</customErrorMessage>
                     <program>service</program>
