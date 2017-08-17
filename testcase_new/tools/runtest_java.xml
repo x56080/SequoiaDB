@@ -187,7 +187,7 @@
          <!--serialnumber=2: only install and deploy once release db,the testng will exec twice, the first report will not be collected to WORKSPACE, so report_detect_dir is not the same-->
          <var name="report_detect_dir" value="${WORKSPACE}/report"/>
          <if>
-             <equals arg1="@{serialnumber}" arg2="2"/>
+             <equals arg1="@{serialnumber}" arg2="3"/>
              <then>
                 <var name="report_detect_dir" unset="true"/>
                 <var name="report_detect_dir" value="${CI_WORK_DIR}/report/reliability"/>
