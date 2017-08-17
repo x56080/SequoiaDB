@@ -32,7 +32,7 @@ echo "restPort=" $7
 # (upgrade mode) step1: copy install package
 if [  $installMode == "upgrade"  ] ; then  
    rm -rf $rootPath/packet/*
-   cp $installer_pathname  $rootPath/packet
+   cp "$installer_pathname"  $rootPath/packet
    exit $?
 fi
 
@@ -85,7 +85,7 @@ $sdbFile -s " var _svcName = '${svcName}' ;                                     
 isSucc=$?
 
 # (normal mode) step 2: copy install package
-cp $installer_pathname  $rootPath/packet
+cp "$installer_pathname"  $rootPath/packet
 
 # (normal mode) step 3: remove sdbbp.log
 rm -f $rootPath/sdbbp.log
