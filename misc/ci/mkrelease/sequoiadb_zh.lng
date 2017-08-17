@@ -40,6 +40,7 @@ Install.ErrorMsg.StartCM.error=启动cm失败，执行命令：service sdbcm sta
 Install.WarnMsg.CheckUmask=umask值异常！当前umask=${full_mask}，建议改成0022
 Install.WarnMsg.checkHostname=没有配置主机名，主机名可能为空！
 Install.WarnMsg.checkHostnameIp=无法解析主机名${machine_hostname}到本机ip地址！请检查/etc/hosts中的映射关系。
+Install.WarnMsg.startSdbcm=${port}端口还未释放，sdbcm服务可能启动失败。
 
 Upgrade.Paramers.Upgrade.Explanation=是否升级
 Upgrade.Paramers.Upgrade.Check=无效参数: --upgrade ${is_upgrade_mode}, 参数值必须是true或者false

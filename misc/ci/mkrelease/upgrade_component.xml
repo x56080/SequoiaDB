@@ -421,7 +421,17 @@
                            <port>${port}</port>
                            <state>free</state>
                            <timeout>60000</timeout>
-                        </waitForPort>  
+                           <abortOnError>0</abortOnError>
+                        </waitForPort>
+                        <showWarning>
+                           <text>${msg(Install.WarnMsg.startSdbcm)}</text>
+                           <ruleList>
+                              <portTest>
+                                 <condition>cannot_bind</condition>
+                                 <port>${port}</port>
+                              </portTest>
+                           </ruleList>
+                        </showWarning> 
                         <runProgram>
                             <program>service</program>
                             <programArguments> sdbcm start</programArguments>        
