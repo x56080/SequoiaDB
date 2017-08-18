@@ -66,7 +66,6 @@ public class KillNode extends Fault {
 
     @Override
     public void restore() throws FaultException {
-
         // nothing to do
     }
 

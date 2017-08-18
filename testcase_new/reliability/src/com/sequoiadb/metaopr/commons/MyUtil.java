@@ -13,6 +13,7 @@ import org.bson.types.ObjectId;
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
+import org.testng.annotations.BeforeSuite;
 
 import java.io.ByteArrayOutputStream;
 import java.security.MessageDigest;
@@ -147,20 +148,24 @@ public class MyUtil {
         return mgr.getGroupByName("SYSCatalogGroup");
     }
 
+    private static List<String> groupNames = null;
+
+    @BeforeSuite
     public static List<String> getDataGroupNames() {
-        List<String> names = null;
+        if (groupNames != null)
+            return new ArrayList<>(groupNames);
         GroupMgr mgr = null;
         try {
             mgr = new GroupMgr();
-            names = mgr.getAllDataGroupName();
+            groupNames = mgr.getAllDataGroupName();
             mgr.close();
         } catch (ReliabilityException e) {
             throw new BaseException(e.getMessage());
         } finally {
             if (mgr != null)
                 mgr.close();
-            return names;
         }
+        return new ArrayList<>(groupNames);
     }
 
     /**
