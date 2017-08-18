@@ -244,6 +244,8 @@ static const CJSON_MATCH _command[] = {
    { SYMBOL_AGGREGATION, 0,                 3, INPUT_LEN_STR( "$project" ) },
    { SYMBOL_UPDATE,      0,                 2, INPUT_LEN_STR( "$pull" ) },
    { SYMBOL_UPDATE,      0,                 5, INPUT_LEN_STR( "$pull_all" ) },
+   { SYMBOL_UPDATE,      0,                 9, INPUT_LEN_STR( "$pull_all_by" ) },
+   { SYMBOL_UPDATE,      0,                 6, INPUT_LEN_STR( "$pull_by" ) },
    { SYMBOL_UPDATE,      0,                 3, INPUT_LEN_STR( "$push" ) },
    { SYMBOL_UPDATE,      0,                 5, INPUT_LEN_STR( "$push_all" ) },
    { SYMBOL_DATATYPE,    CJSON_REGEX,       1, INPUT_LEN_STR( "$regex" ) },

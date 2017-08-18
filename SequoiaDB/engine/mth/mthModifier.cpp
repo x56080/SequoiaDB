@@ -137,11 +137,12 @@ namespace engine
                       ele.toString().c_str() ) ;
          goto error ;
       }
-      else if ( ( PUSH_ALL == type || PULL_ALL == type ) &&
+      else if ( ( PUSH_ALL == type || PULL_ALL == type ||
+                  PULL_ALL_BY == type ) &&
                 Array != ele.type () )
       {
-         PD_LOG_MSG ( PDERROR, "$push_all/pull_all field must be array, %s",
-                      ele.toString().c_str() ) ;
+         PD_LOG_MSG ( PDERROR, "$push_all/pull_all/pull_all_by field must "
+                      "be array, %s", ele.toString().c_str() ) ;
          goto error ;
       }
       else if ( POP == type && !ele.isNumber() )
@@ -501,17 +502,21 @@ namespace engine
          {
             BSONElement ele = i.next() ;
             BOOLEAN allowed = TRUE ;
-            if ( PULL == me._modType )
+            if ( PULL == me._modType || PULL_BY == me._modType )
             {
-               allowed = ! _pullElementMatch ( ele, me._toModify ) ;
+               allowed = ! _pullElementMatch ( ele, me._toModify,
+                                               ( PULL == me._modType ?
+                                                 TRUE : FALSE ) ) ;
             }
             else
             {
                BSONObjIterator j ( me._toModify.embeddedObject() ) ;
                while ( j.more() )
                {
-                  BSONElement arrJ = j.next() ;
-                  if ( ele.woCompare(arrJ, FALSE) == 0 )
+                  BSONElement eleM = j.next() ;
+                  if ( _pullElementMatch( ele, eleM,
+                                          ( PULL_ALL == me._modType ?
+                                            TRUE : FALSE ) ) )
                   {
                      allowed = FALSE ;
                      break ;
@@ -1449,7 +1454,8 @@ namespace engine
    }
 
    BOOLEAN _mthModifier::_pullElementMatch( BSONElement& org,
-                                            BSONElement& toMatch )
+                                            BSONElement& toMatch,
+                                            BOOLEAN fullMatch )
    {
       // if the one we are trying to match is not object, then we call woCompare
       if ( toMatch.type() != Object )
@@ -1461,6 +1467,23 @@ namespace engine
       if ( org.type() != Object )
       {
          return FALSE ;
+      }
+
+      if ( !fullMatch )
+      {
+         BSONObj objOrg = org.embeddedObject() ;
+         BSONObjIterator itr( toMatch.embeddedObject() ) ;
+         while( itr.more() )
+         {
+            BSONElement e = itr.next() ;
+            BSONElement o = objOrg.getField( e.fieldName() ) ;
+
+            if ( o.eoo() || 0 != e.woCompare( o, false ) )
+            {
+               return FALSE ;
+            }
+         }
+         return TRUE ;
       }
       // otherwise let's do full compare if both sides are object
       return org.woCompare(toMatch, FALSE) == 0 ;
@@ -1547,11 +1570,21 @@ namespace engine
                   {
                      return PULL ;
                   }
+                  else if ( field[5]=='_'&&field[6]=='b'&&
+                            field[7]=='y'&&field[8]=='\0' )
+                  {
+                     return PULL_BY ;
+                  }
                   else if ( field[5]=='_'&&field[6]=='a'&&
                             field[7]=='l'&&field[8]=='l'&&
                             field[9]==0 )
                   {
                      return PULL_ALL ;
+                  }
+                  else if ( field[9]=='_'&&field[10]=='b'&&
+                            field[11]=='y'&&field[12]=='\0' )
+                  {
+                     return PULL_ALL_BY ;
                   }
                }
                else if ( field[3]=='s' && field[4] == 'h' )
@@ -2099,7 +2132,9 @@ namespace engine
       // this codepath should never been hit
       case UNSET:
       case PULL:
+      case PULL_BY:
       case PULL_ALL:
+      case PULL_ALL_BY:
       case POP:
       case RENAME:
       {
@@ -2235,7 +2270,9 @@ namespace engine
 
       if ( UNSET == me->_modType ||
            PULL == me->_modType ||
+           PULL_BY == me->_modType ||
            PULL_ALL == me->_modType ||
+           PULL_ALL_BY == me->_modType ||
            POP == me->_modType ||
            RENAME == me->_modType ||
            NULLOPR == me->_modType )
@@ -2389,9 +2426,11 @@ namespace engine
       // given an input, remove all matching items when they match any of the
       // input
       case PULL:
+      case PULL_BY:
       // given an input, remove all matching items when they match the whole
       // input
       case PULL_ALL:
+      case PULL_ALL_BY:
          rc = _applyPullModifier ( *ppRoot, b, e, *me ) ;
          break ;
       case POP:
