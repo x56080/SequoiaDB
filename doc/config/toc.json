@@ -2421,6 +2421,18 @@
                            "en": "$pull_all"
                         },
                         {
+                           "id": 1503280384,
+                           "file": "pull_by",
+                           "cn": "$pull_by",
+                           "en": "$pull_by"
+                        },
+                        {
+                           "id": 1503280392,
+                           "file": "pull_all_by",
+                           "cn": "$pull_all_by",
+                           "en": "$pull_all_by"
+                        },
+                        {
                            "id": 1432190930,
                            "file": "push",
                            "cn": "$push",

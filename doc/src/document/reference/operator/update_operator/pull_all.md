@@ -1,43 +1,62 @@
 ##语法##
 
 ```
-{ $pull_all: { <字段名1>: [<值1>,<值2>,...,<值N>], <字段名2>: [<值1>,<值2>,...,<值N>], ... } }
+{ $pull_all: { <字段名1>: [ <值1>, <值2>, ..., <值N> ], <字段名2>: [ <值1>, <值2>, ..., <值N> ], ... } }
 ```
 
 ##描述##
 
-$pull_all清除指定数组对象（如<字段名1>）的指定值（[<值1>,<值2>,...,<值N>]）。操作对象必须为数组类型的字段。如果记录中不存在指定的数组对象，跳过不做任何操作；如果指定的值不存在数组对象中，也不做任何操作。
+$pull_all 与 [$pull](reference/operator/update_operator/pull.md) 功能类似。
+
+区别在于：
+
+$pull 只能匹配某个字段的一个值，$pull_all 能匹配某个字段的多个值。
+
+执行一次 $pull_all ，如
+
+```
+{ $pull_all: { <字段名1>: [ <值1>, <值2>, ..., <值N> ] } }
+```
+
+相当于执行多次 $pull
+
+```
+{ $pull: { <字段名1>: <值1> } }
+{ $pull: { <字段名1>: <值2> } }
+...
+{ $pull: { <字段名1>: <值N> } }
+```
 
 ##示例##
 
-* 清除集合bar中数组对象arr中值为2和3的元素以及数组对象name中元素值为“Tom”的元素。如有记录：
+* 操作 arr 字段，删除数组中为 2 或者 为 3 的元素；操作 name 字段，删除数组中为 "Tom" 的元素。如有记录：
 
  ```
- { arr: [1,2,4,5], age: 10, name: ["Tom","Mike"] }
+ { arr: [ 1, 2, 4, 5 ], age: 10, name: [ "Tom", "Mike" ] }
  ```
 
  ```lang-javascript
- > db.foo.bar.update({ $pull_all: { arr: [2,3], name: ["Tom"] } })
+ > db.foo.bar.update( { $pull_all: { arr: [ 2, 3 ], name: [ "Tom" ] } } )
  ```
 
  此操作后，记录更新为：
 
  ```
- { arr: [1,4,5], age: 10, name: ["Mike"] }
+ { arr: [ 1, 4, 5 ], age: 10, name: [ "Mike" ] }
  ```
 
-* 删除集合bar中数组对象arr里面的元素值为4和5的元素。如有记录：
+* 操作 arr 字段，删除数组中为 4 或者 为 5 的元素。如有记录：
 
  ```
- { arr: [1,3,4,5], age: 10, name: ["Tom","Mike"] }
+ { arr: [ 1, 3, 4, 5 ], age: 10, name: [ "Tom", "Mike" ] }
  ```
 
  ```lang-javascript
- > db.foo.bar.update({ $pull_all: { arr: [4,5] } })
+ > db.foo.bar.update( { $pull_all: { arr: [ 4, 5 ] } } )
  ```
 
  此操作后，记录更新为：
 
  ```
- { arr: [1,3], age: 10, name: ["Tom","Mike"] }
+ { arr: [ 1, 3 ], age: 10, name: [ "Tom", "Mike" ] }
  ```
