@@ -27,19 +27,19 @@ import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
 
 /**
- * @FileName seqDB-2329: detachCL¹ı³ÌÖĞcatalogÖ÷½ÚµãËùÔÚ·şÎñÆ÷´ÅÅÌÂú_rlb.diskExhaustion.subCL.004
+ * @FileName seqDB-2329: detachCLè¿‡ç¨‹ä¸­catalogä¸»èŠ‚ç‚¹æ‰€åœ¨æœåŠ¡å™¨ç£ç›˜æ»¡_rlb.diskExhaustion.subCL.004
  * @Author liuxiaoxuan
  * @Date 2017-08-18
  * @Version 1.00
  */
 
 /*
- * 1¡¢´´½¨Ö÷±íºÍ×Ó±í£¨ÈçÑ­»·´´½¨50¸öÖ÷±í£¬Ã¿¸öÖ÷±í¹ÒÔØ500¸ö×Ó±í£©£¬CLÊı×é½ÚµãÎªdataRGÖ÷½Úµã
- * 2¡¢ÅúÁ¿Ö´ĞĞdb.collectionspace.collection.detachCL()·ÖÀë¶à¸ö×Ó±í
- * 3¡¢×Ó±í·ÖÀë¹ı³ÌÖĞÄ£ÄâdataRGÖ÷½Úµã´ÅÅÌÂú£¬¼ì²édetachCLÖ´ĞĞ½á¹û 
- * 4¡¢½«dataRGÖ÷½Úµã¹ÊÕÏ»Ö¸´£¬²¢¶Ô·ÖÀë³É¹¦µÄ×Ó±í£¨ÆÕÍ¨±í£©×ö»ù±¾²Ù×÷£¨Èçinsert)
+ * 1ã€åˆ›å»ºä¸»è¡¨å’Œå­è¡¨ï¼ˆå¦‚å¾ªç¯åˆ›å»º50ä¸ªä¸»è¡¨ï¼Œæ¯ä¸ªä¸»è¡¨æŒ‚è½½500ä¸ªå­è¡¨ï¼‰ï¼ŒCLæ•°ç»„èŠ‚ç‚¹ä¸ºdataRGä¸»èŠ‚ç‚¹
+ * 2ã€æ‰¹é‡æ‰§è¡Œdb.collectionspace.collection.detachCL()åˆ†ç¦»å¤šä¸ªå­è¡¨
+ * 3ã€å­è¡¨åˆ†ç¦»è¿‡ç¨‹ä¸­æ¨¡æ‹ŸdataRGä¸»èŠ‚ç‚¹ç£ç›˜æ»¡ï¼Œæ£€æŸ¥detachCLæ‰§è¡Œç»“æœ 
+ * 4ã€å°†dataRGä¸»èŠ‚ç‚¹æ•…éšœæ¢å¤ï¼Œå¹¶å¯¹åˆ†ç¦»æˆåŠŸçš„å­è¡¨ï¼ˆæ™®é€šè¡¨ï¼‰åšåŸºæœ¬æ“ä½œï¼ˆå¦‚insert)
  */
-public class AttachMoreCL2329 extends SdbTestBase{
+public class DiskFullSubcl2329 extends SdbTestBase{
 
 	private Sequoiadb sdb = null;
 	private GroupMgr groupMgr = null;
@@ -49,10 +49,11 @@ public class AttachMoreCL2329 extends SdbTestBase{
     private String subCLName = "subcl_2329";
     private String clGroupName = null;
     private CollectionSpace cs = null;
-    private final int MAINCL_NUMS = 50;
+    private final int MAINCL_NUMS = 10;
     private final int SUBCL_NUMS = 100;
-    private int successDetachNums = 0;
-
+    private int lastDetachedMainCL = 0;
+    private int lastDetachSubCL = 0;
+    
     @BeforeClass
     public void setUp() {
        
@@ -83,7 +84,7 @@ public class AttachMoreCL2329 extends SdbTestBase{
             Assert.fail(e.getMessage());
     	}finally {
 			if(sdb != null) {
-				sdb.close();
+				sdb.disconnect();
 				System.out.println(this.getClass().getName() + " end at:"
 	                  + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 			}
@@ -147,18 +148,21 @@ public class AttachMoreCL2329 extends SdbTestBase{
 		            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 		            CollectionSpace newCS = db.getCollectionSpace(csName);  
 		            for (int i = 0; i < MAINCL_NUMS; i++) {
+		            	lastDetachSubCL = 0;
 		                 DBCollection mainCL = newCS.getCollection(mainCLName + "_" + i);
 		            	 for (int j = 0; j < SUBCL_NUMS; j++) {
 				            String sclFullName = csName + "." + subCLName + "_" + i + "_" + j;
 				            mainCL.detachCollection(sclFullName);
-				            ++successDetachNums;
+				            ++lastDetachSubCL;
 				         }
+		            	 
+		            	 ++lastDetachedMainCL;
 		            }   
 		        } catch (BaseException e) {
-		        	System.out.println("success detach cl num is = " + successDetachNums);
+		        	System.out.println("success detach cl num is = " + (lastDetachedMainCL * lastDetachSubCL));
 		        } finally {	
 		            if (db != null) {
-		                db.close();
+		                db.disconnect();
 		            }
 		        }
 		} 	
@@ -166,29 +170,25 @@ public class AttachMoreCL2329 extends SdbTestBase{
     }
     
     public void checkDetachResult() {
-    	int f = 0;
-    	for (int i = 0; i < MAINCL_NUMS; i++) {
-    		DBCollection mcl = cs.getCollection(mainCLName + "_" + i);
-      	    for (int j = 0; j < SUBCL_NUMS; j++) {
-      		   try {
-      			  if(f > successDetachNums || 0 == successDetachNums) {
-      				  break;
-      			  }
-      			  String sclFullName = csName + "." + subCLName + "_" + i + "_" + j;
-		          mcl.detachCollection(sclFullName);
-      			  f++;
-      		  } catch (BaseException e) {
-      			  
-      			Assert.assertEquals(e.getErrorCode(),-242,"the error code is not -242: " + e.getErrorCode());
-	      	  } 
-      	  } 
-      }
+    	int lastMainCLNo = (lastDetachedMainCL > 0)? (lastDetachedMainCL - 1) : 0;
+    	int lastSubCLNo = (lastDetachSubCL > 0)? (lastDetachSubCL - 1) : 0;
+    	DBCollection mainCL = cs.getCollection(mainCLName + "_" + lastMainCLNo);
+    	try {
+			 if(0 == lastMainCLNo && 0 == lastSubCLNo) {
+				 return;
+			 }
+			 String sclFullName = csName + "." + subCLName + "_" + lastMainCLNo + "_" + lastSubCLNo;
+			 mainCL.detachCollection(sclFullName);
+		  } catch (BaseException e) {
+			  
+			Assert.assertEquals(e.getErrorCode(),-242,"the error code is not -242: " + e.getErrorCode());
+    	  } 
+   
     }
     
     public void checkInsert() {
-    	int detachMainCLNums = successDetachNums / SUBCL_NUMS;
-    	for (int i = 0; i < detachMainCLNums; i++) {
-      	    for (int j = 0; j < SUBCL_NUMS; j++) {
+    	for (int i = 0; i < lastDetachedMainCL; i++) {
+      	    for (int j = 0; j < lastDetachSubCL; j++) {
       		   try {
       			  String sclFullName = subCLName + "_" + i + "_" + j;
 		          DBCollection detachedCL = cs.getCollection(sclFullName);

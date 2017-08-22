@@ -27,17 +27,17 @@ import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
 
 /**
- * @FileName seqDB-2181: ÔÚÖ÷±íinsert´óÁ¿Êı¾İÊ±catalogÖ÷½Úµã¶ÏÍø_rlb.netSplit.subCL.013 
+ * @FileName seqDB-2181: åœ¨ä¸»è¡¨insertå¤§é‡æ•°æ®æ—¶catalogä¸»èŠ‚ç‚¹æ–­ç½‘_rlb.netSplit.subCL.013 
  * @Author liuxiaoxuan
  * @Date 2017-08-18
  * @Version 1.00
  */
 
 /*
- * 1¡¢´´½¨Ö÷±íºÍ×Ó±í
- * 2¡¢ÔÚÖ÷±í²åÈë´óÁ¿Êı¾İ£¨ÈçÃ¿¸ö×Ó±í²åÈë10ÍòÌõÊı¾İ£©£¬²åÈëÊı¾İ¹ı³ÌÖĞ½«catalogÖ÷½ÚµãÍøÂç¶Ïµô
- * 3¡¢½«catalogÖ÷½ÚµãÍøÂç»Ö¸´£¬¼ì²édataRG¸÷½ÚµãÊı¾İÊÇ·ñÍêÕûÒ»ÖÂ£» 
- * 4¡¢¶ÔÔ­²Ù×÷µÄÖ÷±íÖØĞÂ²åÈëÊı¾İ£¬¼ì²é·µ»Ø½á¹û 
+ * 1ã€åˆ›å»ºä¸»è¡¨å’Œå­è¡¨
+ * 2ã€åœ¨ä¸»è¡¨æ’å…¥å¤§é‡æ•°æ®ï¼ˆå¦‚æ¯ä¸ªå­è¡¨æ’å…¥10ä¸‡æ¡æ•°æ®ï¼‰ï¼Œæ’å…¥æ•°æ®è¿‡ç¨‹ä¸­å°†catalogä¸»èŠ‚ç‚¹ç½‘ç»œæ–­æ‰
+ * 3ã€å°†catalogä¸»èŠ‚ç‚¹ç½‘ç»œæ¢å¤ï¼Œæ£€æŸ¥dataRGå„èŠ‚ç‚¹æ•°æ®æ˜¯å¦å®Œæ•´ä¸€è‡´ï¼› 
+ * 4ã€å¯¹åŸæ“ä½œçš„ä¸»è¡¨é‡æ–°æ’å…¥æ•°æ®ï¼Œæ£€æŸ¥è¿”å›ç»“æœ 
  */
 public class InsertAndCatalogBroken2181 extends SdbTestBase{
 	
@@ -88,7 +88,7 @@ public class InsertAndCatalogBroken2181 extends SdbTestBase{
             Assert.fail(e.getMessage());
     	}finally {
 			if(db != null) {
-				db.close();
+				db.disconnect();
 				System.out.println(this.getClass().getName() + " end at:"
 	                  + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 			}
@@ -166,7 +166,7 @@ public class InsertAndCatalogBroken2181 extends SdbTestBase{
             	System.out.println("success insert num is = " + successInsertNums);
             } finally {
                 if (db != null) {
-                    db.close();
+                    db.disconnect();
                 }
             }
         }

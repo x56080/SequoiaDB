@@ -27,17 +27,17 @@ import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
 
 /**
- * @FileName seqDB-2188: ÔÚÖ÷±íremove´óÁ¿Êı¾İÊ±dataRGÖ÷½Úµã¶ÏÍø_rlb.netSplit.subCL.020
+ * @FileName seqDB-2188: åœ¨ä¸»è¡¨removeå¤§é‡æ•°æ®æ—¶dataRGä¸»èŠ‚ç‚¹æ–­ç½‘_rlb.netSplit.subCL.020
  * @Author liuxiaoxuan
  * @Date 2017-08-18
  * @Version 1.00
  */
 
 /* 
- * 1¡¢´´½¨Ö÷±íºÍ×Ó±í
- * 2¡¢ÔÚÖ÷±íÉ¾³ı´óÁ¿Êı¾İ£¬É¾³ıÊı¾İ¹ı³ÌdataRGÖ÷½ÚµãÍøÂç¶Ïµô £¬¼ì²éremove/truncateÖ´ĞĞ½á¹û
- * 3¡¢½«dataRGÖ÷½ÚµãÍøÂç»Ö¸´£¬²éÑ¯dataRG¸÷½ÚµãÊı¾İÊÇ·ñÍêÕûÒ»ÖÂ
- * 4¡¢¶ÔÔ­²Ù×÷µÄÖ÷±íÖØĞÂÉ¾³ıÊı¾İ£¬¼ì²é·µ»Ø½á¹û
+ * 1ã€åˆ›å»ºä¸»è¡¨å’Œå­è¡¨
+ * 2ã€åœ¨ä¸»è¡¨åˆ é™¤å¤§é‡æ•°æ®ï¼Œåˆ é™¤æ•°æ®è¿‡ç¨‹dataRGä¸»èŠ‚ç‚¹ç½‘ç»œæ–­æ‰ ï¼Œæ£€æŸ¥remove/truncateæ‰§è¡Œç»“æœ
+ * 3ã€å°†dataRGä¸»èŠ‚ç‚¹ç½‘ç»œæ¢å¤ï¼ŒæŸ¥è¯¢dataRGå„èŠ‚ç‚¹æ•°æ®æ˜¯å¦å®Œæ•´ä¸€è‡´
+ * 4ã€å¯¹åŸæ“ä½œçš„ä¸»è¡¨é‡æ–°åˆ é™¤æ•°æ®ï¼Œæ£€æŸ¥è¿”å›ç»“æœ
  */
 
 public class RemoveAndDataBroken2188 extends SdbTestBase{
@@ -93,7 +93,7 @@ public class RemoveAndDataBroken2188 extends SdbTestBase{
             Assert.fail(e.getMessage());
     	}finally {
 			if(sdb != null) {
-				sdb.close();
+				sdb.disconnect();
 				System.out.println(this.getClass().getName() + " end at:"
 	                  + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 			}
@@ -170,7 +170,7 @@ public class RemoveAndDataBroken2188 extends SdbTestBase{
             	System.out.println("left record count: " + leftCount);
             } finally {
                 if (db != null) {
-                    db.close();
+                    db.disconnect();
                 }
             }
         }  
