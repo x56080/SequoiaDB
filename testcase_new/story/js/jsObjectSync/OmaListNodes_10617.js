@@ -133,7 +133,7 @@ OmaTest.prototype.testListNodesAbnormal = function()
       try
       {
          this.oma.listNodes( option[i] ) ;
-         throw "list nodes with " + JSON.stringify( option[i] ) + " should be failed" ;
+         throw 0 ;
       }
       catch( e )
       {

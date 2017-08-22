@@ -24,7 +24,7 @@ OmaTest.prototype.testCreateExistCoord = function()
       var svcname = COORDSVCNAME ;
       var dbpath = RSRVNODEDIR + svcname ;
       this.oma.createCoord( svcname, dbpath ) ;
-      throw "create exist coord should be failed" ;
+      throw 0 ;
    }
    catch( e )
    {
@@ -46,7 +46,7 @@ OmaTest.prototype.testRemoveNotExistCoord = function( svcname )
    try
    {
       this.oma.removeCoord( svcname ) ;
-      throw "remove not exist coord should be failed" ;
+      throw 0 ;
    }
    catch( e )
    {
@@ -67,7 +67,7 @@ OmaTest.prototype.testRemoveCoordWithWrongSvc = function()
    try
    {
       this.oma.removeCoord( CMSVCNAME ) ;
-      throw "remove coord with cm svcname should be failed" ;
+      throw 0 ;
    }
    catch( e )
    {
@@ -95,7 +95,7 @@ OmaTest.prototype.testRemoveCoordWithWrongConf = function()
    try
    {
       this.oma.removeCoord( COORDSVCNAME, { clustername: "!@#$%^&*" } ) ;
-      throw "remove coord with wrong config should be failed" ;
+      throw 0 ;
    }
    catch( e )
    {
@@ -116,7 +116,7 @@ OmaTest.prototype.testStartNotExistNode = function( svcname )
    try
    {
       this.oma.startNode( svcname ) ;
-      throw "start not exist node should be failed" ;
+      throw 0 ;
    }
    catch( e )
    {
@@ -178,10 +178,13 @@ OmaTest.prototype.testCreateCoordWithWrongConf = function( svcname )
 OmaTest.prototype.testCreateCoordWithNoPermit = function( svcname )
 {
    this.testInit() ;
-   var user = toolGetSdbcmUser( this.hostname, this.svcname ) ;
-   if( user == "root" ) return ;
-   // make no permission dir
+   
    var remote = new Remote( this.hostname, this.svcname ) ;
+   var system = remote.getSystem() ;
+   user = system.getCurrentUser().toObj().user ;
+   if( user === "root" ) return ;
+   
+   // make no permission dir
    var file = remote.getFile() ;
    var dirName = "/tmp/noPerDir/" ;
    file.mkdir( dirName ) ;
@@ -190,7 +193,7 @@ OmaTest.prototype.testCreateCoordWithNoPermit = function( svcname )
    try
    {
       this.oma.createCoord( svcname, dirName + svcname ) ;
-      throw "create coord with no permission should be failed" ;
+      throw 0 ;
    }
    catch( e )
    {
@@ -202,8 +205,8 @@ OmaTest.prototype.testCreateCoordWithNoPermit = function( svcname )
       }
    }
    
-   var cmd = remote.getCmd() ;
-   cmd.run( "rm -rf " + dirName ) ;
+   file.chmod( dirName, 0755 ) ;
+   file.remove( dirName ) ;
    remote.close() ;
    this.oma.close() ;
 }
@@ -216,7 +219,7 @@ OmaTest.prototype.testOmaClose = function()
    try
    {
       this.oma.stopNode( COORDSVCNAME ) ;
-      throw "stop node after oma close should be failed" ;
+      throw 0 ;
    }
    catch( e )
    {

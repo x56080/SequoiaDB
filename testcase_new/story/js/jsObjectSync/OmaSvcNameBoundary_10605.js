@@ -18,7 +18,7 @@ OmaTest.prototype.testSvcnameBoundary = function()
          var svcname = ErrorSvcname[i] ;
          var dbpath = RSRVNODEDIR + svcname ;
          this.oma.createData( svcname, dbpath ) ;
-         throw "create data with " + svcname + " should be failed" ;
+         throw 0 ;
       }
       catch( e )
       {

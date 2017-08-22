@@ -10,18 +10,19 @@
 // 测试启动停止服务，获取服务状态（SSH服务）
 SystemTest.prototype.testRunServiceSSH = function()
 {
+   this.init() ;
+   
    // 检查cm用户是否为root
-   var user = toolGetSdbcmUser( this.hostname, this.svcname ) ;
+   var user = this.system.getCurrentUser().toObj().user ;
    if( user !== "root" )
    {
-      // println( user + " have no permission to run ssh service." ) ;
+      println( user + " have no permission to run ssh service." ) ;
       return ;
    }
    if( !isSSHExist( this.hostname, this.svcname ) )
       return ;
    
    // 获取服务状态
-   this.init() ;
    var info = this.system.runService( "ssh", "status", "" ) ;
    if( info.indexOf( "start" ) !== -1 )   // 如果服务已启动，则停止再启动服务
    {
@@ -50,18 +51,19 @@ SystemTest.prototype.testRunServiceSSH = function()
 // 测试重复启动或停止服务，（SSH服务）
 SystemTest.prototype.testRunServiceDuplicate = function()
 {
+   this.init() ;
+   
    // 检查cm用户是否为root
-   var user = toolGetSdbcmUser( this.hostname, this.svcname ) ;
+   var user = this.system.getCurrentUser().toObj().user ;
    if( user !== "root" )
    {
-      // println( user + " have no permission to run ssh service." ) ;
+      println( user + " have no permission to run ssh service." ) ;
       return ;
    }
    if( !isSSHExist( this.hostname, this.svcname ) )
       return ;
    
    // 获取服务状态
-   this.init() ;
    var info = this.system.runService( "ssh", "status" ) ;
    var command ;
    if( info.indexOf( "start" ) !== -1 )
@@ -71,7 +73,7 @@ SystemTest.prototype.testRunServiceDuplicate = function()
    try
    {
       this.system.runService( "ssh", command ) ;
-      throw "run service duplicate should be failed" ;
+      throw 0 ;
    }
    catch( e )
    {
@@ -100,15 +102,16 @@ SystemTest.prototype.testRunServiceDuplicate = function()
 // 测试停止sdbcm服务(手工验证)
 SystemTest.prototype.testStopSdbcm = function()
 {
+   this.init() ;
+   
    // 检查cm用户是否为root
-   var user = toolGetSdbcmUser( this.hostname, this.svcname ) ;
+   var user = this.system.getCurrentUser().toObj().user ;
    if( user === "root" )
    {
       // println( "Cannot stop sdbcm service owned by root." ) ;
       return ;
    }
    
-   this.init() ;
    if( this.system == System )
    {
       println( "Stop using sdbcm will be stucked." ) ;

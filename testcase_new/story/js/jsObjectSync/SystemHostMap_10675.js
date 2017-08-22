@@ -59,7 +59,7 @@ SystemTest.prototype.testGetAHostMap = function()
    try
    {
       this.system.getAHostMap( "NotExistHost" ) ;
-      throw "get a not exist hostmap should be failed" ;
+      throw 0 ;
    }
    catch( e )
    {
@@ -69,13 +69,17 @@ SystemTest.prototype.testGetAHostMap = function()
                "get a not exist hostmap " + this, -6, e ) ;
       }
    }
+	
+	this.release() ;
 }
 
 // 测试增加删除hostmap信息  
 SystemTest.prototype.testAddDelAHostMap = function()
 {
-   // 检查cm用户是否为root
-   var user = toolGetSdbcmUser( this.hostname, this.svcname ) ;
+	this.init() ;
+
+   // 检查用户是否为root
+   var user = this.system.getCurrentUser().toObj().user ;
    if( user !== "root" )
    {
       println( user + " have no permission to add del hostmap." ) ;
@@ -96,6 +100,8 @@ SystemTest.prototype.testAddDelAHostMap = function()
       
    // 测试delAHostMap
    testDelAHostMap( this.system, "testhost" ) ;
+
+	this.release() ;
 }
 
 /******************************************************************************
@@ -129,7 +135,7 @@ function testAddAExistHostMapFalse( system, host, ip )
    try
    {
       system.addAHostMap( host, ip, false ) ;
-      throw "add a exist hostmap when isReplace false should be failed" ;
+      throw 0 ;
    }
    catch( e )
    {
@@ -173,7 +179,7 @@ function testAddAHostMapIllegalIp( system, host, ip )
    try
    {
       system.addAHostMap( host, ip ) ;
-      throw "add a hostmap with ip: " + ip + " should be failed" ;
+      throw 0 ;
    }
    catch( e )
    {
@@ -202,7 +208,7 @@ function testDelAHostMap( system, host )
    try
    {
       system.getAHostMap( "testhost" ) ;
-      throw "get a hostmap after del should be failed" ;
+      throw 0 ;
    }
    catch( e )
    {

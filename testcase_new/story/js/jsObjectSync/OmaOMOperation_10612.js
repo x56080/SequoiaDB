@@ -15,7 +15,7 @@ OmaTest.prototype.testOMOperation = function( svcname, isOmExist )
       try
       {
          this.oma.createOM( svcname, dbpath ) ;
-         throw "create om when om exist should be failed" ;
+         throw 0 ;
       }
       catch( e )
       {

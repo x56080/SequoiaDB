@@ -8,7 +8,6 @@
 *                         10632 Oma设置Oma配置信息 
 *@author      : Liang XueWang
 ******************************************************************************/
-
 // 测试正常获取oma配置文件和配置信息
 OmaTest.prototype.testGetOmaConfigsNormal = function()
 {
@@ -48,7 +47,8 @@ OmaTest.prototype.testGetOmaConfigsNormal = function()
    }
    checkResult( configs, configFileContent, "getOmaConfigs" ) ;
 
-   this.oma.close() ;
+   if( this.oma.close !== undefined )
+      this.oma.close() ;
    remote.close() ;  
 }
 
@@ -61,7 +61,7 @@ OmaTest.prototype.testGetOmaConfigsAbnormal = function()
    try
    {
       this.oma.getOmaConfigs( "/opt/notexist" ) ;
-      throw "get oma configs with not exist file should be failed" ;
+      throw 0 ;
    }
    catch( e )
    {
@@ -76,7 +76,7 @@ OmaTest.prototype.testGetOmaConfigsAbnormal = function()
    try
    {
       this.oma.getOmaConfigs( sdbDir[0] + "/bin/sdb" ) ;
-      throw "get oma configs with sdb file should be failed" ;
+      throw 0 ;
    }
    catch( e )
    {
@@ -87,13 +87,26 @@ OmaTest.prototype.testGetOmaConfigsAbnormal = function()
       }
    }
    
-   this.oma.close() ;
+   if( this.oma.close !== undefined )
+      this.oma.close() ;
 }
 
 // 测试设置oma配置信息
 OmaTest.prototype.testSetOmaConfigs = function()
 {
    this.testInit() ;
+   
+   if( this.oma === Oma )
+   {
+      var user = System.getCurrentUser().user ;
+      var file = RSRVNODEDIR + "../conf/sdbcm.conf" ;
+      var obj = getFileUsrGrp( file ) ;
+      if( user !== obj["user"] && user !== "root" )
+      {
+         println( "static Oma with current user " + user + " is not fit" ) ;
+         return ;
+      } 
+   }
    
    try
    {
@@ -119,7 +132,17 @@ OmaTest.prototype.testSetOmaConfigs = function()
       this.oma.setOmaConfigs( configs ) ;
    }
    
-   this.oma.close() ;
+   if( this.oma === Oma )
+   {
+      if( user !== cmuser )
+      {
+         File.chown( file, obj ) ;
+      }      
+   }
+   else
+   {
+      this.oma.close() ;
+   }
 }
 
 function main()
@@ -130,8 +153,9 @@ function main()
    
    var localOma = new OmaTest( localhost, CMSVCNAME ) ;
    var remoteOma = new OmaTest( remotehost, CMSVCNAME ) ;
+   var staticOma = new OmaTest() ;
    
-   var omas = [ localOma, remoteOma ] ;
+   var omas = [ localOma, remoteOma, staticOma ] ;
    for( var i = 0;i < omas.length;i++ )
    {
       // 测试正常获取Oma配置文件和配置信息

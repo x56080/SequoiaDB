@@ -6,11 +6,22 @@
 *                         10635 Oma增加Oma端口，端口已存在，isReplace为false
 *@author      : Liang XueWang
 ******************************************************************************/
-
 // 测试增加、删除、获取oma端口
 OmaTest.prototype.testOmaSvcName = function()
 {
    this.testInit() ;
+   
+   if( this.oma === Oma )
+   {
+      var user = System.getCurrentUser().user ;
+      var file = RSRVNODEDIR + "../conf/sdbcm.conf" ;
+      var obj = getFileUsrGrp( file ) ;
+      if( user !== obj["user"] && user !== "root" )
+      {
+         println( "static Oma with current user " + user + " is not fit" ) ;
+         return ;
+      } 
+   }
    
    // 测试addAOmaSvcName getAOmaSvcName   
    this.oma.addAOmaSvcName( "test", "19000" ) ;
@@ -29,14 +40,36 @@ OmaTest.prototype.testOmaSvcName = function()
       throw buildException( "testOmaSvcName", null, "del a oma svcname " + this, 
                             "11790", result ) ;
    }
-
-   this.oma.close() ;
+   
+   if( this.oma === Oma )
+   {
+      if( user !== cmuser )
+      {
+         File.chown( file, obj ) ;
+      }      
+   }
+   else
+   {
+      this.oma.close() ;
+   }
 }
 
 // 测试增加Oma端口，isReplace为true/false
 OmaTest.prototype.testOmaSvcNameReplace = function()
 {
    this.testInit() ;
+   
+   if( this.oma === Oma )
+   {
+      var user = System.getCurrentUser().user ;
+      var file = RSRVNODEDIR + "../conf/sdbcm.conf" ;
+      var obj = getFileUsrGrp( file ) ;
+      if( user !== obj["user"] && user !== "root" )
+      {
+         println( "static Oma with current user " + user + " is not fit" ) ;
+         return ;
+      } 
+   }
    
    // 测试addAOmaSvcName,isReplace为true
    this.oma.addAOmaSvcName( "test", "19000" ) ;
@@ -52,7 +85,7 @@ OmaTest.prototype.testOmaSvcNameReplace = function()
    try
    {
       this.oma.addAOmaSvcName( "test", "19000", false ) ;
-      throw "addAOmaSvcName when isReplace false should be failed" ;
+      throw 0 ;
    }
    catch( e )
    {
@@ -63,7 +96,19 @@ OmaTest.prototype.testOmaSvcNameReplace = function()
       }
    }
    
-   this.oma.close() ;
+   this.oma.delAOmaSvcName( "test" ) ;
+   
+   if( this.oma === Oma )
+   {
+      if( user !== cmuser )
+      {
+         File.chown( file, obj ) ;
+      }      
+   }
+   else
+   {
+      this.oma.close() ;
+   }
 }
 
 function main()
@@ -74,8 +119,9 @@ function main()
    
    var localOma = new OmaTest( localhost, CMSVCNAME ) ;
    var remoteOma = new OmaTest( remotehost, CMSVCNAME ) ;
+   var staticOma = new OmaTest() ;
    
-   var omas = [ localOma, remoteOma ] ;
+   var omas = [ localOma, remoteOma, staticOma ] ;
    for( var i = 0;i < omas.length;i++ )
    {   
       // 测试增加、删除、获取Oma端口

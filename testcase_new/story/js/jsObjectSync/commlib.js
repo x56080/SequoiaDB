@@ -4,6 +4,8 @@
 ******************************************************************************/
 function OmaTest( hostName, cmSvcName, isLegalHost, isLegalSvc )
 {
+   if( arguments.length === 0 )
+      this.oma = Oma ;
    if( hostName === undefined )
       this.hostname = COORDHOSTNAME ;
    else
@@ -30,14 +32,18 @@ function OmaTest( hostName, cmSvcName, isLegalHost, isLegalSvc )
 
 OmaTest.prototype.toString = function()
 {
-   return ( "OmaTest: hostname=" + this.hostname + " svcname=" + this.svcname ) ;
+   if( this.oma === Oma )
+      return ( "static Oma" ) ;
+   else
+      return ( "OmaTest: hostname=" + this.hostname + " svcname=" + this.svcname ) ;
 }
 
 OmaTest.prototype.testInit = function() 
 {
    try
    {
-      this.oma = new Oma( this.hostname, this.svcname ) ;
+      if( this.oma !== Oma )
+         this.oma = new Oma( this.hostname, this.svcname ) ;
    }
    catch( e )
    {
@@ -278,19 +284,6 @@ function toolGetIdleSvcName( hostName, cmSvcName )
 }
 
 /******************************************************************************
-*@Description : get sdbcm user
-*@author      : Liang XueWang            
-******************************************************************************/
-function toolGetSdbcmUser( hostName, cmSvcName )
-{
-   var remote = new Remote( hostName, cmSvcName ) ;
-   var cmd = remote.getCmd() ;
-   var command = "ps aux | grep sdbcm | grep -E -v 'grep|sdbcmd' | awk '{print $1}'" ;
-   var user = cmd.run( command ).split( "\n" )[0] ;
-   return user ;   
-}
-
-/******************************************************************************
 *@Description : check object is empty or not
 *@author      : Liang XueWang            
 ******************************************************************************/
@@ -413,4 +406,17 @@ function isLocal( hostname )
         return true ;
     else
         return false ;
+}
+
+/******************************************************************************
+*@Description : used to get sdbcm.conf user and group
+*@author      : Liang XueWang              
+******************************************************************************/
+function getFileUsrGrp( file )
+{
+    var tmpObj = File.stat( file ).toObj() ; 
+    var obj = {} ;
+    obj["user"] = tmpObj.user ;
+    obj["group"] = tmpObj.group ; 
+    return obj ;
 }
