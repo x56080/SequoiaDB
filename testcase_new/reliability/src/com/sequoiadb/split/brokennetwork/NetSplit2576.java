@@ -114,7 +114,7 @@ public class NetSplit2576 extends SdbTestBase {
             Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
 
             // 最长等待2分钟的环境恢复
-            Assert.assertEquals(groupMgr.checkBusiness(120), true, "failed to restore business");
+            Assert.assertEquals(groupMgr.checkBusiness(600), true, "failed to restore business");
 
             db = new Sequoiadb(connectUrl, "", "");
             db.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
