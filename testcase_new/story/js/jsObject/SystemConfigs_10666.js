@@ -33,7 +33,8 @@ SystemTest.prototype.testGetSystemConfigs = function()
       for( var k in configObj )
       {
          // 排除随机生成或动态变化的字段
-         if( k.indexOf( "random" ) !== -1 )
+         if( k.indexOf( "random" ) !== -1 ||
+             k.indexOf( "max_newidle_lb_cost" ) !== -1 )
             continue ;
          else if( getIndexInArray( k, except ) !== -1 )
             continue ;

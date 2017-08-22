@@ -61,7 +61,8 @@ CmdTest.prototype.testRunAbnormal = function()
                             127, ret ) ;
    }
    var out = this.cmd.getLastOut() ;
-   if( out.indexOf( "not found" ) === -1 )
+   if( out.indexOf( "not found" ) === -1 &&
+       out.indexOf( "未找到命令") === -1 )
    {
       throw buildException( "testRunAbnormal", null, "test getLastOut " + this, 
                             "not found", out ) ;

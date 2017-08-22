@@ -4,6 +4,8 @@
 ******************************************************************************/
 function OmaTest( hostName, cmSvcName, isLegalHost, isLegalSvc )
 {
+   if( arguments.length === 0 )
+      this.oma = Oma ;
    if( hostName === undefined )
       this.hostname = COORDHOSTNAME ;
    else
@@ -30,14 +32,18 @@ function OmaTest( hostName, cmSvcName, isLegalHost, isLegalSvc )
 
 OmaTest.prototype.toString = function()
 {
-   return ( "OmaTest: hostname=" + this.hostname + " svcname=" + this.svcname ) ;
+   if( this.oma === Oma )
+      return ( "static Oma" ) ;
+   else
+      return ( "OmaTest: hostname=" + this.hostname + " svcname=" + this.svcname ) ;
 }
 
 OmaTest.prototype.testInit = function() 
 {
    try
    {
-      this.oma = new Oma( this.hostname, this.svcname ) ;
+      if( this.oma !== Oma )
+         this.oma = new Oma( this.hostname, this.svcname ) ;
    }
    catch( e )
    {

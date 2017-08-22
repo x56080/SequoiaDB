@@ -82,6 +82,7 @@ function main()
    
    var localOma = new OmaTest( localhost, CMSVCNAME ) ;
    var remoteOma = new OmaTest( remotehost, CMSVCNAME ) ;
+   var staticOma = new OmaTest() ;
    
    var omas = [ localOma, remoteOma ] ;
    for( var i = 0;i < omas.length;i++ )
