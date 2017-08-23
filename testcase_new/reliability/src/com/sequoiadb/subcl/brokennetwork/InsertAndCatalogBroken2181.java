@@ -49,8 +49,7 @@ public class InsertAndCatalogBroken2181 extends SdbTestBase{
     private String mainCLName = "maincl_2181";
     private String subCLName = "subcl_2181";
     private String connectUrl = null;
-    private String srcGroupName = null;
-	private String destGroupName = null;
+    private String clGroupName = null;
     private final int SUBCL_NUMS = 5;
     private int successInsertNums = 0;
     private final int INSERT_NUMS = 100000;
@@ -66,8 +65,7 @@ public class InsertAndCatalogBroken2181 extends SdbTestBase{
             if (!groupMgr.checkBusiness()) {
                 throw new SkipException("checkBusiness failed");
             }
-            srcGroupName = groupMgr.getAllDataGroupName().get(0);
-			destGroupName =groupMgr.getAllDataGroupName().get(1);
+            clGroupName = groupMgr.getAllDataGroupName().get(0);
             sdb = new Sequoiadb(SdbTestBase.coordUrl,"","");
             
             createAndAttachCLs();
@@ -113,12 +111,8 @@ public class InsertAndCatalogBroken2181 extends SdbTestBase{
             //check whether the cluster is normal and lsn consistency ,the longest waiting time is 600S
             Assert.assertEquals(groupMgr.checkBusinessWithLSN(600), true, "check LSN consistency fail");
             
-            splitSubCLs();
-            
-            GroupWrapper srcdataGroup = groupMgr.getGroupByName(srcGroupName);
-            GroupWrapper destdataGroup = groupMgr.getGroupByName(destGroupName);
+            GroupWrapper srcdataGroup = groupMgr.getGroupByName(clGroupName);
             Assert.assertEquals(srcdataGroup.checkInspect(1), true, "data is different on " + srcdataGroup.getGroupName());
-            Assert.assertEquals(destdataGroup.checkInspect(1), true, "data is different on " + destdataGroup.getGroupName());
            
             checkInsertResult();
             
@@ -139,7 +133,7 @@ public class InsertAndCatalogBroken2181 extends SdbTestBase{
 			cs.createCollection(subCLName + "_" + i,
 					(BSONObject) JSON
                     .parse("{ShardingKey:{b:1},ShardingType:'range',"
-        					+ "Group:'" + srcGroupName + "'}"));
+        					+ "Group:'" + clGroupName + "'}"));
 			String sclFullName = csName + "." + subCLName + "_" + i;
 			mainCL.attachCollection(sclFullName, (BSONObject) JSON.parse("{ LowBound: { a: " + i * 100000
                     + " }, " + "UpBound: { a: " + ((i + 1) * 100000) + " } }"));
@@ -172,17 +166,6 @@ public class InsertAndCatalogBroken2181 extends SdbTestBase{
         }
 
        
-    }
-    
-    public void splitSubCLs() {
-    	try {
-            for (int i = 0; i < SUBCL_NUMS; i++) {
-            	DBCollection subCL = sdb.getCollectionSpace(csName).getCollection(subCLName + "_" + i);
-            	subCL.split(srcGroupName, destGroupName, 50);
-            }
-    	}catch(BaseException e) {
-            Assert.fail("split subcl failed: " + e.getMessage());
-    	}
     }
     
     public void checkInsertResult(){
