@@ -198,6 +198,12 @@
                   <exclude name="database/**/hamcrest-core-1.3.jar"/>
                </fileset>
             </copy>
+            <copy todir="${backup_basedir}/${backup_reltdir}/corefile" >
+               <fileset dir="${INSTALL_DIR}">
+                  <include name="bin/**/*core*"/>
+                  <exclude name="bin/**/hamcrest-core-1.3.jar"/>
+               </fileset>
+            </copy>
          </else>
       </if> 
       
