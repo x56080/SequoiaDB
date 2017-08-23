@@ -69,10 +69,14 @@ class SequoiaDB
    define( "SDB_LIST_DOMAINS",          9 ) ;
    /** Get the list of the tasks ( only applicable in sharding env ). */
    define( "SDB_LIST_TASKS",            10 ) ;
-   /** Get the list of the collection spaces in specified domain. */
-   define( "SDB_LIST_CS_IN_DOMAIN",     11 ) ;
+   /** Get all the transactions information. */
+   define( "SDB_LIST_TRANSACTIONS",     11 ) ;
+   /** Get the transactions information of current session. */
+   define( "SDB_LIST_TRANSACTIONS_CURRENT", 12 ) ;
    /** Get the list of the collections in specified domain. */
-   define( "SDB_LIST_CL_IN_DOMAIN",     12 ) ;
+   define( "SDB_LIST_CL_IN_DOMAIN",     129 ) ;
+   /** Get the list of the collection spaces in specified domain. */
+   define( "SDB_LIST_CS_IN_DOMAIN",     130 ) ;
 
    /**
     * SequoiaDB class constructor.
@@ -518,8 +522,10 @@ class SequoiaDB
     *                                                           SDB_LIST_SHARDS
     *                                                           SDB_LIST_DOMAINS
     *                                                           SDB_LIST_TASKS
-    *                                                           SDB_LIST_CS_IN_DOMAIN
+    *                                                           SDB_LIST_TRANSACTIONS
+    *                                                           SDB_LIST_TRANSACTIONS_CURRENT
     *                                                           SDB_LIST_CL_IN_DOMAIN
+    *                                                           SDB_LIST_CS_IN_DOMAIN
     *                                                           @endcode
     *
     * @param $condition an array or the string argument. The matching rule, match all the documents if null.
