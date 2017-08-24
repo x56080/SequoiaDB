@@ -42,10 +42,10 @@ class SequoiaDB
    define( "SDB_SNAP_SYSTEM",              7 ) ;
    /** Get the snapshot of the catalog. */
    define( "SDB_SNAP_CATALOG",             8 ) ;
-   /** Get the snapshot of current transaction. */
-   define( "SDB_SNAP_TRANSACTION_CURRENT", 9 ) ;
    /** Get the snapshot of all the transactions. */
-   define( "SDB_SNAP_TRANSACTION",         10 ) ;
+   define( "SDB_SNAP_TRANSACTION",         9 ) ;
+   /** Get the snapshot of current transaction. */
+   define( "SDB_SNAP_TRANSACTION_CURRENT", 10 ) ;
   
    /** Get the list of the contexts. */
    define( "SDB_LIST_CONTEXTS",         0 ) ;
@@ -445,6 +445,8 @@ class SequoiaDB
     *                                                               SDB_SNAP_DATABASE
     *                                                               SDB_SNAP_SYSTEM
     *                                                               SDB_SNAP_CATALOG
+    *                                                               SDB_SNAP_TRANSACTION
+    *                                                               SDB_SNAP_TRANSACTION_CURRENT
     *                                                               @endcode
     *
     * @param $condition an array or the string argument. The matching rule, match all the documents if null.
