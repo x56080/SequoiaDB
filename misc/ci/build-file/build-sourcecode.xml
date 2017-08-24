@@ -294,10 +294,10 @@
          <fileset dir="${CODE_DIR}/tools/sdbsupport" includes="**/*" />
       </copy>
       
-      <copy todir="${RELEASE_DIR}/tools/sdbsupport">
+      <copy todir="${RELEASE_DIR}/sequoiadb/tools/sdbsupport">
          <fileset dir="${CODE_DIR}/tools/expect" includes="expect/expect" />
       </copy>
-      <chmod file="${RELEASE_DIR}/tools/sdbsupport/expect/expect" perm="u+x" />
+      <chmod file="${RELEASE_DIR}/sequoiadb/tools/sdbsupport/expect/expect" perm="u+x" />
       
       <chmod file="${RELEASE_DIR}/sequoiadb/tools/sdbsupport/sdbsupport.sh" perm="u+x" />
       <copy todir="${RELEASE_DIR}/sequoiadb/include/">
