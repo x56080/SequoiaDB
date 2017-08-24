@@ -572,6 +572,10 @@
       <copy todir="${release_db_dir}/tools/sdbsupport">
          <fileset dir="${srccode_dir}/tools/sdbsupport" includes="**/*" />
       </copy>
+      <copy todir="${release_db_dir}/tools/sdbsupport">
+         <fileset dir="${srccode_dir}/tools/expect" includes="expect/expect" />
+      </copy>
+      <chmod file="${release_db_dir}/tools/sdbsupport/expect/expect" perm="u+x" />
       <chmod file="${release_db_dir}/tools/sdbsupport/sdbsupport.sh" perm="u+x" />
       <copy todir="${release_db_dir}/tools/server/php">
          <fileset dir="${srccode_dir}/tools/server/${php_version_arch}/" />
