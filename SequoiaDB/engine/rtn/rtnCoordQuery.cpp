@@ -70,7 +70,7 @@ namespace engine
          {
             rtnQueryPvtData *privateData = ( rtnQueryPvtData* )inMsg._pvtData ;
             if ( privateData->_pContext->getLimitNum() > 0 ||
-                 privateData->_pContext->getSkipNum() > 0 || 
+                 privateData->_pContext->getSkipNum() > 0 ||
                  queryMsg->numToReturn > 0 ||
                  queryMsg->numToSkip > 0 )
             {
@@ -333,7 +333,7 @@ namespace engine
          ioItem.iovLen = ossRoundUpToMultipleX( objSelector.objsize(), 4 ) +
                          ossRoundUpToMultipleX( objOrderby.objsize(), 4 ) +
                          objHint.objsize() ;
-         iovec.push_back( ioItem ) ;         
+         iovec.push_back( ioItem ) ;
 
          ++it ;
       }
@@ -544,7 +544,7 @@ namespace engine
       BSONObj modifier ;
 
       modifierEle = hint.getField( FIELD_NAME_MODIFY ) ;
-      SDB_ASSERT( Object == modifierEle.type(), 
+      SDB_ASSERT( Object == modifierEle.type(),
                   "modifierELe must be an Object" ) ;
 
       modifier = modifierEle.Obj() ;
@@ -553,7 +553,7 @@ namespace engine
       SDB_ASSERT( Object == updatorEle.type(), "updatorEle must be an Object" ) ;
       updator = updatorEle.Obj() ;
 
-      rc = _generateShardUpdator( cataInfo, selector, updator, newUpdator, 
+      rc = _generateShardUpdator( cataInfo, selector, updator, newUpdator,
                                   isChanged, cb ) ;
       if ( SDB_OK != rc )
       {
@@ -614,7 +614,7 @@ namespace engine
                                                const BSONObj &selector,
                                                const BSONObj &updator,
                                                BSONObj &newUpdator,
-                                               BOOLEAN &isChanged, 
+                                               BOOLEAN &isChanged,
                                                pmdEDUCB *cb )
    {
       INT32 rc               = SDB_OK ;
@@ -622,7 +622,7 @@ namespace engine
       rtnCoordShardKicker shardKicker ;
 
       newUpdator = updator ;
-      rc = shardKicker.kickShardingKey( cataInfo, updator, newUpdator, 
+      rc = shardKicker.kickShardingKey( cataInfo, updator, newUpdator,
                                         hasShardingKey ) ;
       PD_RC_CHECK( rc, PDERROR, "Update failed, failed to kick the "
                    "sharding-key field(rc=%d)", rc ) ;
@@ -636,12 +636,12 @@ namespace engine
          if ( rcTmp )
          {
             rc = rcTmp ;
-            PD_LOG( PDERROR,"Failed to get match sub-collection:rc=%d", 
+            PD_LOG( PDERROR,"Failed to get match sub-collection:rc=%d",
                     rcTmp ) ;
             goto error ;
          }
 
-         rc = shardKicker.kickShardingKeyForSubCL( subCLList, newUpdator, 
+         rc = shardKicker.kickShardingKeyForSubCL( subCLList, newUpdator,
                                                    newSubObj,
                                                    hasShardingKey, cb ) ;
          PD_RC_CHECK( rc, PDERROR,
@@ -913,6 +913,11 @@ namespace engine
                   }
                   objNewHint = tmpNewHint ;
                }
+               else
+               {
+                  pQueryMsg   = (MsgOpQuery *)pModifyMsg ;
+                  inMsg._pMsg = (MsgHeader*)pModifyMsg ;
+               }
             }
          }
          pQueryMsg->version = cataInfo->getVersion() ;
@@ -1048,7 +1053,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "failed to build new msg:%d", rc ) ;
          goto error ;
-      } 
+      }
    done:
       return rc ;
    error:
