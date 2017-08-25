@@ -263,8 +263,9 @@ class replicagroup(object):
       if config is not None and not isinstance(config, dict):
          raise SDBTypeError("config must be an instance of dict")
 
-      if config is not None:
-         bson_options = bson.BSON.encode(config)
+      if config is None:
+         config = {}
+      bson_options = bson.BSON.encode(config)
       try:
          rc = sdb.gp_create_node(self._group, hostname, servicename,
                                           dbpath, bson_options)
@@ -350,7 +351,7 @@ class replicagroup(object):
 
       return iscatalog
 
-   def attach_node(self, hostname, servicename, dbpath, config = None):
+   def attach_node(self, hostname, servicename, config = None):
       """Attach node in a given replica group.
 
       Parameters:
@@ -369,8 +370,9 @@ class replicagroup(object):
       if config is not None and not isinstance(config, dict):
          raise SDBTypeError("config must be an instance of dict")
 
-      if config is not None:
-         bson_options = bson.BSON.encode(config)
+      if config is None:
+         config = {}
+      bson_options = bson.BSON.encode(config)
       try:
          rc = sdb.gp_attach_node(self._group,
                                  hostname, servicename, bson_options)
@@ -397,8 +399,9 @@ class replicagroup(object):
       if config is not None and not isinstance(config, dict):
          raise SDBTypeError("config must be an instance of dict")
 
-      if config is not None:
-         bson_options = bson.BSON.encode(config)
+      if config is None:
+         config = {}
+      bson_options = bson.BSON.encode(config)
       try:
          rc = sdb.gp_detach_node(self._group,
                                  hostname, servicename, bson_options)
