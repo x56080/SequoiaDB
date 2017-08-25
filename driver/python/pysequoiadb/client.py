@@ -471,7 +471,7 @@ class client(object):
 
       Parameters:
          Name           Type  Info:
-         snap_typr      str   The type of snapshot, see Info as below
+         snap_type      int   The type of snapshot, see Info as below
          **kwargs             Useful options are below
          - condition    dict  The matching rule, match all the documents
                                     if not provided.
@@ -495,10 +495,12 @@ class client(object):
                   6     : Get database's snapshot
                   7     : Get system's snapshot
                   8     : Get catalog's snapshot
+                  9     : Get transactions' snapshot
+                  10    : Get current session's transaction snapshot
       """
       if not isinstance(snap_type, int):
          raise SDBTypeError("snap type must be an instance of int")
-      if snap_type < 0 or snap_type > 8:
+      if snap_type < 0 or snap_type > 10:
          raise SDBTypeError("snap_type value is invalid")
 
       bson_condition = None
@@ -584,12 +586,14 @@ class client(object):
                 8          : Get store procedure list
                 9          : Get domains list
                 10         : Get tasks list
-                11         : Get collection space list in domain
-                12         : Get collection list in domain
+                11         : Get transactions list
+                12         : Get current session's transaction list
+                129        : Get collection space list in domain
+                130        : Get collection list in domain
       """
       if not isinstance(list_type, int):
          raise SDBTypeError("list type must be an instance of int")
-      if list_type < 0 or list_type > 12:
+      if list_type < 0 or (list_type > 12 and list_type < 129) or list_type > 130:
          raise SDBTypeError("list type value %d is not defined" %
                                      list_type)
 
