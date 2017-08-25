@@ -42,10 +42,10 @@ class SequoiaDB
    define( "SDB_SNAP_SYSTEM",              7 ) ;
    /** Get the snapshot of the catalog. */
    define( "SDB_SNAP_CATALOG",             8 ) ;
-   /** Get the snapshot of current transaction. */
-   define( "SDB_SNAP_TRANSACTION_CURRENT", 9 ) ;
    /** Get the snapshot of all the transactions. */
-   define( "SDB_SNAP_TRANSACTION",         10 ) ;
+   define( "SDB_SNAP_TRANSACTION",         9 ) ;
+   /** Get the snapshot of current transaction. */
+   define( "SDB_SNAP_TRANSACTION_CURRENT", 10 ) ;
   
    /** Get the list of the contexts. */
    define( "SDB_LIST_CONTEXTS",         0 ) ;
@@ -69,10 +69,10 @@ class SequoiaDB
    define( "SDB_LIST_DOMAINS",          9 ) ;
    /** Get the list of the tasks ( only applicable in sharding env ). */
    define( "SDB_LIST_TASKS",            10 ) ;
-   /** Get the list of the collection spaces in specified domain. */
-   define( "SDB_LIST_CS_IN_DOMAIN",     11 ) ;
    /** Get the list of the collections in specified domain. */
-   define( "SDB_LIST_CL_IN_DOMAIN",     12 ) ;
+   define( "SDB_LIST_CL_IN_DOMAIN",     129 ) ;
+   /** Get the list of the collection spaces in specified domain. */
+   define( "SDB_LIST_CS_IN_DOMAIN",     130 ) ;
 
    /**
     * SequoiaDB class constructor.
