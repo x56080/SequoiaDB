@@ -27,18 +27,12 @@ import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
 
 /**
- * @FileName seqDB-2329: detachCL过程中catalog主节点所在服务器磁盘满_rlb.diskExhaustion.subCL.004
+ * @FileName seqDB-2329: detachCLs when Catalog Primary Node is diskfull
  * @Author liuxiaoxuan
  * @Date 2017-08-18
  * @Version 1.00
  */
 
-/*
- * 1、创建主表和子表（如循环创建50个主表，每个主表挂载500个子表），CL数组节点为dataRG主节点
- * 2、批量执行db.collectionspace.collection.detachCL()分离多个子表
- * 3、子表分离过程中模拟dataRG主节点磁盘满，检查detachCL执行结果 
- * 4、将dataRG主节点故障恢复，并对分离成功的子表（普通表）做基本操作（如insert)
- */
 public class DiskFullSubcl2329 extends SdbTestBase{
 
 	private Sequoiadb sdb = null;

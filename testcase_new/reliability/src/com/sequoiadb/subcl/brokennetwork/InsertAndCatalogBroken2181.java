@@ -27,20 +27,13 @@ import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
 
 /**
- * @FileName seqDB-2181: 在主表insert大量数据时catalog主节点断网_rlb.netSplit.subCL.013 
+ * @FileName seqDB-2181: MainCL insert many much datas when Catalog Primary Node is brokennetwork 
  * @Author liuxiaoxuan
  * @Date 2017-08-18
  * @Version 1.00
  */
+public class InsertAndCatalogBroken2181 extends SdbTestBase {
 
-/*
- * 1、创建主表和子表
- * 2、在主表插入大量数据（如每个子表插入10万条数据），插入数据过程中将catalog主节点网络断掉
- * 3、将catalog主节点网络恢复，检查dataRG各节点数据是否完整一致； 
- * 4、对原操作的主表重新插入数据，检查返回结果 
- */
-public class InsertAndCatalogBroken2181 extends SdbTestBase{
-	
 	private GroupMgr groupMgr = null;
     private boolean clearFlag = false;
     private Sequoiadb sdb = null;

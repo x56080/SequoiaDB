@@ -29,12 +29,12 @@ import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
 
 /**
- * @FileName seqDB-2440: 在主表做基本操作时dataRG主节点异常重启
+ * @FileName seqDB-2440: MainCL remove/truncate datas when dataGroup Primary Node is killed
  * @Author liuxiaoxuan
  * @Date 2017-08-22
  * @Version 1.00
  */
-public class KillNodeSubcl2440 extends SdbTestBase {
+public class KillNodeSubcl2440 extends SdbTestBase{
 
 	private Sequoiadb sdb = null;
 	private GroupMgr groupMgr = null;
@@ -210,5 +210,4 @@ public class KillNodeSubcl2440 extends SdbTestBase {
     	}
     }
    
-
 }

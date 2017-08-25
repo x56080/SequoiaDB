@@ -27,20 +27,13 @@ import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
 
 /**
- * @FileName seqDB-2188: 在主表remove大量数据时dataRG主节点断网_rlb.netSplit.subCL.020
+ * @FileName seqDB-2188: MainCL remove/truncate datas when dataGroup Primary Node is brokennetwork
  * @Author liuxiaoxuan
  * @Date 2017-08-18
  * @Version 1.00
  */
-
-/* 
- * 1、创建主表和子表
- * 2、在主表删除大量数据，删除数据过程dataRG主节点网络断掉 ，检查remove/truncate执行结果
- * 3、将dataRG主节点网络恢复，查询dataRG各节点数据是否完整一致
- * 4、对原操作的主表重新删除数据，检查返回结果
- */
-
 public class RemoveAndDataBroken2188 extends SdbTestBase{
+
 	private GroupMgr groupMgr = null;
     private boolean clearFlag = false;
     private Sequoiadb sdb = null;
@@ -182,5 +175,4 @@ public class RemoveAndDataBroken2188 extends SdbTestBase{
         long leftCount = mainCL.getCount();
         Assert.assertEquals(leftCount, 0, "data removed failed");
     }
-   
 }

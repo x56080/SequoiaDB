@@ -27,13 +27,11 @@ import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
 
 /**
- * @FileName seqDB-2328: attachCL过程中catalog主节点systemSpace撑满_rlb.diskExhaustion.subCL.003 
+ * @FileName seqDB-2328: attachCLs when Catalog Primary Node is diskfull 
  * @Author liuxiaoxuan
  * @Date 2017-08-22
  * @Version 1.00
  */
-
-
 public class DiskFullSubcl2328 extends SdbTestBase{
 
 	private Sequoiadb sdb = null;
@@ -202,4 +200,5 @@ public class DiskFullSubcl2328 extends SdbTestBase{
         	 Assert.fail("check insert again failed: " + e.getMessage());
         }
     }
+
 }
