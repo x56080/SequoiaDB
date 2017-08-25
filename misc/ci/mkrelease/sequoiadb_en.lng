@@ -40,7 +40,6 @@ Install.ErrorMsg.StartCM.error=Failed to start cm, execute: service sdbcm start.
 Install.WarnMsg.CheckUmask=Umask abnormal! Current umask = ${full_mask}, recommended value is 0022
 Install.WarnMsg.checkHostname=Hostname may be null!
 Install.WarnMsg.checkHostnameIp=Hostname ${machine_hostname} can't be resolved to local ip address! Please check file /etc/hosts.
-Install.WarnMsg.startSdbcm=Port ${port} has not been released, which may cause start failure of sdbcm service.
 
 Upgrade.Paramers.Upgrade.Explanation=Do You Want To Upgrade
 Upgrade.Paramers.Upgrade.Check=Invalid parameter: --upgrade ${is_upgrade_mode}, should be true or false
