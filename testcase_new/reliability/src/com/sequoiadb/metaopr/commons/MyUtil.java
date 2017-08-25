@@ -926,5 +926,52 @@ public class MyUtil {
     public static void throwSkipExeWithoutFaultEnv() {
 //        throwSkipException("没遇上异常环境");
     }
+
+    public static List<String> getDataGroupCanUse(String brokenHost, int maxTime) {
+        if (maxTime < 1)
+            throw new IllegalArgumentException("maxTime must > 1");
+
+        List<String> groupList = null;
+        int count = 0;
+        try {
+            GroupMgr mgr = new GroupMgr();
+            while (true) {
+                if (++count > maxTime) {
+                    throw new RuntimeException("切主失败");
+                }
+                groupList = getDataGroupCanUseOnce(brokenHost, mgr);
+                if (groupList.size() == 0) {
+                    for (String name : MyUtil.getDataGroupNames()) {
+                        try {
+                            mgr.getGroupByName(name).changePrimary(10);
+                        } catch (ReliabilityException e) {
+                            log.severe(e.getMessage());
+                        }
+                    }
+                } else {
+                    break;
+                }
+            }
+        } catch (ReliabilityException e) {
+            log.severe(e.getMessage());
+        }
+
+        if (groupList == null)
+            return new ArrayList<>(1);
+        else
+            return groupList;
+    }
+
+    private static List<String> getDataGroupCanUseOnce(String brokenHost, GroupMgr mgr) throws ReliabilityException {
+        List<String> groupList = new ArrayList<>(10);
+        for (String name : MyUtil.getDataGroupNames()) {
+            String masterHost = mgr.getGroupByName(name).getMaster().hostName();
+            if (brokenHost.equals(masterHost))
+                continue;
+            else
+                groupList.add(name);
+        }
+        return groupList;
+    }
 }
 

@@ -5,8 +5,12 @@ import com.sequoiadb.commlib.StandTestInterface;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.BrokenNetwork;
 import com.sequoiadb.metaopr.commons.DBoperateTask;
+import com.sequoiadb.metaopr.commons.MyUtil;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.TaskMgr;
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -56,9 +60,17 @@ public class CreateClSlaver2164 implements StandTestInterface {
      */
     @Test
     public void test() throws ReliabilityException {
-        DBoperateTask task = DBoperateTask.getTaskCreateCLInOneCs(clnames, csName);
         String hostName = getSlaveNodeOfCatalog().hostName();
         String safeUrl=CommLib.getSafeCoordUrl(hostName);
+        List<String> groupCanUseList= MyUtil.getDataGroupCanUse(hostName,10);
+        BSONObject option=null;
+        if(groupCanUseList.size()>0)
+            option=new BasicBSONObject("Group",groupCanUseList.get(0));
+        else {
+            new SkipException("环境不满足！断网主机："+hostName);
+        }
+
+        DBoperateTask task = DBoperateTask.getTaskCreateCLInOneCs(clnames, option,csName,0);
         task.setHostname(safeUrl);
         FaultMakeTask faultMakeTask = BrokenNetwork.getFaultMakeTask(hostName, 0, 5);
         TaskMgr mgr = new TaskMgr(faultMakeTask, task);

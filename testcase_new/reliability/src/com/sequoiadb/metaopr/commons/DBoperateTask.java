@@ -58,18 +58,26 @@ public abstract class DBoperateTask extends OperateTask {
      * @param csName
      * @param delayMillis 每循环创建一个cl的睡眠时间，单位是毫秒
      */
-    public static DBoperateTask getTaskCreateCLInOneCs(final List<String> clNames, final String csName, final int delayMillis) {
+    public static DBoperateTask getTaskCreateCLInOneCs(final List<String> clNames, final BSONObject options, final String csName, final int delayMillis) {
         return new DBoperateTask() {
             @Override
             void operate() throws InterruptedException {
                 CollectionSpace cs = db.getCollectionSpace(csName);
                 for (int i = 0; i < clNames.size(); i++) {
                     Thread.sleep(delayMillis);
-                    cs.createCollection(clNames.get(i));
+                    if (options != null) {
+                        cs.createCollection(clNames.get(i), options);
+                    } else {
+                        cs.createCollection(clNames.get(i));
+                    }
                     breakIndex = i;
                 }
             }
         };
+    }
+
+    public static DBoperateTask getTaskCreateCLInOneCs(final List<String> clNames, final String csName, final int delayMillis) {
+        return getTaskCreateCLInOneCs(clNames, null, csName, delayMillis);
     }
 
     public static DBoperateTask getTaskCreateCLInOneCs(final List<String> clNames, final String csName) {
