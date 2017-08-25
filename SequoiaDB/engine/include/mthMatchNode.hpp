@@ -155,8 +155,7 @@ namespace engine
    #define MTH_FUNCTION_STR_SIZE                "$size"
    #define MTH_FUNCTION_STR_TYPE                "$type"
 
-   //TODO: size:2048
-   #define MTH_ALLOCATOR_SIZE                   200
+   #define MTH_ALLOCATOR_SIZE                   2048
    #define MTH_MATCH_FIELD_STATIC_NAME_LEN      32
    #define MTH_FIELDNAME_SEP                    '.'
 
@@ -365,8 +364,7 @@ namespace engine
       public:
          // node *p = new ( _mthNodeAllocator *allocator ) node( _mthNodeAllocator *allocator )
          // use p->release() to release p. and do not use p anymore.
-         void* operator new ( size_t size, _mthNodeAllocator *allocator )
-                              throw ( const char * ) ;
+         void* operator new ( size_t size, _mthNodeAllocator *allocator ) ;
          // do not call delete p directly
          void operator delete ( void *p ) ;
          virtual void release() = 0 ;

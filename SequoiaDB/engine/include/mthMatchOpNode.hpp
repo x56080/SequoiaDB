@@ -72,8 +72,7 @@ namespace engine
 
          // func *p = new ( _mthNodeAllocator *allocator ) func( _mthNodeAllocator *allocator )
          // use p->release() to release p. and do not use p anymore.
-         void* operator new ( size_t size, _mthNodeAllocator *allocator )
-                              throw ( const char * ) ;
+         void* operator new ( size_t size, _mthNodeAllocator *allocator ) ;
          // do not call delete p directly
          void operator delete ( void *p ) ;
          virtual void release() = 0 ;
