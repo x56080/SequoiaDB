@@ -64,7 +64,7 @@ class SequoiaDB
    /** Get the list of the replica groups ( only applicable in sharding env ). */
    define( "SDB_LIST_GROUPS",           7 ) ;
    /** Get the list of the stored procedures ( only applicable in sharding env ). */
-   define( "SDB_LIST_SHARDS",           8 ) ;
+   define( "SDB_LIST_STOREPROCEDURES",  8 ) ;
    /** Get the list of the domains ( only applicable in sharding env ). */
    define( "SDB_LIST_DOMAINS",          9 ) ;
    /** Get the list of the tasks ( only applicable in sharding env ). */
@@ -521,7 +521,7 @@ class SequoiaDB
     *                                                           SDB_LIST_COLLECTIONSPACES
     *                                                           SDB_LIST_STORAGEUNITS
     *                                                           SDB_LIST_GROUPS
-    *                                                           SDB_LIST_SHARDS
+    *                                                           SDB_LIST_STOREPROCEDURES
     *                                                           SDB_LIST_DOMAINS
     *                                                           SDB_LIST_TASKS
     *                                                           SDB_LIST_TRANSACTIONS
