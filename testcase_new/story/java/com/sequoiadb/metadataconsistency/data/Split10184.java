@@ -43,6 +43,7 @@ public class Split10184 extends SdbTestBase {
 					+ ", begin in: " + dateFm.format(new Date().getTime()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+
 			//judge the mode and group number
 			if(CommLib.isStandAlone(sdb) || CommLib.OneGroupMode(sdb)){
 				throw new SkipException("The mode is standlone or only one group, skip the testCase.");
@@ -73,7 +74,7 @@ public class Split10184 extends SdbTestBase {
 		}
 	}
 	
-	@Test
+	@Test(enabled = false)  //bug: jira-2756
 	public void test(){
 		Split split = new Split();
 		split.start();
