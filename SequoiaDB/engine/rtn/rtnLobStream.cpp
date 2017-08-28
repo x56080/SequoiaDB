@@ -163,19 +163,12 @@ namespace engine
             PD_LOG( PDERROR, "Failed to append meta data, rc:%d", rc ) ;
             goto error ;
          }
-         /// add the date
+         /// add the data
          if ( _pool.getLastDataSize() > 0 &&
               ( _flags & FLG_LOBOPEN_WITH_RETURNDATA ) )
          {
             UINT32 readLen = 0 ;
-            /// bson size align
             UINT32 poolSize = _pool.getLastDataSize() ;
-            UINT32 alignSize = ossAlign4( poolSize ) ;
-            if ( poolSize != alignSize )
-            {
-               CHAR fix[ 4 ] = { 0 } ;
-               context->appendObjs( fix, alignSize - poolSize, 0, FALSE ) ;
-            }
             rc = _readFromPool( poolSize, context, cb, readLen ) ;
             if ( rc )
             {
