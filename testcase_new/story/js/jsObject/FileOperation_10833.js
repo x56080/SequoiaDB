@@ -89,6 +89,21 @@ FileTest.prototype.testCopyWithMode = function()
             srcfile + " exist " + this, "rwx--x--x", dstFileMode ) ; 
    }
    
+   // 测试目标文件存在且isReplace为false时，拷贝失败
+   try
+   {
+      this.file.copy( srcFile, dstFile, false ) ;
+      throw 0 ;
+   }
+   catch( e )
+   {
+      if( e !== -5 )
+      {
+         throw buildException( "testCopyWithMode", e, "copy file when " +
+               dstFile + " exist and isReplace false " + this, -5, e ) ;
+      }
+   }
+   
    this.cmd.run( "rm -rf " + dstFile ) ;
    
    this.release() ;
