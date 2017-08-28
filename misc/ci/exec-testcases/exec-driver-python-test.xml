@@ -32,7 +32,7 @@
 			<arg line=" -zxvf ${python.tar}" />
 		</exec>
 		<exec executable="python2.6" dir="${install.path}/sequoiadb/python" logError="true">
-			<arg line=" setup.py install" />
+			<arg line=" setup.py install  --record files.txt" />
 		</exec>
 	</target>
 
