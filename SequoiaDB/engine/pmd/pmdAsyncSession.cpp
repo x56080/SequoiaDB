@@ -697,10 +697,13 @@ namespace engine
    {
       PD_TRACE_ENTRY( PMD_SESSMGR_ONTIMER ) ;
 
-      //Check _deqShdDeletingSessions
-      ossScopedLock lock ( &_deqDeletingMutex ) ;
       pmdAsyncSession *pSession = NULL ;
-      DEQSESSION::iterator it   = _deqDeletingSessions.begin() ;
+      DEQSESSION tmpDeletingSessions ;
+      DEQSESSION::iterator it ;
+
+      /// check _deqShdDeletingSessions and push to tmpDeletingSessions
+      _deqDeletingMutex.get() ;
+      it = _deqDeletingSessions.begin() ;
       while ( it != _deqDeletingSessions.end() )
       {
          pSession = *it ;
@@ -709,9 +712,21 @@ namespace engine
             ++it ;
             continue ;
          }
+         tmpDeletingSessions.push_back( pSession ) ;
          it = _deqDeletingSessions.erase( it ) ;
+      }
+      _deqDeletingMutex.release() ;
+
+      /// release the session
+      it = tmpDeletingSessions.begin() ;
+      while( it != tmpDeletingSessions.end() )
+      {
+         pSession = *it ;
+         ++it ;
+
          _releaseSession_i( pSession, FALSE, FALSE ) ;
       }
+      tmpDeletingSessions.clear() ;
 
       PD_TRACE_EXIT( PMD_SESSMGR_ONTIMER ) ;
    }
@@ -1083,6 +1098,7 @@ namespace engine
       if ( !_quit && _canReuse( pSession->sessionType() ) &&
            _cacheSessionNum < _maxCacheSize() )
       {
+         ossScopedLock lock ( &_deqDeletingMutex ) ;
          _deqCacheSessions.push_back( pSession ) ;
          ++_cacheSessionNum ;
          goto done ;
