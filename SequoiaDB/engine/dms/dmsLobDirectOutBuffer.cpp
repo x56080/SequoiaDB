@@ -38,55 +38,143 @@
 
 namespace engine
 {
+
+   #define DMS_SEQ_READ_FAN_THRESHOLD     ( 3 * OSS_FILE_DIRECT_IO_ALIGNMENT )
+
    /*
       _dmsLobDirectOutBuffer implement
    */
-   _dmsLobDirectOutBuffer::_dmsLobDirectOutBuffer( const void *buf,
+   _dmsLobDirectOutBuffer::_dmsLobDirectOutBuffer( const CHAR *usrBuf,
                                                    UINT32 size,
-                                                   IExecutor *cb )
-   :_dmsLobDirectBuffer( cb ),
-    _usrBuf( buf ),
-    _size( size )
+                                                   UINT32 offset,
+                                                   BOOLEAN needAligned,
+                                                   IExecutor *cb,
+                                                   INT32 pageID,
+                                                   UINT32 newestMask,
+                                                   utilCachFileBase *pFile )
+   :_dmsLobDirectBuffer( (CHAR*)usrBuf, size, offset, needAligned, cb )
    {
-      SDB_ASSERT( NULL != _usrBuf && 0 < size, "impossible" ) ;
+      _pageID = pageID ;
+      _newestMask = newestMask ;
+      _pFile = pFile ;
+
+      SDB_ASSERT( _pFile, "_pFile is NULL" ) ;
    }
 
    _dmsLobDirectOutBuffer::~_dmsLobDirectOutBuffer()
    {
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMS_LOBDIRECTOUTBUF_GETALIGNEDTUPLE, "_dmsLobDirectOutBuffer::getAlignedTuple" )
-   INT32 _dmsLobDirectOutBuffer::getAlignedTuple( tuple &t )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMS_LOBDIRECTOUTBUF_DOIT, "_dmsLobDirectOutBuffer::doit" )
+   INT32 _dmsLobDirectOutBuffer::doit( const tuple **pTuple )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMS_LOBDIRECTOUTBUF_GETALIGNEDTUPLE ) ;
-      UINT32 aligned = ossRoundUpToMultipleX( _size,
-                                              OSS_FILE_DIRECT_IO_ALIGNMENT ) ;
-      if ( _bufSize < aligned )
+      PD_TRACE_ENTRY( SDB__DMS_LOBDIRECTOUTBUF_DOIT ) ;
+
+      rc = prepare() ;
+      if ( rc )
       {
-         rc = _extendBuf( aligned ) ;
-         if ( SDB_OK != rc )
+         goto error ;
+      }
+
+      if ( _aligned )
+      {
+         INT32 offset1 = -1 ;
+         INT32 offset2 = -1 ;
+         UINT32 readLen = 0 ;
+         INT64 fOffset = 0 ;
+
+         if ( _t.offset != _usrOffset )
          {
-            PD_LOG( PDERROR, "Failed to extend buf:%d", rc ) ;
-            goto error ;
+            offset1 = _t.offset ;
          }
+         if ( _t.size != _usrSize )
+         {
+            offset2 = _t.offset + _t.size - OSS_FILE_DIRECT_IO_ALIGNMENT ;
+         }
+
+         if ( offset1 >= 0 && offset2 >= 0 &&
+              offset2 - offset1 <= DMS_SEQ_READ_FAN_THRESHOLD &&
+              _pageID >= 0 &&
+              0 == ( _newestMask & UTIL_WRITE_NEWEST_BOTH ) )
+         {
+            UINT32 len = OSS_FILE_DIRECT_IO_ALIGNMENT + offset2 - offset1 ;
+            fOffset = _pFile->pageID2Offset( _pageID, (UINT32)offset1 ) ;
+            rc = _pFile->readRaw( fOffset, len, _t.buf, readLen, _cb, TRUE ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Read date[PageID:%u, Offset:%u, Len:%u] "
+                       "failed, rc: %d", _pageID, offset1, len, rc ) ;
+               goto error ;
+            }
+            offset1 = -1 ;
+            offset2 = -1 ;
+         }
+
+         if ( offset1 >= 0 )
+         {
+            if ( OSS_BIT_TEST( _newestMask, UTIL_WRITE_NEWEST_HEADER ) )
+            {
+               ossMemset( _t.buf, 0, _usrOffset - offset1 ) ;
+            }
+            else
+            {
+               fOffset = _pFile->pageID2Offset( _pageID, (UINT32)offset1 ) ;
+               rc = _pFile->readRaw( fOffset, OSS_FILE_DIRECT_IO_ALIGNMENT,
+                                     _t.buf, readLen, _cb, TRUE ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Read date[PageID:%u, Offset:%u, Len:%u] "
+                          "failed, rc: %d", _pageID, offset1,
+                          OSS_FILE_DIRECT_IO_ALIGNMENT, rc ) ;
+                  goto error ;
+               }
+            }
+         }
+
+         if ( offset2 >= 0 )
+         {
+            if ( OSS_BIT_TEST( _newestMask, UTIL_WRITE_NEWEST_TAIL ) )
+            {
+               ossMemset( _t.buf + offset2 - _t.offset,
+                          0,
+                          _t.size - ( _usrSize + _usrOffset - _t.offset ) ) ;
+            }
+            else
+            {
+               fOffset = _pFile->pageID2Offset( _pageID, (UINT32)offset2 ) ;
+               rc = _pFile->readRaw( fOffset, OSS_FILE_DIRECT_IO_ALIGNMENT,
+                                     _t.buf + offset2 - _t.offset, readLen,
+                                     _cb, TRUE ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Read date[PageID:%u, Offset:%u, Len:%u] "
+                          "failed, rc: %d", _pageID, offset2,
+                          OSS_FILE_DIRECT_IO_ALIGNMENT, rc ) ;
+                  goto error ;
+               }
+            }
+         }
+
+         /// copy data
+         ossMemcpy( _t.buf + _usrOffset - _t.offset,
+                    _usrBuf, _usrSize ) ;
       }
 
-      ossMemcpy( _buf, _usrBuf, _size ) ;
-      if ( _size < aligned )
+      if ( pTuple )
       {
-         ossMemset( ( CHAR * )_buf + _size, '\0',
-                    aligned - _size ) ;
+         *pTuple = &_t ;
       }
-
-      t.buf = _buf ;
-      t.size = aligned ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMS_LOBDIRECTOUTBUF_GETALIGNEDTUPLE, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMS_LOBDIRECTOUTBUF_DOIT, rc ) ;
       return rc ;
    error:
       goto done ;
+   }
+
+   void _dmsLobDirectOutBuffer::done()
+   {
    }
 
 }

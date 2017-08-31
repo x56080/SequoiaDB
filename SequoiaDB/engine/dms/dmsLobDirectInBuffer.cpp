@@ -41,72 +41,46 @@ namespace engine
    /*
       _dmsLobDirectInBuffer implement
    */
-   _dmsLobDirectInBuffer::_dmsLobDirectInBuffer( void *usrBuf,
+   _dmsLobDirectInBuffer::_dmsLobDirectInBuffer( CHAR *usrBuf,
                                                  UINT32 size,
                                                  UINT32 offset,
+                                                 BOOLEAN needAligned,
                                                  IExecutor *cb )
-   :_dmsLobDirectBuffer( cb ),
-    _usrBuf( usrBuf ),
-    _usrSize( size ),
-    _usrOffset( offset )
+   :_dmsLobDirectBuffer( usrBuf, size, offset, needAligned, cb )
    {
-      SDB_ASSERT( NULL != _usrBuf && 0 < _usrSize, "impossible" ) ;
    }
 
    _dmsLobDirectInBuffer::~_dmsLobDirectInBuffer()
    {
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMS_LOBDIRECTINBUF_GETALIGNEDTUPLE, "_dmsLobDirectInBuffer::getAlignedTuple" )
-   INT32 _dmsLobDirectInBuffer::getAlignedTuple( tuple &t )
+   INT32 _dmsLobDirectInBuffer::doit( const tuple **pTuple )
    {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMS_LOBDIRECTINBUF_GETALIGNEDTUPLE ) ;
-      UINT32 newSize = _usrSize ;
-      UINT32 newOffset = ossRoundUpToMultipleX( _usrOffset,
-                                                OSS_FILE_DIRECT_IO_ALIGNMENT ) ;
-      if ( _usrOffset != newOffset )
+      INT32 rc = prepare() ;
+      if ( SDB_OK == rc && pTuple )
       {
-         newOffset -= OSS_FILE_DIRECT_IO_ALIGNMENT ;
+         *pTuple = &_t ;
       }
-
-      SDB_ASSERT( newOffset <= _usrOffset, "impossible" ) ;
-      newSize += ( _usrOffset - newOffset ) ;
-      newSize = ossRoundUpToMultipleX( newSize,
-                                       OSS_FILE_DIRECT_IO_ALIGNMENT ) ;
-      if ( _bufSize < newSize )
-      {
-         rc = _extendBuf( newSize ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "Failed to extend buf:%d", rc ) ;
-            goto error ;
-         }
-      }
-
-      t.buf = _buf ;
-      t.size = newSize ;
-      t.offset = newOffset ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMS_LOBDIRECTINBUF_GETALIGNEDTUPLE, rc ) ;
       return rc ;
-   error:
-      goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMS_LOBDIRECTINBUF_CP2USRBUF, "_dmsLobDirectInBuffer::copy2UsrBuf" )
-   void _dmsLobDirectInBuffer::copy2UsrBuf( const tuple &t )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMS_LOBDIRECTINBUF_DONE, "_dmsLobDirectInBuffer::done" )
+   void _dmsLobDirectInBuffer::done()
    {
-      PD_TRACE_ENTRY( SDB__DMS_LOBDIRECTINBUF_CP2USRBUF ) ;
-      SDB_ASSERT( t.offset <= _usrOffset &&
-                  _usrSize <= t.size - ( _usrOffset - t.offset ) &&
-                  NULL != t.buf, "impossible" ) ;
-      ossMemcpy( _usrBuf,
-                 ( const CHAR * )_buf + ( _usrOffset - t.offset ),
-                 _usrSize ) ;
+      PD_TRACE_ENTRY( SDB__DMS_LOBDIRECTINBUF_DONE ) ;
 
-      PD_TRACE_EXIT( SDB__DMS_LOBDIRECTINBUF_CP2USRBUF ) ;
+      if ( _aligned )
+      {
+         SDB_ASSERT( _t.offset <= _usrOffset &&
+                     _usrSize <= _t.size - ( _usrOffset - _t.offset ) &&
+                     NULL != _t.buf, "impossible" ) ;
+         ossMemcpy( _usrBuf,
+                    ( const CHAR * )_buf + ( _usrOffset - _t.offset ),
+                    _usrSize ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__DMS_LOBDIRECTINBUF_DONE ) ;
    }
+
 }
 

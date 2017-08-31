@@ -35,6 +35,7 @@
 #define DMS_LOBDIRECTOUTBUFFER_HPP_
 
 #include "dmsLobDirectBuffer.hpp"
+#include "utilCache.hpp"
 
 namespace engine
 {
@@ -44,16 +45,25 @@ namespace engine
    class _dmsLobDirectOutBuffer : public _dmsLobDirectBuffer 
    {
    public:
-      _dmsLobDirectOutBuffer( const void *buf,
+      _dmsLobDirectOutBuffer( const CHAR *usrBuf,
                               UINT32 size,
-                              IExecutor *cb ) ;
+                              UINT32 offset,
+                              BOOLEAN needAligned,
+                              IExecutor *cb,
+                              INT32 pageID,
+                              UINT32 newestMask,
+                              utilCachFileBase *pFile ) ;
       virtual ~_dmsLobDirectOutBuffer() ;
+
    public:
-      virtual INT32 getAlignedTuple( tuple &t ) ;
+      virtual  INT32 doit( const tuple **pTuple ) ;
+      virtual  void  done() ;
 
    private:
-      const void  *_usrBuf ;
-      UINT32      _size ;
+      utilCachFileBase     *_pFile ;
+      INT32                _pageID ;
+      UINT32               _newestMask ;
+
    } ;
    typedef class _dmsLobDirectOutBuffer dmsLobDirectOutBuffer ;
 }

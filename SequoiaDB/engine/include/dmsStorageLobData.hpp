@@ -42,6 +42,10 @@
 
 namespace engine
 {
+   #define DMS_LOBD_FLAG_NULL       0x00000000
+   #define DMS_LOBD_FLAG_DIRECT     0x00000001
+   #define DMS_LOBD_FLAG_SPARSE     0x00000002
+
    /*
       _dmsStorageLobData define
    */
@@ -57,23 +61,49 @@ namespace engine
    public:
       virtual const CHAR*     getFileName() const ;
 
+      virtual INT32  prepareWrite( INT32 pageID,
+                                   const CHAR *pData,
+                                   UINT32 len,
+                                   UINT32 offset,
+                                   IExecutor *cb ) ;
+
       virtual INT32  write( INT32 pageID, const CHAR *pData,
                             UINT32 len, UINT32 offset,
+                            UINT32 newestMask,
                             IExecutor *cb ) ;
+
+      virtual INT32  prepareRead( INT32 pageID,
+                                  CHAR *pData,
+                                  UINT32 len,
+                                  UINT32 offset,
+                                  IExecutor *cb ) ;
 
       virtual INT32  read( INT32 pageID, CHAR *pData,
                            UINT32 len, UINT32 offset,
                            UINT32 &readLen,
                            IExecutor *cb ) ;
 
-      virtual INT64 pageID2Offset( INT32 pageID ) const
+      virtual INT64 pageID2Offset( INT32 pageID,
+                                   UINT32 pageOffset = 0 ) const
       {
-         return getSeek( pageID, 0 ) ;
+         return getSeek( pageID, pageOffset ) ;
+      }
+
+      virtual INT32  offset2PageID( INT64 offset,
+                                    UINT32 *pageOffset = NULL ) const
+      {
+         return getPageID( offset, pageOffset ) ;
       }
 
       virtual INT32  writeRaw( INT64 offset, const CHAR *pData,
                                UINT32 len, IExecutor *cb,
-                               BOOLEAN isAligned ) ;
+                               BOOLEAN isAligned,
+                               UINT32 newestMask = UTIL_WRITE_NEWEST_BOTH ) ;
+
+      virtual INT32  readRaw( INT64 offset, UINT32 len,
+                              CHAR *buf, UINT32 &readLen,
+                              IExecutor *cb,
+                              BOOLEAN isAligned ) ;
 
    public:
       OSS_INLINE INT64 getFileSz() const
@@ -84,6 +114,16 @@ namespace engine
       OSS_INLINE INT64 getDataSz() const
       {
          return getFileSz() - sizeof( _dmsStorageUnitHeader ) ;
+      }
+
+      OSS_INLINE BOOLEAN isDirectIO() const
+      {
+         return OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) ? TRUE : FALSE ;
+      }
+
+      OSS_INLINE BOOLEAN isEnableSparse() const
+      {
+         return OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_SPARSE ) ? TRUE : FALSE ;
       }
 
       OSS_INLINE UINT32 pageSize() const { return _pageSz ; }
@@ -111,12 +151,6 @@ namespace engine
 
       INT32 extend( INT64 len ) ;
 
-      INT32 readRaw( _pmdEDUCB *cb,
-                     UINT64 offset,
-                     UINT32 len,
-                     CHAR *buf,
-                     UINT32 &readLen ) ;
-
       INT32 flush() ;
 
    private:
@@ -135,9 +169,39 @@ namespace engine
       OSS_INLINE SINT64 getSeek( DMS_LOB_PAGEID page,
                                  UINT32 offset ) const
       {
-         INT64 seek = page ;
-         return ( seek << _logarithmic ) +
-                sizeof( _dmsStorageUnitHeader ) + offset ;
+         if ( page < 0 )
+         {
+            return (INT64)offset ;
+         }
+         else
+         {
+            INT64 seek = page ;
+            return ( seek << _logarithmic ) +
+                   sizeof( _dmsStorageUnitHeader ) + offset ;
+         }
+      }
+
+      OSS_INLINE INT32  getPageID( INT64 offset,
+                                   UINT32 *pageOffset ) const
+      {
+         INT32 pageID = -1 ;
+         if ( offset < (INT64)sizeof( _dmsStorageUnitHeader ) )
+         {
+            if ( pageOffset )
+            {
+               *pageOffset = ( UINT32 )offset ;
+            }
+         }
+         else
+         {
+            offset -= sizeof( _dmsStorageUnitHeader ) ;
+            pageID = offset >> _logarithmic ;
+            if ( pageOffset )
+            {
+               *pageOffset = offset & ( _pageSz - 1 ) ;
+            }
+         }
+         return pageID ;
       }
 
       INT32 _extend( INT64 len ) ;

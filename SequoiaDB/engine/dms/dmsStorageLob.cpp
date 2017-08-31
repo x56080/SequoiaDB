@@ -328,7 +328,7 @@ namespace engine
       dmsLobRecord piece ;
       piece.set( &oid, DMS_LOB_META_SEQUENCE, 0,
                  sizeof( meta ), NULL ) ;
-      rc = read( piece, mbContext, cb, 
+      rc = read( piece, mbContext, cb,
                  ( CHAR * )( &meta ), readSz ) ;
       if ( SDB_OK == rc )
       {
@@ -525,7 +525,9 @@ namespace engine
       _pCacheUnit->prepareWrite( page, record._offset,
                                  record._dataLen, cb,
                                  cContext ) ;
-      rc = cContext.write( record._data, record._offset, record._dataLen, cb ) ;
+      rc = cContext.write( record._data, record._offset,
+                           record._dataLen, cb,
+                           UTIL_WRITE_NEWEST_BOTH ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to write data to collection:%s, rc:%d",
@@ -575,7 +577,7 @@ namespace engine
       }
       /// submit the data
       cContext.submit( cb ) ;
-      /// when write, set the page is newest( now not support part write lob )
+      /// when write, set the page is newest( is the first write )
       cContext.makeNewest() ;
 
       if ( 0 != logRecord.head()._length )
@@ -620,6 +622,8 @@ namespace engine
       CHAR fullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
       BOOLEAN locked = FALSE ;
       utilCacheContext cContext ;
+      UINT32 newestMask = 0 ;
+      UINT32 orgBlkLen = 0 ;
 
       if ( _needDelayOpen )
       {
@@ -689,25 +693,44 @@ namespace engine
             rc = SDB_SYS ;
             goto error ;
          }
+         orgBlkLen = blk->_dataLen ;
          newDataLen = record._dataLen + record._offset ;
-         if ( blk->_dataLen > newDataLen )
+         if ( newDataLen > 0 && orgBlkLen > newDataLen )
          {
-            newDataLen = blk->_dataLen ;
+            newDataLen = orgBlkLen ;
          }
          _pCacheUnit->prepareWrite( page, 0, newDataLen, cb, cContext ) ;
       }
 
       if ( NULL != dpscb )
       {
+         UINT32 readOffset = 0 ;
+         UINT32 readLen = 0 ;
+
+         if ( record._offset >= orgBlkLen )
+         {
+            /// do nothing
+         }
+         else if ( record._offset + record._dataLen > orgBlkLen )
+         {
+            readOffset = record._offset ;
+            readLen = orgBlkLen - record._offset ;
+         }
+         else
+         {
+            readOffset = record._offset ;
+            readLen = record._dataLen ;
+         }
+
          /// alloc memory
-         rc = cb->allocBuff( blk->_dataLen, &oldData, NULL ) ;
+         rc = cb->allocBuff( readLen > 0 ? readLen : 1, &oldData, NULL ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Alloc read buffer[%u] failed, rc: %d",
-                    blk->_dataLen, rc ) ;
+                    readLen, rc ) ;
             goto error ;
          }
-         rc = cContext.readAndCache( oldData, 0, blk->_dataLen, cb ) ;
+         rc = cContext.readAndCache( oldData, readOffset, readLen, cb ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to read data from file, rc:%d", rc ) ;
@@ -723,7 +746,7 @@ namespace engine
 
          oldLen = cContext.submit( cb ) ;
 
-         SDB_ASSERT( oldLen == blk->_dataLen, "impossible" ) ;
+         SDB_ASSERT( oldLen == readLen, "impossible" ) ;
 
          rc = dpsLobU2Record( fullName,
                               record._oid,
@@ -762,8 +785,18 @@ namespace engine
          }
       }
 
+      if ( record._dataLen + record._offset > orgBlkLen )
+      {
+         newestMask |= UTIL_WRITE_NEWEST_TAIL ;
+
+         if ( 0 == record._offset )
+         {
+            newestMask |= UTIL_WRITE_NEWEST_HEADER ;
+         }
+      }
+
       rc = cContext.write( record._data, record._offset,
-                           record._dataLen, cb ) ;
+                           record._dataLen, cb, newestMask ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to write data to collection:%s, rc:%d",
@@ -771,7 +804,7 @@ namespace engine
          goto error ;
       }
 
-      if ( record._dataLen + record._offset > blk->_dataLen )
+      if ( record._dataLen + record._offset > orgBlkLen )
       {
          blk->_dataLen = record._dataLen + record._offset ;
       }
@@ -805,8 +838,8 @@ namespace engine
       }
       /// submit the data
       cContext.submit( cb ) ;
-      /// when update, set the page is newest
-      cContext.makeNewest() ;
+      /// make the page newest
+      cContext.makeNewest( newestMask ) ;
 
       if ( 0 != logRecord.head()._length )
       {
@@ -1276,7 +1309,7 @@ namespace engine
          else
          {
             pageInBucket = blk->_nextPageInBucket ;
-            continue ; 
+            continue ;
          }
       }
 
@@ -2012,7 +2045,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__REMOVEPAGE ) ;
-      UINT32 bucketNumber = 0 ;     
+      UINT32 bucketNumber = 0 ;
 
       if ( NULL != bucket )
       {
@@ -2197,7 +2230,7 @@ namespace engine
          }
          if ( mbContext->clLID() != readBlk->_clLogicalID )
          {
-            continue ; 
+            continue ;
          }
 
          /// change to write mode
@@ -2271,7 +2304,7 @@ namespace engine
    error:
       if ( needPanic )
       {
-         PD_LOG( PDSEVERE, "we must panic db now, we got a lrreparable "
+         PD_LOG( PDSEVERE, "we must panic db now, we got a irreparable "
                  "error" ) ;
          ossPanic() ;
       }

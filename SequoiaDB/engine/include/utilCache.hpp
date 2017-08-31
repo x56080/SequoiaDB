@@ -55,6 +55,14 @@ namespace engine
    /// totalSize / maxCacheSize
    #define UTIL_CACHE_RATIO                     ( 20 )   /// >=20%
 
+   /*
+      Write newest mask
+   */
+   #define UTIL_WRITE_NEWEST_HEADER             0x00000001
+   #define UTIL_WRITE_NEWEST_TAIL               0x00000002
+   #define UTIL_WRITE_NEWEST_BOTH               ( UTIL_WRITE_NEWEST_HEADER |\
+                                                  UTIL_WRITE_NEWEST_TAIL )
+
    class _utilCacheMgr ;
    class _utilCacheUnit ;
 
@@ -87,7 +95,8 @@ namespace engine
    #define UTIL_CACHE_PAGE_DIRTY_FLAG        0x01
    #define UTIL_CACHE_PAGE_INVALID_FLAG      0x02
    #define UTIL_CACHE_PAGE_LOCKED_FLAG       0x04
-   #define UTIL_CACHE_PAGE_NEWEST_FLAG       0x08
+   #define UTIL_CACHE_PAGE_NEWEST_HEAD_FLAG  0x08
+   #define UTIL_CACHE_PAGE_NEWEST_TAIL_FLAG  0x10
 
    /*
       _utilCachePage define
@@ -160,18 +169,45 @@ namespace engine
             return OSS_BIT_TEST( _status, UTIL_CACHE_PAGE_LOCKED_FLAG ) ?
                    TRUE : FALSE ;
          }
+         void        makeNewestHead()
+         {
+            OSS_BIT_SET( _status, UTIL_CACHE_PAGE_NEWEST_HEAD_FLAG ) ;
+         }
+         void        makeNewestTail()
+         {
+            OSS_BIT_SET( _status, UTIL_CACHE_PAGE_NEWEST_TAIL_FLAG ) ;
+         }
          void        makeNewest()
          {
-            OSS_BIT_SET( _status, UTIL_CACHE_PAGE_NEWEST_FLAG ) ;
+            makeNewestHead() ;
+            makeNewestTail() ;
+         }
+         void        clearNewestHead()
+         {
+            OSS_BIT_CLEAR( _status, UTIL_CACHE_PAGE_NEWEST_HEAD_FLAG ) ;
+         }
+         void        clearNewestTail()
+         {
+            OSS_BIT_CLEAR( _status, UTIL_CACHE_PAGE_NEWEST_TAIL_FLAG ) ;
          }
          void        clearNewest()
          {
-            OSS_BIT_CLEAR( _status, UTIL_CACHE_PAGE_NEWEST_FLAG ) ;
+            clearNewestHead() ;
+            clearNewestTail() ;
+         }
+         BOOLEAN     isNewestHead() const
+         {
+            return OSS_BIT_TEST( _status, UTIL_CACHE_PAGE_NEWEST_HEAD_FLAG ) ?
+                   TRUE : FALSE ;
+         }
+         BOOLEAN     isNewestTail() const
+         {
+            return OSS_BIT_TEST( _status, UTIL_CACHE_PAGE_NEWEST_TAIL_FLAG ) ?
+                   TRUE : FALSE ;
          }
          BOOLEAN     isNewest() const
          {
-            return OSS_BIT_TEST( _status, UTIL_CACHE_PAGE_NEWEST_FLAG ) ?
-                   TRUE : FALSE ;
+            return isNewestHead() && isNewestTail() ;
          }
          void        addLSN( UINT64 lsn ) ;
 
@@ -485,7 +521,7 @@ namespace engine
          void     discardPage( UINT64 &beginLSN, UINT64 &endLSN ) ;
          void     restorePage( UINT64 beginLSN, UINT64 endLSN ) ;
 
-         void     makeNewest() ;
+         void     makeNewest( UINT32 newestMask = UTIL_WRITE_NEWEST_BOTH ) ;
          void     clearNewest() ;
 
          /*
@@ -494,7 +530,8 @@ namespace engine
          INT32    write( const CHAR *pData,
                          UINT32 offset,
                          UINT32 len,
-                         IExecutor *cb ) ;
+                         IExecutor *cb,
+                         UINT32 newestMask ) ;
 
          /*
             Need call submit or rollback to done
@@ -528,6 +565,7 @@ namespace engine
          UINT32            _offset ;
          UINT32            _len ;
          BOOLEAN           _isWrite ;
+         UINT32            _newestMask ;
          BOOLEAN           _writeBack ;
          BOOLEAN           _usePage ;
          BOOLEAN           _hasDiscard ;
@@ -555,20 +593,44 @@ namespace engine
          virtual const CHAR*     getFileName() const = 0 ;
 
       public:
+         virtual INT32  prepareWrite( INT32 pageID,
+                                      const CHAR *pData,
+                                      UINT32 len,
+                                      UINT32 offset,
+                                      IExecutor *cb ) = 0 ;
+
          virtual INT32  write( INT32 pageID, const CHAR *pData,
                                UINT32 len, UINT32 offset,
+                               UINT32 newestMask,
                                IExecutor *cb ) = 0 ;
+
+         virtual INT32  prepareRead( INT32 pageID,
+                                     CHAR *pData,
+                                     UINT32 len,
+                                     UINT32 offset,
+                                     IExecutor *cb ) = 0 ;
 
          virtual INT32  read( INT32 pageID, CHAR *pData,
                               UINT32 len, UINT32 offset,
                               UINT32 &readLen,
                               IExecutor *cb ) = 0 ;
 
-         virtual INT64  pageID2Offset( INT32 pageID ) const = 0 ;
+         virtual INT64  pageID2Offset( INT32 pageID,
+                                       UINT32 pageOffset = 0 ) const = 0 ;
+
+         virtual INT32  offset2PageID( INT64 offset,
+                                       UINT32 *pageOffset = NULL ) const = 0 ;
 
          virtual INT32  writeRaw( INT64 offset, const CHAR *pData,
                                   UINT32 len, IExecutor *cb,
-                                  BOOLEAN isAligned ) = 0 ;
+                                  BOOLEAN isAligned,
+                                  UINT32 newestMask =
+                                  UTIL_WRITE_NEWEST_BOTH ) = 0 ;
+
+         virtual INT32  readRaw( INT64 offset, UINT32 len,
+                                 CHAR *buf, UINT32 &readLen,
+                                 IExecutor *cb,
+                                 BOOLEAN isAligned ) = 0 ;
 
    } ;
    typedef _utilCachFileBase utilCachFileBase ;

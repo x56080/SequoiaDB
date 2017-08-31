@@ -47,31 +47,51 @@ namespace engine
    class _dmsLobDirectBuffer : public SDBObject
    {
    public:
-      _dmsLobDirectBuffer( IExecutor *cb ) ;
-      virtual ~_dmsLobDirectBuffer() ;
-   public:
-       struct tuple
+       typedef struct _tuple
        {
-         void *buf ;
-         UINT32 size ;
-         UINT32 offset ;
-         tuple()
-         :buf( NULL ),
-          size( 0 ),
-          offset( 0 )
+         CHAR    *buf ;
+         UINT32   size ;
+         UINT32   offset ;
+
+         _tuple()
          {
+            buf      = NULL ;
+            size     = 0 ;
+            offset   = 0 ;
          }
-       } ;
+       } tuple ;
+
    public:
-      virtual INT32 getAlignedTuple( tuple &t ) = 0 ;
+      _dmsLobDirectBuffer( CHAR *usrBuf,
+                           UINT32 size,
+                           UINT32 offset,
+                           BOOLEAN needAligned,
+                           IExecutor *cb ) ;
+
+      virtual ~_dmsLobDirectBuffer() ;
+
+      BOOLEAN  isAligned() const { return _aligned ; }
+
+      INT32    prepare() ;
+
+   public:
+      virtual  INT32 doit( const tuple **pTuple ) = 0 ;
+      virtual  void  done() = 0 ;
 
    protected:
       INT32 _extendBuf( UINT32 size ) ;
 
    protected:
+      tuple       _t ;
+      BOOLEAN     _aligned ;
+
       IExecutor   *_cb ;
-      void        *_buf ;
+      CHAR        *_buf ;
       UINT32      _bufSize ;
+
+      CHAR        *_usrBuf ;
+      UINT32      _usrSize ;
+      UINT32      _usrOffset ;
    } ;
    typedef class _dmsLobDirectBuffer dmsLobDirectBuffer ;
 }

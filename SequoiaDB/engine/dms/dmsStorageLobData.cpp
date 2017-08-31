@@ -47,10 +47,6 @@ namespace engine
 
    const UINT32 DMS_LOBD_EXTEND_LEN = 4 * 1024 * 1024 ;
 
-   #define DMS_LOBD_FLAG_NULL       0x00000
-   #define DMS_LOBD_FLAG_DIRECT     0x00001
-   #define DMS_LOBD_FLAG_SPARSE     0x00002
-
    /*
       _dmsStorageLobData implement
    */
@@ -225,6 +221,8 @@ namespace engine
       INT64 fileSize = 0 ;
       INT64 rightSize = 0 ;
       BOOLEAN reGetSize = FALSE ;
+
+      _fileSz = 0 ;
 
       if ( createNew )
       {
@@ -430,9 +428,36 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTORAGELOBDATA_PREPAREWRITE, "_dmsStorageLobData::prepareWrite" )
+   INT32 _dmsStorageLobData::prepareWrite( INT32 pageID,
+                                           const CHAR *pData,
+                                           UINT32 len,
+                                           UINT32 offset,
+                                           IExecutor *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_DMSSTORAGELOBDATA_PREPAREWRITE ) ;
+
+      _dmsLobDirectOutBuffer buffer( pData, len, offset, isDirectIO(),
+                                     cb, pageID, 0, this ) ;
+      rc = buffer.prepare() ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Prepare for write failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_DMSSTORAGELOBDATA_PREPAREWRITE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTORAGELOBDATA_WRITE, "_dmsStorageLobData::write" )
    INT32 _dmsStorageLobData::write( INT32 pageID, const CHAR *pData,
                                     UINT32 len, UINT32 offset,
+                                    UINT32 newestMask,
                                     IExecutor *cb )
    {
       INT32 rc = SDB_OK ;
@@ -441,43 +466,39 @@ namespace engine
                   NULL != pData &&
                   len + offset <= _pageSz, "invalid operation" ) ;
 
-      _dmsLobDirectOutBuffer buffer( pData, len, cb ) ;
-      _dmsLobDirectBuffer::tuple t ;
-      SINT64 written = 0 ;
+      _dmsLobDirectOutBuffer buffer( pData, len, offset, isDirectIO(),
+                                     cb, pageID, newestMask, this ) ;
+      const _dmsLobDirectBuffer::tuple *t = NULL ;
 
-      INT64 writeOffset = getSeek( pageID, offset ) ;
-      if ( writeOffset + len > _fileSz )
+      INT64 written = 0 ;
+      INT64 writeOffset = 0 ;
+
+      rc = buffer.doit( &t ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      writeOffset = getSeek( pageID, t->offset ) ;
+      if ( writeOffset + t->size > _fileSz )
       {
          PD_LOG( PDERROR, "Offset[%lld] grater than file size[%lld] in "
-                 "file[%s]", writeOffset, _fileSz, _fileName.c_str() ) ;
+                 "file[%s]", t->offset, _fileSz, _fileName.c_str() ) ;
          rc = SDB_SYS ;
          goto error ;
       }
 
-      if ( !OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) )
-      {
-         t.buf = ( void * )pData ;
-         t.size = len ;
-      }
-      else
-      {
-         rc = buffer.getAlignedTuple( t ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to align the buffer:%d", rc ) ;
-            goto error ;  
-         }
-      }
-
       rc = ossSeekAndWriteN( &_file, writeOffset,
-                             ( const CHAR * )( t.buf ), t.size,
+                             t->buf, t->size,
                              written ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to write data, page:%d, rc:%d",
+         PD_LOG( PDERROR, "Failed to write data, page:%d, rc:%d",
                  pageID, rc ) ;
          goto error ; 
       }
+
+      buffer.done() ;
 
    done:
       PD_TRACE_EXITRC( SDB_DMSSTORAGELOBDATA_WRITE, rc ) ;
@@ -489,17 +510,50 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTORAGELOBDATA_WRITERAW, "_dmsStorageLobData::writeRaw" )
    INT32 _dmsStorageLobData::writeRaw( INT64 offset, const CHAR *pData,
                                        UINT32 len, IExecutor *cb,
-                                       BOOLEAN isAligned )
+                                       BOOLEAN isAligned,
+                                       UINT32 newestMask )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DMSSTORAGELOBDATA_WRITERAW ) ;
       SDB_ASSERT( NULL != pData && offset >= 0, "invalid operation" ) ;
 
-      _dmsLobDirectOutBuffer buffer( pData, len, cb ) ;
-      _dmsLobDirectBuffer::tuple t ;
-      SINT64 written = 0 ;
+      INT32  pageID = -1 ;
+      if ( offset >= sizeof( _dmsStorageUnitHeader ) )
+      {
+         offset -= sizeof( _dmsStorageUnitHeader ) ;
+         pageID = offset >> _logarithmic ;
+         offset %= _pageSz ;
+      }
 
-      if ( offset + len > _fileSz )
+      BOOLEAN needAligned = FALSE ;
+      if ( isDirectIO() && !isAligned )
+      {
+         needAligned = TRUE ;
+      }
+
+      _dmsLobDirectOutBuffer buffer( pData, len, offset,
+                                     needAligned, cb, pageID,
+                                     newestMask, this ) ;
+      const _dmsLobDirectBuffer::tuple *t = NULL ;
+      INT64 writeOffset = 0 ;
+      INT64 written = 0 ;
+
+      rc = buffer.doit( &t ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      if ( pageID >= 0 )
+      {
+         writeOffset = getSeek( pageID, t->offset ) ;
+      }
+      else
+      {
+         writeOffset = offset ;
+      }
+
+      if ( (INT64)( writeOffset + t->size ) > _fileSz )
       {
          PD_LOG( PDERROR, "Offset[%lld] grater than file size[%lld] in "
                  "file[%s]", offset, _fileSz, _fileName.c_str() ) ;
@@ -507,34 +561,46 @@ namespace engine
          goto error ;
       }
 
-      if ( !OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) ||
-           isAligned )
-      {
-         t.buf = ( void * )pData ;
-         t.size = len ;
-      }
-      else
-      {
-         rc = buffer.getAlignedTuple( t ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to align the buffer:%d", rc ) ;
-            goto error ;  
-         }
-      }
-
-      rc = ossSeekAndWriteN( &_file, offset,
-                             ( const CHAR * )( t.buf ), t.size,
+      rc = ossSeekAndWriteN( &_file, writeOffset,
+                             t->buf, t->size,
                              written ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to write data, offset:%lld, len:%d, rc:%d",
+         PD_LOG( PDERROR, "Failed to write data, offset:%lld, len:%d, rc:%d",
                  offset, len, rc ) ;
          goto error ; 
       }
 
+      buffer.done() ;
+
    done:
       PD_TRACE_EXITRC( SDB_DMSSTORAGELOBDATA_WRITERAW, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTORAGELOBDATA_PREPAREREAD, "_dmsStorageLobData::prepareRead" )
+   INT32 _dmsStorageLobData::prepareRead( INT32 pageID,
+                                          CHAR *pData,
+                                          UINT32 len,
+                                          UINT32 offset,
+                                          IExecutor *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_DMSSTORAGELOBDATA_PREPAREREAD ) ;
+
+      _dmsLobDirectInBuffer buffer( pData, len, offset,
+                                    isDirectIO(), cb ) ;
+      rc = buffer.prepare() ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Prepare for read failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_DMSSTORAGELOBDATA_PREPAREREAD, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -551,30 +617,21 @@ namespace engine
       SDB_ASSERT( DMS_LOB_INVALID_PAGEID != pageID &&
                   NULL != pData &&
                   len + offset <= _pageSz, "invalid operation" ) ;
+
       SINT64 readFromFile = 0 ;
-      dmsLobDirectInBuffer buffer( pData, len, offset, cb ) ;
-      dmsLobDirectBuffer::tuple t ;
       INT64 readOffset = 0 ;
+      _dmsLobDirectInBuffer buffer( pData, len, offset,
+                                    isDirectIO(), cb ) ;
+      const _dmsLobDirectBuffer::tuple *t = NULL ;
 
-      if ( !OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) )
+      rc = buffer.doit( &t ) ;
+      if ( rc )
       {
-         t.buf = pData ;
-         t.size = len ;
-         t.offset = offset ;
-      }
-      else
-      {
-         rc = buffer.getAlignedTuple( t ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to align the buffer:%d", rc ) ;
-            goto error ;
-         }
+         goto error ;
       }
 
-      readOffset = getSeek( pageID, t.offset ) ;
-
-      if ( readOffset + t.size > _fileSz )
+      readOffset = getSeek( pageID, t->offset ) ;
+      if ( readOffset + t->size > _fileSz )
       {
          PD_LOG( PDERROR, "Offset[%lld] grater than file size[%lld] in "
                  "file[%s]", readOffset, _fileSz, _fileName.c_str() ) ;
@@ -583,7 +640,7 @@ namespace engine
       }
 
       rc = ossSeekAndReadN( &_file, readOffset,
-                            t.size, ( CHAR * )( t.buf ),
+                            t->size, t->buf,
                             readFromFile ) ;
       if ( SDB_OK != rc )
       {
@@ -592,12 +649,9 @@ namespace engine
          goto error ;
       }
 
+      buffer.done() ;
       readLen = len ;
 
-      if ( OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) )
-      {
-         buffer.copy2UsrBuf( t ) ;
-      }
    done:
       PD_TRACE_EXITRC( SDB_DMSSTORAGELOBDATA_READ, rc ) ;
       return rc ;
@@ -606,14 +660,14 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTORAGELOBDATA_READRAW, "_dmsStorageLobData::readRaw" )
-   INT32 _dmsStorageLobData::readRaw( pmdEDUCB *cb, UINT64 offset, UINT32 len,
-                                      CHAR * buf, UINT32 &readLen )
+   INT32 _dmsStorageLobData::readRaw( INT64 offset, UINT32 len, CHAR *buf,
+                                      UINT32 &readLen, IExecutor *cb,
+                                      BOOLEAN isAligned )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DMSSTORAGELOBDATA_READRAW ) ;
-      SDB_ASSERT( NULL != buf && ( SINT64 )offset <= _fileSz, "invalid operation" ) ;
-      SDB_ASSERT( ( 0 == ( offset & ( OSS_FILE_DIRECT_IO_ALIGNMENT - 1 ) ) ) &&
-                  ( 0 == ( len & ( OSS_FILE_DIRECT_IO_ALIGNMENT - 1 ) ) ), "must be aligned" ) ;
+      SDB_ASSERT( NULL != buf && offset >= 0, "invalid arguments" ) ;
+
       SINT64 readFromFile = 0 ;
       INT32  pageID = -1 ;
       if ( offset >= sizeof( _dmsStorageUnitHeader ) )
@@ -623,39 +677,32 @@ namespace engine
          offset %= _pageSz ;
       }
 
-      dmsLobDirectInBuffer buffer( buf, len, offset, cb ) ;
-      dmsLobDirectBuffer::tuple t ;
+      BOOLEAN needAligned = FALSE ;
+      if ( isDirectIO() && !isAligned )
+      {
+         needAligned = TRUE ;
+      }
+      _dmsLobDirectInBuffer buffer( buf, len, offset,
+                                    needAligned, cb ) ;
+      const _dmsLobDirectBuffer::tuple *t = NULL ;
       INT64 readOffset = 0 ;
 
-      if ( !OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) )
+      rc = buffer.doit( &t ) ;
+      if ( rc )
       {
-         t.buf = buf ;
-         t.size = len ;
-         t.offset = offset ;
+         goto error ;
       }
-      else
-      {
-         rc = buffer.getAlignedTuple( t ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to align the buffer:%d", rc ) ;
-            goto error ;
-         }
-      }
-
-      SDB_ASSERT( offset == t.offset &&
-                  len == t.size, "must be same" ) ;
 
       if ( pageID >= 0 )
       {
-         readOffset = getSeek( pageID, t.offset ) ;
+         readOffset = getSeek( pageID, t->offset ) ;
       }
       else
       {
          readOffset = offset ;
       }
 
-      if ( ( SINT64 )(readOffset + t.size) > _fileSz )
+      if ( ( SINT64 )(readOffset + t->size) > _fileSz )
       {
          PD_LOG( PDERROR, "Offset[%lld] grater than file size[%lld] in "
                  "file[%s]", readOffset, _fileSz, _fileName.c_str() ) ;
@@ -664,21 +711,18 @@ namespace engine
       }
 
       rc = ossSeekAndReadN( &_file, readOffset,
-                            t.size, ( CHAR * )( t.buf ),
+                            t->size, t->buf,
                             readFromFile ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to read data[offset: %lld, len: %d], rc: %d",
-                 readOffset, t.size, rc ) ;
+         PD_LOG( PDERROR, "Failed to read data[offset: %lld, len: %d], rc: %d",
+                 readOffset, t->size, rc ) ;
          goto error ;
       }
 
+      buffer.done() ;
       readLen = readFromFile ;
 
-      if ( OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) )
-      {
-         buffer.copy2UsrBuf( t ) ;
-      }
    done:
       PD_TRACE_EXITRC( SDB_DMSSTORAGELOBDATA_READRAW, rc ) ;
       return rc ;
@@ -1038,50 +1082,20 @@ namespace engine
       pHeader->_pageNum  = 0 ;
       pHeader->_secretValue = info._secretValue ;
 
+      /// extend and write
+      rc = extend( sizeof( dmsStorageUnitHeader ) ) ;
+      if ( rc )
       {
-         dmsLobDirectOutBuffer buffer( (const void*)pBuff,
-                                       sizeof( dmsStorageUnitHeader ),
-                                       cb ) ;
-         dmsLobDirectBuffer::tuple t ;
+         PD_LOG( PDERROR, "Failed to extend header, rc: %d", rc ) ;
+         goto error ;
+      }
 
-         rc = extend( sizeof( dmsStorageUnitHeader ) ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to extend header, rc: %d", rc ) ;
-            goto error ;
-         }
-
-         rc = ossSeek ( &_file, 0, OSS_SEEK_SET ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "failed to seek to beginning of the file, rc: %d",
-                     rc ) ;
-            goto error ;
-         }
-
-         if ( OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) )
-         {
-            rc = buffer.getAlignedTuple( t ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDERROR, "failed to align the buffer:%d", rc ) ;
-               goto error ;
-            }
-         }
-         else
-         {
-            t.buf = (void*)pBuff ;
-            t.size = sizeof( dmsStorageUnitHeader ) ;
-         }
-
-         /// no need to align size of header.
-         rc = ossWriteN( &_file, ( const CHAR * )( t.buf ), t.size ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to write file header:%s, rc:%d",
-                    _fileName.c_str(), rc ) ;
-            goto error ;
-         }
+      rc = writeRaw( 0, pBuff, sizeof( dmsStorageUnitHeader ),
+                     cb, FALSE ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to write header, rc: %d", rc ) ;
+         goto error ;
       }
 
    done:
@@ -1219,7 +1233,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DMSSTORAGELOBDATA__FETFILEHEADER ) ;
       INT64 fileLen = 0 ;
-      SINT64 readLen = 0 ;
+      UINT32 readLen = 0 ;
       rc = ossGetFileSize( &_file, &fileLen ) ;
       if ( SDB_OK != rc )
       {
@@ -1234,43 +1248,16 @@ namespace engine
          goto error ;
       }
 
+      rc = readRaw( 0, sizeof( header ), (CHAR *)&header, readLen,
+                    cb, FALSE ) ;
+      if ( rc )
       {
-      _dmsLobDirectInBuffer buffer( &header, sizeof( header ),
-                                    0, cb ) ;
-      _dmsLobDirectBuffer::tuple t ;
-
-      if ( !OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) )
-      {
-         t.buf = &header ;
-         t.size = sizeof( header ) ;
-         t.offset = 0 ;
-      }
-      else
-      {
-         rc = buffer.getAlignedTuple( t ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to align the memory:%d", rc ) ;
-            goto error ;
-         }
-      }
-
-      rc = ossSeekAndReadN( &_file, 0, t.size,
-                            ( CHAR * )( t.buf ),
-                            readLen ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to read file:%d", rc ) ;
+         PD_LOG( PDERROR, "Read header failed, rc: %d", rc ) ;
          goto error ;
       }
 
-      if ( OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) )
-      {
-         buffer.copy2UsrBuf( t ) ;
-      }
-      }
-
       SDB_ASSERT( sizeof( _dmsStorageUnitHeader ) == readLen, "impossible" ) ;
+
    done:
       PD_TRACE_EXITRC( SDB_DMSSTORAGELOBDATA__FETFILEHEADER, rc ) ;
       return rc ;
@@ -1285,43 +1272,12 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DMSLOBDATA_WRFILEHEADER ) ;
 
-      UINT32 len = sizeof(header) ;
-      _dmsLobDirectOutBuffer buffer( (const void*)&header, len, cb ) ;
-      _dmsLobDirectBuffer::tuple t ;
-      SINT64 written = 0 ;
-
-      INT64 writeOffset = 0 ;
-      if ( writeOffset + len > _fileSz )
+      rc = writeRaw( 0, (const CHAR *)&header, sizeof( header ),
+                     cb, FALSE ) ;
+      if ( rc )
       {
-         PD_LOG( PDERROR, "Offset[%lld] grater than file size[%lld] in "
-                 "file[%s]", writeOffset, _fileSz, _fileName.c_str() ) ;
-         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to write header, rc: %d", rc ) ;
          goto error ;
-      }
-
-      if ( !OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) )
-      {
-         t.buf = ( void * )&header ;
-         t.size = len ;
-      }
-      else
-      {
-         rc = buffer.getAlignedTuple( t ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to align the buffer:%d", rc ) ;
-            goto error ;  
-         }
-      }
-
-      rc = ossSeekAndWriteN( &_file, writeOffset,
-                             ( const CHAR * )( t.buf ), t.size,
-                             written ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to write data, offset:%d, len:%d, rc:%d",
-                 writeOffset, len, rc ) ;
-         goto error ; 
       }
 
    done:

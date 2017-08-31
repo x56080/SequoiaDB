@@ -1293,6 +1293,7 @@ namespace engine
       _pUnit = NULL ;
       _mode = -1 ;
       _isWrite = FALSE ;
+      _newestMask = 0 ;
       _size = 0 ;
       _writeBack = FALSE ;
       _usePage = FALSE ;
@@ -1343,11 +1344,18 @@ namespace engine
       return _pData ? FALSE : TRUE ;
    }
 
-   void _utilCacheContext::makeNewest()
+   void _utilCacheContext::makeNewest( UINT32 newestMask )
    {
       if ( _pPage )
       {
-         _pPage->makeNewest() ;
+         if ( OSS_BIT_TEST( newestMask, UTIL_WRITE_NEWEST_HEADER ) )
+         {
+            _pPage->makeNewestHead() ;
+         }
+         if ( OSS_BIT_TEST( newestMask, UTIL_WRITE_NEWEST_TAIL ) )
+         {
+            _pPage->makeNewestTail() ;
+         }
       }
    }
 
@@ -1404,7 +1412,8 @@ namespace engine
    INT32 _utilCacheContext::write( const CHAR *pData,
                                    UINT32 offset,
                                    UINT32 len,
-                                   IExecutor *cb )
+                                   IExecutor *cb,
+                                   UINT32 newestMask )
    {
       INT32 rc = SDB_OK ;
 
@@ -1427,6 +1436,11 @@ namespace engine
          submit( cb ) ;
       }
 
+      if ( 0 == len )
+      {
+         goto done ;
+      }
+
       if ( isPageValid() )
       {
          /// the page
@@ -1444,11 +1458,25 @@ namespace engine
             }
             else
             {
-               rc = _loadPage( offset, len, cb ) ;
+               UINT32 loadOffset = 0 ;
+               UINT32 loadLen = 0 ;
+
+               if ( offset + len < _pPage->start() )
+               {
+                  loadOffset = offset + len ;
+                  loadLen = _pPage->start() - loadOffset ;
+               }
+               else
+               {
+                  loadOffset = _pPage->length() ;
+                  loadLen = offset - loadOffset ;
+               }
+
+               rc = _loadPage( loadOffset, loadLen, cb ) ;
                if( rc )
                {
                   PD_LOG( PDERROR, "Load page[ID:%d,Off:%u,Len:%u] failed, "
-                          "rc: %d", _pageID, offset, len, rc ) ;
+                          "rc: %d", _pageID, loadOffset, loadLen, rc ) ;
                   goto error ;
                }
             }
@@ -1458,17 +1486,30 @@ namespace engine
          _offset = offset ;
          _len = len ;
          _isWrite = TRUE ;
+         _newestMask = newestMask ;
          _usePage = TRUE ;
          _writeBack = FALSE ;
       }
       else
       {
-         _pData = (CHAR*)pData ;
-         _offset = offset ;
-         _len = len ;
-         _isWrite = TRUE ;
-         _usePage = FALSE ;
-         _writeBack = FALSE ;
+         utilCachFileBase* pFile = _pUnit->getCacheFile() ;
+         rc = pFile->prepareWrite( _pageID, pData, len, offset, cb ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Prepare write[PageID:%u, Len:%u, Offset:%u] "
+                    "failed, rc: %d", _pageID, len, offset, rc ) ;
+            goto error ;
+         }
+         else
+         {
+            _pData = (CHAR*)pData ;
+            _offset = offset ;
+            _len = len ;
+            _isWrite = TRUE ;
+            _newestMask = newestMask ;
+            _usePage = FALSE ;
+            _writeBack = FALSE ;
+         }
       }
 
    done:
@@ -1502,6 +1543,11 @@ namespace engine
       {
          SDB_ASSERT( FALSE, "Must done before next read" ) ;
          submit( cb ) ;
+      }
+
+      if ( 0 == len )
+      {
+         goto done ;
       }
 
       if ( isPageValid() )
@@ -1563,12 +1609,23 @@ namespace engine
       }
       else
       {
-         _pData = (CHAR*)pBuff ;
-         _offset = offset ;
-         _len = len ;
-         _isWrite = FALSE ;
-         _usePage = FALSE ;
-         _writeBack = FALSE ;
+         utilCachFileBase* pFile = _pUnit->getCacheFile() ;
+         rc = pFile->prepareRead( _pageID, pBuff, len, offset, cb ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Prepare read[PageID:%u, Len:%u, Offset:%u] "
+                    "failed, rc: %d", _pageID, len, offset, rc ) ;
+            goto error ;
+         }
+         else
+         {
+            _pData = (CHAR*)pBuff ;
+            _offset = offset ;
+            _len = len ;
+            _isWrite = FALSE ;
+            _usePage = FALSE ;
+            _writeBack = FALSE ;
+         }
       }
 
    done:
@@ -1625,7 +1682,8 @@ namespace engine
             {
                /// write to file
                utilCachFileBase* pFile = _pUnit->getCacheFile() ;
-               rc = pFile->write( _pageID, _pData, _len, _offset, cb ) ;
+               rc = pFile->write( _pageID, _pData, _len, _offset,
+                                  _newestMask, cb ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Write page[ID:%d,Off:%u,Len:%u] to "
@@ -1653,7 +1711,7 @@ namespace engine
                           _len, pFile->getFileName(), rc ) ;
                }
                /// write to cache page
-               if ( _writeBack && _pPage )
+               else if ( _writeBack && _pPage )
                {
                   _pPage->load( _pData, _offset, len ) ;
                }
@@ -1670,6 +1728,7 @@ namespace engine
          _len = 0 ;
          _offset = 0 ;
          _isWrite = FALSE ;
+         _newestMask = 0 ;
          _writeBack = FALSE ;
       }
       _hasDiscard = FALSE ;
@@ -1685,6 +1744,7 @@ namespace engine
          _offset = 0 ;
          _len = 0 ;
          _isWrite = FALSE ;
+         _newestMask = 0 ;
          _writeBack = FALSE ;
       }
    }
@@ -1907,6 +1967,11 @@ namespace engine
 
       /// page id is not continous
       if ( _pageNum > 0 && _lastPageID + 1 != pageID )
+      {
+         rc = SDB_IO ;
+         goto error ;
+      }
+      else if ( !pPage->isNewest() )
       {
          rc = SDB_IO ;
          goto error ;
@@ -2443,6 +2508,16 @@ namespace engine
 
       if ( !writeMerge )
       {
+         UINT32 newestMask = 0 ;
+         if ( pPage->isNewestHead() )
+         {
+            newestMask |= UTIL_WRITE_NEWEST_HEADER ;
+         }
+         if ( pPage->isNewestTail() )
+         {
+            newestMask |= UTIL_WRITE_NEWEST_TAIL ;
+         }
+
          pos = pPage->beginBlock() ;
          while( NULL != ( pBuff = pPage->nextBlock( len, pos ) ) )
          {
@@ -2465,7 +2540,8 @@ namespace engine
             {
                len = lastLen ;
             }
-            rc = _pCacheFile->write( pageID, pBuff, len, offset, cb ) ;
+            rc = _pCacheFile->write( pageID, pBuff, len, offset,
+                                     newestMask, cb ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Sync dirty page[ID:%d,Offset:%u,Len:%u] to "
@@ -2695,7 +2771,11 @@ namespace engine
             lastBlkID = curBlkID ;
          }
 
-         if ( _cacheMerge.freeSize() < _pageSize )
+         if ( !it->second->isNewest() )
+         {
+            write2Merge = FALSE ;
+         }
+         else if ( _cacheMerge.freeSize() < _pageSize )
          {
             write2Merge = FALSE ;
          }
