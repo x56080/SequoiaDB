@@ -681,6 +681,7 @@ class client(object):
          Name          Type     Info:
          cs_name       str      The name of collection space to be created.
          options       int/dict The options to create collection space.
+                                When type is int, means setting PageSize.
           -PageSize    int      The page size of collection space. See Info
                                      as below.
           -Domain      str      The domain of collection space to belongs
