@@ -73,8 +73,10 @@ public class HashSplitAndSrcNodeCutNet2567 extends SdbTestBase {
             destGroupName = glist.get(1).getGroupName();
             System.out.println("split srcRG:" + srcGroupName + " destRG:" + destGroupName);            
          
-            brokenNetHost = groupMgr.getGroupByName(srcGroupName).getSlave().hostName();
-            //Utils.reelect(brokenNetHost, destGroupName, Utils.CATA_RG_NAME);
+            brokenNetHost = groupMgr.getGroupByName(srcGroupName).getMaster().hostName();
+            
+				Utils.reelect(brokenNetHost, destGroupName, Utils.CATA_RG_NAME);
+				
             connectUrl = CommLib.getSafeCoordUrl(brokenNetHost);
             groupMgr.refresh();
             System.out.println("brokenHost:" + brokenNetHost + " connectUrl:" + connectUrl);
@@ -232,7 +234,7 @@ public class HashSplitAndSrcNodeCutNet2567 extends SdbTestBase {
                 //insert 1000 records,the "no" value is 1000-2000
                 bulkInsert(cl1,1000,2000);
             }catch (BaseException e) {
-                throw e;
+                System.out.println(e);
             }
             finally {
                 if (db1 != null) {
