@@ -1127,6 +1127,14 @@ namespace engine
       }
       pHeader = (dmsStorageUnitHeader*)pData ;
 
+      rc = ossGetFileSize( &_file, &_fileSz ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to get size of file:%s, rc:%d",
+                 _fileName.c_str(), rc ) ;
+         goto error ;
+      }
+
       rc = _getFileHeader( *pHeader, cb ) ;
       if ( SDB_OK != rc )
       {
@@ -1190,14 +1198,6 @@ namespace engine
          goto error ;
       }
 
-      rc = ossGetFileSize( &_file, &_fileSz ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to get size of file:%s, rc:%d",
-                 _fileName.c_str(), rc ) ;
-         goto error ;
-      }
-
       _pageSz = info._lobdPageSize ;
       if ( !ossIsPowerOf2( _pageSz, &_logarithmic ) )
       {
@@ -1232,21 +1232,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DMSSTORAGELOBDATA__FETFILEHEADER ) ;
-      INT64 fileLen = 0 ;
       UINT32 readLen = 0 ;
-      rc = ossGetFileSize( &_file, &fileLen ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to file len:%d", rc ) ;
-         goto error ;
-      }
-
-      if ( fileLen < ( INT64 )sizeof( _dmsStorageUnitHeader ) )
-      {
-         PD_LOG( PDERROR, "invalid length of file:%lld", fileLen ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
 
       rc = readRaw( 0, sizeof( header ), (CHAR *)&header, readLen,
                     cb, FALSE ) ;
