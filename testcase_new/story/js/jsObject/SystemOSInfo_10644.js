@@ -37,26 +37,11 @@ function toolGetReleaseInfo( hostName, svcName )
    }
    else
    {
-      // if cannot use lsb_release, use release file    
-      var files = [ "/etc/SuSE-release", "/etc/redhat-release", "/etc/os-release" ] ;
-      var file = remote.getFile() ;
-      for( var i = 0;i < files.length;i++ )
-      {
-         if( file.exist( files[i] ) )
-         {
-            if( i == 0 || i == 1 )
-            {
-               result = cmd.run( "cat " + files[i] ).split( "\n" )[0] ;
-            }
-            else
-            {
-               var tmpInfo = cmd.run( "cat /etc/os-release | grep PRETTY_NAME" ).split("\n")[0] ;
-               tmpInfo = tmpInfo.split("=")[1] ;
-               result = tmpInfo.replace( /\"/g, '' ) ;
-            }
-            break ;
-         }
-      }    
+      // if lsb_release not exist, use uname to get release info
+      var sysname = cmd.run( "uname -s" ).split( "\n" )[0] ;
+      var release = cmd.run( "uname -r" ).split( "\n" )[0] ;
+      var arm = cmd.run( "uname -i" ).split( "\n" )[0] ;
+      result = sysname + " " + release + "(" + arm + ")" ;  
    }
    remote.close() ;
    result = result.replace( /[\t ]/g, '' ) ;
