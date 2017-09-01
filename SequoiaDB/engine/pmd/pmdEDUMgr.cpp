@@ -724,7 +724,11 @@ namespace engine
          // if we failed to create thread, make sure to clean runqueue
          PD_LOG ( PDSEVERE, "Failed to create new agent: %s",
                   e.what() ) ;
+
+         _mutex.get () ;
          _runQueue.erase ( myEDUID ) ;
+         _mutex.release () ;
+
          rc = SDB_SYS ;
          probe = 30 ;
          goto error ;
