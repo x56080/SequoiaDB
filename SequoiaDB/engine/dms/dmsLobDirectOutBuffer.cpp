@@ -39,7 +39,7 @@
 namespace engine
 {
 
-   #define DMS_SEQ_READ_FAN_THRESHOLD     ( 3 * OSS_FILE_DIRECT_IO_ALIGNMENT )
+   #define DMS_SEQ_READ_FAN_THRESHOLD     ( 7 * OSS_FILE_DIRECT_IO_ALIGNMENT )
 
    /*
       _dmsLobDirectOutBuffer implement
