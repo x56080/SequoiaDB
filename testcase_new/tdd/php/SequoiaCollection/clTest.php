@@ -347,7 +347,20 @@ class cl_Test extends PHPUnit_Framework_TestCase
     */
    public function test_clear( $db, $cs )
    {
-      $err = $cs -> drop() ;
+      $err = array() ;
+      for( $i = 0; $i < 20; ++$i )
+      {
+         $err = $cs -> drop() ;
+         if( $err['errno'] == -147 )
+         {
+            sleep( 1 ) ;
+         }
+         else
+         {
+            $this -> assertEquals( 0, $err['errno'], '删除cs错误' ) ;
+            break ;
+         }
+      }
       $this -> assertEquals( 0, $err['errno'], '删除cs错误' ) ;
    }
 }
