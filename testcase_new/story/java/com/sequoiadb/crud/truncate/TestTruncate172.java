@@ -60,6 +60,7 @@ public class TestTruncate172 extends SdbTestBase {
             if(cs.isCollectionExist(clName)){
                 cs.dropCollection(clName);
             }
+            sdb.removeBackup(new BasicBSONObject("Name", "backupName"));
         }catch(BaseException e){
             Assert.fail(e.getMessage());
         }finally{
