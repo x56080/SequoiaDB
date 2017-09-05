@@ -56,7 +56,7 @@ namespace engine
 
    static OSS_THREAD_LOCAL CHAR     *__errobj__          = NULL ;
    static OSS_THREAD_LOCAL UINT32   __errobjSize__       = 0 ;
-   
+
    static OSS_THREAD_LOCAL BOOLEAN  __printError__       = TRUE ;
    static OSS_THREAD_LOCAL BOOLEAN  __hasReadData__      = FALSE ;
 
@@ -367,7 +367,8 @@ namespace engine
    {
       sdbSetErrorObj( pErrorObj, objSize ) ;
       sdbSetErrno( flag, FALSE ) ;
-      if ( 0 != ossStrcmp( pDescription, pDetail ) )
+      if ( pDescription && pDetail &&
+           0 != ossStrcmp( pDescription, pDetail ) )
       {
          sdbSetErrMsgWithDetail( pDescription, pDetail, FALSE ) ;
       }
