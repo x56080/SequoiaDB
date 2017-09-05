@@ -243,6 +243,9 @@ namespace engine
          << "   getNodeConfigs( svcname )" << endl
          << "   setNodeConfigs( svcname, configsObj )" << endl
          << "   updateNodeConfigs( svcname, configsObj )" << endl
+         << "   reloadConfigs()" << endl
+         << "   startAllNodes( [businessName] )" << endl
+         << "   stopAllNodes( [businessName] )" << endl
          << "   close()" << endl ;
       rval.getReturnVal().setValue( ss.str() ) ;
       return SDB_OK ;

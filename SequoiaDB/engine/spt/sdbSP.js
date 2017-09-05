@@ -505,6 +505,41 @@ Oma.prototype.help = function( val ) {
    {
       println("OMA methods:") ;
       println("   oma.help(<method>)          help on specified method of oma, e.g. oma.help(\'createData\')");
+      println("   getOmaInstallFile()         - Get the configuration information of sdbcm."        ) ;
+      println("   getOmaInstallInfo()         - Get the installation information from the installation file.") ;
+      println("   getOmaConfigFile()          - Get the installation information file.") ;
+      println("   getOmaConfigs( [confFile] ) - Get the installation information file.") ;
+      println("   setOmaConfigs( obj, [confFile] )") ;
+      println("                               - Set the configuration information to the") ;
+      println("                                 configuration file of sdbcm.") ;
+      println("   getAOmaSvcName( hostname, [confFile] )") ;
+      println("                               - Get the service name of sdbcm in target host.") ;
+      println("   addAOmaSvcName( hostname, svcname, [isReplace], [confFile] )") ;
+      println("                               - Specify the service name of sdbcm in target host.") ;
+      println("   delAOmaSvcName( hostname, [confFile] )") ;
+      println("                               - Delete the service name of sdbcm from its") ;
+      println("                                 configuration file in target host.") ;
+      println("   listNodes( optionObj, [filterObj] )") ;
+      println("                               - Lists all nodes in the host where the current") ;
+      println("                                 Oma object is connected to.") ;
+      println("   getNodeConfigs( svcname )   - Get the configuration information from the") ;
+      println("                                 configuration file of specified SequoiaDB node.") ;
+      println("   setNodeConfigs( svcname, configsObj )") ;
+      println("                               - Use the new configuration information to") ;
+      println("                                 overwrite the contents in the configuration file") ;
+      println("                                 of the specified SequoiaDB node.") ;
+      println("   updateNodeConfigs( svcname, configsObj )") ;
+      println("                               - Use the new configuration information to") ;
+      println("                                 update the contents in the configuration file of") ;
+      println("                                 the specified SequoiaDB node.") ;
+      println("   reloadConfigs()             - Sdbcm reload the configuration information") ;
+      println("                                 from the configuration file.") ;
+      println("   startAllNodes( [businessName] )") ;
+      println("                               - Start all nodes with the specified business name") ;
+      println("                                 in target host of sdbcm") ;
+      println("   stopAllNodes( [businessName] )") ;
+      println("                               - Stop all nodes with the specified business name") ;
+      println("                                 in target host of sdbcm") ;
       man( "oma" ) ;
    }
    else
