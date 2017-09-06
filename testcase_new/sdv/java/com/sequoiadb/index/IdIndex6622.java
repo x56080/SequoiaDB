@@ -110,11 +110,12 @@ public class IdIndex6622 extends SdbTestBase {
 				//Assert.fail("need error code: -48");
 			}catch(BaseException e){
 				System.out.println("e:" + e );
-				if(e.getErrorCode() != -48){
+				if(e.getErrorCode() != -48 && e.getErrorCode() != -10){
 					throw e;
 				}
 			}finally {
-				cursor.close();
+				if(cursor != null)
+					cursor.close();
 				if (db2 != null) {
 					db2.disconnect();
 				}
