@@ -70,7 +70,7 @@ public class Split512 extends SdbTestBase {
 	}
 
 	// 切分时，插入lob,等待切分完成,检查目标组数据量，重新插入数据，检查落入情况
-	@Test(enabled = true, timeOut = 60000)
+	@Test(enabled = true, timeOut = 300000)
 	public void insertLob() {
 		Sequoiadb sdb = null;
 		Split split = new Split();
