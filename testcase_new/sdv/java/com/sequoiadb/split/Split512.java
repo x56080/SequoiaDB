@@ -70,7 +70,7 @@ public class Split512 extends SdbTestBase {
 	}
 
 	// 切分时，插入lob,等待切分完成,检查目标组数据量，重新插入数据，检查落入情况
-	@Test(enabled = true, timeOut = 300000)
+	@Test(enabled = true)
 	public void insertLob() {
 		Sequoiadb sdb = null;
 		Split split = new Split();
@@ -78,7 +78,7 @@ public class Split512 extends SdbTestBase {
 		try {
 			sdb = new Sequoiadb(coordUrl, "", "");
 			DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-			for (int i = 0; i < 100; i++) {
+			for (int i = 0; i < 500; i++) {
 				DBLob blob = cl.createLob();
 				blob.write(clName.getBytes());
 				blob.close();
@@ -247,12 +247,12 @@ public class Split512 extends SdbTestBase {
 
 			// 检查目标组普通记录数量是否在(500+-(500*0.3))范围内（50%切分，设置出入允许30%）
 			if (destDataCount < 500 - (500 * 0.3) || destDataCount > 500 + (500 * 0.3)) {
-				Assert.fail("split count unexpeted");
+				Assert.fail("split count unexpeted:"+destDataCount);
 			}
 
-			// 检查目标组LOB记录数量是否在(50+-(50*0.3))范围内
-			if (destLobCount < 50 - (50 * 0.3) || destLobCount > 50 + (50 * 0.3)) {
-				Assert.fail("split count unexpeted");
+			// 检查目标组LOB记录数量是否在(250+-(250*0.3))范围内
+			if (destLobCount < 250 - (250 * 0.3) || destLobCount > 250 + (250 * 0.3)) {
+				Assert.fail("split count unexpeted:"+destLobCount);
 			}
 		} catch (BaseException e) {
 			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
