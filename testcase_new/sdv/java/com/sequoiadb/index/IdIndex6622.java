@@ -114,8 +114,9 @@ public class IdIndex6622 extends SdbTestBase {
 					throw e;
 				}
 			}finally {
-				if(cursor != null)
+				if(cursor != null){
 					cursor.close();
+				}
 				if (db2 != null) {
 					db2.disconnect();
 				}
