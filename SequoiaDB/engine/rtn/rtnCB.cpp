@@ -106,6 +106,27 @@ namespace engine
       return SDB_OK ;
    }
 
+   rtnContext* _SDB_RTNCB::contextFind ( SINT64 contextID, _pmdEDUCB *cb )
+   {
+      rtnContext *pContext = NULL ;
+
+      _mutex.get_shared() ;
+      std::map<SINT64, rtnContext*>::iterator it ;
+      if ( _contextList.end() != ( it = _contextList.find( contextID ) ) )
+      {
+         pContext = (*it).second ;
+      }
+      _mutex.release_shared() ;
+
+      if ( pContext && cb && !cb->contextFind( contextID ) )
+      {
+         PD_LOG ( PDWARNING, "Context %lld does not owned by "
+                  "current session", contextID ) ;
+         pContext = NULL ;
+      }
+      return pContext ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_RTNCB_CONTEXTDEL, "_SDB_RTNCB::contextDelete" )
    void _SDB_RTNCB::contextDelete ( SINT64 contextID, pmdEDUCB *cb )
    {
@@ -247,7 +268,7 @@ namespace engine
                                                                 pEDUCB->getID() ) ;
                 break ;
             default :
-               PD_LOG( PDERROR, "Unknow context type: %d", type ) ;
+               PD_LOG( PDERROR, "Unknown context type: %d", type ) ;
                return SDB_SYS ;
          }
 
