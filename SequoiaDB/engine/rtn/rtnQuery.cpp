@@ -67,18 +67,10 @@ namespace engine
       rtnContext *context = NULL ;
 
       // retrieve the context pointer
-      context = rtnCB->contextFind ( contextID ) ;
+      context = rtnCB->contextFind ( contextID, cb ) ;
       if ( !context )
       {
          PD_LOG ( PDERROR, "Context %lld does not exist", contextID ) ;
-         rc = SDB_RTN_CONTEXT_NOTEXIST ;
-         goto error ;
-      }
-      // make sure the context belongs to the current session
-      if ( !cb->contextFind ( contextID ) )
-      {
-         PD_LOG ( PDERROR, "Context %lld does not owned by current session",
-                  contextID ) ;
          rc = SDB_RTN_CONTEXT_NOTEXIST ;
          goto error ;
       }
@@ -108,7 +100,10 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNGETMORE, rc ) ;
       return rc ;
    error :
-      rtnCB->contextDelete ( contextID, cb ) ;
+      if ( context )
+      {
+         rtnCB->contextDelete ( contextID, cb ) ;
+      }
       goto done ;
    }
 

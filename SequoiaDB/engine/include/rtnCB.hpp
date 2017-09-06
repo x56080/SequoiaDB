@@ -88,14 +88,7 @@ namespace engine
 
       void contextDelete ( SINT64 contextID, _pmdEDUCB *cb ) ;
 
-      OSS_INLINE rtnContext *contextFind ( SINT64 contextID )
-      {
-         RTNCB_SLOCK
-         std::map<SINT64, rtnContext*>::const_iterator it ;
-         if ( _contextList.end() == (it = _contextList.find(contextID)))
-            return NULL ;
-         return (*it).second ;
-      }
+      rtnContext *contextFind ( SINT64 contextID, _pmdEDUCB *cb ) ;
 
       OSS_INLINE INT32 contextNum ()
       {
