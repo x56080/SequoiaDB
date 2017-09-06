@@ -61,13 +61,15 @@ FileTest.prototype.testStat = function()
 {
    this.init() ;
    
-   var dir = "/tmp" ;               // 目录
-   var normalFile = "/etc/hosts" ;  // 普通文件
-   var charFile = "/dev/null" ;     // 字符设备文件
+   var dir = "/tmp/testDir" ;         // 目录
+   this.cmd.run( "rm -rf " + dir ) ;
+   this.cmd.run( "mkdir " + dir ) ;
+   var normalFile = "/etc/hosts" ;    // 普通文件
+   var charFile = "/dev/null" ;       // 字符设备文件
    var blockFile = "/dev/loop0" ;     // 块设备文件
-   var linkFile = "/dev/stdin" ;    // 链接文件
-   var socketFile = "/dev/log" ;    // 套接字文件
-   var fifoFile = "/tmp/testFifo" ; // 命名管道文件
+   var linkFile = "/dev/stdin" ;      // 链接文件
+   var socketFile = "/dev/log" ;      // 套接字文件
+   var fifoFile = "/tmp/testFifo" ;   // 命名管道文件
    this.cmd.run( "rm -rf " + fifoFile ) ; 
    this.cmd.run( "mkfifo " + fifoFile ) ; 
    // var unkowntypeFile ;
@@ -96,6 +98,7 @@ FileTest.prototype.testStat = function()
       checkStat( stat1, stat2 ) ;
    }
    this.cmd.run( "rm -rf " + fifoFile ) ;
+   this.cmd.run( "rm -rf " + dir ) ;
    
    this.release() ;
 }
