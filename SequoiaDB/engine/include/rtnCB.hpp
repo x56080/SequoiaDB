@@ -88,7 +88,7 @@ namespace engine
 
       void contextDelete ( SINT64 contextID, _pmdEDUCB *cb ) ;
 
-      rtnContext *contextFind ( SINT64 contextID, _pmdEDUCB *cb ) ;
+      rtnContext *contextFind ( SINT64 contextID, _pmdEDUCB *cb = NULL ) ;
 
       OSS_INLINE INT32 contextNum ()
       {
