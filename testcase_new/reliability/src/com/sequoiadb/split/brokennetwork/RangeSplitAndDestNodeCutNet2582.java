@@ -95,7 +95,7 @@ public class RangeSplitAndDestNodeCutNet2582 extends SdbTestBase {
     public void test() {
         try {
             //create concurrent tasks
-            FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(brokenNetHost, 0, 10);
+            FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(brokenNetHost, 0, 15);
             TaskMgr mgr = new TaskMgr(faultTask);
             mgr.addTask(new Split());
             mgr.addTask(new Insert());
@@ -221,9 +221,9 @@ public class RangeSplitAndDestNodeCutNet2582 extends SdbTestBase {
     	try{
     		//check data for source and target groups
             long expectRecNums = 2500;
-            String destMatcher = "{no:{$gte:500,$lt:1500}}";
+            String destMatcher = "{no:{$gte:1000,$lt:2000}}";
             long destExpectNums = 1000;
-            String srcMatcher = "{$or:[{no:{$gte:1500}},{no:{$lt:500}}]}";
+            String srcMatcher = "{$or:[{no:{$gte:2000}},{no:{$lt:1000}}]}";
             long srcExpectNums = 1500;
             long destCount = checkGroupData(destGroupName, destMatcher, destExpectNums);
             long srcCount = checkGroupData(srcGroupName, srcMatcher, srcExpectNums);            
@@ -232,7 +232,7 @@ public class RangeSplitAndDestNodeCutNet2582 extends SdbTestBase {
             Assert.assertEquals(actRecNums, expectRecNums,"insert records num error: "+actRecNums);          
      
             //check all records,check the value of "no" 
-            DBCursor tmpCursor = cl.query(null, null, "{ _id: 1 }", null);       
+            DBCursor tmpCursor = cl.query(null, null, "{ no: 1 }", null);       
             for( long i = 0; i < expectRecNums; i++ ){
             	long actValue = (long) tmpCursor.getNext().get("no");
             	long expValue = i;
@@ -282,8 +282,8 @@ public class RangeSplitAndDestNodeCutNet2582 extends SdbTestBase {
                 db2 = new Sequoiadb(connectUrl, "", "");
                 db2.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
                 DBCollection cl2 = db2.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-                cl2.split(srcGroupName, destGroupName, (BSONObject) JSON.parse("{no:500}"), 
-                        (BSONObject) JSON.parse("{no:1500}"));
+                cl2.split(srcGroupName, destGroupName, (BSONObject) JSON.parse("{no:1000}"), 
+                        (BSONObject) JSON.parse("{no:2000}"));
             }
             catch (BaseException e) {
                 throw e;
