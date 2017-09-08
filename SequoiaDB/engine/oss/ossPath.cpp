@@ -121,6 +121,11 @@ static INT32 _ossEnumFiles( const string &dirPath,
       {
          rc = SDB_PERM ;
       }
+      else if( e.code() == boost::system::errc::too_many_files_open ||
+               e.code() == boost::system::errc::too_many_files_open_in_system )
+      {
+         rc = SDB_TOO_MANY_OPEN_FD ;
+      }
       else
       {
          PD_LOG( PDERROR, "Enum directory[%s] failed, errno: %d",
