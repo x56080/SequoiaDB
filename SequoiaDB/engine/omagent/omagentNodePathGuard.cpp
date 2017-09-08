@@ -148,6 +148,11 @@ namespace engine {
       {
          goto error ;
       }
+      rc = _checkExistedFiles( options->getDbPath(), "sdb.conf", 1 ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
       /// indexpath
       rc = _checkExistedFiles( options->getIndexPath(), "*.idx", 1 ) ;
       if ( rc )
