@@ -75,6 +75,7 @@ public class RangeSplitAndDestNodeCutNet2582 extends SdbTestBase {
          
             brokenNetHost = groupMgr.getGroupByName(destGroupName).getMaster().hostName();
             Utils.reelect(brokenNetHost, destGroupName, Utils.CATA_RG_NAME);
+				Utils.reelect(brokenNetHost, srcGroupName);
             connectUrl = CommLib.getSafeCoordUrl(brokenNetHost);
             groupMgr.refresh();
             System.out.println("brokenHost:" + brokenNetHost + " connectUrl:" + connectUrl);
