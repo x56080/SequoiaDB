@@ -20,6 +20,8 @@ public:
     std::string longtag ;
     std::string shorttag ;
     std::string typeofwebtag ;
+	std::string reloadabletag ;
+	std::string reloadstrategytag ;
     std::string detailtag ;
     BOOLEAN hiddentag ;
     OptEle()
@@ -39,10 +41,13 @@ public:
     std::string stentry_nametag ;
     std::string stentry_acronymtag ;
     std::string stentry_typetag ;
+	std::string stentry_reloadabletag ;
+	std::string stentry_reloadstrategytag ;
     std::string stentry_desttag ;
     // note tags
     std::string firsttag ;
     std::string secondtag ;
+	std::string thirdtag ;
 } ;
 
 class OptGenForWeb
@@ -50,8 +55,11 @@ class OptGenForWeb
     const char *language ;
     std::vector<OptOtherInfoEle*> optOtherInfo ;
     std::vector<OptEle*> optlist ;
+	boost::property_tree::ptree defaultTagValue ;
     void loadOtherInfoFromXML () ;
     void loadFromXML () ;
+	INT32 parseOptListTag( boost::property_tree::ptree::value_type &v,
+							   OptEle *newele ) ;
     std::string genOptions () ;
     void gendoc () ;
 

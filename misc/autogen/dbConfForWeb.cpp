@@ -7,24 +7,30 @@
 
 // optlist.xml elements for web page
 #define OPTLISTTAG            "optlist"
+#define NAMETAG               "name"
 #define LONGTAG               "long"
 #define SHORTTAG              "short"
 #define TYPEOFWEBTAG          "typeofweb"
+#define TYPEOFRELOADABLE      "reloadable"
+#define TYPEOFRELOADSTRATEGY  "reloadstrategy"
 #define HIDDENTAG             "hidden"
 #define DETAILTAG             "detail"
 
 // optOtherInfoForWeb.xml elements for web page
-#define OPTOTHERINFOFORWEBTAG "optOtherInfoForWeb"
-#define TITLETAG              "title"
-#define SUBTITLETAG           "subtitle"
-#define STHEADTAG             "sthead"
-#define STENTRY_NAMETAG       "stentry_name"
-#define STENTRY_ACRONYMTAG    "stentry_acronym"
-#define STENTRY_TYPETAG       "stentry_type"
-#define STENTRY_DESTTAG       "stentry_dest"
-#define NOTETAG               "note"
-#define NOTE_FIRSTTAG         "first"
-#define NOTE_SECONDTAG        "second"
+#define OPTOTHERINFOFORWEBTAG       "optOtherInfoForWeb"
+#define TITLETAG                    "title"
+#define SUBTITLETAG                 "subtitle"
+#define STHEADTAG                   "sthead"
+#define STENTRY_NAMETAG             "stentry_name"
+#define STENTRY_ACRONYMTAG          "stentry_acronym"
+#define STENTRY_TYPETAG             "stentry_type"
+#define STENTRY_RELOADABLETAG       "stentry_reloadable"
+#define STENTRY_RELOADSTRATEGYTAG   "stentry_reloadstrategy"
+#define STENTRY_DESTTAG             "stentry_dest"
+#define NOTETAG                     "note"
+#define NOTE_FIRSTTAG               "first"
+#define NOTE_SECONDTAG              "second"
+#define NOTE_THIRDTAG               "third"
 
 using namespace boost::property_tree;
 using namespace std;
@@ -44,8 +50,11 @@ static string& replace_all ( string &str, const string& old_value, const string 
 
 OptGenForWeb::OptGenForWeb ( const char* lang ) : language( lang )
 {
-    loadFromXML () ;
-    loadOtherInfoFromXML () ;
+   defaultTagValue.put("en", "--") ;
+   defaultTagValue.put("cn", "--") ;
+
+   loadFromXML () ;
+   loadOtherInfoFromXML () ; 
 }
 
 OptGenForWeb::~OptGenForWeb ()
@@ -98,6 +107,7 @@ void OptGenForWeb::loadOtherInfoFromXML ()
                 }
                 catch ( std::exception &e )
                 {
+                    delete newele ;
                     cout << "Wrong to get the title tag: " << e.what()
                          << endl ;
                     continue ;
@@ -112,6 +122,7 @@ void OptGenForWeb::loadOtherInfoFromXML ()
                 }
                 catch ( std::exception &e )
                 {
+                    delete newele ;
                     cout << "Wrong to get the subtitle tag: " << e.what()
                          << endl ;
                     continue ;
@@ -139,6 +150,16 @@ void OptGenForWeb::loadOtherInfoFromXML ()
                             newele->stentry_typetag = v1.second
                                            .get<string>(language) ;
                         }
+                        else if ( STENTRY_RELOADABLETAG == v1.first )
+                        {
+                            newele->stentry_reloadabletag = v1.second
+                                           .get<string>(language) ;
+                        }
+                        else if ( STENTRY_RELOADSTRATEGYTAG == v1.first )
+                        {
+                            newele->stentry_reloadstrategytag = v1.second
+                                           .get<string>(language) ;
+                        }
                         else if ( STENTRY_DESTTAG == v1.first )
                         {
                             newele->stentry_desttag = v1.second
@@ -148,6 +169,7 @@ void OptGenForWeb::loadOtherInfoFromXML ()
                 }
                 catch ( std::exception &e )
                 {
+                    delete newele ;
                     cout << "Wrong to get the stentry tags: " << e.what()
                          << endl ;
                     continue ;
@@ -170,10 +192,16 @@ void OptGenForWeb::loadOtherInfoFromXML ()
                             newele->secondtag = v2.second
                                     .get<string>(language) ;
                         }
+                        else if ( NOTE_THIRDTAG == v2.first )
+                        {
+                            newele->thirdtag = v2.second
+                                    .get<string>(language) ;
+                        }
                     }
                 }
                 catch ( std::exception &e )
                 {
+                    delete newele ;
                     cout << "Wrong to get the note tags: " << e.what()
                          << endl ;
                     continue ;
@@ -191,102 +219,144 @@ void OptGenForWeb::loadOtherInfoFromXML ()
     optOtherInfo.push_back ( newele ) ;
 }
 
+INT32 OptGenForWeb::parseOptListTag( ptree::value_type &v, OptEle *newele )
+{
+   INT32 rc = SDB_OK ;
+   boost::optional<string> optionalString ;
+   boost::optional<ptree &> optionalPtree ;
+
+   optionalString = v.second.get_optional<string>(HIDDENTAG) ;
+   if ( optionalString )
+   {
+      ossStrToBoolean( optionalString->c_str(), &( newele->hiddentag ) ) ;
+      
+   }
+
+   // we don't need the notes whose hidden tag is true
+   if ( newele->hiddentag )
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+   // long tag could not be null
+   optionalString = v.second.get_optional<string>(LONGTAG) ;
+   if ( optionalString )
+   {
+      newele->longtag += (*optionalString) ;
+   }
+   else
+   {
+      optionalString = v.second.get_optional<string>(NAMETAG) ;
+
+      if ( optionalString )
+      {
+         cout << "Long tag is requird for " << *optionalString << endl ;
+      }
+      else
+      {
+         cout << "Name and Long tag is requird." << endl ;
+      }
+      exit( 1 );
+   }
+
+   // if no detail tag, we don't need this note
+   optionalPtree = v.second.get_child_optional(DETAILTAG) ;
+   if ( optionalPtree )
+   {
+      newele->detailtag = optionalPtree->get<string>(language) ;
+   }
+   else
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+   // short tag can be null
+   newele->shorttag += v.second.get(SHORTTAG, "-") ;
+
+   // type tag can be null
+   newele->typeofwebtag = v.second.get(TYPEOFWEBTAG, "--") ;
+
+   // reloadable tag can be null
+   newele->reloadabletag = v.second.get_child_optional(TYPEOFRELOADABLE)
+                            .value_or(defaultTagValue).get<string>(language) ;
+
+   // reload strategy tag can be null
+   newele->reloadstrategytag = v.second.get_child_optional(TYPEOFRELOADSTRATEGY)
+                                .value_or(defaultTagValue).get<string>(language) ;
+
+done:
+   return rc;
+error:
+   goto done;
+}
+
 void OptGenForWeb::loadFromXML ()
 {
-    ptree pt ;
-    try
-    {
-        read_xml ( OPTXMLSRCFILE, pt ) ;
-    }
-    catch ( std::exception &e )
-    {
-        cout << "Can not read src xml file, not exist or wrong directory for OptGenForWeb: "
-             << e.what() << endl ;
-        exit ( 0 ) ;
-    }
-    try
-    {
-        BOOST_FOREACH ( ptree::value_type &v, pt.get_child( OPTLISTTAG ) )
-        {
-            BOOLEAN ishidden = FALSE ;
-            OptEle *newele = new OptEle() ;
-            if ( !newele )
-            {
-                cout << "Failed to allocate memory for OptEle!" << endl ;
-                exit ( 0 ) ;
-            }
-            try
-            {
-                ossStrToBoolean ( v.second.get<string>(HIDDENTAG).c_str(),
-                                 &ishidden ) ;
-            }
-            catch ( std::exception & )
-            {
-                ishidden = FALSE ;
-            }
-            // we don't need the notes whose hidden tag is true
-            if ( ishidden )
-            {
-                continue ;
-            }
+   ptree pt ;
 
-            // long tag could not be null
-            try
-            {
-                // long
-                newele->longtag += v.second.get<string>(LONGTAG) ;
-            }
-            catch ( std::exception &e )
-            {
-                cout << "Long tag is requird: " << e.what()
-                     << endl ;
-                continue ;
-            }
-            // if no detail tag, we don't need this note
-            try
-            {
-                // detail
-                newele->detailtag = v.second.get_child(DETAILTAG
-                                           ).get<string>(language) ;
-            }
-            catch ( std::exception &e )
-            {
-                (void)e ;
-                continue ;
-            }
-            // short tag can be null
-            try
-            {
-                // short
-                //newele->shorttag += v.second.get<string>(SHORTTAG).c_str[0] ;
-                newele->shorttag += v.second.get<string>(SHORTTAG) ;
-            }
-            catch ( std::exception &e )
-            {
-                (void)e ;
-                newele->shorttag += "-" ;
-            }
-            // type tag can be null
-            try
-            {
-                // type
-                newele->typeofwebtag = v.second.get<string>(TYPEOFWEBTAG) ;
-            }
-            catch ( std::exception &e )
-            {
-                (void)e ;
-                newele->typeofwebtag = "--" ;
-            }
+   try
+   {
+     read_xml ( OPTXMLSRCFILE, pt ) ;
+   }
+   catch ( std::exception &e )
+   {
+     cout << "Can not read src xml file, not exist or wrong directory for OptGenForWeb: "
+          << e.what() << endl ;
+     exit ( 1 ) ;
+   }
 
-            optlist.push_back ( newele ) ;
-        }
-    }
-    catch ( std::exception& )
-    {
-        cout << "XML format error, unknown node name \
-or description language,please check!"<<endl ;
-        exit(0) ;
-    }
+   try
+   {
+      BOOST_FOREACH ( ptree::value_type &v, pt.get_child( OPTLISTTAG ) )
+      {
+         OptEle *newele = new ( std::nothrow ) OptEle() ;
+
+         if ( !newele )
+         {
+             cout << "Failed to allocate memory for OptEle!" << endl ;
+             exit ( 1 ) ;
+         }
+
+         try
+         {
+            if ( SDB_OK == parseOptListTag( v, newele ) )
+            {
+               optlist.push_back ( newele ) ;
+            }
+            else
+            {
+               if ( newele && !newele->hiddentag )
+               {
+                  cout << "skip tag " << newele->longtag << endl;  
+               }
+               delete newele ;
+            }
+         }
+         catch ( std::exception &e )
+         {
+            if ( newele && "--" != newele->longtag )
+            {
+               cout << "for tag " << newele->longtag << ", ";
+            }  
+            delete newele ;
+            cout << "XML format error: " << e.what()
+                 << ", unknown node name or description language, please check!"
+                 << endl ;
+            exit( 1 ) ;
+         }
+
+         newele = NULL ;
+      }
+   }
+   catch ( std::exception &e )
+   {
+      cout << "Can not find tag " << OPTLISTTAG
+          << e.what() << endl ;
+      exit ( 1 ) ;
+   }
+
 }
 
 string OptGenForWeb::genOptions ()
@@ -308,9 +378,11 @@ string OptGenForWeb::genOptions ()
     oss << "|" << (*ite)->stentry_nametag
         << "|" << (*ite)->stentry_acronymtag
         << "|" << (*ite)->stentry_typetag
+        << "|" << (*ite)->stentry_reloadabletag
+        << "|" << (*ite)->stentry_reloadstrategytag
         << "|" << (*ite)->stentry_desttag
         << "|" << endl ;
-    oss << "|---|---|---|---|" << endl ;
+    oss << "|---|---|---|---|---|---|" << endl ;
 
     for ( it = optlist.begin(); it != optlist.end(); it++ )
     {
@@ -320,6 +392,8 @@ string OptGenForWeb::genOptions ()
         oss << "|" << (*it)->longtag
             << "|" << (*it)->shorttag
             << "|" << (*it)->typeofwebtag
+            << "|" << (*it)->reloadabletag
+            << "|" << (*it)->reloadstrategytag
             << "|" << detail
             << "|" << endl ;
     }
@@ -328,6 +402,7 @@ string OptGenForWeb::genOptions ()
     oss << ">**Note:**  " << endl ;
     oss << ">1. " << (*ite)->firsttag << "  " << endl ;
     oss << ">2. " << (*ite)->secondtag << "  " << endl ;
+    oss << ">2. " << (*ite)->thirdtag << "  " << endl ;
 
     return oss.str() ;
 }

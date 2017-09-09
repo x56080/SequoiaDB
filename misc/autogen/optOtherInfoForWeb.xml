@@ -21,6 +21,14 @@
          <en>Type</en>
          <cn>类型</cn>
       </stentry_type>
+      <stentry_reloadable>
+         <en>Reloadable</en>
+         <cn>动态生效</cn>
+      </stentry_reloadable>
+      <stentry_reloadstrategy>
+         <en>Reload Strategy</en>
+         <cn>生效策略</cn>
+      </stentry_reloadstrategy>
       <stentry_dest>
          <en>Description</en>
          <cn>说明</cn>
@@ -35,6 +43,10 @@
          <en>The total size of synch log (logfilesz * logfilenum)determines the fault tolerance in the process of sync. If log is bigger, the possiblity of full sync is lower.</en>
          <cn>同步日志的总大小（logfilesz * logfilenum）决定了在同步过程中的容错能力。日志越大则进行全量恢复的可能性越小。</cn>
       </second>
+      <third>
+         <en>Use [reloadConf()](reference/Sequoiadb_command/Sdb/reloadConf.md) to reload the config file and some of the configs will take effect dynamically, only support those configs that have a "yes" in the "Reloadable" column, others will be ignored.</en>
+         <cn>使用 [reloadConf()](reference/Sequoiadb_command/Sdb/reloadConf.md) 重新加载配置文件，并进行配置动态生效，只支持“动态生效”列为“是”的配置项，其他配置项会被忽略。</cn>
+      </third>
    </note>
 
 </optOtherInfoForWeb>
