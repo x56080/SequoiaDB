@@ -3760,7 +3760,7 @@ static PyMethodDef sequoiadb_methods[] = {
    {"cl_explain",                      cl_explain,                      METH_VARARGS},
    {"cl_truncate",                     cl_truncate,                     METH_VARARGS},
    {"cl_create_id_index",              cl_create_id_index,              METH_VARARGS},
-   {"cl_drop_id_index",                cl_create_id_index,              METH_VARARGS},
+   {"cl_drop_id_index",                cl_drop_id_index,                METH_VARARGS},
    /** cr */
    {"create_cursor",                   create_cursor,                   METH_VARARGS},
    {"release_cursor",                  release_cursor,                  METH_VARARGS},
