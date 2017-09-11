@@ -26,11 +26,11 @@
          <switch value="@{marktype}">
             <case value="begin">
                <var name="mark_cmd" value="-e &quot;db=new Sdb('localhost',${SVCNAME}); db.msg('Begin testcase[@{casename}]'); 
-               db.close();&quot; -f ${CI_WORK_DIR}/@{casename}.js" />
+               db.close();&quot; -f ${CI_WORK_DIR}/@{casename}" />
             </case>
             <case value="end">
                <var name="mark_cmd" value="-e &quot;db=new Sdb('localhost',${SVCNAME}); db.msg('End testcase[@{casename}]'); 
-               db.close();&quot; -f ${CI_WORK_DIR}/@{casename}.js" />
+               db.close();&quot; -f ${CI_WORK_DIR}/@{casename}" />
             </case>
          </switch>
          <echo message="exec cmd: ${INSTALL_DIR}/bin/sdb ${mark_cmd}"/>
