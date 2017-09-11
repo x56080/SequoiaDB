@@ -403,7 +403,7 @@ string OptGenForWeb::genOptions ()
     oss << ">**Note:**  " << endl ;
     oss << ">1. " << (*ite)->firsttag << "  " << endl ;
     oss << ">2. " << (*ite)->secondtag << "  " << endl ;
-    oss << ">2. " << (*ite)->thirdtag << "  " << endl ;
+    oss << ">3. " << (*ite)->thirdtag << "  " << endl ;
 
     return oss.str() ;
 }
