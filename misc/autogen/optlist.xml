@@ -230,8 +230,8 @@
          <cn>是</cn>
       </reloadable>
       <reloadstrategy>
-         <en>immediately takes effect</en>
-         <cn>立即生效</cn>
+         <en></en>
+         <cn></cn>
       </reloadstrategy>
       <detail>
          <en>1. It specifies the amount of thread in thread pool.<fig></fig>
@@ -379,8 +379,8 @@
          <cn>是</cn>
       </reloadable>
       <reloadstrategy>
-         <en>immediately takes effect</en>
-         <cn>立即生效</cn>    	
+         <en></en>
+         <cn></cn>    	
       </reloadstrategy>
       <default>3</default>
       <detail>
@@ -677,8 +677,8 @@
          <cn>是</cn>
       </reloadable>
       <reloadstrategy>
-         <en>immediately takes effect</en>
-         <cn>立即生效</cn>
+         <en></en>
+         <cn></cn>
       </reloadstrategy>
       <detail>
          <en>The control strategy of data sync in repl group, value enumeration: none,keepnormal,keepall, default:keepnormal.</en>
@@ -772,8 +772,8 @@
          <cn>是</cn>
       </reloadable>
       <reloadstrategy>
-         <en>immediately takes effect</en>
-         <cn>立即生效</cn>
+         <en></en>
+         <cn></cn>
       </reloadstrategy>
       <type>int</type>
       <hidden>true</hidden>
@@ -802,8 +802,8 @@
          <cn>是</cn>
       </reloadable>
       <reloadstrategy>
-         <en>immediately takes effect</en>
-         <cn>立即生效</cn>
+         <en></en>
+         <cn></cn>
       </reloadstrategy>
 	  <type>int</type>
      <hidden>true</hidden>
@@ -957,8 +957,8 @@
          <cn>是</cn>
       </reloadable>
       <reloadstrategy>
-         <en>immediately takes effect</en>
-         <cn>立即生效</cn>
+         <en></en>
+         <cn></cn>
       </reloadstrategy>
       <detail>
          <en>The weight of election, default is 10, range [1, 100]</en>
@@ -1058,8 +1058,8 @@
          <cn>是</cn>
       </reloadable>
       <reloadstrategy>
-         <en>immediately takes effect</en>
-         <cn>立即生效</cn>
+         <en></en>
+         <cn></cn>
       </reloadstrategy>
       <detail>
          <en>The timeout period for heartbeat in each operation ( in ms ), default:300000, 0 for no-timeout</en>
@@ -1340,8 +1340,8 @@
          <cn>是</cn>
       </reloadable>
       <reloadstrategy>
-         <en>immediately takes effect</en>
-         <cn>立即生效</cn>
+         <en></en>
+         <cn></cn>
       </reloadstrategy>
       <detail>
          <en>The timeout interval for archiving( in seconds ), default:600, 0 for no-timeout.</en>
@@ -1364,8 +1364,8 @@
          <cn>是</cn>
       </reloadable>
       <reloadstrategy>
-         <en>immediately takes effect</en>
-         <cn>立即生效</cn>
+         <en></en>
+         <cn></cn>
       </reloadstrategy>
       <detail>
          <en>The expired time for archive log file ( in hours ), default:240, 0 for no-expired.</en>
@@ -1388,8 +1388,8 @@
          <cn>是</cn>
       </reloadable>
       <reloadstrategy>
-         <en>immediately takes effect</en>
-         <cn>立即生效</cn>
+         <en></en>
+         <cn></cn>
       </reloadstrategy>
       <detail>
          <en>The disk quota for archive log directory ( in GB ), default:10, 0 for no limit.</en>
@@ -1412,8 +1412,8 @@
          <cn>是</cn>
       </reloadable>
       <reloadstrategy>
-         <en>immediately takes effect</en>
-         <cn>立即生效</cn>
+         <en></en>
+         <cn></cn>
       </reloadstrategy>
       <detail>
          <en>1. The node's operation when its data lost. Value is 0/1/2. Default is 1.<fig></fig>
@@ -1453,8 +1453,8 @@
          <cn>是</cn>
       </reloadable>
       <reloadstrategy>
-         <en>immediately takes effect</en>
-         <cn>立即生效</cn>
+         <en></en>
+         <cn></cn>
       </reloadstrategy>
       <default>false</default>
       <hidden>true</hidden>

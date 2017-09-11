@@ -222,8 +222,8 @@ INT32 OptGenForWeb::parseOptListTag( ptree::value_type &v )
    boost::optional<string> optionalString ;
    boost::optional<ptree &> optionalPtree ;
    ptree defaultTagValue ;
-   defaultTagValue.put("en", "--") ;
-   defaultTagValue.put("cn", "--") ;
+   defaultTagValue.put("en", "") ;
+   defaultTagValue.put("cn", "") ;
 
    OptEle *newele = new ( std::nothrow ) OptEle() ;
 
@@ -288,7 +288,15 @@ INT32 OptGenForWeb::parseOptListTag( ptree::value_type &v )
       }
 
       // short tag can be null
-      newele->shorttag += v.second.get(SHORTTAG, "-") ;
+      optionalString = v.second.get_optional<string>(SHORTTAG) ;
+      if ( optionalString )
+      {
+         newele->shorttag += *optionalString ;
+      }
+      else
+      {
+         newele->shorttag = "";
+      }
 
       // type tag can be null
       newele->typeofwebtag = v.second.get(TYPEOFWEBTAG, "--") ;
