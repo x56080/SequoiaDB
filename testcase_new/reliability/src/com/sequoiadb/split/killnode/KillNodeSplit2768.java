@@ -63,7 +63,7 @@ public class KillNodeSplit2768 extends SdbTestBase {
             commSdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
             CollectionSpace commCS = commSdb.getCollectionSpace(csName);
             DBCollection cl = commCS.createCollection(clName, (BSONObject) JSON.parse(
-                    "{ShardingKey:{'sk':1},ShardingType:'range',Group:'" + srcGroupName + "'}"));
+                    "{ShardingKey:{'sk':1},ShardingType:'range',Group:'" + srcGroupName + "',ReplSize:0}"));
             // 准备切分的数据
             insertData(cl, 0, 5000);
         }
