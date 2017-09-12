@@ -150,7 +150,7 @@ namespace engine
                   _latch.release() ;
                   // wait job detach
                   itJob->waitDetach () ;
-                  ossSleep( 5 ) ;
+                  ossSleep( 2 ) ;
                   // need to get _latch
                   _latch.get() ;
                   // need to release remove latch for job to delete
