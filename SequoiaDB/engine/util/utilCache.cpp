@@ -1786,7 +1786,7 @@ namespace engine
          CHAR *ptr = _pPage->str() ;
          pFile = _pUnit->getCacheFile() ;
          /// read from file
-         rc = pFile->read( _pageID, ptr, len, offset, readLen, cb ) ;
+         rc = pFile->read( _pageID, ptr + offset, len, offset, readLen, cb ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Read from file[%s] failed, rc: %d",
