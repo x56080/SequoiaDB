@@ -289,8 +289,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       ossTimestamp t ;
 
-      SDB_ASSERT( isNewest(), "Page should be newest" ) ;
-
       if ( size() < offset + len )
       {
          /// no space for write data
