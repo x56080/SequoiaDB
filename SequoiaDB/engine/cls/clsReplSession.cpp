@@ -995,9 +995,10 @@ namespace engine
 #endif
 
          rc = _replay( recordHeader ) ;
-         SDB_ASSERT( SDB_OK == rc, "must be ok" ) ;
          if ( SDB_OK != rc )
          {
+            SDB_ASSERT( SDB_OOM == rc || SDB_NOSPC == rc,
+                        "Unexpect error occured" ) ;
             PD_LOG( PDERROR, "Session[%s]: Failed to replay log, rc: %d",
                     sessionName(), rc ) ;
             goto error ;

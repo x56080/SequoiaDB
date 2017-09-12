@@ -66,10 +66,10 @@ namespace engine
          PD_LOG ( PDINFO, "Background job[%s] finished", job->name() ) ;
       }
 
-      job->attachOut () ;
-
       // remove from job mgr
       jobMgr->_removeJob ( cb->getID(), rc ) ;
+
+      job->attachOut () ;
 
       PD_TRACE_EXITRC ( SDB_PMDBGJOBENTPNT, rc );
       return SDB_OK ;

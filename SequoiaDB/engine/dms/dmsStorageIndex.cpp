@@ -499,11 +499,11 @@ namespace engine
          //set logical id
          indexLID = context->mb()->_indexHWCount ;
          indexCB.setLogicalID( indexLID ) ;
+         indexDef = indexCB.getDef().getOwned() ;
 
          // calc the reserve size
          if ( dpscb )
          {
-            indexDef = indexCB.getDef().getOwned() ;
             _pDataSu->_clFullName( context->mb()->_collectionName, fullName,
                                    sizeof(fullName) ) ;
             rc = dpsIXCrt2Record( fullName, indexDef, record ) ;

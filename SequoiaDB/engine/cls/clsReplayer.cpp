@@ -1253,23 +1253,21 @@ namespace engine
          goto error ;
       }
 
-      if ( FALSE == useSync )
-      {
-         /*rc = rtnGetJobMgr()->startJob( indexJob, RTN_JOB_MUTEX_STOP_RET, NULL ) ;
-         if ( SDB_RTN_MUTEX_JOB_EXIST == rc )
-         {
-            rc = SDB_OK ;
-         }*/
-         // if use RTN_JOB_MUTEX_STOP_RET, when create index have complete,
-         // drop index should not drop really, so it's error, need to use
-         // RTN_JOB_MUTEX_STOP_CONT
-         rc = rtnGetJobMgr()->startJob( indexJob, RTN_JOB_MUTEX_STOP_CONT, NULL ) ;
-      }
-      else
+      /// When is $id or useSync
+      if ( useSync ||
+           0 != ossStrcmp( indexJob->getIndexName(), IXM_ID_KEY_NAME ) )
       {
          indexJob->doit() ;
          SDB_OSS_DEL indexJob ;
          indexJob = NULL ;
+      }
+      else
+      {
+         // if use RTN_JOB_MUTEX_STOP_RET, when create index have complete,
+         // drop index should not drop really, so it's error, need to use
+         // RTN_JOB_MUTEX_STOP_CONT
+         rc = rtnGetJobMgr()->startJob( indexJob, RTN_JOB_MUTEX_STOP_CONT,
+                                        NULL ) ;
       }
 
    done:

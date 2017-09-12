@@ -775,10 +775,10 @@ namespace engine
       if ( CLS_BUCKET_ROLLBACKING != _status )
       {
          rc = _replayer->replay( pHeader, cb, FALSE ) ;
-         SDB_ASSERT( SDB_OK == rc, "Reply dps log failed" ) ;
-
          if ( rc )
          {
+            SDB_ASSERT( SDB_OOM == rc || SDB_NOSPC == rc,
+                        "Unexpect error occured" ) ;
             if ( CLS_BUCKET_WAIT_ROLLBACK != _status )
             {
                _status = CLS_BUCKET_WAIT_ROLLBACK ;
