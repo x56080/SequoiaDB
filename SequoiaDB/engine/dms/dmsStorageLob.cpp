@@ -1044,6 +1044,8 @@ namespace engine
       BOOLEAN locked = FALSE ;
       BOOLEAN hasRemoved = FALSE ;
       utilCacheContext cContext ;
+      UINT32 dirtyStart = 0 ;
+      UINT32 dirtyLen = 0 ;
       UINT64 beginLSN = 0 ;
       UINT64 endLSN = 0 ;
 
@@ -1228,7 +1230,7 @@ namespace engine
       }
 
       /// discard the page
-      cContext.discardPage( beginLSN, endLSN ) ;
+      cContext.discardPage( dirtyStart, dirtyLen, beginLSN, endLSN ) ;
       /// release the context and then lock mbContext again
       cContext.release() ;
 
@@ -2151,6 +2153,8 @@ namespace engine
       dpsLogRecord &logRecord = info.getMergeBlock().record() ;
       dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
       utilCacheContext cContext ;
+      UINT32 dirtyStart = 0 ;
+      UINT32 dirtyLen = 0 ;
       UINT64 beginLSN = 0 ;
       UINT64 endLSN = 0 ;
 
@@ -2252,7 +2256,7 @@ namespace engine
          /// when the page is dirty, dicard the page, size is 0, will not
          /// alloc the page when page is not in memory
          _pCacheUnit->prepareWrite( current, 0, 0, cb, cContext ) ;
-         cContext.discardPage( beginLSN, endLSN ) ;
+         cContext.discardPage( dirtyStart, dirtyLen, beginLSN, endLSN ) ;
          cContext.release() ;
       }
 

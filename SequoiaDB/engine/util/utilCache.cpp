@@ -55,6 +55,7 @@ namespace engine
       _readTimes = 0 ;
       _writeTimes = 0 ;
       _status = 0 ;
+      _pinkCnt = 0 ;
       _beginLSN = ~0 ;
       _endLSN = ~0 ;
       _lsnNum = 0 ;
@@ -71,6 +72,7 @@ namespace engine
       _readTimes = right._readTimes ;
       _writeTimes = right._writeTimes ;
       _status = right._status ;
+      _pinkCnt = right._pinkCnt ;
       _beginLSN = right._beginLSN ;
       _endLSN = right._endLSN ;
       _lsnNum = right._lsnNum ;
@@ -134,6 +136,7 @@ namespace engine
       _readTimes = 0 ;
       _writeTimes = 0 ;
       _status = 0 ;
+      _pinkCnt = 0 ;
       _beginLSN = ~0 ;
       _endLSN = ~0 ;
       _lsnNum = 0 ;
@@ -164,6 +167,7 @@ namespace engine
       _readTimes = rhs._readTimes ;
       _writeTimes = rhs._writeTimes ;
       _status = rhs._status ;
+      _pinkCnt = rhs._pinkCnt ;
       _beginLSN = rhs._beginLSN ;
       _endLSN = rhs._endLSN ;
       _lsnNum = rhs._lsnNum ;
@@ -381,6 +385,7 @@ namespace engine
       _readTimes = right._readTimes ;
       _writeTimes = right._writeTimes ;
       _status = right._status ;
+      _pinkCnt = right._pinkCnt ;
       _beginLSN = right._beginLSN ;
       _endLSN = right._endLSN ;
       _lsnNum = right._lsnNum ;
@@ -791,8 +796,9 @@ namespace engine
       CHAR *pPage = NULL ;
       UINT32 pageSize = 0 ;
 
-      SDB_ASSERT( !item.isDirty(), "Page can't be dirty" ) ;
+      SDB_ASSERT( !item.isDirty(),  "Page can't be dirty" ) ;
       SDB_ASSERT( !item.isLocked(), "Page can't be locked" ) ;
+      SDB_ASSERT( !item.isPinked(), "Page can't be pinked" ) ;
 
       pos = item.beginBlock() ;
 
@@ -1222,7 +1228,7 @@ namespace engine
          {
             pPage = &(it->second) ;
             if ( !pPage->isDirty() && !pPage->isLocked() &&
-                 pPage->size() >= size )
+                 !pPage->isPinked() && pPage->size() >= size )
             {
                /// clear data info
                pPage->clearDataInfo() ;
@@ -1367,34 +1373,31 @@ namespace engine
       }
    }
 
-   void _utilCacheContext::discardPage( UINT64 &beginLSN, UINT64 &endLSN )
+   void _utilCacheContext::discardPage( UINT32 &dirtyStart, UINT32 &dirtyLen,
+                                        UINT64 &beginLSN, UINT64 &endLSN )
    {
       if ( isPageValid() && _pPage->isDirty() )
       {
+         dirtyStart = _pPage->dirtyStart() ;
+         dirtyLen = _pPage->dirtyLength() ;
          beginLSN = _pPage->beginLSN() ;
          endLSN = _pPage->endLSN() ;
 
          _pPage->clearDirty() ;
          _pUnit->decDirtyPages( _pBucket ) ;
+         _pPage->invalidate() ;
          _hasDiscard = TRUE ;
       }
    }
 
-   void _utilCacheContext::restorePage( UINT64 beginLSN, UINT64 endLSN )
+   void _utilCacheContext::restorePage( UINT32 dirtyStart, UINT32 dirtyLen,
+                                        UINT64 beginLSN, UINT64 endLSN )
    {
       if ( isPageValid() && _hasDiscard && !_pPage->isDirty() )
       {
-         _pPage->makeDirty() ;
+         _pPage->validate() ;
+         _pPage->restoryDirty( dirtyStart, dirtyLen, beginLSN, endLSN ) ;
          _pUnit->incDirtyPages( _pBucket ) ;
-
-         if ( 0 == _pPage->lsnNum() && (UINT64)~0 != beginLSN )
-         {
-            _pPage->addLSN( beginLSN ) ;
-            if ( endLSN != beginLSN )
-            {
-               _pPage->addLSN( endLSN ) ;
-            }
-         }
       }
       _hasDiscard = FALSE ;
    }
@@ -1910,6 +1913,8 @@ namespace engine
 
    void _utilCacheMerge::fini()
    {
+      _releasePages() ;
+
       if ( _pCache )
       {
          if ( _isAlignment )
@@ -1923,6 +1928,16 @@ namespace engine
          _pCache = NULL ;
          _cacheSize = 0 ;
       }
+   }
+
+   void _utilCacheMerge::_releasePages()
+   {
+      for ( UINT32 i = 0 ; i < _vecPages.size() ; ++i )
+      {
+         utilCachePage *pPage = _vecPages[ i ] ;
+         pPage->unpink() ;
+      }
+      _vecPages.clear() ;
    }
 
    BOOLEAN _utilCacheMerge::isEmpty() const
@@ -2030,6 +2045,10 @@ namespace engine
       ++_pageNum ;
       _lastPageID = pageID ;
 
+      /// pink the page
+      pPage->pink() ;
+      _vecPages.push_back( pPage ) ;
+
    done:
       return rc ;
    error:
@@ -2062,6 +2081,8 @@ namespace engine
       }
 
    done:
+      /// unpink all pages
+      _releasePages() ;
       return rc ;
    error:
       goto done ;
@@ -2269,7 +2290,6 @@ namespace engine
       UINT32 bucketID = calcBucketID( pageID ) ;
       utilCacheBucket* pBucket = NULL ;
       OSS_LATCH_MODE tmpMode = mode ;
-      BOOLEAN lockPage = FALSE ;
 
       pBucket = _vecBucket[ bucketID ] ;
       pBucket->lock( tmpMode ) ;
@@ -2351,29 +2371,22 @@ namespace engine
             pBucket->lock( tmpMode ) ;
             goto reget ;
          }
+         pPage->waitToUnlock() ;
          _incAllocNum( 1 ) ;
          INT32 rc = _pMgr->alloc( size, *pPage, _wholePage,
                                   pPage->isInvalid() ? FALSE : TRUE ) ;
          if ( rc )
          {
-            if( !pPage->isLocked() )
-            {
-               pPage->lock() ;
-               lockPage = TRUE ;
-            }
+            pPage->pink() ;
             pBucket->unlock( tmpMode ) ;
 
             /// recycle and try again
             recyclePages( TRUE, size ) ;
 
             pBucket->lock( tmpMode ) ;
+            pPage->unpink() ;
 
-            if( lockPage )
-            {
-               pPage->unlock() ;
-               lockPage = FALSE ;
-            }
-
+            pPage->waitToUnlock() ;
             rc = _pMgr->alloc( size, *pPage, _wholePage,
                                pPage->isInvalid() ? FALSE : TRUE ) ;
             if ( rc )
@@ -2410,16 +2423,15 @@ namespace engine
       if ( mode != tmpMode )
       {
          /// switch to mode
-         if ( pPage && !pPage->isLocked() )
+         if ( pPage )
          {
-            pPage->lock() ;
-            lockPage = TRUE ;
+            pPage->pink() ;
          }
          pBucket->unlock( tmpMode ) ;
          pBucket->lock( mode ) ;
-         if ( pPage && lockPage )
+         if ( pPage )
          {
-            pPage->unlock() ;
+            pPage->unpink() ;
          }
       }
       return pPage ;
@@ -2448,6 +2460,10 @@ namespace engine
       context._pPage = getAndLock( pageID, offset + len,
                                    &context._pBucket,
                                    EXCLUSIVE, TRUE, cb ) ;
+      if ( context._pPage && context._pPage->isInvalid() )
+      {
+         context._pPage->invalidate() ;
+      }
    }
 
    void _utilCacheUnit::prepareRead( INT32 pageID,
@@ -2464,6 +2480,10 @@ namespace engine
       context._pPage = getAndLock( pageID, offset + len,
                                    &context._pBucket,
                                    SHARED, FALSE, cb ) ;
+      if ( context._pPage && context._pPage->isInvalid() )
+      {
+         SDB_ASSERT( FALSE, "Page must be valid" ) ;
+      }
    }
 
    INT32 _utilCacheUnit::_syncPage( utilCacheBucket *pBucket,
@@ -2718,18 +2738,13 @@ namespace engine
          {
             utilCachePage& page = it->second ;
 
-            /// locked page, ignored
-            if ( page.isLocked() )
-            {
-               ++it ;
-               continue ;
-            }
-            else if ( page.isDirty() )
+            if ( page.isDirty() )
             {
                page.clearDirty() ;
                ++totalPages ;
                decDirtyPages( pBucket ) ;
             }
+            page.invalidate() ;
             ++it ;
          }
          pBucket->unlock( EXCLUSIVE ) ;
@@ -2905,8 +2920,8 @@ namespace engine
          {
             utilCachePage& page = it->second ;
 
-            /// dirty page and locked page, ignored
-            if ( page.isDirty() || page.isLocked() )
+            /// dirty page, locked page and pink page, ignored
+            if ( page.isDirty() || page.isLocked() || page.isPinked() )
             {
                ++it ;
                continue ;
@@ -2966,8 +2981,10 @@ namespace engine
       UINT32 statAllocNull = _statAllocNullNum.swap( 0 ) ;
       UINT32 statAllocBlk = _statAllocFromBlkNum.swap( 0 ) ;
       UINT32 statHitCache = _statHitCacheNum.swap( 0 ) ;
-      UINT32 statMerge = _statMergeNum.swap( 0 ) ;
-      UINT32 statMergeSync = _statMergeSyncNum.swap( 0 ) ;
+      UINT32 statMerge = _statMergeNum ;
+      _statMergeNum = 0 ;
+      UINT32 statMergeSync = _statMergeSyncNum ;
+      _statMergeSyncNum = 0 ;
       UINT32 syncNum = _statSyncNum.swap( 0 ) ;
       UINT32 recyclNum = _statRecycleNum.swap( 0 ) ;
 

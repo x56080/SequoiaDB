@@ -94,9 +94,10 @@ namespace engine
 
    #define UTIL_CACHE_PAGE_DIRTY_FLAG        0x01
    #define UTIL_CACHE_PAGE_INVALID_FLAG      0x02
-   #define UTIL_CACHE_PAGE_LOCKED_FLAG       0x04
-   #define UTIL_CACHE_PAGE_NEWEST_HEAD_FLAG  0x08
-   #define UTIL_CACHE_PAGE_NEWEST_TAIL_FLAG  0x10
+   #define UTIL_CACHE_PAGE_PINK_FLAG         0x04
+   #define UTIL_CACHE_PAGE_LOCKED_FLAG       0x08
+   #define UTIL_CACHE_PAGE_NEWEST_HEAD_FLAG  0x10
+   #define UTIL_CACHE_PAGE_NEWEST_TAIL_FLAG  0x20
 
    /*
       _utilCachePage define
@@ -137,6 +138,29 @@ namespace engine
             _dirtyLength = 0 ;
             clearLSNInfo() ;
          }
+         void        restoryDirty( UINT32 dirtyStart, UINT32 dirtyLength,
+                                   UINT64 beginLSN, UINT64 endLSN )
+         {
+            OSS_BIT_SET( _status, UTIL_CACHE_PAGE_DIRTY_FLAG ) ;
+
+            if ( 0 == _dirtyLength || dirtyStart < _dirtyStart )
+            {
+               _dirtyStart = dirtyStart ;
+            }
+            if ( dirtyLength > _dirtyLength )
+            {
+               _dirtyLength = dirtyLength ;
+            }
+
+            if ( 0 == _lsnNum && (UINT64)~0 != beginLSN )
+            {
+               addLSN( beginLSN ) ;
+               if ( endLSN != beginLSN )
+               {
+                  addLSN( endLSN ) ;
+               }
+            }
+         }
          BOOLEAN     isDirty() const
          {
             return OSS_BIT_TEST( _status, UTIL_CACHE_PAGE_DIRTY_FLAG ) ?
@@ -156,6 +180,28 @@ namespace engine
             return OSS_BIT_TEST( _status, UTIL_CACHE_PAGE_INVALID_FLAG ) ?
                    TRUE : FALSE ;
          }
+         void        pink()
+         {
+            OSS_BIT_SET( _status, UTIL_CACHE_PAGE_PINK_FLAG ) ;
+            ++_pinkCnt ;
+         }
+         void        unpink()
+         {
+            --_pinkCnt ;
+            if ( 0 == _pinkCnt )
+            {
+               OSS_BIT_CLEAR( _status, UTIL_CACHE_PAGE_PINK_FLAG ) ;
+            }
+         }
+         BOOLEAN     isPinked() const
+         {
+            return OSS_BIT_TEST( _status, UTIL_CACHE_PAGE_PINK_FLAG ) ?
+                   TRUE : FALSE ;
+         }
+         UINT32      getPinkCnt() const
+         {
+            return _pinkCnt ;
+         }
          void        lock()
          {
             OSS_BIT_SET( _status, UTIL_CACHE_PAGE_LOCKED_FLAG ) ;
@@ -168,6 +214,20 @@ namespace engine
          {
             return OSS_BIT_TEST( _status, UTIL_CACHE_PAGE_LOCKED_FLAG ) ?
                    TRUE : FALSE ;
+         }
+         INT32       waitToUnlock( INT64 timeout = -1 ) const
+         {
+            INT64 tmpTimeout = timeout >= 0 ? timeout : OSS_SINT64_MAX ;
+            while( isLocked() )
+            {
+               if ( 0 == tmpTimeout )
+               {
+                  return SDB_TIMEOUT ;
+               }
+               ossSleep( 10 ) ;
+               tmpTimeout -= 1 ;
+            }
+            return SDB_OK ;
          }
          void        makeNewestHead()
          {
@@ -260,7 +320,8 @@ namespace engine
          UINT64                     _lastWriteTime ;
          UINT32                     _readTimes ;
          UINT32                     _writeTimes ;
-         UINT8                      _status ;
+         UINT16                     _status ;
+         UINT16                     _pinkCnt ;
          UINT64                     _beginLSN ;
          UINT64                     _endLSN ;
          UINT32                     _lsnNum ;
@@ -518,8 +579,10 @@ namespace engine
          BOOLEAN isUsePage() const { return _usePage ; }
 
          BOOLEAN  isInCache( UINT32 offset, UINT32 len ) const ;
-         void     discardPage( UINT64 &beginLSN, UINT64 &endLSN ) ;
-         void     restorePage( UINT64 beginLSN, UINT64 endLSN ) ;
+         void     discardPage( UINT32 &dirtyStart, UINT32 &dirtyLen,
+                               UINT64 &beginLSN, UINT64 &endLSN ) ;
+         void     restorePage( UINT32 dirtyStart, UINT32 dirtyLen,
+                               UINT64 beginLSN, UINT64 endLSN ) ;
 
          void     makeNewest( UINT32 newestMask = UTIL_WRITE_NEWEST_BOTH ) ;
          void     clearNewest() ;
@@ -640,6 +703,8 @@ namespace engine
    */
    class _utilCacheMerge : public SDBObject
    {
+      typedef vector< utilCachePage* >    VEC_PAGE_PTR ;
+
       public:
          _utilCacheMerge() ;
          ~_utilCacheMerge() ;
@@ -665,6 +730,9 @@ namespace engine
          INT32       getFirstPageID() const { return _firstPageID ; }
          INT32       getLastPageID() const { return _lastPageID ; }
 
+      protected:
+         void        _releasePages() ;
+
       private:
          CHAR                    *_pCache ;
          UINT32                  _cacheSize ;
@@ -676,6 +744,8 @@ namespace engine
          UINT32                  _pageSize ;
          utilCachFileBase        *_pFile ;
          BOOLEAN                 _isAlignment ;
+
+         VEC_PAGE_PTR            _vecPages ;
    } ;
    typedef _utilCacheMerge utilCacheMerge ;
 
@@ -843,8 +913,8 @@ namespace engine
          ossAtomic32                _statAllocFromBlkNum ;
          ossAtomic32                _statAllocNullNum ;
          ossAtomic32                _statHitCacheNum ;
-         ossAtomic32                _statMergeNum ;
-         ossAtomic32                _statMergeSyncNum ;
+         volatile UINT32            _statMergeNum ;
+         volatile UINT32            _statMergeSyncNum ;
          ossAtomic32                _statSyncNum ;
          ossAtomic32                _statRecycleNum ;
 
@@ -867,11 +937,11 @@ namespace engine
    }
    OSS_INLINE void _utilCacheUnit::_incMergeNum( UINT32 num )
    {
-      _statMergeNum.add( num ) ;
+      _statMergeNum += num ;
    }
    OSS_INLINE void _utilCacheUnit::_incMergeSyncNum( UINT32 num )
    {
-      _statMergeSyncNum.add( num ) ;
+      _statMergeSyncNum += num ;
    }
    OSS_INLINE void _utilCacheUnit::_incAllocFromBlkNum( UINT32 num )
    {
