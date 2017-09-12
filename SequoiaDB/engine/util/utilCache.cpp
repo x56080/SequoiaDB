@@ -2462,7 +2462,7 @@ namespace engine
                                    EXCLUSIVE, TRUE, cb ) ;
       if ( context._pPage && context._pPage->isInvalid() )
       {
-         context._pPage->invalidate() ;
+         context._pPage->validate() ;
       }
    }
 
