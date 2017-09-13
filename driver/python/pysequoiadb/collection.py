@@ -1041,8 +1041,8 @@ class collection(object):
 
       try:
          result = cursor()
-         rc = sdb.cl_get_query_meta(self._cl, result._cursor, condition,
-                                order_by, hint, num_to_skip, num_to_return)
+         rc = sdb.cl_get_query_meta(self._cl, result._cursor, bson_condition,
+              bson_order_by, bson_hint, num_to_skip, num_to_return)
          pysequoiadb._raise_if_error("Failed to query meta", rc)
       except SDBBaseError:
          del result
