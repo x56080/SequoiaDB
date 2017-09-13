@@ -98,7 +98,7 @@ from bson.objectid import ObjectId
 from bson.regex import Regex
 from bson.timestamp import Timestamp
 from bson.decimal import Decimal
-from bson.py3compat import PY3, binary_type, string_types
+from bson.py3compat import PY3, binary_type, string_types, text_type
 
 
 _RE_OPT_TABLE = {
@@ -262,7 +262,7 @@ def default(obj):
             flags += "u"
         if obj.flags & re.VERBOSE:
             flags += "x"
-        if isinstance(obj.pattern, unicode):
+        if isinstance(obj.pattern, text_type):
             pattern = obj.pattern
         else:
             pattern = obj.pattern.decode('utf-8')
