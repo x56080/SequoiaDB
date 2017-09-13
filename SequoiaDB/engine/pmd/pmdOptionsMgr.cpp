@@ -1629,7 +1629,7 @@ namespace engine
                  sizeof( _syncStrategyStr ), FALSE, TRUE, "", FALSE ) ;
       // --preferedreplica
       rdxString( pEX, PMD_OPTION_PREFINST, _prefReplStr, sizeof(_prefReplStr),
-                 FALSE, TRUE, "A" ) ;
+                 FALSE, TRUE, "M" ) ;
       // --dataerrorop
       rdxUInt( pEX, PMD_OPTION_DATAERROR_OP, _dataErrorOp,
                FALSE, TRUE, PMD_OPT_VALUE_FULLSYNC, FALSE ) ;

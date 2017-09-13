@@ -681,8 +681,20 @@
          <cn></cn>
       </reloadstrategy>
       <detail>
-         <en>The control strategy of data sync in repl group, value enumeration: none,keepnormal,keepall, default:keepnormal.</en>
-         <cn>副本组之间数据同步控制策略,取值:none,keepnormal,keepall,默认为keepnormal。</cn>
+         <en>1. The control strategy of data sync in repl group.<fig></fig>
+         	   2. value enumeration:<fig></fig>
+         	   none--no sync strategy. if the processing ability is much higher in master node than syncing ability in slave node, then slave node is susceptible to full sync under write-heavy workload.<fig></fig>
+         	   keepnormal--actively lower the master node's processing speed relative to normal nodes's to avoid full sync(might affect performance).<fig></fig>
+         	   keepall--actively lower the master node's processing speed relative to all nodes's to avoid full sync(might affect performance).<fig></fig>
+         	   3. the difference between keepnormal and keepall is that, the existence of abnormal nodes will lower master node's processing speed in keepall while will not in keepnormal.<fig></fig>
+         	   4. if not specified, default value is keepnormal.</en> 
+         <cn>1. 副本组之间数据同步控制策略。<fig></fig>
+             2. 取值列表：<fig></fig>
+             none--不开启同步控制策略。若主节点处理数据的能力远超备节点同步数据的能力，则在写操作繁忙的场景下易导致备节点发生全量同步。<fig></fig>
+         	   keepnormal--主动降低主节点相对于正常节点的处理速度（可能会造成性能影响），以避免全量同步的发生。<fig></fig>
+         	   keepall--主动降低主节点相对于所有节点的处理速度（可能会造成性能影响），以避免全量同步的发生。<fig></fig>
+         	   3. keepnormal和keepall的区别在于，当有节点异常时keepall会降低主节点的处理速度，而keepnormal不受异常节点的影响。<fig></fig>
+         	   4. 如果不指定，默认为keepnormal。</cn>
       </detail>
       <typeofweb>str</typeofweb>
    </opt>
@@ -1148,12 +1160,12 @@
       <name>PMD_OPTION_MAX_CACHE_SIZE</name>
       <long>maxcachesize</long>
       <description>
-         <en>The node's max cache size, default:0, unit:MB</en>
-         <cn>节点缓存层最大大小，默认为0，单位为MB</cn>
+         <en>The node's max cache size, default:0, unit:MB(currently only applicable for Lob feature)</en>
+         <cn>节点缓存最大值，默认为0，单位为MB（注意：该配置目前仅对Lob功能生效）</cn>
       </description>
       <detail>
-         <en>The node's max cache size, unit is MB, default is 0</en>
-         <cn>节点层缓层最大大小，单位为MB，默认值为0</cn>
+         <en>The node's max cache size, unit is MB, default is 0(currently only applicable for Lob feature)</en>
+         <cn>节点缓存最大值，单位为MB，默认值为0（注意：该配置目前仅对Lob功能生效）</cn>
       </detail>
       <type>int</type>
       <default>0</default>
@@ -1165,15 +1177,17 @@
       <long>maxcachejob</long>
       <description>
          <en>The maximum number of cache threads, default:10, value range:[2, 200]</en>
-         <cn>后台缓存任务线程的最大数量，默认值为10，取值范围为[2, 200]</cn>
+         <cn>后台缓存任务线程的最大数量，默认值为10，取值范围为[2, 200]（注意：该配置目前仅对Lob功能生效）</cn>
       </description>
       <detail>
          <en>1.The maximum number of cache threads, default:10, value range:[2, 200].<fig></fig>
              2.Cache threads will synchronize the dirty pages to file, and drop the invalid pages.<fig></fig>
-             3.Cache threads auto start and exit according to the cache workload.</en>
+             3.Cache threads auto start and exit according to the cache workload.<fig></fig>
+             4.currently only applicable for Lob feature.</en>
          <cn>1.后台缓存任务线程的最大数量，默认值为10，取值范围为[2, 200]。<fig></fig>
              2.后台缓存任务线程主要执行同步脏页至文件，回收和释放空闲内存页。<fig></fig>
-             3.后台缓存任务线程根据缓存的负载情况自动启动和退出。</cn>
+             3.后台缓存任务线程根据缓存的负载情况自动启动和退出。<fig></fig>
+             4.该配置目前仅对Lob功能生效。</cn>
       </detail>
       <type>int</type>
       <default>10</default>
@@ -1184,8 +1198,8 @@
       <name>PMD_OPTION_CACHE_MERGE_SIZE</name>
       <long>cachemergesz</long>
       <description>
-         <en>The merge block size of collectionspace when use cache, default:0, value range:[0,64], unit:MB</en>
-         <cn>每一个集合空间用于合并页的缓存大小，默认为0，取值范围:[0,64],单位为MB</cn>
+         <en>The merge block size of collectionspace when use cache, default:0, value range:[0,64], unit:MB(currently only applicable for Lob feature)</en>
+         <cn>每一个集合空间用于合并页的缓存大小，默认为0，取值范围:[0,64],单位为MB（注意：该配置目前仅对Lob功能生效）</cn>
       </description>
       <reloadable>
          <en>Yes</en>
@@ -1196,8 +1210,8 @@
          <cn>新建集合空间生效</cn>
       </reloadstrategy>
       <detail>
-         <en>The merge block size of collectionspace when use cache, default:0, value range:[0,64], unit:MB</en>
-         <cn>每一个集合空间用于合并页的缓存大小，默认为0，取值范围:[0,64],单位为MB</cn>
+         <en>The merge block size of collectionspace when use cache, default:0, value range:[0,64], unit:MB(currently only applicable for Lob feature)</en>
+         <cn>每一个集合空间用于合并页的缓存大小，默认为0，取值范围:[0,64],单位为MB（注意：该配置目前仅对Lob功能生效）</cn>
       </detail>
       <type>int</type>
       <hidden>true</hidden>
