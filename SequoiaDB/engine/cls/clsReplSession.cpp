@@ -1027,7 +1027,8 @@ namespace engine
          {
             PD_LOG( PDERROR, "Session[%s]: Failed to move lsn to "
                     "[%u, %llu], rc: %d, need to synchronize full data",
-                    sessionName(), expectLSN.version, expectLSN.offset ) ;
+                    sessionName(), expectLSN.version, expectLSN.offset,
+                    rc ) ;
             _fullSync() ;
          }
          else
