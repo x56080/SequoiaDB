@@ -138,7 +138,7 @@ public class HashSplitAndRestartSrcNode2730 extends SdbTestBase {
 			Assert.assertEquals(-33,e.getErrorCode(),e.getMessage());
 		}
 		String test = "{ShardingKey:{no:1},ShardingType:'hash',Partition:4096,"
-						+ "Compressed:true,Group:'" + srcGroupName + "'}";	
+						+ "Compressed:true,Group:'" + srcGroupName + "',ReplSize:0}";	
 		BSONObject options =(BSONObject) JSON.parse(test);
 		try
 		{

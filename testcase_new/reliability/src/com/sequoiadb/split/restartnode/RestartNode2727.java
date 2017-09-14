@@ -68,7 +68,7 @@ public class RestartNode2727 extends SdbTestBase {
             DBCollection cl = commCS.createCollection(clName,
                     (BSONObject) JSON
                             .parse("{ShardingKey:{'sk':1},ShardingType:'hash',Partition:4096,Group:'"
-                                    + srcGroupName + "'}"));
+                                    + srcGroupName + "',ReplSize:0}"));
             // 准备切分的数据
             insertData(cl, 0, 5000);
         }
