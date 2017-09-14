@@ -169,7 +169,7 @@ namespace engine
          INT32       waitQueEmpty( INT64 millisec = -1 ) ;
          INT32       waitEmpty( INT64 millisec = -1 ) ;
          INT32       waitSubmit( INT64 millisec = -1 ) ;
-         INT32       waitEmptyAndRollback() ;
+         INT32       waitEmptyAndRollback( UINT32 *pNum = NULL ) ;
 
          UINT32      size () ;
          BOOLEAN     isEmpty () ;
@@ -206,7 +206,7 @@ namespace engine
 
          void        _incCount( const CHAR *pData ) ;
 
-         INT32       _doRollback() ;
+         INT32       _doRollback( UINT32 &num ) ;
 
       private:
          _dpsLogWrapper                   *_pDPSCB ;
