@@ -3980,7 +3980,7 @@ namespace import
    }
 
    // field_name [field_type] [default <default_value>],
-   INT32 CSVRecordParser::parseFields(const CHAR* data, INT32 length)
+   INT32 CSVRecordParser::parseFields(const CHAR* data, INT32 length, BOOLEAN isHeaderline)
    {
       CHAR* str = (CHAR*)data;
       INT32 len = length;
@@ -3998,7 +3998,7 @@ namespace import
       SDB_ASSERT(length > 0, "length must be greater than 0");
       SDB_ASSERT(0 == _fieldVec.size(), "fields already parsed");
 
-      if (_hasHeaderLine)
+      if (isHeaderline)
       {
          fieldDel = _fieldDelimiter.c_str();
          fieldDelLen = _fieldDelimiter.length();

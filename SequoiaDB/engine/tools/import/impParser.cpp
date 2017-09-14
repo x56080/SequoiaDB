@@ -246,7 +246,7 @@ namespace import
 
                CSVRecordParser* csvParser = (CSVRecordParser*)parser;
 
-               rc = csvParser->parseFields(record, recordLength);
+               rc = csvParser->parseFields(record, recordLength, TRUE);
                if (SDB_OK != rc)
                {
                   std::cout << "failed to parse fields" << std::endl;
