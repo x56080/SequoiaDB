@@ -99,7 +99,7 @@ namespace import
             const CHAR* str = options.fields().c_str();
             INT32 len = options.fields().length();
 
-            rc = csvParser->parseFields(str, len);
+            rc = csvParser->parseFields(str, len, FALSE);
             if (SDB_OK != rc)
             {
                std::cout << "failed to parse fields" << std::endl;

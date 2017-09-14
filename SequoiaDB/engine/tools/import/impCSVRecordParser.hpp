@@ -243,7 +243,7 @@ namespace import
                       BOOLEAN forceNotUTF8);
       ~CSVRecordParser();
       INT32 parseRecord(const CHAR* data, INT32 length, bson& obj);
-      INT32 parseFields(const CHAR* data, INT32 length);
+      INT32 parseFields(const CHAR* data, INT32 length, BOOLEAN isHeaderline );
       void  printFieldsDef();
 
    private:
