@@ -273,9 +273,7 @@ namespace engine
             ADD_CHG_NUMBER ( _dstChgBuilder, pRoot, result, "$set" ) ;
          }
       }
-      else if ( ( NumberLong == a && 0 != elt.numberLong() ) ||
-           ( NumberInt == a && 0 != elt.numberInt() ) ||
-           ( NumberDouble == a && 0 != elt.numberDouble() ) )
+      else if ( in.isNumber() && 0 != elt.numberDouble() )
       {
          ADD_CHG_ELEMENT_AS ( _srcChgBuilder, in, pRoot, "$set" ) ;
 
