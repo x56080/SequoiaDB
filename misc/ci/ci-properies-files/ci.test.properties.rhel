@@ -23,11 +23,11 @@ sharingbreak=20000
 all.spare.port.start=26000
 all.spare.port.stop=29000
 
-jenkins_master=ci-test-suse1
-trunk_machine=ci-test-suse1
-trunk_machine_control=ci-test-suse1
-branch_machine=ci-test-suse1,ci-test-suse1,ci-test-suse1
-branch_machine_control=ci-test-suse1
+jenkins_master=test-ci-suse1
+trunk_machine=test-ci-suse1
+trunk_machine_control=test-ci-suse1
+branch_machine=test-ci-suse1,test-ci-suse1,test-ci-suse1
+branch_machine_control=test-ci-suse1
 
 testcase.path=/tmp/sequoiadb_test/deploy/hlt
 deploy.tar.file.name=deploy.tar.gz
