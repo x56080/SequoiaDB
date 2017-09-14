@@ -1210,38 +1210,6 @@ namespace engine
    {
    }
 
-   INT32 _rtnGetCount::init( INT32 flags, INT64 numToSkip,
-                             INT64 numToReturn, const CHAR *pMatcherBuff,
-                             const CHAR *pSelectBuff,
-                             const CHAR *pOrderByBuff,
-                             const CHAR *pHintBuff )
-   {
-      INT32 rc = SDB_OK ;
-      _flags = flags ;
-      _numToReturn = numToReturn ;
-      _numToSkip = numToSkip ;
-      _matcherBuff = pMatcherBuff ;
-
-      BSONObj object ( pHintBuff ) ;
-      rc = rtnGetStringElement ( object, FIELD_NAME_COLLECTION,
-                                 &_collectionName ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
-                   FIELD_NAME_COLLECTION, rc ) ;
-
-      rc = rtnGetObjElement( object, FIELD_NAME_HINT, _hintObj ) ;
-      if ( SDB_FIELD_NOT_EXIST == rc )
-      {
-         rc = SDB_OK ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
-                   FIELD_NAME_HINT, rc ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    const CHAR *_rtnGetCount::name ()
    {
       return NAME_GET_COUNT ;
@@ -1319,7 +1287,6 @@ namespace engine
       SDB_ASSERT( pContextID, "context id can't be NULL" ) ;
 
       BSONObj matcher ( _matcherBuff ) ;
-      BSONObj hint ( _selectBuff ) ;  // for hint
       BSONObj orderBy ( _orderByBuff ) ;
 
       rc = rtnCB->contextNew( RTN_CONTEXT_DUMP, (rtnContext**)&context,
@@ -1336,12 +1303,13 @@ namespace engine
          context->getMonCB()->recordStartTimestamp() ;
       }
 
-      rc = rtnGetQueryMeta( _collectionName, matcher, orderBy, hint,
+      rc = rtnGetQueryMeta( _collectionName, matcher, orderBy, _hintObj,
                             dmsCB, cb, context ) ;
       PD_RC_CHECK( rc, PDERROR, "Get collection[%s] query meta failed, "
                    "matcher: %s, orderby: %s, hint: %s, rc: %d",
                    _collectionName, matcher.toString().c_str(),
-                   orderBy.toString().c_str(), hint.toString().c_str(), rc ) ;
+                   orderBy.toString().c_str(),
+                   _hintObj.toString().c_str(), rc ) ;
 
    done:
       return rc ;
