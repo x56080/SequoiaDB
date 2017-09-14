@@ -577,14 +577,15 @@ namespace engine
       return _submitEvent.wait( millisec ) ;
    }
 
-   INT32 _clsBucket::waitEmptyAndRollback()
+   INT32 _clsBucket::waitEmptyAndRollback( UINT32 *pNum )
    {
       INT32 rc = SDB_OK ;
+      UINT32 num = 0 ;
       _emptyEvent.wait() ;
       if ( CLS_BUCKET_WAIT_ROLLBACK == _status )
       {
          rc = SDB_CLS_REPLAY_LOG_FAILED ;
-         _doRollback() ;
+         _doRollback( num ) ;
          // wait
          _emptyEvent.wait() ;
          _status = CLS_BUCKET_NORMAL ;
@@ -594,13 +595,18 @@ namespace engine
          _allEmptyEvent.wait() ;
       }
 
+      if ( pNum )
+      {
+         *pNum = num ;
+      }
+
       return rc ;
    }
 
-   INT32 _clsBucket::_doRollback ()
+   INT32 _clsBucket::_doRollback ( UINT32 &num )
    {
       INT32 rc = SDB_OK ;
-      map< DPS_LSN_OFFSET, clsCompleteInfo >::iterator it ;
+      map< DPS_LSN_OFFSET, clsCompleteInfo >::reverse_iterator rit ;
 
       if ( CLS_BUCKET_WAIT_ROLLBACK != getStatus() )
       {
@@ -612,10 +618,11 @@ namespace engine
       _status = CLS_BUCKET_ROLLBACKING ;
       // push complete queue to bucket
       _bucketLatch.get() ;
-      it = _completeMap.begin() ;
-      while ( it != _completeMap.end() )
+      rit = _completeMap.rbegin() ;
+      while ( rit != _completeMap.rend() )
       {
-         clsCompleteInfo &info = it->second ;
+         ++num ;
+         clsCompleteInfo &info = rit->second ;
          rc = _pushData( info._unitID, info._pData, info._len, FALSE, FALSE ) ;
          if ( rc )
          {
@@ -623,7 +630,7 @@ namespace engine
             _allCount.dec() ;
             _memPool.release( info._pData, info._len ) ;
          }
-         ++it ;
+         ++rit ;
       }
       _completeMap.clear() ;
       _bucketLatch.release() ;
