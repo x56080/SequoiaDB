@@ -1289,6 +1289,11 @@ namespace engine
       BSONObj matcher ( _matcherBuff ) ;
       BSONObj orderBy ( _orderByBuff ) ;
 
+      if ( _hintObj.isEmpty() )
+      {
+         _hintObj = BSONObj( _selectBuff ) ;
+      }
+
       rc = rtnCB->contextNew( RTN_CONTEXT_DUMP, (rtnContext**)&context,
                               *pContextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Create context failed, rc: %d", rc ) ;
