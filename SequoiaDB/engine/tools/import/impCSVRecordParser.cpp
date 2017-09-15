@@ -3959,7 +3959,8 @@ namespace import
                                     BOOLEAN hasHeaderLine,
                                     BOOLEAN cast,
                                     BOOLEAN ignoreNull,
-                                    BOOLEAN forceNotUTF8)
+                                    BOOLEAN forceNotUTF8,
+                                    BOOLEAN strictFieldNum)
    : RecordParser(fieldDelimiter,
                   stringDelimiter,
                   autoAddField,
@@ -3973,6 +3974,7 @@ namespace import
       _cast = cast;
       _ignoreNull = ignoreNull;
       _forceNotUTF8 = forceNotUTF8;
+      _strictFieldNum = strictFieldNum;
    }
 
    CSVRecordParser::~CSVRecordParser()
@@ -4326,6 +4328,16 @@ namespace import
       }
       else if (len == 0 && fieldCount < fieldDefNum)
       {
+         if (_strictFieldNum)
+         {
+            string r = string(data, length);
+            rc = SDB_INVALIDARG;
+            PD_LOG(PDERROR, "record field num less than definition, "\
+                            "fieldNum=%d, defNum=%d, record=%s",
+                            fieldCount, fieldDefNum, r.c_str());
+            goto error ;
+         }
+         
          if (_autoAddValue)
          {
             while (fieldCount < fieldDefNum)
@@ -4347,6 +4359,16 @@ namespace import
       }
       else if (len != 0 && fieldCount == fieldDefNum)
       {
+         if (_strictFieldNum)
+         {
+            string r = string(data, length);
+            rc = SDB_INVALIDARG;
+            PD_LOG(PDERROR, "parsed %d fields, but record still has fields, "\
+                            "record=%s",
+                            fieldCount, r.c_str());
+            goto error ;
+         }
+
          if (_autoAddField)
          {
             CSVField tmpField;

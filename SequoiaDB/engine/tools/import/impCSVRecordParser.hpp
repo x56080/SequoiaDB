@@ -240,7 +240,8 @@ namespace import
                       BOOLEAN hasHeaderLine,
                       BOOLEAN cast,
                       BOOLEAN ignoreNull,
-                      BOOLEAN forceNotUTF8);
+                      BOOLEAN forceNotUTF8,
+                      BOOLEAN strictFieldNum);
       ~CSVRecordParser();
       INT32 parseRecord(const CHAR* data, INT32 length, bson& obj);
       INT32 parseFields(const CHAR* data, INT32 length, BOOLEAN isHeaderline );
@@ -254,6 +255,7 @@ namespace import
       string            _fields;
       BOOLEAN           _hasHeaderLine;
       BOOLEAN           _hasId;
+      BOOLEAN           _strictFieldNum;
    };
 }
 

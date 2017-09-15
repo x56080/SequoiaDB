@@ -115,6 +115,7 @@ namespace import
       inline BOOLEAN autoAddField() const { return _autoAddField; }
       inline BOOLEAN autoCompletion() const { return _autoCompletion; }
       inline BOOLEAN cast() const { return _cast; }
+      inline BOOLEAN strictFieldNum() const { return _strictFieldNum; }
 
       /* helpful */
       inline INT32 bufferSize() const { return _bufferSize; }
@@ -172,6 +173,7 @@ namespace import
       BOOLEAN        _autoAddField;
       BOOLEAN        _autoCompletion;
       BOOLEAN        _cast;
+      BOOLEAN        _strictFieldNum;
 
       /* helpfull */
       BOOLEAN        _dryRun;

@@ -79,6 +79,7 @@ namespace import
    #define IMP_OPTION_TIMESTAMPFMT      "timestampfmt"
    #define IMP_OPTION_TRIMSTRING        "trim"
    #define IMP_OPTION_IGNORENULL        "ignorenull"
+   #define IMP_OPTION_STRICTFIELDNUM    "strictfieldnum"
 
    #define IMP_EXPLAIN_HELP             "print help information"
    #define IMP_EXPLAIN_VERSION          "print version"
@@ -120,6 +121,7 @@ namespace import
    #define IMP_EXPLAIN_TIMESTAMPFMT     "set timestamp format, default: YYYY-MM-DD-HH.mm.ss.ffffff"
    #define IMP_EXPLAIN_TRIMSTRING       "trim string (arg: [no|right|left|both]), default: no"
    #define IMP_EXPLAIN_IGNORENULL       "ignore null field, default: false"
+   #define IMP_EXPLAIN_STRICTFIELDNUM   "report error if record fields num does not equal to fields definition, default: false"
 
    #define _TYPE(T) utilOptType(T)
 
@@ -176,6 +178,7 @@ namespace import
       (IMP_OPTION_SPARSE,              _TYPE(string),    IMP_EXPLAIN_SPARSE) \
       (IMP_OPTION_EXTRA,               _TYPE(string),    IMP_EXPLAIN_EXTRA) \
       (IMP_OPTION_CAST,                _TYPE(string),    IMP_EXPLAIN_CAST) \
+      (IMP_OPTION_STRICTFIELDNUM,      _TYPE(string),    IMP_EXPLAIN_STRICTFIELDNUM) \
 
    #define IMP_HELPFUL_OPTIONS \
       (IMP_OPTION_HELPFULL,             /* no arg */     IMP_EXPLAIN_HELPFULL) \
@@ -489,6 +492,7 @@ namespace import
       _autoAddField = TRUE;
       _autoCompletion = FALSE;
       _cast = FALSE;
+      _strictFieldNum = FALSE;
 
       _bufferSize = 64;
       _dryRun = FALSE;
@@ -883,6 +887,12 @@ namespace import
       {
          string cast = get<string>(IMP_OPTION_CAST);
          ossStrToBoolean(cast.c_str(), &_cast);
+      }
+
+      if (has(IMP_OPTION_STRICTFIELDNUM))
+      {
+         string strict = get<string>(IMP_OPTION_STRICTFIELDNUM);
+         ossStrToBoolean(strict.c_str(), &_strictFieldNum);
       }
 
       if (has(IMP_OPTION_DATEFMT))

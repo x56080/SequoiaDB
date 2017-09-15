@@ -79,7 +79,8 @@ namespace import
                                         options.hasHeaderLine(),
                                         options.cast(),
                                         options.ignoreNull(),
-                                        options.force());
+                                        options.force(),
+                                        options.strictFieldNum());
          if (NULL == csvParser)
          {
             rc = SDB_OOM;
