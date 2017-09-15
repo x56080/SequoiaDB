@@ -380,7 +380,7 @@ namespace engine
       if ( !_mutex.try_get() )
       {
          _latchVec[suID]->release_w () ;
-         ossSleep( 100 ) ;
+         ossSleep( 50 ) ;
          goto retry ;
       }
       isLocked = TRUE ;
@@ -509,6 +509,7 @@ namespace engine
       if ( !_mutex.try_get() )
       {
          _latchVec[suID]->release_w () ;
+         ossSleep( 50 ) ;
          goto retry ;
       }
 
