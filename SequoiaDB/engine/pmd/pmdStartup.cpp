@@ -168,7 +168,11 @@ namespace engine
       UINT32 lockTime = 0 ;
 
       _fileName = pPath ;
-      _fileName += OSS_FILE_SEP ;
+      if ( !_fileName.empty() &&
+           OSS_FILE_SEP_CHAR != _fileName.at( _fileName.length() - 1 ) )
+      {
+         _fileName += OSS_FILE_SEP ;
+      }
       _fileName += PMD_STARTUP_FILE_NAME ;
 
       // attempt to access the file
