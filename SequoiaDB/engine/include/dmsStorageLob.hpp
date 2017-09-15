@@ -182,7 +182,8 @@ namespace engine
       }
 
       INT32 _push2Bucket( UINT32 bucket, DMS_LOB_PAGEID pageId,
-                          _dmsLobDataMapBlk &blk) ;
+                          _dmsLobDataMapBlk &blk,
+                          const dmsLobRecord *pRecord = NULL ) ;
 
       INT32 _find( const _dmsLobRecord &record,
                    UINT32 clID,
