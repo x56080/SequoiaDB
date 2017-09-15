@@ -1301,7 +1301,7 @@ namespace engine
       std::map<string, UINT32> groupsOfDomain ;
 
       /// if the group is specified.
-      /// 1) whether the group exsits.
+      /// 1) whether the group exists.
       /// 2) whether the group is one of the groups of domain.
       if ( NULL != clInfo._gpSpecified )
       {
@@ -1340,43 +1340,54 @@ namespace engine
             groupIDList.push_back( (UINT32)tmpGrpID ) ;
          }
       }
-      /// get a group from groups of cs.
       else
       {
-         if ( !isSysDomain )
+         /// get a group from groups of cs
+         if ( !isSysDomain && clInfo._autoSplit )
          {
-            if ( clInfo._autoSplit )
-            {
-               rc = catGetDomainGroups( domainObj, splitRange ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to get groups from domain info [%s], rc: %d",
-                            domainObj.toString().c_str(), rc ) ;
-               rc = catGetDomainGroups( domainObj, groupIDList ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to get groups from domain info [%s], rc: %d",
-                            domainObj.toString().c_str(), rc ) ;
-            }
-            else
-            {
-               /// Randomly choose one group in the domain
-               std::vector<UINT32> domainGroupList ;
-               rc = catGetDomainGroups( domainObj, domainGroupList ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to get groups from domain info [%s], rc: %d",
-                            domainObj.toString().c_str(), rc ) ;
-               groupIDList.push_back(
-                     domainGroupList[ ossRand() % domainGroupList.size() ] ) ;
-            }
+            // Split to all domain groups
+            rc = catGetDomainGroups( domainObj, splitRange ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get groups from domain info [%s], rc: %d",
+                         domainObj.toString().c_str(), rc ) ;
+            rc = catGetDomainGroups( domainObj, groupIDList ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get groups from domain info [%s], rc: %d",
+                         domainObj.toString().c_str(), rc ) ;
          }
          else
          {
-            pmdKRCB *krcb = pmdGetKRCB() ;
-            sdbCatalogueCB *pCatCB = krcb->getCATLOGUECB() ;
+            std::vector<UINT32> candidateGroupList ;
             UINT32 grpID = CAT_INVALID_GROUPID ;
-            rc = pCatCB->getAGroupRand( grpID ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to get group from SYS, rc: %d",
-                         rc ) ;
+            if ( ASSIGN_FOLLOW == clInfo._assignType )
+            {
+               BSONElement ele = csObj.getField( CAT_COLLECTION_SPACE_NAME ) ;
+               rc = catGetCSGroupsFromCLs( ele.valuestrsafe(), cb,
+                                           candidateGroupList ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get collection space [%s]"
+                            " groups, rc: %d", csObj.toString().c_str(), rc ) ;
+            }
+
+            if ( candidateGroupList.empty() && !isSysDomain )
+            {
+               /// Randomly choose one group in the domain
+               rc = catGetDomainGroups( domainObj, candidateGroupList ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to get groups from domain info [%s], rc: %d",
+                            domainObj.toString().c_str(), rc ) ;
+            }
+
+            if ( candidateGroupList.empty() )
+            {
+               grpID = CAT_INVALID_GROUPID ;
+               rc = sdbGetCatalogueCB()->getAGroupRand( grpID ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get group from SYS, rc: %d",
+                            rc ) ;
+            }
+            else
+            {
+               grpID = candidateGroupList[ ossRand() % candidateGroupList.size() ] ;
+            }
             groupIDList.push_back( grpID ) ;
          }
       }
