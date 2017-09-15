@@ -464,6 +464,18 @@ namespace engine
          }
       }
 
+      rc = _allocatePage( record, mbContext, page ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to allocate page in collection:%s, rc:%d",
+                 fullName, rc ) ;
+         goto error ;
+      }
+
+#if defined (_DEBUG)
+      SDB_ASSERT( DMS_LOB_PAGE_IN_USED( page ), "must be used" ) ;
+#endif
+
       if ( !mbContext->isMBLock() )
       {
          rc = mbContext->mbLock( EXCLUSIVE ) ;
@@ -494,34 +506,6 @@ namespace engine
          goto error ;
       }
 
-      rc = _find( record, mbContext->clLID(), page ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to find piece[%s], rc: %d",
-                 record.toString().c_str(), rc ) ;
-         goto error ;
-      }
-
-      if ( DMS_LOB_INVALID_PAGEID != page )
-      {
-         PD_LOG( PDERROR, "Lob piece found, piece[%s], page:%d",
-                 record.toString().c_str(), page ) ;
-         rc = SDB_LOB_SEQUENCE_EXISTS ;
-         page = DMS_LOB_INVALID_PAGEID ;
-         goto error ;
-      }
-
-      rc = _allocatePage( record, mbContext, page ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to allocate page in collection:%s, rc:%d",
-                 fullName, rc ) ;
-         goto error ;
-      }
-
-#if defined (_DEBUG)
-      SDB_ASSERT( DMS_LOB_PAGE_IN_USED( page ), "must be used" ) ;
-#endif
       _pCacheUnit->prepareWrite( page, record._offset,
                                  record._dataLen, cb,
                                  cContext ) ;
@@ -590,7 +574,7 @@ namespace engine
       /// rollback the data
       cContext.release() ;
       /// rollback the page
-      if ( SDB_LOB_SEQUENCE_EXISTS != rc && DMS_LOB_INVALID_PAGEID != page )
+      if ( DMS_LOB_INVALID_PAGEID != page )
       {
          PD_LOG( PDEVENT, "Rollback lob piece[%s]",
                  record.toString().c_str(), page ) ;
@@ -995,9 +979,10 @@ namespace engine
       blk->_mbID = context->mbID() ;
       blk->_prevPageInBucket = DMS_LOB_INVALID_PAGEID ;
       blk->_nextPageInBucket = DMS_LOB_INVALID_PAGEID ;
+      blk->setRemoved() ;
 
       rc = _push2Bucket( _getBucket( record._hash ),
-                         page, *blk ) ;
+                         page, *blk, &record ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to push page[%d] to bucket[%d], rc: %d",
@@ -1330,12 +1315,11 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB__PUSH2BUCKET, "_dmsStorageLob::_push2Bucket" )
    INT32 _dmsStorageLob::_push2Bucket( UINT32 bucket,
                                        DMS_LOB_PAGEID pageId,
-                                       _dmsLobDataMapBlk &blk )
+                                       _dmsLobDataMapBlk &blk,
+                                       const dmsLobRecord *pRecord )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__PUSH2BUCKET ) ;
-
-      blk.setNormal() ;
 
       ossScopedLock lock( _getBucketLatch( bucket ), EXCLUSIVE ) ;
 
@@ -1368,6 +1352,18 @@ namespace engine
                goto error ;
             }
 
+            /// check exist
+            if ( pRecord &&
+                 blk._clLogicalID == lastBlk->_clLogicalID &&
+                 lastBlk->equals( pRecord->_oid->getData(),
+                                  pRecord->_sequence ) )
+            {
+               PD_LOG( PDERROR, "Lob piece found, piece[%s], page:%d",
+                       pRecord->toString().c_str(), tmpPage ) ;
+               rc = SDB_LOB_SEQUENCE_EXISTS ;
+               goto error ;
+            }
+
             if ( DMS_LOB_INVALID_PAGEID == lastBlk->_nextPageInBucket )
             {
                _dmsLobDataMapBlk *writeBlk = NULL ;
@@ -1391,6 +1387,9 @@ namespace engine
             }
          } while ( TRUE ) ;
       }
+      /// set page to normal
+      blk.setNormal() ;
+
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGELOB__PUSH2BUCKET, rc ) ;
       return rc ;
@@ -1898,12 +1897,13 @@ namespace engine
             }
             else
             {
-               /// add total lob pages
-               _dmsData->_mbStatInfo[blk->_mbID]._totalLobPages += 1 ;
+               dmsLobRecord record ;
+               record.set( ( const bson::OID* )blk->_oid, blk->_sequence, 0,
+                           blk->_dataLen, NULL ) ;
                /// add page to bucket
                DMS_LOB_GET_HASH_FROM_BLK( blk, __hash ) ;
                testBucketNo = _getBucket( __hash ) ;
-               rc = _push2Bucket( testBucketNo, current, *blk ) ;
+               rc = _push2Bucket( testBucketNo, current, *blk, &record ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Push page[%d] to bucket failed, rc: %d",
@@ -1911,7 +1911,8 @@ namespace engine
                   goto error ;
                }
                ++totalPushed ;
-
+               /// add total lob pages
+               _dmsData->_mbStatInfo[blk->_mbID]._totalLobPages += 1 ;
                if ( DMS_LOB_META_SEQUENCE == blk->_sequence )
                {
                   /// add total lobs

@@ -201,7 +201,8 @@ namespace engine
       }
 
       INT32 _push2Bucket( UINT32 bucket, DMS_LOB_PAGEID pageId,
-                          _dmsLobDataMapBlk &blk) ;
+                          _dmsLobDataMapBlk &blk,
+                          const dmsLobRecord *pRecord = NULL ) ;
 
       INT32 _find( const _dmsLobRecord &record,
                    UINT32 clID,
@@ -232,7 +233,7 @@ namespace engine
 
       INT32 _rollback( DMS_LOB_PAGEID page,
                        dmsMBContext *mbContext,
-                       BOOLEAN pageFilled ) ;                       
+                       BOOLEAN pageFilled ) ;
 
    private:
       dmsBucketsManagementExtent    *_dmsBME ;
