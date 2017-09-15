@@ -1159,7 +1159,12 @@ namespace engine
       (*pContext)->_latch = &_mblock[mbID] ;
       if ( SHARED == lockType || EXCLUSIVE == lockType )
       {
-         return (*pContext)->mbLock( lockType ) ;
+         INT32 rc = (*pContext)->mbLock( lockType ) ;
+         if ( rc )
+         {
+            releaseMBContext( *pContext ) ;
+            return rc ;
+         }
       }
       return SDB_OK ;
    }
