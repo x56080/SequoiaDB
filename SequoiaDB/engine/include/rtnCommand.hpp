@@ -673,6 +673,7 @@ namespace engine
          const CHAR           *_selectBuff ;
          const CHAR           *_orderByBuff ;
          BSONObj              _hintObj ;
+         BOOLEAN              _hintExist ;
          INT32                _flags ;
 
    } ;
