@@ -1655,7 +1655,7 @@ namespace engine
          /// some times, the CAT_COLLECTION will be not exist
          if ( Array == ele.type() )
          {
-            if ( ele.embeddedObject().nFields() >= DMS_MAX_CS_NUM )
+            if ( ele.embeddedObject().nFields() >= DMS_MME_SLOTS )
             {
                PD_LOG( PDERROR, "CollectionSpace: [%s] cannot accept more "
                        "collection", szSpace );
