@@ -117,6 +117,18 @@ namespace engine
       SDB_OSS_FREE(p) ;
    }
 
+   void _mthMatchFunc::operator delete( void *p, _mthNodeAllocator *allocator )
+   {
+      if ( NULL != allocator && allocator->isAllocatedByme( p ) )
+      {
+         // do nothing here
+      }
+      else
+      {
+         SDB_OSS_FREE(p) ;
+      }
+   }
+
    string _mthMatchFunc::toString()
    {
       BSONObj obj = toBson() ;

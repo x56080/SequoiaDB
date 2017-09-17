@@ -75,6 +75,10 @@ namespace engine
          void* operator new ( size_t size, _mthNodeAllocator *allocator ) ;
          // do not call delete p directly
          void operator delete ( void *p ) ;
+         // just make the compiler shut up (windows's warning)
+         void operator delete ( void *p, _mthNodeAllocator *allocator ) ;
+
+
          virtual void release() = 0 ;
 
       public:
