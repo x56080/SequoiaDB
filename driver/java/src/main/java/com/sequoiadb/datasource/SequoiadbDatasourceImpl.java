@@ -225,7 +225,11 @@ public class SequoiadbDatasourceImpl
 						continue;
 					}
 					_abnormalAddrs.remove(addr);
-					_normalAddrs.add(addr);
+					synchronized (_normalAddrs) {
+	                    if (!_normalAddrs.contains(addr)) {
+	                        _normalAddrs.add(addr);
+	                    }
+	                }
 					_strategy.addAddress(addr);
 				}
 			} finally {
@@ -303,7 +307,11 @@ public class SequoiadbDatasourceImpl
 					Iterator<String> itr = incList.iterator();
 					while(itr.hasNext()) {
 						addr = itr.next();
-						_normalAddrs.add(addr);
+						synchronized (_normalAddrs) {
+		                    if (!_normalAddrs.contains(addr)) {
+		                        _normalAddrs.add(addr);
+		                    }
+		                }
 						_strategy.addAddress(addr);
 					}
 				}
@@ -486,7 +494,11 @@ public class SequoiadbDatasourceImpl
 				return;
 			}
 			// add to local
-		    _normalAddrs.add(addr);
+			synchronized (_normalAddrs) {
+                if (!_normalAddrs.contains(addr)) {
+                    _normalAddrs.add(addr);
+                }
+            }
 		     if (ConcreteLocalStrategy.isLocalAddress(addr, _localIPs))
 		    	 _localAddrs.add(addr);
 			// add to strategy
@@ -747,7 +759,13 @@ public class SequoiadbDatasourceImpl
 					// and wait up thread to create connections
 					connItem = _connItemMgr.getItem();
 					if (connItem != null) {
-						sdb = _newConnByNormalAddr();
+                        try {
+                            sdb = _newConnByNormalAddr();
+                        } catch (Exception e) {
+                            _connItemMgr.releaseItem(connItem);
+                            connItem = null;
+                            throw e;
+                        }
 						// sanity check
 						if (sdb == null) {
 							// should never come here
@@ -939,8 +957,9 @@ public class SequoiadbDatasourceImpl
 			if (null != url && "" != url) {
 				// parse coord address to the format "192.168.20.165:11810"
 				String addr = _parseCoordAddr(url);
-				if (!_normalAddrs.contains(addr))
-					_normalAddrs.add(addr);
+                if (!_normalAddrs.contains(addr)) {
+                    _normalAddrs.add(addr);
+                }
 			}
 		}
 	    _username = (null == username) ? "" : username;
@@ -1178,7 +1197,11 @@ public class SequoiadbDatasourceImpl
 					continue;
 				}
 				_abnormalAddrs.remove(addr);
-				_normalAddrs.add(addr);
+				synchronized (_normalAddrs) {
+                    if (!_normalAddrs.contains(addr)) {
+                        _normalAddrs.add(addr);
+                    }
+                }
 				if (_isDatasourceOn) {
 					_strategy.addAddress(addr);
 				}
