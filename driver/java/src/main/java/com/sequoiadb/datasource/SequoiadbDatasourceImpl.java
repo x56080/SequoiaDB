@@ -234,7 +234,11 @@ public class SequoiadbDatasourceImpl {
                         continue;
                     }
                     _abnormalAddrs.remove(addr);
-                    _normalAddrs.add(addr);
+                    synchronized (_normalAddrs) {
+                        if (!_normalAddrs.contains(addr)) {
+                            _normalAddrs.add(addr);
+                        }
+                    }
                     _strategy.addAddress(addr);
                 }
             } finally {
@@ -313,7 +317,11 @@ public class SequoiadbDatasourceImpl {
                     Iterator<String> itr = incList.iterator();
                     while (itr.hasNext()) {
                         addr = itr.next();
-                        _normalAddrs.add(addr);
+                        synchronized (_normalAddrs) {
+                            if (!_normalAddrs.contains(addr)) {
+                                _normalAddrs.add(addr);
+                            }
+                        }
                         _strategy.addAddress(addr);
                     }
                 }
@@ -496,7 +504,11 @@ public class SequoiadbDatasourceImpl {
                 return;
             }
             // add to local
-            _normalAddrs.add(addr);
+            synchronized (_normalAddrs) {
+                if (!_normalAddrs.contains(addr)) {
+                    _normalAddrs.add(addr);
+                }
+            }
             if (ConcreteLocalStrategy.isLocalAddress(addr, _localIPs))
                 _localAddrs.add(addr);
             // add to strategy
@@ -762,7 +774,13 @@ public class SequoiadbDatasourceImpl {
                     // and wait up thread to create connections
                     connItem = _connItemMgr.getItem();
                     if (connItem != null) {
-                        sdb = _newConnByNormalAddr();
+                        try {
+                            sdb = _newConnByNormalAddr();
+                        } catch (Exception e) {
+                            _connItemMgr.releaseItem(connItem);
+                            connItem = null;
+                            throw e;
+                        }
                         // sanity check
                         if (sdb == null) {
                             // should never come here
@@ -892,8 +910,6 @@ public class SequoiadbDatasourceImpl {
             _strategy.update(ItemStatus.USED, item, -1);
             // check whether the connection can put back to idle pool or not
             if (_connIsValid(item, sdb)) {
-                // release the resource contains in connection
-                sdb.releaseResource();
                 // let the connection come back to connection pool
                 _idleConnPool.insert(item, sdb);
                 // tell the strategy one connection is add to idle pool now
@@ -961,8 +977,11 @@ public class SequoiadbDatasourceImpl {
             if (null != url && "" != url) {
                 // parse coord address to the format "192.168.20.165:11810"
                 String addr = _parseCoordAddr(url);
-                if (!_normalAddrs.contains(addr))
-                    _normalAddrs.add(addr);
+                synchronized (_normalAddrs) {
+                    if (!_normalAddrs.contains(addr)) {
+                        _normalAddrs.add(addr);
+                    }
+                }
             }
         }
         _username = (null == username) ? "" : username;
@@ -1174,7 +1193,7 @@ public class SequoiadbDatasourceImpl {
         }
 
         // sanity check, should never hit here
-        if (null == sdb) {
+        if (sdb == null) {
             throw new BaseException(SDBError.SDB_SYS, "failed to create connection directly");
         }
 
@@ -1200,7 +1219,11 @@ public class SequoiadbDatasourceImpl {
                     continue;
                 }
                 _abnormalAddrs.remove(addr);
-                _normalAddrs.add(addr);
+                synchronized (_normalAddrs) {
+                    if (!_normalAddrs.contains(addr)) {
+                        _normalAddrs.add(addr);
+                    }
+                }
                 if (_isDatasourceOn) {
                     _strategy.addAddress(addr);
                 }
@@ -1210,8 +1233,9 @@ public class SequoiadbDatasourceImpl {
                 break;
             }
         }
-        if (retConn == null)
+        if (retConn == null) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "no available address for connection");
+        }
         return retConn;
     }
 
@@ -1293,6 +1317,18 @@ public class SequoiadbDatasourceImpl {
     }
 
     private boolean _connIsValid(ConnItem item, Sequoiadb sdb) {
+        // release the resource contains in connection
+        try {
+            sdb.releaseResource();
+        } catch(Exception e) {
+            try {
+                sdb.disconnect();
+            } catch (Exception ex){
+                // to nothing
+            }
+            return false;
+        }
+
         // check timeout or not
         if (0 != _dsOpt.getKeepAliveTimeout()) {
             long lastTime = sdb.getConnection().getLastUseTime();

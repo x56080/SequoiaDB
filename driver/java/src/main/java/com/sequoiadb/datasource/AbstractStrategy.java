@@ -87,7 +87,7 @@ abstract class AbstractStrategy implements IConnectStrategy {
             Iterator<ConnItem> itr = _idleConnItemList.iterator();
             while (itr.hasNext()) {
                 ConnItem item = itr.next();
-                if (addr == item.getAddr()) {
+                if (addr.equals(item.getAddr())) {
                     list.add(item);
                     itr.remove();//TODO:test it
                 }
