@@ -1452,6 +1452,19 @@ namespace engine
       PD_LOG( PDEVENT, "Begin to cleanup collectionspace[%s]...",
               _pSU->CSName() ) ;
 
+      /// if the lob is invalid, rebuild the bme
+      if ( _pSU->lob()->isOpened() &&
+           0 == _pSU->lob()->isCrashed() )
+      {
+         rc = _pSU->lob()->rebuildBME() ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Rebuild lob[%s]'s BME failed, rc: %d",
+                    _pSU->lob()->getSuFileName(), rc ) ;
+            goto error ;
+         }
+      }
+
       /// drop invalid collection
       MAP_SU_STATUS::iterator it ;
       for ( it = _clStatus.begin() ; it != _clStatus.end() ; ++it )
@@ -1474,19 +1487,6 @@ namespace engine
                        info._clName ) ;
                ++dropCount ;
             }
-         }
-      }
-
-      /// if the lob is invalid, rebuild thd bme
-      if ( _pSU->lob()->isOpened() &&
-           0 == _pSU->lob()->isCrashed() )
-      {
-         rc = _pSU->lob()->rebuildBME() ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Rebuild lob[%s]'s BME failed, rc: %d",
-                    _pSU->lob()->getSuFileName(), rc ) ;
-            goto error ;
          }
       }
 
