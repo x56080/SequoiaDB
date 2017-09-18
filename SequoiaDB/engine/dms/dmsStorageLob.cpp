@@ -1180,7 +1180,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB__PUSH2BUCKET, "_dmsStorageLob::_push2Bucket" )
    INT32 _dmsStorageLob::_push2Bucket( UINT32 bucket,
                                        DMS_LOB_PAGEID pageId,
-                                       _dmsLobDataMapBlk &blk )
+                                       _dmsLobDataMapBlk &blk,
+                                       const dmsLobRecord *pRecord )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__PUSH2BUCKET ) ;
