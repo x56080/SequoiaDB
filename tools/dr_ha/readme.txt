@@ -12,6 +12,8 @@
    3、请根据实际配置修改上述SUB1-NodeA和SUB2-NodeA中 cluster_opr.js 的参数定义部分，主要参数说明如下（格式在 cluster_opr.js 中有相应定义）：
       USERNAME:  登入所有机器的用户名（所有机器用户名密码需要统一）
       PASSWD:    登入所有机器用户名对应的密码
+      SDBUSERNAME:登入数据库的用户名（如果数据库没有开启用户鉴权，则可以不填）
+      SDBPASSWD：登入数据库的用户名对应的密码（如果数据库没有开启用户鉴权，则可以不填）
       SUB1HOSTS: SUB1的机器列表
       SUB2HOSTS: SUB2的机器列表
       COORDADDR: 协调节点定义，如果协调节点已经在协调节点组信息中，则此处填写一个可用地址即可

@@ -11,6 +11,10 @@ if ( typeof(SEQPATH) != "string" || SEQPATH.length == 0 ) { SEQPATH = "/opt/sequ
 if ( typeof(USERNAME) != "string" ) { USERNAME = "sdbadmin" ; }
 /* 机器登入密码定义 */
 if ( typeof(PASSWD) != "string" ) { PASSWD = "sdbadmin" ; }
+/* 数据库登入用户名定义 */
+if ( typeof(SDBUSERNAME) != "string" ) { SDBUSERNAME = "" ; }
+/* 数据库登入密码定义 */
+if ( typeof(SDBPASSWD) != "string" ) { SDBPASSWD = "" ; }
 /* 子网1机器定义，必须为字符串数组 */
 if ( typeof(SUB1HOSTS) == "undefined" ) { SUB1HOSTS = [ "vmsvr2-suse-x64-1" ] ; }
 /* 子网2机器定义，必须为字符串数组 */
@@ -300,7 +304,8 @@ function saveGroupsInfo( coordAddr, filename ) {
    var file ;
    var number = 0 ;
    try {
-      db = new Sdb( coordAddr ) ;
+      var addrArray = splitHostAndSvcFromAddr( coordAddr ) ;
+      db = new Sdb( addrArray[0], addrArray[1], SDBUSERNAME, SDBPASSWD ) ;
    } catch ( e ) {
       println( "Connect to " + coordAddr + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
       return false ;
@@ -390,7 +395,8 @@ function updateDCInfoInCatalog( cataAddr, newAddrLine, active ) {
 
    if ( !active ) { isReadOnly = true ; }
    try {
-      db = new Sdb( cataAddr ) ;
+      var addrArray = splitHostAndSvcFromAddr( cataAddr ) ;
+      db = new Sdb( addrArray[0], addrArray[1], SDBUSERNAME, SDBPASSWD ) ;
    } catch ( e ) {
       println( "Connect to " + cataAddr + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
       return false ;
@@ -419,7 +425,8 @@ function updateGroupsInCatalog( cataAddr, keepHosts ) {
    var db ;
 
    try {
-      db = new Sdb( cataAddr ) ;
+      var addrArray = splitHostAndSvcFromAddr( cataAddr ) ;
+      db = new Sdb( addrArray[0], addrArray[1], SDBUSERNAME, SDBPASSWD ) ;
    } catch ( e ) {
       println( "Connect to " + cataAddr + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
       return false ;
@@ -482,7 +489,8 @@ function restoreGroupsInCatalog( cataAddr, groupsArray ) {
    var db ;
 
    try {
-      db = new Sdb( cataAddr ) ;
+      var addrArray = splitHostAndSvcFromAddr( cataAddr ) ;
+      db = new Sdb( addrArray[0], addrArray[1], SDBUSERNAME, SDBPASSWD ) ;
    } catch ( e ) {
       println( "Connect to " + cataAddr + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
       return false ;
@@ -616,7 +624,7 @@ function reloadNodesConf( nodesArray, ignoreErrArray ) {
    for ( var i = 0 ; i < nodesArray.length ; ++i ) {
       var addrArray = splitHostAndSvcFromAddr( nodesArray[i] ) ;
       try {
-         var db = new Sdb( addrArray[0], addrArray[1] ) ;
+         var db = new Sdb( addrArray[0], addrArray[1], SDBUSERNAME, SDBPASSWD ) ;
          db.reloadConf( { Global : false } ) ;
          db.close() ;
       } catch ( e ) {
@@ -642,7 +650,8 @@ function reelectAllGroups( coordAddrs ) {
    var get = false ;
    for ( var i = 0 ; i < coordAddrs.length ; ++i ) {
       try {
-         db = new Sdb( coordAddrs[i] ) ;
+         var addrArray = splitHostAndSvcFromAddr( coordAddrs[i] ) ;
+         db = new Sdb( addrArray[0], addrArray[1], SDBUSERNAME, SDBPASSWD ) ;
       } catch ( e ) {
          println( "Connect to " + coordAddrs[i] + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
          continue ;
