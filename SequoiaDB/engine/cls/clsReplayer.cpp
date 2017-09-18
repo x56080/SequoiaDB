@@ -1255,7 +1255,7 @@ namespace engine
 
       /// When is $id or useSync
       if ( useSync ||
-           0 != ossStrcmp( indexJob->getIndexName(), IXM_ID_KEY_NAME ) )
+           0 == ossStrcmp( indexJob->getIndexName(), IXM_ID_KEY_NAME ) )
       {
          indexJob->doit() ;
          SDB_OSS_DEL indexJob ;
