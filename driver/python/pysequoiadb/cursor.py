@@ -20,7 +20,7 @@ except ImportError:
 import bson
 import pysequoiadb
 from pysequoiadb.common import const
-from pysequoiadb.error import (SDBBaseError, SDBEndOfCursor)
+from pysequoiadb.error import (SDBBaseError, SDBEndOfCursor, SDBError)
 from collections import OrderedDict
 
 class cursor(object):
@@ -102,7 +102,7 @@ class cursor(object):
             if const.SDB_DMS_EOC == rc:
                raise SDBEndOfCursor
             else:
-               raise SDBBaseError("Failed to get next record", rc)
+               raise SDBError("Failed to get next record", rc)
          else:
             record, size = bson._bson_to_dict(bson_string, as_class, False,
                                               bson.OLD_UUID_SUBTYPE, True)
@@ -137,7 +137,7 @@ class cursor(object):
             if const.SDB_DMS_EOC == rc:
                raise SDBEndOfCursor
             else:
-               raise SDBBaseError("Failed to get current record", rc)
+               raise SDBError("Failed to get current record", rc)
          else:
             record, size = bson._bson_to_dict(bson_string, as_class, False,
                                            bson.OLD_UUID_SUBTYPE, True)
