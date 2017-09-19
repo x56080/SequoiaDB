@@ -1849,15 +1849,23 @@ public class DBCollection {
 			matcher = dummy;
 		if (orderBy == null)
 			orderBy = dummy;
-		if (hint == null)
-			hint = dummy;
 		if (returnRows < 0) {
 			returnRows = -1;
 		}
-	    BSONObject hint1 = new BasicBSONObject();
-	    hint1.put("Collection", this.collectionFullName);
+
+        BSONObject newHint = new BasicBSONObject();
+        newHint.put("Collection", this.collectionFullName);
+        if ( null == hint || hint.isEmpty() )
+        {
+            newHint.put("Hint", dummy);
+        }
+        else
+        {
+            newHint.put("Hint", hint);
+        }
+
 		String command = SequoiadbConstants.ADMIN_PROMPT+SequoiadbConstants.GET_QUERYMETA;
-		SDBMessage rtnSDBMessage = adminCommand(command, matcher, hint, orderBy, hint1,
+		SDBMessage rtnSDBMessage = adminCommand(command, matcher, dummy, orderBy, newHint,
 				                                skipRows, returnRows, flag);
 		DBCursor cursor = null;
 		int flags = rtnSDBMessage.getFlags();
@@ -1865,7 +1873,7 @@ public class DBCollection {
 			if (flags == SequoiadbConstants.SDB_DMS_EOC) {
 				return cursor;
 			} else {
-				throw new BaseException(flags, matcher, hint, orderBy, hint1,
+				throw new BaseException(flags, matcher, hint, orderBy, newHint,
 						skipRows, returnRows);
 			}
 		}

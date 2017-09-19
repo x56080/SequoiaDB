@@ -956,15 +956,22 @@ namespace SequoiaDB
                 query = dummyObj;
             if (orderBy == null)
                 orderBy = dummyObj;
-            if (hint == null)
-                hint = dummyObj;
             if (returnRows == 0)
                 returnRows = -1;
             string commandString = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.GET_QUERYMETA;
-            BsonDocument hint1 = new BsonDocument();
-            hint1.Add(SequoiadbConstants.FIELD_COLLECTION, collectionFullName);
-            SDBMessage rtnSDBMessage = AdminCommand(commandString, query, hint, orderBy,
-                                                     hint1, skipRows, returnRows, 0);
+
+            BsonDocument newHint = new BsonDocument();
+            newHint.Add(SequoiadbConstants.FIELD_COLLECTION, collectionFullName);
+            if ( null == hint )
+            {
+                newHint.Add(SequoiadbConstants.FIELD_HINT, dummyObj);
+            }
+            else
+            {
+                newHint.Add(SequoiadbConstants.FIELD_HINT, hint);
+            }
+            SDBMessage rtnSDBMessage = AdminCommand(commandString, query, null, orderBy,
+                                                     newHint, skipRows, returnRows, 0);
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
                 if (flags == SequoiadbConstants.SDB_DMS_EOC)
