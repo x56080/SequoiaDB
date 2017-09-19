@@ -1504,22 +1504,34 @@ do                                                            \
       BOOLEAN result ;
       SINT64 contextID = 0 ;
       BSONObjBuilder bo ;
-      BSONObj hint1 ;
+      BSONObj newHint ;
+      
       if ( _collectionFullName [0] == '\0' || !_connection || !cursor )
       {
          rc = SDB_INVALIDARG ;
          goto done;
       }
+
       bo.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
-      hint1 = bo.obj() ;
+      if ( hint.isEmpty() )
+      {
+         BSONObj emptyObj ;
+         bo.append( FIELD_NAME_HINT, emptyObj ) ;
+      }
+      else
+      {
+         bo.append( FIELD_NAME_HINT, hint ) ;
+      }
+      newHint = bo.obj() ;
+
       p = CMD_ADMIN_PREFIX CMD_NAME_GET_QUERYMETA ;
       rc = clientBuildQueryMsgCpp ( &_pSendBuffer, &_sendBufferSize,
                                     p, 0, 0, numToSkip,
                                     numToReturn,
                                     condition.objdata(),
-                                    hint.objdata(),
+                                    NULL,
                                     orderBy.objdata(),
-                                    hint1.objdata(),
+                                    newHint.objdata(),
                                     _connection->_endianConvert ) ;
       if ( rc )
       {
