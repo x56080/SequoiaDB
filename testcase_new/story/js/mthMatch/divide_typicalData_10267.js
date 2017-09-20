@@ -66,10 +66,10 @@ function main()
    condition7 = {a:{$divide:-1}};
    InvalidArgCheck( dbcl, condition7, null, -6 );
    
-   condition8 = {a:{$divide:"a"},$et:1};
+   condition8 = {a:{$divide:"a",$et:1}};
    InvalidArgCheck( dbcl, condition8, null, -6 );
    
-   condition9 = {a:{$divide:0},$et:1};
-   InvalidArgCheck( dbcl, condition9, null, -6 );
+   condition9 = {a:{$divide:0,$et:1}};
+   //InvalidArgCheck( dbcl, condition9, null, -6 );
 }
 main()
