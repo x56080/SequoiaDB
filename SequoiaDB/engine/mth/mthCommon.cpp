@@ -346,7 +346,7 @@ namespace engine
                   l_max.init() ;
                   l_min.fromLong( OSS_SINT64_MIN ) ;
                   l_max.fromLong( OSS_SINT64_MAX ) ;
-                  if ( original.compare( l_min ) < 0 || 
+                  if ( original.compare( l_min ) < 0 ||
                        original.compare( l_max ) > 0 )
                   {
                      builder.appendNull( fieldName ) ;
@@ -515,7 +515,7 @@ namespace engine
                   l_max.init() ;
                   l_min.fromLong( OSS_SINT64_MIN ) ;
                   l_max.fromLong( OSS_SINT64_MAX ) ;
-                  if ( original.compare( l_min ) < 0 || 
+                  if ( original.compare( l_min ) < 0 ||
                        original.compare( l_max ) > 0 )
                   {
                      builder.appendNull( fieldName ) ;
@@ -2286,8 +2286,8 @@ namespace engine
          FLOAT64 r = divisor.numberDouble() ;
          if ( fabs(r) < OSS_EPSILON )
          {
-            PD_LOG( PDERROR, "invalid argument:%f", r ) ;
-            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "invalid argument:r=%f", r ) ;
+            rc = SDB_INVALIDARG ;
             goto error ;
          }
 
@@ -2299,11 +2299,19 @@ namespace engine
          INT64 r = divisor.numberLong() ;
          if ( 0 == r )
          {
-            PD_LOG( PDERROR, "invalid argument:%lld", r ) ;
-            rc = SDB_SYS ; /// should not happen. so use sdb_sys.
+            PD_LOG( PDERROR, "invalid argument:r=%lld", r ) ;
+            rc = SDB_INVALIDARG ;
             goto error ;
          }
-         else if ( 0 == l % r )
+
+         if ( OSS_SINT64_MIN == l && -1 == r )
+         {
+            PD_LOG( PDERROR, "invalid argument:l=%lld,r=%lld", l, r ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         if ( 0 == l % r )
          {
             outBuilder.appendIntOrLL( name, l / r ) ;
          }
