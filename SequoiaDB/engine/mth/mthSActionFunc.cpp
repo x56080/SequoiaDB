@@ -78,7 +78,7 @@ namespace engine
       PD_TRACE_EXITRC( SDB__MTHINCLUDEGET, rc ) ;
       return rc ;
    }
- 
+
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHDEFAULTBUILD, "mthDefaultBuild" )
    INT32 mthDefaultBuild( const CHAR *fieldName,
                           const bson::BSONElement &e,
@@ -179,13 +179,13 @@ namespace engine
       if ( Array != in.type() )
       {
          out = in ;
-         goto done ; 
+         goto done ;
       }
       else if ( Array == in.type() )
       {
          BSONObjBuilder subBuilder ;
          BSONObj args = action->getArg() ;
-         _mthSliceIterator i( in.embeddedObject(), 
+         _mthSliceIterator i( in.embeddedObject(),
                               args.getIntField( "arg1" ),
                               args.getIntField( "arg2" ) ) ;
          BSONArrayBuilder sliceBuilder( subBuilder.subarrayStart( fieldName ) ) ;
@@ -223,7 +223,7 @@ namespace engine
             rc = i.next( next ) ;
             if ( SDB_OK == rc )
             {
-               arrayBuilder.append( next ) ;    
+               arrayBuilder.append( next ) ;
             }
             else if ( SDB_DMS_EOC == rc )
             {
@@ -387,7 +387,7 @@ namespace engine
          rc = decimal.abs() ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to ceil decimal:%s,rc=%d", 
+            PD_LOG( PDERROR, "failed to ceil decimal:%s,rc=%d",
                     decimal.toString().c_str(), rc ) ;
             goto error ;
          }
@@ -461,7 +461,7 @@ namespace engine
          rc = decimal.abs() ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to abs decimal:%s,rc=%d", 
+            PD_LOG( PDERROR, "failed to abs decimal:%s,rc=%d",
                     decimal.toString().c_str(), rc ) ;
             goto error ;
          }
@@ -512,7 +512,7 @@ namespace engine
       else if ( NumberDouble == e.type() )
       {
          builder.append( fieldName,
-                        ( FLOAT64 )ceil( e.numberDouble() ) ) ;      
+                        ( FLOAT64 )ceil( e.numberDouble() ) ) ;
       }
       else if ( NumberDecimal == e.type() )
       {
@@ -524,7 +524,7 @@ namespace engine
          rc = decimal.ceil( result ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to ceil decimal:%s,rc=%d", 
+            PD_LOG( PDERROR, "failed to ceil decimal:%s,rc=%d",
                     decimal.toString().c_str(), rc ) ;
             goto error ;
          }
@@ -582,7 +582,7 @@ namespace engine
          rc = decimal.ceil( result ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to ceil decimal:%s,rc=%d", 
+            PD_LOG( PDERROR, "failed to ceil decimal:%s,rc=%d",
                     decimal.toString().c_str(), rc ) ;
             goto error ;
          }
@@ -641,7 +641,7 @@ namespace engine
          rc = decimal.floor( result ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to floor decimal:%s,rc=%d", 
+            PD_LOG( PDERROR, "failed to floor decimal:%s,rc=%d",
                     decimal.toString().c_str(), rc ) ;
             goto error ;
          }
@@ -700,7 +700,7 @@ namespace engine
          rc = decimal.floor( result ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to floor decimal:%s,rc=%d", 
+            PD_LOG( PDERROR, "failed to floor decimal:%s,rc=%d",
                     decimal.toString().c_str(), rc ) ;
             goto error ;
          }
@@ -746,8 +746,8 @@ namespace engine
       {
          builder.appendNull( fieldName ) ;
       }
-      else if ( NumberDecimal == e.type() || 
-                NumberDecimal == arg.type() ) 
+      else if ( NumberDecimal == e.type() ||
+                NumberDecimal == arg.type() )
       {
          bsonDecimal decimal ;
          bsonDecimal decimalArg ;
@@ -759,8 +759,8 @@ namespace engine
          rc = decimal.mod( decimalArg, result ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to mod decimal:%s mod %s,rc=%d", 
-                    decimal.toString().c_str(), 
+            PD_LOG( PDERROR, "failed to mod decimal:%s mod %s,rc=%d",
+                    decimal.toString().c_str(),
                     decimalArg.toString().c_str(), rc ) ;
             goto error ;
          }
@@ -826,8 +826,8 @@ namespace engine
       {
          builder.appendNull( fieldName ) ;
       }
-      else if ( NumberDecimal == in.type() || 
-                NumberDecimal == argEle.type() ) 
+      else if ( NumberDecimal == in.type() ||
+                NumberDecimal == argEle.type() )
       {
          bsonDecimal decimal ;
          bsonDecimal decimalArg ;
@@ -839,8 +839,8 @@ namespace engine
          rc = decimal.mod( decimalArg, result ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to mod decimal:%s mod %s,rc=%d", 
-                    decimal.toString().c_str(), 
+            PD_LOG( PDERROR, "failed to mod decimal:%s mod %s,rc=%d",
+                    decimal.toString().c_str(),
                     decimalArg.toString().c_str(), rc ) ;
             goto error ;
          }
@@ -882,7 +882,7 @@ namespace engine
       if ( !obj.isEmpty() )
       {
          action->setObj( obj ) ;
-         out = action->getObj().getField( fieldName ) ; 
+         out = action->getObj().getField( fieldName ) ;
       }
    done:
       PD_TRACE_EXITRC( SDB__MTHMODBUILD, rc ) ;
@@ -984,7 +984,7 @@ namespace engine
             rc      = us.append( value.c_str(), value.length() );
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDERROR, "failed to append decimal=%s,rc=%d", 
+               PD_LOG( PDERROR, "failed to append decimal=%s,rc=%d",
                        value.c_str(), rc ) ;
                goto error ;
             }
@@ -1029,7 +1029,7 @@ namespace engine
          else if ( Object == e.type() )
          {
             builder.append( fieldName,
-                            e.embeddedObject().toString( FALSE, TRUE ) ) ; 
+                            e.embeddedObject().toString( FALSE, TRUE ) ) ;
          }
          else if ( Array == e.type() )
          {
@@ -1047,7 +1047,7 @@ namespace engine
             builder.appendNull( fieldName ) ;
          }
          break ;
-      }   
+      }
       case Object :
       {
          if ( String == e.type() )
@@ -1279,10 +1279,10 @@ namespace engine
          else
          {
             try
-            {  
+            {
                //if the STRING has "." "e" or "E" use double type
-               if ( ossStrchr ( e.valuestr (), '.' ) != NULL || 
-                    ossStrchr ( e.valuestr (), 'E' ) != NULL || 
+               if ( ossStrchr ( e.valuestr (), '.' ) != NULL ||
+                    ossStrchr ( e.valuestr (), 'E' ) != NULL ||
                     ossStrchr ( e.valuestr (), 'e' ) != NULL )
                {
                   double d = 0  ;
@@ -1426,7 +1426,7 @@ namespace engine
             PD_LOG( PDERROR, "failed to cast element[%s] to"
                     " type[%d]", e.toString( TRUE, TRUE ).c_str(), type ) ;
             goto error ;
-                   
+
          }
       }
    done:
@@ -1479,7 +1479,7 @@ namespace engine
 
          }
          action->setObj( builder.obj() ) ;
-         out = action->getObj().getField( fieldName ) ;    
+         out = action->getObj().getField( fieldName ) ;
       }
    done:
       PD_TRACE_EXITRC( SDB__MTHCASTGET, rc ) ;
@@ -1629,9 +1629,9 @@ namespace engine
       if ( !obj.isEmpty() )
       {
          action->setObj( obj ) ;
-         out = action->getObj().getField( fieldName ) ;      
+         out = action->getObj().getField( fieldName ) ;
       }
-      
+
       PD_TRACE_EXITRC( SDB__MTHSUBSTRGET, rc ) ;
    done:
       return rc ;
@@ -1700,7 +1700,7 @@ namespace engine
 
    static BOOLEAN _isLower( const CHAR *str )
    {
-      BOOLEAN rc = TRUE ; 
+      BOOLEAN rc = TRUE ;
       const CHAR *p = str ;
       while ( '\0' != *p )
       {
@@ -1876,7 +1876,7 @@ namespace engine
       if ( !obj.isEmpty() )
       {
          action->setObj( obj ) ;
-         out = action->getObj().getField( fieldName ) ;      
+         out = action->getObj().getField( fieldName ) ;
       }
    done:
       PD_TRACE_EXITRC( SDB__MTHLOWERGET, rc ) ;
@@ -2100,7 +2100,7 @@ namespace engine
       }
       else
       {
-         /// necessary to avoid one more copy when 
+         /// necessary to avoid one more copy when
          /// str is like "  abc" ?
          rc = us.append( p, size - ( p - str ) ) ;
          if ( SDB_OK != rc )
@@ -2355,7 +2355,7 @@ namespace engine
       {
          builder.appendNull( fieldName ) ;
       }
-      else if ( NumberDecimal == e.type() || 
+      else if ( NumberDecimal == e.type() ||
                 NumberDecimal == arg.type() )
       {
          bsonDecimal decimalE ;
@@ -2368,8 +2368,8 @@ namespace engine
          rc = decimalE.add( decimalArg, result ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to add decimal:%s+%s,rc=%d", 
-                    decimalE.toString().c_str(), 
+            PD_LOG( PDERROR, "failed to add decimal:%s+%s,rc=%d",
+                    decimalE.toString().c_str(),
                     decimalArg.toString().c_str(), rc ) ;
             goto error ;
          }
@@ -2416,7 +2416,7 @@ namespace engine
          builder.appendNull( fieldName ) ;
          obj = builder.obj() ;
       }
-      else if ( NumberDecimal == in.type() || 
+      else if ( NumberDecimal == in.type() ||
                 NumberDecimal == arg.type() )
       {
          bsonDecimal decimalE ;
@@ -2429,8 +2429,8 @@ namespace engine
          rc = decimalE.add( decimalArg, result ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to add decimal:%s+%s,rc=%d", 
-                    decimalE.toString().c_str(), 
+            PD_LOG( PDERROR, "failed to add decimal:%s+%s,rc=%d",
+                    decimalE.toString().c_str(),
                     decimalArg.toString().c_str(), rc ) ;
             goto error ;
          }
@@ -2485,7 +2485,7 @@ namespace engine
       {
          builder.appendNull( fieldName ) ;
       }
-      else if ( NumberDecimal == e.type() || 
+      else if ( NumberDecimal == e.type() ||
                 NumberDecimal == arg.type() )
       {
          bsonDecimal decimalE ;
@@ -2498,8 +2498,8 @@ namespace engine
          rc = decimalE.sub( decimalArg, result ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to sub decimal:%s-%s,rc=%d", 
-                    decimalE.toString().c_str(), 
+            PD_LOG( PDERROR, "failed to sub decimal:%s-%s,rc=%d",
+                    decimalE.toString().c_str(),
                     decimalArg.toString().c_str(), rc ) ;
             goto error ;
          }
@@ -2539,14 +2539,14 @@ namespace engine
 
       if ( in.eoo() )
       {
-         /// do nothing.   
+         /// do nothing.
       }
       else if ( !in.isNumber() )
       {
          builder.appendNull( fieldName ) ;
          obj = builder.obj() ;
       }
-      else if ( NumberDecimal == in.type() || 
+      else if ( NumberDecimal == in.type() ||
                 NumberDecimal == arg.type() )
       {
          bsonDecimal decimalE ;
@@ -2559,8 +2559,8 @@ namespace engine
          rc = decimalE.sub( decimalArg, result ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to sub decimal:%s-%s,rc=%d", 
-                    decimalE.toString().c_str(), 
+            PD_LOG( PDERROR, "failed to sub decimal:%s-%s,rc=%d",
+                    decimalE.toString().c_str(),
                     decimalArg.toString().c_str(), rc ) ;
             goto error ;
          }
@@ -2615,7 +2615,7 @@ namespace engine
       {
          builder.appendNull( fieldName ) ;
       }
-      else if ( NumberDecimal == e.type() || 
+      else if ( NumberDecimal == e.type() ||
                 NumberDecimal == arg.type() )
       {
          bsonDecimal decimal ;
@@ -2628,8 +2628,8 @@ namespace engine
          rc = decimal.mul( decimalArg, result ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to mul decimal:%s*%s,rc=%d", 
-                    decimal.toString().c_str(), 
+            PD_LOG( PDERROR, "failed to mul decimal:%s*%s,rc=%d",
+                    decimal.toString().c_str(),
                     decimalArg.toString().c_str(), rc ) ;
             goto error ;
          }
@@ -2676,7 +2676,7 @@ namespace engine
          builder.appendNull( fieldName ) ;
          obj = builder.obj() ;
       }
-      else if ( NumberDecimal == in.type() || 
+      else if ( NumberDecimal == in.type() ||
                 NumberDecimal == arg.type() )
       {
          bsonDecimal decimal ;
@@ -2689,8 +2689,8 @@ namespace engine
          rc = decimal.mul( decimalArg, result ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to mul decimal:%s*%s,rc=%d", 
-                    decimal.toString().c_str(), 
+            PD_LOG( PDERROR, "failed to mul decimal:%s*%s,rc=%d",
+                    decimal.toString().c_str(),
                     decimalArg.toString().c_str(), rc ) ;
             goto error ;
          }
@@ -2745,7 +2745,7 @@ namespace engine
       {
          builder.appendNull( fieldName ) ;
       }
-      else if ( NumberDecimal == e.type() || 
+      else if ( NumberDecimal == e.type() ||
                 NumberDecimal == arg.type() )
       {
          bsonDecimal decimal ;
@@ -2758,8 +2758,8 @@ namespace engine
          rc = decimal.div( decimalArg, result ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to div decimal:%s/%s,rc=%d", 
-                    decimal.toString().c_str(), 
+            PD_LOG( PDERROR, "failed to div decimal:%s/%s,rc=%d",
+                    decimal.toString().c_str(),
                     decimalArg.toString().c_str(), rc ) ;
             goto error ;
          }
@@ -2772,8 +2772,8 @@ namespace engine
          FLOAT64 r = arg.numberDouble() ;
          if ( fabs(r) < OSS_EPSILON )
          {
-            PD_LOG( PDERROR, "invalid argument:%f", r ) ;
-            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "invalid argument:r=%f", r ) ;
+            rc = SDB_INVALIDARG ;
             goto error ;
          }
          builder.appendNumber( fieldName, e.numberDouble() / r ) ;
@@ -2784,11 +2784,19 @@ namespace engine
          INT64 r = arg.numberLong() ;
          if ( 0 == r )
          {
-            PD_LOG( PDERROR, "invalid argument:%lld", r ) ;
-            rc = SDB_SYS ; /// should not happen. so use sdb_sys.
+            PD_LOG( PDERROR, "invalid argument:r=%lld", r ) ;
+            rc = SDB_INVALIDARG ;
             goto error ;
          }
-         else if ( 0 == l % r )
+
+         if ( OSS_SINT64_MIN == l && -1 == r )
+         {
+            PD_LOG( PDERROR, "invalid argument:l=%lld,r=%lld", l, r ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         if ( 0 == l % r )
          {
             builder.appendIntOrLL( fieldName, l / r ) ;
          }
@@ -2826,7 +2834,7 @@ namespace engine
          builder.appendNull( fieldName ) ;
          obj = builder.obj() ;
       }
-      else if ( NumberDecimal == in.type() || 
+      else if ( NumberDecimal == in.type() ||
                 NumberDecimal == arg.type() )
       {
          bsonDecimal decimal ;
@@ -2839,8 +2847,8 @@ namespace engine
          rc = decimal.div( decimalArg, result ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to div decimal:%s/%s,rc=%d", 
-                    decimal.toString().c_str(), 
+            PD_LOG( PDERROR, "failed to div decimal:%s/%s,rc=%d",
+                    decimal.toString().c_str(),
                     decimalArg.toString().c_str(), rc ) ;
             goto error ;
          }
@@ -2859,8 +2867,8 @@ namespace engine
          FLOAT64 r = arg.numberDouble() ;
          if ( fabs(r) < OSS_EPSILON )
          {
-            PD_LOG( PDERROR, "invalid argument:%f", r ) ;
-            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "invalid argument:r=%f", r ) ;
+            rc = SDB_INVALIDARG ;
             goto error ;
          }
          builder.appendNumber( fieldName, in.numberDouble() / r ) ;
@@ -2872,11 +2880,19 @@ namespace engine
          INT64 r = arg.numberLong() ;
          if ( 0 == r )
          {
-            PD_LOG( PDERROR, "invalid argument:%lld", r ) ;
-            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "invalid argument:r=%lld", r ) ;
+            rc = SDB_INVALIDARG ;
             goto error ;
          }
-         else if ( 0 == l % r )
+
+         if ( OSS_SINT64_MIN == l && -1 == r )
+         {
+            PD_LOG( PDERROR, "invalid argument:l=%lld,r=%lld", l, r ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         if ( 0 == l % r )
          {
             builder.appendIntOrLL( fieldName, l / r ) ;
          }
