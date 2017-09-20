@@ -119,6 +119,8 @@ namespace engine
                                                    UINT64 sessionID,
                                                    void *data = NULL ) ;
 
+         virtual void         _onSessionNew( pmdAsyncSession *pSession ) ;
+
       protected:
          void                    _checkUnShardSessions( UINT32 interval ) ;
 

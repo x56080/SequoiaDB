@@ -197,15 +197,6 @@ namespace engine
       else if ( SDB_SESSION_SHARD == sessionType )
       {
          pSession = SDB_OSS_NEW _clsShdSession ( sessionID ) ;
-
-         map< UINT64, clsIdentifyInfo >::iterator it ;
-         if ( pSession &&
-              ( it = _mapIdentifys.find( sessionID ) ) != _mapIdentifys.end() )
-         {
-            _clsShdSession *pShdSession = ( _clsShdSession* )pSession ;
-            pShdSession->setDelayLogin( it->second ) ;
-            _mapIdentifys.erase( it ) ;
-         }
       }
       else
       {
@@ -213,6 +204,21 @@ namespace engine
       }
 
       return pSession ;
+   }
+
+   void _clsShardSessionMgr::_onSessionNew( pmdAsyncSession *pSession )
+   {
+      if ( SDB_SESSION_SHARD == pSession->sessionType() )
+      {
+         map< UINT64, clsIdentifyInfo >::iterator it ;
+         _clsShdSession *pShdSession = ( _clsShdSession* )pSession ;
+         it = _mapIdentifys.find( pSession->sessionID() ) ;
+         if ( it != _mapIdentifys.end() )
+         {
+            pShdSession->setDelayLogin( it->second ) ;
+            _mapIdentifys.erase( it ) ;
+         }
+      }
    }
 
    INT32 _clsShardSessionMgr::handleSessionTimeout( UINT32 timerID,

@@ -326,6 +326,8 @@ namespace engine
                                                    UINT64 sessionID,
                                                    void *data = NULL ) = 0 ;
 
+         virtual void         _onSessionNew( pmdAsyncSession *pSession ) {}
+
       protected:
          INT32          _attachSessionMeta( pmdAsyncSession *pSession,
                                             const NET_HANDLE handle ) ;
