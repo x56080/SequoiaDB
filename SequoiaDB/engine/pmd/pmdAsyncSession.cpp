@@ -915,6 +915,8 @@ namespace engine
       PD_LOG ( PDEVENT, "Create session[%s,StartType:%d]",
                pSession->sessionName(), startType ) ;
 
+      _onSessionNew( pSession ) ;
+
       // attach meta
       if ( !pSession->getMeta() && pSession->canAttachMeta() &&
            NET_INVALID_HANDLE != handle )
