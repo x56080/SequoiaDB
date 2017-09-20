@@ -228,6 +228,7 @@ namespace engine
       CLS_FULLSYNC_STEP    _fsStep ;
       CS_PS_TUPLES         _mapEmptyCS ;
       vector<string>       _validCLs ;
+      UINT32               _repeatCount ;
 
    } ;
 

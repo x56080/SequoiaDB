@@ -54,8 +54,9 @@ using namespace bson ;
 
 namespace engine
 {
-   const UINT32 CLS_FS_TIMEOUT = 5000 ;
+   const UINT32 CLS_FS_TIMEOUT = 10000 ;
    const UINT32 CLS_SPLIT_DST_SYNC_TIME = 60 * OSS_ONE_SEC ;
+   const UINT32 CLS_FS_MAX_REPEAT_CNT = 120 * OSS_ONE_SEC / CLS_FS_TIMEOUT ;
 
    #define CHECK_REQUEST_ID(Header,id) \
       do { \
@@ -1196,6 +1197,7 @@ namespace engine
    :_clsDataDstBaseSession( sessionID, agent ),
    _fsStep( CLS_FS_STEP_NONE )
    {
+      _repeatCount = CLS_FS_MAX_REPEAT_CNT ;
    }
 
    _clsFSDstSession::~_clsFSDstSession()
@@ -1386,36 +1388,46 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFSDS__BEGIN, "_clsFSDstSession::_begin" )
    void _clsFSDstSession::_begin()
    {
-      PD_TRACE_ENTRY ( SDB__CLSFSDS__BEGIN );
-      MsgClsFSBegin msg ;
-      msg.type = CLS_FS_TYPE_IN_SET ;
-      msg.header.TID = CLS_TID( _sessionID ) ;
-      MsgRouteID lastID = _selector.src() ;
-      MsgRouteID src = _selector.selected( TRUE ) ;
+      PD_TRACE_ENTRY ( SDB__CLSFSDS__BEGIN ) ;
 
-      /// send disconnect to the last source session
-      if ( MSG_INVALID_ROUTEID != lastID.value &&
-           lastID.value != src.value )
+      ++_repeatCount ;
+      if ( _repeatCount >= CLS_FS_MAX_REPEAT_CNT )
       {
-         MsgHeader disMsg ;
-         disMsg.messageLength = sizeof( MsgHeader ) ;
-         disMsg.routeID.value = MSG_INVALID_ROUTEID ;
-         disMsg.TID = CLS_TID( _sessionID ) ;
-         disMsg.requestID = ++_requestID ;
-         disMsg.opCode = MSG_BS_DISCONNECT ;
-         _agent->syncSend( lastID, &disMsg ) ;
-      }
+         MsgClsFSBegin msg ;
+         msg.type = CLS_FS_TYPE_IN_SET ;
+         msg.header.TID = CLS_TID( _sessionID ) ;
+         MsgRouteID lastID = _selector.src() ;
+         MsgRouteID src = _selector.selected( TRUE ) ;
 
-      BSONObj bodyObj ;
-      /// send to new source node
-      if ( MSG_INVALID_ROUTEID != src.value &&
-           SDB_OK == _buildBegingBody( bodyObj ) )
-      {
-         msg.header.messageLength += bodyObj.objsize() ;
-         msg.header.requestID = ++_requestID ;
-         _agent->syncSend( src, &(msg.header), (void*)bodyObj.objdata(),
-                           (UINT32)bodyObj.objsize() ) ;
-         _timeout = 0 ;
+         /// send disconnect to the last source session
+         if ( MSG_INVALID_ROUTEID != lastID.value &&
+              lastID.value != src.value )
+         {
+            MsgHeader disMsg ;
+            disMsg.messageLength = sizeof( MsgHeader ) ;
+            disMsg.routeID.value = MSG_INVALID_ROUTEID ;
+            disMsg.TID = CLS_TID( _sessionID ) ;
+            disMsg.requestID = ++_requestID ;
+            disMsg.opCode = MSG_BS_DISCONNECT ;
+            _agent->syncSend( lastID, &disMsg ) ;
+         }
+
+         BSONObj bodyObj ;
+         /// send to new source node
+         if ( MSG_INVALID_ROUTEID != src.value &&
+              SDB_OK == _buildBegingBody( bodyObj ) )
+         {
+            msg.header.messageLength += bodyObj.objsize() ;
+            msg.header.requestID = ++_requestID ;
+            if ( SDB_OK == _agent->syncSend( src, &(msg.header),
+                                             (void*)bodyObj.objdata(),
+                                             (UINT32)bodyObj.objsize() ) )
+            {
+               /// send succeed, set _repeatCount = 0
+               _repeatCount = 0 ;
+            }
+            _timeout = 0 ;
+         }
       }
 
       PD_TRACE_EXIT ( SDB__CLSFSDS__BEGIN );
@@ -1544,6 +1556,9 @@ namespace engine
 
       /// block write
       sdbGetDMSCB()->blockWrite( eduCB(), SDB_DB_FULLSYNC ) ;
+
+      /// begin
+      _begin() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFSDS__ONDETACH, "_clsFSDstSession::_onDetach" )
