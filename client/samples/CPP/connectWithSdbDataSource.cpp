@@ -38,6 +38,7 @@
 using namespace std ;
 using namespace sdbclient ;
 using namespace bson ;
+using namespace sample ;
 
 void queryTask( sdbDataSource &ds )
 {

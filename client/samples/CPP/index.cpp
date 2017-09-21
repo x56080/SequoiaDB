@@ -39,6 +39,7 @@
 
 using namespace std ;
 using namespace sdbclient ;
+using namespace sample ;
 
 #define COLLECTION_SPACE_NAME "foo1"
 #define COLLECTION_NAME       "bar"

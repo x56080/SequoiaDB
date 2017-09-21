@@ -38,6 +38,8 @@
 #include <stdio.h>
 #include "common.hpp"
 
+using namespace sample ;
+
 #define COLLECTION_NAME "SAMPLE.employee"
 #define NUM_RECORD 100
 #define INDEX_NAME "employee_id"

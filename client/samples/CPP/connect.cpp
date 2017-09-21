@@ -36,6 +36,7 @@
 
 using namespace std ;
 using namespace sdbclient ;
+using namespace sample ;
 
 // Display Syntax Error
 void displaySyntax ( CHAR *pCommand ) ;

@@ -36,6 +36,7 @@
 
 using namespace std ;
 using namespace sdbclient ;
+using namespace sample ;
 
 #define NUM_RECORD 5
 
@@ -44,8 +45,6 @@ using namespace sdbclient ;
 
 // Display Syntax Error
 void displaySyntax ( CHAR *pCommand ) ;
-// create record list
-void createRecordList ( vector<BSONObj> &objlist, INT32 listSize ) ;
 
 INT32 main ( INT32 argc, CHAR **argv )
 {

@@ -36,15 +36,13 @@
 
 using namespace std ;
 using namespace sdbclient ;
+using namespace sample ;
 
 #define COLLECTION_SPACE_NAME "foo"
 #define COLLECTION_NAME       "bar"
 
 // Display Syntax Error
 void displaySyntax ( CHAR *pCommand ) ;
-
-// create English record
-void createEnglishRecord ( BSONObj &obj ) ;
 
 INT32 main ( INT32 argc, CHAR **argv )
 {
