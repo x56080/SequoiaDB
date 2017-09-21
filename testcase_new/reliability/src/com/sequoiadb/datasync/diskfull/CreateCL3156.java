@@ -152,7 +152,7 @@ public class CreateCL3156 extends SdbTestBase {
                             + "EnsureShardingIndex: true }");
                     commCS.createCollection(clName, option);
                 }
-                throw new ReliabilityException("disk full doesn't occur");
+                //throw new ReliabilityException("disk full doesn't occur");
             } catch (BaseException e) {
                 if (e.getErrorCode() != -11) {
                     throw e;
