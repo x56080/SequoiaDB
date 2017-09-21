@@ -46,10 +46,10 @@
       <if>
          <isset property="TESTCASE_TYPE"/>
          <else>           
-            <var name="TESTCASE_TYPE" value="tdd_c,tdd_cpp,tdd_java,tdd_php,tdd_python,tdd_mongoc,
+            <var name="TESTCASE_TYPE" value="tdd_c,tdd_cpp,tdd_php,tdd_python,tdd_mongoc,
                                              story_java,story_js,
                                              sdv_java,sdv_js,
-                                             driver_c,driver_cpp,driver_java,driver_php" />
+                                             driver_c,driver_cpp,driver_java,driver_php,driver_python" />
          </else>
       </if>
       <if>
@@ -99,9 +99,6 @@
          <propertyregex property="case_reltdir" input="@{casetype}" regexp="_" replace="/"/>
          <switch value="@{casetype}">
          
-            <case value="tdd_java">
-               <compilecase type="java"   srcdir="${case_basedir}/${case_reltdir}"/>
-            </case>
             <case value="story_java">
                <compilecase type="java"   srcdir="${case_basedir}/${case_reltdir}"/>
             </case>
@@ -302,9 +299,6 @@
                         <var name="exec_file" value="${basedir}/src/test/exec_testcase/exec_c_case.xml"/>
                      </case>
                      
-                     <case value="tdd_java">
-                        <var name="exec_file" value="${basedir}/src/test/exec_testcase/exec_java_case.xml"/>
-                     </case>
                      <case value="story_java">
                         <var name="exec_file" value="${basedir}/src/test/exec_testcase/exec_java_case.xml"/>
                      </case>
@@ -332,7 +326,10 @@
                      <case value="tdd_python">
                         <var name="exec_file" value="${basedir}/src/test/exec_testcase/exec_python_case.xml"/>
                      </case>
-   
+                     <case value="driver_python">
+                        <var name="exec_file" value="${basedir}/src/test/exec_testcase/exec_python_case_new.xml"/>
+                     </case>
+                     
                      <case value="tdd_mongoc">
                         <var name="exec_file" value="${basedir}/src/test/exec_testcase/exec_mongoc_case.xml"/>
                      </case>
