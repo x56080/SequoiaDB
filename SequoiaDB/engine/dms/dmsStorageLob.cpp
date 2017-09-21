@@ -415,6 +415,8 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
          locked = TRUE ;
       }
+      /// add lob page in lock
+      mbContext->mbStat()->_totalLobPages += 1 ;
 
       if ( !isOpened() )
       {
@@ -827,7 +829,6 @@ namespace engine
          PD_LOG( PDERROR, "Failed to find free space, rc:%d", rc ) ;
          goto error ;
       }
-      context->mbStat()->_totalLobPages += 1 ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGELOB__ALLOCATEPAGE, rc ) ;
