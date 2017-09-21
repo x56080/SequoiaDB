@@ -247,10 +247,7 @@
                      <case value="driver_php">
                         <var name="exec_file" value="${basedir}/src/test/exec_testcase/exec_php_case.xml"/>
                      </case>
-                     
-                     <case value="tdd_python">
-                        <var name="exec_file" value="${basedir}/src/test/exec_testcase/exec_python_case.xml"/>
-                     </case>
+
                      <case value="driver_python">
                         <var name="exec_file" value="${basedir}/src/test/exec_testcase/exec_python_case_new.xml"/>
                      </case>
@@ -323,7 +320,7 @@
       <if>
          <isset property="TESTCASE_TYPE"/>
          <else>           
-            <var name="TESTCASE_TYPE" value="tdd_c,tdd_cpp,tdd_php,tdd_python,tdd_mongoc,
+            <var name="TESTCASE_TYPE" value="tdd_c,tdd_cpp,tdd_php,tdd_mongoc,
                                              story_java,story_js,
                                              sdv_java,sdv_js,
                                              driver_c,driver_cpp,driver_java,driver_php,driver_python" />

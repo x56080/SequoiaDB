@@ -46,7 +46,7 @@
       <if>
          <isset property="TESTCASE_TYPE"/>
          <else>           
-            <var name="TESTCASE_TYPE" value="tdd_c,tdd_cpp,tdd_java,tdd_php,tdd_python,tdd_mongoc,
+            <var name="TESTCASE_TYPE" value="tdd_c,tdd_cpp,tdd_php,tdd_mongoc,
                                              story_java,story_js,
                                              sdv_java,sdv_js,
                                              driver_c,driver_cpp,driver_java,driver_php" />
@@ -363,9 +363,6 @@
                         <var name="exec_file" value="${basedir}/src/test/exec_testcase/exec_c_case.xml"/>
                      </case>
                      
-                     <case value="tdd_java">
-                        <var name="exec_file" value="${basedir}/src/test/exec_testcase/exec_java_case.xml"/>
-                     </case>
                      <case value="story_java">
                         <var name="exec_file" value="${basedir}/src/test/exec_testcase/exec_java_case.xml"/>
                      </case>
@@ -390,9 +387,6 @@
                         <var name="exec_file" value="${basedir}/src/test/exec_testcase/exec_php_case.xml"/>
                      </case>
                      
-                     <case value="tdd_python">
-                        <var name="exec_file" value="${basedir}/src/test/exec_testcase/exec_python_case.xml"/>
-                     </case>
    
                      <case value="tdd_mongoc">
                         <var name="exec_file" value="${basedir}/src/test/exec_testcase/exec_mongoc_case.xml"/>
