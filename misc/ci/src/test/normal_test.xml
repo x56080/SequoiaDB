@@ -53,7 +53,7 @@
             <var name="TESTCASE_TYPE" value="tdd_c,tdd_cpp,tdd_php,tdd_mongoc,
                                              story_java,story_js,
                                              sdv_java,sdv_js,
-                                             driver_c,driver_cpp,driver_java,driver_php" />
+                                             driver_c,driver_cpp,driver_java,driver_php,driver_python" />
          </else>
       </if>
       <if>
