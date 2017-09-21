@@ -1,0 +1,322 @@
+<!-- ============================================================================
+@description:  exec python testcase
+@parameter:    TEST_TYPE              eg: CONFIGURETEST
+               testcase_type          eg: tdd_c
+               testcase_dir           eg: /tmp/ci/testcase/tdd/c
+               report_dir             eg：/tmp/ci/report/tdd_c
+@author:       Ting YU 2016-11-1
+============================================================================= -->
+
+<project default="exec_python_testcase" basedir="../../../">     
+   <taskdef resource="net/sf/antcontrib/antlib.xml">
+      <classpath>
+         <pathelement location="${basedir}/lib/ant-contrib-1.0b2.jar" />
+      </classpath>
+   </taskdef>
+   <import file="${basedir}/src/test/exec_testcase/common.xml" />
+   
+   <target name="exec_python_testcase">
+      <property file="${basedir}/src/conf/test.conf" />
+      
+      <!--init-->
+      <if>
+         <isset property="BREAK_ON_FAILURE"/>
+         <else>
+            <var name="BREAK_ON_FAILURE" value="false"/>
+         </else>
+      </if>
+      
+      <pythondriver type="install"/>
+      
+      <!--execute-->
+      <delete dir="${report_dir}" failonerror="false"/>
+      <mkdir dir="${report_dir}"/>
+      <mkdir dir="${report_dir}/python2"/>
+      <mkdir dir="${report_dir}/python3"/>
+
+      <var name="processrc" value="0"/>
+      <replace file="${testcase_dir}/run_all_case.py" token='"report"' value='"${report_dir}/python2"'/>
+      <execallcase pyversion="python2" testcasedir="${testcase_dir}" reportdir="${report_dir}/python2"/>
+      <modifyreport reportdir="${report_dir}" layer="${testcase_type}" pyversion="python2"/>
+      
+      <replace file="${testcase_dir}/run_all_case.py" token='"${report_dir}/python2"' value='"${report_dir}/python3"'/>
+      <execallcase pyversion="python3" testcasedir="${testcase_dir}" reportdir="${report_dir}/python3"/>
+      <modifyreport reportdir="${report_dir}" layer="${testcase_type}" pyversion="python3"/>
+      <pythondriver type="uninstall"/>
+      
+   </target>
+
+   <macrodef name="execallcase">
+      <attribute name="pyversion"/>
+      <attribute name="testcasedir"/>
+      <attribute name="reportdir"/>
+      <sequential>
+         <if>
+            <equals arg1="${TEST_TYPE}" arg2="NORMALTEST"/>
+            <!--batch exec testcase-->
+            <then>
+               <var name="screen_output" unset="true"/>
+               <var name="rc" unset="true"/>
+               <exec executable="@{pyversion}" 
+                     dir="@{testcasedir}" 
+                     outputproperty="screen_output" 
+                     resultproperty="rc" 
+                     failonerror="false" >
+                  <arg line="run_all_case.py"/>
+               </exec>
+               <echo message="${screen_output}" />
+            </then>
+            <else>               
+               <for param="suitfullname">
+                  <path>
+                     <dirset dir="@{testcasedir}" includes="*" excludes="lib"/>
+                  </path>
+                  <sequential>
+                     <var name="testsuit_name" unset="true" />
+                     <basename property="testsuit_name" file="@{suitfullname}"/>
+                     
+                     <changeconf mode="before" conffullname="@{suitfullname}/node.conf" 
+                                 rc="conf_rc1" casetype="${testcase_type}" 
+                                 rptfullname="@{reportdir}/configure_before_${testsuit_name}.xml" />
+                     
+                     <if>
+                        <equals arg1="${conf_rc1}" arg2="0" />
+                        <then>                                  
+                           <processonesuit suitfullname="@{suitfullname}"
+                                           reportdir="@{reportdir}"
+                                           pyversion="@{pyversion}"/>
+                        </then>
+                     </if>
+
+                     <changeconf mode="after" conffullname="@{suitfullname}/node.conf.ini" 
+                                 rc="conf_rc2" casetype="${testcase_type}" 
+                                 rptfullname="@{reportdir}/configure_after_${testsuit_name}.xml"/>
+                  
+                  </sequential>
+               </for> 
+            </else>
+
+         </if>      
+      </sequential>
+   </macrodef>
+
+   <macrodef name="processonesuit">
+      <attribute name="suitfullname"/>
+      <attribute name="reportdir"/>
+      <attribute name="pyversion"/>
+      <sequential>
+      <for param="casefullname">
+         <path>
+            <fileset dir="@{suitfullname}" includes="*.py" excludes=""/>
+         </path>
+         <sequential> 
+         
+         <var name="is_continue_exec" unset="true"/>
+         <condition property="is_continue_exec" value="true" else="false">
+            <or>
+               <equals arg1="${BREAK_ON_FAILURE}" arg2="false"/>
+               <and>
+                  <equals arg1="${BREAK_ON_FAILURE}" arg2="true"/>
+                  <equals arg1="${processrc}" arg2="0"/>
+               </and>
+            </or>
+         </condition>
+         
+         <if>
+            <equals arg1="${is_continue_exec}" arg2="true"/>
+            <then>
+               <echo>${line.separator}***********begin to execute python testcases by @{pyversion}***********</echo>
+               <processonecase reportdir="@{reportdir}" 
+                               pcsrc="processrc" 
+                               pyexecutable="@{pyversion}"
+                               casefullname="@{casefullname}"/>
+            </then>
+         </if>
+         </sequential>
+      </for>
+      
+      <if>
+         <equals arg1="${is_continue_exec}" arg2="false"/>
+         <then>
+            <touch file="@{reportdir}/.TESTCASE_FAIL"/>
+         </then>
+      </if>
+      
+      </sequential>
+   </macrodef>
+   
+   <macrodef name="processonecase">
+      <attribute name="pcsrc"/>
+      <attribute name="reportdir"/>
+      <attribute name="pyexecutable"/>
+      <attribute name="casefullname" />   
+      <sequential>
+         <var name="testcase_name" unset="true" />
+         <basename property="testcase_name" file="@{casefullname}" suffix=".py"/>
+         <var name="testsuit_fullname" unset="true" />
+         <dirname property="testsuit_fullname" file="@{casefullname}"/>
+         <var name="testsuit_name" unset="true" />
+         <basename property="testsuit_name" file="${testsuit_fullname}"/>              
+
+         <detectenv envisok="envrc" casetype="${testcase_type}" casename="${testcase_name}"
+                    rptfullname="@{reportdir}/before_${testcase_type}_${testcase_name}.xml" />
+         
+         <if>
+            <and>
+               <equals arg1="${BREAK_ON_FAILURE}" arg2="true"/>
+               <not>
+                  <equals arg1="${envrc}" arg2="0"/>
+               </not>
+            </and>
+            <else>
+               <runonecase casefullname="@{casefullname}"
+                           casename="${testcase_name}"
+                           suitname="${testsuit_name}"
+                           report="${report_dir}/${testcase_name}_@{pyexecutable}.xml"
+                           pyexecutable="@{pyexecutable}"
+                           rc="caserc" />
+            </else>
+         </if>
+         
+         <var name="@{pcsrc}" unset="true"/>
+         <condition property="@{pcsrc}" value="0" else="1">
+            <and>
+               <equals arg1="${envrc}" arg2="0"/>
+               <equals arg1="${caserc}" arg2="0"/>
+            </and>
+         </condition>
+      </sequential>
+   </macrodef>
+   
+   <macrodef name="runonecase">
+      <attribute name="casefullname" />   
+      <attribute name="report" />
+      <attribute name="casename" />   
+      <attribute name="suitname" />
+      <attribute name="pyexecutable" />
+      <attribute name="rc" />
+      <sequential>
+
+         <echo message='exec: @{pyexecutable} ${testcase_dir}/run_all_case_tmp.py  in ${testcase_dir} '/>
+         <!--execute-->
+         <var name="screen_output" unset="true"/>
+         <delete file="${testcase_dir}/run_all_case_tmp.py" failonerror="false"/>
+         <copy file="${testcase_dir}/run_all_case.py" tofile="${testcase_dir}/run_all_case_tmp.py"/>
+         <var name="case_relative_dir" unset="true"/>
+         <propertyregex property="case_relative_dir" input="@{casefullname}" regexp="${testcase_dir}/(.*)" select="\1" />
+       
+         <replace file="${testcase_dir}/run_all_case_tmp.py" token='""' value='"${case_relative_dir}"'/>
+         <replace file="${testcase_dir}/run_all_case_tmp.py" token='*' value='@{casename}'/>
+        
+         <var name="@{rc}" unset="true"/>
+         <exec executable="@{pyexecutable}" 
+               dir="${testcase_dir}" 
+               timeout="1200000" 
+               outputproperty="screen_output" 
+               resultproperty="@{rc}" 
+               failonerror="false" >
+            <arg line="run_all_case_tmp.py"/>
+         </exec>
+         <echo message="${screen_output}" />
+         
+      </sequential>
+   </macrodef>
+
+   <macrodef name="pythondriver">
+      <attribute name="type"/>
+      <sequential>
+         <var name="pythondir" value="${INSTALL_DIR}/python"/>         
+         <for param="pytarfullname">
+            <path>
+               <fileset  dir="${pythondir}" includes="pysequoiadb*.tar.gz"/>
+            </path>
+            <sequential>
+            
+               <var name="py_version" unset="true"/>
+               <propertyregex property="py_version" input="@{pytarfullname}" 
+                              regexp="${pythondir}/pysequoiadb-(.*)-py(.*).tar.gz" select="\2" casesensitive="false"/>
+               <switch value="@{type}">
+                  <case value="install">
+                     <delete dir="${pythondir}/py${py_version}" failonerror="false"/>
+                     <mkdir dir="${pythondir}/py${py_version}"/>
+                     <untar src="@{pytarfullname}" dest="${pythondir}/py${py_version}" compression="gzip"/>
+                     <exec executable="python${py_version}" dir="${pythondir}/py${py_version}" failonerror="true" logError="true">
+                        <arg line=" setup.py install --record files.txt" />
+                     </exec>
+                  </case>
+            
+                  <case value="uninstall">
+                     <exec executable="/bin/bash" dir="${pythondir}/py${py_version}" failonerror="true" logError="true">
+                        <arg line=" -c 'cat files.txt |xargs rm -rf'  " />
+                     </exec>
+                  </case>
+               </switch>
+            </sequential>
+         </for>
+      </sequential>
+   </macrodef>
+
+   
+   <macrodef name="modifyreport">
+      <attribute name="reportdir"/>
+      <attribute name="layer" />
+      <attribute name="pyversion"/>
+      <sequential>
+         <property file="${basedir}/src/conf/test.conf" />
+         
+         <propertycopy name="testhost_list" from="${plat_form}_${TEST_TYPE}_${DEPLOY_MODE}_HOST" />
+         <var name="cluster_host_info" value=""/>
+         <for list="${testhost_list}" param="testhost">
+            <sequential>
+               <hostinfo prefix="prefix@{testhost}" host="@{testhost}"/>
+               <var name="cluster_host_info" value="${cluster_host_info} @{testhost}/${prefix@{testhost}.ADDR4}"/>
+            </sequential>
+         </for>
+         
+         
+         <hostinfo prefix="host" />
+         <var name="ms1" value="EXECUTE HOST: ${host.NAME}/${host.ADDR4}&#10;&#10;"/>    
+         <var name="ms2" value="CLUSTER HOST:${cluster_host_info}&#10;&#10;"/>            
+         <var name="backup_reltdir" value="${TEST_TYPE}_${DEPLOY_MODE}_${BUILD_NUMBER}.tar.gz"/>
+         <var name="download_url" value="&#10;DOWNLOAD DIAGLOG :&#10;http://192.168.30.185:8081/${backup_reltdir}&#10;" />
+         <replaceregexp match='&lt;\/failure&gt;' 
+                        replace='${download_url}&lt;\/failure&gt;' 
+                        flags="g" 
+                        byline="true" 
+                        encoding="utf-8">
+            <fileset dir="@{reportdir}" includes="**/*"/>
+         </replaceregexp>
+         <replaceregexp match='&lt;failure(.*)&gt;' 
+                        replace='&lt;failure\1&gt;      ${ms1}      ${ms2}' 
+                        flags="g" 
+                        byline="true" 
+                        encoding="utf-8">
+            <fileset dir="@{reportdir}" includes="**/*"/>
+         </replaceregexp>
+         <replaceregexp match='&lt;\/error&gt;' 
+                        replace='${download_url}&lt;\/error&gt;' 
+                        flags="g" 
+                        byline="true" 
+                        encoding="utf-8">
+            <fileset dir="@{reportdir}" includes="**/*"/>
+         </replaceregexp>
+         <replaceregexp match='&lt;error(.*)&gt;' 
+                        replace='&lt;error\1&gt;      ${ms1}      ${ms2}' 
+                        flags="g" 
+                        byline="true" 
+                        encoding="utf-8">
+            <fileset dir="@{reportdir}" includes="**/*"/>
+         </replaceregexp>
+
+         <replaceregexp match='classname="(.*)" name(.*)' 
+                        replace='classname="@{layer}.@{pyversion}"  name\2' 
+                        flags="g" 
+                        byline="true" 
+                        encoding="utf-8">
+            <fileset dir="@{reportdir}" includes="**/*"/>
+         </replaceregexp>
+
+      </sequential>
+   </macrodef>
+   
+</project>
