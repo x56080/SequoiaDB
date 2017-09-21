@@ -2669,6 +2669,11 @@ namespace engine
       return FALSE ;
    }
 
+   INT32 _mthMatchOpNodeNE::extraEqualityMatches( BSONObjBuilder &builder )
+   {
+      return SDB_OK ;
+   }
+
    INT32 _mthMatchOpNodeNE::execute( const BSONObj &obj,
                                      _mthMatchTreeContext &context,
                                      BOOLEAN &result )
