@@ -915,7 +915,7 @@ namespace engine
       {
          INT32 rcTmp = SDB_OK ;
          rcTmp = ossClose( file ) ;
-         if ( SDB_OK != rc )
+         if ( SDB_OK != rcTmp )
          {
             PD_LOG( PDERROR, "failed to close file after extend:%d", rcTmp ) ;
          }
