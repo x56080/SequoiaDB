@@ -1455,8 +1455,7 @@ namespace engine
       MAP_SU_STATUS::iterator it ;
 
       /// if the lob is invalid, rebuild the bme
-      if ( _pSU->lob()->isOpened() &&
-           0 == _pSU->lob()->isCrashed() )
+      if ( _pSU->lob()->isOpened() && _pSU->lob()->isCrashed() )
       {
          rc = _pSU->lob()->rebuildBME() ;
          if ( rc )
@@ -1534,8 +1533,7 @@ namespace engine
       _pSU->enableSync( FALSE ) ;
 
       /// if the lob is invalid, rebuild thd bme
-      if ( _pSU->lob()->isOpened() &&
-           0 == _pSU->lob()->isCrashed() )
+      if ( _pSU->lob()->isOpened() && _pSU->lob()->isCrashed() )
       {
          rc = _pSU->lob()->rebuildBME() ;
          if ( rc )
