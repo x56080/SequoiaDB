@@ -47,7 +47,7 @@ int setup()
 	}
 
 	// get local ip address to prepare create node 
-	getLocalIpAddr() ;
+	getHost() ;
 done:
 	return rc ;
 error:
@@ -104,12 +104,12 @@ void func_rg( ThreadArg* arg )
    
    	// create node1 2
    	int rc = SDB_OK ;
-   	rc = sdbCreateNode( rg, IPADDR, svcName1, dbPath1, NULL ) ;
-   	ASSERT_EQ( rc, SDB_OK ) << "fail to create node1 in rg " << i << ",ip: " << IPADDR 
+   	rc = sdbCreateNode( rg, HOST, svcName1, dbPath1, NULL ) ;
+   	ASSERT_EQ( rc, SDB_OK ) << "fail to create node1 in rg " << i << ",ip: " << HOST 
 							<< ",svcname: " << svcName1 << ",dbpath: " << dbPath1 ;
 
-   	rc = sdbCreateNode( rg, IPADDR, svcName2, dbPath2, NULL ) ;
-   	ASSERT_EQ( rc, SDB_OK ) << "fail to create node2 in rg " << i << ",ip: " << IPADDR
+   	rc = sdbCreateNode( rg, HOST, svcName2, dbPath2, NULL ) ;
+   	ASSERT_EQ( rc, SDB_OK ) << "fail to create node2 in rg " << i << ",ip: " << HOST
 						    << ",svcname: " << svcName2 << ",dbpath: " << dbPath2 ;
    
    	// start rg
@@ -122,9 +122,9 @@ void func_rg( ThreadArg* arg )
  
    	// remove node1 success
    	// cannot remove node2 which is the only one node in rg
-   	rc = sdbRemoveNode( rg, IPADDR, svcName1, NULL ) ;
+   	rc = sdbRemoveNode( rg, HOST, svcName1, NULL ) ;
    	ASSERT_EQ( rc, SDB_OK ) << "fail to remove rg " << i ;
-   	rc = sdbRemoveNode( rg, IPADDR, svcName2, NULL ) ;
+   	rc = sdbRemoveNode( rg, HOST, svcName2, NULL ) ;
    	ASSERT_EQ( rc, SDB_CATA_RM_NODE_FORBIDDEN ) << "fail to test remove node2 in rg " << i ;
 }
 

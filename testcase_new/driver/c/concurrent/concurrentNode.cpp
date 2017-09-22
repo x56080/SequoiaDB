@@ -29,7 +29,7 @@ int setup()
 
    	// connect to sdb
 	getConf() ;
-	getLocalIpAddr() ;
+	getHost() ;
 	rc = sdbConnect( HOSTNAME, SVCNAME, USER, PASSWD, &db ) ;
 	CHECK_RC( rc, "fail to connect sdb in the beginning, rc = %d\n", rc ) ;
 
@@ -59,10 +59,10 @@ int setup()
 	// create node and get node
 	for( int i = 0;i < ThreadNum;i++)
 	{
-	   	rc = sdbCreateNode( rg, IPADDR, svcName[i], dbPath[i], NULL ) ;
-	   	CHECK_RC( rc, "fail to create node %s:%s, dbpath: %s, rc = %d\n", IPADDR, svcName[i], dbPath[i], rc ) ;
-	   	rc = sdbGetNodeByHost( rg, IPADDR, svcName[i], &node[i] ) ;
-	   	CHECK_RC( rc, "fail to get node %s:%s, rc = %d\n", IPADDR, svcName[i], rc ) ;
+	   	rc = sdbCreateNode( rg, HOST, svcName[i], dbPath[i], NULL ) ;
+	   	CHECK_RC( rc, "fail to create node %s:%s, dbpath: %s, rc = %d\n", HOST, svcName[i], dbPath[i], rc ) ;
+	   	rc = sdbGetNodeByHost( rg, HOST, svcName[i], &node[i] ) ;
+	   	CHECK_RC( rc, "fail to get node %s:%s, rc = %d\n", HOST, svcName[i], rc ) ;
 	}
 
 done:
@@ -117,7 +117,7 @@ void func_node( ThreadArg* arg )
    	int nodeId ;
    	rc = sdbGetNodeAddr( node, &host, &svc, &nodeName, &nodeId ) ;
    	ASSERT_EQ( rc, SDB_OK ) << "fail to get node addr,i = " << i ;
-   	ASSERT_STREQ( host, IPADDR ) << "fail to check host of node,i = " << i ;
+   	ASSERT_STREQ( host, HOST ) << "fail to check host of node,i = " << i ;
    	ASSERT_STREQ( svc, svcName[i] ) << "fail to check svc name of node, i = " << i ;
    	printf( "%d: nodeName = %s nodeId = %d\n", i, nodeName, nodeId ) ;
    
