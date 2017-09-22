@@ -59,8 +59,6 @@
             <arg line="${mark_cmd}" />
          </exec>
          <echo message="${mark_output}" />
-         <delete file="${cmd_file_name}_begin.js" failonerror="false"/>
-         <delete file="${cmd_file_name}_end.js" failonerror="false"/>
       </sequential>
    </macrodef>   
    
