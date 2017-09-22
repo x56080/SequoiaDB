@@ -23,15 +23,15 @@
       <attribute name="marktype"/>
       <sequential>
          <property file="${basedir}/src/conf/test.conf" /> 
+         <var name="cmd_file_name" unset="true"/>
+         <propertyregex property="cmd_file_name" input="@{casename}" regexp="(.*)\.(.*)" select="\1"/>
+         <if>
+            <isset property="${cmd_file_name}"/>
+            <else>
+               <var name="cmd_file_name" value="@{casename}"/>
+            </else>
+         </if>
          <switch value="@{marktype}">
-            <var name="cmd_file_name" unset="true"/>
-            <propertyregex property="cmd_file_name" input="@{casename}" regexp="(.*)\.(.*)" select="\1"/>
-            <if>
-               <isset property="${cmd_file_name}"/>
-               <else>
-                  <var name="cmd_file_name" value="@{casename}"/>
-               </else>
-            </if>
             <case value="begin">
                <var name="mark_cmd" value="-e &quot;db=new Sdb('localhost',${SVCNAME}); db.msg('Begin testcase[@{casename}]'); 
                db.close();&quot; -f ${cmd_file_name}_begin.js" />
