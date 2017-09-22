@@ -24,13 +24,21 @@
       <sequential>
          <property file="${basedir}/src/conf/test.conf" /> 
          <switch value="@{marktype}">
+            <var name="cmd_file_name" unset="true"/>
+            <propertyregex property="cmd_file_name" input="@{casename}" regexp="(.*)\.(.*)" select="\1"/>
+            <if>
+               <isset property="${cmd_file_name}"/>
+               <else>
+                  <var name="cmd_file_name" value="@{casename}"/>
+               </else>
+            </if>
             <case value="begin">
                <var name="mark_cmd" value="-e &quot;db=new Sdb('localhost',${SVCNAME}); db.msg('Begin testcase[@{casename}]'); 
-               db.close();&quot; -f ${CI_WORK_DIR}/@{casename}" />
+               db.close();&quot; -f ${cmd_file_name}_begin.js" />
             </case>
             <case value="end">
                <var name="mark_cmd" value="-e &quot;db=new Sdb('localhost',${SVCNAME}); db.msg('End testcase[@{casename}]'); 
-               db.close();&quot; -f ${CI_WORK_DIR}/@{casename}" />
+               db.close();&quot; -f -f ${cmd_file_name}_end.js" />
             </case>
          </switch>
          <echo message="exec cmd: ${INSTALL_DIR}/bin/sdb ${mark_cmd}"/>
