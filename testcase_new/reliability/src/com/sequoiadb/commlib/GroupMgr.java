@@ -547,5 +547,18 @@ public class GroupMgr {
             sdb.disconnect();
         }
     }
+    
+    // get first datagroup from list with a node number equal the nodeNum
+    public GroupWrapper getDataGroupByNodeNum(int nodeNum){
+        GroupWrapper group = null;
+        for (GroupWrapper item : getAllDataGroup()){
+            if (item.getNodeNum() == nodeNum){
+                group = item;
+                break;
+            }
+        }
+        
+        return group;
+    }
 
 }

@@ -71,7 +71,7 @@ public class CRUDAndAddNodeWithIndex3182 extends SdbTestBase {
 			// 设置任务
 			dataGroup = groupMgr.getGroupByName(clGroupName);
 			NodeWrapper slaveNode = dataGroup.getSlave();
-			FaultMakeTask faultTask = DiskFull.getFaultMakeTask(slaveNode.hostName(), SdbTestBase.reservedDir, 0, 10,
+			FaultMakeTask faultTask = DiskFull.getFaultMakeTask(slaveNode.hostName(), slaveNode.dbPath(), 0, 10,
 					null, 80);
 			mgr = new TaskMgr(faultTask);
 			CRUDTask cTask = new CRUDTask();

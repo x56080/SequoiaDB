@@ -101,7 +101,7 @@ public class CRUDWithIndex3173 extends SdbTestBase {
             GroupWrapper dataGroup = groupMgr.getGroupByName(clGroupName);
             NodeWrapper slvNode = dataGroup.getSlave();
 
-            FaultMakeTask faultTask = DiskFull.getFaultMakeTask(slvNode.hostName(), SdbTestBase.reservedDir, 0, 10, null, 80);
+            FaultMakeTask faultTask = DiskFull.getFaultMakeTask(slvNode.hostName(), slvNode.dbPath(), 0, 10, null, 80);
             TaskMgr mgr = new TaskMgr(faultTask);
             CRUDTask cTask = new CRUDTask();
             AddNodeTask aTask = new AddNodeTask();

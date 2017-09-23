@@ -54,7 +54,7 @@ public class DropCL3166 extends SdbTestBase {
     private String clNameBase = "cl_3166";
     private String clGroupName = null;
     private static final int CL_NUM = 500;
-
+    private GroupWrapper dataGroup = null;
     @BeforeClass
     public void setUp() {
         Sequoiadb db = null;
@@ -68,7 +68,13 @@ public class DropCL3166 extends SdbTestBase {
             }
 
             db = new Sequoiadb(coordUrl, "", "");
+            final int nodeNum = 3;
+            dataGroup = groupMgr.getDataGroupByNodeNum( nodeNum );
+            if ( dataGroup == null ){
+               throw new SkipException("checkBusiness failed");
+            }
             clGroupName = groupMgr.getAllDataGroupName().get(0);
+            
             createCLs(db);
         } catch (ReliabilityException e) {
             Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
@@ -84,10 +90,9 @@ public class DropCL3166 extends SdbTestBase {
     public void test() {
         Sequoiadb db = null;
         try {
-            GroupWrapper dataGroup = groupMgr.getGroupByName(clGroupName);
             NodeWrapper slvNode = dataGroup.getSlave();
 
-            FaultMakeTask faultTask = DiskFull.getFaultMakeTask(slvNode.hostName(), SdbTestBase.reservedDir, 0, 10);
+            FaultMakeTask faultTask = DiskFull.getFaultMakeTask(slvNode.hostName(), slvNode.dbPath(), 0, 10);
             TaskMgr mgr = new TaskMgr(faultTask);
             DropCLTask dTask = new DropCLTask();
             mgr.addTask(dTask);

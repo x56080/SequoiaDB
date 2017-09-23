@@ -90,7 +90,7 @@ public class CreateIndex3167 extends SdbTestBase {
             GroupWrapper dataGroup = groupMgr.getGroupByName(clGroupName);
             NodeWrapper slvNode = dataGroup.getSlave();
 
-            FaultMakeTask faultTask = DiskFull.getFaultMakeTask(slvNode.hostName(), SdbTestBase.reservedDir, 0, 10);
+            FaultMakeTask faultTask = DiskFull.getFaultMakeTask(slvNode.hostName(), slvNode.dbPath(), 0, 10);
             TaskMgr mgr = new TaskMgr(faultTask);
             CreateIdxTask cTask = new CreateIdxTask();
             mgr.addTask(cTask);

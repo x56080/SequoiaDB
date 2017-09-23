@@ -56,6 +56,7 @@ public class CreateCL3165 extends SdbTestBase {
     private String clNameBase = "cl_3165";
     private String clGroupName = null;
     private static final int CL_NUM = 500;
+    private GroupWrapper dataGroup = null; 
 
     @BeforeClass
     public void setUp() {
@@ -67,6 +68,12 @@ public class CreateCL3165 extends SdbTestBase {
             groupMgr = new GroupMgr();
             if (!groupMgr.checkBusiness()) {
                 throw new SkipException("checkBusiness failed");
+            }
+
+            final int nodeNum = 3;
+            dataGroup = groupMgr.getDataGroupByNodeNum( nodeNum );
+            if ( dataGroup == null ){
+               throw new SkipException("checkBusiness failed");
             }
 
             db = new Sequoiadb(coordUrl, "", "");
@@ -85,10 +92,9 @@ public class CreateCL3165 extends SdbTestBase {
     public void test() {
         Sequoiadb db = null;
         try {
-            GroupWrapper dataGroup = groupMgr.getGroupByName(clGroupName);
             NodeWrapper slvNode = dataGroup.getSlave();
 
-            FaultMakeTask faultTask = DiskFull.getFaultMakeTask(slvNode.hostName(), SdbTestBase.reservedDir, 0, 10);
+            FaultMakeTask faultTask = DiskFull.getFaultMakeTask(slvNode.hostName(), slvNode.dbPath(), 0, 10);
             TaskMgr mgr = new TaskMgr(faultTask);
             CreateCLTask cTask = new CreateCLTask();
             mgr.addTask(cTask);

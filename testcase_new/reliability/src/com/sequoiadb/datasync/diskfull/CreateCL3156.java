@@ -53,7 +53,7 @@ public class CreateCL3156 extends SdbTestBase {
     private String clNameBase = "cl_3156";
     private String clGroupName = null;
     private static final int CL_NUM = 500;
-
+    private GroupWrapper dataGroup; 
     @BeforeClass
     public void setUp() {
         Sequoiadb db = null;
@@ -67,7 +67,12 @@ public class CreateCL3156 extends SdbTestBase {
             }
 
             db = new Sequoiadb(coordUrl, "", "");
-            clGroupName = groupMgr.getAllDataGroupName().get(0);
+            final int nodeNum = 2;
+            dataGroup = groupMgr.getDataGroupByNodeNum( nodeNum );
+            if ( dataGroup == null ){
+               throw new SkipException("checkBusiness failed");
+            }
+
         } catch (ReliabilityException e) {
             Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
                     + Utils.getKeyStack(e, this));
@@ -82,10 +87,9 @@ public class CreateCL3156 extends SdbTestBase {
     public void test() {
         Sequoiadb db = null;
         try {
-            GroupWrapper dataGroup = groupMgr.getGroupByName(clGroupName);
             NodeWrapper priNode = dataGroup.getMaster();
 
-            FaultMakeTask faultTask = DiskFull.getFaultMakeTask(priNode.hostName(), SdbTestBase.reservedDir, 0, 10);
+            FaultMakeTask faultTask = DiskFull.getFaultMakeTask(priNode.hostName(), priNode.dbPath(), 0, 10);
             TaskMgr mgr = new TaskMgr(faultTask);
             CreateCLTask cTask = new CreateCLTask();
             mgr.addTask(cTask);

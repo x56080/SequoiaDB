@@ -99,7 +99,7 @@ public class OprLobAndAddNode3163 extends SdbTestBase {
             GroupWrapper dataGroup = groupMgr.getGroupByName(clGroupName);
             NodeWrapper priNode = dataGroup.getMaster();
 
-            FaultMakeTask faultTask = DiskFull.getFaultMakeTask(priNode.hostName(), SdbTestBase.reservedDir, 0, 10, null, 80);
+            FaultMakeTask faultTask = DiskFull.getFaultMakeTask(priNode.hostName(), priNode.dbPath(), 0, 10, null, 80);
             TaskMgr mgr = new TaskMgr(faultTask);
             OprLobTask oTask = new OprLobTask();
             AddNodeTask aTask = new AddNodeTask();

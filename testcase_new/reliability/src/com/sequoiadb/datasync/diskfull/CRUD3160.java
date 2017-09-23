@@ -88,7 +88,7 @@ public class CRUD3160 extends SdbTestBase {
             GroupWrapper dataGroup = groupMgr.getGroupByName(clGroupName);
             NodeWrapper slvNode = dataGroup.getSlave();
 
-            FaultMakeTask faultTask = DiskFull.getFaultMakeTask(slvNode.hostName(), SdbTestBase.reservedDir, 0, 10);
+            FaultMakeTask faultTask = DiskFull.getFaultMakeTask(slvNode.hostName(), slvNode.dbPath(), 0, 10);
             TaskMgr mgr = new TaskMgr(faultTask);
             CRUDTask cTask = new CRUDTask();
             mgr.addTask(cTask);
