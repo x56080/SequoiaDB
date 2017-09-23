@@ -62,6 +62,8 @@ static void _clientDisconnect ( SOCKET sock ) ;
 #ifdef SDB_SSL
 static INT32 _clientSecure( Socket* sock ) ;
 #endif
+#define MAX_RECV_RETRIES 5
+#define MAX_SEND_RETRIES 5
 
 INT32 clientConnect ( const CHAR *pHostName,
                       const CHAR *pServiceName,
@@ -439,14 +441,16 @@ done:
    return ;
 }
 
-INT32 clientSend ( Socket* sock, const CHAR *pMsg, INT32 len, INT32 timeout )
+INT32 clientSend ( Socket* sock, const CHAR *pMsg, INT32 len, 
+                   INT32 *pSentLen, INT32 timeout )
 {
    INT32 rc = SDB_OK ;
+   UINT32 retries = 0 ;
    SOCKET rawSocket ;
    struct timeval maxSelectTime ;
    fd_set fds ;
 
-   if ( !sock )
+   if ( !sock || !pSentLen )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -456,7 +460,7 @@ INT32 clientSend ( Socket* sock, const CHAR *pMsg, INT32 len, INT32 timeout )
    {
       goto done ;
    }
-
+   *pSentLen = 0 ;
    rawSocket = sock->rawSocket ;
    if ( timeout >= 0 )
    {
@@ -544,10 +548,32 @@ INT32 clientSend ( Socket* sock, const CHAR *pMsg, INT32 len, INT32 timeout )
          if ( -1 == rc )
 #endif
          {
+            rc = SOCKET_GETLASTERROR ;
+#if defined (_WINDOWS)
+            if ( WSAETIMEDOUT == rc)
+#else
+            if ( EAGAIN == rc || EWOULDBLOCK == rc || ETIMEDOUT == rc)
+#endif
+            {
+               rc = SDB_TIMEOUT ;
+               goto error ;
+            }
+            if ( (
+#if defined ( _WINDOWS )
+                   WSAEINTR
+#else
+                   EINTR
+#endif
+                   == rc ) && ( retries < MAX_SEND_RETRIES ) )
+            {
+               ++retries ;
+               continue ;
+            }
             rc = SDB_NETWORK ;
             goto error ;
          }
       }
+      *pSentLen += rc ;
       len -= rc ;
       pMsg += rc ;
    }
@@ -557,8 +583,9 @@ done :
 error :
    goto done ;
 }
-#define MAX_RECV_RETRIES 5
-INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len, INT32 timeout )
+
+INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len, 
+                   INT32 *pReceivedLen, INT32 timeout )
 {
    INT32 rc = SDB_OK ;
    UINT32 retries = 0 ;
@@ -566,7 +593,7 @@ INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len, INT32 timeout )
    struct timeval maxSelectTime ;
    fd_set fds ;
 
-   if ( !sock )
+   if ( !sock || !pReceivedLen )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -576,6 +603,7 @@ INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len, INT32 timeout )
    {
       goto done ;
    }
+   *pReceivedLen = 0 ;
 
 #ifdef SDB_SSL
    if ( NULL != sock->sslHandle )
@@ -596,7 +624,7 @@ INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len, INT32 timeout )
             }
             goto error;
          }
-
+         *pReceivedLen += rc ;
          len -= rc ;
          pMsg += rc ;
          rc = SDB_OK;
@@ -670,6 +698,7 @@ INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len, INT32 timeout )
 #endif
       if ( rc > 0 )
       {
+         *pReceivedLen += rc ;
          len -= rc ;
          pMsg += rc ;
       }
@@ -688,7 +717,7 @@ INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len, INT32 timeout )
          if ( (EAGAIN == rc || EWOULDBLOCK == rc ) )
 #endif
          {
-            rc = SDB_NETWORK ;
+            rc = SDB_TIMEOUT ;
             goto error ;
          }
          if ( (
