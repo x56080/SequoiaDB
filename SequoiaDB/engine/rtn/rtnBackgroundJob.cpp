@@ -55,7 +55,7 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__RTNINDEXJOB__RTNINDEXJOB ) ;
       _type = type ;
-      ossMemcpy ( _clFullName, pCLName, DMS_COLLECTION_FULL_NAME_SZ ) ;
+      ossStrncpy ( _clFullName, pCLName, DMS_COLLECTION_FULL_NAME_SZ ) ;
       _clFullName[DMS_COLLECTION_FULL_NAME_SZ] = 0 ;
       _indexObj = indexObj.copy() ;
       _dpsCB = dpsCB ;
