@@ -25,9 +25,9 @@ import com.sequoiadb.testcommon.SdbThreadBase;
 
 public class Node10234 extends SdbTestBase {
 	private SimpleDateFormat dateFm = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
+	private Random random = new Random();
 	private static Sequoiadb sdb = null;
 	private String rgName = "rg10234";
-	private Random random = new Random();
 	private int msec = 100;
 	
 	@BeforeClass
@@ -117,6 +117,7 @@ public class Node10234 extends SdbTestBase {
 				db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 				
 				ReplicaGroup rgDB = db.getReplicaGroup(rgName);
+				String hostName = rgDB.getSlave().getHostName();
 				int svcName = rgDB.getSlave().getPort();
 				rgDB.attachNode(hostName, svcName, null);
 			}catch(BaseException e){
