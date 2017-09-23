@@ -863,9 +863,7 @@ namespace engine
                  "unit pages[%u]", _suFileName, fileSize,
                  _dmsHeader->_storageUnitSize ) ;
 
-         UINT32 extentPages = (UINT32)( ( rightSize - fileSize ) >>
-                                        _pageSizeSquare ) ;
-         rc = _extendSegments( extentPages ) ;
+         rc = ossExtendFile( &_file, (INT64)( rightSize - fileSize ) ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Extend file[%s] to size[%lld] from size[%lld] "
@@ -1466,7 +1464,7 @@ namespace engine
       PD_RC_CHECK ( rc, PDERROR, "Failed to get file size, rc = %d", rc ) ;
 
       // check wether the file length is match storage unit pages
-      if ( fileSize != (INT64)_dmsHeader->_storageUnitSize * pageSize() )
+      if ( fileSize > (INT64)_dmsHeader->_storageUnitSize * pageSize() )
       {
          PD_LOG( PDWARNING, "File[%s] size[%llu] is not match with storage "
                  "unit pages[%u]", _suFileName, fileSize,

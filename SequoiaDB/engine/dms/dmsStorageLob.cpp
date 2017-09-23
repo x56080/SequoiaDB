@@ -1478,17 +1478,21 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__EXTENDSEGMENTS ) ;
 
-      /// When in restore from crash, the _data is not open,
-      /// so can't extend
       if ( _data.isOpened() )
       {
          INT64 extentLen = _data.getSegmentSize() ;
          rc = _data.extend( extentLen * numSeg ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to extend lobd file:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to extend lobd file:%d", rc ) ;
             goto error ;
          }
+      }
+      else
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Lob data file is not opened" ) ;
+         goto error ;
       }
 
       rc = this->_dmsStorageBase::_extendSegments( numSeg ) ;
