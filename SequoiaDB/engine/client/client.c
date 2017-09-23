@@ -366,17 +366,28 @@ static INT32 _send1 ( sdbConnectionHandle cHandle, Socket* sock,
                       const CHAR *pMsg, INT32 len )
 {
    INT32 rc = SDB_OK ;
+   INT32 sentSize = 0 ;
+   INT32 totalSentSize = 0 ;
 
    if ( NULL == sock )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-
-   rc = clientSend ( sock, pMsg, len, SDB_CLIENT_DFT_NETWORK_TIMEOUT ) ;
-   if ( SDB_OK != rc )
+   while( len > totalSentSize )
    {
-      goto error ;
+      rc = clientSend ( sock, pMsg + totalSentSize,
+                        len - totalSentSize, &sentSize,
+                        SDB_CLIENT_DFT_NETWORK_TIMEOUT ) ;
+      totalSentSize += sentSize ;
+      if ( SDB_TIMEOUT == rc )
+      {
+         continue ;
+      }
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
    }
 done:
    return rc ;
@@ -409,6 +420,8 @@ static INT32 _recv ( sdbConnectionHandle cHandle, Socket* sock,
    INT32 rc        = SDB_OK ;
    INT32 len       = 0 ;
    INT32 realLen   = 0 ;
+   INT32 receivedLen = 0 ;
+   INT32 totalReceivedLen = 0 ;
    CHAR **ppBuffer = (CHAR**)msg ;
 
    if ( NULL == sock )
@@ -420,10 +433,14 @@ static INT32 _recv ( sdbConnectionHandle cHandle, Socket* sock,
    while ( TRUE )
    {
       // get length first
-      rc = clientRecv ( sock, (CHAR*)&len, sizeof(len),
+      rc = clientRecv ( sock, ((CHAR*)&len) + totalReceivedLen, 
+                        sizeof(len) - totalReceivedLen, &receivedLen,
                         SDB_CLIENT_DFT_NETWORK_TIMEOUT ) ;
+      totalReceivedLen += receivedLen ;
       if ( SDB_TIMEOUT == rc )
+      {
          continue ;
+      }
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -449,13 +466,19 @@ static INT32 _recv ( sdbConnectionHandle cHandle, Socket* sock,
    }
    // use the original len before convert
    *(SINT32*)(*ppBuffer) = len ;
+   receivedLen = 0 ;
+   totalReceivedLen = 0 ;
    while ( TRUE )
    {
-      rc = clientRecv ( sock, &(*ppBuffer)[sizeof(realLen)],
-                        realLen - sizeof(realLen),
+      rc = clientRecv ( sock, &(*ppBuffer)[sizeof(realLen) + totalReceivedLen],
+                        realLen - sizeof(realLen) - totalReceivedLen, 
+                        &receivedLen,
                         SDB_CLIENT_DFT_NETWORK_TIMEOUT ) ;
+      totalReceivedLen += receivedLen ;
       if ( SDB_TIMEOUT == rc )
+      {
          continue ;
+      }
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -809,6 +832,8 @@ error :
 static INT32 requestSysInfo ( sdbConnectionStruct *connection )
 {
    INT32 rc               = SDB_OK ;
+   INT32 receivedLen      = 0 ;
+   INT32 totalReceivedLen = 0 ;
    MsgSysInfoReply reply ;
 
    connection->_endianConvert = FALSE;
@@ -828,11 +853,15 @@ static INT32 requestSysInfo ( sdbConnectionStruct *connection )
 
    while ( TRUE )
    {
-      rc = clientRecv ( connection->_sock, (CHAR*)&reply,
-                        sizeof(MsgSysInfoReply),
+      rc = clientRecv ( connection->_sock, ((CHAR*)&reply) + totalReceivedLen,
+                        sizeof(MsgSysInfoReply) - totalReceivedLen, 
+                        &receivedLen,
                         SDB_CLIENT_DFT_NETWORK_TIMEOUT ) ;
+      totalReceivedLen += receivedLen ;
       if ( SDB_TIMEOUT == rc )
+      {
          continue ;
+      }
       if ( SDB_OK != rc )
       {
          _sdbDisconnect_inner( (sdbConnectionHandle)connection ) ;

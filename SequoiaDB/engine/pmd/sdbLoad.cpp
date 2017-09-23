@@ -446,17 +446,29 @@ error:
 INT32 loadRecv ( CHAR **buffer, SINT32 *size )
 {
    INT32 rc = SDB_OK ;
+   INT32 receivedLen = 0 ;
+   INT32 totalReceivedLen = 0 ;
    PD_TRACE_ENTRY ( SDB_SDBLOAD_LOADRECV ) ;
    CHAR   *_pRecvBuffer   = NULL ;
    SINT32 _recvBufferSize = 0 ;
 
-   rc = clientRecv ( s, (CHAR *)&_recvBufferSize,
-                     sizeof (_recvBufferSize),
-                     -1 ) ;
-   if ( rc )
+   while( TRUE )
    {
-      PD_LOG ( PDERROR, "Failed to recv msg, rc = %d", rc ) ;
-      goto error ;
+      rc = clientRecv ( s, ((CHAR *)&_recvBufferSize) + totalReceivedLen,
+                        sizeof (_recvBufferSize) - totalReceivedLen,
+                        &receivedLen,
+                     -1 ) ;
+      totalReceivedLen += receivedLen ;
+      if ( SDB_TIMEOUT == rc )
+      {
+         continue ;
+      }
+      if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDERROR, "Failed to recv msg, rc = %d", rc ) ;
+         goto error ;
+      }
+      break ;
    }
    _pRecvBuffer = (CHAR *)malloc ( _recvBufferSize ) ;
    if ( !_pRecvBuffer )
@@ -467,13 +479,25 @@ INT32 loadRecv ( CHAR **buffer, SINT32 *size )
    }
    memset ( _pRecvBuffer, 0, _recvBufferSize ) ;
    *(SINT32 *)_pRecvBuffer = _recvBufferSize ;
-   rc = clientRecv ( s, _pRecvBuffer + sizeof(_recvBufferSize),
-                     _recvBufferSize - sizeof(_recvBufferSize),
-                     -1 ) ;
-   if ( rc )
+   totalReceivedLen = 0 ;
+   receivedLen = 0 ;
+   while( TRUE )
    {
-      PD_LOG ( PDERROR, "Failed to recv msg, rc = %d", rc ) ;
-      goto error ;
+      rc = clientRecv ( s, _pRecvBuffer + sizeof(_recvBufferSize) + totalReceivedLen,
+                        _recvBufferSize - sizeof(_recvBufferSize) - totalReceivedLen,
+                        &receivedLen,
+                     -1 ) ;
+      totalReceivedLen += receivedLen ;
+      if ( SDB_TIMEOUT == rc )
+      {
+         continue ;
+      }
+      if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDERROR, "Failed to recv msg, rc = %d", rc ) ;
+         goto error ;
+      }
+      break ;
    }
    *buffer = _pRecvBuffer ;
    *size = _recvBufferSize ;
@@ -493,6 +517,9 @@ INT32 connectSdb ()
    INT32 _sendBufferSize = 0 ;
    CHAR   *_pRecvBuffer   = NULL ;
    SINT32 _recvBufferSize = 0 ;
+   INT32 msgLen = 0 ;
+   INT32 sentSize = 0 ;
+   INT32 totalSentSize = 0 ;
    CHAR md5 [ MD5_DIGEST_LENGTH * 2 + 1 ] ;
 
    rc = _connectSdb() ;
@@ -516,12 +543,22 @@ INT32 connectSdb ()
       PD_LOG ( PDERROR, "Failed to build auth msg, rc = %d", rc ) ;
       goto error ;
    }
-
-   rc = clientSend ( s, _pSendBuffer, *((UINT32 *)_pSendBuffer), -1 ) ;
-   if ( rc )
+   msgLen = *((UINT32 *)_pSendBuffer) ;
+   while( msgLen > totalSentSize )
    {
-      PD_LOG ( PDERROR, "Failed to send msg, rc = %d", rc ) ;
-      goto error ;
+      rc = clientSend ( s, _pSendBuffer + totalSentSize,
+                        msgLen - totalSentSize,
+                        &sentSize, -1 ) ;
+      totalSentSize += sentSize ;
+      if ( SDB_TIMEOUT == rc )
+      {
+         continue ;
+      }
+      if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDERROR, "Failed to send msg, rc = %d", rc ) ;
+         goto error ;
+      }
    }
    rc = loadRecv ( &_pRecvBuffer, &_recvBufferSize ) ;
    if ( rc )
@@ -550,6 +587,9 @@ INT32 main ( INT32 argc, CHAR **argv )
    INT32  _sendBufferSize = 0 ;
    CHAR  *_pRecvBuffer = NULL ;
    INT32  _recvBufferSize = 0 ;
+   INT32 msgLen = 0 ;
+   INT32 sentSize = 0 ;
+   INT32 totalSentSize = 0 ;
    bson sendObj ;
 
    bson_init ( &sendObj ) ;
@@ -693,11 +733,23 @@ INT32 main ( INT32 argc, CHAR **argv )
       PD_LOG ( PDERROR, "Failed to build msg, rc = %d", rc ) ;
       goto error ;
    }
-   rc = clientSend ( s, _pSendBuffer, *((UINT32 *)_pSendBuffer), -1 ) ;
-   if ( rc )
+   msgLen = *((UINT32 *)_pSendBuffer) ;
+   sentSize = 0 ;
+   totalSentSize = 0 ;
+   while ( msgLen > totalSentSize )
    {
-      PD_LOG ( PDERROR, "Failed to send msg, rc = %d", rc ) ;
-      goto error ;
+      rc = clientSend ( s, _pSendBuffer + totalSentSize,
+                        msgLen - totalSentSize, &sentSize, -1 ) ;
+      totalSentSize += sentSize ;
+      if ( SDB_TIMEOUT == rc )
+      {
+         continue ;
+      }
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to send msg, rc = %d", rc ) ;
+         goto error ;
+      }
    }
    while ( TRUE )
    {
@@ -727,11 +779,23 @@ INT32 main ( INT32 argc, CHAR **argv )
                      "Failed to build disconnect msg, rc = %d", rc ) ;
             goto error ;
          }
-         rc = clientSend ( s, _pSendBuffer, *((UINT32 *)_pSendBuffer), -1 ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to send msg, rc = %d", rc ) ;
-            goto error ;
+         msgLen = *((UINT32 *)_pSendBuffer) ;
+         sentSize = 0 ;
+         totalSentSize = 0 ;
+         while ( msgLen > totalSentSize )
+         {         
+            rc = clientSend ( s, _pSendBuffer + totalSentSize, 
+                              msgLen - totalSentSize, &sentSize, -1 ) ;
+            totalSentSize += sentSize ;
+            if ( SDB_TIMEOUT == rc )
+            {
+               continue ;
+            }
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to send msg, rc = %d", rc ) ;
+               goto error ;
+            }
          }
          goto done ;
       }

@@ -321,6 +321,8 @@ do                                                                          \
       INT32 rc         = SDB_OK ;
       INT32 recvLength = 0 ;
       INT32 realLength = 0 ;
+      INT32 receivedLen = 0 ;
+      INT32 totalReceivedLen = 0 ;
       CHAR **ppBuffer  = (CHAR**)msg ;
       sdbConnectionStruct *connection = (sdbConnectionStruct*)handle ;
 
@@ -333,9 +335,12 @@ do                                                                          \
       while ( TRUE )
       {
          // get length first
-         rc = clientRecv ( connection->_sock, (CHAR*)&recvLength,
-                           sizeof( recvLength ),
+         rc = clientRecv ( connection->_sock, 
+                           ((CHAR*)&recvLength) + totalReceivedLen,
+                           sizeof( recvLength ) - totalReceivedLen,
+                           &receivedLen,
                            SDB_CLIENT_DFT_NETWORK_TIMEOUT ) ;
+         totalReceivedLen += receivedLen ;
          if ( SDB_TIMEOUT == rc )
          {
             continue ;
@@ -361,15 +366,21 @@ do                                                                          \
 
       // use the original recvLength before convert
       *(SINT32*)(*ppBuffer) = recvLength ;
+      totalReceivedLen = 0 ;
+      receivedLen = 0 ;
       while ( TRUE )
       {
          // get residual message
          rc = clientRecv ( connection->_sock,
-                           &( *ppBuffer )[sizeof( realLength )],
-                           realLength - sizeof( realLength ),
+                           &( *ppBuffer )[sizeof( realLength ) + totalReceivedLen],
+                           realLength - sizeof( realLength ) - totalReceivedLen,
+                           &receivedLen,
                            SDB_CLIENT_DFT_NETWORK_TIMEOUT ) ;
+         totalReceivedLen += receivedLen ;
          if ( SDB_TIMEOUT == rc )
+         {
             continue ;
+         }
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get residual message, rc: %d", rc) ;
          break ;
@@ -387,17 +398,29 @@ do                                                                          \
       SDB_ASSERT( handle, "handle can't be null" ) ;
       SDB_ASSERT( pMsg, "pMsg can't be null" ) ;
       INT32 rc = SDB_OK ;
+      INT32 sentSize = 0 ;
+      INT32 totalSentSize = 0 ;
       sdbConnectionStruct *connection = (sdbConnectionStruct*)handle ;
 
       if ( NULL == connection->_sock )
       {
          rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Failed to get valid sock, rc: %d", rc ) ;
+         goto error ;
       }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get valid sock, rc: %d", rc) ;
 
-      rc = clientSend ( connection->_sock, pMsg, msgLength,
+      while ( msgLength > totalSentSize )
+      {
+         rc = clientSend ( connection->_sock, pMsg + totalSentSize, 
+                           msgLength - totalSentSize, &sentSize,
                         SDB_CLIENT_DFT_NETWORK_TIMEOUT ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to send, rc: %d", rc) ;
+         totalSentSize += sentSize ;
+         if ( SDB_TIMEOUT == rc )
+         {
+            continue ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to send, rc: %d", rc) ;
+      }
 
    done:
       return rc ;
