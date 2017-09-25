@@ -243,6 +243,14 @@ namespace engine
                      "invalid blk" ) ;
       }
 
+      void reset()
+      {
+         _prevPageInBucket = DMS_LOB_INVALID_PAGEID ;
+         _nextPageInBucket = DMS_LOB_INVALID_PAGEID ;
+         _clLogicalID = DMS_INVALID_CLID ;
+         _mbID = DMS_INVALID_MBID ;
+      }
+
       BOOLEAN isNormal() const
       {
          return _status == DMS_LOB_PAGE_NORMAL ? TRUE : FALSE ;

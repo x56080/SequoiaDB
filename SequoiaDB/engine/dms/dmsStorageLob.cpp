@@ -464,6 +464,13 @@ namespace engine
          }
       }
 
+      if ( !mbContext->isMBLock() )
+      {
+         rc = mbContext->mbLock( EXCLUSIVE ) ;
+         PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
+         locked = TRUE ;
+      }
+
       rc = _allocatePage( record, mbContext, page ) ;
       if ( SDB_OK != rc )
       {
@@ -475,15 +482,6 @@ namespace engine
 #if defined (_DEBUG)
       SDB_ASSERT( DMS_LOB_PAGE_IN_USED( page ), "must be used" ) ;
 #endif
-
-      if ( !mbContext->isMBLock() )
-      {
-         rc = mbContext->mbLock( EXCLUSIVE ) ;
-         PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
-         locked = TRUE ;
-      }
-      /// add lob page in lock
-      mbContext->mbStat()->_totalLobPages += 1 ;
 
       if ( !isOpened() )
       {
@@ -942,6 +940,9 @@ namespace engine
          PD_LOG( PDERROR, "Failed to find free space, rc:%d", rc ) ;
          goto error ;
       }
+
+      /// add lob page
+      context->mbStat()->_totalLobPages += 1 ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGELOB__ALLOCATEPAGE, rc ) ;
@@ -2130,6 +2131,7 @@ namespace engine
          _incWriteRecord() ;
       }
 
+      blk->reset() ;
       blk->setRemoved() ;
 
       /// release the page
