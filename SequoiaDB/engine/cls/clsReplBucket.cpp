@@ -403,10 +403,12 @@ namespace engine
       return _pushData( index, pData, len, TRUE, TRUE ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSBUCKET__PUSHDATA, "_clsBucket::_pushData" )
    INT32 _clsBucket::_pushData( UINT32 index, CHAR * pData, UINT32 len,
                                 BOOLEAN incAllCount, BOOLEAN newMem )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSBUCKET__PUSHDATA ) ;
       CHAR *pNewData = NULL ;
       UINT32 newLen = 0 ;
       static const UINT64 sMaxMemSize =
@@ -512,6 +514,7 @@ namespace engine
       _latchBucket[ index ]->release() ;
 
    done:
+      PD_TRACE_EXITRC( SDB__CLSBUCKET__PUSHDATA, rc ) ;
       return rc ;
    error:
       if ( pNewData && newMem )
@@ -521,9 +524,11 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSBUCKET_POPDATA, "_clsBucket::popData" )
    BOOLEAN _clsBucket::popData( UINT32 index, CHAR ** ppData, UINT32 &len )
    {
       BOOLEAN ret = FALSE ;
+      PD_TRACE_ENTRY( SDB__CLSBUCKET_POPDATA ) ;
 
       SDB_ASSERT( index < _bucketSize, "Index must less than bucket size" ) ;
       if ( index >= _bucketSize )
@@ -557,30 +562,49 @@ namespace engine
       _latchBucket[ index ]->release() ;
 
    done:
+      PD_TRACE_EXIT( SDB__CLSBUCKET_POPDATA ) ;
       return ret ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSBUCKET_WAITQUEEMPTY, "_clsBucket::waitQueEmpty" )
    INT32 _clsBucket::waitQueEmpty( INT64 millisec )
    {
-      return _emptyEvent.wait( millisec ) ;
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSBUCKET_WAITQUEEMPTY ) ;
+      rc = _emptyEvent.wait( millisec ) ;
+      PD_TRACE_EXITRC( SDB__CLSBUCKET_WAITQUEEMPTY, rc ) ;
+      return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSBUCKET_WAITEMPTY, "_clsBucket::waitEmpty" )
    INT32 _clsBucket::waitEmpty( INT64 millisec )
    {
-      return _allEmptyEvent.wait( millisec ) ;
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSBUCKET_WAITEMPTY ) ;
+      rc = _allEmptyEvent.wait( millisec ) ;
+      PD_TRACE_EXITRC( SDB__CLSBUCKET_WAITEMPTY, rc ) ;
+      return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSBUCKET_WAITSUBMIT, "_clsBucket::waitSubmit" )
    INT32 _clsBucket::waitSubmit( INT64 millisec )
    {
-      return _submitEvent.wait( millisec ) ;
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSBUCKET_WAITSUBMIT ) ;
+      rc = _submitEvent.wait( millisec ) ;
+      PD_TRACE_EXITRC( SDB__CLSBUCKET_WAITSUBMIT, rc ) ;
+      return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSBUCKET_WAITANDROLLBACK, "_clsBucket::waitEmptyAndRollback" )
    INT32 _clsBucket::waitEmptyAndRollback( UINT32 *pNum )
    {
       INT32 rc = SDB_OK ;
       UINT32 num = 0 ;
+      PD_TRACE_ENTRY( SDB__CLSBUCKET_WAITANDROLLBACK ) ;
+
       _emptyEvent.wait() ;
       if ( CLS_BUCKET_WAIT_ROLLBACK == _status )
       {
@@ -600,12 +624,38 @@ namespace engine
          *pNum = num ;
       }
 
+      PD_TRACE_EXITRC( SDB__CLSBUCKET_WAITANDROLLBACK, rc ) ;
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSBUCKET_WAITWITHCHECK, "_clsBucket::waitEmptyWithCheck" )
+   INT32 _clsBucket::waitEmptyWithCheck()
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSBUCKET_WAITWITHCHECK ) ;
+
+      _emptyEvent.wait() ;
+
+      if ( CLS_BUCKET_WAIT_ROLLBACK == _status )
+      {
+         rc = SDB_CLS_REPLAY_LOG_FAILED ;
+      }
+      else
+      {
+         _allEmptyEvent.wait() ;
+      }
+
+      PD_TRACE_EXITRC( SDB__CLSBUCKET_WAITWITHCHECK, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSBUCKET__DOROLLBACK, "_clsBucket::_doRollback" )
    INT32 _clsBucket::_doRollback ( UINT32 &num )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSBUCKET__DOROLLBACK ) ;
+      dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
+
       map< DPS_LSN_OFFSET, clsCompleteInfo >::reverse_iterator rit ;
 
       if ( CLS_BUCKET_WAIT_ROLLBACK != getStatus() )
@@ -623,6 +673,19 @@ namespace engine
       {
          ++num ;
          clsCompleteInfo &info = rit->second ;
+
+         /// rollback trans info
+         if ( pTransCB && pTransCB->isTransOn() &&
+              !pTransCB->isNeedSyncTrans() )
+         {
+            dpsLogRecord record ;
+            record.load( info._pData ) ;
+            if ( !pTransCB->rollbackTransInfoFromLog( record ) )
+            {
+               pTransCB->setIsNeedSyncTrans( TRUE ) ;
+            }
+         }
+
          rc = _pushData( info._unitID, info._pData, info._len, FALSE, FALSE ) ;
          if ( rc )
          {
@@ -636,6 +699,7 @@ namespace engine
       _bucketLatch.release() ;
 
    done:
+      PD_TRACE_EXITRC( SDB__CLSBUCKET__DOROLLBACK, rc ) ;
       return rc ;
    }
 
@@ -659,10 +723,12 @@ namespace engine
       return _idleUnitCount.fetch() ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSBUCKET_BEGINUNIT, "_clsBucket::beginUnit" )
    INT32 _clsBucket::beginUnit( pmdEDUCB * cb, UINT32 & unitID,
                                 INT64 millisec )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSBUCKET_BEGINUNIT ) ;
       INT64 timeout = 0 ;
 
       while ( TRUE )
@@ -675,7 +741,16 @@ namespace engine
 
          if ( !_ntyQueue.timed_wait_and_pop( unitID, OSS_ONE_SEC ) )
          {
-            timeout += OSS_ONE_SEC ;
+            /// when in wait rollback, unit can't quit by timeout
+            if ( CLS_BUCKET_WAIT_ROLLBACK == _status )
+            {
+               timeout = 0 ;
+            }
+            else
+            {
+               timeout += OSS_ONE_SEC ;
+            }
+
             if ( millisec > 0 && timeout >= millisec )
             {
                rc = SDB_TIMEOUT ;
@@ -702,14 +777,17 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__CLSBUCKET_BEGINUNIT, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSBUCKET_ENDUNIT, "_clsBucket::endUnit" )
    INT32 _clsBucket::endUnit( pmdEDUCB * cb, UINT32 unitID )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSBUCKET_ENDUNIT ) ;
 
       SDB_ASSERT( unitID < _bucketSize, "unitID must less bucket size" ) ;
       if ( unitID >= _bucketSize )
@@ -747,6 +825,7 @@ namespace engine
       _counterLock.release_r() ;
 
    done:
+      PD_TRACE_EXITRC( SDB__CLSBUCKET_ENDUNIT, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -772,11 +851,13 @@ namespace engine
       }
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSBUCKET_SUBMITDATA, "_clsBucket::submitData" )
    INT32 _clsBucket::submitData( UINT32 unitID, _pmdEDUCB *cb,
                                  CHAR * pData, UINT32 len,
                                  CLS_SUBMIT_RESULT &result )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSBUCKET_SUBMITDATA ) ;
       dpsLogRecordHeader *pHeader = (dpsLogRecordHeader*)pData ;
 
       if ( CLS_BUCKET_ROLLBACKING != _status )
@@ -808,13 +889,17 @@ namespace engine
       }
 
       _totalCount.dec () ;
+
+      PD_TRACE_EXITRC( SDB__CLSBUCKET_SUBMITDATA, rc ) ;
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSBUCKET__SUBMITRESULT, "_clsBucket::_submitResult" )
    void _clsBucket::_submitResult( DPS_LSN_OFFSET offset, DPS_LSN_VER version,
                                    UINT32 lsnLen, CHAR *pData, UINT32 len,
                                    UINT32 unitID, CLS_SUBMIT_RESULT &result )
    {
+      PD_TRACE_ENTRY( SDB__CLSBUCKET__SUBMITRESULT ) ;
       clsCompleteInfo info ;
       info._len      = len ;
       info._pData    = pData ;
@@ -889,11 +974,14 @@ namespace engine
          _memPool.release( pData, len ) ;
          _allCount.dec() ;
       }
+      PD_TRACE_EXIT( SDB__CLSBUCKET__SUBMITRESULT ) ;
       return ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSBUCKET_FORCECOMPLETE, "_clsBucket::forceCompleteAll" )
    INT32 _clsBucket::forceCompleteAll ()
    {
+      PD_TRACE_ENTRY( SDB__CLSBUCKET_FORCECOMPLETE ) ;
       map< UINT64, clsCompleteInfo >::iterator it ;
 
       _bucketLatch.get() ;
@@ -905,7 +993,9 @@ namespace engine
       }
 
       PD_LOG( PDWARNING, "Repl bucket begin to force complete, expect lsn: "
-              "[%d,%lld]", _expectLSN.version, _expectLSN.offset ) ;
+              "[%d,%lld], Status:%d[%s]",
+              _expectLSN.version, _expectLSN.offset,
+              _status, clsGetReplBucketStatusDesp( (INT32)_status ) ) ;
 
       it = _completeMap.begin() ;
       while ( it != _completeMap.end() )
@@ -913,8 +1003,12 @@ namespace engine
          clsCompleteInfo &tmpInfo = it->second ;
          dpsLogRecordHeader *pHeader = (dpsLogRecordHeader*)( tmpInfo._pData) ;
 
-         _expectLSN.offset = pHeader->_lsn + pHeader->_length ;
-         _expectLSN.version = pHeader->_version ;
+         /// Only normal to change _expectLSN
+         if ( CLS_BUCKET_NORMAL == _status )
+         {
+            _expectLSN.offset = pHeader->_lsn + pHeader->_length ;
+            _expectLSN.version = pHeader->_version ;
+         }
 
          PD_LOG( PDWARNING, "Repl bucket forced complete lsn: [%d,%lld], "
                  "len: %d", pHeader->_version, pHeader->_lsn,
@@ -930,8 +1024,14 @@ namespace engine
       _allEmptyEvent.signalAll() ;
       _emptyEvent.signalAll() ;
 
+      PD_LOG( PDWARNING, "Repl bucket end to force complete, expect lsn: "
+              "[%d,%lld], Status:%d[%s]",
+              _expectLSN.version, _expectLSN.offset,
+              _status, clsGetReplBucketStatusDesp( (INT32)_status ) ) ;
+
    done:
       _bucketLatch.release() ;
+      PD_TRACE_EXIT( SDB__CLSBUCKET_FORCECOMPLETE ) ;
       return SDB_OK ;
    }
 
@@ -964,9 +1064,11 @@ namespace engine
       return FALSE ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSBUCKETSYNCJOB_DOIT, "_clsBucketSyncJob::doit" )
    INT32 _clsBucketSyncJob::doit ()
    {
       INT32 rc                = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSBUCKETSYNCJOB_DOIT ) ;
       pmdKRCB *krcb           = pmdGetKRCB() ;
       pmdEDUMgr *eduMgr       = krcb->getEDUMgr() ;
 
@@ -1033,6 +1135,7 @@ namespace engine
          }
       }
 
+      PD_TRACE_EXIT( SDB__CLSBUCKETSYNCJOB_DOIT ) ;
       return SDB_OK ;
    }
 

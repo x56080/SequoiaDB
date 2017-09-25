@@ -170,6 +170,7 @@ namespace engine
          INT32       waitEmpty( INT64 millisec = -1 ) ;
          INT32       waitSubmit( INT64 millisec = -1 ) ;
          INT32       waitEmptyAndRollback( UINT32 *pNum = NULL ) ;
+         INT32       waitEmptyWithCheck() ;
 
          UINT32      size () ;
          BOOLEAN     isEmpty () ;

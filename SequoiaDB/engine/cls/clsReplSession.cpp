@@ -757,6 +757,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSDSTREPSN__RLBCK );
+      dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
+
       const dpsLogRecordHeader *header = (const dpsLogRecordHeader *)log;
       PD_LOG( PDDEBUG, "Session[%s]: Begin to rollback lsn:[%lld, %d]",
               sessionName(), header->_lsn, header->_version ) ;
@@ -769,13 +771,14 @@ namespace engine
       }
 
       // rollback trans info
-      if ( !sdbGetTransCB()->isNeedSyncTrans() )
+      if ( pTransCB && pTransCB->isTransOn() &&
+           !pTransCB->isNeedSyncTrans() )
       {
          dpsLogRecord record ;
          record.load( log ) ;
-         if ( !sdbGetTransCB()->rollbackTransInfoFromLog( record ) )
+         if ( !pTransCB->rollbackTransInfoFromLog( record ) )
          {
-            sdbGetTransCB()->setIsNeedSyncTrans( TRUE ) ;
+            pTransCB->setIsNeedSyncTrans( TRUE ) ;
          }
       }
 
@@ -904,6 +907,7 @@ namespace engine
                                          UINT32 &num )
    {
       INT32 rc = SDB_OK ;
+      INT32 rcTmp = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSDSTREPSN__REPLG ) ;
 
       dpsLogRecordHeader *recordHeader = NULL ;
@@ -994,9 +998,10 @@ namespace engine
 #endif
 
          rc = _replay( recordHeader ) ;
-         SDB_ASSERT( SDB_OK == rc, "must be ok" ) ;
          if ( SDB_OK != rc )
          {
+            SDB_ASSERT( SDB_OOM == rc || SDB_NOSPC == rc,
+                        "Unexpect error occured" ) ;
             PD_LOG( PDERROR, "Session[%s]: Failed to replay log, rc: %d",
                     sessionName(), rc ) ;
             goto error ;
@@ -1022,13 +1027,13 @@ namespace engine
       if ( _pReplBucket->waitEmptyAndRollback() )
       {
          DPS_LSN expectLSN = _pReplBucket->completeLSN() ;
-         rc = _logger->move( expectLSN.offset, expectLSN.version ) ;
-         if ( rc )
+         rcTmp = _logger->move( expectLSN.offset, expectLSN.version ) ;
+         if ( rcTmp )
          {
             PD_LOG( PDERROR, "Session[%s]: Failed to move lsn to "
                     "[%u, %llu], rc: %d, need to synchronize full data",
                     sessionName(), expectLSN.version, expectLSN.offset,
-                    rc ) ;
+                    rcTmp ) ;
             _fullSync() ;
          }
          else
@@ -1039,13 +1044,13 @@ namespace engine
       }
       else if ( needRollback )
       {
-         rc = _rollback( log ) ;
-         if ( SDB_OK != rc )
+         rcTmp = _rollback( log ) ;
+         if ( rcTmp )
          {
             PD_LOG( PDERROR, "Session[%s]: Failed to rollback[%lld, "
                     "type: %d], rc: %d, need to synchronize full data",
                     sessionName(), recordHeader->_lsn, recordHeader->_type,
-                    rc ) ;
+                    rcTmp ) ;
             _fullSync() ;
          }
       }

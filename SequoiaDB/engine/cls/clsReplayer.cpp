@@ -82,10 +82,12 @@ namespace engine
       _dpsCB = NULL ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP_REPLYBUCKET, "_clsReplayer::replayByBucket" )
    INT32 _clsReplayer::replayByBucket( dpsLogRecordHeader *recordHeader,
                                        pmdEDUCB *eduCB, clsBucket *pBucket )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__CLSREP_REPLYBUCKET ) ;
       const CHAR *fullname = NULL ;
       BSONObj obj ;
       BSONElement idEle ;
@@ -237,8 +239,15 @@ namespace engine
       }
       else
       {
-         // wait bucket all complete
-         pBucket->waitEmpty() ;
+         // wait bucket all complete and check status
+         rc = pBucket->waitEmptyWithCheck() ;
+         if ( rc )
+         {
+            PD_LOG( PDWARNING, "Wait repl bucket empty failed, it's "
+                    "status[%d] is error", (INT32)pBucket->getStatus() ) ;
+            goto error ;
+         }
+
          // judge lsn valid
          if ( !pBucket->_expectLSN.invalid() &&
               0 != pBucket->_expectLSN.compareOffset( recordHeader->_lsn ) )
@@ -279,6 +288,7 @@ namespace engine
                  "data: %s] failed, rc: %d", recordHeader->_type,
                  recordHeader->_lsn, tmpBuff, rc ) ;
       }
+      PD_TRACE_EXITRC ( SDB__CLSREP_REPLYBUCKET, rc );
       return rc ;
    error:
       goto done ;
