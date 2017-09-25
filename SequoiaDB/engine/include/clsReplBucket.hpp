@@ -241,6 +241,9 @@ namespace engine
          DPS_LSN_OFFSET                            _maxSubmitOffset ;
          ossSpinXLatch                             _bucketLatch ;
 
+         // result info for error
+         INT32                            _submitRC ;
+
    } ;
    typedef _clsBucket clsBucket ;
 
