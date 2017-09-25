@@ -179,6 +179,7 @@ namespace engine
       _replayer   = NULL ;
       _maxReplSync= 0 ;
       _maxSubmitOffset = 0 ;
+      _submitRC   = SDB_OK ;
 
       _emptyEvent.signal() ;
       _allEmptyEvent.signal() ;
@@ -328,6 +329,7 @@ namespace engine
       _emptyEvent.signal() ;
       _allEmptyEvent.signal() ;
       _status = CLS_BUCKET_NORMAL ;
+      _submitRC = SDB_OK ;
 
    done:
       return rc ;
@@ -351,6 +353,7 @@ namespace engine
       }
 
       _status = CLS_BUCKET_NORMAL ;
+      _submitRC = SDB_OK ;
       if ( setExpect )
       {
          _expectLSN = _pDPSCB->expectLsn() ;
@@ -388,6 +391,8 @@ namespace engine
 
    INT32 _clsBucket::pushData( UINT32 index, CHAR * pData, UINT32 len )
    {
+      INT32 rc = SDB_OK ;
+
       // only use offset
       if ( DPS_INVALID_LSN_OFFSET == _expectLSN.offset )
       {
@@ -396,11 +401,20 @@ namespace engine
 
       if ( CLS_BUCKET_NORMAL != _status )
       {
-         PD_LOG( PDERROR, "Bucket status is %d, can't push data", _status ) ;
-         return SDB_CLS_REPLAY_LOG_FAILED ;
+         PD_LOG( PDERROR, "Bucket status is %d[%s], can't push data",
+                 _status, clsGetReplBucketStatusDesp( (INT32)_status ) ) ;
+         rc = _submitRC ;
+         if ( SDB_OK == rc )
+         {
+            rc = SDB_CLS_REPLAY_LOG_FAILED ;
+         }
+      }
+      else
+      {
+         rc = _pushData( index, pData, len, TRUE, TRUE ) ;
       }
 
-      return _pushData( index, pData, len, TRUE, TRUE ) ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__CLSBUCKET__PUSHDATA, "_clsBucket::_pushData" )
@@ -608,11 +622,12 @@ namespace engine
       _emptyEvent.wait() ;
       if ( CLS_BUCKET_WAIT_ROLLBACK == _status )
       {
-         rc = SDB_CLS_REPLAY_LOG_FAILED ;
+         rc = _submitRC ? _submitRC : SDB_CLS_REPLAY_LOG_FAILED ;
          _doRollback( num ) ;
          // wait
          _emptyEvent.wait() ;
          _status = CLS_BUCKET_NORMAL ;
+         _submitRC = SDB_OK ;
       }
       else
       {
@@ -638,7 +653,7 @@ namespace engine
 
       if ( CLS_BUCKET_WAIT_ROLLBACK == _status )
       {
-         rc = SDB_CLS_REPLAY_LOG_FAILED ;
+         rc = _submitRC ? _submitRC : SDB_CLS_REPLAY_LOG_FAILED ;
       }
       else
       {
@@ -870,6 +885,7 @@ namespace engine
             if ( CLS_BUCKET_WAIT_ROLLBACK != _status )
             {
                _status = CLS_BUCKET_WAIT_ROLLBACK ;
+               _submitRC = rc ;
             }
             _allCount.dec() ;
             _memPool.release( pData, len ) ;
