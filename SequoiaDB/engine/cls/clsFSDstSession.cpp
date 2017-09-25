@@ -628,8 +628,7 @@ namespace engine
          UINT32 pageSize = 0 ;
          UINT32 attributes = 0 ;
          UTIL_COMPRESSOR_TYPE compType = UTIL_COMPRESSOR_INVALID ;
-         CHAR fullName[DMS_COLLECTION_NAME_SZ +
-                       DMS_COLLECTION_SPACE_NAME_SZ + 2] ;
+         CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = { 0 } ;
          CHAR *objdata = ( CHAR *)( &( msg->header ) ) +
                                     sizeof( MsgClsFSMetaRes ) ;
          INT32 lobPageSize = 0 ;
@@ -646,7 +645,8 @@ namespace engine
          }
 
          // join space + collection to a full collection name
-         clsJoin2Full( cs.c_str(), collection.c_str(), fullName ) ;
+         ossSnprintf( fullName, DMS_COLLECTION_FULL_NAME_SZ,
+                      "%s.%s", cs.c_str(), collection.c_str() ) ;
          // sanity check to make sure we are on the right collection
          if ( 0 != _fullNames.at( _current ).compare( fullName ) )
          {
@@ -1198,6 +1198,7 @@ namespace engine
    _fsStep( CLS_FS_STEP_NONE )
    {
       _repeatCount = CLS_FS_MAX_REPEAT_CNT ;
+      _hasRegFullsyc = FALSE ;
    }
 
    _clsFSDstSession::~_clsFSDstSession()
@@ -1550,12 +1551,16 @@ namespace engine
 
    void _clsFSDstSession::_onAttach()
    {
-      /// set full sync status
-      PMD_SET_DB_STATUS( SDB_DB_FULLSYNC ) ;
+      /// Register full sync
+      if ( SDB_OK == sdbGetDMSCB()->registerFullSync( eduCB() ) )
+      {
+         _hasRegFullsyc = TRUE ;
+      }
+      else
+      {
+         PMD_SET_DB_STATUS( SDB_DB_FULLSYNC ) ;
+      }
       sdbGetReplCB()->getFaultEvent()->signalAll( SDB_CLS_FULL_SYNC ) ;
-
-      /// block write
-      sdbGetDMSCB()->blockWrite( eduCB(), SDB_DB_FULLSYNC ) ;
 
       /// begin
       _begin() ;
@@ -1581,12 +1586,16 @@ namespace engine
       pmdGetKRCB()->getClsCB()->startInnerSession( CLS_REPL,
                                                    CLS_TID_REPL_SYC ) ;
 
-      /// unblock write
-      sdbGetDMSCB()->unblockWrite( eduCB() ) ;
-
       /// end full sync status
       sdbGetReplCB()->getFaultEvent()->reset() ;
-      PMD_SET_DB_STATUS( SDB_DB_NORMAL ) ;
+      if ( _hasRegFullsyc )
+      {
+         sdbGetDMSCB()->fullSyncDown( eduCB() ) ;
+      }
+      else
+      {
+         PMD_SET_DB_STATUS( SDB_DB_NORMAL ) ;
+      }
 
       _disconnect() ;
       PD_TRACE_EXIT ( SDB__CLSFSDS__ONDETACH );

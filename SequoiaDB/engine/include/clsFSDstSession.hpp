@@ -229,6 +229,7 @@ namespace engine
       CS_PS_TUPLES         _mapEmptyCS ;
       vector<string>       _validCLs ;
       UINT32               _repeatCount ;
+      BOOLEAN              _hasRegFullsyc ;
 
    } ;
 

@@ -860,9 +860,12 @@ namespace engine
       PD_TRACE_EXIT ( SDB__SDB_DMSCB__CSCBNMMAPCLN );
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_WRITABLE, "_SDB_DMSCB::writable" )
    INT32 _SDB_DMSCB::writable( _pmdEDUCB * cb )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__SDB_DMSCB_WRITABLE );
+
       BOOLEAN locked = FALSE ;
 
       if ( cb && cb->getLockItem(SDB_LOCK_DMS)->getMode() >= DMS_LOCK_WRITE )
@@ -935,11 +938,14 @@ namespace engine
       {
          _stateMtx.release() ;
       }
+      PD_TRACE_EXITRC ( SDB__SDB_DMSCB_WRITABLE, rc );
       return rc;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_WRITEDOWN, "_SDB_DMSCB::writeDown" )
    void _SDB_DMSCB::writeDown( _pmdEDUCB * cb )
    {
+      PD_TRACE_ENTRY ( SDB__SDB_DMSCB_WRITEDOWN );
       _stateMtx.get();
       --_writeCounter;
       SDB_ASSERT( 0 <= _writeCounter, "write counter should not < 0" ) ;
@@ -957,11 +963,14 @@ namespace engine
             cb->getLockItem(SDB_LOCK_DMS)->setMode(DMS_LOCK_NONE) ;
          }
       }
+      PD_TRACE_EXIT ( SDB__SDB_DMSCB_WRITEDOWN );
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_BLOCKWRITE, "_SDB_DMSCB::blockWrite" )
    INT32 _SDB_DMSCB::blockWrite( _pmdEDUCB *cb, SDB_DB_STATUS byStatus )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__SDB_DMSCB_BLOCKWRITE );
 
       _stateMtx.get();
       if ( DMS_STATE_NORMAL != _dmsCBState )
@@ -1016,11 +1025,14 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC ( SDB__SDB_DMSCB_BLOCKWRITE, rc );
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_UNBLOCKWRITE, "_SDB_DMSCB::unblockWrite" )
    void _SDB_DMSCB::unblockWrite( _pmdEDUCB *cb )
    {
+      PD_TRACE_ENTRY ( SDB__SDB_DMSCB_UNBLOCKWRITE );
       _stateMtx.get() ;
       _dmsCBState = DMS_STATE_NORMAL ;
       PMD_SET_DB_STATUS( SDB_DB_NORMAL ) ;
@@ -1030,11 +1042,66 @@ namespace engine
       {
          cb->getLockItem(SDB_LOCK_DMS)->setMode( DMS_LOCK_NONE ) ;
       }
+      PD_TRACE_EXIT ( SDB__SDB_DMSCB_UNBLOCKWRITE );
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_REGFULLSYNC, "_SDB_DMSCB::registerFullSync" )
+   INT32 _SDB_DMSCB::registerFullSync( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__SDB_DMSCB_REGFULLSYNC );
+
+   retry:
+      /// Full-sync can't blockWrite, because create/drop index when
+      /// full-sync need to writable
+      _stateMtx.get() ;
+
+      if ( DMS_STATE_NORMAL != _dmsCBState )
+      {
+         _stateMtx.release() ;
+
+         rc = SDB_DMS_STATE_NOT_COMPATIBLE ;
+         while ( cb )
+         {
+            if ( cb->isInterrupted() )
+            {
+               rc = SDB_APP_INTERRUPT ;
+               break ;
+            }
+            rc = _blockEvent.wait( OSS_ONE_SEC ) ;
+            if ( SDB_OK == rc )
+            {
+               goto retry ;
+            }
+         }
+      }
+      else
+      {
+         _dmsCBState = DMS_STATE_FULLSYNC ;
+         PMD_SET_DB_STATUS( SDB_DB_FULLSYNC ) ;
+
+         _stateMtx.release() ;
+      }
+
+      PD_TRACE_EXITRC ( SDB__SDB_DMSCB_REGFULLSYNC, rc );
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_FULLSYNCDOWN, "_SDB_DMSCB::fullSyncDown" )
+   void _SDB_DMSCB::fullSyncDown( _pmdEDUCB *cb )
+   {
+      PD_TRACE_ENTRY ( SDB__SDB_DMSCB_FULLSYNCDOWN );
+      ossScopedLock lock( &_stateMtx ) ;
+      _dmsCBState = DMS_STATE_NORMAL ;
+      PMD_SET_DB_STATUS( SDB_DB_NORMAL ) ;
+      PD_TRACE_EXIT ( SDB__SDB_DMSCB_FULLSYNCDOWN );
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_REGBACKUP, "_SDB_DMSCB::registerBackup" )
    INT32 _SDB_DMSCB::registerBackup( _pmdEDUCB *cb, BOOLEAN offline )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__SDB_DMSCB_REGBACKUP );
 
       if ( offline )
       {
@@ -1062,11 +1129,14 @@ namespace engine
          _stateMtx.release () ;
       }
 
+      PD_TRACE_EXITRC ( SDB__SDB_DMSCB_REGBACKUP, rc );
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_BACKUPDOWN, "_SDB_DMSCB::backupDown" )
    void _SDB_DMSCB::backupDown( _pmdEDUCB *cb )
    {
+      PD_TRACE_ENTRY ( SDB__SDB_DMSCB_BACKUPDOWN );
       if ( DMS_LOCK_WHOLE == cb->getLockItem(SDB_LOCK_DMS)->getMode() )
       {
          unblockWrite( cb ) ;
@@ -1077,6 +1147,7 @@ namespace engine
          _dmsCBState = DMS_STATE_NORMAL ;
          _stateMtx.release() ;
       }
+      PD_TRACE_EXIT ( SDB__SDB_DMSCB_BACKUPDOWN );
    }
 
    INT32 _SDB_DMSCB::registerRebuild( _pmdEDUCB *cb )
@@ -1723,23 +1794,29 @@ namespace engine
       return foundJob ;
    }
 
-    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_PUSHDICTJOB, "_SDB_DMSCB::pushDictJob" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_PUSHDICTJOB, "_SDB_DMSCB::pushDictJob" )
    void _SDB_DMSCB::pushDictJob( dmsDictJob job )
    {
       job._createTime = pmdGetDBTick() ;
       _dictWaitClList.push_back( job ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_AQUIRE_CSMUTEX, "_SDB_DMSCB::aquireCSMutex" )
    void _SDB_DMSCB::aquireCSMutex( const CHAR *pCSName )
    {
+      PD_TRACE_ENTRY( SDB__SDB_DMSCB_AQUIRE_CSMUTEX ) ;
       UINT32 pos = ossHash( pCSName ) % DMS_CS_MUTEX_BUCKET_SIZE ;
       _vecCSMutex[ pos ]->get() ;
+      PD_TRACE_EXIT ( SDB__SDB_DMSCB_AQUIRE_CSMUTEX ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_RELEASE_CSMUTEX, "_SDB_DMSCB::releaseCSMutex" )
    void _SDB_DMSCB::releaseCSMutex( const CHAR *pCSName )
    {
+      PD_TRACE_ENTRY( SDB__SDB_DMSCB_RELEASE_CSMUTEX ) ;
       UINT32 pos = ossHash( pCSName ) % DMS_CS_MUTEX_BUCKET_SIZE ;
       _vecCSMutex[ pos ]->release() ;
+      PD_TRACE_EXIT ( SDB__SDB_DMSCB_RELEASE_CSMUTEX ) ;
    }
 
    void _SDB_DMSCB::setIxmKeySorterCreator( dmsIxmKeySorterCreator* creator )

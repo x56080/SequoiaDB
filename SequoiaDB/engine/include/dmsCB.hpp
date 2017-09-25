@@ -88,9 +88,18 @@ namespace engine
 
    #define DMS_MAX_CS_NUM 4096
    #define DMS_INVALID_CS DMS_INVALID_SUID
+
+   /*
+      DMS_STATE DEFINE
+   */
    #define DMS_STATE_NORMAL            0
    #define DMS_STATE_READONLY          1
    #define DMS_STATE_ONLINE_BACKUP     2
+   #define DMS_STATE_FULLSYNC          3
+   
+   /*
+      OTHER DEFINE
+   */
    #define DMS_CHANGESTATE_WAIT_LOOP   100
 
    struct _dmsDictJob
@@ -305,6 +314,9 @@ namespace engine
 
       INT32 registerRebuild( _pmdEDUCB *cb ) ;
       void  rebuildDown( _pmdEDUCB *cb ) ;
+
+      INT32 registerFullSync( _pmdEDUCB *cb ) ;
+      void  fullSyncDown( _pmdEDUCB *cb ) ;
 
       OSS_INLINE UINT8 getCBState () const
       {
