@@ -114,24 +114,31 @@ public class RestartNode2741 extends SdbTestBase {
             Assert.assertEquals(groupMgr.checkBusiness(600), true, "failed to restore business");
 
             // 再次插入数据
+            commSdb.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
+            DBCollection cl = commSdb.getCollectionSpace(csName).getCollection(clName);
+            insertData(cl, 5000, 6000);
+
+            Assert.assertEquals(destGroup.checkInspect(60), true);
+            Assert.assertEquals(srcGroup.checkInspect(60), true);
+
             if (isSplitComplete) {
-                commSdb.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
-                DBCollection cl = commSdb.getCollectionSpace(csName).getCollection(clName);
-                insertData(cl, 5000, 6000);
+            	//切分任务已执行完后，再执行源和目标数据量比对
+            	DBCursor taskCursor = commSdb.listTasks((BSONObject) JSON.parse("{Name:'" + csName + "." + clName + "'}"), null, null, null);
+                while(taskCursor.hasNext()){
+                	int splitBound = getBound(commSdb);
 
-                Assert.assertEquals(destGroup.checkInspect(60), true);
-                Assert.assertEquals(srcGroup.checkInspect(60), true);
+                    long destCount = getGroupData(commSdb, destGroupName);
+                    Assert.assertEquals(destCount, 6000 - splitBound);
 
-                // 源和目标数据量比对
-                int splitBound = getBound(commSdb);
-
-                long destCount = getGroupData(commSdb, destGroupName);
-                Assert.assertEquals(destCount, 6000 - splitBound);
-
-                long srcCount = getGroupData(commSdb, srcGroupName);
-                Assert.assertEquals(srcCount, splitBound);
-                Assert.assertEquals(srcCount + destCount, totalCount);
-                Assert.assertEquals(cl.getCount("{sk:{$gte:0,$lt:6000}}"), 6000);
+                    long srcCount = getGroupData(commSdb, srcGroupName);
+                    Assert.assertEquals(srcCount, splitBound);
+                    Assert.assertEquals(srcCount + destCount, totalCount);
+                    Assert.assertEquals(cl.getCount("{sk:{$gte:0,$lt:6000}}"), 6000);
+                }
+            }else{
+            	//切分任务建立失败，数据全部在源组上
+            	long srcCount = getGroupData(commSdb, srcGroupName);
+            	Assert.assertEquals(srcCount, totalCount);
             }
             clearFlag = true;
         }

@@ -110,22 +110,31 @@ public class KillNodeSplit2763 extends SdbTestBase {
 
             // 最长等待2分钟的集群环境恢复
             Assert.assertEquals(groupMgr.checkBusiness(600), true, "failed to restore business");
+            
+            // 再次插入数据
+            commSdb.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
+            DBCollection cl = commSdb.getCollectionSpace(csName).getCollection(clName);
+            insertData(cl, 5000, 5100);
+
+            Assert.assertEquals(destGroup.checkInspect(60), true);
+            Assert.assertEquals(srcGroup.checkInspect(60), true);
+            Assert.assertEquals(cataGroup.checkInspect(60), true);
 
             if (splitComplete) {
-                // 再次插入数据
-                commSdb.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
-                DBCollection cl = commSdb.getCollectionSpace(csName).getCollection(clName);
-                insertData(cl, 5000, 5100);
-
-                Assert.assertEquals(destGroup.checkInspect(60), true);
-                Assert.assertEquals(srcGroup.checkInspect(60), true);
-                Assert.assertEquals(cataGroup.checkInspect(60), true);
-
-                // 源和目标数据量比对
-                long destCount = checkGroupData(commSdb, destGroupName);
-                long srcCount = checkGroupData(commSdb, srcGroupName);
-                Assert.assertEquals(srcCount + destCount, totalCount);
-                Assert.assertEquals(cl.getCount("{sk:{$gte:0,$lt:5100}}"), 5100);
+            	//切分任务已执行完后，再执行源和目标数据量比对
+                DBCursor taskCursor = commSdb.listTasks((BSONObject) JSON.parse("{Name:'" + csName + "." + clName + "'}"), null, null, null);
+                while(taskCursor.hasNext()){
+                	long destCount = checkGroupData(commSdb, destGroupName);
+                    long srcCount = checkGroupData(commSdb, srcGroupName);
+                    Assert.assertEquals(srcCount + destCount, totalCount);
+                    Assert.assertEquals(cl.getCount("{sk:{$gte:0,$lt:5100}}"), 5100);
+                }
+                taskCursor.close();
+                
+            }else{
+            	//切分任务建立失败，数据全部在源组上
+            	long srcCount = cl.getCount();
+            	Assert.assertEquals(srcCount, totalCount);
             }
             clearFlag = true;
         }
