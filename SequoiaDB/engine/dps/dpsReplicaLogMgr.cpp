@@ -433,7 +433,7 @@ namespace engine
       _mergeLogs( info.getMergeBlock(), info.getMergeBlock().pageMeta() );
       SHARED_UNLOCK_NODES( info.getMergeBlock().pageMeta() );
 
-      if ( _transCB && !_restoreFlag )
+      if ( _transCB && _transCB->isTransOn() && !_restoreFlag )
       {
          if ( info.getMergeBlock().isRow() )
          {
