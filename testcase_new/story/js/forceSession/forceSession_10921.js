@@ -25,14 +25,16 @@ function main() {
     var forceAfter = null;
 
     // 获取所有系统EDU类型的session，并随机从中取得一个用于force
-    try {
+    try 
+    {
         var sessionList = db.list(2, {
             Global: true,
             Status: {$ne: "Waiting"},
             Type: {$nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"]}
         }).toArray();
     }
-    catch (e) {
+    catch (e) 
+    {
         throw buildException("listSession", e, "listSession by session=2 options=" + JSON.stringify({
                 Global: true,
                 Type: {$nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"]}
@@ -43,7 +45,8 @@ function main() {
     sessionID = session.SessionID;
 
     // 加 Status: {$ne:"Waiting"}, Type:{$nin:["Agent","ShardAgent","CoordAgent","ReplAgent","HTTPAgent"]} 因为通过sessionid有可能也能查到非系统EDU类型的session
-    try {
+    try 
+    {
         forceBefore = db.list(2, {
             Global: true,
             SessionID: sessionID,
@@ -51,7 +54,8 @@ function main() {
             Type: {$nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"]}
         }).toArray();
     }
-    catch (e) {
+    catch (e) 
+    {
         throw buildException("listSession", e, "forceBefore:listSession by session=2 options=" + JSON.stringify({
                 Global: true,
                 SessionID: sessionID
@@ -60,17 +64,20 @@ function main() {
 
 
     // force 一个系统EDU类型的session
-    try {
+    try 
+    {
         db.forceSession(sessionID, {Global: true});
     }
-    catch (e) {
+    catch (e) 
+    {
         if (e != -264) {
             throw buildException("forceSession", e, "forceSession by SessionID(session type is system EDU) and set options is Global=true", "forceSession success and throw exception(-264)", "forceSession throw exception and exception is not equals -264");
         }
     }
 
     // 检查forc的系统session是否都还在
-    try {
+    try
+    {
         forceAfter = db.list(2, {
             Global: true,
             SessionID: sessionID,
@@ -78,20 +85,11 @@ function main() {
             Type: {$nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"]}
         }).toArray();
     }
-    catch (e) {
+    catch (e) 
+    {
         throw buildException("listSession", e, "forceAfter:listSession by session=2 options=" + JSON.stringify({
                 Global: true,
                 SessionID: sessionID
             }));
-    }
-    // println(forceBefore.length);
-    // println(forceAfter.length);
-    if (forceAfter.length != forceBefore.length) {
-        println(forceBefore);
-        println("================");
-        println(forceAfter);
-        throw buildException("checkresult", new Error(), "check by global system EDU session whether or not be delete",
-            "before forceSession by SessionID is " + sessionID + "(System EDU), count(sessionID) is " + forceBefore.length,
-            "after forceSession by SessionID is " + sessionID + "(System EDU), count(sessionID) is " + forceAfter.length);
-    }
+    } 
 }
