@@ -1112,12 +1112,10 @@ namespace engine
                                  UINT32 groupID, const CHAR *groupName )
    {
       INT32 rc = SDB_OK ;
+
       PD_TRACE_ENTRY ( SDB__CLSCTSET_SPLIT ) ;
+
       SDB_ASSERT ( _isWholeRange, "split must be done on whole range" ) ;
-      clsCatalogItem *item = NULL ;
-      clsCatalogItem *itemEnd = NULL ;
-      clsCataItemKey *findKey = NULL ;
-      clsCataItemKey *endKey  = NULL ;
 
       // sanity check
       if ( isHashSharding() )
@@ -1154,37 +1152,78 @@ namespace engine
 
       try
       {
-         MAP_CAT_ITEM_IT it ;
-
+         // Split items with different cases
          if ( isHashSharding() )
          {
-            findKey = SDB_OSS_NEW clsCataItemKey(
-                                    splitKey.firstElement().numberInt() ) ;
+            // Hash sharding
+            clsCataItemKey findKey( splitKey.firstElement().numberInt() ) ;
             if ( !splitEndKey.isEmpty() )
             {
-               endKey = SDB_OSS_NEW clsCataItemKey(
-                                    splitEndKey.firstElement().numberInt() ) ;
-               PD_CHECK( endKey, SDB_OOM, error, PDERROR,
-                         "Failed to alloc memry" ) ;
+               clsCataItemKey endKey( splitEndKey.firstElement().numberInt() ) ;
+               rc = _splitInternal( splitKey, splitEndKey, &findKey, &endKey,
+                                    groupID, groupName ) ;
+            }
+            else
+            {
+               rc = _splitInternal( splitKey, splitEndKey, &findKey, NULL,
+                                    groupID, groupName ) ;
             }
          }
          else
          {
-            findKey = SDB_OSS_NEW clsCataItemKey( splitKey.objdata(),
-                                                  getOrdering() ) ;
+            // Range sharding
+            clsCataItemKey findKey( splitKey.objdata(), getOrdering() ) ;
             if ( !splitEndKey.isEmpty() )
             {
-               endKey = SDB_OSS_NEW clsCataItemKey( splitEndKey.objdata(),
-                                                    getOrdering() ) ;
-               PD_CHECK( endKey, SDB_OOM, error, PDERROR,
-                         "Failed to alloc memry" ) ;
+               clsCataItemKey endKey( splitEndKey.objdata(), getOrdering() ) ;
+               rc = _splitInternal( splitKey, splitEndKey, &findKey, &endKey,
+                                    groupID, groupName ) ;
+            }
+            else
+            {
+               rc = _splitInternal( splitKey, splitEndKey, &findKey, NULL,
+                                    groupID, groupName ) ;
             }
          }
+         PD_RC_CHECK( rc, PDERROR, "Failed to split items, rc: %d", rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_RC_CHECK ( SDB_SYS, PDERROR,
+                       "Exception happened during split: %s",
+                       e.what() ) ;
+      }
 
-         PD_CHECK( findKey, SDB_OOM, error, PDERROR, "Failed to alloc memery" ) ;
+   done :
+      PD_TRACE_EXITRC ( SDB__CLSCTSET_SPLIT, rc ) ;
+      return rc ;
 
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCTSET__SPLITINT, "_clsCatalogSet::_splitInternal" )
+   INT32 _clsCatalogSet::_splitInternal ( const BSONObj &splitKey,
+                                          const BSONObj &splitEndKey,
+                                          clsCataItemKey *findKey,
+                                          clsCataItemKey *endKey,
+                                          UINT32 groupID,
+                                          const CHAR *groupName )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB__CLSCTSET__SPLITINT ) ;
+
+      SDB_ASSERT ( _isWholeRange, "split must be done on whole range" ) ;
+
+      clsCatalogItem *item = NULL ;
+      clsCatalogItem *itemEnd = NULL ;
+
+      try
+      {
          // find the upper bound for the given key
-         it = _mapItems.upper_bound ( *findKey ) ;
+         MAP_CAT_ITEM_IT it = _mapItems.upper_bound ( *findKey ) ;
+
          // if we hit end of the map, let's use _lastItem
          // since this is always for whole range, so we should never hit
          // item=NULL
@@ -1210,6 +1249,8 @@ namespace engine
 
          {
             MAP_CAT_ITEM_IT tmpit = it ;
+            BOOLEAN itemRemoved = FALSE, itemEndRemoved = FALSE ;
+
             // 0) traverse from it and change all ranges to the new group
             while ( (++tmpit) != _mapItems.end() )
             {
@@ -1233,14 +1274,23 @@ namespace engine
             }
 
             rc = _splitItem( item, findKey, endKey, splitKey,
-                             splitEndKey, groupID, groupName ) ;
+                             splitEndKey, groupID, groupName, itemRemoved ) ;
+            if ( itemRemoved )
+            {
+               SAFE_OSS_DELETE( item ) ;
+            }
             PD_RC_CHECK( rc, PDERROR, "Split begin item failed, rc: %d", rc ) ;
             rc = _splitItem( itemEnd, findKey, endKey, splitKey,
-                             splitEndKey, groupID, groupName ) ;
+                             splitEndKey, groupID, groupName, itemEndRemoved ) ;
+            if ( itemEndRemoved )
+            {
+               SAFE_OSS_DELETE( itemEnd ) ;
+            }
             PD_RC_CHECK( rc, PDERROR, "Split end item failed, rc: %d", rc ) ;
 
             // 7) remove all duplicate records after the new group
             _deduplicate () ;
+
             // finally remake group ids
             _remakeGroupIDs() ;
          }
@@ -1251,16 +1301,9 @@ namespace engine
                        "Exception happened during split: %s",
                        e.what() ) ;
       }
+
    done :
-      if ( findKey )
-      {
-         SDB_OSS_DEL findKey ;
-      }
-      if ( endKey )
-      {
-         SDB_OSS_DEL endKey ;
-      }
-      PD_TRACE_EXITRC ( SDB__CLSCTSET_SPLIT, rc ) ;
+      PD_TRACE_EXITRC ( SDB__CLSCTSET__SPLITINT, rc ) ;
       return rc ;
    error :
       goto done ;
@@ -1318,10 +1361,13 @@ namespace engine
                                      const BSONObj &beginKeyObj,
                                      const BSONObj &endKeyObj,
                                      UINT32 groupID,
-                                     const CHAR *groupName )
+                                     const CHAR *groupName,
+                                     BOOLEAN &itemRemoved )
    {
       INT32 rc = SDB_OK ;
       clsCatalogItem *newItem = NULL ;
+
+      itemRemoved = FALSE ;
 
       if ( NULL == item )
       {
@@ -1341,6 +1387,7 @@ namespace engine
             newItem = SDB_OSS_NEW clsCatalogItem( _saveName ) ;
             PD_CHECK( newItem, SDB_OOM, error, PDERROR, "Alloc failed" ) ;
             _removeItem( item ) ;
+            itemRemoved = TRUE ;
 
             newItem->_lowBound = item->_lowBound.getOwned() ;
             newItem->_upBound  = endKeyObj.getOwned() ;
@@ -1361,6 +1408,7 @@ namespace engine
             {
                goto error ;
             }
+            itemRemoved = FALSE ;
          }
       }
       else
@@ -1368,6 +1416,7 @@ namespace engine
          newItem = SDB_OSS_NEW clsCatalogItem( _saveName ) ;
          PD_CHECK( newItem, SDB_OOM, error, PDERROR, "Alloc failed" ) ;
          _removeItem( item ) ;
+         itemRemoved = TRUE ;
 
          newItem->_lowBound   = beginKeyObj.getOwned() ;
          newItem->_upBound    = item->_upBound.getOwned() ;
@@ -1383,6 +1432,8 @@ namespace engine
          {
             goto error ;
          }
+         itemRemoved = FALSE ;
+
          rc = _addItem( newItem ) ;
          if ( rc )
          {
@@ -1391,8 +1442,17 @@ namespace engine
 
          if ( endKey && *endKey < newItem->getUpBoundKey( getOrdering() ) )
          {
+            BOOLEAN newItemRemoved = FALSE ;
             rc = _splitItem( newItem, endKey, NULL, endKeyObj, BSONObj(),
-                             item->_groupID, item->_groupName.c_str() ) ;
+                             item->_groupID, item->_groupName.c_str(),
+                             newItemRemoved ) ;
+            if ( !newItemRemoved )
+            {
+               // The new item had been added, should be freed by destructor
+               // If the new item is removed again, will be error, free it in
+               // error label
+               newItem = NULL ;
+            }
             PD_RC_CHECK( rc, PDERROR, "Sub split failed, rc: %d", rc ) ;
          }
       }
@@ -1400,10 +1460,7 @@ namespace engine
    done:
       return rc ;
    error:
-      if ( newItem )
-      {
-         SDB_OSS_DEL newItem ;
-      }
+      SAFE_OSS_DELETE( newItem ) ;
       goto done ;
    }
 
@@ -1425,10 +1482,15 @@ namespace engine
          if ( it->second->getGroupID() ==
               itPrev->second->getGroupID() )
          {
+            clsCatalogItem *itemPrev = ( itPrev->second ) ;
+
             // no need to copy the buffer because the bsonobj in catalogitem
             // ALWAYS own the buffer with smart pointer
-            it->second->_lowBound = itPrev->second->_lowBound ;
+            it->second->_lowBound = itemPrev->_lowBound ;
+
+            // Remove item and free the memory
             _mapItems.erase ( itPrev ) ;
+            SAFE_OSS_DELETE( itemPrev ) ;
          }
          itPrev = it ;
       }

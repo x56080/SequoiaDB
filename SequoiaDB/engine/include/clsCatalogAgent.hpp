@@ -263,13 +263,20 @@ namespace engine
                                           const std::string &strClName );
 
       private:
+         INT32             _splitInternal ( const BSONObj &splitKey,
+                                            const BSONObj &splitEndKey,
+                                            clsCataItemKey *findKey,
+                                            clsCataItemKey *endKey,
+                                            UINT32 groupID,
+                                            const CHAR *groupName ) ;
          INT32             _splitItem( clsCatalogItem *item,
                                        clsCataItemKey *beginKey,
                                        clsCataItemKey *endKey,
                                        const BSONObj &beginKeyObj,
                                        const BSONObj &endKeyObj,
                                        UINT32 groupID,
-                                       const CHAR *groupName ) ;
+                                       const CHAR *groupName,
+                                       BOOLEAN &itemRemoved ) ;
 
          INT32             _removeItem( clsCatalogItem *item ) ;
          INT32             _addItem( clsCatalogItem *item ) ;
