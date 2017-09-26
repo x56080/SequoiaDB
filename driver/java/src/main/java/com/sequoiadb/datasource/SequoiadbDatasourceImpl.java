@@ -421,7 +421,7 @@ public class SequoiadbDatasourceImpl {
      */
     public SequoiadbDatasourceImpl(String url, String username, String password,
                                    DatasourceOptions dsOpt) throws BaseException {
-        if (null == url || "" == url)
+        if (url == null || url.isEmpty())
             throw new BaseException(SDBError.SDB_INVALIDARG, "coord address can't be empty or null");
         ArrayList<String> urls = new ArrayList<String>();
         urls.add(url);
@@ -765,6 +765,7 @@ public class SequoiadbDatasourceImpl {
                     sdb = _idleConnPool.poll(connItem);
                     // sanity check
                     if (sdb == null) {
+                    	_connItemMgr.releaseItem(connItem);
                         // should never come here
                         throw new BaseException(SDBError.SDB_SYS, "point 1: error happen for getting connection");
                     }
@@ -783,6 +784,7 @@ public class SequoiadbDatasourceImpl {
                         }
                         // sanity check
                         if (sdb == null) {
+                        	_connItemMgr.releaseItem(connItem);
                             // should never come here
                             throw new BaseException(SDBError.SDB_SYS, "point 2: error happen for getting connection");
                         }
@@ -822,6 +824,7 @@ public class SequoiadbDatasourceImpl {
                             sdb = _idleConnPool.poll(connItem);
                             // sanity check
                             if (sdb == null) {
+                            	_connItemMgr.releaseItem(connItem);
                                 // should never come here
                                 throw new BaseException(SDBError.SDB_SYS, "point 3: error happen for getting connection");
                             }
@@ -879,15 +882,20 @@ public class SequoiadbDatasourceImpl {
                 synchronized (_objForReleaseConn) {
                     if (_usedConnPool != null && _usedConnPool.contains(sdb)) {
                         ConnItem item = _usedConnPool.poll(sdb);
-                        if (item == null)
+                        if (item == null) {
                             // multi-thread may let item to be null,
                             // and it should never happen
                             throw new BaseException(SDBError.SDB_SYS,
                                     "Point 1: connection pool does't have item for the coming back connection");
+                        }
                         _connItemMgr.releaseItem(item);
                     }
                 }
-                sdb.disconnect();
+                try {
+                	sdb.disconnect();
+                } catch(Exception e) {
+                	// do nothing
+                }
                 return;
             }
             // in case the data source is enable
@@ -897,9 +905,10 @@ public class SequoiadbDatasourceImpl {
                 if (_usedConnPool.contains(sdb)) {
                     // remove it from busy queue
                     item = _usedConnPool.poll(sdb);
-                    if (item == null)
+                    if (item == null) {
                         throw new BaseException(SDBError.SDB_SYS,
                                 "Point 2: connection pool does't have item for the coming back connection");
+                    }
                 } else {
                     // throw exception to let user know current connection does't contained in the pool
                     throw new BaseException(SDBError.SDB_INVALIDARG,
