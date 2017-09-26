@@ -10,7 +10,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
@@ -61,7 +60,7 @@ public class DropCLAndRestartPrimaryCatalog2298 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         try {
             GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
             NodeWrapper priNode = cataGroup.getMaster();
@@ -160,21 +159,10 @@ public class DropCLAndRestartPrimaryCatalog2298 extends SdbTestBase {
     }
     
     private void checkDropCLResult() {
-    	DBCursor cursor = null;
-    	try{
-    		cursor = sdb.listCollections();
-            Assert.assertEquals(cursor.hasNext(),false,"list cl shold be null"); 
-            
-            //random take a cl check 
-            String clName = preCLName + "_" + (int) (Math.random() * CL_NUM);        
-            Assert.assertEquals(cs.isCollectionExist(clName),false," cl should not exist");     		
-    	}catch (BaseException e) {  
-    		Assert.assertTrue(false,e.getMessage());            
-        }finally{
-            if(cursor != null){
-            	cursor.close();            		
-            } 
-        }       
+    	for (int i = 0; i < CL_NUM; i++) {
+	        String clName = preCLName + "_" + i;
+	        Assert.assertFalse(cs.isCollectionExist(clName), "expect cl not exist, but cl exist.");                    			
+		}     
     }    
    
 }
