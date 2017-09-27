@@ -22,6 +22,7 @@ import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.KillNode;
+import com.sequoiadb.split.brokennetwork.Utils;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
@@ -122,14 +123,11 @@ public class KillNodeSplit2763 extends SdbTestBase {
 
             if (splitComplete) {
             	//切分任务已执行完后，再执行源和目标数据量比对
-                DBCursor taskCursor = commSdb.listTasks((BSONObject) JSON.parse("{Name:'" + csName + "." + clName + "'}"), null, null, null);
-                while(taskCursor.hasNext()){
-                	long destCount = checkGroupData(commSdb, destGroupName);
-                    long srcCount = checkGroupData(commSdb, srcGroupName);
-                    Assert.assertEquals(srcCount + destCount, totalCount);
-                    Assert.assertEquals(cl.getCount("{sk:{$gte:0,$lt:5100}}"), 5100);
-                }
-                taskCursor.close();
+            	Utils.waitSplit(commSdb, cl.getFullName());
+            	long destCount = checkGroupData(commSdb, destGroupName);
+                long srcCount = checkGroupData(commSdb, srcGroupName);
+                Assert.assertEquals(srcCount + destCount, totalCount);
+                Assert.assertEquals(cl.getCount("{sk:{$gte:0,$lt:5100}}"), 5100);
                 
             }else{
             	//切分任务建立失败，数据全部在源组上
