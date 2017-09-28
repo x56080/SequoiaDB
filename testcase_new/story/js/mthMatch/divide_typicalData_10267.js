@@ -31,7 +31,8 @@ function main()
               {No:18,a:MaxKey()},
               {No:19,a:true},
               {No:20,a:{name:"zhang"}},
-	           {No:21,a:["a","b","c"]}];
+	           {No:21,a:["a","b","c"]},
+	           {No:22,b:{$numberLong:"-9223372036854775808"}}];
 	insertData(dbcl, doc);
    
    var findCondition1 = {a:{$divide:1.2,$et:-1}};
@@ -70,6 +71,9 @@ function main()
    InvalidArgCheck( dbcl, condition8, null, -6 );
    
    condition9 = {a:{$divide:0,$et:1}};
-   //InvalidArgCheck( dbcl, condition9, null, -6 );
+   InvalidArgCheck( dbcl, condition9, null, -6 );
+   
+   condition10 = {b:{$divide:-1,$gt:0}};
+   InvalidArgCheck( dbcl, condition10, null, -6 );
 }
 main()
