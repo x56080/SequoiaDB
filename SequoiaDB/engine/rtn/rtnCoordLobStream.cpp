@@ -1024,7 +1024,17 @@ namespace engine
             }
          }
 
-         rc = _getReply( header, cb, _canRetry( retryTime++ ), TRUE, tag ) ;
+         if ( isReadonly() )
+         {
+            set< INT32 > setIgnore ;
+            setIgnore.insert( SDB_RTN_CONTEXT_NOTEXIST ) ;
+            rc = _getReply( header, cb, _canRetry( retryTime++ ), TRUE, tag, &setIgnore ) ;
+         }
+         else
+         {
+            rc = _getReply( header, cb, _canRetry( retryTime++ ), TRUE, tag ) ;
+         }
+
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to get reply msg:%d", rc ) ;
@@ -1320,7 +1330,8 @@ namespace engine
                                         _pmdEDUCB *cb,
                                         BOOLEAN canRetry,
                                         BOOLEAN nodeSpecified,
-                                        INT32 &tag )
+                                        INT32 &tag,
+                                        set< INT32 > *pIgoreErr )
    {
       INT32 rc = SDB_OK ;
       INT32 flags = SDB_OK ;
@@ -1344,7 +1355,8 @@ namespace engine
          flags = replyHeader->flags ;
          MsgRouteID id = replyHeader->header.routeID ;
 
-         if ( SDB_OK == flags )
+         if ( SDB_OK == flags ||
+              ( pIgoreErr && pIgoreErr->count( flags ) > 0 ) )
          {
             /// replyHeader will be released by _clearMsgData()    
             _results.push_back( replyHeader ) ;

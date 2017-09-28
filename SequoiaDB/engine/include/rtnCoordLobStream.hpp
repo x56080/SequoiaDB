@@ -199,7 +199,8 @@ namespace engine
                        _pmdEDUCB *cb,
                        BOOLEAN canRetry,
                        BOOLEAN nodeSpecified,
-                       INT32 &tag ) ;
+                       INT32 &tag,
+                       set< INT32 > *pIgoreErr = NULL ) ;
 
       void _clearMsgData() ;
 

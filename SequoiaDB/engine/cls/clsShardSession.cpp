@@ -3219,7 +3219,7 @@ namespace engine
       {
          PD_LOG ( PDERROR, "context %lld does not exist",
                   header->contextID ) ;
-         /// lob has already been closed.
+         rc = SDB_RTN_CONTEXT_NOTEXIST ;
          goto done ;
       }
 
