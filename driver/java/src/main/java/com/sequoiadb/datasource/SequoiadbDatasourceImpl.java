@@ -220,20 +220,26 @@ public class SequoiadbDatasourceImpl {
                 if (0 == _abnormalAddrs.size()) {
                     return;
                 }
-                Iterator<String> itr = _abnormalAddrs.iterator();
+                Iterator<String> abnormalAddrSetItr = _abnormalAddrs.iterator();
                 ConfigOptions nwOpt = new ConfigOptions();
                 String addr = "";
                 nwOpt.setConnectTimeout(100); // 100ms
                 nwOpt.setMaxAutoConnectRetryTime(0);
-                while (itr.hasNext()) {
-                    try {
-                        addr = itr.next();
+                while (abnormalAddrSetItr.hasNext()) {
+                	addr = abnormalAddrSetItr.next();
+                	try {
                         @SuppressWarnings("unused")
                         Sequoiadb sdb = new Sequoiadb(addr, _username, _password, nwOpt);
-                    } catch (BaseException e) {
-                        continue;
-                    }
-                    _abnormalAddrs.remove(addr);
+                        try {
+                        	sdb.disconnect();
+                        } catch(Exception e) {
+                        	// do nothing
+                        }
+                	} catch(Exception e) {
+                		continue;
+                	}
+                	abnormalAddrSetItr.remove();
+                	// add address to normal address set
                     synchronized (_normalAddrs) {
                         if (!_normalAddrs.contains(addr)) {
                             _normalAddrs.add(addr);
@@ -772,7 +778,7 @@ public class SequoiadbDatasourceImpl {
                 } else {
                     // when we have no connection in idle pool,
                     // new a connection ,
-                    // and wait up thread to create connections
+                    // and wait up thread to create connections                	
                     connItem = _connItemMgr.getItem();
                     if (connItem != null) {
                         try {
@@ -785,6 +791,7 @@ public class SequoiadbDatasourceImpl {
                         // sanity check
                         if (sdb == null) {
                         	_connItemMgr.releaseItem(connItem);
+                        	connItem = null;
                             // should never come here
                             throw new BaseException(SDBError.SDB_SYS, "point 2: error happen for getting connection");
                         }
@@ -800,8 +807,9 @@ public class SequoiadbDatasourceImpl {
                             while ((connItem = _strategy.pollConnItem(Operation.GET)) == null) {
                                 try {
                                     if (timeout != 0) {
-                                        if (restTime <= 0)
+                                        if (restTime <= 0) {
                                             break;
+                                        }
                                         beginTime = System.currentTimeMillis();
                                         this.wait(restTime);
                                         endTime = System.currentTimeMillis();
@@ -837,6 +845,7 @@ public class SequoiadbDatasourceImpl {
                     // let the item go back to _connItemMgr and destroy
                     // the connection, then try again
                     _connItemMgr.releaseItem(connItem);
+                    connItem = null;
                     _destroyConnQueue.add(sdb);
                     continue;
                 } else {
@@ -1275,8 +1284,8 @@ public class SequoiadbDatasourceImpl {
             Sequoiadb sdb = null;
             String addr = null;
             // get item for new connection
-            ConnItem item = _connItemMgr.getItem();
-            if (item == null) {
+            ConnItem connitem = _connItemMgr.getItem();
+            if (connitem == null) {
                 // let's stop for no item for new connection
                 break;
             }
@@ -1311,15 +1320,15 @@ public class SequoiadbDatasourceImpl {
             // if we failed to create connection,
             // let's release the item and then stop
             if (sdb == null) {
-                _connItemMgr.releaseItem(item);
+                _connItemMgr.releaseItem(connitem);
                 break;
             }
             // when we create a connection, let's put it to idle pool
-            item.setAddr(addr);
+            connitem.setAddr(addr);
             // add to idle pool
-            _idleConnPool.insert(item, sdb);
+            _idleConnPool.insert(connitem, sdb);
             // update info to strategy
-            _strategy.update(ItemStatus.IDLE, item, 1);
+            _strategy.update(ItemStatus.IDLE, connitem, 1);
             // let's continue
             count--;
         }
