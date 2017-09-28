@@ -217,14 +217,21 @@ public class SequoiadbDatasourceImpl
 				nwOpt.setConnectTimeout(100); // 100ms
 				nwOpt.setMaxAutoConnectRetryTime(0);
 				while(itr.hasNext()) {
+					addr = itr.next();
 					try {
-						addr = itr.next();
 						@SuppressWarnings("unused")
 						Sequoiadb sdb = new Sequoiadb(addr, _username, _password, nwOpt);
+						try {
+							sdb.disconnect();
+						} catch(Exception e) {
+							// do nothing
+						}
 					} catch(BaseException e) {
 						continue;
 					}
-					_abnormalAddrs.remove(addr);
+					// remove address address from abnormal address set 
+					itr.remove();
+					// add address to normal address set
 					synchronized (_normalAddrs) {
 	                    if (!_normalAddrs.contains(addr)) {
 	                        _normalAddrs.add(addr);
