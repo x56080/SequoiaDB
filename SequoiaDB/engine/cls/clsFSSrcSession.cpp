@@ -1028,8 +1028,8 @@ namespace engine
          _context->getMBContext()->mbUnlock() ;
       }
 
-      // release context id
-      if ( SDB_OK != rc && -1 != _contextID )
+      // release context id when found error or found end
+      if ( ( SDB_OK != rc || _findEnd ) && -1 != _contextID )
       {
          pRtnCB->contextDelete( _contextID, eduCB() ) ;
          _contextID = -1 ;
