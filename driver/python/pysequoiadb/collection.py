@@ -1397,7 +1397,7 @@ class collection(object):
       except SDBBaseError:
             raise
 
-   def create_id_index(self, options):
+   def create_id_index(self, options = None):
       """Create the id index.
 
       Parameters:
