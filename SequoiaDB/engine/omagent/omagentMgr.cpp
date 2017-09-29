@@ -455,11 +455,23 @@ namespace engine
       return 0 ;
    }
 
-   void _omAgentSessionMgr::_onPushMsgFailed( INT32 rc, const MsgHeader *pReq,
-                                              const NET_HANDLE &handle,
-                                              pmdAsyncSession *pSession )
+   INT32 _omAgentSessionMgr::onErrorHanding( INT32 rc,
+                                             const MsgHeader *pReq,
+                                             const NET_HANDLE &handle,
+                                             UINT64 sessionID,
+                                             pmdAsyncSession *pSession )
    {
-      _reply( handle, rc, pReq ) ;
+      INT32 ret = SDB_OK ;
+
+      if ( 0 != sessionID )
+      {
+         ret = _reply( handle, rc, pReq ) ;
+      }
+      else
+      {
+         ret = rc ;
+      }
+      return ret ;
    }
 
    pmdAsyncSession* _omAgentSessionMgr::_createSession( SDB_SESSION_TYPE sessionType,

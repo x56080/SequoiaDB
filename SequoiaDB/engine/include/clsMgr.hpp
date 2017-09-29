@@ -98,6 +98,12 @@ namespace engine
          virtual void         onSessionHandleClose( pmdAsyncSession *pSession ) ;
          virtual void         onSessionDestoryed( pmdAsyncSession *pSession ) ;
 
+         virtual INT32        onErrorHanding( INT32 rc,
+                                              const MsgHeader *pReq,
+                                              const NET_HANDLE &handle,
+                                              UINT64 sessionID,
+                                              pmdAsyncSession *pSession ) ;
+
       protected:
          /*
             Parse the session type
@@ -108,9 +114,7 @@ namespace engine
 
          virtual BOOLEAN      _canReuse( SDB_SESSION_TYPE sessionType ) ;
          virtual UINT32       _maxCacheSize() const ;
-         virtual void         _onPushMsgFailed( INT32 rc, const MsgHeader *pReq,
-                                                const NET_HANDLE &handle,
-                                                pmdAsyncSession *pSession ) ;
+
          /*
             Create session
          */
@@ -147,6 +151,12 @@ namespace engine
          virtual UINT64       makeSessionID( const NET_HANDLE &handle,
                                              const MsgHeader *header ) ;
 
+         virtual INT32        onErrorHanding( INT32 rc,
+                                              const MsgHeader *pReq,
+                                              const NET_HANDLE &handle,
+                                              UINT64 sessionID,
+                                              pmdAsyncSession *pSession ) ;
+
       protected:
          /*
             Parse the session type
@@ -157,9 +167,7 @@ namespace engine
 
          virtual BOOLEAN      _canReuse( SDB_SESSION_TYPE sessionType ) ;
          virtual UINT32       _maxCacheSize() const ;
-         virtual void         _onPushMsgFailed( INT32 rc, const MsgHeader *pReq,
-                                                const NET_HANDLE &handle,
-                                                pmdAsyncSession *pSession ) ;
+
          /*
             Create session
          */

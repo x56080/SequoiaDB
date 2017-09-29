@@ -368,7 +368,6 @@ namespace engine
          {
             _selector.addToBlakList( _syncSrc ) ;
             _selector.clearSrc() ;
-            _lastSyncNode.value = MSG_INVALID_ROUTEID ;
 
             _sendSyncReq() ;
          }
