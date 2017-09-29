@@ -140,8 +140,6 @@ namespace engine
             try
             {
                BSONObj bsGrpInfo( buffObj.data() );
-               PD_TRACE1 ( SDB_CATNODEMGR_ACTIVE,
-                           PD_PACK_STRING ( bsGrpInfo.toString().c_str() ) ) ;
                rc = parseIDInfo( bsGrpInfo );
                if ( rc )
                {
@@ -526,9 +524,6 @@ namespace engine
                    "Failed to process register-request, received "
                    "unexpected error:%s", e.what() );
       }
-
-      PD_TRACE1 ( SDB_CATNODEMGR_REGREQ,
-                  PD_PACK_STRING ( boReq.toString().c_str() ) ) ;
 
       // don't use _pCatCB->primaryCheck(), because reg msg will send by
       // on timer
@@ -1156,8 +1151,6 @@ namespace engine
          {
             break;
          }
-         PD_TRACE1 ( SDB_CATNODEMGR_PARSECATCONF,
-                     PD_PACK_STRING ( boGroupInfo.toString().c_str() ) ) ;
          if ( 0 != boGroupInfo.nFields() )
          {
             rc = saveGroupInfo( boGroupInfo, 1 );
@@ -1266,8 +1259,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATNODEMGR_GETNODEINFOBYCONF ) ;
-      PD_TRACE1 ( SDB_CATNODEMGR_GETNODEINFOBYCONF,
-                  PD_PACK_STRING ( boConf.toString().c_str() ) ) ;
       do
       {
          try
@@ -1443,8 +1434,6 @@ namespace engine
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_CATNODEMGR_PARSEIDINFO ) ;
-      PD_TRACE1 ( SDB_CATNODEMGR_PARSEIDINFO,
-                  PD_PACK_STRING ( obj.toString().c_str() ) ) ;
       try
       {
          MsgRouteID routeID;
@@ -1606,8 +1595,6 @@ namespace engine
       BOOLEAN found                    = FALSE ;
       const CHAR *strShardServiceName  = NULL ;
       PD_TRACE_ENTRY ( SDB_CATNODEMGR_GETNODEINFO ) ;
-      PD_TRACE1 ( SDB_CATNODEMGR_GETNODEINFO,
-                  PD_PACK_STRING ( boReq.toString().c_str() ) ) ;
       try
       {
          BSONObj boSelector;
@@ -1718,8 +1705,6 @@ namespace engine
          // when we read at least one record, let's extract the record
          {
             BSONObj boGrpInfo ( buffObj.data() ) ;
-            PD_TRACE1 ( SDB_CATNODEMGR_GETNODEINFO,
-                        PD_PACK_STRING ( boGrpInfo.toString().c_str() ) ) ;
             // first let's get all elements in the group
             BSONElement beGroup = boGrpInfo.getField( CAT_GROUP_NAME );
             // make sure it exists and array type

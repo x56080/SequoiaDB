@@ -148,11 +148,10 @@ namespace engine
                        "Exception handled when parsing split request: %s",
                        e.what() ) ;
       }
-      PD_TRACE4 ( SDB__CLSSPLIT_INIT,
+      PD_TRACE3 ( SDB__CLSSPLIT_INIT,
                   PD_PACK_STRING ( pCollectionName ),
                   PD_PACK_STRING ( pTargetName ),
-                  PD_PACK_STRING ( pSourceName ),
-                  PD_PACK_STRING ( _splitKey.toString().c_str() ) ) ;
+                  PD_PACK_STRING ( pSourceName ) ) ;
 
    done:
       PD_TRACE_EXITRC ( SDB__CLSSPLIT_INIT, rc ) ;

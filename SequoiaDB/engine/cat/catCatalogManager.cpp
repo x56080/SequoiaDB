@@ -109,8 +109,6 @@ namespace engine
          PD_CHECK ( beSpaceName.type() == String, SDB_INVALIDARG, error,
                     PDERROR, "Field[%s] type[%d] is not String",
                     CAT_COLLECTION_SPACE_NAME, beSpaceName.type() ) ;
-         PD_TRACE1 ( SDB_CATALOGMGR_DROPCS,
-                     PD_PACK_STRING ( beSpaceName.valuestr() ) ) ;
          rc = catRemoveCSEx( beSpaceName.valuestr(), _pEduCB, _pDmsCB, _pDpsCB,
                              _majoritySize() ) ;
          PD_RC_CHECK ( rc, PDERROR, "Failed to drop collection space %s, "
@@ -1729,9 +1727,6 @@ namespace engine
                                 newCLRecordObj ) ;
       PD_RC_CHECK( rc, PDERROR, "Build new collection catalog record failed, "
                    "rc: %d", rc ) ;
-
-      PD_TRACE1 ( SDB_CATALOGMGR_CREATECOLLECTION,
-                  PD_PACK_STRING ( newCLRecordObj.toString().c_str() ) ) ;
 
       // insert to system collectin of meta data.
       rc = rtnInsert( CAT_COLLECTION_INFO_COLLECTION, newCLRecordObj,
