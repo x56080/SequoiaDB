@@ -304,9 +304,12 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
 
    if ( type == BSON_DOUBLE )
    {
+      CHAR doubleTmpBuf[512] = { 0 } ;
+
       doubleNum = bson_iterator_double( pIt ) ;
-      tempSize = ossSnprintf ( temp, 64, _precision, doubleNum ) ;
-      rc = _appendString( delChar, TRUE, temp, tempSize, ppBuffer, pCSVSize ) ;
+      tempSize = ossSnprintf ( doubleTmpBuf, 512, _precision, doubleNum ) ;
+      rc = _appendString( delChar, TRUE, doubleTmpBuf, tempSize,
+                          ppBuffer, pCSVSize ) ;
       if ( rc )
       {
          UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendString, rc=%d",
