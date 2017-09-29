@@ -161,16 +161,6 @@ namespace engine
              maxPool : MAX_SHD_SESSION_CATCH_DEQ_SIZE ;
    }
 
-   void _clsShardSessionMgr::_onPushMsgFailed( INT32 rc, const MsgHeader *pReq,
-                                               const NET_HANDLE &handle,
-                                               pmdAsyncSession *pSession )
-   {
-      if ( MSG_INVALID_ROUTEID == pReq->routeID.value )
-      {
-         _reply( handle, rc, pReq ) ;
-      }
-   }
-
    // create session request for the manager
    // there are 3 types of sessions for shardsessions
    // 1) split destination
@@ -326,6 +316,31 @@ namespace engine
       }
    }
 
+   INT32 _clsShardSessionMgr::onErrorHanding( INT32 rc,
+                                              const MsgHeader *pReq,
+                                              const NET_HANDLE &handle,
+                                              UINT64 sessionID,
+                                              pmdAsyncSession *pSession )
+   {
+      INT32 ret = SDB_OK ;
+
+      UINT32 nodeID = 0 ;
+      UINT32 tid = 0 ;
+      ossUnpack32From64( sessionID, nodeID, tid ) ;
+
+      if ( nodeID > PMD_BASE_HANDLE_ID )
+      {
+         /// shard session
+         ret = _reply( handle, rc, pReq ) ;
+      }
+      else if ( 0 == sessionID )
+      {
+         ret = rc ;
+      }
+
+      return ret ;
+   }
+
    /*
       _clsReplSessionMgr implement
    */
@@ -402,13 +417,6 @@ namespace engine
       return 0 ;
    }
 
-   void _clsReplSessionMgr::_onPushMsgFailed( INT32 rc, const MsgHeader *pReq,
-                                              const NET_HANDLE &handle,
-                                              pmdAsyncSession *pSession )
-   {
-      // do nothing
-   }
-
    // create replication sessions manager
    // include:
    // 1) replication destination
@@ -461,6 +469,22 @@ namespace engine
       }
 
       return pSession ;
+   }
+
+   INT32 _clsReplSessionMgr::onErrorHanding( INT32 rc,
+                                             const MsgHeader *pReq,
+                                             const NET_HANDLE &handle,
+                                             UINT64 sessionID,
+                                             pmdAsyncSession *pSession )
+   {
+      INT32 ret = SDB_OK ;
+
+      if ( 0 == sessionID )
+      {
+         ret = rc ;
+      }
+
+      return ret ;
    }
 
    /*
@@ -1109,19 +1133,22 @@ namespace engine
          // skip for any unmatch types or existing sessions
          // if the session already started, we simply ignore the request in
          // the list and wait for start next time
-         if ( info.type != type || pSessionMgr->getSession( info.sessionID,
-                                                            info.startType,
-                                                            NET_INVALID_HANDLE,
-                                                            FALSE, 0, NULL ) )
+         if ( info.type != type ||
+              SDB_OK == pSessionMgr->getSession( info.sessionID,
+                                                 info.startType,
+                                                 NET_INVALID_HANDLE,
+                                                 FALSE, 0, NULL,
+                                                 NULL ) )
          {
             ++it ;
             continue ;
          }
          // let's start the session
-         pSession = pSessionMgr->getSession ( info.sessionID, info.startType,
-                                              NET_INVALID_HANDLE, TRUE, 0,
-                                              info.data ) ;
-         if ( pSession )
+         rc = pSessionMgr->getSession ( info.sessionID, info.startType,
+                                        NET_INVALID_HANDLE, TRUE, 0,
+                                        info.data,
+                                        &pSession ) ;
+         if ( SDB_OK == rc )
          {
             PD_LOG ( PDEVENT, "Create inner session[%s] succeed",
                      pSession->sessionName() ) ;
@@ -1130,10 +1157,8 @@ namespace engine
          }
          // if we get here, that means something wrong and we can't start
          // the session
-         PD_LOG ( PDERROR, "Create inner session[TID:%d] failed",
-                  info.innerTid ) ;
-         rc = SDB_SYS ;
-
+         PD_LOG ( PDERROR, "Create inner session[TID:%d] failed, rc: %d",
+                  info.innerTid, rc ) ;
          ++it ;
       }
 

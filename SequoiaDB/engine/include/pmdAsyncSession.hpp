@@ -278,10 +278,11 @@ namespace engine
                                       const MsgHeader *header,
                                       const NET_HANDLE &handle ) ;
 
-         pmdAsyncSession     *getSession( UINT64 sessionID, INT32 startType,
-                                          const NET_HANDLE handle,
-                                          BOOLEAN bCreate, INT32 opCode,
-                                          void *data ) ;
+         INT32          getSession( UINT64 sessionID, INT32 startType,
+                                    const NET_HANDLE handle,
+                                    BOOLEAN bCreate, INT32 opCode,
+                                    void *data,
+                                    pmdAsyncSession **ppSession ) ;
 
          INT32          releaseSession( pmdAsyncSession *pSession,
                                         BOOLEAN delay = FALSE ) ;
@@ -305,6 +306,12 @@ namespace engine
          virtual void   onSessionHandleClose( pmdAsyncSession *pSession ) {}
          virtual void   onSessionDestoryed( pmdAsyncSession *pSession ) {}
 
+         virtual INT32  onErrorHanding( INT32 rc,
+                                        const MsgHeader *pReq,
+                                        const NET_HANDLE &handle,
+                                        UINT64 sessionID,
+                                        pmdAsyncSession *pSession ) = 0 ;
+
       protected:
          /*
             Parse the session type
@@ -315,9 +322,7 @@ namespace engine
 
          virtual BOOLEAN      _canReuse( SDB_SESSION_TYPE sessionType ) = 0 ;
          virtual UINT32       _maxCacheSize() const = 0 ;
-         virtual void         _onPushMsgFailed( INT32 rc, const MsgHeader *pReq,
-                                                const NET_HANDLE &handle,
-                                                pmdAsyncSession *pSession ) = 0 ;
+
          /*
             Create session
          */

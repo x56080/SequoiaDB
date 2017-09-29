@@ -822,16 +822,16 @@ namespace engine
       PD_TRACE_EXITRC ( PMD_SESSMGR_PUSHMSG, rc ) ;
       return rc ;
    error:
-      _onPushMsgFailed( rc, header, handle, pSession ) ;
       goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( PMD_SESSMGR_GETSESSION, "_pmdAsycSessionMgr::getSession" )
-   pmdAsyncSession* _pmdAsycSessionMgr::getSession( UINT64 sessionID,
-                                                    INT32 startType,
-                                                    const NET_HANDLE handle,
-                                                    BOOLEAN bCreate, INT32 opCode,
-                                                    void *data )
+   INT32 _pmdAsycSessionMgr::getSession( UINT64 sessionID,
+                                         INT32 startType,
+                                         const NET_HANDLE handle,
+                                         BOOLEAN bCreate, INT32 opCode,
+                                         void *data,
+                                         pmdAsyncSession **ppSession )
    {
       INT32 rc                     = SDB_OK ;
       PD_TRACE_ENTRY ( PMD_SESSMGR_GETSESSION );
@@ -860,6 +860,8 @@ namespace engine
       // if we are not asked for create new session, let's simply return
       if ( !bCreate )
       {
+         rc = SDB_EOF ;
+         /// must goto done
          goto done ;
       }
 
@@ -871,6 +873,7 @@ namespace engine
          PD_LOG( PDERROR, "Failed to parse session type by info[sessionID: "
                  "%lld, startType: %d, opCode: (%d)%d ]", sessionID,
                  startType, IS_REPLY_TYPE(opCode), GET_REQUEST_TYPE(opCode) ) ;
+         rc = SDB_SYS ;
          goto error ;
       }
 
@@ -902,6 +905,7 @@ namespace engine
             PD_LOG( PDERROR, "Failed to create session[sessionType: %d, "
                     "startType: %d, sessionID: %lld ]", sessionType,
                     startType, sessionID ) ;
+            rc = SDB_OOM ;
             goto error ;
          }
          pSession->setSessionMgr( this ) ;
@@ -941,8 +945,12 @@ namespace engine
       }
 
    done:
+      if ( ppSession )
+      {
+         *ppSession = pSession ;
+      }
       PD_TRACE_EXIT ( PMD_SESSMGR_GETSESSION );
-      return pSession ;
+      return rc ;
    error:
       if ( pSession )
       {
