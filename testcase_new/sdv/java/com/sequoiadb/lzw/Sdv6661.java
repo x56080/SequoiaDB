@@ -68,6 +68,7 @@ public class Sdv6661 extends SdbTestBase {
 			int dataCount = 600;
 			int strLength = 512 * 1024;
 			String rec = insertData(cl, dataCount, strLength);
+			Commlib.waitCreateDict(cl, dataGroupName);
 			Commlib.checkCompressed(cl, dataGroupName);
 			checkQuery(dataCount, rec);
 		} catch (BaseException e) {
