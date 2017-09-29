@@ -22,18 +22,18 @@ abstract class AbstractStrategy implements IConnectStrategy {
         // some addresses may have been removed, but, they may be still in used pool.
 
         // get addresses to local
-        Iterator<String> itr1 = addresses.iterator();
-        while (itr1.hasNext()) {
-            String addr = itr1.next();
+        Iterator<String> addrListItr = addresses.iterator();
+        while (addrListItr.hasNext()) {
+            String addr = addrListItr.next();
             if (!_addrs.contains(addr)) {
                 _addrs.add(addr);
             }
         }
         // get idle connections information
         if (_idleConnPairs != null) {
-            Iterator<Pair> itr2 = _idleConnPairs.iterator();
-            while (itr2.hasNext()) {
-                Pair pair = itr2.next();
+            Iterator<Pair> idleConnPairItr = _idleConnPairs.iterator();
+            while (idleConnPairItr.hasNext()) {
+                Pair pair = idleConnPairItr.next();
                 String addr = pair.first().getAddr();
                 _idleConnItemList.add(pair.first());
                 if (!_addrs.contains(addr)) {
@@ -71,7 +71,7 @@ abstract class AbstractStrategy implements IConnectStrategy {
 
     @Override
     public List<ConnItem> removeAddress(String addr) {
-        List<ConnItem> list = new ArrayList<ConnItem>();
+        List<ConnItem> recycleConnItemList = new ArrayList<ConnItem>();
         _lockForAddr.lock();
         try {
             if (_addrs.contains(addr)) {
@@ -84,26 +84,26 @@ abstract class AbstractStrategy implements IConnectStrategy {
         try {
             // Prepare the return ConnItem.
             // We will remove the returning positions.
-            Iterator<ConnItem> itr = _idleConnItemList.iterator();
-            while (itr.hasNext()) {
-                ConnItem item = itr.next();
-                if (addr.equals(item.getAddr())) {
-                    list.add(item);
-                    itr.remove();//TODO:test it
+            Iterator<ConnItem> idleConnItemListItr = _idleConnItemList.iterator();
+            while (idleConnItemListItr.hasNext()) {
+                ConnItem connItem = idleConnItemListItr.next();
+                if (addr.equals(connItem.getAddr())) {
+                	recycleConnItemList.add(connItem);
+                    idleConnItemListItr.remove();
                 }
             }
         } finally {
             _lockForConnItemList.unlock();
         }
-        return list;
+        return recycleConnItemList;
     }
 
     @Override
-    public void update(ItemStatus type, ConnItem item, int change) {
+    public void update(ItemStatus itemStatus, ConnItem connItem, int incDecItemCount) {
         _lockForConnItemList.lock();
         try {
-            if (ItemStatus.IDLE == type && change > 0) {
-                _idleConnItemList.add(item);
+            if (itemStatus == ItemStatus.IDLE && incDecItemCount > 0) {
+                _idleConnItemList.add(connItem);
             }
         } finally {
             _lockForConnItemList.unlock();

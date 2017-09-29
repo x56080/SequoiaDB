@@ -10,7 +10,7 @@ class ConcreteRandomStrategy extends AbstractStrategy {
         String addr = null;
         _lockForAddr.lock();
         try {
-            if (1 <= _addrs.size()) {
+            if (_addrs.size() >= 1) {
                 addr = _addrs.get(_rand.nextInt(_addrs.size()));
             }
         } finally {
