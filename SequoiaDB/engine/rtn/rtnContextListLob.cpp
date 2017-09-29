@@ -171,9 +171,9 @@ namespace engine
          goto error ;
       }
 
-      rc = rtnReadLob( _fullName.c_str(), info._oid,
-                       info._sequence, 0, info._len,
-                       cb, _buf, read ) ;
+      rc = rtnReadLob( _fullName.c_str(), info._oid, info._sequence, 0,
+                       info._len, cb, _buf, read, _fetcher.getSu(),
+                       _fetcher.getMBContext() ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to read lob[%s], rc:%d",

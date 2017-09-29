@@ -71,6 +71,11 @@ namespace engine
          return _su ;
       }
 
+      _dmsMBContext *getMBContext()
+      {
+         return _mbContext ;
+      }
+
       const CHAR* collectionName() const
       {
          return _fullName ;
