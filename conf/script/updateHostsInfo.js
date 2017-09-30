@@ -150,17 +150,22 @@ function _updateSdbcmCfgFile( lcoalhostip, arr )
       {
          continue ;
       }
+
+      var str = hostname + OMA_MISC_CONFIG_PORT ;
       if ( OMA_PORT_DEFAULT_SDBCM_PORT != ( "" + agentport ) )
       {
-         var str = hostname + OMA_MISC_CONFIG_PORT ;
          configobj[str] = agentport ; 
       }
       else
       {
-         // TODO: it seems don't work
          Oma.delAOmaSvcName( hostname ) ;
+         if( typeof( configobj[str] ) === 'string' )
+         {
+            delete configobj[str] ;
+         }
       }
    }
+
    try
    {
       Oma.setOmaConfigs( configobj ) ;
