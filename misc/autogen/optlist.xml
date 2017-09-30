@@ -825,19 +825,19 @@
       <name>PMD_OPTION_PREFINST</name>
       <long>preferedinstance</long>
       <description>
-         <en>Prefered instance for read request, default:A, value enum:M,S,A,1-7</en>
-         <cn>读请求优先选择的实例,默认值:A,取值列表:M,S,A,1-7</cn>
+         <en>Prefered instance for read request, default:M, value enum:M,S,A,1-7</en>
+         <cn>读请求优先选择的实例,默认值:M,取值列表:M,S,A,1-7</cn>
       </description>
       <detail>
          <en>1. It specifies the instance on which to query.<fig></fig>
-             2. If it is not specifed, the default value is A.<fig></fig>
+             2. If it is not specifed, the default value is M.<fig></fig>
              3. value enum:<fig></fig>
                     M--read and write instance,<fig></fig>
                     S--read only instance,<fig></fig>
                     A--any instance,<fig></fig>
                     1-7--the nth instance</en>
          <cn>1.指定执行读请求时优先选择的实例<fig></fig>
-             2.如果不指定，则默认为随机选择任意实例。<fig></fig>
+             2.如果不指定，则默认为选择可读写实例。<fig></fig>
              3.取值列表：<fig></fig>
                     M--可读写实例<fig></fig>
                     S--只读实例<fig></fig>
