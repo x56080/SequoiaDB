@@ -830,7 +830,8 @@ namespace engine
             rc = pvtData._pContext->open( objOrderby,
                                           needReset ? objSelector : BSONObj(),
                                           pQueryMsg->numToReturn,
-                                          pQueryMsg->numToSkip ) ;
+                                          pQueryMsg->numToSkip,
+                                          ( FLG_QUERY_MODIFY & pQueryMsg->flags ) ? FALSE : TRUE ) ;
 
             // change some data
             if ( pQueryMsg->numToReturn > 0 && pQueryMsg->numToSkip > 0 )

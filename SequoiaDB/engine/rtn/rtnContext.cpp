@@ -3190,7 +3190,10 @@ namespace engine
 
    void _rtnContextCoord::addSubDone( pmdEDUCB * cb )
    {
-      _send2EmptyNodes( cb ) ;
+      if ( _preRead )
+      {
+         _send2EmptyNodes( cb ) ;
+      }
    }
 
    INT32 _rtnContextCoord::_getSubData()
