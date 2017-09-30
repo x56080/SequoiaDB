@@ -2165,8 +2165,10 @@ SDB_EXPORT INT32 sdbGetQueryMeta ( sdbCollectionHandle cHandle,
    sdbCollectionStruct *cs         = (sdbCollectionStruct*)cHandle ;
    sdbConnectionStruct *connection = (sdbConnectionStruct*)(cs->_connection) ;
    BOOLEAN bsoninit                = FALSE ;
-   bson hint1 ;
+   bson newHint ;
+   bson_iterator itr ;
 
+   /// check
    HANDLE_CHECK( cHandle, cs, SDB_HANDLE_TYPE_COLLECTION ) ;
    if ( !cs->_collectionFullName[0] || !handle )
    {
@@ -2174,15 +2176,39 @@ SDB_EXPORT INT32 sdbGetQueryMeta ( sdbCollectionHandle cHandle,
       goto error ;
    }
 
-   BSON_INIT( hint1 ) ;
-   BSON_APPEND( hint1, FIELD_NAME_COLLECTION,
+   /// build new hint
+   BSON_INIT( newHint ) ;
+   BSON_APPEND( newHint, FIELD_NAME_COLLECTION,
                 cs->_collectionFullName, string ) ;
-   BSON_FINISH ( hint1 ) ;
 
+   rc = bson_append_start_object( &newHint, FIELD_NAME_HINT ) ;
+   if ( SDB_OK != rc )
+   {
+      rc = SDB_DRIVER_BSON_ERROR ;
+      goto error ;
+   }
+   if ( NULL != hint )
+   {
+      bson_iterator_init ( &itr, hint ) ;
+      while ( BSON_EOO != bson_iterator_next ( &itr ) )
+      {
+         BSON_APPEND( newHint, NULL, &itr, element ) ;
+      }
+   }
+   rc = bson_append_finish_object( &newHint ) ;
+   if ( SDB_OK != rc )
+   {
+       rc = SDB_DRIVER_BSON_ERROR ;
+       goto error ;
+   }
+
+   BSON_FINISH ( newHint ) ;
+
+   /// build msg
    rc = clientBuildQueryMsg ( &cs->_pSendBuffer,
                               &cs->_sendBufferSize,
                               p, 0, 0, numToSkip, numToReturn, condition,
-                              hint, orderBy, &hint1,
+                              NULL, orderBy, &newHint,
                               cs->_endianConvert ) ;
    if ( SDB_OK != rc )
    {
@@ -2227,7 +2253,7 @@ SDB_EXPORT INT32 sdbGetQueryMeta ( sdbCollectionHandle cHandle,
    *handle = (sdbCursorHandle)cursor ;
 
 done:
-   BSON_DESTROY( hint1 ) ;
+   BSON_DESTROY( newHint ) ;
    return rc ;
 error:
    if ( cursor )
