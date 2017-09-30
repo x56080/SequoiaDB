@@ -492,13 +492,11 @@ INT32 clientSend ( Socket* sock, const CHAR *pMsg, INT32 len,
       if ( 0 > rc )
       {
          rc = SOCKET_GETLASTERROR ;
-         if (
 #if defined (_WINDOWS)
-            WSAEINTR
+         if ( WSAEINTR == rc )
 #else
-            EINTR
+         if ( EINTR == rc )
 #endif
-            == rc )
          {
             if ( NULL == sock->isInterruptFunc || !sock->isInterruptFunc() )
             {
@@ -561,13 +559,11 @@ INT32 clientSend ( Socket* sock, const CHAR *pMsg, INT32 len,
                rc = SDB_TIMEOUT ;
                goto error ;
             }
-            if ( (
 #if defined ( _WINDOWS )
-                   WSAEINTR
+            if ( ( WSAEINTR == rc ) && ( retries < MAX_SEND_RETRIES ) )
 #else
-                   EINTR
+            if ( ( EINTR == rc ) && ( retries < MAX_SEND_RETRIES ) )
 #endif
-                   == rc ) && ( retries < MAX_SEND_RETRIES ) )
             {
                ++retries ;
                continue ;
@@ -665,13 +661,11 @@ INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len,
       if ( 0 > rc )
       {
          rc = SOCKET_GETLASTERROR ;
-         if (
 #if defined (_WINDOWS)
-               WSAEINTR
+         if ( WSAEINTR == rc )
 #else
-               EINTR
+         if ( EINTR == rc )
 #endif
-               == rc )
          {
             if ( NULL == sock->isInterruptFunc || !sock->isInterruptFunc() )
             {
@@ -723,13 +717,11 @@ INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len,
             rc = SDB_TIMEOUT ;
             goto error ;
          }
-         if ( (
 #if defined ( _WINDOWS )
-              WSAEINTR
+         if ( ( WSAEINTR == rc ) && ( retries < MAX_RECV_RETRIES ) )
 #else
-              EINTR
+         if ( ( EINTR == rc ) && ( retries < MAX_RECV_RETRIES ) )
 #endif
-              == rc ) && ( retries < MAX_RECV_RETRIES ) )
          {
             ++retries ;
             continue ;
