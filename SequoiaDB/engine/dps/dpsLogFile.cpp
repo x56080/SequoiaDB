@@ -672,12 +672,11 @@ namespace engine
             // write data into the file
             // _fileSize - _idleSize is the offset for the current position
             rc = ossSeekAndWrite( _file, DPS_LOG_HEAD_LEN + _fileSize -
-                                  idleSize, &pData[written],
+                                  idleSize + written, &pData[written],
                                   len - written, &writtenLen ) ;
             if ( SDB_OK == rc )
             {
                written += (UINT32)writtenLen ;
-               idleSize -= (UINT32)writtenLen ;
             }
             else
             {
