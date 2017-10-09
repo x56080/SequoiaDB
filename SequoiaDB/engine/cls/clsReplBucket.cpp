@@ -73,6 +73,9 @@ namespace engine
    #define CLS_REPL_BUCKET_MAX_MEM_POOL      (512)             // MB
 #endif
 
+   #define CLS_REPL_MAX_ROLLBACK_TIMES       ( 10 )
+   #define CLS_REPL_RETRY_INTERVAL           ( 100 )
+
    /*
       Tool functions
    */
@@ -898,8 +901,18 @@ namespace engine
       }
       else
       {
-         rc = _replayer->rollback( pHeader, cb ) ;
-         SDB_ASSERT( SDB_OK == rc, "Rollback dps log failed" ) ;
+         UINT32 retryTimes = 0 ;
+         while( ++retryTimes <= CLS_REPL_MAX_ROLLBACK_TIMES )
+         {
+            rc = _replayer->rollback( pHeader, cb ) ;
+            if ( SDB_OOM == rc || SDB_NOSPC == rc )
+            {
+               ossSleep( CLS_REPL_RETRY_INTERVAL ) ;
+               continue ;
+            }
+            SDB_ASSERT( SDB_OK == rc, "Rollback dps log failed" ) ;
+            break ;
+         }
          _allCount.dec() ;
          _memPool.release( pData, len ) ;
       }
