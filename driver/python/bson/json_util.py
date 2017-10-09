@@ -75,6 +75,7 @@ but it will be faster as there is less recursion.
 import base64
 import calendar
 import datetime
+import time
 import re
 from collections import OrderedDict
 
@@ -98,7 +99,7 @@ from bson.objectid import ObjectId
 from bson.regex import Regex
 from bson.timestamp import Timestamp
 from bson.decimal import Decimal
-from bson.py3compat import PY3, binary_type, string_types, text_type
+from bson.py3compat import PY3, binary_type, string_types, text_type, long_type
 
 
 _RE_OPT_TABLE = {
@@ -194,6 +195,14 @@ def object_hook(dct, compile_re=True):
             return EPOCH_AWARE + datetime.timedelta(seconds=secs)
         except ValueError:
             return datetime.datetime.strptime(dct["$date"], "%Y-%m-%d")
+    if "$timestamp" in dct:
+        try:
+            ms = long_type(dct["$timestamp"])
+            return Timestamp(ms / 1000, ms % 1000 * 1000)
+        except ValueError:
+            dt = datetime.datetime.strptime(dct["$timestamp"], "%Y-%m-%d-%H.%M.%S.%f")
+            secs = long_type(time.mktime(dt.timetuple()))
+            return Timestamp(secs, dt.microsecond)
     if "$regex" in dct:
         flags = 0
         # PyMongo always adds $options but some other tools may not.
@@ -270,7 +279,8 @@ def default(obj):
     if isinstance(obj, MaxKey):
         return {"$maxKey": 1}
     if isinstance(obj, Timestamp):
-        return SON([("t", obj.time), ("i", obj.inc)])
+        dt = time.strftime("%Y-%m-%d-%H.%M.%S", time.localtime(obj.time)) + "." + "{:06d}".format(obj.inc)
+        return {"$timestamp": dt}
     if isinstance(obj, Code):
         return SON([('$code', str(obj)), ('$scope', obj.scope)])
     if isinstance(obj, Binary):

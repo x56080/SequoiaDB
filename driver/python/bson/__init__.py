@@ -20,6 +20,7 @@ import datetime
 import re
 import struct
 import sys
+import ctypes
 
 from bson.binary import (Binary, OLD_UUID_SUBTYPE,
                          JAVA_LEGACY, CSHARP_LEGACY)
@@ -276,7 +277,9 @@ def _get_ref(data, position, as_class, tz_aware, uuid_subtype, compile_re):
 def _get_timestamp(
         data, position, as_class, tz_aware, uuid_subtype, compile_re):
     inc, position = _get_int(data, position, unsigned=True)
+    inc = ctypes.c_int32(inc).value
     timestamp, position = _get_int(data, position, unsigned=True)
+    timestamp = ctypes.c_int32(timestamp).value
     return Timestamp(timestamp, inc), position
 
 
@@ -450,8 +453,8 @@ def _element_to_bson(key, value, check_keys, uuid_subtype):
                      value.microsecond / 1000)
         return BSONDAT + name + struct.pack("q", millis)
     if isinstance(value, Timestamp):
-        time = struct.pack("I", value.time)
-        inc = struct.pack("I", value.inc)
+        time = struct.pack("i", value.time)
+        inc = struct.pack("i", value.inc)
         return BSONTIM + name + inc + time
     if value is None:
         return BSONNUL + name

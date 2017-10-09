@@ -21,10 +21,11 @@ import datetime
 from bson.tz_util import utc
 from bson.py3compat import long_type
 
-UPPERBOUND = 4294967296
+UPPERBOUND = 2147483648
+LOWERBOUND = -2147483648
 
 class Timestamp(object):
-    """MongoDB internal timestamps used in the opLog.
+    """Timestamp of bson
     """
 
     _type_marker = 17
@@ -32,14 +33,10 @@ class Timestamp(object):
     def __init__(self, time, inc):
         """Create a new :class:`Timestamp`.
 
-        This class is only for use with the MongoDB opLog. If you need
-        to store a regular timestamp, please use a
-        :class:`~datetime.datetime`.
-
         Raises :class:`TypeError` if `time` is not an instance of
         :class: `int` or :class:`~datetime.datetime`, or `inc` is not
         an instance of :class:`int`. Raises :class:`ValueError` if
-        `time` or `inc` is not in [0, 2**32).
+        `time` or `inc` is not in [-2**31, 2**31).
 
         :Parameters:
           - `time`: time in seconds since epoch UTC, or a naive UTC
@@ -58,10 +55,16 @@ class Timestamp(object):
             raise TypeError("time must be an instance of int")
         if not isinstance(inc, (int, long_type)):
             raise TypeError("inc must be an instance of int")
-        if not 0 <= time < UPPERBOUND:
-            raise ValueError("time must be contained in [0, 2**32)")
-        if not 0 <= inc < UPPERBOUND:
-            raise ValueError("inc must be contained in [0, 2**32)")
+        if not LOWERBOUND <= time < UPPERBOUND:
+            raise ValueError("time must be contained in [-2**31, 2**31): " + str(time))
+        if not LOWERBOUND <= inc < UPPERBOUND:
+            raise ValueError("inc must be contained in [-2**31, 2**31): " + str(inc))
+        if not 0 <= inc < 1000000:
+            secs = inc // 1000000
+            inc = inc % 1000000
+            time = time + secs
+            if not LOWERBOUND <= time < UPPERBOUND:
+                raise ValueError("time is overflowed by inc")
 
         self.__time = time
         self.__inc = inc
