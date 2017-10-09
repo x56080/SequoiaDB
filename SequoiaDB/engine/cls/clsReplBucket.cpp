@@ -902,10 +902,11 @@ namespace engine
       else
       {
          UINT32 retryTimes = 0 ;
-         while( ++retryTimes <= CLS_REPL_MAX_ROLLBACK_TIMES )
+         while( TRUE )
          {
             rc = _replayer->rollback( pHeader, cb ) ;
-            if ( SDB_OOM == rc || SDB_NOSPC == rc )
+            if ( ( SDB_OOM == rc || SDB_NOSPC == rc ) &&
+                 ++retryTimes < CLS_REPL_MAX_ROLLBACK_TIMES )
             {
                ossSleep( CLS_REPL_RETRY_INTERVAL ) ;
                continue ;
