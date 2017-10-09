@@ -458,18 +458,8 @@ class collection(object):
       if not isinstance(doc, dict):
          raise SDBTypeError("rule must be an instance of dict")
 
-      hasOid = False
       if "_id" in doc:
-         hasOid = True
-         oidv = doc.pop("_id")
-         if isinstance(oidv, dict):
-            oid = ObjectId(oidv["$oid"])
-         elif isinstance(oidv, str_type):
-            oid = ObjectId(oidv)
-         elif isinstance(oidv, ObjectId):
-            oid = oidv
-
-      if hasOid:
+         oid = doc.pop("_id")
          return self.upsert({"$set":doc}, condition={"_id":oid})
       else:
          return self.insert(doc)
