@@ -260,8 +260,11 @@ public class GetConnectionTest extends DataSourceTestBase{
 			}
 			Assert.assertEquals(datasource.getUsedConnNum(), oldPoolSize);
 		}catch(InterruptedException e){
+		    System.out.println("current get connection number " + dbs.size());
+			e.printStackTrace();
 			Assert.assertFalse(true, e.getMessage());
 		}catch(BaseException e){
+		    System.out.println("current get connection number " + dbs.size());
 			e.printStackTrace();
 			Assert.assertFalse(true, e.getMessage());
 		}
