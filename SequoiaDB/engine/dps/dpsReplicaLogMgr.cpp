@@ -1104,13 +1104,6 @@ namespace engine
                   work,
                   offset);
 
-      /// dummy log has no body.
-      if ( LOG_TYPE_DUMMY == head._type )
-      {
-         goto done ;
-      }
-
-      {
       // and then copy body
       dpsLogRecord::iterator itr( &(block.record()) ) ;
       if ( block.isRow() )
@@ -1126,6 +1119,13 @@ namespace engine
       else
       {
          UINT32 mergeSize = 0 ;
+
+         /// dummy log has no body.
+         if ( LOG_TYPE_DUMMY == head._type )
+         {
+            goto done ;
+         }
+
          while ( itr.next() )
          {
             const _dpsRecordEle &dataMeta = itr.dataMeta() ;
@@ -1148,7 +1148,6 @@ namespace engine
             CHAR stop[sizeof(dpsRecordEle)] = {0} ;
             _mergePage( stop, sizeof(stop), work, offset ) ;
          }
-      }
       }
 
    done:
