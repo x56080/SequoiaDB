@@ -429,8 +429,6 @@ namespace engine
 
    class rtnCoordCMDGetQueryMeta : public rtnCoordCMDGetDatablocks
    {
-   private :
-      virtual BOOLEAN openEmptyContext() const { return TRUE ; }
    } ;
 
    class rtnCoordCMDTraceStart : public rtnCoordCommand
