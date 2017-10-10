@@ -9,7 +9,8 @@
 
 #include <cstdlib>
 #include <client.hpp>
-#include "../testcommon.hpp"
-using namespace sdbclient ;
+#include "testcommon.hpp"
+#include "arguments.hpp"
+#include "testBase.hpp"
 
 #endif 
