@@ -22,15 +22,25 @@ protected:
    sdb dataDB ;
    sdbCursor cursor ;
    BSONObj res ;
+   const CHAR *pCsName ;
 
    void SetUp()
    {
       testBase::SetUp() ;
 
+      // create cs
+      pCsName = "getList12526" ;
+      sdbCollectionSpace cs ;
+
       INT32 rc = SDB_OK ;
+      rc = db.createCollectionSpace( pCsName, SDB_PAGESIZE_4K, cs ) ;
+      ASSERT_EQ( SDB_OK, rc ) << "fail to create cs" ;
+
+      // special operation for standalone
       if( isStandalone( db ) )
       {
          rc = dataDB.connect( ARGS->hostName(), ARGS->svcName(), ARGS->user(), ARGS->passwd() ) ;
+         ASSERT_EQ( SDB_OK, rc ) ;
          return ;
       }
 
@@ -66,6 +76,12 @@ protected:
    void TearDown()
    {
       INT32 rc = SDB_OK ;
+      if( shouldClear() )
+      {
+         rc = db.dropCollectionSpace( pCsName ) ;
+         ASSERT_EQ( SDB_OK, rc ) << "fail to drop cs" ;
+      }
+
       rc = cursor.close() ;
       ASSERT_EQ( SDB_OK, rc ) ;
       
