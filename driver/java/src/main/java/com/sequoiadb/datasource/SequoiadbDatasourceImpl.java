@@ -827,7 +827,15 @@ public class SequoiadbDatasourceImpl {
                             }
                         }
                         if (connItem == null) {
-                            throw new BaseException(SDBError.SDB_DRIVER_DS_RUNOUT, "connection pool has run out");
+                        	String detail = String.format("total item: %d, idle item: %d, used item: %d, " + 
+                        		"idle connections: %d, used connections: %d, " +
+                        		"normal addresses: %d, abnormal addresses: %d, local addresses: %d",
+                        		_connItemMgr.getCapacity(), _connItemMgr.getIdleItemNum(), _connItemMgr.getUsedItemNum(),
+                        		_idleConnPool != null ? _idleConnPool.count() : null, 
+                        		_usedConnPool != null ? _usedConnPool.count() : null,
+                        		getNormalAddrNum(), getAbnormalAddrNum(), getLocalAddrNum());
+                            throw new BaseException(SDBError.SDB_DRIVER_DS_RUNOUT, 
+                            		"connection pool has run out(" + detail + ")");
                         } else {
                             sdb = _idleConnPool.poll(connItem);
                             // sanity check
