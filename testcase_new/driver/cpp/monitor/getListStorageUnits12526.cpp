@@ -28,13 +28,17 @@ protected:
    {
       testBase::SetUp() ;
 
-      // create cs
+      // create cs cl
       pCsName = "getList12526" ;
+      const CHAR *pClName = "getList12526" ;
       sdbCollectionSpace cs ;
+      sdbCollection cl ;
 
       INT32 rc = SDB_OK ;
       rc = db.createCollectionSpace( pCsName, SDB_PAGESIZE_4K, cs ) ;
       ASSERT_EQ( SDB_OK, rc ) << "fail to create cs" ;
+      rc = cs.createCollection( pClName, cl ) ;
+      ASSERT_EQ( SDB_OK, rc ) << "fail to create cl" ;
 
       // special operation for standalone
       if( isStandalone( db ) )
@@ -44,9 +48,9 @@ protected:
          return ;
       }
 
-      // get all groups name
+      // get cl group name
       vector<string> groupNames ;
-      rc = getGroups( db, groupNames ) ;
+      rc = getClGroups( db, "getList12526.getList12526", groupNames ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
 
       // select a data group name
