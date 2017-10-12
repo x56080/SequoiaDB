@@ -80,7 +80,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNSORTING_INIT ) ;
-      SDB_ASSERT( RTN_SORT_MIN_BUFSIZE <= RTN_SORT_MIN_BUFSIZE,
+      SDB_ASSERT( RTN_SORT_MIN_BUFSIZE <= bufSize,
                   "bufSize should >= 64MB" ) ;
       SDB_ASSERT( NULL != cb, "impossible" ) ;
       SDB_ASSERT( !orderby.isEmpty(), "impossible" ) ;
