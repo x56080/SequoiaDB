@@ -34,7 +34,8 @@ protected:
       INT32 rc = SDB_OK ;
       rc = db.createCollectionSpace( pCsName, SDB_PAGESIZE_4K, cs ) ;
       ASSERT_EQ( SDB_OK, rc ) << "fail to create cs" ;
-      rc = cs.createCollection( pClName, cl ) ;
+      BSONObj option = BSON( "ReplSize" << 0 ) ;
+      rc = cs.createCollection( pClName, option, cl ) ;
       ASSERT_EQ( SDB_OK, rc ) << "fail to create cl" ;
 
       BSONObj doc = BSON( "a" << 1 ) ;
