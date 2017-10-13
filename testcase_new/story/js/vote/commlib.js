@@ -50,7 +50,7 @@ function getPrimNode( db, groupName )
 {
    try
    {
-      var group = commGetGroups( db ) ;
+      /*var group = commGetGroups( db ) ;
       var rgSize = group.length ;
       for( var i = 0 ; i < rgSize ; ++i )
       {
@@ -61,12 +61,16 @@ function getPrimNode( db, groupName )
             var primNode = group[i][0].PrimaryNode ;
             break ;
          }
-      }
-      return primNode ;
+      }*/
+      
+      var nodeName = db.getRG(groupName).getMaster();
+
+      var nodeDb = new Sdb( nodeName );
+      return nodeDb.snapshot(6).next().toObj().IsPrimary ;
    }
    catch( e )
    {
-      if( -79 != e )
+      if( -79 != e  && -15 != e && -155 != e)
       {
          println( "Failed to get primary node, rc = " + e ) ;
          throw e ;
