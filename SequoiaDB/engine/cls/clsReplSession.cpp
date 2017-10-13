@@ -369,6 +369,10 @@ namespace engine
          {
             _selector.addToBlakList( _syncSrc ) ;
             _selector.clearSrc() ;
+            /// must to clear the _lastSyncNode, because next selector
+            /// will select the same node with last. But the log maybe
+            /// is not the same with last node now
+            _lastSyncNode.value = MSG_INVALID_ROUTEID ;
 
             _sendSyncReq() ;
          }
