@@ -1188,7 +1188,7 @@ namespace engine
          newPos = totalKeyNodeNum ;
       else if ( _extentHead->_totalKeyNodeNum < newPos )
          newPos = 0xFFFF ;
-	  PD_TRACE1 ( SDB__IXMEXT__REORG, PD_PACK_USHORT( newPos ) ) ;
+      PD_TRACE1 ( SDB__IXMEXT__REORG, PD_PACK_USHORT( newPos ) ) ;
       _extentHead->_beginFreeOffset = beginFreeOffset ;
       _extentHead->_totalKeyNodeNum = totalKeyNodeNum ;
       _pIndexSu->decStatFreeSpace( _extentHead->_mbID,
