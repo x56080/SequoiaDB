@@ -22,7 +22,7 @@ Install.Paramers.Force.Check=无效参数: --force ${force}, 参数值必须是t
 Install.Paramers.SMS.Check=无效参数: --SMS ${SMS}, 参数值必须是true或者false
 Install.Paramers.ProcessAutoStart.Check=无效参数: --processAutoStart ${processAutoStart}, 参数值必须是true或者false
 Install.Parameter.Upgrade.explanation=检测到${installdir_inconf}下已有安装版本。
-Install.Parameter.Upgrade.description=是否切换到升级模式？
+Install.Parameter.Upgrade.description=是否切换到升级模式[upgrade/cover]？
 
 Install.ErrorMsg.CheckGroup=用户${username}存在，但该用户不属于用户组${groupname}
 Install.ErrorMsg.CreateGroup=创建用户组${groupname}失败
@@ -42,7 +42,7 @@ Install.WarnMsg.checkHostname=没有配置主机名，主机名可能为空！
 Install.WarnMsg.checkHostnameIp=无法解析主机名${machine_hostname}到本机ip地址！请检查/etc/hosts中的映射关系。
 
 Upgrade.Paramers.Upgrade.Explanation=是否升级
-Upgrade.Paramers.Upgrade.Check=无效参数: --upgrade ${is_upgrade_mode}, 参数值必须是true或者false
+Upgrade.Paramers.Upgrade.Check=无效参数: --installmode ${installmode}, 参数值必须是upgrade或者cover
 
 Upgrade.NormalMsg.BeginUpgrade=开始升级
 Upgrade.NormalMsg.CheckList=**************************  检查列表 *************************************

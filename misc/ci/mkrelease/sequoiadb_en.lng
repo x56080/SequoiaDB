@@ -22,7 +22,7 @@ Install.Paramers.Force.Check=Invalid parameter: --force ${force}, should be true
 Install.Paramers.SMS.Check=Invalid parameter: --SMS ${SMS}, should be true or false
 Install.Paramers.ProcessAutoStart.Check=Invalid parameter: --processAutoStart ${processAutoStart}, should be true or false
 Install.Parameter.Upgrade.explanation=An existing installation has been detected in ${installdir_inconf}.
-Install.Parameter.Upgrade.description=Do you want to change to upgrade mode?
+Install.Parameter.Upgrade.description=Do you want to change to upgrade mode [upgrade/cover]?
 
 Install.ErrorMsg.CheckGroup=User ${username} exists, but it does not belong to group ${groupname}
 Install.ErrorMsg.CreateGroup=Failed to create group ${groupname}
@@ -41,8 +41,8 @@ Install.WarnMsg.CheckUmask=Umask abnormal! Current umask = ${full_mask}, recomme
 Install.WarnMsg.checkHostname=Hostname may be null!
 Install.WarnMsg.checkHostnameIp=Hostname ${machine_hostname} can't be resolved to local ip address! Please check file /etc/hosts.
 
-Upgrade.Paramers.Upgrade.Explanation=Do You Want To Upgrade
-Upgrade.Paramers.Upgrade.Check=Invalid parameter: --upgrade ${is_upgrade_mode}, should be true or false
+Upgrade.Paramers.Upgrade.Explanation=upgrade or cover
+Upgrade.Paramers.Upgrade.Check=Invalid parameter: --installmode ${installmode}, should be upgrade or cover
 
 Upgrade.NormalMsg.BeginUpgrade=Begin to upgrade package ......
 Upgrade.NormalMsg.CheckList=**************************  check list *************************************
