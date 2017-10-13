@@ -77,7 +77,7 @@ public class DetachCL2179 extends SdbTestBase {
             GroupWrapper dataGroup = groupMgr.getGroupByName(clGroup);
             String dataPriHost = dataGroup.getMaster().hostName();
 
-            FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(dataGroup, 3, 1);
+            FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(dataGroup, 3, 10);
             TaskMgr mgr = new TaskMgr(faultTask);
             String safeUrl = CommLib.getSafeCoordUrl(dataPriHost);
             DetachCLTask dTask = new DetachCLTask(mclName, safeUrl);

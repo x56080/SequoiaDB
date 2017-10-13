@@ -75,7 +75,7 @@ public class AttachCL2171 extends SdbTestBase {
             GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
             String cataPriHost = cataGroup.getMaster().hostName();
 
-            FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(cataGroup, 3, 1);
+            FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(cataGroup, 3, 10);
             TaskMgr mgr = new TaskMgr(faultTask);
             String safeUrl = CommLib.getSafeCoordUrl(cataPriHost);
             AttachCLTask aTask = new AttachCLTask(mclName, safeUrl);
