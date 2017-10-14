@@ -688,7 +688,7 @@ namespace engine
                    "Failed to check local service [%s], rc: %d",
                    _localSvc.c_str(), rc ) ;
       PD_CHECK( !svcExist,
-                SDB_CM_CONFIG_CONFLICTS, error, PDERROR,
+                SDBCM_NODE_EXISTED, error, PDERROR,
                 "Local service [%s] conflict", _localSvc.c_str() ) ;
 
       ossSocket::getPort( _localSvc.c_str(), svcPort ) ;
