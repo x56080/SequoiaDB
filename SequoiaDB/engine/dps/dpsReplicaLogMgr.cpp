@@ -276,6 +276,16 @@ namespace engine
 
       if ( FALSE == _restoreFlag )
       {
+         /// first to lock writeMutex, then make sure idle space is enough,
+         /// at last lock mtx. So, this don't block read operations
+         _writeMutex.get() ;
+         while ( _idleSize.peek() < head._length )
+         {
+            PD_LOG ( PDWARNING, "No space in log buffer for %d bytes, "
+                     "currently left %d bytes", head._length,
+                     _idleSize.peek() ) ;
+            _allocateEvent.wait ( OSS_ONE_SEC ) ;
+         }
          _mtx.get();
          locked = TRUE ;
       }
@@ -396,7 +406,8 @@ namespace engine
       // unlock metadata
       if ( locked )
       {
-         _mtx.release();
+         _mtx.release() ;
+         _writeMutex.release() ;
          locked = FALSE ;
       }
       PD_TRACE_EXITRC ( SDB__DPSRPCMGR_PREPAGES, rc );
@@ -513,8 +524,9 @@ namespace engine
       DPS_LSN invalidLsn ;
 
       //out of range clear all pages
-      if ( _currentLsn.invalid()
-         || ( _getStartLsn().offset > offset || _lsn.offset < offset ) )
+      if ( _currentLsn.invalid() ||
+           offset < _getStartLsn().offset ||
+           offset > _lsn.offset )
       {
          UINT32 i = 0 ;
          while ( i < _pageNum )
@@ -591,8 +603,8 @@ namespace engine
       DPS_LSN_OFFSET tmpLsnOffset = 0 ;
       DPS_LSN_OFFSET tmpBeginOffset = 0 ;
       DPS_LSN tmpCurLsn ;
+      BOOLEAN locked = FALSE ;
 
-      ossScopedLock lock( &_mtx ) ;
       if ( DPS_INVALID_LSN_OFFSET == offset )
       {
          rc = SDB_DPS_MOVE_FAILED ;
@@ -600,11 +612,15 @@ namespace engine
          goto error ;
       }
 
-      // wait queue empty
+      /// first to block write, then wait queSize to zero,
+      /// at last, to lock mtx
+      _writeMutex.get() ;
       while ( !_queSize.compare( 0 ) )
       {
          ossSleep ( 100 ) ;
       }
+      _mtx.get() ;
+      locked = TRUE ;
 
       tmpWork = _work ;
       tmpCurLsn = _currentLsn ;
@@ -615,7 +631,6 @@ namespace engine
       (&_pages[_work])->clear() ;
 
       rc = _movePages ( offset, version ) ;
-
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -630,7 +645,6 @@ namespace engine
       }
 
       rc = _logger.move( offset, version ) ;
-
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -640,6 +654,10 @@ namespace engine
       if ( !_logger.getStartLSN().invalid() && offset < tmpBeginOffset )
       {
          rc = _restore () ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
       }
       else //reset file idle size
       {
@@ -660,6 +678,11 @@ namespace engine
       }
 
    done:
+      if ( locked )
+      {
+         _mtx.release() ;
+         _writeMutex.release() ;
+      }
       PD_TRACE_EXITRC ( SDB__DPSRPCMGR_MOVE, rc );
       return rc ;
    error:
@@ -1313,7 +1336,8 @@ namespace engine
       PD_TRACE_ENTRY( SDB__DPSRPCMGR_COMMIT ) ;
       _dpsLogPage *work = NULL ;
 
-      _mtx.get() ;
+      /// first lock writeMutex to block all write
+      _writeMutex.get() ;
  
       work = WORK_PAGE ;
       if ( 0 ==_lastCommitted.compare( _currentLsn ) )
@@ -1351,14 +1375,16 @@ namespace engine
          }
       }
 
+      _mtx.get() ;
       _lastCommitted = _currentLsn ;
+      _mtx.release() ;
+
+   done:
       if ( NULL != committedLsn )
       {
           *committedLsn = _lastCommitted ;
       }
-
-   done:
-      _mtx.release() ;
+      _writeMutex.release() ;
       PD_TRACE_EXITRC( SDB__DPSRPCMGR_COMMIT, rc ) ;
       return rc ;
    error:

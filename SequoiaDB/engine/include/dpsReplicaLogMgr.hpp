@@ -74,7 +74,8 @@ namespace engine
       ossQueue<_dpsLogPage *>    _queue;
       _dpsLogFileMgr             _logger;
       _dpsLogPage                *_pages;
-      _ossSpinXLatch             _mtx;
+      _ossSpinXLatch             _mtx ;
+      _ossSpinXLatch             _writeMutex ;
       _ossAtomic32               _idleSize;
       DPS_LSN                    _lsn;
       DPS_LSN                    _currentLsn;
