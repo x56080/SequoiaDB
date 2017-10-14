@@ -64,6 +64,7 @@ namespace engine
       UINT32                  _work;
       UINT32                  _logicalWork ;
       UINT32                  _begin ;
+      BOOLEAN                 _rollFlag ;
 
       UINT32                  _logFileSz ;
       UINT32                  _logFileNum ;

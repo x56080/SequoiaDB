@@ -74,6 +74,7 @@ namespace engine
       _logFileNum = PMD_DFT_LOG_FILE_NUM ;
 
       _begin = 0 ;
+      _rollFlag = FALSE ;
    }
 
    // destructor
@@ -220,6 +221,7 @@ namespace engine
       {
          _logicalWork = _files[_work]->header()._logID ;
       }
+      _rollFlag = ( _begin == _work ? FALSE : TRUE ) ;
 
       PD_LOG( PDEVENT, "Analysis dps logs[begin: %u, work: %u, "
               "logicalWork: %u]", _begin, _work, _logicalWork ) ;
@@ -267,6 +269,15 @@ namespace engine
       {
          _work = _incFileID ( _work ) ;
          _incLogicalFileID () ;
+
+         if ( !_rollFlag && _begin != _work )
+         {
+            _rollFlag = TRUE ;
+         }
+         else if ( _begin == _work && _rollFlag )
+         {
+            _begin = _incFileID ( _begin ) ;
+         }
       }
 
       // empty file or full file(roll over)
@@ -460,6 +471,7 @@ namespace engine
       {
          _begin = file ;
          _work = file ;
+         _rollFlag = FALSE ;
          _logicalWork = offset / _logFileSz ;
          if ( _logicalWork == DPS_INVALID_LOG_FILE_ID )
          {

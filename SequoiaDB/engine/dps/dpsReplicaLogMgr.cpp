@@ -524,8 +524,9 @@ namespace engine
       DPS_LSN invalidLsn ;
 
       //out of range clear all pages
-      if ( _currentLsn.invalid()
-         || ( _getStartLsn().offset > offset || _lsn.offset < offset ) )
+      if ( _currentLsn.invalid() ||
+           offset < _getStartLsn().offset ||
+           offset > _lsn.offset )
       {
          UINT32 i = 0 ;
          while ( i < _pageNum )
