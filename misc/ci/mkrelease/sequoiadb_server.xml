@@ -37,8 +37,7 @@
             <format>%Y-%m-%d-%H:%M:%S</format>
         </createTimeStamp> 
         <setInstallerVariable name="sys_conf_file" value="/etc/default/sequoiadb" persist="1"/>
-        <setInstallerVariable name="exist_installation" value="false"/>  
-        <setInstallerVariable name="is_upgrade_mode"    value="true"/>         
+        <setInstallerVariable name="exist_installation" value="false"/>                   
         <setInstallerVariable name="project.rollbackBackupDirectory" value="${installdir}/rollback/BackupDir_${time}"/>       
     </initializationActionList>
         
@@ -293,8 +292,8 @@
             <text>${msg(Upgrade.Paramers.Upgrade.Check)}</text>
             <ruleEvaluationLogic>and</ruleEvaluationLogic>
             <ruleList>
-                <compareText logic="does_not_equal" text="${installmode}" value="upgrade"/>
-                <compareText logic="does_not_equal" text="${installmode}" value="cover"/>
+                <compareText logic="does_not_equal" text="${is_upgrade_mode}" value="true"/>
+                <compareText logic="does_not_equal" text="${is_upgrade_mode}" value="false"/>
             </ruleList>
         </throwError>
         <throwError>
@@ -326,11 +325,6 @@
         <setInstallerVariable name="parameter(force).ask" value="0">
             <ruleList>
                 <compareText text="${installer_command_line_arguments}" value="--force" logic="contains"/>
-            </ruleList>
-        </setInstallerVariable>   
-        <setInstallerVariable name="parameter(installdir).ask" value="0">
-            <ruleList>
-                <compareText text="${installer_command_line_arguments}" value="--installmode" logic="contains"/>
             </ruleList>
         </setInstallerVariable>       
         <setInstallerVariable name="parameter(installdir).ask" value="0">
@@ -454,35 +448,17 @@
             </licenseFileList>
         </licenseParameter>
         
-        <stringParameter name="installmode"> 
+        <booleanParameter name="is_upgrade_mode"> 
             <insertAfter>full_license</insertAfter>            
             <value></value>
-            <default>upgrade</default>
+            <default>true</default>
             <cliOptionText>${msg(Upgrade.Paramers.Upgrade.Explanation)}</cliOptionText>             
-            <cliOptionName>installmode</cliOptionName> 
+            <cliOptionName>upgrade</cliOptionName> 
             <description>${msg(Install.Parameter.Upgrade.description)}</description>
             <explanation>${msg(Install.Parameter.Upgrade.explanation)}</explanation>            
             <ruleList>
-                <compareText text="${installer_command_line_arguments}" value="--installmode" logic="does_not_contain"/>                
+                <compareText text="${installer_command_line_arguments}" value="--upgrade" logic="does_not_contain"/>                
                 <isTrue value="${exist_installation}"/>                                                        
-            </ruleList> 
-            <postShowPageActionList>
-                <setInstallerVariable name="is_upgrade_mode" value="false">
-                    <ruleList>
-                        <compareValues value1="${installmode}" logic="does_not_equal" value2="upgrade"/>    
-                    </ruleList> 
-                </setInstallerVariable>
-            </postShowPageActionList>            
-        </stringParameter>
-
-        <booleanParameter name="upgrade_param"> 
-            <insertAfter>installmode</insertAfter>            
-            <value></value>
-            <default>true</default>     
-            <cliOptionName>upgrade</cliOptionName>   
-            <cliOptionShow>0</cliOptionShow>             
-            <ruleList>
-                <compareValues value1="1" logic="equals" value2="0"/>                                                      
             </ruleList>   
         </booleanParameter>
               
@@ -497,7 +473,7 @@
             <preShowPageActionList>
                 <setInstallerVariable name="is_upgrade_mode" value="false">
                 <ruleList>
-                    <compareText text="${installer_command_line_arguments}" value="--installmode" logic="does_not_contain"/>
+                    <compareText text="${installer_command_line_arguments}" value="--upgrade" logic="does_not_contain"/>
                     <isFalse value="${exist_installation}"/>
                 </ruleList> 
                 </setInstallerVariable>   
@@ -610,38 +586,22 @@
     <!--select compoment, and check environment-->
     <readyToInstallActionList>
         <!--when unattended mode, execute postShowPageActionList / preShowPageActionList -->
-        <if>
-            <conditionRuleList>
-                <compareText text="${installer_command_line_arguments}" value="--upgrade" logic="contains"/>
-            </conditionRuleList>
+        <actionGroup>
             <actionList>
-                <setInstallerVariable name="is_upgrade_mode" value="false">
-                    <ruleList>
-                        <compareValues value1="${upgrade_param}" logic="equals" value2="false"/>
-                    </ruleList>
-                </setInstallerVariable>
+                <setInstallerVariable name="is_upgrade_mode" value="false"/>
             </actionList>
-            <elseActionList>
-                <setInstallerVariable name="is_upgrade_mode" value="false">
-                    <ruleEvaluationLogic>and</ruleEvaluationLogic>
-                    <ruleList> 
-                        <compareText text="${installer_command_line_arguments}" value="--installmode" logic="does_not_contain"/>
-                        <isFalse value="${exist_installation}"/>
-                        <compareText>
-                            <text>${installer_interactivity}</text>
-                            <logic>does_not_equal</logic>
-                            <value>normal</value>
-                        </compareText>
-                    </ruleList> 
-                </setInstallerVariable>
-                <setInstallerVariable name="is_upgrade_mode" value="false">
-                    <ruleList>
-                        <compareText text="${installer_command_line_arguments}" value="--installmode" logic="contains"/>
-                        <compareValues value1="${installmode}" logic="equals" value2="cover"/>
-                    </ruleList>
-                </setInstallerVariable>
-            </elseActionList>
-        </if>           
+            <ruleEvaluationLogic>and</ruleEvaluationLogic>
+            <ruleList>                                                                        
+                <compareText text="${installer_command_line_arguments}" value="--upgrade" logic="does_not_contain"/>
+                <isFalse value="${exist_installation}"/>
+                <compareText>
+                    <text>${installer_interactivity}</text>
+                    <logic>does_not_equal</logic>
+                    <value>normal</value>
+                </compareText>
+            </ruleList>
+        </actionGroup>             
+          
         <actionGroup> 
             <actionList>
                 <setInstallerVariable name="project.installationType" value="upgrade"/>                             
