@@ -94,7 +94,7 @@ namespace engine
       }
       catch ( std::exception &e )
       {
-         PD_CHECK( SDB_INVALIDARG, SDB_INVALIDARG, error, PDERROR,
+         PD_CHECK( FALSE, SDB_INVALIDARG, error, PDERROR,
                    "Failed to parse the \"skip\", occur unexpection: %s",
                    e.what() ) ;
       }
