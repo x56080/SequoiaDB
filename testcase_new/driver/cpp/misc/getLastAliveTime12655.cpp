@@ -26,7 +26,7 @@ protected:
 
    INT32 checkLastAliveTime()
    {
-      ossSleep( 2000 ) ;
+      ossSleep( 2050 ) ;
       time( &endtime ) ;
       timediff = difftime( endtime, db.getLastAliveTime() ) ;
       INT32 rc = SDB_OK ;
@@ -40,7 +40,6 @@ protected:
 
 } ;
 
-// TODO: ';' no blank, cursor not closed, operation no rc
 TEST_F( getLastAliveTime12655, getLastAliveTime )
 {   
    INT32 rc = SDB_OK ;
