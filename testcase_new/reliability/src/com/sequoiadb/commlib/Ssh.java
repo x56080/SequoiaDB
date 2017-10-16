@@ -139,7 +139,9 @@ public class Ssh {
         try {
             channel = session.openChannel("exec");
             ((ChannelExec) channel).setCommand(command);
+            channel.setInputStream( null ) ;
             getResult(channel, Integer.MAX_VALUE);
+            
             if (exitStatus != 0) {
                 throw new ReliabilityException("ssh failed to execute commond '" + command
                         + "',stderr:" + stderr + " ,stdout:" + stdout + ",errcode: " + exitStatus);
@@ -168,6 +170,7 @@ public class Ssh {
         try {
             channel = session.openChannel("exec");
             ((ChannelExec) channel).setCommand(command);
+            channel.setInputStream( null ) ;
             channel.connect(60 * 1000);
             backgroundCMD.put(channel.getId(), channel);
             return channel.getId();
