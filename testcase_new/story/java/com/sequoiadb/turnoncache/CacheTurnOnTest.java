@@ -30,7 +30,7 @@ public class CacheTurnOnTest extends SdbTestBase{
 	@DataProvider(name = "clientoption-provider")
 	public Object[][] getClientOption(){
 		return new Object[][]{
-				new Object[]{true, 100000},
+				new Object[]{true, 2000},
 				new Object[]{false, 1000},
 		};
 	}
@@ -255,7 +255,7 @@ public class CacheTurnOnTest extends SdbTestBase{
 		
 		try{
 			getCS(db_check);
-			Thread.sleep(inteval);
+			Thread.sleep(inteval*2);
 			dropCS(cs);
 			getCS(db_check);
 			Assert.assertFalse(true, "must is SDB_DMS_CS_NOTEXIST");
@@ -276,7 +276,7 @@ public class CacheTurnOnTest extends SdbTestBase{
 		
 		try{
 			getCL(db_check);
-			Thread.sleep(inteval);
+			Thread.sleep(inteval*2);
 			dropCL(cs);
 			getCL(db_check);
 			Assert.assertFalse(true, "must is SDB_DMS_CS_NOTEXIST");
