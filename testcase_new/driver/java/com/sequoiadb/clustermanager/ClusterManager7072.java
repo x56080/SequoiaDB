@@ -71,7 +71,7 @@ public class ClusterManager7072 extends SdbTestBase{
 	public void test(){
 		//set data node configure
 		int dataPortAdd1 = reservedPortBegin + 720 ;
-		String dataPathAdd1 = workDir + dataPortAdd1 + "/";
+		String dataPathAdd1 = workDir + "/" + dataPortAdd1 + "/";
 		BSONObject dataConfigue = null;
 		
 		//create data groups
@@ -97,8 +97,8 @@ public class ClusterManager7072 extends SdbTestBase{
 		try{
 			dataRGAdd.createNode(coordIP, dataPortAdd1, dataPathAdd1, dataConfigue );
 			Assert.fail("expect result need throw an error but not.");
-		}catch(BaseException e){
-			if(-157 != e.getErrorCode()){
+		}catch(BaseException e){			
+			if(-145 != e.getErrorCode()){
 			Assert.assertTrue(false,"create node, errMsg:" + e.getMessage());
 			}
 		}
