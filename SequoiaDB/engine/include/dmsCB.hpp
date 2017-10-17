@@ -155,18 +155,19 @@ namespace engine
       std::vector< ossSpinXLatch* >       _vecCSMutex ;
 
       /*
-       * List of collections which are waitting for dictionaies creation.
+       * Queue of collections which are waitting for dictionaies creation.
        * Here we store the storage unit id and mb ID of the collection.
        * One concern here is the reuse of these two IDs, but that's ok. I'll
        * just check with these IDs to see if dictionary creation is needed for
        * the CURRENT corresponding collection. If they have been reused, then
        * the original collection has been dropped. So we just ignore that.
-       * If the IDs have been reused, and added to the list again, it's also ok.
+       * If the IDs have been reused, and added to the queue again, it's also
+       * ok.
        * Everytime we are about to create a dictionary, we should check if a
-       * dictionary is there already. If yes, just remove the item from the list.
+       * dictionary is there already. If yes, just remove the item from the
+       * queue.
        */
-      typedef std::list<dmsDictJob>::iterator     DICT_WAIT_LIST_ITR ;
-      std::list<dmsDictJob>                       _dictWaitClList ;
+      ossQueue<dmsDictJob>    _dictWaitQue ;
 
       ossSpinXLatch           _stateMtx;
       ossEvent                _blockEvent ;

@@ -420,7 +420,7 @@ namespace engine
       dmsMBContext *context = NULL ;
       dmsMB *mb = NULL ;
 
-      rc = dmsCB->nameToSUAndLock( csName, suID, &su, EXCLUSIVE, -1 ) ;
+      rc = dmsCB->nameToSUAndLock( csName, suID, &su ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to get and lock collectionspace[%s], "
@@ -430,7 +430,7 @@ namespace engine
 
       for ( UINT16 mbID = 0; mbID < DMS_MME_SLOTS; ++mbID )
       {
-         rc = su->data()->getMBContext( &context, mbID, clLID, -1 ) ;
+         rc = su->data()->getMBContext( &context, mbID, clLID, SHARED ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d",
                       rc ) ;
          mb = context->mb() ;
@@ -463,7 +463,7 @@ namespace engine
       }
       if ( DMS_INVALID_SUID != suID )
       {
-         dmsCB->suUnlock( suID, EXCLUSIVE ) ;
+         dmsCB->suUnlock( suID ) ;
          suID = DMS_INVALID_SUID ;
       }
       PD_TRACE_EXIT( SDB_RTNRESUMECLDICTCREATE ) ;

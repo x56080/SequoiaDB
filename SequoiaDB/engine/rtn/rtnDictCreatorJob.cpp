@@ -404,8 +404,8 @@ namespace engine
       ossGetCurrentTime( end ) ;
 
       PD_LOG( PDEVENT, "Compression dictionary created succesfully for "
-              "collection[%s]. Time: %llums",
-              mbContext->mb()->_collectionName,
+              "collection[%s.%s]. Time: %llums",
+              su->CSName(), mbContext->mb()->_collectionName,
               end.time * 1000 + end.microtm / 1000 -
               (begin.time * 1000 + begin.microtm / 1000) ) ;
 
