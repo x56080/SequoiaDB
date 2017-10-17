@@ -105,7 +105,7 @@ class dataGroupTest extends PHPUnit_Framework_TestCase
    public function testAddNodeRepeat($group, $node)
    {
       $ret = $group->addNode($node->getHostName(), $node->getServiceName(),globalParameter::getDbPathPrefix().'/'.$node->getServiceName() );
-      $this->assertEquals($ret, -157);
+      $this->assertEquals($ret, -145);
    }
    
    /**
