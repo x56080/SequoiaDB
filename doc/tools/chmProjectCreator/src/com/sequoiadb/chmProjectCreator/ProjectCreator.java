@@ -58,7 +58,7 @@ public class ProjectCreator {
                 content += (outputDir + File.separator + outputFile);
             }
             else if ( i == ProjectTemplate.general_webhelp_output_folder_index ){
-                content += (outputDir + "webhelp" + File.separator);
+                content += (outputDir + File.separator + title + File.separator);
             }
             else if ( i == ProjectTemplate.general_singlehtml_output_folder_index ){
                 content += (outputDir + "singlehtml" + File.separator);
