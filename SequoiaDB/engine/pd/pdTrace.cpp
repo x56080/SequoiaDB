@@ -906,6 +906,7 @@ done :
       SDB_OSS_FREE ( pFormatBuffer ) ;
       pFormatBuffer = NULL ;
    }
+   gTraceFormatSystem.clear() ;
    return rc ;
 error :
    goto done ;
