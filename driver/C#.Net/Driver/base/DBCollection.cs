@@ -597,7 +597,7 @@ namespace SequoiaDB
                 orderBy = dummyObj;
             if (hint == null)
                 hint = dummyObj;
-            if (returnRows == 0)
+            if (returnRows < 0)
             {
                 returnRows = -1;
             }
@@ -871,15 +871,15 @@ namespace SequoiaDB
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
         */
-        public long GetCount(BsonDocument condition)
+        public long GetCount(BsonDocument matcher)
         {
             string commandString = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.GET_COUNT;
             BsonDocument dummyObj = new BsonDocument();
             BsonDocument hint = new BsonDocument();
-            if (condition == null)
-                condition = dummyObj;
+            if (matcher == null)
+                matcher = dummyObj;
             hint.Add(SequoiadbConstants.FIELD_COLLECTION, collectionFullName);
-            SDBMessage rtnSDBMessage = AdminCommand(commandString, condition, dummyObj, dummyObj, hint, 0, -1, 0);
+            SDBMessage rtnSDBMessage = AdminCommand(commandString, matcher, dummyObj, dummyObj, hint, 0, -1, 0);
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
                 throw new BaseException(flags);
@@ -956,7 +956,7 @@ namespace SequoiaDB
                 query = dummyObj;
             if (orderBy == null)
                 orderBy = dummyObj;
-            if (returnRows == 0)
+            if (returnRows < 0)
                 returnRows = -1;
             string commandString = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.GET_QUERYMETA;
 

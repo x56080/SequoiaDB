@@ -142,6 +142,7 @@ namespace SequoiaDB
         public const string FIELD_LOB_OPEN_MODE = "Mode";
         public const string FIELD_LOB_SIZE = "Size";
         public const string FIELD_LOB_CREATTIME = "CreateTime";
+        public const string FIELD_LOB_PAGESIZE = "LobPageSize";
         public const string FIELD_NAME_ONLY_DETACH = "OnlyDetach";
         public const string FIELD_NAME_ONLY_ATTACH = "OnlyAttach";
         public const string FIELD_NAME_ALTER = "Alter";
@@ -195,13 +196,14 @@ namespace SequoiaDB
 
         public static readonly byte[] ZERO_NODEID = new byte[12] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	    public const int DEFAULT_VERSION    = 1;
-	    public const short DEFAULT_W        = 0;
+	    public const short DEFAULT_W        = 1;
 	    public const int DEFAULT_FLAGS      = 0;
 	    public const long DEFAULT_CONTEXTID = -1;
     }
 
     internal enum Operation : int
     {
+        RES_FLAG                  = unchecked((int)0x80000000),
         OP_MSG                    = 1000,
         OP_UPDATE                 = 2001,
         OP_INSERT                 = 2002,
@@ -223,12 +225,13 @@ namespace SequoiaDB
         MSG_AUTH_CRTUSR_REQ       = 7001,
         MSG_AUTH_DELUSR_REQ       = 7002,
 
-        MSG_BS_LOB_OPEN_REQ       = 8001, 
-		MSG_BS_LOB_WRITE_REQ      = 8002,
-        MSG_BS_LOB_READ_REQ       = 8003,
-		MSG_BS_LOB_REMOVE_REQ     = 8004,
-        MSG_BS_LOB_UPDATE_REQ     = 8005,
-		MSG_BS_LOB_CLOSE_REQ      = 8006
+        MSG_BS_LOB_OPEN_REQ = 8001, MSG_BS_LOB_OPEN_RES = unchecked((int)(RES_FLAG | (uint)MSG_BS_LOB_OPEN_REQ)),
+        MSG_BS_LOB_WRITE_REQ = 8002, MSG_BS_LOB_WRITE_RES = unchecked((int)(RES_FLAG | (uint)MSG_BS_LOB_WRITE_REQ)),
+        MSG_BS_LOB_READ_REQ = 8003, MSG_BS_LOB_READ_RES = unchecked((int)(RES_FLAG | (uint)MSG_BS_LOB_READ_REQ)),
+        MSG_BS_LOB_REMOVE_REQ = 8004, MSG_BS_LOB_REMOVE_RES = unchecked((int)(RES_FLAG | (uint)MSG_BS_LOB_REMOVE_REQ)),
+        MSG_BS_LOB_UPDATE_REQ = 8005, MSG_BS_LOB_UPDATE_RES = unchecked((int)(RES_FLAG | (uint)MSG_BS_LOB_UPDATE_REQ)),
+        MSG_BS_LOB_CLOSE_REQ = 8006, MSG_BS_LOB_CLOSE_RES = unchecked((int)(RES_FLAG | (uint)MSG_BS_LOB_CLOSE_REQ)),
+        MSG_NULL                  = 9999
     };
 
     internal enum PreferInstanceType : int

@@ -424,6 +424,22 @@ namespace SequoiaDB.Bson
         }
 
         /// <summary>
+        /// Reads a BsonDocument from a byte array.
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <param name="index"></param>
+        /// <param name="count"></param>
+        /// <returns></returns>
+        public static BsonDocument ReadFrom(byte[] bytes, int index, int count)
+        {
+            MemoryStream stream = new MemoryStream(bytes, index, count);
+            using (BsonReader bsonReader = BsonReader.Create(stream))
+            {
+                return ReadFrom(bsonReader);
+            }
+        }
+
+        /// <summary>
         /// Reads a BsonDocument from a stream.
         /// </summary>
         /// <param name="stream">The stream.</param>

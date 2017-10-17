@@ -3,6 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using SequoiaDB.Bson;
+using System.IO;
 
 namespace DriverTest
 {
@@ -54,7 +55,7 @@ namespace DriverTest
         public static void MyClassCleanup()
         {
         }
-        
+
         //使用 TestInitialize 在运行每个测试前先运行代码
         [TestInitialize()]
         public void MyTestInitialize()
@@ -356,14 +357,193 @@ namespace DriverTest
             readNum = 1024*1024*30; // will only read 1024*1024*20
             readBuf = new byte[readNum];
             retNum = lob2.Read(readBuf); // after this, the offset is 1024*1024*100
-            Assert.IsTrue(readNum == (retNum + 1024*1024*10));
-            
+            Assert.AreEqual(readNum, (retNum + 1024 * 1024 * 10));
+
             // Close
             lob2.Close();
             // IsClosed
             flag = false;
             flag = lob.IsClosed();
             Assert.IsTrue(flag);
+        }
+
+        static int[] GenerateSequenceNumber(int Length)
+        {
+            int[] ret = new int[Length];
+            for (int i = 0; i < Length; i++)
+            {
+                ret[i] = i + 1;
+            }
+            return ret;
+        }
+
+        [TestMethod]
+        public void LobReadWriteSequenceNumber()
+        {
+            // gen data
+            Random random = new Random();
+            int size = random.Next(10 * 1024 * 1024);
+            byte[] content_bytes = new byte[size * 4];
+            int[] content = GenerateSequenceNumber(size);
+            for (int i = 0; i < size; i++)
+            {
+                byte[] tmp_buf = System.BitConverter.GetBytes(content[i]);
+                Array.Copy(tmp_buf, 0, content_bytes, i * 4, tmp_buf.Length);
+            }
+            //Console.WriteLine("content_bytes is: {0}", BitConverter.ToString(content_bytes));
+                       
+            int end = content_bytes.Length;
+            int beg = 0;
+            int len = end - beg;
+            byte[] output_bytes = new byte[content_bytes.Length];
+            output_bytes.Initialize();
+
+            DBLob lob = null;
+            DBLob lob2 = null;
+
+            // write to lob
+            try
+            {
+                lob = cl.CreateLob();
+                lob.Write(content_bytes, beg, len);
+            }
+            finally
+            {
+                if (lob != null) lob.Close();
+            }
+
+            // read from lob
+            ObjectId id = lob.GetID();
+
+            try
+            {
+                lob2 = cl.OpenLob(id);
+                lob2.Read(output_bytes, beg, len);
+            }
+            finally
+            {
+                if (lob2 != null) lob2.Close();
+            }
+
+            // check
+            for (int i = 0; i < beg; i++)
+            {
+                Assert.AreEqual(0, output_bytes[i]);
+            }
+
+            for (int i = beg; i < end; i++)
+            {
+                try
+                {
+                    Assert.AreEqual(content_bytes[i], output_bytes[i],
+                        string.Format("beg: {0}, end: {1}, len: {2}, i: {3}", beg, end, len, i));
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("source: ");
+                    for (int j = i; j < i + 8; j++)
+                    {
+                        Console.WriteLine(content_bytes[j]);
+                    }
+                    Console.WriteLine("target: ");
+                    for (int j = i; j < i + 8; j++)
+                    {
+                        Console.WriteLine(output_bytes[j]);
+                    }
+                    throw e;
+                }
+            }
+
+            for (int i = end; i < output_bytes.Length; i++)
+            {
+                Assert.AreEqual(0, output_bytes[i]);
+            }
+            
+        }
+
+        [TestMethod]
+        public void LobReadWriteRandomNumber()
+        {
+            // gen data
+            Random random = new Random();
+            int size = random.Next(20 * 1024 * 1024);
+            string content = Constants.GenerateRandomNumber(size);
+            byte[] content_bytes = System.Text.Encoding.Default.GetBytes(content);
+            int end = random.Next(content_bytes.Length);
+            int beg = random.Next(end);
+            int len = end - beg;
+            byte[] output_bytes = new byte[content_bytes.Length];
+            output_bytes.Initialize();
+
+            DBLob lob = null;
+            DBLob lob2 = null;
+
+            // write to lob
+            try
+            {
+                lob = cl.CreateLob();    
+                lob.Write(content_bytes, beg, len);
+            }
+            finally
+            {
+                if (lob != null) lob.Close();
+            }
+
+            // read from lob
+            ObjectId id = lob.GetID();
+            try
+            {
+                lob2 = cl.OpenLob(id);
+                lob2.Read(output_bytes, beg, len);
+            }
+            finally
+            {
+                if (lob2 != null) lob2.Close();
+            }
+
+            // check
+            for (int i = 0; i < beg; i++)
+            {
+                Assert.AreEqual(0, output_bytes[i]);
+            }
+
+            for (int i = beg; i < end; i++)
+            {
+                try
+                {
+                    Assert.AreEqual(content_bytes[i], output_bytes[i],
+                        string.Format("beg: {0}, end: {1}, len: {2}, i: {3}", beg, end, len, i));
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("source: ");
+                    for (int j = i; j < i + 8; j++)
+                    {
+                        Console.WriteLine(content_bytes[j]);
+                    }
+                    Console.WriteLine("target: ");
+                    for (int j = i; j < i + 8; j++)
+                    {
+                        Console.WriteLine(output_bytes[j]);
+                    }
+                    throw e;
+                }
+            }
+
+            for (int i = end; i < output_bytes.Length; i++)
+            {
+                Assert.AreEqual(0, output_bytes[i]);
+            }
+        }
+
+        [TestMethod()]
+        //[Ignore]
+        public void LobAbnormalTest()
+        {
+            //// case 1: oid is null
+            //// null can't convert to ObjectId, so, no need to worry about
+            //ObjectId id = null;
+            //cl.OpenLob(id);
         }
 
     }

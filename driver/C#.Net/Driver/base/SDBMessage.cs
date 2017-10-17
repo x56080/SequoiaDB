@@ -40,6 +40,7 @@ namespace SequoiaDB
         public uint BsonLen { get; set; }
         public uint LobLen { get; set; }
         public uint LobSequence { get; set; }
+        public ByteBuffer LobCachedDataBuf { get; set; }
         public long LobOffset { get; set; }
         public byte[] lobBuff;
         public byte[] LobBuff

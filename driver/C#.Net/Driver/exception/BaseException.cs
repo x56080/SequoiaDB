@@ -17,11 +17,19 @@ namespace SequoiaDB
         private string errorType;
         private int errorCode;
 
-        internal BaseException(int errorCode)
+        internal BaseException(int errorCode, string detail)
         {
             try 
             {
+                if (detail != null && detail != "")
+                {
+                    this.message = SDBErrorLookup.GetErrorDescriptionByCode(errorCode) +
+                        ", " + detail;
+                }
+                else
+                {
                 this.message = SDBErrorLookup.GetErrorDescriptionByCode(errorCode);
+                }
                 this.errorType = SDBErrorLookup.GetErrorTypeByCode(errorCode);
                 this.errorCode = errorCode;
             }
@@ -31,6 +39,9 @@ namespace SequoiaDB
                 this.errorType = SequoiadbConstants.UNKNOWN_TYPE;
                 this.errorCode = SequoiadbConstants.UNKNOWN_CODE;
             }
+        }
+        internal BaseException(int errorCode):this(errorCode, "")
+        {
         }
 
         internal BaseException(string errorType)

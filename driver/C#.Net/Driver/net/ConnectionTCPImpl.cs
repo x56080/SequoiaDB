@@ -208,6 +208,12 @@ namespace SequoiaDB
             }
         }
 
+        public ByteBuffer ReceiveMessage2(bool isBigEndian)
+        {
+            ByteBuffer buffer = new ByteBuffer(ReceiveMessage(isBigEndian), true);
+            buffer.IsBigEndian = isBigEndian;
+            return buffer;
+        }
         public byte[] ReceiveSysMessage(int msgSize)
         {
             byte[] rtnBuf = new byte[msgSize];

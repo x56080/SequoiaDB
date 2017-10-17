@@ -4,7 +4,7 @@
   <Password></Password>
 
   <Coord>
-    <Address>192.168.20.42:11810</Address>
+    <Address>192.168.20.165:11810</Address>
   </Coord>
 
   <Catalog>
@@ -54,19 +54,19 @@
       <GroupName>group3</GroupName>
       <Nodes>
         <Node>
-          <HostName>susetzb</HostName>
+          <HostName>rhel64-test8</HostName>
           <Port>51000</Port>
           <DBPath>/opt/sequoiadb/database/data/51000</DBPath>
           <DiagLevel>5</DiagLevel>
         </Node>
         <Node>
-          <HostName>susetzb</HostName>
+          <HostName>rhel64-test8</HostName>
           <Port>52000</Port>
           <DBPath>/opt/sequoiadb/database/data/52000</DBPath>
           <DiagLevel>5</DiagLevel>
         </Node>
         <Node>
-          <HostName>susetzb</HostName>
+          <HostName>rhel64-test8</HostName>
           <Port>53000</Port>
           <DBPath>/opt/sequoiadb/database/data/53000</DBPath>
           <DiagLevel>5</DiagLevel>
@@ -77,19 +77,19 @@
       <GroupName>testGroupInCS</GroupName>
       <Nodes>
         <Node>
-          <HostName>susetzb</HostName>
+          <HostName>rhel64-test8</HostName>
           <Port>32100</Port>
           <DBPath>/opt/sequoiadb/database/data/32100</DBPath>
           <DiagLevel>5</DiagLevel>
         </Node>
         <Node>
-          <HostName>susetzb</HostName>
+          <HostName>rhel64-test8</HostName>
           <Port>32200</Port>
           <DBPath>/opt/sequoiadb/database/data/32200</DBPath>
           <DiagLevel>5</DiagLevel>
         </Node>
         <Node>
-          <HostName>susetzb</HostName>
+          <HostName>rhel64-test8</HostName>
           <Port>32300</Port>
           <DBPath>/opt/sequoiadb/database/data/32300</DBPath>
           <DiagLevel>5</DiagLevel>
