@@ -32,7 +32,7 @@ INT32 check( options &opt ) ;
 INT32 exec( options &opt ) ;
 INT32 parseCmd( options &opt, INT32 argc, CHAR *argv[] ) ;
 INT32 parseConf( string configPath ) ;
-INT32 parseMarkdown( string md, string &html, string path, string title = "" ) ;
+INT32 parseMarkdown( string md, string &html, string path, INT32 level, string title = "" ) ;
 INT32 getLocalPath( string &path ) ;
 INT32 execConfFiles( CJSON_MACHINE *pMachine,
                      const cJson_iterator *pIter,
@@ -476,7 +476,7 @@ INT32 exec( options &opt )
          cout << "Failed to get file content, path: " << filePath << endl ;
          goto error ;
       }
-      rc = parseMarkdown( mdContent, html, "" ) ;
+      rc = parseMarkdown( mdContent, html, "", 1 ) ;
       if( rc )
       {
          cout << "Failed to convert markdown file, path: " << filePath << endl ;
@@ -518,6 +518,7 @@ INT32 parseCmd( options &opt, INT32 argc, CHAR *argv[] )
                                   "[normal] convert multi file url. "
                                   "[chm] convert chm html file. "
                                   "[word] convert word single file. "
+                                  "[offline] convert offline html document."
                                   "[single] convert single file url. "
                                   "[website] convert sequoiadb.com url. " ) ;
    opt.setOptions( "", "", "Configuration mode:" ) ;
@@ -631,14 +632,14 @@ error:
    goto done ;
 }
 
-INT32 parseMarkdown( string md, string &html, string path, string title )
+INT32 parseMarkdown( string md, string &html, string path, INT32 level, string title )
 {
    INT32 rc = SDB_OK ;
    INT32 edition = atoi( _major.c_str() ) * 100 + atoi( _minor.c_str() ) ;
    mdParser parser ;
    string cssContent ;
 
-   rc = parser.init( _rootPath, _mdPath, _imgPath, edition, path,
+   rc = parser.init( level, _rootPath, _mdPath, _imgPath, edition, path,
                      _fullPath, _convertMode, &_fileMap, &_cnMap ) ;
    if( rc )
    {
@@ -666,7 +667,7 @@ INT32 parseMarkdown( string md, string &html, string path, string title )
             cout << "Failed to get file content, path: " << _cssFile << endl ;
             goto error ;
          }
-         if( _convertMode == "chm" )
+         if( _convertMode == "chm" || _convertMode == "offline" )
          {
             html = "<html><head><title>" + title + "</title><meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\"><style type=\"text/css\">" + cssContent + "</style></head><body>" + html + " </body></html>" ;
          }
@@ -677,7 +678,7 @@ INT32 parseMarkdown( string md, string &html, string path, string title )
       }
       else
       {
-         if( _convertMode == "chm" )
+         if( _convertMode == "chm" || _convertMode == "offline" )
          {
             html = "<html><head><title>" + title + "</title><meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\"></head><body>" + html + " </body></html>" ;
          }
@@ -1148,7 +1149,7 @@ INT32 execConfFiles( CJSON_MACHINE *pMachine,
             goto error ;
          }
          //cout << "file " << filePath << endl ;
-         rc = parseMarkdown( mdContent, html, subPath + file + ".md", cnTitle ) ;
+         rc = parseMarkdown( mdContent, html, subPath + file + ".md", level, cnTitle ) ;
          if( rc )
          {
             cout << "Failed to convert markdown file, path: " << filePath << endl ;
@@ -1338,7 +1339,7 @@ INT32 execIterFiles( string path, string subPath )
             }
             if( mdContent.size() > 0 )
             {
-               rc = parseMarkdown( mdContent, html, subPath + "/" + fileName + ".md" ) ;
+               rc = parseMarkdown( mdContent, html, subPath + "/" + fileName + ".md", 1 ) ;
                if( rc )
                {
                   cout << "Failed to convert markdown file, path: " << filePath << endl ;

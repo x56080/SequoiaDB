@@ -24,6 +24,44 @@ function removeDir( $path )
    return rmdir( $path ) ;
 }
 
+//格式化doxygen，因为ie必须没有dom和必须\r\n换行才能正常使用（嵌套的时候）
+function formatApiDoc( $path )
+{
+   if( is_dir( $path ) == false )
+   {
+      return false ;
+   }
+   $handle = @opendir( $path ) ;
+   while( ( $file = @readdir( $handle ) ) != false )
+   {
+      if( $file != '.' && $file != '..' )
+      {
+         $newPath = getOSInfo() == 'windows' ? ( $path.'\\'.$file ) : ( $path.'/'.$file ) ;
+         if( is_dir( $newPath ) )
+         {
+            if( formatApiDoc( $newPath ) === false )
+            {
+               return false ;
+            }
+         }
+         else
+         {
+            if( pathinfo( $file )['extension'] == 'html' || pathinfo( $file )['extension'] == 'htm' )
+            {
+               $contents = file_get_contents( $newPath ) ;
+               if ( $contents === false )
+               {
+                  return false ;
+               }
+               $contents = str_replace( "\n", "\r\n", $contents ) ;
+               file_put_contents( $newPath, $contents ) ;
+            }
+         }
+      }
+   }
+   return true ;
+}
+
 function copyDir( $src, $dst )
 {
    if( is_dir( $src ) == false )

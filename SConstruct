@@ -225,6 +225,7 @@ add_option( "fmp", "build fmp", 0, False)
 add_option( "doc", "build document(pdf, word)", 0, False)
 add_option( "website", "build web site document", 0, False)
 add_option( "chm", "build chm document", 0, False)
+add_option( "offline", "build offline html document", 0, False)
 add_option( "doxygen", "build doxygen document", 0, False)
 
 # language could be en or cn
@@ -336,6 +337,7 @@ hasAll = has_option( "all" )
 hasDoc = has_option( "doc" )
 hasWebSite = has_option( "website" )
 hasChm = has_option( "chm" )
+hasOffline = has_option( "offline" )
 hasDoxygen = has_option( "doxygen" )
 
 hasFap = False
@@ -365,7 +367,7 @@ if hasAll:
    else:
       hasFap = True
 # if nothing specified, let's use engine+client+shell by default
-elif not ( hasEngine or hasClient or hasTestcase or hasTool or hasShell or hasFmp or hasFap or hasDoc or hasWebSite or hasChm or hasDoxygen ):
+elif not ( hasEngine or hasClient or hasTestcase or hasTool or hasShell or hasFmp or hasFap or hasDoc or hasWebSite or hasChm or hasOffline or hasDoxygen ):
    hasEngine = True
    hasClient = True
    hasShell = True
@@ -1026,6 +1028,10 @@ if hasWebSite:
 
 if hasChm:
    errno = os.system ( 'python doc/build.py --chm' )
+   os._exit( errno )
+
+if hasOffline:
+   errno = os.system ( 'python doc/build.py --offline' )
    os._exit( errno )
 
 if hasDoxygen:

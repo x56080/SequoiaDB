@@ -91,7 +91,7 @@ if( file_exists( "$root/build/output/api" ) == false )
 chmod( "$root/tools/$mdConvert", 0777 ) ;
 
 //=== Ô¤´¦Àí ===
-if( $param['m'] == "doc" || $param['m'] == "chm" || $param['m'] == "website" || $param['m'] == "doxygen" )
+if( $param['m'] == "doc" || $param['m'] == "chm" || $param['m'] == "offline" || $param['m'] == "website" || $param['m'] == "doxygen" )
 {
    printLog( "Generate doxygen file", "Event" ) ;
    $doxygen_files = iterDoxygenConfig( "$root/config/doxygen" ) ;
@@ -106,6 +106,16 @@ if( $param['m'] == "doc" || $param['m'] == "chm" || $param['m'] == "website" || 
          exit( 1 ) ;
       }
    }
+   
+   if( $param['m'] == "offline" )
+   {
+      if( formatApiDoc( "$root/build/output/api" ) === false )
+      {
+         printLog( 'Failed to format api document: build/mid' ) ;
+         exit( 1 ) ;
+      }
+   }
+   
    printLog( "Finish build doxygen document, path: doc/build/output/api", "Event" ) ;
 }
 
@@ -239,7 +249,69 @@ if( $param['m'] == "chm" && $os == 'windows' )
    printLog( "Finish build chm document, path: doc/build/output/$outputFileName.chm", "Event" ) ;
 }
 
-//4. ¹ÙÍø
+//4. offline html document
+if( $param['m'] == "offline" && $os == 'windows' )
+{
+   printLog( "Generate offline html document", "Event" ) ;
+   if( clearDir( "$root/build/mid" )  == false )
+   {
+      printLog( 'Failed to clear dir files: build/mid' ) ;
+      exit( 1 ) ;
+   }
+
+   $chm = "$root/tools/$mdConvert -v $major -e $minor -d offline -l false -s $root/tools/pdfConvertor/src/pdf.css" ;
+   if( execCmd( $chm ) != 0 )
+   {
+      printLog( "Failed to convert offline middle file: $chm" ) ;
+      exit( 1 ) ;
+   }
+
+   foreach( $apiList as $doxyDoc => $id )
+   {
+      $source = "$root/build/output/api/$doxyDoc" ;
+      //$dest   = getCnPath( $id, $config, "$root/build/mid" ) ;
+      $dest   = getDirPath( $id, $config, "$root/build/mid" ) ;
+      if( $dest == false )
+      {
+         printLog( "Failed to find id: $id in toc.json" ) ;
+         exit( 1 ) ;
+      }
+      $dest = "$dest/api/$doxyDoc" ;
+      if( $os == 'windows' )
+      {
+         $dest = iconv( 'utf-8', 'gb2312//IGNORE', $dest ) ;
+      }
+      copyDir( $source, $dest ) ;
+      //echo $source."\n" ;
+      //echo iconv( 'utf-8', 'gb2312//IGNORE', $dest )."\n" ;
+   }
+
+   $chm = "$root/../java/jdk_win32/bin/java.exe -jar $root/tools/chmProjectCreator/chmProjectCreator.jar -i $root/build/mid -o $root/build/output -t \"$outputFileName\" -c $root/config/toc.json" ;
+   if( execCmd( $chm ) != 0 )
+   {
+      printLog( 'Failed to convert offline config file' ) ;
+      exit( 1 ) ;
+   }
+
+   printLog( "Finish build offline config, path: doc/build/output/$outputFileName.wcp", "Event" ) ;
+
+   file_put_contents( "$root/tools/anjian/config.ini", "[config]\r\npath=$root\\build\\output\\$outputFileName.wcp\r\nfile=$outputFileName.wcp" ) ;
+
+   $chm = "$root/tools/anjian/autoBuildHtml.exe" ;
+   execCmd( $chm ) ;
+
+   $log = file_get_contents( "$root/tools/anjian/anjian.log" ) ;
+   echo "\n".$log."\n" ;
+   if( strpos( $log, "Error" ) !== false )
+   {
+      printLog( 'Failed to build offline.' ) ;
+      exit( 1 ) ;
+   }
+
+   printLog( "Finish build chm document, path: doc/build/output/$outputFileName.chm", "Event" ) ;
+}
+
+//5. ¹ÙÍø
 if( $param['m'] == "website" )
 {
    printLog( "Generate website", "Event" ) ;

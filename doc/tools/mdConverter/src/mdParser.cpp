@@ -18,6 +18,8 @@ static string _filePath ;
 
 static INT32 _edition ;
 
+static INT32 _level ;
+
 static void ReplaceAll( string &source, string oldStr, string newStr ) ;
 
 static INT32 parseLink( struct buf *ob,
@@ -71,7 +73,8 @@ mdParser::~mdParser()
    }
 }
 
-INT32 mdParser::init( string rootPath,
+INT32 mdParser::init( INT32 level,
+                      string rootPath,
                       string mdPath,
                       string imgPath,
                       INT32 edition,
@@ -84,6 +87,8 @@ INT32 mdParser::init( string rootPath,
    INT32 rc = SDB_OK ;
    string right( "\\" ) ;
    string left( "/" ) ;
+
+   _level = level ;
 
    ReplaceAll( rootPath, right, left ) ;
    ReplaceAll( mdPath, right, left ) ;
@@ -271,7 +276,7 @@ static INT32 parseLink( struct buf *ob,
              link->data[2] == 'i' &&
              link->data[3] == '/' )
          {
-            if( _convertMode == "chm" )
+            if( _convertMode == "chm" || _convertMode == "offline" )
             {
                houdini_escape_href(ob, (const uint8_t *)aLink.c_str(), aLink.size() );
             }
@@ -317,7 +322,7 @@ static INT32 parseLink( struct buf *ob,
                map<string, string>::iterator iter = _pCnMap->find( destPath ) ;
                if( iter == _pCnMap->end() )
                {
-                  cout << "Warning image dest path Not find: " << aLink << endl ;
+                  cout << "Warning link dest path Not find: " << aLink << endl ;
                }
                else
                {
@@ -325,6 +330,34 @@ static INT32 parseLink( struct buf *ob,
                   //destPath = destPath + filename ;
                   destPath = aLink ;
                   ReplaceAll( destPath, ".md", ".html" ) ;
+                  bufput(ob, destPath.c_str(), destPath.size() );
+               }
+            }
+            else if( _convertMode == "offline" )
+            {
+               string destPath ;
+               string filename ;
+
+               getPath( aLink, destPath ) ;
+               getFile( aLink, filename ) ;
+               ReplaceAll( destPath, "/", "." ) ;
+               ReplaceAll( destPath, "\\", "." ) ;
+               ReplaceAll( filename, ".md", ".html" ) ;
+               map<string, string>::iterator iter = _pCnMap->find( destPath ) ;
+               if( iter == _pCnMap->end() )
+               {
+                  cout << "Warning link dest path Not find: " << aLink << endl ;
+               }
+               else
+               {
+                  //destPath = iter->second ;
+                  //destPath = destPath + filename ;
+                  destPath = aLink ;
+                  ReplaceAll( destPath, ".md", ".html" ) ;
+                  for( INT32 i = 1; i < _level; ++i )
+                  {
+                     destPath = "../" + destPath ;
+                  }
                   bufput(ob, destPath.c_str(), destPath.size() );
                }
             }
@@ -468,7 +501,7 @@ static INT32 parseImage( struct buf *ob,
 
    if( link->size > 0 )
    {
-      if( _convertMode == "chm" )
+      if( _convertMode == "chm" || _convertMode == "offline" )
       {
          string filename ;
          string imgData ;

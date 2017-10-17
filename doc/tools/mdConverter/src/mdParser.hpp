@@ -23,7 +23,8 @@ private:
 public:
    mdParser() ;
    ~mdParser() ;
-   INT32 init( string rootPath,
+   INT32 init( INT32 level,
+               string rootPath,
                string mdPath,
                string imgPath,
                INT32 edition,
