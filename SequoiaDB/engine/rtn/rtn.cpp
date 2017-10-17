@@ -430,29 +430,43 @@ namespace engine
 
       for ( UINT16 mbID = 0; mbID < DMS_MME_SLOTS; ++mbID )
       {
+         // If the collection does not exist, lock will failed.
          rc = su->data()->getMBContext( &context, mbID, clLID, SHARED ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d",
-                      rc ) ;
-         mb = context->mb() ;
-
-         if ( DMS_IS_MB_INUSE( mb->_flag ) )
+         if ( rc )
          {
-            /*
-             * Three conditions should be matched to resume dictionary creating job
-             * for a collection:
-             * (1) 'Compressed' option is set as true
-             * (2) 'CompressionType' is set as 'lzw'
-             * (3) The dictionary extent id is invalid currently, which means the
-             *     dictionary has not been created yet.
-             */
-            if ( OSS_BIT_TEST( mb->_attributes, DMS_MB_ATTR_COMPRESSED )
-                 && ( UTIL_COMPRESSOR_LZW == mb->_compressorType )
-                 && ( DMS_INVALID_EXTENT == mb->_dictExtentID ) )
+            if ( SDB_DMS_NOTEXIST == rc )
             {
-               dmsCB->pushDictJob( dmsDictJob( su->CSID(), su->LogicalCSID(),
-                                   context->mbID(), context->clLID() ) ) ;
+               rc = SDB_OK ;
+               continue ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;
+               goto error ;
             }
          }
+
+         mb = context->mb() ;
+
+         /*
+          * Three conditions should be matched to resume dictionary creating job
+          * for a collection:
+          * (1) 'Compressed' option is set as true
+          * (2) 'CompressionType' is set as 'lzw'
+          * (3) The dictionary extent id is invalid currently, which means the
+          *     dictionary has not been created yet.
+          *
+          * The in use flag in mb is checked when taking the lock, so no need to
+          * check here.
+          */
+         if ( OSS_BIT_TEST( mb->_attributes, DMS_MB_ATTR_COMPRESSED )
+              && ( UTIL_COMPRESSOR_LZW == mb->_compressorType )
+              && ( DMS_INVALID_EXTENT == mb->_dictExtentID ) )
+         {
+            dmsCB->pushDictJob( dmsDictJob( su->CSID(), su->LogicalCSID(),
+                                context->mbID(), context->clLID() ) ) ;
+         }
+
          su->data()->releaseMBContext( context ) ;
       }
 
