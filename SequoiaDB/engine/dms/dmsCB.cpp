@@ -1615,18 +1615,22 @@ namespace engine
       PD_TRACE_ENTRY( SDB__SDB_DMSCB_DISPATCHDICTJOB ) ;
       BOOLEAN foundJob = FALSE ;
 
-      if ( _dictWaitClList.size() > 0 )
+      if ( _dictWaitQue.size() > 0 )
       {
-         dmsDictJob firstJob = _dictWaitClList.front() ;
-         _dictWaitClList.pop_front() ;
-         if ( pmdGetTickSpanTime( firstJob._createTime ) > OSS_ONE_SEC * 5 )
+         BOOLEAN result = _dictWaitQue.try_pop( job ) ;
+         if ( result )
          {
-            job = firstJob ;
-            foundJob = TRUE ;
-         }
-         else
-         {
-            _dictWaitClList.push_back( firstJob ) ;
+            // Before the dictionary condition is satisfied, wait for 5 seconds
+            // between each try to dispath the same job. Otherwise, push it
+            // back to the queue.
+            if ( pmdGetTickSpanTime( job._createTime ) > OSS_ONE_SEC * 5 )
+            {
+               foundJob = TRUE ;
+            }
+            else
+            {
+               _dictWaitQue.push( job ) ;
+            }
          }
       }
 
@@ -1634,11 +1638,11 @@ namespace engine
       return foundJob ;
    }
 
-    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_PUSHDICTJOB, "_SDB_DMSCB::pushDictJob" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_PUSHDICTJOB, "_SDB_DMSCB::pushDictJob" )
    void _SDB_DMSCB::pushDictJob( dmsDictJob job )
    {
       job._createTime = pmdGetDBTick() ;
-      _dictWaitClList.push_back( job ) ;
+      _dictWaitQue.push( job ) ;
    }
 
    void _SDB_DMSCB::aquireCSMutex( const CHAR *pCSName )
