@@ -1631,6 +1631,7 @@ parse_listitem(struct buf *ob, struct sd_markdown *rndr, uint8_t *data, size_t s
 	struct buf *work = 0, *inter = 0;
 	size_t beg = 0, end, pre, sublist = 0, orgpre = 0, i;
 	int in_empty = 0, has_inside_empty = 0, in_fence = 0;
+   int needPutBreak = 0 ;
 
 	/* keeping track of the first indentation prefix */
 	while (orgpre < 3 && orgpre < size && data[orgpre] == ' ')
@@ -1665,6 +1666,11 @@ parse_listitem(struct buf *ob, struct sd_markdown *rndr, uint8_t *data, size_t s
 		while (end < size && data[end - 1] != '\n')
 			end++;
 
+      if( in_empty == 1 )
+      {
+         bufputc(work, '\n');
+      }
+
 		/* process an empty line */
 		if (is_empty(data + beg, end - beg)) {
 			in_empty = 1;
@@ -1686,15 +1692,21 @@ parse_listitem(struct buf *ob, struct sd_markdown *rndr, uint8_t *data, size_t s
 
 		/* Only check for new list items if we are **not** inside
 		 * a fenced code block */
+      /* 他这里是想知道下一行还有没有列表项 */
 		if (!in_fence) {
 			has_next_uli = prefix_uli(data + beg + i, end - beg - i);
 			has_next_oli = prefix_oli(data + beg + i, end - beg - i);
 		}
 
 		/* checking for ul/ol switch */
-		if (in_empty && (
-			((*flags & MKD_LIST_ORDERED) && has_next_uli) ||
-			(!(*flags & MKD_LIST_ORDERED) && has_next_oli))){
+      /*
+         如果发现有空行，并且有列表项，就看看是不是都是无序列表或者都是有序列表。
+         但是没有判断是不是子列表项，所以必须加上i去判断空格数
+      */
+		if ( in_empty &&
+           ( ( ( *flags & MKD_LIST_ORDERED ) && has_next_uli ) ||
+			    ( !(*flags & MKD_LIST_ORDERED) && has_next_oli ) ) &&
+           i < 3 ){
 			*flags |= MKD_LI_END;
 			break; /* the following item must have same list type */
 		}
@@ -1733,27 +1745,38 @@ parse_listitem(struct buf *ob, struct sd_markdown *rndr, uint8_t *data, size_t s
 	if (has_inside_empty)
 		*flags |= MKD_LI_BLOCK;
 
-	if (*flags & MKD_LI_BLOCK) {
+	if (*flags & MKD_LI_BLOCK)
+   {
 		/* intermediate render of block li */
-		if (sublist && sublist < work->size) {
+		if (sublist && sublist < work->size)
+      {
 			parse_block(inter, rndr, work->data, sublist);
 			parse_block(inter, rndr, work->data + sublist, work->size - sublist);
 		}
-		else
-			parse_block(inter, rndr, work->data, work->size);
-	} else {
+      else
+      {
+         parse_block( inter, rndr, work->data, work->size );
+      }
+	}
+   else
+   {
 		/* intermediate render of inline li */
-		if (sublist && sublist < work->size) {
+		if (sublist && sublist < work->size) 
+      {
 			parse_inline(inter, rndr, work->data, sublist);
 			parse_block(inter, rndr, work->data + sublist, work->size - sublist);
 		}
-		else
-			parse_inline(inter, rndr, work->data, work->size);
+      else
+      {
+         parse_inline( inter, rndr, work->data, work->size );
+      }
 	}
 
 	/* render of li itself */
-	if (rndr->cb.listitem)
-		rndr->cb.listitem(ob, inter, *flags, rndr->opaque);
+   if( rndr->cb.listitem )
+   {
+      rndr->cb.listitem( ob, inter, *flags, rndr->opaque );
+   }
 
 	rndr_popbuf(rndr, BUFFER_SPAN);
 	rndr_popbuf(rndr, BUFFER_SPAN);
@@ -2003,7 +2026,7 @@ parse_table_row(
 	for (col = 0; col < columns && i < size; ++col) {
 		size_t cell_start, cell_end;
 		struct buf *cell_work;
-		int isBackslash = 0 ;
+      int isBackslash = 0 ;
 
 		cell_work = rndr_newbuf(rndr, BUFFER_SPAN);
 
@@ -2012,25 +2035,25 @@ parse_table_row(
 
 		cell_start = i;
 
-		 while( i < size )
-   {
-      if( isBackslash == 1 )
+      while( i < size )
       {
-         isBackslash = 0 ;
-      }
-      else
-      {
-         if( data[i] == '\\' )
+         if( isBackslash == 1 )
          {
-            isBackslash = 1 ;
+            isBackslash = 0 ;
          }
-         else if( data[i] == '|' )
+         else
          {
-            break ;
+            if( data[i] == '\\' )
+            {
+               isBackslash = 1 ;
+            }
+            else if( data[i] == '|' )
+            {
+               break ;
+            }
          }
+         i++;
       }
-      i++;
-   }
 
 		cell_end = i - 1;
 
@@ -2068,7 +2091,7 @@ parse_table_header(
 	size_t i = 0, col, header_end, under_end;
 
 	pipes = 0;
-	  while( i < size && data[i] != '\n' )
+   while( i < size && data[i] != '\n' )
    {
       if( isBackslash == 1 )
       {
