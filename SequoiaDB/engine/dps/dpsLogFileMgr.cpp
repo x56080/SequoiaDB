@@ -190,6 +190,8 @@ namespace engine
       //find work
       UINT32 tmpWork = _begin ;
       i = 0 ;
+
+      // Skip full log files
       while ( _files[tmpWork]->getIdleSize() == 0 && i < _files.size() )
       {
          _work = tmpWork ;
@@ -197,7 +199,12 @@ namespace engine
          ++i ;
       }
 
-      if ( _files[tmpWork]->header()._logID != DPS_INVALID_LOG_FILE_ID )
+      // Find the last non-full log file
+      // If i == _files.size() means all log file are full, keep the working log
+      // file as the last full log file, and let the next flush to move working
+      // log file to the next log file
+      if ( i < _files.size() &&
+           _files[tmpWork]->header()._logID != DPS_INVALID_LOG_FILE_ID )
       {
          _work = tmpWork ;
          tmpWork = _incFileID ( tmpWork ) ;
