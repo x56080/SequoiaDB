@@ -335,17 +335,12 @@ class replicagroup(object):
       Exceptions:
          pysequoiadb.error.SDBBaseError
       """
+      iscatalog = False
       try:
-         rc = sdb.gp_is_catalog(self._group)
-         if (const.SDB_OK == rc):
-            iscatalog = False
-         elif (const.TRUE == rc):
-            rc = const.SDB_OK
+         rc, is_cata = sdb.gp_is_catalog(self._group)
+         pysequoiadb._raise_if_error("Failed to check if is catalog", rc)
+         if const.TRUE == is_cata:
             iscatalog = True
-         else:
-            iscatalog = False
-
-         pysequoiadb._raise_if_error("Failed to get catalog info", rc)
       except SDBBaseError:
          raise
 

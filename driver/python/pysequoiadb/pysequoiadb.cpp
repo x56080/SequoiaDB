@@ -2912,6 +2912,7 @@ __METHOD_IMP(gp_is_catalog)
    INT32 rc                       = 0 ;
    PYOBJECT *obj                  = NULL ;
    sdbReplicaGroup *replica_group = NULL ;
+   BOOLEAN is_cata = FALSE ;
 
    if ( !PARSE_PYTHON_ARGS( args, "O", &obj ) )
    {
@@ -2920,9 +2921,10 @@ __METHOD_IMP(gp_is_catalog)
    }
 
    CAST_PYOBJECT_TO_COBJECT( obj, Group, replica_group ) ;
-   rc = replica_group->isCatalog() ;
+   is_cata = replica_group->isCatalog() ;
+
 done :
-   return MAKE_RETURN_INT( rc ) ;
+   return MAKE_RETURN_INT_INT( rc, is_cata ) ;
 error :
    goto done ;
 }

@@ -27,6 +27,9 @@ NODE_STATUS = enum(((0,"ALL"),(1,"ACTIVE"),(2,"INACTIVE"),(3,"UNKNOWN")))
 
 const.errmaps = dict()
 
+const.TRUE                       = 1
+const.FALSE                      = 0
+
 # some error code
 const.SDB_OK                     = 0
 const.SDB_DMS_EOC                = -29
