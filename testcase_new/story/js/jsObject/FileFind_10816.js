@@ -82,7 +82,7 @@ function checkFindResult( result, cmd, commands )
       try
       {
          cmd.run( commands ) ;
-         throw "find not exist file should be failed" ;
+         throw 0 ;
       }
       catch( e )
       {

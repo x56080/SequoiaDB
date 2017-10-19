@@ -1,6 +1,7 @@
 /******************************************************************************
 *@Description : test js object cmd function: start
-*               TestLink : 9905 后台执行命令 
+*               seqDB-9905:后台执行命令
+*               seqDB-13020:后台执行无权限命令 
 *@author      : Liang XueWang 
 ******************************************************************************/
 
@@ -30,6 +31,57 @@ CmdTest.prototype.testStart = function()
    this.release() ;
 }
 
+// 测试后台运行错误命令
+CmdTest.prototype.testStartAbnormal = function()
+{
+    this.init() ;
+    
+    try
+    {
+        this.cmd.start( "led" ) ;
+        throw 0 ;
+    }
+    catch( e )
+    {
+        if( e !== 127 )
+        {
+            throw buildException( "testStartAbnormal", null, 
+                  "test start not exist command led", 127, e ) ;
+        }
+    }
+    
+    this.release() ;
+}
+
+// 测试后台运行无权限命令
+CmdTest.prototype.testStartNoPermission = function()
+{
+    this.init() ;
+    
+    var user = this.cmd.run( "whoami" ).split( "\n" )[0] ;
+    if( user === "root" )
+    {
+        println( "cmd user is root" ) ;
+        this.release() ;
+        return ;
+    }
+    try
+    {
+        this.cmd.start( "useradd wangwj" ) ;
+        throw 0 ;
+    }
+    catch( e )
+    {
+        if( e !== 1 )
+        {
+            throw buildException( "testStartNoPermission", e, 
+                  "test start useradd with user " + user, 1, e ) ;
+        }
+    }
+    
+    this.release() ;
+}
+
 function main()
 {
    // 获取本地和远程主机
@@ -44,6 +96,8 @@ function main()
    {
       // 测试后台运行指令
       cmds[i].testStart() ;
+      cmds[i].testStartAbnormal() ;
+      cmds[i].testStartNoPermission() ;
    }
 }
 

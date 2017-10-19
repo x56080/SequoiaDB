@@ -31,27 +31,85 @@ FileTest.prototype.testChmod = function()
    this.release() ; 
 }
 
+// 测试更改无权限文件的权限
+FileTest.prototype.testChmodNoPermission = function()
+{
+   this.init() ;
+    
+   var user = this.cmd.run( "whoami" ).split( "\n" )[0] ;
+   if( user === "root" )
+   {
+      println( "user is root" ) ;
+      this.release() ;
+      return ;
+   }
+   try
+   {
+      this.file.chmod( "/etc/passwd", 0755 ) ;
+      throw 0 ;
+   }
+   catch( e )
+   {
+      if( e !== 1 )
+      {
+         throw buildException( "testChmodNoPermission", e,
+               "test chmod /etc/passwd", 1, e ) ;
+      }
+   }
+    
+   this.release() ;
+}
+
+// 测试递归更改目录权限
+FileTest.prototype.testChmodRecursive = function()
+{
+   this.init() ;
+   
+   var tmpDir = "/tmp/testChmodDir" ;
+   this.file.mkdir( tmpDir, 0700 ) ;
+   for( var i = 0;i < 5;i++ )
+   {
+      var tmpFileName = tmpDir + "/testChmodFile" + i ;
+      var tmpFile ;
+      if( this.isLocal )
+         tmpFile = new File( tmpFileName ) ;
+      else
+         tmpFile = this.remote.getFile( tmpFileName ) ;
+      tmpFile.write( "abc" ) ;
+      tmpFile.close()
+   }
+   
+   this.file.chmod( tmpDir, 0755, true ) ;
+   
+   var mode = this.file.stat( tmpDir ).toObj()["mode"].slice( 0, 10 ) ;
+   if( mode !== "rwxr-xr-x" )
+   {
+      throw buildException( "testChmodRecursive", null, 
+            "check mode " + this, "rwxr-xr-x", mode ) ;
+   }
+   for( var i = 0;i < 5;i++ )
+   {
+      var tmpFileName = tmpDir + "/testChmodFile" + i ;
+      var mode = this.file.stat( tmpFileName ).toObj()["mode"].slice( 0, 10 ) ;
+      if( mode !== "rwxr-xr-x" )
+      {
+         throw buildException( "testChmodRecursive", null,
+               "check mode " + this, "rwxr-xr-x", mode ) ;
+      }
+   }
+   
+   this.cmd.run( "rm -rf " + tmpDir ) ;
+   
+   this.release() ;
+}
+
 // 测试更改文件所有者和所属组
 FileTest.prototype.testChown = function()
 {  
    this.init() ;
    
-   // 检查当前用户和cm用户是否有权限
-   var currUser = toolGetCurrentUser( this.hostname, this.svcname ) ;
-   var cmUser = toolGetSdbcmUser( this.hostname, this.svcname ) ;
-   if( this.isLocal )
-   {
-      if( currUser !== "root" )
-      {
-         this.release() ;
-         return ;
-      }
-   }
-   else if( cmUser !== "root" )
-   {
-      this.release() ;
-      return ;
-   }
+   var user = this.cmd.run( "whoami" ).split( "\n" )[0] ;
+   var group = this.cmd.run( "id -gn " + user ).split( "\n" )[0] ;
 
    var tmpFilename = "/tmp/testOwn.txt" ;
    var tmpFile ;   
@@ -59,14 +117,15 @@ FileTest.prototype.testChown = function()
       tmpFile = new File( tmpFilename ) ;
    else
       tmpFile = this.remote.getFile( tmpFilename ) ;
-   this.file.chown( tmpFilename, { username: "root", groupname: "root" } ) ;
+   this.file.chown( tmpFilename, { username: user, groupname: group } ) ;
    var command = "ls -l " + tmpFilename + " | awk '{print $3,$4}'" ;
    var tmp = this.cmd.run( command ).split( "\n" ) ;
    var owner = tmp[tmp.length-2] ;
    this.cmd.run( "rm -rf " + tmpFilename ) ;
-   if( owner !== "root root" )
+   if( owner !== user + " " + group )
    {
-      throw buildException( "testChown", null, "check owner " + this, "root", owner ) ;
+      throw buildException( "testChown", null, "check owner " + this, 
+            user + " " + group, owner ) ;
    }
    
    this.release() ; 
@@ -77,22 +136,9 @@ FileTest.prototype.testChgrp = function()
 {
    this.init() ;
    
-   // 检查当前用户和cm用户是否有权限
-   var currUser = toolGetCurrentUser( this.hostname, this.svcname ) ;
-   var cmUser = toolGetSdbcmUser( this.hostname, this.svcname ) ;
-   if( this.isLocal )
-   {
-      if( currUser !== "root" )
-      {
-         this.release() ;
-         return ;
-      }
-   }
-   else if( cmUser !== "root" )
-   {
-      this.release() ;
-      return ;
-   }
+   // 检查用户是否有权限
+   var user = this.cmd.run( "whoami" ).split( "\n" )[0] ;
+   var group = this.cmd.run( "id -gn " + user ).split( "\n" )[0] ;
    
    var tmpFilename = "/tmp/testGrp.txt" ;
    var tmpFile ;   
@@ -100,14 +146,14 @@ FileTest.prototype.testChgrp = function()
       tmpFile = new File( tmpFilename ) ;
    else
       tmpFile = this.remote.getFile( tmpFilename ) ;
-   this.file.chgrp( tmpFilename, "root" ) ;   // 更改文件用户组
+   this.file.chgrp( tmpFilename, group ) ;   // 更改文件用户组
    var command = "ls -l " + tmpFilename + " | awk '{print $4}'"
    var tmp = this.cmd.run( command ).split( "\n" ) ;
-   var group = tmp[tmp.length-2] ;
+   var grp = tmp[tmp.length-2] ;
    this.cmd.run( "rm -rf " + tmpFilename ) ;
-   if( group !== "root" )
+   if( grp !== group )
    {
-      throw buildException( "testChgrp", null, "check group " + this, "root", group ) ;
+      throw buildException( "testChgrp", null, "check group " + this, group, grp ) ;
    }
    
    this.release() ;
@@ -131,6 +177,12 @@ function main()
    {
       // 测试更改文件权限
       fts[i].testChmod() ;
+      
+      // 测试更改无权限文件的权限
+      fts[i].testChmodNoPermission() ;
+      
+      // 测试递归更改文件目录权限
+      fts[i].testChmodRecursive() ;
       
       // 测试更改文件所有者和所属组
       fts[i].testChown() ;

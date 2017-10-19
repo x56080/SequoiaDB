@@ -56,20 +56,12 @@ SystemTest.prototype.testAddDelUser = function( createDir )
 {
    this.init() ;
    
-   // 检查当前用户和cm用户是否有权限
-   var currUser = this.system.getCurrentUser().toObj().user ;
-   var cmUser = toolGetSdbcmUser( this.hostname, this.svcname ) ;
-   if( this.system === System )
+   // 检查用户是否有权限
+   var user = this.system.getCurrentUser().toObj()["user"] ;
+   if( user !== "root" )
    {
-      if( currUser !== "root" )
-      {
-         println( "current user is not root, can't add del user" ) ;
-         return ;
-      }
-   }
-   else if( cmUser !== "root" )
-   {
-      println( "cm user is not root, can't add del user" ) ;
+      println( "user is not root, can't add del user" ) ;
+      this.release() ;
       return ;
    }
       
@@ -79,6 +71,7 @@ SystemTest.prototype.testAddDelUser = function( createDir )
        isUserExist( this.hostname, this.svcname, "createUser" ) )
    {
       println( "tmpGroup testGroup or createUser existed" ) ;
+      this.release() ;
       return ;
    }
       
@@ -144,16 +137,13 @@ SystemTest.prototype.testAddExistUser = function()
 {
    this.init() ;
    
-   // 检查当前用户和cm用户是否有权限
-   var currUser = this.system.getCurrentUser().toObj().user ;
-   var cmUser = toolGetSdbcmUser( this.hostname, this.svcname ) ;
-   if( this.system === System )
+   // 检查用户是否有权限
+   var user = this.system.getCurrentUser().toObj()["user"] ;
+   if( user !== "root" )
    {
-      if( currUser !== "root" )
-         return ;
-   }
-   else if( cmUser !== "root" )
+      this.release() ;
       return ;
+   }
    
    try
    {
@@ -176,15 +166,13 @@ SystemTest.prototype.testSetUserConfigs = function()
    this.init() ;
    
    // 检查当前用户和cm用户是否有权限
-   var currUser = this.system.getCurrentUser().toObj().user ;
-   var cmUser = toolGetSdbcmUser( this.hostname, this.svcname ) ;
-   if( this.system === System )
+   var user = this.system.getCurrentUser().toObj()["user"] ;
+   if( user !== "root" )
    {
-      if( currUser !== "root" )
-         return ;
-   }
-   else if( cmUser !== "root" )
+      this.release() ;
       return ;
+   }
+   
    if( isGroupExist( this.hostname, this.svcname, "tmpGroup" ) ||
        isGroupExist( this.hostname, this.svcname, "testGroup" ) ||
        isUserExist( this.hostname, this.svcname, "modifyUser" ) )

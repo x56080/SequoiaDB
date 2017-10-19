@@ -1,7 +1,8 @@
 /******************************************************************************
 *@Description : test js object cmd function: run getCommand getLastRet 
 *                                            getLastOut
-*               TestLink : 9903 执行命令后获取执行命令、执行结果、返回值
+*               seqDB-9903:执行命令后获取执行命令、执行结果、返回值
+*               seqDB-13019:执行无权限的命令
 *@author      : Liang XueWang 
 ******************************************************************************/
 
@@ -71,6 +72,35 @@ CmdTest.prototype.testRunAbnormal = function()
    this.release() ;
 }
 
+// 测试运行无权限的命令useradd
+CmdTest.prototype.testRunNoPermission = function()
+{
+    this.init() ;
+    
+    var user = this.cmd.run( "whoami" ).split( "\n" )[0] ;
+    if( user === "root" )
+    {
+        println( "cmd user is root" ) ;
+        this.release() ;
+        return ;
+    }
+    try
+    {
+        this.cmd.run( "useradd liangxw" ) ;
+        throw 0 ;
+    }
+    catch( e )
+    {
+        if( e !== 1 )
+        {
+            throw buildException( "testRunNoPermission", null, 
+                  "test run useradd with user " + user, 1, e ) ;
+        }
+    }
+    
+    this.release() ;
+}
+
 function main()
 {
    // 获取本地和远程主机
@@ -86,6 +116,7 @@ function main()
       // 测试运行指令
       cmds[i].testRunNormal() ;
       cmds[i].testRunAbnormal() ;
+      cmds[i].testRunNoPermission() ;
    }
 }
 

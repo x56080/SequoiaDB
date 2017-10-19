@@ -19,16 +19,13 @@ SystemTest.prototype.testAddDelGroup = function( isUnique )
    
    this.init() ;
    
-   // 检查当前用户和cm用户是否有权限
-   var currUser = this.system.getCurrentUser().toObj().user ;
-   var cmUser = toolGetSdbcmUser( this.hostname, this.svcname ) ;
-   if( this.system === System )
+   // 检查用户是否有权限
+   var user = this.system.getCurrentUser().toObj()["user"] ;
+   if( user !== "root" )
    {
-      if( currUser !== "root" )
-         return ;
-   }
-   else if( cmUser !== "root" )
+      this.release() ;
       return ;
+   }
   
    try
    {

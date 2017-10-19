@@ -83,6 +83,58 @@ function testInitRemoteAbnormal()
 	remote.close() ;
 }
 
+// 测试本地文件初始化为无权限文件
+function testInitLocalNoPermission()
+{
+    var cmd = new Cmd() ;
+    var user = cmd.run( "whoami" ).split( "\n" )[0] ;
+    if( user === "root" )
+    {
+        println( "local user is root" ) ;
+        return ;
+    } 
+    try
+    {
+        var file = new File( "/etc/passwd" ) ;
+        throw 0 ;
+    }
+    catch( e )
+    {
+        if( e !== -3 )
+        {
+            throw buildException( "testInitLocalNoPermission", e,
+                  "test init local file /etc/passwd", -3, e ) ;
+        }
+    }
+}
+
+// 测试远程文件初始化为无权限文件
+function testInitRemoteNoPermission()
+{
+    var remotehost = toolGetRemotehost() ;
+    var remote = new Remote( remotehost["hostname"], CMSVCNAME ) ;
+    var cmd = remote.getCmd() ;
+    var user = cmd.run( "whoami" ).split( "\n" )[0] ;
+    if( user === "root" )
+    {
+        println( "remote user is root" ) ;
+        return ;
+    }
+    try
+    {
+        var file = remote.getFile( "/etc/passwd" ) ;
+        throw 0 ;
+    }
+    catch( e )
+    {
+        if( e !== -3 )
+        {
+            throw buildException( "testInitRemoteNoPermission", e,
+                  "test init remote file /etc/passwd", -3, e ) ;
+        }
+    }
+}
+
 function main()
 {
    // 测试本地文件初始化指定权限
@@ -91,6 +143,10 @@ function main()
    testInitRemote() ;
    // 测试远程文件初始化时文件名参数非法
    testInitRemoteAbnormal() ;
+   // 测试本地文件初始化无权限
+   testInitLocalNoPermission() ;
+   // 测试远程文件初始化无权限
+   testInitRemoteNoPermission() ;
 }
 
 main()
