@@ -1472,7 +1472,9 @@ namespace engine
          rc = _freeExtent ( currentExt, context->mbID() ) ;
          if ( rc )
          {
-            SDB_ASSERT( SDB_OK == rc, "Free extent can't be failure" ) ;
+            SDB_ASSERT( SDB_OK == rc ||
+                        SDB_DB_NORMAL != PMD_DB_STATUS(),
+                        "Free extent can't be failure" ) ;
             PD_LOG ( PDERROR, "Failed to free extent[%u], rc: %d", currentExt,
                      rc ) ;
             rc = SDB_DMS_CORRUPTED_EXTENT ;
