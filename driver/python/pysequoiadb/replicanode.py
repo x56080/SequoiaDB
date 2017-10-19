@@ -84,14 +84,12 @@ class replicanode(object):
    def connect(self):
       """Connect to the current node.
       
+      Return values:
+         client of current node
       Exceptions:
          pysequoiadb.error.SDBBaseError
       """
-      try:
-         rc = sdb.nd_connect(self._node, self._client)
-         pysequoiadb._raise_if_error("Failed to connect", rc)
-      except SDBBaseError:
-         raise
+      return pysequoiadb.client(self.get_hostname(), self.get_servicename())
 
    def get_status(self):
       """Get status of the current node
