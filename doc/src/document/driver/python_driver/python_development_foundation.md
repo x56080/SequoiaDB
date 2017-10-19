@@ -19,8 +19,10 @@
   from pysequoiadb.error import SDBBaseError
   
   # connect to local db, using default args value.
-  # host= 'localhost', port= 11810, user= '', password= ''
-  db = client()
+  host = 'localhost'
+  port = 11810
+  # user= '', password= ''
+  db = client(host, port)
   
   # if no error occurs, connect to specified server successfully
   print 'Connect success'
