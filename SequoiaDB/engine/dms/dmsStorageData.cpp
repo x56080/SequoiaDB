@@ -442,6 +442,7 @@ namespace engine
    void _dmsRecordRW::_doneAddr()
    {
       BOOLEAN oldThrow = _rw.isNothrow() ;
+      _rw.setNothrow( TRUE ) ;
       /// Need to read the overflow rid
       UINT32 len = DMS_RECORD_METADATA_SZ + sizeof( dmsRecordID ) ;
       _ptr = (const dmsRecord*)_rw.readPtr( _rid._offset, len ) ;
@@ -4129,7 +4130,16 @@ namespace engine
       {
          dmsRecordID ovfRID = pRecord->getOvfRID() ;
          dmsRecordRW ovfRW = record2RW( ovfRID, mbContext->mbID() ) ;
+         // Inherit no-throw property
+         ovfRW.setNothrow( recordRW.isNothrow() ) ;
          pRecord = ovfRW.readPtr( 0 ) ;
+         if ( NULL == pRecord )
+         {
+            rc = pdGetLastError() ? pdGetLastError() : SDB_SYS ;
+            PD_LOG( PDERROR, "Failed to get record from address[%d.%d]",
+                    ovfRID._extent, ovfRID._offset ) ;
+            goto error ;
+         }
          SDB_ASSERT( pRecord->isOvt(), "Record must be ovt" ) ;
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
       }

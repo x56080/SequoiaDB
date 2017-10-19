@@ -562,6 +562,21 @@ namespace engine
          {
             continue ;
          }
+         /// State is wrong
+         if ( !pRecord->isNormal() && !pRecord->isOvf() )
+         {
+            PD_LOG( PDERROR, "Record[%d.%d]'s state is wrong [%d]",
+                    rid._extent, rid._offset, pRecord->getAttr() );
+            continue ;
+         }
+         /// Wrong compressed flag
+         if ( pRecord->isCompressed() &&
+              !OSS_BIT_TEST( mbContext->mb()->_attributes,
+                             DMS_MB_ATTR_COMPRESSED ) )
+         {
+            PD_LOG( PDERROR, "Record[%d.%d] should not be compressed" ) ;
+            continue ;
+         }
          /// extract data
          rc = _pSU->data()->extractData( mbContext, recordRW,
                                          cb, recordData ) ;
