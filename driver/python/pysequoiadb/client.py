@@ -1290,7 +1290,7 @@ class client(object):
       except SDBBaseError:
          raise
 
-   def list_task(self, **kwargs):
+   def list_tasks(self, **kwargs):
       """List the tasks.
 
       Parameters:
@@ -1338,8 +1338,8 @@ class client(object):
 
       try:
          result = cursor()
-         rc = sdb.sdb_list_task(self._client, result._cursor, bson_condition,
-                                  bson_selector, bson_order_by, bson_hint)
+         rc = sdb.sdb_list_tasks(self._client, result._cursor, bson_condition,
+                                 bson_selector, bson_order_by, bson_hint)
          pysequoiadb._raise_if_error("Failed to list tasks", rc)
       except SDBBaseError:
          del result
