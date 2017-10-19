@@ -20,12 +20,7 @@
   
   # connect to local db, using default args value.
   # host= 'localhost', port= 11810, user= '', password= ''
-  try:
-     db = client()
-  except SDBBaseError, e:
-     pysequoiadb._print(e)
-     del db
-     exit()
+  db = client()
   
   # if no error occurs, connect to specified server successfully
   print 'Connect success'
