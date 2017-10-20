@@ -4705,7 +4705,15 @@ namespace engine
       else
       {
          BOOLEAN needRebuild = FALSE ;
-         rtnNeedResetSelector( selector, orderBy, needRebuild ) ;
+         if ( srcContext->getSelector().getStringOutput() )
+         {
+            needRebuild = TRUE ;
+         }
+         else
+         {
+            rtnNeedResetSelector( selector, orderBy, needRebuild ) ;
+         }
+
          if ( needRebuild )
          {
             rc = srcContext->getSelector().move( _selector ) ;
