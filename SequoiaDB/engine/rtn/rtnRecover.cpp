@@ -507,7 +507,7 @@ namespace engine
       dmsRecordData recordData ;
       dmsCompressorEntry *pEntry = NULL ;
       std::set<dmsOffset> offsetSet ;
-      std::pair<std::set<dmsOffset>::iterator, BOOLEAN> result ;
+      std::pair<std::set<dmsOffset>::iterator, bool> result ;
 
       pEntry = _pSU->data()->getCompressorEntry( mbContext->mbID() ) ;
       extRW = _pSU->data()->extent2RW( extentID, -1 ) ;
@@ -537,13 +537,22 @@ namespace engine
          // We use a set to find the possible record link list circle in case
          // of data corruption. If found, ignore the remainning ones in the
          // list.
-         result = offsetSet.insert( rid._offset ) ;
-         if ( !result.second )
+         try
          {
-            PD_LOG( PDERROR, "Record list circle found at record[%d.%d]. "
-                    "Stop scanning the current extent", rid._extent,
-                    rid._offset ) ;
-            break ;
+            result = offsetSet.insert( rid._offset ) ;
+            if ( !result.second )
+            {
+               PD_LOG( PDERROR, "Record list circle found at record[%d.%d]. "
+                       "Stop scanning the current extent", rid._extent,
+                       rid._offset ) ;
+               break ;
+            }
+         }
+         catch ( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
          }
 
          recordRW = _pSU->data()->record2RW( rid, mbContext->mbID() ) ;
