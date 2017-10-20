@@ -849,7 +849,7 @@ namespace engine
 
             if ( FLG_QUERY_STRINGOUT & pQueryMsg->flags )
             {
-               _pContext->getSelector().setStringOutput( TRUE ) ;
+               pvtData._pContext->getSelector().setStringOutput( TRUE ) ;
             }
          }
          PD_RC_CHECK( rc, PDERROR, "Open context failed(rc=%d)", rc ) ;
