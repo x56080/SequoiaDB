@@ -537,6 +537,11 @@ namespace engine
             // dmsCB will be writedown by dataContext
             writable = FALSE ;
          }
+
+         if ( options._flag & FLG_QUERY_STRINGOUT )
+         {
+            dataContext->getSelector().setStringOutput( TRUE ) ;
+         }
       }
       else
       {
@@ -560,6 +565,11 @@ namespace engine
          plan = NULL ;
          mbContext = NULL ;
 
+         if ( options._flag & FLG_QUERY_STRINGOUT )
+         {
+            dataContext->getSelector().setStringOutput( TRUE ) ;
+         }
+
          rc = rtnSort ( (rtnContext**)&dataContext,
                         orderBy,
                         cb, numToSkip,
@@ -572,11 +582,6 @@ namespace engine
       if ( cb->getMonConfigCB()->timestampON )
       {
          dataContext->getMonCB()->recordStartTimestamp() ;
-      }
-
-      if ( flags & FLG_QUERY_STRINGOUT )
-      {
-         dataContext->getSelector().setStringOutput( TRUE ) ;
       }
 
       if ( ppContext )
