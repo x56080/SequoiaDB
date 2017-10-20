@@ -234,10 +234,8 @@ function removeQuotes( inputStr ) {
 function removeBreak( inputStr ) {
    var exp = null ;
    if ( !isString( inputStr ) ) {
-      exp = new SdbError( SDB_INVALIDARG, 
+      throw new SdbError( SDB_INVALIDARG, 
          "the input argument[" + inputStr + "] is not a string" ) ;
-      logger.log( PDERROR, err ) ;
-      throw err ;
    }
    var len = inputStr.length ;
    var outputStr = '' ;
@@ -1203,51 +1201,50 @@ function getAUsablePortFromRemote( ssh )
 @discretion: get the right place to change the owner of a directory
 @author: Tanzhaobo
 @parameter
-   ssh[object]: ssh object
+   path[string]: the data path
 @return
-   retPort[nunber]: return a dirctory path
+   curPath[string]: return the right place to change the owner of the path
 ***************************************************************************** */
-function getThePlaceToChangeOwner( path )
+function getChangeOwnerPath( path )
 {
-   var retStr = path ;
-   var pos = -1 ;
-   if ( SYS_LINUX == SYS_TYPE )
+   try
    {
-      var arr = path.split( '/' ) ;
-      var num = arr.length ;
-      // in case: "/" or "/opt"
-      if ( num <= 2 )
+      if ( path == undefined || path == "" || path == "/" )
       {
-         return path ;
+         throw new SdbError( SDB_INVALIDARG, "Invalid data path: " + path ) ;
       }
-      pos = path.lastIndexOf( '/' ) ;
-      // in case: "/opt/"
-      if ( pos == path.length -1 && num == 3 )
+      if ( File.exist( path ) && !File.isDir( path ) )
       {
-         return path ;
+         throw new SdbError( SDB_INVALIDARG, sprintf( "Data path[?] should be a directory", path ) ) ;
       }
-      // otherwise
-      var len = arr[num - 1].length ; ;
-      // in case: "/opt/.../123/345"
-      if ( len )
+      var curPath = "" ;
+      var dirArr = path.split( '/' ) ;
+      var i = 0 ;
+      if ( SYS_LINUX == SYS_TYPE )
       {
-         pos = path.length - 1 - len ;
-         retStr = path.substring( 0, pos ) ;
+         for ( i = 0; i < dirArr.length; i++ )
+         {
+            if ( dirArr[i] != "" )
+            {
+               curPath = curPath + "/"  + dirArr[i] ;
+               if ( !File.exist(curPath) )
+               {
+                  break ;
+               }
+            }
+         }
       }
-      // in case: "/opt/.../123/345/"
       else
       {
-         len = arr[num - 2].length ;
-         pos = path.length - 1 - len - 1 ;
-         retStr = path.substring( 0, pos ) ;
+        // TODO: windows
       }
+      return curPath ;
    }
-   else
+   catch( e )
    {
-     // TODO:
+         var errMsg = sprintf( "Failed to get the point to change the owner of path[?]", path ) ;
+         throw new SdbError( e, errMsg ) ;
    }
-
-   return retStr ;
 }
 
 /* *****************************************************************************
@@ -1262,11 +1259,15 @@ function getThePlaceToChangeOwner( path )
 ***************************************************************************** */
 function changeDirOwner( ssh, path, user, userGroup )
 {
-   var ret = null ;
    var str = null ;
    var cmd = null ;
+   var errMsg = null ;
    if ( SYS_LINUX == SYS_TYPE )
    {
+      // get the directory to change owner
+      var changePoint = getChangeOwnerPath( path ) ;
+      
+      // mkdir
       cmd = " mkdir -p " + path ;
       try
       {
@@ -1274,29 +1275,22 @@ function changeDirOwner( ssh, path, user, userGroup )
       }
       catch ( e )
       {
-         SYSEXPHANDLE( e ) ;
-         rc = GETLASTERROR() ;
          errMsg = sprintf( "Failed to create path[?] in host[?]", path, ssh.getPeerIP() ) ;
-         PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
-                 sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
-         exception_handle( rc, errMsg ) ;
+         throw new SdbError( e, errMsg ) ;
       }
-      path = getThePlaceToChangeOwner( path ) ;
+      
+      // change owner of the dirctory
       str = user + ":" + userGroup ;
-      cmd = " chown -R " + str + " " + path ;
+      cmd = " chown -R " + str + " " + changePoint ;
       try
       {
          ssh.exec( cmd ) ;
       }
       catch ( e )
       {
-         SYSEXPHANDLE( e ) ;
-         rc = GETLASTERROR() ;
          errMsg = sprintf( "Failed to change path[?]'s owner to [?] in host[?]",
-                           path, str, ssh.getPeerIP() ) ;
-         PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
-                 sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
-         exception_handle( rc, errMsg ) ;
+                           changePoint, str, ssh.getPeerIP() ) ;
+         throw new SdbError( e, errMsg ) ;
       }
    }
    else
