@@ -538,7 +538,7 @@ namespace engine
             writable = FALSE ;
          }
 
-         if ( options._flag & FLG_QUERY_STRINGOUT )
+         if ( FLG_QUERY_STRINGOUT & flags )
          {
             dataContext->getSelector().setStringOutput( TRUE ) ;
          }
@@ -565,7 +565,7 @@ namespace engine
          plan = NULL ;
          mbContext = NULL ;
 
-         if ( options._flag & FLG_QUERY_STRINGOUT )
+         if ( FLG_QUERY_STRINGOUT & flags )
          {
             dataContext->getSelector().setStringOutput( TRUE ) ;
          }
