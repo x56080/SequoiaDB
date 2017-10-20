@@ -3617,7 +3617,7 @@ namespace import
          str++;
          len--;
       }
-      _skipSpace(&str, len);
+      _skipSpace(&str, len, fieldDel, fieldDelLen);
       fieldNameLength = length - len;
       if (len != 0 && _startWith(str, len, fieldDel, fieldDelLen))
       {
@@ -4075,7 +4075,7 @@ namespace import
             }
          }
 
-         _skipSpace(&str, len);
+         _skipSpace(&str, len, fieldDel, fieldDelLen);
          if (len == 0)
          {
             rc = _pushField(field);
@@ -4128,7 +4128,7 @@ namespace import
             }
          }
 
-         _skipSpace(&str, len);
+         _skipSpace(&str, len, fieldDel, fieldDelLen);
          if (len == 0)
          {
             rc = _pushField(field);
@@ -4275,7 +4275,7 @@ namespace import
          INT32 valueLength = 0;
          BOOLEAN fieldEnd = FALSE;
 
-         _skipSpace(&str, len);
+         _skipSpace(&str, len, fieldDel, fieldDelLen);
          if (len == 0)
          {
             break;
@@ -4362,7 +4362,7 @@ namespace import
                INT32 valueLength = 0;
                BOOLEAN fieldEnd = FALSE;
 
-               _skipSpace(&str, len);
+               _skipSpace(&str, len, fieldDel, fieldDelLen);
                if (len == 0)
                {
                   break;
