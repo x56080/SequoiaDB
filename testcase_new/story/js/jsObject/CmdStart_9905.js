@@ -67,16 +67,22 @@ CmdTest.prototype.testStartNoPermission = function()
     }
     try
     {
-        this.cmd.start( "useradd wangwj" ) ;
+        this.cmd.start( "groupadd", "liangxw", 1, 3*1000 ) ;
         throw 0 ;
     }
     catch( e )
     {
-        if( e !== 1 )
+        if( e === 0 )
         {
             throw buildException( "testStartNoPermission", e, 
-                  "test start useradd with user " + user, 1, e ) ;
+                  "test start useradd with user " + user + " " + this, "not 0", e ) ;
         }
+    }
+    var info = this.cmd.run( "cat /etc/group" ) ;
+    if( info.indexOf( "liangxw" ) !== -1 )
+    {
+        throw buildException( "testStartNoPermission", null,
+              "check group info " + info + " " + this, -1, info.indexOf( "liangxw" ) ) ;     
     }
     
     this.release() ;

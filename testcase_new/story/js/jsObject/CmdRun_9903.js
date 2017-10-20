@@ -91,11 +91,17 @@ CmdTest.prototype.testRunNoPermission = function()
     }
     catch( e )
     {
-        if( e !== 1 )
+        if( e === 0 )
         {
             throw buildException( "testRunNoPermission", null, 
-                  "test run useradd with user " + user, 1, e ) ;
+                  "test run useradd with user " + user + " " + this, "not 0", e ) ;
         }
+    }
+    var info = this.cmd.run( "cat /etc/passwd" ) ;
+    if( info.indexOf( "liangxw" ) !== -1 )
+    {
+        throw buildException( "testRunNoPermission", null,
+              "check user info " + info + " " + this, -1, info.indexOf( "liangxw" ) ) ;
     }
     
     this.release() ;
