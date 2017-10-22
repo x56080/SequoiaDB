@@ -1280,11 +1280,12 @@ namespace engine
       return builder.obj() ;
    }
 
-   static rtnPredicate *genericPredicate = NULL ;
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED_PRED, "_rtnPredicateSet::predicate" )
    const rtnPredicate &_rtnPredicateSet::predicate (const CHAR *fieldName) const
    {
       PD_TRACE_ENTRY ( SDB__RTNPRED_PRED ) ;
+
+      static rtnPredicate genericPredicate( BSONObj().firstElement(), FALSE ) ;
 
       const rtnPredicate *pRet = NULL ;
       map<string, rtnPredicate>::const_iterator f = _predicates.find(fieldName);
@@ -1292,12 +1293,7 @@ namespace engine
       {
          // we assign rtnPredicate object to a static pointer
          // this memory is not released until process terminate
-         if ( !genericPredicate )
-         {
-		    genericPredicate = SDB_OSS_NEW rtnPredicate
-                                     (BSONObj().firstElement(),FALSE);
-		 }
-         pRet = genericPredicate ;
+         pRet = &genericPredicate ;
       }
       else
       {
