@@ -10,189 +10,109 @@ Import("staticBuildEnv")
 Import("client_lib_dir")
 
 gtestFiles = [
-      "../../../../../SequoiaDB/engine/gtest/src/gtest-all.cc"
-      ]
+   "../../../../../SequoiaDB/engine/gtest/src/gtest-all.cc"
+]
 
 gtestMainFile = [
-      "../../../../../SequoiaDB/engine/gtest/src/gtest_main.cc"
-      ]
+   "../../../../../SequoiaDB/engine/gtest/src/gtest_main.cc"
+]
 
 clientStaticLib = [
-       client_lib_dir + "/libstaticsdbc.a"
-       ]
+   client_lib_dir + "/libstaticsdbc.a"
+]
 
 testCommonFiles = [
-      "./common/testcommon.cpp","./common/impWorker.cpp"
-      ]
+   "./common/testcommon.cpp",
+   "./common/impWorker.cpp"
+]
 
 clientStaticLibFile = join( client_lib_dir, 'libstaticsdbc.a' )
 
-testFiles1 = [ "./misc/decimal.cpp" ]
+testFiles = [ 
+   [ "./misc/decimal.cpp" ],
+   [ "./misc/numberLong.cpp" ],
+   [ "./misc/trunOncache.cpp" ],
+   [ "./misc/restAbnormal.cpp" ],
+   [ "./misc/procedure.cpp" ],
+   #[ "./misc/socketMutex.cpp" ],
+   [ "./misc/index.cpp" ],
+   [ "./misc/dropCsAndWriteLob.cpp" ],
+   [ "./misc/idIndex.cpp" ],
+   [ "./misc/attachAndDetachNode.cpp" ],
+   [ "./misc/forceSession.cpp" ],
+   [ "./misc/JSCompatible.cpp" ],
+   [ "./misc/code.cpp" ],
+   [ "./misc/bson_oid.cpp" ],
+   [ "./misc/date.cpp" ],
+   [ "./concurrent/concurrentCs.cpp" ],
+   [ "./concurrent/concurrentCl.cpp" ],
+   [ "./concurrent/concurrentLob.cpp" ],
+   [ "./concurrent/concurrentCursor.cpp" ],
+   [ "./concurrent/concurrentNode.cpp" ],
+   [ "./concurrent/concurrentRg.cpp" ],
+   [ "./lob/lobNormal.cpp" ],
+   [ "./lob/lobAbnormal.cpp" ],
+   [ "./ssl/sslFalse.cpp" ],
+   [ "./ssl/sslTrue.cpp" ],
+   [ "./load/loadUnloadCS.cpp" ],
+   [ "./load/rename.cpp" ],
+   [ "./load/reloadConf.cpp" ],
+   [ "./load/setPDLevel.cpp" ],
+   [ "./crud/queryMeta.cpp" ]
+]
 
-testFiles2 = [ "./misc/numberLong.cpp" ]
-      
-testFiles3 = [ "./misc/trunOncache.cpp" ]
+def getFileName( filePath ):
+   strArr = re.split( r'[/.]', filePath )
+   # last element is suffix,
+   # second last element is the name
+   return strArr[-2]
 
-testFiles4 = [ "./misc/restAbnormal.cpp" ]
+def getObjectName( filePath ):
+   return getFileName( filePath ) + ".o"
 
-testFiles5 = [ "./misc/procedure.cpp" ]
-
-testFiles6 = [ "./misc/socketMutex.cpp" ] 
-
-testFiles7 = [ "./misc/index.cpp" ]
-
-testFiles8 = [ "./misc/dropCsAndWriteLob.cpp" ]
-
-testFiles9 = [ "./concurrent/concurrentCs.cpp" ]
-
-testFiles10 = [ "./concurrent/concurrentCl.cpp" ]
-
-testFiles11 = [ "./concurrent/concurrentLob.cpp" ]
-
-testFiles12 = [ "./concurrent/concurrentCursor.cpp" ]
-
-testFiles13 = [ "./lob/lobNormal.cpp" ]
-
-testFiles14 = [ "./lob/lobAbnormal.cpp" ] 
-
-testFiles15 = [ "./misc/idIndex.cpp" ]
-
-testFiles16 = [ "./misc/attachAndDetachNode.cpp" ]
-
-testFiles17 = [ "./concurrent/concurrentNode.cpp" ]
-
-testFiles18 = [ "./concurrent/concurrentRg.cpp" ]
-
-testFiles19 = [ "./ssl/sslFalse.cpp" ]
-
-testFiles20 = [ "./ssl/sslTrue.cpp" ]
-
-testFiles21 = [ "./misc/forceSession.cpp" ]
-
-testFiles22 = [ "./misc/JSCompatible.cpp" ] 
-
-testFiles23 = [ "./load/loadUnloadCS.cpp"]
-
-testFiles24 = [ "./load/rename.cpp" ]
-
-testFiles25 = [ "./load/reloadConf.cpp" ]
-
-testFiles26 = [ "./load/setPDLevel.cpp" ]
-
-testFiles27 = [ "./misc/code.cpp" ]
-
-testFiles28 = [ "./misc/bson_oid.cpp" ]
-
-testFiles29 = [ "./misc/date.cpp" ]
+# add common to path
+dllBuildEnv.Append( CPPPATH=[ "./common/" ] )
+staticBuildEnv.Append( CPPPATH=[ "./common/" ] )
 
 # compile common lib
 gtestall = env.StaticLibrary('gtest', gtestFiles)
-gtestMainObj = env.Object('gtestMainObj', gtestMainFile)
-testCommon = env.StaticLibrary("testCommon", [testCommonFiles])
+
+# complit main object file
+testMainObj = dllBuildEnv.Object( [gtestMainFile] )
+
+# compile common object file
+commObj = []
+for file in testCommonFiles:
+   commonFileName = getFileName( file )
+   commonFile = dllBuildEnv.Object( commonFileName, [file] )
+   commObj.append( commonFile )
+
+# compile test object file
+objectFiles = []
+for index in range( len(testFiles) ):
+   objectFileArr = []
+   for file in testFiles[index]:
+      objectFileName = getObjectName( file )
+      objectFile = dllBuildEnv.Object( objectFileName, [file] )
+      objectFileArr.append( objectFile )
+   objectFiles.append( objectFileArr )
 
 # dll compile
-
-# test = dllBuildEnv.Program("test",       [testFiles, testCommon, gtestMainObj])
-
-decimal        = dllBuildEnv.Program("decimal",       [testFiles1, testCommon, gtestMainObj])
-numberLong     = dllBuildEnv.Program("numberLong",    [testFiles2, testCommon, gtestMainObj])
-turnOncache    = dllBuildEnv.Program("turnOncache",   [testFiles3, testCommon, gtestMainObj])
-restAbnormal   = dllBuildEnv.Program("restAbnormal",  [testFiles4, testCommon, gtestMainObj])
-procedure      = dllBuildEnv.Program("procedure",  [testFiles5, testCommon, gtestMainObj])
-# socketMutex    = dllBuildEnv.Program("socketMutex",  [testFiles6, testCommon, gtestMainObj])
-index          = dllBuildEnv.Program("index",  [testFiles7, testCommon, gtestMainObj])
-dropCsAndWriteLob = dllBuildEnv.Program("dropCsAndWriteLob",  [testFiles8, testCommon, gtestMainObj])
-concurrentCs   = dllBuildEnv.Program("concurrentCs",  [testFiles9, testCommon, gtestMainObj])
-concurrentCl   = dllBuildEnv.Program("concurrentCl",  [testFiles10, testCommon, gtestMainObj])
-concurrentLob     = dllBuildEnv.Program("concurrentLob",  [testFiles11, testCommon, gtestMainObj])
-concurrentCursor  = dllBuildEnv.Program("concurrentCursor",  [testFiles12, testCommon, gtestMainObj])
-lobNormal      = dllBuildEnv.Program("lobNormal",  [testFiles13, testCommon, gtestMainObj])
-lobAbnormal    = dllBuildEnv.Program("lobAbnormal",  [testFiles14, testCommon, gtestMainObj])
-idIndex        = dllBuildEnv.Program("idIndex",  [testFiles15, testCommon, gtestMainObj])
-attachAndDetachNode = dllBuildEnv.Program("attachAndDetachNode",  [testFiles16, testCommon, gtestMainObj])
-concurrentNode = dllBuildEnv.Program("concurrentNode",  [testFiles17, testCommon, gtestMainObj])
-concurrentRg   = dllBuildEnv.Program("concurrentRg",  [testFiles18, testCommon, gtestMainObj])
-sslFalse	   = dllBuildEnv.Program("sslFalse",  [testFiles19, testCommon, gtestMainObj])
-sslTrue        = dllBuildEnv.Program("sslTrue",  [testFiles20, testCommon, gtestMainObj])
-forceSession   = dllBuildEnv.Program("forceSession",  [testFiles21, testCommon, gtestMainObj])
-JSCompatible   = dllBuildEnv.Program("JSCompatible",  [testFiles22, testCommon, gtestMainObj])
-loadUnloadCS   = dllBuildEnv.Program("loadUnloadCS",  [testFiles23, testCommon, gtestMainObj])
-rename         = dllBuildEnv.Program("rename",  [testFiles24, testCommon, gtestMainObj])
-reloadConf     = dllBuildEnv.Program("reloadConf",  [testFiles25, testCommon, gtestMainObj])
-setPDLevel     = dllBuildEnv.Program("setPDLevel",  [testFiles26, testCommon, gtestMainObj])
-code           = dllBuildEnv.Program("code",  [testFiles27, testCommon, gtestMainObj])
-bson_oid       = dllBuildEnv.Program("bson_oid",  [testFiles28, testCommon, gtestMainObj])
-date		   = dllBuildEnv.Program("date",  [testFiles29, testCommon, gtestMainObj])
+dllPrograms = []
+for index in range( len(testFiles) ):
+   testFileName = getFileName( testFiles[index][0] )
+   dllProgram = dllBuildEnv.Program( testFileName, [objectFiles[index], testMainObj, commObj] )
+   dllPrograms.append( dllProgram )
 
 # static compile
-
-decimal.static       = staticBuildEnv.Program("decimal.static",      [testFiles1, testCommon, gtestMainObj])
-numberLong.static    = staticBuildEnv.Program("numberLong.static",   [testFiles2, testCommon, gtestMainObj])
-turnOncache.static   = staticBuildEnv.Program("turnOncache.static",  [testFiles3, testCommon, gtestMainObj])
-restAbnormal.static  = staticBuildEnv.Program("restAbnormal.static", [testFiles4, testCommon, gtestMainObj])
-procedure.static     = staticBuildEnv.Program("procedure.static",    [testFiles5, testCommon, gtestMainObj])
-# socketMutex.static   = staticBuildEnv.Program("socketMutex.static",    [testFiles6, testCommon, gtestMainObj])
-index.static         = staticBuildEnv.Program("index.static",    [testFiles7, testCommon, gtestMainObj])
-dropCsAndWriteLob.static = staticBuildEnv.Program("dropCsAndWriteLob.static",    [testFiles8, testCommon, gtestMainObj])
-concurrentCs.static  = staticBuildEnv.Program("concurrentCs.static",    [testFiles9, testCommon, gtestMainObj])
-concurrentCl.static  = staticBuildEnv.Program("concurrentCl.static",    [testFiles10, testCommon, gtestMainObj])
-concurrentLob.static     = staticBuildEnv.Program("concurrentLob.static",    [testFiles11, testCommon, gtestMainObj])
-concurrentCursor.static  = staticBuildEnv.Program("concurrentCursor.static",    [testFiles12, testCommon, gtestMainObj])
-lobNormal.static         = staticBuildEnv.Program("lobNormal.static",  [testFiles13, testCommon, gtestMainObj])
-lobAbnormal.static       = staticBuildEnv.Program("lobAbnormal.static",  [testFiles14, testCommon, gtestMainObj])
-idIndex.static           = staticBuildEnv.Program("idIndex.static",  [testFiles15, testCommon, gtestMainObj])
-attachAndDetachNode.static = staticBuildEnv.Program("attachAndDetachNode.static",  [testFiles16, testCommon, gtestMainObj])
-concurrentNode.static    = staticBuildEnv.Program("concurrentNode.static",  [testFiles17, testCommon, gtestMainObj])
-concurrentRg.static      = staticBuildEnv.Program("concurrentRg.static",  [testFiles18, testCommon, gtestMainObj])
-sslFalse.static          = staticBuildEnv.Program("sslFalse.static",  [testFiles19, testCommon, gtestMainObj])
-sslTrue.static           = staticBuildEnv.Program("sslTrue.static",  [testFiles20, testCommon, gtestMainObj])
-forceSession.static      = staticBuildEnv.Program("forceSession.static",  [testFiles21, testCommon, gtestMainObj])
-JSCompatible.static      = staticBuildEnv.Program("JSCompatible.static",  [testFiles22, testCommon, gtestMainObj])
-loadUnloadCS.static      = staticBuildEnv.Program("loadUnloadCS.static",  [testFiles23, testCommon, gtestMainObj])
-rename.static            = staticBuildEnv.Program("rename.static",  [testFiles24, testCommon, gtestMainObj])
-reloadConf.static        = staticBuildEnv.Program("reloadConf.static",  [testFiles25, testCommon, gtestMainObj])
-setPDLevel.static        = staticBuildEnv.Program("setPDLevel.static",  [testFiles26, testCommon, gtestMainObj])
-code.static              = staticBuildEnv.Program("code.static",  [testFiles27, testCommon, gtestMainObj])
-bson_oid.static          = staticBuildEnv.Program("bson_oid.static",  [testFiles28, testCommon, gtestMainObj])
-date.static				 = staticBuildEnv.Program("date.static",  [testFiles29, testCommon, gtestMainObj])
+staticPrograms = []
+for index in range( len(testFiles) ):
+   testFileName = getFileName( testFiles[index][0] ) + ".static"
+   staticProgram = staticBuildEnv.Program( testFileName, [objectFiles[index], testMainObj, commObj])
+   staticPrograms.append( staticProgram )
 
 # dll compile
-env.Install( '#/build_test', [   decimal,
-                                 numberLong, 
-                                 turnOncache,
-								 restAbnormal,
-								 procedure,
-								 index,
-								 dropCsAndWriteLob,
-								 concurrentCs,
-							 	 concurrentCl,
-								 concurrentLob,
-								 concurrentCursor,
-								 lobNormal,
-								 lobAbnormal,
-								 idIndex,
-								 attachAndDetachNode,
-								 concurrentNode,concurrentRg,sslFalse,sslTrue,forceSession,JSCompatible,
-								 loadUnloadCS,rename,reloadConf,setPDLevel,code,bson_oid,date
-                              ] )
-# static compile
-env.Install( '#/build_test', [   decimal.static,
-                                 numberLong.static,
-                                 turnOncache.static,
-         						 restAbnormal.static,
-         						 procedure.static,
-								 index.static,
-								 dropCsAndWriteLob.static,
-								 concurrentCs.static,
-								 concurrentCl.static,
-								 concurrentLob.static,
-								 concurrentCursor.static,
-								 lobNormal.static,
-								 lobAbnormal.static,
-								 idIndex.static,
-								 concurrentNode.static,concurrentRg.static,sslFalse.static,sslTrue.static,
-								 forceSession.static,JSCompatible.static,loadUnloadCS.static,rename.static,
-								 reloadConf.static,setPDLevel.static,code.static,bson_oid.static,
-								 date.static
-                              ] )
+env.Install( '#/build_test', dllPrograms )
 
+# static compile
+env.Install( '#/build_test', staticPrograms )
