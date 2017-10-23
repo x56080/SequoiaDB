@@ -44,6 +44,7 @@ testFiles = [
    [ "./misc/code.cpp" ],
    [ "./misc/bson_oid.cpp" ],
    [ "./misc/date.cpp" ],
+   [ "./misc/bson_array.cpp" ],
    [ "./concurrent/concurrentCs.cpp" ],
    [ "./concurrent/concurrentCl.cpp" ],
    [ "./concurrent/concurrentLob.cpp" ],
