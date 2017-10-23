@@ -4,14 +4,13 @@
 # @author:     liuxiaoxuan 2017-8-29
 
 from bson.py3compat import (long_type)
+from pysequoiadb import collection
 from lib import testlib
 from pysequoiadb.error import (SDBBaseError)
 
 
 class TestFind12474(testlib.SdbTestBase):
    def setUp(self):
-      if testlib.is_standalone():
-         self.skipTest('current environment is standalone')
       testlib.drop_cs(self.db, self.cs_name, ignore_not_exist=True)
       self.cs = self.db.create_collection_space(self.cs_name)
       self.cl = self.cs.create_collection(self.cl_name)
@@ -82,13 +81,13 @@ class TestFind12474(testlib.SdbTestBase):
       try:
          skip = long_type(1)
          retrn = long_type(10)
-         rec = self.cl.query_one(condition=cond, \
-                                 selector=selection, \
-                                 order_by={"_id": 1}, \
-                                 hint={"": ""}, \
-                                 num_to_skip=skip, \
-                                 num_to_return=retrn, \
-                                 flags=1)
+         rec = self.cl.query_one(condition = cond, \
+                                 selector = selection, \
+                                 order_by = {"_id": 1}, \
+                                 hint = {"": "$id"}, \
+                                 num_to_skip = skip, \
+                                 num_to_return = retrn, \
+                                 flags = collection.QUERY_FLG_FORCE_HINT)
          actResult = rec
          self.assertEqual(actResult, expectResult)
       except SDBBaseError as e:

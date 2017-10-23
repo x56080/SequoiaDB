@@ -5,13 +5,12 @@
 # @author:     liuxiaoxuan 2017-8-29
 
 from bson.py3compat import (long_type)
+from pysequoiadb import collection
 from lib import testlib
 from pysequoiadb.error import (SDBBaseError, SDBEndOfCursor)
 
 class TestFind12470(testlib.SdbTestBase):
    def setUp(self):
-      if testlib.is_standalone():
-         self.skipTest('current environment is standalone')
       testlib.drop_cs(self.db, self.cs_name, ignore_not_exist=True)
       self.cs = self.db.create_collection_space(self.cs_name)
       self.cl = self.cs.create_collection(self.cl_name)
@@ -109,10 +108,10 @@ class TestFind12470(testlib.SdbTestBase):
          cursor = self.cl.query(condition = cond, \
                                 selector = selection, \
                                 order_by = {"_id": 1}, \
-                                hint = {"": ""}, \
+                                hint = {"": "$id"}, \
                                 num_to_skip = skip, \
                                 num_to_return = retrn, \
-                                flags = 1)
+                                flags = collection.QUERY_FLG_FORCE_HINT)
 
          actResult = testlib.get_all_records(cursor)
          self.assertListEqualUnordered(expectResult, actResult)
