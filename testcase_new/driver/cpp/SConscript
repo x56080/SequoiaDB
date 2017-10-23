@@ -82,6 +82,7 @@ testFiles = [
    [ "./paramVerify/dbFuncParamTest12694.cpp" ],
    [ "./paramVerify/lobFuncParamTest12556.cpp" ],
    [ "./paramVerify/initClientParamTest12736.cpp" ],
+   [ "./paramVerify/queryMeta13054.cpp" ],
    [ "./cls/rgOpr12688_12693.cpp" ],  # sync
    [ "./cls/nodeOpr12689_12692.cpp" ],  # sync
    [ "./cls/attachDetachNode12553.cpp" ],  # sync
