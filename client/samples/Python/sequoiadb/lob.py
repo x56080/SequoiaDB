@@ -14,8 +14,10 @@ if __name__ == "__main__":
 
    try:
       # connect to local db, using default args value.
-      # host= '192.168.20.48', port= 11810, user= '', password= ''
-      db = client("192.168.20.48", 11810)
+      host = 'localhost'
+      port= 11810
+      # user= '', password= ''
+      db = client(host, port)
       cs_name = "gymnasium"
       cs = db.create_collection_space(cs_name)
 
@@ -43,6 +45,7 @@ if __name__ == "__main__":
       pysequoiadb._print(lob_two.get_size())
       pysequoiadb._print(lob_two.get_create_time())
       datafrom = lob_two.read(20)
+      lob_two.close()
       pysequoiadb._print(datafrom)
       cl.remove_lob(oid)
       pysequoiadb._print("remove success")
