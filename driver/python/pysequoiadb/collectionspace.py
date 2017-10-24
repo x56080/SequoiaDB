@@ -137,7 +137,7 @@ class collectionspace(object):
          
       Parameters:
          Name         Type     Info:
-         cl_name      str      The full name of the collection..
+         cl_name      str      The short name of the collection.
       Return values:
          a collection object of query
       Exceptions:

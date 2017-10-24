@@ -888,10 +888,10 @@ class collection(object):
          raise
 
    def get_collection_name(self):
-      """Get the name of specified collection in current collection space.
+      """Get the name of current collection.
 
       Return values:
-         The name of specified collection
+         The name of current collection
       Exceptions:
          pysequoiadb.error.SDBBaseError
       """

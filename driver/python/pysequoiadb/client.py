@@ -945,7 +945,7 @@ class client(object):
          raise
 
    def exec_update(self, sql):
-      """Executing SQL command for updating.
+      """Executing SQL command for updating, inserting and deleting.
 
       Parameters:
          Name         Type     Info:
@@ -964,7 +964,7 @@ class client(object):
          raise
 
    def exec_sql(self, sql):
-      """Executing SQL command.
+      """Executing SQL command for query.
 
       Parameters:
          Name         Type     Info:
@@ -1189,9 +1189,8 @@ class client(object):
 
       Parameters:
          Name        Type     Info:
-         options     dict     Contains configuration infomations for remove
-                                     backups, list all the backups in the
-                                     default backup path if None. 
+         options     dict     Contains configuration infomations for backups,
+                              list all the backups if the default backup path is None. 
                                      The "options" contains 3 options as below. 
                                      All the elements in options are optional. 
                                      eg:
@@ -1398,7 +1397,7 @@ class client(object):
       except SDBBaseError:
          raise
 
-   def set_session_attri(self, options = None):
+   def set_session_attri(self, options):
       """Set the attributes of the session.
 
       Parameters:
@@ -1408,11 +1407,9 @@ class client(object):
          pysequoiadb.error.SDBTypeError
          pysequoiadb.error.SDBBaseError
       """
-      bson_options = None
-      if options is not None:
-         if not isinstance(options, dict):
-            raise SDBTypeError("options must be an instance of dict")
-         bson_options = bson.BSON.encode(options)
+      if not isinstance(options, dict):
+         raise SDBTypeError("options must be an instance of dict")
+      bson_options = bson.BSON.encode(options)
 
       try:
          rc = sdb.sdb_set_session_attri(self._client, bson_options)

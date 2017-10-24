@@ -183,22 +183,22 @@ class UUIDLegacy(Binary):
       >>> coll.uuid_subtype = UUID_SUBTYPE
       >>> coll.insert({'uuid': Binary(my_uuid.bytes, 3)})
       ObjectId('...')
-      >>> coll.find({'uuid': my_uuid}).count()
+      >>> coll.get_count({'uuid': my_uuid})
       0
-      >>> coll.find({'uuid': UUIDLegacy(my_uuid)}).count()
+      >>> coll.get_count({'uuid': UUIDLegacy(my_uuid)})
       1
-      >>> coll.find({'uuid': UUIDLegacy(my_uuid)})[0]['uuid']
+      >>> coll.query({'uuid': UUIDLegacy(my_uuid)})[0]['uuid']
       UUID('...')
       >>>
       >>> # Convert from subtype 3 to subtype 4
-      >>> doc = coll.find_one({'uuid': UUIDLegacy(my_uuid)})
+      >>> doc = coll.query_one({'uuid': UUIDLegacy(my_uuid)})
       >>> coll.save(doc)
       ObjectId('...')
-      >>> coll.find({'uuid': UUIDLegacy(my_uuid)}).count()
+      >>> coll.get_count({'uuid': UUIDLegacy(my_uuid)})
       0
-      >>> coll.find({'uuid': {'$in': [UUIDLegacy(my_uuid), my_uuid]}}).count()
+      >>> coll.get_count({'uuid': {'$in': [UUIDLegacy(my_uuid), my_uuid]}})
       1
-      >>> coll.find_one({'uuid': my_uuid})['uuid']
+      >>> coll.query_one({'uuid': my_uuid})['uuid']
       UUID('...')
 
     Raises TypeError if `obj` is not an instance of :class:`~uuid.UUID`.
