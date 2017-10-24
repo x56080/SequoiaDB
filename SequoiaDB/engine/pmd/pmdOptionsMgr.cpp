@@ -1447,7 +1447,7 @@ namespace engine
       _maxReplSync         = PMD_DEFAULT_MAX_REPLSYNC ;
       _syncStrategy        = CLS_SYNC_NONE ;
       _dataErrorOp         = PMD_OPT_VALUE_FULLSYNC ;
-      _preferReplica       = PREFER_REPL_ANYONE ;
+      _preferReplica       = PREFER_REPL_MASTER ;
       _replBucketSize      = PMD_DFT_REPL_BUCKET_SIZE ;
       _memDebugEnabled     = FALSE ;
       _memDebugSize        = 0 ;

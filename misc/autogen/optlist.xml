@@ -5,6 +5,10 @@
 <!-- description: (optional) description for configure option                               -->
 <!--   en: English description                                                              -->
 <!--   cn: Chinese description                                                              -->
+<!-- reloadable: (optional) whether this configuration is reloadable                        -->
+<!-- reloadstrategy: (optional) the reload strategy of this configuration                  -->
+<!--   en: English reload strategy                                                              -->
+<!--   cn: Chinese reload strategy                                                              -->
 <!-- type: (optional) expected user input type, must be C++ type or none, string by default -->
 <!-- default: (optional) default value (if rest of dft doesn not specified)                 -->
 <!-- catalogdft: (optional) default value for catalog node                                  -->
@@ -229,10 +233,6 @@
          <en>Yes</en>
          <cn>是</cn>
       </reloadable>
-      <reloadstrategy>
-         <en></en>
-         <cn></cn>
-      </reloadstrategy>
       <detail>
          <en>1. It specifies the amount of thread in thread pool.<fig></fig>
              2. If it is not specified, the default value is 20, value range is [0,10000].</en>
@@ -378,10 +378,6 @@
          <en>Yes</en>
          <cn>是</cn>
       </reloadable>
-      <reloadstrategy>
-         <en></en>
-         <cn></cn>    	
-      </reloadstrategy>
       <default>3</default>
       <detail>
          <en>1. It specifies the print level of diagnostic log. Diagnostic log in sequoiaDB, 0-5 respectively represent: SEVERE, ERROR, EVENT,WARNING, INFO, DEBUG.<fig></fig>
@@ -676,10 +672,6 @@
          <en>Yes</en>
          <cn>是</cn>
       </reloadable>
-      <reloadstrategy>
-         <en></en>
-         <cn></cn>
-      </reloadstrategy>
       <detail>
          <en>1. The control strategy of data sync in repl group.<fig></fig>
          	   2. value enumeration:<fig></fig>
@@ -783,10 +775,6 @@
          <en>Yes</en>
          <cn>是</cn>
       </reloadable>
-      <reloadstrategy>
-         <en></en>
-         <cn></cn>
-      </reloadstrategy>
       <type>int</type>
       <hidden>true</hidden>
    </opt>
@@ -813,12 +801,8 @@
          <en>Yes</en>
          <cn>是</cn>
       </reloadable>
-      <reloadstrategy>
-         <en></en>
-         <cn></cn>
-      </reloadstrategy>
-	  <type>int</type>
-     <hidden>true</hidden>
+	    <type>int</type>
+      <hidden>true</hidden>
    </opt>
 
    <opt>
@@ -830,14 +814,14 @@
       </description>
       <detail>
          <en>1. It specifies the instance on which to query.<fig></fig>
-             2. If it is not specifed, the default value is M.<fig></fig>
+             2. If it is not specifed, the default value is M, i.e. read and write instance.<fig></fig>
              3. value enum:<fig></fig>
                     M--read and write instance,<fig></fig>
                     S--read only instance,<fig></fig>
                     A--any instance,<fig></fig>
                     1-7--the nth instance</en>
          <cn>1.指定执行读请求时优先选择的实例<fig></fig>
-             2.如果不指定，则默认为选择可读写实例。<fig></fig>
+             2.如果不指定，则默认值为M，即选择可读写实例。<fig></fig>
              3.取值列表：<fig></fig>
                     M--可读写实例<fig></fig>
                     S--只读实例<fig></fig>
@@ -968,10 +952,6 @@
          <en>Yes</en>
          <cn>是</cn>
       </reloadable>
-      <reloadstrategy>
-         <en></en>
-         <cn></cn>
-      </reloadstrategy>
       <detail>
          <en>The weight of election, default is 10, range [1, 100]</en>
          <cn>节点选举权重, 默认值为10, 取值范围[1, 100]</cn>
@@ -1069,10 +1049,6 @@
          <en>Yes</en>
          <cn>是</cn>
       </reloadable>
-      <reloadstrategy>
-         <en></en>
-         <cn></cn>
-      </reloadstrategy>
       <detail>
          <en>The timeout period for heartbeat in each operation ( in ms ), default:300000, 0 for no-timeout</en>
          <cn>判定操作中断的时间(ms),默认值:300000, 0表示不超时</cn>
@@ -1353,10 +1329,6 @@
          <en>Yes</en>
          <cn>是</cn>
       </reloadable>
-      <reloadstrategy>
-         <en></en>
-         <cn></cn>
-      </reloadstrategy>
       <detail>
          <en>The timeout interval for archiving( in seconds ), default:600, 0 for no-timeout.</en>
          <cn>判定未归档的超时时间(秒)，默认值：600，0表示不超时。</cn>
@@ -1377,10 +1349,6 @@
          <en>Yes</en>
          <cn>是</cn>
       </reloadable>
-      <reloadstrategy>
-         <en></en>
-         <cn></cn>
-      </reloadstrategy>
       <detail>
          <en>The expired time for archive log file ( in hours ), default:240, 0 for no-expired.</en>
          <cn>归档日志文件的过期时间(小时)，默认值:240，0表示不过期。</cn>
@@ -1401,10 +1369,6 @@
          <en>Yes</en>
          <cn>是</cn>
       </reloadable>
-      <reloadstrategy>
-         <en></en>
-         <cn></cn>
-      </reloadstrategy>
       <detail>
          <en>The disk quota for archive log directory ( in GB ), default:10, 0 for no limit.</en>
          <cn>归档日志目录的磁盘配额(GB)，默认值：10，0表示没有限制。</cn>
@@ -1425,10 +1389,6 @@
          <en>Yes</en>
          <cn>是</cn>
       </reloadable>
-      <reloadstrategy>
-         <en></en>
-         <cn></cn>
-      </reloadstrategy>
       <detail>
          <en>1. The node's operation when its data lost. Value is 0/1/2. Default is 1.<fig></fig>
              2. 0: do nothing, run with error.<fig></fig>
