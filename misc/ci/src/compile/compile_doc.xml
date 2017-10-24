@@ -24,6 +24,7 @@
             <antcall target="compile_website"/> 
          </then>
       </if>
+      <antcall target="compile_html"/>
    </target>
 
    <target name="check_parameter">  
@@ -87,4 +88,26 @@
 
    </target>   
  
+   <target name="compile_html">
+      <delete dir="${srccode_dir}/doc/build" failonerror="false" />
+      <delete dir="${srccode_dir}/compile_html.bat" failonerror="false" />
+      <echo file="${srccode_dir}/compile_html.bat" 
+            message='"cmd /E:ON /V:ON /T:0E /K C:\SetEnv.cmd &amp;&amp; scons --offline"' />
+      <exec executable="cmd.exe" dir="${srccode_dir}" failonerror="true" logError="true">
+         <arg value="/c" />
+         <arg value='compile_html.bat' />
+      </exec>
+      <for param="fullpathname">
+         <path>
+            <dirset dir="${srccode_dir}/doc/build/output" includes="SequoiaDB_usermanuals_v*"/>
+         </path>
+         <sequential>
+            <tar destfile="@{fullpathname}.tar.gz" 
+                 basedir="${srccode_dir}/doc/build/output" includes="SequoiaDB_usermanuals_v*/**/*" compression="gzip"/>
+            <copy todir="${WORKSPACE}/release" failonerror="true" >
+               <fileset dir="${srccode_dir}/doc/build/output" includes="SequoiaDB_usermanuals_v*.tar.gz"/>
+            </copy>
+         </sequential>
+      </for>
+   </target>
 </project>
