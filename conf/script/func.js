@@ -1203,9 +1203,10 @@ function getAUsablePortFromRemote( ssh )
 @parameter
    path[string]: the data path
 @return
+   ssh[object]: remote ssh object
    curPath[string]: return the right place to change the owner of the path
 ***************************************************************************** */
-function getChangeOwnerPath( path )
+function getChangeOwnerPath( ssh, path )
 {
    try
    {
@@ -1213,7 +1214,7 @@ function getChangeOwnerPath( path )
       {
          throw new SdbError( SDB_INVALIDARG, "Invalid data path: " + path ) ;
       }
-      if ( File.exist( path ) && !File.isDir( path ) )
+      if ( ssh.isPathExist( path ) && !ssh.isDirectory( path ) )
       {
          throw new SdbError( SDB_INVALIDARG, sprintf( "Data path[?] should be a directory", path ) ) ;
       }
@@ -1227,7 +1228,7 @@ function getChangeOwnerPath( path )
             if ( dirArr[i] != "" )
             {
                curPath = curPath + "/"  + dirArr[i] ;
-               if ( !File.exist(curPath) )
+               if ( !ssh.isPathExist(curPath) )
                {
                   break ;
                }
@@ -1265,7 +1266,7 @@ function changeDirOwner( ssh, path, user, userGroup )
    if ( SYS_LINUX == SYS_TYPE )
    {
       // get the directory to change owner
-      var changePoint = getChangeOwnerPath( path ) ;
+      var changePoint = getChangeOwnerPath( ssh, path ) ;
       
       // mkdir
       cmd = " mkdir -p " + path ;
