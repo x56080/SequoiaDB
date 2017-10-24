@@ -1,145 +1,171 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-   <modelVersion>4.0.0</modelVersion>
-   <groupId>com.sequoiadb</groupId>
-   <artifactId>sequoiadb-driver</artifactId>
-   <version>1.12</version>
-   <packaging>jar</packaging>
-   
-   
-   <name>${project.groupId}:${project.artifactId}</name>
-   <description>SequoiaDB Driver Library</description>
-   <url>https://github.com/SequoiaDB/SequoiaDB</url>
-   <developers>
-    <developer>
-      <name>linyoubing</name>
-      <email>linyoubing@sequoiadb.com</email>
-      <organization>sequoiadb</organization>
-      <organizationUrl>http://www.sequoiadb.com</organizationUrl>
-    </developer>
-  </developers>
-   
-   <licenses>
-     <license>
-       <name>The Apache License, Version 2.0</name>
-       <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-     </license>
-   </licenses>
-   <scm>
-      <connection>
-         scm:git:https://github.com/SequoiaDB/SequoiaDB.git
-      </connection>
-      <developerConnection>
-         scm:git:https://github.com/SequoiaDB/SequoiaDB.git
-      </developerConnection>
-      <url>https://github.com/SequoiaDB/SequoiaDB</url>
-     <tag>v1.12</tag>
-  </scm>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-	<dependencies>
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.10</version>
-		</dependency>
-		<dependency>
-			<groupId>log4j</groupId>
-			<artifactId>log4j</artifactId>
-			<version>1.2.17</version>
-		</dependency>	
-	</dependencies>
+    <groupId>com.sequoiadb</groupId>
+    <artifactId>sequoiadb-driver</artifactId>
+    <version>2.6.4-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>SequoiaDB Java Driver</name>
+    <description>Java client driver for SequoiaDB</description>
+    <url>https://github.com/SequoiaDB/SequoiaDB</url>
+
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>sequoiadb.com</name>
+            <email>contact@sequoiadb.com</email>
+            <organization>SequoiaDB</organization>
+            <organizationUrl>http://www.sequoiadb.com</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:https://github.com/SequoiaDB/SequoiaDB.git</connection>
+        <developerConnection>scm:git:https://github.com/SequoiaDB/SequoiaDB.git</developerConnection>
+        <url>https://github.com/SequoiaDB/SequoiaDB</url>
+    </scm>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>1.7</java.version>
+        <revision></revision>
     </properties>
-   <distributionManagement>
-     <snapshotRepository>
-       <id>ossrh</id>
-       <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-     </snapshotRepository>
-      <repository>
-       <id>ossrh</id>
-       <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-     </repository>
-   </distributionManagement>
-   
-   
-   <profiles>
-   <profile> 
-    <id>release</id>
+
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
     <build>
+        <testResources>
+            <testResource>
+                <directory>${project.basedir}/src/test/resources</directory>
+                <filtering>true</filtering>
+            </testResource>
+        </testResources>
         <plugins>
-            <plugin>
-               <groupId>org.sonatype.plugins</groupId>
-               <artifactId>nexus-staging-maven-plugin</artifactId>
-               <version>1.6.3</version>
-               <extensions>true</extensions>
-               <configuration>
-                 <serverId>ossrh</serverId>
-                 <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                 <autoReleaseAfterClose>true</autoReleaseAfterClose>
-               </configuration>
-             </plugin>
-             <plugin>
-                 <groupId>org.apache.maven.plugins</groupId>
-                 <artifactId>maven-release-plugin</artifactId>
-                 <version>2.5</version>
-                 <configuration>
-                   <autoVersionSubmodules>true</autoVersionSubmodules>
-                   <useReleaseProfile>false</useReleaseProfile>
-                   <releaseProfiles>release</releaseProfiles>
-                   <goals>deploy</goals>
-                 </configuration>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.0</version>
+                <version>3.6.0</version>
                 <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
             <plugin>
-               <groupId>org.apache.maven.plugins</groupId>
-               <artifactId>maven-gpg-plugin</artifactId>
-               <version>1.5</version>
-               <executions>
-                 <execution>
-                   <id>sign-artifacts</id>
-                   <phase>verify</phase>
-                   <goals>
-                     <goal>sign</goal>
-                   </goals>
-                 </execution>
-               </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>2.2.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar-no-fork</goal>
-                        </goals>
-                    </execution>
-                </executions>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.0.2</version>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Driver-Version>${project.version}</Driver-Version>
+                            <Driver-Revision>${revision}</Driver-Revision>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.9</version>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-         </plugins>
+        </plugins>
     </build>
-  </profile>
-</profiles>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+        </repository>
+    </distributionManagement>
+
+    <profiles>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>3.0.1</version>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>2.10.4</version>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <excludePackageNames>com.sequoiadb.message:com.sequoiadb.net:com.sequoiadb.util:org.bson.io:org.bson.util.annotations</excludePackageNames>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.6</version>
+                        <executions>
+                            <execution>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>3.7</version>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>3.0.1</version>
+                <configuration>
+                    <xmlOutput>true</xmlOutput>
+                    <findbugsXmlOutput>true</findbugsXmlOutput>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>jdepend-maven-plugin</artifactId>
+                <version>2.0</version>
+            </plugin>
+        </plugins>
+    </reporting>
 </project>
