@@ -133,7 +133,7 @@ TEST_F( opCL12741, opCL )
    BSONObj cond ;
    BSONObj orderBy ;
    BSONObj hint ;
-   rc = cl.getQueryMeta( cursor, cond, orderBy, hint, 0, -1 ) ; // TODO: api doc has bug, no default value
+   rc = cl.getQueryMeta( cursor, cond, orderBy, hint, 0, -1 ) ; 
    EXPECT_EQ( SDB_NOT_CONNECTED, rc ) << "getQueryMeta shouldn't be executed" ;
 
    // attach/detach
@@ -169,5 +169,4 @@ TEST_F( opCL12741, opCL )
    EXPECT_EQ( SDB_NOT_CONNECTED, rc ) << "create id index shouldn't be executed" ;
    rc = cl.dropIdIndex() ;
    EXPECT_EQ( SDB_NOT_CONNECTED, rc ) << "drop id index shouldn't be executed" ;
-   // TODO: api bug, pop() shouldn't be exposed
 }
