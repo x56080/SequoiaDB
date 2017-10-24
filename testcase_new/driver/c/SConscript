@@ -38,27 +38,28 @@ testFiles = [
    [ "./misc/index.cpp" ],
    [ "./misc/dropCsAndWriteLob.cpp" ],
    [ "./misc/idIndex.cpp" ],
-   [ "./misc/attachAndDetachNode.cpp" ],
-   [ "./misc/forceSession.cpp" ],
+   [ "./misc/attachAndDetachNode.cpp" ], # sync
+   [ "./misc/forceSession.cpp" ], # sync
    [ "./misc/JSCompatible.cpp" ],
    [ "./misc/code.cpp" ],
    [ "./misc/bson_oid.cpp" ],
    [ "./misc/date.cpp" ],
    [ "./misc/bson_array.cpp" ],
+   [ "./misc/snapshotTrans.cpp" ], # conf
    [ "./concurrent/concurrentCs.cpp" ],
    [ "./concurrent/concurrentCl.cpp" ],
    [ "./concurrent/concurrentLob.cpp" ],
    [ "./concurrent/concurrentCursor.cpp" ],
-   [ "./concurrent/concurrentNode.cpp" ],
-   [ "./concurrent/concurrentRg.cpp" ],
+   [ "./concurrent/concurrentNode.cpp" ], # sync
+   [ "./concurrent/concurrentRg.cpp" ], # sync
    [ "./lob/lobNormal.cpp" ],
    [ "./lob/lobAbnormal.cpp" ],
    [ "./ssl/sslFalse.cpp" ],
-   [ "./ssl/sslTrue.cpp" ],
+   [ "./ssl/sslTrue.cpp" ], # conf
    [ "./load/loadUnloadCS.cpp" ],
    [ "./load/rename.cpp" ],
-   [ "./load/reloadConf.cpp" ],
-   [ "./load/setPDLevel.cpp" ],
+   [ "./load/reloadConf.cpp" ], # sync
+   [ "./load/setPDLevel.cpp" ], # sync
    [ "./crud/queryMeta.cpp" ]
 ]
 
