@@ -16,8 +16,7 @@
   import pysequoiadb
   from pysequoiadb import client
   from pysequoiadb import const
-  from pysequoiadb.error import SDBBaseError
-  
+
   # connect to local db, using default args value.
   host = 'localhost'
   port = 11810
@@ -81,19 +80,17 @@
   import pysequoiadb
   from pysequoiadb import client
   from pysequoiadb import const
-  from pysequoiadb.error import (SDBBaseError, SDBEndOfCursor)
-  
-  try:
-     cr = cl.query()
-     while True:
-        try:
-           record = cr.next()
-           print record 
-        except SDBEndOfCursor:
-           break
-  except SDBBaseError, e:
-     pysequoiadb._print(e)
-     raise e
+  from pysequoiadb.error import SDBEndOfCursor
+
+  cr = cl.query()
+  while True:
+     try:
+        record = cr.next()
+        print record 
+     except SDBEndOfCursor:
+        break
+     finally:
+        cr.close()
   ```
 
   查询操作需要一个游标对象存放查询的结果到本地。要获得查询的结果需要使用游标操作。本例使用了游标操作的next接口，表示从查询结果中取到一条记录。此示例中没有设置查询条件，筛选条件，排序情况，及仅使用默认索引。
