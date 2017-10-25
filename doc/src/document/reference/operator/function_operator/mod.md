@@ -31,7 +31,7 @@ SequoiaDB shell 运行如下：
   Return 1 row(s).
   ```
 
-* 与匹配符配合使用，匹配字段“a”对10取模之后值为30的记录：
+* 与匹配符配合使用，匹配字段“a”对10取模之后值为3的记录：
   
   ```lang-javascript
   > db.foo.bar.find( { "a": { "$mod": 10, "$et": 3 } } )

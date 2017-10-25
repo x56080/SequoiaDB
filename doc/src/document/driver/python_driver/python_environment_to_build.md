@@ -1,6 +1,6 @@
 ##获取驱动开发包##
 
-从[SequoiaDB](http://www.sequoiadb.com)下载对应操作系统版本的SequoiaDB驱动开发包。
+从[SequoiaDB](http://download.sequoiadb.com/cn/index-cat_id-2)下载对应操作系统版本的SequoiaDB驱动开发包。
 
 ##配置开发环境##
 

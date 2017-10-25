@@ -1,6 +1,6 @@
 ##获取驱动开发包##
 
-从 [SequoiaDB](http://www.sequoiadb.com) 下载对应操作系统版本的 SequoiaDB 驱动开发包；解压驱动开发包，从 driver/java/ 目录中获取 sequoiadb.jar 文件。
+从 [SequoiaDB](http://download.sequoiadb.com/cn/index-cat_id-2) 下载对应操作系统版本的 SequoiaDB 驱动开发包；解压驱动开发包，从 driver/java/ 目录中获取 sequoiadb.jar 文件。
 
 ##配置 Eclipse 开发环境##
 
