@@ -601,6 +601,25 @@ namespace engine
          try
          {
             BSONObj obj( recordData.data() ) ;
+            // In case of power failure, any kind of corruption may happen.
+            // There was one time that one record was damaged. The BSONObj EOO
+            // flag was not right. Then later in traversing of the object, when
+            // reaching the expected end, it was treated as an element. Later
+            // crash happened when try to get the size of the element.
+            // So in the rebuilding phase, we scan all the record objects, to
+            // make sure that they are valid BSON object( About 11% performance
+            // lose in the test). If they are not, exception is expected to
+            // happen and the current record will be ignored.
+            BSONObjIterator itr( obj );
+            while ( TRUE )
+            {
+               BSONElement e = itr.next() ;
+               if ( true == e.eoo() )
+               {
+                  break ;
+               }
+            }
+
             rc = pSU->insertRecord( obj, cb, pEntry ) ;
             if ( rc )
             {
