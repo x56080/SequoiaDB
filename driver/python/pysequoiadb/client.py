@@ -30,7 +30,6 @@ from pysequoiadb.collectionspace import collectionspace
 from pysequoiadb.collection import collection
 from pysequoiadb.cursor import cursor
 from pysequoiadb.replicagroup import replicagroup
-from pysequoiadb.datacenter import datacenter
 from pysequoiadb.common import const
 from pysequoiadb.error import (SDBBaseError, SDBTypeError)
 
@@ -1446,22 +1445,3 @@ class client(object):
          raise
 
       return valid
-
-   def get_datacenter(self):
-      """get data center
-
-      Return values:
-         an object of data center 
-      Exceptions:
-         pysequoiadb.error.SDBBaseError
-      """
-      try:
-         dc = datacenter()
-         rc = sdb.sdb_get_datacenter(self._client, cs._dc)
-         pysequoiadb._raise_if_error("Failed to get data center", rc)
-      except SDBBaseError:
-         del dc;
-         dc = None
-         raise
-
-      return dc
