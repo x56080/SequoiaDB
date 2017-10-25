@@ -33,14 +33,17 @@ if PY3:
         # See http://python3porting.com/problems.html#nicer-solutions
         return codecs.latin_1_encode(s)[0]
 
+
     def bytes_from_hex(h):
         return bytes.fromhex(h)
+
 
     binary_type = bytes
     str_type = str
     text_type = str
     long_type = int
-    next_item   = "__next__"
+    next_item = "__next__"
+
 
     def reraise(tp, value, tb=None):
         if value.__traceback__ is not tb:
@@ -54,12 +57,15 @@ else:
     except ImportError:
         from StringIO import StringIO
 
+
     def b(s):
         # See comments above. In python 2.x b('foo') is just 'foo'.
         return s
 
+
     def bytes_from_hex(h):
         return h.decode('hex')
+
 
     binary_type = str
     str_type = basestring
@@ -67,8 +73,8 @@ else:
     # since we won't ever get here under python3.
     text_type = unicode
     long_type = long
-    next_item   = "next"
+    next_item = "next"
 
-    exec('''def reraise(tp, value, tb=None): raise tp, value, tb''')
+    exec ('''def reraise(tp, value, tb=None): raise tp, value, tb''')
 
 string_types = (binary_type, text_type)

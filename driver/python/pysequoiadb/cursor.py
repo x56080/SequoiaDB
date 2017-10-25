@@ -13,148 +13,151 @@
 #   limitations under the License.
 
 try:
-   from . import sdb
+    from . import sdb
 except ImportError:
-   raise Exception("Cannot find extension: sdb")
+    raise Exception("Cannot find extension: sdb")
+
+from collections import OrderedDict
 
 import bson
 import pysequoiadb
 from pysequoiadb.common import const
-from pysequoiadb.error import (SDBBaseError, SDBEndOfCursor, SDBError)
-from collections import OrderedDict
+from pysequoiadb.error import (SDBBaseError, SDBEndOfCursor, SDBError, SDBTypeError)
+
 
 class cursor(object):
-   """Cursor of SequoiaDB
+    """Cursor of SequoiaDB
 
-   All operation need deal with the error code returned first, if it has. 
-   Every error code is not SDB_OK(or 0), it means something error has appeared,
-   and user should deal with it according the meaning of error code printed.
+    All operation need deal with the error code returned first, if it has.
+    Every error code is not SDB_OK(or 0), it means something error has appeared,
+    and user should deal with it according the meaning of error code printed.
 
-   @version: execute to get version
-             >>> import pysequoiadb
-             >>> print pysequoiadb.get_version()
+    @version: execute to get version
+              >>> import pysequoiadb
+              >>> print pysequoiadb.get_version()
 
-   @notice : The dict of built-in Python is hashed and non-ordered. so the
-             element in dict may not the order we make it. we make a dict and
-             print it like this:
-             ...
-             >>> a = {"avg_age":24, "major":"computer science"}
-             >>> a
-             >>> {'major': 'computer science', 'avg_age': 24}
-             ...
-             the elements order it is not we make it!!
-             therefore, we use bson.SON to make the order-sensitive dict if the
-             order is important such as operations in "$sort", "$group",
-             "split_by_condition", "aggregate","create_collection"...
-             In every scene which the order is important, please make it using
-             bson.SON and list. It is a subclass of built-in dict
-             and order-sensitive
-   """
-   def __init__(self):
-      """constructor of cursor
+    @notice : The dict of built-in Python is hashed and non-ordered. so the
+              element in dict may not the order we make it. we make a dict and
+              print it like this:
+              ...
+              >>> a = {"avg_age":24, "major":"computer science"}
+              >>> a
+              >>> {'major': 'computer science', 'avg_age': 24}
+              ...
+              the elements order it is not we make it!!
+              therefore, we use bson.SON to make the order-sensitive dict if the
+              order is important such as operations in "$sort", "$group",
+              "split_by_condition", "aggregate","create_collection"...
+              In every scene which the order is important, please make it using
+              bson.SON and list. It is a subclass of built-in dict
+              and order-sensitive
+    """
 
-      Exceptions:
-         pysequoiadb.error.SDBBaseError
-      """
-      self._cursor = None
-      try:
-         self._cursor = sdb.create_cursor()
-      except SystemError:
-         raise SDBBaseError("Failed to alloc cursor", const.SDB_OOM)
+    def __init__(self):
+        """constructor of cursor
 
-   def __del__(self):
-      """release cursor
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        self._cursor = None
+        try:
+            self._cursor = sdb.create_cursor()
+        except SystemError:
+            raise SDBBaseError("Failed to alloc cursor", const.SDB_OOM)
 
-      Exceptions:
-         pysequoiadb.error.SDBBaseError
-      """
-      if self._cursor is not None:
-         try:
-            rc = sdb.release_cursor(self._cursor)
-            pysequoiadb._raise_if_error("Failed to release cursor", rc)
-         except SDBBaseError:
+    def __del__(self):
+        """release cursor
+
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        if self._cursor is not None:
+            try:
+                rc = sdb.release_cursor(self._cursor)
+                pysequoiadb._raise_if_error("Failed to release cursor", rc)
+            except SDBBaseError:
+                raise
+            self._cursor = None
+
+    def next(self, ordered=False):
+        """Return the next document of current cursor, and move forward.
+
+        Parameters:
+           Name      Type  Info:
+           ordered   bool  Set true if need field-ordered records, default false.
+
+        Return values:
+           a dict object of record
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+           pysequoiadb.error.SDBEndOfCursor
+        """
+        if not isinstance(ordered, bool):
+            raise SDBTypeError("ordered must be an instance of bool")
+
+        as_class = dict
+        if ordered:
+            as_class = OrderedDict
+
+        try:
+            rc, bson_string = sdb.cr_next(self._cursor)
+            if const.SDB_OK != rc:
+                if const.SDB_DMS_EOC == rc:
+                    raise SDBEndOfCursor
+                else:
+                    raise SDBError("Failed to get next record", rc)
+            else:
+                record, size = bson._bson_to_dict(bson_string, as_class, False,
+                                                  bson.OLD_UUID_SUBTYPE, True)
+        except SDBBaseError:
             raise
-         self._cursor = None
 
-   def next(self, ordered = False):
-      """Return the next document of current cursor, and move forward.
+        return record
 
-      Parameters:
-         Name      Type  Info:
-         ordered   bool  Set true if need field-ordered records, default false.
+    def current(self, ordered=False):
+        """Return the current document of cursor, and don't move.
 
-      Return values:
-         a dict object of record
-      Exceptions:
-         pysequoiadb.error.SDBBaseError
-         pysequoiadb.error.SDBEndOfCursor
-      """
-      if not isinstance(ordered, bool):
-         raise SDBTypeError("ordered must be an instance of bool")
+        Parameters:
+           Name      Type  Info:
+           ordered   bool  Set true if need field-ordered records, default false.
 
-      as_class = dict
-      if ordered:
-         as_class = OrderedDict
+        Return values:
+           a dict object of record
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+           pysequoiadb.error.SDBEndOfCursor
+        """
+        if not isinstance(ordered, bool):
+            raise SDBTypeError("ordered must be an instance of bool")
 
-      try:
-         rc, bson_string = sdb.cr_next(self._cursor)
-         if const.SDB_OK != rc:
-            if const.SDB_DMS_EOC == rc:
-               raise SDBEndOfCursor
+        as_class = dict
+        if ordered:
+            as_class = OrderedDict
+
+        try:
+            rc, bson_string = sdb.cr_current(self._cursor)
+            if const.SDB_OK != rc:
+                if const.SDB_DMS_EOC == rc:
+                    raise SDBEndOfCursor
+                else:
+                    raise SDBError("Failed to get current record", rc)
             else:
-               raise SDBError("Failed to get next record", rc)
-         else:
-            record, size = bson._bson_to_dict(bson_string, as_class, False,
-                                              bson.OLD_UUID_SUBTYPE, True)
-      except SDBBaseError:
-         raise
+                record, size = bson._bson_to_dict(bson_string, as_class, False,
+                                                  bson.OLD_UUID_SUBTYPE, True)
+        except SDBBaseError:
+            raise
 
-      return record
+        return record
 
-   def current(self, ordered = False):
-      """Return the current document of cursor, and don't move.
+    def close(self):
+        """Close the cursor's connection to database, we can't use this handle to
+           get data again.
 
-      Parameters:
-         Name      Type  Info:
-         ordered   bool  Set true if need field-ordered records, default false.
-
-      Return values:
-         a dict object of record
-      Exceptions:
-         pysequoiadb.error.SDBBaseError
-         pysequoiadb.error.SDBEndOfCursor
-      """
-      if not isinstance(ordered, bool):
-         raise SDBTypeError("ordered must be an instance of bool")
-
-      as_class = dict
-      if ordered:
-         as_class = OrderedDict
-
-      try:
-         rc, bson_string = sdb.cr_current(self._cursor)
-         if const.SDB_OK != rc:
-            if const.SDB_DMS_EOC == rc:
-               raise SDBEndOfCursor
-            else:
-               raise SDBError("Failed to get current record", rc)
-         else:
-            record, size = bson._bson_to_dict(bson_string, as_class, False,
-                                           bson.OLD_UUID_SUBTYPE, True)
-      except SDBBaseError:
-         raise
-
-      return record
-
-   def close(self):
-      """Close the cursor's connection to database, we can't use this handle to
-         get data again.
-
-      Exceptions:
-         pysequoiadb.error.SDBBaseError
-      """
-      try:
-         rc = sdb.cr_close(self._cursor)
-         pysequoiadb._raise_if_error("Failed to close cursor", rc)
-      except SDBBaseError:
-         raise
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        try:
+            rc = sdb.cr_close(self._cursor)
+            pysequoiadb._raise_if_error("Failed to close cursor", rc)
+        except SDBBaseError:
+            raise

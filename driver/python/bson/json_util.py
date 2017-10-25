@@ -73,10 +73,9 @@ but it will be faster as there is less recursion.
 """
 
 import base64
-import calendar
 import datetime
-import time
 import re
+import time
 from collections import OrderedDict
 
 json_lib = True
@@ -101,7 +100,6 @@ from bson.timestamp import Timestamp
 from bson.decimal import Decimal
 from bson.py3compat import PY3, binary_type, string_types, text_type, long_type
 
-
 _RE_OPT_TABLE = {
     "i": re.I,
     "l": re.L,
@@ -113,15 +111,18 @@ _RE_OPT_TABLE = {
 
 _js_compatibility = False
 
+
 def set_js_compatibility(compatible):
     global _js_compatibility
     if not isinstance(compatible, bool):
         raise Exception("compatible should be type of bool")
     _js_compatibility = compatible
 
+
 def get_js_compatibility():
     global _js_compatibility
     return _js_compatibility
+
 
 def dumps(obj, *args, **kwargs):
     """Helper function that wraps :class:`json.dumps`.
@@ -249,9 +250,9 @@ def default(obj):
         return _json_convert(obj.as_doc())
     if isinstance(obj, datetime.datetime):
         # TODO share this code w/ bson.py?
-        #if obj.utcoffset() is not None:
+        # if obj.utcoffset() is not None:
         #    obj = obj - obj.utcoffset()
-        #millis = int(calendar.timegm(obj.timetuple()) * 1000 +
+        # millis = int(calendar.timegm(obj.timetuple()) * 1000 +
         #             obj.microsecond / 1000)
         # PY2 do not support year before 1900
         return {"$date": "{0.year:04d}-{0.month:02d}-{0.day:02d}".format(obj)}

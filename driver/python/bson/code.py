@@ -16,6 +16,7 @@
 """
 from bson.py3compat import str_type
 
+
 class Code(str):
     """BSON's JavaScript code type.
 

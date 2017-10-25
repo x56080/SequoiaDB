@@ -12,96 +12,110 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import pysequoiadb
 from pysequoiadb import common
-from pysequoiadb.common import const
+
 
 class SDBTypeError(TypeError):
-   """Type Error of SequoiaDB
-   """
+    """Type Error of SequoiaDB
+    """
+
 
 class SDBBaseError(Exception):
-   """Base Exception of Python Driver for SequoiaDB
-   """
-   def __init__(self, errmsg, code, type):
+    """Base Exception of Python Driver for SequoiaDB
+    """
 
-      self.__type    = type
-      self.__errmsg  = errmsg
-      self.__code    = code
-      self.__details = None
+    def __init__(self, errmsg, code, type):
 
-      if code is not None and isinstance(code, int):
-         try:
-            self.__details = common.get_info(code)
-         except KeyError:
-            self.__details = None
+        self.__type = type
+        self.__errmsg = errmsg
+        self.__code = code
+        self.__details = None
 
-      Exception.__init__(self, errmsg)
+        if code is not None and isinstance(code, int):
+            try:
+                self.__details = common.get_info(code)
+            except KeyError:
+                self.__details = None
 
-   def __repr__(self):
+        Exception.__init__(self, errmsg)
 
-      return "%s: %s" % ( self.__type, self.__errmsg)
+    def __repr__(self):
 
-   def __str__(self):
+        return "%s: %s" % (self.__type, self.__errmsg)
 
-      return self.__repr__()
+    def __str__(self):
 
-   def __detail(self):
-      """get detail info with code
-      """
-      return "Error code: %s, detail: %s" % (self.__code, self.__details)
+        return self.__repr__()
 
-   @property
-   def code(self):
-      """The error code returned by the server, if any.
-      """
-      return self.__code
+    def __detail(self):
+        """get detail info with code
+        """
+        return "Error code: %s, detail: %s" % (self.__code, self.__details)
 
-   @property
-   def detail(self):
-      """return the detail error message
-      """
-      return self.__detail()
+    @property
+    def code(self):
+        """The error code returned by the server, if any.
+        """
+        return self.__code
+
+    @property
+    def detail(self):
+        """return the detail error message
+        """
+        return self.__detail()
+
 
 class SDBEndOfCursor(Exception):
-   """Invalid Parameter Error
-   """
-   def __init__(self):
-      Exception.__init__(self, "End of Cursor")
+    """Invalid Parameter Error
+    """
+
+    def __init__(self):
+        Exception.__init__(self, "End of Cursor")
+
 
 class SDBError(SDBBaseError):
-   """Gerneral Error of SequoiaDB
-   """
-   def __init__(self, errmsg, code):
-      SDBBaseError.__init__(self, errmsg, code, "SequoiaDB Error")
+    """Gerneral Error of SequoiaDB
+    """
+
+    def __init__(self, errmsg, code):
+        SDBBaseError.__init__(self, errmsg, code, "SequoiaDB Error")
+
 
 class SDBIOError(SDBBaseError):
-   """IO Error of SequoiaDB
-   """
-   def __init__(self, errmsg, code):
-      SDBBaseError.__init__(self, errmsg, code, "IO Error")
+    """IO Error of SequoiaDB
+    """
+
+    def __init__(self, errmsg, code):
+        SDBBaseError.__init__(self, errmsg, code, "IO Error")
+
 
 class SDBNetworkError(SDBBaseError):
-   """Network Error of SequoiaDB
-   """
-   def __init__(self, errmsg, code):
-      SDBBaseError.__init__(self, errmsg, code, "Network Error")
+    """Network Error of SequoiaDB
+    """
+
+    def __init__(self, errmsg, code):
+        SDBBaseError.__init__(self, errmsg, code, "Network Error")
+
 
 class InvalidParameter(SDBBaseError):
-   """Invalid Parameter Error
-   """
-   def __init__(self, errmsg, code):
-      SDBBaseError.__init__(self, errmsg, code, "Invalid Parameter")
+    """Invalid Parameter Error
+    """
+
+    def __init__(self, errmsg, code):
+        SDBBaseError.__init__(self, errmsg, code, "Invalid Parameter")
+
 
 class SDBSystemError(SDBBaseError):
-   """System Error of SequoiaDB
-   """
-   def __init__(self, errmsg, code):
-      SDBBaseError.__init__(self, errmsg, code, "System Error")
+    """System Error of SequoiaDB
+    """
+
+    def __init__(self, errmsg, code):
+        SDBBaseError.__init__(self, errmsg, code, "System Error")
+
 
 class SDBUnknownError(SDBBaseError):
-   """Unknown Error of SequoiaDB
-   """
-   def __init__(self, errmsg):
-      SDBBaseError.__init__(self, errmsg, None, "Unknown Error")
+    """Unknown Error of SequoiaDB
+    """
 
+    def __init__(self, errmsg):
+        SDBBaseError.__init__(self, errmsg, None, "Unknown Error")

@@ -16,8 +16,9 @@
 
 from copy import deepcopy
 
-from bson.son import SON
 from bson.py3compat import str_type
+from bson.son import SON
+
 
 class DBRef(object):
     """A reference to a document stored in MongoDB.

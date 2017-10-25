@@ -15,17 +15,21 @@ import sys
 
 PY3 = sys.version_info[0] == 3
 
+
 class const:
-   class ConstError(TypeError):
-      pass
-   def __has_key(self, key):
-      if PY3:
-         return key in self.__dict__
-      else:
-         return self.__dict__.has_key(key)
-   def __setattr__(self, name, value):
-      if self.__has_key(name):
-         raise self.ConstError("Can't rebind const (%s)" % name)
-      self.__dict__[name]=value
+    class ConstError(TypeError):
+        pass
+
+    def __has_key(self, key):
+        if PY3:
+            return key in self.__dict__
+        else:
+            return self.__dict__.has_key(key)
+
+    def __setattr__(self, name, value):
+        if self.__has_key(name):
+            raise self.ConstError("Can't rebind const (%s)" % name)
+        self.__dict__[name] = value
+
 
 sys.modules[__name__] = const()

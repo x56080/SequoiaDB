@@ -18,11 +18,12 @@
 import calendar
 import datetime
 
-from bson.tz_util import utc
 from bson.py3compat import long_type
+from bson.tz_util import utc
 
 UPPERBOUND = 2147483648
 LOWERBOUND = -2147483648
+
 
 class Timestamp(object):
     """Timestamp of bson

@@ -38,91 +38,97 @@
              bson.SON and list. It is a subclass of built-in dict
              and order-sensitive
 """
-from bson.son import SON
 
+import sys
+
+from bson.son import SON
 from pysequoiadb.client import client
+
 from pysequoiadb.common import (const, get_info)
-from pysequoiadb.error import (SDBTypeError,
-                               SDBError,
+from pysequoiadb.error import (SDBError,
                                SDBIOError,
                                SDBNetworkError,
                                InvalidParameter,
                                SDBSystemError,
                                SDBUnknownError)
 
-import sys
 try:
-   from . import sdb
+    from . import sdb
 except ImportError:
-   raise Exception("Cannot find extension: sdb")
+    raise Exception("Cannot find extension: sdb")
+
 
 def get_version():
-   ver, sub_version, fixed, release, build = sdb.sdb_get_version()
-   return ("( Version: %s, subVersion: %s, fixed: %s, Release: %s , build: %s )"
+    ver, sub_version, fixed, release, build = sdb.sdb_get_version()
+    return ("( Version: %s, subVersion: %s, fixed: %s, Release: %s , build: %s )"
             % (ver, sub_version, fixed, release, build))
+
 
 PY3 = sys.version_info[0] == 3
 
 driver_version = get_version()
 """Current version of python driver for SequoiaDB."""
 
-io_error      = [ const.SDB_IO,
-                  const.SDB_FNE,
-                  const.SDB_FE,
-                  const.SDB_NOSPC ]
+io_error = [const.SDB_IO,
+            const.SDB_FNE,
+            const.SDB_FE,
+            const.SDB_NOSPC]
 
-net_error     = [ const.SDB_NETWORK,
-                  const.SDB_NETWORK_CLOSE,
-                  const.SDB_NET_ALREADY_LISTENED,
-                  const.SDB_NET_CANNOT_LISTEN,
-                  const.SDB_NET_CANNOT_CONNECT,
-                  const.SDB_NET_NOT_CONNECT,
-                  const.SDB_NET_SEND_ERR,
-                  const.SDB_NET_TIMER_ID_NOT_FOUND,
-                  const.SDB_NET_ROUTE_NOT_FOUND,
-                  const.SDB_NET_BROKEN_MSG,
-                  const.SDB_NET_INVALID_HANDLE ]
+net_error = [const.SDB_NETWORK,
+             const.SDB_NETWORK_CLOSE,
+             const.SDB_NET_ALREADY_LISTENED,
+             const.SDB_NET_CANNOT_LISTEN,
+             const.SDB_NET_CANNOT_CONNECT,
+             const.SDB_NET_NOT_CONNECT,
+             const.SDB_NET_SEND_ERR,
+             const.SDB_NET_TIMER_ID_NOT_FOUND,
+             const.SDB_NET_ROUTE_NOT_FOUND,
+             const.SDB_NET_BROKEN_MSG,
+             const.SDB_NET_INVALID_HANDLE]
 
-invalid_error = [ const.SDB_INVALIDARG,
-                  const.SDB_INVALIDSIZE,
-                  const.SDB_INVALIDPATH,
-                  const.SDB_INVALID_FILE_TYPE ]
+invalid_error = [const.SDB_INVALIDARG,
+                 const.SDB_INVALIDSIZE,
+                 const.SDB_INVALIDPATH,
+                 const.SDB_INVALID_FILE_TYPE]
 
-system_error  = [ const.SDB_OOM,
-                  const.SDB_SYS ]
+system_error = [const.SDB_OOM,
+                const.SDB_SYS]
+
 
 def _print(what):
-   print(what)
+    print(what)
+
 
 def _raise_if_error(msg, rc):
-   """Check return value, raise a SDBBaseError if error occurred.
-   """
-   if const.SDB_OK != rc:
-      try:
-         _ = get_info(rc)
-      except KeyError:
-         raise SDBUnknownError(msg)
+    """Check return value, raise a SDBBaseError if error occurred.
+    """
+    if const.SDB_OK != rc:
+        try:
+            _ = get_info(rc)
+        except KeyError:
+            raise SDBUnknownError(msg)
 
-      if rc in io_error:
-         raise SDBIOError(msg, rc)
-      elif rc in net_error:
-         raise SDBNetworkError(msg, rc)
-      elif rc in invalid_error:
-         raise InvalidParameter(msg, rc)
-      elif rc in system_error:
-         raise SDBSystemError(msg, rc)
-      else:
-         raise SDBError(msg, rc)
+        if rc in io_error:
+            raise SDBIOError(msg, rc)
+        elif rc in net_error:
+            raise SDBNetworkError(msg, rc)
+        elif rc in invalid_error:
+            raise InvalidParameter(msg, rc)
+        elif rc in system_error:
+            raise SDBSystemError(msg, rc)
+        else:
+            raise SDBError(msg, rc)
 
-def init_client(on, cache_time_interval = 0, max_cache_slot = 0):
-   '''enable cache strategy to improve performance
 
-   Parameters:
-         Name                Type      Info:
-         on                  boolean   The flag to OPEN the cache strategy
-         cache_time_interval int       The life cycle of cached object
-         max_cache_slot      int       The count of slot to cache objects, 
-                                             one slot holds an object
-   '''
-   enable = on and 1 or 0
-   sdb.sdb_init_client( enable, cache_time_interval, max_cache_slot)
+def init_client(on, cache_time_interval=0, max_cache_slot=0):
+    '''enable cache strategy to improve performance
+
+    Parameters:
+          Name                Type      Info:
+          on                  boolean   The flag to OPEN the cache strategy
+          cache_time_interval int       The life cycle of cached object
+          max_cache_slot      int       The count of slot to cache objects,
+                                              one slot holds an object
+    '''
+    enable = on and 1 or 0
+    sdb.sdb_init_client(enable, cache_time_interval, max_cache_slot)

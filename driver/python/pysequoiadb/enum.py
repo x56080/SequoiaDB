@@ -13,14 +13,13 @@
 #   limitations under the License.
 
 class enum(object):
+    def __init__(self, config):
+        self.config = config
+        for item in config:
+            setattr(self, item[1], item[0])
 
-   def __init__(self, config):
-      self.config = config
-      for item in config:
-         setattr(self, item[1], item[0])
+    def choice_tuples(self):
+        return ((item[0], item[1]) for item in self.config)
 
-   def choice_tuples(self):
-      return ((item[0],item[1]) for item in self.config)
-
-   def available_options(self):
-      return (item[0] for item in self.config)
+    def available_options(self):
+        return (item[0] for item in self.config)
