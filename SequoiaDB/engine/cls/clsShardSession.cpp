@@ -39,6 +39,7 @@
 #include "rtnDataSet.hpp"
 #include "rtnContextShdOfLob.hpp"
 #include "utilCompressor.hpp"
+#include "pmdStartup.hpp"
 
 using namespace bson ;
 
@@ -3859,6 +3860,10 @@ namespace engine
          rc = SDB_CLS_FULL_SYNC ;
       }
       else if ( SDB_DB_REBUILDING == PMD_DB_STATUS() )
+      {
+         rc = SDB_RTN_IN_REBUILD ;
+      }
+      else if ( !pmdGetStartup().isOK() )
       {
          rc = SDB_RTN_IN_REBUILD ;
       }
