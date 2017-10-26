@@ -38,12 +38,12 @@ CmdTest.prototype.testStartAbnormal = function()
     
     try
     {
-        this.cmd.start( "led" ) ;
+        this.cmd.start( "led", ".", 1, 3*1000 ) ;
         throw 0 ;
     }
     catch( e )
     {
-        if( e !== 127 )
+        if( e === 0 )
         {
             throw buildException( "testStartAbnormal", null, 
                   "test start not exist command led", 127, e ) ;
