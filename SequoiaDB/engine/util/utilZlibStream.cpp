@@ -335,8 +335,10 @@ namespace engine
 
       while ( 0 == _zstream->avail_out )
       {
+         // Reset the output buffer for multiple loops
+         _zstream->next_out = (Bytef*)_zbuf ;
          _zstream->avail_out = _zbufSize ;
-         
+
          rc = deflate( _zstream, Z_NO_FLUSH ) ;
          if ( Z_OK != rc )
          {
@@ -406,8 +408,10 @@ namespace engine
 
       for ( ;; )
       {
+         // Reset the output buffer for multiple loops
+         _zstream->next_out = (Bytef*)_zbuf ;
          _zstream->avail_out = _zbufSize ;
-         
+
          rc = deflate( _zstream, Z_FINISH ) ;
          if ( Z_OK != rc && Z_STREAM_END != rc  )
          {
