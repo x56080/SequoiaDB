@@ -17,12 +17,12 @@
 
 try:
     from . import sdb
-except ImportError:
+except:
     raise Exception("Cannot find extension: sdb")
 
 import pysequoiadb
-from pysequoiadb.common import const
-from pysequoiadb.error import SDBBaseError
+from pysequoiadb.error import (SDBBaseError, raise_if_error)
+from pysequoiadb.errcode import SDB_OOM
 
 
 class replicanode(object):
@@ -63,7 +63,7 @@ class replicanode(object):
         try:
             self._node = sdb.create_node()
         except SystemError:
-            raise SDBBaseError("Failed to alloc node", const.SDB_OOM)
+            raise SDBBaseError(SDB_OOM, "Failed to alloc node")
 
     def __del__(self):
         """release replica node
@@ -72,11 +72,8 @@ class replicanode(object):
            pysequoiadb.error.SDBBaseError
         """
         if self._node is not None:
-            try:
-                rc = sdb.release_node(self._node)
-                pysequoiadb._raise_if_error("Failed to release node", rc)
-            except SDBBaseError:
-                raise
+            rc = sdb.release_node(self._node)
+            raise_if_error(rc, "Failed to release node")
             self._node = None
         self._client = None
 
@@ -101,12 +98,8 @@ class replicanode(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc, node_status = sdb.nd_get_status(self._node)
-            pysequoiadb._raise_if_error("Failed to get node status", rc)
-        except SDBBaseError:
-            raise
-
+        rc, node_status = sdb.nd_get_status(self._node)
+        raise_if_error(rc, "Failed to get node status")
         return node_status
 
     def get_hostname(self):
@@ -117,12 +110,8 @@ class replicanode(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc, hostname = sdb.nd_get_hostname(self._node)
-            pysequoiadb._raise_if_error("Failed to get host name", rc)
-        except SDBBaseError:
-            raise
-
+        rc, hostname = sdb.nd_get_hostname(self._node)
+        raise_if_error(rc, "Failed to get host name")
         return hostname
 
     def get_servicename(self):
@@ -133,12 +122,8 @@ class replicanode(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc, service_name = sdb.nd_get_servicename(self._node)
-            pysequoiadb._raise_if_error("Failed to get service name", rc)
-        except SDBBaseError:
-            raise
-
+        rc, service_name = sdb.nd_get_servicename(self._node)
+        raise_if_error(rc, "Failed to get service name")
         return service_name
 
     def get_nodename(self):
@@ -149,12 +134,8 @@ class replicanode(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc, node_name = sdb.nd_get_nodename(self._node)
-            pysequoiadb._raise_if_error("Failed to get node name", rc)
-        except SDBBaseError:
-            raise
-
+        rc, node_name = sdb.nd_get_nodename(self._node)
+        raise_if_error(rc, "Failed to get node name")
         return node_name
 
     def stop(self):
@@ -163,11 +144,8 @@ class replicanode(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc = sdb.nd_stop(self._node)
-            pysequoiadb._raise_if_error("Failed to stop node", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.nd_stop(self._node)
+        raise_if_error(rc, "Failed to stop node")
 
     def start(self):
         """Start the node.
@@ -175,8 +153,5 @@ class replicanode(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc = sdb.nd_start(self._node)
-            pysequoiadb._raise_if_error("Filed to start node", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.nd_start(self._node)
+        raise_if_error(rc, "Filed to start node")

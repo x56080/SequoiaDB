@@ -20,18 +20,17 @@ import socket
 
 try:
     from . import sdb
-except ImportError:
+except:
     raise Exception("Cannot find extension: sdb")
 
 import bson
-import pysequoiadb
 from bson.py3compat import (str_type, long_type)
 from pysequoiadb.collectionspace import collectionspace
 from pysequoiadb.collection import collection
 from pysequoiadb.cursor import cursor
 from pysequoiadb.replicagroup import replicagroup
-from pysequoiadb.common import const
-from pysequoiadb.error import (SDBBaseError, SDBTypeError)
+from pysequoiadb.error import (SDBBaseError, SDBTypeError, raise_if_error)
+from pysequoiadb.errcode import *
 
 
 class client(object):
@@ -90,7 +89,6 @@ class client(object):
                                       if None, "" will be insteaded
            ssl        bool      decide to use ssl or not, default is False.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         self.__connected = False
@@ -132,14 +130,10 @@ class client(object):
         try:
             self._client = sdb.sdb_create_client(self.__ssl)
         except SystemError:
-            raise SDBBaseError("Failed to alloc client", const.SDB_OOM)
+            raise SDBBaseError(SDB_OOM, "Failed to alloc client")
 
         # try to connect with default user and password
-        try:
-            self.connect(self.__host, self.__service,
-                         user=_user, password=_psw)
-        except SDBBaseError:
-            raise
+        self.connect(self.__host, self.__service, user=_user, password=_psw)
 
     def __del__(self):
         """release resource when del called.
@@ -150,15 +144,11 @@ class client(object):
         self.__host = self.HOST
         self.__service = self.SERVICE
         if self._client is not None:
-            try:
-                rc = sdb.sdb_release_client(self._client)
-                pysequoiadb._raise_if_error("Failed to release client", rc)
-            except SDBBaseError:
-                raise
+            rc = sdb.sdb_release_client(self._client)
+            raise_if_error(rc, "Failed to release client")
             self._client = None
 
     def __repr__(self):
-
         if self.__connected:
             return "Client, connect to: %s:%s" % (self.__host, self.__service)
 
@@ -187,27 +177,24 @@ class client(object):
 
            if success, a collection object will be returned, or None.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if '__members__' == name or '__methods__' == name:
             pass
         else:
+            cs = collectionspace()
             try:
-                cs = collectionspace()
                 rc = sdb.sdb_get_collection_space(self._client, name, cs._cs)
-                pysequoiadb._raise_if_error("Failed to get collection space: %s" %
-                                            name, rc)
+                raise_if_error(rc, "Failed to get collection space: %s" % name)
             except SDBBaseError:
-                del cs;
-                cs = None
+                del cs
                 raise
 
             return cs
 
-    def __get_local_ip(self):
-
-        localip = []
+    @staticmethod
+    def __get_local_ip():
+        local_ip = []
         import socket
         host = socket.gethostname()
         ips = socket.gethostbyname_ex(host)
@@ -219,9 +206,9 @@ class client(object):
                     if one.startswith('127.'):
                         pass
                     else:
-                        localip.append(one)
+                        local_ip.append(one)
 
-        return localip
+        return local_ip
 
     def connect_to_hosts(self, hosts, **kwargs):
         """try to connect a host in specified hosts
@@ -241,7 +228,6 @@ class client(object):
                                 'local_first' will choose local host firstly,
                                 then use 'random' if no local host.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(hosts, list):
@@ -254,11 +240,10 @@ class client(object):
             raise SDBTypeError("policy must be an instance of str_type")
 
         if len(hosts) == 0:
-            raise SDBTypeError("hosts must hava at least 1 item",
-                               const.INVALIDARG)
+            raise SDBTypeError("hosts must hava at least 1 item")
 
         local = socket.gethostname()
-        localip = self.__get_local_ip()
+        local_ip = self.__get_local_ip()
         if "user" in kwargs:
             if not isinstance(kwargs.get("user"), str):
                 raise SDBTypeError("user name in kwargs must be \
@@ -280,7 +265,7 @@ class client(object):
             for ip in hosts:
                 if ("localhost" in ip.values() or
                             local in ip.values() or
-                            ip['host'] in localip):
+                            ip['host'] in local_ip):
 
                     host = ip['host']
                     svc = ip['service']
@@ -302,7 +287,6 @@ class client(object):
                     except SDBBaseError:
                         continue
 
-                    pysequoiadb._print(self.__repr__())
                     return
 
         # without local host in hosts, check policy
@@ -310,7 +294,7 @@ class client(object):
         if "random" == policy or "local_first" == policy:
             position = random.randint(0, size - 1)
         elif "one_by_one" == policy:
-            position = 0;
+            position = 0
         else:
             raise SDBTypeError("policy must be 'random' or 'one_by_one'.")
 
@@ -341,11 +325,10 @@ class client(object):
                     position %= size
                 continue
             # with no error
-            pysequoiadb._print(self.__repr__())
             return
 
-        # raise a expection for failed to connect to any host
-        raise SDBBaseError("Failed to connect all specified hosts", rc)
+        # raise a exception for failed to connect to any host
+        raise SDBBaseError(SDB_NET_CANNOT_CONNECT, "Failed to connect all specified hosts")
 
     def connect(self, host, service, **kwargs):
         """connect to specified database
@@ -353,12 +336,11 @@ class client(object):
         Parameters:
            Name        Type     Info:
            host        str      The host name or IP address of database server.
-           service     int/str  The servicename of database server.
+           service     int/str  The service name of database server.
            **kwargs             Useful options are below:
            -  user     str      The user name to access to database.
            -  password str      The user password to access to database.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if isinstance(host, str_type):
@@ -391,13 +373,10 @@ class client(object):
         else:
             raise SDBTypeError("password must be an instance of str_type")
 
-        try:
-            rc = sdb.sdb_connect(self._client, self.__host, self.__service,
-                                 _user, _psw)
-            pysequoiadb._raise_if_error("Failed to connect to %s:%s" %
-                                        (self.__host, self.__service), rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_connect(self._client, self.__host, self.__service,
+                             _user, _psw)
+        raise_if_error(rc, "Failed to connect to %s:%s" %
+                       (self.__host, self.__service))
 
         # success to connect
         self.__connected = True
@@ -408,11 +387,8 @@ class client(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc = sdb.sdb_disconnect(self._client)
-            pysequoiadb._raise_if_error("Failed to release object", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_disconnect(self._client)
+        raise_if_error(rc, "Failed to disconnect")
 
         # success to disconnect
         self.__host = self.HOST
@@ -427,7 +403,6 @@ class client(object):
            name         str      The name of user to be created.
            psw          str      The password of user to be created.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(name, str_type):
@@ -436,11 +411,8 @@ class client(object):
         if not isinstance(psw, str_type):
             raise SDBTypeError("password must be an instance of str_type")
 
-        try:
-            rc = sdb.sdb_create_user(self._client, name, psw)
-            pysequoiadb._raise_if_error("Failed to create user", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_create_user(self._client, name, psw)
+        raise_if_error(rc, "Failed to create user: %s" % name)
 
     def remove_user(self, name, psw):
         """Remove the specified user from current database.
@@ -450,7 +422,6 @@ class client(object):
            name     str      The name of user to be removed.
            psw      str      The password of user to be removed.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(name, str_type):
@@ -459,11 +430,8 @@ class client(object):
         if not isinstance(psw, str_type):
             raise SDBTypeError("password must be an instance of str_type")
 
-        try:
-            rc = sdb.sdb_remove_user(self._client, name, psw)
-            pysequoiadb._raise_if_error("Failed to remove user", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_remove_user(self._client, name, psw)
+        raise_if_error(rc, "Failed to remove user: %s" % name)
 
     def get_snapshot(self, snap_type, **kwargs):
         """Get the snapshots of specified type.
@@ -481,7 +449,6 @@ class client(object):
         Return values:
            a cursor object of query
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         Info:
           snapshot type:
@@ -519,14 +486,13 @@ class client(object):
                 raise SDBTypeError("order_by in kwargs must be an instance of dict")
             bson_order_by = bson.BSON.encode(kwargs.get("order_by"))
 
+        result = cursor()
         try:
-            result = cursor()
             rc = sdb.sdb_get_snapshot(self._client, result._cursor, snap_type,
                                       bson_condition, bson_selector, bson_order_by)
-            pysequoiadb._raise_if_error("Failed to get snapshot", rc)
+            raise_if_error(rc, "Failed to get snapshot: %d" % snap_type)
         except SDBBaseError:
             del result
-            result = None
             raise
 
         return result
@@ -540,7 +506,6 @@ class client(object):
                                        node in sharding environment, in standalone
                                        mode, this option is ignored.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         bson_condition = None
@@ -549,11 +514,8 @@ class client(object):
                 raise SDBTypeError("condition must be an instance of dict")
             bson_condition = bson.BSON.encode(condition)
 
-        try:
-            rc = sdb.sdb_reset_snapshot(self._client, bson_condition)
-            pysequoiadb._raise_if_error("Failed to reset snapshot", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_reset_snapshot(self._client, bson_condition)
+        raise_if_error(rc, "Failed to reset snapshot")
 
     def get_list(self, list_type, **kwargs):
         """Get information of the specified type.
@@ -570,7 +532,6 @@ class client(object):
         Return values:
            a cursor object of query
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         Info:
            list type:
@@ -611,7 +572,7 @@ class client(object):
         try:
             rc = sdb.sdb_get_list(self._client, result._cursor, list_type,
                                   bson_condition, bson_selector, bson_order_by)
-            pysequoiadb._raise_if_error("Failed to get list", rc)
+            raise_if_error(rc, "Failed to get list: %d" % list_type)
         except SDBBaseError:
             del result
             raise
@@ -627,7 +588,6 @@ class client(object):
         Return values:
            a collection object of query.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(cl_full_name, str_type):
@@ -638,7 +598,7 @@ class client(object):
         cl = collection()
         try:
             rc = sdb.sdb_get_collection(self._client, cl_full_name, cl._cl)
-            pysequoiadb._raise_if_error("Failed to get collection", rc)
+            raise_if_error(rc, "Failed to get collection: %s" % cl_full_name)
         except SDBBaseError:
             del cl
             raise
@@ -654,7 +614,6 @@ class client(object):
         Return values:
            a collection space object of query.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(cs_name, str_type):
@@ -663,7 +622,7 @@ class client(object):
         cs = collectionspace()
         try:
             rc = sdb.sdb_get_collection_space(self._client, cs_name, cs._cs)
-            pysequoiadb._raise_if_error("Failed to get collection space", rc)
+            raise_if_error(rc, "Failed to get collection space: %s" % cs_name)
         except SDBBaseError:
             del cs
             raise
@@ -685,7 +644,6 @@ class client(object):
         Return values:
            collection space object created.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         Info:
            valid page size value:
@@ -724,7 +682,7 @@ class client(object):
         try:
             rc = sdb.sdb_create_collection_space(self._client, cs_name,
                                                  bson_options, cs._cs)
-            pysequoiadb._raise_if_error("Failed to create collection space", rc)
+            raise_if_error(rc, "Failed to create collection space: %s" % cs_name)
         except SDBBaseError:
             del cs
             raise
@@ -738,18 +696,14 @@ class client(object):
            Name         Type     Info:
            cs_name      str      The name of collection space to be dropped
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(cs_name, str_type):
             raise SDBTypeError("name of collection space must be\
                          an instance of str_type")
 
-        try:
-            rc = sdb.sdb_drop_collection_space(self._client, cs_name)
-            pysequoiadb._raise_if_error("Failed to drop collection space", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_drop_collection_space(self._client, cs_name)
+        raise_if_error(rc, "Failed to drop collection space: %s" % cs_name)
 
     def list_collection_spaces(self):
         """List all collection space of current database, include temporary
@@ -763,7 +717,7 @@ class client(object):
         result = cursor()
         try:
             rc = sdb.sdb_list_collection_spaces(self._client, result._cursor)
-            pysequoiadb._raise_if_error("Failed to list collection spaces", rc)
+            raise_if_error(rc, "Failed to list collection spaces")
         except SDBBaseError:
             del result
             raise
@@ -781,7 +735,7 @@ class client(object):
         result = cursor()
         try:
             rc = sdb.sdb_list_collections(self._client, result._cursor)
-            pysequoiadb._raise_if_error("Failed to list collections", rc)
+            raise_if_error(rc, "Failed to list collections")
         except SDBBaseError:
             del result
             raise
@@ -799,7 +753,7 @@ class client(object):
         result = cursor()
         try:
             rc = sdb.sdb_list_replica_groups(self._client, result._cursor)
-            pysequoiadb._raise_if_error("Failed to list replica groups", rc)
+            raise_if_error(rc, "Failed to list replica groups")
         except SDBBaseError:
             del result
             raise
@@ -815,7 +769,6 @@ class client(object):
         Return values:
            the replicagroup object of query.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(group_name, str_type):
@@ -825,32 +778,31 @@ class client(object):
         try:
             rc = sdb.sdb_get_replica_group_by_name(self._client, group_name,
                                                    result._group)
-            pysequoiadb._raise_if_error("Failed to get specified group", rc)
+            raise_if_error(rc, "Failed to get specified group: %s" % group_name)
         except SDBBaseError:
             del result
             raise
 
         return result
 
-    def get_replica_group_by_id(self, id):
+    def get_replica_group_by_id(self, group_id):
         """Get the specified replica group of specified group id.
 
         Parameters:
            Name       Type     Info:
-           id         str      The id of replica group.
+           group_id   int      The id of replica group.
         Return values:
            the replicagroup object of query.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
-        if not isinstance(id, int):
+        if not isinstance(group_id, int):
             raise SDBTypeError("group id must be an instance of int")
 
         result = replicagroup(self._client)
         try:
-            rc = sdb.sdb_get_replica_group_by_id(self._client, id, result._group)
-            pysequoiadb._raise_if_error("Failed to get specified group", rc)
+            rc = sdb.sdb_get_replica_group_by_id(self._client, group_id, result._group)
+            raise_if_error(rc, "Failed to get specified group: %d" % group_id)
         except SDBBaseError:
             del result
             raise
@@ -866,7 +818,6 @@ class client(object):
         Return values:
            the replicagroup object created.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(group_name, str_type):
@@ -876,7 +827,7 @@ class client(object):
         try:
             rc = sdb.sdb_create_replica_group(self._client, group_name,
                                               replica_group._group)
-            pysequoiadb._raise_if_error("Failed to create replica group", rc)
+            raise_if_error(rc, "Failed to create replica group: %s" % group_name)
         except SDBBaseError:
             del replica_group
             raise
@@ -890,17 +841,13 @@ class client(object):
            Name         Type     Info:
            group_name   str      The name of replica group to be removed
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(group_name, str_type):
             raise SDBTypeError("group name must be an instance of str_type")
 
-        try:
-            rc = sdb.sdb_remove_replica_group(self._client, group_name)
-            pysequoiadb._raise_if_error("Failed to remove replica group", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_remove_replica_group(self._client, group_name)
+        raise_if_error(rc, "Failed to remove replica group: %s" % group_name)
 
     def create_replica_cata_group(self, host, service, path, configure):
         """Create a catalog replica group.
@@ -912,7 +859,6 @@ class client(object):
            path         str      The path for the catalog replica group.
            configure    dict     The configurations for the catalog replica group.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(host, str_type):
@@ -926,12 +872,9 @@ class client(object):
 
         bson_configure = bson.BSON.encode(configure)
 
-        try:
-            rc = sdb.sdb_create_replica_cata_group(self._client, host, service,
-                                                   path, bson_configure)
-            pysequoiadb._raise_if_error("Failed to create replica cate group", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_create_replica_cata_group(self._client, host, service,
+                                               path, bson_configure)
+        raise_if_error(rc, "Failed to create catalog group")
 
     def exec_update(self, sql):
         """Executing SQL command for updating, inserting and deleting.
@@ -940,17 +883,13 @@ class client(object):
            Name         Type     Info:
            sql          str      The SQL command.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(sql, str_type):
             raise SDBTypeError("update sql must be an instance of str_type")
 
-        try:
-            rc = sdb.sdb_exec_update(self._client, sql)
-            pysequoiadb._raise_if_error("Failed to execute update sql", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_exec_update(self._client, sql)
+        raise_if_error(rc, "Failed to execute update sql: %s" % sql)
 
     def exec_sql(self, sql):
         """Executing SQL command for query.
@@ -961,7 +900,6 @@ class client(object):
         Return values:
            a cursor object of matching documents.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(sql, str_type):
@@ -970,7 +908,7 @@ class client(object):
         result = cursor()
         try:
             rc = sdb.sdb_exec_sql(self._client, sql, result._cursor)
-            pysequoiadb._raise_if_error("Failed to execute sql command", rc)
+            raise_if_error(rc, "Failed to execute sql: %s" % sql)
         except SDBBaseError:
             del result
             raise
@@ -983,11 +921,8 @@ class client(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc = sdb.sdb_transaction_begin(self._client)
-            pysequoiadb._raise_if_error("Transaction error", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_transaction_begin(self._client)
+        raise_if_error(rc, "Transaction begin error")
 
     def transaction_commit(self):
         """Transaction commit.
@@ -995,11 +930,8 @@ class client(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc = sdb.sdb_transaction_commit(self._client)
-            pysequoiadb._raise_if_error("Transaction commit error", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_transaction_commit(self._client)
+        raise_if_error(rc, "Transaction commit error")
 
     def transaction_rollback(self):
         """Transaction rollback
@@ -1007,35 +939,28 @@ class client(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc = sdb.sdb_transaction_rollback(self._client)
-            pysequoiadb._raise_if_error("Transaction rollback error", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_transaction_rollback(self._client)
+        raise_if_error(rc, "Transaction rollback error")
 
     def flush_configure(self, options):
         """Flush the options to configure file.
         Parameters:
            Name      Type  Info:
-           options   dict  The configure infomation, pass {"Global":true} or
+           options   dict  The configure information, pass {"Global":true} or
                                  {"Global":false} In cluster environment, passing
                                  {"Global":true} will flush data's and catalog's
                                  configuration file, while passing {"Global":false} will
                                  flush coord's configuration file. In stand-alone
                                  environment, both them have the same behaviour.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(options, dict):
             raise SDBTypeError("options must be an instance of dict")
 
         bson_options = bson.BSON.encode(options)
-        try:
-            rc = sdb.sdb_flush_configure(self._client, bson_options)
-            pysequoiadb._raise_if_error("Failed to flush confige", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_flush_configure(self._client, bson_options)
+        raise_if_error(rc, "Failed to flush configure")
 
     def create_procedure(self, code):
         """Create a store procedures
@@ -1044,16 +969,13 @@ class client(object):
            Name         Type     Info:
            code         str      The JS code of store procedures.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(code, str_type):
             raise SDBTypeError("code must be an instance of str_type")
-        try:
-            rc = sdb.sdb_create_JS_procedure(self._client, code)
-            pysequoiadb._raise_if_error("Failed to crate procedure", rc)
-        except SDBBaseError:
-            raise
+
+        rc = sdb.sdb_create_JS_procedure(self._client, code)
+        raise_if_error(rc, "Failed to crate procedure")
 
     def remove_procedure(self, name):
         """Remove a store procedures.
@@ -1062,17 +984,13 @@ class client(object):
            Name         Type     Info:
            name         str      The name of store procedure.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(name, str_type):
             raise SDBTypeError("procedure name must be an instance of str_type")
 
-        try:
-            rc = sdb.sdb_remove_procedure(self._client, name)
-            pysequoiadb._raise_if_error("Failed to remove procedure", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_remove_procedure(self._client, name)
+        raise_if_error(rc, "Failed to remove procedure: %s" % name)
 
     def list_procedures(self, condition):
         """List store procedures.
@@ -1083,7 +1001,6 @@ class client(object):
         Return values:
            an cursor object of result
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(condition, dict):
@@ -1094,7 +1011,7 @@ class client(object):
         try:
             rc = sdb.sdb_list_procedures(self._client, result._cursor,
                                          bson_condition)
-            pysequoiadb._raise_if_error("Failed to list procedures", rc)
+            raise_if_error(rc, "Failed to list procedures")
         except SDBBaseError:
             del result
             raise
@@ -1110,7 +1027,6 @@ class client(object):
         Return values:
            cursor object of current eval.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(name, str_type):
@@ -1118,12 +1034,11 @@ class client(object):
 
         result = cursor()
         try:
-            rc, type, bson_errmsg = sdb.sdb_eval_JS(self._client, result._cursor, name)
-            if const.SDB_OK != rc:
+            rc, _type, bson_errmsg = sdb.sdb_eval_JS(self._client, result._cursor, name)
+            if SDB_OK != rc:
                 record, size = bson._bson_to_dict(bson_errmsg, dict, False,
                                                   bson.OLD_UUID_SUBTYPE, True)
-                print(record)
-            pysequoiadb._raise_if_error("Failed to eval procedure", rc)
+                raise_if_error(rc, "Failed to eval procedure: %s" % record)
         except SDBBaseError:
             del result
             raise
@@ -1131,12 +1046,12 @@ class client(object):
         return result
 
     def backup_offline(self, options=None):
-        """Backup the whole database or specifed replica group.
+        """Backup the whole database or specified replica group.
 
         Parameters:
            Name      Type  Info:
            options   dict  Contains a series of backup configuration
-                                 infomations. Backup the whole cluster if None.
+                                 information. Backup the whole cluster if None.
                                  The "options" contains 5 options as below.
                                  All the elements in options are optional.
                                  eg:
@@ -1146,14 +1061,13 @@ class client(object):
                                    "EnsureInc":true, "OverWrite":true }
                                  See Info as below.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         Info:
            GroupName   :  The replica groups which to be backuped.
            Path        :  The backup path, if not assign, use the backup path assigned in configuration file.
            Name        :  The name for the backup.
            Description :  The description for the backup.
-           EnsureInc   :  Whether excute increment synchronization,
+           EnsureInc   :  Whether execute increment synchronization,
                                 default to be false.
            OverWrite   :  Whether overwrite the old backup file,
                                 default to be false.
@@ -1164,18 +1078,15 @@ class client(object):
                 raise SDBTypeError("options must be an instance of dict")
             bson_options = bson.BSON.encode(options)
 
-        try:
-            rc = sdb.sdb_backup_offline(self._client, bson_options)
-            pysequoiadb._raise_if_error("Failed to backup offline", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_backup_offline(self._client, bson_options)
+        raise_if_error(rc, "Failed to backup offline")
 
     def list_backup(self, options, **kwargs):
         """List the backups.
 
         Parameters:
            Name        Type     Info:
-           options     dict     Contains configuration infomations for backups,
+           options     dict     Contains configuration information for backups,
                                 list all the backups if the default backup path is None.
                                        The "options" contains 3 options as below.
                                        All the elements in options are optional.
@@ -1193,14 +1104,13 @@ class client(object):
         Return values:
            a cursor object of backup list
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         Info:
-           GroupName   :  Assign the backups of specifed replica groups to be list.
-           Path        :  Assign the backups in specifed path to be list,
-                                if not assign, use the backup path asigned in the
+           GroupName   :  Assign the backups of specified replica groups to be list.
+           Path        :  Assign the backups in specified path to be list,
+                                if not assign, use the backup path assigned in the
                                 configuration file.
-           Name        :  Assign the backups with specifed name to be list.
+           Name        :  Assign the backups with specified name to be list.
         """
 
         bson_condition = None
@@ -1228,7 +1138,7 @@ class client(object):
         try:
             rc = sdb.sdb_list_backup(self._client, result._cursor, bson_options,
                                      bson_condition, bson_selector, bson_order_by)
-            pysequoiadb._raise_if_error("Failed to list backup", rc)
+            raise_if_error(rc, "Failed to list backup")
         except SDBBaseError:
             del result
             raise
@@ -1240,7 +1150,7 @@ class client(object):
 
         Parameters:
            Name      Type  Info:
-           options   dict  Contains configuration infomations for remove
+           options   dict  Contains configuration information for remove
                                  backups, remove all the backups in the default
                                  backup path if null. The "options" contains 3
                                  options as below. All the elements in options are
@@ -1253,25 +1163,21 @@ class client(object):
         Return values:
            an cursor object of result
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         Info:
-           GroupName   : Assign the backups of specifed replica groups to be
+           GroupName   : Assign the backups of specified replica groups to be
                                remove.
-           Path        : Assign the backups in specifed path to be remove, if not
-                               assign, use the backup path asigned in the configuration
+           Path        : Assign the backups in specified path to be remove, if not
+                               assign, use the backup path assigned in the configuration
                                file.
-           Name        : Assign the backups with specifed name to be remove.
+           Name        : Assign the backups with specified name to be remove.
         """
         if not isinstance(options, dict):
             raise SDBTypeError("options must be an instance of dict")
         bson_options = bson.BSON.encode(options)
 
-        try:
-            rc = sdb.sdb_remove_backup(self._client, bson_options)
-            pysequoiadb._raise_if_error("Failed to remove backup", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_remove_backup(self._client, bson_options)
+        raise_if_error(rc, "Failed to remove backup")
 
     def list_tasks(self, **kwargs):
         """List the tasks.
@@ -1294,7 +1200,6 @@ class client(object):
         Return values:
            a cursor object of task list
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         bson_condition = None
@@ -1323,7 +1228,7 @@ class client(object):
         try:
             rc = sdb.sdb_list_tasks(self._client, result._cursor, bson_condition,
                                     bson_selector, bson_order_by, bson_hint)
-            pysequoiadb._raise_if_error("Failed to list tasks", rc)
+            raise_if_error(rc, "Failed to list tasks")
         except SDBBaseError:
             del result
             raise
@@ -1338,7 +1243,6 @@ class client(object):
            task_ids     list     The list of task id.
            num          int      The number of task id.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(task_ids, list):
@@ -1346,11 +1250,8 @@ class client(object):
         if not isinstance(num, int):
             raise SDBTypeError("size of tasks must be an instance of int")
 
-        try:
-            rc = sdb.sdb_wait_task(self._client, task_ids, num)
-            pysequoiadb._raise_if_error("Failed to wait task", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_wait_task(self._client, task_ids, num)
+        raise_if_error(rc, "Failed to wait task")
 
     def cancel_task(self, task_id, is_async):
         """Cancel the specified task.
@@ -1361,7 +1262,6 @@ class client(object):
            is_async     bool     The operation "cancel task" is async or not,
                                        "True" for async, "False" for sync.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(task_id, long_type):
@@ -1374,11 +1274,8 @@ class client(object):
         else:
             raise SDBTypeError("size of tasks must be an instance of int")
 
-        try:
-            rc = sdb.sdb_cancel_task(self._client, task_id, async)
-            pysequoiadb._raise_if_error("Failed to cancel task", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_cancel_task(self._client, task_id, async)
+        raise_if_error(rc, "Failed to cancel task")
 
     def set_session_attri(self, options):
         """Set the attributes of the session.
@@ -1387,18 +1284,14 @@ class client(object):
            Name         Type     Info:
            options      dict     The configuration options for session.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(options, dict):
             raise SDBTypeError("options must be an instance of dict")
         bson_options = bson.BSON.encode(options)
 
-        try:
-            rc = sdb.sdb_set_session_attri(self._client, bson_options)
-            pysequoiadb._raise_if_error("Failed to set session attribute", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_set_session_attri(self._client, bson_options)
+        raise_if_error(rc, "Failed to set session attribute")
 
     def close_all_cursors(self):
         """Close all the cursors in current thread, we can't use those cursors to
@@ -1407,11 +1300,8 @@ class client(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc = sdb.sdb_close_all_cursors(self._client)
-            pysequoiadb._raise_if_error("Failed to close all cursors", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.sdb_close_all_cursors(self._client)
+        raise_if_error(rc, "Failed to close all cursors")
 
     def is_valid(self):
         """Judge whether the connection is valid.
@@ -1421,10 +1311,7 @@ class client(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc, valid = sdb.sdb_is_valid(self._client)
-            pysequoiadb._raise_if_error("connection is invalid", rc)
-        except SDBBaseError:
-            raise
+        rc, valid = sdb.sdb_is_valid(self._client)
+        raise_if_error(rc, "connection is invalid")
 
         return valid

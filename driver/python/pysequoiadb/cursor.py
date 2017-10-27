@@ -14,15 +14,14 @@
 
 try:
     from . import sdb
-except ImportError:
+except:
     raise Exception("Cannot find extension: sdb")
 
 from collections import OrderedDict
 
 import bson
-import pysequoiadb
-from pysequoiadb.common import const
-from pysequoiadb.error import (SDBBaseError, SDBEndOfCursor, SDBError, SDBTypeError)
+from pysequoiadb.errcode import SDB_OOM
+from pysequoiadb.error import (SDBBaseError, SDBTypeError, raise_if_error)
 
 
 class cursor(object):
@@ -63,7 +62,7 @@ class cursor(object):
         try:
             self._cursor = sdb.create_cursor()
         except SystemError:
-            raise SDBBaseError("Failed to alloc cursor", const.SDB_OOM)
+            raise SDBBaseError(SDB_OOM, "Failed to alloc cursor")
 
     def __del__(self):
         """release cursor
@@ -72,11 +71,8 @@ class cursor(object):
            pysequoiadb.error.SDBBaseError
         """
         if self._cursor is not None:
-            try:
-                rc = sdb.release_cursor(self._cursor)
-                pysequoiadb._raise_if_error("Failed to release cursor", rc)
-            except SDBBaseError:
-                raise
+            rc = sdb.release_cursor(self._cursor)
+            raise_if_error(rc, "Failed to release cursor")
             self._cursor = None
 
     def next(self, ordered=False):
@@ -89,8 +85,8 @@ class cursor(object):
         Return values:
            a dict object of record
         Exceptions:
-           pysequoiadb.error.SDBBaseError
            pysequoiadb.error.SDBEndOfCursor
+           pysequoiadb.error.SDBBaseError
         """
         if not isinstance(ordered, bool):
             raise SDBTypeError("ordered must be an instance of bool")
@@ -99,19 +95,10 @@ class cursor(object):
         if ordered:
             as_class = OrderedDict
 
-        try:
-            rc, bson_string = sdb.cr_next(self._cursor)
-            if const.SDB_OK != rc:
-                if const.SDB_DMS_EOC == rc:
-                    raise SDBEndOfCursor
-                else:
-                    raise SDBError("Failed to get next record", rc)
-            else:
-                record, size = bson._bson_to_dict(bson_string, as_class, False,
-                                                  bson.OLD_UUID_SUBTYPE, True)
-        except SDBBaseError:
-            raise
-
+        rc, bson_string = sdb.cr_next(self._cursor)
+        raise_if_error(rc, "Failed to get next record")
+        record, size = bson._bson_to_dict(bson_string, as_class, False,
+                                          bson.OLD_UUID_SUBTYPE, True)
         return record
 
     def current(self, ordered=False):
@@ -124,8 +111,8 @@ class cursor(object):
         Return values:
            a dict object of record
         Exceptions:
-           pysequoiadb.error.SDBBaseError
            pysequoiadb.error.SDBEndOfCursor
+           pysequoiadb.error.SDBBaseError
         """
         if not isinstance(ordered, bool):
             raise SDBTypeError("ordered must be an instance of bool")
@@ -134,19 +121,10 @@ class cursor(object):
         if ordered:
             as_class = OrderedDict
 
-        try:
-            rc, bson_string = sdb.cr_current(self._cursor)
-            if const.SDB_OK != rc:
-                if const.SDB_DMS_EOC == rc:
-                    raise SDBEndOfCursor
-                else:
-                    raise SDBError("Failed to get current record", rc)
-            else:
-                record, size = bson._bson_to_dict(bson_string, as_class, False,
-                                                  bson.OLD_UUID_SUBTYPE, True)
-        except SDBBaseError:
-            raise
-
+        rc, bson_string = sdb.cr_current(self._cursor)
+        raise_if_error(rc, "Failed to get current record")
+        record, size = bson._bson_to_dict(bson_string, as_class, False,
+                                          bson.OLD_UUID_SUBTYPE, True)
         return record
 
     def close(self):
@@ -156,8 +134,5 @@ class cursor(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc = sdb.cr_close(self._cursor)
-            pysequoiadb._raise_if_error("Failed to close cursor", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.cr_close(self._cursor)
+        raise_if_error(rc, "Failed to close cursor")

@@ -17,16 +17,20 @@
 
 try:
     from . import sdb
-except ImportError:
+except:
     raise Exception("Cannot find extension: sdb")
 
 import bson
-import pysequoiadb
 from bson.py3compat import (str_type)
-from pysequoiadb import common
-from pysequoiadb.common import const
-from pysequoiadb.error import (SDBBaseError, SDBTypeError)
+from pysequoiadb.errcode import SDB_OOM
+from pysequoiadb.error import (SDBBaseError, SDBTypeError, raise_if_error)
 from pysequoiadb.replicanode import replicanode
+
+NODE_STATUS_ALL = 0
+NODE_STATUS_ACTIVE = 1
+NODE_STATUS_INACTIVE = 2
+NODE_STATUS_UNKNOWN = 3
+TRUE = 1
 
 
 class replicagroup(object):
@@ -68,7 +72,7 @@ class replicagroup(object):
         try:
             self._group = sdb.create_group()
         except SystemError:
-            raise SDBBaseError("Failed to alloc replica group", const.SDB_OOM)
+            raise SDBBaseError(SDB_OOM, "Failed to alloc replica group")
 
     def __del__(self):
         """release replica group object
@@ -77,11 +81,8 @@ class replicagroup(object):
            pysequoiadb.error.SDBBaseError
         """
         if self._group is not None:
-            try:
-                rc = sdb.release_group(self._group)
-                pysequoiadb._raise_if_error("Failed to release replica group", rc)
-            except SDBBaseError:
-                raise
+            rc = sdb.release_group(self._group)
+            raise_if_error(rc, "Failed to release replica group")
             self._group = None
 
         self._client = None
@@ -97,11 +98,10 @@ class replicagroup(object):
 
         Parameters:
            Name         Type     Info:
-           nodestatus   int      The specified status, see Info as below.
+           node_status  int      The specified status, see Info as below.
         Return values:
            the count of node
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         Info:
            flags : 0 or 1.
@@ -113,15 +113,11 @@ class replicagroup(object):
         if not isinstance(node_status, int):
             raise SDBTypeError("node status be an instance of int")
 
-        if node_status not in common.NODE_STATUS.available_options():
+        if node_status not in (NODE_STATUS_ALL, NODE_STATUS_ACTIVE, NODE_STATUS_INACTIVE, NODE_STATUS_UNKNOWN):
             raise SDBTypeError("node status invalid")
 
-        try:
-            rc, node_num = sdb.gp_get_nodenum(self._group, node_status)
-            pysequoiadb._raise_if_error("Failed to get count of node", rc)
-        except SDBBaseError:
-            raise
-
+        rc, node_num = sdb.gp_get_nodenum(self._group, node_status)
+        raise_if_error(rc, "Failed to get count of node")
         return node_num
 
     def get_detail(self):
@@ -132,12 +128,8 @@ class replicagroup(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc, bson_string = sdb.gp_get_detail(self._group)
-            pysequoiadb._raise_if_error("Failed to get detail", rc)
-        except SDBBaseError:
-            raise
-
+        rc, bson_string = sdb.gp_get_detail(self._group)
+        raise_if_error(rc, "Failed to get detail")
         detail, size = bson._bson_to_dict(bson_string, dict, False,
                                           bson.OLD_UUID_SUBTYPE, True)
         return detail
@@ -153,7 +145,7 @@ class replicagroup(object):
         node = replicanode(self._client)
         try:
             rc = sdb.gp_get_master(self._group, node._node)
-            pysequoiadb._raise_if_error("Failed to get master", rc)
+            raise_if_error(rc, "Failed to get master")
         except SDBBaseError:
             del node
             raise
@@ -172,7 +164,7 @@ class replicagroup(object):
         node = replicanode(self._client)
         try:
             rc = sdb.gp_get_slave(self._group, node._node)
-            pysequoiadb._raise_if_error("Failed to get slave", rc)
+            raise_if_error(rc, "Failed to get slave")
         except SDBBaseError:
             del node
             raise
@@ -189,7 +181,6 @@ class replicagroup(object):
         Return values:
            a replicanode object of query
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(hostname, str_type):
@@ -201,32 +192,31 @@ class replicagroup(object):
         try:
             rc = sdb.gp_get_nodebyendpoint(self._group, node._node,
                                            hostname, servicename)
-            pysequoiadb._raise_if_error("Failed to get node", rc)
+            raise_if_error(rc, "Failed to get node")
         except SDBBaseError:
             del node
             raise
 
         return node
 
-    def get_nodebyname(self, nodename):
+    def get_nodebyname(self, node_name):
         """Get specified node from current replica group.
 
         Parameters:
            Name         Type     Info:
-           nodename     str      The host name of the node.
+           node_name    str      The host name of the node.
         Return values:
            a replicanode object of query
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
-        if not isinstance(nodename, str_type):
-            raise SDBTypeError("nodename must be an instance of str_type")
+        if not isinstance(node_name, str_type):
+            raise SDBTypeError("node_name must be an instance of str_type")
 
         node = replicanode(self._client)
         try:
-            rc = sdb.gp_get_nodebyname(self._group, node._node, nodename)
-            pysequoiadb._raise_if_error("Failed to get node", rc)
+            rc = sdb.gp_get_nodebyname(self._group, node._node, node_name)
+            raise_if_error(rc, "Failed to get node")
         except SDBBaseError:
             del node
             raise
@@ -243,7 +233,6 @@ class replicagroup(object):
            dbpath       str      The database path for the node.
            config       dict     The configurations for the node.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(hostname, str_type):
@@ -258,12 +247,10 @@ class replicagroup(object):
         if config is None:
             config = {}
         bson_options = bson.BSON.encode(config)
-        try:
-            rc = sdb.gp_create_node(self._group, hostname, servicename,
-                                    dbpath, bson_options)
-            pysequoiadb._raise_if_error("Failed to create node", rc)
-        except SDBBaseError:
-            raise
+
+        rc = sdb.gp_create_node(self._group, hostname, servicename,
+                                dbpath, bson_options)
+        raise_if_error(rc, "Failed to create node")
 
     def remove_node(self, hostname, servicename, config=None):
         """Remove node in a given replica group.
@@ -274,7 +261,6 @@ class replicagroup(object):
            servicename  str      The servicename for the node.
            config       dict     The configurations for the node.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(hostname, str_type):
@@ -284,16 +270,13 @@ class replicagroup(object):
         if config is not None and not isinstance(config, dict):
             raise SDBTypeError("config must be an instance of dict")
 
-        try:
-            if config is not None:
-                bson_config = bson.BSON.encode(config)
-                rc = sdb.gp_remove_node(self._group, hostname,
-                                        servicename, bson_config)
-            else:
-                rc = sdb.gp_remove_node(self._group, hostname, servicename)
-            pysequoiadb._raise_if_error("Failed to remove node", rc)
-        except SDBBaseError:
-            raise
+        if config is not None:
+            bson_config = bson.BSON.encode(config)
+            rc = sdb.gp_remove_node(self._group, hostname,
+                                    servicename, bson_config)
+        else:
+            rc = sdb.gp_remove_node(self._group, hostname, servicename)
+        raise_if_error(rc, "Failed to remove node")
 
     def start(self):
         """Start up current replica group.
@@ -301,11 +284,8 @@ class replicagroup(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc = sdb.gp_start(self._group)
-            pysequoiadb._raise_if_error("Failed to start", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.gp_start(self._group)
+        raise_if_error(rc, "Failed to start")
 
     def stop(self):
         """Stop current replica group.
@@ -313,11 +293,8 @@ class replicagroup(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc = sdb.gp_stop(self._group)
-            pysequoiadb._raise_if_error("Failed to stop", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.gp_stop(self._group)
+        raise_if_error(rc, "Failed to stop")
 
     def is_catalog(self):
         """Test whether current replica group is catalog replica group.
@@ -328,14 +305,10 @@ class replicagroup(object):
            pysequoiadb.error.SDBBaseError
         """
         iscatalog = False
-        try:
-            rc, is_cata = sdb.gp_is_catalog(self._group)
-            pysequoiadb._raise_if_error("Failed to check if is catalog", rc)
-            if const.TRUE == is_cata:
-                iscatalog = True
-        except SDBBaseError:
-            raise
-
+        rc, is_cata = sdb.gp_is_catalog(self._group)
+        raise_if_error(rc, "Failed to check if is catalog")
+        if TRUE == is_cata:
+            iscatalog = True
         return iscatalog
 
     def attach_node(self, hostname, servicename, config=None):
@@ -347,7 +320,6 @@ class replicagroup(object):
            servicename  str      The servicename for the node.
            config       dict     The configurations for the node.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(hostname, str_type):
@@ -360,12 +332,10 @@ class replicagroup(object):
         if config is None:
             config = {}
         bson_options = bson.BSON.encode(config)
-        try:
-            rc = sdb.gp_attach_node(self._group,
-                                    hostname, servicename, bson_options)
-            pysequoiadb._raise_if_error("Failed to attach node", rc)
-        except SDBBaseError:
-            raise
+
+        rc = sdb.gp_attach_node(self._group,
+                                hostname, servicename, bson_options)
+        raise_if_error(rc, "Failed to attach node")
 
     def detach_node(self, hostname, servicename, config=None):
         """Detach node in a given replica group.
@@ -376,7 +346,6 @@ class replicagroup(object):
            servicename  str      The servicename for the node.
            config       dict     The configurations for the node.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(hostname, str_type):
@@ -389,9 +358,7 @@ class replicagroup(object):
         if config is None:
             config = {}
         bson_options = bson.BSON.encode(config)
-        try:
-            rc = sdb.gp_detach_node(self._group,
-                                    hostname, servicename, bson_options)
-            pysequoiadb._raise_if_error("Failed to detach node", rc)
-        except SDBBaseError:
-            raise
+
+        rc = sdb.gp_detach_node(self._group,
+                                hostname, servicename, bson_options)
+        raise_if_error(rc, "Failed to detach node")

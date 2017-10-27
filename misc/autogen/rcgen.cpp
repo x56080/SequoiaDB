@@ -397,21 +397,117 @@ void RCGen::genJava()
 
 void RCGen::genPython ()
 {
-   ofstream fout(PYTHONPATH);
-   if ( fout == NULL )
-   {
-      cout << "can not open file: " << PYTHONPATH << endl;
-      exit(0);
-   }
+    ofstream fout(PYTHONPATH);
+   
+    string license =
+        "#   Copyright (C) 2011-2017 SequoiaDB Inc.\n"
+        "#\n"
+        "#   Licensed under the Apache License, Version 2.0 (the \"License\");\n"
+        "#   you may not use this file except in compliance with the License.\n"
+        "#   You may obtain a copy of the License at\n"
+        "#\n"
+        "#   http://www.apache.org/licenses/LICENSE-2.0\n"
+        "#\n"
+        "#   Unless required by applicable law or agreed to in writing, software\n"
+        "#   distributed under the License is distributed on an \"AS IS\" BASIS,\n"
+        "#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n"
+        "#   See the License for the specific language governing permissions and\n"
+        "#   limitations under the License.\n"
+        "#\n";
+    fout << license << endl;
 
-   fout << "[error]" << endl ;
-   int size = (int)errcodes.size() ;
-   for ( int idx = 0 ; idx < size; ++idx )
-   {
-      fout << std::left << setw(5) << errcodes[idx].value
-           << "= " << errcodes[idx].getDesc(language)<< endl ;
-   }
-   fout.close();
+    string comment =
+        "# This Header File is automatically generated, you MUST NOT modify this file anyway!\n"
+        "# On the contrary, you can modify the xml file \"sequoiadb/misc/autogen/rclist.xml\" if necessary!\n";
+    fout << comment << endl << endl;
+
+    string errcodeDef =
+        "class Errcode(object):\n"
+        "    \"\"\"Errcode of SequoiaDB.\n"
+        "    \"\"\"\n"
+        "\n"
+        "    def __init__(self, name, code, desc):\n"
+        "        self.__name = name\n"
+        "        self.__code = code\n"
+        "        self.__desc = desc\n"
+        "\n"
+        "    @property\n"
+        "    def name(self):\n"
+        "        \"\"\"Name of this error code.\n"
+        "        \"\"\"\n"
+        "        return self.__name\n"
+        "\n"
+        "    @property\n"
+        "    def code(self):\n"
+        "        \"\"\"Code of this error code.\n"
+        "        \"\"\"\n"
+        "        return self.__code\n"
+        "\n"
+        "    @property\n"
+        "    def desc(self):\n"
+        "        \"\"\"Description of this error code.\n"
+        "        \"\"\"\n"
+        "        return self.__desc\n"
+        "\n"
+        "    def __eq__(self, other):\n"
+        "        \"\"\"Errcode can euqlas to Errcode and int.\n"
+        "        \"\"\"\n"
+        "        if isinstance(other, Errcode):\n"
+        "            return self.code == other.code\n"
+        "        elif isinstance(other, int):\n"
+        "            return self.code == other\n"
+        "        else:\n"
+        "            return False\n"
+        "\n"
+        "    def __ne__(self, other):\n"
+        "        \"\"\"Errcode can not euqlas to Errcode and int.\n"
+        "        \"\"\"\n"
+        "        return not self.__eq__(other)\n"
+        "\n"
+        "    def __repr__(self):\n"
+        "        return \"Errcode('%s', %d, '%s')\" % (self.name, self.code, self.desc)\n"
+        "\n"
+        "    def __str__(self):\n"
+        "        return \"Errcode('%s', %d, '%s')\" % (self.name, self.code, self.desc)\n"
+        "\n";
+    fout << errcodeDef << endl;
+
+    fout << "SDB_OK = Errcode(\"SDB_OK\", 0, \"OK\")" << endl;
+
+    for ( int i = 0; i < errcodes.size(); i++ )
+    {
+        const ErrorCode& errcode = errcodes[i];
+        fout << errcode.name << " = Errcode("
+             << "\"" << errcode.name << "\", "
+             << errcode.value << ", "
+             << "\"" << errcode.getDesc(language) << "\"" << ")"
+             << endl;
+    }
+
+    fout << endl;
+    fout << "_errcode_map = {\n";
+    for ( int i = 0; i < errcodes.size(); i++ )
+    {
+        const ErrorCode& errcode = errcodes[i];
+        fout << "    "
+             << errcode.value << ": " << errcode.name;
+        if (i < errcodes.size() - 1)
+        {
+            fout << ",\n";
+        }
+        else
+        {
+            fout << "\n";
+        }
+    }
+    fout << "}" << endl;
+
+    fout << endl << endl;
+    fout << "def get_errcode(code):\n"
+         << "    return _errcode_map.get(code)"
+         << endl;
+
+    fout.close();
 }
 
 void RCGen::genWeb ()
@@ -460,7 +556,7 @@ void RCGen::genJS ()
    fout << "/* Error Constants */" << endl ;
    for ( int i = 0 ; i < conslist.size() ; i++ )
    {
-      fout << "var " << setw(maxErrorNameWidth + 2) << conslist[i].first << " = "
+      fout << "const " << setw(maxErrorNameWidth + 2) << conslist[i].first << " = "
          << setw(6) << conslist[i].second << ";" << endl ;
    }
    fout << endl ;
@@ -468,7 +564,7 @@ void RCGen::genJS ()
    fout << "/* Error Codes */" << endl ;
    for ( int i = 0 ; i < errcodes.size() ; i++ )
    {
-      fout << "var " << setw(maxErrorNameWidth + 2) << errcodes[i].name << " = "
+      fout << "const " << setw(maxErrorNameWidth + 2) << errcodes[i].name << " = "
          << setw(6) << -(i + 1) << "; // "
          << errcodes[i].getDesc(language) << ";" << endl ;
    }

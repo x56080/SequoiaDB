@@ -17,7 +17,7 @@
 
 try:
     from . import sdb
-except ImportError:
+except:
     raise Exception("Cannot find extension: sdb")
 
 import bson
@@ -26,12 +26,12 @@ import pysequoiadb
 from bson.py3compat import (PY3, str_type, long_type)
 from pysequoiadb.cursor import cursor
 from pysequoiadb.lob import lob
-from pysequoiadb import error
-from pysequoiadb.common import const
 from pysequoiadb.error import (SDBBaseError,
                                SDBTypeError,
                                SDBSystemError,
-                               SDBEndOfCursor)
+                               SDBEndOfCursor,
+                               raise_if_error)
+from pysequoiadb.errcode import SDB_OOM
 
 QUERY_FLG_WITH_RETURNDATA = 0x00000080
 QUERY_FLG_PARALLED        = 0x00000100
@@ -74,7 +74,7 @@ class collection(object):
         try:
             self._cl = sdb.create_cl()
         except SystemError:
-            raise SDBSystemError("Failed to alloc collection", const.SDB_OOM)
+            raise SDBBaseError(SDB_OOM, "Failed to alloc collection")
 
     def __del__(self):
         """delete a object existed.
@@ -83,16 +83,11 @@ class collection(object):
            pysequoiadb.error.SDBBaseError
         """
         if self._cl is not None:
-            try:
-                rc = sdb.release_cl(self._cl)
-                pysequoiadb._raise_if_error("Failed to release collection", rc)
-            except SDBBaseError:
-                raise
-
+            rc = sdb.release_cl(self._cl)
+            raise_if_error(rc, "Failed to release collection")
             self._cl = None
 
     def __repr__(self):
-
         return "Collection: %s" % (self.get_full_name())
 
     def get_count(self, condition=None):
@@ -105,7 +100,6 @@ class collection(object):
         Return values:
            count of result
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         bson_condition = None
@@ -114,12 +108,8 @@ class collection(object):
                 raise SDBTypeError("condition must be an instance of dict")
             bson_condition = bson.BSON.encode(condition)
 
-        try:
-            rc, count = sdb.cl_get_count(self._cl, bson_condition)
-            pysequoiadb._raise_if_error("Failed to get count of record", rc)
-        except SDBBaseError:
-            count = 0
-            raise
+        rc, count = sdb.cl_get_count(self._cl, bson_condition)
+        raise_if_error(rc, "Failed to get count of record")
 
         return count
 
@@ -149,7 +139,6 @@ class collection(object):
                                                 If splitEndCondition is null, they
                                                 are in [30,max).
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(source_group_name, str_type):
@@ -169,14 +158,11 @@ class collection(object):
                 raise SDBTypeError("split end condition must be an instance of dict")
             bson_end_condition = bson.BSON.encode(split_end_condition)
 
-        try:
-            rc = sdb.cl_split_by_condition(self._cl, source_group_name,
-                                           target_group_name,
-                                           bson_split_condition,
-                                           bson_end_condition)
-            pysequoiadb._raise_if_error("Failed to split", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.cl_split_by_condition(self._cl, source_group_name,
+                                       target_group_name,
+                                       bson_split_condition,
+                                       bson_end_condition)
+        raise_if_error(rc, "Failed to split")
 
     def split_by_percent(self, source_group_name, target_group_name, percent):
         """Split the specified collection from source replica group to target
@@ -188,7 +174,6 @@ class collection(object):
            target_group_name  str      The target replica group name.
            percent	          float    The split percent, Range:(0,100]
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(source_group_name, str_type):
@@ -196,14 +181,11 @@ class collection(object):
         if not isinstance(target_group_name, str_type):
             raise SDBTypeError("target group name must be an instance of str_type")
         if not isinstance(percent, float) and not isinstance(percent, int):
-            raise SDBTypeError("precent must be an instance of float or int values in (0, 100]")
+            raise SDBTypeError("percent must be an instance of float or int values in (0, 100]")
 
-        try:
-            rc = sdb.cl_split_by_percent(self._cl, source_group_name,
-                                         target_group_name, percent)
-            pysequoiadb._raise_if_error("Failed to split by precent", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.cl_split_by_percent(self._cl, source_group_name,
+                                     target_group_name, percent)
+        raise_if_error(rc, "Failed to split by percent")
 
     def split_async_by_condition(self, source_group_name, target_group_name,
                                  split_condition, split_end_condition=None):
@@ -231,7 +213,6 @@ class collection(object):
         Return values:
            task id
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(source_group_name, str_type):
@@ -251,17 +232,12 @@ class collection(object):
                 raise SDBTypeError("split end condition must be an instance of dict")
             bson_end_condition = bson.BSON.encode(split_end_condition)
 
-        try:
-            rc, task_id = sdb.cl_split_async_by_condition(self._cl,
-                                                          source_group_name,
-                                                          target_group_name,
-                                                          bson_split_condition,
-                                                          bson_end_condition)
-            pysequoiadb._raise_if_error("Failed to split async", rc)
-
-        except SDBBaseError:
-            task_id = 0
-            raise
+        rc, task_id = sdb.cl_split_async_by_condition(self._cl,
+                                                      source_group_name,
+                                                      target_group_name,
+                                                      bson_split_condition,
+                                                      bson_end_condition)
+        raise_if_error(rc, "Failed to split async")
 
         return task_id
 
@@ -278,7 +254,6 @@ class collection(object):
         Return values:
            task id
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(source_group_name, str_type):
@@ -288,15 +263,11 @@ class collection(object):
         if not isinstance(percent, float):
             raise SDBTypeError("percent must be an instance of float")
 
-        try:
-            rc, task_id = sdb.cl_split_async_by_percent(self._cl,
-                                                        source_group_name,
-                                                        target_group_name,
-                                                        percent)
-            pysequoiadb._raise_if_error("Failed to split async", rc)
-        except SDBBaseError:
-            task_id = 0
-            raise
+        rc, task_id = sdb.cl_split_async_by_percent(self._cl,
+                                                    source_group_name,
+                                                    target_group_name,
+                                                    percent)
+        raise_if_error(rc, "Failed to split async")
 
         return task_id
 
@@ -308,7 +279,6 @@ class collection(object):
            flags       int        0 or 1, see Info as below.
            records     list/tuple The list of inserted records.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         Info:
            flags : 0 or 1.
@@ -325,11 +295,8 @@ class collection(object):
             record = bson.BSON.encode(elem)
             container.append(record)
 
-        try:
-            rc = sdb.cl_bulk_insert(self._cl, flags, container)
-            pysequoiadb._raise_if_error("Failed to insert records", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.cl_bulk_insert(self._cl, flags, container)
+        raise_if_error(rc, "Failed to insert records")
 
     def insert(self, record):
         """Insert a record into current collection.
@@ -340,19 +307,14 @@ class collection(object):
         Return values:
            ObjectId of record inserted
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(record, dict):
             raise SDBTypeError("record must be an instance of dict")
 
         bson_record = bson.BSON.encode(record)
-        try:
-            rc, id_str = sdb.cl_insert(self._cl, bson_record)
-            pysequoiadb._raise_if_error("Failed to insert record", rc)
-        except SDBBaseError:
-            raise
-
+        rc, id_str = sdb.cl_insert(self._cl, bson_record)
+        raise_if_error(rc, "Failed to insert record")
         oid = bson.ObjectId(id_str)
         return oid
 
@@ -368,7 +330,6 @@ class collection(object):
            - hint      dict     The hint, automatically match the optimal hint
                                       if not provided
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         Note:
            It won't work to update the "ShardingKey" field, but the other fields
@@ -390,11 +351,8 @@ class collection(object):
                 raise SDBTypeError("hint in kwargs must be an instance of dict")
             bson_hint = bson.BSON.encode(kwargs.get("hint"))
 
-        try:
-            rc = sdb.cl_update(self._cl, bson_rule, bson_condition, bson_hint)
-            pysequoiadb._raise_if_error("Failed to update", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.cl_update(self._cl, bson_rule, bson_condition, bson_hint)
+        raise_if_error(rc, "Failed to update")
 
     def upsert(self, rule, **kwargs):
         """Update the matching documents in current collection, insert if
@@ -411,7 +369,6 @@ class collection(object):
            - setOnInsert dict  The setOnInsert assigns the specified values
                                to the fileds when insert
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         Note:
            It won't work to update the "ShardingKey" field, but the other fields
@@ -438,11 +395,8 @@ class collection(object):
                 raise SDBTypeError("setOnInsert must be an instance of dict")
             bson_setOnInsert = bson.BSON.encode(kwargs.get("setOnInsert"))
 
-        try:
-            rc = sdb.cl_upsert(self._cl, bson_rule, bson_condition, bson_hint, bson_setOnInsert)
-            pysequoiadb._raise_if_error("Failed to update", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.cl_upsert(self._cl, bson_rule, bson_condition, bson_hint, bson_setOnInsert)
+        raise_if_error(rc, "Failed to update")
 
     def save(self, doc):
         """save a documents in current collection, insert if no(matching) _id.
@@ -450,7 +404,6 @@ class collection(object):
            Name          Type  Info:
            doc           dict  The updating rule.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         Note:
            It won't work to update the "ShardingKey" field, but the other fields
@@ -476,7 +429,6 @@ class collection(object):
            - hint      dict  The hint, automatically match the optimal hint
                                    if not provided
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         bson_condition = None
@@ -491,11 +443,8 @@ class collection(object):
                 raise SDBTypeError("hint must be an instance of dict")
             bson_hint = bson.BSON.encode(kwargs.get("hint"))
 
-        try:
-            rc = sdb.cl_delete(self._cl, bson_condition, bson_hint)
-            pysequoiadb._raise_if_error("Failed to delete", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.cl_delete(self._cl, bson_condition, bson_hint)
+        raise_if_error(rc, "Failed to delete")
 
     def query(self, **kwargs):
         """Get the matching documents in current collection.
@@ -522,7 +471,6 @@ class collection(object):
         Return values:
            a cursor object of query
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         Info:
            query flags:
@@ -578,7 +526,7 @@ class collection(object):
                               bson_condition, bson_selector,
                               bson_order_by, bson_hint,
                               num_to_skip, num_to_return, flags)
-            pysequoiadb._raise_if_error("Failed to query", rc)
+            raise_if_error(rc, "Failed to query")
         except SDBBaseError:
             del result
             result = None
@@ -614,7 +562,6 @@ class collection(object):
         Return values:
            a cursor object of query
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         Info:
            query flags:
@@ -695,7 +642,7 @@ class collection(object):
                                          bson_condition, bson_selector,
                                          bson_order_by, bson_hint,
                                          num_to_skip, num_to_return, return_new, flags, bson_update)
-            pysequoiadb._raise_if_error("Failed to query", rc)
+            raise_if_error(rc, "Failed to query")
         except SDBBaseError:
             del result
             result = None
@@ -728,7 +675,6 @@ class collection(object):
         Return values:
            a cursor object of query
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         Info:
            query flags:
@@ -791,7 +737,7 @@ class collection(object):
                                          bson_condition, bson_selector,
                                          bson_order_by, bson_hint,
                                          num_to_skip, num_to_return, flags)
-            pysequoiadb._raise_if_error("Failed to query", rc)
+            raise_if_error(rc, "Failed to query")
         except SDBBaseError:
             del result
             result = None
@@ -814,7 +760,6 @@ class collection(object):
            buffer_size  int   The size of sort buffer used when creating index,
                                     the unit is MB, zero means don't use sort buffer
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(index_def, dict):
@@ -837,12 +782,9 @@ class collection(object):
         if is_enforced:
             enforced = 1
 
-        try:
-            rc = sdb.cl_create_index(self._cl, bson_index_def, idx_name,
-                                     is_unique, is_enforced, buffer_size)
-            pysequoiadb._raise_if_error("Failed to create index", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.cl_create_index(self._cl, bson_index_def, idx_name,
+                                 is_unique, is_enforced, buffer_size)
+        raise_if_error(rc, "Failed to create index")
 
     def get_indexes(self, idx_name=None):
         """Get all of or one of the indexes in current collection.
@@ -854,7 +796,6 @@ class collection(object):
         Return values:
            a cursor object of result
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if idx_name is not None and not isinstance(idx_name, str_type):
@@ -865,7 +806,7 @@ class collection(object):
         try:
             result = cursor()
             rc = sdb.cl_get_index(self._cl, result._cursor, idx_name)
-            pysequoiadb._raise_if_error("Failed to get indexes", rc)
+            raise_if_error(rc, "Failed to get indexes")
         except SDBBaseError:
             del result
             result = None
@@ -880,17 +821,13 @@ class collection(object):
            Name         Type  Info:
            idx_name     str   The index name.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(idx_name, str_type):
             raise SDBTypeError("index name must be an instance of str_type")
 
-        try:
-            rc = sdb.cl_drop_index(self._cl, idx_name)
-            pysequoiadb._raise_if_error("Failed to drop index", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.cl_drop_index(self._cl, idx_name)
+        raise_if_error(rc, "Failed to drop index")
 
     def get_collection_name(self):
         """Get the name of current collection.
@@ -900,12 +837,8 @@ class collection(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc, cl_name = sdb.cl_get_collection_name(self._cl)
-            pysequoiadb._raise_if_error("Failed to get collection name", rc)
-        except SDBBaseError:
-            raise
-
+        rc, cl_name = sdb.cl_get_collection_name(self._cl)
+        raise_if_error(rc, "Failed to get collection name")
         return cl_name
 
     def get_cs_name(self):
@@ -916,12 +849,8 @@ class collection(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc, cs_name = sdb.cl_get_collection_space_name(self._cl)
-            pysequoiadb._raise_if_error("Failed to get collection space name", rc)
-        except SDBBaseError:
-            raise
-
+        rc, cs_name = sdb.cl_get_collection_space_name(self._cl)
+        raise_if_error(rc, "Failed to get collection space name")
         return cs_name
 
     def get_full_name(self):
@@ -932,12 +861,8 @@ class collection(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc, full_name = sdb.cl_get_full_name(self._cl)
-            pysequoiadb._raise_if_error("Failed to get full name", rc)
-        except SDBBaseError:
-            raise
-
+        rc, full_name = sdb.cl_get_full_name(self._cl)
+        raise_if_error(rc, "Failed to get full name")
         return full_name
 
     def aggregate(self, aggregate_options):
@@ -967,13 +892,12 @@ class collection(object):
             bson_option = bson.BSON.encode(option)
             container.append(bson_option)
 
+        result = cursor()
         try:
-            result = cursor()
             rc = sdb.cl_aggregate(self._cl, result._cursor, container)
-            pysequoiadb._raise_if_error("Failed to aggregate", rc)
+            raise_if_error(rc, "Failed to aggregate")
         except SDBBaseError:
             del result
-            result = None
             raise
 
         return result
@@ -1001,7 +925,6 @@ class collection(object):
         Return values:
            a cursor object of query
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         num_to_skip = 0
@@ -1034,14 +957,13 @@ class collection(object):
                 raise SDBTypeError("hint must be an instance of dict")
             bson_hint = bson.BSON.encode(kwargs.get("hint"))
 
+        result = cursor()
         try:
-            result = cursor()
             rc = sdb.cl_get_query_meta(self._cl, result._cursor, bson_condition,
                                        bson_order_by, bson_hint, num_to_skip, num_to_return)
-            pysequoiadb._raise_if_error("Failed to query meta", rc)
+            raise_if_error(rc, "Failed to query meta")
         except SDBBaseError:
             del result
-            result = None
             raise
 
         return result
@@ -1055,7 +977,6 @@ class collection(object):
            options         dict  he low boudary and up boudary
                                        eg: {"LowBound":{a:1},"UpBound":{a:100}}
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(cl_full_name, str_type):
@@ -1068,11 +989,8 @@ class collection(object):
         if options is not None:
             bson_options = bson.BSON.encode(options)
 
-        try:
-            rc = sdb.cl_attach_collection(self._cl, cl_full_name, bson_options)
-            pysequoiadb._raise_if_error("Failed to attach collection", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.cl_attach_collection(self._cl, cl_full_name, bson_options)
+        raise_if_error(rc, "Failed to attach collection")
 
     def detach_collection(self, sub_cl_full_name):
         """Dettach the specified collection.
@@ -1081,17 +999,13 @@ class collection(object):
            Name            Type  Info:
            subcl_full_name str   The name fo the subcollection.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(sub_cl_full_name, str_type):
             raise SDBTypeError("name of subcollection must be an instance of str_type")
 
-        try:
-            rc = sdb.cl_detach_collection(self._cl, sub_cl_full_name)
-            pysequoiadb._raise_if_error("Failed to detach collection", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.cl_detach_collection(self._cl, sub_cl_full_name)
+        raise_if_error(rc, "Failed to detach collection")
 
     def create_lob(self, oid=None):
         """create lob.
@@ -1103,7 +1017,6 @@ class collection(object):
         Return values:
            a lob object
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if oid is None:
@@ -1113,11 +1026,12 @@ class collection(object):
         else:
             raise SDBTypeError("oid must be an instance of bson.ObjectId")
 
+        obj = lob()
         try:
-            obj = lob()
             rc = sdb.cl_create_lob(self._cl, obj._handle, str_id)
-            pysequoiadb._raise_if_error("Failed to create lob", rc)
+            raise_if_error(rc, "Failed to create lob")
         except SDBBaseError:
+            del obj
             raise
 
         return obj
@@ -1131,8 +1045,7 @@ class collection(object):
         Return values:
             a lob object
         Exceptions:
-            pysequoiadb.error.SDBTypeError
-            pysequoiadb.error.SDBBaseError
+           pysequoiadb.error.SDBBaseError
         """
         if not isinstance(oid, bson.ObjectId) and not isinstance(oid, str_type):
             raise SDBTypeError("oid must be bson.ObjectId or string")
@@ -1141,11 +1054,12 @@ class collection(object):
             str_id = str(oid)
         else:
             str_id = oid
+        obj = lob()
         try:
-            obj = lob()
             rc = sdb.cl_get_lob(self._cl, obj._handle, str_id)
-            pysequoiadb._raise_if_error("Failed to get specified lob", rc)
+            raise_if_error(rc, "Failed to get specified lob")
         except SDBBaseError:
+            del obj
             raise
 
         return obj
@@ -1157,7 +1071,6 @@ class collection(object):
            Name     Type                 Info:
            oid      str/bson.ObjectId    The oid of the lob to be remove.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if isinstance(oid, bson.ObjectId):
@@ -1167,11 +1080,8 @@ class collection(object):
         else:
             raise SDBTypeError("oid must be an instance of str or bson.ObjectId")
 
-        try:
-            rc = sdb.cl_remove_lob(self._cl, str_id)
-            pysequoiadb._raise_if_error("Failed to remove lob", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.cl_remove_lob(self._cl, str_id)
+        raise_if_error(rc, "Failed to remove lob")
 
     def list_lobs(self):
         """list all lobs.
@@ -1184,13 +1094,12 @@ class collection(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
+        result = cursor()
         try:
-            result = cursor()
             rc = sdb.cl_list_lobs(self._cl, result._cursor)
-            pysequoiadb._raise_if_error("Failed to list lobs", rc)
+            raise_if_error(rc, "Failed to list lobs")
         except SDBBaseError:
             del result
-            result = None
             raise
 
         return result
@@ -1217,7 +1126,6 @@ class collection(object):
         Return values:
            a record of json/dict
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         Info:
            query flags:
@@ -1260,16 +1168,15 @@ class collection(object):
             else:
                 flags = kwargs.get("flags")
 
+        result = cursor()
         try:
-            result = cursor()
             rc = sdb.cl_query(self._cl, result._cursor,
                               bson_condition, bson_selector,
                               bson_order_by, bson_hint,
                               num_to_skip, 1, flags)
-            pysequoiadb._raise_if_error("Failed to query one", rc)
+            raise_if_error(rc, "Failed to query one")
         except SDBBaseError:
             del result
-            result = None
             raise
 
         try:
@@ -1280,7 +1187,6 @@ class collection(object):
             raise
 
         del result
-        result = None
 
         return record
 
@@ -1310,7 +1216,6 @@ class collection(object):
         Return values:
            a cursor object of query
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         Info:
            query flags:
@@ -1365,17 +1270,16 @@ class collection(object):
                 raise SDBTypeError("options must be an instance of dict")
             bson_options = bson.BSON.encode(kwargs.get("options"))
 
+        result = cursor()
         try:
-            result = cursor()
             rc = sdb.cl_explain(self._cl, result._cursor,
                                 bson_condition, bson_selector,
                                 bson_order_by, bson_hint,
                                 num_to_skip, num_to_return,
                                 flag, bson_options)
-            pysequoiadb._raise_if_error("Failed to explain", rc)
+            raise_if_error(rc, "Failed to explain")
         except SDBBaseError:
             del result
-            result = None
             raise
 
         return result
@@ -1386,12 +1290,8 @@ class collection(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-
-        try:
-            rc = sdb.cl_truncate(self._cl)
-            pysequoiadb._raise_if_error("Truncate failed", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.cl_truncate(self._cl)
+        raise_if_error(rc, "Truncate failed")
 
     def create_id_index(self, options=None):
         """Create the id index.
@@ -1400,7 +1300,6 @@ class collection(object):
            Name         Type     Info:
            options      dict     The configuration options for id index.
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
 
@@ -1410,11 +1309,8 @@ class collection(object):
             raise SDBTypeError("options must be an instance of dict")
 
         bson_options = bson.BSON.encode(options)
-        try:
-            rc = sdb.cl_create_id_index(self._cl, bson_options)
-            pysequoiadb._raise_if_error("Create id index failed", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.cl_create_id_index(self._cl, bson_options)
+        raise_if_error(rc, "Create id index failed")
 
     def drop_id_index(self):
         """Drop the id index.
@@ -1422,9 +1318,5 @@ class collection(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-
-        try:
-            rc = sdb.cl_drop_id_index(self._cl)
-            pysequoiadb._raise_if_error("Drop id index failed", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.cl_drop_id_index(self._cl)
+        raise_if_error(rc, "Drop id index failed")

@@ -17,7 +17,7 @@ using namespace std;
 #define JAVAPATH "../../driver/java/src/main/java/com/sequoiadb/exception/SDBError.java"
 #define JSPATH "../../SequoiaDB/engine/spt/error.js"
 #define WEBPATH "../../client/admin/admintpl/error_"
-#define PYTHONPATH "../../driver/python/pysequoiadb/err.prop"
+#define PYTHONPATH "../../driver/python/pysequoiadb/errcode.py"
 #define WEBPATHSUFFIX ".php"
 #define RC_MDPATH "../../doc/src/document/reference/Sequoiadb_error_code.md"
 // XML element

@@ -17,7 +17,7 @@
 
 try:
     from . import sdb
-except ImportError:
+except:
     raise Exception("Cannot find extension: sdb")
 
 import bson
@@ -26,8 +26,8 @@ from bson.py3compat import (PY3, str_type)
 from pysequoiadb.collection import collection
 from pysequoiadb.cursor import cursor
 from pysequoiadb import error
-from pysequoiadb.common import const
-from pysequoiadb.error import (SDBBaseError, SDBTypeError)
+from pysequoiadb.error import (SDBBaseError, SDBTypeError, raise_if_error)
+from pysequoiadb.errcode import SDB_OOM
 
 
 class collectionspace(object):
@@ -68,7 +68,7 @@ class collectionspace(object):
         try:
             self._cs = sdb.create_cs()
         except SystemError:
-            raise SDBBaseError("Failed to alloc collection space", const.SDB_OOM)
+            raise SDBBaseError(SDB_OOM, "Failed to alloc collection space")
 
     def __del__(self):
         """delete a object existed.
@@ -77,12 +77,8 @@ class collectionspace(object):
            pysequoiadb.error.SDBBaseError
         """
         if self._cs is not None:
-            try:
-                rc = sdb.release_cs(self._cs)
-                pysequoiadb._raise_if_error("Failed to release collection space",
-                                            rc)
-            except SDBBaseError:
-                raise
+            rc = sdb.release_cs(self._cs)
+            raise_if_error(rc, "Failed to release collection space")
             self._cs = None
 
     def __repr__(self):
@@ -111,8 +107,7 @@ class collectionspace(object):
             cl = collection()
             try:
                 rc = sdb.cs_get_collection(self._cs, name, cl._cl)
-                pysequoiadb._raise_if_error("Failed to get collection: %s" %
-                                            name, rc)
+                raise_if_error(rc, "Failed to get collection: %s" % name)
             except SDBBaseError:
                 del cl
                 raise
@@ -141,7 +136,6 @@ class collectionspace(object):
         Return values:
            a collection object of query
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(cl_name, str_type):
@@ -150,8 +144,7 @@ class collectionspace(object):
         cl = collection()
         try:
             rc = sdb.cs_get_collection(self._cs, cl_name, cl._cl)
-            pysequoiadb._raise_if_error("Failed to get collection: %s" %
-                                        cl_name, rc)
+            raise_if_error(rc, "Failed to get collection: %s" % cl_name)
         except SDBBaseError:
             del cl
             raise
@@ -170,7 +163,6 @@ class collectionspace(object):
         Return values:
            a collection object created
         Exceptions:
-           pysequoiadb.error.SDBTypeError
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(cl_name, str_type):
@@ -189,7 +181,7 @@ class collectionspace(object):
             else:
                 rc = sdb.cs_create_collection_use_opt(self._cs, cl_name,
                                                       bson_options, cl._cl)
-            pysequoiadb._raise_if_error("Failed to create collection", rc)
+            raise_if_error(rc, "Failed to create collection")
         except SDBBaseError:
             del cl
             raise
@@ -209,11 +201,8 @@ class collectionspace(object):
         if not isinstance(cl_name, str_type):
             raise SDBTypeError("collection must be an instance of str_type")
 
-        try:
-            rc = sdb.cs_drop_collection(self._cs, cl_name)
-            pysequoiadb._raise_if_error("Failed to drop collection", rc)
-        except SDBBaseError:
-            raise
+        rc = sdb.cs_drop_collection(self._cs, cl_name)
+        raise_if_error(rc, "Failed to drop collection")
 
     def get_collection_space_name(self):
         """Get the current collection space name.
@@ -223,10 +212,7 @@ class collectionspace(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        try:
-            rc, cs_name = sdb.cs_get_collection_space_name(self._cs)
-            pysequoiadb._raise_if_error("Failed to get collection space name", rc)
-        except SDBBaseError:
-            raise
+        rc, cs_name = sdb.cs_get_collection_space_name(self._cs)
+        raise_if_error(rc, "Failed to get collection space name")
 
         return cs_name
