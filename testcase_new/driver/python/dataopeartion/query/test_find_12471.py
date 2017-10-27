@@ -39,61 +39,66 @@ class TestFind12471(testlib.SdbTestBase):
       except SDBBaseError as e:
          self.fail('insert fail: ' + e.detail)
 
-   def get_count(self, expectCount, cond):
+   def get_count(self, expect_count, cond):
       try:
          if cond == None:
-            actCount = self.cl.get_count()
+            act_count = self.cl.get_count()
          else:
-            actCount = self.cl.get_count(condition = cond)
-         self.assertEqual(expectCount, actCount)
+            act_count = self.cl.get_count(condition = cond)
+         self.assertEqual(expect_count, act_count)
       except SDBBaseError as e:
          self.fail('get count fail: ' + e.detail)
 
    def query_datas(self, expectResult):
-      cursor_one = self.cl.query()
-      actResult = []
-      while True:
-         try:
-            rec = cursor_one.current()
-            actResult.append(rec)
-            cursor_one.next()
-         except SDBEndOfCursor:
-            # self.check_next(cursor_one)
-            break
+	   # find all records
+      cursor_all = self.cl.query()
+      actResult = testlib.get_all_records(cursor_all)
       self.assertListEqualUnordered(expectResult, actResult)
-      cond_one = None
-      expect_one = insert_nums
-      self.get_count(expect_one, cond_one)
+		# check the cursor when closed
+      self.check_close_cursor_next(cursor_all)
+      self.check_close_cursor_current(cursor_all)
+		
+		# SEQUOIADBMAINSTREAM-2784, continue checking cursor when end of cursor
+      cursor_end = self.cl.query()
+      self.goto_end_of_cursor(cursor_end)
+      self.check_close_cursor_next(cursor_end)
+      self.check_close_cursor_current(cursor_end)
 
-      cursor_one.close()
-      # self.check_cursor_close(cursor_one)
+		# check counts
+      cond1 = {"_id": {"$et": 1}}
+      cursor1 = self.cl.query(condition = cond1)
+      expect_count1 = 1
+      self.get_count(expect_count1, cond1)
 
-      cond_two = {"_id": {"$et": 1}}
-      cursor_two = self.cl.query(condition=cond_two)
-      expCount_two = 1
-      self.get_count(expCount_two, cond_two)
+      cond2 = {"_id": {"$gt": 90}}
+      cursor2 = self.cl.query(condition = cond2)
+      expect_count2 = 9
+      self.get_count(expect_count2, cond2)
 
-      cond_three = {"_id": {"$gt": 90}}
-      cursor_three = self.cl.query(condition=cond_three)
-      expCount_three = 9
-      self.get_count(expCount_three, cond_three)
-
+		# check the cursors when all closed
       self.db.close_all_cursors()
-      # self.check_cursor_close(cursor_two)
-      # self.check_cursor_close(cursor_three)
+      self.check_close_cursor_next(cursor1)
+      self.check_close_cursor_current(cursor1)
+      self.check_close_cursor_next(cursor2)
+      self.check_close_cursor_current(cursor2)
 
-   def check_next(self, cursor):
+   def goto_end_of_cursor(self,cursor):
+      while(True):
+         try:
+            cursor.next()
+         except SDBEndOfCursor:     		
+            break;  
+      				
+   def check_close_cursor_next(self, cursor):
       try:
          cursor.next()
          self.fail("need next cursor fail")
       except SDBBaseError as e:
-         print(e.detail)
-         # self.assertEqual(e, e, 'e not equal to e')
+         self.assertEqual(-31, e.code, 'the error is not -31: ' + str(e.code))
 
-   def check_cursor_close(self, cursor):
+   def check_close_cursor_current(self, cursor):
       try:
          cursor.current()
          self.fail("need current cursor fail")
       except SDBBaseError as e:
-         print(e.detail)
-         # self.assertEqual(e, e, 'e not equal to e')
+         self.assertEqual(-31, e.code, 'the error is not -31: ' + str(e.code))
