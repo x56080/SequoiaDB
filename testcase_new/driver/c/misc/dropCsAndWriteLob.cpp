@@ -156,7 +156,7 @@ TEST(lobTest,dropCsAndWriteLob)
 
 	// sdb close lob
 	rc = sdbCloseLob( &lob ) ;
-	ASSERT_EQ( rc, SDB_OK ) << "fail to close lob, rc = " << rc ;
+	ASSERT_TRUE( rc == SDB_OK || rc == SDB_RTN_CONTEXT_NOTEXIST ) << "fail to close lob, rc = " << rc ;
 	// release handle
 	sdbDisconnect( db ) ;
 	sdbReleaseCollection( cl ) ;
