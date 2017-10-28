@@ -745,7 +745,7 @@ class collection(object):
 
         return result
 
-    def create_index(self, index_def, idx_name, is_unique, is_enforced, buffer_size=64):
+    def create_index(self, index_def, idx_name, is_unique=False, is_enforced=False, buffer_size=64):
         """Create an index in current collection.
 
         Parameters:

@@ -849,7 +849,7 @@ class client(object):
         rc = sdb.sdb_remove_replica_group(self._client, group_name)
         raise_if_error(rc, "Failed to remove replica group: %s" % group_name)
 
-    def create_replica_cata_group(self, host, service, path, configure):
+    def create_replica_cata_group(self, host, service, path, configure=None):
         """Create a catalog replica group.
 
         Parameters:
@@ -857,10 +857,12 @@ class client(object):
            host         str      The hostname for the catalog replica group.
            service      str      The service name for the catalog replica group.
            path         str      The path for the catalog replica group.
-           configure    dict     The configurations for the catalog replica group.
+           configure    dict     The optional configurations for the catalog replica group.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
+        if configure is None:
+            configure = {}
         if not isinstance(host, str_type):
             raise SDBTypeError("host must be an instance of str_type")
         if not isinstance(service, str_type):
