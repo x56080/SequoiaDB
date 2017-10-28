@@ -15,6 +15,7 @@
 """decimal supported for Python driver of SequoiaDB
 """
 from bson.py3compat import (long_type)
+from bson.errors import InvalidDecimal
 
 try:
     from . import bsondecimal as decimal
@@ -66,14 +67,14 @@ class Decimal(object):
 
         _, self.__decimal = decimal.create()
         if _ != 0:
-            raise Exception("cannot create decimal entity, out of memory")
+            raise InvalidDecimal("cannot create decimal entity, out of memory")
 
         if precision is None and scale is None:
             _ = decimal.init(self.__decimal)
         else:
             _ = decimal.init2(self.__decimal, precision, scale)
         if 0 != _:
-            raise Exception("invalid parameter, code: %d" % _)
+            raise InvalidDecimal("invalid parameter, code: %d" % _)
 
         self.__parse(value)
 
@@ -91,14 +92,14 @@ class Decimal(object):
         """
         _ = decimal.setZero(self.__decimal)
         if 0 != _:
-            raise Exception("invalid parameter, code: %d" % _)
+            raise InvalidDecimal("invalid parameter, code: %d" % _)
 
     def is_zero(self):
         """charge the value of decimal is zero ir not
         """
         _, zero_ = decimal.isZero(self.__decimal)
         if _ != 0:
-            raise Exception("invalid parameter, code: %d" % _)
+            raise InvalidDecimal("invalid parameter, code: %d" % _)
         return True if zero_ != 0 else False
 
     def set_min(self):
@@ -106,14 +107,14 @@ class Decimal(object):
         """
         _ = decimal.setMin(self.__decimal)
         if _ != 0:
-            raise Exception("invalid parameter, code: %d" % _)
+            raise InvalidDecimal("invalid parameter, code: %d" % _)
 
     def is_min(self):
         """charge the value of decimal is min value or not
         """
         _, min_ = decimal.isMin(self.__decimal)
         if _ != 0:
-            raise Exception("invalid parameter, code: %d" % _)
+            raise InvalidDecimal("invalid parameter, code: %d" % _)
         return True if min_ != 0 else False
 
     def set_max(self):
@@ -121,53 +122,53 @@ class Decimal(object):
         """
         _ = decimal.setMax(self.__decimal)
         if _ != 0:
-            raise Exception("invalid parameter, code: %d" % _)
+            raise InvalidDecimal("invalid parameter, code: %d" % _)
 
     def is_max(self):
         """charge the value of decimal is min value or not
         """
         _, max_ = decimal.isMax(self.__decimal)
         if _ != 0:
-            raise Exception("invalid parameter, code: %d" % _)
+            raise InvalidDecimal("invalid parameter, code: %d" % _)
         return True if max_ != 0 else False
 
     def __from_int(self, value):
         _ = decimal.fromInt(self.__decimal, value)
         if _ != 0:
-            raise Exception("invalid parameter, code: %d" % _)
+            raise InvalidDecimal("invalid parameter, code: %d" % _)
 
     def to_int(self):
         """force the decimal to be an int(long), and show it regularized by scale
         """
         _, v = decimal.toInt(self.__decimal)
         if _ != 0:
-            raise Exception("invalid parameter, code: %d" % _)
+            raise InvalidDecimal("invalid parameter, code: %d" % _)
         return v
 
     def __from_float(self, value):
         _ = decimal.fromFloat(self.__decimal, value)
         if _ != 0:
-            raise Exception("invalid parameter, code: %d" % _)
+            raise InvalidDecimal("invalid parameter, code: %d" % _)
 
     def to_float(self):
         """force the decimal to be an float(double is supported), and show it regularized by scale
         """
         _, v = decimal.toFloat(self.__decimal)
         if _ != 0:
-            raise Exception("invalid parameter, code: %d" % _)
+            raise InvalidDecimal("invalid parameter, code: %d" % _)
         return v
 
     def __from_string(self, value):
         _ = decimal.fromString(self.__decimal, value)
         if _ != 0:
-            raise Exception("invalid parameter, code: %d" % _)
+            raise InvalidDecimal("invalid parameter, code: %d" % _)
 
     def to_string(self):
         """force the decimal to be an string, and show it regularized by scale
         """
         _, v = decimal.toString(self.__decimal)
         if _ != 0:
-            raise Exception("invalid parameter, code: %d" % _)
+            raise InvalidDecimal("invalid parameter, code: %d" % _)
         return v
 
     def __parse(self, value):
@@ -187,7 +188,7 @@ class Decimal(object):
     def __to_json_string(self):
         _, v = decimal.toJsonString(self.__decimal)
         if _ != 0:
-            raise Exception("invalid parameter, code: %d" % _)
+            raise InvalidDecimal("invalid parameter, code: %d" % _)
         return v
 
     def compare(self, rhs):
@@ -206,7 +207,7 @@ class Decimal(object):
             raise TypeError('invalid comparision between Decimal and %s' % type(rhs))
 
         if _ not in (-1, 0, 1):
-            raise Exception("invalid return value or process failed, code %d" % _)
+            raise InvalidDecimal("invalid return value or process failed, code %d" % _)
         return _
 
     def _from_bson_element_value(self, value):
@@ -214,7 +215,7 @@ class Decimal(object):
         """
         _, l = decimal.fromBsonValue(self.__decimal, value)
         if _ != 0:
-            raise Exception("invalid parameter, code: %d" % _)
+            raise InvalidDecimal("invalid parameter, code: %d" % _)
         return l
 
     def _to_bson_element_value(self):
@@ -222,5 +223,5 @@ class Decimal(object):
         """
         _, s = decimal.toBsonElement(self.__decimal)
         if _ != 0:
-            raise Exception("invalid parameter, code: %d" % _)
+            raise InvalidDecimal("invalid parameter, code: %d" % _)
         return s

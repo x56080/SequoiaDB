@@ -38,3 +38,8 @@ class InvalidDocument(BSONError):
 class InvalidId(BSONError):
     """Raised when trying to create an ObjectId from invalid data.
     """
+
+
+class InvalidDecimal(BSONError):
+    """Raised when trying to create an Decimal from invalid data.
+    """
