@@ -28,7 +28,7 @@ from bson.py3compat import (str_type, long_type)
 from pysequoiadb.collectionspace import collectionspace
 from pysequoiadb.collection import collection
 from pysequoiadb.cursor import cursor
-from pysequoiadb.replicagroup import replicagroup
+from pysequoiadb.replicagroup import (replicagroup, SDB_COORD_GROUP_NAME, SDB_CATALOG_GROUP_NAME)
 from pysequoiadb.error import (SDBBaseError, SDBTypeError, raise_if_error)
 from pysequoiadb.errcode import *
 
@@ -809,6 +809,26 @@ class client(object):
 
         return result
 
+    def get_cata_replica_group(self):
+        """Get catalog replica group
+
+        Return values:
+           The catalog replicagroup object.
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        return self.get_replica_group_by_name(SDB_CATALOG_GROUP_NAME)
+
+    def get_coord_replica_group(self):
+        """Get coordinator replica group
+
+        Return values:
+           The coordinator replicagroup object.
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        return self.get_replica_group_by_name(SDB_COORD_GROUP_NAME)
+
     def create_replica_group(self, group_name):
         """Create the specified replica group.
 
@@ -816,7 +836,7 @@ class client(object):
            Name        Type     Info:
            group_name  str      The name of replica group to be created.
         Return values:
-           the replicagroup object created.
+           The created replicagroup object.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
@@ -834,23 +854,8 @@ class client(object):
 
         return replica_group
 
-    def remove_replica_group(self, group_name):
-        """Remove the specified replica group.
-
-        Parameters:
-           Name         Type     Info:
-           group_name   str      The name of replica group to be removed
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        if not isinstance(group_name, str_type):
-            raise SDBTypeError("group name must be an instance of str_type")
-
-        rc = sdb.sdb_remove_replica_group(self._client, group_name)
-        raise_if_error(rc, "Failed to remove replica group: %s" % group_name)
-
-    def create_replica_cata_group(self, host, service, path, configure=None):
-        """Create a catalog replica group.
+    def create_cata_replica_group(self, host, service, path, configure=None):
+        """Create catalog replica group.
 
         Parameters:
            Name         Type     Info:
@@ -858,6 +863,8 @@ class client(object):
            service      str      The service name for the catalog replica group.
            path         str      The path for the catalog replica group.
            configure    dict     The optional configurations for the catalog replica group.
+        Return values:
+           The created catalog replicagroup object.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
@@ -877,6 +884,80 @@ class client(object):
         rc = sdb.sdb_create_replica_cata_group(self._client, host, service,
                                                path, bson_configure)
         raise_if_error(rc, "Failed to create catalog group")
+
+        return self.get_cata_replica_group()
+
+    def create_coord_replica_group(self):
+        """Create coordinator replica group.
+
+        Return values:
+           The created coordinator replicagroup object.
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        return self.create_replica_group(SDB_COORD_GROUP_NAME)
+
+    def create_replica_cata_group(self, host, service, path, configure=None):
+        """Use create_cata_replica_group instead.
+        """
+        return self.create_cata_replica_group(host, service, path, configure)
+
+    def remove_replica_group(self, group_name):
+        """Remove the specified replica group.
+
+        Parameters:
+           Name         Type     Info:
+           group_name   str      The name of replica group to be removed
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        if not isinstance(group_name, str_type):
+            raise SDBTypeError("group name must be an instance of str_type")
+
+        rc = sdb.sdb_remove_replica_group(self._client, group_name)
+        raise_if_error(rc, "Failed to remove replica group: %s" % group_name)
+
+    def remove_cata_replica_group(self):
+        """Remove the catalog replica group.
+
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        return self.remove_replica_group(SDB_CATALOG_GROUP_NAME)
+
+    def remove_coord_replica_group(self):
+        """Remove the coordinator replica group.
+
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        return self.remove_replica_group(SDB_COORD_GROUP_NAME)
+
+    def start_replica_group(self, group_name):
+        """Start the specified replica group.
+
+        Parameters:
+           Name         Type     Info:
+           group_name   str      The name of replica group to be started
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        if not isinstance(group_name, str_type):
+            raise SDBTypeError("group name must be an instance of str_type")
+        self.get_replica_group_by_name(group_name).start()
+
+    def stop_replica_group(self, group_name):
+        """Stop the specified replica group.
+
+        Parameters:
+           Name         Type     Info:
+           group_name   str      The name of replica group to be stopped
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        if not isinstance(group_name, str_type):
+            raise SDBTypeError("group name must be an instance of str_type")
+        self.get_replica_group_by_name(group_name).stop()
 
     def exec_update(self, sql):
         """Executing SQL command for updating, inserting and deleting.

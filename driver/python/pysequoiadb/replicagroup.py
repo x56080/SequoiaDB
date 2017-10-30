@@ -32,6 +32,9 @@ NODE_STATUS_INACTIVE = 2
 NODE_STATUS_UNKNOWN = 3
 TRUE = 1
 
+SDB_COORD_GROUP_NAME = 'SYSCoord'
+SDB_CATALOG_GROUP_NAME = 'SYSCatalogGroup'
+
 
 class replicagroup(object):
     """Replica group of SequoiaDB
