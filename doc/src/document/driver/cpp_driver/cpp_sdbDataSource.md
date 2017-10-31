@@ -2,14 +2,14 @@ C++ 驱动的连接池提供给用户一个快速获取连接实例的途径。
 
 ##连接池用法##
 
-使用类 sdbDatasource 的 getConnection 方法从连接池中获取一个连接，使用 releaseConnection 方法把取出的连接放回连接池。当连接池使用的连接数到达连接上限时，下一个请求连接的操作将会等待一段时间，若在规定的时间内无空闲的连接可用，将抛出异常。类 ConfigOptions 可以设置建立连接的各项参数。类 DatasourceOptions 可以设置连接池的各种参数。
+使用类 sdbDatasource 的 getConnection 方法从连接池中获取一个连接，使用 releaseConnection 方法把取出的连接放回连接池。当连接池使用的连接数到达连接上限时，下一个请求连接的操作将会等待一段时间，若在规定的时间内无空闲的连接可用，请求将失败。类 sdbDataSourceConf 可以设置连接池的各种参数。
 
 详情请查看相关 [C++ API](api/cpp/html/index.html) 介绍。
 
 ##例子##
 
 ```lang-javascript
-#include "common.hpp"
+#include "common.hpp" // by default, this file is in /opt/sequoiadb/samples/CPP
 #include "sdbDataSourceComm.hpp"
 #include "sdbDataSource.hpp"
 #include <vector>

@@ -1,6 +1,6 @@
 ##C++ BSON 主要类##
 
-C++ BSON 用到4个类：
+使用[C++ BSON](api/bsoncpp/html/index.html) 主要会接触到以下4个类：
 
 -   bson::BSONObj：创建 BSONObj 对象。
 
@@ -16,7 +16,7 @@ C++ BSON 用到4个类：
 
   -   typedef bson::BSONObjBuilder bob;
 
-另外，可以使用 bo::iterator 代替 BSONObjlterator。
+	补充：可使用如下API [BASE64C API](api/bsoncpp/html/base64c_8h.html) 和 [FROMJSON API](api/bsoncpp/html/fromjson_8hpp.html)来帮助构建C++ BSON。
 
 ##建立对象##
 
@@ -26,7 +26,7 @@ C++ BSON 用到4个类：
 
   ```lang-javascript
   #include "client.hpp"
-  ...
+
   using namespace bson ;
   BSONObj obj ;
   BSONObjBuilder b ;
@@ -62,7 +62,7 @@ C++ BSON 用到4个类：
   // OID
   obj = BSON( GENOID ) ;
   // bool
-  obj = BSON( "flag" << true"ret" << false ) ;
+  obj = BSON( "flag" << true << "ret" << false ) ;
   // object
   obj = BSON( "d" << BSON("e" << "hi!") ) ;
   // array
@@ -77,15 +77,15 @@ C++ BSON 用到4个类：
   此外，可以使用 fromjson.hpp 中的 fromjson() 将 json 字符串转换成 BSONObj 对象。
 
   ```lang-javascript
-  string s("{name:"sam"}") ;
+  string s("{name:\"sam\"}") ;
   fromjson ( s, obj ) ;
   或者
-  const char *r ="{
-                       firstName:"Sam",
-                       lastName:"Smith",age:25,id:"count",
-                       address:{streetAddress: "25 3ndStreet",
-                       city:"NewYork",state:"NY",postalCode:"10021"},
-                       phoneNumber:[{type: "home",number:"212555-1234"}]
+  const char *r ="{ \\
+                       firstName:\"Sam\", \\
+                       lastName:\"Smith\",age:25,id:\"count\", \\
+                       address:{streetAddress: \"25 3ndStreet\", \\
+                       city:\"NewYork\",state:\"NY\",postalCode:\"10021\"}, \\
+                       phoneNumber:[{\"type\": \"home\",number:\"212555-1234\"}] \\
                     }" ;
   fromjson ( r, obj ) ;
   ```

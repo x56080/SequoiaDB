@@ -5,7 +5,7 @@
 * 连接数据库：connect.cpp 演示如何连接到数据库。文件应当包含“client.hpp”头文件及使用命名空间 sdbclient。
 
   ```lang-javascript
-  #include &lt;iostream&gt;;
+  #include &lt;iostream&gt;
   #include "client.hpp"
 
   using namespace std ;
@@ -121,7 +121,6 @@
 
   ```lang-javascript
   sdbCursor cursor ;
-  ...
   ```
 
   查询所有记录，并把查询结果放在游标对象中
@@ -145,7 +144,6 @@
 
   ```lang-javascript
   # define INDEX_NAME "index"
-  ...
   ```
 
   首先创建一 BSONObj 对象包含将要创建的索引的信息
@@ -183,7 +181,7 @@
   collection.update( rule ) ;
   ```
 
-  在集合对象 collection 中更新了记录。实例中没有指定数据匹配规则，所以此示例将更新集合中所有的集合。
+  在集合对象 collection 中更新了记录。实例中没有指定数据匹配规则，所以此示例将更新集合中所有的记录。
 
 ##集群操作##
 
@@ -199,30 +197,28 @@
   sdbReplicaGroup rg  ;
   ```
 
-  定义一个空的 map 对象表示创建数据节点没有更多的配置内容
+  定义创建节点需要使用的配置项，此处定义一个空的配置项，表示使用默认配置
 
   ```lang-javascript
-  map&lt;string,string&gt; config ;
-  ...
+  BSONObj conf ;
   ```
 
   先建立一个编目分区组
 
   ```lang-javascript
-  connection.createCataReplicaGroup ( HOST_NAME, SERVICE_NAME, CATALOG_GROUP_PATH, NULL ) ;
+  connection.createCataReplicaGroup ( "ubuntu-dev1", "30000", "/opt/sequoiadb/database/catalog/30000", conf ) ;
   ```
 
   创建数据分区组
 
   ```lang-javascript
-  connection.createRG ( REPLICA_GROUP_NAME, rg ) ;
+  connection.createRG ( "dataGroup1", rg ) ;
   ```
 
   创建第一个数据节点
 
   ```lang-javascript
-  rg.createNode ( HOST_NAME1, SERVICE_NAME1, DATABASE_PATH1, config ) ;
-  ...
+  rg.createNode ( "ubuntu-dev1", "40000", "/opt/sequoiadb/database/data/40000", conf ) ;
   ```
 
   启动分区组
@@ -242,7 +238,6 @@
   ```lang-javascript
   sdbNode masternode ;
   sdbNode slavenode ;
-  ...
   ```
 
   获取主数据节点

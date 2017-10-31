@@ -58,5 +58,3 @@ alterCollection，修改集合（表）属性
 
 （1）添加类 Node 来取代原来的类 ReplicaNode。类 ReplicaNode 以及与它相关的方法将在 version 2.x 中被弃用。
 
-更多详情可查看辅助API [BASE64C API](api/bsoncpp/html/base64c_8h.html) 和 [FROMJSON API](api/bsoncpp/html/fromjson_8hpp.html)。
-
