@@ -21,7 +21,7 @@ except:
     raise Exception("Cannot find extension: sdb")
 
 import pysequoiadb
-from pysequoiadb.error import (SDBBaseError, raise_if_error)
+from pysequoiadb.error import (SDBSystemError, raise_if_error)
 from pysequoiadb.errcode import SDB_OOM
 
 
@@ -63,7 +63,7 @@ class replicanode(object):
         try:
             self._node = sdb.create_node()
         except SystemError:
-            raise SDBBaseError(SDB_OOM, "Failed to alloc node")
+            raise SDBSystemError(SDB_OOM, "Failed to alloc node")
 
     def __del__(self):
         """release replica node

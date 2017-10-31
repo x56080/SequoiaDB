@@ -26,7 +26,7 @@ from bson.py3compat import (PY3, str_type)
 from pysequoiadb.collection import collection
 from pysequoiadb.cursor import cursor
 from pysequoiadb import error
-from pysequoiadb.error import (SDBBaseError, SDBTypeError, raise_if_error)
+from pysequoiadb.error import (SDBBaseError, SDBSystemError, SDBTypeError, raise_if_error)
 from pysequoiadb.errcode import SDB_OOM
 
 
@@ -68,7 +68,7 @@ class collectionspace(object):
         try:
             self._cs = sdb.create_cs()
         except SystemError:
-            raise SDBBaseError(SDB_OOM, "Failed to alloc collection space")
+            raise SDBSystemError(SDB_OOM, "Failed to alloc collection space")
 
     def __del__(self):
         """delete a object existed.

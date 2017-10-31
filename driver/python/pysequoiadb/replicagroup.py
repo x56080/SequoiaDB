@@ -23,7 +23,7 @@ except:
 import bson
 from bson.py3compat import (str_type)
 from pysequoiadb.errcode import SDB_OOM
-from pysequoiadb.error import (SDBBaseError, SDBTypeError, raise_if_error)
+from pysequoiadb.error import (SDBSystemError, SDBTypeError, raise_if_error)
 from pysequoiadb.replicanode import replicanode
 
 NODE_STATUS_ALL = 0
@@ -75,7 +75,7 @@ class replicagroup(object):
         try:
             self._group = sdb.create_group()
         except SystemError:
-            raise SDBBaseError(SDB_OOM, "Failed to alloc replica group")
+            raise SDBSystemError(SDB_OOM, "Failed to alloc replica group")
 
     def __del__(self):
         """release replica group object

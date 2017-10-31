@@ -21,7 +21,7 @@ from collections import OrderedDict
 
 import bson
 from pysequoiadb.errcode import SDB_OOM
-from pysequoiadb.error import (SDBBaseError, SDBTypeError, raise_if_error)
+from pysequoiadb.error import (SDBSystemError, SDBTypeError, raise_if_error)
 
 
 class cursor(object):
@@ -62,7 +62,7 @@ class cursor(object):
         try:
             self._cursor = sdb.create_cursor()
         except SystemError:
-            raise SDBBaseError(SDB_OOM, "Failed to alloc cursor")
+            raise SDBSystemError(SDB_OOM, "Failed to alloc cursor")
 
     def __del__(self):
         """release cursor

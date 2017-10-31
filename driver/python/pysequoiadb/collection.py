@@ -74,7 +74,7 @@ class collection(object):
         try:
             self._cl = sdb.create_cl()
         except SystemError:
-            raise SDBBaseError(SDB_OOM, "Failed to alloc collection")
+            raise SDBSystemError(SDB_OOM, "Failed to alloc collection")
 
     def __del__(self):
         """delete a object existed.

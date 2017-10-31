@@ -28,9 +28,26 @@ from bson.py3compat import (str_type, long_type)
 from pysequoiadb.collectionspace import collectionspace
 from pysequoiadb.collection import collection
 from pysequoiadb.cursor import cursor
+from pysequoiadb.domain import domain
 from pysequoiadb.replicagroup import (replicagroup, SDB_COORD_GROUP_NAME, SDB_CATALOG_GROUP_NAME)
-from pysequoiadb.error import (SDBBaseError, SDBTypeError, raise_if_error)
+from pysequoiadb.error import (SDBBaseError, SDBSystemError, SDBTypeError, SDBError, raise_if_error)
 from pysequoiadb.errcode import *
+
+SDB_LIST_CONTEXTS = 0
+SDB_LIST_CONTEXTS_CURRENT = 1
+SDB_LIST_SESSIONS = 2
+SDB_LIST_SESSIONS_CURRENT = 3
+SDB_LIST_COLLECTIONS = 4
+SDB_LIST_COLLECTIONSPACES = 5
+SDB_LIST_STORAGEUNITS = 6
+SDB_LIST_GROUPS = 7
+SDB_LIST_STOREPROCEDURES = 8
+SDB_LIST_DOMAINS = 9
+SDB_LIST_TASKS = 10
+SDB_LIST_TRANSACTIONS = 11
+SDB_LIST_TRANSACTIONS_CURRENT = 12
+SDB_LIST_CL_IN_DOMAIN = 129
+SDB_LIST_CS_IN_DOMAIN = 130
 
 
 class client(object):
@@ -130,7 +147,7 @@ class client(object):
         try:
             self._client = sdb.sdb_create_client(self.__ssl)
         except SystemError:
-            raise SDBBaseError(SDB_OOM, "Failed to alloc client")
+            raise SDBSystemError(SDB_OOM, "Failed to alloc client")
 
         # try to connect with default user and password
         self.connect(self.__host, self.__service, user=_user, password=_psw)
@@ -328,7 +345,7 @@ class client(object):
             return
 
         # raise a exception for failed to connect to any host
-        raise SDBBaseError(SDB_NET_CANNOT_CONNECT, "Failed to connect all specified hosts")
+        raise SDBError(SDB_NET_CANNOT_CONNECT, "Failed to connect all specified hosts")
 
     def connect(self, host, service, **kwargs):
         """connect to specified database
@@ -1398,3 +1415,121 @@ class client(object):
         raise_if_error(rc, "connection is invalid")
 
         return valid
+
+    def list_domains(self, **kwargs):
+        """Get information of domains.
+
+        Parameters:
+           Name        Type     Info:
+           **kwargs             Useful options are below
+           - condition dict     The matching rule, match all the documents
+                                      if None.
+           - selector  dict     The selective rule, return the whole
+                                      documents if None.
+           - order_by  dict     The ordered rule, never sort if None.
+        Return values:
+           a cursor object of domains
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        return self.get_list(SDB_LIST_DOMAINS, **kwargs)
+
+    def is_domain_existing(self, domain_name):
+        """Check the existence of specified domain.
+
+        Parameters:
+            Name        Type     Info
+            domain_name  str     The domain name.
+        Return values:
+           True if domain exists and False if not exists
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        if not isinstance(domain_name, str_type):
+            raise SDBTypeError("domain name must be an instance of str_type")
+        domain_cursor = self.list_domains(condition={"Name": domain_name})
+        try:
+            domain_cursor.next()
+            del domain_cursor
+            return True
+        except SDBBaseError as e:
+            if e.errcode == SDB_DMS_EOC:
+                return False
+            else:
+                raise e
+
+    def create_domain(self, domain_name, options=None):
+        """Create domain.
+
+        Parameters:
+           Name        Type     Info
+           domain_name  str     The domain name.
+           options      dict    The options for the domain. The options are as below:
+                                Groups: the list of the replica groups' names which the domain is going to contain.
+                                        eg: { "Groups": [ "group1", "group2", "group3" ] }
+                                        If this argument is not included, the domain will contain all replica groups in the cluster.
+                                AutoSplit: If this option is set to be true, while creating collection(ShardingType is "hash") in this domain,
+                                           the data of this collection will be split(hash split) into all the groups in this domain automatically.
+                                           However, it won't automatically split data into those groups which were add into this domain later.
+                                           eg: { "Groups": [ "group1", "group2", "group3" ], "AutoSplit: true" }
+        Return values:
+           The created domain object.
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        if options is None:
+            options = {}
+        if not isinstance(domain_name, str_type):
+            raise SDBTypeError("domain name must be an instance of str_type")
+        if not isinstance(options, dict):
+            raise SDBTypeError("options must be an instance of dict")
+        bson_options = bson.BSON.encode(options)
+
+        dm = domain(domain_name)
+        try:
+            rc = sdb.sdb_create_domain(self._client, domain_name, bson_options, dm._domain)
+            raise_if_error(rc, "Failed to create domain: %s" % domain_name)
+        except SDBBaseError:
+            del dm
+            raise
+        return dm
+
+    def drop_domain(self, domain_name):
+        """Drop the specified domain.
+
+        Parameters:
+            Name        Type     Info
+            domain_name  str     The domain name.
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        if not isinstance(domain_name, str_type):
+            raise SDBTypeError("domain name must be an instance of str_type")
+
+        rc = sdb.sdb_drop_domain(self._client, domain_name)
+        raise_if_error(rc, "Failed to drop domain: %s" % domain_name)
+
+    def get_domain(self, domain_name):
+        """Get the specified domain.
+
+        Parameters:
+            Name        Type     Info
+            domain_name  str     The domain name.
+        Return values:
+           The specified domain object.
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        if not isinstance(domain_name, str_type):
+            raise SDBTypeError("domain name must be an instance of str_type")
+
+        dm = domain(domain_name)
+        try:
+            rc = sdb.sdb_get_domain(self._client, domain_name, dm._domain)
+            raise_if_error(rc, "Failed to get domain: %s" % domain_name)
+        except SDBBaseError:
+            del dm
+            raise
+
+        return dm
+

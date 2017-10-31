@@ -1167,6 +1167,90 @@ done:
    return MAKE_RETURN_INT( rc ) ;
 }
 
+__METHOD_IMP(sdb_create_domain)
+{
+   INT32 rc = 0 ;
+   PYOBJECT* sdbObj = NULL ;
+   const CHAR* domainName = NULL ;
+   PYOBJECT* bson_options = NULL ;
+   PYOBJECT* domainObj = NULL ;
+   sdb* client = NULL ;
+   sdbDomain* domain = NULL ;
+   const bson::BSONObj* options = NULL ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "OsOO", &sdbObj, &domainName, &bson_options, &domainObj ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto done ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( sdbObj, sdb, client ) ;
+   CAST_PYBSON_TO_CPPBSON( bson_options, options ) ;
+   CAST_PYOBJECT_TO_COBJECT( domainObj, sdbDomain, domain ) ;
+
+   rc = client->createDomain( domainName, *options, *domain ) ;
+   if ( rc )
+   {
+      goto done ;
+   }
+
+done:
+   DELETE_CPPOBJECT( options ) ;
+   return MAKE_RETURN_INT( rc ) ;
+}
+
+__METHOD_IMP(sdb_drop_domain)
+{
+   INT32 rc = 0 ;
+   PYOBJECT *obj = NULL ;
+   sdb *client = NULL ;
+   const CHAR* domainName = NULL ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "Os", &obj, &domainName ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto done ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdb, client ) ;
+
+   rc = client->dropDomain( domainName ) ;
+   if ( rc )
+   {
+      goto done ;
+   }
+
+done:
+   return MAKE_RETURN_INT( rc ) ;
+}
+
+__METHOD_IMP(sdb_get_domain)
+{
+   INT32 rc = 0 ;
+   PYOBJECT* sdbObj = NULL ;
+   const CHAR* domainName = NULL ;
+   PYOBJECT* domainObj = NULL ;
+   sdb* client = NULL ;
+   sdbDomain* domain = NULL ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "OsO", &sdbObj, &domainName, &domainObj ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto done ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( sdbObj, sdb, client ) ;
+   CAST_PYOBJECT_TO_COBJECT( domainObj, sdbDomain, domain ) ;
+
+   rc = client->getDomain( domainName, *domain ) ;
+   if ( rc )
+   {
+      goto done ;
+   }
+
+done:
+   return MAKE_RETURN_INT( rc ) ;
+}
 __METHOD_IMP(sdb_get_datacenter)
 {
    INT32 rc               = 0 ;
@@ -2497,6 +2581,122 @@ error :
    goto done ;
 }
 
+__METHOD_IMP(create_domain)
+{
+   sdbDomain* domain = NULL;
+   if ( !PARSE_PYTHON_ARGS(args, "") )
+   {
+      return NULL ;
+   }
+
+   NEW_CPPOBJECT( domain, sdbDomain ) ;
+   if ( NULL == domain )
+   {
+      return NULL ;
+   }
+
+   return MAKE_PYOBJECT( domain ) ;
+}
+
+__METHOD_IMP(release_domain)
+{
+   INT32 rc          = 0 ;
+   PYOBJECT *obj     = NULL ;
+   sdbDomain *domain = NULL ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "O", &obj ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto done ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdbDomain, domain ) ;
+   DELETE_CPPOBJECT( domain ) ;
+done:
+   return MAKE_RETURN_INT( rc ) ;
+}
+
+__METHOD_IMP(domain_alter)
+{
+   INT32 rc          = 0 ;
+   PYOBJECT *obj     = NULL ;
+   PYOBJECT *bson_options = NULL ;
+   sdbDomain *domain = NULL ;
+   const bson::BSONObj* options = NULL ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "OO", &obj, &bson_options ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto done ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdbDomain, domain ) ;
+   CAST_PYBSON_TO_CPPBSON( bson_options, options ) ;
+
+   rc = domain->alterDomain( *options ) ;
+   if ( SDB_OK != rc )
+   {
+      goto done ;
+   }
+
+done:
+   return MAKE_RETURN_INT( rc ) ;
+}
+
+__METHOD_IMP(domain_list_cs)
+{
+   INT32 rc          = 0 ;
+   PYOBJECT *obj     = NULL ;
+   PYOBJECT *cursorObj = NULL ;
+   sdbDomain *domain = NULL ;
+   sdbCursor *cursor = NULL ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "OO", &obj, &cursorObj ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto done ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdbDomain, domain ) ;
+   CAST_PYOBJECT_TO_COBJECT( cursorObj, sdbCursor, cursor ) ;
+
+   rc = domain->listCollectionSpacesInDomain( *cursor ) ;
+   if ( SDB_OK != rc )
+   {
+      goto done ;
+   }
+
+done:
+   return MAKE_RETURN_INT( rc ) ;
+}
+
+__METHOD_IMP(domain_list_cl)
+{
+   INT32 rc          = 0 ;
+   PYOBJECT *obj     = NULL ;
+   PYOBJECT *cursorObj = NULL ;
+   sdbDomain *domain = NULL ;
+   sdbCursor *cursor = NULL ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "OO", &obj, &cursorObj ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto done ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdbDomain, domain ) ;
+   CAST_PYOBJECT_TO_COBJECT( cursorObj, sdbCursor, cursor ) ;
+
+   rc = domain->listCollectionsInDomain( *cursor ) ;
+   if ( SDB_OK != rc )
+   {
+      goto done ;
+   }
+
+done:
+   return MAKE_RETURN_INT( rc ) ;
+}
+
 ///< implement group
 typedef sdbReplicaGroup Group ;
 __METHOD_IMP(create_group)
@@ -3719,8 +3919,11 @@ static PyMethodDef sequoiadb_methods[] = {
    {"sdb_is_valid",                    sdb_is_valid,                    METH_VARARGS},
    {"sdb_get_version",                 sdb_get_version,                 METH_VARARGS},
    {"sdb_init_client",                 sdb_init_client,                 METH_VARARGS},
+   {"sdb_create_domain",               sdb_create_domain,               METH_VARARGS},
+   {"sdb_drop_domain",                 sdb_drop_domain,                 METH_VARARGS},
+   {"sdb_get_domain",                  sdb_get_domain,                  METH_VARARGS},
    {"sdb_get_datacenter",              sdb_get_datacenter,              METH_VARARGS},
-   
+
    /** cs */
    {"create_cs",                       create_cs,                       METH_VARARGS},
    {"release_cs",                      release_cs,                      METH_VARARGS},
@@ -3769,6 +3972,12 @@ static PyMethodDef sequoiadb_methods[] = {
    {"cr_next",                         cr_next,                         METH_VARARGS},
    {"cr_current",                      cr_current,                      METH_VARARGS},
    {"cr_close",                        cr_close,                        METH_VARARGS},
+   /** domain */
+   {"create_domain",                   create_domain,                   METH_VARARGS},
+   {"release_domain",                  release_domain,                  METH_VARARGS},
+   {"domain_alter",                    domain_alter,                    METH_VARARGS},
+   {"domain_list_cs",                  domain_list_cs,                  METH_VARARGS},
+   {"domain_list_cl",                  domain_list_cl,                  METH_VARARGS},
    /** gp */
    {"create_group",                    create_group,                    METH_VARARGS},
    {"release_group",                   release_group,                   METH_VARARGS},

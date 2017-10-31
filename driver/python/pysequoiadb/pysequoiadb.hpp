@@ -46,6 +46,9 @@ __METHOD_DECLARE(sdb_close_all_cursors) ;
 __METHOD_DECLARE(sdb_is_valid) ;
 __METHOD_DECLARE(sdb_get_version) ;
 __METHOD_DECLARE(sdb_init_client) ;
+__METHOD_DECLARE(sdb_create_domain) ;
+__METHOD_DECLARE(sdb_drop_domain) ;
+__METHOD_DECLARE(sdb_get_domain) ;
 __METHOD_DECLARE(sdb_get_datacenter) ;
 
 ///< collection space
@@ -90,6 +93,13 @@ __METHOD_DECLARE(cl_list_lobs) ;
 __METHOD_DECLARE(cl_truncate) ;
 __METHOD_DECLARE(cl_create_id_index) ;
 __METHOD_DECLARE(cl_drop_id_index) ;
+
+///< domain
+__METHOD_DECLARE(create_domain) ;
+__METHOD_DECLARE(release_domain) ;
+__METHOD_DECLARE(domain_alter) ;
+__METHOD_DECLARE(domain_list_cs) ;
+__METHOD_DECLARE(domain_list_cl) ;
 
 ///< cursor
 __METHOD_DECLARE(create_cursor) ;
