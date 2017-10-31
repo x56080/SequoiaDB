@@ -29,84 +29,90 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 public class DetachSub97 extends SdbTestBase {
 	private Sequoiadb sdb = null;
-	private Sequoiadb db1 =null;
-	private CollectionSpace cs;
-	private CollectionSpace cs1;
-	private CollectionSpace cs2;
+	private CollectionSpace cs = null;
 	private String mainclName = "maincL97";
-	private String subclName1 = "subcL97_1";
-	private String subclName2 = "subcL97_2";
+	private String subclName1 = "subcL97_1111";
+	private String subclName2 = "subcL97_2111";
 	private SimpleDateFormat df = new SimpleDateFormat(
 			"YYYY-MM-dd HH:mm:ss.SSS");
-	private DBCollection maincl;
-	private DBCollection subcl1;
-	private DBCollection subcl2;
+	private int loopNum = 100;
 
 	@BeforeClass
 	public void setUp() {
 		try {
 			System.out.println("the TestCase: " + this.getClass().getName()
 					+ " begin at:" + df.format(new Date()));
+			
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+			
 			CommLib lib = new CommLib();
 			if (lib.isStandAlone(sdb)) {
 				throw new SkipException("skip standalone");
 			}
+			
+			cs = sdb.getCollectionSpace(SdbTestBase.csName);
+			
+			BSONObject mainObj = (BSONObject) JSON
+					.parse("{IsMainCL:true,ShardingKey:{a:1}}");
+			cs.createCollection(mainclName, mainObj);
+			
+			BSONObject subObj1 = (BSONObject) JSON
+					.parse("{ShardingKey:{a:1},ShardingType:\"hash\"}");
+			cs.createCollection(subclName1, subObj1);
+			
+			BSONObject subObj2 = (BSONObject) JSON
+					.parse("{ShardingKey:{a:1},ShardingType:\"hash\"}");
+			cs.createCollection(subclName2, subObj2);
 
 		} catch (BaseException e) {
-			Assert.fail(" TestCase95 setUp error:" + e.getMessage());
+			e.printStackTrace();
+			Assert.fail(e.getMessage());
 		}
-		createCL();
 	}
 
 	@Test
-	public void checkAttach1() {
-	    db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-		cs1 = db1.getCollectionSpace(SdbTestBase.csName);
-
-		BSONObject subObj = (BSONObject) JSON
-				.parse("{ShardingKey:{a:1},ShardingType:\"hash\"}");
-		subcl1 = cs1.createCollection(subclName1, subObj);
-
-		CheckAttach CheckAttachThread = new CheckAttach();
-		CheckAttachThread.start();
-		try {
-			maincl.attachCollection(subcl1.getFullName(),
-					(BSONObject) JSON.parse("{LowBound:{a:1},UpBound:{a:100}}"));
-			maincl.detachCollection(subcl1.getFullName());
-			if (!CheckAttachThread.isSuccess()) {
-				Assert.fail(CheckAttachThread.getErrorMsg());
-			}
-		} catch (BaseException e) {
-			Assert.fail("checkAttach1 error:" + e.getMessage());
-		} finally {
-			
-			CheckAttachThread.join();
-		}
+	public void test() {
+		BSONObject attachOptions1 = (BSONObject) JSON.parse("{LowBound:{a:1},UpBound:{a:100}}");
+		CheckAttach CheckAttachThread1 = new CheckAttach( SdbTestBase.csName + "." + subclName1, 
+				attachOptions1);
+		
+		BSONObject attachOptions2 = (BSONObject) JSON.parse("{LowBound:{a:100},UpBound:{a:200}}");
+		CheckAttach CheckAttachThread2 = new CheckAttach( SdbTestBase.csName + "." + subclName2, 
+				attachOptions2);
+		
+		CheckAttachThread1.start();
+		CheckAttachThread2.start();
+		
+		if(!(CheckAttachThread1.isSuccess() && CheckAttachThread2.isSuccess())){
+            Assert.fail(CheckAttachThread1.getErrorMsg() + CheckAttachThread1.getErrorMsg());
+        }
 	}
 
 	class CheckAttach extends SdbThreadBase {
+		String clFullName;
+		BSONObject attachOptions;
+		public CheckAttach(String clFullName, BSONObject attachOptions){
+			this.clFullName = clFullName;
+			this.attachOptions = attachOptions;
+		}
+		
 		@Override
 		public void exec() throws Exception {
-			Sequoiadb db2 = null;
+			Sequoiadb db_parrell = null;
+			DBCollection maincl_parrell = null;
+			
 			try {
-			    db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-				cs2 = db2.getCollectionSpace(SdbTestBase.csName);
-				BSONObject subObj = (BSONObject) JSON
-						.parse("{ShardingKey:{a:1},ShardingType:\"hash\"}");
-				subcl2 = cs2.createCollection(subclName2, subObj);
-				maincl.attachCollection(subcl2.getFullName(), (BSONObject) JSON
-						.parse("{LowBound:{a:100},UpBound:{a:200}}"));
-			} catch (BaseException e) {
-				throw e;
-			}
-			try {
-				maincl.detachCollection(subcl2.getFullName());
-			} catch (BaseException e) {
-				if (db2 != null) {
-					db2.disconnect();
+				db_parrell = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+				maincl_parrell = db_parrell.getCollectionSpace(SdbTestBase.csName).getCollection(mainclName);
+				for(int i=0; i<loopNum; i++){
+					maincl_parrell.attachCollection(clFullName, attachOptions);
+					maincl_parrell.detachCollection(clFullName);
 				}
+			} catch (BaseException e) {
+				e.printStackTrace();
 				throw e;
+			}finally{
+				db_parrell.disconnect();
 			}
 		}
 	}
@@ -114,46 +120,15 @@ public class DetachSub97 extends SdbTestBase {
 	@AfterClass
 	public void tearDown() {
 		try {
-			if (cs.isCollectionExist(mainclName)) {
-				cs.dropCollection(mainclName);
-			}
-			if (cs.isCollectionExist(subclName1)) {
-				cs.dropCollection(subclName1);
-			}
-			if (cs.isCollectionExist(subclName2)) {
-				cs.dropCollection(subclName2);
-			}
+			cs.dropCollection(subclName1);
+			cs.dropCollection(subclName2);
+			cs.dropCollection(mainclName);
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage());
+			Assert.assertEquals(e.getErrorCode(), -23);
 		} finally {
 			System.out.println("the TestCase Name:" + this.getClass().getName()
 					+ ". the TestCase end at:" + this.df.format(new Date()));
-			if (sdb != null) {
-				this.sdb.disconnect();
-			}
-			if (db1 != null) {
-				db1.disconnect();
-			}
-			
-		}
-	}
-
-	public void createCL() {
-		try {
-			if (!sdb.isCollectionSpaceExist(SdbTestBase.csName)) {
-				sdb.createCollectionSpace(SdbTestBase.csName);
-			}
-		} catch (BaseException e) {
-			// -33 CS exist,ignore exceptions
-			Assert.assertEquals(-33, e.getErrorCode(), e.getMessage());
-		}
-		try {
-			cs = sdb.getCollectionSpace(SdbTestBase.csName);
-			BSONObject mainObj = (BSONObject) JSON
-					.parse("{IsMainCL:true,ShardingKey:{a:1}}");
-			maincl = cs.createCollection(mainclName, mainObj);
-		} catch (BaseException e) {
-			Assert.fail("create is faild" + e.getMessage());
+			sdb.disconnect();
 		}
 	}
 }
