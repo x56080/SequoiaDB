@@ -31,7 +31,6 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.bson.BSON;
-import org.bson.BSONException;
 import org.bson.BSONObject;
 import org.bson.BasicBSONCallback;
 import org.bson.types.BSONDecimal;
@@ -137,7 +136,7 @@ public class JSONCallback extends BasicBSONCallback {
 					try {
 						date = format.parse(dateStr);
 					} catch (ParseException e) {
-						throw new BSONException("Invalid timestamp", e);
+						throw new JSONParseException(dateStr, dateStr.length() - 1, e);
 					}
 					o = new BSONTimestamp((int) (date.getTime() / 1000),
 							Integer.parseInt(incStr));
