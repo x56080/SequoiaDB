@@ -116,7 +116,9 @@ public class SDBGetRG {
 	
     @Test
     public void getMasterAndSlaveNodeTest() {
-        groupName = "db2";
+        if (!isCluster)
+            return;
+        //groupName = "db2";
         rg = sdb.getReplicaGroup(groupName);
         Node master = rg.getMaster();
         Node slave = rg.getSlave();
