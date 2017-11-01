@@ -22,21 +22,25 @@
 package org.bson.types;
 
 import org.bson.BSON;
+import org.bson.util.JSON;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 /**
-   generic binary holder
+ generic binary holder
  */
 public class Binary implements Serializable {
-
     private static final long serialVersionUID = 7902997490338209467L;
+
+    private final byte type;
+    private final byte[] data;
 
     /**
      * Creates a Binary object with the default binary type of 0
      * @param data raw data
      */
-    public Binary( byte[] data ){
+    public Binary(byte[] data) {
         this(BSON.B_GENERAL, data);
     }
 
@@ -45,23 +49,46 @@ public class Binary implements Serializable {
      * @param type type of the field as encoded in BSON
      * @param data raw data
      */
-    public Binary( byte type , byte[] data ){
-        _type = type;
-        _data = data;
+    public Binary(byte type, byte[] data) {
+        this.type = type;
+        this.data = data;
     }
 
-    public byte getType(){
-        return _type;
+    public byte getType() {
+        return type;
     }
 
-    public byte[] getData(){
-        return _data;
+    public byte[] getData() {
+        return data;
     }
 
-    public int length(){
-        return _data.length;
+    public int length() {
+        return data.length;
     }
 
-    final byte _type;
-    final byte[] _data;
+    @Override
+    public boolean equals(final Object obj) {
+        if (this == obj) {
+            return true;
+        }
+
+        if (obj == null || !(obj instanceof Binary)) {
+            return false;
+        }
+
+        Binary other = (Binary) obj;
+        return type == other.type && Arrays.equals(data, other.data);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (int) type;
+        result = 31 * result + Arrays.hashCode(data);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return JSON.serialize(this);
+    }
 }
