@@ -3854,7 +3854,7 @@ error:
       if ( ele.type() != NumberInt )
       {
          // cannot find primary
-         rc = SDB_CLS_NODE_NOT_EXIST ;
+         rc = SDB_SYS ;
          goto error ;
       }
       primaryNode = ele.numberInt () ;

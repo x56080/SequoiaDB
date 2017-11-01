@@ -3424,7 +3424,7 @@ SDB_EXPORT INT32 sdbGetNodeMaster ( sdbReplicaGroupHandle cHandle,
    if ( BSON_INT != bson_find ( &it, &result, CAT_PRIMARY_NAME ) )
    {
       // cannot find primary
-      rc = SDB_CLS_NODE_NOT_EXIST ;
+      rc = SDB_SYS ;
       goto error ;
    }
    primaryNode = bson_iterator_int ( &it ) ;
