@@ -94,9 +94,7 @@ public class CollectionSpace {
 		if (isCollectionExist(collectionName)) {
 			return new DBCollection(sequoiadb, this, collectionName);
 		} else {
-			// TODO: 
-			//throw new BaseException("SDB_DMS_NOTEXIST", collectionName);
-			return null;
+			throw new BaseException("SDB_DMS_NOTEXIST", collectionName);
 		}
 	}
 
