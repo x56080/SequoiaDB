@@ -111,36 +111,59 @@ public class ReplicaGroup {
      * @brief Get the master node of current replica group.
      */
     public Node getMaster() throws BaseException {
+        // get information of nodes from catalog
         BSONObject group = sequoiadb.getDetailById(id);
-        BSONObject primaryData = null;
-        Object nodeId = null;
-        Object primaryNodeObj = group
-                .get(SequoiadbConstants.FIELD_NAME_PRIMARY);
-        if (primaryNodeObj == null)
-            throw new BaseException(SDBError.SDB_CLS_NODE_NOT_EXIST);
+        if (group == null) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    String.format("no information of group id[%d]", id));
+        }
+        // extract the information of nodes
+        Object primaryNodeObj = group.get(SequoiadbConstants.FIELD_NAME_PRIMARY);
+        if (primaryNodeObj == null || !(primaryNodeObj instanceof Number)) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    String.format("invalid content[%s] of field[%s]",
+                        primaryNodeObj == null ? "null" : primaryNodeObj.toString(), SequoiadbConstants.FIELD_NAME_PRIMARY));
+        }
         Object groupInfoObj = group.get(SequoiadbConstants.FIELD_NAME_GROUP);
-        if (groupInfoObj == null)
-            return null;
+        if (groupInfoObj == null || !(groupInfoObj instanceof BasicBSONList)) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    String.format("invalid content[%s] of field[%s]",
+                            groupInfoObj == null ? "null" : groupInfoObj.toString(), SequoiadbConstants.FIELD_NAME_GROUP));
+        }
+
+        BSONObject primaryData = null;
+        Object nodeId;
         BasicBSONList nodeInfos = (BasicBSONList) groupInfoObj;
         for (Object nodeInfoObj : nodeInfos) {
             BSONObject nodeInfo = (BSONObject) nodeInfoObj;
             nodeId = nodeInfo.get(SequoiadbConstants.FIELD_NAME_NODEID);
-            if (nodeId == null)
+            if (nodeId == null) {
                 throw new BaseException(SDBError.SDB_SYS);
+            }
             if (nodeId.equals(primaryNodeObj)) {
                 primaryData = nodeInfo;
                 break;
             }
         }
-        if (primaryData != null) {
-            nodeId = primaryData.get(SequoiadbConstants.FIELD_NAME_NODEID);
-            String hostName = primaryData.get(
-                    SequoiadbConstants.FIELD_NAME_HOST).toString();
-            int port = getNodePort(primaryData);
-            return new Node(hostName, port, Integer.parseInt(nodeId
-                    .toString()), this);
+        // try to get the meta information of primary node.
+        if (primaryData == null) {
+            throw new BaseException(SDBError.SDB_CLS_NODE_NOT_EXIST, "no information about the primary node");
         }
-        return null;
+        nodeId = primaryData.get(SequoiadbConstants.FIELD_NAME_NODEID);
+        if (nodeId == null || !(nodeId instanceof Number)) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    String.format("invalid content[%s] of field[%s]",
+                            nodeId == null ? "null" : nodeId.toString(), SequoiadbConstants.FIELD_NAME_NODEID));
+        }
+        Object hostNameObj = primaryData.get(SequoiadbConstants.FIELD_NAME_HOST);
+        if (hostNameObj == null || !(hostNameObj instanceof String)) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    String.format("invalid content[%s] of field[%s]",
+                            hostNameObj == null ? "null" : hostNameObj.toString(), SequoiadbConstants.FIELD_NAME_HOST));
+        }
+        String hostName = hostNameObj.toString();
+        int port = getNodePort(primaryData);
+        return new Node(hostName, port, Integer.parseInt(nodeId.toString()), this);
     }
 
     /**
@@ -150,49 +173,60 @@ public class ReplicaGroup {
      * @brief Get the random slave of current replica group.
      */
     public Node getSlave() throws BaseException {
+        // get information of nodes from catalog
         BSONObject group = sequoiadb.getDetailById(id);
-        if (group == null)
-            return null;
-        List<BSONObject> slaves = new ArrayList<BSONObject>();
-        BSONObject primaryData = null;
-        Object primaryNodeObj = group
-                .get(SequoiadbConstants.FIELD_NAME_PRIMARY);
-        if (primaryNodeObj == null)
-            throw new BaseException(SDBError.SDB_CLS_NODE_NOT_EXIST);
+        if (group == null) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    String.format("no information of group id[%d]", id));
+        }
+        // extract the information of primary node for comparing
+        Object primaryNodeObj = group.get(SequoiadbConstants.FIELD_NAME_PRIMARY);
+        if (primaryNodeObj == null || !(primaryNodeObj instanceof Number)) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    String.format("invalid content[%s] of field[%s]",
+                            primaryNodeObj == null ? "null" : primaryNodeObj.toString(), SequoiadbConstants.FIELD_NAME_PRIMARY));
+        }
+        // extract the information of group's node
         Object groupInfoObj = group.get(SequoiadbConstants.FIELD_NAME_GROUP);
-        if (groupInfoObj == null)
-            return null;
+        if (groupInfoObj == null || !(groupInfoObj instanceof BasicBSONList)) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    String.format("invalid content[%s] of field[%s]",
+                            groupInfoObj == null ? "null" : groupInfoObj.toString(), SequoiadbConstants.FIELD_NAME_GROUP));
+        }
+        // distinguish primary node and slave node
+        List<BSONObject> slaves = new ArrayList<>();
+        BSONObject primaryData = null;
         BasicBSONList nodeInfos = (BasicBSONList) groupInfoObj;
         for (Object nodeInfoObj : nodeInfos) {
             BSONObject nodeInfo = (BSONObject) nodeInfoObj;
             Object nodeId = nodeInfo.get(SequoiadbConstants.FIELD_NAME_NODEID);
-            if (nodeId == null)
+            if (nodeId == null) {
                 throw new BaseException(SDBError.SDB_SYS);
+            }
             if (nodeId.equals(primaryNodeObj)) {
                 primaryData = nodeInfo;
             } else {
                 slaves.add(nodeInfo);
             }
         }
+        // build and return the slave node
+        String hostName;
+        int port = -1;
+        int nodeId = -1;
         if (slaves.size() != 0) {
             Random rand = new Random();
             BSONObject randNode = slaves.get(rand.nextInt(slaves.size()));
-            int nodeId = Integer.parseInt(randNode.get(
-                    SequoiadbConstants.FIELD_NAME_NODEID).toString());
-            String hostName = randNode.get(SequoiadbConstants.FIELD_NAME_HOST)
-                    .toString();
-            int port = getNodePort(randNode);
-            return new Node(hostName, port, nodeId, this);
+            nodeId = Integer.parseInt(randNode.get(SequoiadbConstants.FIELD_NAME_NODEID).toString());
+            hostName = randNode.get(SequoiadbConstants.FIELD_NAME_HOST).toString();
+            port = getNodePort(randNode);
         } else if (primaryData != null) {
-            int nodeId = Integer.parseInt(primaryData.get(
-                    SequoiadbConstants.FIELD_NAME_NODEID).toString());
-            String hostName = primaryData.get(
-                    SequoiadbConstants.FIELD_NAME_HOST).toString();
-            int port = getNodePort(primaryData);
-            return new Node(hostName, port, nodeId, this);
+            nodeId = Integer.parseInt(primaryData.get(SequoiadbConstants.FIELD_NAME_NODEID).toString());
+            hostName = primaryData.get(SequoiadbConstants.FIELD_NAME_HOST).toString();
+            port = getNodePort(primaryData);
         } else {
-            return null;
+            throw new BaseException(SDBError.SDB_CLS_NODE_NOT_EXIST, "no information about the slave node");
         }
+        return new Node(hostName, port, nodeId, this);
     }
 
     /**
