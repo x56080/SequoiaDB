@@ -145,7 +145,7 @@ public class JSONSerializers {
 				serializer.serialize(Array.get(obj, i), buf);
 			}
 
-			buf.append("]");
+			buf.append(" ]");
 		}
 
 	}
@@ -276,7 +276,7 @@ public class JSONSerializers {
 
 				serializer.serialize(o, buf);
 			}
-			buf.append("]");
+			buf.append(" ]");
 		}
 	}
 
@@ -304,7 +304,7 @@ public class JSONSerializers {
 				serializer.serialize(entry.getValue(), buf);
 			}
 
-			buf.append("}");
+			buf.append(" }");
 		}
 
 	}
