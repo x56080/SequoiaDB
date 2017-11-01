@@ -11,25 +11,14 @@ namespace DriverTest
     {
         private TestContext testContextInstance;
         private static Config config = null;
+
         private static Sequoiadb sdb = null;
         private static ReplicaGroup group = null;
         private static SequoiaDB.Node node = null;
-        private static SequoiaDB.Node node2 = null;
-
-        private static string groupName = null;
-        private static string hostName = null;
-        private static int port = -1;
-        private static string dbpath = null;
-
-        private static string groupName2 = null;
-        private static string hostName2 = null;
-        private static int port2 = -1;
-        private static string dbpath2 = null;
-
-        private static bool connect_flag = false;
-        private static bool create_rg_flag = false;
-        private static bool create_node_flag = false;
-        private static bool create_node2_flag = false;
+        private static int groupID = -1;
+        private static String groupName;
+        private static Boolean isCluster = true;
+        
 
         public TestContext TestContext
         {
@@ -48,162 +37,68 @@ namespace DriverTest
         [ClassInitialize()]
         public static void SequoiadbInitialize(TestContext testContext)
         {
-            if ( config == null )
+            if (config == null)
+            {
                 config = new Config();
+            }
+            // check whether it is in the cluster environment or not
             sdb = new Sequoiadb(config.conf.Coord.Address);
             sdb.Connect(config.conf.UserName, config.conf.Password);
-            // check whether it is in the cluster environment or not
             if (!Constants.isClusterEnv(sdb))
             {
+                isCluster = false;
                 return;
             }
-            // argument
-            groupName = config.conf.Groups[3].GroupName;
-            hostName = config.conf.Groups[3].Nodes[0].HostName;
-            port = config.conf.Groups[3].Nodes[0].Port;
-            dbpath = config.conf.Groups[3].Nodes[0].DBPath;
-            // drop the exist group
-            group = sdb.GetReplicaGroup(groupName);
-            if (group != null)
-            {
-                // drop all the cs in current group, and then remove this group
-                int nodeNum = group.GetNodeNum(SDBConst.NodeStatus.SDB_NODE_ALL);
-                if (nodeNum > 0)
-                {
-                    SequoiaDB.Node nd = group.GetMaster();
-                    Sequoiadb db = new Sequoiadb(nd.HostName, nd.Port);
-                    Assert.IsTrue(nd.Start());
-                    db.Connect(config.conf.UserName, config.conf.Password);
-                    DBCursor cursor = db.ListCollectionSpaces();
-                    while (cursor.Next() != null)
-                    {
-                        BsonDocument obj = cursor.Current();
-                        string temp = null;
-                        if (obj.Contains("Name"))
-                            temp = obj["Name"].AsString;
-                        sdb.DropCollectionSpace(temp);
-                    }
-                    db.Disconnect();
-                }
-                try
-                {
-                    sdb.RemoveReplicaGroup(group.GroupName);
-                }
-                catch (BaseException e)
-                {
-                    string errInfo = e.Message;
-                    Console.WriteLine("Error code is: " + errInfo);
-                }
-            }
-            // create a new group
-            group = sdb.CreateReplicaGroup(groupName);
-            Assert.IsTrue(groupName.Equals(group.GroupName));
-            create_rg_flag = true;
-            // create a node
-            BsonDocument options = new BsonDocument();
-            options.Add("logfilenum", 1);
-            node = group.CreateNode(hostName, port, dbpath, options);
-            Assert.IsNotNull(node);
-            node.Start();
-            create_node_flag = true;
         }
         //使用 SequoiadbCleamUp 在运行完类中的所有测试后再运行代码
         [ClassCleanup()]
         public static void SequoiadbCleamUp()
         {
-            // check whether it is in the cluster environment or not
-            if (!Constants.isClusterEnv(sdb))
-            {
-                return;
-            }
-            group = sdb.GetReplicaGroup(groupName);
-            if (null != group)
-            {
-                // drop all the cs in current group, and then remove this group
-                int nodeNum = group.GetNodeNum(SDBConst.NodeStatus.SDB_NODE_ALL);
-                if (nodeNum > 0)
-                {
-                    SequoiaDB.Node nd = group.GetMaster();
-                    Sequoiadb db = new Sequoiadb(nd.HostName, nd.Port);
-                    Assert.IsTrue(nd.Start());
-                    db.Connect(config.conf.UserName, config.conf.Password);
-                    DBCursor cursor = db.ListCollectionSpaces();
-                    while (cursor.Next() != null)
-                    {
-                        BsonDocument obj = cursor.Current();
-                        string temp = null;
-                        if (obj.Contains("Name"))
-                            temp = obj["Name"].AsString;
-                        sdb.DropCollectionSpace(temp);
-                    }
-                    db.Disconnect();
-                }
-                Assert.IsTrue(group.Stop());
-                // remove group
-                try
-                {
-                    sdb.RemoveReplicaGroup(group.GroupName);
-                }
-                catch (BaseException e)
-                {
-                    string errInfo = e.Message;
-                    Console.WriteLine("Error code is: " + errInfo);
-                }
-            }
-            create_node_flag = false;
-            create_node2_flag = false;
-            // disconnect
             sdb.Disconnect();
         }
         //使用 TestInitialize 在运行每个测试前先运行代码
         [TestInitialize()]
         public void MyTestInitialize()
         {
-            // check whether it is in the cluster environment or not
-            if (!Constants.isClusterEnv(sdb))
+            if (!isCluster)
             {
                 return;
             }
-            // init
-            create_node2_flag = false;
-            // argument
-            groupName2 = config.conf.Groups[3].GroupName;
-            hostName2 = config.conf.Groups[3].Nodes[1].HostName;
-            port2 = config.conf.Groups[3].Nodes[1].Port;
-            dbpath2 = config.conf.Groups[3].Nodes[1].DBPath;
-            // drop the exist group
-            group = sdb.GetReplicaGroup(groupName);
-            if (null == group)
-                return;
-            // create a node
-            BsonDocument options = new BsonDocument();
-            options.Add("logfilenum", 1);
-            node2 = group.CreateNode(hostName2, port2, dbpath2, options);
-            Assert.IsNotNull(node2);
-            node2.Start();
+            group = sdb.GetReplicaGroup(1000);
+            groupName = group.GroupName;
+            groupID = 1000;
         }
         //使用 TestCleanup 在运行完每个测试后运行代码
         [TestCleanup()]
         public void MyTestCleanup()
         {
-            // check whether it is in the cluster environment or not
-            if (false == Constants.isClusterEnv(sdb))
+            if (!isCluster)
             {
                 return;
             }
-            group = sdb.GetReplicaGroup(groupName);
-            if (null != group)
-            {
-                group.RemoveNode(hostName2, port2, null);
-            }
-            create_node2_flag = false;
         }
         #endregion
+
+        [TestMethod()]
+        public void GetMasterAndSlaveNodeTest()
+        {
+            if (!isCluster)
+            {
+                return;
+            }
+            //groupName = "db2";
+            group = sdb.GetReplicaGroup(groupName);
+            SequoiaDB.Node master = group.GetMaster();
+            SequoiaDB.Node slave = group.GetSlave();
+            Console.WriteLine("group is: " + groupName + ", master is: " + master.NodeName + ", slave is: " + slave.NodeName);
+        }
 
         [TestMethod()]
         [Ignore]
         public void RGTest()
         {
+            String hostName = "192.168.20.166";
+            int port = 45000;
             // check whether it is in the cluster environment or not
             if (!Constants.isClusterEnv(sdb))
             {
@@ -286,8 +181,11 @@ namespace DriverTest
         }
 
         [TestMethod()]
+        [Ignore]
         public void attach_and_detach_node()
         {
+            String hostName = "192.168.20.166";
+            int port = 46000;
             SequoiaDB.Node data_node = null;
 
             // check whether it is in the cluster environment or not
@@ -297,18 +195,45 @@ namespace DriverTest
                 return;
             }
             // detach node
-            group.DetachNode(hostName2, port2, null);
+            group.DetachNode(hostName, port, null);
 
             // check
-            data_node = group.GetNode(hostName2, port2);
+            data_node = group.GetNode(hostName, port);
             Assert.IsNull(data_node);
 
             //attach node 
-            group.AttachNode(hostName2, port2, null);
+            group.AttachNode(hostName, port, null);
 
             // check
-            data_node = group.GetNode(hostName2, port2);
+            data_node = group.GetNode(hostName, port);
             Assert.IsNotNull(data_node);
+        }
+
+        [TestMethod()]
+        [Ignore]
+        public void createRG()
+        {
+            // 1. prepare a empty coord by manually
+
+            // 2. get connection
+            Sequoiadb db = new Sequoiadb("192.168.20.165", 11810);
+            db.Connect();
+            //db.ListCollections();
+
+            // 3. create catalog group
+            Dictionary<string, string> map = new Dictionary<String, String>();
+            map.Add("businessname", "abc");
+            map.Add("diaglevel", "5");
+            map.Add("omaddr", "susetzb:11830");
+            //    	db.createReplicaCataGroup("192.168.20.165", 11820, "/opt/sequoiadb/database/cata/11820", map);
+            BsonDocument obj = new BsonDocument();
+            obj.Add("businessname", "abc");
+            obj.Add("diaglevel", 5);
+            obj.Add("omaddr", "susetzb:12345");
+            db.CreateReplicaCataGroup("192.168.20.165", 11820, "/opt/sequoiadb/database/cata/11820", obj);
+            ReplicaGroup rg = db.GetReplicaGroup("SYSCatalogGroup");
+            SequoiaDB.Node node = rg.CreateNode("192.168.20.165", 11830, "/opt/sequoiadb/database/cata/11830", map);
+            node.Start();
         }
 
     }
