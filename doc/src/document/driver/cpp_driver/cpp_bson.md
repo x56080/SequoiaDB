@@ -8,7 +8,9 @@
 
 -   bson::BSONObjBuilder：BSONObjBuilder 用来实例化 BSONObj 对象。
 
--   bson::BSONObjlterator：BSONObjlterator 用来遍历 BSONObj 对象中的元素。命名空间 bson 中定义了这些类的类型为：
+-   bson::BSONObjlterator：BSONObjlterator 用来遍历 BSONObj 对象中的元素。
+
+命名空间 bson 中定义了这些类的类型为：
 
   -   typedef bson::BSONElement be;
 
@@ -16,7 +18,7 @@
 
   -   typedef bson::BSONObjBuilder bob;
 
-	补充：可使用如下API [BASE64C API](api/bsoncpp/html/base64c_8h.html) 和 [FROMJSON API](api/bsoncpp/html/fromjson_8hpp.html)来帮助构建C++ BSON。
+此外，还可以使用 [BASE64C API](api/bsoncpp/html/base64c_8h.html) 和 [FROMJSON API](api/bsoncpp/html/fromjson_8hpp.html)来帮助构建C++ BSON。
 
 ##建立对象##
 
