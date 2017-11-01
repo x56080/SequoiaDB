@@ -441,7 +441,7 @@ public class Sequoiadb {
         int flags = rtn.getFlags();
         if (flags != 0) {
             connection.close();
-            throw new BaseException(SDBError.getSDBError(flags), "failed to auth, user is" + userName);
+            throw new BaseException(SDBError.getSDBError(flags), "failed to auth, user is " + userName);
         }
     }
 
