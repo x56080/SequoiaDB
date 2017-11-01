@@ -515,9 +515,6 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 			if (b == null) {
 				if (a != null)
 					return false;
-			} else if (a instanceof Number && b instanceof Number) {
-				if (((Number) a).doubleValue() != ((Number) b).doubleValue())
-					return false;
 			} else if (a instanceof Pattern && b instanceof Pattern) {
 				Pattern p1 = (Pattern) a;
 				Pattern p2 = (Pattern) b;
