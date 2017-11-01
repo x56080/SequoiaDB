@@ -114,4 +114,13 @@ public class SDBGetRG {
 		assertTrue(false);
 	}
 	
+    @Test
+    public void getMasterAndSlaveNodeTest() {
+        groupName = "db2";
+        rg = sdb.getReplicaGroup(groupName);
+        Node master = rg.getMaster();
+        Node slave = rg.getSlave();
+        System.out.println(String.format("group is: %s, master is: %s, slave is: %s", groupName, master.getNodeName(), slave.getNodeName()));
+    }
+	
 }
