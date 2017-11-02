@@ -77,13 +77,18 @@ namespace engine
       goto done ;
    }
 
+   /*
+      _rtnAccessPlanList implement
+   */
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPL_INVALIDATE, "_rtnAccessPlanList::invalidate" )
    void _rtnAccessPlanList::invalidate ( UINT32 &cleanNum )
    {
       PD_TRACE_ENTRY ( SDB__RTNACCESSPL_INVALIDATE );
       cleanNum = 0 ;
       vector<optAccessPlan *>::iterator it ;
-      RTNAPL_XLOCK
+
+      ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
+
       // check if the plan is in the list
       for ( it = _plans.begin(); it != _plans.end(); )
       {
@@ -91,124 +96,121 @@ namespace engine
          if ( (*it)->getCount() == 0 )
          {
             ++cleanNum ;
-            optAccessPlan *tmp = (*it) ;
-            SDB_OSS_DEL tmp ;
+
+            SDB_OSS_DEL (*it) ;
             // in vector, erase returns the next valid iterator, or
             // vector::end()
             it = _plans.erase(it) ;
          }
          else
          {
-            (*it)->setValid ( FALSE ) ;
+            (*it)->setValid( FALSE ) ;
             ++it ;
          }
       }
+
+      _emptyAPNum.sub( cleanNum ) ;
+      _pSetEmptyAPNum->sub( cleanNum ) ;
+      _pTotalEmptyAPNum->sub( cleanNum ) ;
+
       PD_TRACE_EXIT ( SDB__RTNACCESSPL_INVALIDATE );
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPL_GETPLAN, "_rtnAccessPlanList::getPlan" )
-   INT32 _rtnAccessPlanList::getPlan ( const BSONObj &query,
-                                       const BSONObj &orderBy,
-                                       const BSONObj &hint,
-                                       optAccessPlan **out,
-                                       SINT32 &incCount )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPL_ADDPLAN, "_rtnAccessPlanList::addPlan" )
+   BOOLEAN _rtnAccessPlanList::addPlan( optAccessPlan *plan,
+                                        const rtnAPContext &context,
+                                        SINT32 &incSize )
    {
-      INT32 rc = SDB_OK ;
-      BOOLEAN hasDel = FALSE ;
-      PD_TRACE_ENTRY ( SDB__RTNACCESSPL_GETPLAN );
-      SDB_ASSERT ( out, "out can't be NULL" ) ;
-      (*out) = NULL ;
+      PD_TRACE_ENTRY ( SDB__RTNACCESSPL_ADDPLAN ) ;
       SINT32 inc = 0 ;
-      vector<optAccessPlan *>::iterator it ;
+      BOOLEAN hasAdd = FALSE ;
+      UINT32 clearNum = 0 ;
+
+      ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
+
+      /// when lastID changed, need to judge equal
+      if ( context._lastListID != _lastID )
       {
-         RTNAPL_XLOCK
-         // check if the plan is in the list
+         vector<optAccessPlan *>::iterator it ;
          for ( it = _plans.begin(); it != _plans.end(); ++it )
          {
-            if ( (*it)->Reusable ( query, orderBy, hint )  )
+            if ( (*it)->equal( *plan ) )
             {
-               // we found one plan match, then let's delete the plan we just
-               // created and return the existing one
-               *out = *it ;
-               // if it's not the first one, let's remove it and re-add to begin
-               // of the list
-               if ( it != _plans.begin() )
-               {
-                  _plans.erase(it) ;
-                  _plans.insert ( _plans.begin(), *out ) ;
-               }
-               // increase usage count
-               (*out)->incCount() ;
+               /// already exist
+               plan->setAPM( NULL ) ;
                goto done ;
             }
          }
       }
 
-      rc = createNewPlan( _su, _collectionName,
-                          query, orderBy, hint,
-                          out ) ;
-      if ( SDB_OK != rc )
+      // now let's see how many plans we have, if so let's attempt to remove
+      // any plan that not been used
+      if ( _plans.size() >= RTN_APL_SIZE &&
+           ( clearNum = _clearFast( 1 ) ) == 0 )
       {
-         PD_LOG( PDERROR, "failed to create new plan:%d", rc ) ;
-         goto error ;
+         inc = 0 ;
+         plan->setAPM ( NULL ) ;
+         PD_LOG ( PDINFO, "AccessPlanList is full" ) ;
+      }
+      else
+      {
+         plan->setAPM( _apm ) ;
+         inc = 1 - clearNum ;
+         hasAdd = TRUE ;
+         _plans.insert ( _plans.begin(), plan ) ;
+         plan->incCount() ;
+         ++_lastID ;
       }
 
-      (*out)->setAPM ( _apm ) ;
-      inc = 1 ;
+   done:
+      incSize = inc ;
+      PD_TRACE_EXIT( SDB__RTNACCESSPL_ADDPLAN ) ;
+      return hasAdd ;
+   }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPL_GETPLAN, "_rtnAccessPlanList::getPlan" )
+   optAccessPlan* _rtnAccessPlanList::getPlan ( const BSONObj &query,
+                                                const BSONObj &orderBy,
+                                                const BSONObj &hint,
+                                                rtnAPContext &context )
+   {
+      PD_TRACE_ENTRY ( SDB__RTNACCESSPL_GETPLAN ) ;
+
+      optAccessPlan *pOut = NULL ;
+      vector<optAccessPlan *>::iterator it ;
+
+      ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
+
+      context._lastListID = _lastID ;
+
+      // check if the plan is in the list
+      for ( it = _plans.begin() ; it != _plans.end() ; ++it )
       {
-         RTNAPL_XLOCK
-         // now let's see how many plans we have, if so let's attempt to remove
-         // any plan that not been used
-         if ( _plans.size() >= RTN_APL_SIZE )
+         if ( (*it)->Reusable( query, orderBy, hint )  )
          {
-            vector<optAccessPlan *>::reverse_iterator rit ;
-            for ( rit = _plans.rbegin() ; rit != _plans.rend(); )
+            // we found one plan match, then let's delete the plan we just
+            // created and return the existing one
+            pOut = *it ;
+            // if it's not the first one, let's remove it and re-add to begin
+            // of the list
+            if ( it != _plans.begin() )
             {
-               if ( (*rit)->getCount() == 0 )
-               {
-                  // we can remove existing, let's reset inc back to 0
-                  inc = 0 ;
-                  SDB_OSS_DEL (*rit) ;
-                  _plans.erase( (++rit).base() ) ;
-                  hasDel = TRUE ;
-                  break ;
-                  //vector<optAccessPlan *>::iterator tempIter = _plans.erase (
-                  //   --rit.base() ) ;
-                  //rit = vector<optAccessPlan *>::reverse_iterator(tempIter) ;
-               }
-               else
-               {
-                  ++rit ;
-               }
+               _plans.erase( it ) ;
+               _plans.insert ( _plans.begin(), pOut ) ;
             }
-         }
-         // if the list still full, let's dump warning message
-         // otherwise insert the new plan into plan list
-         if ( !hasDel && _plans.size() >= RTN_APL_SIZE )
-         {
-            inc = 0 ;
-            (*out)->setAPM ( NULL ) ;
-            PD_LOG ( PDWARNING, "AccessPlanList is full" ) ;
-         }
-         else
-         {
-            _plans.insert ( _plans.begin(), (*out) ) ;
-            (*out)->incCount() ;
+            // increase usage count
+            if ( 0 == pOut->incCount() )
+            {
+               _emptyAPNum.dec() ;
+               _pSetEmptyAPNum->dec() ;
+               _pTotalEmptyAPNum->dec() ;
+            }
+            break ;
          }
       }
 
-   done :
-      incCount = inc ;
-      PD_TRACE_EXITRC ( SDB__RTNACCESSPL_GETPLAN, rc );
-      return rc ;
-   error :
-      if ( (*out) )
-      {
-         SDB_OSS_DEL (*out) ;
-         (*out) = NULL ;
-      }
-      goto done ;
+      PD_TRACE_EXIT ( SDB__RTNACCESSPL_GETPLAN ) ;
+      return pOut ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNACCESSPL_RELPL, "rtnAccessPlanList::releasePlan" )
@@ -216,15 +218,22 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB_RTNACCESSPL_RELPL );
       vector<optAccessPlan *>::iterator it ;
-      RTNAPL_SLOCK
+
+      ossScopedLock _lock ( &_mutex, SHARED ) ;
+
       // check if the plan is in the list
-      for ( it = _plans.begin(); it != _plans.end(); ++it )
+      for ( it = _plans.begin() ; it != _plans.end() ; ++it )
       {
          // if the plan is already in cache, let's return without any change
          if ( *it == plan )
          {
             // decrease plan count
-            plan->decCount () ;
+            if ( 1 == plan->decCount() )
+            {
+               _emptyAPNum.inc() ;
+               _pSetEmptyAPNum->inc() ;
+               _pTotalEmptyAPNum->inc() ;
+            }
             goto done ;
          }
       }
@@ -232,45 +241,101 @@ namespace engine
               plan->toString().c_str() ) ;
       // otherwise it's not in the list, let's simply delete the plan
       SDB_OSS_DEL plan ;
+
    done :
-      PD_TRACE_EXIT ( SDB_RTNACCESSPL_RELPL );
+      PD_TRACE_EXIT ( SDB_RTNACCESSPL_RELPL ) ;
       return ;
    }
-   
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPL_CLEARFAST, "_rtnAccessPlanList::_clearFast" )
+   UINT32 _rtnAccessPlanList::_clearFast( INT32 expectNum )
+   {
+      UINT32 cleanNum = 0 ;
+      PD_TRACE_ENTRY ( SDB__RTNACCESSPL_CLEARFAST ) ;
+
+      if ( hasEmptyAP() )
+      {
+         vector<optAccessPlan *>::reverse_iterator rit ;
+         for ( rit = _plans.rbegin() ; rit != _plans.rend(); )
+         {
+            if ( (*rit)->getCount() == 0 )
+            {
+               ++cleanNum ;
+               --expectNum ;
+               _emptyAPNum.dec() ;
+               _pSetEmptyAPNum->dec() ;
+               _pTotalEmptyAPNum->dec() ;
+
+               SDB_OSS_DEL (*rit) ;
+               _plans.erase( (++rit).base() ) ;
+
+               if ( expectNum <= 0 )
+               {
+                  break ;
+               }
+            }
+            else
+            {
+               ++rit ;
+            }
+         }
+      }
+
+      PD_TRACE_EXIT ( SDB__RTNACCESSPL_CLEARFAST ) ;
+      return cleanNum ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPL_CLEAR, "_rtnAccessPlanList::clear" )
    void _rtnAccessPlanList::clear ( UINT32 &cleanNum )
    {
       PD_TRACE_ENTRY ( SDB__RTNACCESSPL_CLEAR );
       cleanNum = 0 ;
-      vector<optAccessPlan *>::iterator it ;
-      RTNAPL_XLOCK
-      // check if the plan is in the list
-      for ( it = _plans.begin(); it != _plans.end(); )
+
+      if ( hasEmptyAP() )
       {
-         // if so let's decrease the count
-         if ( (*it)->getCount() == 0 )
+         vector<optAccessPlan *>::iterator it ;
+
+         ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
+
+         // check if the plan is in the list
+         for ( it = _plans.begin() ; it != _plans.end() ; )
          {
-            ++cleanNum ;
-            optAccessPlan *tmp = (*it) ;
-            SDB_OSS_DEL tmp ;
-            // in vector, erase returns the next valid iterator, or
-            // vector::end()
-            it = _plans.erase(it) ;
+            // if so let's decrease the count
+            if ( (*it)->getCount() == 0 )
+            {
+               ++cleanNum ;
+               _emptyAPNum.dec() ;
+               _pSetEmptyAPNum->dec() ;
+               _pTotalEmptyAPNum->dec() ;
+
+               SDB_OSS_DEL (*it) ;
+               // in vector, erase returns the next valid iterator, or
+               // vector::end()
+               it = _plans.erase( it ) ;
+            }
+            else
+            {
+               ++it ;
+            }
          }
-         else
-            ++it ;
       }
+
       PD_TRACE_EXIT ( SDB__RTNACCESSPL_CLEAR );
    }
 
+   /*
+      _rtnAccessPlanSet implement
+   */
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPS_INVALIDATE, "_rtnAccessPlanSet::invalidate" )
-   void _rtnAccessPlanSet::invalidate ( UINT32 &cleanNum )
+   void _rtnAccessPlanSet::invalidate( UINT32 &cleanNum )
    {
-      PD_TRACE_ENTRY ( SDB__RTNACCESSPS_INVALIDATE );
+      PD_TRACE_ENTRY ( SDB__RTNACCESSPS_INVALIDATE ) ;
       cleanNum = 0 ;
-      map<UINT32, rtnAccessPlanList *>::iterator it ;
-      RTNAPS_SLOCK
-      for ( it = _planLists.begin(); it != _planLists.end(); )
+      MAP_CODE_2_LIST_IT it ;
+
+      ossScopedLock _lock ( &_mutex, SHARED ) ;
+
+      for ( it = _planLists.begin() ; it != _planLists.end() ; )
       {
          UINT32 tempClean = 0 ;
          rtnAccessPlanList *list = (*it).second ;
@@ -280,186 +345,271 @@ namespace engine
          _totalNum.sub( tempClean ) ;
       }
 
-      PD_TRACE_EXIT ( SDB__RTNACCESSPS_INVALIDATE );
+      PD_TRACE_EXIT ( SDB__RTNACCESSPS_INVALIDATE ) ;
    }
-   
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPS_GETPLAN, "_rtnAccessPlanSet::getPlan" )
-   INT32 _rtnAccessPlanSet::getPlan ( const BSONObj &query,
-                                      const BSONObj &orderBy,
-                                      const BSONObj &hint,
-                                      optAccessPlan **out,
-                                      SINT32 &incCount )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__RTNACCESSPS_GETPLAN );
-      UINT32 hash = optAccessPlan::hash ( query, orderBy, hint ) ;
-      SINT32 inc = 0 ;
-      {
-         RTNAPS_SLOCK
-         map<UINT32, rtnAccessPlanList *>::iterator itr =
-                                                 _planLists.find ( hash ) ;
-         SINT32 tmp = 0 ;
-         if ( _planLists.end() != itr )
-         {
-            rtnAccessPlanList *planList = itr->second ;
-            // if the hash already exist, then let's get in and see
-            rc = planList->getPlan ( query, orderBy, hint,
-                                     out, tmp ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "Failed to get plan, rc = %d", rc ) ;
-               goto error ;
-            }
 
-            if ( 0 != tmp )
-            {
-               inc += tmp ;
-               _totalNum.add( tmp ) ;
-            }
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPS_ADDPLAN, "_rtnAccessPlanSet::addPlan" )
+   BOOLEAN _rtnAccessPlanSet::addPlan( optAccessPlan *plan,
+                                       const rtnAPContext &context,
+                                       SINT32 &incSize )
+   {
+      BOOLEAN hasAdd = FALSE ;
+      PD_TRACE_ENTRY ( SDB__RTNACCESSPS_ADDPLAN ) ;
+
+      MAP_CODE_2_LIST_IT itr ;
+      rtnAccessPlanList *pList = NULL ;
+      INT32 inc = 0 ;
+
+      incSize = 0 ;
+      hasAdd = FALSE ;
+
+      /// first check set exist
+      {
+         ossScopedLock _lock ( &_mutex, SHARED ) ;
+
+         itr = _planLists.find( plan->hash() ) ;
+         if ( itr != _planLists.end() )
+         {
+            pList = itr->second ;
+            hasAdd = pList->addPlan( plan, context, inc ) ;
+            _totalNum.add( inc ) ;
+            incSize += inc ;
             goto done ;
          }
       }
+
       {
-         BOOLEAN newAlloc = FALSE ;
-         SINT32 tmp = 0 ;
-         RTNAPS_XLOCK
-         // check again just in case someone else added after we release S
-         // lock
-         if ( _planLists.find ( hash ) == _planLists.end() )
+         ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
+
+         itr = _planLists.find( plan->hash() ) ;
+         if ( itr == _planLists.end() )
          {
-            rtnAccessPlanList *list = SDB_OSS_NEW rtnAccessPlanList (
-                  _su, _collectionName, _apm ) ;
-            if ( !list )
+            /// when ap is full in the set, need to clean
+            /*if ( _totalNum.peek() >= RTN_APS_SIZE )
             {
-               PD_LOG ( PDERROR, "Failed to allocate memory for list" ) ;
-               rc = SDB_OOM ;
-               goto error ;
-            }
-            _planLists[hash] = list ;
-            newAlloc = TRUE ;
-         }
-         rtnAccessPlanList *planlist = _planLists[hash] ;
-         SDB_ASSERT( planlist, "not able to find the planlist" ) ;
-         rc = planlist->getPlan ( query, orderBy, hint, out, tmp ) ;
-         if ( rc )
-         {
-            // let's delete the newly created list
-            if ( newAlloc )
+               INT32 expectNum = _totalNum.peek() - RTN_APS_SIZE + 1 ;
+               UINT32 cleanNum = _clearFast( expectNum ) ;
+               if ( cleanNum < (UINT32)expectNum )
+               {
+                  /// set is full
+                  plan->setAPM( NULL ) ;
+                  goto done ;
+               }
+               incSize -= cleanNum ;
+            }*/
+            pList = SDB_OSS_NEW _rtnAccessPlanList( _apm,
+                                                    &_emptyAPNum,
+                                                    _pTotalEmptyAPNum ) ;
+            if ( !pList )
             {
-               SDB_OSS_DEL planlist ;
-               _planLists.erase(hash) ;
+               PD_LOG ( PDWARNING, "Failed to allocate memory for list" ) ;
+               plan->setAPM( NULL ) ;
+               goto done ;
             }
-            PD_LOG ( PDERROR, "Failed to get plan, rc = %d", rc ) ;
-            goto error ;
+            _planLists[ plan->hash() ] = pList ;
          }
-         if ( 0 != tmp )
+         else
          {
-            inc += tmp ;
-            _totalNum.add( tmp ) ;
+            pList = itr->second ;
          }
+
+         hasAdd = pList->addPlan( plan, context, inc ) ;
+         _totalNum.add( inc ) ;
+         incSize += inc ;
          goto done ;
       }
 
-   done :
-      if ( SDB_OK == rc &&
-           0 < inc &&
-           _totalNum.peek() > RTN_APS_SIZE )
+   done:
+      PD_TRACE_EXIT( SDB__RTNACCESSPS_ADDPLAN ) ;
+      return hasAdd ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPS_GETPLAN, "_rtnAccessPlanSet::getPlan" )
+   optAccessPlan* _rtnAccessPlanSet::getPlan ( const BSONObj &query,
+                                               const BSONObj &orderBy,
+                                               const BSONObj &hint,
+                                               rtnAPContext &context )
+   {
+      optAccessPlan *plan = NULL ;
+      PD_TRACE_ENTRY ( SDB__RTNACCESSPS_GETPLAN ) ;
+      MAP_CODE_2_LIST_IT it ;
+
+      UINT32 hash = optAccessPlan::hash( query, orderBy, hint ) ;
+
+      ossScopedLock _lock ( &_mutex, SHARED ) ;
+
+      it = _planLists.find ( hash ) ;
+
+      if ( _planLists.end() != it )
       {
-         UINT32 cleanNum = 0 ;
-         clear ( cleanNum, FALSE ) ;
-         inc -= cleanNum ;
+         rtnAccessPlanList *pList = it->second ;
+         plan = pList->getPlan( query, orderBy, hint, context ) ;
       }
-      incCount = inc ;
-      PD_TRACE_EXITRC ( SDB__RTNACCESSPS_GETPLAN, rc );
-      return rc ;
-   error :
-      goto done ;
+
+      PD_TRACE_EXIT( SDB__RTNACCESSPS_GETPLAN ) ;
+      return plan ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPS_RELPL, "_rtnAccessPlanSet::releasePlan" )
    void _rtnAccessPlanSet::releasePlan ( optAccessPlan *plan )
    {
-      PD_TRACE_ENTRY ( SDB__RTNACCESSPS_RELPL );
+      PD_TRACE_ENTRY ( SDB__RTNACCESSPS_RELPL ) ;
       SDB_ASSERT ( plan, "plan can't be NULL" ) ;
       UINT32 hash = plan->hash () ;
-      RTNAPS_SLOCK
-      if ( _planLists.find ( hash ) == _planLists.end() )
+      MAP_CODE_2_LIST_IT it ;
+
+      ossScopedLock _lock ( &_mutex, SHARED ) ;
+
+      it = _planLists.find( hash ) ;
+
+      if ( it == _planLists.end() )
       {
          // if the plan is not in the plan list
          PD_LOG( PDERROR, "Access plan[%s] is not found is lists",
                  plan->toString().c_str() ) ;
          SDB_OSS_DEL plan ;
-         goto done ;
       }
-      _planLists[hash]->releasePlan ( plan ) ;
-   done :
-      PD_TRACE_EXIT ( SDB__RTNACCESSPS_RELPL );
-      return ;
+      else
+      {
+         it->second->releasePlan ( plan ) ;
+      }
+
+      PD_TRACE_EXIT ( SDB__RTNACCESSPS_RELPL ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPS_CLEAR_FAST, "_rtnAccessPlanSet::_clearFast" )
+   UINT32 _rtnAccessPlanSet::_clearFast( INT32 expectNum )
+   {
+      PD_TRACE_ENTRY ( SDB__RTNACCESSPS_CLEAR_FAST ) ;
+
+      MAP_CODE_2_LIST_IT it ;
+      rtnAccessPlanList *pList = NULL ;
+      UINT32 totalClearNum = 0 ;
+      UINT32 clearNum = 0 ;
+
+      if ( hasEmptyAP() )
+      {
+         for ( it = _planLists.begin() ; it != _planLists.end() ; )
+         {
+            pList = it->second ;
+            if ( ( clearNum = pList->_clearFast( expectNum ) ) > 0 )
+            {
+               _totalNum.sub( clearNum ) ;
+               totalClearNum += clearNum ;
+               expectNum -= clearNum ;
+            }
+
+            if ( 0 == pList->size() )
+            {
+               SDB_OSS_DEL pList ;
+               _planLists.erase( it++ ) ;
+            }
+            else
+            {
+               ++it ;
+            }
+
+            if ( expectNum <= 0 )
+            {
+               break ;
+            }
+         }
+      }
+
+      PD_TRACE_EXIT( SDB__RTNACCESSPS_CLEAR_FAST ) ;
+      return totalClearNum ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPS_CLEAR, "_rtnAccessPlanSet::clear" )
    void _rtnAccessPlanSet::clear( UINT32 &cleanNum, BOOLEAN full )
    {
-      PD_TRACE_ENTRY ( SDB__RTNACCESSPS_CLEAR );
+      PD_TRACE_ENTRY ( SDB__RTNACCESSPS_CLEAR ) ;
       cleanNum = 0 ;
-      map<UINT32, rtnAccessPlanList *>::iterator it ;
-      RTNAPS_XLOCK
-      for ( it = _planLists.begin(); it != _planLists.end(); )
+      rtnAccessPlanList *list = NULL ;
+      MAP_CODE_2_LIST_IT it ;
+
+      if ( hasEmptyAP() )
       {
-         UINT32 tempClean = 0 ;
-         rtnAccessPlanList *list = (*it).second ;
-         list->clear( tempClean ) ;
-         _totalNum.sub( tempClean ) ;
-         cleanNum += tempClean ;
-         // clear empty list
-         if ( list->size() == 0 )
+         ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
+         UINT32 threshold = _totalNum.peek() * RTN_APS_DFT_OCCUPY_PCT ;
+
+         for ( it = _planLists.begin() ; it != _planLists.end() ; )
          {
-            SDB_OSS_DEL list ;
-            _planLists.erase(it++) ;
-         }
-         else
-         {
-            ++it ;
-         }
-         // don't run too aggresive, try to clear things to 75%
-         if ( !full && _totalNum.peek() < RTN_APS_DFT_OCCUPY )
-         {
-            break ;
+            UINT32 tempClean = 0 ;
+            list = it->second ;
+            list->clear( tempClean ) ;
+            if ( tempClean > 0 )
+            {
+               _totalNum.sub( tempClean ) ;
+               cleanNum += tempClean ;
+            }
+
+            // clear empty list
+            if ( list->size() == 0 )
+            {
+               SDB_OSS_DEL list ;
+               _planLists.erase( it++ ) ;
+            }
+            else
+            {
+               ++it ;
+            }
+
+            // don't run too aggresive, try to clear things to 75%
+            if ( !full && _totalNum.peek() < threshold )
+            {
+               break ;
+            }
          }
       }
 
-      PD_TRACE_EXIT ( SDB__RTNACCESSPS_CLEAR );
-      return ;
+      PD_TRACE_EXIT ( SDB__RTNACCESSPS_CLEAR ) ;
    }
 
+   /*
+      _rtnAccessPlanManager implement
+   */
    _rtnAccessPlanManager::_rtnAccessPlanManager( _dmsStorageUnit *su )
    :_totalNum( 0 ),
+    _emptyAPNum( 0 ),
     _su( su ),
     _bucketsNum( 0 )
-    
    {
       _bucketsNum = pmdGetOptionCB()->getPlanBuckets() ;
+   }
+
+   _rtnAccessPlanManager::~_rtnAccessPlanManager()
+   {
+      SDB_ASSERT( _emptyAPNum.peek() >= 0 &&
+                  _emptyAPNum.peek() <= _totalNum.peek(),
+                  "0 <= _emptyAPNum <= _totalNum" ) ;
+
+      PLAN_SETS_IT it ;
+      for ( it = _planSets.begin() ; it != _planSets.end() ; ++it )
+      {
+         SDB_OSS_DEL it->second ;
+      }
+      _planSets.clear() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPLMAN_INVALIDATEPL, "_rtnAccessPlanManager::invalidatePlans" )
    void _rtnAccessPlanManager::invalidatePlans ( const CHAR *collectionName )
    {
       UINT32 cleanNum = 0 ;
-#if defined (_WINDOWS)
-      map<const CHAR*, rtnAccessPlanSet*, cmp_str>::iterator it ;
-#elif defined (_LINUX)
-      map<const CHAR*, rtnAccessPlanSet*>::iterator it ;
-#endif
-      PD_TRACE_ENTRY ( SDB__RTNACCESSPLMAN_INVALIDATEPL );
-      RTNAPM_XLOCK
-      if ( (it = _planSets.find(collectionName) ) != _planSets.end() )
+      PLAN_SETS_IT it ;
+      PD_TRACE_ENTRY ( SDB__RTNACCESSPLMAN_INVALIDATEPL ) ;
+
+      ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
+
+      it = _planSets.find( collectionName ) ;
+      if ( it != _planSets.end() )
       {
          rtnAccessPlanSet *planset = (*it).second ;
          planset->invalidate( cleanNum ) ;
          _totalNum.sub( cleanNum ) ;
          if ( planset->size() == 0 )
          {
-            _planSets.erase(it++) ;
+            _planSets.erase( it++ ) ;
             SDB_OSS_DEL planset ;
          }
          else
@@ -470,7 +620,88 @@ namespace engine
       PD_TRACE_EXIT ( SDB__RTNACCESSPLMAN_INVALIDATEPL );
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPLMAN, "_rtnAccessPlanManager::getPlan" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPLMAN_ADDPLAN, "_rtnAccessPlanManager::addPlan" )
+   BOOLEAN _rtnAccessPlanManager::addPlan( optAccessPlan *plan,
+                                           const rtnAPContext &context,
+                                           SINT32 &incSize )
+   {
+      BOOLEAN hasAdd = FALSE ;
+      PD_TRACE_ENTRY( SDB__RTNACCESSPLMAN_ADDPLAN ) ;
+
+      PLAN_SETS_IT itr ;
+      _rtnAccessPlanSet *pSet = NULL ;
+      INT32 inc = 0 ;
+
+      incSize = 0 ;
+      hasAdd = FALSE ;
+
+      /// first check set exist
+      if ( _totalNum.fetch() < _bucketsNum )
+      {
+         ossScopedLock _lock ( &_mutex, SHARED ) ;
+
+         itr = _planSets.find( plan->getName() ) ;
+         if ( itr != _planSets.end() )
+         {
+            pSet = itr->second ;
+            hasAdd = pSet->addPlan( plan, context, inc ) ;
+            _totalNum.add( inc ) ;
+            incSize += inc ;
+            goto done ;
+         }
+      }
+
+      /// then add set
+      {
+         ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
+
+         itr = _planSets.find( plan->getName() ) ;
+         if ( itr == _planSets.end() )
+         {
+            UINT32 bucketsNum = _bucketsNum ;
+            /// when ap is full in the set, need to clean
+            if ( _totalNum.peek() >= bucketsNum )
+            {
+               INT32 expectNum = _totalNum.peek() - bucketsNum + 1 ;
+               UINT32 cleanNum = _clearFast( expectNum ) ;
+               if ( cleanNum <= (UINT32)expectNum )
+               {
+                  /// set is full
+                  plan->setAPM( NULL ) ;
+                  goto done ;
+               }
+               incSize -= cleanNum ;
+            }
+
+            pSet = SDB_OSS_NEW _rtnAccessPlanSet( _su,
+                                                  plan->getName(),
+                                                  this,
+                                                  &_emptyAPNum ) ;
+            if ( !pSet )
+            {
+               PD_LOG ( PDWARNING, "Failed to allocate memory for set" ) ;
+               plan->setAPM( NULL ) ;
+               goto done ;
+            }
+            _planSets[ pSet->getName() ] = pSet ;
+         }
+         else
+         {
+            pSet = itr->second ;
+         }
+
+         hasAdd = pSet->addPlan( plan, context, inc ) ;
+         _totalNum.add( inc ) ;
+         incSize += inc ;
+         goto done ;
+      }
+
+   done:
+      PD_TRACE_EXIT( SDB__RTNACCESSPLMAN_ADDPLAN ) ;
+      return hasAdd ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPLMAN_GETPLAN, "_rtnAccessPlanManager::getPlan" )
    INT32 _rtnAccessPlanManager::getPlan ( const BSONObj &query,
                                           const BSONObj &orderBy,
                                           const BSONObj &hint,
@@ -478,11 +709,14 @@ namespace engine
                                           optAccessPlan **out )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__RTNACCESSPLMAN );
+      PD_TRACE_ENTRY ( SDB__RTNACCESSPLMAN_GETPLAN ) ;
+
       SDB_ASSERT ( collectionName, "collection name can't be NULL" ) ;
       SDB_ASSERT ( out, "out can't be NULL" ) ;
       SINT32 incCount = 0 ;
+      rtnAPContext context ;
 
+      _bucketsNum = pmdGetOptionCB()->getPlanBuckets() ;
       if ( 0 == _bucketsNum )
       {
          rc = createNewPlan( _su, collectionName,
@@ -490,115 +724,71 @@ namespace engine
                              hint, out ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to create new plan:%d", rc ) ;
+            PD_LOG( PDERROR, "Create new plan[%s, query:%s] failed, rc: %d",
+                    collectionName, query.toString().c_str(), rc ) ;
             goto error ;
          }
          goto done ;
       }
-
+      else
       {
-         RTNAPM_SLOCK
-         PLAN_SETS_ITERATOR itr = _planSets.find ( collectionName ) ;
+         ossScopedLock _lock ( &_mutex, SHARED ) ;
+         PLAN_SETS_IT itr = _planSets.find ( collectionName ) ;
+
          if ( _planSets.end() != itr )
          {
-            _rtnAccessPlanSet *plan = itr->second ;
-            // if we are able to find the collection name
-            rc = plan->getPlan ( query, orderBy,
-                                 hint, out, incCount ) ;
-            if ( rc )
+            _rtnAccessPlanSet *pSet = itr->second ;
+            *out = pSet->getPlan( query, orderBy, hint, context ) ;
+            if ( *out )
             {
-               PD_LOG ( PDERROR, "Failed to get plan, rc = %d", rc ) ;
-               goto error ;
+               goto done ;
             }
-            if ( 0 != incCount )
-            {
-               _totalNum.add( incCount ) ;
-            }
-            goto done ;
          }
-      } // S lock scope
-      // if not able to find the collection
+      }
+
+      /// Need to add plan
+      rc = createNewPlan( _su, collectionName, query, orderBy,
+                          hint, out ) ;
+      if ( rc )
       {
-         BOOLEAN newAlloc = FALSE ;
-         RTNAPM_XLOCK
-         // check again just in case someone else added after we release S
-         // lock
-         if ( _planSets.find ( collectionName ) == _planSets.end() )
-         {
-            CHAR *pCollectionName = NULL ;
-            // memory will be freed in destructor or clear()
-            rtnAccessPlanSet *planset = SDB_OSS_NEW rtnAccessPlanSet (_su,
-                  collectionName, this ) ;
-            if ( !planset )
-            {
-               PD_LOG ( PDERROR, "Failed to allocate memory for set" ) ;
-               rc = SDB_OOM ;
-               goto error ;
-            }
-            // get the _collectionName pointer from planset and save it in
-            // _planSets.first
-            pCollectionName = planset->getName() ;
-            _planSets[pCollectionName] = planset ;
-            newAlloc = TRUE ;
-         }
-         rtnAccessPlanSet *planset = _planSets[collectionName] ;
-         SDB_ASSERT ( planset, "not able to find the planset" ) ;
-         rc = planset->getPlan ( query, orderBy, hint, out, incCount ) ;
-         if ( rc )
-         {
-            // clean up the currently allocated set
-            if ( newAlloc )
-            {
-                // make sure to erase first because planset.first is pointing
-                // to _collectionName in the rtnAccessPlanSet, so we need to
-                // make sure during erase comparion, the object is still
-                // avaliable
-                _planSets.erase(collectionName) ;
-                SDB_OSS_DEL planset ;
-            }
-            PD_LOG ( PDERROR, "Failed to get plan, rc = %d", rc ) ;
-            goto error ;
-         }
-         if ( 0 != incCount )
-         {
-            _totalNum.add( incCount ) ;
-         }
-         goto done ;
-      } // X lock scope
+         PD_LOG( PDERROR, "Create new plan[%s, query:%s] failed, rc: %d",
+                 collectionName, query.toString().c_str(), rc ) ;
+         goto error ;
+      }
+      addPlan( *out, context, incCount ) ;
 
    done :
-      PD_TRACE_EXITRC ( SDB__RTNACCESSPLMAN, rc );
+      PD_TRACE_EXITRC ( SDB__RTNACCESSPLMAN_GETPLAN, rc ) ;
       return rc ;
    error :
       goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPLMAN_RELPL, "_rtnAccessPlanManager::releasePlan" )
-   void _rtnAccessPlanManager::releasePlan ( optAccessPlan *plan )
+   void _rtnAccessPlanManager::releasePlan( optAccessPlan *plan )
    {
       PD_TRACE_ENTRY ( SDB__RTNACCESSPLMAN_RELPL );
       SDB_ASSERT ( plan, "plan can't be NULL" ) ;
       SDB_ASSERT ( plan->getAPM() == this,
                    "the owner of plan is not this APM" ) ;
-#if defined (_WINDOWS)
-      map<const CHAR*, rtnAccessPlanSet*, cmp_str>::iterator it ;
-#elif defined (_LINUX)
-      map<const CHAR*, rtnAccessPlanSet*>::iterator it ;
-#endif
-      const CHAR *pCollectionName = plan->getName() ;
-      RTNAPM_SLOCK
-      // if the collection no longer exist, we simply delete the plan
-      if ( (it = _planSets.find(pCollectionName) ) == _planSets.end() )
+      PLAN_SETS_IT it ;
+
+      ossScopedLock _lock ( &_mutex, SHARED ) ;
+
+      it = _planSets.find( plan->getName() ) ;
+
+      if ( it == _planSets.end() )
       {
-         PD_LOG( PDERROR, "Access plan[%s] is not found in plan sets",
+         PD_LOG( PDWARNING, "Access plan[%s] is not found in plan sets",
                  plan->toString().c_str() ) ;
          SDB_OSS_DEL plan ;
-         goto done ;
       }
-      (*it).second->releasePlan ( plan ) ;
-   done :
+      else
+      {
+         it->second->releasePlan( plan ) ;
+      }
+
       PD_TRACE_EXIT ( SDB__RTNACCESSPLMAN_RELPL );
-      return ;
    }
    
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPLMAN_CLEAR, "_rtnAccessPlanManager::clear" )
@@ -606,35 +796,81 @@ namespace engine
    {
       UINT32 cleanNum = 0 ;
       PD_TRACE_ENTRY ( SDB__RTNACCESSPLMAN_CLEAR );
-#if defined (_WINDOWS)
-      map<const CHAR*, rtnAccessPlanSet*, cmp_str>::iterator it ;
-#elif defined (_LINUX)
-      map<const CHAR*, rtnAccessPlanSet*>::iterator it ;
-#endif
-      RTNAPM_XLOCK
-      for ( it = _planSets.begin(); it != _planSets.end(); )
+      PLAN_SETS_IT it ;
+
+      ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
+
+      UINT32 threshold = RTN_APM_DFT_OCCUPY_PCT * _totalNum.peek() ;
+
+      for ( it = _planSets.begin() ; it != _planSets.end() ; )
       {
          rtnAccessPlanSet *planset = (*it).second ;
          planset->clear( cleanNum ) ;
-         _totalNum.sub( cleanNum ) ;
+         if ( cleanNum > 0 )
+         {
+            _totalNum.sub( cleanNum ) ;
+         }
+
          // clear empty list
          if ( planset->size() == 0 )
          {
-            _planSets.erase(it++) ;
+            _planSets.erase( it++ ) ;
             SDB_OSS_DEL planset ;
          }
          else
          {
             ++it ;
          }
-         if ( !full && _totalNum.peek() < RTN_APM_DFT_OCCUPY )
+
+         if ( !full && _totalNum.peek() < threshold )
          {
             break ;
          }
       }
 
-      PD_TRACE_EXIT ( SDB__RTNACCESSPLMAN_CLEAR );
-      return ;
+      PD_TRACE_EXIT ( SDB__RTNACCESSPLMAN_CLEAR ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNACCESSPLMAN_CLEARFAST, "_rtnAccessPlanManager::_clearFast" )
+   UINT32 _rtnAccessPlanManager::_clearFast( INT32 expectNum )
+   {
+      UINT32 totalCleanNum = 0 ;
+      UINT32 cleanNum = 0 ;
+      PD_TRACE_ENTRY ( SDB__RTNACCESSPLMAN_CLEARFAST );
+      PLAN_SETS_IT it ;
+
+      if ( hasEmptyAP() )
+      {
+         for ( it = _planSets.begin() ; it != _planSets.end() ; )
+         {
+            rtnAccessPlanSet *planset = (*it).second ;
+            if ( ( cleanNum = planset->_clearFast( expectNum ) ) > 0 )
+            {
+               expectNum -= cleanNum ;
+               totalCleanNum += cleanNum ;
+               _totalNum.sub( cleanNum ) ;
+            }
+
+            // clear empty list
+            if ( planset->size() == 0 )
+            {
+               _planSets.erase( it++ ) ;
+               SDB_OSS_DEL planset ;
+            }
+            else
+            {
+               ++it ;
+            }
+
+            if ( expectNum <= 0 )
+            {
+               break ;
+            }
+         }
+      }
+
+      PD_TRACE_EXIT ( SDB__RTNACCESSPLMAN_CLEARFAST ) ;
+      return totalCleanNum ;
    }
 
 }
