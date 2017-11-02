@@ -4,7 +4,7 @@
     <version>1.0</version>
     <installationType>normal</installationType>
     <overwritePolicy>always</overwritePolicy>
-         
+
     <customLanguageFileList>
         <language>
             <code>en</code>
@@ -17,7 +17,7 @@
             <file>${build_project_directory}/sequoiadb_zh.lng</file>
         </language>
     </customLanguageFileList>
-    
+
     <licenseFileList>
         <licenseFile>
             <code>en</code>
@@ -30,23 +30,25 @@
         </licenseFile>
     </licenseFileList>
 
-    <initializationActionList>        
+    <initializationActionList>
         <setInstallerVariable name="stage" value="main"/>
         <createTimeStamp>
             <variable>time</variable>
             <format>%Y-%m-%d-%H:%M:%S</format>
-        </createTimeStamp> 
+        </createTimeStamp>
         <setInstallerVariable name="sys_conf_file" value="/etc/default/sequoiadb" persist="1"/>
-        <setInstallerVariable name="exist_installation" value="false"/>                   
-        <setInstallerVariable name="project.rollbackBackupDirectory" value="${installdir}/rollback/BackupDir_${time}"/>       
+        <setInstallerVariable name="exist_installation" value="false"/>
+        <setInstallerVariable name="project.rollbackBackupDirectory" value="${installdir}/rollback/BackupDir_${time}"/>
+        <setInstallerVariable name="newsysconf_default" value="/usr/lib/systemd/system" persist="1"/>
+        <setInstallerVariable name="newsysconf_ubuntu" value="/lib/systemd/system" persist="1"/>
     </initializationActionList>
-        
+
     <functionDefinitionList>
         <actionDefinition name="checkUmaskFunction">
-            <actionList>                                                       
+            <actionList>
                 <setInstallerVariableFromScriptOutput>
                     <name>full_mask</name>
-                    <exec>umask</exec>           
+                    <exec>umask</exec>
                 </setInstallerVariableFromScriptOutput>
                 <setInstallerVariableFromScriptOutput>
                     <name>other_mask</name>
@@ -72,7 +74,7 @@
                         <compareValues value1="${user_mask}"  logic="greater" value2="0"/>
                     </ruleList>
                 </showWarning>
-            </actionList>    
+            </actionList>
         </actionDefinition>
         <actionDefinition name="checkFreeDiskSpaceFunction">
             <actionList>
@@ -86,7 +88,7 @@
                         </checkFreeDiskSpace>
                     </ruleList>
                 </throwError>
-            </actionList>    
+            </actionList>
         </actionDefinition>
         <actionDefinition name="checkHostnameIp">
             <actionList>
@@ -109,11 +111,11 @@
                         <compareText logic="equals" text="${machine_ipaddr}" value="127.0.0.1"/>
                     </ruleList>
                 </showWarning>
-            </actionList>    
+            </actionList>
         </actionDefinition>
         <actionDefinition name="linkPhpLibFunction">
             <actionList>
-                <setInstallerVariable name="php_lib_dir" value="${installdir}/tools/server/php/libxml2/lib"/>                     
+                <setInstallerVariable name="php_lib_dir" value="${installdir}/tools/server/php/libxml2/lib"/>
                 <createSymLink linkName="${php_lib_dir}/libxml2.so">
                     <target>${php_lib_dir}/libxml2.so.2.9.0</target>
                 </createSymLink>
@@ -121,7 +123,7 @@
                     <program>chown</program>
                     <programArguments>-h ${username}:${groupname} ${php_lib_dir}/libxml2.so</programArguments>
                 </runProgram>
-                
+
                 <createSymLink linkName="${php_lib_dir}/libxml2.so.2">
                     <target>${php_lib_dir}/libxml2.so.2.9.0</target>
                 </createSymLink>
@@ -129,7 +131,7 @@
                     <program>chown</program>
                     <programArguments>-h ${username}:${groupname} ${php_lib_dir}/libxml2.so.2</programArguments>
                 </runProgram>
-                
+
                 <createSymLink linkName="${php_lib_dir}/libz.so">
                     <target>${php_lib_dir}/libz.so.1.2.5</target>
                 </createSymLink>
@@ -137,33 +139,33 @@
                     <program>chown</program>
                     <programArguments>-h ${username}:${groupname} ${php_lib_dir}/libz.so</programArguments>
                 </runProgram>
-                
+
                 <createSymLink linkName="${php_lib_dir}/libz.so.1">
                     <target>${php_lib_dir}/libz.so.1.2.5</target>
                 </createSymLink>
                 <runProgram>
                     <program>chown</program>
                     <programArguments>-h ${username}:${groupname} ${php_lib_dir}/libz.so.1</programArguments>
-                </runProgram> 
-                
+                </runProgram>
+
                 <dos2unix files="${installdir}/tools/server/php/bin/php"/>
                 <iniFileSet>
                     <file>${installdir}/tools/server/php/lib/php.ini</file>
                     <key>extension_dir</key>
                     <section>PHP</section>
                     <value>${installdir}/lib/phplib</value>
-                </iniFileSet>                                                                                                                                          
-            </actionList>    
+                </iniFileSet>
+            </actionList>
         </actionDefinition>
         <actionDefinition name="changePermissionOwnerFunction">
-            <actionList>                                                       
+            <actionList>
                 <changePermissions permissions="0755" files="${installdir}/bin/{*,*/*}"/>
                 <changePermissions permissions="0755" files="${installdir}/tools/server/php/bin/*"/>
                 <changePermissions permissions="0755" files="${installdir}/www/shell/*"/>
                 <changePermissions permissions="0755" files="${installdir}/install_om.sh"/>
                 <changePermissions permissions="0755" files="${installdir}/conf/script/{*.sh,*/*.sh}"/>
                 <changePermissions permissions="0755" files="${installdir}/java/jdk/bin/*"/>
-                <changePermissions permissions="0755" files="${installdir}/postgresql/*.so*"/>                               
+                <changePermissions permissions="0755" files="${installdir}/postgresql/*.so*"/>
                 <changePermissions permissions="0777" files="/tmp"/>
                 <changePermissions permissions="0777" files="/tmp/sequoiadb">
                     <ruleList>
@@ -176,31 +178,31 @@
                     <owner>root</owner>
                 </changeOwnerAndGroup>
                 <changePermissions permissions="6755" files="${installdir}/bin/sdbomtool"/>
-                
+
                 <if>
                     <conditionRuleList>
                         <fileExists path="${installdir}/doc/index.html"/>
-                    </conditionRuleList> 
-                    <actionList>                     
+                    </conditionRuleList>
+                    <actionList>
                         <runProgram>
                             <program>rm</program>
-                            <programArguments>-f ${installdir}/www/doc</programArguments>            
-                        </runProgram>        
+                            <programArguments>-f ${installdir}/www/doc</programArguments>
+                        </runProgram>
                         <createSymLink linkName="${installdir}/www/doc" target="${installdir}/doc"/>
                         <runProgram>
                             <program>chown</program>
-                            <programArguments>-h ${username}:${groupname} ${installdir}/www/doc</programArguments>            
+                            <programArguments>-h ${username}:${groupname} ${installdir}/www/doc</programArguments>
                         </runProgram>
-                    </actionList> 
+                    </actionList>
                 </if>
-                                                             
+
                 <changeOwnerAndGroup>
                     <files>${project.rollbackBackupDirectory};${installdir}/rollback</files>
                     <group>${groupname}</group>
                     <owner>${username}</owner>
-                </changeOwnerAndGroup>                                                   
+                </changeOwnerAndGroup>
 
-            </actionList>    
+            </actionList>
         </actionDefinition>
         <actionDefinition name="startServiceFunction">
             <actionList>
@@ -209,7 +211,7 @@
                     <showMessageOnError>0</showMessageOnError>
                     <program>systemctl</program>
                     <programArguments>daemon-reload</programArguments>
-                </runProgram>             
+                </runProgram>
                 <runProgram>
                     <customErrorMessage>${msg(Install.ErrorMsg.StartCM.error)}</customErrorMessage>
                     <program>service</program>
@@ -218,7 +220,7 @@
                         <consoleWrite text="&#xA;error message:&#xA;${program_stdout}&#xA;"/>
                     </onErrorActionList>
                 </runProgram>
-            </actionList>    
+            </actionList>
         </actionDefinition>
         <actionDefinition name="deleteEnv">
             <actionList>
@@ -231,7 +233,7 @@
                 <if>
                     <conditionRuleList>
                         <compareValues value1="${line_num1}" logic="greater" value2="0"/>
-                    </conditionRuleList> 
+                    </conditionRuleList>
                     <actionList>
                         <runProgram>
                             <program>sed</program>
@@ -244,7 +246,7 @@
                         </runProgram>
                     </actionList>
                 </if>
-                
+
                 <setInstallerVariableFromScriptOutput>
                     <exec>grep</exec>
                     <execArgs>-n "^export LD_LIBRARY_PATH=\"\$LD_LIBRARY_PATH:${installdir}\/lib\"$" ${envFile} | awk -F ":" '{print $1}'</execArgs>
@@ -253,7 +255,7 @@
                 <if>
                     <conditionRuleList>
                         <compareValues value1="${line_num2}" logic="greater" value2="0"/>
-                    </conditionRuleList> 
+                    </conditionRuleList>
                     <actionList>
                         <runProgram>
                             <program>sed</program>
@@ -266,7 +268,7 @@
                         </runProgram>
                     </actionList>
                 </if>
-                
+
                 <!--delete empty file-->
                 <runProgram>
                     <program>test</program>
@@ -278,16 +280,99 @@
                     </onErrorActionList>
                 </runProgram>
 
-            </actionList>    
+            </actionList>
             <parameterList>
                 <stringParameter name="envFile" value="" default=""/>
             </parameterList>
         </actionDefinition>
+        <actionDefinition name="getSysType">
+            <actionList>
+                <getSymLinkTarget variable="pid1_fullpath">
+                    <link>/proc/1/exe</link>
+                </getSymLinkTarget>
+                <setInstallerVariableFromRegEx>
+                    <name>pid1_exe</name>
+                    <pattern>(.*)/(.*)</pattern>
+                    <substitution>\2</substitution>
+                    <text>${pid1_fullpath}</text>
+                </setInstallerVariableFromRegEx>
+                <globalVariables names="${type}"/>
+                <setInstallerVariable name="${type}" value="unknown"/>
+                <setInstallerVariable name="${type}" value="SysV">
+                    <ruleList>
+                        <compareValues value1="${pid1_exe}" logic="equals" value2="init"/>
+                    </ruleList>
+                </setInstallerVariable>
+                <setInstallerVariable name="${type}" value="systemd">
+                    <ruleList>
+                        <compareValues value1="${pid1_exe}" logic="equals" value2="systemd"/>
+                    </ruleList>
+                </setInstallerVariable>
+            </actionList>
+                <parameterList>
+                    <stringParameter name="type" value="" default=""/>
+                </parameterList>
+        </actionDefinition>
+        <actionDefinition name="addDefaultService">
+            <actionList>
+                <addUnixService>
+                    <customErrorMessage>${msg(Install.ErrorMsg.CreateLinuxService.error)}</customErrorMessage>
+                    <name>sdbcm</name>
+                    <program>${installdir}/sequoiadb</program>
+                </addUnixService>
+                <deleteFile path="${installdir}/sdbcm.service"/>
+            </actionList>
+        </actionDefinition>
+        <actionDefinition name="delDefaultService">
+            <actionList>
+                <removeUnixService name="sdbcm"/>
+            </actionList>
+        </actionDefinition>
+        <actionDefinition name="addSystemdService">
+            <actionList>
+                <substitute>
+                    <files>${installdir}/sdbcm.service</files>
+                    <type>exact</type>
+                    <substitutionList>
+                        <substitution pattern="/opt/sequoiadb" value="${installdir}"/>
+                    </substitutionList>
+                </substitute>
+                <copyFile origin="${installdir}/sdbcm.service">
+                    <destination>${newsysconf_default}/sdbcm.service</destination>
+                    <ruleList>
+                        <fileTest condition="is_not_empty" path="${newsysconf_default}"/>
+                    </ruleList>
+                </copyFile>
+                <copyFile origin="${installdir}/sdbcm.service">
+                    <destination>${newsysconf_ubuntu}/sdbcm.service</destination>
+                    <ruleList>
+                        <fileTest condition="is_not_empty" path="${newsysconf_ubuntu}"/>
+                    </ruleList>
+                </copyFile>
+                <deleteFile path="${installdir}/sdbcm.service"/>
+                <runProgram>
+                    <program>systemctl</program>
+                    <programArguments>enable sdbcm.service</programArguments>
+                    <customErrorMessage>${msg(Install.ErrorMsg.CreateLinuxService.error)}</customErrorMessage>
+                </runProgram>
+            </actionList>
+        </actionDefinition>
+        <actionDefinition name="delSystemdService">
+            <actionList>
+                <deleteFile path="${newsysconf_default}/sdbcm.service"/>
+                <deleteFile path="${newsysconf_ubuntu}/sdbcm.service"/>
+                <runProgram>
+                    <program>systemctl</program>
+                    <programArguments>daemon-reload</programArguments>
+                    <customErrorMessage>${msg(Install.ErrorMsg.systemctlReload)}</customErrorMessage>
+                </runProgram>
+            </actionList>
+        </actionDefinition>
     </functionDefinitionList>
-       
+
     <!--exist installation? different mode has different parameterList-->
     <preInstallationActionList>
-        <!-- parameter check -->                         
+        <!-- parameter check -->
         <throwError>
             <text>${msg(Upgrade.Paramers.Upgrade.Check)}</text>
             <ruleEvaluationLogic>and</ruleEvaluationLogic>
@@ -320,13 +405,13 @@
                 <compareText logic="does_not_equal" text="${processAutoStart}" value="false"/>
             </ruleList>
         </throwError>
-        
+
         <!--parameter passed in command line, should not ask again in dialog-->
         <setInstallerVariable name="parameter(force).ask" value="0">
             <ruleList>
                 <compareText text="${installer_command_line_arguments}" value="--force" logic="contains"/>
             </ruleList>
-        </setInstallerVariable>       
+        </setInstallerVariable>
         <setInstallerVariable name="parameter(installdir).ask" value="0">
             <ruleList>
                 <compareText text="${installer_command_line_arguments}" value="--prefix" logic="contains"/>
@@ -370,8 +455,8 @@
                 <compareText text="${installer_command_line_arguments}" value="--userpasswd" logic="contains"/>
             </ruleList>
         </setInstallerVariable>
-                                            
-        <!--check old version of sequoiadb exists or not--> 
+
+        <!--check old version of sequoiadb exists or not-->
         <changePermissions><!--make sure permission is 644-->
             <files>${sys_conf_file}</files>
             <permissions>0644</permissions>
@@ -380,35 +465,35 @@
             </ruleList>
         </changePermissions>
         <propertiesFileGet>
-            <file>${sys_conf_file}</file>            
+            <file>${sys_conf_file}</file>
             <key>INSTALL_DIR</key>
             <variable>installdir_inconf</variable>
             <abortOnError>0</abortOnError>
             <showMessageOnError>0</showMessageOnError>
-        </propertiesFileGet> 
+        </propertiesFileGet>
         <setInstallerVariable name="exist_installation" value="true">
             <ruleEvaluationLogic>and</ruleEvaluationLogic>
-            <ruleList>                     
+            <ruleList>
                  <compareTextLength text="${installdir_inconf}" logic="greater" length="0"/>
-                 <fileTest condition="exists"       path="${installdir_inconf}"/> 
+                 <fileTest condition="exists"       path="${installdir_inconf}"/>
                  <fileTest condition="is_not_empty" path="${installdir_inconf}"/>
-            </ruleList>    
-        </setInstallerVariable>     
-                                                                            
+            </ruleList>
+        </setInstallerVariable>
+
     </preInstallationActionList>
-    
+
     <parameterList>
-        <!--keep variable in both running time and building time-->          
+        <!--keep variable in both running time and building time-->
         <stringParameter name="enterpriseversion" ask="0" value=""/>
-        <stringParameter name="platform"          ask="0" value=""/>               
-        
+        <stringParameter name="platform"          ask="0" value=""/>
+
         <choiceParameter name="need_read_license">
             <ruleList>
                 <compareValues value1="${installer_ui}" logic="equals" value2="text"/>
             </ruleList>
-            <insertBefore>full_license</insertBefore>            
-            <default>false</default>  
-            <cliOptionShow>0</cliOptionShow>            
+            <insertBefore>full_license</insertBefore>
+            <default>false</default>
+            <cliOptionShow>0</cliOptionShow>
             <explanation></explanation>
             <description>${msg(Install.Paramers.LicenseRead.License.Information.Part)}</description>
             <optionList>
@@ -420,25 +505,25 @@
                 <option>
                     <text>${msg(Install.Paramers.LicenseRead.Read.Description)}</text>
                     <value>true</value>
-                </option>     
-            </optionList>       
+                </option>
+            </optionList>
         </choiceParameter>
-                 
+
         <licenseParameter name="full_license">
             <ruleEvaluationLogic>or</ruleEvaluationLogic>
-            <ruleList>               
-                <compareValues value1="${installer_ui}" logic="does_not_equal" value2="text"/>  
+            <ruleList>
+                <compareValues value1="${installer_ui}" logic="does_not_equal" value2="text"/>
                 <ruleGroup ruleEvaluationLogic="and">
                     <ruleList>
                         <compareValues value1="${installer_ui}" logic="equals" value2="text"/>
-                        <isTrue value="${need_read_license}"/>     
-                    </ruleList>    
+                        <isTrue value="${need_read_license}"/>
+                    </ruleList>
                 </ruleGroup>
-            </ruleList> 
+            </ruleList>
             <title>License Agreement</title>
             <description>${msg(Install.Paramers.LicenseRead.Read.Description)}</description>
             <explanation></explanation>
-            <file>${build_project_directory}/sequoiadb/license/license_en.txt</file>           
+            <file>${build_project_directory}/sequoiadb/license/license_en.txt</file>
             <licenseFileList>
                 <licenseFile>
                     <code>zh_CN</code>
@@ -447,25 +532,25 @@
                 </licenseFile>
             </licenseFileList>
         </licenseParameter>
-        
-        <booleanParameter name="is_upgrade_mode"> 
-            <insertAfter>full_license</insertAfter>            
+
+        <booleanParameter name="is_upgrade_mode">
+            <insertAfter>full_license</insertAfter>
             <value></value>
             <default>true</default>
-            <cliOptionText>${msg(Upgrade.Paramers.Upgrade.Explanation)}</cliOptionText>             
-            <cliOptionName>upgrade</cliOptionName> 
+            <cliOptionText>${msg(Upgrade.Paramers.Upgrade.Explanation)}</cliOptionText>
+            <cliOptionName>upgrade</cliOptionName>
             <description>${msg(Install.Parameter.Upgrade.description)}</description>
-            <explanation>${msg(Install.Parameter.Upgrade.explanation)}</explanation>            
+            <explanation>${msg(Install.Parameter.Upgrade.explanation)}</explanation>
             <ruleList>
-                <compareText text="${installer_command_line_arguments}" value="--upgrade" logic="does_not_contain"/>                
-                <isTrue value="${exist_installation}"/>                                                        
-            </ruleList>   
+                <compareText text="${installer_command_line_arguments}" value="--upgrade" logic="does_not_contain"/>
+                <isTrue value="${exist_installation}"/>
+            </ruleList>
         </booleanParameter>
-              
+
         <booleanParameter name="force">
             <insertAfter>is_upgrade_mode</insertAfter>
             <value></value>
-            <default>false</default>  
+            <default>false</default>
             <cliOptionName>force</cliOptionName>
             <cliOptionText>${msg(Install.Paramers.Force.Description)}</cliOptionText>
             <explanation>${msg(Install.Paramers.Force.Explanation)}</explanation>
@@ -475,12 +560,12 @@
                 <ruleList>
                     <compareText text="${installer_command_line_arguments}" value="--upgrade" logic="does_not_contain"/>
                     <isFalse value="${exist_installation}"/>
-                </ruleList> 
-                </setInstallerVariable>   
-            </preShowPageActionList> 
-        </booleanParameter>                                                                         
-                
-        <!--normal mode parameter-->                                                                                  
+                </ruleList>
+                </setInstallerVariable>
+            </preShowPageActionList>
+        </booleanParameter>
+
+        <!--normal mode parameter-->
         <directoryParameter name="installdir">
             <insertAfter>force</insertAfter>
             <description>Installer.Parameter.installdir.description</description>
@@ -496,7 +581,7 @@
             <ruleList>
                 <isFalse value="${is_upgrade_mode}"/>
             </ruleList>
-        </directoryParameter>                   
+        </directoryParameter>
         <parameterGroup name="user_data">
             <insertAfter>installdir</insertAfter>
             <title>${msg(Install.Paramers.user.title)}</title>
@@ -530,7 +615,7 @@
                     <default>${username}</default>
                     <allowEmptyValue>0</allowEmptyValue>
                     <descriptionRetype>${msg(Install.Paramers.user.reentry_password.description)}</descriptionRetype>
-                    <width>20</width>                           
+                    <width>20</width>
                     <validationActionList>
                         <throwError>
                             <text>${msg(Install.Paramers.user.password.error)}</text>
@@ -567,20 +652,20 @@
             <cliOptionText>${msg(Install.Paramers.processAutoStart.explanation)}</cliOptionText>
             <ruleList>
                 <isFalse value="${is_upgrade_mode}"/>
-            </ruleList>                   
+            </ruleList>
         </booleanParameter>
         <booleanParameter name="SMS">
             <insertAfter>processAutoStart</insertAfter>
-            <description>${msg(Install.Paramers.sms.description)}</description>                  
+            <description>${msg(Install.Paramers.sms.description)}</description>
             <value></value>
             <default>false</default>
             <cliOptionName>SMS</cliOptionName>
-            <cliOptionText>${msg(Install.Paramers.sms.explanation)}</cliOptionText> 
+            <cliOptionText>${msg(Install.Paramers.sms.explanation)}</cliOptionText>
             <ruleList>
                 <isFalse value="${is_upgrade_mode}"/>
-            </ruleList>                                      
+            </ruleList>
         </booleanParameter>
-                                                          
+
     </parameterList>
 
     <!--select compoment, and check environment-->
@@ -591,7 +676,7 @@
                 <setInstallerVariable name="is_upgrade_mode" value="false"/>
             </actionList>
             <ruleEvaluationLogic>and</ruleEvaluationLogic>
-            <ruleList>                                                                        
+            <ruleList>
                 <compareText text="${installer_command_line_arguments}" value="--upgrade" logic="does_not_contain"/>
                 <isFalse value="${exist_installation}"/>
                 <compareText>
@@ -600,58 +685,58 @@
                     <value>normal</value>
                 </compareText>
             </ruleList>
-        </actionGroup>             
-          
-        <actionGroup> 
+        </actionGroup>
+
+        <actionGroup>
             <actionList>
-                <setInstallerVariable name="project.installationType" value="upgrade"/>                             
+                <setInstallerVariable name="project.installationType" value="upgrade"/>
             </actionList>
             <ruleList>
-                <isTrue value="${is_upgrade_mode}"/>               
+                <isTrue value="${is_upgrade_mode}"/>
             </ruleList>
-        </actionGroup> 
-        
-        <!--select component-->                                                                                               
+        </actionGroup>
+
+        <!--select component-->
         <componentSelection>
             <select>upgrade_component</select>
             <deselect>normal_component</deselect>
             <ruleList>
                 <compareValues value1="${project.installationType}" value2="upgrade" logic="equals"/>
             </ruleList>
-        </componentSelection> 
+        </componentSelection>
         <componentSelection>
             <select>normal_component</select>
             <deselect>upgrade_component</deselect>
             <ruleList>
                 <compareValues value1="${project.installationType}" value2="normal" logic="equals"/>
             </ruleList>
-        </componentSelection>                                   
-                                          
-    </readyToInstallActionList> 
+        </componentSelection>
+
+    </readyToInstallActionList>
 
     <componentList>
         <include file="upgrade_component.xml" />
-        <include file="normal_component.xml" />    
+        <include file="normal_component.xml" />
     </componentList>
 
     <preUninstallationActionList>
         <!--stop process-->
         <runProgram>
             <program>service</program>
-            <programArguments>sdbcm stop</programArguments>            
+            <programArguments>sdbcm stop</programArguments>
             <abortOnError>0</abortOnError>
             <showMessageOnError>0</showMessageOnError>
         </runProgram>
         <runProgram>
             <program>${installdir}/bin/sdbstop</program>
-            <programArguments>-t all</programArguments> 
+            <programArguments>-t all</programArguments>
             <runAs>${username}</runAs>
             <abortOnError>0</abortOnError>
             <showMessageOnError>0</showMessageOnError>
-        </runProgram> 
-        
-        <!--check process has been stoped or not-->        
-        <setInstallerVariable name="process_num" value="-1"/>      
+        </runProgram>
+
+        <!--check process has been stoped or not-->
+        <setInstallerVariable name="process_num" value="-1"/>
         <setInstallerVariableFromScriptOutput>
             <name>process_num</name>
             <exec>${installdir}/bin/sdblist</exec>
@@ -662,41 +747,52 @@
         <if>
             <conditionRuleList>
                  <compareValues value1="${process_num}" logic="greater" value2="0"/>
-            </conditionRuleList> 
+            </conditionRuleList>
             <actionList>
                 <consoleWrite text="&#xA;${msg(Uninstall.ErrorMsg.CheckProcess)}&#xA;"/>
                 <exit exitCode="1"/><!--exit uninstallation-->
             </actionList>
-        </if>        
-        
-        <!--other-->
-        <removeUnixService>
-            <name>sdbcm</name>            
-        </removeUnixService>    
-        <deleteFile path="${installdir}/packet/${installerFilename}"/>        
+        </if>
     </preUninstallationActionList>
-    
+
     <postUninstallationActionList>
+        <!--remove service-->
+        <getSysType type="sys_type"/>
+        <if>
+            <conditionRuleList>
+                <compareValues value1="${sys_type}" logic="equals" value2="systemd"/>
+            </conditionRuleList>
+            <actionList>
+                <delSystemdService/>
+            </actionList>
+            <elseActionList>
+                <delDefaultService/>
+            </elseActionList>
+        </if>
+
+        <!--delete file-->
+        <deleteFile path="${installdir}/packet/${installerFilename}"/>
         <deleteFile path="${sys_conf_file}"/>
+        
+        <!--delete environment-->
         <deleteEnv envFile="~${username}/.bashrc"/>
         <deleteEnv envFile="~${username}/.profile"/>
         <deleteEnv envFile="~${username}/.bash_profile"/>
-        
-    </postUninstallationActionList> 
-                      
-    <installerFilename>${product_shortname}-${product_version}-${platform}${enterpriseversion}-installer.${platform_exec_suffix}</installerFilename>         
-    <allowLanguageSelection>1</allowLanguageSelection>   
+    </postUninstallationActionList>
+
+    <installerFilename>${product_shortname}-${product_version}-${platform}${enterpriseversion}-installer.${platform_exec_suffix}</installerFilename>
+    <allowLanguageSelection>1</allowLanguageSelection>
     <allowedLanguages>en zh_CN</allowedLanguages>
     <debuggerPassword>sequoiadb</debuggerPassword>
     <enableDebugger>1</enableDebugger>
     <defaultUnixGroup>${groupname}</defaultUnixGroup>
-    <defaultUnixOwner>${username}</defaultUnixOwner> 
+    <defaultUnixOwner>${username}</defaultUnixOwner>
     <enableRollback>1</enableRollback>
     <enableTimestamp>1</enableTimestamp>
     <requireInstallationByRootUser>1</requireInstallationByRootUser>
     <saveRelativePaths>1</saveRelativePaths>
     <singleInstanceCheck>1</singleInstanceCheck>
-    <vendor>SequoiaDB</vendor>      
-    
+    <vendor>SequoiaDB</vendor>
+
 </project>
 

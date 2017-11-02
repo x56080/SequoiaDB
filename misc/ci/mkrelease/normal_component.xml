@@ -1,24 +1,24 @@
 <component>
     <name>normal_component</name>
-    
+
     <initializationActionList>
         <setInstallerVariable name="stage" value="normal"/>
         <setInstallerVariable name="add_user_done"      value="false"/>
         <setInstallerVariable name="add_group_done"     value="false"/>
         <setInstallerVariable name="add_service_done"   value="false"/>
-        <setInstallerVariable name="add_sysconf_done"   value="false"/>            
+        <setInstallerVariable name="add_sysconf_done"   value="false"/>
     </initializationActionList>
-       
-    <readyToInstallActionList>  
-        <!--check disk--> 
+
+    <readyToInstallActionList>
+        <!--check disk-->
         <checkFreeDiskSpaceFunction/>
-        
+
         <!--check hostname and ip-->
         <checkHostnameIp/>
-        
+
         <!--check umask-->
-        <checkUmaskFunction/> 
-        
+        <checkUmaskFunction/>
+
         <!--check process has been stoped or not-->
         <createDirectory path="${installdir}/tmp_${time}"/>
         <unpackFile>
@@ -27,38 +27,38 @@
            <origin>bin/sdblist</origin>
            <destination>${installdir}/tmp_${time}</destination>
         </unpackFile>
-        <changePermissions files="${installdir}/tmp_${time}/sdblist" permissions="0755"/>               
+        <changePermissions files="${installdir}/tmp_${time}/sdblist" permissions="0755"/>
         <if>
             <conditionRuleList>
                 <isTrue value="${force}"/>
-            </conditionRuleList> 
-            <actionList>                 
+            </conditionRuleList>
+            <actionList>
                 <runProgram>
                     <program>service</program>
-                    <programArguments> sdbcm stop</programArguments> 
+                    <programArguments> sdbcm stop</programArguments>
                     <abortOnError>0</abortOnError>
-                    <showMessageOnError>0</showMessageOnError>           
-                </runProgram>                                                                 
+                    <showMessageOnError>0</showMessageOnError>
+                </runProgram>
                 <runProgram>
                     <program>${installdir}/tmp_${time}/sdblist</program>
                     <programArguments>-t all | grep -v "Total" | awk '{print $2}' | awk -F '(' '{print $2}' | awk -F ')' '{print "kill -9 " $1}' | bash</programArguments>
-                </runProgram>               
-            </actionList>          
+                </runProgram>
+            </actionList>
         </if>
         <setInstallerVariableFromScriptOutput>
             <name>process_num</name>
             <exec>${installdir}/tmp_${time}/sdblist</exec>
             <execArgs>-t all | grep -v "Total" | wc -l</execArgs>
         </setInstallerVariableFromScriptOutput>
-        <deleteFile path="${installdir}/tmp_${time}"/> 
+        <deleteFile path="${installdir}/tmp_${time}"/>
         <throwError>
-            <text>${msg(Upgrade.ErrorMsg.StopProcess)}</text>            
+            <text>${msg(Upgrade.ErrorMsg.StopProcess)}</text>
             <ruleList>
                 <compareValues value1="${process_num}" logic="greater" value2="0"/>
-            </ruleList>  
-        </throwError>        
-       
-        <!--check or create user group-->        
+            </ruleList>
+        </throwError>
+
+        <!--check or create user group-->
         <throwError>
             <text>The ROOT user is not allowed to create.</text>
             <ruleList>
@@ -69,7 +69,7 @@
                 </compareValues>
             </ruleList>
         </throwError>
-        
+
         <setInstallerVariable name="exist_user" value="false"/>
         <setInstallerVariable>
             <name>exist_user</name>
@@ -77,24 +77,24 @@
             <ruleList>
                 <userTest logic="exists" username="${username}"/>
             </ruleList>
-        </setInstallerVariable> 
-        
+        </setInstallerVariable>
+
         <setInstallerVariable name="exist_group" value="false"/>
         <runProgram>
             <program>grep</program>
             <programArguments>"^$groupname:" /etc/group</programArguments>
             <abortOnError>0</abortOnError>
             <showMessageOnError>0</showMessageOnError>
-        </runProgram> 
+        </runProgram>
         <setInstallerVariable name="exist_group" value="true">
              <ruleList>
                  <compareText logic="equals" text="${program_exit_code}" value="0"/>
-             </ruleList>    
+             </ruleList>
         </setInstallerVariable>
-                                
-        
-        <actionGroup> 
-            <ruleList> 
+
+
+        <actionGroup>
+            <ruleList>
                 <isTrue value="${exist_user}"/>
             </ruleList>
             <actionList>
@@ -102,7 +102,7 @@
                     <name>actual_group</name>
                     <exec>id</exec>
                     <execArgs>-ng ${username}</execArgs>
-                </setInstallerVariableFromScriptOutput>                
+                </setInstallerVariableFromScriptOutput>
                 <throwError>
                     <text>${msg(Install.ErrorMsg.CheckGroup)}</text>
                     <ruleList>
@@ -112,83 +112,83 @@
                 <createDirectory path="~${username}"/>
             </actionList>
         </actionGroup>
-        
-        <actionGroup> 
-            <ruleList> 
+
+        <actionGroup>
+            <ruleList>
                 <isFalse value="${exist_user}"/>
             </ruleList>
-            <actionList>                
+            <actionList>
                 <addGroup> <!--if group exists, <addGroup> will not throw error-->
                     <customErrorMessage>${msg(Install.ErrorMsg.CreateGroup)}</customErrorMessage>
-                    <groupname>${groupname}</groupname>                    
-                </addGroup>  
+                    <groupname>${groupname}</groupname>
+                </addGroup>
                 <setInstallerVariable name="add_group_done" value="true">
                      <ruleEvaluationLogic>and</ruleEvaluationLogic>
                      <ruleList>
                          <isTrue value="${exist_group}"/>
                          <compareText logic="equals" text="${program_exit_code}" value="0"/>
-                     </ruleList>    
-                </setInstallerVariable>               
-                <runProgram>                    
+                     </ruleList>
+                </setInstallerVariable>
+                <runProgram>
                     <customErrorMessage>${msg(Install.ErrorMsg.CreateUser)}</customErrorMessage>
                     <program>useradd</program>
-                    <programArguments>${username} -m -p ${userpasswd} -g ${groupname}  -s /bin/bash </programArguments>                                 
+                    <programArguments>${username} -m -p ${userpasswd} -g ${groupname}  -s /bin/bash </programArguments>
                 </runProgram>
                 <setInstallerVariable name="add_user_done" value="true">
                      <ruleList>
                          <compareText logic="equals" text="${program_exit_code}" value="0"/>
-                     </ruleList>    
-                </setInstallerVariable>                       
+                     </ruleList>
+                </setInstallerVariable>
             </actionList>
         </actionGroup>
-        
+
         <runProgram>
             <program>echo</program>
-            <programArguments> ${username}:${userpasswd} | chpasswd</programArguments>     
-        </runProgram> 
-                                                                                              
+            <programArguments> ${username}:${userpasswd} | chpasswd</programArguments>
+        </runProgram>
+
     </readyToInstallActionList>
-                   
-    <folderList>         
+
+    <folderList>
         <folder>
             <name>files</name>
             <destination>${installdir}</destination>
             <distributionFileList>
-                <distributionDirectory> 
-                    <allowWildcards>1</allowWildcards>                       
+                <distributionDirectory>
+                    <allowWildcards>1</allowWildcards>
                     <origin>${build_project_directory}/sequoiadb/*</origin>
                     <excludeFiles>*/compatible.sh;*/version.conf</excludeFiles>
-                </distributionDirectory>               
+                </distributionDirectory>
             </distributionFileList>
         </folder>
-    </folderList> 
-    
+    </folderList>
+
     <postInstallationActionList>
-        
+
         <linkPhpLibFunction/>
-        
+
         <changePermissionOwnerFunction/>
-        
+
         <!--modify tcp-->
         <runProgram>
             <abortOnError>0</abortOnError>
             <program>echo</program>
             <programArguments>3 &gt; /proc/sys/net/ipv4/tcp_retries2</programArguments>
-            <ruleList>               
+            <ruleList>
                 <fileExists>
                     <path>/proc/sys/net/ipv4/tcp_retries2</path>
                 </fileExists>
             </ruleList>
         </runProgram>
-        
+
         <!--write /etc/default/sequoiadb-->
-        <deleteFile path="${sys_conf_file}"/>        
-        <touchFile path="${sys_conf_file}"/> 
+        <deleteFile path="${sys_conf_file}"/>
+        <touchFile path="${sys_conf_file}"/>
         <setInstallerVariable name="add_sysconf_done" value="true">
              <ruleList>
                  <compareText logic="equals" text="${program_exit_code}" value="0"/>
              </ruleList>
-        </setInstallerVariable>                      
+        </setInstallerVariable>
         <changePermissions files="${sys_conf_file}" permissions="0644"/>
         <propertiesFileSet>
             <file>${sys_conf_file}</file>
@@ -210,19 +210,19 @@
             <exec>md5sum</exec>
             <execArgs>"${installer_pathname}" | cut -c 1-32 </execArgs>
             <name>md5sum</name>
-        </setInstallerVariableFromScriptOutput>        
+        </setInstallerVariableFromScriptOutput>
         <propertiesFileSet>
             <file>${sys_conf_file}</file>
             <key>MD5</key>
             <value>${md5sum}</value>
         </propertiesFileSet>
-               
+
         <!--write conf/sdbcm.conf-->
         <propertiesFileSet>
             <file>${installdir}/conf/sdbcm.conf</file>
             <key>defaultPort</key>
             <value>${port}</value>
-        </propertiesFileSet>              
+        </propertiesFileSet>
         <propertiesFileSet>
             <file>${installdir}/conf/sdbcm.conf</file>
             <key>AutoStart</key>
@@ -231,10 +231,10 @@
                 <isTrue>
                     <negate>1</negate>
                     <value>${processAutoStart}</value>
-                </isTrue>                
+                </isTrue>
             </ruleList>
-        </propertiesFileSet>       
-        
+        </propertiesFileSet>
+
         <!--set environment variable-->
         <addEnvironmentVariable>
             <name>PATH</name>
@@ -248,36 +248,46 @@
             <username>${username}</username>
             <value>$LD_LIBRARY_PATH:${installdir}/lib</value>
         </addEnvironmentVariable> <!--create .bashrc if not exists, but its group is root-->
-        <runProgram> 
+        <runProgram>
             <program>chown</program><!--<changeOwnerAndGroup> isnt effective for hidden files-->
             <programArguments>-R ${username}:${groupname} ~${username}</programArguments>
         </runProgram>
         <changePermissions>
             <files>~${username}</files>
-            <permissions>0755</permissions>           
+            <permissions>0755</permissions>
         </changePermissions>
-                    
+
         <!--you should place 'start service' and 'create om' in last of <postInstallationActionList>-->
-        <!--because if this step failed, <postInstallationActionList> will abort and next steps will not be excuted-->   
-        <addUnixService>
-            <customErrorMessage>${msg(Install.ErrorMsg.CreateLinuxService.error)}</customErrorMessage>
-            <name>sdbcm</name>
-            <program>${installdir}/sequoiadb</program>                       
-        </addUnixService>
+        <!--because if this step failed, <postInstallationActionList> will abort and next steps will not be excuted-->
+        <!--add and start service-->
+        <getSysType type="sys_type"/>
+        <if>
+            <conditionRuleList>
+                <compareValues value1="${sys_type}" logic="equals" value2="systemd"/>
+            </conditionRuleList>
+            <actionList>
+                <addSystemdService/>
+            </actionList>
+            <elseActionList>
+                <addDefaultService/>
+            </elseActionList>
+        </if>
         <setInstallerVariable name="add_service_done" value="true">
              <ruleList>
                  <compareText logic="equals" text="${program_exit_code}" value="0"/>
              </ruleList>
         </setInstallerVariable>
-        <startServiceFunction/>  
+        <startServiceFunction/>
+
+        <!--start om-->
         <setInstallerVariable name="om_port"    value="11780"/>
         <setInstallerVariable name="om_dbpath"  value="${installdir}/database/sms/${om_port}"/>
-        <setInstallerVariable name="http_port"  value="8000"/>      
+        <setInstallerVariable name="http_port"  value="8000"/>
         <runProgram>
             <customErrorMessage>${msg(Install.ErrorMsg.IntallationOM.error)}</customErrorMessage>
             <program>${installdir}/install_om.sh</program>
-            <programArguments>${project.installationType} "${installdir}" "${installer_pathname}" ${port} ${om_port} "${om_dbpath}" ${http_port}</programArguments>           
-            <ruleList>               
+            <programArguments>${project.installationType} "${installdir}" "${installer_pathname}" ${port} ${om_port} "${om_dbpath}" ${http_port}</programArguments>
+            <ruleList>
                 <isTrue value="${SMS}" />
             </ruleList>
             <onErrorActionList>
@@ -288,47 +298,55 @@
             <files>${installdir}/packet;${installdir}/packet/${installerFilename}</files>
             <group>${groupname}</group>
             <owner>${username}</owner>
-        </changeOwnerAndGroup>           
-        <deleteFile path="${installdir}/sdbbp.log"/>   
-        
+        </changeOwnerAndGroup>
+        <deleteFile path="${installdir}/sdbbp.log"/>
+
     </postInstallationActionList>
-    
-    <installationAbortedActionList>               
-        <actionGroup> 
-            <actionList>                 
-                <removeUnixService>
-                    <name>sdbcm</name>
-                    <ruleList>                       
+
+    <installationAbortedActionList>
+        <actionGroup>
+            <actionList>
+                <delSystemdService>
+                    <ruleEvaluationLogic>and</ruleEvaluationLogic>
+                    <ruleList>
+                        <compareValues value1="${sys_type}" logic="equals" value2="systemd"/>
                         <isTrue value="${add_service_done}"/>
                     </ruleList>
-                </removeUnixService>
+                </delSystemdService>
+                <delDefaultService>
+                    <ruleEvaluationLogic>and</ruleEvaluationLogic>
+                    <ruleList>
+                        <compareValues value1="${sys_type}" logic="does_not_equal" value2="systemd"/>
+                        <isTrue value="${add_service_done}"/>
+                    </ruleList>
+                </delDefaultService>
                 <deleteFile>
                     <abortOnError>0</abortOnError>
-                    <path>${sys_conf_file}</path>                    
-                    <ruleList> 
-                        <isTrue value="${add_sysconf_done}"/>                      
+                    <path>${sys_conf_file}</path>
+                    <ruleList>
+                        <isTrue value="${add_sysconf_done}"/>
                     </ruleList>
-                </deleteFile> 
+                </deleteFile>
                 <runProgram>
                     <customErrorMessage>${msg(Install.ErrorMsg.DeleteUser.error)}</customErrorMessage>
                     <program>userdel</program>
                     <programArguments>${username}</programArguments>
-                    <ruleList>                       
-                        <isTrue value="${add_user_done}"/>                                                             
+                    <ruleList>
+                        <isTrue value="${add_user_done}"/>
                     </ruleList>
                 </runProgram>
                 <deleteGroup>
                     <groupname>${groupname}</groupname>
                     <ruleList>
-                        <isTrue value="${add_group_done}"/>                             
+                        <isTrue value="${add_group_done}"/>
                     </ruleList>
-                </deleteGroup>                    
-            </actionList>            
+                </deleteGroup>
+            </actionList>
             <ruleList>
-                <compareText logic="equals" text="${stage}" value="normal"/> 
-            </ruleList>        
+                <compareText logic="equals" text="${stage}" value="normal"/>
+            </ruleList>
         </actionGroup>
-                
+
     </installationAbortedActionList>
-                               
+
 </component>

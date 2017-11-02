@@ -1,0 +1,18 @@
+[Unit]
+Description=SequoiaDB Daemon
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/opt/sequoiadb/bin/sdbcmart
+ExecStop=-/opt/sequoiadb/bin/sdbcmtop 
+ExecStop=/opt/sequoiadb/bin/sdbstop -t all 
+# set ulimit
+LimitCORE=0
+LimitDATA=infinity
+LimitFSIZE=infinity
+LimitAS=infinity
+LimitNOFILE=infinity
+
+[Install]
+WantedBy=multi-user.target
