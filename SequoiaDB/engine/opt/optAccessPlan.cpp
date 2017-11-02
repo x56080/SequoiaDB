@@ -47,7 +47,7 @@
 using namespace bson;
 namespace engine
 {
-   PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN__OPTHINT, "_optAccessPlan::_optimizeHint" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN__OPTHINT, "_optAccessPlan::_optimizeHint" )
    INT32 _optAccessPlan::_optimizeHint ( dmsMBContext *mbContext,
                                          const CHAR *pIndexName,
                                          const rtnPredicateSet &predSet )
@@ -89,7 +89,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN__OPTHINT2, "_optAccessPlan::_optimizeHint" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN__OPTHINT2, "_optAccessPlan::_optimizeHint" )
    INT32 _optAccessPlan::_optimizeHint ( dmsMBContext *mbContext,
                                          const OID &indexOID,
                                          const rtnPredicateSet &predSet )
@@ -130,7 +130,7 @@ namespace engine
    }
 
    // caller must hold S latch on the obj
-   PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN__OPTHINT3, "_optAccessPlan::_optimizeHint" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN__OPTHINT3, "_optAccessPlan::_optimizeHint" )
    INT32 _optAccessPlan::_optimizeHint( dmsMBContext *mbContext,
                                         const rtnPredicateSet &predSet )
    {
@@ -223,7 +223,7 @@ namespace engine
    #define TEMP_COST_BASELINE 10000
 
    // output cost estimation, dir, and indexCBExtent
-   PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN__ESTINX, "_optAccessPlan::_estimateIndex" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN__ESTINX, "_optAccessPlan::_estimateIndex" )
    INT32 _optAccessPlan::_estimateIndex ( dmsExtentID indexCBExtent,
                                           INT64 &costEstimation,
                                           INT32 &dir,
@@ -367,7 +367,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN__ESTINX2, "_optAccessPlan::_estimateIndex" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN__ESTINX2, "_optAccessPlan::_estimateIndex" )
    INT32 _optAccessPlan::_estimateIndex ( dmsMBContext *mbContext,
                                           INT32 indexID,
                                           INT64 &costEstimation,
@@ -398,7 +398,7 @@ namespace engine
                costEstimation ) ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN__USEINX, "_optAccessPlan::_useIndex" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN__USEINX, "_optAccessPlan::_useIndex" )
    INT32 _optAccessPlan::_useIndex ( dmsExtentID indexCBExtent,
                                      INT32 dir,
                                      const rtnPredicateSet &predSet,
@@ -515,7 +515,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN_OPT, "_optAccessPlan::optimize" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN_OPT, "_optAccessPlan::optimize" )
    INT32 _optAccessPlan::optimize()
    {
       INT32 rc = SDB_OK ;
@@ -653,6 +653,15 @@ namespace engine
       }
 
       return hashValue ;
+   }
+
+   BOOLEAN _optAccessPlan::equal( const _optAccessPlan &right ) const
+   {
+      if ( right.getValid() )
+      {
+         return Reusable( right._query, right._orderBy, right._hint ) ;
+      }
+      return FALSE ;
    }
 
    BOOLEAN _optAccessPlan::Reusable ( const BSONObj &query,

@@ -51,36 +51,58 @@ namespace engine
    class _dmsStorageUnit ;
    class _rtnAccessPlanManager ;
 
+   /*
+      _rtnAPContext define
+   */
+   struct _rtnAPContext
+   {
+      INT32          _lastListID ;
+
+      _rtnAPContext()
+      {
+         _lastListID = 0 ;
+      }
+   } ;
+   typedef _rtnAPContext rtnAPContext ;
+
+   /*
+      RTN_APL_SIZE size
+   */
    #define RTN_APL_SIZE             ( 5 )
 
-   // one access plan list is for same hash result for one collection
+   /*
+      _rtnAccessPlanList define
+      one access plan list is for same hash result for one collection
+   */
    class _rtnAccessPlanList : public SDBObject
    {
+      friend class _rtnAccessPlanSet ;
    private :
-   #ifdef RTNAPL_XLOCK
-   #undef RTNAPL_XLOCK
-   #endif
-   #define RTNAPL_XLOCK ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
-   #ifdef RTNAPL_SLOCK
-   #undef RTNAPL_SLOCK
-   #endif
-   #define RTNAPL_SLOCK ossScopedLock _lock ( &_mutex, SHARED ) ;
-      ossSpinSLatch _mutex ;
-      // hash result and plan map
-      vector<optAccessPlan *> _plans ;
-      _dmsStorageUnit *_su ;
-      CHAR *_collectionName ;
-      _rtnAccessPlanManager *_apm ;
+      ossSpinSLatch           _mutex ;
+      vector<optAccessPlan*>  _plans ;
+      _rtnAccessPlanManager   *_apm ;
+      INT32                   _lastID ;
+      ossAtomic32             _emptyAPNum ;
+      ossAtomic32             *_pSetEmptyAPNum ;
+      ossAtomic32             *_pTotalEmptyAPNum ;
+
    public :
-      explicit _rtnAccessPlanList ( _dmsStorageUnit *su, CHAR *collectionName,
-                                    _rtnAccessPlanManager *apm )
+      explicit _rtnAccessPlanList ( _rtnAccessPlanManager *apm,
+                                    ossAtomic32 *pSetEmptyAPNum,
+                                    ossAtomic32 *pTotalEmptyAPNum )
+      :_emptyAPNum( 0 )
       {
-         _su = su ;
-         _collectionName = collectionName ;
          _apm = apm ;
+         _lastID = 0 ;
+         _pSetEmptyAPNum = pSetEmptyAPNum ;
+         _pTotalEmptyAPNum = pTotalEmptyAPNum ;
       }
       ~_rtnAccessPlanList()
       {
+         SDB_ASSERT( _emptyAPNum.peek() >= 0 &&
+                     _emptyAPNum.peek() <= _plans.size(),
+                     "0 <= _emptyAPNum <= _plans.size()" ) ;
+
          vector<optAccessPlan *>::iterator it ;
          for ( it = _plans.begin(); it != _plans.end(); ++it )
          {
@@ -89,112 +111,124 @@ namespace engine
          _plans.clear() ;
       }
 
-      void invalidate ( UINT32 &cleanNum ) ;
-      INT32 getPlan ( const BSONObj &query, const BSONObj &orderBy,
-                      const BSONObj &hint, optAccessPlan **out,
-                      SINT32 &incSize ) ;
+      optAccessPlan* getPlan ( const BSONObj &query,
+                               const BSONObj &orderBy,
+                               const BSONObj &hint,
+                               rtnAPContext &context ) ;
 
-      void releasePlan ( optAccessPlan *plan ) ;
+      BOOLEAN  addPlan ( optAccessPlan *plan,
+                         const rtnAPContext &context,
+                         SINT32 &incSize ) ;
+
+      void     releasePlan ( optAccessPlan *plan ) ;
+      void     invalidate ( UINT32 &cleanNum ) ;
 
       INT32 size()
       {
-         RTNAPL_SLOCK
+         ossScopedLock _lock ( &_mutex, SHARED ) ;
          return _plans.size() ;
       }
 
+      BOOLEAN  hasEmptyAP()
+      {
+         return _emptyAPNum.compare( 0 ) ? FALSE : TRUE ;
+      }
+
       void clear ( UINT32 &cleanNum ) ;
+
+   protected:
+      UINT32      _clearFast( INT32 expectNum = 1 ) ;
+
    } ;
-   typedef class _rtnAccessPlanList rtnAccessPlanList ;
+   typedef _rtnAccessPlanList rtnAccessPlanList ;
 
-#if defined (_DEBUG)
-   #define RTN_APS_SIZE             ( 10 )
-#else
-   #define RTN_APS_SIZE             ( 50 )
-#endif
+   //#define RTN_APS_SIZE             ( 500 )
    #define RTN_APS_DFT_OCCUPY_PCT   ( 0.75f )
-   #define RTN_APS_DFT_OCCUPY       (RTN_APS_SIZE*RTN_APS_DFT_OCCUPY_PCT)
 
+   /*
+      _rtnAccessPlanSet define
+   */
    class _rtnAccessPlanSet : public SDBObject
    {
+      friend class _rtnAccessPlanManager ;
+
+      typedef map<UINT32, rtnAccessPlanList*>      MAP_CODE_2_LIST ;
+      typedef MAP_CODE_2_LIST::iterator            MAP_CODE_2_LIST_IT ;
+
    private :
-   #ifdef RTNAPS_XLOCK
-   #undef RTNAPS_XLOCK
-   #endif
-   #define RTNAPS_XLOCK ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
-   #ifdef RTNAPS_SLOCK
-   #undef RTNAPS_SLOCK
-   #endif
-   #define RTNAPS_SLOCK ossScopedLock _lock ( &_mutex, SHARED ) ;
-      ossSpinSLatch _mutex ;
-      ossAtomic32   _totalNum ;
-      map<UINT32, rtnAccessPlanList *> _planLists ;
-      _dmsStorageUnit *_su ;
-      CHAR _collectionName [DMS_COLLECTION_NAME_SZ+1] ;
-      _rtnAccessPlanManager *_apm ;
+      ossSpinSLatch           _mutex ;
+      ossAtomic32             _totalNum ;
+      ossAtomic32             _emptyAPNum ;
+      ossAtomic32             *_pTotalEmptyAPNum ;
+      MAP_CODE_2_LIST         _planLists ;
+      _dmsStorageUnit         *_su ;
+      _rtnAccessPlanManager   *_apm ;
+      CHAR _collectionName[ DMS_COLLECTION_NAME_SZ+1 ] ;
+
    public :
       explicit _rtnAccessPlanSet( _dmsStorageUnit *su,
                                   const CHAR *collectionName,
-                                  _rtnAccessPlanManager *apm )
-      :_totalNum( 0 )
+                                  _rtnAccessPlanManager *apm,
+                                  ossAtomic32 *pTotalEmptyAPNum )
+      :_totalNum( 0 ), _emptyAPNum( 0 )
       {
-         ossMemset ( _collectionName, 0, sizeof(_collectionName)) ;
+         ossMemset ( _collectionName, 0, sizeof(_collectionName) ) ;
          ossStrncpy ( _collectionName, collectionName,
                       sizeof(_collectionName) ) ;
+         _pTotalEmptyAPNum = pTotalEmptyAPNum ;
          _su = su ;
          _apm = apm ;
       }
       ~_rtnAccessPlanSet()
       {
-         map<UINT32, rtnAccessPlanList *>::iterator it ;
+         SDB_ASSERT( _emptyAPNum.peek() >= 0 &&
+                     _emptyAPNum.peek() <= _totalNum.peek(),
+                     "0 <= _emptyAPNum <= _totalNum" ) ;
+
+         MAP_CODE_2_LIST_IT it ;
          for ( it = _planLists.begin(); it != _planLists.end(); ++it )
          {
             SDB_OSS_DEL (*it).second ;
          }
          _planLists.clear() ;
       }
-      void invalidate ( UINT32 &cleanNum ) ;
-      INT32 getPlan ( const BSONObj &query, const BSONObj &orderBy,
-                      const BSONObj &hint, optAccessPlan **out,
-                      SINT32 &incSize ) ;
 
-      void releasePlan ( optAccessPlan *plan ) ;
+      BOOLEAN addPlan ( optAccessPlan *plan,
+                        const rtnAPContext &context,
+                        SINT32 &incSize ) ;
 
-      INT32 size()
+      optAccessPlan* getPlan ( const BSONObj &query,
+                               const BSONObj &orderBy,
+                               const BSONObj &hint,
+                               rtnAPContext &context ) ;
+
+      void  invalidate ( UINT32 &cleanNum ) ;
+      void  releasePlan ( optAccessPlan *plan ) ;
+      void  clear ( UINT32 &cleanNum, BOOLEAN full = TRUE ) ;
+
+      INT32 size() { return _totalNum.peek() ; }
+      const CHAR* getName() const { return _collectionName ; }
+
+      BOOLEAN  hasEmptyAP()
       {
-         return _totalNum.peek() ;
+         return _emptyAPNum.compare( 0 ) ? FALSE : TRUE ;
       }
-      void clear ( UINT32 &cleanNum, BOOLEAN full = TRUE ) ;
-      CHAR *getName()
-      {
-         return _collectionName ;
-      }
+
+   protected:
+      UINT32   _clearFast( INT32 expectNum = 1 ) ;
+
    } ;
    typedef class _rtnAccessPlanSet rtnAccessPlanSet ;
 
-#if defined (_DEBUG)
-   #define RTN_APM_SIZE             ( 20 )
-#else
-   #define RTN_APM_SIZE             ( 500 )
-#endif
    #define RTN_APM_DFT_OCCUPY_PCT   ( 0.75f )
-   #define RTN_APM_DFT_OCCUPY       (RTN_APM_SIZE*RTN_APM_DFT_OCCUPY_PCT)
 
-   class _rtnAccessPlanSet ;
-   // one access plan manager may have one or more access plan set, access plan
-   // manager is per collection space
+   /*
+      _rtnAccessPlanManager define
+      one access plan manager may have one or more access plan set,
+      access plan manager is per collection space
+   */
    class _rtnAccessPlanManager : public SDBObject
    {
-   private :
-   #ifdef RTNAPM_XLOCK
-   #undef RTNAPM_XLOCK
-   #endif
-   #define RTNAPM_XLOCK ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
-   #ifdef RTNAPM_SLOCK
-   #undef RTNAPM_SLOCK
-   #endif
-   #define RTNAPM_SLOCK ossScopedLock _lock ( &_mutex, SHARED ) ;
-      ossSpinSLatch _mutex ;
-      ossAtomic32   _totalNum ;
       // C version of string map, std::string is too slow
       struct cmp_str
       {
@@ -203,39 +237,53 @@ namespace engine
             return std::strcmp(a,b)<0 ;
          }
       } ;
-      _dmsStorageUnit *_su ;
-      typedef map<const CHAR*, _rtnAccessPlanSet*, cmp_str> PLAN_SETS ;
+      typedef map<const CHAR*, _rtnAccessPlanSet*, cmp_str>    PLAN_SETS ;
+#ifdef _WINDOWS
+      typedef PLAN_SETS::iterator                              PLAN_SETS_IT ;
+#else
+      typedef map<const CHAR*, _rtnAccessPlanSet*>::iterator   PLAN_SETS_IT ;
+#endif // _WINDOWS
 
-#if defined (_WINDOWS)
-      typedef map<const CHAR*, rtnAccessPlanSet*, cmp_str>::iterator PLAN_SETS_ITERATOR ;
-#elif defined (_LINUX)
-      typedef map<const CHAR*, rtnAccessPlanSet*>::iterator PLAN_SETS_ITERATOR ;
-#endif
-      PLAN_SETS _planSets ;
-      UINT32 _bucketsNum ;
+   private :
+      ossSpinSLatch        _mutex ;
+      ossAtomic32          _totalNum ;
+      ossAtomic32          _emptyAPNum ;
+      _dmsStorageUnit      *_su ;
+      PLAN_SETS            _planSets ;
+      UINT32               _bucketsNum ;
+
    public :
       explicit _rtnAccessPlanManager( _dmsStorageUnit *su ) ;
-      ~_rtnAccessPlanManager()
-      {
-         PLAN_SETS_ITERATOR it ;
-         for ( it = _planSets.begin(); it != _planSets.end(); ++it )
-         {
-            SDB_OSS_DEL (*it).second ;
-         }
-         _planSets.clear() ;
-      }
-      void invalidatePlans ( const CHAR *collectionName ) ;
-      INT32 getPlan ( const BSONObj &query, const BSONObj &orderBy,
-                      const BSONObj &hint, const CHAR *collectionName,
+      ~_rtnAccessPlanManager() ;
+
+      void  invalidatePlans ( const CHAR *collectionName ) ;
+      INT32 getPlan ( const BSONObj &query,
+                      const BSONObj &orderBy,
+                      const BSONObj &hint,
+                      const CHAR *collectionName,
                       optAccessPlan **out ) ;
-      void releasePlan ( optAccessPlan *plan ) ;
+      void  releasePlan ( optAccessPlan *plan ) ;
       INT32 size()
       {
          return _totalNum.peek() ;
       }
       void clear ( BOOLEAN full = TRUE ) ;
+
+      BOOLEAN  hasEmptyAP()
+      {
+         return _emptyAPNum.compare( 0 ) ? FALSE : TRUE ;
+      }
+
+   protected:
+      BOOLEAN  addPlan ( optAccessPlan *plan,
+                         const rtnAPContext &context,
+                         SINT32 &incSize ) ;
+
+      UINT32   _clearFast( INT32 expectNum ) ;
+
    } ;
    typedef class _rtnAccessPlanManager rtnAccessPlanManager ;
+
 }
 
 #endif //RTNAPM_HPP__

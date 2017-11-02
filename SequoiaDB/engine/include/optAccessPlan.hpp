@@ -193,18 +193,18 @@ namespace engine
          return _scanType ;
       }
 
-      void incCount( INT32 inc = 1 )
+      INT32 incCount( INT32 inc = 1 )
       {
          SDB_ASSERT ( _isInitialized,
                       "optAccessPlan must be optimized before start using" ) ;
-         _useCount.add ( inc ) ;
+         return _useCount.add ( inc ) ;
       }
 
-      void decCount( INT32 dec = 1 )
+      INT32 decCount( INT32 dec = 1 )
       {
          SDB_ASSERT ( _isInitialized,
                       "optAccessPlan must be optimized before start using" ) ;
-         _useCount.sub ( dec ) ;
+         return _useCount.sub ( dec ) ;
       }
 
       INT32 getCount()
@@ -258,6 +258,8 @@ namespace engine
       BOOLEAN Reusable ( const BSONObj &query, const BSONObj &orderBy,
                          const BSONObj &hint ) const ;
 
+      BOOLEAN equal( const _optAccessPlan &right ) const ;
+
       // get hash result for the plan
       UINT32 hash ()
       {
@@ -284,7 +286,7 @@ namespace engine
 
       void release() ;
 
-      BOOLEAN sortRequired()
+      BOOLEAN sortRequired() const
       {
          return _sortRequired ;
       }
@@ -294,12 +296,12 @@ namespace engine
          _isValid = valid ;
       }
 
-      BOOLEAN getValid ()
+      BOOLEAN getValid () const
       {
          return _isValid ;
       }
 
-      BOOLEAN isAutoGen ()
+      BOOLEAN isAutoGen () const
       {
          return _isAutoPlan ;
       }
