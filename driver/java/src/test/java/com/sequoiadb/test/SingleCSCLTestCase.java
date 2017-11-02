@@ -25,11 +25,13 @@ public abstract class SingleCSCLTestCase extends SingleCSTestCase {
 
     @AfterClass
     public static void tearDownTestCase() {
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        if (sdb != null && cs != null) {
+            if (cs.isCollectionExist(clName)) {
+                cs.dropCollection(clName);
+            }
+            cl = null;
+            clName = null;
         }
-        cl = null;
-        clName = null;
         SingleCSTestCase.tearDownTestCase();
     }
 }

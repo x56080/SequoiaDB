@@ -22,6 +22,7 @@ public class TestConfig {
     private static final String singlePort = "single.port";
     private static final String singleUsername = "single.username";
     private static final String singlePassword = "single.password";
+    private static final String singleGroup = "single.group";
 
     private TestConfig() {
     }
@@ -40,5 +41,9 @@ public class TestConfig {
 
     public static String getSinglePassword() {
         return properties.getProperty(singlePassword);
+    }
+
+    public static String getSingleGroup() {
+        return properties.getProperty(singleGroup);
     }
 }

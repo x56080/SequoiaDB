@@ -18,11 +18,11 @@ public class TestConnection extends TestCase {
         ConfigOptions options = new ConfigOptions();
         options.setConnectTimeout(3000);
         Sequoiadb sdb = new Sequoiadb(
-                TestConfig.getSingleHost(),
-                Integer.valueOf(TestConfig.getSinglePort()),
-                TestConfig.getSingleUsername(),
-                TestConfig.getSinglePassword(),
-                options);
+            TestConfig.getSingleHost(),
+            Integer.valueOf(TestConfig.getSinglePort()),
+            TestConfig.getSingleUsername(),
+            TestConfig.getSinglePassword(),
+            options);
         sdb.disconnect();
     }
 
