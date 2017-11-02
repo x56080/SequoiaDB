@@ -52,8 +52,8 @@ public class CollectionSpaceTest {
 	public void testCreateCL1() {
 	    BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
-		DBCollection dbc = cs.getCollection(Constants.TEST_CL_NAME_2);
-		if (dbc == null)
+		DBCollection dbc;
+		if(!cs.isCollectionExist(Constants.TEST_CL_NAME_2))
 			dbc = cs.createCollection(Constants.TEST_CL_NAME_2, conf);
 		
 		dbc = cs.getCollection(Constants.TEST_CL_NAME_2);
