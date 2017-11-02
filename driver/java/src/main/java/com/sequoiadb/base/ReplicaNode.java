@@ -206,7 +206,7 @@ public class ReplicaNode {
         int flags = rtn.getFlags();
         if (flags != 0) {
             String msg = "node = " + hostName + ":" + port;
-            throw new BaseException(SDBError.getSDBError(flags), msg);
+            throw new BaseException(flags, msg);
         }
     }
 

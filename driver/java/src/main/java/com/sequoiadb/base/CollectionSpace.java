@@ -200,7 +200,7 @@ public class CollectionSpace {
         if (flags != 0) {
             String msg = "collection = " + collectionFullName +
                     ", options = " + options;
-            throw new BaseException(SDBError.getSDBError(flags), msg);
+            throw new BaseException(flags, msg);
         }
         sequoiadb.upsertCache(collectionFullName);
         return new DBCollection(sequoiadb, this, collectionName);

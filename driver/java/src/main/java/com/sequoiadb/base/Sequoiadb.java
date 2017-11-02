@@ -441,7 +441,7 @@ public class Sequoiadb {
         int flags = rtn.getFlags();
         if (flags != 0) {
             connection.close();
-            throw new BaseException(SDBError.getSDBError(flags), "failed to auth, user is " + userName);
+            throw new BaseException(flags, "failed to auth, user is " + userName);
         }
     }
 
@@ -469,7 +469,7 @@ public class Sequoiadb {
         }
         int flags = rtn.getFlags();
         if (flags != 0) {
-            throw new BaseException(SDBError.getSDBError(flags), "failed to create user " + username);
+            throw new BaseException(flags, "failed to create user " + username);
         }
     }
 
@@ -494,7 +494,7 @@ public class Sequoiadb {
         }
         int flags = rtn.getFlags();
         if (flags != 0) {
-            throw new BaseException(SDBError.getSDBError(flags), "failed to remove user " + username);
+            throw new BaseException(flags, "failed to remove user " + username);
         }
     }
 
@@ -1170,7 +1170,7 @@ public class Sequoiadb {
                 String msg = "matcher = " + matcher +
                         ", selector = " + selector +
                         ", orderBy = " + orderBy;
-                throw new BaseException(SDBError.getSDBError(flags), msg);
+                throw new BaseException(flags, msg);
             }
         }
         return new DBCursor(rtn, this);
@@ -1426,7 +1426,7 @@ public class Sequoiadb {
                         ", selector = " + selector +
                         ", orderBy = " + orderBy +
                         ", options = " + options;
-                throw new BaseException(SDBError.getSDBError(flags), msg);
+                throw new BaseException(flags, msg);
             }
         }
         cursor = new DBCursor(rtn, this);
@@ -1486,7 +1486,7 @@ public class Sequoiadb {
                     ", selector = " + selector +
                     ", orderBy = " + orderBy +
                     ", hint = " + hint;
-            throw new BaseException(SDBError.getSDBError(flags), msg);
+            throw new BaseException(flags, msg);
         }
         // return the result by cursor
         DBCursor cursor = null;
@@ -2012,7 +2012,7 @@ public class Sequoiadb {
                         ", selector = " + selector +
                         ", order = " + order +
                         ", hint = " + hint;
-                throw new BaseException(SDBError.getSDBError(flags), msg);
+                throw new BaseException(flags, msg);
             }
         }
         return new DBCursor(rtn, this);

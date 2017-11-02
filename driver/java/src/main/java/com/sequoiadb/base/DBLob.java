@@ -300,7 +300,7 @@ class DBLobConcrete implements DBLob {
         }
         int flag = resMessage.getFlags();
         if (0 != flag) {
-            throw new BaseException(SDBError.getSDBError(flag), openLob.toString());
+            throw new BaseException(flag, openLob.toString());
         }
         List<BSONObject> objList = resMessage.getObjectList();
         if (objList.size() != 1) {
