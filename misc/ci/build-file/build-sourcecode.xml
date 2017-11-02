@@ -398,10 +398,11 @@
       <copy file="${CODE_DIR}/misc/ci/mkrelease/sequoiadb_server.xml"  todir="${RELEASE_DIR}/" />
       <copy file="${CODE_DIR}/misc/ci/mkrelease/sequoiadb_en.lng"      todir="${RELEASE_DIR}/" />
       <copy file="${CODE_DIR}/misc/ci/mkrelease/sequoiadb_zh.lng"      todir="${RELEASE_DIR}/" />
-        <copy file="${CODE_DIR}/misc/ci/mkrelease/normal_component.xml"  todir="${RELEASE_DIR}/" />
-        <copy file="${CODE_DIR}/misc/ci/mkrelease/upgrade_component.xml" todir="${RELEASE_DIR}/" />
-        <copy file="${CODE_DIR}/misc/ci/mkrelease/compatible.sh"         todir="${RELEASE_DIR}/sequoiadb" />
-        <copy file="${CODE_DIR}/misc/ci/mkrelease/version.conf"          todir="${RELEASE_DIR}/sequoiadb" />
+      <copy file="${CODE_DIR}/misc/ci/mkrelease/normal_component.xml"  todir="${RELEASE_DIR}/" />
+      <copy file="${CODE_DIR}/misc/ci/mkrelease/upgrade_component.xml" todir="${RELEASE_DIR}/" />
+      <copy file="${CODE_DIR}/misc/ci/mkrelease/compatible.sh"         todir="${RELEASE_DIR}/sequoiadb" />
+      <copy file="${CODE_DIR}/misc/ci/mkrelease/version.conf"          todir="${RELEASE_DIR}/sequoiadb" />
+      <copy file="${CODE_DIR}/misc/ci/mkrelease/sdbcm.service"         todir="${RELEASE_DIR}/sequoiadb" />
         
       <touch file="${RELEASE_DIR}/license_empty.txt" />
 
