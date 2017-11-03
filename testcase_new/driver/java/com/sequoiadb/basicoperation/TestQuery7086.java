@@ -87,16 +87,16 @@ public class TestQuery7086 extends SdbTestBase{
                     bson.put("age", random.nextDouble());
                     bson.put("bin", str.getBytes());
                     bson.put("num", random.nextInt(100));
-                    bson.put("height", random.nextFloat());
+                    bson.put("height", 0.1);
                 } else if (i%3 == 1) {
                     bson.put("age", random.nextDouble());
                     bson.put("bin", str.getBytes());
                     bson.put("num", random.nextInt(100));
-                    bson.put("height", random.nextFloat());
+                    bson.put("height", 0.2);
                     bson.put("name", random.nextLong());
                 } else if (i%3 == 2) {
                     bson.put("num", random.nextInt(100));
-                    bson.put("height", random.nextFloat());
+                    bson.put("height", 0.3);
                     bson.put("name", random.nextLong());
                     bson.put("bin", str.getBytes());
                     bson.put("age", random.nextDouble());
