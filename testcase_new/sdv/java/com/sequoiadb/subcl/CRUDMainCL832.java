@@ -220,7 +220,7 @@ public class CRUDMainCL832 extends SdbTestBase{
 			while(cursor.hasNext()){
 				res = cursor.getNext();
 				res.removeField("_id");
-				String data="{ \"a\" : "+j+" , \"test\" : \""+expectStr+"\"}";
+				String data="{ \"a\" : " + j + " , \"test\" : \"" + expectStr + "\" }";
 				if(!(res.toString().equals(data))){
 					Assert.fail("failed to query data ");
 				}

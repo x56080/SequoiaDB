@@ -217,7 +217,7 @@ public class InsertAndUpdate833 extends SdbTestBase{
 				detail = cursor.getNext();
 				String shardingType = detail.get("ShardingType").toString();
 				String shardingKey = detail.get("ShardingKey").toString();
-				if(!shardingType.equals("hash")||!shardingKey.equals("{ \"time\" : 1}")){
+				if(!shardingType.equals("hash")||!shardingKey.equals("{ \"time\" : 1 }")){
 					Assert.fail("alter is error");
 				}
 			}

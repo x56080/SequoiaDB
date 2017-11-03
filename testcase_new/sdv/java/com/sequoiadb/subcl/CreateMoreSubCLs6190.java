@@ -152,7 +152,7 @@ public class CreateMoreSubCLs6190 extends SdbTestBase{
 				res = cursor.getNext();
 				res.removeField("_id");
 				expBso=insertor.get(j);
-				expBso.removeField("_id");
+				expBso.removeField("_id");	
 				if(!(res.toString().equals(expBso.toString()))){
 					System.out.println("act: " + res.toString() + "\n" + "expect: " + expBso.toString());
 					Assert.fail("failed to check data ");
@@ -167,7 +167,7 @@ public class CreateMoreSubCLs6190 extends SdbTestBase{
 			while(updateRes.hasNext()){
 				dataRes = updateRes.getNext();
 				dataRes.removeField("_id");
-				if(!(dataRes.toString().equals("{ \"test\" : \"update\" , \"time\" : "+i+"}"))){
+				if(!(dataRes.toString().equals("{ \"test\" : \"update\" , \"time\" : " + i + " }"))){
 					Assert.fail("failed to check data ");
 				}
 				i++;
