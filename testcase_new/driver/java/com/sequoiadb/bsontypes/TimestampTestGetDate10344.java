@@ -76,7 +76,7 @@ public class TimestampTestGetDate10344 extends SdbTestBase{
 			BSONObject obj = new BasicBSONObject();
 			int seconds = 23456;
 			int inc = 99988;
-			String expectTime = "{ $timestamp : 1970-01-01-14.30.56.99988}";
+			String expectTime = "{ $timestamp : 1970-01-01-14.30.56.99988 }";
 			BSONTimestamp timestamp = new BSONTimestamp(seconds, inc);
 			
 			//test the toString()
