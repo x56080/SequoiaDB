@@ -28,10 +28,13 @@ var help = function( val ) {
       println("   setLastError(<errno>)                              set last error number") ;
       println("   getLastErrMsg()                                    get last error detail information");
       println("   setLastErrMsg(<msg>)                               set last error detail information");
-	  println("   getLastErrObj()                                    get last error object information");
-	  println("   setLastErrObj(<obj>)                               set last error object information");
-	  println("   showClass([className])                             show all class name or class's function name");
-	  println("   forceGC()                                          force garbage collection of JS objects");
+      println("   getLastErrObj()                                    get last error object information");
+      println("   setLastErrObj(<obj>)                               set last error object information");
+      println("   showClass([className])                             show all class name or class's function name");
+      println("   forceGC()                                          force garbage collection of JS objects");
+      println("   jsonFormat(<pretty>)                               Set BSON output format.When out of memory" );
+      println("                                                      error happen, we can use jsonFormat( false ) to");
+      println("                                                      disable BSON formatted output.");
       println("   clear                                              clear the terminal screen");
       println("   history -c                                         clear the history");
       println("   quit                                               exit");
