@@ -490,18 +490,14 @@ namespace bson {
 
     /* must be same type when called, unless both sides are #s*/
     int compareElementValues(const BSONElement& l, const BSONElement& r) {
+        #define LONG_UPPER_SAFE_BOUND (9007199254740991L)
+        #define LONG_LOWER_SAFE_BOUND (-9007199254740991L)
         int f;
         double x;
         if ( l.type() == NumberDecimal || r.type() == NumberDecimal )
         {
-            bsonDecimal left ;
-            bsonDecimal right ;
-            left.init() ;
-            right.init() ;
-            left  = l.numberDecimal() ;
-            right = r.numberDecimal() ;
-
-            return left.compare( right ) ;
+            return l.numberDecimal()
+                    .compare( r.numberDecimal() ) ;
         }
 
         switch ( l.type() ) {
@@ -567,16 +563,42 @@ namespace bson {
             }
         }
         case NumberLong:
-            if( r.type() == NumberLong ) {
-                long long L = l._numberLong();
-                long long R = r._numberLong();
+        case NumberInt:
+            if( r.type() == NumberLong || r.type() == NumberInt ) {
+                long long L = l.numberLong();
+                long long R = r.numberLong();
                 if( L < R ) return -1;
                 if( L == R ) return 0;
                 return 1;
             }
             // else fall through
-        case NumberInt:
         case NumberDouble: {
+            if ( r.type() == NumberLong )
+            {
+                long long R = r._numberLong();
+                // out of safe bound,
+                // convert to double will loss precision
+                if ( R > LONG_UPPER_SAFE_BOUND ||
+                     R < LONG_LOWER_SAFE_BOUND )
+                {
+                    return l.numberDecimal()
+                            .compare( r.numberDecimal() ) ;
+                }
+            }
+            else if ( l.type() == NumberLong )
+            {
+                long long L = l._numberLong();
+                // out of safe bound,
+                // convert to double will loss precision
+                if ( L > LONG_UPPER_SAFE_BOUND ||
+                     L < LONG_LOWER_SAFE_BOUND )
+                {
+                    return l.numberDecimal()
+                            .compare( r.numberDecimal() ) ;
+                }
+            }
+
+            int sign = 0 ;
             double left = l.number();
             double right = r.number();
             bool lNan = isNaN( left ) ;
@@ -591,6 +613,21 @@ namespace bson {
             }
             else if ( rNan ) {
                 return 1;
+            }
+            if( isInf( left, &sign ) && isInf( right, &sign ) )
+            {
+               if( left == right )
+               {
+                  return 0 ;
+               }
+               else if( left < right )
+               {
+                  return -1 ;
+               }
+               else
+               {
+                  return 1 ;
+               }
             }
             x = left - right;
             if ( x < 0 ) return -1;
