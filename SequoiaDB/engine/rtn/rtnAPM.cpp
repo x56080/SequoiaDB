@@ -372,6 +372,7 @@ namespace engine
          {
             pList = itr->second ;
             hasAdd = pList->addPlan( plan, context, inc ) ;
+            _accessList.reHeader( pList, TRUE ) ;
             _totalNum.add( inc ) ;
             incSize += inc ;
             goto done ;
@@ -384,22 +385,10 @@ namespace engine
          itr = _planLists.find( plan->hash() ) ;
          if ( itr == _planLists.end() )
          {
-            /// when ap is full in the set, need to clean
-            /*if ( _totalNum.peek() >= RTN_APS_SIZE )
-            {
-               INT32 expectNum = _totalNum.peek() - RTN_APS_SIZE + 1 ;
-               UINT32 cleanNum = _clearFast( expectNum ) ;
-               if ( cleanNum < (UINT32)expectNum )
-               {
-                  /// set is full
-                  plan->setAPM( NULL ) ;
-                  goto done ;
-               }
-               incSize -= cleanNum ;
-            }*/
             pList = SDB_OSS_NEW _rtnAccessPlanList( _apm,
                                                     &_emptyAPNum,
-                                                    _pTotalEmptyAPNum ) ;
+                                                    _pTotalEmptyAPNum,
+                                                    plan->hash() ) ;
             if ( !pList )
             {
                PD_LOG ( PDWARNING, "Failed to allocate memory for list" ) ;
@@ -407,10 +396,12 @@ namespace engine
                goto done ;
             }
             _planLists[ plan->hash() ] = pList ;
+            _accessList.insert( pList, FALSE ) ;
          }
          else
          {
             pList = itr->second ;
+            _accessList.reHeader( pList, FALSE ) ;
          }
 
          hasAdd = pList->addPlan( plan, context, inc ) ;
@@ -444,6 +435,7 @@ namespace engine
       {
          rtnAccessPlanList *pList = it->second ;
          plan = pList->getPlan( query, orderBy, hint, context ) ;
+         _accessList.reHeader( pList, TRUE ) ;
       }
 
       PD_TRACE_EXIT( SDB__RTNACCESSPS_GETPLAN ) ;
@@ -482,31 +474,30 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__RTNACCESSPS_CLEAR_FAST ) ;
 
-      MAP_CODE_2_LIST_IT it ;
       rtnAccessPlanList *pList = NULL ;
       UINT32 totalClearNum = 0 ;
       UINT32 clearNum = 0 ;
 
       if ( hasEmptyAP() )
       {
-         for ( it = _planLists.begin() ; it != _planLists.end() ; )
+         pList = _accessList.tail() ;
+         while( pList )
          {
-            pList = it->second ;
-            if ( ( clearNum = pList->_clearFast( expectNum ) ) > 0 )
+            rtnAccessPlanList *pTmp = pList ;
+            pList = _accessList.prev( pTmp ) ;
+
+            if ( ( clearNum = pTmp->_clearFast( expectNum ) ) > 0 )
             {
                _totalNum.sub( clearNum ) ;
                totalClearNum += clearNum ;
                expectNum -= clearNum ;
             }
 
-            if ( 0 == pList->size() )
+            if ( 0 == pTmp->size() )
             {
-               SDB_OSS_DEL pList ;
-               _planLists.erase( it++ ) ;
-            }
-            else
-            {
-               ++it ;
+               _planLists.erase( pTmp->hash() ) ;
+               _accessList.remove( pTmp, FALSE ) ;
+               SDB_OSS_DEL pTmp ;
             }
 
             if ( expectNum <= 0 )
@@ -547,6 +538,7 @@ namespace engine
             // clear empty list
             if ( list->size() == 0 )
             {
+               _accessList.remove( list, FALSE ) ;
                SDB_OSS_DEL list ;
                _planLists.erase( it++ ) ;
             }
@@ -605,6 +597,7 @@ namespace engine
       if ( it != _planSets.end() )
       {
          rtnAccessPlanSet *planset = (*it).second ;
+         _accessList.remove( planset, FALSE ) ;
          planset->invalidate( cleanNum ) ;
          _totalNum.sub( cleanNum ) ;
          if ( planset->size() == 0 )
@@ -647,6 +640,7 @@ namespace engine
             hasAdd = pSet->addPlan( plan, context, inc ) ;
             _totalNum.add( inc ) ;
             incSize += inc ;
+            _accessList.reHeader( pSet, TRUE ) ;
             goto done ;
          }
       }
@@ -684,10 +678,12 @@ namespace engine
                goto done ;
             }
             _planSets[ pSet->getName() ] = pSet ;
+            _accessList.insert( pSet, FALSE ) ;
          }
          else
          {
             pSet = itr->second ;
+            _accessList.reHeader( pSet, FALSE ) ;
          }
 
          hasAdd = pSet->addPlan( plan, context, inc ) ;
@@ -741,6 +737,7 @@ namespace engine
             *out = pSet->getPlan( query, orderBy, hint, context ) ;
             if ( *out )
             {
+               _accessList.reHeader( pSet, TRUE ) ;
                goto done ;
             }
          }
@@ -814,6 +811,7 @@ namespace engine
          // clear empty list
          if ( planset->size() == 0 )
          {
+            _accessList.remove( planset, FALSE ) ;
             _planSets.erase( it++ ) ;
             SDB_OSS_DEL planset ;
          }
@@ -837,14 +835,16 @@ namespace engine
       UINT32 totalCleanNum = 0 ;
       UINT32 cleanNum = 0 ;
       PD_TRACE_ENTRY ( SDB__RTNACCESSPLMAN_CLEARFAST );
-      PLAN_SETS_IT it ;
 
       if ( hasEmptyAP() )
       {
-         for ( it = _planSets.begin() ; it != _planSets.end() ; )
+         rtnAccessPlanSet *pSet = _accessList.tail() ;
+         while( pSet )
          {
-            rtnAccessPlanSet *planset = (*it).second ;
-            if ( ( cleanNum = planset->_clearFast( expectNum ) ) > 0 )
+            rtnAccessPlanSet *pTmp = pSet ;
+            pSet = _accessList.prev( pSet ) ;
+
+            if ( ( cleanNum = pTmp->_clearFast( expectNum ) ) > 0 )
             {
                expectNum -= cleanNum ;
                totalCleanNum += cleanNum ;
@@ -852,14 +852,11 @@ namespace engine
             }
 
             // clear empty list
-            if ( planset->size() == 0 )
+            if ( pTmp->size() == 0 )
             {
-               _planSets.erase( it++ ) ;
-               SDB_OSS_DEL planset ;
-            }
-            else
-            {
-               ++it ;
+               _planSets.erase( pTmp->getName() ) ;
+               _accessList.remove( pTmp, FALSE ) ;
+               SDB_OSS_DEL pTmp ;
             }
 
             if ( expectNum <= 0 )
