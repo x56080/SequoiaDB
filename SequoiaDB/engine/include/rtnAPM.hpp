@@ -52,6 +52,118 @@ namespace engine
    class _rtnAccessPlanManager ;
 
    /*
+      _optFILOList define
+   */
+   template< typename T >
+   class _rtnFILOList : public SDBObject
+   {
+      public:
+         _rtnFILOList()
+         {
+            _header = NULL ;
+            _tail = NULL ;
+         }
+         ~_rtnFILOList()
+         {
+         }
+
+         void     insert( T *node, BOOLEAN needLock )
+         {
+            if ( needLock )
+            {
+               _lock.get() ;
+            }
+
+            if ( node->getNext() || node->getPrev() )
+            {
+               remove( node, FALSE ) ;
+            }
+
+            if ( !_header || !_tail )
+            {
+               _header = node ;
+               _tail = node ;
+            }
+            else
+            {
+               node->setNext( _header ) ;
+               _header->setPrev( node ) ;
+               _header = node ;
+            }
+
+            if ( needLock )
+            {
+               _lock.release() ;
+            }
+         }
+         void     remove( T *node, BOOLEAN needLock )
+         {
+            if ( needLock )
+            {
+               _lock.get() ;
+            }
+
+            if ( node->getNext() )
+            {
+               node->getNext()->setPrev( node->getPrev() ) ;
+            }
+            if ( node->getPrev() )
+            {
+               node->getPrev()->setNext( node->getNext() ) ;
+            }
+            if ( _header == node )
+            {
+               _header = node->getNext() ;
+            }
+            if ( _tail == node )
+            {
+               _tail = node->getPrev() ;
+            }
+            node->setNext( NULL ) ;
+            node->setPrev( NULL ) ;
+
+            if ( needLock )
+            {
+               _lock.release() ;
+            }
+         }
+         void     reHeader( T *node, BOOLEAN needLock )
+         {
+            if ( needLock )
+            {
+               _lock.get() ;
+            }
+
+            remove( node, FALSE ) ;
+            insert( node, FALSE ) ;
+
+            if ( needLock )
+            {
+               _lock.release() ;
+            }
+         }
+
+         T*       header() { return _header ; }
+         T*       next( T *node ) { return node->getNext() ; }
+         T*       tail() { return _tail ; }
+         T*       prev( T *node ) { return node->getPrev() ; }
+
+         void     lock()
+         {
+            _lock.get() ;
+         }
+         void     release()
+         {
+            _lock.release() ;
+         }
+
+      private:
+         T              *_header ;
+         T              *_tail ;
+         ossSpinXLatch  _lock ;
+   } ;
+
+   /*
       _rtnAPContext define
    */
    struct _rtnAPContext
@@ -86,16 +198,26 @@ namespace engine
       ossAtomic32             *_pSetEmptyAPNum ;
       ossAtomic32             *_pTotalEmptyAPNum ;
 
+      _rtnAccessPlanList      *_next ;
+      _rtnAccessPlanList      *_prev ;
+
+      UINT32                  _hash ;
+
    public :
       explicit _rtnAccessPlanList ( _rtnAccessPlanManager *apm,
                                     ossAtomic32 *pSetEmptyAPNum,
-                                    ossAtomic32 *pTotalEmptyAPNum )
+                                    ossAtomic32 *pTotalEmptyAPNum,
+                                    UINT32 hash )
       :_emptyAPNum( 0 )
       {
          _apm = apm ;
          _lastID = 0 ;
          _pSetEmptyAPNum = pSetEmptyAPNum ;
          _pTotalEmptyAPNum = pTotalEmptyAPNum ;
+
+         _next = NULL ;
+         _prev = NULL ;
+         _hash = hash ;
       }
       ~_rtnAccessPlanList()
       {
@@ -136,13 +258,19 @@ namespace engine
 
       void clear ( UINT32 &cleanNum ) ;
 
+      _rtnAccessPlanList* getNext() { return _next ; }
+      _rtnAccessPlanList* getPrev() { return _prev ; }
+      void  setNext( _rtnAccessPlanList *next ) { _next = next ; }
+      void  setPrev( _rtnAccessPlanList *prev ) { _prev = prev ; }
+
+      UINT32 hash() const { return _hash ; }
+
    protected:
       UINT32      _clearFast( INT32 expectNum = 1 ) ;
 
    } ;
    typedef _rtnAccessPlanList rtnAccessPlanList ;
 
-   //#define RTN_APS_SIZE             ( 500 )
    #define RTN_APS_DFT_OCCUPY_PCT   ( 0.75f )
 
    /*
@@ -155,6 +283,8 @@ namespace engine
       typedef map<UINT32, rtnAccessPlanList*>      MAP_CODE_2_LIST ;
       typedef MAP_CODE_2_LIST::iterator            MAP_CODE_2_LIST_IT ;
 
+      typedef _rtnFILOList< rtnAccessPlanList >    ACCESS_LIST ;
+
    private :
       ossSpinSLatch           _mutex ;
       ossAtomic32             _totalNum ;
@@ -163,7 +293,11 @@ namespace engine
       MAP_CODE_2_LIST         _planLists ;
       _dmsStorageUnit         *_su ;
       _rtnAccessPlanManager   *_apm ;
+      ACCESS_LIST             _accessList ;
       CHAR _collectionName[ DMS_COLLECTION_NAME_SZ+1 ] ;
+
+      _rtnAccessPlanSet       *_next ;
+      _rtnAccessPlanSet       *_prev ;
 
    public :
       explicit _rtnAccessPlanSet( _dmsStorageUnit *su,
@@ -178,6 +312,9 @@ namespace engine
          _pTotalEmptyAPNum = pTotalEmptyAPNum ;
          _su = su ;
          _apm = apm ;
+
+         _next = NULL ;
+         _prev = NULL ;
       }
       ~_rtnAccessPlanSet()
       {
@@ -214,6 +351,11 @@ namespace engine
          return _emptyAPNum.compare( 0 ) ? FALSE : TRUE ;
       }
 
+      _rtnAccessPlanSet* getNext() { return _next ; }
+      _rtnAccessPlanSet* getPrev() { return _prev ; }
+      void  setNext( _rtnAccessPlanSet *next ) { _next = next ; }
+      void  setPrev( _rtnAccessPlanSet *prev ) { _prev = prev ; }
+
    protected:
       UINT32   _clearFast( INT32 expectNum = 1 ) ;
 
@@ -244,6 +386,8 @@ namespace engine
       typedef map<const CHAR*, _rtnAccessPlanSet*>::iterator   PLAN_SETS_IT ;
 #endif // _WINDOWS
 
+      typedef _rtnFILOList< _rtnAccessPlanSet >                ACCESS_LIST ;
+
    private :
       ossSpinSLatch        _mutex ;
       ossAtomic32          _totalNum ;
@@ -251,6 +395,7 @@ namespace engine
       _dmsStorageUnit      *_su ;
       PLAN_SETS            _planSets ;
       UINT32               _bucketsNum ;
+      ACCESS_LIST          _accessList ;
 
    public :
       explicit _rtnAccessPlanManager( _dmsStorageUnit *su ) ;
