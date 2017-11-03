@@ -120,7 +120,7 @@ public class CreateMainCl26 extends SdbTestBase{
 		try{	
 			maincl.insert("{time:10,no:10,test:'test'}");			
 			DBCursor res = maincl.query();
-			String data1="{ \"time\" : 10 , \"no\" : 10 , \"test\" : \"test\"}";
+			String data1="{ \"time\" : 10 , \"no\" : 10 , \"test\" : \"test\" }";
 			while(res.hasNext()){
 				BSONObject dataRes = res.getNext();
 				dataRes.removeField("_id");
