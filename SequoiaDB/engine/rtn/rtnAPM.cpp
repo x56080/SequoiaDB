@@ -660,7 +660,7 @@ namespace engine
          {
             INT32 expectNum = _totalNum.peek() - _bucketsNum + 1 ;
             UINT32 cleanNum = _clearFast( expectNum ) ;
-            if ( cleanNum <= (UINT32)expectNum )
+            if ( cleanNum < (UINT32)expectNum )
             {
                /// set is full
                plan->setAPM( NULL ) ;
