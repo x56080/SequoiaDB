@@ -60,7 +60,7 @@ namespace engine
 {
 
    #define SDBCMART_LOG_FILE_NAME      "sdbcmart.log"
-   #define PMD_SDBCM_WAIT_TIMEOUT      ( 6 )   /// seconds
+   #define PMD_SDBCM_WAIT_TIMEOUT      ( 30 )   /// seconds
 
 #if defined( _WINDOWS )
    #define COMMANDS_OPTIONS \
