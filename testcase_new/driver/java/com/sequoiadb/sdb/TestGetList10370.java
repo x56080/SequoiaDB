@@ -69,7 +69,6 @@ public class TestGetList10370 extends SdbTestBase{
             
             //1
             if ( dataGroupList.size() > 0 && Util.isCluster(this.sdb)){
-                System.out.println(11111);
                 BSONObject dataGroup0 = dataGroupList.get(0);
                 BSONObject group = (BSONObject) dataGroup0.get("Group");
                 String url = this.getUrlByGroupInfo(group);
@@ -110,7 +109,7 @@ public class TestGetList10370 extends SdbTestBase{
             }
             
             //4
-            String expectedStr = "{ \"Name\" : \"" + this.commCSName + "." + this.clName + "\"}";
+            String expectedStr = "{ \"Name\" : \"" + this.commCSName + "." + this.clName + "\" }";
             cursor = this.sdb.getList( 4, (BSONObject)JSON.parse(expectedStr), (BSONObject)JSON.parse("{Name:{$include:1}}"), (BSONObject)JSON.parse("{\"Name\":1}"));
             while(cursor.hasNext()) {
                 BSONObject object = cursor.getNext();
@@ -129,7 +128,7 @@ public class TestGetList10370 extends SdbTestBase{
             //5
             actual.clear();
             expectedStr = "";
-            expectedStr = "{ \"Name\" : \"" + this.commCSName + "\"}";
+            expectedStr = "{ \"Name\" : \"" + this.commCSName + "\" }";
             cursor = this.sdb.getList( 5, (BSONObject)JSON.parse(expectedStr), (BSONObject)JSON.parse("{Name:{$include:1}}"), (BSONObject)JSON.parse("{\"Name\":1}"));
             while(cursor.hasNext()) {
                 BSONObject object = cursor.getNext();
