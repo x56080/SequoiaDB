@@ -655,23 +655,23 @@ namespace engine
       {
          ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
 
+         /// when ap is full in the set, need to clean
+         if ( _totalNum.peek() >= _bucketsNum )
+         {
+            INT32 expectNum = _totalNum.peek() - _bucketsNum + 1 ;
+            UINT32 cleanNum = _clearFast( expectNum ) ;
+            if ( cleanNum <= (UINT32)expectNum )
+            {
+               /// set is full
+               plan->setAPM( NULL ) ;
+               goto done ;
+            }
+            incSize -= cleanNum ;
+         }
+
          itr = _planSets.find( plan->getName() ) ;
          if ( itr == _planSets.end() )
          {
-            /// when ap is full in the set, need to clean
-            if ( _totalNum.peek() >= _bucketsNum )
-            {
-               INT32 expectNum = _totalNum.peek() - _bucketsNum + 1 ;
-               UINT32 cleanNum = _clearFast( expectNum ) ;
-               if ( cleanNum <= (UINT32)expectNum )
-               {
-                  /// set is full
-                  plan->setAPM( NULL ) ;
-                  goto done ;
-               }
-               incSize -= cleanNum ;
-            }
-
             pSet = SDB_OSS_NEW _rtnAccessPlanSet( _su,
                                                   plan->getName(),
                                                   this,
