@@ -252,7 +252,7 @@ public class JSONSerializers {
 				serializer.serialize(dbo.get(name), buf);
 			}
 
-			buf.append("}");
+			buf.append(" }");
 		}
 
 	}
