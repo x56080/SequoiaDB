@@ -73,19 +73,19 @@ public class TestSplit10896 extends SdbTestBase{
     
     @DataProvider(name="providerMethod")
     public Object[][] providerMethod() {
-        String all = "[{ \"_id\" : 1 , \"type\" : 123}, " +
-                "{ \"_id\" : 2 , \"type\" : 456}, { \"_id\" : 3 , \"type\" : 123.456}, " +
-                "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\"}}, " +
-                "{ \"_id\" : 5 , \"type\" : \"zhangsan\"}, " +
-                "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\"}}, " +
-                "{ \"_id\" : 7 , \"type\" : true}, " +
-                "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\"}}, " +
-                "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232}}, " +
-                "{ \"_id\" : 10 , \"type\" : <Binary Data>}, " +
-                "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\"}}, " +
-                "{ \"_id\" : 12 , \"type\" : { \"a\" : 1}}, { \"_id\" : 13 , \"type\" : [ 0]}, " +
-                "{ \"_id\" : 14 , \"type\" :  null }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1}}, " +
-                "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1}}]";
+        String all = "[{ \"_id\" : 1 , \"type\" : 123 }, " +
+                "{ \"_id\" : 2 , \"type\" : 456 }, { \"_id\" : 3 , \"type\" : 123.456 }, " +
+                "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\" } }, " +
+                "{ \"_id\" : 5 , \"type\" : \"zhangsan\" }, " +
+                "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\" } }, " +
+                "{ \"_id\" : 7 , \"type\" : true }, " +
+                "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\" } }, " +
+                "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232 } }, " +
+                "{ \"_id\" : 10 , \"type\" : <Binary Data> }, " +
+                "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\" } }, " +
+                "{ \"_id\" : 12 , \"type\" : { \"a\" : 1 } }, { \"_id\" : 13 , \"type\" : [ 0 ] }, " +
+                "{ \"_id\" : 14 , \"type\" :  null }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1 } }, " +
+                "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1 } }]";
        /* String queryRe = "[{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\"}}, " +
                 "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232}}, " +
                 "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\"}}, " +
@@ -115,8 +115,8 @@ public class TestSplit10896 extends SdbTestBase{
             BSONObject detail = getSnapshot8(); 
             Object object = detail.get("CataInfo");
             BSONObject cataInfo = (BSONObject )object;
-            Assert.assertTrue(cataInfo.toString().contains("\"LowBound\" : { \"\" : 0} , \"UpBound\" : { \"\" : 410}"));
-            Assert.assertTrue(cataInfo.toString().contains("\"LowBound\" : { \"\" : 410} , \"UpBound\" : { \"\" : 1024}"));
+            Assert.assertTrue(cataInfo.toString().contains("\"LowBound\" : { \"\" : 0 } , \"UpBound\" : { \"\" : 410 }"));
+            Assert.assertTrue(cataInfo.toString().contains("\"LowBound\" : { \"\" : 410 } , \"UpBound\" : { \"\" : 1024 }"));
 
             testCoordSplitResult(rgNames,all);
             //验证部分数据
