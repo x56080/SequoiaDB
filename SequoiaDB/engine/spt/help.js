@@ -23,6 +23,9 @@ var help = function( val ) {
       println("   print(x), println(x)                               print out x");
       println("   sleep(ms)                                          sleep macro seconds");
       println("   traceFmt(<type>,<in>,<out>)                        format trace input(in) to output(out) by type");
+      println("   jsonFormat(<pretty>)                               Set BSON output format.When out of memory" );
+      println("                                                      error happen, we can use jsonFormat( false ) to");
+      println("                                                      disable BSON formatted output.");
       println("   getErr(ret)                                        print error description for return code");
       println("   getLastError()                                     get last error number");
       println("   setLastError(<errno>)                              set last error number") ;
