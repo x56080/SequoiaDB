@@ -17,7 +17,7 @@ public class TestJson10359 {
             JSON.serialize(o, sb);
             Assert.assertEquals(sb.toString(), "\"{Name: foo.bar}\"");
             Assert.assertEquals(JSON.serialize(o), "\"{Name: foo.bar}\"");
-            o = "{ \"Name\" : \"foo.bar\"}";
+            o = "{ \"Name\" : \"foo.bar\" }";
             Assert.assertEquals((JSON.parse("{\"Name\": \"foo.bar\"}")).toString(), o.toString());
             Assert.assertEquals((JSON.parse("{\"Name\": \"foo.bar\"}", new BasicBSONCallback())).toString(), o.toString());
         } catch (BaseException e) {
