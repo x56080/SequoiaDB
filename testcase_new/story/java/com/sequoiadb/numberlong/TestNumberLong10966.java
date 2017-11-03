@@ -75,32 +75,32 @@ public class TestNumberLong10966 extends SdbTestBase{
         //使用默认值
         BSON.setJSCompatibility(false);
         id = 3;
-        String expected = "{ \"_id\" : "+id+" , \"b\" : 2147483648 , \"c\" : -2147483649}";
+        String expected = "{ \"_id\" : "+id+" , \"b\" : 2147483648 , \"c\" : -2147483649 }";
         testLong(id, expected);
         BSON.setJSCompatibility(true);
         id = 4;
-        expected = "{ \"_id\" : "+id+" , \"b\" : 2147483648 , \"c\" : -2147483649}";
+        expected = "{ \"_id\" : "+id+" , \"b\" : 2147483648 , \"c\" : -2147483649 }";
         testLong(id, expected);
         //大于 （2^53 - 1）小于Long.MAX的long类型的情况
         BSON.setJSCompatibility(false);
         id = 5;
-        expected = "{ \"_id\" : "+id+" , \"b\" : 9223372036854775807 , \"c\" : -9223372036854775808}";
+        expected = "{ \"_id\" : "+id+" , \"b\" : 9223372036854775807 , \"c\" : -9223372036854775808 }";
         testLong2(id, expected);
         
         BSON.setJSCompatibility(true);
         id = 6;
-        expected = "{ \"_id\" : "+id+" , \"b\" : { \"$numberLong\" : \"9223372036854775807\"} , \"c\" : { \"$numberLong\" : \"-9223372036854775808\"}}";
+        expected = "{ \"_id\" : "+id+" , \"b\" : { \"$numberLong\" : \"9223372036854775807\" } , \"c\" : { \"$numberLong\" : \"-9223372036854775808\" } }";
         testLong2(id, expected);
         
         //2的53次方9007199254740992
         //[-(2^53-1)，2^53-1]
         BSON.setJSCompatibility(false);
         id = 7;
-        expected = "{ \"_id\" : "+id+" , \"a\" : 123 , \"b\" : -9007199254740991 , \"c\" : 9007199254740991}";
+        expected = "{ \"_id\" : "+id+" , \"a\" : 123 , \"b\" : -9007199254740991 , \"c\" : 9007199254740991 }";
         test2_53(id, expected);
         BSON.setJSCompatibility(true);
         id = 8;
-        expected = "{ \"_id\" : "+id+" , \"a\" : 123 , \"b\" : -9007199254740991 , \"c\" : 9007199254740991}";
+        expected = "{ \"_id\" : "+id+" , \"a\" : 123 , \"b\" : -9007199254740991 , \"c\" : 9007199254740991 }";
         test2_53(id, expected);
     }
 
@@ -139,7 +139,7 @@ public class TestNumberLong10966 extends SdbTestBase{
             obj.put("c", Integer.MIN_VALUE);
             this.cl.insert(obj);
             DBCursor cursor = this.cl.query("{_id:{'$et':"+id+"}}", null, null, null);
-            String expected = "{ \"_id\" : "+id+" , \"a\" : 123 , \"b\" : 2147483647 , \"c\" : -2147483648}";
+            String expected = "{ \"_id\" : "+id+" , \"a\" : 123 , \"b\" : 2147483647 , \"c\" : -2147483648 }";
             BSONObject next = new BasicBSONObject();
             while ( cursor.hasNext() ) {
                 next = cursor.getNext();
