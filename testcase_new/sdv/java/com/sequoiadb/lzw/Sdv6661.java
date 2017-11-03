@@ -124,7 +124,7 @@ public class Sdv6661 extends SdbTestBase {
 			int i = 10;
 			while (cursor.hasNext()) {
 				String actRec = cursor.getNext().toString();
-				String exptRec = "{ \"_id\" : " + i + " , \"key\" : \"" + strRec + i + "\"}";
+				String exptRec = "{ \"_id\" : " + i + " , \"key\" : \"" + strRec + i + "\" }";
 				if (!exptRec.equals(actRec)) {
 					Assert.fail("The data is error");
 				}

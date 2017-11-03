@@ -137,7 +137,7 @@ public class Sdv6662 extends SdbTestBase{
 		    while(cursor1.hasNext()&&cursor2.hasNext()){
 				String actRec1 = cursor1.getNext().toString();
 				String actRec2 = cursor2.getNext().toString();
-				String exptRec = "{ \"_id\" : "+i+" , \"key\" : \""+strRec+i+"\" , \"value\" : "+i+"}";
+				String exptRec = "{ \"_id\" : "+i+" , \"key\" : \""+strRec+i+"\" , \"value\" : "+i+" }";
 //				System.out.println(actRec1);
 //				System.out.println(actRec2);
 //				System.out.println(exptRec);

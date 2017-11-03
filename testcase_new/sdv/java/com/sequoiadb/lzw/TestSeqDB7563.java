@@ -68,7 +68,7 @@ public class TestSeqDB7563 extends SdbTestBase {
             this.cl.alterCollection((BSONObject)JSON.parse("{ShardingKey:{a:1}}"));
             BSONObject detail = getSnapshot8();
             String shardingKey = detail.get("ShardingKey").toString();
-            Assert.assertEquals(shardingKey, "{ \"a\" : 1}");
+            Assert.assertEquals(shardingKey, "{ \"a\" : 1 }");
             Assert.assertEquals(detail.get("CompressionTypeDesc").toString(), "lzw");
             
             Util util = new Util();
