@@ -80,7 +80,7 @@ public class TestProcedure7121 extends SdbTestBase{
             this.sdb.crtJSProcedure(code);
             DBCursor cursor =  this.sdb.listProcedures((BSONObject) JSON.parse("{\"name\":\"sum_7121\"}"));
             BSONObject actual = new BasicBSONObject();
-            String expected = "{ \"name\" : \"sum_7121\" , \"func\" : { \"$code\" : \"function sum_7121(x, y){return x/y;}\"}}";
+            String expected = "{ \"name\" : \"sum_7121\" , \"func\" : { \"$code\" : \"function sum_7121(x, y){return x/y;}\" } }";
             //expected.put("func", rcfunc);
             while(cursor.hasNext()) {
                 actual = cursor.getNext();
