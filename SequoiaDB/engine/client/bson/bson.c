@@ -437,14 +437,12 @@ static void bson_sprint_hex_concat ( char **pbuf, int *left, const char *data, u
    }
 }
 
-SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
-                                      char delChar )
+SDB_EXPORT int bson_sprint_string_iterator ( char **pbuf, int *left, bson_iterator *i,
+                                             const char *delCharStr )
 {
 
-   char delCharStr[2] ;
    bson_type t ;
-   delCharStr[0] = delChar ;
-   delCharStr[1] = 0 ;
+
    if ( left <= 0 || !pbuf || !i )
       return 0 ;
    t = bson_iterator_type ( i ) ;
@@ -721,6 +719,17 @@ SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
    }
    return 1 ;
 }
+
+SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
+                                      char delChar )
+{
+   char delCharStr[2] = { 0 } ;
+   delCharStr[0] = delChar ;
+   delCharStr[1] = '\0' ;
+
+   return bson_sprint_string_iterator( pbuf, left, i, delCharStr ) ;
+}
+
 SDB_EXPORT int bson_sprint_raw ( char **pbuf, int *left, const char *data, int isobj )
 {
     bson_iterator i;

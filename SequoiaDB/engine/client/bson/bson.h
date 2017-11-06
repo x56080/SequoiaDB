@@ -230,6 +230,15 @@ SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
                                       char delChar ) ;
 
 /**
+ * Print a string representation of BSON Iterator to buffer ( without key ).
+ *
+ * @param i the BSON Iterator to print.
+ * @param delChar the string delimiter as a string itself.
+ */
+SDB_EXPORT int bson_sprint_string_iterator ( char **pbuf, int *left,
+                                             bson_iterator *i, const char *delCharStr ) ;
+
+/**
  * Print a string representation of a BSON object to buffer.
  *
  * @param b the BSON object to print.

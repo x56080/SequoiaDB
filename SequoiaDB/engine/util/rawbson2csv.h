@@ -60,13 +60,13 @@ SDB_EXPORT void setPrintfLog( void (*pFun)( const CHAR *pFunc,
                                             const CHAR *pFmt,
                                             ... ) ) ;
 
-SDB_EXPORT INT32 getCSVSize( CHAR delChar, CHAR delField,
+SDB_EXPORT INT32 getCSVSize( const CHAR *delChar, CHAR *delField, INT32 delFieldSize,
                              CHAR *pbson, INT32 *pCSVSize,
                              BOOLEAN includeBinary,
                              BOOLEAN includeRegex,
                              BOOLEAN kickNull ) ;
-SDB_EXPORT INT32 bson2csv( CHAR delChar, CHAR delField, CHAR *pbson,
-                           CHAR **ppBuffer, INT32 *pCSVSize,
+SDB_EXPORT INT32 bson2csv( const CHAR *delChar, CHAR *delField, INT32 delFieldSize,
+                           CHAR *pbson, CHAR **ppBuffer, INT32 *pCSVSize,
                            BOOLEAN includeBinary,
                            BOOLEAN includeRegex,
                            BOOLEAN kickNull ) ;
