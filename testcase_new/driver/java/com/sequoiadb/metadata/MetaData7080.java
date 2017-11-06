@@ -222,9 +222,9 @@ public class MetaData7080 extends SdbTestBase{
 			subCS.dropCollection(subCLName1);
 			subCS.dropCollection(subCLName2);
 			
-			Assert.assertNull(mainCS.getCollection(mainCLName));
-			Assert.assertNull(subCS.getCollection(subCLName1));
-			Assert.assertNull(subCS.getCollection(subCLName2));
+			Assert.assertFalse(mainCS.isCollectionExist(mainCLName));
+			Assert.assertFalse(subCS.isCollectionExist(subCLName1));
+			Assert.assertFalse(subCS.isCollectionExist(subCLName2));
 			
 			sdb.dropCollectionSpace(mainCSName);
 			sdb.dropCollectionSpace(subCSName);
@@ -233,6 +233,7 @@ public class MetaData7080 extends SdbTestBase{
 			//Assert.assertNull(sdb.getCollectionSpace(mainCSName));
 			//Assert.assertNull(sdb.getCollectionSpace(subCSName));
 		}catch(BaseException e){
+			e.printStackTrace();
 			Assert.fail("drop cs or cl failed, errMsg:" + e.getMessage());
 		}
 	}
