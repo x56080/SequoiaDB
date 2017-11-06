@@ -242,8 +242,8 @@ INT32 _appendNonString( const CHAR *delChar, bson_iterator *pIt,
       goto error ;
    }
 
-   if ( !bson_sprint_string_iterator ( ppCSVBuf, pCSVSize,
-                                pIt, delChar ) )
+   if ( !bson_sprint_iterator ( ppCSVBuf, pCSVSize,
+                                pIt, '"' ) )
    {
       rc = SDB_OOM ;
       UTIL_RAW2BSON_PRINTF_LOG( "Failed to call bson_sprint_iterator, rc=%d",
