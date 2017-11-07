@@ -1394,7 +1394,7 @@ namespace engine
    void _dmsStorageLob::_initHeaderPageSize( dmsStorageUnitHeader * pHeader,
                                              dmsStorageInfo * pInfo )
    {
-      pHeader->_pageSize = DMS_PAGE_SIZE256B ;
+      pHeader->_pageSize = DMS_PAGE_SIZE64B ;
       pHeader->_lobdPageSize = pInfo->_lobdPageSize ;
    }
 
@@ -1402,10 +1402,13 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      if ( pHeader->_pageSize != DMS_PAGE_SIZE256B )
+      if ( pHeader->_pageSize != DMS_PAGE_SIZE64B &&
+           pHeader->_pageSize != DMS_PAGE_SIZE256B )
       {
-         PD_LOG( PDERROR, "Lob meta page size[%d] must be %d in file[%s]",
-                 pHeader->_pageSize, DMS_PAGE_SIZE256B, getSuFileName() ) ;
+         PD_LOG( PDERROR, "Lob meta page size[%d] must be %d or %d in file[%s]",
+                 pHeader->_pageSize,
+                 DMS_PAGE_SIZE64B, DMS_PAGE_SIZE256B,
+                 getSuFileName() ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -1426,7 +1429,7 @@ namespace engine
       }
 
       _segmentSize = _data.getSegmentSize() / pHeader->_lobdPageSize *
-                     DMS_LOB_DATA_MAP_BLK_LEN ;
+                     pHeader->_pageSize ;
 
    done:
       return rc ;
