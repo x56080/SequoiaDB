@@ -299,8 +299,9 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB_REMOVESTORAGEFILES, "_dmsStorageLob::removeStorageFiles" )
    void _dmsStorageLob::removeStorageFiles()
    {
-      INT32 rc = removeStorage() ;
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_REMOVESTORAGEFILES ) ;
+      rc = removeStorage() ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to remove file:%d", rc ) ;
