@@ -432,7 +432,7 @@ error:
 INT32 utilDecodeBson::parseCSVSize( CHAR *pbson, INT32 *pCSVSize )
 {
    INT32 rc = SDB_OK ;
-   rc = getCSVSize( ossStrdup( _delChar.c_str() ), ossStrdup( _delField.c_str() ), _delField.size(),
+   rc = getCSVSize( _delChar.c_str(), _delField.c_str(), _delField.size(),
                     pbson, pCSVSize, _includeBinary, _includeRegex, _kickNull ) ;
    if ( rc )
    {
@@ -554,8 +554,7 @@ INT32 utilDecodeBson::bsonCovertCSV( CHAR *pbson,
       }
    }
    bson_finish ( &obj ) ;
-   rc = bson2csv( ossStrdup( _delChar.c_str() ),
-                  ossStrdup( _delField.c_str() ), _delField.size(),
+   rc = bson2csv( _delChar.c_str(), _delField.c_str(), _delField.size(),
                   obj.data, ppBuffer, pCSVSize,
                   _includeBinary, _includeRegex, _kickNull ) ;
    if ( rc )
