@@ -52,18 +52,18 @@ namespace engine
    class _rtnAccessPlanManager ;
 
    /*
-      _optFILOList define
+      _rtnEliminateList define
    */
    template< typename T >
-   class _rtnFILOList : public SDBObject
+   class _rtnEliminateList : public SDBObject
    {
       public:
-         _rtnFILOList()
+         _rtnEliminateList()
          {
             _header = NULL ;
             _tail = NULL ;
          }
-         ~_rtnFILOList()
+         ~_rtnEliminateList()
          {
          }
 
@@ -283,7 +283,7 @@ namespace engine
       typedef map<UINT32, rtnAccessPlanList*>      MAP_CODE_2_LIST ;
       typedef MAP_CODE_2_LIST::iterator            MAP_CODE_2_LIST_IT ;
 
-      typedef _rtnFILOList< rtnAccessPlanList >    ACCESS_LIST ;
+      typedef _rtnEliminateList< rtnAccessPlanList >  ACCESS_LIST ;
 
    private :
       ossSpinSLatch           _mutex ;
@@ -386,7 +386,7 @@ namespace engine
       typedef map<const CHAR*, _rtnAccessPlanSet*>::iterator   PLAN_SETS_IT ;
 #endif // _WINDOWS
 
-      typedef _rtnFILOList< _rtnAccessPlanSet >                ACCESS_LIST ;
+      typedef _rtnEliminateList< _rtnAccessPlanSet >           ACCESS_LIST ;
 
    private :
       ossSpinSLatch        _mutex ;
