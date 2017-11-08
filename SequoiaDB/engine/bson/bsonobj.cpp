@@ -576,10 +576,13 @@ namespace bson {
             if ( r.type() == NumberLong )
             {
                 long long R = r._numberLong();
+                double L = l.numberDouble() ;
                 // out of safe bound,
                 // convert to double will loss precision
-                if ( R > LONG_UPPER_SAFE_BOUND ||
-                     R < LONG_LOWER_SAFE_BOUND )
+                if ( ( R > LONG_UPPER_SAFE_BOUND ||
+                       R < LONG_LOWER_SAFE_BOUND ) &&
+                     ( L > LONG_UPPER_SAFE_BOUND ||
+                       L < LONG_LOWER_SAFE_BOUND ) )
                 {
                     return l.numberDecimal()
                             .compare( r.numberDecimal() ) ;
@@ -588,10 +591,13 @@ namespace bson {
             else if ( l.type() == NumberLong )
             {
                 long long L = l._numberLong();
+                double R = r.numberDouble() ;
                 // out of safe bound,
                 // convert to double will loss precision
-                if ( L > LONG_UPPER_SAFE_BOUND ||
-                     L < LONG_LOWER_SAFE_BOUND )
+                if ( ( L > LONG_UPPER_SAFE_BOUND ||
+                       L < LONG_LOWER_SAFE_BOUND ) &&
+                     ( R > LONG_UPPER_SAFE_BOUND ||
+                       R < LONG_LOWER_SAFE_BOUND ) )
                 {
                     return l.numberDecimal()
                             .compare( r.numberDecimal() ) ;
