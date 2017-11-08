@@ -418,7 +418,7 @@ public class CLQuery {
         BSONObject selector = new BasicBSONObject();
         selector.put("Id", "");
         DBCursor cursor = cl.query(condition, selector, empty, empty, 0, -1, 1);
-        String expect = "{ \"\" : \"1\"}";
+        String expect = "{ \"\" : \"1\" }";
         int i = 0;
         BSONObject obj = null;
         while (cursor.hasNextRaw()) {

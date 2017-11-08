@@ -14,7 +14,7 @@ public class BasicClass {
 	private Integer ageInteger = 25;
 	private Long idLong = 0L;
 	private Double scodeDouble = 9999.001;
-	private Float floatvalue = 012121.212f;
+	private Double floatvalue = 012121.212;
 	private Date  date = new Date();
 	
 
@@ -85,14 +85,14 @@ public class BasicClass {
 	/**
 	 * @return the floatvalue
 	 */
-	public Float getFloatvalue() {
+	public Double getFloatvalue() {
 		return floatvalue;
 	}
 
 	/**
 	 * @param floatvalue the floatvalue to set
 	 */
-	public void setFloatvalue(Float floatvalue) {
+	public void setFloatvalue(Double floatvalue) {
 		this.floatvalue = floatvalue;
 	}
 
