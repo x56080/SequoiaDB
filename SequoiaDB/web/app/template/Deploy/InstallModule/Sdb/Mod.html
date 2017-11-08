@@ -5,7 +5,7 @@
             <option value="json">JSON</option>
             <option value="xml">XML</option>
          </select>
-         <button class="btn btn-primary" ng-click="DownloadConfig()">下载配置</button>
+         <button class="btn btn-primary" ng-click="DownloadConfig()">{{autoLanguage("下载配置")}}</button>
       </div>
       <textarea spellcheck="false" style="font-family:Consolas;font-size:15px;" class="form-control" ng-container="{offsetY:-40}" ng-model="config.text"></textarea>
    </div>
@@ -78,19 +78,19 @@
                      <input type="checkbox" ng-model="nodeInfo.checked" />
                   </div>
                   <div class="Ellipsis" table-key="HostName">
-                     <a class="linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,nodeInfo.i,true)">{{nodeInfo.HostName}}</a>
+                     <a class="linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,nodeInfo,true)">{{nodeInfo.HostName}}</a>
                   </div>
                   <div class="Ellipsis" table-key="svcname">
-                     <a class="linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,nodeInfo.i,true)">{{nodeInfo.svcname}}</a>
+                     <a class="linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,nodeInfo,true)">{{nodeInfo.svcname}}</a>
                   </div>
                   <div class="Ellipsis" table-key="dbpath">
-                     <a class="linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,nodeInfo.i,true)">{{nodeInfo.dbpath}}</a>
+                     <a class="linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,nodeInfo,true)">{{nodeInfo.dbpath}}</a>
                   </div>
                   <div class="Ellipsis" table-key="role">
-                     <a class="linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,nodeInfo.i,true)">{{nodeInfo.role}}</a>
+                     <a class="linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,nodeInfo,true)">{{nodeInfo.role}}</a>
                   </div>
                   <div class="Ellipsis" table-key="datagroupname">
-                     <a class="linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,nodeInfo.i,true)">{{nodeInfo.datagroupname}}</a>
+                     <a class="linkButton" ng-click="CreateSetNodeConfModel(3,-1,-1,nodeInfo,true)">{{nodeInfo.datagroupname}}</a>
                   </div>
                </div>
 

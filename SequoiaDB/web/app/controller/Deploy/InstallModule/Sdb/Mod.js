@@ -1,4 +1,4 @@
-﻿(function(){
+(function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
    sacApp.controllerProvider.register( 'Deploy.Sdb.Mod.Ctrl', function( $scope, $compile, $location, $rootScope, $interval, SdbRest, SdbFunction, Loading ){
@@ -156,7 +156,7 @@
             nodeIndex   节点的索引id
             isShow      是否马上打开弹窗
       */
-      $scope.CreateSetNodeConfModel = function( type, groupIndex, hostIndex, nodeIndex, isShow ){
+      $scope.CreateSetNodeConfModel = function( type, groupIndex, hostIndex, currentNodeInfo, isShow ){
          $scope.Components.Modal.icon = '' ;
          $scope.Components.Modal.title = $scope.autoLanguage( '编辑节点配置' ) ;
          $scope.Components.Modal.ShowType = 1 ;
@@ -243,16 +243,16 @@
             $.each( $scope.Components.Modal.form1['inputList'], function( index ){
                var name = $scope.Components.Modal.form1['inputList'][index]['name'] ;
                loadName.push( name.toLowerCase() ) ;
-               $scope.Components.Modal.form1['inputList'][index]['value'] = $scope.NodeList[nodeIndex][name] ;
+               $scope.Components.Modal.form1['inputList'][index]['value'] = currentNodeInfo[name] ;
             } ) ;
             $.each( $scope.Components.Modal.form2['inputList'], function( index ){
                var name = $scope.Components.Modal.form2['inputList'][index]['name'] ;
                loadName.push( name.toLowerCase() ) ;
-               $scope.Components.Modal.form2['inputList'][index]['value'] = $scope.NodeList[nodeIndex][name] ;
+               $scope.Components.Modal.form2['inputList'][index]['value'] = currentNodeInfo[name] ;
             } ) ;
             //加载自定义配置项
             var isFirst = true ;
-            $.each( $scope.NodeList[nodeIndex], function( key, value ){
+            $.each( currentNodeInfo, function( key, value ){
                if( key.toLowerCase() != 'hostname' &&
                    key.toLowerCase() != 'datagroupname' &&
                    key.toLowerCase() != 'role' &&
@@ -527,20 +527,13 @@
                {
                   //保存单个节点配置
                   formVal['svcname'] = portEscape( formVal['svcname'], 0 ) ;
-                  formVal['dbpath']  = dbpathEscape( formVal['dbpath'], formVal['HostName'], formVal['svcname'], $scope.NodeList[nodeIndex]['role'], formVal['datagroupname'] ) ;
-                  $scope.NodeList[nodeIndex] = {
-                     'HostName': $scope.NodeList[nodeIndex]['HostName'],
-                     'datagroupname': $scope.NodeList[nodeIndex]['datagroupname'],
-                     'role': $scope.NodeList[nodeIndex]['role'],
-                     'checked': $scope.NodeList[nodeIndex]['checked'],
-                     'i': $scope.NodeList[nodeIndex]['i']
-                  } ;
+                  formVal['dbpath']  = dbpathEscape( formVal['dbpath'], formVal['HostName'], formVal['svcname'], currentNodeInfo['role'], formVal['datagroupname'] ) ;
                   $.each( formVal, function( key, value ){
                      if( key == '' )
                      {
                         return true ;
                      }
-                     $scope.NodeList[nodeIndex][key] = value ;
+                     currentNodeInfo[key] = value ;
                   } ) ;
                }
                else if( type == 4 )
@@ -698,7 +691,7 @@
             if( isAllClear )
             {
                var formVal = form.getValue() ;
-               $scope.CreateSetNodeConfModel( formVal['createModel'], index, formVal['hostname'], formVal['copyNode'], false ) ;
+               $scope.CreateSetNodeConfModel( formVal['createModel'], index, formVal['hostname'], $scope.NodeList[formVal['copyNode']], false ) ;
             }
             else
             {
@@ -854,6 +847,10 @@
                {
                   selectGroup.splice( index - 1, 1 ) ;
                }
+               $scope.GroupList = [] ;
+               $.each( $scope.NodeList, function( index, nodeInfo ){
+                  countGroup( nodeInfo['role'], nodeInfo['datagroupname'], 1 ) ;
+               } ) ;
             } ) ;
          }
          else
