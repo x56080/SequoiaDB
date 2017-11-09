@@ -467,20 +467,29 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__DPSRPCMGR_MERGE, rc );
       return rc ;
    }
- 
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR_GETSTARTLSN, "_dpsReplicaLogMgr::getStartLsn" )
    DPS_LSN _dpsReplicaLogMgr::getStartLsn ( BOOLEAN logBufOnly )
    {
+      PD_TRACE_ENTRY ( SDB__DPSRPCMGR_GETSTARTLSN ) ;
       ossScopedLock lock( &_mtx ) ;
 
-      DPS_LSN memBeginLsn = _getStartLsn () ;
+      DPS_LSN lsn ;
+      DPS_LSN memBeginLsn = _getStartLsn() ;
       if ( logBufOnly )
-         return memBeginLsn ;
-
-      DPS_LSN lsn = _logger.getStartLSN ();
-      if ( lsn.invalid() || lsn.offset > memBeginLsn.offset)
       {
-         return memBeginLsn ;
+         lsn = memBeginLsn ;
       }
+      else
+      {
+         lsn = _logger.getStartLSN() ;
+         if ( lsn.invalid() || lsn.offset > memBeginLsn.offset )
+         {
+            lsn = memBeginLsn ;
+         }
+      }
+
+      PD_TRACE_EXIT ( SDB__DPSRPCMGR_GETSTARTLSN ) ;
       return lsn ;
    }
 
@@ -1353,9 +1362,12 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION (SDB__DPSRPCMGR_CHECKSYNCCONTROL, "_dpsReplicaLogMgr::checkSyncControl" )
    INT32 _dpsReplicaLogMgr::checkSyncControl( UINT32 reqLen, _pmdEDUCB * cb )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPSRPCMGR_CHECKSYNCCONTROL ) ;
+
       if ( _vecEventHandler.size() > 0 )
       {
          for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
@@ -1367,10 +1379,12 @@ namespace engine
             }
          }
       }
+
+      PD_TRACE_EXITRC( SDB__DPSRPCMGR_CHECKSYNCCONTROL, rc ) ;
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION (SDB__DPSRPCMGR_COMMIT, "_dpsReplicaLogMgr::commit" )   
+   // PD_TRACE_DECLARE_FUNCTION (SDB__DPSRPCMGR_COMMIT, "_dpsReplicaLogMgr::commit" )
    INT32 _dpsReplicaLogMgr::commit( BOOLEAN deeply, DPS_LSN *committedLsn )
    {
       INT32 rc = SDB_OK ;
