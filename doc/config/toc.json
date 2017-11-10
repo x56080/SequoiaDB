@@ -2517,216 +2517,246 @@
                ]
             },
             {
-               "id": 1432190950,
+               "id": 1510278739,
                "dir": "SQL_grammar",
                "cn": "SQL语法",
                "en": "SQL Grammar",
                "contents": [
                   {
-                     "id": 1432190951,
-                     "file": "create_collectionspace",
-                     "cn": "create collectionspace",
-                     "en": "create collectionspace"
+                     "id": 1510279692,
+                     "dir": "command",
+                     "cn": "命令字",
+                     "en": "Command",
+                     "contents": [
+                        {
+                           "id": 1432190951,
+                           "file": "create_collectionspace",
+                           "cn": "create collectionspace",
+                           "en": "create collectionspace"
+                        },
+                        {
+                           "id": 1432190952,
+                           "file": "drop_collectionspace",
+                           "cn": "drop collectionspace",
+                           "en": "drop collectionspace"
+                        },
+                        {
+                           "id": 1432190953,
+                           "file": "create_collection",
+                           "cn": "create collection",
+                           "en": "create collection"
+                        },
+                        {
+                           "id": 1432190954,
+                           "file": "drop_collection",
+                           "cn": "drop collection",
+                           "en": "drop collection"
+                        },
+                        {
+                           "id": 1432190955,
+                           "file": "create_index",
+                           "cn": "create index",
+                           "en": "create index"
+                        },
+                        {
+                           "id": 1432190956,
+                           "file": "drop_index",
+                           "cn": "drop index",
+                           "en": "drop index"
+                        },
+                        {
+                           "id": 1432190957,
+                           "file": "list_collectionspaces",
+                           "cn": "list collectionspaces",
+                           "en": "list collectionspaces"
+                        },
+                        {
+                           "id": 1432190958,
+                           "file": "list_collections",
+                           "cn": "list collections",
+                           "en": "list collections"
+                        },
+                        {
+                           "id": 1432190959,
+                           "file": "insert_into",
+                           "cn": "insert into",
+                           "en": "insert into"
+                        },
+                        {
+                           "id": 1432190960,
+                           "file": "select",
+                           "cn": "select",
+                           "en": "select"
+                        },
+                        {
+                           "id": 1432190961,
+                           "file": "update",
+                           "cn": "update",
+                           "en": "update"
+                        },
+                        {
+                           "id": 1432190962,
+                           "file": "delete",
+                           "cn": "delete",
+                           "en": "delete"
+                        }
+                     ]
                   },
                   {
-                     "id": 1432190952,
-                     "file": "drop_collectionspace",
-                     "cn": "drop collectionspace",
-                     "en": "drop collectionspace"
+                     "id": 1510279691,
+                     "dir": "modifier",
+                     "cn": "修饰符",
+                     "en": "Modifier",
+                     "contents": [
+                        {
+                           "id": 1432190963,
+                           "file": "group_by",
+                           "cn": "group by",
+                           "en": "group by"
+                        },
+                        {
+                           "id": 1432190964,
+                           "file": "order_by",
+                           "cn": "order by",
+                           "en": "order by"
+                        },
+                        {
+                           "id": 1432190965,
+                           "file": "split_by",
+                           "cn": "split by",
+                           "en": "split by"
+                        },
+                        {
+                           "id": 1432190966,
+                           "file": "limit",
+                           "cn": "limit",
+                           "en": "limit"
+                        },
+                        {
+                           "id": 1432190967,
+                           "file": "offset",
+                           "cn": "offset",
+                           "en": "offset"
+                        },
+                        {
+                           "id": 1432190968,
+                           "file": "as",
+                           "cn": "as",
+                           "en": "as"
+                        },
+                        {
+                           "id": 1432190969,
+                           "file": "inner_join",
+                           "cn": "inner join",
+                           "en": "inner join"
+                        },
+                        {
+                           "id": 1432190970,
+                           "file": "left_outer_join",
+                           "cn": "left outer join",
+                           "en": "left outer join"
+                        },
+                        {
+                           "id": 1432190971,
+                           "file": "right_outer_join",
+                           "cn": "right outer join",
+                           "en": "right outer join"
+                        },
+                        {
+                           "id": 1445318584,
+                           "file": "hint",
+                           "cn": "hint()",
+                           "en": "hint()"
+                        }
+                     ]
                   },
                   {
-                     "id": 1432190953,
-                     "file": "create_collection",
-                     "cn": "create collection",
-                     "en": "create collection"
+                     "id": 1510279690,
+                     "dir": "function",
+                     "cn": "函数",
+                     "en": "Function",
+                     "contents": [
+                        {
+                           "id": 1432190972,
+                           "file": "sum",
+                           "cn": "sum()",
+                           "en": "sum()"
+                        },
+                        {
+                           "id": 1432190973,
+                           "file": "count",
+                           "cn": "count()",
+                           "en": "count()"
+                        },
+                        {
+                           "id": 1432190974,
+                           "file": "avg",
+                           "cn": "avg()",
+                           "en": "avg()"
+                        },
+                        {
+                           "id": 1432190975,
+                           "file": "max",
+                           "cn": "max()",
+                           "en": "max()"
+                        },
+                        {
+                           "id": 1432190976,
+                           "file": "min",
+                           "cn": "min()",
+                           "en": "min()"
+                        },
+                        {
+                           "id": 1432190977,
+                           "file": "first",
+                           "cn": "first()",
+                           "en": "first()"
+                        },
+                        {
+                           "id": 1432190978,
+                           "file": "last",
+                           "cn": "last()",
+                           "en": "last()"
+                        },
+                        {
+                           "id": 1432190979,
+                           "file": "push",
+                           "cn": "push()",
+                           "en": "push()"
+                        },
+                        {
+                           "id": 1432190980,
+                           "file": "addtoset",
+                           "cn": "addtoset()",
+                           "en": "addtoset()"
+                        },
+                        {
+                           "id": 1432190981,
+                           "file": "buildobj",
+                           "cn": "buildobj()",
+                           "en": "buildobj()"
+                        },
+                        {
+                           "id": 1432190982,
+                           "file": "mergearrayset",
+                           "cn": "mergearrayset()",
+                           "en": "mergearrayset()"
+                        }
+                     ]
                   },
                   {
-                     "id": 1432190954,
-                     "file": "drop_collection",
-                     "cn": "drop collection",
-                     "en": "drop collection"
+                     "id": 1510279628,
+                     "file": "expression",
+                     "cn": "表达式",
+                     "en": "Expression"
                   },
                   {
-                     "id": 1432190955,
-                     "file": "create_index",
-                     "cn": "create index",
-                     "en": "create index"
-                  },
-                  {
-                     "id": 1432190956,
-                     "file": "drop_index",
-                     "cn": "drop index",
-                     "en": "drop index"
-                  },
-                  {
-                     "id": 1432190957,
-                     "file": "list_collectionspaces",
-                     "cn": "list collectionspaces",
-                     "en": "list collectionspaces"
-                  },
-                  {
-                     "id": 1432190958,
-                     "file": "list_collections",
-                     "cn": "list collections",
-                     "en": "list collections"
-                  },
-                  {
-                     "id": 1432190959,
-                     "file": "insert_into",
-                     "cn": "insert into",
-                     "en": "insert into"
-                  },
-                  {
-                     "id": 1432190960,
-                     "file": "select",
-                     "cn": "select",
-                     "en": "select"
-                  },
-                  {
-                     "id": 1432190961,
-                     "file": "update",
-                     "cn": "update",
-                     "en": "update"
-                  },
-                  {
-                     "id": 1432190962,
-                     "file": "delete",
-                     "cn": "delete",
-                     "en": "delete"
-                  },
-                  {
-                     "id": 1432190963,
-                     "file": "group_by",
-                     "cn": "group by",
-                     "en": "group by"
-                  },
-                  {
-                     "id": 1432190964,
-                     "file": "order_by",
-                     "cn": "order by",
-                     "en": "order by"
-                  },
-                  {
-                     "id": 1432190965,
-                     "file": "split_by",
-                     "cn": "split by",
-                     "en": "split by"
-                  },
-                  {
-                     "id": 1432190966,
-                     "file": "limit",
-                     "cn": "limit",
-                     "en": "limit"
-                  },
-                  {
-                     "id": 1432190967,
-                     "file": "offset",
-                     "cn": "offset",
-                     "en": "offset"
-                  },
-                  {
-                     "id": 1432190968,
-                     "file": "as",
-                     "cn": "as",
-                     "en": "as"
-                  },
-                  {
-                     "id": 1432190969,
-                     "file": "inner_join",
-                     "cn": "inner join",
-                     "en": "inner join"
-                  },
-                  {
-                     "id": 1432190970,
-                     "file": "left_outer_join",
-                     "cn": "left outer join",
-                     "en": "left outer join"
-                  },
-                  {
-                     "id": 1432190971,
-                     "file": "right_outer_join",
-                     "cn": "right outer join",
-                     "en": "right outer join"
-                  },
-                  {
-                     "id": 1432190972,
-                     "file": "sum",
-                     "cn": "sum()",
-                     "en": "sum()"
-                  },
-                  {
-                     "id": 1432190973,
-                     "file": "count",
-                     "cn": "count()",
-                     "en": "count()"
-                  },
-                  {
-                     "id": 1432190974,
-                     "file": "avg",
-                     "cn": "avg()",
-                     "en": "avg()"
-                  },
-                  {
-                     "id": 1432190975,
-                     "file": "max",
-                     "cn": "max()",
-                     "en": "max()"
-                  },
-                  {
-                     "id": 1432190976,
-                     "file": "min",
-                     "cn": "min()",
-                     "en": "min()"
-                  },
-                  {
-                     "id": 1432190977,
-                     "file": "first",
-                     "cn": "first()",
-                     "en": "first()"
-                  },
-                  {
-                     "id": 1432190978,
-                     "file": "last",
-                     "cn": "last()",
-                     "en": "last()"
-                  },
-                  {
-                     "id": 1432190979,
-                     "file": "push",
-                     "cn": "push()",
-                     "en": "push()"
-                  },
-                  {
-                     "id": 1432190980,
-                     "file": "addtoset",
-                     "cn": "addtoset()",
-                     "en": "addtoset()"
-                  },
-                  {
-                     "id": 1432190981,
-                     "file": "buildobj",
-                     "cn": "buildobj()",
-                     "en": "buildobj()"
-                  },
-                  {
-                     "id": 1432190982,
-                     "file": "mergearrayset",
-                     "cn": "mergearrayset()",
-                     "en": "mergearrayset()"
-                  },
-                  {
-                     "id": 1445318584,
-                     "file": "hint",
-                     "cn": "hint()",
-                     "en": "hint()"
+                     "id": 1450171368,
+                     "file": "field_type",
+                     "cn": "字段类型",
+                     "en": "Field Type"
                   }
                ]
-            },
-            {
-               "id": 1450171368,
-               "file": "SQL_Mathematical_expression",
-               "cn": "SQL表达式",
-               "en": "SQL Expression"
             },
             {
                "id": 1432190983,
