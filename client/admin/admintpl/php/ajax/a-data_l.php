@@ -21,6 +21,14 @@ if ( !empty ( $cursor ) )
 {
 	while ( $arr = $cursor -> getNext() )
 	{
+        if( array_key_exists( 'Collection', $arr ) == true )
+        {
+           foreach( $arr['Collection'] as $index => $clInfo )
+           {
+              $clName = explode( '.', $clInfo['Name'] ) ;
+              $arr['Collection'][$index]['Name'] = $clName[1] ;
+           }
+        }
 		array_push( $array_2, $arr ) ;
 	}
 }
