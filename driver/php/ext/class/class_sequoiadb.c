@@ -112,6 +112,8 @@ PHP_METHOD( SequoiaDB, install )
       }
       else if( Z_TYPE_P( pOptions ) == IS_STRING )
       {
+         MAKE_STD_ZVAL( pValue ) ;
+
          rc = php_jsonFind( Z_STRVAL_P( pOptions ),
                             "install",
                             &pValue TSRMLS_CC ) ;

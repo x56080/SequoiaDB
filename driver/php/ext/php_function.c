@@ -185,7 +185,6 @@ INT32 php_jsonFind( const CHAR *pStr,
    const CHAR *pString = NULL ;
    zval *pValue = *ppValue ;
 
-   MAKE_STD_ZVAL( pValue ) ;
    ZVAL_NULL( pValue ) ;
 
    if( pMachine == NULL )
@@ -212,7 +211,6 @@ INT32 php_jsonFind( const CHAR *pStr,
       pJsonKey = cJsonIteratorKey( pIter ) ;
       if( !strncmp( pJsonKey, pKey, keyLen ) )
       {
-         MAKE_STD_ZVAL( pValue ) ;
          cJsonType = cJsonIteratorType( pIter ) ;
          switch( cJsonType )
          {
