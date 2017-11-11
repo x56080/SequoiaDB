@@ -733,7 +733,7 @@ namespace engine
 
    // This function do not latch since it shouldn't be called by
    // multiple threads
-   // PD_TRACE_DECLARE_FUNCTION ( PMD_SESSMGR_PUSHMSG, "_pmdAsycSessionMgr::assignMemory" )
+   // PD_TRACE_DECLARE_FUNCTION ( PMD_SESSMGR_PUSHMSG, "_pmdAsycSessionMgr::pushMessage" )
    INT32 _pmdAsycSessionMgr::pushMessage( pmdAsyncSession *pSession,
                                           const MsgHeader *header,
                                           const NET_HANDLE &handle )
