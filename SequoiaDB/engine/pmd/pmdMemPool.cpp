@@ -78,8 +78,10 @@ namespace engine
       _perfStat = enable ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDBUFFPOOL_EXITJOB, "_pmdBuffPool::exitJob" )
    void _pmdBuffPool::exitJob( BOOLEAN isControl )
    {
+      PD_TRACE_ENTRY ( SDB__PMDBUFFPOOL_EXITJOB ) ;
       _unitLatch.get() ;
 
       --_curAgent ;
@@ -91,6 +93,8 @@ namespace engine
       _checkAndStartJob( FALSE ) ;
 
       _unitLatch.release() ;
+
+      PD_TRACE_EXIT( SDB__PMDBUFFPOOL_EXITJOB ) ;
    }
 
    INT32 _pmdBuffPool::init( UINT64 cacheSize )
@@ -117,8 +121,10 @@ namespace engine
                   "Agent must be 0" ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDBUFFPOOL_CHECKSTARTJOB, "_pmdBuffPool::_checkAndStartJob" )
    void _pmdBuffPool::_checkAndStartJob( BOOLEAN needLock )
    {
+      PD_TRACE_ENTRY ( SDB__PMDBUFFPOOL_CHECKSTARTJOB ) ;
       if ( needLock )
       {
          _unitLatch.get() ;
@@ -137,19 +143,27 @@ namespace engine
       {
          _unitLatch.release() ;
       }
+      PD_TRACE_EXIT( SDB__PMDBUFFPOOL_CHECKSTARTJOB ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDBUFFPOOL_REGUNIT, "_pmdBuffPool::registerUnit" )
    void _pmdBuffPool::registerUnit( _utilCacheUnit *pUnit )
    {
+      PD_TRACE_ENTRY ( SDB__PMDBUFFPOOL_REGUNIT ) ;
       ossScopedLock lock( &_unitLatch ) ;
 
       _unitList.push_back( pUnit ) ;
 
       _checkAndStartJob( FALSE ) ;
+
+      PD_TRACE_EXIT( SDB__PMDBUFFPOOL_REGUNIT ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDBUFFPOOL_PUSHUNIT, "_pmdBuffPool::pushBackUnit" )
    void _pmdBuffPool::pushBackUnit( _utilCacheUnit *pUnit )
    {
+      PD_TRACE_ENTRY ( SDB__PMDBUFFPOOL_PUSHUNIT ) ;
+
       ossScopedLock lock( &_unitLatch ) ;
 
       if ( !pUnit->isClosed() )
@@ -160,13 +174,17 @@ namespace engine
       pUnit->unlockPageCleaner() ;
       /// inc idla agent
       ++_idleAgent ;
+
+      PD_TRACE_EXIT( SDB__PMDBUFFPOOL_PUSHUNIT ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDBUFFPOOL_DISPATCHUNIT, "_pmdBuffPool::dispatchUnit" )
    _utilCacheUnit* _pmdBuffPool::dispatchUnit()
    {
       _utilCacheUnit *pUnit = NULL ;
       LIST_UNIT::iterator it ;
       BOOLEAN force = FALSE ;
+      PD_TRACE_ENTRY ( SDB__PMDBUFFPOOL_DISPATCHUNIT ) ;
 
       ossScopedLock lock( &_unitLatch ) ;
 
@@ -196,12 +214,15 @@ namespace engine
          ++it ;
       }
 
+      PD_TRACE_EXIT( SDB__PMDBUFFPOOL_DISPATCHUNIT ) ;
       return pUnit ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDBUFFPOOL_UNREGUNIT, "_pmdBuffPool::unregUnit" )
    void _pmdBuffPool::unregUnit( _utilCacheUnit *pUnit )
    {
       LIST_UNIT::iterator it ;
+      PD_TRACE_ENTRY ( SDB__PMDBUFFPOOL_UNREGUNIT ) ;
 
       ossScopedLock lock( &_unitLatch ) ;
 
@@ -215,13 +236,17 @@ namespace engine
          }
          ++it ;
       }
+
+      PD_TRACE_EXIT( SDB__PMDBUFFPOOL_UNREGUNIT ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDBUFFPOOL_CHECKLOAD, "_pmdBuffPool::checkLoad" )
    void _pmdBuffPool::checkLoad()
    {
       LIST_UNIT::iterator it ;
       UINT32 readyNum = 0 ;
       BOOLEAN force = FALSE ;
+      PD_TRACE_ENTRY ( SDB__PMDBUFFPOOL_CHECKLOAD ) ;
 
       ossScopedLock lock( &_unitLatch ) ;
 
@@ -258,6 +283,8 @@ namespace engine
             }
          }
       }
+
+      PD_TRACE_EXIT( SDB__PMDBUFFPOOL_CHECKLOAD ) ;
    }
 
    /*
@@ -297,11 +324,13 @@ namespace engine
       return FALSE ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDCACHEJOB_DOIT, "_pmdCacheJob::doit" )
    INT32 _pmdCacheJob::doit()
    {
       pmdEDUMgr *pEDUMgr = eduCB()->getEDUMgr() ;
       utilCacheUnit *pUnit = NULL ;
       UINT32 timeout = 0 ;
+      PD_TRACE_ENTRY ( SDB__PMDCACHEJOB_DOIT ) ;
 
       pEDUMgr->activateEDU( eduCB() ) ;
 
@@ -363,11 +392,15 @@ namespace engine
 
       _pBuffPool->exitJob( isControlJob() ) ;
 
+      PD_TRACE_EXIT( SDB__PMDCACHEJOB_DOIT ) ;
       return SDB_OK ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDCACHEJOB__DOUNIT, "_pmdCacheJob::_doUnit" )
    void _pmdCacheJob::_doUnit( _utilCacheUnit *pUnit )
    {
+      PD_TRACE_ENTRY ( SDB__PMDCACHEJOB__DOUNIT ) ;
+
       pmdEDUMgr *pEDUMgr = eduCB()->getEDUMgr() ;
       BOOLEAN force = FALSE ;
       UINT32 step = 0 ;
@@ -387,12 +420,16 @@ namespace engine
       eduCB()->incEventCount( step ) ;
 
       pEDUMgr->waitEDU( eduCB() ) ;
+
+      PD_TRACE_EXIT( SDB__PMDCACHEJOB__DOUNIT ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMD_STARTCACHEJOB, "pmdStartCacheJob" )
    INT32 pmdStartCacheJob( EDUID *pEDUID, pmdBuffPool *pBuffPool,
                            INT32 timeout )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__PMD_STARTCACHEJOB ) ;
       pmdCacheJob *pJob = NULL ;
 
       pJob = SDB_OSS_NEW pmdCacheJob( pBuffPool, timeout ) ;
@@ -406,6 +443,7 @@ namespace engine
       /// neither failed or succeed, the pJob will release in job manager
 
    done:
+      PD_TRACE_EXITRC( SDB__PMD_STARTCACHEJOB, rc ) ;
       return rc ;
    error:
       goto done ;

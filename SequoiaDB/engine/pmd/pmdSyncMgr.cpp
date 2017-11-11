@@ -35,6 +35,8 @@
 
 #include "pmdSyncMgr.hpp"
 #include "pmdEnv.hpp"
+#include "pdTrace.hpp"
+#include "pmdTrace.hpp"
 
 namespace engine
 {
@@ -96,8 +98,10 @@ namespace engine
                   "Agent must be 0" ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSYNCMGR_EXITJOB, "_pmdSyncMgr::exitJob" )
    void _pmdSyncMgr::exitJob( BOOLEAN isControl )
    {
+      PD_TRACE_ENTRY ( SDB__PMDSYNCMGR_EXITJOB ) ;
       _unitLatch.get() ;
 
       --_curAgent ;
@@ -109,6 +113,7 @@ namespace engine
       _checkAndStartJob( FALSE ) ;
 
       _unitLatch.release() ;
+      PD_TRACE_EXIT( SDB__PMDSYNCMGR_EXITJOB ) ;
    }
 
    UINT64 _pmdSyncMgr::syncAndGetLastLSN()
@@ -120,18 +125,23 @@ namespace engine
       return _completeLSN ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSYNCMGR_REGSYNC, "_pmdSyncMgr::registerSync" )
    void _pmdSyncMgr::registerSync( IDataSyncBase *pSyncUnit )
    {
+      PD_TRACE_ENTRY ( SDB__PMDSYNCMGR_REGSYNC ) ;
       ossScopedLock lock( &_unitLatch ) ;
 
       _unitList.push_back( pSyncUnit ) ;
 
       _checkAndStartJob( FALSE ) ;
+      PD_TRACE_EXIT( SDB__PMDSYNCMGR_REGSYNC ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSYNCMGR_UNREGSYNC, "_pmdSyncMgr::unregSync" )
    void _pmdSyncMgr::unregSync( IDataSyncBase *pSyncUnit )
    {
       LIST_UNIT::iterator it ;
+      PD_TRACE_ENTRY ( SDB__PMDSYNCMGR_UNREGSYNC ) ;
 
       ossScopedLock lock( &_unitLatch ) ;
 
@@ -145,6 +155,7 @@ namespace engine
          }
          ++it ;
       }
+      PD_TRACE_EXIT( SDB__PMDSYNCMGR_UNREGSYNC ) ;
    }
 
    void _pmdSyncMgr::notifyChange()
@@ -152,8 +163,10 @@ namespace engine
       _ntyEvent.signalAll() ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSYNCMGR_DISPATCHUNIT, "_pmdSyncMgr::dispatchUnit" )
    IDataSyncBase* _pmdSyncMgr::dispatchUnit()
    {
+      PD_TRACE_ENTRY ( SDB__PMDSYNCMGR_DISPATCHUNIT ) ;
       IDataSyncBase *pUnit = NULL ;
       LIST_UNIT::iterator it ;
       BOOLEAN force = FALSE ;
@@ -162,7 +175,7 @@ namespace engine
 
       if ( _unitList.empty() )
       {
-         return NULL ;
+         goto done ;
       }
 
       it = _unitList.begin() ;
@@ -186,11 +199,15 @@ namespace engine
          ++it ;
       }
 
+   done:
+      PD_TRACE_EXIT( SDB__PMDSYNCMGR_DISPATCHUNIT ) ;
       return pUnit ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSYNCMGR_PUSHBACKUNIT, "_pmdSyncMgr::pushBackUnit" )
    void _pmdSyncMgr::pushBackUnit( IDataSyncBase *pUnit )
    {
+      PD_TRACE_ENTRY ( SDB__PMDSYNCMGR_PUSHBACKUNIT ) ;
       ossScopedLock lock( &_unitLatch ) ;
 
       if ( !pUnit->isClosed() )
@@ -201,10 +218,13 @@ namespace engine
       pUnit->unlock() ;
       /// inc idla agent
       ++_idleAgent ;
+      PD_TRACE_EXIT( SDB__PMDSYNCMGR_PUSHBACKUNIT ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSYNCMGR_CHECKLOAD, "_pmdSyncMgr::checkLoad" )
    void _pmdSyncMgr::checkLoad()
    {
+      PD_TRACE_ENTRY ( SDB__PMDSYNCMGR_CHECKLOAD ) ;
       LIST_UNIT::iterator it ;
       UINT32 readyNum = 0 ;
       BOOLEAN force = FALSE ;
@@ -246,10 +266,13 @@ namespace engine
       }
 
       _ntyEvent.reset() ;
+      PD_TRACE_EXIT( SDB__PMDSYNCMGR_CHECKLOAD ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSYNCMGR__CHECKANDSTARTJOB, "_pmdSyncMgr::_checkAndStartJob" )
    void _pmdSyncMgr::_checkAndStartJob( BOOLEAN needLock )
    {
+      PD_TRACE_ENTRY ( SDB__PMDSYNCMGR__CHECKANDSTARTJOB ) ;
       if ( needLock )
       {
          _unitLatch.get() ;
@@ -268,6 +291,7 @@ namespace engine
       {
          _unitLatch.release() ;
       }
+      PD_TRACE_EXIT( SDB__PMDSYNCMGR__CHECKANDSTARTJOB ) ;
    }
 
    /*
@@ -307,8 +331,10 @@ namespace engine
       return FALSE ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSYNCJOB_DOIT, "_pmdSyncJob::doit" )
    INT32 _pmdSyncJob::doit()
    {
+      PD_TRACE_ENTRY ( SDB__PMDSYNCJOB_DOIT ) ;
       pmdEDUMgr *pEDUMgr = eduCB()->getEDUMgr() ;
       IDataSyncBase *pUnit = NULL ;
       UINT32 timeout = 0 ;
@@ -369,12 +395,14 @@ namespace engine
       }
 
       _pMgr->exitJob( isControlJob() ) ;
-
+      PD_TRACE_EXIT( SDB__PMDSYNCJOB_DOIT ) ;
       return SDB_OK ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSYNCJOB__DOUNIT, "_pmdSyncJob::_doUnit" )
    void _pmdSyncJob::_doUnit( IDataSyncBase *pUnit )
    {
+      PD_TRACE_ENTRY ( SDB__PMDSYNCJOB__DOUNIT ) ;
       pmdEDUMgr *pEDUMgr = eduCB()->getEDUMgr() ;
       BOOLEAN force = FALSE ;
 
@@ -387,14 +415,17 @@ namespace engine
       }
 
       pEDUMgr->waitEDU( eduCB() ) ;
+      PD_TRACE_EXIT( SDB__PMDSYNCJOB__DOUNIT ) ;
    }
 
    /*
       Local Function
    */
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSTARTSYNCJOB, "pmdStartSyncJob" )
    INT32 pmdStartSyncJob( EDUID *pEDUID, pmdSyncMgr *pMgr, INT32 timeout )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__PMDSTARTSYNCJOB ) ;
       pmdSyncJob *pJob = NULL ;
 
       pJob = SDB_OSS_NEW pmdSyncJob( pMgr, timeout ) ;
@@ -408,6 +439,7 @@ namespace engine
       /// neither failed or succeed, the pJob will release in job manager
 
    done:
+      PD_TRACE_EXITRC( SDB__PMDSTARTSYNCJOB, rc ) ;
       return rc ;
    error:
       goto done ;

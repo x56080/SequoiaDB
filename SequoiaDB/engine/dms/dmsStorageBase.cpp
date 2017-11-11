@@ -197,7 +197,7 @@ namespace engine
             {
                beginPos += 8 ;
             }
-            else 
+            else
             {
                if ( isDirty( beginPos ) )
                {
@@ -570,11 +570,13 @@ namespace engine
       _persistLatch.release() ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE_SYNC, "_dmsStorageBase::sync" )
    INT32 _dmsStorageBase::sync( BOOLEAN force,
                                 BOOLEAN sync,
                                 IExecutor *cb )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE_SYNC ) ;
       ossTimestamp t ;
       UINT32 num = 0 ;
 
@@ -618,6 +620,7 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC ( SDB__DMSSTORAGEBASE_SYNC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -905,7 +908,7 @@ namespace engine
       }
       _maxSegID = (INT32)segmentSize() - 1 ;
 
-      // create dirtyList to record dirty pages. Note dirty list doesn't 
+      // create dirtyList to record dirty pages. Note dirty list doesn't
       // contain header and metadata segments, only for data segments
       rc = _dirtyList.init( maxSegmentNum() ) ;
       if ( rc )
@@ -1302,7 +1305,7 @@ namespace engine
          goto error ;
       }
 
-      // must be set storage info page size here, because lob meta page size 
+      // must be set storage info page size here, because lob meta page size
       // is 256B, so can't be assign to storage page size in later code
       if ( (UINT32)_pStorageInfo->_pageSize != pHeader->_pageSize )
       {
@@ -1430,9 +1433,11 @@ namespace engine
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE__EXTENDSEG, "_dmsStorageBase::_extendSegments" )
    INT32 _dmsStorageBase::_extendSegments( UINT32 numSeg )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE__EXTENDSEG ) ;
       INT64 fileSize = 0 ;
 
       // now other normal applications still able to access metadata in
@@ -1560,6 +1565,7 @@ namespace engine
       }
 
    done :
+      PD_TRACE_EXITRC ( SDB__DMSSTORAGEBASE__EXTENDSEG, rc ) ;
       return rc ;
    error :
       goto done ;
@@ -1579,12 +1585,14 @@ namespace engine
       return DMS_SEGMENT_SZ ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE__FINDFREESPACE, "_dmsStorageBase::_findFreeSpace" )
    INT32 _dmsStorageBase::_findFreeSpace( UINT16 numPages, SINT32 & foundPage,
                                           dmsContext *context )
    {
       UINT32 segmentSize = 0 ;
       INT32 rc = SDB_OK ;
       INT32 rc1 = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE__FINDFREESPACE ) ;
 
       while ( TRUE )
       {
@@ -1665,6 +1673,7 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEBASE__FINDFREESPACE, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1762,9 +1771,11 @@ namespace engine
       return _ossMmapFile::flush( segmentID, sync ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE_FLUSHALL, "_dmsStorageBase::flushAll" )
    INT32 _dmsStorageBase::flushAll( BOOLEAN sync )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE_FLUSHALL ) ;
 
       syncMemToMmap() ;
 
@@ -1783,14 +1794,18 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEBASE_FLUSHALL, rc ) ;
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE_FLUSHDIRTYSEGS, "_dmsStorageBase::flushDirtySegments" )
    INT32 _dmsStorageBase::flushDirtySegments ( UINT32 *pNum,
                                                BOOLEAN force,
                                                BOOLEAN sync )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE_FLUSHDIRTYSEGS ) ;
+
       UINT32 numbers = 0 ;
       INT32 segmentID = 0 ;
       UINT32 fromPos = 0 ;
@@ -1836,12 +1851,15 @@ namespace engine
       {
          *pNum = numbers ;
       }
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEBASE_FLUSHDIRTYSEGS, rc ) ;
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE__MARKHEADEERINVALID, "_dmsStorageBase::_markHeaderInvalid" )
    void _dmsStorageBase::_markHeaderInvalid( INT32 collectionID,
                                              BOOLEAN isAll )
    {
+      PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE__MARKHEADEERINVALID ) ;
       if ( _dmsHeader )
       {
          if ( isAll )
@@ -1866,14 +1884,17 @@ namespace engine
             flushHeader( _syncDeep ) ;
          }
       }
+      PD_TRACE_EXIT( SDB__DMSSTORAGEBASE__MARKHEADEERINVALID ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE__MARKHEADEERVALID, "_dmsStorageBase::_markHeaderValid" )
    INT32 _dmsStorageBase::_markHeaderValid( BOOLEAN sync,
                                             BOOLEAN force,
                                             BOOLEAN hasFlushedData,
                                             UINT64 lastTime )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE__MARKHEADEERVALID ) ;
 
       if ( _dmsHeader )
       {
@@ -1907,6 +1928,8 @@ namespace engine
             }
          }
       }
+
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEBASE__MARKHEADEERVALID, rc ) ;
       return rc ;
    }
 

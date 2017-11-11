@@ -34,6 +34,8 @@
 #include "utilCache.hpp"
 #include "ossUtil.hpp"
 #include "pd.hpp"
+#include "pdTrace.hpp"
+#include "utilTrace.hpp"
 
 namespace engine
 {
@@ -192,10 +194,13 @@ namespace engine
       return 1 + _next.size() ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEPAGE__WRITE, "_utilCachePage::_write" )
    INT32 _utilCachePage::_write( const CHAR *pBuf, UINT32 offset,
                                  UINT32 len, BOOLEAN dirty )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__UTILCACHEPAGE__WRITE ) ;
+
       ossTimestamp t ;
       UINT32 pos = 0 ;
       CHAR *pPage = NULL ;
@@ -261,6 +266,7 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__UTILCACHEPAGE__WRITE, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -315,8 +321,10 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEPAGE_READ, "_utilCachePage::read" )
    UINT32 _utilCachePage::read( CHAR *pBuf, UINT32 offset, UINT32 len )
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHEPAGE_READ ) ;
       ossTimestamp t ;
       UINT32 hasRead = 0 ;
       CHAR *pPage = NULL ;
@@ -351,11 +359,15 @@ namespace engine
       ossGetCurrentTime( t ) ;
       _lastTime = t.time * 1000 + t.microtm / 1000 ;
 
+      PD_TRACE1( SDB__UTILCACHEPAGE_READ, PD_PACK_UINT( hasRead ) ) ;
+      PD_TRACE_EXIT( SDB__UTILCACHEPAGE_READ ) ;
       return hasRead ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEPAGE_COPY, "_utilCachePage::copy" )
    INT32 _utilCachePage::copy( const _utilCachePage &right )
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHEPAGE_COPY ) ;
       INT32 rc = SDB_OK ;
       CHAR *pData = NULL ;
       UINT32 blockSz = 0 ;
@@ -389,6 +401,7 @@ namespace engine
       _lsnNum = right._lsnNum ;
 
    done:
+      PD_TRACE_EXITRC( SDB__UTILCACHEPAGE_COPY, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -591,9 +604,13 @@ namespace engine
       }
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEMGR_ALLOC, "_utilCacheMgr::alloc" )
    INT32 _utilCacheMgr::alloc( UINT32 size, utilCachePage &item )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__UTILCACHEMGR_ALLOC ) ;
+      PD_TRACE1( SDB__UTILCACHEMGR_ALLOC, PD_PACK_UINT( size ) ) ;
+
       UINT32 beginSlot = 0 ;
       UINT32 pageSize = 0 ;
       UINT32 extendNum = 0 ;
@@ -701,15 +718,21 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__UTILCACHEMGR_ALLOC, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEMGR_ALLOCWHOLE, "_utilCacheMgr::allocWholePage" )
    INT32 _utilCacheMgr::allocWholePage( UINT32 size, utilCachePage &item,
                                         BOOLEAN keepData )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__UTILCACHEMGR_ALLOCWHOLE ) ;
+      PD_TRACE2( SDB__UTILCACHEMGR_ALLOCWHOLE, PD_PACK_UINT( size ),
+                 PD_PACK_INT( keepData ) ) ;
+
       UINT32 beginSlot = 0 ;
       UINT32 pageSize = 0 ;
       UINT32 exceedSlot = 0 ;
@@ -781,14 +804,17 @@ namespace engine
       item = tmpPage ;
 
    done:
+      PD_TRACE_EXITRC( SDB__UTILCACHEMGR_ALLOCWHOLE, rc ) ;
       return rc ;
    error:
       release( tmpPage ) ;
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEMGR_RELEASE, "_utilCacheMgr::release" )
    void _utilCacheMgr::release( utilCachePage &item )
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHEMGR_RELEASE ) ;
       UINT32 pos = 0 ;
       UINT32 slot = 0 ;
       CHAR *pPage = NULL ;
@@ -815,6 +841,8 @@ namespace engine
       _releaseEvent.signalAll() ;
 
       item.clear() ;
+
+      PD_TRACE_EXIT( SDB__UTILCACHEMGR_RELEASE ) ;
    }
 
    INT32 _utilCacheMgr::alloc( UINT32 size, utilCachePage &item,
@@ -827,8 +855,10 @@ namespace engine
       return allocWholePage( size, item, keepData ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEMGR_ALLOCBLOCK, "_utilCacheMgr::allocBlock" )
    CHAR* _utilCacheMgr::allocBlock( UINT32 size, UINT32 &blockSize )
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHEMGR_ALLOCBLOCK ) ;
       CHAR *pBlock      = NULL ;
       UINT32 beginSlot  = 0 ;
       UINT32 pageSize   = 0 ;
@@ -878,12 +908,15 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXIT( SDB__UTILCACHEMGR_ALLOCBLOCK ) ;
       return pBlock ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEMGR_REALLOCBLOCK, "_utilCacheMgr::reallocBlock" )
    CHAR* _utilCacheMgr::reallocBlock( UINT32 size, CHAR *pBlock,
                                       UINT32 &blockSize )
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHEMGR_REALLOCBLOCK ) ;
       CHAR *pTmpBlock   = NULL ;
       UINT32 tmpBlockSize = 0 ;
       UINT32 beginSlot  = 0 ;
@@ -952,11 +985,14 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXIT( SDB__UTILCACHEMGR_REALLOCBLOCK ) ;
       return pBlock ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEMGR_RELEASEBLOCK, "_utilCacheMgr::releaseBlock" )
    void _utilCacheMgr::releaseBlock( CHAR *&pBlock, UINT32 &blockSize )
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHEMGR_RELEASEBLOCK ) ;
       UINT32 slot = 0 ;
 
       if ( pBlock && blockSize > 0 )
@@ -977,11 +1013,16 @@ namespace engine
 
       pBlock = NULL ;
       blockSize = 0 ;
+
+      PD_TRACE_EXIT( SDB__UTILCACHEMGR_RELEASEBLOCK ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEMGR__ALLOCMEM, "_utilCacheMgr::_allocMem" )
    INT32 _utilCacheMgr::_allocMem( UINT32 size, UINT32 pageNum )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__UTILCACHEMGR__ALLOCMEM ) ;
+
       UINT32 count = 0 ;
       CHAR *pPage = NULL ;
       UINT32 pageSize = 0 ;
@@ -1044,6 +1085,7 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__UTILCACHEMGR__ALLOCMEM, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1057,18 +1099,22 @@ namespace engine
    {
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEMGR_CANRECYCLE, "_utilCacheMgr::canRecycle" )
    BOOLEAN _utilCacheMgr::canRecycle()
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHEMGR_CANRECYCLE ) ;
+      BOOLEAN needRecycle = FALSE ;
+
       if ( totalSize() <= 0 )
       {
-         return FALSE ;
+         // nothing
       }
       /// when free ratio over the threshold
       else if ( totalSize() * 100 / maxCacheSize() >= UTIL_CACHE_RATIO &&
                 freeSize() * 100 / totalSize() >=
                 UTIL_BLOCK_RECYCLE_FREE_RATIO )
       {
-         return TRUE ;
+         needRecycle = TRUE ;
       }
       /// when page dirty timeout
       else
@@ -1082,18 +1128,24 @@ namespace engine
               ( curTime < _lastRecycleTime &&
                 _lastRecycleTime - curTime > UTIL_BLOCK_TIMEOUT ) )
          {
-            return TRUE ;
+            needRecycle = TRUE ;
          }
       }
-      return FALSE ;
+
+      PD_TRACE1( SDB__UTILCACHEMGR_CANRECYCLE, PD_PACK_INT( needRecycle ) ) ;
+      PD_TRACE_EXIT( SDB__UTILCACHEMGR_CANRECYCLE ) ;
+      return needRecycle ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEMGR_RECYCLEBLOCKS, "_utilCacheMgr::recycleBlocks" )
    UINT64 _utilCacheMgr::recycleBlocks()
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHEMGR_RECYCLEBLOCKS ) ;
+
       UINT64 recycleSize = 0 ;
       UINT64 tmpTimes = 0 ;
       blkLatch *pLatch = NULL ;
-      
+
       ossTimestamp t ;
       ossGetCurrentTime( t ) ;
       _lastRecycleTime = t.time * 1000 + t.microtm / 1000 ;
@@ -1127,12 +1179,17 @@ namespace engine
 
       PD_LOG( PDDEBUG, "Recycle %lld blocks", recycleSize ) ;
 
+      PD_TRACE1( SDB__UTILCACHEMGR_RECYCLEBLOCKS, PD_PACK_ULONG( recycleSize ) ) ;
+      PD_TRACE_EXIT( SDB__UTILCACHEMGR_RECYCLEBLOCKS ) ;
       return recycleSize ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEMGR__RECYCLEBLK, "_utilCacheMgr::_recycleBucket" )
    UINT64 _utilCacheMgr::_recycleBucket( vector<CHAR *> &slotItem,
                                          utilCacheStat *pStat )
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHEMGR__RECYCLEBLK ) ;
+
       UINT64 recycleSize = 0 ;
       UINT32 size = ( slotItem.size() + 1 ) / 2 ;
       CHAR *pBuff = NULL ;
@@ -1162,6 +1219,8 @@ namespace engine
          _nonEmptySlotNum.dec() ;
       }
 
+      PD_TRACE1( SDB__UTILCACHEMGR__RECYCLEBLK, PD_PACK_ULONG( recycleSize ) ) ;
+      PD_TRACE_EXIT( SDB__UTILCACHEMGR__RECYCLEBLK ) ;
       return recycleSize ;
    }
 
@@ -1250,9 +1309,11 @@ namespace engine
       return pPage ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEBLK_LOCK, "_utilCacheBucket::lock" )
    INT32 _utilCacheBucket::lock( OSS_LATCH_MODE mode, INT32 millisec )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__UTILCACHEBLK_LOCK ) ;
 
       if ( EXCLUSIVE == mode )
       {
@@ -1268,11 +1329,15 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__UTILCACHEBLK_LOCK, rc ) ;
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEBLK_UNLOCK, "_utilCacheBucket::unlock" )
    void _utilCacheBucket::unlock( OSS_LATCH_MODE mode )
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHEBLK_UNLOCK ) ;
+
       if ( SHARED == mode )
       {
          _rwMutex.release_r() ;
@@ -1281,6 +1346,8 @@ namespace engine
       {
          _rwMutex.release_w() ;
       }
+
+      PD_TRACE_EXIT( SDB__UTILCACHEBLK_UNLOCK ) ;
    }
 
    /*
@@ -1410,6 +1477,7 @@ namespace engine
       return FALSE ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHECTX_WRITE, "_utilCacheContext::write" )
    INT32 _utilCacheContext::write( const CHAR *pData,
                                    UINT32 offset,
                                    UINT32 len,
@@ -1417,6 +1485,7 @@ namespace engine
                                    UINT32 newestMask )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__UTILCACHECTX_WRITE ) ;
 
       if ( !isValid() )
       {
@@ -1514,17 +1583,21 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__UTILCACHECTX_WRITE, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHECTX_READ, "_utilCacheContext::read" )
    INT32 _utilCacheContext::read( CHAR *pBuff,
                                   UINT32 offset,
                                   UINT32 len,
                                   IExecutor *cb )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__UTILCACHECTX_READ ) ;
+
       BOOLEAN readPage = FALSE ;
 
       if ( !isValid() )
@@ -1630,6 +1703,7 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__UTILCACHECTX_READ, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1655,8 +1729,10 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHECTX_SUBMIT, "_utilCacheContext::submit" )
    UINT32 _utilCacheContext::submit( IExecutor *cb )
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHECTX_SUBMIT ) ;
       UINT32 len = 0 ;
 
       if ( _pData )
@@ -1734,6 +1810,8 @@ namespace engine
       }
       _hasDiscard = FALSE ;
 
+      PD_TRACE1( SDB__UTILCACHECTX_SUBMIT, PD_PACK_UINT( len ) ) ;
+      PD_TRACE_EXIT( SDB__UTILCACHECTX_SUBMIT ) ;
       return len ;
    }
 
@@ -1760,11 +1838,14 @@ namespace engine
       _hasDiscard = FALSE ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHECTX__LOADPAGE, "_utilCacheContext::_loadPage" )
    INT32 _utilCacheContext::_loadPage( UINT32 offset,
                                        UINT32 len,
                                        IExecutor *cb )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__UTILCACHECTX__LOADPAGE ) ;
+
       utilCachFileBase* pFile = NULL ;
       CHAR *pBuff = NULL ;
       UINT32 readLen = 0 ;
@@ -1834,6 +1915,7 @@ namespace engine
          cb->releaseBuff( pBuff ) ;
          pBuff = NULL ;
       }
+      PD_TRACE_EXITRC( SDB__UTILCACHECTX__LOADPAGE, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1968,9 +2050,12 @@ namespace engine
       return _pCache ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEMGR_WRITE, "_utilCacheMerge::write" )
    INT32 _utilCacheMerge::write( INT32 pageID, utilCachePage *pPage )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__UTILCACHEMGR_WRITE ) ;
+
       UINT32 pos = 0 ;
       UINT32 len = 0 ;
       CHAR *pBuff = NULL ;
@@ -2048,14 +2133,17 @@ namespace engine
       _vecPages.push_back( pPage ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__UTILCACHEMGR_WRITE, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEMGR_SYNC, "_utilCacheMerge::sync" )
    INT32 _utilCacheMerge::sync( IExecutor *cb )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__UTILCACHEMGR_SYNC ) ;
 
       if ( _pageNum > 0 )
       {
@@ -2081,6 +2169,7 @@ namespace engine
    done:
       /// unpink all pages
       _releasePages() ;
+      PD_TRACE_EXITRC( SDB__UTILCACHEMGR_SYNC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -2278,12 +2367,14 @@ namespace engine
       pBucket->incDirty() ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT_GETANDLOCK, "_utilCacheUnit::getAndLock" )
    utilCachePage* _utilCacheUnit::getAndLock( INT32 pageID, UINT32 size,
                                               utilCacheBucket **ppBucket,
                                               OSS_LATCH_MODE mode,
                                               BOOLEAN alloc,
                                               IExecutor *cb )
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHEUNIT_GETANDLOCK ) ;
       utilCachePage* pPage = NULL ;
       UINT32 bucketID = calcBucketID( pageID ) ;
       utilCacheBucket* pBucket = NULL ;
@@ -2432,6 +2523,8 @@ namespace engine
             pPage->unpink() ;
          }
       }
+
+      PD_TRACE_EXIT( SDB__UTILCACHEUNIT_GETANDLOCK ) ;
       return pPage ;
    }
 
@@ -2484,6 +2577,7 @@ namespace engine
       }
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT__SYNCPAGE, "_utilCacheUnit::_syncPage" )
    INT32 _utilCacheUnit::_syncPage( utilCacheBucket *pBucket,
                                     utilCachePage *pPage,
                                     INT32 pageID,
@@ -2492,6 +2586,8 @@ namespace engine
                                     BOOLEAN writeMerge )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__UTILCACHEUNIT__SYNCPAGE ) ;
+
       UINT32 pos = 0 ;
       UINT32 len = 0 ;
       CHAR *pBuff = NULL ;
@@ -2586,13 +2682,16 @@ namespace engine
       {
          *pSync = hasSync ;
       }
+      PD_TRACE_EXITRC( SDB__UTILCACHEUNIT__SYNCPAGE, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT_LOCKCLEANER, "_utilCacheUnit::lockPageCleaner" )
    void _utilCacheUnit::lockPageCleaner( INT32 mode )
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHEUNIT_LOCKCLEANER ) ;
       if ( SHARED == mode )
       {     
          _pageCleaner.lock_r() ;
@@ -2601,10 +2700,13 @@ namespace engine
       {
          _pageCleaner.lock_w() ;
       }
+      PD_TRACE_EXIT( SDB__UTILCACHEUNIT_LOCKCLEANER ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT_UNLOCKCLEANER, "_utilCacheUnit::unlockPageCleaner" )
    void _utilCacheUnit::unlockPageCleaner( INT32 mode )
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHEUNIT_UNLOCKCLEANER ) ;
       if ( SHARED == mode )
       {
          _pageCleaner.release_r() ;
@@ -2613,13 +2715,18 @@ namespace engine
       {
          _pageCleaner.release_w() ;
       }
+      PD_TRACE_EXIT( SDB__UTILCACHEUNIT_UNLOCKCLEANER ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT_CANSYNC, "_utilCacheUnit::canSync" )
    BOOLEAN _utilCacheUnit::canSync( BOOLEAN &force )
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHEUNIT_CANSYNC ) ;
+      BOOLEAN needSync = FALSE ;
+
       if ( dirtyPages() <= 0 )
       {
-         return FALSE ;
+         // nothing
       }
       /// when dirty ratio over the threshold
       else if ( totalPages() > UTIL_CACHE_SYNC_TOTAL_THRESHOLD &&
@@ -2628,7 +2735,7 @@ namespace engine
          PD_LOG( PDDEBUG, "Dirty pages: %u, Total pages: %u, Dirty ratio: %u",
                  dirtyPages(), totalPages(), _bgDirtyRatio ) ;
          force = TRUE ;
-         return TRUE ;
+         needSync = TRUE ;
       }
       /// when page dirty timeout
       else
@@ -2647,15 +2754,20 @@ namespace engine
             PD_LOG( PDDEBUG, "Cur time: %llu, Last sync time: %llu, "
                     "Dirty timeout: %u", curTime, _lastSyncTime,
                     _dirtyTimeout ) ;
-            return TRUE ;
+            needSync = TRUE ;
          }
       }
-      return FALSE ;
+
+      PD_TRACE1( SDB__UTILCACHEUNIT_CANSYNC, PD_PACK_INT( needSync ) ) ;
+      PD_TRACE_EXIT( SDB__UTILCACHEUNIT_CANSYNC ) ;
+      return needSync ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT_SYNCPAGES, "_utilCacheUnit::syncPages" )
    UINT32 _utilCacheUnit::syncPages( IExecutor *cb, BOOLEAN force,
                                      BOOLEAN ignoreClose )
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHEUNIT_SYNCPAGES ) ;
       UINT32 totalPages = 0 ;
       utilCacheBucket* pBucket = NULL ;
       ossTimestamp t ;
@@ -2717,11 +2829,15 @@ namespace engine
 
       _incSyncNum( totalPages ) ;
 
+      PD_TRACE1( SDB__UTILCACHEUNIT_SYNCPAGES, PD_PACK_UINT( totalPages ) ) ;
+      PD_TRACE_EXIT( SDB__UTILCACHEUNIT_SYNCPAGES ) ;
       return totalPages ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT_DROPDIRTY, "_utilCacheUnit::dropDirty" )
    UINT32 _utilCacheUnit::dropDirty()
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHEUNIT_DROPDIRTY ) ;
       UINT32 totalPages = 0 ;
       utilCacheBucket* pBucket = NULL ;
       utilCacheBucket::MAP_BLK_PAGE* pPages = NULL ;
@@ -2750,13 +2866,18 @@ namespace engine
 
       PD_LOG( PDDEBUG, "Dropped %lld pages", totalPages ) ;
 
+      PD_TRACE1( SDB__UTILCACHEUNIT_DROPDIRTY, PD_PACK_UINT( totalPages ) ) ;
+      PD_TRACE_EXIT( SDB__UTILCACHEUNIT_DROPDIRTY ) ;
       return totalPages ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT__SYNCPAGES, "_utilCacheUnit::_syncPages" )
    UINT32 _utilCacheUnit::_syncPages( _utilCacheUnit::MAP_ID_2_PAGE_PRT &pageMap,
                                       IExecutor *cb )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__UTILCACHEUNIT__SYNCPAGES ) ;
+
       UINT32 totalPages = 0 ;
       BOOLEAN hasSync = FALSE ;
       utilCacheBucket *pBucket = NULL ;
@@ -2847,14 +2968,20 @@ namespace engine
 
       pageMap.clear() ;
 
+      PD_TRACE1( SDB__UTILCACHEUNIT__SYNCPAGES, PD_PACK_UINT( totalPages ) ) ;
+      PD_TRACE_EXIT( SDB__UTILCACHEUNIT__SYNCPAGES ) ;
       return totalPages ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT_CANRECYCLE, "_utilCacheUnit::canRecycle" )
    BOOLEAN _utilCacheUnit::canRecycle( BOOLEAN &force )
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHEUNIT_CANRECYCLE ) ;
+      BOOLEAN needRecycle = FALSE ;
+
       if ( totalPages() <= 0 )
       {
-         return FALSE ;
+         // nothing
       }
       /// when free ratio over the threshold
       else if ( _pMgr->totalSize() * 100 / _pMgr->maxCacheSize() >=
@@ -2865,7 +2992,7 @@ namespace engine
          PD_LOG( PDDEBUG, "Total size: %u, Free size: %u, Free ratio: %u",
                  _pMgr->totalSize(), _pMgr->freeSize(), _bgFreeRatio ) ;
          force = TRUE ;
-         return TRUE ;
+         needRecycle = TRUE ;
       }
       /// when page dirty timeout
       else
@@ -2884,14 +3011,19 @@ namespace engine
             PD_LOG( PDDEBUG, "Cur time: %llu, Last recycle time: %llu, "
                     "Page timeout: %u", curTime, _lastRecycleTime,
                     _pageTimeout ) ;
-            return TRUE ;
+            needRecycle = TRUE ;
          }
       }
-      return FALSE ;
+
+      PD_TRACE1( SDB__UTILCACHEUNIT_CANRECYCLE, PD_PACK_INT( needRecycle ) ) ;
+      PD_TRACE_EXIT( SDB__UTILCACHEUNIT_CANRECYCLE ) ;
+      return needRecycle ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT_RECYCLEPAGES, "_utilCacheUnit::recyclePages" )
    UINT64 _utilCacheUnit::recyclePages( BOOLEAN force, INT64 exceptSize )
    {
+      PD_TRACE_ENTRY( SDB__UTILCACHEUNIT_RECYCLEPAGES ) ;
       UINT64 totalSize = 0 ;
       UINT32 totalPageNum = 0 ;
       ossTimestamp t ;
@@ -2958,6 +3090,8 @@ namespace engine
 
       _incRecycleNum( totalPageNum ) ;
 
+      PD_TRACE1( SDB__UTILCACHEUNIT_RECYCLEPAGES, PD_PACK_ULONG( totalSize ) ) ;
+      PD_TRACE_EXIT( SDB__UTILCACHEUNIT_RECYCLEPAGES ) ;
       return totalSize ;
    }
 
@@ -2991,8 +3125,10 @@ namespace engine
       CHAR text[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       ossSnprintf( text, OSS_MAX_PATHSIZE,
                    OSS_NEWLINE
-                   "File Name         : %s"OSS_NEWLINE
-                   "Total Time        : %u"OSS_NEWLINE
+                   "Unit Name         : %s"OSS_NEWLINE
+                   "Total Time(Sec)   : %u"OSS_NEWLINE
+                   "Cache Total Sz(MB): %u"OSS_NEWLINE
+                   "Cache Free Sz(MB) : %.2f"OSS_NEWLINE
                    "Total Page        : %u"OSS_NEWLINE
                    "Dirty Page        : %u"OSS_NEWLINE
                    "Alloc Num         : %u"OSS_NEWLINE
@@ -3013,7 +3149,9 @@ namespace engine
                    "Sync Speed        : %.2f /s"OSS_NEWLINE
                    "Recycle Speed     : %.2f /s"OSS_NEWLINE,
                    _pCacheFile->getFileName(),
-                   diff,
+                   diff / 1000,
+                   _pMgr->totalSize() / 1024,
+                   (FLOAT64)_pMgr->freeSize() / 1024,
                    statTotalPage,
                    statDirtyPage,
                    statAlloc,
