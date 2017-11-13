@@ -3845,20 +3845,17 @@ error:
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      // get information of nodes from catalog 
       rc = getDetail ( result ) ;
       if ( rc )
       {
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_CLS_GRP_NOT_EXIST ;
+         }
          goto error ;
       }
-      ele = result.getField ( CAT_PRIMARY_NAME ) ;
-      if ( ele.type() != NumberInt )
-      {
-         // cannot find primary
-         rc = SDB_CLS_NODE_NOT_EXIST ;
-         goto error ;
-      }
-      primaryNode = ele.numberInt () ;
-      // extract the primary node and find out the node id
+      // check the nodes in current group
       ele = result.getField ( CAT_GROUP_NAME ) ;
       if ( ele.type() != Array )
       {
@@ -3866,8 +3863,37 @@ error:
          rc = SDB_SYS ;
          goto error ;
       }
+      {
+         BSONObjIterator it ( ele.embeddedObject() ) ;
+         if ( !it.more() )
+         {
+            rc = SDB_CLS_EMPTY_GROUP ;
+            goto error ;
+         }
+      }
+      // check have primary or not
+      ele = result.getField ( CAT_PRIMARY_NAME ) ;
+      if ( ele.type() == EOO )
+      {
+         // cannot find primary
+         rc = SDB_RTN_NO_PRIMARY_FOUND ;
+         goto error ;
+      }
+      if ( ele.type() != NumberInt )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      primaryNode = ele.numberInt () ;
+      if ( -1 == primaryNode )
+      {
+         // cannot find primary
+         rc = SDB_RTN_NO_PRIMARY_FOUND ;
+         goto error ;
+      }
       // walk through the replica group and find out the NodeID
       {
+         ele = result.getField ( CAT_GROUP_NAME ) ;
          BSONObjIterator it ( ele.embeddedObject() ) ;
          while ( it.more() )
          {
@@ -3894,6 +3920,11 @@ error:
                   break ;
                }
             }
+            else
+            {
+               rc = SDB_SYS ;
+               goto error ;
+            }
          }
       }
       if ( primaryData )
@@ -3906,12 +3937,11 @@ error:
       }
       else
       {
-         // if we find primary id but cannot find primary node in list, return
-         // priamry not found
-         rc = SDB_CLS_NODE_NOT_EXIST ;
+         // it is impossible for us to find primary id but cannot 
+         // find primary node in list
+         rc = SDB_SYS ;
          goto error ;
       }
-      // Build sdbNode based on hostname and service name
    done :
       return rc ;
    error :
@@ -3922,29 +3952,64 @@ error:
    INT32 _sdbReplicaGroupImpl::getSlave ( _sdbNode **node )
    {
       INT32 rc = SDB_OK ;
-      INT32 primaryNode = -1 ;
-      const CHAR *primaryData = NULL ;
       BSONObj result ;
       BSONElement ele ;
-      vector<const CHAR*> slaveElements ;
+      vector<const CHAR*> nodeDatas ;
+      vector<INT32>::const_iterator it ;
+      vector<INT32> positions ;
+      vector<INT32> validPositions ;
+      INT32 nodeCount = 0 ;
+      INT32 primaryNodeId = -1 ;
+      INT32 primaryNodePosition = 0 ;
+      BOOLEAN hasPrimary = TRUE ;
+      BOOLEAN needGeneratePosition = FALSE ;
+
+      // check arguments
       if ( !_connection || !node )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      for ( it = positions.begin(); it != positions.end(); it++ )
+      {
+         vector<INT32>::iterator it_inner = validPositions.begin() ;
+         BOOLEAN hasContained = FALSE ;
+         if ( *it < 1 || *it > 7 )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         for ( ; it_inner != validPositions.end(); it_inner++ )
+         {
+            if ( *it == *it_inner )
+            {
+               hasContained = TRUE ;
+               break ;
+            }
+         }
+         if ( !hasContained )
+         {
+            validPositions.push_back( *it ) ;
+         }
+      }
+      // when user do not specify any positions,
+      // we add 2 to select a slave node
+      if ( validPositions.size() == 0 )
+      {
+         needGeneratePosition = TRUE ;
+      }
+      // get detail of group from catalog
       rc = getDetail ( result ) ;
       if ( rc )
       {
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_CLS_GRP_NOT_EXIST ;
+         }
          goto error ;
       }
-      ele = result.getField ( CAT_PRIMARY_NAME ) ;
-      if ( ele.type() == NumberInt )
-      {
-         // get the primary node and skip it later
-         primaryNode = ele.numberInt () ;
-      }
+      // check the nodes in current group
       ele = result.getField ( CAT_GROUP_NAME ) ;
-      // walk through replica group and skip primary node, and pickup a random one
       if ( ele.type() != Array )
       {
          // the replica group is not array
@@ -3952,11 +4017,42 @@ error:
          goto error ;
       }
       {
+         BSONObjIterator it ( ele.embeddedObject() ) ;
+         if ( !it.more() )
+         {
+            rc = SDB_CLS_EMPTY_GROUP ;
+            goto error ;
+         }
+      }
+      ele = result.getField ( CAT_PRIMARY_NAME ) ;
+      if ( ele.type() == EOO )
+      {
+         hasPrimary = FALSE ;
+      } 
+      else if ( ele.type() != NumberInt )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      else
+      {
+         // get the primary node and skip it later
+         primaryNodeId = ele.numberInt () ;
+         if ( -1 == primaryNodeId )
+         {
+            hasPrimary = FALSE ;
+         }
+      }
+      // walk through replica group and skip primary node, and pick up a random one
+      {
+         ele = result.getField ( CAT_GROUP_NAME ) ;
          BSONObj objReplicaGroupList = ele.embeddedObject() ;
          BSONObjIterator it ( objReplicaGroupList ) ;
          // loop for all elements in the replica group
+         INT32 counter = 0 ;
          while ( it.more() )
          {
+            ++counter ;
             BSONObj embObj ;
             BSONElement embEle ;
             // make sure each element is object and construct intObj object
@@ -3974,44 +4070,119 @@ error:
                   rc = SDB_SYS ;
                   goto error ;
                }
-               // if we find the master, let's skip it, otherwise let's push to
-               // vector
-               if ( primaryNode != embEle1.numberInt() )
+               nodeDatas.push_back ( embObj.objdata() ) ;
+               if ( hasPrimary && primaryNodeId == embEle1.numberInt() )
                {
-                  slaveElements.push_back ( embObj.objdata() ) ;
+                  primaryNodePosition = counter ;
                }
-               else
-               {
-                  primaryData = embObj.objdata() ;
-               }
-            } // if ( BSON_OBJECT == bson_iterator ( &i )
+            }
+            else
+            {
+               rc = SDB_SYS ;
+               goto error ;
+            }
+         }
+      }
+      // check
+      if ( hasPrimary && 0 == primaryNodePosition )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      // try to generate slave node's positions
+      nodeCount = nodeDatas.size() ;
+      if ( needGeneratePosition )
+      {
+         INT32 i = 0 ;
+         for ( ; i < nodeCount ; i++ )
+         {
+            if ( hasPrimary && primaryNodePosition == i + 1 )
+            {
+               continue ;
+            }
+            validPositions.push_back( i + 1 ) ;
          }
       }
       // Build sdbNode based on hostname and service name
-      if ( slaveElements.size() != 0 )
+      if ( nodeCount == 1 )
       {
-         INT32 slaveID = _sdbRand() % slaveElements.size() ;
-         rc = _extractNode ( node, slaveElements[slaveID] ) ;
+         rc = _extractNode ( node, nodeDatas[0] ) ;
          if ( rc )
          {
             goto error ;
          }
       }
-      // if we cannot find slave, then let's try to use primary
-      else if ( primaryData )
+      else if ( validPositions.size() == 1 )
       {
-         rc = _extractNode ( node, primaryData ) ;
+         INT32 idx = ( validPositions[0] - 1 ) % nodeCount ;
+         rc = _extractNode ( node, nodeDatas[idx] ) ;
          if ( rc )
          {
             goto error ;
          }
       }
-      // if we can't find any slave nor primary, something wrong!
       else
       {
-         rc = SDB_CLS_NODE_NOT_EXIST ;
-         goto error ;
+         INT32 position = 0 ;
+         INT32 nodeIndex = -1 ;
+         INT32 flags[7] = { 0 } ;
+         INT32 rand = _sdbRand() ;
+         vector<INT32> includePrimaryPositions ;
+         vector<INT32> excludePrimaryPositions ;
+         vector<INT32>::iterator it = validPositions.begin() ;
+         for ( ; it != validPositions.end() ; it++ )
+         {
+            INT32 pos = *it ;
+            if ( pos <= nodeCount )
+            {
+               nodeIndex = pos - 1 ;
+               if ( flags[nodeIndex] == 0 )
+               {
+                  flags[nodeIndex] = 1 ;
+                  includePrimaryPositions.push_back( pos ) ;
+                  if ( hasPrimary && primaryNodePosition != pos )
+                  {
+                     excludePrimaryPositions.push_back( pos ) ;
+                  }
+               }
+            }
+            else
+            {
+               nodeIndex = ( pos - 1 ) % nodeCount ;
+               if ( flags[nodeIndex] == 0 )
+               {
+                  flags[nodeIndex] = 1 ;
+                  includePrimaryPositions.push_back( pos ) ;
+                  if ( hasPrimary && primaryNodePosition != nodeIndex + 1 )
+                  {
+                     excludePrimaryPositions.push_back( pos ) ;
+                  }
+               }
+            }
+         }
+         // after removing, let's select a slave node
+         if ( excludePrimaryPositions.size() > 0 )
+         {
+            position = rand % excludePrimaryPositions.size() ;
+            position = excludePrimaryPositions[position] ;
+         }
+         else
+         {
+            position = rand % includePrimaryPositions.size() ;
+            position = includePrimaryPositions[position] ;
+            if ( needGeneratePosition )
+            {
+               position += 1 ;
+            }
+         }
+         nodeIndex = ( position - 1 ) % nodeCount ;
+         rc = _extractNode( node, nodeDatas[nodeIndex] ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
       }
+
    done :
       return rc ;
    error :
