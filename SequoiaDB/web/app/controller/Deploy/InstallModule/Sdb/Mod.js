@@ -432,9 +432,6 @@
       <li ng-class="{true:\'active\'}[data.ShowType == 2]">\
          <a class="linkButton" ng-click="data.Switch2()">' + $scope.autoLanguage( '高级' ) + '</a>\
       </li>\
-      <li ng-class="{true:\'active\'}[data.ShowType == 3]">\
-         <a class="linkButton" ng-click="data.Switch3()">' + $scope.autoLanguage( '自定义' ) + '</a>\
-      </li>\
    </ul>\
 </div>\
 <div form-create para="data.form1" ng-show="data.ShowType == 1"></div>\
