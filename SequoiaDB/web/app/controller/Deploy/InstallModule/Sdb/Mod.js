@@ -1508,6 +1508,7 @@
 
       $scope.GotoInstall = function(){
          var configure = convertConfig() ;
+         configure['Force'] = true ;
          if( configure )
             installSdb( configure ) ;
       }
