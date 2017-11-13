@@ -51,6 +51,7 @@ public class RangeSplitAndRestartDestNode2740 extends SdbTestBase {
     private String srcGroupName;
     private String destGroupName;
     private GroupMgr groupMgr = null;
+    private boolean isSplitComplete = false;
     private boolean clearFlag = false;
 
     @BeforeClass()
@@ -100,12 +101,12 @@ public class RangeSplitAndRestartDestNode2740 extends SdbTestBase {
 
             //check whether the cluster is normal，the longest waiting time is 600S
             Assert.assertEquals(groupMgr.checkBusiness(600), true, "failed to restore business");
+            if(isSplitComplete){
+            	//insert 500 records after split,the incremental value of 0,the "no" value is 10000-10500
+                bulkInsert(cl,10000,10500);
 
-            //insert 500 records after split,the incremental value of 0,the "no" value is 10000-10500
-            bulkInsert(cl,10000,10500);
-
-            checkSplitResult();
-            
+                checkSplitResult();
+            }
             //Normal operating environment
             clearFlag = true;
         }
@@ -196,7 +197,12 @@ public class RangeSplitAndRestartDestNode2740 extends SdbTestBase {
                 db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
                 db1.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
                 DBCollection dbcl = db1.getCollectionSpace(csName).getCollection(clName);
-                dbcl.split(srcGroupName, destGroupName, 50);
+                try{
+                	dbcl.split(srcGroupName, destGroupName, 50);
+                	isSplitComplete = true;
+                }catch(BaseException e){
+                	System.out.println("split have exception:" + e.getMessage());
+                }
             }catch (BaseException e) {
                 throw e;
             }finally {
