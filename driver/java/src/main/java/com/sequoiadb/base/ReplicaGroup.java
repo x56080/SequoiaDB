@@ -111,36 +111,64 @@ public class ReplicaGroup {
      * @brief Get the master node of current replica group.
      */
     public Node getMaster() throws BaseException {
-        BSONObject group = sequoiadb.getDetailById(id);
+        // get information of nodes from catalog
+        BSONObject groupInfoObj = sequoiadb.getDetailById(id);
+        if (groupInfoObj == null) {
+            throw new BaseException(SDBError.SDB_CLS_GRP_NOT_EXIST,
+                    String.format("no information of group id[%d]", id));
+        }
+        // check the nodes in current group
+        Object nodesInfoArr = groupInfoObj.get(SequoiadbConstants.FIELD_NAME_GROUP);
+        if (nodesInfoArr == null || !(nodesInfoArr instanceof BasicBSONList)) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    String.format("invalid content[%s] of field[%s]",
+                            nodesInfoArr == null ? "null" : nodesInfoArr.toString(), SequoiadbConstants.FIELD_NAME_GROUP));
+        }
+        BasicBSONList nodesInfoList = (BasicBSONList) nodesInfoArr;
+        if (nodesInfoList.isEmpty()) {
+            throw new BaseException(SDBError.SDB_CLS_EMPTY_GROUP);
+        }
+        // check and extract the information of primary node
+        Object primaryNodeObj = groupInfoObj.get(SequoiadbConstants.FIELD_NAME_PRIMARY);
+        if (primaryNodeObj == null ) {
+            throw new BaseException(SDBError.SDB_RTN_NO_PRIMARY_FOUND);
+        } else if (!(primaryNodeObj instanceof Number)) {
+            throw new BaseException(SDBError.SDB_SYS, "invalid primary node's information: " + primaryNodeObj.toString());
+        } else if (primaryNodeObj.equals(Integer.valueOf(-1))){
+            throw new BaseException(SDBError.SDB_RTN_NO_PRIMARY_FOUND);
+        }
         BSONObject primaryData = null;
-        Object nodeId = null;
-        Object primaryNodeObj = group
-                .get(SequoiadbConstants.FIELD_NAME_PRIMARY);
-        if (primaryNodeObj == null)
-            throw new BaseException(SDBError.SDB_CLS_NODE_NOT_EXIST);
-        Object groupInfoObj = group.get(SequoiadbConstants.FIELD_NAME_GROUP);
-        if (groupInfoObj == null)
-            return null;
-        BasicBSONList nodeInfos = (BasicBSONList) groupInfoObj;
-        for (Object nodeInfoObj : nodeInfos) {
+        Object nodeId;
+        for (Object nodeInfoObj : nodesInfoList) {
             BSONObject nodeInfo = (BSONObject) nodeInfoObj;
             nodeId = nodeInfo.get(SequoiadbConstants.FIELD_NAME_NODEID);
-            if (nodeId == null)
-                throw new BaseException(SDBError.SDB_SYS);
+            if (nodeId == null) {
+                throw new BaseException(SDBError.SDB_SYS, "node id can not be null");
+            }
             if (nodeId.equals(primaryNodeObj)) {
                 primaryData = nodeInfo;
                 break;
             }
         }
-        if (primaryData != null) {
-            nodeId = primaryData.get(SequoiadbConstants.FIELD_NAME_NODEID);
-            String hostName = primaryData.get(
-                    SequoiadbConstants.FIELD_NAME_HOST).toString();
-            int port = getNodePort(primaryData);
-            return new Node(hostName, port, Integer.parseInt(nodeId
-                    .toString()), this);
+        // try to get the meta information of primary node.
+        if (primaryData == null) {
+            throw new BaseException(SDBError.SDB_SYS, "no information about the primary node in node array");
         }
-        return null;
+        nodeId = primaryData.get(SequoiadbConstants.FIELD_NAME_NODEID);
+        if (nodeId == null || !(nodeId instanceof Number)) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    String.format("invalid content[%s] of field[%s]",
+                            nodeId == null ? "null" : nodeId.toString(), SequoiadbConstants.FIELD_NAME_NODEID));
+        }
+        Object hostNameObj = primaryData.get(SequoiadbConstants.FIELD_NAME_HOST);
+        if (hostNameObj == null || !(hostNameObj instanceof String)) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    String.format("invalid content[%s] of field[%s]",
+                            hostNameObj == null ? "null" : hostNameObj.toString(), SequoiadbConstants.FIELD_NAME_HOST));
+        }
+        String hostName = hostNameObj.toString();
+        int port = getNodePort(primaryData);
+        return new Node(hostName, port, Integer.parseInt(nodeId.toString()), this);
     }
 
     /**
@@ -150,49 +178,141 @@ public class ReplicaGroup {
      * @brief Get the random slave of current replica group.
      */
     public Node getSlave() throws BaseException {
-        BSONObject group = sequoiadb.getDetailById(id);
-        if (group == null)
-            return null;
-        List<BSONObject> slaves = new ArrayList<BSONObject>();
-        BSONObject primaryData = null;
-        Object primaryNodeObj = group
-                .get(SequoiadbConstants.FIELD_NAME_PRIMARY);
-        if (primaryNodeObj == null)
-            throw new BaseException(SDBError.SDB_CLS_NODE_NOT_EXIST);
-        Object groupInfoObj = group.get(SequoiadbConstants.FIELD_NAME_GROUP);
-        if (groupInfoObj == null)
-            return null;
-        BasicBSONList nodeInfos = (BasicBSONList) groupInfoObj;
-        for (Object nodeInfoObj : nodeInfos) {
-            BSONObject nodeInfo = (BSONObject) nodeInfoObj;
-            Object nodeId = nodeInfo.get(SequoiadbConstants.FIELD_NAME_NODEID);
-            if (nodeId == null)
-                throw new BaseException(SDBError.SDB_SYS);
-            if (nodeId.equals(primaryNodeObj)) {
-                primaryData = nodeInfo;
-            } else {
-                slaves.add(nodeInfo);
+        List<Integer> list = new ArrayList<Integer>();
+        return getSlave(list);
+    }
+
+    private Node getSlave(List<Integer> positions) throws BaseException {
+        boolean needGeneratePosition = false;
+        List<Integer> validPositions = new ArrayList<Integer>();
+        // check arguments
+        if (positions == null || positions.size() == 0) {
+            needGeneratePosition = true;
+        } else {
+            for (int pos : positions) {
+                if (pos < 1 || pos > 7) {
+                    throw new BaseException(SDBError.SDB_INVALIDARG,
+                            String.format("invalid position(%d) in the list", pos));
+                }
+                if (!validPositions.contains(pos)) {
+                    validPositions.add(pos);
+                }
+            }
+            if (validPositions.size() < 1 || validPositions.size() > 7) {
+                throw new BaseException(SDBError.SDB_INVALIDARG,
+                        String.format("the number of valid position in the list is %d, it should be in [1, 7]",
+                                validPositions.size()));
             }
         }
-        if (slaves.size() != 0) {
-            Random rand = new Random();
-            BSONObject randNode = slaves.get(rand.nextInt(slaves.size()));
-            int nodeId = Integer.parseInt(randNode.get(
-                    SequoiadbConstants.FIELD_NAME_NODEID).toString());
-            String hostName = randNode.get(SequoiadbConstants.FIELD_NAME_HOST)
-                    .toString();
-            int port = getNodePort(randNode);
-            return new Node(hostName, port, nodeId, this);
-        } else if (primaryData != null) {
-            int nodeId = Integer.parseInt(primaryData.get(
-                    SequoiadbConstants.FIELD_NAME_NODEID).toString());
-            String hostName = primaryData.get(
-                    SequoiadbConstants.FIELD_NAME_HOST).toString();
-            int port = getNodePort(primaryData);
-            return new Node(hostName, port, nodeId, this);
-        } else {
-            return null;
+        // get information of nodes from catalog
+        BSONObject groupInfoObj = sequoiadb.getDetailById(id);
+        if (groupInfoObj == null) {
+            throw new BaseException(SDBError.SDB_CLS_GRP_NOT_EXIST,
+                    String.format("no information of group id[%d]", id));
         }
+        // check the nodes in current group
+        Object nodesInfoArr = groupInfoObj.get(SequoiadbConstants.FIELD_NAME_GROUP);
+        if (nodesInfoArr == null || !(nodesInfoArr instanceof BasicBSONList)) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    String.format("invalid content[%s] of field[%s]",
+                            nodesInfoArr == null ? "null" : nodesInfoArr.toString(), SequoiadbConstants.FIELD_NAME_GROUP));
+        }
+        BasicBSONList nodesInfoList = (BasicBSONList) nodesInfoArr;
+        if (nodesInfoList.isEmpty()) {
+            throw new BaseException(SDBError.SDB_CLS_EMPTY_GROUP);
+        }
+        // check whether there has primary or not
+        Object primaryNodeId = groupInfoObj.get(SequoiadbConstants.FIELD_NAME_PRIMARY);
+        boolean hasPrimary = true;
+        if (primaryNodeId == null) {
+            hasPrimary = false;
+        } else if (!(primaryNodeId instanceof Number)) {
+            throw new BaseException(SDBError.SDB_SYS, "invalid primary node's information: " + primaryNodeId.toString());
+        } else if (primaryNodeId.equals(Integer.valueOf(-1))){
+            hasPrimary = false;
+        }
+        // try to mark the position of primary node in the nodes list,
+        // the value of position is [1, 7]
+        int primaryNodePosition = 0;
+        for (int i = 0; i < nodesInfoList.size(); i++) {
+            BSONObject nodeInfo = (BSONObject) nodesInfoList.get(i);
+            Object nodeIdValue = nodeInfo.get(SequoiadbConstants.FIELD_NAME_NODEID);
+            if (nodeIdValue == null) {
+                throw new BaseException(SDBError.SDB_SYS, "node id can not be null");
+            }
+            if (hasPrimary && nodeIdValue.equals(primaryNodeId)) {
+                primaryNodePosition = i + 1;
+            }
+        }
+        if (hasPrimary && primaryNodePosition == 0) {
+            throw new BaseException(SDBError.SDB_SYS, "have no primary node in nodes list");
+        }
+        // try to generate positions
+        int nodeCount = nodesInfoList.size();
+        if (needGeneratePosition) {
+            for(int i = 0; i < nodeCount; i++) {
+                if ( hasPrimary && primaryNodePosition == i + 1 )
+                {
+                    continue ;
+                }
+                validPositions.add(i + 1);
+            }
+        }
+        // get a node position to create Node
+        int nodeIndex = -1 ;
+        BSONObject nodeInfoObj = null;
+        // we must use "nodeCount" to compare first, since "validPositions" may be generate by us when
+        // "needGeneratePosition" is true.
+        if (nodeCount == 1) {
+            nodeInfoObj = (BSONObject)nodesInfoList.get(0);
+        } else if (validPositions.size() == 1) {
+            // position is start from 1, so we need to decrease 1
+            nodeIndex = (validPositions.get(0) - 1) % nodeCount;
+            nodeInfoObj = (BSONObject)nodesInfoList.get(nodeIndex);
+        } else {
+            int position = 0;
+            Random rand = new Random();
+            int[] flags = new int[7];
+            List<Integer> includePrimaryPositions = new ArrayList<Integer>();
+            List<Integer> excludePrimaryPositions = new ArrayList<Integer>();
+            for(int pos : validPositions) {
+                if (pos <= nodeCount) {
+                    nodeIndex = pos - 1;
+                    if (flags[nodeIndex] == 0) {
+                        flags[nodeIndex] = 1;
+                        includePrimaryPositions.add(pos);
+                        if (hasPrimary && primaryNodePosition != pos) {
+                            excludePrimaryPositions.add(pos);
+                        }
+                    }
+                } else {
+                    nodeIndex = (pos - 1) % nodeCount;
+                    if (flags[nodeIndex] == 0) {
+                        flags[nodeIndex] = 1;
+                        includePrimaryPositions.add(pos);
+                        if (hasPrimary && primaryNodePosition != nodeIndex + 1) {
+                            excludePrimaryPositions.add(pos);
+                        }
+                    }
+                }
+            }
+            if (excludePrimaryPositions.size() > 0) {
+                position = rand.nextInt(excludePrimaryPositions.size());
+                position = excludePrimaryPositions.get(position);
+            } else {
+                position = rand.nextInt(includePrimaryPositions.size());
+                position = includePrimaryPositions.get(position);
+                if (needGeneratePosition) {
+                    position += 1;
+                }
+            }
+            nodeIndex = (position - 1) % nodeCount;
+            nodeInfoObj = (BSONObject)nodesInfoList.get(nodeIndex);
+        }
+        int nodeId = Integer.parseInt(nodeInfoObj.get(SequoiadbConstants.FIELD_NAME_NODEID).toString());
+        String hostName = nodeInfoObj.get(SequoiadbConstants.FIELD_NAME_HOST).toString();
+        int port = getNodePort(nodeInfoObj);
+        return new Node(hostName, port, nodeId, this);
     }
 
     /**
