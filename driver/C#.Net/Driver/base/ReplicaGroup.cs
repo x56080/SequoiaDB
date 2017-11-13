@@ -267,33 +267,53 @@ namespace SequoiaDB
          */
         public Node GetMaster()
         {
-            int primaryNode = -1;
+            int primaryNodeId = -1;
             try
             {
+                // get information of nodes from catalog
                 BsonDocument detail = GetDetail();
-                if (!detail[SequoiadbConstants.FIELD_PRIMARYNODE].IsInt32)
+                // check the nodes in current group
+                
+                BsonValue groupValue = detail.Contains(SequoiadbConstants.FIELD_GROUP) ? detail[SequoiadbConstants.FIELD_GROUP] : null;
+                if (groupValue == null || !groupValue.IsBsonArray)
                 {
-                    throw new BaseException("SDB_SYS");
+                    throw new BaseException((int)Errors.errors.SDB_SYS);
                 }
-                primaryNode = detail[SequoiadbConstants.FIELD_PRIMARYNODE].AsInt32;
-                if (!detail[SequoiadbConstants.FIELD_GROUP].IsBsonArray)
+                BsonArray nodes = groupValue.AsBsonArray;
+                if (nodes.Count == 0)
                 {
-                    throw new BaseException("SDB_SYS");
+                    throw new BaseException((int)Errors.errors.SDB_CLS_EMPTY_GROUP);
                 }
-                BsonArray nodes = detail[SequoiadbConstants.FIELD_GROUP].AsBsonArray;
+                // get primary node id
+                BsonValue primaryValue = detail.Contains(SequoiadbConstants.FIELD_PRIMARYNODE) ? detail[SequoiadbConstants.FIELD_PRIMARYNODE] : null;
+                if (primaryValue == null)
+                {
+                    throw new BaseException((int)Errors.errors.SDB_RTN_NO_PRIMARY_FOUND);
+                }
+                else if (!primaryValue.IsInt32)
+                {
+                    throw new BaseException((int)Errors.errors.SDB_SYS, "primary node id should be a int32 value");
+                }
+                else if (primaryValue.AsInt32 == -1) // TODO: test it
+                {
+                    throw new BaseException((int)Errors.errors.SDB_RTN_NO_PRIMARY_FOUND);
+                }
+                // get the master from the node list
+                primaryNodeId = primaryValue.AsInt32;
                 foreach (BsonDocument node in nodes)
                 {
-                    if (!node[SequoiadbConstants.FIELD_NODEID].IsInt32)
+                    BsonValue nodeIdValue = node.Contains(SequoiadbConstants.FIELD_NODEID) ? node[SequoiadbConstants.FIELD_NODEID] : null;
+                    if (nodeIdValue == null || !nodeIdValue.IsInt32)
                     {
                         throw new BaseException("SDB_SYS");
                     }
                     int nodeID = node[SequoiadbConstants.FIELD_NODEID].AsInt32;
-                    if (nodeID == primaryNode)
+                    if (nodeID == primaryNodeId)
                     {
                         return ExtractNode(node);
                     }
                 }
-                throw new BaseException("SDB_CLS_NODE_NOT_EXIST");
+                throw new BaseException((int)Errors.errors.SDB_SYS, "no information about the primary node in node array");
             }
             catch (KeyNotFoundException)
             {
@@ -313,51 +333,165 @@ namespace SequoiaDB
          */
         public Node GetSlave()
         {
-            int primaryID = -1;
-            List<BsonDocument> nodeList = new List<BsonDocument>();
-            BsonDocument primaryNode = null;
+            int[] positions = null;
+            bool needGeneratePosition = false;
+            List<int> validPositions = new List<int>();
+            // check arguements 
+            if (positions == null || positions.Length == 0)
+            {
+                needGeneratePosition = true;
+            }
+            else
+            {
+                foreach (int pos in positions)
+                {
+                    if (pos < 1 || pos > 7)
+                    {
+                        throw new BaseException((int)Errors.errors.SDB_INVALIDARG, "the valid position of node should be [1, 7]");
+                    }
+                    if (!validPositions.Contains(pos))
+                    {
+                        validPositions.Add(pos);
+                    }
+                }
+                if (validPositions.Count < 1 || validPositions.Count > 7)
+                {
+                    throw new BaseException((int)Errors.errors.SDB_INVALIDARG, "the amount of valid positions should be [1, 7]");
+                }
+            }
+            // get group details
             try
             {
+                int primaryId = -1;
+                bool hasPrimary = true;
                 BsonDocument detail = GetDetail();
-                if (!detail[SequoiadbConstants.FIELD_PRIMARYNODE].IsInt32)
-                {
-                    throw new BaseException("SDB_CLS_NODE_NOT_EXIST");
-                }
-                primaryID = detail[SequoiadbConstants.FIELD_PRIMARYNODE].AsInt32;
-                if (!detail[SequoiadbConstants.FIELD_GROUP].IsBsonArray)
+                BsonValue groupValue = detail.Contains(SequoiadbConstants.FIELD_GROUP) ? detail[SequoiadbConstants.FIELD_GROUP] : null;
+                if (groupValue == null || !groupValue.IsBsonArray)
                 {
                     throw new BaseException("SDB_SYS");
                 }
-                BsonArray nodes = detail[SequoiadbConstants.FIELD_GROUP].AsBsonArray;
+                BsonArray nodes = groupValue.AsBsonArray;
+                if (nodes.Count == 0)
+                {
+                    throw new BaseException((int)Errors.errors.SDB_CLS_EMPTY_GROUP);
+                }
+                BsonValue primaryIdValue = detail.Contains(SequoiadbConstants.FIELD_PRIMARYNODE) ? detail[SequoiadbConstants.FIELD_PRIMARYNODE] : null;
+                if (primaryIdValue == null)
+                {
+                    hasPrimary = false;
+                }
+                else if (!primaryIdValue.IsInt32)
+                {
+                    throw new BaseException((int)Errors.errors.SDB_SYS);
+                }
+                else if ((primaryId = primaryIdValue.AsInt32) == -1)
+                {
+                    hasPrimary = false;
+                }
+                // try to mark the position of primary node in the nodes list,
+                // the value of position is [1, 7]
+                int primaryNodePosition = 0;
+                int counter = 0;
+                List<BsonDocument> nodeList = new List<BsonDocument>();
                 foreach (BsonDocument node in nodes)
                 {
-                    if (!node[SequoiadbConstants.FIELD_NODEID].IsInt32)
+                    counter++;
+                    BsonValue nodeIdValue = node.Contains(SequoiadbConstants.FIELD_NODEID) ? node[SequoiadbConstants.FIELD_NODEID] : null;
+                    if (nodeIdValue == null || !nodeIdValue.IsInt32)
                     {
-                        throw new BaseException("SDB_SYS");
+                        throw new BaseException((int)Errors.errors.SDB_SYS, "invalid node id in node list");
                     }
-                    int nodeID = node[SequoiadbConstants.FIELD_NODEID].AsInt32;
-                    if (nodeID != primaryID)
+                    int nodeId = nodeIdValue.AsInt32;
+                    if (hasPrimary && primaryId == nodeId)
                     {
-                        nodeList.Add(node);
+                        primaryNodePosition = counter;
                     }
-                    else
+                    nodeList.Add(node);
+                }
+                // check
+                if (hasPrimary && primaryNodePosition == 0)
+                {
+                    throw new BaseException((int)Errors.errors.SDB_SYS, "have no primary node in nodes list");
+                }
+                // try to generate slave node's positions
+                int nodeCount = nodeList.Count;
+                if (needGeneratePosition)
+                {
+                    for (int i = 0; i < nodeCount; i++)
                     {
-                        primaryNode = node;
+                        if (hasPrimary && primaryNodePosition == i + 1)
+                        {
+                            continue;
+                        }
+                        validPositions.Add(i + 1);
                     }
                 }
-                if (nodeList.Count > 0)
+                // select a node to return
+                int nodeIndex = -1;
+                if (nodeCount == 1)
                 {
-                    Random rnd = new Random();
-                    int slaveID = rnd.Next() % nodeList.Count;
-                    return ExtractNode(nodeList[slaveID]);
+                    return ExtractNode(nodeList[0]);
                 }
-                else if (primaryNode != null)
+                else if (validPositions.Count == 1)
                 {
-                    return ExtractNode(primaryNode);
+                    nodeIndex = (validPositions[0] - 1) % nodeCount;
+                    return ExtractNode(nodeList[nodeIndex]);
                 }
                 else
                 {
-                    throw new BaseException("SDB_CLS_NODE_NOT_EXIST");
+                    int position = 0;
+                    Random rand = new Random();
+                    int[] flags = new int[7];
+                    List<int> includePrimaryPositions = new List<int>();
+                    List<int> excludePrimaryPositions = new List<int>();
+
+                    foreach (int pos in validPositions)
+                    {
+                        if (pos <= nodeCount)
+                        {
+                            nodeIndex = pos - 1;
+                            if (flags[nodeIndex] == 0)
+                            {
+                                flags[nodeIndex] = 1;
+                                includePrimaryPositions.Add(pos);
+                                if (hasPrimary && primaryNodePosition != pos)
+                                {
+                                    excludePrimaryPositions.Add(pos);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            nodeIndex = (pos - 1) % nodeCount;
+                            if (flags[nodeIndex] == 0)
+                            {
+                                flags[nodeIndex] = 1;
+                                includePrimaryPositions.Add(pos);
+                                if (hasPrimary && primaryNodePosition != nodeIndex + 1)
+                                {
+                                    excludePrimaryPositions.Add(pos);
+                                }
+                            }
+                        }
+                    }
+
+                    if (excludePrimaryPositions.Count > 0)
+                    {
+                        position = rand.Next(excludePrimaryPositions.Count);
+                        position = excludePrimaryPositions[position];
+                    }
+                    else
+                    {
+                        position = rand.Next(includePrimaryPositions.Count);
+                        Console.WriteLine("position is: " + position);
+                        position = includePrimaryPositions[position];
+                        if (needGeneratePosition)
+                        {
+                            position += 1;
+                        }
+                    }
+                    nodeIndex = (position - 1) % nodeCount;
+                    return ExtractNode(nodeList[nodeIndex]);
                 }
             }
             catch (KeyNotFoundException)
@@ -569,28 +703,38 @@ namespace SequoiaDB
             try
             {
                 if (!node[SequoiadbConstants.FIELD_HOSTNAME].IsString)
+                {
                     throw new BaseException("SDB_SYS");
+                }
                 string hostName = node[SequoiadbConstants.FIELD_HOSTNAME].AsString;
                 if (!node[SequoiadbConstants.FIELD_NODEID].IsInt32)
+                {
                     throw new BaseException("SDB_SYS");
+                }
                 int nodeID = node[SequoiadbConstants.FIELD_NODEID].AsInt32;
                 if (!node[SequoiadbConstants.FIELD_SERVICE].IsBsonArray)
+                {
                     throw new BaseException("SDB_SYS");
+                }
                 BsonArray svcs = node[SequoiadbConstants.FIELD_SERVICE].AsBsonArray;
                 foreach (BsonDocument svc in svcs)
                 {
                     if (!svc[SequoiadbConstants.FIELD_SERVICE_TYPE].IsInt32)
+                    {
                         throw new BaseException("SDB_SYS");
+                    }
                     int type = svc[SequoiadbConstants.FIELD_SERVICE_TYPE].AsInt32;
-                    if (0 == type)
+                    if (type == 0)
                     {
                         if (!svc[SequoiadbConstants.FIELD_NAME].IsString)
+                        {
                             throw new BaseException("SDB_SYS");
+                        }
                         string svcname = svc[SequoiadbConstants.FIELD_NAME].AsString;
                         return new Node(this, hostName, int.Parse(svcname), nodeID);
                     }
                 }
-                throw new BaseException("SDB_CLS_NODE_NOT_EXIST");
+                throw new BaseException("SDB_SYS");
             }
             catch(KeyNotFoundException)
             {
