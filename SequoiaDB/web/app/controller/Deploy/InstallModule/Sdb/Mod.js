@@ -1419,7 +1419,7 @@
       }
 
       var installSdb = function( installConfig ){
-         var data = { 'cmd': 'add business', 'ConfigInfo': JSON.stringify( installConfig ) } ;
+         var data = { 'cmd': 'add business', 'Force': true, 'ConfigInfo': JSON.stringify( installConfig ) } ;
          SdbRest.OmOperation( data, {
             'success': function( taskInfo ){
                $rootScope.tempData( 'Deploy', 'ModuleTaskID', taskInfo[0]['TaskID'] ) ;
@@ -1508,7 +1508,6 @@
 
       $scope.GotoInstall = function(){
          var configure = convertConfig() ;
-         configure['Force'] = true ;
          if( configure )
             installSdb( configure ) ;
       }
