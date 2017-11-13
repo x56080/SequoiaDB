@@ -873,6 +873,11 @@ namespace engine
       BSONElement configEle ;
       string deployMode ;
 
+      if ( TRUE == _force )
+      {
+         _properties.setForce() ;
+      }
+
       deployMode = _businessInfo.deployMode;
       if ( OM_DEPLOY_MOD_STANDALONE != deployMode &&
            OM_DEPLOY_MOD_DISTRIBUTION != deployMode )

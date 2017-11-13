@@ -615,7 +615,7 @@ namespace engine
       return _confValidator.isValid( value ) ;
    }
 
-   OmConfProperties::OmConfProperties()
+   OmConfProperties::OmConfProperties() : _force( FALSE )
    {
    }
 
@@ -730,10 +730,19 @@ namespace engine
       property = getConfProperty( name ) ;
       if ( NULL == property )
       {
-         rc = SDB_DMS_RECORD_NOTEXIST ;
-         PD_LOG_MSG( PDERROR, "can't find the property:name=%s", 
-                     name.c_str() ) ;
-         goto error ;
+         if ( FALSE == _force )
+         {
+            rc = SDB_DMS_RECORD_NOTEXIST ;
+            PD_LOG_MSG( PDERROR, "can't find the property:name=%s", 
+                        name.c_str() ) ;
+            goto error ;
+         }
+         else
+         {
+            PD_LOG_MSG( PDWARNING, "can't find the property:name=%s", 
+                        name.c_str() ) ;
+            goto done ;
+         }
       }
 
       if ( !property->isValid( value ) )
@@ -749,6 +758,11 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   void OmConfProperties::setForce()
+   {
+      _force = TRUE ;
    }
 
    string OmConfProperties::getDefaultValue( const string &name )
@@ -1037,10 +1051,13 @@ namespace engine
    INT32 OmConfigBuilder::checkConfig( const BSONObj &confProperties, 
                                        const BSONObj &bsonHostInfo,
                                        const BSONObj &bsonBusinessInfo,
-                                       BSONObj &newBusinessConfig )
+                                       BSONObj &newBusinessConfig,
+                                       BOOLEAN force )
    {
       INT32 rc = SDB_OK ;
       OmBusiness* business = NULL ;
+
+      _force = force ;
 
       rc = _cluster.init( bsonBusinessInfo, bsonHostInfo ) ;
       if ( SDB_OK != rc )

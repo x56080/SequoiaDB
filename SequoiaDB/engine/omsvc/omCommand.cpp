@@ -5246,10 +5246,12 @@ namespace engine
       goto done ;
    }
 
-   INT32 omInstallBusinessReq::_getRestInfo( BSONObj &bsonConfValue )
+   INT32 omInstallBusinessReq::_getRestInfo( BSONObj &bsonConfValue,
+                                             BOOLEAN &isForce )
    {
       INT32 rc          = SDB_OK ;
       const CHAR *pInfo = NULL ;
+      const CHAR *pForce = NULL ;
 
       _restAdaptor->getQuery( _restSession, OM_REST_CONFIG_INFO, &pInfo ) ;
       if ( NULL == pInfo )
@@ -5257,6 +5259,18 @@ namespace engine
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "rest field is null:field=%s", OM_REST_CONFIG_INFO ) ;
          goto error ;
+      }
+
+      _restAdaptor->getQuery( _restSession, OM_REST_FORCE, &pForce ) ;
+      if ( pForce )
+      {
+         string forceValue = pForce ;
+
+         if ( "True" == forceValue || "TRUE" == forceValue ||
+              "true" == forceValue )
+         {
+            isForce = TRUE ;
+         }
       }
 
       rc = fromjson( pInfo, bsonConfValue ) ;
@@ -5382,10 +5396,11 @@ namespace engine
       BSONObj bsonAllConf ;
       BSONObj clusterBusinessInfo ;
       INT64 taskID ;
+      BOOLEAN isForce = FALSE ;
 
       _setFileLanguageSep() ;
 
-      rc = _getRestInfo( bsonConfValue ) ;
+      rc = _getRestInfo( bsonConfValue, isForce ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "_getRestInfo failed:rc=%d", rc ) ;
@@ -5463,7 +5478,8 @@ namespace engine
          }
 
          rc = confBuilder->checkConfig( bsonAllConf, bsonHostInfo,
-                                        clusterBusinessInfo, bsonConfValue ) ;
+                                        clusterBusinessInfo, bsonConfValue,
+                                        isForce ) ;
          if ( SDB_OK != rc )
          {
             _errorDetail = confBuilder->getErrorDetail() ;

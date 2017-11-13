@@ -576,7 +576,8 @@ namespace engine
                                              BSONObj &bsonConfValue ) ;
          void           _clearSession( omManager *om,
                                        pmdRemoteSession *remoteSession) ;
-         INT32          _getRestInfo( BSONObj &bsonConfValue ) ;
+         INT32          _getRestInfo( BSONObj &bsonConfValue,
+                                      BOOLEAN &isForce ) ;
 
          INT32          _generateTaskInfo( const BSONObj &bsonConfValue,
                                            BSONObj &taskInfo,
