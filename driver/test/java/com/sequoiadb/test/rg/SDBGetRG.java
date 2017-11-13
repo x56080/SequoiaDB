@@ -2,10 +2,13 @@ package com.sequoiadb.test.rg;
 
 import static org.junit.Assert.*;
 
+import org.bson.BSONObject;
+import org.bson.types.BasicBSONList;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.sequoiadb.base.Node;
@@ -118,11 +121,48 @@ public class SDBGetRG {
     public void getMasterAndSlaveNodeTest() {
         if (!isCluster)
             return;
-        //groupName = "db2";
+        //groupName = "SYSCoord";
+        groupName = "db2";
         rg = sdb.getReplicaGroup(groupName);
         Node master = rg.getMaster();
         Node slave = rg.getSlave();
         System.out.println(String.format("group is: %s, master is: %s, slave is: %s", groupName, master.getNodeName(), slave.getNodeName()));
     }
 	
+    @Test
+    @Ignore
+    public void groupTmpTest() {
+        if (!isCluster)
+            return;
+        groupName = "db2";
+        rg = sdb.getReplicaGroup(groupName);
+        BSONObject detail = rg.getDetail();
+        BasicBSONList nodeList = (BasicBSONList) detail.get("Group");
+        int nodeCount = nodeList.size();
+//        int primaryNodePosition = getMasterPosition(rg);
+        //assertTrue(nodeCount != 0);
+
+        Node master = null;
+        Node slave = null;
+
+        // case 1
+        //master = rg.getMaster();
+        slave = rg.getSlave();
+        System.out.println(String.format("case1: group is: %s, master is: %s, slave is: %s", groupName,
+                master == null ? null : master.getNodeName(),
+                slave == null ? null : slave.getNodeName()));
+        int counter1 = 0, counter2 = 0;
+        String str1 = "susetzb:40000", str2 = "susetzb:42000";
+        for(int i = 0; i < 100; i++) {
+//            slave = rg.getSlave(1,2,3,4,5,6,7);
+            slave = rg.getSlave();
+            if (str1.equals(slave.getNodeName())) {
+                counter1++;
+            } else if(str2.equals(slave.getNodeName())) {
+                counter2++;
+            }
+        }
+        System.out.println("counter1 is: " + counter1 + ", counter2 is: " + counter2);
+    }
+    
 }
