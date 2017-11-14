@@ -94,7 +94,7 @@ namespace engine
 
    #define UTIL_CACHE_PAGE_DIRTY_FLAG        0x01
    #define UTIL_CACHE_PAGE_INVALID_FLAG      0x02
-   #define UTIL_CACHE_PAGE_PINK_FLAG         0x04
+   #define UTIL_CACHE_PAGE_PIN_FLAG          0x04
    #define UTIL_CACHE_PAGE_LOCKED_FLAG       0x08
    #define UTIL_CACHE_PAGE_NEWEST_HEAD_FLAG  0x10
    #define UTIL_CACHE_PAGE_NEWEST_TAIL_FLAG  0x20
@@ -180,22 +180,22 @@ namespace engine
             return OSS_BIT_TEST( _status, UTIL_CACHE_PAGE_INVALID_FLAG ) ?
                    TRUE : FALSE ;
          }
-         void        pink()
+         void        pin()
          {
-            OSS_BIT_SET( _status, UTIL_CACHE_PAGE_PINK_FLAG ) ;
+            OSS_BIT_SET( _status, UTIL_CACHE_PAGE_PIN_FLAG ) ;
             ++_pinkCnt ;
          }
-         void        unpink()
+         void        unpin()
          {
             --_pinkCnt ;
             if ( 0 == _pinkCnt )
             {
-               OSS_BIT_CLEAR( _status, UTIL_CACHE_PAGE_PINK_FLAG ) ;
+               OSS_BIT_CLEAR( _status, UTIL_CACHE_PAGE_PIN_FLAG ) ;
             }
          }
-         BOOLEAN     isPinked() const
+         BOOLEAN     isPinned() const
          {
-            return OSS_BIT_TEST( _status, UTIL_CACHE_PAGE_PINK_FLAG ) ?
+            return OSS_BIT_TEST( _status, UTIL_CACHE_PAGE_PIN_FLAG ) ?
                    TRUE : FALSE ;
          }
          UINT32      getPinkCnt() const

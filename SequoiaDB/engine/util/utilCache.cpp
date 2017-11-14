@@ -822,7 +822,7 @@ namespace engine
 
       SDB_ASSERT( !item.isDirty(),  "Page can't be dirty" ) ;
       SDB_ASSERT( !item.isLocked(), "Page can't be locked" ) ;
-      SDB_ASSERT( !item.isPinked(), "Page can't be pinked" ) ;
+      SDB_ASSERT( !item.isPinned(), "Page can't be pined" ) ;
 
       pos = item.beginBlock() ;
 
@@ -1285,7 +1285,7 @@ namespace engine
          {
             pPage = &(it->second) ;
             if ( !pPage->isDirty() && !pPage->isLocked() &&
-                 !pPage->isPinked() && pPage->size() >= size )
+                 !pPage->isPinned() && pPage->size() >= size )
             {
                /// clear data info
                pPage->clearDataInfo() ;
@@ -2015,7 +2015,7 @@ namespace engine
       for ( UINT32 i = 0 ; i < _vecPages.size() ; ++i )
       {
          utilCachePage *pPage = _vecPages[ i ] ;
-         pPage->unpink() ;
+         pPage->unpin() ;
       }
       _vecPages.clear() ;
    }
@@ -2129,7 +2129,7 @@ namespace engine
       _lastPageID = pageID ;
 
       /// pink the page
-      pPage->pink() ;
+      pPage->pin() ;
       _vecPages.push_back( pPage ) ;
 
    done:
@@ -2466,14 +2466,14 @@ namespace engine
                                   pPage->isInvalid() ? FALSE : TRUE ) ;
          if ( rc )
          {
-            pPage->pink() ;
+            pPage->pin() ;
             pBucket->unlock( tmpMode ) ;
 
             /// recycle and try again
             recyclePages( TRUE, size ) ;
 
             pBucket->lock( tmpMode ) ;
-            pPage->unpink() ;
+            pPage->unpin() ;
 
             pPage->waitToUnlock() ;
             rc = _pMgr->alloc( size, *pPage, _wholePage,
@@ -2514,13 +2514,13 @@ namespace engine
          /// switch to mode
          if ( pPage )
          {
-            pPage->pink() ;
+            pPage->pin() ;
          }
          pBucket->unlock( tmpMode ) ;
          pBucket->lock( mode ) ;
          if ( pPage )
          {
-            pPage->unpink() ;
+            pPage->unpin() ;
          }
       }
 
@@ -3051,7 +3051,7 @@ namespace engine
             utilCachePage& page = it->second ;
 
             /// dirty page, locked page and pink page, ignored
-            if ( page.isDirty() || page.isLocked() || page.isPinked() )
+            if ( page.isDirty() || page.isLocked() || page.isPinned() )
             {
                ++it ;
                continue ;
