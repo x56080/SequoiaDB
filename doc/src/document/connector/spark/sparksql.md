@@ -22,6 +22,16 @@ scala> sqlContext.sql("CREATE temporary table datatable ( c1 string, c2 int, c3 
 >
 >临时表只在它被创建的那一个 Session 期间有效。
 
+###参数说明###
+
+|名称|说明|实际类型|默认值|是否必填|
+|---|---|---|---|---|
+|host|SequoiaDB协调节点/独立节点地址，多个地址以","分隔。例如："server1:11810,server2:11810"|string|-|是|
+|collectionspace|集合空间名称|string|-|是|
+|collection|集合名称（不包含集合空间名称）|string|-|是|
+|username|用户名|string|""|否|
+|password|用户名对应的密码|string|""|否|
+
 以下 query 查询可被用于获取表中的数据
 
 ```lang-javascript
