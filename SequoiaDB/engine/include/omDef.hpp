@@ -487,6 +487,7 @@ namespace engine
    #define  OM_BSON_BUSINESS_TYPE            OM_BUSINESS_FIELD_TYPE
    #define  OM_BSON_BUSINESS_NAME            OM_BUSINESS_FIELD_NAME
    #define  OM_REST_CONFIG_INFO              "ConfigInfo"
+   #define  OM_REST_FORCE                    "Force"
    #define  OM_BSON_TASKID                   "TaskID"
    #define  OM_BSON_TASKTYPE                 "TaskType"
    #define  OM_BSON_FIELD_SVCNAME            FIELD_NAME_SERVICE_NAME
