@@ -16,6 +16,16 @@ scala> sqlContext.sql("CREATE TEMPORARY TABLE datatable USING com.sequoiadb.spar
 <pre class="prettyprint lang-javascript">
 scala> sqlContext.sql("CREATE temporary table datatable ( c1 string, c2 int, c3 int ) using com.sequoiadb.spark OPTIONS ( host 'serverX:11810,serverY:11810', collectionspace 'test', collection 'data')")</pre>
 
+###参数说明###
+
+|名称|说明|实际类型|默认值|是否必填|
+|---|---|---|---|---|
+|host|SequoiaDB协调节点/独立节点地址，多个地址以","分隔。例如："server1:11810,server2:11810"|string|-|是|
+|collectionspace|集合空间名称|string|-|是|
+|collection|集合名称（不包含集合空间名称）|string|-|是|
+|username|用户名|string|""|否|
+|password|用户名对应的密码|string|""|否|
+
 **Note:**
 
 临时表只在它被创建的那一个 Session 期间有效，以下 query 查询可被用于获取表中的数据
