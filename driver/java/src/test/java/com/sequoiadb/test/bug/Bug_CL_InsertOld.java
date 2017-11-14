@@ -57,7 +57,7 @@ public class Bug_CL_InsertOld {
     @Test
     public void testInsertOid() {
         System.out.println("begin to test testInsertOid ...");
-        String str = "{ \"_id\" : { \"$oid\" : \"000102030405060708090a0b\"}}";
+        String str = "{ \"_id\" : { \"$oid\" : \"000102030405060708090a0b\" } }";
         byte[] arr = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
         BSONObject obj = new BasicBSONObject();
         ObjectId id = new ObjectId(arr);
@@ -86,8 +86,8 @@ public class Bug_CL_InsertOld {
     @Test
     public void testBulkInsertOid() {
         System.out.println("begin to test testBulkInsertOid ...");
-        String str1 = "{ \"_id\" : { \"$oid\" : \"000102030405060708090a0b\"}}";
-        String str2 = "{ \"_id\" : { \"$oid\" : \"0c0d0e0f1011121314151617\"}}";
+        String str1 = "{ \"_id\" : { \"$oid\" : \"000102030405060708090a0b\" } }";
+        String str2 = "{ \"_id\" : { \"$oid\" : \"0c0d0e0f1011121314151617\" } }";
         List<BSONObject> list = new ArrayList<BSONObject>();
         byte[] arr1 = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
         byte[] arr2 = {12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23};
@@ -142,7 +142,7 @@ public class Bug_CL_InsertOld {
     @Test
     public void testAggregateOld() {
         System.out.println("begin to test testAggregateOld ...");
-        String str = "{ \"_id\" : { \"$oid\" : \"000102030405060708090a0b\"}}";
+        String str = "{ \"_id\" : { \"$oid\" : \"000102030405060708090a0b\" } }";
         byte[] arr1 = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
         byte[] arr2 = {12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23};
         BSONObject obj1 = new BasicBSONObject();

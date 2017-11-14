@@ -68,7 +68,7 @@ public class BSONCodeTypeTest {
             Assert.assertTrue(obj != null);
             obj.removeField("_id");
             System.out.println("obj is: " + obj);
-            String retStr = "{ \"name\" : \"abc_in_java\" , \"func\" : { \"$code\" : \"function abc_in_java(x, y){return x + y ;}\"} , \"funcType\" : 0}";
+            String retStr = "{ \"name\" : \"abc_in_java\" , \"func\" : { \"$code\" : \"function abc_in_java(x, y){return x + y ;}\" } , \"funcType\" : 0 }";
             Assert.assertEquals(retStr, obj.toString());
         } finally {
             try {

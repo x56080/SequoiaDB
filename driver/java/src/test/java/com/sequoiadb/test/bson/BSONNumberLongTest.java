@@ -79,7 +79,7 @@ public class BSONNumberLongTest {
     public void digits_is_int_test() {
         // case1: BSON.setJSComplibility(false), 使用默认值。
         BSON.setJSCompatibility(false);
-        String expect = "{ \"a\" : 0 , \"b\" : 2147483647 , \"c\" : -2147483648}";
+        String expect = "{ \"a\" : 0 , \"b\" : 2147483647 , \"c\" : -2147483648 }";
         func1("digits_is_int_test_case1", expect);
         // case2: BSON.setJSComplibility(true)
         BSON.setJSCompatibility(true);
@@ -113,7 +113,7 @@ public class BSONNumberLongTest {
     public void digits_is_long_test() {
         // case1: BSON.setJSComplibility(false), 使用默认值。
         BSON.setJSCompatibility(false);
-        String expect = "{ \"a\" : 0 , \"b\" : 2147483648 , \"c\" : -2147483649}";
+        String expect = "{ \"a\" : 0 , \"b\" : 2147483648 , \"c\" : -2147483649 }";
         func2("digits_is_long_test_case1", expect);
         // case2: BSON.setJSComplibility(true)
         BSON.setJSCompatibility(true);
@@ -147,12 +147,12 @@ public class BSONNumberLongTest {
     public void digits_is_long_test2() {
         // case1: BSON.setJSComplibility(true)
         BSON.setJSCompatibility(true);
-        String expect = "{ \"a\" : 0 , \"b\" : { \"$numberLong\" : \"9223372036854775807\"} , \"c\" : { \"$numberLong\" : \"-9223372036854775808\"}}";
+        String expect = "{ \"a\" : 0 , \"b\" : { \"$numberLong\" : \"9223372036854775807\" } , \"c\" : { \"$numberLong\" : \"-9223372036854775808\" } }";
         func3("digits_is_long_test2_case2", expect);
 
         // case2: BSON.setJSComplibility(false), 使用默认值。
         BSON.setJSCompatibility(false);
-        String expect2 = "{ \"a\" : 0 , \"b\" : 9223372036854775807 , \"c\" : -9223372036854775808}";
+        String expect2 = "{ \"a\" : 0 , \"b\" : 9223372036854775807 , \"c\" : -9223372036854775808 }";
         func3("digits_is_long_test2_case1", expect2);
 
         // case3: BSON.setJSComplibility(true)。
@@ -168,7 +168,7 @@ public class BSONNumberLongTest {
     public void digits_is_long_test3() {
         // case1: BSON.setJSComplibility(true)
         Assert.assertTrue(BSON.getJSCompatibility());
-        String expect = "{ \"a\" : 0 , \"b\" : { \"$numberLong\" : \"9223372036854775807\"} , \"c\" : { \"$numberLong\" : \"-9223372036854775808\"}}";
+        String expect = "{ \"a\" : 0 , \"b\" : { \"$numberLong\" : \"9223372036854775807\" } , \"c\" : { \"$numberLong\" : \"-9223372036854775808\" } }";
         func3("digits_is_long_test3_case1", expect);
     }
 

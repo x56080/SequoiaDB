@@ -783,7 +783,7 @@ public class SequoiadbDatasourceImpl {
                     if (connItem != null) {
                         try {
                             sdb = _newConnByNormalAddr();
-                        } catch (Exception e) {
+                        } catch (BaseException e) {
                             _connItemMgr.releaseItem(connItem);
                             connItem = null;
                             throw e;
@@ -1188,41 +1188,46 @@ public class SequoiadbDatasourceImpl {
     private Sequoiadb _newConnByNormalAddr() throws BaseException {
         Sequoiadb sdb = null;
         String addr = null;
-        while (true) {
-            if (_isDatasourceOn) {
-                addr = _strategy.getAddress();
-            } else {
-                synchronized (_normalAddrs) {
-                    int size = _normalAddrs.size();
-                    if (size > 0)
-                        addr = _normalAddrs.get(_rand.nextInt(size));
-                }
-            }
-            if (addr != null) {
-                try {
-                    sdb = new Sequoiadb(addr, _username, _password, _nwOpt);
-                    break;
-                } catch (BaseException e) {
-                    String errType = e.getErrorType();
-                    if (errType.equals("SDB_NETWORK") || errType.equals("SDB_INVALIDARG") ||
-                            errType.equals("SDB_NET_CANNOT_CONNECT")) {
-                        _handleErrorAddr(addr);
-                        continue;
-                    } else {
-                        throw e;
+        try {
+            while (true) {
+                if (_isDatasourceOn) {
+                    addr = _strategy.getAddress();
+                } else {
+                    synchronized (_normalAddrs) {
+                        int size = _normalAddrs.size();
+                        if (size > 0)
+                            addr = _normalAddrs.get(_rand.nextInt(size));
                     }
                 }
-            } else {
-                sdb = _newConnByAbnormalAddr();
-                break;
+                if (addr != null) {
+                    try {
+                        sdb = new Sequoiadb(addr, _username, _password, _nwOpt);
+                        break;
+                    } catch (BaseException e) {
+                        String errType = e.getErrorType();
+                        if (errType.equals("SDB_NETWORK") || errType.equals("SDB_INVALIDARG") ||
+                                errType.equals("SDB_NET_CANNOT_CONNECT")) {
+                            _handleErrorAddr(addr);
+                            continue;
+                        } else {
+                            throw e;
+                        }
+                    }
+                } else {
+                    sdb = _newConnByAbnormalAddr();
+                    break;
+                }
             }
-        }
 
-        // sanity check, should never hit here
-        if (sdb == null) {
-            throw new BaseException(SDBError.SDB_SYS, "failed to create connection directly");
+            // sanity check, should never hit here
+            if (sdb == null) {
+                throw new BaseException(SDBError.SDB_SYS, "failed to create connection directly");
+            }
+        } catch (BaseException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BaseException(SDBError.SDB_SYS, e);
         }
-
         return sdb;
     }
 
