@@ -93,7 +93,7 @@ TEST_F( masterSlaveTest12690, masterSlave12690 )
    // get master node and check
    sdbNode master ;
    rc = rg.getMaster( master ) ;
-   while( SDB_CLS_NODE_NOT_EXIST == rc )
+   while( SDB_RTN_NO_PRIMARY_FOUND == rc )
    {
       ossSleep( 1000 ) ;
       rc = rg.getMaster( master ) ;
