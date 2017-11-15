@@ -24,6 +24,7 @@ protected:
    const CHAR *pCsName ;
    const CHAR *pClName ;
    string clFullNameStr ;
+   sdbCollection cl ;
 
    void SetUp() 
    {
@@ -47,7 +48,6 @@ protected:
 
       // create cl
       pClName = "turnOnCache7803" ;
-      sdbCollection cl ;
       rc = cs.createCollection( pClName, cl ) ;
       ASSERT_EQ( SDB_OK, rc ) << "fail to create cl" ;
 
@@ -70,31 +70,20 @@ protected:
       }
       db.disconnect() ;
    }
-
-   INT32 getElapesdTimeOfGetCl( clock_t &elapsedUsec )
-   {
-      struct timeval begin, end ;
-      sdbCollection cl ;
-      INT32 rc ;
-
-      gettimeofday( &begin, NULL ) ;
-      rc = db.getCollection( clFullNameStr.c_str(), cl ) ;
-      gettimeofday( &end, NULL ) ;
-      
-      elapsedUsec = ( end.tv_sec - begin.tv_sec ) * 1000000  + end.tv_usec - begin.tv_usec ;
-
-      return rc ;
-   }
 } ;
 
 TEST_F( turnOnCache7803, getCollection )
 {
    INT32 rc = SDB_OK ;
-   clock_t outCacheTime, inCacheTime ;
+   time_t aliveTime1, aliveTime2 ;
 
-   rc = getElapesdTimeOfGetCl( outCacheTime ) ;
+   rc = db.getCollection( clFullNameStr.c_str(), cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   rc = getElapesdTimeOfGetCl( inCacheTime ) ;
+   aliveTime1 = db.getLastAliveTime() ;
+
+   ossSleep( 1000 ) ;
+   rc = db.getCollection( clFullNameStr.c_str(), cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   ASSERT_LT( inCacheTime, outCacheTime );
+   aliveTime2 = db.getLastAliveTime() ;
+   ASSERT_EQ( aliveTime1, aliveTime2 ) << "cache invalid" ;
 }

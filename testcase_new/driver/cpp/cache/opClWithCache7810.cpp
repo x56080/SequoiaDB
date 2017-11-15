@@ -33,9 +33,10 @@ protected:
    {
       INT32 rc = SDB_OK ;
 
-      // turn off cache
+      // turn on cache
       sdbClientConf conf ;
-      conf.enableCacheStrategy = FALSE ;
+      conf.enableCacheStrategy = TRUE ;
+      conf.cacheTimeInterval = CACHE_TIME_INT / 1000 ;
       rc = initClient( &conf );
       ASSERT_EQ( SDB_OK, rc ) << "fail to initClient" ;
 
@@ -48,12 +49,6 @@ protected:
       ASSERT_EQ( SDB_OK, rc ) << "fail to create cs" ;
       rc = cs.createCollection( pClName, cl ) ;
       ASSERT_EQ( SDB_OK, rc ) << "fail to create cl" ;
-
-      // turn on cache
-      conf.enableCacheStrategy = TRUE ;
-      conf.cacheTimeInterval = CACHE_TIME_INT / 1000 ;
-      rc = initClient( &conf );
-      ASSERT_EQ( SDB_OK, rc ) << "fail to initClient" ;
    }
 
    void TearDown() 
@@ -66,37 +61,28 @@ protected:
       }
       db.disconnect() ;
    }
-
-   INT32 getElapesdTimeOfGetCl( clock_t &elapsedUsec )
-   {
-      struct timeval begin, end ;
-      sdbCollection cl ;
-      INT32 rc ;
-
-      gettimeofday( &begin, NULL ) ;
-      rc = cs.getCollection( pClName, cl ) ;
-      gettimeofday( &end, NULL ) ;
-      
-      elapsedUsec = ( end.tv_sec - begin.tv_sec ) * 1000000  + end.tv_usec - begin.tv_usec ;
-
-      return rc ;
-   }
 } ;
 
 TEST_F( turnOnCache7810, testUpdateTimeStamp )
 {
    INT32 rc = SDB_OK ;
-   clock_t outCacheTime, inCacheTime ;
-   rc = getElapesdTimeOfGetCl( outCacheTime ) ;
+   time_t aliveTime1, aliveTime2 ;
+   
+   // put cl to cache
+   rc = cs.getCollection( pClName, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
+   // update timestamp
    ossSleep( CACHE_TIME_INT / 2 ) ;
    BSONObj doc = BSON( "a" << 1 ) ;
    rc = cl.insert( doc ) ;
+   aliveTime1 = db.getLastAliveTime() ;
    ASSERT_EQ( SDB_OK, rc ) ;
    ossSleep( CACHE_TIME_INT / 2 ) ;
 
-   rc = getElapesdTimeOfGetCl( inCacheTime ) ;
+   // get cl from cache
+   rc = cs.getCollection( pClName, cl ) ;
+   aliveTime2 = db.getLastAliveTime() ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   ASSERT_LT( inCacheTime, outCacheTime ) ;
+   ASSERT_EQ( aliveTime1, aliveTime2 ) ;
 }

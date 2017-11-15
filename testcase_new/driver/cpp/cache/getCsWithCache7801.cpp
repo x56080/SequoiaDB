@@ -20,12 +20,13 @@ using namespace sdbclient ;
 using namespace bson ;
 using namespace std ;
 
-#define CACHE_TIME_INT 1000 /*millisecond*/
+#define CACHE_TIME_INT 2000 /*millisecond*/
 
 class turnOnCache7801 : public testBase 
 {
 protected:
    const CHAR *pCsName ;
+   sdbCollectionSpace cs ;
 
    void SetUp() 
    {
@@ -39,7 +40,6 @@ protected:
 
       // connect and create cs
       pCsName = "turnOnCache7801" ;
-      sdbCollectionSpace cs ;
       rc = db.connect( ARGS->hostName(), ARGS->svcName(), ARGS->user(), ARGS->passwd() );
       ASSERT_EQ( SDB_OK, rc ) << "fail to connect db" ;
       rc = db.createCollectionSpace( pCsName, SDB_PAGESIZE_4K, cs ) ;
@@ -63,37 +63,29 @@ protected:
       db.disconnect() ;
    }
 
-   INT32 getElapesdTimeOfGetCs( clock_t &elapsedUsec )
-   {
-      struct timeval begin, end ;
-      sdbCollectionSpace cs ;
-      INT32 rc ;
-
-      gettimeofday( &begin, NULL ) ;
-      rc = db.getCollectionSpace( pCsName, cs ) ;
-      gettimeofday( &end, NULL ) ;
-      
-      elapsedUsec = ( end.tv_sec - begin.tv_sec ) * 1000000  + end.tv_usec - begin.tv_usec ;
-
-      return rc ;
-   }
-      
 } ;
 
 TEST_F( turnOnCache7801, getCollectionSpace )
 {
    INT32 rc = SDB_OK ;
-   clock_t outCacheTime, inCacheTime ;
-   rc = getElapesdTimeOfGetCs( outCacheTime ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   rc = getElapesdTimeOfGetCs( inCacheTime ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   ASSERT_LT( inCacheTime, outCacheTime );
-   
-   ossSleep( CACHE_TIME_INT ) ; // sleep utill cl not in cache 
-   clock_t outCacheTime2 ;
-   rc = getElapesdTimeOfGetCs( outCacheTime2 ) ; // seqDB-7804
-   ASSERT_EQ( SDB_OK, rc ) ;
+   time_t aliveTime1, aliveTime2, aliveTime3 ;
 
-   ASSERT_LT( inCacheTime, outCacheTime2 );
+   // put cl to cache
+   rc = db.getCollectionSpace( pCsName, cs ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   aliveTime1 = db.getLastAliveTime() ;
+
+   // get cl from cache
+   ossSleep( CACHE_TIME_INT / 2 ) ;
+   rc = db.getCollectionSpace( pCsName, cs ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   aliveTime2 = db.getLastAliveTime() ;
+   ASSERT_EQ( aliveTime1, aliveTime2 ) << "cache no expected cs" ;
+   
+   // get cs when timeout
+   ossSleep( CACHE_TIME_INT ) ; // sleep utill cl not in cache 
+   rc = db.getCollectionSpace( pCsName, cs ) ; // seqDB-7804
+   ASSERT_EQ( SDB_OK, rc ) ;
+   aliveTime3 = db.getLastAliveTime() ;
+   ASSERT_NE( aliveTime3, aliveTime2 ) << "cl cache should be timeout" ;
 }
