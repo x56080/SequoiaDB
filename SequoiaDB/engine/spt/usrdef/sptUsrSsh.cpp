@@ -186,7 +186,7 @@ JS_MAPPING_END()
       string local ;
       string dst ;
       INT32 mode = 0755 ;
-      
+
       string errMsg ;
 
       rc = arg.getString( 0, local ) ;
@@ -397,7 +397,7 @@ JS_MAPPING_END()
    {
       stringstream ss ;
       ss << "Ssh functions:" << endl
-         << "var ssh = new Ssh( hostname, [user], [password], [port] )" << endl
+         << "var ssh = new Ssh( hostname, user, password, [port] )" << endl
          << "   getLastRet()       --- get the last cmd remote exec return number" << endl
          << "   getLastOut()       --- get the last cmd remote exec out string" << endl
          << "   close()" << endl
