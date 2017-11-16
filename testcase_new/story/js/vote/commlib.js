@@ -70,7 +70,7 @@ function getPrimNode( db, groupName )
    }
    catch( e )
    {
-      if( -79 != e  && -15 != e && -155 != e)
+      if( -71 != e && -79 != e  && -15 != e && -155 != e)
       {
          println( "Failed to get primary node, rc = " + e ) ;
          throw e ;
