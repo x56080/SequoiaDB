@@ -224,51 +224,31 @@
         </actionDefinition>
         <actionDefinition name="deleteEnv">
             <actionList>
-                <!--delete export line and its empty line-->
+                <!--delete export line-->
                 <setInstallerVariableFromScriptOutput>
                     <exec>grep</exec>
                     <execArgs>-n "^export PATH=\"\$PATH:${installdir}\/bin\"$" ${envFile} | awk -F ":" '{print $1}'</execArgs>
                     <name>line_num1</name>
                 </setInstallerVariableFromScriptOutput>
-                <if>
-                    <conditionRuleList>
+                <runProgram>
+                    <program>sed</program>
+                    <programArguments>-i '${line_num1}d' ${envFile}</programArguments>
+                    <ruleList>
                         <compareValues value1="${line_num1}" logic="greater" value2="0"/>
-                    </conditionRuleList>
-                    <actionList>
-                        <runProgram>
-                            <program>sed</program>
-                            <programArguments>-i '${line_num1}d' ${envFile}</programArguments>
-                        </runProgram>
-                        <mathExpression text="${line_num1}-1" variable="line_num1"/>
-                        <runProgram>
-                            <program>test</program>
-                            <programArguments>-z `sed -n '${line_num1}p' ${envFile}` &amp;&amp; sed -i '${line_num1}d' ${envFile}</programArguments>
-                        </runProgram>
-                    </actionList>
-                </if>
-
+                    </ruleList>
+                </runProgram>
                 <setInstallerVariableFromScriptOutput>
                     <exec>grep</exec>
                     <execArgs>-n "^export LD_LIBRARY_PATH=\"\$LD_LIBRARY_PATH:${installdir}\/lib\"$" ${envFile} | awk -F ":" '{print $1}'</execArgs>
                     <name>line_num2</name>
                 </setInstallerVariableFromScriptOutput>
-                <if>
-                    <conditionRuleList>
+                <runProgram>
+                    <program>sed</program>
+                    <programArguments>-i '${line_num2}d' ${envFile}</programArguments>
+                    <ruleList>
                         <compareValues value1="${line_num2}" logic="greater" value2="0"/>
-                    </conditionRuleList>
-                    <actionList>
-                        <runProgram>
-                            <program>sed</program>
-                            <programArguments>-i '${line_num2}d' ${envFile}</programArguments>
-                        </runProgram>
-                        <mathExpression text="${line_num2}-1" variable="line_num2"/>
-                        <runProgram>
-                            <program>test</program>
-                            <programArguments>-z `sed -n '${line_num2}p' ${envFile}` &amp;&amp; sed -i '${line_num2}d' ${envFile}</programArguments>
-                        </runProgram>
-                    </actionList>
-                </if>
-
+                    </ruleList>
+                </runProgram>
                 <!--delete empty file-->
                 <runProgram>
                     <program>test</program>
@@ -279,7 +259,41 @@
                         <deleteFile path="${envFile}"/>
                     </onErrorActionList>
                 </runProgram>
-
+            </actionList>
+            <parameterList>
+                <stringParameter name="envFile" value="" default=""/>
+            </parameterList>
+        </actionDefinition>
+        <actionDefinition name="addEnv">
+            <actionList>
+                <runProgram>
+                    <program>grep</program>
+                    <programArguments>-q "^export PATH=\"\$PATH:${installdir}\/bin\"$" ${envFile}</programArguments> 
+                    <abortOnError>0</abortOnError>
+                    <showMessageOnError>0</showMessageOnError>
+                </runProgram>
+                <runProgram>
+                    <abortOnError>0</abortOnError>
+                    <program>echo</program>
+                    <programArguments>"export PATH=\"\$PATH:${installdir}/bin\"" &gt;&gt; ${envFile}</programArguments>
+                    <ruleList>
+                        <compareText logic="does_not_equal" text="${program_exit_code}" value="0"/>
+                    </ruleList>
+                </runProgram>
+                <runProgram>
+                    <program>grep</program>
+                    <programArguments>-q "^export LD_LIBRARY_PATH=\"\$LD_LIBRARY_PATH:${installdir}\/lib\"$" ${envFile}</programArguments> 
+                    <abortOnError>0</abortOnError>
+                    <showMessageOnError>0</showMessageOnError>
+                </runProgram>
+                <runProgram>
+                    <abortOnError>0</abortOnError>
+                    <program>echo</program>
+                    <programArguments>"export LD_LIBRARY_PATH=\"\$LD_LIBRARY_PATH:${installdir}/lib\"" &gt;&gt; ${envFile}</programArguments>
+                    <ruleList>
+                        <compareText logic="does_not_equal" text="${program_exit_code}" value="0"/>
+                    </ruleList>
+                </runProgram>
             </actionList>
             <parameterList>
                 <stringParameter name="envFile" value="" default=""/>
