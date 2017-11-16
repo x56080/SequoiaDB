@@ -235,27 +235,47 @@
             </ruleList>
         </propertiesFileSet>
 
-        <!--set environment variable-->
-        <addEnvironmentVariable>
-            <name>PATH</name>
-            <scope>user</scope>
-            <username>${username}</username>
-            <value>$PATH:${installdir}/bin</value>
-        </addEnvironmentVariable>
-        <addEnvironmentVariable>
-            <name>LD_LIBRARY_PATH</name>
-            <scope>user</scope>
-            <username>${username}</username>
-            <value>$LD_LIBRARY_PATH:${installdir}/lib</value>
-        </addEnvironmentVariable> <!--create .bashrc if not exists, but its group is root-->
+        <!-- 
+            set environment variable, rule:
+            add env to ~/.bashrc       whether it exists or not
+            add env to ~/.bash_profile if it exists
+            add env to ~/.profile      if it exists
+            add env to ~/.bash_profile if neither .bash_profile nor profile exists
+        -->
+        <touchFile path="~${username}/.bashrc"/>
         <runProgram>
             <program>chown</program><!--<changeOwnerAndGroup> isnt effective for hidden files-->
-            <programArguments>-R ${username}:${groupname} ~${username}</programArguments>
+            <programArguments>-R ${username}:${groupname} ~${username}/.bashrc</programArguments>
+            <ruleList>
+                <fileExists path="~${username}/.bashrc"/>
+            </ruleList>
         </runProgram>
-        <changePermissions>
-            <files>~${username}</files>
-            <permissions>0755</permissions>
-        </changePermissions>
+        <touchFile path="~${username}/.bash_profile">
+            <ruleEvaluationLogic>and</ruleEvaluationLogic>
+            <ruleList>
+                <fileExists path="~${username}/.bash_profile" negate="1"/>
+                <fileExists path="~${username}/.profile" negate="1"/>
+            </ruleList>
+        </touchFile>
+        <runProgram>
+            <program>chown</program><!--<changeOwnerAndGroup> isnt effective for hidden files-->
+            <programArguments>-R ${username}:${groupname} ~${username}/.bash_profile</programArguments>
+            <ruleList>
+                <fileExists path="~${username}/.bash_profile"/>
+            </ruleList>
+        </runProgram>
+        
+        <addEnv envFile="~${username}/.bashrc"/>
+        <addEnv envFile="~${username}/.bash_profile">
+            <ruleList>
+                <fileExists path="~${username}/.bash_profile"/>
+            </ruleList>
+        </addEnv>
+        <addEnv envFile="~${username}/.profile">
+            <ruleList>
+                <fileExists path="~${username}/.profile"/>
+            </ruleList>
+        </addEnv>
 
         <!--you should place 'start service' and 'create om' in last of <postInstallationActionList>-->
         <!--because if this step failed, <postInstallationActionList> will abort and next steps will not be excuted-->
@@ -278,6 +298,8 @@
              </ruleList>
         </setInstallerVariable>
         <startServiceFunction/>
+
+        <!--start om-->
         <setInstallerVariable name="om_port"    value="11780"/>
         <setInstallerVariable name="om_dbpath"  value="${installdir}/database/sms/${om_port}"/>
         <setInstallerVariable name="http_port"  value="8000"/>
