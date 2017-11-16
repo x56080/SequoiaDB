@@ -48,6 +48,7 @@ SequoiaDB shell 运行如下：
 * 作为选择符使用，返回字段“a”值的类型：
 
   ```lang-javascript
+  > db.foo.bar.find( {}, { "a": { "$type": 1 } } )
   {
       "_id": {
         "$oid": "5832623892a95ad71f000000"
