@@ -48,7 +48,7 @@
 
 namespace engine
 {
-   #define DPS_NO_WRITE_TIME                 ( 2000 )   // 2 seconds
+   #define DPS_NO_WRITE_TIME                 ( 5000 )   // 5 seconds
 
    /*
       _dpsLogWrapper implement
