@@ -82,12 +82,12 @@
   string s("{name:\"sam\"}") ;
   fromjson ( s, obj ) ;
   或者
-  const char *r ="{ \\
-                       firstName:\"Sam\", \\
-                       lastName:\"Smith\",age:25,id:\"count\", \\
-                       address:{streetAddress: \"25 3ndStreet\", \\
-                       city:\"NewYork\",state:\"NY\",postalCode:\"10021\"}, \\
-                       phoneNumber:[{\"type\": \"home\",number:\"212555-1234\"}] \\
+  const char *r ="{ \
+                       firstName:\"Sam\", \
+                       lastName:\"Smith\",age:25,id:\"count\", \
+                       address:{streetAddress: \"25 3ndStreet\", \
+                       city:\"NewYork\",state:\"NY\",postalCode:\"10021\"}, \
+                       phoneNumber:[{\"type\": \"home\",number:\"212555-1234\"}] \
                     }" ;
   fromjson ( r, obj ) ;
   ```
