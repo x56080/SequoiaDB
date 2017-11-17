@@ -872,6 +872,7 @@ namespace engine
             rc = SDB_OOM ;
             goto error ;
          }
+         ossMemset( extendBuf, 0, bufSize ) ;
 
          do
          {
