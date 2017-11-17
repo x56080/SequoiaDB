@@ -1,7 +1,9 @@
 package com.sequoiadb.metadataconsistency.cluster;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Random;
 
 import org.testng.annotations.Test;
@@ -10,6 +12,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.Assert;
 import org.testng.SkipException;
 
+import com.sequoiadb.base.Node;
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
@@ -28,6 +31,7 @@ public class Node10234 extends SdbTestBase {
 	private Random random = new Random();
 	private static Sequoiadb sdb = null;
 	private String rgName = "rg10234";
+	private List<String> nodes = new ArrayList<>();
 	private int msec = 100;
 	
 	@BeforeClass
@@ -46,6 +50,8 @@ public class Node10234 extends SdbTestBase {
 			ReplicaGroup rg = sdb.createReplicaGroup(rgName);
 			createNode();
 			rg.start();
+			
+			nodes = CommLib.getNodeAddress(sdb, rgName);
 		}catch(BaseException e){
 			sdb.disconnect();
 			Assert.fail(e.getMessage());
@@ -55,6 +61,7 @@ public class Node10234 extends SdbTestBase {
 	@AfterClass
 	public void tearDown(){
 		try{
+			this.attachNodeForCleanEnv();
 			CommLib.clearGroup(sdb, rgName);
 		}catch(BaseException e){
 			Assert.fail(e.getMessage());
@@ -92,8 +99,9 @@ public class Node10234 extends SdbTestBase {
 				db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 				
 				ReplicaGroup rgDB = db.getReplicaGroup(rgName);
-				String hostName = rgDB.getSlave().getHostName();
-				int svcName = rgDB.getSlave().getPort();
+				Node slaveNode = rgDB.getSlave();
+				String hostName = slaveNode.getHostName();
+				int svcName = slaveNode.getPort();
 				
 				rgDB.detachNode(hostName, svcName, null);
 			}catch(BaseException e){
@@ -117,12 +125,14 @@ public class Node10234 extends SdbTestBase {
 				db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 				
 				ReplicaGroup rgDB = db.getReplicaGroup(rgName);
-				String hostName = rgDB.getSlave().getHostName();
-				int svcName = rgDB.getSlave().getPort();
+				Node slaveNode = rgDB.getSlave();
+				String hostName = slaveNode.getHostName();
+				int svcName = slaveNode.getPort();
+				
 				rgDB.attachNode(hostName, svcName, null);
 			}catch(BaseException e){
 				int eCode = e.getErrorCode();
-				if( eCode != -157 && eCode != -155){ //-157:Invalid node configuration (node has been to attach)
+				if( eCode != -145 ){ //-145:Node already exists
 					throw e;
 				}
 			}finally{
@@ -142,6 +152,23 @@ public class Node10234 extends SdbTestBase {
 			}
 		}catch(BaseException e){
 			throw e;
+		}
+	}
+	
+	private void attachNodeForCleanEnv() {
+		ReplicaGroup rg = sdb.getReplicaGroup(rgName);
+		for (String nodeInfo : nodes) {
+			String[] info = nodeInfo.split(":");
+			String hostName = info[0];
+			int port = Integer.parseInt(info[1]);
+			try {
+				rg.attachNode(hostName, port, null);
+			} catch (BaseException e) {
+				if (-145 != e.getErrorCode()) {
+					e.printStackTrace();
+					Assert.fail(e.getMessage());
+				}
+			}
 		}
 	}
 	
