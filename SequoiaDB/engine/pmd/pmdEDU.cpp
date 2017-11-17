@@ -576,6 +576,7 @@ namespace engine
             _alignedMem = NULL ; 
          }
 
+         size = ossRoundUpToMultipleX( size, alignment ) ;
          _alignedMem = ossAlignedAlloc( alignment, size ) ;
          if ( NULL != _alignedMem )
          {
