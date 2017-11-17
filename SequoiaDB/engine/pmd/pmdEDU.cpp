@@ -209,15 +209,7 @@ namespace engine
          _pErrorBuff = NULL ;
       }
 #if defined ( SDB_ENGINE )
-      DpsTransCBLockList::iterator iterLst = _transLockLst.begin();
-      while( iterLst != _transLockLst.end() )
-      {
-         if ( iterLst->second )
-         {
-            SDB_OSS_DEL iterLst->second ;
-         }
-         _transLockLst.erase( iterLst++ );
-      }
+      clearLockList() ;
       if ( _pTransNodeMap )
       {
          delete _pTransNodeMap;
@@ -1048,7 +1040,10 @@ namespace engine
       while ( iterLst != _transLockLst.end() )
       {
          // delete local lock-info
-         SDB_OSS_DEL iterLst->second;
+         if ( iterLst->second )
+         {
+            SDB_OSS_DEL iterLst->second;
+         }
          _transLockLst.erase( iterLst++ );
       }
    }
