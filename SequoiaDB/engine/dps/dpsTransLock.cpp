@@ -475,9 +475,7 @@ namespace engine
          {
             pLockBucket->release( eduCB, iterLst->first );
          }
-         // delete local lock-info
-         SDB_OSS_DEL iterLst->second;
-         pLockLst->erase( iterLst++ );
+         iterLst++ ;
       }
       eduCB->clearLockList() ;
       PD_TRACE_EXIT ( SDB_DPSTRANSLOCK_RELEASEALL );
