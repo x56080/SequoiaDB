@@ -1071,6 +1071,7 @@ namespace engine
       }
 
       pHeader = ( dmsStorageUnitHeader* )pBuff ;
+      pHeader->reset() ;
       /// Init
       ossStrncpy( pHeader->_eyeCatcher, DMS_LOBD_EYECATCHER,
                   DMS_LOBD_EYECATCHER_LEN ) ;

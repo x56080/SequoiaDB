@@ -134,10 +134,15 @@ namespace engine
 
       _dmsStorageUnitHeader()
       {
+         reset() ;
+      }
+
+      void reset()
+      {
          SDB_ASSERT( DMS_PAGE_SIZE_MAX == sizeof( _dmsStorageUnitHeader ),
                      "_dmsStorageUnitHeader size must be 64K" ) ;
-         _commitLsn = ~0 ;
          ossMemset( this, 0, DMS_PAGE_SIZE_MAX ) ;
+         _commitLsn = ~0 ;
       }
    } ;
    typedef _dmsStorageUnitHeader dmsStorageUnitHeader ;
