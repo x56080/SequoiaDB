@@ -481,7 +481,7 @@ namespace engine
                  "index: %u, nty que size: %u, index size: %u", curAgentNum(),
                  idleAgentNum(), _totalCount.fetch(), size(), idleUnitCount(),
                  index, _ntyQueue.size(), _dataBucket[ index ]->size() ) ;*/
-         INT32 rcTmp = startReplSyncJob( NULL, this, 60*OSS_ONE_SEC ) ;
+         INT32 rcTmp = startReplSyncJob( NULL, this, 120*OSS_ONE_SEC ) ;
          if ( SDB_OK == rcTmp )
          {
             incCurAgent() ;
