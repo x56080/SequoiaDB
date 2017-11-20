@@ -8,27 +8,6 @@ namespace SequoiaDB
     {
         private static readonly Logger logger = new Logger("Helper");
 
-        internal static void AddBytesToByteBuffer(ByteBuffer buffer, byte[] byteArray,
-                                                  int off, int len, int multipler) 
-        {
-            if (off + len > byteArray.Length) {
-                throw new BaseException((int)Errors.errors.SDB_SYS, "off + len is more then byteArray.length");
-            }
-            int newLength = (len % multipler == 0) ? len
-                    : (len + multipler - len % multipler);
-            int incLength = newLength - len;
-            // check
-            if (newLength > buffer.Remaining()) {
-                throw new BaseException((int)Errors.errors.SDB_SYS, String.Format(
-                        "buffer is too small, need {0} bytes, but remaining is {1}",
-                        newLength, buffer.Remaining()));
-            }
-            // put data
-            buffer.PushByteArray(byteArray, off, len);
-            // align ByteBuffer
-            AlignByteBuffer(buffer, incLength);
-        }
-
         internal static void AlignByteBuffer(ByteBuffer buffer, int inc)
         {
             if (inc > buffer.Remaining()) {

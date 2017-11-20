@@ -1337,11 +1337,8 @@ namespace DriverTest
         }
 
         [TestMethod()]
-        public void TempTest()
+        public void DuplicateKeyTest()
         {
-            DBCollection cl = sdb.GetCollecitonSpace("foo").GetCollection("bar");
-            cl.Truncate();
-
             BsonDocument obj = new BsonDocument();
             BsonDecimal d = new BsonDecimal("12345.678956", 10, 5);
             String value = d.Value;
@@ -1349,22 +1346,123 @@ namespace DriverTest
             int scale = d.Scale;
             BsonTimestamp ts = new BsonTimestamp(0,0);
             obj.Add("a", d);
-            //obj.Add("b", ts);
             Console.WriteLine("insert obj is: " + obj.ToString());
-            //long sec = (DateTime.Now.ToUniversalTime().Ticks - 621355968000000000)/10000000;
-            //obj.Add("date", DateTime.Now);
-            //obj.Add("ts", new BsonTimestamp((int)sec, 0));
 
-            cl.Insert(obj);
-            DBCursor cur = cl.Query();
+            BsonValue idObj = coll.Insert(obj);
+            Assert.IsNotNull(idObj);
+            try
+            {
+                coll.Insert(obj);
+                Assert.Fail();
+            }
+            catch (BaseException e)
+            {
+                Assert.AreEqual("SDB_IXM_DUP_KEY", e.ErrorType);
+            }
+            DBCursor cur = coll.Query();
             BsonDocument ret = cur.Next();
             Console.WriteLine("return ret is: " + ret.ToString());
+        }
 
-            // test api
-            //coll.Truncate();
-            // check
-            //recordNum = coll.GetCount(new BsonDocument());
-            //Assert.IsTrue(0 == recordNum);
+        [TestMethod()]
+        public void CRUDTest()
+        {
+            // insert
+            BsonDocument doc1 = new BsonDocument();
+            BsonDocument doc2 = new BsonDocument();
+            BsonDocument doc3 = new BsonDocument();
+            BsonDocument doc4 = new BsonDocument();
+            string filed1 = "id";
+            string filed2 = "name";
+            string filed3 = "address";
+
+            doc1.Add(filed1, 1).Add(filed2, "nameaaa").Add(filed3, "addressaaa");
+            doc2.Add(filed1, 2).Add(filed2, "namebbb").Add(filed3, "addressbbb");
+            doc3.Add(filed1, 3).Add(filed2, "nameccc").Add(filed3, "addressccc");
+            doc4.Add(filed1, 4).Add(filed2, "nameddd").Add(filed3, "addressddd");
+            List<BsonDocument> list = new List<BsonDocument>();
+            list.Add(doc1);
+            list.Add(doc2);
+            BsonValue idObj1 = coll.Insert(doc3);
+            BsonValue idObj2 = coll.Insert(doc4);
+            coll.BulkInsert(list, 0);
+            Assert.IsNotNull(idObj1);
+            Assert.IsNotNull(idObj2);
+            Assert.AreNotEqual(idObj1, idObj2);
+            coll.EnsureOID = true;
+            list.Add(doc3);
+            list.Add(doc4);
+            coll.BulkInsert(list, SDBConst.FLG_INSERT_CONTONDUP);
+
+            // query
+            DBCursor cursor = coll.Query();
+            int counter = 0;
+            BsonDocument doc;
+            while ((doc = cursor.Next()) != null)
+            {
+                counter++;
+            }
+            Assert.AreEqual(4, counter);
+
+            counter = 0;
+            cursor = coll.Query(null,null,new BsonDocument(filed1,1),null);
+            while ((doc = cursor.Next()) != null)
+            {
+                BsonDocument originalDoc = list[counter++];
+                Assert.AreEqual(originalDoc[filed1].AsInt32, doc[filed1].AsInt32);
+                Assert.AreEqual(originalDoc[filed2].AsString, doc[filed2].AsString);
+                Assert.AreEqual(originalDoc[filed3].AsString, doc[filed3].AsString);
+            }
+            Assert.AreEqual(4, counter);
+            counter = 0;
+            cursor = coll.Query(new BsonDocument(filed1,new BsonDocument("$gt",2)),
+                new BsonDocument(filed2, ""), 
+                new BsonDocument(filed1, -1),
+                new BsonDocument("",null));
+            doc = cursor.Next();
+            Assert.AreEqual(doc4[filed2].AsString, doc[filed2].AsString);
+            doc = cursor.Next();
+            Assert.AreEqual(doc3[filed2].AsString, doc[filed2].AsString);
+            doc = cursor.Next();
+            Assert.IsNull(doc);
+
+            // update
+            coll.Update(new BsonDocument(filed1, new BsonDocument("$gt", 2)),
+                new BsonDocument("$set", new BsonDocument(filed2, "abc")),
+                new BsonDocument("", null));
+            cursor = coll.Query(new BsonDocument(filed1, new BsonDocument("$gt", 2)),
+                new BsonDocument(filed2, ""),
+                new BsonDocument(filed1, -1),
+                new BsonDocument("", null));
+            doc = cursor.Next();
+            Assert.AreEqual("abc", doc[filed2].AsString);
+            doc = cursor.Next();
+            Assert.AreEqual("abc", doc[filed2].AsString);
+            doc = cursor.Next();
+            Assert.IsNull(doc);
+
+            // upsert
+            coll.Upsert(new BsonDocument(filed1, new BsonDocument("$gt", 2)),
+                new BsonDocument("$set", new BsonDocument(filed2, "cba")),
+                new BsonDocument("","$id"));
+            coll.Upsert(new BsonDocument(filed1, new BsonDocument("$gt", 20)),
+                new BsonDocument("$set", new BsonDocument(filed2, "cba")),
+                new BsonDocument("", "$id"));
+            long count = coll.GetCount(new BsonDocument(filed2, new BsonDocument("$gt", "")), 
+                new BsonDocument("", "$id"));
+            Assert.AreEqual(5, count);
+
+            // delete
+            coll.Delete(new BsonDocument(filed1, new BsonDocument("$lt", 3)));
+            cursor = coll.Query();
+            doc = cursor.Next();
+            Assert.AreEqual("cba", doc[filed2].AsString);
+            doc = cursor.Next();
+            Assert.AreEqual("cba", doc[filed2].AsString);
+            doc = cursor.Next();
+            Assert.AreEqual("cba", doc[filed2].AsString);
+            doc = cursor.Next();
+            Assert.IsNull(doc);
         }
 
     }
