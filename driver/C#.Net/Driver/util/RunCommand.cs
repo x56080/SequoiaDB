@@ -46,15 +46,15 @@ namespace SequoiaDB
             // check return msg header
             rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             // check whether error happen
-            int flag = rtnSDBMessage.Flags;
-            if (0 != flag)
+            int errorCode = rtnSDBMessage.Flags;
+            if (errorCode != 0)
             {
                 // TODO: need to throw error detail(return from engine) out
-                throw new BaseException(flags);
+                throw new BaseException(errorCode);
             }
             // try to build return cursor
             if (SequoiadbConstants.DEFAULT_CONTEXTID == rtnSDBMessage.ContextIDList[0] &&
-                 (null == rtnSDBMessage.ObjectList || 0 == rtnSDBMessage.ObjectList.Count))
+                 (rtnSDBMessage.ObjectList == null || rtnSDBMessage.ObjectList.Count == 0))
             {
                 return null;
             }

@@ -8,23 +8,6 @@ namespace SequoiaDB
     {
         private static readonly Logger logger = new Logger("Helper");
 
-        internal static void AddBytesToByteBuffer(ByteBuffer buffer, byte[] byteArray,
-                                                  int off, int len, int multipler) 
-        {
-            if (off + len > byteArray.Length) {
-                throw new BaseException((int)Errors.errors.SDB_SYS, "off + len is more then byteArray.length");
-            }
-            int newLength = (len % multipler == 0) ? len
-                    : (len + multipler - len % multipler);
-            int incLength = newLength - len;
-            if (newLength > buffer.Remaining()) {
-                throw new BaseException((int)Errors.errors.SDB_SYS, String.Format(
-                        "buffer is too small, need {0} bytes, but remaining is {1}",
-                        newLength, buffer.Remaining()));
-            }
-            buffer.PushByteArray(byteArray, off, len);
-            AlignByteBuffer(buffer, incLength);
-        }
         internal static void AlignByteBuffer(ByteBuffer buffer, int inc)
         {
             if (inc > buffer.Remaining()) {
@@ -35,6 +18,7 @@ namespace SequoiaDB
                 buffer.PushByte(0);
             }
         }
+
         internal static byte[] RoundToMultipleX(byte[] byteArray, int multipler)
         {
             if (multipler == 0)
@@ -63,9 +47,9 @@ namespace SequoiaDB
             MemoryStream stream = new MemoryStream();
             BinaryWriter output = new BinaryWriter(stream);
 
-          for (int i = 0; i < inByteArrayList.Count; i++) {
+            for (int i = 0; i < inByteArrayList.Count; i++) {
                 output.Write(inByteArrayList[i]);
-          }
+            }
             output.Close();
             stream.Close();
             return stream.ToArray();

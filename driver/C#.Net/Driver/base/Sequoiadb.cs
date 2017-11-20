@@ -725,17 +725,17 @@ namespace SequoiaDB
          *  \brief Get the snapshots of specified type
          *  \param snapType The specified type as below:
          *  
-         *      SDB_SNAP_CONTEXTS
-         *      SDB_SNAP_CONTEXTS_CURRENT
-         *      SDB_SNAP_SESSIONS
-         *      SDB_SNAP_SESSIONS_CURRENT
-         *      SDB_SNAP_COLLECTIONS
-         *      SDB_SNAP_COLLECTIONSPACES
-         *      SDB_SNAP_DATABASE
-         *      SDB_SNAP_SYSTEM
-         *      SDB_SNAP_CATALOG
-         *      SDB_SNAP_TRANSACTIONS
-         *      SDB_SNAP_TRANSACTIONS_CURRENT
+         *      SDBConst.SDB_SNAP_CONTEXTS
+         *      SDBConst.SDB_SNAP_CONTEXTS_CURRENT
+         *      SDBConst.SDB_SNAP_SESSIONS
+         *      SDBConst.SDB_SNAP_SESSIONS_CURRENT
+         *      SDBConst.SDB_SNAP_COLLECTIONS
+         *      SDBConst.SDB_SNAP_COLLECTIONSPACES
+         *      SDBConst.SDB_SNAP_DATABASE
+         *      SDBConst.SDB_SNAP_SYSTEM
+         *      SDBConst.SDB_SNAP_CATALOG
+         *      SDBConst.SDB_SNAP_TRANSACTIONS
+         *      SDBConst.SDB_SNAP_TRANSACTIONS_CURRENT
          *      
          *  \param matcher The matching condition or null
          *  \param selector The selective rule or null
@@ -824,17 +824,17 @@ namespace SequoiaDB
          *  \brief Get the informations of specified type
          *  \param listType The specified type as below:
          *  
-         *      SDB_LIST_CONTEXTS
-         *      SDB_LIST_CONTEXTS_CURRENT
-         *      SDB_LIST_SESSIONS
-         *      SDB_LIST_SESSIONS_CURRENT
-         *      SDB_LIST_COLLECTIONS
-         *      SDB_LIST_COLLECTIONSPACES
-         *      SDB_LIST_STORAGEUNITS
-         *      SDB_LIST_GROUPS
-         *      SDB_LIST_STOREPROCEDURES
-         *      SDB_LIST_DOMAINS
-         *      SDB_LIST_TASKS
+         *      SDBConst.SDB_LIST_CONTEXTS
+         *      SDBConst.SDB_LIST_CONTEXTS_CURRENT
+         *      SDBConst.SDB_LIST_SESSIONS
+         *      SDBConst.SDB_LIST_SESSIONS_CURRENT
+         *      SDBConst.SDB_LIST_COLLECTIONS
+         *      SDBConst.SDB_LIST_COLLECTIONSPACES
+         *      SDBConst.SDB_LIST_STORAGEUNITS
+         *      SDBConst.SDB_LIST_GROUPS
+         *      SDBConst.SDB_LIST_STOREPROCEDURES
+         *      SDBConst.SDB_LIST_DOMAINS
+         *      SDBConst.SDB_LIST_TASKS
          *      
          *  \return A DBCursor of all the fitted objects or null
          *  \exception SequoiaDB.BaseException
@@ -851,17 +851,17 @@ namespace SequoiaDB
          *  \brief Get the informations of specified type
          *  \param listType The specified type as below:
          *  
-         *      SDB_LIST_CONTEXTS
-         *      SDB_LIST_CONTEXTS_CURRENT
-         *      SDB_LIST_SESSIONS
-         *      SDB_LIST_SESSIONS_CURRENT
-         *      SDB_LIST_COLLECTIONS
-         *      SDB_LIST_COLLECTIONSPACES
-         *      SDB_LIST_STORAGEUNITS
-         *      SDB_LIST_GROUPS
-         *      SDB_LIST_STOREPROCEDURES
-         *      SDB_LIST_DOMAINS
-         *      SDB_LIST_TASKS
+         *      SDBConst.SDB_LIST_CONTEXTS
+         *      SDBConst.SDB_LIST_CONTEXTS_CURRENT
+         *      SDBConst.SDB_LIST_SESSIONS
+         *      SDBConst.SDB_LIST_SESSIONS_CURRENT
+         *      SDBConst.SDB_LIST_COLLECTIONS
+         *      SDBConst.SDB_LIST_COLLECTIONSPACES
+         *      SDBConst.SDB_LIST_STORAGEUNITS
+         *      SDBConst.SDB_LIST_GROUPS
+         *      SDBConst.SDB_LIST_STOREPROCEDURES
+         *      SDBConst.SDB_LIST_DOMAINS
+         *      SDBConst.SDB_LIST_TASKS
          *      
          *  \param matcher The matching condition or null
          *  \param selector The selective rule or null
@@ -1105,7 +1105,11 @@ namespace SequoiaDB
          *  \param matcher The matching rule, return all the documents if null
          *  \param selector The selective rule, return the whole document if null
          *  \param orderBy The ordered rule, never sort if null
-         *  \param hint The hint, automatically match the optimal hint if null
+         *  \param hint 
+         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+         *            using index "ageIndex" to scan data(index scan); 
+         *            {"":null} means table scan. when hint is null, 
+         *            database automatically match the optimal index to scan data.
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
          */
@@ -1381,11 +1385,16 @@ namespace SequoiaDB
         }
 
         /** \fn DBCursor ListDomains(BsonDocument matcher, BsonDocument selector,
-         *                           BsonDocument orderBy)
+         *                           BsonDocument orderBy, BsonDocument hint)
          *  \brief List domains.
          *  \param matcher The matching rule, return all the documents if null
          *  \param selector The selective rule, return the whole document if null
          *  \param orderBy The ordered rule, never sort if null
+         *  \param hint 
+         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+         *            using index "ageIndex" to scan data(index scan); 
+         *            {"":null} means table scan. when hint is null, 
+         *            database automatically match the optimal index to scan data.
          *  \return the cursor of the result.
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception

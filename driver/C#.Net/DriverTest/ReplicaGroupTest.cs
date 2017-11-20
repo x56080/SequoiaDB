@@ -86,7 +86,7 @@ namespace DriverTest
             {
                 return;
             }
-            groupName = "db2";
+            groupName = "SYSCatalogGroup";
             group = sdb.GetReplicaGroup(groupName);
             SequoiaDB.Node master = group.GetMaster();
             SequoiaDB.Node slave = group.GetSlave();

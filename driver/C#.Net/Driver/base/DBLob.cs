@@ -767,7 +767,7 @@ namespace SequoiaDB
             }
 
             // MsgHeader
-            SDBMessageHelper.AddLobMsgHeader(totalBuff, totalLen, 
+            SDBMessageHelper.AddMsgHeader(totalBuff, totalLen, 
                 (int)Operation.MSG_BS_LOB_OPEN_REQ, SequoiadbConstants.ZERO_NODEID, 0);
 
             // MsgOpLob
@@ -776,7 +776,7 @@ namespace SequoiaDB
                 SequoiadbConstants.DEFAULT_CONTEXTID,openLobBytes.Length);
 
             // meta
-            Helper.AddBytesToByteBuffer(totalBuff, openLobBytes, 0, openLobBytes.Length, 4);
+            SDBMessageHelper.AddBytesToByteBuffer(totalBuff, openLobBytes, 0, openLobBytes.Length, 4);
 
             return totalBuff;
         }
@@ -812,7 +812,7 @@ namespace SequoiaDB
             buff.IsBigEndian = _isBigEndian;
 
             // MsgHeader
-            SDBMessageHelper.AddLobMsgHeader(buff, totalLen,
+            SDBMessageHelper.AddMsgHeader(buff, totalLen,
                     (int)Operation.MSG_BS_LOB_CLOSE_REQ,
                     SequoiadbConstants.ZERO_NODEID, 0);
 
@@ -868,7 +868,7 @@ namespace SequoiaDB
             buff.IsBigEndian = _isBigEndian;
 
             // add MsgHeader
-            SDBMessageHelper.AddLobMsgHeader(buff, totalLen,
+            SDBMessageHelper.AddMsgHeader(buff, totalLen,
                 (int)Operation.MSG_BS_LOB_READ_REQ,
                 SequoiadbConstants.ZERO_NODEID, 0);
 
@@ -931,7 +931,7 @@ namespace SequoiaDB
             totalBuf.IsBigEndian = _isBigEndian;
             
             // MsgHeader
-            SDBMessageHelper.AddLobMsgHeader(totalBuf, totalLen,
+            SDBMessageHelper.AddMsgHeader(totalBuf, totalLen,
                     (int)Operation.MSG_BS_LOB_WRITE_REQ,
                     SequoiadbConstants.ZERO_NODEID, 0);
 
@@ -945,7 +945,7 @@ namespace SequoiaDB
                     SDB_LOB_DEFAULT_OFFSET);
 
             // lob data
-            Helper.AddBytesToByteBuffer(totalBuf, input, off, len, 4);
+            SDBMessageHelper.AddBytesToByteBuffer(totalBuf, input, off, len, 4);
 
             return totalBuf;
         }

@@ -6,7 +6,7 @@ namespace SequoiaDB
     internal class SDBMessage
     {
         public int RequestLength { get; set; }
-        public  ulong RequestID { get; set; }
+        public ulong RequestID { get; set; }
         public Operation OperationCode { get; set; }
         public int Version { get; set; }
         public short W { get; set; }
