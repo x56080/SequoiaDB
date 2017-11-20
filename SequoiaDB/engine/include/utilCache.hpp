@@ -750,7 +750,7 @@ namespace engine
    typedef _utilCacheMerge utilCacheMerge ;
 
    #define UTIL_CACHEUNIT_BUCKET_SZ                ( 2048 )
-   #define UTIL_CACHEUNIT_PAGE_TIMEOUT             ( 1000 ) /// ms
+   #define UTIL_CACHEUNIT_PAGE_TIMEOUT             ( 2000 ) /// ms
    #define UTIL_CACHEUNIT_DIRTY_TIMEOUT            ( 3000 ) /// ms
    #define UTIL_CACHEUNIT_BG_DIRTY_RATIO           ( 40 )   /// >=40%
    #define UTIL_CACHEUNIT_BG_FREE_RATIO            ( 30 )   /// <=30%
@@ -857,6 +857,7 @@ namespace engine
             Caller must hold the bucket lock
          */
          INT32          _syncPage( utilCacheBucket *pBucket,
+                                   BOOLEAN hasLock,
                                    utilCachePage *pPage,
                                    INT32 pageID,
                                    IExecutor *cb,

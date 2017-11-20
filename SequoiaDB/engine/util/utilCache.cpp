@@ -2183,7 +2183,7 @@ namespace engine
       Max sync pages number for once time
    */
    #define UTIL_CACHE_SYNC_ONCE_NUM          ( 2048 )
-   #define UTIL_CACHE_SYNC_BLK_ONCE_NUM      ( 1 )
+   #define UTIL_CACHE_SYNC_BLK_ONCE_NUM      ( 2 )
    #define UTIL_CACHE_RECYCLE_BLK_ONCE_NUM   ( UTIL_CACHE_SYNC_BLK_ONCE_NUM * 2 )
    #define UTIL_CACHE_SYNC_TOTAL_THRESHOLD   ( 100 )
    #define UTIL_CACHE_STAT_INTERVAL          ( 30000 )
@@ -2489,7 +2489,7 @@ namespace engine
                /// if the page is dirty, need to sync first
                if ( pPage->isDirty() )
                {
-                  rc = _syncPage( pBucket, pPage, pageID, cb ) ;
+                  rc = _syncPage( pBucket, TRUE, pPage, pageID, cb ) ;
                   if ( rc )
                   {
                      PD_LOG( PDERROR, "Sync page[%d] failed, rc: %d",
@@ -2579,6 +2579,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT__SYNCPAGE, "_utilCacheUnit::_syncPage" )
    INT32 _utilCacheUnit::_syncPage( utilCacheBucket *pBucket,
+                                    BOOLEAN hasLock,
                                     utilCachePage *pPage,
                                     INT32 pageID,
                                     IExecutor *cb,
@@ -2592,9 +2593,18 @@ namespace engine
       UINT32 len = 0 ;
       CHAR *pBuff = NULL ;
       UINT32 offset = 0 ;
-      UINT32 lastLen = pPage->dirtyLength() ;
+      UINT32 lastLen = 0 ;
       BOOLEAN hasSync = FALSE ;
+      BOOLEAN myBlkLock = FALSE ;
+      BOOLEAN myPgLock = FALSE ;
 
+      if ( !hasLock )
+      {
+         pBucket->lock( SHARED ) ;
+         myBlkLock = TRUE ;
+      }
+
+      lastLen = pPage->dirtyLength() ;
       if ( !pPage->isDirty() )
       {
          goto done ;
@@ -2620,6 +2630,11 @@ namespace engine
          }
       }
 
+      /// clear the dirty
+      hasSync = TRUE ;
+      pPage->clearDirty() ;
+      decDirtyPages( pBucket ) ;
+
       if ( !writeMerge )
       {
          UINT32 newestMask = 0 ;
@@ -2630,6 +2645,15 @@ namespace engine
          if ( pPage->isNewestTail() )
          {
             newestMask |= UTIL_WRITE_NEWEST_TAIL ;
+         }
+
+         if ( myBlkLock )
+         {
+            /// lock the page then unlock bucket
+            pPage->lock() ;
+            myPgLock = TRUE ;
+            pBucket->unlock( SHARED ) ;
+            myBlkLock = FALSE ;
          }
 
          pos = pPage->beginBlock() ;
@@ -2672,12 +2696,15 @@ namespace engine
          }
       }
 
-      /// clear the dirty
-      hasSync = TRUE ;
-      pPage->clearDirty() ;
-      decDirtyPages( pBucket ) ;
-
    done:
+      if ( myPgLock )
+      {
+         pPage->unlock() ;
+      }
+      if ( myBlkLock )
+      {
+         pBucket->unlock( SHARED ) ;
+      }
       if ( pSync )
       {
          *pSync = hasSync ;
@@ -2937,11 +2964,8 @@ namespace engine
          }
 
          pBucket = getBucket( calcBucketID( it->first ) ) ;
-         pBucket->lock( SHARED ) ;
-         rc = _syncPage( pBucket, it->second, it->first, cb,
+         rc = _syncPage( pBucket, FALSE, it->second, it->first, cb,
                          &hasSync, write2Merge ) ;
-         pBucket->unlock( SHARED ) ;
-
          if ( rc )
          {
             PD_LOG( PDERROR, "Sync page[%d] failed, rc: %d",
