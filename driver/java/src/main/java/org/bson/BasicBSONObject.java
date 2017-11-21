@@ -485,17 +485,22 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 	 * 
 	 * @return JSON serialization
 	 */
-	// @Override
+	@Override
 	public String toString() {
 		return JSON.serialize(this);
 	}
+
+	@Override
+    public int hashCode() {
+	    return _objectMap.hashCode();
+    }
 
 	/**
 	 * Current bson object is equal with the other or not
 	 * 
 	 * @return true or false
 	 */
-	// @Override
+	@Override
 	public boolean equals(Object o) {
 		if (!(o instanceof BSONObject))
 			return false;
