@@ -3168,7 +3168,7 @@ namespace engine
                    OSS_NEWLINE
                    "Unit Name         : %s"OSS_NEWLINE
                    "Total Time(Sec)   : %u"OSS_NEWLINE
-                   "Cache Total Sz(MB): %u"OSS_NEWLINE
+                   "Cache Total Sz(MB): %.2f"OSS_NEWLINE
                    "Cache Free Sz(MB) : %.2f"OSS_NEWLINE
                    "Total Page        : %u"OSS_NEWLINE
                    "Dirty Page        : %u"OSS_NEWLINE
@@ -3191,7 +3191,7 @@ namespace engine
                    "Recycle Speed     : %.2f /s"OSS_NEWLINE,
                    _pCacheFile->getFileName(),
                    diff / 1000,
-                   _pMgr->totalSize() / 1048576,
+                   (FLOAT64)_pMgr->totalSize() / 1048576,
                    (FLOAT64)_pMgr->freeSize() / 1048576,
                    statTotalPage,
                    statDirtyPage,
