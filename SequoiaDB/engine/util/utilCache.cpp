@@ -2188,14 +2188,14 @@ namespace engine
    #define UTIL_CACHE_SYNC_TOTAL_THRESHOLD   ( 100 )
    #define UTIL_CACHE_STAT_INTERVAL          ( 30000 )
 
-   _utilCacheUnit::_utilCacheUnit()
+   _utilCacheUnit::_utilCacheUnit( utilCacheMgr *pMgr )
    :_dirtySize( 0 ), _totalPage( 0 ),
     _statAllocNum( 0 ), _statAllocFromBlkNum( 0 ),
     _statAllocNullNum( 0 ), _statHitCacheNum( 0 ),
     _statMergeNum( 0 ), _statMergeSyncNum( 0 ), _statSyncNum( 0 ),
     _statRecycleNum( 0 ) ,_lastStatTime( 0 )
    {
-      _pMgr = NULL ;
+      _pMgr = pMgr ;
       _pCacheFile = NULL ;
       _bucketSize = 0 ;
       _pageSize = 0 ;
@@ -2204,6 +2204,7 @@ namespace engine
       _lastRecycleTime = 0 ;
       _lastSyncTime = 0 ;
       _useCache = TRUE ;
+      _hasReg = FALSE ;
 
       _bgDirtyRatio = UTIL_CACHEUNIT_BG_DIRTY_RATIO ;
       _dirtyTimeout = UTIL_CACHEUNIT_DIRTY_TIMEOUT ;
@@ -2220,8 +2221,7 @@ namespace engine
       SDB_ASSERT( 0 == _bucketSize, "Must call fini before this function" ) ;
    }
 
-   INT32 _utilCacheUnit::init ( utilCacheMgr *pMgr,
-                                utilCachFileBase *pFile,
+   INT32 _utilCacheUnit::init ( utilCachFileBase *pFile,
                                 UINT32 pageSize,
                                 UINT32 bucketSize,
                                 BOOLEAN useCache,
@@ -2230,13 +2230,12 @@ namespace engine
       INT32 rc = SDB_OK ;
       utilCacheBucket* pBucket = NULL ;
 
-      if ( !pMgr || !pFile || 0 == pageSize || 0 == bucketSize )
+      if ( !_pMgr || !pFile || 0 == pageSize || 0 == bucketSize )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
 
-      _pMgr = pMgr ;
       _pCacheFile = pFile ;
       _pageSize = pageSize ;
       _useCache = useCache ;
@@ -2257,6 +2256,7 @@ namespace engine
 
       /// register the unit
       _pMgr->registerUnit( this ) ;
+      _hasReg = TRUE ;
       _closed = FALSE ;
 
    done:
@@ -2298,9 +2298,10 @@ namespace engine
       _closed = TRUE ;
 
       /// unregister self must be after set closed
-      if ( _pMgr )
+      if ( _pMgr && _hasReg )
       {
          _pMgr->unregUnit( this ) ;
+         _hasReg = FALSE ;
       }
 
       /// wait the page cleaner

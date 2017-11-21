@@ -108,7 +108,7 @@ namespace engine
       }
 
       /// alloc cache unit
-      _pCacheUnit = SDB_OSS_NEW utilCacheUnit() ;
+      _pCacheUnit = SDB_OSS_NEW utilCacheUnit( _pMgr ) ;
 
       if ( NULL != _pDataSu && NULL != _pIndexSu && NULL != _pCacheUnit )
       {
@@ -174,14 +174,6 @@ namespace engine
       {
          rc = SDB_OOM ;
          PD_LOG( PDERROR, "Alloc memory failed" ) ;
-         goto error ;
-      }
-
-      rc = _pCacheUnit->init( _pMgr, _pLobSu->getLobData(),
-                              _storageInfo._lobdPageSize ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Init cache unit failed, rc: %d", rc ) ;
          goto error ;
       }
 

@@ -764,7 +764,7 @@ namespace engine
       typedef MAP_ID_2_PAGE_PRT::iterator             MAP_ID_2_PAGE_PRT_IT ;
 
       public:
-         _utilCacheUnit() ;
+         _utilCacheUnit( utilCacheMgr *pMgr ) ;
          ~_utilCacheUnit() ;
 
          /*
@@ -790,8 +790,7 @@ namespace engine
          void           lockPageCleaner( INT32 mode = SHARED ) ;
          void           unlockPageCleaner( INT32 mode = SHARED ) ;
 
-         INT32          init( utilCacheMgr *pMgr,
-                              utilCachFileBase *pFile,
+         INT32          init( utilCachFileBase *pFile,
                               UINT32 pageSize,
                               UINT32 bucketSize = UTIL_CACHEUNIT_BUCKET_SZ,
                               BOOLEAN useCache = TRUE,
@@ -888,6 +887,7 @@ namespace engine
          vector< utilCacheBucket* > _vecBucket ;
          BOOLEAN                    _closed ;
          BOOLEAN                    _useCache ;
+         BOOLEAN                    _hasReg ;
 
          /*
             Dirty page configs
