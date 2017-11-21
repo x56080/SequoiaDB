@@ -43,8 +43,8 @@ namespace engine
    #define UTIL_MAX_EXCEED_SLOT_SIZE            ( 3 )
    #define UTIL_MIN_EXCEED_SLOT_SIZE            ( 5 )
 
-   #define UTIL_MAX_BLK_RECYCLE_SIZE            ( 20 * 1048576 )     /// MB
-   #define UTIL_DFT_BLK_RECYCLE_SIZE            ( 2  * 1048576 )     /// MB
+   #define UTIL_MAX_BLK_RECYCLE_SIZE            ( 40 * 1048576 )     /// MB
+   #define UTIL_DFT_BLK_RECYCLE_SIZE            ( 4  * 1048576 )     /// MB
 
    /*
       _utilCachePage implement
