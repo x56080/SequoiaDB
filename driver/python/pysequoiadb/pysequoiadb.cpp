@@ -2260,7 +2260,13 @@ __METHOD_IMP(cl_create_lob)
       str_id = PyString_AsString(oid_obj) ;
       if ( NULL != str_id )
       {
-         oid.init( str_id ) ;
+         std::string string_oid = std::string( str_id ) ;
+         if ( string_oid.length() != 24 )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         oid.init( string_oid ) ;
          pOid = &oid ;
       }
    }
@@ -2281,6 +2287,7 @@ __METHOD_IMP(cl_get_lob)
    sdbCollection *cl  = NULL ;
    sdbLob *lob        = NULL ;
    const CHAR *str_id = NULL ;
+   std::string string_oid ;
    bson::OID oid;
 
    if ( !PARSE_PYTHON_ARGS(args, "OOs", &obj, &obj_lob, &str_id) )
@@ -2291,6 +2298,13 @@ __METHOD_IMP(cl_get_lob)
 
    CAST_PYOBJECT_TO_COBJECT( obj, sdbCollection, cl ) ;
    CAST_PYOBJECT_TO_COBJECT( obj_lob, sdbLob, lob ) ;
+
+   string_oid = std::string( str_id ) ;
+   if ( string_oid.length() != 24 )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
    oid.init(str_id) ;
 
    rc = cl->openLob(*lob, oid) ;
@@ -2307,6 +2321,7 @@ __METHOD_IMP(cl_remove_lob)
    PYOBJECT *obj      = NULL ;
    sdbCollection *cl  = NULL ;
    const CHAR *str_id = NULL ;
+   std::string string_oid ;
    bson::OID oid ;
 
    if ( !PARSE_PYTHON_ARGS(args, "Os", &obj, &str_id) )
@@ -2316,6 +2331,13 @@ __METHOD_IMP(cl_remove_lob)
    }
 
    CAST_PYOBJECT_TO_COBJECT( obj, sdbCollection, cl ) ;
+
+   string_oid = std::string( str_id ) ;
+   if ( string_oid.length() != 24 )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
    oid.init(str_id) ;
    rc = cl->removeLob( oid ) ;
 
