@@ -1,8 +1,9 @@
-/* ******************************************************************************
+﻿/* ******************************************************************************
 @Description: 集群操作脚本
 @Modify list:
 @   2016-01-19 Jianhui Xu  Init
 @   2017-07-20 Jianhui Xu  引入参数动态生效，集群只读机制；引擎版本必须 2.8.2 及以上。
+@   2017-11-15 Jiaming Wu  将串行的集群重启操作优化为并发操作。
 ****************************************************************************** */
 
 /* SequoiaDB 安装目录定义，必须以 '/' 结尾 */
@@ -89,7 +90,7 @@ function parseGroupNodes( objarray, keepHosts ) {
    for ( var i = 0 ; i < objarray.length ; ++i ) {
       var tmpObj = objarray[i] ;
       if ( 1 == tmpObj["GroupID"] ) {
-         index = 0 ; 
+         index = 0 ;
       } else if ( 2 == tmpObj["GroupID"] ) {
          index = 2 ;
       } else {
@@ -431,7 +432,7 @@ function updateGroupsInCatalog( cataAddr, keepHosts ) {
       println( "Connect to " + cataAddr + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
       return false ;
    }
-   
+
    var tmpGroupInfo ;
    try {
       tmpGroupInfo = db.SYSCAT.SYSNODES.find().toArray() ;
@@ -858,6 +859,141 @@ function restartAllNode( hostname ) {
 }
 
 /* *****************************************************************************
+@discription: 重启所有主机中的所有SequoiaDB节点
+@hostnameArr : String Array[]
+@author: Jiaming Wu
+@return: true/false
+***************************************************************************** */
+function restartAllHostNode( hostnameArr ) {
+
+   var hostNumber = hostnameArr.length ;
+   var svcnameArr = new Array( hostNumber ) ;
+   var nodeInfo = new Array( hostNumber ) ;
+
+   /* Get svcname  */
+   for ( var j = 0 ; j < hostNumber ; ++j ) {
+      svcnameArr[ j ] = Oma.getAOmaSvcName( hostnameArr[ j ] ) ;
+   }
+
+   /* Restart all host */
+   var restartJob = new Array( hostNumber ) ;
+   for ( var j = 0 ; j < hostNumber ; ++j ) {
+      try
+      {
+         var oma = new Oma( hostnameArr[ j ], svcnameArr[ j ] ) ;
+         nodeInfo[ j ] = oma.listNodes() ;
+      }
+      catch( e )
+      {
+         println( "List " + hostnameArr[ j ] + " nodes failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+         return false ;
+      }
+
+      try {
+         ssh = new Ssh( hostnameArr[ j ], USERNAME, PASSWD ) ;
+      } catch ( e ) {
+         println( "Ssh to " + hostnameArr[ j ] + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+         return false ;
+      }
+      try
+      {
+         var retStr = ssh.exec( SDBSHELL + ' -s \'var cmd = new Cmd(); cmd.start( "'
+                                + SDBSTOP + ' -t all && ' + SDBSTART + ' -t all", "", 1, 0  ) ; \' ' ) ;
+         var pid = retStr.split( "\n" )[ 0 ] ;
+         restartJob[ j ] = { "pid" : "" + pid } ;
+      }
+      catch( e )
+      {
+         println( "Restart " + hostnameArr[ j ] + " node failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+         return false ;
+      }
+   }
+
+   /* Check whether all backgroup stop job have been completed  */
+   var sysArr = new Array( hostNumber ) ;
+   var finishFlagArr = new Array( hostNumber ) ;
+   var finishNumber = 0 ;
+   var remoteArr = new Array( hostNumber ) ;
+
+   for( var j = 0; j < hostNumber; ++j ) {
+      /* Get remote obj */
+      try
+      {
+         remoteArr[ j ] = new Remote( hostnameArr[ j ], svcnameArr[ j ] ) ;
+      }
+      catch( e )
+      {
+         println( "Get " + hostnameArr[ j ] + " remote obj failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+         return false ;
+      }
+      finishFlagArr[ j ] = false ;
+      sysArr[ j ] = remoteArr[ j ].getSystem() ;
+   }
+   while( finishNumber < hostNumber )
+   {
+      for( var j = 0; j < hostNumber; ++j )
+      {
+         if( finishFlagArr[ j ] != true )
+         {
+            var listProc = sysArr[ j ].listProcess( {}, restartJob[ j ] ) ;
+            if( listProc.size() == 0 )
+            {
+               finishFlagArr[ j ] = true ;
+               finishNumber++ ;
+            }
+         }
+      }
+      sleep( 500 ) ;
+   }
+
+   // Compare starttime to determine whether the node have been restart
+   for ( var j = 0 ; j < hostNumber ; ++j ) {
+      var currentNodeInfo ;
+      var localNodeInfo ;
+      try
+      {
+         var oma = new Oma( hostnameArr[ j ], svcnameArr[ j ] ) ;
+         currentNodeInfo = oma.listNodes() ;
+         localNodeInfo = oma.listNodes( { mode: "local" } ) ;
+      }
+      catch( e )
+      {
+         println( "Failed to get cluster node info" ) ;
+         return false ;
+      }
+      if( currentNodeInfo.size() != localNodeInfo.size() )
+      {
+         println( "Start " + hostnameArr[ j ] + " node failed" ) ;
+         return false ;
+      }
+
+      var nodeInfoArray = [] ;
+      while ( true ) {
+         var bs = nodeInfo[ j ].next();
+         if ( ! bs ) break ;
+         nodeInfoArray.push ( bs.toObj() ) ;
+      }
+
+      while( currentNodeInfo.more() ) {
+         var node = currentNodeInfo.next().toObj() ;
+         var filter = new _Filter( { "svcname": node.svcname } ) ;
+         var result = filter.match( nodeInfoArray ) ;
+         if( result.size() != 1 )
+         {
+            continue ;
+         }
+         if( node.starttime == result.next().toObj().starttime )
+         {
+            println( "Stop " + hostnameArr[ j ] + " node failed" ) ;
+            return false ;
+         }
+      }
+      println( "Restart all nodes succeed in " + hostnameArr[ j ] ) ;
+   }
+   return true ;
+}
+
+/* *****************************************************************************
 @discription: 准备运行时的环境信息
 @filename: string
 @keepHosts : array
@@ -953,13 +1089,11 @@ function splitCluster( cataAddrs, keepHosts, active ) {
    }
 
    /* 6. Restart all keepHosts's nodes */
-   for ( var j = 0 ; j < keepHosts.length ; ++j ) {
-      if ( restartAllNode( keepHosts[j] ) ) {
-         println( "Restart " + keepHosts[ j ] + " all nodes succeed"  ) ;
-      } else {
-         println( "Restart " + keepHosts[ j ] + " all nodes failed"  ) ;
-         return false ;
-      }
+   if ( restartAllHostNode( keepHosts ) ) {
+      println( "Restart all host nodes succeed"  ) ;
+   } else {
+      println( "Restart all host nodes failed"  ) ;
+      return false ;
    }
 
    return true ;
@@ -1092,14 +1226,13 @@ function mergeCluster( cataAddrs, keepHosts, filename, active ) {
    }
 
    /* 7. Restart all keepHosts's nodes */
-   for ( var j = 0 ; j < keepHosts.length ; ++j ) {
-      if ( restartAllNode( keepHosts[j] ) ) {
-         println( "Restart " + keepHosts[ j ] + " all nodes succeed"  ) ;
-      } else {
-         println( "Restart " + keepHosts[ j ] + " all nodes failed"  ) ;
-         return false ;
-      }
+   if ( restartAllHostNode( keepHosts ) ) {
+      println( "Restart all host nodes succeed"  ) ;
+   } else {
+      println( "Restart all host nodes failed"  ) ;
+      return false ;
    }
+
    return true ;
 }
 

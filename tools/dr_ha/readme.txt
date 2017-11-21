@@ -5,7 +5,7 @@
    4、同一个数据分区组中的节点必须在SUB1和SUB2的机器上都进行部署；
 
 操作步骤和场景：
-   1、在SUB1和SUB2上各选一台含有编目节点的机器SUB1-NodeA和SUB2-NodeA；
+   1、在SUB1和SUB2上各选一台机器SUB1-NodeA和SUB2-NodeA(SUB1和SUB2内都有编目节点)；
 
    2、根据实际SequoiaDB的安装路径修改上述SUB1-NodeA和SUB2-NodeA中 init.sh、split.sh、merge.sh 中 SEQPATH 变量；
 
