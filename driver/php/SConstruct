@@ -161,7 +161,7 @@ if phpedition.split( '.' )[0] == '7':
 
 env.Append ( CPPDEFINES=[ "SDB_DLL_BUILD" ] )
 env.Append ( CPPDEFINES=[ "SDB_CLIENT" ] )
-# env.Append ( CPPDEFINES=[ "SDB_SSL" ] )
+env.Append ( CPPDEFINES=[ "SDB_SSL" ] )
 if guess_os == "win32":
 
     if guess_ver == "10":
