@@ -43,6 +43,9 @@ namespace engine
    #define UTIL_MAX_EXCEED_SLOT_SIZE            ( 3 )
    #define UTIL_MIN_EXCEED_SLOT_SIZE            ( 5 )
 
+   #define UTIL_MAX_BLK_RECYCLE_NUM             ( 400 )
+   #define UTIL_DFT_BLK_RECYCLE_NUM             ( 40 )
+
    /*
       _utilCachePage implement
    */
@@ -1191,8 +1194,19 @@ namespace engine
       PD_TRACE_ENTRY( SDB__UTILCACHEMGR__RECYCLEBLK ) ;
 
       UINT64 recycleSize = 0 ;
-      UINT32 size = ( slotItem.size() + 1 ) / 2 ;
+      UINT32 size = ( slotItem.size() + 4 ) / 5 ;
       CHAR *pBuff = NULL ;
+      UINT32 standSize = UTIL_MAX_BLK_RECYCLE_NUM ;
+
+      if ( totalUseTimes() <= pStat->_useTimes + 1 )
+      {
+         standSize = UTIL_DFT_BLK_RECYCLE_NUM ;
+      }
+
+      if ( size > standSize )
+      {
+         size = standSize ;
+      }
 
       for ( UINT32 i = 0 ; i < size ; ++i )
       {
