@@ -1194,7 +1194,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__UTILCACHEMGR__RECYCLEBLK ) ;
 
       UINT64 recycleSize = 0 ;
-      UINT32 size = ( slotItem.size() + 4 ) / 5 ;
+      UINT32 size = ( slotItem.size() + 3 ) / 4 ;
       CHAR *pBuff = NULL ;
       UINT32 standSize = UTIL_MAX_BLK_RECYCLE_SIZE ;
 
