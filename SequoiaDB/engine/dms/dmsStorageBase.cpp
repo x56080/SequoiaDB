@@ -146,7 +146,8 @@ namespace engine
       _dirtyEnd.init( 0 ) ;
       _fullDirty = FALSE ;
 
-      for ( UINT32 i = 0 ; i < _size ; ++i )
+      UINT32 arrayNum = ( _size + 7 ) >> 3 ;
+      for ( UINT32 i = 0 ; i < arrayNum ; ++i )
       {
          if ( _pData[ i ] != 0 )
          {
