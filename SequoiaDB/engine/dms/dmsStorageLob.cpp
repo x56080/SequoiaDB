@@ -185,6 +185,14 @@ namespace engine
          _vecBucketLacth.push_back( pLatch ) ;
       }
 
+      /// Init cache unit
+      rc = _pCacheUnit->init( getLobData(), getLobdPageSize() ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Init cache unit failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
       rc = openStorage( path, createNew, rmWhenExist ) ;
       if ( SDB_OK != rc )
       {
