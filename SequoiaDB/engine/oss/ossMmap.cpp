@@ -46,7 +46,7 @@
 #include "dms.hpp"
 #endif
 
-#define OSS_MMAP_INIT_CAPACITY         ( 32 )
+#define OSS_MMAP_INIT_CAPACITY         ( 128 )
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB__OSSMMF_OPEN, "_ossMmapFile::open" )
 INT32 _ossMmapFile::open ( const CHAR *pFilename,
