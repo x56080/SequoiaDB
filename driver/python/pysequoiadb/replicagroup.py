@@ -23,7 +23,7 @@ except:
 import bson
 from bson.py3compat import (str_type)
 from pysequoiadb.errcode import SDB_OOM
-from pysequoiadb.error import (SDBSystemError, SDBTypeError, raise_if_error)
+from pysequoiadb.error import (SDBBaseError, SDBSystemError, SDBTypeError, raise_if_error)
 from pysequoiadb.replicanode import replicanode
 
 NODE_STATUS_ALL = 0
