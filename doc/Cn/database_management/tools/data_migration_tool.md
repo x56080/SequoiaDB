@@ -241,17 +241,17 @@ $ sdbimprt --hosts=localhost:11810 --type=csv --file=test.csv -c foo -l bar --fi
 4. 导入格式是csv，导入文件是目录../data中的所有文件，导入至集合空间foo的集合bar中
 
 <pre class="prettyprint lang-javascript">
-$ sdbimprt --hosts=localhost:11810 --type=csv --file=../data -c foo -l bar</pre>
+$ sdbimprt --hosts=localhost:11810 --type=csv --file=../data -c foo -l bar --headerline=true</pre>
 
 5. 导入格式是csv，导入文件是目录../data中的所有文件以及./foo_bar_data.csv，导入至集合空间foo的集合bar中，有11810和11910两个协调节点，记录中时间戳类型的数据类似于"2015-10-01 T 12.31.15.123 T"，使用两个连接同时导入
 
 <pre class="prettyprint lang-javascript">
-$ sdbimprt --type=csv --file=../data,./foo_bar_data.csv -c foo -l bar --timestampfmt="YYYY-MM-DD T HH.mm.ss.SSS T" --hosts=localhost:11810,localhost:11910 -j 2</pre>
+$ sdbimprt --type=csv --file=../data,./foo_bar_data.csv --headerline=true -c foo -l bar --timestampfmt="YYYY-MM-DD T HH.mm.ss.SSS T" --hosts=localhost:11810,localhost:11910 -j 2</pre>
 
-6. 导入格式是json，通过管道从其它工具other获取数据，导入至集合空间foo的集合bar中，第一行为字段定义
+6. 导入格式是json，通过管道从其它工具other获取数据，导入至集合空间foo的集合bar中
 
 <pre class="prettyprint lang-javascript">
-$ other | sdbimprt --hosts=localhost:11810 --type=json -c foo -l bar --headerline=true</pre>
+$ other | sdbimprt --hosts=localhost:11810 --type=json -c foo -l bar</pre>
 
 ##数据迁移 — 导出##
 
