@@ -59,6 +59,9 @@ namespace engine
    {
       SDB_ASSERT( pSUBase, "Storage base unit can't be NULL" ) ;
       _pSUBase = pSUBase ;
+
+      ossSnprintf( _name, sizeof( _name ), "Job[ExtendSegment-%s]",
+                   _pSUBase->getSuName() ) ;
    }
 
    _dmsExtendSegmentJob::~_dmsExtendSegmentJob()
@@ -73,7 +76,7 @@ namespace engine
 
    const CHAR* _dmsExtendSegmentJob::name () const
    {
-      return "Job[ExtendSegment]" ;
+      return _name ;
    }
 
    BOOLEAN _dmsExtendSegmentJob::muteXOn( const _rtnBaseJob * pOther )

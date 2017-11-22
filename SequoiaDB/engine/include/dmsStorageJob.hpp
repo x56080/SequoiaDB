@@ -48,6 +48,7 @@ namespace engine
    class _dmsMBContext ;
    class _dmsPageMap ;
 
+   #define DMS_EXTEND_JOB_NAME_LEN           ( 200 )
    /*
       _dmsExtendSegmentJob define
    */
@@ -65,6 +66,7 @@ namespace engine
 
       private:
          _dmsStorageBase            *_pSUBase ;
+         CHAR                       _name[ DMS_EXTEND_JOB_NAME_LEN + 1 ] ;
 
    } ;
    typedef _dmsExtendSegmentJob  dmsExtendSegmentJob ;
