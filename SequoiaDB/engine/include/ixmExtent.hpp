@@ -278,7 +278,7 @@ namespace engine
          return DMS_INVALID_EXTENT == getParent() ;
       }
       // get the extent id for child
-      dmsExtentID getChildExtentID ( UINT16 i ) const
+      dmsExtentID getChildExtentID ( UINT16 i )
       {
          if ( i>_extentHead->_totalKeyNodeNum )
          {
@@ -287,7 +287,7 @@ namespace engine
          return (i==_extentHead->_totalKeyNodeNum)?(_extentHead->_right):
                     (getKeyNode(i)->_left) ;
       }
-      dmsRecordID getRID ( UINT16 i ) const
+      dmsRecordID getRID ( UINT16 i )
       {
          if ( i>=_extentHead->_totalKeyNodeNum )
          {
