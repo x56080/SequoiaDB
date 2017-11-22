@@ -2127,6 +2127,7 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__IXMEXT_TRUNC );
       dmsExtentID childExtentID ;
+      dmsPageMap *pPageMap = _pIndexSu->getPageMap( getMBID() ) ;
       // starting from _right, until first keynode
       for ( INT32 i = (INT32)getNumKeyNode() ; i>=0; i-- )
       {
@@ -2135,6 +2136,7 @@ namespace engine
          {
             ixmExtent ( childExtentID, _pIndexSu ).truncate ( indexCB ) ;
             indexCB->freeExtent ( childExtentID ) ;
+            pPageMap->rmItem( childExtentID ) ;
             setChildExtentID ( i, DMS_INVALID_EXTENT ) ;
          }
       }
