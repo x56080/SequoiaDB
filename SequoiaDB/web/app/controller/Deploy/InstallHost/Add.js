@@ -398,7 +398,19 @@
                            hostDataInfo['IsUseNum'] = 0 ;
                            hostDataInfo['CanNotUseNum'] = 0 ;
                            hostDataInfo['DiskWarning'] = 0 ;
-                           $.each( hostDataInfo['Disk'], function( index3 ){
+
+                           var diskNameList = {} ;
+                           $.each( hostDataInfo['Disk'], function( index3, diskInfo ){
+
+                              if( diskNameList[diskInfo['Name']] === 0 || diskNameList[diskInfo['Name']] === 1 )
+                              {
+                                 diskNameList[diskInfo['Name']] = 1 ;
+                              }
+                              else
+                              {
+                                 diskNameList[diskInfo['Name']] = 0 ;
+                              }
+
                               if( hostDataInfo['Disk'][index3]['CanUse'] == true && hostDataInfo['Disk'][index3]['IsLocal'] == true )
                               {
                                  hostDataInfo['Disk'][index3]['IsUse'] = true ;
@@ -410,6 +422,26 @@
                                  ++hostDataInfo['CanNotUseNum'] ;
                               }
                            } ) ;
+
+                           $.each( hostDataInfo['Disk'], function( index3, diskInfo ){
+                              if( diskNameList[diskInfo['Name']] === 1 )
+                              {
+                                 if( diskInfo['CanUse'] == true && diskInfo['IsLocal'] == true )
+                                 {
+                                    //磁盘出现大于1次
+                                    diskInfo['IsUse'] = false ;
+                                    if( hostDataInfo['IsUseNum'] > 0 )
+                                    {
+                                       --hostDataInfo['IsUseNum'] ;
+                                    }
+                                    if( hostDataInfo['IsUseNum'] == 0 )
+                                    {
+                                       hostDataInfo['CanUse'] = false ;
+                                    }
+                                 }
+                              }
+                           } ) ;
+
                            var isFind = true ;
                            while( isFind )
                            {
