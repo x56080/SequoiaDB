@@ -300,6 +300,9 @@ namespace engine
 
       if ( _pIndexSu )
       {
+         /// first clear all page map
+         _pIndexSu->getPageMapUnit()->clear() ;
+
          rc = _pIndexSu->removeStorage() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to remove collection space[%s] "
                       "index file, rc: %d", CSName(), rc ) ;

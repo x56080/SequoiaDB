@@ -285,10 +285,11 @@ namespace engine
       {
          BOOLEAN valid = TRUE ;
          ixmExtent rootExtent ( root, _pIndexSu ) ;
+         UINT16 mbID = rootExtent.getMBID() ;
          rootExtent.truncate ( this, DMS_INVALID_EXTENT, valid ) ;
+         _pIndexSu->getPageMap( mbID )->clear() ;
          if ( valid && removeRoot )
          {
-            UINT16 mbID = rootExtent.getMBID() ;
             UINT16 freeSize = rootExtent.getFreeSize() ;
             rc = freeExtent ( root ) ;
             if ( rc )

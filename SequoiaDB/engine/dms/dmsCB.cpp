@@ -141,7 +141,20 @@ namespace engine
 
    INT32 _SDB_DMSCB::active ()
    {
-      return SDB_OK ;
+      INT32 rc = SDB_OK ;
+
+      rc = _pageMapDispatcher.active() ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Active page map dispatcher failed, rc: %d",
+                 rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _SDB_DMSCB::deactive ()
@@ -1535,7 +1548,9 @@ namespace engine
 
          SDB_DMS_CSCB *cscb = _cscbVec[suID] ;
          if ( !cscb )
+         {
             continue ;
+         }
          su = cscb->_su ;
          SDB_ASSERT ( su, "storage unit pointer can't be NULL" ) ;
 
@@ -1608,7 +1623,9 @@ namespace engine
 
          SDB_DMS_CSCB *cscb = _cscbVec[suID] ;
          if ( !cscb )
+         {
             continue ;
+         }
          su = cscb->_su ;
          SDB_ASSERT ( su, "storage unit pointer can't be NULL" ) ;
 
@@ -1763,6 +1780,30 @@ namespace engine
          totalFileSize += su->totalSize();
       }
       PD_TRACE_EXIT ( SDB__SDB_DMSCB_DUMPINFO4 );
+   }
+
+
+   void _SDB_DMSCB::dumpPageMapCSInfo( MON_CSNAME_VEC &vecCS )
+   {
+      ossScopedLock _lock( &_mutex, SHARED ) ;
+
+      SDB_DMS_CSCB *cscb      = NULL ;
+      for ( CSCB_MAP_CONST_ITER it = _cscbNameMap.begin() ;
+            it != _cscbNameMap.end() ;
+            ++it )
+      {
+         cscb = _cscbVec[ (*it).second ] ;
+         if ( NULL == cscb || NULL == cscb->_su )
+         {
+            continue ;
+         }
+         else if ( cscb->_su->index()->getPageMapUnit()->isEmpty() )
+         {
+            continue ;
+         }
+         /// push back
+         vecCS.push_back( monCSName( cscb->_name ) ) ;
+      }
    }
 
    dmsTempCB *_SDB_DMSCB::getTempCB ()

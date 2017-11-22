@@ -80,6 +80,16 @@ namespace engine
       }
    }
 
+   dmsPageMapUnit* _dmsStorageIndex::getPageMapUnit()
+   {
+      return &_mbPageInfo ;
+   }
+
+   dmsPageMap* _dmsStorageIndex::getPageMap( UINT16 mbID )
+   {
+      return _mbPageInfo.getMap( mbID ) ;
+   }
+
    UINT64 _dmsStorageIndex::_dataOffset()
    {
       return ( DMS_SME_OFFSET + DMS_SME_SZ ) ;
@@ -190,7 +200,25 @@ namespace engine
 
    void _dmsStorageIndex::_onClosed()
    {
-      /// do nothing.
+      /// Flush all pageMap to disk
+      UINT16 pos = 0 ;
+      dmsPageMap *pPageMap = NULL ;
+      dmsPageMap::MAP_PAGES_IT it ;
+
+      pPageMap = _mbPageInfo.beginNonEmpty( pos ) ;
+      while( pPageMap )
+      {
+         it = pPageMap->begin() ;
+         while( it != pPageMap->end() )
+         {
+            ixmExtent extent( it->first, this ) ;
+            extent.setParent( it->second, FALSE ) ;
+            ++it ;
+         }
+         pPageMap->clear() ;
+
+         pPageMap = _mbPageInfo.nextNonEmpty( pos ) ;
+      }
    }
 
    INT32 _dmsStorageIndex::_onFlushDirty( BOOLEAN force, BOOLEAN sync )
@@ -199,6 +227,52 @@ namespace engine
       {
          _pDataSu->_mbStatInfo[i]._idxCommitFlag.init( 1 ) ;
       }
+
+      UINT16 pos = 0 ;
+      BOOLEAN locked = FALSE ;
+      dmsPageMap *pPageMap = NULL ;
+      dmsPageMap::MAP_PAGES_IT it ;
+
+      pPageMap = _mbPageInfo.beginNonEmpty( pos ) ;
+      while( pPageMap )
+      {
+         while( !pPageMap->isEmpty() )
+         {
+            /// lock
+            _pDataSu->_mblock[ pos ].get() ;
+            locked = TRUE ;
+
+            it = pPageMap->begin() ;
+            if( it != pPageMap->end() )
+            {
+               ixmExtent extent( it->first, this ) ;
+               extent.setParent( it->second, FALSE ) ;
+               pPageMap->erase( it ) ;
+            }
+            else
+            {
+               break ;
+            }
+
+            if ( _pDataSu->_mbStatInfo[pos]._idxCommitFlag.compare( 0 ) )
+            {
+               break ;
+            }
+            /// unlock
+            _pDataSu->_mblock[ pos ].release() ;
+            locked = FALSE ;
+         }
+
+         if ( locked )
+         {
+            /// unlock
+            _pDataSu->_mblock[ pos ].release() ;
+            locked = FALSE ;
+         }
+
+         pPageMap = _mbPageInfo.nextNonEmpty( pos ) ;
+      }
+
       return SDB_OK ;
    }
 

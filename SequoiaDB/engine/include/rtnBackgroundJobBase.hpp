@@ -53,7 +53,6 @@ namespace engine
       RTN_JOB_EXTENDSEGMENT      = 6,
       RTN_JOB_RESTORE            = 7,
       RTN_JOB_REPLSYNC           = 8,
-      RTN_JOB_PAGECLEANER        = 9,
       RTN_JOB_STARTNODE          = 10, // start node
       RTN_JOB_CMSYNC             = 11, // cm and cmd sync info
       RTN_JOB_OMAGENT            = 12, // omagent job
@@ -62,6 +61,7 @@ namespace engine
       PMD_JOB_SYNC               = 15, // sync job
       RTN_JOB_REBUILD            = 16, // rebuild job
       RTN_JOB_CLS_STORAGE_CHECK  = 17, // storage check job
+      RTN_JOB_PAGEMAPPING        = 19, // page mapping job
 
       RTN_JOB_MAX
    } ;

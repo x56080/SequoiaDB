@@ -58,6 +58,7 @@ namespace engine
       ixmExtentHead *pHeader = NULL ;
       _extRW = pIndexSu->extent2RW( extentID, mbID ) ;
       _pIndexSu = pIndexSu ;
+      _pPageMap = _pIndexSu->getPageMap( mbID ) ;
       _pageSize = _pIndexSu->pageSize() ;
 
       pHeader = _extRW.writePtr<ixmExtentHead>( 0, _pageSize ) ;
@@ -95,6 +96,7 @@ namespace engine
       _extentHead = _extRW.readPtr<ixmExtentHead>( 0, _pageSize ) ;
       /// set collection id
       _extRW.setCollectionID( _extentHead->_mbID ) ;
+      _pPageMap = _pIndexSu->getPageMap( _extentHead->_mbID ) ;
       PD_TRACE_EXIT ( SDB__IXMEXT4 );
       SDB_ASSERT(_extentHead, "extent can't be NULL" ) ;
    }
@@ -201,28 +203,22 @@ namespace engine
                   // allowing two completely undefined keys even if in unique
                   // index
                }
-               // otherwise this key is psudodelete, let's mark the insert
-               // position here and return NOT FOUND
-               // note it's possible that the key with different RID is deleted
-               // (and marked psuedodelete), and then a different record with
-               // same key is inserted. So now the _rid is different in the
-               // node. But when we do SetUsed operation we should always change
-               // the RID
-               // pos = middle ;
-               // found = FALSE ;
-               // goto done ;
             }
             // if duplicate is allowed, let's continue compare the RID
-            result = rid.compare(M->_rid) ;
+            result = rid.compare( M->_rid ) ;
          }
          // if the compare result shows disk value is smaller, let's set high =
          // middle-1
          if ( result < 0 )
+         {
             high = middle -1 ;
+         }
          // if the compare result shows disk value is greater, let's set low =
          // middle+1
          else if ( result > 0 )
+         {
             low = middle + 1 ;
+         }
          // otherwise we have both key+rid identical
          else
          {
@@ -359,13 +355,6 @@ namespace engine
             // no need to set Parent because we are copying inside extent
 
             _assignRight ( rchild ) ;
-            // if _right is not invalid, that means most likely we are dealing
-            // with split, and we should set the parent extent for the _right to
-            // _me
-            /*if ( DMS_INVALID_EXTENT != rchild )
-            {
-               _ixmExtent ( rchild, _pIndexSu ).setParent ( _me ) ;
-            }*/
          }
          else
          {
@@ -412,7 +401,7 @@ namespace engine
    // performed by insertHere()
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__BASICINS, "_ixmExtent::_basicInsert" )
    INT32 _ixmExtent::_basicInsert ( UINT16 &pos, const dmsRecordID &rid,
-                                   const ixmKey &key, const Ordering &order )
+                                    const ixmKey &key, const Ordering &order )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__BASICINS );
@@ -434,8 +423,7 @@ namespace engine
       if ( bytesNeeded > getFreeSize() )
       {
          // before reorg let's get the child extent id for pos
-         dmsExtentID ch ;
-         ch = getChildExtentID ( pos ) ;
+         dmsExtentID ch = getChildExtentID ( pos ) ;
          // note _reorg may change pos
          rc = _reorg ( order, pos ) ;
          if ( rc )
@@ -452,7 +440,7 @@ namespace engine
          }
          // after reorg, the pos may points to an element with different lchild,
          // in this case we should be careful and perform find again
-         if ( getChildExtentID ( pos ) != ch )
+         if ( getChildExtentID( pos ) != ch )
          {
             rc = SDB_IXM_REORG_DONE ;
             goto error ;
@@ -511,15 +499,16 @@ namespace engine
    // current page
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__SPLIT, "_ixmExtent::_split" )
    INT32 _ixmExtent::_split ( UINT16 pos, const dmsRecordID &rid,
-                             const ixmKey &key, const Ordering &order,
-                             const dmsExtentID lchild, const dmsExtentID rchild,
-                             ixmIndexCB *indexCB )
+                              const ixmKey &key, const Ordering &order,
+                              const dmsExtentID lchild,
+                              const dmsExtentID rchild,
+                              ixmIndexCB *indexCB )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__SPLIT );
-      UINT16 splitPos, newPos ;
+      UINT16 splitPos = 0, newPos = 0 ;
       SDB_ASSERT ( indexCB, "index control block can't be NULL" ) ;
-      dmsExtentID newExtentID ;
+      dmsExtentID newExtentID = DMS_INVALID_EXTENT ;
       const ixmKeyNode *splitKey = NULL ;
       // find the split position
       rc = _splitPos ( pos, splitPos ) ;
@@ -542,7 +531,7 @@ namespace engine
          // initialize the header for the new extent
          _ixmExtent newExtent( newExtentID, _extentHead->_mbID, _pIndexSu ) ;
          // copy all keys from the split pos to new extent
-         for ( UINT16 i = splitPos +1; i<getNumKeyNode(); i++)
+         for ( UINT16 i = splitPos + 1 ; i< getNumKeyNode() ; i++ )
          {
             const ixmKeyNode *kn = getKeyNode(i) ;
             rc = newExtent._pushBack ( kn->_rid,
@@ -557,14 +546,7 @@ namespace engine
          }
          // assign the right pointer
          newExtent._assignRight ( _extentHead->_right ) ;
-         // change parent extent id for all keys in the new extent
-         /*rc = newExtent._fixParentPtrs ( 0, newExtent.getNumKeyNode() ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to fix parent pointers for the new "
-                     "extent, rc = %d", rc ) ;
-            goto error ;
-         }*/
+
 #if defined (_DEBUG)
          rc = newExtent._validate(MAX, order) ;
 #else
@@ -578,13 +560,14 @@ namespace engine
          }
 
          // promote the split key into parent
-         splitKey = getKeyNode(splitPos) ;
+         splitKey = getKeyNode( splitPos ) ;
          _assignRight ( splitKey->_left ) ;
+
          // is this root page
          if ( DMS_INVALID_EXTENT == getParent() )
          {
             // if this is root page, let's allocate another page
-            dmsExtentID rootExtentID ;
+            dmsExtentID rootExtentID = DMS_INVALID_EXTENT ;
             // allocate new extent
             rc = indexCB->allocExtent ( rootExtentID ) ;
             if ( rc )
@@ -620,10 +603,6 @@ namespace engine
                         rc ) ;
                goto error ;
             }
-            // fix the parent extent
-            /*setParent ( rootExtentID ) ;*/
-            // fix the parent extent for new page
-            /*newExtent.setParent ( rootExtentID ) ;*/
             // set new root page
             indexCB->setRoot ( rootExtentID ) ;
          }
@@ -632,9 +611,9 @@ namespace engine
             // when there is parent page exist (so we are not root)
             newExtent.setParent ( getParent() ) ;
             // get the parent extent
-            _ixmExtent parentExtent(getParent(), _pIndexSu ) ;
+            _ixmExtent parentExtent( getParent(), _pIndexSu ) ;
             // do physical insert into it
-            rc = parentExtent._insert(splitKey->_rid,
+            rc = parentExtent._insert( splitKey->_rid,
                        ixmKey(((const CHAR*)_extentHead)+splitKey->_keyOffset),
                        order, TRUE, _me,
                        newExtentID, indexCB ) ;
@@ -702,7 +681,7 @@ namespace engine
          ixmExtentHead *pExtent = _extRW.writePtr<ixmExtentHead>() ;
          pExtent->_totalKeyNodeNum = totalNodes ;
          unsetCompact() ;
-         return _reorg(order, newPos) ;
+         return _reorg( order, newPos ) ;
       }
       return SDB_OK ;
    }
@@ -754,7 +733,7 @@ namespace engine
             break ;
          }
       }
-      if ( splitPos > getNumKeyNode()-2 )
+      if ( splitPos > getNumKeyNode() - 2 )
       {
          splitPos = getNumKeyNode() - 2 ;
       }
@@ -776,8 +755,8 @@ namespace engine
          const ixmKeyNode *kn = getKeyNode ( i ) ;
          if ( DMS_INVALID_EXTENT != kn->_left )
          {
-            _ixmExtent childExtent ( kn->_left, _pIndexSu ) ;
-            childExtent.setParent ( _me ) ;
+            /// add to page map
+            _pPageMap->addItem( kn->_left, _me ) ;
          }
       }
       return SDB_OK ;
@@ -858,11 +837,13 @@ namespace engine
       kn = writeKeyNode(_extentHead->_totalKeyNodeNum) ;
       pHeader->_totalKeyNodeNum++ ;
       kn->_left = left ;
+
       if ( DMS_INVALID_EXTENT != kn->_left )
       {
-         _ixmExtent childExtent ( kn->_left, _pIndexSu ) ;
-         childExtent.setParent ( _me ) ;
+         /// add to page map
+         _pPageMap->addItem( kn->_left, _me ) ;
       }
+
       kn->_rid = rid ;
       rc = _alloc ( key.dataSize(), kn->_keyOffset ) ;
       if ( rc )
@@ -1232,9 +1213,11 @@ namespace engine
          const ixmKeyNode *kn = getKeyNode( pos ) ;
          if ( kn->isUnused() )
          {
-            // if it is psudo-delete, let's set it used and go to done
-            writeKeyNode( pos )->setUnused() ;
-            goto done ;
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Page[%d]'s key node[%d] should be used",
+                    _me, pos ) ;
+            dumpIndexExtentIntoLog() ;
+            goto error ;
          }
          // otherwise we should have same key/rid point to same record
          PD_LOG ( PDERROR, "same key + rid is already in index" ) ;
@@ -1583,6 +1566,7 @@ namespace engine
          goto error ;
       }
       _pIndexSu->decStatFreeSpace( mbID, freeSize ) ;
+      _pPageMap->rmItem( _me ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT__DELEXT, rc );

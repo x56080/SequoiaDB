@@ -47,6 +47,7 @@
 #include "pd.hpp"
 #include "pmdEDU.hpp"
 #include "dmsStorageBase.hpp"
+#include "dmsPageMap.hpp"
 
 using namespace bson ;
 
@@ -141,6 +142,7 @@ namespace engine
       const ixmExtentHead  *_extentHead ;
       dmsExtentID          _me ;
       _dmsStorageIndex     *_pIndexSu ;
+      dmsPageMap           *_pPageMap ;
       INT32                _pageSize ;
 
       dmsExtRW             _extRW ;
@@ -301,7 +303,7 @@ namespace engine
       }
       OSS_INLINE BOOLEAN isRoot() const
       {
-         return DMS_INVALID_EXTENT == _extentHead->_parentExtentID ;
+         return DMS_INVALID_EXTENT == getParent() ;
       }
       // get the extent id for child
       dmsExtentID getChildExtentID ( UINT16 i ) const
@@ -328,12 +330,23 @@ namespace engine
       }
       OSS_INLINE dmsExtentID getParent () const
       {
-         return _extentHead->_parentExtentID ;
+         dmsExtentID parentID = DMS_INVALID_EXTENT ;
+         if ( !_pPageMap->findItem( _me, &parentID ) )
+         {
+            parentID = _extentHead->_parentExtentID ;
+         }
+         return parentID ;
       }
-      OSS_INLINE void setParent ( dmsExtentID extentID )
+      OSS_INLINE void setParent ( dmsExtentID extentID,
+                                  BOOLEAN rmItem = TRUE )
       {
          ixmExtentHead *pHead = _extRW.writePtr<ixmExtentHead>() ;
          pHead->_parentExtentID = extentID ;
+
+         if ( rmItem )
+         {
+            _pPageMap->rmItem( _me ) ;
+         }
       }
       void setChildExtentID ( UINT16 i, dmsExtentID extentID ) ;
 

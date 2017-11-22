@@ -275,6 +275,7 @@ dmsFiles = [
       "dms/dmsReorgUnit.cpp",
       "dms/dmsSMEMgr.cpp",
       "dms/dms.cpp",
+      "dms/dmsPageMap.cpp",
       "dms/dmsStorageLoadExtent.cpp",
       "dms/dmsStorageJob.cpp",
       "dms/dmsTmpBlkUnit.cpp",
