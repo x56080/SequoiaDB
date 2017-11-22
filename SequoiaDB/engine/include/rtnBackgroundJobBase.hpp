@@ -59,6 +59,7 @@ namespace engine
       RTN_JOB_OMAGENT            = 12, // omagent job
       RTN_JOB_CREATE_DICT        = 13, // create compression dictionary
       PMD_JOB_CACHE              = 14, // cache job
+      RTN_JOB_PAGEMAPPING        = 19, // page mapping job
 
       RTN_JOB_MAX
    } ;

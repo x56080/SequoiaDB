@@ -52,6 +52,7 @@
 #include "ossEvent.hpp"
 #include "sdbInterface.hpp"
 #include "dmsIxmKeySorter.hpp"
+#include "dmsStorageJob.hpp"
 #include <map>
 #include <set>
 
@@ -145,6 +146,20 @@ namespace engine
       // collection spaces mutex in create and drop operations
       std::vector< ossSpinXLatch* >       _vecCSMutex ;
 
+#if defined (_WINDOWS)
+      typedef std::map<const CHAR*,
+                       dmsStorageUnitID,
+                       cmp_cscb>::const_iterator CSCB_MAP_CONST_ITER ;
+      typedef std::map<const CHAR*,
+                       dmsStorageUnitID,
+                       cmp_cscb>::iterator CSCB_MAP_ITER ;
+#elif defined (_LINUX)
+      typedef std::map<const CHAR*,
+                       dmsStorageUnitID>::const_iterator CSCB_MAP_CONST_ITER ;
+      typedef std::map<const CHAR*,
+                       dmsStorageUnitID>::iterator CSCB_MAP_ITER ;
+#endif
+
       // represent the last page clean timestamp for a given storage unit
       typedef std::pair<ossTick,dmsStorageUnitID>  _pageCleanHistory ;
       // stores a list of page clean history
@@ -175,6 +190,8 @@ namespace engine
       dmsTempCB               _tempCB ;
 
       dmsIxmKeySorterCreator* _ixmKeySorterCreator ;
+
+      dmsPageMappingDispatcher   _pageMapDispatcher ;
 
    private:
       void  _logCSCBNameMap () ;
@@ -253,6 +270,8 @@ namespace engine
                       BOOLEAN sys = FALSE ) ;
 
       void dumpInfo ( INT64 &totalFileSize );
+
+      void dumpPageMapCSInfo( MON_CSNAME_VEC &vecCS ) ;
 
       dmsTempCB *getTempCB () ;
 

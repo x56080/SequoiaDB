@@ -217,7 +217,9 @@ namespace engine
       if ( DMS_INVALID_EXTENT != root )
       {
          ixmExtent rootExtent ( root, _pIndexSu ) ;
+         UINT16 mbID = rootExtent.getMBID() ;
          rootExtent.truncate ( this ) ;
+         _pIndexSu->getPageMap( mbID )->clear() ;
          if ( removeRoot )
          {
             rc = freeExtent ( root ) ;

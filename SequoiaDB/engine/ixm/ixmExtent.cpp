@@ -75,7 +75,7 @@ namespace engine
                         (sizeof(ixmExtentHead) +
                         (_extentHead->_totalKeyNodeNum*sizeof(ixmKeyNode))) ;
       pIndexSu->addStatFreeSpace( mbID, _extentHead->_totalFreeSize ) ;
-
+      _pPageMap = _pIndexSu->getPageMap( mbID ) ;
       PD_TRACE_EXIT ( SDB__IXMEXT1 );
    }
 
@@ -87,6 +87,7 @@ namespace engine
       SDB_ASSERT ( pIndexSu, "index su can't be NULL" ) ;
       PD_TRACE_ENTRY ( SDB__IXMEXT2 ) ;
       _pIndexSu = pIndexSu ;
+      _pPageMap = _pIndexSu->getPageMap( mbID ) ;
       _pageSize = _pIndexSu->pageSize() ;
       _extentHead = (ixmExtentHead*)_pIndexSu->extentAddr(extentID ) ;
       SDB_ASSERT(_extentHead, "extent can't be NULL" ) ;
@@ -118,6 +119,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__IXMEXT3 );
       _extentHead = (ixmExtentHead*)extentStart ;
       _pIndexSu = pIndexSu ;
+      _pPageMap = _pIndexSu->getPageMap( _extentHead->_mbID ) ;
       _pageSize = _pIndexSu->pageSize() ;
       _me = me ;
       PD_TRACE_EXIT ( SDB__IXMEXT3 );
@@ -133,6 +135,7 @@ namespace engine
       _pageSize = _pIndexSu->pageSize() ;
       _me = extentID ;
       _extentHead = (ixmExtentHead*)_pIndexSu->extentAddr(extentID) ;
+      _pPageMap = _pIndexSu->getPageMap( _extentHead->_mbID ) ;
       PD_TRACE_EXIT ( SDB__IXMEXT4 );
       SDB_ASSERT(_extentHead, "extent can't be NULL" ) ;
    }
@@ -199,7 +202,7 @@ namespace engine
                      PD_PACK_INT ( high ),
                      PD_PACK_INT ( middle ) ) ;
          // get the key for the middle
-         CHAR *keyData = getKeyData (middle) ;
+         const CHAR *keyData = getKeyData( middle ) ;
          // the key supposed to exist, otherwise there's some corruption happen
          if ( !keyData )
          {
@@ -239,28 +242,22 @@ namespace engine
                   // allowing two completely undefined keys even if in unique
                   // index
                }
-               // otherwise this key is psudodelete, let's mark the insert
-               // position here and return NOT FOUND
-               // note it's possible that the key with different RID is deleted
-               // (and marked psuedodelete), and then a different record with
-               // same key is inserted. So now the _rid is different in the
-               // node. But when we do SetUsed operation we should always change
-               // the RID
-               // pos = middle ;
-               // found = FALSE ;
-               // goto done ;
             }
             // if duplicate is allowed, let's continue compare the RID
-            result = rid.compare(M->_rid) ;
+            result = rid.compare( M->_rid ) ;
          }
          // if the compare result shows disk value is smaller, let's set high =
          // middle-1
          if ( result < 0 )
+         {
             high = middle -1 ;
+         }
          // if the compare result shows disk value is greater, let's set low =
          // middle+1
          else if ( result > 0 )
+         {
             low = middle + 1 ;
+         }
          // otherwise we have both key+rid identical
          else
          {
@@ -284,8 +281,8 @@ namespace engine
       {
          // make sure the requested key is NOT greater than the next key
          {
-            CHAR *keyData = getKeyData (pos) ;
-            ixmKey keyDisk(keyData) ;
+            const CHAR *keyData = getKeyData (pos) ;
+            ixmKey keyDisk( keyData ) ;
             if ( key.woCompare ( keyDisk, order ) > 0 )
             {
                PD_LOG ( PDERROR, "Internal logic error, key compare wrong" ) ;
@@ -297,7 +294,7 @@ namespace engine
          // make sure the previous key is NOT greater than the requested key
          if ( pos > 0 )
          {
-            CHAR *keyData = getKeyData (pos-1) ;
+            const CHAR *keyData = getKeyData( pos-1 ) ;
             ixmKey keyDisk(keyData) ;
             if ( keyDisk.woCompare ( key, order ) > 0 )
             {
@@ -470,7 +467,8 @@ namespace engine
                                   ixmIndexCB *indexCB )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__IXMEXT_INSERTHERE );
+      PD_TRACE_ENTRY ( SDB__IXMEXT_INSERTHERE ) ;
+
       // attempt to physically insert the key into page
       // if there's no space in the page, it will attempt to reorg the page
       // first, if still not enough space it will return SDB_IXM_NOSPC
@@ -716,14 +714,7 @@ namespace engine
          }
          // assign the right pointer
          newExtent._assignRight ( _extentHead->_right ) ;
-         // change parent extent id for all keys in the new extent
-         /*rc = newExtent._fixParentPtrs ( 0, newExtent.getNumKeyNode() ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to fix parent pointers for the new "
-                     "extent, rc = %d", rc ) ;
-            goto error ;
-         }*/
+
 #if defined (_DEBUG)
          rc = newExtent._validate(MAX, order) ;
 #else
@@ -743,7 +734,7 @@ namespace engine
          if ( DMS_INVALID_EXTENT == getParent() )
          {
             // if this is root page, let's allocate another page
-            dmsExtentID rootExtentID ;
+            dmsExtentID rootExtentID = DMS_INVALID_EXTENT ;
             // allocate new extent
             rc = indexCB->allocExtent ( rootExtentID ) ;
             if ( rc )
@@ -758,7 +749,7 @@ namespace engine
             // promote the split key into parent, key._left point to the current
             // extent
             rc = rootExtent._pushBack ( splitKey->_rid,
-                                        ixmKey(((CHAR*)_extentHead)+
+                                        ixmKey(((const CHAR*)_extentHead)+
                                         splitKey->_keyOffset), order, _me ) ;
             if ( rc )
             {
@@ -779,10 +770,6 @@ namespace engine
                         rc ) ;
                goto error ;
             }
-            // fix the parent extent
-            /*setParent ( rootExtentID ) ;*/
-            // fix the parent extent for new page
-            /*newExtent.setParent ( rootExtentID ) ;*/
             // set new root page
             indexCB->setRoot ( rootExtentID ) ;
          }
@@ -791,10 +778,10 @@ namespace engine
             // when there is parent page exist (so we are not root)
             newExtent.setParent ( getParent() ) ;
             // get the parent extent
-            _ixmExtent parentExtent(getParent(), _pIndexSu ) ;
+            _ixmExtent parentExtent( getParent(), _pIndexSu ) ;
             // do physical insert into it
-            rc = parentExtent._insert(splitKey->_rid,
-                       ixmKey(((CHAR*)_extentHead)+splitKey->_keyOffset),
+            rc = parentExtent._insert( splitKey->_rid,
+                       ixmKey(((const CHAR*)_extentHead)+splitKey->_keyOffset),
                        order, TRUE, _me,
                        newExtentID, indexCB ) ;
             if ( rc )
@@ -912,7 +899,7 @@ namespace engine
             break ;
          }
       }
-      if ( splitPos > getNumKeyNode()-2 )
+      if ( splitPos > getNumKeyNode() - 2 )
       {
          splitPos = getNumKeyNode() - 2 ;
       }
@@ -934,8 +921,8 @@ namespace engine
          const ixmKeyNode *kn = getKeyNode ( i ) ;
          if ( DMS_INVALID_EXTENT != kn->_left )
          {
-            _ixmExtent childExtent ( kn->_left, _pIndexSu ) ;
-            childExtent.setParent ( _me ) ;
+            /// add to page map
+            _pPageMap->addItem( kn->_left, _me ) ;
          }
       }
       return SDB_OK ;
@@ -952,9 +939,14 @@ namespace engine
 
    void _ixmExtent::setChildExtentID ( UINT16 i, dmsExtentID extentID )
    {
-      if ( i>_extentHead->_totalKeyNodeNum ) return ;
+      if ( i>_extentHead->_totalKeyNodeNum )
+      {
+         return ;
+      }
       else if ( i == _extentHead->_totalKeyNodeNum )
+      {
          _assignRight ( extentID ) ;
+      }
       else
       {
          ((ixmKeyNode*)getKeyNode(i))->_left = extentID ;
@@ -1008,11 +1000,13 @@ namespace engine
       kn = (ixmKeyNode*)getKeyNode(_extentHead->_totalKeyNodeNum) ;
       _extentHead->_totalKeyNodeNum++ ;
       kn->_left = left ;
+
       if ( DMS_INVALID_EXTENT != kn->_left )
       {
-         _ixmExtent childExtent ( kn->_left, _pIndexSu ) ;
-         childExtent.setParent ( _me ) ;
+         /// add to page map
+         _pPageMap->addItem( kn->_left, _me ) ;
       }
+
       kn->_rid = rid ;
       rc = _alloc ( key.dataSize(), kn->_keyOffset ) ;
       if ( rc )
@@ -1541,11 +1535,10 @@ namespace engine
       //BOOLEAN mayBalanceRight ;
       //BOOLEAN mayBalanceLeft ;
       // let's return if it's root
-       
-      
+
       if ( DMS_INVALID_EXTENT == getParent() )
       {
-         goto error ;
+         goto done ;
       }
       {
          // get the parent extent
@@ -1559,7 +1552,7 @@ namespace engine
             goto error ;
          }
       } 
-      
+
       // if we are not the _right, and our next slot got child, we may do right
       // balance
       /*mayBalanceRight = (pos < parent.getNumKeyNode() &&
@@ -1624,7 +1617,7 @@ namespace engine
    error :
       goto done ;
    }
-   
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__DELEXT, "_ixmExtent::_delExtent" )
    INT32 _ixmExtent::_delExtent ( ixmIndexCB *indexCB )
    {
@@ -1653,6 +1646,7 @@ namespace engine
       }
       _pIndexSu->decStatFreeSpace( _extentHead->_mbID,
                                    _extentHead->_totalFreeSize ) ;
+      _pPageMap->rmItem( _me ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT__DELEXT, rc );

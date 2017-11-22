@@ -47,6 +47,10 @@
 #include "pd.hpp"
 #include "pmdEDU.hpp"
 
+#include "dmsPageMap.hpp"
+
+using namespace bson ;
+
 namespace engine
 {
    class ixmIndexInsertRequestImpl ;
@@ -139,6 +143,7 @@ namespace engine
       ixmExtentHead     *_extentHead ;
       dmsExtentID       _me ;
       _dmsStorageIndex  *_pIndexSu ;
+      dmsPageMap           *_pPageMap ;
       INT32             _pageSize ;
 
       // reorganize the extent
@@ -264,9 +269,9 @@ namespace engine
                 (sizeof(ixmExtentHead) +
                  _extentHead->_totalKeyNodeNum * sizeof(ixmKeyNode)) ;
       }
-      OSS_INLINE BOOLEAN isRoot()
+      OSS_INLINE BOOLEAN isRoot() const
       {
-         return DMS_INVALID_EXTENT == _extentHead->_parentExtentID ;
+         return DMS_INVALID_EXTENT == getParent() ;
       }
       // get the extent id for child
       dmsExtentID getChildExtentID ( UINT16 i )
@@ -282,13 +287,24 @@ namespace engine
          if ( kn->isUnused() ) return dmsRecordID() ;
          return kn->_rid ;
       }
-      OSS_INLINE dmsExtentID getParent ()
+      OSS_INLINE dmsExtentID getParent () const
       {
-         return _extentHead->_parentExtentID ;
+         dmsExtentID parentID = DMS_INVALID_EXTENT ;
+         if ( !_pPageMap->findItem( _me, &parentID ) )
+         {
+            parentID = _extentHead->_parentExtentID ;
+         }
+         return parentID ;
       }
-      OSS_INLINE void setParent ( dmsExtentID extentID )
+      OSS_INLINE void setParent ( dmsExtentID extentID,
+                                  BOOLEAN rmItem = TRUE )
       {
          _extentHead->_parentExtentID = extentID ;
+
+         if ( rmItem )
+         {
+            _pPageMap->rmItem( _me ) ;
+         }
       }
       void setChildExtentID ( UINT16 i, dmsExtentID extentID ) ;
       // get the pointer to child

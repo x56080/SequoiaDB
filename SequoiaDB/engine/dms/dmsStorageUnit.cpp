@@ -236,12 +236,20 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_CLOSE, "_dmsStorageUnit::close" )
-   void _dmsStorageUnit::close ()
+   void _dmsStorageUnit::close()
    {
       PD_TRACE_ENTRY ( SDB__DMSSU_CLOSE ) ;
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+
+      /// The order is:
+      /// cacheUnit -> lob -> index -> data( must be in last )
       if ( _pCacheUnit )
       {
-         _pCacheUnit->fini( pmdGetThreadEDUCB() ) ;
+         _pCacheUnit->fini( cb ) ;
+      }
+      if ( _pLobSu )
+      {
+         _pLobSu->closeStorage() ;
       }
       if ( _pIndexSu )
       {
@@ -251,10 +259,6 @@ namespace engine
       {
          _pDataSu->closeStorage() ;
       }
-      if ( _pLobSu )
-      {
-         _pLobSu->closeStorage() ;
-      }
       PD_TRACE_EXIT ( SDB__DMSSU_CLOSE ) ;
    }
 
@@ -263,19 +267,9 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSU_REMOVE ) ;
-      if ( _pDataSu )
-      {
-         rc = _pDataSu->removeStorage() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to remove collection space[%s] "
-                      "data file, rc: %d", CSName(), rc ) ;
-      }
 
-      if ( _pIndexSu )
-      {
-         rc = _pIndexSu->removeStorage() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to remove collection space[%s] "
-                      "index file, rc: %d", CSName(), rc ) ;
-      }
+      /// The order is:
+      /// cacheUnit -> lob -> index -> data( must be in last )
 
       if ( _pCacheUnit )
       {
@@ -285,6 +279,23 @@ namespace engine
       if ( _pLobSu )
       {
          _pLobSu->removeStorageFiles() ;
+      }
+
+      if ( _pIndexSu )
+      {
+         /// first clear all page map
+         _pIndexSu->getPageMapUnit()->clear() ;
+
+         rc = _pIndexSu->removeStorage() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to remove collection space[%s] "
+                      "index file, rc: %d", CSName(), rc ) ;
+      }
+
+      if ( _pDataSu )
+      {
+         rc = _pDataSu->removeStorage() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to remove collection space[%s] "
+                      "data file, rc: %d", CSName(), rc ) ;
       }
 
       PD_LOG( PDEVENT, "Remove collection space[%s] files succeed", CSName() ) ;
