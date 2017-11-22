@@ -259,11 +259,15 @@ namespace engine
             return NULL ;
          return (CHAR*)_extentHead+getKeyNode(i)->_keyOffset ;
       }
-      OSS_INLINE UINT16 getFreeSize()
+      OSS_INLINE UINT16 getFreeSize() const
       {
          return _extentHead->_totalFreeSize ;
       }
-      OSS_INLINE UINT16 getTotalKeySize()
+      OSS_INLINE UINT16 getMBID() const
+      {
+         return _extentHead->_mbID ;
+      }
+      OSS_INLINE UINT16 getTotalKeySize() const
       {
          return (UINT16)(_pageSize-1) - _extentHead->_totalFreeSize -
                 (sizeof(ixmExtentHead) +
@@ -274,17 +278,26 @@ namespace engine
          return DMS_INVALID_EXTENT == getParent() ;
       }
       // get the extent id for child
-      dmsExtentID getChildExtentID ( UINT16 i )
+      dmsExtentID getChildExtentID ( UINT16 i ) const
       {
-         if ( i>_extentHead->_totalKeyNodeNum ) return DMS_INVALID_EXTENT ;
+         if ( i>_extentHead->_totalKeyNodeNum )
+         {
+            return DMS_INVALID_EXTENT ;
+         }
          return (i==_extentHead->_totalKeyNodeNum)?(_extentHead->_right):
                     (getKeyNode(i)->_left) ;
       }
-      dmsRecordID getRID ( UINT16 i )
+      dmsRecordID getRID ( UINT16 i ) const
       {
-         if ( i>=_extentHead->_totalKeyNodeNum ) return dmsRecordID() ;
+         if ( i>=_extentHead->_totalKeyNodeNum )
+         {
+            return dmsRecordID() ;
+         }
          const ixmKeyNode *kn = getKeyNode(i) ;
-         if ( kn->isUnused() ) return dmsRecordID() ;
+         if ( kn->isUnused() )
+         {
+            return dmsRecordID() ;
+         }
          return kn->_rid ;
       }
       OSS_INLINE dmsExtentID getParent () const
