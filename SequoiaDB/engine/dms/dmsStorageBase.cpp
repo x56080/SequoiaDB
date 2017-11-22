@@ -162,7 +162,8 @@ namespace engine
 
       while ( fromPos < _size )
       {
-         if ( !_fullDirty && 0 == ( fromPos & 7 ) && 0 == _pData[ fromPos ] )
+         if ( !_fullDirty && 0 == ( fromPos & 7 ) &&
+              0 == _pData[ fromPos >> 3 ] )
          {
             fromPos += 8 ;
          }
@@ -194,7 +195,8 @@ namespace engine
 
          while ( beginPos < endPos )
          {
-            if ( 0 == ( beginPos & 7 ) && 0 == _pData[ beginPos ] )
+            if ( 0 == ( beginPos & 7 ) &&
+                 0 == _pData[ beginPos >> 3 ] )
             {
                beginPos += 8 ;
             }
