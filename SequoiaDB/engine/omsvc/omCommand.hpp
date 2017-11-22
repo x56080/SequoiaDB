@@ -393,6 +393,8 @@ namespace engine
                                                  string &installPath ) ;
          INT32           _checkHostExistence( list<BSONObj> &hostInfoList ) ;
 
+         INT32           _checkHostDisk( list<BSONObj> &hostInfoList ) ;
+
          INT32           _generateTaskInfo( const string &clusterName,
                                             list<BSONObj> &hostInfoList,
                                             BSONObj &taskInfo,

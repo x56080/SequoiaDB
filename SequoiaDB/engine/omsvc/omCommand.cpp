@@ -3061,6 +3061,44 @@ namespace engine
       goto done ;
    }
 
+   INT32 omAddHostCommand::_checkHostDisk( list<BSONObj> &hostInfoList )
+   {
+      INT32 rc = SDB_OK ;
+      set<string> hostNameSet ;
+      list<BSONObj>::iterator iter ;
+
+      for ( iter = hostInfoList.begin(); iter != hostInfoList.end(); ++iter )
+      {
+         map<string,int> diskList ;
+         BSONObj diskArray = iter->getObjectField( OM_BSON_FIELD_DISK ) ;
+         BSONObjIterator iter( diskArray ) ;
+         while ( iter.more() )
+         {
+            string diskName ;
+            BSONElement ele = iter.next() ;
+            if ( ele.type() != Object )
+            {
+               continue ;
+            }
+            BSONObj oneDisk = ele.embeddedObject() ;
+            diskName = oneDisk.getStringField( OM_BSON_FIELD_DISK_NAME ) ;
+            if( diskList.find( diskName ) != diskList.end() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "duplicate disk name:disk name=%s",
+                           diskName.c_str() ) ;
+               goto error ;
+            }
+            diskList[diskName] = 1 ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 omAddHostCommand::_generateTaskInfo( const string &clusterName,
                                               list<BSONObj> &hostInfoList,
                                               BSONObj &taskInfo,
@@ -3213,6 +3251,15 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "fail to get host list:rc=%d", rc ) ;
+         _errorDetail = omGetMyEDUInfoSafe( EDU_INFO_ERROR ) ;
+         _sendErrorRes2Web( rc, _errorDetail ) ;
+         goto error ;
+      }
+
+      rc = _checkHostDisk( hostInfoList ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "fail to _checkHostDisk:rc=%d", rc ) ;
          _errorDetail = omGetMyEDUInfoSafe( EDU_INFO_ERROR ) ;
          _sendErrorRes2Web( rc, _errorDetail ) ;
          goto error ;
