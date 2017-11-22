@@ -2051,6 +2051,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__IXMEXT_TRUNC );
       dmsExtentID childExtentID = DMS_INVALID_EXTENT ;
       UINT16 totalFreeSize = _pageSize - 1 - sizeof(ixmExtentHead) ;
+      dmsPageMap *pPageMap = _pIndexSu->getPageMap( getMBID() ) ;
 
       rc = _validate( indexCB, parent ) ;
       if ( rc )
@@ -2082,6 +2083,7 @@ namespace engine
                   if ( childValid )
                   {
                      indexCB->freeExtent ( childExtentID ) ;
+                     pPageMap->rmItem( childExtentID ) ;
                   }
                }
                catch ( std::exception &e )
