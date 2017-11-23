@@ -64,7 +64,7 @@ namespace engine
    }
 
    // caller must hold exclusive latch
-   PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMS__RSTMAX, "_dmsSegmentSpace::_resetMax" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMS__RSTMAX, "_dmsSegmentSpace::_resetMax" )
    void _dmsSegmentSpace::_resetMax ()
    {
       PD_TRACE_ENTRY ( SDB__DMSSMS__RSTMAX ) ;
@@ -87,9 +87,11 @@ namespace engine
    // reserve numPages number of pages, if we don't have such contigious space
    // we'll return SDB_DMS_NOSPC, otherwise we return SDB_OK with foundPage
    // indicating the ID of starting page
-   PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMS_RSVPAGES, "_dmsSegmentSpace::reservePages" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMS_RSVPAGES, "_dmsSegmentSpace::reservePages" )
    INT32 _dmsSegmentSpace::reservePages ( UINT16 numPages,
-                                          dmsExtentID &foundPage )
+                                          dmsExtentID &foundPage,
+                                          UINT32 pos,
+                                          ossAtomic32 *pFreePos )
    {
       INT32 rc = SDB_DMS_NOSPC ;
       PD_TRACE_ENTRY ( SDB__DMSSMS_RSVPAGES );
@@ -98,6 +100,12 @@ namespace engine
       list<_dmsSegmentNode>::iterator it ;
 
       ossScopedLock lock( &_mutex ) ;
+
+      if ( 0 == _totalFree )
+      {
+         /// update free pos
+         pFreePos->compareAndSwap( pos, pos + 1 ) ;
+      }
 
       if ( numPages > _maxNode )
       {
@@ -179,7 +187,7 @@ namespace engine
    // 7) otherwise it cannot be merged with next, goto 8
    // 8) after 4/5/6/7, we have to check whether able to merge the new node with
    //    previous node.
-   PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMS_RLSPAGES, "_dmsSegmentSpace::releasePages" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMS_RLSPAGES, "_dmsSegmentSpace::releasePages" )
    INT32 _dmsSegmentSpace::releasePages ( dmsExtentID start, UINT16 numPages,
                                           BOOLEAN bitSet )
    {
@@ -369,7 +377,7 @@ namespace engine
       _dmsSMEMgr : implement
    */
    _dmsSMEMgr::_dmsSMEMgr ()
-   :_totalFree( 0 )
+   :_totalFree( 0 ), _freePos( 0 )
    {
       _pStorageBase  = NULL ;
       _pSME          = NULL ;
@@ -387,7 +395,7 @@ namespace engine
       _pSME = NULL ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMEMGR_INIT, "_dmsSMEMgr::init" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMEMGR_INIT, "_dmsSMEMgr::init" )
    INT32 _dmsSMEMgr::init ( _dmsStorageBase *pStorageBase,
                             _dmsSpaceManagementExtent *pSME )
    {
@@ -476,20 +484,26 @@ namespace engine
 
    // attempt to reserve numPages pages from smp, if no more pages can be
    // found in existing pages, foundPage is set to DMS_INVALID_EXTENT
-   PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMEMGR_RSVPAGES, "_dmsSMEMgr::reservePages" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMEMGR_RSVPAGES, "_dmsSMEMgr::reservePages" )
    INT32 _dmsSMEMgr::reservePages ( UINT16 numPages, dmsExtentID &foundPage,
                                     UINT32 *pSegmentNum )
    {
       PD_TRACE_ENTRY ( SDB__DMSSMEMGR_RSVPAGES ) ;
 
       INT32 rc = SDB_OK ;
-      vector<dmsSegmentSpace*>::iterator it ;
+      UINT32 pos = 0 ;
+      UINT32 size = 0 ;
+      UINT32 freePos = 0 ;
 
       ossScopedRWLock lock( &_mutex, SHARED ) ;
 
-      for ( it = _segments.begin(); it != _segments.end(); ++it )
+      size = _segments.size() ;
+      pos = _freePos.fetch() ;
+
+      while( pos < size )
       {
-         rc = (*it)->reservePages ( numPages, foundPage ) ;
+         rc = _segments[pos]->reservePages( numPages, foundPage,
+                                            pos, &_freePos ) ;
          if ( SDB_OK == rc )
          {
             goto done ;
@@ -499,6 +513,7 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to reserve pages, rc = %d", rc ) ;
             goto error ;
          }
+         ++pos ;
       }
 
       // if there's no free space left, we still return SDB_OK but set foundPage
@@ -517,7 +532,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMEMGR_RLSPAGES, "_dmsSMEMgr::releasePages" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMEMGR_RLSPAGES, "_dmsSMEMgr::releasePages" )
    INT32 _dmsSMEMgr::releasePages ( dmsExtentID start, UINT16 numPages )
    {
       PD_TRACE_ENTRY ( SDB__DMSSMEMGR_RLSPAGES ) ;
@@ -546,6 +561,7 @@ namespace engine
                   "start %d, rc = %d", segmentID, start, rc ) ;
          goto error ;
       }
+      _freePos.swapLesserThan( segmentID ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB__DMSSMEMGR_RLSPAGES, rc );
@@ -554,7 +570,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMEMGR_DEPOSIT, "_dmsSMEMgr::deposit" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMEMGR_DEPOSIT, "_dmsSMEMgr::deposit" )
    INT32 _dmsSMEMgr::depositASegment ( dmsExtentID start )
    {
       PD_TRACE_ENTRY ( SDB__DMSSMEMGR_DEPOSIT ) ;
