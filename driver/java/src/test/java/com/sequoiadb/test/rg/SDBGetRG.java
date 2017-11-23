@@ -53,6 +53,17 @@ public class SDBGetRG {
     }
 
     @Test
+    public void getMasterAndSlaveNodeTest() {
+        if (!isCluster)
+            return;
+        groupName = "SYSCatalogGroup";
+        rg = sdb.getReplicaGroup(groupName);
+        Node master = rg.getMaster();
+        Node slave = rg.getSlave();
+        System.out.println(String.format("group is: %s, master is: %s, slave is: %s", groupName, master.getNodeName(), slave.getNodeName()));
+    }
+    
+    @Test
     public void getReplicaGroupById() {
         if (!isCluster)
             return;
