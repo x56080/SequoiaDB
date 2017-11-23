@@ -29,7 +29,14 @@ PHP_METHOD( SecuresDB, __construct )
    CHAR *pPassword   = NULL ;
    zval *pThisObj    = getThis() ;
    sdbConnectionHandle connection = SDB_INVALID_HANDLE ;
+
+   zend_update_property_long( Z_OBJCE_P( pThisObj ),
+                              pThisObj,
+                              ZEND_STRL( "_return_model" ),
+                              1 TSRMLS_CC ) ;
+
    PHP_SET_ERRNO_OK( TRUE, pThisObj ) ;
+
    if( PHP_GET_PARAMETERS( "|zss",
                            &pAddress,
                            &pUserName,
