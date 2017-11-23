@@ -22,7 +22,7 @@
 
 ##建立对象##
 
-以下简单介绍如何创建用 CPP BSON 实例。详细内容请查阅 [C++ BSON API](api/bsoncpp/html/index.html)
+以下简单介绍如何创建 CPP BSON 实例。详细内容请查阅 [C++ BSON API](api/bsoncpp/html/index.html)
 
 * 使用 BSONObject，BSONObjBuilder 建立对象
 
