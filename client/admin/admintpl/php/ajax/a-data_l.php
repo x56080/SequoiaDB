@@ -26,7 +26,10 @@ if ( !empty ( $cursor ) )
            foreach( $arr['Collection'] as $index => $clInfo )
            {
               $clName = explode( '.', $clInfo['Name'] ) ;
-              $arr['Collection'][$index]['Name'] = $clName[1] ;
+              if( count( $clName ) > 1 )
+              {
+                 $arr['Collection'][$index]['Name'] = $clName[1] ;
+              }
            }
         }
 		array_push( $array_2, $arr ) ;
