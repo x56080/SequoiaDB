@@ -93,6 +93,7 @@ namespace engine
       BSONObj obj ;
       BSONElement idEle ;
       const bson::OID *oidPtr = NULL ;
+      UINT32 sequence = 0 ;
       BOOLEAN paralla = FALSE ;
       BOOLEAN updateSameOID = FALSE ;
       UINT32 bucketID = ~0 ;
@@ -129,7 +130,6 @@ namespace engine
             paralla = TRUE ;
             const CHAR *fullName = NULL ;
             const bson::OID *oid = NULL ;
-            UINT32 sequence = 0 ;
             UINT32 offset = 0 ;
             UINT32 len = 0 ;
             UINT32 hash = 0 ;
@@ -147,7 +147,6 @@ namespace engine
             paralla = TRUE ;
             const CHAR *fullName = NULL ;
             const bson::OID *oid = NULL ;
-            UINT32 sequence = 0 ;
             UINT32 offset = 0 ;
             UINT32 len = 0 ;
             UINT32 hash = 0 ;
@@ -168,7 +167,6 @@ namespace engine
             paralla = TRUE ;
             const CHAR *fullName = NULL ;
             const bson::OID *oid = NULL ;
-            UINT32 sequence = 0 ;
             UINT32 offset = 0 ;
             UINT32 len = 0 ;
             UINT32 hash = 0 ;
@@ -226,8 +224,12 @@ namespace engine
          }
          else if ( NULL != oidPtr )
          {
-            bucketID = pBucket->calcIndex( ( const CHAR * )( oidPtr->getData()),
-                                           sizeof( *oidPtr ) ) ;
+            CHAR tmpData[ sizeof( *oidPtr ) + sizeof( sequence ) ] = { 0 } ;
+            ossMemcpy( tmpData, ( const CHAR * )( oidPtr->getData()),
+                       sizeof( *oidPtr ) ) ;
+            ossMemcpy( &tmpData[ sizeof( *oidPtr ) ], ( const CHAR* )&sequence,
+                       sizeof( sequence ) ) ;
+            bucketID = pBucket->calcIndex( tmpData, sizeof( tmpData ) ) ;
          }
       }
 
