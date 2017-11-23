@@ -43,6 +43,13 @@ function svnUp()
    sleep 1
    echo "====================Begin to update all files============================="
    svn up
+   ret=$?
+   if [ $ret -eq 0 ] ; then
+      echo "====================svn up Succeed======================================"
+   else
+      echo "********************svn up Failed**************************************"
+      exit 1
+   fi
    echo "====================End to update all files==============================="
 }
 
@@ -270,7 +277,7 @@ while [ "$1" != "" ]; do
       -start )            startSdb=1
                           ;;
       -dbpath )           shift
-                          homePath=$1
+                          homePath=$(readlink -f $1)
                           ;;
       -full )             runAll=1
                           ;;
