@@ -89,7 +89,9 @@ namespace engine
    // indicating the ID of starting page
    PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMS_RSVPAGES, "_dmsSegmentSpace::reservePages" )
    INT32 _dmsSegmentSpace::reservePages ( UINT16 numPages,
-                                          dmsExtentID &foundPage )
+                                          dmsExtentID &foundPage,
+                                          UINT32 pos,
+                                          ossAtomic32 *pFreePos )
    {
       INT32 rc = SDB_DMS_NOSPC ;
       PD_TRACE_ENTRY ( SDB__DMSSMS_RSVPAGES );
@@ -98,6 +100,12 @@ namespace engine
       list<_dmsSegmentNode>::iterator it ;
 
       ossScopedLock lock( &_mutex ) ;
+
+      if ( 0 == _totalFree )
+      {
+         /// update free pos
+         pFreePos->compareAndSwap( pos, pos + 1 ) ;
+      }
 
       if ( numPages > _maxNode )
       {
@@ -369,7 +377,7 @@ namespace engine
       _dmsSMEMgr : implement
    */
    _dmsSMEMgr::_dmsSMEMgr ()
-   :_totalFree( 0 )
+   :_totalFree( 0 ), _freePos( 0 )
    {
       _pStorageBase  = NULL ;
       _pSME          = NULL ;
@@ -483,13 +491,19 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSSMEMGR_RSVPAGES ) ;
 
       INT32 rc = SDB_OK ;
-      vector<dmsSegmentSpace*>::iterator it ;
+      UINT32 pos = 0 ;
+      UINT32 size = 0 ;
+      UINT32 freePos = 0 ;
 
       ossScopedRWLock lock( &_mutex, SHARED ) ;
 
-      for ( it = _segments.begin(); it != _segments.end(); ++it )
+      size = _segments.size() ;
+      pos = _freePos.fetch() ;
+
+      while( pos < size )
       {
-         rc = (*it)->reservePages ( numPages, foundPage ) ;
+         rc = _segments[pos]->reservePages( numPages, foundPage,
+                                            pos, &_freePos ) ;
          if ( SDB_OK == rc )
          {
             goto done ;
@@ -499,6 +513,7 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to reserve pages, rc = %d", rc ) ;
             goto error ;
          }
+         ++pos ;
       }
 
       // if there's no free space left, we still return SDB_OK but set foundPage
@@ -546,6 +561,7 @@ namespace engine
                   "start %d, rc = %d", segmentID, start, rc ) ;
          goto error ;
       }
+      _freePos.swapLesserThan( segmentID ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB__DMSSMEMGR_RLSPAGES, rc );

@@ -84,7 +84,8 @@ namespace engine
                                   _dmsSMEMgr *pSMEMgr ) ;
       ~_dmsSegmentSpace () ;
 
-      INT32 reservePages ( UINT16 numPages, dmsExtentID &foundPage ) ;
+      INT32 reservePages ( UINT16 numPages, dmsExtentID &foundPage,
+                           UINT32 pos, ossAtomic32 *pFreePos ) ;
       INT32 releasePages ( dmsExtentID start, UINT16 numPages,
                            BOOLEAN bitSet = TRUE ) ;
 
@@ -109,6 +110,7 @@ namespace engine
       _dmsStorageBase            *_pStorageBase ;
       _dmsSpaceManagementExtent  *_pSME ;
       ossAtomic32                _totalFree ;
+      ossAtomic32                _freePos ;
 
    public :
       _dmsSMEMgr() ;
