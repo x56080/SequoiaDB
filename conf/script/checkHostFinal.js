@@ -90,7 +90,7 @@ function main()
          ssh = new Ssh( ip, user, passwd, sshport ) ;
          
          // 2. remove the temporary directory in target host but leave the log file
-         removeTmpDir2( ssh ) ;
+         removeTmpDir2( ssh, true ) ;
       }
       catch ( e )
       {
@@ -102,7 +102,7 @@ function main()
                  "Failed to post-check host[" + ip + "], rc: " + retObj[Errno] + ", detail: " + retObj[Detail] ) ;
          try
          {
-            removeTmpDir2( ssh ) ;
+            removeTmpDir2( ssh, true ) ;
          }
          catch( e ){}
       }

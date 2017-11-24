@@ -455,58 +455,6 @@ function sprintf( format )
 }
 
 /* *****************************************************************************
-@discretion: create temporary directory in remote host
-@author: Tanzhaobo
-@parameter
-   ssh[object]: ssh object
-@return void
-***************************************************************************** */
-function createTmpDir( ssh )
-{
-   var str = "" ;
-   // directories make in target host /tmp   
-   var dirs = [ OMA_PATH_TEMP_OMA_DIR,
-                OMA_PATH_TEMP_BIN_DIR,
-                OMA_PATH_TEMP_PACKET_DIR,
-                OMA_PATH_TEMP_CONF_DIR,
-                OMA_PATH_TEMP_DATA_DIR,
-                OMA_PATH_TMP_WEB_DIR,
-                OMA_PATH_TEMP_LOG_DIR,
-                OMA_PATH_TEMP_LOCAL_DIR,
-                OMA_PATH_TEMP_SPT_DIR,
-                OMA_PATH_TEMP_TEMP_DIR ] ;
-   try
-   {
-      if ( SYS_LINUX == SYS_TYPE )
-      {
-        // rm /tmp/omatmp
-        str = "rm " + OMA_PATH_TEMP_OMA_DIR + " -rf " ;
-        ssh.exec( str ) ;
-        // mkdir dirs
-        for ( var i = 0; i < dirs.length; i++ )
-        {
-           str = "mkdir -p " + dirs[i] ;
-           ssh.exec( str ) ;
-           ssh.exec("chmod -R 777 " + dirs[i]);
-        }
-      }
-      else
-      {
-         // TODO: tanzhaobo
-      }
-   }
-   catch( e )
-   {
-      SYSEXPHANDLE( e ) ;
-      rc = GETLASTERROR() ;
-      errMsg = "Failed to create temporary directory in host[" + ssh.getPeerIP() + "]" ;
-      PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
-              errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
-      exception_handle( rc, errMsg ) ;
-   }
-}
-
-/* *****************************************************************************
 @discretion: remove the temporary directory and files in temporary directory
 @author: Tanzhaobo
 @parameter
@@ -546,15 +494,28 @@ function removeTmpDir( ssh )
    ssh[object]: ssh object
 @return void
 ***************************************************************************** */
-function removeTmpDir2( ssh )
+function removeTmpDir2( ssh, isSkipPacket )
 {
    var str = "" ;
    // directories need to be removed in target host
-   var dirs = [ OMA_PATH_TEMP_BIN_DIR,
-                OMA_PATH_TEMP_PACKET_DIR,
-                OMA_PATH_TEMP_SPT_DIR,
-                OMA_PATH_TEMP_LOCAL_DIR,
-                OMA_PATH_TMP_WEB_DIR ] ;
+   var dirs = null ;
+
+   if( isSkipPacket === true )
+   {
+      dirs = [ OMA_PATH_TEMP_BIN_DIR,
+               OMA_PATH_TEMP_SPT_DIR,
+               OMA_PATH_TEMP_LOCAL_DIR,
+               OMA_PATH_TMP_WEB_DIR ] ;
+   }
+   else
+   {
+      dirs = [ OMA_PATH_TEMP_BIN_DIR,
+               OMA_PATH_TEMP_PACKET_DIR,
+               OMA_PATH_TEMP_SPT_DIR,
+               OMA_PATH_TEMP_LOCAL_DIR,
+               OMA_PATH_TMP_WEB_DIR ] ;
+   }
+
    try
    {
       if ( SYS_LINUX == SYS_TYPE )
@@ -578,6 +539,60 @@ function removeTmpDir2( ssh )
       errMsg = "Failed to remove temporary directory in host[" + ssh.getPeerIP() + "]" ;
       PD_LOG( arguments, PDWARNING, FILE_NAME_FUNC,
               errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
+   }
+}
+
+/* *****************************************************************************
+@discretion: create temporary directory in remote host
+@author: Tanzhaobo
+@parameter
+   ssh[object]: ssh object
+@return void
+***************************************************************************** */
+function createTmpDir( ssh )
+{
+   var str = "" ;
+   // directories make in target host /tmp
+   var dirs = [ OMA_PATH_TEMP_OMA_DIR,
+                OMA_PATH_TEMP_BIN_DIR,
+                OMA_PATH_TEMP_PACKET_DIR,
+                OMA_PATH_TEMP_CONF_DIR,
+                OMA_PATH_TEMP_DATA_DIR,
+                OMA_PATH_TMP_WEB_DIR,
+                OMA_PATH_TEMP_LOG_DIR,
+                OMA_PATH_TEMP_LOCAL_DIR,
+                OMA_PATH_TEMP_SPT_DIR,
+                OMA_PATH_TEMP_TEMP_DIR ] ;
+   try
+   {
+      if ( SYS_LINUX == SYS_TYPE )
+      {
+        // rm /tmp/omatmp
+        //str = "rm " + OMA_PATH_TEMP_OMA_DIR + " -rf " ;
+        //ssh.exec( str ) ;
+        removeTmpDir2( ssh, true ) ;
+
+        // mkdir dirs
+        for ( var i = 0; i < dirs.length; i++ )
+        {
+           str = "mkdir -p " + dirs[i] ;
+           ssh.exec( str ) ;
+           ssh.exec("chmod -R 777 " + dirs[i]);
+        }
+      }
+      else
+      {
+         // TODO: tanzhaobo
+      }
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = "Failed to create temporary directory in host[" + ssh.getPeerIP() + "]" ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
+              errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
+      exception_handle( rc, errMsg ) ;
    }
 }
 
