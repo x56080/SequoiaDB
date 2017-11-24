@@ -187,18 +187,18 @@ class UUIDLegacy(Binary):
       0
       >>> coll.get_count({'uuid': UUIDLegacy(my_uuid)})
       1
-      >>> coll.query({'uuid': UUIDLegacy(my_uuid)})[0]['uuid']
+      >>> coll.query( condition = {'uuid': UUIDLegacy(my_uuid)}).next()['uuid']
       UUID('...')
       >>>
       >>> # Convert from subtype 3 to subtype 4
-      >>> doc = coll.query_one({'uuid': UUIDLegacy(my_uuid)})
+      >>> doc = coll.query_one( condition = {'uuid': UUIDLegacy(my_uuid)})
       >>> coll.save(doc)
       ObjectId('...')
       >>> coll.get_count({'uuid': UUIDLegacy(my_uuid)})
       0
       >>> coll.get_count({'uuid': {'$in': [UUIDLegacy(my_uuid), my_uuid]}})
       1
-      >>> coll.query_one({'uuid': my_uuid})['uuid']
+      >>> coll.query_one( condition = {'uuid': my_uuid})['uuid']
       UUID('...')
 
     Raises TypeError if `obj` is not an instance of :class:`~uuid.UUID`.
