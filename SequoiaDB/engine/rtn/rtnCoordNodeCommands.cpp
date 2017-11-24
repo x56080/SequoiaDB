@@ -1235,11 +1235,10 @@ namespace engine
 
          if ( onlyAttach )
          {
-            PD_CHECK( 0 != groupName.compare( COORD_GROUPNAME ) &&
-                      0 != groupName.compare( CATALOG_GROUPNAME ),
+            PD_CHECK( 0 != groupName.compare( COORD_GROUPNAME ),
                       SDB_INVALIDARG, error, PDERROR,
-                      "Failed to %s: only data-group supports \"attachNode\" now",
-                      _getCommandName() ) ;
+                      "Failed to %s: only data-group or catalog-group "
+                      "supports \"attachNode\" now", _getCommandName() ) ;
 
             rc = rtnGetBooleanElement( pSelfArgs->_boQuery,
                                        FIELD_NAME_KEEP_DATA, keepData ) ;
@@ -1697,11 +1696,10 @@ namespace engine
 
          if ( onlyDetach )
          {
-            PD_CHECK( 0 != groupName.compare( COORD_GROUPNAME ) &&
-                      0 != groupName.compare( CATALOG_GROUPNAME ),
+            PD_CHECK( 0 != groupName.compare( COORD_GROUPNAME ),
                       SDB_INVALIDARG, error, PDERROR,
-                      "Failed to %s: only data-group supports \"detachNode\" now",
-                      _getCommandName() ) ;
+                      "Failed to %s: only data-group or catalog-group "
+                      "supports \"detachNode\" now", _getCommandName() ) ;
          }
 
          rc = rtnGetBooleanElement( pSelfArgs->_boQuery,
