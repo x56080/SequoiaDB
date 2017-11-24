@@ -12,7 +12,7 @@ class sslTest extends PHPUnit_Framework_TestCase
    protected static $db ;
    protected static $csName  = 'cs9652_sec';
    protected static $clName  = 'cl';
-/*
+
    public static function setUpBeforeClass()
    {
       $address = globalParameter::getHostName().':'.globalParameter::getCoordPort();
@@ -23,9 +23,9 @@ class sslTest extends PHPUnit_Framework_TestCase
          throw new Exception("failed to connect db");
       }
    }
-*/
+
    public function test_ssl()
-   {/*
+   {
       // create cs
       self::$db -> createCS( self::$csName, null );
       $this -> assertEquals( 0, self::$db -> getError()['errno'] );
@@ -40,13 +40,13 @@ class sslTest extends PHPUnit_Framework_TestCase
       
       // drop cs
       self::$db -> dropCS( self::$csName );
-      $this -> assertEquals( 0, self::$db -> getError()['errno'] );    */  
+      $this -> assertEquals( 0, self::$db -> getError()['errno'] );   
    }
-   /*
+   
    public static function tearDownAfterClass()
    {
       $err = self::$db->close();
    }
-   */
+   
 };
 ?>
