@@ -1133,15 +1133,29 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXRMNODE_EXECUTE_INT ) ;
 
+      replCB *pReplCB = pmdGetKRCB()->getClsCB()->getReplCB() ;
+
       BSONObjBuilder updateBuilder ;
       BSONObj updator, matcher, dummyObj ;
       BSONArray baNewNodeList ;
       BSONObj boGroup ;
 
+      if ( !_needDeactive )
+      {
+         // Re-check again for parallel removing nodes from the same group
+         // Note: if need deactive, group has been locked exclusively, no
+         // need to re-check
+         _lockMgr.unlockObjects() ;
+
+         rc = _checkInternal( cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed in catContext [%lld]: "
+                      "failed to check context internal, rc: %d",
+                      contextID(), rc ) ;
+      }
+
       // For below cases, we don't wait sync
       // 1. forced remove-node command
       // 2. during forced reelect
-      replCB *pReplCB = pmdGetKRCB()->getClsCB()->getReplCB() ;
       if ( _forced || pReplCB->isInStepUp() )
       {
          w = 1 ;
