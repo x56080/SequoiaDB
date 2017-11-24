@@ -92,18 +92,18 @@ namespace engine
       ss << "Type:" ;
       if ( SQL_GRAMMAR::CRTCS == _commandType )
       {
-         ss << "create collectionspace" << '\n';
-         ss << "Name:" << _fullName.toString() << '\n';
+         ss << "create collectionspace" << '\n'
+            << "Name:" << _fullName.toString() << '\n';
       }
       else if ( SQL_GRAMMAR::DROPCS == _commandType )
       {
-         ss << "drop collectionspace" << '\n';
-         ss << "Name:" << _fullName.toString() << '\n';
+         ss << "drop collectionspace" << '\n'
+            << "Name:" << _fullName.toString() << '\n';
       }
       else if ( SQL_GRAMMAR::CRTCL == _commandType )
       {
-         ss << "create collection" << '\n';
-         ss << "Name:" << _fullName.toString() << '\n';
+         ss << "create collection" << '\n'
+            << "Name:" << _fullName.toString() << '\n';
          if ( !_partition.isEmpty() )
          {
             ss << "Shardingkey:" << _partition.toString() << '\n';
@@ -111,16 +111,16 @@ namespace engine
       }
       else if ( SQL_GRAMMAR::DROPCL == _commandType )
       {
-         ss << "drop collection" ;
-         ss << "Name:" << _fullName.toString() << '\n';
+         ss << "drop collection" << '\n'
+            << "Name:" << _fullName.toString() << '\n';
       }
       else if ( SQL_GRAMMAR::CRTINDEX == _commandType )
       {
-         ss << "create index" ;
-         ss << "Name:" << _fullName.toString() << '\n';
-         ss << "Index:" << _indexName.toString() << '\n';
-         ss << "Columns:" << qgmBuilder::buildOrderby( _indexColumns )
-                               .toString() << '\n';
+         ss << "create index" << '\n'
+            << "Name:" << _fullName.toString() << '\n'
+            << "Index:" << _indexName.toString() << '\n'
+            << "Columns:" << qgmBuilder::buildOrderby( _indexColumns )
+                               .toString() << '\n' ;
          if ( _uniqIndex )
          {
             ss <<  "Unique:true" << '\n';
@@ -132,9 +132,9 @@ namespace engine
       }
       else if ( SQL_GRAMMAR::DROPINDEX == _commandType )
       {
-         ss << "drop index" ;
-         ss << "Name:" << _fullName.toString() << '\n';
-         ss << "Index:" << _indexName.toString() << '\n';
+         ss << "drop index" << '\n'
+            << "Name:" << _fullName.toString() << '\n'
+            << "Index:" << _indexName.toString() << '\n';
       }
       else if ( SQL_GRAMMAR::LISTCL == _commandType )
       {
