@@ -2,7 +2,6 @@
 
 import pysequoiadb
 from pysequoiadb import client
-from pysequoiadb import const
 from pysequoiadb.error import (SDBTypeError,
                                SDBBaseError,
                                SDBEndOfCursor)
@@ -25,7 +24,7 @@ if __name__ == "__main__":
       basketball = {"Item":"basketball", "id":0}
       oid = cl.insert(basketball)
 
-      pysequoiadb._print("before update")
+      print("before update")
       cr = cl.query()
       while True:
          try:
@@ -34,14 +33,14 @@ if __name__ == "__main__":
             break
          except SDBBaseError:
             raise
-         pysequoiadb._print(record)
+         print(record)
 
       # update records
       update = {'$set':{"Item":"football", "Rank":1 }}
       cond = {'id':{'$et':0}}
       cl.update(update, condition = cond)
 
-      pysequoiadb._print("after update")
+      print("after update")
       cr = cl.query()
       while True:
          try:
@@ -50,7 +49,7 @@ if __name__ == "__main__":
             break
          except SDBBaseError as e:
             raise
-         pysequoiadb._print(record)
+         print(record)
 
       # drop collection
       cs.drop_collection( cl_name )
@@ -64,6 +63,6 @@ if __name__ == "__main__":
       del db
 
    except (SDBTypeError, SDBBaseError) as  e:
-      pysequoiadb._print(e)
+      print(e)
    except SDBBaseError as e:
-      pysequoiadb._print(e.detail)
+      print(e.detail)

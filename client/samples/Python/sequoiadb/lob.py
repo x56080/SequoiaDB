@@ -2,7 +2,6 @@
 
 import pysequoiadb
 from pysequoiadb import client
-from pysequoiadb import const
 from pysequoiadb import lob
 from pysequoiadb.error import (SDBTypeError,
                                SDBBaseError,
@@ -39,16 +38,16 @@ if __name__ == "__main__":
             break
          except SDBBaseError:
             raise
-         pysequoiadb._print(lob_one)
+         print(lob_one)
 
       lob_two = cl.get_lob(oid)
-      pysequoiadb._print(lob_two.get_size())
-      pysequoiadb._print(lob_two.get_create_time())
+      print(lob_two.get_size())
+      print(lob_two.get_create_time())
       datafrom = lob_two.read(20)
       lob_two.close()
-      pysequoiadb._print(datafrom)
+      print(datafrom)
       cl.remove_lob(oid)
-      pysequoiadb._print("remove success")
+      print("remove success")
       # drop collection
       cs.drop_collection( cl_name )
       del cl
@@ -61,7 +60,7 @@ if __name__ == "__main__":
       del db
 
    except SDBBaseError as e:
-      pysequoiadb._print(e)
-      pysequoiadb._print(e.detail)
+      print(e)
+      print(e.detail)
    except SDBTypeError as e:
-      pysequoiadb._print(e)
+      print(e)

@@ -2,7 +2,6 @@
 
 import pysequoiadb
 from pysequoiadb import client
-from pysequoiadb import const
 from pysequoiadb.error import (SDBTypeError,
                                SDBBaseError,
                                SDBEndOfCursor)
@@ -38,7 +37,7 @@ if __name__ == "__main__":
 
       # execute sql1
       cr = db.exec_sql(sql1)
-      pysequoiadb._print("The result are below after execute sql:%s" % sql1)
+      print("The result are below after execute sql:%s" % sql1)
       while True:
          try:
             record = cr.next()
@@ -46,13 +45,13 @@ if __name__ == "__main__":
             break
          except SDBBaseError:
             raise
-         pysequoiadb._print(record)
+         print(record)
 
-      pysequoiadb._print('\n')
+      print('\n')
 
       # execute sql2
       db.exec_update(sql2)
-      pysequoiadb._print("The result are below after execute sql:%s" % sql2)
+      print("The result are below after execute sql:%s" % sql2)
       cr = cl.query()
 
       record = cr.next()
@@ -63,7 +62,7 @@ if __name__ == "__main__":
             break
          except SDBBaseError:
             raise
-         pysequoiadb._print(record)
+         print(record)
 
       # drop collection
       cs.drop_collection( cl_name )
@@ -77,6 +76,6 @@ if __name__ == "__main__":
       del db
 
    except (SDBTypeError, SDBBaseError) as e:
-      pysequoiadb._print(e)
+      print(e)
    except SDBBaseError as e:
-      pysequoiadb._print(e.detail)
+      print(e.detail)

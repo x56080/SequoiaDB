@@ -2,7 +2,6 @@
 
 import pysequoiadb
 from pysequoiadb import client
-from pysequoiadb import const
 from pysequoiadb.error import (SDBTypeError,
                                SDBBaseError,
                                SDBEndOfCursor)
@@ -25,7 +24,7 @@ if __name__ == "__main__":
       cl = cs.create_collection(cl_name, {"ReplSize":0})
 
       # get all indexes before create index
-      pysequoiadb._print("Before create index:")
+      print("Before create index:")
       cr = cl.get_indexes()
       # print indexes
       while True:
@@ -35,14 +34,14 @@ if __name__ == "__main__":
             break
          except SDBBaseError:
             raise
-         pysequoiadb._print(record)
+         print(record)
 
       #create an index
       index = OrderedDict([('Item', 1), ('Rank', -1)])
       index_name = 'idx'
       cl.create_index(index, index_name, False, False)
 
-      pysequoiadb._print("After create index:")
+      print("After create index:")
       # get all indexes
       cr = cl.get_indexes()
 
@@ -54,7 +53,7 @@ if __name__ == "__main__":
             break
          except SDBBaseError as e:
             raise
-         pysequoiadb._print(record)
+         print(record)
 
       # release all
       cs.drop_collection(cl_name)
@@ -67,6 +66,6 @@ if __name__ == "__main__":
       del db
 
    except (SDBTypeError, SDBBaseError) as e:
-      pysequoiadb._print(e)
+      print(e)
    except SDBBaseError as e:
-      pysequoiadb._print(e.detail)
+      print(e.detail)

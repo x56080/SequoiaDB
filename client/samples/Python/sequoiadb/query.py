@@ -2,7 +2,6 @@
 
 import pysequoiadb
 from pysequoiadb import client
-from pysequoiadb import const
 from pysequoiadb.error import (SDBTypeError,
                                SDBBaseError,
                                SDBEndOfCursor)
@@ -27,7 +26,7 @@ if __name__ == "__main__":
       oid = cl.insert(basketball)
 
       cond = {"id":{'$et':0}}
-      pysequoiadb._print("query one record, using condition=%s" % cond)
+      print("query one record, using condition=%s" % cond)
 
       cr = cl.query(condition=cond)
       while True:
@@ -37,7 +36,7 @@ if __name__ == "__main__":
             break
          except SDBBaseError:
             raise
-         pysequoiadb._print(record)
+         print(record)
 
       # bulk_insert
       records = []
@@ -46,7 +45,7 @@ if __name__ == "__main__":
          records.append(sport)
       cl.bulk_insert(1, records)
 
-      pysequoiadb._print("query all records:")
+      print("query all records:")
       cr = cl.query()
       while True:
          try:
@@ -55,7 +54,7 @@ if __name__ == "__main__":
             break
          except SDBBaseError:
             raise
-         pysequoiadb._print(record)
+         print(record)
 
       cs.drop_collection( cl_name )
       del cl
@@ -67,4 +66,4 @@ if __name__ == "__main__":
       del db
 
    except (SDBTypeError, SDBBaseError) as  e:
-      pysequoiadb._print(e)
+      print(e)

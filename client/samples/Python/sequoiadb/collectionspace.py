@@ -2,7 +2,6 @@
 
 import pysequoiadb
 from pysequoiadb import client
-from pysequoiadb import const
 from pysequoiadb.error import (SDBTypeError,
                                SDBBaseError,
                                SDBEndOfCursor)
@@ -25,12 +24,12 @@ if __name__ == "__main__":
       # 2.get collection space
       # try to get a collection space named by 'sports' use __getitem__
       cs = db[cs_name]
-      pysequoiadb._print("get collection space:[%s] success" % cs_name)
+      print("get collection space:[%s] success" % cs_name)
 
       # 3.get collection space
       # try to get a collection space named by 'sports' use __getattri__
       cs = db.subject
-      pysequoiadb._print("get collection space:[%s] success." % 'subject')
+      print("get collection space:[%s] success." % 'subject')
 
       # release
       cs_name = cs.get_collection_space_name()
@@ -40,4 +39,4 @@ if __name__ == "__main__":
       del db
 
    except (SDBTypeError, SDBBaseError) as e:
-      pysequoiadb._print(e)
+      print(e)

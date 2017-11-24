@@ -2,7 +2,6 @@
 
 import pysequoiadb
 from pysequoiadb import client
-from pysequoiadb import const
 from pysequoiadb.error import (SDBTypeError,
                                SDBBaseError,
                                SDBEndOfCursor)
@@ -13,10 +12,10 @@ if "__main__" == __name__:
    # host= 'localhost', port= 11810, user= '', password= ''
    try:
       db_default = client()
-      pysequoiadb._print( db_default )
+      print( db_default )
       del db_default
    except (SDBTypeError, SDBBaseError) as e:
-      pysequoiadb._print(e)
+      print(e)
 
    # connect to db, using default args value.
    # host= '192.168.20.111', port= 11810, user= '', password= ''
@@ -25,7 +24,7 @@ if "__main__" == __name__:
       db_to_1 = client('192.168.20.48', 11810, '', '')
       del db_to_1
    except (SDBTypeError, SDBBaseError) as e:
-      pysequoiadb._print(e)
+      print(e)
 
    # connect to db, using default args value.
    # host= 'localhost', port= 11810, user= '', password= ''
@@ -51,4 +50,4 @@ if "__main__" == __name__:
       del db
 
    except (SDBTypeError, SDBBaseError) as e:
-      pysequoiadb._print(e)
+      print(e)
