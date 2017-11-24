@@ -10,12 +10,11 @@
 
 * 数据库连接（Connecting）
 
-  以下是connect.py演示如何连接到数据库。脚本中应当import pysequoiadb中的client const等模块，以及error模块中的SDBBaseError类。
+  以下是connect.py演示如何连接到数据库。
   
   ```lang-javascript
   import pysequoiadb
   from pysequoiadb import client
-  from pysequoiadb import const
 
   # connect to local db, using default args value.
   host = 'localhost'
@@ -26,8 +25,6 @@
   # if no error occurs, connect to specified server successfully
   print 'Connect success'
   db.disconnect()
-  # Need to release client whether it connected db server successfully or not
-  del db
   ```
 
   在Linux下，可以直接运行python解释执行connect.py。
@@ -41,29 +38,17 @@
   以下创建了一个名字为“foo”的集合空间和一个名字为“bar”的集合，集合空间内的集合的数据页大小为16k。可根据实际情况选择不同大小的数据页。创建集合后，可对集合做增删改查等操作。
   
   ```lang-javascript
-  try:
-     db = client()
-  except SDBBaseError, e:
-     pysequoiadb._print(e.detail)
-     raise e
-  # success to connect to db
+  # connect to db
+  db = client("localhost", 11810)
   
+  # create collection space
   cs_name = 'foo'
-  try:
-     cs = db.create_collection_space(cs_name)
-  except SDBBaseError, e:
-     pysequoiadb._print(e.detail)
-     raise e
-  # success to create collection space
+  cs = db.create_collection_space(cs_name)
   
   cl_name = 'bar'
-  try:
-     cl = cs.create_collection(cl_name)
-  except SDBBaseError, e:
-     pysequoiadb._print(e.detail)
-     raise e
+  cl = cs.create_collection(cl_name)
   ```
-  
+
 * 插入数据（insert）
 
   ```lang-javascript
@@ -79,14 +64,13 @@
   ```lang-javascript
   import pysequoiadb
   from pysequoiadb import client
-  from pysequoiadb import const
   from pysequoiadb.error import SDBEndOfCursor
 
   cr = cl.query()
   while True:
      try:
         record = cr.next()
-        print record 
+        print(record) 
      except SDBEndOfCursor:
         break
      finally:
