@@ -95,6 +95,9 @@ namespace engine
          case QGM_OPTI_TYPE_SPLIT :
             return "Split By" ;
             break ;
+         case QGM_OPTI_TYPE_COMMAND :
+            return "Command" ;
+            break ;
          default :
             break ;
       }
