@@ -28,7 +28,8 @@ if ( typeof(CURSUB) == "undefined" ) { CURSUB = 1 ; }
 if ( typeof(CUROPR) == "undefined" ) { CUROPR = "split" ; }
 /* 是否激活该子网集群，取值 true/false */
 if ( typeof(ACTIVE) == "undefined" ) { ACTIVE = true ; }
-
+/* 剔除故障组节点后剩余的最小副本数, 若剔除后剩余副本数小于最小副本数，将不会执行剔除操作 */
+if ( typeof(MINREPLICANUM) == "undefined" ) { MINREPLICANUM = 2 ; }
 /* 内部定义, 请勿修改 */
 if ( SEQPATH.charAt( SEQPATH.length - 1 ) != '/' ) { SEQPATH += '/' ; }
 var SDBSTART = SEQPATH + "bin/sdbstart" ;
@@ -219,7 +220,8 @@ function checkArgs() {
       println( "CURSUB must be 1 or 2" ) ;
       return false ;
    }
-   if ( CUROPR != "init" && CUROPR != "split" && CUROPR != "merge" ) {
+   if ( CUROPR != "init" && CUROPR != "split" && CUROPR != "merge"
+        && CUROPR != "detachGroupNode" && CUROPR != "attachGroupNode" ) {
       println( "CUROPR must be 'init', 'split' or 'merge' " ) ;
       return false ;
    }
@@ -1237,6 +1239,179 @@ function mergeCluster( cataAddrs, keepHosts, filename, active ) {
 }
 
 /* *****************************************************************************
+@discription: 故障组剔除故障节点
+@author: Jiaming Wu
+@return: true/false
+***************************************************************************** */
+function detachGroupNode( coordAddr, filename ) {
+   var db ;
+   var groupsArray ;
+   // Get cluster group info
+   try {
+      groupsArray = readGroupsInfo( filename ) ;
+   } catch( e ) {
+      println( "Read groups info failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+      return false ;
+   }
+
+   try {
+      var addrArray = splitHostAndSvcFromAddr( coordAddr ) ;
+      db = new Sdb( addrArray[0], addrArray[1], SDBUSERNAME, SDBPASSWD ) ;
+   } catch ( e ) {
+      println( "Connect to " + coordAddr + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+      return false ;
+   }
+   for( var i = 0; i < groupsArray.length; i++ ) {
+      var rgObj = groupsArray[ i ] ;
+      if( rgObj.GroupName == "SYSCoord" ) {
+         continue ;
+      }
+      var groupSize = rgObj.Group.length ;
+      var groupName = rgObj.GroupName ;
+      var snapshotCursor ;
+      /* Get specified group node snapshot */
+      try {
+         snapshotCursor = db.snapshot( SDB_SNAP_DATABASE, { GroupName: groupName,
+                                                            RawData: true } ) ;
+      } catch( e ) {
+         println( "Get cluster snapshot failed: " + e +
+                  "(" + getLastErrMsg() + ")" ) ;
+         return false ;
+      }
+
+      var exist = false ;
+      var bs ;
+      var ErrNodes ;
+      try {
+         /* Check whether the primiary node exist and get error nodes info */
+         while( ( bs = snapshotCursor.next() ) != undefined ) {
+            var obj = bs.toObj() ;
+            if( obj.ErrNodes != undefined ) {
+               ErrNodes = obj.ErrNodes ;
+               continue ;
+            }
+            if( obj.IsPrimary == true ) {
+               exist = true ;
+            }
+         }
+      } catch( e ) {
+         println( "Traverse snapshot failed: " + e +
+                  "(" + getLastErrMsg() + ")" ) ;
+         return false ;
+      }
+
+      if( false == exist ) {
+         /* After detach node, the number of extant group node must greater than MINREPLICANUM */
+         if( groupSize - ErrNodes.length < MINREPLICANUM ) {
+            println( "Detach node from " + groupName +
+                     " failed: " + "After detachment,the number of exant node in "
+                     + groupName + " must greater than " + MINREPLICANUM ) ;
+            return false ;
+         }
+         /* Detach Error node */
+         for( var index = 0; index < ErrNodes.length; index++ ) {
+            var nodeNameArr = splitHostAndSvcFromAddr( ErrNodes[ index ].NodeName ) ;
+            try {
+               db.getRG( groupName ).detachNode( nodeNameArr[ 0 ], nodeNameArr[ 1 ],
+                                                { KeepData: true,
+                                                  enforced: true } ) ;
+            } catch( e ) {
+               println( "Detach node " + ErrNodes[ index ].NodeName + " from "
+                        + groupName + " failed: " + e +
+                        "(" + getLastErrMsg() + ")" ) ;
+               return false ;
+            }
+            println( "Detach node " + ErrNodes[ index ].NodeName + " from "
+                     + groupName + " succeed" ) ;
+         }
+      }
+   }
+   return true ;
+}
+
+/* *****************************************************************************
+@discription: 故障组合并故障节点
+@author: Jiaming Wu
+@return: true/false
+***************************************************************************** */
+function attachGroupNode( coordAddr, filename ) {
+   var groupsArray ;
+   var db ;
+   /* Get group info */
+   try {
+      groupsArray = readGroupsInfo( filename ) ;
+   } catch ( e ) {
+      println( "Read groups info from file[" + filename + "] failed: " + e ) ;
+      return false ;
+   }
+
+   try {
+      var addrArray = splitHostAndSvcFromAddr( coordAddr ) ;
+      db = new Sdb( addrArray[0], addrArray[1], SDBUSERNAME, SDBPASSWD ) ;
+   } catch ( e ) {
+      println( "Connect to " + coordAddr + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+      return false ;
+   }
+
+   for( var index = 0; index < groupsArray.length; index++ ) {
+      var tmpGroupObj = groupsArray[ index ] ;
+      var groupName = tmpGroupObj.GroupName
+      if( "SYSCoord" == groupName ) {
+         continue ;
+      }
+      var group = tmpGroupObj.Group ;
+      var snapshotCursor ;
+      var currentNodeArr = new Array() ;
+      try {
+         snapshotCursor = db.snapshot( SDB_SNAP_DATABASE, { GroupName: groupName,
+                                                            RawData: true } ) ;
+      } catch( e ) {
+         println( "Get cluster snapshot failed: " + e +
+                  "(" + getLastErrMsg() + ")" ) ;
+         return false ;
+      }
+      var bs ;
+      while( ( bs = snapshotCursor.next() ) != undefined ) {
+         var tmpObj = bs.toObj() ;
+         if( tmpObj.ErrNodes != undefined ) {
+            for( var j = 0; j < tmpObj.ErrNodes.length; j++ ) {
+               currentNodeArr.push( tmpObj.ErrNodes[ j ] ) ;
+            }
+         } else {
+            currentNodeArr.push( tmpObj ) ;
+         }
+      }
+      for( var j = 0; j < group.length; j++ ) {
+         var node = group[ j ] ;
+         var hostname = node.HostName ;
+         var svcname = node.Service[ 0 ].Name ;
+         var filter = new _Filter( { NodeName: hostname + ":" + svcname } ) ;
+         var result = filter.match( currentNodeArr ) ;
+         if( result.size() == 0 )
+         {
+            try {
+               var tmpDb = new Sdb( hostname, svcname, SDBUSERNAME, SDBPASSWD ) ;
+               continue ;
+            } catch( e ) {
+            }
+
+            try {
+               db.getRG( groupName ).attachNode( hostname, svcname,
+                                                 { KeepData: true } ) ;
+               println( "Attach node " + hostname + ":" + svcname + " to "
+                        + groupName + " succeed " ) ;
+            } catch( e ) {
+               println( "Attach node " + hostname + ":" + svcname + " to "
+                        + groupName + " failed: " + e +
+                        "(" + getLastErrMsg() + ")" ) ;
+               return false ;
+            }
+         }
+      }
+   }
+   return true ;
+}
+/* *****************************************************************************
 @discription: 入口函数
 @author: Jianhui Xu
 @return: true/false
@@ -1285,6 +1460,30 @@ function main() {
          return false ;
       }
       if ( mergeCluster( CURCATAS, CURHOSTS, INITFILE, ACTIVE ) ) {
+         println( "Done" ) ;
+      } else {
+         println( "Failed" ) ;
+         return ;
+      }
+   } else if ( "detachGroupNode" == CUROPR ) {
+      println( "Begin to detach group node" ) ;
+      if ( !prepareEnv( INITFILE, CURHOSTS ) ) {
+         println( "Prepare env failed" ) ;
+         return false ;
+      }
+      if ( detachGroupNode( COORDADDR[0], INITFILE ) ) {
+         println( "Done" ) ;
+      } else {
+         println( "Failed" ) ;
+         return ;
+      }
+   } else if ( "attachGroupNode" == CUROPR) {
+      println( "Begin to attach group node" ) ;
+      if ( !prepareEnv( INITFILE, CURHOSTS ) ) {
+         println( "Prepare env failed" ) ;
+         return false ;
+      }
+      if ( attachGroupNode( COORDADDR[0], INITFILE ) ) {
          println( "Done" ) ;
       } else {
          println( "Failed" ) ;

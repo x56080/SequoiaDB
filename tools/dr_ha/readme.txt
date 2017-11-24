@@ -19,7 +19,7 @@
       COORDADDR: 协调节点定义，如果协调节点已经在协调节点组信息中，则此处填写一个可用地址即可
       CURSUB :   当前脚本所处的是在SUB1还是SUB2（注意，该参数非常重要）
       ACTIVE :   当前子网是否为激活状态。如果取false，则在split后，当前子网的集群为只读状态。
-
+      MINREPLICANUM: 剔除故障组节点后剩余的最小副本数, 若剔除后剩余副本数小于最小副本数，将不会执行剔除操作。
    4、分别在上述SUB1-NodeA和SUB2-NodeA的机器上的shell下执行 ' sh init.sh '，进行初始化（该初始化主要是保存当前集群所有的组信息，用于merge时恢复集群）
 
    5、当SUB1和SUB2出现了网络分离，相互无法访问时，此时可以分别在上述SUB1-NodeA和SUB2-NodeA的机器上的shell下执行 ' sh split.sh ' 进行集群分离， 让SUB1和SUB2分离成独立集群，此时 ACTIVE配置为true的子网可以对外提供读写操作，ACTIVE配置为false的子网只提供读操作；
