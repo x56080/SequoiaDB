@@ -1384,27 +1384,32 @@ function attachGroupNode( coordAddr, filename ) {
       for( var j = 0; j < group.length; j++ ) {
          var node = group[ j ] ;
          var hostname = node.HostName ;
-         var svcname = node.Service[ 0 ].Name ;
-         var filter = new _Filter( { NodeName: hostname + ":" + svcname } ) ;
-         var result = filter.match( currentNodeArr ) ;
-         if( result.size() == 0 )
-         {
-            try {
-               var tmpDb = new Sdb( hostname, svcname, SDBUSERNAME, SDBPASSWD ) ;
-               continue ;
-            } catch( e ) {
-            }
+         for( var k = 0; k < node.Service.length; k++ ) {
+            var serviveObj = node.Service[ k ] ;
+            if( serviveObj.Type == 0 ) {
+               var svcname = serviveObj.Name ;
+               var filter = new _Filter( { NodeName: hostname + ":" + svcname } ) ;
+               var result = filter.match( currentNodeArr ) ;
+               if( result.size() == 0 )
+               {
+                  try {
+                     var tmpDb = new Sdb( hostname, svcname, SDBUSERNAME, SDBPASSWD ) ;
+                     continue ;
+                  } catch( e ) {
+                  }
 
-            try {
-               db.getRG( groupName ).attachNode( hostname, svcname,
-                                                 { KeepData: true } ) ;
-               println( "Attach node " + hostname + ":" + svcname + " to "
-                        + groupName + " succeed " ) ;
-            } catch( e ) {
-               println( "Attach node " + hostname + ":" + svcname + " to "
-                        + groupName + " failed: " + e +
-                        "(" + getLastErrMsg() + ")" ) ;
-               return false ;
+                  try {
+                     db.getRG( groupName ).attachNode( hostname, svcname,
+                                                       { KeepData: true } ) ;
+                     println( "Attach node " + hostname + ":" + svcname + " to "
+                              + groupName + " succeed " ) ;
+                  } catch( e ) {
+                     println( "Attach node " + hostname + ":" + svcname + " to "
+                              + groupName + " failed: " + e +
+                              "(" + getLastErrMsg() + ")" ) ;
+                     return false ;
+                  }
+               }
             }
          }
       }
