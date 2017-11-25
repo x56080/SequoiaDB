@@ -1573,7 +1573,7 @@ INT32 sdbScalarArrayOpExpr( ScalarArrayOpExpr *scalaExpr,
    }
 
    columnName = get_relid_attribute_name( expr_state->foreign_table_id,
-                                             var->varattno ) ;
+                                          var->varattno ) ;
    foreach( cell, scalaExpr->args )
    {
       Node *oprarg = lfirst( cell ) ;
@@ -1598,14 +1598,9 @@ INT32 sdbScalarArrayOpExpr( ScalarArrayOpExpr *scalaExpr,
 
          constCount++ ;
       }
-      else if ( T_Var == oprarg->type )
-      {
-         varCount++ ;
-      }
       else
       {
-         rc = SDB_INVALIDARG ;
-         goto error ;
+         varCount++ ;
       }
    }
 
