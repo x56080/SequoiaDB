@@ -367,7 +367,7 @@
                 <runProgram>
                     <program>systemctl</program>
                     <programArguments>daemon-reload</programArguments>
-                    <customErrorMessage>${msg(Install.ErrorMsg.systemctlReload)}</customErrorMessage>
+                    <customErrorMessage>${msg(Install.ErrorMsg.SystemctlReload)}</customErrorMessage>
                 </runProgram>
                 <runProgram>
                     <program>systemctl</program>
@@ -389,7 +389,7 @@
                 <runProgram>
                     <program>systemctl</program>
                     <programArguments>daemon-reload</programArguments>
-                    <customErrorMessage>${msg(Install.ErrorMsg.systemctlReload)}</customErrorMessage>
+                    <customErrorMessage>${msg(Install.ErrorMsg.SystemctlReload)}</customErrorMessage>
                 </runProgram>
             </actionList>
         </actionDefinition>

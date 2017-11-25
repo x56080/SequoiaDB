@@ -36,6 +36,7 @@ Install.ErrorMsg.DeleteUser.error=删除用户${username}失败
 Install.ErrorMsg.IntallationOM.error=创建OM失败
 Install.ErrorMsg.checkDisk.error=磁盘剩余空间不足1.3G
 Install.ErrorMsg.StartCM.error=启动cm失败，执行命令：service sdbcm start。
+Install.ErrorMsg.SystemctlReload=执行'systemctl daemon-reload'失败.
 
 Install.WarnMsg.CheckUmask=umask值异常！当前umask=${full_mask}，建议改成0022
 Install.WarnMsg.checkHostname=没有配置主机名，主机名可能为空！
@@ -79,4 +80,3 @@ Upgrade.ErrorMsg.StartProcess=sdbcm或者sdbcmd未启动
 Upgrade.ErrorMsg.GetGoup=获取用户${username}的用户组失败
 
 Uninstall.ErrorMsg.CheckProcess=执行service sdbcm stop后仍然有进程残留
-Uninstall.ErrorMsg.systemctlReload=删除服务时，执行'systemctl daemon-reload'失败.

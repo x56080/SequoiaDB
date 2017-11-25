@@ -36,6 +36,7 @@ Install.ErrorMsg.DeleteUser.error=Failed to delete user:${username}
 Install.ErrorMsg.IntallationOM.error=Create OM failed
 Install.ErrorMsg.checkDisk.error=There is not enough disk space for installation. It needs at lease 1.3G.
 Install.ErrorMsg.StartCM.error=Failed to start cm, execute: service sdbcm start.
+Install.ErrorMsg.SystemctlReload=Fail to excute 'systemctl daemon-reload'.
 
 Install.WarnMsg.CheckUmask=Umask abnormal! Current umask = ${full_mask}, recommended value is 0022
 Install.WarnMsg.checkHostname=Hostname may be null!
@@ -79,4 +80,3 @@ Upgrade.ErrorMsg.StartProcess=sdbcm or sdbcmd has not been started.
 Upgrade.ErrorMsg.GetGoup=Failed to get group of user ${username}.
 
 Uninstall.ErrorMsg.CheckProcess=Relevant processes still exist after excuting 'service sdbcm stop'.
-Uninstall.ErrorMsg.systemctlReload=Fail to excute 'systemctl daemon-reload' while removing service.
