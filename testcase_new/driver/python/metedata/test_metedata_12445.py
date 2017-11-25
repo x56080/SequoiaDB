@@ -76,7 +76,7 @@ class TestMeteData12445(testlib.SdbTestBase):
          except SDBEndOfCursor:
             break
       cursor.close()
-      self.assertEqual(actual_cl_names, expect_cl_names) 
+      self.assertListEqualUnordered(expect_cl_names, actual_cl_names)
       
       #attach cl
       attach_option1 = {"LowBound": {"a": 1}, "UpBound": {"a": 1000}}
