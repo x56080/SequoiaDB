@@ -366,6 +366,11 @@
                 <deleteFile path="${installdir}/sdbcm.service"/>
                 <runProgram>
                     <program>systemctl</program>
+                    <programArguments>daemon-reload</programArguments>
+                    <customErrorMessage>${msg(Install.ErrorMsg.systemctlReload)}</customErrorMessage>
+                </runProgram>
+                <runProgram>
+                    <program>systemctl</program>
                     <programArguments>enable sdbcm.service</programArguments>
                     <customErrorMessage>${msg(Install.ErrorMsg.CreateLinuxService.error)}</customErrorMessage>
                 </runProgram>
@@ -373,6 +378,12 @@
         </actionDefinition>
         <actionDefinition name="delSystemdService">
             <actionList>
+                <runProgram>
+                    <program>systemctl</program>
+                    <programArguments>disable sdbcm.service</programArguments>
+                    <abortOnError>0</abortOnError>
+                    <showMessageOnError>0</showMessageOnError>
+                </runProgram>
                 <deleteFile path="${newsysconf_default}/sdbcm.service"/>
                 <deleteFile path="${newsysconf_ubuntu}/sdbcm.service"/>
                 <runProgram>
