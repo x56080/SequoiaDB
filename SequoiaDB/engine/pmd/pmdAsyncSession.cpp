@@ -724,7 +724,7 @@ namespace engine
          pSession = *it ;
          ++it ;
 
-         _releaseSession_i( pSession, FALSE, FALSE ) ;
+         _releaseSession( pSession ) ;
       }
       tmpDeletingSessions.clear() ;
 
@@ -1063,7 +1063,6 @@ namespace engine
                                                  BOOLEAN delay )
    {
       PD_TRACE_ENTRY ( PMD_SESSMGR_RLSSS_I ) ;
-      pmdBuffInfo *pBuffInfo = NULL ;
 
       SDB_ASSERT ( pSession, "pSession can't be NULL" ) ;
 
@@ -1085,6 +1084,21 @@ namespace engine
          _deqDeletingSessions.push_back ( pSession ) ;
          goto done ;
       }
+
+      _releaseSession( pSession ) ;
+
+   done:
+      PD_TRACE_EXIT ( PMD_SESSMGR_RLSSS_I );
+      return SDB_OK ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( PMD_SESSMGR__RELEASESESSION, "_pmdAsycSessionMgr::_releaseSession" )
+   INT32 _pmdAsycSessionMgr::_releaseSession( pmdAsyncSession *pSession )
+   {
+      PD_TRACE_ENTRY ( PMD_SESSMGR__RELEASESESSION ) ;
+      pmdBuffInfo *pBuffInfo = NULL ;
+
+      SDB_ASSERT ( pSession, "pSession can't be NULL" ) ;
 
       // Wait the working agent finish the job
       pSession->waitDetach () ;
@@ -1118,7 +1132,7 @@ namespace engine
       SDB_OSS_DEL pSession ;
 
    done:
-      PD_TRACE_EXIT ( PMD_SESSMGR_RLSSS_I );
+      PD_TRACE_EXIT ( PMD_SESSMGR__RELEASESESSION );
       return SDB_OK ;
    }
 
