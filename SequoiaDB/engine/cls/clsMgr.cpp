@@ -227,7 +227,7 @@ namespace engine
       }
       else if ( _sessionTimerID == timerID )
       {
-         if ( _mapSession.size() <= MAX_SHD_SESSION_CATCH_DEQ_SIZE / 10 )
+         if ( _mapSession.size() <= MAX_SHD_SESSION_CATCH_DEQ_SIZE / 2 )
          {
             goto done ;
          }
