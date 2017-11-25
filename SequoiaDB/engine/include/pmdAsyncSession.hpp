@@ -342,6 +342,7 @@ namespace engine
          INT32          _releaseSession_i ( pmdAsyncSession *pSession,
                                             BOOLEAN postQuit,
                                             BOOLEAN delay ) ;
+         INT32          _releaseSession( pmdAsyncSession *pSession ) ;
 
          INT32          _reply( const NET_HANDLE &handle, INT32 rc,
                                 const MsgHeader *pReqMsg ) ;
