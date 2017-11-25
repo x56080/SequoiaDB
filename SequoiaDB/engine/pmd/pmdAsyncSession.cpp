@@ -1074,6 +1074,9 @@ namespace engine
          // Notify the edu quit
          pSession->eduCB()->disconnect () ;
       }
+
+      onSessionDestoryed( pSession ) ;
+
       // if we don't need to relase it rightaway, we can push the request to
       // delete queue and return
       if ( delay )
@@ -1085,8 +1088,6 @@ namespace engine
 
       // Wait the working agent finish the job
       pSession->waitDetach () ;
-
-      onSessionDestoryed( pSession ) ;
 
       // dec based handle number
       if ( pSession->getMeta() )
