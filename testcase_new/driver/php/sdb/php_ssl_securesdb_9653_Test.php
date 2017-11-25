@@ -1,13 +1,13 @@
 /****************************************************
-@description:      ssl
-@testlink cases:   seqDB-9652
+@description:      ssl, securesdb
+@testlink cases:   seqDB-9653
 @modify list:
         2017-11-21 xiaoni huang init
 ****************************************************/
 <?php
 define('Cur_Path', dirname(__FILE__));
 include_once Cur_Path.'/../global.php';
-class sslTest extends PHPUnit_Framework_TestCase
+class sslTest965301 extends PHPUnit_Framework_TestCase
 {
    protected static $db;
 
