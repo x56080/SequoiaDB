@@ -43,7 +43,6 @@ import com.sequoiadb.testcommon.SdbTestBase;
 * @version 1.00
 */
 
-@Test
 public class ClusterManager7065 extends SdbTestBase{
 	private Sequoiadb sdb ;
 	private String dataRGName = "dataAddGroup7065";
@@ -52,6 +51,7 @@ public class ClusterManager7065 extends SdbTestBase{
 	private String workDir;
 	private int reservedPortBegin;
 	private String coordIP;
+	private boolean clearFlag = false;
 	private CommLib commlib = new CommLib();
 	
 	@BeforeClass
@@ -78,7 +78,8 @@ public class ClusterManager7065 extends SdbTestBase{
 		try{
 			System.out.println("the TestCase: "+ this.getClass().getName() + 
 					" end at:" + df.format(new Date().getTime()));
-			if(sdb.getReplicaGroup(dataRGName) != null){
+			
+			if(clearFlag && sdb.getReplicaGroup(dataRGName) != null){
 				sdb.removeReplicaGroup(dataRGName);
 			}
 			sdb.disconnect();
@@ -87,10 +88,11 @@ public class ClusterManager7065 extends SdbTestBase{
 		}
 	}
 	
+	@Test
 	public void test(){
 		//set node configure
 		int dataPortAdd1 = reservedPortBegin + 650 ;
-		String dataPathAdd1 = workDir + dataPortAdd1 + "/";
+		String dataPathAdd1 = workDir + "/" + dataPortAdd1 + "/";
 		BSONObject dataConfigue1 = (BSONObject) JSON.parse("{logfilesz:64}");
 		
 		//create data groups
@@ -212,7 +214,7 @@ public class ClusterManager7065 extends SdbTestBase{
 		
 		//create another data node
 		int dataPortAdd2 = reservedPortBegin + 660 ;
-		String dataPathAdd2 = workDir + dataPortAdd2 + "/";
+		String dataPathAdd2 = workDir + "/" + dataPortAdd2 + "/";
 		BSONObject dataConfigue2 = null;
 		try{
 			Node node = dataRGAdd.createNode(coordIP, dataPortAdd2, dataPathAdd2, dataConfigue2 );
@@ -224,22 +226,29 @@ public class ClusterManager7065 extends SdbTestBase{
 		
 		//get master and slave
 		String actualMasterNodeName = null;
-		String actualSlaveNodeName = null;
+		String actualSlaveNodeName = null;	
+		
 		try{
-			for(int i=0;i<60;i++){
-				if(dataRG.getMaster() == null){
-					try {
-						System.out.println("i:"+i);
-						Thread.sleep(3000);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
+			for(int i=0;i<120;i++){
+				try{
+					dataRG.getMaster();	
+				}catch(BaseException e){
+					if(e.getErrorCode() == -71){						
+						try {						
+                     System.out.println("get master time: " + i);                  
+							Thread.sleep(3000);
+						} catch (InterruptedException e1) {							
+							e1.printStackTrace();
+						}
+					}else{
+						Assert.fail("get master fail:" + e.getMessage());
 					}
-				}else{
-					break;
 				}
 			}
 			actualMasterNodeName = dataRG.getMaster().getNodeName();
+			System.out.println("masterNodeName=" + actualMasterNodeName);
 			actualSlaveNodeName = dataRG.getSlave().getNodeName();
+			System.out.println("slaveNodeName=" + actualSlaveNodeName);
 		}catch(BaseException e){
 			Assert.fail("get master and slave node failed" + e.getMessage());
 		}
@@ -261,6 +270,10 @@ public class ClusterManager7065 extends SdbTestBase{
 			Assert.fail("remove replicaGroup failed" + e.getMessage());
 		}
 		Assert.assertNull(sdb.getReplicaGroup(dataRGName),"replicaGroup " + dataRGName + " exists ,but expect result is removed!");
-		
+	
+	   //Normal operating environment
+      clearFlag = true;		
 	}
+	
+	
 }
