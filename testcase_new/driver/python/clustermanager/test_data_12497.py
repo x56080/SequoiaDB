@@ -27,6 +27,11 @@ class TestDataRg12497(testlib.SdbTestBase):
       # create data rg
       data_rg = self.db.create_replica_group(self.data_rg_name)
       
+      #check list_replica_groups
+      data_rgs = get_data_groups(self.db)
+      if not self.data_rg_name in data_rgs:
+         self.fail("create data group fail: " + str(data_rgs))
+      
       #create node 1
       data_hostname = self.db.get_replica_group_by_name("SYSCatalogGroup").get_master().get_hostname()
       service_name1 = str(sdbconfig.sdb_config.rsrv_port_begin)
@@ -66,11 +71,6 @@ class TestDataRg12497(testlib.SdbTestBase):
       
       #remove rg
       self.db.remove_replica_group(self.data_rg_name)
-      
-      #check use list_replica_groups
-      data_rgs = get_data_groups(self.db)
-      if self.data_rg_name in data_rgs:
-         self.fail("remove_rg_fail,data_rgs:" + str(data_rgs))
    
    def tearDown(self):
       try:

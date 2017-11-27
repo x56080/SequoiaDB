@@ -110,8 +110,16 @@ class TestDataNode12498(testlib.SdbTestBase):
       self.assertTrue(master_data_connect_status)
       self.assertTrue(slave_data_connect_status)
       
-      #connect
+      # connect
       data1 = node1.connect()
+      # check connect
+      cs_name = "test_12498"
+      try:
+         data1.create_collection_space(cs_name)
+         data1.drop_collection_space(cs_name)
+      except SDBBaseError as e:
+         if -33 != e.code and  -34 != e.code:
+            self.fail("create and drop cs fail: " + e.detail)   
       
       # remove node
       self.db.remove_replica_group(self.data_rg_name)
