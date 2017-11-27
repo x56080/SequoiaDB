@@ -11,14 +11,13 @@ from pysequoiadb.error import SDBBaseError
 
 class Testdata13486(testlib.SdbTestBase):
    def setUp(self): 
+      # check standalone
+      if testlib.is_standalone():
+         self.skipTest('current environment is standalone')
       testlib.drop_cs(self.db, self.cs_name, ignore_not_exist=True)
       self.group_name = "data13486"     
  
    def test_data_13486(self):
-      # check standalone
-      if testlib.is_standalone():
-         self.skipTest('current environment is standalone')
-      
       # create data group  
       self.db.create_replica_group(self.group_name)
       
@@ -55,6 +54,6 @@ class Testdata13486(testlib.SdbTestBase):
          self.db.remove_replica_group(self.group_name)
          self.db.disconnect()
       except SDBBaseError as e:
-         if -154 != e.code and -159 != e.code:
+         if -154 != e.code:
             self.fail("remove rg fail when teardown: " + e.detail)
       

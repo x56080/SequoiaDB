@@ -24,13 +24,12 @@ from pysequoiadb.error import SDBBaseError
 
 class TestDataNode12498(testlib.SdbTestBase):
    def setUp(self):
-      self.data_rg_name = "data12498"
-
-   def test_data_node_12498(self):
       # check standalone
       if testlib.is_standalone():
          self.skipTest('run mode is standalone')
-      
+      self.data_rg_name = "data12498"
+
+   def test_data_node_12498(self):
       # create data rg
       data_rg = self.db.create_replica_group(self.data_rg_name)
 
@@ -127,7 +126,7 @@ class TestDataNode12498(testlib.SdbTestBase):
          self.db.remove_replica_group(self.data_rg_name)
          self.db.disconnect()
       except SDBBaseError as e:
-         if -154 != e.code and -159 != e.code:
+         if -154 != e.code:
             print(e.detail)
             self.fail("tear_down_fail")
           

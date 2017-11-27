@@ -17,13 +17,12 @@ from pysequoiadb.error import SDBBaseError
 
 class TestMetedata13482(testlib.SdbTestBase):
    def setUp(self):
-      self.domain_name = "domain_13482"
-      
-   def test_metedata_13482(self):
       # check standalone
       if testlib.is_standalone():
          self.skipTest('current environment is standalone')
+      self.domain_name = "domain_13482"
       
+   def test_metedata_13482(self):
       # get data groups
       data_groups = testlib.get_data_groups()
       
@@ -135,5 +134,5 @@ class TestMetedata13482(testlib.SdbTestBase):
       try:
          self.db.drop_domain(self.domain_name)
       except SDBBaseError as e:
-         if e.code != -214 and e.code != -159:
+         if e.code != -214:
             self.fail("drop domain fail when teardown: " + e.detail) 

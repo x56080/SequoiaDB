@@ -15,6 +15,9 @@ from pysequoiadb.error import SDBBaseError
 domain_name = "domain_13483"
 class TestMetedata13482(testlib.SdbTestBase):
    def setUp(self):
+      # check standalone
+      if testlib.is_standalone():
+         self.skipTest('current environment is standalone')
       self.domain_name1 = domain_name + "_1"
       self.domain_name2 = domain_name + "_2"
       self.cs_name1 = self.cs_name + "_1"
@@ -23,10 +26,6 @@ class TestMetedata13482(testlib.SdbTestBase):
       testlib.drop_cs(self.db, self.cs_name2, ignore_not_exist=True)
       
    def test_metedata_13483(self):
-      # check standalone
-      if testlib.is_standalone():
-         self.skipTest('current environment is standalone')
-      
       # get data groups
       data_groups = testlib.get_data_groups()
       group1 = data_groups[0]['GroupName']
@@ -116,5 +115,5 @@ class TestMetedata13482(testlib.SdbTestBase):
       try:
          self.db.drop_domain(domain_name)
       except SDBBaseError as e:
-         if e.code != -214 and e.code != -159:
+         if e.code != -214:
             self.fail(msg + e.detail)    

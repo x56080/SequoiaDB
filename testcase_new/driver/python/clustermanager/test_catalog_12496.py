@@ -10,13 +10,11 @@ from lib import sdbconfig
 
 class TestCatalog12496(testlib.SdbTestBase):
    def setUp(self):
-      pass
-      
-   def test_catalog_12496(self):
       # check standalone
       if testlib.is_standalone():
          self.skipTest('run mode is standalone')
       
+   def test_catalog_12496(self):
       # get catalog rg and check is_catalog
       catalog_rg = self.db.get_cata_replica_group()
       is_catalog = catalog_rg.is_catalog()
