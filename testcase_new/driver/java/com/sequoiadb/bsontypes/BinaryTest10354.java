@@ -97,9 +97,8 @@ public class BinaryTest10354 extends SdbTestBase{
 	        }
 	        System.out.println("actRecs="+actRecs.toString());
 	        tmpCursor.close();
-	        //TODO:SEQUOIADBMAINSTREAM-1972
-	        /*Assert.assertEquals(actRecs,obj,"check datas are unequal\n"+"actDatas: "
-	        			+actRecs+"\n"+"expectDatas: "+obj.toString());	*/        
+	        Assert.assertEquals(actRecs,obj,"check datas are unequal\n"+"actDatas: "
+	        			+actRecs+"\n"+"expectDatas: "+obj.toString()); 
 		}catch(BaseException  e){
 			Assert.assertTrue(false,e.getMessage()+e.getStackTrace());
 		}	
