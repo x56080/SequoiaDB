@@ -29,7 +29,7 @@ v2.6及以上版本。
 
 ##示例##
 
-1. 通过jsonForamt()改变BSON打印格式。
+1. 通过jsonFormat()改变BSON打印格式。
 
 	```lang-javascript
   	> db.foo.bar.find()
