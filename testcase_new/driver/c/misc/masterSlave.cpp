@@ -85,8 +85,8 @@ TEST_F( masterSlaveTest, masterSlave )
    sprintf( dbPath1, "%s%s%s%s", nodeDir, "data/", svcName1, "/" ) ;
    CHAR dbPath2[100] ;
    sprintf( dbPath2, "%s%s%s%s", nodeDir, "data/", svcName2, "/" ) ;
-   cout << "node1: " << HOST << " " << svcName1 << " " << dbPath1 << endl ;
-   cout << "node2: " << HOST << " " << svcName2 << " " << dbPath2 << endl ;
+   printf( "node1: %s %s %s\n", HOST, svcName1, dbPath1 ) ;
+   printf( "node2: %s %s %s\n", HOST, svcName2, dbPath2 ) ;
 
    rc = sdbCreateNode( rg, HOST, svcName1, dbPath1, NULL ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to create node1" ;
