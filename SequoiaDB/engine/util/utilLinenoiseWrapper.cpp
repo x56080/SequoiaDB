@@ -758,6 +758,9 @@ BOOLEAN getNextCommand ( const CHAR *prompt, CHAR ** cmd,
 BOOLEAN historyInit ( void )
 {
    BOOLEAN  ret   = FALSE ;
+
+   PD_TRACE_ENTRY( SDB_HISTORYINIT ) ;
+
    stringstream sstream ;
    const CHAR *pName = ".sequoiadb_shell_history" ;
    const char *pPath = NULL ;
@@ -775,6 +778,7 @@ BOOLEAN historyInit ( void )
 done :
    PD_TRACE_EXITRC ( SDB_HISTORYINIT, ret );
    return ret ;
+
 error :
    goto done ;
 }

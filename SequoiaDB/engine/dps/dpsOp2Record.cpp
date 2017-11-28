@@ -1169,6 +1169,7 @@ namespace engine
       transID = *((DPS_TRANS_ID *)itrID.value()) ;
       }
    done:
+      PD_TRACE_EXITRC( SDB__DPS_RECORD2TRANSCOMMIT, rc ) ;
       return rc ;
    error:
       goto done ;

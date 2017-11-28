@@ -108,6 +108,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      PD_TRACE_ENTRY( SDB_CATNODEMGR_ACTIVE ) ;
+
       _pCatCB->clearInfo() ;
       rc = _loadGroupInfo() ;
       if ( rc )

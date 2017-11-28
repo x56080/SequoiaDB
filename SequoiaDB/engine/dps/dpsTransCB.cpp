@@ -609,16 +609,17 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_TERMALLTRANS, "dpsTransCB::termAllTrans" )
    void dpsTransCB::termAllTrans()
    {
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_TERMALLTRANS ) ;
+
+      ossScopedLock _lock( &_CBMapMutex );
+      TRANS_CB_MAP::iterator iterMap = _cbMap.begin();
+      while( iterMap != _cbMap.end() )
       {
-         ossScopedLock _lock( &_CBMapMutex );
-         TRANS_CB_MAP::iterator iterMap = _cbMap.begin();
-         while( iterMap != _cbMap.end() )
-         {
-            iterMap->second->postEvent( pmdEDUEvent(
-                                        PMD_EDU_EVENT_TRANS_STOP ) ) ;
-            _cbMap.erase( iterMap++ );
-         }
+         iterMap->second->postEvent( pmdEDUEvent(
+                                     PMD_EDU_EVENT_TRANS_STOP ) ) ;
+         _cbMap.erase( iterMap++ );
       }
+
       PD_TRACE_EXIT ( SDB_DPSTRANSCB_TERMALLTRANS );
    }
 
