@@ -122,10 +122,5 @@ class TestTimestamp12454(testlib.SdbTestBase):
       self.assertEqual(inc_data6, 516352)
       
    def tearDown(self):
-      try:
-         #self.db.drop_collection_space(self.cs_name)
-         self.db.disconnect()
-      except SDBBaseError as e:
-         if(-34 != e.code):
-            print(e.detail)
-            self.fail("tear_down_fail")
+      if self.should_clean_env():
+         self.db.drop_collection_space(self.cs_name)
