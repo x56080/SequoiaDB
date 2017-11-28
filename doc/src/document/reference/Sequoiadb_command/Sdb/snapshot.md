@@ -14,7 +14,7 @@
 
 > **Note:**
 
->* snapType 字段的值请参考 [列表类型](database_management/monitoring/snapshot/snapshot.md)。
+>* snapType 字段的值请参考 [快照类型](database_management/monitoring/snapshot/snapshot.md)。
 >* sel 参数是一个json结构，如：{字段名:字段值}，字段值一般指定为空串。sel中指定的字段名在记录中存在，设置字段值不生效；不存在则返回sel中指定的字段名和字段值。
 >* 记录中字段值类型为数组，我们可以在sel中指定该字段名，用"."操作符加上双引号("")来引用数组元素。
 
