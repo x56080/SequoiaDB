@@ -29,7 +29,7 @@ class SdbInstall extends BaseOperator
       }
       else if( $returnType === 'string' )
       {
-         $options = array( 'install' => false );
+         $options = '{ "install": false }';
       }
       
       $this -> db -> install( $options );
