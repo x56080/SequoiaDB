@@ -198,6 +198,20 @@ public class Sequoiadb {
     }
 
     /**
+     * @return Host name of SequoiaDB server.
+     */
+    public String getHost() {
+        return serverAddress.getHost();
+    }
+
+    /**
+     * @return Service port of SequoiaDB server.
+     */
+    public int getPort() {
+        return serverAddress.getPort();
+    }
+    
+    /**
      * @fn void setServerAddress(ServerAddress serverAddress)
      * @brief Set the address of remote server.
      * @param serverAddress

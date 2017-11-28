@@ -2,6 +2,9 @@ package com.sequoiadb.test.db;
 
 import com.sequoiadb.base.*;
 import com.sequoiadb.test.common.Constants;
+
+import static org.junit.Assert.*;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.junit.*;
@@ -45,6 +48,15 @@ public class SdbTest {
         sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
     }
 
+    @Test
+    public void getHostNameAndPortTest() {
+        String hostName = sdb.getHost();
+        int port = sdb.getPort();
+        assertTrue(hostName != null && !hostName.isEmpty());
+        assertTrue(port != 0);
+        System.out.println(String.format("%s:%d", hostName, port));
+    }
+    
     @Test
     public void sdbisValid() {
     }
