@@ -2293,6 +2293,7 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOSENDREQUESTTONODEGROUPS3, "rtnCoordSendRequestToNodeGroups" )
    INT32 rtnCoordSendRequestToNodeGroups( MsgHeader *pBuffer,
                                           CoordGroupList &groupLst,
                                           CoordGroupMap &mapGroupInfo,
@@ -2305,6 +2306,7 @@ namespace engine
                                           MSG_ROUTE_SERVICE_TYPE type )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_RTNCOSENDREQUESTTONODEGROUPS3 ) ;
       CoordGroupList::iterator iter ;
       GROUP_2_IOVEC::iterator itIO ;
       netIOVec *pCommonIO = NULL ;
@@ -2363,7 +2365,7 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB_RTNCOSENDREQUESTTONODEGROUPS2, rc ) ;
+      PD_TRACE_EXITRC( SDB_RTNCOSENDREQUESTTONODEGROUPS3, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -2431,6 +2433,8 @@ namespace engine
    {
       UINT32 posTmp = 0 ;
 
+      PD_TRACE_ENTRY( SDB_RTNCOGETNODEPOS ) ;
+
       switch( preferReplicaType )
       {
          case PREFER_REPL_NODE_1:
@@ -2468,6 +2472,7 @@ namespace engine
       {
          pos = posTmp % groupItem->nodeCount() ;
       }
+      PD_TRACE_EXIT( SDB_RTNCOGETNODEPOS ) ;
    }
 
    void rtnCoordGetNextNode( INT32 preferReplicaType,

@@ -974,7 +974,7 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB_CATNODEMGR_PCREATEGRP, rc ) ;
+      PD_TRACE_EXITRC( SDB_CATNODEMGR_PREMOVEGRP, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -2068,6 +2068,7 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB_CATNODEMGR_REMOVEGRP, rc ) ;
       return rc ;
    error:
       if ( isDeleted )

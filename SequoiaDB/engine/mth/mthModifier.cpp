@@ -699,6 +699,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      PD_TRACE_ENTRY( SDB__MTHMDF__APPBITMDF2 ) ;
+
       //if org is not int or long, not change
       if ( NumberInt != in.type() && NumberLong != in.type() )
       {

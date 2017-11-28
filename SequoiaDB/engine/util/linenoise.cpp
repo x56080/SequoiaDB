@@ -2195,7 +2195,7 @@ int linenoiseHistoryLoad(const char *filename)
     }
     fclose(fp);
 done:
-    PD_TRACE_EXIT ( SDB_LNHISTORYSAVE );
+    PD_TRACE_EXIT ( SDB_LNHISTORYLOAD );
     return ret;
 error:
     goto done;

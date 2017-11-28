@@ -527,6 +527,7 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB_AUTHCB__VALID, rc ) ;
       return rc ;
    error:
       rc = SDB_INVALIDARG ;
