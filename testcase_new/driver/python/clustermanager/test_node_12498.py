@@ -122,8 +122,19 @@ class TestDataNode12498(testlib.SdbTestBase):
             self.fail("create and drop cs fail: " + e.detail)   
       
       # remove node
+      host_name = rg_slave.get_hostname();
+      svc_name = rg_slave.get_servicename();
+      data_rg.remove_node(host_name, svc_name)
+      # check node
+      try:
+         data_rg.get_nodebyendpoint(host_name,svc_name)
+         self.fail("remove node fail")
+      except SDBBaseError as e:
+         if -155 != e.code:
+            self.fail("remove node fail: " + e.detail) 
+           
+      # remove group
       self.db.remove_replica_group(self.data_rg_name)
-
       # check use list_replica_groups
       data_rgs = get_data_groups(self.db)
       if self.data_rg_name in data_rgs:
