@@ -1,8 +1,9 @@
 /**************************************************************************
  * @Description:   test case for C++ driver
  *                 seqDB-12690:获取数据组的详细信息/主节点/从节点
+ *                 SEQUOIADBMAINSTREAM-2871
  * @Modify:        Liang xuewang Init
- *                 2017-08-29
+ *                 2017-11-28
  **************************************************************************/
 #include <gtest/gtest.h>
 #include <client.hpp>
@@ -69,6 +70,13 @@ TEST_F( masterSlaveTest12690, masterSlave12690 )
    rc = init() ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
+   // getMaster getSlave in empty group
+   sdbNode master, slave ;
+   rc = rg.getMaster( master ) ;
+   ASSERT_EQ( SDB_CLS_EMPTY_GROUP, rc ) << "fail to test getMaster in empty group" ;
+   rc = rg.getSlave( slave ) ;
+   ASSERT_EQ( SDB_CLS_EMPTY_GROUP, rc ) << "fail to test getSlave in empty group" ;
+
    // create two node in rg and start
    CHAR hostName[100] ;
    rc = getLocalHost( hostName, 100 ) ;
@@ -91,7 +99,6 @@ TEST_F( masterSlaveTest12690, masterSlave12690 )
    ASSERT_EQ( SDB_OK, rc ) << "fail to start rg " << rgName ;
 
    // get master node and check
-   sdbNode master ;
    rc = rg.getMaster( master ) ;
    while( SDB_RTN_NO_PRIMARY_FOUND == rc )
    {
@@ -113,7 +120,6 @@ TEST_F( masterSlaveTest12690, masterSlave12690 )
    ASSERT_EQ( SDB_OK, rc ) << "fail to close cursor" ;
    
    // get slave node and check
-   sdbNode slave ;
    rc = rg.getSlave( slave ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to get slave" ;
    rc = slave.connect( db1 ) ;
@@ -131,6 +137,20 @@ TEST_F( masterSlaveTest12690, masterSlave12690 )
    rc = rg.getDetail( detail ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to get detail" ;
    ASSERT_EQ( rgName, detail.getField( "GroupName" ).String() ) << "fail to check detail" ;  
+
+   // stop slave, master will step down to slave, group will have no master
+   // then getMaster getSlave
+   rc = slave.stop() ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to stop slave node" ;
+   rc = rg.getMaster( master ) ;
+   while( SDB_OK == rc )
+   {
+      ossSleep( 1000 ) ;
+      rc = rg.getMaster( master ) ;
+   }
+   ASSERT_EQ( SDB_RTN_NO_PRIMARY_FOUND, rc ) << "fail to test getMaster" ;
+   rc = rg.getSlave( slave ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to test getSlave" ; 
 
    rc = fini() ;
    ASSERT_EQ( SDB_OK, rc ) ;
