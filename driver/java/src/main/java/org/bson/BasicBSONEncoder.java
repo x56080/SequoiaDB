@@ -47,6 +47,7 @@ import static org.bson.BSON.regexFlags;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.nio.Buffer;
+import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -207,6 +208,8 @@ public class BasicBSONEncoder implements BSONEncoder {
 
 		if (val == null)
 			putNull(name);
+		else if (val instanceof Timestamp)
+			putTimestamp(name, new BSONTimestamp((Timestamp) val));
 		else if (val instanceof Date)
 			putDate(name, (Date) val);
 		else if (val instanceof Number)

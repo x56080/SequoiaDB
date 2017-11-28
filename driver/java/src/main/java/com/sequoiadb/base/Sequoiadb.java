@@ -189,24 +189,38 @@ public class Sequoiadb {
 		return connection;
 	}
 
-	/**
-	 * @fn ServerAddress getServerAddress()
-	 * @brief Get the address of remote server.
-	 * @return ServerAddress
-	 */
-	public ServerAddress getServerAddress() {
-		return serverAddress;
-	}
+    /**
+     * @fn ServerAddress getServerAddress()
+     * @brief Get the address of remote server.
+     * @return ServerAddress
+     */
+    public ServerAddress getServerAddress() {
+        return serverAddress;
+    }
 
-	/**
-	 * @fn void setServerAddress(ServerAddress serverAddress)
-	 * @brief Set the address of remote server.
-	 * @param serverAddress
-	 *            the serverAddress object of remote server
-	 */
-	public void setServerAddress(ServerAddress serverAddress) {
-		this.serverAddress = serverAddress;
-	}
+    /**
+     * @return Host name of SequoiaDB server.
+     */
+    public String getHost() {
+        return serverAddress.getHost();
+    }
+
+    /**
+     * @return Service port of SequoiaDB server.
+     */
+    public int getPort() {
+        return serverAddress.getPort();
+    }
+    
+    /**
+     * @fn void setServerAddress(ServerAddress serverAddress)
+     * @brief Set the address of remote server.
+     * @param serverAddress
+     *            the serverAddress object of remote server
+     */
+    public void setServerAddress(ServerAddress serverAddress) {
+        this.serverAddress = serverAddress;
+    }
 
 	/**
 	 * @fn boolean isEndianConvert()

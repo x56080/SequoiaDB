@@ -19,6 +19,7 @@
 package org.bson.types;
 
 import java.io.Serializable;
+import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -40,9 +41,42 @@ public class BSONTimestamp implements Serializable {
         _time = null;
     }
 
-    public BSONTimestamp(int time, int inc ){
+    public BSONTimestamp(int time, int inc ) {
         _time = new Date( time * 1000L );
         _inc = inc;
+    }
+
+    /**
+     * Construct BSONTimestamp by java.util.Date.
+     */
+    public BSONTimestamp(Date date) {
+        this((int)(date.getTime() / 1000), (int)(date.getTime() % 1000) * 1000);
+    }
+
+    /**
+     * Construct BSONTimestamp by java.sql.Timestamp.
+     * The precision of BSONTimestamp is microsecond and Timestamp is nanosecond,
+     * so there may have a loss of nanoseconds.
+     */
+    public BSONTimestamp(Timestamp timestamp) {
+        this((int)(timestamp.getTime() / 1000),
+            timestamp.getNanos() / 1000);
+    }
+
+    /**
+     * @return get Date of time and inc in milliseconds since epoch
+     */
+    public Date toDate() {
+        return new Date(getTime() * 1000L + getInc() / 1000L);
+    }
+
+    /**
+     * @return get Timestamp of time in milliseconds and inc in nanoseconds since epoch
+     */
+    public Timestamp toTimestamp() {
+        Timestamp ts = new Timestamp(getTime() * 1000L);
+        ts.setNanos(getInc() * 1000);
+        return ts;
     }
 
     /**
@@ -53,18 +87,24 @@ public class BSONTimestamp implements Serializable {
             return 0;
         return (int)(_time.getTime() / 1000);
     }
-    
+
+    /**
+     * @return get time in microseconds since epoch
+     */
     public int getInc(){
         return _inc;
     }
 
     public String toString(){
-    	DateFormat formater = new SimpleDateFormat("yyyy-MM-dd-HH.mm.ss");
-    	String strDate = formater.format(_time);
-    	
+    	DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH.mm.ss");
+    	String strDate = formatter.format(_time);
+
         return "{ $timestamp : " + strDate + "." + _inc + " }";
     }
-    
+
+    /**
+     * @return get time in seconds since epoch
+     */
     public Date getDate() {
     	if(_time == null)
     		return null;

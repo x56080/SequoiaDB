@@ -18,6 +18,7 @@ package org.bson.util;
 
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -65,6 +66,7 @@ public class JSONSerializers {
 		ClassMapBasedObjectSerializer serializer = addCommonSerializers();
 
 		serializer.addObjectSerializer(Date.class, new LegacyDateSerializer(serializer));
+		serializer.addObjectSerializer(Timestamp.class, new LegacyBSONTimestampSerializer(serializer));
 		serializer.addObjectSerializer(BSONTimestamp.class, new LegacyBSONTimestampSerializer(serializer));
 		serializer.addObjectSerializer(BSONDecimal.class, new BSONDecimalSerializer(serializer));
 		serializer.addObjectSerializer(BigDecimal.class, new BSONDecimalSerializer(serializer));
@@ -85,6 +87,7 @@ public class JSONSerializers {
 		ClassMapBasedObjectSerializer serializer = addCommonSerializers();
 
 		serializer.addObjectSerializer(Date.class, new DateSerializer(serializer));
+		serializer.addObjectSerializer(Timestamp.class, new BSONTimestampSerializer(serializer));
 		serializer.addObjectSerializer(BSONTimestamp.class, new BSONTimestampSerializer(serializer));
 		serializer.addObjectSerializer(BSONDecimal.class, new BSONDecimalSerializer(serializer));
 		serializer.addObjectSerializer(Binary.class, new BinarySerializer(serializer));
@@ -167,7 +170,12 @@ public class JSONSerializers {
 
 		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
-			BSONTimestamp t = (BSONTimestamp) obj;
+			BSONTimestamp t;
+			if (obj instanceof Timestamp) {
+				t = new BSONTimestamp((Timestamp) obj);
+			} else {
+				t = (BSONTimestamp) obj;
+			}
 			BasicBSONObject temp = new BasicBSONObject();
 			temp.put("$ts", Integer.valueOf(t.getTime()));
 			temp.put("$inc", Integer.valueOf(t.getInc()));
@@ -415,7 +423,12 @@ public class JSONSerializers {
 
 		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
-			BSONTimestamp t = (BSONTimestamp) obj;
+			BSONTimestamp t;
+			if (obj instanceof Timestamp) {
+				t = new BSONTimestamp((Timestamp) obj);
+			} else {
+				t = (BSONTimestamp) obj;
+			}
 			BasicBSONObject temp = new BasicBSONObject();
 			temp.put("$t", Integer.valueOf(t.getTime()));
 			temp.put("$i", Integer.valueOf(t.getInc()));
