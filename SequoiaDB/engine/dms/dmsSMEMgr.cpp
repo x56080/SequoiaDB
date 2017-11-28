@@ -493,7 +493,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       UINT32 pos = 0 ;
       UINT32 size = 0 ;
-      UINT32 freePos = 0 ;
 
       ossScopedRWLock lock( &_mutex, SHARED ) ;
 
