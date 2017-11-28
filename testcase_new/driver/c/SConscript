@@ -46,6 +46,7 @@ testFiles = [
    [ "./misc/date.cpp" ],
    [ "./misc/bson_array.cpp" ],
    [ "./misc/snapshotTrans.cpp" ], # conf
+   [ "./misc/masterSlave.cpp" ], # sync
    [ "./concurrent/concurrentCs.cpp" ],
    [ "./concurrent/concurrentCl.cpp" ],
    [ "./concurrent/concurrentLob.cpp" ],
