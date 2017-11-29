@@ -127,7 +127,7 @@ public class BaseExceptionTest extends SdbTestBase{
 		Assert.assertEquals(err.getMessage(), "SDB_APP_DISCONNECT(-117): Application is disconnected, detail: this is a test for exception");		
 	}
 	
-	@Test(enabled=false)
+	@Test
 	public void test7(){
 		try{
 			sdb.getCollectionSpace("a");
@@ -137,11 +137,8 @@ public class BaseExceptionTest extends SdbTestBase{
 		String detail = "this is a test for exception";
 		int errCode = -1000;
 		BaseException err = new BaseException(errCode, detail);
-//		System.out.println("err.getErrorCode():"+err.getErrorCode());
-//		System.out.println("err.getErrorType():"+err.getErrorType());
-//		System.out.println("err.getMessage():"+err.getMessage());
 		Assert.assertEquals(err.getErrorCode(), errCode);
-		Assert.assertEquals(err.getErrorType(), SDBError.SDB_APP_DISCONNECT.getErrorType());
-		Assert.assertEquals(err.getMessage(), "SDB_APP_DISCONNECT(-117): Application is disconnected, detail: this is a test for exception");		
+		Assert.assertEquals(SDBError.getSDBError(-1000), null);
+		Assert.assertEquals(err.getMessage(), "SDB_UNKNOWN(-1000), detail: this is a test for exception");		
 	}
 }
