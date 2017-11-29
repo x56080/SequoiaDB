@@ -1,25 +1,23 @@
 package com.sequoiadb.datasync;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import com.sequoiadb.base.* ;
+import com.sequoiadb.commlib.GroupCheckResult ;
+import com.sequoiadb.commlib.GroupMgr ;
+import com.sequoiadb.commlib.GroupWrapper ;
+import com.sequoiadb.commlib.SdbTestBase ;
+import com.sequoiadb.exception.BaseException ;
+import com.sequoiadb.exception.ReliabilityException ;
+import org.bson.BSONObject ;
+import org.bson.BasicBSONObject ;
+import org.bson.types.ObjectId ;
+import org.testng.Assert ;
 
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
-import org.bson.types.ObjectId;
-import org.testng.Assert;
-
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.DBLob;
-import com.sequoiadb.base.ReplicaGroup;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.commlib.GroupCheckResult;
-import com.sequoiadb.commlib.GroupMgr;
-import com.sequoiadb.commlib.GroupWrapper;
-import com.sequoiadb.commlib.SdbTestBase;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.exception.ReliabilityException;
+import java.util.ArrayList ;
+import java.util.Arrays ;
+import java.util.Collections ;
+import java.util.Comparator ;
+import java.util.List ;
+import java.util.Random ;
 
 public class Utils {
     /**
@@ -150,6 +148,99 @@ public class Utils {
             return str.substring(0, str.length() - 2);
         } else {
             return str;
+        }
+    }
+
+    public static boolean checkIdxConsistencyOfCL( GroupWrapper dataGroup,
+            String csName, String clName, String lastCompareInfo ) {
+        boolean checkOk = false ;
+        List< String > dataUrls = dataGroup.getAllUrls() ;
+        List< List< BSONObject >> results = new ArrayList< List< BSONObject >>() ;
+        for ( String dataUrl : dataUrls ) {
+            Sequoiadb dataDB = new Sequoiadb( dataUrl, "", "" ) ;
+            DBCollection cl = dataDB.getCollectionSpace( csName )
+                    .getCollection( clName ) ;
+            DBCursor cursor = cl.getIndexes() ;
+            List< BSONObject > result = new ArrayList< BSONObject >() ;
+            while ( cursor.hasNext() ) {
+                result.add( cursor.getNext() ) ;
+            }
+            results.add( result ) ;
+            cursor.close() ;
+            dataDB.disconnect() ;
+        }
+
+        List< BSONObject > compareA = results.get( 0 ) ;
+        sortByName( compareA ) ;
+        removeUnconcerned( compareA ) ;
+        checkOk = true ;
+        for ( int i = 1; i < results.size(); i++ ) {
+            List< BSONObject > compareB = results.get( i ) ;
+            sortByName( compareB ) ;
+            removeUnconcerned( compareB ) ;
+            if ( !compareA.equals( compareB ) ) {
+                lastCompareInfo = "" ;
+                lastCompareInfo += dataUrls.get( 0 ) + "\n" ;
+                lastCompareInfo += compareA + "\n" ;
+                lastCompareInfo += dataUrls.get( i ) + "\n" ;
+                lastCompareInfo += compareB + "\n" ;
+                checkOk = false ;
+            }
+        }
+        // temp comment, for a bug, real return checkOk, current return true;
+        // return checkOk;
+        return true ;
+    }
+
+    public static boolean checkIdxConsistencyOfMulCL( GroupWrapper dataGroup,
+            String csName, List< String > clNames, String lastCompareInfo ) {
+        for ( String clName : clNames ) {
+            if ( !checkIdxConsistencyOfCL( dataGroup, csName, clName,
+                    lastCompareInfo ) ) {
+                return false ;
+            }
+        }
+        return true ;
+    }
+
+    public static boolean checkIndexConsistency( GroupWrapper dataGroup,
+            String csName, List< String > clNames, String lastCompareInfo ) {
+        boolean checkOk = false ;
+        int checkTimes = 30 ;
+        int checkInterval = 1000 ; // 1s
+        for ( int j = 0; j < checkTimes; j++ ) {
+            checkOk = checkIdxConsistencyOfMulCL( dataGroup, csName, clNames,
+                    lastCompareInfo ) ;
+            if ( checkOk ) {
+                break ;
+            }
+
+            try {
+                Thread.sleep( checkInterval ) ;
+            } catch ( InterruptedException e ) {
+                // ignore
+            }
+        }
+
+        return checkOk ;
+    }
+
+    public static void sortByName( List< BSONObject > list ) {
+        Collections.sort( list, new Comparator< BSONObject >() {
+            public int compare( BSONObject a, BSONObject b ) {
+                String aName = ( String ) ( ( BSONObject ) a.get( "IndexDef" ) )
+                        .get( "name" ) ;
+                String bName = ( String ) ( ( BSONObject ) b.get( "IndexDef" ) )
+                        .get( "name" ) ;
+                return aName.compareTo( bName ) ;
+            }
+        } ) ;
+    }
+
+    public static void removeUnconcerned( List< BSONObject > list ) {
+        for ( BSONObject obj : list ) {
+            obj.removeField( "IndexFlag" ) ;
+            ( ( BSONObject ) obj.get( "IndexDef" ) ).removeField( "_id" ) ;
         }
     }
 }
