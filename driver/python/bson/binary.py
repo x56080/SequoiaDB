@@ -180,7 +180,6 @@ class UUIDLegacy(Binary):
       >>> from bson.binary import Binary, UUIDLegacy, UUID_SUBTYPE
       >>> my_uuid = uuid.uuid4()
       >>> coll = db.test
-      >>> coll.uuid_subtype = UUID_SUBTYPE
       >>> coll.insert({'uuid': Binary(my_uuid.bytes, 3)})
       ObjectId('...')
       >>> coll.get_count({'uuid': my_uuid})
