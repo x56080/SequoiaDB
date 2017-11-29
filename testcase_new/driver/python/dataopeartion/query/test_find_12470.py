@@ -25,15 +25,6 @@ class TestFind12470(testlib.SdbTestBase):
       self.query_with_kwargs(condition1, selected1, expectResult1)
       self.get_count(condition1, expectCount1)
 
-   def test_find_12470(self):
-      # condition:$gt,$lt, selection:$include
-      condition1 = {"a": {'$gt': 0, '$lt': 100}}
-      selected1 = {"a": {"$include": 1}}
-      expectCount1 = 3
-      expectResult1 = [{"a": 2}, {"a": [10, 20, 30]}]
-      self.query_with_kwargs(condition1, selected1, expectResult1)
-      self.get_count(condition1, expectCount1)
-
       # condition:$mod, selection:$include
       condition2 = {"_id": {'$mod': [2, 1]}}
       selected2 = {"a": {"$include": 1}}
