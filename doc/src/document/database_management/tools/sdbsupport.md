@@ -107,11 +107,23 @@ $ chmod 755 sdbsupport.sh
 >   数据库集群内的机器，如果没有配置信任关系，在收集时，需要输入密码，如：
 >
 >   ```lang-javascript
->   $ /opt/sequoiadb/tools/sdbsupport/expect/expect
->   Success to export System environment variable : /opt/sequoiadb/tools/sdbsupport/expect/
->   Check over Environment!
->   Complete database database cluster
->   The host sdbadmin@hostname1's password :
+>   $ /opt/sequoiadb/tools/sdbsupport/sdbsupport.sh -s hostname2
+>   ************************************Sdbsupport***************************
+>   *This program run mode will collect all configuration and
+>   * system environment information.Please make sure whether
+>   * you need !
+>   * Begin .....
+>   *************************************************************************
+>   
+>   check over environment, correct!
+>   complete database cluster
+>   The host sdbadmin@hostname2's password :
 >   ```
 >
->   此时需要输入 hostname1 机器，sdbadmin 用户的密码，然后“Enter”
+>   此时需要输入 hostname2 机器，sdbadmin 用户的密码，然后“Enter”
+>
+>   ```lang-javascript
+>   correct password for hostname2
+>   Begin to Collect information...
+>   success to collect information from hostname2
+>   ```
