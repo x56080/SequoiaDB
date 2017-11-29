@@ -192,80 +192,18 @@ public class DropIndex3187 extends SdbTestBase {
             }
         }
     }
-
+    
     private void checkConsistency(GroupWrapper dataGroup) {
-        boolean checkOk = false;
-        int checkTimes = 30;
-        int checkInterval = 1000; // 1s
         String lastCompareInfo = "";
-        for (int j = 0; j < checkTimes; j++) {
-            List<String> dataUrls = dataGroup.getAllUrls();
-            List<List<BSONObject>> results = new ArrayList<List<BSONObject>>();
-            for (String dataUrl : dataUrls) {
-                Sequoiadb dataDB = new Sequoiadb(dataUrl, "", "");
-                List<BSONObject> result = new ArrayList<BSONObject>();
-                for (int i = 0; i < CL_NUM; i++) {
-                    String clName = clNameBase + "_" + i;
-                    DBCollection cl = dataDB.getCollectionSpace(csName).getCollection(clName);
-                    DBCursor cursor = cl.getIndexes();
-                    while (cursor.hasNext()) {
-                        result.add(cursor.getNext());
-                    }
-                    cursor.close();
-                }
-                results.add(result);
-                dataDB.disconnect();
-            }
-
-            List<BSONObject> compareA = results.get(0);
-            sortByName(compareA);
-            removeUnconcerned(compareA);
-            checkOk = true;
-            for (int i = 1; i < results.size(); i++) {
-                List<BSONObject> compareB = results.get(i);
-                sortByName(compareB);
-                removeUnconcerned(compareB);
-                if (!compareA.equals(compareB)) {
-                    lastCompareInfo = "";
-                    lastCompareInfo += dataUrls.get(0) + "\n";
-                    lastCompareInfo += compareA + "\n";
-                    lastCompareInfo += dataUrls.get(i) + "\n";
-                    lastCompareInfo += compareB + "\n";
-                    checkOk = false;
-                }
-            }
-
-            if (checkOk) {
-                break;
-            }
-
-            try {
-                Thread.sleep(checkInterval);
-            } catch (InterruptedException e) {
-                // ignore
-            }
+        List<String> clNames = new ArrayList<String>();
+        for (int i = 0; i < CL_NUM; i++) {
+            clNames.add( clNameBase + "_" + i );
         }
-
-        if (!checkOk) {
+     
+        
+        if (!Utils.checkIndexConsistency(dataGroup, csName, clNames, lastCompareInfo)){
             System.out.println(lastCompareInfo);
             Assert.fail("data is different. see the detail in console");
-        }
-    }
-
-    private void sortByName(List<BSONObject> list) {
-        Collections.sort(list, new Comparator<BSONObject>() {
-            public int compare(BSONObject a, BSONObject b) {
-                String aName = (String) ((BSONObject) a.get("IndexDef")).get("name");
-                String bName = (String) ((BSONObject) b.get("IndexDef")).get("name");
-                return aName.compareTo(bName);
-            }
-        });
-    }
-
-    private void removeUnconcerned(List<BSONObject> list) {
-        for (BSONObject obj : list) {
-            obj.removeField("IndexFlag");
-            ((BSONObject) obj.get("IndexDef")).removeField("_id");
         }
     }
 }
