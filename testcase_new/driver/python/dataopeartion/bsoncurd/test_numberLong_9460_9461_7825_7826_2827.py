@@ -39,6 +39,8 @@ class TestNumberLong9460(testlib.SdbTestBase):
       # query data and check
       expect_type = [{"a": "int64"}, {"a": "int64"}, {"a": "int64"}, {"a": "int64"}, {"a": "int64"}, {"a": "int64"}]
       check_Result(self.cl, {}, {"a": {"$type": 2}}, record, expect_type, False)
+      
+      #query data and check,
    
       # update data
       data1_after_update = 1
@@ -163,6 +165,31 @@ class TestNumberLong9460(testlib.SdbTestBase):
       check_Result(self.cl, {}, {}, {}, {}, False)
       
       #json to bson
+      json = '{"$numberLong": "9223372036854775807"}'
+      self.assertEqual('9223372036854775807', dumps(loads(json)))
+
+      json = '{"$numberLong": "-9223372036854775808"}'
+      self.assertEqual('-9223372036854775808', dumps(loads(json)))
+
+      json = '{"$numberLong": "9007199254740992"}'
+      self.assertEqual('9007199254740992', dumps(loads(json)))
+
+      json = '{"$numberLong": "-9007199254740992"}'
+      self.assertEqual('-9007199254740992', dumps(loads(json)))
+
+      json = '{"$numberLong": "9007199254740991"}'
+      self.assertEqual('9007199254740991', dumps(loads(json)))
+
+      json = '{"$numberLong": "-9007199254740991"}'
+      self.assertEqual('-9007199254740991', dumps(loads(json)))
+
+      json = '{"$numberLong": "1"}'
+      self.assertEqual('1', dumps(loads(json)))
+
+      json = '{"$numberLong": "-1"}'
+      self.assertEqual('-1', dumps(loads(json)))
+      
+      #json to bson,set_js_compatibility(True)
       bson.json_util.set_js_compatibility(True)
       json = '{"$numberLong": "9223372036854775807"}'
       self.assertEqual(json, dumps(loads(json)))
