@@ -191,78 +191,15 @@ public class CreateIndex2944 extends SdbTestBase {
     }
 
     private void checkConsistency(GroupWrapper dataGroup) {
-        boolean checkOk = false;
-        int checkTimes = 30;
-        int checkInterval = 1000; // 1s
         String lastCompareInfo = "";
-        for (int j = 0; j < checkTimes; j++) {
-            List<String> dataUrls = dataGroup.getAllUrls();
-            List<List<BSONObject>> results = new ArrayList<List<BSONObject>>();
-            for (String dataUrl : dataUrls) {
-                Sequoiadb dataDB = new Sequoiadb(dataUrl, "", "");
-                DBCollection cl = dataDB.getCollectionSpace(csName).getCollection(clName);
-                DBCursor cursor = cl.getIndexes();
-                List<BSONObject> result = new ArrayList<BSONObject>();
-                while (cursor.hasNext()) {
-                    result.add(cursor.getNext());
-                }
-                results.add(result);
-                cursor.close();
-                dataDB.disconnect();
-            }
-
-            List<BSONObject> compareA = results.get(0);
-            sortByName(compareA);
-            removeUnconcerned(compareA);
-            checkOk = true;
-            for (int i = 1; i < results.size(); i++) {
-                List<BSONObject> compareB = results.get(i);
-                sortByName(compareB);
-                removeUnconcerned(compareB);
-                if (!compareA.equals(compareB)) {
-                    lastCompareInfo = "";
-                    lastCompareInfo += dataUrls.get(0) + "\n";
-                    lastCompareInfo += compareA + "\n";
-                    lastCompareInfo += dataUrls.get(i) + "\n";
-                    lastCompareInfo += compareB + "\n";
-                    checkOk = false;
-                }
-            }
-
-            if (checkOk) {
-                break;
-            }
-
-            try {
-                Thread.sleep(checkInterval);
-            } catch (InterruptedException e) {
-                // ignore
-            }
-        }
-
-        if (!checkOk) {
+        List<String> clNames = new ArrayList<String>();
+        clNames.add( clName ) ;
+        if (!Utils.checkIndexConsistency(dataGroup, csName, clNames, lastCompareInfo)){
             System.out.println(lastCompareInfo);
             Assert.fail("data is different. see the detail in console");
         }
     }
-
-    private void sortByName(List<BSONObject> list) {
-        Collections.sort(list, new Comparator<BSONObject>() {
-            public int compare(BSONObject a, BSONObject b) {
-                String aName = (String) ((BSONObject) a.get("IndexDef")).get("name");
-                String bName = (String) ((BSONObject) b.get("IndexDef")).get("name");
-                return aName.compareTo(bName);
-            }
-        });
-    }
-
-    private void removeUnconcerned(List<BSONObject> list) {
-        for (BSONObject obj : list) {
-            obj.removeField("IndexFlag");
-            ((BSONObject) obj.get("IndexDef")).removeField("_id");
-        }
-    }
-
+    
     private void checkExplain(GroupWrapper dataGroup) {
         List<String> dataUrls = dataGroup.getAllUrls();
         for (String dataUrl : dataUrls) {
