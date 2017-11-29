@@ -26,7 +26,7 @@
          <var name="cmd_file_name" unset="true"/>
          <propertyregex property="cmd_file_name" input="@{casename}" regexp="(.*)\.(.*)" select="\1"/>
          <if>
-            <isset property="${cmd_file_name}"/>
+            <isset property="cmd_file_name"/>
             <else>
                <var name="cmd_file_name" value="@{casename}"/>
             </else>
