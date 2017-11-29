@@ -79,7 +79,7 @@ private:
                         const jsval &val,
                         bson *bs ) ;
 
-   INT32 _getDecimalPrecision( const CHAR *precisionStr,
+   INT32 _getDecimalPrecision( const CHAR *precisionStr, 
                                INT32 *precision, INT32 *scale ) ;
    INT32 _addSpecialObj( JSObject *obj,
                          const CHAR *key,
@@ -126,6 +126,9 @@ private:
                      const CHAR *key,
                      bson *bs ) ;
 
+   INT32 _getNumberLongValue( JSObject *obj,
+                              INT64 &value ) ;
+
    INT32 _addNumberLong( JSObject *obj,
                          const CHAR *key,
                          bson *bs) ;
@@ -135,7 +138,6 @@ private:
                       bson *bs) ;
    void _setErrorMsg( const CHAR *pErrMsg, BOOLEAN isReplace ) ;
 private:
-   BOOLEAN _isValidOid( const CHAR *value ) ;
    BOOLEAN _isValidNumberLong( const CHAR *value ) ;
 
 private:

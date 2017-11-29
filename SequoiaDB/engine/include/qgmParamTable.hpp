@@ -42,6 +42,8 @@
 #include "utilMap.hpp"
 #include <vector>
 
+using namespace bson ;
+
 namespace engine
 {
    struct _qgmBsonPair

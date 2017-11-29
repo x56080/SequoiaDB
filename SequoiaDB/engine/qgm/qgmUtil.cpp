@@ -41,6 +41,7 @@
 #include "ossUtil.hpp"
 #include "pdTrace.hpp"
 #include "qgmTrace.hpp"
+#include "utilStr.hpp"
 
 using namespace bson ;
 
@@ -247,7 +248,7 @@ namespace engine
          }
          ++i ;
       }
-      
+
    done:
       PD_TRACE_EXIT( SDB__QGMISFROMONE ) ;
       return ret ;
@@ -985,21 +986,19 @@ namespace engine
          goto done ;
       }
 
-      if ( 0 == ossStrncmp( f.begin(),
-                            "null",
-                            f.size() ) ||
-           0 == ossStrncmp( f.begin(),
-                            "NULL",
-                            f.size() ) )
+      if ( TABLE_SCAN_SIZE == f.size() &&
+           0 == ossStrncmp( f.begin(), TABLE_SCAN, f.size() ) )
       {
          builder.appendNull("") ;
+         goto done ;
       }
-      else
+      if ( TABLE_SCAN_LOWER_SIZE == f.size() &&
+           0 == ossStrncmp( f.begin(), TABLE_SCAN_LOWER, f.size() ) )
       {
-         builder.appendStrWithNoTerminating( "",
-                                             f.begin(),
-                                             f.size() ) ;
+         builder.appendNull("") ;
+         goto done ;
       }
+      builder.appendStrWithNoTerminating( "", f.begin(), f.size() ) ;
 
    done:
       return builder.obj() ;
@@ -1048,53 +1047,214 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      switch( node->type )
+      if ( sqlIsCommonValue( node->type ) )
       {
-         case SQL_GRAMMAR::STR:
-            bb.append( pKeyName, node->value.toString() ) ;
-            break ;
-         case SQL_GRAMMAR::DBATTR:
+         rc = qgmParseValue( node->type, node->value.toString(),
+                             bb, pKeyName ) ;
+         if ( rc )
          {
-            BSONObjBuilder subBB( bb.subobjStart( pKeyName ) ) ;
-            subBB.append( "$field", node->value.toString() ) ;
-            subBB.done() ;
-            break ;
+            PD_LOG( PDERROR, "Parse value failed, rc: %d", rc ) ;
          }
-         case SQL_GRAMMAR::DIGITAL:
-            bb.appendAsNumber( pKeyName, node->value.toString() ) ;
-            break ;
-         case SQL_GRAMMAR::BOOL_TRUE:
-            bb.appendBool( pKeyName, 1 ) ;
-            break ;
-         case SQL_GRAMMAR::BOOL_FALSE:
-            bb.appendBool( pKeyName, 0 ) ;
-            break ;
-         case SQL_GRAMMAR::NULLL:
-            bb.appendNull( pKeyName ) ;
-            break ;
-         default:
+      }
+      else if ( SQL_GRAMMAR::DBATTR == node->type )
+      {
+         BSONObjBuilder subBB( bb.subobjStart( pKeyName ) ) ;
+         subBB.append( "$field", node->value.toString() ) ;
+         subBB.done() ;
+      }
+      else if ( node->type > SQL_GRAMMAR::SQLMAX )
+      {
+         if ( NULL != node->var && !node->var->eoo() )
          {
-            if ( node->type > SQL_GRAMMAR::SQLMAX )
-            {
-               if ( NULL != node->var && !node->var->eoo() )
-               {
-                  bb.appendAs( *(node->var), pKeyName ) ;
-               }
-               else
-               {
-                  bb.append( pKeyName, "$var" ) ;
-               }
-            }
-            else
-            {
-               PD_LOG( PDERROR, "Node[Type:%d] is unknow", node->type ) ;
-               rc = SDB_INVALIDARG ;
-            }
-            break ;
+            bb.appendAs( *(node->var), pKeyName ) ;
          }
+         else
+         {
+            bb.append( pKeyName, "$var" ) ;
+         }
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Node[Type:%d] is unknow", node->type ) ;
+         rc = SDB_INVALIDARG ;
       }
 
       return rc ;
+   }
+
+   INT32 qgmParseValue( INT32 type,
+                        const string &value,
+                        BSONObjBuilder &builder,
+                        const string &fieldName )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         if ( SQL_GRAMMAR::DIGITAL == type )
+         {
+            BOOLEAN r = FALSE ;
+            r = builder.appendAsNumber( fieldName, value ) ;
+            if ( !r )
+            {
+               /// try decimal
+               r = builder.appendDecimal( fieldName, value ) ;
+            }
+
+            if ( !r )
+            {
+               PD_LOG( PDERROR, "Failed to append as number: %s",
+                       value.c_str() ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+         }
+         else if ( SQL_GRAMMAR::STR == type )
+         {
+            builder.append( fieldName, value ) ;
+         }
+         else if ( SQL_GRAMMAR::DATE == type )
+         {
+            bson::Date_t t ;
+            UINT64 millis = 0 ;
+            rc = utilStr2Date( value.c_str(), millis ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to parse to Date_t: %s",
+                       value.c_str() ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            t.millis = millis ;
+            builder.appendDate( fieldName, t ) ;
+         }
+         else if ( SQL_GRAMMAR::TIMESTAMP == type )
+         {
+            time_t tTime = 0 ;
+            UINT64 usec = 0 ;
+            UINT64 millsec = 0 ;
+            rc = utilStr2TimeT( value.c_str(), tTime, &usec ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to parse to Time_t: %s",
+                       value.c_str() ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            millsec = tTime * 1000 ;
+            builder.appendTimestamp( fieldName, millsec, (UINT32)usec ) ;
+         }
+         else if ( SQL_GRAMMAR::OID == type )
+         {
+            if ( !utilIsValidOID( value.c_str() ) )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Value[%s] is invalid oid type",
+                       value.c_str() ) ;
+               goto error ;
+            }
+            else
+            {
+               OID tmpOid( value ) ;
+               builder.appendOID( fieldName, &tmpOid ) ;
+            }
+         }
+         else if ( SQL_GRAMMAR::DECIMAL == type )
+         {
+            builder.appendDecimal( fieldName, value ) ;
+         }
+         else if ( SQL_GRAMMAR::NULLL == type )
+         {
+            builder.appendNull( fieldName ) ;
+         }
+         else if ( SQL_GRAMMAR::BOOL_TRUE == type )
+         {
+            builder.appendBool( fieldName, TRUE ) ;
+         }
+         else if ( SQL_GRAMMAR::BOOL_FALSE == type )
+         {
+            builder.appendBool( fieldName, FALSE ) ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "wrong type: %d", type ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "unexpected err happened :%s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 qgmParseValue( const qgmOpField &value,
+                        BSONObjBuilder &builder,
+                        const string &fieldName )
+   {
+      string str = value.value.toString() ;
+      return qgmParseValue( value.type, str, builder, fieldName ) ;
+   }
+
+   INT32 qgmParseValue( const SQL_CON_ITR &root,
+                        BSONObjBuilder &builder,
+                        const string &fieldName )
+   {
+      INT32 type = (INT32)(root->value.id().to_long()) ;
+      string value ;
+
+      if ( sqlIsNestedValue( type ) )
+      {
+         SDB_ASSERT( 1 == root->children.size(), "impossible" ) ;
+         SQL_CON_ITR itr = root->children.begin() ;
+         value = string( itr->value.begin(), itr->value.end() ) ;
+      }
+      else
+      {
+         SDB_ASSERT( root->children.empty(), "impossible" ) ;
+         value = string( root->value.begin(), root->value.end() ) ;
+      }
+
+      return qgmParseValue( type, value, builder, fieldName ) ;
+   }
+
+   BOOLEAN  sqlIsCommonValue( INT32 type )
+   {
+      if ( SQL_GRAMMAR::DIGITAL == type ||
+           SQL_GRAMMAR::STR == type ||
+           SQL_GRAMMAR::NULLL == type ||
+           SQL_GRAMMAR::OID == type ||
+           SQL_GRAMMAR::DATE == type ||
+           SQL_GRAMMAR::TIMESTAMP == type ||
+           SQL_GRAMMAR::DECIMAL == type ||
+           SQL_GRAMMAR::BOOL_FALSE == type ||
+           SQL_GRAMMAR::BOOL_TRUE == type )
+      {
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+
+   BOOLEAN  sqlIsNestedValue( INT32 type )
+   {
+      if ( SQL_GRAMMAR::OID == type ||
+           SQL_GRAMMAR::DECIMAL == type ||
+           SQL_GRAMMAR::DATE == type ||
+           SQL_GRAMMAR::TIMESTAMP == type )
+      {
+         return TRUE ;
+      }
+      return FALSE ;
    }
 
 }

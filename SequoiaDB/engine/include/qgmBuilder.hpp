@@ -41,6 +41,8 @@
 #include "sqlGrammar.hpp"
 #include "qgmOptiTree.hpp"
 
+using namespace bson ;
+
 namespace engine
 {
    class _qgmOptiSelect ;
@@ -123,16 +125,16 @@ namespace engine
                           _qgmOptiUpdate *update ) ;
 
       INT32 _addSet( const SQL_CON_ITR &root,
-                     _qgmOptiUpdate *update ) ;
+                     BSONObjBuilder &builder ) ;
 
       INT32 _buildDelete( const SQL_CON_ITR &root,
                           _qgmOptiDelete *node ) ;
 
       INT32 _addColumns( const SQL_CON_ITR &root,
-                          _qgmOptiInsert *node ) ;
+                         qgmOPFieldVec &columns ) ;
 
       INT32 _addValues( const SQL_CON_ITR &root,
-                        _qgmOptiInsert *node ) ;
+                        qgmOPFieldVec &values ) ;
 
       INT32 _addSelector( const SQL_CON_ITR &root,
                           _qgmOptiSelect *node,
@@ -167,20 +169,11 @@ namespace engine
       INT32 _buildDropIndex( const SQL_CON_ITR &root,
                             _qgmOptiCommand *node ) ;
 
-      INT32 _buildListCS( const SQL_CON_ITR &root,
-                          _qgmOptiCommand *node ) ;
-
-      INT32 _buildListCL( const SQL_CON_ITR &root,
-                          _qgmOptiCommand *node ) ;
-
       INT32 _buildCondition( const SQL_CON_ITR &root,
                              _qgmConditionNode *&condition ) ;
 
-      INT32 _buildIndexColumns( const SQL_CON_ITR &root,
-                                qgmOPFieldVec &columns ) ;
-
       INT32 _addGroupBy( const SQL_CON_ITR &root,
-                         _qgmOptiSelect *node ) ;
+                         qgmOPFieldVec &groupby ) ;
 
       INT32 _addSplitBy( const SQL_CON_ITR &root,
                          _qgmOptiSelect *node ) ;

@@ -55,9 +55,8 @@ namespace engine
       virtual string toString() const ;
 
    public:
-      qgmOpField _collection ;
-      qgmOPFieldVec _columns ;
-      qgmOPFieldVec _values ;
+      qgmOpField     _collection ;
+      BSONObj        _insertor ;
    } ;
    typedef class _qgmOptiInsert qgmOptiInsert ;
 }

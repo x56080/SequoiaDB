@@ -43,6 +43,7 @@
 #include "rtnCoordUpdate.hpp"
 #include "msgMessage.hpp"
 #include "utilStr.hpp"
+#include "qgmUtil.hpp"
 #include "pdTrace.hpp"
 #include "qgmTrace.hpp"
 
@@ -51,84 +52,34 @@ using namespace bson ;
 namespace engine
 {
    _qgmPlUpdate::_qgmPlUpdate( const _qgmDbAttr &collection,
-                               const qgmDbAttrVec &columns,
-                               const qgmOPFieldVec &values,
+                               const BSONObj &modifer,
                                _qgmConditionNode *condition )
    :_qgmPlan( QGM_PLAN_TYPE_UPDATE, _qgmField() ),
-    _collection( collection )
+    _collection( collection ),
+    _updater( modifer )
    {
-      INT32 rc = SDB_OK ;
-      if ( columns.size() != values.size() )
-      {
-         SDB_ASSERT( FALSE, "impossible" ) ;
-         goto done ;
-      }
-
       try
       {
-         BSONObjBuilder builder, vbuilder ;
-
-         qgmDbAttrVec::const_iterator it1 = columns.begin() ;
-         qgmOPFieldVec::const_iterator it2 = values.begin() ;
-         for ( ; it1 != columns.end(); it1++, it2++ )
-         {
-             if ( SQL_GRAMMAR::DIGITAL == it2->type )
-             {
-                if ( !vbuilder.appendAsNumber(  it1->toString(),
-                                     it2->value.attr().toString()) )
-                {
-                   PD_LOG( PDERROR, "failed to append as number:%s",
-                           it2->value.attr().toString().c_str() ) ;
-                   goto done ;
-                }
-             }
-             else if ( SQL_GRAMMAR::DATE == it2->type )
-             {
-                Date_t t ;
-                UINT64 millis = 0 ;
-                rc = utilStr2Date( it2->value.attr().toString().c_str(),
-                                   millis ) ;
-                if ( SDB_OK != rc )
-                {
-                   PD_LOG( PDERROR, "failed to parse to Date_t:%s",
-                           it2->value.toString().c_str() ) ;
-                   goto done ;
-                }
-
-                t.millis = millis ;
-                vbuilder.appendDate( it1->toString(), t ) ;
-             }
-             else
-             {
-                vbuilder.append( it1->toString(),
-                                it2->value.attr().toString() ) ;
-             }
-         }
-
-         builder.append( "$set", vbuilder.obj() ) ;
-         _updater = builder.obj() ;
-
          if ( NULL != condition )
          {
             _qgmConditionNodeHelper tree( condition ) ;
-            _condition = tree.toBson() ;
+            _condition = tree.toBson( TRUE ) ;
          }
+         _initialized = TRUE ;
       }
       catch ( std::exception &e )
       {
         PD_LOG( PDERROR, "unexcepted err happened:%s", e.what() ) ;
-        goto done ;
       }
-
-      _initialized = TRUE ;
-   done:
-      return ;
-      /// do noting
    }
 
    _qgmPlUpdate::~_qgmPlUpdate()
    {
+   }
 
+   BOOLEAN _qgmPlUpdate::needRollback() const
+   {
+      return TRUE ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLUPDATE__EXEC, "_qgmPlUpdate::_execute" )

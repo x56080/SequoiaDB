@@ -51,9 +51,11 @@ using namespace bson ;
 
 namespace engine
 {
-   _qgmPlInsert::_qgmPlInsert( const qgmDbAttr &collection )
+   _qgmPlInsert::_qgmPlInsert( const qgmDbAttr &collection,
+                               const BSONObj &record )
    :_qgmPlan( QGM_PLAN_TYPE_INSERT, _qgmField() ),
-   _got( FALSE )
+    _insertor( record ),
+    _got( FALSE )
    {
       _fullName = collection.toString() ;
       _role = pmdGetKRCB()->getDBRole() ;
@@ -62,98 +64,26 @@ namespace engine
 
    _qgmPlInsert::~_qgmPlInsert()
    {
-      _columns.clear() ;
-      _values.clear() ;
    }
 
    string _qgmPlInsert::toString() const
    {
       stringstream ss ;
-      ss << "Type:" << qgmPlanType( _type ) << '\n';
-      ss << "Name:" << _fullName << '\n';
-      if ( !_columns.empty() )
+      ss << "Type:" << qgmPlanType( _type ) << '\n' ;
+      ss << "Name:" << _fullName << '\n' ;
+      if ( !_insertor.isEmpty() )
       {
-         BSONObj obj ;
-         _mergeObj( obj ) ;
-         ss << "Record:" << obj.toString() << '\n';
+         ss << "Record:" << _insertor.toString() << '\n' ;
       }
-
       return ss.str() ;
    }
 
-   void _qgmPlInsert::addCV( const qgmOPFieldVec &columns,
-                             const qgmOPFieldVec &values )
+   BOOLEAN _qgmPlInsert::needRollback() const
    {
-      _columns = columns ;
-      _values = values ;
-      return ;
+      return TRUE ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLINSERT__MERGEOBJ, "_qgmPlInsert::_mergeObj" )
-   INT32 _qgmPlInsert::_mergeObj( BSONObj &obj ) const
-   {
-      PD_TRACE_ENTRY( SDB__QGMPLINSERT__MERGEOBJ ) ;
-      INT32 rc = SDB_OK ;
-      BSONObjBuilder builder ;
-      if ( _columns.size() != _values.size() )
-      {
-         PD_LOG(PDERROR, "column's size does not suit value's size");
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      try
-      {
-         qgmOPFieldVec::const_iterator itr1 = _columns.begin() ;
-         qgmOPFieldVec::const_iterator itr2 = _values.begin() ;
-         for ( ; itr1 != _columns.end(); itr1++, itr2++ )
-         {
-            if ( SQL_GRAMMAR::DIGITAL == itr2->type )
-            {
-               builder.appendAsNumber( itr1->value.toString(),
-                                       itr2->value.toString() ) ;
-            }
-            else if ( SQL_GRAMMAR::DATE == itr2->type )
-            {
-               Date_t t ;
-               UINT64 millis = 0 ;
-               rc = utilStr2Date( itr2->value.toString().c_str(),
-                                  millis ) ;
-               if ( SDB_OK != rc )
-               {
-                   PD_LOG( PDERROR, "failed to parse to Date_t:%s",
-                           itr2->value.toString().c_str() ) ;
-                   rc = SDB_INVALIDARG ;
-                   goto error ;
-               }
-
-               t.millis = millis ;
-               builder.appendDate( itr1->value.toString(), t ) ;
-            }
-            else
-            {
-               builder.append( itr1->value.toString(),
-                               itr2->value.toString()) ;
-            }
-         }
-
-         obj = builder.obj() ;
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG( PDERROR, "unexcepted err happened: %s", e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__QGMPLINSERT__MERGEOBJ, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLINSERT__NEXTRECORD, "_qgmPlInsert::_nextRecord" )
+   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLINSERT__NEXTRECORD, "_qgmPlInsert::_nextRecord" )
    INT32 _qgmPlInsert::_nextRecord( _pmdEDUCB *eduCB, BSONObj &obj )
    {
       PD_TRACE_ENTRY( SDB__QGMPLINSERT__NEXTRECORD ) ;
@@ -163,12 +93,7 @@ namespace engine
       {
          if ( !_got )
          {
-            rc = _mergeObj( obj ) ;
-            if ( SDB_OK != rc )
-            {
-               goto error ;
-            }
-
+            obj = _insertor ;
             _got = TRUE ;
          }
          else
@@ -203,7 +128,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLINSERT__EXEC, "_qgmPlInsert::_execute" )
+   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLINSERT__EXEC, "_qgmPlInsert::_execute" )
    INT32 _qgmPlInsert::_execute( _pmdEDUCB *eduCB )
    {
       PD_TRACE_ENTRY( SDB__QGMPLINSERT__EXEC ) ;

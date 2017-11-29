@@ -60,7 +60,7 @@ namespace engine
       if ( NULL != condition )
       {
          _qgmConditionNodeHelper tree( condition ) ;
-         _condition = tree.toBson(FALSE) ;
+         _condition = tree.toBson( TRUE ) ;
          if ( !_condition.isEmpty() )
          {
             _initialized = TRUE ;
@@ -87,6 +87,11 @@ namespace engine
          ss << "Condition:" << _condition.toString() << '\n';
       }
       return ss.str() ;
+   }
+
+   BOOLEAN _qgmPlDelete::needRollback() const
+   {
+      return TRUE ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLDELETE__EXEC, "_qgmPlDelete::_execute" )

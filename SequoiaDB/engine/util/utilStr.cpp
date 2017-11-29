@@ -192,32 +192,56 @@ namespace engine
       goto done ;
    }
 
-   INT32 utilStrJoin( const CHAR **src,
-                      UINT32 cnt,
-                      CHAR *join,
-                      UINT32 &joinSize )
-   {
-      SDB_ASSERT( NULL != join, "impossible" ) ;
-      INT32 rc = SDB_OK ;
-      UINT32 len = 0 ;
-      for ( UINT32 i = 0; i < cnt; i++ )
-      {
-         if ( NULL != src[i] )
-         {
-            UINT32 sLen = ossStrlen(src[i]) ;
-            ossMemcpy( join + len, src[i], sLen ) ;
-            len += sLen ;
-         }
-      }
-      joinSize = len ;
-      return rc ;
-   }
-
    BOOLEAN utilStrIsDigit( const string& str )
    {
       for ( UINT32 i = 0 ; i < str.size() ; i++ )
       {
          if ( !isdigit( str.at( i ) ) )
+         {
+            return FALSE ;
+         }
+      }
+
+      return TRUE ;
+   }
+
+   BOOLEAN utilStrIsDigit( const char *str )
+   {
+
+      UINT32 len = ossStrlen( str ) ;
+      for ( UINT32 i = 0 ; i < len ; i++ )
+      {
+         if ( !isdigit( str[ i ] ) )
+         {
+            return FALSE ;
+         }
+      }
+
+      return TRUE ;
+   }
+
+   BOOLEAN utilStrIsODigit( const char *str )
+   {
+
+      UINT32 len = ossStrlen( str ) ;
+      for ( UINT32 i = 0 ; i < len ; i++ )
+      {
+         if ( str[ i ] < '0' || str[ i ] > '7' )
+         {
+            return FALSE ;
+         }
+      }
+
+      return TRUE ;
+   }
+
+   BOOLEAN utilStrIsXDigit( const char *str )
+   {
+
+      UINT32 len = ossStrlen( str ) ;
+      for ( UINT32 i = 0 ; i < len ; i++ )
+      {
+         if ( !isxdigit( str[ i ] ) )
          {
             return FALSE ;
          }
@@ -293,6 +317,70 @@ namespace engine
       goto done ;
    }
 
+   INT32 utilStr2Num( const CHAR *str, INT32 &num )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 scanRc = SDB_OK ;
+      INT32 tmpNum = 0 ;
+
+      if ( 0 == ossStrncmp( str, HEX_PRE, HEX_PRE_SIZE ) )
+      {
+         str = str + 2 ;
+         if ( '\0' == *str )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         if ( ! utilStrIsXDigit( str ) )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         scanRc = ossSscanf( str, "%x", &tmpNum ) ;
+         if ( -1 == scanRc )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+      else if ( 0 == ossStrncmp( str, OCT_PRE, OCT_PRE_SIZE ) )
+      {
+         if ( ! utilStrIsODigit( str ) )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         scanRc = ossSscanf( str, "%o", &tmpNum ) ;
+         if ( -1 == scanRc )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+      else
+      {
+         if ( ! utilStrIsDigit( str ) )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         scanRc = ossSscanf( str, "%d", &tmpNum ) ;
+         if ( -1 == scanRc )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+
+      num = tmpNum ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+
+   }
+
    INT32 utilStr2TimeT( const CHAR *str,
                         time_t &tm,
                         UINT64 *usec )
@@ -307,6 +395,7 @@ namespace engine
       INT32 minute = 0 ;
       INT32 second = 0 ;
       INT32 micros = 0 ;
+      BOOLEAN hasColon = FALSE ;
 
       if( ossStrchr( str, 'T' ) || ossStrchr( str, 't' ) )
       {
@@ -335,8 +424,13 @@ namespace engine
             goto error ;
          }
 
+         if( ossStrchr( str, ':' ) )
+         {
+            hasColon = TRUE ;
+         }
+
          if ( !sscanf ( str,
-                        "%d-%d-%d-%d.%d.%d.%d",
+                        hasColon ? "%d-%d-%d-%d:%d:%d.%d" : "%d-%d-%d-%d.%d.%d.%d",
                         &year   ,
                         &month  ,
                         &day    ,
@@ -514,6 +608,24 @@ namespace engine
                                             "|[1-9][0-9]|[1-9])" ) ;
       return regex_match( ip, reg ) ;
 
+   }
+
+   BOOLEAN utilIsValidOID( const CHAR * pStr )
+   {
+      if ( NULL == pStr || 24 > ossStrlen( pStr ) )
+      {
+         return FALSE ;
+      }
+      for ( UINT32 i = 0; i < 24; ++i )
+      {
+         if ( ! ( ( pStr[i] >= '0' && pStr[i] <= '9' ) ||
+                  ( pStr[i] >= 'a' && pStr[i] <= 'f' ) ||
+                  ( pStr[i] >= 'A' && pStr[i] <= 'F' ) ) )
+         {
+            return FALSE ;
+         }
+      }
+      return TRUE ;
    }
 
    string utilTimeSpanStr( UINT64 seconds )

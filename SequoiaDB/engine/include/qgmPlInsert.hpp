@@ -46,36 +46,33 @@ namespace engine
    class _qgmPlInsert : public _qgmPlan
    {
    public:
-      _qgmPlInsert( const qgmDbAttr &collection ) ;
+      _qgmPlInsert( const qgmDbAttr &collection,
+                    const BSONObj &record = BSONObj() ) ;
 
       virtual ~_qgmPlInsert() ;
 
    public:
-      void addCV( const qgmOPFieldVec &columns,
-                  const qgmOPFieldVec &values ) ;
-
       virtual string toString() const ;
+
+      virtual BOOLEAN needRollback() const ;
 
    private:
       virtual INT32 _execute( _pmdEDUCB *eduCB ) ;
 
       virtual INT32 _fetchNext ( qgmFetchOut &next ) ;
 
-      OSS_INLINE BOOLEAN _directInsert()
+      OSS_INLINE BOOLEAN _directInsert() const
       {
-         return !_columns.empty() ;
+         return _input.size() == 0 ? TRUE : FALSE ;
       }
 
       INT32 _nextRecord( _pmdEDUCB *eduCB, BSONObj &obj ) ;
 
-      INT32 _mergeObj( BSONObj &obj ) const ;
-
    private:
-      string _fullName ;
-      qgmOPFieldVec _columns ;
-      qgmOPFieldVec _values ;
-      BOOLEAN _got ;
-      SDB_ROLE _role ;
+      string         _fullName ;
+      BSONObj        _insertor ;
+      BOOLEAN        _got ;
+      SDB_ROLE       _role ;
    } ;
 
    typedef class _qgmPlInsert qgmPlInsert ;

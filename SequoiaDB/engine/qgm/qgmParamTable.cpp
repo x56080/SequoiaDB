@@ -38,10 +38,12 @@
 #include "qgmParamTable.hpp"
 #include "pd.hpp"
 #include "utilStr.hpp"
+#include "qgmUtil.hpp"
 #include "pdTrace.hpp"
 #include "qgmTrace.hpp"
 
-using namespace std;
+using namespace std ;
+using namespace bson ;
 
 namespace engine
 {
@@ -63,66 +65,28 @@ namespace engine
       PD_TRACE_ENTRY( SDB__QGMPARAMTABLE_ADDCONST ) ;
       INT32 rc = SDB_OK ;
 
+      const static string s_ConstField( "$const" ) ;
+
       BSONObjBuilder builder ;
       _qgmBsonPair bPair ;
-      try
-      {
-      if ( SQL_GRAMMAR::DIGITAL == value.type )
-      {
-         BOOLEAN r = FALSE ;
-         r = builder.appendAsNumber( "$const",
-                                     value.value.toString() ) ;
-         if ( !r )
-         {
-            PD_LOG( PDERROR, "failed to append as number:%s",
-                    value.value.toString().c_str() ) ;
-            rc = SDB_SYS ;
-            SDB_ASSERT( FALSE, "impossible" ) ;
-            goto error ;
-         }
-      }
-      else if ( SQL_GRAMMAR::STR == value.type )
-      {
-         builder.append( "$const",
-                         value.value.toString() ) ;
-      }
-      else if ( SQL_GRAMMAR::DATE == value.type )
-      {
-         bson::Date_t t ;
-         UINT64 millis = 0 ;
-         rc = utilStr2Date( value.value.toString().c_str(),
-                            millis ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to parse to Date_t:%s",
-                    value.value.toString().c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
 
-         t.millis = millis ;
-         builder.appendDate( "$const", t ) ;
-      }
-      else
+      rc = qgmParseValue( value, builder, s_ConstField ) ;
+      if ( rc )
       {
-         PD_LOG( PDERROR, "wrong type:%d", value.type ) ;
-         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Parse value[%d,%s] failed, rc: %d",
+                 value.type, value.value.toString().c_str(), rc ) ;
          goto error ;
       }
 
       bPair.obj = builder.obj() ;
-      _const.push_back(  bPair ) ;
-      _qgmBsonPair &p = *( _const.rbegin() ) ;
-      p.ele = p.obj.firstElement() ;
-      out = &(p.ele) ;
-      }
-      catch ( std::exception &e )
+      _const.push_back( bPair ) ;
+
       {
-         PD_LOG( PDERROR, "unexpected err happened :%s",
-                 e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
+         _qgmBsonPair &p = *( _const.rbegin() ) ;
+         p.ele = p.obj.firstElement() ;
+         out = &(p.ele) ;
       }
+
    done:
       PD_TRACE_EXITRC( SDB__QGMPARAMTABLE_ADDCONST, rc ) ;
       return rc ;
@@ -139,7 +103,7 @@ namespace engine
       _qgmBsonPair bPair ;
       try
       {
-         bPair.obj = obj ;
+         bPair.obj = obj.getOwned() ;
          _const.push_back( bPair ) ;
          _qgmBsonPair &p = *( _const.rbegin() ) ;
          p.ele = p.obj.firstElement() ;

@@ -52,6 +52,7 @@ namespace engine
       virtual ~_qgmPlDelete() ;
    public:
       virtual string toString() const ;
+      virtual BOOLEAN needRollback() const ;
    private:
       virtual INT32 _execute( _pmdEDUCB *eduCB ) ;
 

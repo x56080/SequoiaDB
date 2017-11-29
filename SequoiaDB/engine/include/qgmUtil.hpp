@@ -123,6 +123,22 @@ namespace engine
                                const CHAR *pKeyName,
                                const _qgmConditionNode *node ) ;
 
+   INT32    qgmParseValue( INT32 type,
+                           const string &value,
+                           BSONObjBuilder &builder,
+                           const string &fieldName ) ;
+
+   INT32    qgmParseValue( const qgmOpField &value,
+                           BSONObjBuilder &builder,
+                           const string &fieldName ) ;
+
+   INT32    qgmParseValue( const SQL_CON_ITR &root,
+                           BSONObjBuilder &builder,
+                           const string &fieldName ) ;
+
+   BOOLEAN  sqlIsCommonValue( INT32 type ) ;
+   BOOLEAN  sqlIsNestedValue( INT32 type ) ;
+
 }
 
 #endif
