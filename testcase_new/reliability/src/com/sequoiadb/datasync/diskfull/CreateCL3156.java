@@ -67,8 +67,10 @@ public class CreateCL3156 extends SdbTestBase {
             }
 
             db = new Sequoiadb(coordUrl, "", "");
-            final int nodeNum = 2;
-            dataGroup = groupMgr.getDataGroupByNodeNum( nodeNum );
+            //final int nodeNum = 2;
+            clGroupName = groupMgr.getAllDataGroupName().get(0);
+            dataGroup = groupMgr.getGroupByName( clGroupName ) ;
+            //dataGroup = groupMgr.getDataGroupByNodeNum( nodeNum );
             if ( dataGroup == null ){
                throw new SkipException("checkBusiness failed");
             }
