@@ -46,11 +46,13 @@ SequoiaDB shell 运行如下：
         "$oid": "5822868a2b4c38286d000008"
       },
       "id": 2,
-      "content": {
-        "name": "Tom",
-        "phone": "456",
-        "address": "2000 Market Street, Philadelphia"
-      }
+      "content": [
+        {
+          "name": "Tom",
+          "phone": "456",
+          "address": "2000 Market Street, Philadelphia"
+        }
+      ]
   }
   Return 1 row(s).
   ```
