@@ -482,14 +482,66 @@ namespace engine
    /*
     * rtnCoordCMDOpOnNodes implement
     */
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_CMDOPONGROUP_OPON1NODE, "_coordCMDOpOnGroup::_opOnNodes" )
+   INT32 rtnCoordCMDOpOnNodes::_opOnOneNode ( const vector<INT32> &opList,
+                                            string hostName,
+                                            string svcName,
+                                            vector<BSONObj> &dataObjs )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_CMDOPONGROUP_OPON1NODE ) ;
+
+      try
+      {
+         BSONObj boExecArg = BSON( FIELD_NAME_HOST << hostName <<
+                                   PMD_OPTION_SVCNAME << svcName ) ;
+
+         for ( vector<INT32>::const_iterator iter = opList.begin() ;
+               iter != opList.end() ;
+               ++iter )
+         {
+            INT32 retCode = SDB_OK ;
+            CM_REMOTE_OP_CODE opCode = (CM_REMOTE_OP_CODE)(*iter) ;
+
+            rc = rtnRemoteExec( opCode, hostName.c_str(),
+                                &retCode, &boExecArg ) ;
+            if ( SDB_OK == rc && SDB_OK == retCode )
+            {
+               continue ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Do remote execute[code:%d] on the node[%s:%s] "
+                       "failed, rc: %d, remoteRC: %d",opCode, hostName.c_str(),
+                       svcName.c_str(), rc, retCode ) ;
+               dataObjs.push_back( BSON( FIELD_NAME_HOST << hostName <<
+                                         PMD_OPTION_SVCNAME << svcName <<
+                                         OP_ERRNOFIELD << retCode ) ) ;
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG ( PDERROR, "Occurred unexpected error:%s", e.what() ) ;
+      }
+
+      PD_TRACE_EXITRC ( COORD_CMDOPONGROUP_OPON1NODE, rc ) ;
+      return rc ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION( CMD_RTNCONODECMDOP_OPONNODES, "rtnCoordCMDOpOnNodes::_opOnNodes" )
    INT32 rtnCoordCMDOpOnNodes::_opOnNodes ( const vector<INT32> &opList,
                                             const BSONObj &boGroupInfo,
                                             vector<BSONObj> &dataObjs )
    {
       INT32 rc = SDB_OK ;
-
       PD_TRACE_ENTRY ( CMD_RTNCONODECMDOP_OPONNODES ) ;
+
+      BOOLEAN skipSelf = FALSE ;
+      const CHAR* selfHostName = pmdGetKRCB()->getHostName() ;
+      const CHAR* selfSvcName  = pmdGetKRCB()->getSvcname() ;
 
       try
       {
@@ -506,6 +558,7 @@ namespace engine
             BSONObj boNode = beNode.embeddedObject() ;
             string hostName, svcName ;
 
+            /// get hostname and svcname of the node
             rc = rtnGetSTDStringElement( boNode, FIELD_NAME_HOST, hostName ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to get the field [%s], rc: %d",
@@ -522,44 +575,30 @@ namespace engine
                       SDB_INVALIDARG, error, PDWARNING,
                       "Failed to get local-service-name" ) ;
 
-            BSONObj boExecArg = BSON( FIELD_NAME_HOST << hostName <<
-                                      PMD_OPTION_SVCNAME << svcName ) ;
-
-            for ( vector<INT32>::const_iterator iter = opList.begin() ;
-                  iter != opList.end() ;
-                  ++iter )
+            /// skip stopping myself
+            /// if want to stop itself, we must stop all other first.
+            vector<INT32>::const_iterator it = std::find( opList.begin(),
+                                                          opList.end(),
+                                                          SDBSTOP ) ;
+            if( it != opList.end() )
             {
-               INT32 retCode = SDB_OK ;
-               CM_REMOTE_OP_CODE opCode = (CM_REMOTE_OP_CODE)(*iter) ;
-
-               rc = rtnRemoteExec( opCode, hostName.c_str(), &retCode, &boExecArg ) ;
-               if ( SDB_OK == rc && SDB_OK == retCode )
+               if (  0 == ossStrcmp( hostName.c_str(), selfHostName ) &&
+                     0 == ossStrcmp( svcName.c_str(),  selfSvcName ) )
                {
+                  skipSelf = TRUE ;
                   continue ;
                }
-               if ( rc != SDB_OK )
-               {
-                  PD_LOG( PDERROR,
-                          "Failed to operate (optype=%d) on the node "
-                          "(HostName=%s, LocalService=%s, rc=%d)",
-                          opCode, hostName.c_str(), svcName.c_str(), rc ) ;
-               }
-               else if ( retCode != SDB_OK )
-               {
-                  rc = retCode;
-                  PD_LOG( PDERROR,
-                          "Failed to execute (optype=%d) on remote node "
-                          "(HostName=%s, LocalService=%s, rc=%d)",
-                          opCode, hostName.c_str(), svcName.c_str(), rc ) ;
-               }
-
-               BSONObjBuilder bobReply ;
-               bobReply.append( FIELD_NAME_HOST, hostName ) ;
-               bobReply.append( PMD_OPTION_SVCNAME, svcName ) ;
-               bobReply.append( FIELD_NAME_ERROR_NO, retCode ) ;
-               dataObjs.push_back( bobReply.obj() ) ;
             }
+
+            /// do operation
+            rc = _opOnOneNode( opList, hostName, svcName, dataObjs ) ;
           }
+
+         /// stop itself after all other node stoped
+         if ( skipSelf )
+         {
+            rc = _opOnOneNode( opList, selfHostName, selfSvcName, dataObjs ) ;
+         }
        }
        catch ( std::exception &e )
        {
@@ -602,56 +641,11 @@ namespace engine
       string svcName ;
       UINT32 pos = 0 ;
 
-      try
+      while ( SDB_OK == pItem->getNodeInfo( pos, id, hostName, svcName,
+                                            MSG_ROUTE_LOCAL_SERVICE ) )
       {
-         while ( SDB_OK == pItem->getNodeInfo( pos, id, hostName, svcName,
-                                               MSG_ROUTE_LOCAL_SERVICE ) )
-         {
-            ++pos ;
-
-            BSONObj boExecArg = BSON( FIELD_NAME_HOST << hostName <<
-                                      PMD_OPTION_SVCNAME << svcName ) ;
-
-            for ( vector<INT32>::const_iterator iter = opList.begin() ;
-                  iter != opList.end() ;
-                  ++iter )
-            {
-               INT32 retCode = SDB_OK ;
-               CM_REMOTE_OP_CODE opCode = (CM_REMOTE_OP_CODE)(*iter) ;
-
-               rc = rtnRemoteExec( opCode, hostName.c_str(), &retCode, &boExecArg ) ;
-               if ( SDB_OK == rc && SDB_OK == retCode )
-               {
-                  continue ;
-               }
-               if ( rc != SDB_OK )
-               {
-                  PD_LOG( PDERROR,
-                          "Failed to operate(optype=%d) on the node "
-                          "(HostName=%s, LocalService=%s, rc=%d)",
-                          opCode, hostName.c_str(), svcName.c_str(), rc ) ;
-               }
-               else if ( retCode != SDB_OK )
-               {
-                  rc = retCode;
-                  PD_LOG( PDERROR,
-                          "Failed to execute (optype=%d) on remote node "
-                          "(HostName=%s, LocalService=%s, rc=%d)",
-                          opCode, hostName.c_str(), svcName.c_str(), rc ) ;
-               }
-               BSONObjBuilder bobReply ;
-               bobReply.append( FIELD_NAME_HOST, hostName ) ;
-               bobReply.append( PMD_OPTION_SVCNAME, svcName ) ;
-               bobReply.append( FIELD_NAME_ERROR_NO, retCode ) ;
-               dataObjs.push_back( bobReply.obj() ) ;
-            }
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG ( PDERROR, "Occurred unexpected error:%s", e.what() ) ;
-         goto error ;
+         ++pos ;
+         rc = _opOnOneNode( opList, hostName, svcName, dataObjs ) ;
       }
 
       if ( dataObjs.size() != 0 )
@@ -813,7 +807,7 @@ namespace engine
       opList.push_back( SDBSTART ) ;
 
       if ( pSelfArgs->_catGroupInfo.get() &&
-            pSelfArgs->_catGroupInfo->nodeCount() > 0 )
+           pSelfArgs->_catGroupInfo->nodeCount() > 0 )
       {
          // For catalog group
          rc = _opOnCataNodes( opList, pSelfArgs->_catGroupInfo.get(), dataObjs ) ;
