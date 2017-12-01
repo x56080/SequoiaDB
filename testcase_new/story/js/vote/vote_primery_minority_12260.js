@@ -10,35 +10,39 @@ function main ( db )
    // Get Primary node related infomation
    var group = commGetGroups( db ) ;
    var rgSize = group.length ;
+   var isTest = false;
    println( " Group Size : " + rgSize ) ;
    for( var i = 0 ; i < rgSize ; ++i )
    {
-      var nodeSize = group[i].length ;
+      var nodeSize = group[i].length - 1;
       var getRG = group[i][0].GroupName ;         // GroupName
       var primNode = group[i][0].PrimaryNode ;    // PrimaryNode
       var result = true;
+      var primHost = "" ;
+      var master = "" ;
       // If the nodes less than 3, nodes cannot be stop
-      if( 3 < nodeSize )
+      if( !isTest && nodeSize >= 3 )
       {
-         var mino = 0 ;
+         var mino = 1 ; // contain primary node 
          println( "node size : " + nodeSize ) ;
-         for( var j = 1 ; j < nodeSize ; ++j )    //many groups,begin 1 not 0
+         for( var j = 0 ; j < nodeSize ; ++j )    //many groups,begin 1 not 0
          {
-            ++ mino ;
-            var nodeID = group[i][j].NodeID ;    // NodeID
-            var node = group[i][j].svcname ;    // svcname
-            var nodeHost = group[i][j].HostName ;    // HostName
+            
+            var nodeID = group[i][j + 1].NodeID ;    // NodeID
+            var node = group[i][j + 1].svcname ;    // svcname
+            var nodeHost = group[i][j + 1].HostName ;    // HostName
             if( primNode == nodeID )
             {
-               var primHost = group[i][j].HostName ;
-               var master = group[i][j].svcname ;    // Master node
+               primHost = nodeHost ;
+               master = node ;    // Master node
                continue ;
             }
-            if( mino < Math.floor(nodeSize/2) - 1  )
+            if( mino < Math.floor(nodeSize/2) - 1 )
             {
                // Stop no primary node
                println( "begin, node? : " + node ) ;
                stopNode( db, getRG, nodeHost, node ) ;
+               ++ mino ;
             }
          }
          // Stop primary node
@@ -57,27 +61,57 @@ function main ( db )
             if( totalSleepLen < count )
             {
                result = false ;
+               break;
             }
             //println( "count : " + count ) ;
          }while( false == newPrimNode ) ;
 
-         // Stop primary node
+         // Start primary node
+         println("start " + primHost + ":" + master);
          startNode( db, getRG, primHost, master ) ;
 
-         for( var j = 1 ; j < Math.floor(nodeSize/2) - 1 ; ++j )    //many groups,begin 1 not 0
+         for( var j = 0 ; j < Math.floor(nodeSize/2) - 1 ; ++j )    //many groups,begin 1 not 0
          {
-            var node = group[i][j].svcname ;    // svcname
-            var nodeHost = group[i][j].HostName ;    // HostName
+            var node = group[i][j+1].svcname ;    // svcname
+            var nodeHost = group[i][j+1].HostName ;    // HostName
 
             // Start primary node in the end
             startNode( db, getRG, nodeHost, node ) ;
          }
+         
          
          if ( !result )
          {
             println( "Don't change the primary node, node = " + newPrimNode ) ;
             throw "ErrVotePrimary" ;
          }
+         
+         var majCount = 0 ;
+         var sleepTimeLen = 60;
+         do
+         {
+            sleep(1000);
+            try
+            {
+               havePrimInGroup( db, getRG ) ;
+            }
+            catch( e )
+            {
+               if( "Cannot createCL success" != e )
+                  throw e ;
+               else
+               {
+                  println( "Start majority nodes, then have Primary node" ) ;
+                  clearGroup( db, getRG ) ;
+                  break ;
+               }
+            }
+            ++ majCount ;
+         }while( sleepTimeLen > majCount ) ;
+         if( sleepTimeLen == majCount )
+            throw "Don't have primary node in the end" ;
+         
+         isTest = true;
       }
       else
       {

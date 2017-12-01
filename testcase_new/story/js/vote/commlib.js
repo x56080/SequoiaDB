@@ -20,7 +20,7 @@ function stopNode( db, groupName, primHost, primNode )
    }
    catch( e )
    {
-      println( "Failed to stop the primary node = [ " + primHost + primNode +
+      println( "Failed to stop the primary node = [ " + primHost + ":" + primNode +
                " ], rc = " + e ) ;
       throw e ;
    }
