@@ -33,7 +33,8 @@ class syncDB13654 extends PHPUnit_Framework_TestCase
       }
       
       // create cl
-      self::$clDB = $csDB -> selectCL( self::$clName, null );
+      $option = '{ReplSize:0}';
+      self::$clDB = $csDB -> selectCL( self::$clName, $option );
       if ( self::$db -> getError()['errno'] != 0 )
       {
          throw new Exception("failed to create cl, errno=".self::$db -> getError()['errno']);
