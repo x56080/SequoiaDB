@@ -3389,7 +3389,7 @@ namespace engine
       SAFE_OSS_FREE( pDataMsgBuf ) ;
       SAFE_OSS_FREE( pRollbackMsgBuf ) ;
 
-      SAFE_OSS_FREE( pArguments ) ;
+      SAFE_OSS_DELETE( pArguments ) ;
 
       PD_TRACE_EXITRC ( CMD_RTNCOCMD2PH_EXECUTE, rc ) ;
 
