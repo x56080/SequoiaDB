@@ -2103,13 +2103,17 @@ namespace engine
 
       if ( canMergerLeft )
       {
-         pNewItem->_lowBound = iterLeft->second->getLowBound();
+         clsCatalogItem *item = iterLeft->second ;
+         pNewItem->_lowBound = item->getLowBound();
          _mapItems.erase( iterLeft );
+         SAFE_OSS_DELETE( item ) ;
       }
       if ( canMergerRight )
       {
-         pNewItem->_upBound = iterRight->second->getUpBound();
+         clsCatalogItem *item = iterRight->second ;
+         pNewItem->_upBound = item->getUpBound();
          _mapItems.erase( iterRight );
+         SAFE_OSS_DELETE( item ) ;
       }
       rc = _addItem( pNewItem );
       PD_RC_CHECK( rc, PDERROR,
@@ -2139,7 +2143,9 @@ namespace engine
          std::string strSubClName = it->second->getSubClName();
          if ( 0 == strSubClName.compare( subCLName ) )
          {
+            clsCatalogItem *item = it->second ;
             _mapItems.erase( it++ ) ;
+            SAFE_OSS_DELETE( item ) ;
          }
          else
          {
