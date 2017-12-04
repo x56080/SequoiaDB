@@ -37,8 +37,6 @@ public class IdIndex6620 extends SdbTestBase {
 	@BeforeClass
 	public void setUp(){
 		try{
-			System.out.println("the TestCase: " + this.getClass().getName() + 
-					" begin at:" + this.df.format(new Date()));
 			this.sdb = new Sequoiadb(SdbTestBase.coordUrl,"","");
 		}catch(BaseException e){
 			Assert.fail(" IdIndex6614 setUp error:" + e.getMessage());
@@ -77,8 +75,6 @@ public class IdIndex6620 extends SdbTestBase {
 		} catch (BaseException e) {
 			Assert.fail(e.getMessage());
 		}finally{
-			System.out.println("the TestCase Name:" + this.getClass().getName() + 
-	                ". the TestCase end at:" + this.df.format(new Date()));
 			if(sdb != null){
 				sdb.disconnect();
 			}

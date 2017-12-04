@@ -43,16 +43,15 @@ public class Sdv6667 extends SdbTestBase {
     
     @BeforeClass
     public void setUp() {
-        System.out.println(this.getClass().getName()+" begin at "+sdf.format(new Date()));
         try{
             sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
         }catch(BaseException e){            
             Assert.assertTrue(false,"connect failed,"+SdbTestBase.coordUrl+e.getMessage());
         }
-        if (Commlib.isStandAlone(sdb)){
+        if (LzwUtils3.isStandAlone(sdb)){
             throw new SkipException("is standalone skip testcase");
         }
-        if (Commlib.OneGroupMode(sdb)){
+        if (LzwUtils3.OneGroupMode(sdb)){
             throw new SkipException("less two groups skip testcase");
         }
         try{
@@ -83,7 +82,6 @@ public class Sdv6667 extends SdbTestBase {
             Assert.fail(e.getMessage());
         }finally{
             sdb.disconnect();
-            System.out.println(this.getClass().getName()+" end at "+sdf.format(new Date()));
         }
     }
     
@@ -98,24 +96,24 @@ public class Sdv6667 extends SdbTestBase {
             int strLength =  128*1024;          
             insertData(mcl, dataCount, strLength); 
             // check automatic split on group1
-            Sequoiadb dataDB1 = Commlib.getDataDB(db, domainRG1);
+            Sequoiadb dataDB1 = LzwUtils3.getDataDB(db, domainRG1);
             DBCollection scl1 = db.getCollectionSpace(csName).getCollection(sclName1);
-            Commlib.waitCreateDict(scl1, domainRG1);
+            LzwUtils3.waitCreateDict(scl1, domainRG1);
             checkCompression(dataDB1, sclName1);
             checkAutoSplit(dataDB1, sclName1);
             
             DBCollection scl2 = db.getCollectionSpace(csName).getCollection(sclName2);
-            Commlib.waitCreateDict(scl2, domainRG1);
+            LzwUtils3.waitCreateDict(scl2, domainRG1);
             checkCompression(dataDB1, sclName2);
             checkAutoSplit(dataDB1, sclName2);
             
             // check automatic split on group2
-            Sequoiadb dataDB2 = Commlib.getDataDB(db, domainRG2);
-            Commlib.waitCreateDict(scl1, domainRG2);
+            Sequoiadb dataDB2 = LzwUtils3.getDataDB(db, domainRG2);
+            LzwUtils3.waitCreateDict(scl1, domainRG2);
             checkCompression(dataDB2, sclName1);
             checkAutoSplit(dataDB2, sclName1);
             
-            Commlib.waitCreateDict(scl2, domainRG2);
+            LzwUtils3.waitCreateDict(scl2, domainRG2);
             checkCompression(dataDB2, sclName2);
             checkAutoSplit(dataDB2, sclName2);
         }catch(BaseException e){
@@ -146,7 +144,7 @@ public class Sdv6667 extends SdbTestBase {
     
     private void createDomain(){
         ArrayList<String> dataGroupNames = null;
-        dataGroupNames = Commlib.getDataGroups(sdb);
+        dataGroupNames = LzwUtils3.getDataGroups(sdb);
         domainRG1 = dataGroupNames.get(0);
         domainRG2 = dataGroupNames.get(1);
         BSONObject option = new BasicBSONObject();

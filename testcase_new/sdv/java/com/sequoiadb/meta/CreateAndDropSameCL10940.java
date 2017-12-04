@@ -33,8 +33,6 @@ public class CreateAndDropSameCL10940 extends SdbTestBase {
 	
 	@BeforeClass
 	public void setUp( ){
-		System.out.println(this.getClass().getName()+" begin at "
-				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "sdbadmin", "sdbadmin");
 		}catch(BaseException e){			
@@ -73,8 +71,6 @@ public class CreateAndDropSameCL10940 extends SdbTestBase {
 				cs.dropCollection(clName);
 			}			
 			sdb.disconnect();
-			System.out.println(this.getClass().getName()+" end at "
-					+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		}catch(BaseException e){			
 			Assert.assertTrue(false,"clean up failed:"+e.getMessage());
 		}

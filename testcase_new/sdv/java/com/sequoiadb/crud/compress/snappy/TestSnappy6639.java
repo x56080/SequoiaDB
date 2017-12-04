@@ -36,21 +36,20 @@ public class TestSnappy6639 extends SdbTestBase {
     
     @BeforeClass
     public void setUp() {
-        System.out.println(this.getClass().getName()+" begin at "+sdf.format(new Date()));
         try{
             sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
         }catch(BaseException e){            
             Assert.assertTrue(false,"connect failed,"+SdbTestBase.coordUrl+e.getMessage());
         }
-        if (Commlib.isStandAlone(sdb)){
+        if (SnappyUtils.isStandAlone(sdb)){
             throw new SkipException("is standalone skip testcase");
         }
-        if (Commlib.OneGroupMode(sdb)){
+        if (SnappyUtils.OneGroupMode(sdb)){
             throw new SkipException("less two groups skip testcase");
         }
         try{
             DBCollection cl = createCL();
-            Commlib.insertData(cl, recsSum);
+            SnappyUtils.insertData(cl, recsSum);
         }catch(BaseException e){
             Assert.fail(e.getMessage());
         }
@@ -69,7 +68,6 @@ public class TestSnappy6639 extends SdbTestBase {
             if(sdb != null){
                 sdb.disconnect();
             }
-            System.out.println(this.getClass().getName()+" end at "+sdf.format(new Date()));
         }
     }
     
@@ -86,13 +84,13 @@ public class TestSnappy6639 extends SdbTestBase {
             cl.split(srcGroup, dstGroup, startCondition, endCondition);
             
             // check source group
-            Sequoiadb srcDataDB = Commlib.getDataDB(db, srcGroup);
-            Commlib.checkCompression(srcDataDB, clName);
+            Sequoiadb srcDataDB = SnappyUtils.getDataDB(db, srcGroup);
+            SnappyUtils.checkCompression(srcDataDB, clName);
             checkSplit(srcDataDB);
             
             // check destination group
-            Sequoiadb dstDataDB = Commlib.getDataDB(db, srcGroup);
-            Commlib.checkCompression(dstDataDB, clName);
+            Sequoiadb dstDataDB = SnappyUtils.getDataDB(db, srcGroup);
+            SnappyUtils.checkCompression(dstDataDB, clName);
             checkSplit(dstDataDB);
         }catch(BaseException e){
             e.printStackTrace();
@@ -113,8 +111,8 @@ public class TestSnappy6639 extends SdbTestBase {
             option.put("ShardingType", "hash");
             option.put("Compressed", true);
             option.put("CompressionType", "snappy");
-            srcGroup = Commlib.getDataGroups(sdb).get(0);
-            dstGroup = Commlib.getDataGroups(sdb).get(1);
+            srcGroup = SnappyUtils.getDataGroups(sdb).get(0);
+            dstGroup = SnappyUtils.getDataGroups(sdb).get(1);
             option.put("Group", srcGroup);
             cl = cs.createCollection(clName, option);
         }catch(BaseException e){

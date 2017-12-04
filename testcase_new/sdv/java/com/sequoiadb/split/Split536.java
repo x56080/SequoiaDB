@@ -37,8 +37,6 @@ public class Split536 extends SdbTestBase {
 	@BeforeClass(enabled = true)
 	public void setUp() {
 		try {
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 			this.sdb = new Sequoiadb(coordUrl, "", "");
 			// 跳过 standAlone
 			CommLib commlib = new CommLib();
@@ -50,7 +48,7 @@ public class Split536 extends SdbTestBase {
 			this.currentCL = commCS.createCollection(clName,
 					(BSONObject) JSON.parse("{ShardingKey:{\"a\":1}}"));
 		} catch (BaseException e) {
-			Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		}
 	}
 
@@ -73,7 +71,7 @@ public class Split536 extends SdbTestBase {
 			// 切分
 			cl.split(srcGroupName, destGroupName, (BSONObject) JSON.parse("{a:1}"), (BSONObject) JSON.parse("{a:5}"));
 		} catch (BaseException e) {
-			Assert.assertEquals(e.getErrorCode(), -154, e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.assertEquals(e.getErrorCode(), -154, e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 			return;
 		} finally {
 			if (dbc != null) {
@@ -92,13 +90,11 @@ public class Split536 extends SdbTestBase {
 					commCS.dropCollection(clName);
 			}
 		} catch (BaseException e) {
-			Assert.fail("messqge:" + e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail("messqge:" + e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		}
 		if (sdb != null) {
 			sdb.disconnect();
 		}
-		System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-				+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 	}
 
 }

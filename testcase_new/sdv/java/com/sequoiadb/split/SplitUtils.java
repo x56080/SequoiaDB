@@ -22,7 +22,7 @@ import com.sequoiadb.testcommon.CommLib;
  *
  */
 
-public class Utils {
+public class SplitUtils {
 
 	public static final int FLG_INSERT_CONTONDUP = 0x00000001;
 

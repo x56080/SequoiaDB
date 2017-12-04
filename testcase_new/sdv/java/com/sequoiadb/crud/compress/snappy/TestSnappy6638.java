@@ -33,7 +33,6 @@ public class TestSnappy6638 extends SdbTestBase {
     
     @BeforeClass
     public void setUp() {
-        System.out.println(this.getClass().getName()+" begin at "+sdf.format(new Date()));
         try{
             sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
         }catch(BaseException e){
@@ -42,7 +41,7 @@ public class TestSnappy6638 extends SdbTestBase {
         try{
             DBCollection cl = createCL();
             cl.createIndex("aIndex", "{a:1}", false, false);
-            Commlib.insertData(cl, 100);
+            SnappyUtils.insertData(cl, 100);
         }catch(BaseException e){
             Assert.fail(e.getMessage());
         }
@@ -61,7 +60,6 @@ public class TestSnappy6638 extends SdbTestBase {
             if(sdb != null){
                 sdb.disconnect();
             }
-            System.out.println(this.getClass().getName()+" end at "+sdf.format(new Date()));
         }
     }
     

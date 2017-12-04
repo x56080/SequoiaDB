@@ -1,4 +1,4 @@
-package com.sequoiadb.lzwtransaction;
+package com.sequoiadb.lzw;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +16,7 @@ import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 
-public class Util {
+public class LzwUtils1 {
     
     /**
      * Judge the mode

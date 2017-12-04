@@ -31,25 +31,24 @@ import com.sequoiadb.testcommon.SdbThreadBase;
 public class TestConcurrency6672 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl_6672";
-    private String ranStr = Commlib.getRandomString(8 * 1024);
+    private String ranStr = CompressUtils.getRandomString(8 * 1024);
     private String dataGroupName = null;
     private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
     
     @BeforeClass
     public void setUp() {
-        System.out.println(this.getClass().getName()+" begin at "+sdf.format(new Date()));
         try{
             sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
         }catch(BaseException e){
             Assert.fail(e.getMessage());
         }
-        if (Commlib.isStandAlone(sdb)){
+        if (CompressUtils.isStandAlone(sdb)){
             throw new SkipException("is standalone skip testcase");
         }
         try{
             DBCollection cl = createCL();
             insertData(cl, 9000);
-            Commlib.waitCreateDict(cl, dataGroupName);
+            CompressUtils.waitCreateDict(cl, dataGroupName);
         }catch(BaseException e){
             Assert.fail(e.getMessage());
         }
@@ -68,7 +67,6 @@ public class TestConcurrency6672 extends SdbTestBase {
             if(sdb != null){
                 sdb.disconnect();
             }
-            System.out.println(this.getClass().getName()+" end at "+sdf.format(new Date()));
         }
     }
     
@@ -211,7 +209,7 @@ public class TestConcurrency6672 extends SdbTestBase {
         try{
             CollectionSpace cs = sdb.getCollectionSpace(csName); 
             BSONObject option = new BasicBSONObject();
-            dataGroupName = (Commlib.getDataGroups(sdb)).get(0);
+            dataGroupName = (CompressUtils.getDataGroups(sdb)).get(0);
             option.put("Group", dataGroupName);
             option.put("Compressed", true);
             option.put("CompressionType", "lzw");

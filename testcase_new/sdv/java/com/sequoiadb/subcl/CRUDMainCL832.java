@@ -41,8 +41,6 @@ public class CRUDMainCL832 extends SdbTestBase{
 	
 	@BeforeClass
 	public void setUp(){
-		System.out.println(this.getClass().getName()+" begin at "
-				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl,"","");
 			maincs = sdb.getCollectionSpace(SdbTestBase.csName); 
@@ -50,10 +48,10 @@ public class CRUDMainCL832 extends SdbTestBase{
 			e.printStackTrace();
 			Assert.fail(e.getMessage());
 		}
-        if (Commlib.isStandAlone(sdb)){
+        if (SubCLUtils.isStandAlone(sdb)){
             throw new SkipException("is standalone skip testcase");
         }
-		if (Commlib.getDataGroups(sdb).size() < 2){
+		if (SubCLUtils.getDataGroups(sdb).size() < 2){
             throw new SkipException("current environment less than tow groups");
         }
 		createMaincl();
@@ -68,8 +66,6 @@ public class CRUDMainCL832 extends SdbTestBase{
 		}catch(BaseException e){
 			Assert.assertEquals(e.getErrorCode(), -23, e.getMessage());
 		}finally{
-			System.out.println("End to run " + this.getClass().getName() 
-						+ ", end in: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 			sdb.disconnect();
 		}
 	}	

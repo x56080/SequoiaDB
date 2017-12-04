@@ -42,8 +42,6 @@ public class Split509 extends SdbTestBase {
 	@BeforeClass(enabled = true)
 	public void setUp() {
 		try {
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 			commSdb = new Sequoiadb(coordUrl, "", "");
 
 			// 跳过 standAlone 和数据组不足的环境
@@ -58,7 +56,7 @@ public class Split509 extends SdbTestBase {
 			CollectionSpace commCS = commSdb.getCollectionSpace(csName);
 			commCS.createCollection(clName,
 					(BSONObject) JSON.parse("{ShardingKey:{\"a\":1},ShardingType:\"range\"}"));
-			ArrayList<String> tmp = Utils.getGroupName(commSdb, csName, clName);
+			ArrayList<String> tmp = SplitUtils.getGroupName(commSdb, csName, clName);
 			srcGroupName = tmp.get(0);
 			destGroupName = tmp.get(1);
 			prepareData(commSdb);// 写入待切分的记录（1000）
@@ -66,7 +64,7 @@ public class Split509 extends SdbTestBase {
 			if (commSdb != null) {
 				commSdb.disconnect();
 			}
-			Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		}
 
 	}
@@ -97,7 +95,7 @@ public class Split509 extends SdbTestBase {
 			// 检查切分后目标组数据，再次插入数据，检测落入情况
 			checkResult(sdb);
 		} catch (BaseException e) {
-			Assert.assertEquals(e.getErrorCode() == -175 || e.getErrorCode() == -176, true, e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.assertEquals(e.getErrorCode() == -175 || e.getErrorCode() == -176, true, e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 			return;
 		} finally {
 			if (sdb != null) {
@@ -112,13 +110,11 @@ public class Split509 extends SdbTestBase {
 			CollectionSpace commCS = commSdb.getCollectionSpace(csName);
 			commCS.dropCollection(clName);
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		} finally {
 			if (commSdb != null) {
 				commSdb.disconnect();
 			}
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 		}
 	}
 
@@ -135,7 +131,7 @@ public class Split509 extends SdbTestBase {
 			// 插入数据并检查落入情况
 			insertDataAndCheckAgain(sdb, srcDataNode, destDataNode);
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		} finally {
 			if (sdb != null) {
 				sdb.disconnect();
@@ -178,17 +174,17 @@ public class Split509 extends SdbTestBase {
 
 			// 目标组落入情况
 			DBCollection destGroupCL = destDataNode.getCollectionSpace(csName).getCollection(clName);
-			if (!Utils.isCollectionContainThisJSON(destGroupCL, "{b:1,a:" + successRange.get(0) + "}")) {
+			if (!SplitUtils.isCollectionContainThisJSON(destGroupCL, "{b:1,a:" + successRange.get(0) + "}")) {
 				Assert.fail("check query data not pass(b:1)");
 			}
 
 			// 源组落入情况
 			DBCollection srcGroupCL = srcDataNode.getCollectionSpace(csName).getCollection(clName);
-			if (!Utils.isCollectionContainThisJSON(srcGroupCL, "{b:-1,a:" + (successRange.get(0) - 1) + "}")) {
+			if (!SplitUtils.isCollectionContainThisJSON(srcGroupCL, "{b:-1,a:" + (successRange.get(0) - 1) + "}")) {
 				Assert.fail("check query data not pass(b:-1)");
 			}
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		}
 
 	}
@@ -203,7 +199,7 @@ public class Split509 extends SdbTestBase {
 			Assert.assertEquals(destDataNode.getCollectionSpace(csName).getCollection(clName).getCount(),
 					successRange.get(1) - successRange.get(0));
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		}
 
 	}

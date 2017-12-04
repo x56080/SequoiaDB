@@ -41,8 +41,6 @@ public class Split514 extends SdbTestBase {
 	@BeforeClass(enabled = true)
 	public void setUp() {
 		try {
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 			commSdb = new Sequoiadb(coordUrl, "", "");
 
 			// 跳过 standAlone 和数据组不足的环境
@@ -56,7 +54,7 @@ public class Split514 extends SdbTestBase {
 
 			CollectionSpace commCS = commSdb.getCollectionSpace(csName);
 			commCS.createCollection(clName, (BSONObject) JSON.parse("{ShardingKey:{\"a\":1},ReplSize:0,ShardingType:\"range\"}"));
-			ArrayList<String> tmp = Utils.getGroupName(commSdb, csName, clName);
+			ArrayList<String> tmp = SplitUtils.getGroupName(commSdb, csName, clName);
 			srcGroupName = tmp.get(0);
 			destGroupName = tmp.get(1);
 			prepareData(commSdb); // 准备切分的数据
@@ -64,7 +62,7 @@ public class Split514 extends SdbTestBase {
 			if (commSdb != null) {
 				commSdb.disconnect();
 			}
-			Assert.fail("TestCase514 setUp error, error description:" + e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail("TestCase514 setUp error, error description:" + e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		}
 
 	}
@@ -76,7 +74,7 @@ public class Split514 extends SdbTestBase {
 			for (int i = 0; i < 1000; i++) {
 				arr.add((BSONObject) JSON.parse("{a:" + i + "}"));
 			}
-			cl.bulkInsert(arr, Utils.FLG_INSERT_CONTONDUP);
+			cl.bulkInsert(arr, SplitUtils.FLG_INSERT_CONTONDUP);
 		} catch (BaseException e) {
 			throw e;
 		}
@@ -109,7 +107,7 @@ public class Split514 extends SdbTestBase {
 			// 校验目标组数据，重新插入，再次校验
 			checkData(sdb);
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		} finally {
 			if (dbc != null) {
 				dbc.close();
@@ -148,7 +146,7 @@ public class Split514 extends SdbTestBase {
 			}
 
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		} finally {
 			if (dbc != null) {
 				dbc.close();
@@ -173,7 +171,7 @@ public class Split514 extends SdbTestBase {
 
 			insertAndCheck(sdb, destDataNode, srcdataNode); // 重新插入数据，检查落入情况
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		} finally {
 			if (srcdataNode != null) {
 				srcdataNode.disconnect();
@@ -193,17 +191,17 @@ public class Split514 extends SdbTestBase {
 
 			// 目标组落入情况
 			DBCollection destGroupCL = destDataNode.getCollectionSpace(csName).getCollection(clName);
-			if (!Utils.isCollectionContainThisJSON(destGroupCL, "{a:10,b:-1}")) {
+			if (!SplitUtils.isCollectionContainThisJSON(destGroupCL, "{a:10,b:-1}")) {
 				Assert.fail("check query data not pass");
 			}
 
 			// 源组落入情况
 			DBCollection srcGroupCL = srcdataNode.getCollectionSpace(csName).getCollection(clName);
-			if (!Utils.isCollectionContainThisJSON(srcGroupCL, "{a:500,b:-2}")) {
+			if (!SplitUtils.isCollectionContainThisJSON(srcGroupCL, "{a:500,b:-2}")) {
 				Assert.fail("check query data not pass");
 			}
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		}
 
 	}
@@ -214,13 +212,11 @@ public class Split514 extends SdbTestBase {
 			CollectionSpace commCS = commSdb.getCollectionSpace(csName);
 			commCS.dropCollection(clName);
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		} finally {
 			if (commSdb != null) {
 				commSdb.disconnect();
 			}
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 		}
 	}
 

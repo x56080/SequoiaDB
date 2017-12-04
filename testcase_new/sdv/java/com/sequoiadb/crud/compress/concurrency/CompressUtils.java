@@ -13,7 +13,7 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
-public class Commlib extends SdbTestBase {
+public class CompressUtils extends SdbTestBase {
     public static boolean isStandAlone(Sequoiadb sdb) {
         try {
             sdb.listReplicaGroups();
@@ -81,7 +81,7 @@ public class Commlib extends SdbTestBase {
         for(passSecond = 0; passSecond < waitSecond; passSecond++){
             try {
                 Thread.sleep(1000);
-                if(Commlib.isDictExist(cl, dataGroupName)){
+                if(CompressUtils.isDictExist(cl, dataGroupName)){
                     break;
                 }
             }catch(BaseException e){

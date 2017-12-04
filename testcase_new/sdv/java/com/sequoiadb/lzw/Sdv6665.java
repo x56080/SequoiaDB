@@ -39,17 +39,16 @@ public class Sdv6665 extends SdbTestBase {
 
 	@BeforeClass
 	public void setUp() {
-		System.out.println(this.getClass().getName() + " begin at " + sdf.format(new Date()));
 		try {
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 			sdb.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
 		} catch (BaseException e) {
 			Assert.fail(e.getMessage());
 		}
-		if (Commlib.isStandAlone(sdb)) {
+		if (LzwUtils3.isStandAlone(sdb)) {
 			throw new SkipException("is standalone skip testcase");
 		}
-		dataGroupNames = Commlib.getDataGroups(sdb);
+		dataGroupNames = LzwUtils3.getDataGroups(sdb);
 		createCL();
 	}
 
@@ -64,7 +63,6 @@ public class Sdv6665 extends SdbTestBase {
 			Assert.fail(e.getMessage());
 		} finally {
 			sdb.disconnect();
-			System.out.println(this.getClass().getName() + " end at " + sdf.format(new Date()));
 		}
 	}
 
@@ -77,11 +75,11 @@ public class Sdv6665 extends SdbTestBase {
 			int dataCount = 600;
 			int strLength = 1024 * 1024;
 			insertData(cl, dataCount, strLength);
-			Commlib.checkCompressed(cl, sourceGroupName);
+			LzwUtils3.checkCompressed(cl, sourceGroupName);
 			split(sourceGroupName, destGroupName);
-			Commlib.waitCreateDict(cl, destGroupName); // 等待压缩字典的建立,最多等待60分钟
+			LzwUtils3.waitCreateDict(cl, destGroupName); // 等待压缩字典的建立,最多等待60分钟
 			insertDataAgain(cl, 50, strLength);
-			Commlib.checkCompressed(cl, destGroupName);
+			LzwUtils3.checkCompressed(cl, destGroupName);
 			checkSplit(sdb, sourceGroupName, 100);
 			checkSplit(sdb, destGroupName, 100);
 		} catch (BaseException e) {
@@ -115,7 +113,7 @@ public class Sdv6665 extends SdbTestBase {
 			cl.insert("{_id:" + i + ",key:'" + strRec + i + "'}");
 		}
 
-		Commlib.waitCreateDict(cl, sourceGroupName); // 等待压缩字典的建立,最多等待60分钟
+		LzwUtils3.waitCreateDict(cl, sourceGroupName); // 等待压缩字典的建立,最多等待60分钟
 
 		for (int i = dataCount / 2; i < dataCount; i++) {
 			cl.insert("{_id:" + i + ",key:'" + strRec + i + "'}");

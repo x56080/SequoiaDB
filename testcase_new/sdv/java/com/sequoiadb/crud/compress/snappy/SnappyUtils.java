@@ -16,7 +16,7 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
-public class Commlib extends SdbTestBase {
+public class SnappyUtils extends SdbTestBase {
     public static ArrayList<String> groupList;
     
     public static boolean isStandAlone(Sequoiadb sdb) {

@@ -35,13 +35,12 @@ public class Sdv6661 extends SdbTestBase {
 
 	@BeforeClass
 	public void setUp() {
-		System.out.println(this.getClass().getName() + " begin at " + sdf.format(new Date()));
 		try {
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 		} catch (BaseException e) {
 			Assert.fail(e.getMessage());
 		}
-		if (Commlib.isStandAlone(sdb)) {
+		if (LzwUtils3.isStandAlone(sdb)) {
 			throw new SkipException("is standalone skip testcase");
 		}
 	}
@@ -57,7 +56,6 @@ public class Sdv6661 extends SdbTestBase {
 			Assert.fail(e.getMessage());
 		} finally {
 			sdb.disconnect();
-			System.out.println(this.getClass().getName() + " end at " + sdf.format(new Date()));
 		}
 	}
 
@@ -68,7 +66,7 @@ public class Sdv6661 extends SdbTestBase {
 			int dataCount = 600;
 			int strLength = 512 * 1024;
 			String rec = insertData(cl, dataCount, strLength);
-			Commlib.checkCompressed(cl, dataGroupName);
+			LzwUtils3.checkCompressed(cl, dataGroupName);
 			checkQuery(dataCount, rec);
 		} catch (BaseException e) {
 			Assert.fail(e.getMessage());
@@ -79,7 +77,7 @@ public class Sdv6661 extends SdbTestBase {
 		DBCollection cl = null;
 		BSONObject option = new BasicBSONObject();
 		try {
-			dataGroupName = Commlib.getDataGroups(sdb).get(0);
+			dataGroupName = LzwUtils3.getDataGroups(sdb).get(0);
 			option.put("Group", dataGroupName);
 			option.put("Compressed", true);
 			option.put("CompressionType", "lzw");
@@ -97,7 +95,7 @@ public class Sdv6661 extends SdbTestBase {
 			cl.insert("{_id:" + i + ",key:'" + strRec + i + "'}");
 		}
 		
-		Commlib.waitCreateDict(cl, dataGroupName);  //等待压缩字典的建立,最多等待60分钟
+		LzwUtils3.waitCreateDict(cl, dataGroupName);  //等待压缩字典的建立,最多等待60分钟
 		
 		for (int i = dataCount / 2; i < dataCount; i++) {
 			cl.insert("{_id:" + i + ",key:'" + strRec + i + "'}");

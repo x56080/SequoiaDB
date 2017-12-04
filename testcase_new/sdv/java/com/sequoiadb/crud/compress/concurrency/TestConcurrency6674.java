@@ -30,21 +30,20 @@ import com.sequoiadb.testcommon.SdbThreadBase;
 public class TestConcurrency6674 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String dataGroupName = null;
-    private String ranStr = Commlib.getRandomString(512 * 1024);
+    private String ranStr = CompressUtils.getRandomString(512 * 1024);
     private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
     
     @BeforeClass
     public void setUp() {
-        System.out.println(this.getClass().getName()+" begin at "+sdf.format(new Date()));
         try{
             sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
         }catch(BaseException e){
             Assert.fail(e.getMessage());
         }
-        if (Commlib.isStandAlone(sdb)){
+        if (CompressUtils.isStandAlone(sdb)){
             throw new SkipException("is standalone skip testcase");
         }
-        dataGroupName = ((ArrayList<String>)Commlib.getDataGroups(sdb)).get(0);
+        dataGroupName = ((ArrayList<String>)CompressUtils.getDataGroups(sdb)).get(0);
     }
     
     @AfterClass
@@ -63,7 +62,6 @@ public class TestConcurrency6674 extends SdbTestBase {
             if(sdb != null){
                 sdb.disconnect();
             }
-            System.out.println(this.getClass().getName()+" end at "+sdf.format(new Date()));
         }
     }
     
@@ -101,7 +99,7 @@ public class TestConcurrency6674 extends SdbTestBase {
                     rec.put("b", ranStr + i);
                     cl.insert(rec);
                 }
-                Commlib.waitCreateDict(cl, dataGroupName);
+                CompressUtils.waitCreateDict(cl, dataGroupName);
                 
                 // insert data for compression
                 for(int i = 120; i < 150; i++){
@@ -110,7 +108,7 @@ public class TestConcurrency6674 extends SdbTestBase {
                     rec.put("b", ranStr + i);
                     cl.insert(rec);
                 }
-                Commlib.checkCompressed(cl, dataGroupName, "lzw");
+                CompressUtils.checkCompressed(cl, dataGroupName, "lzw");
                 
                 // check data correctness
                 checkData(cl);
@@ -140,7 +138,7 @@ public class TestConcurrency6674 extends SdbTestBase {
                     cl.insert(rec);
                 }
                 checkData(cl);
-                Commlib.checkCompressed(cl, dataGroupName, "snappy");
+                CompressUtils.checkCompressed(cl, dataGroupName, "snappy");
             }catch(BaseException e){
                 e.printStackTrace();
                 throw e;
@@ -167,7 +165,7 @@ public class TestConcurrency6674 extends SdbTestBase {
                     cl.insert(rec);
                 }
                 checkData(cl);
-                Commlib.checkCompressed(cl, dataGroupName, null);
+                CompressUtils.checkCompressed(cl, dataGroupName, null);
             }catch(BaseException e){
                 e.printStackTrace();
                 throw e;

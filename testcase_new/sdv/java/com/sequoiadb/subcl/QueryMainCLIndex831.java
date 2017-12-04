@@ -41,8 +41,6 @@ public class QueryMainCLIndex831 extends SdbTestBase{
 	
 	@BeforeClass
 	public void setUp(){
-		System.out.println(this.getClass().getName()+" begin at "
-				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl,"","");
 			sdb.setSessionAttr((BSONObject)JSON.parse("{PreferedInstance:'M'}"));
@@ -51,10 +49,10 @@ public class QueryMainCLIndex831 extends SdbTestBase{
 			e.printStackTrace();
 			Assert.fail(e.getMessage());
 		}
-        if (Commlib.isStandAlone(sdb)){
+        if (SubCLUtils.isStandAlone(sdb)){
             throw new SkipException("is standalone skip testcase");
         }
-		if (Commlib.getDataGroups(sdb).size() < 2){
+		if (SubCLUtils.getDataGroups(sdb).size() < 2){
             throw new SkipException("current environment less than tow groups");
         }
 	    createMaincl();
@@ -70,8 +68,6 @@ public class QueryMainCLIndex831 extends SdbTestBase{
 		}catch(BaseException e){
 			Assert.fail("drop cs failed: " + e.getMessage());
 		}finally{
-			System.out.println("End to run " + this.getClass().getName() 
-						+ ", end in: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 			sdb.disconnect();
 		}
 	}	
@@ -104,7 +100,7 @@ public class QueryMainCLIndex831 extends SdbTestBase{
 	
 	
 	public void createSubcls(){
-		ArrayList<String> groupNames=Commlib.getDataGroups(sdb);
+		ArrayList<String> groupNames=SubCLUtils.getDataGroups(sdb);
 		groupSize = groupNames.size();
 		System.out.println("groupSize: " + groupSize);
 		try{

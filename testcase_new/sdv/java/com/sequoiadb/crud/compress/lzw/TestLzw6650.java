@@ -33,19 +33,18 @@ public class TestLzw6650 extends SdbTestBase {
     private String clName = "cl_6650";
     private String dataGroupName = null;
     private AtomicInteger id = new AtomicInteger(0);
-    private String bigStr = Commlib.getRandomString(512 * 1024);
-    private String smallStr = Commlib.getRandomString(1024);
+    private String bigStr = LzwUtils.getRandomString(512 * 1024);
+    private String smallStr = LzwUtils.getRandomString(1024);
     private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
     
     @BeforeClass
     public void setUp() {
-        System.out.println(this.getClass().getName()+" begin at "+sdf.format(new Date()));
         try{
             sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
         }catch(BaseException e){
             Assert.fail(e.getMessage());
         }
-        if (Commlib.isStandAlone(sdb)){
+        if (LzwUtils.isStandAlone(sdb)){
             throw new SkipException("is standalone skip testcase");
         }
     }
@@ -63,7 +62,6 @@ public class TestLzw6650 extends SdbTestBase {
             if(sdb != null){
                 sdb.disconnect();
             }
-            System.out.println(this.getClass().getName()+" end at "+sdf.format(new Date()));
         }
     }
     
@@ -75,19 +73,19 @@ public class TestLzw6650 extends SdbTestBase {
             DBCollection cl = createCL();
             // threshold is not reached
             insertData(cl, 100, bigStr);
-            Assert.assertEquals(Commlib.isDictExist(cl, dataGroupName), false, 
+            Assert.assertEquals(LzwUtils.isDictExist(cl, dataGroupName), false, 
                     "Dictionary is created when threshold is not reached!");
             
             // threshold is reached
             insertData(cl, 20, bigStr);
-            Commlib.waitCreateDict(cl, dataGroupName);
+            LzwUtils.waitCreateDict(cl, dataGroupName);
             
             // insert some records for compression
             insertData(cl, 5, smallStr);
             
             // check result
             checkData(cl, 100 + 20 + 5);
-            Commlib.checkCompressed(cl, dataGroupName);
+            LzwUtils.checkCompressed(cl, dataGroupName);
         }catch(BaseException e){
             Assert.fail(e.getMessage());
         }finally{
@@ -101,7 +99,7 @@ public class TestLzw6650 extends SdbTestBase {
         DBCollection cl = null;
         BSONObject option = new BasicBSONObject();
         try{
-            dataGroupName = ((ArrayList<String>)Commlib.getDataGroups(sdb)).get(0);
+            dataGroupName = ((ArrayList<String>)LzwUtils.getDataGroups(sdb)).get(0);
             option.put("Group", dataGroupName);
             option.put("Compressed", true);
             option.put("CompressionType", "lzw");

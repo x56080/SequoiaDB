@@ -43,16 +43,15 @@ public class TestSnappy6641 extends SdbTestBase {
     
     @BeforeClass
     public void setUp() {
-        System.out.println(this.getClass().getName()+" begin at "+sdf.format(new Date()));
         try{
             sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
         }catch(BaseException e){            
             Assert.assertTrue(false,"connect failed,"+SdbTestBase.coordUrl+e.getMessage());
         }
-        if (Commlib.isStandAlone(sdb)){
+        if (SnappyUtils.isStandAlone(sdb)){
             throw new SkipException("is standalone skip testcase");
         }
-        if (Commlib.OneGroupMode(sdb)){
+        if (SnappyUtils.OneGroupMode(sdb)){
             throw new SkipException("less two groups skip testcase");
         }
         try{
@@ -81,7 +80,6 @@ public class TestSnappy6641 extends SdbTestBase {
             if(sdb != null){
                 sdb.disconnect();
             }
-            System.out.println(this.getClass().getName()+" end at "+sdf.format(new Date()));
         }
     }
     
@@ -92,17 +90,17 @@ public class TestSnappy6641 extends SdbTestBase {
             db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
             DBCollection mcl = db.getCollectionSpace(csName).getCollection(mclName);
             // insert records covering whole the range
-            Commlib.insertData(mcl, recsSum);
+            SnappyUtils.insertData(mcl, recsSum);
             
             // check automatic split on group1
-            Sequoiadb dataDB1 = Commlib.getDataDB(db, domainRG1);
+            Sequoiadb dataDB1 = SnappyUtils.getDataDB(db, domainRG1);
             checkCompression(dataDB1, sclName1);
             checkAutoSplit(dataDB1, sclName1);
             checkCompression(dataDB1, sclName2);
             checkAutoSplit(dataDB1, sclName2);
             
             // check automatic split on group2
-            Sequoiadb dataDB2 = Commlib.getDataDB(db, domainRG2);
+            Sequoiadb dataDB2 = SnappyUtils.getDataDB(db, domainRG2);
             checkCompression(dataDB2, sclName1);
             checkAutoSplit(dataDB2, sclName1);
             checkCompression(dataDB2, sclName2);
@@ -119,7 +117,7 @@ public class TestSnappy6641 extends SdbTestBase {
     
     private void createDomain(){
         ArrayList<String> dataGroupNames = null;
-        dataGroupNames = Commlib.getDataGroups(sdb);
+        dataGroupNames = SnappyUtils.getDataGroups(sdb);
         domainRG1 = dataGroupNames.get(0);
         domainRG2 = dataGroupNames.get(1);
         BSONObject option = new BasicBSONObject();

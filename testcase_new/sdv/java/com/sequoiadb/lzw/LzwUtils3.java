@@ -14,7 +14,7 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
-public class Commlib extends SdbTestBase {
+public class LzwUtils3 extends SdbTestBase {
 	public static ArrayList<String> groupList;
 
 	public static boolean isStandAlone(Sequoiadb sdb) {
@@ -66,7 +66,7 @@ public class Commlib extends SdbTestBase {
 	public static void waitCreateDict(DBCollection cl, String dataGroupName) {
 		try {
 			for (int i = 0; i < 60 * 60; i++) {
-				if (Commlib.isDictExist(cl, dataGroupName)) {
+				if (LzwUtils3.isDictExist(cl, dataGroupName)) {
 					return;
 				}
 				Thread.sleep(1000);
