@@ -340,7 +340,7 @@ typedef SQL_CONTAINER::const_iterator SQL_CON_ITR ;
 
             is = as_lower_d[str_p("is")] ;
 
-            isnot = as_lower_d[str_p("isnot")] ;
+            isnot = leaf_node_d[ is >> SQL_BLANKORNO >> nott ] ;
 
             lbrackets = ch_p('(') ;
 
