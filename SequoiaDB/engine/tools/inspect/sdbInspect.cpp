@@ -231,7 +231,7 @@ INT32 dumpCiNodeSimple( ciLinkList< ciNode > &nodes, CHAR *&buffer,
    INT32 rc     = SDB_OK ;
    ciNode *node = NULL ;
    INT64 len    = 0 ;
-   
+
 retry:
    if ( bufferSize - 1 <= len )
    {
@@ -250,14 +250,14 @@ retry:
    nodes.resetCurrentNode() ;
    node = nodes.getHead() ;
    while ( NULL != node )
-   {   
+   {
       if ( ciNode::STATE_NORMAL != node->_state )
       {
-         len += ossSnprintf( buffer + len, 
+         len += ossSnprintf( buffer + len,
                              bufferSize - len,
                              "    \"%s\" in node( ServiceName : %s )"
                              OSS_NEWLINE OSS_NEWLINE,
-                             ciNode::stateDesc[ node->_state], 
+                             ciNode::stateDesc[ node->_state],
                              node->_serviceName ) ;
          CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
       }
@@ -692,7 +692,7 @@ INT32 readCiHeader( OSSFILE &in, ciHeader *header )
    rc = readFromFile( in, tmpOffset, buffer, CI_HEADER_SIZE ) ;
    CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
-   // try to copy 
+   // try to copy
    ossMemcpy( eyeCatcher, buffer, CI_EYECATCHER_SIZE ) ;
    if ( 0 != ossStrncmp( CI_HEADER_EYECATCHER,
       eyeCatcher, CI_EYECATCHER_SIZE ) )
@@ -986,7 +986,7 @@ error:
    goto done ;
 }
 
-BOOLEAN normalNodes( ciLinkList< ciNode > &nodes ) 
+BOOLEAN normalNodes( ciLinkList< ciNode > &nodes )
 {
    BOOLEAN normal = TRUE ;
    ciNode *curNode = NULL ;
@@ -1321,7 +1321,7 @@ BOOLEAN recordQuery( ciLinkList< ciNode > &nodes,
       {
          state.set( idx ) ;
       }
-      else if ( ciNode::STATE_NORMAL == node->_state && 
+      else if ( ciNode::STATE_NORMAL == node->_state &&
                 docs.objs[idx].equal( obj ) )
       {
          state.set( idx ) ;
@@ -2505,6 +2505,41 @@ BOOLEAN reachEnd( const ciBson &doc, const INT32 nodeCount )
    return end ;
 }
 
+// Objects(Actually two records) with the same fields and values are equal even
+// their field orders are different.
+BOOLEAN _objSortCmp( const BSONObj &left, const BSONObj &right )
+{
+   BOOLEAN equal = FALSE ;
+   BSONObj sortKey ;
+   BSONObjBuilder builder ;
+   std::set<string> fields ;
+
+   try
+   {
+      if ( left.nFields() != right.nFields() )
+      {
+         equal = FALSE ;
+         goto done ;
+      }
+
+      // Fetch all the names to build the sort key.
+      (void)left.getFieldNames( fields ) ;
+      for ( std::set<string>::iterator itr = fields.begin();
+            itr != fields.end() ; ++itr )
+      {
+         builder.append( *itr, "" ) ;
+      }
+      sortKey = builder.done() ;
+      equal = ( 0 == left.woSortOrder( right, sortKey ) ) ;
+   }
+   catch ( std::exception &e )
+   {
+      std::cerr << "Unexpected exception: " << e.what() << std::endl ;
+   }
+done:
+   return equal ;
+}
+
 /**
 ** compare each record among nodes
 ***/
@@ -2527,10 +2562,12 @@ BOOLEAN compare( ciLinkList< ciNode > &nodes,
       {
          state.set( idx ) ;
       }
-      else if ( ciNode::STATE_NORMAL == node->_state && 
-                doc.objs[idx].equal( obj ) )
+      else if ( ciNode::STATE_NORMAL == node->_state )
       {
-         state.set( idx ) ;
+         if ( doc.objs[idx].equal( obj ) || _objSortCmp( doc.objs[idx], obj ) )
+         {
+            state.set( idx ) ;
+         }
       }
    }
 
@@ -2731,7 +2768,7 @@ INT32 inspectWithoutFile( sdbclient::sdb *coord, ciHeader *header,
                tail._diffCLCount++ ;
             }
 
-            // 1. write collection header 
+            // 1. write collection header
             rc = writeCiClHeader( file, &clHeader ) ;
             CHECK_VALUE( ( SDB_OK != rc ), error ) ;
             offset += CI_CL_HEADER_SIZE ;
@@ -3080,7 +3117,7 @@ error:
    goto done ;
 }
 
-const CHAR *_ciNode::stateDesc[ _ciNode::STATE_COUNT ] = 
+const CHAR *_ciNode::stateDesc[ _ciNode::STATE_COUNT ] =
 {
    "Normal",
    "Failed to connect to node",
@@ -3145,7 +3182,7 @@ INT32 _sdbCi::handle( const po::options_description &desc,
    CHAR outReport[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
    CHAR *tailBuffer = NULL ;
    INT64 tailBufferSize = 0 ;
-   OSSFILE startupFile ; 
+   OSSFILE startupFile ;
    BOOLEAN startupFileOpened = FALSE ;
    BOOLEAN startupFileLocked = FALSE ;
 
@@ -3278,7 +3315,7 @@ INT32 _sdbCi::handle( const po::options_description &desc,
    if ( SDB_OK != rc )
    {
       std::cout << "Error: failed to lock startup-file while starting"
-                << ", rc = " << rc << std::endl 
+                << ", rc = " << rc << std::endl
                 << "       There's another sdbinspect running in the same dir"
                 << endl ;
       goto error ;
@@ -3291,7 +3328,7 @@ INT32 _sdbCi::handle( const po::options_description &desc,
       rc = SDB_OK ;
       goto done ;
    }
-   
+
    CHECK_VALUE( ( SDB_OK != rc ), error ) ;
    // report file
    if ( !useOutput )
@@ -3315,7 +3352,7 @@ INT32 _sdbCi::handle( const po::options_description &desc,
 done:
    if ( startupFileLocked )
    {
-      // if we have locked, we have all priority of this file. 
+      // if we have locked, we have all priority of this file.
       // and we should delete it
       ossLockFile( &startupFile, OSS_LOCK_UN ) ;
       ossClose( startupFile ) ;
@@ -3323,7 +3360,7 @@ done:
    }
    else if ( startupFileOpened )
    {
-      // if we have opened, but lock failed. 
+      // if we have opened, but lock failed.
       // we do not have priority of this file. just close the file.
       ossClose( startupFile ) ;
    }
@@ -3347,7 +3384,7 @@ INT32 _sdbCi::inspect()
    sdbclient::sdb *coord = NULL ;
    CHAR inFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
    CHAR tmpFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 }  ;
-   
+
    coord = new sdbclient::sdb() ;
    if( NULL == coord )
    {
