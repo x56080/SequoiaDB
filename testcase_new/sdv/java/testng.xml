@@ -10,7 +10,11 @@
    <parameter name="RSRVPORTEND"    value="27000" />
    <parameter name="RSRVNODEDIR"    value="/opt/sequoiadb/database/" />
    <parameter name="WORKDIR"        value="/tmp/javatest" />   
-   
+
+   <listeners>
+      <listener class-name="com.sequoiadb.testcommon.TimePrinterListener"/>
+   </listeners>
+      
    <test name="split" enabled="true" parallel="classes">
         <packages>
             <package name="com.sequoiadb.split" />

@@ -12,6 +12,10 @@
    <parameter name="WORKDIR"        value="/tmp/javatest" />
    <parameter name="CONFTOOL"       value="trunk/misc/ci_new/src/test/exec_testcase/changeConf.js" />
    
+   <listeners>
+      <listener class-name="com.sequoiadb.testcommon.TimePrinterListener"/>
+   </listeners>
+   
    <!--The testcases of different configure should be placed in different <test> -->
    <test name="lzwtransaction">
       <classes>

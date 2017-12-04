@@ -11,6 +11,10 @@
    <parameter name="RSRVNODEDIR"    value="/opt/sequoiadb/database/" />
    <parameter name="WORKDIR"        value="/tmp/javatest" />
 
+   <listeners>
+      <listener class-name="com.sequoiadb.testcommon.TimePrinterListener"/>
+   </listeners>
+   
    <test name="largedata" parallel="classes" thread-count="1">
         <packages>
             <package name="com.sequoiadb.lzw" />
