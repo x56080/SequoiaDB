@@ -15,7 +15,7 @@ import org.testng.SkipException;
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.metadataconsistency.data.CommLib;
+import com.sequoiadb.metadataconsistency.data.MetaDataUtils;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -40,15 +40,13 @@ public class SubCL10190 extends SdbTestBase {
 	@BeforeClass
 	public void setUp(){
 		//start time
-		System.out.println("Begin to run " + getClass().getName() 
-					+ ", begin in: " + dateFm.format(new Date().getTime()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 			//judge the mode
-			if(CommLib.isStandAlone(sdb)){
+			if(MetaDataUtils.isStandAlone(sdb)){
 				throw new SkipException("The mode is standlone, skip the testCase.");
 			}
-			CommLib.clearCS(sdb, csName);
+			MetaDataUtils.clearCS(sdb, csName);
 			
 			sdb.createCollectionSpace(mCSName);
 			sdb.createCollectionSpace(sCSName);
@@ -63,12 +61,10 @@ public class SubCL10190 extends SdbTestBase {
 	@AfterClass
 	public void tearDown(){
 		try{
-			CommLib.clearCS(sdb, csName);
+			MetaDataUtils.clearCS(sdb, csName);
 		}catch(BaseException e){
 			Assert.fail(e.getMessage());
 		}finally{
-			System.out.println("End to run " + getClass().getName() 
-						+ ", end in: " + dateFm.format(new Date().getTime()));
 			sdb.disconnect();
 		}
 	}
@@ -80,7 +76,7 @@ public class SubCL10190 extends SdbTestBase {
 		attachCL.start();
 
 		DropSubCS dropSubCS = new DropSubCS();
-		CommLib.sleep(random.nextInt(msec));
+		MetaDataUtils.sleep(random.nextInt(msec));
 		dropSubCS.start();
 		
 		if( !( attachCL.isSuccess() && dropSubCS.isSuccess() ) ){
@@ -88,7 +84,7 @@ public class SubCL10190 extends SdbTestBase {
 		}
 		
 		//check results
-		CommLib.checkCLResult(csName, clName);
+		MetaDataUtils.checkCLResult(csName, clName);
 	}
 	
 	private class AttachCL extends SdbThreadBase{
@@ -110,7 +106,7 @@ public class SubCL10190 extends SdbTestBase {
 				if(csDB.isCollectionExist(mCLName)){
 					csDB.getCollection(mCLName).attachCollection(sCSName + "." + sCLName, options);
 					
-					CommLib.insertData(db, csName, mCLName);
+					MetaDataUtils.insertData(db, csName, mCLName);
 				}
 			}catch(BaseException e){
 				int eCode = e.getErrorCode();

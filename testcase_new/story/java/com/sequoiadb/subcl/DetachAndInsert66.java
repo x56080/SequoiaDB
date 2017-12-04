@@ -43,16 +43,13 @@ public class DetachAndInsert66 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        System.out.println( this.getClass().getName() + " begin at "
-                + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
-                        .format( new Date() ) );
         Sequoiadb tmpdb = null;
         try {
             tmpdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            if ( Commlib.isStandAlone( tmpdb ) ) {
+            if ( SubCLUtils.isStandAlone( tmpdb ) ) {
                 throw new SkipException( "is standalone skip testcase" );
             }
-            addressList = Commlib.getNodeAddress( tmpdb, "SYSCoord" );
+            addressList = SubCLUtils.getNodeAddress( tmpdb, "SYSCoord" );
             sdb1 = new Sequoiadb( addressList.get( 0 ), "", "" );
             sdb2 = new Sequoiadb( addressList.get( 1 ), "", "" );
         } catch ( BaseException e ) {

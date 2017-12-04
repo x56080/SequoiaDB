@@ -48,15 +48,13 @@ public class TestSplit10522A extends SdbTestBase{
     @BeforeClass
     public void setUp() {
         try{
-            System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                    ". the TestCase begin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
             this.sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
             // 跳过 standAlone 和数据组不足的环境
-            Util util = new Util();
+            SplitUtils2 util = new SplitUtils2();
             if (util.isStandAlone(this.sdb)) {
                 throw new SkipException("skip StandAlone");
             }
-            if (Util.getDataRgNames(this.sdb).size() < 2) {
+            if (SplitUtils2.getDataRgNames(this.sdb).size() < 2) {
                 throw new SkipException("current environment less than tow groups ");
             }
             BSONObject options = new BasicBSONObject();
@@ -71,23 +69,23 @@ public class TestSplit10522A extends SdbTestBase{
     @Test
     public void test() {
         //得到数据组
-        List<String> rgNames = Util.getDataRgNames(this.sdb);
+        List<String> rgNames = SplitUtils2.getDataRgNames(this.sdb);
         //创建主表
         BSONObject option = 
                 (BSONObject) JSON.parse("{IsMainCL:true,ShardingKey:{arrtype:-1,height:-1,num:-1,timestamp:-1},ShardingType:\"range\"}");
-        this.mainCL = Util.createCL(this.cs, this.mainCLName, option);
+        this.mainCL = SplitUtils2.createCL(this.cs, this.mainCLName, option);
         
         //a、数组、long、float、timestamp
         option = 
               (BSONObject) JSON.parse("{ShardingKey:{arrtype:-1,height:-1,num:-1,timestamp:-1},ShardingType:\"range\",Group:\"" + rgNames.get(0) + "\"}");
-        this.subCL = Util.createCL(this.cs, this.subCLName, option);
+        this.subCL = SplitUtils2.createCL(this.cs, this.subCLName, option);
         //挂载子表
         option = (BSONObject) JSON.parse("{LowBound:{arrtype:11,height:11,num:0.2," +
         		"timestamp:{\"$timestamp\":\"2016-11-30-00.00.00.000000\"}}," +
         		"UpBound:{arrtype:-5,height:-5,num:0.0001," +
         		"timestamp:{\"$timestamp\":\"2016-12-03-23.59.59.999999\"}}}");
         this.mainCL.attachCollection(SdbTestBase.csName+"."+this.subCLName, option);
-        this.insertRecods = (ArrayList<BSONObject>) Util.insertData(this.mainCL, 10);
+        this.insertRecods = (ArrayList<BSONObject>) SplitUtils2.insertData(this.mainCL, 10);
         
         BSONObject arr1 = new BasicBSONList();
         arr1.put("0", 8);
@@ -166,7 +164,7 @@ public class TestSplit10522A extends SdbTestBase{
         Sequoiadb dataDb = null;
         try {
             //连接源组data验证数据
-            String url = Util.getGroupIPByGroupName(this.sdb, rgNames.get(0));
+            String url = SplitUtils2.getGroupIPByGroupName(this.sdb, rgNames.get(0));
             dataDb = new Sequoiadb(url, "", "");
             CollectionSpace cs = dataDb.getCollectionSpace(SdbTestBase.csName);
             DBCollection dbcl = cs.getCollection(this.subCLName);
@@ -198,7 +196,7 @@ public class TestSplit10522A extends SdbTestBase{
         Sequoiadb dataDb = null;
         try {
             //连接目标组data查询
-            String url = Util.getGroupIPByGroupName(this.sdb, rgNames.get(1));
+            String url = SplitUtils2.getGroupIPByGroupName(this.sdb, rgNames.get(1));
             dataDb = new Sequoiadb(url, "", "");
             CollectionSpace cs = dataDb.getCollectionSpace(SdbTestBase.csName);
             DBCollection dbcl = cs.getCollection(this.subCLName);
@@ -225,8 +223,6 @@ public class TestSplit10522A extends SdbTestBase{
     @AfterClass
     public void tearDown() {
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                    ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
             if (this.cs.isCollectionExist(this.mainCLName)) {
                 this.cs.dropCollection(this.mainCLName);
             }

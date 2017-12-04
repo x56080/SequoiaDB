@@ -50,8 +50,6 @@ public class Split10529B extends SdbTestBase {
 	public void setUp() {
 
 		try {
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 			commSdb = new Sequoiadb(coordUrl, "", "");
 
 			// 跳过 standAlone 和数据组不足的环境
@@ -75,7 +73,7 @@ public class Split10529B extends SdbTestBase {
 				commSdb.disconnect();
 			}
 			Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
-					+ Utils.getKeyStack(e, this));
+					+ SplitUtils.getKeyStack(e, this));
 		}
 	}
 
@@ -123,7 +121,7 @@ public class Split10529B extends SdbTestBase {
 			cl.alterCollection((BSONObject) JSON.parse("{ReplSize:3}"));
 			CheckReplSize(db, 3);
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
+			Assert.fail(e.getMessage() + "\r\n" + SplitUtils.getKeyStack(e, this));
 			Assert.assertEquals(splitThread.isSuccess(), true, splitThread.getErrorMsg());
 		} finally {
 			if (splitThread != null) {
@@ -150,7 +148,7 @@ public class Split10529B extends SdbTestBase {
 			Assert.assertEquals(tmp.size(), 1, tmp.toString());
 			Assert.assertEquals((int) (tmp.get(0).get("ReplSize")), size, tmp.get(0).toString());
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
+			Assert.fail(e.getMessage() + "\r\n" + SplitUtils.getKeyStack(e, this));
 		} finally {
 			if (cursor != null) {
 				cursor.close();
@@ -166,13 +164,11 @@ public class Split10529B extends SdbTestBase {
 				commSdb.dropCollectionSpace(customCSName);
 			}
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
+			Assert.fail(e.getMessage() + "\r\n" + SplitUtils.getKeyStack(e, this));
 		} finally {
 			if (commSdb != null) {
 				commSdb.disconnect();
 			}
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 		}
 	}
 

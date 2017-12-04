@@ -43,8 +43,6 @@ public class Split10528A extends SdbTestBase {
 	public void setUp() {
 
 		try {
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 			commSdb = new Sequoiadb(coordUrl, "", "");
 
 			// 跳过 standAlone 和数据组不足的环境
@@ -68,7 +66,7 @@ public class Split10528A extends SdbTestBase {
 				commSdb.disconnect();
 			}
 			Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
-					+ Utils.getKeyStack(e, this));
+					+ SplitUtils.getKeyStack(e, this));
 		}
 	}
 
@@ -110,7 +108,7 @@ public class Split10528A extends SdbTestBase {
 			// 检测切分结果
 			Assert.assertEquals(splitThread.isSuccess(), true, splitThread.getErrorMsg());
 		} catch (BaseException e) {
-			Assert.assertEquals(e.getErrorCode(), -147, e.getMessage() + "\r\n" + Utils.getKeyStack(e, this)
+			Assert.assertEquals(e.getErrorCode(), -147, e.getMessage() + "\r\n" + SplitUtils.getKeyStack(e, this)
 					+ " \r\nSplitThread:[" + splitThread.getErrorMsg() + "]  ");
 		} finally {
 			if (db != null) {
@@ -129,13 +127,11 @@ public class Split10528A extends SdbTestBase {
 				commSdb.getCollectionSpace(csName).dropCollection(clName);
 			}
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
+			Assert.fail(e.getMessage() + "\r\n" + SplitUtils.getKeyStack(e, this));
 		} finally {
 			if (commSdb != null) {
 				commSdb.disconnect();
 			}
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 		}
 	}
 

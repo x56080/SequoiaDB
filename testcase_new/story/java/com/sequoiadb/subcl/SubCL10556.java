@@ -40,8 +40,6 @@ public class SubCL10556 extends SdbTestBase {
 	@BeforeClass
 	public void setUp() {
 		try {
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 			sdb = new Sequoiadb(coordUrl, "", "");
 			CommLib commlib = new CommLib();
 			if (commlib.isStandAlone(sdb)) {
@@ -62,7 +60,7 @@ public class SubCL10556 extends SdbTestBase {
 			mainCL.attachCollection(subCL.getFullName(),
 					(BSONObject) JSON.parse("{LowBound:{sk:100},UpBound:{sk:200}}"));
 		} catch (BaseException e) {
-			Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage()+"\r\n"+SubCLUtils2.getKeyStack(e,this));
 		}
 
 	}
@@ -77,7 +75,7 @@ public class SubCL10556 extends SdbTestBase {
 			resaults.add("mainCL createLob success"); // 主表新增LOB成功
 		} catch (BaseException e) {
 			if (e.getErrorCode() != -6) {
-				resaults.add(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this)); // 错误码不符合预期
+				resaults.add(e.getMessage()+"\r\n"+SubCLUtils2.getKeyStack(e,this)); // 错误码不符合预期
 			}
 		}
 
@@ -87,7 +85,7 @@ public class SubCL10556 extends SdbTestBase {
 			resaults.add("mainCL openLob success"); // 主表查询LOB成功
 		} catch (BaseException e) {
 			if (e.getErrorCode() != -6) {
-				resaults.add(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this)); // 错误码不符合预期
+				resaults.add(e.getMessage()+"\r\n"+SubCLUtils2.getKeyStack(e,this)); // 错误码不符合预期
 			}
 		}
 
@@ -96,7 +94,7 @@ public class SubCL10556 extends SdbTestBase {
 			resaults.add("mainCL removeLob success"); // 主表删除LOB成功
 		} catch (BaseException e) {
 			if (e.getErrorCode() != -6) {
-				resaults.add(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this)); // 错误码不符合预期
+				resaults.add(e.getMessage()+"\r\n"+SubCLUtils2.getKeyStack(e,this)); // 错误码不符合预期
 			}
 		}
 
@@ -112,13 +110,11 @@ public class SubCL10556 extends SdbTestBase {
 			commCS.dropCollection(subCLName);
 			commCS.dropCollection(mainCLName);
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SubCLUtils2.getKeyStack(e,this));
 		} finally {
 			if (sdb != null) {
 				sdb.disconnect();
 			}
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 		}
 	}
 }

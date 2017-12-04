@@ -42,18 +42,16 @@ public class TestLobSplitAndWrite7847 extends SdbTestBase {
 	
 	@BeforeClass
 	public void setUp(){
-		System.out.println(this.getClass().getName()+" begin at "
-				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 		}catch(BaseException e){			
 			Assert.assertTrue(false,"connect %s failed,"+SdbTestBase.coordUrl+e.getMessage());
 		}
-		if (Commlib.isStandAlone(sdb)){
+		if (LobUtils.isStandAlone(sdb)){
 			throw new SkipException("is standalone skip testcase");
 		}
 		
-		if (Commlib.OneGroupMode(sdb)){
+		if (LobUtils.OneGroupMode(sdb)){
 			throw new SkipException("less two groups skip testcase");
 		}
 		
@@ -70,8 +68,6 @@ public class TestLobSplitAndWrite7847 extends SdbTestBase {
 		}catch(BaseException e){			
 			Assert.assertTrue(false,"clean up failed:"+e.getMessage());
 		}finally{
-			System.out.println(this.getClass().getName()+" end at "
-					+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		}
 	}	
 	
@@ -91,8 +87,8 @@ public class TestLobSplitAndWrite7847 extends SdbTestBase {
 			
             Sequoiadb db1 = null;
             DBCollection cl1 = null;
-            String sourceRGName = Commlib.getSrcGroupName(sdb, SdbTestBase.csName, clName);
-			String targetRGName = Commlib.getSplitGroupName(sourceRGName);
+            String sourceRGName = LobUtils.getSrcGroupName(sdb, SdbTestBase.csName, clName);
+			String targetRGName = LobUtils.getSplitGroupName(sourceRGName);
             try{
             	db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
             	cl1 = db1.getCollectionSpace(SdbTestBase.csName).getCollection(clName);            	
@@ -157,14 +153,14 @@ public class TestLobSplitAndWrite7847 extends SdbTestBase {
 		ObjectId oid  = null;
 		for(long i = 0; i < lobNums; i++){
 			int lobsize = random.nextInt(1048576);
-			String lobSb = Commlib.getRandomString(lobsize);
+			String lobSb = LobUtils.getRandomString(lobsize);
 			String prevMd5 = "";			
 			DBLob lob = null;
 			try{			
 				lob = cl.createLob();
 				lob.write(lobSb.getBytes());
 			    oid = lob.getID();
-			    prevMd5 = Commlib.getMd5(lobSb);
+			    prevMd5 = LobUtils.getMd5(lobSb);
 			}catch(BaseException e){	
 				Assert.assertTrue(false,"write lob fail:"+e.getMessage()+e.getStackTrace());
 			}finally{
@@ -185,7 +181,7 @@ public class TestLobSplitAndWrite7847 extends SdbTestBase {
 					bytebuff.put(rbuff, 0, readLen);				
 				}
 				bytebuff.rewind();		
-				String curMd5 = Commlib.getMd5(bytebuff);
+				String curMd5 = LobUtils.getMd5(bytebuff);
 				Assert.assertEquals(curMd5, prevMd5,"the lobs md5 different");
 			}catch(BaseException e){
 				Assert.assertTrue(false,"read lob fail:"+e.getMessage()+e.getStackTrace());

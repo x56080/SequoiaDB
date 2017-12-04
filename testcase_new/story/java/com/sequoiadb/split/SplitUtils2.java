@@ -20,7 +20,7 @@ import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 
-public class Util {
+public class SplitUtils2 {
     
     /**
      * Judge the mode

@@ -48,12 +48,11 @@ public class TestSplit10881 extends SdbTestBase{
     @BeforeClass
     public void setUp() {
         try{
-            System.out.println(getClass().getName()+" begin at "+sdf.format(new Date()));
             sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            if (Commlib.isStandAlone(sdb)) {
+            if (SplitBaseUtils.isStandAlone(sdb)) {
                 throw new SkipException("skip StandAlone");
             }
-            if (Commlib.OneGroupMode(sdb)) {
+            if (SplitBaseUtils.OneGroupMode(sdb)) {
                 throw new SkipException("skip One group mode");
             }
             sdb.setSessionAttr((BSONObject)JSON.parse("{PreferedInstance:'M'}"));
@@ -73,7 +72,6 @@ public class TestSplit10881 extends SdbTestBase{
             Assert.fail(e.getMessage());
         } finally {
             sdb.disconnect();
-            System.out.println(getClass().getName()+" end at "+sdf.format(new Date()));
         }
     }
     
@@ -81,14 +79,14 @@ public class TestSplit10881 extends SdbTestBase{
     public void test() {
         try {
             initData();
-            DBCollection cl = Commlib.createHashCl(sdb, clName, srcGroup);
+            DBCollection cl = SplitBaseUtils.createHashCl(sdb, clName, srcGroup);
             cl.bulkInsert(insertedRecs, 0);
             cl.split(srcGroup, dstGroup, startCondition, endCondition);
-            Commlib.checkSplitOnCoord(cl, insertedRecs);
-            Sequoiadb srcDB = Commlib.getDataDB(sdb, srcGroup);
-            int srcCnt = Commlib.checkSplitOnData(srcDB, clName, srcExpCnt, offSet);
-            Sequoiadb dstDB = Commlib.getDataDB(sdb, dstGroup);
-            int dstCnt = Commlib.checkSplitOnData(dstDB, clName, dstExpCnt, offSet);
+            SplitBaseUtils.checkSplitOnCoord(cl, insertedRecs);
+            Sequoiadb srcDB = SplitBaseUtils.getDataDB(sdb, srcGroup);
+            int srcCnt = SplitBaseUtils.checkSplitOnData(srcDB, clName, srcExpCnt, offSet);
+            Sequoiadb dstDB = SplitBaseUtils.getDataDB(sdb, dstGroup);
+            int dstCnt = SplitBaseUtils.checkSplitOnData(dstDB, clName, dstExpCnt, offSet);
             Assert.assertEquals(srcCnt + dstCnt, 
                     recsCnt, "srcCnt: " + srcCnt + "dstCnt: " + dstCnt + "recsCnt:" + recsCnt);
         }catch (BaseException e) {
@@ -99,7 +97,7 @@ public class TestSplit10881 extends SdbTestBase{
     
     private void initData() {
         // initialize data group information
-        List<String> rgNames = Commlib.getDataGroups(sdb);
+        List<String> rgNames = SplitBaseUtils.getDataGroups(sdb);
         srcGroup = rgNames.get(0);
         dstGroup = rgNames.get(1);
         // initialize records to insert

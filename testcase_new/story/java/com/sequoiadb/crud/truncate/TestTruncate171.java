@@ -37,27 +37,25 @@ public class TestTruncate171 extends SdbTestBase {
     
     @BeforeClass
     public void setUp() {
-        System.out.println(this.getClass().getName()+" begin at "
-                +new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
         try{
             sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
         }catch(BaseException e){            
             Assert.assertTrue(false,"connect failed,"+SdbTestBase.coordUrl+e.getMessage());
         }
-        if (Commlib.isStandAlone(sdb)){
+        if (TruncateUtils.isStandAlone(sdb)){
             throw new SkipException("is standalone skip testcase");
         }
         
-        if (Commlib.OneGroupMode(sdb)){
+        if (TruncateUtils.OneGroupMode(sdb)){
             throw new SkipException("less two groups skip testcase");
         }
         try{
             DBCollection cl = createShardCL(sdb, csName, clName);
             // doing insert
-            Commlib.insertData(cl);
+            TruncateUtils.insertData(cl);
             // prepare data for splitting
-            srcGroupName = Commlib.getSrcGroupName(sdb, cl);
-            dstGroupName = Commlib.getDstGroupName(sdb, srcGroupName);
+            srcGroupName = TruncateUtils.getSrcGroupName(sdb, cl);
+            dstGroupName = TruncateUtils.getDstGroupName(sdb, srcGroupName);
         }catch(BaseException e){
             Assert.fail(e.getMessage());
         }
@@ -74,7 +72,6 @@ public class TestTruncate171 extends SdbTestBase {
             Assert.fail(e.getMessage());
         }finally{
             sdb.disconnect();
-            System.out.println(this.getClass().getName()+" end at "+sdf.format(new Date()));
         }
     }
     
@@ -103,7 +100,7 @@ public class TestTruncate171 extends SdbTestBase {
                 // doing truncate
                 cl.truncate();
                 // check truncate
-                Commlib.checkTruncated(db, cl);
+                TruncateUtils.checkTruncated(db, cl);
             }catch(BaseException e){
                 throw e;
             }finally{

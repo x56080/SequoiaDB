@@ -1,4 +1,4 @@
-package com.sequoiadb.crud.lob;
+package com.sequoiadb.lob;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -48,7 +48,6 @@ public class TestLob10424 extends SdbTestBase {
     
     @BeforeClass
     public void setUp(){
-        System.out.println(this.getClass().getName()+" begin at "+sdf.format(new Date()));
         try{
             sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
         }catch(BaseException e){            
@@ -69,7 +68,6 @@ public class TestLob10424 extends SdbTestBase {
             Assert.fail(e.getMessage());
         }finally{
             sdb.disconnect();
-            System.out.println(this.getClass().getName()+" end at "+sdf.format(new Date()));
         }
     }
     
@@ -133,14 +131,14 @@ public class TestLob10424 extends SdbTestBase {
         int lobsize = random.nextInt(1048576);
         // delLobSize is a global parameter. Change it here for convenience
         delLobSize = lobsize;
-        String lobSb = Commlib.getRandomString(lobsize);
+        String lobSb = LobUtils.getRandomString(lobsize);
         Md5Data prevMd5 = new Md5Data();
         DBLob lob = null;
         try{
             lob = cl.createLob();
             lob.write(lobSb.getBytes());
             prevMd5.oid = lob.getID();
-            prevMd5.md5 = Commlib.getMd5(lobSb);
+            prevMd5.md5 = LobUtils.getMd5(lobSb);
         }catch(BaseException e){    
             Assert.fail(e.getMessage());
         }finally{
@@ -163,16 +161,16 @@ public class TestLob10424 extends SdbTestBase {
         // check whether lob remains
         try{
             // insert a new lob with delOid
-            String lobSb = Commlib.getRandomString(delLobSize);
+            String lobSb = LobUtils.getRandomString(delLobSize);
             DBLob wLob = cl.createLob(delOid);
             wLob.write(lobSb.getBytes());
-            String prevMd5 = Commlib.getMd5(lobSb);
+            String prevMd5 = LobUtils.getMd5(lobSb);
             wLob.close();
             // read the new lob
             DBLob rLob = cl.openLob(delOid);
             byte[] buff = new byte[(int)rLob.getSize()];
             rLob.read(buff);
-            String afterMd5 = Commlib.getMd5(buff);
+            String afterMd5 = LobUtils.getMd5(buff);
             rLob.close();
             // check the correctness of the new lob
             if(!prevMd5.equals(afterMd5)){

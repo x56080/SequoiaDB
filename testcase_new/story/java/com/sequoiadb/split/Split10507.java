@@ -43,8 +43,6 @@ public class Split10507 extends SdbTestBase {
 	public void setUp() {
 		Sequoiadb tmpSdb = null;
 		try {
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 			tmpSdb = new Sequoiadb(coordUrl, "", "");
 
 			// 跳过 standAlone 和数据组不足的环境
@@ -75,7 +73,7 @@ public class Split10507 extends SdbTestBase {
 			if (tmpSdb != null) {
 				tmpSdb.disconnect();
 			}
-			Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		}
 	}
 
@@ -91,7 +89,7 @@ public class Split10507 extends SdbTestBase {
 
 			checkCoordA();// 链接commSdbA查询源组数据目标组数据，并查询切分边界值
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		}
 	}
 
@@ -122,7 +120,7 @@ public class Split10507 extends SdbTestBase {
 					"query bound expected:" + expectedResults + " actual:" + actualResults);// 比对
 
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		} finally {
 			if (cursor != null) {
 				cursor.close();
@@ -136,7 +134,7 @@ public class Split10507 extends SdbTestBase {
 			CollectionSpace commCS = commSdbA.getCollectionSpace(csName);
 			commCS.dropCollection(clName);
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		} finally {
 			if (commSdbA != null) {
 				commSdbA.disconnect();
@@ -144,8 +142,6 @@ public class Split10507 extends SdbTestBase {
 			if (commSdbB != null) {
 				commSdbB.disconnect();
 			}
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 		}
 	}
 

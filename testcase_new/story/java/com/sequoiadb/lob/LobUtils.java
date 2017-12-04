@@ -24,7 +24,7 @@ import com.sequoiadb.exception.BaseException;
     * @Date    2016.9.19
 * @version 1.00
 */
-public class Commlib {
+public class LobUtils {
 	
 	public static ArrayList<String> groupList;
 	
@@ -55,26 +55,33 @@ public class Commlib {
 	 * @return
 	 *        the MD5 value	
 	 */
-    public static String getMd5(Object inbuff){
+    public static String getMd5(Object inbuff) throws BaseException {
         MessageDigest md5 = null;
         String value = "";
-        
         try {
             md5 = MessageDigest.getInstance("MD5");
-            if(inbuff instanceof ByteBuffer){
-                md5.update((ByteBuffer)inbuff);
-            }else if(inbuff instanceof String){
-                md5.update(((String)inbuff).getBytes());
-            }else{
-            	Assert.fail("invalid parameter!");
+            if (inbuff instanceof byte[]) {
+                md5.update((byte[]) inbuff);
+            } else if (inbuff instanceof ByteBuffer) {
+                md5.update((ByteBuffer) inbuff);
+            } else if (inbuff instanceof String) {
+                md5.update(((String) inbuff).getBytes());
+            } else {
+                throw new BaseException("invalid parameter!");
             }
             BigInteger bi = new BigInteger(1, md5.digest());
             value = bi.toString(16);
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
-            Assert.fail("fail to get md5!"+e.getMessage());
+            throw new BaseException("fail to get md5!");
         }
         return value;
+    }
+    
+    public static byte[] getRandomBytes(final int size) {
+        byte[] b = new byte[size];
+        new Random().nextBytes(b);
+        return b;
     }
 
 	/**

@@ -41,8 +41,6 @@ public class DropMain96 extends SdbTestBase {
 	@BeforeClass
 	public void setUp() {
 		try {
-			System.out.println("the TestCase: " + this.getClass().getName()
-					+ " begin at:" + df.format(new Date()));
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 			CommLib lib = new CommLib();
 			if (lib.isStandAlone(sdb)) {
@@ -92,8 +90,6 @@ public class DropMain96 extends SdbTestBase {
 
 	@AfterClass
 	public void tearDown() {
-		System.out.println("the TestCase Name:" + this.getClass().getName()
-				+ ". the TestCase end at:" + this.df.format(new Date()));
 		try {
 			if (cs2.isCollectionExist(mainclName)) {
 				cs2.dropCollection(mainclName);

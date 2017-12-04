@@ -37,15 +37,13 @@ public class TestSplit10525C extends SdbTestBase{
     @BeforeClass
     public void setUp() {
         try{
-            System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                    ". the TestCase begin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
             this.sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
             // 跳过 standAlone 和数据组不足的环境
-            Util util = new Util();
+            SplitUtils2 util = new SplitUtils2();
             if (util.isStandAlone(this.sdb)) {
                 throw new SkipException("skip StandAlone");
             }
-            if (Util.getDataRgNames(this.sdb).size() < 2) {
+            if (SplitUtils2.getDataRgNames(this.sdb).size() < 2) {
                 throw new SkipException("current environment less than tow groups ");
             }
             BSONObject options = new BasicBSONObject();
@@ -66,14 +64,14 @@ public class TestSplit10525C extends SdbTestBase{
     @Test
     public void test() {
         try {
-            List<String> rgNames = Util.getDataRgNames(this.sdb); 
+            List<String> rgNames = SplitUtils2.getDataRgNames(this.sdb); 
             BSONObject option = (BSONObject) JSON.parse("{ReplSize:2,ShardingKey:{num:-1},ShardingType:\"range\",Group:\"" + rgNames.get(0) + "\"}");
-            this.cl = Util.createCL(this.cs, this.clName, option); 
+            this.cl = SplitUtils2.createCL(this.cs, this.clName, option); 
             BSONObject startCondition = (BSONObject) JSON.parse("{num:0.63}");
             BSONObject endCondition = (BSONObject) JSON.parse("{num:0.31}");
             long splitAsyncId = this.cl.splitAsync(rgNames.get(0), rgNames.get(1), startCondition, endCondition);
             this.insertRecods = new ArrayList<BSONObject>();
-            this.insertRecods = Util.insertData(this.cl, 100);
+            this.insertRecods = SplitUtils2.insertData(this.cl, 100);
             //等待切分任务完成再校验数据
             long[] taskIDs = {splitAsyncId};
             this.sdb.waitTasks(taskIDs);
@@ -226,8 +224,6 @@ public class TestSplit10525C extends SdbTestBase{
     @AfterClass
     public void tearDown() {
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                    ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
             if (this.cs.isCollectionExist(clName)) {
                 this.cs.dropCollection(clName);
             }

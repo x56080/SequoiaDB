@@ -40,8 +40,6 @@ public class TestPutAndReadLobs7844 extends SdbTestBase {
     	
 	@BeforeClass
 	public void setUp(){
-		System.out.println(this.getClass().getName()+" begin at "
-				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 		}catch(BaseException e){			
@@ -76,7 +74,7 @@ public class TestPutAndReadLobs7844 extends SdbTestBase {
 	//put lob
 	private ObjectId putLob(DBCollection cl){
 		int lobsize = random.nextInt(1048576);		
-		String lobStringBuff = Commlib.getRandomString(lobsize);		
+		String lobStringBuff = LobUtils.getRandomString(lobsize);		
 		DBLob lob = null;
 		ObjectId oid = null;		
 		try{
@@ -84,7 +82,7 @@ public class TestPutAndReadLobs7844 extends SdbTestBase {
 			lob = cl.createLob();
 			lob.write(lobStringBuff.getBytes());
 		
-			String prevMd5 = Commlib.getMd5(lobStringBuff);
+			String prevMd5 = LobUtils.getMd5(lobStringBuff);
 		    oid = lob.getID();
 		    id2md5.put(oid, prevMd5);
 		}catch(BaseException e){			
@@ -111,7 +109,7 @@ public class TestPutAndReadLobs7844 extends SdbTestBase {
 			}
 			bytebuff.rewind();				
 			
-			String curMd5 = Commlib.getMd5(bytebuff);
+			String curMd5 = LobUtils.getMd5(bytebuff);
 			String prevMd5 = id2md5.get(oid);
 			Assert.assertEquals(curMd5, prevMd5);
 			id2md5.remove(oid);
@@ -126,8 +124,6 @@ public class TestPutAndReadLobs7844 extends SdbTestBase {
 	@AfterClass
 	public void tearDown(){		
 		try{
-			System.out.println(this.getClass().getName()+" end at "
-					+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 			if(cs.isCollectionExist(clName)){
 				cs.dropCollection(clName);
 			}

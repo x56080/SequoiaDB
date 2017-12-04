@@ -38,14 +38,12 @@ public class DropMainSub86 extends SdbTestBase{
 
 	@BeforeClass
 	public void setUp(){
-		System.out.println(this.getClass().getName()+" begin at "
-				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			db = new Sequoiadb(SdbTestBase.coordUrl,"","");
 		}catch(BaseException e){
 			Assert.assertTrue(false, "connect  failed,"+SdbTestBase.coordUrl+e.getMessage());
 		}
-        if (Commlib.isStandAlone(db)){
+        if (SubCLUtils.isStandAlone(db)){
             throw new SkipException("is standalone skip testcase");
         }
 	}
@@ -59,8 +57,6 @@ public class DropMainSub86 extends SdbTestBase{
 		}catch(BaseException e){
 			Assert.fail("failed to drop maincl"+"ErrorMsg:\n" +e.getMessage());
 		}finally{
-			System.out.println("End to run " + this.getClass().getName() 
-						+ ", end in: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 			db.disconnect();
 		}
 	}

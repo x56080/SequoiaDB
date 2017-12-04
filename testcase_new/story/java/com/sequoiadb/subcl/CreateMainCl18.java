@@ -32,14 +32,12 @@ public class CreateMainCl18 extends SdbTestBase{
 	
 	@BeforeClass
 	public void setUp(){
-		System.out.println(this.getClass().getName()+" begin at "
-				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl,"","");
 		}catch(BaseException e){
 			Assert.fail("connect  failed " + "ErrorMsg:\n" + e.getMessage());
 		}	
-	    if (Commlib.isStandAlone(sdb)){
+	    if (SubCLUtils.isStandAlone(sdb)){
 	            throw new SkipException("is standalone skip testcase");
 	    }
 	}
@@ -57,8 +55,6 @@ public class CreateMainCl18 extends SdbTestBase{
 			if(sdb !=null){
 				sdb.disconnect();					
 			}
-			System.out.println(this.getClass().getName()+" end at "
-					+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		}
 	}	
 	

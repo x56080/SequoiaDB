@@ -1,4 +1,4 @@
-package com.sequoiadb.crud.lob;
+package com.sequoiadb.lob;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -38,7 +38,6 @@ public class TestLob10425 extends SdbTestBase {
     
     @BeforeClass
     public void setUp(){
-        System.out.println(this.getClass().getName()+" begin at "+sdf.format(new Date()));
         try{
             sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
         }catch(BaseException e){            
@@ -60,7 +59,6 @@ public class TestLob10425 extends SdbTestBase {
             Assert.fail(e.getMessage());
         }finally{
             sdb.disconnect();
-            System.out.println(this.getClass().getName()+" end at "+sdf.format(new Date()));
         }
     }
     
@@ -195,7 +193,7 @@ public class TestLob10425 extends SdbTestBase {
         Random random = new Random();
         for(int i = 0; i < lobStrs.length; i++){
             int lobsize = random.nextInt(1048576);
-            lobStrs[i] = Commlib.getRandomString(lobsize);
+            lobStrs[i] = LobUtils.getRandomString(lobsize);
         }
         return lobStrs;
     }

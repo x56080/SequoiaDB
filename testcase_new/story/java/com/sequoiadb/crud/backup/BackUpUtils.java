@@ -16,7 +16,7 @@ import com.sequoiadb.base.DBLob;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 
-public class Commlib {
+public class BackUpUtils {
 	public static ArrayList<String> groupList;
 
 	/**

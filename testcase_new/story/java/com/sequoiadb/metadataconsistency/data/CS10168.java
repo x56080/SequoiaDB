@@ -15,7 +15,7 @@ import org.testng.SkipException;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.metadataconsistency.data.CommLib;
+import com.sequoiadb.metadataconsistency.data.MetaDataUtils;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -41,22 +41,20 @@ public class CS10168 extends SdbTestBase {
 	@BeforeClass
 	public void setUp(){
 		//start time
-		System.out.println("Begin to run " + getClass().getName() 
-					+ ", begin in: " + dateFm.format(new Date().getTime()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 			//judge the mode and group number
-			if(CommLib.isStandAlone(sdb) || CommLib.OneGroupMode(sdb)){
+			if(MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.OneGroupMode(sdb)){
 				throw new SkipException("The mode is standlone or only one group, skip the testCase.");
 			}
-			CommLib.clearCS(sdb, csName);
+			MetaDataUtils.clearCS(sdb, csName);
 			
 			sdb.createCollectionSpace(mCSName);
 			sdb.createCollectionSpace(sCSName);
 			createMainCL(sdb);
 			createSubCL(sdb);
 			attachCL(sdb);
-			CommLib.insertData(sdb, mCSName, mCLName);
+			MetaDataUtils.insertData(sdb, mCSName, mCLName);
 		}catch(BaseException e){
 			sdb.disconnect();
 			Assert.fail(e.getMessage());
@@ -66,12 +64,10 @@ public class CS10168 extends SdbTestBase {
 	@AfterClass
 	public void tearDown(){
 		try{
-			CommLib.clearCS(sdb, csName);
+			MetaDataUtils.clearCS(sdb, csName);
 		}catch(BaseException e){
 			throw e;
 		}finally{
-			System.out.println("End to run " + getClass().getName() 
-						+ ", end in: " + dateFm.format(new Date().getTime()));
 			sdb.disconnect();
 		}
 	}
@@ -79,11 +75,11 @@ public class CS10168 extends SdbTestBase {
 	@Test
 	public void test(){
 		DropMainCS dropMainCS = new DropMainCS();
-		CommLib.sleep(random.nextInt(msec));
+		MetaDataUtils.sleep(random.nextInt(msec));
 		dropMainCS.start();
 
 		DropSubCS dropSubCS = new DropSubCS();
-		CommLib.sleep(random.nextInt(msec));
+		MetaDataUtils.sleep(random.nextInt(msec));
 		dropSubCS.start();
 		
 		if( !( dropMainCS.isSuccess() && dropSubCS.isSuccess() ) ){
@@ -91,8 +87,8 @@ public class CS10168 extends SdbTestBase {
 		}
 
 		//check results
-		CommLib.checkCSOfCatalog(csName);
-		CommLib.checkCLResult(csName, clName);
+		MetaDataUtils.checkCSOfCatalog(csName);
+		MetaDataUtils.checkCLResult(csName, clName);
 	}
 
 	private class DropSubCS extends SdbThreadBase{

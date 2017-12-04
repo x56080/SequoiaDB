@@ -16,7 +16,7 @@ import org.testng.SkipException;
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.metadataconsistency.data.CommLib;
+import com.sequoiadb.metadataconsistency.data.MetaDataUtils;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -38,19 +38,17 @@ public class Group10223 extends SdbTestBase {
 	@BeforeClass
 	public void setUp(){
 		//start time
-		System.out.println("Begin to run " + getClass().getName() 
-					+ ", begin in: " + dateFm.format(new Date().getTime()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 			//judge the mode and group number
-			if(CommLib.isStandAlone(sdb) || CommLib.OneGroupMode(sdb)){
+			if(MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.OneGroupMode(sdb)){
 				throw new SkipException("The mode is standlone, or only one group, "
 						+ "skip the testCase.");
 			}
-			CommLib.clearDomain(sdb, domainName);
-			CommLib.clearGroup(sdb, rgName);
+			MetaDataUtils.clearDomain(sdb, domainName);
+			MetaDataUtils.clearGroup(sdb, rgName);
 
-			dataGroups = CommLib.getDataGroupNames(sdb);
+			dataGroups = MetaDataUtils.getDataGroupNames(sdb);
 			
 			ReplicaGroup rg = sdb.createReplicaGroup(rgName);
 			createNode();
@@ -66,13 +64,11 @@ public class Group10223 extends SdbTestBase {
 	@AfterClass
 	public void tearDown(){
 		try{
-			CommLib.clearDomain(sdb, domainName);
-			CommLib.clearGroup(sdb, rgName);
+			MetaDataUtils.clearDomain(sdb, domainName);
+			MetaDataUtils.clearGroup(sdb, rgName);
 		}catch(BaseException e){
 			Assert.fail(e.getMessage());
 		}finally{
-			System.out.println("End to run " + getClass().getName() 
-						+ ", end in: " + dateFm.format(new Date().getTime()));
 			sdb.disconnect();
 		}
 	}
@@ -84,7 +80,7 @@ public class Group10223 extends SdbTestBase {
 		alterDomain.start();
 
 		RemoveRG removeRG = new RemoveRG();
-		CommLib.sleep(random.nextInt(msec));
+		MetaDataUtils.sleep(random.nextInt(msec));
 		removeRG.start();
 		
 		if( !( removeRG.isSuccess() && alterDomain.isSuccess() ) ){
@@ -92,8 +88,8 @@ public class Group10223 extends SdbTestBase {
 		}
 		
 		//check results
-		CommLib.checkRGOfCatalog(rgName);
-		CommLib.checkDomainOfCatalog(domainName);
+		MetaDataUtils.checkRGOfCatalog(rgName);
+		MetaDataUtils.checkDomainOfCatalog(domainName);
 	}
 
 	private class RemoveRG extends SdbThreadBase{
@@ -141,7 +137,7 @@ public class Group10223 extends SdbTestBase {
 		try
 		{
 			for(int i = 0; i < 3; i++){
-				CommLib.createNode( sdb, rgName, 
+				MetaDataUtils.createNode( sdb, rgName, 
 						   SdbTestBase.reservedPortBegin, 
 						   SdbTestBase.reservedPortEnd, 
 						   SdbTestBase.reservedDir );

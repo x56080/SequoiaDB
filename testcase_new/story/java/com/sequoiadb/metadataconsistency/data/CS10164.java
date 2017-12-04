@@ -15,7 +15,7 @@ import org.testng.SkipException;
 
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.metadataconsistency.data.CommLib;
+import com.sequoiadb.metadataconsistency.data.MetaDataUtils;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -39,18 +39,16 @@ public class CS10164 extends SdbTestBase {
 	@BeforeClass
 	public void setUp(){
 		//start time
-		System.out.println("Begin to run " + this.getClass().getName() 
-					+ ", begin in: " + dateFm.format(new Date().getTime()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 			//judge the mode and group number
-			if(CommLib.isStandAlone(sdb)){
+			if(MetaDataUtils.isStandAlone(sdb)){
 				throw new SkipException("The mode is standlone, skip the testCase.");
 			}
-			CommLib.clearCS(sdb, csName);
-			CommLib.clearDomain(sdb, domainName);
+			MetaDataUtils.clearCS(sdb, csName);
+			MetaDataUtils.clearDomain(sdb, domainName);
 			
-			dataGroups = CommLib.getDataGroupNames(sdb);
+			dataGroups = MetaDataUtils.getDataGroupNames(sdb);
 			createDomain(sdb);
 		}catch(BaseException e){
 			sdb.disconnect();
@@ -62,13 +60,11 @@ public class CS10164 extends SdbTestBase {
 	public void tearDown(){
 		try{
 			//clear env
-			CommLib.clearCS(sdb, csName);
-			CommLib.clearDomain(sdb, domainName);
+			MetaDataUtils.clearCS(sdb, csName);
+			MetaDataUtils.clearDomain(sdb, domainName);
 		}catch(BaseException e){
 			Assert.fail(e.getMessage());
 		}finally{
-			System.out.println("End to run " + this.getClass().getName() 
-						+ ", end in: " + dateFm.format(new Date().getTime()));
 			sdb.disconnect();
 		}
 	}
@@ -79,7 +75,7 @@ public class CS10164 extends SdbTestBase {
 		dropCS.start();
 		
 		AlterDomain alterDomain = new AlterDomain();
-		CommLib.sleep(random.nextInt(msec));
+		MetaDataUtils.sleep(random.nextInt(msec));
 		alterDomain.start();
 		
 		if( !( dropCS.isSuccess() && alterDomain.isSuccess() ) ){
@@ -87,8 +83,8 @@ public class CS10164 extends SdbTestBase {
 		}
 
 		//check results
-		CommLib.checkDomainOfCatalog(domainName);
-		CommLib.checkCSOfCatalog(csName);
+		MetaDataUtils.checkDomainOfCatalog(domainName);
+		MetaDataUtils.checkCSOfCatalog(csName);
 	}
 	
 	private class DropCS extends SdbThreadBase{

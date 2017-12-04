@@ -50,8 +50,6 @@ public class TestSeekLob7839 extends SdbTestBase {
 		
 	@BeforeClass
 	public void setUp(){
-		System.out.println(this.getClass().getName()+" begin at "
-				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 		}catch(BaseException e){			
@@ -89,7 +87,7 @@ public class TestSeekLob7839 extends SdbTestBase {
 	@Test(dataProvider = "pagesizeProvider")
 	public void putLob(int seektype){		
 		int lobsize = random.nextInt(1048576);
-		String lobSb = Commlib.getRandomString(lobsize);
+		String lobSb = LobUtils.getRandomString(lobsize);
 		ObjectId oid  = null;	
 		DBLob lob = null;
 		
@@ -119,7 +117,7 @@ public class TestSeekLob7839 extends SdbTestBase {
 	        ByteBuffer bbuff = ByteBuffer.allocate(offset);
 	        bbuff.put(rbuff1);
 	        bbuff.rewind();
-	        String md51 = Commlib.getMd5(bbuff);
+	        String md51 = LobUtils.getMd5(bbuff);
 	        
 	        long pos = 0;
 	        if (seektype == DBLob.SDB_LOB_SEEK_SET){
@@ -135,7 +133,7 @@ public class TestSeekLob7839 extends SdbTestBase {
 	        bbuff.put(rbuff1);
 	        bbuff.rewind();
 	        
-	        String md52 = Commlib.getMd5(bbuff);
+	        String md52 = LobUtils.getMd5(bbuff);
 	        Assert.assertEquals(md51, md52);	        
 	        rLob.close();
 		}catch(BaseException e){
@@ -158,8 +156,6 @@ public class TestSeekLob7839 extends SdbTestBase {
 		}catch(BaseException e){			
 			Assert.assertTrue(false,"clean up failed:"+e.getMessage());
 		}finally{
-			System.out.println(this.getClass().getName()+" end at "
-					+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		}	
 	}
 }

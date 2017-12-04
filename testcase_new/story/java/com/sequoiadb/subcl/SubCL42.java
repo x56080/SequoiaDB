@@ -37,8 +37,6 @@ public class SubCL42 extends SdbTestBase {
 	@BeforeClass
 	public void setUp() {
 		try {
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 			sdb = new Sequoiadb(coordUrl, "", "");
 			CommLib commlib = new CommLib();
 			if (commlib.isStandAlone(sdb)) {
@@ -50,7 +48,7 @@ public class SubCL42 extends SdbTestBase {
 			subCL = commCS.createCollection(subCLName,
 					(BSONObject) JSON.parse("{ShardingKey:{\"tx_id\":1},ShardingType:\"hash\"}"));
 		} catch (BaseException e) {
-			Assert.fail("TestCase42 setUp error, error description:" + e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail("TestCase42 setUp error, error description:" + e.getMessage()+"\r\n"+SubCLUtils2.getKeyStack(e,this));
 		}
 	}
 
@@ -60,7 +58,7 @@ public class SubCL42 extends SdbTestBase {
 		try {
 			mainCL.attachCollection(this.subCL.getFullName(), (BSONObject) JSON.parse("{LowBound:{\"alph\":100}}"));
 		} catch (BaseException e) {
-			Assert.assertEquals(e.getErrorCode(), -6, e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.assertEquals(e.getErrorCode(), -6, e.getMessage()+"\r\n"+SubCLUtils2.getKeyStack(e,this));
 			return;
 		}
 		Assert.fail(this.getClass().getName()
@@ -73,13 +71,11 @@ public class SubCL42 extends SdbTestBase {
 			commCS.dropCollection(mainCLName);
 			commCS.dropCollection(subCLName);
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SubCLUtils2.getKeyStack(e,this));
 		} finally {
 			if (sdb != null) {
 				sdb.disconnect();
 			}
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 		}
 	}
 }

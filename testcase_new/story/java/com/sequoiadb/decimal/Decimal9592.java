@@ -27,8 +27,6 @@ public class Decimal9592 extends SdbTestBase{
 	@BeforeClass
 	public void setUp(){
 		try{
-			System.out.println("the TestCase: "+ this.getClass().getName() + 
-					" begin at:" + df.format(new Date().getTime()));
 		}catch(BaseException e){
 			Assert.fail("prepare env failed" + e.getMessage());
 		}
@@ -37,8 +35,6 @@ public class Decimal9592 extends SdbTestBase{
 	@AfterClass
 	public void tearDown(){
 		try{
-			System.out.println("the TestCase: "+ this.getClass().getName() + 
-					" end at:" + df.format(new Date().getTime()));
 		}catch(BaseException e){
 			Assert.fail("clear env failed, errMsg:" + e.getMessage());
 		}

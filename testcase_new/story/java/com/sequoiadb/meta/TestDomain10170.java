@@ -17,7 +17,7 @@ import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.crud.truncate.Commlib;
+import com.sequoiadb.crud.truncate.TruncateUtils;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
@@ -44,16 +44,15 @@ public class TestDomain10170 extends SdbTestBase {
     
     @BeforeClass
     public void setUp() {
-        System.out.println(this.getClass().getName()+" begin at "+sdf.format(new Date()));
         try{
             sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
         }catch(BaseException e){
             Assert.fail(e.getMessage());
         }
-        if (Commlib.isStandAlone(sdb)){
+        if (TruncateUtils.isStandAlone(sdb)){
             throw new SkipException("is standalone, skip testcase");
         }
-        if (Commlib.getDataGroups(sdb).size() < 3){
+        if (TruncateUtils.getDataGroups(sdb).size() < 3){
             throw new SkipException("less then 3 groups, skip testcase");
         }
         initGroups();
@@ -74,7 +73,6 @@ public class TestDomain10170 extends SdbTestBase {
             Assert.fail(e.getMessage());
         }finally{
             sdb.disconnect();
-            System.out.println(this.getClass().getName()+" end at "+sdf.format(new Date()));
         }
     }
     

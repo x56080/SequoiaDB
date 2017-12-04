@@ -15,7 +15,7 @@ import org.testng.SkipException;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.metadataconsistency.data.CommLib;
+import com.sequoiadb.metadataconsistency.data.MetaDataUtils;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -39,21 +39,19 @@ public class Index10213 extends SdbTestBase {
 	@BeforeClass
 	public void setUp(){
 		//start time
-		System.out.println("Begin to run " + getClass().getName() 
-					+ ", begin in: " + dateFm.format(new Date().getTime()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 			//judge the mode
-			if(CommLib.isStandAlone(sdb)){
+			if(MetaDataUtils.isStandAlone(sdb)){
 				throw new SkipException("The mode is standlone, skip the testCase.");
 			}
-			CommLib.clearCS(sdb, csName);
+			MetaDataUtils.clearCS(sdb, csName);
 			
 			sdb.createCollectionSpace(csName);
 			createMainCL(sdb);
 			createSubCL(sdb);
 			attachCL(sdb);
-			CommLib.insertData(sdb, csName, mCLName);
+			MetaDataUtils.insertData(sdb, csName, mCLName);
 		}catch(BaseException e){
 			sdb.disconnect();
 			Assert.fail(e.getMessage());
@@ -63,12 +61,10 @@ public class Index10213 extends SdbTestBase {
 	@AfterClass
 	public void tearDown(){
 		try{
-			CommLib.clearCS(sdb, csName);
+			MetaDataUtils.clearCS(sdb, csName);
 		}catch(BaseException e){
 			Assert.fail(e.getMessage());
 		}finally{
-			System.out.println("End to run " + getClass().getName() 
-						+ ", end in: " + dateFm.format(new Date().getTime()));
 			sdb.disconnect();
 		}
 	}
@@ -77,7 +73,7 @@ public class Index10213 extends SdbTestBase {
 		CreateIndex createIndex = new CreateIndex();
 		createIndex.start();
 
-		CommLib.sleep(random.nextInt(msec));
+		MetaDataUtils.sleep(random.nextInt(msec));
 		createIndex.start();
 		
 		if( !createIndex.isSuccess() ){
@@ -85,7 +81,7 @@ public class Index10213 extends SdbTestBase {
 		}
 
 		//check results
-		CommLib.checkIndex(csName, clName);
+		MetaDataUtils.checkIndex(csName, clName);
 	}
 
 	private class CreateIndex extends SdbThreadBase{

@@ -41,8 +41,6 @@ public class DropMain95 extends SdbTestBase {
 	@BeforeClass
 	public void setUp() {
 		try {
-			System.out.println("the TestCase : " + this.getClass().getName()
-					+ " begin at:" + df.format(new Date()));
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 			// 判断是否是独立模式
 			CommLib lib = new CommLib();
@@ -118,8 +116,6 @@ public class DropMain95 extends SdbTestBase {
 		} catch (BaseException e) {
 			Assert.fail(e.getMessage());
 		} finally {
-			System.out.println("the TestCase Name:" + this.getClass().getName()
-					+ ". the TestCase end at:" + this.df.format(new Date()));
 			if (sdb != null) {
 				sdb.disconnect();
 			}

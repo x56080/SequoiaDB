@@ -17,7 +17,7 @@ import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.metadataconsistency.data.CommLib;
+import com.sequoiadb.metadataconsistency.data.MetaDataUtils;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -42,23 +42,21 @@ public class CL10178 extends SdbTestBase{
 	@BeforeClass
 	public void setUp(){
 		//start time
-		System.out.println("Begin to run " + getClass().getName() 
-					+ ", begin in: " + dateFm.format(new Date().getTime()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 			//judge the mode and group number
-			if(CommLib.isStandAlone(sdb) || CommLib.OneGroupMode(sdb)){
+			if(MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.OneGroupMode(sdb)){
 				throw new SkipException("The mode is standlone or only one group, skip the testCase.");
 			}
-			CommLib.clearCS(sdb, csName);
-			CommLib.clearDomain(sdb, domainName);
+			MetaDataUtils.clearCS(sdb, csName);
+			MetaDataUtils.clearDomain(sdb, domainName);
 			
-			dataGroups = CommLib.getDataGroupNames(sdb);
+			dataGroups = MetaDataUtils.getDataGroupNames(sdb);
 			
 			createDomain();
 			createCS();
 			createCL();
-			CommLib.insertData(sdb, csName, clName);
+			MetaDataUtils.insertData(sdb, csName, clName);
 		}catch(BaseException e){
 			sdb.disconnect();
 			Assert.fail(e.getMessage());
@@ -68,13 +66,11 @@ public class CL10178 extends SdbTestBase{
 	@AfterClass
 	public void tearDown(){
 		try{
-			CommLib.clearCS(sdb, csName);
-			CommLib.clearDomain(sdb, domainName);
+			MetaDataUtils.clearCS(sdb, csName);
+			MetaDataUtils.clearDomain(sdb, domainName);
 		}catch(BaseException e){
 			Assert.fail(e.getMessage());
 		}finally{
-			System.out.println("End to run " + getClass().getName() 
-						+ ", end in: " + dateFm.format(new Date().getTime()));
 			sdb.disconnect();
 		}
 	}
@@ -85,7 +81,7 @@ public class CL10178 extends SdbTestBase{
 		alterCL.start();
 
 		DropCL dropCL = new DropCL();
-		CommLib.sleep(random.nextInt(msec));
+		MetaDataUtils.sleep(random.nextInt(msec));
 		dropCL.start();
 		
 		if( !( alterCL.isSuccess() && dropCL.isSuccess() ) ){
@@ -93,7 +89,7 @@ public class CL10178 extends SdbTestBase{
 		}
 
 		//check results
-		CommLib.checkCLResult(csName, clName);
+		MetaDataUtils.checkCLResult(csName, clName);
 	}
 	
 	private class AlterCL extends SdbThreadBase{

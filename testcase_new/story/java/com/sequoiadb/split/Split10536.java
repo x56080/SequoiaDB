@@ -42,8 +42,6 @@ public class Split10536 extends SdbTestBase {
 	public void setUp() {
 
 		try {
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 			commSdb = new Sequoiadb(coordUrl, "", "");
 
 			// 跳过 standAlone 和数据组不足的环境
@@ -67,7 +65,7 @@ public class Split10536 extends SdbTestBase {
 				commSdb.disconnect();
 			}
 			e.printStackTrace();
-			Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		}
 	}
 
@@ -117,7 +115,7 @@ public class Split10536 extends SdbTestBase {
 			checkGroupData(db, 450, "{sk:{$gte:50,$lt:500}}", 450, destGroupName);
 			checkGroupData(db, 50, "{sk:{$gte:0,$lt:50}}", 50, srcGroupName);
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		} finally {
 			if (db != null) {
 				db.disconnect();
@@ -131,13 +129,11 @@ public class Split10536 extends SdbTestBase {
 			CollectionSpace cs = commSdb.getCollectionSpace(csName);
 			cs.dropCollection(clName);
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		} finally {
 			if (commSdb != null) {
 				commSdb.disconnect();
 			}
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 		}
 	}
 
@@ -180,7 +176,7 @@ public class Split10536 extends SdbTestBase {
 			Assert.assertEquals(count, expectedCount, destDataNode.getServerAddress().toString());// 目标组应当含有上述查询数据
 			Assert.assertEquals(destCL.getCount(), expectTotalCount, destDataNode.getServerAddress().toString()); // 目标组应当含有的数据量
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		} finally {
 			if (destDataNode != null) {
 				destDataNode.disconnect();

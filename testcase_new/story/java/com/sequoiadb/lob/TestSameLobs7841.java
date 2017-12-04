@@ -40,8 +40,6 @@ public class TestSameLobs7841 extends SdbTestBase {
 	
 	@BeforeClass
 	public void setUp(){
-		System.out.println(this.getClass().getName()+" begin at "
-				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 		}catch(BaseException e){			
@@ -74,7 +72,7 @@ public class TestSameLobs7841 extends SdbTestBase {
 	
 	private ObjectId putLob(){
 		int lobsize = random.nextInt(1048576);
-		String lobSb = Commlib.getRandomString(lobsize);
+		String lobSb = LobUtils.getRandomString(lobsize);
 		ObjectId oid  = null;			
 		
 		DBLob lob = null;
@@ -82,7 +80,7 @@ public class TestSameLobs7841 extends SdbTestBase {
 			lob = cl.createLob();
 			lob.write(lobSb.getBytes());
 		
-			prevMd5 = Commlib.getMd5(lobSb);
+			prevMd5 = LobUtils.getMd5(lobSb);
 		    oid = lob.getID();		    
 		}catch(BaseException e){	
 			Assert.assertTrue(false,"write lob fail:"+e.getMessage()+e.getStackTrace());
@@ -111,7 +109,7 @@ public class TestSameLobs7841 extends SdbTestBase {
 				bytebuff.put(rbuff, 0, readLen);				
 			}
 			bytebuff.rewind();		
-			curMd5 = Commlib.getMd5(bytebuff);
+			curMd5 = LobUtils.getMd5(bytebuff);
 			Assert.assertEquals(curMd5, prevMd5,"the lobs md5 different");
 		}catch(BaseException e){
 			Assert.assertTrue(false,"read lob fail:"+e.getMessage()+e.getStackTrace());
@@ -132,8 +130,6 @@ public class TestSameLobs7841 extends SdbTestBase {
 		}catch(BaseException e){			
 			Assert.assertTrue(false,"clean up failed:"+e.getMessage());
 		}finally{
-			System.out.println(this.getClass().getName()+" end at "
-					+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		}
 	}	
 	

@@ -37,17 +37,15 @@ public class CreateMainCl21 extends SdbTestBase{
 	
 	@BeforeClass
 	public void setUp(){
-		System.out.println(this.getClass().getName()+" begin at "
-				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl,"","");
 		}catch(BaseException e){
 			Assert.fail("connect  failed,"+SdbTestBase.coordUrl+e.getMessage());
 		}
-        if (Commlib.isStandAlone(sdb)){
+        if (SubCLUtils.isStandAlone(sdb)){
             throw new SkipException("is standalone skip testcase");
         }	        
-        if (Commlib.OneGroupMode(sdb)){
+        if (SubCLUtils.OneGroupMode(sdb)){
             throw new SkipException("less two groups skip testcase");
         }
 	}
@@ -59,8 +57,6 @@ public class CreateMainCl21 extends SdbTestBase{
 		}catch(BaseException e){
 			Assert.assertEquals(e.getErrorCode(), -34, e.getMessage());
 		}finally{
-			System.out.println("End to run " + this.getClass().getName() 
-					+ ", end in: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 			if(sdb.isDomainExist(domainName)){
 				sdb.dropDomain(domainName);	
 			}
@@ -72,7 +68,7 @@ public class CreateMainCl21 extends SdbTestBase{
 	
 	@Test
 	public void testCreateCsByAppointDomain(){
-		ArrayList<String> dataGroup = Commlib.getDataGroups(sdb);
+		ArrayList<String> dataGroup = SubCLUtils.getDataGroups(sdb);
 		//创建domain
 		createDomain(dataGroup);
 		//创建cs在domain中

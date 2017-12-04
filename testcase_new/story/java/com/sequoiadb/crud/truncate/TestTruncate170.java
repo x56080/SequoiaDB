@@ -31,12 +31,11 @@ public class TestTruncate170 extends SdbTestBase {
     
     @BeforeClass
     public void setUp() {
-        System.out.println(this.getClass().getName()+" begin at "+sdf.format(new Date()));
         try{
             sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            DBCollection cl = Commlib.createCL(sdb, csName, clName);
+            DBCollection cl = TruncateUtils.createCL(sdb, csName, clName);
             // doing insert
-            Commlib.insertData(cl);
+            TruncateUtils.insertData(cl);
         }catch(BaseException e){
             Assert.fail(e.getMessage());
         }
@@ -53,7 +52,6 @@ public class TestTruncate170 extends SdbTestBase {
             Assert.fail(e.getMessage());
         }finally{
             sdb.disconnect();
-            System.out.println(this.getClass().getName()+" end at "+sdf.format(new Date()));
         }
     }
     
@@ -82,7 +80,7 @@ public class TestTruncate170 extends SdbTestBase {
                 // doing truncate
                 cl.truncate();
                 // check truncate
-                Commlib.checkTruncated(db, cl);
+                TruncateUtils.checkTruncated(db, cl);
             }catch(BaseException e){
                 throw e;
             }finally{

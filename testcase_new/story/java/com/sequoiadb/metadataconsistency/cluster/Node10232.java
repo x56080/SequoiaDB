@@ -14,7 +14,7 @@ import com.sequoiadb.base.Node;
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.metadataconsistency.data.CommLib;
+import com.sequoiadb.metadataconsistency.data.MetaDataUtils;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -34,15 +34,13 @@ public class Node10232 extends SdbTestBase {
 	@BeforeClass
 	public void setUp(){
 		//start time
-		System.out.println("Begin to run " + getClass().getName() 
-					+ ", begin in: " + dateFm.format(new Date().getTime()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 			//judge the mode and group number
-			if(CommLib.isStandAlone(sdb) || CommLib.OneGroupMode(sdb)){
+			if(MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.OneGroupMode(sdb)){
 				throw new SkipException("The mode is standlone, or only one group, skip the testCase.");
 			}
-			CommLib.clearGroup(sdb, rgName);
+			MetaDataUtils.clearGroup(sdb, rgName);
 			sdb.createReplicaGroup(rgName);
 		}catch(BaseException e){
 			sdb.disconnect();
@@ -54,12 +52,10 @@ public class Node10232 extends SdbTestBase {
 	@AfterClass
 	public void tearDown(){
 		try{
-			CommLib.clearGroup(sdb, rgName);
+			MetaDataUtils.clearGroup(sdb, rgName);
 		}catch(BaseException e){
 			Assert.fail(e.getMessage());
 		}finally{
-			System.out.println("End to run " + getClass().getName() 
-						+ ", end in: " + dateFm.format(new Date().getTime()));
 			sdb.disconnect();
 		}
 	}
@@ -71,7 +67,7 @@ public class Node10232 extends SdbTestBase {
 		removeNode.start();
 
 		RemoveRG removeRG = new RemoveRG();
-		CommLib.sleep(random.nextInt(msec));
+		MetaDataUtils.sleep(random.nextInt(msec));
 		removeRG.start();
 		
 		if( !( removeNode.isSuccess() && removeRG.isSuccess() ) ){
@@ -79,7 +75,7 @@ public class Node10232 extends SdbTestBase {
 		}
 		
 		//check results
-		CommLib.checkRGOfCatalog(rgName);
+		MetaDataUtils.checkRGOfCatalog(rgName);
 	}
 
 	private class RemoveNode extends SdbThreadBase{
@@ -128,7 +124,7 @@ public class Node10232 extends SdbTestBase {
 		try
 		{
 			for(int i = 0; i < 3; i++){
-				CommLib.createNode( sdb, rgName, 
+				MetaDataUtils.createNode( sdb, rgName, 
 						   SdbTestBase.reservedPortBegin, 
 						   SdbTestBase.reservedPortEnd, 
 						   SdbTestBase.reservedDir );

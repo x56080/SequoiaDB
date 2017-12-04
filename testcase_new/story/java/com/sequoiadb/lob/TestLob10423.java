@@ -1,4 +1,4 @@
-package com.sequoiadb.crud.lob;
+package com.sequoiadb.lob;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -47,7 +47,6 @@ public class TestLob10423 extends SdbTestBase {
     
     @BeforeClass
     public void setUp(){
-        System.out.println(this.getClass().getName()+" begin at "+sdf.format(new Date()));
         try{
             sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
         }catch(BaseException e){            
@@ -66,7 +65,6 @@ public class TestLob10423 extends SdbTestBase {
             Assert.fail(e.getMessage());
         }finally{
             sdb.disconnect();
-            System.out.println(this.getClass().getName()+" end at "+sdf.format(new Date()));
         }
     }
     
@@ -134,7 +132,7 @@ public class TestLob10423 extends SdbTestBase {
         Random random = new Random();
         for(int i = 0; i < diffLob.length; i++){
             int lobsize = random.nextInt(1048);
-            diffLob[i] = Commlib.getRandomString(lobsize);
+            diffLob[i] = LobUtils.getRandomString(lobsize);
         }
         // merged lobs
         String []lobStrs = new String[ sameLob.length + diffLob.length ];
@@ -151,7 +149,7 @@ public class TestLob10423 extends SdbTestBase {
                 lob = cl.createLob();
                 lob.write(lobStrs[i].getBytes());
                 ObjectId currOid = lob.getID();
-                String currMd5 = Commlib.getMd5(lobStrs[i]);   
+                String currMd5 = LobUtils.getMd5(lobStrs[i]);   
                 prevMd5Data.add(new Md5Data(currOid, currMd5));
             }catch(BaseException e){
                 throw e;
@@ -170,7 +168,7 @@ public class TestLob10423 extends SdbTestBase {
                 DBLob rLob = cl.openLob(prevMd5Data.get(i).oid);
                 byte[] bytebuff = new byte[(int)rLob.getSize()];
                 rLob.read(bytebuff);
-                String curMd5 = Commlib.getMd5(bytebuff);
+                String curMd5 = LobUtils.getMd5(bytebuff);
                 Assert.assertEquals(curMd5, prevMd5Data.get(i).md5,"the lobs md5 different");
             }catch(BaseException e){
                 Assert.fail(e.getMessage());

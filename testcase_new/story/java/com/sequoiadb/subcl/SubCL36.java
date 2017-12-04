@@ -40,8 +40,6 @@ public class SubCL36 extends SdbTestBase {
 	@BeforeClass
 	public void setUp() {
 		try {
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 			sdb = new Sequoiadb(coordUrl, "", "");
 			CommLib commlib = new CommLib();
 			if (commlib.isStandAlone(sdb)) {
@@ -53,7 +51,7 @@ public class SubCL36 extends SdbTestBase {
 			subCL = commCS.createCollection(subCLName,
 					(BSONObject) JSON.parse("{ShardingKey:{\"tx_id\":1},ShardingType:\"hash\"}"));
 		} catch (BaseException e) {
-			Assert.fail("TestCase36 setUp error, error description:" + e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail("TestCase36 setUp error, error description:" + e.getMessage()+"\r\n"+SubCLUtils2.getKeyStack(e,this));
 		}
 
 	}
@@ -68,7 +66,7 @@ public class SubCL36 extends SdbTestBase {
 				// 向mainCL插入数据，数据类型有i指定，i从0-6，对应插入6种数据，并检查插入结果，最后删除插入的数据，解除挂载
 				dataSelector(i);
 			} catch (BaseException e) {
-				Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+				Assert.fail(e.getMessage()+"\r\n"+SubCLUtils2.getKeyStack(e,this));
 			}
 		}
 	}
@@ -108,7 +106,7 @@ public class SubCL36 extends SdbTestBase {
 
 			}
 		} catch (Exception e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SubCLUtils2.getKeyStack(e,this));
 		}
 	}
 
@@ -141,17 +139,17 @@ public class SubCL36 extends SdbTestBase {
 		try {
 			mainCL.insert(bobj);
 
-			if (!Utils.isCollectionContainThisJSON(subCL, bobj.toString())) {
+			if (!SubCLUtils2.isCollectionContainThisJSON(subCL, bobj.toString())) {
 				Assert.fail("check resault not pass");
 			}
-			if (!Utils.isCollectionContainThisJSON(mainCL, bobj.toString())) {
+			if (!SubCLUtils2.isCollectionContainThisJSON(mainCL, bobj.toString())) {
 				Assert.fail("check resault not pass");
 			}
 
 			mainCL.delete(bobj);
 			mainCL.detachCollection(subCL.getFullName());
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SubCLUtils2.getKeyStack(e,this));
 		}
 	}
 
@@ -161,13 +159,11 @@ public class SubCL36 extends SdbTestBase {
 			commCS.dropCollection(mainCLName);
 			commCS.dropCollection(subCLName);
 		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+Utils.getKeyStack(e,this));
+			Assert.fail(e.getMessage()+"\r\n"+SubCLUtils2.getKeyStack(e,this));
 		} finally {
 			if (sdb != null) {
 				sdb.disconnect();
 			}
-			System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-					+ new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
 		}
 
 	}

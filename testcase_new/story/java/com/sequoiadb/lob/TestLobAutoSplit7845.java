@@ -43,18 +43,16 @@ public class TestLobAutoSplit7845 extends SdbTestBase {
 	
 	@BeforeClass
 	public void setUp(){
-		System.out.println(this.getClass().getName()+" begin at "
-				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 		}catch(BaseException e){			
 			Assert.assertTrue(false,"connect %s failed,"+SdbTestBase.coordUrl+e.getMessage());
 		}
-		if (Commlib.isStandAlone(sdb)){
+		if (LobUtils.isStandAlone(sdb)){
 			throw new SkipException("is standalone skip testcase");
 		}
 		
-		if (Commlib.OneGroupMode(sdb)){
+		if (LobUtils.OneGroupMode(sdb)){
 			throw new SkipException("less two groups skip testcase");
 		}	
 	}		
@@ -63,7 +61,7 @@ public class TestLobAutoSplit7845 extends SdbTestBase {
 		try{			
 			BSONObject options = new BasicBSONObject();
 			options = (BSONObject)JSON.parse("{'Groups': [" 
-					+ Commlib.chooseDataGroups(sdb,groupsNum) + "],AutoSplit:true}");
+					+ LobUtils.chooseDataGroups(sdb,groupsNum) + "],AutoSplit:true}");
 			sdb.createDomain(domainName, options);			
 		}catch(BaseException e){
 			Assert.assertTrue(false,"create domain fail:"+e.getErrorCode()+e.getMessage());
@@ -89,7 +87,7 @@ public class TestLobAutoSplit7845 extends SdbTestBase {
 	
 	public void putLob(){
 	    int lobsize = random.nextInt(1048576);
-		String lobSb = Commlib.getRandomString(lobsize);
+		String lobSb = LobUtils.getRandomString(lobsize);
 		ObjectId oid  = null;
 		String prevMd5 = "";
 		DBLob lob = null;
@@ -97,7 +95,7 @@ public class TestLobAutoSplit7845 extends SdbTestBase {
 			lob = cl.createLob();
 			lob.write(lobSb.getBytes());
 		
-			prevMd5 = Commlib.getMd5(lobSb);
+			prevMd5 = LobUtils.getMd5(lobSb);
 		    oid = lob.getID();			
 		}catch(BaseException e){
 			Assert.assertTrue(false,"pubLob fail:"+e.getMessage());
@@ -120,7 +118,7 @@ public class TestLobAutoSplit7845 extends SdbTestBase {
 			}
 			bytebuff.rewind();
 		
-			String curMd5 = Commlib.getMd5(bytebuff);		
+			String curMd5 = LobUtils.getMd5(bytebuff);		
 			Assert.assertEquals(prevMd5, curMd5);
 		}catch(BaseException e){
 			Assert.assertTrue(false,"readLob fail:"+e.getMessage());			
@@ -151,8 +149,6 @@ public class TestLobAutoSplit7845 extends SdbTestBase {
 		}catch(BaseException e){			
 			Assert.assertTrue(false,"clean up failed:"+e.getMessage());
 		}finally{
-			System.out.println(this.getClass().getName()+" end at "
-					+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		}
 	}		
 	

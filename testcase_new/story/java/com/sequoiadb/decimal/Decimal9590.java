@@ -41,8 +41,6 @@ public class Decimal9590 extends SdbTestBase{
 		this.coordAddr = SdbTestBase.coordUrl;
 		this.commCSName = SdbTestBase.csName;
 		try{
-			System.out.println("the TestCase: "+ this.getClass().getName() + 
-					" begin at:" + df.format(new Date().getTime()));
 			sdb = new Sequoiadb(coordAddr,"","");
 			if(!sdb.isCollectionSpaceExist(commCSName)){
 				sdb.createCollectionSpace(commCSName);
@@ -60,8 +58,6 @@ public class Decimal9590 extends SdbTestBase{
 	@AfterClass
 	public void tearDown(){
 		try{
-			System.out.println("the TestCase: "+ this.getClass().getName() + 
-					" end at:" + df.format(new Date().getTime()));
 			if(cs.isCollectionExist(clName)){
 				cs.dropCollection(clName);
 			}

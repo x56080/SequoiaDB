@@ -40,8 +40,6 @@ public class TestNumberLong10966 extends SdbTestBase{
     @BeforeClass
     public void setUp() {
         try{
-            System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                    ". the TestCase begin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
             this.sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
             this.cs = this.sdb.getCollectionSpace(SdbTestBase.csName); 
             createCL();
@@ -197,8 +195,6 @@ public class TestNumberLong10966 extends SdbTestBase{
     @AfterClass
     public void tearDown() {
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                    ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
             if (this.cs.isCollectionExist(this.clName)) {
                 this.cs.dropCollection(this.clName);
             }

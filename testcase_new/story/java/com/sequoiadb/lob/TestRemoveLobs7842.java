@@ -42,8 +42,6 @@ public class TestRemoveLobs7842 extends SdbTestBase {
     	
     @BeforeClass
 	public void setUp(){
-		System.out.println(this.getClass().getName()+" begin at "
-				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 		}catch(BaseException e){			
@@ -84,8 +82,6 @@ public class TestRemoveLobs7842 extends SdbTestBase {
 		}catch(BaseException e){			
 			Assert.assertTrue(false,"clean up failed:"+e.getMessage());
 		}finally{
-			System.out.println(this.getClass().getName()+" end at "
-					+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));               
         }
 	}
     
@@ -96,7 +92,7 @@ public class TestRemoveLobs7842 extends SdbTestBase {
     	int lobsize =0;
     	try{
     		lobsize = random.nextInt(1048576);		
-    		String lobStringBuff = Commlib.getRandomString(lobsize);
+    		String lobStringBuff = LobUtils.getRandomString(lobsize);
     		lob = cl.createLob();
     		lob.write(lobStringBuff.getBytes());
     		id = lob.getID();    		

@@ -40,8 +40,6 @@ public class DetachSub97 extends SdbTestBase {
 	@BeforeClass
 	public void setUp() {
 		try {
-			System.out.println("the TestCase: " + this.getClass().getName()
-					+ " begin at:" + df.format(new Date()));
 			
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 			
@@ -126,8 +124,6 @@ public class DetachSub97 extends SdbTestBase {
 		} catch (BaseException e) {
 			Assert.assertEquals(e.getErrorCode(), -23);
 		} finally {
-			System.out.println("the TestCase Name:" + this.getClass().getName()
-					+ ". the TestCase end at:" + this.df.format(new Date()));
 			sdb.disconnect();
 		}
 	}
