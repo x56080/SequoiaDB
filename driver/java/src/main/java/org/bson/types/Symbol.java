@@ -38,7 +38,7 @@ public class Symbol implements Serializable {
     /**
      * Will compare equal to a String that is equal to the String that this holds
      * @param o
-     * @return
+     * @return True if equals, otherwise false.
      */
     @Override
     public boolean equals(Object o) {

@@ -89,29 +89,23 @@ public class JSONCallback extends BasicBSONCallback {
 				if (dateValue instanceof Number) {
 					o = new Date(((Number) dateValue).longValue());
 				} else {
-					SimpleDateFormat format = new SimpleDateFormat(
-							_msDateFormat);
+					SimpleDateFormat format = new SimpleDateFormat(_msDateFormat);
 					format.setCalendar(new GregorianCalendar(
 							new SimpleTimeZone(0, "GMT")));
-					o = format
-							.parse(dateValue.toString(), new ParsePosition(0));
+					o = format.parse(dateValue.toString(), new ParsePosition(0));
 
 					if (o == null) {
 						// try older format with no ms
 						format = new SimpleDateFormat(_secDateFormat);
 						format.setCalendar(new GregorianCalendar(
 								new SimpleTimeZone(0, "GMT")));
-						o = format.parse(dateValue.toString(),
-								new ParsePosition(0));
+						o = format.parse(dateValue.toString(), new ParsePosition(0));
 					}
 
 					if (o == null) {
 						// try older format with day
 						format = new SimpleDateFormat(_dayDateFormat);
-						format.setCalendar(new GregorianCalendar(
-								new SimpleTimeZone(0, "GMT")));
-						o = format.parse(dateValue.toString(),
-								new ParsePosition(0));
+						o = format.parse(dateValue.toString(), new ParsePosition(0));
 					}
 				}
 				if (!isStackEmpty()) {

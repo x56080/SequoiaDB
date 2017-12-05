@@ -18,6 +18,7 @@
 
 package org.bson;
 
+import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.Set;
@@ -25,7 +26,7 @@ import java.util.Set;
 /**
  * A key-value map that can be saved to the database.
  */
-public interface BSONObject {
+public interface BSONObject extends Serializable {
 
 	/**
 	 * Sets a name/value pair in this object.
