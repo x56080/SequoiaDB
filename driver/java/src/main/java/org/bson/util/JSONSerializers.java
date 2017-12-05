@@ -31,15 +31,7 @@ import java.util.regex.Pattern;
 import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.types.BSONDecimal;
-import org.bson.types.BSONTimestamp;
-import org.bson.types.BasicBSONList;
-import org.bson.types.Binary;
-import org.bson.types.Code;
-import org.bson.types.CodeWScope;
-import org.bson.types.MaxKey;
-import org.bson.types.MinKey;
-import org.bson.types.ObjectId;
+import org.bson.types.*;
 
 /**
  * Defines static methods for getting <code>ObjectSerializer</code> instances
@@ -68,10 +60,8 @@ public class JSONSerializers {
 		serializer.addObjectSerializer(Date.class, new LegacyDateSerializer(serializer));
 		serializer.addObjectSerializer(Timestamp.class, new LegacyBSONTimestampSerializer(serializer));
 		serializer.addObjectSerializer(BSONTimestamp.class, new LegacyBSONTimestampSerializer(serializer));
-		serializer.addObjectSerializer(BSONDecimal.class, new BSONDecimalSerializer(serializer));
-		serializer.addObjectSerializer(BigDecimal.class, new BSONDecimalSerializer(serializer));
-		serializer.addObjectSerializer(Binary.class, new LegacyBinarySerializer());
-		serializer.addObjectSerializer(byte[].class, new LegacyBinarySerializer());
+		serializer.addObjectSerializer(Binary.class, new BinarySerializer(serializer));
+		serializer.addObjectSerializer(byte[].class, new ByteArraySerializer(serializer));
 		return serializer;
 	}
 
@@ -89,7 +79,6 @@ public class JSONSerializers {
 		serializer.addObjectSerializer(Date.class, new DateSerializer(serializer));
 		serializer.addObjectSerializer(Timestamp.class, new BSONTimestampSerializer(serializer));
 		serializer.addObjectSerializer(BSONTimestamp.class, new BSONTimestampSerializer(serializer));
-		serializer.addObjectSerializer(BSONDecimal.class, new BSONDecimalSerializer(serializer));
 		serializer.addObjectSerializer(Binary.class, new BinarySerializer(serializer));
 		serializer.addObjectSerializer(byte[].class, new ByteArraySerializer(serializer));
 
@@ -114,6 +103,9 @@ public class JSONSerializers {
 		serializer.addObjectSerializer(UUID.class, new UUIDSerializer(serializer));
 		serializer.addObjectSerializer(Long.class, new NumberLongSerializer(serializer));
 		serializer.addObjectSerializer(BasicBSONObject.class, new BasicBSONObjectSerializer(serializer));
+		serializer.addObjectSerializer(BSONDecimal.class, new BSONDecimalSerializer(serializer));
+		serializer.addObjectSerializer(BigDecimal.class, new BSONDecimalSerializer(serializer));
+		serializer.addObjectSerializer(Symbol.class, new SymbolSerializer(serializer));
 		return serializer;
 	}
 
@@ -491,7 +483,7 @@ public class JSONSerializers {
 		protected void serialize(byte[] bytes, byte type, StringBuilder buf) {
 			BSONObject temp = new BasicBSONObject();
 			temp.put("$binary", (new Base64Codec()).encode(bytes));
-			temp.put("$type", type);
+			temp.put("$type", String.valueOf(type));
 			serializer.serialize(temp, buf);
 		}
 	}
@@ -520,4 +512,20 @@ public class JSONSerializers {
 		}
 
 	}
+
+    private static class SymbolSerializer extends CompoundObjectSerializer {
+
+        SymbolSerializer(ObjectSerializer serializer) {
+            super(serializer);
+        }
+
+        @Override
+        public void serialize(Object obj, StringBuilder buf) {
+            Symbol s = (Symbol) obj;
+            BasicBSONObject temp = new BasicBSONObject();
+            temp.put("$symbol", s.getSymbol());
+            serializer.serialize(temp, buf);
+        }
+
+    }
 }

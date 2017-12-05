@@ -28,6 +28,7 @@ import org.bson.types.ObjectId;
  * Basic implementation of BSONDecoder interface that creates BasicBSONObject instances
  */
 public class BasicBSONDecoder implements BSONDecoder {
+    @Override
     public BSONObject readObject( byte[] b ){
         try {
             return readObject( new ByteArrayInputStream( b ) );
@@ -150,16 +151,16 @@ public class BasicBSONDecoder implements BSONDecoder {
             
         case NUMBER_DECIMAL:
         	int size = _in.readInt();
-        	int typemod = _in.readInt();
-        	short signscale = _in.readShort();
+        	int typeMod = _in.readInt();
+        	short signScale = _in.readShort();
         	short weight = _in.readShort();
-        	int ndigits = (size - BSONDecimal.DECIMAL_HEADER_SIZE) / (Short.SIZE / Byte.SIZE);
-        	short[] digits = new short[ndigits];
-        	for( int i = 0; i < ndigits; i++ ) {
+        	int nDigits = (size - BSONDecimal.DECIMAL_HEADER_SIZE) / (Short.SIZE / Byte.SIZE);
+        	short[] digits = new short[nDigits];
+        	for( int i = 0; i < nDigits; i++ ) {
         		digits[i] = _in.readShort();
         	}
-        	// set the decimal data
-        	BSONDecimal decimal = new BSONDecimal(size, typemod, signscale, weight, digits);
+
+        	BSONDecimal decimal = new BSONDecimal(size, typeMod, signScale, weight, digits);
         	_callback.gotDecimal( name, decimal );
         	break;
         	

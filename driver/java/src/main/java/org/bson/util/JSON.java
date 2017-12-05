@@ -53,7 +53,6 @@ public class JSON {
 	 * @param buf
 	 *            StringBuilder containing the JSON representation under
 	 *            construction
-	 * @return String containing JSON form of the object
 	 * @see org.bson.util.JSONSerializers#getLegacy()
 	 */
 	public static void serialize(Object o, StringBuilder buf) {
