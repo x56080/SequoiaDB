@@ -246,21 +246,13 @@ public class ClusterManager7065 extends SdbTestBase{
 				}
 			}
 			actualMasterNodeName = dataRG.getMaster().getNodeName();
-<<<<<<< .mine
 			Node nodeinfo = dataRG.getMaster();			
 			Assert.assertEquals(isPrimary(nodeinfo), true);
 			System.out.println("masterNodeName=" + actualMasterNodeName);
-=======
-			System.out.println("masterNodeName=" + actualMasterNodeName);
->>>>>>> .r32991
 			actualSlaveNodeName = dataRG.getSlave().getNodeName();
-<<<<<<< .mine
 			Node slaveNodeinfo = dataRG.getSlave();				
 			Assert.assertEquals(isPrimary(slaveNodeinfo), false);
 			System.out.println("slaveNodeName=" + actualSlaveNodeName);
-=======
-			System.out.println("slaveNodeName=" + actualSlaveNodeName);
->>>>>>> .r32991
 		}catch(BaseException e){
 			Assert.fail("get master and slave node failed" + e.getMessage());
 		}
@@ -286,7 +278,6 @@ public class ClusterManager7065 extends SdbTestBase{
 	   //Normal operating environment
       clearFlag = true;		
 	}
-<<<<<<< .mine
 	
 	private boolean isPrimary(Node nodeinfo){
 		Sequoiadb db = null;
@@ -307,8 +298,4 @@ public class ClusterManager7065 extends SdbTestBase{
 			}		
 		}	
 	}
-=======
-	
-	
->>>>>>> .r32991
 }
