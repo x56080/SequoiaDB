@@ -1237,7 +1237,449 @@ function mergeCluster( cataAddrs, keepHosts, filename, active ) {
 
    return true ;
 }
+/* *****************************************************************************
+@discription: 重启节点
+@author: Jiaming Wu
+@return: true/false
+***************************************************************************** */
+function restartNode( nodeNameArray ) {
+   var map = new Object() ;
+   for( var i = 0; i < nodeNameArray.length; i++ ) {
+      var addrArray = splitHostAndSvcFromAddr( nodeNameArray[i] ) ;
+      var key = addrArray[0] ;
+      var value = addrArray[1] ;
+      if( undefined == map[key] ) {
+         var array = new Array() ;
+         map[key] = array ;
+      }
+      map[key].push( value ) ;
+   }
+   for( var tmpKey in map ) {
+      var hostname = tmpKey ;
+      var tmpArray = map[tmpKey] ;
+      if( 0 != tmpArray.length ) {
+         var portStr = tmpArray[0] ;
+         for( var i = 1; i < tmpArray.length; i++ ) {
+            portStr += "," + tmpArray[i] ;
+         }
+         var ssh ;
+         /* Stop and start  */
+         try {
+            ssh = new Ssh( hostname, USERNAME, PASSWD ) ;
+         } catch ( e ) {
+            println( "Ssh to " + hostname+ " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+            return false ;
+         }
 
+         try {
+            ssh.exec( SDBSTOP + " -p " + portStr ) ;
+            println( "Stop all catalog nodes succeed in " + hostname ) ;
+            ssh.exec( SDBSTART + " -p " + portStr ) ;
+            println( "Start all catalog nodes succeed in " + hostname ) ;
+         } catch ( e ) {
+            println( "Restart all catalog nodes in " + hostname + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+            ssh.close() ;
+            return false ;
+         }
+         ssh.close() ;
+      }
+   }
+   return true ;
+}
+/* *****************************************************************************
+@discription: 更新节点配置并重启节点
+@author: Jiaming Wu
+@return: true/false
+***************************************************************************** */
+function updateNodeConfigAndRestart( nodeArr, key, value ) {
+   if( !updateNodesConfig( nodeArr, key , value ) ) {
+      println( "update nodes config failed" ) ;
+      return false ;
+   }
+   if( !restartNode( nodeArr ) ) {
+      println( "Restart nodes failed" ) ;
+      return false
+   }
+   return true ;
+}
+/* *****************************************************************************
+@discription: 故障组剔除故障编目节点
+@author: Jiaming Wu
+@return: true/false
+***************************************************************************** */
+function detachCatalogNode( coordAddr, cataAddr ) {
+   var db ;
+   var isOK = true ;
+   var needDisableAuth = false ;
+
+   try {
+      var addrArray = splitHostAndSvcFromAddr( coordAddr ) ;
+      db = new Sdb( addrArray[0], addrArray[1], SDBUSERNAME, SDBPASSWD ) ;
+   } catch ( e ) {
+      if( SDB_CLS_NOT_PRIMARY == e ) {
+         isOK = false ;
+         needDisableAuth = true ;
+      }else{
+         println( "Connect to " + addrArray[0] + ":"+ addrArray[1] + "failed: "
+                  + e + " (" + getLastErrMsg() + ")" ) ;
+         throw e ;
+      }
+   }
+   if( isOK ) {
+      var snapshotCursor ;
+      /* Get specified group node snapshot */
+      try {
+         snapshotCursor = db.snapshot( SDB_SNAP_DATABASE, { GroupName: SDB_CATALOG_GROUP_NAME,
+                                                            RawData: true } ) ;
+      } catch( e ) {
+         println( "Get cluster snapshot failed: " + e +
+                  " (" + getLastErrMsg() + ")" ) ;
+         return false ;
+      }
+
+      var exist = false ;
+      var bs ;
+      try {
+         /* Check whether the primiary node exist and get error nodes info */
+         while( ( bs = snapshotCursor.next() ) != undefined ) {
+            var obj = bs.toObj() ;
+            if( obj.ErrNodes != undefined ) {
+               continue ;
+            }
+            if( obj.IsPrimary == true ) {
+               exist = true ;
+            }
+         }
+      } catch( e ) {
+         println( "Traverse snapshot failed: " + e +
+                  " (" + getLastErrMsg() + ")" ) ;
+         return false ;
+      }
+      if( exist == true )
+      {
+         return true ;
+      }
+   }
+   var existCatalogAddr = new Array() ;
+   var existCatalogID = new Array() ;
+   var map = new Object() ;
+   for( var i = 0; i < cataAddr.length; i++ ) {
+      var addrArray = splitHostAndSvcFromAddr( cataAddr[i] ) ;
+      var key = addrArray[0] ;
+      var value = addrArray[1] ;
+      if( undefined == map[key] ) {
+         var array = new Array() ;
+         map[key] = array ;
+      }
+      map[key].push( value ) ;
+   }
+   for( var tmpKey in map ) {
+      var hostname = tmpKey ;
+      var tmpArray = map[tmpKey] ;
+      if( 0 != tmpArray.length ) {
+         var filterArr = [ { "svcname": tmpArray[0] } ];
+         for( var i = 1; i < tmpArray.length; i++ ) {
+            filterArr.push( { "svcname": tmpArray[i] } ) ;
+         }
+         try{
+            var omaSvc = Oma.getAOmaSvcName( hostname ) ;
+            var oma = new Oma( hostname, omaSvc ) ;
+            result = oma.listNodes( { "role": "catalog" }, { "$or": filterArr } ) ;
+            oma.close() ;
+         } catch( e ) {
+            println( "Get exist catalog nodes failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+            return false ;
+         }
+         if( result.size() == 0 ) {
+            continue ;
+         }
+         var bs ;
+         while( ( bs = result.next() ) != undefined ) {
+            var obj = bs.toObj() ;
+            existCatalogAddr.push( hostname + ":" + obj.svcname ) ;
+            existCatalogID.push( obj.nodeid ) ;
+         }
+      }
+   }
+
+   if( needDisableAuth ) {
+
+      /* Disable auth */
+      if( !updateNodeConfigAndRestart( existCatalogAddr, "auth" , "FALSE" ) ) {
+         println( "Disable catalog auth failed" ) ;
+         return false ;
+      }
+      println( "Disable catalog auth succeed" ) ;
+   }
+
+   /* Get Nodes which will be detached */
+   var detachNodeArray = new Array() ;
+   var candidateAddr = new Array() ;
+   for( var i = 0; i < cataAddr.length; i++ ) {
+      var addrArray = splitHostAndSvcFromAddr( cataAddr[i] ) ;
+      try{
+         var tmpDb ;
+         tmpDb = new Sdb( addrArray[0], addrArray[1], SDBUSERNAME, SDBPASSWD ) ;
+         tmpDb.close() ;
+         candidateAddr.push( addrArray ) ;
+      } catch( e ){
+         detachNodeArray.push( addrArray ) ;
+      }
+   }
+
+   if( candidateAddr.length == 0 ) {
+      println( "Failed: There are no available nodes in " + SDB_CATALOG_GROUP_NAME +
+               " ReplicaGroup" ) ;
+      if( needDisableAuth ) {
+         /* Restore auth */
+         if( !updateNodeConfigAndRestart( existCatalogAddr, "auth" , "TRUE" ) ) {
+            println( "Restore catalog auth failed" ) ;
+            return false ;
+         }
+         println( "Restore catalog auth succeed" ) ;
+      }
+      return false ;
+   }
+
+   if( candidateAddr.length < MINREPLICANUM ) {
+       println( "Detach node from " + SDB_CATALOG_GROUP_NAME +
+                 " failed: " + "After detachment,the number of exant node in "
+                 + SDB_CATALOG_GROUP_NAME + " must greater than " + MINREPLICANUM ) ;
+       if( needDisableAuth ) {
+         /* Restore auth */
+         if( !updateNodeConfigAndRestart( existCatalogAddr, "auth" , "TRUE" ) ) {
+            println( "Restore catalog auth failed" ) ;
+            return false ;
+         }
+         println( "Restore catalog auth succeed" ) ;
+      }
+       return false ;
+   }
+
+   /* To step up master appear */
+   var success = false ;
+   var newGroupInfo ;
+   for( var i = 0; i < candidateAddr.length; i++ ) {
+      var addrArray = candidateAddr[i] ;
+      println( "Try to step up " + addrArray[0] + ":" + addrArray[1] + " election" ) ;
+      var retryTime = 0 ;
+      try
+      {
+         while( true ) {
+            try {
+               var cataDb = new Sdb( addrArray[0], addrArray[1], SDBUSERNAME, SDBPASSWD ) ;
+               cataDb.forceStepUp( { Seconds: 300 } ) ;
+               cataDb.close() ;
+               break ;
+            } catch( e ) {
+               if( -251 == e && retryTime < 5 ) {
+                  sleep( 1000 ) ;
+                  retryTime++ ;
+                  continue ;
+               } else {
+                  throw e ;
+               }
+            }
+         }
+      } catch( e ) {
+         println( "Failed: " + e + " (" + getLastErrMsg() + ")" ) ;
+         continue ;
+      }
+      var time = 0 ;
+      var tmpCataDb ;
+      try {
+         tmpCataDb = new Sdb( addrArray[0], addrArray[1], SDBUSERNAME, SDBPASSWD ) ;
+      } catch( e ) {
+         println( "Connect to " + addrArray[0] + ":" + addrArray[1] + " failed: "
+                  + e + " (" + getLastErrMsg() + ")" ) ;
+         if( needDisableAuth ) {
+            /* Restore auth */
+            if( !updateNodeConfigAndRestart( existCatalogAddr, "auth" , "TRUE" ) ) {
+               println( "Restore catalog auth failed" ) ;
+               return false ;
+            }
+            println( "Restore catalog auth succeed" ) ;
+         }
+         return false ;
+      }
+      while( false == success && time < 10000 ) {
+         var tmpCursor ;
+         try {
+            tmpCursor = tmpCataDb.snapshot( SDB_SNAP_DATABASE,
+                                            { GroupName: SDB_CATALOG_GROUP_NAME,
+                                              HostName: addrArray[0],
+                                              ServiceName: addrArray[1],
+                                              RawData: true } ) ;
+         } catch( e ) {
+            println( "Get " + addrArray[0] + ":" + addrArray[1] + " snapshot failed: "
+                     + e + " (" + getLastErrMsg() + ")" ) ;
+            if( needDisableAuth ) {
+               /* Restore auth */
+               if( !updateNodeConfigAndRestart( existCatalogAddr, "auth" , "TRUE" ) ) {
+                  println( "Restore catalog auth failed" ) ;
+                  return false ;
+               }
+               println( "Restore catalog auth succeed" ) ;
+            }
+            return false ;
+         }
+         var bs ;
+         while( ( bs = tmpCursor.next() ) != undefined ) {
+            var obj = bs.toObj() ;
+            if( obj.HostName == addrArray[0] &&
+                obj.ServiceName == addrArray[1] &&
+                obj.IsPrimary == true ) {
+
+               try {
+                  var tmpCursor = tmpCataDb.SYSCAT.SYSNODES.find( { GroupName: SDB_CATALOG_GROUP_NAME } ) ;
+                  var tmpBson = tmpCursor.next() ;
+                  if( tmpBson != undefined ) {
+                     newGroupInfo = tmpBson.toObj() ;
+                  }
+               } catch( e ) {
+                  println( "Get nodes info failed: " + e + " (" + getLastErrMsg() + ")" ) ;
+                  if( needDisableAuth ) {
+                     /* Restore auth */
+                     if( !updateNodeConfigAndRestart( existCatalogAddr, "auth" , "TRUE" ) ) {
+                        println( "Restore catalog auth failed" ) ;
+                        return false ;
+                     }
+                     println( "Restore catalog auth succeed" ) ;
+                  }
+                  return false ;
+               }
+               success = true ;
+
+               println( "Succeed" ) ;
+               break ;
+            }
+         }
+         if( !success ) {
+            sleep( 500 ) ;
+            time += 500 ;
+         }
+      }
+      tmpCataDb.close() ;
+      break ;
+   }
+   if( false == success ) {
+      println( "Step up master election appear failed" ) ;
+      if( needDisableAuth ) {
+         /* Restore auth */
+         if( !updateNodeConfigAndRestart( existCatalogAddr, "auth" , "TRUE" ) ) {
+            println( "Restore catalog auth failed" ) ;
+            return false ;
+         }
+         println( "Restore catalog auth succeed" ) ;
+      }
+      return false ;
+   }
+
+   /* update node info in catalog */
+   for( var i = 0; i < candidateAddr.length; i++ ) {
+      var addrArray = candidateAddr[i] ;
+      try {
+         var tmpCataDb = new Sdb( addrArray[0], addrArray[1], SDBUSERNAME, SDBPASSWD ) ;
+         tmpCataDb.SYSCAT.SYSNODES.update( { $set: { "PrimaryNode": newGroupInfo.PrimaryNode } },
+                                             { "GroupName": SDB_CATALOG_GROUP_NAME } )
+         tmpCataDb.close() ;
+      } catch( e ) {
+         println( "Update " + addrArray[0] + ":" + addrArray[1] + " node info failed: "
+                  + e + " (" + getLastErrMsg() + ")" ) ;
+         if( needDisableAuth ) {
+            /* Restore auth */
+            if( !updateNodeConfigAndRestart( existCatalogAddr, "auth" , "TRUE" ) ) {
+               println( "Restore catalog auth failed" ) ;
+               return false ;
+            }
+            println( "Restore catalog auth succeed" ) ;
+         }
+         return false ;
+      }
+   }
+
+   /* Detach node */
+   var db ;
+   try {
+      var addrArray = splitHostAndSvcFromAddr( coordAddr ) ;
+      db = new Sdb( addrArray[0], addrArray[1], SDBUSERNAME, SDBPASSWD ) ;
+   } catch ( e ) {
+      println( "Connect to " + coordAddr + " failed: " + e + " (" + getLastErrMsg() + ")" ) ;
+      return false ;
+   }
+   /* force coord update cata group info */
+   try{
+      db.setSessionAttr( { PreferedInstance:"M" } ) ;
+   } catch( e ){
+      println( "Set session attr failed: " + e +
+               " (" + getLastErrMsg() + ")" ) ;
+      if( needDisableAuth ) {
+         /* Restore auth */
+         if( !updateNodeConfigAndRestart( existCatalogAddr, "auth" , "TRUE" ) ) {
+            println( "Restore catalog auth failed" ) ;
+            return false ;
+         }
+         println( "Restore catalog auth succeed" ) ;
+      }
+      return false ;
+   }
+
+   try
+   {
+      rg = db.getRG( SDB_CATALOG_GROUP_NAME ) ;
+   } catch( e ) {
+      println( "Get " + SDB_CATALOG_GROUP_NAME + " rg failed: " + e + " (" + getLastErrMsg() + ")" ) ;
+      if( needDisableAuth ) {
+         /* Restore auth */
+         if( !updateNodeConfigAndRestart( existCatalogAddr, "auth" , "TRUE" ) ) {
+            println( "Restore catalog auth failed" ) ;
+            return false ;
+         }
+         println( "Restore catalog auth succeed" ) ;
+      }
+      return false ;
+   }
+   for( var i = 0; i < detachNodeArray.length; i++ ) {
+      var addrArray = detachNodeArray[ i ] ;
+      try {
+         rg.detachNode( addrArray[0], addrArray[1],
+                        { KeepData: false, enforced: true } ) ;
+      } catch( e ) {
+         println( "Detach node " + addrArray[0] + ":" + addrArray[1] + " from "
+                  + SDB_CATALOG_GROUP_NAME + " failed: "
+                  + e + " (" + getLastErrMsg() + ")" ) ;
+         if( needDisableAuth ) {
+            /* Restore auth */
+            if( !updateNodeConfigAndRestart( existCatalogAddr, "auth" , "TRUE" ) ) {
+               println( "Restore catalog auth failed" ) ;
+               return false ;
+            }
+            println( "Restore catalog auth succeed" ) ;
+         }
+         return false ;
+      }
+      println( "Detach node " + addrArray[0] + ":" + addrArray[1] + " from "
+               + SDB_CATALOG_GROUP_NAME + " succeed" ) ;
+   }
+
+   if( needDisableAuth ) {
+      /* Enable auth */
+      if( !updateNodesConfig( existCatalogAddr, "auth" , "TRUE" ) )
+      {
+         println( "Disable catalog auth failed" ) ;
+         return false ;
+      }
+      try {
+         db.reloadConf( { "GroupName": SDB_CATALOG_GROUP_NAME,
+                          "NodeID": existCatalogID } ) ;
+      } catch( e ) {
+         println( "Reload configs failed " + e + " (" + getLastErrMsg() + ")" ) ;
+         return false ;
+      }
+      println( "Restore catalog auth succeed" ) ;
+   }
+   return true ;
+}
 /* *****************************************************************************
 @discription: 故障组剔除故障节点
 @author: Jiaming Wu
@@ -1246,24 +1688,35 @@ function mergeCluster( cataAddrs, keepHosts, filename, active ) {
 function detachGroupNode( coordAddr, filename ) {
    var db ;
    var groupsArray ;
+
    // Get cluster group info
    try {
       groupsArray = readGroupsInfo( filename ) ;
    } catch( e ) {
-      println( "Read groups info failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+      println( "Read groups info failed: " + e + " (" + getLastErrMsg() + ")" ) ;
       return false ;
    }
 
+   /* First to detach catalog group nodes */
+   var nodeArray = parseGroupNodes( groupsArray, new Array() ) ;
+   var cataAddr = nodeArray[0] ;
+   if( !detachCatalogNode( coordAddr, cataAddr ) ) {
+      return false ;
+   }
+
+   /* Detach data group nodes */
    try {
       var addrArray = splitHostAndSvcFromAddr( coordAddr ) ;
       db = new Sdb( addrArray[0], addrArray[1], SDBUSERNAME, SDBPASSWD ) ;
    } catch ( e ) {
-      println( "Connect to " + coordAddr + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+      println( "Connect to " + coordAddr + " failed: " + e + " (" + getLastErrMsg() + ")" ) ;
       return false ;
    }
+
    for( var i = 0; i < groupsArray.length; i++ ) {
       var rgObj = groupsArray[ i ] ;
-      if( rgObj.GroupName == "SYSCoord" ) {
+      if( rgObj.GroupName == SDB_COORD_GROUP_NAME ||
+          rgObj.GroupName == SDB_CATALOG_GROUP_NAME ) {
          continue ;
       }
       var groupSize = rgObj.Group.length ;
@@ -1275,13 +1728,14 @@ function detachGroupNode( coordAddr, filename ) {
                                                             RawData: true } ) ;
       } catch( e ) {
          println( "Get cluster snapshot failed: " + e +
-                  "(" + getLastErrMsg() + ")" ) ;
+                  " (" + getLastErrMsg() + ")" ) ;
          return false ;
       }
 
       var exist = false ;
       var bs ;
-      var ErrNodes ;
+      var ErrNodes = [] ;
+      var detachNodeArr = new Array() ;
       try {
          /* Check whether the primiary node exist and get error nodes info */
          while( ( bs = snapshotCursor.next() ) != undefined ) {
@@ -1296,32 +1750,74 @@ function detachGroupNode( coordAddr, filename ) {
          }
       } catch( e ) {
          println( "Traverse snapshot failed: " + e +
-                  "(" + getLastErrMsg() + ")" ) ;
+                  " (" + getLastErrMsg() + ")" ) ;
          return false ;
       }
 
       if( false == exist ) {
+         /* Get Nodes which will be detached */
+         for( var index = 0; index < ErrNodes.length; index++ ) {
+            var nameArr = splitHostAndSvcFromAddr( ErrNodes[ index ].NodeName ) ;
+            var tmpDb ;
+            try {
+               tmpDb = new Sdb( nameArr[ 0 ], nameArr[ 1 ],
+                                SDBUSERNAME, SDBPASSWD ) ;
+               tmpDb.close() ;
+            }
+            catch( e ) {
+               detachNodeArr.push( { hostname: nameArr[ 0 ],
+                                     svcname: nameArr[ 1 ] } ) ;
+            }
+
+         }
          /* After detach node, the number of extant group node must greater than MINREPLICANUM */
-         if( groupSize - ErrNodes.length < MINREPLICANUM ) {
+         if( groupSize - detachNodeArr.length < MINREPLICANUM ) {
             println( "Detach node from " + groupName +
                      " failed: " + "After detachment,the number of exant node in "
                      + groupName + " must greater than " + MINREPLICANUM ) ;
             return false ;
          }
+
+         /* update catalog primary node info to enable detach primary node */
+         var catalogMaste ;
+         try {
+            catalogMaster = db.getRG( SDB_CATALOG_GROUP_NAME ).getMaster() ;
+         }catch( e ) {
+            println( "Get catalog master failed: " + e + " (" + getLastErrMsg() + ")" ) ;
+            return false ;
+         }
+         var cataDb ;
+         try {
+            cataDb = new Sdb( catalogMaster._hostname, catalogMaster._servicename,
+                              SDBUSERNAME, SDBPASSWD ) ;
+         } catch( e ) {
+            println( "Connect to catalog master failed: " + e + " (" + getLastErrMsg() + ")" ) ;
+            return false ;
+         }
+         try
+         {
+            cataDb.SYSCAT.SYSNODES.update( { "$unset": { "PrimaryNode": 1 } }, { "GroupName": groupName } ) ;
+         } catch( e ) {
+            println( "update catalog master node info failed : " + e + " (" + getLastErrMsg() + ")" ) ;
+            return false ;
+         }
+
          /* Detach Error node */
-         for( var index = 0; index < ErrNodes.length; index++ ) {
-            var nodeNameArr = splitHostAndSvcFromAddr( ErrNodes[ index ].NodeName ) ;
+         for( var index = 0; index < detachNodeArr.length; index++ ) {
+            var detachNode = detachNodeArr[ index ] ;
+            var nodeName = detachNode.hostname + ":" + detachNode.svcname ;
             try {
-               db.getRG( groupName ).detachNode( nodeNameArr[ 0 ], nodeNameArr[ 1 ],
+               db.getRG( groupName ).detachNode( detachNode.hostname,
+                                                 detachNode.svcname,
                                                 { KeepData: true,
                                                   enforced: true } ) ;
             } catch( e ) {
-               println( "Detach node " + ErrNodes[ index ].NodeName + " from "
+               println( "Detach node " + nodeName + " from "
                         + groupName + " failed: " + e +
-                        "(" + getLastErrMsg() + ")" ) ;
+                        " (" + getLastErrMsg() + ")" ) ;
                return false ;
             }
-            println( "Detach node " + ErrNodes[ index ].NodeName + " from "
+            println( "Detach node " + nodeName + " from "
                      + groupName + " succeed" ) ;
          }
       }
@@ -1349,14 +1845,14 @@ function attachGroupNode( coordAddr, filename ) {
       var addrArray = splitHostAndSvcFromAddr( coordAddr ) ;
       db = new Sdb( addrArray[0], addrArray[1], SDBUSERNAME, SDBPASSWD ) ;
    } catch ( e ) {
-      println( "Connect to " + coordAddr + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+      println( "Connect to " + coordAddr + " failed: " + e + " (" + getLastErrMsg() + ")" ) ;
       return false ;
    }
 
    for( var index = 0; index < groupsArray.length; index++ ) {
       var tmpGroupObj = groupsArray[ index ] ;
       var groupName = tmpGroupObj.GroupName
-      if( "SYSCoord" == groupName ) {
+      if( SDB_COORD_GROUP_NAME == groupName ) {
          continue ;
       }
       var group = tmpGroupObj.Group ;
@@ -1392,21 +1888,21 @@ function attachGroupNode( coordAddr, filename ) {
                var result = filter.match( currentNodeArr ) ;
                if( result.size() == 0 )
                {
-                  try {
-                     var tmpDb = new Sdb( hostname, svcname, SDBUSERNAME, SDBPASSWD ) ;
-                     continue ;
-                  } catch( e ) {
+                  var option = new Object() ;
+                  if( SDB_CATALOG_GROUP_NAME == groupName ) {
+                     option.KeepData = false ;
+                  }  else {
+                     option.KeepData = true ;
                   }
-
                   try {
                      db.getRG( groupName ).attachNode( hostname, svcname,
-                                                       { KeepData: true } ) ;
+                                                       option ) ;
                      println( "Attach node " + hostname + ":" + svcname + " to "
                               + groupName + " succeed " ) ;
                   } catch( e ) {
                      println( "Attach node " + hostname + ":" + svcname + " to "
                               + groupName + " failed: " + e +
-                              "(" + getLastErrMsg() + ")" ) ;
+                              " (" + getLastErrMsg() + ")" ) ;
                      return false ;
                   }
                }
