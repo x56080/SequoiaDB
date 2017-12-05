@@ -68,15 +68,11 @@ CmdTest.prototype.testStartNoPermission = function()
     try
     {
         this.cmd.start( "groupadd", "liangxw", 1, 3*1000 ) ;
-        throw 0 ;
     }
     catch( e )
     {
-        if( e === 0 )
-        {
-            throw buildException( "testStartNoPermission", e, 
-                  "test start useradd with user " + user + " " + this, "not 0", e ) ;
-        }
+        println( "test start groupadd with user " + user + " " + this + "," +
+                 "catch exception " + e ) ;
     }
     var info = this.cmd.run( "cat /etc/group" ) ;
     if( info.indexOf( "liangxw" ) !== -1 )
