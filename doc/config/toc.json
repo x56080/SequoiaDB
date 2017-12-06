@@ -2645,6 +2645,18 @@
                            "en": "as"
                         },
                         {
+                           "id": 1512527199,
+                           "file": "is_null",
+                           "cn": "is null",
+                           "en": "is null"
+                        },
+                        {
+                           "id": 1512527211,
+                           "file": "is_not_null",
+                           "cn": "is not null",
+                           "en": "is not null"
+                        },
+                        {
                            "id": 1432190969,
                            "file": "inner_join",
                            "cn": "inner join",
