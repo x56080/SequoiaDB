@@ -1166,7 +1166,7 @@ namespace engine
       return _agent->resetMon() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET_REELECT, "_clsReplicateSet::reelect" ) 
+   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET_REELECT, "_clsReplicateSet::reelect" )
    INT32 _clsReplicateSet::reelect( CLS_REELECTION_LEVEL lvl,
                                     UINT32 seconds,
                                     pmdEDUCB *cb )
@@ -1236,6 +1236,12 @@ namespace engine
          PD_LOG( PDERROR, "can not step up when primary node"
                  " exists" ) ;
          rc = SDB_CLS_CAN_NOT_STEP_UP ;
+         goto error ;
+      }
+      else if ( !_active )
+      {
+         rc = SDB_CLS_NODE_INFO_EXPIRED ;
+         PD_LOG( PDERROR, "can not step up before local's node download group info" ) ;
          goto error ;
       }
 
