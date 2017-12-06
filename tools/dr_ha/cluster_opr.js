@@ -1458,7 +1458,7 @@ function detachCatalogNode( coordAddr, cataAddr ) {
 
    /* To step up master appear */
    var success = false ;
-   var newGroupInfo ;
+   var primaryNodeID = 0 ;
    for( var i = 0; i < candidateAddr.length; i++ ) {
       var addrArray = candidateAddr[i] ;
       println( "Try to step up " + addrArray[0] + ":" + addrArray[1] + " election" ) ;
@@ -1529,15 +1529,11 @@ function detachCatalogNode( coordAddr, cataAddr ) {
             if( obj.HostName == addrArray[0] &&
                 obj.ServiceName == addrArray[1] &&
                 obj.IsPrimary == true ) {
-
-               try {
-                  var tmpCursor = tmpCataDb.SYSCAT.SYSNODES.find( { GroupName: SDB_CATALOG_GROUP_NAME } ) ;
-                  var tmpBson = tmpCursor.next() ;
-                  if( tmpBson != undefined ) {
-                     newGroupInfo = tmpBson.toObj() ;
-                  }
-               } catch( e ) {
-                  println( "Get nodes info failed: " + e + " (" + getLastErrMsg() + ")" ) ;
+               if( obj.NodeID instanceof Array && obj.NodeID.length == 2 ) {
+                  primaryNodeID = obj.NodeID[1] ;
+               }
+               else {
+                  println( "Get nodes id failed: " + e + " (" + getLastErrMsg() + ")" ) ;
                   if( needDisableAuth ) {
                      /* Restore auth */
                      if( !updateNodeConfigAndRestart( existCatalogAddr, "auth" , "TRUE" ) ) {
@@ -1549,7 +1545,6 @@ function detachCatalogNode( coordAddr, cataAddr ) {
                   return false ;
                }
                success = true ;
-
                println( "Succeed" ) ;
                break ;
             }
@@ -1580,8 +1575,8 @@ function detachCatalogNode( coordAddr, cataAddr ) {
       var addrArray = candidateAddr[i] ;
       try {
          var tmpCataDb = new Sdb( addrArray[0], addrArray[1], SDBUSERNAME, SDBPASSWD ) ;
-         tmpCataDb.SYSCAT.SYSNODES.update( { $set: { "PrimaryNode": newGroupInfo.PrimaryNode } },
-                                             { "GroupName": SDB_CATALOG_GROUP_NAME } )
+         tmpCataDb.SYSCAT.SYSNODES.update( { $set: { "PrimaryNode": primaryNodeID } },
+                                             { "GroupName": SDB_CATALOG_GROUP_NAME } ) ;
          tmpCataDb.close() ;
       } catch( e ) {
          println( "Update " + addrArray[0] + ":" + addrArray[1] + " node info failed: "
