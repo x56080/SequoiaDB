@@ -10,6 +10,7 @@
    <parameter name="RSRVPORTEND" value="27000" />
    <parameter name="RSRVNODEDIR" value="/opt/sequoiadb/database/" />
    <parameter name="WORKDIR" value="/tmp/javatest" />
+   <parameter name="ROOTPASSWD"     value="jenkins" />
 
    <listeners>
       <listener class-name="com.sequoiadb.testcommon.TimePrinterListener"/>
