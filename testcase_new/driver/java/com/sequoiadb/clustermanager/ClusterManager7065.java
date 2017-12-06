@@ -193,7 +193,7 @@ public class ClusterManager7065 extends SdbTestBase{
 		}catch( BaseException e ){
 			Assert.fail("getReplicaGroupsInfo failed" + e.getMessage());
 		}
-		Assert.assertEquals(getHostName, coordIP);;
+		Assert.assertEquals(getHostName, coordIP);
 		
 		//RG operate
 		try{
@@ -278,24 +278,29 @@ public class ClusterManager7065 extends SdbTestBase{
 	   //Normal operating environment
       clearFlag = true;		
 	}
-	
-	private boolean isPrimary(Node nodeinfo){
+
+	private boolean isPrimary(Node nodeinfo) {
 		Sequoiadb db = null;
-		try{
-			db = new Sequoiadb(nodeinfo.getHostName(),nodeinfo.getPort(),"","");
-			DBCursor cursor = db.getSnapshot(6, "","" ,"");
-			boolean isPrimaryFlag = false;
-			while(cursor.hasNext()) {
-	            BSONObject object = cursor.getNext();
-	            Object isPrimary = object.get("IsPrimary");
-	            isPrimaryFlag = (boolean) isPrimary;	           
-	        }
-	        cursor.close();
-	        return isPrimaryFlag;		        
-		}finally{
-			if( db != null){
+		try {
+			db = nodeinfo.connect();
+			for (int i = 0; i < 10; i++) {
+				DBCursor cursor = db.getSnapshot(6, "", "", "");
+				BSONObject object = cursor.getNext();
+				boolean isPrimary = (Boolean) object.get("IsPrimary");
+				cursor.close();
+				if (isPrimary)
+					return true;
+				else
+					Thread.sleep(1000);
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} finally {
+			if (db != null) {
 				db.disconnect();
-			}		
-		}	
+			}
+		}
+		//should never come here!
+		return false;
 	}
 }
