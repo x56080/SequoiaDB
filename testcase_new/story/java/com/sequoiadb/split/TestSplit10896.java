@@ -79,7 +79,7 @@ public class TestSplit10896 extends SdbTestBase{
                 "{ \"_id\" : 7 , \"type\" : true }, " +
                 "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\" } }, " +
                 "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232 } }, " +
-                "{ \"_id\" : 10 , \"type\" : <Binary Data> }, " +
+                "{ \"_id\" : 10 , \"type\" : { \"$binary\" : \"aGVsbG8gd29ybGQ=\" , \"$type\" : \"0\" } }, " +
                 "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\" } }, " +
                 "{ \"_id\" : 12 , \"type\" : { \"a\" : 1 } }, { \"_id\" : 13 , \"type\" : [ 0 ] }, " +
                 "{ \"_id\" : 14 , \"type\" :  null  }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1 } }, " +
