@@ -85,8 +85,8 @@ namespace fs = boost::filesystem ;
  * SDB_IO (generic IO error)
  *
  * Notice: when mode=OSS_READONLY, read & write mode is set in this function.
- *         it can cause block when the file is a pipe. 
- *         set mode=OSS_READONLY | OSS_SHAREREAD, to make sure it's really 
+ *         it can cause block when the file is a pipe.
+ *         set mode=OSS_READONLY | OSS_SHAREREAD, to make sure it's really
  *         read only!!
  */
  // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSOPEN, "ossOpen" )
@@ -343,7 +343,7 @@ error :
        // if we are not able to open the file
        if ( -1 == pFile.fd )
        {
-          // some version of file system may not implement DIO, 
+          // some version of file system may not implement DIO,
           // then we remove the flag and try again
           if( ( EINVAL == err ) && ( O_DIRECT == direct) )
           {
@@ -368,6 +368,9 @@ error :
              break ;
           case EACCES:
              rc = SDB_PERM ;
+             break ;
+          case EMFILE :
+             rc = SDB_TOO_MANY_OPEN_FD ;
              break ;
           default:
              rc = SDB_IO ;
@@ -1509,7 +1512,7 @@ INT32 ossGetPathType ( const CHAR  *pPath, SDB_OSS_FILETYPE *pFileType )
    }
 
    // if file doesn't exist , it goes to error
-   if (  INVALID_FILE_ATTRIBUTES == GetFileAttributes( FileNameUnicode ) 
+   if (  INVALID_FILE_ATTRIBUTES == GetFileAttributes( FileNameUnicode )
                         && ERROR_FILE_NOT_FOUND ==  ossGetLastError () )
    {
       SDB_VALIDATE_GOTOERROR ( FALSE, SDB_FNE,
@@ -1639,7 +1642,7 @@ INT32 ossGetFileSizeByName ( const CHAR* pFileName, INT64 *pFileSize )
    }
 
    // if file doesn't exist , it goes to error
-   if (  INVALID_FILE_ATTRIBUTES == GetFileAttributes( FileNameUnicode ) 
+   if (  INVALID_FILE_ATTRIBUTES == GetFileAttributes( FileNameUnicode )
                         && ERROR_FILE_NOT_FOUND ==  ossGetLastError () )
    {
       SDB_VALIDATE_GOTOERROR ( FALSE, SDB_FNE,
@@ -2042,7 +2045,7 @@ INT32 ossGetFSType ( const CHAR  *pFileName, OSS_FS_TYPE  *ossFSType )
    {
        // handle errors
        pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
-                "Failed to find  the root directory in : %s, Error: %d", 
+                "Failed to find  the root directory in : %s, Error: %d",
                 pFileName, err ) ;
        goto error;
    }
@@ -2067,7 +2070,7 @@ INT32 ossGetFSType ( const CHAR  *pFileName, OSS_FS_TYPE  *ossFSType )
    }
 
    // if file doesn't exist , it goes to error
-   if (  INVALID_FILE_ATTRIBUTES == GetFileAttributes( FileNameUnicode ) 
+   if (  INVALID_FILE_ATTRIBUTES == GetFileAttributes( FileNameUnicode )
                         && ERROR_FILE_NOT_FOUND ==  ossGetLastError () )
    {
       SDB_VALIDATE_GOTOERROR ( FALSE, SDB_FNE,
@@ -2106,8 +2109,8 @@ INT32 ossGetFSType ( const CHAR  *pFileName, OSS_FS_TYPE  *ossFSType )
           goto error;
       }
 
-      if ( 0 != (err = wcscmp(fileSystemName, NTFSName)) )   
-      {	
+      if ( 0 != (err = wcscmp(fileSystemName, NTFSName)) )
+      {
          // handle errors
          pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
                 "Not supported file system : %s, Error: %d",
