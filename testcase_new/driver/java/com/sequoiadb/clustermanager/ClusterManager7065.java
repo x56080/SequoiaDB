@@ -246,9 +246,9 @@ public class ClusterManager7065 extends SdbTestBase{
 				}
 			}
 			actualMasterNodeName = dataRG.getMaster().getNodeName();
-			Node nodeinfo = dataRG.getMaster();			
-			Assert.assertEquals(isPrimary(nodeinfo), true);
 			System.out.println("masterNodeName=" + actualMasterNodeName);
+			Node nodeinfo = dataRG.getMaster();
+			Assert.assertEquals(isPrimary(nodeinfo), true);
 			actualSlaveNodeName = dataRG.getSlave().getNodeName();
 			Node slaveNodeinfo = dataRG.getSlave();				
 			Assert.assertEquals(isPrimary(slaveNodeinfo), false);
@@ -283,7 +283,7 @@ public class ClusterManager7065 extends SdbTestBase{
 		Sequoiadb db = null;
 		try {
 			db = nodeinfo.connect();
-			for (int i = 0; i < 10; i++) {
+			for (int i = 0; i < 100; i++) {
 				DBCursor cursor = db.getSnapshot(6, "", "", "");
 				BSONObject object = cursor.getNext();
 				boolean isPrimary = (Boolean) object.get("IsPrimary");
@@ -301,6 +301,7 @@ public class ClusterManager7065 extends SdbTestBase{
 			}
 		}
 		//should never come here!
+		System.out.println(nodeinfo);
 		return false;
 	}
 }
