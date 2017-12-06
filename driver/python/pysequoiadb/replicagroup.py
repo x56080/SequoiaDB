@@ -262,8 +262,9 @@ class replicagroup(object):
       if config is not None and not isinstance(config, dict):
          raise SDBTypeError("config must be an instance of dict")
 
-      if config is not None:
-         bson_options = bson.BSON.encode(config)
+      if config is None:
+         config = {}
+      bson_options = bson.BSON.encode(config)
       try:
          rc = sdb.gp_create_node(self._group, hostname, servicename,
                                           dbpath, bson_options)
