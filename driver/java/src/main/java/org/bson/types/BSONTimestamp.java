@@ -38,7 +38,7 @@ public class BSONTimestamp implements Serializable {
 
     public BSONTimestamp(){
         _inc = 0;
-        _time = null;
+        _time = new Date(0L );
     }
 
     public BSONTimestamp(int time, int inc ) {
