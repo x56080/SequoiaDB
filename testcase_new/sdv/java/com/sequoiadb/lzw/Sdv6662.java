@@ -68,6 +68,7 @@ public class Sdv6662 extends SdbTestBase{
             int strLength =  512*1024;          
             String rec = insertData(cl, dataCount, strLength);
             LzwUtils3.waitCreateDict(cl, dataGroupName);
+            cl.insert(new BasicBSONObject("key", getRandomString(strLength)));
     		LzwUtils3.checkCompressed(cl, dataGroupName);
             checkQuery(dataCount, rec);  
         }catch(BaseException e){
