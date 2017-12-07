@@ -39,17 +39,17 @@
 #include <map>
 #include <string>
 #include <vector>
-/*
-#if defined (_WINDOWS)
-   #if defined (SDB_DLL_BUILD)
-      #define DLLEXPORT __declspec(dllexport)
-   #else
-      #define DLLEXPORT __declspec(dllimport)
-   #endif
-#else
-   #define DLLEXPORT
-#endif
-*/
+
+/** This micro is for internal use, not a public api, it will be removed in the future */
+#define RELEASE_INNER_HANDLE( handle ) \
+do                                     \
+{                                      \
+   if ( handle )                       \
+   {                                   \
+      delete handle ;                  \
+      handle = NULL ;                  \
+   }                                   \
+} while( 0 )
 
 #define DLLEXPORT SDB_EXPORT
 
@@ -159,7 +159,9 @@ namespace sdbclient
       ~sdbCursor ()
       {
          if ( pCursor )
+         {
             delete pCursor ;
+         }
       }
 
 /** \fn  INT32 next ( bson::BSONObj &obj )
@@ -689,7 +691,10 @@ namespace sdbclient
     \brief Update the matching documents in current collection
     \param [in] rule The updating rule
     \param [in] condition The matching rule, update all the documents if not provided
-    \param [in] hint The hint, automatically match the optimal hint if not provided
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+                    using index "ageIndex" to scan data(index scan); 
+                    {"":null} means table scan. when hint is not provided, 
+                    database automatically match the optimal index to scan data
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
     \note It won't work to update the "ShardingKey" field, but the other fields take effect
@@ -711,7 +716,10 @@ namespace sdbclient
     \brief Update the matching documents in current collection, insert if no matching
     \param [in] rule The updating rule
     \param [in] condition The matching rule, update all the documents if not provided
-    \param [in] hint The hint, automatically match the optimal hint if not provided
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+                    using index "ageIndex" to scan data(index scan); 
+                    {"":null} means table scan. when hint is not provided, 
+                    database automatically match the optimal index to scan data
     \param [in] setOnInsert The setOnInsert assigns the specified values to the fileds when insert
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
@@ -733,7 +741,10 @@ namespace sdbclient
                 )
     \brief Delete the matching documents in current collection
     \param [in] condition The matching rule, delete all the documents if not provided
-    \param [in] hint The hint, automatically match the optimal hint if not provided
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+                    using index "ageIndex" to scan data(index scan); 
+                    {"":null} means table scan. when hint is not provided, 
+                    database automatically match the optimal index to scan data
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
@@ -759,7 +770,10 @@ namespace sdbclient
     \param [in] condition The matching rule, return all the documents if not provided
     \param [in] selected The selective rule, return the whole document if not provided
     \param [in] orderBy The ordered rule, result set is unordered if not provided
-    \param [in] hint The hint, automatically match the optimal hint if not provided
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+                    using index "ageIndex" to scan data(index scan); 
+                    {"":null} means table scan. when hint is not provided, 
+                    database automatically match the optimal index to scan data
     \param [in] numToSkip Skip the first numToSkip documents, default is 0
     \param [in] numToReturn Only return numToReturn documents, default is -1 for returning all results
     \param [in] flags The query flags, default to be 0. Please see the definition of follow flags for more detail. Usage: e.g. set ( QUERY_FORCE_HINT | QUERY_WITH_RETURNDATA ) to param flags
@@ -801,7 +815,10 @@ namespace sdbclient
     \param [in] condition The matching rule, return all the documents if not provided
     \param [in] selected The selective rule, return the whole document if not provided
     \param [in] orderBy The ordered rule, result set is unordered if not provided
-    \param [in] hint The hint, automatically match the optimal hint if not provided
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+                    using index "ageIndex" to scan data(index scan); 
+                    {"":null} means table scan. when hint is not provided, 
+                    database automatically match the optimal index to scan data
     \param [in] numToSkip Skip the first numToSkip documents, default is 0
     \param [in] numToReturn Only return numToReturn documents, default is -1 for returning all results
     \param [in] flag The query flag, default to be 0. Please see the definition of follow flags for more detail. Usage: e.g. set ( QUERY_FORCE_HINT | QUERY_WITH_RETURNDATA ) to param flag
@@ -842,7 +859,10 @@ namespace sdbclient
     \param [in] condition The matching rule, return all the documents if not provided
     \param [in] selected The selective rule, return the whole document if not provided
     \param [in] orderBy The ordered rule, result set is unordered if not provided
-    \param [in] hint The hint, automatically match the optimal hint if not provided
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+                    using index "ageIndex" to scan data(index scan); 
+                    {"":null} means table scan. when hint is not provided, 
+                    database automatically match the optimal index to scan data
     \param [in] numToSkip Skip the first numToSkip documents, default is 0
     \param [in] flag The query flag, default to be 0. Please see the definition of follow flags for more detail. Usage: e.g. set ( QUERY_FORCE_HINT | QUERY_WITH_RETURNDATA ) to param flag
 
@@ -884,7 +904,10 @@ namespace sdbclient
     \param [in] condition The matching rule, return all the documents if not provided
     \param [in] selected The selective rule, return the whole document if not provided
     \param [in] orderBy The ordered rule, result set is unordered if not provided
-    \param [in] hint The hint, automatically match the optimal hint if not provided
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+                    using index "ageIndex" to scan data(index scan); 
+                    {"":null} means table scan. when hint is not provided, 
+                    database automatically match the optimal index to scan data
     \param [in] numToSkip Skip the first numToSkip documents, default is 0
     \param [in] numToReturn Only return numToReturn documents, default is -1 for returning all results
     \param [in] flag The query flag, default to be 0. Please see the definition of follow flags for more detail. Usage: e.g. set ( QUERY_FORCE_HINT | QUERY_WITH_RETURNDATA ) to param flag
@@ -911,7 +934,10 @@ namespace sdbclient
                           )
       {
          if ( !pCollection )
+         {
             return SDB_NOT_CONNECTED ;
+         }
+         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
          return pCollection->queryAndUpdate( &cursor.pCursor , update, condition,
                                              selected, orderBy, hint,
                                              numToSkip, numToReturn, flag, returnNew ) ;
@@ -930,7 +956,10 @@ namespace sdbclient
     \param [in] condition The matching rule, return all the documents if not provided
     \param [in] selected The selective rule, return the whole document if not provided
     \param [in] orderBy The ordered rule, result set is unordered if not provided
-    \param [in] hint The hint, automatically match the optimal hint if not provided
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+                    using index "ageIndex" to scan data(index scan); 
+                    {"":null} means table scan. when hint is not provided, 
+                    database automatically match the optimal index to scan data
     \param [in] numToSkip Skip the first numToSkip documents, default is 0
     \param [in] numToReturn Only return numToReturn documents, default is -1 for returning all results
     \param [in] flag The query flag, default to be 0. Please see the definition of follow flags for more detail. Usage: e.g. set ( QUERY_FORCE_HINT | QUERY_WITH_RETURNDATA ) to param flag
@@ -954,7 +983,10 @@ namespace sdbclient
                           )
       {
          if ( !pCollection )
+         {
             return SDB_NOT_CONNECTED ;
+         }
+         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
          return pCollection->queryAndRemove( &cursor.pCursor , condition,
                                              selected, orderBy, hint,
                                              numToSkip, numToReturn, flag ) ;
@@ -1177,8 +1209,10 @@ namespace sdbclient
     \brief Get the index blocks' or data blocks' infomation for concurrent query
     \param [in] condition The matching rule, return all the documents if not provided
     \param [in] orderBy The ordered rule, result set is unordered if not provided
-    \param [in] hint One of the indexs of current collection, using default index to query if not provided
-                    eg:{"":"ageIndex"}
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+                    using index "ageIndex" to scan data(index scan); 
+                    {"":null} means table scan. when hint is not provided, 
+                    database automatically match the optimal index to scan data
     \param [in] numToSkip Skip the first numToSkip documents, default is 0
     \param [in] numToReturn Only return numToReturn documents, default is -1 for returning all results
     \param [out] cursor The cursor of current query
@@ -1202,8 +1236,10 @@ namespace sdbclient
     \param [in] condition The matching rule, return the whole range of index blocks if not provided
                     eg:{"age":{"$gt":25},"age":{"$lt":75}}
     \param [in] orderBy The ordered rule, result set is unordered if not provided
-    \param [in] hint One of the indexs in current collection, using default index to query if not provided
-                    eg:{"":"ageIndex"}
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+                    using index "ageIndex" to scan data(index scan); 
+                    {"":null} means table scan. when hint is not provided, 
+                    database automatically match the optimal index to scan data
     \param [in] numToSkip Skip the first numToSkip documents, default is 0
     \param [in] numToReturn Only return numToReturn documents, default is -1 for returning all results
     \param [out] cursor The result of query
@@ -1266,7 +1302,10 @@ namespace sdbclient
     \param [in] condition The matching rule, return all the documents if null
     \param [in] select The selective rule, return the whole document if null
     \param [in] orderBy The ordered rule, never sort if null
-    \param [in] hint The hint, automatically match the optimal hint if null
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+                    using index "ageIndex" to scan data(index scan); 
+                    {"":null} means table scan. when hint is not provided, 
+                    database automatically match the optimal index to scan data
     \param [in] numToSkip Skip the first numToSkip documents, never skip if this parameter is 0
     \param [in] numToReturn Only return numToReturn documents, return all if this parameter is -1
     \param [in] flag The query flag, default to be 0. Please see the definition of follow flags for more detail. Usage: e.g. set ( QUERY_FORCE_HINT | QUERY_WITH_RETURNDATA ) to param flag
@@ -4161,7 +4200,10 @@ namespace sdbclient
     \param [in] condition The matching rule, return all the documents if null
     \param [in] selector The selective rule, return the whole document if null
     \param [in] orderBy The ordered rule, never sort if null
-    \param [in] hint The hint, automatically match the optimal hint if null
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+                    using index "ageIndex" to scan data(index scan); 
+                    {"":null} means table scan. when hint is not provided, 
+                    database automatically match the optimal index to scan data
     \param [out] cursor The connection handle
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
@@ -4337,7 +4379,10 @@ namespace sdbclient
     \param [in] condition The matching rule, return all the documents if null
     \param [in] selector The selective rule, return the whole document if null
     \param [in] orderBy The ordered rule, never sort if null
-    \param [in] hint The hint, automatically match the optimal hint if null
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+                    using index "ageIndex" to scan data(index scan); 
+                    {"":null} means table scan. when hint is not provided, 
+                    database automatically match the optimal index to scan data
     \param [out] cursor The sdbCursor object of result
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
