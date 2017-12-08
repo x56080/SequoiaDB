@@ -7,11 +7,6 @@
  */
 package com.sequoiadb.fault;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-
 import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.NodeWrapper;
 import com.sequoiadb.commlib.SdbTestBase;
@@ -20,8 +15,18 @@ import com.sequoiadb.exception.FaultException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.task.FaultMakeTask;
 
+import java.io.BufferedReader ;
+import java.io.IOException;
+import java.io.InputStream ;
+import java.io.InputStreamReader ;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
+
 
 public class BrokenNetwork extends Fault {
+    private final static Logger log=Logger.getLogger(BrokenNetwork.class.getName());
+
     private String hostName;
     private String user;
     private String passwd;
@@ -37,9 +42,6 @@ public class BrokenNetwork extends Fault {
     /**
      * 
      * @param hostName
-     * @param user
-     * @param passwd
-     * @param remotePath
      * @param duration
      */
     public BrokenNetwork(String hostName, int duration) {
@@ -66,7 +68,7 @@ public class BrokenNetwork extends Fault {
     public void make() throws FaultException {
         try {
             if (group == null) {
-                System.out.println("brokenHost: " + hostName);
+                log.info("brokenHost: " + hostName);
                 ssh.execBackground("nohup " + remotePath + "/" + scriptName + " " + duration
                         + " > /tmp/brokenNet.log &");
                 brokenTime = System.currentTimeMillis();
@@ -97,7 +99,7 @@ public class BrokenNetwork extends Fault {
             ssh.disconnect();
 
             while (true) {
-                if (!ping(host)) {
+                if (ping(host)) {
                     break;
                 }
             }
@@ -217,12 +219,27 @@ public class BrokenNetwork extends Fault {
         else {
             cmd = "ping " + host + " -c 2 -w 2";
         }
+        
+        Process pr = null;
         Runtime rt = Runtime.getRuntime();
+        
+        BufferedReader brIn = null;
+        BufferedReader byErr = null;
+        
         try {
-            Process pr = rt.exec(cmd);
-            pr.waitFor();
-            int exitcode = pr.exitValue();
-            pr.destroy();
+            pr = rt.exec(cmd);
+            InputStream stderr = pr.getErrorStream();
+            InputStream stdin = pr.getInputStream() ;
+            InputStreamReader isIn = new InputStreamReader(stdin);
+            InputStreamReader isErr = new InputStreamReader(stderr);
+            brIn = new BufferedReader(isIn);
+            byErr = new BufferedReader(isErr);
+            
+            String line = null;
+            while((line = brIn.readLine()) != null);
+            while((line = byErr.readLine()) != null);
+            int exitcode = pr.waitFor();
+            System.out.println("exitcode: " + exitcode);
             if (exitcode == 0) {
                 return true;
             }
@@ -232,6 +249,24 @@ public class BrokenNetwork extends Fault {
         }
         catch (InterruptedException | IOException e) {
             throw new FaultException(e);
+        } finally {
+            if (brIn != null) {
+                try {
+                    brIn.close();
+                } catch (IOException e){
+                    e.printStackTrace();
+                }
+            }
+            if (byErr != null) {
+                try {
+                	byErr.close();
+                } catch (IOException e){
+                    e.printStackTrace();
+                }
+            }
+            if (pr != null) {
+                pr.destroy();
+            }
         }
     }
 
