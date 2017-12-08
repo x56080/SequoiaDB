@@ -89,7 +89,7 @@ class CsClException13677(testlib.SdbTestBase):
       try:
          self.db.create_collection_space(cs_name)
          self.fail("NEED SDB ERROR")
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -33)
          self.assertEqual(e.detail, "Failed to create collection space: " + cs_name) 
          
@@ -97,7 +97,7 @@ class CsClException13677(testlib.SdbTestBase):
       try:
          self.cs.create_collection(cl_name)
          self.fail("NEED SDB ERROR")
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -22)
          self.assertEqual(e.detail, "Failed to create collection") 
          
@@ -105,7 +105,7 @@ class CsClException13677(testlib.SdbTestBase):
       try:
          self.db.get_collection_space(cs_name)
          self.fail("NEED SDB ERROR")
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -34)
          self.assertEqual(e.detail, "Failed to get collection space: " + cs_name)  
 
@@ -113,7 +113,7 @@ class CsClException13677(testlib.SdbTestBase):
       try:
          self.db.drop_collection_space(cs_name)
          self.fail("NEED SDB ERROR")
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -34)
          self.assertEqual(e.detail, "Failed to drop collection space: " + cs_name)               
      
@@ -121,7 +121,7 @@ class CsClException13677(testlib.SdbTestBase):
       try:
          self.cs.get_collection(cl_name)
          self.fail("NEED SDB ERROR")
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -23)
          self.assertEqual(e.detail, "Failed to get collection: " + cl_name)   
          
@@ -129,7 +129,7 @@ class CsClException13677(testlib.SdbTestBase):
       try:
          self.cs.drop_collection(cl_name)
          self.fail("NEED SDB ERROR")
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -23)
          self.assertEqual(e.detail, "Failed to drop collection")   
 

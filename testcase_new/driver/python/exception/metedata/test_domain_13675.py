@@ -58,7 +58,7 @@ class DomainException13675(testlib.SdbTestBase):
       try:
          self.db.create_domain(domain_name)
          self.fail("NEED SDB ERROR")
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -215)
          self.assertEqual(e.detail, "Failed to create domain: " + domain_name)   
          
@@ -66,7 +66,7 @@ class DomainException13675(testlib.SdbTestBase):
       try:
          self.db.get_domain(domain_name)
          self.fail("NEED SDB ERROR")
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -214)
          self.assertEqual(e.detail, "Failed to get domain: " + domain_name)  
 
@@ -74,7 +74,7 @@ class DomainException13675(testlib.SdbTestBase):
       try:
          self.db.drop_domain(domain_name)
          self.fail("NEED SDB ERROR")
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -214)
          self.assertEqual(e.detail, "Failed to drop domain: " + domain_name)          
 

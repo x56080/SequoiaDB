@@ -38,11 +38,10 @@ class CurdException13679(testlib.SdbTestBase):
       try:
          self.cl.insert(record)
          self.fail("NEED SDB ERROR")
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -38)
          self.assertEqual(e.detail, "Failed to insert record") 
             
-         
    def check_error_find_end_cursor(self):
       cl_count = self.cl.get_count()
       cursor = self.cl.query()
@@ -51,7 +50,8 @@ class CurdException13679(testlib.SdbTestBase):
          
       try:
          cursor.next();
-      except SDBBaseError as e:
+         self.fail("NEED END OF CURSOR ERROR")
+      except SDBEndOfCursor as e:
          self.assertEqual(e.code, -29)
          self.assertEqual(e.detail, "end of cursor") 
          
@@ -59,7 +59,7 @@ class CurdException13679(testlib.SdbTestBase):
       try:
          self.cl.update(rule, condition = matcher)
          self.fail("NEED SDB ERROR")
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -279)
          self.assertEqual(e.detail, "Failed to update")   
          
@@ -67,7 +67,7 @@ class CurdException13679(testlib.SdbTestBase):
       try:
          self.cl.delete(condition = matcher)
          self.fail("NEED SDB ERROR")
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -279)
          self.assertEqual(e.detail, "Failed to delete")        
 

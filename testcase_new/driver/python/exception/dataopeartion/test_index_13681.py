@@ -3,7 +3,7 @@
 # @author:     liuxiaoxuan 2017-12-07
 
 from lib import testlib
-from pysequoiadb.error import (SDBBaseError, SDBError, SDBEndOfCursor)
+from pysequoiadb.error import (SDBBaseError, SDBError)
 
 class IndexException13681(testlib.SdbTestBase):
    def setUp(self):
@@ -52,7 +52,7 @@ class IndexException13681(testlib.SdbTestBase):
       try:
          self.cl.create_index(key, index_name)
          self.fail("NEED SDB ERROR")
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -247)
          self.assertEqual(e.detail, "Failed to create index")   
          
@@ -60,7 +60,7 @@ class IndexException13681(testlib.SdbTestBase):
       try:
          self.cl.drop_index(index_name)
          self.fail("NEED SDB ERROR")
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -47)
          self.assertEqual(e.detail, "Failed to drop index")        
 

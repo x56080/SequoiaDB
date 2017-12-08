@@ -4,7 +4,7 @@
 
 from lib import testlib
 from lib import sdbconfig
-from pysequoiadb.error import (SDBBaseError, SDBError, SDBEndOfCursor)
+from pysequoiadb.error import (SDBBaseError, SDBError, SDBNetworkError)
 
 class nodeException13689(testlib.SdbTestBase):
    def setUp(self):
@@ -56,7 +56,7 @@ class nodeException13689(testlib.SdbTestBase):
       try:
          data_rg.create_node(host_name, svc_name, dbpath)     
          self.fail("NEED SDB ERROR")         
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -145)
          self.assertEqual(e.detail, "Failed to create node")    
 
@@ -66,7 +66,7 @@ class nodeException13689(testlib.SdbTestBase):
          new_db = testlib.client(config.host_name, config.service)
          new_db.connect(host_name, svc_name)     
          self.fail("NEED NETWORK ERROR")         
-      except SDBBaseError as e:
+      except SDBNetworkError as e:
          self.assertEqual(e.code, -79)
          self.assertEqual(e.detail, "Failed to connect to " + host_name + ":" + svc_name)
 
@@ -74,7 +74,7 @@ class nodeException13689(testlib.SdbTestBase):
       try:
          data_rg.remove_node(host_name, svc_name)     
          self.fail("NEED SDB ERROR")         
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -155)
          self.assertEqual(e.detail, "Failed to remove node")          
    

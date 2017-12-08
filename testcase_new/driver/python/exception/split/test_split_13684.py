@@ -3,7 +3,7 @@
 # @author:     liuxiaoxuan 2017-12-07
 
 from lib import testlib
-from pysequoiadb.error import (SDBBaseError, SDBError, SDBEndOfCursor)
+from pysequoiadb.error import (SDBBaseError, SDBTypeError)
 
 class SplitException13684(testlib.SdbTestBase):
    def setUp(self):
@@ -32,7 +32,7 @@ class SplitException13684(testlib.SdbTestBase):
       try:
          self.cl.split_async_by_percent(src, dest, percent_int)
          self.fail("NEED TYPE ERROR")
-      except SDBBaseError as e:
+      except SDBTypeError as e:
          self.assertEqual(e.code, -6)
          self.assertEqual(e.detail, "percent must be an instance of float")   
 

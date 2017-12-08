@@ -5,7 +5,7 @@
 from lib import testlib
 from lib import sdbconfig
 from bson.py3compat import (long_type)
-from pysequoiadb.error import (SDBBaseError, SDBError, SDBEndOfCursor)
+from pysequoiadb.error import (SDBBaseError, SDBError)
 
 class groupException13687(testlib.SdbTestBase):
    def setUp(self):
@@ -46,7 +46,7 @@ class groupException13687(testlib.SdbTestBase):
       try:
          self.db.create_coord_replica_group()     
          self.fail("NEED SDB ERROR")         
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -153)
          self.assertEqual(e.detail, "Failed to create replica group: SYSCoord") 
          
@@ -54,7 +54,7 @@ class groupException13687(testlib.SdbTestBase):
       try:
          self.db.create_cata_replica_group(host_name, svc_name, path)     
          self.fail("NEED SDB ERROR")         
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -200)
          self.assertEqual(e.detail, "Failed to create catalog group")     
 
@@ -62,7 +62,7 @@ class groupException13687(testlib.SdbTestBase):
       try:
          self.db.create_replica_group(group_name)     
          self.fail("NEED SDB ERROR")         
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -153)
          self.assertEqual(e.detail, "Failed to create replica group: " + group_name) 
 
@@ -70,7 +70,7 @@ class groupException13687(testlib.SdbTestBase):
       try:
          self.db.remove_replica_group(group_name)     
          self.fail("NEED SDB ERROR")         
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -154)
          self.assertEqual(e.detail, "Failed to remove replica group: " + group_name)         
 

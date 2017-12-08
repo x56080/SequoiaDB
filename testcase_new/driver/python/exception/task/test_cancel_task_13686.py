@@ -4,7 +4,7 @@
 
 from lib import testlib
 from bson.py3compat import (long_type)
-from pysequoiadb.error import (SDBBaseError, SDBError, SDBEndOfCursor)
+from pysequoiadb.error import (SDBBaseError, SDBError)
 
 class taskException13686(testlib.SdbTestBase):
    def setUp(self):
@@ -21,7 +21,7 @@ class taskException13686(testlib.SdbTestBase):
       try:
          self.db.cancel_task(task_id, is_sync)     
          self.fail("NEED SDB ERROR")         
-      except SDBBaseError as e:
+      except SDBError as e:
          self.assertEqual(e.code, -173)
          self.assertEqual(e.detail, "Failed to cancel task")   
 

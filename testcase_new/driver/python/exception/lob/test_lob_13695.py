@@ -3,7 +3,7 @@
 # @author:     liuxiaoxuan 2017-12-07
 
 from lib import testlib
-from pysequoiadb.error import (SDBBaseError, SDBError)
+from pysequoiadb.error import (SDBBaseError, SDBIOError, SDBInvalidArgument)
 
 class LobException13695(testlib.SdbTestBase):
    def setUp(self):
@@ -26,7 +26,7 @@ class LobException13695(testlib.SdbTestBase):
       try:
          self.cl.get_lob(oid)
          self.fail("NEED IO ERROR")
-      except SDBBaseError as e:
+      except SDBIOError as e:
          self.assertEqual(e.code, -4)
          self.assertEqual(e.detail, "Failed to get specified lob")
 
@@ -34,7 +34,7 @@ class LobException13695(testlib.SdbTestBase):
       try:
          self.cl.remove_lob(oid)
          self.fail("NEED IO ERROR")
-      except SDBBaseError as e:
+      except SDBIOError as e:
          self.assertEqual(e.code, -4)
          self.assertEqual(e.detail, "Failed to remove lob")  
 
@@ -42,7 +42,7 @@ class LobException13695(testlib.SdbTestBase):
       try:
          self.cl.get_lob(oid)
          self.fail("NEED INVALID ERROR")
-      except SDBBaseError as e:
+      except SDBInvalidArgument as e:
          self.assertEqual(e.code, -6)
          self.assertEqual(e.detail, "invalid oid: " + "'" + oid + "'")
 
@@ -50,7 +50,7 @@ class LobException13695(testlib.SdbTestBase):
       try:
          self.cl.remove_lob(oid)
          self.fail("NEED INVALID ERROR")
-      except SDBBaseError as e:
+      except SDBInvalidArgument as e:
          self.assertEqual(e.code, -6)
          self.assertEqual(e.detail, "invalid oid: " + "'" + oid + "'")          
 
