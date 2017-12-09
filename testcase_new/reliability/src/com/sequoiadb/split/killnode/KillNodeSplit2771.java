@@ -115,11 +115,10 @@ public class KillNodeSplit2771 extends SdbTestBase {
 			DBCollection cl = commSdb.getCollectionSpace(csName).getCollection(clName);
 			insertData(cl, 5000, 5100);
 
-			Assert.assertEquals(destGroup.checkInspect(60), true);
-			Assert.assertEquals(srcGroup.checkInspect(60), true);
-			Assert.assertEquals(cataGroup.checkInspect(60), true);
 				if(splitComplete){
 					//切分任务已执行完后，再执行源和目标数据量比对
+					Assert.assertEquals(destGroup.checkInspect(60), true);
+					
 					Utils.waitSplit(commSdb, cl.getFullName());
 					int bound = Utils.getBound(commSdb, csName + "." + clName, srcGroupName, destGroupName);
 					long destCount = checkGroupData(commSdb, destGroupName);
@@ -129,6 +128,9 @@ public class KillNodeSplit2771 extends SdbTestBase {
 					Assert.assertEquals(cl.getCount("{sk:{$gte:0,$lt:5100}}"), 5100);
 				}else{
 					//切分任务建立失败，数据全部在源组上
+					Assert.assertEquals(srcGroup.checkInspect(60), true);
+					Assert.assertEquals(cataGroup.checkInspect(60), true);
+					
 	            	long srcCount = cl.getCount();
 	            	Assert.assertEquals(srcCount, totalCount);
 				}
@@ -193,13 +195,12 @@ public class KillNodeSplit2771 extends SdbTestBase {
                 sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
                 sdb.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
                 DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-					 try{
-						 cl.split(srcGroupName, destGroupName, 50);						 
-						 splitComplete = true;
-					 }
-					 catch(BaseException e){
-						System.out.println("split have exception:"+e.getMessage());
-					 }
+				try{
+					cl.split(srcGroupName, destGroupName, 50);						 
+					splitComplete = true;
+				 }catch(BaseException e){
+					System.out.println("split have exception:"+e.getMessage());
+				 }
             }
             catch (BaseException e) {
 					throw e;
