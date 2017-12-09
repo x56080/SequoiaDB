@@ -118,11 +118,11 @@ public class RestartNode2741 extends SdbTestBase {
             DBCollection cl = commSdb.getCollectionSpace(csName).getCollection(clName);
             insertData(cl, 5000, 6000);
 
-            Assert.assertEquals(destGroup.checkInspect(60), true);
-            Assert.assertEquals(srcGroup.checkInspect(60), true);
-
             if (isSplitComplete) {
             	//切分任务已执行完后，再执行源和目标数据量比对
+                Assert.assertEquals(destGroup.checkInspect(60), true);
+                Assert.assertEquals(srcGroup.checkInspect(60), true);
+                
             	Utils.waitSplit(commSdb, cl.getFullName());
             	int splitBound = getBound(commSdb);
 
@@ -135,6 +135,8 @@ public class RestartNode2741 extends SdbTestBase {
                 Assert.assertEquals(cl.getCount("{sk:{$gte:0,$lt:6000}}"), 6000);
             }else{
             	//切分任务建立失败，数据全部在源组上
+            	Assert.assertEquals(srcGroup.checkInspect(60), true);
+            	
             	long srcCount = getGroupData(commSdb, srcGroupName);
             	Assert.assertEquals(srcCount, totalCount);
             }
