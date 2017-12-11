@@ -43,11 +43,6 @@
 #if defined (_LINUX) || defined (_AIX)
 #include <sys/statvfs.h>
 #include <sys/utsname.h>
-#include <dirent.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <mntent.h>
 #elif defined (_WINDOWS)
 #include "Psapi.h"
 #endif
@@ -971,125 +966,55 @@ error :
    goto done ;
 }
 
-#if defined (_LINUX) || defined (_AIX)
-// the mounted filesystem description file
-#define OSS_GET_DISK_INFO_FILE      "/etc/mtab"
-#endif
-
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSGETDISKINFO, "ossGetDiskInfo" )
-INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes,
-                       INT64 &freeBytes, CHAR* fsName )
+INT32 ossGetDiskInfo ( const CHAR *pPath,
+                       INT64 &totalBytes,
+                       INT64 &freeBytes )
 {
    INT32 rc                = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_OSSGETDISKINFO );
+   INT32 ossErr            = 0 ;
 #if defined (_WINDOWS)
    LPWSTR pszWString       = NULL ;
-   LPSTR  lpszVolumePath   = NULL ;
    DWORD dwString          = 0 ;
-   INT32 retcode           = 0 ;
+   BOOL success            = 0 ;
    DWORD sectorsPerCluster = 0 ;
    DWORD bytesPerSector    = 0 ;
    DWORD freeClusters      = 0 ;
    DWORD totalClusters     = 0 ;
    INT64 availBytes        = 0 ;
-   WCHAR volumePath[ OSS_MAX_PATHSIZE ] = L"" ;
-
    rc = ossANSI2WC ( pPath, &pszWString, &dwString ) ;
-   PD_RC_CHECK( rc, PDERROR, "Failed to convert ansi to wc, rc = %d", rc );
-
-   // get total space and free space
-   retcode = GetDiskFreeSpaceEx ( pszWString, (PULARGE_INTEGER) &availBytes,
+   if ( rc )
+   {
+      PD_LOG ( PDERROR, "Failed to convert ansi to wc, rc = %d", rc ) ;
+      goto done ;
+   }
+   success = GetDiskFreeSpaceEx ( pszWString, (PULARGE_INTEGER) &availBytes,
                                  (PULARGE_INTEGER) &totalBytes,
                                  (PULARGE_INTEGER) &freeBytes ) ;
-
-   PD_CHECK( retcode != 0, SDB_SYS, error, PDERROR, "Failed to get disk space"
-             ", errno: %d, rc = %d", ossGetLastError(), rc );
-
-   retcode = GetDiskFreeSpace ( pszWString, &sectorsPerCluster, &bytesPerSector,
-                                &freeClusters, &totalClusters ) ;
-   PD_CHECK( retcode != 0, SDB_SYS, error, PDERROR, "Failed to get disk free"
-             "space , errno: %d, rc = %d", ossGetLastError(), rc );
-
-   freeBytes = freeClusters * sectorsPerCluster * bytesPerSector ;
-   totalBytes = totalClusters * sectorsPerCluster * bytesPerSector ;
-
-   // get disk name
-   if ( NULL == fsName )
+   if ( !success )
    {
-      goto done ;
+      success = GetDiskFreeSpace ( pszWString, &sectorsPerCluster,
+                                   &bytesPerSector,
+                                   &freeClusters,
+                                   &totalClusters ) ;
+      freeBytes = freeClusters * sectorsPerCluster * bytesPerSector ;
+      totalBytes = totalClusters * sectorsPerCluster * bytesPerSector ;
    }
-
-   retcode = GetVolumePathName ( pszWString, volumePath, OSS_MAX_PATHSIZE+1) ;
-   PD_CHECK( retcode != 0, SDB_SYS, error, PDERROR, "Failed to get disk name"
-             ", errno: %d, rc = %d", ossGetLastError(), rc );
-
-   rc = ossWC2ANSI ( volumePath, &lpszVolumePath, NULL ) ;
-   PD_RC_CHECK( rc, PDERROR, "Failed to convert ansi to wc, rc = %d", rc );
-
-   ossStrncpy ( fsName, lpszVolumePath, ossStrlen ( fsName ) - 1 ) ;
-
+   if ( !success )
+   {
+      ossErr = ossGetLastError () ;
+      goto error ;
+   }
 #elif defined (_LINUX) || defined (_AIX)
    struct statvfs vfs ;
-   FILE *fp = NULL ;
-   struct mntent *me = NULL ;
-   struct stat pathStat ;
-   INT32 retcode = 0 ;
-   BOOLEAN findOut = FALSE ;
-   dev_t pathDevID ;
-
-   /// 1. get total and free space
-   retcode = statvfs ( pPath, &vfs ) ;
-   PD_CHECK( 0 == retcode, SDB_SYS, error, PDERROR, "Failed to statvfs"
-             ", errno: %d, rc = %d", ossGetLastError (), rc );
-
-   totalBytes = vfs.f_frsize * vfs.f_blocks ;
-   freeBytes = vfs.f_bsize * vfs.f_bfree ;
-
-   /// 2. get disk name ( device name )
-   if ( fsName == NULL )
+   if ( statvfs ( pPath, &vfs ) )
    {
-      goto done ;
+      ossErr = ossGetLastError () ;
+      goto error ;
    }
-
-   // 2.1 get device id of the specified path
-   retcode = stat ( pPath, &pathStat );
-   PD_CHECK( 0 == retcode, SDB_SYS, error, PDERROR, "Failed to stat"
-             ", errno: %d, rc = %d", ossGetLastError (), rc );
-   pathDevID = pathStat.st_dev ;
-
-   // 2.2 get disk name of this path
-   fp = setmntent ( OSS_GET_DISK_INFO_FILE, "r" ) ;
-   PD_CHECK( NULL != fp, SDB_SYS, error, PDERROR, "Failed to set mnt entry"
-             ", errno: %d, rc = %d", ossGetLastError (), rc );
-
-   while ( NULL != ( me = getmntent (fp) ) )
-   {
-      struct stat fsStat ;
-      INT32 retcode = stat ( me->mnt_fsname, &fsStat );
-      if ( -1 == retcode )
-      {
-         //skip error
-         PD_LOG ( PDWARNING, "Failed to stat %s, errno: %d, rc = %d",
-                  me->mnt_fsname, errno, rc ) ;
-      }
-      else
-      {
-         dev_t devID = fsStat.st_rdev ;
-         if ( pathDevID == devID )
-         {
-            ossStrcpy( fsName, me->mnt_fsname ) ;
-            findOut = TRUE ;
-            break ;
-         }
-      }
-   }
-
-   // set disk name, if it hasn't find out
-   if ( FALSE == findOut )
-   {
-      ossStrncpy( fsName, "unknown-disk", sizeof( fsName ) -1 ) ;
-   }
-
+   totalBytes = vfs.f_bsize * vfs.f_blocks ;
+   freeBytes = vfs.f_bsize * vfs.f_bavail ;
 #endif
 done :
 #if defined (_WINDOWS)
@@ -1098,15 +1023,12 @@ done :
       SDB_OSS_FREE ( pszWString ) ;
       pszWString = NULL ;
    }
-   if ( lpszVolumePath )
-   {
-      SDB_OSS_FREE ( lpszVolumePath ) ;
-      lpszVolumePath = NULL ;
-   }
 #endif
    PD_TRACE_EXITRC ( SDB_OSSGETDISKINFO, rc );
    return rc ;
 error :
+   PD_LOG ( PDERROR, "Failed to get disk info, error = %d",
+            ossErr ) ;
    goto done ;
 }
 
