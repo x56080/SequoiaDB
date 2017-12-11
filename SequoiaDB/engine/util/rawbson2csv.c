@@ -320,22 +320,6 @@ INT32 _appendValue( const CHAR *delChar, INT32 delCharSize, bson_iterator *pIt,
                                    rc ) ;
          goto error ;
       }
-
-      if( ossStrchr( doubleTmpBuf, '.' ) == 0 &&
-          ossStrchr( doubleTmpBuf, 'E' ) == 0 &&
-          ossStrchr( doubleTmpBuf, 'e' ) == 0 &&
-          ossStrchr( doubleTmpBuf, 'N' ) == 0 &&
-          ossStrchr( doubleTmpBuf, 'n' ) == 0 )
-      {
-         rc = _appendString( delChar, delCharSize, TRUE, ".0", 2,
-                             ppBuffer, pCSVSize ) ;
-         if ( rc )
-         {
-            UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendString, rc=%d",
-                                      rc ) ;
-            goto error ;
-         }
-      }
    }
    else if ( type == BSON_BOOL || type == BSON_NULL ||
              type == BSON_INT || type == BSON_LONG )
