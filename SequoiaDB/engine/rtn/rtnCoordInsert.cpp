@@ -118,7 +118,7 @@ namespace engine
          {
             rcTmp = doOpOnCL( cataInfo, BSONObj(), inMsg, sendOpt,
                               pRouteAgent, cb, result ) ;
-            
+
          }
          else
          {
@@ -299,7 +299,7 @@ namespace engine
             hi2 += hi1 ;
             lo2 += lo1 ;
             pvtData->_insertMixNum = ossPack32To64( hi2, lo2 ) ;
-         }         
+         }
       }
    }
 
@@ -601,8 +601,8 @@ namespace engine
          rc = cataInfo->getSubCLNameByRecord( insertObj, subCLName ) ;
          PD_RC_CHECK( rc, PDWARNING,
                       "Couldn't find the match[%s] sub-collection "
-                      "in catalog info[%s], rc: %d",
-                      insertObj.toString().c_str(),
+                      "in cl's(%s) catalog info[%s], rc: %d",
+                      insertObj.toString().c_str(), cataInfo->getName(),
                       cataInfo->getCatalogSet()->toCataInfoBson(
                       ).toString().c_str(), rc ) ;
 
@@ -676,7 +676,7 @@ namespace engine
       INT32 rc = SDB_OK;
       GroupSubCLMap groupSubCLMapNew ;
 
-      GroupSubCLMap::iterator iterGroup = groupSubCLMap.begin() ; 
+      GroupSubCLMap::iterator iterGroup = groupSubCLMap.begin() ;
       while ( iterGroup != groupSubCLMap.end() )
       {
          SubCLObjsMap::iterator iterCL = iterGroup->second.begin() ;
