@@ -18,13 +18,20 @@
       <mkdir dir="${report_dir}"/>
       <!--SYNCTEST do not detect sequoiadb start-->
       <if>
-         <equals arg1="${TEST_TYPE}" arg2="SYNCTEST"/>
-         <else>
+         <and>
+            <not>
+               <equals arg1="${TEST_TYPE}" arg2="SYNCTEST"/>
+            </not>
+            <not>
+               <equals arg1="${TEST_TYPE}" arg2="RELIABILITYTEST"/>
+            </not>
+         </and>
+         <then>
             <antcall target="detect_remote_env">
                <param name="detect_target_name" value="dectect_node_status"/>
                <param name="collect_remote_log_target_name" value="collect_remote_node_status_log"/>
             </antcall>
-         </else>
+         </then>
       </if>
 
       <antcall target="detect_remote_env">
@@ -35,10 +42,17 @@
       <antcall target="generate_testcase_core_report"/>
       <!-- node exception report xml -->
       <if>
-         <equals arg1="${TEST_TYPE}" arg2="SYNCTEST"/>
-         <else>
+         <and>
+            <not>
+               <equals arg1="${TEST_TYPE}" arg2="SYNCTEST"/>
+            </not>
+            <not>
+               <equals arg1="${TEST_TYPE}" arg2="RELIABILITYTEST"/>
+            </not>
+         </and>
+         <then>
             <antcall target="generate_node_start_report"/>
-         </else>
+         </then>
       </if>
       
       <!-- cp report to ${WORKSPACE}/report-->
@@ -109,6 +123,16 @@
             <echo message="${host.NAME}   ${host.ADDR4}   @{nodecorname}&#10;" file="${report_dir}/${host.NAME}_node_core.log" append="true"/>
          </sequential>
       </for>
+      <!--detect node core from  bin -->
+      <for param="nodecorname">
+         <path>
+            <fileset dir="${INSTALL_DIR}/bin/" includes="**/*core*" />
+         </path>
+         <sequential>
+            <echo message="${host.NAME}   ${host.ADDR4}   @{nodecorname}&#10;" file="${report_dir}/${host.NAME}_node_core.log" append="true"/>
+         </sequential>
+      </for>
+      
       <!--detect node count node start-->
       <for param="dirname">
          <dirset dir="${INSTALL_DIR}/database/">
@@ -347,6 +371,13 @@
    <target name="dectect_testcase_core">
       <property file="${basedir}/src/conf/test.conf" />
       <property name="report_dir" value="${CI_WORK_DIR}/report/env_detect"/>
+      <available property="isExist" file="${report_dir}" type="dir"/>
+      <if>
+         <equals arg1="${isExist}" arg2="true"/>
+         <else>
+            <mkdir dir="${report_dir}"/>
+         </else>
+      </if>
       <hostinfo prefix="host" />
       <resourcecount property="corefilenum">
          <fileset dir="${CI_WORK_DIR}" includes="testcase/**/*core*" excludes="testcase/**/*core*.jar"/>
