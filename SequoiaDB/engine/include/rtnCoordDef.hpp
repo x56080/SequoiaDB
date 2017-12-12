@@ -67,29 +67,66 @@
                                                 }\
                                        }"
 
-#define RTNCOORD_SNAPSHOTSYS_INPUT     "{$group:{\
-                                                User:{$sum:\"$CPU.User\"},\
-                                                Sys:{$sum:\"$CPU.Sys\"},\
-                                                Idle:{$sum:\"$CPU.Idle\"},\
-                                                Other:{$sum:\"$CPU.Other\"},\
-                                                TotalRAM:{$sum:\"$Memory.TotalRAM\"},\
-                                                FreeRAM:{$sum:\"$Memory.FreeRAM\"},\
-                                                TotalSwap:{$sum:\"$Memory.TotalSwap\"},\
-                                                FreeSwap:{$sum:\"$Memory.FreeSwap\"},\
-                                                TotalVirtual:{$sum:\"$Memory.TotalVirtual\"},\
-                                                FreeVirtual:{$sum:\"$Memory.FreeVirtual\"},\
-                                                TotalSpace:{$sum:\"$Disk.TotalSpace\"},\
-                                                FreeSpace:{$sum:\"$Disk.FreeSpace\"},\
+#define RTNCOORD_SNAPSHOTSYS_INPUT    "{$group:{\
+                                                _id:{HostName:\"$HostName\",\
+                                                     \"Disk.Name\":\"$Disk.Name\"},\
+                                                HostName:\"$HostName\",\
+                                                User:\"$CPU.User\",\
+                                                Sys:\"$CPU.Sys\",\
+                                                Idle:\"$CPU.Idle\",\
+                                                Other:\"$CPU.Other\",\
+                                                TotalRAM:\"$Memory.TotalRAM\",\
+                                                FreeRAM:\"$Memory.FreeRAM\",\
+                                                TotalSwap:\"$Memory.TotalSwap\",\
+                                                FreeSwap:\"$Memory.FreeSwap\",\
+                                                TotalVirtual:\"$Memory.TotalVirtual\",\
+                                                FreeVirtual:\"$Memory.FreeVirtual\",\
+                                                Name:\"$Disk.Name\",\
+                                                TotalSpace:\"$Disk.TotalSpace\",\
+                                                FreeSpace:\"$Disk.FreeSpace\",\
                                                 ErrNodes:{$mergearrayset:\"$ErrNodes\"}\
-                                                }\
+                                               }\
+                                       }\n\
+                                       {$group:{\
+                                                _id:\"$HostName\",\
+                                                User:\"$User\",\
+                                                Sys:\"$Sys\",\
+                                                Idle:\"$Idle\",\
+                                                Other:\"$Other\",\
+                                                TotalRAM:\"$TotalRAM\",\
+                                                FreeRAM:\"$FreeRAM\",\
+                                                TotalSwap:\"$TotalSwap\",\
+                                                FreeSwap:\"$FreeSwap\",\
+                                                TotalVirtual:\"$TotalVirtual\",\
+                                                FreeVirtual:\"$FreeVirtual\",\
+                                                TotalSpace:{$sum:\"$TotalSpace\"},\
+                                                FreeSpace:{$sum:\"$FreeSpace\"},\
+                                                ErrNodes:{$mergearrayset:\"$ErrNodes\"}\
+                                               }\
+                                       }\n\
+                                       {$group:{\
+                                                User:{$sum:\"$User\"},\
+                                                Sys:{$sum:\"$Sys\"},\
+                                                Idle:{$sum:\"$Idle\"},\
+                                                Other:{$sum:\"$Other\"},\
+                                                TotalRAM:{$sum:\"$TotalRAM\"},\
+                                                FreeRAM:{$sum:\"$FreeRAM\"},\
+                                                TotalSwap:{$sum:\"$TotalSwap\"},\
+                                                FreeSwap:{$sum:\"$FreeSwap\"},\
+                                                TotalVirtual:{$sum:\"$TotalVirtual\"},\
+                                                FreeVirtual:{$sum:\"$FreeVirtual\"},\
+                                                TotalSpace:{$sum:\"$TotalSpace\"},\
+                                                FreeSpace:{$sum:\"$FreeSpace\"},\
+                                                ErrNodes:{$mergearrayset:\"$ErrNodes\"}\
+                                               }\
                                        }\n\
                                        {$project:{\
-                                                CPU:{User:1, Sys:1, Idle:1, Other:1},\
-                                                Memory:{TotalRAM:1, FreeRAM:1, TotalSwap:1, FreeSwap:1,\
-                                                         TotalVirtual:1, FreeVirtual:1},\
-                                                Disk:{TotalSpace:1, FreeSpace:1},\
+                                                CPU:{User:1,Sys:1,Idle:1,Other:1},\
+                                                Memory:{TotalRAM:1,FreeRAM:1,TotalSwap:1,\
+                                                        FreeSwap:1,TotalVirtual:1,FreeVirtual:1},\
+                                                Disk:{TotalSpace:1,FreeSpace:1},\
                                                 ErrNodes:1\
-                                                }\
+                                                 }\
                                        }"
 
 #define RTNCOORD_SNAPSHOTCL_INPUT     "{$project:{\
