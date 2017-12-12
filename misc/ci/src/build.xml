@@ -351,7 +351,9 @@
       <if>
          <resourcecontains resource="${WORKSPACE}/archive/compile_db_trunk/sequoiadb.version" substring="Debug"/>
          <then>
-            <delete file="${WORKSPACE}/archive/current/*" failonerror="false"/>
+            <delete failonerror="false">
+               <fileset dir="${WORKSPACE}/archive/current" includes="sequoiadb*.run,sequoiadb*.version"/>
+            </delete>
             <copy todir="${WORKSPACE}/archive/current">
                <fileset dir="${WORKSPACE}/archive/compile_db_trunk">
                   <include name="sequoiadb*.run"/>
@@ -363,7 +365,9 @@
             <if>
                <equals arg1="${build_status}" arg2="successful"/>
                <then>
-                  <delete file="${WORKSPACE}/archive/current/*" failonerror="false"/>
+                  <delete failonerror="false">
+                     <fileset dir="${WORKSPACE}/archive/current" includes="sequoiadb*.run,sequoiadb*.version"/>
+                  </delete>
                   <copy todir="${WORKSPACE}/archive/current">
                      <fileset dir="${WORKSPACE}/archive/compile_db_trunk_release">
                         <include name="sequoiadb*.run"/>
@@ -377,7 +381,9 @@
          </then>
          <else>
             <!--ready_package-->
-            <delete file="${WORKSPACE}/archive/current/*" failonerror="false"/>
+            <delete failonerror="false">
+               <fileset dir="${WORKSPACE}/archive/current" includes="sequoiadb*.run,sequoiadb*.version"/>
+            </delete>
             <copy todir="${WORKSPACE}/archive/current">
                <fileset dir="${WORKSPACE}/archive/compile_db_trunk">
                   <include name="sequoiadb*.run"/>

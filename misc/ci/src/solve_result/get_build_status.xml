@@ -20,6 +20,12 @@
          </path-elements>
       </countstr>
       
+      <countstr str="&lt;/error&gt;" resultproperty="error_end_num">
+         <path-elements>
+            <fileset dir="${WORKSPACE}/report" includes="**/*.xml"/>
+         </path-elements>
+      </countstr>
+      
       <!--loop find report xml length , file length is 0 tag fail -->
       <var name="is_report_null" value="false"/>
       <for param="filename">
@@ -45,6 +51,7 @@
          <and>
             <equals arg1="${fail_begin_num}" arg2="0"/>
             <equals arg1="${fail_end_num}" arg2="0"/>
+            <equals arg1="${error_end_num}" arg2="0"/>
             <equals arg1="${is_report_null}" arg2="false"/>
          </and>
       </condition>

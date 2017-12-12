@@ -24,14 +24,21 @@
       <property name="case_basedir" location="${WORKSPACE}/sequoiadb/testcase_reliability" />
       <property name="testcase_outdir" location="${WORKSPACE}/tmp" />
       <property name="remote_casedir" location="${CI_WORK_DIR}/testcase" />
-      
-      <antcall target="ready_testcase"/>
-      
-      <antcall target="ready_jdk"/>
-      
-      <antcall target="compile_testcase" />
-      
-      <antcall target="prepare_before_testcase"/>
+      <if>
+         <or>
+            <equals arg1="${serial_number}" arg2="1"/>
+            <equals arg1="${serial_number}" arg2="3"/>
+         </or>
+         <then>
+            <antcall target="ready_testcase"/>
+            
+            <antcall target="ready_jdk"/>
+            
+            <antcall target="compile_testcase" />
+            
+            <antcall target="prepare_before_testcase"/>
+         </then>
+      </if>
       
       <antcall target="exec_testcase" />
       
@@ -143,10 +150,19 @@
    <target name="exec_testcase">
       
       <property name="report_basedir" value="${CI_WORK_DIR}/report" />
-      <delete dir="${report_basedir}" failonerror="false"/>
-      <mkdir dir="${report_basedir}"/>
-      <delete dir="${WORKSPACE}/report" failonerror="false"/>
-      <mkdir dir="${WORKSPACE}/report"/>
+      <if>
+         <or>
+            <equals arg1="${serial_number}" arg2="1"/>
+            <equals arg1="${serial_number}" arg2="3"/>
+         </or>
+         <then>
+            <delete dir="${report_basedir}" failonerror="false"/>
+            <mkdir dir="${report_basedir}"/>
+            <delete dir="${WORKSPACE}/report" failonerror="false"/>
+            <mkdir dir="${WORKSPACE}/report"/>
+         </then>
+      </if>
+
       <!--testcase/reliability testng.xml testng_release.xml-->
       <var name="exec_file" value="${basedir}/src/test/exec_testcase/exec_java_case.xml"/>
       

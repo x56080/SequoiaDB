@@ -251,16 +251,33 @@
       </for>
       
       <!--execute testcase in local host-->
-      <antcall target="exec_local_testcase" />
-      
-      <!--send report to control host-->
       <delete dir="${WORKSPACE}/report"/>
-      <copy todir="${WORKSPACE}/report">
-         <fileset dir="${CI_WORK_DIR}/report"/>
-      </copy>
+      <!--execute testcase in remote host-->
+      <var name="test_remote_cmd" value="ant -f ${testscript_dir}/configure_test.xml exec_remote_testcase -DTEST_TYPE=${TEST_TYPE} -DTESTCASE_TYPE=${TESTCASE_TYPE} 
+                                         -DWORKSPACE=${WORKSPACE} -DCI_WORK_DIR=${CI_WORK_DIR} 
+                                        -Dplat_form=${plat_form} -DDEPLOY_MODE=${DEPLOY_MODE} -DBUILD_NUMBER=${BUILD_NUMBER}" />
+      <staf location="local" service="PROCESS"                  
+            request="START SHELL COMMAND echo 'exec: ${test_remote_cmd}, in host: local' >> ${testscript_log}  WAIT 10m"
+            throwBuildException="1"/>
+                  
+      <staf location="local" service="PROCESS"
+            resultPrefix="remote_exec"
+            request="START SHELL COMMAND ${test_remote_cmd} STDOUTAPPEND ${testscript_log} STDERRTOSTDOUT WAIT"
+            throwBuildException="1"/>
+      <propertyregex property="remote_exec_rc" input="${remote_exec.result}" regexp="Return\ Code:\ (.*)\n" select="\1"/>      
+      <staf location="local" service="FS"
+            request="GET FILE ${testscript_log} TEXT"
+            throwBuildException="1"/>
+            
+      <if>
+         <equals arg1="${remote_exec_rc}" arg2="0" />
+         <else>
+            <fail message="exec: ${test_remote_cmd}, in host: local, return code: ${remote_exec_rc}"/>
+         </else>
+      </if>
    </target>
    
-   <target name="exec_local_testcase">
+   <target name="exec_remote_testcase">
       <property name="report_basedir" value="${CI_WORK_DIR}/report" />
       <delete dir="${report_basedir}"/>
       <mkdir dir="${report_basedir}"/>
@@ -349,7 +366,10 @@
             </for>           
          </sequential>
       </for>
-
+      
+      <copy todir="${WORKSPACE}/report">
+         <fileset dir="${CI_WORK_DIR}/report"/>
+      </copy>
    </target>
 
 </project>
