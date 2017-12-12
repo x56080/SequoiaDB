@@ -192,7 +192,7 @@ public class HashSplitAndSrcNodeCutNet2567 extends SdbTestBase {
 				 list.add(obj);		
 				
 			 }
-			 cl.insert(list, DBCollection.FLG_INSERT_CONTONDUP);
+			 cl.bulkInsert(list, DBCollection.FLG_INSERT_CONTONDUP);
 		 	 successInsertNums = cl.getCount();
 			 System.out.println("successInsertNums: " + successInsertNums);
 		 }catch(BaseException e){
