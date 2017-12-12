@@ -352,7 +352,7 @@ namespace engine
       UINT32 found = 0 ;
       MTH_S_COLUMNS array ;
       UINT32 number = 0 ;
-      BOOLEAN addOtherChild = _actions.size() ;
+      BOOLEAN addOtherChild = ( _actions.size() > 0 ) ? TRUE : FALSE ;
 
       rc = _subColumns.copyTo( array ) ;
       if ( SDB_OK != rc )
