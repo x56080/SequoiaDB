@@ -984,9 +984,9 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes,
    PD_TRACE_ENTRY ( SDB_OSSGETDISKINFO );
 #if defined (_WINDOWS)
    LPWSTR pszWString       = NULL ;
-   LPSTR  lpszVolumePath   = NULL ;
+   LPSTR lpszVolumePath    = NULL ;
    DWORD dwString          = 0 ;
-   INT32 retcode           = 0 ;
+   BOOL success            = FALSE ;
    DWORD sectorsPerCluster = 0 ;
    DWORD bytesPerSector    = 0 ;
    DWORD freeClusters      = 0 ;
@@ -998,16 +998,16 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes,
    PD_RC_CHECK( rc, PDERROR, "Failed to convert ansi to wc, rc = %d", rc );
 
    // get total space and free space
-   retcode = GetDiskFreeSpaceEx ( pszWString, (PULARGE_INTEGER) &availBytes,
+   success = GetDiskFreeSpaceEx ( pszWString, (PULARGE_INTEGER) &availBytes,
                                  (PULARGE_INTEGER) &totalBytes,
                                  (PULARGE_INTEGER) &freeBytes ) ;
 
-   PD_CHECK( retcode != 0, SDB_SYS, error, PDERROR, "Failed to get disk space"
+   PD_CHECK( success, SDB_SYS, error, PDERROR, "Failed to get disk space"
              ", errno: %d, rc = %d", ossGetLastError(), rc );
 
-   retcode = GetDiskFreeSpace ( pszWString, &sectorsPerCluster, &bytesPerSector,
+   success = GetDiskFreeSpace ( pszWString, &sectorsPerCluster, &bytesPerSector,
                                 &freeClusters, &totalClusters ) ;
-   PD_CHECK( retcode != 0, SDB_SYS, error, PDERROR, "Failed to get disk free"
+   PD_CHECK( success, SDB_SYS, error, PDERROR, "Failed to get disk free"
              "space , errno: %d, rc = %d", ossGetLastError(), rc );
 
    freeBytes = freeClusters * sectorsPerCluster * bytesPerSector ;
@@ -1019,8 +1019,8 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes,
       goto done ;
    }
 
-   retcode = GetVolumePathName ( pszWString, volumePath, OSS_MAX_PATHSIZE+1) ;
-   PD_CHECK( retcode != 0, SDB_SYS, error, PDERROR, "Failed to get disk name"
+   success = GetVolumePathName ( pszWString, volumePath, OSS_MAX_PATHSIZE+1) ;
+   PD_CHECK( success, SDB_SYS, error, PDERROR, "Failed to get disk name"
              ", errno: %d, rc = %d", ossGetLastError(), rc );
 
    rc = ossWC2ANSI ( volumePath, &lpszVolumePath, NULL ) ;
@@ -1046,7 +1046,7 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes,
    freeBytes = vfs.f_bsize * vfs.f_bfree ;
 
    /// 2. get disk name ( device name )
-   if ( fsName == NULL )
+   if ( NULL == fsName )
    {
       goto done ;
    }
