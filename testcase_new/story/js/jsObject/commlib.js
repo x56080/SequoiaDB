@@ -159,6 +159,7 @@ FileTest.prototype.init = function()
    if( this.isLocal )
    {
       this.cmd = new Cmd() ;       // 本地cmd对象
+      this.system = System ;
       if( this.filename === undefined )
          this.file = File ;                           // 本地File类类型
       else
@@ -179,6 +180,7 @@ FileTest.prototype.init = function()
    {
       this.remote = new Remote( this.hostname, this.svcname ) ;
       this.cmd = this.remote.getCmd() ;   // 远程cmd对象
+      this.system = this.remote.getSystem() ;
       if( this.filename === undefined )
          this.file = this.remote.getFile() ;          // 远程File类类型
       else

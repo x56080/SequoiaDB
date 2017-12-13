@@ -39,7 +39,7 @@ FileTest.prototype.testChmodNoPermission = function()
    var user = this.cmd.run( "whoami" ).split( "\n" )[0] ;
    if( user === "root" )
    {
-      println( "user is root" ) ;
+      println( "user is root, cann't testChmodNoPermission" ) ;
       this.release() ;
       return ;
    }
@@ -111,7 +111,7 @@ FileTest.prototype.testChown = function()
    var user = this.cmd.run( "whoami" ).split( "\n" )[0] ;
    var group = this.cmd.run( "id -gn " + user ).split( "\n" )[0] ;
 
-   var tmpFilename = "/tmp/testOwn.txt" ;
+   var tmpFilename = "/tmp/testChown.txt" ;
    var tmpFile ;   
    if( this.isLocal )
       tmpFile = new File( tmpFilename ) ;
@@ -129,6 +129,61 @@ FileTest.prototype.testChown = function()
    }
    
    this.release() ; 
+}
+
+// 测试递归更改目录用户
+FileTest.prototype.testChownRecursive = function()
+{
+   this.init() ;
+   
+   var user = this.system.getCurrentUser().toObj()["user"] ;
+   if( user !== "root" )
+   {
+      println( user + " is not root,cann't testChownRecursive" ) ;
+      this.release() ;
+      return ;
+   }
+   var tmpUser = "tmpUser" ;
+   var tmpGroup = "tmpGroup" ;
+   createUserAndGroup( this, tmpUser, tmpGroup ) ;
+   
+   var tmpDir = "/tmp/testChownDir" ;
+   this.file.mkdir( tmpDir ) ;
+   for( var i = 0;i < 5;i++ )
+   {
+      var tmpFileName = tmpDir + "/testChownFile" + i ;
+      var tmpFile ;
+      if( this.isLocal )
+         tmpFile = new File( tmpFileName ) ;
+      else
+         tmpFile = this.remote.getFile( tmpFileName ) ;
+      tmpFile.write( "abc" ) ;
+      tmpFile.close()
+   }
+   
+   this.file.chown( tmpDir, { username: tmpUser }, true ) ;
+   
+   var user = this.file.stat( tmpDir ).toObj()["user"] ;
+   if( user !== tmpUser )
+   {
+      throw buildException( "testChownRecursive", null, 
+            "check owner " + this, tmpUser, user ) ;
+   }
+   for( var i = 0;i < 5;i++ )
+   {
+      var tmpFileName = tmpDir + "/testChownFile" + i ;
+      var user = this.file.stat( tmpFileName ).toObj()["user"] ;
+      if( user !== tmpUser )
+      {
+         throw buildException( "testChownRecursive", null,
+               "check owner " + this, tmpUser, user ) ;
+      }
+   }
+   
+   deleteUserAndGroup( this, tmpUser, tmpGroup ) ;
+   this.cmd.run( "rm -rf " + tmpDir ) ;
+   
+   this.release() ;
 }
 
 // 测试更改文件的用户组
@@ -159,6 +214,93 @@ FileTest.prototype.testChgrp = function()
    this.release() ;
 }
 
+// 测试递归更改目录用户
+FileTest.prototype.testChgrpRecursive = function()
+{
+   this.init() ;
+   
+   var user = this.system.getCurrentUser().toObj()["user"] ;
+   if( user !== "root" )
+   {
+      println( user + " is not root,cann't testChgrpRecursive" ) ;
+      this.release() ;
+      return ;
+   }
+   var tmpUser = "tmpUser" ;
+   var tmpGroup = "tmpGroup" ;
+   createUserAndGroup( this, tmpUser, tmpGroup ) ;
+   
+   var tmpDir = "/tmp/testChgrpDir" ;
+   this.file.mkdir( tmpDir ) ;
+   for( var i = 0;i < 5;i++ )
+   {
+      var tmpFileName = tmpDir + "/testChgrpFile" + i ;
+      var tmpFile ;
+      if( this.isLocal )
+         tmpFile = new File( tmpFileName ) ;
+      else
+         tmpFile = this.remote.getFile( tmpFileName ) ;
+      tmpFile.write( "abc" ) ;
+      tmpFile.close()
+   }
+   
+   this.file.chgrp( tmpDir, tmpGroup, true ) ;
+   
+   var group = this.file.stat( tmpDir ).toObj()["group"] ;
+   if( group !== tmpGroup )
+   {
+      throw buildException( "testChgrpRecursive", null, 
+            "check group " + this, tmpGroup, group ) ;
+   }
+   for( var i = 0;i < 5;i++ )
+   {
+      var tmpFileName = tmpDir + "/testChgrpFile" + i ;
+      var group = this.file.stat( tmpFileName ).toObj()["group"] ;
+      if( group !== tmpGroup )
+      {
+         throw buildException( "testChgrpRecursive", null,
+               "check group " + this, tmpGroup, group ) ;
+      }
+   }
+   
+   deleteUserAndGroup( this, tmpUser, tmpGroup ) ;
+   this.cmd.run( "rm -rf " + tmpDir ) ;
+   
+   this.release() ;
+}
+
+function createUserAndGroup( ft, user, group )
+{
+   try
+   {
+      if( !isGroupExist( ft.hostname, ft.svcname, "tmpGroup" ) )
+         ft.system.addGroup( { "name": group } ) ;
+      if( !isUserExist( ft.hostname, ft.svcname, "tmpUser" ) )
+         ft.system.addUser( { "name": user, "group": group } ) ;
+   }
+   catch( e )
+   {
+      throw buildException( "createUserAndGroup", e,
+            "create " + user + " " + group + " " + this,
+            0, e ) ;
+   }
+}
+
+function deleteUserAndGroup( ft, user, group )
+{
+   try
+   {
+      ft.system.delUser( { "name": user } ) ;
+      ft.system.delGroup( group ) ;
+   }
+   catch( e )
+   {
+      throw buildException( "deleteUserAndGroup", e,
+            "delete " + user + " " + group + " " + this,
+            0, e ) ;
+   }
+}
+
 function main()
 {
    // 获取本地主机和远程主机
@@ -187,8 +329,14 @@ function main()
       // 测试更改文件所有者和所属组
       fts[i].testChown() ;
       
+      // 测试递归更改文件目录用户和用户组
+      fts[i].testChownRecursive() ;
+      
       // 测试更改文件用户组
       fts[i].testChgrp() ;
+      
+      // 测试递归更改文件目录用户组
+      fts[i].testChgrpRecursive() ;
    }
 }
 
