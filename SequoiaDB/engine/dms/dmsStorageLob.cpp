@@ -992,6 +992,19 @@ namespace engine
       blk->_nextPageInBucket = DMS_LOB_INVALID_PAGEID ;
       blk->setRemoved() ;
 
+#if defined (_DEBUG)
+      {
+         UINT32 __hash = 0 ;
+         DMS_LOB_GET_HASH_FROM_BLK( blk, __hash ) ;
+         if ( __hash != record._hash )
+         {
+            dmsLobDataMapBlk memBlk ;
+            ossMemcpy( &memBlk, blk, sizeof( memBlk ) ) ;
+            SDB_ASSERT( __hash == record._hash, "must be same" ) ;
+         }
+      }
+#endif
+
       rc = _push2Bucket( _getBucket( record._hash ),
                          page, *blk, &record ) ;
       if ( SDB_OK != rc )
@@ -1295,7 +1308,12 @@ namespace engine
             UINT32 __hash = 0 ;
             DMS_LOB_GET_HASH_FROM_BLK( blk, __hash ) ;
             UINT32 testBucketNo = _getBucket( __hash ) ;
-            SDB_ASSERT( testBucketNo == bucketNumber, "must be same" ) ;
+            if ( testBucketNo != bucketNumber )
+            {
+               dmsLobDataMapBlk memBlk ;
+               ossMemcpy( &memBlk, blk, sizeof( memBlk ) ) ;
+               SDB_ASSERT( testBucketNo == bucketNumber, "must be same" ) ;
+            }
          }
 #endif
          if ( clID == blk->_clLogicalID &&
@@ -2074,9 +2092,9 @@ namespace engine
       }
       else
       {
-         UINT32 hash = 0 ;
-         DMS_LOB_GET_HASH_FROM_BLK( blk, hash ) ;
-         bucketNumber = _getBucket( hash ) ;
+         UINT32 __hash1 = 0 ;
+         DMS_LOB_GET_HASH_FROM_BLK( blk, __hash1 ) ;
+         bucketNumber = _getBucket( __hash1 ) ;
       }
 
       ossScopedLock lock( _getBucketLatch( bucketNumber ), EXCLUSIVE ) ;
@@ -2165,6 +2183,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_TRUNCATE ) ;
+      static BYTE __emptyOID[ DMS_LOB_OID_LEN ] = { 0 } ;
       DMS_LOB_PAGEID current = -1 ;
       BOOLEAN locked = FALSE ;
       BOOLEAN needPanic = FALSE ;
@@ -2255,6 +2274,31 @@ namespace engine
          if ( mbContext->clLID() != readBlk->_clLogicalID )
          {
             continue ;
+         }
+         /// The blk page is all zero when init
+         else if ( 0 == mbContext->clLID() &&
+                   0 == ossMemcmp( readBlk->_oid, __emptyOID,
+                                   DMS_LOB_OID_LEN ) )
+         {
+            /// Check the page whether exist in bucket or not
+            dmsLobRecord record ;
+            DMS_LOB_PAGEID checkPage = DMS_LOB_INVALID_PAGEID ;
+            record.set( ( const bson::OID* )readBlk->_oid,
+                        readBlk->_sequence, 0,
+                        readBlk->_dataLen, NULL ) ;
+
+            rc = _find( record, mbContext->clLID(), checkPage, NULL ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Find page by record[%s] failed, rc: %d",
+                       record.toString().c_str(), rc ) ;
+               goto error ;
+            }
+            if ( checkPage != current )
+            {
+               /// The page is not owned by the collection
+               continue ;
+            }
          }
 
          /// change to write mode
