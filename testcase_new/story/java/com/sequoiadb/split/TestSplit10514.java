@@ -8,6 +8,9 @@ import java.util.List;
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
+import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
@@ -31,12 +34,20 @@ public class TestSplit10514 extends SdbTestBase{
     private String clName = "cl10514";
     private ArrayList<BSONObject> insertRecods;
     
-    @BeforeTest
+    @BeforeClass
     public void setUp() {
         try{
             System.out.println("the TestCase Name:" + this.getClass().getName() + 
                     ". the TestCase begin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
             this.sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            // 跳过 standAlone 和数据组不足的环境
+            SplitUtils2 util = new SplitUtils2();
+            if (util.isStandAlone(this.sdb)) {
+                throw new SkipException("skip StandAlone");
+            }
+            if (SplitUtils2.getDataRgNames(this.sdb).size() < 2) {
+                throw new SkipException("current environment less than tow groups ");
+            }
             this.cs = this.sdb.getCollectionSpace(SdbTestBase.csName); 
         } catch (BaseException e) {
             Assert.fail(e.getMessage());
@@ -233,18 +244,18 @@ public class TestSplit10514 extends SdbTestBase{
         
     }
 
-//    @AfterTest
-//    public void tearDown() {
-//        try {
-//            System.out.println("the TestCase Name:" + this.getClass().getName() + 
-//                    ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-//            if (this.cs.isCollectionExist(clName)) {
-//                this.cs.dropCollection(clName);
-//            }
-//        } catch (BaseException e) {
-//            Assert.fail(e.getMessage());
-//        } finally {
-//            this.sdb.disconnect();
-//        }
-//    }
+    @AfterClass
+    public void tearDown() {
+        try {
+            System.out.println("the TestCase Name:" + this.getClass().getName() + 
+                    ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            if (this.cs.isCollectionExist(clName)) {
+                this.cs.dropCollection(clName);
+            }
+        } catch (BaseException e) {
+            Assert.fail(e.getMessage());
+        } finally {
+            this.sdb.disconnect();
+        }
+    }
 }
