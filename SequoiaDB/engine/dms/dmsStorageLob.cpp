@@ -1817,16 +1817,16 @@ namespace engine
          }
          /// The blk page is all zero when init
          else if ( 0 == mbContext->clLID() &&
-                   0 == ossMemcmp( readBlk->_oid, __emptyOID,
+                   0 == ossMemcmp( blk->_oid, __emptyOID,
                                    DMS_LOB_OID_LEN ) )
          {
             /// Check the page whether exist in bucket or not
             dmsLobRecord record ;
             _dmsLobDataMapBlk *tmpBlk = NULL ;
             DMS_LOB_PAGEID checkPage = DMS_LOB_INVALID_PAGEID ;
-            record.set( ( const bson::OID* )readBlk->_oid,
-                        readBlk->_sequence, 0,
-                        readBlk->_dataLen, NULL ) ;
+            record.set( ( const bson::OID* )blk->_oid,
+                        blk->_sequence, 0,
+                        blk->_dataLen, NULL ) ;
 
             rc = _find( record, mbContext->clLID(), checkPage, tmpBlk, NULL ) ;
             if ( rc )
