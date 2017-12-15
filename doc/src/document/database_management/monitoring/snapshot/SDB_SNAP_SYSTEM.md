@@ -38,6 +38,7 @@ SDB_SNAP_SYSTEM
 | Memory.FreeSwap      | 长整型 | 当前操作系统的空闲交换空间（单位：字节）                       |
 | Memory.TotalVirtual  | 长整型 | 当前操作系统的总虚拟空间（单位：字节）                         |
 | Memory.FreeVirtual   | 长整型 | 当前操作系统的空闲虚拟空间（单位：字节）                       |
+| Disk.Name            | 字符串 | 数据库路径所在的磁盘名称<br>                                   |
 | Disk.DatabasePath    | 字符串 | 数据库路径<br><b>重要：该字段及以上字段仅在数据节点和编目节点显示，协调节点不显示</b> |
 | Disk.LoadPercent     | 整型   | 数据库路径所在文件系统的空间占用百分比<br><b>重要：该字段及以上字段仅在数据节点和编目节点显示，协调节点不显示</b> |
 | Disk.TotalSpace      | 长整型 | 数据库路径总空间（单位：字节）                                 |
