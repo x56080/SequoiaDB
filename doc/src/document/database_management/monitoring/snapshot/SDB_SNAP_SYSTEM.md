@@ -117,6 +117,7 @@ SDB_SNAP_SYSTEM
     "FreeVirtual": 2339291136
   },
   "Disk": {
+    "Name":"/dev/sda1",
     "DatabasePath": "/opt/sequoiadb/database/data/11820",
     "LoadPercent": 78,
     "TotalSpace": 40704466944,
