@@ -145,14 +145,22 @@ namespace engine
    {
    }
 
-   void _clsFreezingWindow::registerCL( const CHAR *pName, UINT64 opID )
+   void _clsFreezingWindow::registerCL( const CHAR *pName, UINT64 & opID )
    {
       MAP_WINDOW::iterator it ;
 
       _latch.get() ;
 
-      it = _mapWindow.find( pName ) ;
+      // operator ID is not given, acquire one for it
+      // Must be acquired inside latch, which could avoid other operators to
+      // acquire operator ID and pass the checking between acquiring and
+      // registering
+      if ( 0 == opID )
+      {
+         opID = pmdAcquireGlobalID() ;
+      }
 
+      it = _mapWindow.find( pName ) ;
       if ( _mapWindow.end() == it )
       {
          ++_clCount ;

@@ -245,7 +245,6 @@ namespace bson {
    {
       INT32 rc = SDB_OK ;
       bsonDecimal decimal ;
-      decimal.init() ;
 
       rc = decimal.fromInt( right ) ;
       if ( SDB_OK != rc )
@@ -267,7 +266,6 @@ namespace bson {
       INT32 rc      = SDB_OK ;
       INT32 typemod = -1 ;
       bsonDecimal result ;
-      result.init() ;
       rc = add( right, result ) ;
       if ( SDB_OK != rc )
       {
@@ -304,7 +302,6 @@ namespace bson {
    {
       INT32 rc = SDB_OK ;
       bsonDecimal tmpRight ;
-      tmpRight.init() ;
       rc = tmpRight.fromLong( right ) ;
       if ( SDB_OK != rc )
       {

@@ -109,7 +109,7 @@ namespace engine
          _clsFreezingWindow() ;
          ~_clsFreezingWindow() ;
 
-         void registerCL( const CHAR *pName, UINT64 opID ) ;
+         void registerCL( const CHAR *pName, UINT64 & opID ) ;
          void unregisterCL( const CHAR *pName, UINT64 opID ) ;
 
          BOOLEAN needBlockOpr( const CHAR *pName, UINT64 testOpID ) ;

@@ -210,7 +210,6 @@ namespace engine
             _utilString<> us ;
             bsonDecimal decimal ;
             string value ;
-            decimal.init() ;
 
             decimal = e.numberDecimal() ;
             value   = decimal.toString() ;
@@ -342,8 +341,6 @@ namespace engine
                   bsonDecimal original = e.Decimal() ;
                   bsonDecimal l_min ;
                   bsonDecimal l_max ;
-                  l_min.init() ;
-                  l_max.init() ;
                   l_min.fromLong( OSS_SINT64_MIN ) ;
                   l_max.fromLong( OSS_SINT64_MAX ) ;
                   if ( original.compare( l_min ) < 0 ||
@@ -511,8 +508,6 @@ namespace engine
                   bsonDecimal original = e.Decimal() ;
                   bsonDecimal l_min ;
                   bsonDecimal l_max ;
-                  l_min.init() ;
-                  l_max.init() ;
                   l_min.fromLong( OSS_SINT64_MIN ) ;
                   l_max.fromLong( OSS_SINT64_MAX ) ;
                   if ( original.compare( l_min ) < 0 ||
@@ -651,7 +646,6 @@ namespace engine
          if ( Date == e.type() )
          {
             bsonDecimal decimal ;
-            decimal.init() ;
             decimal.fromLong( ( INT64 )( e.date().millis ) ) ;
             builder.append( fieldName, decimal ) ;
          }
@@ -660,7 +654,6 @@ namespace engine
             bsonDecimal decimal ;
             INT64 l = ( INT64 )( e.timestampTime().millis ) ;
             l      += ( INT64 )( ( (INT32)(e.timestampInc()) ) / 1000 ) ;
-            decimal.init() ;
             decimal.fromLong( l ) ;
             builder.append( fieldName, decimal ) ;
          }
@@ -668,29 +661,24 @@ namespace engine
          {
             bsonDecimal decimal ;
             INT64 v = e.Bool() ? 1 : 0 ;
-
-            decimal.init() ;
             decimal.fromLong( ( INT64 )v ) ;
             builder.append( fieldName, decimal ) ;
          }
          else if ( NumberLong == e.type() )
          {
             bsonDecimal decimal ;
-            decimal.init() ;
             decimal.fromLong( e.numberLong() ) ;
             builder.append( fieldName, decimal ) ;
          }
          else if ( String != e.type() )
          {
             bsonDecimal decimal ;
-            decimal.init() ;
             decimal.fromDouble( e.numberDouble() ) ;
             builder.append( fieldName, decimal ) ;
          }
          else
          {
             bsonDecimal decimal ;
-            decimal.init() ;
             decimal.fromString( e.String().c_str() ) ;
             builder.append( fieldName, decimal ) ;
          }
@@ -1311,8 +1299,6 @@ namespace engine
          bsonDecimal decimal ;
          bsonDecimal result ;
          decimal = in.numberDecimal() ;
-         result.init() ;
-
          rc = decimal.ceil( result ) ;
          if ( SDB_OK != rc )
          {
@@ -1386,7 +1372,6 @@ namespace engine
       {
          bsonDecimal decimal ;
          bsonDecimal result ;
-         result.init() ;
 
          decimal = in.numberDecimal() ;
          rc = decimal.floor( result ) ;
@@ -1460,7 +1445,6 @@ namespace engine
          bsonDecimal decimal ;
          bsonDecimal decimalArg ;
          bsonDecimal result ;
-         result.init() ;
 
          decimal    = in.numberDecimal() ;
          decimalArg = modm.numberDecimal() ;
@@ -2008,7 +1992,6 @@ namespace engine
          bsonDecimal decimalE ;
          bsonDecimal decimalArg ;
          bsonDecimal result ;
-         result.init() ;
 
          decimalE   = in.numberDecimal() ;
          decimalArg = addend.numberDecimal() ;
@@ -2093,7 +2076,6 @@ namespace engine
          bsonDecimal decimalE ;
          bsonDecimal decimalArg ;
          bsonDecimal result ;
-         result.init() ;
 
          decimalE   = in.numberDecimal() ;
          decimalArg = subtrahead.numberDecimal() ;
@@ -2178,7 +2160,6 @@ namespace engine
          bsonDecimal decimal ;
          bsonDecimal decimalArg ;
          bsonDecimal result ;
-         result.init() ;
 
          decimal    = in.numberDecimal() ;
          decimalArg = multiplier.numberDecimal() ;
@@ -2265,7 +2246,6 @@ namespace engine
          bsonDecimal decimal ;
          bsonDecimal decimalArg ;
          bsonDecimal result ;
-         result.init() ;
 
          decimal    = in.numberDecimal() ;
          decimalArg = divisor.numberDecimal() ;

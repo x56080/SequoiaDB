@@ -3786,7 +3786,6 @@ namespace engine
          bsonDecimal decimalMod ;
          bsonDecimal decimalModm ;
          bsonDecimal resultDecimal ;
-         resultDecimal.init() ;
          decimal    = left.numberDecimal() ;
          decimalMod = _mod.numberDecimal() ;
          rc         = decimal.mod( decimalMod, resultDecimal ) ;
