@@ -43,10 +43,10 @@ namespace engine
 {
    _rtnSQLAvg::_rtnSQLAvg( const CHAR *pName )
    :_rtnSQLFunc( pName ),
+    _decTotal(),
     _total(0),
     _count(0)
    {
-      _decTotal.init() ;
    }
 
    _rtnSQLAvg::~_rtnSQLAvg()
@@ -74,8 +74,7 @@ namespace engine
             {
                bsonDecimal tmpTotal ;
                bsonDecimal result ;
-               tmpTotal.init() ;
-               result.init() ;
+
                rc = tmpTotal.fromDouble( _total ) ;
                if ( SDB_OK != rc )
                {

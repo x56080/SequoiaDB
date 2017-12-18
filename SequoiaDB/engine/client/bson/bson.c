@@ -655,11 +655,11 @@ SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
       }
       case BSON_DECIMAL:
       {
-         bson_decimal decimal ;
+         bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
          char *temp  = NULL ;
          int tmpSize = 0 ;
          int tmpRC   = 0 ;
-         decimal_init( &decimal ) ;
+
          bson_iterator_decimal( i, &decimal ) ;
          decimal_to_jsonstr_len( decimal.sign, decimal.weight, decimal.dscale, 
                                  decimal.typemod, &tmpSize ) ;
@@ -1250,8 +1250,7 @@ SDB_EXPORT int bson_iterator_int( const bson_iterator *i ) {
     case BSON_DECIMAL:
     {
         int result = 0 ;
-        bson_decimal decimal ;
-        decimal_init( &decimal ) ;
+        bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
         result = decimal_from_bsonvalue( bson_iterator_value( i ), &decimal ) ;
         if ( 0 != result )
         {
@@ -1285,8 +1284,7 @@ SDB_EXPORT double bson_iterator_double( const bson_iterator *i ) {
     case BSON_DECIMAL:
     {
         double result = 0.0 ;
-        bson_decimal decimal ;
-        decimal_init( &decimal ) ;
+        bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
         decimal_from_bsonvalue( bson_iterator_value( i ), &decimal ) ;
         result = decimal_to_double( &decimal ) ;
         decimal_free( &decimal ) ;
@@ -1431,8 +1429,7 @@ SDB_EXPORT int64_t bson_iterator_long( const bson_iterator *i ) {
     case BSON_DECIMAL:
     {
         int64_t result = 0 ;
-        bson_decimal decimal ;
-        decimal_init( &decimal ) ;
+        bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
         decimal_from_bsonvalue( bson_iterator_value( i ), &decimal ) ;
         result = decimal_to_long( &decimal ) ;
         decimal_free( &decimal ) ;
@@ -1478,8 +1475,7 @@ SDB_EXPORT bson_bool_t bson_iterator_bool( const bson_iterator *i ) {
     case BSON_DECIMAL:
     {
         bson_bool_t result = 0 ;
-        bson_decimal decimal ;
-        decimal_init( &decimal ) ;
+        bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
         decimal_from_bsonvalue( bson_iterator_value( i ), &decimal ) ;
         result = decimal_is_zero( &decimal ) ;
         decimal_free( &decimal ) ;
@@ -1805,8 +1801,8 @@ SDB_EXPORT int bson_append_decimal3( bson *b, const char *name,
                                      const char *value )
 {
    int rc = 0 ;
-   bson_decimal decimal ;
-   decimal_init( &decimal ) ;
+   bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
+
    rc = decimal_from_str( value, &decimal ) ;
    if ( 0 != rc )
    {

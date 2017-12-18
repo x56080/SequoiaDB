@@ -1189,7 +1189,7 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
       }
       case CJSON_DECIMAL:
       {
-         bson_decimal bsonDecimal ;
+         bson_decimal bsonDecimal = DECIMAL_DEFAULT_VALUE ;
          cJsonIteratorDecimal( pIter, &arg1, &arg2 ) ;
          if( arg1.valType != CJSON_INT32 &&
              arg1.valType != CJSON_INT64 &&
@@ -1237,10 +1237,7 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
                goto error ;
             }
          }
-         else
-         {
-            decimal_init( &bsonDecimal ) ;
-         }
+
          if( arg1.valType == CJSON_INT32 )
          {
             if( decimal_from_int( arg1.valInt, &bsonDecimal ) != 0 )
@@ -1860,11 +1857,10 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
       }
       case BSON_DECIMAL:
       {
-         bson_decimal decimal ;
+         bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
          int rc        = 0 ;
          CHAR *value   = NULL ;
          int size      = 0 ;
-         decimal_init( &decimal ) ;
 
          // get decimal
          bson_iterator_decimal( &i, &decimal ) ;

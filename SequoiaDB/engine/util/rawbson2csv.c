@@ -303,9 +303,7 @@ INT32 _appendValue( const CHAR *delChar, INT32 delCharSize, bson_iterator *pIt,
    bson_timestamp_t ts;
    time_t timer ;
    struct tm psr;
-   bson_decimal decimal ;
-
-   decimal_init( &decimal ) ;
+   bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
 
    if ( type == BSON_DOUBLE )
    {

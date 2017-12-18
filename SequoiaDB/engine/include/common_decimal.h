@@ -117,6 +117,18 @@ typedef struct {
    short *digits;  /* real decimal data */
 } bson_decimal ;
 
+#define DECIMAL_DEFAULT_VALUE \
+   { \
+      -1,               /* typemode */ \
+      0,                /* ndigits */ \
+      SDB_DECIMAL_POS,  /* sign */ \
+      0,                /* dscale */ \
+      0,                /* weight */ \
+      0,                /* isOwn */ \
+      NULL,             /* buff */ \
+      NULL              /* digits */\
+   }
+
 //storage detail define in bson.h  (BSON_DECIMAL)
 #define DECIMAL_HEADER_SIZE  12  /*size + typemod + dscale + weight*/
 

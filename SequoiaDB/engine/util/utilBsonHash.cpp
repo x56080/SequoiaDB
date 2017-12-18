@@ -209,10 +209,8 @@ namespace engine
       bsonDecimal maxFloat ;
       bsonDecimal minFloat ;
 
-      maxFloat.init() ;
       maxFloat.fromDouble( numeric_limits<double>::max() ) ;
 
-      minFloat.init() ;
       minFloat.fromDouble( -numeric_limits<double>::max() ) ;
 
       if ( decimal.compare( maxFloat ) > 0 || 

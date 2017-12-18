@@ -1856,7 +1856,7 @@ int64_t decimal_to_long( const bson_decimal *decimal )
    int64_t val     = 0 ;
    int64_t oldval  = 0 ;
    int neg     = 0 ;
-   bson_decimal rounded ;
+   bson_decimal rounded = DECIMAL_DEFAULT_VALUE ;
 
    if ( NULL == decimal )
    {
@@ -1869,8 +1869,6 @@ int64_t decimal_to_long( const bson_decimal *decimal )
       rc = -6 ;
       goto error ;
    }
-
-   decimal_init( &rounded ) ;
 
    /* Round to nearest integer */
    rc = decimal_copy( decimal, &rounded ) ;
@@ -3051,7 +3049,8 @@ SDB_EXPORT int decimal_ceil( const bson_decimal *decimal,
                              bson_decimal *result )
 {
    int rc = 0 ;
-   bson_decimal tmp ;
+   bson_decimal tmp = DECIMAL_DEFAULT_VALUE ;
+
    if ( NULL == decimal || NULL == result )
    {
       rc = -6 ;
@@ -3064,7 +3063,6 @@ SDB_EXPORT int decimal_ceil( const bson_decimal *decimal,
       goto done ;
    }
 
-   decimal_init( &tmp ) ;
    rc = decimal_copy( decimal, &tmp ) ;
    if ( 0 != rc )
    {
@@ -3099,7 +3097,7 @@ SDB_EXPORT int decimal_floor( const bson_decimal *decimal,
                               bson_decimal *result )
 {
    int rc = 0 ;
-   bson_decimal tmp ;
+   bson_decimal tmp = DECIMAL_DEFAULT_VALUE ;
 
    if ( NULL == decimal || NULL == result )
    {
@@ -3113,7 +3111,6 @@ SDB_EXPORT int decimal_floor( const bson_decimal *decimal,
       goto done ;
    }
 
-   decimal_init( &tmp ) ;
    rc = decimal_copy( decimal, &tmp ) ;
    if ( 0 != rc )
    {
@@ -3154,7 +3151,7 @@ SDB_EXPORT int decimal_mod( const bson_decimal *left,
                             const bson_decimal *right, bson_decimal *result )
 {
    int rc = 0 ;
-   bson_decimal tmp ;
+   bson_decimal tmp = DECIMAL_DEFAULT_VALUE ;
 
    if ( NULL == left || NULL == right )
    {
@@ -3167,8 +3164,6 @@ SDB_EXPORT int decimal_mod( const bson_decimal *left,
       _decimal_set_nan( result ) ;
       goto done ;
    }
-
-   decimal_init( &tmp ) ;
 
    /* ---------
     * We do this using the equation
