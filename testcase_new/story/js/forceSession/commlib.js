@@ -72,3 +72,27 @@ function getConn(url) {
     }
     return conn;
 }
+
+function isSystemEDU( context )
+{
+   var nodeName = context.NodeName ;
+   var sessionId = context.SessionID ;
+   var cursor = db.snapshot( SDB_SNAP_CONTEXTS, { NodeName: nodeName, SessionID: sessionId } ) ;
+   var contextArr = cursor.next().toObj().Contexts ;
+   var systemEduTypes = [ "TCPListener", "RestListener", "ReplReader", "LogWriter",
+                          "LogArchiveMgr", "DpsRollback", "ShardReader", "Cluster",
+                          "ClusterShard", "ClusterLogNotify", "CatalogMgr",
+                          "CatalogNetwork", "CoordNetwork", "CoordMgr", "OMManager",
+                          "OMNet", "SyncClockWorker", "PipeListener", "FAPListener",
+                          "DBMonitor", "RtnNetwork", "SignalTest" ] ;
+   for( var i = 0;i < contextArr.length;i++ )
+   {
+      var eduType = contextArr[i].Type ;
+      if( systemEduTypes.indexOf( eduType ) != -1 )
+      {
+         println( "contexts i is system edu type: " + eduType ) ;
+         return true ;
+      }
+   }
+   return false ;
+}

@@ -40,7 +40,13 @@ function main() {
         db.forceSession(SessionID, {NodeID: NodeID});
     } catch (e) {
         println(JSON.stringify(context));
-        throw buildException("TODO 3.a: db.forceSession(SessionID, {NodeID: NodeID}) fail", e);
+        if( isSystemEDU( context ) && e === -264 )
+        {
+        }
+        else
+        {
+           throw buildException("TODO 3.a: db.forceSession(SessionID, {NodeID: NodeID}) fail", e);
+        }
     }
     sleep(500);
     var temp = null;
@@ -72,7 +78,13 @@ function main() {
         temp = db.forceSession(SessionID, {NodeID: NodeID, HostName: HostName});
     } catch (e) {
         println(JSON.stringify(context));
-        throw buildException("TODO 3.d: db.forceSession(SessionID, {NodeID: NodeID}) fail", e);
+        if( isSystemEDU( context ) && e === -264 )
+        {
+        }
+        else
+        {
+           throw buildException("TODO 3.d: db.forceSession(SessionID, {NodeID: NodeID}) fail", e);
+        }
     }
     sleep(500);
     var temp = null;
@@ -105,7 +117,13 @@ function main() {
         db.forceSession(SessionID, {GroupName: GroupName, HostName: HostName, svcname: svcname});
     } catch (e) {
         println(JSON.stringify(context));
-        throw buildException("TODO 3.e: db.forceSession(SessionID, {NodeID: NodeID}) fail", e);
+        if( isSystemEDU( context ) && e === -264 )
+        {
+        }
+        else
+        { 
+           throw buildException("TODO 3.e: db.forceSession(SessionID, {NodeID: NodeID}) fail", e);
+        }
     }
     sleep(500);
     var temp = null;
