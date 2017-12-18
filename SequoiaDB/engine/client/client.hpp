@@ -39,17 +39,17 @@
 #include <map>
 #include <string>
 #include <vector>
-/*
-#if defined (_WINDOWS)
-   #if defined (SDB_DLL_BUILD)
-      #define DLLEXPORT __declspec(dllexport)
-   #else
-      #define DLLEXPORT __declspec(dllimport)
-   #endif
-#else
-   #define DLLEXPORT
-#endif
-*/
+
+/** This micro is for internal use, not a public api, it will be removed in the future */
+#define RELEASE_INNER_HANDLE( handle ) \
+do                                     \
+{                                      \
+   if ( handle )                       \
+   {                                   \
+      delete handle ;                  \
+      handle = NULL ;                  \
+   }                                   \
+} while( 0 )
 
 #define DLLEXPORT SDB_EXPORT
 
@@ -159,7 +159,9 @@ namespace sdbclient
       ~sdbCursor ()
       {
          if ( pCursor )
+         {
             delete pCursor ;
+         }
       }
 
 /** \fn  INT32 next ( bson::BSONObj &obj )
@@ -932,7 +934,10 @@ namespace sdbclient
                           )
       {
          if ( !pCollection )
+         {
             return SDB_NOT_CONNECTED ;
+         }
+         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
          return pCollection->queryAndUpdate( &cursor.pCursor , update, condition,
                                              selected, orderBy, hint,
                                              numToSkip, numToReturn, flag, returnNew ) ;
@@ -978,7 +983,10 @@ namespace sdbclient
                           )
       {
          if ( !pCollection )
+         {
             return SDB_NOT_CONNECTED ;
+         }
+         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
          return pCollection->queryAndRemove( &cursor.pCursor , condition,
                                              selected, orderBy, hint,
                                              numToSkip, numToReturn, flag ) ;
@@ -4125,7 +4133,7 @@ namespace sdbclient
                               const bson::BSONObj &selector = _sdbStaticObject,
                               const bson::BSONObj &orderBy = _sdbStaticObject);
     \brief List the backups.
-    \param [in] options Contains configuration infomations for remove backups, list all the backups in the default backup path if null. The "options" contains 3 options as below. All the elements in options are optional. eg: {"GroupName":["rgame1", "rgName2"], "Path":"/opt/sequoiadb/backup", "Name":"backupName"}
+    \param [in] options Contains configuration information for listing backups, list all the backups in the default backup path if null. The "options" contains several options as below. All the elements in options are optional. eg: {"GroupName":["RGName1", "RGName2"], "Path":"/opt/sequoiadb/backup", "Name":"backupName"}
 
         GroupID     : Specified the group id of the backups, default to list all the backups of all the groups.
         GroupName   : Specified the group name of the backups, default to list all the backups of all the groups.
@@ -4154,7 +4162,7 @@ namespace sdbclient
 
 /** \fn INT32 removeBackup ( const bson::BSONObj &options);
     \brief Remove the backups.
-    \param [in] options Contains configuration infomations for remove backups, remove all the backups in the default backup path if null. The "options" contains 3 options as below. All the elements in options are optional. eg: {"GroupName":["rgName1", "rgName2"], "Path":"/opt/sequoiadb/backup", "Name":"backupName"}
+    \param [in] options Contains configuration infomations for removing backups, remove all the backups in the default backup path if null. The "options" contains several options as below. All the elements in options are optional. eg: {"GroupName":["RGName1", "RGName2"], "Path":"/opt/sequoiadb/backup", "Name":"backupName"}
 
         GroupID     : Specified the group id of the backups, default to list all the backups of all the groups.
         GroupName   : Specified the group name of the backups, default to list all the backups of all the groups.
