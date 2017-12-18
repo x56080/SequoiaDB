@@ -54,3 +54,33 @@
 	  "HasError": false
 	}
 	```
+
+* 查看其它路径下的备份信息
+
+  备份数据节点到其它路径
+
+    ```lang-javascript
+    > var datadb = new Sdb( "localhost", 20000 )
+    > datadb.backupOffline( { Path: "/tmp/sequoiadb_backup/20000" } )
+    ```
+
+  连接 coord 查看备份信息，listBackup 时需要指定 Path 参数，否则在默认路径下查找不到备份信息
+
+    ```lang-javascript
+    > var db = new Sdb( "localhost", 11810 ) 
+    > db.listBackup( { Path: "/tmp/sequoiadb_backup/20000" } )
+    {
+      "Version": 2,
+      "Name": "2017-10-26-10:14:11",
+      "ID": 0,
+      "NodeName": "ubuntu-test-03:20000",
+      "GroupName": "db1",
+      "EnsureInc": false,
+      "BeginLSNOffset": -1,
+      "EndLSNOffset": 375546828,
+      "TransLSNOffset": -1,
+      "StartTime": "2017-10-26-10:14:11",
+      "LastLSN": -1,
+      "LastLSNCode": 0,
+      "HasError": false
+    }
