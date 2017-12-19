@@ -1821,7 +1821,7 @@ SDB_EXPORT int bson_append_decimal2( bson *b, const char *name,
                                      int scale )
 {
    int rc = 0 ;
-   bson_decimal decimal ;
+   bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
    rc = decimal_init1( &decimal, precision, scale ) ;
    if ( 0 != rc )
    {
