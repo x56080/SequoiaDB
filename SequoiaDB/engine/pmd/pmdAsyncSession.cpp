@@ -1071,7 +1071,9 @@ namespace engine
       if ( !_quit && postQuit && pSession->eduCB() )
       {
          // Notify the edu quit
-         pSession->eduCB()->disconnect () ;
+         pmdEDUCB *pEDU = pSession->eduCB() ;
+         pmdEDUMgr *pMgr = pEDU->getEDUMgr() ;
+         pMgr->disconnectUserEDU( pEDU->getID() ) ;
       }
 
       onSessionDestoryed( pSession ) ;

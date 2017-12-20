@@ -221,8 +221,6 @@ namespace engine
       INT32       getUncompressBuffLen() const { return _uncompressBuffLen ; }
 
       void        interrupt () ;
-      void        disconnect () ;
-      void        force () ;
       void        resetInterrupt () ;
       void        resetDisconnect () ;
 
@@ -426,8 +424,10 @@ namespace engine
       CHAR*    _getBuffInfo ( EDU_INFO_TYPE type, UINT32 &size ) ;
       BOOLEAN  _allocFromCatch( UINT32 len, CHAR **ppBuff, UINT32 *buffLen ) ;
 
+      void     disconnect () ;
+      void     force () ;
+
    private :
-      ossRWMutex     _callInMutex ;
       _pmdEDUMgr     *_eduMgr ;
       ossSpinSLatch  _mutex ;
       ossQueue<pmdEDUEvent> _queue ;

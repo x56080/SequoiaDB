@@ -237,7 +237,7 @@ namespace engine
       }
       {
          // critical section start
-         EDUMGR_XLOCK
+         EDUMGR_SLOCK
          for ( it = _runQueue.begin () ; it != _runQueue.end () ; ++it )
          {
             if ( (*it).second->getID () == eduID )
@@ -277,12 +277,41 @@ namespace engine
 
       {
       std::map<EDUID, pmdEDUCB*>::iterator it ;
-      EDUMGR_XLOCK
+      EDUMGR_SLOCK
       for ( it = _runQueue.begin () ; it != _runQueue.end () ; ++it )
       {
          if ( (*it).second->getID () == eduID )
          {
             (*it).second->interrupt() ;
+            break ;
+         }
+      }
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _pmdEDUMgr::disconnectUserEDU( EDUID eduID )
+   {
+      INT32 rc = SDB_OK ;
+      if ( isSystemEDU( eduID ) )
+      {
+         PD_LOG( PDERROR, "can not disconnect a system edu:%lld",
+                 eduID ) ;
+         rc = SDB_PMD_FORCE_SYSTEM_EDU ;
+         goto error ;
+      }
+
+      {
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
+      EDUMGR_SLOCK
+      for ( it = _runQueue.begin () ; it != _runQueue.end () ; ++it )
+      {
+         if ( (*it).second->getID() == eduID )
+         {
+            (*it).second->disconnect() ;
             break ;
          }
       }
