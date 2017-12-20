@@ -2435,9 +2435,35 @@ namespace engine
 
    void _clsSplitSrcSession::_onNotifyOver( const CHAR *clFullName )
    {
-      SDB_ASSERT( 0 == _ntyOverTime, "_ntyOverTime should be 0" ) ;
+      if ( 0 != _ntyOverTime )
+      {
+         /// Blocking has been started, the sync process might be restarted
+         /// by drop or truncate of collection, need to unblock the previous
+         /// one
+         UINT64 blockOpID = _ntyOverTime ;
 
-      _ntyOverTime = 0 ;
+         PD_LOG( PDDEBUG, "Session[%s]: Blocking write operations of "
+                 "collection [%s] has been started, end blocking for further "
+                 "process", sessionName(), clFullName ) ;
+
+         _ntyOverTime = 0 ;
+
+         /// Unblock
+         _pFreezingWindow->unregisterCL( _curCollecitonName.c_str(),
+                                         blockOpID ) ;
+         PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
+                 "of collection[%s]", sessionName(),
+                 _curCollecitonName.c_str() ) ;
+
+         if ( !_mainCLName.empty() )
+         {
+            _pFreezingWindow->unregisterCL( _mainCLName.c_str(), blockOpID ) ;
+            PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
+                    "of the main collection[%s]", sessionName(),
+                    _mainCLName.c_str() ) ;
+         }
+      }
+
       _mainCLName.clear() ;
 
       _pFreezingWindow->registerCL( clFullName, _ntyOverTime ) ;
