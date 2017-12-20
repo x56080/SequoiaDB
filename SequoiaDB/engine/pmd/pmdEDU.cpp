@@ -332,7 +332,6 @@ namespace engine
    void _pmdEDUCB::force ()
    {
       PD_TRACE_ENTRY ( SDB__PMDEDUCB_FORCE );
-      ossScopedRWLock assist ( &_callInMutex, SHARED ) ;
       disconnect () ;
       _ctrlFlag |= EDU_CTRL_FORCED ;
       PD_TRACE_EXIT ( SDB__PMDEDUCB_FORCE );
