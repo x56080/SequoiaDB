@@ -86,7 +86,7 @@ namespace engine
          _event.signalAll() ;
          _level = CLS_REELECTION_LEVEL_NONE ;
       }
-   } 
+   }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION_RUN, "_clsReelection::run" )
    INT32 _clsReelection::run( CLS_REELECTION_LEVEL lvl,
@@ -98,7 +98,7 @@ namespace engine
       UINT32 timePassed = 0 ;
 
       if ( CLS_REELECTION_LEVEL_1 != lvl &&
-           CLS_REELECTION_LEVEL_3 != lvl ) 
+           CLS_REELECTION_LEVEL_3 != lvl )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "invalid reelection level:%d", lvl ) ;
@@ -151,8 +151,8 @@ namespace engine
          {
             PD_LOG( PDERROR, "reelection is out of time" ) ;
             rc = SDB_TIMEOUT ;
-            goto error ;   
-         }   
+            goto error ;
+         }
       }
 
       rc = _stepDown( timePassed, seconds, cb ) ;
@@ -238,7 +238,7 @@ namespace engine
       {
          rc = SDB_TIMEOUT ;
          goto error ;
-      } 
+      }
    done:
       PD_TRACE_EXITRC( SDB__CLSREELECTION__WAIT4REPLICA, rc ) ;
       return rc ;
@@ -279,7 +279,7 @@ namespace engine
                                 pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
-      while ( timePassed < timeout )
+      while ( timePassed <= timeout )
       {
          if ( cb->isInterrupted() )
          {
