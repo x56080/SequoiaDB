@@ -31,6 +31,7 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -1701,8 +1702,10 @@ public class Sequoiadb {
 	public ReplicaGroup getReplicaGroup(String rgName)
 			throws BaseException {
 		BSONObject rg = getDetailByName(rgName);
-		if (rg == null)
-			return null;
+		if (rg == null) {
+			throw new BaseException("SDB_CLS_GRP_NOT_EXIST",
+					String.format("Group with the name[%s] does not exist", rgName));
+		}
 		return new ReplicaGroup(this, rgName);
 	}
 
@@ -1716,8 +1719,10 @@ public class Sequoiadb {
 	 */
 	public ReplicaGroup getReplicaGroup(int rgId) throws BaseException{
 		BSONObject rg = getDetailById(rgId);
-		if (rg == null)
-			return null;
+		if (rg == null) {
+			throw new BaseException("SDB_CLS_GRP_NOT_EXIST",
+					String.format("Group with the name[%s] does not exist", rgId));
+		}
 		return new ReplicaGroup(this, rgId);
 	}
 
