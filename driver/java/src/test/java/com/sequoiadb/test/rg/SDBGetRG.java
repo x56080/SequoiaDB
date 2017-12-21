@@ -53,6 +53,70 @@ public class SDBGetRG {
     }
 
     @Test
+    public void getGroupTest() {
+        if (!isCluster) {
+            return;
+        }
+        try {
+            groupName = "SYSCatalogGroup12345";
+            rg = sdb.getReplicaGroup(groupName);
+            Assert.fail("should get SDB_CLS_GRP_NOT_EXIST(-154) error");
+        } catch (BaseException e) {
+            Assert.assertEquals(SDBError.SDB_CLS_GRP_NOT_EXIST.getErrorCode(), e.getErrorCode());
+        }
+        try {
+            rg = sdb.getReplicaGroup(0);
+            Assert.fail("should get SDB_CLS_GRP_NOT_EXIST(-154) error");
+        } catch (BaseException e) {
+            Assert.assertEquals(SDBError.SDB_CLS_GRP_NOT_EXIST.getErrorCode(), e.getErrorCode());
+        }
+    }
+
+    @Test
+    public void getNodeTest() {
+        if (!isCluster) {
+            return;
+        }
+        // case 1: normal case
+        groupName = "SYSCatalogGroup";
+        rg = sdb.getReplicaGroup(groupName);
+        Node master = rg.getMaster();
+//        System.out.println(String.format("group is: %s, master is: %s", groupName, master.getNodeName()));
+        String hostName = master.getHostName();
+        int hostPort = master.getPort();
+        Node node1 = rg.getNode(hostName, hostPort);
+//        System.out.println(String.format("group is: %s, node1 is: %s", groupName, node1.getNodeName()));
+        Node node2 = rg.getNode(hostName + ":" + hostPort);
+//        System.out.println(String.format("group is: %s, node2 is: %s", groupName, node2.getNodeName()));
+        // case 2: get a node which is not exist
+        Node node3 = null;
+        try {
+            node3 = rg.getNode("ubuntu", 30000);
+            Assert.fail("should get SDB_SYS(-10) error");
+        } catch (BaseException e) {
+            Assert.assertEquals(SDBError.SDB_SYS.getErrorCode(), e.getErrorCode());
+        }
+        try {
+            node3 = rg.getNode(hostName, 0);
+            Assert.fail("should get SDB_CLS_NODE_NOT_EXIST(-155) error");
+        } catch (BaseException e) {
+            Assert.assertEquals(SDBError.SDB_CLS_NODE_NOT_EXIST.getErrorCode(), e.getErrorCode());
+        }
+        // case 3: get a node from empty group
+        groupName = "groupNoteExist";
+        rg = sdb.createReplicaGroup(groupName);
+        try {
+            node3 = rg.getNode(hostName, 0);
+            Assert.fail("should get SDB_CLS_NODE_NOT_EXIST(-155) error");
+        } catch (BaseException e) {
+            Assert.assertEquals("SDB_CLS_NODE_NOT_EXIST", e.getErrorType());
+        } finally {
+            sdb.removeReplicaGroup(groupName);
+        }
+
+    }
+
+    @Test
     public void getMasterAndSlaveNodeTest() {
         if (!isCluster)
             return;

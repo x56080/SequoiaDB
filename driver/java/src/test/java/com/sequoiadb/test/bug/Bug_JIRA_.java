@@ -49,6 +49,14 @@ public class Bug_JIRA_ {
     }
 
     @Test
+    public void tmp() {
+        String str = (String)null;
+        if (str == null) {
+            System.out.println("yes");
+        }
+    }
+
+    @Test
     public void jira_2100() {
         Sequoiadb mydb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
         DBCollection mycl =

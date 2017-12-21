@@ -1839,8 +1839,10 @@ public class Sequoiadb {
     public ReplicaGroup getReplicaGroup(String rgName)
             throws BaseException {
         BSONObject rg = getDetailByName(rgName);
-        if (rg == null)
-            return null;
+        if (rg == null) {
+            throw new BaseException(SDBError.SDB_CLS_GRP_NOT_EXIST,
+                    String.format("Group with the name[%s] does not exist", rgName));
+        }
         return new ReplicaGroup(this, rgName);
     }
 
@@ -1854,8 +1856,10 @@ public class Sequoiadb {
      */
     public ReplicaGroup getReplicaGroup(int rgId) throws BaseException {
         BSONObject rg = getDetailById(rgId);
-        if (rg == null)
-            return null;
+        if (rg == null) {
+            throw new BaseException(SDBError.SDB_CLS_GRP_NOT_EXIST,
+                    String.format("Group with the id[%d] does not exist", rgId));
+        }
         return new ReplicaGroup(this, rgId);
     }
 
@@ -2045,8 +2049,9 @@ public class Sequoiadb {
         condition.put(SequoiadbConstants.FIELD_NAME_GROUPNAME, name);
         DBCursor shardsCursor = getList(Sequoiadb.SDB_LIST_GROUPS, 0, 0, -1,
                 -1, condition, null, null, null);
-        if (shardsCursor == null || !shardsCursor.hasNext())
+        if (shardsCursor == null || !shardsCursor.hasNext()) {
             return null;
+        }
         return shardsCursor.getNext();
     }
 

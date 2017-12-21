@@ -10,6 +10,7 @@ import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
 
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -323,44 +324,24 @@ public class ReplicaGroup {
      * @brief Get node by node's name (IP:PORT).
      */
     public Node getNode(String nodeName) throws BaseException {
-        String[] temp = nodeName.split(":");
-        if (temp.length != 2) {
+        // check arguemnt
+        if (nodeName == null || nodeName.isEmpty()) {
             throw new BaseException(SDBError.SDB_INVALIDARG, nodeName);
         }
-        BSONObject group = sequoiadb.getDetailById(id);
-        if (group == null)
-            return null;
-        try {
-            Object nodeId = null;
-            Object hostName = null;
-            int port = -1;
-            Object list = group.get(SequoiadbConstants.FIELD_NAME_GROUP);
-            if (list == null)
-                return null;
-            BasicBSONList nodeInfos = (BasicBSONList) list;
-            if (nodeInfos.size() == 0)
-                return null;
-            for (Object nodeInfoObj : nodeInfos) {
-                BSONObject nodeInfo = (BSONObject) nodeInfoObj;
-                nodeId = nodeInfo.get(SequoiadbConstants.FIELD_NAME_NODEID);
-                hostName = nodeInfo.get(SequoiadbConstants.FIELD_NAME_HOST);
-                port = getNodePort(nodeInfo);
-                if (nodeId == null || hostName == null)
-                    throw new BaseException(SDBError.SDB_SYS);
-                String hostName2 = InetAddress.getByName(temp[0]).toString()
-                        .split("/")[1];
-                hostName = InetAddress.getByName(hostName.toString())
-                        .toString().split("/")[1];
-                if (hostName.equals(hostName2)
-                        && port == Integer.parseInt((temp[1]))) {
-                    return new Node(hostName2, port,
-                            Integer.parseInt(nodeId.toString()), this);
-                }
-            }
-        } catch (Exception e) {
-            throw new BaseException(SDBError.SDB_SYS, nodeName);
+        // get node hostname and port
+        String[] nodeMetaInfoArray = nodeName.split(":");
+        if (nodeMetaInfoArray.length != 2) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, nodeName);
         }
-        return null;
+        String inputHostName = nodeMetaInfoArray[0];
+        int inputPort = Integer.parseInt((nodeMetaInfoArray[1]));
+        // get node object
+        Node node = getNodeByMetaInfo(inputHostName, inputPort);
+        if (node != null) {
+            return node;
+        } else {
+            throw new BaseException(SDBError.SDB_CLS_NODE_NOT_EXIST, nodeName);
+        }
     }
 
     /**
@@ -372,42 +353,12 @@ public class ReplicaGroup {
      * @brief Get node by hostName and port.
      */
     public Node getNode(String hostName, int port) throws BaseException {
-        BSONObject group = sequoiadb.getDetailById(id);
-        try {
-            Object list = group.get(SequoiadbConstants.FIELD_NAME_GROUP);
-            if (list == null)
-                return null;
-            BasicBSONList nodeInfos = (BasicBSONList) (list);
-            if (nodeInfos.size() == 0)
-                return null;
-            Object nodeIdObj = null;
-            int nodeId = -1;
-            BSONObject nodeInfo = null;
-            int nodePort = -1;
-            for (Object obj : nodeInfos) {
-                nodeInfo = (BSONObject) obj;
-                nodeIdObj = nodeInfo.get(SequoiadbConstants.FIELD_NAME_NODEID);
-                if (nodeIdObj == null)
-                    throw new BaseException(SDBError.SDB_SYS);
-                nodeId = Integer.parseInt(nodeIdObj.toString());
-                hostName = InetAddress.getByName(hostName).toString()
-                        .split("/")[1];
-                String hostName2 = InetAddress
-                        .getByName(
-                                nodeInfo.get(SequoiadbConstants.FIELD_NAME_HOST)
-                                        .toString()).toString().split("/")[1];
-                if (hostName2.equals(hostName)) {
-                    nodePort = getNodePort(nodeInfo);
-                    if (nodePort == port)
-                        return new Node(hostName, port, nodeId, this);
-                }
-            }
-        } catch (BaseException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new BaseException(SDBError.SDB_SYS, hostName + ":" + port);
+        Node node = getNodeByMetaInfo(hostName, port);
+        if (node != null) {
+            return node;
+        } else {
+            throw new BaseException(SDBError.SDB_CLS_NODE_NOT_EXIST, hostName + ":" + port);
         }
-        return null;
     }
 
     /**
@@ -643,6 +594,60 @@ public class ReplicaGroup {
      */
     public boolean isCatalog() {
         return isCataRG;
+    }
+
+    private Node getNodeByMetaInfo(final String inputHostName, final int inputPort) {
+        // check
+        if (inputHostName == null || inputHostName.isEmpty() || inputPort < 0 || inputPort > 65535) {
+            throw new BaseException(SDBError.SDB_INVALIDARG,
+                    String.format("invalid node info[%s:%d]", inputHostName, inputPort));
+        }
+        // get group info from catalog
+        BSONObject groupInfoObj = sequoiadb.getDetailById(id);
+        if (groupInfoObj == null) {
+            throw new BaseException(SDBError.SDB_CLS_GRP_NOT_EXIST,
+                    String.format("no information of group id[%d]", id));
+        }
+        // extract nodes info
+        Object nodesInfoArr = groupInfoObj.get(SequoiadbConstants.FIELD_NAME_GROUP);
+        if (nodesInfoArr == null || !(nodesInfoArr instanceof BasicBSONList)) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    String.format("invalid content[%s] of field[%s]",
+                            nodesInfoArr == null ? "null" : nodesInfoArr.toString(), SequoiadbConstants.FIELD_NAME_GROUP));
+        }
+        BasicBSONList nodesInfoList = (BasicBSONList) nodesInfoArr;
+        if (nodesInfoList.size() == 0) {
+            return null;
+        }
+        // try to build node object
+        Object nodeIdFromCatalog = null;
+        String hostNameFromCatalog = null;
+        int portFromCatalog = -1;
+        for (Object nodeInfoObj : nodesInfoList) {
+            BSONObject nodeInfo = (BSONObject) nodeInfoObj;
+            nodeIdFromCatalog = nodeInfo.get(SequoiadbConstants.FIELD_NAME_NODEID);
+            hostNameFromCatalog = (String) nodeInfo.get(SequoiadbConstants.FIELD_NAME_HOST);
+            portFromCatalog = getNodePort(nodeInfo);
+            if (nodeIdFromCatalog == null || hostNameFromCatalog == null) {
+                throw new BaseException(SDBError.SDB_SYS, "invalid node's information");
+            }
+            // change hostname to ip
+            String inputHostIp = null;
+            String hostIpFromCatalog = null;
+            try {
+                inputHostIp = InetAddress.getByName(inputHostName).toString()
+                        .split("/")[1];
+                hostIpFromCatalog = InetAddress.getByName(hostNameFromCatalog.toString())
+                        .toString().split("/")[1];
+            } catch (UnknownHostException e) {
+                throw new BaseException(SDBError.SDB_SYS, e);
+            }
+            if (hostIpFromCatalog.equals(inputHostIp) && portFromCatalog == inputPort) {
+                return new Node(inputHostName, inputPort,
+                        Integer.parseInt(nodeIdFromCatalog.toString()), this);
+            }
+        }
+        return null;
     }
 
     private int getNodePort(BSONObject node) {
