@@ -79,6 +79,90 @@ namespace DriverTest
         }
         #endregion
 
+        [TestMethod]
+        public void getGroupTest() 
+        {
+            if (!isCluster) 
+            {
+                return;
+            }
+            try
+            {
+                groupName = "SYSCatalogGroup12345";
+                group = sdb.GetReplicaGroup(groupName);
+                Assert.Fail("should get SDB_CLS_GRP_NOT_EXIST(-154) error");
+            } 
+            catch (BaseException e) 
+            {
+                Assert.AreEqual("SDB_CLS_GRP_NOT_EXIST", e.ErrorType);
+            }
+            try 
+            {
+                group = sdb.GetReplicaGroup(0);
+                Assert.Fail("should get SDB_CLS_GRP_NOT_EXIST(-154) error");
+            } 
+            catch (BaseException e) 
+            {
+                Assert.AreEqual("SDB_CLS_GRP_NOT_EXIST", e.ErrorType);
+            }
+        }
+
+        [TestMethod]
+        public void getNodeTest() 
+        {
+            if (!isCluster)
+            {
+                return;
+            }
+            // case 1: normal case
+            groupName = "SYSCatalogGroup";
+            group = sdb.GetReplicaGroup(groupName);
+            SequoiaDB.Node master = group.GetMaster();
+            Console.WriteLine(string.Format("group is: {0}, master is: {1}", groupName, master.NodeName));
+            String hostName = master.HostName;
+            int hostPort = master.Port;
+            SequoiaDB.Node node1 = group.GetNode(hostName, hostPort);
+            Console.WriteLine(string.Format("group is: {0}, node1 is: {1}", groupName, node1.NodeName));
+            SequoiaDB.Node node2 = group.GetNode(hostName + ":" + hostPort);
+            Console.WriteLine(string.Format("group is: {0}, node2 is: {1}", groupName, node2.NodeName));
+            // case 2: get a node which is not exist
+            SequoiaDB.Node node3 = null;
+            try 
+            {
+                node3 = group.GetNode("ubuntu", 30000);
+                Assert.Fail("should get SDB_SYS(-10) error");
+            } 
+            catch (BaseException e) 
+            {
+                Assert.AreEqual("SDB_CLS_NODE_NOT_EXIST", e.ErrorType);
+            }
+            try 
+            {
+                node3 = group.GetNode(hostName, 0);
+                Assert.Fail("should get SDB_CLS_NODE_NOT_EXIST(-155) error");
+            } 
+            catch (BaseException e) 
+            {
+                Assert.AreEqual("SDB_CLS_NODE_NOT_EXIST", e.ErrorType);
+            }
+            // case 3: get a node from empty group
+            groupName = "groupNoteExist";
+            group = sdb.CreateReplicaGroup(groupName);
+            try 
+            {
+                node3 = group.GetNode(hostName, 0);
+                Assert.Fail("should get SDB_CLS_NODE_NOT_EXIST(-155) error");
+            } 
+            catch (BaseException e) 
+            {
+                Assert.AreEqual("SDB_CLS_NODE_NOT_EXIST", e.ErrorType);
+            } 
+            finally 
+            {
+                sdb.RemoveReplicaGroup(groupName);
+            }
+        }
+        
         [TestMethod()]
         public void GetMasterAndSlaveNodeTest()
         {

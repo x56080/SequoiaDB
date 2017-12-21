@@ -511,19 +511,32 @@ namespace SequoiaDB
          */
         public Node GetNode(string nodeName)
         {
+            // check input argument
+            if (nodeName == null || 
+                !nodeName.Contains(SequoiadbConstants.NODE_NAME_SERVICE_SEP))
+            {
+                throw new BaseException("SDB_INVALIDARG");
+            }
+            // extract hostname and port
+            string[] hostname = null;
+            string targetHostName = null;
+            int targetHostPort = -1;
+            hostname = nodeName.Split(SequoiadbConstants.NODE_NAME_SERVICE_SEP[0]);
+            targetHostName = hostname[0].Trim();
+            if (targetHostName.Equals(string.Empty))
+            {
+                throw new BaseException("SDB_INVALIDARG");
+            }
             try
             {
-                if (!nodeName.Contains(SequoiadbConstants.NODE_NAME_SERVICE_SEP))
-                    throw new BaseException("SDB_INVALIDARG");
-                string[] hostname = nodeName.Split(SequoiadbConstants.NODE_NAME_SERVICE_SEP[0]);
-                if (hostname[1].Equals(string.Empty))
-                    throw new BaseException("SDB_INVALIDARG");
-                return GetNode(hostname[0].Trim(), int.Parse(hostname[1].Trim()));
+                targetHostPort = int.Parse(hostname[1].Trim());
             }
             catch (FormatException)
             {
                 throw new BaseException("SDB_INVALIDARG");
             }
+            // get node
+            return GetNode(targetHostName, targetHostPort);
         }
 
         /** \fn Node GetNode(string hostName, int port)
@@ -540,25 +553,31 @@ namespace SequoiaDB
             {
                 BsonDocument detail = GetDetail();
                 if (!detail[SequoiadbConstants.FIELD_GROUP].IsBsonArray)
+                {
                     throw new BaseException("SDB_SYS");
+                }
                 BsonArray nodes = detail[SequoiadbConstants.FIELD_GROUP].AsBsonArray;
                 foreach (BsonDocument node in nodes)
                 {
                     if (!node[SequoiadbConstants.FIELD_HOSTNAME].IsString)
+                    {
                         throw new BaseException("SDB_SYS");
+                    }
                     string hostname = node[SequoiadbConstants.FIELD_HOSTNAME].AsString;
                     if (hostname.Equals(hostName))
                     {
                         Node rn = ExtractNode(node);
                         if (rn.Port == port)
+                        {
                             return rn;
+                        }
                     }
                 }
-                return null;
+                throw new BaseException("SDB_CLS_NODE_NOT_EXIST");
             }
             catch (KeyNotFoundException)
             {
-                return null;
+                throw new BaseException("SDB_SYS");
             }
         }
 
