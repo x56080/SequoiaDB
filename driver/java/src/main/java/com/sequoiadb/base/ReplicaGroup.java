@@ -631,18 +631,8 @@ public class ReplicaGroup {
             if (nodeIdFromCatalog == null || hostNameFromCatalog == null) {
                 throw new BaseException(SDBError.SDB_SYS, "invalid node's information");
             }
-            // change hostname to ip
-            String inputHostIp = null;
-            String hostIpFromCatalog = null;
-            try {
-                inputHostIp = InetAddress.getByName(inputHostName).toString()
-                        .split("/")[1];
-                hostIpFromCatalog = InetAddress.getByName(hostNameFromCatalog.toString())
-                        .toString().split("/")[1];
-            } catch (UnknownHostException e) {
-                throw new BaseException(SDBError.SDB_SYS, e);
-            }
-            if (hostIpFromCatalog.equals(inputHostIp) && portFromCatalog == inputPort) {
+            // compare
+            if (hostNameFromCatalog.equals(inputHostName) && portFromCatalog == inputPort) {
                 return new Node(inputHostName, inputPort,
                         Integer.parseInt(nodeIdFromCatalog.toString()), this);
             }
