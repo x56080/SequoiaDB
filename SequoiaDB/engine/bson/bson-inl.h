@@ -649,7 +649,6 @@ namespace bson {
             return "" ;
         }
 
-        decimal.init() ;
         rc = decimal.fromBsonValue( value() ) ;
         if ( 0 != rc )
         {

@@ -44,9 +44,9 @@ namespace engine
    _rtnSQLSum::_rtnSQLSum( const CHAR *pName )
    :_rtnSQLFunc( pName ),
     _sum(0),
+    _decSum(),
     _effective( FALSE )
    {
-      _decSum.init() ;
    }
 
    _rtnSQLSum::~_rtnSQLSum()
@@ -72,7 +72,7 @@ namespace engine
             else
             {
                bsonDecimal tmpDecimal ;
-               tmpDecimal.init() ;
+
                rc = tmpDecimal.fromDouble( _sum ) ;
                if ( SDB_OK != rc )
                {

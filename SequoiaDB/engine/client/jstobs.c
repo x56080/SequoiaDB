@@ -821,11 +821,10 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
       }
       case BSON_DECIMAL:
       {
-         bson_decimal decimal ;
+         bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
          int rc        = 0 ;
          CHAR *value   = NULL ;
          int size      = 0 ;
-         decimal_init( &decimal ) ;
 
          // get decimal 
          bson_iterator_decimal( &i, &decimal ) ;
@@ -1624,12 +1623,11 @@ BOOLEAN bsonElementToChar ( CHAR **buffer, INT32 *bufsize, bson_iterator *in )
    }
    case BSON_DECIMAL:
    {
-      bson_decimal decimal ;
+      bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
       char *pTmp   = NULL ;
       int size     = 0 ;
       int rc       = 0 ;
 
-      decimal_init( &decimal ) ;
       rc = decimal_from_bsonvalue( bson_iterator_value( in ), &decimal ) ;
       if ( 0 != rc )
       {

@@ -1086,7 +1086,7 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
       }
       case CJSON_DECIMAL:
       {
-         bson_decimal bsonDecimal ;
+         bson_decimal bsonDecimal = DECIMAL_DEFAULT_VALUE ;
          cJsonIteratorDecimal( pIter, &arg1, &arg2 ) ;
          if( arg1.valType != CJSON_INT32 &&
              arg1.valType != CJSON_INT64 &&
@@ -1133,10 +1133,6 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
                JSON_PRINTF_LOG( "Failed to init decimal, key: %s", pKey ) ;
                goto error ;
             }
-         }
-         else
-         {
-            decimal_init( &bsonDecimal ) ;
          }
          if( arg1.valType == CJSON_INT32 )
          {

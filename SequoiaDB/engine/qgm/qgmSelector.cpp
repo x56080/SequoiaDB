@@ -329,7 +329,7 @@ namespace engine
       else if ( ( INT16 )bson::NumberDecimal == vType )
       {
          bson::bsonDecimal decimal ;
-         decimal.init() ;
+
          rc = decimal.fromBsonValue( (const CHAR *)v.getValue() ) ;
          if ( SDB_OK != rc )
          {

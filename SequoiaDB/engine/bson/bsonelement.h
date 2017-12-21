@@ -584,7 +584,6 @@ namespace bson {
             {
                bsonDecimal decimal ;
                double tempValue = 0.0 ;
-               decimal.init() ;
                decimal.fromBsonValue( value() ) ;
                decimal.toDouble( &tempValue ) ;
                return tempValue ;
@@ -608,7 +607,6 @@ namespace bson {
             {
                bsonDecimal decimal ;
                int tempValue = 0 ;
-               decimal.init() ;
                decimal.fromBsonValue( value() ) ;
                decimal.toInt( &tempValue ) ;
                return tempValue ;
@@ -632,7 +630,6 @@ namespace bson {
             {
                bsonDecimal decimal ;
                long long tempValue = 0 ;
-               decimal.init() ;
                decimal.fromBsonValue( value() ) ;
                decimal.toLong( &tempValue ) ;
                return tempValue ;
@@ -644,7 +641,6 @@ namespace bson {
 
     inline bsonDecimal BSONElement::numberDecimal() const {
         bsonDecimal decimal ;
-        decimal.init() ;
         switch( type() ) {
         case NumberDouble:
             decimal.fromDouble( _numberDouble() ) ;

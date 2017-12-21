@@ -738,7 +738,6 @@ namespace engine
          bsonDecimal rDecimal ;
          bsonDecimal resultDecimal ;
 
-         lDecimal.init() ;
          rc = _getDecimal( lDecimal ) ;
          if ( SDB_OK != rc )
          {
@@ -746,7 +745,6 @@ namespace engine
             goto error ;
          }
 
-         rDecimal.init() ;
          rc = right._getDecimal( rDecimal ) ;
          if ( SDB_OK != rc )
          {
@@ -754,7 +752,6 @@ namespace engine
             goto error ;
          }
 
-         resultDecimal.init() ;
          rc = lDecimal.add( rDecimal, resultDecimal ) ;
          if ( SDB_OK != rc )
          {
@@ -829,7 +826,6 @@ namespace engine
          bsonDecimal rDecimal ;
          bsonDecimal resultDecimal ;
 
-         lDecimal.init() ;
          rc = _getDecimal( lDecimal ) ;
          if ( SDB_OK != rc )
          {
@@ -837,7 +833,6 @@ namespace engine
             goto error ;
          }
 
-         rDecimal.init() ;
          rc = right._getDecimal( rDecimal ) ;
          if ( SDB_OK != rc )
          {
@@ -845,7 +840,6 @@ namespace engine
             goto error ;
          }
 
-         resultDecimal.init() ;
          rc = lDecimal.sub( rDecimal, resultDecimal ) ;
          if ( SDB_OK != rc )
          {
@@ -919,7 +913,6 @@ namespace engine
          bsonDecimal rDecimal ;
          bsonDecimal resultDecimal ;
 
-         lDecimal.init() ;
          rc = _getDecimal( lDecimal ) ;
          if ( SDB_OK != rc )
          {
@@ -927,7 +920,6 @@ namespace engine
             goto error ;
          }
 
-         rDecimal.init() ;
          rc = right._getDecimal( rDecimal ) ;
          if ( SDB_OK != rc )
          {
@@ -935,7 +927,6 @@ namespace engine
             goto error ;
          }
 
-         resultDecimal.init() ;
          rc = lDecimal.mul( rDecimal, resultDecimal ) ;
          if ( SDB_OK != rc )
          {
@@ -1009,7 +1000,6 @@ namespace engine
          bsonDecimal rDecimal ;
          bsonDecimal resultDecimal ;
 
-         lDecimal.init() ;
          rc = _getDecimal( lDecimal ) ;
          if ( SDB_OK != rc )
          {
@@ -1017,7 +1007,6 @@ namespace engine
             goto error ;
          }
 
-         rDecimal.init() ;
          rc = right._getDecimal( rDecimal ) ;
          if ( SDB_OK != rc )
          {
@@ -1025,7 +1014,6 @@ namespace engine
             goto error ;
          }
 
-         resultDecimal.init() ;
          rc = lDecimal.div( rDecimal, resultDecimal ) ;
          if ( SDB_OK != rc )
          {
@@ -1136,7 +1124,6 @@ namespace engine
          bsonDecimal rDecimal ;
          bsonDecimal resultDecimal ;
 
-         lDecimal.init() ;
          rc = _getDecimal( lDecimal ) ;
          if ( SDB_OK != rc )
          {
@@ -1144,7 +1131,6 @@ namespace engine
             goto error ;
          }
 
-         rDecimal.init() ;
          rc = right._getDecimal( rDecimal ) ;
          if ( SDB_OK != rc )
          {
@@ -1152,7 +1138,6 @@ namespace engine
             goto error ;
          }
 
-         resultDecimal.init() ;
          rc = lDecimal.mod( rDecimal, resultDecimal ) ;
          if ( SDB_OK != rc )
          {
