@@ -2165,10 +2165,15 @@ namespace engine
 
    void _clsSplitSrcSession::_onNotifyOver( const CHAR *clFullName )
    {
-      _ntyOverTime = pmdAcquireGlobalID() ;
+      SDB_ASSERT( 0 == _ntyOverTime, "_ntyOverTime should be 0" ) ;
+
+      _ntyOverTime = 0 ;
+      _mainCLName.clear() ;
+
       _pFreezingWindow->registerCL( clFullName, _ntyOverTime ) ;
       PD_LOG( PDEVENT, "Session[%s]: Begin to block all write operations "
               "of collection[%s]", sessionName(), clFullName ) ;
+
       /// If the collection has main collection, need to block its main
       /// collection
       _pCatAgent->lock_r() ;
@@ -2178,12 +2183,28 @@ namespace engine
          _mainCLName = pSet->getMainCLName() ;
       }
       _pCatAgent->release_r() ;
+
       if ( !_mainCLName.empty() )
       {
-         _pFreezingWindow->registerCL( _mainCLName.c_str(), _ntyOverTime ) ;
+         UINT64 mainCLOverTime = 0 ;
+
+         // 1. Block operators from main-collection
+         _pFreezingWindow->registerCL( _mainCLName.c_str(), mainCLOverTime ) ;
          PD_LOG( PDEVENT, "Session[%s]: Begin to block all write operations "
                  "of the main collection[%s]", sessionName(),
                  _mainCLName.c_str() ) ;
+         // 2 .Block operators from sub-collection with the new operator ID of
+         //    main-collection
+         _pFreezingWindow->registerCL( clFullName, mainCLOverTime ) ;
+         // 3. Unblock sub-collection with old operator ID
+         // NOTE: If another operator on sub-collection entered between old
+         //       operator ID and new operator ID, it could be blocked by the
+         //       old operator ID. Then the old operator ID is unregistered,
+         //       it could continue to process, but it's DPS log will be waited
+         //       by the new operator ID
+         _pFreezingWindow->unregisterCL( clFullName, _ntyOverTime ) ;
+         // 4. reset notify over time
+         _ntyOverTime = mainCLOverTime ;
       }
    }
 
