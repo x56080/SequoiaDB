@@ -294,7 +294,7 @@ catch( e )
 }
 var OMA_PORT_MAX                           = 65535 ;
 var OMA_PORT_INVALID                       = -1 ;
-var OMA_PORT_TEMP_AGENT_PORT               = 10000 ;
+var OMA_PORT_TEMP_AGENT_PORT               = 13742 ;
 var OMA_RESERVED_PORT                      = [ 11790, [11800, 11804], [11810, 11814], [11820, 11824], 30000, 50000, 60000 ] ;
 // option
 var OMA_OPTION_SDBCMART_I                  = "--I" ;
@@ -316,7 +316,7 @@ var OMA_SYS_CATALOG_RG                     = "SYSCatalogGroup" ;
 var OMA_SYS_COORD_RG                       = "SYSCoord" ;
 var OMA_LINUX                              = "LINUX" ;
 var OMA_WINDOWS                            = "WINDOWS" ;
-var OMA_TMP_SDBCM_ALIVE_TIME               = 300 // sec
+var OMA_TMP_SDBCM_ALIVE_TIME               = 300 ; // sec
 var OMA_SLEEP_TIME                         = 500 ; // ms
 var OMA_TRY_TIMES                          = 6 ;
 var OMA_WAIT_CATA_RG_TRY_TIMES             = 600 ; // sec
