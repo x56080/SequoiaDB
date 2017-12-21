@@ -793,9 +793,16 @@ namespace engine
          BOOLEAN isGotMsg = cb->waitEvent( pmdEvent, waitTime ) ;
          // if we hit interrupt, let's just get out of here. Don't need to worry
          // about cb queue, pmdEDUCB::clear() is going to clean it up.
-         PD_CHECK( !cb->isInterrupted() && !cb->isForced(),
-                   SDB_APP_INTERRUPT, error, PDERROR,
-                   "Interrupt! stop receiving reply!" ) ;
+         if ( cb->isInterrupted() || cb->isForced() )
+         {
+            if ( isGotMsg )
+            {
+               pmdEduEventRelase( pmdEvent, cb ) ;
+            }
+            rc = SDB_APP_INTERRUPT ;
+            PD_LOG( PDERROR, "Interrupt! stop receiving reply!" ) ;
+            goto error ;
+         }
 
          // if we didn't receive anything
          if ( FALSE == isGotMsg )
@@ -1659,12 +1666,16 @@ namespace engine
             BOOLEAN isGotMsg = cb->waitEvent( pmdEvent,
                                               RTN_COORD_RSP_WAIT_TIME ) ;
             if ( cb->isForced() ||
-                 ( cb->isInterrupted() && !( cb->isDisconnected() ) )
-                )
+                 ( cb->isInterrupted() && !( cb->isDisconnected() ) ) )
             {
+               if ( isGotMsg )
+               {
+                  pmdEduEventRelase( pmdEvent, cb ) ;
+               }
                rc = SDB_APP_INTERRUPT ;
                break ;
             }
+
             if ( FALSE == isGotMsg )
             {
                continue ;
@@ -1772,6 +1783,8 @@ namespace engine
             PD_LOG ( PDERROR,
                      "Failed to get catalog-group info, reply error(rc=%d)",
                      rc ) ;
+            SDB_OSS_FREE( pReply ) ;
+            pReply = NULL ;
             continue ;
          }
          rc = rtnCoordUpdateRoute( groupInfo, pRouteAgent,
