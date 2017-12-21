@@ -164,7 +164,6 @@ namespace exprt
       ( OPTION_TYPE,                   _TYPE(string),    EXPLAIN_TYPE ) \
       ( OPTION_WITHID,                 _TYPE(bool),      EXPLAIN_WITHID ) \
       ( OPTION_FIELDS,         _TYPE(vector<string>),    EXPLAIN_FIELDS ) \
-      ( OPTION_ERRORSTOP,              _TYPE(bool),      EXPLAIN_ERRORSTOP ) \
       ( OPTION_SSL,                    _TYPE(bool),      EXPLAIN_SSL) \
       ( OPTION_FLOATFMT,               _TYPE(string),    EXPLAIN_FLOATFMT )
 
@@ -382,7 +381,6 @@ namespace exprt
       WRITE_STR_OPTION( writeBuf, OPTION_USER, _user, TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_TYPE, _typeName, TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_FILELIMIT, _fileLimit, _has(OPTION_FILELIMIT));
-      WRITE_BOOL_OPTION( writeBuf, OPTION_ERRORSTOP, _errorStop, TRUE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_SSL, _useSSL, TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_FLOATFMT, _floatFmt, TRUE ) ;
 
