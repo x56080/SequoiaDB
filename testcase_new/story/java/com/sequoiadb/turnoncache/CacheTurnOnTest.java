@@ -30,7 +30,7 @@ public class CacheTurnOnTest extends SdbTestBase{
 	@DataProvider(name = "clientoption-provider")
 	public Object[][] getClientOption(){
 		return new Object[][]{
-				new Object[]{true, 20000},
+				new Object[]{true, 2000},
 				new Object[]{false, 1000},
 		};
 	}
@@ -159,17 +159,51 @@ public class CacheTurnOnTest extends SdbTestBase{
 		}	
 	}
 	
+	long dropCSWithSpendTime(CollectionSpace cs){
+	    long start = System.currentTimeMillis();
+	    dropCS(cs);
+	    long end = System.currentTimeMillis();
+	    return end - start;
+	}
+	
+	long dropCSWithSpendTime( Sequoiadb db ){
+        long start = System.currentTimeMillis();
+        db.dropCollectionSpace( testCaseCSName ) ;
+        long end = System.currentTimeMillis();
+        return end - start;
+    }
+	
+	long dropCLWithSpendTime(CollectionSpace cs){
+        long start = System.currentTimeMillis();
+        dropCL(cs);
+        long end = System.currentTimeMillis();
+        return end - start;
+    }
+	
+	long Sleep(int inteval){
+	    long start = System.currentTimeMillis() ;
+	    try {
+	        Thread.sleep(inteval);
+	    } catch (InterruptedException e) {
+	        // TODO Auto-generated catch block
+	        e.printStackTrace();
+	    }
+	    long end = System.currentTimeMillis() ;
+	    return end - start ;
+	}
+	
+	
 	@Test(dataProvider= "clientoption-provider")
 	void testCreateCS(boolean enable, int inteval){
 		initClient(enable, inteval);
 		CollectionSpace  cs = createCS();
-		
+		long spendTime = 0 ;
 		try{
 			getCS(db_check);
-			dropCS(cs);
+			spendTime = dropCSWithSpendTime(cs);
 			getCS(db_check);
 		}catch(BaseException e){
-			if (enable){
+			if (enable && spendTime < inteval){
 				Assert.assertFalse(true,e.getMessage());
 			}else{
 				Assert.assertEquals(e.getErrorCode(), 
@@ -182,13 +216,14 @@ public class CacheTurnOnTest extends SdbTestBase{
 	void testCreateCL(boolean enable, int inteval){
 		initClient(enable, inteval);
 		CollectionSpace cs = createCL(null);
+		long spendTime = 0 ;
 		try{
 			getCL(db_check);
-			dropCL(cs);
+			spendTime = dropCLWithSpendTime(cs);
 			getCL(db_check);
 			
 		}catch(BaseException e){
-			if (enable){
+			if (enable && spendTime < inteval){
 				Assert.assertFalse(true,e.getMessage());
 			}else{
 				Assert.assertEquals(e.getErrorCode(), 
@@ -203,13 +238,13 @@ public class CacheTurnOnTest extends SdbTestBase{
 		BSONObject options = new BasicBSONObject();
 		options.put("ReplSize", 0);
 		CollectionSpace cs = createCL(options);
-		
+		long spendTime = 0 ;
 		try{
 			getCL(db_check);
-			dropCL(cs);
+			spendTime = dropCLWithSpendTime(cs);
 			getCL(db_check);
 		}catch(BaseException e){
-			if (enable){
+			if (enable && spendTime < inteval){
 				Assert.assertFalse(true,e.getMessage());	
 			}else{
 				Assert.assertEquals(e.getErrorCode(), 
@@ -252,20 +287,20 @@ public class CacheTurnOnTest extends SdbTestBase{
 	void testGetCSOfTimeOut(boolean enable, int inteval){
 		initClient(enable, inteval);
 		CollectionSpace cs = createCS();
-		
+		long spendTime = 0 ;
 		try{
 			getCS(db_check);
-			Thread.sleep(inteval+2000);
-			dropCS(cs);
+			spendTime = Sleep( inteval ) ;
+			spendTime += dropCLWithSpendTime(cs);
+			while ( spendTime < inteval ){
+			    int tmpInteval = inteval - (int)spendTime ;
+			    spendTime += Sleep( tmpInteval ) ;
+			}
 			getCS(db_check);
 			Assert.assertFalse(true, "must is SDB_DMS_CS_NOTEXIST");
 		}catch(BaseException e){
 			Assert.assertEquals(e.getErrorCode(), 
 					new BaseException("SDB_DMS_CS_NOTEXIST").getErrorCode());
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Assert.assertFalse(true, e.getMessage());
 		}
 	}
 	
@@ -273,21 +308,22 @@ public class CacheTurnOnTest extends SdbTestBase{
 	void testGetCLOfTimeOut(boolean enable, int inteval){
 		initClient(enable, inteval);
 		CollectionSpace cs = createCL(null);
-		
+		long spendTime = 0 ;
 		try{
 			getCL(db_check);
-			Thread.sleep(inteval+2000);
-			dropCL(cs);
+			spendTime = Sleep( inteval ) ;
+			spendTime += dropCLWithSpendTime( cs );
+			//dropCL(cs);
+			while ( spendTime < inteval ){
+                int tmpInteval = inteval - (int)spendTime ;
+                spendTime += Sleep( tmpInteval ) ;
+            }
 			getCL(db_check);
 			Assert.assertFalse(true, "must is SDB_DMS_CS_NOTEXIST");
 		}catch(BaseException e){
 			Assert.assertEquals(e.getErrorCode(), 
 				      new BaseException("SDB_DMS_NOTEXIST").getErrorCode());
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Assert.assertFalse(true, e.getMessage());
-		}
+		} 
 		dropCS(cs);
 	}
 	
@@ -319,14 +355,7 @@ public class CacheTurnOnTest extends SdbTestBase{
 	void testUpdateTimeStamp(boolean enable, int inteval){
 		initClient(enable, inteval);
 		CollectionSpace cs = createCL(null);
-	
-		try {
-			Thread.sleep(inteval);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Assert.fail(e.getMessage());
-		}
+		
 		try{
 			DBCollection cl = cs.getCollection(clName);
 			BSONObject doc = new BasicBSONObject();
@@ -336,11 +365,13 @@ public class CacheTurnOnTest extends SdbTestBase{
 			Assert.assertFalse(true, e.getMessage());
 		}
 		
+		long spendTime = 0 ;
 		try{
-			db_check.dropCollectionSpace(testCaseCSName);
+		    spendTime = dropCSWithSpendTime( db_check ) ;
+			//db_check.dropCollectionSpace(testCaseCSName);
 			getCS(db);
 		}catch(BaseException e){
-			if (enable){
+			if (enable && spendTime < inteval){
 			   Assert.assertFalse(true, e.getMessage());
 			}else{
 				Assert.assertEquals(e.getErrorCode(), new BaseException("SDB_DMS_CS_NOTEXIST").getErrorCode());	
@@ -354,7 +385,7 @@ public class CacheTurnOnTest extends SdbTestBase{
 		try{
 			getCL(db);
 		}catch(BaseException e){
-			if (enable){
+			if (enable && spendTime < inteval ){
 				Assert.assertFalse(true, e.getMessage());	
 			}else{
 				Assert.assertEquals(e.getErrorCode(), new BaseException("SDB_DMS_CS_NOTEXIST").getErrorCode());	
