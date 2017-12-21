@@ -129,7 +129,7 @@ namespace exprt
    // single collection
    #define EXPLAIN_COLLECTSPACE     "collection space name"
    #define EXPLAIN_COLLECTION       "collection name"
-   #define EXPLAIN_SELECT           "the select rule(e.g. --select '{ age:"", address:{$trim:1} }')"
+   #define EXPLAIN_SELECT           "the select rule(e.g. --select '{ age:\"\", address:{$trim:1} }')"
    #define EXPLAIN_FILTER           "the matching rule(e.g. --filter '{ age: 18 }')"
    #define EXPLAIN_SORT             "the ordered rule(e.g. --sort '{ name: 1 }')"
    #define EXPLAIN_FILENAME         "output file name for one collection"
