@@ -92,7 +92,7 @@ public class SDBGetRG {
         Node node3 = null;
         try {
             node3 = rg.getNode("ubuntu", 30000);
-            Assert.fail("should get SDB_SYS(-10) error");
+            Assert.fail("should get SDB_CLS_NODE_NOT_EXIST(-155) error");
         } catch (BaseException e) {
             Assert.assertEquals(SDBError.SDB_CLS_NODE_NOT_EXIST.getErrorCode(), e.getErrorCode());
         }
