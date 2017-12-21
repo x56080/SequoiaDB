@@ -1204,8 +1204,8 @@ namespace sdbclient
                              const bson::BSONObj &condition,
                              const bson::BSONObj &selected,
                              const bson::BSONObj &orderBy,
-                             INT64 numToSkip,
-                             INT64 numToReturn ) ;
+                             INT64 numToSkip = 0,
+                             INT64 numToReturn = -1 ) ;
     \brief Get the index blocks' or data blocks' infomation for concurrent query
     \param [in] condition The matching rule, return all the documents if not provided
     \param [in] orderBy The ordered rule, result set is unordered if not provided
@@ -1223,15 +1223,15 @@ namespace sdbclient
                              const bson::BSONObj &condition,
                              const bson::BSONObj &orderBy,
                              const bson::BSONObj &hint,
-                             INT64 numToSkip,
-                             INT64 numToReturn ) ;
+                             INT64 numToSkip = 0,
+                             INT64 numToReturn = -1 ) ;
 
 /** \fn  INT32 getQueryMeta ( sdbCursor &cursor,
                          const bson::BSONObj &condition,
                          const bson::BSONObj &selected,
                          const bson::BSONObj &orderBy,
-                         INT64 numToSkip,
-                         INT64 numToReturn )
+                         INT64 numToSkip = 0,
+                         INT64 numToReturn = -1 )
     \brief Get the index blocks' or data blocks' infomations for concurrent query
     \param [in] condition The matching rule, return the whole range of index blocks if not provided
                     eg:{"age":{"$gt":25},"age":{"$lt":75}}
@@ -1250,8 +1250,8 @@ namespace sdbclient
                          const bson::BSONObj &condition,
                          const bson::BSONObj &orderBy,
                          const bson::BSONObj &hint,
-                         INT64 numToSkip,
-                         INT64 numToReturn )
+                         INT64 numToSkip = 0,
+                         INT64 numToReturn = -1 )
     {
        if ( !pCollection )
           return SDB_NOT_CONNECTED ;
@@ -1835,7 +1835,7 @@ namespace sdbclient
 /* \fn INT32 getNode ( const CHAR *pNodeName,
                       _sdbNode **node )
     \brief Get specified node from current replica group.
-    \param [in] pHostName The host name of the node
+    \param [in] pNodeName The name of the node, with the format of "hostname:port".
     \param [out] node  The specified node
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
@@ -1851,7 +1851,7 @@ namespace sdbclient
 /** \fn INT32 getNode ( const CHAR *pNodeName,
                       sdbNode &node )
     \brief Get specified node from current replica group.
-    \param [in] pHostName The host name of the node.
+    \param [in] pNodeName The name of the node, with the format of "hostname:port".
     \param [out] node  The specified node.
     \retval SDB_OK Operation Success
     \retval Others Operation Fail

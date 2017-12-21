@@ -54,7 +54,7 @@ static const INT16 clientDefaultW = 0 ;
 static const UINT64 clientDefaultRouteID = 0 ;
 static const SINT32 clientDefaultFlags = 0 ;
 static BOOLEAN cacheEnabled = TRUE ;
-static UINT32  cachedTimeInterval = 300 ;   // default is 300 milliseconds
+static UINT32  cachedTimeInterval = 300 ;   // default is 300 seconds
 static UINT32  maxCachedSlotCount = 1000 ;
 static INT32 clientCheckBuffer ( CHAR **ppBuffer, INT32 *bufferSize,
                            INT32 packetLength )

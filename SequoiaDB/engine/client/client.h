@@ -697,7 +697,7 @@ SDB_EXPORT INT32 sdbGetNodeByName ( sdbReplicaGroupHandle cHandle,
                                  sdbNodeHandle *handle )
     \brief Get the node from the specified replica group
     \param [in] cHandle The replica group handle
-    \param [in] pHostName The host of node
+    \param [in] pNodeName The name of the node, with the format of "hostname:port".
     \param [in] pServiceName The service name of the node
     \param [out] handle The node handle, when fail to get node,
                       *handle == -1, and error code is return
