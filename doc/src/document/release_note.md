@@ -24,10 +24,7 @@ SequoiaDB 数据库是一款新型企业级分布式非关系型数据库，帮�
 - 访问计划缓存优化
 - 将LOBM文件的PageSize大小从256字节调整为64字节
 - 优化C#驱动批插性能
-- cache相关优化
 - 索引性能优化
-- 优化LOB并发回放的机制
-- 优化存储空间分配策略
 
 **解决重要bug：**
 
@@ -40,73 +37,15 @@ SequoiaDB 数据库是一款新型企业级分布式非关系型数据库，帮�
 
 **其它优化：**
 
-- OM部署业务完成后发现远程主机的database用户权限为root
-- Java驱动bson的Binary类中缺少equals()方法
-- 编目节点只能detach而不能attach
-- sequoiasql_oltp用in操作符包含多字段查询时报错
-- Java驱动构造异常指定错误码不存在时getErrorCode()返回为0
-- 在使用systemd的系统上卸载SequoiaDB失败
-- 使用sdb shell脚本查询1MB左右的二进制数据时报错
-- 在SUSE12使用SAC部署业务时重复选择磁盘
-- Java驱动timestamp字符串格式错误时解析不报错而返回当前系统时间
-- SAC添加业务时支持强制输入不存在的配置项
-- Java驱动BSONObject转成JSON后的String括号前后空格不一致
-- 升级安装时等待端口时间从6s延长到30s
-- SAC安装业务失败
-- Java驱动中集合不存在时CollectionSpace.getCollection()返回null
-- Java驱动构造SequoiaDB传入的用户密码错误时报错信息中语法有误
-- Python驱动调用collection.create_id_index()/collection.drop_id_index()接口报错
-- 开启trace后内存泄露
-- Python驱动collection.save()接口指定_id为非objectID类型时报错
-- Python驱动collection.get_query_meta()接口的参数问题
-- C驱动socket的recv返回EAGAIN/EWOULDBLOCK时未重试
-- Python驱动的timestamp类型问题
-- Python驱动的binary数据类型问题
-- 执行queryAndUpdate()未执行cursor.next()更新数据成功
-- Python驱动replicagroup.is_catalog()接口报const.TRUE未定义的错误
-- Python驱动中调用replicanode.connect()没有返回连接对象
-- Python驱动集群管理接口返回值问题
-- Python驱动client.list_tasks()接口错误
 - preferinstance默认值从A改成M
-- Java驱动BSON中Long值比对结果错误
-- 安装sequoiasql-oltp的run包会导致之前的环境变量被覆盖
-- sequoiasql-oltp安装包在静默模式支持覆盖安装
-- sdbinspect工具将字段顺序不一致的同一条记录检测为不一致的记录
-- Java驱动ReplicaGroup.getMaster()接口获取信息为null不抛异常
 - Collection.listLobs()卡死
-- rtnPredicate内存泄露
-- sdb shell多次执行traceFmt()产生错误的数据
-- catch错误时打印日志cond参数写错
-- 查询集合时STRINGOUT功能存在问题
 - 反复停启数据主节点导致主节点dms元数据totalRecords与实际数据个数不一致
-- 连接coord节点停止coord节点组失败
 - 日志归档开启压缩时节点宕机
-- 使用默认用户、密码和端口创建ssh连接失败
-- 超出一定范围的INT64类型数值与DOUBLE类型数值比较结果不正确
-- SAC在中文语言环境中报错
-- SAC上创建业务时在修改业务步骤删除节点之后打开节点编辑窗口信息错误
-- PHP驱动install的接口使用字符串参数可能会异常退出
-- SAC添加主机失败提示信息不足
-- SAC添加主机过程中，点击上一步会导致主机添加失败
 - 并发执行事务过程中执行事务快照导致节点宕机
-- Python驱动调用collection的LOB相关的接口时传入错误的str类型的oid导致挂掉
 - 插入大量LOB数据时删除集合空间导致节点崩溃
-- 当集合空间LobPageSize不为默认值时在节点重启后该集合空间的Cache页大小不正确
-- Java驱动BasicBSONObject实现hashCode()方法
-- PHP驱动不能使用SSL连接
-- 扩展页面的任务名字中包含集合空间名
-- PHP驱动直接调用SecureSdb返回值为字符串而不是数组
-- 并发detach/attach节点时报-158错误
 - 查询连接较多时数据节点卡住
 - 节点故障重启后rebuild过程中死锁
-- 部分代码中trace出入口不配对
-- Java驱动JSON.parse()解析日期时对时区处理的问题
-- PHP驱动snapshot定义的类型跟其它驱动不统一
-- detach子表时内存泄露
-- 文件句柄不足时创建集合报错时错误码不准确
-- 协调节点上执行命令时内存泄漏
 - forceStepUp()可能会导致节点宕机
-- Java驱动无参构造BSONTimestamp对象后调用toString报空指针异常
 - 多个集合并发执行LOB随机读写时数据主节点宕机
 
 ##SequoiaDB version 2.8 版本说明##
