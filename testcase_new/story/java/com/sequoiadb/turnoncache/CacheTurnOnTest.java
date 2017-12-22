@@ -291,7 +291,7 @@ public class CacheTurnOnTest extends SdbTestBase{
 		try{
 			getCS(db_check);
 			spendTime = Sleep( inteval ) ;
-			spendTime += dropCLWithSpendTime(cs);
+			spendTime += dropCSWithSpendTime(cs);
 			while ( spendTime < inteval ){
 			    int tmpInteval = inteval - (int)spendTime ;
 			    spendTime += Sleep( tmpInteval ) ;
