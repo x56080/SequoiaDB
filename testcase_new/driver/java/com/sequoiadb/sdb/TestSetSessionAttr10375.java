@@ -80,7 +80,6 @@ public class TestSetSessionAttr10375 extends SdbTestBase{
         try {
             List<String> groupList = new ArrayList<String>();
             groupList = this.sdb.getReplicaGroupsInfo();
-            this.sdb.getReplicaGroup(0);
             for (String str:groupList) {
                 BSONObject object = (BSONObject) JSON.parse(str);
                 if ("0".equals(object.get("Role").toString())) { //datarg
