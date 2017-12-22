@@ -61,8 +61,8 @@ typedef BOOLEAN (*socketInterruptFunc)(void) ;
 typedef struct _sdbClientConf
 {
    // used for cache strategy
-   BOOLEAN enableCacheStrategy ; // The flag to OPEN the cache strategy
-   UINT32  cacheTimeInterval ;   // The life cycle of cached object
+   BOOLEAN enableCacheStrategy ; /**< The flag to OPEN the cache strategy */
+   UINT32  cacheTimeInterval ;   /**< The life cycle(in seconds) of cached object */
 } sdbClientConf ;
 
 #endif
