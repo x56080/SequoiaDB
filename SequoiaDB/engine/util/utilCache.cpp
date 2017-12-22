@@ -60,7 +60,7 @@ namespace engine
       _readTimes = 0 ;
       _writeTimes = 0 ;
       _status = 0 ;
-      _pinkCnt = 0 ;
+      _pinCnt = 0 ;
       _beginLSN = ~0 ;
       _endLSN = ~0 ;
       _lsnNum = 0 ;
@@ -77,7 +77,7 @@ namespace engine
       _readTimes = right._readTimes ;
       _writeTimes = right._writeTimes ;
       _status = right._status ;
-      _pinkCnt = right._pinkCnt ;
+      _pinCnt = right._pinCnt ;
       _beginLSN = right._beginLSN ;
       _endLSN = right._endLSN ;
       _lsnNum = right._lsnNum ;
@@ -141,7 +141,7 @@ namespace engine
       _readTimes = 0 ;
       _writeTimes = 0 ;
       _status = 0 ;
-      _pinkCnt = 0 ;
+      _pinCnt = 0 ;
       _beginLSN = ~0 ;
       _endLSN = ~0 ;
       _lsnNum = 0 ;
@@ -172,7 +172,7 @@ namespace engine
       _readTimes = rhs._readTimes ;
       _writeTimes = rhs._writeTimes ;
       _status = rhs._status ;
-      _pinkCnt = rhs._pinkCnt ;
+      _pinCnt = rhs._pinCnt ;
       _beginLSN = rhs._beginLSN ;
       _endLSN = rhs._endLSN ;
       _lsnNum = rhs._lsnNum ;
@@ -398,7 +398,7 @@ namespace engine
       _readTimes = right._readTimes ;
       _writeTimes = right._writeTimes ;
       _status = right._status ;
-      _pinkCnt = right._pinkCnt ;
+      _pinCnt = right._pinCnt ;
       _beginLSN = right._beginLSN ;
       _endLSN = right._endLSN ;
       _lsnNum = right._lsnNum ;

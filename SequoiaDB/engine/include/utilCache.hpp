@@ -183,12 +183,12 @@ namespace engine
          void        pin()
          {
             OSS_BIT_SET( _status, UTIL_CACHE_PAGE_PIN_FLAG ) ;
-            ++_pinkCnt ;
+            ++_pinCnt ;
          }
          void        unpin()
          {
-            --_pinkCnt ;
-            if ( 0 == _pinkCnt )
+            --_pinCnt ;
+            if ( 0 == _pinCnt )
             {
                OSS_BIT_CLEAR( _status, UTIL_CACHE_PAGE_PIN_FLAG ) ;
             }
@@ -200,7 +200,7 @@ namespace engine
          }
          UINT32      getPinkCnt() const
          {
-            return _pinkCnt ;
+            return _pinCnt ;
          }
          void        lock()
          {
@@ -321,7 +321,7 @@ namespace engine
          UINT32                     _readTimes ;
          UINT32                     _writeTimes ;
          UINT16                     _status ;
-         UINT16                     _pinkCnt ;
+         UINT16                     _pinCnt ;
          UINT64                     _beginLSN ;
          UINT64                     _endLSN ;
          UINT32                     _lsnNum ;
