@@ -133,14 +133,14 @@ namespace sdbclient
       string getPasswd() const { return _passwd ; }
 
       /** \fn void setConnCntInfo(INT32 initCnt,
-         INT32 deltaIncCnt,
-         INT32 maxIdleCnt,
-         INT32 maxCnt)
+                                  INT32 deltaIncCnt,
+                                  INT32 maxIdleCnt,
+                                  INT32 maxCnt)
          \brief Set connection number parameters
          \param [in] initCnt The initial connection number
          \param [in] deltaIncCnt The increment of connection each time
          \param [in] maxIdleCnt The max idle connection number
-         \param [in] maCnt The max connection number
+         \param [in] maxCnt The max connection number
       */
       void setConnCntInfo( 
          INT32 initCnt,
