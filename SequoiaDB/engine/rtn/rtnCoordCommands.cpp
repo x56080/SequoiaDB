@@ -1931,11 +1931,7 @@ namespace engine
    done:
       if ( strHostName && svcname )
       {
-         const CHAR * commandName = queryOption._fullName ;
-         PD_AUDIT_COMMAND( AUDIT_SYSTEM,
-                           ( NULL == commandName ?
-                             "" : ( '$' == commandName[0] ?
-                                    commandName + 1 : commandName ) ),
+         PD_AUDIT_COMMAND( AUDIT_SYSTEM, queryOption._fullName + 1,
                            AUDIT_OBJ_NODE, "", rc,
                            "HostName:%s, ServiceName:%s", strHostName,
                            svcname ) ;
