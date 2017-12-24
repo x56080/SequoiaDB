@@ -2435,40 +2435,29 @@ namespace engine
 
    void _clsSplitSrcSession::_onNotifyOver( const CHAR *clFullName )
    {
-      if ( 0 != _ntyOverTime )
+      if ( _ntyOverTime > 0 )
       {
          /// Blocking has been started, the sync process might be restarted
          /// by drop or truncate of collection, need to unblock the previous
          /// one
-         UINT64 blockOpID = _ntyOverTime ;
-
          PD_LOG( PDDEBUG, "Session[%s]: Blocking write operations of "
                  "collection [%s] has been started, end blocking for further "
                  "process", sessionName(), clFullName ) ;
 
-         _ntyOverTime = 0 ;
-
-         /// Unblock
-         _pFreezingWindow->unregisterCL( _curCollecitonName.c_str(),
-                                         blockOpID ) ;
+         _pFreezingWindow->unregisterCL( clFullName, _mainCLName.c_str(),
+                                         _ntyOverTime ) ;
          PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
-                 "of collection[%s]", sessionName(),
-                 _curCollecitonName.c_str() ) ;
-
+                 "of collection[%s]", sessionName(), clFullName ) ;
          if ( !_mainCLName.empty() )
          {
-            _pFreezingWindow->unregisterCL( _mainCLName.c_str(), blockOpID ) ;
             PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
                     "of the main collection[%s]", sessionName(),
                     _mainCLName.c_str() ) ;
          }
       }
 
+      _ntyOverTime = 0 ;
       _mainCLName.clear() ;
-
-      _pFreezingWindow->registerCL( clFullName, _ntyOverTime ) ;
-      PD_LOG( PDEVENT, "Session[%s]: Begin to block all write operations "
-              "of collection[%s]", sessionName(), clFullName ) ;
 
       /// If the collection has main collection, need to block its main
       /// collection
@@ -2480,27 +2469,16 @@ namespace engine
       }
       _pCatAgent->release_r() ;
 
+      /// Block collection and main-collection ( if have ) together
+      _pFreezingWindow->registerCL( clFullName, _mainCLName.c_str(),
+                                    _ntyOverTime ) ;
+      PD_LOG( PDEVENT, "Session[%s]: Begin to block all write operations "
+              "of collection[%s]", sessionName(), clFullName ) ;
       if ( !_mainCLName.empty() )
       {
-         UINT64 mainCLOverTime = 0 ;
-
-         // 1. Block operators from main-collection
-         _pFreezingWindow->registerCL( _mainCLName.c_str(), mainCLOverTime ) ;
          PD_LOG( PDEVENT, "Session[%s]: Begin to block all write operations "
                  "of the main collection[%s]", sessionName(),
                  _mainCLName.c_str() ) ;
-         // 2 .Block operators from sub-collection with the new operator ID of
-         //    main-collection
-         _pFreezingWindow->registerCL( clFullName, mainCLOverTime ) ;
-         // 3. Unblock sub-collection with old operator ID
-         // NOTE: If another operator on sub-collection entered between old
-         //       operator ID and new operator ID, it could be blocked by the
-         //       old operator ID. Then the old operator ID is unregistered,
-         //       it could continue to process, but it's DPS log will be waited
-         //       by the new operator ID
-         _pFreezingWindow->unregisterCL( clFullName, _ntyOverTime ) ;
-         // 4. reset notify over time
-         _ntyOverTime = mainCLOverTime ;
       }
    }
 
@@ -2770,22 +2748,22 @@ namespace engine
 
       if ( hasSplit )
       {
-         UINT64 blockOpID = _ntyOverTime ;
-
-         _ntyOverTime = 0 ;
          /// Unblock
-         _pFreezingWindow->unregisterCL( _curCollecitonName.c_str(), blockOpID ) ;
+         _pFreezingWindow->unregisterCL( _curCollecitonName.c_str(),
+                                         _mainCLName.c_str(),
+                                         _ntyOverTime ) ;
          PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
                  "of collection[%s]", sessionName(),
                  _curCollecitonName.c_str() ) ;
          if ( !_mainCLName.empty() )
          {
-            _pFreezingWindow->unregisterCL( _mainCLName.c_str(), blockOpID ) ;
             PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
                     "of the main collection[%s]", sessionName(),
                     _mainCLName.c_str() ) ;
-            _mainCLName.clear() ;
          }
+
+         _ntyOverTime = 0 ;
+         _mainCLName.clear() ;
 
          MsgClsFSLEndRes res ;
          res.header.header.requestID = header->requestID ;
@@ -3066,20 +3044,19 @@ namespace engine
          taskMgr->removeTask( _taskID ) ;
       }
 
-      if ( !_curCollecitonName.empty() && _ntyOverTime > 0 )
+      if ( _ntyOverTime > 0 )
       {
          _pFreezingWindow->unregisterCL( _curCollecitonName.c_str(),
-                                         _ntyOverTime ) ;
+                                         _mainCLName.c_str(), _ntyOverTime ) ;
          PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
                  "of collection[%s]", sessionName(),
                  _curCollecitonName.c_str() ) ;
-      }
-      if ( !_mainCLName.empty() && _ntyOverTime > 0 )
-      {
-         _pFreezingWindow->unregisterCL( _mainCLName.c_str(), _ntyOverTime ) ;
-         PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
-                 "of the main collection[%s]", sessionName(),
-                 _mainCLName.c_str() ) ;
+         if ( !_mainCLName.empty() )
+         {
+            PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
+                    "of the main collection[%s]", sessionName(),
+                    _mainCLName.c_str() ) ;
+         }
       }
 
       // wait cleanup done

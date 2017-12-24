@@ -109,14 +109,20 @@ namespace engine
          _clsFreezingWindow() ;
          ~_clsFreezingWindow() ;
 
-         void registerCL( const CHAR *pName, UINT64 & opID ) ;
-         void unregisterCL( const CHAR *pName, UINT64 opID ) ;
+         void registerCL ( const CHAR * pName, const CHAR * pMainCLName,
+                           UINT64 & opID ) ;
+         void unregisterCL ( const CHAR * pName, const CHAR * pMainCLName,
+                             UINT64 opID ) ;
 
          BOOLEAN needBlockOpr( const CHAR *pName, UINT64 testOpID ) ;
 
          INT32 waitForOpr( const CHAR *pName,
                            _pmdEDUCB *cb,
                            BOOLEAN isWrite ) ;
+
+      private :
+         void _registerCLInternal ( const CHAR * pName, UINT64 opID ) ;
+         void _unregisterCLInternal ( const CHAR * pName, UINT64 opID ) ;
 
       private:
          UINT32            _clCount ;

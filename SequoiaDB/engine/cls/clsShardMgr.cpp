@@ -145,10 +145,10 @@ namespace engine
    {
    }
 
-   void _clsFreezingWindow::registerCL( const CHAR *pName, UINT64 & opID )
+   void _clsFreezingWindow::registerCL ( const CHAR * pName,
+                                         const CHAR * pMainCLName,
+                                         UINT64 & opID )
    {
-      MAP_WINDOW::iterator it ;
-
       _latch.get() ;
 
       // operator ID is not given, acquire one for it
@@ -160,7 +160,23 @@ namespace engine
          opID = pmdAcquireGlobalID() ;
       }
 
-      it = _mapWindow.find( pName ) ;
+      if ( NULL != pName && '\0' != pName[0] )
+      {
+         _registerCLInternal( pName, opID ) ;
+      }
+      if ( NULL != pMainCLName && '\0' != pMainCLName[0] )
+      {
+         _registerCLInternal( pMainCLName, opID ) ;
+      }
+
+      _latch.release() ;
+   }
+
+   void _clsFreezingWindow::_registerCLInternal ( const CHAR * pName,
+                                                  UINT64 opID )
+   {
+      MAP_WINDOW::iterator it = _mapWindow.find( pName ) ;
+
       if ( _mapWindow.end() == it )
       {
          ++_clCount ;
@@ -174,17 +190,31 @@ namespace engine
       {
          it->second.insert( opID ) ;
       }
-
-      _latch.release() ;
    }
 
-   void _clsFreezingWindow::unregisterCL( const CHAR *pName, UINT64 opID )
+   void _clsFreezingWindow::unregisterCL ( const CHAR * pName,
+                                           const CHAR * pMainCLName,
+                                           UINT64 opID )
    {
-      MAP_WINDOW::iterator it ;
-
       _latch.get() ;
 
-      it = _mapWindow.find( pName ) ;
+      if ( NULL != pName && '\0' != pName[0] )
+      {
+         _unregisterCLInternal( pName, opID ) ;
+      }
+      if ( NULL != pMainCLName && '\0' != pMainCLName[0] )
+      {
+         _unregisterCLInternal( pMainCLName, opID ) ;
+      }
+
+      _latch.release() ;
+      _event.signalAll() ;
+   }
+
+   void _clsFreezingWindow::_unregisterCLInternal ( const CHAR * pName,
+                                                    UINT64 opID )
+   {
+      MAP_WINDOW::iterator it = _mapWindow.find( pName ) ;
 
       if ( _mapWindow.end() != it )
       {
@@ -196,9 +226,6 @@ namespace engine
             --_clCount ;
          }
       }
-
-      _latch.release() ;
-      _event.signalAll() ;
    }
 
    BOOLEAN _clsFreezingWindow::needBlockOpr( const CHAR *pName,
