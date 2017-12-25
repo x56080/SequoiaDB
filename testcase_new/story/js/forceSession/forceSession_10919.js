@@ -23,188 +23,97 @@
  */
 
 main();
-function main() {
-    if (commIsStandalone(db)) return;
 
-    // 3.a
-    var contextList = null;
-    try {
-        contextList = db.list(SDB_LIST_CONTEXTS).toArray();
-    } catch (e) {
-        throw buildException("TODO 3.a: db.list(SDB_LIST_CONTEXTS) fail", e);
-    }
-    var context = JSON.parse(contextList[Math.ceil(Math.random() * 1000) % contextList.length]);
-    var SessionID = context.SessionID;
-    var NodeID = new InfoByNodeName(context.NodeName).getNodeIdByNodeName();
-    try {
-        db.forceSession(SessionID, {NodeID: NodeID});
-    } catch (e) {
-        println(JSON.stringify(context));
-        if( isSystemEDU( context ) && e === -264 )
-        {
-        }
-        else
-        {
-           throw buildException("TODO 3.a: db.forceSession(SessionID, {NodeID: NodeID}) fail", e);
-        }
-    }
-    sleep(500);
-    var temp = null;
-    try {
-        temp = db.list(SDB_LIST_CONTEXTS, {SessionID: SessionID, NodeName: context.NodeName}).toArray();
-    } catch (e) {
-        println(JSON.stringify(context));
-        throw buildException("TODO 3.a: db.list(SDB_LIST_CONTEXTS, {SessionID: SessionID, NodeName: context.NodeName}).toArray() fail", e);
-    }
-    if (temp.length === 0) {
-        println("3.a 查询到数组长度为：" + temp.length);
-        println(temp);
-        println(JSON.stringify(context));
-        throw buildException("inner current sesssion be forced", null);
-    }
+function main() 
+{
+   if( commIsStandalone( db ) ) 
+      return ;
+   
+   var groups = getDataGroups( db ) ;
+   var groupName = groups[0] ;
+   var nodes = getGroupNodes( db, groupName ) ;
+   var nodeName = nodes[0] ;
+   var nodeID = new InfoByNodeName( nodeName ).getNodeIdByNodeName() ;
+   var hostName = nodeName.split( ":" )[0] ;
+   var svcName = nodeName.split( ":" )[1] ;
+   
+   var dataDb = new Sdb( hostName, svcName ) ;
+   var sessionID = dataDb.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj()["SessionID"] ;
+   
+   // 3.a forceSession with nodeID
+   var option = { NodeID: nodeID } ;
+   testForceSession( db, dataDb, sessionID, option ) ;
+   
+   // 3.b forceSession with  hostName
+   dataDb = new Sdb( hostName, svcName ) ;
+   sessionID = dataDb.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj()["SessionID"] ;
+   option = { HostName: hostName } ;
+   var errno = ( getNameNum( nodes, hostName ) === 1 ) ? 0 : -264 ;
+   ( errno === -264 ) ? testForceSession( db, dataDb, sessionID, option, errno ) 
+                      : testForceSession( db, dataDb, sessionID, option ) ; 
+   
+   // 3.c forceSession with svcname
+   dataDb = new Sdb( hostName, svcName ) ;
+   sessionID = dataDb.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj()["SessionID"] ;
+   option = { svcname: svcName } ;
+   errno = ( getNameNum( nodes, svcName ) === 1 ) ? 0 : -264 ;
+   ( errno === -264 ) ? testForceSession( db, dataDb, sessionID, option, errno ) 
+                      : testForceSession( db, dataDb, sessionID, option ) ;
+   
+   // 3.d forceSession with nodeID hostName
+   dataDb = new Sdb( hostName, svcName ) ;
+   sessionID = dataDb.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj()["SessionID"] ;
+   option = { NodeID: nodeID, HostName: hostName } ;
+   testForceSession( db, dataDb, sessionID, option ) ;
 
-    // 3.d
-    var contextList = null;
-    try {
-        contextList = db.list(SDB_LIST_CONTEXTS).toArray();
-    } catch (e) {
-        throw buildException("TODO 3.d: db.list(SDB_LIST_CONTEXTS) fail", e);
-    }
-    var context = JSON.parse(contextList[Math.ceil(Math.random() * 1000) % contextList.length]);
-    var SessionID = context.SessionID;
-    var NodeID = new InfoByNodeName(context.NodeName).getNodeIdByNodeName();
-    var HostName = context.NodeName.split(":")[0];
-    try {
-        temp = db.forceSession(SessionID, {NodeID: NodeID, HostName: HostName});
-    } catch (e) {
-        println(JSON.stringify(context));
-        if( isSystemEDU( context ) && e === -264 )
-        {
-        }
-        else
-        {
-           throw buildException("TODO 3.d: db.forceSession(SessionID, {NodeID: NodeID}) fail", e);
-        }
-    }
-    sleep(500);
-    var temp = null;
-    try {
-        temp = db.list(SDB_LIST_CONTEXTS, {SessionID: SessionID, NodeName: context.NodeName}).toArray();
-    } catch (e) {
-        println(JSON.stringify(context));
-        throw buildException("TODO 3.d: db.list(SDB_LIST_CONTEXTS, {SessionID: SessionID, NodeName: context.NodeName}).toArray() fail", e);
-    }
-    if (temp.length === 0) {
-        println("3.d 查询到数组长度为：" + temp.length);
-        println(temp);
-        println(JSON.stringify(context));
-        throw buildException("inner current sesssion be forced", null);
-    }
-
-    // 3.e
-    var contextList = null;
-    try {
-        contextList = db.list(SDB_LIST_CONTEXTS).toArray();
-    } catch (e) {
-        throw buildException("TODO 3.d: db.list(SDB_LIST_CONTEXTS) fail", e);
-    }
-    var context = JSON.parse(contextList[Math.ceil(Math.random() * 1000) % contextList.length]);
-    var SessionID = context.SessionID;
-    var GroupName = new InfoByNodeName(context.NodeName).getGroupNameByNodeName();
-    var HostName = context.NodeName.split(":")[0];
-    var svcname = context.NodeName.split(":")[1];
-    try {
-        db.forceSession(SessionID, {GroupName: GroupName, HostName: HostName, svcname: svcname});
-    } catch (e) {
-        println(JSON.stringify(context));
-        if( isSystemEDU( context ) && e === -264 )
-        {
-        }
-        else
-        { 
-           throw buildException("TODO 3.e: db.forceSession(SessionID, {NodeID: NodeID}) fail", e);
-        }
-    }
-    sleep(500);
-    var temp = null;
-    try {
-        temp = db.list(SDB_LIST_CONTEXTS, {SessionID: SessionID, NodeName: context.NodeName}).toArray();
-    } catch (e) {
-        println(JSON.stringify(context));
-        throw buildException("TODO 3.e: db.list(SDB_LIST_CONTEXTS, {SessionID: SessionID, NodeName: context.NodeName}).toArray() fail", e);
-    }
-    if (temp.length === 0) {
-        println("3.e 查询到数组长度为：" + temp.length);
-        println(temp);
-        println(JSON.stringify(context));
-        throw buildException("inner current sesssion be forced", null);
-    }
-
-    // 3.b
-    var contextList = null;
-    try {
-        contextList = db.list(SDB_LIST_CONTEXTS).toArray();
-    } catch (e) {
-        throw buildException("TODO 3.b: db.list(SDB_LIST_CONTEXTS) fail", e);
-    }
-    var context = JSON.parse(contextList[Math.ceil(Math.random() * 1000) % contextList.length]);
-    var SessionID = context.SessionID;
-    var HostName = context.NodeName.split(":")[0];
-    try {
-        db.forceSession(SessionID, {HostName: HostName});
-    } catch (e) {
-        if (e !== -264) {
-            println(JSON.stringify(context));
-            throw buildException("TODO 3.b: db.forceSession(SessionID, {NodeID: NodeID}) fail", e);
-        }
-    }
-    sleep(500);
-    var temp = null;
-    try {
-        temp = db.list(SDB_LIST_CONTEXTS, {SessionID: SessionID, NodeName: context.NodeName}).toArray();
-    } catch (e) {
-        println(JSON.stringify(context));
-        throw buildException("TODO 3.b: db.list(SDB_LIST_CONTEXTS, {SessionID: SessionID, NodeName: context.NodeName}).toArray() fail", e);
-    }
-    if (temp.length === 0) {
-        println("3.b 查询到数组长度为：" + temp.length);
-        println(temp);
-        println(JSON.stringify(context));
-        throw buildException("inner current sesssion be forced", null);
-    }
-
-    // println("3.c==============");
-    // 3.d
-    var contextList = null;
-    try {
-        contextList = db.list(SDB_LIST_CONTEXTS).toArray();
-    } catch (e) {
-        throw buildException("TODO 3.d: db.list(SDB_LIST_CONTEXTS) fail", e);
-    }
-    var context = JSON.parse(contextList[Math.ceil(Math.random() * 1000) % contextList.length]);
-    var SessionID = context.SessionID;
-    var svcname = context.NodeName.split(":")[1];
-    try {
-        db.forceSession(SessionID, {svcname: svcname});
-    } catch (e) {
-        if (e !== -264) {
-            println(JSON.stringify(context));
-            throw buildException("TODO 3.b: db.forceSession(SessionID, {NodeID: NodeID}) fail", e);
-        }
-    }
-    sleep(500);
-    var temp = null;
-    try {
-        temp = db.list(SDB_LIST_CONTEXTS, {SessionID: SessionID, NodeName: context.NodeName}).toArray();
-    } catch (e) {
-        println(JSON.stringify(context));
-        throw buildException("TODO 3.d: db.list(SDB_LIST_CONTEXTS, {SessionID: SessionID, NodeName: context.NodeName}).toArray() fail", e);
-    }
-    if (temp.length === 0) {
-        println("3.d 查询到数组长度为：" + temp.length);
-        println(temp);
-        println(JSON.stringify(context));
-        throw buildException("inner current sesssion be forced", null);
-    }
+   // 3.e forceSession with nodeID hostName svcName
+   dataDb = new Sdb( hostName, svcName ) ;
+   sessionID = dataDb.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj()["SessionID"] ;
+   option = { NodeID: nodeID, HostName: hostName, svname: svcName } ;
+   testForceSession( db, dataDb, sessionID, option ) ;
 }
 
+function testForceSession( db, dataDb, sessionID, option, errno )
+{
+   try 
+   {
+      db.forceSession( sessionID, option ) ;
+      if( errno !== undefined )
+         throw 0 ;
+   } 
+   catch( e ) 
+   {
+      var msg = "forceSession " + sessionID + " with option " + JSON.stringify( option ) ;
+      if( errno === undefined )
+      {
+         throw buildException( "testForceSession", e, msg, 0, e ) ;
+      }
+      else if( e !== errno )
+      {
+         throw buildException( "testForceSession", e, msg, errno, e ) ;
+      }
+   }
+   try 
+   {
+      dataDb.list( SDB_LIST_SESSIONS_CURRENT ) ;
+      throw 0 ;
+   } 
+   catch( e ) 
+   {
+      if( e !== -16 && e !== -15 )
+      {
+         throw buildException( "testForceSession", e, "check session forced", "-15 -16", e ) ;
+      }
+   }
+}
+
+function getNameNum( nodes, name )
+{
+   var num = 0 ;
+   for( var i = 0;i < nodes.length;i++ )
+   {
+      if( nodes[i].indexOf( name ) !== -1 )
+         num++ ;
+   }
+   return num ;
+}

@@ -89,3 +89,43 @@ function isSystemEDU( context )
    println( "session: " + nodeName + ":" + sessionId + ", edu type is " + eduType ) ;
    return systemEduTypes.indexOf( eduType ) !== -1 ;
 }
+
+
+function getDataGroups( db )
+{
+    var groups = new Array() ;
+    var cursor = db.listReplicaGroups() ;
+    var tmpInfo ;
+    while( tmpInfo = cursor.next() )
+    {
+        var groupName = tmpInfo.toObj().GroupName ;
+        if( groupName == "SYSCoord" || groupName == "SYSCatalogGroup" )
+            continue ;
+        groups.push( groupName ) ;
+    }
+    return groups ;
+}
+
+function getGroupNodes( db, groupName )
+{
+    var arr = new Array() ;
+    var tmpObj = db.getRG( groupName ).getDetail().next().toObj() ;
+    var tmpGroupArray = tmpObj["Group"] ;
+    for( var j = 0;j < tmpGroupArray.length;++j )
+    {
+        var tmpNodeObj = tmpGroupArray[j] ;
+        var hostName = tmpNodeObj["HostName"] ;
+        for( var k = 0;k < tmpNodeObj.Service.length;++k )
+        {
+            var tmpSvcObj = tmpNodeObj.Service[k] ;
+            if( tmpSvcObj["Type"] == 0 )
+            {
+                var nodeName = hostName + ":" + tmpSvcObj["Name"] ;
+                arr.push( nodeName ) ;
+                break ;
+            }
+        }
+    }
+
+    return arr ;
+}
