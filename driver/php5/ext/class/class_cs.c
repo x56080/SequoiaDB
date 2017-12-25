@@ -170,8 +170,11 @@ PHP_METHOD( SequoiaCS, createCL )
    sdbCSHandle cs         = SDB_INVALID_HANDLE ;
    sdbCollectionHandle cl = SDB_INVALID_HANDLE ;
    bson options ;
+
    bson_init( &options ) ;
+
    PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
+
    if ( PHP_GET_PARAMETERS( "s|z",
                             &pClName,
                             &clNameLen,
@@ -180,28 +183,33 @@ PHP_METHOD( SequoiaCS, createCL )
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+
    PHP_READ_HANDLE( pThisObj,
                     cs,
                     sdbCSHandle,
                     SDB_CS_HANDLE_NAME,
                     csDesc ) ;
+
    rc = php_auto2Bson( pOptions, &options TSRMLS_CC ) ;
    if( rc )
    {
       goto error ;
    }
+
    rc = sdbCreateCollection1( cs, pClName, &options, &cl ) ;
    if( rc )
    {
       goto error ;
    }
-   PHP_BUILD_CLASS( FALSE, pThisObj, pSequoiadbCl, cl, clDesc ) ;
+
+   sdbReleaseCollection( cl ) ;
+
 done:
    bson_destroy( &options ) ;
+   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
    return ;
 error:
    PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
-   RETVAL_NULL() ;
    goto done ;
 }
 
