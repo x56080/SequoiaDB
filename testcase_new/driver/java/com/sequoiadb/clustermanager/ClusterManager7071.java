@@ -13,10 +13,9 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.Node;
 import com.sequoiadb.base.Node.NodeStatus;
 import com.sequoiadb.base.ReplicaGroup;
-import com.sequoiadb.base.ReplicaNode;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.metadata.CommLib;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
@@ -67,11 +66,8 @@ public class ClusterManager7071 extends SdbTestBase{
 	public void tearDown(){
 		try{
 			System.out.println("the TestCase: "+ this.getClass().getName() + 
-					" end at:" + df.format(new Date().getTime()));
-			
-			if(sdb.getReplicaGroup(dataRGName) != null){
-				sdb.removeReplicaGroup(dataRGName);
-			}
+					" end at:" + df.format(new Date().getTime()));		
+			sdb.removeReplicaGroup(dataRGName);
 			sdb.disconnect();
 		}catch(BaseException e){
 			Assert.fail("clear env failed, errMsg:" + e.getMessage());
@@ -82,19 +78,19 @@ public class ClusterManager7071 extends SdbTestBase{
 	public void test(){
 		//set node configure
 		int dataPortAdd1 = reservedPortBegin + 710 ;
-		String dataPathAdd1 = workDir + dataPortAdd1 + "/";
+		String dataPathAdd1 = workDir + "/" + dataPortAdd1 + "/";
 		BSONObject dataConfigue = null;
 		
 		//create data groups
 		ReplicaGroup dataRGAdd = null;
 		try{
-			if(sdb.getReplicaGroup(dataRGName) != null){
-				sdb.removeReplicaGroup(dataRGName);
-			}
-			dataRGAdd = sdb.createReplicaGroup(dataRGName);
+			sdb.getReplicaGroup(dataRGName);			
 		}catch(BaseException e){
-			Assert.fail("createReplicaGroup failed" + e.getMessage());
-		}
+			if( -154 != e.getErrorCode()){
+				sdb.removeReplicaGroup(dataRGName);
+			}			
+		}		
+		dataRGAdd = sdb.createReplicaGroup(dataRGName);		
 		
 		//create data node
 		Node data = null;
@@ -106,7 +102,7 @@ public class ClusterManager7071 extends SdbTestBase{
 		}
 		
 		int nodeId = 0;
-		String hostName = null;
+		String dataHostName = null;
 		String nodeName = null;
 		int port = 0;
 		ReplicaGroup dataReplicaGroup = null;
@@ -114,7 +110,7 @@ public class ClusterManager7071 extends SdbTestBase{
 		com.sequoiadb.base.Node.NodeStatus status = null;
 		try{
 			nodeId = data.getNodeId();
-			hostName = data.getHostName();
+			dataHostName = data.getHostName();
 			nodeName = data.getNodeName();
 			port = data.getPort();
 			dataReplicaGroup = data.getReplicaGroup();
@@ -126,7 +122,7 @@ public class ClusterManager7071 extends SdbTestBase{
 //		System.out.println("sdb1:"+sdb1);
 		Assert.assertNotEquals(nodeId, 0);
 		//SEQUOIADBMAINSTREAM-2003
-		//Assert.assertEquals(hostName, coordIP);
+		//Assert.assertEquals(dataHostName, coordIP);
 		//Assert.assertEquals(nodeName, coordIP + ":" + dataPortAdd1);
 		Assert.assertEquals(port, dataPortAdd1);
 		Assert.assertEquals(dataReplicaGroup.getGroupName(), dataRGName);

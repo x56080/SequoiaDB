@@ -3,6 +3,7 @@ package com.sequoiadb.clustermanager;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -19,7 +20,7 @@ import com.sequoiadb.base.Node;
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.metadata.CommLib;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
@@ -78,9 +79,14 @@ public class ClusterManager7065 extends SdbTestBase {
             System.out.println("the TestCase: " + this.getClass().getName() +
                     " end at:" + df.format(new Date().getTime()));
 
-            if (sdb.getReplicaGroup(dataRGName) != null) {
-                sdb.removeReplicaGroup(dataRGName);
-            }
+            try{
+    			sdb.getReplicaGroup(dataRGName);			
+    		}catch(BaseException e){
+    			if( -154 != e.getErrorCode()){
+    				sdb.removeReplicaGroup(dataRGName);
+    			}			
+    		}          
+            
             sdb.disconnect();
         } catch (BaseException e) {
             Assert.fail("clear env failed, errMsg:" + e.getMessage());
@@ -96,14 +102,14 @@ public class ClusterManager7065 extends SdbTestBase {
 
         //create data groups
         ReplicaGroup dataRGAdd = null;
-        try {
-            if (sdb.getReplicaGroup(dataRGName) != null) {
-                sdb.removeReplicaGroup(dataRGName);
-            }
-            dataRGAdd = sdb.createReplicaGroup(dataRGName);
-        } catch (BaseException e) {
-            Assert.fail("createReplicaGroup failed" + e.getMessage());
-        }
+        try{
+			sdb.getReplicaGroup(dataRGName);			
+		}catch(BaseException e){
+			if( -154 != e.getErrorCode()){
+				sdb.removeReplicaGroup(dataRGName);
+			}			
+		}
+        dataRGAdd = sdb.createReplicaGroup(dataRGName);        
 
         //create data node
         try {
@@ -224,8 +230,8 @@ public class ClusterManager7065 extends SdbTestBase {
         }
 
         //get master and slave
-        String actualMasterNodeName = null;
-        String actualSlaveNodeName = null;
+        String actualMasterNodeName;
+        String actualSlaveNodeName;
 
         try {
             for (int i = 0; i < 120; i++) {
@@ -244,29 +250,36 @@ public class ClusterManager7065 extends SdbTestBase {
                     }
                 }
             }
+
             dataRG = sdb.getReplicaGroup(dataRGName);
             Assert.assertEquals(isPrimary(dataRG), true);
         } catch (BaseException e) {
             Assert.fail("get master and slave node failed" + e.getMessage());
         }
 
-        //remove node
-        try {
-            int removePort = dataRG.getSlave().getPort();
-            dataRG.removeNode(coordIP, removePort, null);
-            Assert.assertNull(dataRG.getNode(coordIP, removePort), "node " + removePort + " exists ,but expect result is removed!");
-        } catch (BaseException e) {
-            Assert.fail("remove node failed" + e.getMessage());
-        }
-
+        //remove node          
+        int removePort = dataRG.getSlave().getPort();
+        dataRG.removeNode(coordIP, removePort, null);
+        try{
+        	dataRG.getNode(coordIP, removePort);
+        	Assert.fail("the node exists|");
+        }catch (BaseException e) {
+        	if( e.getErrorCode() != -155 ){
+        		Assert.fail("node " + removePort + " exists ,but expect result is removed!");
+        	}            
+        } 
 
         //remove replicaGroup
-        try {
-            sdb.removeReplicaGroup(dataRGName);
-        } catch (BaseException e) {
-            Assert.fail("remove replicaGroup failed" + e.getMessage());
-        }
-        Assert.assertNull(sdb.getReplicaGroup(dataRGName), "replicaGroup " + dataRGName + " exists ,but expect result is removed!");
+        sdb.removeReplicaGroup(dataRGName);
+        try{
+			sdb.getReplicaGroup(dataRGName);
+			Assert.fail("the remove group is exists!");
+		}catch(BaseException e){
+			if( -154 != e.getErrorCode()){
+				Assert.fail("the remove group fail!");
+			}			
+		}
+
     }
 
     private boolean isPrimary(ReplicaGroup group) {
@@ -293,5 +306,4 @@ public class ClusterManager7065 extends SdbTestBase {
         //should never come here!
         return false;
     }
-
 }

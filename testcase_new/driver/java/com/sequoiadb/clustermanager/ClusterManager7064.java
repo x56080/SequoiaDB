@@ -4,7 +4,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
+import org.bson.BSON;
 import org.bson.BSONObject;
+import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
@@ -15,7 +17,7 @@ import com.sequoiadb.base.Node;
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.metadata.CommLib;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.net.ServerAddress;
 import com.sequoiadb.testcommon.SdbTestBase;
 
@@ -83,7 +85,7 @@ public class ClusterManager7064 extends SdbTestBase{
 	public void test(){
 		//create cata Node
 		cataPortAdd = reservedPortBegin + 640 ;
-		String cataPathAdd = workDir + cataPortAdd + "/";
+		String cataPathAdd = workDir + "/" + cataPortAdd + "/";
 		BSONObject cataConfigue = null;
 		
 		ReplicaGroup cataGroup = null;
@@ -97,14 +99,15 @@ public class ClusterManager7064 extends SdbTestBase{
 		
 		Node cataNode = null;
 		try{
-			if(null != cataGroup.getNode(coordIP, cataPortAdd)){
-				cataGroup.removeNode(coordIP, cataPortAdd, null);
-			}
-			cataNode = cataGroup.createNode(coordIP, cataPortAdd, cataPathAdd, cataConfigue);
-			cataNode.start();
+			cataGroup.getNode(coordIP, cataPortAdd);			
 		}catch(BaseException e){
-			Assert.fail("create or start cata Node failed" + e.getMessage());
+			if( -155 != e.getErrorCode()){
+				cataGroup.removeNode(coordIP, cataPortAdd, null);
+			}			
 		}
+		cataNode = cataGroup.createNode(coordIP, cataPortAdd, cataPathAdd, cataConfigue);
+		cataNode.start();
+		
 		
 		//check cata group name
 		String actualCataGroupName = cataGroup.getGroupName();
@@ -123,13 +126,13 @@ public class ClusterManager7064 extends SdbTestBase{
 		
 		//seqDB-7070
 		Sequoiadb cata = null;
-		try{
+		try{			
 			cata = cataNode.connect();
-			cata.disconnect();
-		}catch(BaseException e){
-			Assert.fail("connect cata node failed" + e.getMessage());
 		}finally{
-			cata.disconnect();
+			if ( cata != null ){
+				cata.disconnect();
+			}
+			
 		}
 	}
 }

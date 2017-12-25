@@ -14,7 +14,7 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.metadata.CommLib;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
@@ -61,13 +61,10 @@ public class ClusterManager7069 extends SdbTestBase{
 	public void tearDown(){
 		try{
 			System.out.println("the TestCase: "+ this.getClass().getName() + 
-					" end at:" + df.format(new Date().getTime()));
-			if(sdb.getReplicaGroup(dataRGName1) != null){
-				sdb.removeReplicaGroup(dataRGName1);
-			}
-			if(sdb.getReplicaGroup(dataRGName2) != null){
-				sdb.removeReplicaGroup(dataRGName2);
-			}
+					" end at:" + df.format(new Date().getTime()));	
+			sdb.removeReplicaGroup(dataRGName1);
+			sdb.removeReplicaGroup(dataRGName2);
+				
 			sdb.disconnect();
 		}catch(BaseException e){
 			Assert.fail("clear env failed, errMsg:" + e.getMessage());
@@ -78,11 +75,11 @@ public class ClusterManager7069 extends SdbTestBase{
 	public void test(){
 		//set node configure
 		int dataPortAdd1 = reservedPortBegin + 690 ;
-		String dataPathAdd1 = workDir + dataPortAdd1 + "/";
+		String dataPathAdd1 = workDir + "/" + dataPortAdd1 + "/";
 		BSONObject dataConfigue = null;
 		
 		int dataPortAdd2 = reservedPortBegin + 700 ;
-		String dataPathAdd2 = workDir + dataPortAdd2 + "/";
+		String dataPathAdd2 = workDir + "/" + dataPortAdd2 + "/";
 		BSONObject dataConfigue1 = (BSONObject) JSON.parse("{KeepData:true}");
 		
 		ReplicaGroup dataRGAdd1 = null;
@@ -90,32 +87,29 @@ public class ClusterManager7069 extends SdbTestBase{
 		
 		//create data RG1
 		try{
-			if(sdb.getReplicaGroup(dataRGName1) != null){
-				sdb.removeReplicaGroup(dataRGName1);
-			}
-			dataRGAdd1 = sdb.createReplicaGroup(dataRGName1);
+			sdb.getReplicaGroup(dataRGName1);			
 		}catch(BaseException e){
-			Assert.fail("createReplicaGroup "+ dataRGName1 + " failed" + e.getMessage());
+			if( -154 != e.getErrorCode()){
+				sdb.removeReplicaGroup(dataRGName1);
+			}			
 		}
+		dataRGAdd1 = sdb.createReplicaGroup(dataRGName1);		
 		
 		//create data node
-		try{
-			dataRGAdd1.createNode(coordIP, dataPortAdd1, dataPathAdd1, dataConfigue );
-			dataRGAdd1.createNode(coordIP, dataPortAdd2, dataPathAdd2, dataConfigue );
-			sdb.activateReplicaGroup(dataRGName1);
-		}catch(BaseException e){
-			Assert.fail("create data Node or activateReplicaGroup failed" + e.getMessage());
-		}
+		dataRGAdd1.createNode(coordIP, dataPortAdd1, dataPathAdd1, dataConfigue );
+		dataRGAdd1.createNode(coordIP, dataPortAdd2, dataPathAdd2, dataConfigue );
+		sdb.activateReplicaGroup(dataRGName1);
+		
 		
 		//create data RG2 for backup
 		try{
-			if(sdb.getReplicaGroup(dataRGName2) != null){
-				sdb.removeReplicaGroup(dataRGName2);
-			}
-			dataRGAdd2 = sdb.createReplicaGroup(dataRGName2);
+			sdb.getReplicaGroup(dataRGName2);			
 		}catch(BaseException e){
-			Assert.fail("createReplicaGroup "+ dataRGName2 + " failed" + e.getMessage());
+			if( -154 != e.getErrorCode()){
+				sdb.removeReplicaGroup(dataRGName2);
+			}			
 		}
+		dataRGAdd2 = sdb.createReplicaGroup(dataRGName2);		
 		
 		//detach node from RG1
 		try{
@@ -123,8 +117,14 @@ public class ClusterManager7069 extends SdbTestBase{
 		}catch(BaseException e){
 			Assert.fail("detachNode "+ dataPortAdd1 + " failed" + e.getMessage());
 		}
-		Assert.assertNull(dataRGAdd1.getNode(coordIP, dataPortAdd1), "node " + dataPortAdd1 + 
-				" exists in " + dataRGName1 + " ,but expect result is detach!");
+		try{
+			dataRGAdd1.getNode(coordIP, dataPortAdd1);
+			Assert.fail("the detach node is exists!");
+		}catch(BaseException e){
+			if( -155!= e.getErrorCode()){
+				Assert.fail("detachNode fail!");
+			}			
+		}
 		
 		//attach node to RG2
 		try{

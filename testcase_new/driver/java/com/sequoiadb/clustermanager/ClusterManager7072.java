@@ -13,7 +13,7 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.metadata.CommLib;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
@@ -77,13 +77,14 @@ public class ClusterManager7072 extends SdbTestBase{
 		//create data groups
 		ReplicaGroup dataRGAdd = null;
 		try{
-			if(sdb.getReplicaGroup(dataRGName) != null){
-				sdb.removeReplicaGroup(dataRGName);
-			}
-			dataRGAdd = sdb.createReplicaGroup(dataRGName);
+			sdb.getReplicaGroup(dataRGName);			
 		}catch(BaseException e){
-			Assert.fail("createReplicaGroup failed" + e.getMessage());
+			if( -154 != e.getErrorCode()){
+				sdb.removeReplicaGroup(dataRGName);
+			}			
 		}
+		
+		dataRGAdd = sdb.createReplicaGroup(dataRGName);
 		
 		//create data node
 		try{
