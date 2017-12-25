@@ -1,21 +1,19 @@
 package com.sequoiadb.metadataconsistency.data;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Random;
 
-import org.testng.annotations.Test;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.AfterClass;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
 import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.metadataconsistency.data.MetaDataUtils;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -69,21 +67,21 @@ public class IdIndex10205 extends SdbTestBase {
 		}
 	}
 	
-	@Test(invocationCount = 3, threadPoolSize = 3)
+	@Test
 	public void test(){
 		CreateIdIndex createIdIndex = new CreateIdIndex();
-		createIdIndex.start();
+		createIdIndex.start(3);
 
 		DropIndex dropIndex = new DropIndex();
 		MetaDataUtils.sleep(random.nextInt(msec));
-		dropIndex.start();
+		dropIndex.start(3);
 		
 		if( !( createIdIndex.isSuccess() && dropIndex.isSuccess() ) ){
 			Assert.fail(createIdIndex.getErrorMsg() + dropIndex.getErrorMsg());
 		}
 
 		//check results
-		MetaDataUtils.checkIndex(csName, clName);
+		MetaDataUtils.checkIndex(csName, sCLName);
 	}
 
 	private class CreateIdIndex extends SdbThreadBase{

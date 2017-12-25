@@ -1,14 +1,13 @@
 package com.sequoiadb.metadataconsistency.cluster;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Random;
 
-import org.testng.annotations.Test;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.AfterClass;
 import org.testng.Assert;
 import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import com.sequoiadb.base.Node;
 import com.sequoiadb.base.ReplicaGroup;
@@ -82,19 +81,21 @@ public class Node10232 extends SdbTestBase {
 		@Override
 		public void exec() throws BaseException{
 			Sequoiadb db = null;
+			ReplicaGroup rgDB = null;
 			try{
 				db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-				
-				ReplicaGroup rgDB = db.getReplicaGroup("rgName");
-				if (rgDB != null) {
-					Node node = rgDB.getSlave();
-					String hostName = node.getHostName();
-					int svcName = node.getPort();
-					rgDB.removeNode(hostName, svcName, null);
+				try {
+					rgDB = db.getReplicaGroup("rgName");
+				} catch (BaseException e){
+					if( e.getErrorCode() != -154){
+						Node node = rgDB.getSlave();
+						String hostName = node.getHostName();
+						int svcName = node.getPort();
+						rgDB.removeNode(hostName, svcName, null);
+					}
 				}
 			}catch(BaseException e){
-				int eCode = e.getErrorCode();
-				if( eCode != -155){  //-155:Node does not exist
+				if( e.getErrorCode() != -155){  //-155:Node does not exist
 					throw e;
 				}
 			}
