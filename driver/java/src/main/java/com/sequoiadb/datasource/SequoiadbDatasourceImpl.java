@@ -57,7 +57,7 @@ public class SequoiadbDatasourceImpl {
     private IConnectionPool _usedConnPool = null;
     private IConnectStrategy _strategy = null;
     private ConnectionItemMgr _connItemMgr = null;
-    private final Object _createConnSingal = new Object();
+    private final Object _createConnSignal = new Object();
     // for creating connections
     private String _username = null;
     private String _password = null;
@@ -108,8 +108,8 @@ public class SequoiadbDatasourceImpl {
         public void run() {
             try {
                 while (!Thread.interrupted()) {
-                    synchronized (_createConnSingal) {
-                        _createConnSingal.wait();
+                    synchronized (_createConnSignal) {
+                        _createConnSignal.wait();
                     }
                     Lock rlock = _rwLock.readLock();
                     rlock.lock();
@@ -799,8 +799,8 @@ public class SequoiadbDatasourceImpl {
                             throw new BaseException(SDBError.SDB_SYS, "point 2: error happen for getting connection");
                         }
                         connItem.setAddr(sdb.getServerAddress().toString());
-                        synchronized (_createConnSingal) {
-                            _createConnSingal.notify();
+                        synchronized (_createConnSignal) {
+                            _createConnSignal.notify();
                         }
                     } else {
                         long restTime = timeout;
