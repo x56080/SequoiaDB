@@ -36,8 +36,8 @@ class DateType11191 extends BaseOperator
       
       $recsArray = array( 
          //array( 'a' => 0,  'b' => new SequoiaTimestamp() ),  //nonsuport
-         array( 'a' => 1,  'b' => new SequoiaTimestamp( "1902-01-01-00:00:00.000000" ) ), 
-         array( 'a' => 2,  'b' => new SequoiaTimestamp( "2037-12-31-23:59:59.999999" ) ), 
+         array( 'a' => 1,  'b' => new SequoiaTimestamp( "1902-01-01-00.00.00.000000" ) ), 
+         array( 'a' => 2,  'b' => new SequoiaTimestamp( "2037-12-31-23.59.59.999999" ) ), 
          array( 'a' => 3,  'b' => new SequoiaTimestamp( "1902-01-01T00:00:00.000Z" ) ), 
          array( 'a' => 4,  'b' => new SequoiaTimestamp( "2037-12-31T23:59:59.999Z" ) ), 
          array( 'a' => 5,  'b' => new SequoiaTimestamp( "1902-01-01T00:00:00.000+0800" ) ), 
@@ -117,7 +117,7 @@ class TestDate11191 extends PHPUnit_Framework_TestCase
       $expRecsArray = array( 
          //array( 'a' => 0,  'b' => new SequoiaTimestamp() ),  //nonsuport
          array( 'a' => 1,  'b' => "1902-01-01-00.00.00.000000" ), 
-         array( 'a' => 2,  'b' => "2037-12-31-23.00.00.000000" ), 
+         array( 'a' => 2,  'b' => "2037-12-31-23.59.59.999999" ), 
          array( 'a' => 3,  'b' => "1902-01-01-08.05.52.000000" ), 
          array( 'a' => 4,  'b' => "2038-01-01-07.59.59.999000" ), 
          array( 'a' => 5,  'b' => "1902-01-01-00.05.52.000000" ), 
