@@ -73,6 +73,9 @@ public class SequoiadbDatasourceImpl {
     // for thread safe
     private ReentrantReadWriteLock _rwLock = new ReentrantReadWriteLock();
     private final Object _objForReleaseConn = new Object();
+    // for error report
+    private final Object _objForExp = new Object();
+    private BaseException _lastException;
     // for others
     private Random _rand = new Random(47);
     private double MULTIPLE = 1.2;
@@ -827,15 +830,20 @@ public class SequoiadbDatasourceImpl {
                             }
                         }
                         if (connItem == null) {
-                        	String detail = String.format("total item: %d, idle item: %d, used item: %d, " + 
-                        		"idle connections: %d, used connections: %d, " +
-                        		"normal addresses: %d, abnormal addresses: %d, local addresses: %d",
-                        		_connItemMgr.getCapacity(), _connItemMgr.getIdleItemNum(), _connItemMgr.getUsedItemNum(),
-                        		_idleConnPool != null ? _idleConnPool.count() : null, 
-                        		_usedConnPool != null ? _usedConnPool.count() : null,
-                        		getNormalAddrNum(), getAbnormalAddrNum(), getLocalAddrNum());
-                            throw new BaseException(SDBError.SDB_DRIVER_DS_RUNOUT, 
-                            		"connection pool has run out(" + detail + ")");
+                            // make some debug info
+                            String detail = _getDataSourceSnapshot();
+                            if (getNormalAddrNum() == 0) {
+                                BaseException exp = _getLastException();
+                                String errMsg = "failed to get connection, no available address for connection, " + detail;
+                                if (exp != null) {
+                                    throw new BaseException(SDBError.SDB_NETWORK, errMsg, exp);
+                                } else {
+                                    throw new BaseException(SDBError.SDB_NETWORK, errMsg);
+                                }
+                            } else {
+                                throw new BaseException(SDBError.SDB_DRIVER_DS_RUNOUT,
+                                        "run out of all the connections, " + detail);
+                            }
                         } else {
                             sdb = _idleConnPool.poll(connItem);
                             // sanity check
@@ -1204,6 +1212,7 @@ public class SequoiadbDatasourceImpl {
                         sdb = new Sequoiadb(addr, _username, _password, _nwOpt);
                         break;
                     } catch (BaseException e) {
+                        _setLastException(e);
                         String errType = e.getErrorType();
                         if (errType.equals("SDB_NETWORK") || errType.equals("SDB_INVALIDARG") ||
                                 errType.equals("SDB_NET_CANNOT_CONNECT")) {
@@ -1265,9 +1274,36 @@ public class SequoiadbDatasourceImpl {
             }
         }
         if (retConn == null) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "no available address for connection");
+            throw new BaseException(SDBError.SDB_INVALIDARG,
+                    "no available address for creating connection, " + _getDataSourceSnapshot());
         }
         return retConn;
+    }
+
+    private String _getDataSourceSnapshot() {
+        String snapshot = String.format("[thread id: %d], total item: %d, idle item: %d, used item: %d, " +
+                        "idle connections: %d, used connections: %d, " +
+                        "normal addresses: %d, abnormal addresses: %d, local addresses: %d",
+                Thread.currentThread().getId(),
+                _connItemMgr.getCapacity(), _connItemMgr.getIdleItemNum(), _connItemMgr.getUsedItemNum(),
+                _idleConnPool != null ? _idleConnPool.count() : null,
+                _usedConnPool != null ? _usedConnPool.count() : null,
+                getNormalAddrNum(), getAbnormalAddrNum(), getLocalAddrNum());
+        return snapshot;
+    }
+
+    private void _setLastException(BaseException e) {
+        synchronized (_objForExp) {
+            _lastException = e;
+        }
+    }
+
+    private BaseException _getLastException() {
+        synchronized (_objForExp) {
+            BaseException exp = _lastException;
+            _lastException = null;
+            return exp;
+        }
     }
 
     private void _handleErrorAddr(String addr) {
@@ -1315,6 +1351,7 @@ public class SequoiadbDatasourceImpl {
                     sdb = new Sequoiadb(addr, _username, _password, _nwOpt);
                     break;
                 } catch (BaseException e) {
+                    _setLastException(e);
                     String errType = e.getErrorType();
                     if (errType.equals("SDB_NETWORK") || errType.equals("SDB_INVALIDARG") ||
                             errType.equals("SDB_NET_CANNOT_CONNECT")) {
