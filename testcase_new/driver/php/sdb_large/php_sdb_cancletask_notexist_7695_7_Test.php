@@ -153,13 +153,15 @@ class taskTest extends PHPUnit_Framework_TestCase
           return;
        }
        
-       self::$cl = self::$cs->createCL($name, json_encode(array('ShardingType' => 'hash', 'ShardingKey' =>array('_id' => 1))));
-       $err = self::$db -> getError() ;
+       $err = self::$cs->createCL($name, json_encode(array('ShardingType' => 'hash', 'ShardingKey' =>array('_id' => 1))));
        if( $err['errno'] != 0 ) {
           echo "Failed to create collection, error code: ".$err['errno'] ;
           self::$skipTestCase = true ;
           return ;
        }
+       
+       self::$cl = self::$cs -> getCL( $name ) ;
+       
        self::$fullname = $name.'.'.$name;
        self::loadData();
        $srcgroupname = self::getSrcGroup(self::$fullname);

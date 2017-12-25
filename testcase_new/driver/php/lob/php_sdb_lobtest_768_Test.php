@@ -51,7 +51,7 @@
             self::$skipTestCase = true ;
             return;
          }    
-         self::$cl = self::$cs->createCL( $clName );
+         self::$cl = self::$cs->selectCL( $clName );
          $err = self::$db->getError() ;
          if( $err['errno'] != 0 ) {
             echo "Failed to create collection, error code: ".$err['errno'] ;

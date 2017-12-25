@@ -37,11 +37,10 @@ class snapshotTransactionTest13635 extends PHPUnit_Framework_TestCase
       if ( $err['errno'] != 0 )
       {
          throw new Exception("failed to get cs, errno=".$err['errno']);
-      }
-      
+      }      
       
       // create cl
-      self::$clDB = $csDB -> createCL( self::$clName );
+      self::$clDB = $csDB -> selectCL( self::$clName );
       $err  = self::$db -> getError();
       if ( $err['errno'] != 0 )
       {

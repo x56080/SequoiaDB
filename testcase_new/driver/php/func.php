@@ -200,7 +200,12 @@ class BaseOperator
          echo "\nFailed to get cs. Errno: ". $this -> err ."\n";
       }
       
-      return $csDB -> createCL( $clName, $options );
+      $this -> err = $csDB -> createCL( $clName, $options );
+      if( $this -> err['errno'] !== 0 )
+      {
+         echo "\nFailed to create cl. Errno: ". $this -> err['errno'] ."\n";
+      }
+      return $csDB -> getCL( $clName ) ;
    }
    
    /* ***************************************
