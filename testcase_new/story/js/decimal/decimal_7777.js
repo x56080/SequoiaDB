@@ -86,6 +86,102 @@ function main()
 	//cast double
    var expRecs5 = [{a:-1.7E+308},{a:0},{a:0}];
 	checkResult( dbcl, null,{a:{$cast:1}}, expRecs5, {_id:1} );
+	
+	deleteData( dbcl, null ) ;
+	testSpecialDecimal( dbcl ) ;
+}
+
+function testSpecialDecimal( dbcl )
+{
+   //insert specila decimal data
+	var doc = [{a:{$decimal:"MAX"}},
+	           {a:{$decimal:"MIN"}},
+	           {a:{$decimal:"NAN"}},
+	           {a:{$decimal:"-INF"}},
+	           {a:{$decimal:"INF"}}];
+	insertData(dbcl, doc);
+	
+	//cast MinKey
+	var expRecs = [{a:{$minKey:1}},
+	               {a:{$minKey:1}},
+	               {a:{$minKey:1}},
+	               {a:{$minKey:1}},
+	               {a:{$minKey:1}}];
+	checkResult( dbcl, null,{a:{$cast:"minkey"}}, expRecs, {_id:1} );
+	
+	//cast Double
+	/*
+	expRecs = [{a:0},
+	           {a:0},
+	           {a:"nan"},
+	           {a:0},
+	           {a:0}];
+	checkResult( dbcl, null,{a:{$cast:"double"}}, expRecs, {_id:1} );
+	*/
+	
+	//cast String
+	expRecs = [{a:"MAX"},
+	           {a:"MIN"},
+	           {a:"NaN"},
+	           {a:"MIN"},
+	           {a:"MAX"}];
+	checkResult( dbcl, null,{a:{$cast:"string"}}, expRecs, {_id:1} );
+	
+	//cast Bool
+	expRecs = [{a:true},
+	           {a:true},
+	           {a:true},
+	           {a:true},
+	           {a:true}];
+	checkResult( dbcl, null,{a:{$cast:"bool"}}, expRecs, {_id:1} );
+	
+	//cast Date
+	expRecs = [{a:null},
+	           {a:null},
+	           {a:null},
+	           {a:null},
+	           {a:null}];
+	checkResult( dbcl, null,{a:{$cast:"date"}}, expRecs, {_id:1} );
+	
+	//cast Null
+	expRecs = [{a:null},
+	           {a:null},
+	           {a:null},
+	           {a:null},
+	           {a:null}];
+	checkResult( dbcl, null,{a:{$cast:"null"}}, expRecs, {_id:1} );
+	
+	//cast Int32
+	expRecs = [{a:0},
+	           {a:0},
+	           {a:0},
+	           {a:0},
+	           {a:0}];
+	checkResult( dbcl, null,{a:{$cast:"int32"}}, expRecs, {_id:1} );
+	
+	//cast Timestamp
+	expRecs = [{a:null},
+	           {a:null},
+	           {a:null},
+	           {a:null},
+	           {a:null}];
+	checkResult( dbcl, null,{a:{$cast:"timestamp"}}, expRecs, {_id:1} );
+	
+	//cast Int64
+	expRecs = [{a:0},
+	           {a:0},
+	           {a:0},
+	           {a:0},
+	           {a:0}];
+	checkResult( dbcl, null,{a:{$cast:"int64"}}, expRecs, {_id:1} );
+	
+	//cast MaxKey
+	expRecs = [{a:{$maxKey:1}},
+	           {a:{$maxKey:1}},
+	           {a:{$maxKey:1}},
+	           {a:{$maxKey:1}},
+	           {a:{$maxKey:1}}];
+	checkResult( dbcl, null,{a:{$cast:"maxkey"}}, expRecs, {_id:1} );
 }
 
 main();
