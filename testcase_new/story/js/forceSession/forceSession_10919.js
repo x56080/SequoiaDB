@@ -48,17 +48,13 @@ function main()
    dataDb = new Sdb( hostName, svcName ) ;
    sessionID = dataDb.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj()["SessionID"] ;
    option = { HostName: hostName } ;
-   var errno = ( getNameNum( nodes, hostName ) === 1 ) ? 0 : -264 ;
-   ( errno === -264 ) ? testForceSession( db, dataDb, sessionID, option, errno ) 
-                      : testForceSession( db, dataDb, sessionID, option ) ; 
+   testForceSession( db, dataDb, sessionID, option, -264 ) ;
    
    // 3.c forceSession with svcname
    dataDb = new Sdb( hostName, svcName ) ;
    sessionID = dataDb.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj()["SessionID"] ;
    option = { svcname: svcName } ;
-   errno = ( getNameNum( nodes, svcName ) === 1 ) ? 0 : -264 ;
-   ( errno === -264 ) ? testForceSession( db, dataDb, sessionID, option, errno ) 
-                      : testForceSession( db, dataDb, sessionID, option ) ;
+   testForceSession( db, dataDb, sessionID, option, -264 ) ;
    
    // 3.d forceSession with nodeID hostName
    dataDb = new Sdb( hostName, svcName ) ;
@@ -105,15 +101,4 @@ function testForceSession( db, dataDb, sessionID, option, errno )
          throw buildException( "testForceSession", e, "check session forced", "-15 -16", e ) ;
       }
    }
-}
-
-function getNameNum( nodes, name )
-{
-   var num = 0 ;
-   for( var i = 0;i < nodes.length;i++ )
-   {
-      if( nodes[i].indexOf( name ) !== -1 )
-         num++ ;
-   }
-   return num ;
 }
