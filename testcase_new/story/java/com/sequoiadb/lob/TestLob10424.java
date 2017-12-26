@@ -1,7 +1,5 @@
 package com.sequoiadb.lob;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Random;
 
 import org.bson.BSONObject;
@@ -33,8 +31,7 @@ public class TestLob10424 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private CollectionSpace cs = null;
     private ObjectId delOid = null; // which lob will be delete
-    private int delLobSize;
-    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
+    private int delLobSize;    
     
     public class Md5Data{
         public ObjectId oid = null;
@@ -131,14 +128,14 @@ public class TestLob10424 extends SdbTestBase {
         int lobsize = random.nextInt(1048576);
         // delLobSize is a global parameter. Change it here for convenience
         delLobSize = lobsize;
-        String lobSb = LobUtils.getRandomString(lobsize);
+        String lobSb = LobOprUtils.getRandomString(lobsize);
         Md5Data prevMd5 = new Md5Data();
         DBLob lob = null;
         try{
             lob = cl.createLob();
             lob.write(lobSb.getBytes());
             prevMd5.oid = lob.getID();
-            prevMd5.md5 = LobUtils.getMd5(lobSb);
+            prevMd5.md5 = LobOprUtils.getMd5(lobSb);
         }catch(BaseException e){    
             Assert.fail(e.getMessage());
         }finally{
@@ -161,16 +158,16 @@ public class TestLob10424 extends SdbTestBase {
         // check whether lob remains
         try{
             // insert a new lob with delOid
-            String lobSb = LobUtils.getRandomString(delLobSize);
+            String lobSb = LobOprUtils.getRandomString(delLobSize);
             DBLob wLob = cl.createLob(delOid);
             wLob.write(lobSb.getBytes());
-            String prevMd5 = LobUtils.getMd5(lobSb);
+            String prevMd5 = LobOprUtils.getMd5(lobSb);
             wLob.close();
             // read the new lob
             DBLob rLob = cl.openLob(delOid);
             byte[] buff = new byte[(int)rLob.getSize()];
             rLob.read(buff);
-            String afterMd5 = LobUtils.getMd5(buff);
+            String afterMd5 = LobOprUtils.getMd5(buff);
             rLob.close();
             // check the correctness of the new lob
             if(!prevMd5.equals(afterMd5)){

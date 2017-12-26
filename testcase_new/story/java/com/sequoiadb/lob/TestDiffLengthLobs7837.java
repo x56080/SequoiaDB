@@ -12,9 +12,6 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
@@ -35,17 +32,22 @@ public class TestDiffLengthLobs7837 extends SdbTestBase {
 	@DataProvider(name = "pagesizeProvider")
 	public Object[][] generatePageSize(){
 		return new Object[][]{
-			//lobPagesize and lobsize
-			new Object[]{0, 878568},
-			new Object[]{0, 1024},
-			new Object[]{4096, 1024},
-			new Object[]{8192,9652},
+			//the parameter : lobPagesize and lobsize
+			//it is just a piece with lobmeta
+			new Object[]{0, 1024*255},
+			//not full a piece
+			new Object[]{0, 1024*2},
+			new Object[]{4096, 1024},			
 			new Object[]{16384,10125},
 			new Object[]{32768,9216},
 			new Object[]{65536,18432},
-			new Object[]{131072,16384},
-			new Object[]{262144, 4097},
-			new Object[]{524288,31744}
+			//it is just two pieces
+			new Object[]{131072,1024*255},
+			new Object[]{262144, 1024*281},
+			//the piece one byte short
+			new Object[]{524288,1024*511 - 1 },
+			//the piece(seconde) only one byte
+			new Object[]{8192,1024 * 15 + 1},
 		};
 	}
 	
@@ -64,8 +66,28 @@ public class TestDiffLengthLobs7837 extends SdbTestBase {
 			Assert.assertTrue(false,"connect %s failed,"+coordUrl+e.getMessage());
 		}		
 	}
+	
+	@Test(dataProvider = "pagesizeProvider")
+	public void testLobinAnyPageSize(int lobPageSize, int length){
+		createCSAndCL(lobPageSize);			
+		putLob(length);
+		dropCS();
+	}	
 
-	private void createCL(int lobPagesize){
+	@AfterClass
+	public void tearDown(){		
+		try{			
+			sdb.disconnect();
+		}catch(BaseException e){			
+			Assert.assertTrue(false,"clean up failed:"+e.getMessage());
+		}finally{
+			if( null != sdb){
+				sdb.disconnect();
+			}
+		}
+	}
+	
+	private void createCSAndCL(int lobPagesize){
 		if (sdb.isCollectionSpaceExist(csName)){
 			sdb.dropCollectionSpace(csName);
 		}
@@ -95,7 +117,7 @@ public class TestDiffLengthLobs7837 extends SdbTestBase {
 	 *        write lob size
 	 */
 	public void putLob(int length){
-		String lobSb = LobUtils.getRandomString(length);
+		String lobSb = LobOprUtils.getRandomString(length);
 		ObjectId oid  = null;			
 		String prevMd5 = "";
 		DBLob lob = null;
@@ -103,7 +125,7 @@ public class TestDiffLengthLobs7837 extends SdbTestBase {
 			lob = cl.createLob();
 			lob.write(lobSb.getBytes());
 		
-			prevMd5 = LobUtils.getMd5(lobSb);
+			prevMd5 = LobOprUtils.getMd5(lobSb);
 		    oid = lob.getID();
 		}catch(BaseException e){	
 			Assert.assertTrue(false,"write lob fail:"+e.getMessage()+e.getStackTrace());
@@ -126,7 +148,7 @@ public class TestDiffLengthLobs7837 extends SdbTestBase {
 			}			
 			bytebuff.rewind();
 			
-			String curMd5 = LobUtils.getMd5(bytebuff);		
+			String curMd5 = LobOprUtils.getMd5(bytebuff);		
 			Assert.assertEquals(prevMd5, curMd5);
 		}catch(BaseException e){
 			Assert.assertTrue(false,"read lob fail:"+e.getMessage()+e.getStackTrace());			
@@ -137,21 +159,8 @@ public class TestDiffLengthLobs7837 extends SdbTestBase {
 		}
 	}		
 		
-	@AfterClass
-	public void tearDown(){		
-		try{			
-			sdb.disconnect();
-		}catch(BaseException e){			
-			Assert.assertTrue(false,"clean up failed:"+e.getMessage());
-		}finally{
-		}
-	}
 	
-	@Test(dataProvider = "pagesizeProvider")
-	public void testLobinAnyPageSize(int lobPageSize, int length){
-		createCL(lobPageSize);			
-		putLob(length);
-		dropCS();
-	}	
+	
+	
 	
 }

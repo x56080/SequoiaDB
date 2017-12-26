@@ -12,9 +12,6 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
@@ -95,7 +92,7 @@ public class TestLobShardingBorderValue7840 extends SdbTestBase {
 	 *        write lob size
 	 */	
 	private void putLob(int length){
-		String lobSb = LobUtils.getRandomString(length);
+		String lobSb = LobOprUtils.getRandomString(length);
 		ObjectId oid  = null;			
 		String prevMd5 = "";
 		DBLob lob = null;
@@ -103,7 +100,7 @@ public class TestLobShardingBorderValue7840 extends SdbTestBase {
 			lob = cl.createLob();
 			lob.write(lobSb.getBytes());
 		
-			prevMd5 = LobUtils.getMd5(lobSb);
+			prevMd5 = LobOprUtils.getMd5(lobSb);
 		    oid = lob.getID();
 		}catch(BaseException e){	
 			Assert.assertTrue(false,"write lob fail:"+e.getMessage()+e.getStackTrace());
@@ -126,7 +123,7 @@ public class TestLobShardingBorderValue7840 extends SdbTestBase {
 			}			
 			bytebuff.rewind();
 		
-			String curMd5 = LobUtils.getMd5(bytebuff);		
+			String curMd5 = LobOprUtils.getMd5(bytebuff);		
 			Assert.assertEquals(prevMd5, curMd5);
 		}catch(BaseException e){
 			Assert.assertTrue(false,"read lob fail:"+e.getMessage()+e.getStackTrace());			
@@ -144,6 +141,9 @@ public class TestLobShardingBorderValue7840 extends SdbTestBase {
 		}catch(BaseException e){			
 			Assert.assertTrue(false,"clean up failed:"+e.getMessage());
 		}finally{
+			if( sdb != null ){
+				sdb.disconnect();
+			}
 		}
 	}
 	

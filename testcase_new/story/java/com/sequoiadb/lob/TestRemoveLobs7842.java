@@ -1,7 +1,5 @@
 package com.sequoiadb.lob;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Random;
 
 import org.bson.BSONObject;
@@ -51,15 +49,7 @@ public class TestRemoveLobs7842 extends SdbTestBase {
 		createCL();
 	}		
 
-    public void createCL(){
-		try{
-			if (!sdb.isCollectionSpaceExist(SdbTestBase.csName)){
-				sdb.createCollectionSpace(SdbTestBase.csName);	
-			}
-		}catch(BaseException e){
-			//-33 CS exist,ignore exceptions
-			Assert.assertEquals(-33,e.getErrorCode(),e.getMessage());
-	    }					
+    public void createCL(){						
 	    try
 	    {
 	    	String clOptions = "{ShardingKey:{no:1},ShardingType:'hash',Partition:4096,"
@@ -92,7 +82,7 @@ public class TestRemoveLobs7842 extends SdbTestBase {
     	int lobsize =0;
     	try{
     		lobsize = random.nextInt(1048576);		
-    		String lobStringBuff = LobUtils.getRandomString(lobsize);
+    		String lobStringBuff = LobOprUtils.getRandomString(lobsize);
     		lob = cl.createLob();
     		lob.write(lobStringBuff.getBytes());
     		id = lob.getID();    		

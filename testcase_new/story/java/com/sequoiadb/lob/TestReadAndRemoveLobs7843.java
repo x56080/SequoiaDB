@@ -2,8 +2,6 @@ package com.sequoiadb.lob;
 
 import java.nio.ByteBuffer;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Random;
 
 import org.bson.BSONObject;
@@ -53,15 +51,7 @@ public class TestReadAndRemoveLobs7843 extends SdbTestBase {
 	}		
 		
 
-	public void createCL(){
-		try{
-			if (!sdb.isCollectionSpaceExist(SdbTestBase.csName)){
-				sdb.createCollectionSpace(SdbTestBase.csName);	
-			}
-		}catch(BaseException e){
-			//-33 CS exist,ignore exceptions
-			Assert.assertEquals(-33,e.getErrorCode(),e.getMessage());
-	    }					
+	public void createCL(){						
 	    try
 	    {
 	    	String clOptions = "{ShardingKey:{no:1},ShardingType:'hash',Partition:1024,"
@@ -92,7 +82,7 @@ public class TestReadAndRemoveLobs7843 extends SdbTestBase {
 			}
 			bytebuff.rewind();	
 			rLob.close();
-			curMd5 = LobUtils.getMd5(bytebuff);
+			curMd5 = LobOprUtils.getMd5(bytebuff);
 			Assert.assertEquals(curMd5, prevMd5,"the lobs md5 different");
 		}catch(BaseException e){			
 			if(-4 != e.getErrorCode() && -269 != e.getErrorCode() && -268 != e.getErrorCode()){
@@ -117,6 +107,7 @@ public class TestReadAndRemoveLobs7843 extends SdbTestBase {
 					break;
 				}
 			}
+			cur1.close();
 			Assert.assertTrue(IsNotExist,"lob remove fail");
 		}catch(BaseException e){			
 			if( -4 != e.getErrorCode() && -269 != e.getErrorCode() && -268 != e.getErrorCode()){
@@ -141,13 +132,13 @@ public class TestReadAndRemoveLobs7843 extends SdbTestBase {
 	@Test
 	private void putLob(){
 		int lobsize = random.nextInt(1048576);		
-		String lobSb = LobUtils.getRandomString(lobsize);		
+		String lobSb = LobOprUtils.getRandomString(lobsize);		
 		DBLob lob = null;
 		try{
 			lob = cl.createLob();
 			lob.write(lobSb.getBytes());
 			oid = lob.getID();
-			prevMd5 = LobUtils.getMd5(lobSb);
+			prevMd5 = LobOprUtils.getMd5(lobSb);
 		}catch(BaseException e){			
 			Assert.assertTrue(false,"write lob fail"+e.getMessage());
 		}finally{

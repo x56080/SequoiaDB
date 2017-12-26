@@ -1,7 +1,6 @@
 package com.sequoiadb.lob;
 
 import java.nio.ByteBuffer;
-import java.text.SimpleDateFormat;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -31,8 +30,7 @@ public class TestLob10422 extends SdbTestBase {
     private String clName = "cl_10422";
     private Sequoiadb sdb = null;
     private CollectionSpace cs = null;
-    private ByteBuffer byteBuff = null;
-    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
+    private ByteBuffer byteBuff = null;   
     
     public class Md5Data{
         public ObjectId oid = null;
@@ -51,10 +49,10 @@ public class TestLob10422 extends SdbTestBase {
         }catch(BaseException e){        
             Assert.assertTrue(false,"connect  failed,"+SdbTestBase.coordUrl+e.getMessage());
         }
-        if(LobUtils.isStandAlone(sdb)){
+        if(LobOprUtils.isStandAlone(sdb)){
             throw new SkipException("is standalone skip testcase");
         }
-        if(LobUtils.OneGroupMode(sdb)){
+        if(LobOprUtils.OneGroupMode(sdb)){
             throw new SkipException("less two groups skip testcase");
         }
         createCL();
@@ -119,7 +117,7 @@ public class TestLob10422 extends SdbTestBase {
     private Md5Data buildAndPutLob(DBCollection cl){
         // build a lob
         int lobSize = 130 * 1024 * 1024;
-        byte[] lobBytes = LobUtils.getRandomBytes(lobSize);
+        byte[] lobBytes = LobOprUtils.getRandomBytes(lobSize);
         // get it's md5, then insert
         Md5Data prevMd5 = new Md5Data();
         DBLob lob = null;
@@ -127,7 +125,7 @@ public class TestLob10422 extends SdbTestBase {
             lob = cl.createLob();
             lob.write(lobBytes);
             prevMd5.oid = lob.getID();
-            prevMd5.md5 = LobUtils.getMd5(lobBytes);
+            prevMd5.md5 = LobOprUtils.getMd5(lobBytes);
         }catch(BaseException e){
             Assert.fail(e.getMessage());
         }finally{
@@ -147,21 +145,21 @@ public class TestLob10422 extends SdbTestBase {
             rLob = cl.openLob(prevMd5.oid);
             byteBuff = ByteBuffer.allocate((int)rLob.getSize());
             readLobByUnit(rLob, 1024);
-            curMd5 = LobUtils.getMd5(byteBuff);
+            curMd5 = LobOprUtils.getMd5(byteBuff);
             Assert.assertEquals(curMd5, prevMd5.md5, "the lobs md5 different(Unit: 1k)");
             rLob.close();
             
             // read lob in unit of 64M
             rLob = cl.openLob(prevMd5.oid);
             readLobByUnit(rLob, 64 * 1024 * 1024);
-            curMd5 = LobUtils.getMd5(byteBuff);
+            curMd5 = LobOprUtils.getMd5(byteBuff);
             Assert.assertEquals(curMd5, prevMd5.md5, "the lobs md5 different(Unit: 64M)");
             rLob.close();
             
             // read lob in unit of 128M
             rLob = cl.openLob(prevMd5.oid);
             readLobByUnit(rLob, 128 * 1024 * 1024);
-            curMd5 = LobUtils.getMd5(byteBuff);
+            curMd5 = LobOprUtils.getMd5(byteBuff);
             Assert.assertEquals(curMd5, prevMd5.md5, "the lobs md5 different(Unit: 128M)");
             rLob.close();
         }catch(BaseException e){
@@ -185,8 +183,8 @@ public class TestLob10422 extends SdbTestBase {
             BSONObject endCond = new BasicBSONObject();
             cond.put("Partition", 1024);
             endCond.put("Partition", 3072);
-            String sourceRGName = LobUtils.getSrcGroupName(sdb,SdbTestBase.csName,clName);
-            String targetRGName = LobUtils.getSplitGroupName(sourceRGName);
+            String sourceRGName = LobOprUtils.getSrcGroupName(sdb,SdbTestBase.csName,clName);
+            String targetRGName = LobOprUtils.getSplitGroupName(sourceRGName);
             cl.split(sourceRGName, targetRGName, cond, endCond);
         }catch(BaseException e){
             Assert.fail(e.getMessage());

@@ -2,11 +2,12 @@ package com.sequoiadb.lob;
 
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
-import org.bson.BasicBSONObject;
+import org.bson.BSONObject;
 import org.bson.types.ObjectId;
+import org.bson.util.JSON;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.DataProvider;
 
 import java.util.Arrays;
 import com.sequoiadb.base.CollectionSpace;
@@ -18,36 +19,21 @@ import com.sequoiadb.testcommon.SdbTestBase;
 
 
 /**
-* FileName: TestSeekLob7839.java
-* test content:lob seek 
+* FileName: TestSeekLob7839b.java
+* test content:lob seek:seek read lob from more than one group
 * testlink case:seqDB-7839
 * @author wuyan
-    * @Date    2016.9.12    * 
+    * @Date   2017.12.19    * 
 * @version 1.00
-* update:  wuyan  2017.12.19
 */
 
-public class TestSeekLob7839 extends SdbTestBase {
-	@DataProvider(name = "pagesizeProvider",parallel = true)
-	public Object[][] generatePageSize(){
-		return new Object[][]{
-			//the parameter : offset and readsize
-			//test a: seek read in one group
-			new Object[]{1024, 1024*1024},
-			//test c: seek read in one piece
-			new Object[]{1024*255, 1024*510},
-			//test d: seek read in mulitple pieces
-			new Object[]{1024*2, 1024*1024*1},		
-		};
-	}
-
-	private String clName = "cl_lob7839";
+public class TestSeekLob7839b extends SdbTestBase {	
+	private String clName = "cl_lob7839b";
 	private Sequoiadb sdb = null;
 	private CollectionSpace cs = null;
 	private DBCollection cl = null;
 	private ObjectId oid = null;
-	private byte[] wlobBuff = null;
-    
+	private byte[] wlobBuff = null;  
 	
 	@BeforeClass
 	public void setUp(){
@@ -57,32 +43,40 @@ public class TestSeekLob7839 extends SdbTestBase {
 			Assert.assertTrue(false,"connect %s failed,"+coordUrl+e.getMessage());
 		}
 		
-		createCL( );
+		if (LobOprUtils.isStandAlone(sdb)){
+			throw new SkipException("is standalone skip testcase");
+		}
+		
+		if (LobOprUtils.OneGroupMode(sdb)){
+			throw new SkipException("less two groups skip testcase");
+		}
+		
+		
+		createCL( );	
 		//write lob
 		int writeLobSize = 1024*1024*2;
 		wlobBuff = LobOprUtils.getRandomBytes(writeLobSize);
-		oid = LobOprUtils.createAndWriteLob(cl, wlobBuff);		
+		oid = LobOprUtils.createAndWriteLob(cl, wlobBuff);	
+		splitCL();
 	}
 	
-	@Test(dataProvider = "pagesizeProvider")
-	public void testSeekAndReadLob( int offset, int readsize){
-		Sequoiadb db = null;
+	@Test
+	public void testSeekAndReadLob( ){	
+		DBLob rLob = null;
 		try{
-			db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-			db.setSessionAttr(new BasicBSONObject("PreferedInstance", "M"));
-			DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-			DBLob rLob = dbcl.openLob( oid);
+			rLob = cl.openLob( oid);
+			int readsize = 1024 * 1024 * 2;
+			int offset  = 1024 * 1024 * 1;
 			byte[] rbuff = new byte[readsize];
 			rLob.seek(offset, DBLob.SDB_LOB_SEEK_SET);
-			rLob.read(rbuff);
-			rLob.close();
+			rLob.read(rbuff);			
 			byte[] expBuff = Arrays.copyOfRange(wlobBuff, offset, offset+readsize);
-			Arrays.equals(rbuff, expBuff);			
+			Arrays.equals(rbuff, expBuff);
 		}finally{
-			if ( db != null ){
-				db.disconnect();
+			if ( rLob != null ){
+				rLob.close();
 			}
-		}			
+		}					
 	}
 	
 	@AfterClass
@@ -104,15 +98,28 @@ public class TestSeekLob7839 extends SdbTestBase {
 	private void createCL(){						
 	    try
 	    {
-		    cs = sdb.getCollectionSpace(SdbTestBase.csName);			
-		    cl = cs.createCollection(clName);			
+	    	cs = sdb.getCollectionSpace(SdbTestBase.csName);
+		    BSONObject options = (BSONObject)JSON.parse("{ShardingKey:{a:1,b:-1},"
+		    		+ "ShardingType:'hash',Partition:4096,ReplSize:0}");
+		    cl = cs.createCollection( clName, options );			
 	    }catch(BaseException e){
 		    Assert.assertTrue(false,"create cl fail "+e.getErrorType()+":"+e.getMessage());
 	    }
 	 }	
 	
-	
-
+	private void splitCL(){	
+		String sourceRGName = "";
+		String targetRGName = "";
+		try{
+			int percent = 50;
+			sourceRGName = LobOprUtils.getSrcGroupName(sdb,SdbTestBase.csName,clName);			
+			targetRGName = LobOprUtils.getSplitGroupName(sourceRGName);
+			cl.split(sourceRGName, targetRGName, percent);
+		}catch(BaseException e){
+			Assert.assertTrue(false,"split fail:"+e.getMessage()+"srcRGName:"+sourceRGName
+					+"\n tarRGName:"+targetRGName);
+		}		
+	}	
 	
 }
 

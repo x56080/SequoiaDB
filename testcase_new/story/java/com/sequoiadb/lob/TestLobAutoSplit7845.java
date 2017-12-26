@@ -11,9 +11,8 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.SkipException;
 
-import java.nio.ByteBuffer;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 
 import com.sequoiadb.base.CollectionSpace;
@@ -25,10 +24,11 @@ import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
 * FileName: TestLobAutoSplit7845.java
-* test content:set AutoSplit of cs ,then write lobs  
+* test content:set AutoSplit of cs ,then write lobs ,
 * testlink case:seqDB-7845
 * @author wuyan
     * @Date    2016.9.12
+    * @update  [2017.12.20]
 * @version 1.00
 */
 public class TestLobAutoSplit7845 extends SdbTestBase {	
@@ -38,8 +38,8 @@ public class TestLobAutoSplit7845 extends SdbTestBase {
 	private String clName = "cl_lob7845";
 	private static Sequoiadb sdb = null;
 	private CollectionSpace cs = null;
-	private DBCollection cl = null; 
-	private Random random = new Random();    
+	private Random random = new Random();  
+	private ArrayList<String> groupList;
 	
 	@BeforeClass
 	public void setUp(){
@@ -48,26 +48,83 @@ public class TestLobAutoSplit7845 extends SdbTestBase {
 		}catch(BaseException e){			
 			Assert.assertTrue(false,"connect %s failed,"+SdbTestBase.coordUrl+e.getMessage());
 		}
-		if (LobUtils.isStandAlone(sdb)){
+		if (LobOprUtils.isStandAlone(sdb)){
 			throw new SkipException("is standalone skip testcase");
 		}
 		
-		if (LobUtils.OneGroupMode(sdb)){
+		if (LobOprUtils.OneGroupMode(sdb)){
 			throw new SkipException("less two groups skip testcase");
-		}	
+		}		
+		
+		groupList = LobOprUtils.getDataGroups(sdb);		
+		createDomain(groupList.size());
+		createCSAndCLOfDomain();
 	}		
 		
+	//eg:with 30 threads to write 100 lob
+	@Test( invocationCount = 100,threadPoolSize=30)
+	public void testAutoSplitLob(){	
+		Sequoiadb db = null;
+		try{
+			db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+			DBCollection dbcl = db.getCollectionSpace(csName).getCollection(clName);
+			//write lob
+			int lobsize = random.nextInt(1024 * 1024);
+			byte[] wlobBuff = LobOprUtils.getRandomBytes(lobsize);
+			ObjectId oid = LobOprUtils.createAndWriteLob(dbcl, wlobBuff);
+			
+			//read lob and check the lob data
+			DBLob rLob = dbcl.openLob(oid);               	
+    		byte[] rbuff = new byte[(int) rLob.getSize()];
+    		rLob.read(rbuff); 
+    		rLob.close();
+    		Arrays.equals(rbuff, wlobBuff);  			
+		}finally{
+			if( db != null){
+				db.disconnect();
+			}
+		}
+	}
+	
+	@Test( dependsOnMethods = "testAutoSplitLob")
+	public void checkSplitResult(){	
+		double expErrorValue = 0.5;	
+		LobOprUtils.checkSplitResult(sdb, csName, clName, groupList, expErrorValue);		
+	}
+	
+	@AfterClass
+	public void tearDown(){		
+		try{
+			dropCSAndDomain();			
+			sdb.disconnect();
+		}catch(BaseException e){			
+			Assert.assertTrue(false,"clean up failed:"+e.getMessage());
+		}finally{
+			if( null != sdb){
+				sdb.disconnect();
+			}
+		}
+	}	
+	
 	private void  createDomain(int groupsNum){
-		try{			
+		try{
+			if(sdb.isCollectionSpaceExist(csName)){
+				sdb.dropCollectionSpace(csName);
+			}
+			
+			if(sdb.isDomainExist(domainName)){
+				sdb.dropDomain(domainName);
+			}
 			BSONObject options = new BasicBSONObject();
 			options = (BSONObject)JSON.parse("{'Groups': [" 
-					+ LobUtils.chooseDataGroups(sdb,groupsNum) + "],AutoSplit:true}");
+						+ LobOprUtils.chooseDataGroups(sdb,groupsNum) + "],AutoSplit:true}");
 			sdb.createDomain(domainName, options);			
 		}catch(BaseException e){
 			Assert.assertTrue(false,"create domain fail:"+e.getErrorCode()+e.getMessage());
-		}		
-		
-		//create cs and cl				
+		}	
+	}
+	
+	private void createCSAndCLOfDomain(){
 		try
 		{
 			if (sdb.isCollectionSpaceExist(csName)){
@@ -75,61 +132,18 @@ public class TestLobAutoSplit7845 extends SdbTestBase {
 			}
 			BSONObject optionsCs = new BasicBSONObject();
 			optionsCs = (BSONObject)JSON.parse("{Domain:'" + domainName + "'}");
-			cs = sdb.createCollectionSpace(csName, optionsCs);
-						
-			BSONObject optionsCl = new BasicBSONObject();
-			optionsCl = (BSONObject)JSON.parse("{ShardingKey:{a:1,b:-1},ShardingType:'hash',Partition:4096},AutoSplit:true");
-			cl = cs.createCollection(clName, optionsCl);
+			cs = sdb.createCollectionSpace(csName, optionsCs);	
+			
+			String clOptions = "{ShardingKey:{no:1},ShardingType:'hash',Partition:1024,"
+					+ "Compressed:true}";
+		    BSONObject options =(BSONObject) JSON.parse(clOptions);
+			cs.createCollection(clName,options);
 		}catch(BaseException e){
 			Assert.assertTrue(false,"create cs/cl fail:csName:"+csName+e.getErrorCode()+e.getMessage());
 		}
-	}	
-	
-	public void putLob(){
-	    int lobsize = random.nextInt(1048576);
-		String lobSb = LobUtils.getRandomString(lobsize);
-		ObjectId oid  = null;
-		String prevMd5 = "";
-		DBLob lob = null;
-		try{			
-			lob = cl.createLob();
-			lob.write(lobSb.getBytes());
-		
-			prevMd5 = LobUtils.getMd5(lobSb);
-		    oid = lob.getID();			
-		}catch(BaseException e){
-			Assert.assertTrue(false,"pubLob fail:"+e.getMessage());
-		}finally{
-			if (lob != null){
-				lob.close();
-			}
-		}			
-		
-		DBLob rLob =null;
-		try
-		{
-			rLob = cl.openLob(oid);
-			byte[] rbuff = new byte[1024];
-			int readLen =0;
-		
-			ByteBuffer bytebuff = ByteBuffer.allocate((int)lobsize);
-			while ((readLen = rLob.read(rbuff)) != -1){
-				bytebuff.put(rbuff, 0, readLen);				
-			}
-			bytebuff.rewind();
-		
-			String curMd5 = LobUtils.getMd5(bytebuff);		
-			Assert.assertEquals(prevMd5, curMd5);
-		}catch(BaseException e){
-			Assert.assertTrue(false,"readLob fail:"+e.getMessage());			
-		}finally{
-			if (rLob != null){
-				rLob.close();
-			}
-		}		
 	}
 	
-	public void dropDomain(){
+	public void dropCSAndDomain(){
 		try{
 			if(sdb.isCollectionSpaceExist(csName)){
 				sdb.dropCollectionSpace(csName);
@@ -142,26 +156,10 @@ public class TestLobAutoSplit7845 extends SdbTestBase {
 		}		
 	}
 	
-	@AfterClass
-	public void tearDown(){		
-		try{			
-			sdb.disconnect();
-		}catch(BaseException e){			
-			Assert.assertTrue(false,"clean up failed:"+e.getMessage());
-		}finally{
-		}
-	}		
+		
 	
-	@Test
-	public void testAutoSplitLob(){			
-		try{
-			int splitGroupNum = 2;
-			createDomain(splitGroupNum);
-			putLob();
-			dropDomain();
-		}catch(BaseException e){
-			Assert.assertFalse(true, e.getMessage());
-		}
-	}
+	
+	
+	
 }
 
