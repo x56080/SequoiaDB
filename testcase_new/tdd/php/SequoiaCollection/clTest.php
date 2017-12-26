@@ -90,7 +90,7 @@ class cl_Test extends PHPUnit_Framework_TestCase
    {
       if( $isStandlone == false )
       {
-         $cl = $cs -> createCL( 'alter_bar', array( 'ReplSize' => 1 ) ) ;
+         $cl = $cs -> selectCL( 'alter_bar', array( 'ReplSize' => 1 ) ) ;
          $err = $db -> getError() ;
          $this -> assertEquals( 0, $err['errno'], '创建cl错误' ) ;
          $this -> assertNotEmpty( $cl, '创建cl错误' ) ;
@@ -133,7 +133,7 @@ class cl_Test extends PHPUnit_Framework_TestCase
             return ;
          }
          
-         $cl = $cs -> createCL( 'range_percent', array( 'ReplSize' => -1, 'ShardingKey' => array( 'a' => 1 ), 'ShardingType' => 'range', 'Group' => $groupList[0] ) ) ;
+         $cl = $cs -> selectCL( 'range_percent', array( 'ReplSize' => -1, 'ShardingKey' => array( 'a' => 1 ), 'ShardingType' => 'range', 'Group' => $groupList[0] ) ) ;
          $err = $db -> getError() ;
          $this -> assertEquals( 0, $err['errno'], '创建cl错误' ) ;
          $this -> assertNotEmpty( $cl, '创建cl错误' ) ;
@@ -160,7 +160,7 @@ class cl_Test extends PHPUnit_Framework_TestCase
          $this -> assertTrue( $record['CataInfo'][1]['LowBound']['a'] == 1, 'split cl错误' ) ;
          $this -> assertTrue( is_object( $record['CataInfo'][1]['UpBound']['a'] ) && is_a( $record['CataInfo'][1]['UpBound']['a'], 'SequoiaMaxKey' ), 'split cl错误' ) ;
          
-         $cl = $cs -> createCL( 'range_start_end', array( 'ReplSize' => -1, 'ShardingKey' => array( 'a' => 1 ), 'ShardingType' => 'range', 'Group' => $groupList[0] ) ) ;
+         $cl = $cs -> selectCL( 'range_start_end', array( 'ReplSize' => -1, 'ShardingKey' => array( 'a' => 1 ), 'ShardingType' => 'range', 'Group' => $groupList[0] ) ) ;
          $err = $db -> getError() ;
          $this -> assertEquals( 0, $err['errno'], '创建cl错误' ) ;
          $this -> assertNotEmpty( $cl, '创建cl错误' ) ;
@@ -197,7 +197,7 @@ class cl_Test extends PHPUnit_Framework_TestCase
             return ;
          }
          
-         $cl = $cs -> createCL( 'range_percent2', array( 'ReplSize' => -1, 'ShardingKey' => array( 'a' => 1 ), 'ShardingType' => 'range', 'Group' => $groupList[0] ) ) ;
+         $cl = $cs -> selectCL( 'range_percent2', array( 'ReplSize' => -1, 'ShardingKey' => array( 'a' => 1 ), 'ShardingType' => 'range', 'Group' => $groupList[0] ) ) ;
          $err = $db -> getError() ;
          $this -> assertEquals( 0, $err['errno'], '创建cl错误' ) ;
          $this -> assertNotEmpty( $cl, '创建cl错误' ) ;
@@ -209,7 +209,7 @@ class cl_Test extends PHPUnit_Framework_TestCase
          $this -> assertEquals( 0, $err['errno'], 'split错误' ) ;
          $this -> assertGreaterThanOrEqual( 0, intval($err['taskID'] -> __toString()), 'split错误' ) ;
          
-         $cl = $cs -> createCL( 'range_start_end2', array( 'ReplSize' => -1, 'ShardingKey' => array( 'a' => 1 ), 'ShardingType' => 'range', 'Group' => $groupList[0] ) ) ;
+         $cl = $cs -> selectCL( 'range_start_end2', array( 'ReplSize' => -1, 'ShardingKey' => array( 'a' => 1 ), 'ShardingType' => 'range', 'Group' => $groupList[0] ) ) ;
          $err = $db -> getError() ;
          $this -> assertEquals( 0, $err['errno'], '创建cl错误' ) ;
          $this -> assertNotEmpty( $cl, '创建cl错误' ) ;
@@ -276,14 +276,14 @@ class cl_Test extends PHPUnit_Framework_TestCase
    {
       if( $isStandlone == false )
       {        
-         $cl = $cs -> createCL( 'sub', array( 'ReplSize' => -1 ) ) ;
+         $cl = $cs -> selectCL( 'sub', array( 'ReplSize' => -1 ) ) ;
          $err = $db -> getError() ;
          $this -> assertEquals( 0, $err['errno'], '创建cl错误' ) ;
          $this -> assertNotEmpty( $cl, '创建cl错误' ) ;
          $sub = $cl ;
          $subFullName = $sub -> getFullName() ;
          
-         $cl = $cs -> createCL( 'main', array( 'IsMainCL' => true, 'ShardingKey' => array( 'a' => 1 ), 'ReplSize' => -1 ) ) ;
+         $cl = $cs -> selectCL( 'main', array( 'IsMainCL' => true, 'ShardingKey' => array( 'a' => 1 ), 'ReplSize' => -1 ) ) ;
          $err = $db -> getError() ;
          $this -> assertEquals( 0, $err['errno'], '创建cl错误' ) ;
          $this -> assertNotEmpty( $cl, '创建cl错误' ) ;
