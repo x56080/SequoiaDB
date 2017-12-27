@@ -288,6 +288,15 @@ namespace exprt
 
       SDB_ASSERT( !_opened, "cant open again" ) ;
 
+      if ( FALSE == _options.replace() &&
+           SDB_OK == ossAccess( _fileName.c_str() ) )
+      {
+         rc = SDB_FE ;
+         PD_LOG ( PDERROR, "file %s already existed", _fileName.c_str() ) ;
+         cerr << "file " << _fileName <<" already existed" << endl ;
+         goto error ;
+      }
+
       rc = ossOpen ( _fileName.c_str(),
                      OSS_REPLACE | OSS_WRITEONLY | OSS_EXCLUSIVE, 
                      OSS_RU | OSS_WU | OSS_RG,
