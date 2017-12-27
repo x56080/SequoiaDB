@@ -41,7 +41,7 @@ function main( db )
          var exportFilter = '{ "filterNumber": { $lt: '+ i + ' }}' ;
          var expCmdOption = "--hostname "+COORDHOSTNAME+" --svcname "+COORDSVCNAME+
                             " -c "+COMMCSNAME+" -l "+COMMCLNAME+" --file "+FILENAME+
-                            " --type json --filter '" + exportFilter + "'";
+                            " --type json --filter '" + exportFilter + "'" + " --replace";
          try
          {
             cmdToolRun( expCmd, expCmdOption ) ;
@@ -84,7 +84,7 @@ function main( db )
       println( "filter key: " + exportFilter ) ;
       var expCmdOption = "--hostname "+COORDHOSTNAME+" --svcname "+COORDSVCNAME+
                          " -c "+COMMCSNAME+" -l "+COMMCLNAME+" --file "+FILENAME+
-                         " --type json --filter '" + exportFilter + "'";
+                         " --type json --filter '" + exportFilter + "'" + " --replace";
       try
       {
          cmdToolRun( expCmd, expCmdOption ) ;

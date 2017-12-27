@@ -39,7 +39,7 @@ function main( db )
       println( "sort key: " + exportSort ) ;
       var expCmdOption = "--hostname "+COORDHOSTNAME+" --svcname "+COORDSVCNAME+
                          " -c "+COMMCSNAME+" -l "+COMMCLNAME+" --file "+FILENAME+
-                         " --type json --sort '" + exportSort + "'";
+                         " --type json --sort '" + exportSort + "'"+" --replace";
       try
       {
          cmdToolRun( expCmd, expCmdOption ) ;
@@ -99,7 +99,7 @@ function main( db )
       println( "sort key: " + exportSort ) ;
       var expCmdOption = "--hostname "+COORDHOSTNAME+" --svcname "+COORDSVCNAME+
                          " -c "+COMMCSNAME+" -l "+COMMCLNAME+" --file "+FILENAME+
-                         " --type json --sort '" + exportSort + "'";
+                         " --type json --sort '" + exportSort + "'"+" --replace";
       try
       {
          cmdToolRun( expCmd, expCmdOption ) ;
