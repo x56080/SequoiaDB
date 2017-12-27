@@ -43,10 +43,6 @@ public class NoteTest {
 	public void setUp() throws Exception {
 		if (!isCluster)
 			return ;
-		// rg
-		rg = sdb.getReplicaGroup(Constants.GROUPNAME);
-		// node
-		node = rg.getNode(Constants.HOST, PORT);
 	}
 	@After
 	public void tearDown() throws Exception {
@@ -67,6 +63,10 @@ public class NoteTest {
 	public void traverseClassNode(){
 		if (!isCluster)
 			return ;
+		// rg
+		rg = sdb.getReplicaGroup(Constants.GROUPNAME);
+		// node
+		node = rg.getNode(Constants.HOST, PORT);
 		// getNodeId
 		int id = 0 ;
 		id = node.getNodeId();
