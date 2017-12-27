@@ -347,17 +347,6 @@ namespace exprt
             goto error ;
          }
       }
-      // exclude-cs-set
-      for ( set<string>::const_iterator it = excludeCS.begin(); 
-            excludeCS.end() != it; ++it)
-      {
-         rc = checkCS( hConn,*it ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "Failed to check cs in exclude-cs set" ) ;
-            goto error ;
-         }
-      }
 
       // include-cl-set
       for ( set<expCL>::const_iterator it = includeCollection.begin(); 
@@ -370,19 +359,7 @@ namespace exprt
             goto error ;
          }
       }
-
-      // exclude-cl-set
-      for ( set<expCL>::const_iterator it = excludeCollection.begin(); 
-            excludeCollection.end() != it; ++it)
-      {
-         rc = checkCL( hConn,*it ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "Failed to check cl in exclude-cl set" ) ;
-            goto error ;
-         }
-      }
-      
+     
    done :
       return rc ;
    error :
