@@ -1057,6 +1057,7 @@ namespace engine
       UINT32 dirtyLen = 0 ;
       UINT64 beginLSN = 0 ;
       UINT64 endLSN = 0 ;
+      ossSpinSLatch *pLatch = NULL ;
 
       if ( _needDelayOpen )
       {
@@ -1179,8 +1180,16 @@ namespace engine
          }
       }
 
+      /// lock bucket
+      if ( dpscb )
+      {
+         pLatch = _getBucketLatch( bucketNumber ) ;
+         pLatch->get() ;
+      }
+
       /// remove and release the page
-      rc = _removePage( page, blk, &bucketNumber, mbContext, TRUE ) ;
+      rc = _removePage( page, blk, &bucketNumber, mbContext,
+                        pLatch ? TRUE : FALSE, TRUE ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to remove page:%d, rc:%d", page, rc ) ;
@@ -1227,6 +1236,11 @@ namespace engine
             PD_LOG( PDERROR, "Failed to prepare dps log, rc:%d", rc ) ;
             goto error ;
          }
+
+         /// release bucket lock
+         pLatch->release() ;
+         pLatch = NULL ;
+         /// write
          dpscb->writeData( info ) ;
       }
 
@@ -1244,6 +1258,11 @@ namespace engine
       cContext.release() ;
 
    done:
+      if ( pLatch )
+      {
+         pLatch->release() ;
+         pLatch = NULL ;
+      }
       if ( locked )
       {
          mbContext->mbUnlock() ;
@@ -2080,6 +2099,7 @@ namespace engine
                                       _dmsLobDataMapBlk *blk,
                                       const UINT32 *bucket,
                                       dmsMBContext *mbContext,
+                                      BOOLEAN hasLockBucket,
                                       BOOLEAN needRelease )
    {
       INT32 rc = SDB_OK ;
@@ -2097,7 +2117,11 @@ namespace engine
          bucketNumber = _getBucket( __hash1 ) ;
       }
 
-      ossScopedLock lock( _getBucketLatch( bucketNumber ), EXCLUSIVE ) ;
+      /// lock
+      if ( !hasLockBucket )
+      {
+         _getBucketLatch( bucketNumber )->get() ;
+      }
 
       if ( DMS_LOB_INVALID_PAGEID == blk->_prevPageInBucket )
       {
@@ -2170,6 +2194,10 @@ namespace engine
          _releasePage( page, mbContext ) ;
       }
    done:
+      if ( !hasLockBucket )
+      {
+         _getBucketLatch( bucketNumber )->release() ;
+      }
       PD_TRACE_EXITRC( SDB__DMSSTORAGELOB__REMOVEPAGE, rc ) ;
       return rc ;
    error:
@@ -2311,7 +2339,7 @@ namespace engine
             goto error ;
          }
 
-         rc = _removePage( current, blk, NULL, mbContext ) ;
+         rc = _removePage( current, blk, NULL, mbContext, FALSE ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to remove page:%d, rc:%d", rc ) ;
@@ -2420,7 +2448,7 @@ namespace engine
             rc = SDB_SYS ;
             goto error ;
          }
-         rc = _removePage( page, blk, NULL, mbContext ) ;
+         rc = _removePage( page, blk, NULL, mbContext, FALSE ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to remove page:%d, rc:%d", page, rc ) ;
