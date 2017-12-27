@@ -46,6 +46,7 @@
                             <exclude name="**/*Constan*.class" />
                             <exclude name="**/SdbNest.class" />
                             <exclude name="**/MultiThread*" />
+                            <exclude name="**/*&*.class" />
                         </fileset>                       
                     </batchtest>
                 </junit>    
