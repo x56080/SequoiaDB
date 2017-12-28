@@ -981,13 +981,15 @@ namespace engine
          goto error ;
       }
 
+      /// must first set clLogiclID
+      blk->_clLogicalID = context->clLID() ;
+      blk->_mbID = context->mbID() ;
+
       ossMemset( blk->_pad1, 0, sizeof( blk->_pad1 ) ) ;
       ossMemset( blk->_pad2, 0, sizeof( blk->_pad2 ) ) ;
       ossMemcpy( blk->_oid, record._oid, DMS_LOB_OID_LEN ) ;
       blk->_sequence = record._sequence ;
       blk->_dataLen = record._dataLen + record._offset ;
-      blk->_clLogicalID = context->clLID() ;
-      blk->_mbID = context->mbID() ;
       blk->_prevPageInBucket = DMS_LOB_INVALID_PAGEID ;
       blk->_nextPageInBucket = DMS_LOB_INVALID_PAGEID ;
       blk->setRemoved() ;
@@ -1864,7 +1866,8 @@ namespace engine
                goto error ;
             }
 
-            if ( blk->_mbID >= DMS_MME_SLOTS || blk->_mbID < 0 )
+            if ( blk->_mbID >= DMS_MME_SLOTS || blk->_mbID < 0 ||
+                 blk->isUndefined() )
             {
                ++current ;
                continue ;
@@ -1935,7 +1938,8 @@ namespace engine
                goto error ;
             }
 
-            if ( blk->_mbID >= DMS_MME_SLOTS || blk->_mbID < 0 )
+            if ( blk->_mbID >= DMS_MME_SLOTS || blk->_mbID < 0 ||
+                 blk->isUndefined() )
             {
                _releaseSpace( current, 1 ) ;
                ++totalReleased ;
@@ -2060,8 +2064,16 @@ namespace engine
                goto error ;
             }
 
-            if ( mbContext->clLID() != blk->_clLogicalID ||
-                 ( onlyMetaPage && DMS_LOB_META_SEQUENCE != blk->_sequence ) )
+            /// first check undefined
+            if ( blk->isUndefined() )
+            {
+               ++current ;
+               continue ;
+            }
+            /// then check clLID
+            else if ( mbContext->clLID() != blk->_clLogicalID ||
+                      ( onlyMetaPage &&
+                        DMS_LOB_META_SEQUENCE != blk->_sequence ) )
             {
                ++current ;
                continue ;
@@ -2211,7 +2223,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_TRUNCATE ) ;
-      static BYTE __emptyOID[ DMS_LOB_OID_LEN ] = { 0 } ;
+
       DMS_LOB_PAGEID current = -1 ;
       BOOLEAN locked = FALSE ;
       BOOLEAN needPanic = FALSE ;
@@ -2299,34 +2311,15 @@ namespace engine
             rc = SDB_SYS ;
             goto error ;
          }
-         if ( mbContext->clLID() != readBlk->_clLogicalID )
+         /// need first check undefined
+         if ( readBlk->isUndefined() )
          {
             continue ;
          }
-         /// The blk page is all zero when init
-         else if ( 0 == mbContext->clLID() &&
-                   0 == ossMemcmp( readBlk->_oid, __emptyOID,
-                                   DMS_LOB_OID_LEN ) )
+         /// then check clLID
+         else if ( mbContext->clLID() != readBlk->_clLogicalID )
          {
-            /// Check the page whether exist in bucket or not
-            dmsLobRecord record ;
-            DMS_LOB_PAGEID checkPage = DMS_LOB_INVALID_PAGEID ;
-            record.set( ( const bson::OID* )readBlk->_oid,
-                        readBlk->_sequence, 0,
-                        readBlk->_dataLen, NULL ) ;
-
-            rc = _find( record, mbContext->clLID(), checkPage, NULL ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Find page by record[%s] failed, rc: %d",
-                       record.toString().c_str(), rc ) ;
-               goto error ;
-            }
-            if ( checkPage != current )
-            {
-               /// The page is not owned by the collection
-               continue ;
-            }
+            continue ;
          }
 
          /// change to write mode

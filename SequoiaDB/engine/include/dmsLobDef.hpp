@@ -228,26 +228,36 @@ namespace engine
       CHAR           _pad2[25];  /// sizeof( _dmsLobDataMapBlk ) == 64B
 
       _dmsLobDataMapBlk()
-      :_sequence( 0 ),
-       _dataLen( 0 ),
-       _prevPageInBucket( DMS_LOB_INVALID_PAGEID ),
-       _nextPageInBucket( DMS_LOB_INVALID_PAGEID ),
-       _clLogicalID( DMS_INVALID_CLID ),
-       _mbID( DMS_INVALID_MBID ),
-       _status( DMS_LOB_PAGE_NORMAL )
       {
-         ossMemset( this, 0, sizeof( _pad1 ) + sizeof( _oid ) ) ;
+         reset() ;
          ossMemset( _pad2, 0, sizeof( _pad2 ) ) ;
-         SDB_ASSERT( 64 == sizeof( _dmsLobDataMapBlk ),
-                     "invalid blk" ) ;
+         SDB_ASSERT( 64 == sizeof( _dmsLobDataMapBlk ), "invalid blk" ) ;
       }
 
       void reset()
       {
+         ossMemset( this, 0, sizeof( _pad1 ) + sizeof( _oid ) ) ;
+
+         _sequence = 0 ;
+         _dataLen = 0 ;
          _prevPageInBucket = DMS_LOB_INVALID_PAGEID ;
          _nextPageInBucket = DMS_LOB_INVALID_PAGEID ;
          _clLogicalID = DMS_INVALID_CLID ;
          _mbID = DMS_INVALID_MBID ;
+         _status = DMS_LOB_PAGE_REMOVED ;
+      }
+
+      BOOLEAN isUndefined() const
+      {
+         const static BYTE s_emptyOID[ DMS_LOB_OID_LEN ] = { 0 } ;
+
+         if ( 0 == _sequence && 0 == _dataLen &&
+              0 == _clLogicalID && 0 == _mbID &&
+              0 == ossMemcmp( _oid, s_emptyOID, DMS_LOB_OID_LEN ) )
+         {
+            return TRUE ;
+         }
+         return FALSE ;
       }
 
       BOOLEAN isNormal() const
