@@ -47,7 +47,7 @@ namespace engine
 
 #define MON_EDU_STATUS_SZ        (19)
 #define MON_EDU_TYPE_SZ          (19)
-#define MON_EDU_NAME_SZ          (63)
+#define MON_EDU_NAME_SZ          (127)
 
    // simple structure for EDU monitor
    // this is used for list command
