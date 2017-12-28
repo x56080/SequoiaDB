@@ -1082,7 +1082,6 @@ namespace engine
       {
          /// submit the read data
          oldLen = cContext.submit( cb ) ;
-         SDB_ASSERT( oldLen == blk->_dataLen, "impossible" ) ;
 
          rc = dpsLobRm2Record( fullName,
                                record._oid,
