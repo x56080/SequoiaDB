@@ -1,0 +1,92 @@
+/*******************************************************************
+* @Description : test export with --file
+*                seqDB-13571:--file指定的文件路径不存在
+*                seqDB-13572:--file指定的文件路径无读写权限
+*                seqDB-13573:--file指定的文件已存在              
+* @author      : Liang XueWang 
+*
+*******************************************************************/
+var csname = COMMCSNAME ;
+var clname = COMMCLNAME + "_sdbexprt13571" ;
+var doc = { a: 1 } ;
+
+main() ;
+
+function main()
+{
+   var cl = commCreateCL( db, csname, clname ) ;
+   cl.insert( doc ) ;
+        
+   testExprtNoPath() ;
+   testExprtNoPerm() ;
+   // testExprtExisted() ;
+   
+   commDropCL( db, csname, clname ) ;
+}
+
+function testExprtNoPath()
+{
+   var csvDir = workDir + "13571/" ; 
+   var csvfile = csvDir + "sdbexprt13571.csv" ;
+   cmd.run( "rm -rf " + csvDir ) ;
+   
+   var command = installPath + "bin/sdbexprt" +
+                 " -s " + COORDHOSTNAME +
+                 " -p " + COORDSVCNAME +
+                 " -c " + csname +
+                 " -l " + clname + 
+                 " --file " + csvfile +
+                 " --type csv" +
+                 " --fields a" ;                
+   testRunCommand( command, 8 ) ;
+   
+   cmd.run( "rm -rf " + csvDir ) ;
+}
+
+function testExprtNoPerm()
+{
+   var user = getCurrentUser() ;
+   if( user === "root" )
+   {
+      println( "current user is root" ) ;
+      return ;
+   }
+
+   var csvDir = workDir + "13572/" ; 
+   var csvfile = csvDir + "sdbexprt13571.csv" ;
+   commMakeDir( "localhost", csvDir ) ;
+   File.chmod( csvDir, 0000 ) ;
+   
+   var command = installPath + "bin/sdbexprt" +
+                 " -s " + COORDHOSTNAME +
+                 " -p " + COORDSVCNAME +
+                 " -c " + csname +
+                 " -l " + clname + 
+                 " --file " + csvfile +
+                 " --type csv" +
+                 " --fields a" ;                
+   testRunCommand( command, 129 ) ;
+   
+   cmd.run( "rm -rf " + csvDir ) ;
+}
+
+function testExprtExisted()
+{
+   var csvfile = workDir + "sdbexprt13573.csv" ;
+   cmd.run( "rm -rf " + csvfile ) ;
+   var file = new File( csvfile ) ;
+   file.write( "abcde" ) ;
+   file.close() ;
+   
+   var command = installPath + "bin/sdbexprt" +
+                 " -s " + COORDHOSTNAME +
+                 " -p " + COORDSVCNAME +
+                 " -c " + csname +
+                 " -l " + clname + 
+                 " --file " + csvfile +
+                 " --type csv" +
+                 " --fields a" ;                
+   testRunCommand( command ) ;
+   
+   cmd.run( "rm -rf " + csvfile ) ;
+}
