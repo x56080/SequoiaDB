@@ -465,6 +465,11 @@ namespace engine
                {
                   continue ;
                }
+#ifdef _DEBUG
+               PD_LOG ( PDDEBUG, "Session [%lld] TID [%u] writing ID [%llu] "
+                        "is writing", (*it).second->getID(),
+                        (*it).second->getTID(), (*it).second->getWritingID() ) ;
+#endif
                ++eduCount ;
             }
          }

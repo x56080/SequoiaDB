@@ -2498,6 +2498,9 @@ namespace engine
          pmdEDUMgr *pEDUMgr = eduCB()->getEDUMgr() ;
          if ( pEDUMgr->getWritingEDUCount( -1, _ntyOverTime ) > 0 )
          {
+            PD_LOG( PDDEBUG, "Session[%s] operator ID [%llu] : Waiting for "
+                    "other operations to finish", sessionName(),
+                    _ntyOverTime ) ;
             return FALSE ;
          }
 
