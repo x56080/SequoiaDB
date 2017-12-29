@@ -61,7 +61,7 @@ function main()
    dataDb = new Sdb( hostName, svcName ) ;
    sessionID = dataDb.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj()["SessionID"] ;
    option = { HostName: hostName } ;
-   var errno = ( getNameNum( allNodes, hostName ) === 1 ) ? 0 : -264 ;
+   var errno = ( isGlobalSession( allNodes, hostName, sessionID ) ) ? 0 : -264 ;
    ( errno === -264 ) ? testForceSession( db, dataDb, sessionID, option, errno ) 
                       : testForceSession( db, dataDb, sessionID, option ) ;
    
@@ -69,7 +69,7 @@ function main()
    dataDb = new Sdb( hostName, svcName ) ;
    sessionID = dataDb.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj()["SessionID"] ;
    option = { svcname: svcName } ;
-   errno = ( getNameNum( allNodes, svcName ) === 1 ) ? 0 : -264 ;
+   errno = ( isGlobalSession( allNodes, svcName, sessionID ) ) ? 0 : -264 ;
    ( errno === -264 ) ? testForceSession( db, dataDb, sessionID, option, errno ) 
                       : testForceSession( db, dataDb, sessionID, option ) ;
    
@@ -120,13 +120,26 @@ function testForceSession( db, dataDb, sessionID, option, errno )
    }
 }
 
-function getNameNum( nodes, name )
+function isGlobalSession( nodes, name, sessionID )
 {
-   var num = 0 ;
+   var res = true ;
    for( var i = 0;i < nodes.length;i++ )
    {
       if( nodes[i].indexOf( name ) !== -1 )
-         num++ ;
+      {
+         var host = nodes[i].split( ":" )[0] ;
+         var svc = nodes[i].split( ":" )[1] ;
+         var tmpDb = new Sdb( host, svc ) ;
+         var arr = tmpDb.list( SDB_LIST_SESSIONS, { SessionID: sessionID } ).toArray() ;
+         tmpDb.close() ;
+         println( nodes[i] ) ;
+         println( arr ) ;
+         if( arr.length === 0 )
+         {
+            res = false ;
+            break ;
+         }
+      }
    }
-   return num ;
+   return res ;
 }
