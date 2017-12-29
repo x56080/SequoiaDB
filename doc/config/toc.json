@@ -691,6 +691,12 @@
                      "en": "Network Security"
                   }
                ]
+            },
+            {
+               "id": 1514516858,
+               "file": "sdbcm",
+               "cn": "数据库服务",
+               "en": "Database service"
             }
          ]
       },
