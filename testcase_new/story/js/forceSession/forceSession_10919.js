@@ -57,21 +57,27 @@ function main()
    var option = { NodeID: nodeID } ;
    testForceSession( db, dataDb, sessionID, option ) ;
    
-   // 3.b forceSession with  hostName
+   // 3.b forceSession with hostName
+   /* 
+   // don't test this because it may force other session of other nodes in the same host
    dataDb = new Sdb( hostName, svcName ) ;
    sessionID = dataDb.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj()["SessionID"] ;
    option = { HostName: hostName } ;
    var errno = ( isGlobalSession( allNodes, hostName, sessionID ) ) ? 0 : -264 ;
    ( errno === -264 ) ? testForceSession( db, dataDb, sessionID, option, errno ) 
                       : testForceSession( db, dataDb, sessionID, option ) ;
+   */
    
    // 3.c forceSession with svcname
+   // don't test this because it may force other session of other nodes with the same svcname
+   /*
    dataDb = new Sdb( hostName, svcName ) ;
    sessionID = dataDb.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj()["SessionID"] ;
    option = { svcname: svcName } ;
    errno = ( isGlobalSession( allNodes, svcName, sessionID ) ) ? 0 : -264 ;
    ( errno === -264 ) ? testForceSession( db, dataDb, sessionID, option, errno ) 
                       : testForceSession( db, dataDb, sessionID, option ) ;
+   */
    
    // 3.d forceSession with nodeID hostName
    dataDb = new Sdb( hostName, svcName ) ;
