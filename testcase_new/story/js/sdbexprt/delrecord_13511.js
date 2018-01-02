@@ -10,8 +10,8 @@
 var csname = COMMCSNAME ;
 var clname = COMMCLNAME + "_sdbexprt13511" ;
 var clname1 = COMMCLNAME + "_sdbimprt13511" ;
-var docs = [ { a: "test1" }, { a: "test2" } ] ;
-var expRecs = [ "{\"a\":\"test1\"}", "{\"a\":\"test2\"}" ] ;
+var docs = [ { a: "testa" }, { a: "testb" } ] ;
+var expRecs = [ "{\"a\":\"testa\"}", "{\"a\":\"testb\"}" ] ;
 
 main() ;
 
