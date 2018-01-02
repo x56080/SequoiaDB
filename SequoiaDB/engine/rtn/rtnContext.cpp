@@ -530,7 +530,7 @@ namespace engine
       if ( _pMonAppCB && cb->getID() != eduID() )
       {
          *_pMonAppCB += *cb->getMonAppCB() ;
-         _monCtxCB.dataRead += _pMonAppCB->totalDataRead ;
+         _monCtxCB.dataRead += cb->getMonAppCB()->totalDataRead ;
          cb->getMonAppCB()->reset() ;
       }
 
