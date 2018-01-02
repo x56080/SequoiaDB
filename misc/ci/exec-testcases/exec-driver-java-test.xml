@@ -46,7 +46,7 @@
                             <exclude name="**/*Constan*.class" />
                             <exclude name="**/SdbNest.class" />
                             <exclude name="**/MultiThread*" />
-                            <exclude name="**/*&*.class" />
+                            <exclude name="**/*$*.class" />
                         </fileset>                       
                     </batchtest>
                 </junit>    
@@ -64,6 +64,7 @@
                             <include name="**/*" />                            
                             <exclude name="**/testdata/*" />
                             <exclude name="**/common/*" />
+                            <exclude name="**/*$*.class" />
                         </fileset>
                     </batchtest>
                 </junit>    
