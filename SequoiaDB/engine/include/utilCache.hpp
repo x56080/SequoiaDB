@@ -527,7 +527,7 @@ namespace engine
          /*
             Caller must hold the lock
          */
-         utilCachePage*    delPage( INT32 pageID ) ;
+         void              delPage( INT32 pageID ) ;
 
          /*
             Caller must hold the write lock

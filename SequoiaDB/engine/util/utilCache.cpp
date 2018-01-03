@@ -285,7 +285,7 @@ namespace engine
          makeDirty() ;
          setDirty = TRUE ;
       }
-      return rc ;      
+      return rc ;
    }
 
    INT32 _utilCachePage::load( const CHAR *pBuf, UINT32 offset, UINT32 len )
@@ -1273,17 +1273,18 @@ namespace engine
       return &tmpPage ;
    }
 
-   utilCachePage* _utilCacheBucket::delPage( INT32 pageID )
+   void _utilCacheBucket::delPage( INT32 pageID )
    {
-      utilCachePage* pPage = NULL ;
       MAP_BLK_PAGE::iterator it = _pages.find( pageID ) ;
       if ( it != _pages.end() )
       {
-         pPage = &(it->second) ;
-         SDB_ASSERT( !pPage->isDirty(), "Page can't be dirty" ) ;
+         utilCachePage* pPage = &(it->second) ;
+         SDB_ASSERT( !pPage->isDirty() &&
+                     !pPage->isPinned() &&
+                     !pPage->isLocked(),
+                     "Page can't be dirty, pinned and locked" ) ;
          _pages.erase( it ) ;
       }
-      return pPage ;
    }
 
    utilCachePage* _utilCacheBucket::allocPage( INT32 pageID, UINT32 size )
