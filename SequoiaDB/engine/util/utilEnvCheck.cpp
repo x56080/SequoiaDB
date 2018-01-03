@@ -35,7 +35,7 @@
 ******************************************************************************/
 
 #include "utilEnvCheck.hpp"
-#include "ossUtil.h"
+#include "ossUtil.hpp"
 #include "pd.hpp"
 
 #include "ossNPipe.hpp"
@@ -53,10 +53,10 @@ namespace engine
 {
    #define UTIL_VM_MINFREE_KBYTES_PERCENTAGE 8
 
-   static BOOLEAN _isIdealValue( const string &result, 
-                                 const string &idealValue, 
-                                 const string &seperator1, 
-                                 const string &seperator2, 
+   static BOOLEAN _isIdealValue( const string &result,
+                                 const string &idealValue,
+                                 const string &seperator1,
+                                 const string &seperator2,
                                  const string &path ) ;
 
    static BOOLEAN _thpCheck( const string &path ) ;
@@ -66,23 +66,26 @@ namespace engine
    BOOLEAN utilCheckIs64BitSys()
    {//return TRUE means system is 64bit, suggest run sequoiadb on 64 bit system
       BOOLEAN is64bit = TRUE ;
-      if( sizeof(  INT32 *  ) == 4 )
+      ossOSInfo info ;
+
+      ossGetOSInfo( info ) ;
+      if( info._bit != 64 )
       {
          PD_LOG( PDWARNING, "Your system is not 64 bit."
                  " Even though it will still work, but SequoiaDB suggest run"
                  " SequoiaDB on 64 bit system. " ) ;
-         is64bit = FALSE ;   
+         is64bit = FALSE ;
       }
 
       return is64bit ;
    }
-   
+
    BOOLEAN utilCheckIsOpenVZ()
-   {//return TRUE means system is running on openVZ, 
-    //suggest DO NOT run sequoiadb on openVZ 
-      BOOLEAN isOpenVZ = FALSE ; 
-      
-      if( ( SDB_OK == ossAccess( "/proc/vz" ) ) && 
+   {//return TRUE means system is running on openVZ,
+    //suggest DO NOT run sequoiadb on openVZ
+      BOOLEAN isOpenVZ = FALSE ;
+
+      if( ( SDB_OK == ossAccess( "/proc/vz" ) ) &&
           ( SDB_OK != ossAccess( "/proc/bc" ) ) )
       {
          PD_LOG( PDWARNING, "Your system is running on openVZ. "
@@ -93,10 +96,10 @@ namespace engine
 
       return isOpenVZ ;
    }
-   
+
    BOOLEAN utilCheckNumaStatus()
    {// return TRUE means numa is in use, suggest not use numa
-      BOOLEAN isNumaInUse = FALSE ; 
+      BOOLEAN isNumaInUse = FALSE ;
       std::fstream f;
 
       if( SDB_OK != ossAccess( "/sys/devices/system/node/node1" ) )
@@ -129,12 +132,12 @@ namespace engine
          iLoc = spaceLoc + 1 ;
          if( ( spaceLoc == std::string::npos ) || ( iLoc == line.size() ) )
          {
-            PD_LOG( PDWARNING, "Can not parse numa_maps line : \"%s\". ", 
+            PD_LOG( PDWARNING, "Can not parse numa_maps line : \"%s\". ",
                     line.c_str() ) ;
             isNumaInUse = TRUE ;
             goto done ;
          }
-   
+
          if( line.find( interleave, iLoc ) != iLoc )
          {
             PD_LOG( PDWARNING, "You are running on a NUMA machine."
@@ -149,7 +152,7 @@ namespace engine
          PD_LOG( PDWARNING, "Open /proc/self/numa_maps failed" ) ;
          goto done ;
       }
-      
+
    done:
       if ( f.is_open() )
       {
@@ -158,7 +161,7 @@ namespace engine
       return isNumaInUse ;
    }
 
-   INT64 utilCheckVmParamVal( const CHAR *pathPtr, 
+   INT64 utilCheckVmParamVal( const CHAR *pathPtr,
                               const INT64 &idealValue )
    {
       BOOLEAN isVmParamOK = TRUE ;
@@ -178,7 +181,7 @@ namespace engine
          if( val != idealValue )
          {
             PD_LOG( PDWARNING, "%s is %d, SequoiaDB suggest setting it to %d. "
-                    "Edit /etc/sysctl.conf to set it. ", 
+                    "Edit /etc/sysctl.conf to set it. ",
                     pathPtr, val, idealValue ) ;
             isVmParamOK = FALSE ;
             f.close();
@@ -237,22 +240,22 @@ namespace engine
       }
       return memTotalVolKB ;
    }
-   
+
    BOOLEAN utilCheckVmStatus()
-   {//return TRUE means all of the linux kernel vm parameters are best 
-    //for SequoiaDB ; 
+   {//return TRUE means all of the linux kernel vm parameters are best
+    //for SequoiaDB ;
       vector<CHAR *> vmPathVec( 8 ) ;
       vector<INT64> vmIdealValVec( 8 ) ;
-          
-      vmPathVec[0]     = "/proc/sys/vm/swappiness" ; 
+
+      vmPathVec[0]     = "/proc/sys/vm/swappiness" ;
       vmIdealValVec[0] = 0 ;
-      
+
       vmPathVec[1]     = "/proc/sys/vm/dirty_ratio" ;
       vmIdealValVec[1] = 100 ;
-      
+
       vmPathVec[2]     = "/proc/sys/vm/dirty_background_ratio" ;
       vmIdealValVec[2] = 40 ;
-      
+
       vmPathVec[3]     = "/proc/sys/vm/dirty_expire_centisecs" ;
       vmIdealValVec[3] = 3000 ;
 
@@ -260,7 +263,7 @@ namespace engine
       vmIdealValVec[4] = 200 ;
 
       vmPathVec[5]     = "/proc/sys/vm/min_free_kbytes" ;
-      vmIdealValVec[5] = ( _utilGetSysMemTotalVolKB() / 100 ) 
+      vmIdealValVec[5] = ( _utilGetSysMemTotalVolKB() / 100 )
                          * UTIL_VM_MINFREE_KBYTES_PERCENTAGE ;
 
       vmPathVec[6]     = "/proc/sys/vm/overcommit_memory" ;
@@ -274,7 +277,7 @@ namespace engine
       for( ; i < vmPathVec.size() ; i++ )
       {
          //walk through all the Parameters, and log the unmatch Parameter.
-         if( vmIdealValVec[i] != utilCheckVmParamVal( vmPathVec[i], 
+         if( vmIdealValVec[i] != utilCheckVmParamVal( vmPathVec[i],
                                                       vmIdealValVec[i] ) )
          {
             goodStat = FALSE ;
@@ -283,41 +286,41 @@ namespace engine
 
       return goodStat ;
    }
-   
-   static BOOLEAN _isIdealValue( const string &result, 
-                                 const string &idealValue, 
-                                 const string &seperator1, 
-                                 const string &seperator2, 
+
+   static BOOLEAN _isIdealValue( const string &result,
+                                 const string &idealValue,
+                                 const string &seperator1,
+                                 const string &seperator2,
                                  const string &path )
    {
       BOOLEAN isIdeal = TRUE ;
       string opMode ;
       string::size_type beginLoc = result.find( seperator1 ) ;
       string::size_type endLoc   = result.find( seperator2 ) ;
-      if( string::npos == beginLoc || string::npos == endLoc || 
+      if( string::npos == beginLoc || string::npos == endLoc ||
           beginLoc >= endLoc )
       {
-         PD_LOG( PDWARNING, "Can not parse \"%s\" from %s. ", 
+         PD_LOG( PDWARNING, "Can not parse \"%s\" from %s. ",
                  result.c_str(), path.c_str() ) ;
-        
+
          goto error ;
       }
-    
+
       opMode = result.substr( beginLoc+1, endLoc-beginLoc-1 ) ;
       if( opMode.empty() )
       {
-         PD_LOG( PDWARNING, "Invalid mode in \"%s\" from %s", 
+         PD_LOG( PDWARNING, "Invalid mode in \"%s\" from %s",
             result.c_str(), path.c_str() ) ;
-        
+
          goto error ;
       }
-    
+
       if( idealValue != opMode )
       {
          PD_LOG( PDWARNING, "Your system environment value in %s is %s, "
-                  "but SequoiaDb suggest setting it to %s. ", path.c_str(), 
+                  "but SequoiaDb suggest setting it to %s. ", path.c_str(),
                   opMode.c_str(), idealValue.c_str() ) ;
-        
+
          goto error ;
       }
 
@@ -327,7 +330,7 @@ namespace engine
       isIdeal = FALSE ;
       goto done ;
    }
-   
+
    static BOOLEAN _thpCheck( const string &path )
    {
       BOOLEAN isThpClosed = TRUE ;
@@ -335,7 +338,7 @@ namespace engine
       string idealValue = "never" ;
       string line ;
       std::ifstream ifs( path.c_str() ) ;
-      
+
       if( SDB_OK != ossAccess( path.c_str() ) )
       {
          PD_LOG( PDWARNING, "%s not exist or can not open. ", path.c_str() ) ;
@@ -347,18 +350,18 @@ namespace engine
          PD_LOG( PDWARNING, "%s can not open. ", path.c_str() ) ;
          goto error ;
       }
-    
+
       if( !std::getline( ifs, line ) )
       {
          PD_LOG( PDWARNING, "Failed to read line from %s. ", path.c_str() ) ;
          goto error ;
       }
-    
+
       if( !_isIdealValue( line, idealValue, seperator1, seperator2, path ) )
       {
          goto error ;
       }
-   
+
    done:
       ifs.close() ;
       return isThpClosed ;
@@ -366,33 +369,33 @@ namespace engine
       isThpClosed = FALSE ;
       goto done ;
    }
-   
+
    BOOLEAN utilCheckThpStatus() //thp : transparent_hugepage
    {
       BOOLEAN isThpClosed  = TRUE ;
       const string thpPath = "/sys/kernel/mm/transparent_hugepage" ;
-      const string thpEnabledPath = 
+      const string thpEnabledPath =
                                  "/sys/kernel/mm/transparent_hugepage/enabled" ;
-      const string thpDefragPath  = 
+      const string thpDefragPath  =
                                  "/sys/kernel/mm/transparent_hugepage/defrag" ;
-      
+
       if( SDB_OK != ossAccess( thpPath.c_str() ) )
       {
-         PD_LOG( PDWARNING, "%s not exist or can not open. ", 
-                 thpPath.c_str() ) ;         
+         PD_LOG( PDWARNING, "%s not exist or can not open. ",
+                 thpPath.c_str() ) ;
          goto error ;
       }
-         
+
       if( !_thpCheck( thpEnabledPath ) )
       {
          goto error ;
       }
-   
+
       if( !_thpCheck( thpDefragPath ) )
       {
          goto error ;
       }
-      
+
    done:
       return isThpClosed ;
    error:
@@ -400,17 +403,17 @@ namespace engine
       goto done ;
    }
 
-   
+
    BOOLEAN utilCheckEnv()
    {//return TRUE if all the envrionment settings are rightly set for SequoiaDB
       BOOLEAN goodEnv = TRUE ;
-      
+
       goodEnv &= utilCheckIs64BitSys() ;
       goodEnv &= !utilCheckIsOpenVZ() ;
       goodEnv &= !utilCheckNumaStatus() ;
       goodEnv &= utilCheckVmStatus() ;
       goodEnv &= utilCheckThpStatus() ;
-      
+
       return goodEnv ;
    }
 
