@@ -23,36 +23,34 @@
     $ service sdbcm status
     ```
 
-4.  在新的操作系统上（/proc/1/exe所指向的启动文件为/lib/systemd/systemd），重启sdbcm服务
+4.  重启服务
 
     ```lang-javascript
     $ service sdbcm restart
     ```
 
     >**Note:**  
-    > 在新系统上，由于systemd的限制，restart必须等于stop+start，因此service sdbcm restart重启cm和节点。 
-
-5.  在旧的操作系统上（/proc/1/exe所指向的启动文件为/sbin/init），重启sdbcm服务
+    > 在/proc/1/exe所指向的启动文件为/lib/systemd/systemd的系统上，执行service sdbcm restart重启cm和节点。 
 
     ```lang-javascript
     $ service sdbcm restart all-nodes
     ``` 
-    > 在旧系统上，执行service sdbcm restart all-nodes重启了cm和节点，执行service sdbcm restart只重启了cm。  
+
+    >**Note:**  
+    > 在/proc/1/exe所指向的启动文件为/sbin/init的系统上，执行service sdbcm restart all-nodes重启cm和节点。
     
-6.  在新的操作系统上（/proc/1/exe所指向的启动文件为/lib/systemd/systemd），强制重新加载
+5.  强制重新加载
 
     ```lang-javascript
     $ service sdbcm force-reload
     ```
 
     >**Note:**  
-    > 在新系统上，由于systemd的限制，restart必须等于stop+start，因此执行servcie sdbcm force-reload重启所有进程。
-
-7.  在旧的操作系统上（/proc/1/exe所指向的启动文件为/sbin/init），强制重新加载
+    > 在/proc/1/exe所指向的启动文件为/lib/systemd/systemd的系统上，执行servcie sdbcm force-reload重启cm进程和节点进程。
 
     ```lang-javascript
     $ service sdbcm force-reload all-nodes
     ```
 
     >**Note:**  
-    > 在旧系统上，执行service sdbcm force-reload all-nodes，重启所有进程，执行service sdbcm force-reload，只重启cm进程，节点进程未重启。
+    > 在/proc/1/exe所指向的启动文件为/sbin/init的系统上，执行service sdbcm force-reload all-nodes重启cm进程和节点进程。
