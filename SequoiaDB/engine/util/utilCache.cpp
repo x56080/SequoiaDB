@@ -40,6 +40,8 @@
 namespace engine
 {
 
+   #define __FOR_TEST__
+
    #define UTIL_MAX_EXCEED_SLOT_SIZE            ( 3 )
    #define UTIL_MIN_EXCEED_SLOT_SIZE            ( 5 )
 
@@ -2383,6 +2385,15 @@ namespace engine
    {
       _dirtySize.inc() ;
       pBucket->incDirty() ;
+
+#ifdef __FOR_TEST__
+      if ( pBucket->dirtyPages() > pBucket->totalPages() )
+      {
+         PD_LOG( PDERROR, "Dirty page[%llu] > Total page[%llu]",
+                 pBucket->dirtyPages(), pBucket->totalPages() ) ;
+         ossPanic() ;
+      }
+#endif // __FOR_TEST__
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT_GETANDLOCK, "_utilCacheUnit::getAndLock" )
@@ -2832,6 +2843,16 @@ namespace engine
 
          pBucket = _vecBucket[ i ] ;
          pBucket->lock( SHARED ) ;
+
+#ifdef __FOR_TEST__
+         if ( pBucket->dirtyPages() > pBucket->totalPages() )
+         {
+            PD_LOG( PDERROR, "Dirty page[%llu] > Total page[%llu]",
+                    pBucket->dirtyPages(), pBucket->totalPages() ) ;
+            ossPanic() ;
+         }
+#endif // __FOR_TEST__
+
          utilCacheBucket::MAP_BLK_PAGE* pPages = pBucket->getPages() ;
          utilCacheBucket::MAP_BLK_PAGE::iterator it = pPages->begin() ;
          blkSyncNum = 0 ;
@@ -2859,6 +2880,16 @@ namespace engine
             }
             ++it ;
          }
+
+#ifdef __FOR_TEST__
+         if ( pBucket->dirtyPages() > pBucket->totalPages() )
+         {
+            PD_LOG( PDERROR, "Dirty page[%llu] > Total page[%llu]",
+                    pBucket->dirtyPages(), pBucket->totalPages() ) ;
+            ossPanic() ;
+         }
+#endif // __FOR_TEST__
+
          pBucket->unlock( SHARED ) ;
 
          if ( tmpPages.size() >= UTIL_CACHE_SYNC_ONCE_NUM )
@@ -3086,6 +3117,16 @@ namespace engine
          blkRecycleNum = 0 ;
          pBucket = _vecBucket[ i ] ;
          pBucket->lock( EXCLUSIVE ) ;
+
+#ifdef __FOR_TEST__
+         if ( pBucket->dirtyPages() > pBucket->totalPages() )
+         {
+            PD_LOG( PDERROR, "Dirty page[%llu] > Total page[%llu]",
+                    pBucket->dirtyPages(), pBucket->totalPages() ) ;
+            ossPanic() ;
+         }
+#endif // __FOR_TEST__
+ 
          pPages = pBucket->getPages() ;
          utilCacheBucket::MAP_BLK_PAGE::iterator it = pPages->begin() ;
          while ( it != pPages->end() )
@@ -3118,6 +3159,16 @@ namespace engine
                break ;
             }
          }
+
+#ifdef __FOR_TEST__
+         if ( pBucket->dirtyPages() > pBucket->totalPages() )
+         {
+            PD_LOG( PDERROR, "Dirty page[%llu] > Total page[%llu]",
+                    pBucket->dirtyPages(), pBucket->totalPages() ) ;
+            ossPanic() ;
+         }
+#endif // __FOR_TEST__
+
          pBucket->unlock( EXCLUSIVE ) ;
 
          /// when up to the size, break
