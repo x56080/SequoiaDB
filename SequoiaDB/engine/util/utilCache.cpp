@@ -1842,8 +1842,8 @@ namespace engine
       }
 
       /// wait the page cleaner
-      _pageCleaner.lock_w() ;
-      _pageCleaner.release_w() ;
+      _pageCleaner.get() ;
+      _pageCleaner.release() ;
 
       /// wait all dirty page flushed to file
       while( dirtyPages() > 0 )
@@ -2168,28 +2168,15 @@ namespace engine
       goto done ;
    }
 
-   void _utilCacheUnit::lockPageCleaner( INT32 mode )
+   void _utilCacheUnit::lockPageCleaner()
    {
-      if ( SHARED == mode )
-      {     
-         _pageCleaner.lock_r() ;
-      }
-      else
-      {
-         _pageCleaner.lock_w() ;
-      }
+      _pageCleaner.get() ;
    }
 
-   void _utilCacheUnit::unlockPageCleaner( INT32 mode )
+   void _utilCacheUnit::unlockPageCleaner()
    {
-      if ( SHARED == mode )
-      {
-         _pageCleaner.release_r() ;
-      }
-      else
-      {
-         _pageCleaner.release_w() ;
-      }
+      _pageCleaner.release() ;
+
    }
 
    BOOLEAN _utilCacheUnit::canSync( BOOLEAN &force )
