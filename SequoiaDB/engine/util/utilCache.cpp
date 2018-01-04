@@ -2324,8 +2324,8 @@ namespace engine
       }
 
       /// wait the page cleaner
-      _pageCleaner.lock_w() ;
-      _pageCleaner.release_w() ;
+      _pageCleaner.get() ;
+      _pageCleaner.release() ;
 
       /// wait all dirty page flushed to file
       while( dirtyPages() > 0 )
@@ -2745,32 +2745,22 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT_LOCKCLEANER, "_utilCacheUnit::lockPageCleaner" )
-   void _utilCacheUnit::lockPageCleaner( INT32 mode )
+   void _utilCacheUnit::lockPageCleaner()
    {
       PD_TRACE_ENTRY( SDB__UTILCACHEUNIT_LOCKCLEANER ) ;
-      if ( SHARED == mode )
-      {     
-         _pageCleaner.lock_r() ;
-      }
-      else
-      {
-         _pageCleaner.lock_w() ;
-      }
+
+      _pageCleaner.get() ;
+
       PD_TRACE_EXIT( SDB__UTILCACHEUNIT_LOCKCLEANER ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT_UNLOCKCLEANER, "_utilCacheUnit::unlockPageCleaner" )
-   void _utilCacheUnit::unlockPageCleaner( INT32 mode )
+   void _utilCacheUnit::unlockPageCleaner()
    {
       PD_TRACE_ENTRY( SDB__UTILCACHEUNIT_UNLOCKCLEANER ) ;
-      if ( SHARED == mode )
-      {
-         _pageCleaner.release_r() ;
-      }
-      else
-      {
-         _pageCleaner.release_w() ;
-      }
+
+      _pageCleaner.release() ;
+
       PD_TRACE_EXIT( SDB__UTILCACHEUNIT_UNLOCKCLEANER ) ;
    }
 

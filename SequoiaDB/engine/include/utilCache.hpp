@@ -787,8 +787,8 @@ namespace engine
 
          UINT32         dropDirty() ;
 
-         void           lockPageCleaner( INT32 mode = SHARED ) ;
-         void           unlockPageCleaner( INT32 mode = SHARED ) ;
+         void           lockPageCleaner() ;
+         void           unlockPageCleaner() ;
 
          INT32          init( utilCachFileBase *pFile,
                               UINT32 pageSize,
@@ -906,7 +906,7 @@ namespace engine
 
          UINT64                     _lastRecycleTime ;
          UINT64                     _lastSyncTime ;
-         ossRWMutex                 _pageCleaner ;
+         ossSpinXLatch              _pageCleaner ;
 
          utilCacheMerge             _cacheMerge ;
 
