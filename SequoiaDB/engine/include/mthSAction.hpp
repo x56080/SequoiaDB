@@ -128,13 +128,15 @@ namespace engine
          return !MTH_ATTR_IS_VALID( _attribute ) ;
       }
 
-      OSS_INLINE _mthMatchTree &getMatcher()
+      INT32 createMatcher () ;
+
+      OSS_INLINE _mthMatchTree * getMatcher()
       {
          if ( NULL == _matcher )
          {
             _matcher = SDB_OSS_NEW _mthMatchTree() ;
          }
-         return *_matcher ;
+         return _matcher ;
       }
    public:
       INT32 build( const CHAR *name,

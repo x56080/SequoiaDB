@@ -63,7 +63,14 @@ namespace engine
          goto error ;
       }
 
-      rc = action.getMatcher().loadPattern( e.embeddedObject() ) ;
+      if ( NULL == action.getMatcher() )
+      {
+         rc = action.createMatcher() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to create match tree, "
+                      "rc: %d", rc ) ;
+      }
+
+      rc = action.getMatcher()->loadPattern( e.embeddedObject() ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to load match pattern:%d", rc ) ;

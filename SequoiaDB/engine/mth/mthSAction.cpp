@@ -53,6 +53,27 @@ namespace engine
       SAFE_OSS_DELETE( _matcher ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSACTION_CRTMTH, "_mthSAction::createMatcher" )
+   INT32 _mthSAction::createMatcher ()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__MTHSACTION_CRTMTH ) ;
+
+      SAFE_OSS_DELETE( _matcher ) ;
+
+      _matcher = SDB_OSS_NEW _mthMatchTree() ;
+      PD_CHECK( NULL != _matcher, SDB_OOM, error, PDERROR,
+                "Failed to allocate matcher" ) ;
+
+   done :
+      PD_TRACE_EXITRC( SDB__MTHSACTION_CRTMTH, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSACTION_BUILD, "_mthSAction::build" )
    INT32 _mthSAction::build( const CHAR *fieldName,
                              const bson::BSONElement &e,

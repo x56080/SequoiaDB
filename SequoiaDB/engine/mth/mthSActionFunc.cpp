@@ -193,11 +193,15 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHELEMMATCHBUILDN ) ;
+
+      PD_CHECK( NULL != action->getMatcher(), SDB_SYS, error, PDERROR,
+                "Failed to get match tree" ) ;
+
       if ( Array == e.type() )
       {
          BSONArrayBuilder arrayBuilder( builder.subarrayStart( fieldName ) ) ;
          _mthElemMatchIterator i( e.embeddedObject(),
-                                  &( action->getMatcher() ),
+                                  action->getMatcher(),
                                   n ) ;
          do
          {
@@ -236,12 +240,16 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHELEMMATCHGETN ) ;
+
+      PD_CHECK( NULL != action->getMatcher(), SDB_SYS, error, PDERROR,
+                "Failed to get match tree" ) ;
+
       if ( Array == in.type() )
       {
          BSONObjBuilder objBuilder ;
          BSONArrayBuilder arrayBuilder( objBuilder.subarrayStart( fieldName ) ) ;
          _mthElemMatchIterator i( in.embeddedObject(),
-                                  &( action->getMatcher() ),
+                                  action->getMatcher(),
                                   n ) ;
          do
          {
