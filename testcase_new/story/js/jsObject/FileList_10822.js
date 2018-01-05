@@ -8,12 +8,28 @@ FileTest.prototype.testList = function()
 {
    this.init() ;
    
-   var dir = toolGetSequoiadbDir( this.hostname, this.svcname ) ;
+   // make dir to list
+   var dirName = adaptPath( WORKDIR ) + "10822/" ;
+   var dirMode = 0755 ;
+   var fileNum = 5 ;
+   var fileMode = 0644 ;
+   var remote = new Remote( this.hostname, this.svcname ) ;
+   var file = remote.getFile() ;
+   file.mkdir( dirName, dirMode ) ;
+   for( var i = 0;i < fileNum;i++ )
+   {
+      var fileName = dirName + fileNum + ".txt" ;
+      var file1 = remote.getFile( fileName, fileMode ) ;
+      file1.write( "abcde" ) ;
+      file1.close() ;
+   }
+   
+   // list dir
    var option = {} ;
-   option["pathname"] = dir[0] ;
+   option["pathname"] = dirName ;
    option["detail"] = true ;
    var files1 = this.file.list( option ).toArray() ;   // 枚举文件
-   var command = "ls -al " + dir[0] + " | sed -n '4,$p' | awk '{print $1,$3,$9}'" ;
+   var command = "ls -al " + dirName + " | sed -n '4,$p' | awk '{print $1,$3,$9}'" ;
    var files2 = this.cmd.run( command ).split( "\n" ) ;
    for( var i = files1.length-1,j = files2.length-2;i >= 0;i--,j-- )
    {
@@ -26,9 +42,13 @@ FileTest.prototype.testList = function()
           filename !== fileObj.name )
       {
          throw buildException( "testList", null, 
-               "test list files in " + dir + " " + this, tmp, files1[i] ) ;
+               "test list files in " + dirName + " " + this, tmp, files1[i] ) ;
       }
    }
+   
+   // remove dir
+   file.remove( dirName ) ;
+   remote.close() ;
    
    this.release() ;
 }

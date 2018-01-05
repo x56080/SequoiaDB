@@ -593,3 +593,16 @@ function isLocal( hostname )
     else
         return false ;
 }
+
+/*******************************************************************
+* @Description : check path has / in the end or not
+*                add / if not
+* @author      : Liang XueWang
+*
+********************************************************************/
+function adaptPath( path )
+{
+   if( path.lastIndexOf( '/' ) !== path.length-1 )
+      path += '/' ;
+   return path ;
+}
