@@ -94,8 +94,6 @@ namespace engine
 
    #define UTIL_CACHE_PAGE_DIRTY_FLAG        0x01
    #define UTIL_CACHE_PAGE_INVALID_FLAG      0x02
-   #define UTIL_CACHE_PAGE_PIN_FLAG          0x04
-   #define UTIL_CACHE_PAGE_LOCKED_FLAG       0x08
    #define UTIL_CACHE_PAGE_NEWEST_HEAD_FLAG  0x10
    #define UTIL_CACHE_PAGE_NEWEST_TAIL_FLAG  0x20
 
@@ -182,38 +180,35 @@ namespace engine
          }
          void        pin()
          {
-            OSS_BIT_SET( _status, UTIL_CACHE_PAGE_PIN_FLAG ) ;
-            ++_pinCnt ;
+            ossFetchAndIncrement32( &_pinCnt ) ;
          }
          void        unpin()
          {
-            --_pinCnt ;
-            if ( 0 == _pinCnt )
-            {
-               OSS_BIT_CLEAR( _status, UTIL_CACHE_PAGE_PIN_FLAG ) ;
-            }
+            ossFetchAndDecrement32( &_pinCnt ) ;
          }
          BOOLEAN     isPinned() const
          {
-            return OSS_BIT_TEST( _status, UTIL_CACHE_PAGE_PIN_FLAG ) ?
-                   TRUE : FALSE ;
+            return !ossCompareAndSwap32( (INT32*)&_pinCnt, 0, 0 ) ;
          }
-         UINT32      getPinkCnt() const
+         INT32       getPinkCnt() const
          {
-            return _pinCnt ;
+            return ossFetchAndAdd32( (INT32*)&_pinCnt, 0 ) ;
          }
          void        lock()
          {
-            OSS_BIT_SET( _status, UTIL_CACHE_PAGE_LOCKED_FLAG ) ;
+            ossFetchAndIncrement32( &_lockCnt ) ;
          }
          void        unlock()
          {
-            OSS_BIT_CLEAR( _status, UTIL_CACHE_PAGE_LOCKED_FLAG ) ;
+            ossFetchAndDecrement32( &_lockCnt ) ;
          }
          BOOLEAN     isLocked() const
          {
-            return OSS_BIT_TEST( _status, UTIL_CACHE_PAGE_LOCKED_FLAG ) ?
-                   TRUE : FALSE ;
+            return !ossCompareAndSwap32( (INT32*)&_lockCnt, 0, 0 ) ;
+         }
+         INT32       getLockCnt() const
+         {
+            return ossFetchAndAdd32( (INT32*)&_lockCnt, 0 ) ;
          }
          INT32       waitToUnlock( INT64 timeout = -1 ) const
          {
@@ -321,7 +316,8 @@ namespace engine
          UINT32                     _readTimes ;
          UINT32                     _writeTimes ;
          UINT16                     _status ;
-         UINT16                     _pinCnt ;
+         INT32                      _pinCnt ;
+         INT32                      _lockCnt ;
          UINT64                     _beginLSN ;
          UINT64                     _endLSN ;
          UINT32                     _lsnNum ;
@@ -730,9 +726,6 @@ namespace engine
          INT32       getFirstPageID() const { return _firstPageID ; }
          INT32       getLastPageID() const { return _lastPageID ; }
 
-      protected:
-         void        _releasePages() ;
-
       private:
          CHAR                    *_pCache ;
          UINT32                  _cacheSize ;
@@ -744,8 +737,6 @@ namespace engine
          UINT32                  _pageSize ;
          utilCachFileBase        *_pFile ;
          BOOLEAN                 _isAlignment ;
-
-         VEC_PAGE_PTR            _vecPages ;
    } ;
    typedef _utilCacheMerge utilCacheMerge ;
 
@@ -762,6 +753,7 @@ namespace engine
    {
       typedef std::map< INT32, utilCachePage* >       MAP_ID_2_PAGE_PRT ;
       typedef MAP_ID_2_PAGE_PRT::iterator             MAP_ID_2_PAGE_PRT_IT ;
+      typedef MAP_ID_2_PAGE_PRT::const_iterator       MAP_ID_2_PAGE_PRT_CIT ;
 
       public:
          _utilCacheUnit( utilCacheMgr *pMgr ) ;
@@ -863,8 +855,10 @@ namespace engine
                                    BOOLEAN *pSync = NULL,
                                    BOOLEAN writeMerge = FALSE ) ;
 
-         UINT32         _syncPages( MAP_ID_2_PAGE_PRT &pageMap,
+         UINT32         _syncPages( const MAP_ID_2_PAGE_PRT &pageMap,
                                     IExecutor *cb ) ;
+
+         void           _unpinPages( const MAP_ID_2_PAGE_PRT &pageMap ) ;
 
          /*
             For stat

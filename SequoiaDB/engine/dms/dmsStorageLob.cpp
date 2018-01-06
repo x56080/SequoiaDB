@@ -1666,7 +1666,8 @@ namespace engine
                beginDirtyPages = _pCacheUnit->dirtyPages() ;
                syncPages = _pCacheUnit->syncPages( pmdGetThreadEDUCB(),
                                                    TRUE, FALSE ) ;
-               if ( beginDirtyPages < _pCacheUnit->dirtyPages() + syncPages )
+               if ( 0 == syncPages ||
+                    beginDirtyPages < _pCacheUnit->dirtyPages() + syncPages )
                {
                   break ;
                }

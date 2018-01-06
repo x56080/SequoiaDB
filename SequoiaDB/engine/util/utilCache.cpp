@@ -40,8 +40,6 @@
 namespace engine
 {
 
-   #define __FOR_TEST__
-
    #define UTIL_MAX_EXCEED_SLOT_SIZE            ( 3 )
    #define UTIL_MIN_EXCEED_SLOT_SIZE            ( 5 )
 
@@ -63,6 +61,7 @@ namespace engine
       _writeTimes = 0 ;
       _status = 0 ;
       _pinCnt = 0 ;
+      _lockCnt = 0 ;
       _beginLSN = ~0 ;
       _endLSN = ~0 ;
       _lsnNum = 0 ;
@@ -80,6 +79,7 @@ namespace engine
       _writeTimes = right._writeTimes ;
       _status = right._status ;
       _pinCnt = right._pinCnt ;
+      _lockCnt = right._lockCnt ;
       _beginLSN = right._beginLSN ;
       _endLSN = right._endLSN ;
       _lsnNum = right._lsnNum ;
@@ -144,6 +144,7 @@ namespace engine
       _writeTimes = 0 ;
       _status = 0 ;
       _pinCnt = 0 ;
+      _lockCnt = 0 ;
       _beginLSN = ~0 ;
       _endLSN = ~0 ;
       _lsnNum = 0 ;
@@ -175,6 +176,7 @@ namespace engine
       _writeTimes = rhs._writeTimes ;
       _status = rhs._status ;
       _pinCnt = rhs._pinCnt ;
+      _lockCnt = rhs._lockCnt ;
       _beginLSN = rhs._beginLSN ;
       _endLSN = rhs._endLSN ;
       _lsnNum = rhs._lsnNum ;
@@ -401,6 +403,7 @@ namespace engine
       _writeTimes = right._writeTimes ;
       _status = right._status ;
       _pinCnt = right._pinCnt ;
+      _lockCnt = right._lockCnt ;
       _beginLSN = right._beginLSN ;
       _endLSN = right._endLSN ;
       _lsnNum = right._lsnNum ;
@@ -2012,8 +2015,6 @@ namespace engine
 
    void _utilCacheMerge::fini()
    {
-      _releasePages() ;
-
       if ( _pCache )
       {
          if ( _isAlignment )
@@ -2027,16 +2028,6 @@ namespace engine
          _pCache = NULL ;
          _cacheSize = 0 ;
       }
-   }
-
-   void _utilCacheMerge::_releasePages()
-   {
-      for ( UINT32 i = 0 ; i < _vecPages.size() ; ++i )
-      {
-         utilCachePage *pPage = _vecPages[ i ] ;
-         pPage->unpin() ;
-      }
-      _vecPages.clear() ;
    }
 
    BOOLEAN _utilCacheMerge::isEmpty() const
@@ -2147,10 +2138,6 @@ namespace engine
       ++_pageNum ;
       _lastPageID = pageID ;
 
-      /// pink the page
-      pPage->pin() ;
-      _vecPages.push_back( pPage ) ;
-
    done:
       PD_TRACE_EXITRC( SDB__UTILCACHEMGR_WRITE, rc ) ;
       return rc ;
@@ -2186,8 +2173,6 @@ namespace engine
       }
 
    done:
-      /// unpink all pages
-      _releasePages() ;
       PD_TRACE_EXITRC( SDB__UTILCACHEMGR_SYNC, rc ) ;
       return rc ;
    error:
@@ -2330,7 +2315,11 @@ namespace engine
       /// wait all dirty page flushed to file
       while( dirtyPages() > 0 )
       {
-         syncPages( cb, TRUE, TRUE ) ;
+         if ( 0 == syncPages( cb, TRUE, TRUE ) )
+         {
+            SDB_ASSERT( dirtyPages() == 0, "Dirty Page must be 0" ) ;
+            break ;
+         }
       }
 
       for ( UINT32 i = 0 ; i < _bucketSize ; ++i )
@@ -2385,15 +2374,6 @@ namespace engine
    {
       _dirtySize.inc() ;
       pBucket->incDirty() ;
-
-#ifdef __FOR_TEST__
-      if ( pBucket->dirtyPages() > pBucket->totalPages() )
-      {
-         PD_LOG( PDERROR, "Dirty page[%llu] > Total page[%llu]",
-                 pBucket->dirtyPages(), pBucket->totalPages() ) ;
-         ossPanic() ;
-      }
-#endif // __FOR_TEST__
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT_GETANDLOCK, "_utilCacheUnit::getAndLock" )
@@ -2834,15 +2814,6 @@ namespace engine
          pBucket = _vecBucket[ i ] ;
          pBucket->lock( SHARED ) ;
 
-#ifdef __FOR_TEST__
-         if ( pBucket->dirtyPages() > pBucket->totalPages() )
-         {
-            PD_LOG( PDERROR, "Dirty page[%llu] > Total page[%llu]",
-                    pBucket->dirtyPages(), pBucket->totalPages() ) ;
-            ossPanic() ;
-         }
-#endif // __FOR_TEST__
-
          utilCacheBucket::MAP_BLK_PAGE* pPages = pBucket->getPages() ;
          utilCacheBucket::MAP_BLK_PAGE::iterator it = pPages->begin() ;
          blkSyncNum = 0 ;
@@ -2860,6 +2831,7 @@ namespace engine
             else if ( force || _lastSyncTime - tmpPage.lastWriteTime() >=
                       _dirtyTimeout )
             {
+               tmpPage.pin() ;
                tmpPages[ it->first ] = &tmpPage ;
                ++blkSyncNum ;
 
@@ -2871,26 +2843,19 @@ namespace engine
             ++it ;
          }
 
-#ifdef __FOR_TEST__
-         if ( pBucket->dirtyPages() > pBucket->totalPages() )
-         {
-            PD_LOG( PDERROR, "Dirty page[%llu] > Total page[%llu]",
-                    pBucket->dirtyPages(), pBucket->totalPages() ) ;
-            ossPanic() ;
-         }
-#endif // __FOR_TEST__
-
          pBucket->unlock( SHARED ) ;
 
          if ( tmpPages.size() >= UTIL_CACHE_SYNC_ONCE_NUM )
          {
             /// sync pages
             totalPages += _syncPages( tmpPages, cb ) ;
+            _unpinPages( tmpPages ) ;
             tmpPages.clear() ;
          }
       }
 
       totalPages += _syncPages( tmpPages, cb ) ;
+      _unpinPages( tmpPages ) ;
       PD_LOG( PDDEBUG, "Sync %d pages", totalPages ) ;
 
       _incSyncNum( totalPages ) ;
@@ -2898,6 +2863,25 @@ namespace engine
       PD_TRACE1( SDB__UTILCACHEUNIT_SYNCPAGES, PD_PACK_UINT( totalPages ) ) ;
       PD_TRACE_EXIT( SDB__UTILCACHEUNIT_SYNCPAGES ) ;
       return totalPages ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT__UNPINPAGES, "_utilCacheUnit::_unpinPages" )
+   void _utilCacheUnit::_unpinPages( const _utilCacheUnit::MAP_ID_2_PAGE_PRT &pageMap )
+   {
+      utilCacheBucket* pBucket = NULL ;
+      utilCachePage *pPage = NULL ;
+      PD_TRACE_ENTRY( SDB__UTILCACHEUNIT__UNPINPAGES ) ;
+
+      MAP_ID_2_PAGE_PRT_CIT it = pageMap.begin() ;
+      while( it != pageMap.end() )
+      {
+         pBucket = getBucket( calcBucketID( it->first ) ) ;
+         pPage = ( utilCachePage* )( it->second ) ;
+         pPage->unpin() ;
+         ++it ;
+      }
+
+      PD_TRACE_EXIT( SDB__UTILCACHEUNIT__UNPINPAGES ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT_DROPDIRTY, "_utilCacheUnit::dropDirty" )
@@ -2938,7 +2922,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT__SYNCPAGES, "_utilCacheUnit::_syncPages" )
-   UINT32 _utilCacheUnit::_syncPages( _utilCacheUnit::MAP_ID_2_PAGE_PRT &pageMap,
+   UINT32 _utilCacheUnit::_syncPages( const _utilCacheUnit::MAP_ID_2_PAGE_PRT &pageMap,
                                       IExecutor *cb )
    {
       INT32 rc = SDB_OK ;
@@ -2947,8 +2931,8 @@ namespace engine
       UINT32 totalPages = 0 ;
       BOOLEAN hasSync = FALSE ;
       utilCacheBucket *pBucket = NULL ;
-      MAP_ID_2_PAGE_PRT_IT it = pageMap.begin() ;
-      MAP_ID_2_PAGE_PRT_IT itNext ;
+      MAP_ID_2_PAGE_PRT_CIT it = pageMap.begin() ;
+      MAP_ID_2_PAGE_PRT_CIT itNext ;
       BOOLEAN write2Merge = FALSE ;
 
       UINT32 breakSize = UTIL_CACHE_SYNC_ONCE_NUM / 3 ;
@@ -3003,8 +2987,8 @@ namespace engine
          }
 
          pBucket = getBucket( calcBucketID( it->first ) ) ;
-         rc = _syncPage( pBucket, FALSE, it->second, it->first, cb,
-                         &hasSync, write2Merge ) ;
+         rc = _syncPage( pBucket, FALSE, ( utilCachePage* )( it->second ),
+                         it->first, cb, &hasSync, write2Merge ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Sync page[%d] failed, rc: %d",
@@ -3028,8 +3012,6 @@ namespace engine
          }
          _incMergeSyncNum( 1 ) ;
       }
-
-      pageMap.clear() ;
 
       PD_TRACE1( SDB__UTILCACHEUNIT__SYNCPAGES, PD_PACK_UINT( totalPages ) ) ;
       PD_TRACE_EXIT( SDB__UTILCACHEUNIT__SYNCPAGES ) ;
@@ -3108,15 +3090,6 @@ namespace engine
          pBucket = _vecBucket[ i ] ;
          pBucket->lock( EXCLUSIVE ) ;
 
-#ifdef __FOR_TEST__
-         if ( pBucket->dirtyPages() > pBucket->totalPages() )
-         {
-            PD_LOG( PDERROR, "Dirty page[%llu] > Total page[%llu]",
-                    pBucket->dirtyPages(), pBucket->totalPages() ) ;
-            ossPanic() ;
-         }
-#endif // __FOR_TEST__
- 
          pPages = pBucket->getPages() ;
          utilCacheBucket::MAP_BLK_PAGE::iterator it = pPages->begin() ;
          while ( it != pPages->end() )
@@ -3149,15 +3122,6 @@ namespace engine
                break ;
             }
          }
-
-#ifdef __FOR_TEST__
-         if ( pBucket->dirtyPages() > pBucket->totalPages() )
-         {
-            PD_LOG( PDERROR, "Dirty page[%llu] > Total page[%llu]",
-                    pBucket->dirtyPages(), pBucket->totalPages() ) ;
-            ossPanic() ;
-         }
-#endif // __FOR_TEST__
 
          pBucket->unlock( EXCLUSIVE ) ;
 
