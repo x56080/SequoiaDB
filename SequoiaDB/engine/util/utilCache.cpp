@@ -1982,6 +1982,7 @@ namespace engine
            cacheSize <= pageSize )
       {
          rc = SDB_SYS ;
+         goto error ;
       }
       _pageSize = pageSize ;
       _pFile = pFile ;
