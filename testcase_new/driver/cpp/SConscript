@@ -76,6 +76,7 @@ testFiles = [
    [ "./decimal/mul8898.cpp" ],
    [ "./decimal/sub8897.cpp" ],
    [ "./decimal/zero8877.cpp" ],
+   [ "./decimal/specialDecimal_14006.cpp" ],
    [ "./paramVerify/csFuncParamTest12719.cpp" ],
    [ "./paramVerify/clFuncParamTest12671.cpp" ],
    [ "./paramVerify/rgFuncParamTest12729.cpp" ],  # sync
