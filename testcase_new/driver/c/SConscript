@@ -61,7 +61,8 @@ testFiles = [
    [ "./load/rename.cpp" ],
    [ "./load/reloadConf.cpp" ], # sync
    [ "./load/setPDLevel.cpp" ], # sync
-   [ "./crud/queryMeta.cpp" ]
+   [ "./crud/queryMeta.cpp" ],
+   [ "./crud/specialDecimal_14004.cpp" ]
 ]
 
 def getFileName( filePath ):
