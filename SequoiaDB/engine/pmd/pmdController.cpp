@@ -284,11 +284,25 @@ namespace engine
    void _pmdController::onConfigChange()
    {
       setPDLevel( (PDLEVEL)( pmdGetOptionCB()->getDiagLevel() ) ) ;
+
+      setDiagFileNum( pmdGetOptionCB()->diagFileNum() ) ;
+      setAuditFileNum( pmdGetOptionCB()->auditFileNum() ) ;
+
       setAuditMask( pmdGetOptionCB()->auditMask() ) ;
       initCurAuditMask( getAuditMask() ) ;
 
       pmdGetKRCB()->getBuffPool()->enablePerfStat(
          pmdGetOptionCB()->isEnabledPerfStat() ) ;
+      pmdGetKRCB()->getBuffPool()->setMaxCacheSize(
+         pmdGetOptionCB()->getMaxCacheSize() ) ;
+      pmdGetKRCB()->getBuffPool()->setMaxCacheJob(
+         pmdGetOptionCB()->getMaxCacheJob() ) ;
+
+      pmdGetKRCB()->getSyncMgr()->setMaxSyncJob(
+         pmdGetOptionCB()->getMaxSyncJob() ) ;
+      pmdGetKRCB()->getSyncMgr()->setSyncDeep(
+         pmdGetOptionCB()->isSyncDeep() ) ;
+
    }
 
    void _pmdController::registerCB( SDB_ROLE dbrole )

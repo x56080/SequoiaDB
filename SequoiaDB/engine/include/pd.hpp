@@ -138,6 +138,9 @@ const CHAR* getDialogName() ;
 const CHAR* getDialogPath() ;
 const CHAR* getPDLevelDesp ( PDLEVEL level ) ;
 
+void setDiagFileNum( INT32 fileMaxNum ) ;
+void setAuditFileNum( INT32 fileMaxNum ) ;
+
 void sdbEnablePD( const CHAR *pdPathOrFile,
                   INT32 fileMaxNum = PD_DFT_FILE_NUM,
                   UINT32 fileMaxSize = PD_DFT_FILE_SZ ) ;

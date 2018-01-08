@@ -78,6 +78,20 @@ namespace engine
       _pMainUnit = pUnit ;
    }
 
+   void _pmdSyncMgr::setMaxSyncJob( UINT32 maxSyncJob )
+   {
+      _maxSyncJob = maxSyncJob ;
+      if ( _maxSyncJob < PMD_MIN_SYNC_JOB )
+      {
+         _maxSyncJob = PMD_MIN_SYNC_JOB ;
+      }
+   }
+
+   void _pmdSyncMgr::setSyncDeep( BOOLEAN syncDeep )
+   {
+      _syncDeep = syncDeep ;
+   }
+
    INT32 _pmdSyncMgr::init( UINT32 maxSyncJob,
                             BOOLEAN syncDeep )
    {

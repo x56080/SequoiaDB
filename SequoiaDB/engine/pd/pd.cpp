@@ -154,6 +154,18 @@ const CHAR* getDialogPath ()
    return _getPDCfgInfo( PD_DIAGLOG )._pdLogPath ;
 }
 
+void setDiagFileNum( INT32 fileMaxNum )
+{
+   pdCfgInfo &info = _getPDCfgInfo( PD_DIAGLOG ) ;
+   info._pdFileMaxNum = fileMaxNum ;
+}
+
+void setAuditFileNum( INT32 fileMaxNum )
+{
+   pdCfgInfo &info = _getPDCfgInfo( PD_AUDIT ) ;
+   info._pdFileMaxNum = fileMaxNum ;
+}
+
 void sdbEnablePD( const CHAR *pdPathOrFile, INT32 fileMaxNum,
                   UINT32 fileMaxSize )
 {
@@ -343,7 +355,7 @@ open:
          rc = logFile._logFile.getSize( &fileSize ) ;
          if ( rc )
          {
-            ossPrintf( "Failed to get log file size, rc = %d"OSS_NEWLINE, rc ) ;
+            ossPrintf( "Failed to get log file size, rc: %d"OSS_NEWLINE, rc ) ;
             logFile._fileSize = 0 ;
          }
          else
@@ -368,7 +380,7 @@ open:
    rc = logFile._logFile.Write ( pData, dataSize ) ;
    if ( rc )
    {
-      ossPrintf ( "Failed to reopen log file, errno = %d"OSS_NEWLINE,
+      ossPrintf ( "Failed to write log file, rc: %d"OSS_NEWLINE,
                   rc ) ;
       goto error ;
    } // if ( rc )

@@ -57,6 +57,7 @@ namespace engine
 
          virtual INT32     init( UINT64 cacheSize = 0 ) ;
          virtual void      fini() ;
+         void              setMaxCacheSize( UINT64 maxCacheSize ) ;
          void              setMaxCacheJob( UINT32 maxCacheJob ) ;
          void              enablePerfStat( BOOLEAN enable = TRUE ) ;
 

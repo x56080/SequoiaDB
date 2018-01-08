@@ -64,6 +64,12 @@ namespace engine
    {
    }
 
+   void _pmdBuffPool::setMaxCacheSize( UINT64 maxCacheSize )
+   {
+      _maxCacheSize = maxCacheSize * 1024 * 1024 ;
+      _checkAndStartJob( TRUE ) ;
+   }
+
    void _pmdBuffPool::setMaxCacheJob( UINT32 maxCacheJob )
    {
       _maxCacheJob = maxCacheJob ;

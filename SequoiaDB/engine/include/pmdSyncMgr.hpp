@@ -70,6 +70,9 @@ namespace engine
          ossEvent*         getNtyEvent() { return &_ntyEvent ; }
 
          BOOLEAN           isSyncDeep() const { return _syncDeep ; }
+         void              setSyncDeep( BOOLEAN syncDeep ) ;
+
+         void              setMaxSyncJob( UINT32 maxSyncJob ) ;
 
          UINT64            syncAndGetLastLSN() ;
          UINT64            getCompleteLSN() const { return _completeLSN ; }
