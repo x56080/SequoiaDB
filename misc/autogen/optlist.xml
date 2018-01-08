@@ -913,10 +913,6 @@
          <en>Yes</en>
          <cn>是</cn>
       </reloadable>
-      <reloadstrategy>
-         <en>takes effect upon newly created CS</en>
-         <cn>新建集合空间生效</cn>
-      </reloadstrategy>
       <detail>
          <en>Extend the file as a sparse file, if it is not specified, the default value is "false"</en>
          <cn>当扩展文件时，使用稀疏文件功能，如果不指定，默认值为"false"</cn>
@@ -1089,10 +1085,6 @@
          <en>Yes</en>
          <cn>是</cn>
       </reloadable>
-      <reloadstrategy>
-         <en>takes effect upon newly created CS</en>
-         <cn>新建集合空间生效</cn>
-      </reloadstrategy>
       <detail>
          <en>The overflow ratio(%) of record when inserting, default is 12, value range:[0,10000]</en>
          <cn>记录大小预留空间扩展比(%),默认为12,取值范围:[0,10000]</cn>
@@ -1113,10 +1105,6 @@
          <en>Yes</en>
          <cn>是</cn>
       </reloadable>
-      <reloadstrategy>
-         <en>takes effect upon newly created CS</en>
-         <cn>新建集合空间生效</cn>
-      </reloadstrategy>
       <detail>
          <en>The threshold size( in MB, must be power of 2 or 0 ) of pre extended segment, default is 32, 0 means disable pre-extend, value range:[0, 128]</en>
          <cn>预扩展数据段的阈值(单位:MB, 取值必须是2的幂或者0), 默认为32, 0表示不开启预扩展, 取值范围:[0, 128]</cn>
@@ -1209,16 +1197,11 @@
          <en>Yes</en>
          <cn>是</cn>
       </reloadable>
-      <reloadstrategy>
-         <en>takes effect upon newly created CS</en>
-         <cn>新建集合空间生效</cn>
-      </reloadstrategy>
       <detail>
          <en>The merge block size of collectionspace when use cache, default:0, value range:[0,64], unit:MB(currently only applicable for Lob feature)</en>
          <cn>每一个集合空间用于合并页的缓存大小，默认为0，取值范围:[0,64],单位为MB（注意：该配置目前仅对Lob功能生效）</cn>
       </detail>
       <type>int</type>
-      <hidden>true</hidden>
       <default>0</default>
       <typeofweb>num</typeofweb>
    </opt>
