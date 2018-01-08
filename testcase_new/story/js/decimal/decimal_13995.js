@@ -18,7 +18,7 @@ function main()
    
    testUpdateData( cl, { a: { $inc: 1 } }, -6 ) ;
    
-   // testAddToSet( cl ) ;
+   testAddToSet( cl ) ;
 }
 
 function testUpdateData( cl, rule, errno )
@@ -46,8 +46,8 @@ function testAddToSet( cl )
                                   { "$decimal": "NaN" } ] } },
               { b: { $exists: 1 } } ) ;
    var cursor = findData( cl, { b: { $exists: 1 } } ) ;
-   var expRecs = [ { b: [ { "$decimal": "MAX" },   // MIN NaN MAX
-                          { "$decimal": "MIN" },
-                          { "$decimal": "NaN" } ] } ] ;
+   var expRecs = [ { b: [ { "$decimal": "MIN" },
+                          { "$decimal": "NaN" },
+                          { "$decimal": "MAX" } ] } ] ;
    checkRec( cursor, expRecs ) ;
 }
