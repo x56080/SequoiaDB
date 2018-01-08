@@ -2060,6 +2060,11 @@ namespace engine
       return _cacheSize ;
    }
 
+   BOOLEAN _utilCacheMerge::isAlignment() const
+   {
+      return _isAlignment ;
+   }
+
    UINT32 _utilCacheMerge::getLength() const
    {
       return _dataLength ;
@@ -2308,6 +2313,40 @@ namespace engine
                                   alignment, cacheSize ) ;
       }
       return SDB_OK ;
+   }
+
+   void _utilCacheUnit::updateMerge( BOOLEAN alignment, UINT32 cacheSize )
+   {
+      if ( _hasReg && _cacheMerge.isEmpty() )
+      {
+         UINT32 tmpCacheSize = ossAlignX( cacheSize, _pageSize ) ;
+
+         if ( tmpCacheSize != _cacheMerge.capacity() ||
+              alignment != _cacheMerge.isAlignment() )
+         {
+            lockPageCleaner() ;
+
+            /// release cacheMerge
+            _cacheMerge.fini() ;
+
+            /// re-create cacheMerge
+            if ( _useCache && cacheSize > 0 &&
+                 _pMgr->maxCacheSize() > cacheSize )
+            {
+               INT32 rc = _cacheMerge.init( _pageSize, _pCacheFile,
+                                            alignment, cacheSize ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDWARNING, "Update merge info[aligment:%d, "
+                          "cacheSize:%u] failed, rc: %d", alignment,
+                          cacheSize ) ;
+                  rc = SDB_OK ;
+               }
+            }
+
+            unlockPageCleaner() ;
+         }
+      }
    }
 
    void _utilCacheUnit::setDirtyConfig( UINT32 bgDirtyRatio,

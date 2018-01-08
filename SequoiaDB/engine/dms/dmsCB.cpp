@@ -205,8 +205,16 @@ namespace engine
             dmsStorageInfo *pInfo = su->storageInfo() ;
             utilCacheUnit *pCache = su->cacheUnit() ;
 
+            pInfo->_overflowRatio = optCB->getOverFlowRatio() ;
+            pInfo->_extentThreshold = optCB->getExtendThreshold() << 20 ;
+            pInfo->_enableSparse = optCB->sparseFile() ;
+            pInfo->_cacheMergeSize = optCB->getCacheMergeSize() ;
             pInfo->_pageAllocTimeout = optCB->getPageAllocTimeout() ;
+
             pCache->setAllocTimeout( pInfo->_pageAllocTimeout ) ;
+            pCache->updateMerge( pInfo->_directIO, pInfo->_cacheMergeSize ) ;
+
+            su->lob()->getLobData()->enableSparse( pInfo->_enableSparse ) ;
          }
       }
    }

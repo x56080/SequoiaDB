@@ -715,6 +715,7 @@ namespace engine
          BOOLEAN     isFull() const ;
          UINT32      freeSize() const ;
          UINT32      capacity() const ;
+         BOOLEAN     isAlignment() const ;
 
          UINT32      getLength() const ;
          const CHAR* getData() const ;
@@ -791,6 +792,9 @@ namespace engine
          void           fini( IExecutor *cb ) ;
 
          INT32          enableMerge( BOOLEAN alignment,
+                                     UINT32 cacheSize ) ;
+
+         void           updateMerge( BOOLEAN alignment,
                                      UINT32 cacheSize ) ;
 
          BOOLEAN        isClosed() const { return _closed ; }

@@ -77,6 +77,18 @@ namespace engine
       close() ;   
    }
 
+   void _dmsStorageLobData::enableSparse( BOOLEAN sparse )
+   {
+      if ( sparse )
+      {
+         _flags |= DMS_LOBD_FLAG_SPARSE ;
+      }
+      else
+      {
+         _flags &= ( ~DMS_LOBD_FLAG_SPARSE ) ;
+      }
+   }
+
    const CHAR* _dmsStorageLobData::getFileName() const
    {
       return _fileName.c_str() ;

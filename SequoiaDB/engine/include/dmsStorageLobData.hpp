@@ -57,6 +57,8 @@ namespace engine
                           BOOLEAN useDirectIO ) ;
       virtual ~_dmsStorageLobData() ;
 
+      void     enableSparse( BOOLEAN sparse ) ;
+
    /// Base class functions
    public:
       virtual const CHAR*     getFileName() const ;
