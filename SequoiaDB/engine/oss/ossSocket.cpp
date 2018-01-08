@@ -925,14 +925,6 @@ INT32 _ossSocket::disableNagle ()
                SOCKET_GETLASTERROR ) ;
    }
 
-   rc = setsockopt ( _fd, SOL_SOCKET, SO_KEEPALIVE, (CHAR *) &temp,
-                     sizeof ( INT32 ) ) ;
-   if ( rc )
-   {
-      PD_LOG ( PDWARNING, "Failed to setsockopt, rc = %d",
-               SOCKET_GETLASTERROR ) ;
-   }
-
 done:
    PD_TRACE_EXITRC ( SDB_OSSSK_DISNAG, rc );
    return rc ;

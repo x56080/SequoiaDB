@@ -5857,7 +5857,9 @@ error :
       }
       _sock->disableNagle () ;
       // set keep alive
-      _sock->setKeepAlive( 1, 15, 5, 3 ) ;
+      _sock->setKeepAlive( 1, OSS_SOCKET_KEEP_IDLE,
+                           OSS_SOCKET_KEEP_INTERVAL,
+                           OSS_SOCKET_KEEP_CONTER ) ;
 
       if ( _useSSL )
       {

@@ -83,7 +83,16 @@ namespace engine
       if ( SDB_OK != rc )
       {
          // just warning
-         PD_LOG( PDERROR, "disable nagle failed:rc=%d", rc ) ;
+         PD_LOG( PDWARNING, "disable nagle failed:rc=%d", rc ) ;
+         rc = SDB_OK ;
+      }
+
+      rc = _pSocket->setKeepAlive( 1, OSS_SOCKET_KEEP_IDLE,
+                                   OSS_SOCKET_KEEP_INTERVAL,
+                                   OSS_SOCKET_KEEP_CONTER ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Set socket keep alive failed, rc: %d", rc ) ;
          rc = SDB_OK ;
       }
 
