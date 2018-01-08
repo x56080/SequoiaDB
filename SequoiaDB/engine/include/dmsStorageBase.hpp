@@ -85,6 +85,7 @@ namespace engine
       BOOLEAN     _enableSparse ;
       BOOLEAN     _directIO ;
       UINT32      _cacheMergeSize ;
+      UINT32      _pageAllocTimeout ;
 
       /// Data is OK
       BOOLEAN     _dataIsOK ;
@@ -103,6 +104,7 @@ namespace engine
          _enableSparse = FALSE ;
          _directIO = FALSE ;
          _cacheMergeSize = 0 ;
+         _pageAllocTimeout = 0 ;
 
          _dataIsOK       = FALSE ;
          _curLSNOnStart  = ~0 ;

@@ -88,6 +88,7 @@ namespace engine
    #define PMD_DFT_ARCHIVE_QUOTA       (10)  // 10 GB
    #define PMD_DFT_DMS_CHK_INTERVAL    (0) // disable
    #define PMD_DFT_CACHE_MERGE_SZ      (0)
+   #define PMD_DFT_PAGE_ALLOC_TIMEOUT  (0)
 
    /*
       _pmdCfgExchange implement
@@ -1491,6 +1492,7 @@ namespace engine
 
       _dmsChkInterval = PMD_DFT_DMS_CHK_INTERVAL ;
       _cacheMergeSize = PMD_DFT_CACHE_MERGE_SZ ;
+      _pageAllocTimeout = PMD_DFT_PAGE_ALLOC_TIMEOUT ;
       _perfStat = FALSE ;
 
 #ifdef SDB_ENTERPRISE
@@ -1790,6 +1792,11 @@ namespace engine
       rdxUInt( pEX, PMD_OPTION_CACHE_MERGE_SIZE, _cacheMergeSize,
                FALSE, TRUE, PMD_DFT_CACHE_MERGE_SZ, TRUE ) ;
       rdvMinMax( pEX, _cacheMergeSize, 0, 64, TRUE ) ;
+
+      // --pagealloctimeout
+      rdxUInt( pEX, PMD_OPTION_PAGE_ALLOC_TIMEOUT, _pageAllocTimeout,
+               FALSE, TRUE, PMD_DFT_PAGE_ALLOC_TIMEOUT, TRUE ) ;
+      rdvMinMax( pEX, _pageAllocTimeout, 0, 3600000, TRUE ) ;
 
       // --perfstat
       rdxBooleanS( pEX, PMD_OPTION_PERF_STAT, _perfStat, FALSE,

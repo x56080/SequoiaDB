@@ -240,7 +240,8 @@ namespace engine
       }
 
       /// Init cache unit
-      rc = _pCacheUnit->init( getLobData(), _pStorageInfo->_lobdPageSize ) ;
+      rc = _pCacheUnit->init( getLobData(), _pStorageInfo->_lobdPageSize,
+                              _pStorageInfo->_pageAllocTimeout ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Init cache unit failed, rc: %d", rc ) ;

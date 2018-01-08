@@ -250,6 +250,7 @@ namespace engine
       virtual INT32  active () ;
       virtual INT32  deactive () ;
       virtual INT32  fini () ;
+      virtual void   onConfigChange() ;
 
       INT32 nameToSUAndLock ( const CHAR *pName, dmsStorageUnitID &suID,
                               _dmsStorageUnit **su,

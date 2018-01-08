@@ -46,6 +46,9 @@ namespace engine
    #define UTIL_MAX_BLK_RECYCLE_SIZE            ( 40 * 1048576 )     /// MB
    #define UTIL_DFT_BLK_RECYCLE_SIZE            ( 4  * 1048576 )     /// MB
 
+   #define UTIL_PAGE_ALLOC_WAIT_TIMEPIECE       ( 30 )               /// ms
+   #define UTIL_PAGE_ALLOC_FIX_TIMEPIECE        ( 3 )                /// ms
+
    /*
       _utilCachePage implement
    */
@@ -1058,6 +1061,8 @@ namespace engine
       {
          if ( _totalSize.peek() + pageSize > _maxCacheSize )
          {
+            /// reset event
+            _releaseEvent.reset() ;
             /// up to the limit
             rc = SDB_OSS_UP_TO_LIMIT ;
             goto error ;
@@ -1116,6 +1121,10 @@ namespace engine
       if ( totalSize() <= 0 )
       {
          // nothing
+      }
+      else if ( 0 == maxCacheSize() )
+      {
+         needRecycle = TRUE ;
       }
       /// when free ratio over the threshold
       else if ( totalSize() * 100 / maxCacheSize() >= UTIL_CACHE_RATIO &&
@@ -2196,14 +2205,16 @@ namespace engine
    _utilCacheUnit::_utilCacheUnit( utilCacheMgr *pMgr )
    :_dirtySize( 0 ), _totalPage( 0 ),
     _statAllocNum( 0 ), _statAllocFromBlkNum( 0 ),
-    _statAllocNullNum( 0 ), _statHitCacheNum( 0 ),
+    _statAllocNullNum( 0 ), _statAllocWaitNum( 0 ), _statHitCacheNum( 0 ),
     _statMergeNum( 0 ), _statMergeSyncNum( 0 ), _statSyncNum( 0 ),
-    _statRecycleNum( 0 ) ,_lastStatTime( 0 )
+    _statRecycleNum( 0 ), _statTotalWaitTime( 0 ), _statMaxWaitTime( 0 ),
+    _lastStatTime( 0 )
    {
       _pMgr = pMgr ;
       _pCacheFile = NULL ;
       _bucketSize = 0 ;
       _pageSize = 0 ;
+      _allocTimeout = 0 ;
       _closed = TRUE ;
       _wholePage = FALSE ;
       _lastRecycleTime = 0 ;
@@ -2228,6 +2239,7 @@ namespace engine
 
    INT32 _utilCacheUnit::init ( utilCachFileBase *pFile,
                                 UINT32 pageSize,
+                                UINT32 allocTimeout,
                                 UINT32 bucketSize,
                                 BOOLEAN useCache,
                                 BOOLEAN wholePage )
@@ -2243,6 +2255,7 @@ namespace engine
 
       _pCacheFile = pFile ;
       _pageSize = pageSize ;
+      _allocTimeout = allocTimeout ;
       _useCache = useCache ;
       _wholePage = wholePage ;
 
@@ -2270,10 +2283,26 @@ namespace engine
       goto done ;
    }
 
+   void _utilCacheUnit::setUseCache( BOOLEAN useCache )
+   {
+      _useCache = useCache ;
+   }
+
+   void _utilCacheUnit::setUseWholePage( BOOLEAN wholePage )
+   {
+      _wholePage = wholePage ;
+   }
+
+   void _utilCacheUnit::setAllocTimeout( UINT32 allocTimeout )
+   {
+      _allocTimeout = allocTimeout ;
+   }
+
    INT32 _utilCacheUnit::enableMerge( BOOLEAN alignment, UINT32 cacheSize )
    {
       SDB_ASSERT( _pCacheFile && _pageSize > 0, "Must init first" ) ;
-      if ( _useCache && _pMgr->maxCacheSize() > cacheSize )
+      if ( _useCache && cacheSize > 0 &&
+           _pMgr->maxCacheSize() > cacheSize )
       {
          return _cacheMerge.init( _pageSize, _pCacheFile,
                                   alignment, cacheSize ) ;
@@ -2386,6 +2415,7 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__UTILCACHEUNIT_GETANDLOCK ) ;
       utilCachePage* pPage = NULL ;
+      UINT32 timeout = 0 ;
       UINT32 bucketID = calcBucketID( pageID ) ;
       utilCacheBucket* pBucket = NULL ;
       OSS_LATCH_MODE tmpMode = mode ;
@@ -2400,7 +2430,7 @@ namespace engine
          SDB_ASSERT( pageID >= 0, "Page must >= 0" ) ;
          goto done ;
       }
-      if ( !_useCache )
+      if ( !_useCache && _dirtySize.compare( 0 ) )
       {
          goto done ;
       }
@@ -2453,6 +2483,27 @@ namespace engine
                {
                   _incAllocFromBlkNum( 1 ) ;
                }
+               else if ( timeout < _allocTimeout )
+               {
+                  pBucket->unlock( tmpMode ) ;
+                  if ( 0 == timeout )
+                  {
+                     _statAllocWaitNum.inc() ;
+                  }
+                  if ( _pMgr->waitEvent( UTIL_PAGE_ALLOC_WAIT_TIMEPIECE ) )
+                  {
+                     timeout += UTIL_PAGE_ALLOC_WAIT_TIMEPIECE ;
+                     _statTotalWaitTime.add( UTIL_PAGE_ALLOC_WAIT_TIMEPIECE ) ;
+                  }
+                  else
+                  {
+                     timeout += UTIL_PAGE_ALLOC_FIX_TIMEPIECE ;
+                     _statTotalWaitTime.add( UTIL_PAGE_ALLOC_FIX_TIMEPIECE ) ;
+                  }
+                  _statMaxWaitTime.swapGreaterThan( timeout ) ;
+                  pBucket->lock( tmpMode ) ;
+                  goto reget ;
+               }
                else
                {
                   _incAllocNullNum( 1 ) ;
@@ -2495,9 +2546,32 @@ namespace engine
                {
                   PD_LOG( PDERROR, "Alloc page[%u] failed, rc: %d",
                           size, rc ) ;
+                  /// can't goto done
+               }
+
+               if ( timeout < _allocTimeout )
+               {
+                  pBucket->unlock( tmpMode ) ;
+                  if ( 0 == timeout )
+                  {
+                     _statAllocWaitNum.inc() ;
+                  }
+                  if ( _pMgr->waitEvent( UTIL_PAGE_ALLOC_WAIT_TIMEPIECE ) )
+                  {
+                     timeout += UTIL_PAGE_ALLOC_WAIT_TIMEPIECE ;
+                     _statMaxWaitTime.add( UTIL_PAGE_ALLOC_WAIT_TIMEPIECE ) ;
+                  }
+                  else
+                  {
+                     timeout += UTIL_PAGE_ALLOC_FIX_TIMEPIECE ;
+                     _statMaxWaitTime.add( UTIL_PAGE_ALLOC_FIX_TIMEPIECE ) ;
+                  }
+                  _statMaxWaitTime.swapGreaterThan( timeout ) ;
+                  pBucket->lock( tmpMode ) ;
+                  goto reget ;
                }
                /// if the page is dirty, need to sync first
-               if ( pPage->isDirty() )
+               else if ( pPage->isDirty() )
                {
                   rc = _syncPage( pBucket, TRUE, pPage, pageID, cb ) ;
                   if ( rc )
@@ -3029,6 +3103,10 @@ namespace engine
       {
          // nothing
       }
+      else if ( 0 == _pMgr->maxCacheSize() )
+      {
+         needRecycle = TRUE ;
+      }
       /// when free ratio over the threshold
       else if ( _pMgr->totalSize() * 100 / _pMgr->maxCacheSize() >=
                 UTIL_CACHE_RATIO &&
@@ -3159,6 +3237,7 @@ namespace engine
       UINT32 statDirtyPage = dirtyPages() ;
       UINT32 statAlloc = _statAllocNum.swap( 0 ) ;
       UINT32 statAllocNull = _statAllocNullNum.swap( 0 ) ;
+      UINT32 statAllocWait = _statAllocWaitNum.swap( 0 ) ;
       UINT32 statAllocBlk = _statAllocFromBlkNum.swap( 0 ) ;
       UINT32 statHitCache = _statHitCacheNum.swap( 0 ) ;
       UINT32 statMerge = _statMergeNum ;
@@ -3167,6 +3246,8 @@ namespace engine
       _statMergeSyncNum = 0 ;
       UINT32 syncNum = _statSyncNum.swap( 0 ) ;
       UINT32 recyclNum = _statRecycleNum.swap( 0 ) ;
+      UINT64 totalWaitTime = _statTotalWaitTime.swap( 0 ) ;
+      UINT32 maxWaitTime = _statMaxWaitTime.swap( 0 ) ;
 
       _lastStatTime = curTime ;
 
@@ -3181,15 +3262,20 @@ namespace engine
                    "Dirty Page        : %u"OSS_NEWLINE
                    "Alloc Num         : %u"OSS_NEWLINE
                    "Alloc Null Num    : %u"OSS_NEWLINE
+                   "Alloc Wait Num    : %u"OSS_NEWLINE
                    "Alloc Blk Num     : %u"OSS_NEWLINE
                    "Hit Cache Num     : %u"OSS_NEWLINE
                    "Merge Num         : %u"OSS_NEWLINE
                    "Merge Sync        : %u"OSS_NEWLINE
                    "Sync Num          : %u"OSS_NEWLINE
                    "Recycle Num       : %u"OSS_NEWLINE
+                   "Total Wait Tm(ms) : %llu"OSS_NEWLINE
+                   "Max Wait Tm(ms)   : %u"OSS_NEWLINE
+                   "Avg Wait Tm(ms)   : %.2f"OSS_NEWLINE
                    "Dirty ratio       : %.2f %%"OSS_NEWLINE
                    "Alloc Speed       : %.2f /s"OSS_NEWLINE
                    "Alloc Null Speed  : %.2f /s"OSS_NEWLINE
+                   "Alloc Wait Speed  : %.2f /s"OSS_NEWLINE
                    "Alloc Blk Speed   : %.2f /s"OSS_NEWLINE
                    "Hit Cache Speed   : %.2f /s"OSS_NEWLINE
                    "Merge Speed       : %.2f /s"OSS_NEWLINE
@@ -3204,15 +3290,20 @@ namespace engine
                    statDirtyPage,
                    statAlloc,
                    statAllocNull,
+                   statAllocWait,
                    statAllocBlk,
                    statHitCache,
                    statMerge,
                    statMergeSync,
                    syncNum,
                    recyclNum,
+                   totalWaitTime,
+                   maxWaitTime,
+                   (FLOAT64)totalWaitTime / ( statAllocWait == 0 ? 1 : statAllocWait ),
                    (FLOAT64)statDirtyPage * 100 / ( statTotalPage == 0 ? 1 : statTotalPage ),
                    (FLOAT64)statAlloc / diff * 1000,
                    (FLOAT64)statAllocNull / diff * 1000,
+                   (FLOAT64)statAllocWait / diff * 1000,
                    (FLOAT64)statAllocBlk / diff * 1000,
                    (FLOAT64)statHitCache / diff * 1000,
                    (FLOAT64)statMerge / diff * 1000,

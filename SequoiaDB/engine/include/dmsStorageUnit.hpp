@@ -113,6 +113,7 @@ namespace engine
          dmsStorageLob     *lob() { return _pLobSu ; }
          rtnAccessPlanManager *getAPM () { return &_apm ; }
          utilCacheUnit     *cacheUnit() { return _pCacheUnit ; }
+         dmsStorageInfo    *storageInfo() { return &_storageInfo ; }
 
          INT32       getPageSize() const { return _storageInfo._pageSize ; }
          INT32       getLobPageSize() const { return _storageInfo._lobdPageSize ; }

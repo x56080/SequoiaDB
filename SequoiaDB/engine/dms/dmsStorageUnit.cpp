@@ -88,6 +88,7 @@ namespace engine
       _storageInfo._enableSparse = options->sparseFile() ;
       _storageInfo._directIO = options->useDirectIOInLob() ;
       _storageInfo._cacheMergeSize = options->getCacheMergeSize() ;
+      _storageInfo._pageAllocTimeout = options->getPageAllocTimeout() ;
       _storageInfo._dataIsOK = pmdGetStartup().isOK() ;
       _storageInfo._curLSNOnStart = pmdGetSyncMgr()->getCompleteLSN() ;
       // make secret value

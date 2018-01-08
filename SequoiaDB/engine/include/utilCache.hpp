@@ -784,6 +784,7 @@ namespace engine
 
          INT32          init( utilCachFileBase *pFile,
                               UINT32 pageSize,
+                              UINT32 allocTimeout,
                               UINT32 bucketSize = UTIL_CACHEUNIT_BUCKET_SZ,
                               BOOLEAN useCache = TRUE,
                               BOOLEAN wholePage = FALSE ) ;
@@ -805,6 +806,9 @@ namespace engine
                                           UTIL_CACHEUNIT_BG_FREE_RATIO,
                                           UINT32 pageTimeout =
                                           UTIL_CACHEUNIT_PAGE_TIMEOUT ) ;
+         void           setUseCache( BOOLEAN useCache ) ;
+         void           setUseWholePage( BOOLEAN wholePage ) ;
+         void           setAllocTimeout( UINT32 allocTimeout ) ;
 
          UINT32         getBGDirtyRatio() const { return _bgDirtyRatio ; }
          UINT32         getDirtyTimeout() const { return _dirtyTimeout ; }
@@ -877,6 +881,7 @@ namespace engine
          utilCachFileBase*          _pCacheFile ;
          UINT32                     _bucketSize ;
          UINT32                     _pageSize ;
+         UINT32                     _allocTimeout ;
          BOOLEAN                    _wholePage ;
          vector< utilCacheBucket* > _vecBucket ;
          BOOLEAN                    _closed ;
@@ -907,11 +912,14 @@ namespace engine
          ossAtomic32                _statAllocNum ;
          ossAtomic32                _statAllocFromBlkNum ;
          ossAtomic32                _statAllocNullNum ;
+         ossAtomic32                _statAllocWaitNum ;
          ossAtomic32                _statHitCacheNum ;
          volatile UINT32            _statMergeNum ;
          volatile UINT32            _statMergeSyncNum ;
          ossAtomic32                _statSyncNum ;
          ossAtomic32                _statRecycleNum ;
+         ossAtomic64                _statTotalWaitTime ;
+         ossAtomic32                _statMaxWaitTime ;
 
          volatile UINT64            _lastStatTime ;
 
