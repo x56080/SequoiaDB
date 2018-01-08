@@ -159,6 +159,14 @@
          <en>The max number of diagnostic log files, default:20, -1:unlimited</en>
          <cn>诊断日志文件最大数量,默认值:20, -1表示不限制</cn>
       </description>
+      <reloadable>
+      		<en>Yes</en>
+      		<cn>是</cn>
+      </reloadable>
+      <reloadstrategy>
+      		<en>takes effect when current file reaches write limit</en>
+      		<cn>当前文件写满时生效</cn>
+      </reloadstrategy>
       <detail>
          <en>1. It specifies the number of diagnostic log file. <fig></fig>
              2. If it is not specified, the default 20; -1 means unlimited.</en>
@@ -176,6 +184,14 @@
          <en>The max number of audit log files, default:20, -1:unlimited</en>
          <cn>审计日志文件最大数量,默认值:20, -1表示不限制</cn>
       </description>
+      <reloadable>
+      		<en>Yes</en>
+      		<cn>是</cn>
+      </reloadable>
+      <reloadstrategy>
+      		<en>takes effect when current file reaches write limit</en>
+      		<cn>当前文件写满时生效</cn>
+      </reloadstrategy>
       <detail>
          <en>1. It specifies the number of audit log file. <fig></fig>
              2. If it is not specified, the default 20; -1 means unlimited.</en>
@@ -1143,6 +1159,10 @@
          <en>The node's max cache size, default:0, unit:MB(currently only applicable for Lob feature)</en>
          <cn>节点缓存最大值，默认为0，单位为MB（注意：该配置目前仅对Lob功能生效）</cn>
       </description>
+      <reloadable>
+      		<en>Yes</en>
+      		<cn>是</cn>
+      </reloadable>
       <detail>
          <en>The node's max cache size, unit is MB, default is 0(currently only applicable for Lob feature)</en>
          <cn>节点缓存最大值，单位为MB，默认值为0（注意：该配置目前仅对Lob功能生效）</cn>
@@ -1159,6 +1179,10 @@
          <en>The maximum number of cache threads, default:10, value range:[2, 200]</en>
          <cn>后台缓存任务线程的最大数量，默认值为10，取值范围为[2, 200]（注意：该配置目前仅对Lob功能生效）</cn>
       </description>
+      <reloadable>
+      		<en>Yes</en>
+      		<cn>是</cn>
+      </reloadable>
       <detail>
          <en>1.The maximum number of cache threads, default:10, value range:[2, 200].<fig></fig>
              2.Cache threads will synchronize the dirty pages to file, and drop the invalid pages.<fig></fig>
@@ -1227,6 +1251,10 @@
          <en>The maximum number of data-sync threads, default:10, value range:[2, 200]</en>
          <cn>后台数据同步任务线程的最大数量，默认值为10，取值范围为[2, 200]</cn>
       </description>
+      <reloadable>
+      		<en>Yes</en>
+      		<cn>是</cn>
+      </reloadable>
       <detail>
          <en>1.The maximum number of data-sync threads, default:10, value range:[2, 200].<fig></fig>
              2.Data-sync threads will synchronize the dirty data to file.<fig></fig>
@@ -1247,6 +1275,10 @@
          <en>The interval time(unit:ms) of data-sync, default:10000, 0 means disable data-sync by time</en>
          <cn>后台数据同步周期，单位毫秒，默认值为10000，0表示不按周期触发数据同步</cn>
       </description>
+      <reloadable>
+      		<en>Yes</en>
+      		<cn>是</cn>
+      </reloadable>
       <detail>
          <en>The interval times(unit:ms) of data-sync, default:10000, 0 means disable data-sync by time</en>
          <cn>后台数据同步周期，单位毫秒，默认值为10000，0表示不按周期触发数据同步</cn>
@@ -1263,6 +1295,10 @@
          <en>The trigger condition of record number of data-sync, default:0, 0 means disable data-sync by record</en>
          <cn>后台数据同步触发记录数，默认值为0，0表示不按记录数触发数据同步</cn>
       </description>
+      <reloadable>
+      		<en>Yes</en>
+      		<cn>是</cn>
+      </reloadable>
       <detail>
          <en>The trigger condition of record number of data-sync, default:0, 0 means disable data-sync by record</en>
          <cn>后台数据同步触发记录数，默认值为0，0表示不按记录数触发数据同步</cn>
@@ -1279,6 +1315,10 @@
          <en>Turn on deep mode in data-sync, default:FALSE</en>
          <cn>数据同步是否开启深度刷盘,默认为:FALSE</cn>
       </description>
+      <reloadable>
+      		<en>Yes</en>
+      		<cn>是</cn>
+      </reloadable>
       <default>false</default>
       <detail>
          <en>1. It specifies whether deep mode turns on or not in data-sync.<fig></fig>
