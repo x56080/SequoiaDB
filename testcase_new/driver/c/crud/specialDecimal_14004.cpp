@@ -9,37 +9,33 @@
 #include <client.h>
 #include <stdio.h>
 #include "testcommon.hpp"
-#include "testBase.hpp"
-#include "arguments.hpp"
 
-class specialDecimalTest : public testBase
+class specialDecimalTest : public testing::Test
 {
 protected:
    const CHAR* csName ;
    const CHAR* clName ;
+   sdbConnectionHandle db ;
    sdbCSHandle cs ;
    sdbCollectionHandle cl ;
    
    void SetUp()
    {
-      testBase::SetUp() ;
       INT32 rc = SDB_OK ;
       csName = "specialDecimalTestCs_14004" ;
       clName = "specialDecimalTestCl_14004" ;
-      rc = createNormalCsCl( db, &cs, &cl, csName, clName ) ;
+      rc = createNormalCl( &db, &cs, &cl, csName, clName ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
    }
 
    void TearDown()
    {
-      if( shouldClear() )
-      {
-         INT32 rc = sdbDropCollectionSpace( db, csName ) ;
-         ASSERT_EQ( SDB_OK, rc ) << "fail to drop cs " << csName ;
-      } 
+      INT32 rc = sdbDropCollectionSpace( db, csName ) ;
+      ASSERT_EQ( SDB_OK, rc ) << "fail to drop cs " << csName ; 
+      sdbDisconnect( db ) ;
       sdbReleaseCS( cs ) ;
       sdbReleaseCollection( cl ) ;
-      testBase::TearDown() ;
+      sdbReleaseConnection( db ) ;
    }
 } ;
 
