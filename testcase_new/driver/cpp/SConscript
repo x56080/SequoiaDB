@@ -126,7 +126,15 @@ testFiles = [
    [ "./monitor/resetSnapshot12664.cpp" ], # sync
    [ "./date/date11754.cpp" ],
    [ "./date/dateTime12219_12220.cpp" ],
-   [ "./numberLong/numberLong7822.cpp" ]
+   [ "./numberLong/numberLong7822.cpp" ],
+   [ "./uninited/sdb14032.cpp" ],
+   [ "./uninited/sdbCursor14033.cpp" ],
+   [ "./uninited/sdbNode14034.cpp" ],
+   [ "./uninited/sdbCollection14035.cpp" ],
+   [ "./uninited/sdbCollectionSpace14036.cpp" ],
+   [ "./uninited/sdbReplicaGroup14037.cpp" ],
+   [ "./uninited/sdbDomain14038.cpp" ],
+   [ "./uninited/sdbLob14039.cpp" ]
 ]
 
 def getFileName( filePath ):
