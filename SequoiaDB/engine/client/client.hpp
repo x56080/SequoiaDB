@@ -341,7 +341,7 @@ namespace sdbclient
                                       INT64 numToSkip                = 0,
                                       INT64 numToReturn              = -1,
                                       INT32 flag                     = 0,
-                                      BOOLEAN returnNew              = FALSE 
+                                      BOOLEAN returnNew              = FALSE
                                    ) = 0 ;
 
       // query objects from current collection and remove
@@ -359,7 +359,7 @@ namespace sdbclient
                                       const bson::BSONObj &hint      = _sdbStaticObject,
                                       INT64 numToSkip                = 0,
                                       INT64 numToReturn              = -1,
-                                      INT32 flag                     = 0 
+                                      INT32 flag                     = 0
                                    ) = 0 ;
 
       //virtual INT32 rename ( const CHAR *pNewName ) = 0 ;
@@ -446,7 +446,7 @@ namespace sdbclient
       virtual INT32 removeLob( const bson::OID &oid ) = 0 ;
 
       virtual INT32 openLob( sdbLob &lob, const bson::OID &oid ) = 0 ;
-      
+
       virtual INT32 listLobs( sdbCursor &cursor ) = 0 ;
 
       /// truncate
@@ -456,7 +456,7 @@ namespace sdbclient
       virtual INT32 createIdIndex( const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
 
       virtual INT32 dropIdIndex() = 0 ;
-      
+
    } ;
 
 /** \class sdbCollection
@@ -660,7 +660,7 @@ namespace sdbclient
     \brief Insert a bulk of bson objects into current collection
     \param [in] flags FLG_INSERT_CONTONDUP or 0. While FLG_INSERT_CONTONDUP
                 is set, if some records hit index key duplicate error,
-                database will skip them and go on inserting. However, while 0 
+                database will skip them and go on inserting. However, while 0
                 is set, database will stop inserting in that case, and return
                 errno code.
     \param [in] obj The array of inserted bson objects
@@ -697,9 +697,9 @@ namespace sdbclient
     \brief Update the matching documents in current collection
     \param [in] rule The updating rule
     \param [in] condition The matching rule, update all the documents if not provided
-    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
-                    using index "ageIndex" to scan data(index scan); 
-                    {"":null} means table scan. when hint is not provided, 
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means
+                    using index "ageIndex" to scan data(index scan);
+                    {"":null} means table scan. when hint is not provided,
                     database automatically match the optimal index to scan data
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
@@ -722,9 +722,9 @@ namespace sdbclient
     \brief Update the matching documents in current collection, insert if no matching
     \param [in] rule The updating rule
     \param [in] condition The matching rule, update all the documents if not provided
-    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
-                    using index "ageIndex" to scan data(index scan); 
-                    {"":null} means table scan. when hint is not provided, 
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means
+                    using index "ageIndex" to scan data(index scan);
+                    {"":null} means table scan. when hint is not provided,
                     database automatically match the optimal index to scan data
     \param [in] setOnInsert The setOnInsert assigns the specified values to the fileds when insert
     \retval SDB_OK Operation Success
@@ -747,9 +747,9 @@ namespace sdbclient
                 )
     \brief Delete the matching documents in current collection
     \param [in] condition The matching rule, delete all the documents if not provided
-    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
-                    using index "ageIndex" to scan data(index scan); 
-                    {"":null} means table scan. when hint is not provided, 
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means
+                    using index "ageIndex" to scan data(index scan);
+                    {"":null} means table scan. when hint is not provided,
                     database automatically match the optimal index to scan data
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
@@ -776,9 +776,9 @@ namespace sdbclient
     \param [in] condition The matching rule, return all the documents if not provided
     \param [in] selected The selective rule, return the whole document if not provided
     \param [in] orderBy The ordered rule, result set is unordered if not provided
-    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
-                    using index "ageIndex" to scan data(index scan); 
-                    {"":null} means table scan. when hint is not provided, 
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means
+                    using index "ageIndex" to scan data(index scan);
+                    {"":null} means table scan. when hint is not provided,
                     database automatically match the optimal index to scan data
     \param [in] numToSkip Skip the first numToSkip documents, default is 0
     \param [in] numToReturn Only return numToReturn documents, default is -1 for returning all results
@@ -787,7 +787,7 @@ namespace sdbclient
         QUERY_FORCE_HINT
         QUERY_PARALLED
         QUERY_WITH_RETURNDATA
-      
+
     \param [out] cursor The cursor of current query
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
@@ -821,9 +821,9 @@ namespace sdbclient
     \param [in] condition The matching rule, return all the documents if not provided
     \param [in] selected The selective rule, return the whole document if not provided
     \param [in] orderBy The ordered rule, result set is unordered if not provided
-    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
-                    using index "ageIndex" to scan data(index scan); 
-                    {"":null} means table scan. when hint is not provided, 
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means
+                    using index "ageIndex" to scan data(index scan);
+                    {"":null} means table scan. when hint is not provided,
                     database automatically match the optimal index to scan data
     \param [in] numToSkip Skip the first numToSkip documents, default is 0
     \param [in] numToReturn Only return numToReturn documents, default is -1 for returning all results
@@ -832,7 +832,7 @@ namespace sdbclient
         QUERY_FORCE_HINT
         QUERY_PARALLED
         QUERY_WITH_RETURNDATA
-      
+
     \param [out] cursor The cursor of current query
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
@@ -865,9 +865,9 @@ namespace sdbclient
     \param [in] condition The matching rule, return all the documents if not provided
     \param [in] selected The selective rule, return the whole document if not provided
     \param [in] orderBy The ordered rule, result set is unordered if not provided
-    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
-                    using index "ageIndex" to scan data(index scan); 
-                    {"":null} means table scan. when hint is not provided, 
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means
+                    using index "ageIndex" to scan data(index scan);
+                    {"":null} means table scan. when hint is not provided,
                     database automatically match the optimal index to scan data
     \param [in] numToSkip Skip the first numToSkip documents, default is 0
     \param [in] flag The query flag, default to be 0. Please see the definition of follow flags for more detail. Usage: e.g. set ( QUERY_FORCE_HINT | QUERY_WITH_RETURNDATA ) to param flag
@@ -875,7 +875,7 @@ namespace sdbclient
         QUERY_FORCE_HINT
         QUERY_PARALLED
         QUERY_WITH_RETURNDATA
-      
+
     \param [out] obj The first matching object
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
@@ -910,9 +910,9 @@ namespace sdbclient
     \param [in] condition The matching rule, return all the documents if not provided
     \param [in] selected The selective rule, return the whole document if not provided
     \param [in] orderBy The ordered rule, result set is unordered if not provided
-    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
-                    using index "ageIndex" to scan data(index scan); 
-                    {"":null} means table scan. when hint is not provided, 
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means
+                    using index "ageIndex" to scan data(index scan);
+                    {"":null} means table scan. when hint is not provided,
                     database automatically match the optimal index to scan data
     \param [in] numToSkip Skip the first numToSkip documents, default is 0
     \param [in] numToReturn Only return numToReturn documents, default is -1 for returning all results
@@ -921,7 +921,7 @@ namespace sdbclient
         QUERY_FORCE_HINT
         QUERY_PARALLED
         QUERY_WITH_RETURNDATA
-      
+
     \param [in] returnNew When TRUE, returns the updated document rather than the original
     \param [out] cursor The cursor of current query
     \retval SDB_OK Operation Success
@@ -962,9 +962,9 @@ namespace sdbclient
     \param [in] condition The matching rule, return all the documents if not provided
     \param [in] selected The selective rule, return the whole document if not provided
     \param [in] orderBy The ordered rule, result set is unordered if not provided
-    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
-                    using index "ageIndex" to scan data(index scan); 
-                    {"":null} means table scan. when hint is not provided, 
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means
+                    using index "ageIndex" to scan data(index scan);
+                    {"":null} means table scan. when hint is not provided,
                     database automatically match the optimal index to scan data
     \param [in] numToSkip Skip the first numToSkip documents, default is 0
     \param [in] numToReturn Only return numToReturn documents, default is -1 for returning all results
@@ -973,7 +973,7 @@ namespace sdbclient
         QUERY_FORCE_HINT
         QUERY_PARALLED
         QUERY_WITH_RETURNDATA
-      
+
     \param [out] cursor The cursor of current query
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
@@ -1215,9 +1215,9 @@ namespace sdbclient
     \brief Get the index blocks' or data blocks' infomation for concurrent query
     \param [in] condition The matching rule, return all the documents if not provided
     \param [in] orderBy The ordered rule, result set is unordered if not provided
-    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
-                    using index "ageIndex" to scan data(index scan); 
-                    {"":null} means table scan. when hint is not provided, 
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means
+                    using index "ageIndex" to scan data(index scan);
+                    {"":null} means table scan. when hint is not provided,
                     database automatically match the optimal index to scan data
     \param [in] numToSkip Skip the first numToSkip documents, default is 0
     \param [in] numToReturn Only return numToReturn documents, default is -1 for returning all results
@@ -1242,9 +1242,9 @@ namespace sdbclient
     \param [in] condition The matching rule, return the whole range of index blocks if not provided
                     eg:{"age":{"$gt":25},"age":{"$lt":75}}
     \param [in] orderBy The ordered rule, result set is unordered if not provided
-    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
-                    using index "ageIndex" to scan data(index scan); 
-                    {"":null} means table scan. when hint is not provided, 
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means
+                    using index "ageIndex" to scan data(index scan);
+                    {"":null} means table scan. when hint is not provided,
                     database automatically match the optimal index to scan data
     \param [in] numToSkip Skip the first numToSkip documents, default is 0
     \param [in] numToReturn Only return numToReturn documents, default is -1 for returning all results
@@ -1308,9 +1308,9 @@ namespace sdbclient
     \param [in] condition The matching rule, return all the documents if null
     \param [in] select The selective rule, return the whole document if null
     \param [in] orderBy The ordered rule, never sort if null
-    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
-                    using index "ageIndex" to scan data(index scan); 
-                    {"":null} means table scan. when hint is not provided, 
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means
+                    using index "ageIndex" to scan data(index scan);
+                    {"":null} means table scan. when hint is not provided,
                     database automatically match the optimal index to scan data
     \param [in] numToSkip Skip the first numToSkip documents, never skip if this parameter is 0
     \param [in] numToReturn Only return numToReturn documents, return all if this parameter is -1
@@ -1319,7 +1319,7 @@ namespace sdbclient
         QUERY_FORCE_HINT
         QUERY_PARALLED
         QUERY_WITH_RETURNDATA
-      
+
     \param [in] options the rules of explain, the options are as below:
 
         Run     : Whether execute query explain or not, true for excuting query explain then get
@@ -1690,7 +1690,7 @@ namespace sdbclient
                                  const CHAR *pServiceName,
                                  const CHAR *pDatabasePath,
                                  const bson::BSONObj &options = _sdbStaticObject )= 0;
-      
+
       // remove the specified node in current replica group
       virtual INT32 removeNode ( const CHAR *pHostName,
                                  const CHAR *pServiceName,
@@ -2038,7 +2038,7 @@ namespace sdbclient
                         const bson::BSONObj &options = _sdbStaticObject )
       {
          if ( !pReplicaGroup )
-            return FALSE ;
+            return SDB_NOT_CONNECTED ;
          return pReplicaGroup->attachNode( pHostName, pSvcName, options ) ;
       }
 
@@ -2057,7 +2057,7 @@ namespace sdbclient
                         const bson::BSONObj &options = _sdbStaticObject )
       {
          if ( !pReplicaGroup )
-            return FALSE ;
+            return SDB_NOT_CONNECTED ;
          return pReplicaGroup->detachNode( pHostName, pSvcName, options ) ;
       }
 
@@ -2392,7 +2392,7 @@ namespace sdbclient
                    changes to contain "group1" "group2" or "group3".
                    We can add or remove groups in current domain. However, if a group has data
                    in it, remove it out of domain will be failing.
-        AutoSplit: Alter current domain to have the ability of automatically split or not. 
+        AutoSplit: Alter current domain to have the ability of automatically split or not.
                    If this option is set to be true, while creating collection(ShardingType is "hash") in this domain,
                    the data of this collection will be split(hash split) into all the groups in this domain automatically.
                    However, it won't automatically split data into those groups which were add into this domain later.
@@ -2442,7 +2442,7 @@ namespace sdbclient
    private :
       _sdbDataCenter ( const _sdbDataCenter& other ) ; // non construction-copyable
       _sdbDataCenter& operator= ( const _sdbDataCenter& ) ; // non copyable
-      
+
    public :
       _sdbDataCenter () {}
       virtual ~_sdbDataCenter () {}
@@ -2470,7 +2470,7 @@ namespace sdbclient
    private :
       sdbDataCenter ( const sdbDataCenter& ) ; // non construction-copyable
       sdbDataCenter& operator= ( const sdbDataCenter& ) ; // non copyable
-      
+
    public :
 
       /** \var pDC
@@ -2561,7 +2561,7 @@ namespace sdbclient
       /** \fn INT32 createImage( const CHAR *pCataAddrList )
           \brief Create image in data center
           \param [in] pCataAddrList Catalog address list of remote data center, e.g. "192.168.20.165:30003",
-                      "192.168.20.165:30003,192.168.20.166:30003" 
+                      "192.168.20.165:30003,192.168.20.166:30003"
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
@@ -2595,7 +2595,7 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          return pDC->enableImage() ;
       }
-      
+
       /** \fn INT32 disableImage()
           \brief Disable image in data center
           \retval SDB_OK Operation Success
@@ -2634,14 +2634,14 @@ namespace sdbclient
          return pDC->detachGroups( info ) ;
       }
 
-   };   
+   };
 
    class DLLEXPORT _sdbLob
    {
    private :
       _sdbLob ( const _sdbLob& other ) ; // non construction-copyable
       _sdbLob& operator= ( const _sdbLob& ) ; // non copyable
-    
+
    public :
       _sdbLob () {}
 
@@ -2660,7 +2660,7 @@ namespace sdbclient
       virtual INT32 getOid( bson::OID &oid ) = 0 ;
 
       virtual INT32 getSize( SINT64 *size ) = 0 ;
-         
+
       virtual INT32 getCreateTime ( UINT64 *millis ) = 0 ;
 
       virtual BOOLEAN isClosed() = 0 ;
@@ -2668,7 +2668,7 @@ namespace sdbclient
       virtual bson::OID getOid() = 0 ;
 
       virtual SINT64 getSize() = 0 ;
-         
+
       virtual UINT64 getCreateTime () = 0 ;
 
    } ;
@@ -2859,7 +2859,7 @@ namespace sdbclient
             return -1 ;
          return pLob->getCreateTime() ;
       }
-      
+
    } ;
 
    class DLLEXPORT _sdb
@@ -2890,7 +2890,7 @@ namespace sdbclient
 
       virtual void disconnect () = 0 ;
 
-      
+
       virtual INT32 createUsr( const CHAR *pUsrName,
                                const CHAR *pPasswd ) = 0 ;
 
@@ -3080,7 +3080,7 @@ namespace sdbclient
       // connection is closed
       virtual INT32 isValid( BOOLEAN *result ) = 0 ;
       virtual BOOLEAN isValid() = 0 ;
-      
+
       // domain
       virtual INT32 createDomain ( const CHAR *pDomainName,
                                    const bson::BSONObj &options,
@@ -3129,7 +3129,7 @@ namespace sdbclient
       static _sdb *getObj ( BOOLEAN useSSL = FALSE ) ;
 
       // get last alive time
-      virtual UINT64 getLastAliveTime() const = 0 ; 
+      virtual UINT64 getLastAliveTime() const = 0 ;
    } ;
 /** \typedef class _sdb _sdb
 */
@@ -3340,7 +3340,7 @@ namespace sdbclient
         SDB_SNAP_CATA             : Get the snapshot of the catalog
         SDB_SNAP_TRANSACTIONS     : Get snapshot of transactions in current session
         SDB_SNAP_TRANSACTIONS_CURRENT : Get snapshot of all the transactions
-        
+
     \param [in] condition The matching rule, match all the documents if not provided.
     \param [in] select The selective rule, return the whole document if not provided.
     \param [in] orderBy The ordered rule, result set is unordered if not provided.
@@ -3382,7 +3382,7 @@ namespace sdbclient
         SDB_SNAP_CATA             : Get the snapshot of the catalog
         SDB_SNAP_TRANSACTIONS     : Get snapshot of transactions in current session
         SDB_SNAP_TRANSACTIONS_CURRENT : Get snapshot of all the transactions
-        
+
      \param [in] condition The matching rule, match all the documents if not provided.
      \param [in] select The selective rule, return the whole document if not provided.
      \param [in] orderBy The ordered rule, result set is unordered if not provided.
@@ -3439,7 +3439,7 @@ namespace sdbclient
         SDB_LIST_TASKS            : Get all the running split tasks ( only applicable in sharding env )
         SDB_LIST_TRANSACTIONS     : Get all the transactions information.
         SDB_LIST_TRANSACTIONS_CURRENT : Get the transactions information of current session.
-        
+
    \param [in] condition The matching rule, match all the documents if null.
    \param [in] select The selective rule, return the whole document if null.
    \param [in] orderBy The ordered rule, never sort if null.
@@ -3486,7 +3486,7 @@ namespace sdbclient
         SDB_LIST_TASKS            : Get all the running split tasks ( only applicable in sharding env )
         SDB_LIST_TRANSACTIONS     : Get all the transactions information.
         SDB_LIST_TRANSACTIONS_CURRENT : Get the transactions information of current session.
-        
+
    \param [in] condition The matching rule, match all the documents if null.
    \param [in] select The selective rule, return the whole document if null.
    \param [in] orderBy The ordered rule, never sort if null.
@@ -4213,9 +4213,9 @@ namespace sdbclient
     \param [in] condition The matching rule, return all the documents if null
     \param [in] selector The selective rule, return the whole document if null
     \param [in] orderBy The ordered rule, never sort if null
-    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
-                    using index "ageIndex" to scan data(index scan); 
-                    {"":null} means table scan. when hint is not provided, 
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means
+                    using index "ageIndex" to scan data(index scan);
+                    {"":null} means table scan. when hint is not provided,
                     database automatically match the optimal index to scan data
     \param [out] cursor The connection handle
     \retval SDB_OK Operation Success
@@ -4278,7 +4278,7 @@ namespace sdbclient
         PreferedInstance : indicate which instance to respond read request in current session.
                           eg:{"PreferedInstance":"m"/"M"/"s"/"S"/"a"/"A"/1-7},
                           prefer to choose "read and write instance"/"read only instance"/"anyone instance"/instance1-insatance7,
-                          default to be {"PreferedInstance":"A"}, means would like to choose anyone instance to respond read request such as query. 
+                          default to be {"PreferedInstance":"A"}, means would like to choose anyone instance to respond read request such as query.
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
@@ -4392,9 +4392,9 @@ namespace sdbclient
     \param [in] condition The matching rule, return all the documents if null
     \param [in] selector The selective rule, return the whole document if null
     \param [in] orderBy The ordered rule, never sort if null
-    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means 
-                    using index "ageIndex" to scan data(index scan); 
-                    {"":null} means table scan. when hint is not provided, 
+    \param [in] hint Specified the index used to scan data. e.g. {"":"ageIndex"} means
+                    using index "ageIndex" to scan data(index scan);
+                    {"":null} means table scan. when hint is not provided,
                     database automatically match the optimal index to scan data
     \param [out] cursor The sdbCursor object of result
     \retval SDB_OK Operation Success
