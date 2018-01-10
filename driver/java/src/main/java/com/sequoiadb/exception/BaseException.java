@@ -17,70 +17,148 @@ package com.sequoiadb.exception;
 
 import com.sequoiadb.base.SequoiadbConstants;
 
+import java.util.Arrays;
+
 /**
- * @author Jacky Zhang
+ * @author tanzhaboo
  * 
  */
 public class BaseException extends RuntimeException {
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = -6115487863398926195L;
 
 	private SDBError error;
 	private String infos = "";
 
+	private void _buildException(String errorType, int errorCode, String detail) {
+		int code = 0;
+		String type = "";
+		String desc = "";
+		if ((errorType == null || errorType.isEmpty()) && errorCode >= 0) {
+			// in case no valid error info
+			code = 0;
+			type = SequoiadbConstants.UNKNOWN_TYPE;
+			desc = SequoiadbConstants.UNKNOWN_DESC;
+		} else if (errorType == null || errorType.isEmpty()) {
+			// in case no error type
+			code = errorCode;
+			try {
+				type = SDBErrorLookup.getErrorTypeByCode(code);
+			} catch (Exception e1) {
+				type = SequoiadbConstants.UNKNOWN_TYPE;
+				desc = SequoiadbConstants.UNKNOWN_DESC;
+			}
+			if (type != SequoiadbConstants.UNKNOWN_TYPE) {
+				try {
+					desc = SDBErrorLookup.getErrorDescriptionByType(type);
+				} catch (Exception e2) {
+					desc = SequoiadbConstants.UNKNOWN_DESC;
+				}
+			}
+		} else if (errorCode >= 0) {
+			type = errorType;
+			try {
+				code = SDBErrorLookup.getErrorCodeByType(type);
+			} catch (Exception e2) {
+				code = 0;
+			}
+			try {
+				desc = SDBErrorLookup.getErrorDescriptionByType(type);
+			} catch (Exception e2) {
+				desc = SequoiadbConstants.UNKNOWN_DESC;
+			}
+		}
+		// build error detail
+		infos = String.format("%s(%d): %s, detail: %s", type, code, desc, detail);
+
+		error = new SDBError();
+		error.setErrorType(type);
+		error.setErrorCode(code);
+		error.setErrorDescription(infos);
+	}
+
+	private BaseException(String errorType, int errorCode, String detail) {
+		_buildException(errorType, errorCode, detail);
+	}
+
+	private BaseException(String errorType, int errorCode, String detail, Throwable e) {
+		super(e);
+		_buildException(errorType, errorCode, detail);
+	}
+
+	/**
+	 *
+	 * @param errorType
+	 * @param detail
+	 * @param e
+	 */
+	public BaseException(String errorType, String detail, Throwable e) {
+		this(errorType, 0, detail, e);
+	}
+
+	/**
+	 *
+	 * @param errorType
+	 * @param e
+	 */
+	public BaseException(String errorType, Throwable e) {
+		this(errorType, e.getMessage(), e);
+	}
+
+	/**
+	 *
+	 * @param errorType
+	 * @param detail
+	 */
+	public BaseException(String errorType, String detail) {
+		this(errorType, 0, detail);
+	}
+
+	/**
+	 *
+	 * @param errorType
+	 */
+	public BaseException(String errorType) {
+		this(errorType, "");
+	}
+
+//	public BaseException(int errorCode, String detail, Throwable e) {
+//		this(null, errorCode, detail, e);
+//	}
+//
+//	public BaseException(int errorCode, Throwable e) {
+//		this(errorCode, null, e);
+//	}
+//
+//	public BaseException(int errorCode, String detail) {
+//		this(null, errorCode, detail);
+//	}
+
+	/**
+	 *
+	 * @param errorCode
+	 */
+	public BaseException(int errorCode) {
+		this(null, errorCode, null);
+	}
+
 	/**
 	 * @param errorType
 	 * @throws Exception
+	 * @deprecated
 	 */
 	public BaseException(String errorType, Object... info) {
-		error = new SDBError();
-		error.setErrorType(errorType);
-
-		if (info != null) {
-			for (Object obj : info)
-				infos += (obj + " ");
-		} else {
-			infos = "no more exception info";
-		}
-		try {
-			error.setErrorCode(SDBErrorLookup.getErrorCodeByType(errorType));
-			error.setErrorDescription("errorType:" + errorType + "," 
-			        + SDBErrorLookup.getErrorDescriptionByType(errorType) 
-			        + "\n Exception Detail:" + infos);
-		} catch (Exception e) {
-			error.setErrorCode(0);
-			error.setErrorDescription(SequoiadbConstants.UNKNOWN_DESC + "\n Exception Detail:"
-					+ infos);
-		}
+		this(errorType, 0, Arrays.toString(info));
 	}
 
 	/**
 	 * 
 	 * @param errorCode
 	 * @throws Exception
+	 * @deprecated
 	 */
 	public BaseException(int errorCode, Object... info) {
-		error = new SDBError();
-		error.setErrorCode(errorCode);
-		if (info != null) {
-			for (Object obj : info)
-				infos += (obj + " ");
-		} else {
-			infos = "no more exception info";
-		}
-		try {
-			error.setErrorType(SDBErrorLookup.getErrorTypeByCode(errorCode));
-			error.setErrorDescription("errorCode:" + errorCode + "," 
-			        + SDBErrorLookup.getErrorDescriptionByCode(errorCode) 
-			        + "\n Exception Detail:" + infos);
-		} catch (Exception e) {
-			error.setErrorType(SequoiadbConstants.UNKNOWN_TYPE);
-			error.setErrorDescription(SequoiadbConstants.UNKNOWN_DESC + "\n Exception Detail:"
-					+ infos);
-		}
+		this(null, errorCode, Arrays.toString(info));
 	}
 
 	@Override
