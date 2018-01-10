@@ -140,7 +140,7 @@ public class BSONTest {
         BSONObject obj3 = new BasicBSONObject().append("a", 1).append("b", new BasicBSONObject("b",3));
         BSONObject obj4 = new BasicBSONObject().append("a", 1).append("b", new BasicBSONObject("b",4));
 
-        Map<BSONObject, BSONObject> map = new HashMap<>();
+        Map<BSONObject, BSONObject> map = new HashMap<BSONObject, BSONObject>();
         map.put(obj1, obj1);
         map.put(obj2, obj2);
         map.put(obj3, obj3);

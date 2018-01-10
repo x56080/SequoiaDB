@@ -3,12 +3,18 @@ package com.sequoiadb.test.common;
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.exception.BaseException;
+
 import org.bson.BSONObject;
 
 /**
  * Created by tanzhaobo on 2017/9/26.
  */
 public class Helper {
+	public static int getErrorCode(String errorType) {
+		return new BaseException(errorType).getErrorCode();
+	}
+	
     public static CollectionSpace getOrCreateCollectionSpace(Sequoiadb db, String csName, BSONObject options) {
         CollectionSpace cs;
         if (db.isCollectionSpaceExist(csName)) {
