@@ -61,6 +61,7 @@
 #define LONG_JS_MAX  (9007199254740991LL)
 
 #define TIME_FORMAT "%d-%d-%d-%d.%d.%d.%d"
+#define TIME_FORMAT2 "%d-%d-%d-%d:%d:%d.%d"
 #define TIME_FORMAT_IOS "%d-%d-%dT%d:%d:%d.%dZ"
 #define TIME_OUTPUT_CSV_FORMAT "%04d-%02d-%02d-%02d.%02d.%02d.%06d"
 #define TIME_OUTPUT_FORMAT "{ \"$timestamp\": \"" TIME_OUTPUT_CSV_FORMAT "\" }"
@@ -70,13 +71,13 @@
 
 SDB_EXTERN_C_START
 
-/** \fn 
+/** \fn
 */
 
 /** \fn BOOLEAN jsonToBson ( bson *bs, const CHAR *json_str )
     \brief Json converts to bson.
-    \param [in] json_str The json string to convert 
-    \param [out] bs The return bson object 
+    \param [in] json_str The json string to convert
+    \param [out] bs The return bson object
     \retval TRUE Operation Success
     \retval FALSE Operation Fail
 */
@@ -89,14 +90,14 @@ SDB_EXPORT BOOLEAN jsonToBson2 ( bson *bs,
 SDB_EXPORT void setJsonPrecision( const CHAR *pFloatFmt ) ;
 
 /** \fn BOOLEAN bsonToJson ( CHAR *buffer, INT32 bufsize, const bson *b,
-                             BOOLEAN toCSV, BOOLEAN skipUndefined) 
+                             BOOLEAN toCSV, BOOLEAN skipUndefined)
     \brief Bson converts to json.
     \param [in] buffer the buffer to convert
     \param [in] bufsize the buffer's size
     \param [in] b The bson object to convert
     \param [in] toCSV bson to csv or not
     \param [in] skipUndefined to skip undefined filed or not
-    \param [out] buffer The return json string 
+    \param [out] buffer The return json string
     \retval TRUE Operation Success
     \retval FALSE Operation Fail
     \note Before calling this funtion,need to build up

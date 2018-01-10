@@ -57,6 +57,7 @@
 #define CSV_STR_EMPTYOPTIONS   ""
 
 #define TIME_FORMAT "%d-%d-%d-%d.%d.%d.%d"
+#define TIME_FORMAT2 "%d-%d-%d-%d:%d:%d.%d"
 #define DATE_FORMAT "%d-%d-%d"
 #define INT32_LAST_YEAR 2038
 #define RELATIVE_YEAR 1900
@@ -639,7 +640,7 @@ INT32 csvParser::_parseNumber( CHAR *pBuffer, INT32 size,
    {
       do
       {
-         n  = ( n  * 10.0 ) + ( *pBuffer - '0' ) ;   
+         n  = ( n  * 10.0 ) + ( *pBuffer - '0' ) ;
          n1 = ( n1 * 10 )   + ( *pBuffer - '0' ) ;
          n2 = ( n2 * 10 )   + ( *pBuffer - '0' ) ;
          --size ;
@@ -824,7 +825,7 @@ INT32 csvParser::_valueEscape( CHAR *pBuffer, INT32 size,
 }
 
 /*
- * pBuffer is "field [space] type [space] default value \0" 
+ * pBuffer is "field [space] type [space] default value \0"
  */
 INT32 csvParser::_parseField( _fieldData &fieldData, CHAR *pBuffer, INT32 size )
 {
@@ -1166,7 +1167,7 @@ done:
 error:
    goto done ;
 }
-   
+
 INT32 csvParser::_string2long( INT64 &value, CHAR *pBuffer, INT32 size )
 {
    INT32 rc = SDB_OK ;
@@ -1246,11 +1247,18 @@ INT32 csvParser::_string2timestamp( _csvTimestamp &value, CHAR *pBuffer, INT32 s
    INT32 minute = 0 ;
    INT32 second = 0 ;
    INT32 micros = 0 ;
+   BOOLEAN hasColon = FALSE ;
    time_t timep ;
    memset ( &t, 0, sizeof(t) ) ;
+
+   if( ossStrchr( pBuffer, ':' ) )
+   {
+      hasColon = TRUE ;
+   }
+
    /* for timestamp type, we provide yyyy-mm-dd-hh.mm.ss.uuuuuu */
    if ( !sscanf ( pBuffer,
-                  TIME_FORMAT,
+                  hasColon ? TIME_FORMAT2: TIME_FORMAT,
                   &year   ,
                   &month  ,
                   &day    ,
@@ -1688,8 +1696,8 @@ csvParser::csvParser() : _addField(FALSE),
                          _delField(0),
                          _delRecord(0),
                          _pCsvHeader(NULL)
-                         
-                         
+
+
 {
 }
 
@@ -1801,7 +1809,7 @@ INT32 csvParser::parseHeader( CHAR *pHeader, INT32 size )
    CHAR   *pCursor    = NULL ;
    CHAR   *leftField  = NULL ;
    _fieldData *pFieldData = NULL ;
-   
+
    _pCsvHeader = (CHAR *)SDB_OSS_MALLOC( size + 1 ) ;
    if ( !_pCsvHeader )
    {

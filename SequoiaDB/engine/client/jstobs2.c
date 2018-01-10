@@ -39,6 +39,7 @@
 #define LONG_JS_MAX  (9007199254740991LL)
 
 #define TIME_FORMAT "%d-%d-%d-%d.%d.%d.%d"
+#define TIME_FORMAT2 "%d-%d-%d-%d:%d:%d.%d"
 #define DATE_FORMAT "%d-%d-%d"
 
 #define DATE_OUTPUT_CSV_FORMAT "%04d-%02d-%02d"
@@ -155,7 +156,7 @@ SDB_EXPORT BOOLEAN json2bson( const CHAR *pJson,
       JSON_PRINTF_LOG( "Failed to call cJsonParse" ) ;
       goto error ;
    }
- 
+
    pIter = cJsonIteratorInit( pMachine ) ;
    if( pIter == NULL )
    {
@@ -234,9 +235,14 @@ static BOOLEAN date2Time( const CHAR *pDate,
    {
       if( valType == CJSON_TIMESTAMP )
       {
+         BOOLEAN hasColon = FALSE ;
+         if( ossStrchr( pDate, ':' ) )
+         {
+            hasColon = TRUE ;
+         }
          /* for timestamp type, we provide yyyy-mm-dd-hh.mm.ss.uuuuuu */
          if( !sscanf ( pDate,
-                       TIME_FORMAT,
+                       hasColon ? TIME_FORMAT2 : TIME_FORMAT,
                        &year,
                        &month,
                        &day,
@@ -1044,7 +1050,7 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
             FLOAT64 valDouble = 0 ;
             INT64 valInt64 = 0 ;
             CJSON_VALUE_TYPE type = CJSON_NONE ;
-      
+
             if( cJsonParseNumber( arg1.pValStr,
                                   arg1.length,
                                   &valInt,

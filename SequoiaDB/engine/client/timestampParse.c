@@ -113,14 +113,25 @@ INT32 timestampParse( const CHAR *pStr, INT32 len, sdbTimestamp *pTime )
    UINT32 rdn = 0 ;
    UINT32 sod = 0 ;
    UINT32 nsec = 0 ;
+   CHAR timeSeparator = ':' ;
    INT16 offset = 0 ;
    const UINT8 *pCur = NULL ;
    const UINT8 *pEnd = NULL ;
 
    pCur = (const UINT8 *)pStr ;
-   if( len < 20 ||
-       pCur[4]  != '-' || pCur[7]  != '-' ||
-       pCur[13] != ':' || pCur[16] != ':')
+   if( len < 20 )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   if( pCur[13] == '.' )
+   {
+      timeSeparator = '.' ;
+   }
+
+   if( pCur[4]  != '-' || pCur[7]  != '-' ||
+       pCur[13] != timeSeparator || pCur[16] != timeSeparator )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -199,7 +210,7 @@ INT32 timestampParse( const CHAR *pStr, INT32 len, sdbTimestamp *pTime )
 
    if( !( ch == 'Z' || ch == 'z' ) )
    {
-      if( pCur + 5 == pEnd && ( ch == '+' || ch == '-' ) && pCur[2] == ':' )
+      if( pCur + 5 == pEnd && ( ch == '+' || ch == '-' ) && pCur[2] == timeSeparator )
       {
          if( parse2Number( pCur, 0, &hour ) || hour > 23 ||
              parse2Number( pCur, 3, &min )  || min  > 59 )

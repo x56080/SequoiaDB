@@ -185,7 +185,7 @@ static void get_char_num ( CHAR *str, INT32 i, INT32 str_size )
    else
    {
       memset ( str, 0, str_size ) ;
-      
+
       intToString ( i, str, 10 ) ;
 /*
 #ifdef WIN32
@@ -244,7 +244,7 @@ static INT32 strlen_a ( const CHAR *data )
          ++len ;
       }
       ++len ;
-      ++data ;  
+      ++data ;
    }
    return len ;
 }
@@ -804,7 +804,7 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
          {
             format = "%lld" ;
          }
-         
+
 #ifdef WIN32
          _snprintf ( temp,
                      BSON_TEMP_SIZE_512,
@@ -814,7 +814,7 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
                     BSON_TEMP_SIZE_512,
                      format, val ) ;
 #endif
-         
+
          bsonConvertJsonRawConcat ( pbuf, left, temp, FALSE ) ;
          CHECK_LEFT ( left )
          break ;
@@ -826,10 +826,10 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
          CHAR *value   = NULL ;
          int size      = 0 ;
 
-         // get decimal 
+         // get decimal
          bson_iterator_decimal( &i, &decimal ) ;
 
-         decimal_to_jsonstr_len( decimal.sign, decimal.weight, decimal.dscale, 
+         decimal_to_jsonstr_len( decimal.sign, decimal.weight, decimal.dscale,
                                  decimal.typemod, &size ) ;
          value = malloc( size ) ;
          if ( NULL == value )
@@ -1004,7 +1004,7 @@ static BOOLEAN jsonConvertBson ( cJSON *cj, bson *bs, BOOLEAN isObj )
          }
          else
          {
-            rc = bson_append_decimal2( bs, cj->string, cj->valuestring, 
+            rc = bson_append_decimal2( bs, cj->string, cj->valuestring,
                                        cj->precision, cj->scale ) ;
          }
          if ( 0 != rc )
@@ -1095,9 +1095,14 @@ static BOOLEAN jsonConvertBson ( cJSON *cj, bson *bs, BOOLEAN isObj )
          {
             if ( cJSON_Timestamp == cj->type )
             {
+	           BOOLEAN hasColon = FALSE ;
+		       if( ossStrchr( cj->valuestring, ':' ) )
+		       {
+		          hasColon = TRUE ;
+		       }
                /* for timestamp type, we provide yyyy-mm-dd-hh.mm.ss.uuuuuu */
                if( !sscanf ( cj->valuestring,
-                             TIME_FORMAT,
+                             hasColon ? TIME_FORMAT2 : TIME_FORMAT,
                              &year,
                              &month,
                              &day,
@@ -1145,7 +1150,7 @@ static BOOLEAN jsonConvertBson ( cJSON *cj, bson *bs, BOOLEAN isObj )
                   return FALSE ;
                }
             }
-   
+
             if( cJSON_Date == cj->type && (
                 year    >     INT64_LAST_YEAR   || //[0000,9999]
                 year    <     INT64_FIRST_YEAR  ||
@@ -1156,10 +1161,10 @@ static BOOLEAN jsonConvertBson ( cJSON *cj, bson *bs, BOOLEAN isObj )
             {
                return FALSE ;
             }
-   
+
             --month ;
             year -= RELATIVE_YEAR ;
-   
+
             /* construct tm */
             t.tm_year  = year   ;
             t.tm_mon   = month  ;
@@ -1681,7 +1686,7 @@ BOOLEAN bsonElementToChar ( CHAR **buffer, INT32 *bufsize, bson_iterator *in )
          decimal_get_typemod( &decimal, &precision, &scale ) ;
          sprintf( prescale, "%d,%d", precision, scale ) ;
 
-         *bufsize = strlen( part1 ) + strlen( pTmp ) + strlen( part2 ) 
+         *bufsize = strlen( part1 ) + strlen( pTmp ) + strlen( part2 )
                     + strlen( prescale ) + strlen( part3 ) + 1 ;
          *buffer = (CHAR *)malloc ( *bufsize ) ;
          if ( !(*buffer) )
@@ -1691,7 +1696,7 @@ BOOLEAN bsonElementToChar ( CHAR **buffer, INT32 *bufsize, bson_iterator *in )
             return FALSE ;
          }
          memset ( *buffer, 0, *bufsize ) ;
-         *bufsize = sprintf ( *buffer, "%s%s%s%s%s", part1, pTmp, part2, 
+         *bufsize = sprintf ( *buffer, "%s%s%s%s%s", part1, pTmp, part2,
                               prescale, part3 ) ;
       }
 

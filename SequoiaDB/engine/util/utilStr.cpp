@@ -266,6 +266,7 @@ namespace engine
       INT32 minute = 0 ;
       INT32 second = 0 ;
       INT32 micros = 0 ;
+      BOOLEAN hasColon = FALSE ;
 
       if( ossStrchr( str, 'T' ) || ossStrchr( str, 't' ) )
       {
@@ -294,8 +295,13 @@ namespace engine
             goto error ;
          }
 
+         if( ossStrchr( str, ':' ) )
+         {
+            hasColon = TRUE ;
+         }
+
          if ( !sscanf ( str,
-                        "%d-%d-%d-%d.%d.%d.%d",
+                        hasColon ? "%d-%d-%d-%d:%d:%d.%d" : "%d-%d-%d-%d.%d.%d.%d",
                         &year   ,
                         &month  ,
                         &day    ,
@@ -388,7 +394,7 @@ namespace engine
    error:
       goto done ;
    }
-   
+
    INT32 utilBuildFullPath( const CHAR *path, const CHAR *name,
                             UINT32 fullSize, CHAR *full )
    {
@@ -466,7 +472,7 @@ namespace engine
                                             "(25[0-4]|2[0-4][0-9]|1[0-9][0-9]"\
                                             "|[1-9][0-9]|[1-9])" ) ;
       return regex_match( ip, reg ) ;
-      
+
    }
 
    string utilTimeSpanStr( UINT64 seconds )
@@ -649,6 +655,6 @@ namespace engine
 
    done:
       return r ;
-   } 
+   }
 }
 
