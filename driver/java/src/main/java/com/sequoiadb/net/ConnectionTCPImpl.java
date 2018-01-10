@@ -149,8 +149,9 @@ public class ConnectionTCPImpl implements IConnection {
             // when we come here, it means network error, let's try until
             // maxAutoConnectRetryTime run out
             long executedTime = System.currentTimeMillis() - start;
-            if (executedTime >= maxAutoConnectRetryTime)
+            if (executedTime >= maxAutoConnectRetryTime) {
                 throw lastError;
+            }
 
             if (sleepTime + executedTime > maxAutoConnectRetryTime)
                 sleepTime = maxAutoConnectRetryTime - executedTime;
@@ -185,8 +186,9 @@ public class ConnectionTCPImpl implements IConnection {
 
     @Override
     public boolean isClosed() {
-        if (clientSocket == null)
+        if (clientSocket == null) {
             return true;
+        }
         return clientSocket.isClosed();
     }
 
@@ -213,8 +215,16 @@ public class ConnectionTCPImpl implements IConnection {
      */
     @Override
     public ByteBuffer receiveMessage(boolean endianConvert) throws BaseException {
-        lastUseTime = System.currentTimeMillis();
         logger.getInstance().debug(0, "enter receiveMessage\n");
+        // check
+        if (this.isClosed()) {
+            throw new BaseException(SDBError.SDB_NOT_CONNECTED);
+        }
+        if (input == null) {
+            throw new BaseException(SDBError.SDB_SYS, "input stream is null");
+        }
+        // update the time we use the socket
+        lastUseTime = System.currentTimeMillis();
         try {
             // before use, check the buffer
             if (REAL_BUFFER_LENGTH < DEF_BUFFER_LENGTH) {
@@ -226,18 +236,11 @@ public class ConnectionTCPImpl implements IConnection {
             while (rtn < 4) {
                 int retSize = input.read(receive_buffer, rtn, 4 - rtn);
                 if (retSize == -1) {
-                    close();
-                    throw new BaseException(SDBError.SDB_NETWORK);
+                    throw new BaseException(SDBError.SDB_NETWORK, "failed to get the header of message");
                 }
                 rtn += retSize;
             }
-            /*
-			int rtn = input.read(MESSAGE_BUFFER, 0, 4);
-			if (rtn != 4) {
-				close();
-				throw new BaseException("SDB_NETWORK");
-			}
-			*/
+            // get the length of the message
             int msgSize = Helper.byteToInt(receive_buffer, endianConvert);
             if (msgSize > REAL_BUFFER_LENGTH) {
                 receive_buffer = new byte[msgSize];
@@ -248,30 +251,17 @@ public class ConnectionTCPImpl implements IConnection {
             int retSize = 0;
             while (rtn < msgSize) {
                 retSize = input.read(receive_buffer, rtn, msgSize - rtn);
-                if (-1 == retSize) {
-                    close();
-                    throw new BaseException(SDBError.SDB_NETWORK);
+                if (retSize == -1) {
+                    throw new BaseException(SDBError.SDB_NETWORK, "failed to get the body of message");
                 }
                 rtn += retSize;
             }
 
-            // if the byte count we read is not equal with the massege length
-            // throw error
+            // if the byte count we read is not equal with the massage length, throw error
             if (rtn != msgSize) {
-                close();
-                throw new BaseException(SDBError.SDB_NETWORK);
+                throw new BaseException(SDBError.SDB_NETWORK, "unexpected length of message");
             }
-/*
-			if (rtn != msgSize) {
-				StringBuffer bbf = new StringBuffer();
-				for (byte by : MESSAGE_BUFFER) {
-					bbf.append(String.format("%02x", by));
-				}
-				close();
-				throw new BaseException("SDB_INVALIDARG");
-			}
-*/
-            // wrap the receive byte into a byteBuffer and then return it back
+            // wrap the receive byte into a byteBuffer and then return it
             ByteBuffer byteBuffer = ByteBuffer.wrap(receive_buffer, 0, msgSize);
             if (endianConvert) {
                 // "endianConvert == true" means the bytes in byteBuffer
@@ -284,10 +274,11 @@ public class ConnectionTCPImpl implements IConnection {
             }
             logger.getInstance().debug(0, "leave receiveMessage\n");
             return byteBuffer;
-
         } catch (IOException e) {
+            close();
             throw new BaseException(SDBError.SDB_NETWORK, e);
-        } catch (NullPointerException e) {
+        } catch (Exception e) {
+            close();
             // we can remove this case of exception now, the bug has been fix
             logger.getInstance().error("objidentity:" + Integer.toString(hashCode()) + "\n");
             logger.getInstance().error("thread id:" + Long.toString(Thread.currentThread().getId()) + "\n");
@@ -298,31 +289,34 @@ public class ConnectionTCPImpl implements IConnection {
     @Override
     public byte[] receiveSysInfoMsg(int msgSize) throws BaseException {
         logger.getInstance().debug(0, "enter receiveSysInfoMsg\n");
-        byte[] buf = new byte[msgSize];
+        // check
+        if (this.isClosed()) {
+            throw new BaseException(SDBError.SDB_NOT_CONNECTED);
+        }
+        if (input == null) {
+            throw new BaseException(SDBError.SDB_SYS, "input stream is null");
+        }
 
+        byte[] buf = new byte[msgSize];
         try {
             int rtn = 0;
             int retSize = 0;
             while (rtn < msgSize) {
                 retSize = input.read(buf, rtn, msgSize - rtn);
-                if (-1 == retSize) {
-                    close();
-                    throw new BaseException(SDBError.SDB_NETWORK);
+                if (retSize == -1) {
+                    throw new BaseException(SDBError.SDB_NETWORK, "failed to get system information");
                 }
                 rtn += retSize;
             }
 
             if (rtn != msgSize) {
-                StringBuffer bbf = new StringBuffer();
-                for (byte by : buf) {
-                    bbf.append(String.format("%02x", by));
-                }
-                close();
-                throw new BaseException(SDBError.SDB_INVALIDARG);
+                throw new BaseException(SDBError.SDB_NETWORK, "unexpected length of message");
             }
         } catch (IOException e) {
+            close();
             throw new BaseException(SDBError.SDB_NETWORK, e);
-        } catch (NullPointerException e) {
+        } catch (Exception e) {
+            close();
             logger.getInstance().error("objidentity:" + Integer.toString(hashCode()) + "\n");
             logger.getInstance().error("thread id:" + Long.toString(Thread.currentThread().getId()) + "\n");
             throw new BaseException(SDBError.SDB_NETWORK, e);

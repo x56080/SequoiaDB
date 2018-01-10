@@ -263,23 +263,6 @@ public class Sequoiadb {
      */
     public Sequoiadb(String connString, String username, String password)
             throws BaseException {
-        /*
-		try
-		{
-			// connect
-			serverAddress = new ServerAddress(connString);
-			ConfigOptions opts = new ConfigOptions();
-			initConnection(opts);
-		}
-		catch (UnknownHostException e)
-		{
-			throw new BaseException("SDB_NETWORK", connString);
-		}
-		// authentication
-		this.userName = username;
-		this.password = password;
-		auth();
-		*/
         this(connString, username, password, null);
     }
 
