@@ -2570,6 +2570,7 @@ namespace engine
                          << PMD_OPTION_SVCNAME << serviceName ) ;
          rc = rtnRemoteExec ( SDBSTOP, hostName.c_str() ,
                               &ret, &execObj ) ;
+         rc = SDB_OK == rc ? ret : rc ;
          /// here we only return a err code. do not goto error.
          if ( SDB_OK != rc )
          {
@@ -2580,6 +2581,7 @@ namespace engine
          }
 
          rc = rtnRemoteExec ( SDBRM, hostName.c_str(), &ret, &execObj ) ;
+         rc = SDB_OK == rc ? ret : rc ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Remove node[GroupName: %s, HostName: %s, "
@@ -7016,7 +7018,7 @@ namespace engine
          PD_LOG( PDERROR, "unexpected error happened:%s", e.what() ) ;
          goto error ;
       }
-
+      PD_LOG( PDERROR, "Get groupName: %s", gpName ) ;
       rc = rtnCoordGetGroupInfo( cb, gpName, FALSE, gpInfo ) ;
       if ( SDB_OK != rc )
       {
@@ -7026,7 +7028,9 @@ namespace engine
       }
 
       gpLst[gpInfo->groupID()] = gpInfo->groupID() ;
+      PD_LOG( PDERROR, "Start Do on data group" ) ;
       rc = executeOnDataGroup( pMsg, cb, gpLst, TRUE, NULL, NULL, NULL ) ;
+      PD_LOG( PDERROR , "End do on data group" ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to execute on group[%s], rc:%d",
