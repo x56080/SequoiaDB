@@ -45,6 +45,7 @@
 #include "pmdTrace.hpp"
 #include "ossIO.hpp"
 #include "ossVer.hpp"
+#include "ossPath.hpp"
 #include "dpsLogWrapper.hpp"
 #include "omStrategyDef.hpp"
 
@@ -2405,79 +2406,55 @@ namespace engine
       goto done ;
    }
 
+   #define PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM( path )\
+   {\
+      if ( 0 != path[0] && 0 == ossAccess( path ) )\
+      {\
+         rc = ossDelete( path ) ;\
+         if ( SDB_PERM == rc )\
+         {\
+            multimap< string, string > mapFiles ;\
+            string tmpPath = path ;\
+            rc = ossEnumFiles( tmpPath, mapFiles, NULL, 1 ) ;\
+            if( rc || !mapFiles.empty() )\
+            {\
+               PD_LOG( PDERROR, "Remove dir[%s] failed, rc: %d",\
+                       path, SDB_PERM ) ;\
+               goto error ;\
+            }\
+         }\
+         else if ( rc )\
+         {\
+            PD_LOG( PDERROR, "Remove dir[%s] failed, rc: %d",\
+                    path, rc ) ;\
+            goto error ;\
+         }\
+      }\
+   }
+
    INT32 _pmdOptionsMgr::removeAllDir()
    {
       INT32 rc = SDB_OK ;
 
-      if ( _archivePath[ 0 ] != 0 && 0 == ossAccess( _archivePath ) )
-      {
-         rc = ossDelete( _archivePath ) ;
-         PD_RC_CHECK( rc, PDERROR, "Remove dir[%s] failed, rc: %d",
-                      _archivePath, rc ) ;
-      }
+      PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM( _archivePath ) ;
 
-      if ( _dmsTmpBlkPath[ 0 ] != 0 && 0 == ossAccess( _dmsTmpBlkPath ) )
-      {
-         rc = ossDelete( _dmsTmpBlkPath ) ;
-         PD_RC_CHECK( rc, PDERROR, "Remove dir[%s] failed, rc: %d",
-                      _dmsTmpBlkPath, rc ) ;
-      }
+      PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM( _dmsTmpBlkPath ) ;
 
-      if ( _krcbBkupPath[ 0 ] != 0 && 0 == ossAccess( _krcbBkupPath ) )
-      {
-         rc = ossDelete( _krcbBkupPath ) ;
-         PD_RC_CHECK( rc, PDERROR, "Remove dir[%s] failed, rc: %d",
-                      _krcbBkupPath, rc ) ;
-     }
+      PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM( _krcbBkupPath ) ;
 
-      if ( _krcbLogPath[ 0 ] != 0 && 0 == ossAccess( _krcbLogPath ) )
-      {
-         rc = ossDelete( _krcbLogPath ) ;
-         PD_RC_CHECK( rc, PDERROR, "Remove dir[%s] failed, rc: %d",
-                      _krcbLogPath, rc ) ;
-     }
+      PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM( _krcbLogPath ) ;
 
-      if ( _krcbDiagLogPath[ 0 ] != 0 && 0 == ossAccess( _krcbDiagLogPath ) )
-      {
-         rc = ossDelete( _krcbDiagLogPath ) ;
-         PD_RC_CHECK( rc, PDERROR, "Remove dir[%s] failed, rc: %d",
-                      _krcbDiagLogPath, rc ) ;
-     }
+      PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM( _krcbDiagLogPath ) ;
 
-      if ( _krcbAuditLogPath[ 0 ] != 0 && 0 == ossAccess( _krcbAuditLogPath ) )
-      {
-         rc = ossDelete( _krcbAuditLogPath ) ;
-         PD_RC_CHECK( rc, PDERROR, "Remove dir[%s] failed, rc: %d",
-                      _krcbAuditLogPath, rc ) ;
-     }
+      PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM( _krcbAuditLogPath ) ;
 
-      if ( _krcbLobPath[ 0 ] != 0 && 0 == ossAccess( _krcbLobPath ) )
-      {
-         rc = ossDelete( _krcbLobPath ) ;
-         PD_RC_CHECK( rc, PDERROR, "Remove dir[%s] failed, rc: %d",
-                      _krcbLobPath, rc ) ;
-      }
+      PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM( _krcbLobPath ) ;
 
-      if ( _krcbLobMetaPath[ 0 ] != 0 && 0 == ossAccess( _krcbLobMetaPath ) )
-      {
-         rc = ossDelete( _krcbLobMetaPath ) ;
-         PD_RC_CHECK( rc, PDERROR, "Remove dir[%s] failed, rc: %d",
-                      _krcbLobMetaPath, rc ) ;
-      }
+      PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM( _krcbLobMetaPath ) ;
 
-      if ( _krcbIndexPath[ 0 ] != 0 && 0 == ossAccess( _krcbIndexPath ) )
-      {
-         rc = ossDelete( _krcbIndexPath ) ;
-         PD_RC_CHECK( rc, PDERROR, "Remove dir[%s] failed, rc: %d",
-                      _krcbIndexPath, rc ) ;
-     }
+      PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM( _krcbIndexPath ) ;
 
-      if ( _krcbDbPath[ 0 ] != 0 && 0 == ossAccess( _krcbDbPath ) )
-      {
-         rc = ossDelete( _krcbDbPath ) ;
-         PD_RC_CHECK( rc, PDERROR, "Remove dir[%s] failed, rc: %d",
-                      _krcbDbPath, rc ) ;
-     }
+      PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM( _krcbDbPath ) ;
 
    done:
       return rc ;
