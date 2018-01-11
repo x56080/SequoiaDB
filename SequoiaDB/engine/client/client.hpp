@@ -4275,10 +4275,20 @@ namespace sdbclient
     \brief Set the attributes of the session.
     \param [in] options The configuration options for session.The options are as below:
 
-        PreferedInstance : indicate which instance to respond read request in current session.
-                          eg:{"PreferedInstance":"m"/"M"/"s"/"S"/"a"/"A"/1-7},
-                          prefer to choose "read and write instance"/"read only instance"/"anyone instance"/instance1-insatance7,
-                          default to be {"PreferedInstance":"A"}, means would like to choose anyone instance to respond read request such as query.
+        PreferedInstance : Preferred instance for read request in the current session. Could be single value in "M", "m", "S", "s", "A", "a", 1-255, or BSON Array to include multiple values.
+                           e.g. { "PreferedInstance" : [ 1, 7 ] }.
+                           "M", "m": read and write instance( master instance ). If multiple numeric instances are given with "M", matched master instance will be chosen in higher priority. If multiple numeric instances are given with "M" or "m", master instance will be chosen if no numeric instance is matched.
+                           "S", "s": read only instance( slave instance ). If multiple numeric instances are given with "S", matched slave instances will be chosen in higher priority. If multiple numeric instances are given with "S" or "s", slave instance will be chosen if no numeric instance is matched.
+                           "A", "a": any instance.
+                           1-255: the instance with specified instance ID.
+                           If multiple alphabet instances are given, only first one will be used.
+                           If matched instance is not found, will choose instance by random.
+        PreferedInstanceMode : The mode to choose query instance when multiple preferred instances are found in the current session.
+                               e.g. { "PreferedInstanceMode : "random" }.
+                               "random": choose the instance from matched instances by random.
+                               "ordered": choose the instance from matched instances by the order of "PreferedInstance".
+        Timeout : The timeout (in ms) for operations in the current session. -1 means no timeout for operations.
+                  e.g. { "Timeout" : 10000 }.
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */

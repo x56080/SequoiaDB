@@ -30,7 +30,7 @@ public class SdbSetSessionAttr {
 			sdb = new Sequoiadb(Constants.COOR_NODE_CONN,"","");
 			// todo:
 			BSONObject conf = new BasicBSONObject();
-			conf.put("PreferedReplica", 3);
+			conf.put("PreferedInstance", 3);
 			sdb.setSessionAttr(conf);
 			// create another node
 			shard = sdb.getShard("group1");

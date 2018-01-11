@@ -8099,91 +8099,21 @@ error :
       BOOLEAN result   = FALSE ;
       BOOLEAN locked   = FALSE ;
       SINT64 contextID = 0 ;
-      const CHAR *key  = NULL ;
-      const CHAR *str_value = NULL ;
-      INT32 int_value  = 0 ;
-      INT32 value      = PREFER_REPL_TYPE_MAX ;
-      BSONType type    = EOO ;
-      BSONElement ele ;
-      BSONObjBuilder bob ;
+      BSONObjBuilder builder ;
       BSONObj newObj ;
       string command =string( CMD_ADMIN_PREFIX CMD_NAME_SETSESS_ATTR ) ;
-      BSONObjIterator it ( options ) ;
 
-      if ( !it.more() )
+      if ( options.isEmpty() )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      while ( it.more() )
-      {
-         ele = it.next() ;
-         key = ele.fieldName() ;
-         if ( strcmp( FIELD_NAME_PREFERED_INSTANCE, key ) == 0 )
-         {
-            type = ele.type() ;
-            switch ( type )
-            {
-               case String :
-                  try
-                  {
-                     string tmpstr = ele.String() ;
-                     str_value = tmpstr.c_str() ;
-                     if ( strcmp( "M", str_value ) == 0 ||
-                          strcmp( "m", str_value ) == 0 ) // master
-                        value = PREFER_REPL_MASTER ;
-                     else if ( strcmp( "S", str_value ) == 0 ||
-                               strcmp( "s", str_value ) == 0 ) // slave
-                        value = PREFER_REPL_SLAVE ;
-                     else if ( strcmp( "A", str_value ) == 0 ||
-                               strcmp( "a", str_value ) == 0 ) //anyone
-                        value = PREFER_REPL_ANYONE ;
-                     else
-                     {
-                        rc = SDB_INVALIDARG ;
-                        goto error ;
-                     }
-                  }
-                  catch( std::exception )
-                  {
-                     rc = SDB_SYS ;
-                     goto error ;
-                  }
-                  break ;
-               case NumberInt :
-                  try
-                  {
-                     int_value = ele.Int() ;
-                     if ( 1 <= int_value && int_value <= 7 )
-                        value = int_value ;
-                     else
-                     {
-                        rc = SDB_INVALIDARG ;
-                        goto error ;
-                     }
-                  }
-                  catch( std::exception )
-                  {
-                     rc = SDB_SYS ;
-                     goto error ;
-                  }
-                  break ;
-               default :
-                  rc = SDB_INVALIDARG ;
-                  goto error ;
-            } // switch
-            // append element
-            bob.append( key, value ) ;
-            break ;
-         } // if
-         else
-         {
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-      } // while()
+
       // build obj
-      newObj = bob.obj() ;
+      builder.appendElements( options ) ;
+      builder.append( FIELD_NAME_VERSION, SDB_SETSESSIONATTR_V1 ) ;
+      newObj = builder.obj() ;
+
       // build msg
       rc = clientBuildQueryMsgCpp( &_pSendBuffer, &_sendBufferSize,
                                    command.c_str(), 0, 0, 0, -1,

@@ -8266,68 +8266,30 @@ SDB_EXPORT INT32 sdbSetSessionAttr ( sdbConnectionHandle cHandle,
 {
    INT32 rc              = SDB_OK ;
    SINT64 contextID      = 0 ;
-   const CHAR *key       = NULL ;
-   INT32 value           = PREFER_REPL_TYPE_MAX ;
-   const CHAR *str_value = NULL ;
-   bson newObj ;
-   bson_iterator it ;
-   BOOLEAN bsoninit      = FALSE ;
    sdbConnectionStruct *connection = (sdbConnectionStruct*) cHandle ;
+   BOOLEAN bsoninit      = FALSE ;
+   bson newObj ;
+
+   BSON_INIT( newObj ) ;
+
    // check handle
    HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
+
    // check argument
-   if ( !options )
+   if ( !options || bson_is_empty( options ) )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
 
-   // build obj
-   BSON_INIT( newObj ) ;
-   bson_iterator_init ( &it, options ) ;
-   while ( BSON_EOO != bson_iterator_next( &it ) )
+   rc = bson_append_elements( &newObj, options ) ;
+   if ( rc )
    {
-      // get key
-      key = bson_iterator_key( &it ) ;
-      // get value
-      if ( strcmp( FIELD_NAME_PREFERED_INSTANCE, key ) )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
+      rc = SDB_DRIVER_BSON_ERROR ;
+      goto error ;
+   }
 
-      switch ( bson_iterator_type( &it ) )
-      {
-         case BSON_STRING :
-            str_value = bson_iterator_string ( &it ) ;
-            if ( !ossStrcasecmp("M", str_value) )        // master
-               value = PREFER_REPL_MASTER ;
-            else if ( !ossStrcasecmp( "S", str_value ) ) // slave
-               value = PREFER_REPL_SLAVE ;
-            else if ( !ossStrcasecmp( "A", str_value ) ) // anyone
-               value = PREFER_REPL_ANYONE ;
-            else
-            {
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-            break ;
-         case BSON_INT :
-            value = bson_iterator_int ( &it ) ;
-            if ( value < PREFER_REPL_NODE_1 || value > PREFER_REPL_NODE_7 )
-            {
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-            break ;
-         default :
-            rc = SDB_INVALIDARG ;
-            goto error ;
-      }
-      // append element
-      BSON_APPEND( newObj, key, value, int ) ;
-      break ;
-   } // while
+   BSON_APPEND( newObj, FIELD_NAME_VERSION, SDB_SETSESSIONATTR_V1, int ) ;
 
    BSON_FINISH ( newObj ) ;
    rc = clientBuildQueryMsg ( &connection->_pSendBuffer,

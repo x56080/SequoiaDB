@@ -1830,21 +1830,27 @@ class SequoiaDB
     * Set the attributes of the session.
     *
     * @param $options an array or the string argument. The configuration options for session.The options are as below:
-    *                                                  @code
-    *                                                  PreferedInstance : indicate which instance to respond read request in current session.
-    *                                                                     master  => 'm' or 'M'
-    *                                                                     slave   => 's' or 'S'
-    *                                                                     anyone  => 'a' or 'A'
-    *                                                                     node1   => 1
-    *                                                                     node2   => 2
-    *                                                                     node3   => 3
-    *                                                                     node4   => 4
-    *                                                                     node5   => 5
-    *                                                                     node6   => 6
-    *                                                                     node7   => 7
+    *        @code
+    *        PreferedInstance : Preferred instance for read request in the current session. Could be single value in 'M', 'm', 'S', 's', 'A', 'a', 1-255, or BSON Array to include multiple values.
+    *                           "M", "m": read and write instance( master instance ). If multiple numeric instances are given with "M", matched master instance will be chosen in higher priority. If multiple numeric instances are given with "M" or "m", master instance will be chosen if no numeric instance is matched.
+    *                           "S", "s": read only instance( slave instance ). If multiple numeric instances are given with "S", matched slave instances will be chosen in higher priority. If multiple numeric instances are given with "S" or "s", slave instance will be chosen if no numeric instance is matched.
+    *                           'A', 'a': any instance.
+    *                           1-255: the instance with specified instance ID.
+    *                           If multiple alphabet instances are given, only first one will be used.
+    *                           If matched instance is not found, will choose instance by random.
     *
-    *                                                                     e.g. array( 'PreferedInstance' => 'm' ).
-    *                                                  @endcode
+    *                           e.g. array( 'PreferedInstance' => 'm' ) or array( 'PreferedInstance' => array( 1, 7 ) )
+    *
+    *        PreferedInstanceMode : The mode to choose query instance when multiple preferred instances are found in the current session.
+    *                               'random': choose the instance from matched instances by random.
+    *                               'ordered': choose the instance from matched instances by the order of "PreferedInstance".
+    *
+    *                               e.g. array( 'PreferedInstanceMode' => 'random' )
+    *
+    *        Timeout : The timeout (in ms) for operations in the current session. -1 means no timeout for operations.
+    *
+    *                  e.g. array( 'Timeout' => 10000 )
+    *        @endcode
     *
     * @return Returns the result, default return array.
     *

@@ -174,6 +174,8 @@ namespace SequoiaDB
         public const string SDB_ALTER_CRT_ID_INDEX = "create id index";
         public const string SDB_ALTER_DROP_ID_INDEX = "drop id index";
 
+        public const int SDB_SETSESSIONATTR_V0 = 0;
+        public const int SDB_SETSESSIONATTR_V1 = 1;
 
         public const string FIELD_SET_ON_INSERT = "$SetOnInsert";
 

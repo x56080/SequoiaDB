@@ -1549,47 +1549,29 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void setSessionAttr( BSONObject options )
-     * @brief Set the attributes of the current session.
-     * @param options  The configuration options for the current session.The options are as below:
-     * <ul>
-     * <li>PreferedInstance   : indicate which instance to respond read request in current session.
-     *                        eg:{"PreferedInstance":"m"/"M"/"s"/"S"/"a"/"A"/1-7}, prefer to choose "read and write instance"/"read only instance"/"anyone instance"/instance1-insatance7,
-     *                        default to be {"PreferedInstance":"A"}, means would like to choose anyone instance to respond read request such as query.
-     * </li>
-     * </ul>
-     * @note 1.Option "PreferedInstance" is used to choose which instance for querying in current session.When a new session is built,
-     *         it works with default attribute {"PreferedInstance":"A"}. And it will keep the preferred instance for querying in current session
-     *         until the session is closed or the data node which belongs to this instance is shut down.
-     *       2.If a replica group only has 3 data notes, and we offer a configuraion option {"PreferedInstance":5},
-     *         in most cases, it will choose the instance which node 2 is in, the formula is (5-1)%3+1. But, if the selected instance is a "read and write instance",
-     *         it will choose next instance.
-     *         when offer {"PreferedInstance":1-7}, it will choose "read only instance" first.
-     *
-     * @code
-     *	Sequoiadb sdb = new Sequoiadb("ubuntu-dev1", 11810, "", ""); // when build object sdb, it means we start session 1
-     *  sdb.setSessionAttr(new BasicBSONObject("PreferedInstance", 3)); // choose No.3 instance(assume it exist and it's not a r/w instance) for querying
-     *  CollectionSpace cs = sdb.getCollectionSpace("foo");
-     *  DBCollection cl = cs.getCollection("bar");
-     *  cl.query(); // it will choose No.3 instance to query data in session 1
-     *
-     *  Sequoiadb sdb1 = new Sequoiadb("ubuntu-dev2", 11810, "", ""); // build another Sequoiadb object, and we start session 2
-     *  sdb1.setSessionAttr(new BasicBSONObject("PreferedInstance", "M")); // choose r/w instance for querying in session 2
-     *  CollectionSpace cs1 = sdb.getCollectionSpace("foo");
-     *  DBCollection cl1 = cs1.getCollection("bar");
-     *  cl1.query(); // it will choose r/w instance to query data in session 2
-     *  cl.query(); // it will choose No.3 instance to query data in session 1
-     *
-     *  sdb.disconnect(); // close session 1
-     *
-     *  Sequoiadb sdb = new Sequoiadb("ubuntu-dev1", 11810, "", ""); // start session 3
-     *  CollectionSpace cs = sdb.getCollectionSpace("foo");
-     *  DBCollection cl = cs.getCollection("bar");
-     *  cl.query(); // it will choose any instance to query data in session 3. Assuming it choise No.4 instance, when we qurey next time,
-     *              // unless the node which belongs to NO.4 instance had shut down, it would choose No.4 instance again.
-     *  cl.query(); // choose No.4 instance to query again
-     * @endcode
-     * @exception com.sequoiadb.exception.BaseException
+     * Set the attributes of the current session.
+     * @param options The configuration options for the current session.The options are as below:
+     *                <ul>
+     *                <li>PreferedInstance : Preferred instance for read request in the current session. Could be single value in "M", "m", "S", "s", "A", "a", 1-255, or BSON Array to include multiple values. e.g. { "PreferedInstance" : [ 1, 7 ] }.
+     *                    <ul>
+     *                        <li>"M", "m": read and write instance( master instance ). If multiple numeric instances are given with "M", matched master instance will be chosen in higher priority. If multiple numeric instances are given with "M" or "m", master instance will be chosen if no numeric instance is matched.</li>
+     *                        <li>"S", "s": read only instance( slave instance ). If multiple numeric instances are given with "S", matched slave instances will be chosen in higher priority. If multiple numeric instances are given with "S" or "s", slave instance will be chosen if no numeric instance is matched.</li>
+     *                        <li>"A", "a": any instance.</li>
+     *                        <li>1-255: the instance with specified instance ID.</li>
+     *                        <li>If multiple alphabet instances are given, only first one will be used.</li>
+     *                        <li>If matched instance is not found, will choose instance by random.</li>
+     *                    </ul>
+     *                </li>
+     *                <li>PreferedInstanceMode : The mode to choose query instance when multiple preferred instances are found in the current session. e.g. { "PreferedInstanceMode : "random" }.
+     *                    <ul>
+     *                        <li>"random": choose the instance from matched instances by random.</li>
+     *                        <li>"ordered": choose the instance from matched instances by the order of "PreferedInstance".</li>
+     *                    </ul>
+     *                </li>
+     *                <li>Timeout : The timeout (in ms) for operations in the current session. -1 means no timeout for operations. e.g. { "Timeout" : 10000 }.
+     *                </li>
+     *                </ul>
+     * @throws BaseException If error happens.
      */
     public void setSessionAttr(BSONObject options) throws BaseException {
         // check argument
@@ -1597,32 +1579,11 @@ public class Sequoiadb {
             return;
         }
 
-        if (!options.containsField(
-                SequoiadbConstants.FIELD_NAME_PREFERED_INSTANCE)) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, options.toString());
-        }
-        // build obj
         BSONObject newObj = new BasicBSONObject();
-        Object value = options.get(SequoiadbConstants.FIELD_NAME_PREFERED_INSTANCE);
-        int v = PreferInstanceType.INS_SLAVE.getCode();
-        if (value instanceof Integer) {
-            v = (Integer) value;
-            if (v < 1 || v > 7)
-                throw new BaseException(SDBError.SDB_INVALIDARG, options.toString());
-        } else if (value instanceof String) {
-            if (value.equals("M") || value.equals("m"))
-                v = PreferInstanceType.INS_MASTER.getCode();
-            else if (value.equals("S") || value.equals("s"))
-                v = PreferInstanceType.INS_SLAVE.getCode();
-            else if (value.equals("A") || value.equals("a"))
-                v = PreferInstanceType.INS_ANYONE.getCode();
-            else
-                throw new BaseException(SDBError.SDB_INVALIDARG, options.toString());
-        } else {
-            throw new BaseException(SDBError.SDB_INVALIDARG, options.toString());
-        }
-        newObj.put(SequoiadbConstants.FIELD_NAME_PREFERED_INSTANCE, v);
-        // command
+
+        newObj.putAll(options);
+        newObj.put(SequoiadbConstants.FIELD_NAME_VERSION, SequoiadbConstants.SDB_SETSESSIONATTR_V1);
+
         SDBMessage rtn = adminCommand(SequoiadbConstants.CMD_NAME_SETSESS_ATTR,
                 0, 0, 0, -1, newObj,
                 null, null, null);

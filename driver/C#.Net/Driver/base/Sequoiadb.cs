@@ -1206,47 +1206,35 @@ namespace SequoiaDB
         /** \fn void SetSessionAttr(BsonDocument options)
          *  \brief Set the attributes of the session.
          *  \param options The configuration options for session.The options are as below:
-         *  
-         *      PreferedInstance : indicate which instance to respond read request in current session.
-         *                         eg:{"PreferedInstance":"m"/"M"/"s"/"S"/"a"/"A"/1-7},
-         *                         prefer to choose "read and write instance"/"read only instance"/"anyone instance"/instance1-insatance7,
-         *                         default to be {"PreferedInstance":"A"}, means would like to choose anyone instance to respond read request such as query. 
+         *
+         *      PreferedInstance : Preferred instance for read request in the current session. Could be single value in "M", "m", "S", "s", "A", "a", 1-255, or BSON Array to include multiple values.
+         *                         e.g. { "PreferedInstance" : [ 1, 7 ] }.
+         *                         "M", "m": read and write instance( master instance ). If multiple numeric instances are given with "M", matched master instance will be chosen in higher priority. If multiple numeric instances are given with "M" or "m", master instance will be chosen if no numeric instance is matched.
+         *                         "S", "s": read only instance( slave instance ). If multiple numeric instances are given with "S", matched slave instances will be chosen in higher priority. If multiple numeric instances are given with "S" or "s", slave instance will be chosen if no numeric instance is matched.
+         *                         "A", "a": any instance.
+         *                         1-255: the instance with specified instance ID.
+         *                         If multiple alphabet instances are given, only first one will be used.
+         *                         If matched instance is not found, will choose instance by random.
+         *      PreferedInstanceMode : The mode to choose query instance when multiple preferred instances are found in the current session.
+         *                             e.g. { "PreferedInstanceMode : "random" }.
+         *                             "random": choose the instance from matched instances by random.
+         *                             "ordered": choose the instance from matched instances by the order of "PreferedInstance".
+         *      Timeout : The timeout (in ms) for operations in the current session. -1 means no timeout for operations.
+         *                e.g. { "Timeout" : 10000 }.
+         *  \return void
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
          */
         public void SetSessionAttr(BsonDocument options)
         {
             // check argument
-            if (options == null || !options.Contains(SequoiadbConstants.FIELD_PREFERED_INSTANCE))
+            if (options == null)
                 throw new BaseException("SDB_INVALIDARG");
             // build a bson to send
             BsonDocument attrObj = new BsonDocument();
-            BsonValue value = options.GetValue(SequoiadbConstants.FIELD_PREFERED_INSTANCE);
-            if (value.IsInt32)
-            {
-                int v = options[SequoiadbConstants.FIELD_PREFERED_INSTANCE].AsInt32;
-                if (v < 1 || v > 7)
-                    throw new BaseException("SDB_INVALIDARG");
-                attrObj.Add(SequoiadbConstants.FIELD_PREFERED_INSTANCE, v);
-            }
-            else if (value.IsString)
-            {
-                string v = options[SequoiadbConstants.FIELD_PREFERED_INSTANCE].AsString;
-                int val = (int)PreferInstanceType.INS_TYPE_MIN;
-                if (v.Equals("M") || v.Equals("m"))
-                    val = (int)PreferInstanceType.INS_MASTER;
-                else if (v.Equals("S") || v.Equals("s"))
-                    val = (int)PreferInstanceType.INS_SLAVE;
-                else if (v.Equals("A") || v.Equals("a"))
-                    val = (int)PreferInstanceType.INS_SLAVE;
-                else
-                    throw new BaseException("SDB_INVALIDARG");
-                attrObj.Add(SequoiadbConstants.FIELD_PREFERED_INSTANCE, val);
-            }
-            else
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
+            attrObj.Add(options);
+            attrObj.Add(SequoiadbConstants.FIELD_NAME_VERSION,
+                        SequoiadbConstants.SDB_SETSESSIONATTR_V1);
             // build command
             string commandString = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SETSESS_ATTR;
             // run command
