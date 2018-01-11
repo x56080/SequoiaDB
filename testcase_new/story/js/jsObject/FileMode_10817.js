@@ -290,13 +290,25 @@ function deleteUserAndGroup( ft, user, group )
 {
    try
    {
-      ft.system.delUser( { "name": user } ) ;
+      ft.cmd.run( "userdel -f " + user ) ;
+   }
+   catch( e )
+   {
+      var msg = ft.cmd.getLastOut() ;
+      if( msg.indexOf( "logged in" ) === -1 )
+      {
+         throw buildException( "deleteUserAndGroup", e, 
+               "delete user " + user + " " + msg + " " + this, 0, e ) ;
+      }
+   }
+   try
+   {
       ft.system.delGroup( group ) ;
    }
    catch( e )
    {
       throw buildException( "deleteUserAndGroup", e,
-            "delete " + user + " " + group + " " + this,
+            "delete group " + group + " " + this,
             0, e ) ;
    }
 }
