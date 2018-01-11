@@ -65,6 +65,9 @@ namespace engine
          SendInterrupt( cb, routeSet );
       }
 
+      /// set cb interrupted
+      cb->interrupt() ;
+
       // delete all opened contexts when received the interrupt message
       {
          SINT64 contextID = -1 ;

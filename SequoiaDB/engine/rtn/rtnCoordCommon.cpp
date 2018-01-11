@@ -795,6 +795,7 @@ namespace engine
 
       INT64 oprtTimeout = cb->getCoordSession()->getOperationTimeout() ;
       INT64 waitTime = RTN_COORD_RSP_WAIT_TIME ;
+      BOOLEAN needInterrupt = FALSE ;
 
       oprtTimeout = oprtTimeout <= 0 ? 0x7FFFFFFFFFFFFFFF : oprtTimeout ;
 
@@ -838,6 +839,7 @@ namespace engine
                if ( oprtTimeout <= 0 )
                {
                   rc = SDB_TIMEOUT ;
+                  needInterrupt = TRUE ;
                   goto error ;
                }
                continue ;
@@ -1001,7 +1003,7 @@ namespace engine
             SDB_OSS_FREE( pData );
          }
       }
-      rtnCoordClearRequest( cb, requestIdMap ) ;
+      rtnCoordClearRequest( cb, requestIdMap, needInterrupt ) ;
       goto done;
    }
 
@@ -3102,13 +3104,31 @@ namespace engine
       return rc;
    }
 
-   void rtnCoordClearRequest( pmdEDUCB *cb, REQUESTID_MAP &sendNodes )
+   void rtnCoordClearRequest( pmdEDUCB *cb, REQUESTID_MAP &sendNodes,
+                              BOOLEAN interrupt )
    {
+      ROUTE_SET nodes ;
       REQUESTID_MAP::iterator iterMap = sendNodes.begin();
       while( iterMap != sendNodes.end() )
       {
+         nodes.insert( iterMap->second.value ) ;
          cb->getCoordSession()->delRequest( iterMap->first );
          iterMap = sendNodes.erase( iterMap );
+      }
+      if ( interrupt && !nodes.empty() )
+      {
+         netMultiRouteAgent * pRouteAgent =
+                                pmdGetKRCB()->getCoordCB()->getRouteAgent() ;
+
+         MsgHeader interruptMsg ;
+         interruptMsg.messageLength = sizeof( MsgHeader ) ;
+         interruptMsg.opCode = MSG_BS_INTERRUPTE_SELF ;
+         interruptMsg.TID = cb->getTID() ;
+         interruptMsg.routeID.value = MSG_INVALID_ROUTEID ;
+
+         rtnCoordSendRequestToNodesWithOutReply( (void *)(&interruptMsg),
+                                                 nodes,
+                                                 pRouteAgent ) ;
       }
    }
 

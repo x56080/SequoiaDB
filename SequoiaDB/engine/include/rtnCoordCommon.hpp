@@ -321,7 +321,8 @@ namespace engine
 
    INT32 rtnCoordReadALine( const CHAR *&pInput, CHAR *pOutput );
 
-   void rtnCoordClearRequest( pmdEDUCB *cb, REQUESTID_MAP &sendNodes );
+   void rtnCoordClearRequest( pmdEDUCB *cb, REQUESTID_MAP &sendNodes,
+                              BOOLEAN interrupt = FALSE ) ;
 
    INT32 rtnCoordGetSubCLsByGroups( const CoordSubCLlist &subCLList,
                                     const CoordGroupList &sendGroupList,
