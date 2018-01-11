@@ -33,16 +33,64 @@ Set session attributes.
 .sp 2
        \fBPreferedInstance\fR
 .br
-              A preferred database instance mark for sessions'
-              read operations. Its values
-              contain:"m"/"M"/"s"/"S"/"a"/"A"/1-7 which stands
-              for master/slave/anyone/node1-node7 respectively.
+              Preferred instance for read request in the current
+              session. Could be single value in "M", "m", "S",
+              "s", "A", "a", 1-255, or BSON Array to include
+              multiple values.
+              "M", "m": read and write instance( master instance ).
+              If multiple numeric instances are given with "M",
+              matched master instance will be chosen in higher
+              priority. If multiple numeric instances are given
+              with "M" or "m", master instance will be chosen if no
+              numeric instance is matched.
+              "S", "s": read only instance( slave instance ). If
+              multiple numeric instances are given with "S",
+              matched slave instances will be chosen in higher
+              priority. If multiple numeric instances are given with
+              "S" or "s", slave instance will be chosen if no
+              numeric instance is matched.
+              "A", "a": any instance.
+              1-255: the instance with specified instance ID.
+              If multiple alphabet instances are given, only first
+              one will be used.
+              If matched instance is not found, will choose instance
+              by random.
 .br
-              PreferedInstance:"M"
+              PreferedInstance : "M"
+              PreferedInstance : [ 1, 7 ]
+.br
+       \fBPreferedInstanceMode\fR
+.br
+              The mode to choose query instance when multiple
+              preferred instances are found in the current
+              session.
+              "random": choose the instance from matched
+              instances by random.
+              "ordered": choose the instance from matched
+              instances by the order of "PreferedInstance".
+.br
+              "PreferedInstanceMode : "random"
+.br
+       \fBTimeout\fR
+.br
+              The timeout (in ms) for operations in the current
+              session. -1 means no timeout for operations.
+.br
+              "Timeout" : 10000
 .SH "Examples"
 
 .sp 2
 Set the preferred instance as master so that the session will
 preferentially read the data from a master database instance.
 .sp 2
-db.setSessionAttr({PreferedInstance:"M"})
+db.setSessionAttr( { PreferedInstance : "M" } )
+.sp 2
+Set the preferred instance as instance 1 or instance 7 so that
+the session will preferentially read the data from those
+instances.
+.sp 2
+db.setSessionAttr( { PreferedInstance : [ 1, 7 ] } )
+.sp 2
+Set the operation timeout of the current session to 10 seconds
+.sp 2
+db.setSessionAttr( { Timeout : 10000 } )
