@@ -362,6 +362,7 @@ public class ConnectionTCPImpl implements IConnection {
             try {
                 output.write(msg, 0, length);
             } catch (IOException e) {
+                close();
                 throw new BaseException(SDBError.SDB_NETWORK, e);
             }
         } else {

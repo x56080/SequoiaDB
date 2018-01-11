@@ -61,7 +61,7 @@ public class BaseException extends RuntimeException {
      * @since 2.8
      */
     public BaseException(SDBError error, Throwable e) {
-        this(error, null, e);
+        this(error, e.getMessage(), e);
     }
 
     /**
