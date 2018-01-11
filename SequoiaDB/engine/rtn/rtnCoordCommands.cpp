@@ -2714,54 +2714,38 @@ namespace engine
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOCMDSETSESSATTR_EXE ) ;
-      // fill default-reply(delete success)
-      contextID = -1 ;
 
-      CHAR *pQuery                     = NULL ;
+      CoordSession *pSession = NULL ;
+      CHAR *pQuery = NULL ;
+
       rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL );
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to parse unlink collection request(rc=%d)",
-                   rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse set session attribute "
+                   "request, rc: %d", rc ) ;
+
+      pSession = cb->getCoordSession();
+      PD_CHECK( pSession != NULL, SDB_SYS, error, PDERROR,
+                "Failed to get coord session" ) ;
 
       try
       {
-         CoordSession *pSession = NULL;
-         BSONObj boQuery ;
-         BSONElement bePreferRepl ;
-         INT32 sessReplType = PREFER_REPL_TYPE_MIN ;
-         GROUP_VEC groupLstTmp ;
-
-         pSession = cb->getCoordSession();
-         PD_CHECK( pSession != NULL, SDB_SYS, error, PDERROR,
-                   "Failed to get session!" ) ;
-         boQuery = BSONObj( pQuery );
-         bePreferRepl = boQuery.getField( FIELD_NAME_PREFERED_INSTANCE );
-         PD_CHECK( bePreferRepl.type() == NumberInt, SDB_INVALIDARG, error,
-                   PDERROR, "Failed to set session attribute, failed to get "
-                   "the field(%s)", FIELD_NAME_PREFERED_INSTANCE );
-         sessReplType = bePreferRepl.Int();
-         PD_CHECK( sessReplType > PREFER_REPL_TYPE_MIN &&
-                   sessReplType < PREFER_REPL_TYPE_MAX,
-                   SDB_INVALIDARG, error, PDERROR,
-                   "Failed to set prefer-replica-type, invalid value!"
-                   "(range:%d~%d)", PREFER_REPL_TYPE_MIN,
-                   PREFER_REPL_TYPE_MAX ) ;
-         pSession->setPreferReplType( sessReplType ) ;
-
-         rc = rtnCoordGetAllGroupList( cb, groupLstTmp );
-         PD_RC_CHECK( rc, PDERROR, "Failed to update all group info!(rc=%d)",
-                      rc ) ;
+         BSONObj property( pQuery ) ;
+         rc = pSession->parseProperty( property ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse session property, "
+                      "rc: %d", rc ) ;
       }
       catch ( std::exception &e )
       {
-         rc = SDB_INVALIDARG;
-         PD_LOG( PDERROR, "Failed to unlink collection, received unexpected "
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Failed to set sessionAttr, received unexpected "
                  "error:%s", e.what() ) ;
          goto error ;
       }
 
-   done:
+   done :
+      // fill default-reply(delete success)
+      contextID = -1 ;
+
       PD_TRACE_EXITRC ( SDB_RTNCOCMDSETSESSATTR_EXE, rc ) ;
       return rc;
    error:

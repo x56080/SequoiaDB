@@ -825,27 +825,80 @@
       <name>PMD_OPTION_PREFINST</name>
       <long>preferedinstance</long>
       <description>
-         <en>Prefered instance for read request, default:M, value enum:M,S,A,1-7</en>
-         <cn>读请求优先选择的实例,默认值:M,取值列表:M,S,A,1-7</cn>
+         <en>Prefered instance for read request, default: 'M'. Could be single value in 'M', 'm', 'S', 's', 'A', 'a', 1-255. Or use ',' to join multiple values. Maximum lenght of option string is 256.</en>
+         <cn>读请求优先选择的实例,默认值为 'M'，取值列表：'M'、'm'、'S'、's'、'A'、'a'、1-255。可以使用 ',' 连接多个值。连接多值时字符串最大长度为 256。</cn>
       </description>
+      <reloadable>
+         <en>Yes</en>
+         <cn>是</cn>
+      </reloadable>
+      <reloadstrategy>
+         <en>takes effect upon new connection</en>
+         <cn>新连接生效</cn>
+      </reloadstrategy>
       <detail>
          <en>1. It specifies the instance on which to query.<fig></fig>
-             2. If it is not specifed, the default value is M, i.e. read and write instance.<fig></fig>
+             2. If it is not specifed, the default value is "M", i.e. read and write instance.<fig></fig>
              3. value enum:<fig></fig>
-                    M--read and write instance,<fig></fig>
-                    S--read only instance,<fig></fig>
-                    A--any instance,<fig></fig>
-                    1-7--the nth instance</en>
-         <cn>1.指定执行读请求时优先选择的实例<fig></fig>
-             2.如果不指定，则默认值为M，即选择可读写实例。<fig></fig>
-             3.取值列表：<fig></fig>
-                    M--可读写实例<fig></fig>
-                    S--只读实例<fig></fig>
-                    A--任意实例<fig></fig>
-                    1-7--第n个实例<fig></fig></cn>
+             3.1 "M", "m": read and write instance( master instance ). If multiple numeric instances are given with "M", matched master instance will be chosen in higher priority. If multiple numeric instances are given with "M" or "m", master instance will be chosen if no numeric instance is matched.<fig></fig>
+             3.2 "S", "s": read only instance( slave instance ). If multiple numeric instances are given with "S", matched slave instances will be chosen in higher priority. If multiple numeric instances are given with "S" or "s", slave instance will be chosen if no numeric instance is matched.<fig></fig>
+             3.3 "A", "a": any instance.<fig></fig>
+             3.4 1-255: the instance with specified instance ID.<fig></fig>
+             3.5 If multiple alphabet instances are given, only first one will be used.<fig></fig>
+             4. If matched instance is not found, will choose instance by random.</en>
+         <cn>1. 指定执行读请求时优先选择的实例<fig></fig>
+             2. 如果不指定，则默认值为M，即选择可读写实例。<fig></fig>
+             3. 取值列表：<fig></fig>
+             3.1 "M", "m": 可读写实例（主实例）；如果多个 1-255 的实例和 "M" 一起指定，则满足指定实例中的主实例会优先选择；如果多个 1-255 的实例和 "M" 或 "m" 一起指定，则当没有满足指定的实例时选择主实例。<fig></fig>
+             3.2 "S", "s": 只读实例（备实例）；如果多个 1-255 的实例和 "S" 一起指定，则满足指定实例中的备实例会被优先选择；如果多个 1-255 的实例和 "S" 或 "s" 一起指定，则当没有满足指定的实例时选择备实例。<fig></fig>
+             3.3 "A", "a": 任意实例。<fig></fig>
+             3.4 1-255: 通过 --instanceid 指定实例 ID 的实例。<fig></fig>
+             3.5 如果指定多个 "M", "m", "S", "s", "A", "a" 实例，则只有第一个生效。<fig></fig>
+             4. 如果没有匹配的实例，将随机选择。</cn>
       </detail>
       <typeofweb>str</typeofweb>
-      <default>A</default>
+      <default>M</default>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_PREFINST_MODE</name>
+      <long>preferedinstancemode</long>
+      <description>
+         <en>The mode to choose query instance when multiple prefered instances are found. Could be 'random' or 'ordered'. Default is 'random'.</en>
+         <cn>指定当多个实例符合 --preferedinstance 的条件时的选择模式。可选值有 'random' 和 'ordered'。默认值是 'random'。</cn>
+      </description>
+      <reloadable>
+         <en>Yes</en>
+         <cn>是</cn>
+      </reloadable>
+      <reloadstrategy>
+         <en>takes effect upon new connection</en>
+         <cn>新连接生效</cn>
+      </reloadstrategy>
+      <detail>
+         <en>1. "random": choose the instance from matched instances by random.<fig></fig>
+             2. "ordered": choose the instance from matched instances by the order of --preferedinstance .</en>
+         <cn>1. "random": 从候选的实例中随机选择。<fig></fig>
+             2. "ordered": 从候选的实例中按照 --perferedinstance 的顺序进行选择。</cn>
+      </detail>
+      <typeofweb>str</typeofweb>
+      <default>random</default>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_INSTANCE_ID</name>
+      <long>instanceid</long>
+      <description>
+         <en>Instance ID of node. Default is 0, which means the instance ID is the position of node in the replica group. Valid value could be 1-255.</en>
+         <cn>节点的实例 ID。默认值是 0，表示使用节点在数据组中的位置。有效的取值包括 1-255。</cn>
+      </description>
+      <detail>
+         <en>Instance ID of node, used by --preferedinstance to choose query instance.</en>
+         <cn>节点的实例 ID，用于 --preferedinstance 进行实例选择。</cn>
+      </detail>
+      <typeofweb>num</typeofweb>
+      <type>int</type>
+      <default>0</default>
    </opt>
 
    <opt>

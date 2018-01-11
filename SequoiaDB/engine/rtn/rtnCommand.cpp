@@ -44,6 +44,7 @@
 #include "monDump.hpp"
 #include "ossMem.h"
 #include "rtnContextListLob.hpp"
+#include "rtnSessionProperty.hpp"
 #include "aggrDef.hpp"
 #include "utilCompressor.hpp"
 #include "msgMessageFormat.hpp"
@@ -2906,6 +2907,8 @@ namespace engine
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnSetSessionAttr )
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNSETSESSATTR_INIT, "_rtnSetSessionAttr::init" )
    INT32 _rtnSetSessionAttr::init( INT32 flags, INT64 numToSkip,
                                    INT64 numToReturn,
                                    const CHAR *pMatcherBuff,
@@ -2914,39 +2917,31 @@ namespace engine
                                    const CHAR *pHintBuff )
    {
       INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNSETSESSATTR_INIT ) ;
+
       try
       {
-         INT32 prefType = PREFER_REPL_TYPE_MIN ;
-         BSONObj obj( pMatcherBuff ) ;
-         BSONElement e =  obj.getField( FIELD_NAME_PREFERED_INSTANCE ) ;
-         if ( e.type() != NumberInt )
-         {
-            PD_LOG( PDERROR, "Feild[%s] is not numberInt in obj[%s]",
-                    FIELD_NAME_PREFERED_INSTANCE, obj.toString().c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         prefType = e.numberInt() ;
-         if ( prefType <= PREFER_REPL_TYPE_MIN ||
-              prefType >=  PREFER_REPL_TYPE_MAX )
-         {
-            PD_LOG( PDERROR, "Prefer instance value[%d] invalid, must in "
-                    "rang(%d, %d)", prefType, PREFER_REPL_TYPE_MIN,
-                    PREFER_REPL_TYPE_MAX ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
+         BSONObj property( pMatcherBuff ) ;
+         rtnSessionProperty sessProperty ;
+
+         rc = sessProperty.parseProperty( property ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse session property, "
+                      "rc: %d", rc ) ;
       }
-      catch( std::exception &e )
+      catch ( std::exception &e )
       {
-         PD_LOG( PDERROR, "Ocurr exception: %s", e.what() ) ;
          rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Failed to set sessionAttr, received unexpected "
+                 "error:%s", e.what() ) ;
          goto error ;
       }
 
-   done:
+   done :
+      PD_TRACE_EXITRC( SDB__RTNSETSESSATTR_INIT, rc ) ;
       return rc ;
-   error:
+
+   error :
       goto done ;
    }
 

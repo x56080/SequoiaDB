@@ -41,6 +41,7 @@
 #include "catTrace.hpp"
 #include "pmdCB.hpp"
 #include "rtn.hpp"
+#include "utilCommon.hpp"
 
 #define CAT_PORT_STR_SZ 10
 
@@ -567,6 +568,7 @@ namespace engine
       _nodeStatus = SDB_CAT_GRP_DEACTIVE ;
       _nodeRole = SDB_ROLE_MAX ;
       _groupRole = SDB_ROLE_DATA ;
+      _instanceID = NODE_INSTANCE_ID_UNKNOWN ;
    }
 
    _catCtxCreateNode::~_catCtxCreateNode ()
@@ -613,6 +615,24 @@ namespace engine
          {
             rc = SDB_OK ;
             _nodeRole = SDB_ROLE_MAX ;
+         }
+
+         rc = rtnGetIntElement( _boQuery, PMD_OPTION_INSTANCE_ID,
+                                (INT32 &)_instanceID ) ;
+         if ( SDB_OK == rc )
+         {
+            PD_CHECK( utilCheckInstanceID( _instanceID, TRUE ),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to check field [%s], "
+                      "should be %d, or between %d to %d",
+                      PMD_OPTION_INSTANCE_ID, NODE_INSTANCE_ID_UNKNOWN,
+                      NODE_INSTANCE_ID_MIN + 1, NODE_INSTANCE_ID_MAX - 1 ) ;
+            PD_LOG( PDDEBUG, "Got instance ID [%u]", _instanceID ) ;
+         }
+         else
+         {
+            rc = SDB_OK ;
+            _instanceID = NODE_INSTANCE_ID_UNKNOWN ;
          }
       }
       catch ( std::exception &e )
@@ -819,7 +839,7 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXCREATENODE_EXECUTE_INT ) ;
 
-      rc = catCreateNodeStep( _targetName, _hostName, _dbPath,
+      rc = catCreateNodeStep( _targetName, _hostName, _dbPath, _instanceID,
                               _localSvc, _replSvc, _shardSvc, _cataSvc,
                               _nodeRole, _nodeID, _nodeStatus,
                               cb, _pDmsCB, _pDpsCB, w ) ;

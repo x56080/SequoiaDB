@@ -81,14 +81,9 @@ namespace engine
    UINT32      utilGetDBModeFlag( const string &mode ) ;
 
    /*
-      util Pref instance enum and string transfer
-   */
-   INT32 utilPrefReplStr2Enum( const CHAR *prefReplStr ) ;
-
-   INT32 utilPrefReplEnum2Str( INT32 enumPrefRepl,
-                               CHAR *prefReplStr,
-                               UINT32 len ) ;
-
+      instance ID
+    */
+   BOOLEAN     utilCheckInstanceID ( UINT32 instanceID, BOOLEAN includeUnknown ) ;
    /*
       util get error bson
    */

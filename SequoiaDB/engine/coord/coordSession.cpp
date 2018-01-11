@@ -46,27 +46,17 @@ using namespace bson ;
 
 namespace engine
 {
+
+   /*
+      CoordSession implement
+    */
    CoordSession::CoordSession( pmdEDUCB *pEduCB )
+   : _rtnSessionProperty()
    {
-      _pEduCB = pEduCB;
-      _preferReplType = pmdGetKRCB()->getOptionCB()->preferedReplica() ;
-   }
-
-   INT32 CoordSession::getPreferReplType()
-   {
-      return _preferReplType;
-   }
-
-   void CoordSession::setPreferReplType( INT32 type )
-   {
-      if ( PREFER_REPL_TYPE_MIN < type &&
-           type < PREFER_REPL_TYPE_MAX &&
-           type != _preferReplType )
-      {
-         _preferReplType = type;
-         _lastNodeMap.clear() ;
-      }
-      return ;
+      pmdOptionsCB * optionCB = pmdGetKRCB()->getOptionCB() ;
+      setInstanceOption( optionCB->getPrefInstStr(),
+                         optionCB->getPrefInstModeStr() ) ;
+      _pEduCB = pEduCB ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_COORDSN_DISCONN, "CoordSession::disConnect" )
@@ -449,5 +439,9 @@ namespace engine
       return FALSE;
    }
 
-}
+   void CoordSession::_onSetInstance ()
+   {
+      _lastNodeMap.clear() ;
+   }
 
+}

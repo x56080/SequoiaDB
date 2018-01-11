@@ -38,6 +38,7 @@
 #include "rtn.hpp"
 #include "fmpDef.hpp"
 #include "clsCatalogAgent.hpp"
+#include "utilCommon.hpp"
 
 #include "../bson/lib/md5.hpp"
 
@@ -4017,14 +4018,13 @@ namespace engine
 
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCREATENODESTEP, "catCreateNodeStep" )
-   INT32 catCreateNodeStep ( const string &groupName,
-                             const string &hostName, const string &dbPath,
+   INT32 catCreateNodeStep ( const string &groupName, const string &hostName,
+                             const string &dbPath, UINT32 instanceID,
                              const string &localSvc, const string &replSvc,
                              const string &shardSvc, const string &cataSvc,
                              INT32 nodeRole, UINT16 nodeID, INT32 nodeStatus,
-                             _pmdEDUCB *cb,
-                             SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB,
-                             INT16 w )
+                             _pmdEDUCB *cb, SDB_DMSCB *pDmsCB,
+                             SDB_DPSCB *pDpsCB, INT16 w  )
    {
       INT32 rc = SDB_OK ;
 
@@ -4037,6 +4037,12 @@ namespace engine
 
       newNodeBuilder.append( CAT_HOST_FIELD_NAME, hostName ) ;
       newNodeBuilder.append( PMD_OPTION_DBPATH, dbPath ) ;
+
+      if ( utilCheckInstanceID( instanceID, FALSE ) )
+      {
+         newNodeBuilder.append( PMD_OPTION_INSTANCE_ID, (INT32)instanceID ) ;
+      }
+
       // service
       BSONObjBuilder sub( newNodeBuilder.subarrayStart( CAT_SERVICE_FIELD_NAME ) ) ;
       // local

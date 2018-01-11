@@ -42,6 +42,7 @@
 #include "msgMessage.hpp"
 #include "pdTrace.hpp"
 #include "catTrace.hpp"
+#include "utilCommon.hpp"
 
 using namespace bson;
 
@@ -716,12 +717,21 @@ namespace engine
       {
          BSONObj groupInfo ;
          INT32 nodeID = CAT_INVALID_NODEID ;
-         BSONObj seletor ;
+         BOOLEAN keepInstanceID = FALSE ;
+         BSONObjBuilder updateBuilder ;
 
          BSONElement beDbpath = reqObj.getField( PMD_OPTION_DBPATH ) ;
          if ( String == beDbpath.type() )
          {
-            seletor = BSON( PMD_OPTION_DBPATH << beDbpath.valuestr() ) ;
+            updateBuilder.append( beDbpath ) ;
+         }
+
+         BSONElement beInstanceID = reqObj.getField( PMD_OPTION_INSTANCE_ID ) ;
+         if ( beInstanceID.isNumber() &&
+              utilCheckInstanceID( beInstanceID.numberInt(), FALSE ) )
+         {
+            updateBuilder.append( beInstanceID ) ;
+            keepInstanceID = TRUE ;
          }
 
          rc = rtnGetIntElement( nodeObj, FIELD_NAME_NODEID, nodeID ) ;
@@ -732,8 +742,8 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get group info by nodeid[%d], "
                       "rc: %d", nodeID, rc ) ;
 
-         rc = _updateNodeToGrp( groupInfo, seletor, (UINT16)nodeID,
-                                TRUE, TRUE ) ;
+         rc = _updateNodeToGrp( groupInfo, updateBuilder.obj(), (UINT16)nodeID,
+                                TRUE, TRUE, keepInstanceID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to update node to group, rc: %d",
                       rc ) ;
       }
@@ -961,7 +971,7 @@ namespace engine
                       "rc: %d", nodeID, rc ) ;
 
          rc = _updateNodeToGrp( groupInfo, seletor, (UINT16)nodeID,
-                                isLocalConnection, FALSE ) ;
+                                isLocalConnection, FALSE, TRUE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to update node to group, rc: %d",
                       rc ) ;
       }
@@ -1886,10 +1896,11 @@ namespace engine
    }
 
    INT32 catNodeManager::_updateNodeToGrp ( BSONObj &boGroupInfo,
-                                            BSONObj &boNodeInfoNew,
+                                            const BSONObj &boNodeInfoNew,
                                             UINT16 nodeID,
                                             BOOLEAN isLoalConn,
-                                            BOOLEAN setStatus )
+                                            BOOLEAN setStatus,
+                                            BOOLEAN keepInstanceID )
    {
       INT32 rc = SDB_OK ;
       INT32 nodeRole = SDB_ROLE_DATA ;
@@ -1977,6 +1988,13 @@ namespace engine
             {
                continue ;
             }
+            else if ( !keepInstanceID &&
+                      0 == ossStrcmp( e.fieldName(), PMD_OPTION_INSTANCE_ID ) )
+            {
+               // Instance ID is removed
+               ++modifyNum ;
+               continue ;
+            }
 
             BSONElement newEle = boNodeInfoNew.getField( e.fieldName() ) ;
             if ( !newEle.eoo() && 0 != newEle.woCompare( e, false ) )
@@ -1993,6 +2011,15 @@ namespace engine
                mergeBuild.append( e ) ;
             }
          }
+
+         // Set new instance ID
+         if ( !oldInfoObj.hasElement( PMD_OPTION_INSTANCE_ID ) &&
+              boNodeInfoNew.hasElement( PMD_OPTION_INSTANCE_ID ) )
+         {
+            mergeBuild.append( boNodeInfoNew.getField( PMD_OPTION_INSTANCE_ID ) ) ;
+            ++modifyNum ;
+         }
+
          mergeBuild.append( FIELD_NAME_NODEID, nodeID ) ;
          newInfoObj = mergeBuild.obj() ;
 

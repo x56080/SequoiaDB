@@ -106,9 +106,12 @@ namespace engine
    // tool fuctions
    private:
       INT32 _createGrp( const CHAR *groupName ) ;
-      INT32 _updateNodeToGrp ( BSONObj &boGroupInfo, BSONObj &boNodeInfoNew,
-                               UINT16 nodeID, BOOLEAN isLoalConn,
-                               BOOLEAN setStatus ) ;
+      INT32 _updateNodeToGrp ( BSONObj &boGroupInfo,
+                               const BSONObj &boNodeInfoNew,
+                               UINT16 nodeID,
+                               BOOLEAN isLoalConn,
+                               BOOLEAN setStatus,
+                               BOOLEAN keepInstanceID ) ;
       INT32 _getRemovedGroupsObj( const BSONObj &srcGroupsObj,
                                   UINT16 removeNode,
                                   BSONObj &removedObj,

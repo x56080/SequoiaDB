@@ -1355,13 +1355,15 @@ namespace engine
       vector<BSONObj> boRecv ;
       CoordGroupList groupDstLst ;
 
-      INT32 preferedType = 0 ;
+      CoordSession * coordSession = cb->getCoordSession() ;
+      rtnInstanceOption instanceOption ;
+      BOOLEAN replacedInstanceOption = FALSE ;
 
-      if ( cb->getCoordSession() &&
-           PREFER_REPL_MASTER != cb->getCoordSession()->getPreferReplType() )
+      if ( NULL != coordSession && !coordSession->isMasterPreferred() )
       {
-         preferedType = cb->getCoordSession()->getPreferReplType() ;
-         cb->getCoordSession()->setPreferReplType( PREFER_REPL_MASTER ) ;
+         instanceOption = coordSession->getInstanceOption() ;
+         coordSession->setMasterPreferred() ;
+         replacedInstanceOption = TRUE ;
       }
 
       /******************************************************************
@@ -1628,9 +1630,9 @@ namespace engine
       }
 
    done :
-      if ( 0 != preferedType && cb->getCoordSession() )
+      if ( NULL != coordSession && replacedInstanceOption )
       {
-         cb->getCoordSession()->setPreferReplType( preferedType ) ;
+         coordSession->setInstanceOption( instanceOption ) ;
       }
       if ( pCommandName && strName )
       {

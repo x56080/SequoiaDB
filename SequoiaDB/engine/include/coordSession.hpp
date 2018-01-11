@@ -41,9 +41,11 @@
 #include "pmdEDU.hpp"
 #include "netMultiRouteAgent.hpp"
 #include "utilMap.hpp"
+#include "rtnSessionProperty.hpp"
 
 namespace engine
 {
+
    /*
       _subSessionInfo define
    */
@@ -87,7 +89,7 @@ namespace engine
    /*
       CoordSession define
    */
-   class CoordSession : public SDBObject
+   class CoordSession : public _rtnSessionProperty
    {
    public:
       CoordSession( pmdEDUCB *pEduCB );
@@ -117,15 +119,16 @@ namespace engine
                                 const UINT64 reqID ) ;
       BOOLEAN  isValidResponse( const NET_HANDLE &handle,
                                 const UINT64 reqID ) ;
-      void     setPreferReplType( INT32 type ) ;
-      INT32    getPreferReplType() ;
+
+   protected :
+      virtual void _onSetInstance () ;
 
    private:
       CoordSession(){}
       CoordSession( CoordSession &coordSession ){}
       INT32 sessionInit( const MsgRouteID &routeID,
                          const CHAR *pRemoteIP,
-                         UINT16 remotePort );
+                         UINT16 remotePort ) ;
 
    private:
       pmdEDUCB                   *_pEduCB;
@@ -133,7 +136,6 @@ namespace engine
       COORD_LASTNODE_MAP         _lastNodeMap;
       ossSpinXLatch              _mutex ;
       COORD_REQINFO_MAP          _requestMap;
-      INT32                      _preferReplType;
    } ;
 }
 

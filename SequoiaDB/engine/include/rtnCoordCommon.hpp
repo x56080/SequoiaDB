@@ -35,6 +35,7 @@
 
 #include "coordCB.hpp"
 #include "rtnContext.hpp"
+#include "rtnSessionProperty.hpp"
 #include "../bson/bson.h"
 
 using namespace bson ;
@@ -379,15 +380,20 @@ namespace engine
                                 CoordGroupList &groupList, ROUTE_SET &nodes,
                                 BSONObj *pNewObj = NULL ) ;
 
-   void  rtnCoordGetNodePos( INT32 preferReplicaType,
-                             clsGroupItem *groupItem,
-                             UINT32 random,
-                             UINT32 &pos ) ;
+   typedef _utilArray< UINT8, CLS_REPLSET_MAX_NODE_SIZE > RTN_COORD_POS_ARRAY ;
+   typedef _utilList< UINT8, CLS_REPLSET_MAX_NODE_SIZE > RTN_COORD_POS_LIST ;
 
-   void  rtnCoordGetNextNode( INT32 preferReplicaType,
-                              clsGroupItem *groupItem,
-                              UINT32 &selTimes,
-                              UINT32 &curPos ) ;
+   void  rtnCoordGetNodePos ( clsGroupItem * pGroupItem,
+                              const rtnInstanceOption & instanceOption,
+                              UINT32 random,
+                              UINT32 & pos,
+                              RTN_COORD_POS_LIST & selectedPositions ) ;
+
+   void  rtnCoordGetNextNode ( clsGroupItem * pGroupItem,
+                               RTN_COORD_POS_LIST & selectedPositions,
+                               BOOLEAN isSlavePreferred,
+                               UINT32 & selTimes,
+                               UINT32 & curPos ) ;
 
    void rtnCoordUpdateNodeStatByRC( pmdEDUCB *cb,
                                     const MsgRouteID &routeID,

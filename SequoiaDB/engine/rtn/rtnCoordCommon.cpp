@@ -85,14 +85,14 @@ namespace engine
 
       BOOLEAN hasRetry        = FALSE ;
       UINT64 reqID            = 0 ;
-      INT32 preferReplicaType = PREFER_REPL_ANYONE ;
+
+      RTN_COORD_POS_LIST selectedPositions ;
 
       PD_TRACE_ENTRY ( SDB__RTNCOSENDREQUESTTOONE ) ;
 
       if ( pSession )
       {
-         preferReplicaType = pSession->getPreferReplType() ;
-         if ( PREFER_REPL_MASTER == preferReplicaType )
+         if ( pSession->isMasterPreferred() )
          {
             if ( MSG_BS_QUERY_REQ == pBuffer->opCode )
             {
@@ -166,6 +166,8 @@ namespace engine
       ********************************/
       groupItem = groupInfo.get() ;
       nodeNum = groupInfo->nodeCount() ;
+      selectedPositions.clear() ;
+
       if ( nodeNum <= 0 )
       {
          if ( !hasRetry && CATALOG_GROUPID != groupInfo->groupID() )
@@ -183,14 +185,16 @@ namespace engine
       }
 
       routeID.value = MSG_INVALID_ROUTEID ;
-      rtnCoordGetNodePos( preferReplicaType, groupItem, ossRand(), beginPos ) ;
+      rtnCoordGetNodePos( groupItem, pSession->getInstanceOption(), ossRand(),
+                          beginPos, selectedPositions ) ;
 
       selTimes = 0 ;
       while( selTimes < nodeNum )
       {
          INT32 status = NET_NODE_STAT_NORMAL ;
-         rtnCoordGetNextNode( preferReplicaType, groupItem,
-                              selTimes, beginPos ) ;
+         rtnCoordGetNextNode( groupItem, selectedPositions,
+                              pSession->isSlavePreferred(), selTimes,
+                              beginPos ) ;
 
          rc = groupItem->getNodeID( beginPos, routeID, type ) ;
          if ( rc )
@@ -788,12 +792,29 @@ namespace engine
 
       ossQueue<pmdEDUEvent> tmpQue ;
       REQUESTID_MAP::iterator iterMap ;
+
+      INT64 oprtTimeout = cb->getCoordSession()->getOperationTimeout() ;
       INT64 waitTime = RTN_COORD_RSP_WAIT_TIME ;
+
+      oprtTimeout = oprtTimeout <= 0 ? 0x7FFFFFFFFFFFFFFF : oprtTimeout ;
 
       while ( requestIdMap.size() > 0 )
       {
          pmdEDUEvent pmdEvent ;
-         BOOLEAN isGotMsg = cb->waitEvent( pmdEvent, waitTime ) ;
+         BOOLEAN isGotMsg = FALSE ;
+
+         if ( !isWaitAll && !replyQue.empty() )
+         {
+            waitTime = RTN_COORD_RSP_WAIT_TIME_QUICK ;
+         }
+         else
+         {
+            waitTime = oprtTimeout < waitTime ?
+                       oprtTimeout : waitTime ;
+         }
+
+         isGotMsg = cb->waitEvent( pmdEvent, waitTime ) ;
+         oprtTimeout -= waitTime ;
 
          // if we didn't receive anything
          if ( FALSE == isGotMsg )
@@ -809,9 +830,14 @@ namespace engine
                /// pmdEDUCB::clear() is going to clean it up.
                if ( cb->isInterrupted() || cb->isForced() )
                {
-                  PD_LOG( PDERROR, "Recieve reply failed, because the "
+                  PD_LOG( PDERROR, "Receive reply failed, because the "
                           "session is interrupted" ) ;
                   rc = SDB_APP_INTERRUPT ;
+                  goto error ;
+               }
+               if ( oprtTimeout <= 0 )
+               {
+                  rc = SDB_TIMEOUT ;
                   goto error ;
                }
                continue ;
@@ -947,10 +973,6 @@ namespace engine
             cb->getCoordSession()->delRequest( pReply->requestID ) ;
             replyQue.push( (CHAR *)( pmdEvent._Data ) ) ;
             pmdEvent.reset () ;
-            if ( !isWaitAll )
-            {
-               waitTime = RTN_COORD_RSP_WAIT_TIME_QUICK ;
-            }
          } // if ( iterMap == requestIdMap.end() )
       } // while ( requestIdMap.size() > 0 )
 
@@ -2454,61 +2476,185 @@ namespace engine
                                             type, cb, sendNodes, &iov ) ;
    }
 
+   static void _rtnCoordShufflePositions ( RTN_COORD_POS_ARRAY & positionArray,
+                                           RTN_COORD_POS_LIST & positionList )
+   {
+      for ( UINT32 i = 0 ; i < positionArray.size() ; i ++ )
+      {
+         UINT32 random = ossRand() % positionArray.size() ;
+         if ( i != random )
+         {
+            UINT8 tmp = positionArray[ i ] ;
+            positionArray[ i ] = positionArray[ random ] ;
+            positionArray[ random ] = tmp  ;
+         }
+      }
+
+      RTN_COORD_POS_ARRAY::iterator posIter( positionArray ) ;
+      UINT8 tmpPos = 0 ;
+      while ( posIter.next( tmpPos ) )
+      {
+         positionList.push_back( tmpPos ) ;
+      }
+   }
+
+   static void _rtnCoordSelectPositions ( const VEC_NODE_INFO & groupNodes,
+                                          UINT32 primaryPos,
+                                          const rtnInstanceOption & instanceOption,
+                                          RTN_COORD_POS_LIST & selectedPositions )
+   {
+      RTN_PREFER_INSTANCE_MODE mode = instanceOption.getPreferredMode() ;
+      const RTN_INSTANCE_LIST & instanceList = instanceOption.getInstanceList() ;
+      RTN_COORD_POS_ARRAY tempPositions ;
+      BOOLEAN foundPrimary = FALSE ;
+      BOOLEAN primaryFirst = ( instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_MASTER ) ;
+      BOOLEAN primaryLast = ( instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_SLAVE ) ;
+
+      selectedPositions.clear() ;
+
+      if ( groupNodes.size() == 0 || instanceList.empty() )
+      {
+         goto done ;
+      }
+
+      for ( RTN_INSTANCE_LIST::const_iterator instIter = instanceList.begin() ;
+            instIter != instanceList.end() ;
+            instIter ++ )
+      {
+         RTN_PREFER_INSTANCE_TYPE instance = (RTN_PREFER_INSTANCE_TYPE)(*instIter) ;
+         if ( instance > PREFER_INSTANCE_TYPE_MIN &&
+              instance < PREFER_INSTANCE_TYPE_MAX )
+         {
+            UINT8 pos = 0 ;
+            for ( VEC_NODE_INFO::const_iterator nodeIter = groupNodes.begin() ;
+                  nodeIter != groupNodes.end() ;
+                  nodeIter ++, pos ++ )
+            {
+               if ( nodeIter->_instanceID == (UINT8)instance )
+               {
+                  if ( primaryPos == pos && ( primaryFirst || primaryLast ) )
+                  {
+                     foundPrimary = TRUE ;
+                  }
+                  else
+                  {
+                     tempPositions.append( pos ) ;
+                  }
+               }
+            }
+            if ( !tempPositions.empty() &&
+                 PREFER_INSTANCE_MODE_ORDERED == mode )
+            {
+               _rtnCoordShufflePositions( tempPositions, selectedPositions ) ;
+            }
+         }
+      }
+
+      if ( !tempPositions.empty() )
+      {
+         _rtnCoordShufflePositions( tempPositions, selectedPositions ) ;
+      }
+
+      if ( foundPrimary )
+      {
+         if ( primaryFirst )
+         {
+            selectedPositions.push_front( primaryPos ) ;
+         }
+         else if ( primaryLast )
+         {
+            selectedPositions.push_back( primaryPos ) ;
+         }
+      }
+
+   done :
+      return ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOGETNODEPOS, "rtnCoordGetNodePos" )
-   void rtnCoordGetNodePos( INT32 preferReplicaType,
-                            clsGroupItem *groupItem,
-                            UINT32 random,
-                            UINT32 &pos )
+   void rtnCoordGetNodePos ( clsGroupItem * pGroupItem,
+                             const rtnInstanceOption & instanceOption,
+                             UINT32 random,
+                             UINT32 & pos,
+                             RTN_COORD_POS_LIST & selectedPositions )
    {
       PD_TRACE_ENTRY ( SDB_RTNCOGETNODEPOS ) ;
-      UINT32 posTmp = 0 ;
 
-      switch( preferReplicaType )
+      BOOLEAN selected = FALSE ;
+
+      if ( instanceOption.hasCommonInstance() )
       {
-         case PREFER_REPL_NODE_1:
-         case PREFER_REPL_NODE_2:
-         case PREFER_REPL_NODE_3:
-         case PREFER_REPL_NODE_4:
-         case PREFER_REPL_NODE_5:
-         case PREFER_REPL_NODE_6:
-         case PREFER_REPL_NODE_7:
+         const VEC_NODE_INFO * nodes = pGroupItem->getNodes() ;
+         SDB_ASSERT( NULL != nodes, "node list is invalid" ) ;
+         _rtnCoordSelectPositions( *nodes, pGroupItem->getPrimaryPos(),
+                                   instanceOption, selectedPositions ) ;
+
+         if ( !selectedPositions.empty() )
+         {
+            pos = selectedPositions.front() ;
+            selectedPositions.pop_front() ;
+            selected = TRUE ;
+         }
+      }
+
+      if ( !selected )
+      {
+         switch ( instanceOption.getSpecialInstance() )
+         {
+            case PREFER_INSTANCE_TYPE_MASTER :
+            case PREFER_INSTANCE_TYPE_MASTER_SND :
             {
-               posTmp = preferReplicaType - 1 ;
-               break;
-            }
-         case PREFER_REPL_MASTER:
-            {
-               posTmp = groupItem->getPrimaryPos() ;
+               pos = pGroupItem->getPrimaryPos() ;
                // if there is no primary,
                // then do not break and go on to
                // get random node
-               if ( CLS_RG_NODE_POS_INVALID != posTmp )
+               if ( CLS_RG_NODE_POS_INVALID != pos )
                {
+                  selected = TRUE ;
                   break ;
                }
             }
-         case PREFER_REPL_ANYONE:
-         case PREFER_REPL_SLAVE:
-         default:
+            case PREFER_INSTANCE_TYPE_ANYONE :
+            case PREFER_INSTANCE_TYPE_ANYONE_SND :
+            case PREFER_INSTANCE_TYPE_SLAVE :
+            case PREFER_INSTANCE_TYPE_SLAVE_SND :
             {
-               posTmp = random ;
-               break;
+               pos = random ;
+               break ;
             }
+            default :
+            {
+               if ( 1 == instanceOption.getInstanceList().size() )
+               {
+                  pos = instanceOption.getInstanceList().front() - 1 ;
+               }
+               else
+               {
+                  pos = random ;
+               }
+               break ;
+            }
+         }
       }
 
-      if( groupItem->nodeCount() > 0 )
+      if( !selected && pGroupItem->nodeCount() > 0 )
       {
-         pos = posTmp % groupItem->nodeCount() ;
+         pos = pos % pGroupItem->nodeCount() ;
       }
+
       PD_TRACE_EXIT( SDB_RTNCOGETNODEPOS ) ;
    }
 
-   void rtnCoordGetNextNode( INT32 preferReplicaType,
-                             clsGroupItem *groupItem,
-                             UINT32 &selTimes,
-                             UINT32 &curPos )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOGETNEXTNODE, "rtnCoordGetNextNode" )
+   void rtnCoordGetNextNode ( clsGroupItem *pGroupItem,
+                              RTN_COORD_POS_LIST & selectedPositions,
+                              BOOLEAN isSlavePreferred,
+                              UINT32 & selTimes,
+                              UINT32 & curPos )
    {
-      if( selTimes >= groupItem->nodeCount() )
+      PD_TRACE_ENTRY( SDB_RTNCOGETNEXTNODE ) ;
+
+      if( selTimes >= pGroupItem->nodeCount() )
       {
          curPos = CLS_RG_NODE_POS_INVALID ;
       }
@@ -2517,28 +2663,37 @@ namespace engine
          UINT32 tmpPos = curPos ;
          if ( selTimes > 0 )
          {
-            tmpPos = ( curPos + 1 ) % groupItem->nodeCount() ;
+            if ( selectedPositions.empty() )
+            {
+               tmpPos = ( tmpPos + 1 ) % pGroupItem->nodeCount() ;
+            }
+            else
+            {
+               tmpPos = selectedPositions.front() ;
+               selectedPositions.pop_front() ;
+            }
          }
 
-         if ( PREFER_REPL_ANYONE != preferReplicaType &&
-              PREFER_REPL_MASTER != preferReplicaType )
+         if ( isSlavePreferred )
          {
-            UINT32 pimaryPos = groupItem->getPrimaryPos() ;
+            UINT32 pimaryPos = pGroupItem->getPrimaryPos() ;
 
             if ( CLS_RG_NODE_POS_INVALID != pimaryPos &&
-                 selTimes + 1 == groupItem->nodeCount() )
+                 selTimes + 1 == pGroupItem->nodeCount() )
             {
                tmpPos = pimaryPos ;
             }
             else if ( tmpPos == pimaryPos )
             {
-               tmpPos = ( tmpPos + 1 ) % groupItem->nodeCount() ;
+               tmpPos = ( tmpPos + 1 ) % pGroupItem->nodeCount() ;
             }
          }
 
          curPos = tmpPos ;
          ++selTimes ;
       }
+
+      PD_TRACE_EXIT( SDB_RTNCOGETNEXTNODE ) ;
    }
 
    INT32 rtnCoordSendRequestToOne( CHAR *pBuffer,

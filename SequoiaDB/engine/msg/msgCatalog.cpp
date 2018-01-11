@@ -41,7 +41,7 @@
 #include "pmd.hpp"
 #include "pdTrace.hpp"
 #include "msgTrace.hpp"
-
+#include "utilCommon.hpp"
 
 using namespace bson ;
 namespace engine
@@ -69,10 +69,146 @@ namespace engine
          rc = msgParseCatGroupObj( MSG_GET_INNER_REPLY_DATA( pHeader ),
                                    version, groupID, groupName,
                                    group, pPrimary, pSecID ) ;
-      }                               
+      }
    done :
       PD_TRACE_EXITRC ( SDB_MSGPASCATGRPRES, rc );
       return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MSGPASNODESERV, "_msgParseNodeService" )
+   static INT32 _msgParseNodeService ( const BSONObj & service,
+                                       _netRouteNode & route )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__MSGPASNODESERV ) ;
+
+      UINT16 servID = 0 ;
+      BSONElement beServID, beServName ;
+
+      beServID = service.getField( CAT_SERVICE_TYPE_FIELD_NAME ) ;
+      PD_CHECK( NumberInt == beServID.type(), SDB_INVALIDARG, error, PDWARNING,
+                "Failed to parse [%s]", CAT_SERVICE_TYPE_FIELD_NAME ) ;
+
+      if ( MSG_ROUTE_REPL_SERVICE == beServID.Int() ||
+           MSG_ROUTE_SHARD_SERVCIE == beServID.Int() ||
+           MSG_ROUTE_CAT_SERVICE == beServID.Int() ||
+           MSG_ROUTE_LOCAL_SERVICE == beServID.Int() )
+      {
+         servID = (UINT16)beServID.Int() ;
+      }
+      else
+      {
+         PD_LOG( PDWARNING, "Unknown service type: %d", beServID.Int() ) ;
+         goto done ;
+      }
+
+      beServName = service.getField( CAT_SERVICE_NAME_FIELD_NAME ) ;
+      PD_CHECK( String == beServName.type(), SDB_INVALIDARG, error, PDWARNING,
+                "Failed to parse [%s]", CAT_SERVICE_NAME_FIELD_NAME ) ;
+
+      route._service[ servID ] = beServName.String() ;
+
+   done :
+      PD_TRACE_EXITRC( SDB__MSGPASNODESERV, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MSGPASNODESERVS, "_msgParseNodeServices" )
+   static INT32 _msgParseNodeServices ( const BSONObj & boServices,
+                                        _netRouteNode & route )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__MSGPASNODESERVS ) ;
+
+      BSONObjIterator iterServ( boServices ) ;
+      while ( iterServ.more() )
+      {
+         BSONElement beService = iterServ.next() ;
+         PD_CHECK( Object == beService.type(), SDB_INVALIDARG, error, PDWARNING,
+                   "Failed to parse node service" ) ;
+
+         rc = _msgParseNodeService( beService.embeddedObject(), route ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to parse service for node" ) ;
+      }
+
+   done :
+      PD_TRACE_EXITRC( SDB__MSGPASNODESERVS, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MSGPASCATNODEOBJ, "_msgParseCatNodeObj" )
+   static INT32 _msgParseCatNodeObj ( const BSONObj & nodeObj,
+                                      _netRouteNode & route )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__MSGPASCATNODEOBJ ) ;
+
+      UINT16 nodeID = 0 ;
+
+      /// NodeID
+      BSONElement beField = nodeObj.getField( CAT_NODEID_NAME ) ;
+      PD_CHECK( NumberInt == beField.type(), SDB_INVALIDARG, error, PDWARNING,
+                "Failed to parse [%s]", CAT_NODEID_NAME ) ;
+      nodeID = beField.Int() ;
+
+      /// HostName
+      beField = nodeObj.getField( CAT_HOST_FIELD_NAME ) ;
+      PD_CHECK( String == beField.type(), SDB_INVALIDARG, error, PDWARNING,
+                "Failed to parse [%s]", CAT_HOST_FIELD_NAME ) ;
+      ossStrncpy( route._host, beField.valuestrsafe(), OSS_MAX_HOSTNAME ) ;
+      route._host[ OSS_MAX_HOSTNAME ] = '\0' ;
+
+      /// Status
+      beField = nodeObj.getField( CAT_STATUS_NAME ) ;
+      if ( beField.eoo() || SDB_CAT_GRP_ACTIVE == beField.numberInt() )
+      {
+         route._isActive = TRUE ;
+      }
+      else
+      {
+         route._isActive = FALSE ;
+      }
+
+      /// Service
+      beField = nodeObj.getField( CAT_SERVICE_FIELD_NAME ) ;
+      PD_CHECK( Array == beField.type(), SDB_INVALIDARG, error, PDWARNING,
+                "Failed to parse [%s]", CAT_SERVICE_FIELD_NAME ) ;
+      rc = _msgParseNodeServices( beField.embeddedObject(), route ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to parse node services, rc: %d",
+                   rc ) ;
+
+      /// Instance ID
+      beField = nodeObj.getField( PMD_OPTION_INSTANCE_ID ) ;
+      PD_CHECK( beField.eoo() || NumberInt == beField.type(), SDB_INVALIDARG,
+                error, PDWARNING, "Failed to parse [%s]",
+                PMD_OPTION_INSTANCE_ID ) ;
+      if ( NumberInt == beField.type() )
+      {
+         INT32 instanceID = beField.Int() ;
+         if ( utilCheckInstanceID( instanceID, FALSE ) )
+         {
+            route._instanceID = (UINT8)instanceID ;
+         }
+      }
+
+      route._id.columns.nodeID = nodeID ;
+      route._id.columns.serviceID = MSG_ROUTE_REPL_SERVICE ;
+
+   done :
+      PD_TRACE_EXITRC( SDB__MSGPASCATNODEOBJ, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGPASCATGRPOBJ, "msgParseCatGroupObj" )
@@ -84,191 +220,96 @@ namespace engine
                               UINT32 *pPrimary,
                               UINT32 *pSecID )
    {
-      SDB_ASSERT( NULL != objdata, "data should not be NULL" ) ;
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_MSGPASCATGRPOBJ );
+
+      PD_TRACE_ENTRY( SDB_MSGPASCATGRPOBJ ) ;
+
+      SDB_ASSERT( NULL != objdata, "data should not be NULL" ) ;
+
       try
       {
-      BSONObj obj( objdata ) ;
-      PD_LOG( PDDEBUG, "bson: %s", obj.toString().c_str()) ;
+         BSONObj obj( objdata ) ;
+         PD_LOG( PDDEBUG, "Parsing group bson: %s", obj.toString().c_str() ) ;
 
-      BSONElement ele = obj.getField( CAT_GROUPID_NAME ) ;
-      if ( NumberInt != ele.type() )
-      {
-         PD_LOG( PDWARNING, "parse [%s] err",CAT_GROUPID_NAME ) ;
-         goto error ;
-      }
-      groupID = ele.Int() ;
+         // Group ID
+         BSONElement ele = obj.getField( CAT_GROUPID_NAME ) ;
+         PD_CHECK( NumberInt == ele.type(), SDB_INVALIDARG, error, PDWARNING,
+                   "Failed to parse [%s]", CAT_GROUPID_NAME ) ;
+         groupID = ele.Int() ;
 
-      ele = obj.getField( CAT_GROUPNAME_NAME ) ;
-      if ( String != ele.type() )
-      {
-         PD_LOG ( PDWARNING, "parse [%s] err", CAT_GROUPNAME_NAME ) ;
-         goto error ;
-      }
-      groupName = ele.str() ;
+         // Group name
+         ele = obj.getField( CAT_GROUPNAME_NAME ) ;
+         PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDWARNING,
+                   "Failed to parse [%s]", CAT_GROUPNAME_NAME ) ;
+         groupName = ele.str() ;
 
-      ele = obj.getField( FIELD_NAME_SECRETID ) ;
-      if ( ele.eoo() )
-      {
-         if ( pSecID )
+         // Secret ID
+         ele = obj.getField( FIELD_NAME_SECRETID ) ;
+         PD_CHECK( ele.eoo() || NumberInt == ele.type(), SDB_INVALIDARG, error,
+                   PDWARNING, "Failed to parse [%s]", FIELD_NAME_SECRETID ) ;
+         if ( NULL != pSecID )
          {
-            *pSecID = 0 ;
-         }
-      }
-      else if ( NumberInt != ele.type() )
-      {
-         PD_LOG( PDWARNING, "parse field[%s] error", FIELD_NAME_SECRETID ) ;
-         goto error ;
-      }
-      else if ( pSecID )
-      {
-         *pSecID = ele.numberInt() ;
-      }
-
-      ele = obj.getField( CAT_ROLE_NAME ) ;
-      if ( NumberInt != ele.type() )
-      {
-         PD_LOG( PDWARNING, "parse [%s] err", CAT_ROLE_NAME ) ;
-         goto error ;
-      }
-
-      ele = obj.getField( CAT_VERSION_NAME ) ;
-      if ( ele.eoo() || NumberInt != ele.type() )
-      {
-         PD_LOG( PDWARNING, "parse [%s] err", CAT_VERSION_NAME ) ;
-         goto error ;
-      }
-      version = ele.Int() ;
-
-      if ( pPrimary )
-      {
-         *pPrimary = 0 ;
-         ele = obj.getField ( CAT_PRIMARY_NAME ) ;
-         if ( NumberInt == ele.type() )
-         {
-            *pPrimary = ele.numberInt() ;
-         }
-         else if ( !ele.eoo() )
-         {
-            PD_LOG( PDWARNING, "parse [%s] err", CAT_PRIMARY_NAME ) ;
-            goto error ;
-         }
-      }
-
-      ele = obj.getField( CAT_GROUP_NAME ) ;
-      if ( !ele.eoo() && Array != ele.type() )
-      {
-         PD_LOG( PDWARNING, "parse [%s] err", CAT_GROUP_NAME ) ;
-         goto error ;
-      }
-
-      if ( ele.isABSONObj() )
-      {
-      BSONObjIterator i(ele.embeddedObject() ) ;
-      while ( i.more() )
-      {
-         BSONElement nextEle = i.next() ;
-         if ( !nextEle.isABSONObj() )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDWARNING, "parse [%s] err", CAT_GROUP_NAME ) ;
-            break ;
-         }
-         BSONObj next = nextEle.embeddedObject() ;
-         UINT16 nodeID = 0 ;
-         _netRouteNode route ;
-         /// NodeID
-         BSONElement  node = next.getField( CAT_NODEID_NAME ) ;
-         if ( node.eoo() || NumberInt != node.type() )
-         {
-            PD_LOG( PDWARNING, "parse [%s] err", CAT_NODEID_NAME ) ;
-            goto error ;
-         }
-         nodeID = node.Int() ;
-         /// HostName
-         node = next.getField( CAT_HOST_FIELD_NAME ) ;
-         if ( node.eoo() || String != node.type() )
-         {
-            PD_LOG( PDWARNING, "parse [%s] err", CAT_HOST_FIELD_NAME ) ;
-            goto error ;
-         }
-         {
-         UINT32 len = node.String().size() < OSS_MAX_HOSTNAME ?
-                      node.String().size() : OSS_MAX_HOSTNAME ;
-         ossMemcpy( route._host, node.String().c_str(), len ) ;
-         route._host[len] = '\0';
-         }
-         /// Status
-         node = next.getField( CAT_STATUS_NAME ) ;
-         if ( node.eoo() || SDB_CAT_GRP_ACTIVE == node.numberInt() )
-         {
-            route._isActive = TRUE ;
-         }
-         else
-         {
-            route._isActive = FALSE ;
-         }
-         /// Service
-         node = next.getField( CAT_SERVICE_FIELD_NAME ) ;
-         if ( node.eoo() || Array != node.type() )
-         {
-            PD_LOG( PDWARNING, "parse [%s] err", CAT_SERVICE_FIELD_NAME ) ;
-            goto error ;
-         }
-         if ( !node.isABSONObj() )
-         {
-            PD_LOG( PDWARNING, "parse [%s] err", CAT_SERVICE_FIELD_NAME ) ;
-            goto error ;
-         }
-
-         {
-         BSONObjIterator j(node.embeddedObject()) ;
-         while ( j.more() )
-         {
-            BSONElement nextJ = j.next() ;
-            if ( !nextJ.isABSONObj() )
+            if ( ele.eoo() )
             {
-               PD_LOG( PDWARNING, "parse [%s] err", CAT_SERVICE_FIELD_NAME ) ;
-               goto error ;
+               *pSecID = 0 ;
             }
+            else
             {
-            BSONObj service = nextJ.embeddedObject() ;
-            BSONElement serele ;
-            UINT16 serID = 0 ;
-            serele = service.getField( CAT_SERVICE_TYPE_FIELD_NAME ) ;
-            if ( serele.eoo() || NumberInt != serele.type() )
-            {
-               PD_LOG( PDWARNING, "parse [%s] err", CAT_SERVICE_TYPE_FIELD_NAME ) ;
-               goto error ;
-            }
-            if ( MSG_ROUTE_REPL_SERVICE != serele.Int() &&
-                 MSG_ROUTE_SHARD_SERVCIE != serele.Int() &&
-                 MSG_ROUTE_CAT_SERVICE != serele.Int() &&
-                 MSG_ROUTE_LOCAL_SERVICE != serele.Int() )
-            {
-               PD_LOG( PDWARNING, "unknown service type: %d",
-                       serele.Int() ) ;
-               continue ;
-            }
-            serID = serele.Int() ;
-            serele = service.getField( CAT_SERVICE_NAME_FIELD_NAME ) ;
-            if ( serele.eoo() || String != serele.type() )
-            {
-               PD_LOG( PDWARNING, "parse [%s] err",
-                       CAT_SERVICE_NAME_FIELD_NAME ) ;
-               goto error ;
-            }
-            route._service[serID] = serele.String() ;
+               *pSecID = ele.Int() ;
             }
          }
-         route._id.columns.groupID = groupID ;
-         route._id.columns.nodeID = nodeID ;
-         route._id.columns.serviceID = MSG_ROUTE_REPL_SERVICE ;
-         group.insert(make_pair(route._id.value,  route )) ;
+
+         // Role
+         ele = obj.getField( CAT_ROLE_NAME ) ;
+         PD_CHECK( NumberInt == ele.type(), SDB_INVALIDARG, error, PDWARNING,
+                   "Failed to parse [%s]", CAT_ROLE_NAME ) ;
+
+         // Version
+         ele = obj.getField( CAT_VERSION_NAME ) ;
+         PD_CHECK( NumberInt == ele.type(), SDB_INVALIDARG, error, PDWARNING,
+                   "Failed to parse [%s]", CAT_VERSION_NAME ) ;
+         version = ele.Int() ;
+
+         // Primary
+         if ( pPrimary )
+         {
+            ele = obj.getField ( CAT_PRIMARY_NAME ) ;
+            PD_CHECK( ele.eoo() || NumberInt == ele.type(), SDB_INVALIDARG,
+                      error, PDWARNING, "Failed to parse [%s]",
+                      CAT_PRIMARY_NAME ) ;
+            if ( ele.eoo() )
+            {
+               *pPrimary = 0 ;
+            }
+            else
+            {
+               *pPrimary = ele.Int() ;
+            }
          }
-      }
-      }
+
+         ele = obj.getField( CAT_GROUP_NAME ) ;
+         PD_CHECK( ele.eoo() || Array == ele.type(), SDB_INVALIDARG, error, PDWARNING,
+                   "Failed to parse [%s]", CAT_GROUP_NAME ) ;
+
+         if ( Array == ele.type() )
+         {
+            BSONObjIterator i( ele.embeddedObject() ) ;
+            while ( i.more() )
+            {
+               _netRouteNode route ;
+
+               BSONElement beNode = i.next() ;
+               PD_CHECK( Object == beNode.type(), SDB_INVALIDARG, error,
+                         PDWARNING, "Failed to parse [%s]", CAT_GROUP_NAME ) ;
+
+               rc = _msgParseCatNodeObj( beNode.embeddedObject(), route ) ;
+               PD_RC_CHECK( rc, PDWARNING, "Failed to parse node, rc: %d",
+                            rc ) ;
+
+               route._id.columns.groupID = groupID ;
+               group.insert( make_pair( route._id.value,  route ) ) ;
+            }
+         }
       }
       catch ( std::exception &e )
       {
@@ -276,10 +317,12 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-   done:
-      PD_TRACE_EXITRC ( SDB_MSGPASCATGRPOBJ, rc );
+
+   done :
+      PD_TRACE_EXITRC( SDB_MSGPASCATGRPOBJ, rc ) ;
       return rc ;
-   error:
+
+   error :
       rc = SDB_INVALIDARG ;
       goto done ;
    }

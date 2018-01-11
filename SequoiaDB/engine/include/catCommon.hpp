@@ -379,14 +379,13 @@ namespace engine
                                  BSONObj &catRecord ) ;
 
    /* Create Node */
-   INT32 catCreateNodeStep ( const string &groupName,
-                             const string &hostName, const string &dbPath,
+   INT32 catCreateNodeStep ( const string &groupName, const string &hostName,
+                             const string &dbPath, UINT32 instanceID,
                              const string &localSvc, const string &replSvc,
                              const string &shardSvc, const string &cataSvc,
                              INT32 nodeRole, UINT16 nodeID, INT32 nodeStatus,
-                             _pmdEDUCB *cb,
-                             SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB,
-                             INT16 w ) ;
+                             _pmdEDUCB *cb, SDB_DMSCB *pDmsCB,
+                             SDB_DPSCB *pDpsCB, INT16 w ) ;
 
    /* Remove Node */
    INT32 catRemoveNodeStep ( const string &groupName,

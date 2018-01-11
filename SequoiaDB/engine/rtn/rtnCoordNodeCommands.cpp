@@ -59,6 +59,7 @@
 #include "coordSession.hpp"
 #include "mthModifier.hpp"
 #include "rtnCoordDef.hpp"
+#include "utilCommon.hpp"
 
 using namespace bson;
 
@@ -1597,6 +1598,7 @@ namespace engine
       try
       {
          std::string dummy ;
+         BSONElement ele ;
 
          rc = rtnGetSTDStringElement( boQuery, FIELD_NAME_GROUPNAME, dummy ) ;
          PD_RC_CHECK( rc, PDERROR,
@@ -1614,9 +1616,30 @@ namespace engine
                       PMD_OPTION_SVCNAME, rc ) ;
 
          rc = rtnGetSTDStringElement( boQuery, PMD_OPTION_DBPATH, dummy );
-                  PD_RC_CHECK( rc, PDERROR,
-                               "Failed to get the field [%s], rc: %d",
-                               PMD_OPTION_DBPATH, rc ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get the field [%s], rc: %d",
+                      PMD_OPTION_DBPATH, rc ) ;
+
+         /// check instance ID
+         ele = boQuery.getField( PMD_OPTION_INSTANCE_ID ) ;
+         if ( ele.eoo() || ele.isNumber() )
+         {
+            UINT32 instanceID = ele.isNumber() ? ele.numberInt() :
+                                                 NODE_INSTANCE_ID_UNKNOWN ;
+            PD_CHECK( utilCheckInstanceID( instanceID, TRUE ),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to check field [%s], "
+                      "should be %d, or between %d to %d",
+                      PMD_OPTION_INSTANCE_ID, NODE_INSTANCE_ID_UNKNOWN,
+                      NODE_INSTANCE_ID_MIN + 1, NODE_INSTANCE_ID_MAX - 1 ) ;
+         }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Get field[%s] failed on command[%s], "
+                    "rc: %d", PMD_OPTION_INSTANCE_ID, _getCommandName(), rc ) ;
+            goto error ;
+         }
       }
       catch ( std::exception &e )
       {

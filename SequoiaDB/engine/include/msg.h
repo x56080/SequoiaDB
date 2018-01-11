@@ -748,6 +748,22 @@ union _MsgLobTuple
 } ;
 typedef union _MsgLobTuple MsgLobTuple ;
 
+#define NODE_INSTANCE_ID_MIN        ( 0 )
+#define NODE_INSTANCE_ID_UNKNOWN    ( NODE_INSTANCE_ID_MIN )
+#define NODE_INSTANCE_ID_MAX        ( 256 )
+
+#define PREFER_INSTANCE_MASTER_STR  "M"
+#define PREFER_INSTANCE_SLAVE_STR   "S"
+#define PREFER_INSTANCE_ANY_STR     "A"
+
+#define PREFER_INSTANCE_MASTER_LOWSTR  "m"
+#define PREFER_INSTANCE_SLAVE_LOWSTR   "s"
+#define PREFER_INSTANCE_ANY_LOWSTR     "a"
+
+#define PREFER_INSTANCE_RANDOM_STR  "random"
+#define PREFER_INSTANCE_ORDERED_STR "ordered"
+
+// Note: deprecated options, for old version of setSesstionAttr
 typedef enum _PREFER_REPLICA_TYPE
 {
    PREFER_REPL_TYPE_MIN = 0,
@@ -763,10 +779,9 @@ typedef enum _PREFER_REPLICA_TYPE
    PREFER_REPL_ANYONE,        // any node( include master )
 
    PREFER_REPL_TYPE_MAX
-}PREFER_REPLICA_TYPE;
+} PREFER_REPLICA_TYPE ;
 
 #define CLS_RG_NODE_POS_INVALID        0xffffffff
-
 
 #pragma pack()
 

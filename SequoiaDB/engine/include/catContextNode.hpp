@@ -200,6 +200,7 @@ namespace engine
       INT32 _nodeStatus ;
       INT32 _nodeRole ;
       INT32 _groupRole ;
+      UINT32 _instanceID ;
    } ;
 
    typedef class _catCtxCreateNode catCtxCreateNode ;

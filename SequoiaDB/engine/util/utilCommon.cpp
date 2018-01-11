@@ -278,52 +278,16 @@ namespace engine
       return modeFlag ;
    }
 
-   INT32 utilPrefReplStr2Enum( const CHAR * prefReplStr )
+   BOOLEAN utilCheckInstanceID ( UINT32 instanceID, BOOLEAN includeUnknown )
    {
-      INT32 enumPrefRepl = PREFER_REPL_ANYONE ;
-
-      if ( prefReplStr && *prefReplStr && !*(prefReplStr+1) )
+      if ( ( includeUnknown &&
+             NODE_INSTANCE_ID_UNKNOWN == instanceID ) ||
+           ( instanceID > NODE_INSTANCE_ID_MIN &&
+             instanceID < NODE_INSTANCE_ID_MAX ) )
       {
-         CHAR ch = *prefReplStr ;
-         if ( ch >= '1' && ch <= '7' )
-         {
-            enumPrefRepl = (INT32)( ch - '0' ) ;
-         }
-         else if ( 'M' == ch || 'm' == ch )
-         {
-            enumPrefRepl = PREFER_REPL_MASTER ;
-         }
-         else if ( 'S' == ch || 's' == ch )
-         {
-            enumPrefRepl = PREFER_REPL_SLAVE ;
-         }
+         return TRUE ;
       }
-      return enumPrefRepl ;
-   }
-
-   INT32 utilPrefReplEnum2Str( INT32 enumPrefRepl, CHAR * prefReplStr,
-                               UINT32 len )
-   {
-      ossMemset( prefReplStr, 0, len ) ;
-
-      if ( enumPrefRepl >= PREFER_REPL_NODE_1 &&
-           enumPrefRepl <= PREFER_REPL_NODE_7 )
-      {
-         ossSnprintf( prefReplStr, len-1, "%d", enumPrefRepl ) ;
-      }
-      else if ( enumPrefRepl == PREFER_REPL_MASTER )
-      {
-         ossSnprintf( prefReplStr, len-1, "%s", "M" ) ;
-      }
-      else if ( enumPrefRepl == PREFER_REPL_SLAVE )
-      {
-         ossSnprintf( prefReplStr, len-1, "%s", "S" ) ;
-      }
-      else if ( enumPrefRepl == PREFER_REPL_ANYONE )
-      {
-         ossSnprintf( prefReplStr, len-1, "%s", "A" ) ;
-      }
-      return SDB_OK ;
+      return FALSE ;
    }
 
    BSONObj utilGetErrorBson( INT32 flags, const CHAR *detail )
