@@ -925,8 +925,6 @@ public class SequoiadbDatasourceImpl
 			_strategy.update(ItemStatus.USED, item, -1);
 			// check whether the connection can put back to idle pool or not
 			if (_connIsValid(item, sdb)) {
-				// release the resource contains in connection
-				sdb.releaseResource();
 				// let the connection come back to connection pool
 				_idleConnPool.insert(item, sdb);
 				// tell the strategy one connection is add to idle pool now
@@ -1359,6 +1357,17 @@ public class SequoiadbDatasourceImpl
 	}
 	
 	private boolean _connIsValid(ConnItem item, Sequoiadb sdb) {
+        // release the resource contains in connection
+        try {
+            sdb.releaseResource();
+        } catch(Exception e) {
+            try {
+                sdb.disconnect();
+            } catch (Exception ex){
+                // to nothing
+            }
+            return false;
+        }
 		// check timeout or not
 		if (0 != _dsOpt.getKeepAliveTimeout()) {
 			long lastTime = sdb.getConnection().getLastUseTime();
