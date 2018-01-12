@@ -17,7 +17,7 @@ main() ;
 
 function main()
 {
-   var cl = commCreateCL( db, csname, clname ) ;
+   var cl = commCreateCL( db, csname, clname, 0 ) ;
    cl.insert( doc ) ;
   
    testExprtCsv() ;

@@ -21,7 +21,7 @@ function main()
       println( "Conflict with default sdbexprt spuw option" ) ;
       return ;
    }
-   var cl = commCreateCL( db, csname, clname ) ;
+   var cl = commCreateCL( db, csname, clname, 0 ) ;
    cl.insert( doc ) ;
    
    testExprtCsv() ;

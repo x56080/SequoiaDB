@@ -21,8 +21,8 @@ function testForceCsv1()
 {
    var clname = COMMCLNAME + "_sdbexprt13546" ;
    var clname1 = COMMCLNAME + "_sdbimprt13546" ;
-   var cl = commCreateCL( db, csname, clname ) ;
-   var cl1 = commCreateCL( db, csname, clname1 ) ;
+   var cl = commCreateCL( db, csname, clname, 0 ) ;
+   var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( { _id: 1, a: 1, b: 2, c: 3 } ) ;
    cl.insert( { _id: 2, c: 1, b: 2, a: 3 } ) ;
    
@@ -70,8 +70,8 @@ function testForceCsv2()
 {
    var clname = COMMCLNAME + "_sdbexprt13547" ;
    var clname1 = COMMCLNAME + "_sdbimprt13547" ;
-   var cl = commCreateCL( db, csname, clname ) ;
-   var cl1 = commCreateCL( db, csname, clname1 ) ;
+   var cl = commCreateCL( db, csname, clname, 0 ) ;
+   var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( { a: 1, b: 2, c: 3 } ) ;
    cl.insert( { c: 1, b: 2, a: 3 } ) ;
    
@@ -119,8 +119,8 @@ function testForceJson()
 {
    var clname = COMMCLNAME + "_sdbexprt13545" ;
    var clname1 = COMMCLNAME + "_sdbimprt13545" ;
-   var cl = commCreateCL( db, csname, clname ) ;
-   var cl1 = commCreateCL( db, csname, clname1 ) ;
+   var cl = commCreateCL( db, csname, clname, 0 ) ;
+   var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( { _id: 1, a: 1, b: 2, c: 3 } ) ;
    cl.insert( { _id: 2, c: 1, b: 2, a: 3 } ) ;
    

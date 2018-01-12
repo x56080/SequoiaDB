@@ -17,8 +17,8 @@ main() ;
 
 function main()
 {
-   var cl = commCreateCL( db, csname, clname ) ;
-   var cl1 = commCreateCL( db, csname, clname1 ) ;
+   var cl = commCreateCL( db, csname, clname, 0 ) ;
+   var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( docs ) ;
   
    testExprtImprtJson() ;

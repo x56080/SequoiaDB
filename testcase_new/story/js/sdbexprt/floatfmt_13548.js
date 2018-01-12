@@ -78,7 +78,7 @@ function testFloatFmtCsv( floatfmt, content )
 {
    println( floatfmt ) ;
    var clname = COMMCLNAME + "_sdbexprt13548" ;
-   var cl = commCreateCL( db, csname, clname ) ;
+   var cl = commCreateCL( db, csname, clname, 0 ) ;
    cl.insert( docs ) ;
    
    var csvfile = workDir + "sdbexprt13548.csv" ;
@@ -106,7 +106,7 @@ function testFloatFmtJson( floatfmt, content )
 {
    println( floatfmt ) ;
    var clname = COMMCLNAME + "_sdbexprt13548" ;
-   var cl = commCreateCL( db, csname, clname ) ;
+   var cl = commCreateCL( db, csname, clname, 0 ) ;
    cl.insert( docs ) ;
    
    var jsonfile = workDir + "sdbexprt13548.json" ;

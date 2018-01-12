@@ -22,8 +22,8 @@ function testForceWithId()
 {
    var clname = COMMCLNAME + "_sdbexprt13538" ;
    var clname1 = COMMCLNAME + "_sdbimprt13538" ;
-   var cl = commCreateCL( db, csname, clname ) ;
-   var cl1 = commCreateCL( db, csname, clname1 ) ;
+   var cl = commCreateCL( db, csname, clname, 0 ) ;
+   var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( { _id: 1, a: 1 } ) ;
    
    var csvfile = workDir + "sdbexprt13538.csv" ;
@@ -67,8 +67,8 @@ function testForceWithoutId()
 {
    var clname = COMMCLNAME + "_sdbexprt13539" ;
    var clname1 = COMMCLNAME + "_sdbimprt13539" ;
-   var cl = commCreateCL( db, csname, clname ) ;
-   var cl1 = commCreateCL( db, csname, clname1 ) ;
+   var cl = commCreateCL( db, csname, clname, 0 ) ;
+   var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( { _id: 1, a: 1 } ) ;
    
    var csvfile = workDir + "sdbexprt13539.csv" ;
@@ -112,8 +112,8 @@ function testForceWithFields()
 {
    var clname = COMMCLNAME + "_sdbexprt13540" ;
    var clname1 = COMMCLNAME + "_sdbimprt13540" ;
-   var cl = commCreateCL( db, csname, clname ) ;
-   var cl1 = commCreateCL( db, csname, clname1 ) ;
+   var cl = commCreateCL( db, csname, clname, 0 ) ;
+   var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( { _id: 1, a: 1 } ) ;
    
    var csvfile = workDir + "sdbexprt13540.csv" ;

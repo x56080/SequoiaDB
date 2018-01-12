@@ -26,7 +26,7 @@ function main()
    var svc = master.split( ":" )[1] ;
    
    var catadb = new Sdb( host, svc ) ;
-   var cl = commCreateCL( catadb, csname, clname ) ;
+   var cl = commCreateCL( catadb, csname, clname, 0 ) ;
    cl.insert( doc ) ;
    testExprtCsv( host, svc ) ;
    testExprtJson( host, svc ) ;

@@ -18,7 +18,7 @@ function main()
 function testWithIdCsv1()
 {
    var clname = COMMCLNAME + "_sdbexprt13542" ;
-   var cl = commCreateCL( db, csname, clname ) ;
+   var cl = commCreateCL( db, csname, clname, 0 ) ;
    cl.insert( { _id: 1, a: 1 } ) ;
    
    var csvfile = workDir + "sdbexprt13542.csv" ;
@@ -46,7 +46,7 @@ function testWithIdCsv1()
 function testWithIdCsv2()
 {
    var clname = COMMCLNAME + "_sdbexprt13542" ;
-   var cl = commCreateCL( db, csname, clname ) ;
+   var cl = commCreateCL( db, csname, clname, 0 ) ;
    cl.insert( { _id: 1, a: 1 } ) ;
    
    var csvfile = workDir + "sdbexprt13542.csv" ;
@@ -74,7 +74,7 @@ function testWithIdCsv2()
 function testWithIdJson()
 {
    var clname = COMMCLNAME + "_sdbexprt13542" ;
-   var cl = commCreateCL( db, csname, clname ) ;
+   var cl = commCreateCL( db, csname, clname, 0 ) ;
    cl.insert( { _id: 1, a: 1 } ) ;
    
    var jsonfile = workDir + "sdbexprt13542.json" ;

@@ -17,8 +17,8 @@ function testWithId()
 {
    var clname = COMMCLNAME + "_sdbexprt13541" ;
    var clname1 = COMMCLNAME + "_sdbimprt13541" ;
-   var cl = commCreateCL( db, csname, clname ) ;
-   var cl1 = commCreateCL( db, csname, clname1 ) ;
+   var cl = commCreateCL( db, csname, clname, 0 ) ;
+   var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( { _id: 1, a: 1 } ) ;
    
    var conffile = workDir + "sdbexprt13541.conf" ;

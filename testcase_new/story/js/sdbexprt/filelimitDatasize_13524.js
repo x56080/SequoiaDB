@@ -28,8 +28,8 @@ function main()
 
 function testFileLimit()
 {
-   var cl = commCreateCL( db, csname, clname ) ;
-   var cl1 = commCreateCL( db, csname, clname1 ) ;
+   var cl = commCreateCL( db, csname, clname, 0 ) ;
+   var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    
    insertDocs( cl, kb ) ; 
   

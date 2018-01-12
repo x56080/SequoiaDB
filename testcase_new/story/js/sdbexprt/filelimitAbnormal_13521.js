@@ -25,7 +25,7 @@ function main()
 
 function testFileLimit()
 {
-   var cl = commCreateCL( db, csname, clname ) ;
+   var cl = commCreateCL( db, csname, clname, 0 ) ;
    cl.insert( { a: 1 } ) ;
   
    testExprtCsv() ;

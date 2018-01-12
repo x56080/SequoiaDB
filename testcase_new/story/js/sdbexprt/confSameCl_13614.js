@@ -15,7 +15,7 @@ main() ;
 function main()
 {  
    var docs = [ { a: 1, b: 1 } ] ;
-   var cl = commCreateCL( db, csname, clname ) ;
+   var cl = commCreateCL( db, csname, clname, 0 ) ;
    cl.insert( docs ) ;
    
    testExprtConf1() ;  // test export with same cl same fields
