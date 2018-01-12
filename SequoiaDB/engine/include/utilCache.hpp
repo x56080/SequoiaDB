@@ -334,6 +334,9 @@ namespace engine
       UINT64      _totalSize ;
       UINT64      _freeSize ;
       UINT64      _useTimes ;
+      UINT64      _allocSize ;
+      UINT64      _releaseSize ;
+      UINT32      _nullTimes ;
 
       _utilCacheStat()
       {
@@ -341,6 +344,9 @@ namespace engine
          _totalSize = 0 ;
          _freeSize = 0 ;
          _useTimes = 0 ;
+         _allocSize = 0 ;
+         _releaseSize = 0 ;
+         _nullTimes = 0 ;
       }
 
       void reset()
@@ -349,12 +355,45 @@ namespace engine
          _totalSize = 0 ;
          _freeSize = 0 ;
          _useTimes = 0 ;
+         _allocSize = 0 ;
+         _releaseSize = 0 ;
+         _nullTimes = 0 ;
+      }
+
+      UINT32 getFreeRatio()
+      {
+         UINT32 ratio = 0 ;
+
+         if ( _totalSize > 0 )
+         {
+            UINT64 incSize = _allocSize + _nullTimes * _pageSize ;
+            if ( incSize > _releaseSize )
+            {
+               UINT64 diff = incSize - _releaseSize ;
+               if ( _freeSize > diff )
+               {
+                  ratio = ( _freeSize - diff ) * 100 / _totalSize ;
+               }
+            }
+            else
+            {
+               ratio = _freeSize * 100 / _totalSize ;
+            }
+         }
+
+         _allocSize = 0 ;
+         _releaseSize = 0 ;
+
+         return ratio ;
       }
    } ;
    typedef _utilCacheStat utilCacheStat ;
 
    #define UTIL_BLOCK_RECYCLE_FREE_RATIO              ( 60 )   /// >=60%
-   #define UTIL_BLOCK_TIMEOUT                         ( 10000 )
+   #define UTIL_BLOCK_RECYCLE_MIN_TIMEOUT             ( 3000 )
+   #define UTIL_BLOCK_RECYCLE_MAX_TIMEOUT             ( 15000 )
+
+   #define UTIL_STAT_WINDOW_SIZE                      ( 10 )
 
    /*
       _utilCacheMgr define
@@ -374,9 +413,13 @@ namespace engine
          virtual void      fini() ;
 
          UINT64   maxCacheSize() const { return _maxCacheSize ; }
-         UINT64   totalSize() { return _totalSize.peek() ; }
-         UINT64   freeSize() { return _freeSize.peek() ; }
-         UINT64   totalUseTimes() { return _totalUseTimes.peek() ; }
+         UINT64   totalSize() { return _totalSize.fetch() ; }
+         UINT64   freeSize() { return _freeSize.fetch() ; }
+         UINT64   totalUseTimes() { return _totalUseTimes.fetch() ; }
+         UINT32   totalNullTimes() { return _nullTimes.fetch() ; }
+         UINT32   nonEmptyBucketNum() { return _nonEmptySlotNum.fetch() ; }
+
+         UINT32   avgNullTimes() ;
 
          /// Get the detail info of the specified bucket
          void     getCacheStat( UINT32 bucketID,
@@ -478,7 +521,10 @@ namespace engine
             return (*_pStat)[ id ] ;
          }
          UINT64               _recycleBucket( vector< CHAR* > &slotItem,
-                                              utilCacheStat *pStat ) ;
+                                              utilCacheStat *pStat,
+                                              vector< CHAR* > &freeItem ) ;
+
+         UINT32               _getFreeRatio( UINT64 currentTime ) ;
 
       protected:
          UINT32               _beginPageSizeSqrt ;
@@ -494,6 +540,15 @@ namespace engine
          ossEvent             _releaseEvent ;
 
          UINT64               _lastRecycleTime ;
+
+      private:
+         UINT32               _statFreeRatio[ UTIL_STAT_WINDOW_SIZE ] ;
+         UINT32               _statIndex ;
+         UINT64               _lastStatTime ;
+
+         ossAtomic64          _allocSize ;
+         ossAtomic64          _releaseSize ;
+         ossAtomic32          _nullTimes ;
 
    } ;
    typedef _utilCacheMgr utilCacheMgr ;
@@ -828,6 +883,7 @@ namespace engine
 
          UINT64         totalPages() ;
          UINT64         dirtyPages() ;
+         UINT64         undirtyPages() ;
          BOOLEAN        isUseCache() const { return _useCache ; }
 
          void           decDirtyPages( utilCacheBucket *pBucket ) ;

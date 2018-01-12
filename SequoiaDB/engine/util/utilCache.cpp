@@ -499,16 +499,26 @@ namespace engine
       ++_lsnNum ;
    }
 
+   #define UTIL_STAT_RATIO_INTERVAL                ( 1000 )       // ms
+
    /*
       _utilCacheMgr implement
    */
    _utilCacheMgr::_utilCacheMgr()
-   :_freeSize( 0 ), _totalSize( 0 ), _totalUseTimes( 0 ), _nonEmptySlotNum( 0 )
+   :_freeSize( 0 ), _totalSize( 0 ), _totalUseTimes( 0 ), _nonEmptySlotNum( 0 ),
+    _allocSize( 0 ), _releaseSize( 0 ), _nullTimes( 0 )
    {
       _beginPageSizeSqrt = 0 ;
       _maxCacheSize = 0 ;
       _pStat = NULL ;
       _lastRecycleTime = 0 ;
+
+      for ( UINT32 i = 0 ; i < UTIL_STAT_WINDOW_SIZE ; ++i )
+      {
+         _statFreeRatio[ i ] = (UINT32)~0 ;
+      }
+      _statIndex = 0 ;
+      _lastStatTime = 0 ;
    }
 
    _utilCacheMgr::~_utilCacheMgr()
@@ -590,6 +600,16 @@ namespace engine
       _latch.clear() ;
    }
 
+   UINT32 _utilCacheMgr::avgNullTimes()
+   {
+      UINT32 nonEmptyBucket = _nonEmptySlotNum.fetch() ;
+      if ( nonEmptyBucket > 1 )
+      {
+         return _nullTimes.fetch() / nonEmptyBucket ;
+      }
+      return _nullTimes.fetch() ;
+   }
+
    void _utilCacheMgr::resetEvent()
    {
       _releaseEvent.reset() ;
@@ -653,9 +673,12 @@ namespace engine
             item.addPage( slotItem.back(), pageSize ) ;
             slotItem.pop_back() ;
             _freeSize.sub( pageSize ) ;
+            _allocSize.add( pageSize ) ;
             /// update the bucket stat
-            _getBucketCache( beginSlot )._freeSize -= pageSize ;
-            _getBucketCache( beginSlot )._useTimes += 1 ;
+            utilCacheStat &stat = _getBucketCache( beginSlot ) ;
+            stat._freeSize -= pageSize ;
+            stat._allocSize += pageSize ;
+            stat._useTimes += 1 ;
             /// release the bucket latch
             pLatch->release() ;
             _totalUseTimes.inc() ;
@@ -688,10 +711,13 @@ namespace engine
             item.addPage( slotItem.back(), pageSize ) ;
             slotItem.pop_back() ;
             _freeSize.sub( pageSize ) ;
+            _allocSize.add( pageSize ) ;
 
             /// update the bucket stat
-            _getBucketCache( beginSlot )._freeSize -= pageSize ;
-            _getBucketCache( beginSlot )._useTimes += 1 ;
+            utilCacheStat &stat = _getBucketCache( beginSlot ) ;
+            stat._freeSize -= pageSize ;
+            stat._allocSize += pageSize ;
+            stat._useTimes += 1 ;
             _totalUseTimes.inc() ;
 
             if ( lastSize > pageSize )
@@ -771,9 +797,12 @@ namespace engine
             tmpPage.addPage( slotItem.back(), pageSize ) ;
             slotItem.pop_back() ;
             _freeSize.sub( pageSize ) ;
+            _allocSize.add( pageSize ) ;
             /// update the bucket stat
-            _getBucketCache( beginSlot )._freeSize -= pageSize ;
-            _getBucketCache( beginSlot )._useTimes += 1 ;
+            utilCacheStat &stat = _getBucketCache( beginSlot ) ;
+            stat._freeSize -= pageSize ;
+            stat._allocSize += pageSize ;
+            stat._useTimes += 1 ;
             /// release the bucket latch
             _latch[ beginSlot ]->release() ;
             _totalUseTimes.inc() ;
@@ -845,9 +874,13 @@ namespace engine
          _latch[ slot ]->get() ;
          _slot[ slot ].push_back( pPage ) ;
          /// update the bucket stat
-         _getBucketCache( slot )._freeSize += _slot2PageSize( slot ) ;
+         utilCacheStat &stat = _getBucketCache( slot ) ;
+         UINT32 slotSize = _slot2PageSize( slot ) ;
+         stat._freeSize += slotSize ;
+         stat._releaseSize += slotSize ;
          _latch[ slot ]->release() ;
-         _freeSize.add( _slot2PageSize( slot ) ) ;
+         _freeSize.add( slotSize ) ;
+         _releaseSize.add( slotSize ) ;
       }
       _releaseEvent.signalAll() ;
 
@@ -895,9 +928,12 @@ namespace engine
             blockSize = pageSize ;
             slotItem.pop_back() ;
             _freeSize.sub( pageSize ) ;
+            _allocSize.add( pageSize ) ;
             /// update the bucket stat
-            _getBucketCache( beginSlot )._freeSize -= pageSize ;
-            _getBucketCache( beginSlot )._useTimes += 1 ;
+            utilCacheStat &stat = _getBucketCache( beginSlot ) ;
+            stat._freeSize -= pageSize ;
+            stat._allocSize += pageSize ;
+            stat._useTimes += 1 ;
             /// release the bucket latch
             _latch[ beginSlot ]->release() ;
             _totalUseTimes.inc() ;
@@ -961,9 +997,12 @@ namespace engine
             blockSize = pageSize ;
             slotItem.pop_back() ;
             _freeSize.sub( pageSize ) ;
+            _allocSize.add( pageSize ) ;
             /// update the bucket stat
-            _getBucketCache( beginSlot )._freeSize -= pageSize ;
-            _getBucketCache( beginSlot )._useTimes += 1 ;
+            utilCacheStat &stat = _getBucketCache( beginSlot ) ;
+            stat._freeSize -= pageSize ;
+            stat._allocSize += pageSize ;
+            stat._useTimes += 1 ;
             /// release the bucket latch
             _latch[ beginSlot ]->release() ;
             _totalUseTimes.inc() ;
@@ -1015,9 +1054,13 @@ namespace engine
          _latch[ slot ]->get() ;
          _slot[ slot ].push_back( pBlock ) ;
          /// update the bucket stat
-         _getBucketCache( slot )._freeSize += _slot2PageSize( slot ) ;
+         utilCacheStat &stat = _getBucketCache( slot ) ;
+         UINT32 slotSize = _slot2PageSize( slot ) ;
+         stat._freeSize += slotSize ;
+         stat._releaseSize += slotSize ;
          _latch[ slot ]->release() ;
-         _freeSize.add( _slot2PageSize( slot ) ) ;
+         _freeSize.add( slotSize ) ;
+         _releaseSize.add( slotSize ) ;
 
          _releaseEvent.signalAll() ;
       }
@@ -1061,9 +1104,19 @@ namespace engine
       {
          if ( _totalSize.peek() + pageSize > _maxCacheSize )
          {
-            /// reset event
-            _releaseEvent.reset() ;
-            /// up to the limit
+            UINT64 lastSize = pageSize * ( pageNum - count ) ;
+            utilCacheStat &stat = _getBucketCache( slot ) ;
+
+            _latch[ slot ]->get() ;
+            stat._nullTimes += 1 ;
+            if ( stat._freeSize < lastSize )
+            {
+               /// reset event
+               _releaseEvent.reset() ;
+            }
+            _latch[ slot ]->release() ;
+            _nullTimes.inc() ;
+
             rc = SDB_OSS_UP_TO_LIMIT ;
             goto error ;
          }
@@ -1112,43 +1165,133 @@ namespace engine
    {
    }
 
+   UINT32 _utilCacheMgr::_getFreeRatio( UINT64 currentTime )
+   {
+      UINT32 freeRatio = 0 ;
+      UINT64 diffTime = 0 ;
+
+      if ( currentTime > _lastStatTime )
+      {
+         diffTime = currentTime - _lastStatTime ;
+      }
+      else
+      {
+         diffTime = _lastStatTime - currentTime ;
+      }
+
+      if ( diffTime > UTIL_STAT_RATIO_INTERVAL )
+      {
+         _lastStatTime = currentTime ;
+
+         UINT64 totalSz = _totalSize.fetch() ;
+         UINT64 freeSz = _freeSize.fetch() ;
+
+         UINT64 allocSize = _allocSize.swap( 0 ) ;
+         UINT64 releaseSize = _releaseSize.swap( 0 ) ;
+
+         if ( allocSize > releaseSize )
+         {
+            UINT64 diff = allocSize - releaseSize ;
+            if ( freeSz > diff )
+            {
+               freeSz -= diff ;
+            }
+            else
+            {
+               freeSz = 0 ;
+            }
+         }
+
+         if ( freeSz == totalSz )
+         {
+            _statFreeRatio[ _statIndex ] = UTIL_BLOCK_RECYCLE_FREE_RATIO - 1 ;
+         }
+         else if ( totalSz > 0 )
+         {
+            _statFreeRatio[ _statIndex ] = ( freeSz * 100 ) / totalSz ;
+         }
+         else
+         {
+            _statFreeRatio[ _statIndex ] = 0 ;
+         }
+
+         if ( ++_statIndex >= UTIL_STAT_WINDOW_SIZE )
+         {
+            _statIndex = 0 ;
+         }
+
+         UINT32 totalRatio = 0 ;
+         for ( UINT32 i = 0 ; i < UTIL_STAT_WINDOW_SIZE ; ++i )
+         {
+            if ( _statFreeRatio[ i ] > 100 )
+            {
+               totalRatio = 0 ;
+               break ;
+            }
+            else
+            {
+               totalRatio += _statFreeRatio[ i ] ;
+            }
+         }
+
+         freeRatio = totalRatio / UTIL_STAT_WINDOW_SIZE ;
+      }
+
+      return freeRatio ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEMGR_CANRECYCLE, "_utilCacheMgr::canRecycle" )
    BOOLEAN _utilCacheMgr::canRecycle()
    {
       PD_TRACE_ENTRY( SDB__UTILCACHEMGR_CANRECYCLE ) ;
       BOOLEAN needRecycle = FALSE ;
+      ossTimestamp t ;
+      UINT64 curTime = 0 ;
+      UINT32 freeRatio = 0 ;
 
       if ( totalSize() <= 0 )
       {
-         // nothing
+         goto done ;
       }
       else if ( 0 == maxCacheSize() )
       {
          needRecycle = TRUE ;
+         goto done ;
       }
+
+      ossGetCurrentTime( t ) ;
+      curTime = t.time * 1000 + t.microtm / 1000 ;
+      freeRatio = _getFreeRatio( curTime ) ;
+
       /// when free ratio over the threshold
-      else if ( totalSize() * 100 / maxCacheSize() >= UTIL_CACHE_RATIO &&
-                freeSize() * 100 / totalSize() >=
-                UTIL_BLOCK_RECYCLE_FREE_RATIO )
+      if ( totalSize() * 100 / maxCacheSize() >= UTIL_CACHE_RATIO &&
+           freeRatio >= UTIL_BLOCK_RECYCLE_FREE_RATIO )
       {
          needRecycle = TRUE ;
       }
       /// when page dirty timeout
       else
       {
-         ossTimestamp t ;
-         ossGetCurrentTime( t ) ;
-         UINT64 curTime = t.time * 1000 + t.microtm / 1000 ;
+         UINT64 timeDiff = 0 ;
+         if ( curTime >= _lastRecycleTime )
+         {
+            timeDiff = curTime - _lastRecycleTime ;
+         }
+         else
+         {
+            timeDiff = _lastRecycleTime - curTime ;
+         }
 
-         if ( ( curTime >= _lastRecycleTime &&
-                curTime - _lastRecycleTime > UTIL_BLOCK_TIMEOUT ) ||
-              ( curTime < _lastRecycleTime &&
-                _lastRecycleTime - curTime > UTIL_BLOCK_TIMEOUT ) )
+         if ( ( _nonEmptySlotNum.fetch() >= 2 &&
+                _nullTimes.fetch() > 0 &&
+                timeDiff >= UTIL_BLOCK_RECYCLE_MIN_TIMEOUT ) ||
+              timeDiff > UTIL_BLOCK_RECYCLE_MAX_TIMEOUT )
          {
             needRecycle = TRUE ;
          }
       }
 
+   done:
       PD_TRACE1( SDB__UTILCACHEMGR_CANRECYCLE, PD_PACK_INT( needRecycle ) ) ;
       PD_TRACE_EXIT( SDB__UTILCACHEMGR_CANRECYCLE ) ;
       return needRecycle ;
@@ -1161,38 +1304,57 @@ namespace engine
 
       UINT64 recycleSize = 0 ;
       UINT64 tmpTimes = 0 ;
+      UINT64 tmpNullTimes = 0 ;
       blkLatch *pLatch = NULL ;
+      vector< CHAR* > freeItem ;
+      vector< CHAR* >::iterator it ;
 
       ossTimestamp t ;
       ossGetCurrentTime( t ) ;
       _lastRecycleTime = t.time * 1000 + t.microtm / 1000 ;
 
-      /// for every bucket, is the bucket useTime < average, recycle 1/2
-      /// if free/totalSize > special ratio, recycle 1/2
       for ( UINT32 i = 0 ; i < UTIL_PAGE_SLOT_SIZE ; ++i )
       {
          vector< CHAR* > &slotItem = _slot[ i ] ;
          pLatch = _latch[ i ] ;
          utilCacheStat &statItem = (*_pStat)[ i ] ;
 
-         pLatch->get() ;
-
-         if ( ( statItem._totalSize > 0 &&
-                statItem._freeSize * 100 / statItem._totalSize >=
-                UTIL_BLOCK_RECYCLE_FREE_RATIO ) ||
-              ( totalUseTimes() > 0 &&
-                statItem._useTimes * _nonEmptySlotNum.peek() < totalUseTimes() ) )
+         if ( 0 == statItem._totalSize || 0 == statItem._freeSize )
          {
-            /// recycle the bucket
-            recycleSize += _recycleBucket( slotItem, &statItem ) ;
-            /// clear the use times
-            tmpTimes += statItem._useTimes ;
-            statItem._useTimes = 0 ;
+            continue ;
          }
 
+         pLatch->get() ;
+
+         if (  statItem.getFreeRatio() >= UTIL_BLOCK_RECYCLE_FREE_RATIO ||
+              ( statItem._totalSize > 0 && totalNullTimes() > 0 &&
+                statItem._nullTimes * _nonEmptySlotNum.fetch() <
+                totalNullTimes() )
+             )
+         {
+            /// recycle the bucket
+            recycleSize += _recycleBucket( slotItem, &statItem, freeItem ) ;
+         }
+
+         /// clear the use times
+         tmpTimes += statItem._useTimes ;
+         tmpNullTimes += statItem._nullTimes ;
+         statItem._useTimes = 0 ;
+         statItem._nullTimes = 0 ;
+
          pLatch->release() ;
+
+         /// really free memory
+         it = freeItem.begin() ;
+         while( it != freeItem.end() )
+         {
+            SDB_OSS_FREE( *it ) ;
+            ++it ;
+         }
+         freeItem.clear() ;
       }
       _totalUseTimes.sub( tmpTimes ) ;
+      _nullTimes.sub( tmpNullTimes ) ;
 
       PD_LOG( PDDEBUG, "Recycle %lld blocks", recycleSize ) ;
 
@@ -1203,17 +1365,19 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEMGR__RECYCLEBLK, "_utilCacheMgr::_recycleBucket" )
    UINT64 _utilCacheMgr::_recycleBucket( vector<CHAR *> &slotItem,
-                                         utilCacheStat *pStat )
+                                         utilCacheStat *pStat,
+                                         vector< CHAR* > &freeItem )
    {
       PD_TRACE_ENTRY( SDB__UTILCACHEMGR__RECYCLEBLK ) ;
 
       UINT64 recycleSize = 0 ;
       UINT32 size = ( slotItem.size() + 3 ) / 4 ;
-      CHAR *pBuff = NULL ;
       UINT32 standSize = UTIL_MAX_BLK_RECYCLE_SIZE ;
 
-      if ( pStat->_useTimes > 0 &&
-           totalUseTimes() <= pStat->_useTimes + 1 )
+      if ( ( pStat->_nullTimes > 0 &&
+             pStat->_nullTimes * _nonEmptySlotNum.fetch() >=
+             _nullTimes.fetch() * 8 / 10 ) ||
+           ( pStat->_useTimes > 0 && _nullTimes.compare( 0 ) ) )
       {
          standSize = UTIL_DFT_BLK_RECYCLE_SIZE ;
       }
@@ -1227,8 +1391,7 @@ namespace engine
       for ( UINT32 i = 0 ; i < size ; ++i )
       {
          /// release block memory
-         pBuff = slotItem.back() ;
-         SDB_OSS_FREE( pBuff ) ;
+         freeItem.push_back( slotItem.back() ) ;
          slotItem.pop_back() ;
 
          recycleSize += pStat->_pageSize ;
@@ -2424,12 +2587,24 @@ namespace engine
 
    UINT64 _utilCacheUnit::totalPages()
    {
-      return _totalPage.peek() ;
+      return _totalPage.fetch() ;
    }
 
    UINT64 _utilCacheUnit::dirtyPages()
    {
-      return _dirtySize.peek() ;
+      return _dirtySize.fetch() ;
+   }
+
+   UINT64 _utilCacheUnit::undirtyPages()
+   {
+      UINT64 totalPage = _totalPage.fetch() ;
+      UINT64 dirtyPage = _dirtySize.fetch() ;
+
+      if ( totalPage > dirtyPage )
+      {
+         return totalPage - dirtyPage ;
+      }
+      return 0 ;
    }
 
    void _utilCacheUnit::decDirtyPages( utilCacheBucket *pBucket )
@@ -2982,14 +3157,12 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT__UNPINPAGES, "_utilCacheUnit::_unpinPages" )
    void _utilCacheUnit::_unpinPages( const _utilCacheUnit::MAP_ID_2_PAGE_PRT &pageMap )
    {
-      utilCacheBucket* pBucket = NULL ;
       utilCachePage *pPage = NULL ;
       PD_TRACE_ENTRY( SDB__UTILCACHEUNIT__UNPINPAGES ) ;
 
       MAP_ID_2_PAGE_PRT_CIT it = pageMap.begin() ;
       while( it != pageMap.end() )
       {
-         pBucket = getBucket( calcBucketID( it->first ) ) ;
          pPage = ( utilCachePage* )( it->second ) ;
          pPage->unpin() ;
          ++it ;
@@ -3193,6 +3366,7 @@ namespace engine
       utilCacheBucket* pBucket = NULL ;
       utilCacheBucket::MAP_BLK_PAGE* pPages = NULL ;
       UINT32 blkRecycleNum = 0 ;
+      UINT32 bucketPages = 0 ;
 
       /// get current time
       ossGetCurrentTime( t ) ;
@@ -3209,8 +3383,10 @@ namespace engine
          pBucket->lock( EXCLUSIVE ) ;
 
          pPages = pBucket->getPages() ;
+         bucketPages = pPages->size() ;
          utilCacheBucket::MAP_BLK_PAGE::iterator it = pPages->begin() ;
-         while ( it != pPages->end() )
+         while ( bucketPages > pBucket->dirtyPages() &&
+                 it != pPages->end() )
          {
             utilCachePage& page = it->second ;
 
@@ -3230,6 +3406,7 @@ namespace engine
             totalSize += page.size() ;
             _pMgr->release( page ) ;
             pPages->erase( it++ ) ;
+            --bucketPages ;
             /// update the meta
             _totalPage.dec() ;
             ++totalPageNum ;
@@ -3240,7 +3417,6 @@ namespace engine
                break ;
             }
          }
-
          pBucket->unlock( EXCLUSIVE ) ;
 
          /// when up to the size, break
