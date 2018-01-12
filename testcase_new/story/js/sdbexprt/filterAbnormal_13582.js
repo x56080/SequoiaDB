@@ -74,6 +74,7 @@ function testExprtFilter3()
                  " --file " + csvfile +
                  " --filter '{ a: { \\$gt: 2 } }'" +
                  " --type csv" +
+                 " --sort '{ _id: 1 }'" +
                  " --fields a" ;                
    testRunCommand( command ) ;
    

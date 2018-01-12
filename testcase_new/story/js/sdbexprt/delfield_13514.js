@@ -43,7 +43,8 @@ function testExprtImprt()
                  " -l " + clname +
                  " --file " + csvfile + 
                  " --type csv" +
-                 " -e " + asc + 
+                 " -e " + asc +
+                 " --sort '{ _id: 1 }'" +
                  " --fields a,b" ;
    testRunCommand( command ) ;
    

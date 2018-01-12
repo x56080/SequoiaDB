@@ -36,6 +36,7 @@ function testExprtKicknull1()
                  " --file " + csvfile +
                  " --kicknull true" +
                  " --fields a,b" +
+                 " --sort '{ _id: 1 }'" +
                  " --type csv" ;                
    testRunCommand( command ) ;
    
@@ -58,6 +59,7 @@ function testExprtKicknull2()
                  " --file " + csvfile +
                  " --kicknull false" +
                  " --fields a,b" +
+                 " --sort '{ _id: 1 }'" +
                  " --type csv" ;                
    testRunCommand( command ) ;
    

@@ -38,6 +38,7 @@ function testWithIdCsv()
                  " --file " + csvfile +
                  " --type csv" +
                  " --withid true" +
+                 " --sort '{ _id: 1 }'" +
                  " --force true" ;
    testRunCommand( command ) ;
    
@@ -88,6 +89,7 @@ function testWithIdJson()
                  " --file " + jsonfile +
                  " --type json" +
                  " --withid true" +
+                 " --sort '{ _id: 1 }'" +
                  " --force true" ;
    testRunCommand( command ) ;
    

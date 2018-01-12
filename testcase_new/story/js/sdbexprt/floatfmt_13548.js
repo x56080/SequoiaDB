@@ -92,6 +92,7 @@ function testFloatFmtCsv( floatfmt, content )
                  " --file " + csvfile +
                  " --type csv" +
                  " --floatfmt " + floatfmt +
+                 " --sort '{ _id: 1 }'" +
                  " --fields a" ;
    testRunCommand( command ) ;
    
@@ -119,6 +120,7 @@ function testFloatFmtJson( floatfmt, content )
                  " --file " + jsonfile +
                  " --type json" +
                  " --floatfmt " + floatfmt +
+                 " --sort '{ _id: 1 }'" +
                  " --fields a" ;
    testRunCommand( command ) ;
    

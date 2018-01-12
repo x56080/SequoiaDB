@@ -37,6 +37,7 @@ function testExprtLimit1()
                  " --file " + csvfile +
                  " --limit -1" +
                  " --fields a" +
+                 " --sort '{ _id: 1 }'" +
                  " --type csv" ;                
    testRunCommand( command ) ;
    
@@ -81,6 +82,7 @@ function testExprtLimit3()
                  " --file " + csvfile +
                  " --limit 5" +
                  " --fields a" +
+                 " --sort '{ _id: 1 }'" +
                  " --type csv" ;                
    testRunCommand( command ) ;
    

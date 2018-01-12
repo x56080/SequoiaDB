@@ -55,6 +55,7 @@ function testExprtImprtCsv()
                  " --fields " + key +
                  " --type csv" +
                  " --floatfmt %.1e" +
+                 " --sort '{ _id: 1 }'" +
                  " --file " + csvfile ;
    testRunCommand( command ) ;
    
@@ -85,6 +86,7 @@ function testExprtImprtJson()
                  " --type json" +
                  " --fields " + key +
                  " --floatfmt %.1e" +
+                 " --sort '{ _id: 1 }'" +
                  " --file " + jsonfile ;         
    testRunCommand( command ) ;
    

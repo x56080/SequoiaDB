@@ -85,6 +85,7 @@ function testForceCsv2()
                  " --file " + csvfile +
                  " --type csv" +
                  " --fields a,b,c" +
+                 " --sort '{ _id: 1 }'" +
                  " --force false" ;
    testRunCommand( command ) ;
    
@@ -133,6 +134,7 @@ function testForceJson()
                  " --file " + jsonfile +
                  " --type json" +
                  " --withid true" +
+                 " --sort '{ _id: 1 }'" +
                  " --force true" ;
    testRunCommand( command ) ;
    

@@ -59,6 +59,7 @@ function testExprtFilter1()
                  " --file " + csvfile +
                  " --filter '{ a: { \\$gte: 2 } }'" +
                  " --type csv" +
+                 " --sort '{ _id: 1 }'" +
                  " --fields a" ;                
    testRunCommand( command ) ;
    
@@ -105,6 +106,7 @@ function testExprtFilter2()
                  " --file " + csvfile +
                  " --filter '{ a: { \\$mod: [ 2, 1 ] } }'" +
                  " --type csv" +
+                 " --sort '{ _id: 1 }'" +
                  " --fields a" ;                
    testRunCommand( command ) ;
    
@@ -151,6 +153,7 @@ function testExprtFilter3()
                  " --file " + csvfile +
                  " --filter '{ a: { \\$in: [ 1, 3, 4 ] } }'" +
                  " --type csv" +
+                 " --sort '{ _id: 1 }'" +
                  " --fields a" ;                
    testRunCommand( command ) ;
    
@@ -197,6 +200,7 @@ function testExprtFilter4()
                  " --file " + csvfile +
                  " --filter '{ a: { \\$isnull: 0 } }'" +
                  " --type csv" +
+                 " --sort '{ _id: 1 }'" +
                  " --fields a" ;                
    testRunCommand( command ) ;
    
@@ -292,6 +296,7 @@ function testExprtFilter6()
                  " --file " + csvfile +
                  " --filter '{ \\$and: [ { a: { \\$gte: 2 } }, { a: { \\$lte: 3 } } ] }'" +
                  " --type csv" +
+                 " --sort '{ _id: 1 }'" +
                  " --fields a" ;                
    testRunCommand( command ) ;
    
@@ -338,6 +343,7 @@ function testExprtFilter7()
                  " --file " + csvfile +
                  " --filter '{ b: { \\$exists: 1 } }'" +
                  " --type csv" +
+                 " --sort '{ _id: 1 }'" +
                  " --fields a,b" ;   
    testRunCommand( command ) ;
    
@@ -385,6 +391,7 @@ function testExprtFilter8()
                  " --file " + csvfile +
                  " --filter '{ info: { \\$elemMatch: { name: \"Jack\" } } }'" +
                  " --type csv" +
+                 " --sort '{ _id: 1 }'" +
                  " --fields info" ;   
    testRunCommand( command ) ;
    
@@ -438,6 +445,7 @@ function testExprtFilter9()
                  " --file " + csvfile +
                  " --filter '{ a.\\$1: 5 }'" +
                  " --type csv" +
+                 " --sort '{ _id: 1 }'" +
                  " --fields a" ;   
    testRunCommand( command ) ;
    

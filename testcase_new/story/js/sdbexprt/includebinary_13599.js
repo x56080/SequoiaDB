@@ -70,6 +70,7 @@ function testExprtBinary1()
                  " --file " + csvfile +
                  " --includebinary true" +
                  " --fields key" +
+                 " --sort '{ _id: 1 }'" +
                  " --type csv" ;                
    testRunCommand( command ) ;
    
@@ -109,6 +110,7 @@ function testExprtBinary2()
                  " --file " + csvfile +
                  " --includebinary false" +
                  " --fields key" +
+                 " --sort '{ _id: 1 }'" +
                  " --type csv" ;                
    testRunCommand( command ) ;
    

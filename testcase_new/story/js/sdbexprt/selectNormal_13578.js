@@ -38,6 +38,7 @@ function testExprtSelect1()
                  " -l " + clname + 
                  " --file " + csvfile +
                  " --select '{ a: \"\" }'" +
+                 " --sort '{ _id: 1 }'" +
                  " --type csv" ;                
    testRunCommand( command ) ;
    
@@ -83,6 +84,7 @@ function testExprtSelect2()
                  " -l " + clname + 
                  " --file " + csvfile +
                  " --select '{ a: { \\$include: 1 } }'" +
+                 " --sort '{ _id: 1 }'" +
                  " --type csv" ;                
    testRunCommand( command ) ;
    
@@ -128,6 +130,7 @@ function testExprtSelect3()
                  " -l " + clname + 
                  " --file " + csvfile +
                  " --select '{ a: { \\$include: 1 }, b: { \\$default: 3 } }'" +
+                 " --sort '{ _id: 1 }'" +
                  " --type csv" ;                
    testRunCommand( command ) ;
    
@@ -176,6 +179,7 @@ function testExprtSelect4()
                  " --file " + csvfile +
                  " --select " +
                  "'{ class: { \\$include: 1 }, students: { \\$elemMatch: { age: 18 } } }'" +
+                 " --sort '{ _id: 1 }'" +
                  " --type csv" ;
    testRunCommand( command ) ;
    

@@ -58,6 +58,7 @@ function testExprtStrict1()
                  " --fields " + key +
                  " --type json" +
                  " --strict true" +
+                 " --sort '{ _id: 1 }'" +
                  " --file " + jsonfile ;
    testRunCommand( command ) ;
    
@@ -92,6 +93,7 @@ function testExprtStrict2()
                  " --type json" +
                  " --fields " + key +
                  " --strict false" +
+                 " --sort '{ _id: 1 }'" +
                  " --file " + jsonfile ;         
    testRunCommand( command ) ;
    

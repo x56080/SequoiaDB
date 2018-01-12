@@ -91,6 +91,7 @@ function testExprtImprtCsv1()
                  " -l " + clname + 
                  " --fields " + key +
                  " --type csv" +
+                 " --sort '{ _id: 1 }'" +
                  " --file " + csvfile ;
    testRunCommand( command ) ;
    
@@ -120,6 +121,7 @@ function testExprtImprtCsv2()
                  " -l " + clname + 
                  " --fields " + key +
                  " --type csv" +
+                 " --sort '{ _id: 1 }'" +
                  " --file " + csvfile ;
    testRunCommand( command ) ;
    
@@ -150,6 +152,7 @@ function testExprtImprtCsv3()
                  " -l " + clname + 
                  " --fields " + key +
                  " --type csv" +
+                 " --sort '{ _id: 1 }'" +
                  " --file " + csvfile ;
    testRunCommand( command ) ;
    
@@ -180,6 +183,7 @@ function testExprtImprtJson()
                  " -l " + clname +
                  " --type json" +
                  " --fields " + key +
+                 " --sort '{ _id: 1 }'" +
                  " --file " + jsonfile ;         
    testRunCommand( command ) ;
    

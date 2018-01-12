@@ -64,6 +64,7 @@ function testExprtRegex1()
                  " --file " + csvfile +
                  " --includeregex true" +
                  " --fields key" +
+                 " --sort '{ _id: 1 }'" +
                  " --type csv" ;                
    testRunCommand( command ) ;
    
@@ -101,6 +102,7 @@ function testExprtRegex2()
                  " --file " + csvfile +
                  " --includeregex false" +
                  " --fields key" +
+                 " --sort '{ _id: 1 }'" +
                  " --type csv" ;                
    testRunCommand( command ) ;
    

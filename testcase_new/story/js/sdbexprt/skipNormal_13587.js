@@ -38,6 +38,7 @@ function testExprtSkip1()
                  " --file " + csvfile +
                  " --skip 0" +
                  " --fields a" +
+                 " --sort '{ _id: 1 }'" +
                  " --type csv" ;                
    testRunCommand( command ) ;
    
@@ -60,6 +61,7 @@ function testExprtSkip2()
                  " --file " + csvfile +
                  " --skip 2" +
                  " --fields a" +
+                 " --sort '{ _id: 1 }'" +
                  " --type csv" ;                
    testRunCommand( command ) ;
    
@@ -104,6 +106,7 @@ function testExprtSkip4()
                  " --file " + csvfile +
                  " --skip -1" +
                  " --fields a" +
+                 " --sort '{ _id: 1 }'" +
                  " --type csv" ;                
    testRunCommand( command ) ;
    
