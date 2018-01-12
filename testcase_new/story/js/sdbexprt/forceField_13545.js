@@ -37,6 +37,7 @@ function testForceCsv1()
                  " --file " + csvfile +
                  " --type csv" +
                  " --withid true" +
+                 " --sort '{ _id: 1 }'" +
                  " --force true" ;
    testRunCommand( command ) ;
    

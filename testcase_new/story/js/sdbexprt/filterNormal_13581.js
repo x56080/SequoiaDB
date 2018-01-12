@@ -498,6 +498,7 @@ function testExprtFilter10()
                  " --file " + csvfile +
                  " --filter '{ a: { \\$regex: \"^a\", \\$options: \"i\" } }'" +
                  " --type csv" +
+                 " --sort '{ _id: 1 }'" +
                  " --fields a" ;   
    testRunCommand( command ) ;
    
@@ -546,6 +547,7 @@ function testExprtFilter11()
                  " --file " + csvfile +
                  " --filter '{ a: { \\$field: \"b\" } }'" +
                  " --type csv" +
+                 " --sort '{ _id: 1 }'" +
                  " --fields a,b" ;   
    testRunCommand( command ) ;
    
