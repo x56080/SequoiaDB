@@ -224,7 +224,9 @@ function checkResult( info, content, func )
          if( content[j][0] === "#" )
             continue ;
          var ind = content[j].indexOf( i ) ;
-         if( ind === -1 )
+         if( ind !== 0 )
+            continue ;
+         if( content[j][ ind+i.length ] !== "=" )
             continue ;
          found = true ;
          var value1 = content[j].slice( ind+i.length+1 ).toLowerCase() ;
