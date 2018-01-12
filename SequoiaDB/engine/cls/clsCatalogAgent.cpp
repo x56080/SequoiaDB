@@ -1623,6 +1623,10 @@ namespace engine
       {
          _mainCLName = ele.str();
       }
+      else
+      {
+         _mainCLName.clear() ;
+      }
 
       /// get attribute, it is optional.
       ele = catSet.getField (CAT_ATTRIBUTE_NAME ) ;
