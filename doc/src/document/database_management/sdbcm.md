@@ -37,7 +37,7 @@
     ``` 
 
     >**Note:**  
-    > 在/proc/1/exe所指向的启动文件为/sbin/init的系统上，执行service sdbcm restart all-nodes重启cm和节点，在其它系统上只会启动cm。
+    > 在/proc/1/exe所指向的启动文件为/sbin/init的系统上，执行service sdbcm restart all-nodes重启cm和节点。
     
 5.  强制重新加载
 
@@ -53,4 +53,4 @@
     ```
 
     >**Note:**  
-    > 在/proc/1/exe所指向的启动文件为/sbin/init的系统上，执行service sdbcm force-reload all-nodes重启cm进程和节点进程，在其它系统上只会启动cm进程。
+    > 在/proc/1/exe所指向的启动文件为/sbin/init的系统上，执行service sdbcm force-reload all-nodes重启cm进程和节点进程。
