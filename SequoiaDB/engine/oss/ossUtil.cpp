@@ -1032,6 +1032,8 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes,
    struct statvfs vfs ;
    FILE *fp = NULL ;
    struct mntent *me = NULL ;
+   struct mntent dummy ;
+   CHAR tmpBuff[OSS_MAX_PATHSIZE] = {0} ;
    struct stat pathStat ;
    INT32 retcode = 0 ;
    BOOLEAN findOut = FALSE ;
@@ -1062,7 +1064,7 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes,
    PD_CHECK( NULL != fp, SDB_SYS, error, PDERROR, "Failed to set mnt entry"
              ", errno: %d, rc = %d", ossGetLastError (), rc );
 
-   while ( NULL != ( me = getmntent (fp) ) )
+   while ( NULL != ( me = getmntent_r ( fp, &dummy, tmpBuff, OSS_MAX_PATHSIZE ) ) )
    {
       struct stat fsStat ;
       INT32 retcode = stat ( me->mnt_fsname, &fsStat );
@@ -1102,6 +1104,11 @@ done :
    {
       SDB_OSS_FREE ( lpszVolumePath ) ;
       lpszVolumePath = NULL ;
+   }
+#elif defined (_LINUX) || defined (_AIX)
+   if ( NULL != fp )
+   {
+      endmntent( fp ) ;
    }
 #endif
    PD_TRACE_EXITRC ( SDB_OSSGETDISKINFO, rc );
@@ -1521,17 +1528,17 @@ std::string ossProcLimits::str()const
 INT32 ossProcLimits::init()
 {
    INT32 rc = SDB_OK ;
-   _initRLimit( RLIMIT_AS, OSS_LIMIT_VIRTUAL_MEM ) ; 
-   _initRLimit( RLIMIT_CORE, OSS_LIMIT_CORE_SZ ) ; 
-   _initRLimit( RLIMIT_CPU, OSS_LIMIT_CPU_TIME ) ; 
-   _initRLimit( RLIMIT_DATA, OSS_LIMIT_DATA_SEG_SZ ) ; 
-   _initRLimit( RLIMIT_FSIZE, OSS_LIMIT_FILE_SZ ) ;  
+   _initRLimit( RLIMIT_AS, OSS_LIMIT_VIRTUAL_MEM ) ;
+   _initRLimit( RLIMIT_CORE, OSS_LIMIT_CORE_SZ ) ;
+   _initRLimit( RLIMIT_CPU, OSS_LIMIT_CPU_TIME ) ;
+   _initRLimit( RLIMIT_DATA, OSS_LIMIT_DATA_SEG_SZ ) ;
+   _initRLimit( RLIMIT_FSIZE, OSS_LIMIT_FILE_SZ ) ;
    _initRLimit( RLIMIT_STACK, OSS_LIMIT_STACK_SIZE ) ;
    _initRLimit( RLIMIT_NOFILE, OSS_LIMIT_OPEN_FILE ) ;
 #if !defined (_AIX)
-   _initRLimit( RLIMIT_LOCKS, OSS_LIMIT_FILE_LOCK ) ; 
-   _initRLimit( RLIMIT_MEMLOCK, OSS_LIMIT_MEM_LOCK ) ; 
-   _initRLimit( RLIMIT_MSGQUEUE, OSS_LIMIT_MSG_QUEUE ) ; 
+   _initRLimit( RLIMIT_LOCKS, OSS_LIMIT_FILE_LOCK ) ;
+   _initRLimit( RLIMIT_MEMLOCK, OSS_LIMIT_MEM_LOCK ) ;
+   _initRLimit( RLIMIT_MSGQUEUE, OSS_LIMIT_MSG_QUEUE ) ;
    _initRLimit( RLIMIT_RTPRIO, OSS_LIMIT_SCHE_PRIO) ;
 #endif  //_AIX
    return rc ;
