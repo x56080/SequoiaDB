@@ -71,7 +71,7 @@ public class BaseExceptionTest {
 
 		// case 2: test error code
 		try {
-			cs.createCollection("tmp", new BasicBSONObject("a", 1));
+			cs.dropCollection("cs_not_exist");
 			Assert.fail();
 		} catch(BaseException e) {
 			System.out.println("case 2's result:");
