@@ -46,9 +46,11 @@ INT32 createNormalCsCl( sdb& db,
                         const CHAR* clName )
 {
    INT32 rc = SDB_OK ;
+   BSONObj option ;
    rc = db.createCollectionSpace( csName, SDB_PAGESIZE_4K, cs ) ;
    CHECK_RC( SDB_OK, rc, "fail to create cs %s", csName ) ;
-   rc = cs.createCollection( clName, cl ) ;
+   option = BSON( "ReplSize" << 0 ) ;
+   rc = cs.createCollection( clName, option, cl ) ;
    CHECK_RC( SDB_OK, rc, "fail to create cl %s", clName ) ;
 done:
    return rc ;

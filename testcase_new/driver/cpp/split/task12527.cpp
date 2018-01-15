@@ -74,7 +74,7 @@ TEST_F( taskTest12527, listCancelTask12527 )
    
    // create hash cl in srcGroup
    BSONObj option = BSON( "ShardingKey" << BSON( "a" << 1 ) << "ShardingType" << "hash" << 
-                          "Partition" << 2048 << "Group" << srcGroup ) ;
+                          "Partition" << 2048 << "Group" << srcGroup << "ReplSize" << 0 ) ;
    rc = cs.createCollection( clName, option, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to create cl " << clName ;
 

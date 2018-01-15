@@ -28,6 +28,7 @@ do { \
 
 void printMsg( const CHAR* fmt, ... ) ;
 
+// create cs cl, ReplSize: 0
 INT32 createNormalCsCl( sdb& db, sdbCollectionSpace& cs, sdbCollection& cl,
                         const CHAR* csName, const CHAR* clName ) ;
 

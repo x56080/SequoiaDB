@@ -151,7 +151,7 @@ TEST_F( splitRangeTest12682, splitRangeAsync12682 )
    
    // create range cl in srcGroup
    BSONObj option = BSON( "ShardingKey" << BSON( "a" << 1 ) << "ShardingType" << "range" << 
-                          "Group" << srcGroup ) ;
+                          "Group" << srcGroup << "ReplSize" << 0 ) ;
    rc = cs.createCollection( clName, option, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to create cl " << clName ;
 

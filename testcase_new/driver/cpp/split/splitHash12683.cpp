@@ -74,7 +74,7 @@ TEST_F( splitHashTest12683, splitHashSync12683 )
    
    // create range cl in srcGroup
    BSONObj option = BSON( "ShardingKey" << BSON( "a" << 1 ) << "ShardingType" << "hash" << 
-                          "Partition" << 2048 << "Group" << srcGroup ) ;
+                          "Partition" << 2048 << "Group" << srcGroup << "ReplSize" << 0 ) ;
    rc = cs.createCollection( clName, option, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to create cl " << clName ;
 
@@ -142,7 +142,7 @@ TEST_F( splitHashTest12683, splitHashAsync12683 )
    
    // create hash cl in srcGroup
    BSONObj option = BSON( "ShardingKey" << BSON( "a" << 1 ) << "ShardingType" << "hash" << 
-                          "Partition" << 2048 << "Group" << srcGroup ) ;
+                          "Partition" << 2048 << "Group" << srcGroup << "ReplSize" << 0 ) ;
    rc = cs.createCollection( clName, option, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to create cl " << clName ;
 
