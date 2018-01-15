@@ -18,13 +18,12 @@ function main()
    insertData( cl, docs ) ;
    
    // test $abs -6 ?
-   /*
    println( "test $abs" ) ;
    testFindData( cl, {}, { a: { $abs: 1 } }, -6 ) ;
-   */
    
    println( "test $ceiling" ) ;
-   // testFindData( cl, {}, { a: { $ceiling: { $decimal: "MAX" } } }, -6 ) ;
+   testFindData( cl, {}, { a: { $ceiling: { $decimal: "MAX" } } }, -6 ) ;
+   
    cursor = findData( cl, {}, { a: { $ceiling: 1 } } ) ;
    expRecs = [ { a: { $decimal: "NaN" } },
                { a: { $decimal: "NaN" } },
@@ -63,7 +62,8 @@ function testFindData( cl, cond, sel, errno )
 {
    try
    {
-      cl.find( cond, sel ) ;
+      var cursor = cl.find( cond, sel ) ;
+      cursor.next() ;
       throw 0 ;
    }
    catch( e )
