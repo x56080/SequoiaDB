@@ -1824,8 +1824,10 @@ namespace engine
             ossSleep ( OSS_ONE_SEC ) ;
          }
       }
-      // the task is finished, need to notify peer to clean up data
-      else if ( CLS_TASK_STATUS_FINISH == _pTask->status() )
+      // the task is finished or catalog meta-data is changed,
+      // need to notify peer to clean up data
+      else if ( CLS_TASK_STATUS_FINISH == _pTask->status() ||
+                CLS_TASK_STATUS_META == _pTask->status() )
       {
          PD_LOG ( PDEVENT, "Session[%s]: Split task[%s] already finished,"
                   "need to notify destination node to clean up data",
@@ -1866,7 +1868,7 @@ namespace engine
       // if the session is not finished, restart query
       if ( CLS_FS_STATUS_END != _status || STEP_END != _step )
       {
-         if ( 0 != _needSyncData && _step < STEP_META )
+         if ( 0 != _needSyncData && _step <= STEP_META )
          {
             EDUID cleanupJobID = PMD_INVALID_EDUID ;
             startCleanupJob( _pTask->clFullName(), _pTask->splitKeyObj(),
