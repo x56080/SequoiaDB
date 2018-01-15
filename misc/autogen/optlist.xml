@@ -876,10 +876,12 @@
          <cn>新连接生效</cn>
       </reloadstrategy>
       <detail>
-         <en>1. "random": choose the instance from matched instances by random.<fig></fig>
-             2. "ordered": choose the instance from matched instances by the order of --preferedinstance .</en>
-         <cn>1. "random": 从候选的实例中随机选择。<fig></fig>
-             2. "ordered": 从候选的实例中按照 --perferedinstance 的顺序进行选择。</cn>
+         <en>1. The mode to choose query instance when multiple prefered instances are found.<fig></fig>
+             2. "random": choose the instance from matched instances by random.<fig></fig>
+             3. "ordered": choose the instance from matched instances by the order of --preferedinstance .</en>
+         <cn>1. 指定当多个实例符合 --preferedinstance 的条件时的选择模式。<fig></fig>
+             2. "random": 从候选的实例中随机选择。<fig></fig>
+             3. "ordered": 从候选的实例中按照 --perferedinstance 的顺序进行选择。</cn>
       </detail>
       <typeofweb>str</typeofweb>
       <default>random</default>
