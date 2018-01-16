@@ -55,5 +55,6 @@ function getFpNum( pid )
    {
       throw buildException( "getFpNum", e, "cmd run command: " + command, 0, e ) ;
    }
-   return info[0] ;
+   println( "lsof res: " + info ) ;
+   return info[ info.length-2 ] ;
 }
