@@ -186,6 +186,13 @@
             <showMessageOnError>0</showMessageOnError>
         </runProgram>
         <setInstallerVariable name="service_origin_status" value="${program_exit_code}"/>
+        <setInstallerVariable>
+            <name>service_is_start</name>
+            <value>true</value>
+            <ruleList>
+                <compareValues value1="${program_exit_code}" logic="equals" value2="0"/>
+            </ruleList>
+        </setInstallerVariable>
         <actionGroup>
             <actionList>
                 <runProgram>
@@ -412,10 +419,14 @@
                 <actionGroup>
                     <actionList>
                         <consoleWrite text="${msg(Upgrade.NormalMsg.Rollbak.StartProcess)}"/>
-                        <runProgram>
-                            <program>service</program>
-                            <programArguments> sdbcm start</programArguments>
-                        </runProgram>
+                        <if>
+                           <conditionRuleList>
+                              <compareText logic="equals" text="${service_is_start}" value="true"/>
+                           </conditionRuleList>
+                           <actionList>
+                              <startServiceFunction/>
+                           </actionList>
+                        </if>
                         <runProgram>
                             <program>service</program>
                             <programArguments> sdbcm status</programArguments>

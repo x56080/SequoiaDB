@@ -34,7 +34,7 @@ Install.ErrorMsg.StopSdbCm.error=停止集群管理服务(sdbcm)失败
 Install.ErrorMsg.StopSequoiadb.error=停止SequoiaDB数据库服务失败
 Install.ErrorMsg.DeleteUser.error=删除用户${username}失败
 Install.ErrorMsg.IntallationOM.error=创建OM失败
-Install.ErrorMsg.checkDisk.error=磁盘剩余空间不足1.3G
+Install.ErrorMsg.checkDisk.error=磁盘剩余空间不足2G
 Install.ErrorMsg.StartCM.error=启动cm失败，执行命令：service sdbcm start。
 Install.ErrorMsg.SystemctlReload=执行'systemctl daemon-reload'失败.
 

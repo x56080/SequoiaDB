@@ -34,7 +34,7 @@ Install.ErrorrMsg.StopSdbCm.error=Failed to stop Sequoiadb Cluster Manager Servi
 Install.ErrorMsg.StopSequoiadb.error=Failed to stop SequoiaDB database service
 Install.ErrorMsg.DeleteUser.error=Failed to delete user:${username}
 Install.ErrorMsg.IntallationOM.error=Create OM failed
-Install.ErrorMsg.checkDisk.error=There is not enough disk space for installation. It needs at lease 1.3G.
+Install.ErrorMsg.checkDisk.error=There is not enough disk space for installation. It needs at lease 2G.
 Install.ErrorMsg.StartCM.error=Failed to start cm, execute: service sdbcm start.
 Install.ErrorMsg.SystemctlReload=Fail to excute 'systemctl daemon-reload'.
 
