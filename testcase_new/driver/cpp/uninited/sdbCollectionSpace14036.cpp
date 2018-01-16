@@ -44,10 +44,4 @@ TEST_F( sdbCollectionSpace14036, opCS )
    EXPECT_EQ( SDB_NOT_CONNECTED, rc ) << "drop cl shouldn't succeed" ;
    
    EXPECT_FALSE( cs.getCSName() ) << "getCSName should be NULL" ;
-   /*
-   const CHAR* oldName = "oldCl14036" ;
-   const CHAR* newName = "newCl14036" ;
-   rc = cs.renameCollection( oldName, newName ) ;
-   EXPECT_EQ( SDB_NOT_CONNECTED, rc ) << "renameCollection shouldn't succeed" ;
-   */
 }
