@@ -30,6 +30,8 @@ if ( typeof(CUROPR) == "undefined" ) { CUROPR = "split" ; }
 if ( typeof(ACTIVE) == "undefined" ) { ACTIVE = true ; }
 /* 剔除故障组节点后剩余的最小副本数, 若剔除后剩余副本数小于最小副本数，将不会执行剔除操作 */
 if ( typeof(MINREPLICANUM) == "undefined" ) { MINREPLICANUM = 2 ; }
+/* 执行init时是否重新选举
+if ( typeof(NEEDREELECT) == "undefined" ) { NEEDREELECT = true }
 /* 内部定义, 请勿修改 */
 if ( SEQPATH.charAt( SEQPATH.length - 1 ) != '/' ) { SEQPATH += '/' ; }
 var SDBSTART = SEQPATH + "bin/sdbstart" ;
@@ -1102,6 +1104,48 @@ function splitCluster( cataAddrs, keepHosts, active ) {
 }
 
 /* *****************************************************************************
+@discription: 获取集群所有主机地址
+@coordAddrs : coord address( string[] ), ex: [ 'sdbserver:11810' ]
+@author: Jiaming Wu
+@return: true/false
+***************************************************************************** */
+function getClusterHostAddrs( coordAddrs )
+{
+   var db ;
+   var hostAddrs = [] ;
+   for ( var i = 0 ; i < coordAddrs.length ; ++i ) {
+      try {
+         var addrArray = splitHostAndSvcFromAddr( coordAddrs[i] ) ;
+         db = new Sdb( addrArray[0], addrArray[1], SDBUSERNAME, SDBPASSWD ) ;
+      } catch ( e ) {
+         if( i >= coordAddrs.length ) {
+            println( "There is no available coord" ) ;
+            return false ;
+         }
+         println( "Connect to " + coordAddrs[i] + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+         continue ;
+      }
+      break ;
+   }
+
+   /* Get replica groups */
+   try {
+      var cursor = db.snapshot( SDB_SNAP_DATABASE, { RawData: true } ) ;
+      while ( cursor.next() ) {
+         var obj = eval( '(' + cursor.current().toString() + ')' ) ;
+         if( hostAddrs.indexOf( obj.HostName ) == -1 ) {
+            hostAddrs.push( obj.HostName ) ;
+         }
+      }
+   } catch ( e ) {
+      println( "Get all host failed: " + e +  "(" + getLastErrMsg() + ")" ) ;
+      return false ;
+   }
+   db.close() ;
+   return hostAddrs ;
+}
+
+/* *****************************************************************************
 @discription: 初始化大集群，将大集群的组信息和Catalog Address line全部保存
 @coordAddrs : string array, ex: [ '192.168.20.106:30000' ]
 @filename : string
@@ -1129,6 +1173,53 @@ function initCluster( coordAddrs, filename, active ) {
       try { File.remove( filename ) ; } catch( e ) {}
       return false ;
    }
+
+   if ( true == init ) {
+      var copySuccess = true ;
+      println( "Start to copy init file to cluster host" ) ;
+      var hostAddrs = getClusterHostAddrs( coordAddrs ) ;
+      for( var i = 0; i < hostAddrs.length; ++i ) {
+         if( hostAddrs[i] == System.getHostName() ) {
+            continue ;
+         }
+         var ssh ;
+         var dst_dir ;
+         try {
+             ssh = new Ssh( hostAddrs[i], USERNAME, PASSWD ) ;
+         } catch( e ) {
+            copySuccess = false ;
+            println( "Connect to " + hostAddrs[i] + " failed: " + e +
+                     "(" + getLastErrMsg + ")" ) ;
+            break ;
+         }
+         try {
+            var omaSvc = Oma.getAOmaSvcName( hostAddrs[i] ) ;
+            var remote = new Remote( hostAddrs[i], omaSvc ) ;
+            dst_dir = remote.getSystem().getEWD() ;
+         } catch( e ) {
+            copySuccess = false ;
+            println( "Get " + hostAddrs[i] + " ewd failed: " + e +
+                     "(" + getLastErrMsg + ")" ) ;
+            break ;
+         }
+         try {
+            var dst_file = dst_dir + "/../datacenter_init.info" ;
+            ssh.push( INITFILE, dst_file, 0700 ) ;
+         } catch( e ) {
+            copySuccess = false ;
+            println( "Copy init file to " + hostAddrs[i] + " failed" + e +
+                     "(" + getLastErrMsg + ")" ) ;
+            break ;
+         }
+         println( "Copy init file to " + hostAddrs[i] + " success" ) ;
+      }
+      if( false == copySuccess ) {
+         println( "Failed" ) ;
+         return false ;
+      }
+      println( "Done" ) ;
+   }
+
    /* prepare env and set weigth */
    if ( !prepareEnv( filename, CURHOSTS ) ) {
       println( "Prepare env failed" ) ;
@@ -1157,12 +1248,15 @@ function initCluster( coordAddrs, filename, active ) {
    } else {
       println( "Done" ) ;
    }
-   /* Reelect all groups and ignore the error */
-   print( "Begin to reelect all groups..." ) ;
-   if ( !reelectAllGroups( coordAddrs ) ) {
-      println( "WARNING: Reelect all groups failed" ) ;
-   } else {
-      println( "Done" ) ;
+
+   if( NEEDREELECT ) {
+      /* Reelect all groups and ignore the error */
+      print( "Begin to reelect all groups..." ) ;
+      if ( !reelectAllGroups( coordAddrs ) ) {
+         println( "WARNING: Reelect all groups failed" ) ;
+      } else {
+         println( "Done" ) ;
+      }
    }
 
    return true ;
@@ -1320,7 +1414,7 @@ function detachCatalogNode( coordAddr, cataAddr ) {
          isOK = false ;
          needDisableAuth = true ;
       }else{
-         println( "Connect to " + addrArray[0] + ":"+ addrArray[1] + "failed: "
+         println( "Connect to " + addrArray[0] + ":"+ addrArray[1] + " failed: "
                   + e + " (" + getLastErrMsg() + ")" ) ;
          throw e ;
       }
@@ -1387,8 +1481,13 @@ function detachCatalogNode( coordAddr, cataAddr ) {
             result = oma.listNodes( { "role": "catalog" }, { "$or": filterArr } ) ;
             oma.close() ;
          } catch( e ) {
-            println( "Get exist catalog nodes failed: " + e + "(" + getLastErrMsg() + ")" ) ;
-            return false ;
+            if( SDB_NETWORK == e ) {
+               continue ;
+            }
+            else {
+               println( "Get exist catalog nodes failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+               return false ;
+            }
          }
          if( result.size() == 0 ) {
             continue ;
@@ -1722,9 +1821,14 @@ function detachGroupNode( coordAddr, filename ) {
          snapshotCursor = db.snapshot( SDB_SNAP_DATABASE, { GroupName: groupName,
                                                             RawData: true } ) ;
       } catch( e ) {
-         println( "Get cluster snapshot failed: " + e +
-                  " (" + getLastErrMsg() + ")" ) ;
-         return false ;
+         if( SDB_CLS_NODE_NOT_EXIST == e ){
+            println( "Warning: No normal node exists in Group[" + groupName + "]" ) ;
+            continue ;
+         } else{
+            println( "Get group[" + groupName + "] snapshot failed: " + e +
+                     " (" + getLastErrMsg() + ")" ) ;
+            return false ;
+         }
       }
 
       var exist = false ;
@@ -1857,9 +1961,14 @@ function attachGroupNode( coordAddr, filename ) {
          snapshotCursor = db.snapshot( SDB_SNAP_DATABASE, { GroupName: groupName,
                                                             RawData: true } ) ;
       } catch( e ) {
-         println( "Get cluster snapshot failed: " + e +
-                  "(" + getLastErrMsg() + ")" ) ;
-         return false ;
+         if( SDB_CLS_NODE_NOT_EXIST == e ){
+            println( "Warning: No normal node exists in Group[" + groupName + "]" ) ;
+            continue ;
+         } else {
+            println( "Get group[" + groupName + "] failed: " + e +
+                     "(" + getLastErrMsg() + ")" ) ;
+            return false ;
+         }
       }
       var bs ;
       while( ( bs = snapshotCursor.next() ) != undefined ) {

@@ -34,10 +34,11 @@ detachGroupNode和attachGroupNode操作步骤和场景：
       PASSWD:    登入所有机器用户名对应的密码
       SDBUSERNAME:登入数据库的用户名（如果数据库没有开启用户鉴权，则可以不填）
       SDBPASSWD：登入数据库的用户名对应的密码（如果数据库没有开启用户鉴权，则可以不填）
+      SUB1HOSTS: 机器列表
       COORDADDR: 协调节点定义，如果协调节点已经在协调节点组信息中，则此处填写一个可用地址即可
       MINREPLICANUM: 剔除故障组节点后剩余的最小副本数, 若剔除后剩余副本数小于最小副本数，将不会执行剔除操作。
-      
-   3、在准备做detachGroupNode和attachGroupNode的机器上的shell下执行 ' sh init.sh '，进行初始化（理论上任何机器都可能坏掉，所以集群中的机器都建议做这个操作,该初始化主要是保存当前集群所有的组信息，用于attachGroupNode时恢复集群）
+      NEEDREELECT：执行init动作时是否重新选主
+   3、在准备做detachGroupNode和attachGroupNode的机器上的shell下执行 ' sh init.sh '，进行初始化(通过设置NEEDREELECT为false,可以让初始化时不重新选主)
    
    4、当集群中的部分节点发生故障导致复制组不可用时，选一台执行过sh init.sh 的机器，执行 ' sh detachGroupNode '剔除不可用节点。
    
