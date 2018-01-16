@@ -215,7 +215,7 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
         CountInfo info = null;
         _lock.lock();
         try {
-            info = _countInfoSet.higher(_dumpCountInfo);
+             info = _countInfoSet.higher(_dumpCountInfo);
             if (null == info) {
                 try {
                     info = _countInfoSet.first();

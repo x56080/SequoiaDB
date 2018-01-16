@@ -49,6 +49,15 @@ public class SdbTest {
     }
 
     @Test
+    public void setSessionAttrTest() {
+        BSONObject options = new BasicBSONObject();
+        options.put("PreferedInstance", 1);
+        options.put("PreferedInstanceMode", "ordered");
+        options.put("Timeout", -2);
+        sdb.setSessionAttr(options);
+    }
+
+    @Test
     public void getHostNameAndPortTest() {
         String hostName = sdb.getHost();
         int port = sdb.getPort();

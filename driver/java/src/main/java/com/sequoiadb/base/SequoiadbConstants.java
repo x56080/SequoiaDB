@@ -217,6 +217,8 @@ public class SequoiadbConstants {
     public final static String FIELD_TOTAL = "Total";
     public final static String FIELD_INDEX = "Index";
     public final static String FIELD_NAME_PREFERED_INSTANCE = "PreferedInstance";
+    public final static String FIELD_NAME_PREFERED_INSTANCE_MODE = "PreferedInstanceMode";
+    public final static String FIELD_NAME_SESSION_TIMEOUT = "Timeout";
     public final static String FIELD_NAME_RETYE = "ReturnType";
 
     public final static String FIELD_NAME_ONLY_DETACH = "OnlyDetach";
@@ -234,6 +236,9 @@ public class SequoiadbConstants {
     public final static String PMD_OPTION_DBPATH = "dbpath";
 
     public final static String OID = "_id";
+
+    public final static String PREFERED_INSTANCE_MODE_RANDON = "random";
+    public final static String PREFERED_INSTANCE_MODE_ORDERED = "ordered";
 
     public final static int FLG_UPDATE_UPSERT = 0x00000001;
     public final static int FLG_REPLY_CONTEXTSORNOTFOUND = 0x00000001;

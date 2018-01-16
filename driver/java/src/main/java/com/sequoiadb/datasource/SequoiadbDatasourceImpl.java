@@ -26,6 +26,7 @@ package com.sequoiadb.datasource;
 
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.base.SequoiadbConstants;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.net.ConfigOptions;
@@ -76,6 +77,8 @@ public class SequoiadbDatasourceImpl {
     // for error report
     private final Object _objForExp = new Object();
     private BaseException _lastException;
+    // for session
+    private volatile BSONObject _sessionAttr = null;
     // for others
     private Random _rand = new Random(47);
     private double MULTIPLE = 1.2;
@@ -797,6 +800,16 @@ public class SequoiadbDatasourceImpl {
                         	connItem = null;
                             // should never come here
                             throw new BaseException(SDBError.SDB_SYS, "point 2: error happen for getting connection");
+                        } else if (_sessionAttr != null) {
+                            try {
+                                sdb.setSessionAttr(_sessionAttr);
+                            } catch (Exception e) {
+                                _connItemMgr.releaseItem(connItem);
+                                connItem = null;
+                                _destroyConnQueue.add(sdb);
+                                throw new BaseException(SDBError.SDB_SYS,
+                                        "failed to set the session attribute of the connection", e);
+                            }
                         }
                         connItem.setAddr(sdb.getServerAddress().toString());
                         synchronized (_createConnSignal) {
@@ -1142,7 +1155,7 @@ public class SequoiadbDatasourceImpl {
     }
 
     private void _checkDatasourceOptions(DatasourceOptions newOpt) throws BaseException {
-        if (null == newOpt) {
+        if (newOpt == null) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "the offering datasource options can't be null");
         }
 
@@ -1152,6 +1165,9 @@ public class SequoiadbDatasourceImpl {
         int keepAliveTimeout = newOpt.getKeepAliveTimeout();
         int checkInterval = newOpt.getCheckInterval();
         int syncCoordInterval = newOpt.getSyncCoordInterval();
+        List<Object> preferredInstanceList = newOpt.getPreferedInstance();
+        String preferredInstanceMode = newOpt.getPreferedInstanceMode();
+        int sessionTimeout = newOpt.getSessionTimeout();
 
         // 1. maxCount
         if (maxCount < 0)
@@ -1179,11 +1195,51 @@ public class SequoiadbDatasourceImpl {
         if (syncCoordInterval < 0)
             throw new BaseException(SDBError.SDB_INVALIDARG, "syncCoordInterval can't be less than 0");
 
-        if (0 != maxCount) {
+        if (maxCount != 0) {
             if (deltaIncCount > maxCount)
                 throw new BaseException(SDBError.SDB_INVALIDARG, "deltaIncCount can't be great then maxCount");
             if (maxIdleCount > maxCount)
                 throw new BaseException(SDBError.SDB_INVALIDARG, "maxIdleCount can't be great then maxCount");
+        }
+
+        // check arguments about session
+        if (preferredInstanceList != null && preferredInstanceList.size() > 0) {
+            // check elements of preferred instance
+            for (Object obj : preferredInstanceList) {
+                if (obj instanceof String) {
+                    String s = (String)obj;
+                    if (!"M".equals(s) && !"m".equals(s) &&
+                            !"S".equals(s) && !"s".equals(s) &&
+                            !"A".equals(s) && !"a".equals(s)) {
+                        throw new BaseException(SDBError.SDB_INVALIDARG,
+                                "the element of preferred instance should be 'M'/'S'/'A'/'m'/'s'/'a/[1,255]");
+                    }
+                } else if (obj instanceof Integer) {
+                    int i = (Integer)obj;
+                    if (i <= 0 || i > 255) {
+                        throw new BaseException(SDBError.SDB_INVALIDARG,
+                                "the element of preferred instance should be 'M'/'S'/'A'/'m'/'s'/'a/[1,255]");
+                    }
+                } else {
+                    throw new BaseException(SDBError.SDB_INVALIDARG,
+                            "the element of preferred instance should be 'M'/'S'/'A'/'m'/'s'/'a/[1,255]");
+                }
+            }
+            // check preferred instance mode
+            if (!SequoiadbConstants.PREFERED_INSTANCE_MODE_ORDERED.equals(preferredInstanceMode) &&
+                    !SequoiadbConstants.PREFERED_INSTANCE_MODE_RANDON.equals(preferredInstanceMode)) {
+                throw new BaseException(SDBError.SDB_INVALIDARG,
+                        String.format("the preferred instance mode should be '%s' or '%s', but it is %s",
+                                SequoiadbConstants.PREFERED_INSTANCE_MODE_ORDERED,
+                                SequoiadbConstants.PREFERED_INSTANCE_MODE_RANDON,
+                                preferredInstanceMode));
+            }
+            // check session timeout
+            if (sessionTimeout < -1) {
+                throw new BaseException(SDBError.SDB_INVALIDARG,
+                        "the session timeout can not less than -1");
+            }
+            _sessionAttr = newOpt.getSessionAttr();
         }
     }
 
@@ -1340,6 +1396,7 @@ public class SequoiadbDatasourceImpl {
             }
             // create new connection
             while (true) {
+                addr = null;
                 addr = _strategy.getAddress();
                 if (addr == null) {
                     // when have no address, we don't want to report any error message,
@@ -1372,6 +1429,15 @@ public class SequoiadbDatasourceImpl {
             if (sdb == null) {
                 _connItemMgr.releaseItem(connitem);
                 break;
+            } else if (_sessionAttr != null) {
+                try {
+                    sdb.setSessionAttr(_sessionAttr);
+                } catch (Exception e) {
+                    _connItemMgr.releaseItem(connitem);
+                    connitem = null;
+                    _destroyConnQueue.add(sdb);
+                    break;
+                }
             }
             // when we create a connection, let's put it to idle pool
             connitem.setAddr(addr);

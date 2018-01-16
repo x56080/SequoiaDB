@@ -20,9 +20,11 @@ import static org.junit.Assert.assertFalse;
 
 public class SequoiadbDatasourceTest {
     private SequoiadbDatasource ds;
+    private static List<String> coords = new ArrayList<String>();
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
+        coords.add(Constants.COOR_NODE_CONN);
 
     }
 
@@ -33,9 +35,6 @@ public class SequoiadbDatasourceTest {
 
     @Before
     public void setUp() throws Exception {
-        List<String> coords = new ArrayList<String>();
-        coords.add(Constants.COOR_NODE_CONN);
-
         try {
             ds = new SequoiadbDatasource(coords, "", "", null, (DatasourceOptions) null);
         } catch (Exception e) {
@@ -46,6 +45,32 @@ public class SequoiadbDatasourceTest {
     @After
     public void tearDown() throws Exception {
         ds.close();
+    }
+
+    @Test
+    public void setSessionAttrInDatasource() {
+        int threadCount = 50;
+        int maxCount = 50;
+        DatasourceOptions options = new DatasourceOptions();
+        options.setMaxCount(maxCount);
+        options.setPreferedInstance("M", "m", 1, 2);
+        options.setPreferedInstanceMode("ordered");
+        options.setSessionTimeout(100);
+        SequoiadbDatasource sds = new SequoiadbDatasource(coords, "", "", null, options);
+        Sequoiadb[] dbs = new Sequoiadb[threadCount];
+        for(int i = 0; i < threadCount; i++) {
+            try {
+                dbs[i] = sds.getConnection();
+            } catch (Exception e) {
+                System.out.println("i is: " + i);
+                e.printStackTrace();
+                Assert.assertFalse(true);
+            }
+        }
+        for(int i = 0; i < threadCount; i++) {
+            sds.releaseConnection(dbs[i]);
+        }
+        sds.close();
     }
 
     // jira-2136
@@ -93,7 +118,8 @@ public class SequoiadbDatasourceTest {
         DBCollection cl = cs.createCollection("ds", conf);
 
         BSONObject obj = new BasicBSONObject();
-        obj.put("Id", 10);
+        Integer i1 = 10;
+        obj.put("Id", i1);
         obj.put("Age", 30);
 
         cl.insert(obj);

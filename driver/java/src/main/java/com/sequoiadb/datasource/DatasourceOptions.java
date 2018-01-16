@@ -25,21 +25,37 @@
 package com.sequoiadb.datasource;
 
 
+import com.sequoiadb.base.SequoiadbConstants;
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
+import org.bson.types.BasicBSONList;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.sequoiadb.base.SequoiadbConstants.*;
+
+
 /**
  * @class DatasourceOptions
  * @brief the options of data source
  * @since v1.12.6 & v2.2
  */
 public class DatasourceOptions implements Cloneable {
+
+    private static final String DEFAULT_PREFERRD_INSTANCE_MODE = SequoiadbConstants.PREFERED_INSTANCE_MODE_RANDON;
+    private static final int DEFAULT_SESSION_TIMEOUT = -1;
     private int _deltaIncCount = 10;
     private int _maxIdleCount = 10;
     private int _maxCount = 500;
     private int _keepAliveTimeout = 0 * 60 * 1000; // 0 min
     private int _checkInterval = 1 * 60 * 1000; // 1 min
-    //private int _syncCoordInterval = 10 * 60 * 1000; // 10 min
     private int _syncCoordInterval = 0; // 0 min
     private boolean _validateConnection = false;
     private ConnectStrategy _connectStrategy = ConnectStrategy.BALANCE;
+    private List<Object> _preferedInstance = null;
+    private String _preferedInstanceMode = DEFAULT_PREFERRD_INSTANCE_MODE; // "random" or "ordered"
+    private int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
 
     /**
      * @fn Object clone()
@@ -155,6 +171,64 @@ public class DatasourceOptions implements Cloneable {
     }
 
     /**
+     * Set Preferred instance for read request in the session..
+     * When user does not set any preferred instance,
+     * use the setting in the coord's setting file.
+     * Note: When specifying preferred instance, Datasource will set the session attribute only
+     * when it creating a connection. That means when user get a connection out from the Datasource,
+     * if user reset the session attribute of the connection, Datasource will keep the latest changes of the connection.
+     *
+     * @param PreferedInstance Could be single value in "M", "m", "S", "s", "A", "a", 1-255, or multiple values of them.
+     *          <ul>
+     *              <li>"M", "m": read and write instance( master instance ). If multiple numeric instances are given with "M", matched master instance will be chosen in higher priority. If multiple numeric instances are given with "M" or "m", master instance will be chosen if no numeric instance is matched.</li>
+     *              <li>"S", "s": read only instance( slave instance ). If multiple numeric instances are given with "S", matched slave instances will be chosen in higher priority. If multiple numeric instances are given with "S" or "s", slave instance will be chosen if no numeric instance is matched.</li>
+     *              <li>"A", "a": any instance.</li>
+     *              <li>1-255: the instance with specified instance ID.</li>
+     *              <li>If multiple alphabet instances are given, only first one will be used.</li>
+     *              <li>If matched instance is not found, will choose instance by random.</li>
+     *          </ul>
+     */
+    public void setPreferedInstance(Object... preferedInstance) {
+        if (preferedInstance == null || preferedInstance.length == 0) {
+            return;
+        }
+        _preferedInstance = new ArrayList<Object>();
+        for(Object o : preferedInstance) {
+            _preferedInstance.add(o);
+        }
+    }
+
+    /**
+     * Set the mode to choose query instance when multiple preferred instances are found in the session.
+     *
+     * @param mode can be one of the follow, default to be "random".
+     *                    <ul>
+     *                        <li>"random": choose the instance from matched instances by random.</li>
+     *                        <li>"ordered": choose the instance from matched instances by the order of "PreferedInstance".</li>
+     *                    </ul>
+     */
+    public void setPreferedInstanceMode(String mode) {
+        if (mode == null || mode.isEmpty()) {
+            mode = DEFAULT_PREFERRD_INSTANCE_MODE;
+        } else {
+            _preferedInstanceMode = mode;
+        }
+    }
+
+    /**
+     * Set the timeout (in ms) for operations in the session. -1 means no timeout for operations. Default te be -1.
+     *
+     * @param timeout The timeout (in ms) for operations in the session.
+     */
+    public void setSessionTimeout(int timeout) {
+        if (timeout < 0) {
+            _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
+        } else {
+            _sessionTimeout = timeout;
+        }
+    }
+
+    /**
      * @fn int getDeltaIncCount()
      * @brief Get the number of connections to create once running out the
      *        connection pool.
@@ -234,6 +308,30 @@ public class DatasourceOptions implements Cloneable {
         return _connectStrategy;
     }
 
+    /**
+     * Get the preferred instance.
+     * @return The preferred instance or null for no any setting.
+     */
+    public List<Object> getPreferedInstance() {
+        return _preferedInstance;
+    }
+
+    /**
+     * Get the preferred instance node.
+     *
+     * @return The preferred instance node.
+     */
+    public String getPreferedInstanceMode() {
+        return _preferedInstanceMode;
+    }
+
+    /**
+     * The Session timeout value.
+     * @return Session timeout value.
+     */
+    public int getSessionTimeout() {
+        return _sessionTimeout;
+    }
 
     /// the follow APIs are deprecated
 
@@ -411,6 +509,24 @@ public class DatasourceOptions implements Cloneable {
      */
     public int getTimeout() {
         return 0;
+    }
+
+    BSONObject getSessionAttr() {
+        BSONObject obj = new BasicBSONObject();
+        if (_preferedInstance != null && _preferedInstance.size() > 0) {
+            // preferred instance
+            BSONObject list = new BasicBSONList();
+            int i = 0;
+            for(Object o : _preferedInstance) {
+                list.put("" + i++, o);
+            }
+            obj.put(FIELD_NAME_PREFERED_INSTANCE, list);
+            // preferred instance mode
+            obj.put(FIELD_NAME_PREFERED_INSTANCE_MODE, _preferedInstanceMode);
+            // timeout
+            obj.put(FIELD_NAME_SESSION_TIMEOUT, _sessionTimeout);
+        }
+        return obj;
     }
 
 }
