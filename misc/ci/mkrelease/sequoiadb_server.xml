@@ -38,7 +38,6 @@
         </createTimeStamp>
         <setInstallerVariable name="sys_conf_file" value="/etc/default/sequoiadb" persist="1"/>
         <setInstallerVariable name="exist_installation" value="false"/>
-        <setInstallerVariable name="service_is_start"   value="false"/>
         <setInstallerVariable name="project.rollbackBackupDirectory" value="${installdir}/rollback/BackupDir_${time}"/>
         <setInstallerVariable name="newsysconf_default" value="/usr/lib/systemd/system" persist="1"/>
         <setInstallerVariable name="newsysconf_ubuntu" value="/lib/systemd/system" persist="1"/>
@@ -85,7 +84,7 @@
                         <checkFreeDiskSpace>
                             <logic>less_or_equal</logic>
                             <path>${installdir}</path>
-                            <size>2000000</size>
+                            <size>1300000</size>
                         </checkFreeDiskSpace>
                     </ruleList>
                 </throwError>
