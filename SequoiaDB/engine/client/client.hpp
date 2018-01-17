@@ -4394,10 +4394,10 @@ namespace sdbclient
       }
 
 /** \fn INT32 listDomains ( sdbCursor &cursor,
-                          const bson::BSONObj &condition,
-                          const bson::BSONObj &selector,
-                          const bson::BSONObj &orderBy,
-                          const bson::BSONObj &hint ) ;
+                          const bson::BSONObj &condition = _sdbStaticObject,
+                          const bson::BSONObj &selector = _sdbStaticObject,
+                          const bson::BSONObj &orderBy = _sdbStaticObject,
+                          const bson::BSONObj &hint = _sdbStaticObject ) ;
     \brief List the domains.
     \param [in] condition The matching rule, return all the documents if null
     \param [in] selector The selective rule, return the whole document if null
@@ -4411,10 +4411,10 @@ namespace sdbclient
     \retval Others Operation Fail
 */
       INT32 listDomains ( sdbCursor &cursor,
-                          const bson::BSONObj &condition,
-                          const bson::BSONObj &selector,
-                          const bson::BSONObj &orderBy,
-                          const bson::BSONObj &hint )
+                          const bson::BSONObj &condition = _sdbStaticObject,
+                          const bson::BSONObj &selector = _sdbStaticObject,
+                          const bson::BSONObj &orderBy = _sdbStaticObject,
+                          const bson::BSONObj &hint = _sdbStaticObject )
       {
          if ( !pSDB )
             return SDB_NOT_CONNECTED ;
