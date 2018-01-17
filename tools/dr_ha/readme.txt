@@ -34,7 +34,7 @@ detachGroupNode和attachGroupNode操作步骤和场景：
       PASSWD:    登入所有机器用户名对应的密码
       SDBUSERNAME:登入数据库的用户名（如果数据库没有开启用户鉴权，则可以不填）
       SDBPASSWD：登入数据库的用户名对应的密码（如果数据库没有开启用户鉴权，则可以不填）
-      SUB1HOSTS: 机器列表
+      SUB1HOSTS: 填本机主机名即可
       COORDADDR: 协调节点定义，如果协调节点已经在协调节点组信息中，则此处填写一个可用地址即可
       MINREPLICANUM: 剔除故障组节点后剩余的最小副本数, 若剔除后剩余副本数小于最小副本数，将不会执行剔除操作。
       NEEDREELECT：执行init动作时是否重新选主
