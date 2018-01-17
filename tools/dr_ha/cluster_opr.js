@@ -1173,7 +1173,12 @@ function initCluster( coordAddrs, filename, active ) {
       try { File.remove( filename ) ; } catch( e ) {}
       return false ;
    }
-
+   /* prepare env */
+   if ( !prepareEnv( filename, CURHOSTS ) ) {
+      println( "Prepare env failed" ) ;
+      try { File.remove( filename ) ; } catch( e ) {}
+      return false ;
+   }
    if ( true == init ) {
       var copySuccess = true ;
       println( "Start to copy init file to cluster host" ) ;
@@ -1220,36 +1225,31 @@ function initCluster( coordAddrs, filename, active ) {
       println( "Done" ) ;
    }
 
-   /* prepare env and set weigth */
-   if ( !prepareEnv( filename, CURHOSTS ) ) {
-      println( "Prepare env failed" ) ;
-      try { File.remove( filename ) ; } catch( e ) {}
-      return false ;
-   }
-   var weigth = 10 ;
-   if ( active ) {
-      weigth = 100 ;
-   }
-   // update catalog and datanode
-   print( "Begin to update catalog and data nodes's config..." ) ;
-   if ( !updateNodesConfig( mergeArrayWithoutRepeat( CURCATAS, CURDATAS ), "weight", weigth ) ) {
-      println( "Update catalog and data node's config failed" ) ;
-      try { File.remove( filename ) ; } catch( e ) {}
-      return false ;
-   } else {
-      println( "Done" ) ;
-   }
-   /* Reload all catalog and datanode */
-   print( "Begin to reload catalog and data nodes's config..." ) ;
-   if ( !reloadNodesConf( mergeArrayWithoutRepeat( CURCATAS, CURDATAS ), [ -15 ] ) ) {
-      println( "Reload catalog and data node's config failed" ) ;
-      try { File.remove( filename ) ; } catch( e ) {}
-      return false ;
-   } else {
-      println( "Done" ) ;
-   }
-
    if( NEEDREELECT ) {
+      /* and set weigth */
+      var weigth = 10 ;
+      if ( active ) {
+         weigth = 100 ;
+      }
+      // update catalog and datanode
+      print( "Begin to update catalog and data nodes's config..." ) ;
+      if ( !updateNodesConfig( mergeArrayWithoutRepeat( CURCATAS, CURDATAS ), "weight", weigth ) ) {
+         println( "Update catalog and data node's config failed" ) ;
+         try { File.remove( filename ) ; } catch( e ) {}
+         return false ;
+      } else {
+         println( "Done" ) ;
+      }
+      /* Reload all catalog and datanode */
+      print( "Begin to reload catalog and data nodes's config..." ) ;
+      if ( !reloadNodesConf( mergeArrayWithoutRepeat( CURCATAS, CURDATAS ), [ -15 ] ) ) {
+         println( "Reload catalog and data node's config failed" ) ;
+         try { File.remove( filename ) ; } catch( e ) {}
+         return false ;
+      } else {
+         println( "Done" ) ;
+      }
+
       /* Reelect all groups and ignore the error */
       print( "Begin to reelect all groups..." ) ;
       if ( !reelectAllGroups( coordAddrs ) ) {
