@@ -2498,6 +2498,8 @@ namespace engine
       {
          positionList.push_back( tmpPos ) ;
       }
+
+      positionArray.clear() ;
    }
 
    static void _rtnCoordSelectPositions ( const VEC_NODE_INFO & groupNodes,
