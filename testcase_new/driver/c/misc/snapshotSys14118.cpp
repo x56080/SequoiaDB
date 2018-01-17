@@ -148,12 +148,12 @@ TEST_F( snapshotSysTest14118, snapshotSys )
    }
 
    pthread_t tids[ THREAD_NUM ] ;
+   ThreadArg args[ THREAD_NUM ] ;
    for( INT32 i = 0;i < THREAD_NUM;++i )
    {
-      ThreadArg arg ;
-      arg.db = dataDbs[i] ;
-      arg.tid = i ;
-      rc = pthread_create( &tids[i], NULL, func_snapshotSys, (void*)&arg ) ;
+      args[i].db = dataDbs[i] ;
+      args[i].tid = i ;
+      rc = pthread_create( &tids[i], NULL, func_snapshotSys, (void*)&args[i] ) ;
       ASSERT_EQ( SDB_OK, rc ) << "fail to create thread " << i ;
    }
    for( INT32 i = 0;i < THREAD_NUM;++i )
