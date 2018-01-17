@@ -473,6 +473,24 @@ namespace engine
    {
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSESSPROP_SETINSTOPT, "_rtnSessionProperty::setInstanceOption" )
+   void _rtnSessionProperty::setInstanceOption ( const CHAR * instanceStr,
+                                                 const CHAR * instanceModeStr,
+                                                 RTN_PREFER_INSTANCE_TYPE defaultInstance )
+   {
+      PD_TRACE_ENTRY( SDB__RTNSESSPROP_SETINSTOPT ) ;
+
+      _instanceOption.parsePreferredInstance( instanceStr ) ;
+      _instanceOption.parsePreferredInstanceMode( instanceModeStr ) ;
+
+      if ( !_instanceOption.isValidated() )
+      {
+         _instanceOption.setPreferredInstance( defaultInstance ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNSESSPROP_SETINSTOPT ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSESSPROP_PARSEPROP, "_rtnSessionProperty::parseProperty" )
    INT32 _rtnSessionProperty::parseProperty ( const BSONObj & property )
    {

@@ -99,9 +99,8 @@ namespace engine
 
          OSS_INLINE BOOLEAN isSlavePerferred () const
          {
-            return ( _instanceList.empty() &&
-                     ( PREFER_INSTANCE_TYPE_SLAVE == _specInstance ||
-                       PREFER_INSTANCE_TYPE_SLAVE_SND == _specInstance ) ) ;
+            return ( PREFER_INSTANCE_TYPE_SLAVE == _specInstance ||
+                     PREFER_INSTANCE_TYPE_SLAVE_SND == _specInstance ) ;
          }
 
          OSS_INLINE BOOLEAN hasCommonInstance () const
@@ -161,12 +160,9 @@ namespace engine
 
          virtual ~_rtnSessionProperty () ;
 
-         OSS_INLINE void setInstanceOption ( const CHAR * instanceStr,
-                                             const CHAR * instanceModeStr )
-         {
-            _instanceOption.parsePreferredInstance( instanceStr ) ;
-            _instanceOption.parsePreferredInstanceMode( instanceModeStr ) ;
-         }
+         void setInstanceOption ( const CHAR * instanceStr,
+                                  const CHAR * instanceModeStr,
+                                  RTN_PREFER_INSTANCE_TYPE defaultInstance ) ;
 
          OSS_INLINE void setInstanceOption ( const rtnInstanceOption & instanceOption )
          {
@@ -192,11 +188,6 @@ namespace engine
          {
             _instanceOption.setPreferredInstance( PREFER_INSTANCE_TYPE_MASTER ) ;
             _instanceOption.setPreferredInstanceMode( PREFER_INSTANCE_MODE_RANDOM ) ;
-         }
-
-         OSS_INLINE BOOLEAN isSlavePreferred () const
-         {
-            return _instanceOption.isSlavePerferred() ;
          }
 
          OSS_INLINE void setOperationTimeout ( INT64 operationTimeout )

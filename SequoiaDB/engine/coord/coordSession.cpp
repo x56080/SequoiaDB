@@ -55,7 +55,8 @@ namespace engine
    {
       pmdOptionsCB * optionCB = pmdGetKRCB()->getOptionCB() ;
       setInstanceOption( optionCB->getPrefInstStr(),
-                         optionCB->getPrefInstModeStr() ) ;
+                         optionCB->getPrefInstModeStr(),
+                         PREFER_INSTANCE_TYPE_MASTER ) ;
       _pEduCB = pEduCB ;
    }
 

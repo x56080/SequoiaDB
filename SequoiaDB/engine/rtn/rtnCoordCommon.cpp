@@ -174,7 +174,7 @@ namespace engine
          {
             hasRetry = TRUE ;
             rc = rtnCoordGetGroupInfo( cb, groupInfo->groupID(),
-                                       TRUE, groupInfo ) ; 
+                                       TRUE, groupInfo ) ;
             PD_RC_CHECK( rc, PDERROR, "Get group info[%u] failed, rc: %d",
                          groupInfo->groupID(), rc ) ;
             goto retry ;
@@ -193,7 +193,7 @@ namespace engine
       {
          INT32 status = NET_NODE_STAT_NORMAL ;
          rtnCoordGetNextNode( groupItem, selectedPositions,
-                              pSession->isSlavePreferred(), selTimes,
+                              pSession->getInstanceOption(), selTimes,
                               beginPos ) ;
 
          rc = groupItem->getNodeID( beginPos, routeID, type ) ;
@@ -2536,8 +2536,13 @@ namespace engine
             {
                if ( nodeIter->_instanceID == (UINT8)instance )
                {
-                  if ( primaryPos == pos && ( primaryFirst || primaryLast ) )
+                  if ( primaryPos == pos )
                   {
+                     if ( !primaryFirst && !primaryLast )
+                     {
+                        // Primary is not specified in this case
+                        tempPositions.append( pos ) ;
+                     }
                      foundPrimary = TRUE ;
                   }
                   else
@@ -2570,6 +2575,39 @@ namespace engine
             selectedPositions.push_back( primaryPos ) ;
          }
       }
+      else if ( CLS_RG_NODE_POS_INVALID != primaryPos &&
+                !selectedPositions.empty() &&
+                ( instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_MASTER ||
+                  instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_MASTER_SND ) )
+      {
+         // Primary is not in the selected list, but "M" or "m" is specified,
+         // so we need to consider primary node if all previous selected nodes
+         // are failing, put the primary node to the end
+         selectedPositions.push_back( primaryPos ) ;
+      }
+
+#ifdef _DEBUG
+      if ( selectedPositions.empty() )
+      {
+         PD_LOG( PDDEBUG, "Got no selected node positions" ) ;
+      }
+      else
+      {
+         StringBuilder ss ;
+         for ( RTN_COORD_POS_LIST::iterator iter = selectedPositions.begin() ;
+               iter != selectedPositions.end() ;
+               iter ++ )
+         {
+            if ( iter != selectedPositions.begin() )
+            {
+               ss << ", " ;
+            }
+            ss << ( *iter ) ;
+         }
+         PD_LOG( PDDEBUG, "Got selected node positions : [ %s ]",
+                 ss.str().c_str() ) ;
+      }
+#endif
 
    done :
       return ;
@@ -2585,13 +2623,14 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNCOGETNODEPOS ) ;
 
       BOOLEAN selected = FALSE ;
+      UINT32 primaryPos = pGroupItem->getPrimaryPos() ;
 
       if ( instanceOption.hasCommonInstance() )
       {
          const VEC_NODE_INFO * nodes = pGroupItem->getNodes() ;
          SDB_ASSERT( NULL != nodes, "node list is invalid" ) ;
-         _rtnCoordSelectPositions( *nodes, pGroupItem->getPrimaryPos(),
-                                   instanceOption, selectedPositions ) ;
+         _rtnCoordSelectPositions( *nodes, primaryPos, instanceOption,
+                                   selectedPositions ) ;
 
          if ( !selectedPositions.empty() )
          {
@@ -2603,25 +2642,34 @@ namespace engine
 
       if ( !selected )
       {
+         UINT32 nodeCount = pGroupItem->nodeCount() ;
+         BOOLEAN isSlavePreferred = FALSE ;
          switch ( instanceOption.getSpecialInstance() )
          {
             case PREFER_INSTANCE_TYPE_MASTER :
             case PREFER_INSTANCE_TYPE_MASTER_SND :
             {
                pos = pGroupItem->getPrimaryPos() ;
-               // if there is no primary,
-               // then do not break and go on to
-               // get random node
+               // if there is no primary, then go on to get random node
                if ( CLS_RG_NODE_POS_INVALID != pos )
                {
                   selected = TRUE ;
-                  break ;
                }
+               else
+               {
+                  pos = random ;
+               }
+               break ;
+            }
+            case PREFER_INSTANCE_TYPE_SLAVE :
+            case PREFER_INSTANCE_TYPE_SLAVE_SND :
+            {
+               isSlavePreferred = TRUE ;
+               pos = random ;
+               break ;
             }
             case PREFER_INSTANCE_TYPE_ANYONE :
             case PREFER_INSTANCE_TYPE_ANYONE_SND :
-            case PREFER_INSTANCE_TYPE_SLAVE :
-            case PREFER_INSTANCE_TYPE_SLAVE_SND :
             {
                pos = random ;
                break ;
@@ -2639,11 +2687,18 @@ namespace engine
                break ;
             }
          }
-      }
 
-      if( !selected && pGroupItem->nodeCount() > 0 )
-      {
-         pos = pos % pGroupItem->nodeCount() ;
+         if ( !selected && nodeCount > 0 )
+         {
+            // Round up the position to number of nodes
+            pos = pos % nodeCount ;
+            if ( isSlavePreferred && pos == primaryPos )
+            {
+               // Move one position back for slave preferred but primary has
+               // been chosen
+               pos = ( pos + 1 ) % nodeCount ;
+            }
+         }
       }
 
       PD_TRACE_EXIT( SDB_RTNCOGETNODEPOS ) ;
@@ -2652,13 +2707,16 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOGETNEXTNODE, "rtnCoordGetNextNode" )
    void rtnCoordGetNextNode ( clsGroupItem *pGroupItem,
                               RTN_COORD_POS_LIST & selectedPositions,
-                              BOOLEAN isSlavePreferred,
+                              const rtnInstanceOption & instanceOption,
                               UINT32 & selTimes,
                               UINT32 & curPos )
    {
       PD_TRACE_ENTRY( SDB_RTNCOGETNEXTNODE ) ;
 
-      if( selTimes >= pGroupItem->nodeCount() )
+      BOOLEAN isSlavePreferred = FALSE ;
+      UINT32 nodeCount = pGroupItem->nodeCount() ;
+
+      if( selTimes >= nodeCount )
       {
          curPos = CLS_RG_NODE_POS_INVALID ;
       }
@@ -2669,7 +2727,12 @@ namespace engine
          {
             if ( selectedPositions.empty() )
             {
-               tmpPos = ( tmpPos + 1 ) % pGroupItem->nodeCount() ;
+               // Only when choose from group will consider move position
+               // for slave preferred option
+               // The selected positions have been considered for slave
+               // preferred option
+               isSlavePreferred = instanceOption.isSlavePerferred() ;
+               tmpPos = ( tmpPos + 1 ) % nodeCount ;
             }
             else
             {
@@ -2680,16 +2743,16 @@ namespace engine
 
          if ( isSlavePreferred )
          {
-            UINT32 pimaryPos = pGroupItem->getPrimaryPos() ;
-
-            if ( CLS_RG_NODE_POS_INVALID != pimaryPos &&
-                 selTimes + 1 == pGroupItem->nodeCount() )
+            // Slave is preferred, avoid to use the primary node
+            UINT32 primaryPos = pGroupItem->getPrimaryPos() ;
+            if ( CLS_RG_NODE_POS_INVALID != primaryPos &&
+                 selTimes + 1 == nodeCount )
             {
-               tmpPos = pimaryPos ;
+               tmpPos = primaryPos ;
             }
-            else if ( tmpPos == pimaryPos )
+            else if ( tmpPos == primaryPos )
             {
-               tmpPos = ( tmpPos + 1 ) % pGroupItem->nodeCount() ;
+               tmpPos = ( tmpPos + 1 ) % nodeCount ;
             }
          }
 

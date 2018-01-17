@@ -392,7 +392,7 @@ namespace engine
 
    void  rtnCoordGetNextNode ( clsGroupItem * pGroupItem,
                                RTN_COORD_POS_LIST & selectedPositions,
-                               BOOLEAN isSlavePreferred,
+                               const rtnInstanceOption & instanceOption,
                                UINT32 & selTimes,
                                UINT32 & curPos ) ;
 
