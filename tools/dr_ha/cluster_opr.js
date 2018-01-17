@@ -30,7 +30,7 @@ if ( typeof(CUROPR) == "undefined" ) { CUROPR = "split" ; }
 if ( typeof(ACTIVE) == "undefined" ) { ACTIVE = true ; }
 /* 剔除故障组节点后剩余的最小副本数, 若剔除后剩余副本数小于最小副本数，将不会执行剔除操作 */
 if ( typeof(MINREPLICANUM) == "undefined" ) { MINREPLICANUM = 2 ; }
-/* 执行init时是否重新选举
+/* 执行init时是否重新选举 */
 if ( typeof(NEEDREELECT) == "undefined" ) { NEEDREELECT = true }
 /* 内部定义, 请勿修改 */
 if ( SEQPATH.charAt( SEQPATH.length - 1 ) != '/' ) { SEQPATH += '/' ; }
