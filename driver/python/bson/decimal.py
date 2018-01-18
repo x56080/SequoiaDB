@@ -87,6 +87,18 @@ class Decimal(object):
     def __repr__(self):
         return self.__to_json_string()
 
+    def __eq__(self, other):
+        if isinstance(other, Decimal) or \
+                isinstance(other, long_type) or \
+                isinstance(other, int) or \
+                isinstance(other, float):
+            return 0 == self.compare(other)
+        else:
+            return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def set_zero(self):
         """set the decimal object as an instance initalized by 0
         """
