@@ -719,7 +719,8 @@ namespace engine
       }
 
       // disk
-      rc = ossGetDiskInfo ( dbPath, diskTotalBytes, diskFreeBytes, fsName ) ;
+      rc = ossGetDiskInfo ( dbPath, diskTotalBytes, diskFreeBytes, fsName,
+                            OSS_MAX_PATHSIZE + 1 ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to get disk info, rc = %d", rc ) ;
