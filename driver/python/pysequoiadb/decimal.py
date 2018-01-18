@@ -15,6 +15,7 @@
 """decimal supported for Python driver of SequoiaDB
 """
 import bson
+from bson.py3compat import (long_type)
 from bson.py3compat import binary_type as bstr
 from bson.py3compat import PY3
 try:
@@ -85,12 +86,24 @@ class Decimal(object):
    def __repr__(self):
       return self.__to_json_string()
 
+   def __eq__(self, other):
+      if isinstance(other, Decimal) or \
+              isinstance(other, long_type) or \
+              isinstance(other, int) or \
+              isinstance(other, float):
+         return 0 == self.compare(other)
+      else:
+         return False
+
+   def __ne__(self, other):
+      return not self.__eq__(other)
+
    def set_zero(self):
       """set the decimal object as an instance initalized by 0
       """
       _ = decimal.setZero(self.__decimal)
       if 0 != _:
-         raise Exception("invalid parameter, code: %d" % _)
+         raise InvalidDecimal("invalid parameter, code: %d" % _)
 
    def is_zero(self):
       """charge the value of decimal is zero ir not
