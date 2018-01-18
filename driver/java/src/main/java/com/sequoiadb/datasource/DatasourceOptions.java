@@ -334,7 +334,22 @@ public class DatasourceOptions implements Cloneable {
      * Get the preferred instance.
      * @return The preferred instance or null for no any setting.
      */
-    public List<Object> getPreferedInstance() {
+    public List<String> getPreferedInstance() {
+        if (_preferedInstance == null) {
+            return null;
+        }
+        List<String> list = new ArrayList<String>();
+        for(Object o : _preferedInstance) {
+            if (o instanceof String) {
+                list.add((String)o);
+            } else if(o instanceof Integer) {
+                list.add(o + "");
+            }
+        }
+        return list;
+    }
+
+    List<Object> getPreferedInstanceObjects() {
         return _preferedInstance;
     }
 

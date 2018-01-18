@@ -1166,7 +1166,7 @@ public class SequoiadbDatasourceImpl {
         int keepAliveTimeout = newOpt.getKeepAliveTimeout();
         int checkInterval = newOpt.getCheckInterval();
         int syncCoordInterval = newOpt.getSyncCoordInterval();
-        List<Object> preferredInstanceList = newOpt.getPreferedInstance();
+        List<Object> preferredInstanceList = newOpt.getPreferedInstanceObjects();
         String preferredInstanceMode = newOpt.getPreferedInstanceMode();
         int sessionTimeout = newOpt.getSessionTimeout();
 
@@ -1213,14 +1213,14 @@ public class SequoiadbDatasourceImpl {
                             !"S".equals(s) && !"s".equals(s) &&
                             !"A".equals(s) && !"a".equals(s)) {
                         throw new BaseException(SDBError.SDB_INVALIDARG,
-                                "the element of preferred instance should be 'M'/'S'/'A'/'m'/'s'/'a/[1,255], but it is "
+                                "the element of preferred instance should be 'M'/'S'/'A'/'m'/'s'/'a/['1','255'], but it is "
                                         + s);
                     }
                 } else if (obj instanceof Integer) {
                     int i = (Integer)obj;
                     if (i <= 0 || i > 255) {
                         throw new BaseException(SDBError.SDB_INVALIDARG,
-                                "the element of preferred instance should be 'M'/'S'/'A'/'m'/'s'/'a/[1,255], but it is "
+                                "the element of preferred instance should be 'M'/'S'/'A'/'m'/'s'/'a/['1','255'], but it is "
                         + i);
                     }
                 } else {
