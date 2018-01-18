@@ -32,6 +32,8 @@ if ( typeof(ACTIVE) == "undefined" ) { ACTIVE = true ; }
 if ( typeof(MINREPLICANUM) == "undefined" ) { MINREPLICANUM = 2 ; }
 /* 执行init时是否重新选举 */
 if ( typeof(NEEDREELECT) == "undefined" ) { NEEDREELECT = true }
+/* 是否将init文件分发到集群的所有主机上 */
+if ( typeof(NEEDBROADCASTINITINFO) == "undefined" ) { NEEDBROADCASTINITINFO = true }
 /* 内部定义, 请勿修改 */
 if ( SEQPATH.charAt( SEQPATH.length - 1 ) != '/' ) { SEQPATH += '/' ; }
 var SDBSTART = SEQPATH + "bin/sdbstart" ;
@@ -1179,7 +1181,7 @@ function initCluster( coordAddrs, filename, active ) {
       try { File.remove( filename ) ; } catch( e ) {}
       return false ;
    }
-   if ( true == init ) {
+   if ( true == init && NEEDBROADCASTINITINFO ) {
       var copySuccess = true ;
       println( "Start to copy init file to cluster host" ) ;
       var hostAddrs = getClusterHostAddrs( coordAddrs ) ;
@@ -1354,7 +1356,8 @@ function restartNode( nodeNameArray ) {
       if( 0 != tmpArray.length ) {
          var portStr = tmpArray[0] ;
          for( var i = 1; i < tmpArray.length; i++ ) {
-            portStr += "," + tmpArray[i] ;
+            portStr += 
+"," + tmpArray[i] ;
          }
          var ssh ;
          /* Stop and start  */
@@ -1414,7 +1417,8 @@ function detachCatalogNode( coordAddr, cataAddr ) {
          isOK = false ;
          needDisableAuth = true ;
       }else{
-         println( "Connect to " + addrArray[0] + ":"+ addrArray[1] + " failed: "
+         println( "Connect to " + addrArray[0] + ":"
++ addrArray[1] + " failed: "
                   + e + " (" + getLastErrMsg() + ")" ) ;
          throw e ;
       }

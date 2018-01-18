@@ -38,6 +38,7 @@ detachGroupNode和attachGroupNode操作步骤和场景：
       COORDADDR: 协调节点定义，如果协调节点已经在协调节点组信息中，则此处填写一个可用地址即可
       MINREPLICANUM: 剔除故障组节点后剩余的最小副本数, 若剔除后剩余副本数小于最小副本数，将不会执行剔除操作。
       NEEDREELECT：执行init动作时是否重新选主
+      NEEDBROADCASTINITINFO: 是否将init文件分发到集群的所有主机上
    3、在准备做detachGroupNode和attachGroupNode的机器上的shell下执行 ' sh init.sh '，进行初始化(通过设置NEEDREELECT为false,可以让初始化时不重新选主)
    
    4、当集群中的部分节点发生故障导致复制组不可用时，选一台执行过sh init.sh 的机器，执行 ' sh detachGroupNode '剔除不可用节点。
