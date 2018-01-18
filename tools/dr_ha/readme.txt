@@ -19,6 +19,8 @@ split和merge操作步骤和场景：
       COORDADDR: 协调节点定义，如果协调节点已经在协调节点组信息中，则此处填写一个可用地址即可
       CURSUB :   当前脚本所处的是在SUB1还是SUB2（注意，该参数非常重要）
       ACTIVE :   当前子网是否为激活状态。如果取false，则在split后，当前子网的集群为只读状态。
+      NEEDREELECT：执行init动作时是否重新选主，在split和merge场景中init时可能需要让主节点在主数据中心的几个主机上，所以需要设置为true。
+      NEEDBROADCASTINITINFO: 是否将init文件分发到集群的所有主机上。在split和merge场景中，需要分别去主备数据节点做init操作（除了保存集群信息，还有设置节点权值重新选举等动作），所以一般设置为false即可。
    4、分别在上述SUB1-NodeA和SUB2-NodeA的机器上的shell下执行 ' sh init.sh '，进行初始化（该初始化主要是保存当前集群所有的组信息，用于merge时恢复集群）
 
    5、当SUB1和SUB2出现了网络分离，相互无法访问时，此时可以分别在上述SUB1-NodeA和SUB2-NodeA的机器上的shell下执行 ' sh split.sh ' 进行集群分离， 让SUB1和SUB2分离成独立集群，此时 ACTIVE配置为true的子网可以对外提供读写操作，ACTIVE配置为false的子网只提供读操作；
@@ -37,8 +39,8 @@ detachGroupNode和attachGroupNode操作步骤和场景：
       SUB1HOSTS: 填本机主机名即可
       COORDADDR: 协调节点定义，如果协调节点已经在协调节点组信息中，则此处填写一个可用地址即可
       MINREPLICANUM: 剔除故障组节点后剩余的最小副本数, 若剔除后剩余副本数小于最小副本数，将不会执行剔除操作。
-      NEEDREELECT：执行init动作时是否重新选主
-      NEEDBROADCASTINITINFO: 是否将init文件分发到集群的所有主机上
+      NEEDREELECT：执行init动作时是否重新选主，在detachGroupNode和attachGroupNode的场景中，在初始化中一般不需要重新选主，设置为false即可。
+      NEEDBROADCASTINITINFO: 是否将init文件分发到集群的所有主机上，在detachGroupNode和attachGroupNode的场景中，一般设置为true,这样无需到每台机器上重复做init操作。
    3、在准备做detachGroupNode和attachGroupNode的机器上的shell下执行 ' sh init.sh '，进行初始化(通过设置NEEDREELECT为false,可以让初始化时不重新选主)
    
    4、当集群中的部分节点发生故障导致复制组不可用时，选一台执行过sh init.sh 的机器，执行 ' sh detachGroupNode '剔除不可用节点。
