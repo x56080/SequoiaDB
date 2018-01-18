@@ -929,7 +929,7 @@ namespace engine
 #else
    #define CPU_CMD "cat /proc/cpuinfo | grep -E 'model name|cpu MHz|cpu cores|physical id'"
 #endif
-   
+
       rc = runner.exec( CPU_CMD, exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc || SDB_OK != exitCode )
@@ -1133,7 +1133,7 @@ namespace engine
       vector<string> vecFreq ;
 
       boost::algorithm::split( splited, buf, boost::is_any_of("\r\n") ) ;
-      for ( vector<string>::iterator itr = splited.begin(); 
+      for ( vector<string>::iterator itr = splited.begin();
             itr != splited.end(); // don't itr++
           )
       {
@@ -1144,19 +1144,19 @@ namespace engine
          else
          {
             itr++ ;
-         }   
+         }
       }
       for ( vector<string>::iterator itr = splited.begin();
             itr != splited.end(); itr++ )
       {
-         // *itr is in the format of "xxx : xx", so let's 
+         // *itr is in the format of "xxx : xx", so let's
          // split it with ":"
          vector<string> columns ;
          boost::algorithm::split( columns, *itr, boost::is_any_of(":") ) ;
-         for ( vector<string>::iterator itr2 = columns.begin(); 
+         for ( vector<string>::iterator itr2 = columns.begin();
                itr2 != columns.end(); itr2++ )
          {
-            boost::algorithm::trim( *itr2 ) ;            
+            boost::algorithm::trim( *itr2 ) ;
          }
          if ( strProcessor == columns.at(0) )
          {
@@ -1213,7 +1213,7 @@ namespace engine
                {
                   FLOAT32 inc = boost::lexical_cast<FLOAT32>( freq ) ;
                   totalFreq += inc / 1000.0 ;
-               } 
+               }
                catch( std::exception &e )
                {
                   PD_LOG( PDERROR, "unexpected err happened:%s, content:[%s]",
@@ -1235,7 +1235,7 @@ namespace engine
             }
             arrBuilder << BSON( SPT_USR_SYSTEM_CORE << coreNum
                                 << SPT_USR_SYSTEM_INFO << info
-                                << SPT_USR_SYSTEM_FREQ << strAvgFreq + "GHz" ) ;            
+                                << SPT_USR_SYSTEM_FREQ << strAvgFreq + "GHz" ) ;
             }
             // clean the counters
             processorCount = 0 ;
@@ -1275,7 +1275,7 @@ namespace engine
       INT32 counter = 1 ;
 
       boost::algorithm::split( splited, buf, boost::is_any_of("\r\n") ) ;
-      for ( vector<string>::iterator itr = splited.begin(); 
+      for ( vector<string>::iterator itr = splited.begin();
             itr != splited.end(); // don't itr++
           )
       {
@@ -1286,7 +1286,7 @@ namespace engine
          else
          {
             itr++ ;
-         }   
+         }
       }
       if ( ( splited.size() % fieldNum ) != 0 )
       {
@@ -1299,14 +1299,14 @@ namespace engine
             itr != splited.end();
             itr++, counter++ )
       {
-         // *itr is in the format of "xxx : xx", so let's 
+         // *itr is in the format of "xxx : xx", so let's
          // split it with ":"
          vector<string> columns ;
          boost::algorithm::split( columns, *itr, boost::is_any_of(":") ) ;
-         for ( vector<string>::iterator itr2 = columns.begin(); 
+         for ( vector<string>::iterator itr2 = columns.begin();
                itr2 != columns.end(); itr2++ )
          {
-            boost::algorithm::trim( *itr2 ) ;            
+            boost::algorithm::trim( *itr2 ) ;
          }
          if ( strModelName == columns.at(0) )
          {
@@ -1352,8 +1352,8 @@ namespace engine
             }
          }
       }
-      // merge the cpu info 
-      for ( set<string>::iterator itr = physicalIDSet.begin(); 
+      // merge the cpu info
+      for ( set<string>::iterator itr = physicalIDSet.begin();
             itr != physicalIDSet.end(); itr++ )
       {
          string physicalID = *itr ;
@@ -1436,7 +1436,7 @@ namespace engine
 
          for ( vector<string>::iterator itr2 = columns.begin();
                itr2 != columns.end();
-               /// do not ++      
+               /// do not ++
                )
          {
             if ( itr2->empty() )
@@ -1578,7 +1578,7 @@ namespace engine
 
       for ( vector<string>::iterator itr = splited.begin();
             itr != splited.end();
-            /// do not ++   
+            /// do not ++
           )
       {
          if ( itr->empty() )
@@ -1650,7 +1650,7 @@ namespace engine
       stringstream ss ;
       stringstream filess ;
       const UINT32 bufSize = 256 ;
-      CHAR buf[bufSize + 1] = { 0 } ; 
+      CHAR buf[bufSize + 1] = { 0 } ;
 
       rc = ossOpen( SPT_DISK_SRC_FILE,
                     OSS_READONLY | OSS_SHAREREAD,
@@ -1727,16 +1727,15 @@ namespace engine
          fs = columns.at( 0 ).c_str() ;
          fsType = columns.at( 2 ).c_str() ;
          mount = columns.at( 1 ).c_str() ;
-         rc = ossGetDiskInfo( mount, totalBytes, freeBytes ) ;
-         if ( SDB_OK == rc )
+         if ( SDB_OK == ossGetDiskInfo( mount, totalBytes, freeBytes ) )
          {
-            if ( ossStrcasecmp( SPT_DISK_IGNORE_TYPE_BINFMT_MISC, fsType ) == 0 
+            if ( ossStrcasecmp( SPT_DISK_IGNORE_TYPE_BINFMT_MISC, fsType ) == 0
                  || ossStrcasecmp( SPT_DISK_IGNORE_TYPE_SYSFS, fsType ) == 0
                  || ossStrcasecmp( SPT_DISK_IGNORE_TYPE_PROC, fsType ) == 0
-                 || ossStrcasecmp( SPT_DISK_IGNORE_TYPE_DEVPTS, fsType ) == 0 
-                 || ossStrcasecmp( SPT_DISK_IGNORE_TYPE_FUSECTL, fsType ) == 0 
+                 || ossStrcasecmp( SPT_DISK_IGNORE_TYPE_DEVPTS, fsType ) == 0
+                 || ossStrcasecmp( SPT_DISK_IGNORE_TYPE_FUSECTL, fsType ) == 0
                  || ossStrcasecmp( SPT_DISK_IGNORE_TYPE_GVFS, fsType ) == 0
-                 || ossStrcasecmp( SPT_DISK_IGNORE_TYPE_SECURITYFS, 
+                 || ossStrcasecmp( SPT_DISK_IGNORE_TYPE_SECURITYFS,
                                                                  fsType ) == 0 )
             {
                continue ;
@@ -1856,7 +1855,7 @@ namespace engine
 
          for ( vector<string>::iterator itr2 = columns.begin();
                itr2 != columns.end();
-               /// do not ++      
+               /// do not ++
                )
          {
             if ( itr2->empty() )
@@ -1939,7 +1938,7 @@ namespace engine
          stringstream ss ;
          ss << "failed to get netcard info:" << rc ;
          detail = BSON( SPT_ERR << ss.str() ) ;
-         goto error ; 
+         goto error ;
       }
       rval.setBSONObj( "", builder.obj() ) ;
 
@@ -2090,7 +2089,7 @@ namespace engine
          {
             const CHAR *oneLine = iterLine->c_str() ;
             vector<string> vColumns ;
-            boost::algorithm::split( vColumns, oneLine, 
+            boost::algorithm::split( vColumns, oneLine,
                                      boost::is_any_of("\t ") ) ;
             vector<string>::iterator iterColumn = vColumns.begin() ;
             while ( iterColumn != vColumns.end() )
@@ -2119,28 +2118,28 @@ namespace engine
                innerBuilder.append( SPT_USR_SYSTEM_NAME,
                              boost::lexical_cast<string>( vColumns.at( 0 ) ) ) ;
                innerBuilder.append( SPT_USR_SYSTEM_RX_BYTES,
-                            ( long long )boost::lexical_cast<UINT64>( 
+                            ( long long )boost::lexical_cast<UINT64>(
                                                          vColumns.at( 1 ) ) ) ;
                innerBuilder.append( SPT_USR_SYSTEM_RX_PACKETS,
-                            ( long long )boost::lexical_cast<UINT64>( 
+                            ( long long )boost::lexical_cast<UINT64>(
                                                          vColumns.at( 2 ) ) ) ;
                innerBuilder.append( SPT_USR_SYSTEM_RX_ERRORS,
-                            ( long long )boost::lexical_cast<UINT64>( 
+                            ( long long )boost::lexical_cast<UINT64>(
                                                          vColumns.at( 3 ) ) ) ;
                innerBuilder.append( SPT_USR_SYSTEM_RX_DROPS,
-                            ( long long )boost::lexical_cast<UINT64>( 
+                            ( long long )boost::lexical_cast<UINT64>(
                                                          vColumns.at( 4 ) ) ) ;
                innerBuilder.append( SPT_USR_SYSTEM_TX_BYTES,
-                            ( long long )boost::lexical_cast<UINT64>( 
+                            ( long long )boost::lexical_cast<UINT64>(
                                                          vColumns.at( 5 ) ) ) ;
                innerBuilder.append( SPT_USR_SYSTEM_TX_PACKETS,
                             ( long long )boost::lexical_cast<UINT64>(
                                                          vColumns.at( 6 ) ) ) ;
                innerBuilder.append( SPT_USR_SYSTEM_TX_ERRORS,
-                            ( long long )boost::lexical_cast<UINT64>( 
+                            ( long long )boost::lexical_cast<UINT64>(
                                                          vColumns.at( 7 ) ) ) ;
                innerBuilder.append( SPT_USR_SYSTEM_TX_DROPS,
-                            ( long long )boost::lexical_cast<UINT64>( 
+                            ( long long )boost::lexical_cast<UINT64>(
                                                          vColumns.at( 8 ) ) ) ;
                BSONObj obj = innerBuilder.obj() ;
                arrayBuilder.append( obj ) ;
@@ -2182,7 +2181,7 @@ namespace engine
 #endif
 
 #if defined (_LINUX)
-   INT32 _sptUsrSystem::_snapshotNetcardInfo( bson::BSONObjBuilder &builder, 
+   INT32 _sptUsrSystem::_snapshotNetcardInfo( bson::BSONObjBuilder &builder,
                                               bson::BSONObj &detail )
    {
       INT32 rc        = SDB_OK ;
@@ -2234,7 +2233,7 @@ namespace engine
       goto done ;
    }
 #else
-   INT32 _sptUsrSystem::_snapshotNetcardInfo( bson::BSONObjBuilder &builder, 
+   INT32 _sptUsrSystem::_snapshotNetcardInfo( bson::BSONObjBuilder &builder,
                                               bson::BSONObj &detail )
    {
       INT32 rc              = SDB_OK ;
@@ -2244,7 +2243,7 @@ namespace engine
       time_t myTime ;
 
       DWORD size = sizeof( MIB_IFTABLE ) ;
-      pTable     = (PMIB_IFTABLE) SDB_OSS_MALLOC( size ) ; 
+      pTable     = (PMIB_IFTABLE) SDB_OSS_MALLOC( size ) ;
       if ( NULL == pTable )
       {
          rc = SDB_OOM ;
@@ -2317,7 +2316,7 @@ namespace engine
             innerBuilder.append( SPT_USR_SYSTEM_TX_BYTES,
                                  ( long long )Row.dwOutOctets ) ;
             innerBuilder.append( SPT_USR_SYSTEM_TX_PACKETS,
-                          ( long long ) 
+                          ( long long )
                                 ( Row.dwOutUcastPkts + Row.dwOutNUcastPkts ) ) ;
             innerBuilder.append( SPT_USR_SYSTEM_TX_ERRORS,
                                  ( long long )Row.dwOutErrors ) ;
@@ -2485,7 +2484,7 @@ namespace engine
       }
       id = ossGetCurrentProcessID() ;
       rval.setNativeVal( "", NumberInt, (const void *)(&id) ) ;
-      
+
    done:
       return rc ;
    error:
