@@ -1788,8 +1788,7 @@ namespace engine
          fs = columns.at( 0 ).c_str() ;
          fsType = columns.at( 2 ).c_str() ;
          mount = columns.at( 1 ).c_str() ;
-         rc = ossGetDiskInfo( mount, totalBytes, freeBytes ) ;
-         if ( SDB_OK == rc )
+         if ( SDB_OK == ossGetDiskInfo( mount, totalBytes, freeBytes ) )
          {
             if ( ossStrcasecmp( CMD_DISK_IGNORE_TYPE_BINFMT_MISC, fsType ) == 0
                  || ossStrcasecmp( CMD_DISK_IGNORE_TYPE_SYSFS, fsType ) == 0
