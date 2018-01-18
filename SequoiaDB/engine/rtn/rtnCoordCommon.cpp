@@ -815,11 +815,11 @@ namespace engine
          }
 
          isGotMsg = cb->waitEvent( pmdEvent, waitTime ) ;
-         oprtTimeout -= waitTime ;
 
          // if we didn't receive anything
          if ( FALSE == isGotMsg )
          {
+            oprtTimeout -= waitTime ;
             if ( !isWaitAll && !replyQue.empty() )
             {
                break ;
