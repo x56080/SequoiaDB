@@ -2505,18 +2505,21 @@ namespace engine
    static void _rtnCoordSelectPositions ( const VEC_NODE_INFO & groupNodes,
                                           UINT32 primaryPos,
                                           const rtnInstanceOption & instanceOption,
+                                          UINT32 random,
                                           RTN_COORD_POS_LIST & selectedPositions )
    {
       RTN_PREFER_INSTANCE_MODE mode = instanceOption.getPreferredMode() ;
       const RTN_INSTANCE_LIST & instanceList = instanceOption.getInstanceList() ;
       RTN_COORD_POS_ARRAY tempPositions ;
+      UINT8 unselectMask = 0xFF ;
+      UINT32 nodeCount = groupNodes.size() ;
       BOOLEAN foundPrimary = FALSE ;
       BOOLEAN primaryFirst = ( instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_MASTER ) ;
       BOOLEAN primaryLast = ( instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_SLAVE ) ;
 
       selectedPositions.clear() ;
 
-      if ( groupNodes.size() == 0 || instanceList.empty() )
+      if ( nodeCount == 0 || instanceList.empty() )
       {
          goto done ;
       }
@@ -2549,6 +2552,7 @@ namespace engine
                   {
                      tempPositions.append( pos ) ;
                   }
+                  OSS_BIT_CLEAR( unselectMask, 1 << pos ) ;
                }
             }
             if ( !tempPositions.empty() &&
@@ -2584,6 +2588,21 @@ namespace engine
          // so we need to consider primary node if all previous selected nodes
          // are failing, put the primary node to the end
          selectedPositions.push_back( primaryPos ) ;
+         OSS_BIT_CLEAR( unselectMask, 1 << primaryPos ) ;
+      }
+
+      // Push the unselected positions in the end of selected positions
+      if ( !selectedPositions.empty() )
+      {
+         UINT8 tmpPos = (UINT8)random ;
+         for ( UINT32 i = 0 ; i < nodeCount ; i ++ )
+         {
+            tmpPos = ( tmpPos + 1 ) % nodeCount ;
+            if ( OSS_BIT_TEST( unselectMask, 1 << tmpPos ) )
+            {
+               selectedPositions.push_back( (UINT8)tmpPos ) ;
+            }
+         }
       }
 
 #ifdef _DEBUG
@@ -2629,7 +2648,7 @@ namespace engine
       {
          const VEC_NODE_INFO * nodes = pGroupItem->getNodes() ;
          SDB_ASSERT( NULL != nodes, "node list is invalid" ) ;
-         _rtnCoordSelectPositions( *nodes, primaryPos, instanceOption,
+         _rtnCoordSelectPositions( *nodes, primaryPos, instanceOption, random,
                                    selectedPositions ) ;
 
          if ( !selectedPositions.empty() )

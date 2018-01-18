@@ -46,6 +46,7 @@ namespace engine
 
    typedef enum _RTN_PREFER_INSTANCE_TYPE
    {
+      // Note : secondary choice means lower priority than numeric instances
       PREFER_INSTANCE_TYPE_MASTER_SND  = -6, // master node in secondary choice
       PREFER_INSTANCE_TYPE_SLAVE_SND   = -5, // any slave node in secondary choice
       PREFER_INSTANCE_TYPE_ANYONE_SND  = -4, // any node( include master ) in secondary choice
