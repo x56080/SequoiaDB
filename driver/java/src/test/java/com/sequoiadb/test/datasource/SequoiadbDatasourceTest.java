@@ -11,6 +11,7 @@ import org.bson.BasicBSONObject;
 import org.junit.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
@@ -53,7 +54,7 @@ public class SequoiadbDatasourceTest {
         int maxCount = 50;
         DatasourceOptions options = new DatasourceOptions();
         options.setMaxCount(maxCount);
-        options.setPreferedInstance("M", "m", 1, 2);
+        options.setPreferedInstance(Arrays.asList("M", "m", "1", "2", "012"));
         options.setPreferedInstanceMode("ordered");
         options.setSessionTimeout(100);
         SequoiadbDatasource sds = new SequoiadbDatasource(coords, "", "", null, options);

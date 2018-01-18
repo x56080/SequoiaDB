@@ -26,11 +26,14 @@ package com.sequoiadb.datasource;
 
 
 import com.sequoiadb.base.SequoiadbConstants;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static com.sequoiadb.base.SequoiadbConstants.*;
@@ -43,6 +46,7 @@ import static com.sequoiadb.base.SequoiadbConstants.*;
  */
 public class DatasourceOptions implements Cloneable {
 
+    private static final List<String> MODE = Arrays.asList("M", "m", "S", "s", "A", "a");
     private static final String DEFAULT_PREFERRD_INSTANCE_MODE = SequoiadbConstants.PREFERED_INSTANCE_MODE_RANDON;
     private static final int DEFAULT_SESSION_TIMEOUT = -1;
     private int _deltaIncCount = 10;
@@ -176,25 +180,43 @@ public class DatasourceOptions implements Cloneable {
      * use the setting in the coord's setting file.
      * Note: When specifying preferred instance, Datasource will set the session attribute only
      * when it creating a connection. That means when user get a connection out from the Datasource,
-     * if user reset the session attribute of the connection, Datasource will keep the latest changes of the connection.
+     * if user reset the session attribute of the connection, Datasource will keep the latest changes of the setting.
      *
-     * @param PreferedInstance Could be single value in "M", "m", "S", "s", "A", "a", 1-255, or multiple values of them.
+     * @param PreferedInstance Could be single value in "M", "m", "S", "s", "A", "a", "1"-"255", or multiple values of them.
      *          <ul>
      *              <li>"M", "m": read and write instance( master instance ). If multiple numeric instances are given with "M", matched master instance will be chosen in higher priority. If multiple numeric instances are given with "M" or "m", master instance will be chosen if no numeric instance is matched.</li>
      *              <li>"S", "s": read only instance( slave instance ). If multiple numeric instances are given with "S", matched slave instances will be chosen in higher priority. If multiple numeric instances are given with "S" or "s", slave instance will be chosen if no numeric instance is matched.</li>
      *              <li>"A", "a": any instance.</li>
-     *              <li>1-255: the instance with specified instance ID.</li>
+     *              <li>"1"-"255": the instance with specified instance ID.</li>
      *              <li>If multiple alphabet instances are given, only first one will be used.</li>
      *              <li>If matched instance is not found, will choose instance by random.</li>
      *          </ul>
      */
-    public void setPreferedInstance(Object... preferedInstance) {
-        if (preferedInstance == null || preferedInstance.length == 0) {
+    public void setPreferedInstance(final List<String> preferedInstance) {
+        if (preferedInstance == null || preferedInstance.size() == 0) {
+            return;
+        }
+        List<String> list = new ArrayList<String>();
+
+        for(String s : preferedInstance) {
+            if (isValidMode(s)) {
+                if (!list.contains(s)) {
+                    list.add(s);
+                }
+            } else {
+                throw new BaseException(SDBError.SDB_INVALIDARG, "invalid preferred instance: " + s);
+            }
+        }
+        if (list.size() == 0) {
             return;
         }
         _preferedInstance = new ArrayList<Object>();
-        for(Object o : preferedInstance) {
-            _preferedInstance.add(o);
+        for(String s : list) {
+            try {
+                _preferedInstance.add(Integer.valueOf(s));
+            } catch(NumberFormatException e) {
+                _preferedInstance.add(s);
+            }
         }
     }
 
@@ -209,7 +231,7 @@ public class DatasourceOptions implements Cloneable {
      */
     public void setPreferedInstanceMode(String mode) {
         if (mode == null || mode.isEmpty()) {
-            mode = DEFAULT_PREFERRD_INSTANCE_MODE;
+            _preferedInstanceMode = DEFAULT_PREFERRD_INSTANCE_MODE;
         } else {
             _preferedInstanceMode = mode;
         }
@@ -527,6 +549,33 @@ public class DatasourceOptions implements Cloneable {
             obj.put(FIELD_NAME_SESSION_TIMEOUT, _sessionTimeout);
         }
         return obj;
+    }
+
+    private boolean isCharMode(String s) {
+        for(int i = 0; i < MODE.size(); i++) {
+            if (MODE.get(i).equals(s)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isValidMode(String s) {
+        if (isCharMode(s)) {
+            return true;
+        } else {
+            int n = 0;
+            try {
+                n = Integer.parseInt(s);
+            } catch (NumberFormatException e) {
+                return false;
+            }
+            if (n >= 1 && n <= 255) {
+                return true;
+            } else {
+                return false;
+            }
+        }
     }
 
 }

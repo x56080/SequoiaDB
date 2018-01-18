@@ -808,7 +808,8 @@ public class SequoiadbDatasourceImpl {
                                 connItem = null;
                                 _destroyConnQueue.add(sdb);
                                 throw new BaseException(SDBError.SDB_SYS,
-                                        "failed to set the session attribute of the connection", e);
+                                        String.format("failed to set the session attribute[%s]",
+                                                _sessionAttr.toString()), e);
                             }
                         }
                         connItem.setAddr(sdb.getServerAddress().toString());
@@ -1212,17 +1213,20 @@ public class SequoiadbDatasourceImpl {
                             !"S".equals(s) && !"s".equals(s) &&
                             !"A".equals(s) && !"a".equals(s)) {
                         throw new BaseException(SDBError.SDB_INVALIDARG,
-                                "the element of preferred instance should be 'M'/'S'/'A'/'m'/'s'/'a/[1,255]");
+                                "the element of preferred instance should be 'M'/'S'/'A'/'m'/'s'/'a/[1,255], but it is "
+                                        + s);
                     }
                 } else if (obj instanceof Integer) {
                     int i = (Integer)obj;
                     if (i <= 0 || i > 255) {
                         throw new BaseException(SDBError.SDB_INVALIDARG,
-                                "the element of preferred instance should be 'M'/'S'/'A'/'m'/'s'/'a/[1,255]");
+                                "the element of preferred instance should be 'M'/'S'/'A'/'m'/'s'/'a/[1,255], but it is "
+                        + i);
                     }
                 } else {
                     throw new BaseException(SDBError.SDB_INVALIDARG,
-                            "the element of preferred instance should be 'M'/'S'/'A'/'m'/'s'/'a/[1,255]");
+                            "the preferred instance should instance of int or String, but it is "
+                                    + (obj == null ? null : obj.getClass()));
                 }
             }
             // check preferred instance mode
