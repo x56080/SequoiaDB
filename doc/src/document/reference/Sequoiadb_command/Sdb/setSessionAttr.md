@@ -29,6 +29,7 @@
 >       *   如果指定多个 "M"、"m"、"S"、"s"、"A"、"a" 实例，则只有第一个生效。
 >       *   如果没有符合 PreferedInstance 的实例，会话将随机选择使用上一次写操作的实例，即可读写（主）实例进行查询（如无写操作，则随机选取实例）。
 >   *   Timeout 的默认值是 -1，即不进行超时检测。
+>   *   获取会话属性请参考 [Sdb.getSessionAttr()](reference/Sequoiadb_command/Sdb/getSessionAttr.md) 。
 
 ##返回值##
 
