@@ -1199,6 +1199,29 @@ namespace engine
                               INT16 w = 1, INT64 *pContextID = NULL ) ;
    } ;
 
+   class _rtnGetSessionAttr : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnGetSessionAttr () ;
+         virtual ~_rtnGetSessionAttr () ;
+
+      public:
+         virtual const CHAR * name () { return NAME_GET_SESSIONATTR ; }
+         virtual RTN_COMMAND_TYPE type () { return CMD_GET_SESSIONATTR ; }
+
+         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                              const CHAR * pMatcherBuff,
+                              const CHAR * pSelectBuff,
+                              const CHAR * pOrderByBuff,
+                              const CHAR * pHintBuff ) ;
+
+         virtual INT32 doit ( _pmdEDUCB * cb, _SDB_DMSCB * dmsCB,
+                              _SDB_RTNCB * rtnCB, _dpsLogWrapper * dpsCB,
+                              INT16 w = 1, INT64 * pContextID = NULL ) ;
+   } ;
+
    class _rtnTruncate : public _rtnCommand
    {
    DECLARE_CMD_AUTO_REGISTER()

@@ -2952,6 +2952,34 @@ namespace engine
       return SDB_OK ;
    }
 
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnGetSessionAttr )
+
+   _rtnGetSessionAttr::_rtnGetSessionAttr ()
+   {
+   }
+
+   _rtnGetSessionAttr::~_rtnGetSessionAttr ()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNGETSESSATTR_INIT, "_rtnGetSessionAttr::init" )
+   INT32 _rtnGetSessionAttr::init ( INT32 flags, INT64 numToSkip,
+                                    INT64 numToReturn,
+                                    const CHAR * pMatcherBuff,
+                                    const CHAR * pSelectBuff,
+                                    const CHAR * pOrderByBuff,
+                                    const CHAR * pHintBuff )
+   {
+      return SDB_OK ;
+   }
+
+   INT32 _rtnGetSessionAttr::doit ( _pmdEDUCB * cb, _SDB_DMSCB * dmsCB,
+                                    _SDB_RTNCB * rtnCB, _dpsLogWrapper * dpsCB,
+                                    INT16 w, INT64 * pContextID )
+   {
+      return SDB_OK ;
+   }
+
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnTruncate)
    // PD_TRACE_DECLARE_FUNCTION( SDB__RTNTRUNCATE_INIT, "_rtnTruncate::init" )
    INT32 _rtnTruncate::init( INT32 flags, INT64 numToSkip,

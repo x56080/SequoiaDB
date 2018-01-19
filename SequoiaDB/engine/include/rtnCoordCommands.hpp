@@ -520,6 +520,15 @@ namespace engine
                              rtnContextBuf *buf ) ;
    };
 
+   class rtnCoordCMDGetSessionAttr : public rtnCoordCommand
+   {
+   public:
+      virtual INT32 execute( MsgHeader *pMsg,
+                             pmdEDUCB *cb,
+                             INT64 &contextID,
+                             rtnContextBuf *buf ) ;
+   };
+
    class rtnCoordCMDAddDomainGroup : public rtnCoordCommand
    {
    public:

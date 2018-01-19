@@ -448,6 +448,84 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINST_TOBSON, "_rtnInstanceOption::toBSON" )
+   void _rtnInstanceOption::toBSON ( BSONObjBuilder & builder ) const
+   {
+      if ( isValidated() )
+      {
+         const CHAR * modeStr = NULL ;
+         if ( _instanceList.empty() )
+         {
+            builder.append( FIELD_NAME_PREFERED_INSTANCE,
+                            _getInstanceStr( _specInstance ) ) ;
+         }
+         else if ( _instanceList.size() == 1 &&
+                   PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
+         {
+            builder.append( FIELD_NAME_PREFERED_INSTANCE,
+                            (INT32)_instanceList.front() ) ;
+         }
+         else
+         {
+            BSONArrayBuilder instanceBuilder(
+                  builder.subarrayStart( FIELD_NAME_PREFERED_INSTANCE ) ) ;
+            for ( RTN_INSTANCE_LIST::const_iterator iter = _instanceList.begin() ;
+                  iter != _instanceList.end() ;
+                  iter ++ )
+            {
+               instanceBuilder.append( (INT32)( *iter ) ) ;
+            }
+            if ( PREFER_INSTANCE_TYPE_UNKNOWN != _specInstance )
+            {
+               instanceBuilder.append( _getInstanceStr( _specInstance ) ) ;
+            }
+         }
+         switch ( _mode )
+         {
+            case PREFER_INSTANCE_MODE_RANDOM :
+               modeStr = PREFER_INSTANCE_RANDOM_STR ;
+               break ;
+            case PREFER_INSTANCE_MODE_ORDERED :
+               modeStr = PREFER_INSTANCE_ORDERED_STR ;
+               break ;
+            default :
+               modeStr = PREFER_INSTANCE_RANDOM_STR ;
+               break ;
+         }
+         builder.append( FIELD_NAME_PREFERED_INSTANCE_MODE, modeStr ) ;
+      }
+      else
+      {
+         // Invalid options, use the default one
+         builder.append( FIELD_NAME_PREFERED_INSTANCE,
+                         PREFER_INSTANCE_MASTER_STR ) ;
+         builder.append( FIELD_NAME_PREFERED_INSTANCE_MODE,
+                         PREFER_INSTANCE_RANDOM_STR ) ;
+      }
+   }
+
+   const CHAR * _rtnInstanceOption::_getInstanceStr ( INT8 instance ) const
+   {
+      switch ( instance )
+      {
+         case PREFER_INSTANCE_TYPE_MASTER :
+            return PREFER_INSTANCE_MASTER_STR ;
+         case PREFER_INSTANCE_TYPE_MASTER_SND :
+            return PREFER_INSTANCE_MASTER_LOWSTR ;
+         case PREFER_INSTANCE_TYPE_SLAVE :
+            return PREFER_INSTANCE_SLAVE_STR ;
+         case PREFER_INSTANCE_TYPE_SLAVE_SND :
+            return PREFER_INSTANCE_SLAVE_LOWSTR ;
+         case PREFER_INSTANCE_TYPE_ANYONE :
+            return PREFER_INSTANCE_ANY_STR ;
+         case PREFER_INSTANCE_TYPE_ANYONE_SND :
+            return PREFER_INSTANCE_ANY_LOWSTR ;
+         default :
+            break ;
+      }
+      return "Unknown" ;
+   }
+
    void _rtnInstanceOption::_clearInstance ()
    {
       _specInstance = (INT8)PREFER_INSTANCE_TYPE_UNKNOWN ;
@@ -550,6 +628,16 @@ namespace engine
 
    error :
       goto done ;
+   }
+
+   BSONObj _rtnSessionProperty::toBSON () const
+   {
+      BSONObjBuilder builder ;
+
+      _instanceOption.toBSON( builder ) ;
+      builder.append( FIELD_NAME_TIMEOUT, _operationTimeout ) ;
+
+      return builder.obj() ;
    }
 
    //PD_TRACE_DECLARE_FUNCTION( SDB__RTNSESSPROP__PARSEPROPV0, "_rtnSessionProperty::_parsePropertyV0" )

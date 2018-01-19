@@ -133,10 +133,14 @@ namespace engine
          INT32 parsePreferredInstance ( const CHAR * instanceStr ) ;
          INT32 parsePreferredInstanceMode ( const CHAR * instanceModeStr ) ;
 
+         void toBSON ( bson::BSONObjBuilder & builder ) const ;
+
       protected :
          INT32 _parseIntegerPreferredInstance ( const bson::BSONElement & option ) ;
          INT32 _parseStringPreferredInstance ( const bson::BSONElement & option ) ;
          INT32 _parseArrayPreferredInstance ( const bson::BSONElement & option ) ;
+
+         const CHAR * _getInstanceStr ( INT8 instance ) const ;
 
          void _clearInstance () ;
 
@@ -202,6 +206,8 @@ namespace engine
          }
 
          INT32 parseProperty ( const bson::BSONObj & property ) ;
+
+         bson::BSONObj toBSON () const ;
 
       protected :
          INT32 _parsePropertyV0 ( const bson::BSONObj & property ) ;

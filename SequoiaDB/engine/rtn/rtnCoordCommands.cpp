@@ -2752,6 +2752,33 @@ namespace engine
       goto done;
    }
 
+   //PD_TRACE_DECLARE_FUNCTION( SDB_RTNCOCMDGETSESSATTR_EXE, "rtnCoordCMDGetSessionAttr::execute" )
+   INT32 rtnCoordCMDGetSessionAttr::execute( MsgHeader *pMsg,
+                                             pmdEDUCB *cb,
+                                             INT64 &contextID,
+                                             rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_RTNCOCMDGETSESSATTR_EXE ) ;
+
+      CoordSession *pSession = cb->getCoordSession() ;
+      PD_CHECK( pSession != NULL, SDB_SYS, error, PDERROR,
+                "Failed to get coord session" ) ;
+
+      ( *buf ) = rtnContextBuf( pSession->toBSON() ) ;
+
+   done :
+      // fill default-reply(delete success)
+      contextID = -1 ;
+
+      PD_TRACE_EXITRC( SDB_RTNCOCMDGETSESSATTR_EXE, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION( SDB_RTNCOCMDADDDOMAINGROUP_EXE, "rtnCoordCMDAddDomainGroup::execute" )
    INT32 rtnCoordCMDAddDomainGroup::execute( MsgHeader *pMsg,
                                              pmdEDUCB *cb,
