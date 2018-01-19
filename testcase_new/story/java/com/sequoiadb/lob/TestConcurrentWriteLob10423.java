@@ -128,8 +128,9 @@ public class TestConcurrentWriteLob10423 extends SdbTestBase {
 
 				//recorded the numbers of write lob successful 
 				sameOidWriteOKCount.getAndIncrement();
-		    }catch(BaseException e){
-		    	if ( e.getErrorCode() != -297 && e.getErrorCode() != -269){
+		    }catch(BaseException e){		    	
+		    	if ( e.getErrorCode() != -297 && e.getErrorCode() != -269&& e.getErrorCode() != -5){
+		    		e.getStackTrace();
 		    		Assert.assertTrue(false,"same oid write fail "+e.getErrorType()+":"+e.getMessage());
 		    	}			    
 		    }finally {
