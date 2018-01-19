@@ -102,6 +102,7 @@ PHP_METHOD( SequoiaDB, cancelTask ) ;
 
 //session
 PHP_METHOD( SequoiaDB, setSessionAttr ) ;
+PHP_METHOD( SequoiaDB, getSessionAttr ) ;
 PHP_METHOD( SequoiaDB, forceSession ) ;
 
 #endif

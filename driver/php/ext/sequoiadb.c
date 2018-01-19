@@ -136,6 +136,7 @@ const zend_function_entry sdbFun[] = {
    PHP_ME( SequoiaDB, cancelTask,            NULL, ZEND_ACC_PUBLIC )
    //session
    PHP_ME( SequoiaDB, setSessionAttr,        NULL, ZEND_ACC_PUBLIC )
+   PHP_ME( SequoiaDB, getSessionAttr,        NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaDB, forceSession,          NULL, ZEND_ACC_PUBLIC )
    //Rename
    PHP_MALIAS( SequoiaDB, getSnapshot, snapshot, NULL, ZEND_ACC_PUBLIC )

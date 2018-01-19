@@ -2002,6 +2002,17 @@ SDB_EXPORT INT32 sdbCancelTask ( sdbConnectionHandle cHandle,
 SDB_EXPORT INT32 sdbSetSessionAttr ( sdbConnectionHandle cHandle,
                                      bson *options ) ;
 
+/** \fn INT32 sdbGetSessionAttr ( sdbConnectionHandle cHandle,
+                                  bson * result ) ;
+    \brief Set the attributes of the session.
+    \param [in] cHandle The connection handle
+    \param [out] result The return bson object
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbGetSessionAttr ( sdbConnectionHandle cHandle,
+                                     bson * result ) ;
+
 /** \fn INT32 sdbIsValid( sdbConnectionHandle cHandle, BOOLEAN *result )
     \brief Judge whether the connection is valid.
     \param [out] result the output result

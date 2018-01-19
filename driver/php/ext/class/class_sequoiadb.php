@@ -1875,6 +1875,28 @@ class SequoiaDB
    public function setSessionAttr( array|string $options ){}
 
    /**
+    * Get the attributes of the session.
+    *
+    * @return Returns the result, default return array.
+    *
+    * @retval array   result
+    * @retval string  result
+    *
+    * Example:
+    * @code
+    * $db = new SequoiaDB() ;
+    * $err = $db -> connect( "192.168.1.10:11810" ) ;
+    * if( $err['errno'] != 0 ) {
+    *    echo "Failed to connect database, error code: ".$err['errno'] ;
+    *    return ;
+    * }
+    * $result = $db -> getSessionAttr() ;
+    * var_dump( $result )
+    * @endcode
+   */
+   public function getSessionAttr(){}
+
+   /**
     * Interrupte the session.
     *
     * @param $sessionID an integer or the SequoiaINT64 Object argument. The id of the session which we want to inerrupt.

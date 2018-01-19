@@ -113,6 +113,7 @@ public class SequoiadbConstants {
     public final static String CMD_NAME_ATTACH_CL = "link collection";
     public final static String CMD_NAME_DETACH_CL = "unlink collection";
     public final static String CMD_NAME_SETSESS_ATTR = "set session attribute";
+    public final static String CMD_NAME_GETSESS_ATTR = "get session attribute";
     public final static String CMD_NAME_LIST_TASK = "list tasks";
     public final static String CMD_NAME_WAITTASK = "wait task";
     public final static String CMD_NAME_CANCEL_TASK = "cancel task";

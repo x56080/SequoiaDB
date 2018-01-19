@@ -1676,6 +1676,80 @@ error:
    goto done ;
 }
 
+// Internal functions for session attribute cache
+static void _sdbClearSessionAttrCache ( sdbConnectionStruct * connection,
+                                        BOOLEAN needLock )
+{
+   if ( NULL == connection )
+   {
+      return ;
+   }
+
+   if ( needLock )
+   {
+      ossMutexLock( &connection->_sockMutex ) ;
+   }
+   if ( NULL != connection->_attributeCache )
+   {
+      bson_dispose( connection->_attributeCache ) ;
+      connection->_attributeCache = NULL ;
+   }
+   if ( needLock )
+   {
+      ossMutexUnlock( &connection->_sockMutex ) ;
+   }
+}
+
+static void _sdbSetSessionAttrCache ( sdbConnectionStruct * connection,
+                                      bson * attribute )
+{
+   if ( NULL == connection )
+   {
+      return ;
+   }
+   if ( NULL == attribute )
+   {
+      return _sdbClearSessionAttrCache( connection, TRUE ) ;
+   }
+   ossMutexLock( &connection->_sockMutex ) ;
+   if ( NULL == connection->_attributeCache )
+   {
+      connection->_attributeCache = bson_create() ;
+   }
+   if ( NULL != connection->_attributeCache )
+   {
+      INT32 rc = bson_copy( connection->_attributeCache, attribute ) ;
+      if ( BSON_ERROR == rc )
+      {
+         bson_dispose( connection->_attributeCache ) ;
+         connection->_attributeCache = NULL ;
+      }
+   }
+   ossMutexUnlock( &connection->_sockMutex ) ;
+}
+
+static BOOLEAN _sdbGetSessionAttrCache ( sdbConnectionStruct * connection,
+                                         bson * attribute )
+{
+   BOOLEAN gotCache = FALSE ;
+
+   if ( NULL != attribute )
+   {
+      ossMutexLock( &connection->_sockMutex ) ;
+      if ( NULL != connection->_attributeCache )
+      {
+         INT32 rc = bson_copy( attribute, connection->_attributeCache ) ;
+         if ( BSON_OK == rc )
+         {
+            gotCache = TRUE ;
+         }
+      }
+      ossMutexUnlock( &connection->_sockMutex ) ;
+   }
+
+   return gotCache ;
+}
+
 // internal function used by spidermonkey. _retval must be saved in this slot
 SDB_EXPORT INT32 __sdbGetReserveSpace1 ( sdbConnectionHandle cHandle,
                                          UINT64 *space )
@@ -1978,6 +2052,8 @@ void _sdbDisconnect_inner ( sdbConnectionHandle handle )
       SDB_OSS_FREE( cursors ) ;
       cursors = connection->_cursors ;
    }
+
+   _sdbClearSessionAttrCache( connection, FALSE ) ;
 
 done :
    return ;
@@ -7362,6 +7438,7 @@ SDB_EXPORT void sdbReleaseConnection ( sdbConnectionHandle cHandle )
    {
       releaseHashTable( &(cs->_tb) ) ;
    }
+   _sdbClearSessionAttrCache( cs, FALSE ) ;
 
    SDB_OSS_FREE ( (sdbConnectionStruct*)cHandle ) ;
 
@@ -8292,6 +8369,9 @@ SDB_EXPORT INT32 sdbSetSessionAttr ( sdbConnectionHandle cHandle,
    BSON_APPEND( newObj, FIELD_NAME_VERSION, SDB_SETSESSIONATTR_V1, int ) ;
 
    BSON_FINISH ( newObj ) ;
+
+   _sdbClearSessionAttrCache( connection, TRUE ) ;
+
    rc = clientBuildQueryMsg ( &connection->_pSendBuffer,
                               &connection->_sendBufferSize,
                               CMD_ADMIN_PREFIX CMD_NAME_SETSESS_ATTR,
@@ -8327,10 +8407,103 @@ SDB_EXPORT INT32 sdbSetSessionAttr ( sdbConnectionHandle cHandle,
    // check the return header
    CHECK_RET_MSGHEADER( connection->_pSendBuffer, connection->_pReceiveBuffer,
                         cHandle ) ;
+
 done :
    BSON_DESTROY( newObj ) ;
    return rc ;
 error :
+   goto done ;
+}
+
+SDB_EXPORT INT32 sdbGetSessionAttr ( sdbConnectionHandle cHandle,
+                                     bson * result )
+{
+   INT32 rc = SDB_OK ;
+   BOOLEAN gotAttribute = FALSE ;
+   sdbCursorHandle cursor = SDB_INVALID_HANDLE ;
+   sdbConnectionStruct * connection = (sdbConnectionStruct *)cHandle ;
+
+   if ( NULL == result  )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   // check handle
+   HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
+
+   if ( _sdbGetSessionAttrCache( connection, result ) )
+   {
+      gotAttribute = TRUE ;
+      goto done ;
+   }
+
+   // run command
+   rc = _runCommand2( cHandle,
+                      &connection->_pSendBuffer, &connection->_sendBufferSize,
+                      &connection->_pReceiveBuffer, &connection->_receiveBufferSize,
+                      CMD_ADMIN_PREFIX CMD_NAME_GETSESS_ATTR,
+                      0, 0, 0, -1,
+                      NULL, NULL, NULL, NULL,
+                      &cursor ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+   if ( SDB_INVALID_HANDLE == cursor )
+   {
+      // Cursor is empty
+      _sdbClearSessionAttrCache( connection, TRUE ) ;
+      rc = SDB_OK ;
+   }
+   else
+   {
+      rc = sdbNext( cursor, result ) ;
+      if ( SDB_OK == rc )
+      {
+         _sdbSetSessionAttrCache( connection, result ) ;
+         gotAttribute = TRUE ;
+      }
+      else if ( SDB_DMS_EOC == rc )
+      {
+         _sdbClearSessionAttrCache( connection, TRUE ) ;
+         rc = SDB_OK ;
+      }
+      else
+      {
+         goto error ;
+      }
+   }
+
+   if ( !gotAttribute )
+   {
+      bson emptyResult ;
+      bson_init( &emptyResult ) ;
+      if ( BSON_OK != bson_finish( &emptyResult ) )
+      {
+         bson_destroy( &emptyResult ) ;
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+      if ( BSON_OK != bson_copy( result, &emptyResult ) )
+      {
+         bson_destroy( &emptyResult ) ;
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+      bson_destroy( &emptyResult ) ;
+   }
+
+done :
+   if ( SDB_INVALID_HANDLE != (sdbCursorHandle)cursor )
+   {
+      sdbReleaseCursor( (sdbCursorHandle)cursor ) ;
+   }
+   return rc ;
+
+error :
+   _sdbClearSessionAttrCache( connection, TRUE ) ;
    goto done ;
 }
 

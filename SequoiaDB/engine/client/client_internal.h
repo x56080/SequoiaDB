@@ -53,6 +53,7 @@ struct _sdbConnectionStruct
    Node *_cursors ;
    Node *_sockets ;
    hashTable *_tb ;
+   bson *_attributeCache ;
 
    UINT64 reserveSpace1 ;
    ossMutex _sockMutex ;

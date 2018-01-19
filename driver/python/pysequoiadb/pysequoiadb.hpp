@@ -42,6 +42,7 @@ __METHOD_DECLARE(sdb_list_tasks) ;
 __METHOD_DECLARE(sdb_wait_task) ;
 __METHOD_DECLARE(sdb_cancel_task) ;
 __METHOD_DECLARE(sdb_set_session_attri) ;
+__METHOD_DECLARE(sdb_get_session_attri) ;
 __METHOD_DECLARE(sdb_close_all_cursors) ;
 __METHOD_DECLARE(sdb_is_valid) ;
 __METHOD_DECLARE(sdb_get_version) ;

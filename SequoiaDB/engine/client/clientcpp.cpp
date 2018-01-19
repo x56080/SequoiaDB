@@ -5751,7 +5751,8 @@ error :
    _pReceiveBuffer ( NULL ),
    _receiveBufferSize ( 0 ),
    _useSSL ( useSSL ),
-   _tb ( NULL )
+   _tb ( NULL ),
+   _attributeCache ()
    {
       initHashTable( &_tb ) ;
       // get current time
@@ -5829,6 +5830,7 @@ error :
          delete _sock ;
          _sock = NULL ;
       }
+      _clearSessionAttrCache( FALSE ) ;
    }
 
    INT32 _sdbImpl::_connect ( const CHAR *pHostName,
@@ -8093,7 +8095,34 @@ error :
       goto done ;
    }
 
-   INT32 _sdbImpl::setSessionAttr ( const bson::BSONObj &options )
+   void _sdbImpl::_clearSessionAttrCache ( BOOLEAN needLock )
+   {
+      if ( needLock )
+      {
+         lock() ;
+      }
+      _attributeCache = _sdbStaticObject ;
+      if ( needLock )
+      {
+         unlock() ;
+      }
+   }
+
+   void _sdbImpl::_setSessionAttrCache ( const BSONObj & attribute )
+   {
+      lock() ;
+      _attributeCache = attribute.getOwned() ;
+      unlock() ;
+   }
+
+   void _sdbImpl::_getSessionAttrCache ( BSONObj & attribute )
+   {
+      lock() ;
+      attribute = _attributeCache ;
+      unlock() ;
+   }
+
+   INT32 _sdbImpl::setSessionAttr ( const BSONObj &options )
    {
       INT32 rc         = SDB_OK ;
       BOOLEAN result   = FALSE ;
@@ -8101,7 +8130,6 @@ error :
       SINT64 contextID = 0 ;
       BSONObjBuilder builder ;
       BSONObj newObj ;
-      string command =string( CMD_ADMIN_PREFIX CMD_NAME_SETSESS_ATTR ) ;
 
       if ( options.isEmpty() )
       {
@@ -8114,10 +8142,12 @@ error :
       builder.append( FIELD_NAME_VERSION, SDB_SETSESSIONATTR_V1 ) ;
       newObj = builder.obj() ;
 
+      _clearSessionAttrCache( TRUE ) ;
+
       // build msg
       rc = clientBuildQueryMsgCpp( &_pSendBuffer, &_sendBufferSize,
-                                   command.c_str(), 0, 0, 0, -1,
-                                   newObj.objdata(), NULL,
+                                   CMD_ADMIN_PREFIX CMD_NAME_SETSESS_ATTR,
+                                   0, 0, 0, -1, newObj.objdata(), NULL,
                                    NULL, NULL, _endianConvert ) ;
       if ( rc )
       {
@@ -8136,13 +8166,83 @@ error :
       {
          goto error ;
       }
+
       // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
+
    done :
       if ( locked )
+      {
          unlock() ;
+      }
       return rc ;
+
    error :
+      goto done ;
+   }
+
+   INT32 _sdbImpl::getSessionAttr ( BSONObj & attribute )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN gotAttribute = FALSE ;
+      _sdbCursor * cursor = NULL ;
+
+      if ( !isConnected() )
+      {
+         goto error ;
+      }
+
+      _getSessionAttrCache( attribute ) ;
+      if ( !attribute.isEmpty() )
+      {
+         gotAttribute = TRUE ;
+         goto done ;
+      }
+
+      rc = _runCommand( CMD_ADMIN_PREFIX CMD_NAME_GETSESS_ATTR,
+                        NULL, NULL, NULL, NULL,
+                        0, 0, 0, -1, &cursor ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      // Empty result
+      if ( NULL == cursor )
+      {
+         _clearSessionAttrCache( TRUE ) ;
+         rc = SDB_OK ;
+      }
+      else
+      {
+         rc = cursor->next( attribute ) ;
+         if ( SDB_OK == rc )
+         {
+            _setSessionAttrCache( attribute ) ;
+            gotAttribute = TRUE ;
+         }
+         else if ( SDB_DMS_EOC == rc )
+         {
+            _clearSessionAttrCache( TRUE ) ;
+            rc = SDB_OK ;
+         }
+         else
+         {
+            goto error ;
+         }
+      }
+
+      if ( !gotAttribute )
+      {
+         attribute = _sdbStaticObject ;
+      }
+
+   done :
+      SAFE_OSS_DELETE( cursor ) ;
+      return rc ;
+
+   error :
+      _clearSessionAttrCache( TRUE ) ;
       goto done ;
    }
 

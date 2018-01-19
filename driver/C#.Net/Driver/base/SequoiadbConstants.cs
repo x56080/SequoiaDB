@@ -72,6 +72,7 @@ namespace SequoiaDB
         public const string LINK_CL = "link collection"; 
         public const string UNLINK_CL = "unlink collection";
         public const string SETSESS_ATTR = "set session attribute";
+        public const string GETSESS_ATTR = "get session attribute";
         public const string LIST_TASK_CMD = "list tasks";
 	    public const string WAIT_TASK_CMD = "wait task";
         public const string CANCEL_TASK_CMD = "cancel task";

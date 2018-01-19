@@ -7704,6 +7704,49 @@ error :
    goto done ;
 }
 
+// PD_TRACE_DECLARE_FUNCTION ( SDB_SDB_GET_SESSION_ATTR, "sdb_get_session_attr" )
+static JSBool sdb_get_session_attr ( JSContext *cx, uintN argc, jsval *vp )
+{
+   PD_TRACE_ENTRY( SDB_SDB_SET_SESSION_ATTR ) ;
+
+   sdbConnectionHandle * connection = NULL ;
+   JSBool ret                       = JS_TRUE ;
+   INT32 rc                         = SDB_OK ;
+   JSObject * bsonObj               = NULL ;
+   bson * result                    = NULL ;
+
+   engine::sdbClearErrorInfo() ;
+
+   connection = (sdbConnectionHandle *)
+                 JS_GetPrivate( cx, JS_THIS_OBJECT( cx, vp ) ) ;
+   REPORT( connection, "Sdb.getSession(): no connection handle" ) ;
+
+   // result will be set as private data of bsonObj, or will be freed in error:
+   result = bson_create() ;
+   VERIFY( result ) ;
+
+   rc = sdbGetSessionAttr( *connection, result ) ;
+   REPORT_RC( SDB_OK == rc, "Sdb.getSession() failed", rc ) ;
+
+   bsonObj = JS_NewObject( cx, &bson_class, 0, 0 ) ;
+   VERIFY( bsonObj ) ;
+
+   JS_SET_RVAL( cx, vp, OBJECT_TO_JSVAL( bsonObj ) ) ;
+
+   // copy is destroy in bson_destructor
+   ret = JS_SetPrivate( cx, bsonObj, result ) ;
+   VERIFY( ret ) ;
+
+done :
+   PD_TRACE_EXIT( SDB_SDB_SET_SESSION_ATTR ) ;
+   return ret ;
+
+error :
+   SAFE_BSON_DISPOSE( result ) ;
+   TRY_REPORT( cx, "Sdb.getSession() failed" ) ;
+   goto done ;
+}
+
 // PD_TRACE_DECLARE_FUNCTION ( SDB_SDB_MSG, "sdb_msg" )
 static JSBool sdb_msg ( JSContext *cx, uintN argc, jsval *vp )
 {
@@ -8249,6 +8292,7 @@ static JSFunctionSpec sdb_functions[] = {
    JS_FS ( "waitTasks", sdb_wait_tasks, 1, 0 ),
    JS_FS ( "cancelTask", sdb_cancel_task, 1, 0 ),
    JS_FS ( "setSessionAttr", sdb_set_session_attr, 1, 0 ),
+   JS_FS ( "getSessionAttr", sdb_get_session_attr, 0, 0 ),
    JS_FS ( "msg", sdb_msg, 0, 0 ),
    JS_FS ( "createDomain", sdb_create_domain, 2, 0 ),
    JS_FS ( "dropDomain", sdb_drop_domain, 1, 0 ),

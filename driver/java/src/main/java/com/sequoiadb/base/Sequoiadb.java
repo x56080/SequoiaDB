@@ -60,6 +60,7 @@ public class Sequoiadb {
     private Map<String, Long> nameCache = new HashMap<String, Long>();
     private static boolean enableCache = true;
     private static long cacheInterval = 300 * 1000;
+    private BSONObject attributeCache = null;
 
     public final static int SDB_PAGESIZE_4K = 4096;
     public final static int SDB_PAGESIZE_8K = 8192;
@@ -1548,8 +1549,24 @@ public class Sequoiadb {
         }
     }
 
+    protected void _clearSessionAttrCache()
+    {
+        attributeCache = null;
+    }
+
+    protected BSONObject _getSessionAttrCache()
+    {
+        return attributeCache;
+    }
+
+    protected void _setSessionAttrCache( BSONObject attribute )
+    {
+        attributeCache = attribute;
+    }
+
     /**
-     * Set the attributes of the current session.
+     * @fn void setSessionAttr( BSONObject options )
+     * @brief Set the attributes of the current session.
      * @param options The configuration options for the current session.The options are as below:
      *                <ul>
      *                <li>PreferedInstance : Preferred instance for read request in the current session. Could be single value in "M", "m", "S", "s", "A", "a", 1-255, or BSON Array to include multiple values. e.g. { "PreferedInstance" : [ 1, 7 ] }.
@@ -1571,19 +1588,17 @@ public class Sequoiadb {
      *                <li>Timeout : The timeout (in ms) for operations in the current session. -1 means no timeout for operations. e.g. { "Timeout" : 10000 }.
      *                </li>
      *                </ul>
-     * @throws BaseException If error happens.
+     * @exception com.sequoiadb.exception.BaseException
      */
     public void setSessionAttr(BSONObject options) throws BaseException {
         // check argument
         if (null == options || options.isEmpty()) {
             return;
         }
-
         BSONObject newObj = new BasicBSONObject();
-
         newObj.putAll(options);
         newObj.put(SequoiadbConstants.FIELD_NAME_VERSION, SequoiadbConstants.SDB_SETSESSIONATTR_V1);
-
+        _clearSessionAttrCache();
         SDBMessage rtn = adminCommand(SequoiadbConstants.CMD_NAME_SETSESS_ATTR,
                 0, 0, 0, -1, newObj,
                 null, null, null);
@@ -1591,6 +1606,41 @@ public class Sequoiadb {
         if (flags != 0) {
             throw new BaseException(flags);
         }
+    }
+
+    /**
+     * @fn BSONObject getSessionAttr()
+     * @brief Get the attributes of the current session.
+     * @return the BSONObject of the session attribute.
+     * @exception com.sequoiadb.exception.BaseException
+     * @since 2.8.5
+     */
+    public BSONObject getSessionAttr() throws BaseException {
+        BSONObject result = _getSessionAttrCache();
+        if (null != result)
+        {
+            return result;
+        }
+        SDBMessage rtn = adminCommand(SequoiadbConstants.CMD_NAME_GETSESS_ATTR,
+                                      0, 0, 0, -1, null, null, null, null);
+        List<BSONObject> resultList = rtn.getObjectList();
+        if (null != resultList && resultList.size()>0)
+        {
+            result=resultList.get(0);
+            if ( null == result )
+            {
+                _clearSessionAttrCache();
+            }
+            else
+            {
+                _setSessionAttrCache(result);
+            }
+        }
+        else
+        {
+            _clearSessionAttrCache();
+        }
+        return result;
     }
 
     /**

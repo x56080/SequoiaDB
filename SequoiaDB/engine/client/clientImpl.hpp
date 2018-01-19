@@ -952,6 +952,7 @@ namespace sdbclient
       std::set<ossValuePtr>    _dataCenters ;
       std::set<ossValuePtr>    _lobs ;
       hashTable               *_tb ;
+      bson::BSONObj            _attributeCache ;
 
       // last send or recive time
       ossTimestamp             _lastAliveTime;
@@ -1101,6 +1102,12 @@ namespace sdbclient
 
       INT32 _connect( const CHAR *pHostName,
                       UINT16 port ) ;
+
+      void _clearSessionAttrCache ( BOOLEAN needLock ) ;
+
+      void _setSessionAttrCache ( const bson::BSONObj & attribute ) ;
+
+      void _getSessionAttrCache ( bson::BSONObj & attribute ) ;
 
       friend class _sdbCollectionSpaceImpl ;
       friend class _sdbCollectionImpl ;
@@ -1395,8 +1402,10 @@ namespace sdbclient
       INT32 cancelTask ( SINT64 taskID,
                          BOOLEAN isAsync ) ;
       // set session attribute
-      INT32 setSessionAttr ( const bson::BSONObj &options =
-                                     _sdbStaticObject) ;
+      INT32 setSessionAttr ( const bson::BSONObj &options = _sdbStaticObject ) ;
+
+      INT32 getSessionAttr ( bson::BSONObj & attribute ) ;
+
       // close all cursors
       INT32 closeAllCursors ();
 

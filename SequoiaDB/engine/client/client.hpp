@@ -3073,7 +3073,10 @@ namespace sdbclient
                         BOOLEAN isAsync ) = 0 ;
       // set session attribute
       virtual INT32 setSessionAttr ( const bson::BSONObj &options =
-                                     _sdbStaticObject) = 0 ;
+                                     _sdbStaticObject ) = 0 ;
+      // get session attribute
+      virtual INT32 getSessionAttr ( bson::BSONObj & result ) = 0 ;
+
       // close all cursor
       virtual INT32 closeAllCursors () = 0 ;
 
@@ -4297,6 +4300,21 @@ namespace sdbclient
          if ( !pSDB )
             return SDB_NOT_CONNECTED ;
          return pSDB->setSessionAttr ( options ) ;
+      }
+
+/** \fn INT32 getSessionAttr ( bson::BSONObj & result ) ;
+    \brief Get the attributes of the session.
+    \param [out] result The return bson object
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+      INT32 getSessionAttr ( bson::BSONObj & result )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->getSessionAttr( result ) ;
       }
 
 /** \fn INT32 closeAllCursors () ;

@@ -1405,6 +1405,20 @@ class client(object):
         rc = sdb.sdb_set_session_attri(self._client, bson_options)
         raise_if_error(rc, "Failed to set session attribute")
 
+    def get_session_attri(self):
+        """Get the attributes of the session.
+
+        Return values:
+           a dict object of attributes
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        rc, result = sdb.sdb_get_session_attri(self._client)
+        raise_if_error(rc, "Failed to get session attributes")
+        record, size = bson._bson_to_dict(result, dict, False,
+                                          bson.OLD_UUID_SUBTYPE, True)
+        return record
+
     def close_all_cursors(self):
         """Close all the cursors in current thread, we can't use those cursors to
         get data again.

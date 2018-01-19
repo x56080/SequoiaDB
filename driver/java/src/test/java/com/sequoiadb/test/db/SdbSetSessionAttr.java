@@ -174,4 +174,32 @@ public class SdbSetSessionAttr {
             cl.query();
         }
     }
+
+    @Test
+    public void getSessionAttr_test() {
+        if (!isCluster)
+            return;
+        // test
+        try {
+            BSONObject result = sdb.getSessionAttr();
+            System.out.println(result.toString());
+        } catch (BaseException e) {
+            System.out.println(e.getMessage());
+            assertTrue(false);
+        }
+    }
+
+    @Test
+    public void getSessionAttr_data_test() {
+        if (isCluster)
+            return;
+        // test
+        try {
+            BSONObject result = sdb.getSessionAttr();
+            assertTrue( null == result );
+        } catch (BaseException e) {
+            System.out.println(e.getMessage());
+            assertTrue(false);
+        }
+    }
 }

@@ -1070,6 +1070,35 @@ done:
    return MAKE_RETURN_INT( rc ) ;
 }
 
+__METHOD_IMP(sdb_get_session_attri)
+{
+   INT32 rc = 0 ;
+   PYOBJECT *obj = NULL ;
+   sdb *client = NULL ;
+   bson::BSONObj retObj ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "O", &obj ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto error ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdb, client ) ;
+   rc = client->getSessionAttr( retObj ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+done :
+   return MAKE_RETURN_INT_PYBYTES_SIZE( rc,
+                                        retObj.objdata(),
+                                        retObj.objsize() ) ;
+
+error :
+   goto done ;
+}
+
 __METHOD_IMP(sdb_close_all_cursors)
 {
    INT32 rc      = 0 ;
@@ -3937,6 +3966,7 @@ static PyMethodDef sequoiadb_methods[] = {
    {"sdb_wait_task",                   sdb_wait_task,                   METH_VARARGS},
    {"sdb_cancel_task",                 sdb_cancel_task,                 METH_VARARGS},
    {"sdb_set_session_attri",           sdb_set_session_attri,           METH_VARARGS},
+   {"sdb_get_session_attri",           sdb_get_session_attri,           METH_VARARGS},
    {"sdb_close_all_cursors",           sdb_close_all_cursors,           METH_VARARGS},
    {"sdb_is_valid",                    sdb_is_valid,                    METH_VARARGS},
    {"sdb_get_version",                 sdb_get_version,                 METH_VARARGS},
