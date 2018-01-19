@@ -33,7 +33,7 @@ public class TimestampConsructorTest13683 {
         assertBSONTImestampCanUse(bsonTimestamp);
     }
 
-    @Test(enabled = false)
+    @Test
     public void testNoPara(){
         BSONTimestamp bsonTimestamp=new BSONTimestamp();
         assertBSONTImestampCanUse(bsonTimestamp);
