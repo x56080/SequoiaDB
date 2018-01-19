@@ -108,7 +108,7 @@ public class CreateAndDropSameCL10940 extends SdbTestBase {
                 db2 = new Sequoiadb(SdbTestBase.coordUrl, "sdbadmin", "sdbadmin");
                 cs2 = db2.getCollectionSpace(SdbTestBase.csName);    
                 cs2.dropCollection(clName);   
-                Assert.assertNull(cs2.getCollection(clName));
+                Assert.assertFalse(cs2.isCollectionExist(clName));
             }catch(BaseException e){
             	Assert.assertEquals(-23,e.getErrorCode(),"drop cl fail "+e.getMessage());
             }finally{

@@ -120,7 +120,7 @@ public class CreateAndDropCL10945 extends SdbTestBase {
                 cs2 = db2.getCollectionSpace(csName); 
                 String delClName = preClNames.pop();
                 cs2.dropCollection(delClName);   
-                Assert.assertNull(cs2.getCollection(delClName));
+                Assert.assertFalse(cs2.isCollectionExist(delClName));
             }catch(BaseException e){
             	Assert.assertTrue(false,"drop cl fail "+e.getMessage());
             }finally{
