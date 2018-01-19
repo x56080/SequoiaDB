@@ -1549,17 +1549,17 @@ public class Sequoiadb {
         }
     }
 
-    protected void _clearSessionAttrCache()
+    private void _clearSessionAttrCache()
     {
         attributeCache = null;
     }
 
-    protected BSONObject _getSessionAttrCache()
+    private BSONObject _getSessionAttrCache()
     {
         return attributeCache;
     }
 
-    protected void _setSessionAttrCache( BSONObject attribute )
+    private void _setSessionAttrCache( BSONObject attribute )
     {
         attributeCache = attribute;
     }
