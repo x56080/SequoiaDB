@@ -195,7 +195,7 @@ public class SequoiadbDatasourceImpl {
                         _destroyConnQueue.add(sdb);
                         // We drop the connections, and the strategy
                         // doesn't know this, so we need to tell it.
-                        _strategy.update(ItemStatus.IDLE, item, -1);
+                        _strategy.update(PoolType.IDLE_POOL, item, -1);
                         // let the item return to _connItemMgr
                         _connItemMgr.releaseItem(item);
                     }
@@ -684,8 +684,9 @@ public class SequoiadbDatasourceImpl {
             if (_isDatasourceOn) {
                 return;
             }
-            if (_dsOpt.getMaxCount() == 0)
+            if (_dsOpt.getMaxCount() == 0) {
                 _dsOpt.setMaxCount(500);
+            }
             _enableDatasource(_dsOpt.getConnectStrategy());
         } finally {
             wlock.unlock();
@@ -770,7 +771,7 @@ public class SequoiadbDatasourceImpl {
             Sequoiadb sdb = null;
             ConnItem connItem = null;
             while (true) {
-                connItem = _strategy.pollConnItem(Operation.GET);
+                connItem = _strategy.pollConnItemForGetting();
                 if (connItem != null) {
                     // when we still have connection in idle pool,
                     // get connection directly
@@ -821,7 +822,7 @@ public class SequoiadbDatasourceImpl {
                         long beginTime = 0;
                         long endTime = 0;
                         synchronized (this) {
-                            while ((connItem = _strategy.pollConnItem(Operation.GET)) == null) {
+                            while ((connItem = _strategy.pollConnItemForGetting()) == null) {
                                 try {
                                     if (timeout != 0) {
                                         if (restTime <= 0) {
@@ -886,7 +887,7 @@ public class SequoiadbDatasourceImpl {
             // insert the itemInfo and connection to used pool
             _usedConnPool.insert(connItem, sdb);
             // tell strategy used pool had add a connection
-            _strategy.update(ItemStatus.USED, connItem, 1);
+            _strategy.update(PoolType.USED_POOL, connItem, 1);
 
             return sdb;
         } finally {
@@ -955,13 +956,13 @@ public class SequoiadbDatasourceImpl {
                 }
             }
             // tell the strategy there is a connection returning now
-            _strategy.update(ItemStatus.USED, item, -1);
+            _strategy.update(PoolType.USED_POOL, item, -1);
             // check whether the connection can put back to idle pool or not
             if (_connIsValid(item, sdb)) {
                 // let the connection come back to connection pool
                 _idleConnPool.insert(item, sdb);
                 // tell the strategy one connection is add to idle pool now
-                _strategy.update(ItemStatus.IDLE, item, 1);
+                _strategy.update(PoolType.IDLE_POOL, item, 1);
                 // notify the people who waits
                 synchronized (this) {
                     notifyAll();
@@ -1063,7 +1064,7 @@ public class SequoiadbDatasourceImpl {
         _checkDatasourceOptions(_dsOpt);
 
         // if connection is shutdown, return directly
-        if (0 == _dsOpt.getMaxCount()) {
+        if (_dsOpt.getMaxCount() == 0) {
             _isDatasourceOn = false;
         } else {
             _enableDatasource(_dsOpt.getConnectStrategy());
@@ -1448,7 +1449,7 @@ public class SequoiadbDatasourceImpl {
             // add to idle pool
             _idleConnPool.insert(connitem, sdb);
             // update info to strategy
-            _strategy.update(ItemStatus.IDLE, connitem, 1);
+            _strategy.update(PoolType.IDLE_POOL, connitem, 1);
             // let's continue
             count--;
         }
@@ -1543,10 +1544,10 @@ public class SequoiadbDatasourceImpl {
 
     private void _reduceIdleConnections(int count) {
         while (count-- > 0) {
-            // Once we poll a connection out by Operation.DELETE mode,
+            // Once we poll a connection out by Operation.DEL_CONN mode,
             // we don't need to update strategy again, pollConnItem
             // had already help us to do this.
-            ConnItem item = _strategy.pollConnItem(Operation.DELETE);
+            ConnItem item = _strategy.pollConnItemForDeleting();
             if (item == null) {
                 // Actually, should never come here.
                 // When it happen, just let it go.

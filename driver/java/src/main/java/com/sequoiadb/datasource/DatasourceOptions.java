@@ -56,7 +56,7 @@ public class DatasourceOptions implements Cloneable {
     private int _checkInterval = 1 * 60 * 1000; // 1 min
     private int _syncCoordInterval = 0; // 0 min
     private boolean _validateConnection = false;
-    private ConnectStrategy _connectStrategy = ConnectStrategy.BALANCE;
+    private ConnectStrategy _connectStrategy = ConnectStrategy.SERIAL;
     private List<Object> _preferedInstance = null;
     private String _preferedInstanceMode = DEFAULT_PREFERRD_INSTANCE_MODE; // "random" or "ordered"
     private int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
@@ -171,7 +171,11 @@ public class DatasourceOptions implements Cloneable {
      * @since v1.12.6 and v2.2
      */
     public void setConnectStrategy(ConnectStrategy strategy) {
-        _connectStrategy = strategy;
+        if (strategy == ConnectStrategy.BALANCE) {
+            _connectStrategy = ConnectStrategy.SERIAL;
+        } else {
+            _connectStrategy = strategy;
+        }
     }
 
     /**

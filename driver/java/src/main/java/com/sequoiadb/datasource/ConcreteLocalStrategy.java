@@ -14,8 +14,8 @@ class ConcreteLocalStrategy extends AbstractStrategy {
     private List<String> _localIPs = new ArrayList<String>();
 
     @Override
-    public void init(List<String> addresses, List<Pair> _idleConnPairs, List<Pair> _usedConnPairs) {
-        super.init(addresses, _idleConnPairs, _usedConnPairs);
+    public void init(List<String> addressList, List<Pair> _idleConnPairs, List<Pair> _usedConnPairs) {
+        super.init(addressList, _idleConnPairs, _usedConnPairs);
         _localIPs = getNetCardIPs();
         _localAddrs = getLocalCoordIPs(_addrs, _localIPs);
     }
@@ -23,42 +23,42 @@ class ConcreteLocalStrategy extends AbstractStrategy {
     @Override
     public String getAddress() {
         String addr = null;
-        _lockForAddr.lock();
+        _addrLock.lock();
         try {
-            if (1 <= _localAddrs.size()) {
+            if (_localAddrs.size() > 0) {
                 addr = _localAddrs.get(_rand.nextInt(_localAddrs.size()));
             } else {
-                if (1 <= _addrs.size()) {
+                if (_addrs.size() > 0) {
                     addr = _addrs.get(_rand.nextInt(_addrs.size()));
                 }
             }
         } finally {
-            _lockForAddr.unlock();
+            _addrLock.unlock();
         }
         return addr;
     }
 
     public void addAddress(String addr) {
         super.addAddress(addr);
-        _lockForAddr.lock();
+        _addrLock.lock();
         try {
             if (isLocalAddress(addr, _localIPs)) {
                 _localAddrs.add(addr);
             }
         } finally {
-            _lockForAddr.unlock();
+            _addrLock.unlock();
         }
     }
 
     public List<ConnItem> removeAddress(String addr) {
         List<ConnItem> list = super.removeAddress(addr);
-        _lockForAddr.lock();
+        _addrLock.lock();
         try {
             if (isLocalAddress(addr, _localIPs)) {
                 _localAddrs.remove(addr);
             }
         } finally {
-            _lockForAddr.unlock();
+            _addrLock.unlock();
         }
         return list;
     }
@@ -108,38 +108,5 @@ class ConcreteLocalStrategy extends AbstractStrategy {
     static boolean isLocalAddress(String url, List<String> localIPs) {
         return localIPs.contains(url.split(":")[0].trim());
     }
-
-//	private void pickLocalAddresses2(List<String> urls, 
-//			List<String> localIPs, 
-//			List<String> localAddrs) throws BaseException {
-//		try {
-//			Enumeration<NetworkInterface> netcards = NetworkInterface.getNetworkInterfaces();
-//			if (null == netcards) {
-//				return ;
-//			}
-//	        for (NetworkInterface netcard : Collections.list(netcards)) {
-//	            if (null != netcard.getHardwareAddress()) {
-//	                List<InterfaceAddress> list = netcard.getInterfaceAddresses();
-//	                for (InterfaceAddress interfaceAddress : list) {
-//	                    String addr=interfaceAddress.getAddress().toString();
-//	                    if (addr.indexOf("/") >= 0) {
-//	                    	localIPs.add(addr.split("/")[1]);
-//	                    }
-//	                }
-//	            }
-//	        }
-//		} catch (SocketException e) {
-//			throw new BaseException("SDB_SYS", "failed to get local coord addresses");
-//		}
-//		if (localIPs.size() > 0) {
-//			for(String ip : urls) {
-//				for(String localIP : localIPs) {
-//					if (ip == localIP) {
-//						localAddrs.add(ip);
-//					}
-//				}
-//			}
-//		}
-//	}
 
 }

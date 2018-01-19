@@ -1,28 +1,24 @@
 package com.sequoiadb.datasource;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 
 abstract class AbstractStrategy implements IConnectStrategy {
 
-    protected LinkedList<ConnItem> _idleConnItemList = new LinkedList<ConnItem>();
+    protected ArrayDeque<ConnItem> _idleConnItemDeque = new ArrayDeque<ConnItem>();
     protected ArrayList<String> _addrs = new ArrayList<String>();
-    protected Lock _lockForConnItemList = new ReentrantLock();
-    protected Lock _lockForAddr = new ReentrantLock();
-
+    protected Lock _opLock = new ReentrantLock();
+    protected Lock _addrLock = new ReentrantLock();
 
     @Override
-    public void init(List<String> addresses, List<Pair> _idleConnPairs, List<Pair> _usedConnPairs) {
+    public void init(List<String> addressList, List<Pair> _idleConnPairs, List<Pair> _usedConnPairs) {
         // Notice that, we won't depend on the address in used queue, for
         // some addresses may have been removed, but, they may be still in used pool.
 
         // get addresses to local
-        Iterator<String> addrListItr = addresses.iterator();
+        Iterator<String> addrListItr = addressList.iterator();
         while (addrListItr.hasNext()) {
             String addr = addrListItr.next();
             if (!_addrs.contains(addr)) {
@@ -35,7 +31,7 @@ abstract class AbstractStrategy implements IConnectStrategy {
             while (idleConnPairItr.hasNext()) {
                 Pair pair = idleConnPairItr.next();
                 String addr = pair.first().getAddr();
-                _idleConnItemList.add(pair.first());
+                _idleConnItemDeque.add(pair.first());
                 if (!_addrs.contains(addr)) {
                     _addrs.add(addr);
                 }
@@ -48,65 +44,77 @@ abstract class AbstractStrategy implements IConnectStrategy {
 
 
     @Override
-    public ConnItem pollConnItem(Operation opt) {
-        _lockForConnItemList.lock();
+    public ConnItem pollConnItemForGetting() {
+        _opLock.lock();
         try {
-            return _idleConnItemList.poll();
+            return _idleConnItemDeque.pollFirst();
         } finally {
-            _lockForConnItemList.unlock();
+            _opLock.unlock();
+        }
+    }
+
+    @Override
+    public ConnItem pollConnItemForDeleting() {
+        _opLock.lock();
+        try {
+            return _idleConnItemDeque.pollLast();
+        } finally {
+            _opLock.unlock();
         }
     }
 
     @Override
     public void addAddress(String addr) {
-        _lockForAddr.lock();
+        _addrLock.lock();
         try {
             if (!_addrs.contains(addr)) {
                 _addrs.add(addr);
             }
         } finally {
-            _lockForAddr.unlock();
+            _addrLock.unlock();
         }
     }
 
     @Override
     public List<ConnItem> removeAddress(String addr) {
-        List<ConnItem> recycleConnItemList = new ArrayList<ConnItem>();
-        _lockForAddr.lock();
+        List<ConnItem> connItemList = new ArrayList<ConnItem>();
+        // remove address
+        _addrLock.lock();
         try {
             if (_addrs.contains(addr)) {
                 _addrs.remove(addr);
             }
         } finally {
-            _lockForAddr.unlock();
+            _addrLock.unlock();
         }
-        _lockForConnItemList.lock();
+        // remove item
+        _opLock.lock();
         try {
             // Prepare the return ConnItem.
             // We will remove the returning positions.
-            Iterator<ConnItem> idleConnItemListItr = _idleConnItemList.iterator();
-            while (idleConnItemListItr.hasNext()) {
-                ConnItem connItem = idleConnItemListItr.next();
+            Iterator<ConnItem> connItemListItr = _idleConnItemDeque.iterator();
+            while (connItemListItr.hasNext()) {
+                ConnItem connItem = connItemListItr.next();
                 if (addr.equals(connItem.getAddr())) {
-                	recycleConnItemList.add(connItem);
-                    idleConnItemListItr.remove();
+                	connItemList.add(connItem);
+                    connItemListItr.remove();
                 }
             }
         } finally {
-            _lockForConnItemList.unlock();
+            _opLock.unlock();
         }
-        return recycleConnItemList;
+        return connItemList;
     }
 
     @Override
-    public void update(ItemStatus itemStatus, ConnItem connItem, int incDecItemCount) {
-        _lockForConnItemList.lock();
+    public void update(PoolType poolType, ConnItem connItem, int change) {
+        _opLock.lock();
         try {
-            if (itemStatus == ItemStatus.IDLE && incDecItemCount > 0) {
-                _idleConnItemList.add(connItem);
+            if (poolType == PoolType.IDLE_POOL && change > 0) {
+                _idleConnItemDeque.addFirst(connItem);
             }
         } finally {
-            _lockForConnItemList.unlock();
+            _opLock.unlock();
         }
         return;
     }

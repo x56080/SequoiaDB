@@ -8,13 +8,13 @@ class ConcreteRandomStrategy extends AbstractStrategy {
     @Override
     public String getAddress() {
         String addr = null;
-        _lockForAddr.lock();
+        _addrLock.lock();
         try {
             if (_addrs.size() >= 1) {
                 addr = _addrs.get(_rand.nextInt(_addrs.size()));
             }
         } finally {
-            _lockForAddr.unlock();
+            _addrLock.unlock();
         }
         return addr;
     }
