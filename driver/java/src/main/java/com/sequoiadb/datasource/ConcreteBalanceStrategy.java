@@ -4,69 +4,59 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 
 import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 class CountInfo implements Comparable<CountInfo> {
-    private String _addr;
-    private int _count;
-    private boolean _available;
+    private String _address;
+    // the count of used connection of current address
+    private int _usedCount;
+    // when there has no idle connections of current address, set _hasLeftIdleConn to be false
+    private boolean _hasLeftIdleConn;
 
-    public CountInfo(String addr, int count, boolean availdable) {
-        _addr = addr;
-        _count = count;
-        _available = availdable;
+    public CountInfo(String addr, int usedCount, boolean hasLeft) {
+        _address = addr;
+        _usedCount = usedCount;
+        _hasLeftIdleConn = hasLeft;
     }
 
-    public void setAddr(String addr) {
-        _addr = addr;
+    public void setAddress(String addr) {
+        _address = addr;
     }
 
-    public String getAddr() {
-        return _addr;
+    public String getAddress() {
+        return _address;
     }
 
-    public void setCount(int count) {
-        _count = count;
+    public boolean getHasLeftIdleConn() {
+        return _hasLeftIdleConn;
     }
 
-    public int getCount() {
-        return _count;
+    public void setHasLeftIdleConn(boolean val) {
+        _hasLeftIdleConn = val;
     }
 
-    public boolean getAvailable() {
-        return _available;
-    }
-
-    public void setAvailable(boolean available) {
-        _available = available;
-    }
-
-    private void _changeCount(int count) {
-        _count += count;
-    }
-
-    public void increaseCount(int count) {
-        _changeCount(count);
-    }
-
-    public void decreaseCount(int count) {
-        _changeCount(count);
+    public void changeCount(int change) {
+        _usedCount += change;
     }
 
     @Override
     public int compareTo(CountInfo other) {
-        if (true == this._available && false == other._available) {
+        if (this._hasLeftIdleConn == true && other._hasLeftIdleConn == false) {
             return -1;
-        } else if (false == this._available && true == other._available) {
+        } else if (this._hasLeftIdleConn == false && other._hasLeftIdleConn == true) {
             return 1;
         } else {
-            if (this._count != other._count) {
-                return this._count - other._count;
+            if (this._usedCount != other._usedCount) {
+                return this._usedCount - other._usedCount;
             } else {
-                return this._addr.compareTo(other._addr);
+                return this._address.compareTo(other._address);
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return String.format("{ %s, %d, %b}", _address, _usedCount, _hasLeftIdleConn);
     }
 }
 
@@ -117,9 +107,9 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
                     ArrayDeque<ConnItem> deque = _idleConnItemMap.get(addr);
                     deque.add(item);
                     CountInfo info = _countInfoMap.get(addr);
-                    if (false == info.getAvailable()) {
+                    if (info.getHasLeftIdleConn() == false) {
                         _countInfoSet.remove(info);
-                        info.setAvailable(true);
+                        info.setHasLeftIdleConn(true);
                         _countInfoSet.add(info);
                     }
                 }
@@ -140,7 +130,7 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
                     // should remove the original one then modify and insert again
                     CountInfo info = _countInfoMap.get(addr);
                     _countInfoSet.remove(info);
-                    info.increaseCount(1);
+                    info.changeCount(1);
                     _countInfoSet.add(info);
                 } else {
                     continue;
@@ -173,14 +163,15 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
                     countInfo = null;
                 }
             } else {
-                // TODO: what's the meaning?
+                // we are going to remove connection, so let's
+                // get the valid item which count is the largest
                 countInfo = _countInfoSet.lower(_dumpCountInfo);
             }
             // if we have no countInfo or all the countInfo are unavailable, let's return
-            if (countInfo == null || countInfo.getAvailable() == false) {
+            if (countInfo == null || countInfo.getHasLeftIdleConn() == false) {
                 return null;
             }
-            addr = countInfo.getAddr();
+            addr = countInfo.getAddress();
             /// Now, let's get the ConnItem which associated with "addr".
             ArrayDeque<ConnItem> deque = _idleConnItemMap.get(addr);
             if (deque != null) {
@@ -200,7 +191,7 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
                 // And update this countInfo
                 countInfo = _countInfoMap.get(addr);
                 _countInfoSet.remove(countInfo);
-                countInfo.setAvailable(false);
+                countInfo.setHasLeftIdleConn(false);
                 _countInfoSet.add(countInfo);
                 continue;
             } else {
@@ -214,7 +205,11 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
 
     @Override
     public synchronized String getAddress() {
-        // TODO: what's the meaning
+        // when an address have no connection which had been built,
+        // this address will be marked to "false"
+        // we are going to get an address for getting or creating a connection,
+        // so, we try to get those address which count is 0. if we can't get this
+        // kind of address, we try to get an address which count is the least.
         CountInfo info = _countInfoSet.higher(_dumpCountInfo);
         if (info == null) {
             try {
@@ -224,7 +219,7 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
                 return null;
             }
         }
-        return info.getAddr();
+        return info.getAddress();
     }
 
     /*
@@ -250,9 +245,9 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
                     throw new BaseException(SDBError.SDB_SYS, "Point1: the pool has no information about address: " + addr);
                 }
                 // update the countInfo which is in the state of unavailable
-                if (countInfo.getAvailable() == false) {
+                if (countInfo.getHasLeftIdleConn() == false) {
                     _countInfoSet.remove(countInfo);
-                    countInfo.setAvailable(true);
+                    countInfo.setHasLeftIdleConn(true);
                     _countInfoSet.add(countInfo);
                 }
 
@@ -279,11 +274,11 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
                     // should never happen
                     throw new BaseException(SDBError.SDB_SYS, "Point5: the pool has no information about address: " + addr);
                 }
-                // when current list has not connItem any more, let's set current address unusable.
+                // when current list has no connItem any more, let's set current address unusable.
                 if (idleConnItemDeque.size() == 0) {
                     countInfo = _countInfoMap.get(addr);
                     _countInfoSet.remove(countInfo);
-                    countInfo.setAvailable(false);
+                    countInfo.setHasLeftIdleConn(false);
                     _countInfoSet.add(countInfo);
                 }
             } else {
@@ -301,13 +296,7 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
                     throw new BaseException(SDBError.SDB_SYS, "Point6: the pool has no information about address: " + addr);
                 }
                 _countInfoSet.remove(countInfo);
-                if (change > 0) {
-                    countInfo.increaseCount(change);
-                } else if (change < 0) {
-                    countInfo.decreaseCount(change);
-                } else {
-                    throw new BaseException(SDBError.SDB_SYS, "Point2: invalid change in idle pool");
-                }
+                countInfo.changeCount(change);
                 _countInfoSet.add(countInfo);
             }
         } else {
