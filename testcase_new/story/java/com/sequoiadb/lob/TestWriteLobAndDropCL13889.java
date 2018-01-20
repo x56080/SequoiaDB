@@ -56,7 +56,10 @@ public class TestWriteLobAndDropCL13889 extends SdbTestBase {
 
 	
 	@AfterClass
-	public void tearDown(){		
+	public void tearDown(){	
+		if( cs.isCollectionExist(clName)){
+			cs.dropCollection(clName);
+		}
 		sdb.disconnect();
 	}	
 	
@@ -78,7 +81,7 @@ public class TestWriteLobAndDropCL13889 extends SdbTestBase {
         		rLob.close();
         		Arrays.equals(rbuff, wlobBuff);   
             }catch(BaseException e){
-		    	if ( e.getErrorCode() != -317 && e.getErrorCode() != -23){
+		    	if ( e.getErrorCode() != -317 && e.getErrorCode() != -23&& e.getErrorCode() != -4){
 		    		Assert.assertTrue(false,"write fail "+e.getErrorType()+":"+e.getMessage());
 		    	}			    
 		    }finally {
