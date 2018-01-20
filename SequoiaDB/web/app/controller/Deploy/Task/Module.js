@@ -133,6 +133,11 @@
          var pre = null ;
          var div = null ;
          SdbRest.GetLog( data, function( logstr ){
+            var browser = SdbFunction.getBrowserInfo() ;
+            if( browser[0] == 'ie' && browser[1] == 7 )
+            {
+               logstr = logstr.replace( /\n/gi, '\n\r' ) ;
+            }
             $scope.Components.Modal.icon = '' ;
             $scope.Components.Modal.title = $scope.autoLanguage( '日志' ) ;
             $scope.Components.Modal.isShow = true ;
