@@ -2420,11 +2420,21 @@ namespace engine
          rc = ossDelete( path ) ;\
          if ( SDB_PERM == rc )\
          {\
-            multimap< string, string > mapFiles ;\
+            multimap<string, string> mapFiles ;\
+            vector<string> dirs;\
             string tmpPath = path ;\
             rc = ossEnumFiles( tmpPath, mapFiles, NULL, 1 ) ;\
             if( rc || !mapFiles.empty() )\
             {\
+               rc = SDB_PERM ;\
+               PD_LOG( PDERROR, "Remove dir[%s] failed, rc: %d",\
+                       path, SDB_PERM ) ;\
+               goto error ;\
+            }\
+            rc = ossEnumSubDirs( tmpPath, dirs, 1 ) ;\
+            if( rc || !dirs.empty() )\
+            {\
+               rc = SDB_PERM ;\
                PD_LOG( PDERROR, "Remove dir[%s] failed, rc: %d",\
                        path, SDB_PERM ) ;\
                goto error ;\
