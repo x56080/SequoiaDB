@@ -1,5 +1,51 @@
 SequoiaDB 数据库是一款新型企业级分布式非关系型数据库，帮助企业用户降低 IT 成本，并对大数据的存储与分析提供了一个坚实，可靠，高效与灵活的底层平台。
 
+##SequoiaDB version 2.8.5 版本说明##
+
+**接口变更：**
+
+- Java驱动连接池提供会话属性设置相关接口
+- SDB SHELL和所有驱动提供获取会话属性接口
+- 参数cachemergesz、sparsefile、overflowratio和extendthreshold支持实时生效
+- 参数maxcachesize、maxcachejob、maxsyncjob等参数提供动态生效能力
+
+**接口变更：**
+
+- 外部会话提供超时以及访问隔离的能力
+
+**工具优化：**
+
+- 导入工具支持NaN的数值
+- 灾备工具可用性优化，减少重选举操作
+- sdbexprt工具增加replace参数，默认不覆盖数据文件
+
+**性能优化：**
+
+- 优化缓存页回收和刷盘调度机制
+- 提供写缓存带超时阻塞的能力
+
+**解决重要bug：**
+
+- 集合切分在元数据变更阶段后源节点故障重启导致该切分无法完成
+- Java驱动设置socket超时在发生超时后导致消息收错
+- 并发多个集合执行LOB读写操作，其中一个集合执行listLob失败报-268错误
+- 并发读写删LOB操作，在备节点回放LOB日志失败报-268错误
+- 在开启缓存在DirectIO模式下进行大并发LOB写操作，在删除集合空间时卡住
+- 集合切分LOB过程中truncate集合导致该切分一直不能结束
+- 使用$cast转换{$decimal:"MAX"}为int64使数据节点core
+- 数据切分同时删除数据，切分过程中源组删除了某记录，而目标组未同步删除该记录
+
+**其它优化：**
+
+- 修正System.getDiskInfo在Ubuntu17上执行报-10的错误
+- ossGetDiskInfo存在句柄泄漏
+- 数据节点上snapshot session显示的name超64字节被截断
+- 插入NAN的特殊decimal值，转换为double类型后使用toObj()输出失败
+- 超2000会话压力下，在会话退出时出现极小窗口的非法访问导致节点崩溃
+- 内存SQL中select语句指定a字段和a.b字段，a字段不生效
+- 节点参数auditmask的默认值不正确
+- 修正协调节点上SYSTEM快照结果值不准确的问题，没有按节点去重
+
 ##SequoiaDB version 2.8.4 版本说明##
 
 **接口变更：**
