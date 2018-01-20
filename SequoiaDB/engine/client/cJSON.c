@@ -144,6 +144,9 @@ static const CHAR* readPINF( const CHAR *pStr,
 static const CHAR* readNINF( const CHAR *pStr,
                              const CJSON_MACHINE *pMachine,
                              CJSON_READ_INFO **ppReadInfo ) ;
+static const CHAR* readNan( const CHAR *pStr,
+                            const CJSON_MACHINE *pMachine,
+                            CJSON_READ_INFO **ppReadInfo ) ;
 static const CHAR* readTrue( const CHAR *pStr,
                              const CJSON_MACHINE *pMachine,
                              CJSON_READ_INFO **ppReadInfo ) ;
@@ -306,9 +309,12 @@ static CJSON_VALUE_MATCH _valueList[50] = {
    { CJSON_MATCH_VALUE, CJSON_MATCH_INPUT( readNINF,   "-inf" ) },
    { CJSON_MATCH_VALUE, CJSON_MATCH_INPUT( readNINF,   "-1.#INF" ) },
    { CJSON_MATCH_VALUE, CJSON_MATCH_INPUT( readNINF,   "-Infinity" ) },
+   { CJSON_MATCH_VALUE, CJSON_MATCH_INPUT( readNan,    "nan" ) },
+   { CJSON_MATCH_VALUE, CJSON_MATCH_INPUT( readNan,    "NAN" ) },
+   { CJSON_MATCH_VALUE, CJSON_MATCH_INPUT( readNan,    "NaN" ) },
 } ;
 
-static INT32 _valueListSize = 28 ; // _valueList current size
+static INT32 _valueListSize = 31 ; // _valueList current size
 
 static const INT32 _valueListMaxSize = \
       sizeof( _valueList ) / sizeof( CJSON_VALUE_MATCH ) ;
@@ -1241,6 +1247,43 @@ static const CHAR* readNINF( const CHAR *pStr,
       goto error ;
    }
    cJsonItemValueDouble( pItem, -CJSON_INFINTY ) ;
+   cJsonReadInfoTypeDouble( pReadInfo ) ;
+   cJsonReadInfoAddItem( pReadInfo, pItem ) ;
+   ++pStr ;
+   *ppReadInfo = pReadInfo ;
+done:
+   return pStr ;
+error:
+   pStr = NULL ;
+   cJsonReadInfoRelease( pReadInfo ) ;
+   goto done ;
+}
+
+#define CJSON_NAN (0x7ff8000000000000)
+static const CHAR* readNan( const CHAR *pStr,
+                            const CJSON_MACHINE *pMachine,
+                            CJSON_READ_INFO **ppReadInfo )
+{
+   CJSON *pItem = NULL ;
+   CJSON_READ_INFO *pReadInfo = NULL ;
+   INT64 tmp = CJSON_NAN ;
+   FLOAT64 numNan = 0.0 ;
+
+   ossMemcpy( &numNan, &tmp, sizeof( FLOAT64 ) ) ;
+
+   pReadInfo = cJsonReadInfoCreate( pMachine ) ;
+   if( pReadInfo == NULL )
+   {
+      CJSON_PRINTF_LOG( "Failed to create new ReadInfo" ) ;
+      goto error ;
+   }
+   pItem = cJsonItemCreate( pMachine ) ;
+   if( pItem == NULL )
+   {
+      CJSON_PRINTF_LOG( "Failed to create new item" ) ;
+      goto error ;
+   }
+   cJsonItemValueDouble( pItem, numNan ) ;
    cJsonReadInfoTypeDouble( pReadInfo ) ;
    cJsonReadInfoAddItem( pReadInfo, pItem ) ;
    ++pStr ;

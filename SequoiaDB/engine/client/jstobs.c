@@ -1490,23 +1490,35 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
          if( bson_is_inf( valNum, &sign ) == FALSE )
          {
             CHAR temp[ BSON_TEMP_SIZE_512 ] ;
+            FLOAT64 z = 0.0;
             memset ( temp, 0, BSON_TEMP_SIZE_512 ) ;
-#ifdef WIN32
-            _snprintf ( temp,
-                        BSON_TEMP_SIZE_512,
-                        _precision, bson_iterator_double( &i ) ) ;
-#else
-            snprintf ( temp,
-                       BSON_TEMP_SIZE_512,
-                       _precision, bson_iterator_double( &i ) ) ;
-#endif
-            bsonConvertJsonRawConcat ( pbuf, left, temp, FALSE ) ;
-            CHECK_LEFT ( left )
-            if( strchr( temp, '.') == 0 && strchr( temp, 'E') == 0
-                && strchr( temp, 'N') == 0 && strchr( temp, 'e') == 0
-                && strchr( temp, 'n') == 0 )
+            z = valNum;
+            if ( valNum == z )
             {
-               bsonConvertJsonRawConcat ( pbuf, left, ".0", FALSE ) ;
+#ifdef WIN32
+               _snprintf ( temp,
+                           BSON_TEMP_SIZE_512,
+                           _precision, bson_iterator_double( &i ) ) ;
+#else
+               snprintf ( temp,
+                          BSON_TEMP_SIZE_512,
+                          _precision, bson_iterator_double( &i ) ) ;
+#endif
+               bsonConvertJsonRawConcat ( pbuf, left, temp, FALSE ) ;
+               CHECK_LEFT ( left )
+
+               if( strchr( temp, '.') == 0 && strchr( temp, 'E') == 0
+                   && strchr( temp, 'N') == 0 && strchr( temp, 'e') == 0
+                   && strchr( temp, 'n') == 0 )
+               {
+                  bsonConvertJsonRawConcat ( pbuf, left, ".0", FALSE ) ;
+                  CHECK_LEFT ( left )
+               }
+            }
+            else
+            {
+               (void) ossStrncpy ( temp, "NaN", BSON_TEMP_SIZE_512) ;
+               bsonConvertJsonRawConcat ( pbuf, left, temp, FALSE ) ;
                CHECK_LEFT ( left )
             }
          }

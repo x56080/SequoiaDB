@@ -52,6 +52,9 @@
 #define CSV_STR_RIGHTBRACKET   ")"
 #define CSV_STR_BACKSLASH      "/"
 
+#define CSV_STR_NAN "NaN"
+#define CSV_STR_NAN_LEN (sizeof(CSV_STR_NAN)-1)
+
 static CHAR _precision[20] = "%.16g" ;
 
 static void local_time ( time_t *Time, struct tm *TM )
@@ -307,26 +310,43 @@ INT32 _appendValue( const CHAR *delChar, INT32 delCharSize, bson_iterator *pIt,
 
    if ( type == BSON_DOUBLE )
    {
+      FLOAT64 tmpDouble = 0.0 ;
       CHAR doubleTmpBuf[512] = { 0 } ;
-      doubleNum = bson_iterator_double( pIt ) ;
-      tempSize = ossSnprintf ( doubleTmpBuf, 512, _precision, doubleNum ) ;
-      rc = _appendString( delChar, delCharSize, TRUE, doubleTmpBuf, tempSize,
-                          ppBuffer, pCSVSize ) ;
-      if ( rc )
-      {
-         UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendString, rc=%d",
-                                   rc ) ;
-         goto error ;
-      }
 
-      if( ossStrchr( doubleTmpBuf, '.' ) == 0 &&
-          ossStrchr( doubleTmpBuf, 'E' ) == 0 &&
-          ossStrchr( doubleTmpBuf, 'e' ) == 0 &&
-          ossStrchr( doubleTmpBuf, 'N' ) == 0 &&
-          ossStrchr( doubleTmpBuf, 'n' ) == 0 )
+      doubleNum = bson_iterator_double( pIt ) ;
+      tmpDouble = doubleNum;
+      if ( doubleNum == tmpDouble )
       {
-         rc = _appendString( delChar, delCharSize, TRUE, ".0", 2,
+         tempSize = ossSnprintf ( doubleTmpBuf, 512, _precision, doubleNum ) ;
+         rc = _appendString( delChar, delCharSize, TRUE, doubleTmpBuf, tempSize,
                              ppBuffer, pCSVSize ) ;
+         if ( rc )
+         {
+            UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendString, rc=%d",
+                                      rc ) ;
+            goto error ;
+         }
+
+         if( ossStrchr( doubleTmpBuf, '.' ) == 0 &&
+             ossStrchr( doubleTmpBuf, 'E' ) == 0 &&
+             ossStrchr( doubleTmpBuf, 'e' ) == 0 &&
+             ossStrchr( doubleTmpBuf, 'N' ) == 0 &&
+             ossStrchr( doubleTmpBuf, 'n' ) == 0 )
+         {
+            rc = _appendString( delChar, delCharSize, TRUE, ".0", 2,
+                                ppBuffer, pCSVSize ) ;
+            if ( rc )
+            {
+               UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendString, rc=%d",
+                                         rc ) ;
+               goto error ;
+            }
+         }
+      }
+      else
+      {
+         rc = _appendString( delChar, delCharSize, TRUE, CSV_STR_NAN,
+                             CSV_STR_NAN_LEN, ppBuffer, pCSVSize ) ;
          if ( rc )
          {
             UTIL_RAW2BSON_PRINTF_LOG( "Failed to call appendString, rc=%d",
