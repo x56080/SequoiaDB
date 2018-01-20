@@ -95,8 +95,8 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
                 String addr = item.getAddr();
                 if (!_idleConnItemMap.containsKey(addr)) {
                     ArrayDeque<ConnItem> deque = new ArrayDeque<ConnItem>();
-                    _idleConnItemMap.put(addr, deque);
                     deque.add(item);
+                    _idleConnItemMap.put(addr, deque);
                     // we set this count info to be usable, for now we initialize from
                     // idle connections, but, we don't know how many connections had been
                     // used, so we it to be 0

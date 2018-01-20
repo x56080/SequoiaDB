@@ -12,6 +12,7 @@ abstract class AbstractStrategy implements IConnectStrategy {
     protected Lock _opLock = new ReentrantLock();
     protected Lock _addrLock = new ReentrantLock();
 
+    // we need to keep all the API thread safe
     @Override
     public void init(List<String> addressList, List<Pair> _idleConnPairs, List<Pair> _usedConnPairs) {
         // Notice that, we won't depend on the address in used queue, for
@@ -21,9 +22,7 @@ abstract class AbstractStrategy implements IConnectStrategy {
         Iterator<String> addrListItr = addressList.iterator();
         while (addrListItr.hasNext()) {
             String addr = addrListItr.next();
-            if (!_addrs.contains(addr)) {
-                _addrs.add(addr);
-            }
+            _addAddress(addr);
         }
         // get idle connections information
         if (_idleConnPairs != null) {
@@ -31,10 +30,8 @@ abstract class AbstractStrategy implements IConnectStrategy {
             while (idleConnPairItr.hasNext()) {
                 Pair pair = idleConnPairItr.next();
                 String addr = pair.first().getAddr();
-                _idleConnItemDeque.add(pair.first());
-                if (!_addrs.contains(addr)) {
-                    _addrs.add(addr);
-                }
+                _addConnItem(pair.first());
+                _addAddress(addr);
             }
         }
     }
@@ -65,14 +62,7 @@ abstract class AbstractStrategy implements IConnectStrategy {
 
     @Override
     public void addAddress(String addr) {
-        _addrLock.lock();
-        try {
-            if (!_addrs.contains(addr)) {
-                _addrs.add(addr);
-            }
-        } finally {
-            _addrLock.unlock();
-        }
+        _addAddress(addr);
     }
 
     @Override
@@ -90,8 +80,7 @@ abstract class AbstractStrategy implements IConnectStrategy {
         // remove item
         _opLock.lock();
         try {
-            // Prepare the return ConnItem.
-            // We will remove the returning positions.
+            // Prepare the return ConnItem for decrease
             Iterator<ConnItem> connItemListItr = _idleConnItemDeque.iterator();
             while (connItemListItr.hasNext()) {
                 ConnItem connItem = connItemListItr.next();
@@ -108,15 +97,28 @@ abstract class AbstractStrategy implements IConnectStrategy {
 
     @Override
     public void update(PoolType poolType, ConnItem connItem, int change) {
+        if (poolType == PoolType.IDLE_POOL && change > 0) {
+            _addConnItem(connItem);
+        }
+    }
+
+    private void _addConnItem(ConnItem connItem) {
         _opLock.lock();
         try {
-            if (poolType == PoolType.IDLE_POOL && change > 0) {
-                _idleConnItemDeque.addFirst(connItem);
-            }
+            _idleConnItemDeque.addFirst(connItem);
         } finally {
             _opLock.unlock();
         }
-        return;
     }
 
+    private void _addAddress(String addr) {
+        _addrLock.lock();
+        try {
+            if (!_addrs.contains(addr)) {
+                _addrs.add(addr);
+            }
+        } finally {
+            _addrLock.unlock();
+        }
+    }
 }
