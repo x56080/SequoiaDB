@@ -28,7 +28,7 @@ var jsonContent =
 var csvRecs1 = [
       "{\"" + key + "\":\"MAX\"}", 
       "{\"" + key + "\":\"MIN\"}",
-      "{\"" + key + "\":\"NaN\"}",
+      "{\"" + key + "\":NaN}",
       "{\"" + key + "\":\"MIN\"}",
       "{\"" + key + "\":\"MAX\"}"
       ]
