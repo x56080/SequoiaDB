@@ -1,7 +1,5 @@
 package com.sequoiadb.metadataconsistency.cluster;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Random;
 
 import org.testng.annotations.Test;
@@ -26,7 +24,6 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class Node10233 extends SdbTestBase {
-	private SimpleDateFormat dateFm = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
 	private static Sequoiadb sdb = null;
 	private String rgName = "rg10233";
 	private Random random = new Random();
@@ -34,6 +31,7 @@ public class Node10233 extends SdbTestBase {
 
 	@BeforeClass
 	public void setUp() {
+		// start time
 		try {
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 			// judge the mode and group number
@@ -43,8 +41,10 @@ public class Node10233 extends SdbTestBase {
 			MetaDataUtils.clearGroup(sdb, rgName);
 
 			sdb.createReplicaGroup(rgName);
-			MetaDataUtils.createNode(sdb, rgName, SdbTestBase.reservedPortBegin, SdbTestBase.reservedPortEnd,
-					SdbTestBase.reservedDir);
+			for (int i = 0; i < 2; i++) {
+				MetaDataUtils.createNode(sdb, rgName, SdbTestBase.reservedPortBegin, SdbTestBase.reservedPortEnd,
+						SdbTestBase.reservedDir);
+			}
 			ReplicaGroup rgDB = sdb.getReplicaGroup(rgName);
 			rgDB.start();
 		} catch (BaseException e) {
@@ -111,7 +111,7 @@ public class Node10233 extends SdbTestBase {
 			try {
 				db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 				ReplicaGroup rgDB = db.getReplicaGroup(rgName);
-
+				
 				Node node = rgDB.getSlave();
 				String hostName = node.getHostName();
 				int svcName = node.getPort();
