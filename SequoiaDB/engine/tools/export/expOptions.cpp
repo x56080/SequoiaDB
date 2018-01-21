@@ -318,6 +318,7 @@ namespace exprt
                               _includeBinary (FALSE),
                               _includeRegex  (FALSE),
                               _force         (FALSE),
+                              _kickNull      (FALSE),
                               _genFields     (TRUE)
    {
    }

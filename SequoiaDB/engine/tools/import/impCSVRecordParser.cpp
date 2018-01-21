@@ -700,6 +700,10 @@ namespace import
                                           CSV_TYPE& type, CSVFieldValue& value,
                                           INT32& valueLength ) ;
 
+   static inline INT32 _stringToNan( const CHAR *data, INT32 length,
+                                     CSV_TYPE& type, CSVFieldValue& value,
+                                     INT32& valueLength ) ;
+
    // the number is long type,
    // but if the number is overflow, we set it as double
    static inline INT32 _stringToRawNum(const CHAR* data, INT32 length,
@@ -958,6 +962,36 @@ namespace import
       return rc ;
    }
 
+   #define CSV_STR_NAN1 "NAN"
+   #define CSV_STR_NAN2 "NaN"
+   #define CSV_STR_NAN3 "nan"
+   #define CSV_STR_NAN_LEN ((INT32)sizeof(CSV_STR_NAN1)-1)
+   #define CSV_VALUE_NAN (0x7ff8000000000000)
+   static inline INT32 _stringToNan( const CHAR *data, INT32 length,
+                                     CSV_TYPE& type, CSVFieldValue& value,
+                                     INT32& valueLength )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 len = length ;
+      CHAR *pStr = (CHAR *)data ;
+      INT64 tmp = CSV_VALUE_NAN ;
+
+      if( len >= CSV_STR_NAN_LEN )
+      {
+         if( 0 == ossStrncmp( CSV_STR_NAN1, pStr, CSV_STR_NAN_LEN ) ||
+             0 == ossStrncmp( CSV_STR_NAN2, pStr, CSV_STR_NAN_LEN ) ||
+             0 == ossStrncmp( CSV_STR_NAN3, pStr, CSV_STR_NAN_LEN ) )
+         {
+            len -= CSV_STR_NAN_LEN ;
+            type = CSV_TYPE_DOUBLE ;
+            ossMemcpy( &value.doubleVal, &tmp, sizeof(FLOAT64) ) ;
+            valueLength = length - len ;
+         }
+      }
+
+      return rc ;
+   }
+
    static inline INT32 _stringToRawNumber(const CHAR* data, INT32 length,
                                           CSV_TYPE& type, CSVFieldValue& value,
                                           INT32& valueLength)
@@ -984,6 +1018,23 @@ namespace import
       if (SDB_OK != rc)
       {
          goto error;
+      }
+
+      if (CSV_TYPE_DOUBLE == tmpType && 0 != intLen)
+      {
+         str += intLen ;
+         len -= intLen ;
+         type = CSV_TYPE_DOUBLE ;
+         value.doubleVal = tmpValue.doubleVal ;
+         valueLength = length - len ;
+         goto done ;
+      }
+
+      //parse double nan
+      rc = _stringToNan( str, len, tmpType, tmpValue, intLen ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
       }
 
       if (CSV_TYPE_DOUBLE == tmpType && 0 != intLen)
