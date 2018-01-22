@@ -15,12 +15,18 @@
  */
 package com.sequoiadb.exception;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky Zhang
  * 
  */
 
-public class SDBError {
+public class SDBError implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -3042686051516608405L;
 	private String errorType;
 	private int errorCode;
 	private String errorDescription;

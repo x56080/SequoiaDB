@@ -82,7 +82,7 @@ public class SequoiadbDatasourceImpl
 	private Object _objForReleaseConn = new Object();
 	// for error report
 	private final Object _objForExp = new Object();
-	private BaseException _lastException;
+	private volatile BaseException _lastException;
 	// for others
 	private Random _rand = new Random(47);
 	private double MULTIPLE = 1.2;
@@ -1206,8 +1206,10 @@ public class SequoiadbDatasourceImpl
 			if (null == sdb) {
 				throw new BaseException("SDB_SYS", "failed to create connection directly");
 			}
+		} catch (BaseException e) {
+			throw e;
 		} catch (Exception e) {
-    		throw new BaseException("SDB_SYS", e.getMessage());
+    		throw new BaseException("SDB_SYS", e);
 		}
 		return sdb;
 	}
@@ -1227,7 +1229,10 @@ public class SequoiadbDatasourceImpl
 				String addr = itr.next();
 				try {
 					retConn = new Sequoiadb(addr, _username, _password, _nwOpt);
-				} catch(BaseException e) {
+				} catch(Exception e) {
+					if (e instanceof BaseException) {
+						_setLastException((BaseException)e);
+					}
 					continue;
 				}
 				_abnormalAddrs.remove(addr);
@@ -1246,8 +1251,15 @@ public class SequoiadbDatasourceImpl
 			}
 		}
 		if (retConn == null) {
-			throw new BaseException("SDB_INVALIDARG",
-					"no available address for creating connection, " + _getDataSourceSnapshot());
+            // make some debug info
+            String detail = _getDataSourceSnapshot();
+            BaseException exp = _getLastException();
+            String errMsg = "no available address for connection, " + detail;
+            if (exp != null) {
+                throw new BaseException("SDB_NETWORK", errMsg, exp);
+            } else {
+                throw new BaseException("SDB_NETWORK", errMsg);
+            }
 		}
 		return retConn;
 	}
@@ -1271,11 +1283,11 @@ public class SequoiadbDatasourceImpl
 	}
 
 	private BaseException _getLastException() {
-		synchronized (_objForExp) {
-			BaseException exp = _lastException;
-			_lastException = null;
-			return exp;
-		}
+        BaseException exp = null;
+        if (_lastException != null) {
+            exp = Helper.copyBaseException(_lastException);
+        }
+        return exp;
 	}
 
 	private void _handleErrorAddr(String addr) {
