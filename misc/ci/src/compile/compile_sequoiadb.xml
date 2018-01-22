@@ -43,7 +43,7 @@
             <antcall target="build_bin_package"/>
             <antcall target="build_cov_package"/>
          </else>
-      </if-->
+      </if>
    </target>
 
    <target name="check_parameter">  
