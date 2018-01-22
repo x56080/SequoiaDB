@@ -282,7 +282,11 @@ public class ConnectionTCPImpl implements IConnection {
             // we can remove this case of exception now, the bug has been fix
             logger.getInstance().error("objidentity:" + Integer.toString(hashCode()) + "\n");
             logger.getInstance().error("thread id:" + Long.toString(Thread.currentThread().getId()) + "\n");
-            throw new BaseException(SDBError.SDB_NETWORK, e);
+            if (e instanceof BaseException) {
+                throw e;
+            } else {
+                throw new BaseException(SDBError.SDB_NETWORK, e);
+            }
         }
     }
 
@@ -304,7 +308,7 @@ public class ConnectionTCPImpl implements IConnection {
             while (rtn < msgSize) {
                 retSize = input.read(buf, rtn, msgSize - rtn);
                 if (retSize == -1) {
-                    throw new BaseException(SDBError.SDB_NETWORK, "failed to get system information");
+                    throw new BaseException(SDBError.SDB_NETWORK, "failed to get endian info");
                 }
                 rtn += retSize;
             }
@@ -319,7 +323,11 @@ public class ConnectionTCPImpl implements IConnection {
             close();
             logger.getInstance().error("objidentity:" + Integer.toString(hashCode()) + "\n");
             logger.getInstance().error("thread id:" + Long.toString(Thread.currentThread().getId()) + "\n");
-            throw new BaseException(SDBError.SDB_NETWORK, e);
+            if (e instanceof BaseException) {
+                throw e;
+            } else {
+                throw new BaseException(SDBError.SDB_NETWORK, e);
+            }
         }
         logger.getInstance().debug(0, "leave receiveSysInfoMsg\n");
         return buf;

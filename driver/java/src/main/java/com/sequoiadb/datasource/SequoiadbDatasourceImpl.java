@@ -76,7 +76,7 @@ public class SequoiadbDatasourceImpl {
     private final Object _objForReleaseConn = new Object();
     // for error report
     private final Object _objForExp = new Object();
-    private BaseException _lastException;
+    private volatile BaseException _lastException;
     // for session
     private volatile BSONObject _sessionAttr = null;
     // for others
@@ -1320,6 +1320,9 @@ public class SequoiadbDatasourceImpl {
                 try {
                     retConn = new Sequoiadb(addr, _username, _password, _nwOpt);
                 } catch (Exception e) {
+                    if (e instanceof BaseException) {
+                        _setLastException((BaseException)e);
+                    }
                     continue;
                 }
                 _abnormalAddrs.remove(addr);
@@ -1338,8 +1341,15 @@ public class SequoiadbDatasourceImpl {
             }
         }
         if (retConn == null) {
-            throw new BaseException(SDBError.SDB_INVALIDARG,
-                    "no available address for creating connection, " + _getDataSourceSnapshot());
+            // make some debug info
+            String detail = _getDataSourceSnapshot();
+            BaseException exp = _getLastException();
+            String errMsg = "no available address for connection, " + detail;
+            if (exp != null) {
+                throw new BaseException(SDBError.SDB_NETWORK, errMsg, exp);
+            } else {
+                throw new BaseException(SDBError.SDB_NETWORK, errMsg);
+            }
         }
         return retConn;
     }
@@ -1364,8 +1374,10 @@ public class SequoiadbDatasourceImpl {
 
     private BaseException _getLastException() {
         synchronized (_objForExp) {
-            BaseException exp = _lastException;
-            _lastException = null;
+            BaseException exp = null;
+            if (_lastException != null) {
+                exp = Helper.copyBaseException(_lastException);
+            }
             return exp;
         }
     }
