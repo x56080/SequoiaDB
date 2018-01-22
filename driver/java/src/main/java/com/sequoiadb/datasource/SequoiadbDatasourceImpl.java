@@ -75,7 +75,6 @@ public class SequoiadbDatasourceImpl {
     private ReentrantReadWriteLock _rwLock = new ReentrantReadWriteLock();
     private final Object _objForReleaseConn = new Object();
     // for error report
-    private final Object _objForExp = new Object();
     private volatile BaseException _lastException;
     // for session
     private volatile BSONObject _sessionAttr = null;
@@ -1367,19 +1366,12 @@ public class SequoiadbDatasourceImpl {
     }
 
     private void _setLastException(BaseException e) {
-        synchronized (_objForExp) {
-            _lastException = e;
-        }
+        _lastException = e;
     }
 
     private BaseException _getLastException() {
-        synchronized (_objForExp) {
-            BaseException exp = null;
-            if (_lastException != null) {
-                exp = Helper.copyBaseException(_lastException);
-            }
-            return exp;
-        }
+        BaseException exp = _lastException;
+        return exp;
     }
 
     private void _handleErrorAddr(String addr) {
