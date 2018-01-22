@@ -1549,17 +1549,17 @@ public class Sequoiadb {
         }
     }
 
-    private void _clearSessionAttrCache()
+    private void clearSessionAttrCache()
     {
         attributeCache = null;
     }
 
-    private BSONObject _getSessionAttrCache()
+    private BSONObject getSessionAttrCache()
     {
         return attributeCache;
     }
 
-    private void _setSessionAttrCache( BSONObject attribute )
+    private void setSessionAttrCache( BSONObject attribute )
     {
         attributeCache = attribute;
     }
@@ -1598,7 +1598,7 @@ public class Sequoiadb {
         BSONObject newObj = new BasicBSONObject();
         newObj.putAll(options);
         newObj.put(SequoiadbConstants.FIELD_NAME_VERSION, SequoiadbConstants.SDB_SETSESSIONATTR_V1);
-        _clearSessionAttrCache();
+        clearSessionAttrCache();
         SDBMessage rtn = adminCommand(SequoiadbConstants.CMD_NAME_SETSESS_ATTR,
                 0, 0, 0, -1, newObj,
                 null, null, null);
@@ -1616,7 +1616,7 @@ public class Sequoiadb {
      * @since 2.8.5
      */
     public BSONObject getSessionAttr() throws BaseException {
-        BSONObject result = _getSessionAttrCache();
+        BSONObject result = getSessionAttrCache();
         if (null != result)
         {
             return result;
@@ -1629,16 +1629,16 @@ public class Sequoiadb {
             result=resultList.get(0);
             if ( null == result )
             {
-                _clearSessionAttrCache();
+                clearSessionAttrCache();
             }
             else
             {
-                _setSessionAttrCache(result);
+                setSessionAttrCache(result);
             }
         }
         else
         {
-            _clearSessionAttrCache();
+            clearSessionAttrCache();
         }
         return result;
     }
