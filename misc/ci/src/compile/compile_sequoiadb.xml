@@ -14,7 +14,6 @@
    <target name="main">    
       <property name="srccode_dir" location="${WORKSPACE}/sequoiadb" />
       <property name="release_dir" location="${WORKSPACE}/release" />    
-      <property name="java_driver_jar" value="sequoiadb.jar" />             
 
       <antcallback target="check_parameter" return="cmd_debug, cmd_etp, SPARK_VERSION, SCALA_VERSION, BIN_PACKAGE, COVERAGE, cmd_cov"/>
       
@@ -44,7 +43,7 @@
             <antcall target="build_bin_package"/>
             <antcall target="build_cov_package"/>
          </else>
-      </if>
+      </if-->
    </target>
 
    <target name="check_parameter">  
@@ -205,14 +204,20 @@
    <target name="compile_java_driver">
       <var name="src_dir" value="${srccode_dir}/driver/java" />
       <if>
-         <equals arg1="${IS_INCREMENTAL_COMPILE}" arg2="true"/>
+         <equals arg1="${IS_DEBUG}" arg2="true"/>
+         <then>
+            <svnversion dir="${src_dir}" version="fdw_svn" />
+            <var name="cmd_mvn" value="versions:set -DnewVersion=${sequoiadb_version}-r${fdw_svn}"/>
+         </then>
          <else>
-            <delete dir="${src_dir}/build" failonerror="false"/>
+            <var name="cmd_mvn" value="versions:set -DnewVersion=${sequoiadb_version}"/>
          </else>
       </if>
-
-      <exec executable="scons" dir="${src_dir}" failonerror="true" logError="true">
-         <arg line="${cmd_debug}" />
+      <exec executable="mvn" dir="${srccode_dir}/driver/java" failonerror="true" logError="true">
+         <arg line=" ${cmd_mvn} " />
+      </exec>
+      <exec executable="mvn" dir="${srccode_dir}/driver/java" failonerror="true" logError="true">
+         <arg line=" clean package -Drevision=${fdw_svn} -Dmaven.test.skip=true" />
       </exec>
    </target>
    
@@ -226,12 +231,21 @@
             <delete dir="${src_dir}/build_open_source" failonerror="false"/>
          </else>
       </if>
+      <for param="filepath">
+         <path>
+            <fileset dir="${srccode_dir}/driver/java/target">
+               <include name="sequoiadb*.jar"/>
+            </fileset>
+         </path>
+         <sequential>
+            <var name="java_dir_path" value="@{filepath}"/>
+         </sequential>
+      </for>
 
-      
       <property name="open.source.hive_connector.filename" value="hive-sequoiadb-apache.jar" />
       <property name="cdh.hive_connector.filename" value="hive-sequoiadb-cdh-5.0.0-beta-2.jar" />     
       <ant antfile="${src_dir}/build.xml">
-         <property name="java.driver.jar" value="${srccode_dir}/driver/java/${java_driver_jar}"/>
+         <property name="java.driver.jar" value="${java_dir_path}"/>
          <property name="javac.base.dir" value="${srccode_dir}"/>
          <property name="root.dir" value="${src_dir}"/>
          <property name="open.source.hive_connector.filename" value="${open.source.hive_connector.filename}" />
@@ -244,18 +258,28 @@
       <copy file="${src_dir}/${open.source.hive_connector.filename}" todir="${src_dir}/build" />
    </target>
    
+   
    <target name="compile_hadoop_connector">
       <var name="src_dir" value="${srccode_dir}/driver/hadoop/hadoop-connector" />
-      
+      <for param="filepath">
+         <path>
+            <fileset dir="${srccode_dir}/driver/java/target">
+               <include name="sequoiadb*.jar"/>
+            </fileset>
+         </path>
+         <sequential>
+            <var name="java_dir_path" value="@{filepath}"/>
+         </sequential>
+      </for>
       <ant antfile="${src_dir}/build.xml">
          <property name="hadoop.version" value="1.2" />
          <property name="basedir" value="${src_dir}" />
-         <property name="java.driver.jar" value="${srccode_dir}/driver/java/${java_driver_jar}"/>
+         <property name="java.driver.jar" value="${java_dir_path}"/>
       </ant>
       <ant antfile="${src_dir}/build.xml">
          <property name="hadoop.version" value="2.2" />
          <property name="basedir" value="${src_dir}" />
-         <property name="java.driver.jar" value="${srccode_dir}/driver/java/${java_driver_jar}"/>
+         <property name="java.driver.jar" value="${java_dir_path}"/>
       </ant>
       
       <!--copy to build directory-->
@@ -265,18 +289,6 @@
          <fileset dir="${src_dir}" includes="**/hadoop-connector-*.jar" />
       </copy>
    </target>
-   
-   <!--target name="compile_spark_connector">
-      <var name="src_dir" value="${srccode_dir}/driver/spark" />
-      <delete dir="${src_dir}/target" failonerror="false"/>
-      
-      <ant antfile="${src_dir}/build.xml">
-        <property name="SPARK_VERSION" value="${SPARK_VERSION}" />
-        <property name="SCALA_VERSION" value="${SCALA_VERSION}" />
-        <property name="root.dir" value="${src_dir}" />
-        <property name="WORKSPACE" value="${WORKSPACE}" />
-      </ant>
-   </target-->
    
    <!--target name="compile_spark_connector">
       <var name="src_dir" value="${srccode_dir}/driver/spark" />
@@ -392,9 +404,18 @@
       <!--copy todir="${release_driver_dir}/Spark" >
          <fileset dir="${srccode_dir}/driver/spark/target" includes="*.jar" />
       </copy-->
-      
+      <for param="filepath">
+         <path>
+            <fileset dir="${srccode_dir}/driver/java/target">
+               <include name="sequoiadb*.jar"/>
+            </fileset>
+         </path>
+         <sequential>
+            <var name="java_dir_path" value="@{filepath}"/>
+         </sequential>
+      </for>
       <copy todir="${release_driver_dir}/Java" 
-            file="${srccode_dir}/driver/java/${java_driver_jar}" />
+            file="${java_dir_path}" />
             
       <copy todir="${release_driver_dir}/PHP" >
          <fileset dir="${srccode_dir}/driver/php/release" includes="*.so" />
@@ -526,7 +547,17 @@
          <fileset dir="${srccode_dir}/client/include" includes="**/*" />
       </copy>
       
-      <copy file="${srccode_dir}/driver/java/${java_driver_jar}" todir="${release_db_dir}/java" />
+      <for param="filepath">
+         <path>
+            <fileset dir="${srccode_dir}/driver/java/target">
+               <include name="sequoiadb*.jar"/>
+            </fileset>
+         </path>
+         <sequential>
+            <var name="java_dir_path" value="@{filepath}"/>
+         </sequential>
+      </for>
+      <copy file="${java_dir_path}" todir="${release_db_dir}/java" />
       <if>
          <equals arg1="${os.arch}" arg2="ppc64" />
          <then>
