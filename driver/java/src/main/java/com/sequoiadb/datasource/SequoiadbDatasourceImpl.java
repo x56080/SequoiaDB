@@ -81,7 +81,6 @@ public class SequoiadbDatasourceImpl
 	private ReentrantReadWriteLock _rwLock = new ReentrantReadWriteLock();
 	private Object _objForReleaseConn = new Object();
 	// for error report
-	private final Object _objForExp = new Object();
 	private volatile BaseException _lastException;
 	// for others
 	private Random _rand = new Random(47);
@@ -1277,16 +1276,11 @@ public class SequoiadbDatasourceImpl
 	}
 
 	private void _setLastException(BaseException e) {
-		synchronized (_objForExp) {
-			_lastException = e;
-		}
+		_lastException = e;
 	}
 
 	private BaseException _getLastException() {
-        BaseException exp = null;
-        if (_lastException != null) {
-            exp = Helper.copyBaseException(_lastException);
-        }
+        BaseException exp = _lastException;
         return exp;
 	}
 
