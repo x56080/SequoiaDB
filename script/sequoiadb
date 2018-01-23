@@ -173,10 +173,12 @@ log_warning_msg () {
 # Set ulimit 
 #
 set_ulimits() {
-    if [ "$2" = -1 ]; then
-       ulimit $1 unlimited
+    local type="$1"
+    local value="$2"
+    if [ "$value" = -1 ]; then
+       ulimit $type unlimited
     else
-       ulimit $1 "$2"
+       ulimit $type "$value"
     fi
     
     if [ $? != 0 ]; then
@@ -213,22 +215,17 @@ status_of_proc () {
 do_start()
 {
   if [ -f "${INSTALL_DIR}/conf/limits.conf" ]; then
-    LIMITS_CFG_PATH="${INSTALL_DIR}/conf/limits.conf"
+    . ${INSTALL_DIR}/conf/limits.conf
     #no coredump
-    LIMITS_SC=`grep -w core_file_size ${LIMITS_CFG_PATH}`
-    set_ulimits "-Sc" "`echo ${LIMITS_SC} | awk -F '=' '{print $2}'`"
+    set_ulimits "-Sc" "$core_file_size"
     #data seg size
-    LIMITS_SD=`grep -w data_seg_size ${LIMITS_CFG_PATH}`
-    set_ulimits "-Sd" "`echo ${LIMITS_SD} | awk -F '=' '{print $2}'`"
+    set_ulimits "-Sd" "$data_seg_size"
     #file size 
-    LIMITS_SF=`grep -w file_size ${LIMITS_CFG_PATH}`
-    set_ulimits "-Sf" "`echo ${LIMITS_SF} | awk -F '=' '{print $2}'`"
+    set_ulimits "-Sf" "$file_size"
     #virtual memory
-    LIMITS_SV=`grep -w virtual_memory ${LIMITS_CFG_PATH}`
-    set_ulimits "-Sv" "`echo ${LIMITS_SV} | awk -F '=' '{print $2}'`"
+    set_ulimits "-Sv" "$virtual_memory"
     #open files
-    LIMITS_N=`grep -w open_files ${LIMITS_CFG_PATH}`
-    set_ulimits "-n" "`echo ${LIMITS_N} | awk -F '=' '{print $2}'`"
+    set_ulimits "-n" "$open_files"
   fi
   mkdir -p ${LOCK_FILE_DIR}
   touch ${LOCK_FILE}
