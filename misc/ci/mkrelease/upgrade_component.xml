@@ -273,13 +273,27 @@
             </distributionFileList>
         </folder>
         <folder>
+            <name>limits_files</name>
+            <destination>${installdir}/conf</destination>
+            <distributionFileList>
+                <distributionDirectory>
+                    <allowWildcards>1</allowWildcards>
+                    <origin>${build_project_directory}/sequoiadb/conf/*</origin>
+                    <includeFiles>*/limits.conf</includeFiles>
+                </distributionDirectory>
+            </distributionFileList>
+            <ruleList>
+                <fileTest condition="not_exists" path="${installdir}/conf/limits.conf"/>
+            </ruleList>
+        </folder>
+        <folder>
             <name>conf_files</name>
             <destination>${installdir}/conf</destination>
             <distributionFileList>
                 <distributionDirectory>
                     <allowWildcards>1</allowWildcards>
                     <origin>${build_project_directory}/sequoiadb/conf/*</origin>
-                    <excludeFiles>*/local;*/log;*/sdbcm.conf</excludeFiles>
+                    <excludeFiles>*/local;*/log;*/sdbcm.conf;*/limits.conf</excludeFiles>
                 </distributionDirectory>
             </distributionFileList>
             <actionList>
