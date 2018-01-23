@@ -214,7 +214,6 @@ public class ConnectionTCPImpl implements IConnection {
      */
     @Override
     public ByteBuffer receiveMessage(boolean endianConvert) throws BaseException {
-        logger.getInstance().debug(0, "enter receiveMessage\n");
         if (this.isClosed()) {
             throw new BaseException("SDB_NOT_CONNECTED");
         }
@@ -273,23 +272,18 @@ public class ConnectionTCPImpl implements IConnection {
                 // is in big-endian
                 byteBuffer.order(ByteOrder.BIG_ENDIAN);
             }
-            logger.getInstance().debug(0, "leave receiveMessage\n");
             return byteBuffer;
-        } catch (IOException e) {
+        } catch (BaseException e) {
             close();
-            throw new BaseException("SDB_NETWORK", e);
+            throw e;
         } catch (Exception e) {
             close();
-            // we can remove this case of exception now, the bug has been fix
-            logger.getInstance().error("objidentity:" + Integer.toString(hashCode()) + "\n");
-            logger.getInstance().error("thread id:" + Long.toString(Thread.currentThread().getId()) + "\n");
-            throw new BaseException("SDB_NETWORK", e);
+            throw new BaseException("SDB_NETWORK", "receive message failed", e);
         }
     }
 
     @Override
     public byte[] receiveSysInfoMsg(int msgSize) throws BaseException {
-        logger.getInstance().debug(0, "enter receiveSysInfoMsg\n");
         // check
         if (this.isClosed()) {
             throw new BaseException("SDB_NOT_CONNECTED");
@@ -317,16 +311,13 @@ public class ConnectionTCPImpl implements IConnection {
                         String.format("unexpected length of message, message size is: %d, has read: %d",
                                 msgSize, rtn));
             }
-        } catch (IOException e) {
+        } catch (BaseException e) {
             close();
-            throw new BaseException("SDB_NETWORK", e);
+            throw e;
         } catch (Exception e) {
             close();
-            logger.getInstance().error("objidentity:" + Integer.toString(hashCode()) + "\n");
-            logger.getInstance().error("thread id:" + Long.toString(Thread.currentThread().getId()) + "\n");
-            throw new BaseException("SDB_NETWORK", e);
+            throw new BaseException("SDB_NETWORK", "receive message failed", e);
         }
-        logger.getInstance().debug(0, "leave receiveSysInfoMsg\n");
         return buf;
     }
 
@@ -352,7 +343,6 @@ public class ConnectionTCPImpl implements IConnection {
 
     @Override
     public void sendMessage(byte[] msg, int length) throws BaseException {
-        logger.getInstance().debug(0, "enter sendMessage2\n");
         if (this.isClosed()) {
             throw new BaseException("SDB_NOT_CONNECTED");
         }
@@ -366,7 +356,6 @@ public class ConnectionTCPImpl implements IConnection {
             throw new BaseException("SDB_NETWORK",
                     String.format("failed to write %d bytes", length), e);
         }
-        logger.getInstance().debug(0, "leave sendMessage2\n");
     }
 
     public void shrinkBuffer() {
