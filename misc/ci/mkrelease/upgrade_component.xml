@@ -3,9 +3,16 @@
 
     <initializationActionList>
         <setInstallerVariable name="stage" value="upgrade"/>
+        <setInstallerVariable name="exist_old_limits_conf" value="true"/>
     </initializationActionList>
 
     <readyToInstallActionList>
+        <setInstallerVariable name="exist_old_limits_conf">
+            <value>false</value>
+            <ruleList>
+                <fileTest condition="not_exists" path="${installdir}/conf/limits.conf"/>
+            </ruleList>
+        </setInstallerVariable>
         <consoleWrite text="${msg(Upgrade.NormalMsg.BeginUpgrade)}&#xA;"/>
         <consoleWrite text="${msg(Upgrade.NormalMsg.CheckList)}&#xA;"/>
 
@@ -348,6 +355,17 @@
 
         <!--you should place 'start service' and 'create om' in last of postInstallationActionList-->
         <!--because if this step failed, <postInstallationActionList> will abort and next steps will not be excuted-->
+        <getSysType type="sys_type"/>
+        <if>
+           <conditionRuleList>
+              <compareValues value1="${sys_type}" logic="equals" value2="SysV"/>
+              <compareValues value1="${exist_old_limits_conf}" logic="equals" value2="false"/>
+           </conditionRuleList>
+           <actionList>
+               <delDefaultService/>
+               <addDefaultService/>
+           </actionList>
+        </if>
         <!--start service-->
         <startServiceFunction/>
         <runProgram>
