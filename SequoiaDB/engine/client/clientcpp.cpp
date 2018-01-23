@@ -5710,12 +5710,20 @@ error :
 
    INT32 _sdbLobImpl::getSize( SINT64 *size )
    {
+      if ( NULL == size )
+      {
+         return SDB_INVALIDARG ;
+      }
       *size = getSize() ;
       return SDB_OK ;
    }
 
    INT32 _sdbLobImpl::getCreateTime ( UINT64 *millis )
    {
+      if ( NULL == millis )
+      {
+         return SDB_INVALIDARG ;
+      }
       *millis = getCreateTime() ;
       return SDB_OK ;
    }
