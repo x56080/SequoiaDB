@@ -524,6 +524,7 @@
          <fileset dir="${srccode_dir}/conf/samples/" />
       </copy>
       <copy file="${srccode_dir}/conf/sdbcm.conf" todir="${release_db_dir}/conf" />
+      <copy file="${srccode_dir}/conf/limits.conf" todir="${release_db_dir}/conf" />
       
       <copy todir="${release_db_dir}/doc">
          <fileset dir="${srccode_dir}/../archive/" includes="*.pdf,*.chm,*.tar.gz"/>
