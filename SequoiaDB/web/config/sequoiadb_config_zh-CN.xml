@@ -94,7 +94,7 @@
 		<Name>preferedinstance</Name>
 		<WebName>实例模式</WebName>
 		<Type>string</Type>
-		<Default>A</Default>
+		<Default>M</Default>
 		<Valid>M,S,A,1,2,3,4,5,6,7</Valid>
 		<Display>select box</Display>
 		<Edit>true</Edit>
