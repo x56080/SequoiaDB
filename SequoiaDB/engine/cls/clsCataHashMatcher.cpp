@@ -173,7 +173,6 @@ namespace engine
       }
       _children.clear() ;
       _fieldSet.clear() ;
-      _logicType = CLS_CATA_LOGIC_INVALID ;
    }
 
    INT32 clsCataHashPredTree::generateHashPredicate( UINT32 partitionBit,
