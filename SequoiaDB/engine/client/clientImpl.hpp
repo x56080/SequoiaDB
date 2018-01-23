@@ -697,6 +697,7 @@ namespace sdbclient
       INT32 getCollection ( const CHAR *pCollectionName,
                             sdbCollection &collection )
       {
+         RELEASE_INNER_HANDLE( collection.pCollection ) ;
          return getCollection ( pCollectionName,
                                 &collection.pCollection ) ;
       }
@@ -706,6 +707,7 @@ namespace sdbclient
       INT32 createCollection ( const CHAR *pCollection,
                                sdbCollection &collection )
       {
+         RELEASE_INNER_HANDLE( collection.pCollection ) ;
          return createCollection ( pCollection,
                                    &collection.pCollection ) ;
       }
@@ -717,6 +719,7 @@ namespace sdbclient
                                const BSONObj &options,
                                sdbCollection &collection )
       {
+         RELEASE_INNER_HANDLE( collection.pCollection ) ;
          return createCollection ( pCollection,
                                    options,
                                    &collection.pCollection ) ;
