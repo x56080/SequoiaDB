@@ -9446,6 +9446,11 @@ SDB_EXPORT INT32 sdbGetLobSize( sdbLobHandle lobHandle,
    sdbLobStruct *lob = ( sdbLobStruct * )lobHandle ;
 
    HANDLE_CHECK( lobHandle, lob, SDB_HANDLE_TYPE_LOB ) ;
+   if ( NULL == size )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
 
    *size = lob->_lobSize ;
 done:
@@ -9461,7 +9466,11 @@ SDB_EXPORT INT32 sdbGetLobCreateTime( sdbLobHandle lobHandle,
    sdbLobStruct *lob = ( sdbLobStruct * )lobHandle ;
 
    HANDLE_CHECK( lobHandle, lob, SDB_HANDLE_TYPE_LOB ) ;
-
+   if ( NULL == millis )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
    *millis = lob->_createTime ;
 done:
    return rc ;

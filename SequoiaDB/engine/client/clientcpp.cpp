@@ -5746,6 +5746,11 @@ error :
          rc = SDB_NOT_CONNECTED ;
          goto error;
       }
+      if ( NULL == size )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
       // get size
       *size = getSize() ;
    done:
@@ -5763,6 +5768,11 @@ error :
       {
          rc = SDB_NOT_CONNECTED ;
          goto error;
+      }
+      if ( NULL == millis )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
       }
       *millis = getCreateTime() ;
    done:
