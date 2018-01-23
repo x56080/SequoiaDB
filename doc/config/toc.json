@@ -79,6 +79,12 @@
                ]
             },
             {
+               "id": 1516636800,
+               "file": "ulimits",
+               "cn": "limit设置",
+               "en": "Setting Limits"
+            },
+            {
                "id": 1432190597,
                "file": "get_start",
                "cn": "快速入门",
