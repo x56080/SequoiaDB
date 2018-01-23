@@ -215,7 +215,6 @@ public class ConnectionTCPImpl implements IConnection {
      */
     @Override
     public ByteBuffer receiveMessage(boolean endianConvert) throws BaseException {
-        logger.getInstance().debug(0, "enter receiveMessage\n");
         // check
         if (this.isClosed()) {
             throw new BaseException(SDBError.SDB_NOT_CONNECTED);
@@ -274,19 +273,12 @@ public class ConnectionTCPImpl implements IConnection {
             }
             logger.getInstance().debug(0, "leave receiveMessage\n");
             return byteBuffer;
-        } catch (IOException e) {
+        } catch(BaseException e) {
             close();
-            throw new BaseException(SDBError.SDB_NETWORK, e);
+            throw e;
         } catch (Exception e) {
             close();
-            // we can remove this case of exception now, the bug has been fix
-            logger.getInstance().error("objidentity:" + Integer.toString(hashCode()) + "\n");
-            logger.getInstance().error("thread id:" + Long.toString(Thread.currentThread().getId()) + "\n");
-            if (e instanceof BaseException) {
-                throw e;
-            } else {
-                throw new BaseException(SDBError.SDB_NETWORK, e);
-            }
+            throw new BaseException(SDBError.SDB_NETWORK, "receive message failed", e);
         }
     }
 
@@ -312,24 +304,16 @@ public class ConnectionTCPImpl implements IConnection {
                 }
                 rtn += retSize;
             }
-
             if (rtn != msgSize) {
                 throw new BaseException(SDBError.SDB_NETWORK, "unexpected length of message");
             }
-        } catch (IOException e) {
+        } catch(BaseException e) {
             close();
-            throw new BaseException(SDBError.SDB_NETWORK, e);
+            throw e;
         } catch (Exception e) {
             close();
-            logger.getInstance().error("objidentity:" + Integer.toString(hashCode()) + "\n");
-            logger.getInstance().error("thread id:" + Long.toString(Thread.currentThread().getId()) + "\n");
-            if (e instanceof BaseException) {
-                throw e;
-            } else {
-                throw new BaseException(SDBError.SDB_NETWORK, e);
-            }
+            throw new BaseException(SDBError.SDB_NETWORK, "receive message failed", e);
         }
-        logger.getInstance().debug(0, "leave receiveSysInfoMsg\n");
         return buf;
     }
 
