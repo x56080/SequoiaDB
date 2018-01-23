@@ -364,6 +364,7 @@
          <fileset dir="${CODE_DIR}/conf/samples/" />
       </copy>
       <copy file="${CODE_DIR}/conf/sdbcm.conf" todir="${RELEASE_DIR}/sequoiadb/conf" />
+      <copy file="${CODE_DIR}/conf/limits.conf" todir="${RELEASE_DIR}/sequoiadb/conf" />
 
       <copy todir="${RELEASE_DIR}/sequoiadb/tools/server/php">
          <fileset dir="${CODE_DIR}/tools/server/${PHP.VERSION}/" />
