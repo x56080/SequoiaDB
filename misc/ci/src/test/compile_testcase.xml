@@ -10,7 +10,9 @@
       <sequential>
          <delete dir="@{srcdir}/build" failonerror="false" />
          <mkdir dir="@{srcdir}/build"/>
-         <copy file="${INSTALL_DIR}/java/sequoiadb.jar" todir="@{srcdir}/lib" overwrite="true" />
+         <copy todir="@{srcdir}/lib" overwrite="true">
+            <fileset dir="${INSTALL_DIR}/java" includes="sequoiadb*.jar"/>
+         </copy>
          <copy file="${WORKSPACE}/sequoiadb/testcase/thirdparty/testng-master/lib/linux64/testng-6.10.1-SNAPSHOT.jar" 
                todir="@{srcdir}/lib" overwrite="true" />
          <javac executable="${INSTALL_DIR}/java/jdk/bin/javac" 
