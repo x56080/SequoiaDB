@@ -62,6 +62,7 @@ public class TestLobSplit7846 extends SdbTestBase {
 			throw new SkipException("less two groups skip testcase");
 		}
 		
+		sdb.setSessionAttr((BSONObject)JSON.parse("{ PreferedInstance: 'M' }"));
 		createCL();
 		int lobNums = 100;
 		writeLobAndGetMd5(lobNums);
