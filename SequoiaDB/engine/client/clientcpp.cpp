@@ -4654,8 +4654,8 @@ error :
       }
    done :
       return rc ;
-error :
-      if ( NULL == *collection )
+   error :
+      if ( NULL != *collection )
       {
          delete *collection ;
          *collection = NULL ;
