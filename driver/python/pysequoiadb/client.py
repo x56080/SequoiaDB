@@ -533,9 +533,7 @@ class client(object):
 
       Parameters:
          Name         Type     Info:
-         condition    dict     The matching rule, usually specifies the
-                                     node in sharding environment, in standalone
-                                     mode, this option is ignored.
+         condition    dict     This parameter is ignored.
       Exceptions:
          pysequoiadb.error.SDBTypeError
          pysequoiadb.error.SDBBaseError

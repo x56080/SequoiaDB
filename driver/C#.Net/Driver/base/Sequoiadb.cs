@@ -955,7 +955,7 @@ namespace SequoiaDB
 
         /** \fn void ResetSnapshot( BsonDocument matcher )
          *  \brief Reset the snapshot
-         *  \param matcher The matching condition 
+         *  \param matcher This parameter is ignored
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
          */

@@ -426,7 +426,7 @@ class SequoiaDB
    /**
     * Reset the snapshot.
     *
-    * @param $condition an array or the string argument. The matching rule, usually specifies the node in sharding environment in standalone mode, this option is ignored
+    * @param $condition This parameter is ignored.
     *
     * @return Returns the result, default return array.
     *
