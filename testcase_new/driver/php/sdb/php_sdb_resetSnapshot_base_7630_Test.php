@@ -34,20 +34,15 @@ class SdbResetSnapshot extends BaseOperator
       }
       else if( $paramNum === 'array' )
       {
-         $condition = array( 'Type' => 'sessions', 'SessionID' => 1 );
+         $condition = array( 'SessionID' => 1 );
          $cursor = $this -> db -> resetSnapshot( $condition );
       }
       else if( $paramNum === 'string' )
       {
-         $condition = '{Type: "sessions", SessionID: 1}';
+         $condition = '{SessionID: 1}';
          $cursor = $this -> db -> resetSnapshot( $condition );
       }
    }
-   /*
-   function checkResultBySnapshot()
-   {
-      $cursor = $this -> db -> snapshot( SDB_SNAP_SESSIONS_CURRENT );
-   }*/
    
    function dropCS( $csName, $ignoreNotExist )
    {
@@ -68,24 +63,30 @@ class TestSdbResetSnapshot extends PHPUnit_Framework_TestCase
    
    function test_resetSnapshotByParamMust()
    {
-      echo "\n---Begin to exec resetSnapshot[by required parameter].\n";      
-      self::$dbh -> resetSnapshot( null );      
+      echo "\n---Begin to exec resetSnapshot[by required parameter].\n";
+      
+      self::$dbh -> resetSnapshot( null );
+      
       $errno = self::$dbh -> getErrno();
       $this -> assertEquals( 0, $errno );
    }
    
    function test_resetSnapshotParamArray()
    {
-      echo "\n---Begin to exec resetSnapshot[by all parameter, type: Array].\n";      
-      self::$dbh -> resetSnapshot( 'array' );     
+      echo "\n---Begin to exec resetSnapshot[by all parameter, type: Array].\n";
+      
+      self::$dbh -> resetSnapshot( 'array' );
+      
       $errno = self::$dbh -> getErrno();
       $this -> assertEquals( 0, $errno );
    }
    
    function test_resetSnapshotByParamString()
    {
-      echo "\n---Begin to exec resetSnapshot[by all parameter, type: String].\n";      
-      self::$dbh -> resetSnapshot( 'string' ); 
+      echo "\n---Begin to exec resetSnapshot[by all parameter, type: String].\n";
+      
+      self::$dbh -> resetSnapshot( 'string' );
+      
       $errno = self::$dbh -> getErrno();
       $this -> assertEquals( 0, $errno );
    }
