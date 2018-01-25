@@ -75,9 +75,11 @@ TEST_F( getLastAliveTime12655, getLastAliveTime )
    ASSERT_EQ( SDB_OK, rc ) << "wrong lastAliveTime" ;
    
    // insert
+   rc = cs.getCollection( pClName, cl ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
    BSONObj obj ;
    obj = BSON ( "name" << "tom" << "age" << 24 ) ;
-   rc = cl.insert( obj ) ;                                                   
+   rc = cl.insert( obj ) ;
    ASSERT_EQ( SDB_OK, rc ) ; 
    
    rc = checkLastAliveTime() ; 
