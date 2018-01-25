@@ -77,13 +77,39 @@
       </exec>
       
       <echo message="Build java driver..." />
-      <echo message="exec scons ${compile.arg.line}" />
-      <exec executable="scons" dir="${WORKSPACE}/sequoiadb/driver/java" failonerror="true" logError="true">
-         <arg line="${compile.arg.line}" />
+      <dbversion srccodedir="${WORKSPACE}/sequoiadb" version="sequoiadb_version"/>
+      <if>
+         <equals arg1="${compile.debug}" arg2="true"/>
+         <then>
+            <svnversion dir="${WORKSPACE}/sequoiadb/driver/java" version="fdw_svn" />
+            <var name="cmd_mvn" value="versions:set -DnewVersion=${sequoiadb_version}-r${fdw_svn}"/>
+         </then>
+         <else>
+            <var name="cmd_mvn" value="versions:set -DnewVersion=${sequoiadb_version}"/>
+         </else>
+      </if>
+      <echo message="exec mvn ${cmd_mvn} in ${WORKSPACE}/sequoiadb/driver/java" />
+      <exec executable="mvn" dir="${WORKSPACE}/sequoiadb/driver/java" failonerror="true" logError="true">
+         <arg line=" ${cmd_mvn} " />
+      </exec>
+      <echo message="exec mvn clean package -Drevision=${fdw_svn} -Dmaven.test.skip=true in ${WORKSPACE}/sequoiadb/driver/java" />
+      <exec executable="mvn" dir="${WORKSPACE}/sequoiadb/driver/java" failonerror="true" logError="true">
+         <arg line=" clean package -Drevision=${fdw_svn} -Dmaven.test.skip=true" />
       </exec>
       
+      <for param="filepath">
+         <path>
+            <fileset dir="${CODE_DIR}/driver/java">
+               <include name="sequoiadb*.jar"/>
+            </fileset>
+         </path>
+         <sequential>
+            <var name="java_dir_path" value="@{filepath}"/>
+         </sequential>
+      </for>
+      
       <ant antfile="${WORKSPACE}/sequoiadb/driver/hadoop/hive/build.xml">
-         <property name="java.driver.jar" value="${CODE_DIR}/driver/java/${java.driver.jar.name}"/>
+         <property name="java.driver.jar" value="${java_dir_path}"/>
          <property name="javac.base.dir" value="${WORKSPACE}/sequoiadb/"/>
          <property name="root.dir" value="${WORKSPACE}/sequoiadb/driver/hadoop/hive/"/>
          <property name="open.source.hive_connector.filename" value="${open.source.hive_connector.filename}" />
@@ -98,12 +124,12 @@
       <ant antfile="${WORKSPACE}/sequoiadb/driver/hadoop/hadoop-connector/build.xml">
          <property name="hadoop.version" value="1.2" />
          <property name="basedir" value="${CODE_DIR}/driver/hadoop/hadoop-connector" />
-         <property name="java.driver.jar" value="${CODE_DIR}/driver/java/${java.driver.jar.name}"/>
+         <property name="java.driver.jar" value="${java_dir_path}"/>
       </ant>
       <ant antfile="${WORKSPACE}/sequoiadb/driver/hadoop/hadoop-connector/build.xml">
          <property name="hadoop.version" value="2.2" />
          <property name="basedir" value="${CODE_DIR}/driver/hadoop/hadoop-connector" />
-         <property name="java.driver.jar" value="${CODE_DIR}/driver/java/${java.driver.jar.name}"/>
+         <property name="java.driver.jar" value="${java_dir_path}"/>
       </ant>
 
       <chmod file="${WORKSPACE}/sequoiadb/thirdparty/php/retriConfig.sh" perm="a+x" />
@@ -147,8 +173,19 @@
       <mkdir dir="${DRIVER.DIR}/samples" />
       <mkdir dir="${DRIVER.DIR}/postgresql" />
 
+      <for param="filepath">
+         <path>
+            <fileset dir="${CODE_DIR}/driver/java">
+               <include name="sequoiadb*.jar"/>
+            </fileset>
+         </path>
+         <sequential>
+            <var name="java_dir_path" value="@{filepath}"/>
+         </sequential>
+      </for>
+      
       <copy file="${CODE_DIR}/driver/C#.Net/build/release/sequoiadb.dll" tofile="${DRIVER.DIR}/CSharp/sequoiadb.dll" />
-      <copy file="${CODE_DIR}/driver/java/${java.driver.jar.name}" todir="${DRIVER.DIR}/java" />
+      <copy file="${java_dir_path}" todir="${DRIVER.DIR}/java" />
       <copy file="${CODE_DIR}/driver/hadoop/hive/${open.source.hive_connector.filename}" tofile="${DRIVER.DIR}/hadoop/${open.source.hive_connector.filename}" />
       <copy file="${CODE_DIR}/driver/hadoop/hive/${cdh.hive_connector.filename}" tofile="${DRIVER.DIR}/hadoop/${cdh.hive_connector.filename}" />
       <copy todir="${DRIVER.DIR}/hadoop" >
@@ -319,7 +356,17 @@
       <copy todir="${RELEASE_DIR}/sequoiadb/python">
          <fileset dir="${DRIVER.DIR}/python" />
       </copy>
-      <copy file="${CODE_DIR}/driver/java/${java.driver.jar.name}" todir="${RELEASE_DIR}/sequoiadb/java" />
+      <for param="filepath">
+         <path>
+            <fileset dir="${CODE_DIR}/driver/java">
+               <include name="sequoiadb*.jar"/>
+            </fileset>
+         </path>
+         <sequential>
+            <var name="java_dir_path" value="@{filepath}"/>
+         </sequential>
+      </for>
+      <copy file="${java_dir_path}" todir="${RELEASE_DIR}/sequoiadb/java" />
       <copy file="${CODE_DIR}/driver/hadoop/hive/${open.source.hive_connector.filename}" tofile="${RELEASE_DIR}/sequoiadb/hadoop/${open.source.hive_connector.filename}" />
       <copy file="${CODE_DIR}/driver/hadoop/hive/${cdh.hive_connector.filename}" tofile="${RELEASE_DIR}/sequoiadb/hadoop/${cdh.hive_connector.filename}" />
 
@@ -520,9 +567,18 @@
       <copy todir="${release_driver_dir}/Hadoop" >
          <fileset dir="${CODE_DIR}/driver/hadoop/hadoop-connector" includes="**/hadoop-connector-*.jar" />
       </copy>
-      
+      <for param="filepath">
+         <path>
+            <fileset dir="${CODE_DIR}/driver/java">
+               <include name="sequoiadb*.jar"/>
+            </fileset>
+         </path>
+         <sequential>
+            <var name="java_dir_path" value="@{filepath}"/>
+         </sequential>
+      </for>
       <copy todir="${release_driver_dir}/Java" 
-            file="${CODE_DIR}/driver/java/${java.driver.jar.name}" />
+            file="${java_dir_path}" />
             
       <copy todir="${release_driver_dir}/PHP" >
          <fileset dir="${RELEASE_DIR}/sequoiadb/lib/phplib" includes="**/*.so" />
@@ -598,5 +654,30 @@
          </then>
       </if>
    </target>
+  
+   <macrodef name="svnversion">
+      <attribute name="dir"/>
+      <attribute name="version"/>
+      <sequential>
+         <var name="@{verison}" unset="true"/>
+         <exec executable="bash" dir="@{dir}" outputproperty="@{version}" failonerror="true" logError="true" >
+            <arg value="-c" />
+            <arg line="&quot;svn info | grep Revision | awk '{print $2}'&quot;" />
+         </exec>
+      </sequential>
+   </macrodef>
+   
+   <macrodef name="dbversion">
+      <attribute name="srccodedir"/>
+      <attribute name="version"/>
+      <sequential>
+         <var name="tools_dir" value="@{srccodedir}/misc/ci/build-file"/>
+         <exec executable="gcc" dir="${tools_dir}" failonerror="true" logError="true">
+            <arg line="${tools_dir}/print_version.c -o ${tools_dir}/print_version -I@{srccodedir}/SequoiaDB/engine/include" />
+         </exec>
+         <var name="@{version}" unset="true"/>
+         <exec executable="${tools_dir}/print_version" outputproperty="@{version}" failonerror="true" logError="true" />
+      </sequential>
+   </macrodef>
    
 </project>
