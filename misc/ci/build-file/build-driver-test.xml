@@ -108,8 +108,19 @@
 				<property name="jdk_name" value="${jdk_name_os}32" />
 			</else>
 		</if>
-    	<echo level="info" message="Step1 : Copy the file &lt;${driver_dir}/Java/sequoiadb.jar&gt; to &lt;${deploy_dir}/hlt/drivers_testcases/java/lib/sequoiadb.jar&gt;." />
-		<copy file="${driver_dir}/Java/sequoiadb.jar" tofile="${deploy_dir}/hlt/drivers_testcases/java/lib/sequoiadb.jar" />
+      <for param="filepath">
+         <path>
+            <fileset dir="${driver_dir}/Java">
+               <include name="sequoiadb*.jar"/>
+            </fileset>
+         </path>
+         <sequential>
+            <var name="java_dir_path" value="@{filepath}"/>
+         </sequential>
+      </for>
+    	<echo level="info" message="Step1 : Copy the file &lt;${java_dir_path}&gt; to &lt;${deploy_dir}/hlt/drivers_testcases/java/lib&gt;." />
+      <delete file="${deploy_dir}/hlt/drivers_testcases/java/lib/sequoiadb*.jar" failonerror="false"/>
+		<copy file="${java_dir_path}" todir="${deploy_dir}/hlt/drivers_testcases/java/lib" />
 		<echo level="info" message="Step2 : Compile the java driver testcases." />
 		<javac executable="${WORKSPACE}/sequoiadb/java/${jdk_name}/bin/javac" 
 		       srcdir="${testcases_dir}/java" 
@@ -123,7 +134,7 @@
 		       failonerror="true">
 			<classpath>
 				<pathelement location="${deploy_dir}/ant-sdbtasks/ant-sdbtasks.jar" />
-				<pathelement location="${deploy_dir}/hlt/drivers_testcases/java/lib/sequoiadb.jar" />
+				<pathelement location="${java_dir_path}" />
 			</classpath>
 		</javac>
 		<echo level="info" message="Step3 : Jar the &lt;java_test.jar&gt; to &lt;${deploy_dir}/hlt/drivers_testcases/java/lib&gt;." />
@@ -393,13 +404,22 @@
 				
 		<property name="sjava_src_path"    value="${testcases_dir}/../../testcases/hlt/drivers_testcases/java/" />
 		<property name="sjava_deploy_path" value="${deploy_dir}/hlt/drivers_testcases/story_java" />
-		
-    	<echo level="info" message="1 : Copy ${driver_dir}/Java/sequoiadb.jar to ${sjava_deploy_path}/lib/sequoiadb.jar." />
-		<copy file="${driver_dir}/Java/sequoiadb.jar"   todir="${sjava_deploy_path}/lib" />
+      <for param="filepath">
+         <path>
+            <fileset dir="${driver_dir}/Java">
+               <include name="sequoiadb*.jar"/>
+            </fileset>
+         </path>
+         <sequential>
+            <var name="java_dir_path" value="@{filepath}"/>
+         </sequential>
+      </for>
+    	<echo level="info" message="1 : Copy ${java_dir_path} to ${sjava_deploy_path}/lib." />
+		<copy file="${java_dir_path}"   todir="${sjava_deploy_path}/lib" />
 		<copy file="${sjava_src_path}/testng.xml"       todir="${sjava_deploy_path}" />
 		<copy todir="${sjava_deploy_path}/lib">
 		   <fileset dir="${sjava_src_path}/lib">
-		      <exclude name="sequoiadb.jar"/>
+		      <exclude name="sequoiadb*.jar"/>
 		   </fileset>   
 		</copy>   
 		
@@ -412,7 +432,7 @@
 		       debuglevel="lines,vars,source"
 		       failonerror="true">
 			<classpath>
-				<pathelement location="${sjava_deploy_path}/lib/sequoiadb.jar" />
+				<pathelement location="${java_dir_path}" />
             <pathelement location="${sjava_deploy_path}/lib/testng-6.9.11.jar"/>
             <pathelement location="${sjava_deploy_path}/lib/jcommander-1.49.jar"/>  
 			</classpath>
