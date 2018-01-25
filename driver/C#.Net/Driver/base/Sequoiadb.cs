@@ -970,7 +970,14 @@ namespace SequoiaDB
 
         /** \fn void ResetSnapshot( BsonDocument matcher )
          *  \brief Reset the snapshot
-         *  \param matcher The matching condition 
+         *  \param matcher The control options are as below:(please visit the official website
+         *                  to search "Location Elements" for more detail.)
+         *      GroupID:INT32,
+         *      GroupName:String,
+         *      NodeID:INT32,
+         *      HostName:String,
+         *      svcname:String,
+         *      ...
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
          */

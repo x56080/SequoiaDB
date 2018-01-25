@@ -3446,8 +3446,14 @@ namespace sdbclient
 
 /** \fn INT32 resetSnapshot ( const bson::BSONObj &condition )
     \brief Reset the snapshot.
-    \param [in] condition The matching rule, usually specifies the node in sharding environment,
-                   in standalone mode, this option is ignored.
+    \param [in] condition The control options are as below: (please visit the official
+                website to search "Location Elements" for more detail.)
+        GroupID   :INT32,
+        GroupName :String,
+        NodeID    :INT32,
+        HostName  :String,
+        svcname   :String,
+        ...
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */

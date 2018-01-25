@@ -485,7 +485,7 @@ class SequoiaDB
    /**
     * Reset the snapshot.
     *
-    * @param $condition an array or the string argument. The matching rule, usually specifies the node in sharding environment in standalone mode, this option is ignored
+    * @param $condition The control options are as below:(please visit the official website to search "Location Elements" for more detail.) GroupID:INT32, GroupName:String, NodeID:INT32, HostName:String, svcname:String...
     *
     * @return Returns the result, default return array.
     *
