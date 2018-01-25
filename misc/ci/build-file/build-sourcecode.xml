@@ -26,7 +26,6 @@
    </target>
 
    <target name="compile-src" depends="ready">
-      <property name="java.driver.jar.name" value="sequoiadb.jar" />
 
       <echo message="Begin to compile source code..." />
       <delete dir="${CODE_DIR}/bin"  failonerror="false" />
@@ -99,7 +98,7 @@
       
       <for param="filepath">
          <path>
-            <fileset dir="${CODE_DIR}/driver/java">
+            <fileset dir="${CODE_DIR}/driver/java/target">
                <include name="sequoiadb*.jar"/>
             </fileset>
          </path>
@@ -175,7 +174,7 @@
 
       <for param="filepath">
          <path>
-            <fileset dir="${CODE_DIR}/driver/java">
+            <fileset dir="${CODE_DIR}/driver/java/target">
                <include name="sequoiadb*.jar"/>
             </fileset>
          </path>
@@ -358,7 +357,7 @@
       </copy>
       <for param="filepath">
          <path>
-            <fileset dir="${CODE_DIR}/driver/java">
+            <fileset dir="${CODE_DIR}/driver/java/target">
                <include name="sequoiadb*.jar"/>
             </fileset>
          </path>
@@ -569,7 +568,7 @@
       </copy>
       <for param="filepath">
          <path>
-            <fileset dir="${CODE_DIR}/driver/java">
+            <fileset dir="${CODE_DIR}/driver/java/target">
                <include name="sequoiadb*.jar"/>
             </fileset>
          </path>
