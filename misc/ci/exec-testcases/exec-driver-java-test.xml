@@ -33,7 +33,7 @@
     		    <junit printsummary="yes" fork="yes" jvm="${jdk6_dir}" showoutput="true" timeout="1200000">
                     <classpath>
                         <pathelement path="${antTask.jar.path}/ant-sdbtasks.jar" />
-                        <pathelement path="${java.testcase.path}/lib/sequoiadb*.jar" />
+                        <pathelement path="${java.testcase.path}/lib/sequoiadb.jar" />
                         <pathelement path="${java.testcase.path}/lib/java_test.jar" />
                     </classpath>
                     <formatter type="xml" />
@@ -55,7 +55,7 @@
     		    <junit printsummary="yes" fork="yes" showoutput="true" timeout="1200000">
                     <classpath>
                         <pathelement path="${antTask.jar.path}/ant-sdbtasks.jar" />
-                        <pathelement path="${java.testcase.path}/lib/sequoiadb*.jar" />
+                        <pathelement path="${java.testcase.path}/lib/sequoiadb.jar" />
                         <pathelement path="${java.testcase.path}/lib/java_test.jar" />
                     </classpath>
                     <formatter type="xml" />
