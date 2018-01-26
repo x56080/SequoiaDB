@@ -194,6 +194,10 @@ namespace engine
          {
             return ossFetchAndAdd32( (INT32*)&_pinCnt, 0 ) ;
          }
+         void        resetPin()
+         {
+            ossAtomicExchange32( (INT32*)&_pinCnt, 0 ) ;
+         }
          void        lock()
          {
             ossFetchAndIncrement32( &_lockCnt ) ;
@@ -209,6 +213,10 @@ namespace engine
          INT32       getLockCnt() const
          {
             return ossFetchAndAdd32( (INT32*)&_lockCnt, 0 ) ;
+         }
+         void        resetLock()
+         {
+            ossAtomicExchange32( (INT32*)&_lockCnt, 0 ) ;
          }
          INT32       waitToUnlock( INT64 timeout = -1 ) const
          {
@@ -775,12 +783,16 @@ namespace engine
          UINT32      getLength() const ;
          const CHAR* getData() const ;
 
-         INT32       write( INT32 pageID, utilCachePage *pPage ) ;
+         INT32       write( INT32 pageID, utilCachePage *pPage,
+                            BOOLEAN hasPin ) ;
          INT32       sync( IExecutor *cb ) ;
 
          UINT32      getPageNum() const { return _pageNum ; }
          INT32       getFirstPageID() const { return _firstPageID ; }
          INT32       getLastPageID() const { return _lastPageID ; }
+
+      protected:
+         void        _releasePages() ;
 
       private:
          CHAR                    *_pCache ;
@@ -793,6 +805,8 @@ namespace engine
          UINT32                  _pageSize ;
          utilCachFileBase        *_pFile ;
          BOOLEAN                 _isAlignment ;
+
+         VEC_PAGE_PTR            _vecPages ;
    } ;
    typedef _utilCacheMerge utilCacheMerge ;
 
@@ -916,13 +930,24 @@ namespace engine
                                    utilCachePage *pPage,
                                    INT32 pageID,
                                    IExecutor *cb,
+                                   BOOLEAN hasPin,
                                    BOOLEAN *pSync = NULL,
                                    BOOLEAN writeMerge = FALSE ) ;
 
          UINT32         _syncPages( const MAP_ID_2_PAGE_PRT &pageMap,
-                                    IExecutor *cb ) ;
+                                    IExecutor *cb,
+                                    BOOLEAN hasPin ) ;
 
          void           _unpinPages( const MAP_ID_2_PAGE_PRT &pageMap ) ;
+
+         /*
+            Caller must hold the bucket EXCLUSIVE lock
+         */
+         utilCachePage* _allocFromBucket( utilCacheBucket *pBucket,
+                                          UINT32 size,
+                                          INT32 pageID,
+                                          utilCachePage *pItem,
+                                          BOOLEAN keepData ) ;
 
          /*
             For stat

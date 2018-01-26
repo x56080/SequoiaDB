@@ -826,7 +826,9 @@ namespace engine
 
    done_assign:
       /// copy data from source page
-      if ( keepData && !item.isDataEmpty() )
+      if ( item.isPinned() || item.isLocked() ||
+           item.isDirty() ||
+           ( keepData && !item.isDataEmpty() ) )
       {
          rc = tmpPage.copy( item ) ;
          if ( rc )
@@ -835,12 +837,16 @@ namespace engine
                     rc ) ;
             goto error ;
          }
+         item.resetLock() ;
+         item.resetPin() ;
          item.clearDirty() ;
-         item.unlock() ;
          item.clearDataInfo() ;
       }
       /// release the source page
-      release( item ) ;
+      if ( !item.isEmpty() )
+      {
+         release( item ) ;
+      }
       item = tmpPage ;
 
    done:
@@ -2201,6 +2207,8 @@ namespace engine
          _pCache = NULL ;
          _cacheSize = 0 ;
       }
+
+      _releasePages() ;
    }
 
    BOOLEAN _utilCacheMerge::isEmpty() const
@@ -2238,8 +2246,20 @@ namespace engine
       return _pCache ;
    }
 
+   void _utilCacheMerge::_releasePages()
+   {
+      VEC_PAGE_PTR::iterator it = _vecPages.begin() ;
+      while( it != _vecPages.end() )
+      {
+         (*it)->unpin() ;
+         ++it ;
+      }
+      _vecPages.clear() ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEMGR_WRITE, "_utilCacheMerge::write" )
-   INT32 _utilCacheMerge::write( INT32 pageID, utilCachePage *pPage )
+   INT32 _utilCacheMerge::write( INT32 pageID, utilCachePage *pPage,
+                                 BOOLEAN hasPin )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__UTILCACHEMGR_WRITE ) ;
@@ -2316,6 +2336,11 @@ namespace engine
       ++_pageNum ;
       _lastPageID = pageID ;
 
+      if ( hasPin )
+      {
+         _vecPages.push_back( pPage ) ;
+      }
+
    done:
       PD_TRACE_EXITRC( SDB__UTILCACHEMGR_WRITE, rc ) ;
       return rc ;
@@ -2349,6 +2374,8 @@ namespace engine
          _lastPageID = -1 ;
          _dataLength = 0 ;
       }
+
+      _releasePages() ;
 
    done:
       PD_TRACE_EXITRC( SDB__UTILCACHEMGR_SYNC, rc ) ;
@@ -2691,9 +2718,10 @@ namespace engine
             }
             else
             {
-               /// get from self bucket
-               pPage = pBucket->allocPage( pageID, size ) ;
-               if ( pPage )
+               /// get from self bucket or get from all bucket
+               if ( NULL != ( pPage = pBucket->allocPage( pageID, size ) ) ||
+                    NULL != ( pPage = _allocFromBucket( pBucket, size, pageID,
+                                                        NULL, FALSE ) ) )
                {
                   _incAllocFromBlkNum( 1 ) ;
                }
@@ -2741,7 +2769,7 @@ namespace engine
                                   pPage->isInvalid() ? FALSE : TRUE ) ;
          if ( rc )
          {
-            pPage->pin() ;
+            /*pPage->pin() ;
             pBucket->unlock( tmpMode ) ;
 
             /// recycle and try again
@@ -2753,7 +2781,9 @@ namespace engine
             pPage->waitToUnlock() ;
             rc = _pMgr->alloc( size, *pPage, _wholePage,
                                pPage->isInvalid() ? FALSE : TRUE ) ;
-            if ( rc )
+            if ( rc )*/
+            if ( !_allocFromBucket( pBucket, size, pageID, pPage,
+                                    pPage->isInvalid() ? FALSE : TRUE ) )
             {
                _incAllocNullNum( 1 ) ;
                if ( SDB_OSS_UP_TO_LIMIT != rc )
@@ -2787,7 +2817,8 @@ namespace engine
                /// if the page is dirty, need to sync first
                else if ( pPage->isDirty() )
                {
-                  rc = _syncPage( pBucket, TRUE, pPage, pageID, cb ) ;
+                  rc = _syncPage( pBucket, TRUE, pPage, pageID, cb,
+                                  FALSE, NULL, FALSE ) ;
                   if ( rc )
                   {
                      PD_LOG( PDERROR, "Sync page[%d] failed, rc: %d",
@@ -2798,6 +2829,10 @@ namespace engine
                pPage->clearDataInfo() ;
                pPage = NULL ;
                goto done ;
+            }
+            else
+            {
+               _incAllocFromBlkNum( 1 ) ;
             }
          }
       }
@@ -2881,6 +2916,7 @@ namespace engine
                                     utilCachePage *pPage,
                                     INT32 pageID,
                                     IExecutor *cb,
+                                    BOOLEAN hasPin,
                                     BOOLEAN *pSync,
                                     BOOLEAN writeMerge )
    {
@@ -2917,10 +2953,11 @@ namespace engine
 
       if ( writeMerge )
       {
-         rc = _cacheMerge.write( pageID, pPage ) ;
+         rc = _cacheMerge.write( pageID, pPage, hasPin ) ;
          if ( SDB_OK == rc )
          {
             _incMergeNum( 1 ) ;
+            hasPin = FALSE ;
          }
          else
          {
@@ -2998,6 +3035,10 @@ namespace engine
       if ( myPgLock )
       {
          pPage->unlock() ;
+      }
+      if ( hasPin )
+      {
+         pPage->unpin() ;
       }
       if ( myBlkLock )
       {
@@ -3137,14 +3178,12 @@ namespace engine
          if ( tmpPages.size() >= UTIL_CACHE_SYNC_ONCE_NUM )
          {
             /// sync pages
-            totalPages += _syncPages( tmpPages, cb ) ;
-            _unpinPages( tmpPages ) ;
+            totalPages += _syncPages( tmpPages, cb, TRUE ) ;
             tmpPages.clear() ;
          }
       }
 
-      totalPages += _syncPages( tmpPages, cb ) ;
-      _unpinPages( tmpPages ) ;
+      totalPages += _syncPages( tmpPages, cb, TRUE ) ;
       PD_LOG( PDDEBUG, "Sync %d pages", totalPages ) ;
 
       _incSyncNum( totalPages ) ;
@@ -3210,7 +3249,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT__SYNCPAGES, "_utilCacheUnit::_syncPages" )
    UINT32 _utilCacheUnit::_syncPages( const _utilCacheUnit::MAP_ID_2_PAGE_PRT &pageMap,
-                                      IExecutor *cb )
+                                      IExecutor *cb,
+                                      BOOLEAN hasPin )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__UTILCACHEUNIT__SYNCPAGES ) ;
@@ -3275,7 +3315,7 @@ namespace engine
 
          pBucket = getBucket( calcBucketID( it->first ) ) ;
          rc = _syncPage( pBucket, FALSE, ( utilCachePage* )( it->second ),
-                         it->first, cb, &hasSync, write2Merge ) ;
+                         it->first, cb, hasPin, &hasSync, write2Merge ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Sync page[%d] failed, rc: %d",
@@ -3434,6 +3474,157 @@ namespace engine
       PD_TRACE1( SDB__UTILCACHEUNIT_RECYCLEPAGES, PD_PACK_ULONG( totalSize ) ) ;
       PD_TRACE_EXIT( SDB__UTILCACHEUNIT_RECYCLEPAGES ) ;
       return totalSize ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCACHEUNIT__ALLOCFROMBLK, "_utilCacheUnit::_allocFromBucket" )
+   utilCachePage* _utilCacheUnit::_allocFromBucket( utilCacheBucket *pBucket,
+                                                    UINT32 size,
+                                                    INT32 pageID,
+                                                    utilCachePage *pItem,
+                                                    BOOLEAN keepData )
+   {
+      utilCachePage *pPage = NULL ;
+      PD_TRACE_ENTRY( SDB__UTILCACHEUNIT__ALLOCFROMBLK ) ;
+
+      utilCacheBucket* pTmpBucket = NULL ;
+      utilCacheBucket::MAP_BLK_PAGE* pPages = NULL ;
+      UINT32 bucketPages = 0 ;
+      utilCachePage tmpPage ;
+      BOOLEAN bGet = FALSE ;
+
+      if ( _dirtySize.fetch() >= _totalPage.fetch() )
+      {
+         goto done ;
+      }
+
+      if ( pItem )
+      {
+         pItem->pin() ;
+      }
+
+      /// release bucket
+      pBucket->unlock( EXCLUSIVE ) ;
+
+      for ( UINT32 i = 0 ; i < _bucketSize ; ++i )
+      {
+         pTmpBucket = _vecBucket[ i ] ;
+         pTmpBucket->lock( EXCLUSIVE ) ;
+
+         pPages = pTmpBucket->getPages() ;
+         bucketPages = pPages->size() ;
+         utilCacheBucket::MAP_BLK_PAGE::iterator it = pPages->begin() ;
+         while ( bucketPages > pTmpBucket->dirtyPages() &&
+                 it != pPages->end() )
+         {
+            utilCachePage& page = it->second ;
+
+            /// dirty page, locked page and pink page, ignored
+            if ( page.isDirty() || page.isLocked() || page.isPinned() )
+            {
+               ++it ;
+               continue ;
+            }
+            else if ( page.size() < size )
+            {
+               ++it ;
+               continue ;
+            }
+
+            /// get this page
+            tmpPage = page ;
+            pPages->erase( it ) ;
+            bGet = TRUE ;
+
+            break ;
+         }
+         pTmpBucket->unlock( EXCLUSIVE ) ;
+
+         if ( bGet )
+         {
+            break ;
+         }
+      }
+
+      /// get lock
+      pBucket->lock( EXCLUSIVE ) ;
+
+      if ( pItem )
+      {
+         pItem->unpin() ;
+      }
+
+      if ( !bGet )
+      {
+         goto done ;
+      }
+
+      /// when the page is already exist in bucket
+      if ( pItem )
+      {
+         /// copy data from source page
+         pItem->waitToUnlock() ;
+
+         if ( pItem->isDirty() || pItem->isPinned() || pItem->isLocked() ||
+              ( keepData && !pItem->isDataEmpty() ) )
+         {
+            tmpPage.copy( *pItem ) ;
+            pItem->resetLock() ;
+            pItem->resetPin() ;
+            pItem->clearDirty() ;
+            pItem->clearDataInfo() ;
+         }
+
+         /// release the source page
+         _pMgr->release( *pItem ) ;
+         /// update meta
+         _totalPage.dec() ;
+         _incRecycleNum( 1 ) ;
+
+         *pItem = tmpPage ;
+         pPage = pItem ;
+      }
+      else
+      {
+         /// alread exist
+         pPage = pBucket->getPage( pageID ) ;
+         if ( pPage )
+         {
+            if ( pPage->size() >= size )
+            {
+               _pMgr->release( tmpPage ) ;
+            }
+            else
+            {
+               pPage->waitToUnlock() ;
+
+               if ( pItem->isDirty() || pItem->isPinned() ||
+                    pItem->isLocked() || !pPage->isDataEmpty() )
+               {
+                  tmpPage.copy( *pPage ) ;
+                  pPage->resetLock() ;
+                  pPage->resetPin() ;
+                  pPage->clearDirty() ;
+                  pPage->clearDataInfo() ;
+               }
+
+               _pMgr->release( *pPage ) ;
+               *pPage = tmpPage ;
+            }
+
+            /// update meta
+            _totalPage.dec() ;
+            _incRecycleNum( 1 ) ;
+         }
+         else
+         {
+            /// add to bucket
+            pPage = pBucket->addPage( pageID, tmpPage ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXIT( SDB__UTILCACHEUNIT__ALLOCFROMBLK ) ;
+      return pPage ;
    }
 
    void _utilCacheUnit::dumpStatInfo()
