@@ -7,7 +7,7 @@
 <?php
 define('Cur_Path', dirname(__FILE__));
 include_once Cur_Path.'/../commlib/ReplicaGroupMgr.php';
-include_once Cur_Path.'/lib/lob.php';
+include_once Cur_Path.'/../commlib/lob.php';
 include_once Cur_Path.'/../global.php';
 class setSessionAttr14157 extends PHPUnit_Framework_TestCase
 {
