@@ -2660,6 +2660,7 @@ namespace engine
       UINT32 bucketID = calcBucketID( pageID ) ;
       utilCacheBucket* pBucket = NULL ;
       OSS_LATCH_MODE tmpMode = mode ;
+      BOOLEAN isRetry = FALSE ;
 
       pBucket = _vecBucket[ bucketID ] ;
       pBucket->lock( tmpMode ) ;
@@ -2701,7 +2702,11 @@ namespace engine
             pBucket->lock( tmpMode ) ;
             goto reget ;
          }
-         _incAllocNum( 1 ) ;
+         if ( !isRetry )
+         {
+            _incAllocNum( 1 ) ;
+            isRetry = TRUE ;
+         }
          rc = _pMgr->alloc( size, tmpPage, _wholePage ) ;
          if ( SDB_OK == rc )
          {
@@ -2764,7 +2769,11 @@ namespace engine
             goto reget ;
          }
          pPage->waitToUnlock() ;
-         _incAllocNum( 1 ) ;
+         if ( !isRetry )
+         {
+            _incAllocNum( 1 ) ;
+            isRetry = TRUE ;
+         }
          INT32 rc = _pMgr->alloc( size, *pPage, _wholePage,
                                   pPage->isInvalid() ? FALSE : TRUE ) ;
          if ( rc )
