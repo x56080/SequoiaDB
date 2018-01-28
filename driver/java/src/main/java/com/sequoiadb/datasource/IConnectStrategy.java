@@ -4,13 +4,15 @@ import java.util.List;
 
 
 enum Operation {
-    GET_CONN,
-    DEL_CONN
+    GET_CONN, DEL_CONN
 }
 
 enum PoolType {
-    IDLE_POOL,
-    USED_POOL
+    IDLE_POOL, USED_POOL
+}
+
+enum Action {
+    CREATE_CONN, RELEASE_CONN
 }
 
 interface IConnectStrategy {
@@ -19,8 +21,7 @@ interface IConnectStrategy {
     public ConnItem pollConnItemForGetting();
 
     public ConnItem pollConnItemForDeleting();
-
-    public String getAddress();
+    public ConnItem peekConnItemForDeleting();
 
     /*
        PoolType    incDecItemCount      meaning
@@ -33,7 +34,17 @@ interface IConnectStrategy {
        USED_POOL          -             one connection was got out from the used pool,
                                         strategy need to decrease amount of used connection with specified address
      */
-    public void update(PoolType poolType, ConnItem connItem, int change);
+//    public void update(PoolType poolType, ConnItem connItem, int change);
+
+    public void addConnItemAfterCreating(ConnItem connItem);
+
+    public void addConnItemAfterReleasing(ConnItem connItem);
+
+    public void removeConnItemAfterCleaning(ConnItem connItem);
+
+    public void updateUsedConnItemCount(ConnItem connItem, int change);
+
+    public String getAddress();
 
     public void addAddress(String addr);
 

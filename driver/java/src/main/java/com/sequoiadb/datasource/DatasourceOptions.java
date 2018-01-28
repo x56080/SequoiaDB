@@ -125,7 +125,7 @@ public class DatasourceOptions implements Cloneable {
      * @brief Set the checking interval in milliseconds. Every interval,
      *        the pool cleans all the idle connection which keep alive time is up,
      *        and keeps the number of idle connection not more than "maxIdleCount".
-     * @param checkInterval Default to be 1 * 60 * 1000ms.
+     * @param checkInterval Default to be 60,000ms.
      * @note When "keepAliveTimeout" is not be 0, "checkInterval" should be less than it.
      *       It's better to set "keepAliveTimeout" greater than "checkInterval" triple over.
      * @since v1.12.6 and v2.2
@@ -137,7 +137,7 @@ public class DatasourceOptions implements Cloneable {
     /**
      * @fn void setSyncCoordInterval(int syncCoordInterval)
      * @brief Set the interval for updating coord's addresses from catalog in milliseconds.
-     * @param syncCoordInterval Default to be 1 * 60 * 1000ms.
+     * @param syncCoordInterval Default to be 0ms.
      * @note The updated coord addresses will cover the addresses in the pool.
      *       When "syncCoordInterval" is 0, the pool will stop updating coord's addresses from
      *       catalog.

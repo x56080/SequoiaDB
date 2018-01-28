@@ -8,7 +8,6 @@ import java.util.concurrent.locks.ReentrantLock;
 class UsedConnectionPool implements IConnectionPool {
 
     private HashMap<Sequoiadb, ConnItem> _conns = new HashMap<Sequoiadb, ConnItem>();
-    private ReentrantLock _lockForConns = new ReentrantLock();
 
     class UsedPairIterator implements Iterator<Pair> {
         Iterator<Map.Entry<Sequoiadb, ConnItem>> _entries;
@@ -34,6 +33,11 @@ class UsedConnectionPool implements IConnectionPool {
         }
     }
 
+    @Override
+    public synchronized Sequoiadb peek(ConnItem connItem) {
+        return null;
+    }
+
     /**
      * @return a connection or null for no connection in that ConnItem
      * @throws
@@ -41,18 +45,13 @@ class UsedConnectionPool implements IConnectionPool {
      * @brief Poll a connection out from the pool according to the offered ConnItem.
      */
     @Override
-    public Sequoiadb poll(ConnItem item) {
+    public synchronized Sequoiadb poll(ConnItem item) {
         return null;
     }
 
     @Override
-    public ConnItem poll(Sequoiadb sdb) {
-        _lockForConns.lock();
-        try {
-            return _conns.remove(sdb);
-        } finally {
-            _lockForConns.unlock();
-        }
+    public synchronized ConnItem poll(Sequoiadb sdb) {
+        return _conns.remove(sdb);
     }
 
     /**
@@ -62,13 +61,8 @@ class UsedConnectionPool implements IConnectionPool {
      * @brief Insert a connection into the pool.
      */
     @Override
-    public void insert(ConnItem item, Sequoiadb sdb) {
-        _lockForConns.lock();
-        try {
-            _conns.put(sdb, item);
-        } finally {
-            _lockForConns.unlock();
-        }
+    public synchronized void insert(ConnItem item, Sequoiadb sdb) {
+        _conns.put(sdb, item);
     }
 
     /**
@@ -77,7 +71,7 @@ class UsedConnectionPool implements IConnectionPool {
      * @brief Return a iterator for the item of the items of the idle connections.
      */
     @Override
-    public Iterator<Pair> getIterator() {
+    public synchronized Iterator<Pair> getIterator() {
         return new UsedPairIterator(_conns.entrySet().iterator());
     }
 
@@ -87,38 +81,23 @@ class UsedConnectionPool implements IConnectionPool {
      * @brief Return the count of idle connections in idle container.
      */
     @Override
-    public int count() {
-        _lockForConns.lock();
-        try {
-            return _conns.size();
-        } finally {
-            _lockForConns.unlock();
-        }
+    public synchronized int count() {
+        return _conns.size();
     }
 
     @Override
-    public boolean contains(Sequoiadb sdb) {
-        _lockForConns.lock();
-        try {
-            return _conns.containsKey(sdb);
-        } finally {
-            _lockForConns.unlock();
-        }
+    public synchronized boolean contains(Sequoiadb sdb) {
+        return _conns.containsKey(sdb);
     }
 
     @Override
-    public List<ConnItem> clear() {
+    public synchronized List<ConnItem> clear() {
         List<ConnItem> list = new ArrayList<ConnItem>();
-        _lockForConns.lock();
-        try {
-            for (ConnItem item : _conns.values()) {
-                list.add(item);
-            }
-            _conns.clear();
-            return list;
-        } finally {
-            _lockForConns.unlock();
+        for (ConnItem item : _conns.values()) {
+            list.add(item);
         }
+        _conns.clear();
+        return list;
     }
 
 }

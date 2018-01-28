@@ -4,6 +4,7 @@ import com.sequoiadb.base.*;
 import com.sequoiadb.datasource.ConnectStrategy;
 import com.sequoiadb.datasource.DatasourceOptions;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.net.ConfigOptions;
 import com.sequoiadb.test.common.Constants;
 import com.sequoiadb.test.common.Helper;
 import org.bson.BSONObject;
@@ -26,7 +27,7 @@ public class SequoiadbDatasourceTest {
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
         coords.add(Constants.COOR_NODE_CONN);
-
+        coords.add("192.168.20.166:50000");
     }
 
     @AfterClass
@@ -45,7 +46,20 @@ public class SequoiadbDatasourceTest {
 
     @After
     public void tearDown() throws Exception {
-        ds.close();
+        if (ds != null) {
+            ds.close();
+        }
+    }
+
+    @Test
+    public void getLastReleaseConnection() throws InterruptedException {
+        Sequoiadb sdb1 = ds.getConnection();
+        ds.releaseConnection(sdb1);
+        Sequoiadb sdb2 = ds.getConnection();
+        ds.releaseConnection(sdb2);
+        System.out.println("hashcode of sdb1 is: " + sdb1.hashCode());
+        System.out.println("hashcode of sdb2 is: " + sdb2.hashCode());
+        Assert.assertEquals(sdb1, sdb2);
     }
 
     @Test
@@ -144,8 +158,8 @@ public class SequoiadbDatasourceTest {
         Random random = new Random();
         SequoiadbDatasource _ds;
 
-        ReleaseResourceTestTask(SequoiadbDatasource ds) {
-            _ds = ds;
+        ReleaseResourceTestTask(SequoiadbDatasource myds) {
+            _ds = myds;
         }
 
         @Override
@@ -153,14 +167,23 @@ public class SequoiadbDatasourceTest {
             while (true) {
                 Sequoiadb sdb = null;
                 try {
+//                    sdb = _ds.getConnection(0);
                     sdb = _ds.getConnection();
                     System.out.println("thread:" + Thread.currentThread().getName() + ", ok - " + l.getAndAdd(1));
                     try {
                         Thread.sleep(random.nextInt(10 * 1000));
                     } catch (InterruptedException e) {
                     }
+                    DBCursor cursor = sdb.listCollections();
+                    while(cursor.hasNext()) {
+                        cursor.getNext();
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
+                    if (!(e instanceof BaseException)) {
+                        System.out.println(String.format("thread[%d] exit!", Thread.currentThread().getId()));
+                        System.exit(-1);
+                    }
                 }
                 if (_ds != null) {
                     int abnormalAddrCount = _ds.getAbnormalAddrNum();
@@ -169,7 +192,11 @@ public class SequoiadbDatasourceTest {
                             ", abnormal address count is: " + abnormalAddrCount);
                 }
                 if (sdb != null) {
-                    _ds.releaseConnection(sdb);
+                    try {
+                        _ds.releaseConnection(sdb);
+                    }catch (BaseException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }
@@ -181,18 +208,27 @@ public class SequoiadbDatasourceTest {
         List<String> list = new ArrayList<String>();
         list.add("192.168.20.166:11810");
         list.add("192.168.20.166:50000");
+        list.add("192.168.20.166:40000");
+        list.add("192.168.20.166:30000");
         DatasourceOptions options = new DatasourceOptions();
-        options.setConnectStrategy(ConnectStrategy.SERIAL);
-        options.setMaxCount(40);
+        options.setConnectStrategy(ConnectStrategy.BALANCE);
+//        options.setConnectStrategy(ConnectStrategy.SERIAL);
+//        options.setConnectStrategy(ConnectStrategy.RANDOM);
+        options.setMaxCount(100);
+        options.setDeltaIncCount(10);
         options.setCheckInterval(30 * 1000);
+        options.setKeepAliveTimeout(60 * 1000);
         options.setMaxIdleCount(10);
         options.setValidateConnection(true);
-        SequoiadbDatasource ds = new SequoiadbDatasource(list, "", "", null, options);
+        ConfigOptions configOptions = new ConfigOptions();
+        configOptions.setSocketTimeout(10);
+        SequoiadbDatasource myds = new SequoiadbDatasource(list, "", "", null, options);
+        myds.disableDatasource();
 
-        int threadCount = 50;
+        int threadCount = 120;
         Thread[] threads = new Thread[threadCount];
         for (int i = 0; i < threadCount; i++) {
-            threads[i] = new Thread(new ReleaseResourceTestTask(ds), "" + i);
+            threads[i] = new Thread(new ReleaseResourceTestTask(myds), "" + i);
         }
         for (int i = 0; i < threadCount; i++) {
             threads[i].start();
@@ -200,6 +236,20 @@ public class SequoiadbDatasourceTest {
         for (int i = 0; i < threadCount; i++) {
             threads[i].join();
         }
+//        while(true) {
+//            System.out.println("###############################################################enable");
+//            myds.enableDatasource();
+//            try {
+//                Thread.sleep(20 * 1000);
+//            } catch (InterruptedException e) {
+//            }
+//            System.out.println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$disable");
+//            myds.disableDatasource();
+//            try {
+//                Thread.sleep(20 * 1000);
+//            } catch (InterruptedException e) {
+//            }
+//        }
         try {
             Thread.sleep(300 * 1000);
         } catch (InterruptedException e) {

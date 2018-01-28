@@ -61,7 +61,7 @@ class CountInfo implements Comparable<CountInfo> {
 }
 
 class ConcreteBalanceStrategy implements IConnectStrategy {
-
+    // TODO: use 2 deque to hold the ConnItem
     private HashMap<String, ArrayDeque<ConnItem>> _idleConnItemMap = new HashMap<String, ArrayDeque<ConnItem>>();
     private HashMap<String, CountInfo> _countInfoMap = new HashMap<String, CountInfo>();
     private TreeSet<CountInfo> _countInfoSet = new TreeSet<CountInfo>();
@@ -150,6 +150,47 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
         return _pollConnItem(Operation.DEL_CONN);
     }
 
+    @Override
+    public synchronized ConnItem peekConnItemForDeleting() {
+        ConnItem connItem = null;
+        while (true) {
+            CountInfo countInfo = null;
+            String addr = null;
+            // we are going to remove connection, so let's
+            // get the valid item which count is the largest
+            countInfo = _countInfoSet.lower(_dumpCountInfo);
+            // if we have no countInfo or all the countInfo are unavailable, let's return
+            if (countInfo == null || countInfo.getHasLeftIdleConn() == false) {
+                return null;
+            }
+            addr = countInfo.getAddress();
+            /// Now, let's get the ConnItem which associated with "addr".
+            ArrayDeque<ConnItem> deque = _idleConnItemMap.get(addr);
+            if (deque != null) {
+                connItem = deque.peekLast();// .pollLast();
+            } else {
+                // should never happen
+                throw new BaseException(SDBError.SDB_SYS, "Invalid state in strategy");
+            }
+            /// Check the connItem can be use or not.
+            if (connItem == null) {
+                // When address "addr" has no idle connection, we get another one.
+                // But, before this, let's mark the countInfo of address "addr" to be unavailable.
+                // And update this countInfo
+                countInfo = _countInfoMap.get(addr);
+                _countInfoSet.remove(countInfo);
+                countInfo.setHasLeftIdleConn(false);
+                _countInfoSet.add(countInfo);
+                continue;
+            } else {
+                // when we get it, let's stop
+                break;
+            }
+        }
+        // return
+        return connItem;
+    }
+
     private ConnItem _pollConnItem(Operation operation) {
         ConnItem connItem = null;
         while (true) {
@@ -204,6 +245,124 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
     }
 
     @Override
+    public synchronized void addConnItemAfterCreating(ConnItem connItem) {
+        /// in this case, we are adding connections to idle pool
+        String addr = connItem.getAddr();
+        if (!_idleConnItemMap.containsKey(addr)) {
+            // maybe the information of this address was remove by "removeAddress()"
+            // so let's rebuild those information
+            _restoreIdleConnItemInfo(addr);
+        }
+        CountInfo countInfo = _countInfoMap.get(addr);
+        if (countInfo == null) {
+            // should never happen
+            throw new BaseException(SDBError.SDB_SYS,
+                    "the pool has no information about address: " + addr);
+        }
+        // update the countInfo
+        if (countInfo.getHasLeftIdleConn() == false) {
+            _countInfoSet.remove(countInfo);
+            countInfo.setHasLeftIdleConn(true);
+            _countInfoSet.add(countInfo);
+        }
+
+        // add the connItem at the last of deque
+        ArrayDeque<ConnItem> deque = _idleConnItemMap.get(addr);
+        if (deque == null) {
+            // should never happen
+            throw new BaseException(SDBError.SDB_SYS,
+                    "the pool has no information about address: " + addr);
+        }
+        deque.addLast(connItem);
+    }
+
+    @Override
+    public synchronized void addConnItemAfterReleasing(ConnItem connItem) {
+        /// in this case, we are adding connections to idle pool
+        String addr = connItem.getAddr();
+        if (!_idleConnItemMap.containsKey(addr)) {
+            // maybe the information of this address was remove by "removeAddress()"
+            // so let's rebuild those information
+            _restoreIdleConnItemInfo(addr);
+        }
+        CountInfo countInfo = _countInfoMap.get(addr);
+        if (countInfo == null) {
+            // should never happen
+            throw new BaseException(SDBError.SDB_SYS,
+                    "the pool has no information about address: " + addr);
+        }
+        // update the countInfo
+        if (countInfo.getHasLeftIdleConn() == false) {
+            _countInfoSet.remove(countInfo);
+            countInfo.setHasLeftIdleConn(true);
+            _countInfoSet.add(countInfo);
+        }
+
+        // add the connItem at the head of deque
+        ArrayDeque<ConnItem> deque = _idleConnItemMap.get(addr);
+        if (deque == null) {
+            // should never happen
+            throw new BaseException(SDBError.SDB_SYS,
+                    "the pool has no information about address: " + addr);
+        }
+        deque.addFirst(connItem);
+    }
+
+    @Override
+    public synchronized void removeConnItemAfterCleaning(ConnItem connItem) {
+        /// in this case, we are removing connections from idle pool
+        /// when we come here, the CLEAN TASK is working.
+        String addr = connItem.getAddr();
+        if (!_idleConnItemMap.containsKey(addr)) {
+            // maybe the information of this address was remove by "removeAddress()"
+            // so let's rebuild those information
+            _restoreIdleConnItemInfo(addr);
+        }
+        ArrayDeque<ConnItem> deque = _idleConnItemMap.get(addr);
+        if (deque == null) {
+            // should never happen
+            throw new BaseException(SDBError.SDB_SYS,
+                    "the pool has no information about address: " + addr);
+        }
+        if (deque.size() == 0) {
+            // should never happen
+            throw new BaseException(SDBError.SDB_SYS,
+                    "the pool has no information about address: " + addr);
+        }
+        if (deque.remove(connItem) == false) {
+            // should never happen
+            throw new BaseException(SDBError.SDB_SYS,
+                    "the pool has no information about address: " + addr);
+        }
+        // when current list has no connItem any more, let's set current address unusable.
+        if (deque.size() == 0) {
+            CountInfo countInfo = _countInfoMap.get(addr);
+            _countInfoSet.remove(countInfo);
+            countInfo.setHasLeftIdleConn(false);
+            _countInfoSet.add(countInfo);
+        }
+    }
+
+    @Override
+    public synchronized void updateUsedConnItemCount(ConnItem connItem, int change) {
+        String addr = connItem.getAddr();
+        // when _countInfoMap does not contain this address, this address may be remove by user.
+        // see "removeAddress" for more detail.
+        if (_countInfoMap.containsKey(addr)) {
+            CountInfo countInfo = _countInfoMap.get(addr);
+            // the info may be removed when strategy removed address
+            if (countInfo == null) {
+                // should never happen
+                throw new BaseException(SDBError.SDB_SYS,
+                        "the pool has no information about address: " + addr);
+            }
+            _countInfoSet.remove(countInfo);
+            countInfo.changeCount(change);
+            _countInfoSet.add(countInfo);
+        }
+    }
+
+    @Override
     public synchronized String getAddress() {
         // when an address have no connection which had been built,
         // this address will be marked to "false"
@@ -220,89 +379,6 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
             }
         }
         return info.getAddress();
-    }
-
-    /*
-     * only when the amount of connections in used pool or idle pool change,
-     * we need to update
-     * */
-    @Override
-    public synchronized void update(PoolType poolType, ConnItem connItem, int change) {
-        String addr = connItem.getAddr();
-        CountInfo countInfo = null;
-        if (poolType == PoolType.IDLE_POOL) {
-            if (!_idleConnItemMap.containsKey(addr)) {
-                // maybe the information of this address was remove by "removeAddress()"
-                // so let's rebuild those information
-                _restoreIdleConnItemInfo(addr);
-            }
-            ArrayDeque<ConnItem> idleConnItemDeque = null;
-            if (change > 0) {
-                /// in this case, we are adding connections to idle pool
-                countInfo = _countInfoMap.get(addr);
-                if (countInfo == null) {
-                    // should never happen
-                    throw new BaseException(SDBError.SDB_SYS, "Point1: the pool has no information about address: " + addr);
-                }
-                // update the countInfo which is in the state of unavailable
-                if (countInfo.getHasLeftIdleConn() == false) {
-                    _countInfoSet.remove(countInfo);
-                    countInfo.setHasLeftIdleConn(true);
-                    _countInfoSet.add(countInfo);
-                }
-
-                // add the connItem at the head of deque
-                idleConnItemDeque = _idleConnItemMap.get(addr);
-                if (idleConnItemDeque == null) {
-                    // should never happen
-                    throw new BaseException(SDBError.SDB_SYS, "Point2: the pool has no information about address: " + addr);
-                }
-                idleConnItemDeque.addFirst(connItem);
-            } else if (change < 0) {
-                /// in this case, we are removing connections from idle pool
-                /// when we come here, we the CLEAN TASK is working.
-                idleConnItemDeque = _idleConnItemMap.get(addr);
-                if (idleConnItemDeque == null) {
-                    // should never happen
-                    throw new BaseException(SDBError.SDB_SYS, "Point3: the pool has no information about address: " + addr);
-                }
-                if (idleConnItemDeque.size() == 0) {
-                    // should never happen
-                    throw new BaseException(SDBError.SDB_SYS, "Point4: the pool has no information about address: " + addr);
-                }
-                if (idleConnItemDeque.remove(connItem) == false) {
-                    // should never happen
-                    throw new BaseException(SDBError.SDB_SYS, "Point5: the pool has no information about address: " + addr);
-                }
-                // when current list has no connItem any more, let's set current address unusable.
-                if (idleConnItemDeque.size() == 0) {
-                    countInfo = _countInfoMap.get(addr);
-                    _countInfoSet.remove(countInfo);
-                    countInfo.setHasLeftIdleConn(false);
-                    _countInfoSet.add(countInfo);
-                }
-            } else {
-                throw new BaseException(SDBError.SDB_SYS, "Point1: invalid change in idle pool");
-            }
-        } else if (poolType == PoolType.USED_POOL) {
-            // when _countInfoMap does not contain this address,
-            // this address may be remove by user.
-            // see "removeAddress" for more detail.
-            if (_countInfoMap.containsKey(addr)) {
-                countInfo = _countInfoMap.get(addr);
-                // the info may be removed when strategy removed address
-                if (countInfo == null) {
-                    // should never happen
-                    throw new BaseException(SDBError.SDB_SYS, "Point6: the pool has no information about address: " + addr);
-                }
-                _countInfoSet.remove(countInfo);
-                countInfo.changeCount(change);
-                _countInfoSet.add(countInfo);
-            }
-        } else {
-            // should never happen
-            throw new BaseException(SDBError.SDB_SYS, "Invalid item status: " + poolType);
-        }
     }
 
     @Override

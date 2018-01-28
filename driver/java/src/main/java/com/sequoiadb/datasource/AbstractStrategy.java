@@ -7,7 +7,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 abstract class AbstractStrategy implements IConnectStrategy {
 
-    protected ArrayDeque<ConnItem> _idleConnItemDeque = new ArrayDeque<ConnItem>();
+    protected ArrayDeque<ConnItem> _activeConnItemDeque = new ArrayDeque<ConnItem>();
+    protected ArrayDeque<ConnItem> _newlyCreatedConnItemDeque = new ArrayDeque<ConnItem>();
     protected ArrayList<String> _addrs = new ArrayList<String>();
     protected Lock _opLock = new ReentrantLock();
     protected Lock _addrLock = new ReentrantLock();
@@ -44,7 +45,13 @@ abstract class AbstractStrategy implements IConnectStrategy {
     public ConnItem pollConnItemForGetting() {
         _opLock.lock();
         try {
-            return _idleConnItemDeque.pollFirst();
+            // get the youngest one from active deque or get the oldest on from newly created deque
+            // for we don't want the newly created connection to be destroy by background cleaning task
+            ConnItem connItem = _activeConnItemDeque.pollFirst();
+            if (connItem == null) {
+                connItem = _newlyCreatedConnItemDeque.pollFirst();
+            }
+            return connItem;
         } finally {
             _opLock.unlock();
         }
@@ -54,10 +61,40 @@ abstract class AbstractStrategy implements IConnectStrategy {
     public ConnItem pollConnItemForDeleting() {
         _opLock.lock();
         try {
-            return _idleConnItemDeque.pollLast();
+            // get the oldest one
+            ConnItem connItem = _newlyCreatedConnItemDeque.pollFirst();
+            if (connItem == null) {
+                connItem = _activeConnItemDeque.pollLast();
+            }
+            return connItem;
         } finally {
             _opLock.unlock();
         }
+    }
+
+    @Override
+    public ConnItem peekConnItemForDeleting() {
+        _opLock.lock();
+        try {
+            // get the oldest one
+            ConnItem connItem = _newlyCreatedConnItemDeque.peekFirst();
+            if (connItem == null) {
+                connItem =  _activeConnItemDeque.peekLast();
+            }
+            return connItem;
+        } finally {
+            _opLock.unlock();
+        }
+    }
+
+    @Override
+    public void removeConnItemAfterCleaning(ConnItem connItem) {
+        // do nothing
+    }
+
+    @Override
+    public void updateUsedConnItemCount(ConnItem connItem, int change) {
+        // do nothing
     }
 
     @Override
@@ -67,7 +104,7 @@ abstract class AbstractStrategy implements IConnectStrategy {
 
     @Override
     public List<ConnItem> removeAddress(String addr) {
-        List<ConnItem> connItemList = new ArrayList<ConnItem>();
+        List<ConnItem> returnList = new ArrayList<ConnItem>();
         // remove address
         _addrLock.lock();
         try {
@@ -80,32 +117,54 @@ abstract class AbstractStrategy implements IConnectStrategy {
         // remove item
         _opLock.lock();
         try {
-            // Prepare the return ConnItem for decrease
-            Iterator<ConnItem> connItemListItr = _idleConnItemDeque.iterator();
-            while (connItemListItr.hasNext()) {
-                ConnItem connItem = connItemListItr.next();
+            // prepare the return ConnItem for destroying
+            Iterator<ConnItem> iterator = _activeConnItemDeque.iterator();
+            while (iterator.hasNext()) {
+                ConnItem connItem = iterator.next();
                 if (addr.equals(connItem.getAddr())) {
-                	connItemList.add(connItem);
-                    connItemListItr.remove();
+                	returnList.add(connItem);
+                    iterator.remove();
+                }
+            }
+            iterator = _newlyCreatedConnItemDeque.iterator();
+            while (iterator.hasNext()) {
+                ConnItem connItem = iterator.next();
+                if (addr.equals(connItem.getAddr())) {
+                    returnList.add(connItem);
+                    iterator.remove();
                 }
             }
         } finally {
             _opLock.unlock();
         }
-        return connItemList;
+        return returnList;
     }
 
     @Override
-    public void update(PoolType poolType, ConnItem connItem, int change) {
-        if (poolType == PoolType.IDLE_POOL && change > 0) {
-            _addConnItem(connItem);
-        }
+    public void addConnItemAfterCreating(ConnItem connItem) {
+        _addConnItem(connItem);
+    }
+
+    @Override
+    public void addConnItemAfterReleasing(ConnItem connItem) {
+        _releaseConnItem(connItem);
     }
 
     private void _addConnItem(ConnItem connItem) {
         _opLock.lock();
         try {
-            _idleConnItemDeque.addFirst(connItem);
+            // all the newly created connections are put to the last of the deque
+            _newlyCreatedConnItemDeque.addLast(connItem);
+        } finally {
+            _opLock.unlock();
+        }
+    }
+
+    private void _releaseConnItem(ConnItem connItem) {
+        _opLock.lock();
+        try {
+            // all the release connections are put to the header of the deque
+            _activeConnItemDeque.addFirst(connItem);
         } finally {
             _opLock.unlock();
         }

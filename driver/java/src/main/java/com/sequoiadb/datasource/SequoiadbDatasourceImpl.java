@@ -16,6 +16,9 @@
  * @package com.sequoiadb.datasource;
  * @brief SequoiaDB Data Source
  * @author tanzhaobo
+ * @package com.sequoiadb.datasource;
+ * @brief SequoiaDB Data Source
+ * @author tanzhaobo
  */
 /**
  * @package com.sequoiadb.datasource;
@@ -80,7 +83,9 @@ public class SequoiadbDatasourceImpl {
     private volatile BSONObject _sessionAttr = null;
     // for others
     private Random _rand = new Random(47);
-    private double MULTIPLE = 1.2;
+    private double MULTIPLE = 1.5;
+    private volatile int _preDeleteInterval = 0;
+    private static final int _deleteInterval = 180000; // 3min
     // finalizer guardian
     @SuppressWarnings("unused")
     private final Object finalizerGuardian = new Object() {
@@ -160,7 +165,7 @@ public class SequoiadbDatasourceImpl {
     class CheckConnectionTask implements Runnable {
         @Override
         public void run() {
-            Lock wlock = _rwLock.readLock();
+            Lock wlock = _rwLock.writeLock();
             wlock.lock();
             try {
                 if (Thread.interrupted()) {
@@ -169,38 +174,31 @@ public class SequoiadbDatasourceImpl {
                 if (_hasClosed) {
                     return;
                 }
-                if (false == _isDatasourceOn) {
+                if (!_isDatasourceOn) {
                     return;
                 }
                 // check keep alive timeout
                 if (_dsOpt.getKeepAliveTimeout() > 0) {
                     long lastTime = 0;
                     long currentTime = System.currentTimeMillis();
-                    Iterator<Pair> itr = _idleConnPool.getIterator();
-                    List<Pair> list = new ArrayList<Pair>();
-                    while (itr.hasNext()) {
-                        Pair pair = itr.next();
-                        Sequoiadb sdb = pair.second();
+                    ConnItem connItem = null;
+                    while ((connItem = _strategy.peekConnItemForDeleting()) != null) {
+                        Sequoiadb sdb = _idleConnPool.peek(connItem);
                         lastTime = sdb.getConnection().getLastUseTime();
-                        if (currentTime - lastTime + MULTIPLE * _dsOpt.getCheckInterval() >= _dsOpt.getKeepAliveTimeout()) {
-                            list.add(pair);
+                        if (currentTime - lastTime + _preDeleteInterval >= _dsOpt.getKeepAliveTimeout()) {
+                            connItem = _strategy.pollConnItemForDeleting();
+                            sdb = _idleConnPool.poll(connItem);
+                            try {
+                                _destroyConnQueue.add(sdb);
+                            } finally {
+                                _connItemMgr.releaseItem(connItem);
+                            }
+                        } else {
+                            break;
                         }
                     }
-                    itr = list.iterator();
-                    while (itr.hasNext()) {
-                        Pair pair = itr.next();
-                        ConnItem item = pair.first();
-                        Sequoiadb sdb = _idleConnPool.poll(item);
-                        _destroyConnQueue.add(sdb);
-                        // We drop the connections, and the strategy
-                        // doesn't know this, so we need to tell it.
-                        _strategy.update(PoolType.IDLE_POOL, item, -1);
-                        // let the item return to _connItemMgr
-                        _connItemMgr.releaseItem(item);
-                    }
                 }
-
-                // keep the amount of idle connections less than maxIdleCount
+                // try to reduce the amount of idle connections
                 if (_idleConnPool.count() > _dsOpt.getMaxIdleCount()) {
                     int destroyCount = _idleConnPool.count() - _dsOpt.getMaxIdleCount();
                     _reduceIdleConnections(destroyCount);
@@ -617,6 +615,7 @@ public class SequoiadbDatasourceImpl {
                 disableDatasource();
                 return;
             }
+            _preDeleteInterval = (int) (_dsOpt.getCheckInterval() * MULTIPLE);
             // check need to adjust the capacity of connection pool or not.
             // when the data source is disable, we can't change the "_currentSequenceNumber"
             // to the value we want, that's a problem, so we will change "_currentSequenceNumber"
@@ -817,38 +816,53 @@ public class SequoiadbDatasourceImpl {
                             _createConnSignal.notify();
                         }
                     } else {
+                        // TODO: we need to retry to get connItem not only in _strategy, but also in _connItemMgr
                         long restTime = timeout;
                         long beginTime = 0;
                         long endTime = 0;
-                        synchronized (this) {
-                            while ((connItem = _strategy.pollConnItemForGetting()) == null) {
-                                try {
-                                    if (timeout != 0) {
-                                        if (restTime <= 0) {
-                                            break;
+                        while ((connItem = _strategy.pollConnItemForGetting()) == null) {
+                            // release the read lock before wait up
+                            rlock.unlock();
+                            try {
+                                if (timeout != 0) {
+                                    if (restTime <= 0) {
+                                        break;
+                                    }
+                                    beginTime = System.currentTimeMillis();
+                                    try {
+                                        synchronized (this) {
+                                            this.wait(restTime);
                                         }
-                                        beginTime = System.currentTimeMillis();
-                                        this.wait(restTime);
-                                        endTime = System.currentTimeMillis();
-                                        restTime -= (endTime - beginTime);
-                                    } else {
-                                        this.wait();
-                                    }
-                                } catch (InterruptedException e) {
-                                    if (timeout != 0) {
+                                    } finally {
                                         endTime = System.currentTimeMillis();
                                         restTime -= (endTime - beginTime);
                                     }
-                                    continue;
+                                } else {
+                                    try {
+                                        synchronized (this) {
+                                            // we have no double check of the connItem here,
+                                            // so we can't use this.wait() here.
+                                            // let it retry after a few seconds later
+                                            this.wait(5000);
+                                        }
+                                    } finally {
+                                        continue;
+                                    }
                                 }
+                            } finally {
+                                // keep the read lock before visit _strategy
+                                rlock.lock();
                             }
                         }
                         if (connItem == null) {
                             // make some debug info
                             String detail = _getDataSourceSnapshot();
-                            if (getNormalAddrNum() == 0) {
+                            // when the last connItem is hold by background creating thread,
+                            // and it failed to create the last connection, let's report network error
+                            if (getNormalAddrNum() == 0 &&
+                                    getUsedConnNum() < _dsOpt.getMaxCount()) {
                                 BaseException exp = _getLastException();
-                                String errMsg = "failed to get connection, no available address for connection, " + detail;
+                                String errMsg = "get connection failed, no available address for connection, " + detail;
                                 if (exp != null) {
                                     throw new BaseException(SDBError.SDB_NETWORK, errMsg, exp);
                                 } else {
@@ -856,7 +870,7 @@ public class SequoiadbDatasourceImpl {
                                 }
                             } else {
                                 throw new BaseException(SDBError.SDB_DRIVER_DS_RUNOUT,
-                                        "run out of all the connections, " + detail);
+                                        "the pool has run out of connections, " + detail);
                             }
                         } else {
                             sdb = _idleConnPool.poll(connItem);
@@ -886,8 +900,7 @@ public class SequoiadbDatasourceImpl {
             // insert the itemInfo and connection to used pool
             _usedConnPool.insert(connItem, sdb);
             // tell strategy used pool had add a connection
-            _strategy.update(PoolType.USED_POOL, connItem, 1);
-
+            _strategy.updateUsedConnItemCount(connItem, 1);
             return sdb;
         } finally {
             rlock.unlock();
@@ -922,10 +935,9 @@ public class SequoiadbDatasourceImpl {
                     if (_usedConnPool != null && _usedConnPool.contains(sdb)) {
                         ConnItem item = _usedConnPool.poll(sdb);
                         if (item == null) {
-                            // multi-thread may let item to be null,
-                            // and it should never happen
+                            // multi-thread may let item to be null, and it should never happen
                             throw new BaseException(SDBError.SDB_SYS,
-                                    "Point 1: connection pool does't have item for the coming back connection");
+                                    "the pool does't have item for the coming back connection");
                         }
                         _connItemMgr.releaseItem(item);
                     }
@@ -946,7 +958,7 @@ public class SequoiadbDatasourceImpl {
                     item = _usedConnPool.poll(sdb);
                     if (item == null) {
                         throw new BaseException(SDBError.SDB_SYS,
-                                "Point 2: connection pool does't have item for the coming back connection");
+                                "the pool does not have item for the coming back connection");
                     }
                 } else {
                     // throw exception to let user know current connection does't contained in the pool
@@ -955,13 +967,13 @@ public class SequoiadbDatasourceImpl {
                 }
             }
             // tell the strategy there is a connection returning now
-            _strategy.update(PoolType.USED_POOL, item, -1);
+            _strategy.updateUsedConnItemCount(item, -1);
             // check whether the connection can put back to idle pool or not
             if (_connIsValid(item, sdb)) {
                 // let the connection come back to connection pool
                 _idleConnPool.insert(item, sdb);
                 // tell the strategy one connection is add to idle pool now
-                _strategy.update(PoolType.IDLE_POOL, item, 1);
+                _strategy.addConnItemAfterReleasing(item);
                 // notify the people who waits
                 synchronized (this) {
                     notifyAll();
@@ -1135,8 +1147,9 @@ public class SequoiadbDatasourceImpl {
     }
 
     private void _closePoolConnections(IConnectionPool pool) {
-        if (pool == null)
+        if (pool == null) {
             return;
+        }
         // disconnect all the connections
         Iterator<Pair> iter = pool.getIterator();
         while (iter.hasNext()) {
@@ -1249,37 +1262,33 @@ public class SequoiadbDatasourceImpl {
         }
     }
 
-    /**
-     * @fn Sequoiadb _newConnByNormalAddr()
-     * @brief Get a connection directly.
-     * @return the newly build connection or null
-     * @exception com.sequoiadb.Exception.BaseException
-     */
     private Sequoiadb _newConnByNormalAddr() throws BaseException {
         Sequoiadb sdb = null;
-        String addr = null;
+        String address = null;
         try {
             while (true) {
+                // never forget to handle the situation of the datasourc is disable
                 if (_isDatasourceOn) {
-                    addr = _strategy.getAddress();
+                    address = _strategy.getAddress();
                 } else {
                     synchronized (_normalAddrs) {
                         int size = _normalAddrs.size();
                         if (size > 0) {
-                            addr = _normalAddrs.get(_rand.nextInt(size));
+                            address = _normalAddrs.get(_rand.nextInt(size));
                         }
                     }
                 }
-                if (addr != null) {
+                if (address != null) {
                     try {
-                        sdb = new Sequoiadb(addr, _username, _password, _nwOpt);
+                        sdb = new Sequoiadb(address, _username, _password, _nwOpt);
+                        // when success, let's return the connection
                         break;
                     } catch (BaseException e) {
                         _setLastException(e);
                         String errType = e.getErrorType();
                         if (errType.equals("SDB_NETWORK") || errType.equals("SDB_INVALIDARG") ||
                                 errType.equals("SDB_NET_CANNOT_CONNECT")) {
-                            _handleErrorAddr(addr);
+                            _handleErrorAddr(address);
                             continue;
                         } else {
                             throw e;
@@ -1303,12 +1312,6 @@ public class SequoiadbDatasourceImpl {
         return sdb;
     }
 
-    /**
-     * @fn Sequoiadb _newConnByAbnormalAddr()
-     * @brief try to get connection from abnormal address
-     * @return a sequoiadb connection
-     * @exception com.sequoiadb.Exception.BaseException
-     */
     private Sequoiadb _newConnByAbnormalAddr() throws BaseException {
         Sequoiadb retConn = null;
         int retry = 3;
@@ -1324,6 +1327,9 @@ public class SequoiadbDatasourceImpl {
                     }
                     continue;
                 }
+                // TODO:
+                // multi thread to do this, it's not the best way
+                // to move a address from abnormal list ot normal list
                 _abnormalAddrs.remove(addr);
                 synchronized (_normalAddrs) {
                     if (!_normalAddrs.contains(addr)) {
@@ -1456,7 +1462,7 @@ public class SequoiadbDatasourceImpl {
             // add to idle pool
             _idleConnPool.insert(connItem, sdb);
             // update info to strategy
-            _strategy.update(PoolType.IDLE_POOL, connItem, 1);
+            _strategy.addConnItemAfterCreating(connItem);
             // let's continue
             count--;
         }
@@ -1479,7 +1485,7 @@ public class SequoiadbDatasourceImpl {
         if (0 != _dsOpt.getKeepAliveTimeout()) {
             long lastTime = sdb.getConnection().getLastUseTime();
             long currentTime = System.currentTimeMillis();
-            if ((currentTime - lastTime) + MULTIPLE * _dsOpt.getCheckInterval() >= _dsOpt.getKeepAliveTimeout())
+            if (currentTime - lastTime + _preDeleteInterval >= _dsOpt.getKeepAliveTimeout())
                 return false;
         }
         // check version
@@ -1513,6 +1519,7 @@ public class SequoiadbDatasourceImpl {
     }
 
     private void _enableDatasource(ConnectStrategy strategy) {
+        _preDeleteInterval = (int) (_dsOpt.getCheckInterval() * MULTIPLE);
         // initialize idle connection pool
         _idleConnPool = new IdleConnectionPool();
         // initialize used connection pool
@@ -1545,20 +1552,40 @@ public class SequoiadbDatasourceImpl {
     }
 
     private void _reduceIdleConnections(int count) {
-        while (count-- > 0) {
-            // Once we poll a connection out by Operation.DEL_CONN mode,
-            // we don't need to update strategy again, pollConnItem
-            // had already help us to do this.
-            ConnItem item = _strategy.pollConnItemForDeleting();
-            if (item == null) {
-                // Actually, should never come here.
-                // When it happen, just let it go.
+        ConnItem connItem = null;
+        long lastTime = 0;
+        long currentTime = System.currentTimeMillis();
+        while (count-- > 0 && (connItem = _strategy.peekConnItemForDeleting()) != null) {
+            Sequoiadb sdb = _idleConnPool.peek(connItem);
+            lastTime = sdb.getConnection().getLastUseTime();
+            if (currentTime - lastTime >= _deleteInterval) {
+                connItem = _strategy.pollConnItemForDeleting();
+                sdb = _idleConnPool.poll(connItem);
+                try {
+                    _destroyConnQueue.add(sdb);
+                } finally {
+                    _connItemMgr.releaseItem(connItem);
+                }
+            } else {
                 break;
             }
-            Sequoiadb sdb = _idleConnPool.poll(item);
-            _destroyConnQueue.add(sdb);
-            // let the item return to _connItemMgr
-            _connItemMgr.releaseItem(item);
+        }
+    }
+
+    private void _reduceIdleConnections_bak(int count) {
+        while (count-- > 0) {
+            ConnItem item = _strategy.pollConnItemForDeleting();
+            if (item == null) {
+                // Actually, should never come here. When it happen, just let it go.
+                break;
+            }
+            try {
+                Sequoiadb sdb = _idleConnPool.poll(item);
+                _destroyConnQueue.add(sdb);
+            } finally {
+                // release connItem
+                _connItemMgr.releaseItem(item);
+            }
         }
     }
 
