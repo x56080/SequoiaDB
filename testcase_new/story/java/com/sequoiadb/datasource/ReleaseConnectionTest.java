@@ -173,7 +173,7 @@ public class ReleaseConnectionTest extends DataSourceTestBase {
 	/**
 	 * 归还旧版本的连接
 	 */
-	@Test(timeOut=20000)
+	@Test(timeOut=200000)
 	public void releaseOlderVersion() {
 		try{
 			Sequoiadb sdb = datasource.getConnection();
@@ -193,7 +193,8 @@ public class ReleaseConnectionTest extends DataSourceTestBase {
 			option.setConnectStrategy(ConnectStrategy.SERIAL);
 			datasource.updateDatasourceOptions(option);
 			datasource.releaseConnection(sdb);
-			Thread.sleep(100);
+			// sleep more than 3min
+			Thread.sleep(190000);
 			int laterNum = datasource.getIdleConnNum();
 			Assert.assertEquals(laterNum, priorNum);
 			//Assert.assertEquals(sdb.isValid(), false);
