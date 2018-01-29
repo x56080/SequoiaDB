@@ -1744,7 +1744,7 @@ public class Sequoiadb {
 		if (flags != 0) {
 			throw new BaseException(flags, rgName);
 		}
-		return getReplicaGroup(rgName);
+		return new ReplicaGroup(this, rgName);
 	}
 
 	/**
