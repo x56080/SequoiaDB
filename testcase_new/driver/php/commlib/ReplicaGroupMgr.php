@@ -80,9 +80,11 @@ class ReplicaGroupMgr
    **************************************** */  
    function getDataGroupNames()
    {     
+      $dataGroupNames = array();
+      
       for( $i = 0; $i < count($this -> dataGroups); $i++ )
       {
-         array_push( $groupNames, $this -> dataGroups["GroupNames"] );
+         array_push( $dataGroupNames, $this -> dataGroups[$i] -> getName() );
       }
       
       return $dataGroupNames;
