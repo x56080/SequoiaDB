@@ -37,7 +37,7 @@ class setSessionAttr14151 extends PHPUnit_Framework_TestCase
          return;
       } 
       
-      if (self::$groupMgr -> getGroupNum() < 1)
+      if (self::$groupMgr -> getDataGroupNum() < 1)
       {
          self::$skipTestCase = true ;
          return;

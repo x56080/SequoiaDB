@@ -6,13 +6,12 @@
 ****************************************************/
 <?php
 define('Cur_Path', dirname(__FILE__));
-include_once Cur_Path.'/lib/ReplicaGroupMgr.php';
+include_once Cur_Path.'/../commlib/ReplicaGroupMgr.php';
 include_once Cur_Path.'/../global.php';
 class dataGroupTest extends PHPUnit_Framework_TestCase
 {
    private static $db;
    private static $groupMgr;
-   private static $catagroup;
    
    private static $skipTestCase = false;
    public static function setUpBeforeClass()
@@ -35,7 +34,7 @@ class dataGroupTest extends PHPUnit_Framework_TestCase
          return;
       } 
       
-      if (self::$groupMgr->getGroupNum() < 1)
+      if (self::$groupMgr->getDataGroupNum() < 2)
       {
          self::$skipTestCase = true ;
          return;

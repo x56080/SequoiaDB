@@ -44,14 +44,14 @@ class setSessionAttr14156 extends PHPUnit_Framework_TestCase
          return;
       } 
       
-      if (self::$groupMgr -> getGroupNum() < 2)
+      if (self::$groupMgr -> getDataGroupNum() < 2)
       {
          self::$skipTestCase = true ;
          return;
       }
       
       // get groupNames      
-      self::$groupNames = self::$groupMgr -> getGroupNames();  
+      self::$groupNames = self::$groupMgr -> getDataGroupNames();  
       
       // create cs
       self::$csDB = self::$db -> selectCS( self::$csName, null );

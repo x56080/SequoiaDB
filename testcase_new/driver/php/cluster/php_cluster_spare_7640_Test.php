@@ -6,7 +6,7 @@
 ****************************************************/
 <?php
  define('Cur_Path', dirname(__FILE__));
- include_once Cur_Path.'/lib/ReplicaGroupMgr.php';
+ include_once Cur_Path.'/../commlib/ReplicaGroupMgr.php';
  include_once Cur_Path.'/../global.php';
 
 class spareRGTest extends PHPUnit_Framework_TestCase
@@ -38,12 +38,11 @@ class spareRGTest extends PHPUnit_Framework_TestCase
          return;
       }
       
-      if (self::$groupMgr->getGroupNum() < 1)
+      if (self::$groupMgr->getDataGroupNum() < 2)
       {
-         echo "cluster is empty" ;
          self::$skipTestCase = true ;
          return;
-      }
+      } 
    }
    
    public function setUp()

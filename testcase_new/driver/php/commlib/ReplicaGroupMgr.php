@@ -9,15 +9,21 @@ include 'ReplicaGroup.php';
 class ReplicaGroupMgr
 {
     private $db ;
-    private $groups ;
+    private $groups = array() ;
+    private $dataGroups = array() ;
     private $err ;
+    
+    private $coordGroupName = "SYSCoord";
+    private $catalogGroupName = "SYSCatalogGroup";
+    private $sysspareGroupName = "SYSSpare";
+    
     public function __construct($sdb)
     {
        $this->db = $sdb ;
        $this->groups= array() ;
        $this->getGroups() ;
+       $this->getDataGroups() ;
        $this->err = 0 ;
-       $this->getGroups() ;
     }
     
     public function __destruct()
@@ -54,48 +60,32 @@ class ReplicaGroupMgr
     }
     
     public function getDataGroups()
-    {
-        $retgroups = array();
-        
-        for ($i = 0; $i < count($this->groups); ++$i)
+    {   
+        for ($i = 0; $i < count($this -> groups); ++$i)
         {
-          if ( strcmp($this->groups[$i]->getName(), "SYSCoord") != 0 &&
-               strcmp($this->groups[$i]->getName(), "SYSCatalogGroup") != 0 &&
-               strcmp($this->groups[$i]->getName(), "SYSSpare") != 0 )
+          $groupName = $this->groups[$i]->getName();
+          if ( strcmp($groupName, $this -> coordGroupName) != 0 &&
+               strcmp($groupName, $this -> catalogGroupName) != 0 &&
+               strcmp($groupName, $this -> sysspareGroupName) != 0 )
           {
-             array_push( $retgroups, $this->groups[$i] );
+             array_push( $this -> dataGroups, $this->groups[$i] );
           }
         }
         
-        return $retgroups;
+        return $this -> dataGroups;
     }
    
    /* ***************************************
    *get dataRG Names
    **************************************** */  
-   function getGroupNames()
-   {
-      $groupNames = array();
-      
-      $cursor = $this -> db -> list( SDB_LIST_GROUPS );
-      $this -> err = $this -> db -> getError();
-      if( $this -> err['errno'] !== 0 )
+   function getDataGroupNames()
+   {     
+      for( $i = 0; $i < count($this -> dataGroups); $i++ )
       {
-         echo "\nFailed to get groups. Errno: ". $this -> err['errno'] ."\n";
+         array_push( $groupNames, $this -> dataGroups["GroupNames"] );
       }
       
-      while( $tmpInfo = $cursor -> next() )
-      {
-         $tmpName = $tmpInfo['GroupName'];
-         if( $tmpName !== "SYSCoord" && 
-             $tmpName !== "SYSCatalogGroup" && 
-             $tmpName !== "SYSSpare" )
-         {
-            array_push( $groupNames, $tmpName );
-         }
-      }
-      
-      return $groupNames;
+      return $dataGroupNames;
    }
     
     
@@ -177,7 +167,12 @@ class ReplicaGroupMgr
     
     public function getGroupNum()
     {
-       return count($this->groups);
+       return count( $this -> groups);
+    }
+    
+    public function getDataGroupNum()
+    {
+       return count( $this -> dataGroups);
     }
 }
 ?>

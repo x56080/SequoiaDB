@@ -6,7 +6,7 @@
 ****************************************************/
 <?php
 define('Cur_Path', dirname(__FILE__));
-include_once Cur_Path.'/lib/ReplicaGroupMgr.php';
+include_once Cur_Path.'/../commlib/ReplicaGroupMgr.php';
 include_once Cur_Path.'/../global.php';
 
 class cataLogGroupTest extends PHPUnit_Framework_TestCase 
