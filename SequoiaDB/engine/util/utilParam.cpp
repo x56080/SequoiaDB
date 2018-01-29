@@ -534,6 +534,7 @@ namespace engine
          {
             PD_LOG( PDWARNING, "Config[%s] not exist, use default config",
                     confFileName ) ;
+            rc = SDB_OK ;
             goto done ;
          }
          ossPrintf( "Error: Failed to read config from file[%s]: %d"OSS_NEWLINE,
