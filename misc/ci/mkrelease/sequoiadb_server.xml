@@ -178,7 +178,20 @@
                     <owner>root</owner>
                 </changeOwnerAndGroup>
                 <changePermissions permissions="6755" files="${installdir}/bin/sdbomtool"/>
-
+                
+                <runProgram>
+                    <abortOnError>0</abortOnError>
+                    <showMessageOnError>0</showMessageOnError>
+                    <program>setcap</program>
+                    <programArguments>'CAP_SYS_RESOURCE=+ep' ${installdir}/bin/sdbstart</programArguments>
+                </runProgram>
+                <runProgram>
+                    <abortOnError>0</abortOnError>
+                    <showMessageOnError>0</showMessageOnError>
+                    <program>setcap</program>
+                    <programArguments>'CAP_SYS_RESOURCE=+ep' ${installdir}/bin/sdbcmart</programArguments>
+                </runProgram>
+                
                 <if>
                     <conditionRuleList>
                         <fileExists path="${installdir}/doc/index.html"/>
