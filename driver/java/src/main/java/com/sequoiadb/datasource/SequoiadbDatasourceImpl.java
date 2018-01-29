@@ -13,12 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @package com.sequoiadb.datasource;
- * @brief SequoiaDB Data Source
- * @author tanzhaobo
- * @package com.sequoiadb.datasource;
- * @brief SequoiaDB Data Source
- * @author tanzhaobo
  */
 /**
  * @package com.sequoiadb.datasource;
@@ -752,135 +746,106 @@ public class SequoiadbDatasourceImpl {
      * @since v1.12.6 & v2.2
      */
     public Sequoiadb getConnection(long timeout) throws BaseException, InterruptedException {
+        if (timeout < 0) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "timeout should >= 0");
+        }
         Lock rlock = _rwLock.readLock();
         rlock.lock();
         try {
-            if (timeout < 0) {
-                throw new BaseException(SDBError.SDB_INVALIDARG, "timeout should >= 0");
-            }
-            if (_hasClosed) {
-                throw new BaseException(SDBError.SDB_SYS, "connection pool has closed");
-            }
-            // when the pool is disabled
-            if (!_isDatasourceOn) {
-                return _newConnByNormalAddr();
-            }
-
-            Sequoiadb sdb = null;
-            ConnItem connItem = null;
+            Sequoiadb sdb;
+            ConnItem connItem;
+            long restTime = timeout;
             while (true) {
-                connItem = _strategy.pollConnItemForGetting();
-                if (connItem != null) {
+                sdb = null;
+                connItem = null;
+                if (_hasClosed) {
+                    throw new BaseException(SDBError.SDB_SYS, "connection pool has closed");
+                }
+                // when the pool is disabled
+                if (!_isDatasourceOn) {
+                    return _newConnByNormalAddr();
+                }
+                if ((connItem = _strategy.pollConnItemForGetting()) != null) {
                     // when we still have connection in idle pool,
                     // get connection directly
                     sdb = _idleConnPool.poll(connItem);
                     // sanity check
                     if (sdb == null) {
                         _connItemMgr.releaseItem(connItem);
+                        connItem = null;
                         // should never come here
-                        throw new BaseException(SDBError.SDB_SYS, "point 1: error happen for getting connection");
+                        throw new BaseException(SDBError.SDB_SYS, "no matching connection");
+                    }
+                } else if ((connItem = _connItemMgr.getItem()) != null) {
+                    // when we have no connection in idle pool,
+                    // new a connection, and wait up background thread to create connections
+                    try {
+                        sdb = _newConnByNormalAddr();
+                    } catch (BaseException e) {
+                        _connItemMgr.releaseItem(connItem);
+                        connItem = null;
+                        throw e;
+                    }
+                    // sanity check
+                    if (sdb == null) {
+                        _connItemMgr.releaseItem(connItem);
+                        connItem = null;
+                        // should never come here
+                        throw new BaseException(SDBError.SDB_SYS, "create connection directly failed");
+                    } else if (_sessionAttr != null) {
+                        try {
+                            sdb.setSessionAttr(_sessionAttr);
+                        } catch (Exception e) {
+                            _connItemMgr.releaseItem(connItem);
+                            connItem = null;
+                            _destroyConnQueue.add(sdb);
+                            throw new BaseException(SDBError.SDB_SYS,
+                                    String.format("failed to set the session attribute[%s]",
+                                            _sessionAttr.toString()), e);
+                        }
+                    }
+                    connItem.setAddr(sdb.getServerAddress().toString());
+                    synchronized (_createConnSignal) {
+                        _createConnSignal.notify();
                     }
                 } else {
-                    // when we have no connection in idle pool,
-                    // new a connection ,
-                    // and wait up thread to create connections                	
-                    connItem = _connItemMgr.getItem();
-                    if (connItem != null) {
-                        try {
-                            sdb = _newConnByNormalAddr();
-                        } catch (BaseException e) {
-                            _connItemMgr.releaseItem(connItem);
-                            connItem = null;
-                            throw e;
-                        }
-                        // sanity check
-                        if (sdb == null) {
-                            _connItemMgr.releaseItem(connItem);
-                            connItem = null;
-                            // should never come here
-                            throw new BaseException(SDBError.SDB_SYS, "point 2: error happen for getting connection");
-                        } else if (_sessionAttr != null) {
-                            try {
-                                sdb.setSessionAttr(_sessionAttr);
-                            } catch (Exception e) {
-                                _connItemMgr.releaseItem(connItem);
-                                connItem = null;
-                                _destroyConnQueue.add(sdb);
-                                throw new BaseException(SDBError.SDB_SYS,
-                                        String.format("failed to set the session attribute[%s]",
-                                                _sessionAttr.toString()), e);
+                    // when we can't get anything, let's wait
+                    long beginTime = 0;
+                    long endTime = 0;
+                    // release the read lock before wait up
+                    rlock.unlock();
+                    try {
+                        if (timeout != 0) {
+                            if (restTime <= 0) {
+                                // stop waiting
+                                break;
                             }
-                        }
-                        connItem.setAddr(sdb.getServerAddress().toString());
-                        synchronized (_createConnSignal) {
-                            _createConnSignal.notify();
-                        }
-                    } else {
-                        // TODO: we need to retry to get connItem not only in _strategy, but also in _connItemMgr
-                        long restTime = timeout;
-                        long beginTime = 0;
-                        long endTime = 0;
-                        while ((connItem = _strategy.pollConnItemForGetting()) == null) {
-                            // release the read lock before wait up
-                            rlock.unlock();
+                            beginTime = System.currentTimeMillis();
                             try {
-                                if (timeout != 0) {
-                                    if (restTime <= 0) {
-                                        break;
-                                    }
-                                    beginTime = System.currentTimeMillis();
-                                    try {
-                                        synchronized (this) {
-                                            this.wait(restTime);
-                                        }
-                                    } finally {
-                                        endTime = System.currentTimeMillis();
-                                        restTime -= (endTime - beginTime);
-                                    }
-                                } else {
-                                    try {
-                                        synchronized (this) {
-                                            // we have no double check of the connItem here,
-                                            // so we can't use this.wait() here.
-                                            // let it retry after a few seconds later
-                                            this.wait(5000);
-                                        }
-                                    } finally {
-                                        continue;
-                                    }
+                                synchronized (this) {
+                                    this.wait(restTime);
                                 }
                             } finally {
-                                // keep the read lock before visit _strategy
-                                rlock.lock();
+                                endTime = System.currentTimeMillis();
+                                restTime -= (endTime - beginTime);
                             }
-                        }
-                        if (connItem == null) {
-                            // make some debug info
-                            String detail = _getDataSourceSnapshot();
-                            // when the last connItem is hold by background creating thread,
-                            // and it failed to create the last connection, let's report network error
-                            if (getNormalAddrNum() == 0 &&
-                                    getUsedConnNum() < _dsOpt.getMaxCount()) {
-                                BaseException exp = _getLastException();
-                                String errMsg = "get connection failed, no available address for connection, " + detail;
-                                if (exp != null) {
-                                    throw new BaseException(SDBError.SDB_NETWORK, errMsg, exp);
-                                } else {
-                                    throw new BaseException(SDBError.SDB_NETWORK, errMsg);
-                                }
-                            } else {
-                                throw new BaseException(SDBError.SDB_DRIVER_DS_RUNOUT,
-                                        "the pool has run out of connections, " + detail);
-                            }
+                            // even if the restTime is up, let it retry one more time
+                            continue;
                         } else {
-                            sdb = _idleConnPool.poll(connItem);
-                            // sanity check
-                            if (sdb == null) {
-                                _connItemMgr.releaseItem(connItem);
-                                // should never come here
-                                throw new BaseException(SDBError.SDB_SYS, "point 3: error happen for getting connection");
+                            try {
+                                synchronized (this) {
+                                    // we have no double check of the connItem here,
+                                    // so we can't use this.wait() here.
+                                    // let it retry after a few seconds later
+                                    this.wait(5000);
+                                }
+                            } finally {
+                                continue;
                             }
                         }
+                    } finally {
+                        // let's get the read lock before going on
+                        rlock.lock();
                     }
                 }
                 // here we get the connection, let's check whether the connection is usable
@@ -891,17 +856,38 @@ public class SequoiadbDatasourceImpl {
                     _connItemMgr.releaseItem(connItem);
                     connItem = null;
                     _destroyConnQueue.add(sdb);
+                    sdb = null;
                     continue;
                 } else {
                     // stop looping
                     break;
                 }
+            } // while(true)
+            // when we can't get connection, try to report error
+            if (connItem == null) {
+                // make some debug info
+                String detail = _getDataSourceSnapshot();
+                // when the last connItem is hold by background creating thread,
+                // and it failed to create the last connection, let's report network error
+                if (getNormalAddrNum() == 0 && getUsedConnNum() < _dsOpt.getMaxCount()) {
+                    BaseException exception = _getLastException();
+                    String errMsg = "get connection failed, no available address for connection, " + detail;
+                    if (exception != null) {
+                        throw new BaseException(SDBError.SDB_NETWORK, errMsg, exception);
+                    } else {
+                        throw new BaseException(SDBError.SDB_NETWORK, errMsg);
+                    }
+                } else {
+                    throw new BaseException(SDBError.SDB_DRIVER_DS_RUNOUT,
+                            "the pool has run out of connections, " + detail);
+                }
+            } else {
+                // insert the itemInfo and connection to used pool
+                _usedConnPool.insert(connItem, sdb);
+                // tell strategy used pool had add a connection
+                _strategy.updateUsedConnItemCount(connItem, 1);
+                return sdb;
             }
-            // insert the itemInfo and connection to used pool
-            _usedConnPool.insert(connItem, sdb);
-            // tell strategy used pool had add a connection
-            _strategy.updateUsedConnItemCount(connItem, 1);
-            return sdb;
         } finally {
             rlock.unlock();
         }
@@ -966,7 +952,7 @@ public class SequoiadbDatasourceImpl {
                             "the connection pool doesn't contain the offered connection");
                 }
             }
-            // tell the strategy there is a connection returning now
+            // we have decreased connection in used pool, let's update the strategy
             _strategy.updateUsedConnItemCount(item, -1);
             // check whether the connection can put back to idle pool or not
             if (_connIsValid(item, sdb)) {
@@ -982,6 +968,9 @@ public class SequoiadbDatasourceImpl {
                 // let the item come back to item pool, and destroy the connection
                 _connItemMgr.releaseItem(item);
                 _destroyConnQueue.add(sdb);
+                synchronized (this) {
+                    notifyAll();
+                }
             }
         } finally {
             rlock.unlock();
@@ -1323,7 +1312,7 @@ public class SequoiadbDatasourceImpl {
                     retConn = new Sequoiadb(addr, _username, _password, _nwOpt);
                 } catch (Exception e) {
                     if (e instanceof BaseException) {
-                        _setLastException((BaseException)e);
+                        _setLastException((BaseException) e);
                     }
                     continue;
                 }
