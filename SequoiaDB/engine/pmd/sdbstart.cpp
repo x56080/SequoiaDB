@@ -77,7 +77,7 @@ namespace engine
        ( PMD_COMMANDS_STRING( PMD_OPTION_ROLE, ",r" ), po::value<string>(), "role type: coord/data/catalog/om" ) \
        ( PMD_OPTION_FORCE, "force start when the config not exist" ) \
        ( PMD_COMMANDS_STRING( PMD_OPTION_OPTIONS, ",o" ), po::value<string>(), "SequoiaDB start arguments, but not use '-c/--confpath/-p/--svcname'" ) \
-
+       ( PMD_COMMANDS_STRING( PMD_OPTION_IGNOREULIMIT, ",i"), "skip checking ulimit" )\
 
    #define COMMANDS_HIDE_OPTIONS \
       ( PMD_OPTION_HELPFULL, "help all configs" ) \
@@ -315,7 +315,7 @@ namespace engine
 
       init( desc, all ) ;
 
-      // validate arguments
+      /// 1.validate arguments
       rc = resolveArgument ( desc, all, vm, argc, argv, configs, nodesInfo,
                              typeFilter, roleFilter, options ) ;
       if ( rc )
@@ -332,16 +332,32 @@ namespace engine
          goto done ;
       }
 
-      if ( !vm.count( PMD_OPTION_CURUSER ) )
-      {
-         UTIL_CHECK_AND_CHG_USER() ;
-      }
       if ( vm.count( PMD_OPTION_FORCE ) )
       {
          isForce = TRUE ;
       }
 
-      // make path
+      /// 2.check ulimit
+      if ( !vm.count( PMD_OPTION_IGNOREULIMIT ) )
+      {
+         rc = utilSetAndCheckUlimit() ;
+         if ( rc )
+         {
+            ossPrintf( "Error: start sequoiadb will set ulimit by file"
+                       "[conf/limits.conf], if you want to set ulimit by "
+                       "current terminal, please use parameter '-i'."
+                       OSS_NEWLINE  ) ;
+            goto error ;
+         }
+      }
+
+      /// 3.change user
+      if ( !vm.count( PMD_OPTION_CURUSER ) )
+      {
+         UTIL_CHECK_AND_CHG_USER() ;
+      }
+
+      /// 4.make path
       rc = ossGetEWD( rootPath, OSS_MAX_PATHSIZE ) ;
       if ( rc )
       {
@@ -358,7 +374,7 @@ namespace engine
          goto error ;
       }
 
-      // dialog path and file
+      /// 5.dialog path and file
       rc = utilBuildFullPath( rootPath, SDBCM_LOG_PATH,
                               OSS_MAX_PATHSIZE, dialogFile ) ;
       if ( rc )
@@ -430,7 +446,7 @@ namespace engine
          cmdRunners.push_back( SDB_OSS_NEW ossCmdRunner() ) ;
       }
 
-      // start nodes
+      /// 6.start nodes
       for ( UINT32 j = 0 ; j < configs.size() ; ++j )
       {
          ++total ;
@@ -470,7 +486,7 @@ namespace engine
          info._svcname = svcname ;
       }
 
-      // wait node to ok
+      /// 7.wait node to ok
       for ( UINT32 j = 0 ; j < configs.size() ; ++j )
       {
          utilNodeInfo &info = nodesInfo[ j ] ;

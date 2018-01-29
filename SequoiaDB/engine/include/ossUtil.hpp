@@ -1055,6 +1055,7 @@ private:
 #define OSS_LIMIT_OPEN_FILE "open files"
 #define OSS_LIMIT_SCHE_PRIO "scheduling priority"
 #define OSS_LIMIT_STACK_SIZE "stack size"
+#define OSS_LIMIT_PROC_NUM "process num"
 
 class ossProcLimits
 {
@@ -1067,6 +1068,8 @@ public:
    BOOLEAN getLimit( const CHAR *str,
                      INT64 &soft,
                      INT64 &hard ) const ;
+
+   BOOLEAN setLimit( const CHAR *str, INT64 soft, INT64 hard ) ;
 
 private:
    void _initRLimit( INT32 resource, const CHAR *str ) ;
