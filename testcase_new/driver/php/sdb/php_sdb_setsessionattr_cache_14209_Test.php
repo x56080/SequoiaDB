@@ -65,6 +65,14 @@ class setSessionAttr14209 extends PHPUnit_Framework_TestCase
          throw new Exception("failed to in, errno=".self::$db -> getError()['errno']);
       }
    }
+   
+   public function setUp()
+   {
+      if( self::$skipTestCase === true )
+      {
+         $this -> markTestSkipped( "init failed" );
+      }
+   }
 
    public function test_setSessionAttrNoCache()
    {  
@@ -98,14 +106,6 @@ class setSessionAttr14209 extends PHPUnit_Framework_TestCase
       $this -> assertEquals( 0, self::$db -> getError()['errno'] ); 
       $this -> assertEquals( $instanceid, $results['PreferedInstance'] );
       $this -> assertEquals( (string)$instanceTimeout, $results['Timeout'] );
-   }
-   
-   public function setUp()
-   {
-      if( self::$skipTestCase === true )
-      {
-         $this -> markTestSkipped( "init failed" );
-      }
    }
 
    public function test_setSessionAttrCache()
