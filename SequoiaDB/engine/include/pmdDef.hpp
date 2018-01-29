@@ -275,12 +275,22 @@ namespace engine
    #define PMD_OPTION_STANDALONE       "standalone"      // for om
    #define PMD_OPTION_ALIVE_TIME       "alivetime"       // for om
    #define PMD_OPTION_FORCE            "force"
+   #define PMD_OPTION_IGNOREULIMIT     "ignore-ulimit"
 
    /*
       SDB_RUN_MODE_TYPE_STR DEFINE
    */
    #define SDB_RUN_MODE_TYPE_LOCAL_STR  "local"
    #define SDB_RUN_MODE_TYPE_RUN_STR    "run"
+
+   /*
+      limits.conf
+   */
+   #define PMD_OPTION_LIMIT_CORE       "core_file_size"
+   #define PMD_OPTION_LIMIT_DATA       "data_seg_size"
+   #define PMD_OPTION_LIMIT_FILESIZE   "file_size"
+   #define PMD_OPTION_LIMIT_VM         "virtual_memory"
+   #define PMD_OPTION_LIMIT_FD         "open_files"
 
    /*
      SDBLIST_TYPE_STR

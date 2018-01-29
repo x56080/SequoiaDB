@@ -67,11 +67,13 @@ namespace engine
        ( PMD_COMMANDS_STRING (PMD_OPTION_HELP, ",h"), "help" ) \
        ( PMD_OPTION_VERSION, "version" ) \
        ( PMD_OPTION_AS_PROC, "as process, not service" ) \
+       ( PMD_COMMANDS_STRING( PMD_OPTION_IGNOREULIMIT, ",i"), "skip checking ulimit" )\
 
 #else
    #define COMMANDS_OPTIONS \
        ( PMD_COMMANDS_STRING (PMD_OPTION_HELP, ",h"), "help" ) \
        ( PMD_OPTION_VERSION, "version" ) \
+       ( PMD_COMMANDS_STRING( PMD_OPTION_IGNOREULIMIT, ",i"), "skip checking ulimit" )\
 
 #endif // _WINDOWS
 
@@ -138,7 +140,7 @@ namespace engine
          COMMANDS_HIDE_OPTIONS
       PMD_ADD_PARAM_OPTIONS_END
 
-      // validate arguments
+      /// 1.validate arguments
       rc = utilReadCommandLine( argc, argv, all, vm, FALSE ) ;
       if ( rc )
       {
@@ -146,7 +148,6 @@ namespace engine
          displayArg ( desc ) ;
          goto done ;
       }
-      /// read cmd first
       if ( vm.count( PMD_OPTION_HELP ) )
       {
          displayArg( desc ) ;
@@ -170,13 +171,6 @@ namespace engine
          asProc = TRUE ;
       }
 #endif //_WINDOWS
-
-      // check user info before create dir or files
-      if ( !vm.count( PMD_OPTION_CURUSER ) )
-      {
-         UTIL_CHECK_AND_CHG_USER() ;
-      }
-      // check mode
       if ( vm.count( PMD_OPTION_STANDALONE ) )
       {
          asStandalone = TRUE ;
@@ -184,6 +178,27 @@ namespace engine
          procShortName = SDBSDBCMPROG ;
       }
 
+      /// 2.check ulimit
+      if ( !vm.count( PMD_OPTION_IGNOREULIMIT ) )
+      {
+         rc = utilSetAndCheckUlimit() ;
+         if ( rc )
+         {
+            ossPrintf( "Error: Start sequoiadb will set ulimit by file"
+                       "[conf/limits.conf], if you want to set ulimit by "
+                       "current terminal, please use parameter '-i'."
+                       OSS_NEWLINE  ) ;
+            goto error ;
+         }
+      }
+
+      /// 3.check user info before create dir or files
+      if ( !vm.count( PMD_OPTION_CURUSER ) )
+      {
+         UTIL_CHECK_AND_CHG_USER() ;
+      }
+
+      /// 4.build dialog info
       rc = ossGetEWD ( progName, OSS_MAX_PATHSIZE ) ;
       if ( rc )
       {
@@ -191,8 +206,6 @@ namespace engine
                      "directory"OSS_NEWLINE ) ;
          goto error ;
       }
-
-      // build dialog info
       rc = utilBuildFullPath( progName, SDBCM_LOG_PATH,
                               OSS_MAX_PATHSIZE, dialogFile ) ;
       if ( rc )
@@ -242,7 +255,7 @@ namespace engine
          }
       }
 
-      // start progress
+      /// 5.start progress
       rc = startSdbcm ( argvs, pid, asProc ) ;
       if ( rc )
       {
@@ -274,7 +287,7 @@ namespace engine
          }
       }
 
-      // wait bussiness ok
+      /// 6.wait bussiness ok
       rc = utilWaitNodeOK( cmInfo, NULL,
                            asStandalone ? pid : OSS_INVALID_PID,
                            SDB_TYPE_OMA, PMD_SDBCM_WAIT_TIMEOUT,

@@ -104,6 +104,8 @@ namespace engine
 
    INT32 utilGetInstallInfo( utilInstallInfo &info ) ;
 
+   INT32 utilSetAndCheckUlimit() ;
+
    INT32 utilCheckAndChangeUserInfo( const CHAR *curFileName ) ;
 
    /*

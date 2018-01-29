@@ -487,6 +487,136 @@ namespace engine
       goto done ;
    }
 
+   INT32 utilSetAndCheckUlimit()
+   {
+      INT32 rc = SDB_OK ;
+      CHAR rootPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+      CHAR confFileName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+      CHAR *relativePath = NULL ;
+      po::options_description limitDesc ;
+      po::variables_map limitVarmap ;
+      INT64 limCoreFS = -1 ;
+      INT64 limDataSeg = -1 ;
+      INT64 limFileSize = -1 ;
+      INT64 limVM = -1 ;
+      INT64 limOpenFile = -1 ;
+      ossProcLimits procLim ;
+
+      // get full path of limits.conf
+      rc = ossGetEWD( rootPath, OSS_MAX_PATHSIZE ) ;
+      if ( rc )
+      {
+         ossPrintf( "Error: Failed to get module self path: %d"OSS_NEWLINE,
+                    rc ) ;
+         goto error ;
+      }
+      relativePath = ".." OSS_FILE_SEP "conf" OSS_FILE_SEP "limits.conf" ;
+      rc = utilBuildFullPath( rootPath, relativePath, OSS_MAX_PATHSIZE,
+                              confFileName ) ;
+      if ( rc )
+      {
+         ossPrintf( "Error: Failed to build limits.conf path name: %d"
+                    OSS_NEWLINE, rc ) ;
+         goto error ;
+      }
+
+      // load limits.conf
+      limitDesc.add_options()
+      ( PMD_OPTION_LIMIT_CORE,      po::value<INT64>(), "" )
+      ( PMD_OPTION_LIMIT_DATA,      po::value<INT64>(), "" )
+      ( PMD_OPTION_LIMIT_FILESIZE,  po::value<INT64>(), "" )
+      ( PMD_OPTION_LIMIT_VM,        po::value<INT64>(), "" )
+      ( PMD_OPTION_LIMIT_FD,        po::value<INT64>(), "" ) ;
+      rc = utilReadConfigureFile( confFileName, limitDesc, limitVarmap ) ;
+      if ( rc )
+      {
+         if ( SDB_FNE == rc )
+         {
+            PD_LOG( PDWARNING, "Config[%s] not exist, use default config",
+                    confFileName ) ;
+            goto done ;
+         }
+         ossPrintf( "Error: Failed to read config from file[%s]: %d"OSS_NEWLINE,
+                    confFileName, rc ) ;
+         goto error ;
+      }
+
+      // set ulimit: core file size
+      if ( limitVarmap.count( PMD_OPTION_LIMIT_CORE ) )
+      {
+         limCoreFS = limitVarmap[ PMD_OPTION_LIMIT_CORE ].as<INT64>() ;
+         rc = procLim.setLimit( OSS_LIMIT_CORE_SZ, limCoreFS, limCoreFS ) ;
+         if ( rc )
+         {
+            ossPrintf( "Error: Failed to set ulimit[%s] to [%lld], errno: %d"
+                       OSS_NEWLINE, OSS_LIMIT_CORE_SZ, limCoreFS, rc ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
+      // set ulimit: data segment size
+      if ( limitVarmap.count( PMD_OPTION_LIMIT_DATA ) )
+      {
+         limDataSeg = limitVarmap[ PMD_OPTION_LIMIT_DATA ].as<INT64>() ;
+         rc = procLim.setLimit( OSS_LIMIT_DATA_SEG_SZ, limDataSeg, limDataSeg ) ;
+         if ( rc )
+         {
+            ossPrintf( "Error: Failed to set ulimit[%s] to [%lld], errno: %d"
+                       OSS_NEWLINE, OSS_LIMIT_DATA_SEG_SZ, limDataSeg, rc ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
+      // set ulimit: file size
+      if ( limitVarmap.count( PMD_OPTION_LIMIT_FILESIZE ) )
+      {
+         limFileSize = limitVarmap[ PMD_OPTION_LIMIT_FILESIZE ].as<INT64>() ;
+         rc = procLim.setLimit( OSS_LIMIT_FILE_SZ, limFileSize, limFileSize ) ;
+         if ( rc )
+         {
+            ossPrintf( "Error: Failed to set ulimit[%s] to [%lld], errno: %d"
+                       OSS_NEWLINE, OSS_LIMIT_FILE_SZ, limFileSize, rc ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
+      // set ulimit: virtual memory
+      if ( limitVarmap.count( PMD_OPTION_LIMIT_VM ) )
+      {
+         limVM = limitVarmap[ PMD_OPTION_LIMIT_VM ].as<INT64>() ;
+         rc = procLim.setLimit( OSS_LIMIT_VIRTUAL_MEM, limVM, limVM ) ;
+         if ( rc )
+         {
+            ossPrintf( "Error: Failed to set ulimit[%s] to [%lld], errno: %d"
+                       OSS_NEWLINE, OSS_LIMIT_VIRTUAL_MEM, limVM, rc ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
+      // set ulimit: open files
+      if ( limitVarmap.count( PMD_OPTION_LIMIT_FD ) )
+      {
+         limOpenFile = limitVarmap[ PMD_OPTION_LIMIT_FD ].as<INT64>() ;
+         rc = procLim.setLimit( OSS_LIMIT_OPEN_FILE, limOpenFile, limOpenFile ) ;
+         if ( rc )
+         {
+            ossPrintf( "Error: Failed to set ulimit[%s] to [%lld], errno: %d"
+                       OSS_NEWLINE, OSS_LIMIT_OPEN_FILE, limOpenFile, rc ) ;\
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
    INT32 utilCheckAndChangeUserInfo( const CHAR * curFileName )
    {
       INT32 rc = SDB_OK ;
