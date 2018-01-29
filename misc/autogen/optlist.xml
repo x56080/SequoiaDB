@@ -239,10 +239,9 @@
    <opt>
       <name>PMD_OPTION_MAXPOOL</name>
       <long>maxpool</long>
-      <typeofweb>str</typeofweb>
       <description>
-         <en>The maximum number of pooled agent,defalut:20, value range:[0,10000]</en>
-         <cn>最大代理线程池,默认值为20,取值范围:[0,10000]</cn>
+         <en>The maximum number of pooled agent,defalut:50, value range:[0,10000]</en>
+         <cn>最大代理线程池,默认值为50,取值范围:[0,10000]</cn>
       </description>
       <type>int</type>
       <reloadable>
@@ -251,9 +250,9 @@
       </reloadable>
       <detail>
          <en>1. It specifies the amount of thread in thread pool.<fig></fig>
-             2. If it is not specified, the default value is 20, value range is [0,10000].</en>
+             2. If it is not specified, the default value is 50, value range is [0,10000].</en>
          <cn>1.指定线程池内线程数量。<fig></fig>
-             2.如果不指定，则默认为20，取值范围是[0,10000]。</cn>
+             2.如果不指定，则默认为50，取值范围是[0,10000]。</cn>
       </detail>
       <default>20</default>
       <typeofweb>num</typeofweb>
