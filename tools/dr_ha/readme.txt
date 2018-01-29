@@ -43,6 +43,6 @@ detachGroupNode和attachGroupNode操作步骤和场景：
       NEEDBROADCASTINITINFO: 是否将init文件分发到集群的所有主机上，在detachGroupNode和attachGroupNode的场景中，一般设置为true,这样无需到每台机器上重复做init操作。
    3、在准备做detachGroupNode和attachGroupNode的机器上的shell下执行 ' sh init.sh '，进行初始化(通过设置NEEDREELECT为false,可以让初始化时不重新选主)
    
-   4、当集群中的部分节点发生故障导致复制组不可用时，选一台执行过sh init.sh 的机器，执行 ' sh detachGroupNode '剔除不可用节点。
+   4、当集群中的部分节点发生故障导致复制组不可用时，选一台存在 datacenter_init.info 的机器，执行 ' sh detachGroupNode '剔除不可用节点。
    
-   5、当故障节点恢复后，选一台执行过sh init.sh 的机器，执行 ' sh attachGroupNode '将节点重新加入对应复制组中。
+   5、当故障节点恢复后，选一台存在 datacenter_init.info 的机器，执行 ' sh attachGroupNode '将节点重新加入对应复制组中。
