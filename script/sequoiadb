@@ -217,13 +217,13 @@ do_start()
   if [ -f "${INSTALL_DIR}/conf/limits.conf" ]; then
     . ${INSTALL_DIR}/conf/limits.conf
     #no coredump
-    set_ulimits "-Sc" "$core_file_size"
+    set_ulimits "-c" "$core_file_size"
     #data seg size
-    set_ulimits "-Sd" "$data_seg_size"
+    set_ulimits "-d" "$data_seg_size"
     #file size 
-    set_ulimits "-Sf" "$file_size"
+    set_ulimits "-f" "$file_size"
     #virtual memory
-    set_ulimits "-Sv" "$virtual_memory"
+    set_ulimits "-v" "$virtual_memory"
     #open files
     set_ulimits "-n" "$open_files"
   fi
