@@ -138,7 +138,7 @@ namespace engine
 
       _hitBuildEnd = FALSE ;
 
-      UINT64 bufSize = pmdGetOptionCB()->getHjBufSize() * 1024 * 1024 ;
+      UINT64 bufSize = ( ( UINT64 )pmdGetOptionCB()->getHjBufSize() ) * 1024 * 1024 ;
       rc = _hashTbl.init( bufSize ) ;
       if ( SDB_OK != rc )
       {
