@@ -80,7 +80,9 @@ TEST_F( turnOnCache7802, getCollection )
    aliveTime1 = db.getLastAliveTime() ;
 
    // get cl from cache
-   ossSleep( CACHE_TIME_INT / 2 ) ;
+   // in driver view, 00:00:46.00 - 00:00:44.80 = 00:00:02 but not 00:00:01.20 
+   // so sleep is dangerous.
+   // ossSleep( CACHE_TIME_INT / 2 ) ; 
    rc = cs.getCollection( pClName, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    aliveTime2 = db.getLastAliveTime() ;
