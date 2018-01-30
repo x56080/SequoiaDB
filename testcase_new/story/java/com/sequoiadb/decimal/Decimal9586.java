@@ -2,8 +2,6 @@ package com.sequoiadb.decimal;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BSONDecimal;
@@ -12,7 +10,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
-
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
@@ -136,24 +133,24 @@ public class Decimal9586 extends SdbTestBase{
 			int genPrecision, int genScale){
 		BSONObject obj = new BasicBSONObject();
 		String genValue = "";
-		String genInteger = basicString;
-		String genFractional = "";
+		StringBuffer genInteger = new StringBuffer(basicString);
+		StringBuffer genFractional = new StringBuffer();
 		if(basicString.contains("-")){
 			basicString = basicString.substring(1);
 		}
 		
 		for(int i=0; i<genPrecision - genScale - 1; i++){
-			genInteger+=basicString;
+			genInteger.append(basicString);
 		}
 		
 		for(int j=0; j<genScale; j++){
-			genFractional+=basicString;
+			genFractional.append(basicString);
 		}
 		
 		if(genScale != 0){
 			genValue = genInteger + "."+ genFractional;
 		}else{
-			genValue = genInteger;
+			genValue = genInteger.toString();
 		}
 		
 		try{
@@ -227,3 +224,4 @@ public class Decimal9586 extends SdbTestBase{
 		}
 	}
 }
+

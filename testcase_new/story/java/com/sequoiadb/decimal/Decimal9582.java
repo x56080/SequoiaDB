@@ -2,8 +2,6 @@ package com.sequoiadb.decimal;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BSONDecimal;
@@ -12,7 +10,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
-
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
@@ -138,25 +135,25 @@ public class Decimal9582 extends SdbTestBase{
 	public void genDecimalAndCheck( String basicString, String expectValue, 
 			int genPrecision, int genScale, int precision, int scale){
 		BSONObject obj = new BasicBSONObject();
-		String basicValue = basicString;
+		StringBuffer basicValue = new StringBuffer(basicString);
 		if(basicString.contains("-")){
 			basicString = basicString.substring(1);
 		}
 		for(int i=0; i<genPrecision - genScale - 1; i++){
-			basicValue+=basicString;
+			basicValue.append(basicString);
 		}
 		if(genScale != 0){
-			basicValue+=".";
+			basicValue.append(".");
 		}
 		
 		for(int j=0; j<genScale; j++){
-			basicValue+=basicString;
+			basicValue.append(basicString);
 		}
 		
 		BigDecimal expectBigDecimal = new BigDecimal(expectValue);
 		
 		try{
-			BSONDecimal data = new BSONDecimal(basicValue, precision, scale);
+			BSONDecimal data = new BSONDecimal(basicValue.toString(), precision, scale);
 			obj.put("a", data);
 			cl.insert(obj);
 			BSONDecimal actualData = (BSONDecimal) cl.queryOne().get("a");
@@ -200,3 +197,4 @@ public class Decimal9582 extends SdbTestBase{
 	}
 }
 	
+
