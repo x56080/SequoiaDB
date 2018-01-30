@@ -337,6 +337,8 @@ namespace engine
       cmdline += SDBCM_OPTION_PREFIX PMD_OPTION_CONFPATH ;
       cmdline += " " ;
       cmdline += pCfgPath ;
+      cmdline += " " ;
+      cmdline += SDBCM_OPTION_PREFIX PMD_OPTION_IGNOREULIMIT ;
       if ( useCurUser )
       {
          cmdline += " " ;

@@ -495,14 +495,11 @@ namespace engine
       CHAR *relativePath = NULL ;
       po::options_description limitDesc ;
       po::variables_map limitVarmap ;
-      INT64 limCoreFS = -1 ;
-      INT64 limDataSeg = -1 ;
-      INT64 limFileSize = -1 ;
-      INT64 limVM = -1 ;
-      INT64 limOpenFile = -1 ;
       ossProcLimits procLim ;
+      vector<pair<string, string> > vec ;
+      vector<pair<string, string> >::iterator it ;
 
-      // get full path of limits.conf
+      /// get full path of limits.conf
       rc = ossGetEWD( rootPath, OSS_MAX_PATHSIZE ) ;
       if ( rc )
       {
@@ -520,7 +517,7 @@ namespace engine
          goto error ;
       }
 
-      // load limits.conf
+      /// load limits.conf
       limitDesc.add_options()
       ( PMD_OPTION_LIMIT_CORE,      po::value<INT64>(), "" )
       ( PMD_OPTION_LIMIT_DATA,      po::value<INT64>(), "" )
@@ -542,72 +539,53 @@ namespace engine
          goto error ;
       }
 
-      // set ulimit: core file size
-      if ( limitVarmap.count( PMD_OPTION_LIMIT_CORE ) )
+      /// set ulimit and check
+      vec.push_back( make_pair<string,string>( PMD_OPTION_LIMIT_CORE,
+                                               OSS_LIMIT_CORE_SZ ) ) ;
+      vec.push_back( make_pair<string,string>( PMD_OPTION_LIMIT_DATA,
+                                               OSS_LIMIT_DATA_SEG_SZ ) ) ;
+      vec.push_back( make_pair<string,string>( PMD_OPTION_LIMIT_FILESIZE,
+                                               OSS_LIMIT_FILE_SZ ) ) ;
+      vec.push_back( make_pair<string,string>( PMD_OPTION_LIMIT_VM,
+                                               OSS_LIMIT_VIRTUAL_MEM ) ) ;
+      vec.push_back( make_pair<string,string>( PMD_OPTION_LIMIT_FD,
+                                               OSS_LIMIT_OPEN_FILE ) ) ;
+      for( it = vec.begin() ; it != vec.end() ; it++ )
       {
-         limCoreFS = limitVarmap[ PMD_OPTION_LIMIT_CORE ].as<INT64>() ;
-         rc = procLim.setLimit( OSS_LIMIT_CORE_SZ, limCoreFS, limCoreFS ) ;
-         if ( rc )
+         string option = it->first ;
+         string limStr = it->second ;
+
+         if ( !limitVarmap.count( option ) )
          {
-            ossPrintf( "Error: Failed to set ulimit[%s] to [%lld], errno: %d"
-                       OSS_NEWLINE, OSS_LIMIT_CORE_SZ, limCoreFS, rc ) ;
+            continue ;
+         }
+         INT64 limVal = limitVarmap[ option ].as<INT64>() ;
+
+         INT64 curSoft = 0, curHard = 0 ;
+         BOOLEAN hasGot = FALSE ;
+
+         // set ulimit
+         procLim.init() ;
+         hasGot = procLim.getLimit( limStr.c_str(), curSoft, curHard ) ;
+         if ( !hasGot ||  curSoft != limVal )
+         {
+            procLim.setLimit( limStr.c_str(), limVal, limVal ) ;
+         }
+
+         // check ulimit
+         hasGot = procLim.getLimit( limStr.c_str(), curSoft, curHard ) ;
+         if ( !hasGot )
+         {
             rc = SDB_SYS ;
+            ossPrintf( "Error: Failed to get ulimit[%s]"OSS_NEWLINE,
+                       limStr.c_str() ) ;
             goto error ;
          }
-      }
-
-      // set ulimit: data segment size
-      if ( limitVarmap.count( PMD_OPTION_LIMIT_DATA ) )
-      {
-         limDataSeg = limitVarmap[ PMD_OPTION_LIMIT_DATA ].as<INT64>() ;
-         rc = procLim.setLimit( OSS_LIMIT_DATA_SEG_SZ, limDataSeg, limDataSeg ) ;
-         if ( rc )
+         if ( curSoft < limVal && curSoft != -1 )
          {
-            ossPrintf( "Error: Failed to set ulimit[%s] to [%lld], errno: %d"
-                       OSS_NEWLINE, OSS_LIMIT_DATA_SEG_SZ, limDataSeg, rc ) ;
             rc = SDB_SYS ;
-            goto error ;
-         }
-      }
-
-      // set ulimit: file size
-      if ( limitVarmap.count( PMD_OPTION_LIMIT_FILESIZE ) )
-      {
-         limFileSize = limitVarmap[ PMD_OPTION_LIMIT_FILESIZE ].as<INT64>() ;
-         rc = procLim.setLimit( OSS_LIMIT_FILE_SZ, limFileSize, limFileSize ) ;
-         if ( rc )
-         {
-            ossPrintf( "Error: Failed to set ulimit[%s] to [%lld], errno: %d"
-                       OSS_NEWLINE, OSS_LIMIT_FILE_SZ, limFileSize, rc ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-      }
-
-      // set ulimit: virtual memory
-      if ( limitVarmap.count( PMD_OPTION_LIMIT_VM ) )
-      {
-         limVM = limitVarmap[ PMD_OPTION_LIMIT_VM ].as<INT64>() ;
-         rc = procLim.setLimit( OSS_LIMIT_VIRTUAL_MEM, limVM, limVM ) ;
-         if ( rc )
-         {
-            ossPrintf( "Error: Failed to set ulimit[%s] to [%lld], errno: %d"
-                       OSS_NEWLINE, OSS_LIMIT_VIRTUAL_MEM, limVM, rc ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-      }
-
-      // set ulimit: open files
-      if ( limitVarmap.count( PMD_OPTION_LIMIT_FD ) )
-      {
-         limOpenFile = limitVarmap[ PMD_OPTION_LIMIT_FD ].as<INT64>() ;
-         rc = procLim.setLimit( OSS_LIMIT_OPEN_FILE, limOpenFile, limOpenFile ) ;
-         if ( rc )
-         {
-            ossPrintf( "Error: Failed to set ulimit[%s] to [%lld], errno: %d"
-                       OSS_NEWLINE, OSS_LIMIT_OPEN_FILE, limOpenFile, rc ) ;\
-            rc = SDB_SYS ;
+            ossPrintf( "Error: Failed to set ulimit[%s] to [%lld]"
+                       OSS_NEWLINE, limStr.c_str(), limVal ) ;
             goto error ;
          }
       }
