@@ -1097,7 +1097,7 @@ public:
                      INT64 &soft,
                      INT64 &hard ) const ;
 
-   BOOLEAN setLimit( const CHAR *str, INT64 soft, INT64 hard ) ;
+   INT32 setLimit( const CHAR *str, INT64 soft, INT64 hard ) ;
 
 private:
    void _initRLimit( INT32 resource, const CHAR *str ) ;
