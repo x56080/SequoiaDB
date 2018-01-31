@@ -21,7 +21,8 @@
       </packages>  
    </test>
 
-   <test name="readwriteseparation">
+   <!--会话隔离test，其他用例不要放在这个test内-->
+   <test name="sessionaccess">
       <packages>
          <package name="com.sequoiadb.readwriteseparation"/>
       </packages>

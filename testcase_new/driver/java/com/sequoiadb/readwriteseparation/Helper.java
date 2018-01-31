@@ -63,7 +63,8 @@ class Helper {
      * @return
      */
     public static String getActualDataNodeName(DBCollection dbcl) {
-        for (int i = 0; i < 20; i++) {
+        final int retryTimes = 5;
+        for (int i = 0; i < retryTimes; i++) {
             try {
                 DBCursor cur = dbcl.explain(null, null, null, null, 0, 10, 0, new BasicBSONObject("Run", true));
                 BSONObject o = cur.getNext();
@@ -71,12 +72,13 @@ class Helper {
                 cur.close();
                 return nodeName;
             } catch (BaseException e) {
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e1) {
-                    e1.printStackTrace();
-                }
-                if (i == 1) {
+                if (i < retryTimes - 1) {
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e1) {
+                        e1.printStackTrace();
+                    }
+                } else {
                     throw e;
                 }
             }

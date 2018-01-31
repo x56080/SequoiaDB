@@ -23,7 +23,7 @@ public class ReadWriteSeqpartBase extends SdbTestBase {
         }
         ReplicaGroup rg = db.createReplicaGroup("ReadWriteSeqpartRG");
         int[][] param = {{29876, 7}, {39876, 8}, {49876, 9},};
-        String hostName = db.getHost();
+        String hostName=db.getReplicaGroup("SYSCatalogGroup").getMaster().getHostName();
 
         for (int[] ints : param) {
             BasicBSONObject config = new BasicBSONObject();
