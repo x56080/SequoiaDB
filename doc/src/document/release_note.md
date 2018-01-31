@@ -9,7 +9,7 @@ SequoiaDB 数据库是一款新型企业级分布式非关系型数据库，帮�
 - 参数cachemergesz、sparsefile、overflowratio和extendthreshold支持实时生效
 - 参数maxcachesize、maxcachejob、maxsyncjob等参数提供动态生效能力
 
-**接口变更：**
+**特性开发：**
 
 - 外部会话提供超时以及访问隔离的能力
 
