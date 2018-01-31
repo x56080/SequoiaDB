@@ -45,7 +45,7 @@ public class ReadWriteSeqpart14141 extends SdbTestBase {
      * <p>
      * 1、查看访问连接节点为指定instanceid对应的数据节点（随机在指定节点中选取）
      */
-    @Test(invocationCount = 100)
+    @Test
     public void test14141() {
         BSONObject options = new BasicBSONObject("PreferedInstance", new int[]{8, 9, 11});
         db.setSessionAttr(options);

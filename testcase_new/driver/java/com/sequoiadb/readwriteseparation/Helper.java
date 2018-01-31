@@ -63,7 +63,7 @@ class Helper {
      * @return
      */
     public static String getActualDataNodeName(DBCollection dbcl) {
-        final int retryTimes = 5;
+        final int retryTimes = 10;
         for (int i = 0; i < retryTimes; i++) {
             try {
                 DBCursor cur = dbcl.explain(null, null, null, null, 0, 10, 0, new BasicBSONObject("Run", true));
