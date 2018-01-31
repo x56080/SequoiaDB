@@ -12,10 +12,11 @@ function insertData( dbcl, insertNum)
       for( var i = 0; i < number; ++i )
       {      
          var no = i;
+         var a = i;
          var user = "test"+i;
          var phone = 13700000000+i;
          var time = new Date().getTime(); 
-         var doc = {no:no, customerName:user, phone:phone, openDate:time};      
+         var doc = {no:no, a:a,customerName:user, phone:phone, openDate:time};      
          //data example: {"no":5, customerName:"test5", "phone":13700000005, "openDate":1402990912105
          
          docs.push( doc );
@@ -234,7 +235,7 @@ function createSecondRGAndNode(db, groupName, instanceidList, nodeNum)
          } 
          else
          {
-            var config = { instanceid : instanceidList[i]};  
+            var config = { instanceid : instanceidList[i],diaglevel:DEBUG};  
          }
                 
          rg.createNode(nodeHostName, nodeService, nodePath, config);         
@@ -255,7 +256,7 @@ function checkMasterExist( groupName )
    {   
       var sleepInteval=10;
       var sleepDuration=0;
-      var maxSleepDuration=6000; 
+      var maxSleepDuration=60000; 
       var rc = db.exec("select IsPrimary,NodeName from $SNAPSHOT_SYSTEM where GroupName='" + groupName + "' and IsPrimary=true ");
       var num = rc.size();  
       while( num != 1 && sleepDuration < maxSleepDuration )
