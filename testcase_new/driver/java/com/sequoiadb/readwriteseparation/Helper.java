@@ -78,6 +78,7 @@ class Helper {
                     } catch (InterruptedException e1) {
                         e1.printStackTrace();
                     }
+                    e.printStackTrace();
                 } else {
                     throw e;
                 }
