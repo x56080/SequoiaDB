@@ -232,6 +232,13 @@ namespace engine
       goto done ;
    }
 
+   void _dpsLogWrapper::onConfigChange ()
+   {
+      pmdOptionsCB *optCB = pmdGetKRCB()->getOptionCB() ;
+      _syncInterval = optCB->getSyncInterval() ;
+      _syncRecordNum = optCB->getSyncRecordNum() ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP_SEARCH, "_dpsLogWrapper::search" )
    INT32 _dpsLogWrapper::search( const DPS_LSN &minLsn,
                                  _dpsMessageBlock *mb,
