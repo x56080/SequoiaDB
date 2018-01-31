@@ -26,18 +26,26 @@
 
 ##示例##
 
-* 对所有节点进行配置重新加载。
+* 对（除了协调节点之外的）所有节点进行配置重新加载。
 
  ```lang-javascript
- // 连接节点
+ // 连接协调节点
  > db = new Sdb( "localhost", 11810 )
  > db.reloadConf()
  ```
 
-* 对指节点1000进行配置重加载。
+* 对协调节点进行配置重新加载。
 
  ```lang-javascript
- // 连接节点
+ // 连接协调节点
+ > db = new Sdb( "localhost", 11810 )
+ > db.reloadConf( {Global:false} )
+ ```
+
+* 对指节点 1000 进行配置重加载。
+
+ ```lang-javascript
+ // 连接协调节点
  > db = new Sdb( "localhost", 11810 )
  > db.reloadConf( {NodeID:1000} )
  ```
