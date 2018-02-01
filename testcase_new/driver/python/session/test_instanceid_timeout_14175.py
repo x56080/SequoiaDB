@@ -7,7 +7,7 @@
 import unittest
 from lib import testlib
 from lib import sdbconfig
-from commlib import *
+from session.commlib import *
 from pysequoiadb.error import SDBBaseError
 
 class TestSessiontimeout14175(testlib.SdbTestBase):
