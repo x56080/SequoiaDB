@@ -191,18 +191,19 @@ function createRGAndNode(db, groupName, instanceidList, nodeNum)
          //first create node is master node 
          if (i == 0)
          {
-            var config = { instanceid : instanceidList[i], weight:100 };
+            var config = { instanceid : instanceidList[i], weight:100,diaglevel:5 };
          } 
          else
          {
-            var config = { instanceid : instanceidList[i]};  
+            var config = { instanceid : instanceidList[i],diaglevel:5};  
          }
                 
          rg.createNode(nodeHostName, nodeService, nodePath, config);         
       }
       rg.start();
       
-      //
+      //waiting for the success of the vote
+      checkMasterExist( groupName );
    }
    catch(e)
    {       
@@ -231,11 +232,11 @@ function createSecondRGAndNode(db, groupName, instanceidList, nodeNum)
          //first create node is master node 
          if (i == 0)
          {
-            var config = { instanceid : instanceidList[i], weight:100 };
+            var config = { instanceid : instanceidList[i], weight:100,diaglevel:5 };
          } 
          else
          {
-            var config = { instanceid : instanceidList[i],diaglevel:DEBUG};  
+            var config = { instanceid : instanceidList[i],diaglevel:5};  
          }
                 
          rg.createNode(nodeHostName, nodeService, nodePath, config);         
@@ -246,7 +247,7 @@ function createSecondRGAndNode(db, groupName, instanceidList, nodeNum)
    }
    catch(e)
    {       
-      throw buildException("createRGAndNode()",e,"", "create success","createRGAndNode fail,e="+e);
+      throw buildException("createSecondRGAndNode()",e,"", "create success","createRGAndNode fail,e="+e);
    }
 }
 
