@@ -13,8 +13,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.SkipException;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
 
 import com.sequoiadb.base.CollectionSpace;
@@ -42,9 +42,8 @@ public class TestLobSplitAndWrite7847 extends SdbTestBase {
 	private Random random = new Random();
 	private String sourceRGName = "";
 	private String targetRGName = "";
-	private ConcurrentHashMap<ObjectId, String> id2md5 
-    			= new ConcurrentHashMap<ObjectId, String>();
-	private LinkedBlockingDeque<ObjectId> oidQueue = new LinkedBlockingDeque<ObjectId>();
+		
+	private LinkedBlockingDeque<LobInfo> lobInfoQue = new LinkedBlockingDeque<LobInfo>() ;
 	
 	@BeforeClass
 	public void setUp(){
@@ -140,10 +139,10 @@ public class TestLobSplitAndWrite7847 extends SdbTestBase {
         	Sequoiadb db = null;
             try{   
             	db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName); 
-                ObjectId oid = oidQueue.take();	
-                dbcl.removeLob(oid);
-                id2md5.remove(oid);                   			
+                DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);                 
+                LobInfo lobInfo = lobInfoQue.take();
+                ObjectId oid = lobInfo.oid;   
+                dbcl.removeLob(oid);                                			
         	}finally{
         		if( db != null ){
         			db.disconnect();
@@ -153,7 +152,6 @@ public class TestLobSplitAndWrite7847 extends SdbTestBase {
     }
 		
 	private void checkLobData( ){		
-		int count = 0;
 		DBCursor listLob = null;
 		try{
 			listLob = dbcl.listLobs();
@@ -165,9 +163,9 @@ public class TestLobSplitAndWrite7847 extends SdbTestBase {
 				rLob.read(rbuff);
 				rLob.close();
 				String curMd5 = LobOprUtils.getMd5(rbuff);
-        		String prevMd5 = id2md5.get(existOid);
+				String prevMd5 =  getLobMd5ByOid(existOid);
         		Assert.assertEquals(curMd5, prevMd5); 			  
-				count++;
+        		Assert.assertEquals(curMd5, prevMd5,"the list oid:"+existOid.toString()); 
 			}	
 		}finally{
 			if ( listLob != null ){
@@ -175,7 +173,7 @@ public class TestLobSplitAndWrite7847 extends SdbTestBase {
 			}
 		}		
 		//the list lobnums must be consistent with the number of remaining digits in the actual map:id2md5
-		Assert.assertEquals(count, id2md5.size());		
+		Assert.assertEquals(lobInfoQue.isEmpty(), true,"the remaining "+lobInfoQue.size()+" oids were not found!");				
 	}	
 	
 	private class PutLobsTask extends SdbThreadBase {
@@ -202,11 +200,33 @@ public class TestLobSplitAndWrite7847 extends SdbTestBase {
 			ObjectId oid = LobOprUtils.createAndWriteLob(cl, wlobBuff);	
 			
 			//save oid and md5
-			String prevMd5 = LobOprUtils.getMd5(wlobBuff);
-			oidQueue.offer(oid);			
-			id2md5.put(oid, prevMd5);			
+			String prevMd5 = LobOprUtils.getMd5(wlobBuff);				
+			lobInfoQue.offer(new LobInfo( oid, prevMd5));	
 		}		
-	}	
+	}
+	
+	// find the md5 from expected queue
+	private String getLobMd5ByOid(ObjectId lobOid){
+		Iterator<LobInfo> iterator = lobInfoQue.iterator();
+		boolean found = false;
+		String findMd5 = "";
+		while(iterator.hasNext()){
+			LobInfo current = iterator.next();
+			ObjectId oid = current.getOid();				
+			if ( oid.equals(lobOid) ){				
+				findMd5 = current.getMd5();    			
+				lobInfoQue.remove(current);
+		    	found = true;
+		    	break;
+			}
+		}
+				
+		//if oid does not exist in the queue,than error
+		if (!found) {
+			throw new RuntimeException("oid[" + lobOid + "] not found");
+		}		
+		return findMd5;
+	}
 	
 	public void createCL(){		
 	    try
@@ -220,4 +240,20 @@ public class TestLobSplitAndWrite7847 extends SdbTestBase {
 		    Assert.assertTrue(false,"create cl fail "+e.getErrorType()+":"+e.getMessage());
 	    }
 	 }	
+	
+	private class LobInfo{
+		private ObjectId oid;
+		private String md5;
+		public LobInfo(ObjectId oid, String md5) {
+			this.oid = oid;
+			this.md5 = md5;
+		}
+		
+		public ObjectId getOid() {
+			return oid;
+		}
+		public String getMd5() {
+			return md5;
+		}
+    } 
 }

@@ -1,7 +1,6 @@
 package com.sequoiadb.lob;
 
 import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
 
 import org.bson.BSONObject;
@@ -35,23 +34,25 @@ public class TestPutAndReadLobs7844 extends SdbTestBase {
 	private CollectionSpace cs = null;
 	
 	private Random random = new Random();
-	private ConcurrentHashMap<ObjectId, String> id2md5 
-	                     = new ConcurrentHashMap<ObjectId, String>();
-	private LinkedBlockingDeque<ObjectId> oidQueue = new LinkedBlockingDeque<ObjectId>();
 	
+	class LobInfo{
+		public ObjectId oid ;
+		public String md5 ;
+	}	
+	private LinkedBlockingDeque<LobInfo> lobInfoQue = new LinkedBlockingDeque<LobInfo>() ;	
     	
 	@BeforeClass
 	public void setUp(){
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+			
 		}catch(BaseException e){			
 			Assert.assertTrue(false,"connect %s failed,"+SdbTestBase.coordUrl+e.getMessage());
 		}
 		
 		DBCollection cl = createCL();
 		int lobtimes = 30;
-        writeLobAndGetMd5(cl, lobtimes);  
-		
+        writeLobAndGetMd5(cl, lobtimes);		
 	}		
 	
 	@Test
@@ -102,7 +103,7 @@ public class TestPutAndReadLobs7844 extends SdbTestBase {
             	db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
                 DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);  
                 
-                int lobtimes = 1;                
+                int lobtimes = 1;                 
                 writeLobAndGetMd5(dbcl, lobtimes);                
             }finally{
             	if ( db != null ){
@@ -118,16 +119,17 @@ public class TestPutAndReadLobs7844 extends SdbTestBase {
         	Sequoiadb db = null;
             try{ 
             	db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName); 
-                ObjectId oid = oidQueue.take();	                
-                DBLob rLob = dbcl.openLob(oid);               	
+                DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);                
+                LobInfo lobinfotmp = lobInfoQue.take();
+                ObjectId oid = lobinfotmp.oid;
+                DBLob rLob = dbcl.openLob(oid);                 
         		byte[] rbuff = new byte[(int) rLob.getSize()];
         		rLob.read(rbuff);        			
-        		String curMd5 = LobOprUtils.getMd5(rbuff);
-        		String prevMd5 = id2md5.get(oid);
-        		rLob.close();
-        		Assert.assertEquals(curMd5, prevMd5);
-        		id2md5.remove(oid);
+        		String curMd5 = LobOprUtils.getMd5(rbuff);        		
+        		String prevMd5 = lobinfotmp.md5;
+        	
+        		rLob.close();        		
+        		Assert.assertEquals(curMd5, prevMd5);        		
             }finally{
             	if ( db != null ){
             		db.disconnect();
@@ -144,8 +146,13 @@ public class TestPutAndReadLobs7844 extends SdbTestBase {
 			
 			//save oid and md5
 			String prevMd5 = LobOprUtils.getMd5(wlobBuff);
-			oidQueue.offer(oid);			
-			id2md5.put(oid, prevMd5);			
+			//oidQueue.offer(oid);
+			LobInfo lobInfoTmp = new LobInfo();
+			lobInfoTmp.oid = oid ;
+			lobInfoTmp.md5 = prevMd5 ;
+			//id2md5.put(oid, prevMd5);			
+			lobInfoQue.offer(lobInfoTmp);			
+
 		}		
 	}		
 	
