@@ -126,7 +126,8 @@ typedef struct _pdCfgInfo
 
    BOOLEAN isEnabled() const
    {
-      if ( _pdLogFile[0] != 0 && _pdFileMaxNum > 0 && _pdFileMaxSize > 0 )
+      if ( _pdLogFile[0] != 0 && ( _pdFileMaxNum > 0 || _pdFileMaxNum == -1 ) &&
+           _pdFileMaxSize > 0 )
       {
          return TRUE ;
       }
