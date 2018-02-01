@@ -818,7 +818,7 @@ namespace engine
                // now haved append to lock-wait-queue, release latch and then
                // wait the lock
                rc = _scanner->pauseScan( _recordXLock ? FALSE : TRUE ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to pause scan, rc: %d", rc ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to pause ixscan, rc: %d", rc ) ;
 
                _context->pause() ;
                {
@@ -848,29 +848,35 @@ namespace engine
                rc = _scanner->resumeScan( _recordXLock ? FALSE : TRUE ) ;
                if ( rc )
                {
-                  PD_LOG( PDERROR, "Failed to resum ixscan, rc: %d", rc ) ;
+                  PD_LOG( PDERROR, "Failed to resume ixscan, rc: %d", rc ) ;
                   goto error_release ;
                }
             }
          }
-         // Note: index scan can't find deleting record
-         /*
+
          if ( OSS_BIT_TEST( DMS_RECORD_FLAG_DELETING,
                             DMS_RECORD_GETATTR(_curRecordPtr) ) )
          {
             if ( _recordXLock )
             {
-               INT32 rc1 = _pSu->deleteRecord( context, _curRID, 0, cb, NULL ) ;
-               if ( rc1 )
+               rc = _scanner->pauseScan( _recordXLock ? FALSE : TRUE ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to pause ixscan, rc: %d", rc ) ;
+
+               rc = _pSu->deleteRecord( _context, _curRID, 0, cb, NULL ) ;
+               if ( SDB_OK != rc )
                {
                   PD_LOG( PDWARNING, "Failed to delete the deleting record, "
                           "rc: %d", rc ) ;
                }
+
+               rc = _scanner->resumeScan( _recordXLock ? FALSE : TRUE ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to resume ixscan, rc: %d", rc ) ;
+
                _pTransCB->transLockRelease( cb, _pSu->logicalID(),
                                             _context->mbID(), &_curRID ) ;
             }
             continue ;
-         }*/
+         }
          SDB_ASSERT( DMS_RECORD_FLAG_DELETED !=
                      DMS_RECORD_GETSTATE(_curRecordPtr),
                      "record can't be deleted" ) ;
