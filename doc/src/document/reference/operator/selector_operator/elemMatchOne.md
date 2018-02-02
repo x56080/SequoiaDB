@@ -10,11 +10,39 @@
 
 ##示例##
 
-在集合 foo.bar 插入1条记录：
+在集合 foo.bar 插入2条记录，一条是数组类型，一条是嵌套对象类型
 
 ```lang-javascript
-
 > db.foo.bar.insert( { "_id": 1, "class": 1, "students": [ { "name": "ZhangSan", "age": 18 }, { "name": "LiSi", "age": 19 }, { "name": "WangErmazi", "age": 18 } ] } )
+> db.foo.bar.insert( { "_id": 2, "class": 2, "students": { "name": "LinWu", "age": 18 } } )
+> db.foo.bar.find()
+{
+  "_id": 1,
+  "class": 1,
+  "students": [
+    {
+      "name": "ZhangSan",
+      "age": 18
+    },
+    {
+      "name": "LiSi",
+      "age": 19
+    },
+    {
+      "name": "WangErmazi",
+      "age": 18
+    }
+  ]
+}
+{
+  "_id": 2,
+  "class": 2,
+  "students": {
+    "name": "LinWu",
+    "age": 18
+  }
+}
+Return 2 row(s).
 ```
 
 SequoiaDB shell 运行如下：
@@ -23,7 +51,7 @@ SequoiaDB shell 运行如下：
 
   ```lang-javascript
   > db.foo.bar.find( {}, { "students": { "$elemMatchOne": { "age": 18 } } } )
-  {
+    {
       "_id": 1,
       "class": 1,
       "students": [
@@ -32,6 +60,14 @@ SequoiaDB shell 运行如下：
           "age": 18
         }
       ]
-  }
-  Return 1 row(s).
+    }
+    {
+      "_id": 2,
+      "class": 2,
+      "students": {
+        "name": "LinWu",
+        "age": 18
+      }
+    }
+    Return 2 row(s).
   ```
