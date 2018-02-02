@@ -108,6 +108,7 @@ testFiles = [
    [ "./misc/getLastAliveTime12655.cpp" ],
    [ "./misc/JSCompatible10969.cpp" ],
    [ "./misc/bindata11734.cpp" ],
+   # [ "./misc/memcheck12559.cpp" ], # manual
    [ "./ssl/sslFalse9649.cpp" ],
    [ "./ssl/sslTrue9648.cpp" ],  # config
    [ "./monitor/getListContexts12526.cpp" ],
