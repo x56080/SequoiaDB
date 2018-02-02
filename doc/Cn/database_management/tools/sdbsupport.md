@@ -112,3 +112,5 @@ Complete database database cluster
 The host sdbadmin@htest2's password :</pre>
 
 【此时需要输入 htest2 机器，sdbadmin 用户的密码，然后 Enter】
+
+另外，使用 sdbsupport 时可能需要使用 expect 和 tcl 工具，可以使用 apt-get 等安装 Linux 提供的 expect 和 tcl 工具。
