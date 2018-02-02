@@ -9,14 +9,14 @@ function main()
 {  
    try
    {
-      var clName = COMMCLNAME+"_11115_1" ;
+      var clName = COMMCLNAME+"_11308" ;
       
-      var rawData = [ { a: 0, b: { $timestamp: "1902-01-01-00.00.00.000000" } }, 
-                      { a: 1, b: { $timestamp: "1970-01-01-00.00.00.000000" } }, 
-                      { a: 2, b: { $timestamp: "2037-12-31-23.59.59.999999" } }, 
+      var rawData = [ { a: 0, b: { $timestamp: "1902-01-01-00:00:00.000000" } }, 
+                      { a: 1, b: { $timestamp: "1970-01-01-00:00:00.000000" } }, 
+                      { a: 2, b: { $timestamp: "2037-12-31-23:59:59.999999" } }, 
                       
-                      { a: 3, b: Timestamp( "1902-01-01-00.00.00.000000" ) }, 
-                      { a: 4, b: Timestamp( "2037-12-31-23.59.59.999999" ) } ]
+                      { a: 3, b: Timestamp( "1902-01-01-00:00:00.000000" ) }, 
+                      { a: 4, b: Timestamp( "2037-12-31-23:59:59.999999" ) } ]
       
       var cl = readyCL( clName );
       
