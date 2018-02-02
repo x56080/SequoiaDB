@@ -3,6 +3,7 @@
  *               seqDB-12556 : read/write lob length zero
  *               seqDB-12734 : read() parameter verification
  *               seqDB-12556 : write() parameter verification
+ *               seqDB-14364:getSize/getCreateTime参数校验
  * @Modify     : Suqiang Ling
  *               2017-09-11
  ***************************************************************/
@@ -125,6 +126,21 @@ TEST_F( lobFuncParamTest, write12735 )
    rc = cl.createLob( wlob ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to create lob" ;
    rc = wlob.write( NULL, 10 ) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc ) ;
+   rc = wlob.close() ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to close lob" ;
+}
+
+TEST_F( lobFuncParamTest, null14364 )
+{
+   INT32 rc = SDB_OK ;
+   sdbLob wlob ;
+   
+   rc = cl.createLob( wlob ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to create lob" ;
+   rc = wlob.getSize( NULL ) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc ) ;
+   rc = wlob.getCreateTime( NULL ) ;
    ASSERT_EQ( SDB_INVALIDARG, rc ) ;
    rc = wlob.close() ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to close lob" ;
