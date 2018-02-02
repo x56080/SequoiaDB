@@ -26,30 +26,30 @@ function main( db )
       selAutoGenData( cl, recordNum, addRecord1, addRecord2, addRecord3 ) ;
       println( "success to insert record: " + recordNum ) ;
 
-      /*【Test Point 1】 $elemMatch: query field is object[normal]*/
+      /*【Test Point 1】 $elemMatch: query field isn't array[abnormal]*/
       var condObj = {} ;
       var selObj = { "ExtraField2":{"$elemMatch": {"nestObj":"element match query"}}} ;
       var ret = selMainQuery( cl, condObj, selObj ) ;
       // verify
       var retObj = JSON.parse( ret ) ;
       var cnt = retObj["ExtraField2"] ;
-      if( '{"nestObj":"element match query"}' != JSON.stringify(cnt) )
+      if( "undefined" != typeof( cnt ) )
       {
-         println( 'expect {"nestObj":"element match query"} , actual count: ' + JSON.stringify(cnt) ) ;
+         println( "expect count: 3, actual count: " + cnt  ) ;
          throw "ErrCountRecord" ;
       }
       println( "==>success to test use: " + JSON.stringify( selObj ) ) ;
 
-      /*【Test Point 2】 $elemMatchOne: query field is object[normal]*/
+      /*【Test Point 2】 $elemMatchOne: query field isn't array[abnormal]*/
       var condObj = {} ;
       var selObj = { "ExtraField2":{"$elemMatchOne": {"nestObj":"element match query"}}} ;
       var ret = selMainQuery( cl, condObj, selObj ) ;
       // verify
       var retObj = JSON.parse( ret ) ;
       var cnt = retObj["ExtraField2"] ;
-      if( '{"nestObj":"element match query"}' != JSON.stringify(cnt) )
+      if( "undefined" != typeof( cnt ) )
       {
-         println( 'expect {"nestObj":"element match query"} , actual count: ' + JSON.stringify(cnt) ) ;
+         println( "expect count: 3, actual count: " + cnt  ) ;
          throw "ErrCountRecord" ;
       }
       println( "==>success to test use: " + JSON.stringify( selObj ) ) ;
