@@ -143,7 +143,7 @@ public class ConnectionTCPImpl implements IConnection {
                 logger.getInstance().debug(0, "leave connect\n");
                 return;
             } catch (IOException ioe) {
-                lastError = new BaseException("SDB_NETWORK", ioe);
+                lastError = new BaseException("SDB_NETWORK", "failed to connect to " + addr.toString(), ioe);
                 close();
             }
             // when we come here, it means network error, let's try until
