@@ -95,12 +95,11 @@ public class TestLobSplitAndWrite7848 extends SdbTestBase {
 	    Assert.assertTrue( putLobTasks.isSuccess(), putLobTasks.getErrorMsg());
 	    Assert.assertTrue( removeLobsTasks.isSuccess(), removeLobsTasks.getErrorMsg());
 	    
-	    //cl1 check the split result
-	    double expErrorValue = 0.5;	
+	    //cl1 check the split result	    
 	    ArrayList<String> splitRGNames = new ArrayList<String>(2);
 	    splitRGNames.add(sourceRGName);
 	    splitRGNames.add(targetRGName);
-		LobOprUtils.checkSplitResult(sdb, csName, clName1, splitRGNames, expErrorValue);	
+		checkSplitResult(sdb, csName, clName1, splitRGNames);	
 		//check the lob data
 		checkLobofCL( clName1, oidQueue1);
 		checkLobofCL( clName2, oidQueue2);
@@ -230,4 +229,39 @@ public class TestLobSplitAndWrite7848 extends SdbTestBase {
 		cSpace.createCollection(clName1, options);
 		cSpace.createCollection(clName2, options);	    
 	 }	
+	
+	private void checkSplitResult(Sequoiadb sdb, String csName, String clName,ArrayList<String> splitGroupNames){	
+		DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
+		DBCursor listCursor = cl.listLobs();
+		int count = 0;
+		while ( listCursor.hasNext() ) {			
+			count++;
+			listCursor.getNext();		
+		}		
+		listCursor.close();	
+		
+		int actListNums = 0;		
+		for(int i=0; i< splitGroupNames.size();i++){			
+			String nodeName = sdb.getReplicaGroup((String)splitGroupNames.get(i)).getMaster().getNodeName();
+			Sequoiadb dataDB = null;
+			try{	
+				dataDB = new Sequoiadb(nodeName,"","");
+				DBCollection dataCL = dataDB.getCollectionSpace(csName).getCollection(clName);
+				DBCursor listLobs = dataCL.listLobs();
+				int subCount = 0;				
+				while ( listLobs.hasNext() ) {					
+					subCount++;
+					listLobs.getNext();						
+				}
+				listLobs.close();	
+				actListNums += subCount;				
+			}finally{
+				if ( dataDB != null ){
+					dataDB.disconnect();
+				}
+			}
+		}
+		//sum of query results on each group is equal to the results of coord 
+		Assert.assertEquals(actListNums,count,"list lobs error."+"allCount:"+actListNums);			
+	}
 }
