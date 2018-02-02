@@ -54,7 +54,7 @@ function main()
    checkResult(expFindResult, actFindResult);
    
    //explain with $or
-   var actExplainResult = getExplainResult(hashCL, actFindResult);
+   var actExplainResult = getExplainResult(hashCL, findConf);
    var expExplainResult = [srcGroupName, destGroupName];   
    //check explain result
    checkResult(expExplainResult, actExplainResult);                        
