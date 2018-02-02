@@ -66,7 +66,8 @@ public class BaseExceptionTest {
             System.out.println("error stack: ");
             e.printStackTrace();
             Assert.assertEquals(Helper.getErrorCode("SDB_NETWORK"), e.getErrorCode());
-            Assert.assertEquals("SDB_NETWORK(-15): Network error, detail: Network is unreachable: connect", e.getMessage());
+            Assert.assertEquals("SDB_NETWORK(-15): Network error, detail: failed to connect to /0.0.0.123:1234", e.getMessage());
+            
         }
 
 		// case 2: test error code
