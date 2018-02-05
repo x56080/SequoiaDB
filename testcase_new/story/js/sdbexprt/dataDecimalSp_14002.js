@@ -51,25 +51,15 @@ function main()
    
    cl.insert( docs ) ;
    
-   testExprtImprtCsv1() ;  // test import withou type
+   testExprtImprtCsv1() ;  // test export import without type
    var cursor = cl1.find( {}, { _id: { $include: 0 } } ) ;
    var recs = getRecords( cursor ) ;
    checkRecords( csvRecs1, recs ) ;
    cl1.truncate() ;
    
-   /*
-   testExprtImprtCsv2() ; // test import with type without precison
-   cursor = cl1.find( {}, { _id: { $include: 0 } } ) ;
-   recs = getRecords( cursor ) ;
-   checkRecords( csvRecs2, recs ) ;
-   cl1.truncate() ;
+   testExprtImprtCsv2() ; // test export with type without precison
    
-   testExprtImprtCsv3() ; // test import with type with precison
-   cursor = cl1.find( {}, { _id: { $include: 0 } } ) ;
-   recs = getRecords( cursor ) ;
-   checkRecords( csvRecs2, recs ) ;
-   cl1.truncate() ;
-   */
+   testExprtImprtCsv3() ; // test export with type with precison
    
    testExprtImprtJson() ;
    cursor = cl1.find( {}, { _id: { $include: 0 } } ) ;
@@ -127,17 +117,8 @@ function testExprtImprtCsv2()
    
    checkFileContent( csvfile, csvContent ) ;
    
-   command = installPath + "bin/sdbimprt" +
-             " -s " + COORDHOSTNAME +
-             " -p " + COORDSVCNAME +
-             " -c " + csname +
-             " -l " + clname1 +
-             " --file " + csvfile +
-             " --type csv" +
-             " --headerline true" +
-             " --field '" + key + " decimal'" ;
-   testRunCommand( command ) ;
-   
+   // 2.8 don't support import MAX MIN  
+ 
    cmd.run( "rm -rf " + csvfile ) ; 
 }
 
@@ -158,17 +139,8 @@ function testExprtImprtCsv3()
    
    checkFileContent( csvfile, csvContent ) ;
    
-   command = installPath + "bin/sdbimprt" +
-             " -s " + COORDHOSTNAME +
-             " -p " + COORDSVCNAME +
-             " -c " + csname +
-             " -l " + clname1 +
-             " --file " + csvfile +
-             " --type csv" +
-             " --headerline true" +
-             " --field '" + key + " decimal(1000,100)'" ;
-   testRunCommand( command ) ;
-   
+   // 2.8 don't support import MAX MIN  
+ 
    cmd.run( "rm -rf " + csvfile ) ; 
 }
 
