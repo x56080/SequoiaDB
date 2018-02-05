@@ -140,7 +140,7 @@ function installSdb()
    sleep 2
 
    # start sdb
-   bin/sdbcmart
+   bin/sdbcmart -i
    if [ $? -eq 0 ] ; then
       echo "sdbcm start succeed"
    else
