@@ -1317,8 +1317,7 @@ public class DBCollection {
      * @brief Create a index with name and key
      * @param name
      *            The index name
-     * @param key
-     *            The index key, like: {"key":1/-1}, ASC(1)/DESC(-1)
+	 * @param key      The index keys in JSON format, like: "{\"a\":1, \"b\":-1}"
      * @param isUnique
      *            Whether the index elements are unique or not
      * @param enforced
@@ -1536,32 +1535,6 @@ public class DBCollection {
 				.toString());
 	}
 
-	/*
-	 * @fn void rename(String newName)
-	 * @brief rename the current collection by new name
-	 * @param newName
-	 *            The new name of current DBCollection
-	 * @exception com.sequoiadb.exception.BaseException
-	 */
-	/*
-	public void rename(String newName) throws BaseException {
-		String commandString = SequoiadbConstants.ADMIN_PROMPT
-				+ SequoiadbConstants.RENAME_COLLECTION;
-		BSONObject dummyObj = new BasicBSONObject();
-		BSONObject obj = new BasicBSONObject();
-		obj.put(SequoiadbConstants.FIELD_NAME_COLLECTIONSPACE, csName);
-		obj.put(SequoiadbConstants.FIELD_NAME_OLDNAME, this.name);
-		obj.put(SequoiadbConstants.FIELD_NAME_NEWNAME, newName);
-		SDBMessage rtnSDBMessage = adminCommand(commandString, obj, dummyObj,
-				dummyObj, dummyObj, -1, -1);
-		int flags = rtnSDBMessage.getFlags();
-		if (flags != 0) {
-			throw new BaseException(flags, newName);
-		}
-		this.name = newName;
-		this.collectionFullName = csName + "." + this.name;
-	}*/
-
 	/**
 	 * @fn void split(String sourceGroupName, String destGroupName,
 	 *                BSONObject splitCondition, BSONObject splitEndCondition)
@@ -1570,14 +1543,14 @@ public class DBCollection {
 	 *            the source group name
 	 * @param destGroupName
 	 *            the destination group name
-     * @param splitCondition
+	 * @param splitCondition
 	 *            the split condition
-     * @param splitEndCondition
-	 *            the split end condition or null
-	 *            eg:If we create a collection with the option {ShardingKey:{"age":1},ShardingType:"Hash",Partition:2^10},
-     *               we can fill {age:30} as the splitCondition, and fill {age:60} as the splitEndCondition. when split, 
-     *               the target group will get the records whose age's hash value are in [30,60). If splitEndCondition is null,
-     *               they are in [30,max).
+	 * @param splitEndCondition
+	 *            the split end condition or null, only usable when "ShardingType" is "range".
+	 *            eg:If we create a collection with the option {ShardingKey:{"age":1},ShardingType:"range"},
+	 *               we can fill {age:30} as the splitCondition, and fill {age:60} as the splitEndCondition. when split,
+	 *               the target group will get the records whose age's hash value are in [30,60). If splitEndCondition is null,
+	 *               they are in [30,max).
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
 	public void split(String sourceGroupName, String destGroupName,
@@ -1617,7 +1590,7 @@ public class DBCollection {
 	 *            the source group name
 	 * @param destGroupName
 	 *            the destination group name
-     * @param percent
+	 * @param percent
 	 *            the split percent, Range:(0,100]
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
@@ -1648,7 +1621,7 @@ public class DBCollection {
 		// upsert cache
 		sequoiadb.upsertCache(collectionFullName);
 	}
-	
+
 	/**
 	 * @fn long splitAsync(String sourceGroupName, String destGroupName,
 	 *                     BSONObject splitCondition, BSONObject splitEndCondition)
@@ -1657,15 +1630,15 @@ public class DBCollection {
 	 *            the source group name
 	 * @param destGroupName
 	 *            the destination group name
-     * @param splitCondition
+	 * @param splitCondition
 	 *            the split condition
-     * @param splitEndCondition
-	 *            the split end condition or null
-	 *            eg:If we create a collection with the option {ShardingKey:{"age":1},ShardingType:"Hash",Partition:2^10},
-     *               we can fill {age:30} as the splitCondition, and fill {age:60} as the splitEndCondition. when split, 
-     *               the targe group will get the records whose age's hash values are in [30,60). If splitEndCondition is null,
-     *               they are in [30,max).
-     * @return return the task id, we can use the return id to manage the sharding which is run backgroup.
+	 * @param splitEndCondition
+	 *            the split end condition or null, only usable when "ShardingType" is "range".
+	 *            eg:If we create a collection with the option {ShardingKey:{"age":1},ShardingType:"range"},
+	 *               we can fill {age:30} as the splitCondition, and fill {age:60} as the splitEndCondition. when split,
+	 *               the targe group will get the records whose age's hash values are in [30,60). If splitEndCondition is null,
+	 *               they are in [30,max).
+	 * @return return the task id, we can use the return id to manage the sharding which is run backgroup.
 	 * @exception com.sequoiadb.exception.BaseException
 	 * @see listTask, cancelTask
 	 */
@@ -1720,7 +1693,7 @@ public class DBCollection {
 	 *            the source group name
 	 * @param destGroupName
 	 *            the destination group name
-     * @param percent
+	 * @param percent
 	 *            the split percent, Range:(0,100]
 	 * @return return the task id, we can use the return id to manage the sharding which is run backgroup.
 	 * @exception com.sequoiadb.exception.BaseException
