@@ -63,11 +63,16 @@ public class Sequoiadb {
 	private Map<String, Long> nameCache = new HashMap<String, Long>();
 	private static boolean enableCache = true;
 	private static long cacheInterval = 300 * 1000;
-	
+
+	/** specified the package size of the collections in current collection space to be 4K */
 	public final static int SDB_PAGESIZE_4K = 4096;
+	/** specified the package size of the collections in current collection space to be 8K */
 	public final static int SDB_PAGESIZE_8K = 8192;
+	/** specified the package size of the collections in current collection space to be 16K */
 	public final static int SDB_PAGESIZE_16K = 16384;
+	/** specified the package size of the collections in current collection space to be 32K */
 	public final static int SDB_PAGESIZE_32K = 32768;
+	/** specified the package size of the collections in current collection space to be 64K */
 	public final static int SDB_PAGESIZE_64K = 65536;
 	/** 0 means using database's default pagesize, it 64k now */
 	public final static int SDB_PAGESIZE_DEFAULT = 0;
@@ -611,10 +616,11 @@ public class Sequoiadb {
 	}
 
 	/**
-	 * @fn void createCollectionSpace(String collectionSpaceName)
-	 * @brief Create the named collection space with default SDB_PAGESIZE_4K.
+	 * @fn void createCollectionSpace(String csName)
+	 * @brief Create the named collection space with default SDB_PAGESIZE_64K.
 	 * @param csName
 	 *            The collection space name
+	 * @return the newly created collection space object
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
 	public CollectionSpace createCollectionSpace(String csName)
@@ -831,10 +837,48 @@ public class Sequoiadb {
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
 	public void resetSnapshot() throws BaseException {
+		resetSnapshot(null);
+	}
+
+	/**
+	 * @fn void resetSnapshot()
+	 * @brief Reset the snapshot.
+	 * @param options The control options:(can be null)
+	 *      <ul>
+	 *          <li>
+	 *              Type: (String) Specify the snapshot type to be reset (default is "all"):
+	 *              <ul>
+	 *                  <li>"sessions"</li>
+	 *                  <li>"sessions current"</li>
+	 *                  <li>"database"</li>
+	 *                  <li>"health"</li>
+	 *                  <li>"all"</li>
+	 *              </ul>
+	 *          </li>
+	 *          <li>
+	 *              SessionID: (Int32) Specify the session ID to be reset.
+	 *          </li>
+	 *          <li>
+	 *              Other options: Some of other options are as below:(please visit the official website to
+	 *              search "Location Elements" for more detail.)
+	 *              <ul>
+	 *                  <li>GroupID:int,</li>
+	 *                  <li>GroupName:String,</li>
+	 *                  <li>NodeID:int,</li>
+	 *                  <li>HostName:String,</li>
+	 *                  <li>svcname:String,</li>
+	 *                  <li>...</li>
+	 *              </ul>
+	 *          </li>
+	 *      </ul>
+	 * @return void
+	 * @throws BaseException If error happens.
+	 */
+	public void resetSnapshot(BSONObject options) throws BaseException {
 		String commandString = SequoiadbConstants.SNAP_CMD + " "
 				+ SequoiadbConstants.RESET;
-		SDBMessage rtn = adminCommand(commandString, 0, 0, -1, -1, null, null,
-				null, null);
+		SDBMessage rtn = adminCommand(commandString, 0, 0, -1, -1,
+				options, null, null, null);
 		int flags = rtn.getFlags();
 		if (flags != 0) {
 			throw new BaseException(flags);
@@ -1690,7 +1734,37 @@ public class Sequoiadb {
 		}
 		return colList;
 	}
-	
+
+	/**
+	 * whether the replica group exists in the database or not
+	 *
+	 * @param rgName replica group's name
+	 * @return true or false
+	 */
+	public boolean isRelicaGroupExist(String rgName) {
+		BSONObject rg = getDetailByName(rgName);
+		if (rg == null) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	/**
+	 * whether the replica group exists in the database or not
+	 *
+	 * @param rgId id of replica group
+	 * @return true or false
+	 */
+	public boolean isReplicaGroupExist(int rgId) {
+		BSONObject rg = getDetailById(rgId);
+		if (rg == null) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+
 	/**
 	 * @fn ReplicaGroup getReplicaGroup(String rgName)
 	 * @brief Get replica group by name.

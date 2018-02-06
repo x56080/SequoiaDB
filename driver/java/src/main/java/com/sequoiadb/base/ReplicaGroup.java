@@ -319,6 +319,37 @@ public class ReplicaGroup {
         return new Node(hostName, port, nodeId, this);
     }
 
+    /**
+     * whether the specified node exists in current group or not
+     *
+     * @param nodeName the name of the node. e.g. "192.168.20.165:20000"
+     * @return true or false
+     */
+    public boolean isNodeExist(String nodeName) {
+        try {
+            getNode(nodeName);
+        } catch (BaseException e) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     *whether the specified node exists in current group or not
+     *
+     * @param hostName
+     * @param port
+     * @return true or false
+     */
+    public boolean isNodeExist(String hostName, int port) {
+        try {
+            getNode(hostName, port);
+        } catch (BaseException e) {
+            return false;
+        }
+        return true;
+    }
+
 	/**
 	 * @param nodeName The name of the node
 	 * @return the specified node
@@ -524,6 +555,20 @@ public class ReplicaGroup {
             throw new BaseException(flags, hostName, port, dbPath, configure);
         }
         return getNode(hostName, port);
+    }
+
+    /**
+     * @param hostName  host name
+     * @param port      port
+     * @param dbPath    the path for node
+     * @return the created Node object
+     * @throws BaseException If error happens.
+     * @fn Node createNode(String hostName, int port, String dbPath,
+     * BSONObject configure)
+     * @brief Create node.
+     */
+    public Node createNode(String hostName, int port, String dbPath) throws BaseException {
+        return createNode(hostName, port, dbPath, new BasicBSONObject());
     }
 
 	/**
