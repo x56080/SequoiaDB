@@ -4,6 +4,7 @@ import com.sequoiadb.base.*;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.test.common.Constants;
 import org.bson.BSONObject;
+import org.bson.types.BasicBSONList;
 import org.bson.BasicBSONObject;
 import org.junit.*;
 
@@ -162,6 +163,29 @@ public class SdbSetSessionAttr {
             System.out.println("r2 is " + r2);
             conf.put("PreferedInstance", in[r2]);
         }
+        // test
+        try {
+            sdb.setSessionAttr(conf);
+        } catch (BaseException e) {
+            System.out.println(e.getMessage());
+            assertTrue(false);
+        }
+        final int num = 10;
+        for (int i = 0; i < num; i++) {
+            cl.query();
+        }
+    }
+
+    @Test
+    public void setSessionAttr_test_array() {
+        if (!isCluster)
+            return;
+        BSONObject conf = new BasicBSONObject();
+        BSONObject arr = new BasicBSONList();
+        arr.put("0", 1);
+        arr.put("1", "S");
+        conf.put("PreferedInstance", arr);
+        conf.put("PreferedInstanceMode", "ordered");
         // test
         try {
             sdb.setSessionAttr(conf);
