@@ -251,9 +251,7 @@ public class SequoiadbDatasourceImpl {
     }
 
     class SynchronizeAddressTask implements Runnable {
-        List<String> _cachedAddrList = new ArrayList<String>();
-        Sequoiadb _sdb = null;
-
+        @Override
         public void run() {
             Lock wlock = _rwLock.writeLock();
             wlock.lock();
@@ -270,47 +268,49 @@ public class SequoiadbDatasourceImpl {
                 // we don't need "synchronized(_normalAddrs)" here, for
                 // "wlock" tell us that nobody is using "_normalAddrs"
                 Iterator<String> itr = _normalAddrs.iterator();
+                Sequoiadb sdb = null;
                 while (itr.hasNext()) {
                     String addr = itr.next();
                     try {
-                        _sdb = new Sequoiadb(addr, _username, _password, _nwOpt);
+                        sdb = new Sequoiadb(addr, _username, _password, _nwOpt);
                         break;
                     } catch (BaseException e) {
                         continue;
                     }
                 }
-                if (_sdb == null) {
+                if (sdb == null) {
                     // if we can't connect to database, let's return
                     return;
                 }
                 // get the coord addresses from catalog
+                List<String> cachedAddrList;
                 try {
-                    _synchronizeCoordAddr(_sdb);
+                    cachedAddrList = _synchronizeCoordAddr(sdb);
                 } catch (Exception e) {
                     // if we failed, let's return
                     return;
                 } finally {
                     try {
-                        _sdb.disconnect();
+                        sdb.disconnect();
                     } catch (Exception e) {
                         // ignore
                     }
-                    _sdb = null;
+                    sdb = null;
                 }
                 // get the difference of coord addresses between catalog and local
                 List<String> incList = new ArrayList<String>();
                 List<String> decList = new ArrayList<String>();
                 String addr = null;
-                if (_cachedAddrList.size() > 0) {
+                if (cachedAddrList != null && cachedAddrList.size() > 0) {
                     itr = _normalAddrs.iterator();
                     for (int i = 0; i < 2; i++, itr = _abnormalAddrs.iterator()) {
                         while (itr.hasNext()) {
                             addr = itr.next();
-                            if (!_cachedAddrList.contains(addr))
+                            if (!cachedAddrList.contains(addr))
                                 decList.add(addr);
                         }
                     }
-                    itr = _cachedAddrList.iterator();
+                    itr = cachedAddrList.iterator();
                     while (itr.hasNext()) {
                         addr = itr.next();
                         if (!_normalAddrs.contains(addr) &&
@@ -347,7 +347,8 @@ public class SequoiadbDatasourceImpl {
             }
         }
 
-        private void _synchronizeCoordAddr(Sequoiadb sdb) {
+        private List<String> _synchronizeCoordAddr(Sequoiadb sdb) {
+            List<String> addrList = new ArrayList<String>();
             BSONObject condition = new BasicBSONObject();
             condition.put("GroupName", "SYSCoord");
             BSONObject select = new BasicBSONObject();
@@ -355,30 +356,29 @@ public class SequoiadbDatasourceImpl {
             select.put("Group.Service", "");
             DBCursor cursor = sdb.getList(Sequoiadb.SDB_LIST_GROUPS, condition, select, null);
             BaseException exp = new BaseException(SDBError.SDB_SYS, "Invalid coord information got from catalog");
-            _cachedAddrList.clear();
             try {
                 while (cursor.hasNext()) {
                     BSONObject obj = cursor.getNext();
                     BasicBSONList arr = (BasicBSONList) obj.get("Group");
-                    if (null == arr) throw exp;
+                    if (arr == null) throw exp;
                     Object[] objArr = arr.toArray();
                     for (int i = 0; i < objArr.length; i++) {
                         BSONObject subObj = (BasicBSONObject) objArr[i];
                         String hostName = (String) subObj.get("HostName");
-                        if (null == hostName) throw exp;
+                        if (hostName == null) throw exp;
                         String svcName = "";
                         BasicBSONList subArr = (BasicBSONList) subObj.get("Service");
-                        if (null == subArr) throw exp;
+                        if (subArr == null) throw exp;
                         Object[] subObjArr = subArr.toArray();
                         for (int j = 0; j < subObjArr.length; j++) {
                             BSONObject subSubObj = (BSONObject) subObjArr[j];
                             Integer type = (Integer) subSubObj.get("Type");
-                            if (null == type) throw exp;
-                            if (0 == type) {
+                            if (type == null) throw exp;
+                            if (type == 0) {
                                 svcName = (String) subSubObj.get("Name");
-                                if (null == svcName) throw exp;
+                                if (svcName == null) throw exp;
                                 String ip = _parseHostName(hostName);
-                                _cachedAddrList.add(ip + ":" + svcName);
+                                addrList.add(ip + ":" + svcName);
                                 break;
                             }
                         }
@@ -387,6 +387,7 @@ public class SequoiadbDatasourceImpl {
             } finally {
                 cursor.close();
             }
+            return addrList;
         }
     }
 
