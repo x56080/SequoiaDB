@@ -52,7 +52,7 @@ public class Split508 extends SdbTestBase {
 
 		commCS = commSdb.getCollectionSpace(csName);
 		cl = commCS.createCollection(clName,
-				(BSONObject) JSON.parse("{ShardingKey:{\"a\":1,\"b\":-1},ShardingType:\"range\"}"));
+				(BSONObject) JSON.parse("{ReplSize:0,ShardingKey:{\"a\":1,\"b\":-1},ShardingType:\"range\"}"));
 		ArrayList<String> tmp = SplitUtils.getGroupName(commSdb, csName, clName);
 		srcGroupName = tmp.get(0);
 		destGroupName = tmp.get(1);
