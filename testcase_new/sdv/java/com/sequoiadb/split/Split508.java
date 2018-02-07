@@ -1,8 +1,7 @@
 package com.sequoiadb.split;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.List;
 
 import org.bson.BSONObject;
 import org.bson.util.JSON;
@@ -32,123 +31,130 @@ import com.sequoiadb.testcommon.SdbTestBase;
 
 public class Split508 extends SdbTestBase {
 	private String clName = "testcaseCL508";
+	private DBCollection cl;
+	private CollectionSpace commCS;
 	private String srcGroupName;
 	private String destGroupName;
 	private Sequoiadb commSdb = null;
 
-	@BeforeClass(enabled = true)
+	@BeforeClass
 	public void setUp() {
-		try {
-			commSdb = new Sequoiadb(coordUrl, "", "");
-
-			// 跳过 standAlone 和数据组不足的环境
-			CommLib commlib = new CommLib();
-			if (commlib.isStandAlone(commSdb)) {
-				throw new SkipException("skip StandAlone");
-			}
-			if (commlib.getDataGroupNames(commSdb).size() < 2) {
-				throw new SkipException("current environment less than tow groups ");
-			}
-
-			CollectionSpace commCS = commSdb.getCollectionSpace(csName);
-			commCS.createCollection(clName,
-					(BSONObject) JSON.parse("{ShardingKey:{\"a\":1,\"b\":-1},ShardingType:\"range\"}"));
-			ArrayList<String> tmp = SplitUtils.getGroupName(commSdb, csName, clName);
-			srcGroupName = tmp.get(0);
-			destGroupName = tmp.get(1);
-			prepareData(commSdb);// 写入待切分的记录（1000）
-		} catch (BaseException e) {
-			if (commSdb != null) {
-				commSdb.disconnect();
-			}
-			Assert.fail("Split508 setUp error, error description:" + e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
+		commSdb = new Sequoiadb(coordUrl, "", "");
+		commSdb.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance: 'M'}"));
+		// 跳过 standAlone 和数据组不足的环境
+		CommLib commlib = new CommLib();
+		if (commlib.isStandAlone(commSdb)) {
+			throw new SkipException("skip StandAlone");
 		}
+		if (commlib.getDataGroupNames(commSdb).size() < 2) {
+			throw new SkipException("current environment less than tow groups ");
+		}
+
+		commCS = commSdb.getCollectionSpace(csName);
+		cl = commCS.createCollection(clName,
+				(BSONObject) JSON.parse("{ShardingKey:{\"a\":1,\"b\":-1},ShardingType:\"range\"}"));
+		ArrayList<String> tmp = SplitUtils.getGroupName(commSdb, csName, clName);
+		srcGroupName = tmp.get(0);
+		destGroupName = tmp.get(1);
+		prepareData(cl);// 写入待切分的记录（30000）
+		
 	}
 
-	// 切分范围{a:0,a:20} - {b:20,b:0} 切分范围{a:30,b:50} {b:50,b:30}
+	// 切分范围{a:0,a:10000} - {b:10000,b:0} 切分范围{a:20000,b:30000} {b:30000,b:20000}
 	@DataProvider(name = "rangeProvider", parallel = true)
 	public Object[][] rangeProvider() {
-		return new Object[][] { { 0, 20, 20, 0 }, { 30, 50, 50, 30 } };
+		return new Object[][] { { 0, 10000, 10000, 0 }, { 20000, 30000, 30000, 20000, } };
 	}
 
-	// 切分{a:0,b:20} - {a:20,b:0} 切分{a:30,b:50} {a:50,b:30}
-	@Test(enabled = true, dataProvider = "rangeProvider")
-	public void splitCL(int aLowBound, int aUpBound, int bLowBound, int bUpBound) {
+	// 切分{a:0,b:10000} - {a:10000,b:0} 切分{a:20000,b:30000} {a:30000,b:20000}
+	@Test(dataProvider = "rangeProvider")
+	public void splitCLAndCheckResult(int aLowBound, int aUpBound, int bLowBound, int bUpBound) {
 		Sequoiadb sdb = null;
-		try {
+		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-			DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-			cl.split(srcGroupName, destGroupName, (BSONObject) JSON.parse("{a:" + aLowBound + ",b:" + bLowBound + "}"),
-					(BSONObject) JSON.parse("{a:" + aUpBound + ",b:" + bUpBound + "}"));
-
-			// 检查目标组切分后数据的正确性
+			DBCollection dbcl = sdb.getCollectionSpace(csName).getCollection(clName);
+			dbcl.split(srcGroupName, destGroupName, (BSONObject) JSON.parse("{a:" + aLowBound + ",b:" + bLowBound + "}"),
+					(BSONObject) JSON.parse("{a:" + aUpBound + ",b:" + bUpBound + "}"));	
+			
+			//检查切分结果，比较范围内数据量 
 			checkResult(sdb, aLowBound, aUpBound);
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		} finally {
-			if (sdb != null) {
+		}finally{
+			if ( sdb != null ){
 				sdb.disconnect();
 			}
 		}
 	}
+	
+	@Test(dependsOnMethods="splitCLAndCheckResult")
+	private void checkAllResult(){
+		//coord上检查记录总数
+		long count = cl.getCount("{_id:{$isnull:0}}");
+		long expected = 30000;
+		Assert.assertEquals(count, expected);
+	}
+	
 
-	@AfterClass(enabled = true)
+	@AfterClass
 	public void tearDown() {
 		try {
-			CollectionSpace commCS = commSdb.getCollectionSpace(csName);
 			commCS.dropCollection(clName);
 		} catch (BaseException e) {
 			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		} finally {
 			if (commSdb != null) {
-				commSdb.disconnect();
+				commSdb.disconnect();;
 			}
 		}
 	}
-
+	
 	// 比对目标组数据正确性
-	public void checkResult(Sequoiadb sdb, int alowBound, int aUpBound) {
-		Sequoiadb destDataNode = null;
-		DBCursor dbc = null;
-		try {
-			destDataNode = sdb.getReplicaGroup(destGroupName).getMaster().connect();
-			DBCollection cl = destDataNode.getCollectionSpace(csName).getCollection(clName);
+	private void checkResult(Sequoiadb sdb, int alowBound, int aUpBound) {
 
-			// 逐条比对记录
-			dbc = cl.query("{a:{$gte:" + alowBound + ",$lte:" + aUpBound + "}}", null, "{a:1}", null);
-			int count = alowBound; // 记录key值累加器
+		DBCursor dbc = null;
+		Sequoiadb destDataNode = null;
+		try{
+			destDataNode = sdb.getReplicaGroup(destGroupName).getMaster().connect();
+			DBCollection dbcl = destDataNode.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+
+			// 逐条比对记录			
+			dbc = dbcl.query("{a:{$gte:" + alowBound + ",$lt:" + aUpBound + "}}", null, "{a:1}", null);
+			int fieldValue = alowBound; // 记录key值累加器
+			int count = 0;
 			while (dbc.hasNext()) {
 				BSONObject actual = dbc.getNext();
-				BSONObject expect = (BSONObject) JSON.parse("{a:" + count + ",b:" + count + "}");
-				actual.removeField("_id");
+				BSONObject expect = (BSONObject) JSON.parse("{a:" + fieldValue + ",b:" + fieldValue + ", test:"+"'testasetatatatt'}");
+				actual.removeField("_id");	
 				Assert.assertEquals(actual.equals(expect), true, actual.toString() + " " + expect.toString());
+				++fieldValue;
 				count++;
 			}
-			Assert.assertEquals(count, alowBound + 21);// 目标组含有本线程切分范围的数据
+			dbc.close();
+			// 目标组含有本线程切分范围的数据
+			int expRecords = 10000;
+			Assert.assertEquals(count, expRecords );
+			//目标组含有{a:10000,b:10000}边界值记录
+			Assert.assertEquals(dbcl.getCount("{a:10000,b:10000}"), 1);
 
+			
 			long destDataCount1 = destDataNode.getCollectionSpace(csName).getCollection(clName)
-					.getCount("{$or:[{a:{$lt:0}},{a:{$gt:20,$lt:30},{a:{$gt:50}}]}");
+					.getCount("{$or:[{a:{$lt:0}},{a:{$gte:10000,$lt:20000},{a:{$gt:30000}}]}");
 			Assert.assertEquals(destDataCount1, 0);// 目标组不含切分范围外的数据
-
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		} finally {
-			if (dbc != null) {
-				dbc.close();
+		}finally{
+			if( destDataNode != null ){
+				destDataNode.disconnect();
 			}
 		}
-	}
-
-	public void prepareData(Sequoiadb db) {
-		try {
-			DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-			ArrayList<BSONObject> arr = new ArrayList<BSONObject>();
-			for (int i = 0; i < 1000; i++) {
-				arr.add((BSONObject) JSON.parse("{a:" + i + ",b:" + i + "}"));
+	}	
+	
+	//insert 3W records
+	private void prepareData(DBCollection cl) {
+		for ( int i = 0; i < 30000; i+=10000){
+			List<BSONObject>list = new ArrayList<BSONObject>();	
+			for (int j = i + 0; j < i + 10000; j++) {				
+				BSONObject obj = (BSONObject) JSON.parse("{a:" + j +", b:"+j+", test:"+"'testasetatatatt'" + "}");				
+				list.add(obj);					
 			}
-			cl.bulkInsert(arr, SplitUtils.FLG_INSERT_CONTONDUP);
-		} catch (BaseException e) {
-			throw e;
-		}
+			cl.bulkInsert(list, 0);
+		}		
 	}
 }

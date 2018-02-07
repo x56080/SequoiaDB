@@ -1,11 +1,18 @@
 package com.sequoiadb.split;
 
-import java.text.SimpleDateFormat;
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingDeque;
 
 import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
+import org.bson.types.ObjectId;
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
@@ -35,87 +42,76 @@ import com.sequoiadb.testcommon.SdbThreadBase;
 
 public class Split512 extends SdbTestBase {
 	private String clName = "testcaseCL512";
-	private String srcGroupName;
-	private String destGroupName;
+	private CollectionSpace commCS ;
+	private DBCollection cl;
+	private ArrayList<String> groupNames = new ArrayList<>();
 	Sequoiadb commSdb = null;
+	private ConcurrentHashMap<ObjectId, String> id2md5 
+		= new ConcurrentHashMap<ObjectId, String>();
+	private LinkedBlockingDeque<ObjectId> oidQueue = new LinkedBlockingDeque<ObjectId>();
+	private Random random = new Random();
 
-	@BeforeClass(enabled = true)
+	@BeforeClass
 	public void setUp() {
-		try {
-			commSdb = new Sequoiadb(coordUrl, "", "");
-
-			// 跳过 standAlone 和数据组不足的环境
-			CommLib commlib = new CommLib();
-			if (commlib.isStandAlone(commSdb)) {
-				throw new SkipException("skip StandAlone");
-			}
-			if (commlib.getDataGroupNames(commSdb).size() < 2) {
-				throw new SkipException("current environment less than tow groups ");
-			}
-
-			CollectionSpace commCS = commSdb.getCollectionSpace(csName);
-			commCS.createCollection(clName, (BSONObject) JSON.parse("{ShardingKey:{\"a\":1},ShardingType:\"hash\"}"));
-			ArrayList<String> tmp = SplitUtils.getGroupName(commSdb, csName, clName); // 获取切分组名
-			srcGroupName = tmp.get(0);
-			destGroupName = tmp.get(1);
-			prepareData(commSdb);// 准备数据
-		} catch (BaseException e) {
-			if (commSdb != null) {
-				commSdb.disconnect();
-			}
-			Assert.fail("TestCase512 setUp error, error description:" + e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
+		commSdb = new Sequoiadb(coordUrl, "", "");
+		commSdb.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance: 'M'}"));
+		// 跳过 standAlone 和数据组不足的环境
+		CommLib commlib = new CommLib();
+		if (commlib.isStandAlone(commSdb)) {
+			throw new SkipException("skip StandAlone");
 		}
+		if (commlib.getDataGroupNames(commSdb).size() < 2) {
+			throw new SkipException("current environment less than tow groups ");
+		}
+
+		commCS = commSdb.getCollectionSpace(csName);
+		cl = commCS.createCollection(clName, (BSONObject) JSON.parse("{ShardingKey:{\"a\":1},ShardingType:\"hash\"}"));
+		groupNames = SplitUtils.getGroupName(commSdb, csName, clName); // 获取切分组名		
+		int lobtimes = 100;
+		writeLobAndGetMd5(cl, lobtimes);
 	}
 
 	// 切分时，插入lob,等待切分完成,检查目标组数据量，重新插入数据，检查落入情况
-	@Test(enabled = true)
+	@Test
 	public void insertLob() {
-		Sequoiadb sdb = null;
-		Split split = new Split();
-		split.start();
+		
+		Split splitThread = new Split();
+		splitThread.start();
+		
+		PutLobsTask putLobsTask = new PutLobsTask();
+		putLobsTask.start();
+		
+		Assert.assertTrue(splitThread.isSuccess(), splitThread.getErrorMsg());
+		Assert.assertTrue( putLobsTask.isSuccess(), putLobsTask.getErrorMsg());
+		
+		checkCatalog();
+		
+		//切分完成后，再次插入lob
+		int lobtimes = 100;
+		writeLobAndGetMd5(cl, lobtimes);
+		//检查切分结果，插入lob结果
+		checkDataSplitResult();
+		checkLobData( );
+	}
+	
+	@AfterClass
+	public void tearDown() {
 		try {
-			sdb = new Sequoiadb(coordUrl, "", "");
-			DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-			for (int i = 0; i < 500; i++) {
-				DBLob blob = cl.createLob();
-				blob.write(clName.getBytes());
-				blob.close();
-			}
-			if(!split.isSuccess()){
-				Assert.fail(split.getErrorMsg());
-			}
-			checkCatalog(sdb);// 检查编目信息
-			checkData(sdb); // 检查目标组数据量，重新插入数据，检查落入情况
+			commCS.dropCollection(clName);
 		} catch (BaseException e) {
 			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
 		} finally {
-			if (sdb != null) {
-				sdb.disconnect();
+			if (commSdb != null) {
+				commSdb.disconnect();
 			}
 		}
-
 	}
-
-	public void prepareData(Sequoiadb db) {
-		try {
-			DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-			ArrayList<BSONObject> arr = new ArrayList<BSONObject>();
-			for (int i = 0; i < 1000; i++) {
-				arr.add((BSONObject) JSON.parse("{a:" + i + "}"));
-			}
-			cl.bulkInsert(arr, 0);
-
-		} catch (BaseException e) {
-			throw e;
-		}
-
-	}
-
+	
 	// 检查编目信息的切分范围是否正确
-	private void checkCatalog(Sequoiadb sdb) {
+	private void checkCatalog() {
 		DBCursor dbc = null;
 		try {
-			dbc = sdb.getSnapshot(Sequoiadb.SDB_SNAP_CATALOG, "{Name:\"" + csName + "." + clName + "\"}", null, null);
+			dbc = commSdb.getSnapshot(Sequoiadb.SDB_SNAP_CATALOG, "{Name:\"" + csName + "." + clName + "\"}", null, null);
 			BasicBSONList list = null;
 			if (dbc.hasNext()) {
 				list = (BasicBSONList) dbc.getNext().get("CataInfo");
@@ -126,7 +122,7 @@ public class Split512 extends SdbTestBase {
 			BSONObject expectUpBound = (BSONObject) JSON.parse("{\"\":4096}");
 			for (int i = 0; i < list.size(); i++) {
 				String groupName = (String) ((BSONObject) list.get(i)).get("GroupName");
-				if (groupName.equals(destGroupName)) {
+				if (groupName.equals(groupNames.get(1))) {
 					BSONObject actualLowBound = (BSONObject) ((BSONObject) list.get(i)).get("LowBound");
 					BSONObject actualUpBound = (BSONObject) ((BSONObject) list.get(i)).get("UpBound");
 					if (actualLowBound.equals(expectLowBound) && actualUpBound.equals(expectUpBound)) {
@@ -144,148 +140,17 @@ public class Split512 extends SdbTestBase {
 				dbc.close();
 			}
 		}
-
 	}
-
-	// 检查目标组数据量，重新插入数据，检查落入情况
-	private void checkData(Sequoiadb sdb) {
-		Sequoiadb destDataNode = null;
-		Sequoiadb srcdataNode = null;
-		try {
-			// 获取目标组主节点链接
-			destDataNode = sdb.getReplicaGroup(destGroupName).getMaster().connect();
-			// 获取源组主节点链接
-			srcdataNode = sdb.getReplicaGroup(srcGroupName).getMaster().connect();
-
-			checkDestGroupDataCount(destDataNode); // 检查目标组数据正确性
-			insertAndCheck(sdb, destDataNode, srcdataNode); // 重新插入数据，检查落入情况
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		} finally {
-			if (srcdataNode != null) {
-				srcdataNode.disconnect();
-			}
-			if (destDataNode != null) {
-				destDataNode.disconnect();
-			}
-		}
-
-	}
-
-	// 插入数据，检查落入情况
-	public void insertAndCheck(Sequoiadb sdb, Sequoiadb destDataNode, Sequoiadb srcdataNode) {
-		DBCursor dbc2 = null;
-		DBCursor dbc3 = null;
-		try {
-			// 插入数据，检查落入情况
-			DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-			dbc2 = destDataNode.getCollectionSpace(csName).getCollection(clName).query("", null, null, null, 0, -1);
-
-			// 获取一个目标组的记录，添加一个b字段，去除_id后重新插入,期望此数据落入目标组)
-			BSONObject bobj = null;
-			if (dbc2.hasNext()) {
-				bobj = dbc2.getNext();
-			} else {
-				Assert.fail("query error");
-			}
-			bobj.put("b", -10);
-			bobj.removeField("_id");
-			cl.insert(bobj);
-
-			// 检查是否落入目标组
-			DBCollection destGroupCL = destDataNode.getCollectionSpace(csName).getCollection(clName);
-			if (!SplitUtils.isCollectionContainThisJSON(destGroupCL, bobj.toString())) {
-				Assert.fail("check query data not pass");
-			}
-
-			// 获取一个源组的记录，添加一个c字段，去除_id后重新插入,期望此数据落入源组
-			dbc3 = srcdataNode.getCollectionSpace(csName).getCollection(clName).query("", null, null, null, 0, -1);
-			BSONObject bobj2 = null;
-			if (dbc3.hasNext()) {
-				bobj2 = dbc3.getNext();
-			} else {
-				Assert.fail("query error");
-			}
-			bobj2.put("c", -10);
-			bobj2.removeField("_id");
-			cl.insert(bobj2);
-
-			// 检查是否落入源组
-			DBCollection srcGroupCL = srcdataNode.getCollectionSpace(csName).getCollection(clName);
-			if (!SplitUtils.isCollectionContainThisJSON(srcGroupCL, bobj2.toString())) {
-				Assert.fail("check query data not pass");
-			}
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		} finally {
-			if (dbc2 != null) {
-				dbc2.close();
-			}
-			if (dbc3 != null) {
-				dbc3.close();
-			}
-		}
-	}
-
-	// 检查目标组数据量
-	private void checkDestGroupDataCount(Sequoiadb destDataNode) {
-		DBCursor dbc1 = null;
-		try {
-			DBCollection cl = destDataNode.getCollectionSpace(csName).getCollection(clName);
-			// 统计目标组普通记录数目
-			long destDataCount = cl.getCount();
-
-			// 统计目标组Lob数目
-			dbc1 = destDataNode.getCollectionSpace(csName).getCollection(clName).listLobs();
-			int destLobCount = 0;
-			while (dbc1.hasNext()) {
-				destLobCount++;
-				dbc1.getNext();
-			}
-
-			// 检查目标组普通记录数量是否在(500+-(500*0.3))范围内（50%切分，设置出入允许30%）
-			if (destDataCount < 500 - (500 * 0.3) || destDataCount > 500 + (500 * 0.3)) {
-				Assert.fail("split count unexpeted:"+destDataCount);
-			}
-
-			// 检查目标组LOB记录数量是否在(250+-(250*0.3))范围内
-			if (destLobCount < 250 - (250 * 0.3) || destLobCount > 250 + (250 * 0.3)) {
-				Assert.fail("split count unexpeted:"+destLobCount);
-			}
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		} finally {
-			if (dbc1 != null) {
-				dbc1.close();
-			}
-		}
-	}
-
-	@AfterClass(enabled = true)
-	public void tearDown() {
-		try {
-			CollectionSpace commCS = commSdb.getCollectionSpace(csName);
-			commCS.dropCollection(clName);
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		} finally {
-			if (commSdb != null) {
-				commSdb.disconnect();
-			}
-		}
-	}
+	
 
 	class Split extends SdbThreadBase {
-
 		@Override
 		public void exec() throws Exception {
 			Sequoiadb sdb = null;
 			try {
-				sdb = new Sequoiadb(coordUrl, "", "");
-				DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-				cl.split(srcGroupName, destGroupName, 50);
-			} catch (BaseException e) {
-				throw e;
+				sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+				DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);				
+				cl.split(groupNames.get(0), groupNames.get(1), 50);				
 			} finally {
 				if (sdb != null) {
 					sdb.disconnect();
@@ -293,5 +158,124 @@ public class Split512 extends SdbTestBase {
 			}
 		}
 	}
+	
+	private class PutLobsTask extends SdbThreadBase {
+        @Override
+        public void exec() throws BaseException{
+        	Sequoiadb db = null;
+            try{    
+            	db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+                DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);                 
+                int lobtimes = 300;  
+                
+                writeLobAndGetMd5(dbcl, lobtimes); 
+            }finally{
+            	if ( db != null ){
+            		db.disconnect();
+            	}
+            }
+        }
+    }
+	
+	private void writeLobAndGetMd5(DBCollection cl, int lobtimes){
+		for( int i = 0; i< lobtimes; i++){
+			int writeLobSize = random.nextInt(1024*512);;
+			byte[] wlobBuff = getRandomBytes(writeLobSize);			
+			DBLob wLob = cl.createLob();
+			wLob.write(wlobBuff);			
+			ObjectId oid = wLob.getID();	
+			wLob.close();
+			//save oid and md5
+			String prevMd5 = getMd5(wlobBuff);
+			oidQueue.offer(oid);			
+			id2md5.put(oid, prevMd5);			
+		}		
+	}	
+	
+	static byte[] getRandomBytes(int length) {
+        byte[] bytes = new byte[length];
+        Random random = new Random();
+        random.nextBytes(bytes);
+        return bytes;
+    }	
 
+	private String getMd5(Object inbuff){
+        MessageDigest md5 = null;
+        String value = "";        
+        try {
+            md5 = MessageDigest.getInstance("MD5");
+            if(inbuff instanceof ByteBuffer){
+                md5.update((ByteBuffer)inbuff);
+            }else if(inbuff instanceof String){
+                md5.update(((String)inbuff).getBytes());
+            }else if(inbuff instanceof byte[]){
+            	md5.update((byte[]) inbuff);
+            }else{
+            	Assert.fail("invalid parameter!");
+            }
+            BigInteger bi = new BigInteger(1, md5.digest());
+            value = bi.toString(16);
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            Assert.fail("fail to get md5!"+e.getMessage());
+        }
+        return value;
+    }
+
+	private void checkDataSplitResult() {
+		long allLobs = 0;
+		for( int i = 0; i < 2; i++) {			
+			Sequoiadb dataNode = null;		
+			try {
+				dataNode = commSdb.getReplicaGroup(groupNames.get(i)).getMaster().connect();// 获得目标组主节点链接
+				DBCollection cl = dataNode.getCollectionSpace(SdbTestBase.csName).getCollection(clName);				
+				long lobcount = 0;
+				DBCursor listLob = cl.listLobs();			
+				while(listLob.hasNext()){
+					listLob.getNext();
+					lobcount++;   			  
+				}
+				allLobs += lobcount;				
+				//listlobs数量应该在500个左右（总lob数500，切分比例50%）				
+				double actErrorValue = Math.abs(500 / 2 - lobcount)/500/2;				
+				if (actErrorValue > 0.5){
+					Assert.assertTrue(false,"errorValue: "+actErrorValue+" subCont:"+lobcount);					
+				}					
+			}finally {			
+				if (dataNode != null) {
+					dataNode.disconnect();
+				}
+			}				
+		}
+		
+		//listlobs总数应该和插入的lob数相同			
+		Assert.assertEquals(allLobs, oidQueue.size());
+	}
+	
+	private void checkLobData( ){		
+		int count = 0;
+		DBCursor listLob = null;
+		try{
+			listLob = cl.listLobs();
+			while(listLob.hasNext()){
+				BasicBSONObject obj = (BasicBSONObject)listLob.getNext();
+				ObjectId existOid = obj.getObjectId("Oid");	
+				
+				DBLob rLob = cl.openLob(existOid);
+				byte[] rbuff = new byte[(int) rLob.getSize()];
+				rLob.read(rbuff);
+				String curMd5 = getMd5(rbuff);
+        		String prevMd5 = id2md5.get(existOid);
+        		Assert.assertEquals(curMd5, prevMd5);      			  
+
+				count++;
+			}	
+		}finally{
+			if ( listLob != null ){
+				listLob.close();
+			}
+		}		
+		//the list lobnums must be consistent with the number of remaining digits in the actual map:id2md5
+		Assert.assertEquals(count, id2md5.size());	
+	}	
 }
