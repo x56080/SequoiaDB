@@ -194,9 +194,6 @@ public class SequoiadbConstants {
     public final static String SDB_ALTER_CRT_ID_INDEX = "create id index";
     public final static String SDB_ALTER_DROP_ID_INDEX = "drop id index";
 
-    public final static int SDB_SETSESSIONATTR_V0 = 0;
-    public final static int SDB_SETSESSIONATTR_V1 = 1;
-
     public final static String FIELD_NAME_LOB_OPEN_MODE = "Mode";
     public final static String FIELD_NAME_LOB_OID = "Oid";
     public final static String FIELD_NAME_LOB_SIZE = "Size";
@@ -218,6 +215,7 @@ public class SequoiadbConstants {
     public final static String FIELD_TOTAL = "Total";
     public final static String FIELD_INDEX = "Index";
     public final static String FIELD_NAME_PREFERED_INSTANCE = "PreferedInstance";
+    public final static String FIELD_NAME_PREFERED_INSTANCE_V1 = "PreferedInstanceV1";
     public final static String FIELD_NAME_PREFERED_INSTANCE_MODE = "PreferedInstanceMode";
     public final static String FIELD_NAME_SESSION_TIMEOUT = "Timeout";
     public final static String FIELD_NAME_RETYE = "ReturnType";

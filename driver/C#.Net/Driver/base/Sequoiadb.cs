@@ -1257,9 +1257,40 @@ namespace SequoiaDB
                 throw new BaseException("SDB_INVALIDARG");
             // build a bson to send
             BsonDocument attrObj = new BsonDocument();
-            attrObj.Add(options);
-            attrObj.Add(SequoiadbConstants.FIELD_NAME_VERSION,
-                        SequoiadbConstants.SDB_SETSESSIONATTR_V1);
+
+            IEnumerator<BsonElement> it = options.GetEnumerator();
+            while (it.MoveNext())
+            {
+                BsonElement e = it.Current;
+                if (e.Name == SequoiadbConstants.FIELD_PREFERED_INSTANCE)
+                {
+                    BsonValue value = e.Value;
+                    if (e.Value.IsInt32)
+                    {
+                        attrObj.Add(SequoiadbConstants.FIELD_PREFERED_INSTANCE, e.Value.AsInt32);
+                    }
+                    else if (value.IsString)
+                    {
+                        string v = options[SequoiadbConstants.FIELD_PREFERED_INSTANCE].AsString;
+                        int val = (int)PreferInstanceType.INS_TYPE_MIN;
+                        if (v.Equals("M") || v.Equals("m"))
+                            val = (int)PreferInstanceType.INS_MASTER;
+                        else if (v.Equals("S") || v.Equals("s"))
+                            val = (int)PreferInstanceType.INS_SLAVE;
+                        else if (v.Equals("A") || v.Equals("a"))
+                            val = (int)PreferInstanceType.INS_SLAVE;
+                        else
+                            throw new BaseException("SDB_INVALIDARG");
+                        attrObj.Add(SequoiadbConstants.FIELD_PREFERED_INSTANCE, val);
+                    }
+                    attrObj.Add(SequoiadbConstants.FIELD_PREFERED_INSTANCE_V1, e.Value);
+                }
+                else
+                {
+                    attrObj.Add(e);
+                }
+            }
+
             _clearSessionAttrCache() ;
             // build command
             string commandString = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SETSESS_ATTR;

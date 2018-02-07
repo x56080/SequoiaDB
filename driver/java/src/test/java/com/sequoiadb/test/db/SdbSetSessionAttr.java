@@ -176,6 +176,21 @@ public class SdbSetSessionAttr {
     }
 
     @Test
+    public void setSessionAttr_test_timeout() {
+        if (!isCluster)
+            return;
+        BSONObject conf = new BasicBSONObject();
+        conf.put("Timeout", -1);
+        // test
+        try {
+            sdb.setSessionAttr(conf);
+        } catch (BaseException e) {
+            System.out.println(e.getMessage());
+            assertTrue(false);
+        }
+    }
+
+    @Test
     public void getSessionAttr_test() {
         if (!isCluster)
             return;

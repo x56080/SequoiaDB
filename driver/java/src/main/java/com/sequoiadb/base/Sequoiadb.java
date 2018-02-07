@@ -1595,9 +1595,34 @@ public class Sequoiadb {
         if (null == options || options.isEmpty()) {
             return;
         }
+
         BSONObject newObj = new BasicBSONObject();
+
         newObj.putAll(options);
-        newObj.put(SequoiadbConstants.FIELD_NAME_VERSION, SequoiadbConstants.SDB_SETSESSIONATTR_V1);
+
+        if (options.containsField(SequoiadbConstants.FIELD_NAME_PREFERED_INSTANCE))
+        {
+            // Add old version of preferred instance
+            Object value = options.get(SequoiadbConstants.FIELD_NAME_PREFERED_INSTANCE);
+            if (value instanceof String) {
+                int v = PreferInstanceType.INS_MASTER.getCode();
+                if (value.equals("M") || value.equals("m")) {
+                    v = PreferInstanceType.INS_MASTER.getCode();
+                } else if (value.equals("S") || value.equals("s")) {
+                    v = PreferInstanceType.INS_SLAVE.getCode();
+                } else if (value.equals("A") || value.equals("a")) {
+                    v = PreferInstanceType.INS_ANYONE.getCode();
+                } else {
+                    throw new BaseException(SDBError.SDB_INVALIDARG, options.toString());
+                }
+                newObj.put(SequoiadbConstants.FIELD_NAME_PREFERED_INSTANCE, v);
+            } else if (value instanceof Integer) {
+                newObj.put(SequoiadbConstants.FIELD_NAME_PREFERED_INSTANCE, value);
+            }
+            // Add new version of preferred instance
+            newObj.put(SequoiadbConstants.FIELD_NAME_PREFERED_INSTANCE_V1, value);
+        }
+
         clearSessionAttrCache();
         SDBMessage rtn = adminCommand(SequoiadbConstants.CMD_NAME_SETSESS_ATTR,
                 0, 0, 0, -1, newObj,

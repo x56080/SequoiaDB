@@ -8345,9 +8345,8 @@ SDB_EXPORT INT32 sdbSetSessionAttr ( sdbConnectionHandle cHandle,
    SINT64 contextID      = 0 ;
    sdbConnectionStruct *connection = (sdbConnectionStruct*) cHandle ;
    BOOLEAN bsoninit      = FALSE ;
+   bson_iterator it ;
    bson newObj ;
-
-   BSON_INIT( newObj ) ;
 
    // check handle
    HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
@@ -8359,14 +8358,83 @@ SDB_EXPORT INT32 sdbSetSessionAttr ( sdbConnectionHandle cHandle,
       goto error ;
    }
 
-   rc = bson_append_elements( &newObj, options ) ;
-   if ( rc )
-   {
-      rc = SDB_DRIVER_BSON_ERROR ;
-      goto error ;
-   }
+   BSON_INIT( newObj ) ;
 
-   BSON_APPEND( newObj, FIELD_NAME_VERSION, SDB_SETSESSIONATTR_V1, int ) ;
+   bson_iterator_init ( &it, options ) ;
+   while ( BSON_EOO != bson_iterator_next( &it ) )
+   {
+      // get key
+      const CHAR * key = bson_iterator_key( &it ) ;
+
+      if ( 0 == strcmp( FIELD_NAME_PREFERED_INSTANCE, key ) )
+      {
+         switch ( bson_iterator_type( &it ) )
+         {
+            case BSON_STRING :
+            {
+               INT32 value = PREFER_REPL_TYPE_MAX ;
+               const CHAR * str_value = bson_iterator_string( &it ) ;
+               if ( !ossStrcasecmp( "M", str_value ) )
+               {
+                  // master
+                  value = PREFER_REPL_MASTER ;
+               }
+               else if ( !ossStrcasecmp( "S", str_value ) )
+               {
+                  // slave
+                  value = PREFER_REPL_SLAVE ;
+               }
+               else if ( !ossStrcasecmp( "A", str_value ) )
+               {
+                  // anyone
+                  value = PREFER_REPL_ANYONE ;
+               }
+               else
+               {
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
+               rc = bson_append_int( &newObj, key, value ) ;
+               if ( BSON_OK != rc )
+               {
+                  rc = SDB_DRIVER_BSON_ERROR ;
+                  goto error ;
+               }
+               break ;
+            }
+            case BSON_INT :
+            {
+               rc = bson_append_element( &newObj, NULL, &it ) ;
+               if ( BSON_OK != rc )
+               {
+                  rc = SDB_DRIVER_BSON_ERROR ;
+                  goto error ;
+               }
+               break ;
+            }
+            default :
+            {
+               break ;
+            }
+         }
+
+         rc = bson_append_element( &newObj, FIELD_NAME_PREFERED_INSTANCE_V1, &it ) ;
+         if ( BSON_OK != rc )
+         {
+            rc = SDB_DRIVER_BSON_ERROR ;
+            goto error ;
+         }
+      }
+      else
+      {
+         rc = bson_append_element( &newObj, NULL, &it ) ;
+         if ( BSON_OK != rc )
+         {
+            rc = SDB_DRIVER_BSON_ERROR ;
+            goto error ;
+         }
+      }
+   }
 
    BSON_FINISH ( newObj ) ;
 

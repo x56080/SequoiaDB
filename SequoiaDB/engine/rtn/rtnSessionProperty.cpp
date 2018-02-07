@@ -578,30 +578,18 @@ namespace engine
 
       try
       {
-         UINT32 version = SDB_SETSESSIONATTR_V0 ;
+         BOOLEAN newVersion = TRUE ;
 
          PD_CHECK( !property.isEmpty(), SDB_INVALIDARG, error, PDERROR,
                    "Failed to parse session property: empty property" ) ;
 
-         BSONElement beVersion = property.getField( FIELD_NAME_VERSION ) ;
-
-         if ( NumberInt == beVersion.type() )
+         if ( property.hasField( FIELD_NAME_PREFERED_INSTANCE ) &&
+              !property.hasField( FIELD_NAME_PREFERED_INSTANCE_V1 ) )
          {
-            version = (UINT32)beVersion.numberInt() ;
-            PD_CHECK( SDB_SETSESSIONATTR_V0 == version ||
-                      SDB_SETSESSIONATTR_V1 == version, SDB_INVALIDARG, error,
-                      PDERROR, "Failed to parse session property: "
-                      "version [%u] is mismatched", version ) ;
-         }
-         else
-         {
-            PD_CHECK( beVersion.eoo(), SDB_INVALIDARG, error, PDERROR,
-                      "Failed to parse session property: "
-                      "version [%s] is unknown",
-                      beVersion.toString( TRUE, FALSE ).c_str() ) ;
+            newVersion = FALSE ;
          }
 
-         if ( SDB_SETSESSIONATTR_V1 == version )
+         if ( newVersion )
          {
             rc = _parsePropertyV1( property ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse old version of "
@@ -691,13 +679,6 @@ namespace engine
             operationTimeout = (INT64)field.numberLong() ;
             gotOperationTimeout = TRUE ;
          }
-         else if ( 0 == ossStrcmp( field.fieldName(), FIELD_NAME_VERSION ) )
-         {
-            /// Version
-            SDB_ASSERT( NumberInt == field.type() &&
-                        SDB_SETSESSIONATTR_V0 == field.numberInt(),
-                        "Version is invalid" ) ;
-         }
          else
          {
             PD_LOG( PDERROR, "Option [%s] is not supported in session property",
@@ -744,7 +725,7 @@ namespace engine
       {
          BSONElement field = iter.next() ;
 
-         if ( 0 == ossStrcmp( field.fieldName(), FIELD_NAME_PREFERED_INSTANCE ) )
+         if ( 0 == ossStrcmp( field.fieldName(), FIELD_NAME_PREFERED_INSTANCE_V1 ) )
          {
             /// PreferedInstance
             rc = instanceOption.parsePreferredInstance( field ) ;
@@ -779,12 +760,9 @@ namespace engine
             operationTimeout = (INT64)field.numberLong() ;
             gotOperationTimeout = TRUE ;
          }
-         else if ( 0 == ossStrcmp( field.fieldName(), FIELD_NAME_VERSION ) )
+         else if ( 0 == ossStrcmp( field.fieldName(), FIELD_NAME_PREFERED_INSTANCE ) )
          {
-            /// Version
-            SDB_ASSERT( NumberInt == field.type() &&
-                        SDB_SETSESSIONATTR_V1 == field.numberInt(),
-                        "Version is invalid" ) ;
+            /// do nothing
          }
          else
          {

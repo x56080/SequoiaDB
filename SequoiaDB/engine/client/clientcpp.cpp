@@ -8138,16 +8138,79 @@ error :
       SINT64 contextID = 0 ;
       BSONObjBuilder builder ;
       BSONObj newObj ;
+      BSONObjIterator it ( options ) ;
 
-      if ( options.isEmpty() )
+      if ( !it.more() )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
 
-      // build obj
-      builder.appendElements( options ) ;
-      builder.append( FIELD_NAME_VERSION, SDB_SETSESSIONATTR_V1 ) ;
+      while ( it.more() )
+      {
+         BSONElement ele = it.next() ;
+         const CHAR * key = ele.fieldName() ;
+         if ( 0 == strcmp( FIELD_NAME_PREFERED_INSTANCE, key ) )
+         {
+            switch ( ele.type() )
+            {
+               case String :
+               {
+                  try
+                  {
+                     INT32 value = PREFER_REPL_TYPE_MAX ;
+                     const CHAR * str_value = ele.valuestrsafe() ;
+                     if ( 0 == strcmp( "M", str_value ) ||
+                          0 == strcmp( "m", str_value ) )
+                     {
+                        // master
+                        value = PREFER_REPL_MASTER ;
+                     }
+                     else if ( 0 == strcmp( "S", str_value ) ||
+                               0 == strcmp( "s", str_value ) )
+                     {
+                        // slave
+                        value = PREFER_REPL_SLAVE ;
+                     }
+                     else if ( 0 == strcmp( "A", str_value ) ||
+                               0 == strcmp( "a", str_value ) )
+                     {
+                        //anyone
+                        value = PREFER_REPL_ANYONE ;
+                     }
+                     else
+                     {
+                        rc = SDB_INVALIDARG ;
+                        goto error ;
+                     }
+
+                     builder.append( key, value ) ;
+                  }
+                  catch( std::exception )
+                  {
+                     rc = SDB_SYS ;
+                     goto error ;
+                  }
+                  break ;
+               }
+               case NumberInt :
+               {
+                  builder.append( ele ) ;
+                  break ;
+               }
+               default :
+               {
+                  break ;
+               }
+            }
+            builder.appendAs( ele, FIELD_NAME_PREFERED_INSTANCE_V1 ) ;
+         }
+         else
+         {
+            builder.append( ele ) ;
+         }
+      }
+
       newObj = builder.obj() ;
 
       _clearSessionAttrCache( TRUE ) ;

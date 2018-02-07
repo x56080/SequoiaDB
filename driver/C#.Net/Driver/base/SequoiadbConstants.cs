@@ -130,6 +130,7 @@ namespace SequoiaDB
         public const string FIELD_SHARDINGKEY = "ShardingKey";
         public const string FIELD_SUBCLNAME = "SubCLName";
         public const string FIELD_PREFERED_INSTANCE = "PreferedInstance";
+        public const string FIELD_PREFERED_INSTANCE_V1 = "PreferedInstanceV1";
         public const string FIELD_ASYNC = "Async";
         public const string FIELD_TASKTYPE = "TaskType";
         public const string FIELD_TASKID = "TaskID";
@@ -174,9 +175,6 @@ namespace SequoiaDB
 
         public const string SDB_ALTER_CRT_ID_INDEX = "create id index";
         public const string SDB_ALTER_DROP_ID_INDEX = "drop id index";
-
-        public const int SDB_SETSESSIONATTR_V0 = 0;
-        public const int SDB_SETSESSIONATTR_V1 = 1;
 
         public const string FIELD_SET_ON_INSERT = "$SetOnInsert";
 

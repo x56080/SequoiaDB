@@ -322,6 +322,7 @@
 #define FIELD_NAME_FUNC                      "func"
 #define FIELD_NAME_FUNCTYPE                  "funcType"
 #define FIELD_NAME_PREFERED_INSTANCE         "PreferedInstance"
+#define FIELD_NAME_PREFERED_INSTANCE_V1      "PreferedInstanceV1"
 #define FIELD_NAME_PREFERED_INSTANCE_MODE    "PreferedInstanceMode"
 #define FIELD_NAME_TIMEOUT                   "Timeout"
 #define FIELD_NAME_NODE_SELECT               "NodeSelect"
@@ -593,8 +594,5 @@ enum SDB_LOB_MODE
 
 #define SDB_ALTER_CRT_ID_INDEX     "create id index"
 #define SDB_ALTER_DROP_ID_INDEX    "drop id index"
-
-#define SDB_SETSESSIONATTR_V0 0
-#define SDB_SETSESSIONATTR_V1 1
 
 #endif // MSGDEF_H__
