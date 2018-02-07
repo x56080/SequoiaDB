@@ -1,7 +1,6 @@
 package com.sequoiadb.split;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -41,90 +40,48 @@ public class Split10528A extends SdbTestBase {
 	
 	@BeforeClass()
 	public void setUp() {
+		commSdb = new Sequoiadb(coordUrl, "", "");
 
-		try {
-			commSdb = new Sequoiadb(coordUrl, "", "");
+		// 跳过 standAlone 和数据组不足的环境
+		CommLib commlib = new CommLib();
+		if (commlib.isStandAlone(commSdb)) {
+			throw new SkipException("skip StandAlone");
+		}
+		List<String> groupsName = commlib.getDataGroupNames(commSdb);
+		if (groupsName.size() < 2) {
+			throw new SkipException("current environment less than tow groups ");
+		}
+		srcGroupName = groupsName.get(0);
+		destGroupName = groupsName.get(1);
 
-			// 跳过 standAlone 和数据组不足的环境
-			CommLib commlib = new CommLib();
-			if (commlib.isStandAlone(commSdb)) {
-				throw new SkipException("skip StandAlone");
-			}
-			List<String> groupsName = commlib.getDataGroupNames(commSdb);
-			if (groupsName.size() < 2) {
-				throw new SkipException("current environment less than tow groups ");
-			}
-			srcGroupName = groupsName.get(0);
-			destGroupName = groupsName.get(1);
-
-			CollectionSpace customCS = commSdb.getCollectionSpace(csName);
-			DBCollection cl = customCS.createCollection(clName, (BSONObject) JSON
+		CollectionSpace customCS = commSdb.getCollectionSpace(SdbTestBase.csName);
+		DBCollection cl = customCS.createCollection(clName, (BSONObject) JSON
 					.parse("{ShardingKey:{'sk':1},Partition:4096,ShardingType:'hash',Group:'" + srcGroupName + "'}"));
-			insertData(cl);// 写入待切分的记录（10000）
-		} catch (BaseException e) {
-			if (commSdb != null) {
-				commSdb.disconnect();
-			}
-			Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
-					+ SplitUtils.getKeyStack(e, this));
-		}
-	}
-
-	public void insertData(DBCollection cl) {
-		try {
-			for (int i = 0; i < 10000; i++) {
-				BSONObject obj = (BSONObject) JSON.parse("{sk:" + i + "}");
-				cl.insert(obj);
-			}
-		} catch (BaseException e) {
-			throw e;
-		}
-
-	}
+		
+		// 写入待切分的记录（30000）	
+		insertData(cl);	
+	}	
 
 	@Test
-	public void dropCL() {
-		Sequoiadb db = null;
-		Split splitThread = null;
-		try {
-			// 切分线程启动
-			splitThread = new Split();
-			splitThread.start();
+	public void dropCL() {	
+		// 切分线程启动
+		Split splitThread = new Split();
+		splitThread.start();
 
-			// 删除CL
-			db = new Sequoiadb(coordUrl, "", "");
-			db.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
-			CollectionSpace cs = db.getCollectionSpace(csName);
-			cs.dropCollection(clName);
-			if(cs.isCollectionExist(clName)){
-				DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-				cl.insert("{a:-99}");
-			}
-			else{
-				Assert.assertEquals(db.getCollectionSpace(csName).isCollectionExist(clName), false);
-			}
-			//Assert.assertEquals(db.getCollectionSpace(csName).isCollectionExist(clName), false);
+		// 删除CL	
+		DropCL dropcl = new DropCL();
+		dropcl.start();
 
-			// 检测切分结果
-			Assert.assertEquals(splitThread.isSuccess(), true, splitThread.getErrorMsg());
-		} catch (BaseException e) {
-			Assert.assertEquals(e.getErrorCode(), -147, e.getMessage() + "\r\n" + SplitUtils.getKeyStack(e, this)
-					+ " \r\nSplitThread:[" + splitThread.getErrorMsg() + "]  ");
-		} finally {
-			if (db != null) {
-				db.disconnect();
-			}
-			if (splitThread != null) {
-				splitThread.join();
-			}
-		}
+		// 检测任务执行结果
+		Assert.assertEquals(splitThread.isSuccess(), true, splitThread.getErrorMsg());
+		Assert.assertEquals(dropcl.isSuccess(), true, dropcl.getErrorMsg());		
 	}
 
 	@AfterClass
 	public void tearDown() {
 		try {
-			if (commSdb.getCollectionSpace(csName).isCollectionExist(clName)) {
-				commSdb.getCollectionSpace(csName).dropCollection(clName);
+			if (commSdb.getCollectionSpace(SdbTestBase.csName).isCollectionExist(clName)) {
+				commSdb.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
 			}
 		} catch (BaseException e) {
 			Assert.fail(e.getMessage() + "\r\n" + SplitUtils.getKeyStack(e, this));
@@ -136,19 +93,18 @@ public class Split10528A extends SdbTestBase {
 	}
 
 	class Split extends SdbThreadBase {
-
 		@Override
 		public void exec() throws Exception {
 			Sequoiadb sdb = null;
 			try {
 				sdb = new Sequoiadb(coordUrl, "", "");
-				DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
+				DBCollection cl = sdb.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
 				if (cl == null) {// 若cl已被删除，此时cl为空，
 					return;
 				}
 				cl.split(srcGroupName, destGroupName, 90);
 				// 如果删除成功，本次测试未碰撞到测试点
-			} catch (BaseException e) {
+			} catch (BaseException e) {				
 				if (e.getErrorCode() != -23 && e.getErrorCode() != -147) {
 					e.printStackTrace();
 					throw e;
@@ -162,6 +118,39 @@ public class Split10528A extends SdbTestBase {
 				}
 			}
 		}
+	}
+	
+	class DropCL extends SdbThreadBase {		
+		@Override
+		public void exec() throws Exception {
+			Sequoiadb sdb = null;
+			try {
+				sdb = new Sequoiadb(coordUrl, "", "");				
+				// 删除CL			
+				sdb.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
+				CollectionSpace cs = sdb.getCollectionSpace(SdbTestBase.csName);
+				cs.dropCollection(clName);							
+				Assert.assertEquals(sdb.getCollectionSpace(SdbTestBase.csName).isCollectionExist(clName), false);
+			} finally {
+				if (sdb != null) {
+					sdb.disconnect();
+				}
+			}
+		}
+	}
+	
+	//insert 3W records
+	private void insertData(DBCollection cl) {
+		int count=0;
+		for ( int i = 0; i < 3; i++){
+			List<BSONObject>list = new ArrayList<BSONObject>();	
+			for (int j = 0; j < 10000; j++) {
+				int value = count++;
+				BSONObject obj = (BSONObject) JSON.parse("{sk:" + value +", test:"+"'testasetatatatatat'" + "}");				
+				list.add(obj);	
+			}
+			cl.bulkInsert(list, 0);
+		}		
 	}
 
 }
