@@ -47,8 +47,7 @@ namespace engine
                             REPLY_QUE &replyQue, const SINT32 opCode,
                             BOOLEAN isWaitAll = TRUE,
                             BOOLEAN clearReplyIfFailed = TRUE,
-                            BOOLEAN needTimeout = TRUE,
-                            BOOLEAN killExpiredContexts = TRUE ) ;
+                            BOOLEAN needTimeout = TRUE ) ;
 
    INT32 rtnCoordCataQuery ( const CHAR *pCollectionName,
                              const bson::BSONObj &selector,

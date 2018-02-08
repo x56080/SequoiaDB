@@ -1106,7 +1106,7 @@ namespace engine
 
          // Avoid timeout and killing with cascade
          rc = rtnCoordGetReply( cb, sendMap, q, MSG_BS_KILL_CONTEXT_RES,
-                                TRUE, TRUE, FALSE, FALSE ) ;
+                                TRUE, TRUE, FALSE ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to get reply:%d", rc ) ;

@@ -2663,7 +2663,7 @@ namespace engine
             // Avoid timeout and killing with cascade
             rtnCoordGetReply( cb, _prepareNodeMap, replyQue,
                               MSG_BS_KILL_CONTEXT_RES, TRUE, TRUE,
-                              FALSE, FALSE ) ;
+                              FALSE ) ;
             while ( !replyQue.empty() )
             {
                SDB_OSS_FREE( replyQue.front() ) ;

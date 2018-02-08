@@ -844,7 +844,7 @@ namespace engine
    INT32 rtnCoordGetReply ( pmdEDUCB *cb,  REQUESTID_MAP &requestIdMap,
                             REPLY_QUE &replyQue, const SINT32 opCode,
                             BOOLEAN isWaitAll, BOOLEAN clearReplyIfFailed,
-                            BOOLEAN needTimeout, BOOLEAN killExpiredContexts )
+                            BOOLEAN needTimeout )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNCOGETREPLY ) ;
