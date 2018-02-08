@@ -13,9 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @package com.sequoiadb.base;
- * @brief SequoiaDB Driver for Java
- * @author Jacky Zhang
  */
 /**
  * @package com.sequoiadb.base;
@@ -211,7 +208,7 @@ public class Sequoiadb {
     public int getPort() {
         return serverAddress.getPort();
     }
-    
+
     /**
      * @fn void setServerAddress(ServerAddress serverAddress)
      * @brief Set the address of remote server.
@@ -372,8 +369,8 @@ public class Sequoiadb {
      */
     public Sequoiadb(String addr, int port, String username, String password)
             throws BaseException {
-		/*
-		try {
+        /*
+        try {
 			// connect
 			serverAddress = new ServerAddress(addr, port);
 			ConfigOptions opts = new ConfigOptions();
@@ -683,9 +680,9 @@ public class Sequoiadb {
             matcher.putAll(options);
         }
         String commandString = SequoiadbConstants.LOAD_CMD + " "
-            + SequoiadbConstants.COLSPACE;
+                + SequoiadbConstants.COLSPACE;
         SDBMessage rtn = adminCommand(commandString, 0, 0, -1, -1, matcher,
-            null, null, null);
+                null, null, null);
         int flags = rtn.getFlags();
         if (flags != 0) {
             throw new BaseException(flags);
@@ -718,9 +715,9 @@ public class Sequoiadb {
             matcher.putAll(options);
         }
         String commandString = SequoiadbConstants.UNLOAD_CMD + " "
-            + SequoiadbConstants.COLSPACE;
+                + SequoiadbConstants.COLSPACE;
         SDBMessage rtn = adminCommand(commandString, 0, 0, -1, -1, matcher,
-            null, null, null);
+                null, null, null);
         int flags = rtn.getFlags();
         if (flags != 0) {
             throw new BaseException(flags);
@@ -745,9 +742,9 @@ public class Sequoiadb {
         matcher.put(SequoiadbConstants.FIELD_NAME_OLDNAME, oldName);
         matcher.put(SequoiadbConstants.FIELD_NAME_NEWNAME, newName);
         String commandString = SequoiadbConstants.RENAME_CMD + " "
-            + SequoiadbConstants.COLSPACE;
+                + SequoiadbConstants.COLSPACE;
         SDBMessage rtn = adminCommand(commandString, 0, 0, -1, -1, matcher,
-            null, null, null);
+                null, null, null);
         int flags = rtn.getFlags();
         if (flags != 0) {
             throw new BaseException(flags);
@@ -791,7 +788,7 @@ public class Sequoiadb {
      */
     public void sync(BSONObject options) throws BaseException {
         SDBMessage rtn = adminCommand(SequoiadbConstants.SYNC_DB_CMD, 0, 0, -1, -1,
-            options, null, null, null);
+                options, null, null, null);
         int flags = rtn.getFlags();
         if (flags != 0) {
             throw new BaseException(flags);
@@ -883,8 +880,12 @@ public class Sequoiadb {
         if (cursor == null)
             return null;
         ArrayList<String> colList = new ArrayList<String>();
-        while (cursor.hasNext()) {
-            colList.add(cursor.getNext().get("Name").toString());
+        try {
+            while (cursor.hasNext()) {
+                colList.add(cursor.getNext().get("Name").toString());
+            }
+        } finally {
+            cursor.close();
         }
         return colList;
     }
@@ -912,8 +913,12 @@ public class Sequoiadb {
         if (cursor == null)
             return null;
         ArrayList<String> colList = new ArrayList<String>();
-        while (cursor.hasNext()) {
-            colList.add(cursor.getNext().get("Name").toString());
+        try {
+            while (cursor.hasNext()) {
+                colList.add(cursor.getNext().get("Name").toString());
+            }
+        } finally {
+            cursor.close();
         }
         return colList;
     }
@@ -927,9 +932,16 @@ public class Sequoiadb {
     public ArrayList<String> getStorageUnits() throws BaseException {
         DBCursor cursor = getList(SDB_LIST_STORAGEUNITS, 0, 0, -1, -1, null,
                 null, null, null);
+        if (cursor == null) {
+            return null;
+        }
         ArrayList<String> colList = new ArrayList<String>();
-        while (cursor.hasNext()) {
-            colList.add(cursor.getNext().get("Name").toString());
+        try {
+            while (cursor.hasNext()) {
+                colList.add(cursor.getNext().get("Name").toString());
+            }
+        } finally {
+            cursor.close();
         }
         return colList;
     }
@@ -1146,14 +1158,14 @@ public class Sequoiadb {
                 command += " " + SequoiadbConstants.SYSTEM;
                 break;
             case SDB_SNAP_CATALOG:
-            	command += " " + SequoiadbConstants.CATA;
+                command += " " + SequoiadbConstants.CATA;
                 break;
             case SDB_SNAP_TRANSACTIONS:
-            	command += " " + SequoiadbConstants.TRANSACTIONS;
+                command += " " + SequoiadbConstants.TRANSACTIONS;
                 break;
             case SDB_SNAP_TRANSACTIONS_CURRENT:
-            	command += " " + SequoiadbConstants.TRANSACTIONS_CURRENT;
-            	break;
+                command += " " + SequoiadbConstants.TRANSACTIONS_CURRENT;
+                break;
             default:
                 throw new BaseException(SDBError.SDB_INVALIDARG);
         }
@@ -1465,7 +1477,7 @@ public class Sequoiadb {
      * @param matcher The matching rule, return all the documents if null
      * @param selector The selective rule, return the whole document if null
      * @param orderBy The ordered rule, never sort if null
-     * @param hint 
+     * @param hint
      *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
      *            using index "ageIndex" to scan data(index scan); 
      *            {"":null} means table scan. when hint is null, 
@@ -1549,18 +1561,15 @@ public class Sequoiadb {
         }
     }
 
-    private void clearSessionAttrCache()
-    {
+    private void clearSessionAttrCache() {
         attributeCache = null;
     }
 
-    private BSONObject getSessionAttrCache()
-    {
+    private BSONObject getSessionAttrCache() {
         return attributeCache;
     }
 
-    private void setSessionAttrCache( BSONObject attribute )
-    {
+    private void setSessionAttrCache(BSONObject attribute) {
         attributeCache = attribute;
     }
 
@@ -1600,8 +1609,7 @@ public class Sequoiadb {
 
         newObj.putAll(options);
 
-        if (options.containsField(SequoiadbConstants.FIELD_NAME_PREFERED_INSTANCE))
-        {
+        if (options.containsField(SequoiadbConstants.FIELD_NAME_PREFERED_INSTANCE)) {
             // Add old version of preferred instance
             Object value = options.get(SequoiadbConstants.FIELD_NAME_PREFERED_INSTANCE);
             if (value instanceof String) {
@@ -1642,27 +1650,20 @@ public class Sequoiadb {
      */
     public BSONObject getSessionAttr() throws BaseException {
         BSONObject result = getSessionAttrCache();
-        if (null != result)
-        {
+        if (null != result) {
             return result;
         }
         SDBMessage rtn = adminCommand(SequoiadbConstants.CMD_NAME_GETSESS_ATTR,
-                                      0, 0, 0, -1, null, null, null, null);
+                0, 0, 0, -1, null, null, null, null);
         List<BSONObject> resultList = rtn.getObjectList();
-        if (null != resultList && resultList.size()>0)
-        {
-            result=resultList.get(0);
-            if ( null == result )
-            {
+        if (null != resultList && resultList.size() > 0) {
+            result = resultList.get(0);
+            if (null == result) {
                 clearSessionAttrCache();
-            }
-            else
-            {
+            } else {
                 setSessionAttrCache(result);
             }
-        }
-        else
-        {
+        } else {
             clearSessionAttrCache();
         }
         return result;
@@ -1706,10 +1707,16 @@ public class Sequoiadb {
         BSONObject matcher = new BasicBSONObject();
         matcher.put(SequoiadbConstants.FIELD_NAME_NAME, domainName);
         DBCursor cursor = getList(SDB_LIST_DOMAINS, matcher, null, null);
-        if (null != cursor && cursor.hasNext())
-            return true;
-        else
-            return false;
+        try {
+            if (cursor != null && cursor.hasNext())
+                return true;
+            else
+                return false;
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
     }
 
     /**
@@ -1799,7 +1806,7 @@ public class Sequoiadb {
      * @param matcher the matching rule, return all the documents if null
      * @param selector the selective rule, return the whole document if null
      * @param orderBy the ordered rule, never sort if null
-     * @param hint 
+     * @param hint
      *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
      *            using index "ageIndex" to scan data(index scan); 
      *            {"":null} means table scan. when hint is null, 
@@ -1823,8 +1830,12 @@ public class Sequoiadb {
         if (cursor == null)
             return null;
         ArrayList<String> colList = new ArrayList<String>();
-        while (cursor.hasNext()) {
-            colList.add(cursor.getNext().get("GroupName").toString());
+        try {
+            while (cursor.hasNext()) {
+                colList.add(cursor.getNext().get("GroupName").toString());
+            }
+        } finally {
+            cursor.close();
         }
         return colList;
     }
@@ -1841,8 +1852,12 @@ public class Sequoiadb {
         if (cursor == null)
             return null;
         ArrayList<String> colList = new ArrayList<String>();
-        while (cursor.hasNext()) {
-            colList.add(cursor.getNext().toString());
+        try {
+            while (cursor.hasNext()) {
+                colList.add(cursor.getNext().toString());
+            }
+        } finally {
+            cursor.close();
         }
         return colList;
     }
@@ -2022,7 +2037,7 @@ public class Sequoiadb {
             case SDB_LIST_TASKS:
                 command = SequoiadbConstants.CMD_NAME_LIST_TASKS;
                 break;
-		    case SDB_LIST_TRANSACTIONS:
+            case SDB_LIST_TRANSACTIONS:
                 command = SequoiadbConstants.CMD_NAME_LIST_TRANSACTIONS;
                 break;
             case SDB_LIST_TRANSACTIONS_CURRENT:
@@ -2071,7 +2086,13 @@ public class Sequoiadb {
         if (shardsCursor == null || !shardsCursor.hasNext()) {
             return null;
         }
-        return shardsCursor.getNext();
+        BSONObject obj;
+        try {
+            obj = shardsCursor.getNext();
+        } finally {
+            shardsCursor.close();
+        }
+        return obj;
     }
 
     BSONObject getDetailById(int id) throws BaseException {
@@ -2081,7 +2102,13 @@ public class Sequoiadb {
                 -1, condition, null, null, null);
         if (shardsCursor == null || !shardsCursor.hasNext())
             return null;
-        return shardsCursor.getNext();
+        BSONObject obj;
+        try {
+            obj = shardsCursor.getNext();
+        } finally {
+            shardsCursor.close();
+        }
+        return obj;
     }
 
     private void initConnection(ConfigOptions options) throws BaseException {
@@ -2330,6 +2357,9 @@ public class Sequoiadb {
          * @brief Set result cursor.
          */
         public void setCursor(DBCursor cursor) {
+            if (this.cursor != null) {
+                this.cursor.close();
+            }
             this.cursor = cursor;
         }
 

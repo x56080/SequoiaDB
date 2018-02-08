@@ -13,9 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @package com.sequoiadb.base;
- * @brief SequoiaDB Driver for Java
- * @author Jacky Zhang
  */
 /**
  * @package com.sequoiadb.base;

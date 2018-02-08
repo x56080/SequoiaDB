@@ -188,8 +188,12 @@ class DBDataCenterConcrete implements DBDataCenter {
             throw new BaseException(SDBError.SDB_DMS_EOC);
         }
 
-        BSONObject obj = cursor.getNext();
-        cursor.close();
+        BSONObject obj;
+        try {
+            obj = cursor.getNext();
+        } finally {
+            cursor.close();
+        }
         return obj;
     }
 

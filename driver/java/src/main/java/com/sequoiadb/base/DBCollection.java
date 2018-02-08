@@ -13,9 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @package com.sequoiadb.base;
- * @brief SequoiaDB Driver for Java
- * @author Jacky Zhang
  */
 /**
  * @package com.sequoiadb.base;
@@ -1573,7 +1570,7 @@ public class DBCollection {
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
     /*
-	public void rename(String newName) throws BaseException {
+    public void rename(String newName) throws BaseException {
 		String commandString = SequoiadbConstants.ADMIN_PROMPT
 				+ SequoiadbConstants.RENAME_COLLECTION;
 		BSONObject dummyObj = new BasicBSONObject();
@@ -1738,7 +1735,12 @@ public class DBCollection {
         if (!cursor.hasNext()) {
             throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
         }
-        BSONObject result = cursor.getNext();
+        BSONObject result;
+        try {
+            result = cursor.getNext();
+        } finally {
+            cursor.close();
+        }
         boolean flag = result.containsField(SequoiadbConstants.FIELD_NAME_TASKID);
         if (!flag) {
             throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
@@ -1793,7 +1795,12 @@ public class DBCollection {
         DBCursor cursor = new DBCursor(rtnSDBMessage, this);
         if (!cursor.hasNext())
             throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
-        BSONObject result = cursor.getNext();
+        BSONObject result;
+        try {
+            result = cursor.getNext();
+        } finally {
+            cursor.close();
+        }
         boolean flag = result.containsField(SequoiadbConstants.FIELD_NAME_TASKID);
         if (!flag)
             throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
@@ -1886,12 +1893,9 @@ public class DBCollection {
 
         BSONObject newHint = new BasicBSONObject();
         newHint.put("Collection", this.collectionFullName);
-        if ( null == hint || hint.isEmpty() )
-        {
+        if (null == hint || hint.isEmpty()) {
             newHint.put("Hint", dummy);
-        }
-        else
-        {
+        } else {
             newHint.put("Hint", hint);
         }
 

@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2012 SequoiaDB Inc.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.sequoiadb.base;
 
 import com.sequoiadb.base.SequoiadbConstants.Operation;
@@ -131,11 +146,11 @@ public class ReplicaGroup {
         }
         // check and extract the information of primary node
         Object primaryNodeObj = groupInfoObj.get(SequoiadbConstants.FIELD_NAME_PRIMARY);
-        if (primaryNodeObj == null ) {
+        if (primaryNodeObj == null) {
             throw new BaseException(SDBError.SDB_RTN_NO_PRIMARY_FOUND);
         } else if (!(primaryNodeObj instanceof Number)) {
             throw new BaseException(SDBError.SDB_SYS, "invalid primary node's information: " + primaryNodeObj.toString());
-        } else if (primaryNodeObj.equals(Integer.valueOf(-1))){
+        } else if (primaryNodeObj.equals(Integer.valueOf(-1))) {
             throw new BaseException(SDBError.SDB_RTN_NO_PRIMARY_FOUND);
         }
         BSONObject primaryData = null;
@@ -229,7 +244,7 @@ public class ReplicaGroup {
             hasPrimary = false;
         } else if (!(primaryNodeId instanceof Number)) {
             throw new BaseException(SDBError.SDB_SYS, "invalid primary node's information: " + primaryNodeId.toString());
-        } else if (primaryNodeId.equals(Integer.valueOf(-1))){
+        } else if (primaryNodeId.equals(Integer.valueOf(-1))) {
             hasPrimary = false;
         }
         // try to mark the position of primary node in the nodes list,
@@ -251,32 +266,31 @@ public class ReplicaGroup {
         // try to generate positions
         int nodeCount = nodesInfoList.size();
         if (needGeneratePosition) {
-            for(int i = 0; i < nodeCount; i++) {
-                if ( hasPrimary && primaryNodePosition == i + 1 )
-                {
-                    continue ;
+            for (int i = 0; i < nodeCount; i++) {
+                if (hasPrimary && primaryNodePosition == i + 1) {
+                    continue;
                 }
                 validPositions.add(i + 1);
             }
         }
         // get a node position to create Node
-        int nodeIndex = -1 ;
+        int nodeIndex = -1;
         BSONObject nodeInfoObj = null;
         // we must use "nodeCount" to compare first, since "validPositions" may be generate by us when
         // "needGeneratePosition" is true.
         if (nodeCount == 1) {
-            nodeInfoObj = (BSONObject)nodesInfoList.get(0);
+            nodeInfoObj = (BSONObject) nodesInfoList.get(0);
         } else if (validPositions.size() == 1) {
             // position is start from 1, so we need to decrease 1
             nodeIndex = (validPositions.get(0) - 1) % nodeCount;
-            nodeInfoObj = (BSONObject)nodesInfoList.get(nodeIndex);
+            nodeInfoObj = (BSONObject) nodesInfoList.get(nodeIndex);
         } else {
             int position = 0;
             Random rand = new Random();
             int[] flags = new int[7];
             List<Integer> includePrimaryPositions = new ArrayList<Integer>();
             List<Integer> excludePrimaryPositions = new ArrayList<Integer>();
-            for(int pos : validPositions) {
+            for (int pos : validPositions) {
                 if (pos <= nodeCount) {
                     nodeIndex = pos - 1;
                     if (flags[nodeIndex] == 0) {
@@ -308,7 +322,7 @@ public class ReplicaGroup {
                 }
             }
             nodeIndex = (position - 1) % nodeCount;
-            nodeInfoObj = (BSONObject)nodesInfoList.get(nodeIndex);
+            nodeInfoObj = (BSONObject) nodesInfoList.get(nodeIndex);
         }
         int nodeId = Integer.parseInt(nodeInfoObj.get(SequoiadbConstants.FIELD_NAME_NODEID).toString());
         String hostName = nodeInfoObj.get(SequoiadbConstants.FIELD_NAME_HOST).toString();
@@ -641,9 +655,9 @@ public class ReplicaGroup {
     }
 
     private int getNodePort(BSONObject node) {
-    	if (node == null) {
-    		throw new BaseException(SDBError.SDB_SYS, "invalid information of node");
-    	}
+        if (node == null) {
+            throw new BaseException(SDBError.SDB_SYS, "invalid information of node");
+        }
         Object services = node.get(SequoiadbConstants.FIELD_NAME_GROUPSERVICE);
         if (services == null)
             throw new BaseException(SDBError.SDB_SYS, node.toString());
