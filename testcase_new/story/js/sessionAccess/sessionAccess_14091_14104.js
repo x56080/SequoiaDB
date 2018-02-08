@@ -17,9 +17,9 @@ function main()
          return;
       } 
        
-      //get groupname
-      var groups = commGetGroups( db ) ;
-      var groupName = groups[0][0]["GroupName"] ;   
+      //create group and node
+      var groupName = "group14091";       
+      createRGAndNode(db, groupName);   
          
       //create cs/maincl/subcl/attchcl ,then insert data 
       var csName = CHANGEDPREFIX + "_cs14091";
@@ -49,7 +49,8 @@ function main()
       checkAccessNodeIsPrimary( actAccessNode, groupName, false ); 
       println("---end to test testcase14091 ");  
       
-      commDropCS( db, csName, false, "Failed to drop CS.");      
+      commDropCS( db, csName, false, "Failed to drop CS.");  
+      db.removeRG(groupName);    
    }
    catch( e )
    {

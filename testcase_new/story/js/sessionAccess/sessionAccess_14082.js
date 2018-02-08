@@ -7,16 +7,17 @@ main();
 function main()
 {	  
 	try
-	{	  
+	{	 
+	   var db = new Sdb(COORDHOSTNAME, COORDSVCNAME ) ;  
 	   if( true == commIsStandalone( db ) )
       {
          println( "run mode is standalone" );
          return;
       }      
            
-      //get group and node 
-      var groups = commGetGroups( db ) ;
-      var groupName = groups[0][0]["GroupName"] ; 
+      //create group and node
+      var groupName = "group14082";       
+      createRGAndNode(db, groupName);
      
       //create coord node 
       var nodeHostName = db.listReplicaGroups().current().toObj().Group[0].HostName; 
@@ -46,6 +47,7 @@ function main()
                "clear collection in the beginning" ) ;      
       coordRg.removeNode(nodeHostName, nodeService);
       coordRg.removeNode(nodeHostName, nodeService1);
+      db.removeRG(groupName);
    }
    catch( e )
    {
