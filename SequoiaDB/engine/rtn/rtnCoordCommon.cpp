@@ -782,56 +782,62 @@ namespace engine
       goto done ;
    }
 
-   static void _rtnCoordClearExpiredSubContexts ( pmdEDUCB * cb,
-                                                  const CONTEXT_ID_MAP & contextIDMap )
+   static INT32 _rtnCoordProcessExpiredReply ( pmdEDUCB * cb,
+                                               MsgHeader * pReply,
+                                               rtnContextCoord ** expiredContext )
    {
-      PREPARE_NODES_MAP sendMap ;
-      netMultiRouteAgent * pRouteAgent =
-                                pmdGetKRCB()->getCoordCB()->getRouteAgent() ;
-      CONTEXT_ID_MAP::const_iterator iter = contextIDMap.begin() ;
+      INT32 rc = SDB_OK ;
 
-      if ( NULL == cb || cb->isInterrupted() )
+
+      SDB_RTNCB * rtnCB = pmdGetKRCB()->getRTNCB() ;
+      INT64 contextID = -1 ;
+      MsgOpReply * pOpReply = NULL ;
+
+      if ( NULL == pReply ||
+           !IS_REPLY_TYPE( pReply->opCode ) ||
+           NULL == expiredContext )
       {
-         return ;
+         goto done ;
       }
 
-      while ( iter != contextIDMap.end() )
+      pOpReply = (MsgOpReply *)pReply ;
+      if ( -1 == pOpReply->contextID )
       {
-         MsgRouteID routeID ;
-         MsgOpKillContexts killMsg ;
-
-         routeID.value = iter->first ;
-
-         killMsg.header.messageLength = sizeof ( MsgOpKillContexts ) ;
-         killMsg.header.opCode = MSG_BS_KILL_CONTEXT_REQ ;
-         killMsg.header.TID = cb->getTID() ;
-         killMsg.header.routeID.value = 0;
-         killMsg.ZERO = 0;
-         killMsg.numContexts = 1 ;
-         killMsg.contextIDs[0] = iter->second ;
-
-         PD_LOG( PDDEBUG,
-                 "send kill context to (groupID=%u, nodeID=%u, contextID=%lld)",
-                 routeID.columns.groupID, routeID.columns.nodeID,
-                 iter->second ) ;
-         rtnCoordSendRequestToNode( (void*)&killMsg, routeID, pRouteAgent,
-                                    cb, sendMap ) ;
-
-         iter ++ ;
+         goto done ;
       }
 
-      if ( sendMap.size() > 0 )
+      PD_LOG( PDWARNING, "Received expired context [%lld] from node [%s]",
+              pOpReply->contextID, routeID2String( pReply->routeID ).c_str() ) ;
+
+      if ( NULL == (*expiredContext) )
       {
-         REPLY_QUE replyQue ;
-         // Avoid timeout and killing with cascade
-         rtnCoordGetReply( cb, sendMap, replyQue, MSG_BS_KILL_CONTEXT_RES,
-                           TRUE, TRUE, FALSE, FALSE ) ;
-         while ( !replyQue.empty() )
-         {
-            SDB_OSS_FREE( replyQue.front() ) ;
-            replyQue.pop() ;
-         }
+         BSONObj dummy ;
+
+         rc = rtnCB->contextNew ( RTN_CONTEXT_COORD, (rtnContext**)expiredContext,
+                                  contextID, cb ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to create dummy coord context, "
+                      "rc: %d", rc ) ;
+
+         rc = (*expiredContext)->open( dummy, dummy, -1, 0, FALSE ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to open dummy coord context, "
+                      "rc: %d", rc ) ;
       }
+
+      rc = (*expiredContext)->addSubContext( pReply->routeID,
+                                             pOpReply->contextID ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to add sub-context to dummy coord "
+                   "context, rc: %d", rc ) ;
+
+   done :
+      return rc ;
+
+   error :
+      if ( NULL != (*expiredContext) )
+      {
+         rtnCB->contextDelete( (*expiredContext)->contextID(), cb ) ;
+         (*expiredContext) = NULL ;
+      }
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOGETREPLY, "rtnCoordGetReply" )
@@ -843,7 +849,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNCOGETREPLY ) ;
 
-      CONTEXT_ID_MAP expiredContextIDMap ;
+      rtnContextCoord * expiredContext = NULL ;
       ossQueue<pmdEDUEvent> tmpQue ;
       REQUESTID_MAP::iterator iterMap ;
 
@@ -997,19 +1003,7 @@ namespace engine
                         GET_REQUEST_TYPE( opCode ),
                         pReply->requestID, pReply->TID,
                         routeID2String( pReply->routeID ).c_str() ) ;
-               if ( IS_REPLY_TYPE( pReply->opCode ) && killExpiredContexts )
-               {
-                  MsgOpReply *pOpReply = (MsgOpReply *)pReply ;
-                  if ( -1 != pOpReply->contextID )
-                  {
-                     PD_LOG( PDWARNING, "Received expired context [%lld] "
-                             "from node [%s]", pOpReply->contextID,
-                             routeID2String( pReply->routeID ).c_str() ) ;
-                     expiredContextIDMap.push_back( make_pair(
-                                                      pReply->routeID.value,
-                                                      pOpReply->contextID ) ) ;
-                  }
-               }
+               _rtnCoordProcessExpiredReply( cb, pReply, &expiredContext ) ;
                SDB_OSS_FREE( pReply ) ;
             }
          }
@@ -1058,13 +1052,14 @@ namespace engine
          tmpQue.wait_and_pop( otherEvent );
          cb->postEvent( otherEvent );
       }
-      if ( !expiredContextIDMap.empty() )
+      if ( NULL != expiredContext )
       {
-         _rtnCoordClearExpiredSubContexts( cb, expiredContextIDMap ) ;
-         expiredContextIDMap.clear() ;
+         SDB_RTNCB * rtnCB = pmdGetKRCB()->getRTNCB() ;
+         rtnCB->contextDelete( expiredContext->contextID(), cb ) ;
       }
       PD_TRACE_EXITRC ( SDB_RTNCOGETREPLY, rc ) ;
       return rc;
+
    error:
       //clear the incomplete reply-queue
       if ( clearReplyIfFailed )
