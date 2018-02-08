@@ -137,11 +137,11 @@ public class DatasourceOptions implements Cloneable {
     /**
      * @fn void setSyncCoordInterval(int syncCoordInterval)
      * @brief Set the interval for updating coord's addresses from catalog in milliseconds.
-     *         When the offered value is less than 60,000 milliseconds, use 60,000 milliseconds instead.
      * @param syncCoordInterval Default to be 0ms.
      * @note The updated coord addresses will cover the addresses in the pool.
-     *       When "syncCoordInterval" is 0, the pool will stop updating coord's addresses from
-     *       catalog.
+     *       The offered value can not less than 0. When it is 0, the pool will
+     *       stop updating coord's addresses from catalog, and when it is less than
+     *       60,000 milliseconds, use 60,000 milliseconds instead.
      * @since v1.12.6 and v2.2
      */
     public void setSyncCoordInterval(int syncCoordInterval) {
