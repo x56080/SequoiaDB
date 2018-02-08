@@ -142,10 +142,14 @@ public class DatasourceOptions implements Cloneable {
      * @note The updated coord addresses will cover the addresses in the pool.
      *       When "syncCoordInterval" is 0, the pool will stop updating coord's addresses from
      *       catalog.
+     * @exception BaseException when the offered value is less than 0.
      * @since v1.12.6 and v2.2
      */
     public void setSyncCoordInterval(int syncCoordInterval) {
-        if (syncCoordInterval < 60000) {
+        if (syncCoordInterval < 0) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "the value can not be less than 0");
+        }
+        if (syncCoordInterval < 60000 && syncCoordInterval != 0) {
             _syncCoordInterval = 60000;
         } else {
             _syncCoordInterval = syncCoordInterval;
