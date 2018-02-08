@@ -4,9 +4,11 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
+import org.bson.types.BSONDecimal;
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -41,92 +43,50 @@ public class IdIndex6613 extends SdbTestBase {
 	private ArrayList<BSONObject> insertRecods;
 
 	@BeforeClass
-	public void setUp() {
-		try {
-			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-		} catch (BaseException e) {
-			Assert.fail("TestIndex6613 setUp error, error description:"
-					+ e.getMessage());
-		}
+	public void setUp() {		
+		sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");		
 		createCL();
 	}
 
 	@Test
-	public void insertData() {
-
-		CreateIndex IndexThread = new CreateIndex();
-		IndexThread.start();
-		try {
-			this.insertRecods = new ArrayList<BSONObject>();
-			BSONObject bson;
-			for (int i = 0; i < 1000; i++) {
-				bson = new BasicBSONObject();
-				bson.put("_id", i);
-				bson.put("age", i);
-				this.insertRecods.add(bson);
-			}
-			cl.bulkInsert(this.insertRecods, DBCollection.FLG_INSERT_CONTONDUP);
-			if (!IndexThread.isSuccess()) {
-				Assert.fail(IndexThread.getErrorMsg());
-			}
-		} catch (BaseException e) {
-			Assert.fail("Index6613 insert error:" + e.getMessage());
-		} finally {
-			IndexThread.join();
-			// 检查插入要确保索引已建
-			checkInsert(cl);
-		}
+	public void insertDataAndCreateIdIndex() {
+		int beginNo1 = 0;
+		int endNo1 = 10000;
+		int beginNo2 = 10000;
+		int endNo2 = 20000;
+		int beginNo3 = 20000;
+		int endNo3 = 30000;
+		InsertDatas insertDatas1 = new InsertDatas(beginNo1, endNo1);
+		InsertDatas insertDatas2 = new InsertDatas(beginNo2, endNo2);
+		InsertDatas insertDatas3= new InsertDatas(beginNo3, endNo3);
+		insertDatas1.start();
+		insertDatas2.start();
+		insertDatas3.start();
+		
+		CreateIndex createIndex = new CreateIndex();
+		createIndex.start();
+		
+		Assert.assertTrue( insertDatas1.isSuccess(), insertDatas1.getErrorMsg());
+		Assert.assertTrue( insertDatas2.isSuccess(), insertDatas2.getErrorMsg());
+		Assert.assertTrue( insertDatas3.isSuccess(), insertDatas3.getErrorMsg());
+		Assert.assertTrue( createIndex.isSuccess(), createIndex.getErrorMsg());
+		
+		// 检查插入要确保索引已建
+		checkIndex(cl);		
 	}
-
-	/**
-	 * 创建索引
-	 */
-	class CreateIndex extends SdbThreadBase {
-		@Override
-		public void exec() throws BaseException {
-			Sequoiadb sdb1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-			try {
-				DBCollection cl1 = sdb1.getCollectionSpace(SdbTestBase.csName)
-						.getCollection(clName);
-				BSONObject indexObj2 = (BSONObject) JSON
-						.parse("{SortBufferSize:32}");
-				cl1.createIdIndex(indexObj2);
-				chekIndex(cl1);
-
-			} catch (BaseException e) {
-				throw e;
-			} finally {
-				if (sdb1 != null) {
-					sdb1.disconnect();
-				}
-			}
-		}
-	}
-
+	
 	@AfterClass
-	public void tearDown() {
-		try {
-			if (cs.isCollectionExist(clName)) {
-				cs.dropCollection(clName);
-			}
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage());
-		} finally {
+	public void tearDown() {		
+		try{
+			cs.dropCollection(clName);			
+		}finally {
 			if (sdb != null) {
 				sdb.disconnect();
 			}
 		}
 	}
 
-	public void createCL() {
-		try {
-			if (!this.sdb.isCollectionSpaceExist(SdbTestBase.csName)) {
-				this.sdb.createCollectionSpace(SdbTestBase.csName);
-			}
-		} catch (BaseException e) {
-			// -33 CS 集合空间已存在
-			Assert.assertEquals(-33, e.getErrorCode(), e.getMessage());
-		}
+	public void createCL() {		
 		try {
 			String clOptions = "{ShardingKey:{a:1},ShardingType:'hash',Partition:1024,"
 					+ "ReplSize:0,Compressed:true,AutoIndexId:false}";
@@ -140,34 +100,109 @@ public class IdIndex6613 extends SdbTestBase {
 	}
 
 	/**
-	 * 检查插入
+	 * 创建索引
 	 */
-	public void checkInsert(DBCollection cl) {
-		DBCursor cursor = null;
-		try {
-			cursor = cl.query(null, null, "{_id:1}", "{'':'$id'}");
-			List<BSONObject> actual = new ArrayList<BSONObject>();
-			while (cursor.hasNext()) {
-				BSONObject obj = cursor.getNext();
-				actual.add(obj);
-			}
-			// 对比插入值和查询值
-			Assert.assertEquals(actual, this.insertRecods);
-		} catch (BaseException e) {
-			Assert.fail("IdIndex6613 insert error:" + e.getMessage());
-		} finally {
-			if (cursor != null) {
-				cursor.close();
+	private class CreateIndex extends SdbThreadBase {
+		@Override
+		public void exec() throws BaseException {
+			@SuppressWarnings("resource")
+			Sequoiadb sdb1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");			
+			try {
+				DBCollection cl1 = sdb1.getCollectionSpace(SdbTestBase.csName)
+						.getCollection(clName);
+				BSONObject indexObj2 = (BSONObject) JSON
+						.parse("{SortBufferSize:32}");
+				
+				//随机取2000-6000之间的sleep时间，验证插入不同阶段createindex
+				try {
+					long time = (long) (2000+Math.random()*(6000-2000+1));				
+					Thread.sleep(time);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				cl1.createIdIndex(indexObj2);				
+			} finally {
+				if (sdb1 != null) {
+					sdb1.disconnect();
+				}
 			}
 		}
 	}
 
+	private class InsertDatas extends SdbThreadBase {
+		private int beginNo,endNo;
+		
+		private InsertDatas(int beginNo, int endNo) {
+			this.beginNo = beginNo;
+			this.endNo = endNo;
+		}
+		@Override
+		public void exec() throws BaseException {
+			@SuppressWarnings("resource")
+			Sequoiadb sdb2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+			sdb2.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance: 'M'}"));
+			DBCollection cl2 = sdb2.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+			try {				
+				insertData(cl2, beginNo ,endNo);				
+				//check the insert records,check the numbers				
+				String match = "{a:{$gte:"+beginNo+",$lt:"+endNo+"}}";
+				long count = cl2.getCount(match);					
+				Assert.assertEquals(count, endNo - beginNo);
+			} finally {
+				if (sdb2 != null) {
+					sdb2.disconnect();
+				}
+			}
+		}
+	}
+	
+	private void insertData(DBCollection cl, int beginNo ,int endNo) { 
+		int count = 0;	
+		List<BSONObject>list = new ArrayList<BSONObject>();	
+		for ( int i = beginNo; i < endNo; i++){				
+				BSONObject obj = new BasicBSONObject();
+				obj.put("a", i);
+				obj.put("b", i);
+				obj.put("c", i);
+				obj.put("test","testeaaaaasdgadgaasdga"+i);
+				obj.put("str", "test_" + String.valueOf(i));
+				//insert the decimal type data
+				String str = "32345.067891234567890123456789" + i;
+				BSONDecimal decimal = new BSONDecimal(str);			
+				obj.put("decimal",decimal);
+				//the data type 
+				Date now = new Date();
+				obj.put("date",now);					
+				list.add(obj);					
+		}
+		cl.bulkInsert(list, 0);				
+	}	
+	
+
 	/**
 	 * 检查索引
 	 */
-	public void chekIndex(DBCollection cl) {
+	public void checkIndex(DBCollection cl) {
 		DBCursor cursor1 = null;
+		DBCursor cursorIndex = null;
 		try {
+			cursorIndex = cl.getIndex("$id");
+    		while(cursorIndex.hasNext()){
+    			// check the $id index info
+    			BSONObject object = cursorIndex.getNext();
+    			BSONObject record = (BSONObject) object.get("IndexDef");    			
+    			boolean actualUnique = (boolean) record.get("unique");
+    			Assert.assertEquals(actualUnique, true);
+    			
+    			boolean actualEnforced = (boolean) record.get("enforced");
+    			Assert.assertEquals(actualEnforced, true);    			
+    			Assert.assertEquals(record.get("key"), JSON.parse("{'_id':1}"));
+    			//check the index status
+    			String indexFlag = (String) object.get("IndexFlag");
+    			Assert.assertEquals(indexFlag, "Normal");
+    		}
+    		
 			// 通过explain，判断是否走索引
 			cursor1 = cl.explain(null, null, null,
 					(BSONObject) JSON.parse("{'':'$id'}"), 0, -1,
@@ -184,13 +219,13 @@ public class IdIndex6613 extends SdbTestBase {
 			}
 			Assert.assertEquals(scanType, "ixscan");
 			Assert.assertEquals(indexName, "$id");
-		} catch (BaseException e) {
-			throw e;
 		} finally {
 			if (cursor1 != null) {
 				cursor1.close();
 			}
-
+			if(cursorIndex != null){
+				cursorIndex.close();
+			}
 		}
 	}
 }
