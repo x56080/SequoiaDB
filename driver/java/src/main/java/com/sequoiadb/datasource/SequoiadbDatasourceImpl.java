@@ -365,7 +365,7 @@ public class SequoiadbDatasourceImpl {
                     for (int i = 0; i < objArr.length; i++) {
                         BSONObject subObj = (BasicBSONObject) objArr[i];
                         String hostName = (String) subObj.get("HostName");
-                        if (hostName == null) throw exp;
+                        if (hostName == null || hostName.trim().isEmpty()) throw exp;
                         String svcName = "";
                         BasicBSONList subArr = (BasicBSONList) subObj.get("Service");
                         if (subArr == null) throw exp;
@@ -376,9 +376,14 @@ public class SequoiadbDatasourceImpl {
                             if (type == null) throw exp;
                             if (type == 0) {
                                 svcName = (String) subSubObj.get("Name");
-                                if (svcName == null) throw exp;
-                                String ip = _parseHostName(hostName);
-                                addrList.add(ip + ":" + svcName);
+                                if (svcName == null || svcName.trim().isEmpty()) throw exp;
+                                String ip;
+                                try {
+                                    ip = _parseHostName(hostName.trim());
+                                } catch (Exception e) {
+                                    break;
+                                }
+                                addrList.add(ip + ":" + svcName.trim());
                                 break;
                             }
                         }
@@ -469,7 +474,7 @@ public class SequoiadbDatasourceImpl {
     public int getNormalAddrNum() {
         return _normalAddrs.size();
     }
-
+    
     /**
      * @fn int getAbnormalAddrNum()
      * @brief Get the current abnormal address amount.
@@ -499,8 +504,8 @@ public class SequoiadbDatasourceImpl {
      * @exception com.sequoiadb.Exception.BaseException
      */
     public void addCoord(String url) throws BaseException {
-        Lock rlock = _rwLock.readLock();
-        rlock.lock();
+        Lock wlock = _rwLock.writeLock();
+        wlock.lock();
         try {
             if (_hasClosed) {
                 throw new BaseException(SDBError.SDB_SYS, "connection pool has closed");
@@ -528,7 +533,7 @@ public class SequoiadbDatasourceImpl {
                 _strategy.addAddress(addr);
             }
         } finally {
-            rlock.unlock();
+            wlock.unlock();
         }
     }
 
@@ -538,8 +543,8 @@ public class SequoiadbDatasourceImpl {
      * @since v1.12.6 & v2.2
      */
     public void removeCoord(String url) throws BaseException {
-        Lock rlock = _rwLock.readLock();
-        rlock.lock();
+        Lock wlock = _rwLock.writeLock();
+        wlock.lock();
         try {
             if (_hasClosed) {
                 throw new BaseException(SDBError.SDB_SYS, "connection pool has closed");
@@ -558,7 +563,7 @@ public class SequoiadbDatasourceImpl {
                 _removeAddrInStrategy(addr);
             }
         } finally {
-            rlock.unlock();
+            wlock.unlock();
         }
     }
 
@@ -1592,9 +1597,9 @@ public class SequoiadbDatasourceImpl {
         try {
             ia = InetAddress.getByName(hostName);
         } catch (UnknownHostException e) {
-            throw new BaseException(SDBError.SDB_SYS, "Failed to parse host name to ip for UnknownHostException");
+            throw new BaseException(SDBError.SDB_SYS, "Failed to parse host name to ip for UnknownHostException", e);
         } catch (SecurityException e) {
-            throw new BaseException(SDBError.SDB_SYS, "Failed to parse host name to ip for SecurityException");
+            throw new BaseException(SDBError.SDB_SYS, "Failed to parse host name to ip for SecurityException", e);
         }
         return ia.getHostAddress();
     }
