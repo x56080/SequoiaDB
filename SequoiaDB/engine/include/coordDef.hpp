@@ -38,6 +38,7 @@
 
 #include "clsCatalogAgent.hpp"
 #include "utilMap.hpp"
+#include "utilList.hpp"
 #include "../bson/bson.h"
 #include <vector>
 #include <queue>
@@ -84,6 +85,7 @@ namespace engine
    typedef _utilMap< UINT64, coordErrorInfo, 20 >     ROUTE_RC_MAP ;
    typedef _utilMap< UINT64, MsgHeader*, 20 >         ROUTE_REPLY_MAP ;
    typedef _utilMap< UINT32, netIOVec, 20 >           GROUP_2_IOVEC ;
+   typedef _utilList< std::pair< UINT64, INT64 > >    CONTEXT_ID_MAP ;
    typedef std::set< INT32 >                          SET_RC ;
 
    typedef _utilMap< UINT32, UINT32, 20 >             CoordGroupList ;
