@@ -46,7 +46,9 @@ namespace engine
    INT32 rtnCoordGetReply ( pmdEDUCB *cb, REQUESTID_MAP &requestIdMap,
                             REPLY_QUE &replyQue, const SINT32 opCode,
                             BOOLEAN isWaitAll = TRUE,
-                            BOOLEAN clearReplyIfFailed = TRUE ) ;
+                            BOOLEAN clearReplyIfFailed = TRUE,
+                            BOOLEAN needTimeout = TRUE,
+                            BOOLEAN killExpiredContexts = TRUE ) ;
 
    INT32 rtnCoordCataQuery ( const CHAR *pCollectionName,
                              const bson::BSONObj &selector,

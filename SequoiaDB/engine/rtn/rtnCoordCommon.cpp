@@ -782,39 +782,6 @@ namespace engine
       goto done ;
    }
 
-   static BOOLEAN _rtnCoordNeedTimeout ( const SINT32 opCode )
-   {
-      BOOLEAN needTimeout = TRUE ;
-
-      switch ( opCode )
-      {
-         case MSG_BS_KILL_CONTEXT_RES :
-            needTimeout = FALSE ;
-            break ;
-         default :
-            break ;
-      }
-
-      return needTimeout ;
-   }
-
-   static BOOLEAN _rtnCoordCouldKillExpiredSubContexts ( const SINT32 opCode )
-   {
-      BOOLEAN needKill = TRUE ;
-
-      switch ( opCode )
-      {
-         case MSG_BS_KILL_CONTEXT_RES :
-            // avoid cascade killing
-            needKill = FALSE ;
-            break ;
-         default :
-            break ;
-      }
-
-      return needKill ;
-   }
-
    static void _rtnCoordClearExpiredSubContexts ( pmdEDUCB * cb,
                                                   const CONTEXT_ID_MAP & contextIDMap )
    {
@@ -856,7 +823,9 @@ namespace engine
       if ( sendMap.size() > 0 )
       {
          REPLY_QUE replyQue ;
-         rtnCoordGetReply( cb, sendMap, replyQue, MSG_BS_KILL_CONTEXT_RES ) ;
+         // Avoid timeout and killing with cascade
+         rtnCoordGetReply( cb, sendMap, replyQue, MSG_BS_KILL_CONTEXT_RES,
+                           TRUE, TRUE, FALSE, FALSE ) ;
          while ( !replyQue.empty() )
          {
             SDB_OSS_FREE( replyQue.front() ) ;
@@ -868,7 +837,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOGETREPLY, "rtnCoordGetReply" )
    INT32 rtnCoordGetReply ( pmdEDUCB *cb,  REQUESTID_MAP &requestIdMap,
                             REPLY_QUE &replyQue, const SINT32 opCode,
-                            BOOLEAN isWaitAll, BOOLEAN clearReplyIfFailed )
+                            BOOLEAN isWaitAll, BOOLEAN clearReplyIfFailed,
+                            BOOLEAN needTimeout, BOOLEAN killExpiredContexts )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNCOGETREPLY ) ;
@@ -881,7 +851,7 @@ namespace engine
       INT64 waitTime = RTN_COORD_RSP_WAIT_TIME ;
       BOOLEAN needInterrupt = FALSE ;
 
-      oprtTimeout = ( oprtTimeout <= 0 || !_rtnCoordNeedTimeout( opCode ) ) ?
+      oprtTimeout = ( oprtTimeout <= 0 || !needTimeout ) ?
                     0x7FFFFFFFFFFFFFFF : oprtTimeout ;
 
       while ( requestIdMap.size() > 0 )
@@ -1027,8 +997,7 @@ namespace engine
                         GET_REQUEST_TYPE( opCode ),
                         pReply->requestID, pReply->TID,
                         routeID2String( pReply->routeID ).c_str() ) ;
-               if ( IS_REPLY_TYPE( pReply->opCode ) &&
-                    _rtnCoordCouldKillExpiredSubContexts( opCode ) )
+               if ( IS_REPLY_TYPE( pReply->opCode ) && killExpiredContexts )
                {
                   MsgOpReply *pOpReply = (MsgOpReply *)pReply ;
                   if ( -1 != pOpReply->contextID )

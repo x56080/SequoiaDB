@@ -2660,8 +2660,10 @@ namespace engine
          if ( _prepareContextMap.size() > 0 )
          {
             REPLY_QUE replyQue ;
+            // Avoid timeout and killing with cascade
             rtnCoordGetReply( cb, _prepareNodeMap, replyQue,
-                              MSG_BS_KILL_CONTEXT_RES ) ;
+                              MSG_BS_KILL_CONTEXT_RES, TRUE, TRUE,
+                              FALSE, FALSE ) ;
             while ( !replyQue.empty() )
             {
                SDB_OSS_FREE( replyQue.front() ) ;
