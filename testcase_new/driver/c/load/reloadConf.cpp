@@ -244,6 +244,7 @@ int changeNodeConf( const char* svc, const char* conf, int value )
 
 TEST( reloadConf, weight )
 {
+   /*
 	int rc = SDB_OK ;
 	sdbConnectionHandle db = SDB_INVALID_HANDLE ;
 
@@ -313,4 +314,5 @@ TEST( reloadConf, weight )
 	sdbReleaseConnection( db ) ;
 	sdbReleaseReplicaGroup( rg ) ;
 	sdbReleaseNode( node ) ;
+	*/
 }
