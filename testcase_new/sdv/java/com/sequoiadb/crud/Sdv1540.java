@@ -87,10 +87,8 @@ public class Sdv1540 extends SdbTestBase {
         MyTask delete = new MyTask() {
             @Override
             void opration(DBCollection cl) {
-                while (!record2Delete.isEmpty()) {
-                    BasicBSONObject o = (BasicBSONObject) record2Delete.poll();
-                    if (o == null)
-                        break;
+                BasicBSONObject o;
+                while ((o = (BasicBSONObject) record2Delete.poll()) != null) {
                     cl.delete(new BasicBSONObject("_id", o.getObjectId("_id")));
                 }
             }
@@ -152,8 +150,8 @@ public class Sdv1540 extends SdbTestBase {
         MyTask deleteLob = new MyTask() {
             @Override
             void opration(DBCollection cl) {
-                while (!lob2DeleteQueue.isEmpty()) {
-                    ObjectId id = lob2DeleteQueue.poll();
+                ObjectId id;
+                while ((id = lob2DeleteQueue.poll()) != null) {
                     cl.removeLob(id);
                 }
             }

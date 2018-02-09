@@ -83,8 +83,8 @@ public class CRUD6985 extends SdbTestBase {
 
             @Override
             protected void doCurdHere(DBCollection cl) {
-                while (!removeQueue.isEmpty()) {
-                    BSONObject o = removeQueue.poll();
+                BSONObject o;
+                while ((o = removeQueue.poll()) != null) {
                     cl.delete(new BasicBSONObject("_id", o.get("_id")));
                 }
             }
@@ -113,8 +113,8 @@ public class CRUD6985 extends SdbTestBase {
 
             @Override
             protected void doCurdHere(DBCollection cl) {
-                while (!updateQueue.isEmpty()) {
-                    BSONObject o = updateQueue.poll();
+                BSONObject o;
+                while ((o = updateQueue.poll()) != null) {
                     cl.update(new BasicBSONObject("_id", o.get("_id")), (BSONObject) JSON.parse("{$inc:{a:1}}"), new BasicBSONObject());
                 }
             }
