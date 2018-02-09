@@ -8487,6 +8487,7 @@ SDB_EXPORT INT32 sdbGetSessionAttr ( sdbConnectionHandle cHandle,
                                      bson * result )
 {
    INT32 rc = SDB_OK ;
+   BOOLEAN gotHandle = FALSE ;
    BOOLEAN gotAttribute = FALSE ;
    sdbCursorHandle cursor = SDB_INVALID_HANDLE ;
    sdbConnectionStruct * connection = (sdbConnectionStruct *)cHandle ;
@@ -8499,6 +8500,7 @@ SDB_EXPORT INT32 sdbGetSessionAttr ( sdbConnectionHandle cHandle,
 
    // check handle
    HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
+   gotHandle = TRUE ;
 
    if ( _sdbGetSessionAttrCache( connection, result ) )
    {
@@ -8571,7 +8573,10 @@ done :
    return rc ;
 
 error :
-   _sdbClearSessionAttrCache( connection, TRUE ) ;
+   if ( gotHandle )
+   {
+      _sdbClearSessionAttrCache( connection, TRUE ) ;
+   }
    goto done ;
 }
 
