@@ -63,7 +63,9 @@ public class Split508 extends SdbTestBase {
 	// 切分范围{a:0,a:10000} - {b:10000,b:0} 切分范围{a:20000,b:30000} {b:30000,b:20000}
 	@DataProvider(name = "rangeProvider", parallel = true)
 	public Object[][] rangeProvider() {
-		return new Object[][] { { 0, 10000, 10000, 0 }, { 20000, 30000, 30000, 20000, } };
+		return new Object[][] { 
+			{ 0, 10000, 10000, 0 }, 
+			{ 20000, 30000, 30000, 20000} };
 	}
 
 	// 切分{a:0,b:10000} - {a:10000,b:0} 切分{a:20000,b:30000} {a:30000,b:20000}
@@ -91,6 +93,26 @@ public class Split508 extends SdbTestBase {
 		long count = cl.getCount("{_id:{$isnull:0}}");
 		long expected = 30000;
 		Assert.assertEquals(count, expected);
+		
+		//目标组上检查边界值数据
+		Sequoiadb destDataNode = null;
+		try{
+			destDataNode = commSdb.getReplicaGroup(destGroupName).getMaster().connect();			
+			DBCollection dbcl = destDataNode.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+			//目标组含有{a:10000,b:10000}边界值记录			
+			Assert.assertEquals(dbcl.getCount("{a:10000,b:10000}"), 1);
+			Assert.assertEquals(dbcl.getCount("{a:20000,b:20000}"), 1);
+			Assert.assertEquals(dbcl.getCount("{a:29999,b:29999}"), 1);
+
+			// 目标组不含切分范围外的数据
+			long destDataCount1 = destDataNode.getCollectionSpace(csName).getCollection(clName)
+					.getCount("{$or:[{a:{$lt:0}},{a:{$gte:10000,$lt:20000},{a:{$gt:30000}}]}");
+			Assert.assertEquals(destDataCount1, 0);
+		}finally{
+			if( destDataNode != null ){
+				destDataNode.disconnect();
+			}
+		}
 	}
 	
 
@@ -107,13 +129,13 @@ public class Split508 extends SdbTestBase {
 		}
 	}
 	
-	// 比对目标组数据正确性
+	// 比对目标组数据量
 	private void checkResult(Sequoiadb sdb, int alowBound, int aUpBound) {
-
 		DBCursor dbc = null;
 		Sequoiadb destDataNode = null;
 		try{
 			destDataNode = sdb.getReplicaGroup(destGroupName).getMaster().connect();
+			
 			DBCollection dbcl = destDataNode.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
 
 			// 逐条比对记录			
@@ -132,13 +154,7 @@ public class Split508 extends SdbTestBase {
 			// 目标组含有本线程切分范围的数据
 			int expRecords = 10000;
 			Assert.assertEquals(count, expRecords );
-			//目标组含有{a:10000,b:10000}边界值记录
-			Assert.assertEquals(dbcl.getCount("{a:10000,b:10000}"), 1);
-
 			
-			long destDataCount1 = destDataNode.getCollectionSpace(csName).getCollection(clName)
-					.getCount("{$or:[{a:{$lt:0}},{a:{$gte:10000,$lt:20000},{a:{$gt:30000}}]}");
-			Assert.assertEquals(destDataCount1, 0);// 目标组不含切分范围外的数据
 		}finally{
 			if( destDataNode != null ){
 				destDataNode.disconnect();
