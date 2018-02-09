@@ -70,7 +70,12 @@ class setSessionAttr14156 extends PHPUnit_Framework_TestCase
       }
       
       // insert
-      self::$clDB -> bulkInsert( '{"a":1}', '{"a":100}' );
+      $records = array();
+      for ($i = 0; $i < 10000; $i++) 
+      {
+         array_push( $records, array('a' => $i) );
+      }
+      self::$clDB -> bulkInsert( $records );
       if ( self::$db -> getError()['errno'] != 0 )
       {
          throw new Exception("failed to in, errno=".self::$db -> getError()['errno']);
