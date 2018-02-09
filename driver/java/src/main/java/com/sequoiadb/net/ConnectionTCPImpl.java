@@ -38,7 +38,6 @@ import com.sequoiadb.util.logger;
 
 /**
  * @author Jacky Zhang
- *
  */
 public class ConnectionTCPImpl implements IConnection {
 
