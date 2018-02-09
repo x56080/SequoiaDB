@@ -5,10 +5,8 @@
 *
 *******************************************************************/
 var csname = COMMCSNAME ;
-var clname = COMMCLNAME + "_sdbexprt13490" ;
-var doc = { a: 1 } ;
-var csvContent = "a\n1\n" ;
-var jsonContent = "{ \"a\": 1 }\n" ;
+var csvContent = "Name\n\"" + csname + "\"\n" ;
+var jsonContent = "{ \"Name\": \""+ csname + "\" }\n" ;
 
 main() ;
 
@@ -19,19 +17,16 @@ function main()
       println( "Run mode is standalone, no cata node" ) ;
       return ;
    }
+   clearAllCs( db ) ;
+   commCreateCS( db, csname ) ;
    
    var groupName = "SYSCatalogGroup" ;
    var master = db.getRG( groupName ).getMaster().toString() ;
    var host = master.split( ":" )[0] ;
    var svc = master.split( ":" )[1] ;
    
-   var catadb = new Sdb( host, svc ) ;
-   var cl = commCreateCL( catadb, csname, clname, 0 ) ;
-   cl.insert( doc ) ;
    testExprtCsv( host, svc ) ;
    testExprtJson( host, svc ) ;
-   commDropCL( catadb, csname, clname, false, false ) ;
-   catadb.close() ;
 }
 
 function testExprtCsv( hostname, svcname )
@@ -41,11 +36,11 @@ function testExprtCsv( hostname, svcname )
    var command = installPath + "bin/sdbexprt" + 
                  " -s " + hostname + 
                  " -p " + svcname +  
-                 " -c " + csname + 
-                 " -l " + clname + 
+                 " -c SYSCAT" + 
+                 " -l SYSCOLLECTIONSPACES" + 
                  " --file " + csvfile + 
                  " --type csv" + 
-                 " --fields a" ;
+                 " --fields Name" ;
    testRunCommand( command ) ;
 
    checkFileContent( csvfile, csvContent ) ;
@@ -60,14 +55,25 @@ function testExprtJson( hostname, svcname )
    var command = installPath + "bin/sdbexprt" + 
                  " -s " + hostname +
                  " -p " + svcname +
-                 " -c " + csname + 
-                 " -l " + clname + 
+                 " -c SYSCAT" + 
+                 " -l SYSCOLLECTIONSPACES" + 
                  " --type json" + 
                  " --file " + jsonfile + 
-                 " --fields a" ;
+                 " --fields Name" ;
    testRunCommand( command ) ;
    
    checkFileContent( jsonfile, jsonContent ) ;
    
    cmd.run( "rm -rf " + jsonfile ) ;
+}
+
+function clearAllCs( db )
+{
+   var cursor = db.listCollectionSpaces() ;
+   var obj ;
+   while( obj = cursor.next() )
+   {
+      var name = obj.toObj()["Name"] ;
+      db.dropCS( name ) ; 
+   }
 }
