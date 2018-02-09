@@ -151,7 +151,7 @@ namespace engine
                selector.value.relegation() = _aliases.front() ;
                selector.alias.clear() ;
             }
-
+            selector.expr.set( NULL ) ;
             filter->_selector.push_back( selector ) ;
          }
          }
