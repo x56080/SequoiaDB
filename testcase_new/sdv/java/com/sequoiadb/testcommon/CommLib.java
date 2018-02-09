@@ -20,7 +20,7 @@ public class CommLib {
 	 * @param sdb
 	 * @return true/false, true is standalone, false is cluster
 	 */
-	public boolean isStandAlone(Sequoiadb sdb){
+	public static boolean isStandAlone(Sequoiadb sdb){
 		try{
 			sdb.listReplicaGroups();
 		}catch(BaseException e){
@@ -452,7 +452,6 @@ public class CommLib {
 	
 	/**
 	 * compare node's data within the group
-	 * @param .......
 	 * @param matcher, matching condition for query
 	 */
 	public void compareNodeData(Sequoiadb sdb, 

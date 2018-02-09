@@ -1,10 +1,12 @@
 package com.sequoiadb.crud.compress.concurrency;
 
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.testcommon.SdbThreadBase;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -13,13 +15,9 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @FileName:seqDB-6673:创建多个lzw压缩表，并发插入数据
@@ -122,7 +120,7 @@ public class TestConcurrency6673 extends SdbTestBase {
         DBCollection cl = null;
         try{
             BSONObject option = new BasicBSONObject();
-            dataGroupName = ((ArrayList<String>)CompressUtils.getDataGroups(sdb)).get(0);
+            dataGroupName = ((ArrayList<String>) CompressUtils.getDataGroups(sdb)).get(0);
             option.put("Group", dataGroupName);
             option.put("Compressed", true);
             option.put("CompressionType", "lzw");
