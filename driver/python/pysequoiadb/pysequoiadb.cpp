@@ -2488,7 +2488,7 @@ __METHOD_IMP(cl_explain)
    const bson::BSONObj *hint      = NULL ;
    const bson::BSONObj *options   = NULL ;
 
-   if ( !PARSE_PYTHON_ARGS( args, "OOOOOOLLLO", &obj, &cursor_object,
+   if ( !PARSE_PYTHON_ARGS( args, "OOOOOOLLiO", &obj, &cursor_object,
         &bson_condition,  &bson_selector, &bson_order_by,
         &bson_hint, &num_to_skip, &num_to_return, &flag, &bson_options ) )
    {
