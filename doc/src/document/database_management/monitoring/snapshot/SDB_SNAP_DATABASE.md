@@ -16,17 +16,24 @@ SDB_SNAP_DATABASE
 | GroupName             | 字符串 | 该逻辑节点所属的分区组名，standalone 模式下该字段为空字符串                     |
 | IsPrimary             | 布尔   | 该节点是否为主节点，standalone 模式下该字段为 false                             |
 | ServiceStatus         | 布尔   | 是否为可提供服务状态。<br>一些特殊状态，例如[全量同步](infrastructure/replication/replicate.md)会使该状态为 false |              
+| Status                | 字符串 | 节点状态，为 “Normal” / “Rebuilding” / “FullSync” / “OfflineBackup”  |
 | BeginLSN.Offset       | 长整型 | 起始 LSN 的偏移                                                                 |
 | BeginLSN.Version      | 整型   | 起始 LSN 的版本号                                                               |
 | CurrentLSN.Offset     | 长整型 | 当前 LSN 的偏移                                                                 |
 | CurrentLSN.Version    | 整型   | 当前 LSN 的版本号                                                               |
-| TransInfo.BeginLSN    | 长整型 | 事务起始 LSN 的偏移                                                             |
+| CommittedLSN.Offset   | 长整型 | 已提交 LSN 的偏移                                                               |
+| CommittedLSN.Version  | 整型   | 已提交 LSN 的版本号                                                             |
+| CompleteLSN           | 长整型 | 已完成 LSN 的偏移                                                               |
+| LSNQueSize            | 整型   | 等待同步的LSN队列长度                                                           |
+| TransInfo.TotalCount  | 长整型 | 正在执行的事务数量                                                              |
+| TransInfo.BeginLSN    | 长整型 | 正在执行的事务的起始 LSN 的偏移                                                 |
 | NodeID                | 数组   | 节点的 ID，为“[ <分区组 ID>, <节点 ID> ]”<br>在 standalone 模式下，该字段为“[ 0，0 ]” |
 | Version.Major         | 整型   | 数据库主版本号                                                                  |
 | Version.Minor         | 整型   | 数据库子版本号                                                                  |
+| Version.Fix           | 整型   | 数据库修复版本号                                                                |
 | Version.Release       | 整型   | 数据库发行版本号                                                                |
 | Version.Build         | 字符串 | 数据库编译时间                                                                  |
-| CurrentActiveSessions | 整型   | 当前活动会话，该数量包括用户 EDU 与系统 EDU                                     |
+| Editon                | 字符串 | “Enterprise”表示企业版（备注：社区版中无该字段）                                |
 | CurrentIdleSessions   | 整型   | 当前非活动会话，一般来说非活动会话意味着 EDU 存在线程池中等待分配               |
 | CurrentSystemSessions | 整型   | 当前系统会话，为当前活动用户 EDU 数量                                           |
 | CurrentContexts       | 整型   | 当前上下文数量                                                                  |
@@ -35,7 +42,7 @@ SDB_SNAP_DATABASE
 | Disk.DatabasePath     | 字符串 | 数据库所在路径                                                                  |
 | Disk.LoadPercent      | 整型   | 数据库路径磁盘占用率百分比                                                      |
 | Disk.TotalSpace       | 长整型 | 数据库路径总空间（单位：字节）                                                  |
-| Disk.FreeSpace        | 长整型 | 数据库路径空闲空间（单位：字节）<br><b>重要：该字段以及以上所有字段仅在数据节点和编目节点显示，协调节点不显示</b> |
+| Disk.FreeSpace        | 长整型 | 数据库路径空闲空间（单位：字节）                                                |
 | TotalNumConnects      | 整型   | 数据库连接请求数量                                                              |
 | TotalDataRead         | 长整型 | 总数据读请求                                                                    |
 | TotalIndexRead        | 长整型 | 总索引读请求                                                                    |
@@ -58,7 +65,7 @@ SDB_SNAP_DATABASE
 | vsize                 | 长整型 | 虚拟内存使用量（单位：字节）                                                    |
 | rss                   | 长整型 | 物理内存使用量（单位：字节）                                                    |
 | fault                 | 长整型 | 每秒访问失败数（仅支持 Linux），数据被交换出物理内存，放到 swap                 |
-| TotalMapped           | 长整型 | mmap 的总数据量（单位：字节）                                                                 |
+| TotalMapped           | 长整型 | mmap 的总数据量（单位：字节）                                                   |
 | svcNetIn              | 长整型 | 本地服务端口收到的网络流量（单位：字节）                                        |
 | svcNetOut             | 长整型 | 本地服务端口发送的网络流量（单位：字节）                                        |
 | shardNetIn            | 长整型 | shard 平面端口收到的网络流量（单位：字节）                                      |
@@ -96,8 +103,14 @@ SDB_SNAP_DATABASE
 | shardNetOut       | 长整型 | shard 平面端口发送的网络流量（单位：字节）    |
 | replNetIn         | 长整型 | 数据同步平面端口收到的网络流量（单位：字节）  |
 | replNetOut        | 长整型 | 数据同步平面端口发送的网络流量（单位：字节）  |
-| ErrNodes.NodeName | 字符串 | 返回异常节点名（主机名 + 端口）<br><b>重要：此字段仅在协调节点上并且有异常节点时显示</b> |
-| ErrNodes.Flag     | 整型   | 错误码，详细请参见：[错误码](reference/Sequoiadb_error_code.md) <br><b>重要：此字段仅在协调节点上并且有异常节点时显示</b> |
+| ErrNodes.NodeName | 字符串 | 返回异常节点名（主机名 + 端口）               |
+| ErrNodes.GroupName| 字符串 | 返回异常节点所属分区组名                      |
+| ErrNodes.Flag     | 整型   | 错误码，详细请参见：[错误码](reference/Sequoiadb_error_code.md) |
+| ErrNodes.ErrInfo  | 字符串 | 返回节点出错信息                              |
+
+> Note:
+>
+> 存在异常节点时才显示ErrNodes字段。
 
 ##非协调节点示例##
 
@@ -107,9 +120,10 @@ SDB_SNAP_DATABASE
   "NodeName": "hostname1:11810",
   "HostName": "hostname1",
   "ServiceName": "11810",
-  "GroupName": "",
+  "GroupName": "group1",
   "IsPrimary": false,
   "ServiceStatus": true,
+  "Status": "Normal",
   "BeginLSN": {
     "Offset": 0,
     "Version": 1
@@ -118,16 +132,24 @@ SDB_SNAP_DATABASE
     "Offset": -1,
     "Version": 0
   },
+  "CommittedLSN": {
+    "Offset": -1,
+    "Version": 0
+  },
+  "CompleteLSN": -1,
+  "LSNQueSize": 0,
   "TransInfo": {
+    "TotalCount": 0,
     "BeginLSN": -1
   },
   "NodeID": [
-    0,
-    0
+    1000,
+    1000
   ],
   "Version": {
     "Major": 1,
     "Minor": 8,
+    "Fix": 0,
     "Release": 13971,
     "Build": "2014-08-07-11.04.12(Debug)"
   },
@@ -136,7 +158,7 @@ SDB_SNAP_DATABASE
   "CurrentSystemSessions": 5,
   "CurrentContexts": 1,
   "ReceivedEvents": 0,
-  "Role": "standalone",
+  "Role": "data",
   "Disk": {
     "DatabasePath": "/home/users/sdbadmin/sequoiadb",
     "LoadPercent": 46,
@@ -167,7 +189,11 @@ SDB_SNAP_DATABASE
   "fault": 12,
   "TotalMapped": 918945792,
   "svcNetIn": 3051,
-  "svcNetOut": 9245
+  "svcNetOut": 9245,
+  "shardNetIn": 3054,
+  "shardNetOut": 9265,
+  "replNetIn": 0,
+  "replNetOut": 0
 }
 ```
 
@@ -202,6 +228,13 @@ SDB_SNAP_DATABASE
   "shardNetOut": 393997,
   "replNetIn": 40743956,
   "replNetOut": 40743956,
-  "ErrNodes": []
+  "ErrNodes": [
+    {
+      "NodeName": "hostname1:11850",
+      "GroupName": "group2",
+      "Flag": -79,
+      "ErrInfo": {}
+    }
+  ]
 }
 ```
