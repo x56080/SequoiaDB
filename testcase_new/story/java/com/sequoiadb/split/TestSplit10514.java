@@ -192,8 +192,6 @@ public class TestSplit10514 extends SdbTestBase{
                     expected.add(this.insertRecods.get(i-1));
                 }
             }
-            System.out.println(actual);
-            System.out.println(expected);
             Assert.assertEquals(actual, expected);
         } catch (BaseException e) {
             Assert.fail(e.getMessage());
