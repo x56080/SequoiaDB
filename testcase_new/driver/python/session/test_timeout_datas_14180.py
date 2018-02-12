@@ -52,12 +52,15 @@ class TestSessiontimeout14180(testlib.SdbTestBase):
       self.cl = self.cs.create_collection(self.cl_name, {'Group': self.data_rg_name1, 'ShardingKey': {'a':1}, 'ReplSize' : 0})
 
       # insert datas at first
-      insert_nums = 10000
+      insert_nums = 30000
       self.insert_datas(insert_nums)
       
       # set session attr timeout 1ms
+      newdb1 = testlib.default_db()
+      newcl1 = newdb1.get_collection(self.cs_name + '.' + self.cl_name)
+      
       opt = {'Timeout' : 1};
-      self.db.set_session_attri(options = opt)
+      newdb1.set_session_attri(options = opt)
 
       # insert datas
       insert_nums = 50000
@@ -65,7 +68,7 @@ class TestSessiontimeout14180(testlib.SdbTestBase):
       for i in range(0, insert_nums):
          doc.append({"a": i})
       try:
-         self.cl.bulk_insert(0, doc)
+         newcl1.bulk_insert(0, doc)
          self.fail('Need Error -13')
       except SDBBaseError as e:   
          if -13 != e.code:
@@ -75,7 +78,7 @@ class TestSessiontimeout14180(testlib.SdbTestBase):
       try:
          rule = {'$set' : {'a' : 'newa'}}
          cond = {'a' : {'$gt' : 1}}
-         self.cl.update(rule, condition = cond)
+         newcl1.update(rule, condition = cond)
          self.fail('Need Error -13')
       except SDBBaseError as e:
          if -13 != e.code:
@@ -83,16 +86,15 @@ class TestSessiontimeout14180(testlib.SdbTestBase):
             
       # remove datas
       try:
-         self.cl.delete()
+         newcl1.delete()
          self.fail('Need Error -13')
       except SDBBaseError as e:
          if -13 != e.code:
             self.fail('check remove datas timeout fail: ' + e.detail)   
+
+      # disconnect db
+      newdb1.disconnect()            
       
-      # not set session timeout 
-      opt = {'Timeout' : -1};
-      self.db.set_session_attri(options = opt)		
-                        
       # split cl      
       try:
          self.cl.split_by_percent(self.data_rg_name1, self.data_rg_name2, 50)
