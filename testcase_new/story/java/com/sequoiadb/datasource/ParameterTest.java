@@ -158,7 +158,7 @@ public class ParameterTest extends DataSourceTestBase {
 			datasource.updateDatasourceOptions(option);
 			
 			Assert.assertTrue(false);
-//			Assert.assertEquals(60000, datasource.getDatasourceOptions().getSyncCoordInterval());
+			Assert.assertEquals(60000, datasource.getDatasourceOptions().getSyncCoordInterval());
 		}catch(BaseException e){
 			super.judegeErrCode("SDB_INVALIDARG", e.getErrorCode());
 	    }
