@@ -127,3 +127,5 @@ $ chmod 755 sdbsupport.sh
 >   Begin to Collect information...
 >   success to collect information from hostname2
 >   ```
+>
+>   使用 sdbsupport 时可能需要使用 expect 和 tcl 工具，可以使用 apt-get 等安装 Linux 提供的 expect 和 tcl 工具。
