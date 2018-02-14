@@ -651,7 +651,7 @@ INT32 msgExtractQuery  ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
    }
    length = *((SINT32*)(&pBuffer[offset])) ;
    MSG_CHECK_BSON_LENGTH( length ) ;
-   
+
    // since there may another BSON followed by first one, we use >
    if ( offset + length > pQuery->header.messageLength )
    {
@@ -740,7 +740,7 @@ INT32 msgBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    SDB_ASSERT ( ppBuffer && bufferSize, "Invalid input" ) ;
    INT32 rc               = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_MSGBLDGETMOREMSG );
-   PD_TRACE2 ( SDB_MSGBLDGETMOREMSG, PD_PACK_INT(numToReturn), 
+   PD_TRACE2 ( SDB_MSGBLDGETMOREMSG, PD_PACK_INT(numToReturn),
                                      PD_PACK_LONG(contextID) );
    MsgOpGetMore *pGetMore = NULL ;
    INT32 packetLength = sizeof(MsgOpGetMore);
@@ -1102,7 +1102,7 @@ INT32 msgBuildReplyMsg ( CHAR **ppBuffer, INT32 *bufferSize, INT32 opCode,
       INT32 objSize ;
       objSize = (*objList)[i].objsize() ;
       packetLength = ossRoundUpToMultipleX( packetLength, 4 ) ;
-      rc = msgCheckBuffer ( ppBuffer, bufferSize, 
+      rc = msgCheckBuffer ( ppBuffer, bufferSize,
                             packetLength + objSize ) ;
       if ( rc )
       {
@@ -1264,8 +1264,8 @@ error :
 // create reply header ONLY, note packet length is the header + data
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBLDREPLYMSGHD, "msgBuildReplyMsgHeader" )
 void msgBuildReplyMsgHeader ( MsgOpReply &replyHeader, SINT32 packetLength,
-                              INT32 opCode, SINT32 flag, SINT64 contextID, 
-                              SINT32 startFrom, SINT32 numReturned, 
+                              INT32 opCode, SINT32 flag, SINT64 contextID,
+                              SINT32 startFrom, SINT32 numReturned,
                               MsgRouteID &routeID, UINT64 reqID )
 {
    PD_TRACE_ENTRY ( SDB_MSGBLDREPLYMSGHD );
@@ -2320,7 +2320,7 @@ INT32 msgExtractTuplesAndData( const MsgLobTuple **begin, UINT32 *tuplesSize,
       const MsgLobTuple *t = *begin ;
       //UINT32 dataLen = ossRoundUpToMultipleX( t->columns.len, 4 ) ;
       UINT32 dataLen = t->columns.len ;
-      if ( sizeof( MsgLobTuple ) + dataLen <= *tuplesSize )
+      if ( sizeof( MsgLobTuple ) + dataLen < *tuplesSize )
       {
          *tuple = *begin ;
          *tuplesSize -= sizeof( MsgLobTuple ) + dataLen ;
@@ -2420,7 +2420,7 @@ INT32 msgExtractWriteLobRequest( const CHAR *pBuffer, const MsgOpLob **header,
    *offset = tuple->columns.offset ;
    *len = tuple->columns.len ;
 done:
-   PD_TRACE_EXITRC( SDB_MSGEXTRACTWRITELOBREQ, rc ) ; 
+   PD_TRACE_EXITRC( SDB_MSGEXTRACTWRITELOBREQ, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -2530,7 +2530,7 @@ INT32 msgExtractReadResult( const MsgOpReply *header,
    }
 
    *begin = ( const MsgLobTuple * )
-            (( const CHAR * )header + sizeof( MsgOpReply ) ) ; 
+            (( const CHAR * )header + sizeof( MsgOpReply ) ) ;
    *tupleSz = (UINT32)header->header.messageLength -
               sizeof( MsgOpReply ) ;
 done:
