@@ -870,7 +870,7 @@ namespace engine
                // now haved append to lock-wait-queue, release latch and then
                // wait the lock
                rc = _scanner->pauseScan( _recordXLock ? FALSE : TRUE ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to pause scan, rc: %d", rc ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to pause ixscan, rc: %d", rc ) ;
 
                _context->pause() ;
                {
@@ -901,30 +901,35 @@ namespace engine
                rc = _scanner->resumeScan( _recordXLock ? FALSE : TRUE ) ;
                if ( rc )
                {
-                  PD_LOG( PDERROR, "Failed to resum ixscan, rc: %d", rc ) ;
+                  PD_LOG( PDERROR, "Failed to resume ixscan, rc: %d", rc ) ;
                   goto error ;
                }
             }
          }
 
-         // Note: index scan can't find deleting record
-         /*
          if ( _curRecordPtr->isDeleting() )
          {
             if ( _recordXLock )
             {
-               INT32 rc1 = _pSu->deleteRecord( context, _curRID, 0, cb, NULL ) ;
-               if ( rc1 )
+               rc = _scanner->pauseScan( _recordXLock ? FALSE : TRUE ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to pause ixscan, rc: %d", rc ) ;
+
+               rc = _pSu->deleteRecord( _context, _curRID, 0, cb, NULL ) ;
+               if ( SDB_OK != rc )
                {
                   PD_LOG( PDWARNING, "Failed to delete the deleting record, "
                           "rc: %d", rc ) ;
                }
+
+               rc = _scanner->resumeScan( _recordXLock ? FALSE : TRUE ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to resume ixscan, rc: %d", rc ) ;
+
                _pTransCB->transLockRelease( cb, _pSu->logicalID(),
                                             _context->mbID(), &_curRID ) ;
                lockedRecord = FALSE ;
             }
             continue ;
-         }*/
+         }
          SDB_ASSERT( !_curRecordPtr->isDeleted(), "record can't be deleted" ) ;
 
          recordID = _curRID ;
