@@ -82,7 +82,7 @@ namespace engine
       UINT32 nodeNum          = 0 ;
       UINT32 beginPos         = 0 ;
       UINT32 selTimes         = 0 ;
-
+      BOOLEAN hasInvalidID    = FALSE ;
       BOOLEAN hasRetry        = FALSE ;
       UINT64 reqID            = 0 ;
 
@@ -128,7 +128,7 @@ namespace engine
       if ( NULL != pSession )
       {
          routeID = pSession->getLastNode( groupInfo->groupID() ) ;
-         // last node is valid and in group info( when group or node 
+         // last node is valid and in group info( when group or node
          // is remove )
          if ( routeID.value != 0 &&
               groupInfo->nodePos( routeID.columns.nodeID ) >= 0 )
@@ -218,6 +218,7 @@ namespace engine
                rc = pRouteAgent->syncSend( routeID, (void *)pBuffer,
                                            reqID, cb, NULL, 0 ) ;
             }
+            hasInvalidID = ( SDB_INVALID_ROUTEID == rc ) ? TRUE : hasInvalidID ;
             if ( SDB_OK == rc )
             {
                sendNodes[ reqID ] = routeID ;
@@ -258,6 +259,10 @@ namespace engine
       }
 
    done:
+      if ( rc != SDB_OK )
+      {
+         rc = hasInvalidID ? SDB_INVALID_ROUTEID : rc ;
+      }
       PD_TRACE_EXITRC ( SDB__RTNCOSENDREQUESTTOONE, rc ) ;
       return rc ;
    error:
@@ -416,7 +421,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Send msg[opCode: %d, TID: %u] to "
                       "group[%u]'s %s node failed, rc: %d",
                       pBuffer->opCode, pBuffer->TID, groupID,
-                      isSendPrimary ? "primary" : "one", rc ) ; 
+                      isSendPrimary ? "primary" : "one", rc ) ;
       }
 
    done:
@@ -1976,6 +1981,17 @@ namespace engine
          if ( rc != SDB_OK )
          {
             rtnCoordClearRequest( cb, sendNodes );
+            if ( SDB_INVALID_ROUTEID == rc )
+            {
+               rc = rtnCoordGetRemoteCataGroupInfoByAddr( cb, groupInfo ) ;
+               if ( rc != SDB_OK )
+               {
+                  PD_LOG ( PDERROR, "Failed to get cata-group-info by addr, "
+                           "rc: %d", rc ) ;
+                  goto error ;
+               }
+               goto done ;
+            }
             PD_LOG ( PDERROR, "Failed to get cata-group-info from "
                      "catalogue-node,send group-info-request failed, rc: %d",
                      rc ) ;
@@ -3891,7 +3907,7 @@ namespace engine
                                                   TRUE, &preStat ) )
          {
             /// when primay's crash has not discoverd by other nodes,
-            /// new primary's nodeid may still be old one. 
+            /// new primary's nodeid may still be old one.
             /// To avoid send msg to crashed node frequently,
             /// sleep some times.
             if ( NET_NODE_STAT_NORMAL != preStat )
@@ -4036,7 +4052,7 @@ namespace engine
       }
 
       // send msg, no response
-      rtnCoordSendRequestToNodes( (void*)&ntyMsg, sendNodes, 
+      rtnCoordSendRequestToNodes( (void*)&ntyMsg, sendNodes,
                                   pRouteAgent, cb, successNodes,
                                   failedNodes ) ;
       if ( failedNodes.size() != 0 )
