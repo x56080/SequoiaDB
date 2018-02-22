@@ -12,6 +12,8 @@ using namespace std ;
 #define PASSWD                "" 
 #define RESTPORT               11814
 
+#define MAX_NAME_SIZE         127
+
 #define CHECK_RC( rc, fmt, ... ) \
 do { \
 	if( rc != SDB_OK ) \
