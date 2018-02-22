@@ -229,6 +229,7 @@ TEST_F( sessionAttrTest14166, timeout )
    }
    else
    {
+      db.disconnect() ;
       rc = db.connect( ARGS->hostName(), ARGS->svcName(), ARGS->user(), ARGS->passwd() ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
    } 
@@ -456,6 +457,7 @@ TEST_F( sessionAttrTest14166, opTimeout )
    ASSERT_TRUE( ( SDB_OK == rc ) || ( SDB_TIMEOUT == rc ) ) ;
    if( SDB_TIMEOUT == rc )
    {
+      db.disconnect() ;
       rc = db.connect( ARGS->hostName(), ARGS->svcName(), ARGS->user(), ARGS->passwd() ) ;
       ASSERT_EQ( SDB_OK, rc ) << "fail to connect" ;
    }
@@ -512,6 +514,7 @@ done:
    ASSERT_EQ( SDB_OK, rc ) ;
    return ;
 timeout:
+   db.disconnect() ;
    rc = db.connect( ARGS->hostName(), ARGS->svcName(), ARGS->user(), ARGS->passwd() ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    goto done ;
