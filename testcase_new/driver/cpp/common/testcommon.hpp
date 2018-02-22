@@ -25,6 +25,7 @@ do { \
 } while( 0 ) ;
 
 #define SDB_TEST_ERROR -10000
+#define MAX_NAME_SIZE  127
 
 void printMsg( const CHAR* fmt, ... ) ;
 
