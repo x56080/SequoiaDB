@@ -86,7 +86,7 @@ namespace engine
 
    // sequoiasql oltp
    #define OM_SEQUOIASQL_DEPLOY_OLTP            "oltp"
-   
+
    // sequoiasql olap
    #define OM_SEQUOIASQL_DEPLOY_OLAP            "olap"
    #define OM_SSQL_OLAP_DEPLOY_STANDBY          "deploy_standby"
@@ -122,7 +122,7 @@ namespace engine
    #define OM_BUSINESS_YARN                  "yarn"
    #define OM_BUSINESS_SEQUOIASQL            "sequoiasql"
 
-   
+
    #define OM_CS_DEPLOY                      "SYSDEPLOY"
 
    // deploy.cluster
@@ -138,7 +138,7 @@ namespace engine
    #define OM_CS_DEPLOY_CL_CLUSTERIDX1       "{name:\"SYSDEPLOY_CLUSTER_IDX1\",key: {"\
                                              OM_CLUSTER_FIELD_NAME":1}, unique: true, enforced: true } "
 
-   // deploy.host                            
+   // deploy.host
    #define OM_CS_DEPLOY_CL_HOST              OM_CS_DEPLOY".SYSHOST"
    #define OM_HOST_FIELD_NAME                "HostName"
    #define OM_HOST_FIELD_CLUSTERNAME         OM_CLUSTER_FIELD_NAME
@@ -211,7 +211,7 @@ namespace engine
    #define OM_BUSINESSAUTH_PASSWD            OM_HOST_FIELD_PASSWORD
    #define OM_CS_DEPLOY_CL_BUSINESSAUTHIDX1  "{name:\"SYSDEPLOY_BUSINESSAUTH_IDX1\",key: {"\
                                              OM_BUSINESS_FIELD_NAME":1}, unique: true, enforced: true } "
-   
+
    // deploy.taskinfo
    #define OM_CS_DEPLOY_CL_TASKINFO          OM_CS_DEPLOY".SYSTASKINFO"
    //INT64
@@ -313,13 +313,13 @@ namespace engine
 
 #if defined _WINDOWS
    #define  OM_DEFAULT_INSTALL_PATH          "C:\\Program Files\\sequoiadb\\"
-#else 
+#else
    #define  OM_DEFAULT_INSTALL_PATH          "/opt/sequoiadb/"
 #endif
 
 #if defined _WINDOWS
    #define  OM_DEFAULT_INSTALL_ROOT_PATH     "C:\\Program Files\\"
-#else 
+#else
    #define  OM_DEFAULT_INSTALL_ROOT_PATH     "/opt/"
 #endif
 
@@ -407,7 +407,7 @@ namespace engine
    #define  OM_TASK_STRATEGY_DEL_REQ         "del task strategy"
 
    #define  OM_UPDATE_HOST_INFO_REQ          "update host info"
-   
+
    #define  OM_SSQL_EXEC_REQ                 "ssql exec"
    #define  OM_GET_SYSTEM_INFO_REQ           "get system info"
    //**************************************************************************
@@ -481,6 +481,7 @@ namespace engine
    #define  OM_BSON_FIELD_NET_TXPACKETS      "TXPackets"
    #define  OM_BSON_FIELD_NET_TXERRORS       "TXErrors"
    #define  OM_BSON_FIELD_NET_TXDROPS        "TXDrops"
+   #define  OM_BSON_FIELD_NET_IP             OM_HOST_FIELD_IP
    #define  OM_BUSINESS_CONFIG_SUBDIR        "config"
    #define  OM_BUSINESS_FILE_NAME            "business"
    #define  OM_BSON_BUSINESS_LIST            "BusinessList"

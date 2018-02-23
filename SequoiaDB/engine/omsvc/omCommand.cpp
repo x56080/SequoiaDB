@@ -8133,6 +8133,11 @@ namespace engine
       BSONObj newTxDrop ;
       _seperateMegaBitValue( newTxDrop, txdropEle.numberLong() ) ;
 
+      BSONElement ip = oneNet.getField( OM_BSON_FIELD_NET_IP ) ;
+      if( ip.type() != String && ip.type() != jstNULL )
+      {
+         return ;
+      }
       oneNet = BSON( OM_BSON_FIELD_NET_NAME
                      << oneNet.getStringField( OM_BSON_FIELD_NET_NAME )
                      << OM_BSON_FIELD_NET_RXBYTES << newRxByte
@@ -8142,7 +8147,8 @@ namespace engine
                      << OM_BSON_FIELD_NET_TXBYTES << newTxByte
                      << OM_BSON_FIELD_NET_TXPACKETS << newTxPack
                      << OM_BSON_FIELD_NET_TXERRORS << newTxErr
-                     << OM_BSON_FIELD_NET_TXDROPS << newTxDrop ) ;
+                     << OM_BSON_FIELD_NET_TXDROPS << newTxDrop
+                     << OM_BSON_FIELD_NET_IP << ip ) ;
    }
 
    /*

@@ -90,11 +90,12 @@ function snapshotMemoryInfo()
 
 function snapshotNetInfo()
 {
-   var obj               = null ;
-   var netResult         = [] ;
+   var snapshotObj               = null ;
+   var listObj                   = null ;
+   var netResult               = [] ;
    try
    {
-      obj = eval( '(' + System.snapshotNetcardInfo() + ')' ) ;
+      snapshotObj = eval( '(' + System.snapshotNetcardInfo() + ')' ) ;
    }
    catch( e )
    {
@@ -105,7 +106,22 @@ function snapshotNetInfo()
               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
       exception_handle( rc, errMsg ) ;
    }
-   var arr = obj[Netcards] ;
+   var arr = snapshotObj[Netcards] ;
+   // Get netcard info
+   try
+   {
+      listObj = eval( '(' + System.getNetcardInfo() + ')' ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      errMsg = "Failed to get net card info" ;
+      rc = GETLASTERROR() ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_QUEYR_HOST_STATUS,
+              sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+   var listInfoArr = listObj[Netcards] ;
    for ( var i = 0; i < arr.length; i++ )
    {
       var oneNet    = arr[i] ;
@@ -115,7 +131,18 @@ function snapshotNetInfo()
          var oneExpect = expectArr[j] ;
          if ( oneNet[Name] == oneExpect[Name] )
          {
-           netResult.push( oneNet ) ; 
+            oneNet[IP] = null ;
+            // add ip address into oneNet object
+            for( var k = 0; k < listInfoArr.length; k++ )
+            {
+               var infoActual = listInfoArr[ k ] ;
+               if( oneNet[Name] == infoActual[Name] )
+               {
+                  oneNet[IP] = infoActual[Ip] ;
+                  break ;
+               }
+            }
+            netResult.push( oneNet ) ;
          }
       }    
    }
