@@ -1,4 +1,4 @@
-/* @file misc.h 
+/* @file misc.h
 */
 
 /*
@@ -70,12 +70,11 @@ namespace bson {
     }
 
     struct Date_t {
-        // TODO: make signed (and look for related TODO's)
-        unsigned long long millis;
+        long long millis;
         Date_t(): millis(0) {}
-        Date_t(unsigned long long m): millis(m) {}
-        operator unsigned long long&() { return millis; }
-        operator const unsigned long long&() const { return millis; }
+        Date_t(long long m): millis(m) {}
+        operator long long&() { return millis; }
+        operator const long long&() const { return millis; }
         string toString() const {
             char buf[64];
             time_t_to_String(millis/1000, buf);
