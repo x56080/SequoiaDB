@@ -112,7 +112,7 @@ class setSessionAttr14156 extends PHPUnit_Framework_TestCase
    {  
       echo "\n---Begin to insert records.\n";
       $records = array();
-      for ($i = 0; $i < 20; $i++) {
+      for ($i = 0; $i < 1000; $i++) {
          $recd = array( 't1' => $i, 't2' => "test1111111".$i );
          $records[$i] = $recd;
       }
