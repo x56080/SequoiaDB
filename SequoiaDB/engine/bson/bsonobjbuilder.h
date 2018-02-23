@@ -537,11 +537,11 @@ namespace bson {
         BSONObjBuilder& appendTimestamp( const StringData& fieldName ) {
             _b.appendNum( (char) Timestamp );
             _b.appendStr( fieldName );
-            _b.appendNum( (unsigned long long) 0 );
+            _b.appendNum( (long long) 0 );
             return *this;
         }
 
-        BSONObjBuilder& appendTimestamp( const StringData& fieldName , unsigned long long val ) {
+        BSONObjBuilder& appendTimestamp( const StringData& fieldName , long long val ) {
             _b.appendNum( (char) Timestamp );
             _b.appendStr( fieldName );
             _b.appendNum( val );
@@ -554,7 +554,7 @@ namespace bson {
         @param time - in millis (but stored in seconds)
         */
         BSONObjBuilder& appendTimestamp( const StringData& fieldName ,
-          unsigned long long time , unsigned int inc );
+          long long time , unsigned int inc );
 
         /*
         Append an element of the deprecated DBRef type.

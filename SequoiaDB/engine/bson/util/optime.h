@@ -31,22 +31,22 @@ namespace bson {
 #pragma pack(4)
     class OpTime {
         unsigned i;
-        unsigned secs;
+        signed secs;
         static OpTime last;
     public:
         static void setLast(const Date_t &date) {
             last = OpTime(date);
         }
-        unsigned getSecs() const {
+        signed getSecs() const {
             return secs;
         }
         OpTime(Date_t date) {
-            reinterpret_cast<unsigned long long&>(*this) = date.millis;
+            reinterpret_cast<long long&>(*this) = date.millis;
         }
         OpTime(ReplTime x) {
             reinterpret_cast<unsigned long long&>(*this) = x;
         }
-        OpTime(unsigned a, unsigned b) {
+        OpTime(signed a, unsigned b) {
             secs = a;
             i = b;
         }
@@ -55,7 +55,7 @@ namespace bson {
             i = 0;
         }
         static OpTime now() {
-            unsigned t = (unsigned) time(0);
+            signed t = (signed) time(0);
             if ( t < last.secs ) {
                 // bool toLog = false;
                 // ONCE toLog = true;
@@ -87,11 +87,11 @@ namespace bson {
             the cleanest choice, lacking a true unsigned64 datatype, but BinData
             has 5 bytes of overhead.
          */
-        unsigned long long asDate() const {
-            unsigned long long time = 0 ;
+        long long asDate() const {
+            long long time = 0 ;
             memcpy( (char *)&time, &i, sizeof( unsigned ) ) ;
             memcpy( (char *)&time + sizeof( unsigned ), &secs,
-                    sizeof( unsigned ) ) ;
+                    sizeof( signed ) ) ;
             return time ;
             //return reinterpret_cast<const unsigned long long*>(&i)[0];
         }
@@ -99,7 +99,7 @@ namespace bson {
             long long time = 0 ;
             memcpy( (char *)&time, &i, sizeof( unsigned ) ) ;
             memcpy( (char *)&time + sizeof( unsigned ), &secs,
-                    sizeof( unsigned ) ) ;
+                    sizeof( signed ) ) ;
             return time ;
             //return reinterpret_cast<const long long*>(&i)[0];
         }

@@ -40,8 +40,8 @@ namespace bson {
     @param time - in millis (but stored in seconds)
     */
     inline BSONObjBuilder& BSONObjBuilder::appendTimestamp(
-      const StringData& fieldName, unsigned long long time, unsigned int inc) {
-        OpTime t( (unsigned) (time / 1000) , inc );
+      const StringData& fieldName, long long time, unsigned int inc) {
+        OpTime t( (time / 1000) , inc );
         appendTimestamp( fieldName , t.asDate() );
         return *this;
     }

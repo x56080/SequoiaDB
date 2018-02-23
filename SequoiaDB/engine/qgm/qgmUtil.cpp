@@ -1133,7 +1133,7 @@ namespace engine
          {
             time_t tTime = 0 ;
             UINT64 usec = 0 ;
-            UINT64 millsec = 0 ;
+            INT64 millsec = 0 ;
             rc = utilStr2TimeT( value.c_str(), tTime, &usec ) ;
             if ( SDB_OK != rc )
             {
