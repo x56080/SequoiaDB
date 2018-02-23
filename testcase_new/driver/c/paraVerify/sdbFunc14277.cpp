@@ -692,6 +692,11 @@ TEST_F( sdbParaVerify, msg )
 TEST_F( sdbParaVerify, domain )
 {
    INT32 rc = SDB_OK ;
+   if( isStandalone( db ) )
+   {
+      printf( "Run mode is standalone\n" ) ;
+      return ;
+   }
 
    // test sdbCreateDomain
    const CHAR* domainName = "testDomain14332" ;
