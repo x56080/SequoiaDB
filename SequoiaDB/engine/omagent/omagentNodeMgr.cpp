@@ -389,8 +389,17 @@ namespace engine
 
       for ( UINT32 i = 0 ; i < vecNodes.size() ; ++i )
       {
-         addNodeProcessInfo( vecNodes[i] ) ;
-         addNodeGuard( vecNodes[i] ) ;
+         const string & svcname = vecNodes[ i ] ;
+
+         lockBucket( svcname ) ;
+
+         addNodeGuard( svcname ) ;
+         if ( NULL != _getNodeGuard( svcname.c_str() ) )
+         {
+            addNodeProcessInfo( svcname ) ;
+         }
+
+         releaseBucket( svcname ) ;
       }
 
    done:
