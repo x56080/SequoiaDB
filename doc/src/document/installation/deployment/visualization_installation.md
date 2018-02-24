@@ -10,5 +10,5 @@
 
 ## SequoiaSQL ##
 
-目前无可视化安装，命令行方式见[SequoiaSQL-安装部署](connector/postgresql/deployment.md)
+目前无可视化安装，命令行方式见[SequoiaSQL-安装部署](connector/SequoiaSQL/deployment.md)
 
