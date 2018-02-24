@@ -273,7 +273,9 @@ public class WriteLobAndKillPrimaryNode3217 extends SdbTestBase {
                 	}
                 }                
         	}catch(BaseException e){
-            	Assert.fail("the lob different on the group node: "+e.getErrorCode()+e.getErrorType());
+            	if(-4 != e.getErrorCode() && -268 != e.getErrorCode()&& -269 != e.getErrorCode()){    		
+        			Assert.fail("the lob different on the group node: "+e.getErrorCode()+e.getErrorType());
+    			} 
             }finally{
                 if(dataDB!=null){
                     dataDB.disconnect();
