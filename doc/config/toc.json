@@ -61,6 +61,12 @@
                            "file": "cluster",
                            "cn": "集群模式",
                            "en": "Cluster"
+                        },
+                        {
+                           "id": 1519446630,
+                           "file": "ssql_installation",
+                           "cn": "SequoiaSQL安装部署",
+                           "en": "SequoiaSQL Installation and Deployment"
                         }
                      ]
                   },
@@ -816,6 +822,38 @@
                   },
                   {
                      "id": 1432190716,
+                     "file": "development",
+                     "cn": "开发",
+                     "en": "Development"
+                  }
+               ]
+            },
+            {
+               "id": 1494564487,
+               "dir": "SequoiaSQL",
+               "cn": "SequoiaSQL",
+               "en": "SequoiaSQL",
+               "contents": [
+                  {
+                     "id": 1494564497,
+                     "file": "overview",
+                     "cn": "概述",
+                     "en": "Overview"
+                  },
+                  {
+                     "id": 1494564504,
+                     "file": "deployment",
+                     "cn": "部署",
+                     "en": "Deployment"
+                  },
+                  {
+                     "id": 1494564512,
+                     "file": "connection",
+                     "cn": "连接",
+                     "en": "Connection"
+                  },
+                  {
+                     "id": 1494564519,
                      "file": "development",
                      "cn": "开发",
                      "en": "Development"
