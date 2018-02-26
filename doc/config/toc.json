@@ -331,10 +331,10 @@
                "en": "Overview"
             },
             {
-               "id": 1432190631,
-               "file": "sdbcm",
-               "cn": "资源管理节点",
-               "en": "Sdbcm"
+               "id": 1519655618,
+               "file": "sql_node",
+               "cn": "SQL节点",
+               "en": "SQL Node"
             },
             {
                "id": 1432190632,
@@ -353,6 +353,12 @@
                "file": "data_node",
                "cn": "数据节点",
                "en": "Data Node"
+            },
+            {
+               "id": 1432190631,
+               "file": "sdbcm",
+               "cn": "资源管理节点",
+               "en": "Sdbcm"
             },
             {
                "id": 1432190645,
