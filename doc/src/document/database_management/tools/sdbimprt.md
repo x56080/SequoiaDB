@@ -51,7 +51,7 @@ CSV（Comma Separated Value）格式以逗号分隔数值。默认情况下记�
 >   *   在自动判断类型时，整数超过 long 的范围，浮点数超过 double 的范围，以及浮点数总位数超过 15 位或小数位超过 6 位时，类型判断为 decimal。
 >   *   date 类型的范围在SequoiaDB v2.8.2改为0000-01-01至9999-12-31。
 >   *   autodate 类型支持使用整数，表示自 1970-01-01-00.00.00.000000 以来的毫秒数, 取值范围为 long 类型的范围。
->   *   autotimestamp 类型支持使用整数，表示自 1970-01-01-00.00.00.000000 以来的毫秒数，取值范围为 -2147414400000 ~ 2147443199000。SequoiaDB v2.8.2范围改为0000-01-01至9999-12-31
+>   *   autotimestamp 类型支持使用整数，表示自 1970-01-01-00.00.00.000000 以来的毫秒数，取值范围为 -2147414400000 ~ 2147443199000。
 
 ##CSV类型自动判断##
 
@@ -122,6 +122,8 @@ CSV（Comma Separated Value）格式以逗号分隔数值。默认情况下记�
 | --errorstop |      | 如果遇到解析错误就停止，默认值为 false |
 | --ssl       |      | 使用 SSL 连接，默认值为 false |
 | --verbose   | -v   | 显示详细的执行信息 |
+| --hostname  | -s   | 指定主机名,默认值为“localhost"
+| --svcname   | -p   | 指定端口号,默认值为“11810”
 
 ###输入选项###
 
@@ -162,7 +164,7 @@ CSV（Comma Separated Value）格式以逗号分隔数值。默认情况下记�
 >       *   type 支持所有的 CSV 类型
 >       *   type 可不写，由导入工具自动判断
 >       *   指定字段可以用命令行指定，也可以在导入文件的首行指定。如果在命令行指定了 --fields，并且 --headerline 设为 true，导入工具将会优先使用命令行指定字段并且跳过导入文件的首行
->       *   字段名不能以“$”开头，中间不能有“.”，不能有不可见字符，包含空格时需要将字段名需要包含在单引号或双引号中
+>       *   字段名不能以“$”开头，中间不能有“.”，不能有不可见字符，包含空格时需要将字段名包含在单引号或双引号中
 >       *   decimal 类型可以指定精度，如 ```decimal(18, 6)```
 >       *   例如：```--fields='name string default "Jack", age int default 18, phone'```
 >   *   datefmt 格式包括年、月、日、通配符以及特定字符
@@ -207,6 +209,14 @@ CSV（Comma Separated Value）格式以逗号分隔数值。默认情况下记�
 
 1.  将数据导入到本地数据库 11810 中集合空间 foo 的集合 bar，导入格式是 csv，数据文件为“test.csv”，第一行为字段定义：
 
+    以下是导入文件的内容：
+
+    ```
+    name string default "Anonymous", age int, country
+    "Jack",18,"China"
+    "Mike",20,"USA"
+    ```
+
     ```lang-javascript
     $ sdbimprt --hosts=localhost:11810 --type=csv --file=test.csv -c foo -l bar --headerline=true
     ```
@@ -244,14 +254,14 @@ CSV（Comma Separated Value）格式以逗号分隔数值。默认情况下记�
 
 4.  导入格式是 csv，导入文件是目录“../data”中的所有文件，导入至集合空间 foo 的集合 bar 中
 
-    ```
-    $ sdbimprt --hosts=localhost:11810 --type=csv --file=../data -c foo -l bar --headerline=true
+    ```lang-javascript
+    $ sdbimprt --hosts=localhost:11810 --type=csv --file=../data -c foo -l bar --fields='name string default "Anonymous", age int, country'
     ```
 
 5.  导入格式是 csv，导入文件是目录“../data”中的所有文件以及“./foo_bar_data.csv”，导入至集合空间 foo 的集合 bar 中，有 11810 和 11910 两个协调节点，记录中时间戳类型的数据类似于“2015-10-01 T 12.31.15.123 T”，使用两个连接同时导入
 
     ```lang-javascript
-    $ sdbimprt --type=csv --file=../data,./foo_bar_data.csv --headerline=true -c foo -l bar --timestampfmt="YYYY-MM-DD T HH.mm.ss.SSS T" --hosts=localhost:11810,localhost:11910 -j 2
+    $ sdbimprt --type=csv --file=../data,./foo_bar_data.csv --fields='name, time timestamp' -c foo -l bar --timestampfmt="YYYY-MM-DD T HH.mm.ss.SSS T" --hosts=localhost:11810,localhost:11910 -j 2
     ```
 
 6.  导入格式是 json，通过管道从其它工具 other 获取数据，导入至集合空间 foo 的集合 bar 中
