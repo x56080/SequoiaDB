@@ -61,12 +61,6 @@
                            "file": "cluster",
                            "cn": "集群模式",
                            "en": "Cluster"
-                        },
-                        {
-                           "id": 1519446630,
-                           "file": "ssql_installation",
-                           "cn": "SequoiaSQL安装部署",
-                           "en": "SequoiaSQL Installation and Deployment"
                         }
                      ]
                   },
@@ -259,6 +253,68 @@
                "file": "lob",
                "cn": "大对象",
                "en": "Large Object"
+            }
+         ]
+      },
+      {
+         "id": 1519627171,
+         "dir": "sql_engine",
+         "cn": "SQL引擎",
+         "en": "SQL Engine",
+         "contents": [
+            {
+               "id": 1519627277,
+               "dir": "sequoiasql",
+               "cn": "SequoiaSQL",
+               "en": "SequoiaSQL",
+               "contents": [
+                  {
+                     "id": 1519627741,
+                     "file": "overview",
+                     "cn": "概述",
+                     "en": "Overview"
+                  },
+                  {
+                     "id": 1519627742,
+                     "dir": "install",
+                     "cn": "安装",
+                     "en": "Installation",
+                     "contents": [
+                        {
+                           "id": 1519628019,
+                           "file": "install_deploy",
+                           "cn": "安装部署",
+                           "en": "Install and Deploy"
+                        },
+                        {
+                           "id": 1519628020,
+                           "file": "connect",
+                           "cn": "连接",
+                           "en": "Connect"
+                        },
+                        {
+                           "id": 1519628021,
+                           "file": "develop",
+                           "cn": "开发",
+                           "en": "Develop"
+                        }
+                     ]
+                  },
+                  {
+                     "id": 1519627743,
+                     "dir": "sql_syntax",
+                     "cn": "SQL语法",
+                     "en": "SQL Syntax",
+                     "contents": [
+                     ]
+                  },
+                  {
+                     "id": 1519627744,
+                     "file": "SQL_to_Sequoiadb_mapping",
+                     "cn": "SQL to SequoiaDB 映射表",
+                     "en": "Mapping Table from SQL to SequoiaDB"
+                  }
+               ]
             }
          ]
       },
@@ -822,38 +878,6 @@
                   },
                   {
                      "id": 1432190716,
-                     "file": "development",
-                     "cn": "开发",
-                     "en": "Development"
-                  }
-               ]
-            },
-            {
-               "id": 1494564487,
-               "dir": "SequoiaSQL",
-               "cn": "SequoiaSQL",
-               "en": "SequoiaSQL",
-               "contents": [
-                  {
-                     "id": 1494564497,
-                     "file": "overview",
-                     "cn": "概述",
-                     "en": "Overview"
-                  },
-                  {
-                     "id": 1494564504,
-                     "file": "deployment",
-                     "cn": "部署",
-                     "en": "Deployment"
-                  },
-                  {
-                     "id": 1494564512,
-                     "file": "connection",
-                     "cn": "连接",
-                     "en": "Connection"
-                  },
-                  {
-                     "id": 1494564519,
                      "file": "development",
                      "cn": "开发",
                      "en": "Development"
