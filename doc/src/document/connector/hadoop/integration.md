@@ -1,6 +1,6 @@
 ## 搭建 Hadoop 环境##
 
-我们支持 hadoop 1.x 和 hadoop 2.x。先安装配置好 Hadoop
+我们支持 hadoop 1.x 和 hadoop 2.x。先安装配置好 Hadoop。
 
 ## 配置连接环境##
 
@@ -12,9 +12,9 @@
 
 **hadoop-connector.jar 中一些重要的类：**
 
-SequoiadbInputFormat：读取SequoiaDB的数据
+SequoiadbInputFormat：读取SequoiaDB的数据。
 
-SequoiadbOutputFormat：向SequoiaDB中写入数据
+SequoiadbOutputFormat：向SequoiaDB中写入数据。
 
 BSONWritable：BSONObject 的包装类，实现了 WritableComparable 接口。用于序列化 BSONObject 对象。
 
@@ -22,7 +22,7 @@ BSONWritable：BSONObject 的包装类，实现了 WritableComparable 接口。�
 
 sequoiadb-hadoop.xml 是配置文件，放在你编写的 MapReduce 工程的源码根目录下面。
 
-sequoiadb.input.url：指定作为输入的 SequoiaDB 的 URL 路径，格式为：hostname1:port1,hostname2:port2,
+sequoiadb.input.url：指定作为输入的 SequoiaDB 的 URL 路径，格式为：hostname1:port1,hostname2:port2。
 
 sequoiadb.input.user：指定输入源的 SequoiaDB 用户，默认为 null。
 
