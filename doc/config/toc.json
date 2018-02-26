@@ -1,6 +1,12 @@
 {
    "contents": [
       {
+         "id": 1519612914,
+         "file": "quickstart",
+         "cn": "快速入门",
+         "en": "Quickstart"
+      },
+      {
          "id": 1432190594,
          "dir": "installation",
          "cn": "安装",
@@ -83,12 +89,6 @@
                "file": "ulimits",
                "cn": "limit设置",
                "en": "Setting Limits"
-            },
-            {
-               "id": 1432190597,
-               "file": "get_start",
-               "cn": "快速入门",
-               "en": "Getting Start"
             },
             {
                "id": 1432190593,
