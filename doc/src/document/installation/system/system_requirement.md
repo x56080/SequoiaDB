@@ -17,10 +17,20 @@
 | Linux          |- Red Hat Enterprise Linux (RHEL) 6<br> - SUSE Linux Enterprise Server (SLES) 11 Service Pack 1 <br>   - SUSE Linux Enterprise Server (SLES) 11 Service Pack 2 <br> 	- SUSE Linux Enterprise Server (SLES) 12 Service Pack 1 <br> 	- Ubuntu 12 <br> 	- CentOS 6                                    |
 | Power PC Linux |  - Red Hat Enterprise Linux (RHEL) 6 <br>  - SUSE Linux Enterprise Server (SLES)11 Service Pack 1  <br>  - SUSE Linux Enterprise Server (SLES)11 Service Pack 2  |
 
+注意：未在上述列表中列举的 Linux 操作系统并不代表不能用于安装 SequoiaDB。当将这些 Linux 操作系统应用于生产环境时，建议联系 SequoiaDB 技术支持，以获得更详细的信息。
+
 
 ##软件要求##
 
 ###Linux 系统要求###
+
+在安装 SequoiaDB 之前，应该先对 Linux 系统相关的配置进行检查和设置。需要检查和设置的配置包括：
+
+ * 配置主机名
+
+ * 配置主机名/IP地址映射
+
+ * 配置防火墙
 
 ####配置主机名####
 
@@ -87,7 +97,7 @@
   $ hostname
   ```
 
-####配置物理机之间通过主机名可连接####
+####配置主机名/IP地址映射####
 
 - **配置方法**
   - 使用 root 权限，打开 /etc/hosts 文件 
@@ -161,5 +171,5 @@
      ``` 
 
 >**Note:**  
->1.每台作为数据库服务器的机器都需要配置;  
->2.社区版要求系统安装glibc 2.15以及libstdc++ 6.0.18以上版本。
+>1. 以上“配置主机名”、“配置主机名/IP地址映射”和“配置防火墙”这几个步骤都需要在每台作为数据库服务器的机器上配置;  
+>2. 社区版要求系统安装glibc 2.15以及libstdc++ 6.0.18以上版本。
