@@ -15,6 +15,32 @@
 ```lang-javascript
 > db.foo.bar.insert( { "id": 1, "content": { "name": "Jack", "phone": "123", "address": "1000 Market Street, Philadelphia" } } )
 > db.foo.bar.insert( { "id": 2, "content": [ { "name": "Tom", "phone": "456", "address": "2000 Market Street, Philadelphia" } ] } )
+> db.foo.bar.find()
+{
+  "_id": {
+    "$oid": "5a73ce416a3e18f64e000010"
+  },
+  "id": 1,
+  "content": {
+    "name": "Jack",
+    "phone": "123",
+    "address": "1000 Market Street, Philadelphia"
+  }
+}
+{
+  "_id": {
+    "$oid": "5a73ce476a3e18f64e000011"
+  },
+  "id": 2,
+  "content": [
+    {
+      "name": "Tom",
+      "phone": "456",
+      "address": "2000 Market Street, Philadelphia"
+    }
+  ]
+}
+Return 2 row(s).
 ```
 
 SequoiaDB shell 运行如下：
