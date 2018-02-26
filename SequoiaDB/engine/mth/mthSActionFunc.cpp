@@ -240,16 +240,15 @@ namespace engine
       }
       else if ( Object == e.type() )
       {
-         _mthElemMatchIterator i( e.wrap(),
-                                  &( action->getMatcher() ),
-                                  n ) ;
+         _mthElemMatchIterator i( e.embeddedObject(), &( action->getMatcher() ),
+                                  n, FALSE ) ;
          do
          {
             BSONElement next ;
             rc = i.next( next ) ;
             if ( SDB_OK == rc )
             {
-               builder.append( next ) ;
+               builder.append( fieldName, next.wrap() ) ;
             }
             else if ( SDB_DMS_EOC == rc )
             {
