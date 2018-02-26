@@ -224,6 +224,30 @@ namespace engine
             }
          } while ( TRUE ) ;
       }
+      else if ( Object == e.type() )
+      {
+         _mthElemMatchIterator i( e.embeddedObject(), action->getMatcher(),
+                                  n, FALSE ) ;
+         do
+         {
+            BSONElement next ;
+            rc = i.next( next ) ;
+            if ( SDB_OK == rc )
+            {
+               builder.append( fieldName, next.wrap() ) ;
+            }
+            else if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               break ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "failed to get next element:%d", rc ) ;
+               goto error ;
+            }
+         } while ( TRUE ) ;
+      }
    done:
       PD_TRACE_EXITRC( SDB__MTHELEMMATCHBUILDN, rc ) ;
       return rc ;

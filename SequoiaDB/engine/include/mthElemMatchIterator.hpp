@@ -47,7 +47,8 @@ namespace engine
    public:
       _mthElemMatchIterator( const bson::BSONObj &obj,
                              _mthMatchTree *matcher,
-                             INT32 n = -1 ) ;
+                             INT32 n = -1,
+                             BOOLEAN isArray = TRUE ) ;
       ~_mthElemMatchIterator() ;
 
    public:
@@ -56,9 +57,10 @@ namespace engine
    private:
       _mthMatchTree *_matcher ;
       bson::BSONObj _obj ;
-      bson::BSONObjIterator _i ; 
+      bson::BSONObjIterator _i ;
       INT32 _n ;
       INT32 _matched ;
+      BOOLEAN _isArray ;
    } ;
    typedef class _mthElemMatchIterator mthElemMatchIterator ;
 }

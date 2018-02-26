@@ -43,12 +43,14 @@ namespace engine
 {
    _mthElemMatchIterator::_mthElemMatchIterator( const bson::BSONObj &obj,
                                                  _mthMatchTree *matcher,
-                                                 INT32 n  )
+                                                 INT32 n,
+                                                 BOOLEAN isArray )
    :_matcher( matcher ),
     _obj( obj ),
     _i( _obj ),
     _n( n ),
-    _matched( 0 )
+    _matched( 0 ),
+    _isArray( isArray )
    {
       SDB_ASSERT( NULL != _matcher, "can not be null" ) ;
    }
@@ -62,28 +64,36 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       e = BSONElement() ;
+
       while ( _i.more() && ( _n < 0 || _matched < _n ) )
       {
          BSONElement ele = _i.next() ;
-         if ( Object == ele.type() )
+         BSONObj matchTarget ;
+         if ( _isArray && Object == ele.type() )
          {
-            BOOLEAN res = FALSE ;
-            rc = _matcher->matches( ele.embeddedObject(), res ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDERROR, "failed to match obj:%d", rc ) ;
-               goto error ;
-            }
-            else if ( res )
-            {
-               e = ele ;
-               ++_matched ;
-               break ;
-            }
-            else
-            {
-               continue ;
-            }
+            matchTarget = ele.embeddedObject() ;
+         }
+         else if ( !_isArray )
+         {
+            matchTarget = ele.wrap() ;
+         }
+         else
+         {
+            continue ;
+         }
+
+         BOOLEAN res = FALSE ;
+         rc = _matcher->matches( matchTarget, res ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to match obj:%d", rc ) ;
+            goto error ;
+         }
+         else if ( res )
+         {
+            e = ele ;
+            ++_matched ;
+            break ;
          }
       }
 
