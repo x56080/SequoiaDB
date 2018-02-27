@@ -241,7 +241,7 @@ PostgreSQL 运行用户：sdbadmin:sdbadmin_group
  $ bin/createdb -p 5432 foo
  ```
 
-	进入 PostgreSQL shell 环境
+6. 运行 PostgreSQL shell 命令行客户端
 
  ```lang-javascript
  $ bin/psql -p 5432 foo
