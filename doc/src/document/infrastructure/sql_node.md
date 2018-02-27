@@ -11,30 +11,75 @@
 ##操作##
 
   > **Note：**  
-  > 在进行下列操作前，请确保 SequoiaSQL 已经安装，并将当前目录切换至 SequoiaSQL 安装的根目录。
+  > 在进行下列操作前，请确保 SequoiaSQL 已经安装，并将当前目录切换至 SequoiaSQL 安装的根目录。  
+  > SQL节点的详细操作，请参考 [SQL引擎安装部署](sql_engine/sequoiasql/install/install_deploy.md)
 
 - 创建SQL节点
 
-  请参考[创建SQL实例](sql_engine/sequoiasql/install/install_deploy.md)  
-  TODO
+   指定实例名为myinst，该实例名映射相应的数据目录和日志路径，用户可以根据自己需要指定不同的实例名。
+
+   ```lang-javascript
+   $ bin/sdb_sql_ctl addinst myinst -D pg_data/
+   ```
+
+   SQL节点有2个重要的启动参数，数据目录 和 服务端口。在创建SQL节点时，通过 -D 指定数据路径。服务端口默认为 5432，可以通过下面命令进行修改：
+
+   ```lang-javascript
+   $ bin/sdb_sql_ctl chconf myinst -p 5433
+   Changing configure of instance myinst ...
+   Parameter port requires a server restart to take effect
+   ok
+   ```
 
 - 启动SQL节点
 
-  TODO
+   ```lang-javascript
+   $ bin/sdb_sql_ctl start myinst
+   Starting instance myinst ...
+   ok (PID: 20502)
+   ```
 
 - 查看SQL节点
 
-  TODO
+    ```lang-javascript
+   $ bin/sdb_sql_ctl status
+   INSTANCE   PID      SVCNAME   PGDATA                        PGLOG                                   
+   myinst     20502    5432      /opt/sequoiasqloltp/pg_data   /opt/sequoiasqloltp/pg_data/myinst.log     
+   Total: 1; Run: 1
+   ```
 
 - 配置对接DB引擎
 
-  TODO
+  系统默认数据库名为 postgres，用户也可以创建指定的数据库，命令如下：
+
+   ```
+   $bin/sdb_sql_ctl createdb foo myinst
+   Creating database myinst ...
+   ok
+   ```
+
+   连接至数据库，如果没有创建指定的数据库，则连接默认数据库即可：
+
+   ```
+   $bin/psql -p 5432 foo
+   ```
+
+   接下来进行相关的配置操作，请参考 [SQL引擎连接配置](connector/postgresql/connection.md)
+
 
 - 停止SQL节点
 
-  TODO
+   ```lang-javascript
+   $ bin/sdb_sql_ctl stop myinst
+   Stoping instance myinst (PID: 20502) ...
+   ok
+   ```
 
 - 删除SQL节点
 
-  TODO
+   ```lang-javascript
+   $ bin/sdb_sql_ctl delinst myinst
+   Deleting instance myinst ...
+   ok
+   ```
 
