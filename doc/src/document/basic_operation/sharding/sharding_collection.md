@@ -32,7 +32,7 @@
 
 ##规则##
 
-分区集合定义的规则参见 [SYSCOLLECTIONS](infrastructure/catalog_node.md) 集合定义。
+分区集合定义的规则参见 [SYSCOLLECTIONS](infrastructure/catalog_node/catalog_node.md) 集合定义。
 
 ##示例##
 

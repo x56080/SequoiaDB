@@ -5,7 +5,7 @@
 - 在集群环境下，SequoiaDB 数据库需要三种角色的节点，分别为：
 
   - [数据节点](infrastructure/data_node.md)
-  - [编目节点](infrastructure/catalog_node.md)
+  - [编目节点](infrastructure/catalog_node/catalog_node.md)
   - [协调节点](infrastructure/coord_node.md)
 
 - 集群模式的最小配置中，每种角色的节点至少启动一个，才能构成完整的集群模式。

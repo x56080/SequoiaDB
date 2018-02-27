@@ -1,7 +1,7 @@
 
 ##sdbcm 概述##
 
-资源管理节点（sdbcm）是一个守护进程，在 Windows 中它是以服务的方式常驻系统后台。SequoiaDB 的所有集群管理操作都必须有 sdbcm 的参与，目前每一台物理机器上只能启动一个 sdbcm 进程，负责执行远程的集群管理命令和监控本地的 SequoiaDB 数据库。sdbcm 主要有两大功能：
+资源管理节点（sdbcm）是一个守护进程，它是以服务的方式常驻系统后台。SequoiaDB 的所有集群管理操作都必须有 sdbcm 的参与，目前每一台物理机器上只能启动一个 sdbcm 进程，负责执行远程的集群管理命令和监控本地的 SequoiaDB 数据库。sdbcm 主要有两大功能：
 
 - 远程启动，关闭，创建和修改节点：通过 SequoiaDB 客户端或者驱动连接数据库时，可以执行启动，关闭，创建和修改节点的操作，该操作向指定节点物理机器上的 sdbcm 发送远程命令，并得到 sdbcm 的执行结果。
 
@@ -23,12 +23,10 @@
   | DiagLevel             | 指定诊断日志打印级别。SequoiaDB中诊断日志从0-5分别代表：SEVERE, ERROR, EVENT, WARNING, INFO, DEBUG。如果不指定，则默认为WARNING。| DiagLevel=3 |
   | AutoStart             | sdbcm启动时是否自动拉起其他节点进程。如果不指定，则默认为false，即不自动拉起其他节点进程。    | AutoStart=TRUE |
   | EnableWatch           | 是否监控节点，即是否重启异常节点。如果不指定，则默认为TRUE，即监控节点 | EnableWatch=TRUE |
-                      
 
 - 启动 sdbcm
 
   运行 sdbcmart 命令可以启动 sdbcm。
-
 
 - 关闭 sdbcm
 
