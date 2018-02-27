@@ -4,10 +4,10 @@
 | --------- | ------------------- |
 | where     | $match              |
 | group by  | $group              |
-| having    | $match              |
+| having    | 对 $group 后的字段进行 $match |
 | select    | $project            |
 | order by  | $sort               |
-| top       | $limit              |
+| top 或者 limit | $limit         |
 | offset    | $skip               |
 
 下表主要描述标准SQL语句与SequoiaDB聚集语句之间的对照。

@@ -9,3 +9,6 @@
 | [$group](reference/operator/aggregate_operator/group.md) | 实现对记录的分组，类似于SQL的group by语句，"_id"指定分组字段 | { $group: { _id: "$field" } } |
 | [$sort](reference/operator/aggregate_operator/sort.md) | 实现对结果集的排序，"1"代表升序，"-1"代表降序 | { $sort: { field1: 1, field2: -1, ... } } |
 
+>  **Note:**
+>
+>  请参考 [SdbCollection.aggregate\(\)](reference/Sequoiadb_command/SdbCollection/aggregate.md)
