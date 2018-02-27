@@ -149,7 +149,6 @@ function selMainQuery( cl, condObj, selObj, expectResult )
    {
       println( "cl.find( " + JSON.stringify( condObj ) + ", " +
                JSON.stringify( selObj ) + ")" ) ;
-      println( "failed to excute selector query, rc = " + e ) ;
       throw e ;
    }
 }
