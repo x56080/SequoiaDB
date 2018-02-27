@@ -150,17 +150,17 @@
 
 ##安装 SequoiaSQL##
 
-- 以 root 用户登陆目标主机，解压 SequoiaSQL 安装包 sequoiasql-oltp-2.8.5-x86_64-enterprise-installer.tar.gz，并给解压得到的 run 包增加可执行权限
+- 以 root 用户登陆目标主机，解压 SequoiaSQL 安装包 sequoiasql-oltp-2.8.5-x86_64-installer.tar.gz，并给解压得到的 run 包增加可执行权限
 
   ```lang-javascript
-  $ tar zxvf sequoiasql-oltp-2.8.5-x86_64-enterprise-installer.tar.gz
-  $ chmod u+x sequoiasql-oltp-2.8.5-x86_64-enterprise-installer.run
+  $ tar zxvf sequoiasql-oltp-2.8.5-x86_64-installer.tar.gz
+  $ chmod u+x sequoiasql-oltp-2.8.5-x86_64-installer.run
   ```
 
 - 运行安装程序  
     
   ```lang-javascript
-  $ ./sequoiasql-oltp-2.8.5-x86_64-enterprise-installer.run --mode text
+  $ ./sequoiasql-oltp-2.8.5-x86_64-installer.run --mode text
   ```
 
 - 程序提示选择向导语言，输入2，选择中文
