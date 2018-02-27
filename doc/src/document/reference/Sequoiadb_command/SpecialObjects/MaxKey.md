@@ -1,6 +1,6 @@
 最大值，所有数据类型中的最大值。
 
-数据类型的介绍可参考[文档](data_model/document.md)。
+数据类型的介绍可参考 [数据类型](data_model/datatype/datatype.md)。
 
 ##Json格式##
 

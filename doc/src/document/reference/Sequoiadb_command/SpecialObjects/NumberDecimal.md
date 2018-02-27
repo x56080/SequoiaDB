@@ -1,5 +1,7 @@
 高精度数，可以保证精度不丢失。
 
+数据类型的介绍可参考 [数据类型](data_model/datatype/datatype.md)。
+
 ##Json格式##
 
 * **格式1**

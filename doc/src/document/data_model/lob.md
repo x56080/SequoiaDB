@@ -8,7 +8,7 @@ LOB 记录的存储格式：
 
 ![LOB的记录格式](data_model/lob.jpg)
 
-每个 LOB 记录包含若干个分片。分片所占空间大小均为 LobPageSize（创建集合空间时指定）。在哈希分区中，LOB 记录的每一个分片会被按照 OID 加分片序号分散存储在相应的分区组中。其哈希空间与所属集合的哈希空间相同。
+每个 LOB 记录包含若干个分片。分片所占空间大小均为 LobPageSize（创建集合空间时指定，默认为 256 KB，请参考 [Sdb.createCS\(\)](reference/Sequoiadb_command/Sdb/createCS.md)）。在哈希分区中，LOB 记录的每一个分片会被按照 OID 加分片序号分散存储在相应的分区组中。其哈希空间与所属集合的哈希空间相同。
 
 目前 LOB 的存储格式为二进制类型。
 
@@ -27,6 +27,22 @@ LOB 记录的存储格式：
 
 ```lang-javascript
 > db.foo.bar.putLob( '/opt/mylob' )
+```
+
+在 Sdb Shell 中查看 LOB 记录及对应的 OID：
+
+```lang-javascript
+> db.foo.bar.listLobs()
+{
+  "Size": 76602,
+  "Oid": {
+    "$oid": "5435e7b69487faa663000897"
+  },
+  "CreateTime": {
+    "$timestamp": "2018-02-26-12.51.43.628000"
+  },
+  "Available": true
+}
 ```
 
 在 Sdb Shell 中将集合 foo.bar 中的 OID 为 5435e7b69487faa663000897 的LOB 记录下载到本地文件 mylob 中：

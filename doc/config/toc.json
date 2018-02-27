@@ -237,6 +237,62 @@
                "en": "Document"
             },
             {
+               "id": 1519612298,
+               "dir": "datatype",
+               "cn": "数据类型",
+               "en": "Data Types",
+               "contents": [
+                  {
+                     "id": 1519612299,
+                     "file": "datatype",
+                     "cn": "数据类型概述",
+                     "en": "Data Types"
+                  },
+                  {
+                     "id": 1519612291,
+                     "file": "array",
+                     "cn": "数组",
+                     "en": "Array"
+                  },
+                  {
+                     "id": 1519612292,
+                     "file": "oid",
+                     "cn": "对象ID",
+                     "en": "OID"
+                  },
+                  {
+                     "id": 1519612293,
+                     "file": "date",
+                     "cn": "日期",
+                     "en": "Date"
+                  },
+                  {
+                     "id": 1519612294,
+                     "file": "timestamp",
+                     "cn": "时间戳",
+                     "en": "Timestamp"
+                  },
+                  {
+                     "id": 1519612295,
+                     "file": "binary",
+                     "cn": "二进制数据",
+                     "en": "Binary Data"
+                  },
+                  {
+                     "id": 1519612296,
+                     "file": "regex",
+                     "cn": "正则表达式",
+                     "en": "Regex"
+                  },
+                  {
+                     "id": 1519612297,
+                     "file": "decimal",
+                     "cn": "高精度数",
+                     "en": "Decimal"
+                  }
+               ]
+            },
+            {
                "id": 1432190628,
                "file": "collection",
                "cn": "集合",

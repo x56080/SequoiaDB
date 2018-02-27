@@ -1,6 +1,6 @@
 ##Java BSON 数据类型##
 
-目前，SequoiaDB 支持多种 BSON 数据类型。详情请查看数据模型 - [文档](data_model/document.md)一节。
+目前，SequoiaDB 支持多种 BSON 数据类型。详情请查看 [数据类型](data_model/datatype/datatype.md)一节。
 
 ##Java 构造 BSON 数据类型##
 
@@ -80,7 +80,7 @@
 
 * 对象 ID
 
-  Java BSON 使用 org.bson.types.ObjectId 来生成每条记录的“\_id”字段内容。Java BSON 12 字节的 ObjectId 与[文档](data_model/document.md)一节介绍的对象 ID 略有不同，目前，Java ObjectId 的  12字节内容由三部分组成：4字节精确到秒的时间戳，4字节系统（物理机）标示，4字节由随机数起始的序列号。默认情况下，数据库为每条记录生成一个字段名为“\_id”的唯一对象 ID。
+  Java BSON 使用 org.bson.types.ObjectId 来生成每条记录的“\_id”字段内容。Java BSON 12 字节的 ObjectId 与 [数据类型](data_model/datatype/datatype.md)一节介绍的对象 ID 略有不同，目前，Java ObjectId 的  12字节内容由三部分组成：4字节精确到秒的时间戳，4字节系统（物理机）标示，4字节由随机数起始的序列号。默认情况下，数据库为每条记录生成一个字段名为“\_id”的唯一对象 ID。
   
   ```lang-javascript
   BSONObject obj = new BasicBSONObject();

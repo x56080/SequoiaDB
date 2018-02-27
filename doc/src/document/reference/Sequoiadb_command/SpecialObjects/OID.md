@@ -5,7 +5,7 @@
 * 2 字节进程 ID
 * 3 字节由随机数起始的序列号
 
-数据类型的介绍可参考[文档](data_model/document.md)。
+数据类型的介绍可参考 [数据类型](data_model/datatype/datatype.md)。
 
 ##Json格式##
 

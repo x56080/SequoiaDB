@@ -1,6 +1,6 @@
 YYYY-MM-DD-HH.mm.ss.ffffff形式的时间戳。范围：1902-01-01 00:00:00.000000至2037-12-31 23:59:59.999999。
 
-数据类型的介绍可参考[文档](data_model/document.md)。
+数据类型的介绍可参考 [数据类型](data_model/datatype/datatype.md)。
 
 ##Json格式##
 

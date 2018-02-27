@@ -23,6 +23,12 @@ JSON 数据结构的全称为 JavaScript Object Notation，是一种轻量级的
 
     ![JSON值](data_model/sequoiadb_datamodel_jsonstruct_img3.jpg)
 
-一个典型的嵌套式数据结构如下：
+>   **Note:**
+>
+>   更多 JSON 的内容请参考 [介绍 JSON](http://json.org/json-zh.html)
+
+##例子##
+
+一个典型的 JSON 嵌套式数据结构如下：
 
 ![嵌套式数据结构](data_model/sequoiadb_datamodel_jsonstruct_img4.jpg)
