@@ -37,7 +37,8 @@
     ``` 
 
     >**Note:**  
-    > 在/proc/1/exe所指向的启动文件为/sbin/init的系统上，执行service sdbcm restart all-nodes重启cm和节点。
+    > 在/proc/1/exe所指向的启动文件为/sbin/init的系统上，执行service sdbcm restart all-nodes重启cm和节点。  
+    > 如果cm被设置为不自动拉起节点，即[安装路径]/conf/sdbcm.conf的AutoStart配置项为false，此时service sdbcm restart all-nodes不会启动节点。
     
 5.  强制重新加载
 
