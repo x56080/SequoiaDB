@@ -28,21 +28,18 @@
 
  **准备工作：**安装Apache和PHP。
 
-    
  **配置步骤：**
 
 
  **1.** 打开/etc/php5/apache2/php.ini文件；
 
-      
  **2.** 在该文件的[PHP]配置段中新增如下行：
-
 
  ```
  extension=<PATH>/libsdbphp-x.x.x.so
  ```
 
- 其中PATH为 libsdbphp-x.x.x.so 文件放置路径。
+ 其中 PATH 为 libsdbphp-x.x.x.so 文件放置路径；x.x.x 为 PHP 版本。
 
  **3.** 保存关闭文件；
 

@@ -2,6 +2,36 @@
 
 ##历史更新情况：##
 
+**Version 2.8.5**
+
+client 新增接口：
+
+-  get_session_attri，获取会话设置属性
+
+**Version 2.8**
+
+（1）client 新增接口：
+
+-  list_domains，查看域列表
+-  is_domain_existing，查看域是否存在
+-  create_domain，创建域
+-  drop_domain，删除域
+-  get_domain，获取域对象
+-  get_cata_replica_group，获取编目节点组对象
+-  get_coord_replica_group，获取协调节点组对象
+-  create_cata_replica_group，创建编目节点组
+-  create_coord_replica_group，创建协调节点组
+-  remove_cata_replica_group，删除编目节点组
+-  remove_coord_replica_group，删除协调节点组
+-  start_replica_group，启动复制组
+-  stop_replica_group，停止复制组
+
+（2）新增接口类 domain：
+
+-  alter，修改域属性
+-  list_collection_spaces，查看属于该域的集合空间列表
+-  list_collections，查看属于该域的集合列表
+
 **Version 1.10**
 
 （1） 新增接口类 lob：
