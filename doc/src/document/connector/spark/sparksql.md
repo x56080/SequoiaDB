@@ -15,7 +15,7 @@ scala> sqlContext.sql("CREATE TEMPORARY TABLE datatable USING com.sequoiadb.spar
 另一种构建表的方式是使用 CREATE TABLE 指令来构建表模式：
 
 ```lang-javascript
-scala> sqlContext.sql("CREATE temporary table datatable ( c1 string, c2 int, c3 int ) using com.sequoiadb.spark OPTIONS ( host 'serverX:11810,serverY:11810', collectionspace 'test', collection 'data')")
+scala> sqlContext.sql("CREATE TEMPORARY TABLE datatable ( c1 string, c2 int, c3 int ) USING com.sequoiadb.spark OPTIONS ( host 'serverX:11810,serverY:11810', collectionspace 'test', collection 'data')")
 ```
 
 >**Note:**
