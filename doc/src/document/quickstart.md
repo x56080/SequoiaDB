@@ -233,11 +233,11 @@
   2.8.5
   ```
 
-## SQL 操作 ##
+## 操作环境准备 ##
 
 ### 创建实例及数据库 ###
 
-1. 创建 SequoiaDB 的实例
+1. 创建 SequoiaDB 实例
 
    以 sdbadmin 用户登陆 SequoiaDB 所在主机，使用如下命令创建一个 SequoiaDB 的单机环境，并启动节点
 
@@ -300,7 +300,7 @@
    $ bin/createdb -p 5432 foo
    ```
 
-### 使用 SequoiaSQL shell 进行 SQL 操作 ###
+### 创建集合并配置映射关系 ###
 
 - 使用 sdbadmin 用户登陆主机
 - 进入 SequoiaDB shell 环境并创建集合 foo.bar
@@ -342,7 +342,11 @@
 CREATE SERVER
    ```
 
-- 关联 SequoiaDB 的集合空间与集合
+## 数据库操作 ##
+
+### 使用 SequoiaSQL shell 进行 SQL 操作 ###
+
+- 创建外表
 
    ```lang-javascript
    foo=# create foreign table test( id int, name text ) server sdb_server options ( collectionspace 'foo', collection 'bar' );
@@ -381,7 +385,7 @@ CREATE FOREIGN TABLE
    (1 row)
    ```
 
-## 使用 SequoiaDB shell 进行数据库操作 ##
+### 使用 SequoiaDB shell 进行数据库操作 ###
 
 - 使用 sdbadmin 用户登陆主机，启动 SequoiaDB shell：
 
