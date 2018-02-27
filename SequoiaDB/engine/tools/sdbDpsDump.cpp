@@ -890,23 +890,12 @@ INT32 _dpsDumper::parseMeta( CHAR *buffer )
 INT32 _dpsDumper::doDataExchange( engine::pmdCfgExchange *pEx )
 {
    resetResult() ;
-   CHAR path[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
-   rdxString( pEx, DPS_DUMP_SOURCE, path,
-              OSS_MAX_PATHSIZE, FALSE, FALSE, "./" ) ;
-   if ( NULL == ossGetRealPath(path, srcPath, OSS_MAX_PATHSIZE))
-   {
-      LogEvent( "Failed to get real path of source: %s", srcPath ) ;
-      ossStrncpy( srcPath, "./", OSS_MAX_PATHSIZE ) ;
-   }
+   rdxPathRaw( pEx, DPS_DUMP_SOURCE, srcPath, OSS_MAX_PATHSIZE,
+               FALSE, FALSE, "./" ) ;
 
-   rdxString( pEx, DPS_DUMP_OUTPUT, path,
-              OSS_MAX_PATHSIZE, FALSE, FALSE, "./" ) ;
-   if ( NULL == ossGetRealPath(path, dstPath, OSS_MAX_PATHSIZE))
-   {
-      LogEvent( "Failed to get real path of destination: %s", dstPath ) ;
-      ossStrncpy( dstPath, "./", OSS_MAX_PATHSIZE ) ;
-   }
+   rdxPathRaw( pEx, DPS_DUMP_OUTPUT, dstPath, OSS_MAX_PATHSIZE,
+               FALSE, FALSE, "./" ) ;
 
    rdxString( pEx, DPS_DUMP_NAME, name,
               OSS_MAX_PATHSIZE, FALSE, FALSE, "" ) ;

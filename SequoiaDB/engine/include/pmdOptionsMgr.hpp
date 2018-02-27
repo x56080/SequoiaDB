@@ -316,6 +316,11 @@ namespace engine
                         BOOLEAN allowRunChg, const CHAR *pDefaultValue,
                         BOOLEAN hideParam = FALSE ) ;
 
+         INT32 rdxPathRaw( pmdCfgExchange *pEX, const CHAR *pFieldName,
+                           CHAR *pValue, UINT32 len, BOOLEAN required,
+                           BOOLEAN allowRunChg, const CHAR *pDefaultValue,
+                           BOOLEAN hideParam = FALSE ) ;
+
          INT32 rdxBooleanS( pmdCfgExchange *pEX, const CHAR *pFieldName,
                             BOOLEAN &value, BOOLEAN required,
                             BOOLEAN allowRunChg, BOOLEAN defaultValue,
@@ -333,6 +338,13 @@ namespace engine
          INT32 rdvMaxChar( pmdCfgExchange *pEX, CHAR *pValue,
                            UINT32 maxChar, BOOLEAN autoAdjust = TRUE ) ;
          INT32 rdvNotEmpty( pmdCfgExchange *pEX, CHAR *pValue ) ;
+
+      private:
+         INT32 _rdxPath( pmdCfgExchange *pEX, const CHAR *pFieldName,
+                         CHAR *pValue, UINT32 len, BOOLEAN required,
+                         BOOLEAN allowRunChg, const CHAR *pDefaultValue,
+                         BOOLEAN hideParam,
+                         BOOLEAN addSep ) ;
 
       private:
          string                              _curFieldName ;

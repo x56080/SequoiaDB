@@ -1018,11 +1018,12 @@ namespace engine
       goto done ;
    }
 
-   INT32 _pmdCfgRecord::rdxPath( pmdCfgExchange *pEX, const CHAR *pFieldName,
-                                 CHAR *pValue, UINT32 len, BOOLEAN required,
-                                 BOOLEAN allowRunChg,
-                                 const CHAR *pDefaultValue,
-                                 BOOLEAN hideParam )
+   INT32 _pmdCfgRecord::_rdxPath( pmdCfgExchange *pEX, const CHAR *pFieldName,
+                                  CHAR *pValue, UINT32 len, BOOLEAN required,
+                                  BOOLEAN allowRunChg,
+                                  const CHAR *pDefaultValue,
+                                  BOOLEAN hideParam,
+                                  BOOLEAN addSep )
    {
       _result = rdxString( pEX, pFieldName, pValue, len, required, allowRunChg,
                            pDefaultValue, hideParam ) ;
@@ -1038,7 +1039,11 @@ namespace engine
          else
          {
             pValue[ len - 1 ] = 0 ;
-            utilCatPath( pValue, len, "" ) ;
+
+            if ( addSep )
+            {
+               utilCatPath( pValue, len, "" ) ;
+            }
          }
          /// update map's value
          MAP_K2V::iterator it = _mapKeyValue.find( pFieldName ) ;
@@ -1048,6 +1053,28 @@ namespace engine
          }
       }
       return _result ;
+   }
+
+   INT32 _pmdCfgRecord::rdxPath( pmdCfgExchange *pEX, const CHAR *pFieldName,
+                                 CHAR *pValue, UINT32 len, BOOLEAN required,
+                                 BOOLEAN allowRunChg,
+                                 const CHAR *pDefaultValue,
+                                 BOOLEAN hideParam )
+   {
+      return _rdxPath( pEX, pFieldName, pValue, len,
+                       required, allowRunChg, pDefaultValue,
+                       hideParam, TRUE ) ;
+   }
+
+   INT32 _pmdCfgRecord::rdxPathRaw( pmdCfgExchange *pEX, const CHAR *pFieldName,
+                                    CHAR *pValue, UINT32 len, BOOLEAN required,
+                                    BOOLEAN allowRunChg,
+                                    const CHAR *pDefaultValue,
+                                    BOOLEAN hideParam )
+   {
+      return _rdxPath( pEX, pFieldName, pValue, len,
+                       required, allowRunChg, pDefaultValue,
+                       hideParam, FALSE ) ;
    }
 
    INT32 _pmdCfgRecord::rdxBooleanS( pmdCfgExchange *pEX,
