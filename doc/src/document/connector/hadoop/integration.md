@@ -4,9 +4,15 @@
 
 ## 配置连接环境##
 
-与 MapReduce 对接，需要准备 hadoop-connector.jar 和 sequoiadb.jar，这两个 jar 可以在 SequoiaDB 安装目录下面的 hadoop 目录中找到。
+与 MapReduce 对接，需要准备 hadoop-connector.jar 和 sequoiadb.jar，这两个 jar 可以在 SequoiaDB 安装目录下面的 hadoop 目录（默认为/opt/sequoiadb/hadoop）中找到。
 
-因为不同版本的 Hadoop 的 classpath 不一样，所以先查看 hadoop 的 classpath，输入 hadoop classpath，在classpath 中选择一个目录，把 hadoop-connector.jar 和 sequoiadb.jar 放在目录里面，重启 hadoop 集群。
+运行
+
+```
+$ hadoop classpath
+```
+
+查看 hadoop 的 classpath。在 classpath 中选择一个目录，把 hadoop-connector.jar 和 sequoiadb.jar 放在目录里面，重启 hadoop 集群。
 
 ## 编写 MapReduce##
 
@@ -14,7 +20,7 @@
 
 SequoiadbInputFormat：读取SequoiaDB的数据。
 
-SequoiadbOutputFormat：向SequoiaDB中写入数据。
+SequoiadbOutputFormat：向SequoiaDB写入数据。
 
 BSONWritable：BSONObject 的包装类，实现了 WritableComparable 接口。用于序列化 BSONObject 对象。
 
@@ -22,33 +28,33 @@ BSONWritable：BSONObject 的包装类，实现了 WritableComparable 接口。�
 
 sequoiadb-hadoop.xml 是配置文件，放在你编写的 MapReduce 工程的源码根目录下面。
 
-sequoiadb.input.url：指定作为输入的 SequoiaDB 的 URL 路径，格式为：hostname1:port1,hostname2:port2。
+sequoiadb.input.url：指定作为输入源 SequoiaDB 的 URL 路径，格式为：hostname1:port1,hostname2:port2。
 
-sequoiadb.input.user：指定输入源的 SequoiaDB 用户，默认为 null。
+sequoiadb.input.user：指定输入源 SequoiaDB 的用户名，默认为 null。
 
-sequoiadb.input.passwd：指定输入源的 SequoiaDB 连接密码，默认为 null。
+sequoiadb.input.passwd：指定输入源 SequoiaDB 用户密码，默认为 null。
 
-sequoiadb.in.collectionspace：指定作为输入的集合空间。
+sequoiadb.in.collectionspace：指定作为输入源 SequoiaDB 集合空间。
 
-sequoiadb.in.collection：指定作为输入的集合。
+sequoiadb.in.collection：指定作为输入源 SequoiaDB 集合。
 
-sequoiadb.query.json：指定输入源的查询条件，使用 json 结构，默认为 null。
+sequoiadb.query.json：指定输入源 SequoiaDB 的查询条件，使用 json 结构，默认为 null。
 
-sequoiadb.selector.json：指定输入源的字段筛选，使用 json 结构，默认为 null。
+sequoiadb.selector.json：指定输入源 SequoiaDB 的字段筛选，使用 json 结构，默认为 null。
 
-sequoiadb.preferedinstance：指定从 SequoiaDB 中获取数据时，连接哪个数据节点，默认为 anyone，可填值：[slave/master/anyone/node(1-7)]。
+sequoiadb.preferedinstance：指定从输入源 SequoiaDB 中获取数据时，连接哪个数据节点，默认为 anyone，可填值：[slave/master/anyone/node(1-7)]。
 
-sequoiadb.output.url：指定作为输出的 SequoiaDB 的 URL 路径。
+sequoiadb.output.url：指定作为输出源 SequoiaDB 的 URL 路径。
 
-sequoiadb.output.user：指定输出源的 SequoiaDB 用户，默认为 null。
+sequoiadb.output.user：指定输出源 SequoiaDB 用户名，默认为 null。
 
-sequoiadb.output.passwd：指定输出源的 SequoiaDB 连接密码，默认为 null。
+sequoiadb.output.passwd：指定输出源 SequoiaDB 用户密码，默认为 null。
 
-sequoiadb.out.collectionspace：指定作为输出的集合空间。
+sequoiadb.out.collectionspace：指定作为输出源 SequoiaDB 的集合空间。
 
-sequoiadb.out.collection：指定作为输出的集合。
+sequoiadb.out.collection：指定作为输出源 SequoiaDB 的集合。
 
-sequoiadb.out.bulknum：指定每次向 SequoiaDB 写入的记录条数，对写入性能进行优化。
+sequoiadb.out.bulknum：指定每次向输出源 SequoiaDB 写入的记录条数，对写入性能进行优化。
 
 ## 示例
 
