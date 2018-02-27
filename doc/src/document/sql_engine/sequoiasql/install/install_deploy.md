@@ -156,7 +156,7 @@
 5. 创建 SequoiaSQL 的 database
 
    ```lang-javascript
-   $ bin/createdb -p 5432 foo
+   $ bin/sdb_sql_ctl createdb foo myinst
    ```
 
    进入 SequoiaSQL shell 环境

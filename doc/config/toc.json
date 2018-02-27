@@ -301,14 +301,6 @@
                      ]
                   },
                   {
-                     "id": 1519627743,
-                     "dir": "sql_syntax",
-                     "cn": "SQL语法",
-                     "en": "SQL Syntax",
-                     "contents": [
-                     ]
-                  },
-                  {
                      "id": 1519627744,
                      "file": "SQL_to_Sequoiadb_mapping",
                      "cn": "SQL to SequoiaDB 映射表",
