@@ -11,3 +11,7 @@
 - 任何时刻如果组内成员不足半数，则当前的主节点会自动降级为从节点，同时断开当前节点的所有用户连接。
 
 - 当一个新的节点加入现存的分区组，或者某个故障节点重新加入分区组后，会进行[数据同步](infrastructure/replication/replicate.md)。
+
+>  **Note:**
+>
+>  可以通过配置 SequoiaDB 的 weight 参数调整节点在分区组中选举的权重，请参考 [数据库配置](database_management/runtime_configuration.md)。

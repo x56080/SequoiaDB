@@ -423,13 +423,13 @@
                   {
                      "id": 1432190646,
                      "file": "vote",
-                     "cn": "选举",
-                     "en": "Mastr Election"
+                     "cn": "选举机制",
+                     "en": "Master Election"
                   },
                   {
                      "id": 1432190647,
                      "file": "replicate",
-                     "cn": "复制",
+                     "cn": "数据复制",
                      "en": "Replicate"
                   },
                   {
