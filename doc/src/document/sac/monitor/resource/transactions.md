@@ -12,6 +12,6 @@
 
 > **Note:**
 >
-> 1. 事务快照对应的字段说明可以通过[事务快照](database_management/monitoring/snapshot/SDB_SNAP_TRANSACTION.md)查看。
+> 1. 事务快照对应的字段说明可以通过[事务快照](database_management/monitoring/snapshot/SDB_SNAP_TRANSACTIONS.md)查看。
 >
 > 2. 会话快照对应的字段说明可以通过[会话快照](database_management/monitoring/snapshot/SDB_SNAP_SESSIONS.md)查看。
