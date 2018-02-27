@@ -300,23 +300,7 @@
    $ bin/createdb -p 5432 foo
    ```
 
-### 创建集合并配置映射关系 ###
-
-- 使用 sdbadmin 用户登陆主机
-- 进入 SequoiaDB shell 环境并创建集合 foo.bar
-
-   ```lang-javascript
-   $ cd /opt/sequoiadb
-   $ bin/sdb
-   Welcome to SequoiaDB shell!
-   help() for help, Ctrl+c or quit to exit
-   > db=new Sdb()
-   localhost:11810
-   Takes 0.117950s.
-   > db.createCS('foo').createCL('bar')
-   localhost:11810.foo.bar
-   Takes 0.298361s.
-   ```
+### 配置 SequoiaSQL 与 SequoiaDB 连接 ###
 
 - 进入 SequoiaSQL shell 环境
 
@@ -346,7 +330,23 @@ CREATE SERVER
 
 ### 使用 SequoiaSQL shell 进行 SQL 操作 ###
 
-- 创建外表
+- 使用 sdbadmin 用户登陆主机
+
+- 进入 SequoiaDB shell 环境并创建集合 foo.bar
+
+   ```lang-javascript
+   $ cd /opt/sequoiadb
+   $ bin/sdb
+   Welcome to SequoiaDB shell!
+   help() for help, Ctrl+c or quit to exit
+   > db=new Sdb()
+   localhost:11810
+   Takes 0.117950s.
+   > db.createCS('foo').createCL('bar')
+   localhost:11810.foo.bar
+   Takes 0.298361s.
+   ```
+- 进入 SequoiaSQL shell 环境，创建外表
 
    ```lang-javascript
    foo=# create foreign table test( id int, name text ) server sdb_server options ( collectionspace 'foo', collection 'bar' );
