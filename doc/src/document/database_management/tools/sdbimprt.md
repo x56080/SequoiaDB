@@ -122,8 +122,6 @@ CSV（Comma Separated Value）格式以逗号分隔数值。默认情况下记�
 | --errorstop |      | 如果遇到解析错误就停止，默认值为 false |
 | --ssl       |      | 使用 SSL 连接，默认值为 false |
 | --verbose   | -v   | 显示详细的执行信息 |
-| --hostname  | -s   | 指定主机名,默认值为“localhost"
-| --svcname   | -p   | 指定端口号,默认值为“11810”
 
 ###输入选项###
 
