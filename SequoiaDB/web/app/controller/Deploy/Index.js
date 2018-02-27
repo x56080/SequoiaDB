@@ -1332,32 +1332,35 @@
 
       //创建 删除集群 弹窗
       $scope.CreateRemoveClusterModel = function(){
-         $scope.Components.Modal.icon = '' ;
-         $scope.Components.Modal.title = $scope.autoLanguage( '删除集群' ) ;
-         $scope.Components.Modal.isShow = true ;
-         $scope.Components.Modal.form = {
-            'inputList': [
+         if( $scope.clusterList.length > 0 )
+         {
+            $scope.Components.Modal.icon = '' ;
+            $scope.Components.Modal.title = $scope.autoLanguage( '删除集群' ) ;
+            $scope.Components.Modal.isShow = true ;
+            $scope.Components.Modal.form = {
+               'inputList': [
+                  {
+                     "name": 'ClusterName',
+                     "webName": $scope.autoLanguage( '集群名' ),
+                     "type": "select",
+                     "value": $scope.currentCluster,
+                     "valid": []
+                  }
+               ]
+            } ;
+            $.each( $scope.clusterList, function( index ){
+               $scope.Components.Modal.form['inputList'][0]['valid'].push( { 'key': $scope.clusterList[index]['ClusterName'], 'value': index } ) ;
+            } ) ;
+            $scope.Components.Modal.Context = '<div form-create para="data.form"></div>' ;
+            $scope.Components.Modal.ok = function(){
+               var isAllClear = $scope.Components.Modal.form.check() ;
+               if( isAllClear )
                {
-                  "name": 'ClusterName',
-                  "webName": $scope.autoLanguage( '集群名' ),
-                  "type": "select",
-                  "value": $scope.currentCluster,
-                  "valid": []
+                  var formVal = $scope.Components.Modal.form.getValue() ;
+                  removeCluster( formVal['ClusterName'] ) ;
                }
-            ]
-         } ;
-         $.each( $scope.clusterList, function( index ){
-            $scope.Components.Modal.form['inputList'][0]['valid'].push( { 'key': $scope.clusterList[index]['ClusterName'], 'value': index } ) ;
-         } ) ;
-         $scope.Components.Modal.Context = '<div form-create para="data.form"></div>' ;
-         $scope.Components.Modal.ok = function(){
-            var isAllClear = $scope.Components.Modal.form.check() ;
-            if( isAllClear )
-            {
-               var formVal = $scope.Components.Modal.form.getValue() ;
-               removeCluster( formVal['ClusterName'] ) ;
+               return isAllClear ;
             }
-            return isAllClear ;
          }
       }
 

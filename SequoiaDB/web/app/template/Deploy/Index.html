@@ -162,7 +162,7 @@
                <td><a class="linkButton" ng-click="CreateAddClusterModel()">{{autoLanguage("创建集群")}}</a></td>
             </tr>
             <tr>
-               <td><a class="linkButton" ng-click="CreateRemoveClusterModel()">{{autoLanguage("删除集群")}}</a></td>
+               <td><a class="linkButton" ng-class="{false:'disabled'}[clusterList.length > 0]" ng-disabled="clusterList.length==0" ng-click="CreateRemoveClusterModel()">{{autoLanguage("删除集群")}}</a></td>
             </tr>
          </table>
       </div>
