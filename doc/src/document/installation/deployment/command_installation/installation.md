@@ -170,3 +170,5 @@
   安装程序已经完成安装 SequoiaDB Server 于你的电脑中.
   ```
 
+当所有的主机都安装了 SequoiaDB 后，用户可以根据自身的情况(可参考[规划数据库部署](planning_database_deployment.md))，选择部署[单机模式](standalone.md)或者[集群模式](cluster.md)的环境。只有成功部署了环境，用户才能使用 SequoiadDB 进行数据操作。
+
