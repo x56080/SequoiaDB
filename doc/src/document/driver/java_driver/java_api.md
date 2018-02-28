@@ -22,6 +22,12 @@
    * setSyncCoordInterval(int syncCoordInterval)接口正常的输入参数syncCoordInterval 的值若小于60,000，该接口自动将输入值改为60,000。
    * 增加getPreferedInstance/setPreferedInstance接口，使连接池支持设置回话属性。
 
+4. org.bson.BSONObject 接口实现 java.io.Serializable 接口。
+
+5. org.bson.types.BSONTimestamp 支持从 java.util.Date和java.sql.Timestamp 构造，并增加转换为 java.util.Date和java.sql.Timestamp 的方法。
+
+6. BSONObject支持将 java.sql.Timestamp 编码为 timestamp 类型。
+
 **Version 1.10**
 
 1. com.sequoiadb.base.DBCollection内容变更：
