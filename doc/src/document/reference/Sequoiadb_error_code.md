@@ -312,3 +312,5 @@
 | SDB_STRTGY_TASK_NOT_EXISTED | -312 | 任务不存在 |
 | SDB_DPS_LOG_NOT_ARCHIVED | -313 | 复制日志未归档 |
 | SDB_DS_NOT_INIT | -314 | 连接池未初始化 |
+| SDB_OPERATION_INCOMPATIBLE | -315 | 操作类型与操作对象不兼容 |
+| SDB_CAT_CLUSTER_IS_DEACTIVED | -316 | 集群为非激活状态 |
