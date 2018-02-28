@@ -14,7 +14,7 @@
 
 1. 安装和配置好 Hadoop/Hive 环境，启动 Hadoop 环境；
 
-2. 拷贝 SequoiaDB 安装目录下（默认在 /opt/sequoiadb）的 hadoop/hive-sequoiadb-{version}.jar 和 java/sequoiadb.jar 两个文件拷贝到 hive/lib 安装目录下；
+2. 拷贝 SequoiaDB 安装目录下（默认在 /opt/sequoiadb）的 hive-sequoiadb-apache.jar（或者hive-sequoiadb-cdh-5.0.0-beta-2.jar） 和 java/sequoiadb.jar 两个文件拷贝到 hive/lib 安装目录下；
 
 3. 修改 Hive 安装目录下的 bin/hive-site.xml 文件（如果不存在，可拷贝 $HIVE_HOME/conf/hive-default.xml.template为 hive-site.xml 文件），增加如下属性：
 
