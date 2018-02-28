@@ -83,7 +83,23 @@
 
             <div class="data_empty" ng-show="clusterList.length == 0">
                <div class="title">{{autoLanguage("还没有创建集群")}}</div>
-               <div class="tips">{{autoLanguage("使用\"创建集群\"操作创建集群。")}}</div>
+               <div class="tips">
+                  <span>{{autoLanguage("使用")}}</span>
+                  <span class="linkButton" ng-click="CreateAddClusterModel()">{{autoLanguage("创建集群")}}</span>
+                  <span>{{autoLanguage("或者")}}</span>
+                  <span class="linkButton" ng-click="CreateDeployModuleModel()">{{autoLanguage("一键部署")}}</span>
+                  <span>{{autoLanguage("操作。")}}</span>
+               </div>
+            </div>
+            <div class="data_empty" ng-show="clusterList.length > 0 && ModuleNum == 0">
+               <div class="title">{{autoLanguage("当前集群还没有创建业务")}}</div>
+               <div class="tips">
+                  <span>{{autoLanguage("使用")}}</span>
+                  <span class="linkButton" ng-click="CreateInstallModuleModel()">{{autoLanguage("添加业务")}}</span>
+                  <span>{{autoLanguage("或者")}}</span>
+                  <span class="linkButton" ng-click="CreateAppendModuleModel()">{{autoLanguage("发现业务")}}</span>
+                  <span>{{autoLanguage("操作。")}}</span>
+               </div>
             </div>
 
          </div>
