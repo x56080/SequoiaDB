@@ -1,6 +1,6 @@
 SequoiaDB 数据库是一款新型企业级分布式非关系型数据库，帮助企业用户降低 IT 成本，并对大数据的存储与分析提供了一个坚实，可靠，高效与灵活的底层平台。
 
-[快速了解SequoiaDB](quickstart.md)
+[快速使用SequoiaDB](quickstart.md)
 
 ##SequoiaDB version 2.8.5 版本说明##
 
