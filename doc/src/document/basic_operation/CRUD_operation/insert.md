@@ -23,6 +23,7 @@ insert() 是向SequoiaDB 集合中插入记录的主要方法。
 如果[集合空间](data_model/collectionspace.md)和[集合](data_model/collection.md)不存在，可以使用如下命令进行创建集合空间和集合：
 
 ```lang-javascript
+> var db = new Sdb("localhost", 11810)
 > db.createCS("foo")
 > db.foo.createCL("bar")
 ```
