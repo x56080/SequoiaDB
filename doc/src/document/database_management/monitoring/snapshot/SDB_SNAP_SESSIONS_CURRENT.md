@@ -19,7 +19,7 @@ SDB_SNAP_SESSIONS_CURRENT
 | Name              | 字符串        | EDU 名，一般系统 EDU 名为空                        |
 | QueueSize         | 整型          | 等待处理请求的队列长度                             |
 | ProcessEventCount | 长整型        | 已经处理请求的数量                                 |
-| RelatedID         | 字符串        | 会话的内部标示                                     |
+| RelatedID         | 字符串        | 会话的内部标识                                     |
 | Contexts          | 长整型数组    | 上下文 ID 数组，为该会话所包含的所有上下文列表     |
 | TotalDataRead     | 长整型        | 数据记录读                                         |
 | TotalIndexRead    | 长整型        | 索引读                                             |

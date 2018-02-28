@@ -18,7 +18,7 @@ SDB_LIST_SESSIONS_CURRENT
 | Status    | 字符串       | 会话状态<br>- Creating：创建状态<br>- Running：运行状态<br>- Waiting：等待状态<br>- Idle：线程池待机状态<br>- Destroying：销毁状态 |
 | Type      | 字符串       | [EDU 类型](database_management/EDU.md) |
 | Name      | 字符串       | EDU 名，一般系统 EDU 名为空            |
-| RelatedID | 字符串       | 会话的内部标示                         |
+| RelatedID | 字符串       | 会话的内部标识                         |
 
 ##示例##
 
