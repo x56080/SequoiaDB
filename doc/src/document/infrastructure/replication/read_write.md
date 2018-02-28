@@ -10,7 +10,7 @@
 
 - **复制组实例**
 
-  复制组中的每个数据节点都存储该复制组的一份完整数据，因此也称复制组中的每个节点为复制组实例。复制组实例可根据节点在复制组中的位置分为 "主"，"备" 或 "1 - 255" 标识。
+  复制组中的每个数据节点都存储该复制组的一份完整数据，因此也称复制组中的每个节点为复制组实例。复制组实例可根据节点在复制组中的状态或者实例标识配置，分为 "主"，"备" 或 "1 - 255" 标识。
 
 - **数据库实例**
 
@@ -18,10 +18,9 @@
 
 >  **Note:**
 >
->  实例的标识可以通过 SequoiaDB 的 instance 参数进行配置，范围是 1 - 255。请参考 [数据库配置](database_management/runtime_configuration.md)。
+>  实例的标识可以通过 SequoiaDB 的 instanceid 参数进行配置，范围是 1 - 255。请参考 [数据库配置](database_management/runtime_configuration.md)。
 >
 >  设置会话读请求的策略请参考 [Sdb.setSessionAttr\(\)](reference/Sequoiadb_command/Sdb/setSessionAttr.md)
-
 
 ##最终一致性策略##
 
