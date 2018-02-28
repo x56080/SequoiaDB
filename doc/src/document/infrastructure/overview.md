@@ -1,12 +1,12 @@
 ##系统架构##
 
-SequoiaDB 是一个分布式、高可用、高性能的 NewSQL 数据库，对外提供 **API接口** 和 **SQL兼容接口** 两种访问方式。下图为 SequoiaDB 的逻辑架构图：
+SequoiaDB 是一个分布式、高可用、高性能的 NewSQL 数据库，对外提供 **API接口** 和 **标准SQL接口** 两种访问方式。下图为 SequoiaDB 的逻辑架构图：
 
   ![系统逻辑架构](infrastructure/sequoiadb_infrastructure.jpg)
 
 - 应用层
 
-  外部应用可以通过 **API接口** 或 **SQL兼容接口** 两种方式进行数据访问。在使用 **API接口** 时，可以根据程序的编码语言选择相应的接入驱动；使用 **SQL兼容容接口** 时，可以选择 JDBC 或 ODBC。
+  外部应用可以通过 **API接口** 或 **标准SQL接口** 两种方式进行数据访问。在使用 **API接口** 时，可以根据程序的编码语言选择相应的接入驱动；使用 **标准SQL接口** 时，可以选择 JDBC 或 ODBC。
 
 - SQL引擎层
 
