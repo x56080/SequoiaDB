@@ -20,7 +20,7 @@
 >
 >  实例的标识可以通过 SequoiaDB 的 instance 参数进行配置，范围是 1 - 255。请参考 [数据库配置](database_management/runtime_configuration.md)。
 >
->  设置会话读请求的策略请参考 [Sdb.setSessionAttr.md](reference/Sequoiadb_command/Sdb/setSessionAttr.md)
+>  设置会话读请求的策略请参考 [Sdb.setSessionAttr\(\)](reference/Sequoiadb_command/Sdb/setSessionAttr.md)
 
 
 ##最终一致性策略##
