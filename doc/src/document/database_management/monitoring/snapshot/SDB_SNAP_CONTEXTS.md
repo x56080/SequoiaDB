@@ -16,7 +16,8 @@ SDB_SNAP_CONTEXTS
 
 | 字段名                  | 类型   | 描述                                     |
 | ----------------------- | ------ | ---------------------------------------- |
-| SessionID               | 字符串 | 会话 ID（主机名：端口号：ID）            |
+| NodeName                | 字符串 | 节点名（主机名：端口号）                 |
+| SessionID               | 长整型 | 会话 ID                                  |
 | Contexts.ContextID      | 长整型 | 上下文 ID                                |
 | Contexts.Type           | 字符串 | 上下文类型，如：DUMP                     |
 | Contexts.Description    | 字符串 | 上下文的描述信息，如：包含当前的查询条件 |
@@ -30,7 +31,8 @@ SDB_SNAP_CONTEXTS
 ```lang-javascript
 > db.snapshot( SDB_SNAP_CONTEXTS )
 {
-  "SessionID": "hostname1:11820:28",
+  "NodeName": "hostname1:11820",
+  "SessionID": 28,
   "Contexts": [
     {
       "ContextID": 12,

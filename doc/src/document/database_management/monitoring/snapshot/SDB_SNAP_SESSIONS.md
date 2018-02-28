@@ -10,13 +10,15 @@ SDB_SNAP_SESSIONS
 
 | 字段名            | 类型          | 描述                                               |
 | ----------------- | ------------- | -------------------------------------------------- |
-| SessionID         | 字符串        | 会话 ID（主机名：端口号：ID）                      |
+| NodeName          | 字符串        | 节点名（主机名：端口号）                           |
+| SessionID         | 长整型        | 会话 ID                                            |
 | TID               | 整型          | 该会话所对应的系统线程 ID                          |
 | Status            | 字符串        | 会话状态<br>- Creating：创建状态<br>- Running：运行状态<br>- Waiting：等待状态<br>- Idle：线程池待机状态<br>- Destroying：销毁状态 |
 | Type              | 字符串        | [EDU 类型](database_management/EDU.md)             |
 | Name              | 字符串        | EDU 名，一般系统 EDU 名为空                        |
 | QueueSize         | 整型          | 等待处理请求的队列长度                             |
 | ProcessEventCount | 长整型        | 已经处理请求的数量                                 |
+| RelatedID         | 字符串        | 会话的内部标示                                     |
 | Contexts          | 长整型数组    | 上下文 ID 数组，为该会话所包含的所有上下文列表     |
 | TotalDataRead     | 长整型        | 数据记录读                                         |
 | TotalIndexRead    | 长整型        | 索引读                                             |
@@ -44,13 +46,15 @@ SDB_SNAP_SESSIONS
 ```lang-javascript
 > db.snapshot( SDB_SNAP_SESSIONS )
 {
-  "SessionID": "hostname1:11810:1",
+  "NodeName": "hostname1:11810",
+  "SessionID": 1,
   "TID": 8680,
   "Status": "Running",
   "Type": "LogWriter",
   "Name": "",
   "QueueSize": 0,
   "ProcessEventCount": 1,
+  "RelatedID": "c0a81e442e7200008c8a",
   "Contexts": [],
   "TotalDataRead": 0,
   "TotalIndexRead": 0,

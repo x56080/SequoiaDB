@@ -16,7 +16,7 @@ SDB_SNAP_DATABASE
 | GroupName             | 字符串 | 该逻辑节点所属的分区组名，standalone 模式下该字段为空字符串                     |
 | IsPrimary             | 布尔   | 该节点是否为主节点，standalone 模式下该字段为 false                             |
 | ServiceStatus         | 布尔   | 是否为可提供服务状态。<br>一些特殊状态，例如[全量同步](infrastructure/replication/replicate.md)会使该状态为 false |              
-| Status                | 字符串 | 节点状态，为 “Normal” / “Rebuilding” / “FullSync” / “OfflineBackup”  |
+| Status                | 字符串 | 节点状态，有 "Normal"、"Rebuilding" 、"FullSync"、"OfflineBackup"几种状态  |
 | BeginLSN.Offset       | 长整型 | 起始 LSN 的偏移                                                                 |
 | BeginLSN.Version      | 整型   | 起始 LSN 的版本号                                                               |
 | CurrentLSN.Offset     | 长整型 | 当前 LSN 的偏移                                                                 |
@@ -34,6 +34,7 @@ SDB_SNAP_DATABASE
 | Version.Release       | 整型   | 数据库发行版本号                                                                |
 | Version.Build         | 字符串 | 数据库编译时间                                                                  |
 | Editon                | 字符串 | “Enterprise”表示企业版（备注：社区版中无该字段）                                |
+| CurrentActiveSessions | 整型   | 当前活动会话                                                                |
 | CurrentIdleSessions   | 整型   | 当前非活动会话，一般来说非活动会话意味着 EDU 存在线程池中等待分配               |
 | CurrentSystemSessions | 整型   | 当前系统会话，为当前活动用户 EDU 数量                                           |
 | CurrentContexts       | 整型   | 当前上下文数量                                                                  |

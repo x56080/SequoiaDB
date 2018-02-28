@@ -11,6 +11,7 @@ SDB_LIST_GROUPS
 | 字段名             | 类型   | 描述                           |
 | ------------------ | ------ | ------------------------------ |
 | Group.dbpath       | 字符串 | 分区组中节点的数据文件存放路径 |
+| Group.Status       | 整型   | 分区组中节点的状态             |
 | Group.HostName     | 字符串 | 分区组中节点的主机名           |
 | Group.Service.Type | 整型   | 分区组中节点的服务类型<br>- 0：直连服务，对应数据库参数 svcname <br>- 1：复制服务，对应数据库参数 replname <br>- 2：分区服务，对应数据库参数 shardname<br>- 3：编目服务，对应数据库参数 catalogname |
 | Group.Service.Name | 字符串 | 分区组中节点的服务名，服务名可以为端口号，或 services 文件中的服务名 |
@@ -29,8 +30,9 @@ SDB_LIST_GROUPS
 {
   "Group":[
     {
-      "dbpath": "<dbpath>",
       "HostName": "hostname1",
+      "Status": 1,
+      "dbpath": "/data/disk1/sequoiadb/database/catalog/11860/",
       "Service": [
         {
           "Type": 0,

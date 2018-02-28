@@ -19,6 +19,8 @@ SDB_SNAP_CATALOG
 | ReplSize            | 整型   | 执行修改操作时需要同步的副本数<br>当执行更新、插入、删除记录等操作时，仅当指定副本数的节点都完成操作时才返回操作结果 |
 | ShardingKey         | 对象   | 数据分区类型：<br>- range：数据按分区键值的范围进行分区存储<br>- hash：数据按分区键的哈希值进行分区存储 |
 | Version             | 整型   | 集合版本号，当对集合的元数据执行修改操作时递增该版本号（例如数据切分） |
+| Attribute           | 整形   | 集合属性                     |
+| AttributeDesc       | 字符串 | 集合属性描述                 |
 | CataInfo.GroupID    | 整型   | 分区组 ID                    |
 | CataInfo.GroupName  | 字符串 | 分区组名                     |
 | CataInfo.LowBound   | 对象   | 数据分区区间的上限           |
@@ -34,6 +36,8 @@ SDB_SNAP_CATALOG
   },
   "Name": "foo.bar",
   "Version": 1,
+  "Attribute": 0,
+  "AttributeDesc": "",
   "ReplSize": 1,
   "ShardingKey": {
     "age": 1
