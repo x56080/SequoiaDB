@@ -541,6 +541,16 @@ namespace bson {
             return *this;
         }
 
+        /**
+        Alternative way to store an OpTime in BSON.
+
+        Pass the OpTime as a Date, as follow:
+
+        BSONObjBuilder b; OpTime optime(100, 0);
+        b.appendTimestamp("field", optime.asDate());
+
+        This captures both the secs and inc fields.
+        */
         BSONObjBuilder& appendTimestamp( const StringData& fieldName , long long val ) {
             _b.appendNum( (char) Timestamp );
             _b.appendStr( fieldName );
