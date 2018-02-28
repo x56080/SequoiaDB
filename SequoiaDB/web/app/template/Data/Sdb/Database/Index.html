@@ -113,7 +113,11 @@
       <div class="previewLeft" ng-container="{offsetX:-280}" ng-if="csList.length == 0">
          <div class="data_empty">
             <div class="title">{{autoLanguage("业务没有集合空间")}}</div>
-            <div class="tips">{{autoLanguage("使用\"创建集合空间\"操作创建集合空间。")}}</div>
+            <div class="tips">
+               <span>{{autoLanguage("使用")}}</span>
+               <span class="linkButton" ng-click="showCreateCS()">{{autoLanguage("创建集合空间")}}</span>
+               <span>{{autoLanguage("创建集合空间。")}}</span>
+            </div>
          </div>
       </div>
       <!--<div class="previewLeft" ng-container="{offsetX:-280}">
