@@ -17,34 +17,34 @@
 - 在集群模式下，复制组之间的数据无共享，复制组内的节点间进行异步数据复制，保证数据的最终一致性。
 
 >**Note:**  
->1. 在配置集群模式时，请先确保服务器与主机名的映射关系正确，详细请参考[Linux系统要求](installation/system/system_requirement.md) ，确保各节点之间能相互通信，将节点的防火墙关闭。  
->2. 参看[Linux推荐配置](installation/system/linux_suggest_settings.md)中关于NUMA的条目，NUMA对SequoiaDB的运行有影响。尤其是高负荷的生产环境，建议关闭NUMA或者使用“numactl --interleave=all”启动数据库服务。
+> 1. 在配置集群模式时，请先确保服务器与主机名的映射关系正确，详细请参考[Linux系统要求](installation/system/system_requirement.md) ，确保各节点之间能相互通信，将节点的防火墙关闭。  
+> 2. 参看[Linux推荐配置](installation/system/linux_suggest_settings.md)中关于NUMA的条目，NUMA对SequoiaDB的运行有影响。尤其是高负荷的生产环境，建议关闭NUMA或者使用“numactl --interleave=all”启动数据库服务。
 
 **说明：**
 
-（1）本节按照高可用部署为例，介绍配置和启动步骤；
+1. 本节以[高可用](planning_database_deployment.md)的方式部署为例，介绍配置和启动步骤。
 
-（2）以下操作步骤假设 SequoiaDB 程序安装在 /opt/sequoiadb 目录下；
+2. 以下操作步骤假设 SequoiaDB 程序安装在 /opt/sequoiadb 目录下。
 
-（3）sdb服务进程全部以 sdbadmin 用户运行，请确保所有数据库目录都赋予 sdbadmin 读写权限。
+3. SequoiaDB 服务进程全部以 sdbadmin 用户运行，请确保所有数据库目录都赋予 sdbadmin 读写权限。
 
 - 步骤一：检查 SequoiaDB 的配置服务状态
   1. 在每台数据库服务器上检查 SequoiaDB 配置服务状态：
 
      ```lang-javascript
-     $ service sdbcm status
+     # service sdbcm status
      ```
   2. 确认系统提示“sdbcm is running”表示服务正在运行，否则请执行如下命令重新配置服务程序：
 
      ```lang-javascript
-     $ service sdbcm start
+     # service sdbcm start
      ```
 
-- 步骤二：启动一个临时协调节点（该节点只是为了创建其它节点而临时使用，后面会删除）
+- 步骤二：启动一个临时协调节点（该节点只是为了创建其它节点而临时使用，安装完毕后需要删除该节点）
   1. 切换到 sdbadmin 用户
 
      ```lang-javascript
-     $ su sdbadmin
+     # su - sdbadmin
      ```
   2. 在任意一台数据库服务器上（以下步骤都只需要在这台服务器上操作），启动 SequoiaDB Shell 控制台
 
@@ -68,53 +68,53 @@
      ```
 
 - 步骤三：通过命令配置和启动编目节点
-  1. 连接到临时协调节点，在 shell 命令中输入：
+
+	1. 连接到临时协调节点，在 shell 命令中输入：
 
      ```lang-javascript
      > var db = new Sdb("localhost",18800)
      ```
 
      其中18800为协调节点端口号
-  2. 创建一个编目节点组
+
+	2. 创建一个编目节点组
 
      ```lang-javascript
      > db.createCataRG("sdbserver1", 11800, "/opt/sequoiadb/database/cata/11800")
      ```
 
+     sdbserver1：第一台服务器主机名。
 
-     sdbserver1：第一个服务器主机名；
+     11800：为编目节点服务端口。
 
-     11800：为编目节点服务端口（该端口配置不要与随机端口冲突，以下其它端口的配置也需要注意）；
+     /opt/sequoiadb/database/cata/11800：为编目节点的数据文件存放路径。
 
-     /opt/sequoiadb/database/cata/11800：为编目节点的数据文件存放路径；
-
-     >**Note:**  
-     >如果配置路径不以“/”开头，数据文件存放路径将是数据库管理员用户(默认为sdbadmin)的主目录(默认为/home/sequoiadb) + 配置的路径。
-请确保存放路径的权限，如果 SequoiaDB 采用的默认安装，那么给路径赋予 sdbadmin 权限，下同。
-  3. 添加另外两个编目节点
+  	3. 添加另外两个编目节点
 
      ```lang-javascript
      > var cataRG = db.getRG("SYSCatalogGroup");
      > var node1 = cataRG.createNode("sdbserver2", 11800,"/opt/sequoiadb/database/cata/11800")
      > var node2 = cataRG.createNode("sdbserver3", 11800,"/opt/sequoiadb/database/cata/11800")
      ```
-  4. 启动编目节点组
+  	>**Note:**  
+  	> createNode() 的第一个参数建议使用“主机名”。
+
+  	4. 启动编目节点组
 
      ```lang-javascript
      > node1.start()
      > node2.start()
      ```
 
-  >**Note:**  
-  >创建节点的第一个参数必须为“主机名”，而不能使主机的 IP。
-
 - 步骤四：通过命令配置和启动数据节点
-  1. 创建数据节点组
+
+  	1. 创建数据节点组
 
      ```lang-javascript
      > var dataRG = db.createRG("datagroup")
      ```
-  2. 添加数据节点
+
+  	2. 添加数据节点
 
      ```lang-javascript
      > dataRG.createNode("sdbserver1", 11820, "/opt/sequoiadb/database/data/11820")
@@ -122,40 +122,46 @@
      > dataRG.createNode("sdbserver3", 11820, "/opt/sequoiadb/database/data/11820")
      ```
 
-     >**Note:**  
-     >创建节点的第一个参数必须为“主机名”，而不能是主机的 IP。
-  3. 启动数据节点组
+  		>**Note:**  
+  		> createNode() 的第一个参数建议使用“主机名”。
+
+  	3. 启动数据节点组
 
      ```lang-javascript
      > dataRG.start()
      ```
 
 - 步骤五：部署启动协调节点
-  1. 创建协调节点组
+
+  	1. 创建协调节点组
 
      ```lang-javascript
      > var rg = db.createCoordRG()
      ```
-  2. 创建协调节点
+
+  	2. 创建协调节点
 
      ```lang-javascript
      > rg.createNode("sdbserver1", 11810, "/opt/sequoiadb/database/coord/11810")
      > rg.createNode("sdbserver2", 11810, "/opt/sequoiadb/database/coord/11810")
      > rg.createNode("sdbserver3", 11810, "/opt/sequoiadb/database/coord/11810")
      ```
-  3. 启动协调节点
+
+  	3. 启动协调节点
 
      ```lang-javascript
      > rg.start()
      ```
 
 - 步骤六：删除临时协调节点
-  1. 连接到本地的集群管理服务进程 sdbcm
+
+  	1. 连接到本地的集群管理服务进程 sdbcm
 
      ```lang-javascript
      > var oma = new Oma("localhost", 11790)
      ```
-  2. 删除临时协调节点
+
+  	2. 删除临时协调节点
 
      ```lang-javascript
      > oma.removeCoord(18800)

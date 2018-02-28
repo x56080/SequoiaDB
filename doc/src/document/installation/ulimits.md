@@ -24,6 +24,6 @@
 
  **open_files**：数据库进程允许的最大文件句柄数，默认是60000；
 
->Note:
+>**Note:**
 >
->-1表示unlimited。
+> -1表示unlimited。
