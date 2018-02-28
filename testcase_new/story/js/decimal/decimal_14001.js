@@ -17,15 +17,15 @@ function main()
                      { a: { $decimal: "nan" } } ] ;
    insertData( cl, legalDocs ) ;
    
-   var illegalDocs = [ // { a: { $decimal: "MAX1" } },
+   var illegalDocs = [ { a: { $decimal: "MAX1" } },
                        { a: { $decimal: "1Max" } },
                        { a: { $decimal: "MMAX" } },
-                       // { a: { $decimal: "Maxx" } },
+                       { a: { $decimal: "Maxx" } },
                        { a: { $decimal: "maax" } },
                        { a: { $decimal: " max" } },
                        { a: { $decimal: "m ax" } },
                        { a: { $decimal: "ma x" } },
-                       // { a: { $decimal: "max " } },
+                       { a: { $decimal: "max " } },
                        { a: { $decimal: "abc" } } ] ;
    for( var i = 0;i < illegalDocs.length;i++ )
    {
