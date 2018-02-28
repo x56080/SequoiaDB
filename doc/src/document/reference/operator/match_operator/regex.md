@@ -2,8 +2,11 @@
 
 $regex 操作提供正则表达式模式匹配字符串查询功能。SequoiaDB 使用的是 PCRE 正则表达式。
 
-> **Note:**  
+> **Note:**
+>
 > $regex 与 $options 配套使用。
+>
+> 关于正则表达式规则，请参阅 [Perl正则表达式手册](http://perldoc.perl.org/perlre.html)。
 
 ###$options###
 
