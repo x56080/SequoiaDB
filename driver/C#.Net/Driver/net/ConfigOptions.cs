@@ -128,7 +128,7 @@ namespace SequoiaDB
             }
         }
 
-        /** \property UseKeepAlive
+        /** \property SocketKeepAlive
          *  \brief Get or set whether use the keep alive or not, default to be open,
          *  and the time is 15s, the interval is 3s
          */
