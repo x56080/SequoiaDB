@@ -77,7 +77,7 @@ public class CollectionSpace {
      * @brief Get the named collection
      * @param collectionName
      *            The collection name
-     * @return The collection object or null for collection not exist
+     * @return the object of the specified collection, or an exception when the collection does not exist.
      * @exception com.sequoiadb.exception.BaseException
      */
     public DBCollection getCollection(String collectionName)

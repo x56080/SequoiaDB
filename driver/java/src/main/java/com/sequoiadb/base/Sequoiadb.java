@@ -675,11 +675,10 @@ public class Sequoiadb {
 
     /**
      * @param csName The collection space name.
-     * @return The collection space object.
+     * @return the object of the specified collection space, or an exception when the collection space does not exist.
      * @throws com.sequoiadb.exception.BaseException
      * @fn CollectionSpace getCollectionSpace(String csName)
      * @brief Get the named collection space.
-     * @note If the collection space not exit, throw BaseException "SDB_DMS_CS_NOTEXIST".
      */
     public CollectionSpace getCollectionSpace(String csName)
             throws BaseException {
