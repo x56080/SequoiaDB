@@ -567,6 +567,20 @@ public class ReplicaGroup {
     /**
      * @param hostName  host name
      * @param port      port
+     * @param dbPath    the path for node
+     * @return the created Node object
+     * @throws BaseException If error happens.
+     * @fn Node createNode(String hostName, int port, String dbPath,
+     * BSONObject configure)
+     * @brief Create node.
+     */
+    public Node createNode(String hostName, int port, String dbPath) throws BaseException {
+        return createNode(hostName, port, dbPath, new BasicBSONObject());
+    }
+
+    /**
+     * @param hostName  host name
+     * @param port      port
      * @param configure configuration for this operation
      * @throws com.sequoiadb.exception.BaseException
      * @fn void removeNode(String hostName, int port,
