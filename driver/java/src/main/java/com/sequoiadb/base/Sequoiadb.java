@@ -59,10 +59,25 @@ public class Sequoiadb {
     private static long cacheInterval = 300 * 1000;
     private BSONObject attributeCache = null;
 
+    /**
+     * specified the package size of the collections in current collection space to be 4K
+     */
     public final static int SDB_PAGESIZE_4K = 4096;
+    /**
+     * specified the package size of the collections in current collection space to be 8K
+     */
     public final static int SDB_PAGESIZE_8K = 8192;
+    /**
+     * specified the package size of the collections in current collection space to be 16K
+     */
     public final static int SDB_PAGESIZE_16K = 16384;
+    /**
+     * specified the package size of the collections in current collection space to be 32K
+     */
     public final static int SDB_PAGESIZE_32K = 32768;
+    /**
+     * specified the package size of the collections in current collection space to be 64K
+     */
     public final static int SDB_PAGESIZE_64K = 65536;
     /** 0 means using database's default pagesize, it 64k now */
     public final static int SDB_PAGESIZE_DEFAULT = 0;
@@ -810,8 +825,7 @@ public class Sequoiadb {
      * @brief Get the named collection space.
      * @param csName
      *            The collection space name.
-     * @return The collection space object.
-     * @note If the collection space not exit, throw BaseException "SDB_DMS_CS_NOTEXIST".
+     * @return the object of the specified collection space, or an exception when the collection space does not exist.
      * @exception com.sequoiadb.exception.BaseException
      */
     public CollectionSpace getCollectionSpace(String csName)
