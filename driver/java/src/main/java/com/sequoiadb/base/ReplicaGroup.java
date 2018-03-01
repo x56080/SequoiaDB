@@ -331,6 +331,37 @@ public class ReplicaGroup {
     }
 
     /**
+     * @fn boolean isNodeExist(String nodeName)
+     * @brief whether the specified node exists in current group or not
+     * @param nodeName the name of the node. e.g. "192.168.20.165:20000"
+     * @return true or false
+     */
+    public boolean isNodeExist(String nodeName) {
+        try {
+            getNode(nodeName);
+        } catch (BaseException e) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * @fn boolean isNodeExist(String hostName, int port)
+     * @brief whether the specified node exists in current group or not
+     * @param hostName the hostname of the node
+     * @param port the port of the node
+     * @return true or false
+     */
+    public boolean isNodeExist(String hostName, int port) {
+        try {
+            getNode(hostName, port);
+        } catch (BaseException e) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * @param nodeName The name of the node
      * @return the specified node
      * @throws com.sequoiadb.exception.BaseException

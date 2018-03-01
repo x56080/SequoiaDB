@@ -9,6 +9,8 @@ import org.bson.BasicBSONObject;
 public class Constants {
     public final static int PORT = Integer.valueOf(TestConfig.getSinglePort());
     public final static String HOST = TestConfig.getSingleHost();
+    public final static int NODE_PORT = TestConfig.getNodePort();
+    public final static String NODE_HOST = TestConfig.getNodeHost();
     public final static String BACKUPPATH = "/opt/sequoiadb/database/test/backup";
     public final static String DATAPATH4 = "/opt/sequoiadb/database/test/data4";
 

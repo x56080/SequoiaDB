@@ -57,13 +57,22 @@ public class SDBGetRG {
         if (!isCluster) {
             return;
         }
+
+        boolean groupExist = sdb.isRelicaGroupExist("SYSCatalogGroup");
+        Assert.assertTrue(groupExist);
+        groupName = "SYSCatalogGroup12345";
+        groupExist = sdb.isRelicaGroupExist(groupName);
+        Assert.assertFalse(groupExist);
         try {
-            groupName = "SYSCatalogGroup12345";
             rg = sdb.getReplicaGroup(groupName);
             Assert.fail("should get SDB_CLS_GRP_NOT_EXIST(-154) error");
         } catch (BaseException e) {
             Assert.assertEquals(SDBError.SDB_CLS_GRP_NOT_EXIST.getErrorCode(), e.getErrorCode());
         }
+        groupExist = sdb.isReplicaGroupExist(1);
+        Assert.assertTrue(groupExist);
+        groupExist = sdb.isReplicaGroupExist(0);
+        Assert.assertFalse(groupExist);
         try {
             rg = sdb.getReplicaGroup(0);
             Assert.fail("should get SDB_CLS_GRP_NOT_EXIST(-154) error");
@@ -84,12 +93,20 @@ public class SDBGetRG {
 //        System.out.println(String.format("group is: %s, master is: %s", groupName, master.getNodeName()));
         String hostName = master.getHostName();
         int hostPort = master.getPort();
+        boolean nodeExist = rg.isNodeExist(hostName + ":" + hostPort);
+        Assert.assertTrue(nodeExist);
+        nodeExist = rg.isNodeExist(hostName, hostPort);
+        Assert.assertTrue(nodeExist);
         Node node1 = rg.getNode(hostName, hostPort);
 //        System.out.println(String.format("group is: %s, node1 is: %s", groupName, node1.getNodeName()));
         Node node2 = rg.getNode(hostName + ":" + hostPort);
 //        System.out.println(String.format("group is: %s, node2 is: %s", groupName, node2.getNodeName()));
         // case 2: get a node which is not exist
         Node node3 = null;
+        nodeExist = rg.isNodeExist("ubuntu" + ":" + 30000);
+        Assert.assertFalse(nodeExist);
+        nodeExist = rg.isNodeExist("ubuntu", 30000);
+        Assert.assertFalse(nodeExist);
         try {
             node3 = rg.getNode("ubuntu", 30000);
             Assert.fail("should get SDB_CLS_NODE_NOT_EXIST(-155) error");

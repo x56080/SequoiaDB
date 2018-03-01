@@ -16,7 +16,8 @@ public class NoteTest {
     private static Sequoiadb sdb;
     private static ReplicaGroup rg = null;
     private static Node node = null;
-    private static final int PORT = 51000;
+    private static final String HOST = Constants.NODE_HOST;
+    private static final int PORT = Constants.NODE_PORT;
     private static boolean isCluster = true;
 
     @BeforeClass
@@ -38,7 +39,7 @@ public class NoteTest {
         // rg
         rg = sdb.getReplicaGroup(Constants.GROUPNAME);
         // node
-        node = rg.getNode(Constants.HOST, PORT);
+        node = rg.getNode(HOST, PORT);
     }
 
     @After

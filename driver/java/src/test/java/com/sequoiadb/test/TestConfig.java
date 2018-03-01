@@ -23,6 +23,8 @@ public class TestConfig {
     private static final String singleUsername = "single.username";
     private static final String singlePassword = "single.password";
     private static final String singleGroup = "single.group";
+    private static final String nodeHost = "node.host";
+    private static final String nodePort = "node.port";
 
     private TestConfig() {
     }
@@ -45,5 +47,18 @@ public class TestConfig {
 
     public static String getSingleGroup() {
         return properties.getProperty(singleGroup);
+    }
+
+    public static String getNodeHost() {
+        return properties.getProperty(nodeHost);
+    }
+
+    public static int getNodePort() {
+        String port = properties.getProperty(nodePort);
+        if (port != null && !port.isEmpty()) {
+            return Integer.valueOf(port);
+        } else {
+            return 0;
+        }
     }
 }

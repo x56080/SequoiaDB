@@ -64,6 +64,9 @@ public class DomainTest {
         result = createDomain(tmpDomain, 2);
         assertEquals(!standaloneFlag, result);
 
+        boolean isExist = sdb.isDomainExist(tmpDomain);
+        assertTrue(isExist);
+
         result = dropDomain(tmpDomain);
         assertEquals(!standaloneFlag, result);
     }

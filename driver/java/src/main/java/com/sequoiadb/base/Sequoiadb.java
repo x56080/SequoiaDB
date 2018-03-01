@@ -1863,6 +1863,36 @@ public class Sequoiadb {
     }
 
     /**
+     * @fn boolean isReplicaGroupExist(String rgName)
+     * @brief whether the replica group exists in the database or not
+     * @param rgName replica group's name
+     * @return true or false
+     */
+    public boolean isRelicaGroupExist(String rgName) {
+        BSONObject rg = getDetailByName(rgName);
+        if (rg == null) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    /**
+     * @fn boolean isReplicaGroupExist(int rgId)
+     * @brief whether the replica group exists in the database or not
+     * @param rgId id of replica group
+     * @return true or false
+     */
+    public boolean isReplicaGroupExist(int rgId) {
+        BSONObject rg = getDetailById(rgId);
+        if (rg == null) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    /**
      * @fn ReplicaGroup getReplicaGroup(String rgName)
      * @brief Get replica group by name.
      * @param rgName
