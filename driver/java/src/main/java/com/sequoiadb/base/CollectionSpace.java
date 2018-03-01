@@ -168,8 +168,7 @@ public class CollectionSpace {
      * @return the created DBCollection
      * @exception com.sequoiadb.exception.BaseException
      */
-    public DBCollection createCollection(String collectionName,
-                                         BSONObject options) {
+    public DBCollection createCollection(String collectionName, BSONObject options) {
         String commandString = SequoiadbConstants.ADMIN_PROMPT
                 + SequoiadbConstants.CREATE_CMD + " "
                 + SequoiadbConstants.COLLECTION;
