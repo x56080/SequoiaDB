@@ -13,6 +13,7 @@ using namespace std ;
 #define RESTPORT               11814
 
 #define MAX_NAME_SIZE         127
+#define SDB_TEST_ERROR        -1000
 
 #define CHECK_RC( rc, fmt, ... ) \
 do { \
