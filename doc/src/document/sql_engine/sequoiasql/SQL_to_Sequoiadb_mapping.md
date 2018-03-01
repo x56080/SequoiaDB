@@ -39,8 +39,8 @@
 | SELECT name, age FROM bar;      | db.foo.bar.find( {},{ name: null, age: null } ) |
 | SELECT * FROM bar WHERE age > 25; | db.foo.bar.find( { age: { $gt: 25 } } )            |
 | SELECT age FROM bar WHERE age = 25 AND name = 'Harry'; | db.foo.bar.find( { age: 25, name: "Harry" }, { age: null } ) |
-| SELECT COUNT( * ) FROM bar;    | db.foo.bar.COUNT()                             |
-| SELECT COUNT( name ) FROM bar;| db.foo.bar.COUNT( { name: { $exists: 1 } } )     |
+| SELECT COUNT( * ) FROM bar;     | db.foo.bar.count()                             |
+| SELECT COUNT( name ) FROM bar;  | db.foo.bar.count( { name: { $exists: 1 } } )     |
 
 
 ##Update##
