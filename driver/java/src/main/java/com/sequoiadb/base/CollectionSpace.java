@@ -148,6 +148,7 @@ public class CollectionSpace {
      * @brief Create the named collection in current collection space
      * @param collectionName
      *            The collection name
+     * @return the newly created object of collection
      * @exception com.sequoiadb.exception.BaseException
      */
     public DBCollection createCollection(String collectionName)
@@ -179,7 +180,7 @@ public class CollectionSpace {
      *           The options for creating collection, including
      *           "ShardingKey", "ReplSize", "IsMainCL" and "Compressed" informations,
      *           no options, if null
-     * @return the created DBCollection
+     * @return the newly created object of collection
      * @exception com.sequoiadb.exception.BaseException
      */
     public DBCollection createCollection(String collectionName,

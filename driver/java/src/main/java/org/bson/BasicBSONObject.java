@@ -168,7 +168,7 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 	}
 
 	/**
-	 * @deprecated
+	 * @deprecated used containsField(String) instead
 	 */
 	// @Override
 	@Deprecated

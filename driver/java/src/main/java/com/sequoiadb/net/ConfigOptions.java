@@ -24,6 +24,9 @@
  */
 package com.sequoiadb.net;
 
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
+
 /**
  * @class ConfigOptions
  * @brief Database Connection Configuration Option
@@ -37,35 +40,44 @@ public class ConfigOptions {
     private boolean useSSL = false;
 
     /**
-     * @fn void setMaxAutoConnectRetryTime(long maxRetryTimeMilli)
+     * @fn void setMaxAutoConnectRetryTime(long maxRetryTimeMillis)
      * @brief Set the max auto connect retry time in milliseconds. Default to be 15,000ms.
      *  when "connectTimeout" is set to 10,000ms(default value), the max number of retries is
      *  ceiling("maxAutoConnectRetryTime" / "connectTimeout"), which is 2.
-     * @param maxRetryTimeMilli the max auto connect retry time in milliseconds.
+     * @param maxRetryTimeMillis the max auto connect retry time in milliseconds.
      */
-    public void setMaxAutoConnectRetryTime(long maxRetryTimeMilli) {
-        this.maxAutoConnectRetryTime = maxRetryTimeMilli;
+    public void setMaxAutoConnectRetryTime(long maxRetryTimeMillis) {
+        if (maxRetryTimeMillis < 0) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "should not less than 0");
+        }
+        this.maxAutoConnectRetryTime = maxRetryTimeMillis;
     }
 
     /**
-     * @fn void setConnectTimeout(int connectTimeoutMilli)
+     * @fn void setConnectTimeout(int connectTimeoutMillis)
      * @brief Set the connection timeout in milliseconds. A value of 0 means no timeout.
      * It is used solely when establishing a new connection {@link java.net.Socket#connect(java.net.SocketAddress, int) }
      *
-     * @param connectTimeoutMilli The connection timeout in milliseconds. Default is 10,000ms.
+     * @param connectTimeoutMillis The connection timeout in milliseconds. Default is 10,000ms.
      */
-    public void setConnectTimeout(int connectTimeoutMilli) {
-        this.connectTimeout = connectTimeoutMilli;
+    public void setConnectTimeout(int connectTimeoutMillis) {
+        if (connectTimeoutMillis < 0) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "should not less than 0");
+        }
+        this.connectTimeout = connectTimeoutMillis;
     }
 
     /**
-     * @fn void setSocketTimeout(int socketTimeoutMilli)
+     * @fn void setSocketTimeout(int socketTimeoutMillis)
      * @brief Get the socket timeout in milliseconds.
      * It is used for I/O socket read operations {@link java.net.Socket#setSoTimeout(int)}
-     * @param socketTimeoutMilli The socket timeout in milliseconds. Default is 0ms and means no timeout.
+     * @param socketTimeoutMillis The socket timeout in milliseconds. Default is 0ms and means no timeout.
      */
-    public void setSocketTimeout(int socketTimeoutMilli) {
-        this.socketTimeout = socketTimeoutMilli;
+    public void setSocketTimeout(int socketTimeoutMillis) {
+        if (socketTimeoutMillis < 0) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "should not less than 0");
+        }
+        this.socketTimeout = socketTimeoutMillis;
     }
 
     /**
