@@ -1521,7 +1521,7 @@
       <name>PMD_OPTION_PERF_STAT</name>
       <long>perfstat</long>
       <description>
-         <en>Wether enable perfermance stat or not</en>
+         <en>Whether enable performance statistics or not</en>
          <cn>是否开启性能统计</cn>
       </description>
       <reloadable>
