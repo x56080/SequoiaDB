@@ -953,10 +953,48 @@ public class Sequoiadb {
      * @exception com.sequoiadb.exception.BaseException
      */
     public void resetSnapshot() throws BaseException {
+        resetSnapshot(null);
+    }
+
+    /**
+     * @param options The control options:(can be null)
+     *                <ul>
+     *                <li>
+     *                Type: (String) Specify the snapshot type to be reset (default is "all"):
+     *                <ul>
+     *                <li>"sessions"</li>
+     *                <li>"sessions current"</li>
+     *                <li>"database"</li>
+     *                <li>"health"</li>
+     *                <li>"all"</li>
+     *                </ul>
+     *                </li>
+     *                <li>
+     *                SessionID: (Int32) Specify the session ID to be reset.
+     *                </li>
+     *                <li>
+     *                Other options: Some of other options are as below:(please visit the official website to
+     *                search "Location Elements" for more detail.)
+     *                <ul>
+     *                <li>GroupID:int,</li>
+     *                <li>GroupName:String,</li>
+     *                <li>NodeID:int,</li>
+     *                <li>HostName:String,</li>
+     *                <li>svcname:String,</li>
+     *                <li>...</li>
+     *                </ul>
+     *                </li>
+     *                </ul>
+     * @return void
+     * @throws BaseException If error happens.
+     * @fn void resetSnapshot(BSONObject options)
+     * @brief Reset the snapshot.
+     */
+    public void resetSnapshot(BSONObject options) throws BaseException {
         String commandString = SequoiadbConstants.SNAP_CMD + " "
                 + SequoiadbConstants.RESET;
-        SDBMessage rtn = adminCommand(commandString, 0, 0, -1, -1, null, null,
-                null, null);
+        SDBMessage rtn = adminCommand(commandString, 0, 0, -1, -1,
+                options, null, null, null);
         int flags = rtn.getFlags();
         if (flags != 0) {
             throw new BaseException(flags);
