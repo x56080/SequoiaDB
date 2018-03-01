@@ -42,7 +42,7 @@
  > db.reloadConf( {Global:false} )
  ```
 
-* 对指节点 1000 进行配置重加载。
+* 对指定节点 1000 进行配置重加载。
 
  ```lang-javascript
  // 连接协调节点
