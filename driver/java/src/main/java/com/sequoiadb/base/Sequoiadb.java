@@ -853,7 +853,7 @@ public class Sequoiadb {
      *                </ul>
      * @return void
      * @throws BaseException If error happens.
-     * @fn void resetSnapshot()
+     * @fn void resetSnapshot(BSONObject options)
      * @brief Reset the snapshot.
      */
     public void resetSnapshot(BSONObject options) throws BaseException {

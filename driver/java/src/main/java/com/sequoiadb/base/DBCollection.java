@@ -1257,8 +1257,7 @@ public class DBCollection {
      * @brief Create a index with name and key
      * @param name
      *            The index name
-     * @param key
-     *            The index key, like: {"key":1/-1}, ASC(1)/DESC(-1)
+     * @param key      The index keys in JSON format, like: "{\"a\":1, \"b\":-1}"
      * @param isUnique
      *            Whether the index elements are unique or not
      * @param enforced
@@ -1330,8 +1329,7 @@ public class DBCollection {
      * @brief Create a index with name and key
      * @param name
      *            The index name
-     * @param key
-     *            The index key, like: {"key":1/-1}, ASC(1)/DESC(-1)
+     * @param key      The index keys in JSON format, like: "{\"a\":1, \"b\":-1}"
      * @param isUnique
      *            Whether the index elements are unique or not
      * @param enforced
@@ -1351,8 +1349,7 @@ public class DBCollection {
      * @brief Create a index with name and key
      * @param name
      *            The index name
-     * @param key
-     *            The index key, like: {"key":1/-1}, ASC(1)/DESC(-1)
+     * @param key      The index keys in JSON format, like: "{\"a\":1, \"b\":-1}"
      * @param isUnique
      *            Whether the index elements are unique or not
      * @param enforced
