@@ -100,19 +100,21 @@
 ####配置主机名/IP地址映射####
 
 - **配置方法**
-  - 使用 root 权限，打开 /etc/hosts 文件 
-   
-     ```lang-javascript
-     $ vi /etc/hosts
-     ```
-  - 修改 /etc/hosts ，将服务器节点的主机名与IP映射关系配置到该文件中  
 
-     ```
-     192.168.20.200 sdbserver1  
-     192.168.20.201 sdbserver2  
-     192.168.20.202 sdbserver3
-     ```
-  - 保存退出
+  	1. 使用 root 权限，打开 /etc/hosts 文件 
+   
+     	```lang-javascript
+     	$ vi /etc/hosts
+     	```
+  	2. 修改 /etc/hosts ，将服务器节点的主机名与IP映射关系配置到该文件中  
+
+     	```
+     	192.168.20.200 sdbserver1  
+     	192.168.20.201 sdbserver2  
+     	192.168.20.202 sdbserver3
+     	```
+
+  	3. 保存退出
 
 - **验证方法**
   1. ping sdbserver1（本机主机名） 可以 ping 通 
@@ -131,7 +133,8 @@
 - **配置方法**
 
   - 对于 SUSE:   
-     1. 执行如下命令
+
+     	执行如下命令
          
          ```lang-javascript
          $ SuSEfirewall2 stop
@@ -140,30 +143,35 @@
 	       ```
 
   - 对于 RedHat：
-     1. 执行如下命令    
+     
+		执行如下命令    
 
          ```lang-javascript
          $ service iptables stop
          $ chkconfig iptables off
          ```
   - 对于 Ubuntu： 
-     1. 执行如下命令
+
+     	执行如下命令
 
          ```lang-javascript
          $ ufw disable
          ```
 
 - **验证方法**
+
   - 对于 SUSE
 
      ```lang-javascript
      $ chkconfig -list | grep fire
      ``` 
+
   - 对于 RedHat:
      
      ```lang-javascript
      $ service iptables status
      ``` 
+
   - 对于 Ubuntu:
      
      ```lang-javascript
