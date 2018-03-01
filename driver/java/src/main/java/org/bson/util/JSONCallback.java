@@ -221,10 +221,14 @@ public class JSONCallback extends BasicBSONCallback {
 						type = (byte) Integer.parseInt(strType);
 					}
 				}
+				String encodeString = (String) b.get("$binary");
+				if (encodeString.length() % 4 != 0) {
+					throw new JSONParseException(encodeString, encodeString.length() - 1,
+							"invalid size of base64 encode");
+				}
 				try {
 					BASE64Decoder decode = new BASE64Decoder();
-					byte[] data = null;
-					data = decode.decodeBuffer((String) b.get("$binary"));
+					byte[] data = decode.decodeBuffer(encodeString);
 					o = new Binary(type, data);
 					if (!isStackEmpty()) {
 						cur().put(name, o);
@@ -232,6 +236,7 @@ public class JSONCallback extends BasicBSONCallback {
 						setRoot(o);
 					}
 				} catch (IOException e) {
+					throw new JSONParseException(encodeString, encodeString.length() - 1, e);
 				}
 			}
 		}

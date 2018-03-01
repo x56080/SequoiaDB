@@ -32,13 +32,20 @@ public class JSONParseException extends RuntimeException {
 
     String s;
     int pos;
+    String detail;
 
     public String getMessage() {
+        int count = pos;
         StringBuilder sb = new StringBuilder();
         sb.append("\n");
+        if (detail != null && !detail.isEmpty()) {
+            sb.append(detail);
+            sb.append(", ");
+            count += detail.length() +  2;
+        }
         sb.append(s);
         sb.append("\n");
-        for(int i=0;i<pos;i++) {
+        for(int i=0; i<count; i++) {
             sb.append(" ");
         }
         sb.append("^");
@@ -54,5 +61,11 @@ public class JSONParseException extends RuntimeException {
     	super(cause);
         this.s = s;
         this.pos = pos;
+    }
+
+    public JSONParseException(String s, int pos, String detail) {
+        this.s = s;
+        this.pos = pos;
+        this.detail = detail;
     }
 }

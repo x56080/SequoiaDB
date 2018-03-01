@@ -9,13 +9,17 @@ import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.common.Constants;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
+import org.bson.util.JSONParseException;
 import org.junit.*;
+import org.junit.rules.ExpectedException;
 
 
 public class Bug_JIRA_ {
     private static Sequoiadb sdb;
     private static CollectionSpace cs;
     private static DBCollection cl;
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
@@ -54,6 +58,12 @@ public class Bug_JIRA_ {
         if (str == null) {
             System.out.println("yes");
         }
+    }
+
+    @Test
+    public void jira2163_insert_invalid_binary() {
+        thrown.expect(JSONParseException.class);
+        cl.insert("{ a: { '$binary': 'd29ybGQ', '$type': '1' } } ");
     }
 
     @Test
