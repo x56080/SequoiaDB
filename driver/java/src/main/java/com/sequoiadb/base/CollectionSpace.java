@@ -151,23 +151,8 @@ public class CollectionSpace {
      * @return the newly created object of collection
      * @exception com.sequoiadb.exception.BaseException
      */
-    public DBCollection createCollection(String collectionName)
-            throws BaseException {
-        if (isCollectionExist(collectionName)) {
-            throw new BaseException(SDBError.SDB_DMS_EXIST, collectionName);
-        }
-        String commandString = SequoiadbConstants.ADMIN_PROMPT
-                + SequoiadbConstants.CREATE_CMD + " "
-                + SequoiadbConstants.COLLECTION;
-        String collectionFullName = name + "." + collectionName;
-        BSONObject obj = new BasicBSONObject();
-        obj.put(SequoiadbConstants.FIELD_NAME_NAME, collectionFullName);
-        SDBMessage rtn = adminCommand(commandString, obj, null, null, null);
-        int flags = rtn.getFlags();
-        if (flags != 0) {
-            throw new BaseException(flags, collectionName);
-        }
-        return getCollection(collectionName);
+    public DBCollection createCollection(String collectionName) throws BaseException {
+        return createCollection(collectionName, null);
     }
 
     /**
@@ -183,8 +168,7 @@ public class CollectionSpace {
      * @return the newly created object of collection
      * @exception com.sequoiadb.exception.BaseException
      */
-    public DBCollection createCollection(String collectionName,
-                                         BSONObject options) {
+    public DBCollection createCollection(String collectionName, BSONObject options) {
         String commandString = SequoiadbConstants.ADMIN_PROMPT
                 + SequoiadbConstants.CREATE_CMD + " "
                 + SequoiadbConstants.COLLECTION;
