@@ -381,9 +381,40 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 	 * new BigDecimal(this.getValue()) // &quot;this&quot; means current BSONDecimal object
 	 * </pre>
 	 * @return a BigDecimal object
+	 * @throws UnsupportedOperationException we can't convert a MAX/MIN/NAN value of BSONDecimal to BigDecimal.
 	 */
 	public BigDecimal toBigDecimal() {
+		if (_isMax(this) || _isMin(this) || _isNan(this)) {
+			throw new UnsupportedOperationException(String.format("can't convert %s to BigDecimal", _getValue()));
+		}
 		return new BigDecimal(this.getValue());
+	}
+
+	/**
+	 * @fn boolean isMax()
+	 * @brief Whether current decimal object represents a positive infinite value
+	 * @return true or false
+	 */
+	public boolean isMax() {
+		return _isMax(this);
+	}
+
+	/**
+	 * @fn boolean isMin()
+	 * @brief Whether current decimal object represents a negative infinite value
+	 * @return true or false
+	 */
+	public boolean isMin() {
+		return _isMin(this);
+	}
+
+	/**
+	 * @fn boolean isNan()
+	 * @brief Whether current decimal object represents a not a number value
+	 * @return true or false
+	 */
+	public boolean isNan() {
+		return _isNan(this);
 	}
 
     /**
