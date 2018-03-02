@@ -18,9 +18,6 @@ package org.bson.types;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
-
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.exception.SDBError;
 import org.bson.BSON;
 import org.bson.util.JSON;
 
@@ -383,18 +380,18 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 	 * new BigDecimal(this.getValue()) // &quot;this&quot; means current BSONDecimal object
 	 * </pre>
 	 * @return a BigDecimal object
+	 * @throws UnsupportedOperationException we can't convert a MAX/MIN/NAN value of BSONDecimal to BigDecimal.
 	 */
 	public BigDecimal toBigDecimal() {
 		if (_isMax(this) || _isMin(this) || _isNan(this)) {
-			throw new BaseException("SDB_INVALIDARG",
-					String.format("can't convert %s to BigDecimal", _getValue()));
+			throw new UnsupportedOperationException(String.format("can't convert %s to BigDecimal", _getValue()));
 		}
 		return new BigDecimal(this.getValue());
 	}
 
 	/**
-	 * Whether current decimal object represents a positive infinite value
-	 *
+	 * @fn boolean isMax()
+	 * @brief Whether current decimal object represents a positive infinite value
 	 * @return true or false
 	 */
 	public boolean isMax() {
@@ -402,8 +399,8 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 	}
 
 	/**
-	 * Whether current decimal object represents a negative infinite value
-	 *
+	 * @fn boolean isMin()
+	 * @brief Whether current decimal object represents a negative infinite value
 	 * @return true or false
 	 */
 	public boolean isMin() {
@@ -411,8 +408,8 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 	}
 
 	/**
-	 * Whether current decimal object represents a not a number value
-	 *
+	 * @fn boolean isNan()
+	 * @brief Whether current decimal object represents a not a number value
 	 * @return true or false
 	 */
 	public boolean isNan() {
