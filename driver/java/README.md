@@ -22,11 +22,14 @@ For example:
 <profile>
     <id>dev</id>
     <properties>
-        <single.host>localhost</single.host>
-        <single.port>11810</single.port>
+        <single.host>192.168.20.42</single.host>
+        <single.port>50000</single.port>
         <single.username> </single.username>
         <single.password> </single.password>
-        <cluster.urls>localhost:11810</cluster.urls>
+        <single.group>group1</single.group>
+        <node.host>ubuntu-dev1</node.host>
+        <node.port>20000</node.port>
+        <cluster.urls> </cluster.urls>
         <cluster.username> </cluster.username>
         <cluster.password> </cluster.password>
     </properties>
