@@ -46,6 +46,8 @@ function main( db )
    detachAndAttachCataNode( cataRg, cataMasterNode, cataNodes ) ;
    
    // stop cataMaster and wait new master reelected
+   // wait sync then stop cata master
+   waitSync( cataMasterNode, cataNodes ) ;
    cataMaster.stop() ;
    waitNewMaster( cataRg ) ;
    
@@ -109,8 +111,7 @@ function detachAndAttachCataNode( cataRg, cataMasterNode, cataNodes )
          var svc = nodeInfo[1] ;
          try
          {
-            // KeepData in case data lost
-            cataRg.detachNode( host, svc, { KeepData: true } ) ;
+            cataRg.detachNode( host, svc ) ;
          }
          catch( e )
          {
@@ -127,19 +128,63 @@ function detachAndAttachCataNode( cataRg, cataMasterNode, cataNodes )
          var nodeInfo = cataNodes[i].split( ":" ) ;
          var host = nodeInfo[0] ;
          var svc = nodeInfo[1] ;
-         try
+         while( true )
          {
-            cataRg.attachNode( host, svc ) ;
-         }
-         catch( e )
-         {
-            throw buildException( "detachAndAttachCataNode", e, "attach node " +
-                  cataNodes[i], 0, e ) ;
+            try
+            {
+               cataRg.attachNode( host, svc ) ;
+               break ;
+            }
+            catch( e )
+            {
+               if( e === -10 )  // attach after detach immediately, may cause system error 
+                  continue ;
+               else 
+                  throw buildException( "detachAndAttachCataNode", e, "attach node " +
+                        cataNodes[i], 0, e ) ;
+            }
          }
       }
    }
 }
 
+/******************************************************************
+ * wait until cata nodes lsn equal
+ * cataNode: cata nodes array, ex [ "ubuntu-057:11820", .... ]
+ ******************************************************************/
+function waitSync( cataMasterNode, cataNodes )
+{
+   var cmd = new Cmd() ;
+   var interval = 1 ;
+   var begin = cmd.run( "date +%s" ).split( "\n" )[0] ;
+
+   var master = new Sdb( cataMasterNode ) ;
+   var completeLsn = master.snapshot( SDB_SNAP_DATABASE ).next().
+                     toObj().CompleteLSN ;
+   master.close() ;
+   for( var i = 0;i < cataNodes.length;i++ )
+   {
+      if( cataNodes[i] === cataMasterNode )
+         continue ;
+      var slave = new Sdb( cataNodes[i] ) ;
+      do
+      {
+         var lsn = slave.snapshot( SDB_SNAP_DATABASE ).next().
+                   toObj().CompleteLSN ;
+         cmd.run( "sleep " + interval ) ;
+      } while( lsn !== completeLsn ) ;
+      slave.close() ;
+   }
+   println( "CompleteLSN: " + completeLsn ) ;   
+
+   var end = cmd.run( "date +%s" ).split( "\n" )[0] ;
+   println( "it takes " + (end-begin) + "s to wait sync" ) ;
+}
+
+/******************************************************************
+ * wait until master elected
+ * cataRg: cata group
+ ******************************************************************/
 function waitNewMaster( cataRg )
 {
    var cmd = new Cmd() ;
