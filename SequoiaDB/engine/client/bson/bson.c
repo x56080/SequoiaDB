@@ -29,6 +29,7 @@
  */
 #include "ossFeat.h"
 #include "ossTypes.h"
+#include "oss.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -217,36 +218,39 @@ struct bson_machine_pid {
    unsigned short _pid ;
 } ;
 static struct bson_machine_pid bson_ourMachineAndPid ;
-int bson_oid_initialized = 0 ;
 #pragma pack()
+
+static void _initOid( void )
+{
+    unsigned long long n = 0 ;
+    unsigned short pid = 0 ;
+    srand ( (unsigned int)time(NULL) ) ;
+    // generate a system id
+#if defined (_WIN32)
+    {
+       unsigned int a=0, b=0 ;
+       pid = (unsigned short) GetCurrentProcessId () ;
+       rand_s ( &a ) ;
+       rand_s ( &b ) ;
+       n = (((unsigned long long)a)<<32) | b ;
+    }
+#elif defined (__linux__) || defined (_AIX)
+    pid = (unsigned short) getpid () ;
+    n = (((unsigned long long)random())<<32) | random() ;
+#endif
+    // fold in pid to bson_ourMachineAndPid
+    memcpy ( &bson_ourMachineAndPid, &n, sizeof(struct bson_machine_pid) ) ;
+    bson_ourMachineAndPid._pid = pid ;
+}
+
 SDB_EXPORT void bson_oid_gen( bson_oid_t *oid ) {
     static int incr = 0;
     int i;
     int t = time( NULL );
     // initialize system machine and pid for first time entry
-    if ( !bson_oid_initialized )
-    {
-       unsigned long long n = 0 ;
-       unsigned short pid = 0 ;
-       bson_oid_initialized = 1 ;
-       srand ( (unsigned int)time(NULL) ) ;
-       // generate a system id
-#if defined (_WIN32)
-       {
-          unsigned int a=0, b=0 ;
-          pid = (unsigned short) GetCurrentProcessId () ;
-          rand_s ( &a ) ;
-          rand_s ( &b ) ;
-          n = (((unsigned long long)a)<<32) | b ;
-       }
-#elif defined (__linux__) || defined (_AIX)
-       pid = (unsigned short) getpid () ;
-       n = (((unsigned long long)random())<<32) | random() ;
-#endif
-       // fold in pid to bson_ourMachineAndPid
-       memcpy ( &bson_ourMachineAndPid, &n, sizeof(struct bson_machine_pid) ) ;
-       bson_ourMachineAndPid._pid = pid ;
-    }
+    static ossOnce initOnce = OSS_ONCE_INIT ;
+    ossOnceRun( &initOnce, _initOid );
+
     if( oid_inc_func )
         i = oid_inc_func();
 #if defined(_WIN32)
