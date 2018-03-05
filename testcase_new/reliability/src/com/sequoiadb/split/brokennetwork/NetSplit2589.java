@@ -131,8 +131,8 @@ public class NetSplit2589 extends SdbTestBase {
                 // 所有线程结束后插入的数据
                 // - 切分至源组的数据 = 目标组数据量
                 checkGroupData(db, destGroupName, "{sk:{$gte:" + bound + "}}",
-                        5000 + 5000 + 1000 - bound);
-                checkGroupData(db, srcGroupName, "{sk:{$lt:" + bound + "}}", bound);
+                        5000 + 1000 - bound, 5000 + 5000 + 1000 - bound);
+                checkGroupData(db, srcGroupName, "{sk:{$lt:" + bound + "}}",bound, bound);
                 Assert.assertEquals(cl.getCount("{sk:{$gte:0,$lt:11000}}"), 11000);
 
                 // 组间一致性校验，尝试至多30次，每次间隔1秒
@@ -198,7 +198,7 @@ public class NetSplit2589 extends SdbTestBase {
 
     }
 
-    private void checkGroupData(Sequoiadb sdb, String groupName, String macher, int expectCount) {
+    private void checkGroupData(Sequoiadb sdb, String groupName, String macher, int lowBoundCount, int upBoundCount) {
         Sequoiadb dataNode = null;
         DBCursor cursor = null;
         try {
@@ -206,10 +206,9 @@ public class NetSplit2589 extends SdbTestBase {
             DBCollection cl = dataNode.getCollectionSpace(csName).getCollection(clName);
             long macherCount = cl.getCount(macher);
             long count = cl.getCount();
-            Assert.assertEquals(macherCount == count && count == expectCount, true,
+            Assert.assertEquals(macherCount == count && lowBoundCount <= count && count<= upBoundCount, true,
                     destGroupName + " count:" + count + " macherCount:" + macherCount
-                            + " expectCount:" + expectCount);
-            ;
+                    + " lowBoundCount:" + lowBoundCount + "upBound:" + upBoundCount);
         }
         catch (BaseException e) {
             e.printStackTrace();
