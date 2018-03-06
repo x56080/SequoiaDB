@@ -155,7 +155,7 @@ public class MetaData7074 extends SdbTestBase{
 		expectCLNameArr.add(csName2+"."+clName2);
 		List clNameList = clNameArr;
 		Collections.sort(clNameList);
-		Collections.sort(expectCSNamelist);
+		Collections.sort(expectCLNameArr);
 		Assert.assertEquals(clNameList, expectCLNameArr,
 							"cl name actual:" + clNameList.toString() + "the expect :" + expectCLNameArr.toString());
 		
