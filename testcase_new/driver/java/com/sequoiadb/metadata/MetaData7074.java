@@ -3,6 +3,9 @@ package com.sequoiadb.metadata;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Collections;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -19,6 +22,7 @@ import com.sequoiadb.base.Domain;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
+
 
 /**
 * Copyright (C), 2016-2016, ShenZhen info. Co., Ltd.
@@ -120,6 +124,7 @@ public class MetaData7074 extends SdbTestBase{
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Test(priority=1)
 	public void test(){
 		//get domain groups name
@@ -129,24 +134,30 @@ public class MetaData7074 extends SdbTestBase{
 		commlib.checkDomainInfo(sdb, matcher, null, null, null, 
 								replicaGroups, domainName, expectAutoSplit);
 		
-		BasicBSONList csNameArr = getCSInDomain(domainName);
-		BasicBSONList expectCSNameArr = new BasicBSONList();
-		expectCSNameArr.add(csName1);
-		expectCSNameArr.add(csName2);
-		
-		Assert.assertEquals(csNameArr, expectCSNameArr,
-							"cs name actual:" + csNameArr + ";the expect :" + expectCSNameArr);
+		BasicBSONList csNameArr = getCSInDomain(domainName);	
+		List<String> expectCSNamelist = new LinkedList<String>();
+		expectCSNamelist.add(csName1);
+		expectCSNamelist.add(csName2);
+	
+		List actList = csNameArr;
+		Collections.sort(actList);
+		Collections.sort(expectCSNamelist);			
+		Assert.assertEquals(actList, expectCSNamelist,
+							"cs name actual:" + csNameArr + ";the expect :" + expectCSNamelist.toString());
 		
 		BasicBSONList clNameArr = getCLInDomain(domainName);
-		BasicBSONList expectCLNameArr = new BasicBSONList();
+		List<String>  expectCLNameArr = new LinkedList<String>();
 		String clName1 = "cl70741";
 		String clName2 = "cl70742";
 		expectCLNameArr.add(csName1+"."+clName1);
 		expectCLNameArr.add(csName1+"."+clName2);
 		expectCLNameArr.add(csName2+"."+clName1);
 		expectCLNameArr.add(csName2+"."+clName2);
-		Assert.assertEquals(clNameArr, expectCLNameArr,
-							"cl name actual:" + clNameArr + "the expect :" + expectCLNameArr);
+		List clNameList = clNameArr;
+		Collections.sort(actList);
+		Collections.sort(expectCSNamelist);
+		Assert.assertEquals(clNameList, expectCLNameArr,
+							"cl name actual:" + clNameList.toString() + "the expect :" + expectCLNameArr.toString());
 		
 		Sequoiadb domainSdb = sdb.getDomain(domainName).getSequoiadb();
 		Assert.assertEquals(domainSdb, sdb,
@@ -157,6 +168,8 @@ public class MetaData7074 extends SdbTestBase{
 		Assert.assertEquals(domainNameGet, domainName,
 							"domain name actual:" + domainNameGet + ";the expect :" + domainName);
 	}
+	
+    
 	
 	public void listCLInDomain(Domain domain){
 		try{
@@ -177,6 +190,7 @@ public class MetaData7074 extends SdbTestBase{
 	public BasicBSONList getCSInDomain(String domainName){
 		DBCursor csInDomain = sdb.getDomain(domainName).listCSInDomain();
 		BasicBSONList csNameArr = new BasicBSONList();
+	    
 		while(csInDomain.hasNext()){
 			BSONObject csObject = (BSONObject) csInDomain.getNext();
 			String csName = (String) csObject.get("Name");
