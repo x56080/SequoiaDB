@@ -68,34 +68,6 @@ function main( db )
 }
 
 /******************************************************************
- * get nodes in group
- * groupname: group name, ex "group1"
- * return nodes array, ex [ "ci-test-pm2:20100", .... ]
- ******************************************************************/
-function parseGroupNodes( groupname )
-{
-    var arr = new Array() ;
-    var tmpObj = db.getRG( groupname ).getDetail().next().toObj() ;
-    var tmpGroupArray = tmpObj["Group"] ;
-    for( var j = 0;j < tmpGroupArray.length;++j )
-    {
-        var tmpNodeObj = tmpGroupArray[j] ;
-        var nodename = tmpNodeObj["HostName"] ;
-        for( var k = 0;k < tmpNodeObj.Service.length;++k )
-        {
-            var tmpSvcObj = tmpNodeObj.Service[k] ;
-            if( tmpSvcObj["Type"] == 0 )
-            {
-                nodename = nodename + ":" + tmpSvcObj["Name"] ;
-                arr.push( nodename ) ;
-                break ;
-            }
-        }
-    }
-    return arr ;
-}
-
-/******************************************************************
  * detach then attach slave cata node
  * master node can't be detached
  * cataNode: cata nodes array, ex [ "ubuntu-057:11820", .... ]
