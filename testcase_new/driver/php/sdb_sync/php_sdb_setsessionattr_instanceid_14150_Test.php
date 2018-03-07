@@ -62,21 +62,28 @@ class setSessionAttr14150 extends PHPUnit_Framework_TestCase
       }
       
       // add nodes  
-      echo "   Begin to add nodes.\n";  
+      echo "   Begin to add nodes.\n";
+      $startPort = globalParameter::getSpareportStart();
+      $endPort = globalParameter::getSpareportStop();
       for ($i = 0; $i < 2; $i++ ) {  
          $hosts = self::$groupMgr -> getAllHostNamesOfDeploy();
          $hostName = $hosts[mt_rand(0,count($hosts)-1)] ;
-         $port = mt_rand(globalParameter::getSpareportStart(), globalParameter::getSpareportStop()) ;
-         
-         $addr = $hostName.':'.$port;
-         array_push( self::$nodeAddrs,  $addr );
          
          $options = array( 'instanceid' => self::$instIds[$i] );
-         $group -> addNode( $hostName, $port, globalParameter::getDbPathPrefix()."/".$port, $options );
-         if ( self::$db -> getError()['errno'] != 0 )
+         $group -> addNode( $hostName, $startPort, globalParameter::getDbPathPrefix()."/".$startPort, $options );
+         $errno = self::$db -> getError()['errno'];
+         if ( $errno == -145 && ( $startPort + 3 ) <= $endPort ) {
+            $startPort += 10;
+         }
+         else if ( $errno != 0 && $errno != -145 )
          {
             throw new Exception("failed to add node, errno=".self::$db -> getError()['errno']);
          }
+         
+         $addr = $hostName.':'.$startPort;
+         array_push( self::$nodeAddrs,  $addr );
+         
+         $startPort += 10;
       }
       //var_dump( self::$nodeAddrs );
       
