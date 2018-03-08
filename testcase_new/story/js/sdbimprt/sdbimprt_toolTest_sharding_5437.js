@@ -22,7 +22,7 @@ function main()
       var opt1   = {ShardingKey:{a:1},IsMainCL:true} ;
       var mainCL = readyCL( csName, mainclName, opt1, "[mainCL]" );
       //create subCL
-      var opt2   = {ShardingKey:{a:1},ShardingType:"hash",AutoSplit: true,ReplSize:0} ;
+      var opt2   = {ShardingKey:{a:1},ShardingType:"hash",ReplSize:0} ;
       var subCL = readyCL( csName, subclName, opt2, "[subCL]" );
       //attach cl
       var options = {LowBound:{"a":1},UpBound:{ "a":10}} ; 
@@ -95,6 +95,9 @@ function importData( csName, clName, imprtFile )
                         "[failedRecs:"+ expRecRecs +"]", 
                         "[failedRecs:"+ actRecRecs +"]" );
    }
+   
+   // clean tmpRec
+   cmd.run( "rm -rf " + tmpRec );
    
 }
 

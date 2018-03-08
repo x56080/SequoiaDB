@@ -86,6 +86,9 @@ function importData( csName, clName, imprtFile )
                         "[failedRecs:"+ expFailedNum +"]", 
                         "[failedRecs:"+ actFailedNum +"]" );
    }
+   
+   // clean tmpRec
+   cmd.run( "rm -rf " + tmpRec );
 }
 
 function checkCLData( cl )

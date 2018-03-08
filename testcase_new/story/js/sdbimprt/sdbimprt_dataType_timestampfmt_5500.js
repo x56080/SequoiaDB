@@ -43,13 +43,13 @@ function importData( csName, clName, imprtFile )
 {
    println("\n---Begin to import data and check exec result.");
    
+   var tmpRec = csName +"_"+ clName +"*.rec";
    var timestampfmt = ["--timestampfmt 'YYYY-MM-DD-HH.mm.ss.ffffff'", 
                        "--timestampfmt 'YYYY/MM/DD HH:mm:ss:ffffff'", 
                        "--timestampfmt 'HH.mm.ss.ffffff YYYY-MM-DD'"]
    for( i=0; i<timestampfmt.length; i++ )
    {
       //remove rec file
-      var tmpRec = csName +"_"+ clName +"*.rec";
       cmd.run( "rm -rf "+ tmpRec );
       
       //import operation
@@ -90,6 +90,9 @@ function importData( csName, clName, imprtFile )
                            "[failedRecs:"+ actFailedNum +"]" );
       }
    }
+   
+   // clean tmpRec
+   cmd.run( "rm -rf " + tmpRec );
 }
 
 function checkCLData( cl )

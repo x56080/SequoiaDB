@@ -48,6 +48,10 @@ function importData( csName, clName, imprtFile )
                         "["+ expParseRecords +", "+ expImportedRecords +"]", 
                         "["+ actParseRecords +", "+ actImportedRecords +"]" );
    }
+   
+   // clean tmpRec
+   var tmpRec = csName +"_"+ clName +"*.rec";
+   cmd.run( "rm -rf " + tmpRec );
 }
 
 function checkCLData( cl )
