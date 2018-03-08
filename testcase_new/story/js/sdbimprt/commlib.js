@@ -201,3 +201,29 @@ function fileInit( fileName )
       throw e;
    }
 }
+
+/* ****************************************************
+@description: turn to local time
+@parameter:
+   time: Timestamp with time zone to millisecond,eg:'1901-12-31T15:54:03.000Z'
+   format: eg:%Y-%m-%d-%H.%M.%S.000000
+@return: 
+   localtime, eg: '1901-12-31-15.54.03.000000'
+**************************************************** */
+function turnLocaltime( time, format )
+{
+   if ( typeof( format ) == "undefined" ) { format = "%Y-%m-%d"; };
+   try
+   {
+      var msecond = new Date( time ).getTime();  
+      var second  = parseInt( msecond / 1000 );  //millisecond to second
+      var localtime  = cmd.run( 'date -d@"'+ second +'" "+'+ format +'"' ).split( "\n" )[0];
+      
+      return localtime;
+   }
+   catch( e )
+   {
+      println("Timestamp with time zone to local time failed.");
+      throw e;
+   }
+}
