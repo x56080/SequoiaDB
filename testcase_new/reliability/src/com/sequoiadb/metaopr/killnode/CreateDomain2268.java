@@ -1,5 +1,18 @@
 package com.sequoiadb.metaopr.killnode;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
+import org.bson.types.BasicBSONList;
+import org.testng.Assert;
+import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.commlib.GroupMgr;
@@ -12,19 +25,6 @@ import com.sequoiadb.fault.KillNode;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
-import org.bson.types.BasicBSONList;
-import org.bson.util.JSON;
-import org.testng.Assert;
-import org.testng.SkipException;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
 
 /**
  * @FileName seqDB-2268: 创建domain时catalog主节点异常重启
@@ -187,25 +187,36 @@ public class CreateDomain2268 extends SdbTestBase {
     }
     
     private void checkListDomain(Sequoiadb db) {
-        BSONObject orderBy = (BSONObject)JSON.parse("{ _id: 1 }");
-        DBCursor cursor = db.listDomains(null, null, orderBy, null);
-        int i = 0;
+        // check domain NUM
+        DBCursor cursor = db.listDomains(null, null, null, null);
+        int expDomainNum = 0;
         while (cursor.hasNext()) {
-            BSONObject currDomain = cursor.getNext();
+        	cursor.getNext();
+        	expDomainNum++;
+        }
+        Assert.assertEquals(DOMAIN_NUM, expDomainNum);
+        cursor.close();
+        
+        // check domain info
+        for (int i = 0; i < DOMAIN_NUM; i++) {
+	        BSONObject cond = new BasicBSONObject();
+	        cond.put("Name", domNameBase + "_" + i);
+	        cursor = db.listDomains(cond, null, null, null);
+	        BSONObject currDomain = cursor.getCurrent();
+	        
             // check Groups
             int expGroupNum = i % groupNames.size() + 1;
             BasicBSONList actGroups = (BasicBSONList)currDomain.get("Groups");
             int actGroupNum = actGroups.size();
             Assert.assertEquals(actGroupNum, expGroupNum, currDomain.get("Name") + ": groups count");
+            
             // check AutoSplit
             boolean expAttr = (i % 2 == 0);
             boolean actAttr = (boolean)currDomain.get("AutoSplit");
             Assert.assertEquals(actAttr, expAttr, currDomain.get("Name") + ": AutoSplit");
-            i++;
+            
+            cursor.close();
         }
-        int domainCnt = i;
-        Assert.assertEquals(domainCnt, DOMAIN_NUM, "domain count");
-        cursor.close();
     }
     
     private void dropDomain(Sequoiadb db) {
