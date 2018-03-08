@@ -65,14 +65,13 @@ namespace sdbclient
 
       INT64 _totalRead ;
       INT32 _offset ;
-      void _setConnection ( _sdb *connection ) ;
       void _killCursor () ;
       INT32 _readNextBuffer () ;
-      void _setCollection ( _sdbCollectionImpl *collection ) ;
-      void _dropConnection()
-      {
-         _connection = NULL ;
-      }
+      void _attachConnection ( _sdbImpl *connection ) ;
+      void _attachCollection ( _sdbCollectionImpl *collection ) ;
+      void _detachConnection() ;
+      void _detachCollection() ;
+      void _close() ;
 
       friend class _sdbCollectionImpl ;
       friend class _sdbNodeImpl ;
@@ -80,11 +79,9 @@ namespace sdbclient
    public :
       _sdbCursorImpl () ;
       ~_sdbCursorImpl () ;
-      INT32 next          ( BSONObj &obj ) ;
-      INT32 current       ( BSONObj &obj ) ;
+      INT32 next ( BSONObj &obj ) ;
+      INT32 current ( BSONObj &obj ) ;
       INT32 close () ;
-      //INT32 updateCurrent ( BSONObj &rule ) ;
-      //INT32 delCurrent    () ;
    } ;
    
    typedef class _sdbCursorImpl sdbCursorImpl ;
@@ -874,13 +871,11 @@ namespace sdbclient
       UINT32                  _pageSize ;
       const CHAR              *_dataCache ;
 
-      void _setConnection( _sdb *pConnection ) ;
-      void _dropConnection()
-      {
-         _connection = NULL ;
-      }
-      void _setCollection( _sdbCollectionImpl *pCollection ) ;
-      void _cleanup () ;
+      void _attachConnection( _sdbImpl *pConnection ) ;
+      void _attachCollection( _sdbCollectionImpl *pCollection ) ;
+      void _detachConnection() ;
+      void _detachCollection() ;
+      void _close () ;
       BOOLEAN _dataCached() ;
       void _readInCache( void *buf, UINT32 len, UINT32 *read ) ;
       UINT32 _reviseReadLen( UINT32 needLen ) ;
@@ -1030,25 +1025,7 @@ namespace sdbclient
          _cursors.erase ( (ossValuePtr)cursor ) ;
          unlock () ;
       }
-      // this function changes collection names for all collections
-      // and cursors objects, usually this function should be called by
-      // _sdbCollectionImpl::rename
-      /*void _changeCollectionName ( const CHAR *pCollectionSpaceName,
-                                   const CHAR *pCollectionOldName,
-                                   const CHAR *pCollectionNewName )
-      {
-         std::set<ossValuePtr>::iterator it ;
-         INT32 newNameLen = ossStrlen ( pCollectionNewName ) ;
-         if ( newNameLen > CLIENT_COLLECTION_NAMESZ )
-            return ;
-         // rename collection name for all child collection objects
-         for ( it = _collections.begin(); it != _collections.end(); ++it )
-         {
-            _sdbCollectionImpl *collection = (_sdbCollectionImpl*)(*it) ;
-            collection->_renameAttempt ( pCollectionOldName,
-                                         pCollectionNewName ) ;
-         }
-      }*/
+
       void _unregCollection ( _sdbCollectionImpl *collection )
       {
          lock () ;
@@ -1455,21 +1432,6 @@ namespace sdbclient
       // get last alive time
       UINT64 getLastAliveTime() const { return _lastAliveTime.time; }
 
-/*      INT32 modifyConfig ( INT32 nodeID,
-                           std::map<std::string,std::string> &config ) ;
-
-      INT32 getConfig ( INT32 nodeID,
-                        std::map<std::string,std::string> &config ) ;
-
-      INT32 modifyConfig ( std::map<std::string,std::string> &config )
-      {
-         return modifyConfig ( CURRENT_NODEID, config ) ;
-      }
-
-      INT32 getConfig ( std::map<std::string,std::string> &config )
-      {
-         return getConfig ( CURRENT_NODEID, config ) ;
-      }*/
    } ;
    typedef class _sdbImpl sdbImpl ;
 }
