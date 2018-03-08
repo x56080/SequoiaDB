@@ -67,20 +67,11 @@ namespace sdbclient
       INT32 _offset ;
       void _killCursor () ;
       INT32 _readNextBuffer () ;
-      void _setConnection ( _sdb *connection ) ;
-      void _setCollection ( _sdbCollectionImpl *collection ) ;
-      void _dropConnection()
-      {
-         _connection = NULL ;
-      }
-      void _dropCollection()
-      {
-         _collection = NULL ;
-      }
-      void _close()
-      {
-         _isClosed = TRUE;
-      }
+      void _attachConnection ( _sdbImpl *connection ) ;
+      void _attachCollection ( _sdbCollectionImpl *collection ) ;
+      void _detachConnection() ;
+      void _detachCollection() ;
+      void _close() ;
 
       friend class _sdbCollectionImpl ;
       friend class _sdbNodeImpl ;
@@ -882,10 +873,10 @@ namespace sdbclient
       UINT32                  _pageSize ;
       const CHAR              *_dataCache ;
 
-      void _setConnection( _sdb *pConnection ) ;
-      void _dropConnection() { _connection = NULL ; }
-      void _setCollection( _sdbCollectionImpl *pCollection ) ;
-      void _dropCollection() { _collection = NULL ; }
+      void _attachConnection( _sdbImpl *pConnection ) ;
+      void _attachCollection( _sdbCollectionImpl *pCollection ) ;
+      void _detachConnection() ;
+      void _detachCollection() ;
       void _close () ;
       BOOLEAN _dataCached() ;
       void _readInCache( void *buf, UINT32 len, UINT32 *read ) ;
@@ -1037,25 +1028,7 @@ namespace sdbclient
          _cursors.erase ( (ossValuePtr)cursor ) ;
          unlock () ;
       }
-      // this function changes collection names for all collections
-      // and cursors objects, usually this function should be called by
-      // _sdbCollectionImpl::rename
-      /*void _changeCollectionName ( const CHAR *pCollectionSpaceName,
-                                   const CHAR *pCollectionOldName,
-                                   const CHAR *pCollectionNewName )
-      {
-         std::set<ossValuePtr>::iterator it ;
-         INT32 newNameLen = ossStrlen ( pCollectionNewName ) ;
-         if ( newNameLen > CLIENT_COLLECTION_NAMESZ )
-            return ;
-         // rename collection name for all child collection objects
-         for ( it = _collections.begin(); it != _collections.end(); ++it )
-         {
-            _sdbCollectionImpl *collection = (_sdbCollectionImpl*)(*it) ;
-            collection->_renameAttempt ( pCollectionOldName,
-                                         pCollectionNewName ) ;
-         }
-      }*/
+      
       void _unregCollection ( _sdbCollectionImpl *collection )
       {
          lock () ;
@@ -1103,8 +1076,7 @@ namespace sdbclient
          return _tb ;
       }
 
-      INT32 _connect( const CHAR *pHostName,
-                      UINT16 port ) ;
+      INT32 _connect( const CHAR *pHostName, UINT16 port ) ;
 
       void _clearSessionAttrCache ( BOOLEAN needLock ) ;
 
