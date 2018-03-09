@@ -68,18 +68,18 @@ TEST_F( lobCloseTest12554, rwAfterClose12554 )
    const CHAR* buf = "lxw" ;
    UINT32 bufLen = strlen( buf ) ;
    rc = lob.write( buf, bufLen ) ;
-   ASSERT_EQ( SDB_LOB_NOT_OPEN, rc ) << "fail to check write after lob close" ;
+   ASSERT_EQ( SDB_DMS_CONTEXT_IS_CLOSE, rc ) << "fail to check write after lob close" ;
 
    UINT32 len = 5 ;
    CHAR readBuf[10] ;
    UINT32 readLen ;
    rc = lob.read( len, readBuf, &readLen ) ;
-   ASSERT_EQ( SDB_LOB_NOT_OPEN, rc ) << "fail to check read after lob close" ;
+   ASSERT_EQ( SDB_DMS_CONTEXT_IS_CLOSE, rc ) << "fail to check read after lob close" ;
 
    SINT64 offset = 0 ;
    SDB_LOB_SEEK whence = SDB_LOB_SEEK_SET ;
    rc = lob.seek( offset, whence ) ;
-   ASSERT_EQ( SDB_LOB_NOT_OPEN, rc ) << "fail to check seek after lob close" ;
+   ASSERT_EQ( SDB_DMS_CONTEXT_IS_CLOSE, rc ) << "fail to check seek after lob close" ;
 
    ASSERT_EQ( lobSize, lob.getSize() ) << "fail to check get lobSize after close" ;
    ASSERT_EQ( oid, lob.getOid() ) << "fail to check getOid after close" ;
