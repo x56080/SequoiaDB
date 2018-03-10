@@ -183,13 +183,12 @@ class DBDataCenterConcrete implements DBDataCenter {
             }
         }
 
-        DBCursor cursor = new DBCursor(rtn, _sdb);
-        if (!cursor.hasNext()) {
-            throw new BaseException(SDBError.SDB_DMS_EOC);
-        }
-
         BSONObject obj;
+        DBCursor cursor = new DBCursor(rtn, _sdb);
         try {
+            if (!cursor.hasNext()) {
+                throw new BaseException(SDBError.SDB_DMS_EOC);
+            }
             obj = cursor.getNext();
         } finally {
             cursor.close();

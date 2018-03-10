@@ -1727,12 +1727,12 @@ public class DBCollection {
             throw new BaseException(flags, msg);
         }
         // build cursor object to get result from database
-        DBCursor cursor = new DBCursor(rtnSDBMessage, this);
-        if (!cursor.hasNext()) {
-            throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
-        }
         BSONObject result;
+        DBCursor cursor = new DBCursor(rtnSDBMessage, this);
         try {
+            if (!cursor.hasNext()) {
+                throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
+            }
             result = cursor.getNext();
         } finally {
             cursor.close();
@@ -1788,11 +1788,12 @@ public class DBCollection {
             throw new BaseException(flags, msg);
         }
         // build cursor object to get result from database
-        DBCursor cursor = new DBCursor(rtnSDBMessage, this);
-        if (!cursor.hasNext())
-            throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
         BSONObject result;
+        DBCursor cursor = new DBCursor(rtnSDBMessage, this);
         try {
+            if (!cursor.hasNext()) {
+                throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
+            }
             result = cursor.getNext();
         } finally {
             cursor.close();
