@@ -1657,11 +1657,12 @@ public class DBCollection {
                     splitCondition, splitEndCondition);
         }
         // build cursor object to get result from database
-        DBCursor cursor = new DBCursor(rtnSDBMessage, this);
-        if (!cursor.hasNext())
-            throw new BaseException("SDB_CAT_TASK_NOTFOUND");
         BSONObject result;
+        DBCursor cursor = new DBCursor(rtnSDBMessage, this);
         try {
+            if (!cursor.hasNext()) {
+                throw new BaseException("SDB_CAT_TASK_NOTFOUND");
+            }
             result = cursor.getNext();
         } finally {
             cursor.close();
@@ -1715,12 +1716,13 @@ public class DBCollection {
                     percent);
         }
         // build cursor object to get result from database
-        DBCursor cursor = new DBCursor(rtnSDBMessage, this);
-        if (!cursor.hasNext())
-            throw new BaseException("SDB_CAT_TASK_NOTFOUND");
         BSONObject result;
+        DBCursor cursor = new DBCursor(rtnSDBMessage, this);
         try {
-            result =cursor.getNext();
+            if (!cursor.hasNext()) {
+                throw new BaseException("SDB_CAT_TASK_NOTFOUND");
+            }
+            result = cursor.getNext();
         } finally {
             cursor.close();
         }

@@ -348,32 +348,36 @@ public class SequoiadbDatasourceImpl
 			DBCursor cursor = sdb.getList(Sequoiadb.SDB_LIST_GROUPS, condition, select, null);
 			BaseException exp = new BaseException("SDB_SYS", "Invalid coord information got from catalog");
 			_addrList.clear();
-			while(cursor.hasNext()) {
-				BSONObject obj = cursor.getNext();
-				BasicBSONList arr = (BasicBSONList)obj.get("Group");
-				if (null == arr) throw exp;
-				Object[] objArr = arr.toArray();
-				for(int i = 0; i < objArr.length; i++) {
-					BSONObject subObj = (BasicBSONObject)objArr[i];
-					String hostName = (String)subObj.get("HostName");
-					if (null == hostName) throw exp;
-					String svcName = "";
-					BasicBSONList subArr = (BasicBSONList)subObj.get("Service");
-					if (null == subArr) throw exp;
-					Object[] subObjArr = subArr.toArray();
-					for(int j = 0; j < subObjArr.length; j++) {
-						BSONObject subSubObj = (BSONObject)subObjArr[j];
-						Integer type = (Integer)subSubObj.get("Type");
-						if (null == type) throw exp;
-						if (0 == type) {
-							svcName = (String)subSubObj.get("Name");
-							if (null == svcName) throw exp;
-							String ip = _parseHostName(hostName);
-							_addrList.add(ip + ":" + svcName);
-							break;
+			try {
+				while (cursor.hasNext()) {
+					BSONObject obj = cursor.getNext();
+					BasicBSONList arr = (BasicBSONList) obj.get("Group");
+					if (null == arr) throw exp;
+					Object[] objArr = arr.toArray();
+					for (int i = 0; i < objArr.length; i++) {
+						BSONObject subObj = (BasicBSONObject) objArr[i];
+						String hostName = (String) subObj.get("HostName");
+						if (null == hostName) throw exp;
+						String svcName = "";
+						BasicBSONList subArr = (BasicBSONList) subObj.get("Service");
+						if (null == subArr) throw exp;
+						Object[] subObjArr = subArr.toArray();
+						for (int j = 0; j < subObjArr.length; j++) {
+							BSONObject subSubObj = (BSONObject) subObjArr[j];
+							Integer type = (Integer) subSubObj.get("Type");
+							if (null == type) throw exp;
+							if (0 == type) {
+								svcName = (String) subSubObj.get("Name");
+								if (null == svcName) throw exp;
+								String ip = _parseHostName(hostName);
+								_addrList.add(ip + ":" + svcName);
+								break;
+							}
 						}
 					}
 				}
+			} finally {
+				cursor.close();
 			}
 		}
 	}

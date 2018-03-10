@@ -1946,15 +1946,18 @@ public class Sequoiadb {
     BSONObject getDetailByName(String name) throws BaseException {
         BSONObject condition = new BasicBSONObject();
         condition.put(SequoiadbConstants.FIELD_NAME_GROUPNAME, name);
+        BSONObject obj;
         DBCursor shardsCursor = getList(Sequoiadb.SDB_LIST_GROUPS, 0, 0, -1,
                 -1, condition, null, null, null);
-        if (shardsCursor == null || !shardsCursor.hasNext())
-            return null;
-        BSONObject obj;
         try {
+            if (shardsCursor == null || !shardsCursor.hasNext()) {
+                return null;
+            }
             obj = shardsCursor.getNext();
         } finally {
-            shardsCursor.close();
+            if (shardsCursor != null) {
+                shardsCursor.close();
+            }
         }
         return obj;
     }
@@ -1962,15 +1965,18 @@ public class Sequoiadb {
     BSONObject getDetailById(int id) throws BaseException {
         BSONObject condition = new BasicBSONObject();
         condition.put(SequoiadbConstants.FIELD_NAME_GROUPID, id);
+        BSONObject obj;
         DBCursor shardsCursor = getList(Sequoiadb.SDB_LIST_GROUPS, 0, 0, -1,
                 -1, condition, null, null, null);
-        if (shardsCursor == null || !shardsCursor.hasNext())
-            return null;
-        BSONObject obj;
         try {
+            if (shardsCursor == null || !shardsCursor.hasNext()) {
+                return null;
+            }
             obj = shardsCursor.getNext();
         } finally {
-            shardsCursor.close();
+            if (shardsCursor != null) {
+                shardsCursor.close();
+            }
         }
         return obj;
     }
