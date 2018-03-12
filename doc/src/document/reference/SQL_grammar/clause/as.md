@@ -45,7 +45,7 @@
    * 结果集别名。
 
    ```lang-javascript
-   > db.exec("select T.age, T.name from (select age, name from foo.bar) as T where    T.age>10")
+   > db.exec("select T.age, T.name from (select age, name from foo.bar) as T where T.age>10")
    { "name": "Lucy", "age": 11 }
    { "name": "James", "age": 12 }
    Return 2 row(s).

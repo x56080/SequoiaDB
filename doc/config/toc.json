@@ -2720,9 +2720,9 @@
                "contents": [
                   {
                      "id": 1510279692,
-                     "dir": "command",
-                     "cn": "命令字",
-                     "en": "Command",
+                     "dir": "statement",
+                     "cn": "语句",
+                     "en": "Statement",
                      "contents": [
                         {
                            "id": 1432190951,
@@ -2795,15 +2795,27 @@
                            "file": "delete",
                            "cn": "delete",
                            "en": "delete"
+                        },
+                        {
+                           "id": 1520813139,
+                           "file": "transaction",
+                           "cn": "transaction",
+                           "en": "transaction"
                         }
                      ]
                   },
                   {
                      "id": 1510279691,
-                     "dir": "modifier",
-                     "cn": "修饰符",
-                     "en": "Modifier",
+                     "dir": "clause",
+                     "cn": "子句",
+                     "en": "Clause",
                      "contents": [
+                        {
+                           "id": 1520813394,
+                           "file": "where",
+                           "cn": "where",
+                           "en": "where"
+                        },
                         {
                            "id": 1432190963,
                            "file": "group_by",
@@ -2833,18 +2845,6 @@
                            "file": "offset",
                            "cn": "offset",
                            "en": "offset"
-                        },
-                        {
-                           "id": 1512527199,
-                           "file": "is_null",
-                           "cn": "is null",
-                           "en": "is null"
-                        },
-                        {
-                           "id": 1512527211,
-                           "file": "is_not_null",
-                           "cn": "is not null",
-                           "en": "is not null"
                         },
                         {
                            "id": 1432190968,
@@ -2959,10 +2959,16 @@
                      "en": "Expression"
                   },
                   {
+                     "id": 1520813531,
+                     "file": "operator",
+                     "cn": "运算符",
+                     "en": "Operator"
+                  },
+                  {
                      "id": 1450171368,
-                     "file": "field_type",
-                     "cn": "字段类型",
-                     "en": "Field Type"
+                     "file": "data_type",
+                     "cn": "数据类型",
+                     "en": "Data Type"
                   }
                ]
             },
