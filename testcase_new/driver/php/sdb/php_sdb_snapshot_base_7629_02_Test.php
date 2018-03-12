@@ -147,7 +147,8 @@ class snapshot762902 extends PHPUnit_Framework_TestCase
       $this -> assertEquals( 4, $type );
       
       $type = SDB_SNAP_COLLECTIONS;
-      $cursor = self::$db -> snapshot( $type );
+      $cond = array( 'Name' => self::$csName.'.'.self::$clName );
+      $cursor = self::$db -> snapshot( $type, $cond );
       $this -> assertEquals( 0, self::$db -> getError()['errno'] ); 
       if ( empty($cursor) ) {
          $this -> assertFalse( true, "results is empty." );
@@ -165,8 +166,9 @@ class snapshot762902 extends PHPUnit_Framework_TestCase
       $type = SDB_SNAP_COLLECTIONSPACE;
       $this -> assertEquals( 5, $type );
       
-      $type = SDB_SNAP_COLLECTIONSPACES;      
-      $cursor = self::$db -> snapshot( $type );
+      $type = SDB_SNAP_COLLECTIONSPACES;
+      $cond = array( 'Name' => self::$csName );
+      $cursor = self::$db -> snapshot( $type, $cond );
       $this -> assertEquals( 0, self::$db -> getError()['errno'] ); 
       if ( empty($cursor) ) {
          $this -> assertFalse( true, "results is empty." );
@@ -214,7 +216,9 @@ class snapshot762902 extends PHPUnit_Framework_TestCase
       $type = SDB_SNAP_CATA;
       $this -> assertEquals( 8, $type );
       
-      $cursor = self::$db -> snapshot( $type );
+      $type = SDB_SNAP_CATALOG;
+      $cond = array( 'Name' => self::$csName.'.'.self::$clName );
+      $cursor = self::$db -> snapshot( $type, $cond );
       $this -> assertEquals( 0, self::$db -> getError()['errno'] ); 
       if ( empty($cursor) ) {
          $this -> assertFalse( true, "results is empty." );
