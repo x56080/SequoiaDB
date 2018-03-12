@@ -17,7 +17,6 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 public class SnappyUtils extends SdbTestBase {
-    public static ArrayList<String> groupList;
     
     public static boolean isStandAlone(Sequoiadb sdb) {
         try {
@@ -40,6 +39,7 @@ public class SnappyUtils extends SdbTestBase {
     }
 
     public static ArrayList<String> getDataGroups(Sequoiadb sdb) throws BaseException {
+        ArrayList<String> groupList;
         try {
             groupList = sdb.getReplicaGroupNames();
             groupList.remove("SYSCatalogGroup");
