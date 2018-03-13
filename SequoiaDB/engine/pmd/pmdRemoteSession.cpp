@@ -895,7 +895,7 @@ namespace engine
       _sessionChange                = FALSE ;
 
       totalUnReplyNum = getSubSessionCount( PMD_SSITR_UNREPLY ) ;
-      while ( totalUnReplyNum > 0 )
+      while ( totalUnReplyNum > 0 || _mapPendingSubSession.size() > 0 )
       {
          // if pending sessions is not empty
          if ( _mapPendingSubSession.size() > 0 )
@@ -911,6 +911,7 @@ namespace engine
                ++replyNum ;
             }
             _mapPendingSubSession.clear() ;
+            continue ;
          }
 
          if ( _pEDUCB->isInterrupted() )
