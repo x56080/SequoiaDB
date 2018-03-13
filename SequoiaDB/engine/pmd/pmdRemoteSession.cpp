@@ -909,8 +909,10 @@ namespace engine
                }
                ++itPending ;
                ++replyNum ;
+               --totalUnReplyNum ;
             }
             _mapPendingSubSession.clear() ;
+            continue ;
          }
 
          if ( _pEDUCB->isInterrupted() )
