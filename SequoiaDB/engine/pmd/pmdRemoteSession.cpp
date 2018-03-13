@@ -909,10 +909,8 @@ namespace engine
                }
                ++itPending ;
                ++replyNum ;
-               --totalUnReplyNum ;
             }
             _mapPendingSubSession.clear() ;
-            continue ;
          }
 
          if ( _pEDUCB->isInterrupted() )
@@ -995,6 +993,7 @@ namespace engine
    void _pmdRemoteSession::addPending( pmdSubSession *pSubSession )
    {
       _mapPendingSubSession[ pSubSession->getNodeIDUInt() ] = pSubSession ;
+      _sessionChange = TRUE ;
    }
 
    INT32 _pmdRemoteSession::postMsg( MsgHeader * pMsg, UINT64 nodeID )
