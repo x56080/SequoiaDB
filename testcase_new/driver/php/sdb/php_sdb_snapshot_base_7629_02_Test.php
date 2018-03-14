@@ -89,8 +89,10 @@ class snapshot762902 extends PHPUnit_Framework_TestCase
       if ( empty($cursor) ) {
          $this -> assertFalse( true, "results is empty." );
       }  
-      $this -> assertContains( "DUMP", $cursor -> current()["Contexts"][0]["Type"] );
-      //var_dump( $cursor -> next() );
+      //var_dump( $cursor -> current()["Contexts"][0] );
+      $this -> assertGreaterThanOrEqual( 0, $cursor -> current()["SessionID"] );
+      $this -> assertGreaterThanOrEqual( 0, $cursor -> current()["Contexts"][0]["ContextID"] );
+      $this -> assertGreaterThanOrEqual( 0, $cursor -> current()["Contexts"][0]["QueryTimeSpent"] );
    }
 
    public function test_snapshotContextsCurrent()
@@ -267,7 +269,7 @@ class snapshot762902 extends PHPUnit_Framework_TestCase
    {
       if ( self::$skipTestCase == false )
       {         
-         echo "   Begin to dropCS in the end.\n"; 
+         echo "\n---Begin to dropCS in the end.\n"; 
          $err = self::$db -> dropCS( self::$csName ); 
          if ( $err['errno'] != 0 )
          {
