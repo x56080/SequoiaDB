@@ -3367,7 +3367,7 @@ namespace sdbclient
         SDB_SNAP_COLLECTIONSPACES : Get the snapshot of all the collection spaces
         SDB_SNAP_DATABASE         : Get the snapshot of the database
         SDB_SNAP_SYSTEM           : Get the snapshot of the system
-        SDB_SNAP_CATA             : Get the snapshot of the catalog
+        SDB_SNAP_CATALOG          : Get the snapshot of the catalog
         SDB_SNAP_TRANSACTIONS     : Get snapshot of transactions in current session
         SDB_SNAP_TRANSACTIONS_CURRENT : Get snapshot of all the transactions
 
@@ -3412,7 +3412,7 @@ namespace sdbclient
         SDB_SNAP_COLLECTIONSPACES : Get the snapshot of all the collection spaces
         SDB_SNAP_DATABASE         : Get the snapshot of the database
         SDB_SNAP_SYSTEM           : Get the snapshot of the system
-        SDB_SNAP_CATA             : Get the snapshot of the catalog
+        SDB_SNAP_CATALOG          : Get the snapshot of the catalog
         SDB_SNAP_TRANSACTIONS     : Get snapshot of transactions in current session
         SDB_SNAP_TRANSACTIONS_CURRENT : Get snapshot of all the transactions
 
