@@ -73,7 +73,7 @@ class setSessionAttr14156 extends PHPUnit_Framework_TestCase
       $records = array();
       for ($i = 0; $i < 5000; $i++) 
       {
-         array_push( $records, array('a' => $i) );
+         array_push( $records, array('a' => $i, 'b' => $i) );
       }
       self::$clDB -> bulkInsert( $records );
       if ( self::$db -> getError()['errno'] != 0 )
@@ -112,8 +112,8 @@ class setSessionAttr14156 extends PHPUnit_Framework_TestCase
    {  
       echo "\n---Begin to insert records.\n";
       $records = array();
-      for ($i = 0; $i < 1000; $i++) {
-         $recd = array( 't1' => $i, 't2' => "test1111111".$i );
+      for ($i = 0; $i < 3000; $i++) {
+         $recd = array( 'a' => $i, 'b' => $i, 't' => "test1111111".$i );
          $records[$i] = $recd;
       }
       $err = self::$clDB -> bulkInsert( $records );
@@ -123,8 +123,8 @@ class setSessionAttr14156 extends PHPUnit_Framework_TestCase
    public function test_update()
    {  
       echo "\n---Begin to update records.\n";
-      $rule = array( '$inc' => array( 't1' => 100 ) );
-      $cond = array( 't1' => array ( '$gte' => 0 ) );
+      $rule = array( '$inc' => array( 'b' => 100 ) );
+      $cond = array( 'a' => array ( '$gte' => 1 ) );
       $err = self::$clDB -> update( $rule, $cond );
       $this -> assertEquals( -13, $err['errno'] );
    }
