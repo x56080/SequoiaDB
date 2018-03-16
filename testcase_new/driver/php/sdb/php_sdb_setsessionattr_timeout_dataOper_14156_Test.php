@@ -120,6 +120,7 @@ class setSessionAttr14156 extends PHPUnit_Framework_TestCase
       $this -> assertEquals( -13, $err['errno'] );
    }
 
+/* may not hit a bit
    public function test_update()
    {  
       echo "\n---Begin to update records.\n";
@@ -129,7 +130,6 @@ class setSessionAttr14156 extends PHPUnit_Framework_TestCase
       $this -> assertEquals( -13, $err['errno'] );
    }
    
-/* may not hit a bit
    public function test_remove()
    {  
       echo "\n---Begin to remove records.\n";
