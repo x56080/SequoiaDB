@@ -88,11 +88,9 @@ class snapshot762902 extends PHPUnit_Framework_TestCase
       $this -> assertEquals( 0, self::$db -> getError()['errno'] ); 
       if ( empty($cursor) ) {
          $this -> assertFalse( true, "results is empty." );
-      }  
-      //var_dump( $cursor -> current()["Contexts"][0] );
-      $this -> assertGreaterThanOrEqual( 0, $cursor -> current()["SessionID"] );
-      $this -> assertGreaterThanOrEqual( 0, $cursor -> current()["Contexts"][0]["ContextID"] );
-      $this -> assertGreaterThanOrEqual( 0, $cursor -> current()["Contexts"][0]["QueryTimeSpent"] );
+      }
+      $this -> assertNotEmpty( $cursor -> current()["SessionID"] -> __toString() );
+      $this -> assertNotEmpty( $cursor -> current()["Contexts"][0]["ContextID"] -> __toString() );
    }
 
    public function test_snapshotContextsCurrent()
