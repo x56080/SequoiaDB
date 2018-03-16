@@ -73,6 +73,7 @@ function testExprtFilter1()
              " -l " + clname1 +
              " --type csv" +
              " --file " + csvfile +
+             " --headerline true" +
              " --fields='a int'" ;
    testRunCommand( command ) ;
   
@@ -120,6 +121,7 @@ function testExprtFilter2()
              " -l " + clname1 +
              " --type csv" +
              " --file " + csvfile +
+             " --headerline true" +
              " --fields='a int'" ;
    testRunCommand( command ) ;
   
@@ -167,6 +169,7 @@ function testExprtFilter3()
              " -l " + clname1 +
              " --type csv" +
              " --file " + csvfile +
+             " --headerline true" +
              " --fields='a int'" ;
    testRunCommand( command ) ;
   
@@ -214,6 +217,7 @@ function testExprtFilter4()
              " -l " + clname1 +
              " --type csv" +
              " --file " + csvfile +
+             " --headerline true" +
              " --fields='a int'" ;
    testRunCommand( command ) ;
   
@@ -310,6 +314,7 @@ function testExprtFilter6()
              " -l " + clname1 +
              " --type csv" +
              " --file " + csvfile +
+             " --headerline true" +
              " --fields='a int'" ;
    testRunCommand( command ) ;
   
@@ -357,6 +362,7 @@ function testExprtFilter7()
              " -l " + clname1 +
              " --type csv" +
              " --file " + csvfile +
+             " --headerline true" +
              " --fields='a int,b int'" ;
    testRunCommand( command ) ;
   

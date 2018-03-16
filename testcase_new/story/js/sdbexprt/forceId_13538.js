@@ -50,6 +50,7 @@ function testForceWithId()
              " -l " + clname1 +
              " --file " + csvfile +
              " --type csv " +
+             " --headerline true" +
              " --fields='_id int,a int'" ;
    testRunCommand( command ) ;
    
@@ -95,6 +96,7 @@ function testForceWithoutId()
              " -l " + clname1 +
              " --file " + csvfile +
              " --type csv " +
+             " --headerline true" +
              " --fields='a int'" ;
    testRunCommand( command ) ;
    
@@ -141,6 +143,7 @@ function testForceWithFields()
              " -l " + clname1 +
              " --file " + csvfile +
              " --type csv " +
+             " --headerline true" +
              " --fields='a int'" ;
    testRunCommand( command ) ;
    

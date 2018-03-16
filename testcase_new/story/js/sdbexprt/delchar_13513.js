@@ -52,6 +52,7 @@ function testExprtImprt()
              " --file " + csvfile +
              " --type csv " +
              " -a " + asc +
+             " --headerline true " +
              " --fields='a int,b string'" ; 
    testRunCommand( command ) ;
    

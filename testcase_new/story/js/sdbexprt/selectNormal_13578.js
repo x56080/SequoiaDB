@@ -52,6 +52,7 @@ function testExprtSelect1()
              " -l " + clname1 +
              " --file " + csvfile +
              " --type csv" +
+             " --headerline true" +
              " --fields='a int'" ;
    testRunCommand( command ) ;
    
@@ -98,6 +99,7 @@ function testExprtSelect2()
              " -l " + clname1 +
              " --file " + csvfile +
              " --type csv" +
+             " --headerline true" +
              " --fields='a int'" ;
    testRunCommand( command ) ;
    
@@ -144,6 +146,7 @@ function testExprtSelect3()
              " -l " + clname1 +
              " --file " + csvfile +
              " --type csv" +
+             " --headerline true" +
              " --fields='a int,b int'" ;
    testRunCommand( command ) ;
    

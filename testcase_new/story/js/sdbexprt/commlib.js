@@ -273,3 +273,14 @@ function makeString( len, ch )
    var arr = new Array( len+1 ) ;
    return arr.join( ch ) ;
 }
+
+/*******************************************************************
+* @Description : remove rec file if needed
+* @author      : Liang XueWang
+*
+********************************************************************/
+function rmRecFile( csname, clname )
+{
+   var files = csname + "_" + clname + "_*.rec" ;
+   cmd.run( "rm -rf ./" + files ) ;
+}

@@ -39,7 +39,7 @@ function testFileLimit()
    if( parseInt( cl1.count() ) !== 2*(kb*1024-1) )
    {
       throw buildException( "testFileLimit", null, "check import cl count", 
-            kb, cl1.count() ) ;   
+            2*(kb*1024-1), cl1.count() ) ;   
    }
    var cursor = cl1.find() ;
    var obj ;
@@ -82,6 +82,7 @@ function testExprtImprtCsv()
                  " --file " + csvfile + 
                  " --filelimit " + filelimit +
                  " --type csv" +
+                 " --included false" +
                  " --fields a" ;
    testRunCommand( command ) ;
    

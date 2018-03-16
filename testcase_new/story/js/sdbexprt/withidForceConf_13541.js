@@ -52,6 +52,7 @@ function testWithId()
              " -l " + clname1 +
              " --file " + csvfile +
              " --type csv " +
+             " --headerline true" +
              " --fields='_id int,a int'" ;
    testRunCommand( command ) ;
    
