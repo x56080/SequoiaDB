@@ -64,7 +64,7 @@ age + 1
    查询匹配age大于等于11，且name为Harry的记录。
   
    ```lang-javascript
-    > db.exec( "select * from yt.yt where age >= 11 AND name = 'Harry'" )
+    > db.exec( "select * from foo.bar where age >= 11 AND name = 'Harry'" )
     {
       "_id": {
       "$oid": "5aa35dbedc5673331f000001"

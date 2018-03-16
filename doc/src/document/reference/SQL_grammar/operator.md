@@ -34,7 +34,7 @@
 | =       | 等于 |
 | <>      | 不等于 |
 | is null | 字段不存在或者为null |
-| is not null | 字段存在且为null |
+| is not null | 字段存在且不为null |
 
 ## 示例##
 
