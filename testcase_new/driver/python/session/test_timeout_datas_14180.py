@@ -52,7 +52,7 @@ class TestSessiontimeout14180(testlib.SdbTestBase):
       self.cl = self.cs.create_collection(self.cl_name, {'Group': self.data_rg_name1, 'ShardingKey': {'a':1}, 'ReplSize' : 0})
 
       # insert datas at first
-      insert_nums = 30000
+      insert_nums = 50000
       self.insert_datas(insert_nums)
       
       # set session attr timeout 1ms
@@ -72,28 +72,48 @@ class TestSessiontimeout14180(testlib.SdbTestBase):
          self.fail('Need Error -13')
       except SDBBaseError as e:   
          if -13 != e.code:
-            self.fail('check create cl timeout fail: ' + e.detail)  
+            self.fail('check insert datas timeout fail: ' + e.detail)  
 				
+      # disconnect db
+      newdb1.disconnect() 
+
+      # set session attr timeout 1ms
+      newdb2 = testlib.default_db()
+      newcl2 = newdb2.get_collection(self.cs_name + '.' + self.cl_name)
+      
+      opt = {'Timeout' : 1};
+      newdb2.set_session_attri(options = opt)
+
       # update datas
       try:
          rule = {'$set' : {'a' : 'newa'}}
          cond = {'a' : {'$gt' : 1}}
-         newcl1.update(rule, condition = cond)
+         newcl2.update(rule, condition = cond)
          self.fail('Need Error -13')
       except SDBBaseError as e:
          if -13 != e.code:
             self.fail('check update datas timeout fail: ' + e.detail)  
             
+      # disconnect db
+      newdb2.disconnect()
+
+      # set session attr timeout 1ms
+      newdb3 = testlib.default_db()
+      newcl3 = newdb3.get_collection(self.cs_name + '.' + self.cl_name)
+      
+      opt = {'Timeout' : 1};
+      newdb3.set_session_attri(options = opt)
+
       # remove datas
       try:
-         newcl1.delete()
+         newcl3.delete()
          self.fail('Need Error -13')
       except SDBBaseError as e:
          if -13 != e.code:
             self.fail('check remove datas timeout fail: ' + e.detail)   
 
       # disconnect db
-      newdb1.disconnect()            
+      newdb3.disconnect()           
       
       # split cl      
       try:
