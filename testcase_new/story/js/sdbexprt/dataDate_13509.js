@@ -15,7 +15,6 @@ var docs = [ { "date": SdbDate( "1900-01-01" ) },
           // { "date": SdbDate( "9999-12-31T23:59:59.999Z" ) },
              { "date": SdbDate( "0001-01-01T00:00:00.000+0800" ) },
              { "date": SdbDate( "9999-12-31T23:59:59.999+0800" ) },
-          // TODO: sdbimprt parse 9007199254740992 -9007199254740992 failed
              { "date": { $date: 9007199254740992 } },
              { "date": { $date: -9007199254740992 } } ] ; 
 var csvContent = key + "\n" + 
@@ -38,14 +37,10 @@ var csvRecs = [ "{\"" + key + "\":{\"$date\":\"1900-01-01\"}}",
                 "{\"" + key + "\":{\"$date\":\"9999-12-31\"}}",
                 "{\"" + key + "\":{\"$date\":\"0001-01-01\"}}",
                 "{\"" + key + "\":{\"$date\":\"0001-01-01\"}}",
-                "{\"" + key + "\":{\"$date\":\"9999-12-31\"}}" ] ;
-var jsonRecs = [ "{\"" + key + "\":{\"$date\":\"1900-01-01\"}}", 
-                 "{\"" + key + "\":{\"$date\":\"9999-12-31\"}}",
-                 "{\"" + key + "\":{\"$date\":\"0001-01-01\"}}",
-                 "{\"" + key + "\":{\"$date\":\"0001-01-01\"}}",
-                 "{\"" + key + "\":{\"$date\":\"9999-12-31\"}}",
-                 "{\"" + key + "\":{\"$date\":9007199254740992}}", 
-                 "{\"" + key + "\":{\"$date\":-9007199254740992}}" ] ;
+                "{\"" + key + "\":{\"$date\":\"9999-12-31\"}}",
+                "{\"" + key + "\":{\"$date\":9007199254740992}}",
+                "{\"" + key + "\":{\"$date\":-9007199254740992}}" ] ;
+var jsonRecs = csvRecs ;
 
 main() ;
 
@@ -69,8 +64,6 @@ function main()
    
    commDropCL( db, csname, clname ) ;
    commDropCL( db, csname, clname1 ) ;
-   
-   rmRecFile( csname, clname1 ) ;
 }
 
 function testExprtImprtCsv()
@@ -98,7 +91,7 @@ function testExprtImprtCsv()
              " --file " + csvfile +
              " --type csv" +
              " --headerline true" +
-             " --fields='" + key + " date'" ;
+             " --fields='" + key + " autodate'" ;
    testRunCommand( command ) ;
    
    cmd.run( "rm -rf " + csvfile ) ; 
