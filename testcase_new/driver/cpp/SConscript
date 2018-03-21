@@ -36,6 +36,7 @@ testFiles = [
    [ "./index/idIndex12515.cpp" ],
    [ "./cursor/closeCursor12685_12686.cpp" ],
    [ "./cursor/closeAllCursors12687.cpp" ],
+   [ "./cursor/closeAllCursors14183.cpp" ],
    [ "./dbOpr/auth12521.cpp" ], # sync
    [ "./dbOpr/backup12304.cpp" ],
    [ "./dbOpr/procedure12522.cpp" ],
