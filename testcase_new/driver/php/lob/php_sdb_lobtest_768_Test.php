@@ -6,9 +6,9 @@
 ****************************************************/
 <?php
    define('Cur_Path', dirname(__FILE__));
-   include_once Cur_Path.'/lib/lob.php';
+   include_once Cur_Path.'/../commlib/lob.php';
    include_once Cur_Path.'/../global.php';
-   class LobTest extends PHPUnit_Framework_TestCase
+   class LobTest7681 extends PHPUnit_Framework_TestCase
    {
       private static $db ;
       private static $cs ;
@@ -115,10 +115,12 @@
       
       public function testLob7681And7688()
       {
+         echo "\n---testLob7681And7688\n";
          $lob = new Lob( self::$db, self::$cl );
          $oid = $this->getOid();
          $err = $lob->open( $oid, SDB_LOB_CREATEONLY );
          $this->assertEquals( 0, $err );
+         var_dump($oid);
          
          $err = $lob->write( 1024 );
          $this->assertEquals( 0, $err ) ;
@@ -140,7 +142,7 @@
       
       public function ntestWrite7682()
       {
-         var_dump("testWriteForNotOpen");
+         echo("\n---ntestWrite7682\n");
          $lob = new Lob( self::$db, self::$cl );
          $ret = SDB_CLT_INVALID_HANDLE;
          //$err = $lob->write(1024);
@@ -149,14 +151,19 @@
       
       public function testWrite7683()
       {
+         echo("\n---testWrite7683\n");
          $lob = new Lob( self::$db, self::$cl );
          $oid = $this->getOid();
          $err = $lob->open($oid, SDB_LOB_CREATEONLY );
          $this->assertEquals( 0, $err ) ;
+         var_dump($oid);
          
+         echo "-----------------1\n";
          $err = $lob->write( 1024 );
          $this->assertEquals( 0, $err ) ;
          
+         //echo "--------------0\n";
+         //var_dump($lob->getWContent());
          self::$wmd5 = md5( $lob->getWContent() ); 
          $err = $lob->closeLob();
          $this->assertEquals( 0, $err ) ;
@@ -170,14 +177,18 @@
        */
       public function testRead7684And7689($oid)
       {
+         echo("\n---testRead7684And7689\n");
          $lob = new Lob( self::$db, self::$cl );
+         var_dump($oid);
          $err = $lob->open( $oid, SDB_LOB_READ );
          $this->assertEquals( 0, $err ) ;
+         
          $err = $lob->read();
          $this->assertEquals( 0, $err ) ;
          
          $ret = $lob->getCreateTime();         
          $this->assertEquals( $ret > new SequoiaINT64 (0), true ) ;
+         
          $err = $lob->closeLob();
          $this->assertEquals( 0, $err ) ;
         
@@ -188,7 +199,7 @@
       
       public function ntestRead7685()
       {
-         var_dump( "testReadForNotOpen" ) ;
+         echo("\n---ntestRead7685\n");
          $lob = new Lob( self::$db, self::$cl ) ;
          $ret = SDB_CLT_INVALID_HANDLE ;
          //$err = $lob->read();
@@ -197,7 +208,7 @@
       
       public function ntestSeek7686()
       {
-         var_dump( "testSeekForWrite" );
+         echo("\n---ntestSeek7686\n");
          $lob = new Lob( self::$db, self::$cl );
          $oid = $this->getOid();
          $err = $lob->open( $oid, SDB_LOB_CREATEONLY );
@@ -216,14 +227,15 @@
         */
       public function testSeek7687($oid)
       {
-         var_dump("testSeekForRead");
+         echo("\n---testSeek7687\n");
          $lob = new Lob( self::$db, self::$cl );
+         var_dump($oid);
          $err = $lob->open( $oid, SDB_LOB_READ );
          $this->assertEquals( 0, $err ) ;
          $err = $lob->read( 512 );
          $this->assertEquals( 0, $err ) ;
          
-         $err = $lob->seek( 0, SDB_LOB_SET );
+         $err = $lob->seek( 512, SDB_LOB_SET );
          $this->assertEquals( 0, $err ) ;
          
          //$err = $lob->seek(511, SDB_LOB_SET);
@@ -235,6 +247,10 @@
          $this->assertEquals( 0, $err ) ;
          
          $this->rbuf = $lob->getRContent();
+         /*echo "-----------------2\n";
+         var_dump($this->rbuf);
+         echo "-----------------3\n";
+         var_dump(self::$wmd5);*/
          $ret =  ( self::$wmd5 == md5( $this->rbuf ) );
          $this->assertEquals( true, $ret ) ;
  

@@ -63,6 +63,7 @@ class Lob
       }*/
       
       $str = $this->getRandomStr( $len ) ;
+      //var_dump($str);
       $err = $this->lob->write( $str ) ;
       if ($err['errno'] == 0)
       {
@@ -84,6 +85,7 @@ class Lob
          $len = $this->lob->getSize() ;
       }
       $buf = $this->lob->read( $len ) ;
+      //var_dump($buf);
    
       $err = $this->db->getError() ;
       if ( $err['errno'] == 0 )
