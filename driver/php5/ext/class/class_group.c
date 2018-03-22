@@ -159,9 +159,11 @@ error:
    goto done ;
 }
 
-//node 该接口存在问题
+//废弃
 PHP_METHOD( SequoiaGroup, getNodeNum )
 {
+   RETVAL_LONG( -1 ) ;
+   /*
    INT32 rc = SDB_OK ;
    INT32 status     = 0 ;
    INT32 count      = 0 ;
@@ -183,13 +185,11 @@ PHP_METHOD( SequoiaGroup, getNodeNum )
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   /* 没有实现status
    rc = php_zval2Int( pStatus, &status TSRMLS_CC ) ;
    if( rc )
    {
       goto error ;
    }
-   */
    PHP_READ_VAR( pThisObj, "_SequoiaDB", pSequoiadb ) ;
    PHP_READ_HANDLE( pSequoiadb,
                     connection,
@@ -247,6 +247,7 @@ error:
    RETVAL_LONG( -1 ) ;
    PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
    goto done ;
+*/
 }
 
 PHP_METHOD( SequoiaGroup, getDetail )
