@@ -139,7 +139,7 @@ class lob_Test extends PHPUnit_Framework_TestCase
       $str = $lob -> read( 1 ) ;
       $err = $db -> getError() ;
       $this -> assertEquals( 0, $err['errno'], 'read错误' ) ;
-      $this -> assertEquals( "6", $str, 'read错误' ) ;
+      $this -> assertEquals( "3", $str, 'read错误' ) ;
    }
    
    /**
