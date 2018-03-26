@@ -24,9 +24,9 @@ all.spare.port.start=26000
 all.spare.port.stop=29000
 
 jenkins_master=test-ci-suse2
-trunk_machine=test-ci-suse2,test-ci-cent2,test-ci-ubun7
+trunk_machine=test-ci-suse2,test-ci-cent2,test-ci-ubun9
 trunk_machine_control=test-ci-suse2
-branch_machine=test-ci-suse2,test-ci-cent2,test-ci-ubun7
+branch_machine=test-ci-suse2,test-ci-cent2,test-ci-ubun9
 branch_machine_control=test-ci-suse2
 
 testcase.path=/tmp/sequoiadb_test/deploy/hlt
