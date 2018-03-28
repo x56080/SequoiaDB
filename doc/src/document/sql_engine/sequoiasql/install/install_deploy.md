@@ -94,12 +94,26 @@
    $ cd /opt/sequoiasqloltp
    ```
 
-2. 创建实例
+2. 检查端口是否被占用
+
+   SequoiaSQL 默认启动端口为5432,检查端口是否被占用。(检查操作建议使用 root 用户操作，只有检查端口需要 root 权限，其余操作还是需要在 sdbadmin 用户下操作)
+
+   ```lang-javascript
+   $ netstat -nap | grep 5432
+   ```
+
+3. 创建实例
 
    指定实例名为myinst，该实例名映射相应的数据目录和日志路径，用户可以根据自己需要指定不同的实例名。
 
    ```lang-javascript
    $ bin/sdb_sql_ctl addinst myinst -D pg_data/
+   ```
+
+   若端口号5432被占用，用户可以使用-p参数指定实例端口号：
+
+   ```lang-javascript
+   $ bin/sdb_sql_ctl addinst myinst -D pg_data/ -p 5433
    ```
 
    查看实例：
@@ -111,24 +125,7 @@
    Total: 1
    ```
 
-2. 检查端口是否被占用
-
-   SequoiaSQL 默认启动端口为5432,检查端口是否被占用。(检查操作建议使用 root 用户操作，只有检查端口需要 root 权限，其余操作还是需要在 sdbadmin 用户下操作)
-
-   ```lang-javascript
-   $ netstat -nap | grep 5432
-   ```
-
-   如果5432端口被占用或者希望修改 SequoiaSQL 的启动端口，则执行：
-
-   ```lang-javascript
-   $ bin/sdb_sql_ctl chconf myinst -p 5433
-   Changing configure of instance myinst ...
-   Parameter port requires a server restart to take effect
-   ok
-   ```
-
-3. 启动实例进程
+4. 启动实例进程
 
    ```lang-javascript
    $ bin/sdb_sql_ctl start myinst
@@ -145,7 +142,7 @@
    Total: 1; Run: 1
    ```
 
-4. 检查 SequoiaSQL 是否启动成功
+5. 检查 SequoiaSQL 是否启动成功
 
    ```lang-javascript
    $ netstat -nap | grep 5432
@@ -153,7 +150,7 @@
    unix  2   [ ACC ]   STREAM    LISTENING   40776754 20502/postgres     /tmp/.s.PGSQL.5432
    ```
 
-5. 创建 SequoiaSQL 的 database
+6. 创建 SequoiaSQL 的 database
 
    ```lang-javascript
    $ bin/sdb_sql_ctl createdb foo myinst
