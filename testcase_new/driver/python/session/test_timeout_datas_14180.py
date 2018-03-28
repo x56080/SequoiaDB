@@ -98,22 +98,22 @@ class TestSessiontimeout14180(testlib.SdbTestBase):
       newdb2.disconnect()
 
       # set session attr timeout 1ms
-      newdb3 = testlib.default_db()
-      newcl3 = newdb3.get_collection(self.cs_name + '.' + self.cl_name)
+      #newdb3 = testlib.default_db()
+      #newcl3 = newdb3.get_collection(self.cs_name + '.' + self.cl_name)
       
-      opt = {'Timeout' : 1};
-      newdb3.set_session_attri(options = opt)
+      #opt = {'Timeout' : 1};
+      #newdb3.set_session_attri(options = opt)
 
       # remove datas
-      try:
-         newcl3.delete()
-         self.fail('Need Error -13')
-      except SDBBaseError as e:
-         if -13 != e.code:
-            self.fail('check remove datas timeout fail: ' + e.detail)   
+      #try:
+      #   newcl3.delete()
+      #   self.fail('Need Error -13')
+      #except SDBBaseError as e:
+      #   if -13 != e.code:
+      #      self.fail('check remove datas timeout fail: ' + e.detail)   
 
       # disconnect db
-      newdb3.disconnect()           
+      #newdb3.disconnect()           
       
       # split cl      
       try:
