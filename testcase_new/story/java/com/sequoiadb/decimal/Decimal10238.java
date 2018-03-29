@@ -64,54 +64,50 @@ public class Decimal10238 extends SdbTestBase{
 	public Object[][] createDataWithPrecision(){
 		return new Object[][]{
 			//seqDB-9581
-			{"max","MAX",2,0},
-//			{"min","MIN",2,0},
-//			{"nan","NaN",2,0},
-//			{"MAX","MAX",1000,999},
-//			{"MIN","MIN",1000,999},
-//			{"NAN","NaN",1000,999},
+			{"max","MAX",2,0,true,false,false,1},
+			{"min","MIN",2,0,false,true,false,-1},
+			{"nan","NaN",2,0,false,false,true,-1},
+			{"MAX","MAX",1000,999,true,false,false,1},
+			{"MIN","MIN",1000,999,false,true,false,-1},
+			{"NAN","NaN",1000,999,false,false,true,-1},
 		};
 	}
 	
 	@Test(dataProvider = "DataProviderWithPrecision")
-	public void test(String value, String expectValue, int precision, int scale){
+	public void test(String value, String expectValue, int precision, int scale, 
+	        boolean isMax, boolean isMin, boolean isNan, int compareRe){
 		//insert data and check
-		insertAndCheckDecimal(value, expectValue, precision, scale);
+		insertAndCheckDecimal(value, expectValue, precision, scale, isMax, isMin, isNan, compareRe);
 		
 	}
 	
 	public void insertAndCheckDecimal(String value, String expectValue,
-			int precision, int scale ){
+			int precision, int scale, boolean isMax, boolean isMin, boolean isNan, int compareRe){
 		BSONObject obj = new BasicBSONObject();
 		try{
-//			BigDecimal expectBigDecimal = new BigDecimal(expectValue);
 			BSONDecimal data = new BSONDecimal(value, precision, scale);
 			BSONDecimal data1 = new BSONDecimal("1.7e+1000");
 			obj.put("a", data);
 			cl.insert(obj);
 			BSONDecimal actualData = (BSONDecimal) cl.queryOne().get("a");
-//			BigDecimal actualBigDecimal = actualData.toBigDecimal();
+			Assert.assertEquals(actualData.isMax(), isMax);
+			Assert.assertEquals(actualData.isMin(), isMin);
+			Assert.assertEquals(actualData.isNan(), isNan);
+			try {
+                BigDecimal actualBigDecimal = actualData.toBigDecimal();
+            } catch (UnsupportedOperationException e) {
+            }
 			String actualValue = data.getValue();
 			int actualPrecision = data.getPrecision();
 			int actualScale = data.getScale();
-			System.out.println("data:"+data);
-			System.out.println("actualData:"+actualData);
-			System.out.println("actualValue:"+actualValue);
-			System.out.println("expectValue:"+expectValue);
-			System.out.println("actualPrecision:"+actualPrecision);
-			System.out.println("actualScale:"+actualScale);
 			Assert.assertEquals(actualData, data);
 			Assert.assertEquals(actualValue, expectValue);
-			if(actualData.compareTo(data1) != 1){
+			if(actualData.compareTo(data1) != compareRe){
 				Assert.fail("compareTo failed, errMsg:");
 			}
-//			Assert.assertEquals(actualPrecision, -1);
-//			Assert.assertEquals(actualScale, -1);
-//			if(actualBigDecimal.compareTo(expectBigDecimal) != 0){
-//				Assert.fail("compare bigDecimal data failed,expect data:" + expectBigDecimal + 
-//						",actual data: " + actualBigDecimal);
-//			}
-//			cl.truncate();
+			Assert.assertEquals(actualPrecision, -1);
+			Assert.assertEquals(actualScale, -1);
+			cl.truncate();
 		}catch(IllegalArgumentException e ){
 			Assert.fail("generate data:" + obj + " failed, errMsg:" + e.getMessage());
 		}catch(BaseException e){
