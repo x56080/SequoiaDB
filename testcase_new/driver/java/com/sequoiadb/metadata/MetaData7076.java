@@ -26,8 +26,6 @@ import com.sequoiadb.testcommon.SdbTestBase;
 */
 
 public class MetaData7076 extends SdbTestBase{
-	//SEQUOIADBMAINSTREAM-1976
-	private static final int SSDB_PAGESIZE_4K = 4096;
 	
 	private Sequoiadb sdb ;
 	
@@ -71,8 +69,9 @@ public class MetaData7076 extends SdbTestBase{
 			
 			//create cs
 			try{
-				CollectionSpace cs = sdb.createCollectionSpace(csName, SSDB_PAGESIZE_4K);
+				CollectionSpace cs = sdb.createCollectionSpace(csName, sdb.SDB_PAGESIZE_4K);
 				cs.createCollection(clName);
+				
 			}catch(BaseException e){
 				Assert.fail("create cs failed, errMsg:" + e.getMessage());
 			}
@@ -90,7 +89,7 @@ public class MetaData7076 extends SdbTestBase{
 			while(dbCursor.hasNext()){
 				BSONObject pageSizeObj = dbCursor.getNext();
 				int pageSize = (int) pageSizeObj.get("PageSize");
-				Assert.assertEquals(pageSize, SSDB_PAGESIZE_4K);
+				Assert.assertEquals(pageSize, sdb.SDB_PAGESIZE_4K);
 			}
 			dbCursor.close();
 			
@@ -108,10 +107,19 @@ public class MetaData7076 extends SdbTestBase{
 			try{
 				sdb.dropCollectionSpace(csName);
 				Assert.fail("expect result need throw an error but not.");
+				
 			}catch(BaseException e){
 				if(-34 != e.getErrorCode())
 				Assert.assertTrue(false,"drop cs, errMsg:" + e.getMessage());
 			}
+			
+			try{
+			    sdb.getCollectionSpace(csName);
+			}catch (BaseException e) {
+                if(-34 != e.getErrorCode()) {
+                    Assert.fail(e.getMessage());
+                }
+            }
 			
 		}
 }
