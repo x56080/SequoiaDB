@@ -1376,7 +1376,7 @@ public class DBCollection {
         BSONObject tmp = new BasicBSONObject();
         tmp.put(SequoiadbConstants.FIELD_NAME_NAME,
                 SequoiadbConstants.SDB_ALTER_CRT_ID_INDEX);
-        if (options.isEmpty()) {
+        if (options == null || options.isEmpty()) {
             tmp.put(SequoiadbConstants.FIELD_NAME_ARGS, null);
         } else {
             tmp.put(SequoiadbConstants.FIELD_NAME_ARGS, options);
