@@ -155,13 +155,27 @@ public class Index7164 extends SdbTestBase {
 			Assert.fail("drop index failed, errMsg:" + e.getMessage());
 		}
 		
-		//check index drop successfully ;SEQUOIADBMAINSTREAM-1981
+		//check index drop successfully 
 		DBCursor cursorDropIndex = cl.getIndex(indexName);
 		while(cursorDropIndex.hasNext()){
 			Assert.assertNull(cursorDropIndex.getNext());
 		}
 		cursorDropIndex.close();
 		
+		//createIdIndex(BSONObject options) options is null
+		cl.dropIdIndex();
+		DBCursor idIndex = cl.getIndex("$id");
+		while(idIndex.hasNext()) {
+		    Assert.assertNull(idIndex.getNext());
+		}
+		idIndex.close();
+		cl.createIdIndex(null);
+		idIndex = cl.getIndex("$id");
+        while(idIndex.hasNext()) {
+            Assert.assertNotNull(idIndex.getNext());
+        }
+        idIndex.close();
+        
 		//clear env
 		if(cs.isCollectionExist(clName)){
 			cs.dropCollection(clName);
