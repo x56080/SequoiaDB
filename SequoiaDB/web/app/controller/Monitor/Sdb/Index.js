@@ -23,8 +23,8 @@
       $scope.charts = {} ;                   //图表
       $scope.charts['Host'] = {} ;           //主机信息的图表
       $scope.charts['Module'] = {} ;         //业务信息的图表
-      $scope.charts['Module']['options'] = window.SdbSacManagerConf.RecordInsertEchart ;
-      $scope.charts['Module']['value'] = [ 0, 0, true, false ] ;
+      $scope.charts['Module']['options'] = window.SdbSacManagerConf.MonitorDataEchart ;
+      $scope.charts['Module']['value'] = [ [ 0, 0, true, false ], [ 1, 0, true, false ], [ 2, 0, true, false ], [ 3, 0, true, false ] ] ;
       $scope.moduleInfo = {                  //同步到界面的信息
          'version': '-',
          'sessions': '-',
@@ -247,34 +247,22 @@
                   SumInfo['TotalInsert'] = $scope.DbInfo['TotalInsert'] ;
                   SumInfo['TotalUpdate'] = $scope.DbInfo['TotalUpdate'] ;
                   SumInfo['TotalDelete'] = $scope.DbInfo['TotalDelete'] ;
-                  SumInfo['TotalRead'] = $scope.DbInfo['TotalRead'] ;
+                  SumInfo['TotalRead']   = $scope.DbInfo['TotalRead'] ;
                }
                else
                {
-                  var diff = 0 ;
-                  if( $scope.chooseCharts == 'Insert' )
-                  {
-                     diff = ( $scope.DbInfo['TotalInsert'] - SumInfo['TotalInsert'] ) / 5 ;
-                  }
-                  else if( $scope.chooseCharts == 'Read' )
-                  {
-                     diff = ( $scope.DbInfo['TotalRead'] - SumInfo['TotalRead'] ) / 5 ;
-                  }
-                  else if( $scope.chooseCharts == 'Delete' )
-                  {
-                     diff = ( $scope.DbInfo['TotalDelete'] - SumInfo['TotalDelete'] ) / 5 ;
-                  }
-                  else if( $scope.chooseCharts == 'Update' )
-                  {
-                     diff = ( $scope.DbInfo['TotalUpdate'] - SumInfo['TotalUpdate'] ) / 5 ;
-                  }
-                  if( diff < 0 )
-                     diff = 0 ;
-                  $scope.charts['Module']['value'] = [ [ 0, diff, true, false ] ] ;
+                  var diff = [] ;
+                  diff.push( ( $scope.DbInfo['TotalInsert'] < 0 ? 0 : $scope.DbInfo['TotalInsert'] - SumInfo['TotalInsert'] ) / 5 ) ;
+                  diff.push( ( $scope.DbInfo['TotalRead']   < 0 ? 0 : $scope.DbInfo['TotalRead']   - SumInfo['TotalRead'] )   / 5 ) ;
+                  diff.push( ( $scope.DbInfo['TotalDelete'] < 0 ? 0 : $scope.DbInfo['TotalDelete'] - SumInfo['TotalDelete'] ) / 5 ) ;
+                  diff.push( ( $scope.DbInfo['TotalUpdate'] < 0 ? 0 : $scope.DbInfo['TotalUpdate'] - SumInfo['TotalUpdate'] ) / 5 ) ;
+
+                  $scope.charts['Module']['value'] = [ [ 0, diff[0], true, false ], [ 1, diff[1], true, false ], [ 2, diff[2], true, false ], [ 3, diff[3], true, false ] ] ;
+                  
                   SumInfo['TotalInsert'] = $scope.DbInfo['TotalInsert'] ;
                   SumInfo['TotalUpdate'] = $scope.DbInfo['TotalUpdate'] ;
                   SumInfo['TotalDelete'] = $scope.DbInfo['TotalDelete'] ;
-                  SumInfo['TotalRead'] = $scope.DbInfo['TotalRead'] ;
+                  SumInfo['TotalRead']  = $scope.DbInfo['TotalRead'] ;
                }
             },
             'failed': function( errorInfo ){
@@ -460,42 +448,9 @@
             } ) ;
          }, null, null, null, false ) ;
       } ;
+
       if( moduleMode == 'distribution' )
          getDomains();
-         
-      //选择图表
-      $scope.changeCharts = function( type ){
-         $scope.chooseCharts = type ;
-         $scope.charts['Module'] = {} ;
-         if( type == 'Insert' )
-         {
-            $scope.chartName = 'Record Insert' ;
-            $scope.charts['Module']['options'] = window.SdbSacManagerConf.RecordInsertEchart ;
-         }
-         else if( type == 'Read' )
-         {
-            $scope.chartName = 'Record Read' ;
-            $scope.charts['Module']['options'] = window.SdbSacManagerConf.RecordReadEchart ;
-         }
-         else if( type == 'Delete' )
-         {
-            $scope.chartName = 'Record Delete' ;
-            $scope.charts['Module']['options'] = window.SdbSacManagerConf.RecordDeleteEchart ;
-         }
-         else if( type == 'Update' )
-         {
-            $scope.chartName = 'Record Update' ;
-            $scope.charts['Module']['options'] = window.SdbSacManagerConf.RecordUpdateEchart ;
-         }
-      } ;
-
-      //图表下拉选项
-      $scope.DropdownMenu = [ 
-         { 'html': $compile( '<div style="padding:5px 10px" ng-click="changeCharts(\'Insert\')">Record Insert</div>' )( $scope ) },
-         { 'html': $compile( '<div style="padding:5px 10px" ng-click="changeCharts(\'Read\')">Record Read</div>' )( $scope ) },
-         { 'html': $compile( '<div style="padding:5px 10px" ng-click="changeCharts(\'Delete\')">Record Delete</div>' )( $scope ) },
-         { 'html': $compile( '<div style="padding:5px 10px" ng-click="changeCharts(\'Update\')">Record Update</div>' )( $scope ) }
-      ] ;
      
       //跳转至资源
       $scope.GotoResources = function(){
