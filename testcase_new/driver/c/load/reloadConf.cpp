@@ -41,6 +41,33 @@ error:
    goto done ;
 }
 
+int insertDoc( sdbConnectionHandle db, const char* csName, const char* clName )
+{
+   int rc = SDB_OK ;
+   sdbCSHandle cs ;
+   sdbCollectionHandle cl ;
+   bson doc ;
+   bson_init( &doc ) ;
+
+   rc = sdbGetCollectionSpace( db, csName, &cs ) ;
+   CHECK_RC( rc, "fail to get cs" ) ;
+   rc = sdbGetCollection1( cs, clName, &cl ) ;
+   CHECK_RC( rc, "fail to get cl" ) ;
+   
+   bson_append_int( &doc, "a", 1 ) ;
+   bson_append_string( &doc, "b", "test" ) ;
+   bson_finish( &doc ) ;
+   rc = sdbInsert( cl, &doc ) ;
+   CHECK_RC( rc, "fail to insert" ) ;
+done:
+   bson_destroy( &doc ) ;
+   sdbReleaseCollection( cl ) ;
+   sdbReleaseCS( cs ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
 int getInstallPath( char* path )
 {
    int rc = SDB_OK ;
@@ -301,10 +328,12 @@ TEST( reloadConf, weight )
 	rc = sdbStartNode( node ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to start node" ;
 
-   // create cs cl in rg in case rg have no dps log
+   // create cs cl and insert doc in rg in case rg have no dps log
    const CHAR* csName = "reloadConfTestCs" ;
    const CHAR* clName = "reloadConfTestCl" ;
    rc = createCsClInRg( db, rg, csName, clName ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = insertDoc( db, csName, clName ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
 	rc = waitSync( rg, host, svc ) ;
