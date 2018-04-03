@@ -559,8 +559,8 @@ namespace bson {
         }
 
         /**
-        Timestamps are a special BSON datatype that is used internally for
-        replication. Append a timestamp element to the object being ebuilt.
+        Timestamp is a special BSON datatype. Append a timestamp element to
+        the object being built.
         @param time - in millis (but stored in seconds)
         */
         BSONObjBuilder& appendTimestamp( const StringData& fieldName ,
