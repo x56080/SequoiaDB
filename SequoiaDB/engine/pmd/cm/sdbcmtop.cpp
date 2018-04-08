@@ -207,22 +207,6 @@ namespace engine
       return rc ;
    }
 
-#if defined (_LINUX)
-
-   INT32 stopSdbcm ( BOOLEAN asProc, const string &port )
-   {
-      if ( port.empty() )
-      {
-         return _stopSdbcmd() ;
-      }
-      else
-      {
-         return _stopSdbcm( port ) ;
-      }
-   }
-
-#elif defined (_WINDOWS)
-
    static INT32 _stopSdbcmByProc( const string &port )
    {
       INT32 rc = SDB_OK ;
@@ -254,6 +238,15 @@ namespace engine
    done:
       return rc ;
    }
+
+#if defined (_LINUX)
+
+   INT32 stopSdbcm ( BOOLEAN asProc, const string &port )
+   {
+      return _stopSdbcmByProc( port ) ;
+   }
+
+#elif defined (_WINDOWS)
 
    INT32 stopSdbcm ( BOOLEAN asProc, const string &port )
    {
