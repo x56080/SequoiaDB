@@ -2638,7 +2638,7 @@ INT32 ossGetFileUserInfo( const CHAR * filename, OSSUID & uid, OSSGID & gid )
       }
    }
    else
-   {  PD_LOG( PDERROR, "yuting Failed to stat() : %s, Error: %d", filename, 2 ) ;
+   {
       uid = sb.st_uid ;
       gid = sb.st_gid ;
    }
