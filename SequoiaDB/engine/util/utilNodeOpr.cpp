@@ -1106,7 +1106,7 @@ namespace engine
          timeout = 1 ;
       }
 
-      if ( skipKill )
+      if ( !skipKill )
       {
          rc = utilAsyncStopNode( node ) ;
          if ( rc )
