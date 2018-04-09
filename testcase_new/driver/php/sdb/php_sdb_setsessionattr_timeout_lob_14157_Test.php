@@ -11,6 +11,7 @@ include_once Cur_Path.'/../commlib/lob.php';
 include_once Cur_Path.'/../global.php';
 class setSessionAttr14157 extends PHPUnit_Framework_TestCase
 {
+   private static $address;
    private static $db ;
    private static $groupMgr; 
    private static $oid ;
@@ -23,9 +24,9 @@ class setSessionAttr14157 extends PHPUnit_Framework_TestCase
    public static function setUpBeforeClass()
    {
       // connect
-      $address = globalParameter::getHostName().':'.globalParameter::getCoordPort();
+      self::$address = globalParameter::getHostName().':'.globalParameter::getCoordPort();
       self::$db = new Sequoiadb();
-      $err = self::$db -> connect($address, '', '');
+      $err = self::$db -> connect(self::$address, '', '');
       if ( $err['errno'] != 0 )
       {
          throw new Exception("failed to connect db, errno=".$err['errno']);
@@ -105,20 +106,24 @@ class setSessionAttr14157 extends PHPUnit_Framework_TestCase
    
    public static function tearDownAfterClass()
    {
+      self::$db->close();
+      
       if ( self::$skipTestCase == false )
       {
-         echo "\n---Begin to recover session[set Timeout=10000ms] in the end.\n"; 
-         $err = self::$db -> setSessionAttr( array( 'Timeout' => 100000 ) ); 
+         $err = self::$db -> connect( self::$address );
          if ( $err['errno'] != 0 )
          {
-            throw new Exception("failed to drop cs, errno=".$err['errno']);
-         }      
+            throw new Exception("failed to connect db, errno=".$err['errno']);
+         }  
          
          echo "   Begin to dropCS in the end.\n"; 
          $err = self::$db -> dropCS( self::$csName ); 
-         if ( $err['errno'] != 0 )
-         {
-            throw new Exception("failed to drop cs, errno=".$err['errno']);
+         if ( $err['errno'] == -147 ) {
+            $err = self::$db -> dropCS( self::$csName ); 
+            if ( $err['errno'] != 0 )
+            {
+               throw new Exception("failed to drop cs, errno=".$err['errno']);
+            }
          }
       }
       
