@@ -448,7 +448,7 @@ void pdLog( PDLEVEL level, const CHAR* func, const CHAR* file,
    va_end(ap);
 
    // create log header
-   ossSnprintf(sysInfo, PD_LOG_STRINGMAX, PD_LOG_HEADER_FORMAT,
+   ossSnprintf(sysInfo, PD_LOG_STRINGMAX + 1, PD_LOG_HEADER_FORMAT,
                otm.tm_year+1900,            // 1) Year (UINT32)
                otm.tm_mon+1,                // 2) Month (UINT32)
                otm.tm_mday,                 // 3) Day (UINT32)
@@ -464,6 +464,21 @@ void pdLog( PDLEVEL level, const CHAR* func, const CHAR* file,
                file,                        // 13) File Name (string)
                userInfo                     // 14) Message
    ) ;
+
+   // If the userInfo is too long, the expected end of line(2 of them) are
+   // truncated in the sysInfo above. Add them if they are not there.
+   // If the end of the log( before the terminate character) is not '\0',
+   // nor NEWLINE NEWLINE, it should be adjusted.
+   if ( sysInfo[ PD_LOG_STRINGMAX - 1 ] != '\0' )
+   {
+      INT32 position = PD_LOG_STRINGMAX - ossStrlen( OSS_NEWLINE ) * 2 ;
+      if ( 0 != ossStrcmp( sysInfo + position, OSS_NEWLINE OSS_NEWLINE ) )
+      {
+         // The plus 1 is for the terminate character.
+         ossSnprintf( sysInfo + position, ossStrlen( OSS_NEWLINE ) * 2 + 1,
+                      OSS_NEWLINE OSS_NEWLINE ) ;
+      }
+   }
 
    pdLogRaw( level, sysInfo ) ;
 
