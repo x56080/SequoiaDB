@@ -103,7 +103,7 @@ SequoiaDB shell 运行如下：
 * 匹配“content”字段中子字段“phone”符合表达式“ $lte："123" ”的记录：
 
   ```lang-javascript
-  > db.foo.bar.find( { content: { $elemMatch: { "phone" : { $lte : "123" } } } })
+  > db.foo.bar.find( { content: { $elemMatch: { "phone" : { $lte : "123" } } } } )
   {
     "_id": {
       "$oid": "5a0106e51f9b983f4600000b"
