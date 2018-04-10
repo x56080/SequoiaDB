@@ -87,7 +87,7 @@ namespace engine
    typedef class _SDB_DMS_CSCB SDB_DMS_CSCB ;
 
 
-   #define DMS_MAX_CS_NUM 4096
+   #define DMS_MAX_CS_NUM 16384
    #define DMS_INVALID_CS DMS_INVALID_SUID
    #define DMS_STATE_NORMAL  0
    #define DMS_STATE_BACKUP  1
