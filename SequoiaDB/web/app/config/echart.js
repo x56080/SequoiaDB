@@ -683,7 +683,7 @@
             itemStyle: {
                normal: {
                   color: '#FFB86C',
-                  lineStyle: { color: '#9ECCB7' }
+                  lineStyle: { color: '#FFB86C' }
                }
             },
             type: 'line',
