@@ -82,7 +82,7 @@ public class Split8583a extends SdbTestBase {
 	}
 
 	// 切分删除CL
-	@Test(timeOut = 60000)
+	@Test
 	public void dropCL() {
 		Sequoiadb sdb = null;
 		DBCursor dbc = null;
