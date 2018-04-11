@@ -140,11 +140,19 @@ namespace import
       INT32 scale;
    };
 
+   #define CSV_TIMESTAMP_FMT_MAX_LEN 63
+   struct CSVTimestampOpt
+   {
+      INT32 fmtLength ;
+      CHAR format[CSV_TIMESTAMP_FMT_MAX_LEN + 1] ;
+   } ;
+
    struct CSVFieldOpt
    {
       BOOLEAN hasOpt;
       union {
          CSVDecimalOpt decimalOpt;
+         CSVTimestampOpt timestampOpt ;
       } opt;
 
       CSVFieldOpt()

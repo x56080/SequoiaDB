@@ -31,6 +31,7 @@
 #include "impCSVRecordParser.hpp"
 #include "../client/base64c.h"
 #include "ossUtil.h"
+#include "impUtil.hpp"
 #include "pd.hpp"
 #include <cctype>
 #include <cmath>
@@ -150,6 +151,7 @@ namespace import
 
    #define LEFT_BRACKET           ('(')
    #define RIGHT_BRACKET          (')')
+   #define DOUBLE_QUOTES          ('"')
    #define COMMA                  (',')
 
    #define CSV_MAX_STRING_SIZE (1024 * 1024 * 16)
@@ -518,6 +520,115 @@ namespace import
       goto done;
    }
 
+   static INT32 _parseTimestampFmt( const CHAR *data, INT32 length,
+                                    CSVFieldOpt &opt )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 len = length;
+      INT32 fmtLen = 0 ;
+      CHAR* fmtStart = NULL ;
+      CHAR* str = (CHAR*)data;
+
+      if ( LEFT_BRACKET != *str )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      str++ ;
+      len-- ;
+
+      _skipSpace( &str, len ) ;
+
+      if ( 0 == len )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( DOUBLE_QUOTES != *str )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      str++ ;
+      len-- ;
+
+      fmtStart = str ;
+
+      while( TRUE )
+      {
+         if ( len <= 0 )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         if ( DOUBLE_QUOTES == *str )
+         {
+            break ;
+         }
+
+         str++ ;
+         len-- ;
+         fmtLen++ ;
+      }
+
+      str++ ;
+      len-- ;
+      
+      _skipSpace(&str, len);
+
+      if (0 == len)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      if (RIGHT_BRACKET != *str)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      str++;
+      len--;
+
+      _skipSpace(&str, len);
+
+      if (0 != len)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      {
+         string fmtStr( fmtStart, fmtLen ) ;
+
+         rc = checkDateTimeFormat( fmtStr ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+
+         if ( fmtLen > CSV_TIMESTAMP_FMT_MAX_LEN )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         opt.hasOpt = TRUE ;
+         opt.opt.timestampOpt.fmtLength = fmtLen ;
+         ossStrncpy( opt.opt.timestampOpt.format, fmtStart, fmtLen ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    static inline INT32 _convertToCSVType(const CHAR* data,
                                          INT32 length,
                                          CSV_TYPE& type,
@@ -666,6 +777,21 @@ namespace import
          if (CSV_STR_TYPE_EQ(CSV_STR_TIMESTAMP, str, length))
          {
             type = CSV_TYPE_TIMESTAMP;
+         }
+         else if ( length > (INT32)CSV_STR_TIMESTAMP_SIZE &&
+                   ossStrncasecmp( str, CSV_STR_TIMESTAMP,
+                                   CSV_STR_TIMESTAMP_SIZE ) == 0 )
+         {
+            // timestamp("YYYY-MM-DD-HH.mm.ss")
+            rc = _parseTimestampFmt( data + CSV_STR_TIMESTAMP_SIZE,
+                                     length - CSV_STR_TIMESTAMP_SIZE,
+                                     opt ) ;
+            if ( rc )
+            {
+               PD_LOG(PDERROR, "invalid timestamp type");
+               goto error;
+            }
+            type = CSV_TYPE_TIMESTAMP ;
          }
          break;
       default:
@@ -2560,8 +2686,8 @@ namespace import
                                          struct tm* time, INT32& microsec)
    {
       INT32 year = 0;
-      INT32 month = 0;
-      INT32 day = 0;
+      INT32 month = 1;
+      INT32 day = 1;
       INT32 hour = 0;
       INT32 minute = 0;
       INT32 second = 0;
@@ -2757,7 +2883,7 @@ namespace import
    }
 
    static inline INT32 _stringToTimestamp(CSVString& data, BOOLEAN autoTimestamp,
-                                          CSVTimestamp& value)
+                                          CSVTimestamp& value, CSVFieldOpt& opt)
    {
       CHAR* str = data.str;
       INT32 rc = SDB_OK;
@@ -2802,9 +2928,21 @@ namespace import
          time_t timep;
 
          ossMemset(&t, 0, sizeof(t));
-         rc = _stringToDateTime(data.str, data.length,
-                                TIME_FORMAT, TIME_FORMAT_LEN,
-                                &t, microsec);
+
+         if ( FALSE == opt.hasOpt || 0 == opt.opt.timestampOpt.fmtLength )
+         {
+            rc = _stringToDateTime(data.str, data.length,
+                                   TIME_FORMAT, TIME_FORMAT_LEN,
+                                   &t, microsec);
+         }
+         else
+         {
+            rc = _stringToDateTime(data.str, data.length,
+                                   opt.opt.timestampOpt.format,
+                                   opt.opt.timestampOpt.fmtLength,
+                                   &t, microsec);
+         }
+
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to scan timepstamp, rc=%d", rc);
@@ -3474,7 +3612,7 @@ namespace import
          {
             goto error;
          }
-         rc = _stringToTimestamp(fieldValue.strVal, autoDateTime, fieldValue.timestampVal);
+         rc = _stringToTimestamp(fieldValue.strVal, autoDateTime, fieldValue.timestampVal, opt);
          if (SDB_OK != rc)
          {
             goto error;

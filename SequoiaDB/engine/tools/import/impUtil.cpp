@@ -133,4 +133,195 @@ namespace import
    error:
       goto done;
    }
+
+   INT32 checkDateTimeFormat(const string& format)
+   {
+      INT32 rc = SDB_OK;
+      const CHAR* fmt = format.c_str();
+      INT32 len = format.length();
+      BOOLEAN hasYear = FALSE;
+      BOOLEAN hasMonth = FALSE;
+      BOOLEAN hasDay = FALSE;
+      BOOLEAN hasHour = FALSE;
+      BOOLEAN hasMinute = FALSE;
+      BOOLEAN hasSecond = FALSE;
+      BOOLEAN hasMillisecond = FALSE;
+      BOOLEAN hasMicrosecond = FALSE;
+
+      while (len > 0)
+      {
+         switch(*fmt)
+         {
+         // year: YYYY
+         case 'Y':
+            if (hasYear)
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            if ('Y' != fmt[1] ||
+                'Y' != fmt[2] ||
+                'Y' != fmt[3])
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            hasYear = TRUE;
+            fmt += 4;
+            len -= 4;
+            break;
+         // month: MM
+         case 'M':
+            if (hasMonth)
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            if ('M' != fmt[1])
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            hasMonth = TRUE;
+            fmt += 2;
+            len -= 2;
+            break;
+         // day: DD
+         case 'D':
+            if (hasDay)
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            if ('D' != fmt[1])
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            hasDay = TRUE;
+            fmt += 2;
+            len -= 2;
+            break;
+         // hour: HH
+         case 'H':
+            if (hasHour)
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            if ('H' != fmt[1])
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            hasHour = TRUE;
+            fmt += 2;
+            len -= 2;
+            break;
+         // minute: mm
+         case 'm':
+            if (hasMinute)
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            if ('m' != fmt[1])
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            hasMinute = TRUE;
+            fmt += 2;
+            len -= 2;
+            break;
+         // second: ss
+         case 's':
+            if (hasSecond)
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            if ('s' != fmt[1])
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            hasSecond = TRUE;
+            fmt += 2;
+            len -= 2;
+            break;
+         // millisecond: SSS
+         case 'S':
+            if (hasMillisecond || hasMicrosecond)
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            if ('S' != fmt[1] ||
+                'S' != fmt[2])
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            hasMillisecond = TRUE;
+            fmt += 3;
+            len -= 3;
+            break;
+         // microsecond: ffffff
+         case 'f':
+            if (hasMillisecond || hasMicrosecond)
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            if ('f' != fmt[1] ||
+                'f' != fmt[2] ||
+                'f' != fmt[3] ||
+                'f' != fmt[4] ||
+                'f' != fmt[5])
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            hasMicrosecond = TRUE;
+            fmt += 6;
+            len -= 6;
+            break;
+         // any charcater: *
+         case '*':
+         default:
+            fmt++;
+            len--;
+            break;
+         }
+      }
+
+      if (!hasYear)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
 }
