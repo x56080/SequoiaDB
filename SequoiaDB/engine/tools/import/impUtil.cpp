@@ -303,6 +303,52 @@ namespace import
             fmt += 6;
             len -= 6;
             break;
+         // time zone: +/-XXXX
+         case '+':
+         case '-':
+         {
+            INT32 hour = 0 ;
+            INT32 minute = 0 ;
+
+            if ( !isdigit( fmt[1] ) )
+            {
+               fmt++;
+               len--;
+               break ;
+            }
+
+            if ( !isdigit( fmt[2] ) || !isdigit( fmt[3] ) )
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            if ( isdigit( fmt[4] ) )
+            {
+               hour = ( fmt[1] - '0' ) * 10 + ( fmt[2] - '0' ) ;
+               minute = ( fmt[3] - '0' ) * 10 + ( fmt[4] - '0' ) ;
+
+               fmt += 4 ;
+               len -= 4 ;
+            }
+            else
+            {
+               hour = fmt[1] - '0' ;
+               minute = ( fmt[2] - '0' ) * 10 + ( fmt[3] - '0' ) ;
+
+               fmt += 3 ;
+               len -= 3 ;
+            }
+
+            if ( hour * 60 + minute > IMP_UTIL_TIMEZONE_MAX )
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            break;
+         }
+         case 'Z':
          // any charcater: *
          case '*':
          default:
