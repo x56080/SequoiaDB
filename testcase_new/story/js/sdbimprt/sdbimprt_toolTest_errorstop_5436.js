@@ -30,7 +30,7 @@ function readyData( imprtFile )
    println("\n---Begin to ready data.");
    
    var file = fileInit( imprtFile );
-   file.write( "at int,bt date\n1,2016-1-1\n2,2\n3,2016-1-2" );
+   file.write( "at int,bt date\n1,2016-1-1\n2,2\n3,2016-1-2\n4,2016-0-0\n5,2016-1-3" );
    var fileInfo = cmd.run( "cat "+ imprtFile );
    println( imprtFile +"\n" + fileInfo );
    file.close();

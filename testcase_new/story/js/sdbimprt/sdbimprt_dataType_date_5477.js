@@ -61,9 +61,9 @@ function importData( csName, clName, imprtFile )
    
    //check import results
    var rcObj = rc.split("\n");
-   var expParseRecords    = "parsed records: 4";
-   var expParseFailure    = "parse failure: 2";
-   var expImportedRecords = "imported records: 4";
+   var expParseRecords    = "parsed records: 5";
+   var expParseFailure    = "parse failure: 1";
+   var expImportedRecords = "imported records: 5";
    var actParseRecords    = rcObj[0];
    var actParseFailure    = rcObj[1];
    var actImportedRecords = rcObj[4];
@@ -79,7 +79,7 @@ function importData( csName, clName, imprtFile )
    var rec = cmd.run( "ls "+ tmpRec ).split("\n")[0];
    var actFailedNum = cmd.run( "cat -v "+ rec ).split("\n").length - 1;
    println( rec +"\nrecords number: "+ actFailedNum );
-   var expFailedNum = 2;
+   var expFailedNum = 1;
    if( expFailedNum !== actFailedNum )
    {
       throw buildException( "checkCLdata", null, "[find]", 
@@ -102,8 +102,8 @@ function checkCLData( cl )
       recsArray.push( tmpRecs.toObj() );
    }
    
-   var expCnt  = 3;  //skip a records: {"num":8,"type":"null","v1":null,"v2":null}
-   var expRecs = '[{"num":1,"type":"str","v1":{"$date":"1901-01-01"}},{"num":2,"type":"timestamp","v1":{"$date":"9999-12-31"}},{"num":3,"type":"invalid","v1":{"$date":"2014-01-01"}}]';
+   var expCnt  = 4;  //skip a records: {"num":6,"type":"null","v1":null,"v2":null}
+   var expRecs = '[{"num":1,"type":"str","v1":{"$date":"1901-01-01"}},{"num":2,"type":"timestamp","v1":{"$date":"9999-12-31"}},{"num":3,"type":"invalid","v1":{"$date":"2014-01-01"}},{"num":4,"type":"invalid","v1":{"$date":"2014-01-01"}}]';
    var actCnt  = recsArray.length;
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
