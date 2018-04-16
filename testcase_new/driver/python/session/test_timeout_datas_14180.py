@@ -78,24 +78,24 @@ class TestSessiontimeout14180(testlib.SdbTestBase):
       newdb1.disconnect() 
 
       # set session attr timeout 1ms
-      newdb2 = testlib.default_db()
-      newcl2 = newdb2.get_collection(self.cs_name + '.' + self.cl_name)
+      #newdb2 = testlib.default_db()
+      #newcl2 = newdb2.get_collection(self.cs_name + '.' + self.cl_name)
       
-      opt = {'Timeout' : 1};
-      newdb2.set_session_attri(options = opt)
+      #opt = {'Timeout' : 1};
+      #newdb2.set_session_attri(options = opt)
 
       # update datas
-      try:
-         rule = {'$set' : {'a' : 'newa'}}
-         cond = {'a' : {'$gt' : 1}}
-         newcl2.update(rule, condition = cond)
-         self.fail('Need Error -13')
-      except SDBBaseError as e:
-         if -13 != e.code:
-            self.fail('check update datas timeout fail: ' + e.detail)  
+      #try:
+      #   rule = {'$set' : {'a' : 'newa'}}
+      #   cond = {'a' : {'$gt' : 1}}
+      #   newcl2.update(rule, condition = cond)
+      #   self.fail('Need Error -13')
+      #except SDBBaseError as e:
+      #   if -13 != e.code:
+      #      self.fail('check update datas timeout fail: ' + e.detail)  
             
       # disconnect db
-      newdb2.disconnect()
+      #newdb2.disconnect()
 
       # set session attr timeout 1ms
       #newdb3 = testlib.default_db()
