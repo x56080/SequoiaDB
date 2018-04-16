@@ -551,6 +551,11 @@ namespace engine
 
          BOOLEAN _isNot() ;
 
+         OSS_INLINE virtual BOOLEAN _flagAcceptUndefined ()
+         {
+            return FALSE ;
+         }
+
       protected:
          MTH_FUNC_LIST _funcList ;
          BSONElement _toMatch ;
@@ -787,6 +792,13 @@ namespace engine
                                     const BSONElement &right,
                                     _mthMatchTreeContext &context,
                                     BOOLEAN &result ) ;
+
+         OSS_INLINE virtual BOOLEAN _flagAcceptUndefined ()
+         {
+            // For { $exists : 1 } return FALSE if undefined
+            // For { $exists : 0 } return TRUE if undefined
+            return _toMatch.trueValue() ? FALSE : TRUE ;
+         }
    } ;
 
    class _mthMatchOpNodeMOD : public _mthMatchOpNode
@@ -861,6 +873,13 @@ namespace engine
                                     const BSONElement &right,
                                     _mthMatchTreeContext &context,
                                     BOOLEAN &result ) ;
+
+         OSS_INLINE virtual BOOLEAN _flagAcceptUndefined ()
+         {
+            // For { $isnull : 1 } return TRUE if undefined
+            // For { $isnull : 0 } return FALSE if undefined
+           return _toMatch.trueValue() ? TRUE : FALSE ;
+         }
    } ;
 
    class _mthMatchOpNodeEXPAND : public _mthMatchOpNode

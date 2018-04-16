@@ -2186,6 +2186,7 @@ namespace engine
          //xxx.xxx.xxx
          *p = '\0' ;
          BSONElement ele = obj.getField( pTmpFieldName ) ;
+         *p = '.' ;
          if ( ele.type() == Object || ele.type() == Array )
          {
             //xxx.$1.xxx
@@ -2247,14 +2248,10 @@ namespace engine
          goto done ;
       }
 
-      if ( p )
+      if ( p && !_flagAcceptUndefined() )
       {
-         if ( EN_MATCH_OPERATOR_EXISTS != getType() &&
-              EN_MATCH_OPERATOR_ISNULL != getType() )
-         {
-            result = FALSE ;
-            goto done ;
-         }
+         result = FALSE ;
+         goto done ;
       }
 
       if ( _isCompareField )
