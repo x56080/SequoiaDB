@@ -30,7 +30,7 @@ function readyData( imprtFile )
    println("\n---Begin to ready data.");
    
    var file = fileInit( imprtFile );
-   file.write( "at int,bt date\n1,2016-1-1\n2,2\n3,2016-1-2\n4,2016-0-0\n5,2016-1-3" );
+   file.write( "at int,bt date\n1,2016-1-1\n2,2016-1-2\n3,2016-0-0\n4,2016-1-3" );
    var fileInfo = cmd.run( "cat "+ imprtFile );
    println( imprtFile +"\n" + fileInfo );
    file.close();
@@ -52,9 +52,9 @@ function importData( csName, clName, imprtFile )
    println( rc );
    
    var rcObj = rc.split("\n");
-   var expParseRecords    = "parsed records: 1";
+   var expParseRecords    = "parsed records: 2";
    var expParseFailure    = "parse failure: 1";
-   var expImportedRecords = "imported records: 1";
+   var expImportedRecords = "imported records: 2";
    var actParseRecords    = rcObj[0];
    var actParseFailure    = rcObj[1];
    var actImportedRecords = rcObj[4];
@@ -69,7 +69,7 @@ function importData( csName, clName, imprtFile )
    var rec = cmd.run( "ls "+ tmpRec ).split("\n")[0];
    var failedRecs = cmd.run( "cat "+ rec ).split("\n")[0];
    println( rec +"\n"+ failedRecs );
-   var expRecRecs = '2,2';
+   var expRecRecs = '3,2016-0-0';
    var actRecRecs = failedRecs;
    if( expRecRecs !== actRecRecs )
    {
@@ -94,8 +94,8 @@ function checkCLData( cl )
       recsArray.push( tmpRecs.toObj() );
    }
    
-   var expCnt  = 1;
-   var expRecs = '[{"at":1,"bt":{"$date":"2016-01-01"}}]';
+   var expCnt  = 2;
+   var expRecs = '[{"at":1,"bt":{"$date":"2016-01-01"}},{"at":2,"bt":{"$date":"2016-01-02"}}]';
    var actCnt  = recsArray.length;
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
