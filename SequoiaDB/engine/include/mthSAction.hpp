@@ -132,10 +132,6 @@ namespace engine
 
       OSS_INLINE _mthMatchTree * getMatcher()
       {
-         if ( NULL == _matcher )
-         {
-            _matcher = SDB_OSS_NEW _mthMatchTree() ;
-         }
          return _matcher ;
       }
    public:
