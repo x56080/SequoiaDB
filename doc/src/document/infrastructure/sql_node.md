@@ -22,13 +22,10 @@
    $ bin/sdb_sql_ctl addinst myinst -D pg_data/
    ```
 
-   SQL节点有2个重要的启动参数，数据目录 和 服务端口。在创建SQL节点时，通过 -D 指定数据路径。服务端口默认为 5432，可以通过下面命令进行修改：
+   若端口号被占用，用户可以使用-p参数指定实例端口号：
 
    ```lang-javascript
-   $ bin/sdb_sql_ctl chconf myinst -p 5433
-   Changing configure of instance myinst ...
-   Parameter port requires a server restart to take effect
-   ok
+   $ bin/sdb_sql_ctl addinst myinst -D pg_data/ -p 5433
    ```
 
 - 启动SQL节点
