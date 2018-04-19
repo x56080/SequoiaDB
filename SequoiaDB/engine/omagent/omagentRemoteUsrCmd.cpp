@@ -361,10 +361,6 @@ namespace engine
       }
 
    done:
-      if ( 0 != processHandle )
-      {
-         ossCloseProcessHandle( processHandle ) ;
-      }
 #if defined( _LINUX )
       if ( restoreSIGCHLDHandling )
       {
@@ -375,6 +371,14 @@ namespace engine
          pthread_sigmask ( SIG_SETMASK, &savemask, NULL ) ;
       }
 #endif // _LINUX
+      {
+         ossResultCode tmpResult ;
+         ossWaitChild( ( OSSPID )processHandle, tmpResult, FALSE ) ;
+      }
+      if ( 0 != processHandle )
+      {
+         ossCloseProcessHandle( processHandle ) ;
+      }
       return rc ;
    error:
       goto done ;
