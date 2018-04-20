@@ -372,8 +372,8 @@ namespace engine
       }
 #endif // _LINUX
       {
-         ossResultCode tmpResult ;
-         ossWaitChild( ( OSSPID )processHandle, tmpResult, FALSE ) ;
+         UINT32 tmpCode = SDB_OK ;
+         ossGetExitCodeProcess( processHandle, tmpCode ) ;
       }
       if ( 0 != processHandle )
       {
