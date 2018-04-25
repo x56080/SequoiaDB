@@ -501,6 +501,7 @@ namespace engine
          }
 
          void clearCatAddr() ;
+         void rmCatAddrItem( const CHAR *host, const CHAR *service ) ;
          void setCatAddr( const CHAR *host, const CHAR *service ) ;
 
          OSS_INLINE UINT32 catNum() const { return CATA_NODE_MAX_NUM ; }

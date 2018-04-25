@@ -2646,6 +2646,23 @@ namespace engine
       _vecCat.clear() ;
    }
 
+   void _pmdOptionsMgr::rmCatAddrItem( const CHAR *host,
+                                       const CHAR *service )
+   {
+      vector< pmdAddrPair >::iterator it = _vecCat.begin() ;
+      while( it != _vecCat.end() )
+      {
+         pmdAddrPair &item = *it ;
+         if ( 0 == ossStrcmp( item._host, host ) &&
+              0 == ossStrcmp( item._service, service ) )
+         {
+            _vecCat.erase( it ) ;
+            break ;
+         }
+         ++it ;
+      }
+   }
+
    void _pmdOptionsMgr::setCatAddr( const CHAR *host,
                                     const CHAR *service )
    {

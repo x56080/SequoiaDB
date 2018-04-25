@@ -1588,6 +1588,38 @@ namespace engine
       PD_LOG( PDEVENT, "Stop Sequoiadb node succeed, svcname = %s",
               pSvcName ) ;
 
+      /// If detach, need to remove self from cataAddr
+      try
+      {
+         BSONObj argObj( arg1 ) ;
+         BSONElement eHost = argObj.getField( FIELD_NAME_HOST ) ;
+         BSONElement eDetach = argObj.getField( FIELD_NAME_ONLY_DETACH ) ;
+         BSONElement eKeep = argObj.getField( FIELD_NAME_KEEP_DATA ) ;
+
+         if ( eDetach.booleanSafe() && eKeep.booleanSafe() &&
+              String == eHost.type() )
+         {
+            CHAR confFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+            pmdOptionsCB nodeOptions ;
+
+            utilBuildFullPath( sdbGetOMAgentOptions()->getLocalCfgPath(),
+                               pSvcName, OSS_MAX_PATHSIZE, confFile ) ;
+            utilCatPath( confFile, OSS_MAX_PATHSIZE, PMD_DFT_CONF ) ;
+
+            if ( SDB_OK == nodeOptions.initFromFile( confFile, FALSE ) )
+            {
+               nodeOptions.rmCatAddrItem( eHost.valuestr(),
+                                          nodeOptions.catService() ) ;
+               nodeOptions.reflush2File() ;
+            }
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+         /// ignore error
+      }
+
    done:
       return rc ;
    error:
