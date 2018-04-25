@@ -117,17 +117,33 @@ class setSessionAttr14157 extends PHPUnit_Framework_TestCase
          }  
          
          echo "   Begin to dropCS in the end.\n"; 
-         $err = self::$db -> dropCS( self::$csName ); 
-         if ( $err['errno'] == -147 ) {
-            $err = self::$db -> dropCS( self::$csName ); 
-            if ( $err['errno'] != 0 )
+         $maxRetryTimes = 10;
+         $retryTimes = 0;
+         while (true) 
+         {
+            $err = self::$db -> dropCS( self::$csName );
+            if ( $err['errno'] == 0 )
+            {
+               break;
+            } 
+            else if ( $err['errno'] == -147 && $retryTimes < $maxRetryTimes ) 
+            {
+               $retryTimes++;
+               sleep(1);
+               var_dump( $retryTimes );
+            } 
+            else if ( $retryTimes == $maxRetryTimes ) 
+            {
+               throw new Exception("retry failed.");
+            } 
+            else if ( $err['errno'] != 0 && $err['errno'] != -147 )
             {
                throw new Exception("failed to drop cs, errno=".$err['errno']);
-            }
+            } 
          }
-      }
       
-      $err = self::$db->close();
+         $err = self::$db->close();
+      }
    }
       
 }
