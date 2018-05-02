@@ -118,7 +118,7 @@ namespace import
       {
          if (SDB_EOF == rc)
          {
-            if (_dataLength > _bufferSize)
+            if (_dataLength >= _bufferSize)
             {
                rc = SDB_INVALIDARG;
                PD_LOG(PDERROR, "the remain data is out of length [0-%d]: %d",
