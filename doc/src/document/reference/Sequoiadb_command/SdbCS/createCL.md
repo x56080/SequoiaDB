@@ -33,7 +33,7 @@ createCL() 方法的定义格式包含 name 和 options 两个参数。name 的�
 | ------ | ------ | ------ |
 | ShardingKey | 分区键。| ShardingKey:{\<字段1\> : \<1&#124;-1\>,[\<字段2\> : \<1&#124;-1\>, ...]} |
 | ShardingType | 分区方式，默认为 hash  分区。| ShardingType:"hash"&#124;"range" |
-| Partition | 分区数，hash 分区时填写，代表了 hash 分区的个数。其值必须是2的幂。范围在[2\^3，2\^20]。默认为1024。| Partition: \<分区数\> |
+| Partition | 分区数，hash 分区时填写，代表了 hash 分区的个数。其值必须是2的幂。范围在[2\^3，2\^20]。默认为4096。| Partition: \<分区数\> |
 | ReplSize | 副本数，默认情况下，副本写入个数为1。| ReplSize: \<int num\> |
 | Compressed | 是否数据压缩。默认为false。| Compressed:true&#124;false |
 | CompressionType | 压缩算法类型。默认为 snappy 算法。| CompressionType:"snappy"&#124;"lzw" |
