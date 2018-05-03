@@ -1,7 +1,7 @@
 ##语法##
 ***db.createUsr( \<name\>, \<password\> )***
 
-为数据库创建用户名和密码，防止非法用户对数据库进行非法操作。
+为数据库创建数据库用户名和密码，防止非法用户对数据库进行非法操作。
 
 ##参数描述##
 
@@ -20,8 +20,14 @@
 
 ##示例##
 
-* 为数据库创建用户名为 root，密码为 admin 的命令如下：
+* 为数据库创建数据库用户名为 admin，密码为 admin 的命令如下：
 
  ```lang-javascript
- > db.createUsr( "root", "admin" )
+ > db.createUsr( "admin", "admin" )
+ ```
+
+* 使用鉴权连接到节点
+
+ ```lang-javascript
+ > var db = new Sdb("localhost", 11810, "admin", "admin")
  ```
