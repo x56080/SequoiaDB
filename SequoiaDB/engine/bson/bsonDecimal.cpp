@@ -180,7 +180,7 @@ namespace bson {
       rc = decimal_to_str( &_decimal, temp, size ) ;
       if ( SDB_OK != rc )
       {
-         goto error ;
+         goto error ;
       }
 
       result = temp ;
@@ -218,7 +218,7 @@ namespace bson {
       rc = decimal_to_jsonstr( &_decimal, temp, size ) ;
       if ( SDB_OK != rc )
       {
-         goto error ;
+         goto error ;
       }
 
       result = temp ;

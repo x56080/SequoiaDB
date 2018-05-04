@@ -4924,7 +4924,7 @@ namespace engine
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "type must be string" ) ;
             goto error ;
-         }
+         }
 
          type =  _optionObj.getStringField( "type" ) ;
          // input format: "xxx|xxxx|xxx"
@@ -4962,7 +4962,7 @@ namespace engine
                {
                   itr++ ;
                }
-            }
+            }
          }
       }
       else

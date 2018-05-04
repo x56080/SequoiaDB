@@ -418,7 +418,7 @@ namespace sdbclient
                      _connMutex.release() ;
                      conn = pConn ;
                      _strategy->sync( pConn, ADDBUSYCONN ) ;
-                     isGet = TRUE ;
+                     isGet = TRUE ;
                   }
                   else
                   {
