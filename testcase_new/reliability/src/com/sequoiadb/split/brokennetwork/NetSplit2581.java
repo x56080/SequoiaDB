@@ -190,10 +190,15 @@ public class NetSplit2581 extends SdbTestBase {
     class Insert extends OperateTask {
         @Override
         public void exec() throws Exception {
-            Sequoiadb db = new Sequoiadb(connectUrl, "", "");
-            DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-            insertData(cl, 4000, 9000);
-            db.disconnect();
+        	try{
+        		Sequoiadb db = new Sequoiadb(connectUrl, "", "");
+                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
+                insertData(cl, 4000, 9000);
+                db.disconnect();
+        	}catch(BaseException e){
+				  System.out.println("insert have exception:" + e.getMessage());
+      	  }
+            
         }
     }
 
@@ -205,18 +210,18 @@ public class NetSplit2581 extends SdbTestBase {
                 sdb = new Sequoiadb(connectUrl, "", "");
                 sdb.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
                 DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-                cl.split(srcGroupName, destGroupName, (BSONObject) JSON.parse("{sk:4000}"),
-                        (BSONObject) JSON.parse("{sk:9000}"));
-                isSplitSuccess = true;
+                try{
+                	cl.split(srcGroupName, destGroupName, (BSONObject) JSON.parse("{sk:4000}"),
+                            (BSONObject) JSON.parse("{sk:9000}"));
+                    isSplitSuccess = true;
+                }
+                catch (BaseException e) {
+                    System.out.println("split have exception:" + e.getMessage());
+                }
+                
             }
             catch (BaseException e) {
-                if (e.getErrorCode() == 104) {
-                    System.out.println("split -104");
-                }
-                else {
-                    throw e;
-                }
-
+            	throw e;
             }
             finally {
                 if (sdb != null) {
