@@ -1200,8 +1200,10 @@ namespace engine
 
       try
       {
+         UINT32 validCount = 0 ;
          string groupName ;
          string hostName ;
+         string svcname ;
          BOOLEAN onlyAttach = FALSE ;
          BOOLEAN keepData = FALSE ;
 
@@ -1210,12 +1212,21 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to %s: failed to get the field [%s] from query",
                       _getCommandName(), CAT_GROUPNAME_NAME ) ;
+         ++validCount ;
 
          rc = rtnGetSTDStringElement( pSelfArgs->_boQuery,
                                       CAT_HOST_FIELD_NAME, hostName ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to %s: failed to get the field [%s] from query",
                       _getCommandName(), CAT_HOST_FIELD_NAME ) ;
+         ++validCount ;
+
+         rc = rtnGetSTDStringElement( pSelfArgs->_boQuery,
+                                      PMD_OPTION_SVCNAME, svcname ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to %s: failed to get the field [%s] from query",
+                      _getCommandName(), PMD_OPTION_SVCNAME ) ;
+         ++validCount ;
 
          rc = rtnGetBooleanElement( pSelfArgs->_boQuery,
                                     FIELD_NAME_ONLY_ATTACH, onlyAttach ) ;
@@ -1223,6 +1234,10 @@ namespace engine
          {
             onlyAttach = FALSE ;
             rc = SDB_OK ;
+         }
+         else
+         {
+            ++validCount ;
          }
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to %s: failed to get the field [%s] from query",
@@ -1242,9 +1257,21 @@ namespace engine
                keepData = FALSE ;
                rc = SDB_OK ;
             }
+            else
+            {
+               ++validCount ;
+            }
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to %s: failed to get the field [%s] from query",
                          _getCommandName(), FIELD_NAME_KEEP_DATA ) ;
+
+            if ( pSelfArgs->_boQuery.nFields() > validCount )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Unknown parameters in command's args[%s]",
+                       pSelfArgs->_boQuery.toString().c_str() ) ;
+               goto error ;
+            }
          }
          else
          {
@@ -1668,7 +1695,7 @@ namespace engine
                                             _rtnCMDArguments *pArgs )
    {
       INT32 rc = SDB_OK ;
-
+      UINT32 validCount = 0 ;
       PD_TRACE_ENTRY ( CMD_RTNCOCMDRMNODE_PARSEMSG ) ;
 
       _rtnCMDRemoveNodeArgs *pSelfArgs = ( _rtnCMDRemoveNodeArgs * ) pArgs ;
@@ -1687,18 +1714,21 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to %s: failed to get the field [%s] from query",
                       _getCommandName(), CAT_GROUPNAME_NAME ) ;
+         ++validCount ;
 
          rc = rtnGetSTDStringElement( pSelfArgs->_boQuery,
                                       CAT_HOST_FIELD_NAME, hostName ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to %s: failed to get the field [%s] from query",
                       _getCommandName(), CAT_HOST_FIELD_NAME ) ;
+         ++validCount ;
 
          rc = rtnGetSTDStringElement( pSelfArgs->_boQuery,
                                       PMD_OPTION_SVCNAME, serviceName ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to %s: failed to get the field [%s] from query",
                       _getCommandName(), PMD_OPTION_SVCNAME ) ;
+         ++validCount ;
 
          rc = rtnGetBooleanElement( pSelfArgs->_boQuery,
                                     FIELD_NAME_ONLY_DETACH, onlyDetach ) ;
@@ -1706,6 +1736,10 @@ namespace engine
          {
             onlyDetach = FALSE ;
             rc = SDB_OK ;
+         }
+         else
+         {
+            ++validCount ;
          }
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to %s: failed to get the field [%s] from query",
@@ -1726,6 +1760,10 @@ namespace engine
             keepData = FALSE ;
             rc = SDB_OK ;
          }
+         else
+         {
+            ++validCount ;
+         }
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to %s: failed to get the field [%s] from query",
                       _getCommandName(), FIELD_NAME_KEEP_DATA ) ;
@@ -1737,9 +1775,21 @@ namespace engine
             force = FALSE ;
             rc = SDB_OK ;
          }
+         else
+         {
+            ++validCount ;
+         }
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to %s: failed to get the field [%s] from query",
                       _getCommandName(), CMD_NAME_ENFORCED ) ;
+
+         if ( pSelfArgs->_boQuery.nFields() > validCount )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Unknown parameters in command's args[%s]",
+                    pSelfArgs->_boQuery.toString().c_str() ) ;
+            goto error ;
+         }
 
          pSelfArgs->_targetName = groupName ;
          pSelfArgs->_hostName = hostName ;
