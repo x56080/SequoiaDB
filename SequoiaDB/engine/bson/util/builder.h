@@ -243,6 +243,8 @@ accesses) is the same as if
             if ( a > BufferMaxSize )
                 msgasserted(13548, "BufBuilder grow() > 64MB");
             data = (char *) al.Realloc(data, a);
+            if ( !data )
+               msgasserted(13550, "BufBuilder grow() out-of-memory");
             size= a;
         }
 
