@@ -489,15 +489,15 @@ namespace engine
       {
          if ( DMS_FILE_DATA == type )
          {
-            _lastLSN.init( lsn ) ;
+            _lastLSN.swap( lsn ) ;
          }
          else if ( DMS_FILE_IDX == type )
          {
-            _idxLastLSN.init( lsn ) ;
+            _idxLastLSN.swap( lsn ) ;
          }
          else if ( DMS_FILE_LOB == type )
          {
-            _lobLastLSN.init( lsn ) ;
+            _lobLastLSN.swap( lsn ) ;
          }
       }
       void updateLastLSNWithComp( UINT64 lsn,
