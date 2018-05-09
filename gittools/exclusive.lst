@@ -6,3 +6,10 @@ thirdparty/zlib/lib/linux32
 thirdparty/zlib/lib/ppclinux64
 thirdparty/zlib/lib/win32
 thirdparty/zlib/lib/win64
+driver/spark/lib_1.6.1
+driver/spark/lib_1.6.2
+driver/spark/lib_2.0.0
+driver/spark/scala
+driver/spark/scala_2.10_lib
+driver/spark/scala_2.11_lib
+driver/spark/auxlib
