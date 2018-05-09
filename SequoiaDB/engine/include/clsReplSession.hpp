@@ -168,6 +168,8 @@ namespace engine
          BOOLEAN                       _quit ;
          UINT32                        _timeout ;
          UINT64                        _lastProcRequestID ;
+
+         UINT64                        _dbTick ;
    } ;
    typedef _clsReplSrcSession clsReplSrcSession ;
 

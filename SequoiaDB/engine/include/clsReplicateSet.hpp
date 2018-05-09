@@ -257,6 +257,9 @@ namespace engine
 
          INT32 aliveNode( const MsgRouteID &id ) ;
 
+         UINT64   getLastConsultTick() const ;
+         void     setLastConsultTick( UINT64 tick ) ;
+
       private:
          INT32 _setGroupSet( const CLS_GROUP_VERSION &version,
                              map<UINT64, _netRouteNode> &nodes,
@@ -294,6 +297,8 @@ namespace engine
          UINT32                  _beatTime ;
          BOOLEAN                 _active ;
          UINT64                  _lastTimerTick ;
+
+         UINT64                  _lastConsultTick ;
 
          UINT32                  _srcSessionNum ;
          ossRWMutex              _vecLatch ;

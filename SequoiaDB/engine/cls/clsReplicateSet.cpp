@@ -99,6 +99,7 @@ namespace engine
       _totalLogSize = 0 ;
       _inSyncCtrl   = FALSE ;
       _lastTimerTick = 0 ;
+      _lastConsultTick = 0 ;
       memset( _sizethreshold, 0, sizeof( _sizethreshold ) ) ;
       memset( _timeThreshold, 0, sizeof( _timeThreshold ) ) ;
 
@@ -277,6 +278,7 @@ namespace engine
       if ( primary && SDB_EVT_OCCUR_BEFORE == type )
       {
          _replBucket.reset() ;
+         setLastConsultTick( 0 ) ;
       }
       else if ( !primary && SDB_EVT_OCCUR_AFTER == type )
       {
@@ -992,6 +994,16 @@ namespace engine
    {
       SDB_ASSERT( NULL != msg, "msg should not be NULL" ) ;
       return _alive( msg->identity ) ;
+   }
+
+   void _clsReplicateSet::setLastConsultTick( UINT64 tick )
+   {
+      _lastConsultTick = tick ;
+   }
+
+   UINT64 _clsReplicateSet::getLastConsultTick() const
+   {
+      return _lastConsultTick ;
    }
 
    INT32 _clsReplicateSet::aliveNode( const MsgRouteID &id )
