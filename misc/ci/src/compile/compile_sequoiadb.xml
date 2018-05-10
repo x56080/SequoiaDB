@@ -584,9 +584,17 @@
          <fileset dir="${srccode_dir}/driver/php/release" includes="*.so" />
       </copy>
       
-      <copy todir="${release_db_dir}/license">
-         <fileset dir="${srccode_dir}/license" />
-      </copy>
+      <if>
+         <equals arg1="${IS_ENTERPRISE}" arg2="true"/>
+         <then>
+            <copy file="${srccode_dir}/license/license_en.txt" tofile="${release_db_dir}/license/license_en.txt"/>
+            <copy file="${srccode_dir}/license/license_zh.txt" tofile="${release_db_dir}/license/license_zh.txt"/>
+         </then>
+         <else>
+            <copy file="${srccode_dir}/license/license_free_en.txt" tofile="${release_db_dir}/license/license_en.txt"/>
+            <copy file="${srccode_dir}/license/license_free_zh.txt" tofile="${release_db_dir}/license/license_zh.txt"/>
+         </else>
+      </if>
       
       <copy todir="${release_db_dir}/postgresql" >
          <fileset dir="${srccode_dir}/driver/postgresql/build" includes="**/*" />
