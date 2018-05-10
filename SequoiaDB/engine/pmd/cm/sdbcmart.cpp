@@ -67,7 +67,6 @@ namespace engine
        ( PMD_COMMANDS_STRING (PMD_OPTION_HELP, ",h"), "help" ) \
        ( PMD_OPTION_VERSION, "version" ) \
        ( PMD_OPTION_AS_PROC, "as process, not service" ) \
-       ( PMD_COMMANDS_STRING( PMD_OPTION_IGNOREULIMIT, ",i"), "skip checking ulimit" )\
 
 #else
    #define COMMANDS_OPTIONS \
@@ -179,6 +178,7 @@ namespace engine
       }
 
       /// 2.check ulimit
+#if defined( _LINUX )
       if ( !vm.count( PMD_OPTION_IGNOREULIMIT ) )
       {
          rc = utilSetAndCheckUlimit() ;
@@ -191,6 +191,7 @@ namespace engine
             goto error ;
          }
       }
+#endif
 
       /// 3.check user info before create dir or files
       if ( !vm.count( PMD_OPTION_CURUSER ) )

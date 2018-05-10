@@ -68,6 +68,18 @@ namespace engine
 
    #define PMD_OPTION_OPTIONS       "options"
 
+#if defined( _WINDOWS )
+   #define COMMANDS_OPTIONS \
+       ( PMD_COMMANDS_STRING( PMD_OPTION_HELP, ",h"), "help" ) \
+       ( PMD_OPTION_VERSION, "version" ) \
+       ( PMD_COMMANDS_STRING( PMD_OPTION_CONFPATH, ",c"), po::value<string>(), "configure file path" ) \
+       ( PMD_COMMANDS_STRING( PMD_OPTION_SVCNAME, ",p"), po::value<string>(), "service name, separated by comma (',')" ) \
+       ( PMD_COMMANDS_STRING( PMD_OPTION_TYPE, ",t"), po::value<string>(), "node type: db/om/all, default: db" ) \
+       ( PMD_COMMANDS_STRING( PMD_OPTION_ROLE, ",r" ), po::value<string>(), "role type: coord/data/catalog/om" ) \
+       ( PMD_OPTION_FORCE, "force start when the config not exist" ) \
+       ( PMD_COMMANDS_STRING( PMD_OPTION_OPTIONS, ",o" ), po::value<string>(), "SequoiaDB start arguments, but not use '-c/--confpath/-p/--svcname'" ) \
+
+#else
    #define COMMANDS_OPTIONS \
        ( PMD_COMMANDS_STRING( PMD_OPTION_HELP, ",h"), "help" ) \
        ( PMD_OPTION_VERSION, "version" ) \
@@ -78,6 +90,8 @@ namespace engine
        ( PMD_OPTION_FORCE, "force start when the config not exist" ) \
        ( PMD_COMMANDS_STRING( PMD_OPTION_OPTIONS, ",o" ), po::value<string>(), "SequoiaDB start arguments, but not use '-c/--confpath/-p/--svcname'" ) \
        ( PMD_COMMANDS_STRING( PMD_OPTION_IGNOREULIMIT, ",i"), "skip checking ulimit" )\
+
+#endif
 
    #define COMMANDS_HIDE_OPTIONS \
       ( PMD_OPTION_HELPFULL, "help all configs" ) \
@@ -338,6 +352,7 @@ namespace engine
       }
 
       /// 2.check ulimit
+#if defined ( _LINUX )
       if ( !vm.count( PMD_OPTION_IGNOREULIMIT ) )
       {
          rc = utilSetAndCheckUlimit() ;
@@ -350,6 +365,7 @@ namespace engine
             goto error ;
          }
       }
+#endif
 
       /// 3.change user
       if ( !vm.count( PMD_OPTION_CURUSER ) )
