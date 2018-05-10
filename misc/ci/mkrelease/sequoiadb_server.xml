@@ -533,7 +533,7 @@
             <default>false</default>
             <cliOptionShow>0</cliOptionShow>
             <explanation></explanation>
-            <description>${msg(Install.Paramers.LicenseRead.License.Information.Part)}</description>
+            <description>${msg(Install.Paramers.LicenseRead.License${enterpriseversion}.Information.Part)}</description>
             <optionList>
                 <option>
                     <text>${msg(Install.Paramers.LicenseRead.Agree.Description)}</text>
