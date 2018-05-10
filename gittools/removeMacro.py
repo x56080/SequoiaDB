@@ -4,13 +4,15 @@
 import os
 import sys
 
-def isMacro(line):
+
+def is_macro(line):
     if line.startswith('#'):
         return True
     return False
 
-def isMacroStart(line):
-    if not isMacro(line):
+
+def is_macro_start(line):
+    if not is_macro(line):
         return False
     if line.find('endif') != -1:
         return False
@@ -20,74 +22,81 @@ def isMacroStart(line):
         return False
     return True
 
-def isMacroElseIf(line):
-    if not isMacro(line):
+
+def is_macro_elseif(line):
+    if not is_macro(line):
         return False
     if line.find('elif') == -1:
         return False
     return True
 
-def isMacroElse(line):
-    if not isMacro(line):
+
+def is_macro_else(line):
+    if not is_macro(line):
         return False
     if line.find('else') == -1:
         return False
     return True
-    
-def isMacroEnd(line):
-    if not isMacro(line):
+
+
+def is_macro_end(line):
+    if not is_macro(line):
         return False
     if line.find('endif') == -1:
         return False
     return True
 
-def isMacroIfndef(line):
-    if not isMacro(line):
+
+def is_macro_ifndef(line):
+    if not is_macro(line):
         return False
     if line.find('ifndef') == -1:
         return False
     return True
 
-def removeMacro(fileName, macro):
-    if not os.path.exists(fileName):
-        raise Exception("file not exists: " + fileName)
-    file = open(fileName, 'r')
-    isMacroStarted = False
-    inMacroElse = False
-    isIfndef = False
-    depth = 0 # macro nested depth
-    for rawLine in file:
+
+def remove_macro(file_name, macro_name):
+    if not os.path.exists(file_name):
+        raise Exception("file not exists: " + file_name)
+    f = open(file_name, 'r')
+    is_macro_started = False
+    in_macro_else = False
+    is_ifndef = False
+    depth = 0  # macro nested depth
+    for rawLine in f:
         line = rawLine.lstrip()
-        if not isMacroStarted:
-            if isMacroStart(line) and line.find(macro) != -1:
-                isMacroStarted = True
+        if not is_macro_started:
+            if is_macro_start(line) and line.find(macro_name) != -1:
+                is_macro_started = True
                 depth += 1
-                if isMacroIfndef(line):
-                   isIfndef = True
+                if is_macro_ifndef(line):
+                    is_ifndef = True
             else:
                 sys.stdout.write(rawLine)
         else:
-            if isMacroStart(line):
+            if is_macro_start(line):
                 depth += 1
-            elif isMacroElse(line):
+            elif is_macro_else(line):
                 if depth == 1:
-                    inMacroElse = True 
-            elif isMacroElseIf(line):
-                raise Exception("do not support macro '#elif' inside macro " 
-                    + macro + " in file: " + fileName)
+                    in_macro_else = True
+            elif is_macro_elseif(line):
+                raise Exception("do not support macro '#elif' inside macro "
+                                + macro_name + " in file: " + file_name)
                 pass
-            elif isMacroEnd(line):
+            elif is_macro_end(line):
                 depth -= 1
                 if depth == 0:
-                    isMacroStarted = False
-                    inMacroElse = False
+                    is_macro_started = False
+                    in_macro_else = False
+                    is_ifndef = False
 
-            if isIfndef:
-                if not inMacroElse:
+            if is_ifndef:
+                if not in_macro_else:
                     sys.stdout.write(rawLine)
-            elif inMacroElse and not isMacroElse(line):
+            elif in_macro_else and (depth > 1 or (not is_macro_else(line))):
                 sys.stdout.write(rawLine)
-    file.close()
+    f.close()
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:
@@ -99,4 +108,4 @@ if __name__ == '__main__':
         raise Exception("the fileName is empty")
     if macro == '':
         raise Exception("the macro is empty")
-    removeMacro(fileName, macro)
+    remove_macro(fileName, macro)
