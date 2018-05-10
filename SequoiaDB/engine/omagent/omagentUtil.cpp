@@ -337,8 +337,11 @@ namespace engine
       cmdline += SDBCM_OPTION_PREFIX PMD_OPTION_CONFPATH ;
       cmdline += " " ;
       cmdline += pCfgPath ;
+#if defined( _LINUX )
       cmdline += " " ;
       cmdline += SDBCM_OPTION_PREFIX PMD_OPTION_IGNOREULIMIT ;
+#endif
+
       if ( useCurUser )
       {
          cmdline += " " ;

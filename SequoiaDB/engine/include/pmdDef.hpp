@@ -258,6 +258,7 @@ namespace engine
    #define PROC_CMDLINE_PATH_FORMAT    PROC_PATH"/%s/cmdline"
    #define ENGINE_NAME                 "sequoiadb"
    #define ENGINE_NPIPE_PREFIX_BW      "sequoiadb_engine_bw_"
+   #define PMD_OPTION_IGNOREULIMIT     "ignoreulimit"
    #elif defined (_WINDOWS)
    #define ENGINE_NAME                 "sequoiadb.exe"
    #define PMD_OPTION_AS_PROC          "asproc"
@@ -273,7 +274,6 @@ namespace engine
    #define PMD_OPTION_STANDALONE       "standalone"      // for om
    #define PMD_OPTION_ALIVE_TIME       "alivetime"       // for om
    #define PMD_OPTION_FORCE            "force"
-   #define PMD_OPTION_IGNOREULIMIT     "ignoreulimit"
 
    /*
       SDB_RUN_MODE_TYPE_STR DEFINE
