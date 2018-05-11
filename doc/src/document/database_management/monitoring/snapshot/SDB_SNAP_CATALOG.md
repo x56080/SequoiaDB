@@ -21,6 +21,8 @@ SDB_SNAP_CATALOG
 | Version             | 整型   | 集合版本号，当对集合的元数据执行修改操作时递增该版本号（例如数据切分） |
 | Attribute           | 整形   | 集合属性                     |
 | AttributeDesc       | 字符串 | 集合属性描述                 |
+| CompressionType     | 整形   | 压缩算法类型                 |
+| CompressionTypeDesc | 字符串 | 压缩算法类型描述             |
 | CataInfo.GroupID    | 整型   | 分区组 ID                    |
 | CataInfo.GroupName  | 字符串 | 分区组名                     |
 | CataInfo.LowBound   | 对象   | 数据分区区间的上限           |
