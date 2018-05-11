@@ -6,9 +6,9 @@
 
 ##描述##
 
-返回数组内满足条件的第一个元素的集合，或者嵌套对象中满足条件的第一个子对象。
+返回数组内满足条件的第一个元素，或者嵌套对象中满足条件的第一个子对象。
 
-其中“<表达式>”可以是值，也可以是带有[匹配符](reference/operator/match_operator/overview.md)的表达式，“$elemMatch”选择符支持多层嵌套。
+其中“<表达式>”可以是值，也可以是带有[匹配符](reference/operator/match_operator/overview.md)的表达式，“$elemMatch”匹配符支持多层嵌套。
 
 ##示例##
 
