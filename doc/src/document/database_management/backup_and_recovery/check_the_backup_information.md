@@ -81,6 +81,38 @@
     }
     ```
 
+##查看指定路径下的备份信息##
+
+1.  备份到指定的路径
+
+    ```lang-javascript
+    $ /opt/sequoiadb/bin/sdb
+    > var datadb = new Sdb( "localhost", 20000 )
+    > datadb.backupOffline( { Path: "/tmp/sequoiadb_backup/20000" } )
+    ```
+
+2.  连接 coord 查看备份信息，需要指定 Path 参数
+
+    ```lang-javascript
+    > var db = new Sdb( "localhost", 11810 ) 
+    > db.listBackup( { Path: "/tmp/sequoiadb_backup/20000" } )
+    {
+      "Version": 2,
+      "Name": "2017-10-26-10:14:11",
+      "ID": 0,
+      "NodeName": "ubuntu-test-03:20000",
+      "GroupName": "db1",
+      "EnsureInc": false,
+      "BeginLSNOffset": -1,
+      "EndLSNOffset": 375546828,
+      "TransLSNOffset": -1,
+      "StartTime": "2017-10-26-10:14:11",
+      "LastLSN": -1,
+      "LastLSNCode": 0,
+      "HasError": false
+    }
+    ```
+
 ##手工查看备份信息##
 
 手工查看备份信息直接通过终端登入指定机器，并进入到相应的备份目录中，执行 ```ls -l```
