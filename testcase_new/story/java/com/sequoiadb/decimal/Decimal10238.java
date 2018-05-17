@@ -70,6 +70,10 @@ public class Decimal10238 extends SdbTestBase{
 			{"MAX","MAX",1000,999,true,false,false,1},
 			{"MIN","MIN",1000,999,false,true,false,-1},
 			{"NAN","NaN",1000,999,false,false,true,-1},
+			{"inf","MAX",2,0,true,false,false,1},
+			{"-inf","MIN",2,0,false,true,false,-1},
+			{"INF","MAX",2,0,true,false,false,1},
+			{"-INF","MIN",2,0,false,true,false,-1},
 		};
 	}
 	
