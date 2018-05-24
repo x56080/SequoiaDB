@@ -830,21 +830,43 @@ namespace engine
                            const string& businessType, const string& role,
                            const string& serviceName, string& dbPath )
    {
-      INT32 i = 0 ;
       INT32 rc = SDB_OK ;
+      INT32 i  = 0 ;
+      BOOLEAN isRootPath = FALSE ;
+      string deployPath ;
+
+      if ( OSS_FILE_SEP == diskPath )
+      {
+         isRootPath = TRUE ;
+         deployPath = host.getDeployPath() ;
+      }
 
       do 
       {
          stringstream ss ;
-         ss << diskPath ;
+
+         if ( isRootPath && deployPath.length() > 0 )
+         {
+            ss << deployPath ;
+         }
+         else
+         {
+            ss << diskPath ;
+         }
+
          if ( OSS_FILE_SEP_CHAR != diskPath.at( diskPath.length() -1 ) )
          {
             ss << OSS_FILE_SEP ;
          }
-         ss << businessType << OSS_FILE_SEP
-            << OM_DBPATH_PREFIX_DATABASE << OSS_FILE_SEP
-            << role << OSS_FILE_SEP
-            << serviceName ;
+
+         if ( FALSE == isRootPath )
+         {
+            ss << businessType << OSS_FILE_SEP ;
+         }
+
+         ss << OM_DBPATH_PREFIX_DATABASE << OSS_FILE_SEP <<
+               role                      << OSS_FILE_SEP <<
+               serviceName ;
          if ( 0 != i )
          {
             ss << "_" << i ;
