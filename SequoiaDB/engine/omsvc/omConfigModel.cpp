@@ -873,6 +873,13 @@ namespace engine
       }
 
       {
+         string installPath = hostNodeInfo.getStringField(
+                                             OM_HOST_FIELD_INSTALLPATH ) ;
+
+         host->setDeployPath( installPath ) ;
+      }
+
+      {
          BSONObj disks = hostNodeInfo.getObjectField( OM_BSON_FIELD_DISK ) ;
          BSONObjIterator i( disks ) ;
          while ( i.more() )
