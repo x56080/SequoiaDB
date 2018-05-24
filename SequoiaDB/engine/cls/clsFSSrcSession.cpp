@@ -1524,11 +1524,19 @@ namespace engine
          ossScopedLock lock( &_LSNlatch ) ;
          _deqLSN.clear() ;
 
+         // New collections may be created when constructing the respond data.
+         // So maybe they are not in the collection list in the respond message.
+         // In that case, we rely on the replication log to create them on slave
+         // nodes. Set _init to TRUE to make sure the log can be pushed to notify
+         // queue( in function notifyLSN ).
+         _init = TRUE ;
+
          if ( SDB_OK != _constructFullNames( obj ) )
          {
             PD_LOG ( PDWARNING, "Session[%s] construct collections name "
                      "failed", sessionName() ) ;
             _disconnect() ;
+            _init = FALSE ;
             goto done ;
          }
          msg.header.header.messageLength = sizeof( msg ) + obj.objsize() ;
@@ -1541,10 +1549,13 @@ namespace engine
                     routeID2String( header->routeID ).c_str(),
                     _lsn.version, _lsn.offset ) ;
 
-            _init = TRUE ;
             _quit = FALSE ;
 
             _pRepl->syncMgr()->notifyFullSync( header->routeID ) ;
+         }
+         else
+         {
+            _init = FALSE ;
          }
       }
 
