@@ -73,14 +73,14 @@ namespace engine
 
    #define PMD_SHUTDOWN_DB(code)  \
       do { \
-         pmdGetKRCB()->setDBStatus( SDB_DB_SHUTDOWN ) ; \
          pmdGetKRCB()->setExitCode( code ) ; \
+         pmdGetKRCB()->setDBStatus( SDB_DB_SHUTDOWN ) ; \
       } while ( 0 )
 
    #define PMD_RESTART_DB(code)   \
       do { \
-         pmdGetKRCB()->setDBStatus( SDB_DB_SHUTDOWN ) ; \
          pmdGetKRCB()->setExitCode( code ) ; \
+         pmdGetKRCB()->setDBStatus( SDB_DB_SHUTDOWN ) ; \
          pmdGetKRCB()->setRestart( TRUE ) ; \
       } while ( 0 )
 
@@ -325,7 +325,7 @@ namespace engine
       }
       void setExitCode( INT32 exitCode )
       {
-         if ( exitCode && _exitCode )
+         if ( SDB_OK != _exitCode )
          {
             return ;
          }
