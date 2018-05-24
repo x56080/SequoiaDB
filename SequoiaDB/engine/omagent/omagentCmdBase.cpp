@@ -170,7 +170,6 @@ namespace engine
    {
       // add some common files
       addJsFile ( FILE_DEFINE ) ;
-      addJsFile ( FILE_ERROR ) ;
       addJsFile ( FILE_COMMON ) ;
       addJsFile ( FILE_LOG ) ;
       addJsFile ( FILE_FUNC ) ;
