@@ -6,17 +6,18 @@ from datetime import datetime
 
 LICENSE_COMMENT_START = "/*******************************************************************************"
 LICENSE_COMMENT_END = "*******************************************************************************/"
-LICENSE = '''   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+LICENSE = '''   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
 
-   http://www.apache.org/licenses/LICENSE-2.0
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 COPYRIGHT = "   Copyright (C) 2011-2018 SequoiaDB Ltd.\n"
 BLANK_LINE = "\n"
@@ -142,8 +143,8 @@ def find_cxx_license(file_path):
 
 def replace_cxx_license(file_path):
     new_file = file_path + ".license"
-    f = open(file_path, 'r')
-    new_f = open(new_file, 'w')
+    f = open(file_path, 'rb')
+    new_f = open(new_file, 'wb')
     new_f.truncate(0)
     in_comment = False
     is_first_line = True
@@ -225,7 +226,7 @@ def print_help(name):
     print("Options:")
     print("\t-h, --help     print help information")
     print("\t-p, --path     specify source code path, default is './'")
-    #print("\t-l, --log      specify log path, default is 'sdblicense.log'")
+    # print("\t-l, --log      specify log path, default is 'sdblicense.log'")
 
 
 def main(argv):
