@@ -140,8 +140,6 @@ namespace engine
       omSdbConnector *conn = NULL ;
       MsgHeader *result    = NULL ;
       rtnContext *pContext = NULL ;
-      omManager *om = sdbGetOMManager() ;
-      MsgRouteID routeID ;
       _omContextTransfer *pTmpContext = NULL ;
 
       contextID = -1 ;
@@ -157,7 +155,6 @@ namespace engine
 
       while ( iter != _nodeList.end() )
       {
-         routeID = om->updateAgentInfo( iter->hostName, iter->service ) ;
          rc = _sendMsg2Target( *iter, msg, &conn, &result ) ;
          if ( SDB_OK == rc )
          {
