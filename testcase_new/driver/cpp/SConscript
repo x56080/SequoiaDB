@@ -89,16 +89,16 @@ testFiles = [
    [ "./cls/nodeOpr12689_12692.cpp" ],  # sync
    [ "./cls/attachDetachNode12553.cpp" ],  # sync
    [ "./cls/masterSlave12690.cpp" ],  # sync
-   [ "./cache/createClWithCache7800.cpp" ],
-   [ "./cache/getCsWithCache7801.cpp" ],
-   [ "./cache/getClWithCache7802.cpp" ],
-   [ "./cache/getClWithCache7803.cpp" ],
-   [ "./cache/dropCsWithCache7806.cpp" ],
-   [ "./cache/dropClWithCache7807.cpp" ],
-   [ "./cache/dropCsWithCache7808.cpp" ],
-   [ "./cache/dropClWithCache7809.cpp" ],
-   [ "./cache/opClWithCache7810.cpp" ],
-   [ "./cache/getMulClAfterDropCsWithCache7812.cpp" ],
+   # [ "./cache/createClWithCache7800.cpp" ], # cache test need not to be automated.
+   # [ "./cache/getCsWithCache7801.cpp" ],
+   # [ "./cache/getClWithCache7802.cpp" ],
+   # [ "./cache/getClWithCache7803.cpp" ],
+   # [ "./cache/dropCsWithCache7806.cpp" ],
+   # [ "./cache/dropClWithCache7807.cpp" ],
+   # [ "./cache/dropCsWithCache7808.cpp" ],
+   # [ "./cache/dropClWithCache7809.cpp" ],
+   # [ "./cache/opClWithCache7810.cpp" ],
+   # [ "./cache/getMulClAfterDropCsWithCache7812.cpp" ],
    [ "./lob/lobOpr12516.cpp" ],
    [ "./lob/lobSeek12663.cpp" ],
    [ "./lob/lobClose12554_12665.cpp" ],
