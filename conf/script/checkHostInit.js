@@ -75,7 +75,7 @@ function _pushPacket( ssh )
    var programs = [ "sdblist", "sdbcmd", "sdbcm", "sdbcmart", "sdbcmtop", "sdb" ] ;
 
    // js files used to check remote host's info
-   var js_files = [ "error.js", "common.js", "define.js", "log.js",
+   var js_files = [ "common.js", "define.js", "log.js",
                     "func.js", "checkHostItem.js", "checkHost.js" ] ;
    try
    {
