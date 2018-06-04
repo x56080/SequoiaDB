@@ -85,33 +85,6 @@ error:
    goto done ;
 }
 
-//该接口存在问题
-PHP_METHOD( SequoiaNode, getStatus )
-{
-   INT32 rc = SDB_OK ;
-   zval *pSequoiadb = NULL ;
-   zval *pThisObj = getThis() ;
-   sdbConnectionHandle connection = SDB_INVALID_HANDLE ;
-   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-   PHP_READ_VAR( pThisObj, "_SequoiaDB", pSequoiadb ) ;
-   PHP_READ_HANDLE( pSequoiadb,
-                    connection,
-                    sdbConnectionHandle,
-                    SDB_HANDLE_NAME,
-                    connectionDesc ) ;
-   rc = sdbGetSnapshot( connection, 6, NULL, NULL, NULL, NULL ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-   RETVAL_LONG( 1 ) ;
-done:
-   return ;
-error:
-   RETVAL_LONG( 2 ) ;
-   goto done ;
-}
-
 PHP_METHOD( SequoiaNode, connect )
 {
    INT32 rc = SDB_OK ;

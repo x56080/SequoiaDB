@@ -25,7 +25,6 @@ PHP_METHOD( SequoiaNode, __construct ) ;
 PHP_METHOD( SequoiaNode, getName ) ;
 PHP_METHOD( SequoiaNode, getHostName ) ;
 PHP_METHOD( SequoiaNode, getServiceName ) ;
-PHP_METHOD( SequoiaNode, getStatus ) ;
 PHP_METHOD( SequoiaNode, connect ) ;
 PHP_METHOD( SequoiaNode, start ) ;
 PHP_METHOD( SequoiaNode, stop ) ;
