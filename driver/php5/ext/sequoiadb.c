@@ -254,7 +254,6 @@ const zend_function_entry nodeFun[] = {
    PHP_ME( SequoiaNode, getName,        NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaNode, getHostName,    NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaNode, getServiceName, NULL, ZEND_ACC_PUBLIC )
-   PHP_ME( SequoiaNode, getStatus,      NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaNode, connect,        NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaNode, start,          NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaNode, stop,           NULL, ZEND_ACC_PUBLIC )

@@ -85,27 +85,6 @@ class SequoiaNode
    public function getServiceName(){}
 
    /**
-    * Get node status.
-    *
-    * @return Returns node status.
-    *
-    * @retval integer status
-    *
-    * Example:
-    * @code
-    * $status = $nodeObj -> getStatus() ;
-    * $err = $db -> getError() ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to call getStatus, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * echo "Node status is: ".$status ;
-    * @endcode
-   */
-   public function getStatus(){}
-
-
-   /**
     * Connect the node.
     *
     * @return Returns a new SequoiaDB object.
