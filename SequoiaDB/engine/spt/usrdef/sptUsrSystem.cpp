@@ -2363,6 +2363,7 @@ namespace engine
 
       if ( SDB_OK != ioctl( sock, SIOCGIFCONF, &ifc ) )
       {
+         close( sock ) ;
          rc = SDB_SYS ;
          PD_LOG( PDERROR, "failed to call ioctl" ) ;
          goto error ;
@@ -2379,6 +2380,7 @@ namespace engine
                                          (ifreq->ifr_addr))->sin_addr) ) ;
          ++ifreq ;
       }
+      close( sock ) ;
 #endif
       builder.append( CMD_USR_SYSTEM_NETCARDS, arrBuilder.arr() ) ;
    done:
