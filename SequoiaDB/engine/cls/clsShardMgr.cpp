@@ -150,6 +150,14 @@ namespace engine
    {
       _latch.get() ;
 
+      /// first increase _clCount. Because waitForOpr will use _clCount without
+      /// latch. If don't increase first, the case will occur:
+      /// 1. split thread has run to opID = pmdAcquireGlobalID() ;
+      /// 2. write thread run to pmdAcquireGlobalID(), then run to waitForOpr::
+      ///    if ( isWrite && _clCount > 0 )
+      /// 3. the split thread will not wait write thread, so some data will lost
+      ++_clCount ;
+
       // operator ID is not given, acquire one for it
       // Must be acquired inside latch, which could avoid other operators to
       // acquire operator ID and pass the checking between acquiring and
@@ -167,6 +175,9 @@ namespace engine
       {
          _registerCLInternal( pMainCLName, opID ) ;
       }
+
+      /// last decrease _clCount
+      --_clCount ;
 
       _latch.release() ;
    }
