@@ -141,7 +141,7 @@ public class NetSplit2573 extends SdbTestBase {
                 }
                 destCount = checkGroupLob(db, destGroupName);
                 srcCount = checkGroupLob(db, srcGroupName);
-                if (srcCount + destCount != lobCount && srcCount + destCount != lobCount - 1) {
+                if (srcCount + destCount != lobCount && srcCount + destCount != lobCount + 1) {
                     Assert.fail("srcCount:" + srcCount + " destCount:" + destCount + " lobCount:"
                             + lobCount);
                 }
