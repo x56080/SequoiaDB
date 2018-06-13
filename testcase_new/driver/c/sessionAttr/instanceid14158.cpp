@@ -23,6 +23,14 @@
 #include <string>
 #include "testcommon.hpp"
 
+void ossSleep(UINT32 milliseconds)
+{
+#if defined (_WINDOWS)
+   Sleep(milliseconds);
+#else
+   usleep(milliseconds*1000);
+#endif
+}
 #define CHECK_TIMEOUT( rc, msg ) \
 do{ \
    if( SDB_TIMEOUT == rc ) \
@@ -145,11 +153,14 @@ protected:
    INT32 fini()
    {
       INT32 rc = SDB_OK ;
-      rc = sdbDropCollectionSpace( db, csName ) ;
-      if (SDB_LOCK_FAILED == rc)
-      {
+      INT32 sleepTimeLen = 2000 ;
+      INT32 alreadySleepLen = 0 ;
+      do{
          rc = sdbDropCollectionSpace( db, csName ) ;
-      }
+         ossSleep( 10 ) ;
+         alreadySleepLen += 10 ;
+         if ( alreadySleepLen > sleepTimeLen ) break ;
+      }while( SDB_LOCK_FAILED == rc ) ;
       CHECK_RC( rc, "fail to drop cs %s", csName ) ;
       rc = sdbRemoveReplicaGroup( db, rgName ) ;
       CHECK_RC( rc, "fail to remove rg %s", rgName ) ;
