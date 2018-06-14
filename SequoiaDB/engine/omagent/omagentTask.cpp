@@ -4041,7 +4041,7 @@ namespace engine
       stringstream ss ;
       vector<RemoveDBBusInfo>::iterator it ;
 #define BEGIN_REMOVE_GROUP  "Removing "
-#define FINISH_REMOVE_GROUP "Finish remving "
+#define FINISH_REMOVE_GROUP "Finish removing "
 #define FAIL_REMOVE_GROUP   "Failed to remove "
 
       ossScopedLock lock ( &_taskLatch, EXCLUSIVE ) ;
