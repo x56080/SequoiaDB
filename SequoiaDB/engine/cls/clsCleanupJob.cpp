@@ -174,7 +174,12 @@ namespace engine
          }
 
          rc = pShardCB->syncUpdateCatalog( _clFullName.c_str(), OSS_ONE_SEC ) ;
-         if ( SDB_OK != rc && SDB_DMS_NOTEXIST != rc )
+         if ( SDB_DMS_NOTEXIST == rc )
+         {
+            dropCollection = TRUE ;
+            break ;
+         }
+         else if ( SDB_OK != rc )
          {
             continue ;
          }
@@ -188,8 +193,10 @@ namespace engine
          }
          else
          {
-            dropCollection = TRUE ;
+            catAgent->release_r() ;
+            continue ;
          }
+
          catAgent->release_r() ;
          break ;
       }
@@ -205,23 +212,24 @@ namespace engine
                                            _dmsCB, _dpsCB ) ;
             PD_LOG ( PDEVENT, "Job[%s] drop the collection[%s], rc:%d", name(),
                      _clFullName.c_str(), rc ) ;
-            if ( SDB_DMS_CS_NOTEXIST == rc || SDB_DMS_NOTEXIST == rc )
+            if ( SDB_DMS_CS_NOTEXIST == rc )
             {
                rc = SDB_OK ;
             }
-            else if ( SDB_OK == rc )
+            else if ( SDB_OK == rc || SDB_DMS_NOTEXIST == rc )
             {
                // drop empty collectionspace, ignore errors
                _dmsCB->dropEmptyCollectionSpace(
                         dmsGetCSNameFromFullName( _clFullName ).c_str(),
                         eduCB(), _dpsCB ) ;
+               rc = SDB_OK ;
             }
             pTaskMgr->releaseReg( SHARED ) ;
             goto done ;
          }
          pTaskMgr->releaseReg( SHARED ) ;
       }
- 
+
       if ( CLS_CLEANUP_BY_SHARDINGINDEX == _cleanupType() )
       {
          rc = _cleanBySplitKeyObj ( w ) ;
@@ -263,7 +271,7 @@ namespace engine
       UINT32 belongTo = 0 ;
       BOOLEAN need2ReleaseR = FALSE ;
 
-retry:
+   retry:
       catAgent->lock_r() ;
       need2ReleaseR = TRUE ;
       catSet = catAgent->collectionSet( _clFullName.c_str() ) ;
@@ -279,8 +287,11 @@ retry:
          }
          else
          {
-            PD_LOG( PDERROR, "failed to update catalog info of %s",
-                    _clFullName.c_str() ) ;
+            if ( SDB_DMS_NOTEXIST != rc )
+            {
+               PD_LOG( PDERROR, "Failed to update catalog info of %s",
+                       _clFullName.c_str() ) ;
+            }
             goto error ;
          }
       }
@@ -294,7 +305,7 @@ retry:
             goto error ;
          }
 
-         need2Remove = groupID != belongTo ;
+         need2Remove = ( groupID != belongTo ) ;
          goto done ;
       }
       else if ( catSet->isHashSharding() && !_splitKeyObj.isEmpty()
@@ -337,10 +348,10 @@ retry:
       }
       else if ( CLS_CLEANUP_BY_SHARDINGINDEX == _cleanupType() )
       {
-         PD_LOG( PDERROR, "we can not clean lob data when type is SHARDINGINDEX " ) ;
+         PD_LOG( PDERROR, "we can not clean lob data when type is "
+                 "SHARDINGINDEX " ) ;
          goto done ;
       }
-      
 
       rc = fetcher.init( _clFullName.c_str(), FALSE ) ;
       if ( SDB_OK != rc )
@@ -349,18 +360,49 @@ retry:
          goto error ;
       }
 
-      do
+      while( TRUE )
       {
          need2Remove = FALSE ;
          rc = fetcher.fetch( eduCB(), page ) ;
          if ( SDB_OK == rc )
          {
             rc = _filterDel( page, need2Remove ) ;
-            if ( SDB_OK != rc )
+            if ( SDB_DMS_NOTEXIST == rc )
             {
-               PD_LOG( PDERROR, "failed to filter lob:%d", rc ) ;
+               clsTaskMgr *pTaskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
+               pTaskMgr->lockReg( SHARED ) ;
+               if ( 0 == pTaskMgr->getRegCount( _clFullName, TRUE ) )
+               {
+                  // delete the collection
+                  rc = rtnDropCollectionCommand( _clFullName.c_str(),
+                                                 eduCB(), _dmsCB, _dpsCB ) ;
+                  PD_LOG ( PDEVENT, "Job[%s] drop the collection[%s], rc:%d",
+                           name(), _clFullName.c_str(), rc ) ;
+                  if ( SDB_DMS_CS_NOTEXIST == rc )
+                  {
+                     rc = SDB_OK ;
+                  }
+                  else if ( SDB_OK == rc || SDB_DMS_NOTEXIST == rc )
+                  {
+                     // drop empty collectionspace, ignore errors
+                     _dmsCB->dropEmptyCollectionSpace(
+                              dmsGetCSNameFromFullName( _clFullName ).c_str(),
+                              eduCB(), _dpsCB ) ;
+                     rc = SDB_OK ;
+                  }
+                  pTaskMgr->releaseReg( SHARED ) ;
+                  goto done ;
+               }
+               pTaskMgr->releaseReg( SHARED ) ;
+
+               break ;
+            }
+            else if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to filter lob:%d", rc ) ;
                goto error ;
             }
+
             if ( need2Remove)
             {
                rc = rtnRemoveLobPiece( _clFullName.c_str(),
@@ -389,7 +431,8 @@ retry:
             PD_LOG( PDERROR, "failed to fetch lob:%d", rc ) ;
             goto done ;
          }
-      } while( TRUE ) ;
+      }
+
    done:
       PD_TRACE_EXITRC( SDB__CLSCLNJOB__CLEANLOBDATA, rc ) ;
       return rc ;
@@ -470,16 +513,17 @@ retry:
                                               _dpsCB ) ;
                PD_LOG ( PDEVENT, "Job[%s] drop the collection[%s], rc:%d",
                         name(), fullName, rc ) ;
-               if ( SDB_DMS_CS_NOTEXIST == rc || SDB_DMS_NOTEXIST == rc )
+               if ( SDB_DMS_CS_NOTEXIST == rc )
                {
                   rc = SDB_OK ;
                }
-               else if ( SDB_OK == rc )
+               else if ( SDB_OK == rc || SDB_DMS_NOTEXIST == rc )
                {
                   // drop empty collectionspace, ignore errors
                   _dmsCB->dropEmptyCollectionSpace(
                            dmsGetCSNameFromFullName( _clFullName ).c_str(),
                            eduCB(), _dpsCB ) ;
+                  rc = SDB_OK ;
                }
                pTaskMgr->releaseReg( SHARED ) ;
                goto done ;
