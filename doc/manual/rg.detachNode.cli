@@ -45,9 +45,13 @@ Detach a node in the current partition group, but its configuration information 
 .br
 			  Whether to keep the original data of the 
 			  current node, default to be false.
+.sp 2
+       \fB1. enforce (Bool):\fR 
+.br
+			  Whether to detach the node forcily, default to be false.
 \fBNote: \fR
 .sp 2
-1. It can not detach when the node is master or when only has a node in current group.
+1. It can not detach the last node which own cs/cl in the replica group.
 Never open KeepData if the node does not originally belong to the current group.
 .sp 2
 2. The separated nodes will no longer be managed by the cluster. Please join other groups as soon as possible.

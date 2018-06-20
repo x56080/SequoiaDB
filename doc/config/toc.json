@@ -1388,6 +1388,12 @@
                            "cn": "createCoordRG()",
                            "en": "createCoordRG()"
                         },
+						{
+                           "id": 14321902771,
+                           "file": "createSpareRG",
+                           "cn": "createSpareRG()",
+                           "en": "createSpareRG()"
+                        },
                         {
                            "id": 1432190773,
                            "file": "createCS",
@@ -1485,6 +1491,12 @@
                            "en": "getCoordRG()"
                         },
                         {
+                           "id": 1432190788,
+                           "file": "getSpareRG",
+                           "cn": "getSpareRG()",
+                           "en": "getSpareRG()"
+                        },
+                        {
                            "id": 1432190789,
                            "file": "getCS",
                            "cn": "getCS()",
@@ -1579,6 +1591,12 @@
                            "file": "removeCoordRG",
                            "cn": "removeCoordRG()",
                            "en": "removeCoordRG()"
+                        },
+                        {
+                           "id": 1432192805,
+                           "file": "removeSpareRG",
+                           "cn": "removeSpareRG()",
+                           "en": "removeSpareRG()"
                         },
                         {
                            "id": 1432190805,
