@@ -28,7 +28,7 @@
  > db.foo.bar.createIdIndex()
  ```
 
-* 使用离线方式构建 $id 索引:
+* 构建 $id 索引时指定排序缓存大小:
 
  ```lang-javascript
  > db.foo.bar.createIdIndex( { SortBufferSize: 128 } )
