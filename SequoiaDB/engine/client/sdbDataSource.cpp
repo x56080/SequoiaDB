@@ -144,34 +144,55 @@ namespace sdbclient
    // get idle connection number
    INT32 sdbDataSource::getIdleConnNum() const
    {
-      return _idleSize.peek() ;
+      return _isInited ? _idleSize.peek() : -1 ;
    }
 
    // get used connection number
    INT32 sdbDataSource::getUsedConnNum() const
    {
-      return _busySize.peek() ;
+      return _isInited ? _busySize.peek() : -1 ;
    }
 
    // get the number of normal coord node
    INT32 sdbDataSource::getNormalCoordNum() const
    {
-      SDB_ASSERT( _strategy, "_strategy is null" ) ;
-      return _strategy->getNormalCoordNum() ;
+      if ( _isInited ) 
+      {
+         SDB_ASSERT( _strategy, "_strategy is null" ) ;
+         return _strategy->getNormalCoordNum() ;
+      } 
+      else 
+      {
+         return -1 ;
+      }
    }
 
    // get the number of abnormal coord node
    INT32 sdbDataSource::getAbnormalCoordNum() const
    {  
-      SDB_ASSERT( _strategy, "_strategy is null" ) ;
-      return _strategy->getAbnormalCoordNum() ;
+      if ( _isInited )
+      {
+         SDB_ASSERT( _strategy, "_strategy is null" ) ;
+         return _strategy->getAbnormalCoordNum() ;
+      }
+      else
+      {
+         return -1 ;
+      }
    }
 
    // get the number of local coord node
    INT32 sdbDataSource::getLocalCoordNum() const
    {
-      SDB_ASSERT( _strategy, "_strategy is null" ) ;
-      return _strategy->getLocalCoordNum() ;
+      if ( _isInited )
+      {
+         SDB_ASSERT( _strategy, "_strategy is null" ) ;
+         return _strategy->getLocalCoordNum() ;
+      }
+      else
+      {
+         return -1 ;
+      }
    }
    
    // add a coord node

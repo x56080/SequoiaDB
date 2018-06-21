@@ -127,31 +127,36 @@ namespace sdbclient
          const sdbDataSourceConf &conf ) ;
 
       /** \fn INT32 getIdleConnNum()const
-         \brief Get idle connection number
+         \brief Get idle connection number or -1 for DataSource 
+                has not been initialized yet.
          \retval The number of idle connection
       */
       INT32 getIdleConnNum()const  ;
 
       /** \fn INT32 getUsedConnNum()const
-         \brief Get used connection number
+         \brief Get used connection number or -1 for DataSource 
+                has not been initialized yet.
          \retval The number of used connection
       */
       INT32 getUsedConnNum()const  ;
 
       /** \fn INT32 getNormalCoordNum()const
-         \brief Get the number of reachable coord nodes
+         \brief Get the number of reachable coord nodes or -1 for DataSource 
+                has not been initialized yet.
          \retval The number of reachable coord nodes
       */
       INT32 getNormalCoordNum()const  ;
 
       /** \fn INT32 getAbnormalCoordNum()const
-         \brief Get the number of unreachable coord nodes
+         \brief Get the number of unreachable coord nodes or -1 for DataSource 
+                has not been initialized yet.
          \retval The number of unreachable coord nodes
       */
       INT32 getAbnormalCoordNum() const  ;
 
       /** \fn INT32 getLocalCoordNum()const
-         \brief Get the number of local coord nodes
+         \brief Get the number of local coord nodes or -1 for DataSource 
+                has not been initialized yet.
          \retval The number of local coord nodes
       */
       INT32 getLocalCoordNum()const  ;
