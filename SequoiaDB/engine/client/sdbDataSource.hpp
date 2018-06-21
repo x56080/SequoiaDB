@@ -176,7 +176,10 @@ namespace sdbclient
       INT32 enable() ;
 
       /** \fn INT32 disable()
-         \brief Disable sdbDataSource
+         \brief Disable sdbDataSource. After disable, the DataSource will
+                disconnect all the connections and release the handle of 
+                the connections. So stop using the connection handle which has
+                not been released to the DataSource.
          \retval SDB_OK Operation Success
          \retval Others Operation Fail
       */
