@@ -592,7 +592,7 @@ public class Sequoiadb {
      * @param csName The collection space name
      * @return the newly created collection space object
      * @throws com.sequoiadb.exception.BaseException
-     * @fn void createCollectionSpace(String csName)
+     * @fn CollectionSpace createCollectionSpace(String csName)
      * @brief Create the named collection space with default SDB_PAGESIZE_64K.
      */
     public CollectionSpace createCollectionSpace(String csName)

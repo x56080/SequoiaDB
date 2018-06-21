@@ -144,7 +144,7 @@ public class CollectionSpace {
     }
 
     /**
-     * @fn void createCollection(String collectionName)
+     * @fn DBCollection createCollection(String collectionName)
      * @brief Create the named collection in current collection space
      * @param collectionName
      *            The collection name
