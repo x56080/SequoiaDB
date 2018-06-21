@@ -496,6 +496,7 @@ public class ReplicaGroup {
      * @fn Node createNode(String hostName, int port, String dbPath,
      * Map<String, String> configure)
      * @brief Create node.
+     * @deprecated we have override this api by passing a "BSONObject" instead of a "Map"
      */
     public Node createNode(String hostName, int port, String dbPath,
                            Map<String, String> configure) throws BaseException {
@@ -526,15 +527,14 @@ public class ReplicaGroup {
     }
 
     /**
+     * @fn Node createNode(String hostName, int port, String dbPath, BSONObject configure)
+     * @brief Create node.
      * @param hostName  host name
      * @param port      port
      * @param dbPath    the path for node
      * @param configure configuration for this operation
      * @return the created Node object
      * @throws com.sequoiadb.exception.BaseException
-     * @fn Node createNode(String hostName, int port, String dbPath,
-     * BSONObject configure)
-     * @brief Create node.
      */
     public Node createNode(String hostName, int port, String dbPath,
                            BSONObject configure) throws BaseException {
@@ -565,14 +565,13 @@ public class ReplicaGroup {
     }
 
     /**
+     * @fn Node createNode(String hostName, int port, String dbPath)
+     * @brief Create node.
      * @param hostName  host name
      * @param port      port
      * @param dbPath    the path for node
      * @return the created Node object
      * @throws BaseException If error happens.
-     * @fn Node createNode(String hostName, int port, String dbPath,
-     * BSONObject configure)
-     * @brief Create node.
      */
     public Node createNode(String hostName, int port, String dbPath) throws BaseException {
         return createNode(hostName, port, dbPath, new BasicBSONObject());
