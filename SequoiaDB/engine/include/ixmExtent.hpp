@@ -171,7 +171,8 @@ namespace engine
       INT32 _validate ( _ixmExtentValidateLevel level,
                         const Ordering &order ) ;
       INT32 _pushBack ( const dmsRecordID &rid, const ixmKey &key,
-                        const Ordering &order, const dmsExtentID left ) ;
+                        const Ordering &order, const dmsExtentID left,
+                        UINT16 idxState = IXM_INDEX_FLAG_NORMAL ) ;
       INT32 _fixParentPtrs ( UINT16 startPos, UINT16 stopPos ) ;
       void _assignRight ( const dmsExtentID right ) ;
       INT32 _truncate ( UINT16 totalNodes,UINT16 &newPos,const Ordering &order);

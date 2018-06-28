@@ -704,7 +704,7 @@ namespace engine
             const ixmKeyNode *kn = getKeyNode(i) ;
             rc = newExtent._pushBack ( kn->_rid,
                                     ixmKey(((CHAR*)_extentHead)+kn->_keyOffset),
-                                    order, kn->_left ) ;
+                                    order, kn->_left, indexCB->getFlag() ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to push back key %d to new extent, "
@@ -750,7 +750,8 @@ namespace engine
             // extent
             rc = rootExtent._pushBack ( splitKey->_rid,
                                         ixmKey(((const CHAR*)_extentHead)+
-                                        splitKey->_keyOffset), order, _me ) ;
+                                        splitKey->_keyOffset), order, _me,
+                                        indexCB->getFlag() ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to promote split key into root, "
@@ -965,7 +966,8 @@ namespace engine
    // than free size
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__PSHBACK, "_ixmExtent::_pushBack" )
    INT32 _ixmExtent::_pushBack ( const dmsRecordID &rid, const ixmKey &key,
-                                 const Ordering &order, const dmsExtentID left )
+                                 const Ordering &order, const dmsExtentID left,
+                                 UINT16 idxState )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__PSHBACK );
@@ -1003,8 +1005,24 @@ namespace engine
 
       if ( DMS_INVALID_EXTENT != kn->_left )
       {
-         /// add to page map
-         _pPageMap->addItem( kn->_left, _me ) ;
+         // Only add to page map if the index is in normal state. Otherwise,
+         // set parent for the child in extent directly.
+         // This is to avoid one concurrent problem: When multiple indices are
+         // being created on the same collection, they may hit the code here
+         // at the same time. Because during rebuilding, they only hold shared
+         // lock of the collection. But the addItem will do WRITE operation to
+         // the map, which is shared by all indices on the collection. This will
+         // corrupt the map, and crash the program.
+         if ( IXM_INDEX_FLAG_NORMAL == idxState )
+         {
+            /// add to page map
+            _pPageMap->addItem( kn->_left, _me ) ;
+         }
+         else
+         {
+            ixmExtent child( kn->_left, _pIndexSu ) ;
+            child.setParent( _me, FALSE ) ;
+         }
       }
 
       kn->_rid = rid ;
