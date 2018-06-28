@@ -179,7 +179,8 @@ namespace engine
       INT32 _validate( ixmIndexCB *indexCB, dmsExtentID parent ) ;
 
       INT32 _pushBack ( const dmsRecordID &rid, const ixmKey &key,
-                        const Ordering &order, const dmsExtentID left ) ;
+                        const Ordering &order, const dmsExtentID left,
+                        UINT16 idxState = IXM_INDEX_FLAG_NORMAL ) ;
 
       INT32 _fixParentPtrs ( UINT16 startPos, UINT16 stopPos ) const ;
 
