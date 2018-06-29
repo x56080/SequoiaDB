@@ -30,6 +30,17 @@
          </tbody>
       </table>
    </div>
+   <div ng-switch-when="inline">
+      <table class="table loosen">
+         <tbody>
+            <tr>
+               <td ng-repeat="childInfo in inputInfo.child track by $index" ng-style="{true:{'padding-left':'0'}}[$first]">
+                  <div ng-eval="inputInfo=childInfo;" ng-include="'./app/template/Component/Form_child.html'"></div>
+               </td>
+            </tr>
+         </tbody>
+      </table>
+   </div>
    <div ng-switch-when="list">
       <table class="table loosen">
          <tbody>
