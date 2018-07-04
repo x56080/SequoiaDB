@@ -2356,7 +2356,7 @@
                   //条件
                   var splitquery = {} ;
                   var splitendquery = {} ;
-                  if( type = 'hash' )
+                  if( type == 'hash' )
                   {
                      var fieldName = value['condition']['field'] ;
                      splitquery[ fieldName ]    = autoTypeConvert( value['condition']['start'], true ) ;
@@ -2364,35 +2364,38 @@
                      data['splitquery'] = JSON.stringify( splitquery ) ;
                      data['splitendquery'] = JSON.stringify( splitendquery ) ;
                   }
-                  $.each( value['condition'], function( index, conditionInfo ){
-                     var fieldName = conditionInfo['field'] ;
-                     if( conditionInfo['type'] == 'Auto' )
-                     {
-                        splitquery[ fieldName ]    = autoTypeConvert( conditionInfo['start'], true ) ;
-                        splitendquery[ fieldName ] = autoTypeConvert( conditionInfo['end'], true ) ;
-                     }
-                     else
-                     {
-                        if( conditionInfo['start'].toLowerCase() == '$minkey' )
+                  else
+                  {
+                     $.each( value['condition'], function( index, conditionInfo ){
+                        var fieldName = conditionInfo['field'] ;
+                        if( conditionInfo['type'] == 'Auto' )
                         {
-                           splitquery[ fieldName ] = { '$minKey': 1 } ;
+                           splitquery[ fieldName ]    = autoTypeConvert( conditionInfo['start'], true ) ;
+                           splitendquery[ fieldName ] = autoTypeConvert( conditionInfo['end'], true ) ;
                         }
                         else
                         {
-                           splitquery[ fieldName ]    = specifyTypeConvert( conditionInfo['start'], conditionInfo['type'] ) ;
+                           if( conditionInfo['start'].toLowerCase() == '$minkey' )
+                           {
+                              splitquery[ fieldName ] = { '$minKey': 1 } ;
+                           }
+                           else
+                           {
+                              splitquery[ fieldName ]    = specifyTypeConvert( conditionInfo['start'], conditionInfo['type'] ) ;
+                           }
+                           if( conditionInfo['end'].toLowerCase() == '$maxkey' )
+                           {
+                              splitendquery[ fieldName ] = { '$maxKey': 1 } ;
+                           }
+                           else
+                           {
+                              splitendquery[ fieldName ] = specifyTypeConvert( conditionInfo['end'], conditionInfo['type'] ) ;
+                           }
                         }
-                        if( conditionInfo['end'].toLowerCase() == '$maxkey' )
-                        {
-                           splitendquery[ fieldName ] = { '$maxKey': 1 } ;
-                        }
-                        else
-                        {
-                           splitendquery[ fieldName ] = specifyTypeConvert( conditionInfo['end'], conditionInfo['type'] ) ;
-                        }
-                     }
-                  } ) ;
-                  data['splitquery'] = JSON.stringify( splitquery ) ;
-                  data['splitendquery'] = JSON.stringify( splitendquery ) ;
+                     } ) ;
+                     data['splitquery'] = JSON.stringify( splitquery ) ;
+                     data['splitendquery'] = JSON.stringify( splitendquery ) ;
+                  }
                }
                var exec = function(){
                   SdbRest.DataOperation( data, {
