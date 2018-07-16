@@ -55,6 +55,7 @@ public class ClusterManager13893 extends SdbTestBase{
 		//getRGName,the RGname is not exist
 		try {
 			String RGName = "test13893";
+			Assert.assertFalse(sdb.isRelicaGroupExist(RGName));
 			sdb.getReplicaGroup(RGName);
 			Assert.fail("get RG should be fail!");
 		} catch (BaseException e) {				
@@ -66,6 +67,7 @@ public class ClusterManager13893 extends SdbTestBase{
 		//getRGid,the RGid is not exist
 		try {
 			int RGid = 13893;
+			Assert.assertFalse(sdb.isReplicaGroupExist(RGid));
 			sdb.getReplicaGroup(RGid);	
 			Assert.fail("get RG by RGid should be fail!");
 		}catch (BaseException e) {			
@@ -78,7 +80,8 @@ public class ClusterManager13893 extends SdbTestBase{
 		ArrayList<String> dataGroupNames = commlib.getDataGroupNames(sdb);		
 		ReplicaGroup rGroup = sdb.getReplicaGroup(dataGroupNames.get(0));
 		try {			
-			String nodeName = "localhost:13893";			
+			String nodeName = "localhost:13893";
+			Assert.assertFalse(rGroup.isNodeExist(nodeName));
 			rGroup.getNode(nodeName);			
 			Assert.fail("get nodeName by RG should be fail!");
 		}catch (BaseException e) {			
@@ -91,6 +94,7 @@ public class ClusterManager13893 extends SdbTestBase{
 		try {			
 			String hostName = rGroup.getMaster().getHostName();	
 			int port = 13893;
+			Assert.assertFalse(rGroup.isNodeExist(hostName, port));
 			rGroup.getNode( hostName, port);
 			Assert.fail("get nodeName by hostname and port should be fail!");
 		}catch (BaseException e) {			
