@@ -143,7 +143,7 @@ void ossFuncAddrToName( void * address,
    uintptr_t instruction_offset ;
    const CHAR * symbol = NULL ;
    const CHAR * object = NULL ;
-   CHAR * emptyStr = "" ;
+   const CHAR * emptyStr = "" ;
 
    if ( ( NULL != trapFile ) && trapFile->isValid() )
    {
