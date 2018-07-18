@@ -60,11 +60,15 @@ SDB_EXPORT BOOLEAN json2bson2( const CHAR *pJson, bson *pBson ) ;
 /** \fn BOOLEAN json2bson( const CHAR *pJson,
                            CJSON_MACHINE *pMachine,
                            INT32 parseMode,
+                           BOOLEAN isCheckEnd,
+                           BOOLEAN isUnicode,
                            bson *pBson )
     \brief Json converts to bson.
     \param [in]  pJson The json string to convert
     \param [in]  pMachine The json parse state machine
     \param [in]  parseMode The json parse mode, 0:loose mode; 1:rigorous mode;
+    \param [in]  isCheckEnd whether to check the end of json
+    \param [in]  isUnicode whether to escape Unicode encoding
     \param [out] pBson The return bson object
     \retval TRUE Operation Success
     \retval FALSE Operation Fail
@@ -73,6 +77,7 @@ SDB_EXPORT BOOLEAN json2bson( const CHAR *pJson,
                               CJSON_MACHINE *pMachine,
                               INT32 parseMode,
                               BOOLEAN isCheckEnd,
+                              BOOLEAN isUnicode,
                               bson *pBson ) ;
 
 SDB_EXPORT void setJsonPrecision( const CHAR *pFloatFmt ) ;

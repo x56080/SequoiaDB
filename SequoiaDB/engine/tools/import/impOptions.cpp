@@ -81,6 +81,7 @@ namespace import
    #define IMP_OPTION_TRIMSTRING        "trim"
    #define IMP_OPTION_IGNORENULL        "ignorenull"
    #define IMP_OPTION_STRICTFIELDNUM    "strictfieldnum"
+   #define IMP_OPTION_UNICODE           "unicode"
 
    #define IMP_EXPLAIN_HELP             "print help information"
    #define IMP_EXPLAIN_VERSION          "print version"
@@ -123,6 +124,7 @@ namespace import
    #define IMP_EXPLAIN_TRIMSTRING       "trim string (arg: [no|right|left|both]), default: no"
    #define IMP_EXPLAIN_IGNORENULL       "ignore null field, default: false"
    #define IMP_EXPLAIN_STRICTFIELDNUM   "report error if record fields num does not equal to fields definition, default: false"
+   #define IMP_EXPLAIN_UNICODE          "whether to escape Unicode encoding, default: true"
 
    #define _TYPE(T) utilOptType(T)
 
@@ -167,6 +169,9 @@ namespace import
       (IMP_OPTION_LINEPRIORITY,        _TYPE(string),    IMP_EXPLAIN_LINEPRIORITY) \
       (IMP_OPTION_DELRECORD",r",       _TYPE(string),    IMP_EXPLAIN_DELRECORD) \
       (IMP_OPTION_FORCE,               _TYPE(string),    IMP_EXPLAIN_FORCE) \
+
+   #define IMP_JSON_OPTIONS \
+      (IMP_OPTION_UNICODE,             _TYPE(bool),      IMP_EXPLAIN_UNICODE) \
 
    #define IMP_CSV_OPTIONS \
       (IMP_OPTION_DELCHAR",a",         _TYPE(string),    IMP_EXPLAIN_DELCHAR) \
@@ -294,6 +299,8 @@ namespace import
       _enableTransaction = FALSE;
       _allowKeyDuplication = TRUE;
 
+      _isUnicode = TRUE ;
+
       _stringDelimiter = "\"";
       _fieldDelimiter = ",";
       _dateFormat = "YYYY-MM-DD";
@@ -328,6 +335,10 @@ namespace import
 
       addOptions("Input Options")
          IMP_INPUT_OPTIONS
+      ;
+
+      addOptions("JSON Options")
+         IMP_JSON_OPTIONS
       ;
 
       addOptions("CSV Options")
@@ -668,6 +679,11 @@ namespace import
       {
          string headerline = get<string>(IMP_OPTION_HEADERLINE);
          ossStrToBoolean(headerline.c_str(), &_hasHeaderLine);
+      }
+
+      if (has(IMP_OPTION_UNICODE))
+      {
+         _isUnicode = get<bool>(IMP_OPTION_UNICODE) ? TRUE : FALSE ;
       }
 
       if (FORMAT_CSV == _inputFormat)

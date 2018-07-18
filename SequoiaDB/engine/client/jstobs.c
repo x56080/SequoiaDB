@@ -127,7 +127,8 @@ SDB_EXPORT BOOLEAN jsonToBson2 ( bson *bs,
                                  BOOLEAN isMongo,
                                  BOOLEAN isBatch )
 {
-   return json2bson( json_str, NULL, CJSON_RIGOROUS_PARSE, !isBatch, bs ) ;
+   return json2bson( json_str, NULL, CJSON_RIGOROUS_PARSE,
+                     !isBatch, TRUE, bs ) ;
 }
 
 /*
@@ -138,7 +139,7 @@ SDB_EXPORT BOOLEAN jsonToBson2 ( bson *bs,
 */
 SDB_EXPORT BOOLEAN json2bson2( const CHAR *pJson, bson *pBson )
 {
-   return json2bson( pJson, NULL, CJSON_RIGOROUS_PARSE, TRUE, pBson ) ;
+   return json2bson( pJson, NULL, CJSON_RIGOROUS_PARSE, TRUE, TRUE, pBson ) ;
 }
 
 /*
@@ -147,6 +148,8 @@ SDB_EXPORT BOOLEAN json2bson2( const CHAR *pJson, bson *pBson )
  * pMachine : cJSON state machine
  * parseMode: 0 - loose mode
  *            1 - rigorous mode
+ * isCheckEnd: whether to check the end of json
+ * isUnicode: whether to escape Unicode encoding
  * pBson : bson object
  * return : the conversion result
 */
@@ -155,6 +158,7 @@ SDB_EXPORT BOOLEAN json2bson( const CHAR *pJson,
                               CJSON_MACHINE *pMachine,
                               INT32 parseMode,
                               BOOLEAN isCheckEnd,
+                              BOOLEAN isUnicode,
                               bson *pBson )
 {
    BOOLEAN flag = TRUE ;
@@ -174,7 +178,7 @@ SDB_EXPORT BOOLEAN json2bson( const CHAR *pJson,
       }
    }
 
-   cJsonInit( pMachine, parseMode, isCheckEnd ) ;
+   cJsonInit( pMachine, parseMode, isCheckEnd, isUnicode ) ;
 
    if( cJsonParse( pJson, pMachine ) == FALSE )
    {

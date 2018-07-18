@@ -122,7 +122,7 @@ namespace import
          SDB_ASSERT(FORMAT_JSON == format, "format must be JSON");
          
          JSONRecordParser* jsonParser =
-            SDB_OSS_NEW JSONRecordParser();
+            SDB_OSS_NEW JSONRecordParser( options.isUnicode() );
 
          if (NULL == jsonParser)
          {
@@ -156,9 +156,10 @@ namespace import
       SDB_OSS_DEL(parser);
    }
 
-   JSONRecordParser::JSONRecordParser()
-   : RecordParser("", "", FALSE, FALSE)
+   JSONRecordParser::JSONRecordParser( BOOLEAN isUnicode )
+         : RecordParser("", "", FALSE, FALSE)
    {
+      _isUnicode = isUnicode ;
       _pMachine = NULL ;
       JsonSetPrintfLog( _impRecordParseLog ) ;
    }
@@ -194,7 +195,8 @@ namespace import
 
       bson_init(&obj);
 
-      result = json2bson( data, _pMachine, CJSON_RIGOROUS_PARSE, FALSE, &obj ) ;
+      result = json2bson( data, _pMachine, CJSON_RIGOROUS_PARSE,
+                          FALSE, _isUnicode, &obj ) ;
       if (!result)
       {
          rc = SDB_INVALIDARG;

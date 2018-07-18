@@ -105,6 +105,9 @@ namespace import
       inline const string& recordDelimiter() const { return _recordDelimiter; }
       inline BOOLEAN force() const { return _force; }
 
+      /* json */
+      inline BOOLEAN isUnicode() const { return _isUnicode; }
+
       /* csv */
       inline const string& stringDelimiter() const { return _stringDelimiter; }
       inline const string& fieldDelimiter() const { return _fieldDelimiter; }
@@ -160,6 +163,9 @@ namespace import
       string         _recordDelimiterIn;
       string         _recordDelimiter;
       BOOLEAN        _force;
+
+      /* json */
+      BOOLEAN        _isUnicode ;
 
       /* csv */
       string         _stringDelimiterIn;

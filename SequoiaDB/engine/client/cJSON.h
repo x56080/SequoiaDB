@@ -141,8 +141,10 @@ typedef struct _cJsonMachine {
    CJSON_PARSE_MODE parseMode ;
    /* parse json level */
    UINT32 level ;
-   /* whether check the end of json */
+   /* whether to check the end of json */
    BOOLEAN isCheckEnd ;
+   /* whether to escape Unicode encoding */
+   BOOLEAN isUnicode ;
    /* struct CJSON root node */
    CJSON *pItem ;
    /* the current memory block */
@@ -195,7 +197,8 @@ SDB_EXPORT void cJsonSetPrintfLog( void (*pFun)( const CHAR *pFunc,
 SDB_EXPORT CJSON_MACHINE* cJsonCreate() ;
 SDB_EXPORT void cJsonInit( CJSON_MACHINE *pMachine,
                            CJSON_PARSE_MODE mode,
-                           BOOLEAN isCheckEnd ) ;
+                           BOOLEAN isCheckEnd,
+                           BOOLEAN isUnicode ) ;
 SDB_EXPORT BOOLEAN cJsonParse( const CHAR *pStr, CJSON_MACHINE *pMachine ) ;
 SDB_EXPORT void cJsonRelease( CJSON_MACHINE *pMachine ) ;
 

@@ -77,13 +77,15 @@ namespace import
 
    class JSONRecordParser: public RecordParser
    {
-   private:
-      CJSON_MACHINE *_pMachine ;
    public:
-      JSONRecordParser();
+      JSONRecordParser( BOOLEAN isUnicode );
       ~JSONRecordParser();
       INT32 init() ;
       INT32 parseRecord(const CHAR* data, INT32 length, bson& obj);
+
+   private:
+      CJSON_MACHINE *_pMachine ;
+      BOOLEAN _isUnicode ;
    };
 }
 

@@ -163,6 +163,8 @@ static const CHAR* parseValue( const CHAR *pStr,
 static CHAR* parseString( const CHAR *pStr,
                           INT32 length,
                           const CJSON_MACHINE *pMachine ) ;
+static UINT32 parseHex( const CHAR *pStr, INT32 length, INT32 *pHexStrLen ) ;
+static INT32 utf16ToUtf8( const CHAR *pStr, INT32 length, CHAR **pOut ) ;
 static const CHAR* parseNumber( const CHAR *pStr,
                                 INT32 *pValInt,
                                 FLOAT64 *pValDouble,
@@ -1459,23 +1461,10 @@ error:
    goto done ;
 }
 
-static const UINT8 _firstByteMark[7] = {
-   0x00,
-   0x00,
-   0xC0,
-   0xE0,
-   0xF0,
-   0xF8,
-   0xFC
-} ;
 static CHAR* parseString( const CHAR *pStr,
                           INT32 length,
                           const CJSON_MACHINE *pMachine )
 {
-   UINT8 uc  = 0 ;
-   UINT8 uc2 = 0 ;
-   INT32 len = 0 ;
-   UINT32 ucTmp = 0 ;
    CHAR *pOut = NULL ;
    CHAR *pNewStr = NULL ;
 
@@ -1500,12 +1489,9 @@ static CHAR* parseString( const CHAR *pStr,
       }
       else
       {
-         ++pStr ;
-         if( length > 0 )
-         {
-            --length ;
-         }
-         switch( *pStr )
+         INT32 sequenceLength = 2 ;
+
+         switch( pStr[1] )
          {
          case 'b':
          {
@@ -1539,93 +1525,209 @@ static CHAR* parseString( const CHAR *pStr,
          }
          case 'u':    /* transcode utf16 to utf8. */
          {
-            /* get the unicode char. */
-            sscanf( pStr + 1, "%4x", &ucTmp ) ;
-            uc = (UINT8)ucTmp ;
-            pStr += 4 ;
-            length -= 4 ;
-
-            if( ( uc >= 0xDC00 && uc <= 0xDFFF ) || uc == 0 )
+            if ( pMachine->isUnicode )
             {
-               // check for invalid.
-               break ;
-            }
-
-            if( uc >= 0xD800 && uc <= 0xDBFF )
-            {
-               // UTF16 surrogate pairs.
-               if( pStr[1] != '\\' || pStr[2] != 'u' )
+               sequenceLength = utf16ToUtf8( pStr, length, &pOut ) ;
+               if( 0 == sequenceLength )
                {
-                  // missing second-half of surrogate.
-                  break ;
+                  *pOut = pStr[1] ;
+                  ++pOut ;
                }
-               sscanf( pStr + 3, "%4x", &ucTmp ) ;
-               uc2 = (UINT8)ucTmp ;
-               pStr += 6 ;
-               length -= 6 ;
-               if( uc2 < 0xDC00 || uc2 > 0xDFFF )
-               {
-                  // invalid second-half of surrogate.
-                  break ;
-               }
-               uc = 0x10000 | ( ( uc & 0x3FF ) << 10 ) | ( uc2 & 0x3FF ) ;
+            }
+            else
+            {
+               *pOut = pStr[0] ;
+               ++pOut ;
+               *pOut = pStr[1] ;
+               ++pOut ;
             }
 
-            len = 4 ;
-            if( uc < 0x80 )
-            {
-               len = 1 ;
-            }
-            else if( uc < 0x800 )
-            {
-               len = 2 ;
-            }
-            else if( uc < 0x10000 )
-            {
-               len = 3 ;
-            }
-            pOut += len ;
-            switch( len )
-            {
-            case 4:
-            {
-               *--pOut = ( ( uc | 0x80 ) & 0xBF ) ;
-               uc >>= 6 ;
-            }
-            case 3:
-            {
-               *--pOut = ( ( uc | 0x80 ) & 0xBF ) ;
-               uc >>= 6 ;
-            }
-            case 2:
-            {
-               *--pOut = ( ( uc | 0x80 ) & 0xBF ) ;
-               uc >>= 6 ;
-            }
-            case 1:
-            {
-               *--pOut = ( uc | _firstByteMark[len] ) ;
-            }
-            }
-            pOut += len ;
             break ;
          }
          default:
          {
-            *pOut = *pStr ;
+            *pOut = pStr[1] ;
             ++pOut ;
             break ;
          }
          }
-         ++pStr ;
-         --length ;
+         pStr += sequenceLength ;
+         length -= sequenceLength ;
       }
    }
+
    *pOut = 0 ;
+
 done:
    return pNewStr ;
 error:
    pNewStr = NULL ;
+   goto done ;
+}
+
+/* parse hexadecimal number */
+static UINT32 parseHex( const CHAR *pStr, INT32 length, INT32 *pHexStrLen )
+{
+   UINT32 h = 0 ;
+   INT32 i = 0 ;
+
+   for ( i = 0; i < length; ++i )
+   {
+      /* parse digit */
+      if ( ( pStr[i] >= '0' ) && ( pStr[i] <= '9' ) )
+      {
+         h = h << 4 ;
+         h += (UINT32) pStr[i] - '0' ;
+      }
+      else if ( ( pStr[i] >= 'A' ) && ( pStr[i] <= 'F' ) )
+      {
+         h = h << 4 ;
+         h += (UINT32) 10 + pStr[i] - 'A' ;
+      }
+      else if ( ( pStr[i] >= 'a' ) && ( pStr[i] <= 'f' ) )
+      {
+         h = h << 4 ;
+         h += (UINT32) 10 + pStr[i] - 'a' ;
+      }
+      else
+      {
+         break ;
+      }
+   }
+
+   *pHexStrLen = i ;
+
+   return h ;
+}
+
+/* converts a UTF-16 literal to UTF-8
+ * A literal can be one or two sequences of the form \uXXXX */
+static INT32 utf16ToUtf8( const CHAR *pStr, INT32 length, CHAR **pOut )
+{
+   BYTE firstByteMark = 0 ;
+   INT32 utf8Length = 0 ;
+   INT32 utf8Position = 0 ;
+   INT32 sequenceLength = 0 ;
+   INT32 firstHexLength = 0 ;
+   UINT32 firstCode = 0 ;
+   UINT64 codepoint = 0 ;
+   const CHAR *firstSequence = pStr;
+
+   if ( length < 3 )
+   {
+      /* input ends unexpectedly */
+      goto error ;
+   }
+
+   /* get the first utf16 sequence */
+   firstCode = parseHex( firstSequence + 2, length, &firstHexLength ) ;
+
+   /* check that the code is valid */
+   if ( ( ( firstCode >= 0xDC00 ) && ( firstCode <= 0xDFFF ) ) )
+   {
+      goto error ;
+   }
+
+   sequenceLength = 2 + firstHexLength ;
+
+   /* UTF16 surrogate pair */
+   if ( ( firstCode >= 0xD800 ) && ( firstCode <= 0xDBFF ) )
+   {
+      INT32 secondHexLength = 0 ;
+      UINT32 secondCode = 0;
+      const CHAR *secondSequence = firstSequence + 2 + firstHexLength ;
+
+      length -= sequenceLength ;
+      if ( length < 3 )
+      {
+         /* input ends unexpectedly */
+         goto error ;
+      }
+
+      if ( ( secondSequence[0] != '\\' ) || ( secondSequence[1] != 'u' ) )
+      {
+         /* missing second half of the surrogate pair */
+         goto error ;
+      }
+
+      /* get the second utf16 sequence */
+      secondCode = parseHex( secondSequence + 2, length, &secondHexLength ) ;
+
+      sequenceLength += 2 + secondHexLength ;
+
+      /* check that the code is valid */
+      if ( ( secondCode < 0xDC00 ) || ( secondCode > 0xDFFF ) )
+      {
+         /* invalid second half of the surrogate pair */
+         goto error ;
+      }
+
+      /* calculate the unicode codepoint from the surrogate pair */
+      codepoint = 0x10000 +
+               ( ( ( firstCode & 0x3FF ) << 10 ) | ( secondCode & 0x3FF ) ) ;
+   }
+   else
+   {
+      codepoint = firstCode ;
+   }
+
+   /* encode as UTF-8
+   * takes at maximum 4 bytes to encode:
+   * 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx */
+   if ( codepoint < 0x80 )
+   {
+      /* normal ascii, encoding 0xxxxxxx */
+      utf8Length = 1 ;
+   }
+   else if ( codepoint < 0x800 )
+   {
+      /* two bytes, encoding 110xxxxx 10xxxxxx */
+      utf8Length = 2 ;
+      firstByteMark = 0xC0 ; /* 11000000 */
+   }
+   else if ( codepoint < 0x10000 )
+   {
+      /* three bytes, encoding 1110xxxx 10xxxxxx 10xxxxxx */
+      utf8Length = 3 ;
+      firstByteMark = 0xE0 ; /* 11100000 */
+   }
+   else if (codepoint <= 0x10FFFF)
+   {
+      /* four bytes, encoding 1110xxxx 10xxxxxx 10xxxxxx 10xxxxxx */
+      utf8Length = 4 ;
+      firstByteMark = 0xF0 ; /* 11110000 */
+   }
+   else
+   {
+      /* invalid unicode codepoint */
+      goto error ;
+   }
+
+   /* encode as utf8 */
+   
+   for ( utf8Position = utf8Length - 1; utf8Position > 0; --utf8Position )
+   {
+      /* 10xxxxxx */
+      (*pOut)[utf8Position] = (CHAR)( ( codepoint | 0x80 ) & 0xBF ) ;
+      codepoint >>= 6 ;
+   }
+
+   /* encode first byte */
+   if ( utf8Length > 1 )
+   {
+      (*pOut)[0] = (CHAR)( ( codepoint | firstByteMark ) & 0xFF ) ;
+   }
+   else
+   {
+      (*pOut)[0] = (CHAR)( codepoint & 0x7F ) ;
+   }
+
+   *pOut += utf8Length ;
+
+done:
+    return sequenceLength ;
+error:
+   sequenceLength = 0 ;
    goto done ;
 }
 
@@ -2962,6 +3064,7 @@ SDB_EXPORT CJSON_MACHINE* cJsonCreate()
       ossMemset( pMachine, 0, sizeof( CJSON_MACHINE ) ) ;
       pMachine->state = STATE_READY ;
       pMachine->parseMode = CJSON_LOOSE_PARSE ;
+      pMachine->isUnicode = TRUE ;
       pMachine->level = 0 ;
       pMachine->isCheckEnd = FALSE ;
    }
@@ -2970,13 +3073,15 @@ SDB_EXPORT CJSON_MACHINE* cJsonCreate()
 
 SDB_EXPORT void cJsonInit( CJSON_MACHINE *pMachine,
                            CJSON_PARSE_MODE mode,
-                           BOOLEAN isCheckEnd )
+                           BOOLEAN isCheckEnd,
+                           BOOLEAN isUnicode )
 {
    CJSON_MEMORY_BLOCK *pBlock = NULL ;
    pMachine->state = STATE_READY ;
    pMachine->parseMode = mode ;
    pMachine->level = 0 ;
    pMachine->isCheckEnd = isCheckEnd ;
+   pMachine->isUnicode = isUnicode ;
    pMachine->pItem = NULL ;
    pMachine->pMemBlock = pMachine->pFirstMemBlock ;
    pBlock = pMachine->pMemBlock ;

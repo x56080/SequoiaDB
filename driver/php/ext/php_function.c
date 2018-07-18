@@ -193,7 +193,7 @@ INT32 php_jsonFind( const CHAR *pStr,
       goto error ;
    }
 
-   cJsonInit( pMachine, CJSON_RIGOROUS_PARSE, TRUE ) ;
+   cJsonInit( pMachine, CJSON_RIGOROUS_PARSE, TRUE, TRUE ) ;
    if( cJsonParse( pStr, pMachine ) == FALSE )
    {
       rc = SDB_INVALIDARG ;
