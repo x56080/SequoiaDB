@@ -163,7 +163,7 @@ static const CHAR* parseValue( const CHAR *pStr,
 static CHAR* parseString( const CHAR *pStr,
                           INT32 length,
                           const CJSON_MACHINE *pMachine ) ;
-static UINT32 parseHex( const CHAR *pStr, INT32 length, INT32 *pHexStrLen ) ;
+static BOOLEAN parseHex( const CHAR *pStr, UINT32 *code ) ;
 static INT32 utf16ToUtf8( const CHAR *pStr, INT32 length, CHAR **pOut ) ;
 static const CHAR* parseNumber( const CHAR *pStr,
                                 INT32 *pValInt,
@@ -1530,6 +1530,9 @@ static CHAR* parseString( const CHAR *pStr,
                sequenceLength = utf16ToUtf8( pStr, length, &pOut ) ;
                if( 0 == sequenceLength )
                {
+                  sequenceLength = 2 ;
+                  *pOut = pStr[0] ;
+                  ++pOut ;
                   *pOut = pStr[1] ;
                   ++pOut ;
                }
@@ -1566,38 +1569,39 @@ error:
 }
 
 /* parse hexadecimal number */
-static UINT32 parseHex( const CHAR *pStr, INT32 length, INT32 *pHexStrLen )
+static BOOLEAN parseHex( const CHAR *pStr, UINT32 *code )
 {
    UINT32 h = 0 ;
-   INT32 i = 0 ;
 
-   for ( i = 0; i < length; ++i )
+   for ( INT32 i = 0; i < 4; ++i )
    {
       /* parse digit */
       if ( ( pStr[i] >= '0' ) && ( pStr[i] <= '9' ) )
       {
-         h = h << 4 ;
          h += (UINT32) pStr[i] - '0' ;
       }
       else if ( ( pStr[i] >= 'A' ) && ( pStr[i] <= 'F' ) )
       {
-         h = h << 4 ;
          h += (UINT32) 10 + pStr[i] - 'A' ;
       }
       else if ( ( pStr[i] >= 'a' ) && ( pStr[i] <= 'f' ) )
       {
-         h = h << 4 ;
          h += (UINT32) 10 + pStr[i] - 'a' ;
       }
       else
       {
-         break ;
+         return FALSE ;
+      }
+
+      if( i < 3 )
+      {
+         h = h << 4 ;
       }
    }
 
-   *pHexStrLen = i ;
+   *code = h ;
 
-   return h ;
+   return TRUE ;
 }
 
 /* converts a UTF-16 literal to UTF-8
@@ -1608,19 +1612,21 @@ static INT32 utf16ToUtf8( const CHAR *pStr, INT32 length, CHAR **pOut )
    INT32 utf8Length = 0 ;
    INT32 utf8Position = 0 ;
    INT32 sequenceLength = 0 ;
-   INT32 firstHexLength = 0 ;
    UINT32 firstCode = 0 ;
    UINT64 codepoint = 0 ;
    const CHAR *firstSequence = pStr;
 
-   if ( length < 3 )
+   if ( length < 6 )
    {
       /* input ends unexpectedly */
       goto error ;
    }
 
    /* get the first utf16 sequence */
-   firstCode = parseHex( firstSequence + 2, length, &firstHexLength ) ;
+   if ( parseHex( firstSequence + 2, &firstCode ) == FALSE )
+   {
+      goto error ;
+   }
 
    /* check that the code is valid */
    if ( ( ( firstCode >= 0xDC00 ) && ( firstCode <= 0xDFFF ) ) )
@@ -1628,17 +1634,16 @@ static INT32 utf16ToUtf8( const CHAR *pStr, INT32 length, CHAR **pOut )
       goto error ;
    }
 
-   sequenceLength = 2 + firstHexLength ;
+   sequenceLength = 6 ;
 
    /* UTF16 surrogate pair */
    if ( ( firstCode >= 0xD800 ) && ( firstCode <= 0xDBFF ) )
    {
-      INT32 secondHexLength = 0 ;
       UINT32 secondCode = 0;
-      const CHAR *secondSequence = firstSequence + 2 + firstHexLength ;
+      const CHAR *secondSequence = firstSequence + 6 ;
 
       length -= sequenceLength ;
-      if ( length < 3 )
+      if ( length < 6 )
       {
          /* input ends unexpectedly */
          goto error ;
@@ -1651,9 +1656,10 @@ static INT32 utf16ToUtf8( const CHAR *pStr, INT32 length, CHAR **pOut )
       }
 
       /* get the second utf16 sequence */
-      secondCode = parseHex( secondSequence + 2, length, &secondHexLength ) ;
-
-      sequenceLength += 2 + secondHexLength ;
+      if ( parseHex( secondSequence + 2, &secondCode ) )
+      {
+         goto error ;
+      }
 
       /* check that the code is valid */
       if ( ( secondCode < 0xDC00 ) || ( secondCode > 0xDFFF ) )
@@ -1661,6 +1667,8 @@ static INT32 utf16ToUtf8( const CHAR *pStr, INT32 length, CHAR **pOut )
          /* invalid second half of the surrogate pair */
          goto error ;
       }
+
+      sequenceLength += 6 ;
 
       /* calculate the unicode codepoint from the surrogate pair */
       codepoint = 0x10000 +
