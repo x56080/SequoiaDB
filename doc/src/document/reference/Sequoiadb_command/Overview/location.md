@@ -14,7 +14,7 @@
 | svcname | string 或数组 | 节点的服务名 | 否 |
 | NodeSelect | string | 在未指定节点时分区组的节点选择策略，取值：<br> *all*: 选择该组所有节点<br>*master(primary)*: 选择该组主节点<br>*any*: 选择该组任意节点<br>*secondary*: 选择该组任意备节点  | 否 |
 | Role | string 或数组 | 指定命令运行的节点角色，取值：<br> *data*: 数据节点<br> *catalog*: 编目节点<br> *coord*: 协调节点<br> *all*: 所有节点 | 否 |
-| RawData | bool | 是否返回原始数据，仅对 list或snapshot命令生效，<br>为false则返回数据不在协调节点进行聚集处理 | 否 |
+| RawData | bool | 是否返回原始数据，仅对 [list](reference/Sequoiadb_command/Sdb/list.md) 或 [snapshot](reference/Sequoiadb_command/Sdb/snapshot.md) 命令生效，<br>为 true 则返回各节点的原始数据，不在协调节点进行聚集处理 | 否 |
 
 
 > **Note:**
