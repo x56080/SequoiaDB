@@ -1571,9 +1571,10 @@ error:
 /* parse hexadecimal number */
 static BOOLEAN parseHex( const CHAR *pStr, UINT32 *code )
 {
+   INT32 i = 0 ;
    UINT32 h = 0 ;
 
-   for ( INT32 i = 0; i < 4; ++i )
+   for ( i = 0; i < 4; ++i )
    {
       /* parse digit */
       if ( ( pStr[i] >= '0' ) && ( pStr[i] <= '9' ) )
