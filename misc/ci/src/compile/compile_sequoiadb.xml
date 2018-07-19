@@ -41,6 +41,7 @@
             <antcall target="copy_package_file"/>
             <antcall target="build_run_package"/>
             <antcall target="build_bin_package"/>
+            <antcall target="build_tar_package"/>
             <antcall target="build_cov_package"/>
          </else>
       </if>
