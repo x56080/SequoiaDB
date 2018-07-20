@@ -645,16 +645,17 @@ namespace exprt
             if ( isdigit( nextCh ) )
             {
                INT64 c = 0 ;
+               INT64 newC = 0 ;
 
                while ( len > 0 && isdigit( *str ) )
                {
-                  c = c * 10 + ( *str - '0' ) ;
+                  newC = c * 10 + ( *str - '0' ) ;
                   // the max ascii is 127
-                  if ( c < 0 || c > 127 )
+                  if ( newC < 0 || newC > 127 )
                   {
-                     rc = SDB_INVALIDARG ;
-                     goto error ;
+                     break ;
                   }
+                  c = newC ;
                   str++ ;
                   len-- ;
                }
@@ -709,39 +710,42 @@ namespace exprt
             if ( 'x' == nextCh )
             {
                INT64 c = 0 ;
+               INT64 newC = 0 ;
 
-               str++ ;
-               len-- ;
-
-               if ( !isxdigit( *str ) )
+               if ( IS_HEX( *( str + 1 ) ) )
                {
-                  rc = SDB_INVALIDARG ;
-                  goto error ;
-               }
-
-               while ( len > 0 && isxdigit( *str ) )
-               {
-                  if ( '0' == *str && len > 1 && 'x' == *( str + 1 ) )
-                  {
-                     break ;
-                  }
-
-                  c = c * 16 + hexValue( *str ) ;
-
-                  // the max ascii is 127
-                  if ( c < 0 || c > 127 )
-                  {
-                     rc = SDB_INVALIDARG ;
-                     goto error ;
-                  }
                   str++ ;
                   len-- ;
+
+                  while ( len > 0 && IS_HEX( *str ) )
+                  {
+                     if ( '0' == *str && len > 1 && 'x' == *( str + 1 ) )
+                     {
+                        break ;
+                     }
+
+                     newC = c * 16 + hexValue( *str ) ;
+
+                     // the max ascii is 127
+                     if ( newC < 0 || newC > 127 )
+                     {
+                        break ;
+                     }
+                     c = newC ;
+                     str++ ;
+                     len-- ;
+                  }
+
+                  ss << ( CHAR )c ;
+                  hasHex = true ;
+
+                  continue ;
                }
-
-               ss << ( CHAR )c ;
-               hasHex = true ;
-
-               continue ;
+               else
+               {
+                  str-- ;
+                  len++ ;
+               }
             }
             else
             {
