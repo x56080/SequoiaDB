@@ -245,6 +245,7 @@ namespace engine
          rc = SDB_IXM_UNEXPECTED_STATUS ;
          goto error ;
       }
+      try
       {
          // compare with pure tablescan, each index scan need to advance +
          // compare key + fetch, which could be significantely more expensive
@@ -357,6 +358,13 @@ namespace engine
                               ( 0 == nQueryFields );
          }
       }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
       PD_LOG ( PDDEBUG, "Index Scan Estimation: %s : %d",
                indexCB.getName (), costEstimation ) ;
 

@@ -3841,24 +3841,40 @@ namespace engine
                     strCollectionName, rc ) ;
 
    retry :
-      // if the collection is sharded, we have to extract the index key and
-      // make sure sharding key is included if it's unique index
-      if ( cataInfo->isSharded() )
+      try
       {
+         BSONObj arg ( pQuery ) ;
+         BSONObj indexObj ;
+         BSONObj indexKey ;
+         BSONElement indexUnique ;
+         BOOLEAN isUnique = TRUE ;
+
+         rc = rtnGetObjElement ( arg, FIELD_NAME_INDEX, indexObj ) ;
+         PD_RC_CHECK ( rc, PDERROR,
+                       "Failed to get object index, rc = %d", rc ) ;
+
+         rc = rtnGetObjElement ( indexObj, IXM_KEY_FIELD, indexKey ) ;
+         PD_RC_CHECK ( rc, PDERROR,
+                       "Failed to get key for index: %s, rc = %d",
+                       indexObj.toString().c_str(), rc ) ;
+
+         // index key obj shouldn't has more than 32 field
          try
          {
-            BSONObj arg ( pQuery ) ;
-            BSONObj indexObj ;
-            BSONObj indexKey ;
-            BSONElement indexUnique ;
-            BOOLEAN isUnique = TRUE ;
-            rc = rtnGetObjElement ( arg, FIELD_NAME_INDEX, indexObj ) ;
-            PD_RC_CHECK ( rc, PDERROR,
-                          "Failed to get object index, rc = %d", rc ) ;
-            rc = rtnGetObjElement ( indexObj, IXM_KEY_FIELD, indexKey ) ;
-            PD_RC_CHECK ( rc, PDERROR,
-                          "Failed to get key for index: %s, rc = %d",
-                          indexObj.toString().c_str(), rc ) ;
+            bson::Ordering::make ( indexKey ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Occur exception: %s, index obj: %s",
+                    e.what(), indexKey.toString().c_str() ) ;
+            goto error ;
+         }
+
+         // if the collection is sharded, we have to extract the index key and
+         // make sure sharding key is included if it's unique index
+         if ( cataInfo->isSharded() )
+         {
             indexUnique = indexObj.getField ( IXM_UNIQUE_FIELD ) ;
             if ( indexUnique.type() != Bool )
             {
@@ -3890,14 +3906,15 @@ namespace engine
                             indexObj.toString().c_str(),
                             strCollectionName, rc ) ;
             }
-         } // try
-         catch ( std::exception &e )
-         {
-            PD_RC_CHECK ( SDB_SYS, PDERROR,
-                          "Exception during extracting unique key: %s",
-                          e.what() ) ;
-         }
-      } // if ( beCollectionName.type()!=String )
+         } // if ( beCollectionName.type()!=String )
+      } // try
+      catch ( std::exception &e )
+      {
+         PD_RC_CHECK ( SDB_SYS, PDERROR,
+                       "Exception during extracting unique key: %s",
+                       e.what() ) ;
+      }
+
 
       rc = executeOnCL( pMsg, cb, strCollectionName, FALSE, NULL,
                         NULL, &sucGrpLst ) ;
