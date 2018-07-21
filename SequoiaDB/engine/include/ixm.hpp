@@ -47,6 +47,7 @@
 #include "ossUtil.hpp"
 #include "ixmIndexKey.hpp"
 #include "msgDef.h"
+#include "../bson/ordering.h"
 
 using namespace std ;
 using namespace bson ;
@@ -262,20 +263,30 @@ namespace engine
          {
             return FALSE ;
          }
-         else
+
+         BSONObjIterator i( obj ) ;
+         while ( i.more() )
          {
-            BSONObjIterator i( obj ) ;
-            while ( i.more() )
+            BSONElement e = i.next() ;
+            const CHAR *fieldName = e.fieldName() ;
+            if ( NULL == fieldName ||
+                 '\0' == fieldName[0] ||
+                 NULL != ossStrchr( fieldName, '$' ) )
             {
-               BSONElement e = i.next() ;
-               const CHAR *fieldName = e.fieldName() ;
-               if ( NULL == fieldName ||
-                    '\0' == fieldName[0] ||
-                    NULL != ossStrchr( fieldName, '$' ) )
-               {
-                  return FALSE ;
-               }
+               return FALSE ;
             }
+         }
+
+         try
+         {
+            // index key obj shouldn't has more than 32 field
+            Ordering::make ( obj ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s, index obj: %s",
+                    e.what(), obj.toString().c_str() ) ;
+            return FALSE ;
          }
 
          return TRUE ;
@@ -528,7 +539,7 @@ namespace engine
          INT32 fieldCount = 0 ;
          BOOLEAN isUniq = FALSE ;
          BOOLEAN enforced = FALSE ;
-         // make sure the index def is not too large 
+         // make sure the index def is not too large
          if ( obj.objsize() + sizeof(_IDToInsert) +
               IXM_INDEX_CB_EXTENT_METADATA_SIZE >= IXM_PAGE_SIZE4K )
          {

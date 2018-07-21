@@ -573,6 +573,24 @@ namespace engine
                    "Failed to get the collection [%s], rc: %d",
                    _dataName.c_str(), rc ) ;
 
+      rc = rtnGetObjElement ( _boIdx, IXM_KEY_FIELD, _boIdxKey ) ;
+      PD_RC_CHECK ( rc, PDWARNING,
+                    "Failed to get [%s] for index [%s], rc: %d",
+                    IXM_KEY_FIELD, _boIdx.toString().c_str(), rc ) ;
+
+      try
+      {
+         // index key obj shouldn't has more than 32 field
+         bson::Ordering::make ( _boIdxKey ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s, create index: %s, cl name: %s",
+                 e.what(), _boIdxKey.toString().c_str(), _dataName.c_str() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
       rc = cataSet.updateCatSet( _boData );
       PD_RC_CHECK( rc, PDWARNING,
                    "Failed to parse catalog info [%s], rc: %d",
@@ -580,11 +598,6 @@ namespace engine
 
       if ( cataSet.isSharding() )
       {
-         rc = rtnGetObjElement ( _boIdx, IXM_KEY_FIELD, _boIdxKey ) ;
-         PD_RC_CHECK ( rc, PDWARNING,
-                       "Failed to get [%s] for index [%s], rc: %d",
-                       IXM_KEY_FIELD, _boIdx.toString().c_str(), rc ) ;
-
          rc = rtnGetBooleanElement ( _boIdx, IXM_UNIQUE_FIELD, _isUnique ) ;
          if ( SDB_FIELD_NOT_EXIST == rc )
          {

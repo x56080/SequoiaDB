@@ -246,6 +246,7 @@ namespace engine
          rc = SDB_IXM_UNEXPECTED_STATUS ;
          goto error ;
       }
+      try
       {
          // compare with pure tablescan, each index scan need to advance +
          // compare key + fetch, which could be significantely more expensive
@@ -318,20 +319,20 @@ namespace engine
             if (( it = predicates.find( keyEle.fieldName() ))
                   != predicates.end() )
             {
-               // some cases have predicates, though it's not 
+               // some cases have predicates, though it's not
                // that proper to use index, such as the case
                // with max and min boundanry,
                // so we need to lead such cases to table scan here
                startStopKey = it->second._startStopKeys[0] ;
                startKey = startStopKey._startKey._bound ;
                stopKey = startStopKey._stopKey._bound ;
-               
+
                if(0 == startKey.woCompare( bson::minKey.firstElement() ) &&
                   0 == stopKey.woCompare( bson::maxKey.firstElement() ))
                {
                   break;
                }
-               
+
                ++matchedFields ;
             }
             else
@@ -358,6 +359,13 @@ namespace engine
                               ( 0 == nQueryFields );
          }
       }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
       PD_LOG ( PDDEBUG, "Index Scan Estimation: %s : %d",
                indexCB.getName (), costEstimation ) ;
 
