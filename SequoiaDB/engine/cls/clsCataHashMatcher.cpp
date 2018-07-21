@@ -430,7 +430,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION( SDB_CLSCATAHASHMATCHER_PARSEANOBJ, "clsCataHashMatcher::parseAnObj" )
    INT32 clsCataHashMatcher::parseAnObj( const BSONObj &matcher,
-                                         clsCataHashPredTree &predicateSet )
+                                         clsCataHashPredTree &predicateSet,
+                                         BOOLEAN *pForceEnd )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CLSCATAHASHMATCHER_PARSEANOBJ ) ;
@@ -462,6 +463,10 @@ namespace engine
                  ( predicateSet.isNull() &&
                    predicateSet.getLogicType() == CLS_CATA_LOGIC_AND ) )
             {
+               if ( pForceEnd )
+               {
+                  *pForceEnd = TRUE ;
+               }
                break ;
             }
          }
@@ -562,8 +567,9 @@ namespace engine
          }
 
          {
+            BOOLEAN forceEnd = FALSE ;
             BSONObjIterator iter( beField.embeddedObject() ) ;
-            while ( iter.more() )
+            while ( iter.more() && !forceEnd )
             {
                BSONObj boTmp ;
                BSONElement beTmp = iter.next() ;
@@ -571,7 +577,7 @@ namespace engine
                          PDERROR, "Failed to parse logic-operation field, "
                          "the field type must be Object!" ) ;
                boTmp = beTmp.embeddedObject() ;
-               rc = parseAnObj( boTmp, *pPredicateSet );
+               rc = parseAnObj( boTmp, *pPredicateSet, &forceEnd );
                PD_RC_CHECK( rc, PDERROR, "Failed to parse the field"
                             "( field:%s, rc=%d )", beTmp.toString().c_str(),
                             rc ) ;
