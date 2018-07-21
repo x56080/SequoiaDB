@@ -119,7 +119,8 @@ namespace engine
 
    private:
       INT32 parseAnObj( const bson::BSONObj &matcher,
-                        clsCataHashPredTree &predicateSet );
+                        clsCataHashPredTree &predicateSet,
+                        BOOLEAN *pForceEnd = NULL );
 
       INT32 parseCmpOp( const bson::BSONElement &beField,
                         clsCataHashPredTree &predicateSet );
