@@ -766,6 +766,12 @@
             <showMessageOnError>0</showMessageOnError>
         </runProgram>
         <runProgram>
+            <program>${installdir}/bin/sdbcmtop</program>
+            <programArguments></programArguments>
+            <abortOnError>0</abortOnError>
+            <showMessageOnError>0</showMessageOnError>
+        </runProgram>
+        <runProgram>
             <program>${installdir}/bin/sdbstop</program>
             <programArguments>-t all</programArguments>
             <runAs>${username}</runAs>
