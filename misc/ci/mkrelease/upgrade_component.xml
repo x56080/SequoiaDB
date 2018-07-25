@@ -193,12 +193,33 @@
             <showMessageOnError>0</showMessageOnError>
         </runProgram>
         <setInstallerVariable name="service_origin_status" value="${program_exit_code}"/>
+        <setInstallerVariable name="cm_num" value="-1"/>
+        <setInstallerVariableFromScriptOutput>
+            <name>cm_num</name>
+            <exec>${installdir}/bin/sdblist</exec>
+            <execArgs>-t cm | grep -v "Total" | wc -l</execArgs>
+            <abortOnError>0</abortOnError>
+            <showMessageOnError>0</showMessageOnError>
+        </setInstallerVariableFromScriptOutput>
+        <setInstallerVariable>
+            <name>service_origin_status</name>
+            <value>0</value>
+            <ruleList>
+                <compareValues value1="${cm_num}" logic="greater" value2="0"/>
+            </ruleList>
+        </setInstallerVariable>
         <actionGroup>
             <actionList>
                 <runProgram>
                     <program>service</program>
                     <programArguments> sdbcm stop</programArguments>
                     <abortOnError>0</abortOnError>
+                </runProgram>
+                <runProgram>
+                    <program>${installdir}/bin/sdbcmtop</program>
+                    <programArguments></programArguments>
+                    <abortOnError>0</abortOnError>
+                    <showMessageOnError>0</showMessageOnError>
                 </runProgram>
             </actionList>
             <ruleList>
