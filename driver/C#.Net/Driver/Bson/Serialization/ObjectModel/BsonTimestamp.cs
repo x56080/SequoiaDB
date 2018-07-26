@@ -34,7 +34,10 @@ namespace SequoiaDB.Bson
         /// <summary>
         /// Initializes a new instance of the BsonTimestamp class.
         /// </summary>
-        /// <param name="value">The combined timestamp/increment value.</param>
+        /// <param name="value">The combined timestamp/increment value. 
+        /// e.g. when timstamp is "2147483647s", 
+        /// and the increment is "123456ms"(both the timestamp and the increment are should be int32 values),
+        /// the value = (long)(((ulong)(uint)2147483647 << 32) | ((ulong)(uint)123456)).</param>
         public BsonTimestamp(long value)
             : base(BsonType.Timestamp)
         {
@@ -49,7 +52,7 @@ namespace SequoiaDB.Bson
         public BsonTimestamp(int timestamp, int increment)
             : base(BsonType.Timestamp)
         {
-            _value = ((long)timestamp << 32) + increment;
+            _value = (long)(((ulong)(uint)timestamp << 32) | ((ulong)(uint)increment));
         }
 
         // public operators
