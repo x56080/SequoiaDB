@@ -95,7 +95,7 @@ using SequoiaDB.Bson;
   string date = DateTime.Now.ToString();
   insertor.Add("operation", "Insert");
   insertor.Add("date", date);
-  ObjectId id = dbc.Insert(insertor);
+  BsonValue id = dbc.Insert(insertor);
   ```
 
   当然，BsonDocument 中还可以嵌套 BsonDocument 对象；而且你还可以直接 new 一个完整的 BsonDocument，而不需要通过 Add 方法：
@@ -131,9 +131,9 @@ using SequoiaDB.Bson;
   ```lang-javascript
   //bulkinsert
   List< BsonDocument > insertor=new List < BsonDocument > ();
-  for(inti=0;i<10;i++)
+  for(int i=0;i<10;i++)
   {
-       BsonDocumentobj=new BsonDocument();
+       BsonDocument obj=new BsonDocument();
        obj.Add("operation","BulkInsert");
        obj.Add("date",DateTime.Now.ToString());
        insertor.Add(obj);
