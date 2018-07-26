@@ -452,7 +452,11 @@ namespace SequoiaDB
          */
         public void Update(DBQuery query) 
         {
-            _Update(0, query.Matcher, query.Modifier, query.Hint);
+            if (query == null)
+            {
+                throw new BaseException("SDB_INVALIDARG");
+            }
+            _Update(query.Flag, query.Matcher, query.Modifier, query.Hint);
         }
 
         /** \fn void Update(BsonDocument matcher, BsonDocument modifier, BsonDocument hint)
