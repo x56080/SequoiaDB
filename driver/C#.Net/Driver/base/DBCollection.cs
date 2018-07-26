@@ -306,8 +306,9 @@ namespace SequoiaDB
         /** \fn BsonValue Insert(BsonDocument record)
          *  \brief Insert a document into current collection
          *  \param insertor The Bson document of insertor, can't be null
-         *  \return The value of field "_id" in "insertor", if "insertor" has no field "_id",
-         *          API will add one and return the value which type is ObjectId
+         *  \return Return the value of field "_id" in "insertor". If "insertor" has no field "_id",
+         *          API will add one and return the value which type is ObjectId, so we can get the 
+         *          return value by BsonValue::AsObjectId property.
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
          */
