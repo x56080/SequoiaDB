@@ -4798,14 +4798,14 @@ SDB_EXPORT INT32 sdbRenameCollection( sdbCSHandle cHandle,
                                       bson *options )
 {
    INT32 rc                        = SDB_OK ;
+   CHAR fullCollectionName [ CLIENT_COLLECTION_NAMESZ + CLIENT_CS_NAMESZ + 2 ] = {0};
    sdbCSStruct *cs                 = (sdbCSStruct*)cHandle ;
    sdbConnectionStruct *connection = NULL ;
-   CHAR fullCollectionName [ CLIENT_COLLECTION_NAMESZ + CLIENT_CS_NAMESZ + 2 ] = {0};
-
+   BOOLEAN bsoninit                = FALSE ;
    bson query ;
-   BOOLEAN bsoninit = FALSE ;
-   HANDLE_CHECK( cHandle, cs, SDB_HANDLE_TYPE_CS ) ;
 
+   BSON_INIT( query ) ;
+   HANDLE_CHECK( cHandle, cs, SDB_HANDLE_TYPE_CS ) ;
    if ( !pOldName || !*pOldName || !pNewName || !*pNewName )
    {
       rc = SDB_INVALIDARG ;
@@ -4813,7 +4813,6 @@ SDB_EXPORT INT32 sdbRenameCollection( sdbCSHandle cHandle,
    }
    connection = (sdbConnectionStruct*)(cs->_connection) ;
 
-   BSON_INIT( query ) ;
    BSON_APPEND( query, FIELD_NAME_COLLECTIONSPACE, cs->_CSName, string ) ;
    BSON_APPEND( query, FIELD_NAME_OLDNAME, pOldName, string ) ;
    BSON_APPEND( query, FIELD_NAME_NEWNAME, pNewName, string ) ;
@@ -10764,13 +10763,18 @@ SDB_EXPORT INT32 sdbLoadCollectionSpace( sdbConnectionHandle cHandle,
                                          bson *options )
 {
    INT32 rc = SDB_OK ;
+   sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
    BOOLEAN bsoninit = FALSE ;
    bson query ;
-   sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
 
-   HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
+   if ( !csName || !*csName || ossStrlen ( csName ) > CLIENT_CS_NAMESZ )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
 
    BSON_INIT( query ) ;
+   HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
    BSON_APPEND( query, FIELD_NAME_NAME, csName, string ) ;
    if ( options )
    {
@@ -10804,6 +10808,12 @@ SDB_EXPORT INT32 sdbLoadCollectionSpace( sdbConnectionHandle cHandle,
       goto error ;
    }
 
+   rc = insertCachedObject( connection->_tb, csName ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
 done:
    BSON_DESTROY( query ) ;
    return rc ;
@@ -10816,19 +10826,18 @@ SDB_EXPORT INT32 sdbUnloadCollectionSpace( sdbConnectionHandle cHandle,
                                            bson *options )
 {
    INT32 rc = SDB_OK ;
+   sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
    BOOLEAN bsoninit = FALSE ;
    bson query ;
-   sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
 
+   BSON_INIT( query ) ;
    HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
-
    if ( !csName || !*csName )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
 
-   BSON_INIT( query ) ;
    BSON_APPEND( query, FIELD_NAME_NAME, csName, string ) ;
    if ( options )
    {
@@ -10861,6 +10870,13 @@ SDB_EXPORT INT32 sdbUnloadCollectionSpace( sdbConnectionHandle cHandle,
    {
       goto error ;
    }
+
+   rc = removeCachedObject( connection->_tb, csName, FALSE ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
 
 done:
    BSON_DESTROY( query ) ;
@@ -10952,20 +10968,19 @@ SDB_EXPORT INT32 sdbRenameCollectionSpace( sdbConnectionHandle cHandle,
                                            const CHAR *pNewName,
                                            bson *options )
 {
-   INT32 rc = SDB_OK ;
+   INT32 rc         = SDB_OK ;
+   sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
    BOOLEAN bsoninit = FALSE ;
    bson query ;
-   sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
 
+   BSON_INIT( query ) ;
    HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
-
    if ( !pOldName || !*pOldName || !pNewName || !*pNewName )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
 
-   BSON_INIT( query ) ;
    BSON_APPEND( query, FIELD_NAME_OLDNAME, pOldName, string ) ;
    BSON_APPEND( query, FIELD_NAME_NEWNAME, pNewName, string ) ;
    if ( options )
@@ -11000,6 +11015,13 @@ SDB_EXPORT INT32 sdbRenameCollectionSpace( sdbConnectionHandle cHandle,
    {
       goto error ;
    }
+
+   rc = removeCachedObject( connection->_tb, pOldName, FALSE ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
 
 done:
    BSON_DESTROY( query ) ;
