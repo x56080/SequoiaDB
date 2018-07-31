@@ -25,12 +25,12 @@ class evalJsTest extends PHPUnit_Framework_TestCase
     
     public function testEvalJS()
     {
-       $err = $this->db->createJsProcedure( 'function sum( a,b ){ return a + b ; }' ) ;
+       $err = $this->db->createJsProcedure( 'function sum7703( a,b ){ return a + b ; }' ) ;
        $this->assertEquals( 0, $err['errno'] ) ;
        
-       $result = $this->db->evalJs( 'sum( 1, 2 );' ) ;
+       $result = $this->db->evalJs( 'sum7703( 1, 2 );' ) ;
        $this->assertEquals( 3, $result ) ; 
-       $err = $this->db->removeProcedure( 'sum' ) ;
+       $err = $this->db->removeProcedure( 'sum7703' ) ;
        $this->assertEquals( 0, $err['errno'] ) ; 
     }
     

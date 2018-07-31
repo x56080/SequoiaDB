@@ -425,7 +425,7 @@ TEST_F( sdbParaVerify, procedure )
    INT32 rc = SDB_OK ;
 
    // test sdbCrtJSProcedure
-   const CHAR* code = "function sum(x, y) { return x+y ; }" ;
+   const CHAR* code = "function sum14298(x, y) { return x+y ; }" ;
    rc = sdbCrtJSProcedure( NULL, code ) ;
    ASSERT_EQ( SDB_INVALIDARG, rc ) ;  
    rc = sdbCrtJSProcedure( SDB_INVALID_HANDLE, code ) ;
@@ -436,7 +436,7 @@ TEST_F( sdbParaVerify, procedure )
    ASSERT_EQ( SDB_INVALIDARG, rc ) ;
 
    // test sdbRmProcedure
-   const CHAR* spName = "sum" ;
+   const CHAR* spName = "sum14298" ;
    rc = sdbRmProcedure( NULL, spName ) ;
    ASSERT_EQ( SDB_INVALIDARG, rc ) ;  
    rc = sdbRmProcedure( SDB_INVALID_HANDLE, spName ) ;

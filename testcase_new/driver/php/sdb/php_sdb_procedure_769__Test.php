@@ -44,13 +44,13 @@ class ProcedureTest extends PHPUnit_Framework_TestCase
    
    public function testCreate()
    {
-      $err = self::$procedure->create( 'function sum( a,b ){ return a + b ; }' );
+      $err = self::$procedure->create( 'function sum7693( a,b ){ return a + b ; }' );
       $this->assertEquals( 0, $err ) ;
       
-      $result = self::$procedure->exec( 'sum(1,2)' );
+      $result = self::$procedure->exec( 'sum7693(1,2)' );
       $this->assertEquals( 3, $result ) ;
       
-      $ret = self::$procedure->listbyname( 'sum' );
+      $ret = self::$procedure->listbyname( 'sum7693' );
       $this->assertEquals( true, $ret ) ;
    }
    
@@ -59,10 +59,10 @@ class ProcedureTest extends PHPUnit_Framework_TestCase
     */
    public function testRemove()
    {
-      $err = self::$procedure->remove( 'sum' );
+      $err = self::$procedure->remove( 'sum7693' );
       $this->assertEquals( 0, $err ) ;
       
-      $err = self::$procedure->exec( 'sum(1,2)' );
+      $err = self::$procedure->exec( 'sum7693(1,2)' );
       $this->assertEquals( -152, $err ) ;
    }
    
@@ -71,7 +71,7 @@ class ProcedureTest extends PHPUnit_Framework_TestCase
     */
    public function testList()
    {
-      $ret = self::$procedure->listbyname( 'sum' );
+      $ret = self::$procedure->listbyname( 'sum7693' );
       $this->assertEquals( false, $ret ) ;
    }
    

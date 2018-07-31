@@ -15,24 +15,24 @@ class TestListProcedures12504(testlib.SdbTestBase):
       if testlib.is_standalone():
          self.skipTest('run mode is standalone')
       try:
-         self.db.remove_procedure('sum')  
+         self.db.remove_procedure('sum12491')  
       except SDBBaseError as e:
          if -233 != e.code:
             self.fail('set up fail: ' + e.detail)         
 
    def test_list_procedures_12504(self):
       # create procedure
-      code = 'function sum(x,y) { return x+y;}'
+      code = 'function sum12491(x,y) { return x+y;}'
       self.db.create_procedure(code)
       
       # list 8
-      expect_result = {'name': 'sum'}
+      expect_result = {'name': 'sum12491'}
       act_result = self.get_list_procedures()
       # check list
       self.check_list(expect_result, act_result)
 		
    def tearDown(self):
-      name = 'sum'
+      name = 'sum12491'
       self.db.remove_procedure(name)
 
    def get_list_procedures(self):
@@ -50,7 +50,7 @@ class TestListProcedures12504(testlib.SdbTestBase):
       while True:
          try:
             rec = cursor.next()
-            if 'sum' == rec['name']:
+            if 'sum12491' == rec['name']:
                item = {'name': rec['name']}
                cursor.close()
                break

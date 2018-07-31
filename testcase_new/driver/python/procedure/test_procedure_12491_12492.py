@@ -19,30 +19,30 @@ class TestProcedure12491(testlib.SdbTestBase):
 
    def test_procedure_12491(self):
       # check create result
-      code = 'function sum(x,y) { return x + y; }'
+      code = 'function sum12491(x,y) { return x + y; }'
       self.check_create_procedure(code)
 
       # check list result
-      condition = {'name': 'sum'}
-      expectResult = {'name': 'sum','code': Code(code)}
+      condition = {'name': 'sum12491'}
+      expectResult = {'name': 'sum12491','code': Code(code)}
       self.check_list_procedure(condition,expectResult)
 
       # check eval
-      name = 'sum(1,2)'
+      name = 'sum12491(1,2)'
       expectResult = 3
       self.check_eval_procedure(name,expectResult)
 
       # check remove result
-      name = 'sum'
+      name = 'sum12491'
       self.check_remove_procedure(name)
 
       # check remove not exist procedure(seqDB-12492)
-      names = ["sum", "find", "remove", "update", "insert"]
+      names = ["sum12491", "find", "remove", "update", "insert"]
       self.check_remove_none_procedure(names)
 
    def tearDown(self):
       if self.should_clean_env():
-         name = 'sum'
+         name = 'sum12491'
          try:
             self.db.remove_procedure(name)
          except SDBBaseError as e:
