@@ -1543,7 +1543,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @return cursor of all collecionspace names
+     * @return information of all replica groups.
      * @throws com.sequoiadb.exception.BaseException
      * @fn DBCursor listReplicaGroups()
      * @brief List all the replica group.
