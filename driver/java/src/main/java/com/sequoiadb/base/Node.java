@@ -109,7 +109,7 @@ public class Node {
      * @return The Sequoiadb object of current node.
      * @throws com.sequoiadb.exception.BaseException
      * @fn Sequoiadb connect ()
-     * @brief Connect to current node with the same username and password.
+     * @brief Connect to current node with the same username and password of coordination node.
      */
     public Sequoiadb connect() throws BaseException {
         ddb = new Sequoiadb(hostName, port, rg.getSequoiadb().getUserName(),
@@ -131,9 +131,12 @@ public class Node {
     }
 
     /**
-     * @return The Sequoiadb object of current node.
+     * @return The Sequoiadb object of current node or null for having not
+     * connected to the current node yet.
      * @fn Sequoiadb getSdb()
      * @brief Get the Sequoiadb of current node.
+     * @see Node#connect()
+     * @see Node#connect(String, String)
      */
     public Sequoiadb getSdb() {
         return ddb;
