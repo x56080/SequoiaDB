@@ -171,7 +171,7 @@ public class Sequoiadb {
         if (enableCache) {
             if (nameCache.containsKey(name)) {
                 long lastUpdatedTime = nameCache.get(name);
-                if ((System.currentTimeMillis() - lastUpdatedTime) > cacheInterval) {
+                if ((System.currentTimeMillis() - lastUpdatedTime) >= cacheInterval) {
                     nameCache.remove(name);
                     return false;
                 } else {
