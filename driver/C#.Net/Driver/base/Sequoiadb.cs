@@ -93,7 +93,7 @@ namespace SequoiaDB
                     nameCache.Remove(name);
                     return false;
                 }
-                if ((DateTime.Now - value).TotalMilliseconds > cacheInterval)
+                if ((DateTime.Now - value).TotalMilliseconds >= cacheInterval)
                 {
                     nameCache.Remove(name);
                     return false;
