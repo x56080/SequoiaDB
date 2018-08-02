@@ -41,7 +41,7 @@ TEST_F( evalJSTest12525, void12525 )
    }
    INT32 rc = SDB_OK ;
    
-   const CHAR* code = "" ;
+   const CHAR* code = "db.flushConfigure({Global:false})" ;
    SDB_SPD_RES_TYPE type ;
    sdbCursor cursor ;
    BSONObj errmsg ;
