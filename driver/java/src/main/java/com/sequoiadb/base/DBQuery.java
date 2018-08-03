@@ -76,15 +76,16 @@ public class DBQuery {
 	 * @brief Query and modify.
 	 */
 	static final int FLG_QUERY_MODIFY  = 0x00001000;
-	
-	final static Map<Integer, Integer> flagsMap = new HashMap<Integer, Integer>();
+
+	// [ [ oldFlag, newFlag ], ... ]
+	private final static int[][] flagsMap = new int[0][2];
+
 	static {
-		flagsMap.put(FLG_QUERY_STRINGOUT, FLG_QUERY_STRINGOUT);
-		flagsMap.put(FLG_QUERY_FORCE_HINT, FLG_QUERY_FORCE_HINT); 
-		flagsMap.put(FLG_QUERY_PARALLED, FLG_QUERY_PARALLED);
-		flagsMap.put(FLG_QUERY_WITH_RETURNDATA, FLG_QUERY_WITH_RETURNDATA);
+		// add mapping flags as below, if necessary:
+		//flagsMap[0][0] = FLG_QUERY_STRINGOUT;
+		//flagsMap[0][1] = NEW_FLG_QUERY_STRINGOUT;
 	}
-	
+
 	public DBQuery() {
 		matcher = null;
 		selector = null;
@@ -245,33 +246,19 @@ public class DBQuery {
 	public void setFlag(int flag) {
 		this.flag = flag;
 	}
-	
-	private static int _regulate(final int newFlags, final int flag) {
-		int retFlags = newFlags;
-		Integer tmpFlag = flagsMap.get((Integer)flag);
-		if (tmpFlag == null)
-			return retFlags;
-		if (tmpFlag != flag) {
-			retFlags &= ~flag;
-			retFlags |= tmpFlag;
+
+	static int regulateFlags(int flags) {
+		if (flagsMap.length > 0) {
+			int newFlags = 0;
+			for (int[] flagMap : flagsMap) {
+				if ((flags & flagMap[0]) != 0) {
+					flags &= ~flagMap[0];
+					newFlags |= flagMap[1];
+				}
+			}
+			flags |= newFlags;
 		}
-		return retFlags;
+		return flags;
 	}
-	
-	static int regulateFlag(final int flag) {
-		int newFlags = flag;
-		if ((flag & FLG_QUERY_STRINGOUT) != 0) {
-			newFlags = _regulate(newFlags, FLG_QUERY_STRINGOUT);
-		}
-		if ((flag & FLG_QUERY_FORCE_HINT) != 0) {
-			newFlags = _regulate(newFlags, FLG_QUERY_FORCE_HINT);
-		}
-		if ((flag & FLG_QUERY_PARALLED) != 0) {
-			newFlags = _regulate(newFlags, FLG_QUERY_PARALLED);
-		}
-		if ((flag & FLG_QUERY_WITH_RETURNDATA) != 0) {
-			newFlags = _regulate(newFlags, FLG_QUERY_WITH_RETURNDATA);
-		}
-		return newFlags;
-	}
+
 }
