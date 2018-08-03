@@ -5080,9 +5080,6 @@ error :
       _collection = NULL ;
       _contextID = -1 ;
       _mode = -1 ;
-      _oid = bson::OID() ;
-      _createTime = -1 ;
-      _lobSize = -1 ;
       _currentOffset = 0 ;
       _cachedOffset = 0 ;
       _cachedSize = 0 ;
@@ -5581,130 +5578,54 @@ error :
 
     INT32 _sdbLobImpl::isClosed( BOOLEAN &flag )
    {
-      INT32 rc = SDB_OK ;
       flag = isClosed();
-      return rc ;
+      return SDB_OK ;
    }
 
    INT32 _sdbLobImpl::getOid( bson::OID &oid )
    {
-      INT32 rc = SDB_OK ;
-
-      // check
-      if (  !_connection )
-      {
-         rc = SDB_NOT_CONNECTED ;
-         goto error;
-      }
       oid = getOid() ;
-   done:
-      return rc ;
-   error:
-      goto done ;
+      return SDB_OK ;
    }
    
    INT32 _sdbLobImpl::getSize( SINT64 *size )
    {
-      INT32 rc = SDB_OK ;
-
-      // check
-      if (  !_connection )
-      {
-         rc = SDB_NOT_CONNECTED ;
-         goto error;
-      }
       if ( NULL == size )
       {
-         rc = SDB_INVALIDARG ;
-         goto error ;
+         return SDB_INVALIDARG ;
       }
-      // get size
       *size = getSize() ;
-   done:
-      return rc ;
-   error:
-      goto done ;
+      return SDB_OK ;
    }
 
    INT32 _sdbLobImpl::getCreateTime ( UINT64 *millis )
    {
-      INT32 rc = SDB_OK ;
-
-      // check
-      if (  !_connection )
-      {
-         rc = SDB_NOT_CONNECTED ;
-         goto error;
-      }
       if ( NULL == millis )
       {
-         rc = SDB_INVALIDARG ;
-         goto error ;
+         return SDB_INVALIDARG ;
       }
       *millis = getCreateTime() ;
-   done:
-      return rc ;
-   error:
-      goto done ;
+      return SDB_OK ;
    }
 
     BOOLEAN _sdbLobImpl::isClosed()
    {
-      BOOLEAN flag = TRUE ;
-      if ( NULL == _connection )
-      {
-         return flag ;
-      }
-      _connection->lock() ;
-      flag = !_isOpen ;
-      _connection->unlock() ;
-      return flag ;
+      return !_isOpen ;
    }
 
    bson::OID _sdbLobImpl::getOid()
    {
-      bson::OID oid = bson::OID() ;
-      // check
-      if (  !_connection )
-      {
-         return oid ;
-      }
-      _connection->lock() ;
-      // get oid
-      oid = _oid ;
-      _connection->unlock() ;
-      return oid ;
+      return _oid ;
    }
    
    SINT64 _sdbLobImpl::getSize()
    {
-      SINT64 size = 0 ;
-
-      // check
-      if ( !_connection )
-      {
-         return -1 ;
-      }
-      _connection->lock() ;
-      // get size
-      size = _lobSize ;
-      _connection->unlock() ;
-      return size ;
+      return _lobSize ;
    }
 
    UINT64 _sdbLobImpl::getCreateTime ()
    {
-      UINT64 millis = 0 ;
-      // check
-      if ( !_connection )
-      {
-         return -1 ;
-      }
-      _connection->lock() ;
-      // get time
-      millis = _createTime ;
-      _connection->unlock() ;
-      return millis ;
+      return _createTime ;
    }
 
    /*
