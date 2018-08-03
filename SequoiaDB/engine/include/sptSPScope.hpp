@@ -36,6 +36,7 @@
 
 #include "sptScope.hpp"
 #include "jsapi.h"
+#include <map>
 
 namespace engine
 {
@@ -66,6 +67,7 @@ namespace engine
    } ;
    typedef _sptSPResultVal sptSPResultVal ;
 
+   typedef map< string, const JSObject* >       MAP_NAME_2_PROTOTYPE ;
    /*
       _sptSPScope define
    */
@@ -133,15 +135,19 @@ namespace engine
 
       INT32 _loadGlobal( _sptObjDesc *desc ) ;
 
-      INT32 _rval2obj( JSContext *cx,
-                       const jsval &jsrval,
-                       bson::BSONObj &rval ) ;
+      void  _addPrototype( const string &name,
+                           const JSObject *obj ) ;
+
+      const JSObject*   _getPrototype( const string &name ) const ;
+
+      BOOLEAN           _hasPrototype( const string &name ) const ;
 
    private:
       JSRuntime *_runtime ;
       JSContext *_context ;
       JSObject *_global ;
       sptSPResultVal _rval ;
+      MAP_NAME_2_PROTOTYPE _mapName2Proto ;
 
    } ;
    typedef class _sptSPScope sptSPScope ;

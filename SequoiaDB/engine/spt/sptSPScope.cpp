@@ -472,6 +472,11 @@ namespace engine
       JSFunctionSpec *fSpecs = NULL ;
       JSFunctionSpec *sfSpecs = NULL ;
 
+      if ( _hasPrototype( objName ) )
+      {
+         goto done ;
+      }
+
       if ( !desc->isIgnoredParent() )
       {
          parentDesc = desc->getParent() ;
@@ -482,7 +487,7 @@ namespace engine
             rc = SDB_SYS ;
             goto error ;
          }
-         parent_proto = (JSObject*)parentDesc->getPrototypeDef() ;
+         parent_proto = (JSObject*)_getPrototype( parentDesc->getJSClassName() ) ;
       }
 
       /// +1 for FS_END
@@ -550,12 +555,18 @@ namespace engine
             goto error ;
          }
 
-         desc->setClassPrototype( prototype ) ;
+         _addPrototype( objName, prototype ) ;
       }
 
    done:
-      delete []fSpecs ;
-      delete []sfSpecs ;
+      if ( NULL != fSpecs )
+      {
+         delete []fSpecs ;
+      }
+      if ( NULL != sfSpecs )
+      {
+         delete []sfSpecs ;
+      }
       return rc ;
    error:
       goto done ;
@@ -690,5 +701,30 @@ namespace engine
       return sptGetObjFactory()->getObjPropNames( _context, pJSObj, setProp ) ;
    }
 
+   void _sptSPScope::_addPrototype( const string &name,
+                                    const JSObject *obj )
+   {
+      _mapName2Proto[name] = obj ;
+   }
+
+   const JSObject* _sptSPScope::_getPrototype( const string &name ) const
+   {
+      MAP_NAME_2_PROTOTYPE::const_iterator it = _mapName2Proto.find( name ) ;
+      if ( it != _mapName2Proto.end() )
+      {
+         return it->second ;
+      }
+      return NULL ;
+   }
+
+   BOOLEAN _sptSPScope::_hasPrototype( const string &name ) const
+   {
+      MAP_NAME_2_PROTOTYPE::const_iterator it = _mapName2Proto.find( name ) ;
+      if ( it != _mapName2Proto.end() )
+      {
+         return TRUE ;
+      }
+      return FALSE ;
+   }
 }
 
