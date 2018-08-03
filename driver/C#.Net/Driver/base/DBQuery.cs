@@ -44,10 +44,10 @@ namespace SequoiaDB
 	     */
         internal const int FLG_QUERY_MODIFY = 0x00001000;
 
-        internal static readonly Dictionary<int, int> flagsDir = new Dictionary<int, int>() {
-            {FLG_QUERY_FORCE_HINT, FLG_QUERY_FORCE_HINT},
-            {FLG_QUERY_PARALLED, FLG_QUERY_PARALLED},
-            {FLG_QUERY_WITH_RETURNDATA, FLG_QUERY_WITH_RETURNDATA}
+        internal readonly static int[][] flagsMap = new int[0][]{
+           // add mapping flags as below, if necessary:
+           // new int[] {oldFlag, newFlag}, ...
+           //new int[] {FLG_QUERY_WITH_RETURNDATA, FLG_QUERY_WITH_RETURNDATA},
         };
 
        /** \property Matcher
@@ -102,38 +102,19 @@ namespace SequoiaDB
             set { flag = value; }
         }
 
-	    private static int _Regulate(int newFlags, int originalFlag) 
-        {
-		    int retFlags = newFlags;
-            int tmpFlag = 0;
-            if (flagsDir.ContainsKey(originalFlag))
-            {
-                tmpFlag = flagsDir[originalFlag];
-                if (tmpFlag != originalFlag)
-                {
-                    retFlags &= ~originalFlag;
-                    retFlags |= tmpFlag;
+        internal static int RegulateFlags(int flags) {
+            if (flagsMap.Length > 0) {
+                int newFlags = 0;
+                foreach (int[] flagMap in flagsMap) {
+                    if ((flags & flagMap[0]) != 0)
+                    {
+                        flags &= ~flagMap[0];
+                        newFlags |= flagMap[1];
+                    }
                 }
+                flags |= newFlags;
             }
-		    return retFlags;
-	    }
-
-        internal static int RegulateFlag(int flags)
-        {
-            int newFlags = flags;
-            if ((flags & FLG_QUERY_FORCE_HINT) != 0)
-            {
-                newFlags = _Regulate(newFlags, FLG_QUERY_FORCE_HINT);
-            }
-            if ((flags & FLG_QUERY_PARALLED) != 0)
-            {
-                newFlags = _Regulate(newFlags, FLG_QUERY_PARALLED);
-            }
-            if ((flags & FLG_QUERY_WITH_RETURNDATA) != 0)
-            {
-                newFlags = _Regulate(newFlags, FLG_QUERY_WITH_RETURNDATA);
-            }
-            return newFlags;
+            return flags;
         }
 
    }

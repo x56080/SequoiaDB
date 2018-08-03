@@ -641,7 +641,7 @@ namespace SequoiaDB
         public DBCursor Query(BsonDocument query, BsonDocument selector, BsonDocument orderBy, BsonDocument hint,
                               long skipRows, long returnRows, int flag)
         {
-            int newFlags = DBQuery.RegulateFlag(flag);
+            int newFlags = DBQuery.RegulateFlags(flag);
             BsonDocument dummyObj = new BsonDocument();
             if (query == null)
             {
