@@ -995,7 +995,7 @@ public class DBCollection {
         BSONObject dummy = new BasicBSONObject();
         int newFlag = flag;
         // regulate flag
-        newFlag = DBQuery.regulateFlag(flag);
+        newFlag = DBQuery.regulateFlags(flag);
         if (matcher == null)
             matcher = dummy;
         if (selector == null)
