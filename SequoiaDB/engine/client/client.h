@@ -1674,8 +1674,8 @@ SDB_EXPORT INT32 sdbDeleteCurrent ( sdbCursorHandle cHandle ) ;
 SDB_EXPORT INT32 sdbCloseCursor ( sdbCursorHandle cHandle ) ;
 
 /** \fn INT32 sdbCloseAllCursors( sdbConnectionHandle cHandle )
-    \brief Close all the cursors in current thread, we can't use those cursors to get
-           data anymore.
+    \brief Send a "Interrpt" message to engine, as a result, all the cursors and
+           lobs created by current connection will be closed.
     \param [in] cHandle The database connection handle
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
