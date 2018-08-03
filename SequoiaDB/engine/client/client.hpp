@@ -4358,8 +4358,8 @@ namespace sdbclient
       }
 
 /** \fn INT32 closeAllCursors () ;
-    \brief Close all the cursors in current thread, we can't use those cursors
-           to get data again.
+    \brief Send a "Interrpt" message to engine, as a result, all the cursors and
+           lobs created by current connection will be closed.
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */

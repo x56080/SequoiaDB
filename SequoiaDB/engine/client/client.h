@@ -1589,8 +1589,8 @@ SDB_EXPORT INT32 sdbDeleteCurrent ( sdbCursorHandle cHandle ) ;
 */
 
 /** \fn INT32 sdbCloseCursor( sdbCursorHandle cHandle )
-    \brief Close the cursor's connection to database, we can't use this handle to get
-                 data again.
+    \brief Send a "Interrpt" message to engine, as a result, all the cursors and
+           lobs created by current connection will be closed.
     \param [in] cHandle The cursor handle
     \note Don't call this method after the connection handle had been released.
     \retval SDB_OK Operation Success

@@ -5033,10 +5033,12 @@ error :
       if ( _pSendBuffer )
       {
          SDB_OSS_FREE ( _pSendBuffer ) ;
+         _sendBufferSize = 0 ;
       }
       if ( _pReceiveBuffer )
       {
          SDB_OSS_FREE ( _pReceiveBuffer ) ;
+         _receiveBufferSize = 0 ;
       }
    }
 
@@ -5070,9 +5072,10 @@ error :
 
    void _sdbLobImpl::_close()
    {
-      // not set _connection to been NULL,
-      // we need to use it in isClose()
-      // set lob to be close
+      // 1. we are not going to release send/receive buffer,
+      // let destructor do it
+      // 2. we will set _connection to be null in destructor
+      // for we still need to use the lock which is kept in it
       _isOpen = FALSE ;
       _collection = NULL ;
       _contextID = -1 ;
@@ -5085,16 +5088,6 @@ error :
       _cachedSize = 0 ;
       _pageSize = 0 ;
       _dataCache = NULL ;
-      if ( _pSendBuffer )
-      {
-         SAFE_OSS_FREE ( _pSendBuffer ) ;
-         _sendBufferSize = 0 ;
-      }
-      if ( _pReceiveBuffer )
-      {
-         SAFE_OSS_FREE ( _pReceiveBuffer ) ;
-         _receiveBufferSize = 0 ;
-      }
    }
 
    BOOLEAN _sdbLobImpl::_dataCached()
@@ -5340,6 +5333,11 @@ error :
       BOOLEAN locked = FALSE ;
       
       // check
+      if ( !_connection && !_isOpen )
+      {
+         rc = SDB_DMS_CONTEXT_IS_CLOSE ;
+         goto error ;
+      }
       if (  !_connection )
       {
          rc = SDB_NOT_CONNECTED ;
@@ -5425,6 +5423,11 @@ error :
       const UINT32 maxSendLen = 2 * 1024 * 1024 ;
       
       // check
+      if ( !_connection && !_isOpen )
+      {
+         rc = SDB_DMS_CONTEXT_IS_CLOSE ;
+         goto error ;
+      }
       if (  !_connection )
       {
          rc = SDB_NOT_CONNECTED ;
@@ -5508,6 +5511,12 @@ error :
       BOOLEAN locked = FALSE ;
       
       // check
+      // check
+      if ( !_connection && !_isOpen )
+      {
+         rc = SDB_DMS_CONTEXT_IS_CLOSE ;
+         goto error ;
+      }
       if (  !_connection )
       {
          rc = SDB_NOT_CONNECTED ;
@@ -8187,27 +8196,55 @@ error :
    error :
       goto done ;
    }
-   
+
    INT32 _sdbImpl::closeAllCursors()
    {
+      INT32 rc = SDB_OK ;
+      BOOLEAN locked = FALSE ;
       std::set<ossValuePtr>::iterator it ;
       std::set<ossValuePtr> cursors ;
-      INT32 rc = SDB_OK ;
+      std::set<ossValuePtr> lobs ;
 
-      // set all the cursors' status to be closed
+      rc = clientBuildKillAllContextsMsg( &_pSendBuffer, &_sendBufferSize, 0,
+                                          _endianConvert ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      lock () ;
+      locked = TRUE ;
+      rc = _send ( _pSendBuffer ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      // release resource of cursors in local
+      // remember to handle cursor._connection,
+      // cursor._collection, cursor._isClose
       cursors = _cursors ;
       for ( it = cursors.begin(); it != cursors.end(); ++it )
       {
-         // for cursor.close() will unregister itself from "_cursors"
-         // so, we don't need to ++it to get next cursor
-         rc = ((_sdbCursorImpl *)(*it))->close() ;
-         if ( rc )
-         {
-            goto error ;
-         }
+         ((_sdbCursorImpl*)(*it))->_detachConnection () ;
+         ((_sdbCursorImpl*)(*it))->_detachCollection () ;
+         ((_sdbCursorImpl*)(*it))->_close () ;
       }
+      _cursors.clear();
+      // release resource of lob in local
+      lobs = _lobs ;
+      for ( it = lobs.begin(); it != lobs.end(); ++it )
+      {
+         ((_sdbLobImpl*)(*it))->_detachConnection () ;
+         ((_sdbLobImpl*)(*it))->_detachCollection () ;
+         ((_sdbLobImpl*)(*it))->_close () ;
+      }
+      _lobs.clear() ;
 
    done :
+      if ( locked )
+      {
+         unlock () ;
+      }
       return rc ;
    error :
       goto done ;
