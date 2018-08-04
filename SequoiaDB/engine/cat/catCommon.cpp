@@ -3912,6 +3912,14 @@ namespace engine
                     SDB_INVALIDARG, error, PDWARNING,
                     "AutoSplit only on hash sharding" ) ;
 
+         if (totalBound < grpSize )
+         {
+            rc = SDB_INVALIDARG;
+            PD_LOG_MSG(PDERROR, "Partition can not less than group number of domain."
+                   "partition = %d, group number = %d", totalBound, grpSize);
+            goto error;
+         }
+
          for ( std::map<std::string, UINT32>::const_iterator iterGrp = splitLst.begin();
                iterGrp != splitLst.end();
                ++iterGrp )
