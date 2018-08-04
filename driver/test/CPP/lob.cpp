@@ -522,6 +522,7 @@ TEST( lob, lob_write_getSize_getCreateTime_then_close )
    BOOLEAN flag = FALSE ;
    INT32 lobSize = 0 ;
    INT32 createTime = 0 ;
+   INT32 createTime2 = 0 ;
 
    // initialize the work environment
    rc = initEnv() ;
@@ -581,10 +582,11 @@ TEST( lob, lob_write_getSize_getCreateTime_then_close )
    ASSERT_EQ(SDB_OK, rc);
    // get size
    lobSize = lob.getSize();
-   ASSERT_EQ(-1, lobSize);
+   ASSERT_EQ(2 * bufSize, lobSize);
    // get create time
+   createTime2 = createTime ;
    createTime = lob.getCreateTime();
-   ASSERT_EQ(-1, createTime);
+   ASSERT_EQ(createTime2, createTime);
 
    // disconnect the connection
    db.disconnect() ;
