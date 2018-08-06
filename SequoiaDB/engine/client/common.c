@@ -862,55 +862,41 @@ error:
    goto done ;
 }
 
-/// for regulate query flag
-#define _QUERY_FORCE_HINT          0x00000080
-#define _QUERY_PARALLED            0x00000100
-#define _QUERY_WITH_RETURNDATA     0x00000200
-#define _QUERY_PREPARE_MORE        0x00004000
-#define _QUERY_FLAG_END            0x00000000
-
-struct _QueryFlagStat
+/*
+   _flagMappingItem define
+*/
+struct _flagMappingItem
 {
    UINT32 _original ;
    UINT32 _new ;
 } ;
-typedef struct _QueryFlagStat QueryFlagStat ;
+typedef struct _flagMappingItem flagMappingItem ;
 
-INT32 regulateQueryFlags( INT32 *newFlags, const INT32 flags )
+/*
+   regulateQueryFlags implement
+*/
+INT32 regulateQueryFlags( INT32 flags )
 {
-   static QueryFlagStat stats[] = {
-      // add mapping flags as below, if necessary:
-      //{ _QUERY_FORCE_HINT, FLG_QUERY_FORCE_HINT },
-      { _QUERY_FLAG_END, _QUERY_FLAG_END }
-   } ;
-   INT32 rc = SDB_OK ;
-   INT32 i = 0 ;
-   INT32 num = sizeof(stats) / sizeof(QueryFlagStat) - 1 ;
-   INT32 erasedFlags = flags ;
-   INT32 mergedFlags = 0 ;
-   
-   if ( NULL == newFlags )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
+   INT32 newFlags = flags ;
 
-   for ( i = 0; i < num; i++ )
+   static const flagMappingItem __mapping[] = {
+      // add mapping flags as below, if necessary:
+      { 0, 0 }
+   } ;
+   static const UINT32 __mappingSize = sizeof( __mapping ) /
+                                       sizeof( flagMappingItem ) ;
+
+   for ( UINT32 i = 0; i < __mappingSize; i++ )
    {
-      INT32 originalFlag = (INT32)(stats[i]._original) ;
-      INT32 newFlag = (INT32)(stats[i]._new) ;
-      if ( ( erasedFlags & originalFlag ) && 
-           ( originalFlag != newFlag ) )
+      if ( ( __mapping[i]._new != __mapping[i]._original ) &&
+           ( __mapping[i]._original & flags ))
       {
-         erasedFlags &= ~originalFlag ;
-         mergedFlags |= newFlag ;
+         newFlags &= ~( __mapping[i]._original ) ;
+         newFlags |= __mapping[i]._new ;
       }
    }
-   *newFlags = (erasedFlags | mergedFlags) ;
-done:
-   return rc ;
-error:
-   goto done ;
+
+   return newFlags ;
 }
 
 static void clientEndianConvertHeader ( MsgHeader *pHeader )
