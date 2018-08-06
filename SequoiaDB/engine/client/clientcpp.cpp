@@ -1167,16 +1167,10 @@ do                                                            \
          rc = SDB_INVALIDARG ;
          goto done;
       }
-      // try to regulate query flags
-      if ( 0 != flag )
-      {
-         rc = regulateQueryFlags( &newFlags, flag ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
-      }
-      // try to set flag to be find one      
+
+      newFlags = regulateQueryFlags( flags ) ;
+
+      // try to set flag to be find one
       if ( 1 == numToReturn )
       {
          newFlags |= FLG_QUERY_WITH_RETURNDATA ;
