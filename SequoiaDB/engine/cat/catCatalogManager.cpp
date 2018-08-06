@@ -1721,6 +1721,18 @@ namespace engine
          goto error ;
       }
 
+
+      if ( !clInfo._isMainCL && clInfo._autoSplit && !range.empty())
+      {
+         if (clInfo._shardPartition < range.size())
+         {
+            rc = SDB_INVALIDARG;
+            PD_LOG_MSG(PDERROR, "Partition can not less than group number of domain."
+                   "partition = %d, group number = %d", clInfo._shardPartition, range.size());
+			goto error;
+         }
+      }
+
       // build new collection record for meta data.
       rc = _buildCatalogRecord( clInfo, fieldMask, 0, groupID,
                                 strGroupName.c_str(),
