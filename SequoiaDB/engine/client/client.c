@@ -5952,7 +5952,7 @@ SDB_EXPORT INT32 sdbQuery1 ( sdbCollectionHandle cHandle,
       goto error ;
    }
 
-   newFlags = regulateQueryFlags( flags ) ;
+   newFlags = regulateQueryFlags( flag ) ;
 
    if ( 1 == numToReturn )
    {
