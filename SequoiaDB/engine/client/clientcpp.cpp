@@ -1343,7 +1343,7 @@ do                                                            \
          goto done;
       }
 
-      newFlags = regulateQueryFlags( flags ) ;
+      newFlags = regulateQueryFlags( flag ) ;
 
       // try to set flag to be find one
       if ( 1 == numToReturn )
