@@ -1043,7 +1043,7 @@ int sdbSetConnectionPreference( sdbConnectionHandle hConnection,
 {
    int intPreferenece_instance = 0 ;
    int rc = 0 ;
-   if ( NULL != preference_instance ){
+   if ( NULL != preference_instance && 0 != strlen( preference_instance ) ){
       sdbbson recordObj ;
       sdbbson_init( &recordObj ) ;
       intPreferenece_instance = atoi( preference_instance ) ;
@@ -1081,6 +1081,17 @@ int sdbSetConnectionPreference( sdbConnectionHandle hConnection,
       }
 
       sdbbson_destroy( &recordObj ) ;
+   }
+   else 
+   {
+      if ( NULL != preference_instance ) 
+      {
+         elog( DEBUG1, "do not set session attr:preference_instance=%s", preference_instance ) ;
+      }
+      else 
+      {
+         elog( DEBUG1, "do not set session attr" ) ;
+      }
    }
 
    return rc ;

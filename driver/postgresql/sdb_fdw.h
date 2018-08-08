@@ -22,7 +22,7 @@
 #define OPTION_NAME_USEDECIMAL       "decimal"
 #define OPTION_NAME_PREFEREDINSTANCE "preferedinstance"
 
-#define DEFAULT_PREFEREDINSTANCE     "A"
+#define DEFAULT_PREFEREDINSTANCE     ""
 /*************************/
 
 #define DEFAULT_HOSTNAME            "localhost"
