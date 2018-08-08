@@ -2398,17 +2398,16 @@
                   }
                }
                var exec = function(){
-                  SdbRest.DataOperation( data, {
-                     'success': function( json ){
+                  SdbRest.DataOperation( data, function( json ){
                         _DataDatabaseIndex.getCSInfo( $scope, SdbRest ) ;
                      },
-                     'failed': function( errorInfo ){
+                     function( errorInfo ){
                         _IndexPublic.createRetryModel( $scope, errorInfo, function(){
                            exec() ;
                            return true ;
                         } ) ;
                      }
-                  } ) ;
+                  ) ;
                } ;
                exec() ;
             }
