@@ -1432,14 +1432,14 @@
          }
          var mainCL = [] ;
          var childCL = [] ;
-         $.each( $scope.sourceClList, function( index, clInfo ){
+         $.each( $scope.clList, function( index, clInfo ){
             if( typeof( clInfo['MainCLName'] ) == 'string' && clInfo['MainCLName'].length > 0 )
             {
                if( findMainCL( mainCL, clInfo['MainCLName'] ) < 0 )
                {
                   mainCL.push( { 'key': clInfo['MainCLName'], 'value': clInfo['MainCLName'] } ) ;
                }
-               childCL.push( { 'mainCL': clInfo['MainCLName'], 'childCL': clInfo['Name'] } ) ;
+               childCL.push( { 'mainCL': clInfo['MainCLName'], 'childCL': clInfo['csName'] + '.' + clInfo['Name'] } ) ;
             }
          } ) ;
          //设置子表的列表

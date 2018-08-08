@@ -423,6 +423,7 @@ _DataDatabaseIndex.getCLInfo = function( $scope, SdbRest )
                } ) ;
                rangeInfo['LowBound'] = JSON.stringify( rangeInfo['LowBound'] ) ;
                rangeInfo['UpBound'] = JSON.stringify( rangeInfo['UpBound'] ) ;
+               ++$scope.subCLNum ;
             } ) ;
          }
          else
@@ -432,7 +433,6 @@ _DataDatabaseIndex.getCLInfo = function( $scope, SdbRest )
                {
                   if( typeof( cataInfo['MainCLName'] ) == 'string' )
                   {
-                     ++$scope.subCLNum ;
                      clInfo['MainCLName'] = cataInfo['MainCLName'] ;
                   }
                   if( typeof( cataInfo['ShardingType'] ) == 'string' )
