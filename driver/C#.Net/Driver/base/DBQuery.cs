@@ -122,18 +122,21 @@ namespace SequoiaDB
         {
             if (flagsMap.Length > 0)
             {
-                int newFlags = 0;
+                int newFlags = flags;
                 foreach (int[] flagMap in flagsMap)
                 {
-                    if ((flags & flagMap[0]) != 0)
+                    if (flagMap[0] != flagMap[1] && (flags & flagMap[0]) != 0)
                     {
-                        flags &= ~flagMap[0];
+                        newFlags &= ~flagMap[0];
                         newFlags |= flagMap[1];
                     }
                 }
-                flags |= newFlags;
+                return newFlags;
             }
-            return flags;
+            else
+            {
+                return flags;
+            }
         }
 
    }
