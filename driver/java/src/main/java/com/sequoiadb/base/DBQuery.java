@@ -251,18 +251,19 @@ public class DBQuery {
         this.flag = flag;
     }
 
-    static int regulateFlags(int flags) {
+    static int regulateFlags(final int flags) {
         if (flagsMap.length > 0) {
-            int newFlags = 0;
+            int newFlags = flags;
             for (int[] flagMap : flagsMap) {
-                if ((flags & flagMap[0]) != 0) {
-                    flags &= ~flagMap[0];
+                if ((flags & flagMap[0]) != 0 && flagMap[0] != flagMap[1]) {
+                    newFlags &= ~flagMap[0];
                     newFlags |= flagMap[1];
                 }
             }
-            flags |= newFlags;
+            return newFlags;
+        } else {
+            return flags;
         }
-        return flags;
     }
 
 }
