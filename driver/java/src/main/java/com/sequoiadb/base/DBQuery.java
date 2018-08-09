@@ -251,7 +251,7 @@ public class DBQuery {
 		if (flagsMap.length > 0) {
 			int newFlags = flags;
 			for (int[] flagMap : flagsMap) {
-				if ((flags & flagMap[0]) != 0 && flagMap[0] != flagMap[1]) {
+				if (flagMap[0] != flagMap[1] && (flags & flagMap[0]) != 0) {
 					newFlags &= ~flagMap[0];
 					newFlags |= flagMap[1];
 				}
