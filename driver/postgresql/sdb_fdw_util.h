@@ -8,6 +8,11 @@
 #include "nodes/relation.h"
 #include "sdb_fdw.h"
 
+#define SDB_FIELD_COMMA              ","
+#define SDB_FIELD_COMMA_CHR          ','
+#define SDB_FIELD_SEMICOLON          ":"
+#define SDB_FIELD_SEMICOLON_CHR      ':'
+
 
 typedef enum
 {
@@ -51,6 +56,8 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
                                             const char *usr,
                                             const char *passwd,
                                             const char *preference_instance,
+                                            const char *preference_instance_mode,
+                                            int session_timeout,
                                             const char *transaction ) ;
 
 sdbCollectionHandle sdbGetSdbCollection( sdbConnectionHandle connectionHandle,
@@ -59,8 +66,8 @@ sdbCollectionHandle sdbGetSdbCollection( sdbConnectionHandle connectionHandle,
 
 SdbConnectionPool *sdbGetConnectionPool() ;
 
-int sdbSetConnectionPreference( sdbConnectionHandle hConnection,
-                                const CHAR *preference_instance ) ;
+int sdbSetConnectionPreference( sdbConnectionHandle hConnection, CHAR *preference_instance, 
+                                const CHAR *preference_instance_mode, INT32 session_timeout ) ;
 
 BOOLEAN sdbIsInterrupt() ;
 

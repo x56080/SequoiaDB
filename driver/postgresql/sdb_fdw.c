@@ -47,11 +47,6 @@
 #define SDB_SECONDS_TO_USECS         ( 1000L * 1000L )
 #define SDB_MSECS_PER_HOUR           ( USECS_PER_HOUR/1000 )
 
-
-#define SDB_FIELD_COMMA              ","
-#define SDB_FIELD_SEMICOLON          ":"
-#define SDB_FIELD_SEMICOLON_CHR      ':'
-
 #define SDB_KEYNAME_REGEX            "$regex"
 
 #define SDB_FIELD_VALUE_LEN          (128)
@@ -338,14 +333,17 @@ int sdbGetSdbServerOptions( Oid foreignTableId, SdbExecState *sdbExecState )
    {
       sdbExecState->sdbServerList[i] = options.serviceList[i] ;
    }
-   sdbExecState->sdbServerNum  = options.serviceNum;
-   sdbExecState->sdbcs         = options.collectionspace ;
-   sdbExecState->sdbcl         = options.collection ;
-   sdbExecState->usr           = options.user ;
-   sdbExecState->passwd        = options.password ;
+   sdbExecState->sdbServerNum       = options.serviceNum;
+   sdbExecState->sdbcs              = options.collectionspace ;
+   sdbExecState->sdbcl              = options.collection ;
+   sdbExecState->usr                = options.user ;
+   sdbExecState->passwd             = options.password ;
    sdbExecState->preferenceInstance = options.preference_instance ;
-   sdbExecState->transaction   = options.transaction ;
-   sdbExecState->isUseDecimal  = options.isUseDecimal ;
+   sdbExecState->preferenceInstanceMode = options.preference_instance_mode ;
+   sdbExecState->sessionTimeout     = options.sessionTimeout ;
+   
+   sdbExecState->transaction        = options.transaction ;
+   sdbExecState->isUseDecimal       = options.isUseDecimal ;
 
    return 0 ;
 }
@@ -909,6 +907,8 @@ INT32 sdbGetShardingKeyInfo( const SdbInputOptions *options,
                                         options->user,
                                         options->password,
                                         options->preference_instance,
+                                        options->preference_instance_mode,
+                                        options->sessionTimeout,
                                         options->transaction ) ;
 
    sdbbson_append_string( &condition, "Name", fullCollectionName->data ) ;
@@ -2498,16 +2498,18 @@ done :
 /* getOptions retreive connection options from Oid */
 void sdbGetOptions( Oid foreignTableId, SdbInputOptions *options )
 {
-   CHAR *addressName         = NULL ;
-   CHAR *serviceName         = NULL ;
-   CHAR *userName            = NULL ;
-   CHAR *passwordName        = NULL ;
-   CHAR *collectionspaceName = NULL ;
-   CHAR *collectionName      = NULL ;
-   CHAR *preferedInstance    = NULL ;
-   CHAR *transaction         = NULL ;
-   CHAR *pUseDecimal       = NULL ;
-   INT32 isUseDecimal        = 0 ;
+   CHAR *addressName          = NULL ;
+   CHAR *serviceName          = NULL ;
+   CHAR *userName             = NULL ;
+   CHAR *passwordName         = NULL ;
+   CHAR *collectionspaceName  = NULL ;
+   CHAR *collectionName       = NULL ;
+   CHAR *preferedInstance     = NULL ;
+   CHAR *preferedInstanceMode = NULL ;
+   CHAR *sessionTimeout       = NULL ;
+   CHAR *transaction          = NULL ;
+   CHAR *pUseDecimal          = NULL ;
+   INT32 isUseDecimal         = 0 ;
    if( NULL == options )
       goto done ;
    /* address name */
@@ -2571,6 +2573,18 @@ void sdbGetOptions( Oid foreignTableId, SdbInputOptions *options )
       preferedInstance = pstrdup( DEFAULT_PREFEREDINSTANCE ) ;
    }
 
+   /* OPTION_NAME_PREFEREDINSTANCE_MODE */
+   preferedInstanceMode = sdbGetOptionValue( foreignTableId,
+                                             OPTION_NAME_PREFEREDINSTANCE_MODE) ;
+   if ( NULL == preferedInstanceMode )
+   {
+      preferedInstanceMode = pstrdup( DEFAULT_PREFEREDINSTANCE_MODE ) ;
+   }
+
+   /* OPTION_NAME_SESSION_TIMEOUT */
+   sessionTimeout = sdbGetOptionValue( foreignTableId,
+                                       OPTION_NAME_SESSION_TIMEOUT ) ;
+
    /* OPTION_NAME_TRANSACTION */
    transaction = sdbGetOptionValue( foreignTableId, OPTION_NAME_TRANSACTION ) ;
    if ( NULL == transaction )
@@ -2596,13 +2610,22 @@ void sdbGetOptions( Oid foreignTableId, SdbInputOptions *options )
    /* fill up the result structure */
    SdbSetNodeAddressInfo( options, addressName, serviceName ) ;
 
-   options->user                = userName ;
-   options->password            = passwordName ;
-   options->collectionspace     = collectionspaceName ;
-   options->collection          = collectionName ;
-   options->preference_instance = preferedInstance ;
-   options->transaction         = transaction ;
-   options->isUseDecimal        = isUseDecimal ;
+   options->user                       = userName ;
+   options->password                   = passwordName ;
+   options->collectionspace            = collectionspaceName ;
+   options->collection                 = collectionName ;
+   options->preference_instance        = preferedInstance ;
+   options->preference_instance_mode   = preferedInstanceMode ;
+   if ( NULL == sessionTimeout )
+   {
+      options->sessionTimeout = DEFAULT_SESSION_TIMEOUT ;
+   }
+   else 
+   {
+      options->sessionTimeout = atoi( sessionTimeout ) ;
+   }
+   options->transaction                = transaction ;
+   options->isUseDecimal               = isUseDecimal ;
 
 done :
    return ;
@@ -3312,6 +3335,8 @@ static INT32 sdbRowsCountFromSdb( Oid foreignTableId, SINT64 *count )
                                          options.serviceNum, options.user,
                                          options.password,
                                          options.preference_instance,
+                                         options.preference_instance_mode,
+                                         options.sessionTimeout,
                                          options.transaction ) ;
    if ( SDB_INVALID_HANDLE == hConnection )
    {
@@ -3674,6 +3699,8 @@ static void SdbBeginForeignScan( ForeignScanState *scanState,
                                         fdw_state->usr,
                                         fdw_state->passwd,
                                         fdw_state->preferenceInstance,
+                                        fdw_state->preferenceInstanceMode,
+                                        fdw_state->sessionTimeout,
                                         fdw_state->transaction ) ;
 
    fdw_state->hCollection = clStat->clHandle ;
@@ -4223,6 +4250,8 @@ void SdbBeginForeignModify( ModifyTableState *mtstate,
                                        fdw_state->usr,
                                        fdw_state->passwd,
                                        fdw_state->preferenceInstance,
+                                       fdw_state->preferenceInstanceMode,
+                                       fdw_state->sessionTimeout,
                                        fdw_state->transaction ) ;
    fdw_state->hCollection = sdbGetSdbCollection( fdw_state->hConnection,
       fdw_state->sdbcs, fdw_state->sdbcl ) ;
@@ -4783,6 +4812,8 @@ static INT32 SdbInitCLStatistics( SdbCLStatistics *clStat )
                                    options.serviceNum, options.user,
                                    options.password,
                                    options.preference_instance,
+                                   options.preference_instance_mode,
+                                   options.sessionTimeout,
                                    options.transaction ) ;
    if ( SDB_INVALID_HANDLE == conn )
    {

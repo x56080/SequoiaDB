@@ -17,12 +17,18 @@
 /******************************/
 
 /* Table related options */
-#define OPTION_NAME_COLLECTIONSPACE  "collectionspace"
-#define OPTION_NAME_COLLECTION       "collection"
-#define OPTION_NAME_USEDECIMAL       "decimal"
-#define OPTION_NAME_PREFEREDINSTANCE "preferedinstance"
+#define OPTION_NAME_COLLECTIONSPACE       "collectionspace"
+#define OPTION_NAME_COLLECTION            "collection"
+#define OPTION_NAME_USEDECIMAL            "decimal"
+#define OPTION_NAME_PREFEREDINSTANCE      "preferedinstance"
+#define OPTION_NAME_PREFEREDINSTANCE_MODE "preferedinstancemode"
+#define OPTION_NAME_SESSION_TIMEOUT       "sessiontimeout"
 
-#define DEFAULT_PREFEREDINSTANCE     ""
+
+
+#define DEFAULT_PREFEREDINSTANCE      ""
+#define DEFAULT_PREFEREDINSTANCE_MODE ""
+#define DEFAULT_SESSION_TIMEOUT       -1
 /*************************/
 
 #define DEFAULT_HOSTNAME            "localhost"
@@ -59,16 +65,18 @@ typedef struct SdbInputOption SdbInputOption ;
 
 static const SdbInputOption SdbInputOptionList[] =
 {
-   { OPTION_NAME_ADDRESS,          ForeignServerRelationId },
-   { OPTION_NAME_SERVICE,          ForeignServerRelationId },
-   { OPTION_NAME_USER,             ForeignServerRelationId },
-   { OPTION_NAME_PASSWORD,         ForeignServerRelationId },
-   { OPTION_NAME_PREFEREDINSTANCE, ForeignServerRelationId },
-   { OPTION_NAME_TRANSACTION,      ForeignServerRelationId },
+   { OPTION_NAME_ADDRESS,                 ForeignServerRelationId },
+   { OPTION_NAME_SERVICE,                 ForeignServerRelationId },
+   { OPTION_NAME_USER,                    ForeignServerRelationId },
+   { OPTION_NAME_PASSWORD,                ForeignServerRelationId },
+   { OPTION_NAME_PREFEREDINSTANCE,        ForeignServerRelationId },
+   { OPTION_NAME_PREFEREDINSTANCE_MODE,   ForeignServerRelationId },
+   { OPTION_NAME_SESSION_TIMEOUT,         ForeignServerRelationId },
+   { OPTION_NAME_TRANSACTION,             ForeignServerRelationId },
 
-   { OPTION_NAME_COLLECTIONSPACE,  ForeignTableRelationId },
-   { OPTION_NAME_COLLECTION,       ForeignTableRelationId },
-   { OPTION_NAME_USEDECIMAL,       ForeignTableRelationId }
+   { OPTION_NAME_COLLECTIONSPACE,         ForeignTableRelationId },
+   { OPTION_NAME_COLLECTION,              ForeignTableRelationId },
+   { OPTION_NAME_USEDECIMAL,              ForeignTableRelationId }
 } ;
 
 struct SdbInputOptions
@@ -80,6 +88,8 @@ struct SdbInputOptions
    CHAR  *collectionspace ;
    CHAR  *collection ;
    CHAR  *preference_instance ;
+   CHAR  *preference_instance_mode ;
+   INT32 sessionTimeout ;
    CHAR  *transaction ;
    INT32 isUseDecimal ;                         /* use decimal in sdb */
 } ;
@@ -156,6 +166,8 @@ struct SdbExecState
    char *usr;
    char *passwd;
    char *preferenceInstance;
+   char *preferenceInstanceMode;
+   int sessionTimeout;
    char *transaction;
 
    char *sdbcs;

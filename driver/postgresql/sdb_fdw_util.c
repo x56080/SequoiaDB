@@ -731,6 +731,8 @@ int sdbGetIndexInfosFromDB( SdbExecState *sdbState, sdbIndexInfo *indexInfo,
                                         sdbState->usr,
                                         sdbState->passwd,
                                         sdbState->preferenceInstance,
+                                        sdbState->preferenceInstanceMode,
+                                        sdbState->sessionTimeout,
                                         sdbState->transaction ) ;
    sdbState->hCollection = sdbGetSdbCollection(sdbState->hConnection,
                            sdbState->sdbcs, sdbState->sdbcl) ;
@@ -850,6 +852,8 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
                                             const char *usr,
                                             const char *passwd,
                                             const char *preference_instance,
+                                            const char *preference_instance_mode,
+                                            int session_timeout,
                                             const char *transaction )
 {
    sdbConnectionHandle hConnection = SDB_INVALID_HANDLE ;
@@ -926,7 +930,8 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
       return SDB_INVALID_HANDLE ;
    }
 
-   rc = sdbSetConnectionPreference( hConnection, preference_instance ) ;
+   rc = sdbSetConnectionPreference( hConnection, (char *)preference_instance, preference_instance_mode, 
+                                    session_timeout ) ;
    if ( rc )
    {
       ereport( WARNING, ( errcode( ERRCODE_WITH_CHECK_OPTION_VIOLATION ),
@@ -1038,62 +1043,125 @@ void sdbReleaseConnectionFromPool( int index )
    pool->numConnections-- ;
 }
 
-int sdbSetConnectionPreference( sdbConnectionHandle hConnection,
-   const CHAR *preference_instance )
+bool sdbIsPreferedList( const CHAR *preference_instance )
+{
+   INT32 i      = 0 ;
+   INT32 len    = strlen( preference_instance ) ;
+   for( i = 0 ; i < len ; i++ )
+   {
+      if ( preference_instance[i] == SDB_FIELD_COMMA_CHR )
+      {
+         return true ;
+      }
+   }
+
+   return false ;
+}
+
+
+int sdbSetConnectionPreference( sdbConnectionHandle hConnection, CHAR *preference_instance, 
+                                const CHAR *preference_instance_mode, INT32 session_timeout )
 {
    int intPreferenece_instance = 0 ;
    int rc = 0 ;
-   if ( NULL != preference_instance && 0 != strlen( preference_instance ) ){
-      sdbbson recordObj ;
-      sdbbson_init( &recordObj ) ;
-      intPreferenece_instance = atoi( preference_instance ) ;
-      if ( 0 == intPreferenece_instance )
-      {
-         sdbbson_append_string( &recordObj, FIELD_NAME_PREFERED_INSTANCE,
-                                preference_instance ) ;
-      }
-      else
-      {
-         sdbbson_append_int( &recordObj, FIELD_NAME_PREFERED_INSTANCE,
-                             intPreferenece_instance ) ;
-      }
+   bool isNeedSendReq = 0 ;
+   CHAR index[SDB_MAX_KEY_COLUMN_LENGTH] ;
+   sdbbson recordObj ;
+   sdbbson_init( &recordObj ) ;
 
-      rc = sdbbson_finish( &recordObj ) ;
-      if ( rc != SDB_OK )
-      {
-         ereport( WARNING, ( errcode( ERRCODE_FDW_ERROR ),
-               errmsg( "finish bson failed:rc = %d", rc ),
-               errhint( "Make sure the data is all right" ) ) ) ;
-
-         sdbbson_destroy( &recordObj ) ;
-         return rc ;
-      }
-
-      rc = sdbSetSessionAttr( hConnection, &recordObj ) ;
-      if ( rc != SDB_OK )
-      {
-         ereport( WARNING, ( errcode( ERRCODE_FDW_ERROR ),
-               errmsg( "set session attribute failed:rc = %d", rc ),
-               errhint( "Make sure the session is all right" ) ) ) ;
-
-         sdbbson_destroy( &recordObj ) ;
-         return rc ;
-      }
-
-      sdbbson_destroy( &recordObj ) ;
-   }
-   else 
+   if ( NULL != preference_instance && strlen( preference_instance ) > 0 )
    {
-      if ( NULL != preference_instance ) 
+      isNeedSendReq = true ;
+
+      // multiple word seperated by ','
+      if ( sdbIsPreferedList( preference_instance ) )
       {
-         elog( DEBUG1, "do not set session attr:preference_instance=%s", preference_instance ) ;
+         CHAR *tmpSrc    = preference_instance ;
+         CHAR *tmpPtr    = NULL ;
+         CHAR *tmpResult = NULL ;
+         INT32 i         = 0 ;
+         
+         sdbbson_append_start_array( &recordObj, FIELD_NAME_PREFERED_INSTANCE ) ;
+         
+         while( ( tmpResult = strtok_r( tmpSrc, SDB_FIELD_COMMA, &tmpPtr ) ) != NULL )
+         {
+            CHAR *value = NULL ;
+            tmpSrc = NULL ;
+            value = pstrdup( tmpResult ) ;
+            intPreferenece_instance = atoi( value ) ;
+
+            index[0] = '\0' ;
+            sprintf( index, "%d", i ) ;
+            if ( 0 != intPreferenece_instance )
+            {
+               sdbbson_append_int( &recordObj, index, intPreferenece_instance ) ;
+            }
+            else
+            {
+               sdbbson_append_string( &recordObj, index, value ) ;
+            }
+
+            i++ ;
+         }
+
+         sdbbson_append_finish_array( &recordObj ) ;
       }
       else 
       {
-         elog( DEBUG1, "do not set session attr" ) ;
+         // single word
+         intPreferenece_instance = atoi( preference_instance ) ;
+         if ( 0 != intPreferenece_instance )
+         {
+            sdbbson_append_int( &recordObj, FIELD_NAME_PREFERED_INSTANCE,
+                                intPreferenece_instance ) ;
+         }
+         else
+         {
+            sdbbson_append_string( &recordObj, FIELD_NAME_PREFERED_INSTANCE,
+                                   preference_instance ) ;
+         }
       }
    }
 
+   if ( NULL != preference_instance_mode && strlen( preference_instance_mode ) > 0 )
+   {
+      isNeedSendReq = true ;
+      sdbbson_append_string( &recordObj, FIELD_NAME_PREFERED_INSTANCE_MODE, preference_instance_mode ) ;
+   }
+
+   if ( -1 != session_timeout ) 
+   {
+      isNeedSendReq = true ;
+      sdbbson_append_int( &recordObj, FIELD_NAME_TIMEOUT, session_timeout ) ;
+   }
+
+   rc = sdbbson_finish( &recordObj ) ;
+   if ( rc != SDB_OK )
+   {
+      elog( WARNING, "finish bson failed:rc = %d", rc ) ;
+      sdbbson_destroy( &recordObj ) ;
+      return rc ;
+   }
+
+   sdbPrintBson( &recordObj, DEBUG1, "display session attr" ) ;
+   
+   if ( isNeedSendReq )
+   {
+      elog( DEBUG1, "setting session attr" ) ;
+      rc = sdbSetSessionAttr( hConnection, &recordObj ) ;
+      if ( rc != SDB_OK )
+      {
+         elog( WARNING, "set session attribute failed:rc = %d", rc ) ;
+         sdbbson_destroy( &recordObj ) ;
+         return rc ;
+      }
+   }
+   else 
+   {
+      elog( DEBUG1, "do not set session attr" ) ;
+   }
+
+   sdbbson_destroy( &recordObj ) ;
    return rc ;
 }
 
