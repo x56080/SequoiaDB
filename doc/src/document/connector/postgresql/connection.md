@@ -11,12 +11,22 @@
 2. 配置与SequoiaDB连接参数
 
 	```lang-javascript
-	foo=# create server sdb_server foreign data wrapper sdb_fdw options(address '127.0.0.1', service '11810', user 'sdbUserName', password 'sdbPassword');
+	foo=# create server sdb_server foreign data wrapper sdb_fdw options(address '127.0.0.1', service '11810', user 'sdbUserName', password 'sdbPassword', preferedinstance 'A', transaction 'off');
 	```
 
 	>**Note:** 
 	>
 	> 如果没有配置数据库密码验证，可以忽略user与password字段。
+	>
+	> 如果需要提供多个协调节点地址，options 中的 address 字段可以按格式 'ip1:port1,ip2:port2,ip3:port3'填写。此时，service 字段可填写任意一个非空字符串。
+	>
+	> preferedinstance 设置 SequoiaDB 的连接属性。多个属性以逗号分隔，如：preferedinstance '1,2,A'。详细配置请参考 [preferedinstance](reference/Sequoiadb_command/Sdb/setSessionAttr.md) 取值
+	> 
+	> preferedinstancemode 设置 preferedinstance 的选择模式
+	> 
+	> sessiontimeout 设置会话超时时间 如：sessiontimeout '100'
+	>
+	> transaction 设置SequoiaDB是否开启事务，默认为off。开启为on
 
 3. 关联SequoiaDB的集合空间与集合
 
