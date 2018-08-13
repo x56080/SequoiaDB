@@ -1684,7 +1684,6 @@
          }
          var clValid = [] ;
          var clIndex = -1 ;
-         var clIndex2 = -1 ;
          var sourceGroupValid = [] ;
          var groupValid = [] ;
          var type = '' ;
@@ -1718,8 +1717,7 @@
             }
             if( clInfo['IsMainCL'] != true && ( clInfo['ShardingType'] == 'hash' || clInfo['ShardingType'] == 'range' ) )
             {
-               ++clIndex2 ;
-               clValid.push( { 'key' : clInfo['csName'] + '.' + clInfo['Name'] , 'value' : clIndex2, 'type': clInfo['ShardingType'] } ) ;
+               clValid.push( { 'key' : clInfo['csName'] + '.' + clInfo['Name'] , 'value' : index, 'type': clInfo['ShardingType'] } ) ;
             }
          } ) ;
          if( clIndex < 0 && clValid.length > 0 )
