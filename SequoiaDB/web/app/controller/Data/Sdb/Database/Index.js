@@ -1750,7 +1750,12 @@
                      else if( value == 1 )
                      {
                         $scope.Components.Modal.formShow = 1 ;
-                        type = clValid[$scope.Components.Modal.form1['inputList'][1]['value']]['type'] ;
+                        $.each( clValid, function( index, info ){
+                           if( $scope.Components.Modal.form1['inputList'][1]['value'] == info['value'] )
+                           {
+                              type = info['type'] ;
+                           }
+                        } ) ;
                         if( type == 'hash' )
                         {
                            $scope.Components.Modal.form2.inputList[4]['type'] = 'inline' ;
@@ -1859,6 +1864,7 @@
                      $.each( $scope.clList, function( index, clInfo ){
                         if( key == ( clInfo['csName'] + '.' + clInfo['Name'] ) )
                         {
+                           type = clInfo['ShardingType'] ;
                            sourceGroupValid = [] ;
                            var sourceIndex = -1 ;
                            $.each( $scope.clList[ index ]['GroupName'], function( index2, groupInfo ){
@@ -1873,7 +1879,7 @@
                            return false;
                         }
                      } ) ;
-                     type = clValid[value]['type'] ;
+
                      if( type == 'hash' )
                      {
                         $scope.Components.Modal.form2.inputList[4]['type'] = 'inline' ;
@@ -2013,7 +2019,12 @@
                      else if( value == 1 )
                      {
                         $scope.Components.Modal.formShow = 1 ;
-                        type = clValid[$scope.Components.Modal.form2['inputList'][1]['value']]['type'] ;
+                        $.each( clValid, function( index, info ){
+                           if( $scope.Components.Modal.form2['inputList'][1]['value'] == info['value'] )
+                           {
+                              type = info['type'] ;
+                           }
+                        } ) ;
                         if( type == 'hash' )
                         {
                            $scope.Components.Modal.form2.inputList[4]['type'] = 'inline' ;
@@ -2122,6 +2133,7 @@
                      $.each( $scope.clList, function( index, clInfo ){
                         if( key == ( clInfo['csName'] + '.' + clInfo['Name'] ) )
                         {
+                           type = clInfo['ShardingType'] ;
                            var sourceIndex = -1 ;
                            sourceGroupValid = [] ;
                            $.each( $scope.clList[ index ]['GroupName'], function( index2, groupInfo ){
@@ -2136,7 +2148,7 @@
                            return false;
                         }
                      } ) ;
-                     type = clValid[value]['type'] ;
+
                      if( type == 'hash' )
                      {
                         $scope.Components.Modal.form2.inputList[4]['type'] = 'inline' ;
@@ -2392,7 +2404,7 @@
                         }
                      } ) ;
                      data['splitquery'] = JSON.stringify( splitquery ) ;
-                     data['splitendquery'] = JSON.stringify( splitendquery ) ;
+                     data['splitendquery'] = JSON.stringify( splitendquery );
                   }
                }
                var exec = function(){
