@@ -59,7 +59,7 @@ sequoiadb(11800) (20111) C
 sequoiadb(11830) (20129) D
 sequoiadb(11810) (20132) S
 $
-$ # 查看协调节点进程20132的ulimit值
+$ # 查看协调节点进程20132的ulimit信息
 $ cat /proc/20132/limits 
 Limit                     Soft Limit           Hard Limit           Units     
 Max cpu time              unlimited            unlimited            seconds   
