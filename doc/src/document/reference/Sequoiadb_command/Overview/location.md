@@ -23,5 +23,5 @@
 > * GroupID、GroupName：指定分区组过滤条件，缺省指所有分区组；GroupID和GroupName为或的关系，如：{GroupID:1001, GroupName:"db1"}，那么分区组1001和db1都是执行的分区组。
 > * NodeID、HostName、svcname：指定分区组中节点过滤条件，对于查询命令，缺省值为该组所有节点，对于操作命令，缺省值为该组主节点。上述字段为与的关系，如 {NodeID:1001, svcname:'11810'}，如果节点1001的svcname不为11810，则节点为空。
 > * Groups: 为了兼容之前的命令而保留，与GroupName作用相同，不推荐使用。
-> * Role: 当按分区组或节点过滤时，该参数不生效。
+> * Role: 当按分区组过滤时，该参数不生效。
 
