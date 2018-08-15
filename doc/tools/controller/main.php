@@ -41,6 +41,16 @@ if( $config == FALSE )
    exit( 1 ) ;
 }
 
+try
+{
+   checkConfig( $config, null ) ;
+}
+catch( Exception $e )
+{
+   printLog( "Invalid toc.json config: ".$e->getMessage() ) ;
+   exit( 1 ) ;
+}
+
 $param = getopt( 'h:m:' ) ;
 
 if( array_key_exists( 'h', $param ) == false )
