@@ -159,8 +159,8 @@ typedef union {
 typedef int64_t bson_date_t; /* milliseconds since epoch UTC */
 
 typedef struct {
-    int i; /* increment */
-    int t; /* time in seconds */
+    int i; /**< increment: microseconds in range of [0us, 999999us]. */
+    int t; /**< time: seconds since epoch. */
 } bson_timestamp_t;
 
 /* ----------------------------
@@ -1119,6 +1119,18 @@ SDB_EXPORT int bson_append_elements( bson *dst, const bson *src );
  * @return BSON_OK or BSON_ERROR.
  */
 SDB_EXPORT int bson_append_timestamp( bson *b, const char *name, bson_timestamp_t *ts );
+
+
+/**
+ * Append the timestamp value to a bson.
+ *
+ * @param b the bson to append to.
+ * @param name the key for the timestampe value.
+ * @param time seconds since epoch.
+ * @param increment microseconds in range of [0us, 999999us].
+ *
+ * @return BSON_OK or BSON_ERROR.
+ */
 SDB_EXPORT int bson_append_timestamp2( bson *b, const char *name, int time, int increment );
 
 /* these both append a bson_date */
