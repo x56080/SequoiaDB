@@ -36,7 +36,8 @@ namespace SequoiaDB.Bson
         /// </summary>
         /// <param name="value">The combined timestamp/increment value. 
         /// e.g. when timstamp is "2147483647s", 
-        /// and the increment is "123456ms"(both the timestamp and the increment are should be int32 values),
+        /// and the increment is "123456us"(both the timestamp and the increment are should be int32 values,
+        /// besides, increment should in the range of [0us, 999999us]),
         /// the value = (long)(((ulong)(uint)2147483647 << 32) | ((ulong)(uint)123456)).</param>
         public BsonTimestamp(long value)
             : base(BsonType.Timestamp)
@@ -47,11 +48,16 @@ namespace SequoiaDB.Bson
         /// <summary>
         /// Initializes a new instance of the BsonTimestamp class.
         /// </summary>
-        /// <param name="timestamp">The timestamp.</param>
-        /// <param name="increment">The increment.</param>
+        /// <param name="timestamp">The seconds since epoch.</param>
+        /// <param name="increment">The microseconds in range of [0us, 999999us].</param>
         public BsonTimestamp(int timestamp, int increment)
             : base(BsonType.Timestamp)
         {
+            if (increment > 999999 || increment < 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    "increment should in range of [0us, 999999us], but it is: " + increment + "us");
+            }
             _value = (long)(((ulong)(uint)timestamp << 32) | ((ulong)(uint)increment));
         }
 

@@ -1457,6 +1457,5 @@ namespace DriverTest
             doc = cursor.Next();
             Assert.IsNull(doc);
         }
-
     }
 }
