@@ -471,10 +471,11 @@ INT32 formatArgs ( const CHAR * program ,
 
    // caller is responsible for freeing *args
    *args = (CHAR*) SDB_OSS_MALLOC ( argSize ) ;
-   if ( ! args )
+   if ( NULL == *args )
    {
       rc = SDB_OOM ;
-      SH_VERIFY_RC
+      ossPrintf( "Alloc memory failed"OSS_NEWLINE ) ;
+      goto error ;
    }
 
    p = *args ;
@@ -517,13 +518,17 @@ INT32 createDaemonProcess ( const CHAR * program , const OSSPID & ppid ,
    rc = ossAccess( program ) ;
    if ( rc )
    {
-      PD_LOG( PDERROR, "The program[%s] is not exist, rc: %d",
-              program, rc ) ;
+      ossPrintf( "The program[%s] is not exist, rc: %d"OSS_NEWLINE,
+                  program, rc ) ;
       goto error ;
    }
 
    rc = getWaitPipeName ( ppid ,  waitName , sizeof ( waitName ) ) ;
-   SH_VERIFY_RC
+   if ( rc )
+   {
+      ossPrintf( "Get wait pipe name failed, rc: %d"OSS_NEWLINE, rc ) ;
+      goto error ;
+   }
 
    // clear the name pipe fd in windows
    clearDirtyShellPipe( SDB_SHELL_WAIT_PIPE_PREFIX ) ;
@@ -531,28 +536,51 @@ INT32 createDaemonProcess ( const CHAR * program , const OSSPID & ppid ,
    // waitPipe is deleted in done:
    rc = ossCreateNamedPipe ( waitName , 0 , 0 , OSS_NPIPE_INBOUND ,
                              1 , 0 , waitPipe ) ;
-   SH_VERIFY_RC
+   if ( rc )
+   {
+      ossPrintf( "Create named pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+      goto error ;
+   }
 
    // args is freed in done ;
    rc = formatArgs ( program , ppid , &args ) ;
-   SH_VERIFY_RC
+   if ( rc )
+   {
+      goto error ;
+   }
 
    rc = ossExec ( program , args , NULL , OSS_EXEC_NODETACHED , pid ,
                   result , NULL , NULL ) ;
-   SH_VERIFY_RC
+   if ( rc )
+   {
+      ossPrintf( "Run program[%s] failed, rc: %d"OSS_NEWLINE, program, rc ) ;
+      goto error ;
+   }
 
    rc = getPipeNames2 ( ppid , pid , f2dName , sizeof ( f2dName ) ,
                                      d2fName , sizeof ( d2fName ) ) ;
-   SH_VERIFY_RC
+   if ( rc )
+   {
+      ossPrintf( "Get pipe name failed, rc: %d"OSS_NEWLINE, rc ) ;
+      goto error ;
+   }
 
    ossStrcpy ( f2dbuf , f2dName ) ;
    ossStrcpy ( d2fbuf , d2fName ) ;
 
    rc = ossConnectNamedPipe ( waitPipe , OSS_NPIPE_INBOUND ) ;
-   SH_VERIFY_RC
+   if ( rc )
+   {
+      ossPrintf( "Connect to pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+      goto error ;
+   }
 
    rc = ossDisconnectNamedPipe ( waitPipe ) ;
-   SH_VERIFY_RC
+   if ( rc )
+   {
+      ossPrintf( "Disconnect pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+      goto error ;
+   }
 
 done :
    ossDeleteNamedPipe ( waitPipe ) ;
@@ -599,7 +627,7 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
    rc = ossGetEWD( pbFullPath, OSS_MAX_PATHSIZE ) ;
    if ( rc )
    {
-      PD_LOG( PDERROR, "Get current path failed, rc: %d", rc ) ;
+      ossPrintf( "Get current path failed, rc: %d"OSS_NEWLINE, rc ) ;
       goto error ;
    }
    else
@@ -608,7 +636,7 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
       if ( strLen + ossStrlen( SDB_PB_PROGRAM_NAME ) + 2 > OSS_MAX_PATHSIZE )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Path[%s] is to long", pbFullPath ) ;
+         ossPrintf( "Path[%s] is to long"OSS_NEWLINE, pbFullPath ) ;
          goto error ;
       }
       else if ( strLen > 0 && pbFullPath[strLen-1] != OSS_FILE_SEP_CHAR )
@@ -634,7 +662,11 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
    // in /tmp/sequoiadb
    rc = getPipeNames ( ppid , f2dName , sizeof ( f2dName ) ,
                        d2fName , sizeof ( d2fName ) ) ;
-   SH_VERIFY_RC
+   if ( rc )
+   {
+      ossPrintf( "Build pipe names failed, rc: %d"OSS_NEWLINE, rc ) ;
+      goto error ;
+   }
 
    // there may be two name pipe in /tmp/sequoiadb,
    // get the their names if they existed
@@ -656,21 +688,44 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
       if ( ossIsProcessRunning  ( (OSSPID)id ) )
       {
          rc = ossOpenNamedPipe ( bpf2dName , OSS_NPIPE_OUTBOUND , 0 , f2dPipe ) ;
-         SH_VERIFY_RC
+         if ( rc )
+         {
+            ossPrintf( "Open pipe[%s] failed, rc: %d"OSS_NEWLINE,
+                       bpf2dName, rc ) ;
+            goto error ;
+         }
       }
       else
       {
          // first we should delete the old pipes
          rc = ossCleanNamedPipeByName ( bpf2dName ) ;
-         SH_VERIFY_RC
+         if ( rc )
+         {
+            ossPrintf( "Clean pipe[%s] failed, rc: %d"OSS_NEWLINE,
+                       bpf2dName, rc ) ;
+            goto error ;
+         }
          rc = ossCleanNamedPipeByName ( bpd2fName ) ;
-         SH_VERIFY_RC
+         if ( rc )
+         {
+            ossPrintf( "Clean pipe[%s] failed, rc: %d"OSS_NEWLINE,
+                       bpd2fName, rc ) ;
+            goto error ;
+         }
 
          rc = createDaemonProcess ( pbFullPath, ppid, bpf2dName, bpd2fName ) ;
-         SH_VERIFY_RC
+         if ( rc )
+         {
+            goto error ;
+         }
 
          rc = ossOpenNamedPipe ( bpf2dName , OSS_NPIPE_OUTBOUND , 0 , f2dPipe ) ;
-         SH_VERIFY_RC
+         if ( rc )
+         {
+            ossPrintf( "Open pipe[%s] failed, rc: %d"OSS_NEWLINE,
+                       bpf2dName, rc ) ;
+            goto error ;
+         }
       }
    }
    else if ( rc == SDB_FNE )
@@ -680,26 +735,47 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
 
       // create a process which will create two name pipe
       rc = createDaemonProcess ( pbFullPath, ppid, bpf2dName, bpd2fName ) ;
-      SH_VERIFY_RC
+      if ( rc )
+      {
+         goto error ;
+      }
 
       rc = ossOpenNamedPipe ( bpf2dName , OSS_NPIPE_OUTBOUND , 0 , f2dPipe ) ;
-      SH_VERIFY_RC
+      if ( rc )
+      {
+         ossPrintf( "Open pipe[%s] failed, rc: %d"OSS_NEWLINE,
+                    bpf2dName, rc ) ;
+      }
    }
    else
    {
-      SH_VERIFY_RC
+      ossPrintf( "Get pipe names failed, rc: %d"OSS_NEWLINE, rc ) ;
+      goto error ;
    }
 
    // also write the trailing \0 to mark end of write
    rc = ossWriteNamedPipe ( f2dPipe , cmd , ossStrlen ( cmd ) , NULL ) ;
-   SH_VERIFY_RC
+   if ( rc )
+   {
+      ossPrintf( "Write to pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+      goto error ;
+   }
 
    rc = ossCloseNamedPipe ( f2dPipe ) ;
-   SH_VERIFY_RC
+   if ( rc )
+   {
+      ossPrintf( "Close pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+      goto error ;
+   }
 
    rc = ossOpenNamedPipe ( bpd2fName , OSS_NPIPE_INBOUND ,
-                              OSS_NPIPE_INFINITE_TIMEOUT , d2fPipe ) ;
-   SH_VERIFY_RC
+                           OSS_NPIPE_INFINITE_TIMEOUT , d2fPipe ) ;
+   if ( rc )
+   {
+      ossPrintf( "Open pipe[%s] failed, rc: %d"OSS_NEWLINE,
+                 bpd2fName, rc ) ;
+      goto error ;
+   }
 
    // rest are the actual message
    // if we failed at first loop, we'll never enter here since rc != SDB_OK
@@ -802,7 +878,10 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
    SH_VERIFY_COND ( SDB_OK == rc || SDB_EOF == rc , rc )
 
    rc = ossCloseNamedPipe( d2fPipe ) ;
-   SH_VERIFY_RC
+   if ( rc )
+   {
+      goto error ;
+   }
 
 done :
    if ( SDB_OK != retCode )
@@ -853,7 +932,6 @@ int main ( int argc , CHAR **argv )
    INT32             rc       = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_SDB_MAIN );
    ArgInfo           argInfo ;
-   CHAR currentPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
 #if defined( _LINUX )
    signal( SIGCHLD, SIG_IGN ) ;
@@ -861,15 +939,12 @@ int main ( int argc , CHAR **argv )
    //
    linenoiseSetCompletionCallback( (linenoiseCompletionCallback*)lineComplete ) ;
 
-   rc = ossGetEWD( currentPath, OSS_MAX_PATHSIZE ) ;
+   rc = container.init() ;
    if ( rc )
    {
-      std::cout << "Get current path failed: " << rc << std::endl ;
+      ossPrintf( "Init container failed, rc: %d"OSS_NEWLINE, rc ) ;
       goto error ;
    }
-
-   rc = container.init() ;
-   SH_VERIFY_RC
 
    scope = container.newScope() ;
    SH_VERIFY_COND ( scope , SDB_SYS ) ;
@@ -881,7 +956,11 @@ int main ( int argc , CHAR **argv )
       rc = SDB_OK ;
       goto done ;
    }
-   SH_VERIFY_RC
+   else if ( rc )
+   {
+      ossPrintf( "Parse args failed, rc: %d"OSS_NEWLINE, rc ) ;
+      goto error ;
+   }
 
    switch ( argInfo.mode )
    {
