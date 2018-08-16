@@ -36,12 +36,24 @@ public class BSONTimestamp implements Serializable {
     
     static final boolean D = Boolean.getBoolean( "DEBUG.DBTIMESTAMP" );
 
+    /**
+     * Construct an empty BSONTimestamp.
+     */
     public BSONTimestamp(){
         _inc = 0;
         _time = new Date(0L);
     }
 
+    /**
+     * Construct BSONTimestamp.
+     * @param time seconds since epoch.
+     * @param inc microseconds in range of [0us, 999999us].
+     * @exception IllegalArgumentException
+     */
     public BSONTimestamp(int time, int inc ) {
+        if (inc > 999999 || inc < 0) {
+            throw new IllegalArgumentException("inc should in range of [0us, 999999us]");
+        }
         _time = new Date( time * 1000L );
         _inc = inc;
     }
