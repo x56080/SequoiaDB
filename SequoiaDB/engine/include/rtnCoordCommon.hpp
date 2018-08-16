@@ -495,6 +495,11 @@ namespace engine
                              pmdEDUCB *cb,
                              ROUTE_RC_MAP *pFailedNodes = NULL ) ;
 
+   void     rtnCoordFilterGroupsByRole( CoordGroupList &groupList,
+                                        INT32 *pRoleFilter ) ;
+
+   void     rtnCoordFilterNodesByRole( ROUTE_SET &nodes,
+                                       INT32 *pRoleFilter ) ;
 }
 
 #endif //RTNCOORDCOMMON_HPP__

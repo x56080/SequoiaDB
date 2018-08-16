@@ -4354,5 +4354,53 @@ namespace engine
       return builder.obj() ;
    }
 
+   void rtnCoordFilterGroupsByRole( CoordGroupList &groupList,
+                                    INT32 *pRoleFilter )
+   {
+      CoordGroupList::iterator it = groupList.begin() ;
+      while( it != groupList.end() )
+      {
+         if ( ( !pRoleFilter[ SDB_ROLE_DATA ] &&
+                it->second >= DATA_GROUP_ID_BEGIN &&
+                it->second <= DATA_GROUP_ID_END ) ||
+              ( !pRoleFilter[ SDB_ROLE_CATALOG ] &&
+                CATALOG_GROUPID == it->second ) ||
+              ( !pRoleFilter[ SDB_ROLE_COORD ] &&
+                COORD_GROUPID == it->second ) )
+         {
+            it = groupList.erase( it ) ;
+         }
+         else
+         {
+            ++it ;
+         }
+      }
+   }
+
+   void rtnCoordFilterNodesByRole( ROUTE_SET &nodes, INT32 *pRoleFilter )
+   {
+      MsgRouteID nodeID ;
+      ROUTE_SET::iterator it = nodes.begin() ;
+      while( it != nodes.end() )
+      {
+         nodeID.value = *it ;
+
+         if ( ( !pRoleFilter[ SDB_ROLE_DATA ] &&
+                nodeID.columns.groupID >= DATA_GROUP_ID_BEGIN &&
+                nodeID.columns.groupID <= DATA_GROUP_ID_END ) ||
+              ( !pRoleFilter[ SDB_ROLE_CATALOG ] &&
+                CATALOG_GROUPID == nodeID.columns.groupID ) ||
+              ( !pRoleFilter[ SDB_ROLE_COORD ] &&
+                COORD_GROUPID == nodeID.columns.groupID ) )
+         {
+            nodes.erase( it++ ) ;
+         }
+         else
+         {
+            ++it ;
+         }
+      }
+   }
+
 }
 
