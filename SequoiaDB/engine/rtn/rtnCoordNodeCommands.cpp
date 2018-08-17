@@ -1266,7 +1266,7 @@ namespace engine
                          "Failed to %s: failed to get the field [%s] from query",
                          _getCommandName(), FIELD_NAME_KEEP_DATA ) ;
 
-            if ( pSelfArgs->_boQuery.nFields() > validCount )
+            if ( (UINT32)pSelfArgs->_boQuery.nFields() > validCount )
             {
                rc = SDB_INVALIDARG ;
                PD_LOG( PDERROR, "Unknown parameters in command's args[%s]",
@@ -1784,7 +1784,7 @@ namespace engine
                       "Failed to %s: failed to get the field [%s] from query",
                       _getCommandName(), CMD_NAME_ENFORCED ) ;
 
-         if ( pSelfArgs->_boQuery.nFields() > validCount )
+         if ( (UINT32)pSelfArgs->_boQuery.nFields() > validCount )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG( PDERROR, "Unknown parameters in command's args[%s]",

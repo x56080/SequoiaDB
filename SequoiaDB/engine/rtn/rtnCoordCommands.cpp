@@ -860,7 +860,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "prase control param failed, rc: %d", rc ) ;
       *pFilterObj = newFilterObj ;
 
-      if ( ctrlParam._parseMask & COORD_CTRL_MASK_ROLE )
+      if ( ctrlParam._parseMask & RTN_CTRL_MASK_ROLE )
       {
          specificRole = TRUE ;
       }
