@@ -60,6 +60,7 @@
 #include "utilPipe.hpp"
 #include "sptContainer.hpp"
 #include "ossSignal.hpp"
+#include "ossIO.hpp"
 
 using namespace bson ;
 
