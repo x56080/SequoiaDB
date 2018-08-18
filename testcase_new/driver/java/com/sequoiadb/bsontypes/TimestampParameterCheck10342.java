@@ -80,7 +80,7 @@ public class TimestampParameterCheck10342 extends SdbTestBase{
 	public Object[][] generateDataProvider(){
 		return new Object[][]{
 			//beyond left boundary:-2145945601			
-			{-2145945601,-2147483648},
+			{-2145945601,-0},
 			//beyond right boundary:
 			{2145888000,999999},
 			//not int type

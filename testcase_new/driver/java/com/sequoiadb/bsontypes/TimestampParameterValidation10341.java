@@ -76,9 +76,9 @@ public class TimestampParameterValidation10341 extends SdbTestBase{
 	public Object[][] generateDataProvider(){
 		return new Object[][]{
 			//seconds of min time:"1902-01-01 00:00:00.000000",min inc:-2147483648
-			{-2145945600,-2147483648},
+			{-2145945600,0},
 			//seconds of max time:"2037-12-31 23:59:59.999999",max inc:2147483647
-			{2145887999,2147483647},
+			{2145887999,999999},
 			//seconds of time :"2014-07-01 12:30:30.124232"
 			{1404189030,0},
 		};
