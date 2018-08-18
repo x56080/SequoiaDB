@@ -3866,8 +3866,9 @@ namespace engine
          catch ( std::exception &e )
          {
             rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Occur exception: %s, index obj: %s",
-                    e.what(), indexKey.toString().c_str() ) ;
+            PD_LOG_MSG( PDERROR, "%s", e.what() ) ;
+            PD_LOG( PDERROR, "Create index, index obj: %s, rc: %d.",
+                    indexKey.toString().c_str(), rc ) ;
             goto error ;
          }
 
