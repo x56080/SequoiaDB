@@ -342,8 +342,7 @@ namespace SequoiaDB
         }
 
         /** \fn Node GetSlave()
-         *  \brief Get the slave node in the specified positions,
-         *         when have no slave node in the specified positions, return master node.
+         *  \brief Get the slave node, when have no slave node, return master node.
          *  \return The fitted node.
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
