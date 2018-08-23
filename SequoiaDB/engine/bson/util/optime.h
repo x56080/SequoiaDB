@@ -46,6 +46,12 @@ namespace bson {
         OpTime(ReplTime x) {
             reinterpret_cast<unsigned long long&>(*this) = x;
         }
+        /**
+         * Constructor.
+         *
+         * @param a seconds since epoch.
+         * @param b microseconds in range of [0us, 999999us].
+         */
         OpTime(signed a, unsigned b) {
             secs = a;
             i = b;

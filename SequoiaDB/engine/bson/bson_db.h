@@ -35,13 +35,30 @@
 namespace bson {
 
     /**
-    Timestamps are a special BSON datatype that is used internally for
-    replication. Append a timestamp element to the object being ebuilt.
-    @param time - in millis (but stored in seconds)
-    */
+     * Append a timestamp value to a bson.
+     *
+     * @param b the bson to append to.
+     * @param fieldName the key for the timestampe value.
+     * @param time milliseconds since epoch(but stored in seconds).
+     * @param inc microseconds in range of [0us, 999999us].
+     *
+     * @return the current instance of BSONObjBuilder.
+     */
     inline BSONObjBuilder& BSONObjBuilder::appendTimestamp(
       const StringData& fieldName, long long time, unsigned int inc) {
-        OpTime t( (time / 1000) , inc );
+        long long ms = 0;
+        unsigned int us = 0;
+        if ( inc < 1000000 )
+        {
+            ms = time;
+            us = inc;
+        }
+        else
+        {
+            ms = time + ( inc / 1000000 ) * 1000 ;
+            us  = inc % 1000000 ;
+        }
+        OpTime t( (ms / 1000) , us );
         appendTimestamp( fieldName , t.asDate() );
         return *this;
     }
