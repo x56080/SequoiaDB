@@ -34,6 +34,8 @@
 #include <WinBase.h>
 #endif
 
+#define BSON_TIMESTAMP_MAX_INC 1000000
+
 static int jsCompatibility = 0;
 const int initialBufferSize = 0;
 
@@ -2056,19 +2058,28 @@ SDB_EXPORT int bson_append_elements( bson *dst, const bson *src ) {
 }
 
 SDB_EXPORT int bson_append_timestamp( bson *b, const char *name, bson_timestamp_t *ts ) {
-    if ( bson_append_estart( b, BSON_TIMESTAMP, name, 8 ) == BSON_ERROR ) return BSON_ERROR;
-
-    bson_append32( b , &( ts->i ) );
-    bson_append32( b , &( ts->t ) );
-
-    return BSON_OK;
+    return bson_append_timestamp2( b, name, ts->t, ts->i );
 }
 
 SDB_EXPORT int bson_append_timestamp2( bson *b, const char *name, int time, int increment ) {
     if ( bson_append_estart( b, BSON_TIMESTAMP, name, 8 ) == BSON_ERROR ) return BSON_ERROR;
-
-    bson_append32( b , &increment );
-    bson_append32( b , &time );
+    if ( increment >= 0 && increment < BSON_TIMESTAMP_MAX_INC )
+    {
+        bson_append32( b , &increment );
+        bson_append32( b , &time );
+    }
+    else
+    {
+        int sec = time + increment / BSON_TIMESTAMP_MAX_INC;
+        int us  = increment % BSON_TIMESTAMP_MAX_INC;
+        if ( us < 0 )
+        {
+            sec -= 1;
+            us += BSON_TIMESTAMP_MAX_INC;
+        }
+        bson_append32( b , &us );
+        bson_append32( b , &sec );
+    }
     return BSON_OK;
 }
 
