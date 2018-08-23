@@ -49,14 +49,20 @@ namespace SequoiaDB.Bson
         /// Initializes a new instance of the BsonTimestamp class.
         /// </summary>
         /// <param name="timestamp">The seconds since epoch.</param>
-        /// <param name="increment">The microseconds in range of [0us, 999999us].</param>
+        /// <param name="increment">The microseconds in range of [0us, 999999us], 
+        ///                         while the 'inc' is out of range, the carry will occur.</param>
         public BsonTimestamp(int timestamp, int increment)
             : base(BsonType.Timestamp)
         {
-            if (increment > 999999 || increment < 0)
+            if (increment < 0 || increment >= 1000000)
             {
-                throw new ArgumentOutOfRangeException(
-                    "increment should in range of [0us, 999999us], but it is: " + increment + "us");
+                timestamp += increment / 1000000;
+                increment = increment % 1000000;
+                if (increment < 0)
+                {
+                    timestamp -= 1;
+                    increment += 1000000;
+                }
             }
             _value = (long)(((ulong)(uint)timestamp << 32) | ((ulong)(uint)increment));
         }
