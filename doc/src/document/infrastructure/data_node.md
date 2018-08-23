@@ -14,7 +14,7 @@
 
 如果新增节点涉及到新增主机，则请首先按照在[集群中新增主机](installation/create_host.md)一节完成主机的主机名和参数配置。
 
-一个集群中可以配置多个分区组，最大可配置60,000个分区组。通过增加分区组，可以充分利用物理设备进行水平扩展，理论上SequoiaDB 可以做到线性的水平扩展能力。
+一个集群中可以配置多个分区组。通过增加分区组，可以充分利用物理设备进行水平扩展，理论上SequoiaDB 可以做到线性的水平扩展能力。
 
 - 操作方法：
 
@@ -24,7 +24,7 @@
    > var dataRG = db.createRG( "datagroup1" )
    ```
 
-   >   **Node:**
+   >   **Note:**
    >
    >   更多创建数据分区组的内容，请参考 [Sdb.createRG\(\)](reference/Sequoiadb_command/Sdb/createRG.md)
 
