@@ -47,14 +47,19 @@ public class BSONTimestamp implements Serializable {
     /**
      * Construct BSONTimestamp.
      * @param time seconds since epoch.
-     * @param inc microseconds in range of [0us, 999999us].
-     * @exception IllegalArgumentException
+     * @param inc microseconds in range of [0us, 999999us], while the 'inc' is out of range,
+     *             the carry will occur.
      */
     public BSONTimestamp(int time, int inc ) {
-        if (inc > 999999 || inc < 0) {
-            throw new IllegalArgumentException("inc should in range of [0us, 999999us], but it is: " + inc + "us");
+        if (inc < 0 || inc >= 1000000) {
+            time += inc / 1000000;
+            inc = inc % 1000000;
+            if (inc < 0) {
+                time -= 1;
+                inc += 1000000;
+            }
         }
-        _time = new Date( time * 1000L );
+        _time = new Date(time * 1000L);
         _inc = inc;
     }
 
