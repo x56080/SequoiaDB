@@ -340,7 +340,8 @@ namespace engine
    // milliseconds
    //two hours
    #define  OM_MSG_TIMEOUT_TWO_HOUR          (2 * 3600 * 1000)
-   #define  OM_MSG_TIMEOUT_TEN_SECS          (10 * 1000)
+   #define  OM_MSG_TIMEOUT_THIRTY_SECS       (30 * 1000)
+   #define  OM_MSG_TIMEOUT_ONE_MIN           (60 * 1000)
 
    #define  OM_BASICCHECK_INTERVAL           OM_MSG_TIMEOUT_TWO_HOUR
    #define  OM_INSTALL_AGET_INTERVAL         OM_MSG_TIMEOUT_TWO_HOUR
@@ -349,8 +350,8 @@ namespace engine
    #define  OM_WAIT_SCAN_RES_INTERVAL        OM_MSG_TIMEOUT_TWO_HOUR
 
    // wait for response's timeout
-   #define  OM_NOTIFY_TASK_TIMEOUT           OM_MSG_TIMEOUT_TEN_SECS
-   #define  OM_QUERY_HOST_STATUS_TIMEOUT     OM_MSG_TIMEOUT_TEN_SECS
+   #define  OM_NOTIFY_TASK_TIMEOUT           OM_MSG_TIMEOUT_THIRTY_SECS
+   #define  OM_QUERY_HOST_STATUS_TIMEOUT     OM_MSG_TIMEOUT_ONE_MIN
 
    #define  OM_WAIT_PROGRESS_RES_INTERVAL    (3000)
    #define  OM_WAIT_AGENT_EXIT_RES_INTERVAL  (1000)
