@@ -19,6 +19,8 @@
 
 #define TIMESTAMP_FORMAT "%d-%d-%d-%d.%d.%d.%d"
 
+#define TIMESTAMP_MAX_INC 1000000
+
 extern INT32 timestampDesc ;
 
 static void local_time ( time_t *Time, struct tm *TM )
@@ -109,6 +111,23 @@ PHP_METHOD( SequoiaTimestamp, __construct )
       pDriverTimestamp->second = (INT32)timep ;
       pDriverTimestamp->micros = micros ;
    }
+
+   if ( pDriverTimestamp->micros < 0 ||
+        pDriverTimestamp->micros >= TIMESTAMP_MAX_INC )
+   {
+      INT32 sec = pDriverTimestamp->micros / TIMESTAMP_MAX_INC ;
+      INT32 us  = pDriverTimestamp->micros % TIMESTAMP_MAX_INC ;
+
+      if ( us < 0 )
+      {
+         sec -= 1;
+         us += TIMESTAMP_MAX_INC;
+      }
+
+      pDriverTimestamp->second += sec ;
+      pDriverTimestamp->micros = us ;
+   }
+
 done:
    PHP_SAVE_RESOURCE( pThisObj,
                       "$timestamp",
