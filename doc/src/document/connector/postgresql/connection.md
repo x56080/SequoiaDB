@@ -16,17 +16,12 @@
 
 	>**Note:** 
 	>
-	> 如果没有配置数据库密码验证，可以忽略user与password字段。
-	>
-	> 如果需要提供多个协调节点地址，options 中的 address 字段可以按格式 'ip1:port1,ip2:port2,ip3:port3'填写。此时，service 字段可填写任意一个非空字符串。
-	>
-	> preferedinstance 设置 SequoiaDB 的连接属性。多个属性以逗号分隔，如：preferedinstance '1,2,A'。详细配置请参考 [preferedinstance](reference/Sequoiadb_command/Sdb/setSessionAttr.md) 取值
-	> 
-	> preferedinstancemode 设置 preferedinstance 的选择模式
-	> 
-	> sessiontimeout 设置会话超时时间 如：sessiontimeout '100'
-	>
-	> transaction 设置SequoiaDB是否开启事务，默认为off。开启为on
+	> * 如果没有配置数据库密码验证，可以忽略user与password字段。
+	> * 如果需要提供多个协调节点地址，options 中的 address 字段可以按格式 'ip1:port1,ip2:port2,ip3:port3'填写。此时，service 字段可填写任意一个非空字符串。
+	> * preferedinstance 设置 SequoiaDB 的连接属性。多个属性以逗号分隔，如：preferedinstance '1,2,A'。详细配置请参考 [preferedinstance](reference/Sequoiadb_command/Sdb/setSessionAttr.md) 取值
+	> * preferedinstancemode 设置 preferedinstance 的选择模式
+	> * sessiontimeout 设置会话超时时间 如：sessiontimeout '100'
+	> * transaction 设置 SequoiaDB 是否开启事务，默认为off。开启为on
 
 3. 关联SequoiaDB的集合空间与集合
 
@@ -40,6 +35,8 @@ foo=# create foreign table test (name text, id numeric) server sdb_server option
 	> * 如果需要对接SequoiaDB的decimal字段，则需要在options中指定 decimal 'on' 。
 	> * 默认情况下，表的字段映射到SequoiaDB中为小写字符，如果强制指定字段为大写字符，创建方式参考“注意事项1”。
 	> * 映射 SequoiaDB 的数组类型，创建方式参考“注意事项2”。
+	> * pushdownsort 设置是否下压排序条件到 SequoiaDB，默认为on。开启为off
+	> * pushdownlimit 设置是否下压 limit 和 offset 条件到 SequoiaDB，默认为on。开启为off
 
 4. 更新表的统计信息
 
@@ -100,10 +97,11 @@ foo=# create foreign table test (name text, id numeric) server sdb_server option
 	| long            | bigint            |                                               |
 	| int             | serial            |                                               |
 	| long            | bigserial         |                                               |
-	| double          | real              | 存在精度问题，SequoiaDB 存储时不是完全一致           |
+	| double          | real              | 存在精度问题，SequoiaDB 存储时不是完全一致    |
 	| double          | double precision  |                                               |
 	| string          | numeric           |                                               |
 	| string          | decimal           |                                               |
+	| decimal         | decimal           | 需要在创建外表时，指定选项 decimal 为 'on'    |
 	| string          | text              |                                               |
 	| string          | char              |                                               |
 	| string          | varchar           |                                               |
