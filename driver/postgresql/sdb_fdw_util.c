@@ -289,6 +289,135 @@ bool sdbIsVarNode( Node *node )
    return false ;
 }
 
+bool isSortCanPushDown( PlannerInfo *root, Index foreignTableIndex )
+{
+   ListCell *cell = NULL ;
+   List *sort_paths = root->sort_pathkeys ;
+   if ( NIL == sort_paths )
+   {
+      elog( DEBUG1, "isSortCanPushDown:empty pathkeys" ) ;
+      return false ;
+   }
+
+   if ( list_length(root->parse->rtable) > 1 )
+   {
+      // can't support more than one table
+      elog( DEBUG1, "isSortCanPushDown:root->parse->rtable is greater than 1" ) ;
+      return false ;
+   }
+
+   if (list_length(root->parse->groupClause) > 0)
+   {
+      // sort is affect in group result, not in the original records.
+      return false ;
+   }
+
+   foreach(cell, sort_paths)
+   {
+      ListCell *emCell ;
+      EquivalenceMember *em ;
+
+      // pk->pk_strategy: BTGreaterStrategyNumber is desc, others is asc
+      PathKey *pk = (PathKey *) lfirst(cell) ;
+      EquivalenceClass *ec = pk->pk_eclass ;
+      if ( ec->ec_below_outer_join )
+      {
+         elog( DEBUG1, "isSortCanPushDown:ec_below_outer_join is true" ) ;
+         return false ;
+      }
+
+      if (1 != list_length(ec->ec_members))
+      {
+         elog( DEBUG1, "isSortCanPushDown:ec->ec_members's length is greater than 1" ) ;
+         return false ;
+      }
+
+      foreach(emCell, ec->ec_members)
+      {
+         Var *var ;
+         NodeTag argType ;
+         em = (EquivalenceMember *) lfirst(emCell) ;
+         if (NULL == em->em_expr)
+         {
+            elog( DEBUG1, "isSortCanPushDown:em->em_expr is NULL" ) ;
+            return false ;
+         }
+
+         argType = nodeTag(em->em_expr) ;
+         if( argType != T_Var )
+         {
+            elog( DEBUG1, "isSortCanPushDown:em->em_expr is not Var" ) ;
+            return false ;
+         }
+
+         var = (Var *) em->em_expr ;
+         if ( var->varno != foreignTableIndex  ||  var->varlevelsup != 0 )
+         {
+            elog( DEBUG1, "isSortCanPushDown:foreignTableIndex=%d,varno=%d,varlevelsup=%d",
+                  foreignTableIndex, var->varno, var->varlevelsup) ;
+            return false ;
+         }
+      }
+   }
+
+   return true ;
+}
+
+INT32 sdbGenerateSortCondition ( Index foreignTableIndex, Oid foreign_id,
+                                 List *sort_paths, sdbbson *condition )
+{
+   INT32 rc = SDB_OK ;
+   ListCell *cell = NULL ;
+
+   if ( NIL == sort_paths )
+   {
+      goto done ;
+   }
+
+   sdbbson_destroy( condition ) ;
+   sdbbson_init( condition ) ;
+
+   foreach(cell, sort_paths)
+   {
+      EquivalenceClass *ec ;
+      ListCell *emCell ;
+      EquivalenceMember *em ;
+      Var *var ;
+      INT32 order = 1 ;
+
+      // pk->pk_strategy: BTGreaterStrategyNumber is desc, others is asc
+      PathKey *pk = (PathKey *) lfirst(cell) ;
+      if ( pk->pk_strategy == BTGreaterStrategyNumber )
+      {
+         order = -1 ;
+      }
+
+      ec = pk->pk_eclass ;
+      foreach(emCell, ec->ec_members)
+      {
+         CHAR *columnName ;
+         em = (EquivalenceMember *) lfirst(emCell) ;
+         var = (Var *) em->em_expr ;
+         columnName = get_relid_attribute_name( foreign_id, var->varattno ) ;
+         sdbbson_append_int( condition, columnName, order ) ;
+      }
+   }
+
+   rc = sdbbson_finish( condition ) ;
+   if ( SDB_OK != rc )
+   {
+      sdbbson_destroy( condition ) ;
+      sdbbson_init( condition ) ;
+      sdbbson_finish( condition ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 bool sdbMatchClauseToIndexcol( RelOptInfo *rel, Oid tableID,
                                sdbIndexInfo *index, int indexcol,
                                RestrictInfo *rinfo )
@@ -930,7 +1059,7 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
       return SDB_INVALID_HANDLE ;
    }
 
-   rc = sdbSetConnectionPreference( hConnection, (char *)preference_instance, preference_instance_mode, 
+   rc = sdbSetConnectionPreference( hConnection, (char *)preference_instance, preference_instance_mode,
                                     session_timeout ) ;
    if ( rc )
    {
@@ -972,7 +1101,7 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
    connect->isTransactionOn = 0 ;
    pool->numConnections++ ;
 
-   if ( strcmp( transaction, SDB_TRANSACTION_ON ) == 0 )
+   if ( strcmp( transaction, SDB_OPTION_ON ) == 0 )
    {
       elog( DEBUG1, "trans begin[%s]", connect->connName ) ;
       rc = sdbTransactionBegin( connect->hConnection ) ;
@@ -1059,7 +1188,7 @@ bool sdbIsPreferedList( const CHAR *preference_instance )
 }
 
 
-int sdbSetConnectionPreference( sdbConnectionHandle hConnection, CHAR *preference_instance, 
+int sdbSetConnectionPreference( sdbConnectionHandle hConnection, CHAR *preference_instance,
                                 const CHAR *preference_instance_mode, INT32 session_timeout )
 {
    int intPreferenece_instance = 0 ;
@@ -1080,9 +1209,9 @@ int sdbSetConnectionPreference( sdbConnectionHandle hConnection, CHAR *preferenc
          CHAR *tmpPtr    = NULL ;
          CHAR *tmpResult = NULL ;
          INT32 i         = 0 ;
-         
+
          sdbbson_append_start_array( &recordObj, FIELD_NAME_PREFERED_INSTANCE ) ;
-         
+
          while( ( tmpResult = strtok_r( tmpSrc, SDB_FIELD_COMMA, &tmpPtr ) ) != NULL )
          {
             CHAR *value = NULL ;
@@ -1106,7 +1235,7 @@ int sdbSetConnectionPreference( sdbConnectionHandle hConnection, CHAR *preferenc
 
          sdbbson_append_finish_array( &recordObj ) ;
       }
-      else 
+      else
       {
          // single word
          intPreferenece_instance = atoi( preference_instance ) ;
@@ -1129,7 +1258,7 @@ int sdbSetConnectionPreference( sdbConnectionHandle hConnection, CHAR *preferenc
       sdbbson_append_string( &recordObj, FIELD_NAME_PREFERED_INSTANCE_MODE, preference_instance_mode ) ;
    }
 
-   if ( -1 != session_timeout ) 
+   if ( -1 != session_timeout )
    {
       isNeedSendReq = true ;
       sdbbson_append_int( &recordObj, FIELD_NAME_TIMEOUT, session_timeout ) ;
@@ -1144,7 +1273,7 @@ int sdbSetConnectionPreference( sdbConnectionHandle hConnection, CHAR *preferenc
    }
 
    sdbPrintBson( &recordObj, DEBUG1, "display session attr" ) ;
-   
+
    if ( isNeedSendReq )
    {
       elog( DEBUG1, "setting session attr" ) ;
@@ -1156,7 +1285,7 @@ int sdbSetConnectionPreference( sdbConnectionHandle hConnection, CHAR *preferenc
          return rc ;
       }
    }
-   else 
+   else
    {
       elog( DEBUG1, "do not set session attr" ) ;
    }
@@ -1635,5 +1764,61 @@ void SdbReleaseRecord( SdbRecordCache *recordCache, UINT64 recordID )
    recordCache->recordArray[index].isUsed = FALSE ;
    recordCache->usedCount-- ;
 }
+
+void sdbPreprocessLimit(PlannerInfo *root, INT64 *offset, INT64 *limit)
+{
+   Query *parse = root->parse;
+   Node *est;
+
+   *limit = -1;
+   *offset = 0;
+
+   if (list_length(parse->rtable) > 1)
+   {
+      // can't support more than one table
+      return;
+   }
+
+   if (list_length(parse->groupClause) > 0)
+   {
+      // limit is affect in group result, not in the original records.
+      return;
+   }
+
+   if (parse->limitCount)
+   {
+      est = estimate_expression_value(root, parse->limitCount);
+      if (est && IsA(est, Const))
+      {
+         if (!((Const *) est)->constisnull)
+         {
+            *limit = DatumGetInt64(((Const *) est)->constvalue);
+            if (*limit <= 0)
+            {
+               *limit = -1;      /* force to at least 1 */
+            }
+         }
+      }
+   }
+
+   if (parse->limitOffset)
+   {
+      est = estimate_expression_value(root, parse->limitOffset);
+      if (est && IsA(est, Const))
+      {
+         if (!((Const *) est)->constisnull)
+         {
+            *offset = DatumGetInt64(((Const *) est)->constvalue);
+            if (*offset < 0)
+            {
+               *offset = 0;
+            }
+         }
+      }
+   }
+
+   return;
+}
+
 
 

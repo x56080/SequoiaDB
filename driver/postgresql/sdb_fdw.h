@@ -20,6 +20,8 @@
 #define OPTION_NAME_COLLECTIONSPACE       "collectionspace"
 #define OPTION_NAME_COLLECTION            "collection"
 #define OPTION_NAME_USEDECIMAL            "decimal"
+#define OPTION_NAME_PUSHDOWNSORT          "pushdownsort"
+#define OPTION_NAME_PUSHDOWNLIMIT         "pushdownlimit"
 #define OPTION_NAME_PREFEREDINSTANCE      "preferedinstance"
 #define OPTION_NAME_PREFEREDINSTANCE_MODE "preferedinstancemode"
 #define OPTION_NAME_SESSION_TIMEOUT       "sessiontimeout"
@@ -36,21 +38,16 @@
 #define DEFAULT_USERNAME            ""
 #define DEFAULT_PASSWORDNAME        ""
 
-#define SDB_TRANSACTION_ON          "on"
-#define SDB_TRANSACTION_OFF         "off"
-#define DEFAULT_TRANSACTION         SDB_TRANSACTION_OFF
-
-#define SDB_DECIMAL_ON              "on"
-#define SDB_DECIMAL_OFF             "off"
-#define DEFAULT_DECIMAL             SDB_DECIMAL_OFF
+#define SDB_OPTION_ON               "on"
+#define SDB_OPTION_OFF              "off"
 
 #define INITIAL_ARRAY_CAPACITY         8
 #define SDB_TUPLE_COST_MULTIPLIER      5
 
 #define SDB_MAX_KEY_COLUMN_COUNT       (10)
-#define SDB_MAX_KEY_COLUMN_LENGTH      (20)
+#define SDB_MAX_KEY_COLUMN_LENGTH      (30)
 
-#define SDB_MAX_INDEX_NUM              (10)
+#define SDB_MAX_INDEX_NUM              (20)
 
 #define SDB_MAX_SERVICE_LENGTH         (256)
 
@@ -76,7 +73,9 @@ static const SdbInputOption SdbInputOptionList[] =
 
    { OPTION_NAME_COLLECTIONSPACE,         ForeignTableRelationId },
    { OPTION_NAME_COLLECTION,              ForeignTableRelationId },
-   { OPTION_NAME_USEDECIMAL,              ForeignTableRelationId }
+   { OPTION_NAME_USEDECIMAL,              ForeignTableRelationId },
+   { OPTION_NAME_PUSHDOWNSORT,            ForeignTableRelationId },
+   { OPTION_NAME_PUSHDOWNLIMIT,           ForeignTableRelationId }
 } ;
 
 struct SdbInputOptions
@@ -92,6 +91,8 @@ struct SdbInputOptions
    INT32 sessionTimeout ;
    CHAR  *transaction ;
    INT32 isUseDecimal ;                         /* use decimal in sdb */
+   INT32 isPushDownSort ;                       /* push down sort or not */
+   INT32 isPushDownLimit ;                      /* push down limit or not */
 } ;
 typedef struct SdbInputOptions SdbInputOptions ;
 
@@ -159,6 +160,11 @@ struct SdbExecState
    sdbConnectionHandle hConnection ;
    sdbCollectionHandle hCollection ;
    sdbbson queryDocument ; /* query request */
+   sdbbson sortDocument ; /* sort request */
+   INT64 offset ;
+   INT64 limit ;
+   int isPushDownSort ;
+   int isPushDownLimit ;
 
    /* sdb server options */
    char *sdbServerList[ INITIAL_ARRAY_CAPACITY ];

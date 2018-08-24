@@ -45,6 +45,13 @@ bool sdbMatchClauseToIndexcol( RelOptInfo *rel, Oid tableID,
                                sdbIndexInfo *index, int indexcol,
                                RestrictInfo *rinfo ) ;
 
+bool isSortCanPushDown( PlannerInfo *root, Index foreignTableIndex ) ;
+
+INT32 sdbGenerateSortCondition ( Index foreignTableIndex, Oid foreign_id,
+                                 List *sort_paths, sdbbson *condition ) ;
+
+void sdbPreprocessLimit(PlannerInfo *root, INT64 *offset, INT64 *limit);
+
 //int sdbGetIndexInfo( SdbExecState *sdbState, sdbIndexInfo *indexInfo ) ;
 
 int sdbGetIndexInfos( SdbExecState *sdbState, sdbIndexInfo *indexInfo,
@@ -66,7 +73,7 @@ sdbCollectionHandle sdbGetSdbCollection( sdbConnectionHandle connectionHandle,
 
 SdbConnectionPool *sdbGetConnectionPool() ;
 
-int sdbSetConnectionPreference( sdbConnectionHandle hConnection, CHAR *preference_instance, 
+int sdbSetConnectionPreference( sdbConnectionHandle hConnection, CHAR *preference_instance,
                                 const CHAR *preference_instance_mode, INT32 session_timeout ) ;
 
 BOOLEAN sdbIsInterrupt() ;
@@ -93,7 +100,6 @@ int sdbGenerateRescanCondition(SdbExecState *fdw_state, PlanState *planState,
 void sdbPrintBson( sdbbson *bson, int log_level, const char *label ) ;
 
 void debugClauseInfo( PlannerInfo *root, RelOptInfo *baserel, Oid tableID ) ;
-
 
 /* record cache */
 typedef struct

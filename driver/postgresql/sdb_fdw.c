@@ -109,7 +109,7 @@ typedef struct
    int running ;
 } sdbCheckThreadInfo;
 
-
+/*
 static sdbCheckThreadInfo *sdbGetCheckThreadInfo() ;
 
 static void sdbStartInterruptCheck() ;
@@ -120,7 +120,7 @@ static void sdbJoinInterruptThread() ;
 static void *thr_check_interrupt( void * arg ) ;
 
 static void sdbInterruptAllConnection() ;
-
+*/
 
 /* module initialization */
 void _PG_init (  ) ;
@@ -209,9 +209,11 @@ static void sdbDeserializeDocument( Const *constant, sdbbson *document ) ;
 #define serializeOid( x )makeConst( OIDOID, -1, InvalidOid, 4, ObjectIdGetDatum( x ), 0, 1 )
 static Const *serializeString( const char *s ) ;
 static Const *serializeUint64( UINT64 value ) ;
+static Const *serializeInt64( INT64 value ) ;
 
 static char *deserializeString( Const *constant ) ;
 static UINT64 deserializeUint64( Const *constant ) ;
+static INT64 deserializeInt64( Const *constant ) ;
 static Oid deserializeOid( Const *constant ) ;
 //static long deserializeLong( Const *constant ) ;
 static SdbExecState *deserializeSdbExecState( List *sdbExecStateList ) ;
@@ -341,9 +343,11 @@ int sdbGetSdbServerOptions( Oid foreignTableId, SdbExecState *sdbExecState )
    sdbExecState->preferenceInstance = options.preference_instance ;
    sdbExecState->preferenceInstanceMode = options.preference_instance_mode ;
    sdbExecState->sessionTimeout     = options.sessionTimeout ;
-   
+
    sdbExecState->transaction        = options.transaction ;
    sdbExecState->isUseDecimal       = options.isUseDecimal ;
+   sdbExecState->isPushDownSort     = options.isPushDownSort;
+   sdbExecState->isPushDownLimit    = options.isPushDownLimit;
 
    return 0 ;
 }
@@ -389,6 +393,13 @@ void initSdbExecState( SdbExecState *sdbExecState )
 
    sdbbson_init( &sdbExecState->queryDocument ) ;
    sdbbson_finish( &sdbExecState->queryDocument ) ;
+   sdbbson_init( &sdbExecState->sortDocument ) ;
+   sdbbson_finish( &sdbExecState->sortDocument ) ;
+
+   sdbExecState->offset = 0 ;
+   sdbExecState->limit = -1 ;
+   sdbExecState->isPushDownSort = 1 ;
+   sdbExecState->isPushDownLimit = 1 ;
 }
 
 Const *serializeString( const char *s )
@@ -402,6 +413,17 @@ Const *serializeString( const char *s )
 Const *serializeUint64( UINT64 value )
 {
    return makeConst( INT4OID, -1, InvalidOid, 8, Int64GetDatum( ( int64 )value ),
+      #ifdef USE_FLOAT8_BYVAL
+          1,
+      #else
+          0,
+      #endif  /* USE_FLOAT8_BYVAL */
+          0 ) ;
+}
+
+Const *serializeInt64( INT64 value )
+{
+   return makeConst( INT4OID, -1, InvalidOid, 8, Int64GetDatum( value ),
       #ifdef USE_FLOAT8_BYVAL
           1,
       #else
@@ -468,6 +490,21 @@ List *serializeSdbExecState( SdbExecState *fdwState )
 
    /* queryDocument */
    result = lappend( result, sdbSerializeDocument( &fdwState->queryDocument ) ) ;
+
+   /* sortDocument */
+   result = lappend( result, sdbSerializeDocument( &fdwState->sortDocument ) ) ;
+
+   /* offset */
+   result = lappend( result, serializeInt64( fdwState->offset ) ) ;
+
+   /* limit */
+   result = lappend( result, serializeInt64( fdwState->limit ) ) ;
+
+   /* isPushDownSort */
+   result = lappend(result, serializeInt(fdwState->isPushDownSort)) ;
+
+   /* isPushDownLimit */
+   result = lappend(result, serializeInt(fdwState->isPushDownLimit)) ;
 
    /* _id_addr */
    result = lappend( result, serializeUint64( fdwState->bson_record_addr ) ) ;
@@ -557,9 +594,31 @@ SdbExecState *deserializeSdbExecState( List *sdbExecStateList )
       cell = lnext( cell ) ;
    }
 
+   /* query document */
    sdbbson_destroy( &fdwState->queryDocument ) ;
    sdbDeserializeDocument( ( Const * )lfirst( cell ), &fdwState->queryDocument ) ;
    cell = lnext( cell ) ;
+
+   /* sort document */
+   sdbbson_destroy( &fdwState->sortDocument ) ;
+   sdbDeserializeDocument( ( Const * )lfirst( cell ), &fdwState->sortDocument ) ;
+   cell = lnext( cell ) ;
+
+   /* offset */
+   fdwState->offset = deserializeInt64( lfirst( cell ) ) ;
+   cell = lnext( cell ) ;
+
+   /* limit */
+   fdwState->limit = deserializeInt64( lfirst( cell ) ) ;
+   cell = lnext( cell ) ;
+
+   /* isPushDownSort */
+   fdwState->isPushDownSort = (int)DatumGetInt32(((Const *)lfirst(cell))->constvalue) ;
+   cell = lnext(cell) ;
+
+   /* isPushDownLimit */
+   fdwState->isPushDownLimit = (int)DatumGetInt32(((Const *)lfirst(cell))->constvalue) ;
+   cell = lnext(cell) ;
 
    /* _id_addr */
    fdwState->bson_record_addr = deserializeUint64( lfirst( cell ) ) ;
@@ -602,6 +661,11 @@ char *deserializeString( Const *constant )
 UINT64 deserializeUint64( Const *constant )
 {
    return ( UINT64 )DatumGetInt64( constant->constvalue ) ;
+}
+
+INT64 deserializeInt64( Const *constant )
+{
+   return DatumGetInt64( constant->constvalue ) ;
 }
 
 Oid deserializeOid( Const *constant )
@@ -2067,7 +2131,6 @@ INT32 sdbGenerateFilterCondition ( Oid foreign_id, RelOptInfo *baserel,
    expr_state.foreign_table_id    = foreign_id ;
    expr_state.is_use_decimal      = isUseDecimal ;
 
-
    sdbbson_destroy( condition ) ;
    sdbbson_init( condition ) ;
    foreach( cell, baserel->baserestrictinfo )
@@ -2150,6 +2213,7 @@ static void sdbUninitConnectionPool (  )
    free( pool->connList ) ;
 }
 
+/*
 static void sdbInterruptAllConnection()
 {
    INT32 count             = 0 ;
@@ -2161,6 +2225,7 @@ static void sdbInterruptAllConnection()
       //sdbCloseAllCursors( conn->hConnection ) ;
    }
 }
+*/
 
 //void sdbPrintDocument( const char *documentData, INT32 documentSize,
 //                       const char *flag )
@@ -2510,6 +2575,8 @@ void sdbGetOptions( Oid foreignTableId, SdbInputOptions *options )
    CHAR *transaction          = NULL ;
    CHAR *pUseDecimal          = NULL ;
    INT32 isUseDecimal         = 0 ;
+   CHAR *pPushDownSortAndLimit = NULL ;
+
    if( NULL == options )
       goto done ;
    /* address name */
@@ -2589,22 +2656,52 @@ void sdbGetOptions( Oid foreignTableId, SdbInputOptions *options )
    transaction = sdbGetOptionValue( foreignTableId, OPTION_NAME_TRANSACTION ) ;
    if ( NULL == transaction )
    {
-      transaction = pstrdup( DEFAULT_TRANSACTION ) ;
+      transaction = pstrdup( SDB_OPTION_OFF ) ;
    }
 
    /* OPTION_NAME_USEDECIMAL */
    pUseDecimal = sdbGetOptionValue( foreignTableId, OPTION_NAME_USEDECIMAL ) ;
    if ( NULL == pUseDecimal )
    {
-      pUseDecimal = pstrdup( DEFAULT_DECIMAL ) ;
+      pUseDecimal = pstrdup( SDB_OPTION_OFF ) ;
    }
-   if ( strcmp( pUseDecimal, SDB_DECIMAL_ON ) == 0 )
+   if ( strcmp( pUseDecimal, SDB_OPTION_ON ) == 0 )
    {
       isUseDecimal = 1 ;
    }
    else
    {
       isUseDecimal = 0 ;
+   }
+
+   /* OPTION_NAME_PUSHDOWNSORT */
+   pPushDownSortAndLimit = sdbGetOptionValue(foreignTableId, OPTION_NAME_PUSHDOWNSORT) ;
+   if (NULL == pPushDownSortAndLimit)
+   {
+      pPushDownSortAndLimit = pstrdup(SDB_OPTION_ON) ;
+   }
+   if (strcmp(pPushDownSortAndLimit, SDB_OPTION_ON) == 0)
+   {
+      options->isPushDownSort = 1 ;
+   }
+   else
+   {
+      options->isPushDownSort = 0 ;
+   }
+
+   /* OPTION_NAME_PUSHDOWNLIMIT */
+   pPushDownSortAndLimit = sdbGetOptionValue(foreignTableId, OPTION_NAME_PUSHDOWNLIMIT) ;
+   if (NULL == pPushDownSortAndLimit)
+   {
+      pPushDownSortAndLimit = pstrdup(SDB_OPTION_ON) ;
+   }
+   if (strcmp(pPushDownSortAndLimit, SDB_OPTION_ON) == 0)
+   {
+      options->isPushDownLimit = 1 ;
+   }
+   else
+   {
+      options->isPushDownLimit = 0 ;
    }
 
    /* fill up the result structure */
@@ -2620,7 +2717,7 @@ void sdbGetOptions( Oid foreignTableId, SdbInputOptions *options )
    {
       options->sessionTimeout = DEFAULT_SESSION_TIMEOUT ;
    }
-   else 
+   else
    {
       options->sessionTimeout = atoi( sessionTimeout ) ;
    }
@@ -3432,8 +3529,8 @@ static void SdbGetForeignRelSize( PlannerInfo *root,
  * 4 )startup cost
  */
 static void SdbGetForeignPaths( PlannerInfo *root,
-                                 RelOptInfo *baserel,
-                                 Oid foreignTableId )
+                                RelOptInfo *baserel,
+                                Oid foreignTableId )
 {
    INT32 rc                 = SDB_OK ;
    BlockNumber pageCount    = 0 ;
@@ -3442,12 +3539,15 @@ static void SdbGetForeignPaths( PlannerInfo *root,
    FLOAT64 inputRowCount    = 0.0 ;
    FLOAT64 foreignTableSize = 0.0 ;
    Path *foreignPath        = NULL ;
+   List *sort_path          = NIL ;
 
    /* cost estimation */
    FLOAT64 totalDiskCost    = 0.0 ;
    FLOAT64 totalCPUCost     = 0.0 ;
    FLOAT64 totalStartupCost = 0.0 ;
    FLOAT64 totalCost        = 0.0 ;
+
+   BOOLEAN isConditionCanPushDown = FALSE ;
 
    sdbbson condition ;
 
@@ -3472,12 +3572,14 @@ static void SdbGetForeignPaths( PlannerInfo *root,
    if ( SDB_OK == rc )
    {
       // all condition can push down
+      isConditionCanPushDown = TRUE ;
       selectivity = clauselist_selectivity( root, baserel->baserestrictinfo,
                                             0, JOIN_INNER, NULL ) ;
    }
    else
    {
       // condition can not push down
+      isConditionCanPushDown = FALSE ;
       selectivity = clauselist_selectivity( root, NIL,
                                             0, JOIN_INNER, NULL ) ;
    }
@@ -3509,6 +3611,11 @@ static void SdbGetForeignPaths( PlannerInfo *root,
     */
    totalCost = totalStartupCost + totalCPUCost + totalDiskCost ;
 
+   if ( fdw_state->isPushDownSort && isSortCanPushDown(root, baserel->relid ) )
+   {
+      sort_path = root->sort_pathkeys ;
+   }
+
 #ifdef SDB_USE_OWN_POSTGRES
    //debugClauseInfo( root, baserel, foreignTableId ) ;
    memset(sdb_idxs, 0, sizeof(sdbIndexInfo) * SDB_MAX_INDEX_NUM ) ;
@@ -3516,14 +3623,7 @@ static void SdbGetForeignPaths( PlannerInfo *root,
    for ( i = 0; i < indexNum; i++ )
    {
       sdbIndexInfo *pSdbIdx = &sdb_idxs[i] ;
-      INT32 rcTmp = SDB_OK ;
-      sdbbson condition;
-      sdbbson_init(&condition) ;
-      //if exist unsupported operation, do not create IndexPath!
-      rcTmp = sdbGenerateFilterCondition(foreignTableId, baserel,
-                                         fdw_state->isUseDecimal, &condition) ;
-      sdbbson_destroy(&condition) ;
-      if ( SDB_OK == rcTmp )
+      if ( isConditionCanPushDown )
       {
          MemSet(&idxClauseSet, 0, sizeof(idxClauseSet));
          sdbGetIndexEqclause(root, baserel, foreignTableId, pSdbIdx,
@@ -3531,12 +3631,14 @@ static void SdbGetForeignPaths( PlannerInfo *root,
          if ( idxClauseSet.nonempty )
          {
             Path *idxpath;
-            idxpath = (Path* )sdb_build_index_paths(root, baserel, pSdbIdx,
-                                                    &idxClauseSet,
-                                                    fdw_state);
+            idxpath = (Path* )sdb_build_index_paths( root, baserel, pSdbIdx,
+                                                     &idxClauseSet,
+                                                     fdw_state ) ;
             if ( NULL != idxpath )
             {
-               add_path(baserel, idxpath);
+               idxpath->pathkeys = sort_path ;
+               elog( DEBUG1, "SdbGetForeignPaths:idxpath1=%s", nodeToString(idxpath) ) ;
+               add_path(baserel, idxpath) ;
             }
          }
          else
@@ -3553,23 +3655,24 @@ static void SdbGetForeignPaths( PlannerInfo *root,
                                                        fdw_state);
                if ( NULL != idxpath )
                {
-                  add_path(baserel, idxpath);
+                  idxpath->pathkeys = sort_path ;
+                  elog( DEBUG1, "SdbGetForeignPaths:idxpath2=%s", nodeToString(idxpath) ) ;
+                  add_path(baserel, idxpath) ;
                }
             }
          }
       }
-
    }
 
 #endif /* SDB_USE_OWN_POSTGRES */
 
    /* create foreign path node */
-
    foreignPath = ( Path* )create_foreignscan_path( root, baserel, inputRowCount,
-         totalStartupCost, totalCost, NIL, /* no pathkeys */
+         totalStartupCost, totalCost, sort_path,
          NULL, /* no outer rel */
          NIL ) ; /* no fdw_private */
 
+   elog( DEBUG1, "SdbGetForeignPaths:foreignPath=%s", nodeToString(foreignPath) ) ;
    /* add foreign path into path */
    add_path( baserel, foreignPath ) ;
    return ;
@@ -3587,21 +3690,49 @@ static ForeignScan *SdbGetForeignPlan( PlannerInfo *root,
    ForeignScan *foreignScan  = NULL ;
    List *foreignPrivateList  = NIL ;
    List *columnList          = NIL ;
+   INT32 rcCondition = SDB_OK ;
 
    SdbExecState *fdw_state   = ( SdbExecState * )baserel->fdw_private ;
    sdbGetColumnKeyInfo( fdw_state ) ;
+
+   elog( DEBUG1, "SdbGetForeignPlan:bestPath=%s", nodeToString(bestPath) ) ;
 
    /* We keep all restriction clauses at PG ide to re-check */
    restrictionClauses = extract_actual_clauses( restrictionClauses, FALSE ) ;
    /* construct the query sdbbson document */
 
-   sdbGenerateFilterCondition( foreignTableId, baserel, fdw_state->isUseDecimal,
-                               &fdw_state->queryDocument ) ;
-   sdbPrintBson( &fdw_state->queryDocument, DEBUG1, "foreignplan" ) ;
+   rcCondition = sdbGenerateFilterCondition( foreignTableId, baserel,
+                                             fdw_state->isUseDecimal,
+                                             &fdw_state->queryDocument ) ;
+   sdbPrintBson( &fdw_state->queryDocument, DEBUG1, "SdbGetForeignPlan query" ) ;
+   if (fdw_state->isPushDownSort)
+   {
+      sdbGenerateSortCondition( baserel->relid, foreignTableId, bestPath->path.pathkeys,
+                                &fdw_state->sortDocument ) ;
+   }
+
+   // push down sort and limit if all condition can push down
+   if (fdw_state->isPushDownLimit && SDB_OK == rcCondition)
+   {
+      sdbPreprocessLimit( root, &fdw_state->offset, &fdw_state->limit );
+      /*
+         Notice: while offset and limit is still work outside foreign scan.
+         we should adjust the offset and limit that send to SequoiaDB.
+      */
+      if (0 != fdw_state->offset)
+      {
+         if (-1 != fdw_state->limit)
+         {
+            fdw_state->limit = fdw_state->limit + fdw_state->offset;
+         }
+         fdw_state->offset = 0;
+      }
+   }
 
    fdw_state->bson_record_addr = sdbCreateBsonRecordAddr() ;
    foreignPrivateList = serializeSdbExecState( fdw_state ) ;
    sdbbson_destroy( &fdw_state->queryDocument ) ;
+   sdbbson_destroy( &fdw_state->sortDocument ) ;
 
    /* copy document list */
    columnList = sdbColumnList( baserel ) ;
@@ -3630,21 +3761,59 @@ static void SdbExplainForeignScan( ForeignScanState *scanState,
    List *foreignPrivateList  = NIL ;
    List *fdw_state_list      = NIL ;
    SdbExecState *fdw_state   = NULL ;
+   int bufferSize ;
 
    SdbInputOptions options ;
-   StringInfo namespaceName = makeStringInfo (  ) ;
+   StringInfo explainInfo = makeStringInfo() ;
    Oid foreignTableId = RelationGetRelid( scanState->ss.ss_currentRelation ) ;
-   sdbGetOptions( foreignTableId, &options ) ;
-   appendStringInfo( namespaceName, "%s.%s",
-                      options.collectionspace, options.collection ) ;
-   ExplainPropertyText( "Foreign Namespace", namespaceName->data,
-                         explainState ) ;
 
    /* deserialize fdw*/
    foreignScan        = ( ForeignScan * )scanState->ss.ps.plan ;
    foreignPrivateList = foreignScan->fdw_private ;
    fdw_state_list     = ( List * )linitial( foreignPrivateList ) ;
    fdw_state          = deserializeSdbExecState( fdw_state_list ) ;
+
+   sdbGetOptions( foreignTableId, &options ) ;
+   appendStringInfo( explainInfo, "%s.%s",
+                         options.collectionspace, options.collection) ;
+   ExplainPropertyText( "Foreign Namespace", explainInfo->data,
+                         explainState ) ;
+   if ( !sdbbson_is_empty(&fdw_state->queryDocument) )
+   {
+      char *queryStr = NULL ;
+
+      resetStringInfo(explainInfo) ;
+      bufferSize = sdbbson_sprint_length( &fdw_state->queryDocument ) ;
+      queryStr = ( char* )malloc( bufferSize ) ;
+      sdbbson_sprint( queryStr, bufferSize, &fdw_state->queryDocument ) ;
+      appendStringInfo( explainInfo, "(%s)", queryStr ) ;
+      ExplainPropertyText( "  Filter", explainInfo->data, explainState ) ;
+
+      free (queryStr) ;
+   }
+
+   if ( !sdbbson_is_empty(&fdw_state->sortDocument) )
+   {
+      char *sortStr = NULL ;
+
+      resetStringInfo(explainInfo) ;
+      bufferSize = sdbbson_sprint_length( &fdw_state->sortDocument ) ;
+      sortStr = ( char* )malloc( bufferSize ) ;
+      sdbbson_sprint( sortStr, bufferSize, &fdw_state->sortDocument ) ;
+      appendStringInfo( explainInfo, "(%s)", sortStr ) ;
+      ExplainPropertyText( "  Sort Key", explainInfo->data, explainState ) ;
+
+      free (sortStr) ;
+   }
+
+   if ( fdw_state->limit != -1 || fdw_state->offset != 0 )
+   {
+      resetStringInfo(explainInfo) ;
+      appendStringInfo(explainInfo, "offset(%lld), limit(%lld)", fdw_state->offset,
+                       fdw_state->limit) ;
+      ExplainPropertyText("  Limit", explainInfo->data, explainState) ;
+   }
+
    if ( -1 != fdw_state->bson_record_addr )
    {
       SdbReleaseRecord( SdbGetRecordCache(), fdw_state->bson_record_addr ) ;
@@ -3726,7 +3895,8 @@ static TupleTableSlot * SdbIterateForeignScan( ForeignScanState *scanState )
    if ( SDB_INVALID_HANDLE == executionState->hCursor )
    {
       rc = sdbQuery1( executionState->hCollection, &executionState->queryDocument, NULL,
-                      NULL, NULL, 0, -1, FLG_QUERY_WITH_RETURNDATA,
+                      &executionState->sortDocument, NULL, executionState->offset,
+                      executionState->limit, FLG_QUERY_WITH_RETURNDATA,
                       &executionState->hCursor ) ;
       if ( rc )
       {
@@ -3736,7 +3906,8 @@ static TupleTableSlot * SdbIterateForeignScan( ForeignScanState *scanState )
                   executionState->sdbcs, executionState->sdbcl, rc ),
          errhint( "Make sure collection exists on remote SequoiaDB database" ) ) ) ;
 
-         sdbbson_dispose( &executionState->queryDocument ) ;
+         sdbbson_destroy( &executionState->queryDocument ) ;
+         sdbbson_destroy( &executionState->sortDocument ) ;
          goto error ;
       }
    }
@@ -3806,14 +3977,14 @@ static void SdbRescanForeignScan( ForeignScanState *scanState )
    if ( SDB_OK == rc )
    {
       rc = sdbQuery1( executionState->hCollection, &rescanCondition, NULL,
-                      NULL, NULL, 0, -1, FLG_QUERY_WITH_RETURNDATA,
+                      &executionState->sortDocument, NULL, 0, -1, FLG_QUERY_WITH_RETURNDATA,
                       &executionState->hCursor ) ;
    }
    else
    {
       rc = sdbQuery1( executionState->hCollection,
                       &executionState->queryDocument, NULL,
-                      NULL, NULL, 0, -1, FLG_QUERY_WITH_RETURNDATA,
+                      &executionState->sortDocument, NULL, 0, -1, FLG_QUERY_WITH_RETURNDATA,
                       &executionState->hCursor ) ;
    }
 
@@ -3937,7 +4108,8 @@ static INT32 sdbAcquireSampleRows( Relation relation, INT32 errorLevel,
       ereport( ERROR, ( errcode ( ERRCODE_FDW_ERROR ),
                errmsg( "query collection failed:cs=%s,cl=%s,rc=%d",
                        fdw_state->sdbcs, fdw_state->sdbcl, rc ) ) ) ;
-      sdbbson_dispose( &fdw_state->queryDocument ) ;
+      sdbbson_destroy( &fdw_state->queryDocument ) ;
+      sdbbson_destroy( &fdw_state->sortDocument ) ;
       goto error ;
    }
 
@@ -4097,7 +4269,7 @@ error :
    goto done ;
 }
 
-
+/*
 static sdbCheckThreadInfo *sdbGetCheckThreadInfo()
 {
    static sdbCheckThreadInfo info ;
@@ -4149,6 +4321,7 @@ static void *thr_check_interrupt( void * arg )
 
    return NULL ;
 }
+*/
 
 #if PG_VERSION_NUM>90300
 
@@ -4231,6 +4404,7 @@ static void SdbAddForeignUpdateTargets( Query *parsetree, RangeTblEntry *target_
 
    listModify = serializeSdbExecState( fdw_state ) ;
    sdbbson_destroy( &fdw_state->queryDocument ) ;
+   sdbbson_destroy( &fdw_state->sortDocument ) ;
    return listModify ;
 }
 
