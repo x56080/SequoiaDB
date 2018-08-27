@@ -36,8 +36,8 @@ function main()
    cl.insert( { a: "K" } );
    cl.insert( { a: "Y" } );
    var cursor = cl.find( { $or: [{ a: { $lt: "K" } }, { a: { $et: "Y" } }] }, 
-                         { _id: { $include: 0 } }, 
-                         { a: 1 } );
+                         { _id: { $include: 0 } } )
+                         .sort( { a: 1 } );
    var expRes = [{ a: "I" }, { a: "Y" }];
    var actRes = [];
    while( cursor.next() )
