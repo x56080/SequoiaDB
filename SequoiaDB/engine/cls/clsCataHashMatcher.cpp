@@ -616,6 +616,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CLSCATAHASHMATCHER_PARSECMPOP ) ;
+      BOOLEAN universeCheck = FALSE ;
+
       try
       {
          const CHAR *pFieldName = NULL ;
@@ -623,7 +625,7 @@ namespace engine
          BSONElement beTmp = _shardingKey.getField( pFieldName ) ;
          if ( beTmp.eoo() )
          {
-            // ignore the field which is not sharding-key
+            universeCheck = TRUE ;
             goto done ;
          }
          if ( beField.type() == Object )
@@ -635,13 +637,7 @@ namespace engine
                          rc ) ;
             if ( PREDICATE_OBJ_TYPE_OP_NOT_EQ == opType )
             {
-               if ( predicateSet.getLogicType() != CLS_CATA_LOGIC_AND )
-               {
-                  // $or: upgrade to universe set.
-                  // CLS_CATA_LOGIC_INVALID means it is the only element also
-                  // upgrade to universe set.
-                  predicateSet.upgradeToUniverse() ;
-               }
+               universeCheck = TRUE ;
                goto done;
             }
             else if ( PREDICATE_OBJ_TYPE_OP_EQ == opType )
@@ -659,15 +655,7 @@ namespace engine
          }
          else if ( beField.type() == RegEx )
          {
-            // Special case for regex matcher, which should not be added
-            // to hash predicates
-            if ( predicateSet.getLogicType() != CLS_CATA_LOGIC_AND )
-            {
-               // $or: upgrade to universe set.
-               // CLS_CATA_LOGIC_INVALID means it is the only element also
-               // upgrade to universe set.
-               predicateSet.upgradeToUniverse() ;
-            }
+            universeCheck = TRUE ;
             goto done ;
          }
          rc = predicateSet.addPredicate( pFieldName, beField ) ;
@@ -680,6 +668,16 @@ namespace engine
                       "unexpected error:%s", e.what() ) ;
       }
    done:
+      if ( universeCheck )
+      {
+         /// $or: upgrade to universe
+         /// CLS_CATA_LOGIC_INVALID means it is the only element also
+         /// upgrade to universe
+         if ( predicateSet.getLogicType() != CLS_CATA_LOGIC_AND )
+         {
+            predicateSet.upgradeToUniverse() ;
+         }
+      }
       PD_TRACE_EXITRC ( SDB_CLSCATAHASHMATCHER_PARSECMPOP, rc ) ;
       return rc ;
    error:
