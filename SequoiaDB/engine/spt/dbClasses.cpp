@@ -1249,6 +1249,12 @@ static JSBool collection_delete_lob( JSContext *cx , uintN argc , jsval *vp )
 
    oidStr = (CHAR *) JS_EncodeString ( cx , jsOid ) ;
    VERIFY( oidStr ) ;
+   if ( FALSE == engine::utilIsValidOID( oidStr ) )
+   {
+      rc = SDB_INVALIDARG ;
+   }
+   REPORT_RC_MSG( rc == SDB_OK, "SdbCollection.deleteLob()", rc,
+                  "SdbCollection.deleteLob(): oid string invalid" ) ;
    bson_oid_from_string( &oid, oidStr ) ;
 
    rc = sdbRemoveLob( *collection, &oid ) ;
@@ -1380,6 +1386,12 @@ static JSBool collection_get_lob( JSContext *cx , uintN argc , jsval *vp )
 
    oidStr = (CHAR *) JS_EncodeString ( cx , jsOid ) ;
    VERIFY( oidStr ) ;
+   if ( FALSE == engine::utilIsValidOID( oidStr ) )
+   {
+      rc = SDB_INVALIDARG ;
+   }
+   REPORT_RC_MSG( rc == SDB_OK, "SdbCollection.getLob()", rc,
+                  "SdbCollection.getLob(): oid string invalid" ) ;
    bson_oid_from_string( &oid, oidStr ) ;
 
    path = (CHAR *) JS_EncodeString ( cx , jsPath ) ;
