@@ -475,6 +475,24 @@ namespace engine
 
    }
 
+   BOOLEAN utilIsValidOID( const CHAR * pStr )
+   {
+      if ( NULL == pStr || 24 > ossStrlen( pStr ) )
+      {
+         return FALSE ;
+      }
+      for ( UINT32 i = 0; i < 24; ++i )
+      {
+         if ( ! ( ( pStr[i] >= '0' && pStr[i] <= '9' ) ||
+                  ( pStr[i] >= 'a' && pStr[i] <= 'f' ) ||
+                  ( pStr[i] >= 'A' && pStr[i] <= 'F' ) ) )
+         {
+            return FALSE ;
+         }
+      }
+      return TRUE ;
+   }
+
    string utilTimeSpanStr( UINT64 seconds )
    {
       stringstream ss ;

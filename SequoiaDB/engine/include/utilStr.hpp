@@ -99,6 +99,8 @@ namespace engine
                            INT32 &release,       // out
                            string &buildInfo ) ;
 
+   BOOLEAN utilIsValidOID( const CHAR *pStr ) ;
+
    class utilSplitIterator : public SDBObject
    {
    public:
