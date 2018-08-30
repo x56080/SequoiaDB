@@ -15,7 +15,7 @@
 
 | 参数名  |  参数类型  |  描述                        |  默认值 |
 | ------- | ---------- | ---------------------------- | ------- |
-| enforced | bool     | 是否在没有CM进程的情况下强制删除节点。 |  false  |
+| Enforced | bool      | 是否强制删除节点。           |  false  |
 
 ##返回值##
 
@@ -25,9 +25,9 @@
 
 | 错误码 | 可能的原因 | 解决方法 |
 | ------ | ------ | ------ |
-| -204   | 尝试删除主节点 | 只能删除备节点 |
+| -204   | 尝试删除主节点，<br>或者组内最后一个节点 | 如果需要强制删除，可以加入 { Enforced: true } 选项 |
 | -206   | 尝试删除主编目节点 | 只能删除备编目节点 |
-| -79    | 删除节点主机上的CM进程不存在，<br>或者主机宕机 | 如果需要强制删除节点，可以加入 {enforced:true} 选项 |
+| -79    | 删除节点主机上的CM进程不存在，<br>或者主机宕机 | 如果需要强制删除，可以加入 { Enforced: true } 选项 |
 
 [错误码](reference/Sequoiadb_error_code.md)
 
@@ -36,13 +36,13 @@
 删除 group1 分区组中节点
 
 ```lang-javascript
-> var rg = db.getRG("group1")
-> rg.removeNode("vmsvr2-suse-x64", 11800)
+> var rg = db.getRG( "group1" )
+> rg.removeNode( "vmsvr2-suse-x64", 11800 )
 ```
 
 强制删除 group1 分区组中的节点
 
 ```lang-javascript
 > var rg = db.getRG("group1")
-> rg.removeNode("vmsvr2-suse-x64", 11800, {enforced:true})
+> rg.removeNode( "vmsvr2-suse-x64", 11800, { Enforced: true } )
 ```
