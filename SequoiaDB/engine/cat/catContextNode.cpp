@@ -995,14 +995,19 @@ namespace engine
                       "Failed to get field[%s], rc: %d",
                       PMD_OPTION_DBPATH, rc ) ;
 
-         rc = rtnGetBooleanElement( _boQuery, CMD_NAME_ENFORCED, _forced ) ;
+         rc = rtnGetBooleanElement( _boQuery, FIELD_NAME_ENFORCED1, _forced ) ;
          if ( SDB_FIELD_NOT_EXIST == rc )
          {
-            rc = SDB_OK ;
-            _forced = FALSE ;
+            rc = rtnGetBooleanElement( _boQuery, FIELD_NAME_ENFORCED, _forced ) ;
+            if ( SDB_FIELD_NOT_EXIST == rc )
+            {
+               rc = SDB_OK ;
+               _forced = FALSE ;
+            }
          }
-         PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
-                      CMD_NAME_ENFORCED, rc ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get field[%s] or field[%s], rc: %d",
+                      FIELD_NAME_ENFORCED1, FIELD_NAME_ENFORCED, rc ) ;
       }
       catch ( std::exception &e )
       {

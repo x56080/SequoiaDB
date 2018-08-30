@@ -1769,11 +1769,11 @@ namespace engine
                       "Failed to %s: failed to get the field [%s] from query",
                       _getCommandName(), FIELD_NAME_KEEP_DATA ) ;
 
+         /// if there are both Enforced and enforced, just use Enforced.
          rc = rtnGetBooleanElement( pSelfArgs->_boQuery,
-                                    CMD_NAME_ENFORCED, force ) ;
+                                    FIELD_NAME_ENFORCED, force ) ;
          if ( SDB_FIELD_NOT_EXIST == rc )
          {
-            force = FALSE ;
             rc = SDB_OK ;
          }
          else
@@ -1782,7 +1782,21 @@ namespace engine
          }
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to %s: failed to get the field [%s] from query",
-                      _getCommandName(), CMD_NAME_ENFORCED ) ;
+                      _getCommandName(), FIELD_NAME_ENFORCED ) ;
+
+         rc = rtnGetBooleanElement( pSelfArgs->_boQuery,
+                                    FIELD_NAME_ENFORCED1, force ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            rc = SDB_OK ;
+         }
+         else
+         {
+            ++validCount ;
+         }
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to %s: failed to get the field [%s] from query",
+                      _getCommandName(), FIELD_NAME_ENFORCED1 ) ;
 
          if ( (UINT32)pSelfArgs->_boQuery.nFields() > validCount )
          {
