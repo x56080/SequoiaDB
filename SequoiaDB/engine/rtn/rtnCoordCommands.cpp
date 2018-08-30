@@ -3117,15 +3117,15 @@ namespace engine
             while ( itrObj.more() )
             {
                BSONElement nextEle = itrObj.next() ;
-               if ( 0 == ossStrcmp( nextEle.fieldName(),
-                                    CMD_NAME_ENFORCED ) )
+               if ( 0 == ossStrcmp( nextEle.fieldName(), FIELD_NAME_ENFORCED )
+                 || 0 == ossStrcmp( nextEle.fieldName(), FIELD_NAME_ENFORCED1 ) )
                {
                   continue ;
                }
                builder.append( nextEle ) ;
             }
 
-            builder.appendBool( CMD_NAME_ENFORCED, TRUE ) ;
+            builder.appendBool( FIELD_NAME_ENFORCED1, TRUE ) ;
             newNodeInfo = builder.obj() ;
          }
          catch ( std::exception &e )

@@ -2130,14 +2130,20 @@ namespace engine
       rc = rtnGetStringElement( boDelNodeInfo, PMD_OPTION_SVCNAME, &svcName ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
                    PMD_OPTION_SVCNAME, rc ) ;
-      rc = rtnGetBooleanElement( boDelNodeInfo, CMD_NAME_ENFORCED, forced ) ;
+      rc = rtnGetBooleanElement( boDelNodeInfo, FIELD_NAME_ENFORCED1, forced ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
       {
-         rc = SDB_OK ;
-         forced = FALSE ;
+         rc = rtnGetBooleanElement( boDelNodeInfo, FIELD_NAME_ENFORCED,
+                                    forced ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            rc = SDB_OK ;
+            forced = FALSE ;
+         }
       }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
-                   CMD_NAME_ENFORCED, rc ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get field[%s] or field[%s], rc: %d",
+                   FIELD_NAME_ENFORCED1, FIELD_NAME_ENFORCED, rc ) ;
 
       // check if 'localhost' or '127.0.0.1' is used
       if ( 0 == ossStrcmp( hostName, OSS_LOCALHOST ) ||
@@ -2293,7 +2299,7 @@ namespace engine
                      "failed to parse group info(rc=%d)",
                      rc );
          // coord group not limited
-         if ( groupInfo.groupID() != COORD_GROUPID ) 
+         if ( groupInfo.groupID() != COORD_GROUPID )
          {
             PD_CHECK( groupInfo.nodeCount() < CLS_REPLSET_MAX_NODE_SIZE,
                       SDB_DMS_REACHED_MAX_NODES, error, PDERROR,

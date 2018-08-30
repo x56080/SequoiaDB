@@ -355,6 +355,8 @@
 #define FIELD_NAME_ALTER                     "Alter"
 #define FIELD_NAME_IGNORE_EXCEPTION          "IgnoreException"
 #define FIELD_NAME_KEEP_DATA                 "KeepData"
+#define FIELD_NAME_ENFORCED                  "enforced"
+#define FIELD_NAME_ENFORCED1                 "Enforced"
 #define FIELD_NAME_OFFLINE                   "Offline"
 
 #define FIELD_OP_VALUE_UPDATE                "update"
@@ -375,7 +377,6 @@
 #define IXM_FIELD_NAME_SCAN_EXTLID           "ScanExtentLID"
 #define IXM_FIELD_NAME_SORT_BUFFER_SIZE      "SortBufferSize"
 
-#define CMD_NAME_ENFORCED                    "enforced"
 
 #define CMD_ADMIN_PREFIX                     "$"
 #define CMD_NAME_BACKUP_OFFLINE              "backup offline"
