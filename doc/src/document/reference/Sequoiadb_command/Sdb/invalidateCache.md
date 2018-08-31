@@ -1,25 +1,17 @@
 ##语法##
 ***db.invalidateCache( [options] )***
 
-清除节点（数据节点/协调节点）的缓存。
+清除节点的缓存信息。
 
 ##参数描述##
 
 | 参数名 | 参数类型 | 描述 | 是否必填 |
 | ------ | ------ | ------ | ------ |
-| options | Json 对象 | 清除缓存的选项 | 否 |
-
- 1. **options 格式**
-
- 目前通过options可设置的属性有：
-
- | 属性名 | 描述 | 格式 |
- | ------ | -------| ----- |
- | Groups | 需要清除缓存的目标。| Groups: null -- 当前协调节点；<br>Groups: ['group1','group2'] -- 当前协调节点和指定的两个数据组；<br>Groups: 'group1' -- 当前协调节点和指定的一个数据组。|
+| options | Json对象 | **[命令位置参数](reference/Sequoiadb_command/Overview/location.md)** | 否 |
 
 > **Note:**
 >
-> 当不指定 Groups 时，作用域为当前协调节点和所有数据节点。
+> 当不指定 options 时，作用域为当前协调节点、所有数据节点、所有编目节点。
 
 ##返回值##
 
@@ -30,5 +22,17 @@
 * 清除当前协调节点和数据组‘group1’的缓存信息。
 
  ```lang-javascript
- > db.invalidateCache( { Groups: 'group1' } )
+ > db.invalidateCache( { GroupName: 'group1' } )
+ ```
+ 
+* 清除当前协调节点的缓存信息。
+
+ ```lang-javascript
+ > db.invalidateCache( { Global: false } )
+ ```
+
+* 清除所有协调节点的缓存信息。
+
+ ```lang-javascript
+ > db.invalidateCache( { GroupName: 'SYSCoord' } )
  ```
