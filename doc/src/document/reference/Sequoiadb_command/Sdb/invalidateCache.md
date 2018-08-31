@@ -30,9 +30,3 @@
  ```lang-javascript
  > db.invalidateCache( { Global: false } )
  ```
-
-* 清除所有协调节点的缓存信息。
-
- ```lang-javascript
- > db.invalidateCache( { GroupName: 'SYSCoord' } )
- ```
