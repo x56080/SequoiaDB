@@ -1237,6 +1237,7 @@ INT32 getCiCursor( ciLinkList< ciNode > &nodes, const CHAR* clName,
 
       if ( ciNode::STATE_DISCONN != curNode->_state )
       {
+         curNode->_state = ciNode::STATE_NORMAL ;
          rc = db->getCollection( clName, cl ) ;
          if ( SDB_DMS_NOTEXIST == rc )
          {
