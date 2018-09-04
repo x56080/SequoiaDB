@@ -1792,6 +1792,9 @@ static const CHAR* parseCommand( const CHAR *pStr,
       else if( isSlash == TRUE )
       {
          isSlash = FALSE ;
+         ++length ;
+         ++pStr ;
+         continue ;
       }
       if( type != TYPE_STRING_NONE && *pStr == CHAR_COLON )
       {
