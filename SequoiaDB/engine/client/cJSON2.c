@@ -1782,24 +1782,17 @@ static const CHAR* parseCommand( const CHAR *pStr,
       {
          break ;
       }
+
       if( *pStr == CHAR_SLASH && isSlash == FALSE && type != TYPE_STRING_NONE )
       {
          isSlash = TRUE ;
-         ++length ;
-         ++pStr ;
-         continue ;
       }
-      else if( isSlash == TRUE )
-      {
-         isSlash = FALSE ;
-         ++length ;
-         ++pStr ;
-         continue ;
-      }
+
       if( type != TYPE_STRING_NONE && *pStr == CHAR_COLON )
       {
          pColon = pStr ;
       }
+
       if( y < _commandSize )
       {
          if( !isCHeck && _command[y].sameCharNum == x )
@@ -1829,6 +1822,12 @@ static const CHAR* parseCommand( const CHAR *pStr,
       {
          ++length ;
          ++pStr ;
+         if( isSlash == TRUE )
+         {
+            ++length ;
+            ++pStr ;
+            isSlash = FALSE ;
+         }
       }
    }
    if( *pStr == 0 )
