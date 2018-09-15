@@ -82,7 +82,8 @@ namespace engine
 
    private:
       INT32 appendToRun( _pmdEDUCB *eduCB, DPS_TRANSLOCK_TYPE lockType,
-                         dpsTransLockUnit *pLockUnit );
+                         dpsTransLockUnit *pLockUnit,
+                         const dpsTransLockId &lockId );
 
       void appendToWait( _pmdEDUCB *eduCB, const dpsTransLockId &lockId,
                          dpsTransLockUnit *pLockUnit );
@@ -104,7 +105,8 @@ namespace engine
 
       BOOLEAN checkCompatible( _pmdEDUCB *eduCB,
                                DPS_TRANSLOCK_TYPE lockType,
-                               dpsTransLockUnit *pLockUnit );
+                               dpsTransLockUnit *pLockUnit,
+                               const dpsTransLockId &lockID );
 
       INT32 waitLock( _pmdEDUCB *eduCB );
 
