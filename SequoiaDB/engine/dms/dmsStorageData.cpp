@@ -2456,17 +2456,24 @@ namespace engine
       }
 
       // pause mb lock and change metadata
-      context->pause() ;
-      ossLatch( &_metadataLatch, EXCLUSIVE ) ;
       if ( needChangeCLID )
       {
+         context->pause() ;
+         ossLatch( &_metadataLatch, EXCLUSIVE ) ;
          newCLID = _dmsHeader->_MBHWM++ ;
+         ossUnlatch( &_metadataLatch, EXCLUSIVE ) ;
+         // resume context lock
+         rc = context->resume() ;
+         PD_RC_CHECK( rc, PDERROR, "dms mb context resume falied, rc: %d",
+                      rc ) ;
       }
-      ossUnlatch( &_metadataLatch, EXCLUSIVE ) ;
 
-      // resume context lock
-      rc = context->resume() ;
-      PD_RC_CHECK( rc, PDERROR, "dms mb context resume falied, rc: %d", rc ) ;
+      /// release x lock
+      if ( isTransLocked )
+      {
+         pTransCB->transLockRelease( cb, _logicalCSID, context->mbID() ) ;
+         isTransLocked = FALSE ;
+      }
 
       oldRecords = context->mbStat()->_totalRecords ;
       oldLobs = context->mbStat()->_totalLobs ;
