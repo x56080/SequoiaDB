@@ -670,7 +670,7 @@
       <attribute name="srccodedir"/>
       <attribute name="version"/>
       <sequential>
-         <var name="tools_dir" value="@{srccodedir}/misc/ci/build-file"/>
+         <var name="tools_dir" value="@{srccodedir}/misc/ci/exec-tools"/>
          <exec executable="gcc" dir="${tools_dir}" failonerror="true" logError="true">
             <arg line="${tools_dir}/print_version.c -o ${tools_dir}/print_version -I@{srccodedir}/SequoiaDB/engine/include" />
          </exec>
