@@ -533,7 +533,7 @@ namespace engine
             {
                PD_LOG( PDERROR, "Lock[%s] conflicts[MyTID:%d, MyLockType:%d, "
                        "HoldTID:%d, HoldLockType=%d]",
-                       lockID->toString().c_str(),
+                       lockID.toString().c_str(),
                        eduCB->getTID(), lockType,
                        iterLst->first, iterLst->second ) ;
                break ;
