@@ -1019,7 +1019,8 @@ namespace engine
                }
                pDBPath = e.valuestrsafe() ;
             }
-            else
+            /// ignore PMD_OPTION_CONFPATH
+            else if ( 0 != ossStrcmp( e.fieldName(), PMD_OPTION_CONFPATH ) )
             {
                ss << e.fieldName() << "=" ;
                switch( e.type() )
