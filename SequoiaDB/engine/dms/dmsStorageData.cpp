@@ -1746,6 +1746,7 @@ namespace engine
       dpsTransCB *pTransCB    = pmdGetKRCB()->getTransCB() ;
       BOOLEAN getContext      = FALSE ;
       BOOLEAN metalocked      = FALSE ;
+      dmsMetaExtent *metaExt  = NULL ;
       BOOLEAN isTransLocked   = FALSE ;
 
       SDB_ASSERT( pName, "Collection name cat't be NULL" ) ;
