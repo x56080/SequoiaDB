@@ -649,8 +649,8 @@ public class DBCollection {
      *            using index "ageIndex" to scan data(index scan); 
      *            {"":null} means table scan. when hint is null, 
      *            database automatically match the optimal index to scan data.
-     * @param setOnInsert
-     *            The setOnInsert assigns the specified values to the fileds when insert
+     * @param setOnInsert When "setOnInsert" is not a null or an empty object,
+     *                     it assigns the specified values to the fields when insert.
      * @exception com.sequoiadb.exception.BaseException
      * @note when save include update shardingKey field, the shardingKey modify action is not take effect, but the other
      *       field update is take effect.
