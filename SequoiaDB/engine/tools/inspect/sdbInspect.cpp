@@ -140,10 +140,6 @@ retry:
                        g_username ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "password    : %s"OSS_NEWLINE,
-                       g_password ) ;
-   CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
-   len += ossSnprintf( buffer + len, bufferSize - len,
                        "group       : %s"OSS_NEWLINE,
                        header->_groupName ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
