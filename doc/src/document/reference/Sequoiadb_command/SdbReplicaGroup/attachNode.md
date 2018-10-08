@@ -114,19 +114,19 @@ attachNode 前的节点信息：
 }
 ```
 
-将“hostnam1:11830” 节点从 group1 分区组中分离：
+将“hostname1:11830” 节点从 group1 分区组中分离：
 
 ```lang-javascript
 > db.getRG('group1').detachNode('hostname1', '11830')
  ```
 
-将“hostnam1:11830” 节点加入到 group2 分区组中：
+将“hostname1:11830” 节点加入到 group2 分区组中：
 
 ```lang-javascript
 > db.getRG('group2').attachNode('hostname1', '11830')
 ```
 
-查看 attachNode 后的节点信息，group1 分区组中已不存在“hostnam1:11830” 节点，group2 分区组存在“hostnam1:11830” 节点：
+查看 attachNode 后的节点信息，group1 分区组中已不存在“hostname1:11830” 节点，group2 分区组存在“hostname1:11830” 节点：
 
 ```lang-javascript
 > db.listReplicaGroups()
