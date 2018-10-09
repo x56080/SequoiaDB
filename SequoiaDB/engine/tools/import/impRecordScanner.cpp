@@ -132,20 +132,20 @@ namespace import
          {
             if (!inString)
             {
-               if (_startWith(str, len, recDel, recDelLen))
-               {
-                  recordLength = length - len;
-                  *str = '\0';
-                  rc = SDB_OK;
-                  break;
-               }
-
                if (_startWith(str, len, strDel, strDelLen))
                {
                   inString = TRUE;
                   len -= strDelLen;
                   str += strDelLen;
                   continue;
+               }
+
+               if (_startWith(str, len, recDel, recDelLen))
+               {
+                  recordLength = length - len;
+                  *str = '\0';
+                  rc = SDB_OK;
+                  break;
                }
             }
             else // in string

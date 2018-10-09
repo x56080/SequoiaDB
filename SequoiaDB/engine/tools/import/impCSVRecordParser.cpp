@@ -261,6 +261,38 @@ namespace import
       *data = str;
    }
 
+   // don't skip if the field and string delimiter is space
+   static inline void _skipSpace(CHAR** data, INT32& length,
+                                 const CHAR* fieldDelimiter,
+                                 INT32 fieldDelimiterLen,
+                                 const CHAR* stringDelimiter,
+                                 INT32 stringDelimiterLen )
+   {
+      CHAR* str = *data;
+
+      SDB_ASSERT(NULL != data, "data can't be NULL");
+      SDB_ASSERT(NULL != str, "str can't be NULL");
+      SDB_ASSERT(NULL != fieldDelimiter, "delimiter can't be NULL");
+      SDB_ASSERT(NULL != stringDelimiter, "delimiter can't be NULL");
+      SDB_ASSERT(fieldDelimiterLen > 0, "delLength must be greater than 0");
+      SDB_ASSERT(stringDelimiterLen > 0, "delLength must be greater than 0");
+
+      while (length > 0)
+      {
+         if (!isspace(*str) ||
+             (_startWith(str, length, fieldDelimiter, fieldDelimiterLen)) ||
+             (_startWith(str, length, stringDelimiter, stringDelimiterLen)))
+         {
+            break;
+         }
+
+         str++;
+         length--;
+      }
+
+      *data = str;
+   }
+
    static inline BOOLEAN _isValidFieldEnd(const CHAR* data, INT32 length,
                                           const CHAR* fieldDel, INT32 fieldDelLen,
                                           INT32& endLength, BOOLEAN& fieldEnd)
@@ -1677,7 +1709,6 @@ namespace import
 
       SDB_ASSERT(NULL != data, "data can't be NULL");
       SDB_ASSERT(length > 0, "length must be greater than 0");
-      SDB_ASSERT(!isspace(*data), "data can't begin with space");
 
       if (_startWith(str, len, strDel, strDelLen))
       {
@@ -4714,7 +4745,7 @@ namespace import
          INT32 valueLength = 0;
          BOOLEAN fieldEnd = FALSE;
 
-         _skipSpace(&str, len, fieldDel, fieldDelLen);
+         _skipSpace(&str, len, fieldDel, fieldDelLen, strDel, strDelLen);
          if (len == 0)
          {
             break;
