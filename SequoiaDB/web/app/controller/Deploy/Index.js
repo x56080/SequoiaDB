@@ -1828,13 +1828,7 @@
                   "name": "Password",
                   "webName": $scope.autoLanguage( '密码' ),
                   "type": "password",
-                  "required": true,
-                  "value": "",
-                  "valid": {
-                     "min": 1,
-                     "max": 127,
-                     "regex": '^[0-9a-zA-Z]+$'
-                  }
+                  "value": ""
                }
             ]
          };
