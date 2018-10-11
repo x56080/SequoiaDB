@@ -1828,7 +1828,11 @@
                   "name": "Password",
                   "webName": $scope.autoLanguage( '密码' ),
                   "type": "password",
-                  "value": ""
+                  "required": true,
+                  "value": "",
+                  "valid": {
+                     "min": 1
+                  }
                }
             ]
          };
