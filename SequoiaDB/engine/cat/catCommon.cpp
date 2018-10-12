@@ -3905,6 +3905,7 @@ namespace engine
          UINT32 totalBound = (UINT32) clInfo._shardPartition ;
          UINT32 grpSize = splitLst.size() ;
          UINT32 avgBound = totalBound / grpSize ;
+         UINT32 modBound = totalBound % grpSize ;
          UINT32 beginBound = CAT_HASH_LOW_BOUND ;
          UINT32 endBound = beginBound + avgBound ;
 
@@ -3928,6 +3929,12 @@ namespace engine
             const std::string &grpName = iterGrp->first ;
             BSONObj lowBound, upBound ;
 
+            if ( modBound > 0 )
+            {
+               --modBound ;
+               ++endBound ;
+            }
+
             BSONObjBuilder cataItemBd ( sub.subobjStart ( sub.numStr(itemID) ) ) ;
             cataItemBd.append ( FIELD_NAME_ID, itemID ) ;
             cataItemBd.append ( CAT_CATALOGGROUPID_NAME, (INT32)grpID ) ;
@@ -3946,10 +3953,6 @@ namespace engine
             beginBound = endBound ;
             endBound = endBound + avgBound ;
             ++ itemID ;
-            if ( grpSize - 1 == (UINT32)itemID )
-            {
-               endBound = totalBound ;
-            }
          }
          sub.done () ;
       }
