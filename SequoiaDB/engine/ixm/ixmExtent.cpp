@@ -611,7 +611,8 @@ namespace engine
          else
          {
             // when there is parent page exist (so we are not root)
-            newExtent.setParent ( getParent() ) ;
+            newExtent.setParent ( getParent(),
+                                  IXM_INDEX_FLAG_NORMAL == indexCB->getFlag() ) ;
             // get the parent extent
             _ixmExtent parentExtent( getParent(), _pIndexSu ) ;
             // do physical insert into it
