@@ -96,6 +96,14 @@ namespace engine
            ( _isActived || pKRCB->isDBReadonly() ||
              pKRCB->isDBDeactivated() ) )
       {
+         /// check rollback
+         if ( pmdGetKRCB()->getTransCB()->isDoRollback() )
+         {
+            if ( !canDelay || !delayCurOperation() )
+            {
+               rc = SDB_DPS_TRANS_DOING_ROLLBACK ;
+            }
+         }
          goto done ;
       }
       rc = SDB_CLS_NOT_PRIMARY ;
