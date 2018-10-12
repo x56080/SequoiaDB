@@ -3905,7 +3905,7 @@ namespace engine
          UINT32 totalBound = (UINT32) clInfo._shardPartition ;
          UINT32 grpSize = splitLst.size() ;
          UINT32 avgBound = totalBound / grpSize ;
-         UINT32 modBound = totalBound % grpSize ;
+         UINT32 modMark = grpSize - ( totalBound % grpSize ) ;
          UINT32 beginBound = CAT_HASH_LOW_BOUND ;
          UINT32 endBound = beginBound + avgBound ;
 
@@ -3929,9 +3929,8 @@ namespace engine
             const std::string &grpName = iterGrp->first ;
             BSONObj lowBound, upBound ;
 
-            if ( modBound > 0 )
+            if ( itemID >= modMark )
             {
-               --modBound ;
                ++endBound ;
             }
 
