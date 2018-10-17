@@ -1014,7 +1014,7 @@ namespace engine
                   rc = SDB_OK ;
                   goto done ;
                }
-               /// Try cl IX lock
+               /// Test cl IX lock
                 else if ( SDB_OK != pTransCB->transLockTestIX( cb,
                                                                _logicalCSID,
                                                                context->mbID(),
