@@ -288,7 +288,7 @@ namespace engine
       return _rollbackEvent.wait( millicSec ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_SVTRANSINFO, "dpsTransCB::saveTransInfo" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_SVTRANSINFO, "dpsTransCB::updateTransInfo" )
    void dpsTransCB::updateTransInfo( DPS_TRANS_ID transID,
                                      DPS_LSN_OFFSET lsnOffset )
    {
@@ -707,6 +707,18 @@ namespace engine
       return _TransLock.testS( eduCB, lockId );
    }
 
+   INT32 dpsTransCB::transLockTestIS( _pmdEDUCB *eduCB, UINT32 logicCSID,
+                                      UINT16 collectionID,
+                                      const dmsRecordID *recordID )
+   {
+      if ( !_isOn )
+      {
+         return SDB_OK ;
+      }
+      dpsTransLockId lockId( logicCSID, collectionID, recordID );
+      return _TransLock.testIS( eduCB, lockId );
+   }
+
    INT32 dpsTransCB::transLockTestX( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                      UINT16 collectionID,
                                      const dmsRecordID *recordID )
@@ -717,6 +729,18 @@ namespace engine
       }
       dpsTransLockId lockId( logicCSID, collectionID, recordID );
       return _TransLock.testX( eduCB, lockId );
+   }
+
+   INT32 dpsTransCB::transLockTestIX( _pmdEDUCB *eduCB, UINT32 logicCSID,
+                                      UINT16 collectionID,
+                                      const dmsRecordID *recordID )
+   {
+      if ( !_isOn )
+      {
+         return SDB_OK ;
+      }
+      dpsTransLockId lockId( logicCSID, collectionID, recordID );
+      return _TransLock.testIX( eduCB, lockId );
    }
 
    INT32 dpsTransCB::transLockTryX( _pmdEDUCB *eduCB, UINT32 logicCSID,

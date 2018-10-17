@@ -308,7 +308,6 @@ namespace engine
       _logicalCSID      = 0 ;
       _CSID             = DMS_INVALID_SUID ;
       _mmeSegID         = 0 ;
-      _collectionXLockCnt = 0 ;
       PD_TRACE_EXIT ( SDB__DMSSTORAGEDATA ) ;
    }
 
@@ -1015,7 +1014,11 @@ namespace engine
                   rc = SDB_OK ;
                   goto done ;
                }
-               else if ( _collectionXLockCnt > 0 )
+               /// Try cl IX lock
+                else if ( SDB_OK != pTransCB->transLockTestIX( cb,
+                                                               _logicalCSID,
+                                                               context->mbID(),
+                                                               NULL ) )
                {
                   context->pause() ;
                   ossSleep( 10 ) ;
@@ -1809,7 +1812,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to lock the collection, rc: %d",
                       rc ) ;
          isTransLocked = TRUE ;
-         ++_collectionXLockCnt ;
       }
 
       // drop all index
@@ -1873,7 +1875,6 @@ namespace engine
       {
          pTransCB->transLockRelease( cb, _logicalCSID, context->mbID() ) ;
          isTransLocked = FALSE ;
-         --_collectionXLockCnt ;
       }
       if ( context && getContext )
       {
@@ -1977,7 +1978,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to lock the collection, rc: %d",
                       rc ) ;
          isTransLocked = TRUE ;
-         ++_collectionXLockCnt ;
       }
 
       // pause mb lock and change metadata
@@ -2046,7 +2046,6 @@ namespace engine
       {
          pTransCB->transLockRelease( cb, _logicalCSID, context->mbID() ) ;
          isTransLocked = FALSE ;
-         --_collectionXLockCnt ;
       }
       if ( context && getContext )
       {
