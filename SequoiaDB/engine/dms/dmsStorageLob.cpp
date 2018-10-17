@@ -1304,13 +1304,13 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__ONCREATE ) ;
       SDB_ASSERT( DMS_BME_OFFSET == curOffSet, "invalid offset" ) ;
+      _dmsBucketsManagementExtent *bme = NULL ;
 
-      _dmsBucketsManagementExtent *bme =
-                   SDB_OSS_NEW _dmsBucketsManagementExtent() ;
+      bme = SDB_OSS_NEW _dmsBucketsManagementExtent() ;
       if ( NULL == bme )
       {
          PD_LOG( PDERROR, "failed to allocate mem." ) ;
-         rc = SDB_OK ;
+         rc = SDB_OOM ;
          goto error ;
       }
 
