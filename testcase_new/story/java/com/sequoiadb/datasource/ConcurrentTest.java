@@ -217,32 +217,23 @@ public class ConcurrentTest extends DataSourceTestBase {
 	/**
 	 *禁用连接池和更新连接池选项并发
 	 */
-	@Test(invocationCount=700, threadPoolSize=10)
+	@Test(invocationCount=50, threadPoolSize=10)
 	void updateOptionAfterDisabled(){
 		try{
-			int idleNum = 0;
-			int usedNum = 0;
 			int maxNum = 0;
 			Sequoiadb sdb = null;
-			synchronized(this){
-				usedNum = ds6.getUsedConnNum();
-				idleNum = ds6.getIdleConnNum();
-				maxNum = ds6.getDatasourceOptions().getMaxCount();
-			}
-			
+		        	
 			if (null != option){
-				Assert.assertEquals(maxNum, 700);
+			   maxNum = ds6.getDatasourceOptions().getMaxCount();
+			   Assert.assertEquals(maxNum, 700);
 			}
-			
-			if (usedNum + idleNum == maxNum){
-			   sdb = ds6.getConnection();
-			   Assert.assertEquals(sdb.isValid(), true);
-			}
-			
-			ds6.disableDatasource();
+
+			sdb = ds6.getConnection();
+			Assert.assertEquals(sdb.isValid(), true);
+		        ds6.disableDatasource();	
 			synchronized(this){
 			   if (null == option){
-				  SequoiadbOption toption = new SequoiadbOption();
+                              SequoiadbOption toption = new SequoiadbOption();
 			      toption.setMaxIdleCount(20);
 			      toption.setMaxCount(700);
 			      ds6.updateDatasourceOptions(toption);
@@ -251,7 +242,9 @@ public class ConcurrentTest extends DataSourceTestBase {
 			      Assert.assertEquals(toption.getMaxCount(), 700);
 			      Assert.assertEquals(toption.getMaxIdleCount(), 20);
 			      option = toption;
-			   }
+			   }else{
+                              ds6.enableDatasource();
+                           }
 			}
 			if (sdb != null){
 			   ds6.releaseConnection(sdb);
