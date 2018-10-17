@@ -1030,7 +1030,6 @@ namespace engine
          _dmsStorageLob                      *_pLobSU ;
 
          _dmsCompressorEntry                 _compressorEntry[ DMS_MME_SLOTS ] ;
-         UINT32                              _collectionXLockCnt ;
 
    };
    typedef _dmsStorageData dmsStorageData ;
