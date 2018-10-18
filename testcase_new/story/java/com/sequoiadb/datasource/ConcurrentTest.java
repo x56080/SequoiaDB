@@ -253,7 +253,7 @@ public class ConcurrentTest extends DataSourceTestBase {
 		}catch(InterruptedException e){
 			Assert.assertTrue(false, e.getMessage());
 		}catch(BaseException e){
-			super.judegeErrCode("SDB_SYS", e.getErrorCode());
+			super.judegeErrCode("SDB_INVALIDARG", e.getErrorCode());
 		}
 	}
 	
