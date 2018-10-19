@@ -557,7 +557,7 @@ public class GetConnectionTest extends DataSourceTestBase{
 		System.out.println("getOfRandom");
 	}
 	
-	@Test(dataProvider= "option-provider", dataProviderClass = SdbTestOptionFactory.class)
+	@Test(dataProvider= "option-provider", dataProviderClass = SdbTestOptionFactory.class, enabled=false )
 	void getTest(SequoiadbOption option){
 		try{
 			sdb = datasource.getConnection();
