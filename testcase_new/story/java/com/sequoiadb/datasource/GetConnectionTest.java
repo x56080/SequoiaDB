@@ -232,7 +232,7 @@ public class GetConnectionTest extends DataSourceTestBase{
 		System.out.println("getConnectionOfValid end");
 	}
 	
-	@Test
+	@Test(enabled=false)
 	void getConnectionAfterUpdateMaxCount(){
 		ArrayList<Sequoiadb> dbs = new ArrayList<Sequoiadb>(); 
 		SequoiadbOption option = null;
