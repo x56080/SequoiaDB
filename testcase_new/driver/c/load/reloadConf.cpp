@@ -176,7 +176,8 @@ INT32 changeNodeConf( const CHAR* svc, const CHAR* conf, const CHAR* value )
    sprintf( buffer, "%s%s%s", conf, "=", value ) ;
    CHAR s[ MAX_NAME_SIZE ] ={0};
    INT32 len = 0 ;
-
+   BOOLEAN alreadAppend = FALSE ;
+   
    rc = getInstallPath( installPath ) ;
    CHECK_RC( rc, "fail to get installPath" ) ;
    sprintf( bakConfFile, "%s%s%s%s", installPath, "/conf/local/", svc, "/sdb.conf.bak" ) ;
@@ -191,7 +192,7 @@ INT32 changeNodeConf( const CHAR* svc, const CHAR* conf, const CHAR* value )
       printf( "fail to open conf file: %s|%s\n", confFile, bakConfFile ) ;
       goto error ;
    }
-
+   
    while( fgets( s, sizeof( s ), fpOld ) )
    {
       //len += strlen( s ) ;
@@ -200,6 +201,7 @@ INT32 changeNodeConf( const CHAR* svc, const CHAR* conf, const CHAR* value )
       if( idx && idx == s )
       {
          //len -= strlen( s ) ;
+         alreadAppend = TRUE ;
          fprintf( fpNew, "%s\n", buffer ) ;
       }
       else
@@ -210,14 +212,11 @@ INT32 changeNodeConf( const CHAR* svc, const CHAR* conf, const CHAR* value )
       //rc = fputs( s, fpNew ) ; 
       //CHECK_RC( EOF, rc, "fail to fputs" ) ;
    }
-   /*
-   if( fseek( fp, len, SEEK_SET ) )
+   
+   if ( !alreadAppend )
    {
-      printf( "fail to seek file,file: %s, offset: %d\n", confFile, len ) ;
-      goto error ;
-   }*/
-   //fprintf( fp, "%s", buffer ) ;
-   //fclose( fp ) ;
+      fprintf( fpNew, "%s", buffer ) ;
+   }
    
 done:
    if ( NULL != fpNew )
@@ -236,7 +235,6 @@ error:
    
    goto done ;
 }
-
 
 BOOLEAN checkConfig( const CHAR* svc, const char* key, const char* val )
 {
@@ -273,7 +271,6 @@ BOOLEAN checkConfig( const CHAR* svc, const char* key, const char* val )
          break ;
       }
    }
-   
    
    pos = strstr( s, "=" ) ;
    if ( NULL != pos && *(pos+1) != '\0' )
@@ -313,18 +310,6 @@ TEST( reloadConf, weight )
    rc = sdbStartNode( node ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to start node" ;
    
-   /*
-   // create cs cl and insert doc in rg in case rg have no dps log
-   const CHAR* csName = "reloadConfTestCs" ;
-   const CHAR* clName = "reloadConfTestCl" ;
-   rc = createCsClInRg( db, rg, csName, clName ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   rc = insertDoc( db, csName, clName ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // wait sync
-   rc = waitSync( rg, host, svc ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   */
    // change slave node weight to 20
    rc = changeNodeConf( svc, "weight", "20" ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -343,32 +328,6 @@ TEST( reloadConf, weight )
    res = checkConfig( svc, "weight", "20" ) ;
    ASSERT_EQ( res, TRUE ) << "fail to exec sdbReloadConfig" ;
    
-   /*
-   // reelect and check master
-   bson option ;
-   bson_init( &option ) ;
-   bson_append_int( &option, "Seconds", 60 ) ;
-   bson_finish( &option ) ;
-   rc = sdbReelect( rg, &option ) ;
-   bson_destroy( &option ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to reelect in rg" ;
-   
-   rc = isMasterNode( rg, host, svc, &isMaster ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   if( isMaster )
-   {
-      printf( "node %s:%s is master node.\n", host, svc ) ;
-   }
-   else
-   {
-      printf( "node %s:%s is not master node.\n", host, svc ) ;
-   }
-   ASSERT_TRUE( isMaster ) << "fail to check node to be master after reelect" ;	
-
-   // drop cs 
-   rc = sdbDropCollectionSpace( db, csName ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to drop cs" ;  
-   */
    // stop and remove node
    rc = sdbStopNode( node ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to stop node" ;
