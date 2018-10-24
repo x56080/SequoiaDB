@@ -70,6 +70,15 @@ namespace engine
       } \
    } while ( 0 )
 
+#define ADD_CHG_OBJECT( builder, obj, name ) \
+   do { \
+      if ( builder ) \
+      { \
+         builder->append( name, obj ) ; \
+      } \
+   } while ( 0 )
+
+
 #define ADD_CHG_ELEMENT_AS( builder, ele, eleFieldName, strChg ) \
    do { \
       if ( builder ) \
@@ -2487,34 +2496,46 @@ namespace engine
    INT32 _mthModifier::_buildNewObjReplace( Builder &b,
                                             BSONObjIteratorSorted &es )
    {
-      while ( es.more() && _keepKeys.size() > 0 )
       {
-         BSONElement e = es.next() ;
-         if ( _keepKeys.count( e.fieldName() ) )
+         BSONObjBuilder undoRBuilder ;
+         while ( es.more() )
          {
-            b.append( e ) ;
+            BSONElement e = es.next() ;
+            if ( _keepKeys.count( e.fieldName() ) )
+            {
+               b.append( e ) ;
+            }
+
+            undoRBuilder.append( e ) ;
          }
 
-         ADD_CHG_ELEMENT_AS ( _srcChgBuilder, e, e.fieldName(), 
-                              "$replace" ) ;
+         ADD_CHG_OBJECT( _srcChgBuilder, undoRBuilder.obj(), "$replace" ) ;
       }
 
-      UINT32 i = 0 ;
-      while ( i < _modifierElements.size() )
       {
-         const CHAR *pTmpFieldName = _modifierElements[i]._toModify.fieldName() ;
-         ADD_CHG_ELEMENT_AS ( _dstChgBuilder, _modifierElements[i]._toModify, 
-                              pTmpFieldName, "$replace" ) ;
-         b.append( _modifierElements[i]._toModify ) ;
-         ++i ;
+         BSONObjBuilder redoRBuilder ;
+         UINT32 i = 0 ;
+         while ( i < _modifierElements.size() )
+         {
+            redoRBuilder.append( _modifierElements[i]._toModify ) ;
+            b.append( _modifierElements[i]._toModify ) ;
+            ++i ;
+         }
+
+         ADD_CHG_OBJECT( _dstChgBuilder, redoRBuilder.obj(), "$replace" ) ;
       }
 
-      set<string>::iterator it = _keepKeys.begin() ;
-      while ( it != _keepKeys.end() )
       {
-         // make sure $keep is after $replace
-         ADD_CHG_FIELD_VALUE ( _dstChgBuilder, *it, 1, "$keep" ) ;
-         ++it ;
+         BSONObjBuilder redoKBuilder ;
+         set<string>::iterator it = _keepKeys.begin() ;
+         while ( it != _keepKeys.end() )
+         {
+            // make sure $keep is after $replace
+            redoKBuilder.append( *it, 1 ) ;
+            ++it ;
+         }
+
+         ADD_CHG_OBJECT( _dstChgBuilder, redoKBuilder.obj(), "$keep" ) ;
       }
 
       return SDB_OK  ;
