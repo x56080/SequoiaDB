@@ -126,7 +126,7 @@ namespace engine
          void _unregisterCLInternal ( const CHAR * pName, UINT64 opID ) ;
 
       private:
-         UINT32            _clCount ;
+         volatile UINT32   _clCount ;
          MAP_WINDOW        _mapWindow ;
          ossSpinXLatch     _latch ;
          ossEvent          _event ;
