@@ -33,10 +33,12 @@ foo=# create foreign table test (name text, id numeric) server sdb_server option
 	>
 	> * 集合空间与集合必须已经存在于SequoiaDB，否则查询出错。
 	> * 如果需要对接SequoiaDB的decimal字段，则需要在options中指定 decimal 'on' 。
+	> * pushdownsort 设置是否下压排序条件到 SequoiaDB，默认为on，关闭为off。
+	> * pushdownlimit 设置是否下压 limit 和 offset 条件到 SequoiaDB，默认为on，关闭为off。
+	> * 开启 pushdownlimit 时，必须同时开启 pushdownsort ，否则可能会造成结果非预期的问题。
 	> * 默认情况下，表的字段映射到SequoiaDB中为小写字符，如果强制指定字段为大写字符，创建方式参考“注意事项1”。
 	> * 映射 SequoiaDB 的数组类型，创建方式参考“注意事项2”。
-	> * pushdownsort 设置是否下压排序条件到 SequoiaDB，默认为on。关闭为off
-	> * pushdownlimit 设置是否下压 limit 和 offset 条件到 SequoiaDB，默认为on。关闭为off
+	
 
 4. 更新表的统计信息
 
