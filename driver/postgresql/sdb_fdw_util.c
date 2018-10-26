@@ -826,23 +826,34 @@ int sdbGetIndexInfos( SdbExecState *sdbState, sdbIndexInfo *indexInfo,
    {
       elog( DEBUG1, "get index from cache" ) ;
       rc = sdbGetIndexInfosFromCache( clCache, indexInfo, maxNum, indexNum ) ;
+      if ( SDB_OK != rc )
+      {
+         elog ( ERROR, "sdbGetIndexInfosFromCache failed:rc=%d", rc ) ;
+         goto error ;
+      }
    }
    else
    {
+      int i = 0;
       elog( DEBUG1, "get index from db" ) ;
       rc = sdbGetIndexInfosFromDB( sdbState, indexInfo, maxNum, indexNum ) ;
-      if ( SDB_OK == rc )
+      if ( SDB_OK != rc )
       {
-         int i = 0;
-         clCache->indexNum = *indexNum ;
-         for ( i = 0; i < clCache->indexNum; i++ )
-         {
-            memcpy( &clCache->indexInfo[i], &indexInfo[i], sizeof(sdbIndexInfo) ) ;
-         }
+         elog ( ERROR, "sdbGetIndexInfosFromDB failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      clCache->indexNum = *indexNum ;
+      for ( i = 0; i < clCache->indexNum; i++ )
+      {
+         memcpy( &clCache->indexInfo[i], &indexInfo[i], sizeof(sdbIndexInfo) ) ;
       }
    }
 
+done:
    return rc ;
+error:
+   goto done ;
 }
 
 

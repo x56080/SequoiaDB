@@ -356,6 +356,14 @@ static INT32 _reallocBuffer ( CHAR **ppBuffer, INT32 *buffersize,
       }
       *buffersize = newSize ;
    }
+
+   // SEQUOIADBMAINSTREAM-1916
+   if ( NULL == *ppBuffer )
+   {
+      rc = SDB_OOM ;
+      goto error ;
+   }
+
 done :
    return rc ;
 error :
@@ -499,6 +507,7 @@ static INT32 _sendAndRecv ( sdbConnectionHandle cHandle, Socket* sock,
 {
    INT32 rc = SDB_OK ;
    BOOLEAN hasLock = FALSE ;
+   BOOLEAN isNeedDisconnect = FALSE ;
    sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
 
    // check handle
@@ -524,6 +533,8 @@ static INT32 _sendAndRecv ( sdbConnectionHandle cHandle, Socket* sock,
    rc = _send( cHandle, sock, sendMsg, endianConvert ) ;
    if ( SDB_OK != rc )
    {
+      // SEQUOIADBMAINSTREAM-1916 may be have send half of the message
+      isNeedDisconnect = TRUE ;
       goto error ;
    }
 
@@ -533,6 +544,8 @@ static INT32 _sendAndRecv ( sdbConnectionHandle cHandle, Socket* sock,
       rc = _recv( cHandle, sock, recvMsg, size, endianConvert ) ;
       if ( SDB_OK != rc )
       {
+         // repsone may be still in the inputstream
+         isNeedDisconnect = TRUE ;
          goto error ;
       }
    }
@@ -545,7 +558,7 @@ done:
    return rc ;
 
 error:
-   if ( SDB_NETWORK_CLOSE == rc || SDB_NETWORK == rc )
+   if ( SDB_NETWORK_CLOSE == rc || SDB_NETWORK == rc || isNeedDisconnect )
    {
       _sdbDisconnect_inner( cHandle ) ;
    }
