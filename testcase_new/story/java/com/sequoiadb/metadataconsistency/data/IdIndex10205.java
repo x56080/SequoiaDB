@@ -97,7 +97,7 @@ public class IdIndex10205 extends SdbTestBase {
 				clDB.createIdIndex(opt);
 			}catch(BaseException e){
 				int eCode = e.getErrorCode();
-				if( eCode != -43 && eCode != -147 && eCode != -247 ){ //-43:Failed to initialize index
+				if( eCode != -43 && eCode != -147 && eCode != -247 && eCode != -199){ //-43:Failed to initialize index
 					Assert.fail(e.getMessage());
 				}
 			}finally{
