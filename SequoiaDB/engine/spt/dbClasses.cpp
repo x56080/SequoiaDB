@@ -1522,6 +1522,13 @@ static JSBool collection_put_lob( JSContext *cx , uintN argc , jsval *vp )
 
    if ( NULL != oidStr )
    {
+      if ( FALSE == engine::utilIsValidOID( oidStr ) )
+      {
+         rc = SDB_INVALIDARG ;
+      }
+      REPORT_RC_MSG( rc == SDB_OK, "SdbCollection.putLob()", rc,
+                     "SdbCollection.putLob(): oid string invalid" ) ;
+
       bson_oid_from_string( &oid, oidStr ) ;
    }
    else
