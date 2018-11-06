@@ -152,10 +152,12 @@ namespace SequoiaDB
             }
             catch (IOException e)
             {
+                Close();
                 throw e;
             }
             catch (System.Exception)
             {
+                Close();
                 throw new BaseException("SDB_NET_SEND_ERR");
             }
         }
@@ -238,7 +240,15 @@ namespace SequoiaDB
             int retSize = 0;
             while (rtn < msgSize)
             {
-                retSize = input.Read(rtnBuf, rtn, msgSize - rtn);
+                try
+                {
+                    retSize = input.Read(rtnBuf, rtn, msgSize - rtn);
+                }
+                catch (System.Exception)
+                {
+                    Close();
+                    throw new IOException("Failed to read from socket");
+                }
                 if (-1 == retSize)
                 {
                     Close();
