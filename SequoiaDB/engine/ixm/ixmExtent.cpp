@@ -331,7 +331,7 @@ namespace engine
          ixmKeyNode *kn = writeKeyNode( pos ) ;
          // if the node is at end of the page, it means the new value is greater
          // than
-         if ( pos+1 == getNumKeyNode ())
+         if ( pos+1 == getNumKeyNode() )
          {
             // if we are inserting at the last position, that means we don't
             // have _right for the page (otherwise it will go to _right), and
@@ -532,7 +532,7 @@ namespace engine
          // initialize the header for the new extent
          _ixmExtent newExtent( newExtentID, _extentHead->_mbID, _pIndexSu ) ;
          // copy all keys from the split pos to new extent
-         for ( UINT16 i = splitPos + 1 ; i< getNumKeyNode() ; i++ )
+         for ( UINT16 i = splitPos + 1 ; i < getNumKeyNode() ; i++ )
          {
             const ixmKeyNode *kn = getKeyNode(i) ;
             rc = newExtent._pushBack ( kn->_rid,
@@ -727,10 +727,10 @@ namespace engine
       }
       // calculate starting from right to left, and calculate the size of each
       // key
-      for ( INT32 i = _extentHead->_totalKeyNodeNum-1; i>=0; --i )
+      for ( INT32 i = _extentHead->_totalKeyNodeNum-1 ; i >= 0 ; --i )
       {
          rightSize += ixmKey(getKeyData(i)).dataSize() ;
-         if ( rightSize > maxRightSize)
+         if ( rightSize > maxRightSize )
          {
             splitPos = i ;
             break ;
@@ -747,6 +747,7 @@ namespace engine
    error :
       goto done ;
    }
+
    // fix parent pointers for all child pages
    // loop through all keynodes, if the child exist, it will go to child and set
    // the parent extent to the current extent id
@@ -1069,7 +1070,13 @@ namespace engine
          // will not be copied and count, so it's actually deleted)
          if ( kn->isUnused() && DMS_INVALID_EXTENT == kn->_left )
          {
-            continue ;
+            /// When all node is unused, should keep the one node.
+            /// Otherwise the page will has no key node
+            if ( totalKeyNodeNum > 0 ||
+                 i < pHeader->_totalKeyNodeNum - 1 )
+            {
+               continue ;
+            }
          }
          totalFreeSize -= sizeof(ixmKeyNode) ;
          // copy the key
@@ -1277,8 +1284,9 @@ namespace engine
             goto error ;
          }
       }
+
    done :
-      PD_TRACE_EXITRC ( SDB__IXMEXT__INSERT, rc );
+      PD_TRACE_EXITRC ( SDB__IXMEXT__INSERT, rc ) ;
       return rc ;
    error :
       goto done ;
@@ -1561,32 +1569,32 @@ namespace engine
       UINT16 pos = 0 ;
       UINT16 mbID = 0 ;
       UINT16 freeSize = 0 ;
+
       // if we are root, we simply return
-      if ( DMS_INVALID_EXTENT == getParent() )
+      if ( DMS_INVALID_EXTENT != getParent() )
       {
-         return rc ;
+         // get the parent extent
+         ixmExtent parent( getParent(), _pIndexSu ) ;
+         // find the key pointing to this extent
+         rc = parent._findChildExtent ( _me, pos ) ;
+         // if we can't find the key, something really bad happened
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Unable to find the extent in it's parent" ) ;
+            goto error ;
+         }
+         parent.setChildExtentID ( pos, DMS_INVALID_EXTENT ) ;
+         mbID = _extentHead->_mbID ;
+         freeSize = _extentHead->_totalFreeSize ;
+         rc = indexCB->freeExtent ( _me ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Unable to free extent" ) ;
+            goto error ;
+         }
+         _pIndexSu->decStatFreeSpace( mbID, freeSize ) ;
+         _pPageMap->rmItem( _me ) ;
       }
-      // get the parent extent
-      ixmExtent parent( getParent(), _pIndexSu ) ;
-      // find the key pointing to this extent
-      rc = parent._findChildExtent ( _me, pos ) ;
-      // if we can't find the key, something really bad happened
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Unable to find the extent in it's parent" ) ;
-         goto error ;
-      }
-      parent.setChildExtentID ( pos, DMS_INVALID_EXTENT ) ;
-      mbID = _extentHead->_mbID ;
-      freeSize = _extentHead->_totalFreeSize ;
-      rc = indexCB->freeExtent ( _me ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Unable to free extent" ) ;
-         goto error ;
-      }
-      _pIndexSu->decStatFreeSpace( mbID, freeSize ) ;
-      _pPageMap->rmItem( _me ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT__DELEXT, rc );
@@ -1595,7 +1603,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__FNDCHLDEXT, "_ixmExtent::_findChildExtent " )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__FNDCHLDEXT, "_ixmExtent::_findChildExtent" )
    INT32 _ixmExtent::_findChildExtent ( dmsExtentID childExtent,
                                         UINT16 &pos ) const
    {
@@ -2010,9 +2018,11 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_FNDSNG );
-      BOOLEAN found ;
+
+      BOOLEAN found = FALSE ;
       dmsRecordID dummyID ;
       ixmRecordID indexrid ;
+
       rc = _locate ( key, dummyID, order, indexrid, found, 1, indexCB ) ;
       if ( rc )
       {
@@ -2078,7 +2088,7 @@ namespace engine
       {
          valid = FALSE ;
          PD_LOG( PDERROR, "Invalid index extent[%d], rc: %d", _me, rc ) ;
-         return ;
+         goto done ;
       }
       else
       {
@@ -2140,6 +2150,7 @@ namespace engine
       }
       _pIndexSu->addStatFreeSpace( _extentHead->_mbID, totalFreeSize ) ;
 
+   done:
       PD_TRACE_EXIT ( SDB__IXMEXT_TRUNC );
    }
 
@@ -2149,21 +2160,28 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB_IXMEXT_COUNT );
       UINT64 totalCount = 0 ;
-      dmsExtentID childExtentID ;
-      for ( INT32 i = (INT32)getNumKeyNode()-1; i>=0; i-- )
+      const ixmKeyNode *kn = NULL ;
+
+      for ( INT32 i = (INT32)getNumKeyNode() - 1 ; i >= 0 ; i-- )
       {
-         const ixmKeyNode *kn = getKeyNode(i) ;
+         kn = getKeyNode(i) ;
          if ( kn->isUsed() )
          {
-            totalCount ++ ;
+            ++totalCount;
          }
-         childExtentID = getChildExtentID ((UINT16)i ) ;
-         if ( childExtentID != DMS_INVALID_EXTENT )
-            totalCount += ixmExtent(childExtentID, _pIndexSu).count() ;
+
+         if ( kn->_left != DMS_INVALID_EXTENT )
+         {
+            totalCount += ixmExtent( kn->_left, _pIndexSu ).count() ;
+         }
       }
+
       if ( DMS_INVALID_EXTENT != _extentHead->_right )
+      {
          totalCount += ixmExtent(_extentHead->_right, _pIndexSu).count() ;
-      PD_TRACE_EXIT ( SDB_IXMEXT_COUNT );
+      }
+
+      PD_TRACE_EXIT ( SDB_IXMEXT_COUNT ) ;
       return totalCount ;
    }
 
