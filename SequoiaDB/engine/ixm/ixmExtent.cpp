@@ -1152,7 +1152,9 @@ namespace engine
       UINT16 totalFreeSize = beginFreeOffset - sizeof(ixmExtentHead) ;
       CHAR   buffer[DMS_PAGE_SIZE_MAX] ;
       if ( isCompact() )
+      {
          goto done ;
+      }
 
       // loop through all keys in the page
       for ( UINT16 i = 0 ; i<_extentHead->_totalKeyNodeNum; i++ )
@@ -1162,11 +1164,21 @@ namespace engine
          // if the slot doesn't same as previous, and that is what we are
          // looking for, then let's set newPos to the new position after reorg
          if ( newPos == i )
+         {
             newPos = totalKeyNodeNum ;
+         }
          // if there is no child and it's unused, let's skip it ( that means it
          // will not be copied and count, so it's actually deleted)
          if ( kn->isUnused() && DMS_INVALID_EXTENT == kn->_left )
-            continue ;
+         {
+            /// When all node is unused, should keep the one node.
+            /// Otherwise the page will has no key node
+            if ( totalKeyNodeNum > 0 ||
+                 i < _extentHead->_totalKeyNodeNum - 1 )
+            {
+               continue ;
+            }
+         }
          totalFreeSize -= sizeof(ixmKeyNode) ;
          // copy the key
          ixmKey key ( ((CHAR*)_extentHead)+kn->_keyOffset) ;
@@ -1644,28 +1656,29 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__IXMEXT__DELEXT );
       UINT16 pos ;
       // if we are root, we simply return
-      if ( DMS_INVALID_EXTENT == getParent() )
-         return rc ;
-      // get the parent extent
-      ixmExtent parent( getParent(), _pIndexSu ) ;
-      // find the key pointing to this extent
-      rc = parent._findChildExtent ( _me, pos ) ;
-      // if we can't find the key, something really bad happened
-      if ( rc )
+      if ( DMS_INVALID_EXTENT != getParent() )
       {
-         PD_LOG ( PDERROR, "Unable to find the extent in it's parent" ) ;
-         goto error ;
+         // get the parent extent
+         ixmExtent parent( getParent(), _pIndexSu ) ;
+         // find the key pointing to this extent
+         rc = parent._findChildExtent ( _me, pos ) ;
+         // if we can't find the key, something really bad happened
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Unable to find the extent in it's parent" ) ;
+            goto error ;
+         }
+         parent.setChildExtentID ( pos, DMS_INVALID_EXTENT ) ;
+         rc = indexCB->freeExtent ( _me ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Unable to free extent" ) ;
+            goto error ;
+         }
+         _pIndexSu->decStatFreeSpace( _extentHead->_mbID,
+                                      _extentHead->_totalFreeSize ) ;
+         _pPageMap->rmItem( _me ) ;
       }
-      parent.setChildExtentID ( pos, DMS_INVALID_EXTENT ) ;
-      rc = indexCB->freeExtent ( _me ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Unable to free extent" ) ;
-         goto error ;
-      }
-      _pIndexSu->decStatFreeSpace( _extentHead->_mbID,
-                                   _extentHead->_totalFreeSize ) ;
-      _pPageMap->rmItem( _me ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT__DELEXT, rc );
@@ -1698,7 +1711,7 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__IXMEXT__FNDCHLDEXT, rc );
       return rc ;
    }
-   
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__DELITNKEY, "_ixmExtent::_deleteInternalKey" )
    INT32 _ixmExtent::_deleteInternalKey ( UINT16 pos, const Ordering &order,
                                           ixmIndexCB *indexCB )
@@ -1984,7 +1997,9 @@ namespace engine
          // then we simply return
          // otherwise jump out if and do other checks
          if ( !indexrid.isNull() )
+         {
             goto done ;
+         }
       }
       // check scan direction
       if ( (direction<0 && 0==pos) || (direction>0 && getNumKeyNode()==pos) )
@@ -2088,9 +2103,11 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_FNDSNG );
-      BOOLEAN found ;
+
+      BOOLEAN found = FALSE ;
       dmsRecordID dummyID ;
       ixmRecordID indexrid ;
+
       rc = _locate ( key, dummyID, order, indexrid, found, 1, indexCB ) ;
       if ( rc )
       {
