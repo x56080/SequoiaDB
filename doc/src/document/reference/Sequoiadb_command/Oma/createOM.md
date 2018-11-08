@@ -11,10 +11,17 @@
 | dbpath | string | 节点路径。 | 是 |
 | config obj | Json 对象 | 节点配置信息，如配置日志大小，是否打开事务等，具体可参考[数据库配置](database_management/runtime_configuration.md)。 | 否 |
 
+###config常用配置###
+
+| 配置     | 描述 | 默认值 |
+| -------- | ---- | ------ |
+| httpname | 设置sdbom的网页端口 | svcname + 4 |
+| wwwpath  | 设置sdbom的网页路径 | sequoiadb安装路径的web目录 |
+
 > **Note:**
 > 
 > * oma 对象为连接到目标（本地/远端机器）集群控制器（sdbcm）获得的连接对象。
-> * 一个集群只能归属于一个S equoiaDB 管理中心管理，但一个 SequoiaDB 管理中心却可管理多个集群。一般只创建一个 sdbom 服务进程即可。
+> * 一个集群只能归属于一个SequoiaDB 管理中心管理，但一个 SequoiaDB 管理中心却可管理多个集群。一般只创建一个 sdbom 服务进程即可。
 
 ##返回值##
 
@@ -36,6 +43,7 @@
 
  ```lang-javascript
 > var oma = new Oma("localhost", 11790)
-> oma.createOM( 11780, "/opt/sequoiadb/database/sms/11780", { httpname: 8000, wwwpath: "/opt/sequoiadb/web" } )
+> oma.createOM( "11780", "/opt/sequoiadb/database/sms/11780",
+                         { "httpname": 8000, "wwwpath": "/opt/sequoiadb/web" } )
 > oma.startNode( 11780 )
  ```
