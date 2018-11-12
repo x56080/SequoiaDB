@@ -444,6 +444,10 @@
       <ant antfile="compile_sequoiadb.xml" dir="src/compile" inheritAll="true" useNativeBaseDir="true" />
    </target>
    
+   <target name="compile_csharp_build">
+      <ant antfile="compile_csharp.xml" dir="src/compile" inheritAll="true" useNativeBaseDir="true" />
+   </target
+   
    <target name="commit_compile_build">
       <getplatform resultProperty="plat_form"/>
       <ant antfile="compile_sequoiadb.xml" dir="src/compile" inheritAll="true" useNativeBaseDir="true">

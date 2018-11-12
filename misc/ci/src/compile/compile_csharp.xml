@@ -1,0 +1,48 @@
+<project default="main" basedir="../../">
+   <taskdef resource="net/sf/antcontrib/antlib.xml">
+      <classpath>
+         <pathelement location="${basedir}/lib/ant-contrib-1.0b2.jar" />
+      </classpath>
+   </taskdef>
+   
+   <target name="main">    
+      <property name="srccode_dir" location="${WORKSPACE}/sequoiadb" />
+      
+      <antcall target="compile_csharp"/> 
+      
+   </target>
+       
+   <target name="compile_csharp">
+      <delete dir="${WORKSPACE}/release" failonerror="false" />
+      <mkdir dir="${WORKSPACE}/release"/>
+
+      <delete file="${srccode_dir}/driver/C#.Net/Driver/exception/Errors.cs" failonerror="false" />
+      
+      <delete dir="${srccode_dir}/compile_csharp_errors.bat" failonerror="false" />
+      <echo file="${srccode_dir}/compile_csharp_errors.bat" 
+            message='"cmd /E:ON /V:ON /T:0E /K C:\SetEnv.cmd &amp;&amp; scons"' />
+            
+      <exec executable="cmd.exe" dir="${srccode_dir}" failonerror="true" logError="true">
+         <arg value="/c" />
+         <arg value='compile_csharp_errors.bat' />
+      </exec>
+      
+      <delete file="${srccode_dir}/driver/C#.Net/build/release/sequoiadb.dll" failonerror="false" />
+      <delete dir="${srccode_dir}/driver/C#.Net/compile_csharp.bat" failonerror="false" />
+      <echo file="${srccode_dir}/driver/C#.Net/compile_csharp.bat" 
+            message='"cmd /E:ON /V:ON /T:0E /K C:\SetEnv.cmd &amp;&amp; scons"' />
+            
+      <exec executable="cmd.exe" dir="${srccode_dir}/driver/C#.Net" failonerror="true" logError="true">
+         <arg value="/c" />
+         <arg value='compile_csharp.bat' />
+      </exec>
+      
+      <copy todir="${WORKSPACE}/release" failonerror="true" >
+         <fileset dir="${srccode_dir}/driver/C#.Net/build/release" includes="*.dll"/>
+      </copy>
+
+   </target>
+   
+ 
+ 
+</project>
