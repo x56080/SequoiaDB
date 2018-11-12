@@ -145,6 +145,8 @@ namespace bson {
     */
     inline NOINLINE_DECL BSONObj BSONObj::copy() const {
         Holder *h = (Holder*) malloc(objsize() + sizeof(unsigned));
+        if ( !h )
+            msgasserted( 13551, "BSONObj copy() out-of-memory" );
         h->zero();
         memcpy(h->data, objdata(), objsize());
         return BSONObj(h);
@@ -219,7 +221,7 @@ namespace bson {
         return *this;
     }
 
-    inline BSONObjBuilder& BSONObjBuilder::appendElementsWithoutName(BSONObj x) 
+    inline BSONObjBuilder& BSONObjBuilder::appendElementsWithoutName(BSONObj x)
     {
         BSONObjIterator it(x);
         while ( it.moreWithEOO() ) {
@@ -379,7 +381,7 @@ namespace bson {
     }
 
     inline string BSONObj::toString( bool isArray, bool full ) const {
-        if ( isEmpty() ) 
+        if ( isEmpty() )
         {
            if ( isArray )
            {
