@@ -446,7 +446,7 @@
    
    <target name="compile_csharp_build">
       <ant antfile="compile_csharp.xml" dir="src/compile" inheritAll="true" useNativeBaseDir="true" />
-   </target
+   </target>
    
    <target name="commit_compile_build">
       <getplatform resultProperty="plat_form"/>
