@@ -46,7 +46,6 @@
 
 #define RTN_SORT_USE_INSERTSORT        64
 #define RTN_SORT_SAME_SWAP_THRESHOLD   0.1
-#define RTN_SORT_RANDOM_NUM            100
 
 #define RTN_SORT_SWAP( a, b ) \
         do\
@@ -60,17 +59,18 @@ namespace engine
 {
    ///_rtnInternalSorting
    _rtnInternalSorting::_rtnInternalSorting( const BSONObj &orderby,
-                                             CHAR *buf, UINT64 size,
+                                             rtnSortArea &sortArea,
                                              INT64 limit )
    :_order( Ordering::make( orderby ) ),
-    _begin( buf ),
-    _totalSize( size ),
-    _headOffset( 0 ),
-    _tailOffset( size ),
+    _sortArea( sortArea ),
+    _tupleDirBlock( NULL ),
+    _maxTupleBlock( NULL ),
+    _workTupleBlock( NULL ),
     _objNum( 0 ),
     _fetched( 0 ),
-    _recursion(0),
-    _limit( limit )
+    _recursion( 0 ),
+    _limit( limit ),
+    _maxRecordSize( 0 )
    {
    }
 
@@ -84,50 +84,53 @@ namespace engine
                                     INT32 objLen, BSONElement* arrEle )
    {
       INT32 rc = SDB_OK ;
-      _rtnSortTuple *tuple ;
       const CHAR* key = keyObj.objdata() ;
       INT32 keyLen = keyObj.objsize() ;
+      UINT32 tupleSize = keyLen + objLen + sizeof(_rtnSortTuple) ;
 
       SDB_ASSERT( NULL != key, "key can't be NULL" ) ;
       SDB_ASSERT( NULL != obj, "obj can't be NULL" ) ;
       SDB_ASSERT( keyLen > 0, "keyLen must be greater than 0") ;
       SDB_ASSERT( objLen > 0, "objLen must be greater than 0") ;
-      SDB_ASSERT( _headOffset <= _tailOffset, "impossible" ) ;
 
-      if ( _tailOffset - _headOffset <
-           ( keyLen + objLen + sizeof(_rtnSortTuple) + sizeof( _rtnSortTuple *) ) )
+      if ( (UINT32)objLen > _maxRecordSize )
       {
-         rc = SDB_HIT_HIGH_WATERMARK ;
-         goto error ;
+         _maxRecordSize = (UINT32)objLen ;
       }
 
-      /* mem begin                                                                                      mem end
-       *  | |_rtnSortTuple *| _rtnSortTuple *| ...| _rtnSortTuple | keyObj | obj |  ... | _rtnSortTuple | keyOj| obj |
-       */
-
-      /// set data.
-      _tailOffset -= ( objLen + keyLen + sizeof(_rtnSortTuple) );
-      tuple = ( _rtnSortTuple * )( _begin + _tailOffset ) ;
-
-      ossMemcpy( ( CHAR * )tuple + sizeof( _rtnSortTuple ), key, keyLen ) ;
-      ossMemcpy( ( CHAR * )tuple + sizeof( _rtnSortTuple ) + keyLen, obj, objLen ) ;
-      tuple->setLen( keyLen, objLen ) ;
-      if ( NULL == arrEle || arrEle->eoo() )
+      if ( !_tupleDirBlock ||
+           _tupleDirBlock->freeSize() < sizeof( _rtnSortTuple *) )
       {
-         tuple->setHash( 0, 0 ) ;
-      }
-      else
-      {
-         ixmMakeHashValue( *arrEle, tuple->hashValue() ) ;
+         rc = _extendTupleDirectory() ;
+         if ( rc )
+         {
+            if ( SDB_HIT_HIGH_WATERMARK != rc )
+            {
+               PD_LOG( PDERROR, "Extend tuple directory space failed[%d]",
+                       rc ) ;
+            }
+            goto error ;
+         }
       }
 
-      /// set sort header.
-      *(( _rtnSortTuple ** )( _begin + _headOffset )) = tuple ;
-      _headOffset += sizeof( _rtnSortTuple * ) ;
+      if ( !_workTupleBlock || _workTupleBlock->freeSize() < tupleSize )
+      {
+         rc = _extendTupleSpace( tupleSize ) ;
+         if ( rc )
+         {
+            if ( SDB_HIT_HIGH_WATERMARK != rc )
+            {
+               PD_LOG( PDERROR, "Extend tuple space failed[%d]",
+                       rc ) ;
+            }
+            goto error ;
+         }
+      }
+
+      rc = _appendTuple( key, (UINT32)keyLen, obj, (UINT32)objLen, arrEle ) ;
+      PD_RC_CHECK( rc, PDERROR, "Append tuple to sort area failed[%d]", rc ) ;
 
       ++_objNum ;
-
-      SDB_ASSERT( _headOffset <= _tailOffset, "impossible" ) ;
 
    done:
       return rc ;
@@ -137,10 +140,57 @@ namespace engine
 
    void _rtnInternalSorting::clearBuf()
    {
-      _headOffset = 0 ;
-      _tailOffset = _totalSize ;
+      FLOAT64 extendRatio = 0.0 ;
+      const FLOAT64 minExtendRatio = 1.1 ;
+
+      if ( !_tupleDirBlock || !_workTupleBlock )
+      {
+         goto done ;
+      }
+
+      _tupleDirBlock->reset() ;
+
+      // If there are more than 1 bloc,, free all tuple blocks except the
+      // biggest one.
+      if ( _tupleBlocks.size() > 1 )
+      {
+         for ( BLOCK_LIST_ITR itr = _tupleBlocks.begin();
+               itr != _tupleBlocks.end(); ++itr )
+         {
+            if ( *itr != _maxTupleBlock )
+            {
+               _sortArea.freeBlock( *itr ) ;
+            }
+         }
+
+         _tupleBlocks.clear() ;
+         _tupleBlocks.push_back( _maxTupleBlock ) ;
+
+         _workTupleBlock = _maxTupleBlock ;
+      }
+
+      extendRatio =
+            (FLOAT64)_sortArea.capacity() / (FLOAT64)_sortArea.usedSpace() ;
+
+      if ( extendRatio >= minExtendRatio )
+      {
+         size_t newDirectorySize =
+               (size_t)( _tupleDirBlock->capacity() * extendRatio ) ;
+         size_t newTupleBlockSize =
+               (size_t)( _workTupleBlock->capacity() * extendRatio ) ;
+
+         // Reallocation may fail, just ignore, the current buffer should have
+         // no change.
+         _sortArea.reallocBlock( _tupleDirBlock, newDirectorySize ) ;
+         _sortArea.reallocBlock( _workTupleBlock, newTupleBlockSize ) ;
+      }
+
+      _workTupleBlock->reset() ;
+
       _objNum = 0 ;
       _fetched = 0 ;
+
+   done:
       return ;
    }
 
@@ -154,9 +204,8 @@ namespace engine
          goto error ;
       }
 
-      *tuple = *(( _rtnSortTuple **)
-                 (_fetched * sizeof( _rtnSortTuple * ) +
-                  _begin ));
+      *tuple = *( ( _rtnSortTuple **)
+         (_tupleDirBlock->offset2Addr(_fetched * sizeof(_rtnSortTuple *))) ) ;
       SDB_ASSERT( NULL != *tuple, "can not be NULL" ) ;
 
       ++_fetched ;
@@ -171,24 +220,21 @@ namespace engine
       PD_LOG( PDDEBUG, "begin to do internal sort. number of"
                        " obj:%d", _objNum ) ;
       INT32 rc = SDB_OK ;
+      _rtnSortTuple **firstTupleAddr = NULL ;
+      _rtnSortTuple **lastTupleAddr = NULL ;
+
       if ( 0 == _objNum )
       {
          goto done ;
       }
 
-/*
-      /// create random number.
-      for ( UINT32 i = 0; i < RTN_SORT_RANDOM_NUM; i++ )
-      {
-         _rands.push_back( ossRand() ) ;
-      }
-*/
-      _recursion = 0 ;
-      rc = _quickSort( (_rtnSortTuple **)(_begin),
-                       (_rtnSortTuple **)
-                       (_begin + sizeof(_rtnSortTuple **) * (_objNum - 1)),
-                       cb ) ;
+      firstTupleAddr = (_rtnSortTuple **)_tupleDirBlock->offset2Addr( 0 ) ;
+      lastTupleAddr = (_rtnSortTuple **)
+            _tupleDirBlock->offset2Addr( sizeof(_rtnSortTuple *) *
+                                          ( _objNum - 1 ) ) ;
 
+      _recursion = 0 ;
+      rc = _quickSort( firstTupleAddr, lastTupleAddr, cb ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -452,6 +498,140 @@ namespace engine
       return rc ;
    }
 
+   INT32 _rtnInternalSorting::_extendTupleDirectory()
+   {
+      INT32 rc = SDB_OK ;
+
+      // Double the tuple directory space.
+      UINT32 targetSize = ( NULL == _tupleDirBlock ) ?
+         RTN_SORT_TUPLE_DIR_MIN_SZ : (_tupleDirBlock->capacity() * 2) ;
+      UINT32 extendSize = ( NULL == _tupleDirBlock ) ?
+            RTN_SORT_TUPLE_MIN_SZ : _tupleDirBlock->capacity() ;
+
+      // Sort area exhausted.
+      if ( _sortArea.freeSpace() < extendSize )
+      {
+         rc = SDB_HIT_HIGH_WATERMARK ;
+         goto error ;
+      }
+
+      if ( !_tupleDirBlock )
+      {
+         rc = _sortArea.allocBlock( targetSize, _tupleDirBlock ) ;
+         PD_RC_CHECK( rc, PDERROR, "Allocate memory for tuple directory "
+                                   "failed[%d]. Size: %u", rc, targetSize ) ;
+      }
+      else
+      {
+         rc = _sortArea.reallocBlock( _tupleDirBlock, targetSize ) ;
+         if ( rc )
+         {
+            // Resize failed, maybe out of memory. Only log in debug level.
+            // The caller should decide whether to log error or not.
+            PD_LOG( PDDEBUG, "Resize tuple directory block from %llu to %u "
+                             "failed[%d]", _tupleDirBlock->capacity(),
+                             targetSize, rc ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnInternalSorting::_extendTupleSpace( UINT32 tupleSize )
+   {
+      INT32 rc = SDB_OK ;
+
+      rtnSortAreaBlock *newBlock = NULL ;
+      size_t newBlockSize = 0 ;
+
+      if ( _sortArea.freeSpace() < tupleSize )
+      {
+         rc = SDB_HIT_HIGH_WATERMARK ;
+         goto error ;
+      }
+
+      newBlockSize = _maxTupleBlock ?
+            ( _maxTupleBlock->capacity() * 2 ) : RTN_SORT_TUPLE_MIN_SZ ;
+      if ( tupleSize > newBlockSize )
+      {
+         newBlockSize = tupleSize ;
+      }
+
+      // Try to get as much memory as possible.
+      if ( newBlockSize > _sortArea.freeSpace() )
+      {
+         newBlockSize = _sortArea.freeSpace() ;
+      }
+
+      rc = _sortArea.allocBlock( newBlockSize, newBlock ) ;
+      if ( rc )
+      {
+         // Resize failed, only log in debug level. The caller should decide
+         // whether to log error or not.
+         PD_LOG( PDDEBUG, "Extend sort area block space failed[%d]. "
+                          "Requested size: %llu", rc, newBlockSize ) ;
+         goto error ;
+      }
+
+      if ( !_maxTupleBlock ||
+           ( newBlock->capacity() > _maxTupleBlock->capacity() ) )
+      {
+         _maxTupleBlock = newBlock ;
+      }
+      _tupleBlocks.push_back( newBlock ) ;
+      _workTupleBlock = newBlock ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnInternalSorting::_appendTuple( const CHAR *key, UINT32 keyLen,
+                                            const CHAR *obj, UINT32 objLen,
+                                            BSONElement *arrEle )
+   {
+      INT32 rc = SDB_OK ;
+      _rtnSortTuple tupleTmp ;
+      _rtnSortTuple *tuplePtr = (_rtnSortTuple *)
+            _workTupleBlock->offset2Addr( _workTupleBlock->length() ) ;
+
+      tupleTmp.setLen( keyLen, objLen ) ;
+      if ( !arrEle || arrEle->eoo() )
+      {
+         tupleTmp.setHash( 0, 0 ) ;
+      }
+      else
+      {
+         ixmMakeHashValue( *arrEle, tupleTmp.hashValue() ) ;
+      }
+
+     // 1. Append the tuple in the working block.
+     rc = _workTupleBlock->append( (CHAR *)&tupleTmp, sizeof( tupleTmp ) ) ;
+     PD_RC_CHECK( rc, PDERROR, "Append tuple to sort area block failed[%d]",
+                  rc ) ;
+     rc = _workTupleBlock->append( key, keyLen ) ;
+     PD_RC_CHECK( rc, PDERROR, "Append key to sort area block failed[%d]",
+                  rc ) ;
+     rc = _workTupleBlock->append( obj, objLen ) ;
+     PD_RC_CHECK( rc, PDERROR, "Append object to sort area block failed[%d]",
+                  rc ) ;
+
+     // 2. Append the tuple pointer in the directory block.
+     rc = _tupleDirBlock->append( (CHAR *)&tuplePtr,
+                                  sizeof( _rtnSortTuple *) ) ;
+     PD_RC_CHECK( rc, PDERROR, "Append tuple directory failed[%d]", rc ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _rtnInternalSorting::_quickSort( _rtnSortTuple **left,
                                           _rtnSortTuple **right,
                                           _pmdEDUCB *cb )
@@ -558,44 +738,5 @@ namespace engine
    error:
       goto done ;
    }
-
-   /*INT32 _rtnInternalSorting::_setHashFromObj( const BSONObj &obj,
-                                               _rtnSortTuple *tuple )
-   {
-      SDB_ASSERT( NULL != tuple, "can not be NULL" ) ;
-      INT32 rc = SDB_OK ;
-      BOOLEAN set = FALSE ;
-      BSONObjIterator itr( _orderObj ) ;
-      while ( itr.more() )
-      {
-         BSONElement orderEle = itr.next() ;
-         SDB_ASSERT( !orderEle.eoo(), "can not be eoo" ) ;
-         BSONElement arrEle = obj.getField( orderEle.fieldName() ) ;
-         if ( Array == arrEle.type() )
-         {
-            UINT32 hash1 = ossHash( arrEle.value(),
-                                    arrEle.valuesize() ) ;
-            UINT32 hash2 = ossHash( arrEle.value(),
-                                    arrEle.valuesize(), 3 ) ;
-            tuple->setHash( hash1, hash2 ) ;
-            set = TRUE ;
-            break ;
-         }
-      }
-
-      if ( !set )
-      {
-         PD_LOG( PDERROR, "can not find array ele in obj."
-                 "orderby[%s] obj[%s]",
-                 _orderObj.toString(FALSE, TRUE).c_str(),
-                 obj.toString(FALSE, TRUE).c_str() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }*/
 }
 

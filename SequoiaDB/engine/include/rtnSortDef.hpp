@@ -59,6 +59,10 @@ namespace engine
   const UINT32 RTN_SORT_MIN_MERGESIZE = 3 ;
   const UINT32 RTN_SORT_MAX_MERGESIZE = 10 ;
 
+  // Tuple directory(store tuple pointers) and tuple space are used by internal
+  // sorting. Memory usages by them may increase if necessary.
+  const UINT32 RTN_SORT_TUPLE_DIR_MIN_SZ = 65536 ;
+  const UINT32 RTN_SORT_TUPLE_MIN_SZ = 524288 ;
 }
 
 #endif

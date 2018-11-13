@@ -41,6 +41,7 @@
 #define RTNMERGESORTING_HPP_
 
 #include "rtnSortDef.hpp"
+#include "dmsRecord.hpp"
 #include "dmsTmpBlkUnit.hpp"
 #include "rtnSortTuple.hpp"
 #include "../bson/ordering.h"
@@ -90,10 +91,14 @@ namespace engine
       virtual ~_rtnMergeSorting() ;
 
    public:
-      INT32 init( CHAR *buf, UINT64 size,
-                  RTN_SORT_BLKS &src, SINT64 limit = -1) ;
+      static UINT64 calcMinBufSize( UINT32 maxRecordSize ) ;
 
-      INT32 fetch( BSONObj &key, const CHAR** obj, INT32* objLen, _pmdEDUCB *cb ) ;
+      INT32 init( CHAR *buf, UINT64 size, RTN_SORT_BLKS &src,
+                  UINT32 maxRecordSize = DMS_RECORD_USER_MAX_SZ ,
+                  SINT64 limit = -1 ) ;
+
+      INT32 fetch( BSONObj &key, const CHAR** obj,
+                   INT32* objLen, _pmdEDUCB *cb ) ;
 
    private:
       INT32 _merge( _pmdEDUCB *cb ) ;

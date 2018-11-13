@@ -49,9 +49,7 @@
 namespace engine
 {
    _rtnSorting::_rtnSorting()
-   :_sortBuf(NULL),
-    _totalBufSize(0),
-    _step(RTN_SORT_STEP_BEGIN),
+   :_step(RTN_SORT_STEP_BEGIN),
     _cb(NULL),
     _internalBlk(NULL),
     _mergeBlk(NULL),
@@ -66,7 +64,6 @@ namespace engine
 
    _rtnSorting::~_rtnSorting()
    {
-      SAFE_OSS_FREE( _sortBuf ) ;
       SAFE_OSS_FREE( _cpBuf ) ;
       SAFE_OSS_DELETE( _internalBlk ) ;
       SAFE_OSS_DELETE( _mergeBlk ) ;
@@ -87,23 +84,16 @@ namespace engine
       SDB_ASSERT( !orderby.isEmpty(), "impossible" ) ;
       UINT64 realSize = bufSize * 1024 * 1024 ;
 
-      _sortBuf = ( CHAR * )SDB_OSS_MALLOC( realSize ) ;
-      if ( NULL == _sortBuf )
-      {
-         PD_LOG( PDERROR, "failed to allocate _sortBuf." ) ;
-         rc = SDB_OOM ;
-         goto error ;
-      }
+      rc = _sortArea.init( realSize ) ;
+      PD_RC_CHECK( rc, PDERROR, "Initialize sort area failed[%d]", rc ) ;
 
-      _totalBufSize = realSize ;
       _cb = cb ;
       _orderby = orderby.getOwned() ;
       _fino = fino ;
       _limit = limit ;
 
       _internalBlk = SDB_OSS_NEW _rtnInternalSorting( _orderby,
-                                                      _sortBuf,
-                                                      _totalBufSize,
+                                                      _sortArea,
                                                       _limit ) ;
       if ( NULL == _internalBlk )
       {
@@ -119,7 +109,6 @@ namespace engine
       PD_TRACE_EXITRC(  SDB__RTNSORTING_INIT, rc ) ;
       return rc ;
    error:
-      SAFE_OSS_FREE( _sortBuf ) ;
       SAFE_OSS_DELETE( _internalBlk ) ;
       goto done ;
    }
@@ -157,6 +146,17 @@ namespace engine
                goto error ;
             }
 
+            UINT64 mergeSpaceReq =
+                  _rtnMergeSorting::calcMinBufSize( _internalBlk->maxRecordSize() ) ;
+
+            if ( _sortArea.getMaxBlock()->capacity() < mergeSpaceReq )
+            {
+               // Buffer not enough for merge sorting. Abort.
+               rc = SDB_OOM ;
+               PD_LOG( PDERROR, "Memory space not enough for sorting" ) ;
+               goto error ;
+            }
+
             _internalBlk->clearBuf() ;
          }
          else
@@ -191,6 +191,8 @@ namespace engine
       }
       else
       {
+         rtnSortAreaBlock *maxBlock = NULL ;
+         UINT32 maxRecordSize = _internalBlk->maxRecordSize() ;
          rc = _moveToExternalBlks( _internalBlk, _blks, cb ) ;
          if ( SDB_OK != rc )
          {
@@ -201,6 +203,9 @@ namespace engine
          PD_LOG( PDDEBUG, "total size of unit:%lld", _unit.totalSize() ) ;
          SAFE_OSS_DELETE( _internalBlk ) ;
 
+         maxBlock = _sortArea.getWholeArea() ;
+         SDB_ASSERT( maxBlock, "Max block in sort area is NULL" ) ;
+
          SDB_ASSERT( NULL == _mergeBlk, "impossible" ) ;
          _mergeBlk = SDB_OSS_NEW _rtnMergeSorting( &_unit, _orderby ) ;
          if ( NULL == _mergeBlk )
@@ -210,8 +215,8 @@ namespace engine
             goto error ;
          }
 
-         rc = _mergeBlk->init( _sortBuf, _totalBufSize,
-                               _blks, _limit ) ;
+         rc = _mergeBlk->init( maxBlock->offset2Addr( 0 ), maxBlock->capacity(),
+                               _blks, maxRecordSize, _limit ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to init merge sort:%d", rc ) ;

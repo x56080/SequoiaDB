@@ -38,7 +38,6 @@
 *******************************************************************************/
 
 #include "rtnMergeSorting.hpp"
-#include "dmsRecord.hpp"
 #include "ossUtil.hpp"
 #include "pd.hpp"
 #include "pmdEDU.hpp"
@@ -99,8 +98,7 @@ namespace engine
    void _rtnMergeBlock::init( _dmsTmpBlk &blk, CHAR *begin,
                               UINT64 size, SINT64 limit )
    {
-      SDB_ASSERT( NULL != begin && DMS_RECORD_USER_MAX_SZ * 2 <= size,
-                  "impossible" ) ;
+      SDB_ASSERT( NULL != begin, "begin is NULL" ) ;
       _blk = blk ;
       _buf = begin ;
       _size = size ;
@@ -163,14 +161,20 @@ namespace engine
    {
    }
 
+   UINT64 _rtnMergeSorting::calcMinBufSize( UINT32 maxRecordSize )
+   {
+      return ( maxRecordSize * 2 * RTN_SORT_MIN_MERGESIZE ) ;
+   }
+
    INT32 _rtnMergeSorting::init( CHAR *buf, UINT64 size,
                                  RTN_SORT_BLKS &src,
+                                 UINT32 maxRecordSize,
                                  SINT64 limit )
    {
       INT32 rc = SDB_OK ;
       SDB_ASSERT( NULL != buf && size != 0, "impossible" ) ;
 
-      UINT32 mergeSize = size / ( DMS_RECORD_USER_MAX_SZ * 2 );
+      UINT32 mergeSize = size / ( maxRecordSize * 2 );
       if ( mergeSize < RTN_SORT_MIN_MERGESIZE )
       {
          PD_LOG( PDERROR, "buf is too small to merge records." ) ;

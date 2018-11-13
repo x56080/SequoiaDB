@@ -44,19 +44,27 @@
 #include "rtnSortTuple.hpp"
 #include "ixmIndexKey.hpp"
 #include "../bson/ordering.h"
-
-//#include <vector>
+#include "rtnSortArea.hpp"
 
 namespace engine
 {
    class _pmdEDUCB ;
 
+   /**
+    * Internal sorting implementation.
+    * It will use several blocks of memory, allocated dynamically by sort area.
+    * This is to avoid allocating large fixed size memory from the beginning,
+    * which will results in memory waste.
+    */
    class _rtnInternalSorting : public SDBObject
    {
+      typedef _utilList<rtnSortAreaBlock *> BLOCK_LIST ;
+      typedef _utilList<rtnSortAreaBlock *>::iterator BLOCK_LIST_ITR ;
    public:
       _rtnInternalSorting( const BSONObj &orderby,
-                           CHAR *buf, UINT64 size,
+                           rtnSortArea &sortArea,
                            INT64 limit ) ;
+
       virtual ~_rtnInternalSorting() ;
 
    public:
@@ -78,11 +86,22 @@ namespace engine
 
       INT32 next( _rtnSortTuple **tuple ) ;
 
-//      static INT32 compare(const BSONObj &obj1, _rtnSortTuple *tuple1,
-//                           const BSONObj &obj2, _rtnSortTuple *tuple2,
-//                           const bson::Ordering &order ) ;
+      UINT64 getObjNum () { return _objNum ; }
+
+      UINT32 maxRecordSize() const
+      {
+         return _maxRecordSize ;
+      }
 
    private:
+      INT32 _extendTupleDirectory() ;
+
+      INT32 _extendTupleSpace( UINT32 tupleSize ) ;
+
+      INT32 _appendTuple( const CHAR *key, UINT32 keyLen,
+                          const CHAR *obj, UINT32 objLen,
+                          BSONElement *arrEle ) ;
+
       INT32 _quickSort( _rtnSortTuple **left,
                         _rtnSortTuple **right,
                         _pmdEDUCB *cb ) ;
@@ -95,8 +114,6 @@ namespace engine
       INT32 _insertSort( _rtnSortTuple **left,
                          _rtnSortTuple **right ) ;
 
-      // INT32 _setHashFromObj( const BSONObj &obj, _rtnSortTuple *tuple ) ;
-
       INT32 _swapLeftSameKey( _rtnSortTuple **left,
                               _rtnSortTuple **right,
                               _rtnSortTuple **&axis ) ;
@@ -105,19 +122,23 @@ namespace engine
                                _rtnSortTuple **right,
                                _rtnSortTuple **&axis ) ;
 
-
    private:
-      //std::vector<UINT32> _rands ;
-      //UINT32 _rand ;
       bson::Ordering _order ;
-      CHAR *_begin ;
-      UINT64 _totalSize ;
-      UINT64 _headOffset ;
-      UINT64 _tailOffset ;
+      rtnSortArea &_sortArea ;
+
+      // Block for tuple pointers. It should be a block of continuous memory.
+      rtnSortAreaBlock *_tupleDirBlock ;
+
+      // Blocks for tuples. They can be seperated from each other.
+      BLOCK_LIST _tupleBlocks ;
+      rtnSortAreaBlock *_maxTupleBlock ;  // Largest block used by me.
+      rtnSortAreaBlock *_workTupleBlock ; // Block used for insertion now.
+
       UINT64 _objNum ;
       UINT64 _fetched ;
       UINT64 _recursion ;
       INT64  _limit ;
+      UINT32 _maxRecordSize ;
    } ;
 }
 
