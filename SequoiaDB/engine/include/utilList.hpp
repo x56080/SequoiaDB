@@ -1,18 +1,19 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2014 SequoiaDB Ltd.
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the term of the GNU Affero General Public License, version 3,
-   as published by the Free Software Foundation.
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warrenty of
-   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program. If not, see <http://www.gnu.org/license/>.
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
    Source File Name = utilList.hpp
 
@@ -63,24 +64,106 @@ namespace engine
       }
 
    public:
-      class iterator
+      class const_iterator
       {
          friend class _utilList< T, stackSize > ;
          public:
-            iterator()
+            const_iterator ()
             {
                _pData      = NULL ;
                _pSrc       = NULL ;
                _pEleSize   = NULL ;
             }
-            iterator( const iterator &rhs )
+
+            const_iterator ( const const_iterator &rhs )
             {
                _pData      = rhs._pData ;
                _pSrc       = rhs._pSrc ;
                _pEleSize   = rhs._pEleSize ;
                _it         = rhs._it ;
             }
-            BOOLEAN operator== ( const iterator &rhs ) const
+
+            virtual ~const_iterator ()
+            {
+            }
+
+            BOOLEAN operator == ( const const_iterator &rhs ) const
+            {
+               return this->_equals( rhs ) ;
+            }
+
+            BOOLEAN operator != ( const const_iterator &rhs ) const
+            {
+               return this->_equals( rhs ) ? FALSE : TRUE ;
+            }
+
+            const_iterator & operator = ( const const_iterator &rhs )
+            {
+               this->_assign( rhs ) ;
+               return ( *this ) ;
+            }
+
+            const T & operator * () const
+            {
+               return this->_reference() ;
+            }
+
+            const T * operator -> () const
+            {
+               return this->_pointer() ;
+            }
+
+            const_iterator & operator ++ ()
+            {
+               this->_increase() ;
+               return ( *this ) ;
+            }
+
+            const_iterator operator ++ ( int )
+            {
+               const_iterator temp( *this ) ;
+               this->_increase() ;
+               return temp ;
+            }
+
+            const_iterator & operator -- ()
+            {
+               this->_decrease() ;
+               return *this ;
+            }
+
+            const_iterator operator -- ( int )
+            {
+               const_iterator temp( *this ) ;
+               this->_decrease() ;
+               return temp ;
+            }
+
+         protected:
+            const_iterator ( const T * pData, const T * pSrc, const UINT32 * pEleSize )
+            {
+               _pData         = pData ;
+               _pSrc          = pSrc ;
+               _pEleSize      = pEleSize ;
+            }
+
+            const_iterator ( const typename list<T>::iterator &it )
+            {
+               _pData         = NULL ;
+               _pSrc          = NULL ;
+               _pEleSize      = NULL ;
+               _it            = it ;
+            }
+
+            void _assign ( const const_iterator &rhs )
+            {
+               _pData         = rhs._pData ;
+               _pSrc          = rhs._pSrc ;
+               _pEleSize      = rhs._pEleSize ;
+               _it            = rhs._it ;
+            }
+
+            BOOLEAN _equals ( const const_iterator &rhs ) const
             {
                if ( _pData && rhs._pData )
                {
@@ -104,27 +187,26 @@ namespace engine
                }
                return FALSE ;
             }
-            BOOLEAN operator!= ( const iterator &rhs ) const
-            {
-               return this->operator==( rhs ) ? FALSE : TRUE ;
-            }
-            iterator& operator= ( const iterator &rhs )
-            {
-               _pData         = rhs._pData ;
-               _pSrc          = rhs._pSrc ;
-               _pEleSize      = rhs._pEleSize ;
-               _it            = rhs._it ;
-               return *this ;
-            }
-            const T& operator* () const
+
+            const T & _reference () const
             {
                if ( _pData )
                {
-                  return *_pData ;
+                  return ( *_pData ) ;
                }
-               return *_it ;
+               return ( *_it ) ;
             }
-            iterator& operator++ ()
+
+            const T * _pointer () const
+            {
+               if ( _pData )
+               {
+                  return _pData ;
+               }
+               return &( *_it ) ;
+            }
+
+            void _increase ()
             {
                if ( _pData )
                {
@@ -134,21 +216,9 @@ namespace engine
                {
                   ++_it ;
                }
-               return *this ;
             }
-            iterator& operator++ ( int )
-            {
-               if ( _pData )
-               {
-                  _pData++ ;
-               }
-               else
-               {
-                  _it++ ;
-               }
-               return *this ;
-            }
-            iterator& operator-- ()
+
+            void _decrease ()
             {
                if ( _pData )
                {
@@ -158,65 +228,91 @@ namespace engine
                {
                   --_it ;
                }
-               return *this ;
-            }
-            iterator& operator-- ( int )
-            {
-               if ( _pData )
-               {
-                  _pData-- ;
-               }
-               else
-               {
-                  _it-- ;
-               }
-               return *this ;
-            }
-            iterator& operator+ ( UINT32 step )
-            {
-               if ( _pData )
-               {
-                  _pData += step ;
-               }
-               else
-               {
-                  _it += step ;
-               }
-               return *this ;
-            }
-            iterator& operator- ( UINT32 step )
-            {
-               if ( _pData )
-               {
-                  _pData -= step ;
-               }
-               else
-               {
-                  _it -= step ;
-               }
-               return *this ;
             }
 
-         protected:
-            iterator( T* pData, T *pSrc, UINT32 *pEleSize )
+         protected :
+            const T *                        _pData ;
+            const T *                        _pSrc ;
+            const UINT32 *                   _pEleSize ;
+            typename list<T>::iterator       _it ;
+      } ;
+
+      class iterator : public const_iterator
+      {
+         friend class _utilList< T, stackSize > ;
+         public:
+            iterator ()
+            : const_iterator()
             {
-               _pData         = pData ;
-               _pSrc          = pSrc ;
-               _pEleSize      = pEleSize ;
-            }
-            iterator( typename const list<T>::iterator &it )
-            {
-               _pData         = NULL ;
-               _pSrc          = NULL ;
-               _pEleSize      = NULL ;
-               _it            = it ;
             }
 
-         private:
-            T*                            _pData ;
-            T*                            _pSrc ;
-            UINT32*                       _pEleSize ;
-            typename list<T>::iterator    _it ;
+            iterator ( const iterator &rhs )
+            : const_iterator( rhs )
+            {
+            }
+
+            BOOLEAN operator == ( const iterator &rhs ) const
+            {
+               return this->_equals( rhs ) ;
+            }
+
+            BOOLEAN operator != ( const iterator &rhs ) const
+            {
+               return this->_equals( rhs ) ? FALSE : TRUE ;
+            }
+
+            iterator & operator = ( const iterator &rhs )
+            {
+               this->_assign( rhs ) ;
+               return ( *this ) ;
+            }
+
+            T & operator * () const
+            {
+               return (T &)( this->_reference() ) ;
+            }
+
+            T * operator -> () const
+            {
+               return (T *)( this->_pointer() ) ;
+            }
+
+            iterator & operator ++ ()
+            {
+               this->_increase() ;
+               return ( *this ) ;
+            }
+
+            iterator operator ++ ( int )
+            {
+               iterator temp( *this ) ;
+               this->_increase() ;
+               return temp ;
+            }
+
+            iterator & operator -- ()
+            {
+               this->_decrease() ;
+               return ( *this ) ;
+            }
+
+            iterator operator -- ( int )
+            {
+               iterator temp( *this ) ;
+               this->_decrease() ;
+               return temp ;
+            }
+
+         protected :
+            iterator ( T * pData, T * pSrc, UINT32 * pEleSize )
+            : const_iterator( pData, pSrc, pEleSize )
+            {
+            }
+
+            iterator ( const typename list<T>::iterator &it )
+            : const_iterator( it )
+            {
+            }
       } ;
 
    public:
@@ -236,6 +332,24 @@ namespace engine
             return iterator( _pList->end() ) ;
          }
          return iterator( &_staticBuf[ stackSize ], _staticBuf, &_eleSize ) ;
+      }
+
+      OSS_INLINE const_iterator begin() const
+      {
+         if ( _pList )
+         {
+            return const_iterator( _pList->begin() ) ;
+         }
+         return const_iterator( _staticBuf, _staticBuf, &_eleSize ) ;
+      }
+
+      OSS_INLINE const_iterator end() const
+      {
+         if ( _pList )
+         {
+            return const_iterator( _pList->end() ) ;
+         }
+         return const_iterator( &_staticBuf[ stackSize ], _staticBuf, &_eleSize ) ;
       }
 
       OSS_INLINE iterator erase( iterator position )
@@ -682,7 +796,7 @@ namespace engine
          /// alloc space
          _ensureSpace( rSize ) ;
          /// copy all elements
-         iterator it = rhs.begin() ;
+         const_iterator it = rhs.begin() ;
          while ( it != rhs.end() )
          {
             push_back( *it ) ;

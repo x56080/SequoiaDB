@@ -42,6 +42,7 @@
 #include "rtnSortDef.hpp"
 #include "rtnMergeSorting.hpp"
 #include "dmsTmpBlkUnit.hpp"
+#include "rtnSortArea.hpp"
 
 using namespace bson ;
 
@@ -86,8 +87,7 @@ namespace engine
    private:
       _dmsTmpBlkUnit _unit ;
       BSONObj _orderby ;
-      CHAR *_sortBuf ;
-      UINT64 _totalBufSize ;
+      rtnSortArea _sortArea ;
       RTN_SORT_STEP _step ;
       _pmdEDUCB *_cb ;
       _rtnInternalSorting *_internalBlk ;
