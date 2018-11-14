@@ -63,6 +63,7 @@
 
 SDB_EXTERN_C_START
 size_t ossSnprintf(CHAR* pBuffer, size_t iLength, const CHAR* pFormat, ...);
+#define ossSscanf( x, y, ... ) sscanf( x, y, ##__VA_ARGS__ ) ;
 CHAR *ossStrdup ( const CHAR *str ) ;
 INT32 ossStrToInt ( const CHAR *pBuffer, INT32 *number ) ;
 #define ossStrncmp(x,y,z) strncmp(x,y,z)

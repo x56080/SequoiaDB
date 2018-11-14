@@ -1650,10 +1650,21 @@ namespace engine
 
          /// check instance ID
          ele = boQuery.getField( PMD_OPTION_INSTANCE_ID ) ;
-         if ( ele.eoo() || ele.isNumber() )
+         if ( ele.eoo() || ele.isNumber() || ele.type() == bson::String )
          {
-            UINT32 instanceID = ele.isNumber() ? ele.numberInt() :
-                                                 NODE_INSTANCE_ID_UNKNOWN ;
+            UINT32 instanceID = NODE_INSTANCE_ID_UNKNOWN ;
+            if ( ele.isNumber() )
+            {
+               instanceID = ele.numberInt() ;
+            }
+            else if ( ele.type() == bson::String )
+            {
+               rc = utilStr2Num( ele.str().c_str(), (INT32 &)instanceID,
+                                 UTIL_STR2NUM_DEC ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Fail to convert field[%s] %s to int, rc: %d",
+                            PMD_OPTION_INSTANCE_ID, ele.str().c_str(), rc ) ;
+            }
             PD_CHECK( utilCheckInstanceID( instanceID, TRUE ),
                       SDB_INVALIDARG, error, PDERROR,
                       "Failed to check field [%s], "

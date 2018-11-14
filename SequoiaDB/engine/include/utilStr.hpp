@@ -43,6 +43,16 @@
 #include <string>
 #include <vector>
 
+#define HEX_PRE          "0x"
+#define HEX_PRE_SIZE     ( sizeof( HEX_PRE ) -1 )
+#define OCT_PRE          "0"
+#define OCT_PRE_SIZE     ( sizeof( OCT_PRE ) -1 )
+
+#define UTIL_STR2NUM_DEC   0x00000001  // decimal system
+#define UTIL_STR2NUM_OCT   0x00000010  // octal system
+#define UTIL_STR2NUM_HEX   0x00000100  // hexadecimal system
+#define UTIL_STR2NUM_ALL   0x11111111
+
 using namespace std ;
 
 namespace engine
@@ -84,10 +94,19 @@ namespace engine
 
    BOOLEAN utilStrIsDigit( const string& str ) ;
 
+   BOOLEAN utilStrIsDigit( const char *str ) ;
+
+   BOOLEAN utilStrIsODigit( const char *str ) ;
+
+   BOOLEAN utilStrIsXDigit( const char *str ) ;
+
    vector<string> utilStrSplit( const string& str, const string& sep ) ;
 
    INT32 utilSplitStr( const string &input, vector<string> &listServices,
                        const string &seperators ) ;
+
+   INT32 utilStr2Num( const CHAR *str, INT32 &num,
+                      INT32 supportSystem = UTIL_STR2NUM_ALL ) ;
 
    /// non-reentrant
    INT32 utilStr2TimeT( const CHAR *str,

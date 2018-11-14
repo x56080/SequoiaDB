@@ -206,6 +206,51 @@ namespace engine
       return TRUE ;
    }
 
+   BOOLEAN utilStrIsDigit( const char *str )
+   {
+
+      UINT32 len = ossStrlen( str ) ;
+      for ( UINT32 i = 0 ; i < len ; i++ )
+      {
+         if ( !isdigit( str[ i ] ) )
+         {
+            return FALSE ;
+         }
+      }
+
+      return TRUE ;
+   }
+
+   BOOLEAN utilStrIsODigit( const char *str )
+   {
+
+      UINT32 len = ossStrlen( str ) ;
+      for ( UINT32 i = 0 ; i < len ; i++ )
+      {
+         if ( str[ i ] < '0' || str[ i ] > '7' )
+         {
+            return FALSE ;
+         }
+      }
+
+      return TRUE ;
+   }
+
+   BOOLEAN utilStrIsXDigit( const char *str )
+   {
+
+      UINT32 len = ossStrlen( str ) ;
+      for ( UINT32 i = 0 ; i < len ; i++ )
+      {
+         if ( !isxdigit( str[ i ] ) )
+         {
+            return FALSE ;
+         }
+      }
+
+      return TRUE ;
+   }
+
    vector<string> utilStrSplit( const string& str, const string& sep )
    {
       vector<string> elems ;
@@ -271,6 +316,77 @@ namespace engine
       return rc ;
    error :
       goto done ;
+   }
+
+   INT32 utilStr2Num( const CHAR *str, INT32 &num, INT32 supportSystem )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 scanRc = SDB_OK ;
+      INT32 tmpNum = 0 ;
+
+      if ( ( supportSystem & UTIL_STR2NUM_HEX ) &&
+           0 == ossStrncmp( str, HEX_PRE, HEX_PRE_SIZE ) )
+      {
+         str = str + 2 ;
+         if ( '\0' == *str )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         if ( ! utilStrIsXDigit( str ) )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         scanRc = ossSscanf( str, "%x", &tmpNum ) ;
+         if ( -1 == scanRc )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+      else if ( ( supportSystem & UTIL_STR2NUM_OCT ) &&
+                0 == ossStrncmp( str, OCT_PRE, OCT_PRE_SIZE ) )
+      {
+         if ( ! utilStrIsODigit( str ) )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         scanRc = ossSscanf( str, "%o", &tmpNum ) ;
+         if ( -1 == scanRc )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+      else if ( supportSystem & UTIL_STR2NUM_DEC )
+      {
+         if ( ! utilStrIsDigit( str ) )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         scanRc = ossSscanf( str, "%d", &tmpNum ) ;
+         if ( -1 == scanRc )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+      else
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      num = tmpNum ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+
    }
 
    INT32 utilStr2TimeT( const CHAR *str,
