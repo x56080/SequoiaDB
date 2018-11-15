@@ -34,8 +34,7 @@ public class TestConcurrentWriteLob10423 extends SdbTestBase {
 	private CollectionSpace cs = null;	
 	private DBCollection dbcl = null;
 	private Random random = new Random();
-	private AtomicInteger sameOidWriteOKCount = new AtomicInteger(0);
-	private byte[] sameOidWriteOkBuff = null;
+	private AtomicInteger sameOidWriteOKCount = new AtomicInteger(0);	
     	
 	@BeforeClass
 	public void setUp(){
@@ -60,7 +59,7 @@ public class TestConcurrentWriteLob10423 extends SdbTestBase {
 		//write lob of same oid only one success
 		int expSuccessNum = 1;
 		Assert.assertEquals(sameOidWriteOKCount.get(), expSuccessNum);
-		checkWriteOkLobBySameOid(oid);
+		checkWriteOkLobBySameOid(oid, lobBuff);
 	}
 
 	@AfterClass
@@ -73,8 +72,7 @@ public class TestConcurrentWriteLob10423 extends SdbTestBase {
 			Assert.assertTrue(false,"clean up failed:"+e.getMessage());
 		}finally {
 			if( sdb != null){
-				sdb.disconnect();
-			}
+				sdb.disconnect();			}
 		}
 	}	
 	
@@ -130,7 +128,6 @@ public class TestConcurrentWriteLob10423 extends SdbTestBase {
 				sameOidWriteOKCount.getAndIncrement();
 		    }catch(BaseException e){		    	
 		    	if ( e.getErrorCode() != -297 && e.getErrorCode() != -269&& e.getErrorCode() != -5){
-		    		e.getStackTrace();
 		    		Assert.assertTrue(false,"same oid write fail "+e.getErrorType()+":"+e.getMessage());
 		    	}			    
 		    }finally {
@@ -141,14 +138,14 @@ public class TestConcurrentWriteLob10423 extends SdbTestBase {
 		}
 	}
 	
-	private void checkWriteOkLobBySameOid(ObjectId oid){
-			//read and check the lob data
-			DBLob rLob = dbcl.openLob(oid);
-			byte[] rbuff = new byte[(int) rLob.getSize()];
-			rLob.read(rbuff);	
-			rLob.close();
-			Arrays.equals(rbuff, sameOidWriteOkBuff);
-	 }	
+	private void checkWriteOkLobBySameOid(ObjectId oid, byte[] sameOidWriteOkBuff ){
+		//read and check the lob data
+		DBLob rLob = dbcl.openLob(oid);
+		byte[] rbuff = new byte[(int) rLob.getSize()];
+		rLob.read(rbuff);	
+		rLob.close();
+		Arrays.equals(rbuff, sameOidWriteOkBuff);
+	}	
 	
 	private void createCL(){						
 	    try
