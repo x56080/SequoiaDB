@@ -54,6 +54,7 @@ public class TestLobSplit7846 extends SdbTestBase {
 		}catch(BaseException e){			
 			Assert.assertTrue(false,"connect %s failed,"+SdbTestBase.coordUrl+e.getMessage());
 		}
+		sdb.setSessionAttr( (BSONObject) JSON.parse("{'PreferedInstance':'M'}"));
 		if (LobOprUtils.isStandAlone(sdb)){
 			throw new SkipException("is standalone skip testcase");
 		}
