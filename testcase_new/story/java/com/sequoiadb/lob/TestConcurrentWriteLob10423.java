@@ -39,11 +39,8 @@ public class TestConcurrentWriteLob10423 extends SdbTestBase {
     	
 	@BeforeClass
 	public void setUp(){
-		try{
-			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-		}catch(BaseException e){			
-			Assert.assertTrue(false,"connect %s failed,"+SdbTestBase.coordUrl+e.getMessage());
-		}
+		sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+		sdb.setSessionAttr( (BSONObject) JSON.parse("{'PreferedInstance':'M'}"));
 		createCL();
 	}		
 		
@@ -53,7 +50,9 @@ public class TestConcurrentWriteLob10423 extends SdbTestBase {
 		writeDiffLobTask.start(50);
 		
 		ObjectId oid = new ObjectId("5a3b6f23c5d07c3000f73a8b");
-		WriteSameOidLobTask writeSameLobTask = new WriteSameOidLobTask(oid);
+		int writeLobSize = random.nextInt(1024*1024);;
+		byte[] lobBuff = LobOprUtils.getRandomBytes(writeLobSize);	
+		WriteSameOidLobTask writeSameLobTask = new WriteSameOidLobTask(oid, lobBuff);
 		writeSameLobTask.start(5);
 			
 		Assert.assertTrue( writeDiffLobTask.isSuccess(), writeDiffLobTask.getErrorMsg());
@@ -111,14 +110,14 @@ public class TestConcurrentWriteLob10423 extends SdbTestBase {
 	
 	private class WriteSameOidLobTask extends SdbThreadBase {
 		private ObjectId oid;
+		private byte[] lobBuff;
 		
-		public WriteSameOidLobTask(ObjectId oid){
+		public WriteSameOidLobTask( ObjectId oid, byte[] lobBuff ){
 			this.oid = oid;
+			this.lobBuff = lobBuff;
 		}
 		@Override
-		public void exec() throws Exception {			
-			int writeLobSize = random.nextInt(1024*1024);;
-			byte[] lobBuff = LobOprUtils.getRandomBytes(writeLobSize);				
+		public void exec() throws Exception {						
 			Sequoiadb sdb = null;
 		    try{	
 		    	sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
