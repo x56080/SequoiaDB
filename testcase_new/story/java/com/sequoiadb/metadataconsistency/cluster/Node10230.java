@@ -73,7 +73,9 @@ public class Node10230 extends SdbTestBase {
 		}
 		
 		//check results
-		MetaDataUtils.checkRGOfCatalog(rgName);
+		if(!removeRG.isSuccess()){
+			MetaDataUtils.checkRGOfCatalog(rgName);
+		}
 	}
 
 	private class CreateNode extends SdbThreadBase{
