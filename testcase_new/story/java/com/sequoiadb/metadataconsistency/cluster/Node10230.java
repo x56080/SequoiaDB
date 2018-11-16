@@ -68,7 +68,7 @@ public class Node10230 extends SdbTestBase {
 		MetaDataUtils.sleep(random.nextInt(msec));
 		removeRG.start();
 		
-		if( !( createNode.isSuccess() && removeRG.isSuccess() ) ){
+		if( !createNode.isSuccess() && !removeRG.isSuccess() ){
 			Assert.fail(createNode.getErrorMsg() + removeRG.getErrorMsg());
 		}
 		
