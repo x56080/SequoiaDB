@@ -138,11 +138,8 @@ namespace engine
       goto done ;
    }
 
-   void _rtnInternalSorting::clearBuf()
+   void _rtnInternalSorting::clearBuf( BOOLEAN tryExtend )
    {
-      FLOAT64 extendRatio = 0.0 ;
-      const FLOAT64 minExtendRatio = 1.1 ;
-
       if ( !_tupleDirBlock || !_workTupleBlock )
       {
          goto done ;
@@ -150,39 +147,46 @@ namespace engine
 
       _tupleDirBlock->reset() ;
 
-      // If there are more than 1 bloc,, free all tuple blocks except the
+      // If there are more than 1 block, free all tuple blocks except the
       // biggest one.
       if ( _tupleBlocks.size() > 1 )
       {
-         for ( BLOCK_LIST_ITR itr = _tupleBlocks.begin();
-               itr != _tupleBlocks.end(); ++itr )
+         BLOCK_LIST_ITR itr = _tupleBlocks.begin() ;
+         while ( itr != _tupleBlocks.end() )
          {
             if ( *itr != _maxTupleBlock )
             {
-               _sortArea.freeBlock( *itr ) ;
+               _sortArea.releaseBlock( *itr ) ;
+               itr = _tupleBlocks.erase( itr ) ;
+            }
+            else
+            {
+               ++itr ;
             }
          }
-
-         _tupleBlocks.clear() ;
-         _tupleBlocks.push_back( _maxTupleBlock ) ;
 
          _workTupleBlock = _maxTupleBlock ;
       }
 
-      extendRatio =
-            (FLOAT64)_sortArea.capacity() / (FLOAT64)_sortArea.usedSpace() ;
-
-      if ( extendRatio >= minExtendRatio )
+      if ( tryExtend )
       {
-         size_t newDirectorySize =
-               (size_t)( _tupleDirBlock->capacity() * extendRatio ) ;
-         size_t newTupleBlockSize =
-               (size_t)( _workTupleBlock->capacity() * extendRatio ) ;
+         FLOAT64 extendRatio = 0.0 ;
+         const FLOAT64 minExtendRatio = 1.1 ;
+         extendRatio =
+               (FLOAT64)_sortArea.capacity() / (FLOAT64)_sortArea.usedSpace() ;
 
-         // Reallocation may fail, just ignore, the current buffer should have
-         // no change.
-         _sortArea.reallocBlock( _tupleDirBlock, newDirectorySize ) ;
-         _sortArea.reallocBlock( _workTupleBlock, newTupleBlockSize ) ;
+         if ( extendRatio >= minExtendRatio )
+         {
+            size_t newDirectorySize =
+                  (size_t)( _tupleDirBlock->capacity() * extendRatio ) ;
+            size_t newTupleBlockSize =
+                  (size_t)( _workTupleBlock->capacity() * extendRatio ) ;
+
+            // Reallocation may fail, just ignore, the current buffer should have
+            // no change.
+            _sortArea.reallocBlock( _tupleDirBlock, newDirectorySize ) ;
+            _sortArea.reallocBlock( _workTupleBlock, newTupleBlockSize ) ;
+         }
       }
 
       _workTupleBlock->reset() ;
@@ -517,7 +521,7 @@ namespace engine
 
       if ( !_tupleDirBlock )
       {
-         rc = _sortArea.allocBlock( targetSize, _tupleDirBlock ) ;
+         rc = _sortArea.allocBlock( targetSize, _tupleDirBlock, FALSE ) ;
          PD_RC_CHECK( rc, PDERROR, "Allocate memory for tuple directory "
                                    "failed[%d]. Size: %u", rc, targetSize ) ;
       }
@@ -567,7 +571,7 @@ namespace engine
          newBlockSize = _sortArea.freeSpace() ;
       }
 
-      rc = _sortArea.allocBlock( newBlockSize, newBlock ) ;
+      rc = _sortArea.allocBlock( newBlockSize, newBlock, FALSE ) ;
       if ( rc )
       {
          // Resize failed, only log in debug level. The caller should decide

@@ -43,6 +43,9 @@
 
 namespace engine
 {
+   /**
+    * @brief A continuous block of memory in the sort area.
+    */
    class _rtnSortAreaBlock : public SDBObject
    {
       friend class _rtnSortArea ;
@@ -53,16 +56,31 @@ namespace engine
 
       INT32 init() ;
 
+      /**
+       * @brief Insert data into the block in append mode.
+       * @param[in] data - Data to insert.
+       * @param[in] len - Data length.
+       */
       INT32 append( const CHAR *data, size_t len ) ;
 
-      // Note:
-      // User can directly read from or write to any valid offset in the block.
-      // In this case, the user should make sure not to corrupt the data in the
-      // block by themselves.
+      /**
+       * @brief Get address by offset of the block.
+       * @param[in] offset - Offset in the block.
+       * @return A valid pointer if offset is valid. Otherwise NULL will be
+       * returned.
+       * @note User can directly read from or write to any valid offset in the
+       * block. In this case, the user should make sure not to corrupt the data
+       * in the block by themselves.
+       */
       CHAR *offset2Addr( size_t offset ) const ;
 
       size_t capacity() const ;
+
+      /**
+       * @brief Total size of data in the block.
+       */
       size_t length() const ;
+
       size_t freeSize() const ;
 
       void reset() ;
@@ -77,41 +95,109 @@ namespace engine
    } ;
    typedef _rtnSortAreaBlock rtnSortAreaBlock ;
 
-   /*
-    * Memory area for sorting. It manages memory in blocks.
+   /**
+    * @brief Memory area for sorting. It manages some memory as blocks.
+    * @note DO NOT share sort area among multiple threads for concurrent
+    * sorting. One sort area for one sorting.
     */
    class _rtnSortArea : public SDBObject
    {
       typedef _utilList<rtnSortAreaBlock *> BLOCK_LIST ;
       typedef _utilList<rtnSortAreaBlock *>::iterator BLOCK_LIST_ITR ;
       typedef _utilList<rtnSortAreaBlock *>::const_iterator BLOCK_LIST_CITR ;
+      typedef multimap<size_t, rtnSortAreaBlock *> BLOCK_MAP ;
+      typedef multimap<size_t, rtnSortAreaBlock *>::iterator BLOCK_MAP_ITR ;
+      typedef multimap<size_t, rtnSortAreaBlock *>::const_iterator BLOCK_MAP_CITR ;
+
    public:
       _rtnSortArea() ;
       virtual ~_rtnSortArea() ;
 
+      /**
+       * @brief Initialize the sort area.
+       * @param[in] limit - Memory usage limit for the sort area.
+       */
       INT32 init( size_t limit ) ;
+
       BOOLEAN hasInit() const ;
 
-      INT32 allocBlock( size_t size, rtnSortAreaBlock *&block ) ;
-      INT32 reallocBlock( rtnSortAreaBlock *&block, size_t newSize ) ;
-      INT32 freeBlock( rtnSortAreaBlock *&block ) ;
+      /**
+       * @brief Get a block from the sort area. The block maybe a new allocated
+       * one, or a block which has been released and reserved by the sort area.
+       * @param[int] size - Size of the block we want.
+       * @param[out] block - The block being allocated. It will be NULL if
+       * allocation failed.
+       * @param[in] accurateSize - If we want the block to be exactly the size
+       * we required. If it's FALSE, the allocated block's size may be equal to
+       * or greater than size.
+       */
+      INT32 allocBlock( size_t size, rtnSortAreaBlock *&block,
+                        BOOLEAN accurateSize = TRUE ) ;
 
+      /**
+       * @brief Change a block to new size.
+       * @param[in] block - The block to be reallocated.
+       * @param[in] newSize - New size for the block.
+       */
+      INT32 reallocBlock( rtnSortAreaBlock *block, size_t newSize ) ;
+
+      /**
+       * @brief Release a block which has been gotten from the sort area.
+       * @param[in,out] block - The block to be released.
+       * @param[in] reserve - Whether to release the block directly. Note that
+       * the sort area will try to reserve, but if it can not be done, the block
+       * will also be freed.
+       */
+      INT32 releaseBlock( rtnSortAreaBlock *&block, BOOLEAN reserve = FALSE ) ;
+
+      /**
+       * @brief Reset the sort area.
+       * @param[in] reserveBlocks - Whether to reserve all the blocks which have
+       * been allocated. If the option is false, the sort area will try to
+       * reserve them. In case of error when reserving, the block will be freed
+       * directly anyway.
+       */
+      void reset( BOOLEAN reserveBlocks = FALSE ) ;
+
+      /**
+       * @brief Get capacity of the sort area. It's the size when
+       * initialization.
+       */
       size_t capacity() const ;
+
+      /**
+       * @brief Get total size of all blocks which have been allocated,
+       * including reserved ones.
+       */
       size_t usedSpace() const ;
+
+      /**
+       * @brief Remaining size of the sort area before touch the limit.
+       */
       size_t freeSpace() const ;
-      size_t blockNum() const ;
 
-      // Get the largest block which has been allocated in the area.
-      rtnSortAreaBlock* getMaxBlock() const ;
+      /**
+       * @brief Get the size of the largest block which has been allocated.
+       * @param[in] includeReserve - Whether include reserved blocks.
+       */
+      size_t currentMaxBlockSize( BOOLEAN includeReserve = TRUE ) const ;
 
-      // Get memory as large as possible(not exceeding the limit) as one whole
-      // block. This may free all the current blocks.
-      rtnSortAreaBlock* getWholeArea() ;
+      /**
+       * @brief Try to get a single block as large as possible.
+       * @return The allocated block.
+       * @note All blocks which have been allocated will be unavailable.
+       */
+      rtnSortAreaBlock* getMaxSingleBlock() ;
 
    private:
-      size_t _limit ;   // Space limit
+      INT32 _allocBlock( size_t size, rtnSortAreaBlock *&block ) ;
+      rtnSortAreaBlock* _getMaxBlock( BOOLEAN includeReserve = TRUE ) const ;
+
+   private:
+      size_t _limit ;            // Space limit
       size_t _totalSize ;
-      BLOCK_LIST _blocks ;
+      BLOCK_LIST _activeBlocks ; // Blocks currently being used.
+      BLOCK_MAP _idleBlocks ; // Blocks which have been released but not freed.
    } ;
    typedef _rtnSortArea rtnSortArea ;
 }

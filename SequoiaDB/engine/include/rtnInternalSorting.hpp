@@ -71,7 +71,8 @@ namespace engine
       INT32 push( const BSONObj& keyObj, const CHAR* obj,
                   INT32 objLen, BSONElement* arrElement ) ;
 
-      void clearBuf() ;
+      // tryExtend - Whether try to take all space of the buffer.
+      void clearBuf( BOOLEAN tryExtend = FALSE ) ;
 
       INT32 sort( _pmdEDUCB *cb ) ;
 

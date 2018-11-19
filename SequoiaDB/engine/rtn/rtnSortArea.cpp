@@ -36,11 +36,11 @@
    Last Changed =
 
 *******************************************************************************/
-#include <rtnSortArea.hpp>
 
 #include "rtnSortArea.hpp"
 #include "rtnTrace.hpp"
 #include "pd.hpp"
+#include "pdTrace.hpp"
 
 namespace engine
 {
@@ -56,9 +56,11 @@ namespace engine
       SAFE_OSS_FREE( _buff ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSORTAREABLOCK_INIT, "_rtnSortAreaBlock::init" )
    INT32 _rtnSortAreaBlock::init()
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNSORTAREABLOCK_INIT ) ;
 
       _buff = (CHAR *)SDB_OSS_MALLOC( _size ) ;
       if ( !_buff )
@@ -70,14 +72,17 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__RTNSORTAREABLOCK_INIT, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSORTAREABLOCK_APPEND, "_rtnSortAreaBlock::append" )
    INT32 _rtnSortAreaBlock::append( const CHAR *data, size_t len )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNSORTAREABLOCK_APPEND ) ;
 
       SDB_ASSERT( data, "Data is NULL" ) ;
 
@@ -99,6 +104,7 @@ namespace engine
       _writePos += len ;
 
    done:
+      PD_TRACE_EXITRC( SDB__RTNSORTAREABLOCK_APPEND, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -129,9 +135,11 @@ namespace engine
       _writePos = 0 ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSORTAREABLOCK__RESIZE, "_rtnSortAreaBlock::_resize" )
    INT32 _rtnSortAreaBlock::_resize( size_t newSize )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNSORTAREABLOCK__RESIZE ) ;
       CHAR *newBuf = NULL ;
 
       newBuf = ( CHAR * )SDB_OSS_REALLOC( _buff, newSize ) ;
@@ -147,26 +155,21 @@ namespace engine
       _size = newSize ;
 
    done:
+      PD_TRACE_EXITRC( SDB__RTNSORTAREABLOCK__RESIZE, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
    _rtnSortArea::_rtnSortArea()
-   : _limit(0),
-     _totalSize(0)
+   : _limit( 0 ),
+     _totalSize( 0 )
    {
    }
 
    _rtnSortArea::~_rtnSortArea()
    {
-      for ( BLOCK_LIST_ITR itr = _blocks.begin(); itr != _blocks.end(); ++itr )
-      {
-         if ( *itr )
-         {
-            SDB_OSS_DEL *itr ;
-         }
-      }
+      reset( FALSE ) ;
    }
 
    INT32 _rtnSortArea::init( size_t limit )
@@ -181,10 +184,14 @@ namespace engine
       return ( 0 != _limit ) ;
    }
 
-   INT32 _rtnSortArea::allocBlock( size_t size, rtnSortAreaBlock *&block )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSORTAREA_ALLOCBLOCK, "_rtnSortArea::allocBlock" )
+   INT32 _rtnSortArea::allocBlock( size_t size, rtnSortAreaBlock *&block,
+                                   BOOLEAN accurateSize )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNSORTAREA_ALLOCBLOCK ) ;
       rtnSortAreaBlock *newBlock = NULL ;
+      BLOCK_MAP_ITR itr ;
 
       if ( !hasInit() )
       {
@@ -193,38 +200,81 @@ namespace engine
          goto error ;
       }
 
-      if ( _totalSize + size > _limit )
+      if ( 0 == size )
       {
-         rc = SDB_HIT_HIGH_WATERMARK ;
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Request size[%zd] is invalid", size ) ;
          goto error ;
       }
 
-      newBlock = SDB_OSS_NEW rtnSortAreaBlock( size ) ;
-      if ( !newBlock )
+      // upper_bound will return the item greater than size. Equal to or greater
+      // than is what we want.
+      itr = _idleBlocks.upper_bound( size - 1 ) ;
+      if ( _idleBlocks.end() != itr )
       {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "Allocate memory for sort area block failed. "
-                          "Requested size: %zd", size ) ;
-         goto error ;
-      }
+         newBlock = itr->second ;
+         if ( accurateSize && ( newBlock->capacity() != size ) )
+         {
+            rc = reallocBlock( newBlock, size ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Reallocate sort area block to size[%zd] "
+                                "failed[%d]", size, rc ) ;
+               goto error ;
+            }
+         }
 
-      rc = newBlock->init() ;
-      PD_RC_CHECK( rc, PDERROR, "Initialize sort area block failed[%d]", rc ) ;
+         newBlock->reset() ;
+
+         // Move it from idle list to active list.
+         rc = _activeBlocks.push_back( newBlock ) ;
+         PD_RC_CHECK( rc, PDERROR, "Insert block into active list failed[%c]",
+                      rc ) ;
+         _idleBlocks.erase( itr ) ;
+      }
+      else
+      {
+      retry:
+         rc = _allocBlock( size, newBlock ) ;
+         if ( rc )
+         {
+            if ( SDB_HIT_HIGH_WATERMARK != rc )
+            {
+               PD_LOG( PDERROR, "Allocate sort area block failed[%d]. "
+                                "Requested size[%zd]", rc, size ) ;
+            }
+            else
+            {
+               // If HWM is hit, release one idle block(if any) and retry to
+               // allocate.
+               BLOCK_MAP_ITR firstItr = _idleBlocks.begin() ;
+               if ( firstItr != _idleBlocks.end() )
+               {
+                  rtnSortAreaBlock *blockTmp = firstItr->second ;
+                  _totalSize -= blockTmp->capacity() ;
+                  SDB_OSS_DEL blockTmp ;
+                  _idleBlocks.erase( firstItr ) ;
+                  goto retry ;
+               }
+            }
+            goto error ;
+         }
+      }
 
       block = newBlock ;
-      _totalSize += size ;
-      _blocks.push_back( newBlock ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__RTNSORTAREA_ALLOCBLOCK, rc ) ;
       return rc ;
    error:
-      SAFE_OSS_DELETE( newBlock ) ;
       goto done ;
    }
 
-   INT32 _rtnSortArea::reallocBlock( rtnSortAreaBlock *&block, size_t newSize )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSORTAREA_REALLOCBLOCK, "_rtnSortArea::reallocBlock" )
+   INT32 _rtnSortArea::reallocBlock( rtnSortAreaBlock *block, size_t newSize )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNSORTAREA_REALLOCBLOCK ) ;
       INT64 extendSize = newSize - block->capacity() ;
 
       if ( _totalSize + extendSize > _limit )
@@ -244,18 +294,22 @@ namespace engine
       _totalSize += extendSize ;
 
    done:
+      PD_TRACE_EXITRC( SDB__RTNSORTAREA_REALLOCBLOCK, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   INT32 _rtnSortArea::freeBlock( rtnSortAreaBlock *&block )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSORTAREA_RELEASEBLOCK, "_rtnSortArea::releaseBlock" )
+   INT32 _rtnSortArea::releaseBlock( rtnSortAreaBlock *&block, BOOLEAN reserve )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNSORTAREA_RELEASEBLOCK ) ;
       SDB_ASSERT( block, "Block pointer to free is NULL" ) ;
 
-      BLOCK_LIST_ITR itr = _blocks.begin() ;
-      while ( itr != _blocks.end() )
+      // Only active blocks can be released.
+      BLOCK_LIST_ITR itr = _activeBlocks.begin() ;
+      while ( itr != _activeBlocks.end() )
       {
          if ( block == *itr )
          {
@@ -264,23 +318,95 @@ namespace engine
          ++itr ;
       }
 
-      if ( _blocks.end() == itr )
+      if ( _activeBlocks.end() == itr )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "Block to free is not allocated by this sort area" ) ;
          goto error ;
       }
 
-      _blocks.erase( itr ) ;
-      _totalSize -= block->capacity() ;
+      _activeBlocks.erase( itr ) ;
 
-      SDB_OSS_DEL block ;
-      block = NULL ;
+      if ( reserve )
+      {
+         try
+         {
+            _idleBlocks.insert( std::make_pair( block->capacity(), block ) ) ;
+         }
+         catch ( std::exception &e )
+         {
+            // In case of STL exception, also free the block, even when the free
+            // option is false.
+            _totalSize -= block->capacity() ;
+            SDB_OSS_DEL block ;
+
+            PD_LOG( PDDEBUG, "Unexpected exception occurred when inserting "
+                             "block into idle list: %s", e.what() ) ;
+         }
+      }
+      else
+      {
+         _totalSize -= block->capacity() ;
+         SDB_OSS_DEL block ;
+      }
+
+      block = NULL;
 
    done:
+      PD_TRACE_EXITRC( SDB__RTNSORTAREA_RELEASEBLOCK, rc ) ;
       return rc ;
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSORTAREA_RESET, "_rtnSortArea::reset" )
+   void _rtnSortArea::reset( BOOLEAN reserveBlocks )
+   {
+      PD_TRACE_ENTRY( SDB__RTNSORTAREA_RESET ) ;
+      if ( reserveBlocks )
+      {
+         // Try to move all active blocks into idle set.
+         while ( !_activeBlocks.empty() )
+         {
+           rtnSortAreaBlock *block = _activeBlocks.back() ;
+           block->reset() ;
+           _activeBlocks.pop_back() ;
+           try
+           {
+              _idleBlocks.insert( std::make_pair( block->capacity(), block ) ) ;
+           }
+           catch ( std::exception &e )
+           {
+              // If not able to reserve the block, release it directly.
+              _totalSize -= block->capacity() ;
+              SDB_OSS_DEL block ;
+              PD_LOG( PDERROR, "Unexpected exception occurred when moving "
+                               "block to idle list: %s. Delete it directly",
+                               e.what() ) ;
+           }
+         }
+      }
+      else
+      {
+         // Free all active blocks.
+         for ( BLOCK_LIST_ITR itr = _activeBlocks.begin();
+               itr != _activeBlocks.end(); ++itr )
+         {
+            SDB_OSS_DEL *itr ;
+         }
+         _activeBlocks.clear() ;
+
+         // Free all idle blocks.
+         for ( BLOCK_MAP_ITR itr = _idleBlocks.begin();
+               itr != _idleBlocks.end(); ++itr )
+         {
+            SDB_OSS_DEL itr->second ;
+         }
+         _idleBlocks.clear() ;
+         _totalSize = 0 ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNSORTAREA_RESET ) ;
    }
 
    size_t _rtnSortArea::capacity() const
@@ -298,65 +424,50 @@ namespace engine
       return ( _limit - _totalSize ) ;
    }
 
-   size_t _rtnSortArea::blockNum() const
+   size_t _rtnSortArea::currentMaxBlockSize( BOOLEAN includeReserve ) const
    {
-      return _blocks.size() ;
+      rtnSortAreaBlock *block = _getMaxBlock( includeReserve ) ;
+      return block ? block->capacity() : 0 ;
    }
 
-   rtnSortAreaBlock *_rtnSortArea::getMaxBlock() const
-   {
-      rtnSortAreaBlock *block = NULL ;
-      if ( !_blocks.empty() )
-      {
-         BLOCK_LIST_CITR itr = _blocks.begin() ;
-         block = *itr ;
-         while ( ++itr != _blocks.end() &&
-                 ( (*itr)->capacity() > block->capacity() ) )
-         {
-            block = *itr ;
-         }
-      }
-
-      return block ;
-   }
-
-   rtnSortAreaBlock *_rtnSortArea::getWholeArea()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSORTAREA_GETMAXSINGLEBLOCK, "_rtnSortArea::getMaxSingleBlock" )
+   rtnSortAreaBlock *_rtnSortArea::getMaxSingleBlock()
    {
       INT32 rc = SDB_OK ;
-      rtnSortAreaBlock *block = NULL ;
+      PD_TRACE_ENTRY( SDB__RTNSORTAREA_GETMAXSINGLEBLOCK ) ;
+      BOOLEAN isActive =  FALSE ;
+      rtnSortAreaBlock *block = _getMaxBlock() ;
 
-      if ( _blocks.empty() )
+      if ( block )
       {
-         rc = allocBlock( _limit, block ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Allocate sort area block failed[%d]. Requested "
-                             "size: %zd", rc, _limit ) ;
-            goto error ;
-         }
-         _blocks.push_back( block ) ;
-      }
-      else
-      {
-         // Free all the blocks except the biggest one, and try to resize it
+         // Free all the blocks except the largest one, and try to resize it
          // up to limit.
-         BLOCK_LIST_ITR itr = _blocks.begin() ;
-         block = *itr ;
-         while ( ++itr != _blocks.end() )
+         BLOCK_LIST_ITR itr = _activeBlocks.begin() ;
+         while ( itr != _activeBlocks.end() )
          {
-            if ( (*itr)->capacity() > block->capacity() )
+            if ( *itr == block )
             {
-               SDB_OSS_DEL block ;
-               block = *itr ;
+               ++itr ;
+               isActive = TRUE ;
             }
             else
             {
                SDB_OSS_DEL *itr ;
+               itr = _activeBlocks.erase( itr ) ;
             }
          }
 
-         _blocks.clear() ;
-         _blocks.push_back( block ) ;
+         BLOCK_MAP_ITR mItr = _idleBlocks.begin() ;
+         while ( mItr != _idleBlocks.end() )
+         {
+            if ( mItr->second != block )
+            {
+               SDB_OSS_DEL mItr->second ;
+            }
+            // If the max block is in the idle set, try to move to active list.
+            // So always erase.
+            _idleBlocks.erase( mItr++ ) ;
+         }
 
          rc = block->_resize( _limit ) ;
          if ( rc )
@@ -366,11 +477,112 @@ namespace engine
          }
          block->reset() ;
       }
+      else
+      {
+         SDB_ASSERT( 0 == _activeBlocks.size(),
+                     "Active block list is not empty" ) ;
+         SDB_ASSERT( 0 == _idleBlocks.size(), "Idle block list is not empty" ) ;
+         rc = _allocBlock( _limit, block ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Allocate sort area block failed[%d]. Requested "
+                             "size: %zd", rc, _limit ) ;
+            goto error ;
+         }
+      }
+
+      if ( !isActive )
+      {
+         rc = _activeBlocks.push_back( block ) ;
+         if ( rc )
+         {
+            SDB_OSS_DEL block ;
+            _totalSize = 0 ;
+            PD_LOG( PDERROR, "Add sort area block into active list failed[%d]",
+                    rc ) ;
+            goto error ;
+         }
+      }
+
+      _totalSize = block->capacity() ;
 
    done:
+      PD_TRACE_EXITRC( SDB__RTNSORTAREA_GETMAXSINGLEBLOCK, rc ) ;
       return block ;
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSORTAREA__ALLOCBLOCK, "_rtnSortArea::_allocBlock" )
+   INT32 _rtnSortArea::_allocBlock( size_t size, rtnSortAreaBlock *&block )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNSORTAREA__ALLOCBLOCK ) ;
+      rtnSortAreaBlock *newBlock = NULL ;
+
+      if ( _totalSize + size > _limit )
+      {
+         rc = SDB_HIT_HIGH_WATERMARK ;
+         goto error ;
+      }
+
+      newBlock = SDB_OSS_NEW rtnSortAreaBlock( size ) ;
+      if ( !newBlock )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Allocate memory for sort area block failed. "
+                          "Requested size: %zd", size ) ;
+         goto error ;
+      }
+
+      rc = newBlock->init() ;
+      PD_RC_CHECK( rc, PDERROR, "Initialize sort area block failed[%d]", rc ) ;
+
+      rc = _activeBlocks.push_back( newBlock ) ;
+      PD_RC_CHECK( rc, PDERROR, "Insert sort area block into active list "
+                                "failed[%d]", rc ) ;
+
+      block = newBlock ;
+      _totalSize += size ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNSORTAREA__ALLOCBLOCK, rc ) ;
+      return rc ;
+   error:
+      SAFE_OSS_DELETE( newBlock ) ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSORTAREA__GETMAXBLOCK, "_rtnSortArea::_getMaxBlock" )
+   rtnSortAreaBlock *_rtnSortArea::_getMaxBlock( BOOLEAN includeReserve ) const
+   {
+      PD_TRACE_ENTRY( SDB__RTNSORTAREA__GETMAXBLOCK ) ;
+      rtnSortAreaBlock *block = NULL ;
+      if ( !_activeBlocks.empty() )
+      {
+         BLOCK_LIST_CITR itr = _activeBlocks.begin() ;
+         block = *itr ;
+         while ( ++itr != _activeBlocks.end() &&
+                 ( (*itr)->capacity() > block->capacity() ) )
+         {
+            block = *itr ;
+         }
+      }
+
+      if ( includeReserve && _idleBlocks.empty() )
+      {
+         for ( BLOCK_MAP_CITR itr = _idleBlocks.begin();
+               itr != _idleBlocks.end(); ++itr )
+         {
+            if ( itr->second->capacity() > block->capacity() )
+            {
+               block = itr->second ;
+            }
+         }
+      }
+
+      PD_TRACE_EXIT( SDB__RTNSORTAREA__GETMAXBLOCK ) ;
+      return block ;
    }
 }
 
