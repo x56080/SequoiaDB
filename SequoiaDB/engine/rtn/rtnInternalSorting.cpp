@@ -43,6 +43,7 @@
 #include "pmdEDU.hpp"
 #include "ossUtil.hpp"
 #include "ixm_common.hpp"
+#include "rtnTrace.hpp"
 
 #define RTN_SORT_USE_INSERTSORT        64
 #define RTN_SORT_SAME_SWAP_THRESHOLD   0.1
@@ -80,10 +81,12 @@ namespace engine
       /// it will be freed in rtnSorting.
    }
 
+   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINTERNALSORTING_PUSH, "_rtnInternalSorting::push" )
    INT32 _rtnInternalSorting::push( const BSONObj& keyObj, const CHAR* obj,
                                     INT32 objLen, BSONElement* arrEle )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNINTERNALSORTING_PUSH ) ;
       const CHAR* key = keyObj.objdata() ;
       INT32 keyLen = keyObj.objsize() ;
       UINT32 tupleSize = keyLen + objLen + sizeof(_rtnSortTuple) ;
@@ -133,13 +136,16 @@ namespace engine
       ++_objNum ;
 
    done:
+      PD_TRACE_EXITRC( SDB__RTNINTERNALSORTING_PUSH, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINTERNALSORTING_CLEARBUF, "_rtnInternalSorting::clearBuf" )
    void _rtnInternalSorting::clearBuf( BOOLEAN tryExtend )
    {
+      PD_TRACE_ENTRY( SDB__RTNINTERNALSORTING_CLEARBUF ) ;
       if ( !_tupleDirBlock || !_workTupleBlock )
       {
          goto done ;
@@ -195,12 +201,15 @@ namespace engine
       _fetched = 0 ;
 
    done:
+      PD_TRACE_EXIT( SDB__RTNINTERNALSORTING_CLEARBUF ) ;
       return ;
    }
 
+   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINTERNALSORTING_NEXT, "_rtnInternalSorting::next" )
    INT32 _rtnInternalSorting::next( _rtnSortTuple **tuple )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNINTERNALSORTING_NEXT ) ;
 
       if ( !more() )
       {
@@ -214,16 +223,19 @@ namespace engine
 
       ++_fetched ;
    done:
+      PD_TRACE_EXITRC( SDB__RTNINTERNALSORTING_NEXT, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINTERNALSORTING_SORT, "_rtnInternalSorting::sort" )
    INT32 _rtnInternalSorting::sort( _pmdEDUCB *cb )
    {
       PD_LOG( PDDEBUG, "begin to do internal sort. number of"
                        " obj:%d", _objNum ) ;
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNINTERNALSORTING_SORT ) ;
       _rtnSortTuple **firstTupleAddr = NULL ;
       _rtnSortTuple **lastTupleAddr = NULL ;
 
@@ -246,18 +258,20 @@ namespace engine
 
       PD_LOG( PDDEBUG, "quick sorting recursion:%lld", _recursion ) ;
    done:
+      PD_TRACE_EXITRC( SDB__RTNINTERNALSORTING_SORT, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-
+   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINTERNALSORTING__PARTITION, "_rtnInternalSorting::_partition" )
    INT32 _rtnInternalSorting::_partition( _rtnSortTuple **left,
                                           _rtnSortTuple **right,
                                           _rtnSortTuple **&leftAxis,
                                           _rtnSortTuple **&rightAxis )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNINTERNALSORTING__PARTITION ) ;
       SDB_ASSERT( left < right, "impossible" ) ;
       SDB_ASSERT( NULL != *left && NULL != *right, "can not be NULL" ) ;
 
@@ -423,16 +437,19 @@ namespace engine
       }
       }
    done:
+      PD_TRACE_EXITRC( SDB__RTNINTERNALSORTING__PARTITION, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINTERNALSORTING__SWAPLEFTWAMEKEY, "_rtnInternalSorting::_swapLeftSameKey" )
    INT32 _rtnInternalSorting::_swapLeftSameKey( _rtnSortTuple **left,
                                                 _rtnSortTuple **right,
                                                 _rtnSortTuple **&axis )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNINTERNALSORTING__SWAPLEFTWAMEKEY ) ;
       _rtnSortTuple *pivot = *right ;
       axis = right ;
       _rtnSortTuple **i = left ;
@@ -462,14 +479,17 @@ namespace engine
             break ;
          }
       }
+      PD_TRACE_EXITRC( SDB__RTNINTERNALSORTING__SWAPLEFTWAMEKEY, rc ) ;
       return rc ;
    }
 
+   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINTERNALSORTING__SWAPRIGHTWAMEKEY, "_rtnInternalSorting::_swapRightSameKey" )
    INT32 _rtnInternalSorting::_swapRightSameKey( _rtnSortTuple **left,
                                                 _rtnSortTuple **right,
                                                 _rtnSortTuple **&axis )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNINTERNALSORTING__SWAPRIGHTWAMEKEY ) ;
       _rtnSortTuple *pivot = *left ;
       axis = left ;
       _rtnSortTuple **i = left + 1 ;
@@ -499,12 +519,15 @@ namespace engine
             break ;
          }
       }
+      PD_TRACE_EXITRC( SDB__RTNINTERNALSORTING__SWAPRIGHTWAMEKEY, rc ) ;
       return rc ;
    }
 
+   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINTERNALSORTING__EXTENDTUPLEDIRECTORY, "_rtnInternalSorting::_extendTupleDirectory" )
    INT32 _rtnInternalSorting::_extendTupleDirectory()
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNINTERNALSORTING__EXTENDTUPLEDIRECTORY ) ;
 
       // Double the tuple directory space.
       UINT32 targetSize = ( NULL == _tupleDirBlock ) ?
@@ -540,14 +563,17 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__RTNINTERNALSORTING__EXTENDTUPLEDIRECTORY, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINTERNALSORTING__EXTENDTUPLESPACE, "_rtnInternalSorting::_extendTupleSpace" )
    INT32 _rtnInternalSorting::_extendTupleSpace( UINT32 tupleSize )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNINTERNALSORTING__EXTENDTUPLESPACE ) ;
 
       rtnSortAreaBlock *newBlock = NULL ;
       size_t newBlockSize = 0 ;
@@ -590,16 +616,19 @@ namespace engine
       _workTupleBlock = newBlock ;
 
    done:
+      PD_TRACE_EXITRC( SDB__RTNINTERNALSORTING__EXTENDTUPLESPACE, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINTERNALSORTING__APPENDTUPLE, "_rtnInternalSorting::_appendTuple" )
    INT32 _rtnInternalSorting::_appendTuple( const CHAR *key, UINT32 keyLen,
                                             const CHAR *obj, UINT32 objLen,
                                             BSONElement *arrEle )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNINTERNALSORTING__APPENDTUPLE ) ;
       _rtnSortTuple tupleTmp ;
       _rtnSortTuple *tuplePtr = (_rtnSortTuple *)
             _workTupleBlock->offset2Addr( _workTupleBlock->length() ) ;
@@ -631,11 +660,13 @@ namespace engine
      PD_RC_CHECK( rc, PDERROR, "Append tuple directory failed[%d]", rc ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__RTNINTERNALSORTING__APPENDTUPLE, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINTERNALSORTING__QUICKSORT, "_rtnInternalSorting::_quickSort" )
    INT32 _rtnInternalSorting::_quickSort( _rtnSortTuple **left,
                                           _rtnSortTuple **right,
                                           _pmdEDUCB *cb )
@@ -643,6 +674,7 @@ namespace engine
       SDB_ASSERT( left <= right, "impossible" ) ;
 
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNINTERNALSORTING__QUICKSORT ) ;
       _rtnSortTuple **leftAxis = NULL ;
       _rtnSortTuple **rightAxis = NULL ;
       ++_recursion ;
@@ -700,15 +732,18 @@ namespace engine
          }
       }
    done:
+      PD_TRACE_EXITRC( SDB__RTNINTERNALSORTING__QUICKSORT, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINTERNALSORTING__INSERTSORT, "_rtnInternalSorting::_insertSort" )
    INT32 _rtnInternalSorting::_insertSort( _rtnSortTuple **left,
                                            _rtnSortTuple **right )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNINTERNALSORTING__INSERTSORT ) ;
       SDB_ASSERT( left < right, "impossible" ) ;
       for ( _rtnSortTuple **i = left + 1;
             i <= right;
@@ -738,6 +773,7 @@ namespace engine
          }
       }
    done:
+      PD_TRACE_EXITRC( SDB__RTNINTERNALSORTING__INSERTSORT, rc ) ;
       return rc ;
    error:
       goto done ;

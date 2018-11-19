@@ -429,12 +429,14 @@ namespace engine
    INT32 _rtnSorting::_fetchFromExter( BSONObj &key, const CHAR** obj, INT32* objLen, _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNSORTING__FETCHFROMEXTER ) ;
       rc = _mergeBlk->fetch( key, obj, objLen, cb ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
    done:
+      PD_TRACE_EXITRC( SDB__RTNSORTING__FETCHFROMEXTER, rc ) ;
       return rc ;
    error:
       goto done ;
