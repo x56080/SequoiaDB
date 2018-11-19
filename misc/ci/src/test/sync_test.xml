@@ -256,10 +256,6 @@
                         <var name="exec_file" value="${basedir}/src/test/exec_testcase/exec_mongoc_case.xml"/>
                      </case>
                      
-                     <case value="story_ant">
-                        <var name="exec_file" value="${basedir}/src/test/exec_testcase/exec_ant_case.xml"/>
-                     </case>
-                     
                      <default>
                      </default>
                  
