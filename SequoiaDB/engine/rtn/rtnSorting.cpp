@@ -148,7 +148,7 @@ namespace engine
             UINT64 mergeSpaceReq =
                   _rtnMergeSorting::calcMinBufSize( _internalBlk->maxRecordSize() ) ;
 
-            if ( _sortArea.getMaxBlock()->capacity() < mergeSpaceReq )
+            if ( _sortArea.currentMaxBlockSize() < mergeSpaceReq )
             {
                // Buffer not enough for merge sorting. Abort.
                rc = SDB_OOM ;
@@ -156,7 +156,7 @@ namespace engine
                goto error ;
             }
 
-            _internalBlk->clearBuf() ;
+            _internalBlk->clearBuf( TRUE ) ;
          }
          else
          {
@@ -202,7 +202,7 @@ namespace engine
          PD_LOG( PDDEBUG, "total size of unit:%lld", _unit.totalSize() ) ;
          SAFE_OSS_DELETE( _internalBlk ) ;
 
-         maxBlock = _sortArea.getWholeArea() ;
+         maxBlock = _sortArea.getMaxSingleBlock() ;
          SDB_ASSERT( maxBlock, "Max block in sort area is NULL" ) ;
 
          SDB_ASSERT( NULL == _mergeBlk, "impossible" ) ;
