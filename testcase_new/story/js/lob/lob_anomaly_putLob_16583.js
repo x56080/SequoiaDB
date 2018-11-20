@@ -5,57 +5,43 @@
 *@testlinkCase: seqDB-16583:putLob,oid参数取值格式校验
 ******************************************************************************/
 
+main(db);
 function main( db )
 {
+	var clName = CHANGEDPREFIX + "_putlob16583";
 	//clean environment before test
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,"drop CL in the beginning" ) ;
-   
-   var testFile = CHANGEDPREFIX + "_lobTest16583.file" ;
-   lobAutoFile( testFile ) ;
-   
-   var incorrectOid = "123456";
-   
-   // create collection
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, -1, true, true, true,
+	commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" ) ; 
+	
+	var testFile = CHANGEDPREFIX + "_lobTest16583.file" ;
+	lobAutoFile( testFile ) ;
+	var incorrectOid = "123456";
+	
+	// create collection
+	var cl = commCreateCL( db, COMMCSNAME, clName, -1, true, true, true,
                           "create collection" ) ;
-   // put lob with incorrect oid
-   
-   try
-   {
-      cl.putLob(testFile, incorrectOid) ;
-      throw "ErrExecuteLob" ;
-   }
-   catch( e )
-   {
-      if( -6 != e )
-      {
-         println( "failed to execute put lob with incorrect oid, rc = " + e ) ;
-         throw e ;
-      }
-      else
-         println( "success to execute putLob with incorrect oid" ) ;
-   }finally
-   {
-      var cmd = new Cmd() ;
-      // remove lobfile
-      cmd.run( "rm -rf " + testFile ) ;
+	
+	println("begin to put lob with incorrect oid")
+	// put lob with incorrect oid
+	try
+	{
+		cl.putLob(testFile, incorrectOid) ;
+		throw "ErrExecuteLob" ;
+	}
+	catch( e )
+	{
+		if( -6 != e )
+		{
+			throw buildException("check put lob with incorrect oid ", e, "check the put lob with incorrect oid",
+                           -6, e);
+		}
+	}finally
+	{
+		var cmd = new Cmd() ;
+		// remove lobfile
+		cmd.run( "rm -rf " + testFile ) ;
+		commDropCL( db, COMMCSNAME, clName, true, true,
+		"drop collection in the end , error" ) ;
+		db.close( ) ;
    }
 }
 
-// Run Main
-try
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-               "clear collection in the beginning" ) ;
-   main( db ) ;
-}
-catch( e )
-{
-   throw e ;
-}
-finally
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-               "drop collection in the end , error" ) ;
-   db.close( ) ;
-}
