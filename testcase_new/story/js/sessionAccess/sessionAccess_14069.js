@@ -42,8 +42,8 @@ function main()
 		 {
 			 if( -6 != e )
 			 {
-				 println( "failed to execute create node with incorrect instanceid, rc = " + e ) ;
-				 throw e ;
+				 throw buildException("check set instanceid", e, "check the createNode and set instanceid",
+                           -6, e);
 			}
 		}
 		startIndex++;
@@ -78,8 +78,8 @@ function checkResult(db, groupName, instanceidList)
 	{
 		if(instanceidList[i] != 0 && instanceidList[i] != getDataGroupInfo.Group[i].instanceid)
 		{
-			println("instanceidList[i]: " + instanceidList[i] + ",getDataGroupInfo.Group[i].instanceid :" + getDataGroupInfo.Group[i].instanceid)
-			throw "instanceidError";
+			throw buildException("check checkResult", null, "check the instanceid set result",
+                           instanceidList[i], getDataGroupInfo.Group[i].instanceid);
 		}
 	}  
 }
