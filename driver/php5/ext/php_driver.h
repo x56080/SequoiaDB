@@ -313,7 +313,7 @@ zend_parse_parameters ( ZEND_NUM_ARGS() TSRMLS_CC, format, ##__VA_ARGS__ )
    {\
       if( errno == SDB_OK )\
       {\
-         RETURN_STRING( "{\"error\":0}", 1 ) ;\
+         RETURN_STRING( "{\"errno\":0}", 1 ) ;\
       }\
       else\
       {\
@@ -321,12 +321,12 @@ zend_parse_parameters ( ZEND_NUM_ARGS() TSRMLS_CC, format, ##__VA_ARGS__ )
          if( !pErrorMsg )\
          {\
             PHP_SET_ERROR( isSequoiaDB, thisObj, SDB_OOM ) ;\
-            RETVAL_STRING( "{\"error\":-2}", 1 ) ;\
+            RETVAL_STRING( "{\"errno\":-2}", 1 ) ;\
          }\
          else\
          {\
             ossMemset( pErrorMsg, 0, 64 ) ;\
-            ossSnprintf( pErrorMsg, 64, "{\"error\":%d}", errno ) ;\
+            ossSnprintf( pErrorMsg, 64, "{\"errno\":%d}", errno ) ;\
             RETVAL_STRING( pErrorMsg, 0 ) ;\
          }\
       }\
@@ -373,13 +373,13 @@ zend_parse_parameters ( ZEND_NUM_ARGS() TSRMLS_CC, format, ##__VA_ARGS__ )
          if( !pSuccessMsg )\
          {\
             PHP_SET_ERROR( isSequoiaDB, thisObj, SDB_OOM ) ;\
-            RETVAL_STRING( "{\"error\":-2}", 1 ) ;\
+            RETVAL_STRING( "{\"errno\":-2}", 1 ) ;\
          }\
          else\
          {\
             bson_oid_to_string( bson_iterator_oid( &id ), pId ) ;\
             ossMemset( pSuccessMsg, 0, 128 ) ;\
-            ossSnprintf( pSuccessMsg, 128, "{\"error\":%d,\"_id\":\"%s\"}", errno, pId ) ;\
+            ossSnprintf( pSuccessMsg, 128, "{\"errno\":%d,\"_id\":\"%s\"}", errno, pId ) ;\
             RETVAL_STRING( pSuccessMsg, 0 ) ;\
          }\
       }\
@@ -389,12 +389,12 @@ zend_parse_parameters ( ZEND_NUM_ARGS() TSRMLS_CC, format, ##__VA_ARGS__ )
          if( !pErrorMsg )\
          {\
             PHP_SET_ERROR( isSequoiaDB, thisObj, SDB_OOM ) ;\
-            RETVAL_STRING( "{\"error\":-2}", 1 ) ;\
+            RETVAL_STRING( "{\"errno\":-2}", 1 ) ;\
          }\
          else\
          {\
             ossMemset( pErrorMsg, 0, 64 ) ;\
-            ossSnprintf( pErrorMsg, 64, "{\"error\":%d}", errno ) ;\
+            ossSnprintf( pErrorMsg, 64, "{\"errno\":%d}", errno ) ;\
             RETVAL_STRING( pErrorMsg, 0 ) ;\
          }\
       }\
@@ -509,12 +509,12 @@ zend_parse_parameters ( ZEND_NUM_ARGS() TSRMLS_CC, format, ##__VA_ARGS__ )
          if( !pSuccessMsg )\
          {\
             PHP_SET_ERROR( isSequoiaDB, thisObj, SDB_OOM ) ;\
-            RETVAL_STRING( "{\"error\":-2}", 1 ) ;\
+            RETVAL_STRING( "{\"errno\":-2}", 1 ) ;\
          }\
          else\
          {\
             ossMemset( pSuccessMsg, 0, 128 ) ;\
-            ossSnprintf( pSuccessMsg, 128, "{\"error\":%d,\"taskID\":%lld}", errno, (UINT64)taskId ) ;\
+            ossSnprintf( pSuccessMsg, 128, "{\"errno\":%d,\"taskID\":%lld}", errno, (UINT64)taskId ) ;\
             RETVAL_STRING( pSuccessMsg, 0 ) ;\
          }\
       }\
@@ -524,12 +524,12 @@ zend_parse_parameters ( ZEND_NUM_ARGS() TSRMLS_CC, format, ##__VA_ARGS__ )
          if( !pErrorMsg )\
          {\
             PHP_SET_ERROR( isSequoiaDB, thisObj, SDB_OOM ) ;\
-            RETVAL_STRING( "{\"error\":-2}", 1 ) ;\
+            RETVAL_STRING( "{\"errno\":-2}", 1 ) ;\
          }\
          else\
          {\
             ossMemset( pErrorMsg, 0, 64 ) ;\
-            ossSnprintf( pErrorMsg, 64, "{\"error\":%d}", errno ) ;\
+            ossSnprintf( pErrorMsg, 64, "{\"errno\":%d}", errno ) ;\
             RETVAL_STRING( pErrorMsg, 0 ) ;\
          }\
       }\
