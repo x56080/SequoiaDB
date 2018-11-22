@@ -38,6 +38,7 @@ function main()
 		 try
 		 {
 			 rg.createNode(nodeHostName, nodeService, nodePath, config);
+			 throw "sessionAccess14069Error";
 		 }catch( e )
 		 {
 			 if( -6 != e )
