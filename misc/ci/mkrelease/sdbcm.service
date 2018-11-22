@@ -4,6 +4,7 @@ After=network.target
 
 [Service]
 Type=forking
+KillMode=none
 ExecStart=/opt/sequoiadb/bin/sdbcmart
 ExecStop=-/opt/sequoiadb/bin/sdbcmtop 
 ExecStop=/opt/sequoiadb/bin/sdbstop -t all 
