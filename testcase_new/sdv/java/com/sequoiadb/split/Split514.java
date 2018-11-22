@@ -37,6 +37,7 @@ public class Split514 extends SdbTestBase {
 	private String srcGroupName;
 	private String destGroupName;
 	private Sequoiadb commSdb = null;
+	private int removeNum = 0;
 
 	@BeforeClass(enabled = true)
 	public void setUp() {
@@ -94,9 +95,10 @@ public class Split514 extends SdbTestBase {
 			DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
 			
 			// 删除a:0 - a:50 的记录
-			dbc = cl.query("{a:{$gte:0,$lt:50}}", null, null, null, 10, 50);
+			dbc = cl.queryAndRemove((BSONObject) JSON.parse("{a:{$gte:0,$lt:50}}"), null, null, null, 10, 50, 0);
 			while (dbc.hasNext()) {
-				cl.delete(dbc.getNext());
+				dbc.getNext();
+				removeNum++;
 			}
 
 			if (!split.isSuccess()) {
@@ -166,7 +168,7 @@ public class Split514 extends SdbTestBase {
 
 			long destDataCount = destDataNode.getCollectionSpace(csName).getCollection(clName)
 					.getCount("{a:{$gte:0,$lt:100}}");
-			Assert.assertEquals(destDataCount, 60);// 目标组应当含有上述范围数据
+			Assert.assertEquals(destDataCount, 100-removeNum);// 目标组应当含有上述范围数据
 			Assert.assertEquals(destDataNode.getCollectionSpace(csName).getCollection(clName).getCount(), 60);// 目标组应当仅含有上述范围数据
 
 			insertAndCheck(sdb, destDataNode, srcdataNode); // 重新插入数据，检查落入情况
