@@ -26,6 +26,8 @@
       <property name="testcase_outdir" location="${WORKSPACE}/tmp" />
       <property name="remote_casedir" location="${CI_WORK_DIR}/testcase" />
       
+      <antcall target="ntpdate_time"/>
+      
       <antcall target="ready_testcase"/>
       
       <antcall target="ready_lib"/>
@@ -42,6 +44,17 @@
       
    </target>
 
+   <target name="ntpdate_time">
+      <hostinfo prefix="host" />
+      <for list="${testhost_list}" param="testhost">
+         <sequential>
+            <staf location="@{testhost}" service="PROCESS"
+                  request="START SHELL COMMAND ntpdate 192.168.20.11 WAIT 2m"
+                  throwBuildException=""/>
+         </sequential>
+      </for>
+   </target>
+   
    <target name="check_parameter">  
       <if>
          <isset property="TESTCASE_TYPE"/>

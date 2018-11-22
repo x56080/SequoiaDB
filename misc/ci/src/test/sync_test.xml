@@ -23,6 +23,8 @@
       <propertycopy name="testhost_list" from="${plat_form}_${TEST_TYPE}_${DEPLOY_MODE}_HOST" />          
       <property name="case_basedir" location="${WORKSPACE}/sequoiadb/testcase_sync" />
       
+      <antcall target="ntpdate_time"/>
+      
       <antcall target="ready_testcase"/>
 
       <antcall target="ready_lib"/>
@@ -35,6 +37,17 @@
       
       <antcall target="execute_testcase"/>
       
+   </target>
+   
+   <target name="ntpdate_time">
+      <hostinfo prefix="host" />
+      <for list="${testhost_list}" param="testhost">
+         <sequential>
+            <staf location="@{testhost}" service="PROCESS"
+                  request="START SHELL COMMAND ntpdate 192.168.20.11 WAIT 2m"
+                  throwBuildException=""/>
+         </sequential>
+      </for>
    </target>
    
    <target name="ready_testcase">      
