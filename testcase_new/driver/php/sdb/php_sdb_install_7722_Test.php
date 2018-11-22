@@ -64,7 +64,7 @@ class testSdbInstall extends PHPUnit_Framework_TestCase
       
       $errInfo = self::$dbh -> install( 'string' ); 
       
-      $this -> assertEquals( '{"error":0}', $errInfo );
+      $this -> assertEquals( '{"errno":0}', $errInfo );
       $this -> assertTrue( is_string( $errInfo )  ) ;
    }
    
