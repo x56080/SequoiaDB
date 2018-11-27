@@ -19,25 +19,28 @@ import static org.testng.Assert.fail;
 
 /**
  * Created by laojingtang on 18-1-19.
+ * Modified by wangkexin on 18-11-27.
  */
 public class ReadWriteSeqpart14145 extends SdbTestBase {
     private final String CLNAME = this.getClass().getSimpleName();
     private Sequoiadb db;
     private DBCollection dbcl;
     private List<NodeWarrper> nodeList;
+    private String rgName = Const.RGNAME + "14145";
 
     @BeforeClass
     public void setup() {
-        db = new Sequoiadb(super.coordUrl, "", "");
-        String groupName=Const.RGNAME;
-        BSONObject options = new BasicBSONObject("Group", groupName);
-        dbcl = db.getCollectionSpace(super.csName).createCollection(CLNAME, options);
-        nodeList = getNodeList(db, groupName);
+        db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        CommLib.createRG(db, rgName);
+        BSONObject options = new BasicBSONObject("Group", rgName);
+        dbcl = db.getCollectionSpace(SdbTestBase.csName).createCollection(CLNAME, options);
+        nodeList = getNodeList(db, rgName);
     }
 
     @AfterClass
-    public void teardown() {
-        db.getCollectionSpace(super.csName).dropCollection(CLNAME);
+    public void teardown() throws InterruptedException {
+        db.getCollectionSpace(SdbTestBase.csName).dropCollection(CLNAME);
+        db.removeReplicaGroup(rgName);
         db.disconnect();
     }
 
@@ -67,7 +70,6 @@ public class ReadWriteSeqpart14145 extends SdbTestBase {
         if (actualId != id[0] && actualId != id[1]) {
             fail("actual:" + actualId + " expect: " + id[0] + " or " + id[1]);
         }
-        System.out.println(db.getSessionAttr());
 
         BSONObject actual = db.getSessionAttr();
         BasicBSONList actualIdList= (BasicBSONList) actual.get("PreferedInstance");

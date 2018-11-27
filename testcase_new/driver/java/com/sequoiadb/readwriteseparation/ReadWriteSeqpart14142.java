@@ -7,6 +7,7 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
+import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -20,6 +21,7 @@ import static org.testng.Assert.assertEquals;
 
 /**
  * Created by laojingtang on 18-1-19.
+ * Modified by wangkexin on 18-11-27.
  */
 public class ReadWriteSeqpart14142 extends SdbTestBase {
     private final String CLNAME = this.getClass().getSimpleName();
@@ -27,19 +29,21 @@ public class ReadWriteSeqpart14142 extends SdbTestBase {
     private DBCollection dbcl;
     private Random random = new Random();
     private List<NodeWarrper> nodeList;
+    private String rgName = Const.RGNAME + "14142";
 
     @BeforeClass
     public void setup() {
-        db = new Sequoiadb(super.coordUrl, "", "");
-        String groupName = Const.RGNAME;
-        BSONObject options = new BasicBSONObject("Group", groupName);
-        dbcl = db.getCollectionSpace(super.csName).createCollection(CLNAME, options);
-        nodeList = getNodeList(db, groupName);
+        db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        CommLib.createRG(db, rgName);
+        BSONObject options = new BasicBSONObject("Group", rgName);
+        dbcl = db.getCollectionSpace(SdbTestBase.csName).createCollection(CLNAME, options);
+        nodeList = getNodeList(db, rgName);
     }
 
     @AfterClass
-    public void teardown() {
-        db.getCollectionSpace(super.csName).dropCollection(CLNAME);
+    public void teardown() throws InterruptedException {
+        db.getCollectionSpace(SdbTestBase.csName).dropCollection(CLNAME);
+        db.removeReplicaGroup(rgName);
         db.disconnect();
     }
 
@@ -78,11 +82,7 @@ public class ReadWriteSeqpart14142 extends SdbTestBase {
             lob.write(new byte[1024 * 1024 * 10]);
             lob.close();
         } catch (BaseException e) {
-            if (e.getErrorCode() != -13) {
-                throw e;
-            } else {
-                e.printStackTrace();
-            }
+        	Assert.assertEquals(e.getErrorCode(), -13);
         }
 
         options.put("Timeout", 20000L);

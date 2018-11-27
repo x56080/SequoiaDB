@@ -8,33 +8,31 @@ import org.bson.BasicBSONObject;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import java.util.List;
-
 import static com.sequoiadb.readwriteseparation.Helper.getActualDataNodeName;
-import static com.sequoiadb.readwriteseparation.Helper.getNodeList;
 import static org.testng.Assert.assertNotNull;
 
 /**
  * Created by laojingtang on 18-1-19.
+ * Modified by wangkexin on 18-11-27.
  */
 public class ReadWriteSeqpart14141 extends SdbTestBase {
     private final java.lang.String CLNAME = this.getClass().getSimpleName();
     private Sequoiadb db;
     private DBCollection dbcl;
-    private List<NodeWarrper> nodeList;
+    private String rgName = Const.RGNAME + "14141";
 
     @BeforeClass
     public void setup() {
-        db = new Sequoiadb(super.coordUrl, "", "");
-        BSONObject options = new BasicBSONObject("Group", Const.RGNAME);
-        dbcl = db.getCollectionSpace(super.csName).createCollection(CLNAME, options);
-        nodeList = getNodeList(db, Const.RGNAME);
+        db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        CommLib.createRG(db, rgName);
+        BSONObject options = new BasicBSONObject("Group", rgName);
+        dbcl = db.getCollectionSpace(SdbTestBase.csName).createCollection(CLNAME, options);
     }
 
     @AfterClass
-    public void teardown() {
-        db.getCollectionSpace(super.csName).dropCollection(CLNAME);
+    public void teardown() throws InterruptedException {
+        db.getCollectionSpace(SdbTestBase.csName).dropCollection(CLNAME);
+        db.removeReplicaGroup(rgName);
         db.disconnect();
     }
 
