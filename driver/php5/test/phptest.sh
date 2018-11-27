@@ -35,22 +35,22 @@ if [ $? != 0 ] ; then
    exit 1
 fi
 
-../../../tools/server/php_linux/bin/php -d extension=../build/dd/libsdbphp-5.4.6.so ../../test/php/tools/phpunit.phar --log-junit phptest.error.txt ../../test/php/SequoiaDB/configure.php
+../../../tools/server/php_linux/bin/php -d extension=../build/dd/libsdbphp-5.4.6.so ../../test/php/tools/phpunit.phar --log-junit phptest.error.txt ../../test/php/SequoiaDB/configureTest.php
 if [ $? != 0 ] ; then
    exit 1
 fi
 
-../../../tools/server/php_linux/bin/php -d extension=../build/dd/libsdbphp-5.4.6.so ../../test/php/tools/phpunit.phar --log-junit phptest.error.txt ../../test/php/SequoiaDB/authenticate.php
+../../../tools/server/php_linux/bin/php -d extension=../build/dd/libsdbphp-5.4.6.so ../../test/php/tools/phpunit.phar --log-junit phptest.error.txt ../../test/php/SequoiaDB/authenticateTest.php
 if [ $? != 0 ] ; then
    exit 1
 fi
 
-../../../tools/server/php_linux/bin/php -d extension=../build/dd/libsdbphp-5.4.6.so ../../test/php/tools/phpunit.phar --log-junit phptest.error.txt ../../test/php/SequoiaDB/procedure.php
+../../../tools/server/php_linux/bin/php -d extension=../build/dd/libsdbphp-5.4.6.so ../../test/php/tools/phpunit.phar --log-junit phptest.error.txt ../../test/php/SequoiaDB/procedureTest.php
 if [ $? != 0 ] ; then
    exit 1
 fi
 
-../../../tools/server/php_linux/bin/php -d extension=../build/dd/libsdbphp-5.4.6.so ../../test/php/tools/phpunit.phar --log-junit phptest.error.txt ../../test/php/SequoiaDB/transaction.php
+../../../tools/server/php_linux/bin/php -d extension=../build/dd/libsdbphp-5.4.6.so ../../test/php/tools/phpunit.phar --log-junit phptest.error.txt ../../test/php/SequoiaDB/transactionTest.php
 if [ $? != 0 ] ; then
    exit 1
 fi
@@ -60,12 +60,12 @@ if [ $? != 0 ] ; then
    exit 1
 fi
 
-../../../tools/server/php_linux/bin/php -d extension=../build/dd/libsdbphp-5.4.6.so ../../test/php/tools/phpunit.phar --log-junit phptest.error.txt ../../test/php/SequoiaDB/task.php
+../../../tools/server/php_linux/bin/php -d extension=../build/dd/libsdbphp-5.4.6.so ../../test/php/tools/phpunit.phar --log-junit phptest.error.txt ../../test/php/SequoiaDB/taskTest.php
 if [ $? != 0 ] ; then
    exit 1
 fi
 
-../../../tools/server/php_linux/bin/php -d extension=../build/dd/libsdbphp-5.4.6.so ../../test/php/tools/phpunit.phar --log-junit phptest.error.txt ../../test/php/SequoiaDB/session.php
+../../../tools/server/php_linux/bin/php -d extension=../build/dd/libsdbphp-5.4.6.so ../../test/php/tools/phpunit.phar --log-junit phptest.error.txt ../../test/php/SequoiaDB/sessionTest.php
 if [ $? != 0 ] ; then
    exit 1
 fi
