@@ -71,12 +71,17 @@ INT32 decimalDesc ;
 
 PHP_FUNCTION( sdbInitClient ) ;
 
-//Sdb object function
-const zend_function_entry sdbFun[] = {
+//Sdb function
+const zend_function_entry normalFun[] = {
    //driver function
    PHP_FE( sdbInitClient, NULL )
+   PHP_FE_END
+};
+
+//Sdb object function
+const zend_function_entry sdbFun[] = {
    //driver
-   PHP_ME( SequoiaDB, __construct,        NULL, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR )
+   PHP_ME( SequoiaDB, __construct,           NULL, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR )
    PHP_ME( SequoiaDB, install,            NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaDB, getError,           NULL, ZEND_ACC_PUBLIC )
    //db
@@ -147,13 +152,13 @@ const zend_function_entry sdbFun[] = {
    PHP_MALIAS( SequoiaDB, listCollections,
                                        listCL,   NULL, ZEND_ACC_PUBLIC )
    PHP_MALIAS( SequoiaDB, getCollectionSpace,
-                                       getCS,    NULL, ZEND_ACC_PUBLIC )
+                                       getCS,        NULL, ZEND_ACC_PUBLIC )
    PHP_MALIAS( SequoiaDB, dropCollectionSpace,
-                                       dropCS,   NULL, ZEND_ACC_PUBLIC )
+                                       dropCS,       NULL, ZEND_ACC_PUBLIC )
    PHP_MALIAS( SequoiaDB, listDomains,
-                                   listDomain,   NULL, ZEND_ACC_PUBLIC )
+                                   listDomain,       NULL, ZEND_ACC_PUBLIC )
    PHP_MALIAS( SequoiaDB, selectGroup,
-                                     getGroup,   NULL, ZEND_ACC_PUBLIC )
+                                     getGroup,       NULL, ZEND_ACC_PUBLIC )
    PHP_FE_END
 };
 
@@ -200,13 +205,13 @@ const zend_function_entry clFun[] = {
    PHP_ME( SequoiaCL, upsert,         NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCL, find,           NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCL, findAndUpdate,  NULL, ZEND_ACC_PUBLIC )
-   PHP_ME( SequoiaCL, findAndRemove,  NULL, ZEND_ACC_PUBLIC )
-   PHP_ME( SequoiaCL, explain,        NULL, ZEND_ACC_PUBLIC )
-   PHP_ME( SequoiaCL, count,          NULL, ZEND_ACC_PUBLIC )
-   PHP_ME( SequoiaCL, aggregate,      NULL, ZEND_ACC_PUBLIC )
+   PHP_ME( SequoiaCL, findAndRemove,         NULL, ZEND_ACC_PUBLIC )
+   PHP_ME( SequoiaCL, explain,               NULL, ZEND_ACC_PUBLIC )
+   PHP_ME( SequoiaCL, count,                 NULL, ZEND_ACC_PUBLIC )
+   PHP_ME( SequoiaCL, aggregate,             NULL, ZEND_ACC_PUBLIC )
    //index
-   PHP_ME( SequoiaCL, createIndex,    NULL, ZEND_ACC_PUBLIC )
-   PHP_ME( SequoiaCL, dropIndex,      NULL, ZEND_ACC_PUBLIC )
+   PHP_ME( SequoiaCL, createIndex,           NULL, ZEND_ACC_PUBLIC )
+   PHP_ME( SequoiaCL, dropIndex,             NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCL, getIndex,       NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCL, createIdIndex,  NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCL, dropIdIndex,    NULL, ZEND_ACC_PUBLIC )
@@ -338,8 +343,8 @@ zend_module_entry sequoiadb_module_entry = {
 #if ZEND_MODULE_API_NO >= 20010901
    STANDARD_MODULE_HEADER,
 #endif
-   "Sequoiadb",
-   sdbFun,
+   "SequoiaDB",
+   normalFun,
    PHP_MINIT(sequoiadb),
    PHP_MSHUTDOWN(sequoiadb),
    PHP_RINIT(sequoiadb),
@@ -653,7 +658,7 @@ PHP_FUNCTION( sdbInitClient )
    sdbConf.enableCacheStrategy = enableCacheStrategy ;
    sdbConf.cacheTimeInterval = (UINT32)cacheTimeInterval ;
    rc = initClient( &sdbConf ) ;
-                             
+
    if( rc )
    {
       goto error ;
