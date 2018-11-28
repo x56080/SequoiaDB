@@ -2,14 +2,23 @@
 .\"
 .TH "removeSpareRG" "1" "" "SequoiaDB User Manuals" ""
 .hy
-.SH NAME
-.PP
-removeSpareRG \- remove  SYSSpare group.
-.SH SYNOPSIS
-.PP
+.SH "NAME"
+
+.sp 2
+removeSpareRG - Remove SYSSpare group.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
 \f[B]\f[I]db.removeSpareRG()\f[]\f[]
-.SH CATEGORY
-.PP
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
 Sequoiadb
 .SH "DESCRIPTION"
 

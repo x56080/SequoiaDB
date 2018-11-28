@@ -2,14 +2,23 @@
 .\"
 .TH "createSpareRG" "1" "" "SequoiaDB User Manuals" ""
 .hy
-.SH NAME
-.PP
-createSpareRG \- Create spareRG
-.SH SYNOPSIS
-.PP
+.SH "NAME"
+
+.sp 2
+createSpareRG - Create spareRG.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
 \f[B]\f[I]db.createSpareRG()\f[]\f[]
-.SH CATEGORY
-.PP
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
 Sequoiadb
 .SH "DESCRIPTION"
 

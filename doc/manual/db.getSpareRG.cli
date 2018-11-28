@@ -2,14 +2,23 @@
 .\"
 .TH "getSpareRG" "1" "" "SequoiaDB User Manuals" ""
 .hy
-.SH NAME
-.PP
-getSpareRG \- get the reference of the  SYSSpare group.
-.SH SYNOPSIS
-.PP
+.SH "NAME"
+
+.sp 2
+getSpareRG - Get the reference of the SYSSpare group.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
 \f[B]\f[I]db.getSpareRG()\f[]\f[]
-.SH CATEGORY
-.PP
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
 Sequoiadb
 .SH "DESCRIPTION"
 
