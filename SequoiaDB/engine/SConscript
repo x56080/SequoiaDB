@@ -155,7 +155,9 @@ utilFiles = [
       "util/utilCompressorLZ4.cpp",
       "util/utilCompressorZlib.cpp",
       "util/utilEnvCheck.cpp",
-      "util/utilCache.cpp"
+      "util/utilCache.cpp",
+      "util/utilBuffBlock.cpp",
+      "util/utilCommBuff.cpp"
       ]
 
 rtnFiles = [
@@ -236,8 +238,7 @@ rtnFiles = [
       "rtn/rtnAlterRunner.cpp",
       "rtn/rtnAlterJob.cpp",
       "rtn/rtnIxmKeySorter.cpp",
-      "rtn/rtnDictCreatorJob.cpp",
-      "rtn/rtnSortArea.cpp"
+      "rtn/rtnDictCreatorJob.cpp"
       ]
 
 msgFiles = [
