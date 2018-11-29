@@ -218,10 +218,12 @@ namespace SequoiaDB
             }
             catch (IOException e)
             {
+                Close();
                 throw e;
             }
             catch (System.Exception)
             {
+                Close();
                 throw new BaseException("SDB_NETWORK");
             }
         }
