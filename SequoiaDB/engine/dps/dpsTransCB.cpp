@@ -81,6 +81,7 @@ namespace engine
    INT32 dpsTransCB::init ()
    {
       INT32 rc = SDB_OK ;
+      DPS_LSN_OFFSET startLsnOffset = DPS_INVALID_LSN_OFFSET ;
 
       _isOn = pmdGetOptionCB()->transactionOn() ;
       _rollbackEvent.signal() ;
@@ -126,11 +127,14 @@ namespace engine
             _maxUsedSize = 0 ;
          }
 
-         DPS_LSN startLSN = sdbGetDPSCB()->getStartLsn() ;
-         if ( _isOn && startLSN.offset != DPS_INVALID_LSN_OFFSET &&
+         rc = sdbGetDPSCB()->readOldestBeginLsnOffset( startLsnOffset ) ;
+         PD_RC_CHECK( rc, PDERROR, "Read oldest begin lsn offset failed:rc=%d",
+                      rc ) ;
+         PD_LOG( PDEVENT, "oldest begin lsn offset=%llu", startLsnOffset ) ;
+         if ( _isOn && startLsnOffset != DPS_INVALID_LSN_OFFSET &&
               SDB_ROLE_STANDALONE != pmdGetDBRole() )
          {
-            rc = syncTransInfoFromLocal( startLSN.offset ) ;
+            rc = syncTransInfoFromLocal( startLsnOffset ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Failed to sync trans info from local, rc: %d",

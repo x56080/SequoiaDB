@@ -49,6 +49,7 @@
 #include "ossUtil.hpp"
 #include "ossEvent.hpp"
 #include "ossQueue.hpp"
+#include "dpsMetaFile.hpp"
 
 #include <vector>
 using namespace std ;
@@ -93,6 +94,8 @@ namespace engine
       dpsTransCB                 *_transCB ;
       vector< dpsEventHandler* > _vecEventHandler ;
       BOOLEAN                    _incVersion ;
+
+      _dpsMetaFile               _metaFile ;
 
    public:
       _dpsReplicaLogMgr();
@@ -256,6 +259,8 @@ namespace engine
          return ((UINT64)logicalFileId) * getLogFileSz () ;
       }
 
+      INT32 readOldestBeginLsnOffset( DPS_LSN_OFFSET &offset ) ;
+
    private:
       void _allocate( UINT32 len,
                       dpsPageMeta &allocated ) ;
@@ -277,6 +282,8 @@ namespace engine
       INT32  _movePages ( const DPS_LSN_OFFSET &offset,
                           const DPS_LSN_VER &version ) ;
       INT32 _restore () ;
+
+      INT32 _restoreMeta() ;
 
       UINT32 _decPageID ( UINT32 pageID )
       {

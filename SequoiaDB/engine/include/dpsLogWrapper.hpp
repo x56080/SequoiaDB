@@ -284,6 +284,8 @@ namespace engine
 
       BOOLEAN isInRestore() ;
 
+      INT32 readOldestBeginLsnOffset( DPS_LSN_OFFSET &offset ) ;
+
    };
    typedef class _dpsLogWrapper SDB_DPSCB ;
 

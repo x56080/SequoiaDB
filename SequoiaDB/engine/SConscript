@@ -409,6 +409,7 @@ dpsFiles = [
       "dps/dpsMergeBlock.cpp",
       "dps/dpsLogFile.cpp",
       "dps/dpsLogFileMgr.cpp",
+      "dps/dpsMetaFile.cpp",
       "dps/dpsLogRecord.cpp",
       "dps/dpsTransCB.cpp",
       "dps/dpsTransLock.cpp",

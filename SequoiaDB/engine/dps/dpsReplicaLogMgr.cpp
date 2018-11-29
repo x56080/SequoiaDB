@@ -142,6 +142,9 @@ namespace engine
          DPS_SUB_BIT = ~pageNum ;
       }
 
+      rc = _metaFile.init( path ) ;
+      PD_RC_CHECK( rc, PDERROR, "init meta file failed:rc=%d", rc ) ;
+
       // initialize log files
       rc = _logger.init( path );
       if ( rc )
@@ -168,11 +171,45 @@ namespace engine
             goto error ;
          }
       }
+
+      rc = _restoreMeta() ;
+      PD_RC_CHECK( rc, PDERROR, "Restore meta failed:rc=%d", rc ) ;
+
    done:
       PD_TRACE_EXITRC ( SDB__DPSRPCMGR_INIT, rc );
       return rc;
    error:
       goto done;
+   }
+
+   INT32 _dpsReplicaLogMgr::_restoreMeta()
+   {
+      INT32 rc = SDB_OK ;
+      DPS_LSN_OFFSET metaFileLSNOffset = DPS_INVALID_LSN_OFFSET ;
+      DPS_LSN startLsn ;
+      rc = _metaFile.readOldestLSNOffset( metaFileLSNOffset ) ;
+      PD_RC_CHECK( rc, PDERROR, "Read lsn offset failed:rc=%d", rc ) ;
+
+      PD_LOG( PDEVENT, "Read oldest begin lsn:offset=%llu",
+              metaFileLSNOffset ) ;
+
+      startLsn = getStartLsn( FALSE ) ;
+      if ( _currentLsn.compareOffset( metaFileLSNOffset ) < 0
+           || startLsn.compareOffset( metaFileLSNOffset ) > 0 )
+      {
+         PD_LOG( PDEVENT, "Rewrite oldest lsn to startLsn:oldest Lsn=%llu,"
+                 "currentLsn=%llu,startLsn=%llu", metaFileLSNOffset,
+                 _currentLsn.offset, startLsn.offset ) ;
+         // meta file's trans lsn is out of bound
+         rc = _metaFile.writeOldestLSNOffset( startLsn.offset ) ;
+         PD_RC_CHECK( rc, PDERROR, "Write oldest lsn failed:rc=%d", rc ) ;
+      }
+
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__RESTRORE, "_dpsReplicaLogMgr::_restore" )
@@ -494,6 +531,11 @@ namespace engine
       return lsn ;
    }
 
+   INT32 _dpsReplicaLogMgr::readOldestBeginLsnOffset( DPS_LSN_OFFSET &offset )
+   {
+      return _metaFile.readOldestLSNOffset( offset ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR_GETLSNWIN, "_dpsReplicaLogMgr::getLsnWindow" )
    void _dpsReplicaLogMgr::getLsnWindow( DPS_LSN &fileBeginLsn,
                                          DPS_LSN &memBeginLsn,
@@ -524,7 +566,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__MVPAGES, "_dpsReplicaLogMgr::_movePages" )
-   INT32 _dpsReplicaLogMgr::_movePages ( const DPS_LSN_OFFSET & offset, 
+   INT32 _dpsReplicaLogMgr::_movePages ( const DPS_LSN_OFFSET & offset,
                                          const DPS_LSN_VER & version )
    {
       INT32 rc = SDB_OK ;
@@ -1305,6 +1347,20 @@ namespace engine
          }
       }
 
+      if ( NULL != _transCB )
+      {
+         INT32 tmpRC = SDB_OK ;
+         DPS_LSN_OFFSET offset = _transCB->getOldestBeginLsn() ;
+         if ( offset == DPS_INVALID_LSN_OFFSET )
+         {
+            offset = _currentLsn.offset ;
+         }
+
+         tmpRC = _metaFile.writeOldestLSNOffset( offset ) ;
+         PD_LOG( PDEVENT, "Write oldest begin lsn:offset=%llu,rc=%d",
+                 offset, tmpRC ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB__DPSRPCMGR_TEARDOWN, rc );
       return rc ;
@@ -1394,7 +1450,7 @@ namespace engine
 
       /// first lock writeMutex to block all write
       _writeMutex.get() ;
- 
+
       work = WORK_PAGE ;
       if ( 0 ==_lastCommitted.compare( _currentLsn ) )
       {

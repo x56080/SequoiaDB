@@ -140,7 +140,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DPSLGWRAPP_UNREGEVENTHANDLER ) ;
 
       SDB_ASSERT( pHandler, "Handle can't be NULL" ) ;
-      SDB_ASSERT( pmdGetThreadEDUCB() && 
+      SDB_ASSERT( pmdGetThreadEDUCB() &&
                   EDU_TYPE_MAIN == pmdGetThreadEDUCB()->getType(),
                   "Must unregister in main thread" ) ;
 
@@ -316,6 +316,11 @@ namespace engine
          return lsn ;
       }
       return _buf.getStartLsn ( logBufOnly ) ;
+   }
+
+   INT32 _dpsLogWrapper::readOldestBeginLsnOffset( DPS_LSN_OFFSET &offset )
+   {
+      return _buf.readOldestBeginLsnOffset( offset ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP_GETCURRENTLSN, "_dpsLogWrapper::getCurrentLsn" )
