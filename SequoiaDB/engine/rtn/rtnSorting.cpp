@@ -49,7 +49,9 @@
 namespace engine
 {
    _rtnSorting::_rtnSorting()
-   :_step(RTN_SORT_STEP_BEGIN),
+   :_bucketBuff( NULL ),
+    _objBuff( NULL ),
+    _step(RTN_SORT_STEP_BEGIN),
     _cb(NULL),
     _internalBlk(NULL),
     _mergeBlk(NULL),
@@ -64,6 +66,8 @@ namespace engine
 
    _rtnSorting::~_rtnSorting()
    {
+      SAFE_OSS_DELETE( _bucketBuff ) ;
+      SAFE_OSS_DELETE( _objBuff ) ;
       SAFE_OSS_FREE( _cpBuf ) ;
       SAFE_OSS_DELETE( _internalBlk ) ;
       SAFE_OSS_DELETE( _mergeBlk ) ;
@@ -84,8 +88,21 @@ namespace engine
       SDB_ASSERT( !orderby.isEmpty(), "impossible" ) ;
       UINT64 realSize = bufSize * 1024 * 1024 ;
 
-      rc = _sortArea.init( realSize ) ;
-      PD_RC_CHECK( rc, PDERROR, "Initialize sort area failed[%d]", rc ) ;
+      rc = _buffMonitor.init( realSize ) ;
+      PD_RC_CHECK( rc, PDERROR, "Initialize buffer monitor failed[%d]", rc ) ;
+
+      _bucketBuff = SDB_OSS_NEW utilCommBuff( UTIL_BUFF_MODE_SERIAL,
+                                              RTN_SORT_TUPLE_DIR_MIN_SZ,
+                                              &_buffMonitor ) ;
+      _objBuff = SDB_OSS_NEW utilCommBuff( UTIL_BUFF_MODE_SCATTER,
+                                           RTN_SORT_TUPLE_MIN_SZ,
+                                           &_buffMonitor ) ;
+      if ( !_bucketBuff || !_objBuff )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Allocate memory for sort buffer failed[%d]", rc ) ;
+         goto error ;
+      }
 
       _cb = cb ;
       _orderby = orderby.getOwned() ;
@@ -93,7 +110,8 @@ namespace engine
       _limit = limit ;
 
       _internalBlk = SDB_OSS_NEW _rtnInternalSorting( _orderby,
-                                                      _sortArea,
+                                                      _bucketBuff,
+                                                      _objBuff,
                                                       _limit ) ;
       if ( NULL == _internalBlk )
       {
@@ -109,6 +127,8 @@ namespace engine
       PD_TRACE_EXITRC(  SDB__RTNSORTING_INIT, rc ) ;
       return rc ;
    error:
+      SAFE_OSS_DELETE( _bucketBuff ) ;
+      SAFE_OSS_DELETE( _objBuff ) ;
       SAFE_OSS_DELETE( _internalBlk ) ;
       goto done ;
    }
@@ -146,18 +166,7 @@ namespace engine
                goto error ;
             }
 
-            UINT64 mergeSpaceReq =
-                  _rtnMergeSorting::calcMinBufSize( _internalBlk->maxRecordSize() ) ;
-
-            if ( _sortArea.currentMaxBlockSize() < mergeSpaceReq )
-            {
-               // Buffer not enough for merge sorting. Abort.
-               rc = SDB_OOM ;
-               PD_LOG( PDERROR, "Memory space not enough for sorting" ) ;
-               goto error ;
-            }
-
-            _internalBlk->clearBuf( TRUE ) ;
+            _internalBlk->clearBuf() ;
          }
          else
          {
@@ -191,7 +200,6 @@ namespace engine
       }
       else
       {
-         rtnSortAreaBlock *maxBlock = NULL ;
          UINT32 maxRecordSize = _internalBlk->maxRecordSize() ;
          rc = _moveToExternalBlks( _internalBlk, _blks, cb ) ;
          if ( SDB_OK != rc )
@@ -202,9 +210,8 @@ namespace engine
 
          PD_LOG( PDDEBUG, "total size of unit:%lld", _unit.totalSize() ) ;
          SAFE_OSS_DELETE( _internalBlk ) ;
-
-         maxBlock = _sortArea.getMaxSingleBlock() ;
-         SDB_ASSERT( maxBlock, "Max block in sort area is NULL" ) ;
+         // Internal sorting is done, release the bucket buffer.
+         SAFE_OSS_DELETE( _bucketBuff ) ;
 
          SDB_ASSERT( NULL == _mergeBlk, "impossible" ) ;
          _mergeBlk = SDB_OSS_NEW _rtnMergeSorting( &_unit, _orderby ) ;
@@ -215,7 +222,11 @@ namespace engine
             goto error ;
          }
 
-         rc = _mergeBlk->init( maxBlock->offset2Addr( 0 ), maxBlock->capacity(),
+         _objBuff->switchMode( UTIL_BUFF_MODE_SERIAL ) ;
+         // If aquire all failed, use the current buffer for merge sorting.
+         _objBuff->acquireAll( TRUE ) ;
+
+         rc = _mergeBlk->init( _objBuff->offset2Addr(0), _objBuff->capacity(),
                                _blks, maxRecordSize, _limit ) ;
          if ( SDB_OK != rc )
          {
@@ -426,7 +437,8 @@ namespace engine
    }
 
    //PD_TRACE_DECLARE_FUNCTION( SDB__RTNSORTING__FETCHFROMEXTER, "_rtnSorting::_fetchFromExter")
-   INT32 _rtnSorting::_fetchFromExter( BSONObj &key, const CHAR** obj, INT32* objLen, _pmdEDUCB *cb )
+   INT32 _rtnSorting::_fetchFromExter( BSONObj &key, const CHAR** obj,
+                                       INT32* objLen, _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNSORTING__FETCHFROMEXTER ) ;

@@ -43,7 +43,7 @@
 #include "rtnSortDef.hpp"
 #include "rtnMergeSorting.hpp"
 #include "dmsTmpBlkUnit.hpp"
-#include "rtnSortArea.hpp"
+#include "utilCommBuff.hpp"
 
 using namespace bson ;
 
@@ -88,7 +88,12 @@ namespace engine
    private:
       _dmsTmpBlkUnit _unit ;
       BSONObj _orderby ;
-      rtnSortArea _sortArea ;
+
+      // Buffer used by internal/merge sorting.
+      utilBuffMonitor _buffMonitor ;
+      utilCommBuff *_bucketBuff ; // For internal sorting only.
+      utilCommBuff *_objBuff ;
+
       RTN_SORT_STEP _step ;
       _pmdEDUCB *_cb ;
       _rtnInternalSorting *_internalBlk ;

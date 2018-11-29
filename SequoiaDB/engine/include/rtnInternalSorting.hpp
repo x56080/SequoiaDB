@@ -44,7 +44,7 @@
 #include "rtnSortTuple.hpp"
 #include "ixmIndexKey.hpp"
 #include "../bson/ordering.h"
-#include "rtnSortArea.hpp"
+#include "utilCommBuff.hpp"
 
 namespace engine
 {
@@ -58,21 +58,18 @@ namespace engine
     */
    class _rtnInternalSorting : public SDBObject
    {
-      typedef _utilList<rtnSortAreaBlock *> BLOCK_LIST ;
-      typedef _utilList<rtnSortAreaBlock *>::iterator BLOCK_LIST_ITR ;
    public:
       _rtnInternalSorting( const BSONObj &orderby,
-                           rtnSortArea &sortArea,
+                           utilCommBuff *tupleDirectory,
+                           utilCommBuff *tupleBuff,
                            INT64 limit ) ;
-
       virtual ~_rtnInternalSorting() ;
 
    public:
       INT32 push( const BSONObj& keyObj, const CHAR* obj,
                   INT32 objLen, BSONElement* arrElement ) ;
 
-      // tryExtend - Whether try to take all space of the buffer.
-      void clearBuf( BOOLEAN tryExtend = FALSE ) ;
+      void clearBuf() ;
 
       INT32 sort( _pmdEDUCB *cb ) ;
 
@@ -95,14 +92,6 @@ namespace engine
       }
 
    private:
-      INT32 _extendTupleDirectory() ;
-
-      INT32 _extendTupleSpace( UINT32 tupleSize ) ;
-
-      INT32 _appendTuple( const CHAR *key, UINT32 keyLen,
-                          const CHAR *obj, UINT32 objLen,
-                          BSONElement *arrEle ) ;
-
       INT32 _quickSort( _rtnSortTuple **left,
                         _rtnSortTuple **right,
                         _pmdEDUCB *cb ) ;
@@ -125,15 +114,8 @@ namespace engine
 
    private:
       bson::Ordering _order ;
-      rtnSortArea &_sortArea ;
-
-      // Block for tuple pointers. It should be a block of continuous memory.
-      rtnSortAreaBlock *_tupleDirBlock ;
-
-      // Blocks for tuples. They can be seperated from each other.
-      BLOCK_LIST _tupleBlocks ;
-      rtnSortAreaBlock *_maxTupleBlock ;  // Largest block used by me.
-      rtnSortAreaBlock *_workTupleBlock ; // Block used for insertion now.
+      utilCommBuff *_tupleDirectory ;
+      utilCommBuff *_tupleBuff ;
 
       UINT64 _objNum ;
       UINT64 _fetched ;

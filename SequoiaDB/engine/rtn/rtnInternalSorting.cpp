@@ -60,13 +60,12 @@ namespace engine
 {
    ///_rtnInternalSorting
    _rtnInternalSorting::_rtnInternalSorting( const BSONObj &orderby,
-                                             rtnSortArea &sortArea,
+                                             utilCommBuff *tupleDirectory,
+                                             utilCommBuff *tupleBuff,
                                              INT64 limit )
    :_order( Ordering::make( orderby ) ),
-    _sortArea( sortArea ),
-    _tupleDirBlock( NULL ),
-    _maxTupleBlock( NULL ),
-    _workTupleBlock( NULL ),
+    _tupleDirectory( tupleDirectory ),
+    _tupleBuff( tupleBuff ),
     _objNum( 0 ),
     _fetched( 0 ),
     _recursion( 0 ),
@@ -77,8 +76,6 @@ namespace engine
 
    _rtnInternalSorting::~_rtnInternalSorting()
    {
-      /// _begin is not allcated here.
-      /// it will be freed in rtnSorting.
    }
 
    //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINTERNALSORTING_PUSH, "_rtnInternalSorting::push" )
@@ -87,51 +84,72 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNINTERNALSORTING_PUSH ) ;
+      UINT64 offset = 0 ;
+      _rtnSortTuple *tuple = NULL ;
+      _rtnSortTuple tupleTmp ;
       const CHAR* key = keyObj.objdata() ;
       INT32 keyLen = keyObj.objsize() ;
-      UINT32 tupleSize = keyLen + objLen + sizeof(_rtnSortTuple) ;
 
       SDB_ASSERT( NULL != key, "key can't be NULL" ) ;
       SDB_ASSERT( NULL != obj, "obj can't be NULL" ) ;
       SDB_ASSERT( keyLen > 0, "keyLen must be greater than 0") ;
       SDB_ASSERT( objLen > 0, "objLen must be greater than 0") ;
 
+      rc = _tupleDirectory->ensureSpace( sizeof( _rtnSortTuple *) ) ;
+      if ( rc )
+      {
+         if ( SDB_HIT_HIGH_WATERMARK != rc )
+         {
+            PD_LOG( PDERROR, "Ensure space of size[%u] in sort buffer "
+                             "failed[%d]", sizeof( _rtnSortTuple *), rc ) ;
+         }
+         goto error ;
+      }
+
+      rc = _tupleBuff->ensureSpace( sizeof(_rtnSortTuple) + keyLen + objLen ) ;
+      if ( rc )
+      {
+         if ( SDB_HIT_HIGH_WATERMARK != rc )
+         {
+            PD_LOG( PDERROR, "Ensure space of size[%u] in sort buffer "
+                             "failed[%d]",
+                    sizeof(_rtnSortTuple) + keyLen + objLen, rc ) ;
+         }
+         goto error ;
+      }
+
+      tupleTmp.setLen( keyLen, objLen ) ;
+      if ( !arrEle || arrEle->eoo() )
+      {
+         tupleTmp.setHash( 0, 0 ) ;
+      }
+      else
+      {
+         ixmMakeHashValue( *arrEle, tupleTmp.hashValue() ) ;
+      }
+
+      rc = _tupleBuff->append( (const CHAR *)&tupleTmp, sizeof( _rtnSortTuple ),
+                               &offset ) ;
+      PD_RC_CHECK( rc, PDERROR, "Append tuple header into sort buffer "
+                                "failed[%d]", rc ) ;
+      rc = _tupleBuff->append( key, keyLen ) ;
+      PD_RC_CHECK( rc, PDERROR, "Append sort key into sort buffer failed[%d]",
+                   rc ) ;
+
+      rc = _tupleBuff->append( obj, objLen ) ;
+      PD_RC_CHECK( rc, PDERROR, "Append sort object into sort buffer "
+                                "failed[%d]", rc ) ;
+
+      tuple = (_rtnSortTuple *)( _tupleBuff->offset2Addr( offset ) ) ;
+
+      rc = _tupleDirectory->append( (CHAR *)&tuple, sizeof(const CHAR *) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Append sort tuple pointer into sort buffer "
+                                "failed[%d]", rc ) ;
+
       if ( (UINT32)objLen > _maxRecordSize )
       {
          _maxRecordSize = (UINT32)objLen ;
       }
-
-      if ( !_tupleDirBlock ||
-           _tupleDirBlock->freeSize() < sizeof( _rtnSortTuple *) )
-      {
-         rc = _extendTupleDirectory() ;
-         if ( rc )
-         {
-            if ( SDB_HIT_HIGH_WATERMARK != rc )
-            {
-               PD_LOG( PDERROR, "Extend tuple directory space failed[%d]",
-                       rc ) ;
-            }
-            goto error ;
-         }
-      }
-
-      if ( !_workTupleBlock || _workTupleBlock->freeSize() < tupleSize )
-      {
-         rc = _extendTupleSpace( tupleSize ) ;
-         if ( rc )
-         {
-            if ( SDB_HIT_HIGH_WATERMARK != rc )
-            {
-               PD_LOG( PDERROR, "Extend tuple space failed[%d]",
-                       rc ) ;
-            }
-            goto error ;
-         }
-      }
-
-      rc = _appendTuple( key, (UINT32)keyLen, obj, (UINT32)objLen, arrEle ) ;
-      PD_RC_CHECK( rc, PDERROR, "Append tuple to sort area failed[%d]", rc ) ;
 
       ++_objNum ;
 
@@ -143,64 +161,16 @@ namespace engine
    }
 
    //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINTERNALSORTING_CLEARBUF, "_rtnInternalSorting::clearBuf" )
-   void _rtnInternalSorting::clearBuf( BOOLEAN tryExtend )
+   void _rtnInternalSorting::clearBuf()
    {
       PD_TRACE_ENTRY( SDB__RTNINTERNALSORTING_CLEARBUF ) ;
-      if ( !_tupleDirBlock || !_workTupleBlock )
-      {
-         goto done ;
-      }
 
-      _tupleDirBlock->reset() ;
-
-      // If there are more than 1 block, free all tuple blocks except the
-      // biggest one.
-      if ( _tupleBlocks.size() > 1 )
-      {
-         BLOCK_LIST_ITR itr = _tupleBlocks.begin() ;
-         while ( itr != _tupleBlocks.end() )
-         {
-            if ( *itr != _maxTupleBlock )
-            {
-               _sortArea.releaseBlock( *itr ) ;
-               itr = _tupleBlocks.erase( itr ) ;
-            }
-            else
-            {
-               ++itr ;
-            }
-         }
-
-         _workTupleBlock = _maxTupleBlock ;
-      }
-
-      if ( tryExtend )
-      {
-         FLOAT64 extendRatio = 0.0 ;
-         const FLOAT64 minExtendRatio = 1.1 ;
-         extendRatio =
-               (FLOAT64)_sortArea.capacity() / (FLOAT64)_sortArea.usedSpace() ;
-
-         if ( extendRatio >= minExtendRatio )
-         {
-            size_t newDirectorySize =
-                  (size_t)( _tupleDirBlock->capacity() * extendRatio ) ;
-            size_t newTupleBlockSize =
-                  (size_t)( _workTupleBlock->capacity() * extendRatio ) ;
-
-            // Reallocation may fail, just ignore, the current buffer should have
-            // no change.
-            _sortArea.reallocBlock( _tupleDirBlock, newDirectorySize ) ;
-            _sortArea.reallocBlock( _workTupleBlock, newTupleBlockSize ) ;
-         }
-      }
-
-      _workTupleBlock->reset() ;
+      _tupleDirectory->reset() ;
+      _tupleBuff->reset() ;
 
       _objNum = 0 ;
       _fetched = 0 ;
 
-   done:
       PD_TRACE_EXIT( SDB__RTNINTERNALSORTING_CLEARBUF ) ;
       return ;
    }
@@ -217,8 +187,8 @@ namespace engine
          goto error ;
       }
 
-      *tuple = *( ( _rtnSortTuple **)
-         (_tupleDirBlock->offset2Addr(_fetched * sizeof(_rtnSortTuple *))) ) ;
+      *tuple = *((_rtnSortTuple **) ( _tupleDirectory->offset2Addr( 0 ) +
+                                      sizeof(_rtnSortTuple *) * _fetched ) ) ;
       SDB_ASSERT( NULL != *tuple, "can not be NULL" ) ;
 
       ++_fetched ;
@@ -236,21 +206,18 @@ namespace engine
                        " obj:%d", _objNum ) ;
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNINTERNALSORTING_SORT ) ;
-      _rtnSortTuple **firstTupleAddr = NULL ;
-      _rtnSortTuple **lastTupleAddr = NULL ;
 
       if ( 0 == _objNum )
       {
          goto done ;
       }
 
-      firstTupleAddr = (_rtnSortTuple **)_tupleDirBlock->offset2Addr( 0 ) ;
-      lastTupleAddr = (_rtnSortTuple **)
-            _tupleDirBlock->offset2Addr( sizeof(_rtnSortTuple *) *
-                                          ( _objNum - 1 ) ) ;
-
       _recursion = 0 ;
-      rc = _quickSort( firstTupleAddr, lastTupleAddr, cb ) ;
+      rc = _quickSort( (_rtnSortTuple **)(_tupleDirectory->offset2Addr(0)),
+                       (_rtnSortTuple **)
+                       (_tupleDirectory->offset2Addr(sizeof(_rtnSortTuple *)
+                                                     * ( _objNum - 1 ))),
+                       cb ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -521,149 +488,6 @@ namespace engine
       }
       PD_TRACE_EXITRC( SDB__RTNINTERNALSORTING__SWAPRIGHTWAMEKEY, rc ) ;
       return rc ;
-   }
-
-   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINTERNALSORTING__EXTENDTUPLEDIRECTORY, "_rtnInternalSorting::_extendTupleDirectory" )
-   INT32 _rtnInternalSorting::_extendTupleDirectory()
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNINTERNALSORTING__EXTENDTUPLEDIRECTORY ) ;
-
-      // Double the tuple directory space.
-      UINT32 targetSize = ( NULL == _tupleDirBlock ) ?
-         RTN_SORT_TUPLE_DIR_MIN_SZ : (_tupleDirBlock->capacity() * 2) ;
-      UINT32 extendSize = ( NULL == _tupleDirBlock ) ?
-            RTN_SORT_TUPLE_MIN_SZ : _tupleDirBlock->capacity() ;
-
-      // Sort area exhausted.
-      if ( _sortArea.freeSpace() < extendSize )
-      {
-         rc = SDB_HIT_HIGH_WATERMARK ;
-         goto error ;
-      }
-
-      if ( !_tupleDirBlock )
-      {
-         rc = _sortArea.allocBlock( targetSize, _tupleDirBlock, FALSE ) ;
-         PD_RC_CHECK( rc, PDERROR, "Allocate memory for tuple directory "
-                                   "failed[%d]. Size: %u", rc, targetSize ) ;
-      }
-      else
-      {
-         rc = _sortArea.reallocBlock( _tupleDirBlock, targetSize ) ;
-         if ( rc )
-         {
-            // Resize failed, maybe out of memory. Only log in debug level.
-            // The caller should decide whether to log error or not.
-            PD_LOG( PDDEBUG, "Resize tuple directory block from %llu to %u "
-                             "failed[%d]", _tupleDirBlock->capacity(),
-                             targetSize, rc ) ;
-            goto error ;
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNINTERNALSORTING__EXTENDTUPLEDIRECTORY, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINTERNALSORTING__EXTENDTUPLESPACE, "_rtnInternalSorting::_extendTupleSpace" )
-   INT32 _rtnInternalSorting::_extendTupleSpace( UINT32 tupleSize )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNINTERNALSORTING__EXTENDTUPLESPACE ) ;
-
-      rtnSortAreaBlock *newBlock = NULL ;
-      size_t newBlockSize = 0 ;
-
-      if ( _sortArea.freeSpace() < tupleSize )
-      {
-         rc = SDB_HIT_HIGH_WATERMARK ;
-         goto error ;
-      }
-
-      newBlockSize = _maxTupleBlock ?
-            ( _maxTupleBlock->capacity() * 2 ) : RTN_SORT_TUPLE_MIN_SZ ;
-      if ( tupleSize > newBlockSize )
-      {
-         newBlockSize = tupleSize ;
-      }
-
-      // Try to get as much memory as possible.
-      if ( newBlockSize > _sortArea.freeSpace() )
-      {
-         newBlockSize = _sortArea.freeSpace() ;
-      }
-
-      rc = _sortArea.allocBlock( newBlockSize, newBlock, FALSE ) ;
-      if ( rc )
-      {
-         // Resize failed, only log in debug level. The caller should decide
-         // whether to log error or not.
-         PD_LOG( PDDEBUG, "Extend sort area block space failed[%d]. "
-                          "Requested size: %llu", rc, newBlockSize ) ;
-         goto error ;
-      }
-
-      if ( !_maxTupleBlock ||
-           ( newBlock->capacity() > _maxTupleBlock->capacity() ) )
-      {
-         _maxTupleBlock = newBlock ;
-      }
-      _tupleBlocks.push_back( newBlock ) ;
-      _workTupleBlock = newBlock ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNINTERNALSORTING__EXTENDTUPLESPACE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINTERNALSORTING__APPENDTUPLE, "_rtnInternalSorting::_appendTuple" )
-   INT32 _rtnInternalSorting::_appendTuple( const CHAR *key, UINT32 keyLen,
-                                            const CHAR *obj, UINT32 objLen,
-                                            BSONElement *arrEle )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNINTERNALSORTING__APPENDTUPLE ) ;
-      _rtnSortTuple tupleTmp ;
-      _rtnSortTuple *tuplePtr = (_rtnSortTuple *)
-            _workTupleBlock->offset2Addr( _workTupleBlock->length() ) ;
-
-      tupleTmp.setLen( keyLen, objLen ) ;
-      if ( !arrEle || arrEle->eoo() )
-      {
-         tupleTmp.setHash( 0, 0 ) ;
-      }
-      else
-      {
-         ixmMakeHashValue( *arrEle, tupleTmp.hashValue() ) ;
-      }
-
-     // 1. Append the tuple in the working block.
-     rc = _workTupleBlock->append( (CHAR *)&tupleTmp, sizeof( tupleTmp ) ) ;
-     PD_RC_CHECK( rc, PDERROR, "Append tuple to sort area block failed[%d]",
-                  rc ) ;
-     rc = _workTupleBlock->append( key, keyLen ) ;
-     PD_RC_CHECK( rc, PDERROR, "Append key to sort area block failed[%d]",
-                  rc ) ;
-     rc = _workTupleBlock->append( obj, objLen ) ;
-     PD_RC_CHECK( rc, PDERROR, "Append object to sort area block failed[%d]",
-                  rc ) ;
-
-     // 2. Append the tuple pointer in the directory block.
-     rc = _tupleDirBlock->append( (CHAR *)&tuplePtr,
-                                  sizeof( _rtnSortTuple *) ) ;
-     PD_RC_CHECK( rc, PDERROR, "Append tuple directory failed[%d]", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNINTERNALSORTING__APPENDTUPLE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
    }
 
    //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINTERNALSORTING__QUICKSORT, "_rtnInternalSorting::_quickSort" )
