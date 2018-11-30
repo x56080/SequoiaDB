@@ -195,20 +195,21 @@ public class CacheTurnOnTest16718 extends SdbTestBase{
 	
 	@Test(dataProvider= "clientoption-provider")
 	void testCreateCS(boolean enable, int inteval){
-		initClient(enable, inteval);
+		initClient(enable, inteval);//2
 		CollectionSpace  cs = createCS();
 		long spendTime = 0 ;
 		long first = 0;
 		try{
 			getCS(db_check);
-			first = db_check.getLastUseTime();
+			first = System.currentTimeMillis();
 			dropCSWithSpendTime(cs);
 			getCS(db_check);
 		}catch(BaseException e){
-			long seconde = db_check.getLastUseTime();
+			long seconde = System.currentTimeMillis();
 			spendTime = seconde - first;
 			if (enable && spendTime < inteval){
 				Assert.assertFalse(true,e.getMessage());
+				
 			}else{
 				Assert.assertEquals(e.getErrorCode(), 
 						new BaseException("SDB_DMS_CS_NOTEXIST").getErrorCode(), e.getMessage());
@@ -224,11 +225,11 @@ public class CacheTurnOnTest16718 extends SdbTestBase{
 		long first = 0;
 		try{
 			getCL(db_check);
-			first = db_check.getLastUseTime();
+			first = System.currentTimeMillis();
 			dropCLWithSpendTime(cs);
 			getCL(db_check);
 		}catch(BaseException e){
-			long seconde = db_check.getLastUseTime();
+			long seconde = System.currentTimeMillis();
 			spendTime = seconde - first;
 			if (enable && spendTime < inteval){
 				Assert.assertFalse(true,e.getMessage());
@@ -249,11 +250,11 @@ public class CacheTurnOnTest16718 extends SdbTestBase{
 		long first = 0;
 		try{
 			getCL(db_check);
-			first = db_check.getLastUseTime();
+			first = System.currentTimeMillis();
 			dropCLWithSpendTime(cs);
 			getCL(db_check);
 		}catch(BaseException e){
-			long seconde = db_check.getLastUseTime();
+			long seconde = System.currentTimeMillis();
 			spendTime = seconde - first;
 			if (enable && spendTime < inteval){
 				Assert.assertFalse(true,e.getMessage());	
