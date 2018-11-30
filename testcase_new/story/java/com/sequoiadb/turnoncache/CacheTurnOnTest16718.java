@@ -18,7 +18,7 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 
 import com.sequoiadb.testcommon.*;
-public class CacheTurnOnTest extends SdbTestBase{
+public class CacheTurnOnTest16718 extends SdbTestBase{
 	private Sequoiadb db = null;
 	private Sequoiadb db_check = null;
 	private Random r = new Random();
@@ -119,7 +119,7 @@ public class CacheTurnOnTest extends SdbTestBase{
 		return cs;
 	}
 	
-	CollectionSpace createCL(BSONObject options){
+	CollectionSpace createCS(BSONObject options){
 		CollectionSpace cs = null;
 		try{
 			cs = db.createCollectionSpace(testCaseCSName);
@@ -198,11 +198,15 @@ public class CacheTurnOnTest extends SdbTestBase{
 		initClient(enable, inteval);
 		CollectionSpace  cs = createCS();
 		long spendTime = 0 ;
+		long first = 0;
 		try{
 			getCS(db_check);
-			spendTime = dropCSWithSpendTime(cs);
+			first = db_check.getLastUseTime();
+			dropCSWithSpendTime(cs);
 			getCS(db_check);
 		}catch(BaseException e){
+			long seconde = db_check.getLastUseTime();
+			spendTime = seconde - first;
 			if (enable && spendTime < inteval){
 				Assert.assertFalse(true,e.getMessage());
 			}else{
@@ -215,14 +219,17 @@ public class CacheTurnOnTest extends SdbTestBase{
 	@Test(dataProvider= "clientoption-provider")
 	void testCreateCL(boolean enable, int inteval){
 		initClient(enable, inteval);
-		CollectionSpace cs = createCL(null);
+		CollectionSpace cs = createCS(null);
 		long spendTime = 0 ;
+		long first = 0;
 		try{
 			getCL(db_check);
-			spendTime = dropCLWithSpendTime(cs);
+			first = db_check.getLastUseTime();
+			dropCLWithSpendTime(cs);
 			getCL(db_check);
-			
 		}catch(BaseException e){
+			long seconde = db_check.getLastUseTime();
+			spendTime = seconde - first;
 			if (enable && spendTime < inteval){
 				Assert.assertFalse(true,e.getMessage());
 			}else{
@@ -237,13 +244,17 @@ public class CacheTurnOnTest extends SdbTestBase{
 		initClient(enable, inteval);
 		BSONObject options = new BasicBSONObject();
 		options.put("ReplSize", 0);
-		CollectionSpace cs = createCL(options);
+		CollectionSpace cs = createCS(options);
 		long spendTime = 0 ;
+		long first = 0;
 		try{
 			getCL(db_check);
-			spendTime = dropCLWithSpendTime(cs);
+			first = db_check.getLastUseTime();
+			dropCLWithSpendTime(cs);
 			getCL(db_check);
 		}catch(BaseException e){
+			long seconde = db_check.getLastUseTime();
+			spendTime = seconde - first;
 			if (enable && spendTime < inteval){
 				Assert.assertFalse(true,e.getMessage());	
 			}else{
@@ -270,7 +281,7 @@ public class CacheTurnOnTest extends SdbTestBase{
 	@Test(dataProvider= "clientoption-provider")
 	void testDropCL(boolean enable, int inteval){
 		initClient(enable, inteval);
-		CollectionSpace cs = createCL(null);
+		CollectionSpace cs = createCS(null);
 		dropCL(cs);
 		
 		try{
@@ -307,7 +318,8 @@ public class CacheTurnOnTest extends SdbTestBase{
 	@Test(dataProvider= "clientoption-provider")
 	void testGetCLOfTimeOut(boolean enable, int inteval){
 		initClient(enable, inteval);
-		CollectionSpace cs = createCL(null);
+		CollectionSpace cs = createCS(null);
+		System.out.println(System.currentTimeMillis());
 		long spendTime = 0 ;
 		try{
 			getCL(db_check);
@@ -319,6 +331,8 @@ public class CacheTurnOnTest extends SdbTestBase{
                 spendTime += Sleep( tmpInteval ) ;
             }
 			getCL(db_check);
+			System.out.println(System.currentTimeMillis());
+			//db_check.dumpCache();
 			Assert.assertFalse(true, "must is SDB_DMS_CS_NOTEXIST");
 		}catch(BaseException e){
 			Assert.assertEquals(e.getErrorCode(), 
@@ -341,7 +355,7 @@ public class CacheTurnOnTest extends SdbTestBase{
 	@Test(dataProvider= "clientoption-provider")
 	void testGetCLAfterDropCS(boolean enable, int inteval){
 		initClient(enable, inteval);
-		CollectionSpace cs = createCL(null);
+		CollectionSpace cs = createCS(null);
 		dropCS(cs);
 		
 		try{
@@ -354,7 +368,7 @@ public class CacheTurnOnTest extends SdbTestBase{
 	@Test(dataProvider= "clientoption-provider")
 	void testUpdateTimeStamp(boolean enable, int inteval){
 		initClient(enable, inteval);
-		CollectionSpace cs = createCL(null);
+		CollectionSpace cs = createCS(null);
 		
 		try{
 			DBCollection cl = cs.getCollection(clName);
