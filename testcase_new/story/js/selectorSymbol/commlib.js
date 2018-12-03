@@ -53,7 +53,7 @@ function checkRec( rc, expRecs )
 	if( actRecs.length !== expRecs.length )
    {
    	println("\nactual recs in cl= "+JSON.stringify(actRecs)+"\n\nexpect recs= "+JSON.stringify(expRecs));
-   	throw buildException("check count", null, "",
+   	throw buildException("check count", "count ERR", "check count",
 									expRecs.length, actRecs.length);
    }
    
