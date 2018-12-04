@@ -10,9 +10,6 @@ function main( db )
 {
    try
    {
-      var installDir = commGetInstallPath() ;
-      println( "install path: " + installDir ) ;
-      var cmd = new Cmd() ;
       var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, true,
                              "create collection in the beginning" ) ;
       // insert record
