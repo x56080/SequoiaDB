@@ -2594,6 +2594,45 @@ error:
 }
 
 /**
+** prepend outfile path to tmpfile
+***/
+void prependOutFilePath( const CHAR *outfile, CHAR *tmpfile )
+{
+   const CHAR *slashPos = NULL ;
+   UINT32 pathLength = 0 ;
+
+   if ( NULL == outfile || NULL == tmpfile )
+   {
+      goto done ;
+   }
+
+   if ( 0 == ossStrncmp( "", outfile, OSS_MAX_PATHSIZE ) )
+   {
+      goto done ;
+   }
+   else
+   {
+#if defined (_LINUX)
+      slashPos = ossStrrchr( outfile, '/') ;
+#elif defined (_WINDOWS)
+      slashPos = ossStrrchr( outfile, '\\') ;
+#endif
+
+      if ( NULL == slashPos )
+      {
+         goto done ;
+      }
+
+      pathLength = slashPos - outfile + 1 ;
+      ossMemmove( tmpfile + pathLength, tmpfile, pathLength ) ;
+      ossMemcpy( tmpfile, outfile, pathLength ) ;
+   }
+
+done:
+   return ;
+}
+
+/**
 ** inspect node without file specified
 ***/
 INT32 inspectWithoutFile( sdbclient::sdb *coord, ciHeader *header,
@@ -3375,6 +3414,7 @@ INT32 _sdbCi::inspect()
          curLoop += 1 ;
          ossMemset( tmpFile, 0, OSS_MAX_PATHSIZE ) ;
          ossSnprintf( tmpFile, OSS_MAX_PATHSIZE, CI_TMP_FILE, curLoop ) ;
+         prependOutFilePath( _header._outfile, tmpFile ) ;
          rc = inspectWithoutFile( coord, &_header, tmpFile, totalRecord ) ;
       }while ( CI_INSPECT_ERROR == rc ) ;
 
@@ -3405,6 +3445,7 @@ INT32 _sdbCi::inspect()
    {
       ossMemset( tmpFile, 0, OSS_MAX_PATHSIZE ) ;
       ossSnprintf( tmpFile, OSS_MAX_PATHSIZE, CI_TMP_FILE, idx + 1 ) ;
+      prependOutFilePath( _header._outfile, tmpFile ) ;
 
       rc = inspectWithFile( &_header, inFile, tmpFile, totalRecord, finish ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
