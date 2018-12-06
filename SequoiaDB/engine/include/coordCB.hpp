@@ -120,7 +120,8 @@ namespace engine
 
       void clearCatNodeAddrList();
 
-      void updateCatGroupInfo( CoordGroupInfoPtr &groupInfo );
+      void updateCatGroupInfo( CoordGroupInfoPtr &groupInfo,
+                               BOOLEAN inheritStat = FALSE ) ;
 
       CoordGroupInfoPtr getCatGroupInfo()
       {
@@ -162,7 +163,8 @@ namespace engine
                                   BOOLEAN exceptCata = FALSE,
                                   BOOLEAN exceptCoord = TRUE ) ;
 
-      void  addGroupInfo ( CoordGroupInfoPtr &groupInfo ) ;
+      void  addGroupInfo ( CoordGroupInfoPtr &groupInfo,
+                           BOOLEAN inheritStat = FALSE ) ;
 
       void  removeGroupInfo( UINT32 groupID ) ;
 
