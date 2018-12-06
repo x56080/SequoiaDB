@@ -3193,7 +3193,7 @@ namespace engine
             {
                groupLst.push_back( groupInfoTmp );
             }
-            pCoordcb->addGroupInfo( groupInfoTmp );
+            pCoordcb->addGroupInfo( groupInfoTmp, TRUE ) ;
             rc = rtnCoordUpdateRoute( groupInfoTmp, pCoordcb->getRouteAgent(),
                                       MSG_ROUTE_SHARD_SERVCIE ) ;
             // update cata service also
@@ -3201,7 +3201,7 @@ namespace engine
             {
                rtnCoordUpdateRoute( groupInfoTmp, pCoordcb->getRouteAgent(),
                                     MSG_ROUTE_CAT_SERVICE ) ;
-               pCoordcb->updateCatGroupInfo( groupInfoTmp ) ;
+               pCoordcb->updateCatGroupInfo( groupInfoTmp, TRUE ) ;
             }
          }
          catch ( std::exception &e )
@@ -3252,6 +3252,7 @@ namespace engine
                                          sendNodes );
          if ( rc != SDB_OK )
          {
+            rtnCoordUpdateNodeStatByRC( cb, routeID, rc ) ;
             failedNodes[ *iter ] = rc ;
          }
          ++iter;
@@ -3884,6 +3885,34 @@ namespace engine
 
    done:
       PD_TRACE_EXIT ( SDB_RTNCOUPNODESTATBYRC ) ;
+      return ;
+   }
+
+   void rtnCoordUpdateNodeStatByRC( pmdEDUCB *cb,
+                                    const MsgRouteID &routeID,
+                                    INT32 retCode )
+   {
+      CoordGroupInfoPtr groupInfo ;
+
+      CoordSession *pSession = cb->getCoordSession() ;
+      if ( MSG_INVALID_ROUTEID == routeID.value )
+      {
+         goto done;
+      }
+      else if ( SDB_OK != retCode && pSession )
+      {
+         pSession->removeLastNode( routeID.columns.groupID,
+                                   routeID ) ;
+      }
+
+      if ( SDB_OK == rtnCoordGetGroupInfo( cb, routeID.columns.groupID,
+                                           FALSE, groupInfo ) )
+      {
+         groupInfo->updateNodeStat( routeID.columns.nodeID,
+                                    netResult2Status( retCode ) ) ;
+      }
+
+   done:
       return ;
    }
 

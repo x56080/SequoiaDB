@@ -381,6 +381,9 @@ namespace engine
    } ;
    typedef _clsShardingKeySite clsShardingKeySite ;
 
+   /*
+      _clsGroupItem define
+    */
    typedef _netRouteNode clsNodeItem ;
 
    class _clsNodeMgrAgent ;
@@ -413,7 +416,7 @@ namespace engine
          INT32  groupVersion () const { return _groupVersion ; }
          std::string groupName() const { return _groupName ; }
 
-         const VEC_NODE_INFO* getNodes () ;
+         const VEC_NODE_INFO* getNodes () const ;
          clsNodeItem*         nodeItem ( UINT32 nodeID ) ;
          clsNodeItem*         nodeItemByPos( UINT32 pos ) ;
          INT32                nodePos  ( UINT32 nodeID ) ;
@@ -457,8 +460,13 @@ namespace engine
 
          void   cancelPrimary () ;
 
-         void   updateNodeStat( UINT16 nodeID, NET_NODE_STATUS status ) ;
+         void   updateNodeStat( UINT16 nodeID,
+                                NET_NODE_STATUS status,
+                                UINT64 *pTime = NULL ) ;
          void   clearNodesStat() ;
+
+         void   inheritStat( const _clsGroupItem *pItem,
+                             UINT32 falutTimeout = NET_NODE_FAULT_TIMEOUT ) ;
 
       protected:
          void   _clear () ;

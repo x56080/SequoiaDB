@@ -403,6 +403,10 @@ namespace engine
                                     CoordGroupInfoPtr &groupInfo,
                                     INT32 retCode ) ;
 
+   void rtnCoordUpdateNodeStatByRC( pmdEDUCB *cb,
+                                    const MsgRouteID &routeID,
+                                    INT32 retCode ) ;
+
    /*
       return TRUE/FALSE, if TRUE: can retry, otherwise error stop
    */
