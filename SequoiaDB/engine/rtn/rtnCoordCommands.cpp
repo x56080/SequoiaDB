@@ -2892,6 +2892,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB_RTNCOCMDCTN__ATTACHNODE ) ;
       BSONElement hostEle ;
       BSONElement gpEle ;
+      BSONElement ele ;
       std::vector<BSONObj> objs ;
       BSONObj nodeConf ;
       SINT32 retCode = SDB_OK ;
@@ -2919,8 +2920,16 @@ namespace engine
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-
-         keepData = info.getBoolField( FIELD_NAME_KEEP_DATA ) ;
+         
+         ele = info.getField( FIELD_NAME_KEEP_DATA ) ;
+         if ( ele.eoo() || Bool != ele.type() )
+         {
+            PD_LOG( PDERROR, "Failed to get KeepData from msg[%s]",
+                 info.toString( FALSE, TRUE ).c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         keepData = ele.boolean() ;
       }
       catch ( std::exception &e )
       {
@@ -3314,9 +3323,17 @@ namespace engine
                rc = SDB_INVALIDARG ;
                goto error ;
             }
+            ele = rInfo.getField( FIELD_NAME_KEEP_DATA ) ;
+            if ( ele.eoo() || Bool != ele.type() )
+            {
+               PD_LOG( PDERROR, "Failed to get KeepData from msg[%s]",
+                    rInfo.toString().c_str() ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            keepData = ele.boolean() ;  
          }
-
-         keepData = rInfo.getBoolField( FIELD_NAME_KEEP_DATA ) ;
+         
       }
       catch ( std::exception &e )
       {

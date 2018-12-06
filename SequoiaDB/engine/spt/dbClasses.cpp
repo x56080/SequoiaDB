@@ -182,7 +182,6 @@
          if ( SDB_JSVAL_IS_OBJECT ( argv[argNum - 1] ) ) {                     \
             pJsObj = SDB_JSVAL_TO_OBJECT ( argv[argNum -1] ) ;                 \
             if ( pJsObj ) {                                                    \
-               argv[argNum -1] = OBJECT_TO_JSVAL ( pJsObj ) ;                  \
                VERIFY ( objToBson( cx , pJsObj , &pBson ) ) ;                  \
             }                                                                  \
          }                                                                     \
@@ -3504,38 +3503,36 @@ static JSBool rg_detach( JSContext *cx, uintN argc, jsval *vp )
    sdbReplicaGroupHandle *rg = NULL ;
    JSString *jsHost = NULL ;
    JSString *jsSvc = NULL ;
-   JSObject *jsOption = NULL ;
+   JSObject *jsOptions = NULL ;
    CHAR *host = NULL ;
    CHAR *svc = NULL ;
    bson *options = NULL ;
+   jsval *argv = JS_ARGV( cx, vp ) ;
 
-   ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
-                               "SS/o", &jsHost, &jsSvc, &jsOption ) ;
-   REPORT ( ret, "RG.detach(): wrong arguments" ) ;
-
-   if ( NULL != jsOption )
+   // check arguments
+   REPORT( argc >= 3, "RG.attachNode(): need 3 arguments" ) ;
+   if ( !JSVAL_IS_STRING( argv[0] ) )
    {
-      ret = objToBson ( cx , jsOption , &options ) ;
-      VERIFY ( ret ) ;
+      REPORT ( FALSE , "RG.detachNode(): the 1st argument should be a string" ) ;
    }
-
+   if ( !JSVAL_IS_STRING( argv[1] ) && !JSVAL_IS_INT( argv[1] ) )
+   {
+      REPORT ( FALSE , "RG.detachNode(): the 2nd argument should be a string or int value" ) ;
+   }
+   // get arguments
+   ret = JS_ConvertArguments ( cx , argc , argv, "SS/", &jsHost, &jsSvc ) ;
+   REPORT ( ret, "RG.detachNode(): wrong arguments" ) ;
+   // transform argumnts
    host = (CHAR *) JS_EncodeString ( cx , jsHost ) ;
    VERIFY ( host ) ;
-
    svc = (CHAR *) JS_EncodeString ( cx , jsSvc ) ;
-   VERIFY ( jsSvc ) ;
-
-   if ( NULL != jsOption )
-   {
-      ret = objToBson ( cx , jsOption, &options ) ;
-      VERIFY ( ret ) ;
-   }
-
+   VERIFY ( svc ) ;
+   GET_OBJ_FROM_ARG_ARR( cx, argc, argv, 3, jsOptions, options, "RG.detachNode()" ) ;
+   // call API
    rg = (sdbReplicaGroupHandle *)JS_GetPrivate ( cx, JS_THIS_OBJECT ( cx, vp ) ) ;
-   REPORT ( rg, "RG.detach(): no replica group handle" ) ;
-
+   REPORT ( rg, "RG.detachNode(): no replica group handle" ) ;
    rc = sdbDetachNode( *rg, host, svc, options ) ;
-   REPORT_RC ( SDB_OK == rc, "RG.detach()", rc ) ;
+   REPORT_RC ( SDB_OK == rc, "RG.detachNode()", rc ) ;
 
    JS_SET_RVAL ( cx , vp , JSVAL_VOID ) ;
 done:
@@ -3545,7 +3542,7 @@ done:
    PD_TRACE_EXIT( SDB_RG_DETACH ) ;
    return ret ;
 error :
-   TRY_REPORT ( cx , "RG.detach(): false" ) ;
+   TRY_REPORT ( cx , "RG.detachNode(): false" ) ;
    ret = JS_FALSE ;
    goto done ;
 }
@@ -3559,33 +3556,37 @@ static JSBool rg_attach( JSContext *cx, uintN argc, jsval *vp )
    sdbReplicaGroupHandle *rg = NULL ;
    JSString *jsHost = NULL ;
    JSString *jsSvc = NULL ;
-   JSObject *jsOption = NULL ;
+   JSObject *jsOptions = NULL ;
    CHAR *host = NULL ;
    CHAR *svc = NULL ;
    bson *options = NULL ;
+   jsval *argv = JS_ARGV( cx, vp ) ;
 
-   ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
-                               "SS/o", &jsHost, &jsSvc, &jsOption ) ;
-   REPORT ( ret, "RG.attach(): wrong arguments" ) ;
-
+   // check arguments
+   REPORT( argc >= 3, "RG.attachNode(): need 3 arguments" ) ;
+   if ( !JSVAL_IS_STRING( argv[0] ) )
+   {
+      REPORT ( FALSE , "RG.attachNode(): the 1st argument should be a string" ) ;
+   }
+   if ( !JSVAL_IS_STRING( argv[1] ) && !JSVAL_IS_INT( argv[1] ) )
+   {
+      REPORT ( FALSE , "RG.attachNode(): the 2nd argument should be a string or int value" ) ;
+   }
+   // get arguments
+   ret = JS_ConvertArguments ( cx , argc , argv, "SS/", &jsHost, &jsSvc ) ;
+   REPORT ( ret, "RG.attachNode(): wrong arguments" ) ;
+   // transform argumnts
    host = (CHAR *) JS_EncodeString ( cx , jsHost ) ;
    VERIFY ( host ) ;
-
    svc = (CHAR *) JS_EncodeString ( cx , jsSvc ) ;
-   VERIFY ( jsSvc ) ;
-
-   if ( NULL != jsOption )
-   {
-      ret = objToBson ( cx , jsOption, &options ) ;
-      VERIFY ( ret ) ;
-   }
-
+   VERIFY ( svc ) ;
+   GET_OBJ_FROM_ARG_ARR( cx, argc, argv, 3, jsOptions, options, "RG.attachNode()" ) ;
+   // call API
    rg = (sdbReplicaGroupHandle *)JS_GetPrivate ( cx, JS_THIS_OBJECT ( cx, vp ) ) ;
-   REPORT ( rg, "RG.attach(): no replica group handle" ) ;
-
+   REPORT ( rg, "RG.attachNode(): no replica group handle" ) ;
    rc = sdbAttachNode( *rg, host, svc, options ) ;
-   REPORT_RC ( SDB_OK == rc, "RG.attach()", rc ) ;
-
+   REPORT_RC ( SDB_OK == rc, "RG.attachNode()", rc ) ;
+   // set js return
    JS_SET_RVAL ( cx , vp , JSVAL_VOID ) ;
 done:
    SAFE_BSON_DISPOSE( options ) ;
@@ -3594,7 +3595,7 @@ done:
    PD_TRACE_EXIT( SDB_RG_ATTACH ) ;
    return ret ;
 error :
-   TRY_REPORT ( cx , "RG.detach(): false" ) ;
+   TRY_REPORT ( cx , "RG.attachNode(): false" ) ;
    ret = JS_FALSE ;
    goto done ;
 }
@@ -4834,7 +4835,6 @@ static INT32 _sdb_connect ( const CHAR *hostName, const CHAR *serviceName,
       ret = sdbConnect ( hostName, serviceName, userName, passwd, handle ) ;
    }
 
-done:
    return ret ;
 }
 
@@ -4848,6 +4848,7 @@ static JSBool _sdb_constructor ( JSContext *cx , uintN argc , jsval *vp , BOOLEA
    JSString *           strPwd      = NULL ;
    sdbConnectionHandle *connection  = NULL ;
    JSObject *           obj         = NULL ;
+   CHAR *               pNodename   = NULL ;
    CHAR *               host        = NULL ;
    CHAR *               port        = NULL ;
    CHAR *               pwd         = NULL ;
@@ -4899,7 +4900,6 @@ static JSBool _sdb_constructor ( JSContext *cx , uintN argc , jsval *vp , BOOLEA
    else if( ! strPort )
    {
       INT32 portNameLen = 0 ;
-      const CHAR *pNodename = NULL ;
       const CHAR *pSplit = NULL ;
       CHAR portBuffer[OSS_MAX_SERVICENAME + 1] = {0};
       pNodename = ( CHAR* ) JS_EncodeString( cx, strHost ) ;
@@ -5065,6 +5065,7 @@ static JSBool _sdb_constructor ( JSContext *cx , uintN argc , jsval *vp , BOOLEA
 
 done :
 #if !defined (SDB_FMP)
+   SAFE_JS_FREE ( cx , pNodename ) ;
    SAFE_JS_FREE ( cx , host ) ;
    SAFE_JS_FREE ( cx , port ) ;
 #endif
@@ -7199,16 +7200,10 @@ static JSBool sdb_close ( JSContext *cx, uintN argc, jsval *vp )
                JS_GetPrivate ( cx, JS_THIS_OBJECT ( cx, vp ) ) ;
    REPORT ( connection, "Sdb.close: no connection handle" ) ;
 
-   sdbDisconnect(*connection ) ;
-   /*
-   UINT64 addr = 0 ;
-   void *p = NULL ;
-   __sdbGetReserveSpace1 ( *connection, &addr ) ;
-   __sdbSetReserveSpace1 ( *connection, 0 ) ;
-   p = (void*)addr ;
-   JS_RemoveValueRoot ( cx, (jsval*)p ) ;
-   SAFE_JS_FREE ( cx, p ) ;
-   */
+   // disconnect and release handle
+   sdbDisconnect ( *connection ) ;
+   SAFE_RELEASE_CONNECTION ( connection ) ;
+   SAFE_JS_FREE ( cx , connection ) ;
 
    //set sdb handle to invalid handle(0)
    ret = JS_SetPrivate ( cx, JS_THIS_OBJECT ( cx, vp ), 0 ) ;
