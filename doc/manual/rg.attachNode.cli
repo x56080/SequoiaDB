@@ -15,7 +15,7 @@ attachNode - Add a node that has been created but does not belong to any group t
 .sp 2
 
 .sp 2
-rg.attachNode(\fB<host>\fR,\fB<service>\fR,\fB[options]\fR)
+rg.attachNode(\fB<host>\fR,\fB<service>\fR,\fB<options>\fR)
 .SH "CATEGORY"
 
 .sp 2
@@ -41,15 +41,19 @@ Add a node that has been created but does not belong to any group to the current
 .br
        Can be the following options:
 .sp 2
-       \fB1. KeepData (Bool):\fR 
+       \fB* KeepData (Bool):\fR 
 .br
-			  Whether to keep the original data of the 
-			  current node, default to be false.
+			  Whether to keep the original data of the new 
+              node. This option has no default value. User 
+              should specify its value explicitly.
+.sp 2
 \fBNote: \fR
 .sp 2
-1. Never open KeepData if the node does not originally belong to the current group.
+1. The field KeepData in the options must be specified explicitly. For it will determine if the data of the new node still be kept or not. So, be careful.
 .sp 2
-2. Nodes in the node configuration file where roles are specified as catalogs can only be added to the catalog group; nodes whose roles are specified as data can only be added to data groups.
+2. It's better to set KeepData to be false if the new node does not originally belong to the current group.
+.sp 2
+3. Nodes in the node configuration file where roles are specified as catalog can only be added to the catalog group; nodes whose roles are specified as `data` can only be added to data groups.
 			  
 .SH "Examples"
 
@@ -58,8 +62,8 @@ Add a node that has been created but does not belong to any group to the current
 .sp 2
 	> var rg1 = db.getRG("group1")
 .br
-	> rg1.detachNode('hostname1', '11830')
+	> rg1.detachNode('hostname1', '11830', { KeepData: true })
 .br
 	> var rg2 = db.getRG("group2")
 .br
-	> rg2.attachNode('hostname1', '11830')
+	> rg2.attachNode('hostname1', '11830', { KeepData: false })

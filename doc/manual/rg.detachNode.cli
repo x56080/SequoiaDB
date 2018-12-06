@@ -15,7 +15,7 @@ detachNode - Detach a node in the current group.
 .sp 2
 
 .sp 2
-rg.detachNode(\fB<host>\fR,\fB<service>\fR,\fB[options]\fR)
+rg.detachNode(\fB<host>\fR,\fB<service>\fR,\fB<options>\fR)
 .SH "CATEGORY"
 
 .sp 2
@@ -41,20 +41,24 @@ Detach a node in the current partition group, but its configuration information 
 .br
        Can be the following options:
 .sp 2
-       \fB1. KeepData (Bool):\fR 
+       \fB* KeepData (Bool):\fR 
 .br
-			  Whether to keep the original data of the 
-			  current node, default to be false.
+			  Whether to keep the original data of the detached 
+              node. This option has no default value. User should 
+              specify its value explicitly.
 .sp 2
-       \fB1. enforce (Bool):\fR 
+       \fB* enforce (Bool):\fR 
 .br
-			  Whether to detach the node forcily, default to be false.
+			  Whether to detach the node forcily, default to 
+              be false.
+.sp 2
 \fBNote: \fR
 .sp 2
-1. It can not detach the last node which own cs/cl in the replica group.
-Never open KeepData if the node does not originally belong to the current group.
+1. The field KeepData in the options must be specified explicitly. For it will determine if the data of the detached node still be kept or not. So, be careful.
 .sp 2
-2. The separated nodes will no longer be managed by the cluster. Please join other groups as soon as possible.
+2. It can not detach the last node in the replica group unless setting Enforced to be true.
+.sp 2
+3. The separated nodes will no longer be managed by the cluster. Please join other groups as soon as possible.
 			  
 .SH "Examples"
 
@@ -63,8 +67,8 @@ Never open KeepData if the node does not originally belong to the current group.
 .sp 2
 	> var rg1 = db.getRG("group1")
 .br
-	> rg1.detachNode('hostname1', '11830')
+	> rg1.detachNode('hostname1', '11830', {KeepData: true})
 .br
 	> var rg2 = db.getRG("group2")
 .br
-	> rg2.attachNode('hostname1', '11830')
+	> rg2.attachNode('hostname1', '11830', {KeepData: false})
