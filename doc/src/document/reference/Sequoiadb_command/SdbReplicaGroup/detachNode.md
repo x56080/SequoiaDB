@@ -1,5 +1,5 @@
 ##语法##
-***rg.detachNode( \<host\>, \<service\>, [options] )***
+***rg.detachNode( \<host\>, \<service\>, \<options\> )***
 
 分离当前分区组内的一个节点，其配置信息不会被删除。搭配 [rg.attachNode()](reference/Sequoiadb_command/SdbReplicaGroup/attachNode.md)使用。目前可以支持从数据组或者编目组中分离节点。
 
@@ -9,19 +9,20 @@
 | ------- | ---------- | ----------------------- | --------- |
 | host    |  string    | 节点的主机名或者主机 IP。  | 是 |
 | service |  string    | 节点服务名或者端口。       | 是 |
-| options |  Json 对象 | 可选项，详见如下options选项说明。 | 否 |
+| options |  Json 对象 | 详见如下options选项说明。 | 是 |
 
 ##options选项##
 
 | 参数名  |  参数类型  |  描述                        |  默认值 |
 | ------- | ---------- | ---------------------------- | ------- |
-| KeepData  | bool     | 是否保留目标节点原有的数据。 |  false  |
+| KeepData  | bool     | 是否保留目标节点原有的数据。 |  无默认值，需用户显示指定。  |
 | Enforced  | bool     | 是否强制分离节点             |  false  |
 
 > **Note:**
-> 
-> 1. 主节点或分区组内只有一个节点时将不能被 detachNode，如需强制删除请使用 Enforced 参数。
-> 2. 分离后的节点将不再受集群管理，请尽快加入到其他复制组中。
+>
+> 1. 参数 options 中的 KeepData 字段为必填项，需用户显示指定。由于该选项会决定被detach的节点的数据是否继续被保留，用户应该谨慎考虑。
+> 2. 主节点或分区组内只有一个节点时，该节点将不能被 detach，如需强制删除请使用 Enforced 参数。
+> 3. 分离后的节点将不再受集群管理，请尽快加入到其他复制组中。
 
 ##返回值##
 

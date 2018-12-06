@@ -1,7 +1,7 @@
 ##语法##
-***rg.attachNode( \<host\>, \<service\>, [options] )***
+***rg.attachNode( \<host\>, \<service\>, \<options\> )***
 
-将一个已经创建完成但不属于任何分区组的节点加入到当前分区组。可以搭配 [rg.detachNode()](reference/Sequoiadb_command/SdbReplicaGroup/detachNode.md) 使用。
+将一个已经创建完成但不属于任何分区组的节点加入到当前分区组。可以搭配 [rg.detachNode()](reference/Sequoiadb_command/SdbReplicaGroup/detachNode.md) 使用。目前可以支持加入到数据组或者编目组。
 
 ##参数描述##
 
@@ -9,16 +9,19 @@
 | ------- | --------- | -----------------------------| -------- |
 | host    | string    | 节点的主机名或者主机 IP。    | 是 |
 | service | string    | 节点服务名或者端口。         | 是 |
-| options | Json 对象 | 可选项，详见options选项说明。| 否 |
+| options | Json 对象 | 详见options选项说明。| 是 |
 
 ##options选项##
 
 | 参数名   | 参数类型 | 描述                        | 默认值 |
 | -------- | -------- | --------------------------- | ------ |
-| KeepData | bool     | 是否保留目标节点原有的数据。| false  |
+| KeepData | bool     | 是否保留新加节点原有的数据。| 无默认值，需用户显示指定。  |
 
 > **Note:**  
-> 如果目标节点原本不属于当前组，切勿打开 KeepData 。
+
+> 1. 参数 options 中的 KeepData 字段为必填项，需用户显示指定。由于该选项会决定新节点数据是否继续被保留，用户应该谨慎考虑。
+> 2. 如果新加的节点原本不属于当前组，建议用户将 KeepData 设置为 false。否则，一旦发生主备切换及全量同步，当前组原有节点的数据将有可能被新加节点的数据覆盖。
+> 3. 节点配置文件中角色(role)指定为编目(catalog)的节点只能加入编目组中；角色指定为数据(data)的节点只能加入到数据组中。
 
 ##返回值##
 
@@ -33,7 +36,7 @@
 | -------- | ---------------------- | ------------------------------- |
 | -15      | 网络错误               | 1. 检查 sdbcm 状态是否正常，如果状态异常，可以尝试重启；<br> 2. 检查填写的 host 是否正确。 |
 | -146     | 节点不存在             | 检查节点是否存在。 |
-| -157     | 节点已存在于其他复制组 | 检查节点是否已加入到当前或其他复制组，如果已属于任何复制组将不支持该操作。  |
+| -157     | 节点已存在于其他复制组 | 检查节点是否已加入到当前或其他复制组，如果已属于任何复制组将不支持该操作。注意：编目节点不能加入到数据组中，数据节点也不能加入到编目组中。 |
 
 ##示例##
 
@@ -117,13 +120,13 @@ attachNode 前的节点信息：
 将“hostname1:11830” 节点从 group1 分区组中分离：
 
 ```lang-javascript
-> db.getRG('group1').detachNode('hostname1', '11830')
+> db.getRG('group1').detachNode('hostname1', '11830', { KeepData: true } )
  ```
 
-将“hostname1:11830” 节点加入到 group2 分区组中：
+将“hostname1:11830” 节点加入到 group2 分区组中，由于节点原本不属于 group2, 此处将其原本的数据清空：
 
 ```lang-javascript
-> db.getRG('group2').attachNode('hostname1', '11830')
+> db.getRG('group2').attachNode('hostname1', '11830', { KeepData: false } )
 ```
 
 查看 attachNode 后的节点信息，group1 分区组中已不存在“hostname1:11830” 节点，group2 分区组存在“hostname1:11830” 节点：
