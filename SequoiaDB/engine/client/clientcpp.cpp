@@ -4362,7 +4362,8 @@ error:
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      if ( NULL == pHostName || NULL == pSvcName )
+      if ( NULL == pHostName || !*pHostName ||
+           NULL == pSvcName || !*pSvcName )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -4416,7 +4417,8 @@ error:
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      if ( NULL == pHostName || NULL == pSvcName )
+      if ( NULL == pHostName || !*pHostName ||
+           NULL == pSvcName || !*pSvcName )
       {
          rc = SDB_INVALIDARG ;
          goto error ;

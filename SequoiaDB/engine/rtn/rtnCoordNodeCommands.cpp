@@ -1253,18 +1253,18 @@ namespace engine
 
             rc = rtnGetBooleanElement( pSelfArgs->_boQuery,
                                        FIELD_NAME_KEEP_DATA, keepData ) ;
-            if ( SDB_FIELD_NOT_EXIST == rc )
+            if ( rc )
             {
-               keepData = FALSE ;
-               rc = SDB_OK ;
+               PD_LOG_MSG( PDERROR, "Not specify the field[%s] or it has" 
+                           " an invalid value in options"
+                           " when attaching node.", FIELD_NAME_KEEP_DATA ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
             }
             else
             {
                ++validCount ;
             }
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to %s: failed to get the field [%s] from query",
-                         _getCommandName(), FIELD_NAME_KEEP_DATA ) ;
 
             if ( (UINT32)pSelfArgs->_boQuery.nFields() > validCount )
             {
@@ -1763,22 +1763,22 @@ namespace engine
                       SDB_INVALIDARG, error, PDERROR,
                       "Failed to %s: only data-group or catalog-group "
                       "supports \"detachNode\" now", _getCommandName() ) ;
-         }
 
-         rc = rtnGetBooleanElement( pSelfArgs->_boQuery,
-                                    FIELD_NAME_KEEP_DATA, keepData ) ;
-         if ( SDB_FIELD_NOT_EXIST == rc )
-         {
-            keepData = FALSE ;
-            rc = SDB_OK ;
+            rc = rtnGetBooleanElement( pSelfArgs->_boQuery,
+                                       FIELD_NAME_KEEP_DATA, keepData ) ;
+            if ( rc )
+            {
+               PD_LOG_MSG( PDERROR, "Not specify the field[%s] or it has" 
+                           " an invalid value in options"
+                           " when detaching node.", FIELD_NAME_KEEP_DATA ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            else
+            {
+               ++validCount ;
+            }
          }
-         else
-         {
-            ++validCount ;
-         }
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to %s: failed to get the field [%s] from query",
-                      _getCommandName(), FIELD_NAME_KEEP_DATA ) ;
 
          /// if there are both Enforced and enforced, just use Enforced.
          rc = rtnGetBooleanElement( pSelfArgs->_boQuery,
