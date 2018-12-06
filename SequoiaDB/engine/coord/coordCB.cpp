@@ -179,7 +179,8 @@ namespace engine
       }
    }
 
-   void _CoordCB::updateCatGroupInfo( CoordGroupInfoPtr &groupInfo )
+   void _CoordCB::updateCatGroupInfo( CoordGroupInfoPtr &groupInfo,
+                                      BOOLEAN inheritStat )
    {
       ossScopedLock _lock(&_mutex, EXCLUSIVE) ;
       if ( _catGroupInfo->groupVersion() != groupInfo->groupVersion() )
@@ -207,6 +208,12 @@ namespace engine
          {
             optCB->reflush2File() ;
          }
+      }
+
+      if ( inheritStat )
+      {
+         groupInfo->inheritStat( _catGroupInfo.get(),
+                                 NET_NODE_FAULTUP_MIN_TIME ) ;
       }
       _catGroupInfo = groupInfo ;
    }
@@ -357,11 +364,23 @@ namespace engine
       return count ;
    }
 
-   void _CoordCB::addGroupInfo ( CoordGroupInfoPtr &groupInfo )
+   void _CoordCB::addGroupInfo ( CoordGroupInfoPtr &groupInfo,
+                                 BOOLEAN inheritStat )
    {
       ossScopedLock _lock( &_nodeGroupMutex, EXCLUSIVE ) ;
 
       groupInfo->setIdentify( ++_upGrpIndentify ) ;
+
+      if ( inheritStat )
+      {
+         MAP_GROUP_INFO::iterator it = _nodeGroupInfo.find( groupInfo->groupID() ) ;
+         if ( it != _nodeGroupInfo.end() )
+         {
+            groupInfo->inheritStat( it->second.get(),
+                                    NET_NODE_FAULTUP_MIN_TIME ) ;
+         }
+      }
+
       _nodeGroupInfo[groupInfo->groupID()] = groupInfo ;
 
       // clear group name map

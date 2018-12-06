@@ -2750,7 +2750,7 @@ namespace engine
       return _vecNodes.size() ;
    }
 
-   const VEC_NODE_INFO* _clsGroupItem::getNodes ()
+   const VEC_NODE_INFO* _clsGroupItem::getNodes () const
    {
       return &_vecNodes ;
    }
@@ -3051,16 +3051,29 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGPIM_UPNODESTAT, "_clsGroupItem::updateNodeStat" )
    void _clsGroupItem::updateNodeStat( UINT16 nodeID,
-                                       NET_NODE_STATUS status )
+                                       NET_NODE_STATUS status,
+                                       UINT64 *pTime )
    {
       PD_TRACE_ENTRY ( SDB__CLSGPIM_UPNODESTAT ) ;
-      VEC_NODE_INFO_IT it = _vecNodes.begin() ;
+      UINT64 curTime = 0 ;
+      VEC_NODE_INFO_IT it ;
+
+      if ( pTime )
+      {
+         curTime = *pTime ;
+      }
+      else
+      {
+         curTime = ( UINT64 )time( NULL ) ;
+      }
+
+      it = _vecNodes.begin() ;      
       while ( it != _vecNodes.end() )
       {
          if ( it->_id.columns.nodeID == nodeID )
          {
             _rwMutex.lock_w() ;
-            (*it).updateStatus( status, (UINT64)time(NULL) ) ;
+            (*it).updateStatus( status, curTime ) ;
             _rwMutex.release_w() ;
 
             if ( NET_NODE_STAT_NORMAL != status )
@@ -3085,6 +3098,33 @@ namespace engine
          clsNodeItem &item = *it ;
          item.updateStatus( NET_NODE_STAT_NORMAL, 0 ) ;
          ++it ;
+      }
+   }
+
+   void _clsGroupItem::inheritStat( const _clsGroupItem *pItem,
+                                    UINT32 falutTimeout )
+   {
+      if ( pItem )
+      {
+         UINT64 curTime = time( NULL ) ;
+         INT32 nodeStatus = 0 ;
+         UINT64 nodeFalutTime = 0 ;
+
+         const VEC_NODE_INFO* pNodes = pItem->getNodes() ;
+         for ( UINT32 i = 0 ; i < pNodes->size() ; ++i )
+         {
+            const clsNodeItem &node = (*pNodes)[ i ] ;
+            node.getStatus( nodeStatus, nodeFalutTime ) ;
+
+            if ( NET_NODE_STAT_NORMAL != nodeStatus &&
+                 curTime - nodeFalutTime <= falutTimeout )
+            {
+               updateNodeStat( node._id.columns.nodeID,
+                               (NET_NODE_STATUS)nodeStatus,
+                               &nodeFalutTime ) ;
+
+            }
+         }
       }
    }
 
