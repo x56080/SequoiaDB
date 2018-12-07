@@ -38,7 +38,7 @@ testFiles = [
    [ "./misc/index.cpp" ],
    [ "./misc/dropCsAndWriteLob.cpp" ],
    [ "./misc/idIndex.cpp" ],
-   [ "./misc/attachAndDetachNode.cpp" ], # sync
+   #[ "./misc/attachAndDetachNode.cpp" ], # sync
    [ "./misc/forceSession.cpp" ], # sync
    [ "./misc/JSCompatible.cpp" ],
    [ "./misc/code.cpp" ],
