@@ -3510,24 +3510,31 @@ static JSBool rg_detach( JSContext *cx, uintN argc, jsval *vp )
    jsval *argv = JS_ARGV( cx, vp ) ;
 
    // check arguments
-   REPORT( argc >= 3, "RG.attachNode(): need 3 arguments" ) ;
    if ( !JSVAL_IS_STRING( argv[0] ) )
    {
-      REPORT ( FALSE , "RG.detachNode(): the 1st argument should be a string" ) ;
+      REPORT_RC_MSG( FALSE, "RG.detachNode()", SDB_INVALIDARG, 
+                     "the 1st argument should be a string" ) ;
    }
    if ( !JSVAL_IS_STRING( argv[1] ) && !JSVAL_IS_INT( argv[1] ) )
    {
-      REPORT ( FALSE , "RG.detachNode(): the 2nd argument should be a string or int value" ) ;
+      REPORT_RC_MSG( FALSE, "RG.detachNode()", SDB_INVALIDARG, 
+                     "the 2nd argument should be a string or int value" ) ;
+   }
+   if ( JSVAL_IS_PRIMITIVE( argv[2] ) )
+   {
+      REPORT_RC_MSG( FALSE, "RG.detachNode()", SDB_INVALIDARG, 
+                     "the 3rd argument should be an object" ) ;
    }
    // get arguments
-   ret = JS_ConvertArguments ( cx , argc , argv, "SS/", &jsHost, &jsSvc ) ;
+   ret = JS_ConvertArguments ( cx , argc , argv, "SSo",
+                               &jsHost, &jsSvc, &jsOptions ) ;
    REPORT ( ret, "RG.detachNode(): wrong arguments" ) ;
    // transform argumnts
    host = (CHAR *) JS_EncodeString ( cx , jsHost ) ;
    VERIFY ( host ) ;
    svc = (CHAR *) JS_EncodeString ( cx , jsSvc ) ;
    VERIFY ( svc ) ;
-   GET_OBJ_FROM_ARG_ARR( cx, argc, argv, 3, jsOptions, options, "RG.detachNode()" ) ;
+   VERIFY ( objToBson( cx, jsOptions, &options ) ) ;
    // call API
    rg = (sdbReplicaGroupHandle *)JS_GetPrivate ( cx, JS_THIS_OBJECT ( cx, vp ) ) ;
    REPORT ( rg, "RG.detachNode(): no replica group handle" ) ;
@@ -3563,24 +3570,31 @@ static JSBool rg_attach( JSContext *cx, uintN argc, jsval *vp )
    jsval *argv = JS_ARGV( cx, vp ) ;
 
    // check arguments
-   REPORT( argc >= 3, "RG.attachNode(): need 3 arguments" ) ;
    if ( !JSVAL_IS_STRING( argv[0] ) )
    {
-      REPORT ( FALSE , "RG.attachNode(): the 1st argument should be a string" ) ;
+      REPORT_RC_MSG( FALSE, "RG.attachNode()", SDB_INVALIDARG, 
+                     "the 1st argument should be a string" ) ;
    }
    if ( !JSVAL_IS_STRING( argv[1] ) && !JSVAL_IS_INT( argv[1] ) )
    {
-      REPORT ( FALSE , "RG.attachNode(): the 2nd argument should be a string or int value" ) ;
+      REPORT_RC_MSG( FALSE, "RG.attachNode()", SDB_INVALIDARG, 
+                     "the 2nd argument should be a string or int value" ) ;
+   }
+   if ( JSVAL_IS_PRIMITIVE( argv[2] ) )
+   {
+      REPORT_RC_MSG( FALSE, "RG.attachNode()", SDB_INVALIDARG, 
+                     "the 3rd argument should be an object" ) ;
    }
    // get arguments
-   ret = JS_ConvertArguments ( cx , argc , argv, "SS/", &jsHost, &jsSvc ) ;
+   ret = JS_ConvertArguments ( cx , argc , argv, "SSo", 
+                               &jsHost, &jsSvc, &jsOptions ) ;
    REPORT ( ret, "RG.attachNode(): wrong arguments" ) ;
    // transform argumnts
    host = (CHAR *) JS_EncodeString ( cx , jsHost ) ;
    VERIFY ( host ) ;
    svc = (CHAR *) JS_EncodeString ( cx , jsSvc ) ;
    VERIFY ( svc ) ;
-   GET_OBJ_FROM_ARG_ARR( cx, argc, argv, 3, jsOptions, options, "RG.attachNode()" ) ;
+   VERIFY ( objToBson( cx, jsOptions, &options ) ) ;
    // call API
    rg = (sdbReplicaGroupHandle *)JS_GetPrivate ( cx, JS_THIS_OBJECT ( cx, vp ) ) ;
    REPORT ( rg, "RG.attachNode(): no replica group handle" ) ;
