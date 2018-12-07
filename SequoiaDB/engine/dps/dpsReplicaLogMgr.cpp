@@ -79,6 +79,7 @@ namespace engine
 
       _transCB = NULL ;
       _incVersion = FALSE ;
+      _pageFlushCount = 0 ;
    }
 
    _dpsReplicaLogMgr::~_dpsReplicaLogMgr()
@@ -1264,6 +1265,13 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to flush page, rc = %d", rc ) ;
             goto error ;
          }
+
+         _pageFlushCount++ ;
+         // same as _pageFlushCount % 0x4000 == 0
+         if ( ( _pageFlushCount & 0x3FFF ) == 0 )
+         {
+            _flushOldestTransBeginLSN() ;
+         }
       }
 
    done :
@@ -1271,6 +1279,28 @@ namespace engine
       return rc ;
    error :
       goto done ;
+   }
+
+   void _dpsReplicaLogMgr::_flushOldestTransBeginLSN()
+   {
+      if ( NULL != _transCB )
+      {
+         // must get current lsn before _transCB->getOldestBeginLsn() !!
+         DPS_LSN current = currentLsn() ;
+         DPS_LSN_OFFSET offset = _transCB->getOldestBeginLsn() ;
+         if ( DPS_INVALID_LSN_OFFSET != offset )
+         {
+            // offset is valid, just save offset.
+            _metaFile.writeOldestLSNOffset( offset ) ;
+         }
+         else
+         {
+            // offset is invalid, that means trans is finished.
+            // and trans commit must have been saved in dpslog.
+            // in this case we can safely save currentLsn.offset.
+            _metaFile.writeOldestLSNOffset( current.offset ) ;
+         }
+      }
    }
 
    // flush all is flushing all pages to disk except the current working one

@@ -97,6 +97,8 @@ namespace engine
 
       _dpsMetaFile               _metaFile ;
 
+      UINT64                     _pageFlushCount ;
+
    public:
       _dpsReplicaLogMgr();
 
@@ -294,6 +296,8 @@ namespace engine
          ++pageID ;
          return pageID >= _pageNum ? 0 : pageID ;
       }
+
+      void _flushOldestTransBeginLSN() ;
    };
    typedef class _dpsReplicaLogMgr dpsReplicaLogMgr;
 }
