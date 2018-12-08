@@ -87,7 +87,7 @@ testFiles = [
    [ "./paramVerify/queryMeta13054.cpp" ],
    [ "./cls/rgOpr12688_12693.cpp" ],  # sync
    [ "./cls/nodeOpr12689_12692.cpp" ],  # sync
-   [ "./cls/attachDetachNode12553.cpp" ],  # sync
+   #[ "./cls/attachDetachNode12553.cpp" ],  # sync
    [ "./cls/masterSlave12690.cpp" ],  # sync
    # [ "./cache/createClWithCache7800.cpp" ], # cache test need not to be automated.
    # [ "./cache/getCsWithCache7801.cpp" ],
