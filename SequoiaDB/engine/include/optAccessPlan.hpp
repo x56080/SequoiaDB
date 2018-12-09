@@ -103,15 +103,84 @@ namespace engine
       BOOLEAN _sortRequired ; // whether we need to explicit sort the resultset
       BOOLEAN _autoHint ;
    private:
-      struct _estimateDetail
+      class _idxEstimateDetail
       {
-         BOOLEAN matchAll ;
-
-         _estimateDetail()
-         :matchAll( FALSE )
+      public:
+         _idxEstimateDetail()
          {
-
+            reset() ;
          }
+
+         void setData( INT64 costBase, FLOAT32 queryFactor,
+                       FLOAT32 idxUseFactor, FLOAT32 orderFactor,
+                       BOOLEAN matchAll )
+         {
+            _costBase = costBase ;
+            _queryFactor = queryFactor ;
+            _idxUseFactor = idxUseFactor ;
+            _orderFactor = orderFactor ;
+            _matchAll = matchAll ;
+         }
+
+         void reset()
+         {
+            _costBase = 0 ;
+            _matchAll = FALSE ;
+            _queryFactor = 1.0 ;
+            _idxUseFactor = 1.0 ;
+            _orderFactor = 1.0 ;
+         }
+
+         BOOLEAN valid() const
+         {
+            return ( _costBase > 0 ) ;
+         }
+
+         BOOLEAN betterThan( _idxEstimateDetail &r )
+         {
+            if ( _queryFactor < r._queryFactor )
+            {
+               return TRUE ;
+            }
+            else if ( _queryFactor > r._queryFactor )
+            {
+               return FALSE ;
+            }
+            else if ( _idxUseFactor < r._idxUseFactor )
+            {
+               return TRUE ;
+            }
+            else if ( _idxUseFactor > r._idxUseFactor )
+            {
+               return FALSE ;
+            }
+            else if ( _orderFactor < r._orderFactor )
+            {
+               return TRUE ;
+            }
+            else
+            {
+               return FALSE ;
+            }
+         }
+
+         BOOLEAN matchAll() const
+         {
+            return _matchAll ;
+         }
+
+         INT64 getCost()
+         {
+            return (INT64)( _costBase * _queryFactor *
+                            _idxUseFactor * _orderFactor ) ;
+         }
+
+      private:
+         INT64 _costBase ;
+         BOOLEAN _matchAll ;
+         FLOAT32 _queryFactor ;
+         FLOAT32 _idxUseFactor ;
+         FLOAT32 _orderFactor ;
       } ;
 
    private:
@@ -128,20 +197,19 @@ namespace engine
                            const rtnPredicateSet &predSet ) ;
 
       // output cost estimation, dir, and indexCBExtent
-      INT32 _estimateIndex ( dmsExtentID indexCBExtent, INT64 &costEstimation,
-                             INT32 &dir, _estimateDetail &detail ) ;
+      INT32 _estimateIndex ( dmsExtentID indexCBExtent, INT32 &dir,
+                             _idxEstimateDetail &detail ) ;
 
       INT32 _estimateIndex ( _dmsMBContext *mbContext, INT32 indexID,
-                             INT64 &costEstimation, INT32 &dir,
-                             dmsExtentID &indexCBExtent,
-                             _estimateDetail &detail ) ;
+                             INT32 &dir, dmsExtentID &indexCBExtent,
+                             _idxEstimateDetail &detail ) ;
 
       void _estimateTBScan ( INT64 &costEstimation ) ;
 
       INT32 _useIndex ( dmsExtentID indexCBExtent,
                         INT32 dir,
                         const rtnPredicateSet &predSet,
-                        const _estimateDetail &detail ) ;
+                        const _idxEstimateDetail &detail ) ;
 
       INT32 _checkOrderBy() ;
 
