@@ -56,9 +56,8 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__OPTACCPLAN__OPTHINT );
 
       dmsExtentID indexCBExtent = DMS_INVALID_EXTENT ;
-      INT64 costEstimation = 0 ;
       INT32 dir = 1 ;
-      _estimateDetail detail ;
+      _idxEstimateDetail detail ;
 
       rc = _su->index()->getIndexCBExtent( mbContext, pIndexName,
                                            indexCBExtent ) ;
@@ -69,7 +68,7 @@ namespace engine
 
       // call estimate index to get estimation and most importantly the scan
       // direction
-      rc = _estimateIndex ( indexCBExtent, costEstimation, dir, detail ) ;
+      rc = _estimateIndex ( indexCBExtent, dir, detail ) ;
       if ( rc )
       {
          if ( SDB_IXM_UNEXPECTED_STATUS == rc )
@@ -98,9 +97,8 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__OPTACCPLAN__OPTHINT2 ) ;
 
       dmsExtentID indexCBExtent = DMS_INVALID_EXTENT ;
-      INT64 costEstimation = 0 ;
       INT32 dir = 1 ;
-      _estimateDetail detail ;
+      _idxEstimateDetail detail ;
 
       rc = _su->index()->getIndexCBExtent( mbContext, indexOID,
                                            indexCBExtent ) ;
@@ -110,7 +108,7 @@ namespace engine
       }
       // call estimate index to get estimation and most importantly the scan
       // direction
-      rc = _estimateIndex ( indexCBExtent, costEstimation, dir, detail ) ;
+      rc = _estimateIndex ( indexCBExtent, dir, detail ) ;
       if ( rc )
       {
          if ( SDB_IXM_UNEXPECTED_STATUS == rc )
@@ -225,9 +223,8 @@ namespace engine
    // output cost estimation, dir, and indexCBExtent
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN__ESTINX, "_optAccessPlan::_estimateIndex" )
    INT32 _optAccessPlan::_estimateIndex ( dmsExtentID indexCBExtent,
-                                          INT64 &costEstimation,
                                           INT32 &dir,
-                                          _estimateDetail &detail )
+                                          _idxEstimateDetail &detail )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__OPTACCPLAN__ESTINX );
@@ -252,13 +249,14 @@ namespace engine
          // than tbscan. So let's increase baseline cost for full index
          // scan+fetch
          // note this is a very bad hack
-         costEstimation = 10*TEMP_COST_BASELINE ;
+         detail.reset() ;
 
          BSONObj idxPattern = indexCB.keyPattern() ;
          Ordering keyorder = Ordering::make(idxPattern) ;
          Ordering orderByorder = Ordering::make ( _orderBy ) ;
          INT32 nFields = _orderBy.nFields() ;
          INT32 nQueryFields = 0 ;
+         INT32 orderMatchFields = 0 ;
          INT32 matchedFields = 0 ;
          BSONObjIterator keyItr (idxPattern) ;
          BSONObjIterator orderItr ( _orderBy ) ;
@@ -269,6 +267,7 @@ namespace engine
          rtnStartStopKey startStopKey;
          BSONElement startKey;
          BSONElement stopKey;
+         BOOLEAN matchAll = FALSE ;
          while ( keyItr.more() && orderItr.more() )
          {
             BSONElement keyEle = keyItr.next() ;
@@ -282,21 +281,21 @@ namespace engine
                   // if key is backward and order by is forward, dir = backward
                   // if key is backward and order by is backward, dir = forward
                   // if key is forward and order by is backward, dir = backward
-                  dir = (keyorder.get(matchedFields) ==
-                         orderByorder.get(matchedFields))?1:-1 ;
+                  dir = (keyorder.get(orderMatchFields ) ==
+                         orderByorder.get(orderMatchFields ))?1:-1 ;
                   start = FALSE ;
                }
                // break if the order is different
-               if ( keyorder.get(matchedFields)*dir !=
-                    orderByorder.get(matchedFields) )
+               if ( keyorder.get(orderMatchFields )*dir !=
+                    orderByorder.get(orderMatchFields ) )
                   break ;
-               ++matchedFields ;
+               ++orderMatchFields ;
             }
             else
                break ;
          }
-         orderFactor = 1.0f - ((nFields == 0) ? (0) :
-                                (((FLOAT32)matchedFields)/((FLOAT32)nFields)));
+         orderFactor = 1.0f - ((nFields == 0) ?
+               (0) : (((FLOAT32)orderMatchFields)/((FLOAT32)nFields)));
          orderFactor = OSS_MIN(1.0f, orderFactor) ;
          orderFactor = OSS_MAX(0.0f, orderFactor) ;
 
@@ -304,7 +303,6 @@ namespace engine
          FLOAT32 queryFactor = 1.0f ;
          keyItr = BSONObjIterator ( idxPattern ) ;
          nFields = idxPattern.nFields() ;
-         matchedFields = 0 ;
          const map<string, rtnPredicate> &predicates
                      = _matcher.getPredicateSet().predicates();
          map<string, rtnPredicate>::const_iterator it;
@@ -340,23 +338,34 @@ namespace engine
             }
          }
          if ( nFields == 0 || nQueryFields == 0 )
+         {
             queryFactor = 1.0f ;
+         }
          else
-            queryFactor = 1.0f - ((FLOAT32)matchedFields)/
-                  (OSS_MIN(((FLOAT32)nFields),((FLOAT32)nQueryFields))) ;
+         {
+            queryFactor =
+                  1.0f - ((FLOAT32)matchedFields)/((FLOAT32)nQueryFields) ;
+            FLOAT32 factor = queryFactor ;
+            for ( INT32 i = 1; i < matchedFields; ++i )
+            {
+               queryFactor *= factor ;
+            }
+         }
          queryFactor = OSS_MIN(1.0f, queryFactor) ;
          queryFactor = OSS_MAX(0.0f, queryFactor) ;
-
-         costEstimation = costEstimation*queryFactor*orderFactor ;
 
          /// we try to set matchall only when all fields converted into predicates
          if ( _matcher.totallyConverted() )
          {
-            detail.matchAll = ( ( 0 != matchedFields ) &&
-                                ( matchedFields == nQueryFields ) &&
-                                  matchedFields <= idxPattern.nFields() ) ||
-                              ( 0 == nQueryFields );
+            matchAll = ( ( 0 != matchedFields ) &&
+                         ( matchedFields == nQueryFields ) &&
+                         matchedFields <= idxPattern.nFields() ) ||
+                       ( 0 == nQueryFields );
          }
+
+         detail.setData( 2 * TEMP_COST_BASELINE, queryFactor,
+                         1.0f - ((FLOAT32)matchedFields) / ((FLOAT32)nFields),
+                         orderFactor, matchAll ) ;
       }
       catch( std::exception &e )
       {
@@ -366,7 +375,7 @@ namespace engine
       }
 
       PD_LOG ( PDDEBUG, "Index Scan Estimation: %s : %d",
-               indexCB.getName (), costEstimation ) ;
+               indexCB.getName (), detail.getCost() ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB__OPTACCPLAN__ESTINX, rc );
@@ -378,10 +387,9 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN__ESTINX2, "_optAccessPlan::_estimateIndex" )
    INT32 _optAccessPlan::_estimateIndex ( dmsMBContext *mbContext,
                                           INT32 indexID,
-                                          INT64 &costEstimation,
                                           INT32 &dir,
                                           dmsExtentID &indexCBExtent,
-                                          _estimateDetail &detail )
+                                          _idxEstimateDetail &detail )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__OPTACCPLAN__ESTINX2 ) ;
@@ -392,7 +400,7 @@ namespace engine
       {
          goto done ;
       }
-      rc = _estimateIndex ( indexCBExtent, costEstimation, dir, detail ) ;
+      rc = _estimateIndex ( indexCBExtent, dir, detail ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB__OPTACCPLAN__ESTINX2, rc );
@@ -410,7 +418,7 @@ namespace engine
    INT32 _optAccessPlan::_useIndex ( dmsExtentID indexCBExtent,
                                      INT32 dir,
                                      const rtnPredicateSet &predSet,
-                                     const _estimateDetail &detail )
+                                     const _idxEstimateDetail &detail )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__OPTACCPLAN__USEINX );
@@ -473,7 +481,7 @@ namespace engine
          ossMemcpy( _idxName, idxName, ossStrlen( idxName ) ) ;
          }
 
-         if ( !_matcher.isMatchesAll() && detail.matchAll )
+         if ( !_matcher.isMatchesAll() && detail.matchAll() )
          {
             _matcher.setMatchesAll( TRUE ) ;
          }
@@ -560,42 +568,35 @@ namespace engine
             dmsExtentID bestMatchedIndexCBExtent = DMS_INVALID_EXTENT ;
             INT64 bestCostEstimation = 0 ;
             INT32 bestMatchedIndexDirection = 1 ;
-            _estimateDetail detail ;
+            _idxEstimateDetail detail ;
 
             // use tbscan as baseline
             _estimateTBScan ( bestCostEstimation ) ;
 
+            // Estimate and find the best index.
             for ( INT32 i = 0 ; i<DMS_COLLECTION_MAX_INDEX; i++ )
             {
-               _estimateDetail tmpDetail ;
-               INT64 costEst ;
+               _idxEstimateDetail tmpDetail ;
                dmsExtentID extID ;
                INT32 dir ;
-               rc = _estimateIndex ( mbContext, i, costEst, dir, extID, tmpDetail ) ;
+               rc = _estimateIndex( mbContext, i, dir, extID, tmpDetail ) ;
                if ( SDB_IXM_NOTEXIST == rc )
                {
                   break ;
                }
-               if ( SDB_OK == rc )
+               if ( SDB_OK == rc &&
+                    ( !detail.valid() || tmpDetail.betterThan( detail ) ) )
                {
-                  if ( costEst < bestCostEstimation )
-                  {
-                     bestMatchedIndexCBExtent = extID ;
-                     bestMatchedIndexDirection = dir ;
-                     bestCostEstimation = costEst ;
-                     detail = tmpDetail ;
-                     // we can't get to any lower than 0
-                     if ( bestCostEstimation == 0 )
-                     {
-                        break ;
-                     }
-                  }
+                  SDB_ASSERT( tmpDetail.valid(), "New detail is invalid" )  ;
+                  detail = tmpDetail ;
+                  bestMatchedIndexCBExtent = extID ;
+                  bestMatchedIndexDirection = dir ;
                }
                // otherwise we don't do anything, just skip
             }
             // if best matched index shows any index is better than tbscan, then
             // let's use the index
-            if ( DMS_INVALID_EXTENT != bestMatchedIndexCBExtent )
+            if ( detail.valid() && detail.getCost() < bestCostEstimation )
             {
                PD_LOG ( PDDEBUG, "Use Index Scan" ) ;
                rc = _useIndex ( bestMatchedIndexCBExtent,
