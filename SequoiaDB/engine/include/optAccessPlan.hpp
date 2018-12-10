@@ -57,6 +57,9 @@ namespace engine
    class _dmsStorageUnit ;
    class _rtnAccessPlanManager ;
 
+   #define OPT_QUERY_FLAG_WITH_COND     0x00000001
+   #define OPT_QUERY_FLAG_WITH_SORT     0x00000002
+
    enum optScanType
    {
       TBSCAN = 0,
@@ -110,6 +113,11 @@ namespace engine
             reset() ;
          }
 
+         void setFlag( INT32 flag )
+         {
+            _flag |= flag ;
+         }
+
          void setData( INT64 costBase, FLOAT32 queryFactor,
                        FLOAT32 idxUseFactor, FLOAT32 orderFactor,
                        BOOLEAN matchAll )
@@ -123,6 +131,7 @@ namespace engine
 
          void reset()
          {
+            _flag = 0 ;
             _costBase = 0 ;
             _matchAll = FALSE ;
             _queryFactor = 1.0 ;
@@ -135,6 +144,11 @@ namespace engine
             return ( _costBase > 0 ) ;
          }
 
+         /**
+          * @brief Compare two estimation details. Smaller is better. Factors
+          * are compared by their priorities.
+          * @param r Estimation detail compare to.
+          */
          BOOLEAN betterThan( _idxEstimateDetail &r )
          {
             if ( _queryFactor < r._queryFactor )
@@ -145,21 +159,49 @@ namespace engine
             {
                return FALSE ;
             }
-            else if ( _idxUseFactor < r._idxUseFactor )
+            else if ( _orderFactor < r._orderFactor )
             {
                return TRUE ;
             }
-            else if ( _idxUseFactor > r._idxUseFactor )
+            else if ( _orderFactor > r._orderFactor )
             {
                return FALSE ;
             }
-            else if ( _orderFactor < r._orderFactor )
+            else if ( _idxUseFactor < r._idxUseFactor )
             {
                return TRUE ;
             }
             else
             {
                return FALSE ;
+            }
+         }
+
+         /**
+          * Whether hit the low bound of cost estimation. If yes, the
+          * index is the best index. The result is true when the query condition
+          * and the index are full matched, and sort fields full matched if
+          * used.
+          */
+         BOOLEAN hitLowBound() const
+         {
+            if ( _testFlag( OPT_QUERY_FLAG_WITH_SORT ) )
+            {
+               if ( _testFlag( OPT_QUERY_FLAG_WITH_COND ) )
+               {
+                  return _equal( _queryFactor, 0.0 ) &&
+                         _equal( _orderFactor, 0.0 ) &&
+                         _equal( _idxUseFactor, 0.0 ) ;
+               }
+               else
+               {
+                  return _equal( _orderFactor, 0.0 ) ;
+               }
+            }
+            else
+            {
+               return _equal( _queryFactor, 0.0 ) &&
+                      _equal( _idxUseFactor, 0.0 ) ;
             }
          }
 
@@ -175,6 +217,18 @@ namespace engine
          }
 
       private:
+         BOOLEAN _equal( FLOAT32 lhs, FLOAT32 rhs ) const
+         {
+            return fabs( lhs - rhs ) <= OSS_EPSILON ;
+         }
+
+         BOOLEAN _testFlag( INT32 flag ) const
+         {
+            return _flag & flag ;
+         }
+
+      private:
+         INT32 _flag ;
          INT64 _costBase ;
          BOOLEAN _matchAll ;
          FLOAT32 _queryFactor ;

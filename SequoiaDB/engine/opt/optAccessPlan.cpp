@@ -268,6 +268,12 @@ namespace engine
          BSONElement startKey;
          BSONElement stopKey;
          BOOLEAN matchAll = FALSE ;
+
+         if ( nFields > 0 )
+         {
+            detail.setFlag( OPT_QUERY_FLAG_WITH_SORT ) ;
+         }
+
          while ( keyItr.more() && orderItr.more() )
          {
             BSONElement keyEle = keyItr.next() ;
@@ -307,6 +313,11 @@ namespace engine
                      = _matcher.getPredicateSet().predicates();
          map<string, rtnPredicate>::const_iterator it;
          nQueryFields = predicates.size() ;
+         if ( nQueryFields > 0 )
+         {
+            detail.setFlag( OPT_QUERY_FLAG_WITH_COND ) ;
+         }
+
          while ( keyItr.more() )
          {
             BSONElement keyEle = keyItr.next() ;
@@ -591,6 +602,10 @@ namespace engine
                   detail = tmpDetail ;
                   bestMatchedIndexCBExtent = extID ;
                   bestMatchedIndexDirection = dir ;
+                  if ( detail.hitLowBound() )
+                  {
+                     break ;
+                  }
                }
                // otherwise we don't do anything, just skip
             }
