@@ -2348,7 +2348,14 @@ SDB_EXPORT INT32 sdbTruncateCollection( sdbConnectionHandle cHandle,
     \param [in] cHandle The handle of group.
     \param [in] hostName The host name of node.
     \param [in] serviceName The service name of node.
-    \param [in] optoins The options of detach.
+    \param [in] optoins The options of detach. Can not be null or empty.
+                           Can be the follow options:
+         <ul>
+         <li>KeepData: Whether to keep the original data of the
+                       detached node. This option has no default 
+                       value. User should specify its value explicitly.
+         <li>Enforced: Whether to detach the node forcibly , default
+                       to be false.
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
@@ -2365,7 +2372,12 @@ SDB_EXPORT INT32 sdbDetachNode( sdbReplicaGroupHandle cHandle,
     \param [in] cHandle The handle of group.
     \param [in] hostName The host name of node.
     \param [in] serviceName The service name of node.
-    \param [in] optoins The options of attach.
+    \param [in] optoins The options of attach. Can not be null or empty.
+                        Can be the follow options:
+        <ul>
+        <li>KeepData : Whether to keep the original data of the new 
+                       node. This option has no default value. User 
+                       should specify its value explicitly.
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
