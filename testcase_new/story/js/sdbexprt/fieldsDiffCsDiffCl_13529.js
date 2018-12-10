@@ -35,7 +35,7 @@ function main()
 function testExprtCsv()
 {
    var csvDir = workDir + "13529/" ;
-   commMakeDir( "localhost", csvDir ) ;
+   makeDir(  csvDir ) ;
    
    var command = installPath + "bin/sdbexprt" +
                  " -s " + COORDHOSTNAME +

@@ -5,33 +5,37 @@
 *******************************************************************************/
 var cmd = new Cmd() ;
 var installPath = adaptPath( commGetInstallPath() ) ;
-commMakeDir( "localhost", WORKDIR ) ;
-var workDir = adaptPath( WORKDIR ) ;
-
+var workDir = adaptPath( WORKDIR + "/testExport" ) ;
+makeDir(workDir);
 /*******************************************************************
 * @Description : make dir
 *                
 * @author      : Liang XueWang
 *
 ********************************************************************/
-function commMakeDir( host, dir )
+function makeDir( dir )
 {
+   println("\n---Begin to ready tmpFileDir");   
    try
-    {
-        var remote = new Remote( host, CMSVCNAME ) ;
-        var file = remote.getFile() ;
-        if( file.exist( dir ) )
-        {
-            return ;
-        }
-        file.mkdir( dir ) ;
-    }
-    catch( e )
-    {
-        throw buildException( "commMakeDir", e, 
-              "make dir " + dir + " in " + host, 0, e ) ;
-    }
+   {
+      cmd.run( "rm -rf "+ dir );
+   }
+   catch( e )
+   {
+      println("Failed to rm tmpFileDir["+ dir +"]");
+      throw e;
+   }
+   try
+   {
+      cmd.run( "mkdir -p "+ dir );
+   }
+   catch( e )
+   {
+      println("Failed to mkdir tmpFileDir["+ dir +"]");
+      throw e;
+   } 
 }
+
 
 /*******************************************************************
 * @Description : check path has / in the end or not

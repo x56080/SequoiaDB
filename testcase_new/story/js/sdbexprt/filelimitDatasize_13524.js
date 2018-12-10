@@ -70,7 +70,7 @@ function insertDocs( cl, kb )
 function testExprtImprtCsv()
 {
    var csvDir = workDir + "13524/" ;
-   commMakeDir( "localhost", csvDir ) ;
+   makeDir(  csvDir ) ;
    var csvfile = csvDir + "sdbexprt13524.csv" ;
    cmd.run( "rm -rf " + csvfile ) ;
    
@@ -109,7 +109,7 @@ function testExprtImprtCsv()
 function testExprtImprtJson()
 {
    var jsonDir = workDir + "13527/" ;
-   commMakeDir( "localhost", jsonDir ) ;
+   makeDir(  jsonDir ) ;
    var jsonfile = jsonDir + "sdbexprt13527.json" ;
    cmd.run( "rm -rf " + jsonfile ) ;
    

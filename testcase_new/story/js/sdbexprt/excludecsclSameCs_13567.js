@@ -33,7 +33,7 @@ function main()
 function testExcludeCsCl()
 {
    var csvDir = workDir + "13567/" ;
-   commMakeDir( "localhost", csvDir ) ;
+   makeDir(  csvDir ) ;
    
    var command = installPath + "bin/sdbexprt" +
                  " -s " + COORDHOSTNAME +
