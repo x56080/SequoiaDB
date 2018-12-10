@@ -585,54 +585,58 @@ namespace engine
             // use tbscan as baseline
             _estimateTBScan ( bestCostEstimation ) ;
 
-            // Estimate and find the best index.
-            for ( INT32 i = 0 ; i<DMS_COLLECTION_MAX_INDEX; i++ )
+            // If no query condition nor sort clause, use table scan directly.
+            if ( !_query.isEmpty() || !_orderBy.isEmpty() )
             {
-               _idxEstimateDetail tmpDetail ;
-               dmsExtentID extID ;
-               INT32 dir ;
-               rc = _estimateIndex( mbContext, i, dir, extID, tmpDetail ) ;
-               if ( SDB_IXM_NOTEXIST == rc )
+               // Estimate and find the best index.
+               for ( INT32 i = 0 ; i<DMS_COLLECTION_MAX_INDEX; i++ )
                {
-                  break ;
-               }
-               if ( SDB_OK == rc &&
-                    ( !detail.valid() || tmpDetail.betterThan( detail ) ) )
-               {
-                  SDB_ASSERT( tmpDetail.valid(), "New detail is invalid" )  ;
-                  detail = tmpDetail ;
-                  bestMatchedIndexCBExtent = extID ;
-                  bestMatchedIndexDirection = dir ;
-                  if ( detail.hitLowBound() )
+                  _idxEstimateDetail tmpDetail ;
+                  dmsExtentID extID ;
+                  INT32 dir ;
+                  rc = _estimateIndex( mbContext, i, dir, extID, tmpDetail ) ;
+                  if ( SDB_IXM_NOTEXIST == rc )
                   {
                      break ;
                   }
+                  if ( SDB_OK == rc &&
+                       ( !detail.valid() || tmpDetail.betterThan( detail ) ) )
+                  {
+                     SDB_ASSERT( tmpDetail.valid(), "New detail is invalid" )  ;
+                     detail = tmpDetail ;
+                     bestMatchedIndexCBExtent = extID ;
+                     bestMatchedIndexDirection = dir ;
+                     if ( detail.hitLowBound() )
+                     {
+                        break ;
+                     }
+                  }
+                  // otherwise we don't do anything, just skip
                }
-               // otherwise we don't do anything, just skip
-            }
-            // if best matched index shows any index is better than tbscan, then
-            // let's use the index
-            if ( detail.valid() && detail.getCost() < bestCostEstimation )
-            {
-               PD_LOG ( PDDEBUG, "Use Index Scan" ) ;
-               rc = _useIndex ( bestMatchedIndexCBExtent,
-                                bestMatchedIndexDirection,
-                                predSet,
-                                detail ) ;
-               if ( rc )
+               // if best matched index shows any index is better than tbscan, then
+               // let's use the index
+               if ( detail.valid() && detail.getCost() < bestCostEstimation )
                {
-                  PD_LOG ( PDWARNING, "Failed to use index %d",
-                           bestMatchedIndexCBExtent ) ;
+                  PD_LOG ( PDDEBUG, "Use Index Scan" ) ;
+                  rc = _useIndex ( bestMatchedIndexCBExtent,
+                                   bestMatchedIndexDirection,
+                                   predSet,
+                                   detail ) ;
+                  if ( rc )
+                  {
+                     PD_LOG ( PDWARNING, "Failed to use index %d",
+                              bestMatchedIndexCBExtent ) ;
+                  }
                }
-            }
-            else
-            {
-               PD_LOG ( PDDEBUG, "Use Collection Scan" ) ;
-               // otherwise if there's no index is better than tbscan, let's
-               // check if we need manually sort
-               if ( !_orderBy.isEmpty() )
+               else
                {
-                  _sortRequired = TRUE ;
+                  PD_LOG ( PDDEBUG, "Use Collection Scan" ) ;
+                  // otherwise if there's no index is better than tbscan, let's
+                  // check if we need manually sort
+                  if ( !_orderBy.isEmpty() )
+                  {
+                     _sortRequired = TRUE ;
+                  }
                }
             }
          }
