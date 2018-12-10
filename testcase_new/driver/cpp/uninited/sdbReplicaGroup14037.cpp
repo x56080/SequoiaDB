@@ -65,8 +65,8 @@ TEST_F( sdbReplicaGroup14037, opRG )
    EXPECT_FALSE( rg.isCatalog() ) << "isCatalog should be FALSE" ;
 
    // attach/detach
-   rc = rg.attachNode( "localhost", "1234" ) ;
+   rc = rg.attachNode( "localhost", "1234", BSON("KeepData" << false) ) ;
    EXPECT_EQ( SDB_NOT_CONNECTED, rc ) << "attach node shouldn't succeed" ;
-   rc = rg.detachNode( "localhost", "1234" ) ;
+   rc = rg.detachNode( "localhost", "1234", BSON("KeepData" << false) ) ;
    EXPECT_EQ( SDB_NOT_CONNECTED, rc ) << "detach node shouldn't succeed" ;
 }

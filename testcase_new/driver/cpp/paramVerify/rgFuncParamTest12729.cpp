@@ -214,9 +214,9 @@ TEST_F( rgFuncParamTest12729, attachNode12732 )
    rc = init() ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   rc = rg.attachNode( NULL, "11810" ) ;
+   rc = rg.attachNode( NULL, "11810", BSON("KeepData" << false) ) ;
    ASSERT_EQ( SDB_INVALIDARG, rc ) << "fail to test attachNode with hostName NULL" ;
-   rc = rg.attachNode( "localhost", NULL ) ;
+   rc = rg.attachNode( "localhost", NULL, BSON("KeepData" << false) ) ;
    ASSERT_EQ( SDB_INVALIDARG, rc ) << "fail to test attachNode with svcName NULL" ; 
 
    rc = fini() ;
@@ -235,9 +235,9 @@ TEST_F( rgFuncParamTest12729, detachNode12733 )
    rc = init() ;
    ASSERT_EQ( SDB_OK, rc ) ;
    
-   rc = rg.detachNode( NULL, "11810" ) ;
+   rc = rg.detachNode( NULL, "11810", BSON("KeepData" << false) ) ;
    ASSERT_EQ( SDB_INVALIDARG, rc ) << "fail to test detachNode with hostName NULL" ;
-   rc = rg.detachNode( "localhost", NULL) ;
+   rc = rg.detachNode( "localhost", NULL, BSON("KeepData" << false) ) ;
    ASSERT_EQ( SDB_INVALIDARG, rc ) << "fail to test detachNode with svcName NULL" ;
 
    rc = fini() ;
