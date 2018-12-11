@@ -8,11 +8,13 @@ import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
 import org.bson.util.JSON;
+import org.testng.Assert;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 public class SessionAccessUtils extends SdbTestBase {
@@ -33,10 +35,27 @@ public class SessionAccessUtils extends SdbTestBase {
 		 //get hostname
         String tmphostName = sdb.getReplicaGroup("SYSCatalogGroup").getMaster().getHostName();
         for( int i = 0; i < nodeNum; i++ ){
-        	int dataPort = reservedPortBegin + 100*i;
-            String dataPath = workDir + "/" + dataPort + "/";
-            BSONObject dataConfigue = (BSONObject) JSON.parse("{instanceid :"+instanceidarr[i]+"}");
-            dataRG.createNode(tmphostName, dataPort, dataPath, dataConfigue);
+        	int dataPort = reservedPortBegin + 100*i;        
+            String dataPath = workDir + "/" + dataPort + "/";             
+            BSONObject dataConfigue = (BSONObject) JSON.parse("{instanceid :"+instanceidarr[i]+"}");            
+            boolean checkSucc = false;
+            int times = 0;
+            int maxRetryTimes = 10;
+            do {				
+				try {
+					dataRG.createNode(tmphostName, dataPort, dataPath, dataConfigue);
+					checkSucc = true;						
+				} catch (BaseException e) {
+					 // -145:Node already exists
+					if (e.getErrorCode() == -145 || e.getErrorCode() == -290 ){
+						dataPort = dataPort + 10;
+						dataPath = workDir + "/" + dataPort + "/";
+					} else {
+						Assert.fail("create node fail! port="+dataPort);
+					}
+				}
+				times++;							
+			} while (!checkSucc && times < maxRetryTimes);
             
             String svcName = tmphostName + ":" + dataPort;
             instanceidTosvcName.put(instanceidarr[i], svcName);
