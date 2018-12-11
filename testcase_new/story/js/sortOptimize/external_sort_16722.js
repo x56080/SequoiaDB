@@ -15,7 +15,7 @@ function main()
    // insert
    var rd = new commDataGenerator();
    for(var i = 0; i < 10; i++){
-      var objs = rd.getRecords( 10000, ["int", "string", "string", "string", "string"], ['a','b','c','d','e'] );
+      var objs = rd.getRecords( 10000, ["string", "string", "string", "string", "string"], ['a','b','c','d','e'] );
       dbcl.insert(objs);
    }
 

@@ -16,7 +16,6 @@ import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -40,10 +39,6 @@ public class ConcurrentSortQuery16725 extends SdbTestBase {
 	@BeforeClass
 	public void setUp() {
 		sdb = new Sequoiadb(SdbTestBase.coordUrl,"","");
-		CommLib commLib = new CommLib();
-		if (commLib.isStandAlone(sdb)) {
-			throw new SkipException("StandAlone environment!");
-		}
                 try{
                    sdb.dropCollectionSpace(csName1);   
                 }catch(BaseException e){
