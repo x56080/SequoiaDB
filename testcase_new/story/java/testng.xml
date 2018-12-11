@@ -28,6 +28,7 @@
          <package name="com.sequoiadb.meta" />
          <package name="com.sequoiadb.split.basefunc"/>
          <package name="com.sequoiadb.metadataconsistency.data"/>
+         <package name="com.sequoiadb.sortOptimize"/>
       </packages>    
    </test>
    
