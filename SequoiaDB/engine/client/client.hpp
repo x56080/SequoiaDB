@@ -1726,12 +1726,12 @@ namespace sdbclient
       // attach node
       virtual INT32 attachNode( const CHAR *pHostName,
                                 const CHAR *pSvcName,
-                                const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
+                                const bson::BSONObj &options ) = 0 ;
 
       // detach node
       virtual INT32 detachNode( const CHAR *pHostName,
                                 const CHAR *pSvcName,
-                                const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
+                                const bson::BSONObj &options ) = 0 ;
    } ;
 
 /** \class sdbReplicaGroup
@@ -2051,38 +2051,50 @@ namespace sdbclient
          return pReplicaGroup->isCatalog() ;
       }
 
-/** \fn INT32 attachNode( const CHAR *pHostName,
- *                        const CHAR *pSvcName,
- *                        const bson::BSONObj &options )
- *  \brief Attach a node to the group
- *  \param [in] pHostName The host name of node.
- *  \param [in] pSvcName The service name of node.
- *  \param [in] optoins The options of attach.
- *  \retval SDB_OK Operation Success
- *  \retval Others Operation Fail
- */
+      /** \fn INT32 attachNode( const CHAR *pHostName,
+                             const CHAR *pSvcName,
+                             const bson::BSONObj &options )
+         \brief Attach a node to the group
+         \param [in] pHostName The host name of node.
+         \param [in] pSvcName The service name of node.
+         \param [in] optoins The options of attach. Can not be null or empty.
+                           Can be the follow options:
+               <ul>
+               <li>KeepData : Whether to keep the original data of the new 
+                              node. This option has no default value. User 
+                              should specify its value explicitly.
+         \retval SDB_OK Operation Success
+         \retval Others Operation Fail
+      */
       INT32 attachNode( const CHAR *pHostName,
                         const CHAR *pSvcName,
-                        const bson::BSONObj &options = _sdbStaticObject )
+                        const bson::BSONObj &options )
       {
          if ( !pReplicaGroup )
             return SDB_NOT_CONNECTED ;
          return pReplicaGroup->attachNode( pHostName, pSvcName, options ) ;
       }
 
-/** \fn INT32 detachNode( const CHAR *pHostName,
- *                         const CHAR *pSvcName,
- *                         const bson::BSONObj &options )
- *  \brief Detach a node from the group
- *  \param [in] pHostName The host name of node.
- *  \param [in] pSvcName The service name of node.
- *  \param [in] optoins The options of detach.
- *  \retval SDB_OK Operation Success
- *  \retval Others Operation Fail
- */
+      /** \fn INT32 detachNode( const CHAR *pHostName,
+                           const CHAR *pSvcName,
+                           const bson::BSONObj &options )
+         \brief Detach a node from the group
+         \param [in] pHostName The host name of node.
+         \param [in] pSvcName The service name of node.
+         \param [in] optoins The options of detach. Can not be null or empty.
+                        Can be the follow options:
+               <ul>
+               <li>KeepData: Whether to keep the original data of the
+                             detached node. This option has no default 
+                             value. User should specify its value explicitly.
+               <li>Enforced: Whether to detach the node forcibly , default
+                             to be false.
+         \retval SDB_OK Operation Success
+         \retval Others Operation Fail
+      */
       INT32 detachNode( const CHAR *pHostName,
                         const CHAR *pSvcName,
-                        const bson::BSONObj &options = _sdbStaticObject )
+                        const bson::BSONObj &options )
       {
          if ( !pReplicaGroup )
             return SDB_NOT_CONNECTED ;
