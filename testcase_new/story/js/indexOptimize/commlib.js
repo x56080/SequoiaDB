@@ -26,44 +26,19 @@ function getExplain( dbcl, findCond, sortCond, hintCond )
 /*****************************************************************
  * check explain 
  *****************************************************************/
-function checkExplain( expectExplains, actExplains )
+function checkExplain( actResults, expectScanType, expectIndexName )
 {
-   if(expectExplains.length != actExplains.length)
+   if(actResults.length == 0)
    {
-      throw buildException("checkExplain","length"," check length", expectExplains.length, actExplains.length);
+      throw buildException("checkExplain","explain","explain length", actResults.length, 0);
    }
+   if ( typeof(expectIndexName) == "undefined" ) { expectIndexName = ""; }
 
-   var keySortExpectExplains = new Array();
-   var keySortActExplains = new Array();
-   for(var i = 0; i < expectExplains.length; i++)
+   var actResult = actResults[0];
+   if(expectScanType != actResult["ScanType"] || expectIndexName != actResult["IndexName"])
    {
-      var newObj1 = objSortByKey(expectExplains[i]);
-      keySortExpectExplains.push(newObj1);  
-  
-      var newObj2 = objSortByKey(actExplains[i]);
-      keySortActExplains.push(newObj2);
-   }  
- 
-   for(var i = 0; i < keySortExpectExplains.length; i++)
-   {
-      if(JSON.stringify(keySortExpectExplains).indexOf(JSON.stringify(keySortActExplains)) === -1
-            || JSON.stringify(keySortActExplains).indexOf(JSON.stringify(keySortExpectExplains)) === -1)
-      {
-         throw buildException("check explain", "explain", "explain result", 
-   		                  JSON.stringify(keySortExpectExplains), JSON.stringify(keySortActExplains));
-      }
+      var expResult = {"ScanType" : expectScanType, "IndexName" : expectIndexName};
+      throw buildException("check explain", "explain", "explain result",
+                                  JSON.stringify(expResult),  JSON.stringify(actResult));
    }
-}
-
-/*****************************************************************
- * sort key of Objects 
- *****************************************************************/
-function objSortByKey(obj)
-{
-   var newKey = Object.keys(obj).sort();
-   var newObj = {};
-   for(var i=0;i<newKey.length;i++){
-      newObj[newKey[i]] =obj[newKey[i]];
-   }
-   return newObj;
 }
