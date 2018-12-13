@@ -16,22 +16,26 @@ function main(db)
 	  var groupList = getGroup(db);
 	  var groupName1 = groupList[0];
 	  var groupName2 = groupList[1];
+	  
+	  var hostname1 = db.getRG(groupName1).getDetail().next().toObj()["Group"][0]["HostName"];
+	  var hostname2 = db.getRG(groupName1).getDetail().next().toObj()["Group"][0]["HostName"];
+	  
 	  var port = parseInt(RSRVPORTBEGIN) + 50;
 	  
-	  db.getRG(groupName1).createNode(COORDHOSTNAME, port, RSRVNODEDIR+port);
+	  db.getRG(groupName1).createNode(hostname1, port, RSRVNODEDIR+port);
 	  db.getRG(groupName1).start();
-	  db.getRG(groupName1).detachNode(COORDHOSTNAME, port, {KeepData:true});
+	  db.getRG(groupName1).detachNode(hostname1, port, {KeepData:true});
 	  
 	  println("begin to attach node");
 	  //test a : KeepData设为合法值
-	  db.getRG(groupName2).attachNode(COORDHOSTNAME, port, {KeepData:true});
-	  db.getRG(groupName2).detachNode(COORDHOSTNAME, port, {KeepData:false});
+	  db.getRG(groupName2).attachNode(hostname2, port, {KeepData:true});
+	  db.getRG(groupName2).detachNode(hostname2, port, {KeepData:false});
 	  
 	  println("begin to attach with keepdata is '' ");
 	  //test b : KeepData设为空值
 	  try
 	  {
-		  db.getRG(groupName2).attachNode(COORDHOSTNAME, port, {KeepData:""});
+		  db.getRG(groupName2).attachNode(hostname2, port, {KeepData:""});
 		  throw "exp fail but found success";
 	  }catch( e )
 	  {
@@ -45,7 +49,7 @@ function main(db)
 	  //test c : KeepData设为非布尔值
 	  try
 	  {
-		  db.getRG(groupName2).attachNode(COORDHOSTNAME, port, {KeepData:"test"});
+		  db.getRG(groupName2).attachNode(hostname2, port, {KeepData:"test"});
 		  throw "exp fail but found success";
 	  }catch( e )
 	  {
@@ -56,9 +60,9 @@ function main(db)
 	  }
 	  
 	  println("----------clear node");
-	  db.getRG(groupName2).attachNode(COORDHOSTNAME, port, {KeepData:true});
+	  db.getRG(groupName2).attachNode(hostname2, port, {KeepData:true});
 	  db.getRG(groupName2).start();
-	  db.getRG(groupName2).removeNode(COORDHOSTNAME, port);
+	  db.getRG(groupName2).removeNode(hostname2, port);
 	  
    }
    catch( e )
