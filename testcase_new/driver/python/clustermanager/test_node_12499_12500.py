@@ -64,7 +64,7 @@ class TestDataNode12499(testlib.SdbTestBase):
       # attach node with config
       spare_rg.attach_node(data_hostname, data_rg_slave_service, {"KeepData": True})
       spare_rg.start()
-		
+      
       # check data
       cl_full_name = self.cl_name_qualified
       spare_data = client(data_hostname, data_rg_slave_service)
@@ -72,22 +72,22 @@ class TestDataNode12499(testlib.SdbTestBase):
       self.assertEqual(get_full_name, cl_full_name)
       
       # detach node no config
-		try:
+      try:
          spare_rg.detach_node(data_hostname, data_rg_slave_service)
-			self.fail("need failed!");
-		except SDBBaseError as e:
-		   if(-6 != e.code):
-			   print(e.detail);
-				self.fail("check detach node error code failed");
+         self.fail("need failed!");
+      except SDBBaseError as e:
+         if(-6 != e.code):
+            print(e.detail);
+            self.fail("check detach node error code failed");
       
       #attach node no config
-		try:
+      try:
          data_rg.attach_node(data_hostname, data_rg_slave_service)
-		   self.fail("need failed!");
-		except SDBBaseError as e:
-		   if(-6 != e.code):
-			   print(e.detail);
-				self.fail("check attach node error code failed");
+         self.fail("need failed!");
+      except SDBBaseError as e:
+         if(-6 != e.code):
+            print(e.detail);
+            self.fail("check attach node error code failed");
             
       #dropcs from catalog
       self.db.drop_collection_space(self.cs_name)
