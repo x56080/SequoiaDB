@@ -1421,28 +1421,32 @@ namespace engine
       INT64 contextID = -1 ;
       std::set< UINT32 > groupSet ;
       std::set< UINT32 >::iterator itSet ;
-      BSONObjBuilder builder ;
-      std::stringstream ss ;
+      CHAR lowBound[ DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
+      CHAR upBound[  DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
 
-      ss << "^" << csName << "\\." ;
+      ossStrncpy( lowBound, csName, DMS_COLLECTION_NAME_SZ ) ;
+      ossStrncat( lowBound, ".", 1 ) ;
+      ossStrncpy( upBound, csName, DMS_COLLECTION_NAME_SZ ) ;
+      ossStrncat( upBound, "/", 1 ) ;
 
-      if ( FALSE == includeSubCLGroups )
+      if ( !includeSubCLGroups )
       {
-         builder.appendRegex( CAT_COLLECTION_NAME, ss.str() ) ;
+         // eg: csName is "test", { Name: { $regex: "^test\\." } } is equal to
+         // { Name: { $gt: "test.", $lt: "test/" } }. So if csName has
+         // metacharacter(eg: "^"), we do not need to escape it.
+         matcher = BSON( CAT_COLLECTION_NAME
+                      << BSON( "$gt" << lowBound << "$lt" << upBound ) ) ;
       }
       else
       {
-         /// get the sub collection's groups
-         BSONArrayBuilder orBuilder( builder.subarrayStart( "$or" ) ) ;
-         BSONObjBuilder nameObjBuilder( orBuilder.subobjStart() ) ;
-         nameObjBuilder.appendRegex( CAT_COLLECTION_NAME, ss.str() ) ;
-         nameObjBuilder.done() ;
-         BSONObjBuilder subCLObjBuilder( orBuilder.subobjStart() ) ;
-         subCLObjBuilder.appendRegex( CAT_MAINCL_NAME, ss.str() ) ;
-         subCLObjBuilder.done() ;
-         orBuilder.done() ;
+         matcher = BSON( "$or"
+                      << BSON_ARRAY( BSON( CAT_COLLECTION_NAME
+                                        << BSON( "$gt" << lowBound
+                                              << "$lt" << upBound ) )
+                                  << BSON( CAT_MAINCL_NAME
+                                        << BSON( "$gt" << lowBound
+                                              << "$lt" << upBound ) ) ) ) ;
       }
-      matcher = builder.obj() ;
 
       // query
       rc = rtnQuery( CAT_COLLECTION_INFO_COLLECTION, dummyObj, matcher,
@@ -1779,12 +1783,19 @@ namespace engine
       INT64 contextID = -1 ;
       std::set< UINT32 > groupSet ;
       std::set< UINT32 >::iterator itSet ;
-      BSONObjBuilder builder ;
-      std::stringstream ss ;
+      CHAR lowBound[ DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
+      CHAR upBound[  DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
 
-      ss << "^" << csName << "\\." ;
-      builder.appendRegex( CAT_COLLECTION_NAME, ss.str() ) ;
-      matcher = builder.obj() ;
+      ossStrncpy( lowBound, csName, DMS_COLLECTION_NAME_SZ ) ;
+      ossStrncat( lowBound, ".", 1 ) ;
+      ossStrncpy( upBound, csName, DMS_COLLECTION_NAME_SZ ) ;
+      ossStrncat( upBound, "/", 1 ) ;
+
+      // eg: csName is "test", { Name: { $regex: "^test\\." } } is equal to
+      // { Name: { $gt: "test.", $lt: "test/" } }. So if csName has
+      // metacharacter(eg: "^"), we do not need to escape it.
+      matcher = BSON( CAT_COLLECTION_NAME
+                   << BSON( "$gt" << lowBound << "$lt" << upBound ) ) ;
 
       rc = rtnQuery( CAT_TASK_INFO_COLLECTION, dummyObj, matcher, dummyObj,
                      dummyObj, 0, cb, 0, -1, dmsCB, rtnCB, contextID ) ;
