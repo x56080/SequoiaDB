@@ -83,7 +83,7 @@ function detachAndAttachCataNode( cataRg, cataMasterNode, cataNodes )
          var svc = nodeInfo[1] ;
          try
          {
-            cataRg.detachNode( host, svc ) ;
+            cataRg.detachNode( host, svc, {KeepData : true}) ;
          }
          catch( e )
          {
@@ -104,7 +104,7 @@ function detachAndAttachCataNode( cataRg, cataMasterNode, cataNodes )
          {
             try
             {
-               cataRg.attachNode( host, svc ) ;
+               cataRg.attachNode( host, svc , {KeepData : true}) ;
                break ;
             }
             catch( e )
