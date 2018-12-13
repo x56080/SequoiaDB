@@ -1,9 +1,10 @@
 /************************************
-*@Description: 查询字段包含部分索引字段，不匹配索引  
+*@Description: 查询字段包含部分索引字段，匹配索引  
 *@author:      liuxiaoxuan
 *@createdate:  2018.12.12
 *@testlinkCase: seqDB-16783
 **************************************/
+main();
 function main()
 {
    //create CL
@@ -20,13 +21,11 @@ function main()
    }
 
    // create index
-   commCreateIndex(dbcl, "abc", {a:1, b:1, c:-1});
+   commCreateIndex(dbcl, "abcd", {a:1, b:1, c:-1, d:1});
  
-   var findCond = {c: {$gt: ""}, a: {$gt: 10000}, d: {$gt: ""}, b: {$lt: 10000}};
+   var findCond = {c: {$gt: ""}, a: {$gt: 10000}, b: {$lt: 10000}};
    var actResults = getExplain(dbcl, findCond);
-   checkExplain(actResults, "ixscan", "abc");
+   checkExplain(actResults, "ixscan", "abcd");
  
    commDropCL(db, COMMCSNAME, clName, true, true);
 }
-
-main();

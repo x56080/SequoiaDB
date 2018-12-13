@@ -4,6 +4,7 @@
 *@createdate:  2018.12.12
 *@testlinkCase: seqDB-16784
 **************************************/
+main();
 function main()
 {
    //create CL
@@ -37,5 +38,3 @@ function main()
  
    commDropCL(db, COMMCSNAME, clName, true, true);
 }
-
-main();

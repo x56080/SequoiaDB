@@ -2,12 +2,13 @@
 *@Description: 多个索引与查询条件匹配字段相等，且索引定义字段也相等，删除并重建最早索引     
 *@author:      liuxiaoxuan
 *@createdate:  2018.12.12
-*@testlinkCase: seqDB-16794
+*@testlinkCase: seqDB-16795
 **************************************/
+main();
 function main()
 {
    //create CL
-   var clName = COMMCLNAME + "_index_16794";
+   var clName = COMMCLNAME + "_index_16795";
    commDropCL(db, COMMCSNAME, clName, true, true);
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
@@ -39,5 +40,3 @@ function main()
 
    commDropCL(db, COMMCSNAME, clName, true, true);
 }
-
-main();

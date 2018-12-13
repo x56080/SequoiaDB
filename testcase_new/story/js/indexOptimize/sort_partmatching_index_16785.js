@@ -4,10 +4,11 @@
 *@createdate:  2018.12.12
 *@testlinkCase: seqDB-16785
 **************************************/
+main();
 function main()
 {
    //create CL
-   var clName = COMMCLNAME + "_index_16785";
+   var clName = COMMCLNAME + "_tbscan_16785";
    commDropCL(db, COMMCSNAME, clName, true, true);
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
@@ -23,11 +24,9 @@ function main()
    commCreateIndex(dbcl, "abc", {a:1, b:1, c:-1});
  
    var findCond = {c: {$gt: 10000}};
-   var sortCond = {a: 1, b: 1};
+   var sortCond = {a: 1, c: 1};
    var actResults = getExplain(dbcl, findCond, sortCond);
-   checkExplain(actResults, "ixscan", "abc");
+   checkExplain(actResults, "tbscan");
  
    commDropCL(db, COMMCSNAME, clName, true, true);
 }
-
-main();
