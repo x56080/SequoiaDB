@@ -14,43 +14,49 @@ import com.sequoiadb.exception.BaseException;
 
 public class Utils {
 
-	public static boolean  checkSortResult(DBCollection cl, BSONObject sortObj, String sortKey, String className) throws BaseException{
-		System.out.println("--------" + className + " begin to check sort result---------");
-		DBCursor queryCursor = null;
+    public static boolean  checkSortResult(DBCollection cl, BSONObject sortObj, String threadName) throws BaseException{
+        System.out.println("--------" + threadName + " begin to check sort result---------");
+        DBCursor queryCursor = null;
 
-		try {
-			queryCursor = cl.query(null, null, sortObj, null);
-			while(queryCursor.hasNext()) {
-				String expectStr = (String)queryCursor.getNext().get(sortKey);  // the front one
-                                if(queryCursor.hasNext()){
-                                    String actStr = (String)queryCursor.getNext().get(sortKey); // the latter one
-                                    if(expectStr.compareTo(actStr) > 0) { 
-                                         System.out.println("actResult: " + actStr  + ", expectResult: " + expectStr);
-                                         return false;
-                                    }
-                                }else{
-                                    break;
-                                }
-		        }
-			return true;
-		}catch(BaseException e){
-			e.printStackTrace();
-			return false;
-		}finally {
-			System.out.println("--------" + className + " end to check sort result---------");
-			queryCursor.close();
-		}
-	}
-
-        public static String getRandomString(int length){
-                String str = "zxcvbnmlkjhgfdsaqwertyuiopQWERTYUIOPASDFGHJKLZXCVBNM1234567890$%!@";
-                Random random = new Random();
-                StringBuffer sb = new StringBuffer();
-                for(int i = 0; i < length; ++i){
-                       int number = random.nextInt(66);
-                       sb.append(str.charAt(number));
+        try {
+            queryCursor = cl.query(null, null, sortObj, null);
+            while(queryCursor.hasNext()) {
+                BSONObject expectObj = (BSONObject)queryCursor.getNext(); // the pre one
+                if(queryCursor.hasNext()){
+                    BSONObject actObj = (BSONObject)queryCursor.getNext(); // the next one
+                    for(String key : sortObj.keySet()){
+                       String expectValue = (String)expectObj.get(key);
+                       String actValue = (String)actObj.get(key);
+                       if(expectValue.compareTo(actValue) > 0) {  // sort result not expected
+                           System.out.println("nextResult: " + actObj.toString()  + ", preResult: " + expectObj.toString());
+                           return false;
+                       }else if(expectValue.compareTo(actValue) == 0){ // compare next key
+                           continue;
+                       }else{       
+                           break;
+                       }
+                    } 
                 }
-                return sb.toString();
-        } 
+            }
+            return true;
+        }catch(BaseException e){
+            e.printStackTrace();
+            return false;
+        }finally {
+            System.out.println("--------" + threadName + " end to check sort result---------");
+            queryCursor.close();
+        }
+    }
+
+    public static String getRandomString(int length){
+        String str = "zxcvbnmlkjhgfdsaqwertyuiopQWERTYUIOPASDFGHJKLZXCVBNM1234567890$%!@";
+        Random random = new Random();
+        StringBuffer sb = new StringBuffer();
+        for(int i = 0; i < length; ++i){
+            int number = random.nextInt(66);
+            sb.append(str.charAt(number));
+        }
+        return sb.toString();
+    } 
 
 }
