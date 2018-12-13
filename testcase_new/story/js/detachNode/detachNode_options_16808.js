@@ -7,7 +7,12 @@ main(db);
 function main(db)
 {	  
 	try
-	{	
+	{
+	   if (commGetGroupsNum(db) < 2)
+      {
+         println("--least two groups");
+         return ;
+      } 
 	  var groupList = getGroup(db);
 	  var groupName = groupList[0];
 	  
