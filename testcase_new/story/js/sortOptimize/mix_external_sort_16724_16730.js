@@ -38,14 +38,13 @@ function main()
    dbcl.insert(objs);
 
    // check result from Master node
-   var sortKey = "a";
    var cursor = dbclPrimary.find().sort({a: 1, b:1, c:1, d:1, e:1});
-   checkSortResultForLargeData(cursor, sortKey);
+   checkSortResultForLargeData(cursor, {a: 1, b:1, c:1, d:1, e:1});
    cursor.close();
 
    // check result from Slave node
    var cursor = dbclSlave.find().sort({a: 1, b:1, c:1, d:1, e:1});
-   checkSortResultForLargeData(cursor, sortKey);
+   checkSortResultForLargeData(cursor, {a: 1, b:1, c:1, d:1, e:1});
    cursor.close();
    db1.close();
 

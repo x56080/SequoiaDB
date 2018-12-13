@@ -17,23 +17,26 @@ function getRandomString( strLen ) //string length value locate in [minLen, maxL
     return str;
 }
 
-function checkSortResultForLargeData(cursor, sortKey)
+function checkSortResultForLargeData(cursor, sortCond)
 {
     while(cursor.next())
     {
-       var expectResult = cursor.current().toObj(); // the front one
+       var expectResult = cursor.current().toObj(); // the pre one
        if(cursor.next())
        {
-           var actResult = cursor.current().toObj(); // the latter one
-           if(expectResult[sortKey] > actResult[sortKey])
+           var actResult = cursor.current().toObj(); // the next one
+           for(var sortKey in sortCond)
            {
-              throw buildException("checkSortResultForLargeData", "check result", "check result",
-                                          JSON.stringify(expectResult), JSON.stringify(actResult));
+               if(expectResult[sortKey] > actResult[sortKey])  // sort result not expected
+               {
+                   throw buildException("checkSortResultForLargeData", "check result", "check result",
+                                               JSON.stringify(expectResult), JSON.stringify(actResult));
+               }
+               else if(expectResult[sortKey] < actResult[sortKey]) // compare next record
+               {
+                   break;
+               }
            }
-       }
-       else
-       {
-           break;
        }
     }
     println("-----check sort result success-----");

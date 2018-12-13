@@ -23,9 +23,8 @@ function main()
    dbcl.insert(objs);
 
    // check result
-   var sortKey = "a";
    var cursor = dbcl.find().sort({a : 1, b : 1});
-   checkSortResultForLargeData(cursor, sortKey);
+   checkSortResultForLargeData(cursor, {a : 1, b : 1});
    cursor.close();
 
    commDropCL(db, COMMCSNAME, clName, true, true);
