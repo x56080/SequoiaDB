@@ -18,25 +18,46 @@ then export the information in to binary files.
 
 .sp 2
 traceOff(\fB<dumpFile>\fR)
+
 .SH "CATEGORY"
 
 .sp 2
 
 .sp 2
-Sequoiadb
+Sdb
 .SH "DESCRIPTION"
 
 .sp 2
-Close the tracing function of the database engine, and then
-export the information in to binary files.
-/opt/sequoiadb/trace.dump
+Turn off the database engine program tracking and export tracking results to
+binary files.
+
+.SH "PARAMETERS"
 .sp 2
 \fBDump file (string)\fR
 .br
        Name of dump file.
+
+.SH "RETURN VALUE"
+.sp 2
+On success, return void.
+.sp 2
+On error, exception will be thrown.
+.sp 2
+.SH "ERRORS"
+.sp 2
+when exception happen, use getLastError() to get the error code and use
+getLastErrMsg() to get error message.
+For more detial, please reference to Troubleshooting.
+
 .SH "Examples"
 
 .sp 2
-Turn off the trace function of the database engine.
+Turn off the database engine program tracking and export tracking results to
+binary files, /opt/sequoiadb/trace.dump.
 .sp 2
-db.traceOff("/opt/sequoiadb/trace.dump");
+>\ db.traceOff( "/opt/sequoiadb/trace.dump" )
+.sp 2
+Using traceFmt() to analysis the binary file.
+.sp 2
+>\ traceFmt(\ 0,\ "/opt/sequoiadb/trace.dump",\ "/opt/sequoiadb/trace_output"\ )
+.sp 2

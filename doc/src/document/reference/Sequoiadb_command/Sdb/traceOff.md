@@ -7,7 +7,7 @@
 
 | 参数名 		| 参数类型 	| 描述 				| 是否必填 	|
 | ------ 		| ------ 	| ------ 			| ------ 	|
-| dumpFile 		| string 	| dump 的文件名称	| 否 		|
+| dumpFile 		| string 	| dump 的文件名称； 如果指定文件为相对路径则存放于相应节点的 `diagpath` 中。 | 否 		|
 
 ##返回值##
 无返回值，出错抛异常，并输出错误信息，可以通过[getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](reference/Sequoiadb_command/Global/getLastError.md)获取错误码。
@@ -23,3 +23,9 @@
 	```lang-javascript
 	> db.traceOff("/opt/sequoiadb/trace.dump")
 	```
+
+* 解析二进制文件可参考 [traceFmt()](reference/Sequoiadb_command/Global/traceFmt.md)
+
+	```lang-javascript
+	> traceFmt( 0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace_output" )
+ 	```

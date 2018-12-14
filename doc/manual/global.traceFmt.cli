@@ -7,8 +7,7 @@
 .SH "NAME"
 
 .sp 2
-traceFmt - To format the binary data into other type of file that
-db.traceOff() exported.
+traceFmt - Format trace input to output by type.
 .SH "SYNOPSIS"
 
 .sp 2
@@ -26,12 +25,20 @@ Golbal
 .SH "DESCRIPTION"
 
 .sp 2
-To format the binary data into other type of file that traceOff()
-exported.
+The trace file exported by db.traceOff() is in binary format and is not
+convenient for users to read.
+This command can be used to format the trace file into user\-readable content
+and output it to the specified file.
+.sp 2
+.SH "PARAMETERS"
 .sp 2
 \fBformatType (int)\fR
-.br
-       Format type of the.
+
+\fBformatType can take the following two values:\fR	   
+.br	   
+	  0: Output analysis file, including thread execution sequence (output file suffix is .flw), execution time analysis(output file suffix is .CSV), execution timepeak(output file suffix is .except) and trace record error information(output file suffix is .error). And the CSV file can be viewed by using Excel.
+.br	   
+	  1: Output dump record information(output file suffix is .fmt).	   
 .sp 2
 \fBinput (string)\fR
 .br
@@ -40,9 +47,27 @@ exported.
 \fBoutput (String)\fR
 .br
        Output file.
+
+.SH "RETURN VALUE"
+.sp 2
+On success, return void.
+.sp 2
+On error, exception will be thrown.
+.sp 2
+.SH "ERRORS"
+.sp 2
+when exception happen, use getLastError() to get the error code and use
+getLastErrMsg() to get error message.
+For more detial, please reference to Troubleshooting.
+
 .SH "Examples"
 
 .sp 2
 Formatted the output file
 .sp 2
-traceFmt(0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace.flw")
+>\ traceFmt(0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace.flw")
+
+Using traceStatus() to view the tracking status of the current program.
+.sp 2
+>\ db.traceStatus()
+.sp 2
