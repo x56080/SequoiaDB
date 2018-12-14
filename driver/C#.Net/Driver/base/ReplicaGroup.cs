@@ -605,7 +605,13 @@ namespace SequoiaDB
          *  \brief Attach a node to the group
          *  \param [in] hostName The host name of node.
          *  \param [in] port The port for the node.
-         *  \param [in] optoins The options of attach.
+         *  \param [in] options configuration for this operation,
+         *                      can not be null or empty, can be the follow options:
+         *                <ul>
+         *                <li>KeepData : Whether to keep the original data of the new
+         *                               node. This option has no default value. User
+         *                               should specify its value explicitly.</li>
+         *                </ul>
          *  \retval SDB_OK Operation Success
          *  \retval Others Operation Fail
          */
@@ -643,7 +649,15 @@ namespace SequoiaDB
          *  \brief Detach a node from the group
          *  \param [in] pHostName The host name of node.
          *  \param [in] port The port for the node.
-         *  \param [in] optoins The options of detach.
+         *  \param [in] options configuration for this operation,
+         *                      can not be null or empty, can be the follow options:
+         *                <ul>
+         *                <li>KeepData : Whether to keep the original data of the
+         *                               detached node. This option has no default
+         *                               value. User should specify its value explicitly.</li>
+         *                <li>Enforced : Whether to detach the node forcibly, default
+         *                               to be false.</li>
+         *                </ul>
          *  \retval SDB_OK Operation Success
          *  \retval Others Operation Fail
          */
