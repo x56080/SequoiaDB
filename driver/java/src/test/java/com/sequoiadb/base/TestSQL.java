@@ -34,6 +34,9 @@ public class TestSQL extends SingleCSCLTestCase {
         BSONObject retObj = cursor.getNext();
         assertEquals(obj, retObj);
         assertFalse(cursor.hasNext());
+
+        sql = String.format("select * from %s where canm <> '' and canm = '清凉溪' limit 3", cl.getFullName());
+        cursor = sdb.exec(sql);
     }
 
     @Test
