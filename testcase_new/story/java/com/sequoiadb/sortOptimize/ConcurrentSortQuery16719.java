@@ -51,7 +51,7 @@ public class ConcurrentSortQuery16719 extends SdbTestBase {
 	
     @AfterClass
     public void tearDown() {
-        sdb.dropCollectionSpace(csName);
+        cs.dropCollection(clName);
     }
 
     public void insertData(DBCollection cl, int insertNums) {
