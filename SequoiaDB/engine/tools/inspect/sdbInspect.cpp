@@ -2632,6 +2632,17 @@ error:
 }
 
 /**
+** make tmpFile path from outFile
+***/
+void makeTmpFileName( const CHAR *outFile, UINT32 loopIndex, CHAR *tmpFile, UINT32 len )
+{
+   SDB_ASSERT( NULL != outFile && NULL != tmpFile, "outFile & tmpFile can't be NULL" ) ;
+
+   ossMemset( tmpFile, 0, OSS_MAX_PATHSIZE ) ;
+   ossSnprintf( tmpFile, len, "%s"CI_TMP_FILE_SUFFIX, outFile, loopIndex ) ;
+}
+
+/**
 ** inspect node without file specified
 ***/
 INT32 inspectWithoutFile( sdbclient::sdb *coord, ciHeader *header,
@@ -3411,8 +3422,8 @@ INT32 _sdbCi::inspect()
       do
       {
          curLoop += 1 ;
-         ossMemset( tmpFile, 0, OSS_MAX_PATHSIZE ) ;
-         ossSnprintf( tmpFile, OSS_MAX_PATHSIZE, CI_TMP_FILE, curLoop ) ;
+         makeTmpFileName( _header._outfile, curLoop, tmpFile, OSS_MAX_PATHSIZE ) ;
+
          rc = inspectWithoutFile( coord, &_header, tmpFile, totalRecord ) ;
       }while ( CI_INSPECT_ERROR == rc ) ;
 
@@ -3441,8 +3452,7 @@ INT32 _sdbCi::inspect()
 
    for (INT32 idx = curLoop ; idx < _header._loop && !finish ; ++idx)
    {
-      ossMemset( tmpFile, 0, OSS_MAX_PATHSIZE ) ;
-      ossSnprintf( tmpFile, OSS_MAX_PATHSIZE, CI_TMP_FILE, idx + 1 ) ;
+      makeTmpFileName( _header._outfile, idx + 1, tmpFile, OSS_MAX_PATHSIZE ) ;
 
       rc = inspectWithFile( &_header, inFile, tmpFile, totalRecord, finish ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
@@ -3470,8 +3480,7 @@ INT32 _sdbCi::inspect()
    // delete temp file
    for ( INT32 idx = 0 ; idx < _header._loop ; ++idx )
    {
-      ossMemset( tmpFile, 0, OSS_MAX_PATHSIZE ) ;
-      ossSnprintf( tmpFile, OSS_MAX_PATHSIZE, CI_TMP_FILE, idx + 1 ) ;
+      makeTmpFileName( _header._outfile, idx + 1, tmpFile, OSS_MAX_PATHSIZE ) ;
 
       ossDelete( tmpFile ) ;
    }
