@@ -1,0 +1,39 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBoma.setNodeConfigs(<svcname>,<config>)\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+setNodeConfigs - Use the new configuration information to overwrite the
+contents in the configuration file of the specified SequoiaDB node.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+oma.setNodeConfigs(<svcname>,<config>)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Oma
+.SH "DESCRIPTION"
+
+.sp 2
+Use the new configuration information to overwrite the
+contents in the configuration file of the specified SequoiaDB node.
+.sp 2
+\fBsvcname (string)\fR
+.br
+       Port number of the node.
+.sp 2
+\fBconfig (Json Object)\fR
+.br
+       Configuration file of the node, including setting log's
+       size, whether open transaction.

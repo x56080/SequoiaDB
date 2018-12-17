@@ -2195,6 +2195,12 @@
                            "file": "stopNode",
                            "cn": "stopNode()",
                            "en": "stopNode()"
+                        },
+                        {
+                           "id": 1535440454,
+                           "file": "setNodeConfigs",
+                           "cn": "setNodeConfigs()",
+                           "en": "setNodeConfigs()"
                         }
                      ]
                   },
