@@ -107,6 +107,7 @@ namespace engine
 #define DMS_INVALID_MBID            65535
 #define DMS_INVALID_PAGESIZE        0
 #define DMS_INVALID_LOGICCSID       0xffffffff
+#define DMS_INVALID_LOGICCLID       0xffffffff
 
 #define DMS_DATA_SU_EXT_NAME        "data"
 #define DMS_INDEX_SU_EXT_NAME       "idx"
