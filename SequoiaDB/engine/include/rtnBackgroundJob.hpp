@@ -79,6 +79,8 @@ namespace engine
          BSONObj                 _indexObj ;
          BSONElement             _indexEle ;
          BOOLEAN                 _hasAddUnique ;
+         UINT32                  _csLID ;
+         UINT32                  _clLID ;
          SDB_DPSCB*              _dpsCB ;
          SDB_DMSCB*              _dmsCB ;
 
