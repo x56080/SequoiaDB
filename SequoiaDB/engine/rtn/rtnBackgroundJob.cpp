@@ -60,6 +60,8 @@ namespace engine
       _clFullName[DMS_COLLECTION_FULL_NAME_SZ] = 0 ;
       _indexObj = indexObj.copy() ;
       _hasAddUnique = FALSE ;
+      _csLID = DMS_INVALID_LOGICCSID ;
+      _clLID = DMS_INVALID_LOGICCLID ;
       _dpsCB = dpsCB ;
       _dmsCB = pmdGetKRCB()->getDMSCB() ;
       _lsn = offset ;
@@ -90,6 +92,10 @@ namespace engine
                      _clFullName ) ;
             goto error ;
          }
+         if ( _csLID != su->LogicalCSID() )
+         {
+            goto done ;
+         }
 
          rc = su->data()->getMBContext( &mbContext, pCLShortName,
                                         EXCLUSIVE ) ;
@@ -98,6 +104,10 @@ namespace engine
             PD_LOG ( PDERROR, "Lock collection[%s] failed, rc = %d",
                      _clFullName, rc ) ;
             goto error ;
+         }
+         if ( _clLID != mbContext->clLID() )
+         {
+            goto done ;
          }
 
          mbContext->mbStat()->_uniqueIdxNum++ ;
@@ -159,6 +169,8 @@ namespace engine
 
                   mbContext->mbStat()->_uniqueIdxNum++ ;
                   _hasAddUnique = TRUE ;
+                  _csLID = su->LogicalCSID() ;
+                  _clLID = mbContext->clLID() ;
                }
             }
             break ;
