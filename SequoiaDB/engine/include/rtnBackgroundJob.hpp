@@ -69,12 +69,16 @@ namespace engine
          virtual INT32 doit () ;
 
       protected:
+         virtual void _onDetach() ;
+
+      protected:
          RTN_JOB_TYPE            _type ;
          CHAR                    _clFullName[DMS_COLLECTION_FULL_NAME_SZ + 1] ;
          std::string             _indexName ;
          std::string             _jobName ;
          BSONObj                 _indexObj ;
          BSONElement             _indexEle ;
+         BOOLEAN                 _hasAddUnique ;
          SDB_DPSCB*              _dpsCB ;
          SDB_DMSCB*              _dmsCB ;
 

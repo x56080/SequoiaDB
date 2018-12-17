@@ -95,7 +95,6 @@ namespace engine
       UINT32 sequence = 0 ;
       BOOLEAN clParalla = FALSE ;
       BOOLEAN recParalla = FALSE ;
-      BOOLEAN doSameOID = FALSE ;
       UINT32 bucketID = ~0 ;
 
       SDB_ASSERT( recordHeader && pBucket, "Invalid param" ) ;
@@ -105,12 +104,10 @@ namespace engine
       {
          case LOG_TYPE_DATA_INSERT :
             clParalla = TRUE ;
-            doSameOID = TRUE ;
             rc = dpsRecord2Insert( (CHAR *)recordHeader, &fullname, obj ) ;
             break ;
          case LOG_TYPE_DATA_DELETE :
             clParalla = TRUE ;
-            doSameOID = TRUE ;
             rc = dpsRecord2Delete( (CHAR *)recordHeader, &fullname, obj ) ;
             break ;
          case LOG_TYPE_DATA_UPDATE :
@@ -119,14 +116,13 @@ namespace engine
             BSONObj oldObj ;
             BSONObj newMatch ;
             BSONObj modifier ;   //new change obj
-            clParalla = TRUE ;
             rc = dpsRecord2Update( (CHAR *)recordHeader, &fullname,
                                    match, oldObj, newMatch, modifier ) ;
             if ( SDB_OK == rc &&
                  0 == match.woCompare( newMatch, BSONObj(), false ) )
             {
                obj = match ;
-               doSameOID = TRUE ;
+               clParalla = TRUE ;
             }
             break ;
          }
@@ -200,7 +196,7 @@ namespace engine
          we should update clParalla to recParalla in bellow case:
             1. unique index number <= 1 and no text index
       */
-      if ( clParalla && doSameOID )
+      if ( clParalla )
       {
          dmsStorageUnit *su = NULL ;
          const CHAR *pShortName = NULL ;
