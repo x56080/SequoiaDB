@@ -92,8 +92,10 @@ namespace engine
       BSONObj obj ;
       BSONElement idEle ;
       const bson::OID *oidPtr = NULL ;
-      BOOLEAN paralla = FALSE ;
-      BOOLEAN updateSameOID = FALSE ;
+      UINT32 sequence = 0 ;
+      BOOLEAN clParalla = FALSE ;
+      BOOLEAN recParalla = FALSE ;
+      BOOLEAN doSameOID = FALSE ;
       UINT32 bucketID = ~0 ;
 
       SDB_ASSERT( recordHeader && pBucket, "Invalid param" ) ;
@@ -102,9 +104,13 @@ namespace engine
       switch( recordHeader->_type )
       {
          case LOG_TYPE_DATA_INSERT :
+            clParalla = TRUE ;
+            doSameOID = TRUE ;
             rc = dpsRecord2Insert( (CHAR *)recordHeader, &fullname, obj ) ;
             break ;
          case LOG_TYPE_DATA_DELETE :
+            clParalla = TRUE ;
+            doSameOID = TRUE ;
             rc = dpsRecord2Delete( (CHAR *)recordHeader, &fullname, obj ) ;
             break ;
          case LOG_TYPE_DATA_UPDATE :
@@ -113,22 +119,22 @@ namespace engine
             BSONObj oldObj ;
             BSONObj newMatch ;
             BSONObj modifier ;   //new change obj
+            clParalla = TRUE ;
             rc = dpsRecord2Update( (CHAR *)recordHeader, &fullname,
                                    match, oldObj, newMatch, modifier ) ;
             if ( SDB_OK == rc &&
                  0 == match.woCompare( newMatch, BSONObj(), false ) )
             {
                obj = match ;
-               updateSameOID = TRUE ;
+               doSameOID = TRUE ;
             }
             break ;
          }
          case LOG_TYPE_LOB_WRITE :
          {
-            paralla = TRUE ;
+            recParalla = TRUE ;
             const CHAR *fullName = NULL ;
             const bson::OID *oid = NULL ;
-            UINT32 sequence = 0 ;
             UINT32 offset = 0 ;
             UINT32 len = 0 ;
             UINT32 hash = 0 ;
@@ -143,10 +149,9 @@ namespace engine
          }
          case LOG_TYPE_LOB_UPDATE :
          {
-            paralla = TRUE ;
+            recParalla = TRUE ;
             const CHAR *fullName = NULL ;
             const bson::OID *oid = NULL ;
-            UINT32 sequence = 0 ;
             UINT32 offset = 0 ;
             UINT32 len = 0 ;
             UINT32 hash = 0 ;
@@ -164,10 +169,9 @@ namespace engine
          }
          case LOG_TYPE_LOB_REMOVE :
          {
-            paralla = TRUE ;
+            recParalla = TRUE ;
             const CHAR *fullName = NULL ;
             const bson::OID *oid = NULL ;
-            UINT32 sequence = 0 ;
             UINT32 offset = 0 ;
             UINT32 len = 0 ;
             UINT32 hash = 0 ;
@@ -191,10 +195,12 @@ namespace engine
                    "falied, rc: %d", recordHeader->_type,
                    recordHeader->_lsn, recordHeader->_length, rc ) ;
 
-      /// when collection has multi unique index, can't use paralla sync
-      if ( LOG_TYPE_DATA_INSERT == recordHeader->_type ||
-           LOG_TYPE_DATA_DELETE == recordHeader->_type ||
-           ( LOG_TYPE_DATA_UPDATE == recordHeader->_type && updateSameOID ) )
+      /*
+         When collection paralla(clParalla) is true, but recParalla is false,
+         we should update clParalla to recParalla in bellow case:
+            1. unique index number <= 1 and no text index
+      */
+      if ( clParalla && doSameOID )
       {
          dmsStorageUnit *su = NULL ;
          const CHAR *pShortName = NULL ;
@@ -207,15 +213,17 @@ namespace engine
             rc = su->data()->getMBContext( &mbContext, pShortName, SHARED ) ;
             if ( SDB_OK == rc )
             {
-               paralla = mbContext->mbStat()->_uniqueIdxNum <= 1 ?
-                         TRUE : FALSE ;
+               if ( mbContext->mbStat()->_uniqueIdxNum <= 1 )
+               {
+                  recParalla = TRUE ;
+               }
                su->data()->releaseMBContext( mbContext ) ;
             }
             _dmsCB->suUnlock( suID, SHARED ) ;
-         }
-      }
+         } // if ( SDB_OK == rc )
+      } // if ( clParalla && doSameOID )
 
-      if ( paralla )
+      if ( recParalla )
       {
          idEle = obj.getField( DMS_ID_KEY_NAME ) ;
          if ( !idEle.eoo() )
@@ -225,9 +233,17 @@ namespace engine
          }
          else if ( NULL != oidPtr )
          {
-            bucketID = pBucket->calcIndex( ( const CHAR * )( oidPtr->getData()),
-                                           sizeof( *oidPtr ) ) ;
+            CHAR tmpData[ sizeof( *oidPtr ) + sizeof( sequence ) ] = { 0 } ;
+            ossMemcpy( tmpData, ( const CHAR * )( oidPtr->getData()),
+                       sizeof( *oidPtr ) ) ;
+            ossMemcpy( &tmpData[ sizeof( *oidPtr ) ], ( const CHAR* )&sequence,
+                       sizeof( sequence ) ) ;
+            bucketID = pBucket->calcIndex( tmpData, sizeof( tmpData ) ) ;
          }
+      }
+      else if ( clParalla )
+      {
+         bucketID = pBucket->calcIndex( fullname, ossStrlen( fullname ) ) ;
       }
 
       if ( (UINT32)~0 != bucketID )
