@@ -62,6 +62,7 @@ namespace import
    public:
       virtual ~RecordParser() {}
       virtual INT32 parseRecord(const CHAR* data, INT32 length, bson& obj) = 0;
+      virtual void  reset() {}
 
    protected:
       string   _fieldDelimiter;

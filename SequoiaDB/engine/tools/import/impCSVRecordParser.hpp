@@ -256,6 +256,13 @@ namespace import
       INT32 parseFields(const CHAR* data, INT32 length, BOOLEAN isHeaderline );
       void  printFieldsDef();
 
+      void  reset()
+      {
+         _fieldVec.clear() ;
+         _fields.clear() ;
+         _hasId = FALSE ;
+      }
+
    private:
       INT32 _pushField(CSVField* field);
 

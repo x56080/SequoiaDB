@@ -160,6 +160,13 @@ namespace import
                          input, &scanner,
                          options->recordDelimiter().length());
 
+      if (FORMAT_CSV == options->inputFormat() &&
+          options->hasHeaderLine() &&
+          options->fields().empty())
+      {
+         parser->reset() ;
+      }
+
       while(!self->_stopped)
       {
          CHAR* record = NULL;
