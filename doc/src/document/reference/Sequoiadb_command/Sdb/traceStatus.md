@@ -55,7 +55,6 @@
 		"spd",
 		"qgm"
 	  ],
-	  "BreakPoint": [],
-      "Threads": [],
+	  "BreakPoint": []
 	}
 	```
