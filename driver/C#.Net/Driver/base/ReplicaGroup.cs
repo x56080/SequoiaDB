@@ -612,7 +612,9 @@ namespace SequoiaDB
          *                               node. This option has no default value. User
          *                               should specify its value explicitly.</li>
          *                </ul>
-         *  \retval void
+         *  \return void
+         *  \exception SequoiaDB.BaseException
+         *  \exception System.Exception
          */
         public void AttachNode(string hostName, int port, BsonDocument options)
         {
@@ -657,7 +659,9 @@ namespace SequoiaDB
          *                <li>Enforced : Whether to detach the node forcibly, default
          *                               to be false.</li>
          *                </ul>
-         *  \retval void
+         *  \return void
+         *  \exception SequoiaDB.BaseException
+         *  \exception System.Exception
          */
         public void DetachNode(string hostName, int port, BsonDocument options)
         {
