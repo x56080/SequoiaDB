@@ -105,7 +105,7 @@ namespace engine
             goto done ;
          }
 
-         mbContext->mbStat()->_uniqueIdxNum++ ;
+         mbContext->mbStat()->_uniqueIdxNum-- ;
          _hasAddUnique = FALSE ;
       }
 
