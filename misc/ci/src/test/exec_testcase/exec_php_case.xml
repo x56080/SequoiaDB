@@ -232,7 +232,7 @@
          <var name="@{rc}" unset="true"/> 
          <exec executable="${php_exe}" 
                dir="@{suitfullname}" 
-               timeout="1800000" 
+               timeout="3600000" 
                outputproperty="screen_output"
                resultproperty="@{rc}" 
                failonerror="false" >
