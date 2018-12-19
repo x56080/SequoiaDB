@@ -602,18 +602,17 @@ namespace SequoiaDB
         /** \fn void AttachNode( string hostName, 
          *                       int port, 
          *                       BsonDocument options )
-         *  \brief Attach a node to the group
-         *  \param [in] hostName The host name of node.
-         *  \param [in] port The port for the node.
-         *  \param [in] options configuration for this operation,
-         *                      can not be null or empty, can be the follow options:
+         *  \brief Attach a node to the group.
+         *  \param hostName The host name of node.
+         *  \param port The port for the node.
+         *  \param options configuration for this operation,
+         *                 can not be null or empty, can be the follow options:
          *                <ul>
          *                <li>KeepData : Whether to keep the original data of the new
          *                               node. This option has no default value. User
          *                               should specify its value explicitly.</li>
          *                </ul>
-         *  \retval SDB_OK Operation Success
-         *  \retval Others Operation Fail
+         *  \retval void
          */
         public void AttachNode(string hostName, int port, BsonDocument options)
         {
@@ -646,11 +645,11 @@ namespace SequoiaDB
         /** \fn void DetachNode( string hostName,
          *                       int port,
          *                       BsonDocument options )
-         *  \brief Detach a node from the group
-         *  \param [in] pHostName The host name of node.
-         *  \param [in] port The port for the node.
-         *  \param [in] options configuration for this operation,
-         *                      can not be null or empty, can be the follow options:
+         *  \brief Detach a node from the group.
+         *  \param hostName The host name of node.
+         *  \param port The port for the node.
+         *  \param options configuration for this operation,
+         *                 can not be null or empty, can be the follow options:
          *                <ul>
          *                <li>KeepData : Whether to keep the original data of the
          *                               detached node. This option has no default
@@ -658,8 +657,7 @@ namespace SequoiaDB
          *                <li>Enforced : Whether to detach the node forcibly, default
          *                               to be false.</li>
          *                </ul>
-         *  \retval SDB_OK Operation Success
-         *  \retval Others Operation Fail
+         *  \retval void
          */
         public void DetachNode(string hostName, int port, BsonDocument options)
         {
