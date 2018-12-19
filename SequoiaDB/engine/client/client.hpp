@@ -3186,7 +3186,7 @@ namespace sdbclient
       sdb& operator=( const sdb& ) ;
    public :
 /** \var pSDB
-    \breif A pointer of virtual base class _sdb
+    \brief A pointer of virtual base class _sdb
 
     Class sdb is a shell for _sdb. We use pSDB to
     call the methods in class _sdb.
