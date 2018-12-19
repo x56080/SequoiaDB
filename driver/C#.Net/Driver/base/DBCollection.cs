@@ -1117,7 +1117,7 @@ namespace SequoiaDB
          * \param subClFullName The name of the subcollection
          * \param options The low boudary and up boudary
          *       eg: {"LowBound":{a:1},"UpBound":{a:100}}
-         * \retval void
+         * \return void
          * \exception SequoiaDB.BaseException
          * \exception System.Exception
          */
@@ -1153,7 +1153,7 @@ namespace SequoiaDB
         /** \fn void DetachCollection(string subClFullName)
          * \brief Detach the specified collection.
          * \param subClFullName The name of the subcollection
-         * \retval void
+         * \return void
          * \exception SequoiaDB.BaseException
          * \exception System.Exception
          */
