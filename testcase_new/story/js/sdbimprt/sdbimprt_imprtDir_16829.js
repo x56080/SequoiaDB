@@ -90,8 +90,13 @@ function checkCLData( cl )
       recsArray.push( tmpRecs.toObj() );
    }
    
+   //sort the result array by age
+   recsArray.sort(function (obj1, obj2){
+	   return obj1.age - obj2.age;
+   })
+   
    var expCnt  = 4;  
-   var expRecs = '[{"name":"Jack1","age":181,"country":"China1"},{"name":"Mike1","age":201,"country":"USA1"},{"name":"Jack","age":18,"country":"China"},{"name":"Mike","age":20,"country":"USA"}]';
+   var expRecs = '[{"name":"Jack","age":18,"country":"China"},{"name":"Mike","age":20,"country":"USA"},{"name":"Jack1","age":181,"country":"China1"},{"name":"Mike1","age":201,"country":"USA1"}]';
    var actCnt  = recsArray.length;
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
