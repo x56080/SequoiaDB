@@ -8,6 +8,9 @@ import org.bson.BasicBSONObject;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import static com.sequoiadb.readwriteseparation.Helper.getActualDataNodeName;
 import static com.sequoiadb.readwriteseparation.Helper.getNodeList;
@@ -26,6 +29,8 @@ public class ReadWriteSeqpart14143 extends SdbTestBase {
 
     @BeforeClass
     public void setup() {
+        System.out.println("the TestCase Name:" + this.getClass().getName() + 
+                ". the TestCase begin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
         db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
         CommLib.createRG(db, rgName);
         BSONObject options = new BasicBSONObject("Group", rgName);
@@ -35,6 +40,8 @@ public class ReadWriteSeqpart14143 extends SdbTestBase {
 
     @AfterClass
     public void teardown() throws InterruptedException {
+    	System.out.println("the TestCase Name:" + this.getClass().getName() + 
+                ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
         db.getCollectionSpace(SdbTestBase.csName).dropCollection(CLNAME);
         db.removeReplicaGroup(rgName);
         db.disconnect();
@@ -67,9 +74,9 @@ public class ReadWriteSeqpart14143 extends SdbTestBase {
             db.setSessionAttr(options);
             String name = getActualDataNodeName(dbcl);
             if (s.equals("M")) {
-                assertTrue(getNodeWarrper(name).isMaster(), name);
+                assertTrue(getNodeWarrper(name).isMaster(), "the actual data node name is: " + name + ",the current option is " + options.toString());
             } else if (s.equals("S")) {
-                assertFalse(getNodeWarrper(name).isMaster(), name);
+                assertFalse(getNodeWarrper(name).isMaster(), "the actual data node name is: " + name + ",the current option is " + options.toString());
             }
             options.append("PreferedInstanceMode", "random").append("Timeout", -1L);
             assertEquals(db.getSessionAttr(),options);

@@ -11,6 +11,9 @@ import org.testng.annotations.Test;
 import static com.sequoiadb.readwriteseparation.Helper.getActualDataNodeName;
 import static org.testng.Assert.assertNotNull;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 /**
  * Created by laojingtang on 18-1-19.
  * Modified by wangkexin on 18-11-27.
@@ -23,6 +26,8 @@ public class ReadWriteSeqpart14141 extends SdbTestBase {
 
     @BeforeClass
     public void setup() {
+    	System.out.println("the TestCase Name:" + this.getClass().getName() + 
+                ". the TestCase begin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
         db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
         CommLib.createRG(db, rgName);
         BSONObject options = new BasicBSONObject("Group", rgName);
@@ -31,6 +36,8 @@ public class ReadWriteSeqpart14141 extends SdbTestBase {
 
     @AfterClass
     public void teardown() throws InterruptedException {
+    	System.out.println("the TestCase Name:" + this.getClass().getName() + 
+                ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
         db.getCollectionSpace(SdbTestBase.csName).dropCollection(CLNAME);
         db.removeReplicaGroup(rgName);
         db.disconnect();
