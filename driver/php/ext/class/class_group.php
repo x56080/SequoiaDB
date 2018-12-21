@@ -277,7 +277,7 @@ class SequoiaGroup
     *
     * Example:
     * @code
-    * $err = $groupObj -> attachNode( 'host1', '11900' ) ;
+    * $err = $groupObj -> attachNode( 'host1', '11900', array( 'KeepData' => true ) ) ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to attach node, error code: ".$err['errno'] ;
     *    return ;
@@ -307,7 +307,7 @@ class SequoiaGroup
     *
     * Example:
     * @code
-    * $err = $groupObj -> detachNode( 'host1', '11900' ) ;
+    * $err = $groupObj -> detachNode( 'host1', '11900', array( 'KeepData' => true ) ) ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to detach node, error code: ".$err['errno'] ;
     *    return ;
