@@ -264,9 +264,10 @@ class SequoiaGroup
     *
     * @param $serviceName	the string argument. The servicename for the catalog replica group.
     *
-    * @param $options	an array or the string argument. The options of attach.
+    * @param $options	an array or the string argument. The options of attach. Can be the follow options:
     *                                                  @code
-    *                                                  KeepData : Whether the node data is preserved, default false.
+    *                                                  KeepData : Whether to keep the original data of the new node. This option has no default value.
+    *                                                             User should specify its value explicitly.
     *                                                  @endcode
     *
     * @return Returns the result, default return array.
@@ -276,14 +277,14 @@ class SequoiaGroup
     *
     * Example:
     * @code
-    * $err = $groupObj -> attachNode( 'host1', '11900' ) ;
+    * $err = $groupObj -> attachNode( 'host1', '11900', array( 'KeepData' => true ) ) ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to attach node, error code: ".$err['errno'] ;
     *    return ;
     * }
     * @endcode
    */
-   public function attachNode( string $hostName, string $serviceName, array|string $options = NULL ){}
+   public function attachNode( string $hostName, string $serviceName, array|string $options ){}
 
    /**
     * Detach a node from the group.
@@ -292,9 +293,11 @@ class SequoiaGroup
     *
     * @param $serviceName	the string argument. The servicename for the catalog replica group.
     *
-    * @param $options	an array or the string argument. The options of detach.
+    * @param $options	an array or the string argument. The options of detach. Can be the follow options:
     *                                                  @code
-    *                                                  KeepData : Whether the node data is preserved, default false.
+    *                                                  KeepData : Whether to keep the original data of the detached node. This option has no default value.
+    *                                                             User should specify its value explicitly.
+    *                                                  Enforced : Whether to detach the node forcibly, default to be false.
     *                                                  @endcode
     *
     * @return Returns the result, default return array.
@@ -304,12 +307,12 @@ class SequoiaGroup
     *
     * Example:
     * @code
-    * $err = $groupObj -> detachNode( 'host1', '11900' ) ;
+    * $err = $groupObj -> detachNode( 'host1', '11900', array( 'KeepData' => true ) ) ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to detach node, error code: ".$err['errno'] ;
     *    return ;
     * }
     * @endcode
    */
-   public function detachNode( string $hostName, string $serviceName, array|string $options = NULL ){}
+   public function detachNode( string $hostName, string $serviceName, array|string $options ){}
 }
