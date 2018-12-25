@@ -135,7 +135,6 @@ static void SdbDestroyCLStatistics( SdbCLStatistics *clStat, bool freeObj );
 static INT32 SdbInitCLStatistics( SdbCLStatistics *clStat );
 static void SdbFiniCLStatisticsCache( SdbStatisticsCache *cache );
 
-static BOOLEAN isNormalChar( CHAR c ) ;
 static CHAR *changeToRegexFormat( CHAR *outputString ) ;
 
 
@@ -1125,26 +1124,6 @@ UINT64 sdbbson_iterator_getusecs( sdbbson_iterator *ite )
    }
 }
 
-BOOLEAN isNormalChar( CHAR c )
-{
-   if ( c >= '0' && c <= '9' )
-   {
-      return TRUE ;
-   }
-   else if ( c >= 'A' && c <= 'Z' )
-   {
-      return TRUE ;
-   }
-   else if ( c >= 'a' && c <= 'z' )
-   {
-      return TRUE ;
-   }
-   else
-   {
-      return FALSE ;
-   }
-}
-
 CHAR *changeToRegexFormat( CHAR *likeStr )
 {
    INT32 i = 0 ;
@@ -1159,12 +1138,7 @@ CHAR *changeToRegexFormat( CHAR *likeStr )
 
    for ( i = 0 ; i < oldlength ; i++ )
    {
-      if ( isNormalChar( likeStr[i] ) )
-      {
-         regexStr[regexj] = likeStr[i] ;
-         regexj++ ;
-      }
-      else if ( '_' == likeStr[i] )
+      if ( '_' == likeStr[i] )
       {
          regexStr[regexj] = '.' ;
          regexj++ ;
@@ -1178,19 +1152,58 @@ CHAR *changeToRegexFormat( CHAR *likeStr )
       }
       else
       {
-         elog( DEBUG1, "can't support like str=[%s]", likeStr ) ;
-         goto error ;
+         if ( '\\' == likeStr[i] )
+         {
+            if ( i + 1 >= oldlength )
+            {
+               // user's like format example: 'abc\';
+               //pg will complain last '\\'.
+               regexStr[regexj] = '\\' ;
+               regexj++ ;
+               regexStr[regexj] = '\\' ;
+               regexj++ ;
+            }
+            else if ( '\\' == likeStr[i + 1] )
+            {
+               // user's like format example: 'a\\bc';
+               regexStr[regexj] = '\\' ;
+               regexj++ ;
+               regexStr[regexj] = '\\' ;
+               regexj++ ;
+               i++ ;
+            }
+            else if ( '_' == likeStr[i + 1] || '%' == likeStr[i + 1])
+            {
+               // user's like format example: 'a\_bc' or 'a\%bc';
+               regexStr[regexj] = likeStr[i + 1] ;
+               regexj++ ;
+               i++ ;
+            }
+            else
+            {
+               //do nothing.
+            }
+         }
+         else if ( '^' == likeStr[i] || '$' == likeStr[i]
+              || '*' == likeStr[i] || '+' == likeStr[i] || '?' == likeStr[i]
+              || '.' == likeStr[i] || '|' == likeStr[i] || '(' == likeStr[i]
+              || ')' == likeStr[i] || '{' == likeStr[i] || '[' == likeStr[i] )
+         {
+            regexStr[regexj] = '\\' ;
+            regexj++ ;
+            regexStr[regexj] = likeStr[i] ;
+            regexj++ ;
+         }
+         else
+         {
+            regexStr[regexj] = likeStr[i] ;
+            regexj++ ;
+         }
       }
    }
 
    regexStr[regexj] = '$' ;
-
-done:
    return regexStr ;
-error:
-   pfree( regexStr ) ;
-   regexStr = NULL ;
-   goto done ;
 }
 
 INT32 sdbOperExprParamVar( OpExpr *expr, SdbExprTreeState *expr_state,
