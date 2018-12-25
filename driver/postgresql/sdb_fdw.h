@@ -141,6 +141,8 @@ typedef struct SdbExprTreeState_s
    INT32 or_unsupport_count ;   /* OR/NOT 's child node, impact OR/NOT node*/
 
    INT32 is_use_decimal ;       /* use decimal in sdb */
+
+   List *range_table ;          /* List of RangeTblEntry */
 }SdbExprTreeState;
 
 typedef struct PgTableDesc_s
