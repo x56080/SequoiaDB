@@ -1,0 +1,28 @@
+/******************************************************************************
+*@Description : Public function for testing attachNode.
+*@Modify list :
+*               2018-12-12  Wangkexin  Init
+******************************************************************************/
+
+// Get group from Sdb
+function getGroup( db )
+{
+   try
+   {
+      var listGroups = db.listReplicaGroups() ;
+      var groupArray = new Array() ;
+      while( listGroups.next() )
+      {
+         if ( listGroups.current().toObj()["GroupID"] >= DATA_GROUP_ID_BEGIN )
+         {
+            groupArray.push( listGroups.current().toObj()["GroupName"] ) ;
+         }
+      }
+      return groupArray ;
+   }
+   catch ( e )
+   {
+      println( "Failed to get groups from sdb, rc = " + e ) ;
+      throw e ;
+   }
+}
