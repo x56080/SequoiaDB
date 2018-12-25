@@ -98,7 +98,6 @@
     <Compile Include="Crud\DataType\Numberlong13652.cs" />
     <Compile Include="Crud\Explain\Explain12475.cs" />
     <Compile Include="Meta\Common.cs" />
-    <Compile Include="Meta\TestCreateAndDropCS14560.cs" />
     <Compile Include="Meta\TestCSCL14562.cs" />
     <Compile Include="Meta\TestDeleteDomainAndCS14559.cs" />
     <Compile Include="Meta\TestDomain14557.cs" />
