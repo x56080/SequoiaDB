@@ -1394,6 +1394,7 @@ int sdbGenerateRescanCondition(SdbExecState *fdw_state, PlanState *planState,
    expr_state.foreign_table_index = fdw_state->relid ;
    expr_state.foreign_table_id    = fdw_state->tableID ;
    expr_state.is_use_decimal      = fdw_state->isUseDecimal ;
+   expr_state.range_table         = planState->ps_ExprContext->ecxt_estate->es_range_table ;
 
    sdbbson_init( rescanCondition ) ;
    foreach( cell, planState->qual )
