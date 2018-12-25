@@ -2085,8 +2085,8 @@
       <code>
          <name>SDB_OUT_OF_BOUND</name>
          <description>
-            <en>Stored procedure arguments are out of bound</en>
-            <cn>存储过程参数越界</cn>
+            <en>Arguments are out of bound</en>
+            <cn>参数越界</cn>
          </description>
       </code>
 
