@@ -44,7 +44,7 @@ Global
 * 解析二进制文件
 
 	```lang-javascript
-	> traceFmt( 0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace_output" )
+	> traceFmt( 0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace.flw" )
  	```
 
 * 查看当前程序跟踪的状态可参考[traceStatus()](reference/Sequoiadb_command/Sdb/traceStatus.md)
