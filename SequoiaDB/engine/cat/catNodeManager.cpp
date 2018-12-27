@@ -1338,7 +1338,9 @@ namespace engine
             // append catalog service
             bobCataSvc.append( FIELD_NAME_SERVICE_TYPE, MSG_ROUTE_CAT_SERVICE );
             BSONElement beCataSvc = boConf.getField( PMD_OPTION_CATANAME );
-            if ( !beCataSvc.eoo() && beCataSvc.type()==String )
+            if ( !beCataSvc.eoo() && beCataSvc.type() == String &&
+                 NULL != beCataSvc.valuestr() &&
+                 ossStrcmp( beCataSvc.valuestr(), "" ) != 0 )
             {
                bobCataSvc.appendAs( beCataSvc, FIELD_NAME_NAME );
             }
