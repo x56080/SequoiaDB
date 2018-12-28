@@ -61,7 +61,7 @@ namespace engine
    class _clsReplayer : public SDBObject
    {
    public:
-      _clsReplayer( BOOLEAN useDps = FALSE ) ;
+      _clsReplayer( BOOLEAN useDps = FALSE, BOOLEAN isReplSync = FALSE ) ;
       ~_clsReplayer() ;
 
       void enableDPS () ;
@@ -105,6 +105,8 @@ namespace engine
       _SDB_DMSCB              *_dmsCB ;
       _dpsLogWrapper          *_dpsCB ;
       monDBCB                 *_monDBCB ;
+
+      BOOLEAN                 _isReplSync ;
 
    } ;
    typedef class _clsReplayer clsReplayer ;
