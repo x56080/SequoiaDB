@@ -72,9 +72,6 @@ namespace engine
          virtual INT32 doit () ;
 
       protected:
-         virtual void _onDetach() ;
-
-      protected:
          RTN_JOB_TYPE            _type ;
          CHAR                    _clFullName[DMS_COLLECTION_FULL_NAME_SZ + 1] ;
          std::string             _indexName ;

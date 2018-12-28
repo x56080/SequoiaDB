@@ -71,10 +71,6 @@ namespace engine
 
    _rtnIndexJob::~_rtnIndexJob ()
    {
-   }
-
-   void _rtnIndexJob::_onDetach()
-   {
       INT32 rc = SDB_OK ;
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
       dmsStorageUnit *su = NULL ;

@@ -107,6 +107,8 @@ namespace engine
       _dpsLogWrapper          *_dpsCB ;
       monDBCB                 *_monDBCB ;
 
+      BOOLEAN                 _isReplSync ;
+
    } ;
    typedef class _clsReplayer clsReplayer ;
 }

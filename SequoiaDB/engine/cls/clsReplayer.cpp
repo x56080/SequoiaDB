@@ -67,6 +67,8 @@ namespace engine
          _dpsCB = sdbGetDPSCB() ;
       }
       _monDBCB = pmdGetKRCB()->getMonDBCB () ;
+
+      _isReplSync = isReplSync ;
    }
 
    _clsReplayer::~_clsReplayer()
@@ -361,6 +363,7 @@ namespace engine
             BSONObj newMatch ;
             BSONObj modifier ;   //new change obj
             const CHAR *fullname = NULL ;
+            INT64 updateNum = 0 ;
             BSONObj hint = BSON(""<<IXM_ID_KEY_NAME);
             rc = dpsRecord2Update( (CHAR *)recordHeader,
                                    &fullname,
@@ -376,11 +379,22 @@ namespace engine
             if ( !modifier.isEmpty() )
             {
                rc = rtnUpdate( fullname, match, modifier,
-                               hint, 0, eduCB, _dmsCB, _dpsCB, 1 ) ;
+                               hint, 0, eduCB, _dmsCB, _dpsCB, 1,
+                               &updateNum ) ;
             }
-            if ( SDB_OK == rc && incCount )
+            if ( SDB_OK == rc )
             {
-               _monDBCB->monOperationCountInc ( MON_UPDATE_REPL ) ;
+               if ( updateNum > 0 )
+               {
+                  if ( incCount )
+                  {
+                     _monDBCB->monOperationCountInc ( MON_UPDATE_REPL ) ;
+                  }
+               }
+               else if ( _isReplSync )
+               {
+                  SDB_ASSERT( updateNum > 0, "Updated number must > 0" ) ;
+               }
             }
             break ;
          }
@@ -388,6 +402,7 @@ namespace engine
          {
             const CHAR *fullname = NULL ;
             BSONObj obj ;
+            INT64 deleteNum = 0 ;
             rc = dpsRecord2Delete( (CHAR *)recordHeader,
                                    &fullname,
                                    obj ) ;
@@ -411,12 +426,22 @@ namespace engine
                   BSONObj selector = selectorBuilder.obj() ;
                   BSONObj hint = BSON(""<<IXM_ID_KEY_NAME) ;
                   rc = rtnDelete( fullname, selector, hint, 0, eduCB, _dmsCB,
-                                  _dpsCB, 1 ) ;
+                                  _dpsCB, 1, &deleteNum ) ;
                }
             }
-            if ( SDB_OK == rc && incCount )
+            if ( SDB_OK == rc )
             {
-               _monDBCB->monOperationCountInc ( MON_DELETE_REPL ) ;
+               if ( deleteNum > 0 )
+               {
+                  if ( incCount )
+                  {
+                     _monDBCB->monOperationCountInc ( MON_DELETE_REPL ) ;
+                  }
+               }
+               else if ( _isReplSync )
+               {
+                  SDB_ASSERT( deleteNum > 0, "Deleted number must > 0" ) ;
+               }
             }
             break ;
          }

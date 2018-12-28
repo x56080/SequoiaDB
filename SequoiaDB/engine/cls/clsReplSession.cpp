@@ -61,6 +61,7 @@ namespace engine
    _clsReplDstSession::_clsReplDstSession ( UINT64 sessionID )
       :_pmdAsyncSession ( sessionID ),
        _mb( CLS_SYNC_DEF_LEN ),
+       _replayer( FALSE, TRUE ),
        _status( CLS_SESSION_STATUS_SYNC ),
        _quit( FALSE ),
        _addFSSession(0),
