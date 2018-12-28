@@ -62,7 +62,7 @@ namespace engine
    class _clsReplayer : public SDBObject
    {
    public:
-      _clsReplayer( BOOLEAN useDps = FALSE ) ;
+      _clsReplayer( BOOLEAN useDps = FALSE, BOOLEAN isReplSync = FALSE ) ;
       ~_clsReplayer() ;
 
       void enableDPS () ;
