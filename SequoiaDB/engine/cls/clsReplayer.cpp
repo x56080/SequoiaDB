@@ -58,7 +58,10 @@ namespace engine
                          _dpsLogWrapper *dpsCB,
                          BOOLEAN isRollBack ) ;
 
-   _clsReplayer::_clsReplayer( BOOLEAN useDps )
+   /*
+      _clsReplayer implement
+   */
+   _clsReplayer::_clsReplayer( BOOLEAN useDps, BOOLEAN isReplSync )
    {
       _dmsCB = sdbGetDMSCB() ;
       _dpsCB = NULL ;
