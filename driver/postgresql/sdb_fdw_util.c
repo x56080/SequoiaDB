@@ -1779,8 +1779,6 @@ void SdbReleaseRecord( SdbRecordCache *recordCache, UINT64 recordID )
 
 void sdbPreprocessLimit(PlannerInfo *root, INT64 *offset, INT64 *limit)
 {
-   BOOLEAN isParsedOffset = FALSE ;
-   BOOLEAN isParsedLimit = FALSE ;
    Query *parse = root->parse;
    Node *est;
 
@@ -1811,14 +1809,8 @@ void sdbPreprocessLimit(PlannerInfo *root, INT64 *offset, INT64 *limit)
             {
                *limit = -1;      /* force to at least 1 */
             }
-
-            isParsedLimit = TRUE ;
          }
       }
-   }
-   else
-   {
-      isParsedLimit = TRUE ;
    }
 
    if (parse->limitOffset)
@@ -1833,26 +1825,8 @@ void sdbPreprocessLimit(PlannerInfo *root, INT64 *offset, INT64 *limit)
             {
                *offset = 0;
             }
-
-            isParsedOffset = TRUE ;
          }
       }
-   }
-   else
-   {
-      isParsedOffset = TRUE ;
-   }
-
-   if (isParsedLimit && isParsedOffset)
-   {
-      elog( DEBUG1, "reset parse's limit and offset" ) ;
-      parse->limitCount = NULL ;
-      parse->limitOffset = NULL ;
-   }
-   else
-   {
-      *limit = -1;
-      *offset = 0;
    }
 
    return;
