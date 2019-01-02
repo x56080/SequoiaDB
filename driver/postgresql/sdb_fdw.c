@@ -3750,18 +3750,6 @@ static ForeignScan *SdbGetForeignPlan( PlannerInfo *root,
    if (fdw_state->isPushDownLimit && SDB_OK == rcCondition)
    {
       sdbPreprocessLimit( root, &fdw_state->offset, &fdw_state->limit );
-      /*
-         Notice: while offset and limit is still work outside foreign scan.
-         we should adjust the offset and limit that send to SequoiaDB.
-      */
-      if (0 != fdw_state->offset)
-      {
-         if (-1 != fdw_state->limit)
-         {
-            fdw_state->limit = fdw_state->limit + fdw_state->offset;
-         }
-         fdw_state->offset = 0;
-      }
    }
 
    fdw_state->bson_record_addr = sdbCreateBsonRecordAddr() ;
