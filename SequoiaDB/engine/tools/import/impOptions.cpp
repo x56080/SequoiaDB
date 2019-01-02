@@ -884,6 +884,14 @@ namespace import
             rc = SDB_INVALIDARG;
             goto error;
          }
+
+         if ( _fieldDelimiter.find( _recordDelimiter ) != string::npos )
+         {
+            std::cerr << IMP_OPTION_DELFIELD << " can't contain "
+                      << IMP_OPTION_DELRECORD << std::endl;
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
       }
 
       if (has(IMP_OPTION_FIELDS))
