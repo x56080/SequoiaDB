@@ -2152,6 +2152,8 @@ error:
 
 }
 
+// rc != SDB_OK means some conditions can't be parsed,
+// but other conditions still works
 INT32 sdbGenerateFilterCondition ( Oid foreign_id, RelOptInfo *baserel,
                                    INT32 isUseDecimal, sdbbson *condition )
 {
@@ -2185,6 +2187,11 @@ INT32 sdbGenerateFilterCondition ( Oid foreign_id, RelOptInfo *baserel,
             sdbbson_append_elements( condition, &subBson ) ;
          }
       }
+      else
+      {
+         elog( DEBUG1, "sdbGenerateFilterCondition rcTmp=%d", rcTmp ) ;
+         isExistUnsupport = TRUE ;
+      }
 
       sdbbson_destroy( &subBson ) ;
       if ( expr_state.total_unsupport_count > 0 )
@@ -2200,6 +2207,8 @@ INT32 sdbGenerateFilterCondition ( Oid foreign_id, RelOptInfo *baserel,
       sdbbson_destroy( condition ) ;
       sdbbson_init( condition ) ;
       sdbbson_finish( condition ) ;
+      elog( DEBUG1, "sdbGenerateFilterCondition sdbbson_finish rc=%d", rc ) ;
+      isExistUnsupport = TRUE ;
    }
 
    if ( isExistUnsupport )
@@ -3650,6 +3659,10 @@ static void SdbGetForeignPaths( PlannerInfo *root,
    {
       sort_path = root->sort_pathkeys ;
    }
+   else
+   {
+      fdw_state->isPushDownSort = FALSE ;
+   }
 
 #ifdef SDB_USE_OWN_POSTGRES
    //debugClauseInfo( root, baserel, foreignTableId ) ;
@@ -3726,6 +3739,7 @@ static ForeignScan *SdbGetForeignPlan( PlannerInfo *root,
    List *foreignPrivateList  = NIL ;
    List *columnList          = NIL ;
    INT32 rcCondition = SDB_OK ;
+   INT32 rcSort = SDB_OK ;
 
    SdbExecState *fdw_state   = ( SdbExecState * )baserel->fdw_private ;
    sdbGetColumnKeyInfo( fdw_state ) ;
@@ -3740,27 +3754,17 @@ static ForeignScan *SdbGetForeignPlan( PlannerInfo *root,
                                              fdw_state->isUseDecimal,
                                              &fdw_state->queryDocument ) ;
    sdbPrintBson( &fdw_state->queryDocument, DEBUG1, "SdbGetForeignPlan query" ) ;
-   if (fdw_state->isPushDownSort)
+   if ( fdw_state->isPushDownSort && fdw_state->isPushDownLimit
+        && SDB_OK == rcCondition )
    {
-      sdbGenerateSortCondition( baserel->relid, foreignTableId, bestPath->path.pathkeys,
-                                &fdw_state->sortDocument ) ;
-   }
+      // push down sort and limit if all condition can push down
+      rcSort = sdbGenerateSortCondition( baserel->relid, foreignTableId,
+                                         bestPath->path.pathkeys,
+                                         &fdw_state->sortDocument ) ;
 
-   // push down sort and limit if all condition can push down
-   if (fdw_state->isPushDownLimit && SDB_OK == rcCondition)
-   {
-      sdbPreprocessLimit( root, &fdw_state->offset, &fdw_state->limit );
-      /*
-         Notice: while offset and limit is still work outside foreign scan.
-         we should adjust the offset and limit that send to SequoiaDB.
-      */
-      if (0 != fdw_state->offset)
+      if (SDB_OK == rcSort)
       {
-         if (-1 != fdw_state->limit)
-         {
-            fdw_state->limit = fdw_state->limit + fdw_state->offset;
-         }
-         fdw_state->offset = 0;
+         sdbPreprocessLimit( root, &fdw_state->offset, &fdw_state->limit );
       }
    }
 
@@ -4009,19 +4013,9 @@ static void SdbRescanForeignScan( ForeignScanState *scanState )
    rc = sdbGenerateRescanCondition( executionState, &scanState->ss.ps,
                                     &rescanCondition ) ;
    sdbPrintBson( &rescanCondition, DEBUG1, "rescan" ) ;
-   if ( SDB_OK == rc )
-   {
-      rc = sdbQuery1( executionState->hCollection, &rescanCondition, NULL,
-                      &executionState->sortDocument, NULL, 0, -1, FLG_QUERY_WITH_RETURNDATA,
-                      &executionState->hCursor ) ;
-   }
-   else
-   {
-      rc = sdbQuery1( executionState->hCollection,
-                      &executionState->queryDocument, NULL,
-                      &executionState->sortDocument, NULL, 0, -1, FLG_QUERY_WITH_RETURNDATA,
-                      &executionState->hCursor ) ;
-   }
+   rc = sdbQuery1( executionState->hCollection, &rescanCondition, NULL,
+                   &executionState->sortDocument, NULL, 0, -1, FLG_QUERY_WITH_RETURNDATA,
+                   &executionState->hCursor ) ;
 
    sdbbson_destroy( &rescanCondition ) ;
 
