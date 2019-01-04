@@ -155,6 +155,8 @@ namespace engine
          goto error ;
       }
 
+      try
+      {
       apm = su->getAPM() ;
       SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
@@ -253,6 +255,13 @@ namespace engine
             goto error ;
          }
          ++insertNum ;
+      }
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Occur exception: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
       }
 
    done :
