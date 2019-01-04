@@ -87,26 +87,37 @@ TEST( AttachAndDetachNodeTest, onlyAttachAndOnlyDetach )
 	getHost() ;
 	rc = sdbCreateNode( dataRG, HOST, tempNodeSvcName, tempNodeDbPath, NULL ) ;
 	ASSERT_EQ( rc, SDB_OK ) << "fail to create tempNode" ;
-	
+        
+        // invaild detachNode/attachNode
+        rc = sdbDetachNode( dataRG, HOST, tempNodeSvcName, NULL ) ;
+        ASSERT_EQ( SDB_INVALIDARG, rc ) ;
+        rc = sdbAttachNode( dataRG, HOST, tempNodeSvcName, NULL ) ;
+        ASSERT_EQ( SDB_INVALIDARG, rc ) ;
+
 	// detach tempNode from dataRG
-	rc = sdbDetachNode( dataRG, HOST, tempNodeSvcName, NULL ) ;
+        bson option;
+        bson_init( &option );
+        bson_append_bool( &option,"KeepData", true ) ;
+        bson_finish( &option ) ;
+	rc = sdbDetachNode( dataRG, HOST, tempNodeSvcName, &option ) ;
 	ASSERT_EQ( rc, SDB_OK ) << "fail to detach tempNode" ;
 	rc = sdbGetNodeByHost( dataRG, HOST, tempNodeSvcName, &tempNode ) ;
 	ASSERT_EQ( rc, SDB_CLS_NODE_NOT_EXIST ) << "fail to check detach" ;
 	
 	// create tempRG
-    rc = sdbCreateReplicaGroup( db, "temp", &tempRG ) ;
-    ASSERT_EQ( rc, SDB_OK ) << "fail to create tempRG" ;
+        rc = sdbCreateReplicaGroup( db, "temp", &tempRG ) ;
+        ASSERT_EQ( rc, SDB_OK ) << "fail to create tempRG" ;
 	
 	// attach tempNode to tempRG
-    rc = sdbAttachNode( tempRG, HOST, tempNodeSvcName, NULL ) ;
-    ASSERT_EQ( rc, SDB_OK ) << "fail to attach tempNode" ;
-    rc = sdbGetNodeByHost( tempRG, HOST, tempNodeSvcName, &tempNode ) ;
-    ASSERT_EQ( rc, SDB_OK ) << "fail to check attach" ;
+        rc = sdbAttachNode( tempRG, HOST, tempNodeSvcName, &option ) ;
+        ASSERT_EQ( rc, SDB_OK ) << "fail to attach tempNode" ;
+        rc = sdbGetNodeByHost( tempRG, HOST, tempNodeSvcName, &tempNode ) ;
+        ASSERT_EQ( rc, SDB_OK ) << "fail to check attach" ;
+        bson_destroy( &option ) ;
     
 	// start tempRG
-    rc = sdbStartReplicaGroup( tempRG ) ;
-    ASSERT_EQ( rc, SDB_OK ) << "fail to start tempRG" ;
+        rc = sdbStartReplicaGroup( tempRG ) ;
+        ASSERT_EQ( rc, SDB_OK ) << "fail to start tempRG" ;
 	
 	// stop tempRG
 	rc = sdbStopReplicaGroup( tempRG ) ;
