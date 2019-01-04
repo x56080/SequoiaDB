@@ -20,7 +20,7 @@ public class CommLib {
 	 * @param sdb
 	 * @return true/false, true is standalone, false is cluster
 	 */
-	public boolean isStandAlone(Sequoiadb sdb){
+	public static boolean isStandAlone(Sequoiadb sdb){
 		try{
 			sdb.listReplicaGroups();
 		}catch(BaseException e){
@@ -50,7 +50,7 @@ public class CommLib {
 	 * @param sdb
 	 * @return dataGroupNames
 	 */
-	public ArrayList<String> getDataGroupNames(Sequoiadb sdb){
+	public static ArrayList<String> getDataGroupNames(Sequoiadb sdb){
 		ArrayList<String> dataGroupNames = new ArrayList<String>();
 		try{
 			dataGroupNames = sdb.getReplicaGroupNames();
@@ -68,7 +68,7 @@ public class CommLib {
 	 * @param rgName
 	 * @return nodeAddrs, eg.[host1:11840, host2:11850]
 	 */
-	public List<String> getNodeAddress(Sequoiadb sdb, 
+	public static List<String> getNodeAddress(Sequoiadb sdb, 
 									   String rgName){
 		List<String> nodeAddrs = new ArrayList<String>();
 		try{
