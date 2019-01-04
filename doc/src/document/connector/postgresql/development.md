@@ -67,7 +67,7 @@ public class postgresql_sample {
       	while (rs.next()) {
            	ResultSetMetaData md = rs.getMetaData();
            	int col_num = md.getColumnCount();
-           	if (isHeaderPrint){
+           	if (!isHeaderPrint){
                	for (int i = 1; i  <= col_num; i++) {
                    	System.out.print(md.getColumnName(i) + "|");
                    	isHeaderPrint = true;
