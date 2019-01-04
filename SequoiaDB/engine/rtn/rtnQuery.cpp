@@ -278,7 +278,7 @@ namespace engine
                    SINT64 &contextID )
    {
       INT32 rc = SDB_OK ;
-      SDB_RTNCB *rtnCB = sdbGetRTNCB() ; 
+      SDB_RTNCB *rtnCB = sdbGetRTNCB() ;
       rtnContext *context = NULL ;
       rtnContext *bkContext = NULL ;
       SINT64 old = contextID ;
@@ -376,6 +376,8 @@ namespace engine
       INT32 indexLID = DMS_INVALID_EXTENT ;
       INT32 direction = 0 ;
 
+      try
+      {
       if ( FLG_QUERY_EXPLAIN & flags )
       {
          rc = rtnExplain( pCollectionName,
@@ -577,6 +579,13 @@ namespace engine
                         numToReturn,
                         contextID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to sort, rc: %d", rc ) ;
+      }
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Occur exception: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
       }
 
       // sample timetamp

@@ -131,66 +131,75 @@ namespace engine
          goto error ;
       }
 
-      apm = su->getAPM() ;
-      SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
+      try
+      {
+         apm = su->getAPM() ;
+         SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
-      // plan is released when exiting the function
-      rc = apm->getPlan ( deletor,
-                          emptyObj, // orderBy
-                          hint, // hint
-                          pCollectionShortName,
-                          &plan ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to get access plan for %s for delete, "
-                  "rc: %d", pCollectionName, rc ) ;
-         goto error ;
-      }
-
-      if ( plan->getScanType() == TBSCAN )
-      {
-         rc = rtnGetTBScanner( pCollectionShortName, plan->getMatcher(), su,
-                               mbContext, cb, &pScanner,
-                               DMS_ACCESS_TYPE_DELETE ) ;
-      }
-      else if ( plan->getScanType() == IXSCAN )
-      {
-         rc = rtnGetIXScanner( pCollectionShortName, plan, su, mbContext, cb,
-                               &pScanner, DMS_ACCESS_TYPE_DELETE ) ;
-      }
-      else
-      {
-         PD_LOG ( PDERROR, "Invalid return type for scan" ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get dms scanner, rc: %d", rc ) ;
-
-      // delete
-      {
-         _mthRecordGenerator generator ;
-         dmsRecordID recordID ;
-         ossValuePtr recordDataPtr = 0 ;
-
-         while ( SDB_OK == ( rc = pScanner->advance( recordID, generator,
-                                                     cb ) ) )
+         // plan is released when exiting the function
+         rc = apm->getPlan ( deletor,
+                             emptyObj, // orderBy
+                             hint, // hint
+                             pCollectionShortName,
+                             &plan ) ;
+         if ( rc )
          {
-            generator.getDataPtr( recordDataPtr ) ;
-            rc = su->data()->deleteRecord( mbContext, recordID, recordDataPtr,
-                                           cb, dpsCB ) ;
-            PD_RC_CHECK( rc, PDERROR, "Delete record failed, rc: %d", rc ) ;
-            ++delNum ;
-         }
-
-         if ( SDB_DMS_EOC == rc )
-         {
-            rc = SDB_OK ;
-         }
-         else if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to get next record, rc: %d", rc ) ;
+            PD_LOG ( PDERROR, "Failed to get access plan for %s for delete, "
+                     "rc: %d", pCollectionName, rc ) ;
             goto error ;
          }
+
+         if ( plan->getScanType() == TBSCAN )
+         {
+            rc = rtnGetTBScanner( pCollectionShortName, plan->getMatcher(), su,
+                                  mbContext, cb, &pScanner,
+                                  DMS_ACCESS_TYPE_DELETE ) ;
+         }
+         else if ( plan->getScanType() == IXSCAN )
+         {
+            rc = rtnGetIXScanner( pCollectionShortName, plan, su, mbContext, cb,
+                                  &pScanner, DMS_ACCESS_TYPE_DELETE ) ;
+         }
+         else
+         {
+            PD_LOG ( PDERROR, "Invalid return type for scan" ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get dms scanner, rc: %d", rc ) ;
+
+         // delete
+         {
+            _mthRecordGenerator generator ;
+            dmsRecordID recordID ;
+            ossValuePtr recordDataPtr = 0 ;
+
+            while ( SDB_OK == ( rc = pScanner->advance( recordID, generator,
+                                                        cb ) ) )
+            {
+               generator.getDataPtr( recordDataPtr ) ;
+               rc = su->data()->deleteRecord( mbContext, recordID, recordDataPtr,
+                                              cb, dpsCB ) ;
+               PD_RC_CHECK( rc, PDERROR, "Delete record failed, rc: %d", rc ) ;
+               ++delNum ;
+            }
+
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+            }
+            else if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to get next record, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Occur exception: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
       }
 
    done :
