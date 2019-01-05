@@ -322,7 +322,7 @@ class replicagroup(object):
            hostname     str      The host name for the node.
            servicename  str      The servicename for the node.
            config       dict     The configurations for the node. Can not be null or empty. Can be the follow options: 
-                                 KeepData : Whether to keep the original data of the new node. This option has no default value. User should specify its value explicitly. 
+                                 KeepData: Whether to keep the original data of the new node. This option has no default value. User should specify its value explicitly. 
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
