@@ -30,7 +30,7 @@ function main()
    expRecsAfterRemove.push(expRecs[0]);
    var sortCond = {no:1};
    checkDataContent(db, COMMCSNAME, clName, sortCond, expRecsAfterRemove, "16993");        
-   checkInspectResult(COMMCSNAME, clName); 
+   checkResult(COMMCSNAME, clName,  groups, sortCond, expRecsAfterRemove, false);  
    
    commDropCL(db, COMMCSNAME, clName, true, true);
 }

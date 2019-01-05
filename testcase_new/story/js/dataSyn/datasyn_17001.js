@@ -37,7 +37,7 @@ function main()
    var expRecsAfterInsert = buckInsertData( dbcl, 20000, beginNo);
    var findCond = {'no':{$gte: beginNo}};   
    checkDataContent(db, COMMCSNAME, clName, sortCond, expRecsAfterInsert, "17001", true, findCond);        
-   checkInspectResult(COMMCSNAME, clName);   
+   checkResult(COMMCSNAME, clName,  groups, sortCond, expRecsAfterUpdate, false);  
    
    commDropCL(db, COMMCSNAME, clName, true, true);
 }

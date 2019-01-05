@@ -27,7 +27,7 @@ function main()
    var sortCond = {'inta':1};
    var expRecsAfterUpdate = getUpdateExpRecs(expRecs);
    checkDataContent(db, COMMCSNAME, clName, sortCond, expRecs, "16992");
-   checkInspectResult(COMMCSNAME, clName);
+   checkResult(COMMCSNAME, clName,  groups, sortCond, expRecs, false);  
    commDropCL(db, COMMCSNAME, clName, true, true);
 }
 
