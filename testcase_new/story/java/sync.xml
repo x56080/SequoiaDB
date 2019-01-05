@@ -26,6 +26,7 @@
    <test name="consistency" >
       <packages>
          <package name="com.sequoiadb.metadataconsistency.cluster"/>
+         <package name="com.sequoiadb.dataconsistency"/>
       </packages>
    </test>
 </suite>
