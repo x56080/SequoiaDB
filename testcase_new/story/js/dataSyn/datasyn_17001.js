@@ -29,14 +29,14 @@ function main()
    updateDatas( dbcl, expRecs.length);   
    
    var sortCond = {'inta':1};
-   var expRecsAfterUpdate = getUpdateExpRecs(expRecs);
-   checkResult(COMMCSNAME, clName,  groups, sortCond, expRecsAfterUpdate, false);   
+   var expRecsAfterUpdate = getUpdateExpRecs(expRecs); 
+   checkDataContent(db, COMMCSNAME, clName, sortCond, expRecsAfterUpdate, "17001a", false);     
   
    // insert 2W records again, with a range of 20000-40000,eg:no:[20000,39999]
    var beginNo = 20000;
    var expRecsAfterInsert = buckInsertData( dbcl, 20000, beginNo);
    var findCond = {'no':{$gte: beginNo}};   
-   checkDataContent(db, COMMCSNAME, clName, sortCond, expRecsAfterInsert, "17001", true, findCond);        
+   checkDataContent(db, COMMCSNAME, clName, sortCond, expRecsAfterInsert, "17001b", true, findCond);        
    checkInspectResult(COMMCSNAME, clName);   
    
    commDropCL(db, COMMCSNAME, clName, true, true);
