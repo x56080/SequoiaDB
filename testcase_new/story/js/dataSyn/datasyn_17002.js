@@ -33,13 +33,13 @@ function main()
    println("---update the id field.");
    getUpdateExpRecs(expRecs, "_id");   
    checkDataContent(db,COMMCSNAME, clName, sortCond, expRecs, "17002a", false);
-   
+   checkInspectResult(COMMCSNAME, clName);    
   
    println("---update the non-_id field.");
    dbcl.update( { $set: { 'str': "testdatasyn17002" } } );   
    var expRecsAfterUpdate = getUpdateExpRecs(expRecs, "str");  
    checkDataContent(db,COMMCSNAME, clName, sortCond, expRecsAfterUpdate, "17002b", false);        
-   checkResult( COMMCSNAME, clName, groups, sortCond, expRecsAfterUpdate, "17002b", false);   
+   checkInspectResult(COMMCSNAME, clName);
    
    commDropCL(db, COMMCSNAME, clName, true, true);
 }

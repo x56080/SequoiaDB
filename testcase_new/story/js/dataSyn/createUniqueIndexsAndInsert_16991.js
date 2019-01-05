@@ -25,7 +25,7 @@ function main()
    var expRecs = insertData( dbcl );
    var sortCond = {no:1};
    checkDataContent(db, COMMCSNAME, clName, sortCond, expRecs, "16991");        
-   checkResult(COMMCSNAME, clName,  groups, sortCond, expRecs, false);  
+   checkInspectResult(COMMCSNAME, clName); 
    
    commDropCL(db, COMMCSNAME, clName, true, true);
 }

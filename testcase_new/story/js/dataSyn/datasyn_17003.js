@@ -37,9 +37,8 @@ function main()
    expRecs.splice(deleteSerial);
    
    var sortCond = {'inta':1};   
-   checkDataContent(db, COMMCSNAME, clName, sortCond, expRecs, "17003");       
-   checkResult(COMMCSNAME, clName,  groups, sortCond, expRecs, false);  
-   
+   checkDataContent(db, COMMCSNAME, clName, sortCond, expRecs, "17003");        
+   checkInspectResult(COMMCSNAME, clName);     
    
    commDropCL(db, COMMCSNAME, clName, true, true);
 }

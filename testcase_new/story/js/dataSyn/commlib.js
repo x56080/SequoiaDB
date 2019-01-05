@@ -1,4 +1,7 @@
-
+// create WORKDIR in local host
+var saveRecordsDir = WORKDIR + "/datasyn/"
+var cmd = new Cmd(); 
+readyTmpDir( saveRecordsDir );
 /************************************
 @Description: Insert data to SequoiaDB
 @parameter:
@@ -158,7 +161,7 @@ function checkRec( rc, expRecs, filterId, fileNameId )
 	   	{   	   
 	   		println("\nerror occurs in "+(parseInt(i)+1)+"th record, in field '"+f+"'");
 	   		println("\nactual recs in cl= "+JSON.stringify(actRecs[i])+"\n\nexpect recs= "+JSON.stringify(expRecs[i])); 
-	   		//saveCheckRecords( fileNameId, actRecs, expRecs);		
+	   		saveCheckRecords( fileNameId, actRecs, expRecs);		
 	   		throw buildException("checkRec()", "check actRecs fail!");
 	   	}
    	}
@@ -234,6 +237,61 @@ function checkResult(csName, clName, groups, sortCond, expRecs, testcaseId, filt
          }
       }      
    }    
+}
+
+/******************************************************************************
+@Description : check inpect result
+@input:         csName
+                clName
+                checkTimes
+******************************************************************************/
+function checkInspectResult(csName, clName, checkTimes)
+{
+   println("---begin to check data consistency.");
+   if ( typeof(checkTimes) == "undefined" )  {  checkTimes = 20;  }
+
+   var inspectBinFile = WORKDIR + "/" + "inspect_" + csName + "_" + clName + ".bin" ;
+   var inspectReportFile = WORKDIR + "/" + "inspect_" + csName + "_" + clName + ".bin.report" ;
+   var installPath = commGetInstallPath();   
+   var inspectCommand = installPath + "/bin/sdbinspect" + " -d " + COORDHOSTNAME + ":" + COORDSVCNAME + " -c " + csName + " -l " + clName + " -o " + inspectBinFile + " -t " + checkTimes; 
+   try 
+   {  
+      // exec sdbinspect 
+      cmd.run(inspectCommand) ;
+      var info = cmd.run("tail -n 1 " + inspectReportFile);
+      var actResult = info.split("\n")[0].split("\:")[1].trim();
+      var expectRusult = "exit with no records different";
+      // compare result
+      if(actResult == expectRusult)
+      {      
+         // remove report files
+         cmd.run("rm -f " + inspectBinFile);
+         cmd.run("rm -f " + inspectReportFile);
+         println("---check consistency success!") ;
+      }
+      else
+      {         
+         println("---check consistency fail, cl name: " + csName + "." + clName); 
+      }      
+   }   
+   catch(e) 
+   { 
+      throw buildException("checkConsistency", "check consistency fail", "fail",
+                                          e, e);  
+   }   
+}
+
+function readyTmpDir( dir )
+{
+    try
+    {
+        cmd.run( "rm -rf "+ dir );
+        cmd.run( "mkdir -p "+ dir );
+    }
+    catch( e )
+    {
+        throw buildException( "readyTmpDir", e, "make dir " + dir , 0, e ) ;
+    } 
 }
 
 function saveCheckRecords( fileNameId, actRecs, expRecs)
