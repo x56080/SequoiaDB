@@ -41,8 +41,8 @@ public class CreateUniqueIndexsAndOpr16995 extends SdbTestBase {
 	private Sequoiadb sdb = null;
 	private String csName = "cs_16995";
 	private String groupName = "";
-
-	@BeforeClass
+	//environmental Resource problems on CI,the cases set unabled.
+	@BeforeClass(enabled=false)
 	public void setUp() {
 		sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 		if (CommLib.isStandAlone(sdb)) {
@@ -56,7 +56,7 @@ public class CreateUniqueIndexsAndOpr16995 extends SdbTestBase {
 		sdb.createCollectionSpace(csName);
 	}
 
-	@Test(dataProvider = "dataProvider")
+	@Test(dataProvider = "dataProvider",enabled=false)
 	public void test(String clName) {
 		Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 		String options = "{ShardingKey:{no:1},ReplSize:1,Group:'" + groupName + "'}";
@@ -91,7 +91,7 @@ public class CreateUniqueIndexsAndOpr16995 extends SdbTestBase {
 		DataConsistencyUtil.checkDataConsistency(sdb, groupName, csName, clName, expRecords);
 	}
 
-	@AfterClass
+	@AfterClass(enabled=false)
 	public void tearDown() {
 		try {
 			sdb.dropCollectionSpace(csName);
