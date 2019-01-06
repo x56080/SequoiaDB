@@ -102,6 +102,12 @@ class spareRGTest extends PHPUnit_Framework_TestCase
       
       $err = self::$node->start();
       $this->assertEquals($err, 0) ;
+
+      $err = self::$group->detachNode(self::$node);
+      $this->assertEquals($err, -6) ;
+
+      $err = self::$group->detachNode(self::$node, null);
+      $this->assertEquals($err, -6) ;
       
       $err = self::$group->detachNode(self::$node, $options);
       $this->assertEquals($err, 0) ;
@@ -130,6 +136,12 @@ class spareRGTest extends PHPUnit_Framework_TestCase
       self::$group = $groups[$pos];
       $nodeNum = self::$group->getNodeNum();
       
+      $err = self::$group->attachNode($node, null);
+      $this->assertEquals($err, -6);
+
+      $err = self::$group->attachNode($node);
+      $this->assertEquals($err, -6);
+
       $err = self::$group->attachNode($node, $options);
       $this->assertEquals($err, 0) ;
       $this->assertEquals($nodeNum+1, self::$group->getNodeNum());
