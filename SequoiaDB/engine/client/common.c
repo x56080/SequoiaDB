@@ -1975,8 +1975,12 @@ INT32 clientAppendOID ( bson *obj, bson_iterator *ret )
          ossMemcpy ( data, obj->data + sizeof ( INT32 ),
                      bson_size ( obj ) - sizeof ( INT32 ) ) ;
          if ( obj->ownmem )
+         {
             free ( obj->data ) ;
+         }
          obj->data = cur ;
+         obj->ownmem = 1 ;
+         obj->dataSize = len ;
          obj->cur = cur + len ;
       }
       else
@@ -3098,7 +3102,6 @@ INT32 clientBuildLobMsg( CHAR **ppBuffer, INT32 *bufferSize,
    }
    else
    {
-      BOOLEAN res = TRUE ;
       clientEndianConvertHeader ( &( msg->header ) ) ;
       if ( NULL != meta )
       {
@@ -3112,22 +3115,19 @@ INT32 clientBuildLobMsg( CHAR **ppBuffer, INT32 *bufferSize,
             bson_destroy( &newObj ) ;
             goto error ;
          }
-         res = bson_endian_convert ( (char*)bson_data(&newObj), &off, TRUE ) ;
-         if ( rc )
+         if ( bson_endian_convert ( (char*)bson_data(&newObj), &off, TRUE ) )
          {
             ossMemcpy( *ppBuffer + offset, bson_data( &newObj ), bson_size( &newObj ) ) ;
             offset += ossRoundUpToMultipleX( bson_size( &newObj ), 4 ) ;
          }
-
-         bson_destroy( &newObj ) ;
-         if ( !res )
-         {
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
          else
          {
-            rc = SDB_OK ;
+            rc = SDB_INVALIDARG ;
+         }
+         bson_destroy( &newObj ) ;
+         if ( rc )
+         {
+            goto error ;
          }
       }
 
