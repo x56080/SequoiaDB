@@ -43,6 +43,7 @@
   --arbiter             --     boolean   将节点设置成为一个仲裁节点。默认为false。
   --transactiontimeout  --     num       事务锁等待超时时间（单位：秒）,默认为:60,取值范围[0,3600]
   --omaddr              --     str       指定om节点的地址。配置形式为"hostname:omservicename"。
+  --dataerrorop         --     num       1.节点在无法继续正常增量同步而可能触发全量同步时的处理操作，默认为1。取值列表：0--不作任何处理，保持节点运行 1--自动从该数据组的其它节点进行全量同步 2--该节点停止运行
 
 **Note:**
 
