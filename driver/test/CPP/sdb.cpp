@@ -331,6 +331,16 @@ TEST(sdb,getSnapshot_SDB_SNAP_COLLECTIONSPACES)
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = connection.getSnapshot( cursor, SDB_SNAP_COLLECTIONSPACES ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
+   BSONObj empty ;
+   rc = connection.getList( cursor, SDB_LIST_COLLECTIONSPACES, empty, empty, empty, empty, 0, -1 ) ;
+   ASSERT_TRUE( rc==SDB_OK ) ;
+   cout << "getList: " << endl ;
+   displayRecord( cursor ) ;
+   rc = connection.getSnapshot( cursor, SDB_SNAP_COLLECTIONSPACES, empty, empty, empty, empty, 0, -1 ) ;
+   ASSERT_TRUE( rc==SDB_OK ) ;
+   cout << "getSnapshot: " << endl ;
+   displayRecord( cursor ) ;
+
    // display records
 //   displayRecord( cursor ) ;
    // disconnect the connection
