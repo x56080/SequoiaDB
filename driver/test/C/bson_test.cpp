@@ -147,6 +147,20 @@ error:
    goto done ; 
 }
 
+TEST_F( bsonTest, insert_oid_memory_leak_test )
+{
+   bson obj ;
+   bson_init( &obj ) ;
+   bson_finish( &obj ) ;
+   bson_empty( &obj ) ;
+   INT32 rc = sdbInsert( _cl, &obj ) ;
+   printf( "rc is: %d\n", rc ) ;
+   printf( "obj is: \n" ) ;
+   bson_print( &obj ) ;
+   bson_destroy( &obj ) ;
+}
+
+/*
 TEST_F( bsonTest, multi_thread_bulk_insert_to_check_oid )
 {
    INT32 rc = SDB_OK ;
@@ -165,4 +179,4 @@ TEST_F( bsonTest, multi_thread_bulk_insert_to_check_oid )
    ASSERT_EQ( SDB_OK, rc ) ;
    ASSERT_EQ( total_num * thread_num, count ) ;
 }
-
+*/

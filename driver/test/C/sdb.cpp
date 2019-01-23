@@ -94,6 +94,16 @@ TEST(sdb,sdbCreateUsr)
    // create a new user
    rc = sdbCreateUsr( connection, USERDEF, PASSWDDEF ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
+   // get list
+   rc = sdbGetList1( connection, SDB_LIST_USERS, NULL, NULL, NULL, NULL, 0, -1, &cursor ) ;
+   if ( rc == SDB_RTN_COORD_ONLY )
+   {
+   }
+   else
+   {
+      displayRecord( &cursor ) ;
+      ASSERT_TRUE( rc == SDB_OK ) ;
+   }
    // Remove a user
    rc = sdbRemoveUsr( connection, USERDEF, PASSWDDEF ) ;
    ASSERT_EQ( SDB_OK, rc ) ;

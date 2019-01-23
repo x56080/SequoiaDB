@@ -2262,6 +2262,7 @@ TEST( collection, alter_collection )
    sdbCSHandle cs         = 0 ;
    sdbCollectionHandle cl = 0 ;
    sdbCursorHandle cursor = 0 ;
+   sdbCursorHandle cursor2 = 0 ;
 
    INT32 rc                = SDB_OK ;
    const CHAR *pCSName     = "test_alter_cs_in_c" ;
@@ -2323,6 +2324,10 @@ TEST( collection, alter_collection )
    bson_finish( &matcher ) ;
    rc = sdbGetSnapshot( db, SDB_SNAP_CATALOG, &matcher, NULL, NULL, &cursor ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbGetSnapshot1( db, SDB_SNAP_COLLECTIONS, NULL, NULL, NULL, NULL, 0, -1, &cursor2 ) ;
+   ASSERT_TRUE( rc == SDB_OK ) ;
+   displayRecord( &cursor2 ) ;
+
 
    bson_init( &record ) ;
    rc = sdbNext( cursor, &record ) ;
@@ -2383,6 +2388,7 @@ TEST( collection, alter_collection )
 
    sdbDisconnect ( db ) ;
    sdbReleaseCursor ( cursor ) ;
+   sdbReleaseCursor ( cursor2 ) ;
    sdbReleaseCollection ( cl ) ;
    sdbReleaseCS ( cs ) ;
    sdbReleaseConnection ( db ) ;
