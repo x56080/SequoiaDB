@@ -350,6 +350,52 @@ SDB_EXPORT INT32 sdbGetSnapshot ( sdbConnectionHandle cHandle,
                                   bson *orderBy,
                                   sdbCursorHandle *handle ) ;
 
+/** \fn INT32 sdbGetSnapshot1 ( sdbConnectionHandle cHandle,
+                                INT32 snapType,
+                                bson *condition,
+                                bson *selector,
+                                bson *orderBy,
+                                bson *hint,
+                                INT64 numToSkip,
+                                INT64 numToReturn,
+                                sdbCursorHandle *handle )
+    \brief Get the snapshot
+    \param [in] cHandle The connection handle
+    \param [in] snapType The snapshot type as below
+
+        SDB_SNAP_CONTEXTS         : Get the snapshot of all the contexts
+        SDB_SNAP_CONTEXTS_CURRENT : Get the snapshot of current context
+        SDB_SNAP_SESSIONS         : Get the snapshot of all the sessions
+        SDB_SNAP_SESSIONS_CURRENT : Get the snapshot of current session
+        SDB_SNAP_COLLECTIONS      : Get the snapshot of all the collections
+        SDB_SNAP_COLLECTIONSPACES : Get the snapshot of all the collection spaces
+        SDB_SNAP_DATABASE         : Get the snapshot of the database
+        SDB_SNAP_SYSTEM           : Get the snapshot of the system
+        SDB_SNAP_CATALOG          : Get the snapshot of the catalog
+        SDB_SNAP_TRANSACTIONS     : Get snapshot of transactions in current session
+        SDB_SNAP_TRANSACTIONS_CURRENT : Get snapshot of all the transactions
+
+    \param [in] condition The matching rule, match all the documents if null
+    \param [in] select The selective rule, return the whole document if null
+    \param [in] orderBy The ordered rule, never sort if null
+    \param [in] hint The options provided for specific snapshot type.
+                format:{ '$Options': { <options> } }
+    \param [in] numToSkip Skip the first numToSkip documents, default is 0
+    \param [in] numToReturn Only return numToReturn documents, default is -1 for returning all results
+    \param [out] handle The cursor handle of current query
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbGetSnapshot1 ( sdbConnectionHandle cHandle,
+                                   INT32 snapType,
+                                   bson *condition,
+                                   bson *selector,
+                                   bson *orderBy,
+                                   bson *hint,
+                                   INT64 numToSkip,
+                                   INT64 numToReturn,
+                                   sdbCursorHandle *handle ) ;
+
 /** \fn INT32 sdbResetSnapshot ( sdbConnectionHandle cHandle,
  *                               bson *condition )
     \brief Reset the snapshot
@@ -463,6 +509,7 @@ SDB_EXPORT INT32 sdbTraceStatus ( sdbConnectionHandle cHandle,
         SDB_LIST_TASKS            : Get all the running split tasks ( only applicable in sharding env )
         SDB_LIST_TRANSACTIONS     : Get all the transactions information.
         SDB_LIST_TRANSACTIONS_CURRENT : Get the transactions information of current session.
+        SDB_LIST_USERS            : Get all the user informations.
 
     \param [in] condition The matching rule, match all the documents if null
     \param [in] select The selective rule, return the whole document if null
@@ -476,6 +523,55 @@ SDB_EXPORT INT32 sdbGetList ( sdbConnectionHandle cHandle,
                               bson *condition,
                               bson *selector,
                               bson *orderBy,
+                              sdbCursorHandle *handle ) ;
+
+/** \fn INT32 sdbGetList1 ( sdbConnectionHandle cHandle,
+                            INT32 listType,
+                            bson *condition,
+                            bson *selector,
+                            bson *orderBy,
+                            bson *hint,
+                            SINT64 numToSkip,
+                            SINT64 numToReturn,
+                            sdbCursorHandle *handle )
+    \brief Get the specified list
+    \param [in] cHandle The collection handle
+    \param [in] listType The list type as below
+
+        SDB_LIST_CONTEXTS         : Get all contexts list
+        SDB_LIST_CONTEXTS_CURRENT : Get contexts list for the current session
+        SDB_LIST_SESSIONS         : Get all sessions list
+        SDB_LIST_SESSIONS_CURRENT : Get the current session
+        SDB_LIST_COLLECTIONS      : Get all collections list
+        SDB_LIST_COLLECTIONSPACES : Get all collecion spaces' list
+        SDB_LIST_STORAGEUNITS     : Get storage units list
+        SDB_LIST_GROUPS           : Get replicaGroup list ( only applicable in sharding env )
+        SDB_LIST_STOREPROCEDURES  : Get all the stored procedure list
+        SDB_LIST_DOMAINS          : Get all the domains list
+        SDB_LIST_TASKS            : Get all the running split tasks ( only applicable in sharding env )
+        SDB_LIST_TRANSACTIONS     : Get all the transactions information.
+        SDB_LIST_TRANSACTIONS_CURRENT : Get the transactions information of current session.
+        SDB_LIST_USERS            : Get all the user informations.
+
+    \param [in] condition The matching rule, match all the documents if null
+    \param [in] select The selective rule, return the whole document if null
+    \param [in] orderBy The ordered rule, never sort if null
+    \param [in] hint The options provided for specific list type. Reserved.
+    \param [in] numToSkip Skip the first numToSkip documents.
+    \param [in] numToReturn Only return numToReturn documents. -1 means return
+                all matched results.
+    \param [out] handle The cursor handle of current query
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbGetList1( sdbConnectionHandle cHandle,
+                              INT32 listType,
+                              bson *condition,
+                              bson *selector,
+                              bson *orderBy,
+                              bson *hint,
+                              SINT64 numToSkip,
+                              SINT64 numToReturn,
                               sdbCursorHandle *handle ) ;
 
 /** \fn INT32 sdbGetCollection ( sdbConnectionHandle cHandle,

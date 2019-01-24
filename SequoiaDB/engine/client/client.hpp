@@ -2960,14 +2960,20 @@ namespace sdbclient
                                   INT32 snapType,
                                   const bson::BSONObj &condition = _sdbStaticObject,
                                   const bson::BSONObj &selector  = _sdbStaticObject,
-                                  const bson::BSONObj &orderBy   = _sdbStaticObject
+                                  const bson::BSONObj &orderBy   = _sdbStaticObject,
+                                  const bson::BSONObj &hint      = _sdbStaticObject,
+                                  INT64 numToSkip = 0,
+                                  INT64 numToReturn = -1
                                 ) = 0 ;
 
       virtual INT32 getSnapshot ( sdbCursor &cursor,
                                   INT32 snapType,
                                   const bson::BSONObj &condition = _sdbStaticObject,
                                   const bson::BSONObj &selector  = _sdbStaticObject,
-                                  const bson::BSONObj &orderBy   = _sdbStaticObject
+                                  const bson::BSONObj &orderBy   = _sdbStaticObject,
+                                  const bson::BSONObj &hint      = _sdbStaticObject,
+                                  INT64 numToSkip = 0,
+                                  INT64 numToReturn = -1
                                 ) = 0 ;
 
       virtual INT32 resetSnapshot ( const bson::BSONObj &condition = _sdbStaticObject ) = 0 ;
@@ -2976,13 +2982,19 @@ namespace sdbclient
                               INT32 listType,
                               const bson::BSONObj &condition = _sdbStaticObject,
                               const bson::BSONObj &selector  = _sdbStaticObject,
-                              const bson::BSONObj &orderBy   = _sdbStaticObject
+                              const bson::BSONObj &orderBy   = _sdbStaticObject,
+                              const bson::BSONObj &hint      = _sdbStaticObject,
+                              INT64 numToSkip = 0,
+                              INT64 numToReturn = -1
                             ) = 0 ;
       virtual INT32 getList ( sdbCursor &cursor,
                               INT32 listType,
                               const bson::BSONObj &condition = _sdbStaticObject,
                               const bson::BSONObj &selector  = _sdbStaticObject,
-                              const bson::BSONObj &orderBy   = _sdbStaticObject
+                              const bson::BSONObj &orderBy   = _sdbStaticObject,
+                              const bson::BSONObj &hint      = _sdbStaticObject,
+                              INT64 numToSkip = 0,
+                              INT64 numToReturn = -1
                             ) = 0 ;
 
       virtual INT32 getCollection ( const CHAR *pCollectionFullName,
@@ -3370,11 +3382,14 @@ namespace sdbclient
       }
 
 /** \fn  INT32 getSnapshot ( sdbCursor &cursor,
-                          INT32 snapType,
-                          const bson::BSONObj &condition,
-                          const bson::BSONObj &selector,
-                          const bson::BSONObj &orderBy
-                        )
+                             INT32 snapType,
+                             const bson::BSONObj &condition,
+                             const bson::BSONObj &selector,
+                             const bson::BSONObj &orderBy,
+                             const bson::BSONObj &hint,
+                             INT64 numToSkip,
+                             INT64 numToReturn
+                           )
     \brief Get the snapshots of specified type.
     \param [in] snapType The snapshot type as below
 
@@ -3393,6 +3408,10 @@ namespace sdbclient
     \param [in] condition The matching rule, match all the documents if not provided.
     \param [in] select The selective rule, return the whole document if not provided.
     \param [in] orderBy The ordered rule, result set is unordered if not provided.
+    \param [in] hint The options provided for specific list type. Reserved.
+    \param [in] numToSkip Skip the first numToSkip documents.
+    \param [in] numToReturn Only return numToReturn documents. -1 means return
+                all matched results.
     \param [out] cursor The return cursor object of query.
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
@@ -3401,7 +3420,10 @@ namespace sdbclient
                           INT32 snapType,
                           const bson::BSONObj &condition = _sdbStaticObject,
                           const bson::BSONObj &selector  = _sdbStaticObject,
-                          const bson::BSONObj &orderBy   = _sdbStaticObject
+                          const bson::BSONObj &orderBy   = _sdbStaticObject,
+                          const bson::BSONObj &hint      = _sdbStaticObject,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1
                         )
       {
          if ( !pSDB )
@@ -3409,17 +3431,21 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          RELEASE_INNER_HANDLE( cursor.pCursor ) ;
-         return pSDB->getSnapshot ( cursor, snapType, condition,
-                                    selector, orderBy ) ;
+         return pSDB->getSnapshot ( cursor, snapType, 
+                                    condition, selector, orderBy, hint,
+                                    numToSkip, numToReturn ) ;
       }
 
 
 /* \fn  INT32 getSnapshot (_sdbCursor **cursor,
-                          INT32 snapType,
-                          const bson::BSONObj &condition,
-                          const bson::BSONObj &selector,
-                          const bson::BSONObj &orderBy
-                        )
+                            INT32 snapType,
+                            const bson::BSONObj &condition,
+                            const bson::BSONObj &selector,
+                            const bson::BSONObj &orderBy,
+                            const bson::BSONObj &hint,
+                            INT64 numToSkip = 0,
+                            INT64 numToReturn = -1
+                          )
     \brief Get the snapshots of specified type.
     \param [in] snapType The snapshot type as below
 
@@ -3438,6 +3464,10 @@ namespace sdbclient
      \param [in] condition The matching rule, match all the documents if not provided.
      \param [in] select The selective rule, return the whole document if not provided.
      \param [in] orderBy The ordered rule, result set is unordered if not provided.
+     \param [in] hint The options provided for specific list type. Reserved.
+     \param [in] numToSkip Skip the first numToSkip documents.
+     \param [in] numToReturn Only return numToReturn documents. -1 means return
+                 all matched results.
      \param [out] cursor The return cursor handle of query.
      \retval SDB_OK Operation Success
      \retval Others Operation Fail
@@ -3445,14 +3475,18 @@ namespace sdbclient
       INT32 getSnapshot ( _sdbCursor **cursor,
                           INT32 snapType,
                           const bson::BSONObj &condition = _sdbStaticObject,
-                          const bson::BSONObj &selector = _sdbStaticObject,
-                          const bson::BSONObj &orderBy = _sdbStaticObject
+                          const bson::BSONObj &selector  = _sdbStaticObject,
+                          const bson::BSONObj &orderBy   = _sdbStaticObject,
+                          const bson::BSONObj &hint      = _sdbStaticObject,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1
                         )
       {
          if ( !pSDB )
             return SDB_NOT_CONNECTED ;
-         return pSDB->getSnapshot ( cursor, snapType, condition,
-                                    selector, orderBy ) ;
+         return pSDB->getSnapshot ( cursor, snapType,
+                                    condition, selector, orderBy, hint,
+                                    numToSkip, numToReturn ) ;
       }
 
 /** \fn INT32 resetSnapshot ( const bson::BSONObj &condition )
@@ -3476,11 +3510,14 @@ namespace sdbclient
       }
 
 /* \fn INT32 getList ( _sdbCursor **cursor,
-                      INT32 listType,
-                      const bson::BSONObj &condition,
-                      const bson::BSONObj &selector,
-                      const bson::BSONObj &orderBy
-                    )
+                       INT32 listType,
+                       const bson::BSONObj &condition,
+                       const bson::BSONObj &selector,
+                       const bson::BSONObj &orderBy,
+                       const bson::BSONObj &hint,
+                       INT64 numToSkip,
+                       INT64 numToReturn
+                     )
     \brief Get the informations of specified type.
     \param [in] listType The list type as below
 
@@ -3497,10 +3534,15 @@ namespace sdbclient
         SDB_LIST_TASKS            : Get all the running split tasks ( only applicable in sharding env )
         SDB_LIST_TRANSACTIONS     : Get all the transactions information.
         SDB_LIST_TRANSACTIONS_CURRENT : Get the transactions information of current session.
+        SDB_LIST_USERS            : Get all the user informations.
 
    \param [in] condition The matching rule, match all the documents if null.
    \param [in] select The selective rule, return the whole document if null.
    \param [in] orderBy The ordered rule, never sort if null.
+   \param [in] hint The options provided for specific list type. Reserved.
+   \param [in] numToSkip Skip the first numToSkip documents.
+   \param [in] numToReturn Only return numToReturn documents. -1 means return
+               all matched results.
    \param [out] cursor The return cursor handle of query.
    \retval SDB_OK Operation Success
    \retval Others Operation Fail
@@ -3509,16 +3551,18 @@ namespace sdbclient
                     INT32 listType,
                     const bson::BSONObj &condition = _sdbStaticObject,
                     const bson::BSONObj &selector  = _sdbStaticObject,
-                    const bson::BSONObj &orderBy   = _sdbStaticObject
+                    const bson::BSONObj &orderBy   = _sdbStaticObject,
+                    const bson::BSONObj &hint      = _sdbStaticObject,
+                    INT64 numToSkip = 0,
+                    INT64 numToReturn = -1
                   )
       {
          if ( !pSDB )
             return SDB_NOT_CONNECTED ;
          return pSDB->getList ( cursor,
                                 listType,
-                                condition,
-                                selector,
-                                orderBy ) ;
+                                condition, selector, orderBy, hint,
+                                numToSkip, numToReturn ) ;
       }
 
 
@@ -3526,7 +3570,10 @@ namespace sdbclient
                       INT32 listType,
                       const bson::BSONObj &condition,
                       const bson::BSONObj &selector,
-                      const bson::BSONObj &orderBy
+                      const bson::BSONObj &orderBy,
+                      const bson::BSONObj &hint,
+                      INT64 numToSkip,
+                      INT64 numToReturn
                     )
     \brief Get the informations of specified type.
     \param [in] listType The list type as below
@@ -3544,20 +3591,27 @@ namespace sdbclient
         SDB_LIST_TASKS            : Get all the running split tasks ( only applicable in sharding env )
         SDB_LIST_TRANSACTIONS     : Get all the transactions information.
         SDB_LIST_TRANSACTIONS_CURRENT : Get the transactions information of current session.
+        SDB_LIST_USERS            : Get all the user informations.
 
    \param [in] condition The matching rule, match all the documents if null.
    \param [in] select The selective rule, return the whole document if null.
    \param [in] orderBy The ordered rule, never sort if null.
+   \param [in] hint The options provided for specific list type. Reserved.
+   \param [in] numToSkip Skip the first numToSkip documents.
+   \param [in] numToReturn Only return numToReturn documents. -1 means return
+                           all matched results.
    \param [out] cursor The return cursor object of query.
    \retval SDB_OK Operation Success
    \retval Others Operation Fail
 */
-
       INT32 getList ( sdbCursor &cursor,
                       INT32 listType,
                       const bson::BSONObj &condition = _sdbStaticObject,
                       const bson::BSONObj &selector  = _sdbStaticObject,
-                      const bson::BSONObj &orderBy   = _sdbStaticObject
+                      const bson::BSONObj &orderBy   = _sdbStaticObject,
+                      const bson::BSONObj &hint      = _sdbStaticObject,
+                      INT64 numToSkip = 0,
+                      INT64 numToReturn = -1
                     )
       {
          if ( !pSDB )
@@ -3567,9 +3621,8 @@ namespace sdbclient
          RELEASE_INNER_HANDLE( cursor.pCursor ) ;
          return pSDB->getList ( cursor,
                                 listType,
-                                condition,
-                                selector,
-                                orderBy ) ;
+                                condition, selector, orderBy, hint,
+                                numToSkip, numToReturn ) ;
       }
 
 /* \fn INT32 getCollection ( const CHAR *pCollectionFullName,

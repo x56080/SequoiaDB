@@ -52,6 +52,9 @@
 #define SDB_LIST_TASKS            10
 #define SDB_LIST_TRANSACTIONS     11
 #define SDB_LIST_TRANSACTIONS_CURRENT 12
+/** list userS **/
+#define SDB_LIST_USERS            16
+
 #define SDB_LIST_CL_IN_DOMAIN     129
 #define SDB_LIST_CS_IN_DOMAIN     130
 

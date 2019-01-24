@@ -6214,7 +6214,10 @@ error :
                                  INT32 snapType,
                                  const BSONObj &condition,
                                  const BSONObj &selector,
-                                 const BSONObj &orderBy
+                                 const BSONObj &orderBy,
+                                 const bson::BSONObj &hint,
+                                 INT64 numToSkip,
+                                 INT64 numToReturn
                                )
    {
       INT32 rc                        = SDB_OK ;
@@ -6267,11 +6270,13 @@ error :
       }
       lock () ;
       rc = clientBuildQueryMsgCpp ( &_pSendBuffer, &_sendBufferSize,
-                                    p, 0, 0, 0, -1,
+                                    p, 0, 0,
+                                    numToSkip, numToReturn,
                                     condition.objdata(),
                                     selector.objdata(),
                                     orderBy.objdata(),
-                                    NULL, _endianConvert ) ;
+                                    hint.objdata(),
+                                    _endianConvert ) ;
       if ( rc )
       {
          goto error ;
@@ -6340,7 +6345,10 @@ error :
                              INT32 listType,
                              const BSONObj &condition,
                              const BSONObj &selector,
-                             const BSONObj &orderBy
+                             const BSONObj &orderBy,
+                             const bson::BSONObj &hint,
+                             INT64 numToSkip,
+                             INT64 numToReturn
                            )
    {
       INT32 rc                        = SDB_OK ;
@@ -6393,6 +6401,9 @@ error :
       case SDB_LIST_TRANSACTIONS_CURRENT :
          p = CMD_ADMIN_PREFIX CMD_NAME_LIST_TRANSACTIONS_CUR ;
          break ;
+      case SDB_LIST_USERS :
+         p = CMD_ADMIN_PREFIX CMD_NAME_LIST_USERS ;
+         break ;
       case SDB_LIST_CL_IN_DOMAIN :
          p = CMD_ADMIN_PREFIX CMD_NAME_LIST_CL_IN_DOMAIN ;
          break ;
@@ -6406,11 +6417,13 @@ error :
       lock () ;
       rc = clientBuildQueryMsgCpp ( &_pSendBuffer,
                                     &_sendBufferSize,
-                                    p, 0, 0, 0, -1,
+                                    p, 0, 0,
+                                    numToSkip, numToReturn,
                                     condition.objdata(),
                                     selector.objdata(),
                                     orderBy.objdata(),
-                                    NULL, _endianConvert ) ;
+                                    hint.objdata(),
+                                    _endianConvert ) ;
       if ( rc )
       {
          goto error ;

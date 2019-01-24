@@ -1450,9 +1450,15 @@ error :
    SET_INVALID_HANDLE( handle ) ;
    goto done ;
 }
+                         
 static INT32 _sdbGetList ( sdbConnectionHandle cHandle,
                            INT32 listType,
-                           bson *condition, bson *selector, bson *orderBy,
+                           bson *condition,
+                           bson *selector,
+                           bson *orderBy,
+                           bson *hint,
+                           INT64 numToSkip,
+                           INT64 numToReturn,
                            sdbCursorHandle *handle )
 {
    INT32 rc                        = SDB_OK ;
@@ -1507,6 +1513,9 @@ static INT32 _sdbGetList ( sdbConnectionHandle cHandle,
    case SDB_LIST_TRANSACTIONS_CURRENT :
       p = CMD_ADMIN_PREFIX CMD_NAME_LIST_TRANSACTIONS_CUR ;
       break ;
+   case SDB_LIST_USERS :
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_USERS ;
+      break ;
    case SDB_LIST_CS_IN_DOMAIN :
       p = CMD_ADMIN_PREFIX CMD_NAME_LIST_CS_IN_DOMAIN ;
       break ;
@@ -1522,8 +1531,10 @@ static INT32 _sdbGetList ( sdbConnectionHandle cHandle,
    HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
    rc = clientBuildQueryMsg ( &connection->_pSendBuffer,
                               &connection->_sendBufferSize,
-                              p, 0, 0, 0, -1, condition, selector, orderBy,
-                              NULL, connection->_endianConvert ) ;
+                              p, 0, 0,
+                              numToSkip, numToReturn,
+                              condition, selector, orderBy, hint,
+                              connection->_endianConvert ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
@@ -1591,7 +1602,9 @@ static INT32 _sdbGetReplicaGroupDetail ( sdbReplicaGroupHandle cHandle,
    BSON_FINISH ( newObj ) ;
 
    rc = _sdbGetList ( r->_connection,
-                      SDB_LIST_GROUPS, &newObj, NULL, NULL, &cursor ) ;
+                      SDB_LIST_GROUPS, &newObj, NULL, NULL, NULL, 
+                      0, -1, 
+                      &cursor ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
@@ -2353,12 +2366,15 @@ error:
    goto done ;
 }
 
-SDB_EXPORT INT32 sdbGetSnapshot ( sdbConnectionHandle cHandle,
-                                  INT32 snapType,
-                                  bson *condition,
-                                  bson *selector,
-                                  bson *orderBy,
-                                  sdbCursorHandle *handle )
+static INT32 _sdbGetSnapshot ( sdbConnectionHandle cHandle,
+                               INT32 snapType,
+                               bson *condition,
+                               bson *selector,
+                               bson *orderBy,
+                               bson *hint,
+                               INT64 numToSkip,
+                               INT64 numToReturn,
+                               sdbCursorHandle *handle )
 {
    INT32 rc                        = SDB_OK ;
    sdbCursorStruct *cursor         = NULL ;
@@ -2415,9 +2431,9 @@ SDB_EXPORT INT32 sdbGetSnapshot ( sdbConnectionHandle cHandle,
    HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
    rc = clientBuildQueryMsg ( &connection->_pSendBuffer,
                               &connection->_sendBufferSize,
-                              p, 0, 0, 0, -1,
+                              p, 0, 0, numToSkip, numToReturn,
                               condition, selector, orderBy,
-                              NULL, connection->_endianConvert ) ;
+                              hint, connection->_endianConvert ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
@@ -2464,6 +2480,63 @@ error :
    {
       SDB_OSS_FREE ( cursor ) ;
    }
+   SET_INVALID_HANDLE( handle ) ;
+   goto done ;
+}
+
+SDB_EXPORT INT32 sdbGetSnapshot ( sdbConnectionHandle cHandle,
+                                  INT32 snapType,
+                                  bson *condition,
+                                  bson *selector,
+                                  bson *orderBy,
+                                  sdbCursorHandle *handle )
+{
+   INT32 rc = SDB_OK ;
+   if ( !handle )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   rc = _sdbGetSnapshot ( cHandle, snapType, 
+                          condition, selector, orderBy, NULL, 
+                          0, -1, handle ) ;
+   if ( rc ) 
+   {
+      goto error ;
+   }
+done:
+   return rc ;
+error:
+   SET_INVALID_HANDLE( handle ) ;
+   goto done ;
+}
+
+SDB_EXPORT INT32 sdbGetSnapshot1 ( sdbConnectionHandle cHandle,
+                                   INT32 snapType,
+                                   bson *condition,
+                                   bson *selector,
+                                   bson *orderBy,
+                                   bson *hint,
+                                   INT64 numToSkip,
+                                   INT64 numToReturn,
+                                   sdbCursorHandle *handle )
+{
+   INT32 rc = SDB_OK ;
+   if ( !handle )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   rc = _sdbGetSnapshot ( cHandle, snapType, 
+                          condition, selector, orderBy, hint, 
+                          numToSkip, numToReturn, handle ) ;
+   if ( rc ) 
+   {
+      goto error ;
+   }
+done:
+   return rc ;
+error:
    SET_INVALID_HANDLE( handle ) ;
    goto done ;
 }
@@ -2612,16 +2685,6 @@ error :
    goto done ;
 }
 
-// chang _sdbGetList's interface
-/*
-static INT32 _sdbGetList ( SOCKET _sock, CHAR **_pSendBuffer,
-                           INT32 *_sendBufferSize, CHAR **_pReceiveBuffer,
-                           INT32 *_receiveBufferSize, BOOLEAN _endianConvert,
-                           INT32 listType,
-                           bson *condition, bson *selector, bson *orderBy,
-                           sdbCursorHandle *handle )
-*/
-
 SDB_EXPORT INT32 sdbGetList ( sdbConnectionHandle cHandle,
                               INT32 listType,
                               bson *condition,
@@ -2638,7 +2701,42 @@ SDB_EXPORT INT32 sdbGetList ( sdbConnectionHandle cHandle,
    }
    rc = _sdbGetList ( cHandle,
                       listType,
-                      condition, selector, orderBy, handle ) ;
+                      condition, selector, orderBy, NULL, 
+                      0, -1,
+                      handle ) ;
+   if ( SDB_OK != rc )
+   {
+      goto done ;
+   }
+done :
+   return rc ;
+error :
+   SET_INVALID_HANDLE( handle ) ;
+   goto done ;
+}
+
+SDB_EXPORT INT32 sdbGetList1( sdbConnectionHandle cHandle,
+                              INT32 listType,
+                              bson *condition,
+                              bson *selector,
+                              bson *orderBy,
+                              bson *hint,
+                              INT64 numToSkip,
+                              INT64 numToReturn,
+                              sdbCursorHandle *handle )
+{
+   INT32 rc                        = SDB_OK ;
+
+   if ( !handle )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   rc = _sdbGetList ( cHandle,
+                      listType,
+                      condition, selector, orderBy, hint,
+                      numToSkip, numToReturn,
+                      handle ) ;
    if ( SDB_OK != rc )
    {
       goto done ;
