@@ -740,7 +740,7 @@ namespace SequoiaDB
         }
 
         /** \fn DBCursor GetSnapshot(int snapType, BsonDocument matcher, BsonDocument selector,
-                                          BsonDocument orderBy)
+                                    BsonDocument orderBy)
          *  \brief Get the snapshots of specified type
          *  \param snapType The specified type as below:
          *  
@@ -764,7 +764,43 @@ namespace SequoiaDB
          *  \exception System.Exception
          */
         public DBCursor GetSnapshot(int snapType, BsonDocument matcher, BsonDocument selector,
-                                          BsonDocument orderBy)
+                                    BsonDocument orderBy)
+        {
+            return GetSnapshot(snapType, matcher, selector, orderBy, null, 0, -1);
+        }
+
+        /** \fn DBCursor GetSnapshot(int snapType, BsonDocument matcher, BsonDocument selector,
+                                    BsonDocument orderBy, BsonDocument hint, long skipRows, long returnRows)
+         *  \brief Get the snapshots of specified type
+         *  \param snapType The specified type as below:
+         *  
+         *      SDBConst.SDB_SNAP_CONTEXTS
+         *      SDBConst.SDB_SNAP_CONTEXTS_CURRENT
+         *      SDBConst.SDB_SNAP_SESSIONS
+         *      SDBConst.SDB_SNAP_SESSIONS_CURRENT
+         *      SDBConst.SDB_SNAP_COLLECTIONS
+         *      SDBConst.SDB_SNAP_COLLECTIONSPACES
+         *      SDBConst.SDB_SNAP_DATABASE
+         *      SDBConst.SDB_SNAP_SYSTEM
+         *      SDBConst.SDB_SNAP_CATALOG
+         *      SDBConst.SDB_SNAP_TRANSACTIONS
+         *      SDBConst.SDB_SNAP_TRANSACTIONS_CURRENT
+         *      
+         *  \param matcher The matching condition or null
+         *  \param selector The selective rule or null
+         *  \param orderBy The ordered rule or null
+	     *  \param hint The hint rule, the options provided for specific snapshot type
+	     *              format:{ '$Options': { <options> } }
+	     *  \param skipRows Skip the first numToSkip documents, never skip if this parameter is 0
+         *  \param returnRows Return the specified amount of documents,
+         *                    when returnRows is 0, return nothing,
+         *                    when returnRows is -1, return all the documents
+         *  \return A DBCursor of all the fitted objects or null
+         *  \exception SequoiaDB.BaseException
+         *  \exception System.Exception
+         */
+        public DBCursor GetSnapshot(int snapType, BsonDocument matcher, BsonDocument selector,
+                                    BsonDocument orderBy, BsonDocument hint, long skipRows, long returnRows)
         {
             string command = null;
             switch (snapType)
@@ -825,7 +861,9 @@ namespace SequoiaDB
                 selector = dummyObj;
             if (orderBy == null)
                 orderBy = dummyObj;
-            SDBMessage rtn = AdminCommand(command, matcher, selector, orderBy, dummyObj);
+            if (hint == null)
+                hint = dummyObj;
+            SDBMessage rtn = AdminCommand(command, matcher, selector, orderBy, hint, skipRows, returnRows);
 
             int flags = rtn.Flags;
             if (flags != 0)
@@ -856,6 +894,7 @@ namespace SequoiaDB
          *      SDBConst.SDB_LIST_TASKS
          *      SDBConst.SDB_LIST_TRANSACTIONS
          *      SDBConst.SDB_LIST_TRANSACTIONS_CURRENT
+         *      SDBConst.SDB_LIST_USERS
          *      
          *  \return A DBCursor of all the fitted objects or null
          *  \exception SequoiaDB.BaseException
@@ -885,6 +924,7 @@ namespace SequoiaDB
          *      SDBConst.SDB_LIST_TASKS
          *      SDBConst.SDB_LIST_TRANSACTIONS
          *      SDBConst.SDB_LIST_TRANSACTIONS_CURRENT
+         *      SDBConst.SDB_LIST_USERS
          *      
          *  \param matcher The matching condition or null
          *  \param selector The selective rule or null
@@ -895,6 +935,43 @@ namespace SequoiaDB
          */
         public DBCursor GetList(int listType, BsonDocument matcher, BsonDocument selector,
                                 BsonDocument orderBy)
+        {
+            return GetList(listType, matcher, selector, orderBy, null, 0, -1);
+        }
+
+        /** \fn DBCursor GetList(int listType, BsonDocument matcher, BsonDocument selector,
+                                 BsonDocument orderBy, BsonDocument hint,
+                                 long skipRows, long returnRows)
+         *  \brief Get the informations of specified type
+         *  \param listType The specified type as below:
+         *  
+         *      SDBConst.SDB_LIST_CONTEXTS
+         *      SDBConst.SDB_LIST_CONTEXTS_CURRENT
+         *      SDBConst.SDB_LIST_SESSIONS
+         *      SDBConst.SDB_LIST_SESSIONS_CURRENT
+         *      SDBConst.SDB_LIST_COLLECTIONS
+         *      SDBConst.SDB_LIST_COLLECTIONSPACES
+         *      SDBConst.SDB_LIST_STORAGEUNITS
+         *      SDBConst.SDB_LIST_GROUPS
+         *      SDBConst.SDB_LIST_STOREPROCEDURES
+         *      SDBConst.SDB_LIST_DOMAINS
+         *      SDBConst.SDB_LIST_TASKS
+         *      SDBConst.SDB_LIST_TRANSACTIONS
+         *      SDBConst.SDB_LIST_TRANSACTIONS_CURRENT
+         *      SDBConst.SDB_LIST_USERS
+         *      
+         *  \param matcher The matching condition or null
+         *  \param selector The selective rule or null
+         *  \param orderBy The ordered rule or null
+         *  \param hint The options provided for specific list type. Reserved
+         *  \param skipRows Skip the first skipRows documents
+         *  \param returnRows Only return returnRows documents. -1 means return all matched results
+         *  \return A DBCursor of all the fitted objects or null
+         *  \exception SequoiaDB.BaseException
+         *  \exception System.Exception
+         */
+        public DBCursor GetList(int listType, BsonDocument matcher, BsonDocument selector,
+                                BsonDocument orderBy, BsonDocument hint, long skipRows, long returnRows)
         {
             string command = null;
             switch (listType)
@@ -951,6 +1028,10 @@ namespace SequoiaDB
                     command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.LIST_CMD + " " +
                            SequoiadbConstants.TRANSACTIONS_CURRENT;
                     break;
+                case SDBConst.SDB_LIST_USERS:
+                    command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.LIST_CMD + " " +
+                           SequoiadbConstants.USERS;
+                    break;
                 case SDBConst.SDB_LIST_CL_IN_DOMAIN:
                     command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.LIST_CMD + " " +
                            SequoiadbConstants.CL_IN_DOMAIN;
@@ -970,7 +1051,9 @@ namespace SequoiaDB
                 selector = dummyObj;
             if (orderBy == null)
                 orderBy = dummyObj;
-            SDBMessage rtn = AdminCommand(command, matcher, selector, orderBy, dummyObj);
+            if (hint == null)
+                hint = dummyObj;
+            SDBMessage rtn = AdminCommand(command, matcher, selector, orderBy, hint, skipRows, returnRows);
 
             int flags = rtn.Flags;
             if (flags != 0)
@@ -1825,7 +1908,7 @@ namespace SequoiaDB
         }
 
         private SDBMessage AdminCommand(string command, BsonDocument matcher, BsonDocument selector,
-                                        BsonDocument orderBy, BsonDocument hint)
+                                        BsonDocument orderBy, BsonDocument hint, long skipRows, long returnRows)
         {
             BsonDocument dummyObj = new BsonDocument();
             SDBMessage sdbMessage = new SDBMessage();
@@ -1837,8 +1920,8 @@ namespace SequoiaDB
             sdbMessage.Flags = 0;
             sdbMessage.NodeID = SequoiadbConstants.ZERO_NODEID;
             sdbMessage.RequestID = 0;
-            sdbMessage.SkipRowsCount = 0;
-            sdbMessage.ReturnRowsCount = -1;
+            sdbMessage.SkipRowsCount = skipRows;
+            sdbMessage.ReturnRowsCount = returnRows;
             // matcher
             if (null == matcher)
             {
@@ -1885,6 +1968,11 @@ namespace SequoiaDB
             return rtnSDBMessage;
         }
 
+        private SDBMessage AdminCommand(string command, BsonDocument matcher, BsonDocument selector,
+                                BsonDocument orderBy, BsonDocument hint)
+        {
+            return AdminCommand(command, matcher, selector, orderBy, hint, 0, -1);
+        }
         private List<BsonDocument> GetMoreCommand(SDBMessage rtnSDBMessage)
         {
             ulong requestID = rtnSDBMessage.RequestID;

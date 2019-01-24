@@ -55,6 +55,7 @@ namespace SequoiaDB
         public const int SDB_LIST_TASKS            = 10;
         public const int SDB_LIST_TRANSACTIONS     = 11;
         public const int SDB_LIST_TRANSACTIONS_CURRENT = 12;
+        public const int SDB_LIST_USERS            = 16;
         public const int SDB_LIST_CL_IN_DOMAIN     = 129;
         public const int SDB_LIST_CS_IN_DOMAIN     = 130;
 

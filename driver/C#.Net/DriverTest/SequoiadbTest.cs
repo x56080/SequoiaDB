@@ -455,6 +455,10 @@ namespace DriverTest
                     Console.WriteLine(o);
                 }
             }
+            catch (BaseException e) 
+            {
+                Assert.AreEqual(new BaseException("SDB_DPS_TRANS_DIABLED").ErrorCode, e.ErrorCode);
+            }
             finally
             {
                 sdb.TransactionCommit();
@@ -506,12 +510,6 @@ namespace DriverTest
             Assert.IsNotNull(cursor);
 
             // list all the contexts
-            if (Constants.isClusterEnv(db))
-            {
-                db.Disconnect();
-                db = new Sequoiadb(config.conf.Data.Address);
-                db.Connect(config.conf.UserName, config.conf.Password);
-            }
             cursor = db.GetList(SDBConst.SDB_LIST_CONTEXTS, dummy, dummy, dummy);
             Assert.IsNotNull(cursor);
             bson = cursor.Next();
@@ -535,11 +533,28 @@ namespace DriverTest
             bson = cursor.Next();
             Assert.IsNotNull(bson);
 
+            // list 16
+            cursor = db.GetList(SDBConst.SDB_LIST_USERS, dummy, dummy, dummy, null, 0, -1);
+            Assert.IsNotNull(cursor);
+            while ((bson = cursor.Next()) != null)
+            {
+                Console.WriteLine("Result of SDB_LIST_USERS is: " + bson.ToString());
+            }
+
             // list storge units
+            if (Constants.isClusterEnv(db))
+            {
+                db.Disconnect();
+                db = new Sequoiadb(config.conf.Data.Address);
+                db.Connect(config.conf.UserName, config.conf.Password);
+            }
             cursor = db.GetList(SDBConst.SDB_LIST_STORAGEUNITS, dummy, dummy, dummy);
             Assert.IsNotNull(cursor);
-            bson = cursor.Next();
-            Assert.IsNotNull(bson);
+            while ((bson = cursor.Next()) != null)
+            {
+                Console.WriteLine("Result of SDB_LIST_USERS is: " + bson.ToString());
+            }
+            
             db.Disconnect();
         }
 
