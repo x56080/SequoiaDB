@@ -93,6 +93,7 @@ public class SequoiadbConstants {
     public final static String CMD_NAME_LIST_TASKS = "list tasks";
     public final static String CMD_NAME_LIST_TRANSACTIONS = "list transactions";
     public final static String CMD_NAME_LIST_TRANSACTIONS_CURRENT = "list transactions current";
+    public final static String CMD_NAME_LIST_USERS = "list users";
     public final static String CMD_NAME_LIST_CL_IN_DOMAIN = "list collections in domain";
     public final static String CMD_NAME_LIST_CS_IN_DOMAIN = "list collectionspaces in domain";
     public final static String CMD_NAME_CREATE_GROUP = "create group";

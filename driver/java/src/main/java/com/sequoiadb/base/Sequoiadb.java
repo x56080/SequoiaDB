@@ -95,6 +95,7 @@ public class Sequoiadb {
     public final static int SDB_LIST_TASKS = 10;
     public final static int SDB_LIST_TRANSACTIONS = 11;
     public final static int SDB_LIST_TRANSACTIONS_CURRENT = 12;
+    public final static int SDB_LIST_USERS = 16;
     public final static int SDB_LIST_CL_IN_DOMAIN = 129;
     public final static int SDB_LIST_CS_IN_DOMAIN = 130;
 
@@ -1017,6 +1018,40 @@ public class Sequoiadb {
     }
 
     /**
+     * @fn DBCursor getList(int listType, BSONObject query, BSONObject selector, BSONObject orderBy, BSONObject hint,
+     *                      long skipRows, long returnRows)
+     * @brief Get the informations of specified type.
+     * @param listType The list type as below:
+     *                 <dl>
+     *                 <dt>Sequoiadb.SDB_LIST_CONTEXTS   : Get all contexts list
+     *                 <dt>Sequoiadb.SDB_LIST_CONTEXTS_CURRENT        : Get contexts list for the current session
+     *                 <dt>Sequoiadb.SDB_LIST_SESSIONS        : Get all sessions list
+     *                 <dt>Sequoiadb.SDB_LIST_SESSIONS_CURRENT        : Get the current session
+     *                 <dt>Sequoiadb.SDB_LIST_COLLECTIONS        : Get all collections list
+     *                 <dt>Sequoiadb.SDB_LIST_COLLECTIONSPACES        : Get all collection spaces list
+     *                 <dt>Sequoiadb.SDB_LIST_STORAGEUNITS        : Get storage units list
+     *                 <dt>Sequoiadb.SDB_LIST_GROUPS        : Get replica group list ( only applicable in sharding env )
+     *                 <dt>Sequoiadb.SDB_LIST_STOREPROCEDURES           : Get stored procedure list ( only applicable in sharding env )
+     *                 <dt>Sequoiadb.SDB_LIST_DOMAINS        : Get all the domains list ( only applicable in sharding env )
+     *                 <dt>Sequoiadb.SDB_LIST_TASKS        : Get all the running split tasks ( only applicable in sharding env )
+     *                 <dt>Sequoiadb.SDB_LIST_TRANSACTIONS        : Get all the transactions information.
+     *                 <dt>Sequoiadb.SDB_LIST_TRANSACTIONS_CURRENT        : Get the transactions information of current session.
+     *                 <dt>Sequoiadb.SDB_LIST_USERS                : Get all the user information.
+     *                 </dl>
+     * @param query    The matching rule, match all the documents if null.
+     * @param selector The selective rule, return the whole document if null.
+     * @param orderBy The ordered rule, never sort if null.
+     * @param hint The options provided for specific list type. Reserved.
+     * @param skipRows Skip the first skipRows documents.
+     * @param returnRows Only return returnRows documents. -1 means return all matched results.
+     * @exception com.sequoiadb.exception.BaseException
+     */
+    public DBCursor getList(int listType, BSONObject query, BSONObject selector, BSONObject orderBy, BSONObject hint,
+                            long skipRows, long returnRows) throws BaseException {
+        return getList(listType, 0, 0, skipRows, returnRows, query, selector, orderBy, hint);
+    }
+
+    /**
      * @fn DBCursor getList(int listType, BSONObject query, BSONObject selector,
     BSONObject orderBy)
      * @brief Get the informations of specified type.
@@ -1035,6 +1070,7 @@ public class Sequoiadb {
      *                 <dt>Sequoiadb.SDB_LIST_TASKS        : Get all the running split tasks ( only applicable in sharding env )
      *                 <dt>Sequoiadb.SDB_LIST_TRANSACTIONS        : Get all the transactions information.
      *                 <dt>Sequoiadb.SDB_LIST_TRANSACTIONS_CURRENT        : Get the transactions information of current session.
+     *                 <dt>Sequoiadb.SDB_LIST_USERS                : Get all the user information.
      *                 </dl>
      * @param query    The matching rule, match all the documents if null.
      * @param selector The selective rule, return the whole document if null.
@@ -1042,7 +1078,7 @@ public class Sequoiadb {
      * @exception com.sequoiadb.exception.BaseException
      */
     public DBCursor getList(int listType, BSONObject query, BSONObject selector, BSONObject orderBy) throws BaseException {
-        return getList(listType, 0, 0, 0, -1, query, selector, orderBy, null);
+        return getList(listType, query, selector, orderBy, null, 0, -1);
     }
 
     /**
@@ -1159,8 +1195,9 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn DBCursor getSnapshot(int snapType, BSONObject matcher, BSONObject
-     *     selector, BSONObject orderBy)
+     * @fn DBCursor getSnapshot(int snapType, BSONObject matcher,
+     *                           BSONObject selector, BSONObject orderBy, BSONObject hint,
+     *                           long skipRows, long returnRows)
      * @brief Get snapshot of the database.
      * @param snapType The snapshot types are as below:
      *                 <dl>
@@ -1179,11 +1216,17 @@ public class Sequoiadb {
      * @param matcher  the matching rule, match all the documents if null
      * @param selector the selective rule, return the whole document if null
      * @param orderBy  the ordered rule, never sort if null
+     * @param hint     the hint rule, the options provided for specific snapshot type. format:{ '$Options': { <options> } }
+     * @param skipRows   skip the first numToSkip documents, never skip if this parameter is 0.
+     * @param returnRows return the specified amount of documents,
+     *                   when returnRows is 0, return nothing,
+     *                   when returnRows is -1, return all the documents.
      * @return the DBCursor instance of the result
      * @exception com.sequoiadb.exception.BaseException
      */
     public DBCursor getSnapshot(int snapType, BSONObject matcher,
-                                BSONObject selector, BSONObject orderBy) throws BaseException {
+                                BSONObject selector, BSONObject orderBy, BSONObject hint,
+                                long skipRows, long returnRows) throws BaseException {
         String command = SequoiadbConstants.SNAP_CMD;
         switch (snapType) {
             case SDB_SNAP_CONTEXTS:
@@ -1223,8 +1266,9 @@ public class Sequoiadb {
                 throw new BaseException(SDBError.SDB_INVALIDARG);
         }
 
-        SDBMessage rtn = adminCommand(command, 0, 0, -1, -1, matcher, selector,
-                orderBy, null);
+        SDBMessage rtn = adminCommand(command, 0, 0,
+                                      skipRows, returnRows,
+                                      matcher, selector, orderBy, hint);
         int flags = rtn.getFlags();
         if (flags != 0) {
             if (flags == SequoiadbConstants.SDB_DMS_EOC) {
@@ -1238,6 +1282,35 @@ public class Sequoiadb {
         }
         return new DBCursor(rtn, this);
 
+    }
+
+    /**
+     * @fn DBCursor getSnapshot(int snapType, BSONObject matcher, BSONObject
+     *     selector, BSONObject orderBy)
+     * @brief Get snapshot of the database.
+     * @param snapType The snapshot types are as below:
+     *                 <dl>
+     *                 <dt>Sequoiadb.SDB_SNAP_CONTEXTS   : Get all contexts' snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_CONTEXTS_CURRENT        : Get the current context's snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_SESSIONS        : Get all sessions' snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_SESSIONS_CURRENT        : Get the current session's snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_COLLECTIONS        : Get the collections' snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_COLLECTIONSPACES        : Get the collection spaces' snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_DATABASE        : Get database's snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_SYSTEM        : Get system's snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_CATALOG        : Get catalog's snapshot
+     *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS        : Get snapshot of transactions in current session
+     *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT           : Get snapshot of all the transactions
+     *                 </dl>
+     * @param matcher  the matching rule, match all the documents if null
+     * @param selector the selective rule, return the whole document if null
+     * @param orderBy  the ordered rule, never sort if null
+     * @return the DBCursor instance of the result
+     * @exception com.sequoiadb.exception.BaseException
+     */
+    public DBCursor getSnapshot(int snapType, BSONObject matcher,
+                                BSONObject selector, BSONObject orderBy) throws BaseException {
+        return getSnapshot(snapType, matcher, selector, orderBy, null, 0, -1);
     }
 
     /**
@@ -2125,6 +2198,9 @@ public class Sequoiadb {
                 break;
             case SDB_LIST_TRANSACTIONS_CURRENT:
                 command = SequoiadbConstants.CMD_NAME_LIST_TRANSACTIONS_CURRENT;
+                break;
+            case SDB_LIST_USERS:
+                command = SequoiadbConstants.CMD_NAME_LIST_USERS;
                 break;
             case SDB_LIST_CL_IN_DOMAIN:
                 command = SequoiadbConstants.CMD_NAME_LIST_CL_IN_DOMAIN;

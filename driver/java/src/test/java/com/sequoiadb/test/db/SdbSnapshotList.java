@@ -94,6 +94,14 @@ public class SdbSnapshotList {
                 assertTrue(false);
             return;
         }
+
+        // 16
+        cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_CATALOG, null, null, null, null,
+                0, -1);
+        System.out.println("result of SDB_SNAP_HEALTH is: ");
+        while (cursor.hasNext()) {
+            System.out.println(cursor.getNext());
+        }
     }
 
     @Test
@@ -160,6 +168,13 @@ public class SdbSnapshotList {
             cursor = null;
             cursor = sdb.getList(10, null, null, null);
             assertTrue(null != cursor);
+        }
+
+        // 16
+        cursor = sdb.getList(Sequoiadb.SDB_LIST_USERS, null, null, null, null, 0, -1);
+        System.out.println("result of SDB_LIST_USERS is: ");
+        while(cursor.hasNext()){
+            System.out.println(cursor.getNext());
         }
     }
 }
