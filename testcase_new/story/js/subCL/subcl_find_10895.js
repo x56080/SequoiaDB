@@ -10,9 +10,9 @@ function main()
    db.setSessionAttr( { PreferedInstance: "M" } );
    
    //clean environment before test
-   mainCL_Name = CHANGEDPREFIX + "_maincl10895" ;
-   subCL_Name1 = CHANGEDPREFIX + "_subcl10895_1";
-   subCL_Name2 = CHANGEDPREFIX + "_subcl10895_2";
+   mainCL_Name = COMMCLNAME + "_maincl10895" ;
+   subCL_Name1 = COMMCLNAME + "_subcl10895_1";
+   subCL_Name2 = COMMCLNAME + "_subcl10895_2";
    
    commDropCL( db, COMMCSNAME, subCL_Name1, true, true, "clean sub collection" );
    commDropCL( db, COMMCSNAME, subCL_Name2, true, true, "clean sub collection" );
@@ -77,6 +77,10 @@ function main()
 	var findCondition5 = {a:10000};
 	var expRecs5 =[]; 
 	checkResult( dbcl, findCondition5, null, expRecs5, {_id:1} );  
+   
+   commDropCL( db, COMMCSNAME, subCL_Name1, true, true, "clean sub collection" );
+   commDropCL( db, COMMCSNAME, subCL_Name2, true, true, "clean sub collection" );
+   commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection" );
 }
 main();
 

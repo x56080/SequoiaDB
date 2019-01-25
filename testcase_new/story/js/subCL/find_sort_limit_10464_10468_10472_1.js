@@ -9,10 +9,10 @@ function main()
 {
    db.setSessionAttr( { PreferedInstance: "M" } );
    //clean environment before test
-   mainCL_Name = CHANGEDPREFIX + "_maincl10464" ;
-   subCL_Name1 = CHANGEDPREFIX + "_subcl104641";
-   subCL_Name2 = CHANGEDPREFIX + "_subcl104642";
-   subCL_Name3 = CHANGEDPREFIX + "_subcl104643";
+   mainCL_Name = COMMCLNAME + "_maincl10464_1" ;
+   subCL_Name1 = COMMCLNAME + "_subcl104641_1";
+   subCL_Name2 = COMMCLNAME + "_subcl104642_1";
+   subCL_Name3 = COMMCLNAME + "_subcl104643_1";
    
    commDropCL( db, COMMCSNAME, subCL_Name1, true, true, "clean sub collection" );
    commDropCL( db, COMMCSNAME, subCL_Name2, true, true, "clean sub collection" );
@@ -272,6 +272,11 @@ function main()
    }
    
    checkRec( rc, limitNum, sortOptions );
+   
+   commDropCL( db, COMMCSNAME, subCL_Name1, true, true, "clean sub collection" );
+   commDropCL( db, COMMCSNAME, subCL_Name2, true, true, "clean sub collection" );
+   commDropCL( db, COMMCSNAME, subCL_Name3, true, true, "clean main collection" );
+   commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection" );
 }
 main()
 
