@@ -33,9 +33,9 @@ class SequoiaDB
    /** Get the snapshot of current session. */
    define( "SDB_SNAP_SESSIONS_CURRENT",    3 ) ;
    /** Get the snapshot of all the collections. */
-   define( "SDB_SNAP_COLLECTION",          4 ) ;
+   define( "SDB_SNAP_COLLECTIONS",         4 ) ;
    /** Get the snapshot of all the collection spaces. */
-   define( "SDB_SNAP_COLLECTIONSPACE",     5 ) ;
+   define( "SDB_SNAP_COLLECTIONSPACES",    5 ) ;
    /** Get the snapshot of the database. */
    define( "SDB_SNAP_DATABASE",            6 ) ;
    /** Get the snapshot of the system. */
@@ -43,36 +43,87 @@ class SequoiaDB
    /** Get the snapshot of the catalog. */
    define( "SDB_SNAP_CATALOG",             8 ) ;
    /** Get the snapshot of all the transactions. */
-   define( "SDB_SNAP_TRANSACTION",         9 ) ;
+   define( "SDB_SNAP_TRANSACTIONS",        9 ) ;
    /** Get the snapshot of current transaction. */
+   define( "SDB_SNAP_TRANSACTIONS_CURRENT",10 ) ;
+
+   /**
+    * Get the snapshot of all the collections.
+    *
+    * @deprecated
+    *
+    * @see SDB_SNAP_COLLECTIONS
+   */
+   define( "SDB_SNAP_COLLECTION",          4 ) ;
+
+   /**
+    * Get the snapshot of all the collection spaces.
+    *
+    * @deprecated
+    *
+    * @see SDB_SNAP_COLLECTIONSPACES
+   */
+   define( "SDB_SNAP_COLLECTIONSPACE",     5 ) ;
+
+   /**
+    * Get the snapshot of the catalog.
+    *
+    * @deprecated
+    *
+    * @see SDB_SNAP_CATALOG
+   */
+   define( "SDB_SNAP_CATA",             8 ) ;
+
+   /**
+    * Get the snapshot of all the transactions.
+    *
+    * @deprecated
+    *
+    * @see SDB_SNAP_TRANSACTIONS
+   */
+   define( "SDB_SNAP_TRANSACTION",         9 ) ;
+
+   /**
+    * Get the snapshot of current transaction.
+    *
+    * @deprecated
+    *
+    * @see SDB_SNAP_TRANSACTIONS_CURRENT
+   */
    define( "SDB_SNAP_TRANSACTION_CURRENT", 10 ) ;
-  
+
    /** Get the list of the contexts. */
-   define( "SDB_LIST_CONTEXTS",         0 ) ;
+   define( "SDB_LIST_CONTEXTS",                 0 ) ;
    /** Get the list of current context. */
-   define( "SDB_LIST_CONTEXTS_CURRENT", 1 ) ;
+   define( "SDB_LIST_CONTEXTS_CURRENT",         1 ) ;
    /** Get the list of the sessions. */
-   define( "SDB_LIST_SESSIONS",         2 ) ;
+   define( "SDB_LIST_SESSIONS",                 2 ) ;
    /** Get the list of current session. */
-   define( "SDB_LIST_SESSIONS_CURRENT", 3 ) ;
+   define( "SDB_LIST_SESSIONS_CURRENT",         3 ) ;
    /** Get the list of the collections. */
-   define( "SDB_LIST_COLLECTIONS",      4 ) ;
+   define( "SDB_LIST_COLLECTIONS",              4 ) ;
    /** Get the list of the collecion spaces. */
-   define( "SDB_LIST_COLLECTIONSPACES", 5 ) ;
+   define( "SDB_LIST_COLLECTIONSPACES",         5 ) ;
    /** Get the list of the storage units. */
-   define( "SDB_LIST_STORAGEUNITS",     6 ) ;
+   define( "SDB_LIST_STORAGEUNITS",             6 ) ;
    /** Get the list of the replica groups ( only applicable in sharding env ). */
-   define( "SDB_LIST_GROUPS",           7 ) ;
+   define( "SDB_LIST_GROUPS",                   7 ) ;
    /** Get the list of the stored procedures ( only applicable in sharding env ). */
-   define( "SDB_LIST_STOREPROCEDURES",  8 ) ;
+   define( "SDB_LIST_STOREPROCEDURES",          8 ) ;
    /** Get the list of the domains ( only applicable in sharding env ). */
-   define( "SDB_LIST_DOMAINS",          9 ) ;
+   define( "SDB_LIST_DOMAINS",                  9 ) ;
    /** Get the list of the tasks ( only applicable in sharding env ). */
-   define( "SDB_LIST_TASKS",            10 ) ;
+   define( "SDB_LIST_TASKS",                    10 ) ;
    /** Get all the transactions information. */
-   define( "SDB_LIST_TRANSACTIONS",     11 ) ;
+   define( "SDB_LIST_TRANSACTIONS",             11 ) ;
    /** Get the transactions information of current session. */
-   define( "SDB_LIST_TRANSACTIONS_CURRENT", 12 ) ;
+   define( "SDB_LIST_TRANSACTIONS_CURRENT",     12 ) ;
+   /** Get the list of service tasks. */
+   define( "SDB_LIST_SVCTASKS",                 14 ) ;
+   /** Get the list of sequences. */
+   define( "SDB_LIST_SEQUENCES",                15 ) ;
+   /** Get the list of users. */
+   define( "SDB_LIST_USERS",                    16 ) ;
    /** Get the list of the collections in specified domain. */
    define( "SDB_LIST_CL_IN_DOMAIN",     129 ) ;
    /** Get the list of the collection spaces in specified domain. */
@@ -387,7 +438,7 @@ class SequoiaDB
     *                                               Deep              : (INT32) Flush with deep mode or not. 1 in default. 0 for non-deep mode,1 for deep mode,-1 means use the configuration with server.
     *                                               Block             : (Bool) Flush with block mode or not. false in default.
     *                                               CollectionSpace   : (String) Specify the collectionspace to sync. If not set, will sync all the collectionspaces and logs, otherwise, will only sync the collectionspace specified.
-    *                                               Location Elements	: (Only take effect in coordinate nodes) GroupID:INT32, GroupName:String, NodeID:INT32, HostName:String, svcname:String ...
+    *                                               Location Elements : (Only take effect in coordinate nodes) GroupID:INT32, GroupName:String, NodeID:INT32, HostName:String, svcname:String ...
     *                                               @endcode
     *
     * @return Returns the result, default return array.
@@ -440,13 +491,13 @@ class SequoiaDB
     *                                                               SDB_SNAP_CONTEXTS_CURRENT
     *                                                               SDB_SNAP_SESSIONS
     *                                                               SDB_SNAP_SESSIONS_CURRENT
-    *                                                               SDB_SNAP_COLLECTION
-    *                                                               SDB_SNAP_COLLECTIONSPACE
+    *                                                               SDB_SNAP_COLLECTIONS
+    *                                                               SDB_SNAP_COLLECTIONSPACES
     *                                                               SDB_SNAP_DATABASE
     *                                                               SDB_SNAP_SYSTEM
     *                                                               SDB_SNAP_CATALOG
-    *                                                               SDB_SNAP_TRANSACTION
-    *                                                               SDB_SNAP_TRANSACTION_CURRENT
+    *                                                               SDB_SNAP_TRANSACTIONS
+    *                                                               SDB_SNAP_TRANSACTIONS_CURRENT
     *                                                               @endcode
     *
     * @param $condition an array or the string argument. The matching rule, match all the documents if null.
@@ -455,7 +506,12 @@ class SequoiaDB
     *
     * @param $orderBy an array or the string argument. The ordered rule, never sort if null.
     *
-    * @param $hint	an array or the string argument. This parameter is reserved and must be null.
+    * @param $hint an array or the string argument. The options provided for specific snapshot type.
+    *        format: array( '$Options' => <options> )
+    *
+    * @param $numToSkip an integer argument.  Skip the first numToSkip records, never skip if this parameter is 0.
+    *
+    * @param $numToReturn an integer argument. Only return numToReturn records, return all if this parameter is -1.
     *
     * @return Returns a new SequoiaCursor object.
     *
@@ -480,8 +536,7 @@ class SequoiaDB
     * } 
     * @endcode
    */
-   public function snapshot( integer $type, array|string $condition = null, array|string $selector = null, array|string $orderBy = null, array|string $hint = null ){}
-
+   public function snapshot( integer $type, array|string $condition = null, array|string $selector = null, array|string $orderBy = null, array|string $hint = null, integer $numToSkip = 0, integer $numToReturn = -1 ){}
    /**
     * Reset the snapshot.
     *
@@ -512,7 +567,7 @@ class SequoiaDB
    /**
     * Get the specified list.
     *
-    * @param $type	an integer argument. The list type as below: @code
+    * @param $type an integer argument. The list type as below: @code
     *                                                           SDB_LIST_CONTEXTS
     *                                                           SDB_LIST_CONTEXTS_CURRENT
     *                                                           SDB_LIST_SESSIONS
@@ -526,6 +581,9 @@ class SequoiaDB
     *                                                           SDB_LIST_TASKS
     *                                                           SDB_LIST_TRANSACTIONS
     *                                                           SDB_LIST_TRANSACTIONS_CURRENT
+    *                                                           SDB_LIST_SVCTASKS
+    *                                                           SDB_LIST_SEQUENCES
+    *                                                           SDB_LIST_USERS
     *                                                           SDB_LIST_CL_IN_DOMAIN
     *                                                           SDB_LIST_CS_IN_DOMAIN
     *                                                           @endcode
@@ -536,7 +594,11 @@ class SequoiaDB
     *
     * @param $orderBy an array or the string argument. The ordered rule, never sort if null.
     *
-    * @param $hint	an array or the string argument. This parameter is reserved and must be null.
+    * @param $hint an array or the string argument. The options provided for specific list type. Reserved.
+    *
+    * @param $numToSkip an integer argument.	Skip the first numToSkip records, never skip if this parameter is 0.
+    *
+    * @param $numToReturn	an integer argument. Only return numToReturn records, return all if this parameter is -1.
     *
     * @return Returns a new SequoiaCursor object.
     *
@@ -561,7 +623,7 @@ class SequoiaDB
     * } 
     * @endcode
    */
-   public function list( integer $type, array|string $condition = null, array|string $selector = null, array|string $orderBy = null, array|string $hint = null ){}
+   public function list( integer $type, array|string $condition = null, array|string $selector = null, array|string $orderBy = null, array|string $hint = null, integer $numToSkip = 0, integer $numToReturn = -1 ){}
 
    /**
     * List all collection space of current database(include temporary collection space)
