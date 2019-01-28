@@ -102,6 +102,7 @@ foo=# create foreign table test (name text, id numeric) server sdb_server option
 	| double          | real              | 存在精度问题，SequoiaDB 存储时不是完全一致    |
 	| double          | double precision  |                                               |
 	| string          | numeric           |                                               |
+    | decimal         | numeric           | 需要在创建外表时，指定选项 decimal 为 'on'    |
 	| string          | decimal           |                                               |
 	| decimal         | decimal           | 需要在创建外表时，指定选项 decimal 为 'on'    |
 	| string          | text              |                                               |
