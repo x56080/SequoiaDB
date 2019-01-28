@@ -75,28 +75,26 @@ foo=# \q</pre>
 
 1) 数据类型的对应关系
 
-| SequoiaDB      | PostgreSQL       | 注意事项                                      |
-| -------------- | -----------------| --------------------------------------------- |
-| int            | smallint         | 当SequoiaDB中的值超过smallint范围时会发生截断 |
-| int            | integer          |                                               |
-| long           | bigint           |                                               |
-| int            | serial           |                                               |
-| long           | bigserial        |                                               |
-| double         | real             | 存在精度问题，sdb存储时不是完全一致           |
-| double         | double precision |                                               |
-| string         | numeric          |                                               |
-| decimal        | numeric          | 需要在创建外表时，指定选项 decimal 为 'on'    |
-| string         | decimal          |                                               |
-| decimal        | decimal          | 需要在创建外表时，指定选项 decimal 为 'on'    |
-| string         | text             |                                               |
-| string         | char             |                                               |
-| string         | varchar          |                                               |
-| binary(type=0) | bytea            |                                               |
-| date           | date             |                                               |
-| timestamp      | timestamp        |                                               |
-| array          | TYPE[]           | 仅支持一维数组                                |
-| boolean        | boolean          |                                               |
-| null           | text             |                                               |
+SequoiaDB         PostgreSQL          注意事项
+----------------- ------------------- ---------------------------------------------
+int               smallint            当SequoiaDB中的值超过smallint范围时会发生截断
+int               integer
+long              bigint
+int               serial
+long              bigserial
+double            real                存在精度问题，sdb存储时不是完全一致
+double            double precision
+string            numeric
+string            decimal
+string            text
+string            char
+string            varchar
+binary(type=0)    bytea
+date              date
+timestamp         timestamp
+array             TYPE[]              仅支持一维数组
+boolean           boolean
+null              text
 
 2) 注意事项
 
