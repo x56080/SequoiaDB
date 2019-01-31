@@ -45,6 +45,8 @@ public class TestLobAutoSplit7845 extends SdbTestBase {
 	public void setUp(){
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+			
+
 		}catch(BaseException e){			
 			Assert.assertTrue(false,"connect %s failed,"+SdbTestBase.coordUrl+e.getMessage());
 		}
@@ -88,7 +90,7 @@ public class TestLobAutoSplit7845 extends SdbTestBase {
 	
 	@Test( dependsOnMethods = "testAutoSplitLob")
 	public void checkSplitResult(){	
-		double expErrorValue = 0.5;	
+		double expErrorValue = 0.95;	
 		LobOprUtils.checkSplitResult(sdb, csName, clName, groupList, expErrorValue);		
 	}
 	
