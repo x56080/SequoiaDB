@@ -777,9 +777,9 @@ int sdbSetBsonValue( sdbbson *bsonObj, const char *name, Datum valueDatum,
       }
       case BYTEAOID :
       {
-			CHAR *buff = VARDATA_ANY( ( bytea * )DatumGetPointer( valueDatum ) ) ;
-			INT32 len  = VARSIZE_ANY_EXHDR( ( bytea * )DatumGetPointer( valueDatum ) ) ;
-			elog(DEBUG1, "len=%d", len) ;
+         CHAR *buff = VARDATA_ANY( ( bytea * )DatumGetPointer( valueDatum ) ) ;
+         INT32 len  = VARSIZE_ANY_EXHDR( ( bytea * )DatumGetPointer( valueDatum ) ) ;
+         elog(DEBUG1, "len=%d", len) ;
          sdbbson_append_binary( bsonObj, name, BSON_BIN_BINARY, buff, len ) ;
          break ;
       }
@@ -1065,7 +1065,32 @@ CHAR *changeToRegexFormat( CHAR *likeStr )
    INT32 regexj = 0 ;
    CHAR *regexStr  = NULL ;
    INT32 oldlength = strlen( likeStr ) ;
-   INT32 newLength = 2 * oldlength + 2 + 1 ;
+   INT32 newLength = 0 ;
+   static const CHAR *oneCharPattern = "([\\s\\S])" ;
+   INT32 onePatternLen = strlen( oneCharPattern ) ;
+   static const CHAR *anyCharPattern = "([\\s\\S]*)" ;
+   INT32 anyPatternLen = strlen( anyCharPattern ) ;
+
+   //'/' -> '//', '*' -> '\*'
+   // we do not want to check everything. so just double it
+   newLength = 2 * oldlength ;
+
+   newLength += 3; // '^' + '$' + '\0'
+   for ( i = 0; i < oldlength; i++ )
+   {
+      if ( '_' == likeStr[i] )
+      {
+         newLength += onePatternLen ;
+      }
+      else if ( '%' == likeStr[i] )
+      {
+         newLength += anyPatternLen ;
+      }
+      else
+      {
+         newLength++ ;
+      }
+   }
 
    regexStr = palloc0( newLength ) ;
    regexStr[regexj] = '^' ;
@@ -1075,15 +1100,13 @@ CHAR *changeToRegexFormat( CHAR *likeStr )
    {
       if ( '_' == likeStr[i] )
       {
-         regexStr[regexj] = '.' ;
-         regexj++ ;
+         memcpy( regexStr + regexj, oneCharPattern, onePatternLen ) ;
+         regexj += onePatternLen ;
       }
       else if ( '%' == likeStr[i] )
       {
-         regexStr[regexj] = '.' ;
-         regexj++ ;
-         regexStr[regexj] = '*' ;
-         regexj++ ;
+         memcpy( regexStr + regexj, anyCharPattern, anyPatternLen ) ;
+         regexj += anyPatternLen ;
       }
       else
       {
@@ -1517,13 +1540,27 @@ INT32 sdbOperExpr( OpExpr *opr, SdbExprTreeState *expr_state,
          goto error ;
       }
 
+      if ( strcmp( sdbOpName, SDB_KEYNAME_REGEX ) == 0
+           && !const_val->constisnull)
+      {
+         if ( BPCHAROID != const_val->consttype
+              && VARCHAROID != const_val->consttype
+              && TEXTOID != const_val->consttype )
+         {
+            rc = SDB_INVALIDARG ;
+            elog( DEBUG1, "operator is not supported4:op=%s,type=%d",
+                  pgOpName, const_val->consttype ) ;
+            goto error ;
+         }
+      }
+
       sdbbson_append_start_object( condition, columnName ) ;
       rc = sdbAppendConstantValue( condition, sdbOpName, const_val,
                                    expr_state->is_use_decimal ) ;
       if ( SDB_OK != rc )
       {
          rc = SDB_INVALIDARG ;
-         elog( DEBUG1, "operator is not supported4:op=%s", pgOpName ) ;
+         elog( DEBUG1, "operator is not supported5:op=%s", pgOpName ) ;
          goto error ;
       }
 
@@ -2279,7 +2316,7 @@ const CHAR *sdbOperatorName( const CHAR *operatorName, BOOLEAN isVarFirst )
       { ">=",  "$gte", "$lte"  },
       { "=",   "$et",  "$et"   },
       { "<>",  "$ne",  "$ne"   },
-      { "~~",  "$regex", "$regex" }
+      { "~~",  SDB_KEYNAME_REGEX, SDB_KEYNAME_REGEX }
    } ;
 
    INT32 i = 0 ;
