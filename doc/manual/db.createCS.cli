@@ -54,13 +54,6 @@ Create a collection space in a database instance.
               262144B.
 .br
               LobPageSize:<int32>
-.sp 2
-       \fBIndexEngineType\fR
-.br
-              Type of index engine. The default value is mmap.
-.br
-              IndexEngineType:<string>              
-.sp 2
 
 .sp 2
 \fBNote: \fR
@@ -87,9 +80,7 @@ Create a collection space in a database instance.
    *  LobPageSize can only be one of the following nine: 0, 4096,
    8192, 16384, 32768, 65536, 131072, 262144 and 524288, The
    default value is 262144.
-.sp 2
-   *  IndexEngineType can only be mmap or rocksdb, The
-   default value is mmap.   
+
 .SH "Examples"
 
 .sp 2
@@ -102,8 +93,3 @@ Create a collection space named "foo", specify the size of the
 data page as 4096 and its domain as "mydomain".
 .sp 2
 db.createCS("foo",{PageSize:4096,Domain:"mydomain"})
-.sp 2
-Create a collection space named "foo", specify the type of the 
-index engine as "rocksdb".
-.sp 2
-db.createCS("foo",{IndexEngineType:"rocksdb"})
