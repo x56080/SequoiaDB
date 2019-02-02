@@ -46,11 +46,3 @@
  ```lang-javascript
  > db.createCS( "foo", { PageSize: 4096, Domain: "mydomain" } )
  ```
-
-
-* 创建名为 foo 的集合空间，指定其索引存储引擎使用RocksDB
-
- ```lang-javascript
- > db.createCS( "foo", { IndexEngineType: "rocksdb" } )
- ```
-
