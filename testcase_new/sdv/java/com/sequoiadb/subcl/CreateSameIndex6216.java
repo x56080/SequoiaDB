@@ -46,7 +46,6 @@ public class CreateSameIndex6216 extends SdbTestBase{
 		try{
 			db = new Sequoiadb(SdbTestBase.coordUrl,"","");
 			db.setSessionAttr((BSONObject)JSON.parse("{PreferedInstance:'M'}"));
-			createMainCS();
 		}catch(BaseException e){
 			Assert.fail(e.getMessage()+e.getMessage());
 		}
@@ -56,6 +55,7 @@ public class CreateSameIndex6216 extends SdbTestBase{
 		if (SubCLUtils.getDataGroups(db).size() < 2){
             throw new SkipException("current environment less than tow groups");
         }
+      createMainCS();
 		createMaincl();
 
 		createAndAttachSubcls();

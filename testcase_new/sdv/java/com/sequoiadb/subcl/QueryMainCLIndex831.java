@@ -44,7 +44,6 @@ public class QueryMainCLIndex831 extends SdbTestBase{
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl,"","");
 			sdb.setSessionAttr((BSONObject)JSON.parse("{PreferedInstance:'M'}"));
-			createMainCS();
 		}catch(BaseException e){
 			e.printStackTrace();
 			Assert.fail(e.getMessage());
@@ -55,6 +54,8 @@ public class QueryMainCLIndex831 extends SdbTestBase{
 		if (SubCLUtils.getDataGroups(sdb).size() < 2){
             throw new SkipException("current environment less than tow groups");
         }
+        
+		 createMainCS();
 	    createMaincl();
 	    createSubcls();
 	    attachSubcls();
