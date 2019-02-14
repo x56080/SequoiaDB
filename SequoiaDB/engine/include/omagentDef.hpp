@@ -91,6 +91,7 @@ namespace engine
    #define SDBCM_EXE_FILE_NAME         "sdbcm"
    #define SDBCM_CFG_FILE_NAME         SDBCM_EXE_FILE_NAME".conf"
    #define SDBCM_DIALOG_FILE_NAME      SDBCM_EXE_FILE_NAME".log"
+   #define SDBCM_PID_FILE_NAME         SDBCM_EXE_FILE_NAME".pid"
 
    #define SDB_CM_ROOT_PATH            ".." OSS_FILE_SEP SDBCM_CONF_DIR_NAME OSS_FILE_SEP
    #define SDBCM_CONF_PATH_FILE        SDB_CM_ROOT_PATH SDBCM_CFG_FILE_NAME
