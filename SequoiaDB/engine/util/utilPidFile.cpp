@@ -73,8 +73,8 @@ namespace engine
       goto done ;
    }
 
-   INT32 removePIDFile( const CHAR *pOutputPath )
+   INT32 removePIDFile( const CHAR *pFilePath )
    {
-      return ossFile::deleteFileIfExists( pOutputPath ) ;
+      return ossFile::deleteFileIfExists( pFilePath ) ;
    }
 }
