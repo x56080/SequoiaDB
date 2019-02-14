@@ -185,7 +185,8 @@ utilFiles = [
       "util/csv2rawbson.cpp",
       "util/rawbson2csv.c",
       "util/utilDecodeRawbson.cpp",
-      "util/utilCache.cpp"
+      "util/utilCache.cpp",
+      "util/utilPidFile.cpp"
       ]
 
 dpsFiles = [

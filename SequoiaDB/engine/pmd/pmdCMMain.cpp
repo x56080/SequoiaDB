@@ -42,6 +42,7 @@
 #include "ossVer.h"
 #include "pmd.hpp"
 #include "pmdProc.hpp"
+#include "utilPidFile.hpp"
 
 namespace engine
 {
@@ -125,6 +126,7 @@ namespace engine
       CHAR currentPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR dialogPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR dialogFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+      CHAR pidFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       INT32 delSig[] = { 17, 0 } ; // del SIGCHLD
       CHAR verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       po::variables_map vm ;
@@ -175,7 +177,22 @@ namespace engine
       ossSprintVersion( "Version", verText, OSS_MAX_PATHSIZE, FALSE ) ;
       PD_LOG( PDEVENT, "Start cm[%s]...", verText) ;
 
-      // 3. init param
+      // 3. create pid file
+      rc = utilBuildFullPath( dialogPath, SDBCM_PID_FILE_NAME,
+                              OSS_MAX_PATHSIZE, pidFile ) ;
+      if ( rc )
+      {
+         std::cout << "Build dialog path failed: " << rc << std::endl ;
+         goto error ;
+      }
+      rc = createPIDFile( pidFile ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Failed to create pid file, rc: %d", rc ) ;
+         rc = SDB_OK ;
+      }
+
+      // 4. init param
       rc = sdbGetOMAgentOptions()->init( currentPath ) ;
       if ( rc )
       {
@@ -203,7 +220,7 @@ namespace engine
       }
       setPDLevel( sdbGetOMAgentOptions()->getDiagLevel() ) ;
 
-      // 4. print all config
+      // 5. print all config
       {
          string configs ;
          sdbGetOMAgentOptions()->toString( configs ) ;
@@ -212,7 +229,7 @@ namespace engine
 
       pmdSetDBRole( SDB_ROLE_OMA ) ;
 
-      // 5. handlers and init global mem
+      // 6. handlers and init global mem
       rc = pmdEnableSignalEvent( dialogPath, (PMD_ON_QUIT_FUNC)pmdOnQuit,
                                  delSig ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to enable trap, rc: %d", rc ) ;
@@ -221,10 +238,10 @@ namespace engine
       signal( SIGCHLD, SIG_IGN ) ;
 #endif // _LINUX
 
-      // 6. register agent cb
+      // 7. register agent cb
       PMD_REGISTER_CB( sdbGetOMAgentMgr() ) ;
 
-      // 7. init krcb
+      // 8. init krcb
       rc = krcb->init() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to init krcb, rc: %d", rc ) ;
 
@@ -242,7 +259,7 @@ namespace engine
                       "failed, rc: %d", rc ) ;
       }
 
-      // 8. change process name
+      // 9. change process name
 #if defined (_LINUX)
       {
          CHAR pmdProcessName [ OSS_RENAME_PROCESS_BUFFER_LEN + 1 ] = {0} ;
@@ -264,6 +281,7 @@ namespace engine
    done:
       PMD_SHUTDOWN_DB( rc ) ;
       pmdSetQuit() ;
+      removePIDFile( pidFile ) ;
       krcb->destroy () ;
       PD_LOG ( PDEVENT, "Stop programme, exit code: %d",
                krcb->getShutdownCode() ) ;
