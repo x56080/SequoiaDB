@@ -193,7 +193,7 @@ public class CacheTurnOnTest16718 extends SdbTestBase{
 	}
 	
 	
-	@Test(dataProvider= "clientoption-provider")
+	@Test(dataProvider= "clientoption-provider", enabled = false)
 	void testCreateCS(boolean enable, int inteval){
 		initClient(enable, inteval);//2
 		CollectionSpace  cs = createCS();
@@ -217,7 +217,7 @@ public class CacheTurnOnTest16718 extends SdbTestBase{
 		}
 	}
 	
-	@Test(dataProvider= "clientoption-provider")
+	@Test(dataProvider= "clientoption-provider",enabled = false)
 	void testCreateCL(boolean enable, int inteval){
 		initClient(enable, inteval);
 		CollectionSpace cs = createCS(null);
@@ -240,7 +240,7 @@ public class CacheTurnOnTest16718 extends SdbTestBase{
 		}
 	}
 	
-	@Test(dataProvider= "clientoption-provider")
+	@Test(dataProvider= "clientoption-provider",enabled = false)
 	void testCreateCLWithOptions(boolean enable, int inteval){
 		initClient(enable, inteval);
 		BSONObject options = new BasicBSONObject();
@@ -295,7 +295,7 @@ public class CacheTurnOnTest16718 extends SdbTestBase{
 		dropCS(cs);
 	}
 	
-	@Test(dataProvider= "clientoption-provider")
+	@Test(dataProvider= "clientoption-provider",enabled = false)
 	void testGetCSOfTimeOut(boolean enable, int inteval){
 		initClient(enable, inteval);
 		CollectionSpace cs = createCS();
@@ -316,7 +316,7 @@ public class CacheTurnOnTest16718 extends SdbTestBase{
 		}
 	}
 	
-	@Test(dataProvider= "clientoption-provider")
+	@Test(dataProvider= "clientoption-provider",enabled = false)
 	void testGetCLOfTimeOut(boolean enable, int inteval){
 		initClient(enable, inteval);
 		CollectionSpace cs = createCS(null);
@@ -366,7 +366,7 @@ public class CacheTurnOnTest16718 extends SdbTestBase{
 		}
 	}
 	
-	@Test(dataProvider= "clientoption-provider")
+	@Test(dataProvider= "clientoption-provider",enabled = false)
 	void testUpdateTimeStamp(boolean enable, int inteval){
 		initClient(enable, inteval);
 		CollectionSpace cs = createCS(null);
