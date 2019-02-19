@@ -15,7 +15,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
-* @TestLink: seqDB-1L4147
+* @TestLink: seqDB-14147
 * @describe: 设置timeout值，执行操作超时
 * @author wangkexin
 * @Date   2019.02.16
