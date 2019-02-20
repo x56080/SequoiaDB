@@ -44,10 +44,16 @@
 #include "pmdCB.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
+#include "utilInsertResult.hpp"
+
+using namespace bson;
+
 
 namespace engine
 {
    #define RTN_INSERT_ONCE_NUM         (10)
+
+   static BSONObj generateUpdator( const BSONObj &record ) ;
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNINSERT1, "rtnInsert" )
    INT32 rtnInsert ( const CHAR *pCollectionName, BSONObj &objs, INT32 objNum,
@@ -131,17 +137,63 @@ namespace engine
 
          try
          {
+            utilInsertResult insertResult ;
+            if ( FLG_INSERT_REPLACEONDUP & flags )
+            {
+               insertResult.enableDupErrInfo() ;
+            }
+
             BSONObj record ( (const CHAR*)pDataPos ) ;
-            rc = su->insertRecord ( pCollectionShortName, record, cb, dpsCB ) ;
+            rc = su->insertRecord ( pCollectionShortName, record, cb, dpsCB,
+                                    TRUE, TRUE, NULL, &insertResult ) ;
             // check return code
             if ( rc )
             {
-               // if we want to skip duplicate key error
-               if ( ( SDB_IXM_DUP_KEY == rc ) &&
-                    ( FLG_INSERT_CONTONDUP & flags ) )
+               if ( SDB_IXM_DUP_KEY == rc && FLG_INSERT_CONTONDUP & flags )
                {
+                  // skip duplicate key error
                   ++ignoredNum ;
                   rc = SDB_OK ;
+               }
+               else if ( SDB_IXM_DUP_KEY == rc
+                         && FLG_INSERT_REPLACEONDUP & flags )
+               {
+                  // update record when duplicate key error
+                  INT32 rcTmp = SDB_OK ;
+                  INT64 updateNum = 0 ;
+                  INT32 insertNum = 0 ;
+                  BSONObj hint ;
+                  BSONObj updator ;
+                  utilIdxDupErrInfo dupErrInfo( insertResult.getErrorInfo() ) ;
+
+                  BSONObj matcher = dupErrInfo.getIdxMatcher() ;
+                  PD_LOG( PDDEBUG, "DupInfo: %s", matcher.toString().c_str() ) ;
+                  if ( matcher.isEmpty() )
+                  {
+                     PD_LOG ( PDERROR, "matcher is empty, insert record %s into"
+                              " collection: %s, rc: %d",
+                              record.toString().c_str(), pCollectionName, rc ) ;
+                     goto error ;
+                  }
+
+                  updator = generateUpdator( record ) ;
+                  rcTmp = rtnUpdate( pCollectionName, matcher, updator, hint,
+                                     0, cb, &updateNum, &insertNum ) ;
+                  if ( SDB_OK != rcTmp )
+                  {
+                     PD_LOG( PDERROR, "Try to update record: %s when insert "
+                             "exists duplicate error. collection: %s, "
+                             "rcTmp:%d, rc: %d",
+                             record.toString().c_str(), pCollectionName,
+                             rcTmp, rc ) ;
+                     goto error ;
+                  }
+                  else
+                  {
+                     // update success.
+                     ++ignoredNum ;
+                     rc = SDB_OK ;
+                  }
                }
                else
                {
@@ -193,5 +245,10 @@ namespace engine
       goto done ;
    }
 
+   BSONObj generateUpdator( const BSONObj &record )
+   {
+      return BSON( "$replace" << record
+                   << "$keep" << BSON( DMS_ID_KEY_NAME << 1) ) ;
+   }
 }
 

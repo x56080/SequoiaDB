@@ -526,7 +526,8 @@ namespace engine
                                          SDB_DPSCB *dpscb,
                                          BOOLEAN mustOID,
                                          BOOLEAN canUnLock,
-                                         dmsMBContext *context )
+                                         dmsMBContext *context,
+                                         utilInsertResult *insertResult )
    {
       INT32 rc                     = SDB_OK ;
       BOOLEAN getContext           = FALSE ;
@@ -542,7 +543,7 @@ namespace engine
       }
 
       rc = _pDataSu->insertRecord( context, record, cb, dpscb, mustOID,
-                                   canUnLock ) ;
+                                   canUnLock, insertResult ) ;
       if ( rc )
       {
          goto error ;

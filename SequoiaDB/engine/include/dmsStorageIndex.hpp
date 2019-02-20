@@ -42,6 +42,7 @@
 #include "dmsStorageBase.hpp"
 #include "dpsLogWrapper.hpp"
 #include "dmsPageMap.hpp"
+#include "utilInsertResult.hpp"
 
 using namespace bson ;
 
@@ -106,7 +107,8 @@ namespace engine
          // Caller must hold mb exclusive lock
          INT32    indexesInsert ( _dmsMBContext *context, dmsExtentID extLID,
                                   BSONObj &inputObj, const dmsRecordID &rid,
-                                  _pmdEDUCB *cb ) ;
+                                  _pmdEDUCB *cb,
+                                  utilInsertResult *insertResult = NULL ) ;
 
          // Caller must hold mb exclusive lock
          INT32    indexesUpdate ( _dmsMBContext *context, dmsExtentID extLID,
@@ -153,7 +155,8 @@ namespace engine
          INT32    _indexInsert ( _dmsMBContext *context, _ixmIndexCB *indexCB,
                                  BSONObj &inputObj, const dmsRecordID &rid,
                                  _pmdEDUCB *cb, BOOLEAN dupAllowed,
-                                 BOOLEAN dropDups ) ;
+                                 BOOLEAN dropDups,
+                                 utilInsertResult *insertResult = NULL ) ;
 
          INT32    _indexUpdate ( _dmsMBContext *context, _ixmIndexCB *indexCB,
                                  BSONObj &originalObj, BSONObj &newObj,

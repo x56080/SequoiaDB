@@ -43,6 +43,7 @@
 #include "dmsExtent.hpp"
 #include "dpsLogWrapper.hpp"
 #include "dmsCompress.hpp"
+#include "utilInsertResult.hpp"
 
 #include <map>
 
@@ -842,7 +843,8 @@ namespace engine
                               _pmdEDUCB *cb,
                               SDB_DPSCB *dpscb,
                               BOOLEAN mustOID = TRUE,
-                              BOOLEAN canUnLock = TRUE ) ;
+                              BOOLEAN canUnLock = TRUE,
+                              utilInsertResult *insertResult = NULL ) ;
 
          // if deletedDataPtr = 0, will get from recordID
          // must hold mb exclusive lock

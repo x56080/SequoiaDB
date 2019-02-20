@@ -441,7 +441,7 @@ static INT32 _recv ( sdbConnectionHandle cHandle, Socket* sock,
    while ( TRUE )
    {
       // get length first
-      rc = clientRecv ( sock, ((CHAR*)&len) + totalReceivedLen, 
+      rc = clientRecv ( sock, ((CHAR*)&len) + totalReceivedLen,
                         sizeof(len) - totalReceivedLen, &receivedLen,
                         SDB_CLIENT_DFT_NETWORK_TIMEOUT ) ;
       totalReceivedLen += receivedLen ;
@@ -479,7 +479,7 @@ static INT32 _recv ( sdbConnectionHandle cHandle, Socket* sock,
    while ( TRUE )
    {
       rc = clientRecv ( sock, &(*ppBuffer)[sizeof(realLen) + totalReceivedLen],
-                        realLen - sizeof(realLen) - totalReceivedLen, 
+                        realLen - sizeof(realLen) - totalReceivedLen,
                         &receivedLen,
                         SDB_CLIENT_DFT_NETWORK_TIMEOUT ) ;
       totalReceivedLen += receivedLen ;
@@ -867,7 +867,7 @@ static INT32 requestSysInfo ( sdbConnectionStruct *connection )
    while ( TRUE )
    {
       rc = clientRecv ( connection->_sock, ((CHAR*)&reply) + totalReceivedLen,
-                        sizeof(MsgSysInfoReply) - totalReceivedLen, 
+                        sizeof(MsgSysInfoReply) - totalReceivedLen,
                         &receivedLen,
                         SDB_CLIENT_DFT_NETWORK_TIMEOUT ) ;
       totalReceivedLen += receivedLen ;
@@ -1450,7 +1450,7 @@ error :
    SET_INVALID_HANDLE( handle ) ;
    goto done ;
 }
-                         
+
 static INT32 _sdbGetList ( sdbConnectionHandle cHandle,
                            INT32 listType,
                            bson *condition,
@@ -1602,8 +1602,8 @@ static INT32 _sdbGetReplicaGroupDetail ( sdbReplicaGroupHandle cHandle,
    BSON_FINISH ( newObj ) ;
 
    rc = _sdbGetList ( r->_connection,
-                      SDB_LIST_GROUPS, &newObj, NULL, NULL, NULL, 
-                      0, -1, 
+                      SDB_LIST_GROUPS, &newObj, NULL, NULL, NULL,
+                      0, -1,
                       &cursor ) ;
    if ( SDB_OK != rc )
    {
@@ -2497,10 +2497,10 @@ SDB_EXPORT INT32 sdbGetSnapshot ( sdbConnectionHandle cHandle,
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   rc = _sdbGetSnapshot ( cHandle, snapType, 
-                          condition, selector, orderBy, NULL, 
+   rc = _sdbGetSnapshot ( cHandle, snapType,
+                          condition, selector, orderBy, NULL,
                           0, -1, handle ) ;
-   if ( rc ) 
+   if ( rc )
    {
       goto error ;
    }
@@ -2527,10 +2527,10 @@ SDB_EXPORT INT32 sdbGetSnapshot1 ( sdbConnectionHandle cHandle,
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   rc = _sdbGetSnapshot ( cHandle, snapType, 
-                          condition, selector, orderBy, hint, 
+   rc = _sdbGetSnapshot ( cHandle, snapType,
+                          condition, selector, orderBy, hint,
                           numToSkip, numToReturn, handle ) ;
-   if ( rc ) 
+   if ( rc )
    {
       goto error ;
    }
@@ -2701,7 +2701,7 @@ SDB_EXPORT INT32 sdbGetList ( sdbConnectionHandle cHandle,
    }
    rc = _sdbGetList ( cHandle,
                       listType,
-                      condition, selector, orderBy, NULL, 
+                      condition, selector, orderBy, NULL,
                       0, -1,
                       handle ) ;
    if ( SDB_OK != rc )
@@ -3626,10 +3626,10 @@ SDB_EXPORT INT32 sdbGetNodeMaster ( sdbReplicaGroupHandle cHandle,
    // check has primary or not
    bType = bson_find ( &it, &result, CAT_PRIMARY_NAME ) ;
    if ( BSON_EOO == bType )
-   {       
-      // cannot find primary         
-      rc = SDB_RTN_NO_PRIMARY_FOUND ;         
-      goto error ;      
+   {
+      // cannot find primary
+      rc = SDB_RTN_NO_PRIMARY_FOUND ;
+      goto error ;
    }
    if ( BSON_INT != bType )
    {
@@ -3639,7 +3639,7 @@ SDB_EXPORT INT32 sdbGetNodeMaster ( sdbReplicaGroupHandle cHandle,
    primaryNode = bson_iterator_int ( &it ) ;
    if ( -1 == primaryNode )
    {
-      // cannot find primary         
+      // cannot find primary
       rc = SDB_RTN_NO_PRIMARY_FOUND ;
       goto error ;
    }
@@ -3694,7 +3694,7 @@ SDB_EXPORT INT32 sdbGetNodeMaster ( sdbReplicaGroupHandle cHandle,
    {
       // it is impossible for us to find primary id but cannot
       // find primary node in list
-      rc = SDB_SYS ;         
+      rc = SDB_SYS ;
       goto error ;
    }
 done :
@@ -3772,8 +3772,8 @@ static INT32 _sdbGetNodeSlave ( sdbReplicaGroupHandle cHandle,
    rc = _sdbGetReplicaGroupDetail ( cHandle, &result ) ;
    if ( SDB_OK != rc )
    {
-      if ( SDB_DMS_EOC == rc )         
-      {            
+      if ( SDB_DMS_EOC == rc )
+      {
          rc = SDB_CLS_GRP_NOT_EXIST ;
       }
       goto error ;
@@ -3838,7 +3838,7 @@ static INT32 _sdbGetNodeSlave ( sdbReplicaGroupHandle cHandle,
               BSON_OK == bson_init_finished_data ( &intObj,
                             (CHAR*)bson_iterator_value ( &i ) ) )
          {
-            
+
             bson_iterator k ;
             // look for "NodeID" in each object
             if ( BSON_INT != bson_find ( &k, &intObj, CAT_NODEID_NAME ) )
@@ -3868,7 +3868,7 @@ static INT32 _sdbGetNodeSlave ( sdbReplicaGroupHandle cHandle,
    if ( hasPrimary && 0 == primaryNodePosition )
    {
       rc = SDB_SYS ;
-      goto error ;    
+      goto error ;
    }
    // try to generate slave node's positions
    if ( needGeneratePosition )
@@ -3912,7 +3912,7 @@ static INT32 _sdbGetNodeSlave ( sdbReplicaGroupHandle cHandle,
       INT32 includePrimaryPositionsCount = 0 ;
       INT32 excludePrimaryPositions[7]   = { 0 } ;
       INT32 excludePrimaryPositionsCount = 0 ;
-      
+
       for ( i = 0 ; i < validPositionsCount ; i++ )
       {
          INT32 pos = validPositions[i] ;
@@ -3926,7 +3926,7 @@ static INT32 _sdbGetNodeSlave ( sdbReplicaGroupHandle cHandle,
                if ( hasPrimary && primaryNodePosition != pos )
                {
                   excludePrimaryPositions[excludePrimaryPositionsCount++] = pos ;
-               }             
+               }
             }
          }
          else
@@ -3936,7 +3936,7 @@ static INT32 _sdbGetNodeSlave ( sdbReplicaGroupHandle cHandle,
             {
                flags[nodeIndex] = 1 ;
                includePrimaryPositions[includePrimaryPositionsCount++] = pos ;
-               if ( hasPrimary && 
+               if ( hasPrimary &&
                     primaryNodePosition != nodeIndex + 1 )
                {
                   excludePrimaryPositions[excludePrimaryPositionsCount++] = pos ;
@@ -3966,7 +3966,7 @@ static INT32 _sdbGetNodeSlave ( sdbReplicaGroupHandle cHandle,
          goto error ;
       }
    }
-   
+
 done :
    bson_destroy( &result ) ;
    return rc ;
@@ -5807,11 +5807,17 @@ error :
 SDB_EXPORT INT32 sdbInsert ( sdbCollectionHandle cHandle,
                              bson *obj )
 {
-   return sdbInsert1 ( cHandle, obj, NULL ) ;
+   return sdbInsert2 ( cHandle, obj, 0, NULL ) ;
 }
 
 SDB_EXPORT INT32 sdbInsert1 ( sdbCollectionHandle cHandle,
                               bson *obj, bson_iterator *id )
+{
+   return sdbInsert2( cHandle, obj, 0, id ) ;
+}
+
+SDB_EXPORT INT32 sdbInsert2 ( sdbCollectionHandle cHandle,
+                              bson *obj, INT32 flag, bson_iterator *id )
 {
    INT32 rc         = SDB_OK ;
    SINT64 contextID = 0 ;
@@ -5831,7 +5837,7 @@ SDB_EXPORT INT32 sdbInsert1 ( sdbCollectionHandle cHandle,
       goto error ;
    }
    rc = clientBuildInsertMsg ( &cs->_pSendBuffer, &cs->_sendBufferSize,
-                               cs->_collectionFullName, 0, 0, obj, cs->_endianConvert ) ;
+                               cs->_collectionFullName, flag, 0, obj, cs->_endianConvert ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
@@ -5866,7 +5872,7 @@ SDB_EXPORT INT32 sdbInsert1 ( sdbCollectionHandle cHandle,
    }
 
 done :
-   if ( id )
+   if ( SDB_OK == rc && NULL != id )
    {
       ossMemcpy ( id, &tempid, sizeof(bson_iterator) ) ;
    }
@@ -5874,6 +5880,7 @@ done :
 error :
    goto done ;
 }
+
 
 SDB_EXPORT INT32 sdbBulkInsert ( sdbCollectionHandle cHandle,
                                  SINT32 flags, bson **obj, SINT32 num )
@@ -10302,7 +10309,7 @@ SDB_EXPORT INT32 sdbDetachNode( sdbReplicaGroupHandle cHandle,
 
    HANDLE_CHECK( cHandle, rg, SDB_HANDLE_TYPE_REPLICAGROUP ) ;
    BSON_INIT( obj ) ;
-   if ( NULL == hostName || !*hostName || 
+   if ( NULL == hostName || !*hostName ||
         NULL == serviceName || !*serviceName )
    {
       rc = SDB_INVALIDARG ;
@@ -10364,7 +10371,7 @@ SDB_EXPORT INT32 sdbAttachNode( sdbReplicaGroupHandle cHandle,
 
    HANDLE_CHECK( cHandle, rg, SDB_HANDLE_TYPE_REPLICAGROUP ) ;
    BSON_INIT( obj ) ;
-   if ( NULL == hostName || !*hostName || 
+   if ( NULL == hostName || !*hostName ||
         NULL == serviceName || !*serviceName )
    {
       rc = SDB_INVALIDARG ;

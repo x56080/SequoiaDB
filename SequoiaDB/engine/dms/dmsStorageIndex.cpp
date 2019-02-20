@@ -1135,7 +1135,8 @@ namespace engine
                                          const dmsRecordID &rid,
                                          pmdEDUCB *cb,
                                          BOOLEAN dupAllowed,
-                                         BOOLEAN dropDups )
+                                         BOOLEAN dropDups,
+                                         utilInsertResult *insertResult )
    {
       INT32 rc = SDB_OK ;
       BSONObjSet keySet ;
@@ -1163,9 +1164,16 @@ namespace engine
 #endif*/
             ixmKeyOwned ko ((*it)) ;
 
-            rc = _indexInsert ( indexCB, ko, rid, order, cb, dupAllowed, dropDups ) ;
+            rc = _indexInsert ( indexCB, ko, rid, order, cb, dupAllowed,
+                                dropDups ) ;
             if ( rc )
             {
+               if ( SDB_IXM_DUP_KEY == rc && NULL != insertResult )
+               {
+                  insertResult->setDupErrInfo( indexCB->getName(),
+                                               indexCB->keyPattern(), *it ) ;
+               }
+
                PD_LOG ( PDERROR, "Failed to insert index, rc: %d", rc ) ;
                goto error ;
             }
@@ -1183,7 +1191,8 @@ namespace engine
                                           dmsExtentID extLID,
                                           BSONObj & inputObj,
                                           const dmsRecordID &rid,
-                                          pmdEDUCB * cb )
+                                          pmdEDUCB * cb,
+                                          utilInsertResult *insertResult )
    {
       INT32 rc                     = SDB_OK ;
       INT32 indexID                = 0 ;
@@ -1224,7 +1233,7 @@ namespace engine
          unique = indexCB.unique() ;
          dropDups = indexCB.dropDups() ;
          rc = _indexInsert ( context, &indexCB, inputObj, rid, cb, !unique,
-                             dropDups ) ;
+                             dropDups, insertResult ) ;
          PD_RC_CHECK ( rc, PDERROR, "Failed to insert index, rc: %d", rc ) ;
       }
 

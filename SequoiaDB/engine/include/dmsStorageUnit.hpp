@@ -46,6 +46,7 @@
 #include "rtnAPM.hpp"
 #include "monDMS.hpp"
 #include "utilCache.hpp"
+#include "utilInsertResult.hpp"
 
 using namespace bson ;
 
@@ -205,7 +206,8 @@ namespace engine
                                  SDB_DPSCB *dpscb,
                                  BOOLEAN mustOID = TRUE,
                                  BOOLEAN canUnLock = TRUE,
-                                 dmsMBContext *context = NULL ) ;
+                                 dmsMBContext *context = NULL,
+                                 utilInsertResult *insertResult = NULL ) ;
 
          INT32    updateRecords ( const CHAR *pName,
                                   _pmdEDUCB *cb,

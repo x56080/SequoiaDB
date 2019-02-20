@@ -2730,7 +2730,8 @@ namespace engine
                                         pmdEDUCB *cb,
                                         SDB_DPSCB *dpscb,
                                         BOOLEAN mustOID,
-                                        BOOLEAN canUnLock )
+                                        BOOLEAN canUnLock,
+                                        utilInsertResult *insertResult )
    {
       INT32 rc                      = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA_INSERTRECORD ) ;
@@ -2948,7 +2949,8 @@ namespace engine
 
          /// insert object's indexes
          rc = _pIdxSU->indexesInsert( context, pExtent->_logicID,
-                                      insertObj, foundDeletedID, cb ) ;
+                                      insertObj, foundDeletedID, cb,
+                                      insertResult ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert to index, rc: %d", rc ) ;
       }
       catch( std::exception &e )

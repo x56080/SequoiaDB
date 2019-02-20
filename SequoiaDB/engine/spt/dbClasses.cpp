@@ -1014,7 +1014,7 @@ static JSBool collection_insert ( JSContext *cx , uintN argc , jsval *vp )
    sdbCollectionHandle *collection  = NULL ;
    JSObject *           objData     = NULL ;
    bson *               bsonData    = NULL ;
-   JSBool               returnID    = JS_FALSE ;
+   int32_t              flags       = 0 ;
    INT32                rc          = SDB_OK ;
    JSBool               ret         = JS_TRUE ;
    bson_oid_t           *oid        = NULL ;
@@ -1027,7 +1027,7 @@ static JSBool collection_insert ( JSContext *cx , uintN argc , jsval *vp )
    REPORT ( collection , "SdbCollection._insert(): no collection handle" ) ;
 
    ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
-                               "ob" , &objData , &returnID ) ;
+                               "oi" , &objData , &flags ) ;
    REPORT ( ret , "SdbCollection._insert(): wrong arguments" ) ;
 
    // bsonData is freed in done:
@@ -1037,11 +1037,18 @@ static JSBool collection_insert ( JSContext *cx , uintN argc , jsval *vp )
       REPORT_RC ( JS_FALSE , "SdbCollection._insert()" , rc ) ;
    }
 
-   if ( returnID )
+   if ( flags & FLG_INSERT_CONTONDUP )
    {
-      rc = sdbInsert1 ( *collection , bsonData , &id ) ;
-      REPORT_RC ( SDB_OK == rc , "SdbCollection._insert()" , rc ) ;
+      rc = SDB_INVALIDARG ;
+      REPORT_RC ( JS_FALSE , "Single insert can't support flag "
+                  "SDB_INSERT_CONTONDUP" , rc ) ;
+   }
 
+   rc = sdbInsert2 ( *collection , bsonData , flags , &id ) ;
+   REPORT_RC ( SDB_OK == rc , "SdbCollection._insert()" , rc ) ;
+
+   if ( flags & FLG_INSERT_RETURN_OID )
+   {
       oid = bson_iterator_oid ( &id ) ;
       VERIFY ( oid ) ;
 
@@ -1053,9 +1060,6 @@ static JSBool collection_insert ( JSContext *cx , uintN argc , jsval *vp )
    }
    else
    {
-      rc = sdbInsert ( *collection , bsonData ) ;
-      REPORT_RC ( SDB_OK == rc , "SdbCollection._insert()" , rc ) ;
-
       JS_SET_RVAL ( cx , vp , JSVAL_VOID ) ;
    }
 
@@ -2250,6 +2254,13 @@ static JSBool collection_bulk_insert ( JSContext *cx , uintN argc , jsval *vp )
       REPORT ( JSVAL_IS_INT ( argv[1] ) ,
                "SdbCollection._bulkInsert(): 2nd param should be bit flags" ) ;
       insertFlags = JSVAL_TO_INT ( argv[1] ) ;
+   }
+
+   if ( insertFlags & FLG_INSERT_RETURN_OID )
+   {
+      rc = SDB_INVALIDARG ;
+      REPORT ( FALSE , "BulkInsert can't support flag SDB_INSERT_RETURN_ID",
+               rc ) ;
    }
 
    rc = sdbBulkInsert ( *collection , insertFlags , bsonArray , len ) ;
@@ -3530,17 +3541,17 @@ static JSBool rg_detach( JSContext *cx, uintN argc, jsval *vp )
    // check arguments
    if ( !JSVAL_IS_STRING( argv[0] ) )
    {
-      REPORT_RC_MSG( FALSE, "RG.detachNode()", SDB_INVALIDARG, 
+      REPORT_RC_MSG( FALSE, "RG.detachNode()", SDB_INVALIDARG,
                      "the 1st argument should be a string" ) ;
    }
    if ( !JSVAL_IS_STRING( argv[1] ) && !JSVAL_IS_INT( argv[1] ) )
    {
-      REPORT_RC_MSG( FALSE, "RG.detachNode()", SDB_INVALIDARG, 
+      REPORT_RC_MSG( FALSE, "RG.detachNode()", SDB_INVALIDARG,
                      "the 2nd argument should be a string or int value" ) ;
    }
    if ( JSVAL_IS_PRIMITIVE( argv[2] ) )
    {
-      REPORT_RC_MSG( FALSE, "RG.detachNode()", SDB_INVALIDARG, 
+      REPORT_RC_MSG( FALSE, "RG.detachNode()", SDB_INVALIDARG,
                      "the 3rd argument should be an object" ) ;
    }
    // get arguments
@@ -3591,21 +3602,21 @@ static JSBool rg_attach( JSContext *cx, uintN argc, jsval *vp )
    // check arguments
    if ( !JSVAL_IS_STRING( argv[0] ) )
    {
-      REPORT_RC_MSG( FALSE, "RG.attachNode()", SDB_INVALIDARG, 
+      REPORT_RC_MSG( FALSE, "RG.attachNode()", SDB_INVALIDARG,
                      "the 1st argument should be a string" ) ;
    }
    if ( !JSVAL_IS_STRING( argv[1] ) && !JSVAL_IS_INT( argv[1] ) )
    {
-      REPORT_RC_MSG( FALSE, "RG.attachNode()", SDB_INVALIDARG, 
+      REPORT_RC_MSG( FALSE, "RG.attachNode()", SDB_INVALIDARG,
                      "the 2nd argument should be a string or int value" ) ;
    }
    if ( JSVAL_IS_PRIMITIVE( argv[2] ) )
    {
-      REPORT_RC_MSG( FALSE, "RG.attachNode()", SDB_INVALIDARG, 
+      REPORT_RC_MSG( FALSE, "RG.attachNode()", SDB_INVALIDARG,
                      "the 3rd argument should be an object" ) ;
    }
    // get arguments
-   ret = JS_ConvertArguments ( cx , argc , argv, "SSo", 
+   ret = JS_ConvertArguments ( cx , argc , argv, "SSo",
                                &jsHost, &jsSvc, &jsOptions ) ;
    REPORT ( ret, "RG.attachNode(): wrong arguments" ) ;
    // transform argumnts
@@ -6827,7 +6838,7 @@ static JSBool sdb_start_rg ( JSContext *cx , uintN argc , jsval *vp )
    UINT32                  count      = 0 ;
    sdbReplicaGroupHandle * rg         = NULL ;
    sdbConnectionHandle *   connection = NULL ;
-   
+
    if ( argc < 1 )
    {
       REPORT ( FALSE, "Sdb.startRG(<name>): wrong arguments" ) ;

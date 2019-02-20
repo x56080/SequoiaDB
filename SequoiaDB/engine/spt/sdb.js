@@ -50,6 +50,7 @@ var SDB_LIST_TRANSACTIONS_CURRENT = 12 ;
 
 var SDB_INSERT_CONTONDUP         = 1 ;
 var SDB_INSERT_RETURN_ID         = 2 ; // only available when inserting only one document
+var SDB_INSERT_REPLACEONDUP      = 4 ;
 
 var SDB_TRACE_FLW                = 0 ;
 var SDB_TRACE_FMT                = 1 ;
@@ -567,33 +568,39 @@ SdbCollection.prototype.toString = function() {
    return this._cs.toString() + "." + this._name;
 }
 
-SdbCollection.prototype.insert = function ( data , flags )
+SdbCollection.prototype.insert = function ( data , arg )
 {
    if ( (typeof data) != "object" )
-      throw "SdbCollection.insert(): the 1st param should be obj or array of objs";
-   var newFlags = 0 ;
-   if ( flags != undefined )
    {
-      if ( (typeof flags) != "number" ||
-            ( flags != 0 &&
-              flags != SDB_INSERT_RETURN_ID &&
-              flags != SDB_INSERT_CONTONDUP ) )
-         throw "SdbCollection.insert(): the 2nd param if existed should be 0 or SDB_INSERT_RETURN_ID or SDB_INSERT_CONTONDUP only";
-      newFlags = flags ;
+      throw "SdbCollection.insert(): the 1st param should be obj or array of objs";
+   }
+
+   var flags = 0 ;
+   if ( arg == undefined )
+   {
+      flags = 0 ;
+   }
+   else if ( ( typeof arg ) == "number" )
+   {
+      flags = arg ;
+   }
+   else
+   {
+      throw "SdbCollection.insert(): the 2nd param if existed should be a number";
    }
 
    if ( data instanceof Array )
    {
-      if ( 0 == data.length ) return ;
-      if ( newFlags != 0 && newFlags != SDB_INSERT_CONTONDUP )
-         throw "SdbCollection.insert(): when insert more than 1 records, the 2nd param if existed should be 0 or SDB_INSERT_CONTONDUP only";
-      return this._bulkInsert ( data , newFlags ) ;
+      if ( 0 == data.length )
+      {
+         return ;
+      }
+
+      return this._bulkInsert ( data , flags ) ;
    }
    else
    {
-      if ( newFlags != 0 && newFlags != SDB_INSERT_RETURN_ID )
-         throw "SdbCollection.insert(): when insert 1 record, the 2nd param if existed should be 0 or SDB_INSERT_RETURN_ID only";
-      return this._insert ( data , SDB_INSERT_RETURN_ID == flags ) ;
+      return this._insert ( data , flags ) ;
    }
 }
 

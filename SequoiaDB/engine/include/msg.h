@@ -473,8 +473,9 @@ struct _MsgOpUpdate
 typedef struct _MsgOpUpdate MsgOpUpdate ;
 
 // if set, db will not stop bulk insert if one failed with dup key
-#define FLG_INSERT_CONTONDUP  0x00000001
-#define FLG_INSERT_RETURNNUM  0x00000002
+#define FLG_INSERT_CONTONDUP     0x00000001
+#define FLG_INSERT_RETURNNUM     0x00000002
+#define FLG_INSERT_REPLACEONDUP  0x00000004
 // For Insert, 1 BSON object will be followed
 // Inserted Data
 struct _MsgOpInsert

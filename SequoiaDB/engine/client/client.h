@@ -37,6 +37,11 @@ SDB_EXTERN_C_START
 /** 0 means using database's default pagesize, it 64k now */
 #define SDB_PAGESIZE_DEFAULT      0
 
+/** The flags represent whether bulk insert continue when hitting index key duplicate error */
+#define FLG_INSERT_CONTONDUP    0x00000001
+#define FLG_INSERT_RETURN_OID  0x00000002
+#define FLG_INSERT_REPLACEONDUP 0x00000004
+
 enum _SDB_LOB_OPEN_MODE
 {
    SDB_LOB_CREATEONLY = 0x00000001, /**< Open a new lob only */
@@ -1380,8 +1385,18 @@ SDB_EXPORT INT32 sdbInsert ( sdbCollectionHandle cHandle,
 SDB_EXPORT INT32 sdbInsert1 ( sdbCollectionHandle cHandle,
                               bson *obj, bson_iterator *id ) ;
 
-/** The flags represent whether bulk insert continue when hitting index key duplicate error */
-#define FLG_INSERT_CONTONDUP  0x00000001
+/** \fn INT32 sdbInsert2 ( sdbCollectionHandle cHandle,
+                           bson *obj, INT32 flag, bson_iterator *id )
+    \brief Insert a bson object into current collection
+    \param [in] cHandle The collection handle
+    \param [in] obj The inserted bson object, cannot be null
+    \param [in] flag The insert flag:FLG_INSERT_CONTONDUP,FLG_INSERT_REPLACEONDUP
+    \param [out] id The object id of inserted bson object in current collection
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbInsert2 ( sdbCollectionHandle cHandle,
+                              bson *obj, INT32 flag, bson_iterator *id ) ;
 
 /** \fn INT32 sdbBulkInsert ( sdbCollectionHandle cHandle,
                               SINT32 flags, bson **obj, SINT32 num )
@@ -2448,7 +2463,7 @@ SDB_EXPORT INT32 sdbTruncateCollection( sdbConnectionHandle cHandle,
                            Can be the follow options:
          <ul>
          <li>KeepData: Whether to keep the original data of the
-                       detached node. This option has no default 
+                       detached node. This option has no default
                        value. User should specify its value explicitly.
          <li>Enforced: Whether to detach the node forcibly , default
                        to be false.
@@ -2471,8 +2486,8 @@ SDB_EXPORT INT32 sdbDetachNode( sdbReplicaGroupHandle cHandle,
     \param [in] optoins The options of attach. Can not be null or empty.
                         Can be the follow options:
         <ul>
-        <li>KeepData : Whether to keep the original data of the new 
-                       node. This option has no default value. User 
+        <li>KeepData : Whether to keep the original data of the new
+                       node. This option has no default value. User
                        should specify its value explicitly.
     \retval SDB_OK Operation Success
     \retval Others Operation Fail

@@ -261,7 +261,7 @@ namespace engine
             rc = decimal.add( inc, result ) ;
             if ( SDB_OK != rc )
             {
-               PD_LOG_MSG( PDERROR, "decimal add failed:v1=%s,v2=%s,rc=%d", 
+               PD_LOG_MSG( PDERROR, "decimal add failed:v1=%s,v2=%s,rc=%d",
                            decimal.toString().c_str(),
                            inc.toString().c_str(), rc ) ;
                goto error ;
@@ -2497,6 +2497,19 @@ namespace engine
                                             BSONObjIteratorSorted &es )
    {
       {
+         BSONObjBuilder redoRBuilder ;
+         UINT32 i = 0 ;
+         while ( i < _modifierElements.size() )
+         {
+            redoRBuilder.append( _modifierElements[i]._toModify ) ;
+            b.append( _modifierElements[i]._toModify ) ;
+            ++i ;
+         }
+
+         ADD_CHG_OBJECT( _dstChgBuilder, redoRBuilder.obj(), "$replace" ) ;
+      }
+
+      {
          BSONObjBuilder undoRBuilder ;
          while ( es.more() )
          {
@@ -2510,19 +2523,6 @@ namespace engine
          }
 
          ADD_CHG_OBJECT( _srcChgBuilder, undoRBuilder.obj(), "$replace" ) ;
-      }
-
-      {
-         BSONObjBuilder redoRBuilder ;
-         UINT32 i = 0 ;
-         while ( i < _modifierElements.size() )
-         {
-            redoRBuilder.append( _modifierElements[i]._toModify ) ;
-            b.append( _modifierElements[i]._toModify ) ;
-            ++i ;
-         }
-
-         ADD_CHG_OBJECT( _dstChgBuilder, redoRBuilder.obj(), "$replace" ) ;
       }
 
       {

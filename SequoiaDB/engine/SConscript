@@ -165,7 +165,9 @@ utilFiles = [
       "util/utilZlibStream.cpp",
       "util/utilJsonFile.cpp",
       "util/utilBuffBlock.cpp",
-      "util/utilCommBuff.cpp"
+      "util/utilCommBuff.cpp",
+      "util/utilInsertResult.cpp",
+      "util/utilResult.cpp"
       ]
 
 rtnFiles = [
