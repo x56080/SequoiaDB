@@ -17,6 +17,10 @@
     $ service sdbcm stop
     ```
 
+    >**Note:**  
+    > 在/proc/1/exe所指向的启动文件为/lib/systemd/systemd的系统上，执行service sdbcm stop只会停止cm，在其它系统上会停止cm和节点进程。
+
+
 3.  查看服务状态，系统提示“sdbcm is running”表示服务正在运行
 
     ```lang-javascript
@@ -28,9 +32,6 @@
     ```lang-javascript
     $ service sdbcm restart
     ```
-
-    >**Note:**  
-    > 在/proc/1/exe所指向的启动文件为/lib/systemd/systemd的系统上，执行service sdbcm restart重启cm和节点，在其它系统上只会启动cm。 
 
     ```lang-javascript
     $ service sdbcm restart all-nodes
@@ -47,7 +48,7 @@
     ```
 
     >**Note:**  
-    > 在/proc/1/exe所指向的启动文件为/lib/systemd/systemd的系统上，执行servcie sdbcm force-reload重启cm进程和节点进程，在其它系统上只会启动cm进程。
+    > 只重启cm。
 
     ```lang-javascript
     $ service sdbcm force-reload all-nodes
