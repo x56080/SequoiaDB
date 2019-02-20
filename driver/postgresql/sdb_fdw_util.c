@@ -335,7 +335,6 @@ bool isSortCanPushDown( PlannerInfo *root, Index foreignTableIndex )
       foreach(emCell, ec->ec_members)
       {
          Var *var ;
-         NodeTag argType ;
          em = (EquivalenceMember *) lfirst(emCell) ;
          if (NULL == em->em_expr)
          {
@@ -343,18 +342,18 @@ bool isSortCanPushDown( PlannerInfo *root, Index foreignTableIndex )
             return false ;
          }
 
-         argType = nodeTag(em->em_expr) ;
-         if( argType != T_Var )
+         var = getRealVar( em->em_expr ) ;
+         if ( NULL == var )
          {
             elog( DEBUG1, "isSortCanPushDown:em->em_expr is not Var" ) ;
             return false ;
          }
 
-         var = (Var *) em->em_expr ;
          if ( var->varno != foreignTableIndex  ||  var->varlevelsup != 0 )
          {
-            elog( DEBUG1, "isSortCanPushDown:foreignTableIndex=%d,varno=%d,varlevelsup=%d",
-                  foreignTableIndex, var->varno, var->varlevelsup) ;
+            elog( DEBUG1, "isSortCanPushDown:foreignTableIndex=%d,varno=%d,"
+                  "varlevelsup=%d", foreignTableIndex, var->varno,
+                  var->varlevelsup) ;
             return false ;
          }
       }
@@ -397,7 +396,7 @@ INT32 sdbGenerateSortCondition ( Index foreignTableIndex, Oid foreign_id,
       {
          CHAR *columnName ;
          em = (EquivalenceMember *) lfirst(emCell) ;
-         var = (Var *) em->em_expr ;
+         var = getRealVar( em->em_expr ) ;
          columnName = get_relid_attribute_name( foreign_id, var->varattno ) ;
          sdbbson_append_int( condition, columnName, order ) ;
       }
@@ -1870,5 +1869,41 @@ void sdbPreprocessLimit(PlannerInfo *root, INT64 *offset, INT64 *limit)
    return;
 }
 
+Var *getRealVar(Expr *arg)
+{
+   if (NULL == arg)
+   {
+      return NULL;
+   }
+
+   if (T_Var == nodeTag(arg))
+   {
+      return (Var *)arg;
+   }
+   else if (T_RelabelType == nodeTag(arg))
+   {
+      RelabelType* rtype = (RelabelType *)arg;
+      if (NULL == rtype->arg)
+      {
+         return NULL;
+      }
+
+      if (T_Var == nodeTag(rtype->arg))
+      {
+         return (Var *)rtype->arg;
+      }
+      else
+      {
+         elog(DEBUG1, "unreconigzed RelabelType's arg nodeType:nodeTag[%d]",
+              nodeTag(rtype->arg));
+         return NULL;
+      }
+   }
+   else
+   {
+      elog(DEBUG1, "unreconigzed nodeType:nodeTag[%d]", nodeTag(arg));
+      return NULL;
+   }
+}
 
 

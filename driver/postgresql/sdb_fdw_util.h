@@ -101,6 +101,8 @@ void sdbPrintBson( sdbbson *bson, int log_level, const char *label ) ;
 
 void debugClauseInfo( PlannerInfo *root, RelOptInfo *baserel, Oid tableID ) ;
 
+Var *getRealVar( Expr *arg ) ;
+
 /* record cache */
 typedef struct
 {
