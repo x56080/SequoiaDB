@@ -8,9 +8,13 @@
 | 参数名 | 参数类型 | 描述 | 是否必填 |
 | ------ | -------- | ---- | -------- |
 | doc&#124;docs | Json 对象 | 文档记录。doc 为一条记录，docs 为多条记录。 | 是 |
-| flag | Int | 可取 SDB_INSERT_RETURN_ID 或者 SDB_INSERT_CONTONDUP。前者在插入单条记录时有效，表示插入记录后返回记录中“_id”字段内容；后者在插入多条记录时有效，表示在插入的记录中，若存在“_id”字段内容重复的记录时，将跳过这些存在重复“_id”的记录继续插入后面记录。默认情况下，当存在重复“_id”字段内容的记录时，将停止插入后面的记录。 | 否 |
+| flag | Int | 有效值为：SDB_INSERT_RETURN_ID、SDB_INSERT_CONTONDUP、SDB_INSERT_REPLACEONDUP。其中 SDB_INSERT_RETURN_ID 表示插入成功后返回记录中“_id”字段内容；SDB_INSERT_CONTONDUP 表示当发生索引建冲突时，跳过该条记录并继续插入其他记录；SDB_INSERT_REPLACEONDUP 表示当发生索引建冲突时，将已存在的记录更新为待插入的新纪录，并继续插入其他记录。默认情况下发生索引键冲突本命令失败并终止命令。| 否 |
 
 > **Note:**
+>
+> 单条插入支持的有效值为：SDB_INSERT_RETURN_ID、SDB_INSERT_REPLACEONDUP
+>
+>多条插入支持的有效值为：SDB_INSERT_CONTONDUP、SDB_INSERT_REPLACEONDUP
 >
 > 如果插入的记录不指定 _id 字段时，SequoiaDB 会自动为记录添加一个 _id 字段来标识记录的唯一性。
 
