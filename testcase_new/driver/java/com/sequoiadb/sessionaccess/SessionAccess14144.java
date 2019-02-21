@@ -12,7 +12,6 @@ import org.testng.annotations.Test;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 
 import static org.testng.Assert.assertEquals;
 
@@ -27,7 +26,7 @@ public class SessionAccess14144 extends SdbTestBase {
 	private String clname = "cl14144";
     private Sequoiadb db;
     private DBCollection dbcl;
-    private List<NodeWarrper> nodeList;
+    private BasicBSONList nodes;
     private String rgName = "sessionAccessRG14144";
 
     @BeforeClass
@@ -35,9 +34,11 @@ public class SessionAccess14144 extends SdbTestBase {
     	System.out.println("the TestCase Name:" + this.getClass().getName() + 
                 ". the TestCase begin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
         db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        CommLib.createRG(db, rgName);
+        nodes = CommLib.createRG(db, rgName);
         BSONObject options = new BasicBSONObject("Group", rgName);
+        options.put("ReplSize", -1);
         dbcl = db.getCollectionSpace(SdbTestBase.csName).createCollection(clname, options);
+        CommLib.insertRecords(dbcl);
     }
 
     @AfterClass
@@ -51,16 +52,14 @@ public class SessionAccess14144 extends SdbTestBase {
     
     @Test
     public void test14144() {
-    	nodeList = CommLib.getNodeList(db, rgName);
-        BasicBSONList instanceidList = new BasicBSONList();
-        for (NodeWarrper nodeWarrper : nodeList) {
-        	instanceidList.add(nodeWarrper.getInstenceid());
-        }
+        BasicBSONList instanceidList = CommLib.getInstanceidList(nodes);
 
         BasicBSONObject options = new BasicBSONObject("PreferedInstance", instanceidList).append("PreferedInstanceMode", "ordered");
         db.setSessionAttr(options);
         String actualNodeName = CommLib.getActualDataNodeName(dbcl);
-        assertEquals(actualNodeName, nodeList.get(0).getNodeName());
+        
+        BasicBSONObject expNode = (BasicBSONObject)nodes.get(0);
+        assertEquals(actualNodeName, expNode.getString("nodeName"));
         //assert getSessionAttr
         BSONObject actual = db.getSessionAttr();
         options.append("Timeout",-1L);

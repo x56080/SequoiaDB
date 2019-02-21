@@ -36,7 +36,9 @@ public class SessionAccess14147 extends SdbTestBase {
         db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
         CommLib.createRG(db, rgName);
         BSONObject options = new BasicBSONObject("Group", rgName);
+        options.put("ReplSize", -1);
         dbcl = db.getCollectionSpace(SdbTestBase.csName).createCollection(clname, options);
+        CommLib.insertRecords(dbcl);
     }
 
     @AfterClass

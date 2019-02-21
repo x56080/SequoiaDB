@@ -11,6 +11,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -28,7 +29,7 @@ public class SessionAccess14145 extends SdbTestBase {
 	private String clname = "cl14145";
     private Sequoiadb db;
     private DBCollection dbcl;
-    private List<NodeWarrper> nodeList;
+    private BasicBSONList nodes;
     private String rgName = "sessionAccessRG14145";
 
     @BeforeClass
@@ -36,9 +37,11 @@ public class SessionAccess14145 extends SdbTestBase {
     	System.out.println("the TestCase Name:" + this.getClass().getName() + 
                 ". the TestCase begin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
         db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        CommLib.createRG(db, rgName);
+        nodes = CommLib.createRG(db, rgName);
         BSONObject options = new BasicBSONObject("Group", rgName);
+        options.put("ReplSize", -1);
         dbcl = db.getCollectionSpace(SdbTestBase.csName).createCollection(clname, options);
+        CommLib.insertRecords(dbcl);
     }
 
     @AfterClass
@@ -52,13 +55,18 @@ public class SessionAccess14145 extends SdbTestBase {
 
     @Test
     public void test14145() {
-    	nodeList = CommLib.getNodeList(db, rgName);
-        int[] id = new int[]{nodeList.get(0).getInstenceid(), nodeList.get(1).getInstenceid()};
+    	List<Integer> instanceidList = new ArrayList<Integer>();
+        for (int i=0 ; i< nodes.size() ; i++) {
+        	BasicBSONObject node = (BasicBSONObject)nodes.get(i);
+        	instanceidList.add(Integer.parseInt(node.getString("instanceid")));
+        }
+        
+    	int[] id = new int[]{instanceidList.get(0), instanceidList.get(1)};
 
         BSONObject options = new BasicBSONObject("PreferedInstance", id).append("PreferedInstanceMode", "random");
         db.setSessionAttr(options);
         String actualNodeName = CommLib.getActualDataNodeName(dbcl);
-        int actualId = CommLib.getNodeWarrper(db, rgName, actualNodeName).getInstenceid();
+        int actualId = CommLib.getInstanceidByNodeName(nodes, actualNodeName);
         if (actualId != id[0] && actualId != id[1]) {
             fail("actual:" + actualId + " expect: " + id[0] + " or " + id[1]);
         }

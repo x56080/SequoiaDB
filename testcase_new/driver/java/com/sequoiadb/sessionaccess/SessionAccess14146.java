@@ -28,7 +28,7 @@ public class SessionAccess14146 extends SdbTestBase {
 	private String clname = "cl14146";
     private Sequoiadb db;
     private DBCollection dbcl;
-    private List<NodeWarrper> nodeList;
+    private BasicBSONList nodes;
     private String rgName = "sessionAccessRG14146";
 
     @BeforeClass
@@ -36,9 +36,11 @@ public class SessionAccess14146 extends SdbTestBase {
     	System.out.println("the TestCase Name:" + this.getClass().getName() + 
                 ". the TestCase begin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
         db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        CommLib.createRG(db, rgName);
+        nodes = CommLib.createRG(db, rgName);
         BSONObject options = new BasicBSONObject("Group", rgName);
+        options.put("ReplSize", -1);
         dbcl = db.getCollectionSpace(SdbTestBase.csName).createCollection(clname, options);
+        CommLib.insertRecords(dbcl);
     }
 
     @AfterClass
@@ -53,11 +55,7 @@ public class SessionAccess14146 extends SdbTestBase {
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Test
     public void test14146() {
-    	nodeList = CommLib.getNodeList(db, rgName);
-        BasicBSONList instanceidList = new BasicBSONList();
-        for (NodeWarrper nodeWarrper : nodeList) {
-        	instanceidList.add(nodeWarrper.getInstenceid());
-        }
+        BasicBSONList instanceidList = CommLib.getInstanceidList(nodes);
 
         //指定多个instanceid实例和"M"
         List currPreferedInstanceM = new ArrayList(instanceidList);
@@ -66,8 +64,7 @@ public class SessionAccess14146 extends SdbTestBase {
 
         db.setSessionAttr(options);
         String actualNodeName = CommLib.getActualDataNodeName(dbcl);
-        NodeWarrper node = CommLib.getNodeWarrper(db, rgName, actualNodeName);
-        Assert.assertTrue(node.isMaster, "testa: current node name is : " + node.getNodeName()+ "\n db.getSessionAttr():" + db.getSessionAttr());
+        Assert.assertTrue(CommLib.isMaster(db, rgName, actualNodeName), "testa: current node name is : " + actualNodeName + "\n db.getSessionAttr():" + db.getSessionAttr());
         BasicBSONObject actual = (BasicBSONObject) db.getSessionAttr();
         Assert.assertEquals(actual, options.append("Timeout",-1L));
         
@@ -77,9 +74,8 @@ public class SessionAccess14146 extends SdbTestBase {
         options = new BasicBSONObject("PreferedInstance", currPreferedInstanceS).append("PreferedInstanceMode", "ordered");
         db.setSessionAttr(options);
         actualNodeName = CommLib.getActualDataNodeName(dbcl);
-        node = CommLib.getNodeWarrper(db, rgName, actualNodeName);
         
-        Assert.assertFalse(node.isMaster, "testc: current node name is : " + node.getNodeName());
+        Assert.assertFalse(CommLib.isMaster(db, rgName, actualNodeName), "testc: current node name is : " + actualNodeName + "\n db.getSessionAttr():" + db.getSessionAttr());
         actual= (BasicBSONObject) db.getSessionAttr();
         Assert.assertEquals(actual,options.append("Timeout",-1L));
         
@@ -91,8 +87,7 @@ public class SessionAccess14146 extends SdbTestBase {
 		    options = new BasicBSONObject("PreferedInstance", currPreferedInstance).append("PreferedInstanceMode", "ordered");
 		    db.setSessionAttr(options);
 		    actualNodeName = CommLib.getActualDataNodeName(dbcl);
-		    node = CommLib.getNodeWarrper(db, rgName, actualNodeName);
-		    Assert.assertEquals(node.getInstenceid(), instanceidList.get(0));
+		    Assert.assertEquals(CommLib.getInstanceidByNodeName(nodes, actualNodeName), instanceidList.get(0));
 		    BasicBSONObject actSessionAttr = (BasicBSONObject) db.getSessionAttr();
 		    Assert.assertEquals(actSessionAttr,options.append("Timeout",-1L));
         }

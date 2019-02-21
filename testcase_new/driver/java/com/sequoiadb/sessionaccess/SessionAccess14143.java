@@ -34,7 +34,9 @@ public class SessionAccess14143 extends SdbTestBase {
         db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
         CommLib.createRG(db, rgName);
         BSONObject options = new BasicBSONObject("Group", rgName);
+        options.put("ReplSize", -1);
         dbcl = db.getCollectionSpace(SdbTestBase.csName).createCollection(clname, options);
+        CommLib.insertRecords(dbcl);
     }
 
     @AfterClass
@@ -54,9 +56,9 @@ public class SessionAccess14143 extends SdbTestBase {
             db.setSessionAttr(options);
             String name = CommLib.getActualDataNodeName(dbcl);
             if (s.equals("M")) {
-                assertTrue(CommLib.getNodeWarrper(db, rgName, name).isMaster(), "the actual data node name is: " + name + ",the current option is " + options.toString());
+                assertTrue(CommLib.isMaster(db, rgName, name), "the actual data node name is: " + name + ",the current option is " + options.toString());
             } else if (s.equals("S")) {
-                assertFalse(CommLib.getNodeWarrper(db, rgName, name).isMaster(), "the actual data node name is: " + name + ",the current option is " + options.toString());
+                assertFalse(CommLib.isMaster(db, rgName, name), "the actual data node name is: " + name + ",the current option is " + options.toString());
             }
             options.append("PreferedInstanceMode", "random").append("Timeout", -1L);
             assertEquals(db.getSessionAttr(),options);
