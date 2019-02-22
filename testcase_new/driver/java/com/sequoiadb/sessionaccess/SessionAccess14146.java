@@ -9,6 +9,7 @@ import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -36,6 +37,9 @@ public class SessionAccess14146 extends SdbTestBase {
     	System.out.println("the TestCase Name:" + this.getClass().getName() + 
                 ". the TestCase begin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
         db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        if(com.sequoiadb.testcommon.CommLib.isStandAlone(db)){
+			throw new SkipException("run mode is standalone,test case skip");
+		}
         nodes = CommLib.createRG(db, rgName);
         BSONObject options = new BasicBSONObject("Group", rgName);
         options.put("ReplSize", -1);
@@ -43,16 +47,7 @@ public class SessionAccess14146 extends SdbTestBase {
         CommLib.insertRecords(dbcl);
     }
 
-    @AfterClass
-    public void teardown() throws InterruptedException {
-    	System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-        db.getCollectionSpace(SdbTestBase.csName).dropCollection(clname);
-        db.removeReplicaGroup(rgName);
-        db.disconnect();
-    }
-
-	@SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({ "rawtypes", "unchecked" })
 	@Test
     public void test14146() {
         BasicBSONList instanceidList = CommLib.getInstanceidList(nodes);
@@ -65,8 +60,6 @@ public class SessionAccess14146 extends SdbTestBase {
         db.setSessionAttr(options);
         String actualNodeName = CommLib.getActualDataNodeName(dbcl);
         Assert.assertTrue(CommLib.isMaster(db, rgName, actualNodeName), "testa: current node name is : " + actualNodeName + "\n db.getSessionAttr():" + db.getSessionAttr());
-        BasicBSONObject actual = (BasicBSONObject) db.getSessionAttr();
-        Assert.assertEquals(actual, options.append("Timeout",-1L));
         
         //指定多个instanceid实例和"S"
         List currPreferedInstanceS = new ArrayList(instanceidList);
@@ -74,10 +67,7 @@ public class SessionAccess14146 extends SdbTestBase {
         options = new BasicBSONObject("PreferedInstance", currPreferedInstanceS).append("PreferedInstanceMode", "ordered");
         db.setSessionAttr(options);
         actualNodeName = CommLib.getActualDataNodeName(dbcl);
-        
         Assert.assertFalse(CommLib.isMaster(db, rgName, actualNodeName), "testc: current node name is : " + actualNodeName + "\n db.getSessionAttr():" + db.getSessionAttr());
-        actual= (BasicBSONObject) db.getSessionAttr();
-        Assert.assertEquals(actual,options.append("Timeout",-1L));
         
         //指定多个instanceid实例和"m","s","a","A"
         String[] ids = new String[]{"m", "s", "a", "A"};
@@ -87,9 +77,17 @@ public class SessionAccess14146 extends SdbTestBase {
 		    options = new BasicBSONObject("PreferedInstance", currPreferedInstance).append("PreferedInstanceMode", "ordered");
 		    db.setSessionAttr(options);
 		    actualNodeName = CommLib.getActualDataNodeName(dbcl);
-		    Assert.assertEquals(CommLib.getInstanceidByNodeName(nodes, actualNodeName), instanceidList.get(0));
-		    BasicBSONObject actSessionAttr = (BasicBSONObject) db.getSessionAttr();
-		    Assert.assertEquals(actSessionAttr,options.append("Timeout",-1L));
+		    String expNodeName = CommLib.getNodeNameByInstanceId(nodes, instanceidList.get(0).toString());
+		    Assert.assertEquals(actualNodeName, expNodeName);
         }
+    }
+    
+    @AfterClass
+    public void teardown() throws InterruptedException {
+    	System.out.println("the TestCase Name:" + this.getClass().getName() + 
+                ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+        db.getCollectionSpace(SdbTestBase.csName).dropCollection(clname);
+        db.removeReplicaGroup(rgName);
+        db.disconnect();
     }
 }

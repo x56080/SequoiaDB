@@ -6,6 +6,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -37,20 +38,14 @@ public class SessionAccess14145 extends SdbTestBase {
     	System.out.println("the TestCase Name:" + this.getClass().getName() + 
                 ". the TestCase begin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
         db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        if(com.sequoiadb.testcommon.CommLib.isStandAlone(db)){
+			throw new SkipException("run mode is standalone,test case skip");
+		}
         nodes = CommLib.createRG(db, rgName);
         BSONObject options = new BasicBSONObject("Group", rgName);
         options.put("ReplSize", -1);
         dbcl = db.getCollectionSpace(SdbTestBase.csName).createCollection(clname, options);
         CommLib.insertRecords(dbcl);
-    }
-
-    @AfterClass
-    public void teardown() throws InterruptedException {
-    	System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-        db.getCollectionSpace(SdbTestBase.csName).dropCollection(clname);
-        db.removeReplicaGroup(rgName);
-        db.disconnect();
     }
 
     @Test
@@ -66,19 +61,27 @@ public class SessionAccess14145 extends SdbTestBase {
         BSONObject options = new BasicBSONObject("PreferedInstance", id).append("PreferedInstanceMode", "random");
         db.setSessionAttr(options);
         String actualNodeName = CommLib.getActualDataNodeName(dbcl);
-        int actualId = CommLib.getInstanceidByNodeName(nodes, actualNodeName);
-        if (actualId != id[0] && actualId != id[1]) {
-            fail("actual:" + actualId + " expect: " + id[0] + " or " + id[1]);
+        String expNodeName1 = CommLib.getNodeNameByInstanceId(nodes, instanceidList.get(0).toString());
+        String expNodeName2 = CommLib.getNodeNameByInstanceId(nodes, instanceidList.get(1).toString());
+        if (!actualNodeName.equals(expNodeName1) && !actualNodeName.equals(expNodeName2)) {
+            fail("actual node name :" + actualNodeName + " expect node name : " + expNodeName1 + " or " + expNodeName2);
         }
-
-        BSONObject actual = db.getSessionAttr();
-        BasicBSONList actualIdList= (BasicBSONList) actual.get("PreferedInstance");
-        BasicBSONList expect=new BasicBSONList();
+        BSONObject actualSessionAttr = db.getSessionAttr();
+        BasicBSONList actualIdList= (BasicBSONList) actualSessionAttr.get("PreferedInstance");
+        BasicBSONList expectIdList=new BasicBSONList();
         for (int i : id) {
-            expect.add(i);
+        	expectIdList.add(i);
         }
-        assertEquals(actualIdList,expect);
-
-        assertEquals(actual.get("PreferedInstanceMode"),"random");
+        assertEquals(actualIdList,expectIdList);
+        assertEquals(actualSessionAttr.get("PreferedInstanceMode"),"random");
+    }
+    
+    @AfterClass
+    public void teardown() throws InterruptedException {
+    	System.out.println("the TestCase Name:" + this.getClass().getName() + 
+                ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+        db.getCollectionSpace(SdbTestBase.csName).dropCollection(clname);
+        db.removeReplicaGroup(rgName);
+        db.disconnect();
     }
 }

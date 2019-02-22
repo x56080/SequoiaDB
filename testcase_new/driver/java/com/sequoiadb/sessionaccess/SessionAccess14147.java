@@ -5,14 +5,16 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
+import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 /**
 * @TestLink: seqDB-14147
@@ -34,51 +36,40 @@ public class SessionAccess14147 extends SdbTestBase {
     	System.out.println("the TestCase Name:" + this.getClass().getName() + 
                 ". the TestCase begin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
         db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        if(com.sequoiadb.testcommon.CommLib.isStandAlone(db)){
+			throw new SkipException("run mode is standalone,test case skip");
+		}
         CommLib.createRG(db, rgName);
         BSONObject options = new BasicBSONObject("Group", rgName);
         options.put("ReplSize", -1);
         dbcl = db.getCollectionSpace(SdbTestBase.csName).createCollection(clname, options);
         CommLib.insertRecords(dbcl);
     }
-
-    @AfterClass
-    public void teardown() throws InterruptedException {
-    	System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-        db.getCollectionSpace(SdbTestBase.csName).dropCollection(clname);
-        db.removeReplicaGroup(rgName);
-        db.disconnect();
-    }
     
     @Test
     public void test14147() {
     	//创建、删除cs,cl
         String csName = "14147CS", clName = "14147cl";
-        db.setSessionAttr(new BasicBSONObject("Timeout", 200L));
+        db.setSessionAttr(new BasicBSONObject("Timeout", 1000L));
         try{
             db.createCollectionSpace(csName).createCollection(clName);
         }catch (BaseException e){
-            if(e.getErrorCode()!=-13)
+            if(e.getErrorCode() != -13)
                 throw e;
         }finally {
             db.setSessionAttr(new BasicBSONObject("Timeout",-1L));
-            try{
-                db.dropCollectionSpace(csName);
-            }catch (BaseException e){}
+            db.dropCollectionSpace(csName);
         }
         
         db.getCollectionSpace(SdbTestBase.csName).createCollection(clName);
-        db.setSessionAttr(new BasicBSONObject("Timeout", 200L));
+        db.setSessionAttr(new BasicBSONObject("Timeout", 1000L));
         try{
             db.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
         }catch (BaseException e){
-            if(e.getErrorCode()!=-13)
+            if(e.getErrorCode() != -13)
                 throw e;
         }finally {
             db.setSessionAttr(new BasicBSONObject("Timeout",-1L));
-            try{
-                db.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
-            }catch (BaseException e){}
         }
         
         //挂载、修改cl
@@ -113,39 +104,35 @@ public class SessionAccess14147 extends SdbTestBase {
 		attachUpObj.put("a", 100);
 		attachOption.put("UpBound", attachUpObj);
 		
-		db.setSessionAttr(new BasicBSONObject("Timeout", 200L));
+		db.setSessionAttr(new BasicBSONObject("Timeout", 1000L));
         try{
         	mainCL.attachCollection(subCSName+"."+subCLName, attachOption);
         }catch (BaseException e){
-            if(e.getErrorCode()!=-13)
+            if(e.getErrorCode() != -13)
                 throw e;
         }finally {
             db.setSessionAttr(new BasicBSONObject("Timeout",-1L));
-            try{
-            	db.dropCollectionSpace(mainCSName);
-            	db.dropCollectionSpace(subCSName);
-            }catch (BaseException e){}
+            db.dropCollectionSpace(mainCSName);
+            db.dropCollectionSpace(subCSName);
         }
 		
         //修改 cl
         db.getCollectionSpace(SdbTestBase.csName).createCollection(clName);
-        db.setSessionAttr(new BasicBSONObject("Timeout", 200L));
+        db.setSessionAttr(new BasicBSONObject("Timeout", 1000L));
         try{
         	BSONObject opt = new BasicBSONObject();
 			opt.put("ReplSize", -1 );
             db.getCollectionSpace(SdbTestBase.csName).getCollection(clName).alterCollection(opt);
         }catch (BaseException e){
-            if(e.getErrorCode()!=-13)
+            if(e.getErrorCode() != -13)
                 throw e;
         }finally {
             db.setSessionAttr(new BasicBSONObject("Timeout",-1L));
-            try{
-            	db.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
-            }catch (BaseException e){}
+            db.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
         }
         
         //执行插入、更新、删除操作
-        db.setSessionAttr(new BasicBSONObject("Timeout", 200L));
+        db.setSessionAttr(new BasicBSONObject("Timeout", 1000L));
         try{
         	for(int i = 0 ; i < 100 ; i++){
         		BSONObject record = new BasicBSONObject();
@@ -153,7 +140,7 @@ public class SessionAccess14147 extends SdbTestBase {
         		dbcl.insert(record);
         	}
         }catch (BaseException e){
-            if(e.getErrorCode()!=-13)
+            if(e.getErrorCode() != -13)
                 throw e;
         }finally {
             db.setSessionAttr(new BasicBSONObject("Timeout",-1L));
@@ -164,26 +151,35 @@ public class SessionAccess14147 extends SdbTestBase {
         BSONObject match = new BasicBSONObject();
 		modifyObj.put("a", "14147");
 		modifier.put("$set", modifyObj);
-		db.setSessionAttr(new BasicBSONObject("Timeout", 200L));
+		db.setSessionAttr(new BasicBSONObject("Timeout", 1000L));
         try{
     		dbcl.update(match, modifier, null);
         }catch (BaseException e){
-            if(e.getErrorCode()!=-13)
+            if(e.getErrorCode() != -13)
                 throw e;
         }finally {
             db.setSessionAttr(new BasicBSONObject("Timeout",-1L));
         }
         
-        db.setSessionAttr(new BasicBSONObject("Timeout", 200L));
+        db.setSessionAttr(new BasicBSONObject("Timeout", 1000L));
         try{
         	BSONObject matcher = new BasicBSONObject();
         	matcher.put("a","test14147_10");
         	dbcl.delete(matcher);
         }catch (BaseException e){
-            if(e.getErrorCode()!=-13)
+            if(e.getErrorCode() != -13)
                 throw e;
         }finally {
             db.setSessionAttr(new BasicBSONObject("Timeout",-1L));
         }
+    }
+    
+    @AfterClass
+    public void teardown() throws InterruptedException {
+    	System.out.println("the TestCase Name:" + this.getClass().getName() + 
+                ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+        db.getCollectionSpace(SdbTestBase.csName).dropCollection(clname);
+        db.removeReplicaGroup(rgName);
+        db.disconnect();
     }
 }
