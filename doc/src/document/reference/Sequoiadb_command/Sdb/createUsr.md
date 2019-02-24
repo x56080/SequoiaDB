@@ -1,5 +1,5 @@
 ##语法##
-***db.createUsr( \<name\>, \<password\> )***
+***db.createUsr( \<name\>, \<password\>, [options] )***
 
 为数据库创建数据库用户名和密码，防止非法用户对数据库进行非法操作。
 
@@ -7,8 +7,14 @@
 
 | 参数名 | 参数类型 | 描述 | 是否必填 |
 | ------ | ------ | ------ | ------ |
-| name | string | 用户名 | 是 |
+| name   | string | 用户名 | 是 |
 | password | string | 密码 | 是 |
+| options| Json   | 扩展选项 | 否 |
+
+###options取值###
+| 选项名称  | 取值类型   |    描述   |
+| --------- | ---------- | --------- |
+| AuditMask | String     | 用户审计日志配置掩码，取值列表：ACCESS、CLUSTER、SYSTEM、DML、DDL、DCL、DQL、INSERT、DELETE、UPDATE、OTHER；ALL表示全部开启，NONE表示全部不开启；可以使用‘\|’连接多个取值。当某位掩码未配置时，则继承节点相应的配置掩码；也可以通过 ‘!’ 来禁止某位掩码的继承 |
 
 > **Note:**
 >
@@ -30,4 +36,10 @@
 
  ```lang-javascript
  > var db = new Sdb("localhost", 11810, "admin", "admin")
+ ```
+
+* 创建用户，并设置审计日志
+
+ ```lang-javascript
+ > db.createUsr( "user2", "user2", {AuditMask:"DDL|DML|!DQL"} )
  ```
