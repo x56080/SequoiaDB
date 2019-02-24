@@ -32,8 +32,11 @@
 *******************************************************************************/
 
 #include "rtnCoordAuthCrt.hpp"
+#include "msgMessageFormat.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
+
+using namespace bson ;
 
 namespace engine
 {
@@ -45,9 +48,34 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNCOAUTHCRT_EXECUTE ) ;
+      const CHAR *pUserName = NULL ;
+      const CHAR *pPassWord = NULL ;
+      BSONObj options ;
+
       rc = forward( pMsg, cb, MSG_AUTH_CRTUSR_RES,
-                    FALSE, contextID ) ;
+                    FALSE, contextID,
+                    &pUserName, &pPassWord, &options ) ;
+      if ( pUserName )
+      {
+         /// AUDIT
+         PD_AUDIT_OP( AUDIT_DCL, pMsg->opCode, AUDIT_OBJ_USER,
+                      pUserName, rc, "Options:%s",
+                      options.toString().c_str() ) ;
+      }
+      if ( rc )
+      {
+         goto error ;
+      }
+      else if ( *cb->getUserName() == '\0' )
+      {
+         cb->setUserInfo( pUserName, pPassWord ) ;
+         updateSessionByOptions( options ) ;
+      }
+
+   done:
       PD_TRACE_EXITRC ( SDB_RTNCOAUTHCRT_EXECUTE, rc ) ;
       return rc ;
+   error:
+      goto done ;
    }
 }

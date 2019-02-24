@@ -167,6 +167,8 @@ namespace engine
          BOOLEAN isAttached () const ;
          BOOLEAN isDetached () const ;
 
+         void  getAuditConfig( UINT32 &auditMask, UINT32 &auditConfigMask ) ;
+         void  setAuditConfig( UINT32 auditMask, UINT32 auditConfigMask ) ;
       public:
          UINT64      sessionID () const ;
          EDUID       eduID () const ;
@@ -237,6 +239,9 @@ namespace engine
          UINT32               _identifyTID ;
          UINT64               _identifyEDUID ;
 
+         /// session audit config
+         UINT32               _auditMask ;
+         UINT32               _auditConfigMask ;
    };
    typedef _pmdAsyncSession pmdAsyncSession ;
 

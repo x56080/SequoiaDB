@@ -200,8 +200,8 @@ namespace engine
       // enalble pd audit
       sdbEnableAudit( pmdGetOptionCB()->getAuditLogPath(),
                       pmdGetOptionCB()->auditFileNum() ) ;
-      setAuditMask( pmdGetOptionCB()->auditMask() ) ;
-      initCurAuditMask( getAuditMask() ) ;
+      pdSetAuditMask( pmdGetOptionCB()->auditMask() ) ;
+      pdInitCurAuditMask( pdGetAuditMask() ) ;
       pmdSetLocalPort( pmdGetOptionCB()->getServicePort() ) ;
 
       ossSprintVersion( "Version", verText, OSS_MAX_PATHSIZE, FALSE ) ;

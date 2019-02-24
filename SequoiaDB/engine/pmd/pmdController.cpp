@@ -289,8 +289,7 @@ namespace engine
       setDiagFileNum( pmdGetOptionCB()->diagFileNum() ) ;
       setAuditFileNum( pmdGetOptionCB()->auditFileNum() ) ;
 
-      setAuditMask( pmdGetOptionCB()->auditMask() ) ;
-      initCurAuditMask( getAuditMask() ) ;
+      pdSetAuditMask( pmdGetOptionCB()->auditMask() ) ;
 
       pmdGetKRCB()->getBuffPool()->enablePerfStat(
          pmdGetOptionCB()->isEnabledPerfStat() ) ;

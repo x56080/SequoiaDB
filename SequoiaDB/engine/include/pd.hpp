@@ -230,9 +230,19 @@ enum AUDIT_OBJ_TYPE
 } ;
 const CHAR* pdAuditObjType2String( AUDIT_OBJ_TYPE objtype ) ;
 
+/*
+   AUDIT_LEVEL define
+*/
+enum AUDIT_LEVEL
+{
+   AUDIT_LEVEL_USER  = 1,
+   AUDIT_LEVEL_CS,
+   AUDIT_LEVEL_CL
+} ;
+
 #define PD_AUDIT(type, username, ipAddr, port, action, objtype, objname, result, fmt, ...) \
    do { \
-      if ( getCurAuditMask() & pdAuditType2Mask( type ) ) \
+      if ( pdIsAuditTypeEnabled( type ) ) \
       { \
          try { \
             pdAudit(type, username, ipAddr, port, action, objtype, \
@@ -310,15 +320,38 @@ const CHAR* pdAuditObjType2String( AUDIT_OBJ_TYPE objtype ) ;
          PD_AUDIT(type,pUserName,fromIP,fromPort,tmp,objtype,objname,result,fmt, ##__VA_ARGS__) ;\
    }while( 0 )
 
-UINT32 pdAuditType2Mask( AUDIT_TYPE auditType ) ;
+UINT32      pdAuditType2Mask( AUDIT_TYPE auditType ) ;
 const CHAR* pdGetAuditTypeDesp( AUDIT_TYPE auditType ) ;
-INT32  pdString2AuditMask( const CHAR *pStr, UINT32 &mask ) ;
 
-UINT32&     getAuditMask() ;
-UINT32      setAuditMask( UINT32 newMask ) ;
-UINT32&     getCurAuditMask() ;
-UINT32      setCurAuditMask( UINT32 newMask ) ;
-void        initCurAuditMask( UINT32 newMask ) ;
+INT32       pdString2AuditMask( const CHAR *pStr,
+                                UINT32 &mask,
+                                BOOLEAN allowNot,
+                                UINT32 *pConfigMask = NULL ) ;
+
+AUDIT_LEVEL pdGetAuditTypeMinLevel( AUDIT_TYPE auditType ) ;
+
+/*
+   Audit mask config functions
+*/
+void        pdInitCurAuditMask( UINT32 mask ) ;
+void        pdUpdateCurAuditMask( AUDIT_LEVEL level,
+                                  UINT32 mask,
+                                  UINT32 configMask ) ;
+
+void        pdClearCurAuditMask( AUDIT_LEVEL level ) ;
+void        pdClearCurUpBoundAuditMask( AUDIT_LEVEL level ) ;
+void        pdClearCurAllAuditMask() ;
+
+void        pdGetCurAuditMask( AUDIT_LEVEL level,
+                               UINT32 &mask,
+                               UINT32 &configMask ) ;
+
+UINT32      pdGetCurAuditVersion() ;
+
+BOOLEAN     pdIsAuditTypeEnabled( AUDIT_TYPE auditType ) ;
+
+UINT32&     pdGetAuditMask() ;
+UINT32      pdSetAuditMask( UINT32 newMask ) ;
 
 const CHAR* getAuditName() ;
 const CHAR* getAuditPath() ;

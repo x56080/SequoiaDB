@@ -221,6 +221,29 @@ SDB_EXPORT void sdbCleanLastErrorObj() ;
 SDB_EXPORT INT32 sdbCreateUsr( sdbConnectionHandle cHandle, const CHAR *pUsrName,
                                const CHAR *pPasswd ) ;
 
+/** \fn INT32 sdbCreateUsr2( sdbConnectionHandle cHandle, const CHAR *pUsrName,
+                             const CHAR *pPasswd, bson *options ) ;
+    \brief Create an account
+    \param [in] cHandle The database connection handle
+    \param [in] pUsrName The User's Name of the account
+    \param [in] pPasswd The Password  of the account
+    \param [in] options The options for user, such as: { AuditMask:"DDL|DML" }
+        AuditMask : User audit log mask, value list:
+                    ACCESS,CLUSTER,SYSTEM,DML,DDL,DCL,DQL,INSERT,DELETE,
+                    UPDATE,OTHER.
+                    You can combine multiple values with '|'. 'ALL' means
+                    that all mask items are turned on, and 'NONE' means
+                    that no mask items are turned on.
+                    If an item in the user audit log is not configured, the
+                    configuration of the corresponding mask item on the node
+                    is inherited. You can also use '!' to disable inheritance
+                    of this mask( e.g. "!DDL|DML" ).
+    \retval SDB_OK Connection Success
+    \retval Others Connection Fail
+*/
+SDB_EXPORT INT32 sdbCreateUsr2( sdbConnectionHandle cHandle, const CHAR *pUsrName,
+                                const CHAR *pPasswd, bson *options ) ;
+
 /** \fn INT32 sdbRemoveUsr( sdbConnectionHandle cHandle, const CHAR *pUsrName,
                             const CHAR *pPasswd ) ;
     \brief Delete an account

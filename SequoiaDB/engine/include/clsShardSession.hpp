@@ -60,11 +60,16 @@ namespace engine
       string   _username ;
       string   _passwd ;
 
+      UINT32   _auditMask ;
+      UINT32   _auditConfigMask ;
       _clsIdentifyInfo()
       {
          _id = 0 ;
          _tid = 0 ;
          _eduid = 0 ;
+
+         _auditMask = 0 ;
+         _auditConfigMask = 0 ;
       }
    } ;
    typedef _clsIdentifyInfo clsIdentifyInfo ;

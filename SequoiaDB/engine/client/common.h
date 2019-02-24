@@ -124,6 +124,11 @@ INT32 clientBuildRemoveLobMsgCpp( CHAR **ppBuffer, INT32 *bufferSize,
                                   SINT32 flags, SINT16 w,
                                   UINT64 reqID,
                                   BOOLEAN endianConvert ) ;
+INT32 clientBuildAuthCrtMsgCpp( CHAR **ppBuffer, INT32 *bufferSize,
+                                const CHAR *pUsrName,
+                                const CHAR *pPasswd,
+                                const CHAR *pOptions,
+                                UINT64 reqID, BOOLEAN endianConvert ) ;
 #else
 INT32 clientBuildUpdateMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                              const CHAR *CollectionName, SINT32 flag,
@@ -179,6 +184,12 @@ INT32 clientBuildRemoveLobMsg( CHAR **ppBuffer, INT32 *bufferSize,
                                UINT64 reqID,
                                BOOLEAN endianConvert ) ;
 
+INT32 clientBuildAuthCrtMsg( CHAR **ppBuffer, INT32 *bufferSize,
+                             const CHAR *pUsrName,
+                             const CHAR *pPasswd,
+                             const bson *options,
+                             UINT64 reqID, BOOLEAN endianConvert ) ;
+
 #endif
 INT32 clientBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                               SINT32 numToReturn,
@@ -214,11 +225,6 @@ INT32 clientBuildAuthMsg( CHAR **ppBuffer, INT32 *bufferSize,
                           const CHAR *pUsrName,
                           const CHAR *pPasswd,
                           UINT64 reqID, BOOLEAN endianConvert ) ;
-
-INT32 clientBuildAuthCrtMsg( CHAR **ppBuffer, INT32 *bufferSize,
-                             const CHAR *pUsrName,
-                             const CHAR *pPasswd,
-                             UINT64 reqID, BOOLEAN endianConvert ) ;
 
 INT32 clientBuildAuthDelMsg( CHAR **ppBuffer, INT32 *bufferSize,
                              const CHAR *pUsrName,

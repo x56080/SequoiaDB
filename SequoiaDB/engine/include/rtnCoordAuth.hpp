@@ -45,6 +45,11 @@ namespace engine
                              pmdEDUCB *cb,
                              INT64 &contextID,
                              rtnContextBuf *buf ) ;
+
+   private:
+
+      virtual void   _onSucReply( const MsgOpReply *pReply ) ;
+
    } ;
 }
 

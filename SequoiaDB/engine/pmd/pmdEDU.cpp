@@ -1267,7 +1267,7 @@ namespace engine
             }
          }
 
-         initCurAuditMask( getAuditMask() ) ;
+         pdInitCurAuditMask( pdGetAuditMask() ) ;
 
          if ( !isForced && PMD_EDU_EVENT_RESUME == event._eventType )
          {

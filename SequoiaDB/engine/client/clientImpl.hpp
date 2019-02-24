@@ -1116,7 +1116,8 @@ namespace sdbclient
       { return NULL != _sock ; }
 
       INT32 createUsr( const CHAR *pUsrName,
-                       const CHAR *pPasswd ) ;
+                       const CHAR *pPasswd,
+                       const bson::BSONObj &options = _sdbStaticObject ) ;
 
       void initCacheStrategy( BOOLEAN enableCacheStrategy,
                               const UINT32 cacheTimeInterval,

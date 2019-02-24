@@ -205,6 +205,8 @@ namespace engine
       setIdentifyInfo( ip, port, info._tid, info._eduid ) ;
       _username = info._username ;
       _passwd = info._passwd ;
+      /// update audit mask
+      setAuditConfig( info._auditMask, info._auditConfigMask ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__ONDETACH, "_clsShdSession::_onDetach" )
@@ -1581,6 +1583,7 @@ namespace engine
    void _clsShdSession::_login()
    {
       UINT32 ip = 0, port = 0 ;
+      UINT32 auditMask = 0, auditConfigMask = 0 ;
 
       _delayLogin = FALSE ;
       _logout     = FALSE ;
@@ -1589,6 +1592,8 @@ namespace engine
       {
          _client.authenticate( _username.c_str(), _passwd.c_str() ) ;
       }
+      getAuditConfig( auditMask, auditConfigMask ) ;
+      pdUpdateCurAuditMask( AUDIT_LEVEL_USER, auditMask, auditConfigMask ) ;
 
       ossUnpack32From64( identifyID(), ip, port ) ;
       /// set detail name
@@ -1632,16 +1637,42 @@ namespace engine
             BSONObj obj( pMsgReq->data ) ;
             BSONElement user = obj.getField( SDB_AUTH_USER ) ;
             BSONElement passwd = obj.getField( SDB_AUTH_PASSWD ) ;
-            BSONElement remoteIP = obj.getField( FIELD_NAME_REMOTE_IP ) ;
-            BSONElement remotePort = obj.getField( FIELD_NAME_REMOTE_PORT ) ;
 
             _client.authenticate( user.valuestrsafe(),
                                   passwd.valuestrsafe() ) ;
 
-            if ( String == remoteIP.type() && NumberInt == remotePort.type() )
+            BSONElement eMask = obj.getField( FIELD_NAME_AUDIT_MASK ) ;
+            BSONElement eConfigMask = obj.getField( FIELD_NAME_AUDIT_CONFIG_MASK ) ;
+
+            /// set audit mask
+            if ( eMask.isNumber() && eConfigMask.isNumber() )
             {
-               _client.setFromInfo( remoteIP.valuestr(),
-                                    (UINT16)remotePort.numberInt() ) ;
+               setAuditConfig( (UINT32)eMask.numberInt(),
+                               (UINT32)eConfigMask.numberInt() ) ;
+            }
+
+            if ( isSetLogout() )
+            {
+               BSONElement remoteIP = obj.getField( FIELD_NAME_REMOTE_IP ) ;
+               BSONElement remotePort = obj.getField( FIELD_NAME_REMOTE_PORT ) ;
+
+               if ( String == remoteIP.type() && NumberInt == remotePort.type() )
+               {
+                  _client.setFromInfo( remoteIP.valuestr(),
+                                       (UINT16)remotePort.numberInt() ) ;
+               }
+               /// set the remote info into this session
+               setIdentifyInfo( pMsgReq->localIP, pMsgReq->localPort,
+                                pMsgReq->localTID, pMsgReq->localSessionID ) ;
+               /// inner login
+               _login() ;
+            }
+            else
+            {
+               UINT32 auditMask = 0, auditConfigMask = 0 ;
+               getAuditConfig( auditMask, auditConfigMask ) ;
+               pdUpdateCurAuditMask( AUDIT_LEVEL_USER, auditMask,
+                                     auditConfigMask ) ;
             }
          }
          catch( std::exception &e )
@@ -1649,11 +1680,6 @@ namespace engine
             PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
             /// do not report error
          }
-         /// set the remote info into this session
-         setIdentifyInfo( pMsgReq->localIP, pMsgReq->localPort,
-                          pMsgReq->localTID, pMsgReq->localSessionID ) ;
-         /// inner login
-         _login() ;
       }
       return rc ;
    }

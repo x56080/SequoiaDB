@@ -78,9 +78,37 @@ namespace engine
       _authEnabled = pmdGetOptionCB()->authEnabled() ;
    }
 
+   BSONObj _authCB::_desensitization( const BSONObj &options )
+   {
+      /// discard password
+      try
+      {
+         BSONObjBuilder builder( options.objsize() ) ;
+         BSONObjIterator itr( options ) ;
+         while ( itr.more() )
+         {
+            BSONElement e = itr.next() ;
+            if ( 0 == ossStrcmp( e.fieldName(), SDB_AUTH_PASSWD ) )
+            {
+               continue ;
+            }
+            builder.append( e ) ;
+         }
+         return builder.obj() ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+      }
+
+      return options ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_AUTHCB_AUTHENTICATE, "_authCB::authenticate" )
-   INT32 _authCB::authenticate( BSONObj &obj, _pmdEDUCB *cb,
-                                BOOLEAN chkPasswd )
+   INT32 _authCB::authenticate( BSONObj &obj,
+                                _pmdEDUCB *cb,
+                                BOOLEAN chkPasswd,
+                                BSONObj *pOutUserObj )
    {
       INT32 rc = SDB_OK ;
       BSONObj hint ;
@@ -155,6 +183,12 @@ namespace engine
       }
       else if ( 1 == buffObj.recordNum() )
       {
+         if ( pOutUserObj )
+         {
+            BSONObj tmpObj ;
+            buffObj.nextObj( tmpObj ) ;
+            *pOutUserObj =  _desensitization( tmpObj ) ;
+         }
          rc = SDB_OK ;
       }
       else
@@ -176,11 +210,12 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_AUTHCB_CREATEUSR, "_authCB::createUsr" )
-   INT32 _authCB::createUsr( BSONObj &obj, _pmdEDUCB *cb, INT32 w )
+   INT32 _authCB::createUsr( BSONObj &obj, _pmdEDUCB *cb,
+                             BSONObj *pOutObj, INT32 w )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_AUTHCB_CREATEUSR ) ;
-      rc = _createUsr( obj, cb, w ) ;
+      rc = _createUsr( obj, cb, pOutObj, w ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -402,7 +437,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_AUTHCB__CREATEUSR, "_authCB::_createUsr" )
-   INT32 _authCB::_createUsr( BSONObj &obj, _pmdEDUCB *cb, INT32 w )
+   INT32 _authCB::_createUsr( BSONObj &obj, _pmdEDUCB *cb,
+                              BSONObj *pOutObj, INT32 w )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_AUTHCB__CREATEUSR ) ;
@@ -432,9 +468,9 @@ namespace engine
          rc = SDB_AUTH_USER_ALREADY_EXIST ;
          goto error ;
       }
-      else
+      else if ( pOutObj )
       {
-         /// do nothing
+         *pOutObj = _desensitization( obj ) ;
       }
 
    done:
@@ -449,44 +485,106 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_AUTHCB__VALID ) ;
-      BSONElement usr, passwd ;
+      BSONElement usr, passwd, option ;
       INT32 fieldNum = 0 ;
+
       if ( obj.isEmpty() )
       {
-         PD_TRACE0 ( SDB_AUTHCB__VALID ) ;
          goto error ;
       }
 
       usr = obj.getField( SDB_AUTH_USER ) ;
-      if ( usr.eoo() || String != usr.type() ||
-           ( usr.String().empty() && notEmpty ) )
+      if ( String != usr.type() )
       {
-         PD_TRACE0 ( SDB_AUTHCB__VALID ) ;
+         goto error ;
+      }
+      else if ( notEmpty && 0 == ossStrlen( usr.valuestr() ) )
+      {
          goto error ;
       }
       ++fieldNum ;
 
       passwd = obj.getField( SDB_AUTH_PASSWD ) ;
-      if ( passwd.eoo() || String != passwd.type() ||
-           ( passwd.String().empty() && notEmpty ) )
+      if ( String != passwd.type() )
       {
-         PD_TRACE0 ( SDB_AUTHCB__VALID ) ;
+         goto error ;
+      }
+      else if ( notEmpty && 0 == ossStrlen( passwd.valuestr() ) )
+      {
          goto error ;
       }
       ++fieldNum ;
 
-      if ( fieldNum != obj.nFields() )
+      option = obj.getField( FIELD_NAME_OPTIONS ) ;
+      if ( Object == option.type() )
       {
-         PD_TRACE0 ( SDB_AUTHCB__VALID ) ;
+         ++fieldNum ;
+         rc = _validOptions( option.embeddedObject() ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      else if ( !option.eoo() )
+      {
          goto error ;
       }
+
+      if ( fieldNum != obj.nFields() )
+      {
+         goto error ;
+      }
+
    done:
       PD_TRACE_EXITRC ( SDB_AUTHCB__VALID, rc ) ;
       return rc ;
    error:
-      rc = SDB_INVALIDARG ;
+      rc = rc ? rc : SDB_INVALIDARG ;
       PD_LOG( PDDEBUG, "invalid obj of the auth[%s]",
               obj.toString().c_str() ) ;
+      goto done ;
+   }
+
+   INT32 _authCB::_validOptions( const BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObjIterator itr( options ) ;
+      while ( itr.more() )
+      {
+         BSONElement e = itr.next() ;
+
+         if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_AUDIT_MASK ) )
+         {
+            UINT32 mask = 0 ;
+            if ( String != e.type() )
+            {
+               PD_LOG( PDERROR, "Field[%s] is invalid in option[%s]",
+                       FIELD_NAME_AUDIT_MASK, options.toString().c_str() ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            rc = pdString2AuditMask( e.valuestr(), mask, TRUE ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Field[%s] is invalid in option[%s]",
+                       FIELD_NAME_AUDIT_MASK, options.toString().c_str() ) ;
+               goto error ;
+            }
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Invalid field[%s] in option[%s]",
+                    e.fieldName(), options.toString().c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
       goto done ;
    }
 

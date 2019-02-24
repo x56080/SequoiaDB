@@ -38,6 +38,8 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 
+using namespace bson ;
+
 namespace engine
 {
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOAUTH_EXECUTE, "rtnCoordAuth::execute" )
@@ -52,6 +54,27 @@ namespace engine
                     TRUE, contextID ) ;
       PD_TRACE_EXITRC ( SDB_RTNCOAUTH_EXECUTE, rc ) ;
       return rc ;
+   }
+
+   void rtnCoordAuth::_onSucReply( const MsgOpReply *pReply )
+   {
+      if ( pReply->header.messageLength > sizeof( MsgOpReply ) )
+      {
+         try
+         {
+            BSONObj obj( ( const CHAR* )pReply + sizeof( MsgOpReply ) ) ;
+            BSONElement e = obj.getField( FIELD_NAME_OPTIONS ) ;
+            if ( Object == e.type() )
+            {
+               updateSessionByOptions( e.embeddedObject() ) ;
+            }
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+            /// ignore
+         }
+      }
    }
 
 }

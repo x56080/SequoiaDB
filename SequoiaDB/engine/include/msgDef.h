@@ -372,6 +372,8 @@
 #define FIELD_NAME_ENFORCED1                 "Enforced"
 #define FIELD_NAME_DEEP                      "Deep"
 #define FIELD_NAME_BLOCK                     "Block"
+#define FIELD_NAME_AUDIT_MASK                "AuditMask"
+#define FIELD_NAME_AUDIT_CONFIG_MASK         "AuditConfigMask"
 
 #define FIELD_OP_VALUE_UPDATE                "update"
 #define FIELD_OP_VALUE_REMOVE                "remove"

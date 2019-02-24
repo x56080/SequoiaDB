@@ -1235,6 +1235,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_CATMAINCT_AUTHCRT ) ;
       MsgAuthCrtUsr *msg = ( MsgAuthCrtUsr * )pMsg ;
       BSONObj obj ;
+      BSONObj retObj ;
       MsgAuthCrtReply reply ;
       BOOLEAN bIsDelay = FALSE ;
 
@@ -1272,17 +1273,23 @@ namespace engine
          goto error ;
       }
 
-      rc = _pAuthCB->createUsr( obj, _pEDUCB, _pCatCB->majoritySize() ) ;
+      rc = _pAuthCB->createUsr( obj, _pEDUCB, &retObj,
+                                _pCatCB->majoritySize() ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
 
+      reply.header.messageLength += retObj.objsize() ;
+      reply.numReturned = 1 ;
+
    done:
       if ( !isDelayed() )
       {
          PD_TRACE1 ( SDB_CATMAINCT_AUTHCRT, PD_PACK_INT ( rc ) ) ;
-         _pCatCB->sendReply( handle, &reply, rc ) ;
+         _pCatCB->sendReply( handle, &reply, rc,
+                             (void*)retObj.objdata(),
+                             retObj.objsize() ) ;
       }
       PD_TRACE_EXITRC ( SDB_CATMAINCT_AUTHCRT, rc ) ;
       return rc ;
@@ -1303,6 +1310,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_CATMAINCT_AUTHENTICATE ) ;
       MsgAuthentication *msg = ( MsgAuthentication * )pMsg ;
       BSONObj obj ;
+      BSONObj retObj ;
       MsgAuthReply reply ;
       BOOLEAN bIsDelay = FALSE ;
 
@@ -1339,17 +1347,22 @@ namespace engine
          goto error ;
       }
 
-      rc = _pAuthCB->authenticate( obj, _pEDUCB ) ;
+      rc = _pAuthCB->authenticate( obj, _pEDUCB, TRUE, &retObj ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
 
+      reply.header.messageLength += retObj.objsize() ;
+      reply.numReturned = 1 ;
+
    done:
       if ( !isDelayed() )
       {
          PD_TRACE1 ( SDB_CATMAINCT_AUTHENTICATE, PD_PACK_INT ( rc ) ) ;
-         _pCatCB->sendReply( handle, &reply, rc ) ;
+         _pCatCB->sendReply( handle, &reply, rc,
+                             (void*)retObj.objdata(),
+                             retObj.objsize() ) ;
       }
       PD_TRACE_EXITRC ( SDB_CATMAINCT_AUTHENTICATE, rc ) ;
       return rc ;
@@ -1470,10 +1483,13 @@ namespace engine
    void catMainController::addContext( const UINT32 &handle, UINT32 tid,
                                        INT64 contextID )
    {
-      PD_LOG( PDDEBUG, "add context( handle=%u, contextID=%lld )",
-              handle, contextID );
-      ossScopedLock lock( &_contextLatch ) ;
-      _contextLst[ contextID ] = ossPack32To64( handle, tid ) ;
+      if ( -1 != contextID )
+      {
+         PD_LOG( PDDEBUG, "add context( handle=%u, contextID=%lld )",
+                 handle, contextID );
+         ossScopedLock lock( &_contextLatch ) ;
+         _contextLst[ contextID ] = ossPack32To64( handle, tid ) ;
+      }
    }
 
    void catMainController::_delContextByHandle( const UINT32 &handle )

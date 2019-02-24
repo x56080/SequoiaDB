@@ -45,7 +45,16 @@ namespace engine
                      pmdEDUCB *cb,
                      INT32 msgType,
                      BOOLEAN sWhenNoPrimary,
-                     INT64 &contextID ) ;
+                     INT64 &contextID,
+                     const CHAR **ppUserName = NULL,
+                     const CHAR **ppPass = NULL,
+                     BSONObj *pOptions = NULL ) ;
+					 
+      void  updateSessionByOptions( const BSONObj &options ) ;
+	  
+   private:
+
+      virtual void   _onSucReply( const MsgOpReply *pReply ) ;
 
    } ;
 }

@@ -66,15 +66,19 @@ namespace engine
 
    public:
 
-      INT32 createUsr( BSONObj &obj, _pmdEDUCB *cb, INT32 w = 1 ) ;
+      INT32 createUsr( BSONObj &obj, _pmdEDUCB *cb,
+                       BSONObj *pOutObj = NULL,
+                       INT32 w = 1 ) ;
 
       INT32 updatePasswd( const string &user, const string &oldPasswd, 
                           const string &newPasswd, _pmdEDUCB *cb ) ;
 
       INT32 removeUsr( BSONObj &obj, _pmdEDUCB *cb, INT32 w = 1 ) ;
 
-      INT32 authenticate( BSONObj &obj, _pmdEDUCB *cb,
-                          BOOLEAN chkPasswd = TRUE ) ;
+      INT32 authenticate( BSONObj &obj,
+                          _pmdEDUCB *cb,
+                          BOOLEAN chkPasswd = TRUE,
+                          BSONObj *pOutUserObj = NULL ) ;
 
       INT32 needAuthenticate( _pmdEDUCB *cb, BOOLEAN &need ) ;
 
@@ -85,9 +89,14 @@ namespace engine
 
    private:
       INT32 _initAuthentication( _pmdEDUCB *cb ) ;
-      INT32 _createUsr( BSONObj &obj, _pmdEDUCB *cb, INT32 w = 1 ) ;
+      INT32 _createUsr( BSONObj &obj, _pmdEDUCB *cb,
+                        BSONObj *pOutObj = NULL,
+                        INT32 w = 1 ) ;
       INT32 _valid( BSONObj &obj, BOOLEAN notEmpty ) ;
       INT32 _validSource( BSONObj &obj, BOOLEAN chkPasswd ) ;
+      INT32 _validOptions( const BSONObj &options ) ;
+
+      BSONObj _desensitization( const BSONObj &options ) ;
 
    private:
       BOOLEAN _authEnabled ;

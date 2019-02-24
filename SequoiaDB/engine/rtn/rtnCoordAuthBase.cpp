@@ -49,7 +49,10 @@ namespace engine
                                     pmdEDUCB *cb,
                                     INT32 msgType,
                                     BOOLEAN sWhenNoPrimary,
-                                    INT64 &contextID )
+                                    INT64 &contextID,
+                                    const CHAR **ppUserName,
+                                    const CHAR **ppPass,
+                                    BSONObj *pOptions )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOAUTHBASE_FORWARD ) ;
@@ -68,16 +71,51 @@ namespace engine
       contextID = -1 ;
 
       BSONObj authObj ;
-      BSONElement user, pass ;
+      BSONElement user, pass, eOptions ;
       rc = extractAuthMsg( pMsg, authObj ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to extrace auth msg, "
                    "rc: %d", rc ) ;
       user = authObj.getField( SDB_AUTH_USER ) ;
       pass = authObj.getField( SDB_AUTH_PASSWD ) ;
+      eOptions = authObj.getField( FIELD_NAME_OPTIONS ) ;
 
       rc = rtnCoordGetCatGroupInfo( cb, FALSE, cata ) ;
       PD_RC_CHECK ( rc, PDWARNING, "Failed to get catalog group info, "
                     "rc = %d", rc  ) ;
+
+      if ( ppUserName )
+      {
+         if ( String == user.type() )
+         {
+            *ppUserName = user.valuestr() ;
+         }
+         else
+         {
+            *ppUserName = "" ;
+         }
+      }
+      if ( ppPass )
+      {
+         if ( String == pass.type() )
+         {
+            *ppPass = pass.valuestr() ;
+         }
+         else
+         {
+            *ppPass = "" ;
+         }
+      }
+      if ( pOptions )
+      {
+         if ( Object == eOptions.type() )
+         {
+            *pOptions = eOptions.embeddedObject() ;
+         }
+         else
+         {
+            *pOptions = BSONObj() ;
+         }
+      }
 
    retry:
       nodes.clear() ;
@@ -125,6 +163,10 @@ namespace engine
                goto retry ;
             }
          }
+         else if ( msgIsInnerOpReply( res ) )
+         {
+            _onSucReply( (const MsgOpReply*)res ) ;
+         }
       }
       else
       {
@@ -135,28 +177,49 @@ namespace engine
       {
          goto error ;
       }
-      else
-      {
-         // auth ok
-         cb->setUserInfo( user.valuestrsafe(), pass.valuestrsafe() ) ;
-      }
 
     done:
       rtnClearReplyQue( &replyQue ) ;
-      if ( !user.eoo() &&
-           ( MSG_AUTH_CRTUSR_REQ == pMsg->opCode ||
-             MSG_AUTH_DELUSR_REQ == pMsg->opCode )
-         )
-      {
-         /// AUDIT
-         PD_AUDIT_OP( AUDIT_DCL, pMsg->opCode, AUDIT_OBJ_USER,
-                      user.valuestrsafe(), rc, "" ) ;
-      }
       PD_TRACE_EXITRC ( SDB_RTNCOAUTHBASE_FORWARD, rc ) ;
       return rc ;
    error:
       rtnCoordClearRequest( cb, nodes );
       goto done ;
+   }
+
+   void rtnCoordAuthBase::_onSucReply( const MsgOpReply *pReply )
+   {
+   }
+
+   void rtnCoordAuthBase::updateSessionByOptions( const BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+      UINT32 mask = 0 ;
+      UINT32 configMask = 0 ;
+
+      try
+      {
+         BSONElement e = options.getField( FIELD_NAME_AUDIT_MASK ) ;
+         if ( String == e.type() )
+         {
+            rc = pdString2AuditMask( e.valuestr(), mask, TRUE, &configMask ) ;
+            if ( rc )
+            {
+               PD_LOG( PDWARNING, "User's audit config[%s] is invalid, rc: %d",
+                       e.valuestr(), rc ) ;
+               /// ignore
+            }
+            else
+            {
+               pdUpdateCurAuditMask( AUDIT_LEVEL_USER, mask, configMask ) ;
+            }
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+         /// ignore
+      }
    }
 
 }

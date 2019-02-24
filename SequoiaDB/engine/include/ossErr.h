@@ -1,7 +1,7 @@
 /** \file ossErr.h
     \brief The meaning of the error code.
 */
-/*    Copyright 2012 SequoiaDB Inc.
+/*    Copyright 2011-2018 SequoiaDB Ltd.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -14,19 +14,6 @@
  *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
- */
-/*    Copyright (C) 2011-2014 SequoiaDB Ltd.
- *    This program is free software: you can redistribute it and/or modify
- *    it under the term of the GNU Affero General Public License, version 3,
- *    as published by the Free Software Foundation.
- *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warrenty of
- *    MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *    GNU Affero General Public License for more details.
- *
- *    You should have received a copy of the GNU Affero General Public License
- *    along with this program. If not, see <http://www.gnu.org/license/>.
  */
 
 
@@ -149,7 +136,7 @@ const CHAR* getErrDesp ( INT32 errCode );
 #define SDB_CLS_VOTE_FAILED              -97   /**< Failed to vote for primary */
 #define SDB_DPS_CORRUPTED_LOG            -98   /**< Log record is corrupted */
 #define SDB_DPS_LSN_OUTOFRANGE           -99   /**< LSN is out of boundary */
-#define SDB_UNKNOWN_MESSAGE              -100  /**< Unknown mesage is received */
+#define SDB_UNKNOWN_MESSAGE              -100  /**< Unknown message is received */
 #define SDB_NET_UPDATE_EXISTING_NODE     -101  /**< Updated information is same as old one */
 #define SDB_CLS_UNKNOW_MSG               -102  /**< Unknown message */
 #define SDB_CLS_EMPTY_HEAP               -103  /**< Empty heap */
@@ -308,7 +295,7 @@ const CHAR* getErrDesp ( INT32 errCode );
 #define SDB_DOMAIN_IS_OCCUPIED           -256  /**< Domain is not empty */
 #define SDB_REST_RECV_SIZE               -257  /**< The data received by REST is larger than the max size */
 #define SDB_DRIVER_BSON_ERROR            -258  /**< Failed to build bson object */
-#define SDB_OUT_OF_BOUND                 -259  /**< Stored procedure arguments are out of bound */
+#define SDB_OUT_OF_BOUND                 -259  /**< Arguments are out of bound */
 #define SDB_REST_COMMON_UNKNOWN          -260  /**< Unknown REST command */
 #define SDB_BUT_FAILED_ON_DATA           -261  /**< Failed to execute command on data node */
 #define SDB_CAT_NO_GROUP_IN_DOMAIN       -262  /**< The domain is empty */
@@ -357,10 +344,13 @@ const CHAR* getErrDesp ( INT32 errCode );
 #define SDB_UTIL_COMPRESS_BUFF_SMALL     -305  /**< Buffer for compression is too small */
 #define SDB_UTIL_DECOMPRESS_BUFF_SMALL   -306  /**< Buffer for decompression is too small */
 #define SDB_OSS_UP_TO_LIMIT              -307  /**< Up to the limit */
-#define SDB_DS_NOTINIT_OR_DISABLED       -308  /**< sdbDataSource not init or disabled */
-#define SDB_DS_NO_COORD                  -309  /**< sdbDataSource has no valid coord */
+#define SDB_DS_NOT_ENABLE                -308  /**< data source is not enabled yet */
+#define SDB_DS_NO_REACHABLE_COORD        -309  /**< No reachable coord notes */
 #define SDB_RULE_ID_IS_NOT_EXIST         -310  /**< the record which exclusive ruleID is not exist */
 #define SDB_STRTGY_TASK_NAME_CONFLICT    -311  /**< Task name conflict */
 #define SDB_STRTGY_TASK_NOT_EXISTED      -312  /**< The task is not existed */
 #define SDB_DPS_LOG_NOT_ARCHIVED         -313  /**< Replica log is not archived */
+#define SDB_DS_NOT_INIT                  -314  /**< Data source has not been initialized */
+#define SDB_OPERATION_INCOMPATIBLE       -315  /**< Operation is incompatible with the object */
+#define SDB_CAT_CLUSTER_IS_DEACTIVED     -316  /**< This cluster is deactived */
 #endif /* OSSERR_H_ */

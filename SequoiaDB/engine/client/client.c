@@ -2542,8 +2542,16 @@ error:
 }
 
 SDB_EXPORT INT32 sdbCreateUsr( sdbConnectionHandle cHandle,
-                              const CHAR *pUsrName,
+                               const CHAR *pUsrName,
                                const CHAR *pPasswd )
+{
+   return sdbCreateUsr2( cHandle, pUsrName, pPasswd, NULL ) ;
+}
+
+SDB_EXPORT INT32 sdbCreateUsr2( sdbConnectionHandle cHandle,
+                                const CHAR *pUsrName,
+                                const CHAR *pPasswd,
+                                bson *options )
 {
    INT32 rc                   = SDB_OK ;
    CHAR md5[ENCRYTED_STR_LEN] = {0};
@@ -2564,7 +2572,8 @@ SDB_EXPORT INT32 sdbCreateUsr( sdbConnectionHandle cHandle,
    }
    rc = clientBuildAuthCrtMsg( &connection->_pSendBuffer,
                                &connection->_sendBufferSize,
-                               pUsrName, md5, 0, connection->_endianConvert ) ;
+                               pUsrName, md5, options,
+                               0, connection->_endianConvert ) ;
    if ( SDB_OK != rc )
    {
       goto error ;

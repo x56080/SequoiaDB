@@ -137,7 +137,7 @@ const CHAR* getErrDesp ( INT32 errCode )
       "Failed to vote for primary",
       "Log record is corrupted",
       "LSN is out of boundary",
-      "Unknown mesage is received",
+      "Unknown message is received",
       "Updated information is same as old one",
       "Unknown message",
       "Empty heap",
@@ -296,7 +296,7 @@ const CHAR* getErrDesp ( INT32 errCode )
       "Domain is not empty",
       "The data received by REST is larger than the max size",
       "Failed to build bson object",
-      "Stored procedure arguments are out of bound",
+      "Arguments are out of bound",
       "Unknown REST command",
       "Failed to execute command on data node",
       "The domain is empty",
@@ -345,12 +345,15 @@ const CHAR* getErrDesp ( INT32 errCode )
       "Buffer for compression is too small",
       "Buffer for decompression is too small",
       "Up to the limit",
-      "sdbDataSource not init or disabled",
-      "sdbDataSource has no valid coord",
+      "data source is not enabled yet",
+      "No reachable coord notes",
       "the record which exclusive ruleID is not exist",
       "Task name conflict",
       "The task is not existed",
-      "Replica log is not archived"
+      "Replica log is not archived",
+      "Data source has not been initialized",
+      "Operation is incompatible with the object",
+      "This cluster is deactived"
    };
    if ( code < 0 || (UINT32)code >= (sizeof ( errDesp ) / sizeof ( CHAR* )) )
    {

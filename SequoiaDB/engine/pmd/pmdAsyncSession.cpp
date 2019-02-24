@@ -206,6 +206,20 @@ namespace engine
       return _pEDUCB ? TRUE : FALSE ;
    }
 
+   void _pmdAsyncSession::setAuditConfig( UINT32 auditMask,
+                                          UINT32 auditConfigMask )
+   {
+      _auditMask = auditMask ;
+      _auditConfigMask = auditConfigMask ;
+   }
+
+   void _pmdAsyncSession::getAuditConfig( UINT32 &auditMask,
+                                          UINT32 &auditConfigMask )
+   {
+      auditMask = _auditMask ;
+      auditConfigMask = _auditConfigMask ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSN_CLEAR, "_pmdAsyncSession::clear" )
    void _pmdAsyncSession::clear()
    {
@@ -232,6 +246,9 @@ namespace engine
                                   pmdGetLocalPort() ) ;
       _identifyTID=0 ;
       _identifyEDUID = 0 ;
+
+      _auditMask = 0 ;
+      _auditConfigMask = 0 ;
 
       // release all buffer pointers
       for ( UINT32 index = 0 ; index < MAX_BUFFER_ARRAY_SIZE; ++index )

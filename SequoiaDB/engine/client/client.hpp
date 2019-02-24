@@ -2951,7 +2951,9 @@ namespace sdbclient
 
 
       virtual INT32 createUsr( const CHAR *pUsrName,
-                               const CHAR *pPasswd ) = 0 ;
+                               const CHAR *pPasswd,
+                               const bson::BSONObj &options = _sdbStaticObject
+                             ) = 0 ;
 
       virtual INT32 removeUsr( const CHAR *pUsrName,
                                const CHAR *pPasswd ) = 0 ;
@@ -3340,19 +3342,32 @@ namespace sdbclient
       }
 
 /** \fn INT32 createUsr( const CHAR *pUsrName,
-                         const CHAR *pPasswd )
+                         const CHAR *pPasswd,
+                         const bson::BSONObj &options = _sdbStaticObject )
     \brief Add an user in current database.
     \param [in] pUsrName The connection user name.
     \param [in] pPasswd The connection password.
+    \param [in] options The options for user, such as: { AuditMask:"DDL|DML" }
+        AuditMask : User audit log mask, value list:
+                    ACCESS,CLUSTER,SYSTEM,DML,DDL,DCL,DQL,INSERT,DELETE,
+                    UPDATE,OTHER.
+                    You can combine multiple values with '|'. 'ALL' means
+                    that all mask items are turned on, and 'NONE' means
+                    that no mask items are turned on.
+                    If an item in the user audit log is not configured, the
+                    configuration of the corresponding mask item on the node
+                    is inherited. You can also use '!' to disable inheritance
+                    of this mask( e.g. "!DDL|DML" ).
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
       INT32 createUsr( const CHAR *pUsrName,
-                       const CHAR *pPasswd )
+                       const CHAR *pPasswd,
+                       const bson::BSONObj &options = _sdbStaticObject )
       {
          if ( !pSDB )
             return SDB_NOT_CONNECTED ;
-         return pSDB->createUsr( pUsrName, pPasswd ) ;
+         return pSDB->createUsr( pUsrName, pPasswd, options ) ;
       }
 
 /** \fn INT32 removeUsr( const CHAR *pUsrName,

@@ -6906,6 +6906,8 @@ static JSBool sdb_create_user ( JSContext *cx , uintN argc , jsval *vp )
    JSString *              strUsrName   = NULL ;
    CHAR *                  usrPwd       = NULL ;
    JSString *              strUsrPwd    = NULL ;
+   JSObject *              option       = NULL ;
+   bson *                  bsonOption   = NULL ;
    sdbConnectionHandle *   connection   = NULL ;
 
    connection = ( sdbConnectionHandle * )
@@ -6913,7 +6915,8 @@ static JSBool sdb_create_user ( JSContext *cx , uintN argc , jsval *vp )
    REPORT ( connection, "Sdb.createUsr(): no connection handle" ) ;
 
    ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
-                               "SS" , &strUsrName , &strUsrPwd ) ;
+                               "SS/o" , &strUsrName , &strUsrPwd,
+                               &option ) ;
    REPORT ( ret , "Sdb.createUsr(): wrong arguments" ) ;
 
    if ( strUsrName )
@@ -6926,14 +6929,20 @@ static JSBool sdb_create_user ( JSContext *cx , uintN argc , jsval *vp )
          // usrPwd is freed in done:
          usrPwd = (CHAR *) JS_EncodeString ( cx , strUsrPwd ) ;
          VERIFY ( usrPwd ) ;
-         rc = sdbCreateUsr( *connection , usrName , usrPwd ) ;
-         REPORT_RC ( SDB_OK == rc , "Sdb.createUsr()" , rc ) ;
       }
       else
       {
          REPORT ( JS_FALSE , "please input password" ) ;
       }
 
+      if ( option )
+      {
+         // bsonOption is freed in done:
+         VERIFY ( objToBson ( cx , option , &bsonOption ) ) ;
+      }
+
+      rc = sdbCreateUsr( *connection , usrName , usrPwd, bsonOption ) ;
+      REPORT_RC ( SDB_OK == rc , "Sdb.createUsr()" , rc ) ;
    }
    else
    {
@@ -6943,6 +6952,7 @@ static JSBool sdb_create_user ( JSContext *cx , uintN argc , jsval *vp )
 done:
    SAFE_JS_FREE ( cx ,  usrName ) ;
    SAFE_JS_FREE ( cx ,  usrPwd ) ;
+   SAFE_BSON_DISPOSE ( bsonOption ) ;
    PD_TRACE_EXIT ( SDB_SDB_CRT_USER );
    return ret ;
 error:

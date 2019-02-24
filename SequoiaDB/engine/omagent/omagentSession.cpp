@@ -256,7 +256,8 @@ namespace engine
          rc = SDB_AUTH_AUTHORITY_FORBIDDEN ;
          goto error ;
       }
-      eduCB()->setUserInfo( user.valuestrsafe(), pass.valuestrsafe() ) ;
+
+      getClient()->authenticate( user.valuestrsafe(), pass.valuestrsafe() ) ;
 
    done:
       return _reply( rc, pMsg ) ;

@@ -125,6 +125,11 @@ namespace engine
       REQUESTID_MAP requestIdMap ;
       REPLY_QUE replyQue ;
 
+      UINT32 mask = 0 ;
+      UINT32 configMask = 0 ;
+
+      pdGetCurAuditMask( AUDIT_LEVEL_USER, mask, configMask ) ;
+
       /// construct info
       try
       {
@@ -133,7 +138,9 @@ namespace engine
                          FIELD_NAME_HOST << pmdGetKRCB()->getHostName() <<
                          PMD_OPTION_SVCNAME << pmdGetOptionCB()->getServiceAddr() <<
                          FIELD_NAME_REMOTE_IP << pRemoteIP <<
-                         FIELD_NAME_REMOTE_PORT << (INT32)remotePort ) ;
+                         FIELD_NAME_REMOTE_PORT << (INT32)remotePort <<
+                         FIELD_NAME_AUDIT_MASK << (INT32)mask <<
+                         FIELD_NAME_AUDIT_CONFIG_MASK << (INT32)configMask ) ;
          msgLength += objInfo.objsize() ;
       }
       catch( std::exception &e )

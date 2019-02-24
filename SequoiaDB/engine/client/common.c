@@ -2238,6 +2238,7 @@ error:
 INT32 clientBuildAuthCrtMsg( CHAR **ppBuffer, INT32 *bufferSize,
                              const CHAR *pUsrName,
                              const CHAR *pPasswd,
+                             const bson *options,
                              UINT64 reqID, BOOLEAN endianConvert )
 {
    INT32 rc = SDB_OK ;
@@ -2264,6 +2265,15 @@ INT32 clientBuildAuthCrtMsg( CHAR **ppBuffer, INT32 *bufferSize,
    {
       rc = SDB_DRIVER_BSON_ERROR ;
       goto error ;
+   }
+   if ( options )
+   {
+      rc = bson_append_bson( &obj, FIELD_NAME_OPTIONS, options ) ;
+      if ( SDB_OK != rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
    }
    rc = bson_finish( &obj ) ;
    if ( SDB_OK != rc )
@@ -3326,3 +3336,40 @@ error:
    goto done ;   
 }
 
+INT32 clientBuildAuthCrtMsgCpp( CHAR **ppBuffer, INT32 *bufferSize,
+                                const CHAR *pUsrName,
+                                const CHAR *pPasswd,
+                                const CHAR *pOptions,
+                                UINT64 reqID,
+                                BOOLEAN endianConvert )
+{
+   INT32 rc = SDB_OK ;
+   bson options ;
+
+   bson_init ( &options ) ;
+
+   if ( pOptions )
+   {
+      rc = bson_init_finished_data ( &options, pOptions ) ;
+      if ( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+   }
+
+   rc = clientBuildAuthCrtMsg( ppBuffer, bufferSize,
+                               pUsrName, pPasswd,
+                               pOptions ? &options : NULL, reqID,
+                               endianConvert ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+done:
+   bson_destroy ( &options ) ;
+   return rc ;
+error:
+   goto done ;
+}
