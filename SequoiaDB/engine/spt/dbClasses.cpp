@@ -6941,7 +6941,7 @@ static JSBool sdb_create_user ( JSContext *cx , uintN argc , jsval *vp )
          VERIFY ( objToBson ( cx , option , &bsonOption ) ) ;
       }
 
-      rc = sdbCreateUsr( *connection , usrName , usrPwd, bsonOption ) ;
+      rc = sdbCreateUsr2( *connection , usrName , usrPwd, bsonOption ) ;
       REPORT_RC ( SDB_OK == rc , "Sdb.createUsr()" , rc ) ;
    }
    else
