@@ -1496,10 +1496,10 @@
              2. 0: do nothing, run with error.<fig></fig>
              3. 1: auto sync full data from other nodes. <fig></fig>
              4. 2: shutdown the node.</en>
-         <cn>1、节点在无法继续正常增量同步而可能触发全量同步时的处理操作，取值为 0/1/2。 缺省为1。<fig></fig>
-             2、0: 不作任何处理，保持节点运行。<fig></fig>
-             3、1: 自动从该数据组的其它节点进行全量同步。<fig></fig>
-             4、2: 该节点停止运行。</cn>
+         <cn>1. 节点在无法继续正常增量同步而可能触发全量同步时的处理操作，取值为 0/1/2。 缺省为1。<fig></fig>
+             2. 0: 不作任何处理，保持节点运行。<fig></fig>
+             3. 1: 自动从该数据组的其它节点进行全量同步。<fig></fig>
+             4. 2: 该节点停止运行。</cn>
       </detail>
       <type>int</type>
       <default>1</default>
