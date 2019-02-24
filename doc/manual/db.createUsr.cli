@@ -16,7 +16,7 @@ password.
 .sp 2
 
 .sp 2
-db.createUsr(\fB<name>\fR,\fB<password>\fR)
+db.createUsr(\fB<name>\fR,\fB<password>\fR,\fB[options]\fR)
 .SH "CATEGORY"
 
 .sp 2
@@ -36,15 +36,19 @@ Create a database user with a user name and a password.
 .br
        Password.
 .sp 2
-       \fBFormat\fR
+\fBoptions (Json)\fR
 .br
-              The method "createUsr()" contains 2 parameters:
-              name and password. Both of them are in the type of
-              string. And they can be null string.
-.br
-              ("<user name>","<password>")
-.sp 2
-
+    options as:
+    AuditMask: User audit log mask, value list:
+           ACCESS,CLUSTER,SYSTEM,DML,DDL,DCL,DQL,INSERT,DELETE,
+           UPDATE,OTHER.
+           You can combine multiple values with '|'. 'ALL' means
+           that all mask items are turned on, and 'NONE' means
+           that no mask items are turned on.
+           If an item in the user audit log is not configured, the
+           configuration of the corresponding mask item on the node
+           is inherited. You can also use '!' to disable inheritance
+           of this mask( e.g. "!DDL|DML" ).
 .sp 2
 \fBNote: \fR
 .sp 2
