@@ -70,6 +70,9 @@ public class SessionAccess14147 extends SdbTestBase {
                 throw e;
         }finally {
             db.setSessionAttr(new BasicBSONObject("Timeout",-1L));
+            if(db.getCollectionSpace(SdbTestBase.csName).isCollectionExist(clName)){
+            	db.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
+            }
         }
         
         //挂载、修改cl
