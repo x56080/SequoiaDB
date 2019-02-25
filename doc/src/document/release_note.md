@@ -2,6 +2,17 @@ SequoiaDB 数据库是一款新型企业级分布式非关系型数据库，帮�
 
 [快速使用SequoiaDB](quickstart.md)
 
+##SequoiaDB version 2.8.7 版本说明##
+
+**接口变更：**
+
+- db.createUsr() 创建用户接口支持设置用户 AuditMask 属性
+
+**功能优化：**
+
+- 提供基于用户级的审计日志能力
+
+
 ##SequoiaDB version 2.8.6 版本说明##
 
 **接口变更：**

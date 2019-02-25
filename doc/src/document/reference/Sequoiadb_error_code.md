@@ -256,7 +256,7 @@
 | SDB_DOMAIN_IS_OCCUPIED | -256 | 域非空 |
 | SDB_REST_RECV_SIZE | -257 | REST接收的数据大小超过最大值 |
 | SDB_DRIVER_BSON_ERROR | -258 | 构建bson失败 |
-| SDB_OUT_OF_BOUND | -259 | 存储过程参数越界 |
+| SDB_OUT_OF_BOUND | -259 | 参数越界 |
 | SDB_REST_COMMON_UNKNOWN | -260 | 未知的REST命令 |
 | SDB_BUT_FAILED_ON_DATA | -261 | 在数据节点上执行命令失败 |
 | SDB_CAT_NO_GROUP_IN_DOMAIN | -262 | 域中不包含任何数据组 |
