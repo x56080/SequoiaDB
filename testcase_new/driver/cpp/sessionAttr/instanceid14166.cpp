@@ -122,7 +122,19 @@ protected:
    INT32 fini()
    {
       INT32 rc = SDB_OK ;
-      rc = db.dropCollectionSpace( csName ) ;
+      INT32 oneMinute = 60 ;
+      INT32 waitLen = 0  ;
+
+      do{
+         rc = db.dropCollectionSpace( csName ) ;
+         sleep(1) ;
+         waitLen += 1 ;
+         if ( waitLen >= oneMinute )
+         {
+            break ;
+         }
+      }while( rc == -147 );
+      
       CHECK_RC( SDB_OK, rc, "fail to drop cs %s", csName ) ;
       rc = db.removeReplicaGroup( rgName ) ;
       CHECK_RC( SDB_OK, rc, "fail to remove rg %s", rgName ) ;
