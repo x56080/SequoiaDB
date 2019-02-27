@@ -5,10 +5,12 @@ import com.sequoiadb.base.DBLob;
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
+import org.bson.types.ObjectId;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
@@ -40,38 +42,44 @@ public class SessionAccess14142 extends SdbTestBase {
     	System.out.println("the TestCase Name:" + this.getClass().getName() + 
                 ". the TestCase begin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
         db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if(com.sequoiadb.testcommon.CommLib.isStandAlone(db)){
+        if(CommLib.isStandAlone(db)){
 			throw new SkipException("run mode is standalone,test case skip");
 		}
-        nodes = CommLib.createRG(db, rgName);
+        nodes = Util.createRG(db, rgName);
         BSONObject options = new BasicBSONObject("Group", rgName);
-        options.put("ReplSize", -1);
+        options.put("ReplSize", 0);
         dbcl = db.getCollectionSpace(SdbTestBase.csName).createCollection(clname, options);
-        CommLib.insertRecords(dbcl);
+        Util.insertRecords(dbcl);
     }
 
     @Test
     public void test14142() {
     	ReplicaGroup rg = db.getReplicaGroup(rgName);
     	String masterNodeName = rg.getMaster().getNodeName();
-    	int expctId = CommLib.getInstanceidByNodeName(nodes, masterNodeName);
-        BasicBSONObject expSessionAttr = new BasicBSONObject("PreferedInstance", expctId).append("Timeout", 200L);
+    	int expctId = Util.getInstanceidByNodeName(nodes, masterNodeName);
+        BasicBSONObject expSessionAttr = new BasicBSONObject("PreferedInstance", expctId).append("Timeout", 1000L);
+        
+        //put lob 
+        ObjectId oid = null;
+        DBLob lob = dbcl.createLob();
+        lob.write(new byte[1024 * 1024 * 10]);
+        oid = lob.getID();
+        lob.close();
         db.setSessionAttr(expSessionAttr);
+        
         try {
-            DBLob lob = dbcl.createLob();
-            lob.write(new byte[1024 * 1024 * 10]);
-            lob.close();
+        	dbcl.openLob(oid);
+        	
         } catch (BaseException e) {
+        	System.out.println("catch exception!");
         	Assert.assertEquals(e.getErrorCode(), -13);
         }
         
-        
         expSessionAttr.put("Timeout", 20000L);
         db.setSessionAttr(expSessionAttr);
-        DBLob lob = dbcl.createLob();
-        lob.write(new byte[1024 * 1024 * 10]);
-        lob.close();
-        String actualNodeName = CommLib.getActualDataNodeName(dbcl);
+        dbcl.openLob(oid);
+        
+        String actualNodeName = Util.getActualDataNodeName(dbcl);
         assertEquals(masterNodeName, actualNodeName);
         BSONObject actSessionAttr = db.getSessionAttr();
         expSessionAttr.append("PreferedInstanceMode", "random");
