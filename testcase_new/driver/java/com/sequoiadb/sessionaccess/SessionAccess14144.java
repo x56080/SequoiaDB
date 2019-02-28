@@ -40,20 +40,20 @@ public class SessionAccess14144 extends SdbTestBase {
         if(CommLib.isStandAlone(db)){
 			throw new SkipException("run mode is standalone,test case skip");
 		}
-        nodes = Util.createRG(db, rgName);
+        nodes = SessionAccessUtil.createRG(db, rgName);
         BSONObject options = new BasicBSONObject("Group", rgName);
         options.put("ReplSize", 0);
         dbcl = db.getCollectionSpace(SdbTestBase.csName).createCollection(clName, options);
-        Util.insertRecords(dbcl);
+        SessionAccessUtil.insertRecords(dbcl);
     }
 
     @Test
     public void test14144() {
-    	List<Integer> instanceidList = Util.getInstanceidList(nodes);
+    	List<Integer> instanceidList = SessionAccessUtil.getInstanceidList(nodes);
 
         BasicBSONObject options = new BasicBSONObject("PreferedInstance", instanceidList).append("PreferedInstanceMode", "ordered");
         db.setSessionAttr(options);
-        String actualNodeName = Util.getActualDataNodeName(dbcl);
+        String actualNodeName = SessionAccessUtil.getActualDataNodeName(dbcl);
         
         BasicBSONObject expNode = (BasicBSONObject)nodes.get(0);
         assertEquals(actualNodeName, expNode.getString("nodeName"));

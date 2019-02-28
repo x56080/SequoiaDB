@@ -41,23 +41,23 @@ public class SessionAccess14145 extends SdbTestBase {
         if(CommLib.isStandAlone(db)){
 			throw new SkipException("run mode is standalone,test case skip");
 		}
-        nodes = Util.createRG(db, rgName);
+        nodes = SessionAccessUtil.createRG(db, rgName);
         BSONObject options = new BasicBSONObject("Group", rgName);
         options.put("ReplSize", 0);
         dbcl = db.getCollectionSpace(SdbTestBase.csName).createCollection(clname, options);
-        Util.insertRecords(dbcl);
+        SessionAccessUtil.insertRecords(dbcl);
     }
 
     @Test
     public void test14145() {
-    	List<Integer> instanceidList = Util.getInstanceidList(nodes);
+    	List<Integer> instanceidList = SessionAccessUtil.getInstanceidList(nodes);
     	int[] id = new int[]{instanceidList.get(0), instanceidList.get(1)};
 
         BSONObject options = new BasicBSONObject("PreferedInstance", id).append("PreferedInstanceMode", "random");
         db.setSessionAttr(options);
-        String actualNodeName = Util.getActualDataNodeName(dbcl);
-        String expNodeName1 = Util.getNodeNameByInstanceId(nodes, instanceidList.get(0).toString());
-        String expNodeName2 = Util.getNodeNameByInstanceId(nodes, instanceidList.get(1).toString());
+        String actualNodeName = SessionAccessUtil.getActualDataNodeName(dbcl);
+        String expNodeName1 = SessionAccessUtil.getNodeNameByInstanceId(nodes, instanceidList.get(0).toString());
+        String expNodeName2 = SessionAccessUtil.getNodeNameByInstanceId(nodes, instanceidList.get(1).toString());
         if (!actualNodeName.equals(expNodeName1) && !actualNodeName.equals(expNodeName2)) {
             fail("actual node name :" + actualNodeName + " expect node name : " + expNodeName1 + " or " + expNodeName2);
         }

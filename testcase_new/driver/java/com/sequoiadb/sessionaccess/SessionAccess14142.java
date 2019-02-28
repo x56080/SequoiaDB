@@ -1,5 +1,6 @@
 package com.sequoiadb.sessionaccess;
 
+import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBLob;
 import com.sequoiadb.base.ReplicaGroup;
@@ -45,18 +46,18 @@ public class SessionAccess14142 extends SdbTestBase {
         if(CommLib.isStandAlone(db)){
 			throw new SkipException("run mode is standalone,test case skip");
 		}
-        nodes = Util.createRG(db, rgName);
+        nodes = SessionAccessUtil.createRG(db, rgName);
         BSONObject options = new BasicBSONObject("Group", rgName);
         options.put("ReplSize", 0);
         dbcl = db.getCollectionSpace(SdbTestBase.csName).createCollection(clname, options);
-        Util.insertRecords(dbcl);
+        SessionAccessUtil.insertRecords(dbcl);
     }
 
     @Test
     public void test14142() {
     	ReplicaGroup rg = db.getReplicaGroup(rgName);
-    	String masterNodeName = rg.getMaster().getNodeName();
-    	int expctId = Util.getInstanceidByNodeName(nodes, masterNodeName);
+    	String slaveNodeName = rg.getSlave().getNodeName();
+    	int expctId = SessionAccessUtil.getInstanceidByNodeName(nodes, slaveNodeName);
         BasicBSONObject expSessionAttr = new BasicBSONObject("PreferedInstance", expctId).append("Timeout", 1000L);
         
         //put lob 
@@ -68,8 +69,8 @@ public class SessionAccess14142 extends SdbTestBase {
         db.setSessionAttr(expSessionAttr);
         
         try {
-        	dbcl.openLob(oid);
-        	
+        	DBLob openLob = dbcl.openLob(oid);
+            openLob.close();
         } catch (BaseException e) {
         	System.out.println("catch exception!");
         	Assert.assertEquals(e.getErrorCode(), -13);
@@ -77,10 +78,11 @@ public class SessionAccess14142 extends SdbTestBase {
         
         expSessionAttr.put("Timeout", 20000L);
         db.setSessionAttr(expSessionAttr);
-        dbcl.openLob(oid);
+        DBLob openLob = dbcl.openLob(oid);
+        openLob.close();
         
-        String actualNodeName = Util.getActualDataNodeName(dbcl);
-        assertEquals(masterNodeName, actualNodeName);
+        String actualNodeName = SessionAccessUtil.getActualDataNodeName(dbcl);
+        assertEquals(slaveNodeName, actualNodeName);
         BSONObject actSessionAttr = db.getSessionAttr();
         expSessionAttr.append("PreferedInstanceMode", "random");
         expSessionAttr.append("Timeout", 20000L);
@@ -91,7 +93,8 @@ public class SessionAccess14142 extends SdbTestBase {
     public void teardown() throws InterruptedException {
     	System.out.println("the TestCase Name:" + this.getClass().getName() + 
                 ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-        db.getCollectionSpace(SdbTestBase.csName).dropCollection(clname);
+        CollectionSpace currCS = db.getCollectionSpace(SdbTestBase.csName);
+        currCS.dropCollection(clname);
         db.removeReplicaGroup(rgName);
         db.disconnect();
     }

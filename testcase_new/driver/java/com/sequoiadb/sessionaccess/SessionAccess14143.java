@@ -4,6 +4,7 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -16,9 +17,10 @@ import org.testng.annotations.Test;
 import static org.testng.Assert.*;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -43,11 +45,11 @@ public class SessionAccess14143 extends SdbTestBase {
         if(CommLib.isStandAlone(db)){
 			throw new SkipException("run mode is standalone,test case skip");
 		}
-        nodes = Util.createRG(db, rgName);
+        nodes = SessionAccessUtil.createRG(db, rgName);
         BSONObject options = new BasicBSONObject("Group", rgName);
         options.put("ReplSize", 0);
         dbcl = db.getCollectionSpace(SdbTestBase.csName).createCollection(clname, options);
-        Util.insertRecords(dbcl);
+        SessionAccessUtil.insertRecords(dbcl);
     }
 
     @Test
@@ -56,46 +58,35 @@ public class SessionAccess14143 extends SdbTestBase {
         for (String s : expectPreferedInstance) {
             BasicBSONObject options = new BasicBSONObject("PreferedInstance", s);
             db.setSessionAttr(options);
-            String hostName = Util.getActualDataNodeName(dbcl);
+            String hostName = SessionAccessUtil.getActualDataNodeName(dbcl);
             if (s.equals("M")) {
-                assertTrue(Util.isMaster(db, rgName, hostName), "the actual data node name is: " + hostName + ",the current option is " + options.toString());
+                assertTrue(SessionAccessUtil.isMaster(db, rgName, hostName), "the actual data node name is: " + hostName + ",the current option is " + options.toString());
             } else if (s.equals("S")) {
-                assertFalse(Util.isMaster(db, rgName, hostName), "the actual data node name is: " + hostName + ",the current option is " + options.toString());
+                assertFalse(SessionAccessUtil.isMaster(db, rgName, hostName), "the actual data node name is: " + hostName + ",the current option is " + options.toString());
             }
             options.append("PreferedInstanceMode", "random").append("Timeout", -1L);
             assertEquals(db.getSessionAttr(),options);
         }
         
+        List<String> nodeNames = new ArrayList<String>();
+        for (int i=0 ; i< nodes.size() ; i++) {
+        	BasicBSONObject node = (BasicBSONObject)nodes.get(i);
+        	nodeNames.add(node.getString("nodeName"));
+        }
         //设置PreferedInstance为'A'
         BasicBSONObject options = new BasicBSONObject("PreferedInstance", "A");
         Set<String> actNodeNames = new HashSet<String>();
         for(int i = 0 ; i < 20 ; i++){
         	db.setSessionAttr(options);
-        	String hostName = Util.getActualDataNodeName(dbcl);
-        	actNodeNames.add(hostName);
+        	String actNodeName = SessionAccessUtil.getActualDataNodeName(dbcl);
+        	Assert.assertTrue(nodeNames.contains(actNodeName),"The actual Node name is not expected: " + actNodeName);
+        	actNodeNames.add(actNodeName);
         }
-        Assert.assertNotEquals(actNodeNames.size(), 1, "When PreferedInstance is 'A', the actual node are not random, the node name is:" + actNodeNames.iterator().next());
         
-        Set<String> nodeNames = new HashSet<String>();
-        for (int i=0 ; i< nodes.size() ; i++) {
-        	BasicBSONObject node = (BasicBSONObject)nodes.get(i);
-        	nodeNames.add(node.getString("nodeName"));
-        }
-        if(!nodeNames.containsAll(actNodeNames)){
-        	Assert.fail("actNodeNames is :" + printActNodeNames(actNodeNames));
-        }
+        //Set中存放的是不重复的元素，如果actNodeNames大小为1时，代表实际操作的节点只有一个，没有随机取值
+        Assert.assertNotEquals(actNodeNames.size(), 1, "When PreferedInstance is 'A', the actual node is unchanged, the node name is:" + actNodeNames.iterator().next());
         options.append("PreferedInstanceMode", "random").append("Timeout", -1L);
         assertEquals(db.getSessionAttr(),options);
-    }
-    
-    private String printActNodeNames (Set<String> actNodeNames){
-    	String str ="";
-    	Iterator<String> value = actNodeNames.iterator();
-    	while(value.hasNext()){
-    		str += value.next();
-    		str += " ";
-    	}
-    	return str;
     }
     
     @AfterClass

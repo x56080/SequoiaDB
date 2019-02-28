@@ -40,11 +40,11 @@ public class SessionAccess14147 extends SdbTestBase {
         if(CommLib.isStandAlone(db)){
 			throw new SkipException("run mode is standalone,test case skip");
 		}
-        Util.createRG(db, rgName);
+        SessionAccessUtil.createRG(db, rgName);
         BSONObject options = new BasicBSONObject("Group", rgName);
         options.put("ReplSize", 0);
         dbcl = db.getCollectionSpace(SdbTestBase.csName).createCollection(clname, options);
-        Util.insertRecords(dbcl);
+        SessionAccessUtil.insertRecords(dbcl);
     }
     
     @Test
