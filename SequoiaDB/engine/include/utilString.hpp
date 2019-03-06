@@ -65,6 +65,21 @@ namespace engine
       }
 
    public:
+      void  clear()
+      {
+         _buf[0] = '\0' ;
+         _len = 0 ;
+      }
+
+      INT32 append( const CHAR *str )
+      {
+         if ( str && *str )
+         {
+            return append( str, ossStrlen( str ) ) ;
+         }
+         return SDB_OK ;
+      }
+
       INT32 append( const CHAR *str, UINT32 len )
       {
          INT32 rc = SDB_OK ;
