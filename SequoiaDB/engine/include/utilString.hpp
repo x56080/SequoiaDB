@@ -120,8 +120,7 @@ namespace engine
       INT32 resize( UINT32 size )
       {
          INT32 rc = SDB_OK ;
-         if ( UTIL_STRING_STAITC_LEN < _bufLen &&
-              _bufLen < size )
+         if ( BUFFERSIZE < _bufLen && _bufLen < size )
          {
             CHAR *p = ( CHAR * )SDB_OSS_REALLOC( _dynamic, size ) ;
             if ( NULL == p )
@@ -134,8 +133,7 @@ namespace engine
             _bufLen = size ;
             _buf = _dynamic ;
          }
-         else if ( UTIL_STRING_STAITC_LEN == _bufLen &&
-                   _bufLen < size )
+         else if ( BUFFERSIZE == _bufLen && _bufLen < size )
          {
             _dynamic = ( CHAR * )SDB_OSS_MALLOC( size ) ;
             if ( NULL == _dynamic )
