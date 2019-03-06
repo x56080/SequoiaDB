@@ -41,9 +41,9 @@ public class Index10211 extends SdbTestBase {
 		//start time
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-			//judge the mode
-			if(MetaDataUtils.isStandAlone(sdb)){
-				throw new SkipException("The mode is standlone, skip the testCase.");
+			//judge the mode or node number
+			if(MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.oneDataNode(sdb)){
+				throw new SkipException("The mode is standlone or one node, skip the testCase.");
 			}
 			MetaDataUtils.clearCS(sdb, csName);
 			

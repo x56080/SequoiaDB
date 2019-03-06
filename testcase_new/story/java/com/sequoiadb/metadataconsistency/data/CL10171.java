@@ -39,9 +39,9 @@ public class CL10171 extends SdbTestBase {
 	public void setUp(){
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-			//judge the mode
-			if(MetaDataUtils.isStandAlone(sdb)){
-				throw new SkipException("The mode is standlone, skip the testCase.");
+			//judge the mode or node number
+			if(MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.oneDataNode(sdb)){
+				throw new SkipException("The mode is standlone or one node, skip the testCase.");
 			}
 			MetaDataUtils.clearCS(sdb, csName);
 			sdb.createCollectionSpace(csName);
@@ -102,7 +102,7 @@ public class CL10171 extends SdbTestBase {
 				
 			}catch(BaseException e){
 				int eCode = e.getErrorCode();
-				if( eCode != -23 && eCode != -22 && eCode != -147){   //-23: bug-jira3246
+				if( eCode != -22 && eCode != -147){   
 					throw e;
 				}
 			}finally{

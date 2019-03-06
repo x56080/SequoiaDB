@@ -41,10 +41,11 @@ public class Split10184 extends SdbTestBase {
 		//start time
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-
-			//judge the mode and group number
-			if(MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.OneGroupMode(sdb)){
-				throw new SkipException("The mode is standlone or only one group, skip the testCase.");
+			//judge the mode or group number or node number
+			if(MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.OneGroupMode(sdb)
+					|| MetaDataUtils.oneCataNode(sdb) || MetaDataUtils.oneDataNode(sdb)){
+				throw new SkipException("The mode is standlone or only one group or one node, "
+						+ "skip the testCase.");
 			}
 			MetaDataUtils.clearCS(sdb, csName);
 			
@@ -70,7 +71,7 @@ public class Split10184 extends SdbTestBase {
 		}
 	}
 	
-	@Test(enabled = false)  //bug: jira-2756
+	@Test
 	public void test(){
 		Split split = new Split();
 		split.start();

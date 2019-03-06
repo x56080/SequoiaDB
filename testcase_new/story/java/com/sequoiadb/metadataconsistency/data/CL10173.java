@@ -11,6 +11,7 @@ import org.testng.Assert;
 import org.testng.SkipException;
 
 import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.metadataconsistency.data.MetaDataUtils;
@@ -36,9 +37,11 @@ public class CL10173 extends SdbTestBase {
 	public void setUp(){
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-			//judge the mode
-			if(MetaDataUtils.isStandAlone(sdb)){
-				throw new SkipException("The mode is standlone, " + "skip the testCase.");
+			//judge the mode or group number or node number
+			if(MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.OneGroupMode(sdb)
+					|| MetaDataUtils.oneCataNode(sdb) || MetaDataUtils.oneDataNode(sdb)){
+				throw new SkipException("The mode is standlone or only one group or one node, "
+						+ "skip the testCase.");
 			}
 			MetaDataUtils.clearCS(sdb, csName);
 			sdb.createCollectionSpace(csName);
@@ -85,9 +88,11 @@ public class CL10173 extends SdbTestBase {
 				db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 				CollectionSpace csDB = db.getCollectionSpace(csName);
 				
-				csDB.createCollection(clName);
-				if(csDB.isCollectionExist(clName)){
-					MetaDataUtils.insertData(db, csName, clName);
+				if(csDB != null ){
+					DBCollection clDB = csDB.createCollection(clName);
+					if(clDB != null){
+						MetaDataUtils.insertData(db, csName, clName);
+					}
 				}
 			}catch(BaseException e){
 				int eCode = e.getErrorCode();

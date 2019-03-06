@@ -36,9 +36,11 @@ public class IdIndex10210 extends SdbTestBase {
 		//start time
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-			//judge the mode
-			if(MetaDataUtils.isStandAlone(sdb)){
-				throw new SkipException("The mode is standlone, skip the testCase.");
+			//judge the mode or group number or node number
+			if(MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.OneGroupMode(sdb)
+					|| MetaDataUtils.oneCataNode(sdb) || MetaDataUtils.oneDataNode(sdb)){
+				throw new SkipException("The mode is standlone or only one group or one node, "
+						+ "skip the testCase.");
 			}
 			MetaDataUtils.clearCS(sdb, csName);
 			
@@ -96,8 +98,7 @@ public class IdIndex10210 extends SdbTestBase {
 				}
 			}catch(BaseException e){
 				int eCode = e.getErrorCode();
-				if( eCode != -248 && eCode != -23 && eCode != -34 && 
-						!e.getMessage().toString().contains("null")){ //-248: Dropping the collection space is in progress
+				if( eCode != -248 && eCode != -23 && eCode != -34){ //-248: Dropping the collection space is in progress
 					throw e;
 				}
 			}finally{

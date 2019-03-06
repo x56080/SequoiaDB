@@ -71,6 +71,46 @@ public class MetaDataUtils extends SdbTestBase {
 	}
 
 	/**
+	 * Judge the number of nodes in the SYSCatalogGroup
+	 * 
+	 * @param sdb
+	 * @return true/false
+	 */
+	public static boolean oneCataNode(Sequoiadb sdb) {
+		int nodesNum = nodesNum(sdb, "SYSCatalogGroup");
+		if (nodesNum < 2) {
+			System.out.printf("Only one node in the SYSCatalogGroup.");
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Judge the number of nodes int the dataGroup
+	 * 
+	 * @param sdb
+	 * @return true/false
+	 */
+	public static boolean oneDataNode(Sequoiadb sdb) {
+		ArrayList<String> dataGroupNames = getDataGroupNames(sdb);
+		for (String rgName : dataGroupNames) {
+			int nodesNum = nodesNum(sdb, rgName);
+			if (nodesNum < 2) {
+				System.out.printf("Only one node in the "+ rgName +".");
+				return true;
+			}		
+		}
+		return false;
+	}
+	
+	private static int nodesNum(Sequoiadb sdb, String rgName) {
+		ReplicaGroup tmpArray = sdb.getReplicaGroup(rgName);
+		BasicBSONObject doc = (BasicBSONObject) tmpArray.getDetail();
+		BasicBSONList nodes = (BasicBSONList) doc.get("Group");		
+		return nodes.size();
+	}
+
+	/**
 	 * get node address
 	 * 
 	 * @param sdb
@@ -124,6 +164,8 @@ public class MetaDataUtils extends SdbTestBase {
 			}
 		} catch (BaseException e) {
 			throw e;
+		} finally {
+			cataDB.disconnect();
 		}
 		return csInfoOfCata;
 	}
@@ -764,7 +806,9 @@ public class MetaDataUtils extends SdbTestBase {
 				clDB.bulkInsert(records, 0);
 			}
 		} catch (BaseException e) {
-			throw e;
+			if (-23 != e.getErrorCode()) {
+				throw e;
+			}
 		}
 	}
 

@@ -42,9 +42,11 @@ public class CL10179 extends SdbTestBase{
 		//start time
 		try{
 			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-			//judge the mode and group number
-			if(MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.OneGroupMode(sdb)){
-				throw new SkipException("The mode is standlone or only one group, skip the testCase.");
+			//judge the mode or group number or node number
+			if(MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.OneGroupMode(sdb)
+					|| MetaDataUtils.oneCataNode(sdb) || MetaDataUtils.oneDataNode(sdb)){
+				throw new SkipException("The mode is standlone or only one group or one node, "
+						+ "skip the testCase.");
 			}
 			MetaDataUtils.clearCS(sdb, csName);
 			MetaDataUtils.clearDomain(sdb, domainName);
@@ -98,15 +100,14 @@ public class CL10179 extends SdbTestBase{
 				db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 				
 				BSONObject opt = new BasicBSONObject();
-				int i = random.nextInt(dataGroups.size());
-				opt.put("Group", dataGroups.get(i));
+				opt.put("ReplSize", 7);
 				CollectionSpace csDB = db.getCollectionSpace(csName);
 				if(csDB != null){
 					csDB.getCollection(clName).alterCollection(opt);
 				}
 			}catch(BaseException e){
 				int eCode = e.getErrorCode();
-				if( eCode != -34 && eCode != -23 && eCode != -147){ 
+				if( eCode != -34 && eCode != -23 && eCode != -147 && eCode != -248){ 
 					throw e;
 				} 
 			}finally{

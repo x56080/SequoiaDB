@@ -1,14 +1,12 @@
 package com.sequoiadb.metadataconsistency.cluster;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Random;
 
-import org.testng.annotations.Test;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.AfterClass;
 import org.testng.Assert;
 import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
@@ -23,7 +21,6 @@ import com.sequoiadb.testcommon.SdbThreadBase;
 */
 
 public class Node10230 extends SdbTestBase {
-	private SimpleDateFormat dateFm = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
 	private static Sequoiadb sdb = null;
 	private String rgName = "rg10230";
 	private Random random = new Random();
