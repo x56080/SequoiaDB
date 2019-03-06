@@ -37,6 +37,7 @@
 #include "mthTrace.hpp"
 #include "pdTrace.hpp"
 #include "mthDef.hpp"
+#include "utilString.hpp"
 
 using namespace bson ;
 
