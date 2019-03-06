@@ -374,6 +374,7 @@ namespace engine
          BSONElement e = i.next() ;
          mthSColumn *column = NULL ;
 
+         strName.clear() ;
          /// In findColumn, because used function compareDottedFieldNames,
          /// the fieldName will be [x] = '\0' then restored,
          /// when the obj is mmap, will occur much dirty pages.
