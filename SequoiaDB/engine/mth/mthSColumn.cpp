@@ -354,7 +354,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHSCOLUMN__BUILDOBJFROMCHILDREN ) ;
       UINT32 found = 0 ;
-      _utilString strName ;
+      _utilString<128> strName ;
       const CHAR *pFieldName = NULL ;
       MTH_S_COLUMNS array ;
       UINT32 number = 0 ;
@@ -364,7 +364,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to copy array:%d", rc ) ;
-         goto error ;      
+         goto error ;
       }
 
       {
