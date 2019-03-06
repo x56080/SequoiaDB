@@ -784,16 +784,30 @@ namespace bson {
             char *rend = ( NULL == b ) ? ( (char*)&r[rsize] ) : b ;
 
             // get the original left and right
-            char lold = *lend ;
-            char rold = *rend ;
+            char lold = '\0' ;
+            char rold = '\0' ;
             // set as end of string
-            *lend     = '\0' ;
-            *rend     = '\0' ;
+            if ( *lend != '\0' )
+            {
+               lold = *lend ;
+               *lend = '\0' ;
+            }
+            if ( *rend != '\0' )
+            {
+               rold = *rend ;
+               *rend = '\0' ;
+            }
             // do string compare
             int x = lexNumCmp ( &l[lstart], &r[rstart] ) ;
             // restore old value
-            *lend     = lold ;
-            *rend     = rold ;
+            if ( lold != '\0' )
+            {
+               *lend = lold ;
+            }
+            if ( rold != '\0' )
+            {
+               *rend = rold ;
+            }
             if ( x < 0 )
                 return LEFT_BEFORE;
             if ( x > 0 )
