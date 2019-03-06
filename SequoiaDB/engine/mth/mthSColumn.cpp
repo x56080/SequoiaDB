@@ -36,7 +36,6 @@
 #include "mthTrace.hpp"
 #include "pdTrace.hpp"
 #include "mthDef.hpp"
-#include "utilString.hpp"
 
 using namespace bson ;
 
@@ -351,8 +350,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHSCOLUMN__BUILDOBJFROMCHILDREN ) ;
       UINT32 found = 0 ;
-      utilString strName ;
-      const CHAR *pFieldName = NULL ;
       MTH_S_COLUMNS array ;
       UINT32 number = 0 ;
       BOOLEAN addOtherChild = ( _actions.size() > 0 ) ? TRUE : FALSE ;
@@ -371,29 +368,7 @@ namespace engine
          BSONElement e = i.next() ;
          mthSColumn *column = NULL ;
 
-         strName.clear() ;
-         /// In findColumn, because used function compareDottedFieldNames,
-         /// the fieldName will be [x] = '\0' then restored,
-         /// when the obj is mmap, will occur much dirty pages.
-         /// So, when the obj is not owned, copy the field name to avoid
-         /// occur dirty pages. Jira:4246
-         if ( obj.isOwned() )
-         {
-            pFieldName = e.fieldName() ;
-         }
-         else
-         {
-            rc = strName.append( e.fieldName(), ossStrlen( e.fieldName() ) ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Append field name to string failed, rc: %d",
-                       rc ) ;
-               goto error ;
-            }
-            pFieldName = strName.str() ;
-         }
-
-         if ( _findColumn( pFieldName,
+         if ( _findColumn( e.fieldName(),
                            _subColumns,
                            column,
                            &number ) )
