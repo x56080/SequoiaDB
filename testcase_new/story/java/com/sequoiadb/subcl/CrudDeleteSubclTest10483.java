@@ -166,7 +166,7 @@ public class CrudDeleteSubclTest10483 extends SdbTestBase{
 			String[] subclOptions = {
 					"{Group:'"+replicaGroupNames.get(0)+"'}",
 					"{Group:'"+replicaGroupNames.get(1)+"',ShardingKey:{a:1},ShardingType:'range',ReplSize:0,Compressed:true}",
-					"{Group:'"+replicaGroupNames.get(2)+"',ShardingKey:{a:1},ShardingType:'range',ReplSize:0,Compressed:true,Partition:16}"
+					"{Group:'"+replicaGroupNames.get(0)+"',ShardingKey:{a:1},ShardingType:'range',ReplSize:0,Compressed:true,Partition:16}"
 					};
 			cs = sdb.getCollectionSpace(SdbTestBase.csName);
 			maincl = cs.createCollection(mainclName, (BSONObject) JSON.parse(mainclOptions));
@@ -176,8 +176,8 @@ public class CrudDeleteSubclTest10483 extends SdbTestBase{
 			maincl.attachCollection(SdbTestBase.csName+"."+subclNames[0], (BSONObject) JSON.parse("{ LowBound:{a:0},UpBound:{a:100} }"));
 			maincl.attachCollection(SdbTestBase.csName+"."+subclNames[1], (BSONObject) JSON.parse("{ LowBound:{a:100},UpBound:{a:200} }"));
 			maincl.attachCollection(SdbTestBase.csName+"."+subclNames[2], (BSONObject) JSON.parse("{ LowBound:{a:200},UpBound:{a:300} }"));
-			subcls[1].split(replicaGroupNames.get(1), replicaGroupNames.get(2), (BSONObject)JSON.parse("{a:150}"), (BSONObject)JSON.parse("{a:200}"));
-			subcls[2].split(replicaGroupNames.get(2), replicaGroupNames.get(1), (BSONObject)JSON.parse("{a:250}"), (BSONObject)JSON.parse("{a:300}"));
+			subcls[1].split(replicaGroupNames.get(1), replicaGroupNames.get(0), (BSONObject)JSON.parse("{a:150}"), (BSONObject)JSON.parse("{a:200}"));
+			subcls[2].split(replicaGroupNames.get(0), replicaGroupNames.get(1), (BSONObject)JSON.parse("{a:250}"), (BSONObject)JSON.parse("{a:300}"));
 		} catch (BaseException e) {
 			e.printStackTrace();
 			Assert.assertTrue(false,"create collections faild: "+e.getMessage());
@@ -228,7 +228,7 @@ public class CrudDeleteSubclTest10483 extends SdbTestBase{
 						flag = false;
 					}
 					String subcl_A150  = (String)((BSONObject)((BasicBSONList)objArr[2].get("SubCollections")).get(0)).get("Name");
-					if ( !(replicaGroupNames.get(2).equals(objArr[2].get("GroupName")) && 
+					if ( !(replicaGroupNames.get(0).equals(objArr[2].get("GroupName")) && 
 							(SdbTestBase.csName+"."+subclNames[1]).equals(subcl_A150)) ) {
 						flag = false;
 					}

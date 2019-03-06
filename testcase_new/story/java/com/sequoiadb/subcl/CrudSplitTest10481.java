@@ -255,7 +255,7 @@ public class CrudSplitTest10481 extends SdbTestBase {
 					}
 					String subcl_A150 = (String) ((BSONObject) ((BasicBSONList) objArr[2]
 							.get("SubCollections")).get(0)).get("Name");
-					if (!(replicaGroupNames.get(2).equals(
+					if (!(replicaGroupNames.get(0).equals(
 							objArr[2].get("GroupName")) && (SdbTestBase.csName
 							+ "." + subclNames[1]).equals(subcl_A150))) {
 						System.out.println("c");
@@ -282,7 +282,7 @@ public class CrudSplitTest10481 extends SdbTestBase {
 		public void exec() throws Exception {
 			DBCollection subcls_1 = sdb_other.getCollectionSpace(
 					SdbTestBase.csName).getCollection(subclNames[1]);
-			subcls_1.split(replicaGroupNames.get(1), replicaGroupNames.get(2),
+			subcls_1.split(replicaGroupNames.get(1), replicaGroupNames.get(0),
 					(BSONObject) JSON.parse(" {a:150} "),
 					(BSONObject) JSON.parse(" {a:200} "));
 		}

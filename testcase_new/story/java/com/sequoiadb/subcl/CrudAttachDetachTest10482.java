@@ -188,7 +188,7 @@ public class CrudAttachDetachTest10482 extends SdbTestBase {
 				initData.add((BSONObject)JSON.parse(" {name:'name_"+i+"', a:"+a+"} "));
 			}
 			maincl.bulkInsert(initData, 0);
-			subcls[1].split(replicaGroupNames.get(1), replicaGroupNames.get(2), 50);
+			subcls[1].split(replicaGroupNames.get(1), replicaGroupNames.get(0), 50);
 		} catch (BaseException e) {
 			e.printStackTrace();
 			Assert.assertTrue(false,"init data faild: "+e.getMessage());
@@ -218,7 +218,7 @@ public class CrudAttachDetachTest10482 extends SdbTestBase {
 					flag = false;
 				}
 				String subcl_A150  = (String)((BSONObject)((BasicBSONList)objArr[2].get("SubCollections")).get(0)).get("Name");
-				if ( !(replicaGroupNames.get(2).equals(objArr[2].get("GroupName")) && 
+				if ( !(replicaGroupNames.get(0).equals(objArr[2].get("GroupName")) && 
 						(SdbTestBase.csName+"."+subclNames[1]).equals(subcl_A150)) ) {
 					flag = false;
 				}
