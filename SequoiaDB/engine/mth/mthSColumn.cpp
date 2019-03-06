@@ -43,8 +43,8 @@ using namespace bson ;
 
 namespace engine
 {
-#define MTH_S_IS_LAST_ACTION( i )\
-        ( _getSubColumns().empty() && (_actions.size() - 1 == i) )
+   #define MTH_S_IS_LAST_ACTION( i )\
+         ( _getSubColumns().empty() && (_actions.size() - 1 == i) )
 
    _mthSColumn::_mthSColumn()
    :_father( NULL ),
@@ -68,7 +68,7 @@ namespace engine
       UINT32 len = ossStrlen( name ) + 1 ; /// +1 for '\0'
       if ( len < MTH_SCOLUMN_STATIC_NAME_BUF_LEN )
       {
-         ossMemcpy( _staticName, name, len ) ;
+         ossStrcpy( _staticName, name ) ;
       }
       else
       {
@@ -80,7 +80,7 @@ namespace engine
             goto error ;
          }
 
-         ossMemcpy( _dynamicName, name, len ) ;
+         ossStrcpy( _dynamicName, name ) ;
          _name = _dynamicName ;
       }
    done:
@@ -116,11 +116,12 @@ namespace engine
          PD_LOG( PDERROR, "failed to add action:%d", rc ) ;
          goto error ;
       }
+
    done:
       PD_TRACE_EXITRC( SDB__MTHSCOLUMN_ADDACTION, rc ) ;
       return rc ;
    error:
-      goto done ;   
+      goto done ;
    }
 
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSCOLUMN_CLEAR, "_mthSColumn::clear" )
@@ -163,7 +164,8 @@ namespace engine
       {
          PD_LOG( PDERROR, "failed to build column:%d", rc ) ;
          goto error ;
-      }            
+      }
+
    done:
       PD_TRACE_EXITRC( SDB__MTHSCOLUMN_BUILD, rc ) ;
       return rc ;
@@ -351,6 +353,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHSCOLUMN__BUILDOBJFROMCHILDREN ) ;
       UINT32 found = 0 ;
+      _utilString strName ;
+      const CHAR *pFieldName = NULL ;
       MTH_S_COLUMNS array ;
       UINT32 number = 0 ;
       BOOLEAN addOtherChild = ( _actions.size() > 0 ) ? TRUE : FALSE ;
@@ -368,7 +372,29 @@ namespace engine
       {
          BSONElement e = i.next() ;
          mthSColumn *column = NULL ;
-         if ( _findColumn( e.fieldName(),
+
+         /// In findColumn, because used function compareDottedFieldNames,
+         /// the fieldName will be [x] = '\0' then restored,
+         /// when the obj is mmap, will occur much dirty pages.
+         /// So, when the obj is not owned, copy the field name to avoid
+         /// occur dirty pages. Jira:4246
+         if ( obj.isOwned() )
+         {
+            pFieldName = e.fieldName() ;
+         }
+         else
+         {
+            rc = strName.append( e.fieldName() ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Append field name to string failed, rc: %d",
+                       rc ) ;
+               goto error ;
+            }
+            pFieldName = strName.str() ;
+         }
+
+         if ( _findColumn( pFieldName,
                            _subColumns,
                            column,
                            &number ) )
@@ -405,6 +431,7 @@ namespace engine
             goto error ;
          }
       }
+
    done:
       PD_TRACE_EXITRC( SDB__MTHSCOLUMN__BUILDOBJFROMCHILDREN, rc ) ;
       return rc ;
@@ -535,5 +562,7 @@ namespace engine
    error:
       goto done ;
    }
+
+
 }
 
