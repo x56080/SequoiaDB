@@ -49,6 +49,12 @@ namespace engine
       ~_utilString() ;
 
    public:
+      void  clear()
+      {
+         _buf[0] = '\0' ;
+         _len = 0 ;
+      }
+
       INT32 append( const CHAR *str, UINT32 len ) ;
 
       INT32 append( CHAR c ) ;
