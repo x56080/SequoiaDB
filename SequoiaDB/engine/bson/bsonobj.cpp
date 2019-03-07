@@ -1607,7 +1607,10 @@ namespace bson {
     }
 
     int BSONElementFieldSorter( const void * a , const void * b ) {
-        return strcmp( (const char*)a, (const char*)b ) ;
+        const char * x = *((const char**)a);
+        const char * y = *((const char**)b);
+        x++; y++;
+        return strcmp( x , y ) ;
     }
 
     BSONObjIteratorSorted::BSONObjIteratorSorted( const BSONObj& o ) {
@@ -1623,7 +1626,7 @@ namespace bson {
         int x = 0;
         BSONObjIterator i( o );
         while ( i.more() ) {
-            _fields[x++] = i.next().fieldName() ;
+            _fields[x++] = i.next().rawdata() ;
             assert( _fields[x-1] );
         }
         assert( x == _nfields );
