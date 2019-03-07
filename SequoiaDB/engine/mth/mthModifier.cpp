@@ -2094,10 +2094,28 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      /// when not replace _id, keep the _id
-      else if ( _isReplace && !_isReplaceID )
+      else if ( _isReplace )
       {
-         _keepKeys.insert( DMS_ID_KEY_NAME ) ;
+         MODIFIER_VEC::iterator iter ;
+         if ( !_isReplaceID )
+         {
+            /// when not replace _id, keep the _id
+            _keepKeys.insert( DMS_ID_KEY_NAME ) ;
+         }
+
+         iter = _modifierElements.begin() ;
+         while ( iter != _modifierElements.end() )
+         {
+            BSONElement e = iter->_toModify ;
+            if ( _keepKeys.count( e.fieldName() ) > 0 )
+            {
+               iter = _modifierElements.erase( iter ) ;
+            }
+            else
+            {
+               iter++ ;
+            }
+         }
       }
 
       modifierSort() ;
@@ -2512,19 +2530,6 @@ namespace engine
                                             BSONObjIteratorSorted &es )
    {
       {
-         BSONObjBuilder redoRBuilder ;
-         UINT32 i = 0 ;
-         while ( i < _modifierElements.size() )
-         {
-            redoRBuilder.append( _modifierElements[i]._toModify ) ;
-            b.append( _modifierElements[i]._toModify ) ;
-            ++i ;
-         }
-
-         ADD_CHG_OBJECT( _dstChgBuilder, redoRBuilder.obj(), "$replace" ) ;
-      }
-
-      {
          BSONObjBuilder undoRBuilder ;
          while ( es.more() )
          {
@@ -2541,16 +2546,32 @@ namespace engine
       }
 
       {
-         BSONObjBuilder redoKBuilder ;
-         set<string>::iterator it = _keepKeys.begin() ;
-         while ( it != _keepKeys.end() )
+         BSONObjBuilder redoRBuilder ;
+         UINT32 i = 0 ;
+         while ( i < _modifierElements.size() )
          {
-            // make sure $keep is after $replace
-            redoKBuilder.append( *it, 1 ) ;
-            ++it ;
+            redoRBuilder.append( _modifierElements[i]._toModify ) ;
+            b.append( _modifierElements[i]._toModify ) ;
+            ++i ;
          }
 
-         ADD_CHG_OBJECT( _dstChgBuilder, redoKBuilder.obj(), "$keep" ) ;
+         ADD_CHG_OBJECT( _dstChgBuilder, redoRBuilder.obj(), "$replace" ) ;
+      }
+
+      {
+         if ( _keepKeys.size() > 0 )
+         {
+            BSONObjBuilder redoKBuilder ;
+            set<string>::iterator it = _keepKeys.begin() ;
+            while ( it != _keepKeys.end() )
+            {
+               // make sure $keep is after $replace
+               redoKBuilder.append( *it, 1 ) ;
+               ++it ;
+            }
+
+            ADD_CHG_OBJECT( _dstChgBuilder, redoKBuilder.obj(), "$keep" ) ;
+         }
       }
 
       return SDB_OK  ;

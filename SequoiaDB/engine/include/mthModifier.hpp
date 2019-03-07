@@ -176,13 +176,15 @@ namespace engine
    */
    class _mthModifier : public SDBObject
    {
+   typedef vector<ModifierElement> MODIFIER_VEC ;
+
    private :
       BSONObjBuilder *_srcChgBuilder ;
       BSONObjBuilder *_dstChgBuilder ;
 
       BSONObj _modifierPattern ;
       BOOLEAN _initialized ;
-      vector<ModifierElement> _modifierElements ;
+      MODIFIER_VEC _modifierElements ;
       UINT32  _modifierBits ;
 
       // add for replace begin
