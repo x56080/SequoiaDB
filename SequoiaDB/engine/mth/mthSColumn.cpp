@@ -37,7 +37,6 @@
 #include "mthTrace.hpp"
 #include "pdTrace.hpp"
 #include "mthDef.hpp"
-#include "utilString.hpp"
 
 using namespace bson ;
 
@@ -354,8 +353,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHSCOLUMN__BUILDOBJFROMCHILDREN ) ;
       UINT32 found = 0 ;
-      _utilString<128> strName ;
-      const CHAR *pFieldName = NULL ;
       MTH_S_COLUMNS array ;
       UINT32 number = 0 ;
       BOOLEAN addOtherChild = ( _actions.size() > 0 ) ? TRUE : FALSE ;
@@ -368,60 +365,42 @@ namespace engine
       }
 
       {
-      BSONObjIterator i( obj ) ;
-      while ( i.more() )
-      {
-         BSONElement e = i.next() ;
-         mthSColumn *column = NULL ;
+         BSONObjIterator i( obj ) ;
+         while ( i.more() )
+         {
+            BSONElement e = i.next() ;
+            mthSColumn *column = NULL ;
 
-         strName.clear() ;
-         /// In findColumn, because used function compareDottedFieldNames,
-         /// the fieldName will be [x] = '\0' then restored,
-         /// when the obj is mmap, will occur much dirty pages.
-         /// So, when the obj is not owned, copy the field name to avoid
-         /// occur dirty pages. Jira:4246
-         if ( obj.isOwned() )
-         {
-            pFieldName = e.fieldName() ;
-         }
-         else
-         {
-            rc = strName.append( e.fieldName() ) ;
-            if ( rc )
+            if ( _findColumn( e.fieldName(),
+                              _subColumns,
+                              column,
+                              &number ) )
             {
-               PD_LOG( PDERROR, "Append field name to string failed, rc: %d",
-                       rc ) ;
-               goto error ;
+               rc = column->build( e, builder ) ;
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG( PDERROR, "failed to build column from obj:%d", rc ) ;
+                  goto error ;
+               }
+               ++found ;
+               array[number] = NULL ;
             }
-            pFieldName = strName.str() ;
-         }
-
-         if ( _findColumn( pFieldName,
-                           _subColumns,
-                           column,
-                           &number ) )
-         {
-            rc = column->build( e, builder ) ;
-            if ( SDB_OK != rc )
+            else if ( !_attribute.isInclude() )
             {
-               PD_LOG( PDERROR, "failed to build column from obj:%d", rc ) ;
-               goto error ;
+               builder.append( e ) ;
             }
-            ++found ;
-            array[number] = NULL ;
+            else if ( addOtherChild )
+            {
+               // If the field has action, we should also show its other children
+               // eg: selector is {a:null,'a.b':{$add:10}}, record is {a:{b:1,c:1}
+               //     result is {a:{b:11,c:1}, instead of {a:{b:11}
+               builder.append( e ) ;
+            }
+            else if ( found >= array.size() )
+            {
+               break ;
+            }
          }
-         else if ( !_attribute.isInclude() )
-         {
-            builder.append( e ) ;
-         }
-         else if ( addOtherChild )
-         {
-            // If the field has action, we should also show its other children
-            // eg: selector is {a:null,'a.b':{$add:10}}, record is {a:{b:1,c:1}
-            //     result is {a:{b:11,c:1}, instead of {a:{b:11}
-            builder.append( e ) ;
-         }
-      }
       }
 
       if ( found < array.size() )
