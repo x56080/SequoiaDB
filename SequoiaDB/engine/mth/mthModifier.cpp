@@ -1803,8 +1803,8 @@ namespace engine
       BOOLEAN n1 = FALSE ;
       BOOLEAN n2 = FALSE ;
 
-      CHAR   *e1 = NULL ;
-      CHAR   *e2 = NULL ;
+      const CHAR   *e1 = NULL ;
+      const CHAR   *e2 = NULL ;
 
       INT32   len1   = 0 ;
       INT32   len2   = 0 ;
@@ -1877,18 +1877,22 @@ namespace engine
 
          if ( n1 && n2 )
          {
+            INT32 zerolen1 = 0 ;
+            INT32 zerolen2 = 0 ;
             // get rid of leading 0s
             while ( *s1 == '0' )
             {
                ++s1 ;
+               ++zerolen1 ;
             }
             while ( *s2 == '0' )
             {
                ++s2 ;
+               ++zerolen2 ;
             }
 
-            e1 = (CHAR *)s1 ;
-            e2 = (CHAR *)s2 ;
+            e1 = s1 ;
+            e2 = s2 ;
             // find length
             // if end of string, will break immediately ('\0')
             while ( _isNumber ( *e1 ) )
@@ -1916,6 +1920,10 @@ namespace engine
             else if ( ( result = ossStrncmp ( s1, s2, len1 ) ) != 0 )
             {
                return result ;
+            }
+            else if ( zerolen1 != zerolen2 )
+            {
+               return zerolen1 < zerolen2 ? 1 : -1 ;
             }
             // otherwise, the numbers are equal
             s1 = e1 ;
