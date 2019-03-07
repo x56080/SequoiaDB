@@ -762,59 +762,40 @@ namespace bson {
     {
         static int maxLoops = 1024 * 1024;
 
-        size_t lstart = 0;
-        size_t rstart = 0;
+        const char *lstart = l ;
+        const char *rstart = r ;
 
-        size_t lsize = strlen ( l ) ;
-        size_t rsize = strlen ( r ) ;
-        for ( int i=0; i<maxLoops; i++ ) {
-            if ( lstart >= lsize ) {
-                if ( rstart >= rsize )
+        for ( int i = 0 ; i < maxLoops ; i++ ) {
+
+            if ( '\0' == *lstart ) {
+                if ( *rstart == '\0' )
                     return SAME;
                 return RIGHT_SUBFIELD;
             }
-            if ( rstart >= rsize )
+            if ( *rstart == '\0' )
                 return LEFT_SUBFIELD;
 
             // find the earliest '.' from current position
-            char *a = (char*)strchr ( &l[lstart], '.' ) ;
-            char *b = (char*)strchr ( &r[rstart], '.' ) ;
-            // locate the ., or end of the string
-            char *lend = ( NULL == a ) ? ( (char*)&l[lsize] ) : a ;
-            char *rend = ( NULL == b ) ? ( (char*)&r[rsize] ) : b ;
+            const char *lnext = strchr ( lstart, '.' ) ;
+            const char *rnext = strchr ( rstart, '.' ) ;
 
-            // get the original left and right
-            char lold = '\0' ;
-            char rold = '\0' ;
-            // set as end of string
-            if ( *lend != '\0' )
-            {
-               lold = *lend ;
-               *lend = '\0' ;
-            }
-            if ( *rend != '\0' )
-            {
-               rold = *rend ;
-               *rend = '\0' ;
-            }
+            int llen = lnext ? ( lnext - lstart ) : strlen( lstart ) ;
+            int rlen = rnext ? ( rnext - rstart ) : strlen( rstart ) ;
+
             // do string compare
-            int x = lexNumCmp ( &l[lstart], &r[rstart] ) ;
-            // restore old value
-            if ( lold != '\0' )
-            {
-               *lend = lold ;
-            }
-            if ( rold != '\0' )
-            {
-               *rend = rold ;
-            }
+            int x = strncmp( lstart, rstart,
+                             llen > rlen ? rlen : llen ) ;
             if ( x < 0 )
-                return LEFT_BEFORE;
-            if ( x > 0 )
-                return RIGHT_BEFORE;
+                return LEFT_BEFORE ;
+            else if ( x > 0 )
+                return RIGHT_BEFORE ;
+            else if ( llen < rlen )
+                return LEFT_BEFORE ;
+            else if ( rlen < llen )
+                return RIGHT_BEFORE ;
 
-            lstart = size_t(lend - l) + 1;
-            rstart = size_t(rend - r) + 1;
+            lstart = lnext ? ( lnext + 1 ) : "" ;
+            rstart = rnext ? ( rnext + 1 ) : "" ;
         }
 
         log() << "compareDottedFieldNames ERROR  l: " << l << " r: " << r
@@ -1627,7 +1608,7 @@ namespace bson {
         const char * x = *((const char**)a);
         const char * y = *((const char**)b);
         x++; y++;
-        return lexNumCmp( x , y );
+        return strcmp( x , y ) ;
     }
 
     BSONObjIteratorSorted::BSONObjIteratorSorted( const BSONObj& o ) {
