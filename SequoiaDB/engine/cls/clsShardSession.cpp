@@ -932,6 +932,15 @@ namespace engine
                   sessionName(), rc ) ;
          goto error ;
       }
+
+      if ( (flags & FLG_INSERT_CONTONDUP) && (flags & FLG_INSERT_REPLACEONDUP) )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR,"Conflict insert flag(CONTONDUP and REPLACEONDUP):"
+                 "flag=%d,rc=%d", flags, rc ) ;
+         goto error ;
+      }
+
       _pCollectionName = pCollectionName ;
 
       rc = _checkCLStatusAndGetSth( pCollectionName,

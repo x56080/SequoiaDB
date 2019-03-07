@@ -253,6 +253,15 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extrace insert msg failed, rc: %d",
                    getSession()->sessionName(), rc ) ;
 
+      if ( (flag & FLG_INSERT_CONTONDUP) && (flag & FLG_INSERT_REPLACEONDUP) )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR,"Conflict insert flag(CONTONDUP and REPLACEONDUP):"
+                 "flag=%d,rc=%d", flag, rc ) ;
+         goto error ;
+      }
+
+
       try
       {
          INT32   insertedNum = 0 ;
