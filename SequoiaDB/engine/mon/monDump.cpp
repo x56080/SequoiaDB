@@ -1184,7 +1184,6 @@ namespace engine
             {
                CHAR tmp[ MON_TMP_STR_SZ + 1 ] = { 0 } ;
                /// add space name
-               ob.append ( FIELD_NAME_NAME, collection._name ) ;
                const CHAR *pDot = ossStrchr( collection._name, '.' ) ;
                if ( pDot )
                {

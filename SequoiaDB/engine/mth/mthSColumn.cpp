@@ -119,7 +119,7 @@ namespace engine
       PD_TRACE_EXITRC( SDB__MTHSCOLUMN_ADDACTION, rc ) ;
       return rc ;
    error:
-      goto done ;   
+      goto done ;
    }
 
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSCOLUMN_CLEAR, "_mthSColumn::clear" )
@@ -162,7 +162,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "failed to build column:%d", rc ) ;
          goto error ;
-      }            
+      }
    done:
       PD_TRACE_EXITRC( SDB__MTHSCOLUMN_BUILD, rc ) ;
       return rc ;
@@ -379,8 +379,11 @@ namespace engine
                   PD_LOG( PDERROR, "failed to build column from obj:%d", rc ) ;
                   goto error ;
                }
-               ++found ;
-               array[number] = NULL ;
+               if ( array[number] )
+               {
+                  ++found ;
+                  array[number] = NULL ;
+               }
             }
             else if ( !_attribute.isInclude() )
             {
