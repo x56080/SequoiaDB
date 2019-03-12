@@ -382,8 +382,11 @@ namespace engine
                   PD_LOG( PDERROR, "failed to build column from obj:%d", rc ) ;
                   goto error ;
                }
-               ++found ;
-               array[number] = NULL ;
+               if ( array[number] )
+               {
+                  ++found ;
+                  array[number] = NULL ;
+               }
             }
             else if ( !_attribute.isInclude() )
             {
