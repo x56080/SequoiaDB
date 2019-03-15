@@ -300,7 +300,8 @@ namespace engine
    INT32 rtnCoordGetRemoteCata( pmdEDUCB *cb,
                                 const CHAR *pCollectionName,
                                 CoordCataInfoPtr &cataInfo,
-                                BOOLEAN withSubCL = FALSE ) ;
+                                BOOLEAN withSubCL = FALSE,
+                                INT32 oldVersion = -1 ) ;
 
    /*
       will update collection stat by reply flag

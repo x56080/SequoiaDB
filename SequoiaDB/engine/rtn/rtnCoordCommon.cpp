@@ -1201,7 +1201,7 @@ namespace engine
    INT32 rtnCoordGetRemoteCata( pmdEDUCB *cb,
                                 const CHAR *pCollectionName,
                                 CoordCataInfoPtr &cataInfo,
-                                BOOLEAN withSubCL )
+                                BOOLEAN withSubCL, INT32 oldVersion )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOGETREMOTECATA ) ;
@@ -1212,6 +1212,11 @@ namespace engine
       MsgRouteID nodeID ;
       UINT32 primaryID = 0 ;
       UINT32 times = 0 ;
+
+      if ( NULL != cataInfo.get() && cataInfo->getVersion() > 0 )
+      {
+         oldVersion = cataInfo->getVersion() ;
+      }
 
       rc = rtnCoordGetCatGroupInfo( cb, FALSE, cataGroupInfo, NULL ) ;
       if ( rc != SDB_OK )
@@ -1347,7 +1352,8 @@ namespace engine
       // Only recursively querying when mainCL contains subCLs
       if ( SDB_OK == rc && !withSubCL &&
            cataInfo.get() && cataInfo->isMainCL() &&
-           cataInfo->getSubCLCount() > 0 )
+           cataInfo->getSubCLCount() > 0
+           && cataInfo->getVersion() != oldVersion )
       {
          CoordCataInfoPtr updatedCataInfo ;
          const CHAR *pCLName = cataInfo->getName() ;
@@ -4025,7 +4031,8 @@ namespace engine
             CoordCataInfoPtr newCataInfo ;
             const CHAR *collectionName = cataInfo->getName() ;
             INT32 rc = rtnCoordGetRemoteCata( cb, collectionName,
-                                              newCataInfo ) ;
+                                              newCataInfo, FALSE,
+                                              cataInfo->getVersion() ) ;
             if ( SDB_OK == rc )
             {
                cataInfo = newCataInfo ;
