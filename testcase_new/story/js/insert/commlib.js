@@ -210,3 +210,22 @@ function getTwoGroupSplit( db, csName, clName, splitArg1, splitArg2 )
    }
 }
 
+function readyCL( clName )
+{
+   println("\n---Begin to create CL.");
+	 
+   commDropCL( db, COMMCSNAME, clName, true, true,
+               "Failed to drop CL in the pre-condition." );
+   
+   var cl = commCreateCL( db, COMMCSNAME, clName, -1, true, true, false,
+                          "Failed to create CL." );                      
+   return cl;
+}
+
+function cleanCL( clName )
+{
+   println("\n---Begin to drop CL.");
+	
+   commDropCL( db, COMMCSNAME, clName, false, false,
+               "Failed to drop CL in the end-condition" );
+}
