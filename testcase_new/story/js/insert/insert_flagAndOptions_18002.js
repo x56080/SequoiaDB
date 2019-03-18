@@ -7,6 +7,12 @@ main();
 
 function main()
 {  
+   if( commIsStandalone( db ) )
+   {
+   	println(" Deploy mode is standalone!");
+		return;
+   }
+   
 	println("\n---Begin to run test");
    var mainCLName = "insertFlag_mcl18002" ;
    var subCLName  = "insertFlag_scl18002" ;
