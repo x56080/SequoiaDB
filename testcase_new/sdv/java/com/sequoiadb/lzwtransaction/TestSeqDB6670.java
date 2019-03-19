@@ -89,7 +89,7 @@ public class TestSeqDB6670 extends SdbTestBase {
             //对cl做增删改查操作,将日志写满
             try {
                 this.cl.delete("{_id:{$et:114}}");
-                for (int i = 1; i <= 40000; i++) {
+                for (int i = 1; i <= 100000; i++) {
                     util.insertData(this.cl, 115, 116, 1024);
                     this.cl.delete("{_id:{$et:115}}");
                 }
