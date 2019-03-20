@@ -113,7 +113,7 @@ namespace engine
       SDB_ASSERT( firstTransLsn != DPS_INVALID_LSN_OFFSET,
                   "First transaction lsn can't be invalid" ) ;
 
-      PD_LOG( PDEVENT, "Execute commit(transID=%llu, lastLsn=%llu)",
+      PD_LOG( PDINFO, "Execute commit(transID=%llu, lastLsn=%llu)",
               curTransID, preTransLsn ) ;
 
       rc = dpsTransCommit2Record( curTransID, preTransLsn, firstTransLsn,
