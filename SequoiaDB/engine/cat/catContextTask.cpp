@@ -300,13 +300,6 @@ namespace engine
 
       if ( -1 != _version )
       {
-         if ( _version != curVersion )
-         {
-            PD_LOG( PDWARNING,
-                    "Need update Coord version of [%s] "
-                    "( curVer: %d, coordVer: %d )",
-                  _dataName.c_str(), curVersion, _version ) ;
-         }
          // Always update Coord
          _needUpdateCoord = TRUE ;
       }
