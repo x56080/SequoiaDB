@@ -37,7 +37,7 @@ public class SubCL101 extends SdbTestBase {
 	private int recordsNum = 10000;
 
 	@BeforeClass
-	public void setUp() {
+	private void setUp() {
 		sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 		
 		if( MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.OneGroupMode(sdb) ) {
@@ -72,7 +72,7 @@ public class SubCL101 extends SdbTestBase {
 	}
 
 	@Test
-	public void test() {
+	private void test() {
 		this.insertData(mCL, recordsNum);
 		// check results
 		Sequoiadb srcRgDB = null;
@@ -100,7 +100,7 @@ public class SubCL101 extends SdbTestBase {
 	}
 
 	@AfterClass
-	public void tearDown() {
+	private void tearDown() {
 		try {
 			sdb.dropCollectionSpace(csName);
 			sdb.dropDomain(domainName);
@@ -111,7 +111,7 @@ public class SubCL101 extends SdbTestBase {
 		}
 	}
 
-	public void insertData(DBCollection cl, int recordsNum) {
+	private void insertData(DBCollection cl, int recordsNum) {
 		ArrayList<BSONObject> insertor = new ArrayList<BSONObject>();
 		for (int i = 0; i < recordsNum; i++) {
 			BSONObject record = new BasicBSONObject();
