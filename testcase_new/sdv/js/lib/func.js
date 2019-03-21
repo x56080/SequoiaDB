@@ -19,6 +19,7 @@ if ( typeof(RSRVPORTBEGIN) == "undefined" ) 	{ RSRVPORTBEGIN = '26000'; }
 if ( typeof(RSRVPORTEND)   == "undefined" ) 	{ RSRVPORTEND   = '27000'; }
 if ( typeof(SPAREPORTPATH)   == "undefined" ) 	{ SPAREPORTPATH = "/opt/sequoiadb/database/"; }
 if ( typeof(WORKDIR)   == "undefined" ) 	{ WORKDIR   = "/tmp/jstest"; }
+if ( typeof(RSRVNODEDIR)   == "undefined" ) { RSRVNODEDIR   = "/opt/sequoiadb/database/"; }
 
 var COMMCSNAME = CHANGEDPREFIX + "_cs" ;
 var COMMCLNAME = CHANGEDPREFIX + "_cl" ;
