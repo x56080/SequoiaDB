@@ -86,8 +86,8 @@ public class SubCL101 extends SdbTestBase {
 			trgRgDB = sdb.getReplicaGroup(trgRg).getMaster().connect();
 			trgRecCnt = trgRgDB.getCollectionSpace(csName).getCollection(sCLName).getCount();
 		} finally {
-			if (srcRgDB != null) srcRgDB.close();
-			if (trgRgDB != null) trgRgDB.close();
+			if (srcRgDB != null) srcRgDB.disconnect();
+			if (trgRgDB != null) trgRgDB.disconnect();
 		}	
 		
 		Assert.assertEquals(srcRecCnt + trgRecCnt, recordsNum);
@@ -106,7 +106,7 @@ public class SubCL101 extends SdbTestBase {
 			sdb.dropDomain(domainName);
 		} finally {
 			if (sdb != null) {
-				sdb.close();
+				sdb.disconnect();
 			}
 		}
 	}
@@ -118,6 +118,6 @@ public class SubCL101 extends SdbTestBase {
 			record.put("a", i);
 			insertor.add(record);
 		}
-		cl.insert(insertor);
+		cl.bulkInsert(insertor, 0);
 	}
 }
