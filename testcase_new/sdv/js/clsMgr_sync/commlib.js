@@ -47,6 +47,7 @@ function cleanCL( clName )
 function createDataGroups( hostName , groupNum, tmpGroupName, nodeNum )
 {
    if( nodeNum === "undefined" ){ nodeNum = 1; }
+   if( hostName === "localhost" || hostName === "127.0.0.1" ){ hostName = getHostName(); }
    var dataGroupNames = [];
    var tmpNum = 0;
    for(var i = 0; i < groupNum; i++)
@@ -65,6 +66,18 @@ function createDataGroups( hostName , groupNum, tmpGroupName, nodeNum )
    return dataGroupNames;
 }
 
+/* ****************************************************
+@Description: get node's hostname
+@Return: random hostname
+@Author: XiaoNi Huang
+**************************************************** */
+function getHostName()
+{
+   var rg = db.getCoordRG();
+   var node = rg.getSlave();
+   var hostname = node.getHostName();
+   return hostname;
+}
 
 /* ****************************************************
 @Description: remove data groups
