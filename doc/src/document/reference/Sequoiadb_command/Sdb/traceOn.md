@@ -1,18 +1,19 @@
 ##语法##
+
 ***db.traceOn( \<bufferSize\>, [strComp], [strBreakPoint] )***
 
 ##类别##
 
 Sdb
 
-##功能##
+##描述##
 
 开启数据库引擎跟踪功能。
 
-##参数描述##
+##参数##
 
 | 参数名 		| 参数类型 	| 描述 									| 是否必填 	|
-| ------ 		| ------ 	| ------ 								| ------ 	|
+| ------------- | --------- | ------------------------------------- | ----------|
 | bufferSize 	| int 		| 开启追踪的文件大小，单位：字节 		| 是 		|
 | strComp 		| string 	| 指定模块，默认为所有模块 				| 否 		|
 | strBreakPoint | string 	| 于函数处打断点进行跟踪。 				| 否 		|
@@ -31,13 +32,13 @@ Sdb
 * 开启数据库引擎程序跟踪的功能
 
 	```lang-javascript
-	> db.traceOn(10000000)
+	> db.traceOn(1000)
 	```
 
 * 开户数据库引擎程序跟踪功能，指定跟踪的模块名称和指定断点进行跟踪
 
 	```lang-javascript
-	> db.traceOn(10000000, "cls, dms, mth", "_dmsTempCB::init")
+	> db.traceOn(1000, "cls, dms, mth", "_dmsTempCB::init")
 	```
 
 * 当被跟踪的模块遇到断点被阻塞，如果想唤醒被跟踪的模块，具体可参考[traceResume()](reference/Sequoiadb_command/Sdb/traceResume.md)
