@@ -62,6 +62,11 @@ do                                     \
 
 /** The flags represent whether bulk insert continue when hitting index key duplicate error */
 #define FLG_INSERT_CONTONDUP  0x00000001
+/** The flag represent whether insert return the "_id" field of the record for user */
+#define FLG_INSERT_RETURN_OID     0x00000002
+/** The flag represent replacing the existing record by the new record and continuing when insert hitting index key duplicate error */
+#define FLG_INSERT_REPLACEONDUP   0x00000004
+
 
 // client socket timeout value
 // since client and server may not sit in the same network, we need
@@ -657,11 +662,26 @@ namespace sdbclient
                          std::vector<bson::BSONObj> &obj
                        )
     \brief Insert a bulk of bson objects into current collection
-    \param [in] flags FLG_INSERT_CONTONDUP or 0. While FLG_INSERT_CONTONDUP
-                is set, if some records hit index key duplicate error,
-                database will skip them and go on inserting. However, while 0
-                is set, database will stop inserting in that case, and return
-                errno code.
+    \param [in] flags The flag to control the behavior of inserting. The
+                      value of flag default to be 0, and it can choose
+                      the follow values:
+         <ul>
+         <li>
+         0:                    while 0 is set(default to be 0), database 
+                               will stop inserting when some records hit 
+                               index key duplicate error.
+         <li>
+         FLG_INSERT_CONTONDUP: 
+                               if some records hit index key duplicate
+                               error, database will skip them and go on 
+                               inserting.
+         <li>
+         FLG_INSERT_REPLACEONDUP:
+                               if the record hit index key duplicate 
+                               error, database will replace the existing 
+                               record by the inserting new record and then 
+                               go on inserting.
+
     \param [in] obj The array of inserted bson objects
     \retval SDB_OK Operation Success
     \retval Others Operation Fail

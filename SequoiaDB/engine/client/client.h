@@ -39,7 +39,9 @@ SDB_EXTERN_C_START
 
 /** The flags represent whether bulk insert continue when hitting index key duplicate error */
 #define FLG_INSERT_CONTONDUP    0x00000001
+/** The flag represent whether insert return the "_id" field of the record for user */
 #define FLG_INSERT_RETURN_OID  0x00000002
+/** The flag represent replacing the existing record by the new record and continuing when insert hitting index key duplicate error */
 #define FLG_INSERT_REPLACEONDUP 0x00000004
 
 enum _SDB_LOB_OPEN_MODE
@@ -1425,11 +1427,26 @@ SDB_EXPORT INT32 sdbInsert2 ( sdbCollectionHandle cHandle,
                               SINT32 flags, bson **obj, SINT32 num )
     \brief Insert a bulk of bson objects into current collection
     \param [in] cHandle The collection handle
-    \param [in] flags FLG_INSERT_CONTONDUP or 0. While FLG_INSERT_CONTONDUP
-                is set, if some records hit index key duplicate error,
-                database will skip them and go on inserting. However, while 0
-                is set, database will stop inserting in that case, and return
-                errno code.
+    \param [in] flags The flag to control the behavior of inserting. The
+                      value of flags default to be 0, and it can choose
+                      the follow values:
+         <ul>
+         <li>
+         0:                    while 0 is set(default to be 0), database 
+                               will stop inserting when the record hit 
+                               index key duplicate error.
+         <li>
+         FLG_INSERT_CONTONDUP: 
+                               if the record hit index key duplicate
+                               error, database will skip them and go on 
+                               inserting.
+         <li>
+         FLG_INSERT_REPLACEONDUP:
+                               if the record hit index key duplicate 
+                               error, database will replace the existing 
+                               record by the inserting new record and then 
+                               go on inserting.
+
     \param [in] obj The array of inserted bson objects, cannot be null
     \param [in] num The number of inserted bson objects
     \retval SDB_OK Operation Success
