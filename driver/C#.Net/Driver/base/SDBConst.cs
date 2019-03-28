@@ -19,9 +19,14 @@ namespace SequoiaDB
 	public class SDBConst
 	{
         /** \memberof FLG_INSERT_CONTONDUP 0x00000001
-         *   \brief The flags represent whether bulk insert continue when hitting index key duplicate error
+         *  \brief The flags represent whether bulk insert continue when hitting index key duplicate error
          */
         public const int FLG_INSERT_CONTONDUP = 0x00000001;
+
+        /** \memberof FLG_INSERT_REPLACEONDUP 0x00000004
+         *  \brief The flag represent whether insert becomes update when hitting index key duplicate error.
+         */
+        public const int FLG_INSERT_REPLACEONDUP = 0x00000004;
 
         public const int SDB_PAGESIZE_4K = 4096;
         public const int SDB_PAGESIZE_8K = 8192;
