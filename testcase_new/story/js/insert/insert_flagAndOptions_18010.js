@@ -7,25 +7,25 @@ main();
 
 function main()
 {  
-	println("\n---Begin to run test");
-	var clName = "insertFlag_18010";
-	var idxName = "idx";	
+   println("\n---Begin to run test");
+   var clName = "insertFlag_18010";
+   var idxName = "idx";   
    var cl = readyCL( clName );
    cl.insert( {_id:1} );
    
    // test
    // SDB_INSERT_CONTONDUP
-	println("\n---Begin to insert, flag[SDB_INSERT_CONTONDUP]");
-	var recsArray = [{_id:1,c:1},{_id:2}];
-	cl.insert( recsArray, SDB_INSERT_CONTONDUP );
-	var expRecs = [{"_id":1},{"_id":2}];
+   println("\n---Begin to insert, flag[SDB_INSERT_CONTONDUP]");
+   var recsArray = [{_id:1,c:1},{_id:2}];
+   cl.insert( recsArray, SDB_INSERT_CONTONDUP );
+   var expRecs = [{"_id":1},{"_id":2}];
    checkRecords( cl, expRecs );
    
    // SDB_INSERT_REPLACEONDUP
-	println("\n---Begin to insert, flag[SDB_INSERT_REPLACEONDUP]");
-	var recsArray = [{_id:3},{_id:1,c:2},{_id:4}];
-	cl.insert( recsArray, SDB_INSERT_REPLACEONDUP );
-	var expRecs = [{"_id":1,"c":2},{"_id":2},{"_id":3},{"_id":4}];
+   println("\n---Begin to insert, flag[SDB_INSERT_REPLACEONDUP]");
+   var recsArray = [{_id:3},{_id:1,c:2},{_id:4}];
+   cl.insert( recsArray, SDB_INSERT_REPLACEONDUP );
+   var expRecs = [{"_id":1,"c":2},{"_id":2},{"_id":3},{"_id":4}];
    checkRecords( cl, expRecs );
    
    cleanCL( clName );

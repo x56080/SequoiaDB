@@ -7,11 +7,11 @@ main();
 
 function main()
 {  
-	println("\n---Begin to run test");
-	var clName = "insertFlag_17997";
-	var idxName = "idx";	
+   println("\n---Begin to run test");
+   var clName = "insertFlag_17997";
+   var idxName = "idx";   
    var cl = readyCL( clName );
-	cl.createIndex( idxName, {a:1, b:1}, true, true );
+   cl.createIndex( idxName, {a:1, b:1}, true, true );
    
    // test
    insertNotSetFlag( cl );
@@ -23,9 +23,9 @@ function main()
 
 function insertNotSetFlag( cl )
 {
-	println("\n---Begin to insert docs, not set flag");
-	// index key not conflict
-	var recs = [{"a":1},{"a":2}];
+   println("\n---Begin to insert docs, not set flag");
+   // index key not conflict
+   var recs = [{"a":1},{"a":2}];
    cl.insert( recs );
    
    // index key conflict
@@ -38,24 +38,28 @@ function insertNotSetFlag( cl )
    {
       if( -38 !== e )
       {
-   	   throw e;
-   	}
+         throw e;
+      }
    }
    
    checkRecords( cl, recs );
    
-	cl.remove();
+   cl.remove();
 }
 
 function insertSetFlag_ReturnOid( cl )
 {
-	println("\n---Begin to insert docs, set flag[SDB_INSERT_RETURN_ID]");
-	cl.insert({a:1,b:1});
-	
-	// index key not conflict
+   println("\n---Begin to insert docs, set flag[SDB_INSERT_RETURN_ID]");
+   cl.insert({a:1,b:1});
+   
+   // index key not conflict
    var rc = cl.insert( {a:1,b:2}, SDB_INSERT_RETURN_ID );
-	
-	// index key conflict
+   if( null === rc )
+   {
+      throw buildException( "insertSetFlag_ReturnOid", null, "", "return oid", "  " + null );
+   } 
+   
+   // index key conflict
    try
    {
       var rc = cl.insert( {a:1,b:1,c:1}, SDB_INSERT_RETURN_ID );
@@ -65,21 +69,21 @@ function insertSetFlag_ReturnOid( cl )
    {
       if( -38 != e )
       {
-   	   throw e;
-   	}
+         throw e;
+      }
    }
    
    var expRecs = [{"a":1,"b":1},{"a":1,"b":2}];
    checkRecords( cl, expRecs );
    
-	cl.remove();
+   cl.remove();
 }
 
 function insertSetFlag_ContOnDup( cl )
 {
-	println("\n---Begin to insert docs, set flag[SDB_INSERT_CONTONDUP]");
-	// index key not conflict
-	cl.insert([{a:1,b:1}]);
+   println("\n---Begin to insert docs, set flag[SDB_INSERT_CONTONDUP]");
+   // index key not conflict
+   cl.insert([{a:1,b:1}]);
    
    // index key conflict
    // SDB_INSERT_CONTONDUP
@@ -95,14 +99,14 @@ function insertSetFlag_ContOnDup( cl )
    {
       if( -6 !== e )
       {
-   	   throw e;
-   	}
+         throw e;
+      }
    }
    
    var expRecs = [{"a":1,"b":1},{"a":2}];
    checkRecords( cl, expRecs );
    
-	cl.remove();
+   cl.remove();
 }
 
 function checkRecords( cl, recs ) 
@@ -120,14 +124,4 @@ function checkRecords( cl, recs )
    {
       throw buildException( "checkResult", null, "", expRecs, "  " + actRecs );
    }
-}
-
-function checkReturnOid( rc ) {
-   var oid = rc.toObj()["_id"]["$oid"];
-   var expTypeOid = "string";
-   var actTypeOid = typeof( oid );
-   if( expTypeOid !== actTypeOid )
-   {
-      throw buildException( "checkReturnOid", null, "", expTypeOid, "  " + actTypeOid );
-   } 
 }
