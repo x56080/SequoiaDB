@@ -1314,11 +1314,30 @@ INT32 sdbOperExprParamVar( OpExpr *expr, SdbExprTreeState *expr_state,
                                           var->varattno ) ;
    paramData = &exprContext->ecxt_param_exec_vals[param->paramid] ;
 
-   //TODO: check null data
    sdbbson_append_start_object( condition, columnName ) ;
-   rc = sdbSetBsonValue( condition, sdbOpName, paramData->value,
-                         var->vartype, var->vartypmod,
-                         expr_state->is_use_decimal ) ;
+   if ( !paramData->isnull )
+   {
+      rc = sdbSetBsonValue( condition, sdbOpName, paramData->value,
+                            var->vartype, var->vartypmod,
+                            expr_state->is_use_decimal ) ;
+   }
+   else
+   {
+      if ( strcmp( sdbOpName, SDB_KEYNAME_REGEX ) == 0
+           || strcmp ( sdbOpName, "$et" ) == 0 )
+      {
+         rc = sdbbson_append_int( condition, "$isnull", 1 ) ;
+      }
+      else if ( strcmp ( sdbOpName, "$ne" ) == 0 )
+      {
+         rc = sdbbson_append_int( condition, "$isnull", 0 ) ;
+      }
+      else
+      {
+         rc = sdbbson_append_null( condition, sdbOpName ) ;
+      }
+   }
+
    sdbbson_append_finish_object( condition ) ;
    if ( SDB_OK != rc )
    {
