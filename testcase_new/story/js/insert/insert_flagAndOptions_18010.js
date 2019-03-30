@@ -9,7 +9,6 @@ function main()
 {  
    println("\n---Begin to run test");
    var clName = "insertFlag_18010";
-   var idxName = "idx";   
    var cl = readyCL( clName );
    cl.insert( {_id:1} );
    

@@ -43,7 +43,7 @@ function main()
    var expRecs = [{"a":1,"b":2},{"a":2},{"a":3}];
    checkRecords( cl, expRecs );
    
-   // SDB_INSERT_RETURN_ID
+   // SDB_INSERT_RETURN_ID  //分支不支持options，冲突设置为SDB_INSERT_RETURN_ID报-38在普通表在主子表测试无意义。
    println("\n---Begin to insert, flag[SDB_INSERT_RETURN_ID]");
    var rc = cl.insert( {a:4}, SDB_INSERT_RETURN_ID );
    checkReturnOid( cl, rc, {a:4} )
