@@ -164,14 +164,21 @@ public class TestBulkinsert7155 extends SdbTestBase{
 		List<BSONObject>list = new ArrayList<BSONObject>();				
 		BSONObject obj = new BasicBSONObject();				
 		obj.put("no", 1);				
-		list.add(obj);		
+		list.add(obj);	
+		try{
+			cl.bulkInsert(list, -1);
+			Assert.fail("when flag is -1,it should fail!");
+		}catch(BaseException e){
+			Assert.assertEquals(e.getErrorCode(), -6,"unexpected error code");	
+		}
+		
 		try{
 			cl.bulkInsert(list, 1);				
 			long count = cl.getCount();
 			Assert.assertEquals(count,4,"the 3th insert actDatas is :"+count);
 		}catch(BaseException e){
 			Assert.assertTrue(false,"bulkinsertFlag fail "+e.getMessage());	
-		}			
+		}	
 	}
 	
 	@AfterClass(alwaysRun = true)
