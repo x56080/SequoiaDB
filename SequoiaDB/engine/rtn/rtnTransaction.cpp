@@ -71,9 +71,9 @@ namespace engine
       }
       PD_LOG( PDINFO, "Begin transaction operations(transID=%llu)",
               cb->getTransID() ) ;
-      PD_TRACE_EXIT ( SDB_RTNTRANSBEGIN ) ;
 
    done:
+      PD_TRACE_EXIT ( SDB_RTNTRANSBEGIN ) ;
       return rc;
    error:
       goto done ;
