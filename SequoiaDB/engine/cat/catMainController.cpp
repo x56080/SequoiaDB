@@ -594,6 +594,12 @@ namespace engine
       {
          goto error ;
       }
+      rc = _createSysIndex ( CAT_COLLECTION_INFO_COLLECTION,
+                             CAT_COLLECTION_MAINCLIDX, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
       // create SYSCAT.SYSTASKS
       rc = _createSysCollection ( CAT_TASK_INFO_COLLECTION, cb ) ;
