@@ -1209,93 +1209,97 @@ namespace engine
                                 BOOLEAN includeSubCLGroups )
    {
       INT32 rc = SDB_OK ;
-      BSONObj matcher ;
-      BSONObj dummyObj ;
+      BSONObj matcher, matcherMaincl, dummyObj ;
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-      INT64 contextID = -1 ;
       std::set< UINT32 > groupSet ;
       std::set< UINT32 >::iterator itSet ;
       CHAR lowBound[ DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
       CHAR upBound[  DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
 
+      // eg: csName is "test", { Name: { $regex: "^test\\." } } is equal to
+      // { Name: { $gt: "test.", $lt: "test/" } }. So if csName has
+      // metacharacter(eg: "^"), we do not need to escape it.
       ossStrncpy( lowBound, csName, DMS_COLLECTION_NAME_SZ ) ;
       ossStrncat( lowBound, ".", 1 ) ;
       ossStrncpy( upBound, csName, DMS_COLLECTION_NAME_SZ ) ;
       ossStrncat( upBound, "/", 1 ) ;
-
-      if ( !includeSubCLGroups )
-      {
-         // eg: csName is "test", { Name: { $regex: "^test\\." } } is equal to
-         // { Name: { $gt: "test.", $lt: "test/" } }. So if csName has
-         // metacharacter(eg: "^"), we do not need to escape it.
-         matcher = BSON( CAT_COLLECTION_NAME
+      matcher = BSON( CAT_COLLECTION_NAME
                       << BSON( "$gt" << lowBound << "$lt" << upBound ) ) ;
-      }
-      else
-      {
-         matcher = BSON( "$or"
-                      << BSON_ARRAY( BSON( CAT_COLLECTION_NAME
-                                        << BSON( "$gt" << lowBound
-                                              << "$lt" << upBound ) )
-                                  << BSON( CAT_MAINCL_NAME
-                                        << BSON( "$gt" << lowBound
-                                              << "$lt" << upBound ) ) ) ) ;
-      }
 
-      // query
-      rc = rtnQuery( CAT_COLLECTION_INFO_COLLECTION, dummyObj, matcher,
-                     dummyObj, dummyObj, 0, cb, 0, -1, dmsCB, rtnCB,
-                     contextID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Query collection[%s] failed, matcher: %s, "
-                   "rc: %d", CAT_COLLECTION_INFO_COLLECTION,
-                   matcher.toString().c_str(), rc ) ;
+      // if includeSubCLGroups = TRUE, and this cs has main cl, we should also
+      // get groups of subcl
+      matcherMaincl = BSON( CAT_MAINCL_NAME
+                         << BSON( "$gt" << lowBound << "$lt" << upBound ) ) ;
 
-      // get more
-      while ( TRUE )
+      INT8 loopTime = includeSubCLGroups ? 2 : 1 ;
+      for ( INT8 i = 0; i < loopTime; i++ )
       {
-         BSONObj obj ;
-         rtnContextBuf contextBuf ;
-         rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
-         if ( SDB_DMS_EOC == rc )
+         // query
+         INT64 contextID = -1 ;
+         if ( 0 == i )
          {
-            rc = SDB_OK ;
-            break ;
+            rc = rtnQuery( CAT_COLLECTION_INFO_COLLECTION,
+                           dummyObj, matcher, dummyObj, dummyObj,
+                           0, cb, 0, -1, dmsCB, rtnCB, contextID ) ;
          }
-         PD_RC_CHECK( rc, PDERROR, "Get more failed, rc: %d", rc ) ;
-
-         try
+         else
          {
-            obj = BSONObj( contextBuf.data() ) ;
-            BSONElement eleCataInfo = obj.getField( CAT_CATALOGINFO_NAME ) ;
-            if ( Array != eleCataInfo.type() )
+            rc = rtnQuery( CAT_COLLECTION_INFO_COLLECTION,
+                           dummyObj, matcherMaincl, dummyObj, dummyObj,
+                           0, cb, 0, -1, dmsCB, rtnCB, contextID ) ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Query collection[%s] failed, matcher: %s, "
+                      "rc: %d", CAT_COLLECTION_INFO_COLLECTION,
+                      matcher.toString().c_str(), rc ) ;
+
+         // get more
+         while ( TRUE )
+         {
+            BSONObj obj ;
+            rtnContextBuf contextBuf ;
+            rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
+            if ( SDB_DMS_EOC == rc )
             {
-               continue ;
+               rc = SDB_OK ;
+               break ;
             }
-            BSONObjIterator itr( eleCataInfo.embeddedObject() ) ;
-            while( itr.more() )
+            PD_RC_CHECK( rc, PDERROR, "Get more failed, rc: %d", rc ) ;
+
+            try
             {
-               BSONElement e = itr.next() ;
-               if ( Object != e.type() )
+               obj = BSONObj( contextBuf.data() ) ;
+               BSONElement eleCataInfo = obj.getField( CAT_CATALOGINFO_NAME ) ;
+               if ( Array != eleCataInfo.type() )
                {
                   continue ;
                }
-               BSONObj cataItemObj = e.embeddedObject() ;
-               BSONElement eleGrpID = cataItemObj.getField( CAT_GROUPID_NAME ) ;
-               if ( eleGrpID.isNumber() )
+               BSONObjIterator itr( eleCataInfo.embeddedObject() ) ;
+               while( itr.more() )
                {
-                  groupSet.insert( eleGrpID.numberInt() ) ;
+                  BSONElement e = itr.next() ;
+                  if ( Object != e.type() )
+                  {
+                     continue ;
+                  }
+                  BSONObj cataItemObj = e.embeddedObject() ;
+                  BSONElement eleGID = cataItemObj.getField( CAT_GROUPID_NAME ) ;
+                  if ( eleGID.isNumber() )
+                  {
+                     groupSet.insert( eleGID.numberInt() ) ;
+                  }
                }
             }
-         }
-         catch( std::exception &e )
-         {
-            rtnKillContexts( 1 , &contextID, cb, rtnCB ) ;
-            PD_LOG( PDERROR, "Get group id from obj[%s] occur exception: %s",
-                    obj.toString().c_str(), e.what() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
+            catch( std::exception &e )
+            {
+               rtnKillContexts( 1 , &contextID, cb, rtnCB ) ;
+               PD_LOG( PDERROR,
+                       "Get collection name from obj[%s] occur exception: %s",
+                       obj.toString().c_str(), e.what() ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
+         }// end of get more
       }
 
       for ( UINT32 i = 0 ; i < groups.size() ; ++i )

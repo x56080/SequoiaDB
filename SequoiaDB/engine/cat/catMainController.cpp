@@ -320,7 +320,7 @@ namespace engine
          eventMsg->timeoutMsg.timerID = id ;
 
          // post the timeout event of current timestamp
-         _pEDUCB->postEvent( pmdEDUEvent ( PMD_EDU_EVENT_TIMEOUT, 
+         _pEDUCB->postEvent( pmdEDUEvent ( PMD_EDU_EVENT_TIMEOUT,
                                            PMD_EDU_MEM_ALLOC,
                                            (void*)eventMsg ) ) ;
       }
@@ -506,6 +506,12 @@ namespace engine
       }
       rc = _createSysIndex ( CAT_COLLECTION_INFO_COLLECTION,
                              CAT_COLLECTION_NAMEIDX, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = _createSysIndex ( CAT_COLLECTION_INFO_COLLECTION,
+                             CAT_COLLECTION_MAINCLIDX, cb ) ;
       if ( rc )
       {
          goto error ;
