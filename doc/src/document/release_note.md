@@ -1,5 +1,4 @@
-SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库，产品引擎采用原生分布式架构，100%兼容 MySQL 语法和协议，支持完整 ACID 和分布式事务。同时，SequoiaDB 还提供多模（multi-model）数据库存储引擎，数据库引擎原生支持多数据中心容灾机制。  
-SequoiaDB 是新一代分布式数据库的首选。
+SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库，产品引擎采用原生分布式架构，100%兼容 MySQL 语法和协议，支持完整 ACID 和分布式事务。同时，SequoiaDB 还提供多模（multi-model）数据库存储引擎，数据库引擎原生支持多数据中心容灾机制。SequoiaDB 是新一代分布式数据库的首选。
 
 [快速使用SequoiaDB](quickstart.md)
 
