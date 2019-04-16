@@ -1037,13 +1037,6 @@ static JSBool collection_insert ( JSContext *cx , uintN argc , jsval *vp )
       REPORT_RC ( JS_FALSE , "SdbCollection._insert()" , rc ) ;
    }
 
-   if ( flags & FLG_INSERT_CONTONDUP )
-   {
-      rc = SDB_INVALIDARG ;
-      REPORT_RC ( JS_FALSE , "Single insert can't support flag "
-                  "SDB_INSERT_CONTONDUP" , rc ) ;
-   }
-
    rc = sdbInsert2 ( *collection , bsonData , flags , &id ) ;
    REPORT_RC ( SDB_OK == rc , "SdbCollection._insert()" , rc ) ;
 
