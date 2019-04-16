@@ -41,35 +41,24 @@ collection "bar".
 .sp 2
 \fBflag (int)\fR
 .br
-       SDB_INSERT_RETURN_ID or SDB_INSERT_CONTONDUP. The former
-       one is valid when insert a single record, the latter one
-       is valid when insert multiple records, it means that when
-       multiple records are inserted, if records with repeated
-       "_id" field occurs, these records will be skipped and the
-       database will continue with subsequent records. In the
-       default case, if records with repeated "_id" field occurs,
-       the insert action will be terminated and the subsequent
-       records will not be inserted..
-.sp 2
-       \fBFormat\fR
-.br
-              The definition of "insert()" contains two fields:
-              doc|docs and flag.
-.br
-              doc: ({"< field name 1>":"< value >","< field name
-              2>":"< value
-              >",...}[,SDB_INSERT_CONTONDUP|SDB_INSERT_RETURN_ID
-              })
-.br
-              docs: ([ {"< field name 1>":"< value >","< field
-              name 2>":"< value >",...}, {"< field name 1>":"<
-              value >","< field name 2>":"< value >",...},... ])
+       SDB_INSERT_RETURN_ID:    return the value of "_id" field of 
+                                the record.
+       SDB_INSERT_CONTONDUP:    continue inserting (no errors were 
+                                reported) when hitting index key 
+                                duplicate error.
+       SDB_INSERT_REPLACEONDUP: means replace the exist value to 
+                                the inserting value when hitting 
+                                index key duplicate error, and 
+                                continue the left records (no 
+                                errors were reported).
 .sp 2
 \fBNote: \fR
 .sp 2
    *  If the value of "_id" is not specified in a record that is
    about to be inserted, the system will generate the value of
    "_id" automatically to ensure the uniqueness of the record.
+   *  In argument flag, SDB_INSERT_CONTONDUP and 
+      SDB_INSERT_REPLACEONDUP can not be use at the same time.
 .SH "Examples"
 
 .sp 2
