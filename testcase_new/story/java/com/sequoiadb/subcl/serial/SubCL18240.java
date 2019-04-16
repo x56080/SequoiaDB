@@ -71,10 +71,10 @@ public class SubCL18240 extends SdbTestBase {
         BSONObject info = cursor.getNext();
         long tdr = (long) info.get("TotalDataRead");
         long tir = (long) info.get("TotalIndexRead");
-        long expDiffValue = 2 * RUN_TIMES;
+        long expDiffValue = 5 * RUN_TIMES; // test value, error in existence, ensure that the diff is not too big
         long actDiffValue = Math.abs(tdr - tir);
 //      System.out.println("TotalDataRead: " + tdr + ", TotalIndexRead: " + tir + ", actDiffValue: " + actDiffValue);
-        if (actDiffValue < expDiffValue) {
+        if (actDiffValue > expDiffValue) {
             Assert.fail("Frequency table scanning"
                     + ", expect (TotalDataRead - TotalIndexRead) = " + expDiffValue
                     + ", actual (TotalDataRead - TotalIndexRead) = " + actDiffValue
