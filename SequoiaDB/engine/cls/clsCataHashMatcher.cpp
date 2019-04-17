@@ -230,7 +230,10 @@ namespace engine
                eleShard = iterField->second ;
             }
 
-            bobKey.appendAs( eleShard, "" ) ;
+            if ( !eleShard.eoo() )
+            {
+               bobKey.appendAs( eleShard, "" ) ;
+            }
          }
 
          if ( includeAllKey )
