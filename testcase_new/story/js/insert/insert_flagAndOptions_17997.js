@@ -90,6 +90,7 @@ function insertSetFlag_ContOnDup( cl )
    cl.insert( [{a:1,b:1,c:1},{a:2}], SDB_INSERT_CONTONDUP );
    
    // insert one doc, flag: SDB_INSERT_CONTONDUP
+   cl.insert( {a:1,b:1,c:2}, SDB_INSERT_CONTONDUP );  
    cl.insert( {a:3}, SDB_INSERT_CONTONDUP );   
    
    var expRecs = [{"a":1,"b":1},{"a":2},{"a":3}];
