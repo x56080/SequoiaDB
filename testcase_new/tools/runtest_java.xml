@@ -184,6 +184,8 @@
             <fileset dir="${casedir}/lib" includes="**/*.jar"/>                  
          </path>
          <taskdef resource="testngtasks" classpath="${casedir}/lib/testng-6.10.1-SNAPSHOT.jar"/>
+         <taskdef resource="testngtasks" classpath="${casedir}/lib/threadexecutor-1.0.0-SNAPSHOT.jar"/>
+         
          <!--serialnumber=2: only install and deploy once release db,the testng will exec twice, the first report will not be collected to WORKSPACE, so report_detect_dir is not the same-->
          <var name="report_detect_dir" value="${WORKSPACE}/report"/>
          <if>
@@ -237,6 +239,7 @@
             <fileset dir="${casedir}/lib" includes="**/*.jar"/>                  
          </path>
          <taskdef resource="testngtasks" classpath="${casedir}/lib/testng-6.10.1-SNAPSHOT.jar"/>
+         <taskdef resource="testngtasks" classpath="${casedir}/lib/threadexecutor-1.0.0-SNAPSHOT.jar"/>
          <testng outputDir="${tmp_report_dir}" classpathref="testcasecalsspath">
             <xmlfileset dir="${casedir}" includes="@{xmlfile}"/>
          </testng>
@@ -252,6 +255,7 @@
             <fileset dir="${casedir}/lib" includes="**/*.jar"/>                  
          </path>
          <taskdef resource="testngtasks" classpath="${casedir}/lib/testng-6.10.1-SNAPSHOT.jar"/>
+         <taskdef resource="testngtasks" classpath="${casedir}/lib/threadexecutor-1.0.0-SNAPSHOT.jar"/>
          <testng outputDir="${tmp_report_dir}" classpathref="testcasecalsspath" failureProperty="rc">
             <xmlfileset dir="${testcase_dir}" includes="@{xmlfile}"/>
          </testng>
@@ -339,6 +343,7 @@
          <mkdir dir="@{srcdir}/build"/>
          <copy file="/opt/sequoiadb/java/sequoiadb.jar" todir="@{srcdir}/lib" overwrite="true" />
          <copy file="${basedir}../thirdparty/testng-master/lib/linux64/testng-6.10.1-SNAPSHOT.jar" todir="@{srcdir}/lib" overwrite="true" />
+         <copy file="${basedir}../tools/threadexecutor-1.0.0-SNAPSHOT.jar" todir="@{srcdir}/lib" overwrite="true" />
          <javac executable="javac" 
                 srcdir="@{srcdir}" 
                 destdir="@{srcdir}/build"
