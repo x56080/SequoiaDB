@@ -35,7 +35,7 @@ system="false"; catalog="false";
 
 #operation system variable
 diskmanage="false"; osystem="false"; env="false"; network="false";
-progress="false"; login="false"; limit="false"; vmstat="false"; kermode="false";
+process="false"; login="false"; limit="false"; vmstat="false"; kermode="false";
 
 #the parameter get where location
 firstLoc=$1
@@ -309,6 +309,6 @@ fi
 # [command: ./sdbsupport.sh -s hostname1 -p 50000 --osinfo]
 if [ "true"X == "$sysInfo"X ]; then
    diskmanage="true"; osystem="true"; env="true";
-   network="true"; progress="true"; login="true";
+   network="true"; process="true"; login="true";
    limit="true"; vmstat="true"; kermode="true";
 fi
