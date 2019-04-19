@@ -15,11 +15,11 @@
          </copy>
          <copy file="${WORKSPACE}/sequoiadb/testcase/thirdparty/testng-master/lib/linux64/testng-6.10.1-SNAPSHOT.jar" 
                todir="@{srcdir}/lib" overwrite="true" />
-         <copy file="${WORKSPACE}/sequoiadb/testcase_new/tools/threadexecutor-1.0.0-SNAPSHOT.jar" 
+         <copy file="${WORKSPACE}/sequoiadb/testcase/tools/threadexecutor-1.0.0-SNAPSHOT.jar" 
                todir="@{srcdir}/lib" overwrite="true" />
-         <copy file="${WORKSPACE}/sequoiadb/testcase_new/tools/slf4j-api-1.7.5.jar" 
+         <copy file="${WORKSPACE}/sequoiadb/testcase/tools/slf4j-api-1.7.5.jar" 
                todir="@{srcdir}/lib" overwrite="true" />
-         <copy file="${WORKSPACE}/sequoiadb/testcase_new/tools/slf4j-log4j12-1.7.5.jar" 
+         <copy file="${WORKSPACE}/sequoiadb/testcase/tools/slf4j-log4j12-1.7.5.jar" 
                todir="@{srcdir}/lib" overwrite="true" />
          <javac executable="${INSTALL_DIR}/java/jdk/bin/javac" 
                 srcdir="@{srcdir}" 
