@@ -138,7 +138,6 @@ public class TestSplit10517 extends SdbTestBase{
                 actual.add(obj);
             }
             cursor.close();
-            System.out.println("=====" + this.insertRecods.get(0).get("bindata").toString());
             for (int i = 1; i < 100; i++) {
                 BSONObject o = this.insertRecods.get(i-1);
                 o.removeField("bindata");

@@ -106,13 +106,14 @@ public class TestSplit10525B extends SdbTestBase{
     public void testSrcDataSplitResult(List<String> rgNames) {
         Sequoiadb dataDb = null;
         try {
+            //连接源组从节点data验证数据
+            ReplicaGroup replicaGroup = this.sdb.getReplicaGroup(rgNames.get(0));
+            Node master = replicaGroup.getSlave();
+            String url = master.getNodeName();
+            dataDb = new Sequoiadb(url, "", "");
+            
             boolean flag = false;
             for (int j = 0; j < 1000; j++) {
-                //连接源组从节点data验证数据
-                ReplicaGroup replicaGroup = this.sdb.getReplicaGroup(rgNames.get(0));
-                Node master = replicaGroup.getSlave();
-                String url = master.getNodeName();
-                dataDb = new Sequoiadb(url, "", "");
                 DBCollection dbcl = null;
                 for ( int k = 0; k < 20; k++) {
                     //通过从节点获取cs cl
@@ -171,13 +172,14 @@ public class TestSplit10525B extends SdbTestBase{
     public void testDestDataSplitResult(List<String> rgNames) {
         Sequoiadb dataDb = null;
         try {
+            //连接目标组data查询
+            ReplicaGroup replicaGroup = this.sdb.getReplicaGroup(rgNames.get(1));
+            Node master = replicaGroup.getSlave();
+            String url = master.getNodeName();
+            dataDb = new Sequoiadb(url, "", "");
+            
             boolean flag = false;
             for (int j = 0; j < 1000; j++) {
-              //连接目标组data查询
-                ReplicaGroup replicaGroup = this.sdb.getReplicaGroup(rgNames.get(1));
-                Node master = replicaGroup.getSlave();
-                String url = master.getNodeName();
-                dataDb = new Sequoiadb(url, "", "");
                 //通过从节点获取cs cl
                 CollectionSpace cs = dataDb.getCollectionSpace(SdbTestBase.csName);
                 DBCollection dbcl = cs.getCollection(this.clName);
