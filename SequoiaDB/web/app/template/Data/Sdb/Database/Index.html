@@ -47,7 +47,8 @@
             <a class="linkButton" ng-click="gotoRecord(clInfo.csId,clInfo.i)">{{clInfo.Record}}</a>
          </div>
          <div class="Ellipsis" table-key="Index">
-            <a class="linkButton" ng-click="showIndex(clInfo.csId,clInfo.i)">{{clInfo.Index}}</a>
+            <a class="linkButton" ng-if="clInfo.Index>0" ng-click="showIndex(clInfo.csId,clInfo.i)">{{clInfo.Index}}</a>
+            <span ng-if="clInfo.Index == 0">{{clInfo.Index}}</span>
          </div>
       </div>
 
@@ -79,7 +80,10 @@
                         <td ng-if="moduleMode == 'distribution' && isHideSubCl != true"><span>{{clInfo.MainCLName}}</span></td>
                         <td><a class="linkButton" ng-click="gotoLob($parent.$parent.$index,$index)">{{clInfo.TotalLobs}}</a></td>
                         <td><a class="linkButton" ng-click="gotoRecord($parent.$parent.$index,$index)">{{clInfo.Record}}</a></td>
-                        <td><a class="linkButton" ng-click='showIndex($parent.$parent.$index,$index)'>{{clInfo.Index}}</a></td>
+                        <td>
+                           <a class="linkButton" ng-if="clInfo.Index>0" ng-click='showIndex($parent.$parent.$index,$index)'>{{clInfo.Index}}</a>
+                           <span ng-if="clInfo.Index==0">{{clInfo.Index}}</span>
+                        </td>
                      </tr>
                      <tr ng-if="csInfo.clNum > maxShowCLNum && csInfo.show == false && find.length == 0 && moduleMode == 'standalone'">
                         <td colspan="4"><a class="linkButton" ng-click="clTableShow(csInfo.Name)">{{autoLanguage("展示所有...")}}</a></td>

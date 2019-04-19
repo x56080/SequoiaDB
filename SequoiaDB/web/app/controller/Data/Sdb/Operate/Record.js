@@ -948,9 +948,9 @@
          {
             return ;
          }
-         var _id = $scope.records[recordIndex]['_id']['$oid'] ;
+         var _id = $scope.records[recordIndex]['_id'] ;
          _IndexPublic.createRetryModel( $scope, null, function(){
-            var deletor = JSON.stringify( { '_id': { '$oid': _id } } ) ;
+            var deletor = JSON.stringify( { '_id': _id } ) ;
             var data = { 'cmd': 'delete', 'name': $scope.fullName, 'deletor': deletor } ;
             SdbRest.DataOperation( data, function( json ){
                $scope.execResult = sprintf( $scope.autoLanguage( '? ? 删除成功' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName ) ;
