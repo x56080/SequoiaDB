@@ -21,6 +21,9 @@
                todir="@{srcdir}/lib" overwrite="true" />
          <copy file="${WORKSPACE}/sequoiadb/testcase/tools/slf4j-log4j12-1.7.5.jar" 
                todir="@{srcdir}/lib" overwrite="true" />
+         <copy file="${WORKSPACE}/sequoiadb/testcase/tools/log4j-1.2.17.jar" 
+               todir="@{srcdir}/lib" overwrite="true" />
+               
          <javac executable="${INSTALL_DIR}/java/jdk/bin/javac" 
                 srcdir="@{srcdir}" 
                 destdir="@{srcdir}/build"
