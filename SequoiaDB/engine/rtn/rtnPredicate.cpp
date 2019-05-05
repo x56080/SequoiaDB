@@ -427,6 +427,29 @@ namespace engine
       return pos ;
    }
 
+   // Check if regex contains unescaped pipe '|' character
+   // NOTE: this may return false positives. e.g. pipe characters inside
+   // \Q...\E sequence, etc.
+   static BOOLEAN regexHasUnescapedPipe ( const CHAR * regex )
+   {
+      BOOLEAN isEscape = FALSE ;
+      for ( ; *regex != '\0' ; regex ++ )
+      {
+         if ( *regex == '|' && !isEscape )
+         {
+            return TRUE ;
+         }
+         else if ( *regex == '\\' && !isEscape )
+         {
+            isEscape = TRUE ;
+         }
+         else if ( isEscape )
+         {
+            isEscape = FALSE ;
+         }
+      }
+      return FALSE ;
+   }
 
    // input: regex for regular expression string
    // input: flags for re flag
@@ -564,6 +587,17 @@ namespace engine
          if (purePrefix)
             *purePrefix = !r.empty();
       }
+      else if ( !r.empty() )
+      {
+         // Check renaming string against '|'
+         // A regex with '|' is not considered as a simple regex
+         if ( regexHasUnescapedPipe( regex ) )
+         {
+            // Containing '|' could not be simplified
+            r = string() ;
+         }
+      }
+
    done :
       PD_TRACE1 ( SDB_SIMAPLEREGEX1, PD_PACK_STRING ( r.c_str() ) ) ;
       PD_TRACE_EXIT ( SDB_SIMAPLEREGEX1 ) ;
