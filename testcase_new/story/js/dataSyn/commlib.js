@@ -21,7 +21,7 @@ function insertData( dbcl, insertNum )
       for( var i = 0 ; i < insertNum ; ++i )
       {      
          var no = i ;
-         var str = getRandomString(100) + i ;         
+         var str = getRandomString(100) + "teststr_" + i ;        
          var inta = i ;         
          var fc = i + 0.5896;
          var objs = { "no":no, "str":str, "inta":inta, "fc":fc};         
@@ -63,7 +63,7 @@ function buckInsertData( dbcl, insertNums, beginNums)
          {    
             var count = beginNums++  
             var no = count ;
-            var str = getRandomString(100) + count ;         
+            var str = getRandomString(100) +  "teststr_" + count ;         
             var inta = count ;         
             var fc = count + 0.7898;
             var objs = { "no":no, "str":str, "inta":inta, "fc":fc};         
