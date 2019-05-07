@@ -1,8 +1,6 @@
 package com.sequoiadb.split;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -60,9 +58,10 @@ public class TestSplit10525B extends SdbTestBase{
      * 2. 分区键字段排序为逆序
      * 3. 执行异步切分
      * 4. 分别连接coord、源组data、目标组data查询
+     * @throws InterruptedException 
      */
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         try {
             List<String> rgNames = SplitUtils2.getDataRgNames(this.sdb); 
             BSONObject option = (BSONObject) JSON.parse("{ReplSize:1,ShardingKey:{age:-1},ShardingType:\"range\",Group:\"" + rgNames.get(0) + "\"}");
@@ -103,50 +102,54 @@ public class TestSplit10525B extends SdbTestBase{
         }
     }
 
-    public void testSrcDataSplitResult(List<String> rgNames) {
+    public void testSrcDataSplitResult(List<String> rgNames) throws InterruptedException {
+        ReplicaGroup replicaGroup = this.sdb.getReplicaGroup(rgNames.get(0));
         Sequoiadb dataDb = null;
         try {
-            //连接源组从节点data验证数据
-            ReplicaGroup replicaGroup = this.sdb.getReplicaGroup(rgNames.get(0));
-            Node master = replicaGroup.getSlave();
-            String url = master.getNodeName();
-            dataDb = new Sequoiadb(url, "", "");
+            //连接源组备节点data验证数据
+            dataDb = replicaGroup.getSlave().connect();
             
-            boolean flag = false;
-            for (int j = 0; j < 1000; j++) {
-                DBCollection dbcl = null;
-                for ( int k = 0; k < 20; k++) {
-                    //通过从节点获取cs cl
-                    try {
-                        CollectionSpace cs = dataDb.getCollectionSpace(SdbTestBase.csName);
-                        dbcl = cs.getCollection(this.clName);
-                    } catch (BaseException e1) {
-                       if ( e1.getErrorCode() == -34 || e1.getErrorCode() == -23) {
-                           continue;
-                       }
-                    }
-                    try {
-                        Thread.sleep(10);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+            DBCollection dbcl = null; 
+            boolean clFlag = false;
+            for ( int i = 0; i < 20; i++) {
+                //通过从节点获取cs cl
+                try {
+                    CollectionSpace cs = dataDb.getCollectionSpace(SdbTestBase.csName);
+                    dbcl = cs.getCollection(this.clName);
+                    clFlag = true;
+                    break;
+                } catch (BaseException e) {
+                   if ( e.getErrorCode() == -34 || e.getErrorCode() == -23) {
+                       Thread.sleep(100);
+                       continue;
+                   } 
+                   throw e;
                 }
-                //通过从节点查询数据
+            }
+            if (!clFlag) {
+                Assert.fail("元数据长时间未同步成功！未同步节点：" + dataDb.getServerAddress());
+            }
+            
+            //通过备节点查询数据
+            boolean flag = false;
+            for (int j = 0; j < 1000; j++) {  
                 DBCursor cursor;
                 try {
                     cursor = dbcl.query(null,null,"{\"_id\":1}",null);
                 } catch (NullPointerException e) {
+                    Thread.sleep(10);
                     continue;
                 }
+                
                 List<BSONObject> actual = new ArrayList<BSONObject>();
                 while( cursor.hasNext() ) {
                     BSONObject obj = cursor.getNext();
                     actual.add(obj);
                 }
-                cursor.close();
+                
                 List<BSONObject> expected = new ArrayList<BSONObject>();
                 //切分键[72-31)
-                //期望结果[1-31],[73,100)
+                //期望结果[1-31],[73,100)                
                 for( int i = 1; i <= 31; i++ ) {
                     expected.add(this.insertRecods.get(i-1));
                 }
@@ -155,12 +158,12 @@ public class TestSplit10525B extends SdbTestBase{
                 }
                 if ( actual.equals(expected) ) {
                     flag = true;
-                }
-            }
+                    break;
+                }                
+            }  
             if (!flag) {
-                Assert.fail("数据长时间未同步成功！");
+                Assert.fail("数据长时间未同步成功！" + dataDb.getServerAddress());
             }
-           // Assert.assertEquals(actual, expected);
         } catch (BaseException e) {
             Assert.fail(e.getMessage());
         } finally {
