@@ -1081,9 +1081,34 @@ INT32 _dpsDumper::getFileCount( const CHAR *path, INT32 &fileCount /*out*/ )
    fileCount = 0 ;
 
    rc = ossEnumFiles( path, mapFiles, filter ) ;
-   fileCount = mapFiles.size() ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Get file list failed[%d]", rc ) ;
+      goto error ;
+   }
 
+   // Remove files which are not replica log file, for example,
+   // sequoiadbLog.meta.
+   for ( multimap<string, string>::iterator itr = mapFiles.begin();
+         itr != mapFiles.end();)
+   {
+      // get suffix of the file name, and check if it's number. 1 for the dot.
+      string suffix = itr->first.substr( ossStrlen(REPLOG_NAME_PREFIX) + 1 ) ;
+      if ( !_isNumber( suffix ) )
+      {
+         mapFiles.erase( itr++ ) ;
+      }
+      else
+      {
+         ++itr ;
+      }
+   }
+
+   fileCount = mapFiles.size() ;
+done:
    return rc ;
+error:
+   goto done ;
 }
 
 BOOLEAN _dpsDumper::isDir( const CHAR *path )
@@ -1897,6 +1922,15 @@ error:
    goto done ;
 }
 
+BOOLEAN _dpsDumper::_isNumber( const string &str )
+{
+   string::const_iterator itr = str.begin() ;
+   while ( itr != str.end() && std::isdigit( *itr ) )
+   {
+      ++itr ;
+   }
+   return ( !str.empty() && itr == str.end() ) ;
+}
 
 //////////////////////////////////////////////////////////////////////////
 // main entry

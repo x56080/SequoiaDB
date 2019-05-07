@@ -313,7 +313,6 @@ public:
    static BOOLEAN isDir( const CHAR *path ) ;
    static BOOLEAN isFileExisted( const CHAR *path );
    static INT32   sortFiles(dpsMetaData& meta);
-   static INT32   toFile( OSSFILE& out, const CHAR *buffer);
 
 private:
 
@@ -342,6 +341,10 @@ private:
    INT32 _seekToEnd( OSSFILE &in, INT64 &offset, const INT64 fileSize ) ;
    INT32 _seekToLsnMatched( OSSFILE &in, INT64 &offset,
                             const INT64 fileSize, INT32 &prevCount ) ;
+
+   // Judge if the given string contains only numbers. For an empty string it
+   // will return FALSE.
+   static BOOLEAN _isNumber( const string &str ) ;
 
 public:
    UINT16   opType ;
