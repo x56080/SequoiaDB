@@ -2524,7 +2524,7 @@ namespace engine
    }
 
    void rtnCoordCMDExpConfig::_preSet( pmdEDUCB *cb,
-                                       rtnCoordCtrlParam &ctrlParam ) 
+                                       rtnCoordCtrlParam &ctrlParam )
    {
       ctrlParam._isGlobal = FALSE ;
       ctrlParam._filterID = FILTER_ID_MATCHER ;
@@ -3021,7 +3021,8 @@ namespace engine
             rtnQueryOptions queryOpt ;
 
             queryOpt._fullName = "CAT" ;
-            queryOpt._query = BSON( CAT_COLLECTION_SPACE_NAME << csName ) ;
+            queryOpt._query = BSON( CAT_COLLECTION_SPACE_NAME << csName <<
+                                    CAT_INCLUDE_SUBCL << false ) ;
             rc = queryOpt.toQueryMsg( &pNewMsg, newMsgSize ) ;
             if ( rc )
             {

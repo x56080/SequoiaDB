@@ -120,6 +120,8 @@
 #define CAT_AUTO_INDEX_ID                 FIELD_NAME_AUTO_INDEX_ID
 #define CAT_INTERNAL_VERSION              FIELD_NAME_INTERNAL_VERSION
 
+#define CAT_INCLUDE_SUBCL                 "IncludeSubCL"
+
 #define CAT_INTERNAL_VERSION_2            (2)
 #define CAT_INTERNAL_VERSION_3            (3)
 
