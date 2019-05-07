@@ -131,35 +131,30 @@ public class TestSplit10525B extends SdbTestBase{
             }
             
             //通过备节点查询数据
-            boolean flag = false;
-            for (int j = 0; j < 1000; j++) {  
-                DBCursor cursor;
-                try {
-                    cursor = dbcl.query(null,null,"{\"_id\":1}",null);
-                } catch (NullPointerException e) {
-                    Thread.sleep(10);
-                    continue;
-                }
-                
+            //切分键[72-31)
+            //期望结果[1-31],[73,100)             
+            boolean flag = false;  
+            List<BSONObject> expected = new ArrayList<BSONObject>();             
+            for( int i = 1; i <= 31; i++ ) {
+                expected.add(this.insertRecods.get(i-1));
+            }
+            for( int i = 73; i < 100; i++ ) {
+                expected.add(this.insertRecods.get(i-1));
+            }
+            for (int j = 0; j < 100; j++) {  
+                DBCursor cursor = dbcl.query(null,null,"{\"_id\":1}",null);                
                 List<BSONObject> actual = new ArrayList<BSONObject>();
                 while( cursor.hasNext() ) {
                     BSONObject obj = cursor.getNext();
-                    actual.add(obj);
-                }
-                
-                List<BSONObject> expected = new ArrayList<BSONObject>();
-                //切分键[72-31)
-                //期望结果[1-31],[73,100)                
-                for( int i = 1; i <= 31; i++ ) {
-                    expected.add(this.insertRecods.get(i-1));
-                }
-                for( int i = 73; i < 100; i++ ) {
-                    expected.add(this.insertRecods.get(i-1));
-                }
-                if ( actual.equals(expected) ) {
+                    actual.add( obj );
+                }                
+                if ( actual.equals( expected ) ) {
                     flag = true;
                     break;
-                }                
+                } else {
+                    Thread.sleep(100);
+                    continue;
+                }
             }  
             if (!flag) {
                 Assert.fail("数据长时间未同步成功！" + dataDb.getServerAddress());
