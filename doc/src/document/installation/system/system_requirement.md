@@ -12,10 +12,10 @@
 
 ##受支持的操作系统##
 
+
 | 系统类型       | 系统列表                                                   |
 |----------------|------------------------------------------------------------|
-| Linux          |- Red Hat Enterprise Linux (RHEL) 6<br> - SUSE Linux Enterprise Server (SLES) 11 Service Pack 1 <br>   - SUSE Linux Enterprise Server (SLES) 11 Service Pack 2 <br> 	- SUSE Linux Enterprise Server (SLES) 12 Service Pack 1 <br> 	- Ubuntu 12 <br> 	- CentOS 6                                    |
-| Power PC Linux |  - Red Hat Enterprise Linux (RHEL) 6 <br>  - SUSE Linux Enterprise Server (SLES)11 Service Pack 1  <br>  - SUSE Linux Enterprise Server (SLES)11 Service Pack 2  |
+| Linux          |- Red Hat Enterprise Linux (RHEL) 6<br> - Red Hat Enterprise Linux (RHEL) 7<br> - SUSE Linux Enterprise Server (SLES) 11 Service Pack 1 <br>   - SUSE Linux Enterprise Server (SLES) 11 Service Pack 2 <br> 	- SUSE Linux Enterprise Server (SLES) 12 Service Pack 1 <br> 	- Ubuntu 12.x <br> - Ubuntu 14.x <br> - Ubuntu 16.x <br> - CentOS 6.x <br> - CentOS 7.x <br>                                    |
 
 注意：未在上述列表中列举的 Linux 操作系统并不代表不能用于安装 SequoiaDB。当将这些 Linux 操作系统应用于生产环境时，建议联系 SequoiaDB 技术支持，以获得更详细的信息。
 
