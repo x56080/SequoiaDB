@@ -44,12 +44,11 @@ public class SessionAccessIsolation14108_14109 extends SdbTestBase {
 	
 	@BeforeClass
 	public void setUp(){		
-		sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");	
-		CommLib commlib = new CommLib();
-		if (commlib.isStandAlone(sdb)) {
+		sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");			
+		if (CommLib.isStandAlone(sdb)) {
 			throw new SkipException("skip StandAlone");
 		}
-		List<String> groupsName = commlib.getDataGroupNames(sdb);
+		List<String> groupsName = CommLib.getDataGroupNames(sdb);
 		if (groupsName.size() < 2) {
 			throw new SkipException("current environment less than tow groups ");
 		}		

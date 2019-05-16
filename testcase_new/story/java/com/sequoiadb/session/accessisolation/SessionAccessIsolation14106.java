@@ -43,9 +43,8 @@ public class SessionAccessIsolation14106 extends SdbTestBase {
 	
 	@BeforeClass
 	public void setUp(){
-		sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");	
-		CommLib commlib = new CommLib();
-		if (commlib.isStandAlone(sdb)) {
+		sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");		
+		if (CommLib.isStandAlone(sdb)) {
 			throw new SkipException("skip StandAlone");
 		}
 		

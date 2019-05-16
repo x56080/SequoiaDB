@@ -35,8 +35,8 @@ public class SessionAccessUtils extends SdbTestBase {
 		 //get hostname
         String tmphostName = sdb.getReplicaGroup("SYSCatalogGroup").getMaster().getHostName();
         for( int i = 0; i < nodeNum; i++ ){
-        	int dataPort = reservedPortBegin + 100*i;        
-            String dataPath = workDir + "/" + dataPort + "/";             
+        	int dataPort = SdbTestBase.reservedPortBegin + 100*i;        
+            String dataPath = SdbTestBase.reservedDir + "/" + dataPort + "/";             
             BSONObject dataConfigue = (BSONObject) JSON.parse("{instanceid :"+instanceidarr[i]+"}");            
             boolean checkSucc = false;
             int times = 0;
@@ -49,7 +49,7 @@ public class SessionAccessUtils extends SdbTestBase {
 					 // -145:Node already exists
 					if (e.getErrorCode() == -145 || e.getErrorCode() == -290 ){
 						dataPort = dataPort + 10;
-						dataPath = workDir + "/" + dataPort + "/";
+						dataPath = SdbTestBase.reservedDir + "/" + dataPort + "/";
 					} else {
 						Assert.fail("create node fail! port="+dataPort);
 					}
