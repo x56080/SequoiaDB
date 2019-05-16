@@ -17,6 +17,7 @@
 | SQL 语句 | SequoiaDB 语句 |
 | ------ | ------ |
 | create table student (id not null, stu_id varchar(50), age number primary key(id)) | 如果未指定 \_id 字段，\_id 字段自动添加 db.collectionspace.student({stu_id:"01",age:20})，当然你也可以明确的创建一个集合 db.collectionspace.createCL("student") |
+| create table student (id not null, stu_id varchar(50), age number primary key(id)) | 创建时，集合无需描述结构。在插入文档记录时直接指定字段即可。特别的，集合的主键 \_id 字段未指定时会自动添加。db.collectionspace.createCL( "student" ) |
 | alter table student add name varchar(50) | 集合不描述或强制执行文档的结构，即在集合上没有结构的改动操作，但是 update() 方法可以使用 &#36;set 向文档记录添加不存在的字段。db.collectionspace.student.update({},{&#36;set:{name:"Tom"}}) |
 | alter table student drop column name |  集合不描述或强制执行文档的结构，即在集合上没有结构的改动操作，但是 update() 方法可以使用 &#36;unset 向文档记录删除存在的字段。db.collectionspace.student.update({},{&#36;unset:{name:"Tom"}}) |
 | create index index_stu_id on student (stu_id) |  db.collectionspace.student.createIndex("index_stu_id",{stu_id:-1}) |  createIndex(),index |
@@ -58,8 +59,8 @@
 
 | SQL 语句 | SequoiaDB 语句 |
 | ------ | ------ |
-| update student set age = 25 where stu_id = "01" | db.collectionspace.student.update({stu_id:"01"},{&#36;set:{age:25}}) |
-| update student set age = age + 2 where stu_id = "01" | db.collectionspace.student.update({stu_id:"01"},{&#36;inc:{age:2}}) |
+| update student set age = 25 where stu_id = "01" | db.collectionspace.student.update({&#36;set:{age:25}},{stu_id:"01"}) |
+| update student set age = age + 2 where stu_id = "01" | db.collectionspace.student.update({&#36;inc:{age:2}},{stu_id:"01"}) |
 
 ## Delete##
 
