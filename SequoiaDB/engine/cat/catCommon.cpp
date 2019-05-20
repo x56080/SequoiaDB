@@ -3459,7 +3459,7 @@ namespace engine
    INT32 catCheckAndBuildCataRecord( const BSONObj &boCollection,
                                      UINT32 &fieldMask,
                                      catCollectionInfo &clInfo,
-                                     BOOLEAN needCLName )
+                                     BOOLEAN createCL )
    {
       INT32 rc = SDB_OK ;
 
@@ -3752,25 +3752,40 @@ namespace engine
                    "these arguments are legal only when sharding key is specified." ) ;
       }
 
-      if ( needCLName )
+      if ( createCL )
       {
          PD_CHECK( clInfo._pCLName, SDB_INVALIDARG, error, PDWARNING,
                    "Collection name not set" ) ;
-      }
 
-      if ( clInfo._isCompressed )
-      {
-         if ( 0 == ( fieldMask & CAT_MASK_COMPRESSIONTYPE ) )
+         if ( clInfo._isCompressed &&
+              !( fieldMask & CAT_MASK_COMPRESSIONTYPE ) )
          {
-            clInfo._compressorType = UTIL_COMPRESSOR_SNAPPY ;
+            clInfo._compressorType = UTIL_COMPRESSOR_LZW ;
          }
-      }
-      else
-      {
-         PD_CHECK( UTIL_COMPRESSOR_INVALID == clInfo._compressorType,
-                   SDB_INVALIDARG, error, PDWARNING,
-                   "CompressionType can only be set when Compressed is true."
-                   ) ;
+
+         if ( !( fieldMask & CAT_MASK_COMPRESSED ) &&
+              ( fieldMask & CAT_MASK_COMPRESSIONTYPE ) )
+         {
+            clInfo._isCompressed = TRUE ;
+            fieldMask |= CAT_MASK_COMPRESSED ;
+         }
+
+         if ( !clInfo._isCompressed &&
+              ( fieldMask & CAT_MASK_COMPRESSIONTYPE ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "CompressionType can't be set when "
+                        "Compressed is false" ) ;
+            goto error ;
+         }
+
+         if ( !( fieldMask & CAT_MASK_COMPRESSED ) &&
+              !( fieldMask & CAT_MASK_COMPRESSIONTYPE ) )
+         {
+            clInfo._isCompressed = TRUE ;
+            fieldMask |= CAT_MASK_COMPRESSED ;
+            clInfo._compressorType = UTIL_COMPRESSOR_LZW ;
+         }
       }
 
    done :

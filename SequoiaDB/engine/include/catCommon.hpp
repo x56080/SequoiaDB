@@ -369,7 +369,7 @@ namespace engine
    INT32 catCheckAndBuildCataRecord ( const BSONObj &boCollection,
                                       UINT32 &fieldMask,
                                       catCollectionInfo &clInfo,
-                                      BOOLEAN needCLName ) ;
+                                      BOOLEAN createCL ) ;
 
    /* Build Collection record */
    INT32 catBuildCatalogRecord ( const catCollectionInfo &clInfo,

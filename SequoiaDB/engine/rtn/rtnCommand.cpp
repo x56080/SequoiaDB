@@ -525,6 +525,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       BOOLEAN enSureIndex = TRUE ;
       BOOLEAN isCompressed = FALSE ;
+      BOOLEAN hasCompressed = TRUE ;
+      BOOLEAN hasCompressType = TRUE ;
       BOOLEAN autoIndexId = TRUE ;
       const CHAR *compressionType = NULL ;
       PD_TRACE_ENTRY ( SDB__RTNCREATECL_INIT ) ;
@@ -561,58 +563,66 @@ namespace engine
                       FIELD_NAME_SHARDINGKEY,
                       matcher.toString().c_str() ) ;
       }
-      // check the attribute, we don't care the return code
-      rtnGetBooleanElement ( matcher, FIELD_NAME_COMPRESSED,
-                             isCompressed ) ;
-      if ( isCompressed )
+      // check compress
+      rc = rtnGetBooleanElement ( matcher, FIELD_NAME_COMPRESSED,
+                                  isCompressed ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
       {
-         _attributes |= DMS_MB_ATTR_COMPRESSED ;
+         hasCompressed = FALSE ;
       }
-
-      // Check if the compression type is specified. If yes, set the attribute.
-      // Compression type can only be specified when Compressed is true.
       rc = rtnGetStringElement( matcher, FIELD_NAME_COMPRESSIONTYPE,
                                 &compressionType ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
       {
-         if ( isCompressed )
-         {
-            _compressorType = UTIL_COMPRESSOR_SNAPPY ;
-         }
+         hasCompressType = FALSE ;
+      }
+      else if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to get CompressionType, rc: %d", rc ) ;
+         goto error ;
       }
       else
       {
-         if ( SDB_OK == rc )
+         if ( 0 == ossStrcmp( compressionType, VALUE_NAME_LZW ) )
          {
-            if ( !isCompressed )
-            {
-               PD_LOG( PDERROR, "Compression type is specified while "
-                       "Compressed option is false" ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-
-            if ( 0 == ossStrcmp( compressionType, VALUE_NAME_LZW ) )
-            {
-               _compressorType = UTIL_COMPRESSOR_LZW ;
-            }
-            else if ( 0 == ossStrcmp( compressionType, VALUE_NAME_SNAPPY ) )
-            {
-               _compressorType = UTIL_COMPRESSOR_SNAPPY ;
-            }
-            else
-            {
-               PD_LOG( PDERROR, "Compression type[%s] is invalid",
-                       compressionType ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
+            _compressorType = UTIL_COMPRESSOR_LZW ;
+         }
+         else if ( 0 == ossStrcmp( compressionType, VALUE_NAME_SNAPPY ) )
+         {
+            _compressorType = UTIL_COMPRESSOR_SNAPPY ;
          }
          else
          {
-            PD_LOG( PDERROR, "Failed to get CompressionType, rc: %d", rc ) ;
+            PD_LOG( PDERROR, "Compression type[%s] is invalid",
+                    compressionType ) ;
+            rc = SDB_INVALIDARG ;
             goto error ;
          }
+      }
+
+      if ( isCompressed && !hasCompressType )
+      {
+         _compressorType = UTIL_COMPRESSOR_LZW ;
+      }
+      if ( !hasCompressed && hasCompressType )
+      {
+         isCompressed = TRUE ;
+      }
+      if ( !isCompressed && hasCompressType )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR,
+                 "CompressionType can't be set when Compressed is false" ) ;
+         goto error ;
+      }
+      if ( !hasCompressed && !hasCompressType )
+      {
+         isCompressed = TRUE ;
+         _compressorType = UTIL_COMPRESSOR_LZW ;
+      }
+      if ( isCompressed )
+      {
+         _attributes |= DMS_MB_ATTR_COMPRESSED ;
       }
 
       /// auto index id
