@@ -35,8 +35,8 @@ createCL() 方法的定义格式包含 name 和 options 两个参数。name 的�
 | ShardingType | 分区方式，默认为 hash  分区。| ShardingType:"hash"&#124;"range" |
 | Partition | 分区数，hash 分区时填写，代表了 hash 分区的个数。其值必须是2的幂。范围在[2\^3，2\^20]。默认为4096。| Partition: \<分区数\> |
 | ReplSize | 副本数，默认情况下，副本写入个数为1。| ReplSize: \<int num\> |
-| Compressed | 是否数据压缩。默认为false。| Compressed:true&#124;false |
-| CompressionType | 压缩算法类型。默认为 snappy 算法。| CompressionType:"snappy"&#124;"lzw" |
+| Compressed | 是否数据压缩。默认为true。| Compressed:true&#124;false |
+| CompressionType | 压缩算法类型。默认为 lzw 算法。| CompressionType:"snappy"&#124;"lzw" |
 | IsMainCL | 主分区集合。标识是否为主分区集合，默认为否。| IsMainCL:true&#124;false |
 | AutoSplit | 是否自动切分，默认为true。| AutoSplit:true&#124;false |
 | Group | 指定创建在某个复制组。| Group: \<group name\> |
@@ -60,6 +60,7 @@ createCL() 方法的定义格式包含 name 和 options 两个参数。name 的�
 > * AutoSplit 不能与 Group 同时使用。
 > * 如果在集合中没有指定 AutoSplit，则使用所属域中的 AutoSplit 参数。
 > * Group 必须存在于集合空间所属的域中（所有复制组均属于 SYSDOMAIN，即如果集合空间没有指定域，则系统内任意复制组均可）。
+> * 压缩算法选择策略：snappy压缩算法是以单条记录为单位进行压缩，记录内部的数据重复度直接影响到压缩率。因此，当记录内部数据重复度较高，如每条记录的字段名、字段值相似，使用 snappy 算法可获得良好的压缩性能。如果记录内部数据重复度很低，但记录间具有更高的相似性，如不同记录之间有相同的字段名，相近的字段值等，则使用 lzw 算法更优。
 
 ##示例##
 
@@ -69,8 +70,8 @@ createCL() 方法的定义格式包含 name 和 options 两个参数。name 的�
 > db.foo.createCL( "bar" )
  ```
 
-* 在集合空间 foo 下创建集合 bar，指定字段 age 为分区键，升序排序
+* 在集合空间 foo 下创建集合 bar，指定字段 age 为分区键，升序排序，默认开启了数据压缩功能
 
  ```lang-javascript
-> db.foo.createCL( "bar", { ShardingKey: { "age": 1 }, ShardingType: "hash", Partition: 1024, ReplSize: 1, Compressed: true } )
+> db.foo.createCL( "bar", { ShardingKey: { "age": 1 }, ShardingType: "hash", Partition: 1024, ReplSize: 1 } )
  ```
