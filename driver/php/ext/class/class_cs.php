@@ -74,10 +74,10 @@ class SequoiaCS
     *                                                  ShardingType        : The partition type.
     *                                                  Partition           : Number of partitions, ShardingType is 'hash', represented the number of hash partitions, its value must be a power of 2, range [ 2^3, 2^20 ], default 1024.
     *                                                  ReplSize            : Copy write by default number is 1.
-    *                                                  Compressed          : Data compression, default false.
-    *                                                  CompressionType     : Types of compression, default 'snappy'.
+    *                                                  Compressed          : Data compression, default true.
+    *                                                  CompressionType     : Types of compression, default 'lzw'.
     *                                                  IsMainCL            : Main partition, default false. 
-    *                                                  AutoSplit           : Automatic split, defualt true.
+    *                                                  AutoSplit           : Automatic split, default true.
     *                                                  Group               : To create a replication group.
     *                                                  AutoIndexId         : Collection is automatically created using the _id field is called '$id' a unique index, default true.
     *                                                  EnsureShardingIndex : Collection is automatically created using the ShardingKey contains the field names for the '$shard' index, default true.
@@ -113,10 +113,10 @@ class SequoiaCS
     *                                                  ShardingType        : The partition type.
     *                                                  Partition           : Number of partitions, ShardingType is 'hash', represented the number of hash partitions, its value must be a power of 2, range [ 2^3, 2^20 ], default 1024.
     *                                                  ReplSize            : Copy write by default number is 1.
-    *                                                  Compressed          : Data compression, default false.
-    *                                                  CompressionType     : Types of compression, default 'snappy'.
+    *                                                  Compressed          : Data compression, default true.
+    *                                                  CompressionType     : Types of compression, default 'lzw'.
     *                                                  IsMainCL            : Main partition, default false. 
-    *                                                  AutoSplit           : Automatic split, defualt true.
+    *                                                  AutoSplit           : Automatic split, default true.
     *                                                  Group               : To create a replication group.
     *                                                  AutoIndexId         : Collection is automatically created using the _id field is called '$id' a unique index, default true.
     *                                                  EnsureShardingIndex : Collection is automatically created using the ShardingKey contains the field names for the '$shard' index, default true.
