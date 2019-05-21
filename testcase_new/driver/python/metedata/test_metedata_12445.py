@@ -89,24 +89,24 @@ class TestMeteData12445(testlib.SdbTestBase):
       self.maincl.attach_collection(self.subcl_full_name3, attach_option3)
       
       #check sub cl options
-      except_subcl_options_1 = {"Attribute": 0, "AttributeDesc": "",
+      except_subcl_options_1 = {"Attribute": 1, "AttributeDesc": "Compressed",
                                 "MainCLName": self.maincl_full_name, "Name": self.subcl_full_name1}
       self.check_cl_snapshot_8(self.subcl_full_name1, except_subcl_options_1)
       
-      except_subcl_options_2 = {"Attribute": 0, "AttributeDesc": "", "CataInfo": 1,
+      except_subcl_options_2 = {"Attribute": 1, "AttributeDesc": "Compressed", "CataInfo": 1,
                                 "MainCLName": self.maincl_full_name, "Name": self.subcl_full_name2,
                                 "EnsureShardingIndex": True, "ShardingKey": {"b":1}, "ShardingType": "range",
                                 "ReplSize": -1}
       self.check_cl_snapshot_8(self.subcl_full_name2, except_subcl_options_2)
       
-      except_subcl_options_3 = {"Attribute": 0, "AttributeDesc": "", "CataInfo": 1,
+      except_subcl_options_3 = {"Attribute": 1, "AttributeDesc": "Compressed", "CataInfo": 1,
                                 "MainCLName": self.maincl_full_name, "Name": self.subcl_full_name3,
                                 "EnsureShardingIndex": True, "ShardingKey": {"_id": 1}, "ShardingType": "hash",
                                 "Partition": 4096}
       self.check_cl_snapshot_8(self.subcl_full_name3, except_subcl_options_3)
       
       #check main cl options
-      except_maincl_options = {"Attribute": 0, "AttributeDesc": "",
+      except_maincl_options = {"Attribute": 1, "AttributeDesc": "Compressed",
                                "IsMainCL": True, "Name": self.maincl_full_name,
                                "EnsureShardingIndex": True, "ShardingKey": {"a": 1}, "ShardingType": "range"}
       self.check_cl_snapshot_8(self.maincl_full_name, except_maincl_options)
