@@ -89,8 +89,9 @@ class snapshot762902 extends PHPUnit_Framework_TestCase
       if ( empty($cursor) ) {
          $this -> assertFalse( true, "results is empty." );
       }
-      $this -> assertNotEmpty( $cursor -> current()["SessionID"] -> __toString() );
-      $this -> assertNotEmpty( $cursor -> current()["Contexts"][0]["ContextID"] -> __toString() );
+      $record = $cursor -> current();
+      $this -> assertNotEmpty( $record["SessionID"] -> __toString() );
+      $this -> assertNotEmpty( $record["Contexts"][0]["ContextID"] -> __toString() );
    }
 
    public function test_snapshotContextsCurrent()
@@ -104,7 +105,8 @@ class snapshot762902 extends PHPUnit_Framework_TestCase
       if ( empty($cursor) ) {
          $this -> assertFalse( true, "results is empty." );
       }
-      $this -> assertEquals( "DUMP", $cursor -> current()["Contexts"][0]["Type"] );
+      $record = $cursor -> current();
+      $this -> assertEquals( "DUMP", $record["Contexts"][0]["Type"] );
    }
 
    public function test_snapshotSessions()
@@ -118,8 +120,9 @@ class snapshot762902 extends PHPUnit_Framework_TestCase
       if ( empty($cursor) ) {
          $this -> assertFalse( true, "results is empty." );
       }
-      $this -> assertContains( "SessionID", $cursor -> current() );
-      $this -> assertContains( "TID", $cursor -> current() );
+      $record = $cursor -> current() ;
+      $this -> assertTrue( isset( $record["SessionID"] ) );
+      $this -> assertTrue( isset( $record["TID"] ) );
    }
 
    public function test_snapshotSessionsCurrent()
@@ -133,8 +136,9 @@ class snapshot762902 extends PHPUnit_Framework_TestCase
       if ( empty($cursor) ) {
          $this -> assertFalse( true, "results is empty." );
       }
-      $this -> assertContains( "SessionID", $cursor -> current() );
-      $this -> assertContains( "TID", $cursor -> current() );
+      $record = $cursor -> current();
+      $this -> assertTrue( isset( $record["SessionID"] ) );
+      $this -> assertTrue( isset( $record["TID"] ) );
    }
 
    public function test_snapshotCullections()
@@ -173,8 +177,9 @@ class snapshot762902 extends PHPUnit_Framework_TestCase
       if ( empty($cursor) ) {
          $this -> assertFalse( true, "results is empty." );
       }
-      $this -> assertEquals( self::$csName, $cursor -> current()["Name"] );
-      $this -> assertContains( "PageSize", $cursor -> current() );
+      $record = $cursor -> current();
+      $this -> assertEquals( self::$csName, $record["Name"] );
+      $this -> assertTrue( isset( $record["PageSize"] ) );
    }
 
    public function test_snapshotDatabase()
@@ -188,8 +193,9 @@ class snapshot762902 extends PHPUnit_Framework_TestCase
       if ( empty($cursor) ) {
          $this -> assertFalse( true, "results is empty." );
       }
-      $this -> assertContains( "TotalNumConnects", $cursor -> current() );
-      $this -> assertContains( "TotalDataRead", $cursor -> current() );
+      $record = $cursor -> current();
+      $this -> assertTrue( isset( $record["TotalNumConnects"] ) );
+      $this -> assertTrue( isset( $record["TotalDataRead"] ) );
    }
 
    public function test_snapshotSystem()
@@ -203,8 +209,9 @@ class snapshot762902 extends PHPUnit_Framework_TestCase
       if ( empty($cursor) ) {
          $this -> assertFalse( true, "results is empty." );
       }
-      $this -> assertGreaterThan( 0, $cursor -> current()["CPU"]["User"] );
-      $this -> assertGreaterThan( 0, $cursor -> current()["Memory"]["TotalRAM"] );
+      $record = $cursor -> current();
+      $this -> assertGreaterThan( 0, $record["CPU"]["User"] );
+      $this -> assertGreaterThan( 0, $record["Memory"]["TotalRAM"] );
    }
 
    public function test_snapshotCatalog()
@@ -224,7 +231,8 @@ class snapshot762902 extends PHPUnit_Framework_TestCase
          $this -> assertFalse( true, "results is empty." );
       }   
       $this -> assertEquals( self::$csName.'.'.self::$clName, $cursor -> current()["Name"] );
-      $this -> assertContains( "CataInfo", $cursor -> current() );
+      $record = $cursor -> current();
+      $this -> assertTrue( isset( $record["CataInfo"] ) );
       //var_dump( $cursor -> next() );
    }
 
