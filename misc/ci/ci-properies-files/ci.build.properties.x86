@@ -5,7 +5,7 @@ os.and.platform=linux_x86_64
 enterprise.name=enterprise
 
 copy_tar=/test_tar
-target.deploy_tar_gz.ip=bl465-4
+target.deploy_tar_gz.ip=test-ci-compile
 
 rpm_dir=/usr/src/packages
 
