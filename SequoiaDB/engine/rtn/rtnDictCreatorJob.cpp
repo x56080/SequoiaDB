@@ -110,6 +110,7 @@ namespace engine
       BOOLEAN foundJob = FALSE ;
       UINT64 lastStartTime = pmdGetDBTick() ;
       dmsDictJob job ;
+      vector<dmsDictJob> tmpJobQue ;
 
       while ( !PMD_IS_DB_DOWN() && !cb->isForced() )
       {
@@ -129,6 +130,13 @@ namespace engine
                cb->waitEvent( event, OSS_ONE_SEC ) ;
             }
 
+            /// push tmp job to que
+            for ( UINT32 i = 0 ; i < tmpJobQue.size() ; ++i )
+            {
+               dmsCB->pushDictJob( tmpJobQue[i] ) ;
+            }
+            tmpJobQue.clear() ;
+
             lastStartTime = pmdGetDBTick() ;
             continue ;
          }
@@ -144,7 +152,7 @@ namespace engine
          rc = _checkAndCreateDictForCL( job, retry ) ;
          if ( SDB_OK == rc && retry )
          {
-            dmsCB->pushDictJob( job ) ;
+            tmpJobQue.push_back( job ) ;
          }
 
          cb->incEventCount() ;
