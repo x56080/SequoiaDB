@@ -42,6 +42,8 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 
+using namespace bson ;
+
 namespace engine
 {
 
@@ -172,6 +174,7 @@ namespace engine
             break ;
          case RTN_JOB_DROP_INDEX :
             {
+               dmsExtentID idxExtent = DMS_INVALID_EXTENT ;
                _jobName = "DropIndex-" ;
                // need to get the index name
                _indexEle = _indexObj.getField( IXM_NAME_FIELD ) ;
@@ -180,38 +183,65 @@ namespace engine
                   _indexEle = _indexObj.firstElement () ;
                }
 
+               rc = su->data()->getMBContext( &mbContext, pCLShortName,
+                                              EXCLUSIVE ) ;
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG ( PDERROR, "Lock collection[%s] failed, rc = %d",
+                           _clFullName, rc ) ;
+                  goto error ;
+               }
+
                if ( jstOID == _indexEle.type() )
                {
                   OID oid ;
-                  dmsExtentID idxExtent = DMS_INVALID_EXTENT ;
-
-                  rc = su->data()->getMBContext( &mbContext, pCLShortName,
-                                                 SHARED ) ;
-                  if ( SDB_OK != rc )
-                  {
-                     PD_LOG ( PDERROR, "Lock collection[%s] failed, rc = %d",
-                              _clFullName, rc ) ;
-                     goto error ;
-                  }
-
                   _indexEle.Val( oid ) ;
                   // get index extent
                   rc = su->index()->getIndexCBExtent( mbContext, oid,
                                                       idxExtent ) ;
-                  if ( SDB_OK != rc )
+                  if ( rc )
                   {
                      su->data()->releaseMBContext( mbContext ) ;
-                     PD_LOG ( PDERROR, "Get collection[%s] indexCB extent "
-                              "failed, rc = %d", _clFullName, rc ) ;
+                     PD_LOG ( PDERROR, "Get collection[%s] indexCB[%s] extent "
+                              "failed, rc: %d", _clFullName,
+                              oid.str().c_str(), rc ) ;
                      goto error ;
                   }
-
-                  ixmIndexCB indexCB ( idxExtent, su->index(), NULL ) ;
-                  _indexName = indexCB.getName() ;
+                  else
+                  {
+                     ixmIndexCB indexCB ( idxExtent, su->index(), mbContext ) ;
+                     _indexName = indexCB.getName() ;
+                     /// first set index flag to IXM_INDEX_FLAG_INVALID
+                     if ( _indexObj.getBoolField( IXM_UNIQUE_FIELD ) )
+                     {
+                        indexCB.setFlag( IXM_INDEX_FLAG_INVALID ) ;
+                     }
+                  }
                }
                else
                {
                   _indexName = _indexEle.str () ;
+                  // get index extent
+                  rc = su->index()->getIndexCBExtent( mbContext,
+                                                      _indexName.c_str(),
+                                                      idxExtent ) ;
+                  if ( rc )
+                  {
+                     su->data()->releaseMBContext( mbContext ) ;
+                     PD_LOG( PDERROR, "Get collection[%s] indexCB[%s] extent "
+                             "failed, rc: %d", _clFullName,
+                             _indexName.c_str(), rc ) ;
+                     goto error ;
+                  }
+                  else
+                  {
+                     ixmIndexCB indexCB ( idxExtent, su->index(), mbContext ) ;
+                     /// first set index flag to IXM_INDEX_FLAG_INVALID
+                     if ( _indexObj.getBoolField( IXM_UNIQUE_FIELD ) )
+                     {
+                        indexCB.setFlag( IXM_INDEX_FLAG_INVALID ) ;
+                     }
+                  }
                }
             }
             break ;
