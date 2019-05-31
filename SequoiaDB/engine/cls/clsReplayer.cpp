@@ -1161,6 +1161,9 @@ namespace engine
                           1, _dpsCB ) ;
    }
 
+
+   #define CLS_CRTIDX_CHECK_INTERVAL         ( 200 )  /// ms
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_STARTINXJOB, "startIndexJob" )
    INT32 startIndexJob ( RTN_JOB_TYPE type,
                          const dpsLogRecordHeader *recordHeader,
@@ -1170,6 +1173,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_STARTINXJOB );
       const CHAR *fullname = NULL ;
       BSONObj index ;
+      std::string indexName ;
       rtnIndexJob *indexJob = NULL ;
       clsCatalogSet *pCatSet = NULL ;
       BOOLEAN useSync = FALSE ;
@@ -1180,7 +1184,7 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      else if ( LOG_TYPE_IX_CRT == recordHeader->_type)
+      else if ( LOG_TYPE_IX_CRT == recordHeader->_type )
       {
          rc = dpsRecord2IXCrt( (CHAR *)recordHeader,
                                &fullname,
@@ -1231,17 +1235,36 @@ namespace engine
          goto error ;
       }
 
+      indexName = indexJob->getIndexName() ;
       if ( FALSE == useSync )
       {
-         /*rc = rtnGetJobMgr()->startJob( indexJob, RTN_JOB_MUTEX_STOP_RET, NULL ) ;
-         if ( SDB_RTN_MUTEX_JOB_EXIST == rc )
-         {
-            rc = SDB_OK ;
-         }*/
+         EDUID jobEduID = PMD_INVALID_EDUID ;
          // if use RTN_JOB_MUTEX_STOP_RET, when create index have complete,
          // drop index should not drop really, so it's error, need to use
          // RTN_JOB_MUTEX_STOP_CONT
-         rc = rtnGetJobMgr()->startJob( indexJob, RTN_JOB_MUTEX_STOP_CONT, NULL ) ;
+         rc = rtnGetJobMgr()->startJob( indexJob, RTN_JOB_MUTEX_STOP_CONT,
+                                        &jobEduID ) ;
+
+         /// When create index, should wait the index has created into
+         /// meta data
+         if ( PMD_INVALID_EDUID != jobEduID &&
+              LOG_TYPE_IX_CRT == recordHeader->_type )
+         {
+            BOOLEAN indexExist = FALSE ;
+
+            while ( NULL != rtnGetJobMgr()->findJob( jobEduID ) )
+            {
+               /// when index job is running
+               if ( SDB_OK != rtnIndexJob::checkIndexExist( fullname,
+                                                            indexName.c_str(),
+                                                            indexExist ) ||
+                    TRUE == indexExist )
+               {
+                  break ;
+               }
+               ossSleep( CLS_CRTIDX_CHECK_INTERVAL ) ;
+            }
+         }
       }
       else
       {
