@@ -126,6 +126,59 @@ namespace engine
       goto done ;
    }
 
+   INT32 _rtnIndexJob::checkIndexExist( const CHAR *pCLName,
+                                        const CHAR *pIdxName,
+                                        BOOLEAN &hasExist )
+   {
+      INT32 rc = SDB_OK ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      dmsStorageUnit *su = NULL ;
+      dmsMBContext *mbContext = NULL ;
+      const CHAR *pCLShortName = NULL ;
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      dmsExtentID idxExtent = DMS_INVALID_EXTENT ;
+
+      hasExist = FALSE ;
+
+      rc = rtnResolveCollectionNameAndLock ( pCLName, dmsCB,
+                                             &su, &pCLShortName,
+                                             suID ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDERROR, "Failed to resolve collection name %s",
+                  pCLName ) ;
+         goto error ;
+      }
+
+      rc = su->data()->getMBContext( &mbContext, pCLShortName, SHARED ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDERROR, "Lock collection[%s] failed, rc = %d",
+                  pCLName, rc ) ;
+         goto error ;
+      }
+
+      /// get index
+      rc = su->index()->getIndexCBExtent( mbContext, pIdxName, idxExtent ) ;
+      if ( SDB_OK == rc )
+      {
+         hasExist = TRUE ;
+      }
+
+   done:
+      if ( mbContext )
+      {
+         su->data()->releaseMBContext( mbContext ) ;
+      }
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINDEXJOB_INIT, "_rtnIndexJob::init" )
    INT32 _rtnIndexJob::init ()
    {
@@ -201,11 +254,11 @@ namespace engine
                                                       idxExtent ) ;
                   if ( rc )
                   {
-                     su->data()->releaseMBContext( mbContext ) ;
-                     PD_LOG ( PDERROR, "Get collection[%s] indexCB[%s] extent "
+                     PD_LOG ( PDWARNING, "Get collection[%s] indexCB[%s] extent "
                               "failed, rc: %d", _clFullName,
                               oid.str().c_str(), rc ) ;
-                     goto error ;
+                     /// ignore the error
+                     rc = SDB_OK ;
                   }
                   else
                   {
@@ -227,11 +280,11 @@ namespace engine
                                                       idxExtent ) ;
                   if ( rc )
                   {
-                     su->data()->releaseMBContext( mbContext ) ;
-                     PD_LOG( PDERROR, "Get collection[%s] indexCB[%s] extent "
+                     PD_LOG( PDWARNING, "Get collection[%s] indexCB[%s] extent "
                              "failed, rc: %d", _clFullName,
                              _indexName.c_str(), rc ) ;
-                     goto error ;
+                     /// ignore the error
+                     rc = SDB_OK ;
                   }
                   else
                   {

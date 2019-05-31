@@ -65,6 +65,10 @@ namespace engine
          const CHAR* getIndexName () const ;
          const CHAR* getCollectionName() const ;
 
+         static INT32 checkIndexExist( const CHAR *pCLName,
+                                       const CHAR *pIdxName,
+                                       BOOLEAN &hasExist ) ;
+
       public:
          virtual RTN_JOB_TYPE type () const ;
          virtual const CHAR* name () const ;
