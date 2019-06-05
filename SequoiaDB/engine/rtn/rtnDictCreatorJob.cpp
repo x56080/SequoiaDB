@@ -41,6 +41,7 @@
 #include "pmd.hpp"
 #include "rtnTrace.hpp"
 #include "rtnDictCreatorJob.hpp"
+#include "rtn.hpp"
 
 namespace engine
 {
@@ -317,14 +318,16 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTN_DICTCREATORJOB__TRANSFERDICT ) ;
+      CHAR fullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
 
       SDB_ASSERT( FALSE == context->isMBLock(),
                   "mb should not have been locked" ) ;
 
-      rc = sd->dictPersist( context->mbID(), context->clLID(),
-                            dictStream, dictSize ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to store dictionary in colleciton, rc: %d", rc ) ;
+      ossSnprintf( fullName, DMS_COLLECTION_FULL_NAME_SZ + 1, "%s.%s",
+                   sd->getSuName(), context->mb()->_collectionName ) ;
+      rc = rtnLoadCollectionDict( fullName, dictStream, dictSize ) ;
+      PD_RC_CHECK( rc, PDERROR, "Load compression dictionary for collection[%s]"
+                   " failed: %d", context->mb()->_collectionName, rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__RTN_DICTCREATORJOB__TRANSFERDICT, rc ) ;

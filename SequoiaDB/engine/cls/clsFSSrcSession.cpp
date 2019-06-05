@@ -483,6 +483,26 @@ namespace engine
       builder1.append( CLS_FS_ATTRIBUTES, attributes ) ;
       builder1.append( CLS_FS_COMP_TYPE, (INT32)compType ) ;
       builder1.append( CLS_FS_LOB_PAGE_SIZE, su->getLobPageSize() ) ;
+
+      // If compression type is LZW, get the dictionary, if any.
+      if ( UTIL_COMPRESSOR_LZW == compType )
+      {
+         dmsMBContext *context = NULL ;
+         dmsStorageData* data = su->data() ;
+         if ( SDB_OK == data->getMBContext( &context, collection, SHARED ) )
+         {
+            const CHAR *dictionary = NULL ;
+            UINT32 dictLen = 0 ;
+            if ( data->getDictionary( context, dictionary, dictLen ) )
+            {
+               // If the dictionary is not ready, nothing will be added.
+               builder1.appendBinData( CLS_FS_COMP_DICT, dictLen,
+                                       BinDataGeneral, dictionary ) ;
+            }
+            data->releaseMBContext( context ) ;
+         }
+      }
+
       builder2.append( CLS_FS_CS_META_NAME, builder1.obj() ) ;
       builder2.append( CLS_FS_CS_NAME, cs ) ;
       builder2.append( CLS_FS_COLLECTION_NAME, collection ) ;

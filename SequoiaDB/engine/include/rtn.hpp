@@ -501,6 +501,14 @@ namespace engine
                     const CHAR *pSpecCSName = NULL,
                     BOOLEAN block = FALSE ) ;
 
+   // Load compression dictionary for one collection.
+   // Note: Always be cautious to set force as true. Only use force when the
+   // dictionary is corrupted, and the dictionary being load is the same with
+   // the original one. Otherwise, all existing data will not able to
+   // decompress.
+   INT32 rtnLoadCollectionDict( const CHAR *pCollectionName,
+                                const CHAR *dictionary,
+                                UINT32 dictSize, BOOLEAN force = FALSE ) ;
 }
 
 #endif
