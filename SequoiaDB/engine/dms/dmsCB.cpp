@@ -456,7 +456,7 @@ namespace engine
          rc = dpsCB->prepare ( info ) ;
          if ( rc )
          {
-            
+
             PD_LOG ( PDERROR, "Failed to insert cscrt into log, rc = %d", rc ) ;
             goto error ;
          }
@@ -1646,33 +1646,9 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_DISPATCHDICTJOB, "_SDB_DMSCB::dispatchDictJob" )
    BOOLEAN _SDB_DMSCB::dispatchDictJob( dmsDictJob &job )
    {
-      PD_TRACE_ENTRY( SDB__SDB_DMSCB_DISPATCHDICTJOB ) ;
-      BOOLEAN foundJob = FALSE ;
-
-      if ( _dictWaitQue.size() > 0 )
-      {
-         BOOLEAN result = _dictWaitQue.try_pop( job ) ;
-         if ( result )
-         {
-            // Before the dictionary condition is satisfied, wait for 5 seconds
-            // between each try to dispath the same job. Otherwise, push it
-            // back to the queue.
-            if ( pmdGetTickSpanTime( job._createTime ) > OSS_ONE_SEC * 5 )
-            {
-               foundJob = TRUE ;
-            }
-            else
-            {
-               _dictWaitQue.push( job ) ;
-            }
-         }
-      }
-
-      PD_TRACE_EXIT( SDB__SDB_DMSCB_DISPATCHDICTJOB ) ;
-      return foundJob ;
+      return _dictWaitQue.try_pop( job ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_PUSHDICTJOB, "_SDB_DMSCB::pushDictJob" )

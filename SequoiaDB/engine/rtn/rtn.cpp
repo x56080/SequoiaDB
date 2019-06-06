@@ -1501,5 +1501,48 @@ namespace engine
    error:
       goto done ;
    }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOADCOLLECTIONDICT, "rtnLoadCollectionDict" )
+   INT32 rtnLoadCollectionDict( const CHAR *pCollectionName,
+                                const CHAR *dictionary,
+                                UINT32 dictSize, BOOLEAN force )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_RTNLOADCOLLECTIONDICT ) ;
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      dmsStorageUnit *su = NULL ;
+      const CHAR *clShortName = NULL ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      dmsStorageData *data = NULL ;
+      dmsMBContext *context = NULL ;
+
+      rc = rtnResolveCollectionNameAndLock( pCollectionName, dmsCB, &su,
+                                            &clShortName, suID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Resolve collection name[%s] failed: %d",
+                   pCollectionName, rc ) ;
+
+      data = su->data() ;
+      rc = data->getMBContext( &context, clShortName, EXCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Get mb context for collection[%s] failed: %d",
+                   pCollectionName, rc ) ;
+
+      rc = data->loadDictionary( context, dictionary, dictSize, force ) ;
+      PD_RC_CHECK( rc, PDERROR, "Load dictionary for collection[%s] failed[%d]",
+                   pCollectionName, rc ) ;
+
+   done:
+      if ( context )
+      {
+         data->releaseMBContext( context ) ;
+      }
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+      }
+      PD_TRACE_EXITRC( SDB_RTNLOADCOLLECTIONDICT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
 }
 

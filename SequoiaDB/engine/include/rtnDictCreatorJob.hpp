@@ -43,7 +43,7 @@
 
 namespace engine
 {
-   #define RTN_DEFAULT_DICT_SCAN_INTERVAL ( OSS_ONE_SEC * 5 )
+   #define RTN_DEFAULT_DICT_SCAN_INTERVAL ( OSS_ONE_SEC * 3 )
    #define RTN_DICT_CREATE_COND_NOT_MATCH -1
 
    class _rtnDictCreatorJob : public _rtnBaseJob

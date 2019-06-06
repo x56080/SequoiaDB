@@ -60,6 +60,28 @@ namespace engine
    {
       DECLARE_OBJ_MSG_MAP()
 
+      struct _clMetaData
+      {
+         string csName ;
+         string clName ;
+         UINT32 pageSize ;
+         UINT32 attributes ;
+         INT32  lobPageSize ;
+         UTIL_COMPRESSOR_TYPE compType ;
+         const CHAR *dictionary ;
+         UINT32 dictSize ;
+
+         _clMetaData()
+         {
+            pageSize = DMS_INVALID_PAGESIZE ;
+            attributes = 0 ;
+            lobPageSize = DMS_INVALID_PAGESIZE ;
+            compType = UTIL_COMPRESSOR_INVALID ;
+            dictionary = NULL ;
+            dictSize = 0 ;
+         }
+      } ;
+
       public:
          _clsDataDstBaseSession ( UINT64 sessionID, _netRouteAgent *agent ) ;
          virtual ~_clsDataDstBaseSession () ;
@@ -69,6 +91,9 @@ namespace engine
          virtual void    onTimer ( UINT64 timerID, UINT32 interval ) ;
          virtual void    onRecieve ( const NET_HANDLE netHandle,
                                      MsgHeader * msg ) ;
+
+      protected:
+         virtual INT32 _onMetaDone( const _clMetaData &meta ) ;
 
       protected:
          virtual void   _begin () = 0 ;
@@ -107,10 +132,8 @@ namespace engine
                                const CHAR *&data ) ;
 
          INT32          _extractFullNames( const CHAR *names ) ;
-         INT32          _extractMeta( const CHAR *objdata, string &cs,
-                                      string &collection, UINT32 &pageSize,
-                                      UINT32 &attributes, INT32 &lobPageSize,
-                                      UTIL_COMPRESSOR_TYPE &compType ) ;
+         INT32          _extractMeta( const CHAR *objdata, _clMetaData &meta ) ;
+
          INT32          _extractIndex( const CHAR *objdata, vector<BSONObj> &index,
                                        BOOLEAN &noMore ) ;
 
@@ -190,6 +213,8 @@ namespace engine
    protected:
       virtual void      _onAttach () ;
       virtual void      _onDetach () ;
+      virtual INT32     _onMetaDone( const _clMetaData &meta ) ;
+
    protected:
       void              _pullTransLog ( DPS_LSN &begin ) ;
    protected:

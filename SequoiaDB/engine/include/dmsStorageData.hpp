@@ -688,9 +688,12 @@ namespace engine
 
          virtual INT32 tryToFlush( BOOLEAN ignoreTick, BOOLEAN &failed ) ;
 
-         /* Create the compressor, and set the dictionry for it. */
-         INT32 dictPersist( UINT16 mbID, UINT32 clLID,
-                            const CHAR *dict, UINT32 dictLen ) ;
+         INT32 loadDictionary( dmsMBContext *context, const CHAR *dictionary,
+                               UINT32 dictLen, BOOLEAN force ) ;
+
+         BOOLEAN getDictionary( dmsMBContext *context, const CHAR *&dictionary,
+                                UINT32 &dictLen ) ;
+
          OSS_INLINE _dmsCompressorEntry *getCompressorEntry( UINT16 mbID ) ;
 
       private:
