@@ -35,7 +35,7 @@ function createCL( csName, clName, rgName, compressed, compreType )
    {
       println( '\n---Begin to create CL[Group:"'+ rgName + '", Compressed:'+ compressed +'].' );
       
-      var options = { Group:rgName, ReplSize:0 } ;
+      var options = { Group:rgName, ReplSize:0, Compressed:false } ;
    }
    else if( compressed == true )
    {
@@ -77,7 +77,7 @@ function checkAttributeOfCL( csName, clName, compressed, compreType )
       if( Attribute !== 0 || AttributeDesc !== "" )
       {    
          throw buildException("Failed to check attribute of cl", null, "[checkResult]", 
-               '[Attribute: 1, AttributeDesc: "Compressed"', 
+               '[Attribute: 0, AttributeDesc: ""]', 
                '[Attribute: '+ Attribute +', AttributeDesc: "'+ AttributeDesc +'"]');
       }
    }
