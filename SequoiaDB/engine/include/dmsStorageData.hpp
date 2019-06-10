@@ -489,24 +489,25 @@ namespace engine
 
       void updateLastLSN( UINT64 lsn, DMS_FILE_TYPE type )
       {
-         if ( DMS_FILE_DATA == type )
+         if ( OSS_BIT_TEST( type, DMS_FILE_DATA ) )
          {
             _lastLSN.swap( lsn ) ;
          }
-         else if ( DMS_FILE_IDX == type )
+         if ( OSS_BIT_TEST( type, DMS_FILE_IDX ) )
          {
             _idxLastLSN.swap( lsn ) ;
          }
-         else if ( DMS_FILE_LOB == type )
+         if ( OSS_BIT_TEST( type, DMS_FILE_LOB ) )
          {
             _lobLastLSN.swap( lsn ) ;
          }
       }
+
       void updateLastLSNWithComp( UINT64 lsn,
                                   DMS_FILE_TYPE type,
                                   BOOLEAN isRollback )
       {
-         if ( DMS_FILE_DATA == type )
+         if ( OSS_BIT_TEST( type, DMS_FILE_DATA ) )
          {
             if ( !_lastLSN.compareAndSwap( DPS_INVALID_LSN_OFFSET, lsn ) )
             {
@@ -520,7 +521,7 @@ namespace engine
                }
             }
          }
-         else if ( DMS_FILE_IDX == type )
+         if ( OSS_BIT_TEST( type, DMS_FILE_IDX ) )
          {
             if ( !_idxLastLSN.compareAndSwap( DPS_INVALID_LSN_OFFSET, lsn ) )
             {
@@ -534,7 +535,7 @@ namespace engine
                }
             }
          }
-         else if ( DMS_FILE_LOB == type )
+         if ( OSS_BIT_TEST( type, DMS_FILE_LOB ) )
          {
             if ( !_lobLastLSN.compareAndSwap( DPS_INVALID_LSN_OFFSET, lsn ) )
             {

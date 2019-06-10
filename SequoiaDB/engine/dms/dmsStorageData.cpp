@@ -2526,13 +2526,13 @@ namespace engine
                                fullName, rc, "RecordNum:%llu, LobNum:%llu",
                                oldRecords, oldLobs ) ;
          rc = _logDPS( dpscb, info, cb, context, DMS_INVALID_EXTENT,
-                       TRUE, DMS_FILE_DATA, &oldCLID ) ;
+                       TRUE, DMS_FILE_ALL, &oldCLID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert CLTrunc record to log, "
                       "rc: %d", rc ) ;
       }
       else if ( cb->getLsnCount() > 0 )
       {
-         context->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_DATA ) ;
+         context->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_ALL ) ;
       }
 
    done:

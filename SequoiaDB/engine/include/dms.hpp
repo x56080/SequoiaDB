@@ -221,12 +221,12 @@ namespace engine
    /*
       DMS_FILE_TYPE define
    */
-   enum DMS_FILE_TYPE
-   {
-      DMS_FILE_DATA     = 1,
-      DMS_FILE_IDX,
-      DMS_FILE_LOB
-   } ;
+   typedef UINT32 DMS_FILE_TYPE ;
+
+   #define DMS_FILE_DATA ( 0x00000001 )
+   #define DMS_FILE_IDX  ( 0x00000002 )
+   #define DMS_FILE_LOB  ( 0x00000004 )
+   #define DMS_FILE_ALL  ( 0xFFFFFFFF )
 
    // helper function, check DMS/IXM object name validity
    BOOLEAN  dmsIsSysCSName ( const CHAR *collectionSpaceName ) ;
