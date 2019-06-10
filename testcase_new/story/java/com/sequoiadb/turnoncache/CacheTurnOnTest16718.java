@@ -30,7 +30,7 @@ public class CacheTurnOnTest16718 extends SdbTestBase{
 	@DataProvider(name = "clientoption-provider")
 	public Object[][] getClientOption(){
 		return new Object[][]{
-				new Object[]{true, 2000},
+				new Object[]{true, 10000},
 				new Object[]{false, 1000},
 		};
 	}
@@ -180,20 +180,7 @@ public class CacheTurnOnTest16718 extends SdbTestBase{
         return end - start;
     }
 	
-	long Sleep(int inteval){
-	    long start = System.currentTimeMillis() ;
-	    try {
-	        Thread.sleep(inteval);
-	    } catch (InterruptedException e) {
-	        // TODO Auto-generated catch block
-	        e.printStackTrace();
-	    }
-	    long end = System.currentTimeMillis() ;
-	    return end - start ;
-	}
-	
-	
-	@Test(dataProvider= "clientoption-provider", enabled = false)
+	@Test(dataProvider= "clientoption-provider")
 	void testCreateCS(boolean enable, int inteval){
 		initClient(enable, inteval);//2
 		CollectionSpace  cs = createCS();
@@ -217,7 +204,7 @@ public class CacheTurnOnTest16718 extends SdbTestBase{
 		}
 	}
 	
-	@Test(dataProvider= "clientoption-provider",enabled = false)
+	@Test(dataProvider= "clientoption-provider")
 	void testCreateCL(boolean enable, int inteval){
 		initClient(enable, inteval);
 		CollectionSpace cs = createCS(null);
@@ -240,7 +227,7 @@ public class CacheTurnOnTest16718 extends SdbTestBase{
 		}
 	}
 	
-	@Test(dataProvider= "clientoption-provider",enabled = false)
+	@Test(dataProvider= "clientoption-provider")
 	void testCreateCLWithOptions(boolean enable, int inteval){
 		initClient(enable, inteval);
 		BSONObject options = new BasicBSONObject();
@@ -295,53 +282,6 @@ public class CacheTurnOnTest16718 extends SdbTestBase{
 		dropCS(cs);
 	}
 	
-	@Test(dataProvider= "clientoption-provider",enabled = false)
-	void testGetCSOfTimeOut(boolean enable, int inteval){
-		initClient(enable, inteval);
-		CollectionSpace cs = createCS();
-		long spendTime = 0 ;
-		try{
-			getCS(db_check);
-			spendTime = Sleep( inteval ) ;
-			spendTime += dropCSWithSpendTime(cs);
-			while ( spendTime < inteval ){
-			    int tmpInteval = inteval - (int)spendTime ;
-			    spendTime += Sleep( tmpInteval ) ;
-			}
-			getCS(db_check);
-			Assert.assertFalse(true, "must is SDB_DMS_CS_NOTEXIST");
-		}catch(BaseException e){
-			Assert.assertEquals(e.getErrorCode(), 
-					new BaseException("SDB_DMS_CS_NOTEXIST").getErrorCode());
-		}
-	}
-	
-	@Test(dataProvider= "clientoption-provider",enabled = false)
-	void testGetCLOfTimeOut(boolean enable, int inteval){
-		initClient(enable, inteval);
-		CollectionSpace cs = createCS(null);
-		System.out.println(System.currentTimeMillis());
-		long spendTime = 0 ;
-		try{
-			getCL(db_check);
-			spendTime = Sleep( inteval ) ;
-			spendTime += dropCLWithSpendTime( cs );
-			//dropCL(cs);
-			while ( spendTime < inteval ){
-                int tmpInteval = inteval - (int)spendTime ;
-                spendTime += Sleep( tmpInteval ) ;
-            }
-			getCL(db_check);
-			System.out.println(System.currentTimeMillis());
-			//db_check.dumpCache();
-			Assert.assertFalse(true, "must is SDB_DMS_CS_NOTEXIST");
-		}catch(BaseException e){
-			Assert.assertEquals(e.getErrorCode(), 
-				      new BaseException("SDB_DMS_NOTEXIST").getErrorCode());
-		} 
-		dropCS(cs);
-	}
-	
 	boolean isStandAlone(){
 		try{
 			db.getReplicaGroupNames();
@@ -366,7 +306,7 @@ public class CacheTurnOnTest16718 extends SdbTestBase{
 		}
 	}
 	
-	@Test(dataProvider= "clientoption-provider",enabled = false)
+	@Test(dataProvider= "clientoption-provider")
 	void testUpdateTimeStamp(boolean enable, int inteval){
 		initClient(enable, inteval);
 		CollectionSpace cs = createCS(null);
