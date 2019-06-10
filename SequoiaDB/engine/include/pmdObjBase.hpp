@@ -148,8 +148,8 @@ namespace engine
             ossGetCurrentTime(ts);
             if (ts.time - occurTime > 2)
             {
-               PD_LOG( PDWARNING,  "[%s]Timer(ID:%u-%u,interval:%u) lantcy %u "
-                       "seconds", name(), (UINT32)(timerID >> 32),
+               PD_LOG( PDWARNING,  "[%s]Timer(ID:%u-%u,interval:%u) delay more "
+                       "than %u seconds", name(), (UINT32)(timerID >> 32),
                        (UINT32)(timerID & 0xFFFFFFFF), interval,
                        (UINT32)(ts.time - occurTime) );
             }
