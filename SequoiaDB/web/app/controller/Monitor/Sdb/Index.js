@@ -252,10 +252,10 @@
                else
                {
                   var diff = [] ;
-                  diff.push( ( $scope.DbInfo['TotalInsert'] < 0 ? 0 : $scope.DbInfo['TotalInsert'] - SumInfo['TotalInsert'] ) / 5 ) ;
-                  diff.push( ( $scope.DbInfo['TotalRead']   < 0 ? 0 : $scope.DbInfo['TotalRead']   - SumInfo['TotalRead'] )   / 5 ) ;
-                  diff.push( ( $scope.DbInfo['TotalDelete'] < 0 ? 0 : $scope.DbInfo['TotalDelete'] - SumInfo['TotalDelete'] ) / 5 ) ;
-                  diff.push( ( $scope.DbInfo['TotalUpdate'] < 0 ? 0 : $scope.DbInfo['TotalUpdate'] - SumInfo['TotalUpdate'] ) / 5 ) ;
+                  diff.push( ( $scope.DbInfo['TotalInsert'] - SumInfo['TotalInsert'] < 0 ? 0 : $scope.DbInfo['TotalInsert'] - SumInfo['TotalInsert'] ) / 5 ) ;
+                  diff.push( ( $scope.DbInfo['TotalRead']   - SumInfo['TotalRead']   < 0 ? 0 : $scope.DbInfo['TotalRead']   - SumInfo['TotalRead'] )   / 5 ) ;
+                  diff.push( ( $scope.DbInfo['TotalDelete'] - SumInfo['TotalDelete'] < 0 ? 0 : $scope.DbInfo['TotalDelete'] - SumInfo['TotalDelete'] ) / 5 ) ;
+                  diff.push( ( $scope.DbInfo['TotalUpdate'] - SumInfo['TotalUpdate'] < 0 ? 0 : $scope.DbInfo['TotalUpdate'] - SumInfo['TotalUpdate'] ) / 5 ) ;
 
                   $scope.charts['Module']['value'] = [ [ 0, diff[0], true, false ], [ 1, diff[1], true, false ], [ 2, diff[2], true, false ], [ 3, diff[3], true, false ] ] ;
                   
