@@ -80,10 +80,10 @@ TEST_F( splitRangeTest12682, splitRangeSync12682 )
 
    // check cl groups before split
    vector<string> clGroups ;
-   rc = getClGroups( db, clFullName, clGroups ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to get cl data groups" ;
-   ASSERT_EQ( 1, clGroups.size() ) << "fail to check cl data groups num" ;
-   ASSERT_STREQ( srcGroup, clGroups[0].c_str() ) << "fail to check cl data groups" ;
+   // rc = getClGroups( db, clFullName, clGroups ) ;
+   // ASSERT_EQ( SDB_OK, rc ) << "fail to get cl data groups" ;
+   // ASSERT_EQ( 1, clGroups.size() ) << "fail to check cl data groups num" ;
+   // ASSERT_STREQ( srcGroup, clGroups[0].c_str() ) << "fail to check cl data groups" ;
 
    // split cl
    BSONObj begin = BSON( "a" << 10 ) ;
