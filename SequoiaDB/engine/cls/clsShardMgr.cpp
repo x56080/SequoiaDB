@@ -688,9 +688,9 @@ namespace engine
       else
       {
          clsGroupItem *item = NULL ;
-         rc = getAndLockGroupItem( groupID, &item, FALSE, CLS_SHARD_TIMEOUT,
-                                   NULL ) ;
-         if ( SDB_OK == rc )
+         INT32 rcTmp = getAndLockGroupItem( groupID, &item, FALSE,
+                                            CLS_SHARD_TIMEOUT, NULL ) ;
+         if ( SDB_OK == rcTmp )
          {
             _clsUpdateNodeStatus( item, hosts ) ;
             unlockGroupItem( item ) ;
