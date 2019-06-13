@@ -231,7 +231,7 @@ function splittable(db, cl, clname)
    }
    catch(e)
    {
-      buildException("splittable", e);
+      throw buildException("splittable", e);
    }
 }
 
