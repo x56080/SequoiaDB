@@ -36,7 +36,7 @@
          <touch file="${cmd_file_name}_begin.js"/>
          <touch file="${cmd_file_name}_end.js"/>
          <echo message="print()" file="${cmd_file_name}_begin.js"/>
-         <echo message="print()" file="${cmd_file_name}end.js"/>
+         <echo message="print()" file="${cmd_file_name}_end.js"/>
          <switch value="@{marktype}">
             <case value="begin">
                <var name="mark_cmd" value="-e &quot;db=new Sdb('localhost',${SVCNAME}); db.msg('Begin testcase[@{casename}]'); 
