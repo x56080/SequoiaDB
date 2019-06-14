@@ -62,6 +62,11 @@ namespace engine
                               po::variables_map &vm,
                               BOOLEAN allowUnreg = TRUE ) ;
 
+   INT32 utilReadCommandLine2( INT32 argc, CHAR **argv,
+                               po::options_description &desc,
+                               po::variables_map &vm,
+                               BOOLEAN allowUnreg = TRUE ) ;
+
    INT32 utilWriteConfigFile( const CHAR * pFile, const CHAR * pData,
                               BOOLEAN createOnly = FALSE ) ;
 
