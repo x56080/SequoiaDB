@@ -125,8 +125,9 @@ namespace engine
                for ( vector<string>::iterator i = to_pass_further.begin() ; 
                      i != to_pass_further.end() ; ++i )
                {
-                  std::cerr << std::left << *i << std::endl ;
+                  std::cerr << *i << ' ' ;
                }
+               std::cerr << std::endl ;
                rc = SDB_INVALIDARG ;
                goto error ;
             }
