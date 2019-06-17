@@ -76,7 +76,8 @@ clientCPPLibFiles = [
       "bson/base64.cpp",
       "bson/md5.c",
       "bson/nonce.cpp",
-      "bson/bsonDecimal.cpp"
+      "bson/bsonDecimal.cpp",
+      "util/utilTypeCast.c"
       ]
 
 

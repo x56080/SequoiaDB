@@ -75,7 +75,7 @@ function checkCLData( cl )
    }
    
    var expCnt  = 7;
-   var expRecs = '[{"number":9999999999,"address":"http:sequoiadb.com","commit":true},{"number":{"$decimal":"9999999999.9999999999"},"address":"hepaticochlecystostcholecystntenterostomy","commit":"false"},{"number":{"$decimal":"0.006574839201"},"address":"pOiUyTmghe","commit":"null"},{"number":6574839201,"address":-6574839201,"commit":"6574839201QEC.M"},{"number":6000000000,"address":"2014-4-9","commit":"_single109-100.jpg"},{"number":-6000000000,"address":"0xFFFF","commit":6574839201},{"number":"914321484","address":"9999999999.9999999999","commit":"006574839201"}]';
+   var expRecs = '[{"number":9999999999,"address":"http:sequoiadb.com","commit":true},{"number":{"$decimal":"9999999999.9999999999"},"address":"hepaticochlecystostcholecystntenterostomy","commit":"false"},{"number":0.006574839201,"address":"pOiUyTmghe","commit":"null"},{"number":6574839201,"address":-6574839201,"commit":"6574839201QEC.M"},{"number":6000000000,"address":"2014-4-9","commit":"_single109-100.jpg"},{"number":-6000000000,"address":"0xFFFF","commit":6574839201},{"number":"914321484","address":"9999999999.9999999999","commit":"006574839201"}]';
    var actCnt  = recsArray.length;
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )

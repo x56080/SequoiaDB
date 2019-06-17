@@ -45,7 +45,8 @@ clientLibFiles = [
       root_dir + "/../../SequoiaDB/engine/client/timestampValid.c",
       root_dir + "/../../SequoiaDB/engine/client/base64c.c",
       root_dir + "/../../SequoiaDB/engine/client/network.c",
-      root_dir + "/../../SequoiaDB/engine/bson/md5.c"
+      root_dir + "/../../SequoiaDB/engine/bson/md5.c",
+      root_dir + "/../../SequoiaDB/engine/util/utilTypeCast.c"
       ]
 clientLibFiles2 = [
       root_dir + "/../../SequoiaDB/engine/client/bson/numbers.c",
@@ -86,7 +87,8 @@ srcFile = [
       root_dir + "/ext/temp/bson/numbers.c",
       root_dir + "/ext/temp/bson/bson.c",
       root_dir + "/ext/temp/bson/common_decimal.c",
-      root_dir + "/ext/temp/bson/encoding.c"
+      root_dir + "/ext/temp/bson/encoding.c",
+      root_dir + "/ext/temp/utilTypeCast.c"
       ]
 if testBuild:
     env.Program([testFiles])

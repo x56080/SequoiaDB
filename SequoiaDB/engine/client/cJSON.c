@@ -17,6 +17,7 @@
 #include <math.h>
 #include "ossMem.h"
 #include "ossUtil.h"
+#include "utilTypeCast.h"
 #include "cJSON.h"
 
 #ifdef _DEBUG
@@ -1740,10 +1741,6 @@ error:
    goto done ;
 }
 
-#define CJSON_INT32_MAX 214748364
-#define CJSON_INT32_MIN (-214748364)
-#define CJSON_INT64_MAX 922337203685477580
-#define CJSON_INT64_MIN (-922337203685477580)
 static const CHAR* parseNumber( const CHAR *pStr,
                                 INT32 *pValInt,
                                 FLOAT64 *pValDouble,
@@ -1751,167 +1748,35 @@ static const CHAR* parseNumber( const CHAR *pStr,
                                 CJSON_VALUE_TYPE *pNumType,
                                 INT32 *pLen )
 {
-   INT32 subscale = 0 ;
-   INT32 signsubscale = 1 ;
-   INT32 len = 0 ;
-   INT32 sign = 1 ;
-   FLOAT64 decimal = 0 ;
-   FLOAT64 n = 0 ;
-   FLOAT64 scale = 0 ;
-   INT32 n1 = 0 ;
-   INT64 n2 = 0 ;
-   CJSON_VALUE_TYPE numType = CJSON_INT32 ;
+   INT32 rc = SDB_OK ;
+   INT32 tmpType = 0 ;
+   utilNumberVal tmpValue ;
 
-   //step 1
-   if( *pStr == '#' )
+   rc = utilStrToNumber( pStr, 0, &tmpType, &tmpValue, pLen ) ;
+   if ( SDB_OK == rc )
    {
-      //#xxx
-      ++pStr ;
-      ++len ;
-   }
-   if( *pStr == '-' )
-   {
-      //-xxx
-      sign = -1 ;
-      ++pStr ;
-      ++len ;
-   }
-   else if( *pStr == '+' )
-   {
-      //+xxx
-      sign = 1 ;
-      ++pStr ;
-      ++len ;
-   }
-
-   //step 2
-   while( *pStr == '0' )
-   {
-      //0xxxxx
-      ++pStr ;
-      ++len ;
-   }
-
-   //step 3
-   while( *pStr >= '0' && *pStr <= '9' )
-   {
-      //<number>xxxx
-      INT32 num = *pStr - '0' ;
-      if( numType == CJSON_INT32 )
+      if( tmpType == 0 )
       {
-         if( n1 > CJSON_INT32_MAX )
-         {
-            //n1 * 10 is greater than the int range
-            numType = CJSON_INT64 ;
-         }
-         else if( n1 < CJSON_INT32_MIN )
-         {
-            //n1 * 10 is less than the int range
-            numType = CJSON_INT64 ;
-         }
-         else if( n1 == CJSON_INT32_MAX || n1 == CJSON_INT32_MIN )
-         {
-            if( sign == 1 && num > 7 )
-            {
-               //n1 * 10 + num is greater than the max int
-               numType = CJSON_INT64 ;
-            }
-            else if( sign == -1 && num > 8 )
-            {
-               //n1 * 10 - num is less then the min int
-               numType = CJSON_INT64 ;
-            }
-         }
+         *pNumType = CJSON_INT32 ;
+         *pValInt = tmpValue.intVal ;
       }
-      else if( numType == CJSON_INT64 )
+      else if( tmpType == 1 )
       {
-         if( n2 > CJSON_INT64_MAX )
-         {
-            //n2 * 10 is greater than the long long range
-            numType = CJSON_DECIMAL ;
-         }
-         else if( n2 < CJSON_INT64_MIN )
-         {
-            //n2 * 10 is less than the long long range
-            numType = CJSON_DECIMAL ;
-         }
-         else if( n2 == CJSON_INT64_MAX || n2 == CJSON_INT64_MIN )
-         {
-            if( sign == 1 && num > 7 )
-            {
-               //n2 * 10 + num is greater than the max long long
-               numType = CJSON_DECIMAL ;
-            }
-            else if( sign == -1 && num > 8 )
-            {
-               //n2 * 10 - num is less then the min long long
-               numType = CJSON_DECIMAL ;
-            }
-         }
+         *pNumType = CJSON_INT64 ;
+         *pValLong = tmpValue.longVal ;
       }
-      n  = ( n * 10.0 ) + sign * num ;   
-      n1 = ( n1 * 10  ) + sign * num ;
-      n2 = ( n2 * 10  ) + sign * num ;
-      ++pStr ;
-      ++len ;
-   }
-
-   //step 4
-   if( *pStr == '.' && pStr[1] >= '0' && pStr[1] <= '9' ) 
-   {
-      //<number>.xxx
-      numType = CJSON_DOUBLE ;
-      ++pStr ;
-      ++len ;
-      do
+      else if( tmpType == 2 )
       {
-         decimal = decimal * 10 + ( *pStr - '0' ) ;
-         ++pStr ;
-         ++len ;
-         ++scale ;
+         *pNumType = CJSON_DOUBLE ;
+         *pValDouble = tmpValue.doubleVal ;
       }
-      while( *pStr >= '0' && *pStr <= '9' ) ;
-      n = n + sign * decimal / pow( 10.0, scale ) ;
-   }
-
-   //step 5
-   if( *pStr == 'e' || *pStr == 'E' )
-   {
-      numType = CJSON_DOUBLE ;
-      //<number>[e/E]xxx
-      ++pStr ;
-      ++len ;
-      if( *pStr == '+' )
+      else if( tmpType == 3 )
       {
-         ++pStr ;
-         ++len ;
-      }
-      else if( *pStr == '-' )
-      {
-         signsubscale = -1 ;
-         ++pStr ;
-         ++len ;
-      }
-      while( *pStr >= '0' && *pStr <= '9' )
-      {
-         subscale = ( subscale * 10 ) + ( *pStr - '0' ) ;
-         ++pStr ;
-         ++len ;
+         *pNumType = CJSON_DECIMAL ;
       }
    }
 
-   //step 6
-   if ( numType == CJSON_DOUBLE )
-   {
-      // number = +/- number.fraction * 10^+/- exponent
-      n = n * pow( 10.0, ( subscale * signsubscale * 1.0 ) ) ;
-   }
-   *pValDouble = n ;
-   *pValInt = n1 ;
-   *pValLong = n2 ;
-   *pNumType = numType ;
-   *pLen = len ;
-   return pStr ;
+   return pStr + *pLen ;
 }
 
 /* parse dollar command */
@@ -1961,7 +1826,6 @@ static const CHAR* parseCommand( const CHAR *pStr,
          {
             isCHeck = TRUE ;
          }
-
          if( isCHeck )
          {
             if( _command[y].symbol[x] == *pStr )

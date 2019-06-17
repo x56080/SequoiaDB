@@ -167,7 +167,8 @@ utilFiles = [
       "util/utilBuffBlock.cpp",
       "util/utilCommBuff.cpp",
       "util/utilInsertResult.cpp",
-      "util/utilResult.cpp"
+      "util/utilResult.cpp",
+      "util/utilTypeCast.c"
       ]
 
 rtnFiles = [

@@ -34,6 +34,7 @@
 #include "ossUtil.h"
 #include "impUtil.hpp"
 #include "pd.hpp"
+#include "utilTypeCast.h"
 #include <cctype>
 #include <cmath>
 #include <iostream>
@@ -118,10 +119,10 @@ namespace import
    #define CSV_STR_LEFTBRACKET   '('
    #define CSV_STR_RIGHTBRACKET  ')'
 
-   #define CSV_INT_MAX  (2147483647)
-   #define CSV_INT_MIN  (-2147483648)
-   #define CSV_LONG_MAX OSS_SINT64_MAX
-   #define CSV_LONG_MIN OSS_SINT64_MIN
+   #define CSV_INT32_MAX  (2147483647)
+   #define CSV_INT32_MIN  (-2147483648)
+   #define CSV_INT64_MAX OSS_SINT64_MAX
+   #define CSV_INT64_MIN OSS_SINT64_MIN
 
    #define RELATIVE_YEAR      1900
    #define RELATIVE_MOD       12
@@ -897,7 +898,7 @@ namespace import
          goto error;
       }
 
-      quo = neg ? ((UINT64)CSV_LONG_MAX + 1) : CSV_LONG_MAX;
+      quo = neg ? ((UINT64)CSV_INT64_MAX + 1) : CSV_INT64_MAX;
       rem = quo % 10;
       quo /= 10;
       intNum = 0;
@@ -1148,271 +1149,77 @@ namespace import
       return rc ;
    }
 
-   static inline INT32 _stringToRawNumber(const CHAR* data, INT32 length,
-                                          CSV_TYPE& type, CSVFieldValue& value,
-                                          INT32& valueLength)
+   static inline INT32 _stringToRawNumber( const CHAR* data, INT32 length,
+                                           CSV_TYPE &type,
+                                           CSVFieldValue &value,
+                                           INT32 &valueLength )
    {
-      CHAR* str = (CHAR*)data;
-      INT32 len = length;
-      INT32 rc = SDB_OK;
-      FLOAT64 fract;
-      FLOAT64 exponent;
-      INT32 intLen;
-      INT32 fractLen;
-      INT32 expLen;
-      FLOAT64 num;
-      BOOLEAN neg = FALSE;
-      CSV_TYPE tmpType = CSV_TYPE_AUTO;
-      CSVFieldValue tmpValue;
-      CHAR* start;
-
-      SDB_ASSERT(NULL != data, "data can't be NULL");
-      SDB_ASSERT(length > 0, "length must be greater than 0");
+      INT32 rc = SDB_OK ;
+      INT32 tmpType = 0 ;
+      utilNumberVal tmpValue ;
 
       //parse double [+/-]inf  [+/-]Infinity
-      rc = _stringToInfinity( str, len, tmpType, tmpValue, intLen );
-      if (SDB_OK != rc)
+      rc = _stringToInfinity( data, length, type, value, valueLength ) ;
+      if ( rc )
       {
          goto error;
       }
 
-      if (CSV_TYPE_DOUBLE == tmpType && 0 != intLen)
+      if ( CSV_TYPE_DOUBLE == type && 0 != valueLength )
       {
-         str += intLen ;
-         len -= intLen ;
-         type = CSV_TYPE_DOUBLE ;
-         value.doubleVal = tmpValue.doubleVal ;
-         valueLength = length - len ;
          goto done ;
       }
 
       //parse double nan
-      rc = _stringToNan( str, len, tmpType, tmpValue, intLen ) ;
-      if ( SDB_OK != rc )
+      rc = _stringToNan( data, length, type, value, valueLength ) ;
+      if ( rc )
       {
          goto error ;
       }
 
-      if (CSV_TYPE_DOUBLE == tmpType && 0 != intLen)
+      if ( CSV_TYPE_DOUBLE == type && 0 != valueLength )
       {
-         str += intLen ;
-         len -= intLen ;
-         type = CSV_TYPE_DOUBLE ;
-         value.doubleVal = tmpValue.doubleVal ;
-         valueLength = length - len ;
          goto done ;
       }
 
-      if ('#' == *str)
+      rc = utilStrToNumber( data, length, &tmpType, &tmpValue, &valueLength ) ;
+      if ( rc )
       {
-         str++;
-         len--;
+         goto error ;
       }
 
-      start = str;
-
-      // integer part
-      rc = _stringToRawNum(str, len, tmpType, tmpValue, intLen, TRUE);
-      if (SDB_OK != rc)
+      if( tmpType == 0 )
       {
-         goto error;
+         type = CSV_TYPE_INT ;
+         value.intVal = tmpValue.intVal ;
       }
-
-      // overflow
-      if (CSV_TYPE_DOUBLE == tmpType && 0 != intLen)
+      else if( tmpType == 1 )
       {
-         goto decimal ;
+         type = CSV_TYPE_LONG ;
+         value.longVal = tmpValue.longVal ;
       }
-
-      if ('-' == *str)
+      else if( tmpType == 2 )
       {
-         neg = TRUE;
+         type = CSV_TYPE_DOUBLE ;
+         value.doubleVal = tmpValue.doubleVal ;
       }
-
-      str += intLen;
-      len -= intLen;
-
-      if ('E' == *str || 'e' == *str)
+      else if( tmpType == 3 )
       {
-         str++;
-         len--;
-         type = CSV_TYPE_DOUBLE;
-         if (CSV_TYPE_LONG == tmpType)
+         type = CSV_TYPE_DECIMAL ;
+         decimal_init( &( value.decimalVal ) ) ;
+
+         rc = _stringToRawDecimal( data, length,
+                                   value.decimalVal, valueLength ) ;
+         if ( rc )
          {
-            num = (FLOAT64)tmpValue.longVal;
+            goto error ;
          }
-         else
-         {
-            num = tmpValue.doubleVal;
-         }
-         goto exp;
-      }
-
-      if ('.' == *str)
-      {
-         str++;
-         len--;
-
-         // no digit in both sides of '.'
-         if (!isdigit(*str) && !isdigit(*(str-2)))
-         {
-            rc = SDB_INVALIDARG;
-            goto error;
-         }
-      }
-
-      if (!isdigit(*str))
-      {
-         if (CSV_TYPE_LONG == tmpType)
-         {
-            if (tmpValue.longVal >= CSV_INT_MIN && tmpValue.longVal <= CSV_INT_MAX)
-            {
-               type = CSV_TYPE_INT;
-               value.intVal = (INT32)tmpValue.longVal;
-            }
-            else
-            {
-               type = CSV_TYPE_LONG;
-               value.longVal = tmpValue.longVal;
-            }
-         }
-         else
-         {
-            type = CSV_TYPE_DOUBLE;
-            value.doubleVal = tmpValue.doubleVal;
-         }
-         valueLength = length - len;
-         goto done;
-      }
-
-      // fractional part
-      type = CSV_TYPE_DOUBLE;
-      if (CSV_TYPE_LONG == tmpType)
-      {
-         num = (FLOAT64)tmpValue.longVal;
-      }
-      else
-      {
-         num = tmpValue.doubleVal;
-      }
-
-      rc = _stringToRawNum(str, len, tmpType, tmpValue, fractLen);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      if ('-' == *start || '+' == *start)
-      {
-         intLen--;
-      }
-
-      {
-         INT32 fLen = fractLen ;
-
-         while ('0' == str[fLen - 1])
-         {
-            fLen--;
-         }
-
-         if (fLen > DOUBLE_FRACT_PRECISION || fLen + intLen > DOUBLE_PRECISION)
-         {
-            goto decimal;
-         }
-      }
-
-      if (CSV_TYPE_LONG == tmpType)
-      {
-         fract = (FLOAT64)tmpValue.longVal;
-      }
-      else
-      {
-         fract = tmpValue.doubleVal;
-      }
-
-      str += fractLen;
-      len -= fractLen;
-      valueLength += fractLen;
-      if (!neg)
-      {
-         num = num + fract / pow(10.0, fractLen);
-      }
-      else
-      {
-         num = num - fract / pow(10.0, fractLen);
-      }
-
-      if ('E' != *str && 'e' != *str)
-      {
-         value.doubleVal = num;
-         valueLength = length - len;
-         goto done;
-      }
-
-      str++;
-      len--;
-
-   exp:
-      if (!isdigit(*str) && '+' != *str && '-' != *str)
-      {
-         value.doubleVal = num;
-         valueLength = length - len;
-         goto done;
-      }
-
-      // exponent part
-      rc = _stringToRawNum(str, len, tmpType, tmpValue, expLen);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      if (CSV_TYPE_LONG == tmpType)
-      {
-         exponent = (FLOAT64)tmpValue.longVal;
-      }
-      else
-      {
-         exponent = tmpValue.doubleVal;
-      }
-
-      if (exponent > DOUBLE_MAX_EXP || exponent < DOUBLE_MIN_EXP)
-      {
-         goto decimal;
-      }
-
-      if (DOUBLE_MAX_EXP == exponent && ( num > DOUBLE_BOUND || num < -DOUBLE_BOUND ) )
-      {
-         goto decimal;
-      }
-
-      if (DOUBLE_MIN_EXP == exponent && ( num > -DOUBLE_BOUND || num < DOUBLE_BOUND ) )
-      {
-         goto decimal;
-      }
-
-      str += expLen;
-      len -= expLen;
-      valueLength += expLen;
-      num *= pow(10.0, exponent);
-
-      value.doubleVal = num;
-      valueLength = length - len;
-      goto done;
-
-   decimal:
-      type = CSV_TYPE_DECIMAL;
-      decimal_init(&(value.decimalVal));
-      rc = _stringToRawDecimal( data, length, value.decimalVal, valueLength);
-      if (SDB_OK != rc)
-      {
-         goto error;
       }
 
    done:
-      return rc;
+      return rc ;
    error:
-      goto done;
+      goto done ;
    }
 
    // [+|-]<0~9...>
@@ -2523,7 +2330,8 @@ namespace import
          else if (_endWith(str, len,
                            CSV_UTF8_FULL_WIDTH_SPACE,
                            CSV_UTF8_FULL_WIDTH_SPACE_LEN))
-         {            tail = tail - CSV_UTF8_FULL_WIDTH_SPACE_LEN;
+         {
+            tail = tail - CSV_UTF8_FULL_WIDTH_SPACE_LEN;
             len = len - CSV_UTF8_FULL_WIDTH_SPACE_LEN;
          }
          else
@@ -2688,7 +2496,7 @@ namespace import
          goto error;
       }
 
-      if (tmpValue.longVal < CSV_INT_MIN || tmpValue.longVal > CSV_INT_MAX)
+      if (tmpValue.longVal < CSV_INT32_MIN || tmpValue.longVal > CSV_INT32_MAX)
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -2947,9 +2755,6 @@ namespace import
          // time zone: +/-XXXX
          case 'Z':
          {
-            INT32 gmtHour = 0 ;
-            INT32 gmtMinute = 0 ;
-            INT32 hourStrLen = 0 ;
             INT32 sign = 1 ;
 
             fmt++;
@@ -2988,8 +2793,6 @@ namespace import
          case '-':
          {
             INT32 sign = 1 ;
-            INT32 hour = 0 ;
-            INT32 minute = 0 ;
 
             if ( '-' == fmt[0] )
             {
@@ -3090,8 +2893,6 @@ namespace import
          while( TRUE )
          {
             INT32 sign = 1 ;
-            INT32 hour = 0 ;
-            INT32 minute = 0 ;
 
             if ( '+' == fmt[0] )
             {
