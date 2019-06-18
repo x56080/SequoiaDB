@@ -129,65 +129,73 @@
                if( hostList.length > 0 )
                {
                   $.each( hostList[0]['HostInfo'], function( index, hostInfo ){
-                     NewHostList[index]['NetInValue'] = 0 ;
-                     NewHostList[index]['NetOutValue'] = 0 ;
-                     NewHostList[index]['NetInPackets'] = 0 ;
-                     NewHostList[index]['NetOutPackets'] = 0 ;
-                     lastCPU.push( null ) ;
-                     if( isNaN( hostInfo['errno'] ) == false )
-                     {
-                        NewHostList[index]['Status'] = false ;
-                        NewHostList[index]['CPUUsed'] = '-' ;
-                        NewHostList[index]['Memory'] = '-' ;
-                        NewHostList[index]['Disk'] = '-' ;
-                        NewHostList[index]['NetInValue'] = '-' ;
-                        NewHostList[index]['NetOutValue'] = '-' ;
-                        NewHostList[index]['NetInPackets'] = '-' ;
-                        NewHostList[index]['NetOutPackets'] = '-' ;
-                        NewHostList[index]['Flag'] = hostInfo['errno'] ;
-                        return true ;
-                     }
+                     $.each( NewHostList, function( index2, hostInfo2 ){
+                        if( hostInfo2['HostName'] == hostInfo['HostName'] )
+                        {
+                           NewHostList[index2]['NetInValue'] = 0 ;
+                           NewHostList[index2]['NetOutValue'] = 0 ;
+                           NewHostList[index2]['NetInPackets'] = 0 ;
+                           NewHostList[index2]['NetOutPackets'] = 0 ;
+                           lastCPU.push( null ) ;
+                           if( isNaN( hostInfo['errno'] ) == false )
+                           {
+                              NewHostList[index2]['Status'] = false ;
+                              NewHostList[index2]['CPUUsed'] = '-' ;
+                              NewHostList[index2]['Memory'] = '-' ;
+                              NewHostList[index2]['Disk'] = '-' ;
+                              NewHostList[index2]['NetInValue'] = '-' ;
+                              NewHostList[index2]['NetOutValue'] = '-' ;
+                              NewHostList[index2]['NetInPackets'] = '-' ;
+                              NewHostList[index2]['NetOutPackets'] = '-' ;
+                              NewHostList[index2]['Flag'] = hostInfo['errno'] ;
+                              return true ;
+                           }
                      
-                     var DiskSize = 0 ;
-                     var DiskFree = 0 ;
-                     $.each( hostInfo['Disk'], function( index3, diskInfo ){
-                        DiskSize += diskInfo['Size'] ;
-                        DiskFree += diskInfo['Free'] ;
+                           var DiskSize = 0 ;
+                           var DiskFree = 0 ;
+                           $.each( hostInfo['Disk'], function( index3, diskInfo ){
+                              DiskSize += diskInfo['Size'] ;
+                              DiskFree += diskInfo['Free'] ;
+                           } ) ;
+
+                           //计算CPU
+                           if( lastCPU[index] === null )
+                           {
+                              lastCPU[index] = getCpuUsePercent( [ hostInfo ] ) ;
+                              NewHostList[index2]['CPUUsed'] = 0 ;
+                           }
+                           else
+                           {
+                              NewHostList[index2]['CPUUsed'] = getCpuUsePercent( [ hostInfo ], lastCPU[index] ) ;
+                           }
+
+                           //计算网卡 - 全量
+                           $.each( hostInfo['Net']['Net'], function( netIndex, netInfo ){
+                              NewHostList[index2]['NetInValue'] += netInfo['RXBytes']['Megabit'] + netInfo['RXBytes']['Unit'] / 1024 / 1024 ;
+                              NewHostList[index2]['NetOutValue'] = netInfo['TXBytes']['Megabit'] + netInfo['TXBytes']['Unit'] / 1024 / 1024 ;
+                              NewHostList[index2]['NetInPackets'] += netInfo['RXPackets']['Megabit'] * 1024 * 1024 + netInfo['RXPackets']['Unit'] ;
+                              NewHostList[index2]['NetOutPackets'] += netInfo['TXPackets']['Megabit'] * 1024 * 1024 + netInfo['TXPackets']['Unit'] ;
+                           } ) ;
+
+                           NewHostList[index2]['Status'] = true ;
+                           NewHostList[index2]['NetOutValue'] = fixedNumber( NewHostList[index2]['NetOutValue'], 2 ) ;
+                           NewHostList[index2]['NetInValue'] = fixedNumber( NewHostList[index2]['NetInValue'], 2 ) ;
+
+
+                           NewHostList[index2]['DiskSize'] = fixedNumber( DiskSize / 1024, 2 ) ;
+                           NewHostList[index2]['DiskUsed'] = fixedNumber( ( DiskSize - DiskFree ) / 1024, 2 ) ;
+                           NewHostList[index2]['MemorySize'] = fixedNumber( hostInfo['Memory']['Size'] / 1024, 2 ) ;
+                           NewHostList[index2]['MemoryUsed'] = fixedNumber( hostInfo['Memory']['Used'] / 1024, 2 ) ;
+
+                           NewHostList[index2]['Memory'] = NewHostList[index2]['MemoryUsed'] + 'GB / ' + NewHostList[index2]['MemorySize'] + 'GB' ;
+                           NewHostList[index2]['Disk'] = NewHostList[index2]['DiskUsed'] + 'GB / ' + NewHostList[index2]['DiskSize'] + 'GB' ;
+                        }
+                        else
+                        {
+                           return true ;
+                        }
                      } ) ;
-
-                     //计算CPU
-                     if( lastCPU[index] === null )
-                     {
-                        lastCPU[index] = getCpuUsePercent( [ hostInfo ] ) ;
-                        NewHostList[index]['CPUUsed'] = 0 ;
-                     }
-                     else
-                     {
-                        NewHostList[index]['CPUUsed'] = getCpuUsePercent( [ hostInfo ], lastCPU[index] ) ;
-                     }
-
-                     //计算网卡 - 全量
-                     $.each( hostInfo['Net']['Net'], function( netIndex, netInfo ){
-                        NewHostList[index]['NetInValue'] += netInfo['RXBytes']['Megabit'] + netInfo['RXBytes']['Unit'] / 1024 / 1024 ;
-                        NewHostList[index]['NetOutValue'] = netInfo['TXBytes']['Megabit'] + netInfo['TXBytes']['Unit'] / 1024 / 1024 ;
-                        NewHostList[index]['NetInPackets'] += netInfo['RXPackets']['Megabit'] * 1024 * 1024 + netInfo['RXPackets']['Unit'] ;
-                        NewHostList[index]['NetOutPackets'] += netInfo['TXPackets']['Megabit'] * 1024 * 1024 + netInfo['TXPackets']['Unit'] ;
-                     } ) ;
-
-                     NewHostList[index]['Status'] = true ;
-                     NewHostList[index]['NetOutValue'] = fixedNumber( NewHostList[index]['NetOutValue'], 2 ) ;
-                     NewHostList[index]['NetInValue'] = fixedNumber( NewHostList[index]['NetInValue'], 2 ) ;
-
-
-                     NewHostList[index]['DiskSize'] = fixedNumber( DiskSize / 1024, 2 ) ;
-                     NewHostList[index]['DiskUsed'] = fixedNumber( ( DiskSize - DiskFree ) / 1024, 2 ) ;
-                     NewHostList[index]['MemorySize'] = fixedNumber( hostInfo['Memory']['Size'] / 1024, 2 ) ;
-                     NewHostList[index]['MemoryUsed'] = fixedNumber( hostInfo['Memory']['Used'] / 1024, 2 ) ;
-
-                     NewHostList[index]['Memory'] = NewHostList[index]['MemoryUsed'] + 'GB / ' + NewHostList[index]['MemorySize'] + 'GB' ;
-                     NewHostList[index]['Disk'] = NewHostList[index]['DiskUsed'] + 'GB / ' + NewHostList[index]['DiskSize'] + 'GB' ;
                   } ) ;
-
                   $scope.LastValue = $scope.HostTable['body'] ;
                   $scope.HostTable['body'] = NewHostList ;
 
