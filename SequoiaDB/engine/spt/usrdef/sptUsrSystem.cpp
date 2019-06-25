@@ -1668,6 +1668,13 @@ namespace engine
          read = 0 ;
          ossMemset( buf, '\0', bufSize ) ;
          rc = ossReadN( &file, bufSize, buf, read ) ;
+         
+         if ( SDB_EOF == rc && 0 < filess.tellp() )
+         {
+            rc = SDB_OK ;
+            break ;
+         }
+         
          if ( SDB_OK != rc )
          {
             ss << "failed to read file(/etc/mtab), rc:" << rc ;
