@@ -68,7 +68,8 @@ testFiles = [
    [ "./paraVerify/sdbFunc14277.cpp" ],
    [ "./paraVerify/clFunc14281.cpp" ],
    [ "./sessionAttr/instanceid14158.cpp" ], # sync
-   [ "./crud/insertReplaceondup18581.cpp" ]
+   [ "./crud/insertReplaceondup18581.cpp" ],
+   [ "./auth/createUsr17941_17957.cpp" ]
 ]
 
 def getFileName( filePath ):
