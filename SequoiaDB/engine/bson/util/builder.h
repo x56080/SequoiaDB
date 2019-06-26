@@ -242,10 +242,11 @@ accesses) is the same as if
                 a = minSize + 16 * 1024;
             if ( a > BufferMaxSize )
                 msgasserted(13548, "BufBuilder grow() > 64MB");
-            data = (char *) al.Realloc(data, a);
-            if ( !data )
+            char * newData = (char *) al.Realloc(data, a);
+            if ( !newData )
                msgasserted(13550, "BufBuilder grow() out-of-memory");
-            size= a;
+            data = newData;
+            size = a;
         }
 
         char *data;
