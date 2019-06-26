@@ -43,7 +43,7 @@
       <property name="remote_cmd1" 
          value="ant -f ${CI_WORK_DIR}/script/src/solve_result/backup_log.xml backup_log_in_remote -DTEST_TYPE=${TEST_TYPE}" />
    
-      <for list="${testhost_list}" param="testhost" parallel="true">
+      <for list="${testhost_list}" param="testhost">
          <sequential>         
          <staf location="@{testhost}" service="PROCESS"
                resultPrefix="remote_exec1"
