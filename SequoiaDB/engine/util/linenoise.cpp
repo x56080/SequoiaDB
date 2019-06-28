@@ -1624,7 +1624,6 @@ static int linenoiseEdit( int stdin_fd, int stdout_fd, char *buf,
         char c = KEY_NULL ;
         int nread ;
         char seq[3] ;
-        char buf[10] = {0} ;
 
 #ifdef _WIN32
         nread = win32read(&c);
