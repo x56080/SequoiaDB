@@ -10,7 +10,7 @@ SequoiaDB 所支持的值类型见下表：
 | 对象 ID（OID） | 十二字节对象 ID<br>请参考 [对象 ID](data_model/datatype/oid.md) | 35 | ```{ "key" : { "$oid" : "123abcd00ef12358902300ef" } }``` |
 | 布尔 | true 或者 false | 40 | ```{ "key" : true }``` 或 ```{ "key" : false }``` |
 | 日期 | YYYY-MM-DD 的日期形式<br>范围：0000-01-01 至 9999-12-31<br>请参考 [日期](data_model/datatype/date.md) | 45 | ```{ "key" : { "$date" : "2012-01-01" } }``` |
-| 时间戳 | YYYY-MM-DD-HH.mm.ss.ffffff 的时间戳形式<br>范围：1902-01-01 00:00:00.000000 至 2037-12-31 23:59:59.999999<br>请参考 [时间戳](data_model/datatype/timestamp.md) | 45 | ```{ "key" : { "$timestamp" : "2012-01-01-13.14.26.124233" } }``` |
+| 时间戳 | YYYY-MM-DD-HH.mm.ss.ffffff 的时间戳形式<br>范围：1902-01-01-00.00.00.000000 至 2037-12-31-23.59.59.999999<br>请参考 [时间戳](data_model/datatype/timestamp.md) | 45 | ```{ "key" : { "$timestamp" : "2012-01-01-13.14.26.124233" } }``` |
 | 二进制数据 | Base64 形式的二进制数据<br>请参考 [二进制数据](data_model/datatype/binary.md) | 30 | ```{ "key" : { "$binary" : "aGVsbG8gd29ybGQ=", "$type" : "1" } }``` |
 | 正则表达式 | 正则表达式<br>请参考 [正则表达式](data_model/datatype/regex.md) | 50 | ```{ "key" : { "$regex" : "^张", "$options" : "i" } }``` |
 | 对象 | 嵌套 JSON 文档对象 | 20 | ```{ "key" : { "subobj" : "value" } }``` |
