@@ -337,8 +337,15 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__MTHMDF__APPSETMDF ) ;
+      BOOLEAN isNeedSetNewValue = TRUE ;
 
-      if ( 0 != in.woCompare( me._toModify, false ) )
+      if ( in.type() == me._toModify.type()
+           && 0 == in.woCompare( me._toModify, false ) )
+      {
+         isNeedSetNewValue = FALSE ;
+      }
+
+      if ( isNeedSetNewValue )
       {
          ADD_CHG_ELEMENT_AS ( _srcChgBuilder, in, pRoot, "$set" ) ;
          ADD_CHG_ELEMENT_AS ( _dstChgBuilder, me._toModify, pRoot, "$set" ) ;
