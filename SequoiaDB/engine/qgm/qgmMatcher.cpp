@@ -153,6 +153,13 @@ namespace engine
             {
                fromCondition = it->second._element ;
             }
+            else if ( SQL_GRAMMAR::DBATTR == node->right->type )
+            {
+               // $field element, extract specified field from fetchout
+               rc = fetch.element( node->right->value, fromCondition ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get $field element from "
+                            "fetchout, rc: %d", rc ) ;
+            }
             else
             {
                /// create and add to map
