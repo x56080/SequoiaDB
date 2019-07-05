@@ -327,6 +327,7 @@ namespace engine
       string svcname ;
       string runCmd ;
       UINT32 exitCode = 0 ;
+      BOOLEAN isConfLimit = TRUE ;
 
       init( desc, all ) ;
 
@@ -364,6 +365,10 @@ namespace engine
                        "current terminal, please use parameter '-i'."
                        OSS_NEWLINE  ) ;
             goto error ;
+         }
+         else
+         {
+            isConfLimit = FALSE ;
          }
       }
 #endif
@@ -422,6 +427,12 @@ namespace engine
 
       ossSprintVersion( "Version", verText, OSS_MAX_PATHSIZE, FALSE ) ;
       PD_LOG( PDEVENT, "Start programme[%s]...", verText ) ;
+
+      if( !isConfLimit )
+      {
+         PD_LOG( PDWARNING, "Start programme with setting ulimit based on "
+                 "current terminal" ) ;
+      }
 
       if ( configs.size() == 0 )
       {

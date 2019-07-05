@@ -226,8 +226,23 @@ namespace engine
       // 5. print all config
       {
          string configs ;
+         ossProcLimits limitInfo ;
          sdbGetOMAgentOptions()->toString( configs ) ;
          PD_LOG( PDEVENT, "All configs:\n%s", configs.c_str() ) ;
+
+         rc = limitInfo.init() ;
+         if ( SDB_SYS == rc )
+         {
+            /// the system not implement, do nothing
+         }
+         else if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "can not init limit info:%d", rc ) ;
+         }
+         else
+         {
+            PD_LOG( PDEVENT, "Limit info:\n%s", limitInfo.str().c_str() ) ;
+         }
       }
 
       pmdSetDBRole( SDB_ROLE_OMA ) ;
