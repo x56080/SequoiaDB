@@ -134,6 +134,7 @@ class setSessionAttr14209 extends PHPUnit_Framework_TestCase
    {
       if ( self::$skipTestCase == false )
       {
+         self::$db -> setSessionAttr( 'Timeout' => -1 );
          $err = self::$db -> dropCS( self::$csName ); 
          if ( $err['errno'] != 0 )
          {
