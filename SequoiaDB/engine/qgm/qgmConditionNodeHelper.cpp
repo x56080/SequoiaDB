@@ -331,7 +331,7 @@ namespace engine
                                       ) )  ;
             rc = qgmBuildANodeItem( oprBuilder,
                                     qgmGetNodeTypeStr( node->type ) ,
-                                    node->right ) ;
+                                    node->right, keepAlias ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Build node[Type:%s] item failed, rc: %d",

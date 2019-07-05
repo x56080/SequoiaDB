@@ -166,7 +166,7 @@ namespace engine
                BSONObjBuilder bb ;
                BSONObj obj ;
 
-               rc = qgmBuildANodeItem( bb, "", node->right ) ;
+               rc = qgmBuildANodeItem( bb, "", node->right, TRUE ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Build the node item to BSONObj "

@@ -1044,7 +1044,8 @@ namespace engine
 
    INT32 qgmBuildANodeItem( BSONObjBuilder &bb,
                             const CHAR *pKeyName,
-                            const _qgmConditionNode *node )
+                            const _qgmConditionNode *node,
+                            BOOLEAN keepAlias )
    {
       INT32 rc = SDB_OK ;
 
@@ -1060,7 +1061,10 @@ namespace engine
       else if ( SQL_GRAMMAR::DBATTR == node->type )
       {
          BSONObjBuilder subBB( bb.subobjStart( pKeyName ) ) ;
-         subBB.append( "$field", node->value.toString() ) ;
+         keepAlias ? node->value.toString() :
+                     node->value.attr().toString() ;
+         subBB.append( "$field", keepAlias ? node->value.toString() :
+                                             node->value.attr().toString() ) ;
          subBB.done() ;
       }
       else if ( node->type > SQL_GRAMMAR::SQLMAX )
