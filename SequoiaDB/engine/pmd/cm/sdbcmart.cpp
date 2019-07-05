@@ -129,6 +129,7 @@ namespace engine
       BOOLEAN asStandalone = FALSE ;
       string  procShortName = PMDDMN_EXE_NAME ;
       CHAR verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+      BOOLEAN isConfLimit = TRUE ;
 
       PMD_ADD_PARAM_OPTIONS_BEGIN ( desc )
          COMMANDS_OPTIONS
@@ -190,6 +191,10 @@ namespace engine
                        OSS_NEWLINE  ) ;
             goto error ;
          }
+         else
+         {
+            isConfLimit = FALSE ;
+         }
       }
 #endif
 
@@ -241,6 +246,12 @@ namespace engine
       for ( INT32 i = 1; i < argc ; ++i )
       {
          argvs.push_back( argv[i] ) ;
+      }
+
+      if( !isConfLimit )
+      {
+         PD_LOG( PDWARNING, "Start programme with setting ulimit based on "
+                 "current terminal" ) ;
       }
 
       if ( !asStandalone )
