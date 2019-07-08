@@ -153,7 +153,8 @@ INT32 ossWaitChild ( OSSPID pid, ossResultCode &result, BOOLEAN block )
       }
       else
       {
-         PD_LOG ( PDERROR, "Failed to wait child, err = %d", err ) ;
+         PD_LOG ( PDERROR, "Failed to wait child, errno: %d( %s )",
+                  err, strerror( err ) ) ;
          rc = SDB_SYS ;
       }
    }
@@ -331,7 +332,8 @@ static INT32 ossExec2 ( const CHAR *program,
       if ( -1 == pipe ( pipeDescStdOut ) )
       {
          err = ossGetLastError () ;
-         PD_LOG ( PDERROR, "Failed to create pipe, err = %d", err ) ;
+         PD_LOG ( PDERROR, "Failed to create pipe, errno: %d( %s )",
+                  err, strerror( err ) ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -342,7 +344,8 @@ static INT32 ossExec2 ( const CHAR *program,
        if ( -1 == pipe ( pipeDescStdIn ) )
        {
          err = ossGetLastError () ;
-         PD_LOG ( PDERROR, "Failed to create pipe, err = %d", err ) ;
+         PD_LOG ( PDERROR, "Failed to create pipe, errno: %d( %s )",
+                  err, strerror( err ) ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -353,7 +356,8 @@ static INT32 ossExec2 ( const CHAR *program,
    {
       // can't fork
       err = ossGetLastError () ;
-      PD_LOG ( PDERROR, "Failed to fork process, err = %d", err ) ;
+      PD_LOG ( PDERROR, "Failed to fork process, errno: %d( %s )",
+               err, strerror( err ) ) ;
       if ( EAGAIN == err )
       {
          rc = SDB_OSS_NORES ;
@@ -483,7 +487,8 @@ static INT32 ossExec2 ( const CHAR *program,
          if ( -1 == npHandleStdout->_bufSize )
          {
             err = ossGetLastError () ;
-            PD_LOG ( PDERROR, "Failed to get buf size, error = %d", err ) ;
+            PD_LOG ( PDERROR, "Failed to get buf size, errno: %d( %s )",
+                     err, strerror( err ) ) ;
             rc = SDB_SYS ;
             npHandleStdout->_handle = SDB_INVALID_FH ;
             goto error ;
@@ -504,7 +509,8 @@ static INT32 ossExec2 ( const CHAR *program,
          if ( -1 == npHandleStdin->_bufSize )
          {
             err = ossGetLastError () ;
-            PD_LOG ( PDERROR, "Failed to get buf size, error = %d", err ) ;
+            PD_LOG ( PDERROR, "Failed to get buf size, errno: %d( %s )",
+                     err, strerror( err ) ) ;
             rc = SDB_SYS ;
             npHandleStdin->_handle = SDB_INVALID_FH ;
             goto error ;
@@ -564,7 +570,8 @@ INT32 ossExec ( const CHAR * program,
       err = pthread_sigmask( SIG_BLOCK, &childmask, &savemask ) ;
       if ( err )
       {
-         PD_LOG ( PDERROR, "Failed to block sigchld, err=%d", err ) ;
+         PD_LOG ( PDERROR, "Failed to block sigchld, errno: %d( %s )",
+                  err, strerror( err ) ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -653,15 +660,16 @@ INT32 ossExec ( const CHAR * program,
                // good
                if ( retcode != 0 )
                {
-                  PD_LOG ( PDERROR, "Cannot find msg in queue, err=%d, "
-                           "retcode=%d", err, retcode ) ;
+                  PD_LOG ( PDERROR, "Cannot find msg in queue, errno: %d( %s ),"
+                           " retcode = %d", err, strerror( err ), retcode ) ;
                   rc = retcode ;
                   goto error ;
                }
             }
             else
             {
-               PD_LOG ( PDERROR, "Error receive from queue, err=%d", err ) ;
+               PD_LOG ( PDERROR, "Error receive from queue, errno: %d( %s ), "
+                        "retcode = %d", err, strerror( err ), retcode ) ;
                goto error ;
             }
          }
@@ -713,7 +721,8 @@ done :
       sysRC = msgctl ( msgQueue, IPC_RMID, NULL ) ;
       if ( (sysRC) && ((retcode!=0)||(EINVAL!=errno)))
       {
-         PD_LOG ( PDERROR, "Failed to remove message queue, errno=%d", errno ) ;
+         PD_LOG ( PDERROR, "Failed to remove message queue, errno: %d( %s )",
+                  errno, strerror( errno )) ;
       }
    }
    PD_TRACE1 ( SDB_OSSEXEC, PD_PACK_INT(pid) );
@@ -923,8 +932,8 @@ INT32 ossEnumProcesses( std::vector < ossProcInfo > &procs,
 
    pDir = opendir( "/proc" ) ;
    PD_CHECK( pDir != NULL, SDB_IO, error, PDERROR,
-             "Failed to open the directory:%s, errno=%d",
-             "/proc", ossGetLastError() ) ;
+             "Failed to open the directory: %s, errno: %d( %s )",
+             "/proc", ossGetLastError(), strerror( ossGetLastError() ) ) ;
    isOpen = TRUE ;
 
    while( (pDirent = readdir( pDir )) != NULL )
@@ -1001,7 +1010,8 @@ INT32 ossSetCurrentProcessUID( OSSUID uid )
    if ( -1 == rc )
    {
       INT32 err = ossGetLastError() ;
-      std::cout << "setuid(" << uid << ") failed: " << err << std::endl ;
+      std::cout << "setuid(" << uid << ") failed, errno: " << err <<
+                "( " << strerror( err ) << " )" << std::endl ;
       rc = ( EPERM == err ) ? SDB_PERM : SDB_SYS ;
    }
    return rc ;
@@ -1013,7 +1023,8 @@ INT32 ossSetCurrentProcessGID( OSSGID gid )
    if ( -1 == rc )
    {
       INT32 err = ossGetLastError() ;
-      std::cout << "setgid(" << gid << ") failed: " << err << std::endl ;
+      std::cout << "setgid(" << gid << ") failed: errno: " << err <<
+                "( " << strerror( err ) << " )" << std::endl ;
       rc = ( EPERM == err ) ? SDB_PERM : SDB_SYS ;
    }
    return rc ;
@@ -1145,8 +1156,8 @@ INT32 ossWaitInterrupt ( HANDLE handle, DWORD timeout )
       rc = SDB_TIMEOUT ;
       break ;
    default :
-      PD_LOG ( PDERROR, "Wait interrupt failed with code %d",
-               ossGetLastError() ) ;
+      PD_LOG ( PDERROR, "Wait interrupt failed, errno: %d( %s )",
+               ossGetLastError(), strerror( ossGetLastError() ) ) ;
       rc = SDB_SYS ;
    }
    PD_TRACE_EXITRC ( SDB_OSSWTINT, rc );
@@ -1175,7 +1186,8 @@ INT32 ossStartService( const CHAR *serviceName )
    if ( schSCM == NULL )
    {
       rc = SDB_SYS ;
-      PD_LOG ( PDERROR, "Failed to open SCM, error: %d", ossGetLastError() );
+      PD_LOG ( PDERROR, "Failed to open SCM, errno: %d( %s )",
+               ossGetLastError(), strerror( ossGetLastError() ) ) ;
       goto error ;
    }
 
@@ -1185,8 +1197,8 @@ INT32 ossStartService( const CHAR *serviceName )
    if ( schSRV == NULL )
    {
       rc = SDB_SYS ;
-      PD_LOG ( PDERROR, "Failed to open service[%s], error: %d",
-               serviceName, ossGetLastError() );
+      PD_LOG ( PDERROR, "Failed to open service[%s], error: %d( %s )",
+               serviceName, ossGetLastError(), strerror( ossGetLastError() ) );
       goto error ;
    }
    ::QueryServiceStatus ( schSRV, &srvStatus ) ;
@@ -1197,8 +1209,9 @@ INT32 ossStartService( const CHAR *serviceName )
    else if ( ! StartService ( schSRV, 0, NULL ) )
    {
       rc = SDB_SYS ;
-      PD_LOG ( PDERROR, "Failed to set service[%s] status RUNNING, error: %d",
-               serviceName, ossGetLastError() ) ;
+      PD_LOG ( PDERROR, "Failed to set service[%s] status RUNNING, "
+               "error: %d( %s )",
+               serviceName, ossGetLastError(), strerror( ossGetLastError() ) );
       goto error ;
    }
 
@@ -1234,33 +1247,33 @@ static BOOL ossWaitForServiceToReachState( SC_HANDLE hService,
    BOOL  fFirstTime = TRUE ;
    BOOL  fServiceOk = TRUE ;
    DWORD dwTimeout = GetTickCount() + dwMilliseconds ;
- 
+
    // Loop until the service reaches the desired state,
    // an error occurs, or we timeout
    while  (TRUE)
    {
       // Get current state of service
       fServiceOk = ::QueryServiceStatus( hService, pss ) ;
- 
+
       // If we can't query the service, we're done
       if ( !fServiceOk )
       {
         break ;
       }
- 
+
       // If the service reaches the desired state, we're done
       if ( pss->dwCurrentState == dwDesiredState )
       {
          break ;
       }
- 
+
       // If we timed-out, we're done
       if ( dwMilliseconds != INFINITE && dwTimeout > GetTickCount() )
       {
          SetLastError( ERROR_TIMEOUT ) ;
          break;
       }
- 
+
       // If this is our first time, save the service's state & checkpoint
       if ( fFirstTime )
       {
@@ -1287,7 +1300,7 @@ static BOOL ossWaitForServiceToReachState( SC_HANDLE hService,
             else
             {
                // Checkpoint hasn't increased, service failed, we're done!
-               fServiceOk = FALSE ; 
+               fServiceOk = FALSE ;
                break ;
             }
          }
@@ -1295,7 +1308,7 @@ static BOOL ossWaitForServiceToReachState( SC_HANDLE hService,
        // We're not done, wait the specified period of time
        Sleep( pss->dwWaitHint ) ;
     }
- 
+
    // Note: The last SERVICE_STATUS is returned to the caller so
    // that the caller can check the service state and error codes.
    PD_TRACE_EXIT ( SDB_OSS_WFSTRS ) ;
@@ -1324,7 +1337,8 @@ INT32 ossStopService( const CHAR * serviceName, DWORD dwMilliseconds )
    if ( schSCM == NULL )
    {
       rc = SDB_SYS ;
-      PD_LOG ( PDERROR, "Failed to open SCM, error: %d", ossGetLastError() ) ;
+      PD_LOG ( PDERROR, "Failed to open SCM, errno: %d( %s )",
+               ossGetLastError(), strerror( ossGetLastError() ) ) ;
       goto error ;
    }
 
@@ -1333,8 +1347,8 @@ INT32 ossStopService( const CHAR * serviceName, DWORD dwMilliseconds )
    if ( schSRV == NULL )
    {
       rc = SDB_SYS ;
-      PD_LOG ( PDERROR, "Failed to open service[%s], error: %d",
-               serviceName, ossGetLastError() );
+      PD_LOG ( PDERROR, "Failed to open service[%s], error: %d( %s )",
+               serviceName, ossGetLastError(), strerror( ossGetLastError() ) );
       goto error ;
    }
    ::ControlService ( schSRV, SERVICE_CONTROL_STOP, &srvStatus ) ;
@@ -1381,8 +1395,8 @@ static INT32 ossCreatePipeAndDupHandle ( PHANDLE const pReadHandle,
    HANDLE pid = GetCurrentProcess () ;
    if ( !CreatePipe ( pReadHandle, pWriteHandle, pSecAttr, 0 ) )
    {
-      PD_LOG ( PDERROR, "Failed to create pipe, error = %d",
-               ossGetLastError () ) ;
+      PD_LOG ( PDERROR, "Failed to create pipe, error: %d( %s )",
+               ossGetLastError (), strerror( ossGetLastError() ) ) ;
       rc = SDB_SYS ;
       goto error ;
    }
@@ -1391,8 +1405,8 @@ static INT32 ossCreatePipeAndDupHandle ( PHANDLE const pReadHandle,
                            pid, pDuplicateHandle, 0, FALSE,
                            DUPLICATE_CLOSE_SOURCE | DUPLICATE_SAME_ACCESS ) )
    {
-      PD_LOG ( PDERROR, "Failed to duplicate pipe, error = %d",
-               ossGetLastError () ) ;
+      PD_LOG ( PDERROR, "Failed to duplicate pipe, error: %d( %s )",
+               ossGetLastError (), strerror( ossGetLastError() ) ) ;
       rc = SDB_SYS ;
       goto error ;
    }
@@ -1628,7 +1642,8 @@ INT32 ossExec ( const CHAR * program,
       }
       else
       {
-         PD_LOG ( PDERROR, "Failed to create process, GetLastError=%d", rc ) ;
+         PD_LOG ( PDERROR, "Failed to create process, error: %d( %s )",
+                  rc, strerror( rc ) ) ;
          rc = SDB_SYS ;
       }
    }
@@ -1658,7 +1673,8 @@ INT32 ossExec ( const CHAR * program,
             if ( !GetExitCodeProcess ( procInfo.hProcess, &pgm_rc ) )
             {
                PD_LOG ( PDERROR, "Failed to get exit code for process, "
-                        "GetLastError=%d", ossGetLastError() ) ;
+                        "error: %d( %s )",
+                        ossGetLastError (), strerror( ossGetLastError() ) ) ;
                result.termcode = OSS_EXIT_ERROR ;
                result.termcode = SDB_SRC_SYS ;
             }
@@ -1720,7 +1736,8 @@ INT32 ossGetExitCodeProcess( OSSHANDLE handle, UINT32 & exitCode )
    if ( !GetExitCodeProcess ( handle, &pgm_rc ) )
    {
       PD_LOG ( PDERROR, "Failed to get exit code for process, "
-               "GetLastError=%d", ossGetLastError() ) ;
+               "error: %d( %s )",
+               ossGetLastError (), strerror( ossGetLastError() ) ) ;
       rc = SDB_SYS ;
    }
    else
@@ -1869,7 +1886,7 @@ INT32 ossGetEWD ( CHAR *pBuffer, INT32 maxlen )
       lpszwPath[0] = '.' ;
       lpszwPath[1] = '\0' ;
    }
-   // lpszPath is free at the end of this function 
+   // lpszPath is free at the end of this function
    rc = ossWC2ANSI ( lpszwPath, &lpszPath, NULL ) ;
    if ( rc )
    {
