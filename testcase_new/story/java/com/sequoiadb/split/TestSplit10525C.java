@@ -88,9 +88,9 @@ public class TestSplit10525C extends SdbTestBase{
     }
     
     public void testCoordSplitResult(List<String> rgNames) {
+    	List<BSONObject> actual = new ArrayList<BSONObject>();
         try {
             //连接coord节点验证数据是否正确
-            List<BSONObject> actual = new ArrayList<BSONObject>();
             DBCursor cursor = this.cl.query(null,null,"{\"_id\":1}",null);
             while( cursor.hasNext() ) {
                 BSONObject obj = cursor.getNext();
@@ -116,7 +116,16 @@ public class TestSplit10525C extends SdbTestBase{
             for (int j = 0; j < 100; j++) {
                 //获取cs cl
                 CollectionSpace cs = dataDb.getCollectionSpace(SdbTestBase.csName);
-                DBCollection dbcl = cs.getCollection(this.clName);
+                DBCollection dbcl = null;
+                try {
+                    dbcl = cs.getCollection(this.clName);
+                } catch (BaseException e1) {
+                   if(e1.getErrorCode() == -23) {
+                       continue;
+                   } else {
+                       Assert.fail(e1.getMessage());
+                   }
+                }
                 try {
                     Thread.sleep(10);
                 } catch (InterruptedException e) {
@@ -124,11 +133,7 @@ public class TestSplit10525C extends SdbTestBase{
                 }
                 //通过从节点查询数据
                 DBCursor cursor;
-                try {
-                    cursor = dbcl.query(null,null,"{\"_id\":1}",null);
-                } catch (NullPointerException e) {
-                    continue;
-                }
+                cursor = dbcl.query(null,null,"{\"_id\":1}",null);
                 List<BSONObject> actual = new ArrayList<BSONObject>();
                 while( cursor.hasNext() ) {
                     BSONObject obj = cursor.getNext();
@@ -216,7 +221,7 @@ public class TestSplit10525C extends SdbTestBase{
             }
             //Assert.assertEquals(actual, expected);
         } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+            throw e;
         } finally {
             dataDb.disconnect();
         }

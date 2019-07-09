@@ -178,14 +178,24 @@ public class TestSplit10525B extends SdbTestBase{
             
             boolean flag = false;
             for (int j = 0; j < 1000; j++) {
+            	try {
+            		Thread.sleep(10);
+            	} catch (InterruptedException e) {
+            		e.printStackTrace();
+            	}
+            	
                 //通过从节点获取cs cl
-                CollectionSpace cs = dataDb.getCollectionSpace(SdbTestBase.csName);
-                DBCollection dbcl = cs.getCollection(this.clName);
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            	DBCollection dbcl = null;
+            	try{
+            		CollectionSpace cs = dataDb.getCollectionSpace(SdbTestBase.csName);
+            		dbcl = cs.getCollection(this.clName);
+            	}catch(BaseException e){
+            		 if ( e.getErrorCode() == -34 || e.getErrorCode() == -23) {
+                         throw e;
+                     } 
+                     continue;
+            	}
+                
                 //通过从节点查询
                 DBCursor cursor = dbcl.query(null,null,"{\"_id\":1}",null);
                 List<BSONObject> actual = new ArrayList<BSONObject>();
@@ -209,7 +219,7 @@ public class TestSplit10525B extends SdbTestBase{
             }
            // Assert.assertEquals(actual, expected);
         } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+            throw e;
         } finally {
             dataDb.disconnect();
         }

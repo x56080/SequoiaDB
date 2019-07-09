@@ -153,14 +153,14 @@ public class TestSplit10525A extends SdbTestBase{
             Node master = replicaGroup.getSlave();
             String url = master.getNodeName();
             dataDb = new Sequoiadb(url, "", "");
+            try {
+            	Thread.sleep(10);
+            } catch (InterruptedException e) {
+            	e.printStackTrace();
+            }
             //通过从节点获取cs cl
             CollectionSpace cs = dataDb.getCollectionSpace(SdbTestBase.csName);
             DBCollection dbcl = cs.getCollection(this.clName);
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
             //通过从节点查询
             DBCursor cursor = dbcl.query(null,null,"{\"_id\":1}",null);
             List<BSONObject> actual = new ArrayList<BSONObject>();
@@ -178,7 +178,7 @@ public class TestSplit10525A extends SdbTestBase{
             
             Assert.assertEquals(actual, expected);
         } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+        	throw e;
         } finally {
             dataDb.disconnect();
         }
