@@ -2371,7 +2371,7 @@ INT32 getCiCollection( ciNode *master, const CHAR *csName,
    hasCollection = ( 0 != ossStrncmp( "", clName, CI_CL_NAME_SIZE ) ) ;
    if ( hasCollection )
    {
-      ossSnprintf( fullName, CI_CL_FULLNAME_SIZE, "%s.%s", csName, clName ) ;
+      ossSnprintf( fullName, sizeof( fullName ), "%s.%s", csName, clName ) ;
    }
 
    // get collections from master node
@@ -2697,7 +2697,7 @@ INT32 inspectWithoutFile( sdbclient::sdb *coord, ciHeader *header,
    hasGroup = ( 0 != ossStrncmp( "", header->_groupName,
                 CI_GROUPNAME_SIZE ) ) ;
    // combine collection full name
-   ossSnprintf( fullName, CI_CL_FULLNAME_SIZE, "%s.%s",
+   ossSnprintf( fullName, sizeof( fullName ), "%s.%s",
                 header->_csName, header->_clName ) ;
 
    groupList.resetCurrentNode() ;

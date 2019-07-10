@@ -670,7 +670,7 @@ namespace engine
       for ( UINT32 i = 0 ; i < CAT_SYSLOG_CL_NUM ; ++i )
       {
          CHAR clName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
-         ossSnprintf( clName, DMS_COLLECTION_FULL_NAME_SZ, "%s%d",
+         ossSnprintf( clName, sizeof( clName ), "%s%d",
                       CAT_SYSLOG_COLLECTION_NAME, i ) ;
          rc = _createSysCollection( clName, cb ) ;
          if ( rc )

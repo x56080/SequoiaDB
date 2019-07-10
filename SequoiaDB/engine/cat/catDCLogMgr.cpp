@@ -521,7 +521,7 @@ namespace engine
 
       for ( UINT32 i = 0 ; i < CAT_SYSLOG_CL_NUM ; ++i )
       {
-         ossSnprintf( clName, DMS_COLLECTION_FULL_NAME_SZ, "%s%d",
+         ossSnprintf( clName, sizeof( clName ), "%s%d",
                       CAT_SYSLOG_COLLECTION_NAME, i ) ;
          pLog = SDB_OSS_NEW catDCLogItem( i, clName ) ;
          if ( !pLog )

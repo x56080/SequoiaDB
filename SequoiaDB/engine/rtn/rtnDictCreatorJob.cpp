@@ -323,7 +323,7 @@ namespace engine
       SDB_ASSERT( FALSE == context->isMBLock(),
                   "mb should not have been locked" ) ;
 
-      ossSnprintf( fullName, DMS_COLLECTION_FULL_NAME_SZ + 1, "%s.%s",
+      ossSnprintf( fullName, sizeof( fullName ), "%s.%s",
                    sd->getSuName(), context->mb()->_collectionName ) ;
       rc = rtnLoadCollectionDict( fullName, dictStream, dictSize ) ;
       PD_RC_CHECK( rc, PDERROR, "Load compression dictionary for collection[%s]"

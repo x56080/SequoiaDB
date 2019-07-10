@@ -650,7 +650,7 @@ namespace engine
          }
 
          // join space + collection to a full collection name
-         ossSnprintf( fullName, DMS_COLLECTION_FULL_NAME_SZ,
+         ossSnprintf( fullName, sizeof( fullName ),
                       "%s.%s", meta.csName.c_str(), meta.clName.c_str() ) ;
          // sanity check to make sure we are on the right collection
          if ( 0 != _fullNames.at( _current ).compare( fullName ) )
