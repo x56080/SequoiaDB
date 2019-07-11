@@ -243,13 +243,13 @@ namespace engine
       {
          argvs.push_back( argv[i] ) ;
       }
-
+#if defined ( _LINUX )
       if ( vm.count( PMD_OPTION_IGNOREULIMIT ) )
       {
          PD_LOG( PDWARNING, "Start programme with setting ulimit based on "
                  "current terminal" ) ;
       }
-
+#endif
       if ( !asStandalone )
       {
          // first to check whether the process exist
