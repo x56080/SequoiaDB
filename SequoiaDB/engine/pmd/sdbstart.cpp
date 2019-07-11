@@ -421,13 +421,13 @@ namespace engine
 
       ossSprintVersion( "Version", verText, OSS_MAX_PATHSIZE, FALSE ) ;
       PD_LOG( PDEVENT, "Start programme[%s]...", verText ) ;
-
+#if defined ( _LINUX )
       if ( vm.count( PMD_OPTION_IGNOREULIMIT ) )
       {
          PD_LOG( PDWARNING, "Start programme with setting ulimit based on "
                  "current terminal" ) ;
       }
-
+#endif
       if ( configs.size() == 0 )
       {
          utilNodeInfo info ;
