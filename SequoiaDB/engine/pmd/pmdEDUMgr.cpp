@@ -219,6 +219,28 @@ namespace engine
          eduCount = _getEDUCount ( EDU_ALL ) ;
       }
 
+      timeCounter = 0 ;
+      while ( TRUE )
+      {
+         INT32 rc = _eduExitMutex.lock_w( 100 ) ;
+         if ( SDB_OK == rc )
+         {
+            // got w lock, all EDUs have been released
+            _eduExitMutex.release_w() ;
+            break ;
+         }
+         if ( timeCounter > 6000 )
+         {
+            // wait timeout
+            // 6000 * 100ms = 10 minutes
+            break ;
+         }
+         // sleep and retry
+         ++ timeCounter ;
+         ossSleepmillis( 100 ) ;
+      }
+
+
       PD_TRACE_EXIT ( SDB__PMDEDUMGR_DESTROYALL );
       return SDB_OK ;
    }

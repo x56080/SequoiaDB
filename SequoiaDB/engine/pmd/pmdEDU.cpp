@@ -1235,6 +1235,9 @@ namespace engine
       cb->setTID ( ossGetCurrentThreadID() ) ;
       eduMgr->setEDU ( ossGetCurrentThreadID(), myEDUID ) ;
 
+      // protect exit of current EDU
+      ossScopedRWLock scopeLock( eduMgr->getEDUExitMutex(), SHARED ) ;
+
       PD_LOG ( PDEVENT, "Start thread[%d] for EDU[ID:%lld, type:%s, Name:%s]",
                ossGetCurrentThreadID(), myEDUID, getEDUName( type ),
                cb->getName() ) ;

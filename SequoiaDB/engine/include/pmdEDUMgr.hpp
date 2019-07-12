@@ -87,6 +87,10 @@ namespace engine
       BOOLEAN _isQuiesced ;
 
       BOOLEAN _isDestroyed ;
+
+      // protect exit of main process
+      ossRWMutex _eduExitMutex ;
+
       // for read operation
    #ifdef EDUMGR_SLOCK
    #undef EDUMGR_SLOCK
@@ -164,6 +168,11 @@ namespace engine
       {
          EDUMGR_SLOCK
          return _isDestroyed ;
+      }
+
+      ossRWMutex * getEDUExitMutex ()
+      {
+         return &_eduExitMutex ;
       }
 
 #if defined( SDB_ENGINE )
