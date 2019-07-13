@@ -35,7 +35,7 @@ public class ConfigOptions {
     private long maxAutoConnectRetryTime = 15000;
     private int connectTimeout = 10000;
     private int socketTimeout = 0;
-    private boolean socketKeepAlive = false;
+    private boolean socketKeepAlive = true;
     private boolean useNagle = false;
     private boolean useSSL = false;
 
@@ -83,7 +83,7 @@ public class ConfigOptions {
     /**
      * @fn void setSocketKeepAlive(boolean on)
      * @brief This flag controls the socket keep alive feature that keeps a connection alive through firewalls {@link java.net.Socket#setKeepAlive(boolean)}
-     * @param on whether keep-alive is enabled on each socket. Default is false.
+     * @param on whether keep-alive is enabled on each socket. Default is true.
      */
     public void setSocketKeepAlive(boolean on) {
         this.socketKeepAlive = on;
