@@ -57,20 +57,18 @@ protected:
    {
       INT32 rc = SDB_OK ;
 
-      if( isStandalone( db ) )
+      if( !isStandalone( db ) )
       {
-         printf( "Run mode is standalone\n" ) ;
-         return ;
+         rc = sdbRemoveUsr( db, userName, passwd ) ;
+         ASSERT_EQ( SDB_OK, rc ) ;
+         sdbReleaseNode( masterNode ) ;
+         sdbReleaseReplicaGroup( rg ) ;
+         sdbDisconnect( cataDB ) ;
+         sdbReleaseConnection( cataDB ) ;
       }
 
-      rc = sdbRemoveUsr( db, userName, passwd ) ;
-      ASSERT_EQ( SDB_OK, rc ) ;
-      sdbReleaseNode( masterNode ) ;
-      sdbReleaseReplicaGroup( rg ) ;
       sdbDisconnect( db ) ;
-      sdbDisconnect( cataDB ) ;
       sdbReleaseConnection( db ) ;
-      sdbReleaseConnection( cataDB ) ;
    }
 } ;
 
@@ -105,12 +103,15 @@ TEST_F( createUsr17941_17957, withOption )
    rc = sdbGetCollection( cataDB, "SYSAUTH.SYSUSRS", &cl ) ;
    ASSERT_EQ( rc, SDB_OK ) << "fail to get collection SYSAUTH.SYSUSRS" ;
 
-   CHAR destMask[64] ;
+   bson matcher;
    bson subobj ;
+   bson_init( &matcher ) ;
    bson_init( &obj ) ;
    bson_init( &subobj ) ;
    sdbCursorHandle cursor ;
-   rc = sdbQuery( cl, NULL, NULL, NULL, NULL, 0, -1, &cursor ) ;
+   bson_append_string( &matcher, "User", userName ) ;
+   bson_finish( &matcher ) ;
+   rc = sdbQuery( cl, &matcher, NULL, NULL, NULL, 0, -1, &cursor ) ;
    ASSERT_EQ( rc, SDB_OK ) << "fail to query" ;
    rc = sdbNext( cursor, &obj ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to get next" ;
@@ -120,8 +121,8 @@ TEST_F( createUsr17941_17957, withOption )
    bson_find( &sub, &subobj, "AuditMask" ) ;
    bson_print( &subobj ) ;
    string srcMask = bson_iterator_string( &sub ) ;
-   strcpy( destMask, srcMask.c_str() ) ;
-   ASSERT_EQ( 0, strcmp( destMask, mask ) ) << "check auditmask wrong, expect:" << mask << " actual:" << destMask ;
+   ASSERT_EQ( 0, strcmp( srcMask.c_str(), mask ) ) << "check auditmask wrong, expect:" << mask << " actual:" << srcMask.c_str() ;
+   bson_destroy( &matcher ) ;
    bson_destroy( &obj ) ;
    bson_destroy( &subobj ) ;
    sdbReleaseCursor( cursor ) ;
