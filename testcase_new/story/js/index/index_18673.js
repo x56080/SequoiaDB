@@ -22,6 +22,7 @@ function main()
    
    println("\n---Begin to alter cl to sharding.");
    cl.alter({ShardingType:"hash", ShardingKey:{a:1}});
+   cl.insert({a:1});
    
    println("\n---Begin to cl.truncate.");
    cl.truncate();
