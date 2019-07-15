@@ -13,7 +13,7 @@ function main(){
    
    var cl = commCreateCL(db, COMMCSNAME, clName);
    insertData(cl);
-   var cursor = db.exec("select * from (select min(b) as min, max(b) as max from cs.cl group by a) as T where T.min <> T.max");
+   var cursor = db.exec("select * from (select min(b) as min, max(b) as max from " + COMMCSNAME + "." + clName + " group by a) as T where T.min <> T.max");
    var actList = [];
    while(cursor.next()){
       var obj = cursor.current().toObj();
