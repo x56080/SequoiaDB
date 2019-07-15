@@ -1,0 +1,43 @@
+/******************************************************************************
+*@Description : seqDB-18824:as定义集合别名，使用别名查询记录 
+*@Author      : 2019-07-15  XiaoNi Huang init
+******************************************************************************/
+main();
+
+function main()
+{  
+   if ( commIsStandalone( db ) )
+   {
+      println("The mode is standalone.");
+      return ;
+   }  
+      
+   var csName = COMMCSNAME;
+   var clName = "cl18824";
+   
+   println("\n---Begin to create cl, and insert records.");
+   commDropCL( db, csName, clName, true, true, "Failed to drop CL in the pre-condition." ); 
+   var cl =  commCreateCL( db, csName, clName );
+   var recs = {a:1, b:1};
+   cl.insert( recs );
+   
+   println("\n---Begin to db.exec.");
+   var cursor = db.exec("select a, b from "+ csName +"."+ clName);
+   var recsNum = 0;
+   var actRecs;
+   while ( cursor.next() )
+   {
+      actRecs = cursor.current().toObj();
+      recsNum++;
+   }
+   
+   println("\n---Begin to check results.");
+   if ( 1 !== recsNum || JSON.stringify( recs ) !== JSON.stringify( actRecs ) )
+   {      
+      throw buildException( "main", null, "[check index]", 
+               "[recsNum = 1, expRecs = " + JSON.stringify( recs ) + "]", 
+               "[recsNum = " + recsNum + ", actRecs = " + JSON.stringify( actRecs ) + "]" );
+   }
+      
+   commDropCL( db, csName, clName, false, false, "Failed to drop CL in the end-condition." ); 
+}
