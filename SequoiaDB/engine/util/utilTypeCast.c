@@ -101,6 +101,7 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
       INT32 frac1 = 0 ;
       INT32 frac2 = 0 ;
       INT32 invalidDecimal = 0 ;
+      INT32 crossDecimal = 0 ;
 
       while ( *pStr >= '0' && *pStr <= '9' )
       {
@@ -210,6 +211,7 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
          if( *pStr >= '0' && *pStr <= '9' )
          {
             //<number>.xxx
+            BOOLEAN isSkipFrac2 = FALSE ;
             invalidDecimal = 0 ;
             numType = UTIL_NUM_TYPE_FLOAT64 ;
 
@@ -239,6 +241,14 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
 
                if ( digit >= 18 )
                {
+                  if ( num == 0 )
+                  {
+                     ++crossDecimal ;
+                  }
+                  else
+                  {
+                     crossDecimal = 0 ;
+                  }
                }
                else if ( digit < 9 )
                {
@@ -248,6 +258,16 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
                {
                   frac2 = 10 * frac2 + num ;
                   ++frac1Len ;
+
+                  if ( num == 0 && isSkipFrac2 == FALSE )
+                  {
+                     ++crossDecimal ;
+                  }
+                  else
+                  {
+                     crossDecimal = 0 ;
+                     isSkipFrac2 = TRUE ;
+                  }
                }
 
                ++pStr ;
@@ -261,6 +281,7 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
          }
       }
 
+      mantSize -= crossDecimal ;
       digit -= invalidDecimal ;
 
       if ( digit >= 9 )
@@ -272,11 +293,6 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
          n = frac1 ;
       }
 
-      if ( decPt < 0 )
-      {
-         decPt = mantSize ;
-      }
-
       if( numType == UTIL_NUM_TYPE_FLOAT64 && digit >= DOUBLE_PRECISION )
       {
          /*
@@ -284,11 +300,6 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
           */
          numType = UTIL_NUM_TYPE_DECIMAL ;
          goto done ;
-      }
-
-      if ( mantSize > 18 )
-      {
-         mantSize = 18 ;
       }
 
       fracExp = decPt - mantSize ;
