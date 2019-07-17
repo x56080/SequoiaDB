@@ -263,6 +263,11 @@ namespace engine
 
       INT32 readOldestBeginLsnOffset( DPS_LSN_OFFSET &offset ) ;
 
+      UINT32 getLoggerLogicalWork ()
+      {
+         return _logger.getLogicalWorkPos() ;
+      }
+
    private:
       void _allocate( UINT32 len,
                       dpsPageMeta &allocated ) ;

@@ -580,10 +580,11 @@ namespace engine
       DPS_LSN_OFFSET endOffset ;
       UINT32 startFileId ;
       UINT32 endFileId ;
+      UINT32 workFileId ;
 
       if ( startLSN.compareOffset( endLSN.offset ) >= 0 )
       {
-         PD_LOG( PDDEBUG, "startLSN[%lld] is larger than or equals to endLSN[%lld]",
+         PD_LOG( PDDEBUG, "startLSN[%llu] is larger than or equals to endLSN[%llu]",
                  startLSN.offset, endLSN.offset ) ;
          goto done ;
       }
@@ -592,6 +593,18 @@ namespace engine
       endOffset = endLSN.offset ;
       startFileId = _logMgr->calcLogicalFileID( startOffset ) ;
       endFileId = _logMgr->calcLogicalFileID( endOffset ) ;
+      workFileId = _logMgr->getLoggerLogicalWork() ;
+
+      // use the smaller work file logical ID if needed, since the logger may
+      // not flush
+      if ( workFileId < endFileId )
+      {
+         PD_LOG( PDDEBUG, "Log archive expected end file LID %u is smaller "
+                 "than current work file LID %u, use the work file LID",
+                 endFileId, workFileId ) ;
+         endFileId = workFileId ;
+      }
+
       SDB_ASSERT( startFileId <= endFileId, "invalid file id" ) ;
 
       for ( UINT32 i = startFileId; i <= endFileId; i++ )
