@@ -3,9 +3,11 @@
 *@Modify list :
 *                2016/7/14  XiaoNi Huang Init
 *******************************************************************************/
+println();
 var testCaseDir = initTestCaseDir();
-var tmpFileDir  = '/tmp/sdbimprtTest/';
-var LocalPath = null; 
+var tmpFileDir  = WORKDIR + "/sdbimprt/";
+println("tmpFileDir  = " + tmpFileDir );
+var localPath = null; 
 
 var cmd  = cmdInit();
 var installDir  = getInstallDir();   //eg:/opt/sequoiadb
@@ -18,8 +20,6 @@ readyTmpDir();
 **************************************************** */
 function initTestCaseDir()
 {
-   println("\n---Begin to get testcase director.");
-   
    if( typeof( TESTCASEDIR ) == "undefined" ) 
    { 
       var testCaseDir = './testcase_new/story/js/sdbimprt/'; 
@@ -29,7 +29,7 @@ function initTestCaseDir()
       //TESTCASEDIR default: ....../testcases/hlt/js_testcases/js/sdbimprt/
       var testCaseDir = TESTCASEDIR +'/';
    }
-   println("testCaseDir = " + testCaseDir );
+   println("testCaseDir = " + testCaseDir + ", or definetion TESTCASEDIR");
    return testCaseDir;
 }
 
@@ -41,13 +41,15 @@ function getCoordAdrr()
 {
    println("\n---Begin to get coord address.");
    
-   var tmpInfo = db.exec("select NodeName from $SNAPSHOT_SYSTEM where GroupName='SYSCoord'")
-                   .current().toObj()["ErrNodes"];
    var nodeArray = [];
-   for( i = 0; i < tmpInfo.length; i++ )
+   var rc = db.exec("select NodeName from $SNAPSHOT_SYSTEM where GroupName='SYSCoord'")
+   while( rc.next() )
    {
-      nodeInfo = tmpInfo[i]["NodeName"];
-      nodeArray.push( nodeInfo );
+      var nodeName = rc.current().toObj().NodeName;
+      if( nodeName !== undefined )
+      {
+         nodeArray.push( nodeName );
+      }
    }
    return nodeArray;
 }
@@ -104,7 +106,7 @@ function getDataGroupsName()
 **************************************************** */
 function readyTmpDir()
 {
-   println("\n---Begin to ready tmpFileDir");
+   println("\n---Begin to ready tmpFileDir.");
    
    try
    {
@@ -153,8 +155,8 @@ function getInstallDir()
 {
    try
    {
-      var LocalPath = cmd.run( "pwd" ).split( "\n" )[0] +"/";
-      println("LocalPath = "+ LocalPath );
+      var localPath = cmd.run( "pwd" ).split( "\n" )[0] +"/";
+      println("localPath   = "+ localPath );
       
       try
       {
@@ -169,7 +171,7 @@ function getInstallDir()
       catch( e )
       {
          ///etc/default/sequoiadb is not exists 
-         var installPath = LocalPath;
+         var installPath = localPath;
          println("instatllpath = "+ installPath );        
       }
       println("instatllpath = "+ installPath ); 
@@ -177,7 +179,7 @@ function getInstallDir()
    }
    catch( e )
    {
-      println( "failed to get global variable : cmd/LocalPath/installPath" + e );
+      println( "failed to get global variable : cmd/localPath/installPath" + e );
       throw e;
    }
    
@@ -226,4 +228,108 @@ function turnLocaltime( time, format )
       println("Timestamp with time zone to local time failed.");
       throw e;
    }
+}
+
+function importData( csName, clName, importFile, type, fields )
+{
+   println("\n---Begin to import csv data.");    
+   var imprtOption = installDir +'bin/sdbimprt -s '+ COORDHOSTNAME +' -p '+ COORDSVCNAME 
+                  +' -c '+ csName +' -l '+ clName 
+                  +' --type '+ type
+                  +' --file '+ importFile;
+   if ( type === 'csv' ) {
+       imprtOption = imprtOption +' --fields "' + fields +'"';
+   }
+   println( imprtOption );
+   var rc = cmd.run( imprtOption );
+   println( rc );   
+   
+   var rcResults = rc.split("\n");
+   return rcResults;
+}
+
+function exportData( csName, clName, exportFile,type, fields, sort, otherParam )
+{
+   println("\n---Begin to export data.");
+   if ( typeof( sort ) == "undefined" ) { sort = "{a:1}"; }
+   
+   //remove export file
+   cmd.run( "rm -rf "+ exportFile );
+
+   var exportOption = installDir +'bin/sdbexprt -s '+ COORDHOSTNAME +' -p '+ COORDSVCNAME 
+                     +' -c '+ csName +' -l '+ clName 
+                     +' --type '+ type 
+                     +' --fields "' + fields +'"'
+                     +' --sort "'+ sort +'"' 
+                     +' --file '+ exportFile
+                     +' ' + otherParam;   
+   println( exportOption );
+   var rc = cmd.run( exportOption );
+   println( rc );
+   
+   //cat exprt file
+   var command = "cat "+ exportFile;
+   var fileInfo = cmd.run( command );
+   println( command ) ;
+   println( fileInfo ) ;
+}
+
+function checkImportRC(rcResults, expParseRecordsNum, expImportedRecordsNum, expParseFailureNum)
+{   
+   println("\n---Begin to check import results.");
+   if ( typeof( expParseFailureNum ) === "undefined" ) { expParseFailureNum = 0; }
+   if ( typeof( expImportedRecordsNum ) === "undefined" ) { expImportedRecordsNum = expParseRecordsNum; }
+   
+   var expParseRecords    = "parsed records: " + expParseRecordsNum;
+   var expParseFailure    = "parse failure: "  + expParseFailureNum;
+   var expImportedRecords = "imported records: " + expImportedRecordsNum;
+   var actParseRecords    = rcResults[0];
+   var actParseFailure    = rcResults[1];
+   var actImportedRecords = rcResults[4];
+   if( expParseRecords !== actParseRecords 
+    || expParseFailure !== actParseFailure 
+    || expImportedRecords !== actImportedRecords )
+   {
+      throw buildException( "importData", null, "[sdbimprt results]", 
+                        "["+ expParseRecords +", "+ expParseFailure +", "+ expImportedRecords +"]", 
+                        "["+ actParseRecords +", "+ actParseFailure +", "+ actImportedRecords +"]" );
+   }
+}
+
+function checkCLData( cl, expRecsNum, expRecs )
+{
+   println("\n---Begin to check cl data.");
+   
+   var rc = cl.find({},{_id:{$include:0}}).sort({a:1});
+   var recsArray = [];
+   while( tmpRecs = rc.next() )
+   {
+      recsArray.push( tmpRecs.toObj() );
+   }
+   
+   var expCnt  = expRecsNum;
+   var actCnt  = recsArray.length;
+   var actRecs = JSON.stringify( recsArray );
+   if( actCnt !== expCnt || actRecs !== expRecs )
+   {
+      throw buildException( "checkCLdata", null, "[import]", 
+                        "[cnt:"+ expCnt +", recs:"+ expRecs +"]", 
+                        "[cnt:"+ actCnt +", recs:"+ actRecs +"]" );
+   }  
+   println("cl records: \n" + actRecs );
+}
+
+function checkExportData( exportFile, expData )
+{
+   println("\n---Begin to check export data.");
+   
+   var rcData = cmd.run( "cat "+ exportFile ).split("\n");
+   var actData = JSON.stringify( rcData );
+   
+   if( actData !== expData )
+   {
+      throw buildException( "checkCLdata", null, "[export]", 
+                        "["+ expData +"]", 
+                        "["+ actData +"]" );
+   }   
 }
