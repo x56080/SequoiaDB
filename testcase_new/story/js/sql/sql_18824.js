@@ -18,11 +18,13 @@ function main()
    println("\n---Begin to create cl, and insert records.");
    commDropCL( db, csName, clName, true, true, "Failed to drop CL in the pre-condition." ); 
    var cl =  commCreateCL( db, csName, clName );
-   var recs = {a:1, b:1};
+   var recs = [{a:1, b:1}, {a:1,b:2}];
    cl.insert( recs );
    
    println("\n---Begin to db.exec.");
-   var cursor = db.exec("select a, b from "+ csName +"."+ clName);
+   var sql = "select T.a, T.b from "+ csName +"."+ clName +" as T where T.a = T.b";
+   println('   db.exec("' + sql +'")');
+   var cursor = db.exec( sql );
    var recsNum = 0;
    var actRecs;
    while ( cursor.next() )
@@ -32,10 +34,11 @@ function main()
    }
    
    println("\n---Begin to check results.");
-   if ( 1 !== recsNum || JSON.stringify( recs ) !== JSON.stringify( actRecs ) )
+   var expRecs = {a:1,b:1};
+   if ( 1 !== recsNum || JSON.stringify( expRecs ) !== JSON.stringify( actRecs ) )
    {      
       throw buildException( "main", null, "[check index]", 
-               "[recsNum = 1, expRecs = " + JSON.stringify( recs ) + "]", 
+               "[recsNum = 1, expRecs = " + JSON.stringify( expRecs ) + "]", 
                "[recsNum = " + recsNum + ", actRecs = " + JSON.stringify( actRecs ) + "]" );
    }
       
