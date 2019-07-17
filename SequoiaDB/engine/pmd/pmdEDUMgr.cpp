@@ -236,7 +236,6 @@ namespace engine
          }
          // sleep and retry
          ++ timeCounter ;
-         ossSleepmillis( 100 ) ;
       }
 
 
