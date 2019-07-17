@@ -1182,7 +1182,8 @@ namespace import
          goto done ;
       }
 
-      rc = utilStrToNumber( data, length, &tmpType, &tmpValue, &valueLength ) ;
+      rc = utilStrToNumber( data, length, FALSE,
+                            &tmpType, &tmpValue, &valueLength ) ;
       if ( rc )
       {
          goto error ;
@@ -3005,7 +3006,7 @@ namespace import
 
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to scan timepstamp, rc=%d", rc);
+            PD_LOG(PDERROR, "failed to scan timestamp, rc=%d", rc);
             goto error;
          }
 

@@ -33,6 +33,7 @@ typedef union
 SDB_EXTERN_C_START
 
 SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
+                                  BOOLEAN fullParse,
                                   INT32 *type, utilNumberVal *value,
                                   INT32 *valueLength ) ;
 

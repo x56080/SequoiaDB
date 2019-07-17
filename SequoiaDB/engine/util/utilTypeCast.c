@@ -36,6 +36,7 @@ static FLOAT64 powersOf10[] = {
  *
  * \param [in]  data          String pointer to be parsed
  * \param [in]  length        Reserved, not used now
+ * \param [in]  fullParse     true: if the string is decimal continues to parse
  * \param [out] type          Type of value:
  *                               0: INT32
  *                               1: INT64
@@ -46,6 +47,7 @@ static FLOAT64 powersOf10[] = {
  * \retval SDB_OK Retrieval Success
  */
 SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
+                                  BOOLEAN fullParse,
                                   INT32 *type, utilNumberVal *value,
                                   INT32 *valueLength )
 {
@@ -141,17 +143,25 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
             {
                //n2 * 10 is greater than the long long range
                numType = UTIL_NUM_TYPE_DECIMAL ;
-               ++pStr ;
-               ++len ;
-               goto done ;
+
+               if( !fullParse )
+               {
+                  ++pStr ;
+                  ++len ;
+                  goto done ;
+               }
             }
             else if ( n2 < UTIL_NUM_INT64_MIN_THRESHOLD )
             {
                //n2 * 10 is less than the long long range
                numType = UTIL_NUM_TYPE_DECIMAL ;
-               ++pStr ;
-               ++len ;
-               goto done ;
+
+               if( !fullParse )
+               {
+                  ++pStr ;
+                  ++len ;
+                  goto done ;
+               }
             }
             else if ( n2 == UTIL_NUM_INT64_MAX_THRESHOLD ||
                       n2 == UTIL_NUM_INT64_MIN_THRESHOLD )
@@ -160,17 +170,25 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
                {
                   //n2 * 10 + num is greater than the max long long
                   numType = UTIL_NUM_TYPE_DECIMAL ;
-                  ++pStr ;
-                  ++len ;
-                  goto done ;
+
+                  if( !fullParse )
+                  {
+                     ++pStr ;
+                     ++len ;
+                     goto done ;
+                  }
                }
                else if ( sign == -1 && num > 8 )
                {
                   //n2 * 10 - num is less then the min long long
                   numType = UTIL_NUM_TYPE_DECIMAL ;
-                  ++pStr ;
-                  ++len ;
-                  goto done ;
+
+                  if( !fullParse )
+                  {
+                     ++pStr ;
+                     ++len ;
+                     goto done ;
+                  }
                }
             }
          }
@@ -212,8 +230,13 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
          {
             //<number>.xxx
             BOOLEAN isSkipFrac2 = FALSE ;
+
             invalidDecimal = 0 ;
-            numType = UTIL_NUM_TYPE_FLOAT64 ;
+
+            if( numType != UTIL_NUM_TYPE_DECIMAL )
+            {
+               numType = UTIL_NUM_TYPE_FLOAT64 ;
+            }
 
             if ( decPt < 0 && mantSize == 0 )
             {
@@ -299,7 +322,11 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
           * The effective number is greater than 15 digits
           */
          numType = UTIL_NUM_TYPE_DECIMAL ;
-         goto done ;
+
+         if( !fullParse )
+         {
+            goto done ;
+         }
       }
 
       fracExp = decPt - mantSize ;
@@ -315,8 +342,12 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
    //step 5
    if ( *pStr == 'e' || *pStr == 'E' )
    {
-      numType = UTIL_NUM_TYPE_FLOAT64 ;
       //<number>[e/E]xxx
+      if( numType != UTIL_NUM_TYPE_DECIMAL )
+      {
+         numType = UTIL_NUM_TYPE_FLOAT64 ;
+      }
+
       ++pStr ;
       ++len ;
 
@@ -371,6 +402,7 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
           * Maximum index should not exceed 308
           */
          numType = UTIL_NUM_TYPE_DECIMAL ;
+
          goto done ;
       }
       else if ( signsubscale == -1 && subscale - digit > DOUBLE_MAX_EXP )
