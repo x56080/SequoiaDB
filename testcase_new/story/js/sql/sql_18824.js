@@ -5,13 +5,7 @@
 main();
 
 function main()
-{  
-   if ( commIsStandalone( db ) )
-   {
-      println("The mode is standalone.");
-      return ;
-   }  
-      
+{        
    var csName = COMMCSNAME;
    var clName = "cl18824";
    
