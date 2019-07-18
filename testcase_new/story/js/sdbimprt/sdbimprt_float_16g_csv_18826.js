@@ -2,7 +2,7 @@
 *@Description:  seqDB-18826:导入导出浮点数（%.16g，csv）
 *@Author     :  2019-7-16  huangxiaoni
 ************************************************************************/
-//main();  --jira-4711
+main(); 
 
 function main()
 {  
