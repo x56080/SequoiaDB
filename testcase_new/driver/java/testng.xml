@@ -28,7 +28,8 @@
          <package name="com.sequoiadb.sdb"/>
          <package name="com.sequoiadb.procedure"/>
 		 <package name="com.sequoiadb.baseexception"/>
-       <package name="com.sequoiadb.optimize"/>
+         <package name="com.sequoiadb.optimize"/>
+         <package name="com.sequoiadb.baseconfigoption" />
       </packages>    
    </test>
    
