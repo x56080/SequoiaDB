@@ -50,6 +50,8 @@ function main()
       sDB.close();
       mDB.close();
    }
+   
+   commDropCS( db, csName, false, "Failed to drop cs in the end-condition." ); 
 }
 
 function checkIndex(sDB, mDB, csName, clName)
