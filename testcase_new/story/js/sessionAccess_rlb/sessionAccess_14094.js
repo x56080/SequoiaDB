@@ -7,7 +7,7 @@
              d: set multiple instanceid and [M/S/A]
 @author：2018-1-24 wuyan  Init
 ***************************************************************************** */
-
+import ("../sessionAccess/commlib.js");
 main();
 function main()
 {	  
@@ -21,13 +21,14 @@ function main()
       }     
       
       //create group and node
-      var groupName = "group14094";      
+      var groupName = "group14094"; 
+      var nodeList = [];       
       var instanceidList = [ 30, 124, 8, 22 ]; 
       var nodeNum = 4;
-      createRGAndNode(db, groupName, instanceidList, nodeNum);      
-         
-      //create cl ,then insert data  
       var clName = CHANGEDPREFIX + "_sessionAcess14094"; 
+      nodeList = createRGAndNode(db, groupName, instanceidList, nodeNum);      
+         
+      //create cl ,then insert data
       var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, {ReplSize:0,Group:groupName});  
       insertData( dbcl);
       
@@ -42,18 +43,25 @@ function main()
       setSessionIsInstanceAndAa(db, dbcl, groupName);      
       
       //test d: set multiple instanceid and ["M/S/A"]
-      setSessionIsInstanceAndMSA(db, dbcl, groupName);       
-      
-      commDropCL( db, COMMCSNAME, clName, true, true,
-               "clear collection in the beginning" ) ;
-      db.removeRG(groupName);
+      setSessionIsInstanceAndMSA(db, dbcl, groupName);
    }
    catch( e )
-   {      
+   {
+      println("catch e : " + e);
+      //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
+      var backupDir = "/tmp/ci/rsrvnodelog/14094";
+      File.mkdir(backupDir);
+      for(var i = 0 ; i < nodeList.length ; i++)
+      {
+         File.scp( nodeList[i].logSourcePath, backupDir + "/sdbdiag" + i + ".log" );
+      }        
       throw e;
    }
    finally
    {
+      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the end" ) ;
+      db.removeRG(groupName);
+      
       if( db != null )
       {
          db.close()

@@ -4,7 +4,7 @@
              14104:set sessionAttr is S after insert data
 @author：2018-1-24 wuyan  Init
 ***************************************************************************** */
-
+import ("../sessionAccess/commlib.js");
 main();
 function main()
 {	  
@@ -18,11 +18,12 @@ function main()
       } 
        
       //create group and node
-      var groupName = "group14091";       
-      createRGAndNode(db, groupName);   
+      var groupName = "group14091"; 
+      var nodeList = [];     
+      var csName = CHANGEDPREFIX + "_cs14091";      
+      nodeList = createRGAndNode(db, groupName);   
          
       //create cs/maincl/subcl/attchcl ,then insert data 
-      var csName = CHANGEDPREFIX + "_cs14091";
       var mainCLName = CHANGEDPREFIX + "_maincl14091";
       var subclName1 = CHANGEDPREFIX + "_sessionAcess14091a";
       var subclName2 = CHANGEDPREFIX + "_sessionAcess14091b"; 
@@ -49,15 +50,25 @@ function main()
       checkAccessNodeIsPrimary( actAccessNode, groupName, false ); 
       println("---end to test testcase14091 ");  
       
-      commDropCS( db, csName, false, "Failed to drop CS.");  
-      db.removeRG(groupName);    
+      commDropCS( db, csName, false, "Failed to drop CS.");   
    }
    catch( e )
    {
+      println("catch e : " + e);
+      //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
+      var backupDir = "/tmp/ci/rsrvnodelog/14091";
+      File.mkdir(backupDir);
+      for(var i = 0 ; i < nodeList.length ; i++)
+      {
+         File.scp( nodeList[i].logSourcePath, backupDir + "/sdbdiag" + i + ".log" );
+      }
       throw e;
    }
    finally
    {
+      commDropCS( db, csName, true, "Failed to drop CS.");
+      db.removeRG(groupName);
+      
       if( db != null )
       {
          db.close()

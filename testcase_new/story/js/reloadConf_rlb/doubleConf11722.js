@@ -121,30 +121,63 @@ function testNodeConfig( key, value )
     var svcname = toolGetIdleSvcName( hostname, CMSVCNAME ) ;
     var node = hostname + ":" + svcname ;
     var dbpath = RSRVNODEDIR + "data/" + svcname ;
-    rg.createNode( hostname, svcname, dbpath ) ;
-    println( "success to create node " + node ) ;
-    rg.start() ;
-    println( "success to start group: " + group ) ;
+    var srcLogPath = "";
+    try
+    {
+       rg.createNode( hostname, svcname, dbpath, {diaglevel:5} ) ;
+       println( "success to create node " + node ) ;
+       srcLogPath = hostname+":"+CMSVCNAME+"@"+dbpath+"/diaglog/sdbdiag.log";
+       rg.start() ;
+       println( "success to start group: " + group ) ;
     
-    // set node config and reload conf 
-    setNodeConfig( node, key, value ) ;
-    println( "success to set node config: " + key + "=" + value ) ;
-    db.reloadConf() ;
-    println( "success to reload conf" ) ;
+       // set node config and reload conf 
+       setNodeConfig( node, key, value ) ;
+       println( "success to set node config: " + key + "=" + value ) ;
+       db.reloadConf() ;
+       println( "success to reload conf" ) ;
+    }
+    catch( e )
+    {
+       println("catch e : " + e);
+       //将新建data节点日志备份到/tmp/ci/rsrvnodelog目录下
+       var backupDir = "/tmp/ci/rsrvnodelog/11722";
+       File.mkdir(backupDir);
+       File.scp( srcLogPath, backupDir + "/sdbdiag.log" );
+       throw e;
+    }
+    finally
+    {
+       // remove node
+       rg.removeNode( hostname, svcname ) ;
+       println( "success to remove node " + node ) ;
+    }
     
-    // remove node
-    rg.removeNode( hostname, svcname ) ;
-    println( "success to remove node " + node ) ;
-    
-    // create a cata node and start and remove
-    var cataRg = db.getRG( "SYSCatalogGroup" ) ;
-    dbpath = RSRVNODEDIR + "catalog/" + svcname ;
-    cataRg.createNode( hostname, svcname, dbpath ) ;
-    println( "success to create cata node " + node ) ;
-    cataRg.start() ;
-    println( "success to start catalog group" ) ;
-    cataRg.removeNode( hostname, svcname ) ;
-    println( "success to remove cata node " + node ) ;
+    var srcLogCoordPath = "";
+    try
+    {
+       // create a cata node and start and remove
+       var cataRg = db.getRG( "SYSCatalogGroup" ) ;
+       dbpath = RSRVNODEDIR + "catalog/" + svcname ;
+       cataRg.createNode( hostname, svcname, dbpath, {diaglevel:5} ) ;
+       srcLogCoordPath = hostname+":"+CMSVCNAME+"@"+dbpath+"/diaglog/sdbdiag.log";
+       println( "success to create cata node " + node ) ;
+       cataRg.start() ;
+       println( "success to start catalog group" ) ;
+    }
+    catch( e )
+    {
+       println("catch e : " + e);
+       //将新建coord节点日志备份到/tmp/ci/rsrvnodelog目录下
+       var backupDir = "/tmp/ci/rsrvnodelog/11722_coord";
+       File.mkdir(backupDir);
+       File.scp( srcLogCoordPath, backupDir + "/sdbdiag.log" );
+       throw e; 
+    }
+    finally
+    {
+       cataRg.removeNode( hostname, svcname ) ;
+       println( "success to remove cata node " + node ) ;
+    }
     
     // check all nodes conf file
     var groups = getAllGroups() ; 
@@ -155,8 +188,7 @@ function testNodeConfig( key, value )
         {
             checkNodeConfFile( nodes[j] ) ;    
         }
-    }
-    println() ;   
+    } 
 }
 
 

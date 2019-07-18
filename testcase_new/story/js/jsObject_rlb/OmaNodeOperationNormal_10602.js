@@ -4,18 +4,21 @@
 *               TestLink: 10602 Oma创建、删除、启动、停止协调节点和数据节点
 *@author      : Liang XueWang
 ******************************************************************************/
-
+import ("../jsObjectSync/commlib.js");
 // 测试正常创建启动停止删除协调节点
 OmaTest.prototype.testCoordNodeOperationNormal = function( svcname )
 {
+   var isNodeCreated = false;
    this.testInit() ;
    try
    {
       var dbpath = RSRVNODEDIR + svcname ;
       this.oma.createCoord( svcname, dbpath ) ;
+      isNodeCreated = true;
       this.oma.startNode( svcname ) ;
       this.oma.stopNode( svcname ) ;
       this.oma.removeCoord( svcname ) ; 
+      isNodeCreated = false;
    }
    catch( e )
    {
@@ -23,29 +26,50 @@ OmaTest.prototype.testCoordNodeOperationNormal = function( svcname )
       throw buildException( "testCoordNodeOperationNormal", e, 
                             "coord node operation " + this, 0, e ) ;
    }
-   this.oma.close() ;  
+   finally
+   {
+       if(isNodeCreated)
+       {
+          this.oma.removeCoord( svcname ) ; 
+       }
+       this.oma.close() ;
+   }  
 }
 
 // 测试正常创建启动停止删除数据节点
 OmaTest.prototype.testDataNodeOperationNormal = function( svcname )
 {
+   var isNodeCreated = false;
    this.testInit() ;
    try
    {
       var dbpath = RSRVNODEDIR + svcname ;
-      this.oma.createData( svcname, dbpath ) ;
+      this.oma.createData( svcname, dbpath, {diaglevel:5} ) ;
+      isNodeCreated = true;
       this.oma.startNode( svcname ) ;
       checkDataNodeValid( this.hostname, svcname ) ;
       this.oma.stopNode( svcname ) ;
       this.oma.removeData( svcname ) ; 
+      isNodeCreated = false;
    }
    catch( e )
    {
-      println( "data " + svcname + " dbpath " + dbpath ) ;
+      println( "data " + svcname + " dbpath " + dbpath + "  e :" + e ) ;
+      var backupDir = "/tmp/ci/rsrvnodelog/10602";
+      var srcLogPath = this.hostname+":"+CMSVCNAME+"@"+dbpath+"/diaglog/sdbdiag.log";
+      File.mkdir(backupDir);
+      File.scp( srcLogPath, backupDir + "/sdbdiag.log" );
       throw buildException( "testDataNodeOperationNormal", e,
                             "data node operation " + this, 0, e ) ;
    }
-   this.oma.close() ;   
+   finally
+   {
+       if(isNodeCreated)
+       {
+          this.oma.removeData( svcname ) ;  
+       }
+       this.oma.close() ;
+   }   
 }
 
 /******************************************************************************

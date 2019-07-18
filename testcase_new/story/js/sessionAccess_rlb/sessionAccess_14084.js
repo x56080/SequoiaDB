@@ -2,7 +2,7 @@
 @discretion: setSessionAttr(),set instatceid is node subscript
 @author：2018-1-24 wuyan  Init
 ***************************************************************************** */
-
+import ("../sessionAccess/commlib.js");
 main();
 
 function main()
@@ -18,7 +18,8 @@ function main()
       
       //create group and node
       var groupName = "group14084"; 
-      createRGAndNode(db, groupName);
+      var nodeList = [];
+      nodeList = createRGAndNode(db, groupName);
       var expSvcNameList = getSvcNameList(db,groupName);
         
       //create cl and insert data
@@ -35,20 +36,26 @@ function main()
       var queryNode = getAccessNode(dbcl);
       var expNodeName = expSvcNameList[ instanceid -1 ];        
       checkAcessNodeResult( queryNode, expNodeName );    
-      println("---end to set instanceid ");        
-      
-      commDropCL( db, COMMCSNAME, clName, true, true,
-               "clear collection in the beginning" ) ;
-      db.removeRG(groupName);
+      println("---end to set instanceid ");
    }
    catch( e )
    {
+      println("catch e : " + e);
+      //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
+      var backupDir = "/tmp/ci/rsrvnodelog/14084";
+      File.mkdir(backupDir);
+      for(var i = 0 ; i < nodeList.length ; i++)
+      {
+         File.scp( nodeList[i].logSourcePath, backupDir + "/sdbdiag" + i + ".log" );
+      }
       throw e;
    }
    finally
    {
       if( db != null )
       {
+         commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the end" ) ;
+         db.removeRG(groupName);
          db.close()
       }
    }

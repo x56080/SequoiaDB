@@ -4,6 +4,7 @@
              14102:setSessionAttr(),set instanceid and M,the instanceid for one group             
 @author：2018-1-29 wuyan  Init
 ***************************************************************************** */
+import ("../sessionAccess/commlib.js");
 var groupName1 = "group14100a";
 var groupName2 = "group14100b";
 main();
@@ -20,13 +21,15 @@ function main()
       
       //create group and node            
       var instanceidList = [ 3, 1, 20];
-      createRGAndNode(db, groupName1, instanceidList); 
-      createSecondRGAndNode(db, groupName2); 
+      var nodeList1 = [];
+      var nodeList2 = [];
+      var clName = CHANGEDPREFIX + "_sessionAcess14100"; 
+      nodeList1 = createRGAndNode(db, groupName1, instanceidList); 
+      nodeList2 = createRGAndNode(db, groupName2); 
       var expSvcNameList1 = getSvcNameList(db,groupName1);  
       var expSvcNameList2 = getSvcNameList(db,groupName2); 
          
       //create cl ,then insert data  
-      var clName = CHANGEDPREFIX + "_sessionAcess14100"; 
       var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, {ShardingKey:{no:1},ReplSize:0,Group:groupName1});  
       //insertData( dbcl);
       splitCL(dbcl, groupName1, groupName2);
@@ -40,17 +43,33 @@ function main()
       //set instanceid is not exist,the query for two group
       testSessionAccess14102(db, dbcl, expSvcNameList1,expSvcNameList2);     
       
-      commDropCL( db, COMMCSNAME, clName, true, true,
-               "clear collection in the beginning" ) ;
-      db.removeRG(groupName1);
-      db.removeRG(groupName2);
+      
    }
    catch( e )
    {
+      println("catch e : " + e);
+      //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
+      var backupDir = "/tmp/ci/rsrvnodelog/14100_" + groupName1;
+      File.mkdir(backupDir);
+      for(var i = 0 ; i < nodeList1.length ; i++)
+      {
+         File.scp( nodeList1[i].logSourcePath, backupDir + "/sdbdiag" + i + ".log" );
+      } 
+      
+      //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
+      var backupDir2 = "/tmp/ci/rsrvnodelog/14100_" + groupName2;
+      File.mkdir(backupDir2);
+      for(var i = 0 ; i < nodeList2.length ; i++)
+      {
+         File.scp( nodeList2[i].logSourcePath, backupDir2 + "/sdbdiag" + i + ".log" );
+      }
       throw e;
    }
    finally
    {
+      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the end" ) ;
+      db.removeRG(groupName1);
+      db.removeRG(groupName2);
       if( db != null )
       {
          db.close()

@@ -2,7 +2,7 @@
 @discretion: setSessionAttr(),set a instatceid
 @author：2018-1-22 wuyan  Init
 ***************************************************************************** */
-
+import ("../sessionAccess/commlib.js");
 main();
 function main()
 {	  
@@ -16,9 +16,10 @@ function main()
       } 
       
       //create group and node  
-      var groupName = "group14081";      
+      var groupName = "group14081";
+      var nodeList = [];
       var instanceidList = [ 0, 0, 15];      
-      createRGAndNode(db, groupName, instanceidList); 
+      nodeList = createRGAndNode(db, groupName, instanceidList); 
       
       //create cl and insert data
       var clName = CHANGEDPREFIX + "_sessionAcess14081";  
@@ -40,17 +41,24 @@ function main()
       //get session and check result
       var expSessionInfo = {PreferedInstance:15, PreferedInstanceMode:"random", "Timeout": -1}; 
       getSessionAndCheckResult(db, expSessionInfo);
-      
-      commDropCL( db, COMMCSNAME, clName, true, true,
-               "clear collection in the beginning" ) ;
-      db.removeRG(groupName);
    }
    catch( e )
    {
+      println("catch e : " + e);
+      //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
+      var backupDir = "/tmp/ci/rsrvnodelog/14081";
+      File.mkdir(backupDir);
+      for(var i = 0 ; i < nodeList.length ; i++)
+      {
+         File.scp( nodeList[i].logSourcePath, backupDir + "/sdbdiag" + i + ".log" );
+      }
       throw e ;
    }
    finally
    {
+      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the end" ) ;
+      db.removeRG(groupName);
+      
       if( db != null )
       {
          db.close()

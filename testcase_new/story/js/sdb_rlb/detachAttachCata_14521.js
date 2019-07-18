@@ -49,22 +49,31 @@ function main( db )
    // wait sync then stop cata master
    waitSync( cataMasterNode, cataNodes ) ;
    cataMaster.stop() ;
-   waitNewMaster( cataRg ) ;
-   
-   // connect coord1 again
    try
    {
-      db1 = new Sdb( coordNodes[0] ) ;
-      db1.close() ;
-   }
-   catch( e )
-   {
-      throw buildException( "main", e, "connect in the end", 0, e ) ;
-   }
+      waitNewMaster( cataRg ) ;
    
-   // start cataMaster
-   cataMaster.start() ;
-   db2.close() ;
+      // connect coord1 again
+      try
+      {
+         db1 = new Sdb( coordNodes[0] ) ;
+         db1.close() ;
+      }
+      catch( e )
+      {
+         throw buildException( "main", e, "connect in the end", 0, e ) ;
+      }
+      //throw "errorrrrrr";
+      // start cataMaster
+      cataMaster.start() ;
+      println("finish....");
+   }
+   finally
+   {
+      println("finally....");
+      cataRg.start();
+      db2.close() ;
+   }
 }
 
 /******************************************************************

@@ -2,7 +2,7 @@
 @discretion: attachNode( )中KeepData参数校验
 @author：2018-12-12 wangkexin
 ***************************************************************************** */
-
+import ("../clsMgr/commlib.js");
 main(db);
 function main(db)
 {	  
@@ -22,7 +22,7 @@ function main(db)
 	  
 	  var port = parseInt(RSRVPORTBEGIN) + 50;
 	  
-	  db.getRG(groupName1).createNode(hostname1, port, RSRVNODEDIR+port);
+	  db.getRG(groupName1).createNode(hostname1, port, RSRVNODEDIR + port);
 	  db.getRG(groupName1).start();
 	  db.getRG(groupName1).detachNode(hostname1, port, {KeepData:true});
 	  
@@ -58,18 +58,43 @@ function main(db)
 			  throw buildException("attachNode with KeepData is 'test' fail", e); 
 			}
 	  }
-	  
-	  println("----------clear node");
-	  db.getRG(groupName2).attachNode(hostname2, port, {KeepData:true});
-	  db.getRG(groupName2).start();
-	  db.getRG(groupName2).removeNode(hostname2, port);
-	  
    }
    catch( e )
    {
       throw buildException("check attachNode16806", e)
-   }finally
+   }
+   finally
    {
+       println("----------clear node");
+       try
+       {
+          db.getRG(groupName2).attachNode(hostname2, port, {KeepData:true});
+       }
+       catch( e )
+       {
+           // -145:SDBCM_NODE_EXISTED  -155:SDB_CLS_NODE_NOT_EXIST
+           if( e !== -145 && e !== -155 )
+           {
+               throw e;
+           }
+       }
+	   db.getRG(groupName2).start();
+       try
+       {
+          db.getRG(groupName2).removeNode(hostname2, port);
+       }
+       catch( e )
+       {
+           if( e == -155 )
+           {
+               db.getRG(groupName1).removeNode(hostname2, port);
+           }
+           else
+           {
+               throw e;
+           }
+       }
+       
 	   if (db !== undefined)
 	   {
 		   db.close();      	      

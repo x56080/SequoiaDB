@@ -2,7 +2,7 @@
 @discretion: detachNode( )中KeepData参数校验
 @author：2018-12-12 wangkexin
 ***************************************************************************** */
-
+import ("../clsMgr/commlib.js");
 main(db);
 function main(db)
 {	  
@@ -17,9 +17,9 @@ function main(db)
 	  var groupName = groupList[0];
 	  
 	  var hostname = db.getRG(groupName).getDetail().next().toObj()["Group"][0]["HostName"];
-	  var port = parseInt(RSRVPORTBEGIN) + 50;
+	  var port = parseInt(RSRVPORTBEGIN) + 150;
 	  
-	  db.getRG(groupName).createNode(hostname, port, RSRVNODEDIR+port);
+	  db.getRG(groupName).createNode(hostname, port, RSRVNODEDIR + port);
 	  db.getRG(groupName).start();
 	  
 	  println("begin to detach node");
@@ -54,16 +54,15 @@ function main(db)
 			  throw buildException("detachNode with KeepData is 'test' fail", e); 
 			}
 	  }
-	  
-	  println("----------clear node");
-	  db.getRG(groupName).removeNode(hostname, port);
-	  
    }
    catch( e )
    {
       throw buildException("check detachNode16809", e)
    }finally
    {
+       println("----------clear node");
+	   db.getRG(groupName).removeNode(hostname, port);
+       
 	   if (db !== undefined)
 	   {
 		   db.close();      	      

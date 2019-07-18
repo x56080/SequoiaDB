@@ -4,7 +4,7 @@
              14105:the session is specified in the configuration,respecified on the coord
 @author：2018-1-24 wuyan  Init
 ***************************************************************************** */
-
+import ("../sessionAccess/commlib.js");
 main();
 function main()
 {	  
@@ -15,25 +15,31 @@ function main()
          println( "run mode is standalone" );
          return;
       } 
-      
       var clName = CHANGEDPREFIX + "_sessionAcess14086";      
       //create group and node
-      var groupName = "group14086";      
+      var groupName = "group14086";
+      var nodeList = [];
+      var coordLogSourcePath = "";
       var instanceidList = [ 10, 4, 25, 255 ]; 
       var nodeNum = 4;
-      createRGAndNode(db, groupName, instanceidList, nodeNum);
-      var expSvcNameList = getSvcNameList(db,groupName);     
-      
-      //create coord node 
       var nodeHostName = db.listReplicaGroups().current().toObj().Group[0].HostName; 
       var nodeService = parseInt(RSRVPORTBEGIN) + 100;
       var coordRg = db.getRG("SYSCoord");
-      coordRg.createNode(nodeHostName, nodeService, RSRVNODEDIR + nodeService, {preferedinstance:"4,255",preferedinstanceMode:"random" }); 
-      coordRg.start();
+      var path = RSRVNODEDIR + "coord/" + nodeService;
+      
+      //create data group and nodes
+      nodeList = createRGAndNode(db, groupName, instanceidList, nodeNum);
+      var expSvcNameList = getSvcNameList(db,groupName); 
+
+      //create coord node
+      var node = coordRg.createNode(nodeHostName, nodeService, path, {preferedinstance:"4,255",preferedinstanceMode:"random", diaglevel:5}); 
+      coordLogSourcePath = nodeHostName + ":" + CMSVCNAME + "@" + path + "/diaglog/sdbdiag.log" ;
+      println("coord node start...");
+      node.start();
       
       //create cl ,then insert data       
       var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, {ReplSize:0,Group:groupName});  
-      insertData( dbcl);     
+      insertData( dbcl);   
        
       //qurey node and check the access node
       testsessionAccess14086(nodeHostName, nodeService, clName,expSvcNameList);
@@ -41,42 +47,44 @@ function main()
       //test testcase14110:reset sessionAttr on coord
       var coordUrl = new Sdb(nodeHostName, nodeService ) ;
       testsessionAccess14105(coordUrl, clName, expSvcNameList);
-      
-      commDropCL( db, COMMCSNAME, clName, true, true,
-               "clear collection in the beginning" ) ;
-      db.removeRG(groupName);
-      coordRg.removeNode(nodeHostName, nodeService);
    }
    catch( e )
    {
-      throw e;
+      println("catch e : " + e);
+      //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
+      var backupDir = "/tmp/ci/rsrvnodelog/14086";
+      File.mkdir(backupDir);
+      for(var i = 0 ; i < nodeList.length ; i++)
+      {
+         File.scp( nodeList[i].logSourcePath, backupDir + "/sdbdiag" + i + ".log" );
+      }
+      
+      //将新建coord节点日志备份到/tmp/ci/rsrvnodelog目录下
+      var backupCoordDir = "/tmp/ci/rsrvnodelog/14086_coord";
+      File.mkdir(backupCoordDir);
+      File.scp( coordLogSourcePath, backupCoordDir + "/sdbdiag.log" );
    }
    finally
    {
+      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the end" ) ;  
+      db.removeRG(groupName);
+      try
+      {
+         coordRg.removeNode(nodeHostName, nodeService);
+      }
+      catch( e )
+      {
+          if( e !== -155 )
+          {
+              throw "coordRg remove node catch e : " + e ;
+          }
+      }
+      
       if( coordUrl != null )
       {
          coordUrl.close()
       }
    }   
-}
-
-function createCoordNode(db)
-{
-   try
-   {
-      var rg = db.getRG("SYSCoord");
-      var nodeHostName = db.listReplicaGroups().current().toObj().Group[0].HostName;
-      var nodeService = parseInt(RSRVPORTBEGIN) + 100;         
-      var nodePath = RSRVNODEDIR + nodeService;          
-      var config = {preferedinstance:"1,2,3",preferedinstanceMode:"random" };         
-      rg.createNode(nodeHostName, nodeService, nodePath, config);
-   }
-   catch( e )
-   {
-      throw e;
-   }
-   return rg;
-    
 }
 
 function testsessionAccess14086(nodeHostName, nodeService,clName, expSvcNameList)

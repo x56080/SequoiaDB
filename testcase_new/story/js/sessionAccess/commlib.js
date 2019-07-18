@@ -182,12 +182,18 @@ function createRGAndNode(db, groupName, instanceidList, nodeNum)
    
    try
    {
-      var rg = db.createRG(groupName);      
+      var rg = db.createRG(groupName);
       var nodeHostName = db.listReplicaGroups().current().toObj().Group[0].HostName;
+      var nodeList = [];
+      var failedCount = 0;
       for( var i = 0; i < nodeNum; i++)
-      {         
-         var nodeService = parseInt(RSRVPORTBEGIN) + i *10;         
-         var nodePath = RSRVNODEDIR + nodeService; 
+      {
+         var nodeService = parseInt( RSRVPORTBEGIN ) + 10 * ( i + failedCount ) ;
+         var nodePath = RSRVNODEDIR + "data/" + nodeService ;
+         var checkSucc = false;
+         var times = 0;
+         var maxRetryTimes = 10;
+         
          //first create node is master node 
          if (i == 0)
          {
@@ -197,13 +203,41 @@ function createRGAndNode(db, groupName, instanceidList, nodeNum)
          {
             var config = { instanceid : instanceidList[i],diaglevel:5};  
          }
-                
-         rg.createNode(nodeHostName, nodeService, nodePath, config);         
+         
+         do
+         {
+            try
+            {
+               rg.createNode(nodeHostName, nodeService, nodePath, config);
+               checkSucc = true;
+               var logSourcePath = nodeHostName+":"+CMSVCNAME+"@"+nodePath+"/diaglog/sdbdiag.log";
+               nodeList.push({"hostname": nodeHostName, "svcname": nodeService, "logSourcePath" : logSourcePath});
+            }
+            catch( e )
+            {
+               //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
+               if( e == -145 || e == -290 )
+               {
+                  nodeService = nodeService + 10;
+                  nodePath = RSRVNODEDIR + "data/" + nodeService;
+                  failedCount++;
+               }
+               else
+               {
+                  throw "create node failed!  nodeService = " + nodeService + " dataPath = " + nodePath + " errorCode: " + e;
+               }
+               times++;
+            }
+         }
+         while(!checkSucc && times < maxRetryTimes);
       }
+      println("start data group..");
       rg.start();
       
       //waiting for the success of the vote
       checkMasterExist( groupName );
+      
+      return nodeList;
    }
    catch(e)
    {       

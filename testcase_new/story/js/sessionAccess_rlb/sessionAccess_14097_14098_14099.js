@@ -4,6 +4,7 @@
              14099:setSessionAttr(),set instanceid is not exist,query for two groups
 @author：2018-1-29 wuyan  Init
 ***************************************************************************** */
+import ("../sessionAccess/commlib.js");
 var groupName1 = "group14097a";   
 var groupName2 = "group14097b";  
 main();
@@ -22,14 +23,16 @@ function main()
       //create group and node        
       var instanceidList1 = [ 255, 1, 20]; 
       var instanceidList2 = [ 253, 1, 23];
+      var nodeList1 = [];
+      var nodeList2 = [];
       var nodeNum = 3;
-      createRGAndNode(db, groupName1, instanceidList1, nodeNum); 
-      createSecondRGAndNode(db, groupName2, instanceidList2, nodeNum); 
+      var clName = CHANGEDPREFIX + "_sessionAcess14097"; 
+      nodeList1 = createRGAndNode(db, groupName1, instanceidList1, nodeNum); 
+      nodeList2 = createRGAndNode(db, groupName2, instanceidList2, nodeNum); 
       var expSvcNameList1 = getSvcNameList(db,groupName1);  
       var expSvcNameList2 = getSvcNameList(db,groupName2); 
          
-      //create cl ,then insert data  
-      var clName = CHANGEDPREFIX + "_sessionAcess14097"; 
+      //create cl ,then insert data
       var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, {ShardingKey:{no:1},ReplSize:0,Group:groupName1});  
       insertData( dbcl);
       splitCL(dbcl, groupName1, groupName2);
@@ -41,19 +44,33 @@ function main()
       testSessionAccess14098(db, dbcl, expSvcNameList1,expSvcNameList2);
         
       //set instanceid is not exist,the query for two group
-      testSessionAccess14099(db, dbcl, expSvcNameList1,expSvcNameList2);     
-      
-      commDropCL( db, COMMCSNAME, clName, true, true,
-               "clear collection in the beginning" ) ;
-      db.removeRG(groupName1);
-      db.removeRG(groupName2);
+      testSessionAccess14099(db, dbcl, expSvcNameList1,expSvcNameList2); 
    }
    catch( e )
    {
+      println("catch e : " + e);
+      //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
+      var backupDir = "/tmp/ci/rsrvnodelog/14097_" + groupName1;
+      File.mkdir(backupDir);
+      for(var i = 0 ; i < nodeList1.length ; i++)
+      {
+         File.scp( nodeList1[i].logSourcePath, backupDir + "/sdbdiag" + i + ".log" );
+      } 
+      
+      //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
+      var backupDir2 = "/tmp/ci/rsrvnodelog/14097_" + groupName2;
+      File.mkdir(backupDir2);
+      for(var i = 0 ; i < nodeList2.length ; i++)
+      {
+         File.scp( nodeList2[i].logSourcePath, backupDir2 + "/sdbdiag" + i + ".log" );
+      } 
       throw e;
    }
    finally
    {
+      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the end" ) ;
+      db.removeRG(groupName1);
+      db.removeRG(groupName2);
       if( db != null )
       {
          db.close()
