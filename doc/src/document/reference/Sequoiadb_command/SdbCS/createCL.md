@@ -37,7 +37,7 @@ createCL() 方法的定义格式包含 name 和 options 两个参数。name 的�
 | ReplSize | 副本数，默认情况下，副本写入个数为1。| ReplSize: \<int num\> |
 | Compressed | 是否数据压缩。默认为true。| Compressed:true&#124;false |
 | CompressionType | 压缩算法类型。默认为 lzw 算法。| CompressionType:"snappy"&#124;"lzw" |
-| IsMainCL | 主分区集合。标识是否为主分区集合，默认为否。| IsMainCL:true&#124;false |
+| IsMainCL | 主分区集合。标示是否为主分区集合，默认为否。| IsMainCL:true&#124;false |
 | AutoSplit | 是否自动切分，默认为true。| AutoSplit:true&#124;false |
 | Group | 指定创建在某个复制组。| Group: \<group name\> |
 | AutoIndexId | 集合是否自动使用_id字段创建名字为"$id"的唯一索引，默认为true。| AutoIndexId:true&#124;false |

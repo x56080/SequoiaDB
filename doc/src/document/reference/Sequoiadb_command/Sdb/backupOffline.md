@@ -23,7 +23,7 @@
  | Description | 备份描述 | Description: "First backup" |
  | EnsureInc | 是否开启增量备份，缺省为 false | EnsureInc: false |
  | OverWrite | 存在同名备份是否覆盖，缺省为 false | OverWrite: false |
- | Compressed | 是否开启数据压缩，缺少为 true | Compressed: true |
+ | Compressed | 是否开启数据压缩，缺省为 true | Compressed: true |
  | CompressionType | 压缩格式类型，取值"lz4"、"snappy"和"zlib"，缺省为 "snappy" | CompressionType: "zlib" |
  | BackupLog | 当全量备份时是否需要备份所有日志，缺省为 false | BackupLog: false |
 
