@@ -97,3 +97,25 @@ function checkCLData( cl )
    println( "cl records: "+ actRecs );
    
 }
+
+function getCoordAdrr()
+{
+    println("\n---Begin to get coord address.");
+    var nodeArray = [];
+    var tmpInfo = db.listReplicaGroups().toArray() ;
+    for ( var i = 0 ; i < tmpInfo.length; ++i )
+    {
+        var tmpObj = eval( "(" + tmpInfo[i] + ")" ) ;
+        if(tmpObj.GroupName == "SYSCoord")
+        {
+            var tmpGroupObj = tmpObj.Group ;
+            for ( var j = 0 ; j < tmpGroupObj.length; ++j )
+            {
+                var tmpNodeObj = tmpGroupObj[j] ;
+                nodeArray.push(tmpNodeObj.HostName + ":" + tmpNodeObj.Service[0].Name);
+            }
+        }
+    }
+    println("-------nodeArray : " + nodeArray);
+    return nodeArray;
+}

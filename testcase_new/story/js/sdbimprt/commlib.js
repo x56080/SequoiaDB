@@ -34,27 +34,6 @@ function initTestCaseDir()
 }
 
 /* ****************************************************
-@description: get coord address
-@return: coord address,e.g: "ubuntu-200-025:11810"
-**************************************************** */
-function getCoordAdrr()
-{
-   println("\n---Begin to get coord address.");
-   
-   var nodeArray = [];
-   var rc = db.exec("select NodeName from $SNAPSHOT_SYSTEM where GroupName='SYSCoord'")
-   while( rc.next() )
-   {
-      var nodeName = rc.current().toObj().NodeName;
-      if( nodeName !== undefined )
-      {
-         nodeArray.push( nodeName );
-      }
-   }
-   return nodeArray;
-}
-
-/* ****************************************************
 @description: create cl
 @return: cl
 **************************************************** */
