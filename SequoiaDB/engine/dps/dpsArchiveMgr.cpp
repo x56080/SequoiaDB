@@ -602,12 +602,11 @@ namespace engine
          PD_LOG( PDDEBUG, "Log archive expected end file LID %u is smaller "
                  "than current work file LID %u, use the work file LID",
                  endFileId, workFileId ) ;
-         endFileId = workFileId ;
       }
 
       SDB_ASSERT( startFileId <= endFileId, "invalid file id" ) ;
 
-      for ( UINT32 i = startFileId; i <= endFileId; i++ )
+      for ( UINT32 i = startFileId; i <= endFileId && i <= workFileId ; i++ )
       {
          dpsArchiveEventArchive* event = NULL ;
 
