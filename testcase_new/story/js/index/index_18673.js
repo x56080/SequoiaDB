@@ -51,12 +51,13 @@ function main()
       mDB.close();
    }
    
+   println("\n---Begin to drop cs in the end.");
    commDropCS( db, csName, false, "Failed to drop cs in the end-condition." ); 
 }
 
 function checkIndex(sDB, mDB, csName, clName)
 {
-   println("   Begin to check lob lsn." ); 
+   println("   Begin to check index." ); 
    var sCL = sDB.getCS( csName ).getCL( clName );
    var mCL = mDB.getCS( csName ).getCL( clName ); 
    var sCursor = sCL.listIndexes(); 
