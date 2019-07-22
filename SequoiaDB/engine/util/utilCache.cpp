@@ -2397,6 +2397,7 @@ namespace engine
    #define UTIL_CACHE_RECYCLE_BLK_ONCE_NUM   ( UTIL_CACHE_SYNC_BLK_ONCE_NUM * 2 )
    #define UTIL_CACHE_SYNC_TOTAL_THRESHOLD   ( 100 )
    #define UTIL_CACHE_STAT_INTERVAL          ( 30000 )
+   #define UTIL_CACHE_RECYCLE_THRESHOLD      ( 100 )
 
    _utilCacheUnit::_utilCacheUnit( utilCacheMgr *pMgr )
    :_dirtySize( 0 ), _totalPage( 0 ),
@@ -3154,33 +3155,36 @@ namespace engine
          pBucket = _vecBucket[ i ] ;
          pBucket->lock( SHARED ) ;
 
-         utilCacheBucket::MAP_BLK_PAGE* pPages = pBucket->getPages() ;
-         utilCacheBucket::MAP_BLK_PAGE::iterator it = pPages->begin() ;
-         blkSyncNum = 0 ;
-         while( it != pPages->end() )
+         if ( pBucket->dirtyPages() > 0 )
          {
-            utilCachePage &tmpPage = it->second ;
-
-            /// un-dirty page, ignored
-            if ( !tmpPage.isDirty() )
+            utilCacheBucket::MAP_BLK_PAGE* pPages = pBucket->getPages() ;
+            utilCacheBucket::MAP_BLK_PAGE::iterator it = pPages->begin() ;
+            blkSyncNum = 0 ;
+            while( it != pPages->end() )
             {
-               ++it ;
-               continue ;
-            }
-            /// add to tmp map, and sort
-            else if ( force || _lastSyncTime - tmpPage.lastWriteTime() >=
-                      _dirtyTimeout )
-            {
-               tmpPage.pin() ;
-               tmpPages[ it->first ] = &tmpPage ;
-               ++blkSyncNum ;
+               utilCachePage &tmpPage = it->second ;
 
-               if ( force && blkSyncNum >= UTIL_CACHE_SYNC_BLK_ONCE_NUM )
+               /// un-dirty page, ignored
+               if ( !tmpPage.isDirty() )
                {
-                  break ;
+                  ++it ;
+                  continue ;
                }
+               /// add to tmp map, and sort
+               else if ( force || _lastSyncTime - tmpPage.lastWriteTime() >=
+                         _dirtyTimeout )
+               {
+                  tmpPage.pin() ;
+                  tmpPages[ it->first ] = &tmpPage ;
+                  ++blkSyncNum ;
+
+                  if ( force && blkSyncNum >= UTIL_CACHE_SYNC_BLK_ONCE_NUM )
+                  {
+                     break ;
+                  }
+               }
+               ++it ;
             }
-            ++it ;
          }
 
          pBucket->unlock( SHARED ) ;
@@ -3368,8 +3372,9 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__UTILCACHEUNIT_CANRECYCLE ) ;
       BOOLEAN needRecycle = FALSE ;
+      UINT64 freePages = undirtyPages() ;
 
-      if ( totalPages() <= 0 )
+      if ( totalPages() <= 0 || 0 == freePages )
       {
          // nothing
       }
@@ -3378,13 +3383,16 @@ namespace engine
          needRecycle = TRUE ;
       }
       /// when free ratio over the threshold
-      else if ( _pMgr->totalSize() * 100 / _pMgr->maxCacheSize() >=
+      else if ( freePages >= UTIL_CACHE_RECYCLE_THRESHOLD &&
+                _pMgr->totalSize() * 100 / _pMgr->maxCacheSize() >=
                 UTIL_CACHE_RATIO &&
                 _pMgr->freeSize() * 100 / _pMgr->totalSize() <=
-                 _bgFreeRatio )
+                _bgFreeRatio )
       {
-         PD_LOG( PDDEBUG, "Total size: %u, Free size: %u, Free ratio: %u",
-                 _pMgr->totalSize(), _pMgr->freeSize(), _bgFreeRatio ) ;
+         PD_LOG( PDDEBUG, "Unit free page: %llu, Total size: %llu, "
+                 "Free size: %llu, Free ratio: %u",
+                 freePages, _pMgr->totalSize(), _pMgr->freeSize(),
+                 _bgFreeRatio ) ;
          force = TRUE ;
          needRecycle = TRUE ;
       }
