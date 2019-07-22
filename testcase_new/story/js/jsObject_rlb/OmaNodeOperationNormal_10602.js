@@ -4,7 +4,6 @@
 *               TestLink: 10602 Oma创建、删除、启动、停止协调节点和数据节点
 *@author      : Liang XueWang
 ******************************************************************************/
-import ("../jsObjectSync/commlib.js");
 // 测试正常创建启动停止删除协调节点
 OmaTest.prototype.testCoordNodeOperationNormal = function( svcname )
 {

@@ -13,7 +13,6 @@
 *                         10616 关闭Oma对象
 *@author      : Liang XueWang               
 ******************************************************************************/
-import ("../jsObjectSync/commlib.js");
 // 测试创建已存在的节点
 OmaTest.prototype.testCreateExistCoord = function()
 {

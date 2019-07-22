@@ -2,7 +2,6 @@
 @discretion: createNode,check parameter instatceid
 @author：2018-11-20 wangkexin
 ***************************************************************************** */
-import ("../sessionAccess/commlib.js");
 main();
 
 function main()

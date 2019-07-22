@@ -4,7 +4,6 @@
              14105:the session is specified in the configuration,respecified on the coord
 @author£º2018-1-24 wuyan  Init
 ***************************************************************************** */
-import ("../sessionAccess/commlib.js");
 main();
 function main()
 {	  

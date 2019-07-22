@@ -2,7 +2,6 @@
 @discretion: setAttr() is M/S/A,the session is specified in the configuration(A is default and testover)
 @author£º2018-1-24 wuyan  Init
 ***************************************************************************** */
-import ("../sessionAccess/commlib.js");
 main();
 function main()
 {

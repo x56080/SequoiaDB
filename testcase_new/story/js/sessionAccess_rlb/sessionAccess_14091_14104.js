@@ -4,7 +4,6 @@
              14104:set sessionAttr is S after insert data
 @author£º2018-1-24 wuyan  Init
 ***************************************************************************** */
-import ("../sessionAccess/commlib.js");
 main();
 function main()
 {	  

@@ -6,7 +6,6 @@
                            and the first instanceid does not exist 
 @author£º2018-1-24 wuyan  Init
 ***************************************************************************** */
-import ("../sessionAccess/commlib.js");
 main();
 
 function main()

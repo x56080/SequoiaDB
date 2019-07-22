@@ -4,7 +4,6 @@
 *                         10624 Oma启动本地cm，alivetime设置为0
 *@author      : Liang XueWang
 ******************************************************************************/
-import ("../jsObjectSync/commlib.js");
 function testStandaloneCM( svcname )
 {
 	// option为port:svcname standalone:true alivetime:10时启动cm

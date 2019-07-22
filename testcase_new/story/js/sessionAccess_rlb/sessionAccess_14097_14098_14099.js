@@ -4,7 +4,6 @@
              14099:setSessionAttr(),set instanceid is not exist,query for two groups
 @author£º2018-1-29 wuyan  Init
 ***************************************************************************** */
-import ("../sessionAccess/commlib.js");
 var groupName1 = "group14097a";   
 var groupName2 = "group14097b";  
 main();

@@ -2,7 +2,6 @@
 @discretion: attachNode( )中KeepData参数校验
 @author：2018-12-12 wangkexin
 ***************************************************************************** */
-import ("../clsMgr/commlib.js");
 main(db);
 function main(db)
 {	  
@@ -100,5 +99,27 @@ function main(db)
 		   db.close();      	      
 		} 
 	}   
+}
+
+function getGroup( db )
+{
+   try
+   {
+      var listGroups = db.listReplicaGroups() ;
+      var groupArray = new Array() ;
+      while( listGroups.next() )
+      {
+         if ( listGroups.current().toObj()["GroupID"] >= DATA_GROUP_ID_BEGIN )
+         {
+            groupArray.push( listGroups.current().toObj()["GroupName"] ) ;
+         }
+      }
+      return groupArray ;
+   }
+   catch ( e )
+   {
+      println( "Failed to get groups from sdb, rc = " + e ) ;
+      throw e ;
+   }
 }
 

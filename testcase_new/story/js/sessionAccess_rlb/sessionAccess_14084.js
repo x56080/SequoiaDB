@@ -2,7 +2,6 @@
 @discretion: setSessionAttr(),set instatceid is node subscript
 @author£º2018-1-24 wuyan  Init
 ***************************************************************************** */
-import ("../sessionAccess/commlib.js");
 main();
 
 function main()

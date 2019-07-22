@@ -2,7 +2,6 @@
 @discretion: setSessionAttr(),set a instatceid
 @author£º2018-1-22 wuyan  Init
 ***************************************************************************** */
-import ("../sessionAccess/commlib.js");
 main();
 function main()
 {	  

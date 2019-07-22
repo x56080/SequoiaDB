@@ -4,7 +4,6 @@
              14102:setSessionAttr(),set instanceid and M,the instanceid for one group             
 @author£º2018-1-29 wuyan  Init
 ***************************************************************************** */
-import ("../sessionAccess/commlib.js");
 var groupName1 = "group14100a";
 var groupName2 = "group14100b";
 main();
