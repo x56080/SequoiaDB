@@ -44,6 +44,7 @@ namespace engine
    _dpsMetaFile::_dpsMetaFile()
    {
       ossMemset( _path, 0, sizeof( _path ) ) ;
+      _cacheLSN = DPS_INVALID_LSN_OFFSET ;
    }
 
    _dpsMetaFile::~_dpsMetaFile()
@@ -108,7 +109,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       BOOLEAN isOpened = FALSE ;
       SINT64 read = 0 ;
-      DPS_LSN_OFFSET offset ;
 
       rc = ossOpen( _path, OSS_READWRITE, OSS_RWXU, _file ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open meta file:file=%s,rc=%d",
@@ -133,9 +133,9 @@ namespace engine
       }
 
       // try to read lsn
-      rc = readOldestLSNOffset( offset ) ;
+      rc = readOldestLSNOffset( _cacheLSN ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to read oldest lsn:file=%s,rc=%d",
-                  _path, rc ) ;
+                   _path, rc ) ;
 
    done:
       return rc ;
@@ -152,7 +152,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       BOOLEAN isCreated = FALSE ;
       SINT64 written = 0 ;
-      _dpsMetaFileContent content( DPS_INVALID_LSN_OFFSET ) ;
+      _cacheLSN = DPS_INVALID_LSN_OFFSET ;
+      _dpsMetaFileContent content( _cacheLSN ) ;
 
       rc = ossOpen( _path, OSS_CREATEONLY | OSS_READWRITE,
                     OSS_RWXU, _file ) ;
@@ -191,11 +192,17 @@ namespace engine
       goto done ;
    }
 
+   BOOLEAN _dpsMetaFile::isCacheLSNValid() const
+   {
+      return DPS_INVALID_LSN_OFFSET != _cacheLSN ? TRUE : FALSE ;
+   }
+
    INT32 _dpsMetaFile::writeOldestLSNOffset( DPS_LSN_OFFSET offset )
    {
       INT32 rc = SDB_OK ;
       SINT64 written = 0 ;
-      _dpsMetaFileContent content( offset ) ;
+      _cacheLSN = offset ;
+      _dpsMetaFileContent content( _cacheLSN ) ;
 
       SINT64 toWrite = sizeof( content ) ;
       rc = ossSeekAndWriteN( &_file, DPS_METAFILE_HEADER_LEN,

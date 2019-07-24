@@ -676,10 +676,17 @@ namespace engine
       _mtx.get() ;
       locked = TRUE ;
 
-      rc = _metaFile.writeOldestLSNOffset( DPS_INVALID_LSN_OFFSET ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to reset meta lsn offset, rc = %d",
-                   rc ) ;
-      PD_LOG( PDEVENT, "Reset oldest lsn because of dps move" ) ;
+      if ( _metaFile.isCacheLSNValid() )
+      {
+         rc = _metaFile.writeOldestLSNOffset( DPS_INVALID_LSN_OFFSET ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to reset meta lsn offset, rc = %d",
+                    rc ) ;
+            goto error ;
+         }
+         PD_LOG( PDEVENT, "Reset oldest lsn because of dps move" ) ;
+      }
 
       tmpWork = _work ;
       tmpCurLsn = _currentLsn ;

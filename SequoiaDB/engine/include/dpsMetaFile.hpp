@@ -119,7 +119,8 @@ namespace engine
 
       INT32 readOldestLSNOffset( DPS_LSN_OFFSET &offset ) ;
 
-      INT32 sync() ;
+      DPS_LSN_OFFSET getCacheLSN() const { return _cacheLSN ; }
+      BOOLEAN        isCacheLSNValid() const ;
 
    private:
       INT32 _initNewFile() ;
@@ -129,6 +130,7 @@ namespace engine
       _OSS_FILE          _file ;
       CHAR               _path[ OSS_MAX_PATHSIZE + 1 ] ;
       _dpsMetaFileHeader _header ;
+      DPS_LSN_OFFSET     _cacheLSN ;
    } ;
 }
 
