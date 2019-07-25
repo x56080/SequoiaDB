@@ -1752,7 +1752,7 @@ static const CHAR* parseNumber( const CHAR *pStr,
    INT32 tmpType = 0 ;
    utilNumberVal tmpValue ;
 
-   rc = utilStrToNumber( pStr, 0, TRUE, &tmpType, &tmpValue, pLen ) ;
+   rc = utilStrToNumber( pStr, -1, &tmpType, &tmpValue, pLen ) ;
    if ( SDB_OK == rc )
    {
       if( tmpType == 0 )

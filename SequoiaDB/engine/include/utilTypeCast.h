@@ -32,8 +32,25 @@ typedef union
 
 SDB_EXTERN_C_START
 
+/*
+ * \brief Convert a string to a numeric value
+ *        Note: 1. [+/-]inf, [+/-]Infinity and nan are not supported.
+ *              2. If type is 1, it means decimal type, but it does not
+ *                 support decimal type, it needs to be processed by itself.
+ *
+ * \param [in]  data          String pointer to be parsed
+ * \param [in]  length        string length, if value is -1,
+ *                            the string is decimal continues to parse
+ * \param [out] type          Type of value:
+ *                               0: INT32
+ *                               1: INT64
+ *                               2: FLOAT64
+ *                               3: Decimal
+ * \param [out] value         Numeric value
+ * \param [out] valueLength   The length of the value
+ * \retval SDB_OK Retrieval Success
+ */
 SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
-                                  BOOLEAN fullParse,
                                   INT32 *type, utilNumberVal *value,
                                   INT32 *valueLength ) ;
 

@@ -1,11 +1,9 @@
 #include "utilTypeCast.h"
 #include <math.h>
 
+#define UTIL_NUM_INT32_MAX 2147483647
 //Note: The last bit of the boundary value is not included here.
-#define UTIL_NUM_INT32_MAX_THRESHOLD 214748364
-#define UTIL_NUM_INT32_MIN_THRESHOLD (-214748364)
 #define UTIL_NUM_INT64_MAX_THRESHOLD 922337203685477580
-#define UTIL_NUM_INT64_MIN_THRESHOLD (-922337203685477580)
 
 #define UTIL_NUM_TYPE_INT32   0
 #define UTIL_NUM_TYPE_INT64   1
@@ -29,25 +27,16 @@ static FLOAT64 powersOf10[] = {
 } ;
 
 /*
- * \brief Convert a string to a numeric value
- *        Note: 1. [+/-]inf, [+/-]Infinity and nan are not supported.
- *              2. If type is 1, it means decimal type, but it does not
- *                 support decimal type, it needs to be processed by itself.
+ *  xxxxxxxxxxx . yyyyyyyyyyy
+ *  |           |           |
+ * leftPos   pointPos     rightPos
  *
- * \param [in]  data          String pointer to be parsed
- * \param [in]  length        Reserved, not used now
- * \param [in]  fullParse     true: if the string is decimal continues to parse
- * \param [out] type          Type of value:
- *                               0: INT32
- *                               1: INT64
- *                               2: FLOAT64
- *                               3: Decimal
- * \param [out] value         Numeric value
- * \param [out] valueLength   The length of the value
- * \retval SDB_OK Retrieval Success
+ * Integer digits = max( pointPos - leftPos, 0 )
+ * Decimal digits = rightPos - pointPos
+ * Scientific notation offset = rightPos - leftPos
+ *
  */
 SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
-                                  BOOLEAN fullParse,
                                   INT32 *type, utilNumberVal *value,
                                   INT32 *valueLength )
 {
@@ -55,9 +44,12 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
    INT32 len      = 0 ;
    INT32 sign     = 1 ;
    INT32 n1       = 0 ;
-   INT32 digit    = -1 ;
-   INT32 numType  = 0 ;
-   INT32 fracExp  = 0 ;
+   INT32 numType  = UTIL_NUM_TYPE_INT32 ;
+
+   INT32 pointPos = 0 ;
+   INT32 leftPos  = -1 ;
+   INT32 rightPos = 0 ;
+
    INT32 subscale = 0 ;
    INT32 signsubscale = 1 ;
    INT64 n2  = 0 ;
@@ -97,239 +89,118 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
 
    //step 3
    {
-      INT32 decPt = -1; 
-      INT32 mantSize = 0 ;
-      INT32 frac1Len = 0 ;
-      INT32 frac1 = 0 ;
-      INT32 frac2 = 0 ;
-      INT32 invalidDecimal = 0 ;
-      INT32 crossDecimal = 0 ;
+      INT64 frac = 0 ;
 
       while ( *pStr >= '0' && *pStr <= '9' )
       {
          //<number>xxxx
          INT32 num = *pStr - '0' ;
 
-         if ( numType == UTIL_NUM_TYPE_INT32 )
+         if( rightPos > 18 ||
+             frac > UTIL_NUM_INT64_MAX_THRESHOLD ||
+             ( frac == UTIL_NUM_INT64_MAX_THRESHOLD && sign == 1 && num > 7 ) ||
+             ( frac == UTIL_NUM_INT64_MAX_THRESHOLD && sign == -1 && num > 8 ) )
          {
-            if ( n1 > UTIL_NUM_INT32_MAX_THRESHOLD )
-            {
-               //n1 * 10 is greater than the int range
-               numType = UTIL_NUM_TYPE_INT64 ;
-            }
-            else if ( n1 < UTIL_NUM_INT32_MIN_THRESHOLD )
-            {
-               //n1 * 10 is less than the int range
-               numType = UTIL_NUM_TYPE_INT64 ;
-            }
-            else if ( n1 == UTIL_NUM_INT32_MAX_THRESHOLD ||
-                      n1 == UTIL_NUM_INT32_MIN_THRESHOLD )
-            {
-               if ( sign == 1 && num > 7 )
-               {
-                  //n1 * 10 + num is greater than the max int
-                  numType = UTIL_NUM_TYPE_INT64 ;
-               }
-               else if ( sign == -1 && num > 8 )
-               {
-                  //n1 * 10 - num is less then the min int
-                  numType = UTIL_NUM_TYPE_INT64 ;
-               }
-            }
-         }
-         else if ( numType == UTIL_NUM_TYPE_INT64 )
-         {
-            if ( n2 > UTIL_NUM_INT64_MAX_THRESHOLD )
-            {
-               //n2 * 10 is greater than the long long range
-               numType = UTIL_NUM_TYPE_DECIMAL ;
+            //frac * 10 + num is greater than the long long range
+            numType = UTIL_NUM_TYPE_DECIMAL ;
 
-               if( !fullParse )
-               {
-                  ++pStr ;
-                  ++len ;
-                  goto done ;
-               }
-            }
-            else if ( n2 < UTIL_NUM_INT64_MIN_THRESHOLD )
+            if( 0 < length )
             {
-               //n2 * 10 is less than the long long range
-               numType = UTIL_NUM_TYPE_DECIMAL ;
-
-               if( !fullParse )
-               {
-                  ++pStr ;
-                  ++len ;
-                  goto done ;
-               }
-            }
-            else if ( n2 == UTIL_NUM_INT64_MAX_THRESHOLD ||
-                      n2 == UTIL_NUM_INT64_MIN_THRESHOLD )
-            {
-               if ( sign == 1 && num > 7 )
-               {
-                  //n2 * 10 + num is greater than the max long long
-                  numType = UTIL_NUM_TYPE_DECIMAL ;
-
-                  if( !fullParse )
-                  {
-                     ++pStr ;
-                     ++len ;
-                     goto done ;
-                  }
-               }
-               else if ( sign == -1 && num > 8 )
-               {
-                  //n2 * 10 - num is less then the min long long
-                  numType = UTIL_NUM_TYPE_DECIMAL ;
-
-                  if( !fullParse )
-                  {
-                     ++pStr ;
-                     ++len ;
-                     goto done ;
-                  }
-               }
+               ++pStr ;
+               ++len ;
+               goto done ;
             }
          }
 
-         if ( digit >= 0 || num > 0 )
-         {
-            ++digit ;
-         }
+         frac = 10 * frac + num ;
 
-         if ( digit >= 18 )
-         {
-         }
-         else if ( digit < 9 )
-         {
-            frac1 = 10 * frac1 + num ;
-         }
-         else
-         {
-            frac2 = 10 * frac2 + num ;
-            ++frac1Len ;
-         }
-
-         n1 = ( n1 * 10 ) + sign * num ;
-         n2 = ( n2 * 10 ) + sign * num ;
+         leftPos = 1 ;
+         ++pointPos ;
+         ++rightPos ;
 
          ++pStr ;
          ++len ;
-         ++mantSize ;
-         decPt = mantSize ;
+      }
+
+      n1 = (INT32)frac * sign ;
+      n2 = frac * sign ;
+
+      if( numType == UTIL_NUM_TYPE_INT32 &&
+          ( 10 < rightPos || n2 != (INT64)n1 ) )
+      {
+         numType = UTIL_NUM_TYPE_INT64 ;
       }
 
       //step 4
       if ( *pStr == '.' )
       {
+         //<number>.
+         INT32 zeroDecimal = 0 ;
+
          ++pStr ;
          ++len ;
 
-         if( *pStr >= '0' && *pStr <= '9' )
-         {
-            //<number>.xxx
-            BOOLEAN isSkipFrac2 = FALSE ;
-
-            invalidDecimal = 0 ;
-
-            if( numType != UTIL_NUM_TYPE_DECIMAL )
-            {
-               numType = UTIL_NUM_TYPE_FLOAT64 ;
-            }
-
-            if ( decPt < 0 && mantSize == 0 )
-            {
-               decPt = 1 ;
-               mantSize = 1 ;
-            }
-
-            do
-            {
-               INT32 num = *pStr - '0' ;
-
-               if ( num == 0 )
-               {
-                  ++invalidDecimal ;
-               }
-               else
-               {
-                  invalidDecimal = 0 ;
-               }
-
-               if ( digit >= 0 || num > 0 )
-               {
-                  ++digit ;
-               }
-
-               if ( digit >= 18 )
-               {
-                  if ( num == 0 )
-                  {
-                     ++crossDecimal ;
-                  }
-                  else
-                  {
-                     crossDecimal = 0 ;
-                  }
-               }
-               else if ( digit < 9 )
-               {
-                  frac1 = 10 * frac1 + num ;
-               }
-               else
-               {
-                  frac2 = 10 * frac2 + num ;
-                  ++frac1Len ;
-
-                  if ( num == 0 && isSkipFrac2 == FALSE )
-                  {
-                     ++crossDecimal ;
-                  }
-                  else
-                  {
-                     crossDecimal = 0 ;
-                     isSkipFrac2 = TRUE ;
-                  }
-               }
-
-               ++pStr ;
-               ++len ;
-               ++mantSize ;
-            } while ( *pStr >= '0' && *pStr <= '9' ) ;
-         }
-         else
+         if( *pStr < '0' || *pStr > '9' )
          {
             goto finish ;
          }
+
+         if( numType != UTIL_NUM_TYPE_DECIMAL )
+         {
+            numType = UTIL_NUM_TYPE_FLOAT64 ;
+         }
+
+         //<number>.xxx
+         while ( *pStr >= '0' && *pStr <= '9' )
+         {
+            INT32 num = *pStr - '0' ;
+
+            if( num > 0 )
+            {
+               if( 0 > leftPos )
+               {
+                  leftPos = zeroDecimal + 1 ;
+               }
+
+               rightPos += zeroDecimal + 1 ;
+
+               if( rightPos - leftPos < 18 )
+               {
+                  for( ; zeroDecimal > 0; --zeroDecimal )
+                  {
+                     frac *= 10 ;
+                  }
+
+                  frac = 10 * frac + num ;
+               }
+
+               zeroDecimal = 0 ;
+            }
+            else
+            {
+               ++zeroDecimal ;
+            }
+
+            ++pStr ;
+            ++len ;
+         }
       }
 
-      mantSize -= crossDecimal ;
-      digit -= invalidDecimal ;
+      n = frac ;
 
-      if ( digit >= 9 )
-      {
-         n = ( pow( 10.0, frac1Len ) * frac1 ) + frac2 ;
-      }
-      else
-      {
-         n = frac1 ;
-      }
-
-      if( numType == UTIL_NUM_TYPE_FLOAT64 && digit >= DOUBLE_PRECISION )
+      if( UTIL_NUM_TYPE_FLOAT64 == numType &&
+          rightPos - leftPos >= DOUBLE_PRECISION )
       {
          /*
           * The effective number is greater than 15 digits
           */
          numType = UTIL_NUM_TYPE_DECIMAL ;
 
-         if( !fullParse )
+         if( 0 < length )
          {
             goto done ;
          }
       }
-
-      fracExp = decPt - mantSize ;
    }
 
    if ( pStr == data )
@@ -343,7 +214,7 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
    if ( *pStr == 'e' || *pStr == 'E' )
    {
       //<number>[e/E]xxx
-      if( numType != UTIL_NUM_TYPE_DECIMAL )
+      if( UTIL_NUM_TYPE_DECIMAL != numType )
       {
          numType = UTIL_NUM_TYPE_FLOAT64 ;
       }
@@ -372,8 +243,10 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
    }
 
    //step 6
-   if ( numType == UTIL_NUM_TYPE_FLOAT64 )
+   if ( UTIL_NUM_TYPE_FLOAT64 == numType )
    {
+      INT32 digit    = rightPos - leftPos ;
+      INT32 fracExp  = pointPos - rightPos ;
       FLOAT64 dblExp = 1.0 ;
       FLOAT64 *d = NULL ;
 
@@ -396,21 +269,15 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
          signsubscale = 1 ;
       }
 
-      if ( signsubscale == 1 && digit + subscale > DOUBLE_MAX_EXP )
+      if ( ( signsubscale == 1 && digit + subscale > DOUBLE_MAX_EXP ) ||
+           ( signsubscale == -1 && subscale - digit > DOUBLE_MAX_EXP ) )
       {
          /*
-          * Maximum index should not exceed 308
-          */
-         numType = UTIL_NUM_TYPE_DECIMAL ;
-
-         goto done ;
-      }
-      else if ( signsubscale == -1 && subscale - digit > DOUBLE_MAX_EXP )
-      {
-         /*
+          * Maximum index should not exceed 308 or
           * Minimum index should not exceed -308
           */
          numType = UTIL_NUM_TYPE_DECIMAL ;
+
          goto done ;
       }
 
