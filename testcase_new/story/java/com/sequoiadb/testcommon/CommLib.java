@@ -37,7 +37,7 @@ public class CommLib {
 	 * @param sdb
 	 * @return true/false, true is only on group, false is multiple group
 	 */
-	public boolean OneGroupMode(Sequoiadb sdb){
+	public static boolean OneGroupMode(Sequoiadb sdb){
 		if(getDataGroupNames(sdb).size() < 2){
 			System.out.printf("Only one group.");
 			return true;
