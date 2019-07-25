@@ -13,6 +13,7 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBLob;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -40,11 +41,11 @@ public class TestLobSplitAndTruncate13800 extends SdbTestBase {
 			Assert.assertTrue(false,"connect %s failed,"+coordUrl+e.getMessage());
 		}
 		
-		if (LobOprUtils.isStandAlone(sdb)){
+		if (CommLib.isStandAlone(sdb)){
 			throw new SkipException("is standalone skip testcase");
 		}
 		
-		if (LobOprUtils.OneGroupMode(sdb)){
+		if (CommLib.OneGroupMode(sdb)){
 			throw new SkipException("less two groups skip testcase");
 		}
 		

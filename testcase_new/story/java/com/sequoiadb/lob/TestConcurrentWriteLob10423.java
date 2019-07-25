@@ -1,6 +1,5 @@
 package com.sequoiadb.lob;
 
-import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -96,8 +95,7 @@ public class TestConcurrentWriteLob10423 extends SdbTestBase {
 				byte[] rbuff = new byte[(int) rLob.getSize()];
 				rLob.read(rbuff);
 				rLob.close();
-				Arrays.equals(rbuff, lobBuff);
-				rLob.close();
+				LobOprUtils.assertByteArrayEqual(rbuff, lobBuff, "lob:" + oid.toString() + "  data is wrong!");
 			}finally{
 		    	if ( sdb != null ){
 		    		sdb.disconnect();
@@ -144,7 +142,8 @@ public class TestConcurrentWriteLob10423 extends SdbTestBase {
 		byte[] rbuff = new byte[(int) rLob.getSize()];
 		rLob.read(rbuff);	
 		rLob.close();
-		Arrays.equals(rbuff, sameOidWriteOkBuff);
+		LobOprUtils.assertByteArrayEqual(rbuff, sameOidWriteOkBuff, "lob:" + oid.toString() + "  data is wrong!");
+		
 	}	
 	
 	private void createCL(){						

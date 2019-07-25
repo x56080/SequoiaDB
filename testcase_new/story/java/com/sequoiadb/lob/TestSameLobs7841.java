@@ -9,7 +9,6 @@ import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 
-import java.util.Arrays;
 import java.util.Random;
 
 import com.sequoiadb.base.CollectionSpace;
@@ -62,8 +61,8 @@ public class TestSameLobs7841 extends SdbTestBase {
 			byte[] rbuff = new byte[ wlobBuff.length];
 			DBLob rLob= dbcl.openLob(oid);		
 			rLob.read(rbuff);			
-			rLob.close();
-			Arrays.equals(rbuff, wlobBuff);
+			rLob.close();			
+			LobOprUtils.assertByteArrayEqual(rbuff, wlobBuff, "lob data is wrong!the oid: " + oid.toString());
 		}finally{
 			if ( db != null ){
 				db.disconnect();

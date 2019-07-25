@@ -127,8 +127,6 @@ public class TestDiffLengthLobs7837 extends SdbTestBase {
 		
 			prevMd5 = LobOprUtils.getMd5(lobSb);
 		    oid = lob.getID();
-		}catch(BaseException e){	
-			Assert.assertTrue(false,"write lob fail:"+e.getMessage()+e.getStackTrace());
 		}finally{
 			if (lob != null){
 				lob.close();
@@ -150,8 +148,6 @@ public class TestDiffLengthLobs7837 extends SdbTestBase {
 			
 			String curMd5 = LobOprUtils.getMd5(bytebuff);		
 			Assert.assertEquals(prevMd5, curMd5);
-		}catch(BaseException e){
-			Assert.assertTrue(false,"read lob fail:"+e.getMessage()+e.getStackTrace());			
 		}finally{
 			if (rLob != null){
 				rLob.close();

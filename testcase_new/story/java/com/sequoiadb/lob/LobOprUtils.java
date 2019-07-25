@@ -1,10 +1,15 @@
 package com.sequoiadb.lob;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 
 import org.bson.BSONObject;
@@ -19,6 +24,7 @@ import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.DBLob;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
 * FileName: Commlib.java
@@ -27,29 +33,9 @@ import com.sequoiadb.exception.BaseException;
     * @Date    2016.9.19
 * @version 1.00
 */
-public class LobOprUtils {
+public class LobOprUtils extends SdbTestBase {
 	
 	public static ArrayList<String> groupList;
-	
-	public static boolean isStandAlone(Sequoiadb sdb){
-		try{
-			sdb.listReplicaGroups();		
-		}catch(BaseException e){
-			if( e.getErrorCode() == -159 ){
-				System.out.printf("run mode is standalone");	 
-				return true;
-			} 	
-		}	
-		return false;
-	}
-	
-	 public static boolean OneGroupMode(Sequoiadb sdb){
-		 if(getDataGroups(sdb).size() < 2){
-			System.out.printf("only one group");
-			return true;
-		 }
-		 return false;
-	 }
 	
 	/**
 	 * get the buff MD5 value
@@ -295,4 +281,62 @@ public class LobOprUtils {
 		Assert.assertEquals(actListNums,count,"list lobs error."+"allCount:"+actListNums);			
 	}
     
+    public static void assertByteArrayEqual(byte[] actual, byte[] expect) {
+        assertByteArrayEqual(actual, expect, "");
+    }
+
+    public static void assertByteArrayEqual(byte[] actual, byte[] expect, String msg) {
+        if (!Arrays.equals(actual, expect)) {
+            String workDirPath = SdbTestBase.workDir;
+            File workDir = new File(workDirPath);
+            if (!workDir.isDirectory())
+                throw new RuntimeException("the path can not use: " + workDirPath);
+
+            String callerClassName = getCallerName();
+            File fileActual = new File(workDirPath + File.separator + callerClassName + "_actual");
+            File fileExpect = new File(workDirPath + File.separator + callerClassName + "_expect");
+            try {
+                if (fileActual.exists()) {
+                    fileActual.delete();
+                    fileActual.createNewFile();
+                }
+                if (fileExpect.exists()) {
+                    fileExpect.delete();
+                    fileExpect.createNewFile();
+                }
+
+                try (FileOutputStream out = new FileOutputStream(fileActual)) {
+                    out.write(actual);
+                    out.flush();
+                }
+                try (FileOutputStream out = new FileOutputStream(fileExpect)) {
+                    out.write(expect);
+                    out.flush();
+                }
+
+                Assert.fail(msg + "; data is written into files in " + workDirPath);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static String getCallerName() {
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        String thisClassName = stackTrace[1].getClassName();
+        String currClassName = null;
+        for (int i = 2; i < stackTrace.length; ++i) {
+            currClassName = stackTrace[i].getClassName();
+            if (!currClassName.equals(thisClassName)) {
+                break;
+            }
+        }
+        String classFullName = currClassName;
+        String[] classNameArr = classFullName.split("\\.");
+        String simpleClassName = classNameArr[classNameArr.length - 1];
+        return simpleClassName;
+    }
+
 }

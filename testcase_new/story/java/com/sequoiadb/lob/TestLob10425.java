@@ -1,7 +1,5 @@
 package com.sequoiadb.lob;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Random;
 import java.util.Stack;
 
@@ -33,8 +31,7 @@ public class TestLob10425 extends SdbTestBase {
     private String clName = "cl_10425";
     private Sequoiadb sdb = null;
     private CollectionSpace cs = null;
-    private Stack<ObjectId> oids = new Stack<ObjectId>();
-    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
+    private Stack<ObjectId> oids = new Stack<ObjectId>();    
     
     @BeforeClass
     public void setUp(){
@@ -193,7 +190,7 @@ public class TestLob10425 extends SdbTestBase {
         Random random = new Random();
         for(int i = 0; i < lobStrs.length; i++){
             int lobsize = random.nextInt(1048576);
-            lobStrs[i] = LobUtils.getRandomString(lobsize);
+            lobStrs[i] = LobOprUtils.getRandomString(lobsize);
         }
         return lobStrs;
     }

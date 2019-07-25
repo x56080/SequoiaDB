@@ -76,8 +76,8 @@ public class TestSeekLob7839 extends SdbTestBase {
 			rLob.seek(offset, DBLob.SDB_LOB_SEEK_SET);
 			rLob.read(rbuff);
 			rLob.close();
-			byte[] expBuff = Arrays.copyOfRange(wlobBuff, offset, offset+readsize);
-			Arrays.equals(rbuff, expBuff);			
+			byte[] expBuff = Arrays.copyOfRange(wlobBuff, offset, offset+readsize);			
+			LobOprUtils.assertByteArrayEqual(rbuff, expBuff, "lob data is wrong!the oid: " + oid.toString());
 		}finally{
 			if ( db != null ){
 				db.disconnect();

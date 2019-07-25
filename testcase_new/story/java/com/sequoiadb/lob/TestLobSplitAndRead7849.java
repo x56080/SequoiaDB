@@ -20,6 +20,7 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBLob;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -50,11 +51,11 @@ public class TestLobSplitAndRead7849 extends SdbTestBase {
 		}catch(BaseException e){			
 			Assert.assertTrue(false,"connect %s failed,"+SdbTestBase.coordUrl+e.getMessage());
 		}
-		if (LobOprUtils.isStandAlone(sdb)){
+		if (CommLib.isStandAlone(sdb)){
 			throw new SkipException("is standalone skip testcase");
 		}
 		
-		if (LobOprUtils.OneGroupMode(sdb)){
+		if (CommLib.OneGroupMode(sdb)){
 			throw new SkipException("less two groups skip testcase");
 		}
 				
@@ -86,8 +87,7 @@ public class TestLobSplitAndRead7849 extends SdbTestBase {
 	@AfterClass
 	public void tearDown(){		
 		try{			
-			cs.dropCollection(clName);
-			sdb.disconnect();
+			cs.dropCollection(clName);			
 		}catch(BaseException e){			
 			Assert.assertTrue(false,"clean up failed:"+e.getMessage());
 		}finally{

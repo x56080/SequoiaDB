@@ -1,6 +1,5 @@
 package com.sequoiadb.lob;
 
-import java.util.Arrays;
 import java.util.Random;
 
 import org.bson.types.ObjectId;
@@ -79,10 +78,10 @@ public class TestWriteLobAndDropCL13889 extends SdbTestBase {
         		byte[] rbuff = new byte[(int) rLob.getSize()];
         		rLob.read(rbuff); 
         		rLob.close();
-        		Arrays.equals(rbuff, wlobBuff);   
+        		LobOprUtils.assertByteArrayEqual(rbuff, wlobBuff, "lob data is wrong!the oid: " + oid.toString());
             }catch(BaseException e){
 		    	if ( e.getErrorCode() != -317 && e.getErrorCode() != -23&& e.getErrorCode() != -4){
-		    		Assert.assertTrue(false,"write fail "+e.getErrorType()+":"+e.getMessage());
+		    		throw e;
 		    	}			    
 		    }finally {
 				if ( db != null){

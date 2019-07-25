@@ -15,6 +15,7 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.base.DBLob;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 
@@ -43,11 +44,11 @@ public class TestSeekLob7839b extends SdbTestBase {
 			Assert.assertTrue(false,"connect %s failed,"+coordUrl+e.getMessage());
 		}
 		
-		if (LobOprUtils.isStandAlone(sdb)){
+		if (CommLib.isStandAlone(sdb)){
 			throw new SkipException("is standalone skip testcase");
 		}
 		
-		if (LobOprUtils.OneGroupMode(sdb)){
+		if (CommLib.OneGroupMode(sdb)){
 			throw new SkipException("less two groups skip testcase");
 		}
 		
@@ -71,7 +72,8 @@ public class TestSeekLob7839b extends SdbTestBase {
 			rLob.seek(offset, DBLob.SDB_LOB_SEEK_SET);
 			rLob.read(rbuff);			
 			byte[] expBuff = Arrays.copyOfRange(wlobBuff, offset, offset+readsize);
-			Arrays.equals(rbuff, expBuff);
+			LobOprUtils.assertByteArrayEqual(rbuff, expBuff, "lob data is wrong!the oid: " + oid.toString());
+			
 		}finally{
 			if ( rLob != null ){
 				rLob.close();

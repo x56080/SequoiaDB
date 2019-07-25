@@ -12,7 +12,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.SkipException;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Random;
 
 import com.sequoiadb.base.CollectionSpace;
@@ -20,6 +19,7 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.base.DBLob;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
@@ -50,11 +50,11 @@ public class TestLobAutoSplit7845 extends SdbTestBase {
 		}catch(BaseException e){			
 			Assert.assertTrue(false,"connect %s failed,"+SdbTestBase.coordUrl+e.getMessage());
 		}
-		if (LobOprUtils.isStandAlone(sdb)){
+		if (CommLib.isStandAlone(sdb)){
 			throw new SkipException("is standalone skip testcase");
 		}
 		
-		if (LobOprUtils.OneGroupMode(sdb)){
+		if (CommLib.OneGroupMode(sdb)){
 			throw new SkipException("less two groups skip testcase");
 		}		
 		
@@ -80,7 +80,7 @@ public class TestLobAutoSplit7845 extends SdbTestBase {
     		byte[] rbuff = new byte[(int) rLob.getSize()];
     		rLob.read(rbuff); 
     		rLob.close();
-    		Arrays.equals(rbuff, wlobBuff);  			
+    		LobOprUtils.assertByteArrayEqual(rbuff, wlobBuff, "lob data is wrong!the oid: " + oid.toString());  			
 		}finally{
 			if( db != null){
 				db.disconnect();

@@ -110,15 +110,12 @@ public class TestLob10424 extends SdbTestBase {
             //-33 CS exist,ignore exceptions
             Assert.assertEquals(-33,e.getErrorCode(),e.getMessage());
         }
-        DBCollection cl = null;
-        try{
-            cs = sdb.getCollectionSpace(SdbTestBase.csName);    
-            BSONObject options = new BasicBSONObject();
-            options = (BSONObject)JSON.parse("{ShardingKey:{a:1,b:-1},ShardingType:'hash',Partition:4096}");
-            cl = cs.createCollection(clName, options);    
-        }catch(BaseException e){
-            Assert.fail(e.getMessage());
-        }
+        
+        cs = sdb.getCollectionSpace(SdbTestBase.csName);    
+        BSONObject options = new BasicBSONObject();
+        options = (BSONObject)JSON.parse("{ShardingKey:{a:1,b:-1},ShardingType:'hash',Partition:4096}");
+        DBCollection cl = cs.createCollection(clName, options);    
+        
         return cl;
     }
     
@@ -136,8 +133,6 @@ public class TestLob10424 extends SdbTestBase {
             lob.write(lobSb.getBytes());
             prevMd5.oid = lob.getID();
             prevMd5.md5 = LobOprUtils.getMd5(lobSb);
-        }catch(BaseException e){    
-            Assert.fail(e.getMessage());
         }finally{
             if(lob != null){
                 lob.close();
@@ -156,25 +151,21 @@ public class TestLob10424 extends SdbTestBase {
             Assert.assertEquals(e.getErrorCode(), -4, e.getMessage());
         }
         // check whether lob remains
-        try{
-            // insert a new lob with delOid
-            String lobSb = LobOprUtils.getRandomString(delLobSize);
-            DBLob wLob = cl.createLob(delOid);
-            wLob.write(lobSb.getBytes());
-            String prevMd5 = LobOprUtils.getMd5(lobSb);
-            wLob.close();
-            // read the new lob
-            DBLob rLob = cl.openLob(delOid);
-            byte[] buff = new byte[(int)rLob.getSize()];
-            rLob.read(buff);
-            String afterMd5 = LobOprUtils.getMd5(buff);
-            rLob.close();
-            // check the correctness of the new lob
-            if(!prevMd5.equals(afterMd5)){
-                Assert.fail("lob remains!");
-            }
-        }catch(BaseException e){
-            Assert.fail(e.getMessage());
-        }
+        // insert a new lob with delOid
+        String lobSb = LobOprUtils.getRandomString(delLobSize);
+        DBLob wLob = cl.createLob(delOid);
+        wLob.write(lobSb.getBytes());
+        String prevMd5 = LobOprUtils.getMd5(lobSb);
+        wLob.close();
+        // read the new lob
+        DBLob rLob = cl.openLob(delOid);
+        byte[] buff = new byte[(int)rLob.getSize()];
+        rLob.read(buff);
+        String afterMd5 = LobOprUtils.getMd5(buff);
+        rLob.close();
+        // check the correctness of the new lob
+        if(!prevMd5.equals(afterMd5)){
+            Assert.fail("lob remains!");
+        }        
     }
 }
