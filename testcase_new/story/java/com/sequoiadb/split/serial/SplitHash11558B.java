@@ -1,4 +1,4 @@
-package com.sequoiadb.split;
+package com.sequoiadb.split.serial;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -23,7 +23,7 @@ import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 import com.sequoiadb.threadexecutor.annotation.ExpectBlock;
 
-/**
+/**  jira-4318
  * @description seqDB-11558:数组进行切分
  *              插入分区键字段为数组且包含多个元素的记录，然后百分比切分，卡住后删除包含多个元素的数组记录，检查结果
  *              再次插入包含多个元素的数组记录,检查结果 
@@ -34,11 +34,12 @@ import com.sequoiadb.threadexecutor.annotation.ExpectBlock;
  */
 
 public class SplitHash11558B extends SdbTestBase {
+    private final int THREAD_TIMEOUT = 900000; // 15min
     private Sequoiadb sdb;
     private String srcRg;
     private String dstRg;
     private CollectionSpace cs;
-    private final static String CL_NAME_BASE = "cl_hash_11558_B";
+    private final String CL_NAME_BASE = "cl_hash_11558_B";
     private ArrayList<DBCollection> cls = new ArrayList<>();
     private ArrayList<String> clNames = new ArrayList<>();
     private ArrayList<Object> validDataArr = new ArrayList<>();
@@ -48,7 +49,7 @@ public class SplitHash11558B extends SdbTestBase {
     @BeforeClass
     private void setUp() {
         sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-
+        
         CommLib commlib = new CommLib();
         if (CommLib.isStandAlone(sdb) || commlib.OneGroupMode(sdb)) {
             throw new SkipException("The mode is standlone, or only one group, skip the testCase.");
@@ -75,11 +76,12 @@ public class SplitHash11558B extends SdbTestBase {
         }
     }
 
-    @Test(enabled = false) //jira-4138
+    @Test
     private void test() throws Exception {
         for (int i = 0; i < invalidDataArr.size(); i++) {
             String clName = clNames.get(i);
             DBCollection cl = cls.get(i);
+            System.out.println("clName: " + clName);
 
             // insert multiple valid sharding key
             for (int j = 0; j < validDataArr.size(); j++) {
@@ -97,7 +99,7 @@ public class SplitHash11558B extends SdbTestBase {
             cl.insert(invDoc);
 
             // percent split
-            ThreadExecutor es = new ThreadExecutor();
+            ThreadExecutor es = new ThreadExecutor(THREAD_TIMEOUT);
             es.addWorker(new percentSplit(clName, 50));
             es.addWorker(new deleteInvalidRecs(clName, invDoc));
             es.run();
@@ -148,6 +150,17 @@ public class SplitHash11558B extends SdbTestBase {
                 for (int i = 0; i < clNames.size(); i++) {
                     cs.dropCollection(clNames.get(i));
                 }
+            } else {
+                for (int i = 0; i < clNames.size(); i++) {
+                    DBCollection cl = cs.getCollection(clNames.get(i));
+                    DBCursor cursor = cl.query();
+                    ArrayList<BSONObject> recsArr = new ArrayList<>();
+                    while (cursor.hasNext()) {
+                        BSONObject recs = cursor.getNext();
+                        recsArr.add(recs);
+                    }
+                    System.out.println("teardown query " + clNames.get(i) + ": " + recsArr);
+                }
             }
         } finally {
             if (sdb != null) {
@@ -174,8 +187,8 @@ public class SplitHash11558B extends SdbTestBase {
                 db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
                 DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
                 
-                System.out.println(new Date() + " begin to split[" + clName + "], srcRg[" + srcRg + "], dstRg[" + dstRg +"]");                
-                cl.split(srcRg, dstRg, percent);              
+                System.out.println(new Date() + " begin to split[" + clName + "], srcRg[" + srcRg + "], dstRg[" + dstRg +"]");
+                cl.split(srcRg, dstRg, percent);
                 System.out.println(new Date() + " split end, " + clName);
             } finally {
                 if (db != null)
@@ -201,7 +214,7 @@ public class SplitHash11558B extends SdbTestBase {
                 db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
                 DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
                 
-                System.out.println(new Date() + " begin to delete " + clName);                
+                System.out.println(new Date() + " begin to delete " + clName);
                 cl.delete(matcher);
                 System.out.println(new Date() + " delete end, " + clName);
                 

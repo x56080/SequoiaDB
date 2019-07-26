@@ -22,6 +22,7 @@
 		 <package name="com.sequoiadb.serial" />
 		 <package name="com.sequoiadb.session.accessisolation" />
          <package name="com.sequoiadb.subcl.serial" />
+         <package name="com.sequoiadb.split.serial" />
       </packages>    
    </test>
    <test name="consistency" >
