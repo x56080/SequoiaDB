@@ -1069,7 +1069,7 @@ namespace engine
       _numToSkip = numToSkip > 0 ? numToSkip : 0 ;
 
       _isOpened = TRUE ;
-      _hitEnd = FALSE ;
+      _hitEnd = scanner->getCurIndexRID().isNull() ? TRUE : FALSE ;
 
       if ( 0 == _numToReturn )
       {
