@@ -139,6 +139,7 @@ namespace engine
       if ( !_sync->isReadyToReplay() && pmdGetStartup().isOK() )
       {
          _isFirstToSync = TRUE ;
+         _lastSyncNode.value = MSG_INVALID_ROUTEID ;
          _status = CLS_SESSION_STATUS_SYNC ;
          ++_requestID ;
          goto done ;
