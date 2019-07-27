@@ -162,7 +162,7 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
                   leftPos = zeroDecimal + 1 ;
                }
 
-               rightPos += zeroDecimal + 1 ;
+               rightPos += ( zeroDecimal + 1 ) ;
 
                if( rightPos - leftPos < 18 )
                {
