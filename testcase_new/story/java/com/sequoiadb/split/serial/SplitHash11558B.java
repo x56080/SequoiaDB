@@ -34,7 +34,6 @@ import com.sequoiadb.threadexecutor.annotation.ExpectBlock;
  */
 
 public class SplitHash11558B extends SdbTestBase {
-    private final int THREAD_TIMEOUT = 900000; // 15min
     private Sequoiadb sdb;
     private String srcRg;
     private String dstRg;
@@ -99,7 +98,7 @@ public class SplitHash11558B extends SdbTestBase {
             cl.insert(invDoc);
 
             // percent split
-            ThreadExecutor es = new ThreadExecutor(THREAD_TIMEOUT);
+            ThreadExecutor es = new ThreadExecutor();
             es.addWorker(new percentSplit(clName, 50));
             es.addWorker(new deleteInvalidRecs(clName, invDoc));
             es.run();
