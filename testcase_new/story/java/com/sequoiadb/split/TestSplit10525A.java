@@ -108,9 +108,7 @@ public class TestSplit10525A extends SdbTestBase{
         try {
             //连接源组从节点data验证数据
             ReplicaGroup replicaGroup = this.sdb.getReplicaGroup(rgNames.get(0));
-            Node master = replicaGroup.getSlave();
-            String url = master.getNodeName();
-            dataDb = new Sequoiadb(url, "", "");
+            dataDb = replicaGroup.getSlave().connect();
             //获取cs cl
             CollectionSpace cs = dataDb.getCollectionSpace(SdbTestBase.csName);
             DBCollection dbcl = cs.getCollection(this.clName);
@@ -148,11 +146,9 @@ public class TestSplit10525A extends SdbTestBase{
     public void testDestDataSplitResult(List<String> rgNames) {
         Sequoiadb dataDb = null;
         try {
-            //连接目标组data查询
+            //连接目标组从节点查询数据
             ReplicaGroup replicaGroup = this.sdb.getReplicaGroup(rgNames.get(1));
-            Node master = replicaGroup.getSlave();
-            String url = master.getNodeName();
-            dataDb = new Sequoiadb(url, "", "");
+            dataDb = replicaGroup.getSlave().connect();
             try {
             	Thread.sleep(10);
             } catch (InterruptedException e) {
