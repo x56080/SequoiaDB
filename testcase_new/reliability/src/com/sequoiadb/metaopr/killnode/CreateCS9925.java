@@ -198,14 +198,16 @@ public class CreateCS9925 extends SdbTestBase {
             nameBSON.put("Name", csName);
             expCSNames.add(nameBSON);
         }
-        expCSNames.add((BSONObject)JSON.parse("{ Name: 'reliability_test' }"));
         
         // get actual cs name list
         DBCursor cursor = db.listCollectionSpaces();
         List<BSONObject> actCSNames = new ArrayList<BSONObject>();
         while (cursor.hasNext()) {
             BSONObject result = cursor.getNext();
-            actCSNames.add(result);
+            String csName = (String) result.get("Name");
+            if (-1 != csName.indexOf(csNameBase)) {
+                actCSNames.add(result);
+            }
         }
         cursor.close();
         
