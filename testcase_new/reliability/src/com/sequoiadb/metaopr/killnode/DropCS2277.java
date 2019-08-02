@@ -1,5 +1,19 @@
 package com.sequoiadb.metaopr.killnode;
 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+
+import org.bson.BSONObject;
+import org.testng.Assert;
+import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.commlib.GroupMgr;
@@ -12,16 +26,6 @@ import com.sequoiadb.fault.KillNode;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
-import org.bson.BSONObject;
-import org.bson.util.JSON;
-import org.testng.Assert;
-import org.testng.SkipException;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.text.SimpleDateFormat;
-import java.util.*;
 
 /**
  * @FileName seqDB-2277: 删除CS时catalog备节点异常重启
@@ -159,14 +163,16 @@ public class DropCS2277 extends SdbTestBase {
     private void checkListCS(Sequoiadb db) {
         // get expect cs name list
         List<BSONObject> expCSNames = new ArrayList<BSONObject>();
-        expCSNames.add((BSONObject)JSON.parse("{ Name: 'reliability_test' }"));
         
         // get actual cs name list
         DBCursor cursor = db.listCollectionSpaces();
         List<BSONObject> actCSNames = new ArrayList<BSONObject>();
         while (cursor.hasNext()) {
             BSONObject result = cursor.getNext();
-            actCSNames.add(result);
+            String csName = (String) result.get("Name");
+            if (-1 != csName.indexOf(csNameBase)) {
+                actCSNames.add(result);
+            }
         }
         cursor.close();
         

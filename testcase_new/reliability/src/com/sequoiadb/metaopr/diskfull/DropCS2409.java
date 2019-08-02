@@ -14,7 +14,6 @@ import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
 import org.bson.BSONObject;
-import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
@@ -161,14 +160,16 @@ public class DropCS2409 extends SdbTestBase {
     private void checkListCS(Sequoiadb db) {
         // get expect cs name list
         List<BSONObject> expCSNames = new ArrayList<BSONObject>();
-        expCSNames.add((BSONObject)JSON.parse("{ Name: 'reliability_test' }"));
         
         // get actual cs name list
         DBCursor cursor = db.listCollectionSpaces();
         List<BSONObject> actCSNames = new ArrayList<BSONObject>();
         while (cursor.hasNext()) {
             BSONObject result = cursor.getNext();
-            actCSNames.add(result);
+            String csName = (String) result.get("Name");
+            if (-1 != csName.indexOf(csNameBase)) {
+                actCSNames.add(result);
+            }
         }
         cursor.close();
         
