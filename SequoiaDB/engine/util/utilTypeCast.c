@@ -137,6 +137,9 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
          //<number>.
          INT32 zeroDecimal = 0 ;
 
+         ++pointPos ;
+         ++rightPos ;
+
          ++pStr ;
          ++len ;
 
@@ -164,7 +167,7 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
 
                rightPos += ( zeroDecimal + 1 ) ;
 
-               if( rightPos - leftPos < 18 )
+               if( rightPos - leftPos <= 18 )
                {
                   for( ; zeroDecimal > 0; --zeroDecimal )
                   {
@@ -186,10 +189,15 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
          }
       }
 
+      if( 0 > leftPos )
+      {
+         leftPos = 0 ;
+      }
+
       n = frac ;
 
       if( UTIL_NUM_TYPE_FLOAT64 == numType &&
-          rightPos - leftPos >= DOUBLE_PRECISION )
+          rightPos - leftPos > DOUBLE_PRECISION )
       {
          /*
           * The effective number is greater than 15 digits
@@ -245,7 +253,7 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
    //step 6
    if ( UTIL_NUM_TYPE_FLOAT64 == numType )
    {
-      INT32 digit    = rightPos - leftPos ;
+      INT32 digit    = rightPos - leftPos - 1 ;
       INT32 fracExp  = pointPos - rightPos ;
       FLOAT64 dblExp = 1.0 ;
       FLOAT64 *d = NULL ;
