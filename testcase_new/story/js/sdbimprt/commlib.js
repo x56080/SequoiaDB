@@ -209,19 +209,22 @@ function turnLocaltime( time, format )
    }
 }
 
-function importData( csName, clName, importFile, type, fields )
+function importData( csName, clName, importFile, type, fields, cast )
 {
-   println("\n---Begin to import csv data.");    
+   println("---Begin to import data.");    
    var imprtOption = installDir +'bin/sdbimprt -s '+ COORDHOSTNAME +' -p '+ COORDSVCNAME 
                   +' -c '+ csName +' -l '+ clName 
                   +' --type '+ type
                   +' --file '+ importFile;
-   if ( type === 'csv' ) {
+   if ( type == 'csv' )
+   {
        imprtOption = imprtOption +' --fields "' + fields +'"';
    }
-   println( imprtOption );
+   if ( cast == true )
+   {
+      imprtOption = imprtOption + ' --cast ' + cast;
+   }
    var rc = cmd.run( imprtOption );
-   println( rc );   
    
    var rcResults = rc.split("\n");
    return rcResults;
@@ -229,7 +232,7 @@ function importData( csName, clName, importFile, type, fields )
 
 function exportData( csName, clName, exportFile,type, fields, sort, otherParam )
 {
-   println("\n---Begin to export data.");
+   println("---Begin to export data.");
    if ( typeof( sort ) == "undefined" ) { sort = "{a:1}"; }
    
    //remove export file
@@ -311,4 +314,28 @@ function checkExportData( exportFile, expData )
                         "["+ expData +"]", 
                         "["+ actData +"]" );
    }   
+}
+
+function checkResult( cl, dataType, expResult )
+{
+   println( "---Begin to check "+ dataType +" results." );
+   var rc = cl.find({ a: { "$type": 2, "$et": dataType }}).sort( { _id: 1 } );
+   var actResult = [];
+   while( rc.next() )
+   {
+      actResult.push( rc.current().toObj() );
+   }
+   for(var i=0;i<actResult.length;i++){println("actResult==="+JSON.stringify(actResult[i]))};
+   for(var i=0;i<expResult.length;i++){println("expResult==="+JSON.stringify(expResult[i]))};
+   if( actResult.length != expResult.length )
+   {
+      throw "actResult.length:" + actResult.length + " is not equals to expResult.length:" + expResult.length;
+   }
+   for( var i in actResult )
+   {
+      if( JSON.stringify( actResult[i]["a"] ) != JSON.stringify( expResult[i]["a"] ) )
+      {
+         throw "expResult is " + JSON.stringify( expResult[i]["a"] ) + " but actResult is " + JSON.stringify( actResult[i]["a"] );
+      }
+   }
 }

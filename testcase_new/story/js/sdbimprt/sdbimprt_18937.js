@@ -1,0 +1,130 @@
+/************************************************************************
+*@Description:  seqDB-18937: 整数位前n位后m位为0，小数位全不为0（如10.11） 
+*@Author     :  2019-8-6  zhaoxiaoni
+************************************************************************/
+main();
+function main()
+{
+   var clName = "cl_18937";
+   var csvFile = tmpFileDir + clName + ".csv";
+   var jsonFile = tmpFileDir + clName + ".json";
+   
+   var cl = commCreateCL( db, COMMCSNAME, clName );
+   prepareDate( csvFile );
+   prepareDate( jsonFile );
+   
+   println( "\n---specify data type int32、int64、double、decimal to import csv file." );
+   var fields = "a";   
+   var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields );
+   checkImportRC( rcResults, 800 );
+   dataType = "int32";
+   var expResult = getExpResult( dataType );
+   checkResult( cl, dataType, expResult );
+   dataType = "int64";
+   var expResult = getExpResult( dataType );
+   checkResult( cl, dataType, expResult );
+   dataType = "double";
+   var expResult = getExpResult( dataType );
+   checkResult( cl, dataType, expResult );
+   dataType = "decimal";
+   var expResult = getExpResult( dataType );
+   checkResult( cl, dataType, expResult );
+   cl.remove();
+   
+   println( "\n---specify data type int32、int64、double、decimal to import json file." );
+   var fields = "a";   
+   var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
+   checkImportRC( rcResults, 800 );
+   dataType = "int32";
+   var expResult = getExpResult( dataType );
+   checkResult( cl, dataType, expResult );
+   dataType = "int64";
+   var expResult = getExpResult( dataType );
+   checkResult( cl, dataType, expResult );
+   dataType = "double";
+   var expResult = getExpResult( dataType );
+   checkResult( cl, dataType, expResult );
+   dataType = "decimal";
+   var expResult = getExpResult( dataType );
+   checkResult( cl, dataType, expResult );
+   
+   commDropCL( db, COMMCSNAME, clName );
+}
+
+function prepareDate( typeFile )
+{
+   var file = new File( typeFile );
+   var left = "";
+   for( var i = 0; i < 20; i++ )
+   {
+      var right = "";
+      left = left + "1";
+      for( var j = 0; j < 20; j++ )
+      {
+         right = right + "0";
+         if( typeFile.substring(typeFile.indexOf(".")+1, typeFile.length ) == "csv" )
+         {
+            file.write( left + "\n" );
+            file.write( left + "." + right + "\n" );
+         }
+         else
+         {
+            file.write( '{ a:' + left + ' }\n' );
+            file.write( '{ a:' + left + '.' + right + ' }\n' ); 
+         }
+      }
+   }
+}
+
+function getExpResult( dataType )
+{
+   var expResult = []; 
+   var left = "";
+   if( dataType == "int64" )
+   {
+      executeFor( expResult, {a: 11111111111 } );
+      executeFor( expResult, {a: 111111111111 } );
+      executeFor( expResult, {a: 1111111111111 } );
+      executeFor( expResult, {a: 11111111111111 } );
+      executeFor( expResult, {a: 111111111111111 } );
+      executeFor( expResult, {a: 1111111111111111 } );
+      executeFor( expResult, { a: {"$numberLong":"11111111111111111"} });
+      executeFor( expResult, { a: {"$numberLong":"111111111111111111"} });
+      executeFor( expResult, { a: {"$numberLong":"1111111111111111111"} });
+   }
+   for( var i = 0; i < 20; i++ )
+   {
+      var right = "";
+      left = left + "1";
+      for( var j = 0; j < 20; j++ )
+      {
+         right = right + "0";
+         if( dataType == "decimal" && i >= 15 && i < 19 )
+         {
+            expResult.push( { a: {"$decimal": left + "." + right } } );
+         }
+         else if( dataType == "decimal" && i == 19 )
+         {
+            expResult.push( { a: {"$decimal": left } } );
+            expResult.push( { a: {"$decimal": left + "." + right } } );
+         }
+         else if( dataType == "double" && i < 15 )
+         {
+            expResult.push({a: parseFloat( left )});
+         }
+         else if( dataType == "int32" && i < 10 )
+         {
+            expResult.push({a: parseInt( left )});
+         }
+      }
+   }
+   return expResult;
+}
+function executeFor( expResult, data )
+{
+   for( var i = 0; i < 20; i++ )
+   {
+      expResult.push( data );
+   }
+   return expResult;
+}
