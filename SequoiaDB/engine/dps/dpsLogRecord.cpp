@@ -124,11 +124,7 @@ namespace engine
          _write = 0 ;
       }
 
-      if ( DPS_INVALID_LSN_OFFSET != _head._lsn )
-      {
-         _head.clear() ;
-      }
-
+      _head.clear() ;
       _result = SDB_OK ;
 
       return ;
