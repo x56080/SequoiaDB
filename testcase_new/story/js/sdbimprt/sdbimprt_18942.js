@@ -62,10 +62,10 @@ function prepareDate( typeFile )
    for( var i = 0; i < 1000; i++ )
    {
       var left = getRandom();
-      var right = getRandom();
-      while( right%10 == 0 )
+      var right = getRandom().toString();
+      while( right.substring( right.length - 1 ) == '0' )
       {
-         right = right/10;
+         right = right.substring( 0, right.length-1 );
       }
       if( typeFile.substring( typeFile.indexOf(".")+1, typeFile.length ) == "csv" )
       {
