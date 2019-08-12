@@ -12,6 +12,7 @@
 
 #define DOUBLE_PRECISION   (15)
 #define DOUBLE_MAX_EXP     (308)
+#define DOUBLE_MIN_EXP     (-308)
 #define DOUBLE_BOUND       (1.79)
 
 static FLOAT64 powersOf10[] = {
@@ -26,6 +27,8 @@ static FLOAT64 powersOf10[] = {
    1.0e256
 } ;
 
+INT32 _digit( INT32 leftPos, INT32 pointPos, INT32 rightPos ) ;
+
 /*
  *  xxxxxxxxxxx . yyyyyyyyyyy
  *  |           |           |
@@ -33,7 +36,10 @@ static FLOAT64 powersOf10[] = {
  *
  * Integer digits = max( pointPos - leftPos, 0 )
  * Decimal digits = rightPos - pointPos
- * Scientific notation offset = rightPos - leftPos
+ * Scientific notation offset = 
+ *      1. leftPos < pointPos && pointPos < rightPos: rightPos - leftPos
+ *      2. leftPos < pointPos && pointPos = rightPos: rightPos - leftPos
+ *      3. leftPos > pointPos && pointPos < rightPos: rightPos - leftPos + 1
  *
  */
 SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
@@ -51,7 +57,6 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
    INT32 rightPos = 0 ;
 
    INT32 subscale = 0 ;
-   INT32 signsubscale = 1 ;
    INT64 n2  = 0 ;
    FLOAT64 n = 0 ;
    const CHAR *pStr = data ;
@@ -137,6 +142,15 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
          //<number>.
          INT32 zeroDecimal = 0 ;
 
+         if( 0 == pointPos )
+         {
+            pointPos = 1 ;
+         }
+         if( 0 == rightPos )
+         {
+            rightPos = 1 ;
+         }
+
          ++pointPos ;
          ++rightPos ;
 
@@ -162,12 +176,12 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
             {
                if( 0 > leftPos )
                {
-                  leftPos = zeroDecimal + 1 ;
+                  leftPos = pointPos + zeroDecimal + 1 ;
                }
 
                rightPos += ( zeroDecimal + 1 ) ;
 
-               if( rightPos - leftPos <= 18 )
+               if( _digit( leftPos, pointPos, rightPos ) < 18 )
                {
                   for( ; zeroDecimal > 0; --zeroDecimal )
                   {
@@ -188,16 +202,20 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
             ++len ;
          }
       }
-
-      if( 0 > leftPos )
+      else
       {
-         leftPos = 0 ;
+         ++pointPos ;
       }
 
       n = frac ;
 
+      if( 0 > leftPos )
+      {
+         leftPos = 1 ;
+      }
+
       if( UTIL_NUM_TYPE_FLOAT64 == numType &&
-          rightPos - leftPos > DOUBLE_PRECISION )
+          _digit( leftPos, pointPos, rightPos ) > DOUBLE_PRECISION )
       {
          /*
           * The effective number is greater than 15 digits
@@ -222,6 +240,8 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
    if ( *pStr == 'e' || *pStr == 'E' )
    {
       //<number>[e/E]xxx
+      INT32 signsubscale = 1 ;
+
       if( UTIL_NUM_TYPE_DECIMAL != numType )
       {
          numType = UTIL_NUM_TYPE_FLOAT64 ;
@@ -248,54 +268,40 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
          ++pStr ;
          ++len ;
       }
+
+      if( -1 == signsubscale )
+      {
+         subscale = -subscale ;
+      }
    }
 
    //step 6
-   if ( UTIL_NUM_TYPE_FLOAT64 == numType )
+   if ( UTIL_NUM_TYPE_FLOAT64 == numType && n > 0.0 )
    {
-      INT32 digit    = rightPos - leftPos - 1 ;
-      INT32 fracExp  = pointPos - rightPos ;
+      INT32 offset   = _digit( leftPos, pointPos, rightPos ) - 1 ;
+      INT32 fracExp  = pointPos >= rightPos ? 0 : pointPos - rightPos ;
+      INT32 exponent = 0 ;
       FLOAT64 dblExp = 1.0 ;
+      FLOAT64 tmpN = 0.0 ;
       FLOAT64 *d = NULL ;
 
-      if ( signsubscale == -1 )
-      {
-         subscale = fracExp - subscale ;
-      }
-      else
-      {
-         subscale = fracExp + subscale ;
-      }
+      subscale = fracExp + subscale ;
+      exponent = offset + subscale ;
 
-      if ( subscale < 0 )
-      {
-         signsubscale = -1 ;
-         subscale = -subscale ;
-      }
-      else
-      {
-         signsubscale = 1 ;
-      }
-
-      if ( ( signsubscale == 1 && digit + subscale > DOUBLE_MAX_EXP ) ||
-           ( signsubscale == -1 && subscale - digit > DOUBLE_MAX_EXP ) )
+      if( exponent > DOUBLE_MAX_EXP || exponent < DOUBLE_MIN_EXP )
       {
          /*
-          * Maximum index should not exceed 308 or
-          * Minimum index should not exceed -308
+          * exponent > 308 or exponent < -308
           */
          numType = UTIL_NUM_TYPE_DECIMAL ;
-
          goto done ;
       }
-
-      if( ( subscale > DOUBLE_MAX_EXP ) ||
-          ( signsubscale == 1 && digit + subscale == DOUBLE_MAX_EXP ) ||
-          ( signsubscale == -1 && subscale - digit == DOUBLE_MAX_EXP ) )
+      else if( exponent == DOUBLE_MAX_EXP || exponent == DOUBLE_MIN_EXP )
       {
-         INT32 tmpFracExp = digit ;
-         FLOAT64 tmpN = n ;
+         INT32 tmpFracExp = offset ;
          FLOAT64 tmpDblExp = 1.0 ;
+
+         tmpN = n ;
 
          for ( d = powersOf10; tmpFracExp > 0; tmpFracExp >>= 1, ++d )
          {
@@ -307,8 +313,7 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
 
          tmpN /= tmpDblExp ;
 
-         if ( signsubscale == 1 && digit + subscale == DOUBLE_MAX_EXP &&
-              tmpN > DOUBLE_BOUND )
+         if ( exponent == DOUBLE_MAX_EXP && tmpN > DOUBLE_BOUND )
          {
             /*
              * The maximum value of floating point number
@@ -317,8 +322,7 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
             numType = UTIL_NUM_TYPE_DECIMAL ;
             goto done ;
          }
-         else if ( signsubscale == -1 && subscale - digit == DOUBLE_MAX_EXP &&
-                   tmpN > DOUBLE_BOUND )
+         else if ( exponent == DOUBLE_MIN_EXP && tmpN > DOUBLE_BOUND )
          {
             /*
              * The minimum value of floating point number
@@ -327,42 +331,43 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
             numType = UTIL_NUM_TYPE_DECIMAL ;
             goto done ;
          }
+      }
 
-         if ( subscale > DOUBLE_MAX_EXP )
+      if( subscale > DOUBLE_MAX_EXP  || subscale < DOUBLE_MIN_EXP )
+      {
+         n = tmpN ;
+         subscale = exponent ;
+      }
+
+      {
+         INT32 signsubscale = 1 ;
+
+         if ( subscale < 0 )
          {
-            n = tmpN ;
+            signsubscale = -1 ;
+            subscale = -subscale ;
+         }
+         else
+         {
+            signsubscale = 1 ;
+         }
 
-            if ( signsubscale == 1 )
+         for ( d = powersOf10; subscale > 0; subscale >>= 1, ++d )
+         {
+            if ( subscale & 01 )
             {
-               subscale += digit ;
-            }
-            else
-            {
-               subscale -= digit ;
-               if ( subscale < 0 )
-               {
-                  signsubscale = -signsubscale ;
-                  subscale = -subscale ;
-               }
+               dblExp *= *d ;
             }
          }
-      }
 
-      for ( d = powersOf10; subscale > 0; subscale >>= 1, ++d )
-      {
-         if ( subscale & 01 )
+         if ( signsubscale == 1 )
          {
-            dblExp *= *d ;
+            n *= dblExp ;
          }
-      }
-
-      if ( signsubscale == 1 )
-      {
-         n *= dblExp ;
-      }
-      else
-      {
-         n /= dblExp ;
+         else
+         {
+            n /= dblExp ;
+         }
       }
 
       if ( sign < 0 )
@@ -401,4 +406,20 @@ done:
    return rc ;
 error:
    goto done ;
+}
+
+inline INT32 _digit( INT32 leftPos, INT32 pointPos, INT32 rightPos )
+{
+   INT32 digit ;
+
+   if( leftPos < pointPos && pointPos <= rightPos )
+   {
+      digit = rightPos - leftPos ;
+   }
+   else
+   {
+      digit = rightPos - leftPos + 1 ;
+   }
+
+   return digit ;
 }
