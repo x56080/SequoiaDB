@@ -408,7 +408,7 @@ error:
    goto done ;
 }
 
-inline INT32 _digit( INT32 leftPos, INT32 pointPos, INT32 rightPos )
+INT32 _digit( INT32 leftPos, INT32 pointPos, INT32 rightPos )
 {
    INT32 digit ;
 
