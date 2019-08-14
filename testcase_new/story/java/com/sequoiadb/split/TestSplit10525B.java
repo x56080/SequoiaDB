@@ -104,7 +104,7 @@ public class TestSplit10525B extends SdbTestBase{
             // 元数据
             DBCollection dbcl = null; 
             boolean clFlag = false;
-            for ( int i = 0; i < 20; i++) {
+            for ( int i = 0; i < 100; i++) {
                 try {
                     CollectionSpace cs = dataDb.getCollectionSpace(SdbTestBase.csName);
                     dbcl = cs.getCollection(clName);
@@ -112,7 +112,7 @@ public class TestSplit10525B extends SdbTestBase{
                     break;
                 } catch (BaseException e) {
                    if ( e.getErrorCode() == -34 || e.getErrorCode() == -23) {
-                       Thread.sleep(100);
+                       Thread.sleep(300);
                        continue;
                    } 
                    throw e;
@@ -136,10 +136,9 @@ public class TestSplit10525B extends SdbTestBase{
                     flag = true;
                     break;
                 } else {
-                    Thread.sleep(100);
-                    continue;
+                    Thread.sleep(300);
                 }
-            }  
+            }
             if (!flag) {
                 Assert.fail("数据长时间未同步成功！" + dataDb.getServerAddress() 
                 + ", actData[" + actData + "]");

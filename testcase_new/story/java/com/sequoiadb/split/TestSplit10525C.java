@@ -102,7 +102,7 @@ public class TestSplit10525C extends SdbTestBase{
             // 连接源组从节点data验证数据
             dataDb = replicaGroup.getSlave().connect();
             boolean clFlag = false;
-            for ( int i = 0; i < 20; i++) {
+            for ( int i = 0; i < 100; i++) {
                 // 元数据
                 try {
                     CollectionSpace cs = dataDb.getCollectionSpace(SdbTestBase.csName);
@@ -111,7 +111,7 @@ public class TestSplit10525C extends SdbTestBase{
                     break;
                 } catch (BaseException e) {
                    if ( e.getErrorCode() == -34 || e.getErrorCode() == -23) {
-                       Thread.sleep(100);
+                       Thread.sleep(300);
                        continue;
                    } 
                    throw e;
@@ -134,10 +134,9 @@ public class TestSplit10525C extends SdbTestBase{
                     flag = true;
                     break;
                 } else {
-                    Thread.sleep(100);
-                    continue;
+                    Thread.sleep(300);
                 }
-            }  
+            }
             if (!flag) {
                 Assert.fail("数据长时间未同步成功！" + dataDb.getServerAddress());
             }

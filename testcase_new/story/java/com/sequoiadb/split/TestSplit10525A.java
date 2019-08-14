@@ -54,9 +54,10 @@ public class TestSplit10525A extends SdbTestBase{
      * 2. 分区键字段排序为正序
      * 3. 执行切分
      * 4. 分别连接coord、源组data、目标组data查询
+     * @throws InterruptedException 
      */
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         BSONObject startCondition = (BSONObject) JSON.parse("{age:25}");
         BSONObject endCondition = (BSONObject) JSON.parse("{age:50}");
         long splitAsyncId = cl.splitAsync(rgNames.get(0), rgNames.get(1), 
@@ -91,7 +92,7 @@ public class TestSplit10525A extends SdbTestBase{
         Assert.assertEquals(actual, insertRecods);
     }
 
-    public void checkSplitResult(String rgName, List<BSONObject> expData) {
+    public void checkSplitResult(String rgName, List<BSONObject> expData) throws InterruptedException {
         Sequoiadb dataDb = null;
         try {
             // 连接源组从节点data验证数据
@@ -101,11 +102,7 @@ public class TestSplit10525A extends SdbTestBase{
             // 元数据
             CollectionSpace cs = dataDb.getCollectionSpace(SdbTestBase.csName);
             DBCollection dbcl = cs.getCollection(clName);
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            Thread.sleep(100);
             
             // 数据
             DBCursor cursor = dbcl.query(null,null,"{\"_id\":1}",null);
