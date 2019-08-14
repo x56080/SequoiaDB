@@ -147,15 +147,11 @@ function initData( importFile )
    // num: 16
    file.write("85," + "-00000000000000001234567890123456.0000000000000000" + "\n"); 
    file.write("86," + " 00000000000000001234567890123456.0000000000000000" + "\n");
-   file.write("87," + "-0000000000000000.12345678901234560000000000000000" + "\n"); 
+   file.write("87," + "-0000000000000000.12345678901234560000000000000000" + "\n");
    file.write("88," + " 0000000000000000.12345678901234560000000000000000" + "\n");
    file.write("89," + " 000000000000000012345.678901234560000000000000000" + "\n"); 
       
    file.close();
-   
-   var command = "cat "+ importFile;
-   var fileInfo = cmd.run( command );
-   println( command +"\n" + fileInfo );
 }
 
 function initExpImportData()

@@ -211,28 +211,32 @@ function turnLocaltime( time, format )
 
 function importData( csName, clName, importFile, type, fields, cast )
 {
-   println("---Begin to import data.");    
+   println("\n---Begin to import data.");    
    var imprtOption = installDir +'bin/sdbimprt -s '+ COORDHOSTNAME +' -p '+ COORDSVCNAME 
                   +' -c '+ csName +' -l '+ clName 
                   +' --type '+ type
                   +' --file '+ importFile;
-   if ( type == 'csv' )
+   if ( type == 'csv' ) 
    {
-       imprtOption = imprtOption +' --fields "' + fields +'"';
+      imprtOption = imprtOption +' --fields "' + fields +'"';
    }
+   println( imprtOption );
+   var command = "cat "+ importFile;
+   var fileInfo = cmd.run( command );
+   println( "\n" + command +"\n" + fileInfo );
+   
    if ( cast == true )
    {
       imprtOption = imprtOption + ' --cast ' + cast;
    }
    var rc = cmd.run( imprtOption );
-   
    var rcResults = rc.split("\n");
    return rcResults;
 }
 
 function exportData( csName, clName, exportFile,type, fields, sort, otherParam )
 {
-   println("---Begin to export data.");
+   println("\n---Begin to export data.");
    if ( typeof( sort ) == "undefined" ) { sort = "{a:1}"; }
    
    //remove export file
@@ -258,7 +262,7 @@ function exportData( csName, clName, exportFile,type, fields, sort, otherParam )
 
 function checkImportRC(rcResults, expParseRecordsNum, expImportedRecordsNum, expParseFailureNum)
 {   
-   println("\n---Begin to check import results.");
+   println("---Begin to check import results.");
    if ( typeof( expParseFailureNum ) === "undefined" ) { expParseFailureNum = 0; }
    if ( typeof( expImportedRecordsNum ) === "undefined" ) { expImportedRecordsNum = expParseRecordsNum; }
    
@@ -298,7 +302,7 @@ function checkCLData( cl, expRecsNum, expRecs )
                         "[cnt:"+ expCnt +", recs:"+ expRecs +"]", 
                         "[cnt:"+ actCnt +", recs:"+ actRecs +"]" );
    }  
-   println("cl records: \n" + actRecs );
+   //println("cl records: \n" + actRecs );
 }
 
 function checkExportData( exportFile, expData )
@@ -319,7 +323,7 @@ function checkExportData( exportFile, expData )
 function checkResult( cl, dataType, expResult )
 {
    println( "---Begin to check "+ dataType +" results." );
-   var rc = cl.find({ a: { "$type": 2, "$et": dataType }}).sort( { _id: 1 } );
+   var rc = cl.find({a:{"$type":2,"$et": dataType }}, {_id:{$include:0}}).sort({_id:1});
    var actResult = [];
    while( rc.next() )
    {

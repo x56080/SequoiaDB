@@ -151,10 +151,6 @@ function initData( importFile )
    file.write("89," + " 000000000000000012345.678901234560000000000000000" + "\n"); 
       
    file.close();
-   
-   var command = "cat "+ importFile;
-   var fileInfo = cmd.run( command );
-   println( command +"\n" + fileInfo );
 }
 
 function initExpImportData()
