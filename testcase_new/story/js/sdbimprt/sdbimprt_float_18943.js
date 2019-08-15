@@ -24,7 +24,7 @@ function main()
    dataType = "decimal";
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
-   cl.remove();
+   cl.truncate();
    
    println( "\n---data type double、decimal to import json file." );
    var fields = "a";   
@@ -54,6 +54,7 @@ function prepareDate( typeFile )
          file.write( left + "." + right + "e" + (309-i) + "\n" );
       }
    }
+   file.close();
 }
 
 function getExpResult( dataType )

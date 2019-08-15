@@ -18,7 +18,7 @@ function main()
    var dataType = "int32";
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
-   cl.remove();
+   cl.truncate();
    
    println( "\n---specify data type int64 to import csv file." );
    var fields = "a long";
@@ -27,7 +27,7 @@ function main()
    var dataType = "int64";
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
-   cl.remove();
+   cl.truncate();
    
    println( "\n---specify data type double to import csv file." ); 
    var fields = "a double";
@@ -36,7 +36,7 @@ function main()
    dataType = "double";
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
-   cl.remove();
+   cl.truncate();
    
    println( "\n---specify data type decimal to import csv file." );
    var fields = "a decimal";
@@ -63,6 +63,7 @@ function prepareDate( typeFile )
          file.write( left + "." + right + "\n" );
       }   
    }
+   file.close();
 }
 
 function getExpResult( dataType )

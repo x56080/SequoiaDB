@@ -44,6 +44,7 @@ function prepareDate( typeFile )
          }
       }   
    }
+   file.close();
 }
 
 function getExpResult( dataType )

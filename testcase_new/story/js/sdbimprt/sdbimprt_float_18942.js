@@ -28,7 +28,7 @@ function main()
    dataType = "decimal";
    var expResult = getExpResult( dataType, expResults );
    checkResult( cl, dataType, expResult );
-   cl.remove();
+   cl.truncate();
    
    expResults = prepareDate( jsonFile );
    println( "\n---data type int32、int64、double、decimal to import json file." );
@@ -104,6 +104,7 @@ function prepareDate( typeFile )
          expResult_decimal.push( { a: { "$decimal" : left + "." + right } } );
       }
    }
+   file.close();
    expResults["int32"] = expResult_int32;
    expResults["int64"] = expResult_int64;
    expResults["double"] = expResult_double;

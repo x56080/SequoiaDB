@@ -29,7 +29,7 @@ function main()
    dataType = "decimal";
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
-   cl.remove();
+   cl.truncate();
    
    println( "\n---specify data type int32、int64、double、decimal to import json file." );
    var fields = "a";   
@@ -74,6 +74,7 @@ function prepareDate( typeFile )
          }
       }
    }
+   file.close();
 }
 
 function getExpResult( dataType )

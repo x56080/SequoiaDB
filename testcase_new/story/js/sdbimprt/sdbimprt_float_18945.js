@@ -18,7 +18,7 @@ function main()
    checkImportRC( rcResults, 2000 );
    dataType = "double";
    checkResult( cl, dataType, expResult );
-   cl.remove();
+   cl.truncate();
    
    expResult = prepareDate( jsonFile );
    println( "\n---data type double、decimal to import json file." );
@@ -61,5 +61,6 @@ function prepareDate( typeFile )
          }
       }   
    }
+   file.close();
    return expResult;
 }

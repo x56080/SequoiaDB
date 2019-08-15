@@ -41,6 +41,7 @@ function prepareDate( typeFile )
          file.write( '{ a: ' + left + '.' + right + ' }\n' );
       }
    }
+   file.close();
 }
 
 function getExpResult( dataType )

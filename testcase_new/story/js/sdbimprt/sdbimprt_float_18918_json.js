@@ -37,6 +37,7 @@ function prepareDate( typeFile )
          right = right + "0";
       }
    }
+   file.close();
 }
 
 function getExpResult( dataType )

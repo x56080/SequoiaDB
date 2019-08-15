@@ -37,6 +37,7 @@ function prepareDate( typeFile )
          file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' ); 
       }  
    }
+   file.close();
 }
 
 function getExpResult( dataType )

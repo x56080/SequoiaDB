@@ -37,6 +37,7 @@ function prepareDate( typeFile )
          file.write( '{ a: ' + left + '.' + right + ', b: "double" }\n' );
       }
    }
+   file.close();
 }
 
 function getExpResult( dataType )

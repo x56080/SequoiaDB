@@ -323,23 +323,29 @@ function checkExportData( exportFile, expData )
 function checkResult( cl, dataType, expResult )
 {
    println( "---Begin to check "+ dataType +" results." );
-   var rc = cl.find({a:{"$type":2,"$et": dataType }}, {_id:{$include:0}}).sort({_id:1});
+   var rc = cl.find({a:{"$type":2,"$et": dataType }}).sort({_id:1});
    var actResult = [];
    while( rc.next() )
    {
       actResult.push( rc.current().toObj() );
    }
-   for(var i=0;i<actResult.length;i++){println("actResult==="+JSON.stringify(actResult[i]))};
-   for(var i=0;i<expResult.length;i++){println("expResult==="+JSON.stringify(expResult[i]))};
-   if( actResult.length != expResult.length )
+   
+   /*for(var i=0;i<actResult.length;i++){println("actResult==="+JSON.stringify(actResult[i]))};
+   for(var i=0;i<expResult.length;i++){println("expResult==="+JSON.stringify(expResult[i]))};*/
+   
+   if( actResult.length !== expResult.length )
    {
-      throw "actResult.length:" + actResult.length + " is not equals to expResult.length:" + expResult.length;
+      throw buildException( "checkCLdata", null, "[check length]", 
+                        "["+ expResult.length +"]", 
+                        "["+ actResult.length +"]" );
    }
    for( var i in actResult )
    {
-      if( JSON.stringify( actResult[i]["a"] ) != JSON.stringify( expResult[i]["a"] ) )
+      if( JSON.stringify( actResult[i]['a'] ) !== JSON.stringify( expResult[i]['a'] ) )
       {
-         throw "expResult is " + JSON.stringify( expResult[i]["a"] ) + " but actResult is " + JSON.stringify( actResult[i]["a"] );
+         throw buildException( "checkCLdata", null, "[check records, _id = " + JSON.stringify( actResult[i]['_id'] ) + "]", 
+                           "["+ JSON.stringify( expResult[i]['a'] ) +"]", 
+                           "["+ JSON.stringify( actResult[i]['a'] ) +"]" );
       }
    }
 }
