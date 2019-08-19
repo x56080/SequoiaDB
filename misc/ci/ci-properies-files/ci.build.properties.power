@@ -6,4 +6,4 @@ enterprise.name=enterprise
 
 copy_tar=/test_tar
 target.deploy_tar_gz.ip=ci-cmpl-ppc
-target_offlinedoc_tar_ip=bl465-4
+target_offlinedoc_tar_ip=test-ci-compile
