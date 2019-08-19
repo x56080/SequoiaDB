@@ -53,7 +53,7 @@ function prepareDate( typeFile )
 {
    var file = new File( typeFile );
    var left = "1";
-   //由于实际值为浮点数，整数部分超过十位的时候，强制转换成int32是内存转换，无法确定转换规则，因此控制正数部分最大有效数字为10
+   //由于实际值为浮点数，整数部分超过十位的时候，强制转换成int32是内存转换，无法确定转换规则，因此控制正数部分最大有效数字为9
    for( var i = 0; i < 9; i++ )
    {
       var right = "1";

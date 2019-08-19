@@ -28,7 +28,7 @@ function prepareDate( typeFile )
    var left = "1";
    for( var i = 0; i < 20; i++ )
    {
-      var right = "";
+      var right = "1";
       left = left + "0";
       for( var j = 0; j < 20; j++ )
       {
@@ -46,24 +46,24 @@ function getExpResult( dataType )
    var left = "1";
    for( var i = 0; i < 20; i++ )
    {
-      var right = "";
+      var right = "1";
       left = left + "0";
       for( var j = 0; j < 20; j++ )
       {
          right = right + "0";
          var decimalDate = left + "." + right;
-         if( dataType == "decimal" && i < 14 )
+         if( dataType == "decimal" && i < 13 )
          {
             expResult.push({ a: { "$decimal": decimalDate }});
          }
-         else if( dataType == "decimal" && i >= 14 )
+         else if( dataType == "decimal" && i >= 13 )
          {
             expResult.push({ a: { "$decimal": decimalDate }}); 
             expResult.push({ a: { "$decimal": decimalDate }});               
          }
-         else if( dataType == "double" && i <14 )
+         else if( dataType == "double" && i < 13 )
          {
-            expResult.push({ a: parseFloat( left )});
+            expResult.push({ a: parseFloat( left + ".1" )});
          }
       }
    }

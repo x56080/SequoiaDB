@@ -16,7 +16,7 @@ function main()
    println( "\n---specify data type int32、int64、double、decimal to import csv file." );
    var fields = "a";   
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields );
-   checkImportRC( rcResults, 800 );
+   checkImportRC( rcResults, 420 );
    dataType = "int32";
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
@@ -34,7 +34,7 @@ function main()
    println( "\n---specify data type int32、int64、double、decimal to import json file." );
    var fields = "a";   
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
-   checkImportRC( rcResults, 800 );
+   checkImportRC( rcResults, 420 );
    dataType = "int32";
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
@@ -59,17 +59,23 @@ function prepareDate( typeFile )
    {
       var right = "";
       left = left + "1";
+      if( typeFile.substring(typeFile.indexOf(".")+1, typeFile.length ) == "csv" )
+      {
+         file.write( left + "\n" );
+      }
+      else
+      {
+         file.write( '{ a:' + left + ' }\n' );
+      }
       for( var j = 0; j < 20; j++ )
       {
          right = right + "0";
          if( typeFile.substring(typeFile.indexOf(".")+1, typeFile.length ) == "csv" )
          {
-            file.write( left + "\n" );
             file.write( left + "." + right + "\n" );
          }
          else
          {
-            file.write( '{ a:' + left + ' }\n' );
             file.write( '{ a:' + left + '.' + right + ' }\n' ); 
          }
       }
@@ -83,20 +89,27 @@ function getExpResult( dataType )
    var left = "";
    if( dataType == "int64" )
    {
-      executeFor( expResult, {a: 11111111111 } );
-      executeFor( expResult, {a: 111111111111 } );
-      executeFor( expResult, {a: 1111111111111 } );
-      executeFor( expResult, {a: 11111111111111 } );
-      executeFor( expResult, {a: 111111111111111 } );
-      executeFor( expResult, {a: 1111111111111111 } );
-      executeFor( expResult, { a: {"$numberLong":"11111111111111111"} });
-      executeFor( expResult, { a: {"$numberLong":"111111111111111111"} });
-      executeFor( expResult, { a: {"$numberLong":"1111111111111111111"} });
+      expResult.push( {a: 11111111111 } );
+      expResult.push( {a: 111111111111 } );
+      expResult.push( {a: 1111111111111 } );
+      expResult.push( {a: 11111111111111 } );
+      expResult.push( {a: 111111111111111 } );
+      expResult.push( {a: 1111111111111111 } );
+      expResult.push( { a: {"$numberLong":"11111111111111111"} } );
+      expResult.push( { a: {"$numberLong":"111111111111111111"} } );
+      expResult.push( { a: {"$numberLong":"1111111111111111111"} } );
    }
    for( var i = 0; i < 20; i++ )
    {
       var right = "";
       left = left + "1";
+      if( dataType == "int32" && i < 10 )
+      {
+         expResult.push({a: parseInt( left )});
+      }else if( dataType == "decimal" && i == 19 )
+      {
+         expResult.push( { a: {"$decimal": left } } );
+      }
       for( var j = 0; j < 20; j++ )
       {
          right = right + "0";
@@ -106,26 +119,13 @@ function getExpResult( dataType )
          }
          else if( dataType == "decimal" && i == 19 )
          {
-            expResult.push( { a: {"$decimal": left } } );
             expResult.push( { a: {"$decimal": left + "." + right } } );
          }
          else if( dataType == "double" && i < 15 )
          {
             expResult.push({a: parseFloat( left )});
-         }
-         else if( dataType == "int32" && i < 10 )
-         {
-            expResult.push({a: parseInt( left )});
-         }
+         } 
       }
-   }
-   return expResult;
-}
-function executeFor( expResult, data )
-{
-   for( var i = 0; i < 20; i++ )
-   {
-      expResult.push( data );
    }
    return expResult;
 }

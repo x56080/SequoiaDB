@@ -13,7 +13,7 @@ function main()
    
    println( "\n---data type double, decimal to import json file." );
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
-   checkImportRC( rcResults, 7200 );
+   checkImportRC( rcResults, 3780 );
    var expResult = getExpResult( "int32" );
    checkResult( cl, "int32", expResult );
    var expResult = getExpResult( "int64" );
@@ -38,12 +38,12 @@ function prepareDate( typeFile )
       {
          var right = "";
          leftL = leftL + "0";
+         var left = leftL + "1" + leftR;
+         file.write( '{ a: ' + left + ' }\n' );
+         file.write( '{ a: { "$numberLong": "' + left + '' + '" } }\n' );
          for( var k = 0; k < 20; k++ )
          {
-            left = leftL + "1" + leftR;
             right = right + "0";
-            file.write( '{ a: ' + left + ' }\n' );
-            file.write( '{ a: { "$numberLong": "' + left + '' + '" } }\n' );
             file.write( '{ a: ' + left + '.' + right + ' }\n' );
             file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' ); 
          }
@@ -64,17 +64,24 @@ function getExpResult( dataType )
       {
          var right = "";
          leftL = leftL + "0";
-         for( var k = 0; k < 20; k++ )
+         var left = "1" + leftR;
+         if( dataType == "int32" || dataType == "int64" )
          {
-            left = "1" + leftR;
-            right = right + "0";
-            if( dataType == "decimal" )
+            expResult.push( { a: parseFloat( left ) } );
+         }
+         else 
+         {
+            for( var k = 0; k < 20; k++ )
             {
-               expResult.push( { a: { "$decimal": left + "." + right} } );
-            }
-            else
-            {
-               expResult.push( { a: parseFloat( left ) } );
+               right = right + "0";
+               if( dataType == "decimal" )
+               {
+                  expResult.push( { a: { "$decimal": left + "." + right} } );
+               }
+               else
+               {
+                  expResult.push( { a: parseFloat( left ) } );
+               }
             }
          }
       }

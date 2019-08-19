@@ -44,7 +44,8 @@ function prepareDate( typeFile )
                var left = leftL + "1" + leftR;
                var right = rightL + "1" + rightR;
                file.write( '{ a: ' + left + '.' + right + ' }\n' );
-               file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' ); 
+               file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' );
+               
             }
          }
       }

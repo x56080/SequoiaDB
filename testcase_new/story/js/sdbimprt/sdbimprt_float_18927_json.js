@@ -13,7 +13,7 @@ function main()
    
    println( "\n---data type int32, int64, double, decimal to import json file." );
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
-   checkImportRC( rcResults, 800 );
+   checkImportRC( rcResults, 420 );
    var expResult = getExpResult( "int32" );
    checkResult( cl, "int32", expResult );
    var expResult = getExpResult( "int64" );
@@ -34,10 +34,10 @@ function prepareDate( typeFile )
    {
       var right = "";
       left = left + "0";
+      file.write( '{ a: ' + left + ' }\n' );
       for( var j = 0; j < 20; j++ )
       {
          right = right + "0";
-         file.write( '{ a: ' + left + ' }\n' );
          file.write( '{ a: ' + left + '.' + right + ' }\n' );
       }
    }
@@ -50,20 +50,27 @@ function getExpResult( dataType )
    var left = "1";
    if( dataType == "int64" )
    {
-      executeFor( expResult, {a: 10000000000 } );
-      executeFor( expResult, {a: 100000000000 } );
-      executeFor( expResult, {a: 1000000000000 } );
-      executeFor( expResult, {a: 10000000000000 } );
-      executeFor( expResult, {a: 100000000000000 } );
-      executeFor( expResult, {a: 1000000000000000 } );
-      executeFor( expResult, { a: {"$numberLong":"10000000000000000"} });
-      executeFor( expResult, { a: {"$numberLong":"100000000000000000"} });
-      executeFor( expResult, { a: {"$numberLong":"1000000000000000000"} });
+      expResult.push( {a: 10000000000 } );
+      expResult.push( {a: 100000000000 } );
+      expResult.push( {a: 1000000000000 } );
+      expResult.push( {a: 10000000000000 } );
+      expResult.push( {a: 100000000000000 } );
+      expResult.push( {a: 1000000000000000 } );
+      expResult.push( {a: {"$numberLong":"10000000000000000"} } );
+      expResult.push( {a: {"$numberLong":"100000000000000000"} } );
+      expResult.push( {a: {"$numberLong":"1000000000000000000"} } );
    }
    for( var i = 0; i < 20; i++ )
    {
       var right = "";
       left = left + "0";
+      if( dataType == "int32" && i < 9 )
+      {
+         expResult.push({a: parseInt( left )});
+      }else if( dataType == "decimal" && i >= 18 )
+      {
+         expResult.push( { a: {"$decimal": left } } );
+      }
       for( var j = 0; j < 20; j++ )
       {
          right = right + "0";
@@ -75,7 +82,6 @@ function getExpResult( dataType )
             }
             else if( i >= 18 )
             {
-               expResult.push( { a: {"$decimal": left } } );
                expResult.push( { a: {"$decimal": left + "." + right } } );
             }
          }
@@ -83,19 +89,7 @@ function getExpResult( dataType )
          {
             expResult.push({a: parseFloat( left )});
          }
-         else if( dataType == "int32" && i < 9 )
-         {
-            expResult.push({a: parseInt( left )});
-         }
       }
-   }
-   return expResult;
-}
-function executeFor( expResult, data )
-{
-   for( var i = 0; i < 20; i++ )
-   {
-      expResult.push( data );
    }
    return expResult;
 }
