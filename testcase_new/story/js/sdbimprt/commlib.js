@@ -43,7 +43,7 @@ function readyCL( csName, clName, optionObj, message )
    println("\n---Begin to create CL "+ message +".");
    
    if( optionObj == undefined ) { optionObj = {ReplSize:0}; }
-	
+
    commDropCL( db, csName, clName, true, true, 
                       "Failed to drop CL in the pre-condition." );
    
@@ -58,7 +58,7 @@ function readyCL( csName, clName, optionObj, message )
 function cleanCL( csName, clName )
 {
    println("\n---Begin to drop CL.");
-	
+
    commDropCL( db, csName, clName, false, false,
                       "Failed to drop CL in the end-condition" );
 }
@@ -96,7 +96,7 @@ function readyTmpDir()
       println("Failed to rm tmpFileDir["+ tmpFileDir +"]");
       throw e;
    }
-	
+
    try
    {
       cmd.run( "mkdir -p "+ tmpFileDir );
@@ -215,13 +215,18 @@ function importData( csName, clName, importFile, type, fields, cast )
    var imprtOption = installDir +'bin/sdbimprt -s '+ COORDHOSTNAME +' -p '+ COORDSVCNAME 
                   +' -c '+ csName +' -l '+ clName 
                   +' --type '+ type
-                  +' --file '+ importFile
+                  +' --file '+ importFile;
                   +' --insertnum '+ 10000;
    if ( type == 'csv' ) 
    {
       imprtOption = imprtOption +' --fields "' + fields +'"';
    }
    println( imprtOption );
+   /*
+   var command = "cat "+ importFile;
+   var fileInfo = cmd.run( command );
+   println( "\n" + command +"\n" + fileInfo );
+   */
    
    if ( cast == true )
    {
@@ -253,9 +258,11 @@ function exportData( csName, clName, exportFile,type, fields, sort, otherParam )
    
    //cat exprt file
    var command = "cat "+ exportFile;
-   var fileInfo = cmd.run( command );
    println( command ) ;
-   println( fileInfo ) ;
+   /*
+   var fileInfo = cmd.run( command );
+   println( fileInfo ); 
+   */
 }
 
 function checkImportRC(rcResults, expParseRecordsNum, expImportedRecordsNum, expParseFailureNum)
@@ -320,7 +327,7 @@ function checkExportData( exportFile, expData )
 
 function checkResult( cl, dataType, expResult )
 {
-   println( "---Begin to check "+ dataType +" results." );
+   println( "\n---Begin to check "+ dataType +" results." );
    var rc = cl.find({a:{"$type":2,"$et": dataType }}).sort({_id:1});
    var actResult = [];
    while( rc.next() )
@@ -328,8 +335,10 @@ function checkResult( cl, dataType, expResult )
       actResult.push( rc.current().toObj() );
    }
    
-   /*for(var i=0;i<actResult.length;i++){println("actResult==="+JSON.stringify(actResult[i]))};
-   for(var i=0;i<expResult.length;i++){println("expResult==="+JSON.stringify(expResult[i]))};*/
+   /*
+   for(var i=0;i<10;i++){println("actResult: "+ JSON.stringify(actResult[i]))};
+   for(var i=0;i<10;i++){println("expResult:" + JSON.stringify(expResult[i]))};
+   */
    
    if( actResult.length !== expResult.length )
    {
@@ -337,6 +346,7 @@ function checkResult( cl, dataType, expResult )
                         "["+ expResult.length +"]", 
                         "["+ actResult.length +"]" );
    }
+   
    for( var i in actResult )
    {
       if( JSON.stringify( actResult[i]['a'] ) !== JSON.stringify( expResult[i]['a'] ) )
