@@ -97,5 +97,5 @@ function checkCLData( cl )
                         "[cnt:"+ expCnt +", recs:"+ expRecs +"]", 
                         "[cnt:"+ actCnt +", recs:"+ actRecs +"]" );
    }
-   println( "cl records: "+ actRecs );
+   //println( "cl records: "+ actRecs );
 }

@@ -33,7 +33,7 @@ function importData( csName, clName, imprtFile )
    var tmpRec = csName +"_"+ clName +"*.rec";
    cmd.run( "rm -rf "+ tmpRec );
    
-   ////cat import file
+   //cat import file
    //var fileInfo = cmd.run( "cat "+ imprtFile );
    //println( imprtFile +"\n" + fileInfo +"\n" );
    
@@ -102,6 +102,6 @@ function checkCLData( cl )
                         "[cnt:"+ expCnt +", recs:"+ expRecs +"]", 
                         "[cnt:"+ actCnt +", recs:"+ actRecs +"]" );
    }
-   println( "cl records: "+ actRecs );
+   //println( "cl records: "+ actRecs );
    
 }

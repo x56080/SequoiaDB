@@ -73,7 +73,7 @@ function importData( csName, clName, imprtFile )
                         "[failedRecs:"+ actFailedNum +"]" );
    }
    
-   // clean tmpRec   
+   // clean tmpRec
    cmd.run( "rm -rf " + tmpRec );
 }
 
@@ -126,7 +126,7 @@ function exprtData( csName, clName, exprtFile )
    
    //cat exprt file
    var fileInfo = cmd.run( "cat "+ exprtFile );
-   println( exprtFile +"\n" + fileInfo );
+   println( exprtFile +"\\n" + fileInfo );
 }
 
 function checkExprtFile( csName, clName, exprtFile )

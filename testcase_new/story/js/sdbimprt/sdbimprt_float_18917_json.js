@@ -30,6 +30,7 @@ function prepareDate( typeFile )
 {
    var file = new File( typeFile );
    var left = "";
+   var num = 0;
    for( var i = 0; i < 20; i++ )
    {
       var right = "";
@@ -43,7 +44,7 @@ function prepareDate( typeFile )
          file.write( '{ a: ' + left + '.' + right + ' }\n' );
       }
    }
-   file.close();
+   file.close()
 }
 
 function getExpResult( dataType )

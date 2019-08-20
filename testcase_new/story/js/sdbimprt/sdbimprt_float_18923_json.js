@@ -58,11 +58,11 @@ function getExpResult( dataType )
          else if( dataType == "decimal" && i >= 13)
          {
             expResult.push({ a: { "$decimal": decimalData }});
-            expResult.push({ a: { "$decimal": decimalData }});
+            expResult.push({ a: { "$decimal": decimalData },b:"double"});
          }
          else if( dataType == "double" && i < 13 )
          {
-            expResult.push({ a: doubleData });
+            expResult.push({ a: doubleData,b:"double" });
          }
       }
    } 

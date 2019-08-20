@@ -41,7 +41,7 @@ function importData( csName, clName, imprtFile )
 {
    println("\n---Begin to import data and check exec result.");
    
-   ////cat import file
+   //cat import file
    //var fileInfo = cmd.run( "cat "+ imprtFile );
    //println( imprtFile +"\n" + fileInfo +"\n" );
    
