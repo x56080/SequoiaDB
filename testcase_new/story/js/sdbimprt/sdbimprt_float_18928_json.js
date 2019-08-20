@@ -32,7 +32,7 @@ function prepareDate( typeFile )
       left = left + "0";
       for( var j = 0; j < 20; j++ )
       {
-         right = right + "0";
+         right = "0" + right;
          file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' ); 
          file.write( '{ a: ' + left + '.' + right + ' }\n' );
       }
@@ -50,20 +50,20 @@ function getExpResult( dataType )
       left = left + "0";
       for( var j = 0; j < 20; j++ )
       {
-         right = right + "0";
+         right = "0" + right;
          var decimalDate = left + "." + right;
-         if( dataType == "decimal" && i < 13 )
+         if( dataType == "decimal" && ( i+j ) < 12 )
          {
             expResult.push({ a: { "$decimal": decimalDate }});
          }
-         else if( dataType == "decimal" && i >= 13 )
+         else if( dataType == "decimal" && ( i+j ) >= 12 )
          {
             expResult.push({ a: { "$decimal": decimalDate }}); 
             expResult.push({ a: { "$decimal": decimalDate }});               
          }
-         else if( dataType == "double" && i < 13 )
+         else if( dataType == "double" && ( i+j ) < 12 )
          {
-            expResult.push({ a: parseFloat( left + ".1" )});
+            expResult.push({ a: parseFloat( left + "." + right )});
          }
       }
    }
