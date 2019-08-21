@@ -1,7 +1,7 @@
 /**************************************
  * @author: ouyangzhongnan 
  * @coverTestcace: 
- *       seqDB-10162:hint指定索引查询
+ *       seqDB-10462:hint指定索引查询
  * @RunDemo:
  * /opt/sequoiadb/bin/sdb -f "func.js,commlib.js,subCL_queryByHint_10462.js" -e "var CHANGEDPREFIX='prefix';var COORDHOSTNAME='sdbserver01';var COORDSVCNAME='11810'"
  **************************************/
@@ -46,7 +46,7 @@ function main(){
 	commDropCL( db, COMMCSNAME, subClNames[1], true, true, "clean sub collection" );
 	commDropCL( db, COMMCSNAME, mainClName, true, true, "clean main collection" ); 	
 	//create maincl and subcl,attach subcl to maincl
-    db.setSessionAttr( {PreferedInstance:"M"} );
+	db.setSessionAttr( { PreferedInstance: "M" } );
 	mainCl = commCreateCLByOption( db, COMMCSNAME, mainClName, { IsMainCL:true, ShardingKey:{ a:1 }, ShardingType: "range", ReplSize:0, Compressed:true }, true, true );
 	subCls.push( commCreateCL( db, COMMCSNAME, subClNames[0], 0) );
 	subCls.push( commCreateCLByOption( db, COMMCSNAME, subClNames[1], { ShardingKey:{ a:1 }, ShardingType: "hash", ReplSize:0, Compressed:true, Partition:16 }, true, true ) );
@@ -101,14 +101,15 @@ function queryByHint(queryCond,res) {
 	//先判断是不是走索引
 	var flag_0 = true;
 	try {
-		var explainArr = mainCl.find(queryCond).explain().toArray();
+		var explainArr = mainCl.find(queryCond).hint({"":indexName}).explain().toArray();
 		var explainObjArr = [];
 		for (var i = 0; i < explainArr.length; i++) {
 			explainObjArr.push(JSON.parse(explainArr[i]));
 		}
 		for (var i = 0; i < explainObjArr.length; i++) {
 			for (var j = 0; j < explainObjArr[i].SubCollections.length; j++) {
-				if (explainObjArr[i].SubCollections[j].ScanType !== "ixscan") {
+				if (explainObjArr[i].SubCollections[j].ScanType  !== "ixscan"
+				 || explainObjArr[i].SubCollections[j].IndexName !== indexName) {
 					flag_0 = false;
 					break;
 				}
@@ -123,11 +124,19 @@ function queryByHint(queryCond,res) {
 	try {
 		var query_res = mainCl.find(queryCond).next().toObj();
 		delete query_res["_id"];
-		if(!compare(query_res,res)) flag_1 = false;
+		
+		var actA = query_res["a"];
+		var actB = query_res["b"];
+		var tmpStr = JSON.stringify(queryCond);
+		var tmpObj = eval( '('+ tmpStr +')' );
+		var expA = tmpObj["a"];
+		var expB = tmpObj["b"];
+		if( actA !== expA || actB !== expB ) flag_1 = false;
 	} catch(e) {
 		throw buildException("failed to find by queryCond", e, "queryByHint", "query operator success", "query operator error" );	
 	}
-
+	
+   //println("--"+flag_0 +"\n--"+ flag_1);
 	if (! (flag_0 && flag_1)) {
 		throw buildException( "queryByHint", new Error(), "queryByHint", "query result is true and by index", "query result is false or not by index" ) ;
 	}

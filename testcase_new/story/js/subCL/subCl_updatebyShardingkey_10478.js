@@ -45,7 +45,7 @@ function main()
 	commDropCL( db, COMMCSNAME, subClNames[1], true, true, "clean sub collection" );
 	commDropCL( db, COMMCSNAME, mainClName, true, true, "clean main collection" );	
 	//create maincl and subcl, attach subcl
-   db.setSessionAttr( {PreferedInstance:"M"} );
+	db.setSessionAttr( { PreferedInstance: "M" } );
    var mainCLOption = { IsMainCL:true, ShardingKey:{ a:1 }, ShardingType: "range", ReplSize:0, Compressed:true };
    var subCLOption = { ShardingKey:{ b:1 }, ShardingType: "hash", ReplSize:0, Compressed:true, Partition:16 };
    mainCl = commCreateCLByOption( db, COMMCSNAME, mainClName, mainCLOption, true, true );

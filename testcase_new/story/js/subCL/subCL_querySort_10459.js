@@ -11,13 +11,10 @@
  * /opt/sequoiadb/bin/sdb -f "func.js,commlib.js,subCL_querySort_10459.js" -e "var CHANGEDPREFIX='prefix';var COORDHOSTNAME='sdbserver01';var COORDSVCNAME='11810'"
  **************************************/
 
-/**
- * [main:入口函数]
- */
 main();
-function main(){
+function main()
+{
 	var mainCl = null;
-	var subCls = [];
 	var data = [];
 	var mainClName =  CHANGEDPREFIX+"_maincl_10459" ;
 	var subClNames = [
@@ -25,22 +22,27 @@ function main(){
 		CHANGEDPREFIX+"_subcl_10459_1",
 		CHANGEDPREFIX+"_subcl_10459_2",
 		CHANGEDPREFIX+"_subcl_10459_3",
-	];
+	   ];
 
    //check test environment before split
-   try {
+   try 
+   {
 	   //standalone can not split
-	   if( true == commIsStandalone( db ) ) {
+	   if( true == commIsStandalone( db ) ) 
+	   {
          println( "run mode is standalone" );
          return;
-      }     
+      }
       //less two groups,can not split
       allGroupName = getGroupName( db );       
-      if( 1 === allGroupName.length ) {
+      if( 1 === allGroupName.length ) 
+      {
          println("--least two groups");
          return ;
       }
-   } catch( e ) {
+   } 
+   catch( e ) 
+   {
 		throw buildException( "init", new Error() ) ;
    }
 
@@ -50,8 +52,9 @@ function main(){
 	commDropCL( db, COMMCSNAME, subClNames[2], true, true, "clean sub collection" );
 	commDropCL( db, COMMCSNAME, subClNames[3], true, true, "clean sub collection" );
 	commDropCL( db, COMMCSNAME, mainClName, true, true, "clean main collection" );
+	
    //create maincl for range split
-   db.setSessionAttr( {PreferedInstance:"M"} );
+   db.setSessionAttr( { PreferedInstance: "M" } );
    var mainCLOption = { IsMainCL:true, ShardingKey:{ a:1,b:-1,c:1 }, ShardingType: "range", ReplSize:0, Compressed:true };
    mainCl = commCreateCLByOption( db, COMMCSNAME, mainClName, mainCLOption, true, true );
    var subCLOptions = [
@@ -59,35 +62,44 @@ function main(){
    	{ ReplSize:0, Compressed:true, ShardingKey:{a:1,b:1}, ShardingType:"hash", Partition:16 },
    	{ ReplSize:0, Compressed:true, ShardingKey:{a:1,b:1}, ShardingType:"range" },
    	{ ReplSize:0, Compressed:true, ShardingKey:{a:1,b:1}, ShardingType:"hash", Partition:16 }
-   ];
+      ];
+   
    //create subcl
-   subCls.push( commCreateCLByOption( db, COMMCSNAME, subClNames[0], subCLOptions[0], true, true ) );
-   subCls.push( commCreateCLByOption( db, COMMCSNAME, subClNames[1], subCLOptions[1], true, true ) );
-	subCls.push( commCreateCLByOption( db, COMMCSNAME, subClNames[2], subCLOptions[2], true, true ) );
-	subCls.push( commCreateCLByOption( db, COMMCSNAME, subClNames[3], subCLOptions[3], true, true ) );
+   commCreateCLByOption( db, COMMCSNAME, subClNames[0], subCLOptions[0], true, true );
+   commCreateCLByOption( db, COMMCSNAME, subClNames[1], subCLOptions[1], true, true );
+	commCreateCLByOption( db, COMMCSNAME, subClNames[2], subCLOptions[2], true, true );
+	commCreateCLByOption( db, COMMCSNAME, subClNames[3], subCLOptions[3], true, true );
+	
    //attach subcl
    attachCL( mainCl, COMMCSNAME +"."+ subClNames[0], { LowBound:{a:0,b:400,c:0},     UpBound:{a:100,b:300,c:100} } );
    attachCL( mainCl, COMMCSNAME +"."+ subClNames[1], { LowBound:{a:100,b:300,c:100}, UpBound:{a:200,b:200,c:200} } );
    attachCL( mainCl, COMMCSNAME +"."+ subClNames[2], { LowBound:{a:200,b:200,c:200}, UpBound:{a:300,b:100,c:300} } );
    attachCL( mainCl, COMMCSNAME +"."+ subClNames[3], { LowBound:{a:300,b:100,c:300}, UpBound:{a:400,b:0,c:400} } );
+   
 	//init data
-	try {
+	try 
+	{
 		var aVal;
 		var bVal;
 		var cVal;
-		for (var i = 0; i < 1000; i++) {
+		for (var i = 0; i < 1000; i++) 
+		{
 			//添加混乱的数据
 			aVal = parseInt(Math.random()*1000+1)%400+1;
 			bVal = parseInt(Math.random()*1000+1)%400+1;
 			cVal = parseInt((aVal+bVal)/2);
 			data.push( { a:aVal,b:bVal,c:cVal,d:i } );
 		}
+		
 		mainCl.insert(data);
+		
 		//split
 		ClSplitOneTimes( COMMCSNAME, subClNames[1], 50, null ); 
 		ClSplitOneTimes( COMMCSNAME, subClNames[2], 50, null ); 
 		ClSplitOneTimes( COMMCSNAME, subClNames[3], 50, null ); 
-	} catch(e) {
+	} 
+	catch(e) 
+	{
 		throw buildException("failed to init 1000 records data for mainCl",e);				
 	}
 
@@ -96,20 +108,27 @@ function main(){
 	//正序 and 逆序
 	var sortOptions = {a:1,b:-1,c:1};
 	var cursor = mainCl.find().sort(sortOptions);
-	if (cursor.count() != data.length) {
+	if (cursor.count() != data.length) 
+	{
 		flag = false;
- 	} else {
- 		var compareObj = cursor.next().toObj();
- 		for (var i = 1; i < cursor.count(); i++) {
- 			var toCompareObj = cursor.next().toObj();	
- 			if (compareJSONObj(compareObj,toCompareObj,sortOptions) < 0 ) {
- 				flag = false;
- 				break;
- 			}
- 			compareObj = toCompareObj;
- 		}
-	}
-	if (!flag) {
+ 	} 
+ 	else 
+   {
+   	var compareObj = cursor.next().toObj();
+   	for (var i = 1; i < cursor.count(); i++) 
+   	{
+   		var toCompareObj = cursor.next().toObj();	
+   		if (compareJSONObj(compareObj,toCompareObj,sortOptions) < 0 ) 
+   		{
+   			flag = false;
+   			break;
+   		}
+   		compareObj = toCompareObj;
+   	}
+   }
+	
+	if (!flag) 
+	{
 		println("soryByIncludeAllSK ERROR");
 		throw buildException( "soryByIncludeAllSK", new Error(), "query all and sort by "+JSON.stringify(sortOptions) , "sort by "+JSON.stringify(sortOptions)+" is true", "sort by "+JSON.stringify(sortOptions)+" is false" ) ;
 	}
@@ -118,9 +137,12 @@ function main(){
 	//正序 and 逆序
 	var sortOptions = {a:1,c:-1};
 	var cursor = mainCl.find().sort(sortOptions);
-	if (cursor.count() != data.length) {
+	if (cursor.count() != data.length) 
+	{
 		flag = false;
- 	} else {
+ 	} 
+ 	else 
+   {
  		var compareObj = cursor.next().toObj();
  		for (var i = 1; i < cursor.count(); i++) {
  			var toCompareObj = cursor.next().toObj();	
@@ -131,7 +153,9 @@ function main(){
  			compareObj = toCompareObj;
  		}
 	}
-	if (!flag) {
+	
+	if (!flag) 
+	{
 		println("soryByIncludeSomeSK ERROR");
 		throw buildException( "soryByIncludeSomeSK", new Error(), "query all and sort by "+JSON.stringify(sortOptions) , "sort by "+JSON.stringify(sortOptions)+" is true", "sort by "+JSON.stringify(sortOptions)+" is false" ) ;
 	}	
@@ -141,20 +165,26 @@ function main(){
 	var sortOptions = {d:1};
 	var cursor = mainCl.find().sort(sortOptions);
 	var flag = true;
-	if (cursor.count() != data.length) {
+	if (cursor.count() != data.length)
+	{
 		flag = false;
- 	} else {
+ 	} 
+ 	else 
+   {
  		var compareObj = cursor.next().toObj();
  		for (var i = 1; i < cursor.count(); i++) {
  			var toCompareObj = cursor.next().toObj();	
- 			if (compareJSONObj(compareObj,toCompareObj,sortOptions) < 0 ) {
+ 			if (compareJSONObj(compareObj,toCompareObj,sortOptions) < 0 ) 
+ 			{
  				flag = false;
  				break;
  			}
  			compareObj = toCompareObj;
  		}
 	}
-	if (!flag) {
+	
+	if (!flag) 
+	{
 		println("sortByNotIncludeSK ERROR");
 		throw buildException( "sortByNotIncludeSK", new Error(), "query all and sort by "+JSON.stringify(sortOptions) , "sort by "+JSON.stringify(sortOptions)+" is true", "sort by "+JSON.stringify(sortOptions)+" is false" ) ;
 	}
@@ -162,28 +192,31 @@ function main(){
 	//逆序
 	var sortOptions = {d:-1};
 	var cursor = mainCl.find().sort(sortOptions);
-	if (cursor.count() != data.length) {
+	if (cursor.count() != data.length) 
+	{
 		flag = false;
- 	} else {
+ 	} 
+ 	else 
+   {
  		var compareObj = cursor.next().toObj();
- 		for (var i = 1; i < cursor.count(); i++) {
+ 		for (var i = 1; i < cursor.count(); i++) 
+ 		{
  			var toCompareObj = cursor.next().toObj();	
- 			if (compareJSONObj(compareObj,toCompareObj,sortOptions) < 0 ) {
+ 			if (compareJSONObj(compareObj,toCompareObj,sortOptions) < 0 ) 
+ 			{
  				flag = false;
  				break;
  			}
  			compareObj = toCompareObj;
  		}
 	}
-	if (!flag) {
+	
+	if (!flag) 
+	{
 		println("sortByNotIncludeSK ERROR");
 		throw buildException( "sortByNotIncludeSK", new Error(), "query all and sort by "+JSON.stringify(sortOptions) , "sort by "+JSON.stringify(sortOptions)+" is true", "sort by "+JSON.stringify(sortOptions)+" is false" ) ;
 	}
 
 	//drop subcl and maincl
-	commDropCL( db, COMMCSNAME, subClNames[0], true, true, "clean sub collection" );
-	commDropCL( db, COMMCSNAME, subClNames[1], true, true, "clean sub collection" );
-	commDropCL( db, COMMCSNAME, subClNames[2], true, true, "clean sub collection" );
-	commDropCL( db, COMMCSNAME, subClNames[3], true, true, "clean sub collection" );
 	commDropCL( db, COMMCSNAME, mainClName, true, true, "clean main collection" );
 }

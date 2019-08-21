@@ -5,6 +5,8 @@
 *@testlinkCase:seqDB-10464/seqDB-10465/seqDB-10466/seqDB-10467/seqDB-10468/seqDB-10469/
                seqDB-10470/seqDB-10471/seqDB-10472/seqDB-10473/seqDB-10474/seqDB-10475 
 **************************************/
+
+main();
 function main()
 {
    db.setSessionAttr( { PreferedInstance: "M" } );
@@ -14,31 +16,24 @@ function main()
    subCL_Name2 = COMMCLNAME + "_subcl104642_2";
    subCL_Name3 = COMMCLNAME + "_subcl104643_2";
    
-   commDropCL( db, COMMCSNAME, subCL_Name1, true, true, "clean sub collection" );
-   commDropCL( db, COMMCSNAME, subCL_Name2, true, true, "clean sub collection" );
-   commDropCL( db, COMMCSNAME, subCL_Name3, true, true, "clean main collection" );
-   commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection" );
+   commDropCL( db, COMMCSNAME, subCL_Name1, true, true, "clean " + subCL_Name1 );
+   commDropCL( db, COMMCSNAME, subCL_Name2, true, true, "clean " + subCL_Name2 );
+   commDropCL( db, COMMCSNAME, subCL_Name3, true, true, "clean " + subCL_Name3 );
+   commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean " + mainCL_Name );
    
    //check test environment before split
-   try
-	{
-	   //standalone can not split
-	   if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }     
-      //less two groups,can not split
-      var allGroupName = getGroupName( db );       
-      if( 1 === allGroupName.length )
-      {
-         println("--least two groups");
-         return ;
-      }
-   }
-   catch( e )
+   //standalone can not split
+   if( true == commIsStandalone( db ) )
    {
-      throw e;
+      println( "run mode is standalone" );
+      return;
+   }     
+   //less two groups,can not split
+   var allGroupName = getGroupName( db );       
+   if( 1 === allGroupName.length )
+   {
+      println("--least two groups");
+      return ;
    }
    
    //create maincl for range split
@@ -274,10 +269,5 @@ function main()
    
    checkRec( rc, limitNum, sortOptions );
    
-   commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection" );
-   commDropCL( db, COMMCSNAME, subCL_Name1, true, true, "clean sub collection" );
-   commDropCL( db, COMMCSNAME, subCL_Name2, true, true, "clean sub collection" );
-   commDropCL( db, COMMCSNAME, subCL_Name3, true, true, "clean main collection" );
+   commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean collection" );
 }
-main()
-
