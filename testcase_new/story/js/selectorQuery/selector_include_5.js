@@ -30,7 +30,7 @@ function main( db )
                      "ExtraField2.nest1.nest2.nest3": {"$include":1} } ;
       var ret = selMainQuery( cl, condObj, selObj ) ;
       selVerifyIncludeRet( ret, selObj, 1, "1:NONUM:NONUM:NONUM:4:1:1" ) ;
-      println( "query selector: " + JSON.stringify( selObj ) ) ;
+      //println( "query selector: " + JSON.stringify( selObj ) ) ;
       /*Test Point 1 $include=1, different field name do $include querying*/
       var condObj = {} ;
       var selObj = { "ExtraField1.nest1.nest2.nest3": {"$include":0},
@@ -42,7 +42,7 @@ function main( db )
                      "ExtraField2.nest1.nest2.nest3": {"$include":0 } } ;
       var ret = selMainQuery( cl, condObj, selObj ) ;
       selVerifyIncludeRet( ret, selObj, 1, "0:0:0:0:0:0:0" ) ;
-      println( "query selector: " + JSON.stringify( selObj ) ) ;
+      //println( "query selector: " + JSON.stringify( selObj ) ) ;
    }
    catch( e )
    {

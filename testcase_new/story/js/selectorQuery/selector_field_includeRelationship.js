@@ -49,7 +49,7 @@ function main( db )
          println( "return record: " + ret ) ;
          throw "ErrReturnRecord$include/1" ;
       }
-      println( "query selector: " + JSON.stringify( selObj ) ) ;
+      //println( "query selector: " + JSON.stringify( selObj ) ) ;
       /*【Test Point 1.2】 {$include:0}*/
       var condObj = {} ;
       var selObj = { "ExtraField1.nest1.nest2.nest3": {"$include":0},
@@ -70,13 +70,12 @@ function main( db )
       // verify
       var retObj = JSON.parse( ret ) ;
       if( 1 != retObj["GroupID"] || 1 != retObj["Version"] ||
-          1 != retObj["ExtraField4"]["$undefined"] ||
           "A,B,C,D,E,F,G,H" != retObj["ExtraField3"][0]["nest1"][0]["nest2"][0]["nest3"] )
       {
          println( "return record: " + ret ) ;
          throw "ErrReturnRecord$include/0" ;
       }
-      println( "query selector: " + JSON.stringify( selObj ) ) ;
+      //println( "query selector: " + JSON.stringify( selObj ) ) ;
 
       /*Test Point 2 $default*/
       var condObj = {} ;
@@ -109,7 +108,7 @@ function main( db )
          println( "return record: " + ret ) ;
          throw "ErrReturnRecord$defult" ;
       }
-      println( "query selector: " + JSON.stringify( selObj ) ) ;
+      //println( "query selector: " + JSON.stringify( selObj ) ) ;
 
       /*Test Point 3 $slice*/
       var condObj = {} ;
@@ -136,13 +135,12 @@ function main( db )
           1 != retObj["GroupID"] ||
           "a" != retObj["ExtraField1"]["nest1"]["nest2"]["nest3"] ||
           "a" != retObj["ExtraField2"][0]["nest1"][0]["nest2"][0]["nest3"] ||
-          "A,B,C,D,E" != retObj["ExtraField3"][0]["nest1"][0]["nest2"][0]["nest3"] ||
-          1 != retObj["ExtraField4"]["$undefined"] )
+          "A,B,C,D,E" != retObj["ExtraField3"][0]["nest1"][0]["nest2"][0]["nest3"] )
       {
          println( "return record : " + ret ) ;
          throw "ErrReturnRecord$slice" ;
       }
-      println( "query selector: " + JSON.stringify( selObj ) ) ;
+      //println( "query selector: " + JSON.stringify( selObj ) ) ;
    }
    catch( e )
    {

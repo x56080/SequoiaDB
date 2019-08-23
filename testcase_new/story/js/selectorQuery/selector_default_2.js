@@ -78,7 +78,7 @@ function main( db )
                      "ExtraField2.nest1.nest2.nest3": {"$default":1} } ;
       var ret = selMainQuery( cl, condObj, selObj ) ;
       // need verify
-      println( "query selector: " + JSON.stringify( selObj ) ) ;
+      //println( "query selector: " + JSON.stringify( selObj ) ) ;
    }
    catch( e )
    {

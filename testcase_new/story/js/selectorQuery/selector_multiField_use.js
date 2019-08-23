@@ -23,7 +23,7 @@ function autoGenData( cl, recordNum )
             record = record + field  ;
          }
          record = record + "}" ;
-         println( "record : " + record ) ;
+         //println( "record : " + record ) ;
          cl.insert( JSON.parse(record) ) ;
       }
       var cnt = 0 ;

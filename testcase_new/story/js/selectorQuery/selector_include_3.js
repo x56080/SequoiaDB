@@ -27,7 +27,7 @@ function main( db )
                      "Group.Service.Name": {"$include":1},
                      "ExtraField2.nest1.nest2.nest3": {"$include":0} } ;
       var ret = selMainQuery( cl, condObj, selObj ) ;
-      println( "query selector: " + JSON.stringify( selObj ) ) ;
+      //println( "query selector: " + JSON.stringify( selObj ) ) ;
       throw "ErrExcute" ;
    }
    catch( e )
