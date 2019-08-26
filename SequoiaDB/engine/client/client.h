@@ -1415,7 +1415,29 @@ SDB_EXPORT INT32 sdbInsert1 ( sdbCollectionHandle cHandle,
     \brief Insert a bson object into current collection
     \param [in] cHandle The collection handle
     \param [in] obj The inserted bson object, cannot be null
-    \param [in] flag The insert flag:FLG_INSERT_CONTONDUP,FLG_INSERT_REPLACEONDUP
+    \param [in] flags The flag to control the behavior of inserting. The
+                      value of flags default to be 0, and it can choose
+                      the follow values:
+         <ul>
+         <li>
+         0:                    while 0 is set(default to be 0), database 
+                               will stop inserting when the record hit 
+                               index key duplicate error.
+         <li>
+         FLG_INSERT_CONTONDUP: 
+                               if the record hit index key duplicate
+                               error, database will skip them and go on 
+                               inserting.
+         <li>
+		 FLG_INSERT_RETURN_OID:
+                               return the value of "_id" field in the record.
+         <li>
+         FLG_INSERT_REPLACEONDUP:
+                               if the record hit index key duplicate 
+                               error, database will replace the existing 
+                               record by the inserting new record and then 
+                               go on inserting.
+
     \param [out] id The object id of inserted bson object in current collection
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
@@ -1440,6 +1462,9 @@ SDB_EXPORT INT32 sdbInsert2 ( sdbCollectionHandle cHandle,
                                if the record hit index key duplicate
                                error, database will skip them and go on 
                                inserting.
+         <li>
+		 FLG_INSERT_RETURN_OID:
+                               return the value of "_id" field in the record.
          <li>
          FLG_INSERT_REPLACEONDUP:
                                if the record hit index key duplicate 
