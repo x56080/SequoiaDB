@@ -758,6 +758,23 @@
     </componentList>
 
     <preUninstallationActionList>
+    
+        <setInstallerVariableFromScriptOutput>
+            <name>preuninstall_value</name>
+            <exec>${installdir}/preUninstall.sh</exec>
+            <execArgs></execArgs>
+            <abortOnError>0</abortOnError>
+            <showMessageOnError>0</showMessageOnError>
+        </setInstallerVariableFromScriptOutput>
+        <if>
+            <conditionRuleList>
+                <isFalse value="${preuninstall_value}"/>
+            </conditionRuleList>
+            <actionList>
+                <consoleWrite text="&#xA;${msg(Uninstall.ErrorMsg.ExcutepreUnInstallSh)}&#xA;"/>
+                <exit exitCode="1"/><!--exit uninstallation-->
+            </actionList>
+        </if>    
         <!--stop process-->
         <runProgram>
             <program>service</program>

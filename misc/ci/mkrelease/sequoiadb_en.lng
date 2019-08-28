@@ -83,3 +83,4 @@ Upgrade.ErrorMsg.StartProcess=sdbcm or sdbcmd has not been started.
 Upgrade.ErrorMsg.GetGoup=Failed to get group of user ${username}.
 
 Uninstall.ErrorMsg.CheckProcess=Relevant processes still exist after excuting 'service sdbcm stop'.
+Uninstall.ErrorMsg.ExcutepreUnInstallSh=Fail to execute preUninstall.sh.
