@@ -40,7 +40,8 @@ SDB_EXTERN_C_START
 /** The flags represent whether bulk insert continue when hitting index key duplicate error */
 #define FLG_INSERT_CONTONDUP    0x00000001
 /** The flag represent whether insert return the "_id" field of the record for user */
-#define FLG_INSERT_RETURN_OID  0x00000002
+
+#define FLG_INSERT_RETURN_OID  0x00000002
 /** The flag represent replacing the existing record by the new record and continuing when insert hitting index key duplicate error */
 #define FLG_INSERT_REPLACEONDUP 0x00000004
 
@@ -1415,8 +1416,8 @@ SDB_EXPORT INT32 sdbInsert1 ( sdbCollectionHandle cHandle,
     \brief Insert a bson object into current collection
     \param [in] cHandle The collection handle
     \param [in] obj The inserted bson object, cannot be null
-    \param [in] flags The flag to control the behavior of inserting. The
-                      value of flags default to be 0, and it can choose
+    \param [in] flag  The flag to control the behavior of inserting. The
+                      value of flag default to be 0, and it can choose
                       the follow values:
          <ul>
          <li>
@@ -1429,7 +1430,7 @@ SDB_EXPORT INT32 sdbInsert1 ( sdbCollectionHandle cHandle,
                                error, database will skip them and go on 
                                inserting.
          <li>
-		 FLG_INSERT_RETURN_OID:
+         FLG_INSERT_RETURN_OID:
                                return the value of "_id" field in the record.
          <li>
          FLG_INSERT_REPLACEONDUP:
@@ -1449,8 +1450,8 @@ SDB_EXPORT INT32 sdbInsert2 ( sdbCollectionHandle cHandle,
                               SINT32 flags, bson **obj, SINT32 num )
     \brief Insert a bulk of bson objects into current collection
     \param [in] cHandle The collection handle
-    \param [in] flags The flag to control the behavior of inserting. The
-                      value of flags default to be 0, and it can choose
+    \param [in] flag  The flag to control the behavior of inserting. The
+                      value of flag default to be 0, and it can choose
                       the follow values:
          <ul>
          <li>
@@ -1458,12 +1459,12 @@ SDB_EXPORT INT32 sdbInsert2 ( sdbCollectionHandle cHandle,
                                will stop inserting when the record hit 
                                index key duplicate error.
          <li>
-         FLG_INSERT_CONTONDUP: 
+         FLG_INSERT_CONTONDUP:
                                if the record hit index key duplicate
                                error, database will skip them and go on 
                                inserting.
          <li>
-		 FLG_INSERT_RETURN_OID:
+         FLG_INSERT_RETURN_OID:
                                return the value of "_id" field in the record.
          <li>
          FLG_INSERT_REPLACEONDUP:
