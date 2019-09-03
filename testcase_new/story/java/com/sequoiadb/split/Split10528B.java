@@ -64,7 +64,7 @@ public class Split10528B extends SdbTestBase {
 	}	
 
 	@Test(timeOut = 30 * 60 * 1000)
-	public void dropCL() {		
+	public void test() {		
 		Sequoiadb dataNode = null;
 		Split splitThread = null;
 		try {
@@ -126,19 +126,22 @@ public class Split10528B extends SdbTestBase {
 		}
 	}
 
-	class Split extends SdbThreadBase {		
+	class Split extends SdbThreadBase {
 		@Override
 		public void exec() throws Exception {
-			Sequoiadb sdb = null;
+			Sequoiadb db = null;
 			try {
-				sdb = new Sequoiadb(coordUrl, "", "");
-				DBCollection cl = sdb.getCollectionSpace(SdbTestBase.csName).getCollection(clName);				
+				db = new Sequoiadb(coordUrl, "", "");
+				DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);				
 				cl.split(srcGroupName, destGroupName, 90);				
 			} catch (BaseException e) {
-				throw e;
-			} finally {
-				if (sdb != null) {
-					sdb.disconnect();
+                if (e.getErrorCode() != -23 && e.getErrorCode() != -147 && e.getErrorCode() != -190) {
+                    e.printStackTrace();
+                    throw e;
+                }
+            } finally {
+				if (db != null) {
+					db.disconnect();
 				}
 				flag.set(true);
 			}
@@ -155,7 +158,7 @@ public class Split10528B extends SdbTestBase {
 				BSONObject obj = (BSONObject) JSON.parse("{sk:" + value +", test:"+"'testasetatatatatat'" + "}");				
 				list.add(obj);	
 			}
-			cl.bulkInsert(list, 0);
+            cl.bulkInsert(list, 0);
 		}		
 	}
 
