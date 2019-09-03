@@ -160,7 +160,6 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
          if( ( *pStr < '0' || *pStr > '9' ) &&
              ( *pStr != 'e' && *pStr != 'E' ) )
          {
-         {
             goto finish ;
          }
 
