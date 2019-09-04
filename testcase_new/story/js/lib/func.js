@@ -1723,6 +1723,73 @@ catch ( e )
    }
 }
 
+/* *****************************************************************************
+@discription: create domain
+@author: zhaoyu
+@parameter
+***************************************************************************** */
+function commCreateDomain( db, domainName, groupNames, options, ignoreExisted, message)
+{
+   var outmessage = "";
+   if ( options == undefined ) { options = {} ; }
+   if ( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
+   if ( ignoreExisted == undefined ) { ignoreExisted = false ; }
+   try
+   {
+      return db.createDomain(domainName, groupNames, options);
+   }catch(e)
+   {
+      if(e !== -215 || !ignoreExisted)
+      {
+         println( "commCreateDomain, create domain: " + domainName + " failed: " + e + outmessage ) ;
+         throw e;
+      }
+   }
+   
+   try
+   {
+      return db.getDomain(domainName);
+   }
+   catch ( e )
+   {
+      println( "commCreateDomain, get domain: " + domainName + " failed: " + e + outmessage ) ;
+      throw e ;
+   }
+   
+   
+}
+
+/* *****************************************************************************
+@discription: drop domain
+@author: zhaoyu
+@parameter
+***************************************************************************** */
+function commDropDomain( db, domainName, ignoreNotExist, message)
+{
+   var outmessage = "";
+   if ( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
+   if ( ignoreNotExist == undefined ) { ignoreNotExist = true ; }
+   try
+   {
+      var domain = db.getDomain(domainName);
+      var cursor = domain.listCollectionSpaces();
+      while(cursor.next())
+      {
+         var csName = cursor.current().toObj().Name;
+         db.dropCS(csName);
+      }
+      db.dropDomain(domainName); 
+   }catch(e)
+   {
+      if( e !== -214 || !ignoreNotExist)
+      {
+         println( "commDropDomain, drop domain: " + domainName + " failed: " + e + outmessage ) ;
+         throw e ;
+      }
+   }
+   
+}
+
 //example
 //var db = new Sdb(COORDHOSTNAME,COORDSVCNAME ) ;
 
