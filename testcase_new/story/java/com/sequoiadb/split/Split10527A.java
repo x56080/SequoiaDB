@@ -79,8 +79,14 @@ public class Split10527A extends SdbTestBase {
 
             // 删除CS
             db = new Sequoiadb(coordUrl, "", "");
-            db.dropCollectionSpace(customCSName);
-            Assert.assertEquals(db.isCollectionSpaceExist(customCSName), false);
+            try {
+                sdb.dropCollectionSpace(customCSName);
+                Assert.assertFalse(sdb.isCollectionSpaceExist(customCSName));
+            } catch (BaseException e) {
+                if (e.getErrorCode() != -147 && e.getErrorCode() != -190) {
+                    Assert.assertTrue(sdb.isCollectionSpaceExist(customCSName));
+                }
+            }
 
             // 检测切分线程
             Assert.assertEquals(splitThread.isSuccess(), true, splitThread.getErrorMsg());
@@ -121,8 +127,8 @@ public class Split10527A extends SdbTestBase {
                 }
                 cl.split(srcGroupName, destGroupName, 90);
             } catch (BaseException e) {
-                if (e.getErrorCode() != -34 && e.getErrorCode() != -23
-                        && e.getErrorCode() != -147 && e.getErrorCode() != -190) {
+                if (e.getErrorCode() != -34 && e.getErrorCode() != -23 && e.getErrorCode() != -147
+                        && e.getErrorCode() != -190) {
                     throw e;
                 }
             } finally {

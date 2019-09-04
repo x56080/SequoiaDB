@@ -1,6 +1,5 @@
 package com.sequoiadb.split;
 
-import java.awt.Cursor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -42,7 +41,6 @@ public class Split10527B extends SdbTestBase {
     private String destGroupName;
     private Sequoiadb sdb = null;
     private AtomicBoolean flag = new AtomicBoolean(false);
-    private AtomicBoolean errno147 = new AtomicBoolean(false);
 
     @BeforeClass()
     public void setUp() {
@@ -91,17 +89,23 @@ public class Split10527B extends SdbTestBase {
             Random random = new Random();
             int sleeptime = random.nextInt(4000);
             Thread.sleep(sleeptime);
-            sdb.dropCollectionSpace(customCSName);
-            Assert.assertFalse(sdb.isCollectionSpaceExist(customCSName));
+            try {
+                sdb.dropCollectionSpace(customCSName);
+                Assert.assertFalse(sdb.isCollectionSpaceExist(customCSName));
+            } catch (BaseException e) {
+                if (e.getErrorCode() != -147 && e.getErrorCode() != -190) {
+                    Assert.assertTrue(sdb.isCollectionSpaceExist(customCSName));
+                }
+            }
 
             // 检测切分线程
             Assert.assertEquals(splitThread.isSuccess(), true, splitThread.getErrorMsg());
 
             // 检测切分任务是否遗留
-            DBCursor cursor = sdb.listTasks(
-                    (BSONObject) JSON.parse("{Name:'" + customCSName + "." + clName + "'}"), null, null, null);
+            DBCursor cursor = sdb.listTasks((BSONObject) JSON.parse("{Name:'" + customCSName + "." + clName + "'}"),
+                    null, null, null);
             Assert.assertFalse(cursor.hasNext());
-            
+
         } catch (InterruptedException e) {
             Assert.fail(e.getMessage() + SplitUtils.getKeyStack(e, this));
         } finally {
@@ -139,8 +143,8 @@ public class Split10527B extends SdbTestBase {
                 DBCollection cl = db.getCollectionSpace(customCSName).getCollection(clName);
                 cl.split(srcGroupName, destGroupName, 90);
             } catch (BaseException e) {
-                if (e.getErrorCode() != -34 && e.getErrorCode() != -23
-                        && e.getErrorCode() != -147 && e.getErrorCode() != -190) {
+                if (e.getErrorCode() != -34 && e.getErrorCode() != -23 && e.getErrorCode() != -147
+                        && e.getErrorCode() != -190) {
                     throw e;
                 }
             } finally {
