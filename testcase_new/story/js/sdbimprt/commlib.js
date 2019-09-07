@@ -221,19 +221,20 @@ function importData( csName, clName, importFile, type, fields, cast )
    {
       imprtOption = imprtOption +' --fields "' + fields +'"';
    }
+   if ( cast == true )
+   {
+      imprtOption = imprtOption + ' --cast ' + cast;
+   }
    println( imprtOption );
    /*
    var command = "cat "+ importFile;
    var fileInfo = cmd.run( command );
    println( "\n" + command +"\n" + fileInfo );
    */
-   
-   if ( cast == true )
-   {
-      imprtOption = imprtOption + ' --cast ' + cast;
-   }
    var rc = cmd.run( imprtOption );
+   println( rc );
    var rcResults = rc.split("\n");
+   
    return rcResults;
 }
 
@@ -267,7 +268,7 @@ function exportData( csName, clName, exportFile,type, fields, sort, otherParam )
 
 function checkImportRC(rcResults, expParseRecordsNum, expImportedRecordsNum, expParseFailureNum)
 {   
-   println("---Begin to check import results.");
+   println("\n---Begin to check import results.");
    if ( typeof( expParseFailureNum ) === "undefined" ) { expParseFailureNum = 0; }
    if ( typeof( expImportedRecordsNum ) === "undefined" ) { expImportedRecordsNum = expParseRecordsNum; }
    
@@ -287,27 +288,46 @@ function checkImportRC(rcResults, expParseRecordsNum, expImportedRecordsNum, exp
    }
 }
 
-function checkCLData( cl, expRecsNum, expRecs )
+function checkCLData( cl, expRecsNum, expRecs, cond, message )
 {
-   println("\n---Begin to check cl data.");
+   if ( typeof( message ) === "undefined" ) 
+   {
+      message = "";
+   } 
+   else
+   {
+      message = ", find type: " + message;
+   } 
+   println("\n---Begin to check cl data" + message + ".");
    
-   var rc = cl.find({},{_id:{$include:0}}).sort({a:1});
+   var rc;
+   if ( cond == "undefined" ) {
+      rc = cl.find({}, {_id:{$include:0}}).sort({a:1});
+   } 
+   else 
+   {
+      rc = cl.find( cond, {_id:{$include:0}}).sort({a:1});
+   }
+   
    var recsArray = [];
    while( tmpRecs = rc.next() )
    {
       recsArray.push( tmpRecs.toObj() );
    }
    
-   var expCnt  = expRecsNum;
-   var actCnt  = recsArray.length;
-   var actRecs = JSON.stringify( recsArray );
-   if( actCnt !== expCnt || actRecs !== expRecs )
+   // check count
+   var actCnt = recsArray.length;
+   if( actCnt !== expRecsNum )
    {
-      throw buildException( "checkCLdata", null, "[import]", 
-                        "[cnt:"+ expCnt +", recs:"+ expRecs +"]", 
-                        "[cnt:"+ actCnt +", recs:"+ actRecs +"]" );
+      throw buildException( "checkCLdata", null, "[count]", expRecsNum, actCnt );
    }  
-   //println("cl records: \n" + actRecs );
+   
+   // check records
+   var actRecs = JSON.stringify( recsArray );
+   if( actRecs !== expRecs )
+   {
+      throw buildException( "checkCLdata", null, "[records]", expRecs, actRecs );
+   }  
 }
 
 function checkExportData( exportFile, expData )
