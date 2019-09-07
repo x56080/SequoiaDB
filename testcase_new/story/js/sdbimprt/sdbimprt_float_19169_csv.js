@@ -1,0 +1,77 @@
+/************************************************************************
+*@Description:  seqDB-19169: 科学计数法，底数只有小数点（如 .E+309）
+*@Author     :  2019-8-21  huangxiaoni
+************************************************************************/
+main(); 
+
+function main()
+{  
+   var type = 'csv';
+   var tmpPrefix = "sdbimprt_19171";
+   var csName = COMMCSNAME;
+   var clName = tmpPrefix + "_" + type;
+   var cl = readyCL( csName, clName );
+   var importFile = tmpFileDir + tmpPrefix +"." + type; 
+     
+   // init import file and expect records
+   var recsNum = initImportFile_testPoint( importFile );
+   // import and check results, cover type: int, long, double, decimal
+   var bValTypeArr = ["int", "long", "double"];  // , "decimal"  jira-4891
+   var findTypeArr = ["int32", "int64", "double"]; // , "decimal"
+   for (var i = 0; i < bValTypeArr.length; i++)
+   {
+      println("\n---------------------import data, b value type is "+ bValTypeArr[i]  +", test point "+ (i+1) +"---------------------");
+      // import
+      var importFields = 'a int, b ' + bValTypeArr[i];
+      var rc = importData( csName, clName, importFile, type, importFields, true ); 
+      // check results
+      checkImportRC( rc, recsNum ); 
+      var expRecs = initExpectData_testPoint( recsNum, bValTypeArr[i] );
+      var findCond = {"b": {"$type": 2, "$et": findTypeArr[i]}};
+      checkCLData( cl, recsNum, expRecs, findCond );      
+      cl.truncate();
+   }
+   
+   // clean data
+   cmd.run( "rm -rf " +  importFile );
+   cleanCL( csName, clName );
+}
+
+function initImportFile_testPoint( importFile )
+{
+   println("\n---Begin to ready import file.");
+   var file = fileInit( importFile );
+   var recordsNum = 400;
+   var str = "";
+   // 400, b value e.g: ".E+0" / ".E+1"......".E+400"
+   for (var i = 0; i < recordsNum; i++)
+   {
+      str += i + ",0.E+" + i + "\n";
+   }
+
+   file.write( str );
+   file.close();
+   return recordsNum;
+}
+
+function initExpectData_testPoint( expRecsNum, bValType )
+{   
+   println("\n---Begin to ready expect data.");
+   var expRecs = [];
+   var bVal = "0.0";
+   for (var i = 0; i < expRecsNum; i++)
+   {
+      var record = {"a": i, "b": 0};
+      if ( bValType === "decimal" )
+      {
+         record = {"a": i, "b": {"$decimal":"0"}};
+         if ( i >= 400 && i < 800 ) 
+         {
+            record = {"a": i, "b": {"$decimal": bVal}};
+            bVal += "0";
+         }
+      }
+      expRecs.push(JSON.stringify( record ));
+   }
+   return "[" + expRecs + "]";
+}
