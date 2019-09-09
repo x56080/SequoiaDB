@@ -70,7 +70,7 @@ SDB_SNAP_SESSIONS
   "ReadTimeSpent": 0,
   "WriteTimeSpent": 0,
   "ConnectTimestamp": "2013-09-27-13.28.38.927465",
-  "LastOpType": "unknow",
+  "LastOpType": "UNKNOWN",
   "LastOpBegin": "--",
   "LastOpEnd": "--",
   "LastOpInfo": "",
