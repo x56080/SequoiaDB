@@ -1003,14 +1003,23 @@ namespace engine
       OSSFILE catFile;
       PD_TRACE_ENTRY ( SDB_CATNODEMGR_READCATACONF ) ;
       PD_LOG ( PDINFO, "read catalogue-nodes info from configure file" );
+
+      /// File not exist
+      rc = ossAccess( szCatFilePath ) ;
+      if ( SDB_FNE == rc )
+      {
+         rc = SDB_OK ;
+         goto done ;
+      }
+
       rc = ossOpen( szCatFilePath, OSS_READONLY, 0, catFile );
       if ( rc )
       {
          PD_LOG( PDINFO, "Failed to open the catalog-configure-file(rc=%d)",
                  rc ) ;
-         rc = SDB_OK ;
-         goto done ;
+         goto error ;
       }
+
       isFileOpened = TRUE;
 
       while( iReadReturn != SDB_EOF )

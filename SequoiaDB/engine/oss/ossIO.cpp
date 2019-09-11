@@ -366,8 +366,8 @@ error :
              ossSleep ( 100 ) ; // sleep for 0.1 seconds
              continue ;
           }
-          pdLog ( PDERROR, __func__, __FILE__, __LINE__,
-                  "Failed to open file: %s, errno: %d", pFileName, err ) ;
+          PD_LOG ( PDINFO, "Failed to open file: %s, errno: %d",
+                   pFileName, err ) ;
           // setup return code based on errno
           switch ( err )
           {
