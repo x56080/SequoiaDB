@@ -768,14 +768,9 @@ namespace engine
          rangeNum =  cataItem->getUpBound().firstElement().numberInt() -
                      cataItem->getLowBound().firstElement().numberInt() ;
 
-         if ( rangeNum < splitNum )
+         if ( rangeNum <= splitNum )
          {
             splitNum -= rangeNum ;
-         }
-         else if ( rangeNum == splitNum )
-         {
-            bKey = cataItem->getUpBound().getOwned() ;
-            break ;
          }
          else
          {
