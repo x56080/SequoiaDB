@@ -806,7 +806,7 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
 
       if ( !engine::utilIsValidOID( strValue.c_str() ) )
       {
-         _setErrorMsg( "The length of ObjectId is not equal 24", FALSE ) ;
+         _setErrorMsg( "The ObjectId is invalid", FALSE ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
