@@ -3095,7 +3095,8 @@ namespace engine
       }
       rc = SDB_CLS_NODE_NOT_EXIST ;
 
-      PD_LOG ( PDERROR, "Update group primary node[%u,%u,%u] to %s error",
+      PD_LOG ( PDWARNING, "Update group primary node[%u,%u,%u] to %s failed, "
+               "the node does't exist in group info.",
                nodeID.columns.groupID, nodeID.columns.nodeID,
                nodeID.columns.serviceID,
                primary ? "primary" : "slave" ) ;

@@ -974,7 +974,7 @@ namespace engine
          // very small timing hole, which makes some inconsistence
          // for now let's prevent automatically loading a collection space
          // without explicitly creating it
-         PD_LOG ( PDWARNING, "Collection Space %s does not exist in dms,"
+         PD_LOG ( PDINFO, "Collection Space %s does not exist in dms,"
                   " load from disk", pCollectionSpaceName ) ;
 
          rc = rtnLoadCollectionSpace ( pCollectionSpaceName,
@@ -985,8 +985,11 @@ namespace engine
                                        dmsCB, FALSE ) ;
          if ( rc )
          {
-            PD_LOG_MSG ( PDERROR, "Unable to load collection %s from %s",
-                         pCollectionSpaceName, pmdGetOptionCB()->getDbPath() ) ;
+            if ( SDB_DMS_CS_NOTEXIST != rc )
+            {
+               PD_LOG( PDWARNING, "Unable to load collection %s from %s",
+                       pCollectionSpaceName, pmdGetOptionCB()->getDbPath() ) ;
+            }
             goto error ;
          }
          goto retry ;
