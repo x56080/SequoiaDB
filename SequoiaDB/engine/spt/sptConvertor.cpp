@@ -250,10 +250,10 @@ INT32 sptConvertor::_addObjectId( JSObject *obj,
       goto error ;
    }
 
-   if ( 24 != strValue.length() )
+   if ( SPT_OID_STR_LENGTH != strValue.length() )
    {
       _setErrorMsg( "The length of ObjectId is not equal 24", FALSE ) ;
-      rc = SDB_SYS ;
+      rc = SDB_INVALIDARG;
       goto error ;
    }
 
