@@ -894,8 +894,14 @@
          <cn>节点的实例 ID。默认值是 0，表示使用节点在数据组中的位置。有效的取值包括 1-255。</cn>
       </description>
       <detail>
-         <en>Instance ID of node, used by --preferedinstance to choose query instance.</en>
-         <cn>节点的实例 ID，用于 --preferedinstance 进行实例选择。</cn>
+         <en>1. Instance ID of node, used by --preferedinstance to choose query instance.<fig></fig>
+             2. Valid value could be 1-255.<fig></fig>
+             3. If not given or give out-of-range value, will use the order in CATALOG meta-data.<fig></fig>
+             4. Different nodes could use the same instance ID.</en>
+         <cn>1. 节点的实例 ID，用于 --preferedinstance 进行实例选择。<fig></fig>
+             2. 有效的取值包括 1-255。<fig></fig>
+             3. 如不指定，或者指定超出有效范围，则按照节点在编目信息中的下标进行自动分配。<fig></fig>
+             4. 多个节点可以指定相同的实例 ID。</cn>
       </detail>
       <typeofweb>num</typeofweb>
       <type>int</type>
