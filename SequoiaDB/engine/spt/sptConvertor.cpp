@@ -248,15 +248,6 @@ INT32 sptConvertor::_addObjectId( JSObject *obj,
       goto error ;
    }
 
-   if ( SPT_OID_STR_LENGTH != strValue.length() )
-   {
-      std::stringstream ss ;
-      ss << "The length of ObjectId is not equal " << SPT_OID_STR_LENGTH ;
-      _setErrorMsg( ss.str().c_str(), FALSE ) ;
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
    bson_oid_t oid ;
    bson_oid_from_string( &oid, strValue.c_str() ) ;
    bson_append_oid( bs, key, &oid ) ;

@@ -8407,6 +8407,13 @@ static JSBool objectid_constructor( JSContext *cx, uintN argc, jsval *vp )
       hexStr = ( CHAR * )JS_EncodeString( cx, jsHexStr ) ;
       VERIFY( hexStr ) ;
 
+      if ( SPT_OID_STR_LENGTH != ossStrlen( hexStr ) )
+      {
+         std::stringstream ss ;
+         ss << "The length of ObjectId is not equal " << SPT_OID_STR_LENGTH ;
+         REPORT_RC_MSG( FALSE, "ObjectId(): wrong arguments", SDB_INVALIDARG,
+                        ss.str().c_str() ) ;
+      }
       if ( !engine::utilIsValidOID( hexStr ) )
       {
          REPORT_RC_MSG( FALSE, "ObjectId(): wrong arguments", SDB_INVALIDARG,
