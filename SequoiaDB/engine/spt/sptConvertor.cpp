@@ -61,8 +61,6 @@
 #define SPT_SPEOBJ_DECIMAL "$decimal"
 #define SPT_SPEOBJ_PRESICION "$precision"
 
-#define SPT_OID_STR_LENGTH 24
-
 /*
 // check date type bounds
 #define SDB_DATE_TYPE_CHECK_BOUND(tm)                 \
@@ -252,8 +250,10 @@ INT32 sptConvertor::_addObjectId( JSObject *obj,
 
    if ( SPT_OID_STR_LENGTH != strValue.length() )
    {
-      _setErrorMsg( "The length of ObjectId is not equal 24", FALSE ) ;
-      rc = SDB_INVALIDARG;
+      std::stringstream ss ;
+      ss << "The length of ObjectId is not equal " << SPT_OID_STR_LENGTH ;
+      _setErrorMsg( ss.str().c_str(), FALSE ) ;
+      rc = SDB_INVALIDARG ;
       goto error ;
    }
 
@@ -808,7 +808,9 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
 
       if( SPT_OID_STR_LENGTH != strValue.size() )
       {
-         _setErrorMsg( "The length of ObjectId is not equal 24", FALSE );
+         std::stringstream ss ;
+         ss << "The length of ObjectId is not equal " << SPT_OID_STR_LENGTH ;
+         _setErrorMsg( ss.str().c_str(), FALSE );
          rc = SDB_INVALIDARG ;
          goto error ;
       }

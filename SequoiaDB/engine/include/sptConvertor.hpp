@@ -45,6 +45,8 @@
 #include <string>
 using namespace std ;
 
+#define SPT_OID_STR_LENGTH 24
+
 /*
    sptConvertor
 */
@@ -80,7 +82,7 @@ private:
                         const jsval &val,
                         bson *bs ) ;
 
-   INT32 _getDecimalPrecision( const CHAR *precisionStr, 
+   INT32 _getDecimalPrecision( const CHAR *precisionStr,
                                INT32 *precision, INT32 *scale ) ;
    INT32 _addSpecialObj( JSObject *obj,
                          const CHAR *key,

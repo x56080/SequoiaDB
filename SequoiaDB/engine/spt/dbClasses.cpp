@@ -8399,18 +8399,20 @@ static JSBool objectid_constructor( JSContext *cx, uintN argc, jsval *vp )
       CHAR hexDump[25] = { 0 } ;
       bson_oid_gen( &oid ) ;
       bson_oid_to_string( &oid, hexDump ) ;
-      jsOidStr = JS_NewStringCopyN( cx, hexDump, 24 ) ;
+      jsOidStr = JS_NewStringCopyN( cx, hexDump, SPT_OID_STR_LENGTH ) ;
       VERIFY( jsOidStr ) ;
    }
    else
    {
       hexStr = ( CHAR * )JS_EncodeString( cx, jsHexStr ) ;
       VERIFY( hexStr ) ;
+
       if ( !engine::utilIsValidOID( hexStr ) )
       {
-         REPORT_RC( FALSE, "ObjectId(): wrong arguments", SDB_INVALIDARG ) ;
+         REPORT_RC_MSG( FALSE, "ObjectId(): wrong arguments", SDB_INVALIDARG,
+                        "The ObjectId is invalid" ) ;
       }
-      jsOidStr = JS_NewStringCopyN( cx, hexStr, 24 ) ;
+      jsOidStr = JS_NewStringCopyN( cx, hexStr, SPT_OID_STR_LENGTH ) ;
       VERIFY( jsOidStr ) ;
    }
 
