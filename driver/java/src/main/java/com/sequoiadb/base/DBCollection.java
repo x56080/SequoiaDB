@@ -726,7 +726,7 @@ public class DBCollection {
             innerHint.put(SequoiadbConstants.FIELD_NAME_OPTIONS, options);
         }
 
-        return query(matcher, selector, orderBy, innerHint, skipRows,
+        return _query(matcher, selector, orderBy, innerHint, skipRows,
                 returnRows, flag);
     }
 
@@ -989,6 +989,16 @@ public class DBCollection {
      * @exception com.sequoiadb.exception.BaseException
      */
     public DBCursor query(BSONObject matcher, BSONObject selector,
+                           BSONObject orderBy, BSONObject hint,
+                           long skipRows, long returnRows,
+                           int flag) throws BaseException {
+        if (flag != 0) {
+            flag = DBQuery.eraseSingleFlag(flag, DBQuery.FLG_QUERY_EXPLAIN);
+        }
+        return _query(matcher, selector, orderBy, hint, skipRows, returnRows, flag);
+    }
+
+    private DBCursor _query(BSONObject matcher, BSONObject selector,
                           BSONObject orderBy, BSONObject hint,
                           long skipRows, long returnRows,
                           int flag) throws BaseException {
@@ -1065,13 +1075,19 @@ public class DBCollection {
                                BSONObject orderBy, BSONObject hint,
                                int flag) throws BaseException {
         flag = flag | DBQuery.FLG_QUERY_WITH_RETURNDATA;
-        DBCursor cursor = null;
+        DBCursor cursor;
         try {
             cursor = query(matcher, selector, orderBy, hint, 0, 1, flag);
         } catch (BaseException e) {
             throw e;
         }
-        return cursor.getNext();
+        BSONObject obj;
+        try {
+            obj = cursor.getNext();
+        } finally {
+            cursor.close();
+        }
+        return obj;
     }
 
     /**

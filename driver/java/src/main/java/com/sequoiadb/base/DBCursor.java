@@ -332,8 +332,14 @@ public class DBCursor {
     }
 
     private void killCursor() {
-        if (connection == null && contextId == -1)
+        //  connection == null means the cursor has been close
+        if (connection == null) {
             return;
+        }
+        if (contextId == -1) {
+            connection = null;
+            return;
+        }
         long[] contextIds = new long[]{contextId};
         byte[] request = SDBMessageHelper.buildKillCursorMsg(
                 sequoiadb.getNextRequstID(), contextIds, endianConvert);
