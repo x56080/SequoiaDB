@@ -1018,7 +1018,7 @@ public class DBCollection {
                 return null;
             } else {
                 throw new BaseException(flags, matcher, selector, orderBy, hint,
-                        skipRows, returnRows);
+                        skipRows, returnRows, flag);
             }
         }
         // upsert cache
