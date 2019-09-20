@@ -1033,7 +1033,8 @@ public class DBCollection {
                         ", orderBy = " + orderBy +
                         ", hint = " + hint +
                         ", skipRows = " + skipRows +
-                        ", returnRows = " + returnRows;
+                        ", returnRows = " + returnRows +
+                        ", flag = " + flag;
                 throw new BaseException(flags, msg);
             }
         }

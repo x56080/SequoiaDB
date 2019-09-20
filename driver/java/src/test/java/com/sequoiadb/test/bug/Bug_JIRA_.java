@@ -13,6 +13,8 @@ import org.bson.util.JSONParseException;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 
+import java.util.Random;
+
 
 public class Bug_JIRA_ {
     private static Sequoiadb sdb;
@@ -67,18 +69,23 @@ public class Bug_JIRA_ {
     }
 
     @Test
-    public void jira_2100() {
+    public void jira_4923() {
         Sequoiadb mydb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
-        DBCollection mycl =
-            mydb.getCollectionSpace(Constants.TEST_CS_NAME_1).getCollection(Constants.TEST_CL_NAME_1);
-        DBCursor cur = mycl.query();
-        cur.close();
-        mydb.disconnect();
-        try {
-            mydb.closeAllCursors();
-            Assert.fail("expect exception");
-        } catch (BaseException e) {
-            e.printStackTrace();
+//        DBCollection mycl =
+//            mydb.getCollectionSpace("maincs").getCollection("maincl");
+//            mydb.getCollectionSpace("mytest").getCollection("mytest");
+//        long runTimes = 100000000L;
+        long runTimes = 1L;
+        int range = 1000;
+        Random random = new Random();
+        while(runTimes-- > 0) {
+            BSONObject cond = new BasicBSONObject("a", random.nextInt(range));
+            try {
+                BSONObject obj = cl.queryOne(cond, null, null, null, -1);
+                System.out.println("obj is: " + obj.toString());
+            } catch (BaseException e) {
+                Assert.assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
+            }
         }
     }
 
