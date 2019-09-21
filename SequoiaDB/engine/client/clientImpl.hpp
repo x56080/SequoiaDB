@@ -467,6 +467,15 @@ namespace sdbclient
       INT32 _createIndex ( const BSONObj &indexDef, const CHAR *pName,
                            BOOLEAN isUnique, BOOLEAN isEnforced,
                            INT32 sortBufferSize ) ;
+      INT32 _query ( _sdbCursor **cursor,
+                     const BSONObj &condition = _sdbStaticObject,
+                     const BSONObj &selected  = _sdbStaticObject,
+                     const BSONObj &orderBy   = _sdbStaticObject,
+                     const BSONObj &hint      = _sdbStaticObject,
+                     INT64 numToSkip          = 0,
+                     INT64 numToReturn        = -1,
+                     INT32 flag               = 0
+                   ) ;
 
    } ;
    

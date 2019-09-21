@@ -1320,6 +1320,17 @@ error :
    goto done ;
 }
 
+static INT32 __sdbQuery ( sdbCollectionHandle cHandle,
+                          bson *condition,
+                          bson *select,
+                          bson *orderBy,
+                          bson *hint,
+                          INT64 numToSkip,
+                          INT64 numToReturn,
+                          INT32 flag,
+                          sdbCursorHandle *handle ) ;
+
+
 static INT32 __sdbUpdate ( sdbCollectionHandle cHandle,
                            SINT32 flag,
                            bson *rule,
@@ -6206,9 +6217,9 @@ SDB_EXPORT INT32 sdbExplain ( sdbCollectionHandle cHandle,
    }
    BSON_FINISH ( newObj ) ;
 
-   rc = sdbQuery1( cHandle, condition, selector, orderBy, &newObj,
-                   numToSkip, numToReturn, flag | FLG_QUERY_EXPLAIN,
-                   handle ) ;
+   rc = __sdbQuery( cHandle, condition, selector, orderBy, &newObj,
+                    numToSkip, numToReturn, flag | FLG_QUERY_EXPLAIN,
+                    handle ) ;
    if ( rc )
    {
       goto error ;
@@ -6235,6 +6246,26 @@ SDB_EXPORT INT32 sdbQuery ( sdbCollectionHandle cHandle,
 }
 
 SDB_EXPORT INT32 sdbQuery1 ( sdbCollectionHandle cHandle,
+                             bson *condition,
+                             bson *select,
+                             bson *orderBy,
+                             bson *hint,
+                             INT64 numToSkip,
+                             INT64 numToReturn,
+                             INT32 flag,
+                             sdbCursorHandle *handle )
+{
+   // remove query plan flag
+   if ( 0 != flag )
+   {
+      flag = eraseSingleFlag( flag, FLG_QUERY_EXPLAIN ) ;
+   }
+   return __sdbQuery ( cHandle, condition, select, orderBy, hint, 
+                       numToSkip, numToReturn, flag, handle ) ;
+}
+
+
+INT32 __sdbQuery ( sdbCollectionHandle cHandle,
                              bson *condition,
                              bson *select,
                              bson *orderBy,

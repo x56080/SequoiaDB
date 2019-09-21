@@ -900,6 +900,16 @@ INT32 regulateQueryFlags( INT32 flags )
    return newFlags ;
 }
 
+INT32 eraseSingleFlag( INT32 flags, INT32 erasedFlag )
+{
+    INT32 newFlags = flags ;
+    if ( ( newFlags & erasedFlag ) != 0 )
+    {
+       newFlags &= ~erasedFlag ;
+    }
+    return newFlags ;
+}
+
 static void clientEndianConvertHeader ( MsgHeader *pHeader )
 {
    MsgHeader newheader ;

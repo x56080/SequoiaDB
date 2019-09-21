@@ -76,6 +76,8 @@ INT32 releaseHashTable( hashTable **tb ) ;
 /// for regulate query flag
 INT32 regulateQueryFlags( INT32 flags ) ;
 
+INT32 eraseSingleFlag( INT32 flags, INT32 erasedFlag ) ;
+
 INT32 clientCheckRetMsgHeader( const CHAR *pSendBuf, const CHAR *pRecvBuf,
                                BOOLEAN endianConvert ) ;
 
