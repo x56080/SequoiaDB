@@ -56,7 +56,7 @@
 // used with OSS_SHM_CREATE to ensure failure if the segment already exists
 #define OSS_SHM_EXCL          IPC_EXCL
 
-typedef UINT32    ossSHMMid;
+typedef INT32     ossSHMMid;
 typedef key_t     ossSHMKey;
 
 #elif defined (_WINDOWS)
