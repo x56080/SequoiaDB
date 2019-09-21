@@ -5865,71 +5865,7 @@ error :
    goto done ;
 }
 
-SDB_EXPORT INT32 sdbExplain ( sdbCollectionHandle cHandle,
-                              bson *condition,
-                              bson *selector,
-                              bson *orderBy,
-                              bson *hint,
-                              INT32 flag,
-                              INT64 numToSkip,
-                              INT64 numToReturn,
-                              bson *options,
-                              sdbCursorHandle *handle )
-{
-   INT32 rc = SDB_OK ;
-   bson newObj ;
-   BOOLEAN bsoninit = FALSE ;
-   sdbCollectionStruct *cs = (sdbCollectionStruct*)cHandle ;
-   HANDLE_CHECK( cHandle, cs, SDB_HANDLE_TYPE_COLLECTION ) ;
-
-   if ( !cs->_collectionFullName[0] )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   BSON_INIT( newObj ) ;
-
-   if ( hint )
-   {
-      BSON_APPEND( newObj, FIELD_NAME_HINT, hint, bson ) ;
-   }
-
-   if ( options )
-   {
-      BSON_APPEND( newObj, FIELD_NAME_OPTIONS, options, bson ) ;
-   }
-   BSON_FINISH ( newObj ) ;
-
-   rc = sdbQuery1( cHandle, condition, selector, orderBy, &newObj,
-                   numToSkip, numToReturn, flag | FLG_QUERY_EXPLAIN,
-                   handle ) ;
-   if ( rc )
-   {
-      goto error ;
-   }
-
-done:
-   BSON_DESTROY( newObj ) ;
-   return rc ;
-error:
-   goto done ;
-}
-
-SDB_EXPORT INT32 sdbQuery ( sdbCollectionHandle cHandle,
-                            bson *condition,
-                            bson *select,
-                            bson *orderBy,
-                            bson *hint,
-                            INT64 numToSkip,
-                            INT64 numToReturn,
-                            sdbCursorHandle *handle )
-{
-   return sdbQuery1 ( cHandle, condition, select, orderBy, hint,
-                      numToSkip, numToReturn, 0, handle ) ;
-}
-
-SDB_EXPORT INT32 sdbQuery1 ( sdbCollectionHandle cHandle,
+static INT32 _sdbQuery ( sdbCollectionHandle cHandle,
                              bson *condition,
                              bson *select,
                              bson *orderBy,
@@ -6000,6 +5936,89 @@ error :
       sdbReleaseCursor( cursor ) ;
    }
    SET_INVALID_HANDLE( handle ) ;
+   goto done ;
+}
+
+SDB_EXPORT INT32 sdbQuery1 ( sdbCollectionHandle cHandle,
+                             bson *condition,
+                             bson *select,
+                             bson *orderBy,
+                             bson *hint,
+                             INT64 numToSkip,
+                             INT64 numToReturn,
+                             INT32 flag,
+                             sdbCursorHandle *handle )
+{
+   // remove query plan flag
+   if ( 0 != flag )
+   {
+      flag = eraseSingleFlag( flag, FLG_QUERY_EXPLAIN ) ;
+   }
+   return _sdbQuery( cHandle, condition, select, orderBy, hint, 
+                     numToSkip, numToReturn, flag, handle ) ;
+}
+
+SDB_EXPORT INT32 sdbQuery ( sdbCollectionHandle cHandle,
+                            bson *condition,
+                            bson *select,
+                            bson *orderBy,
+                            bson *hint,
+                            INT64 numToSkip,
+                            INT64 numToReturn,
+                            sdbCursorHandle *handle )
+{
+   return sdbQuery1 ( cHandle, condition, select, orderBy, hint,
+                      numToSkip, numToReturn, 0, handle ) ;
+}
+
+SDB_EXPORT INT32 sdbExplain ( sdbCollectionHandle cHandle,
+                              bson *condition,
+                              bson *selector,
+                              bson *orderBy,
+                              bson *hint,
+                              INT32 flag,
+                              INT64 numToSkip,
+                              INT64 numToReturn,
+                              bson *options,
+                              sdbCursorHandle *handle )
+{
+   INT32 rc = SDB_OK ;
+   bson newObj ;
+   BOOLEAN bsoninit = FALSE ;
+   sdbCollectionStruct *cs = (sdbCollectionStruct*)cHandle ;
+   HANDLE_CHECK( cHandle, cs, SDB_HANDLE_TYPE_COLLECTION ) ;
+
+   if ( !cs->_collectionFullName[0] )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   BSON_INIT( newObj ) ;
+
+   if ( hint )
+   {
+      BSON_APPEND( newObj, FIELD_NAME_HINT, hint, bson ) ;
+   }
+
+   if ( options )
+   {
+      BSON_APPEND( newObj, FIELD_NAME_OPTIONS, options, bson ) ;
+   }
+   BSON_FINISH ( newObj ) ;
+
+   rc = _sdbQuery( cHandle, condition, selector, orderBy, &newObj,
+                   numToSkip, numToReturn, flag | FLG_QUERY_EXPLAIN,
+                   handle ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+done:
+   BSON_DESTROY( newObj ) ;
+   return rc ;
+error:
    goto done ;
 }
 

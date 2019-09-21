@@ -521,8 +521,15 @@ do                                                            \
       BOOLEAN result ;
       SINT64 contextID = 0 ;
       // check wether the cursor had been close or not
-      if ( _isClosed || -1 == _contextID )
+      if ( _isClosed )
       {
+         goto done ;
+      }
+      // when _contextID is -1, the context in engine has been delete,
+      // so, no need to send kill context message.
+      if ( -1 == _contextID )
+      {
+         _close() ;
          goto done ;
       }
       if ( NULL == _connection )
@@ -1156,6 +1163,25 @@ do                                                            \
                                      INT64 numToSkip,
                                      INT64 numToReturn,
                                      INT32 flag )
+   {
+      // remove query plan flag
+      if ( 0 != flag )
+      {
+         flag = eraseSingleFlag( flag, FLG_QUERY_EXPLAIN ) ;
+      }
+      return _query( cursor, condition, selected, orderBy, hint, 
+                     numToSkip, numToReturn, flag ) ;
+   }
+
+
+   INT32 _sdbCollectionImpl::_query ( _sdbCursor **cursor,
+                                      const BSONObj &condition,
+                                      const BSONObj &selected,
+                                      const BSONObj &orderBy,
+                                      const BSONObj &hint,
+                                      INT64 numToSkip,
+                                      INT64 numToReturn,
+                                      INT32 flag )
    {
       INT32 rc              = SDB_OK ;
       INT32 newFlags        = flag ;
