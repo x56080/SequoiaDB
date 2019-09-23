@@ -1481,5 +1481,31 @@ namespace DriverTest
             Assert.IsNull(doc);
         }
 
+        [TestMethod()]
+        [Ignore]
+        public void Jira_4923() {
+            
+            DBCollection mycl =
+        //                mydb.getCollectionSpace("maincs").getCollection("maincl");
+                    sdb.GetCollecitonSpace("mytest").GetCollection("mytest1");
+            long runTimes = 1L;
+            int range = 1000;
+            Random random = new Random();
+            while (runTimes-- > 0) {
+                BsonDocument cond = new BsonDocument("a", random.Next(range));
+                try {
+                    DBCursor cursor = mycl.Query(null, null, null, null, 0, -1, 0);
+                    BsonDocument obj;
+                    while((obj = cursor.Next()) != null)
+                    {
+                        Console.WriteLine("obj is: " + obj.ToString());
+                    }
+                    cursor.Close();
+                } catch (BaseException e) {
+                    Assert.AreEqual("SDB_INVALIDARG", e.ErrorType);
+                }
+            }
+        }
+
     }
 }

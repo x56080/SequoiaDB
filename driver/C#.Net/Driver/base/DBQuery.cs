@@ -139,5 +139,15 @@ namespace SequoiaDB
             }
         }
 
+        internal static int eraseSingleFlag(int flags, int erasedFlag)
+        {
+            int newFlags = flags;
+            if ((newFlags & erasedFlag) != 0)
+            {
+                newFlags &= ~erasedFlag;
+            }
+            return newFlags;
+        }
+
    }
 }
