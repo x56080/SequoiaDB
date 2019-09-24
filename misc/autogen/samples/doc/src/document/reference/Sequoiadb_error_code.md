@@ -260,7 +260,7 @@
 | SDB_REST_COMMON_UNKNOWN | -260 | 未知的REST命令 |
 | SDB_BUT_FAILED_ON_DATA | -261 | 在数据节点上执行命令失败 |
 | SDB_CAT_NO_GROUP_IN_DOMAIN | -262 | 域中不包含任何数据组 |
-| SDB_OM_PASSWD_CHANGE_SUGGEST | -263 | 提示用户修改登陆密码 |
+| SDB_OM_PASSWD_CHANGE_SUGGUEST | -263 | 提示用户修改登陆密码 |
 | SDB_COORD_NOT_ALL_DONE | -264 | 部分节点未返回成功 |
 | SDB_OMA_DIFF_VER_AGT_IS_RUNNING | -265 | 不同版本的OMAgent已运行 |
 | SDB_OM_TASK_NOT_EXIST | -266 | 无法找到后台任务信息 |
@@ -285,8 +285,8 @@
 | SDB_CAT_IMAGE_NOT_CONFIG | -285 | 集群未配置镜像 |
 | SDB_CAT_DUAL_WRITABLE | -286 | 本集群和镜像集群都为可写状态 |
 | SDB_CAT_CLUSTER_IS_READONLY | -287 | 集群为只读模式 |
-| SDB_RTN_QUERYMODIFY_SORT_NO_IDX | -288 | 在 “查询并修改” 操作使用排序时必须使用索引 |
-| SDB_RTN_QUERYMODIFY_MULTI_NODES | -289 | “查询并修改” 操作不能在多个节点或子表上执行skip和limit操作 |
+| SDB_RTN_QUERYMODIFY_SORT_NO_IDX | -288 | 在’查询并修改‘操作使用排序时必须使用索引 |
+| SDB_RTN_QUERYMODIFY_MULTI_NODES | -289 | ’查询并修改‘操作不能在多个节点或子表上执行skip和limit操作 |
 | SDB_DIR_NOT_EMPTY | -290 | 指定目录不为空 |
 | SDB_IXM_EXIST_COVERD_ONE | -291 | 已经存在一个可以处理本场景的索引 |
 | SDB_CAT_IMAGE_IS_CONFIGURED | -292 | 集群已配置镜像 |
@@ -314,27 +314,3 @@
 | SDB_DS_NOT_INIT | -314 | 连接池未初始化 |
 | SDB_OPERATION_INCOMPATIBLE | -315 | 操作类型与操作对象不兼容 |
 | SDB_CAT_CLUSTER_IS_DEACTIVED | -316 | 集群为非激活状态 |
-| SDB_LOB_IS_IN_USE | -317 | LOB当前正在使用 |
-| SDB_VALUE_OVERFLOW | -318 | 数值运算出现溢出 |
-| SDB_LOB_PIECESINFO_OVERFLOW | -319 | LOB切片信息溢出 |
-| SDB_LOB_LOCK_CONFLICTED | -320 | LOB锁冲突 |
-| SDB_DMS_TRUNCATED | -321 | 集合被清空 |
-| SDB_RTN_CONF_NOT_TAKE_EFFECT | -322 | 部分配置修改未生效 |
-| SDB_SEQUENCE_EXIST | -323 | 序列已存在 |
-| SDB_SEQUENCE_NOT_EXIST | -324 | 序列不存在 |
-| SDB_SEQUENCE_EXCEEDED | -325 | 序列值超出范围 |
-| SDB_DMS_CS_UNIQUEID_CONFLICT | -326 | 集合空间的UniqueID冲突 |
-| SDB_DMS_UNIQUEID_CONFLICT | -327 | 集合的UniqueID冲突 |
-| SDB_DMS_CS_REMAIN | -328 | 集合空间的UniqueID与残留的集合空间冲突 |
-| SDB_DMS_REMAIN | -329 | 集合的UniqueID与残留的集合冲突 |
-| SDB_CAT_CS_UNIQUEID_EXCEEDED | -330 | 集合空间的UniqueID达到上限 |
-| SDB_CAT_CL_UNIQUEID_EXCEEDED | -331 | 集合的UniqueID达到上限 |
-| SDB_AUTOINCREMENT_FIELD_CONFLICT | -332 | 自增字段冲突 |
-| SDB_AUTOINCREMENT_FIELD_NOT_EXIST | -333 | 自增字段不存在 |
-| SDB_OPERATION_CONFLICT | -334 | 操作冲突 |
-| SDB_CAT_GLOBALID_EXCEEDED | -335 | GlobalID达到上限 |
-| SDB_DPS_INVALID_LOCK_UPGRADE_REQUEST | -336 | 非法锁升级请求 |
-| SDB_DMS_CS_RENAMING | -337 | 正在对集合空间改名 |
-| SDB_CLS_DATA_NOT_SYNC | -338 | 数据未同步 |
-| SDB_IXM_KEY_NOTNULL | -339 | 索引键的任意一个字段都不允许不存在或者为NULL |
-| SDB_RTN_EXIST_INDOUBT_TRANS | -340 | 存在未确认事务 |

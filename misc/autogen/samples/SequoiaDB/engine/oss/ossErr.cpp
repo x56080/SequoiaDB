@@ -1,32 +1,40 @@
-/******************************************************************************
+/*    Copyright 2012 SequoiaDB Inc.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+/*    Copyright (C) 2011-2014 SequoiaDB Ltd.
+ *    This program is free software: you can redistribute it and/or modify
+ *    it under the term of the GNU Affero General Public License, version 3,
+ *    as published by the Free Software Foundation.
+ *
+ *    This program is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warrenty of
+ *    MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *    GNU Affero General Public License for more details.
+ *
+ *    You should have received a copy of the GNU Affero General Public License
+ *    along with this program. If not, see <http://www.gnu.org/license/>.
+ */
 
-
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
-******************************************************************************/
 
 // This Header File is automatically generated, you MUST NOT modify this file anyway!
-// On the contrary, you can modify the file "sequoiadb/misc/autogen/rclist.xml" if necessary!
+// On the contrary, you can modify the xml file "sequoiadb/misc/rcgen/rclist.xml" if necessary!
 
 #include "ossErr.h"
 
 const CHAR* getErrDesp ( INT32 errCode )
 {
-   INT32 code = -errCode ;
+   INT32 code = -errCode;
    const static CHAR* errDesp[] =
    {
       "Succeed",
@@ -288,7 +296,7 @@ const CHAR* getErrDesp ( INT32 errCode )
       "Domain is not empty",
       "The data received by REST is larger than the max size",
       "Failed to build bson object",
-      "Stored procedure arguments are out of bound",
+      "Arguments are out of bound",
       "Unknown REST command",
       "Failed to execute command on data node",
       "The domain is empty",
@@ -345,28 +353,11 @@ const CHAR* getErrDesp ( INT32 errCode )
       "Replica log is not archived",
       "Data source has not been initialized",
       "Operation is incompatible with the object",
-      "This cluster is deactived",
-      "LOB is in use",
-      "Data operation is overflowed",
-      "LOB's pieces info is overflowed",
-      "LOB lock is conflicted",
-      "Collection is truncated",
-      "Some configuration changes didn't take effect",
-      "Sequence already exists",
-      "Sequence not exists",
-      "Sequence is exceeded",
-      "CS uniqueID conflict",
-      "CL uniqueID conflict",
-      "CS uniqueID conflict with remain cs",
-      "CL uniqueID conflict with remain cl",
-      "CS uniqueID exceeds the maximum.",
-      "CL uniqueID exceeds the maximum."
-   } ;
-
-   if ( code < 0 || (UINT32)code >= ( sizeof ( errDesp ) / sizeof ( CHAR* ) ) )
+      "This cluster is deactived"
+   };
+   if ( code < 0 || (UINT32)code >= (sizeof ( errDesp ) / sizeof ( CHAR* )) )
    {
-      return "unknown error" ;
+      return "unknown error";
    }
-
-   return errDesp[code] ;
+   return errDesp[code];
 }
