@@ -558,6 +558,10 @@ static INT32 _extract ( MsgHeader *msg, INT32 size,
 
    if ( SDB_OK != replyFlag )
    {
+      contextID = -1 ;
+   }
+   if ( SDB_OK != replyFlag )
+   {
       *result = FALSE ;
       rc = replyFlag ;
    }
