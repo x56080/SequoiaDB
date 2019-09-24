@@ -131,7 +131,7 @@ def GuessArch():
    elif id == 'ppc64':
       return 'ppc64'
    elif id == 'ppc64le':
-      return 'ppc64le'   
+      return 'ppc64le'
    else:
       return None
 
@@ -444,7 +444,7 @@ if guess_os == "linux":
         hdfsJniMdPath = join(java_dir,"jdk_ppclinux64/include/linux")
     elif guess_arch == "ppc64le":
         hdfsJniPath = join(java_dir,"jdk_ppclelinux64/include")
-        hdfsJniMdPath = join(java_dir,"jdk_ppclelinux64/include/linux")     
+        hdfsJniMdPath = join(java_dir,"jdk_ppclelinux64/include/linux")
 elif guess_os == "win32":
     if guess_arch == "ia32":
         hdfsJniPath = join(java_dir,"jdk_win32/include")
@@ -522,7 +522,7 @@ if guess_os == "linux":
                 env.Append( EXTRALIBPATH=[smlib_dir] )
                 # if we are in 64 bit box but want to build 32 bit release
         ssllib_dir = join(ssl_dir,'lib/linux32')
-        zlib_lib_dir_platform = join(zlib_lib_dir, 'linux32') 
+        zlib_lib_dir_platform = join(zlib_lib_dir, 'linux32')
         lz4_lib_dir_platform = join(lz4_lib_dir, 'linux32')
         snappy_lib_dir_platform = join(snappy_lib_dir,'linux32')
     # power pc linux
@@ -552,10 +552,10 @@ if guess_os == "linux":
                 env.Append( CPPPATH=join(js_dir,'lib/release/ppclinux64/include') )
                 env.Append( EXTRALIBPATH=[smlib_dir] )
         ssllib_dir = join(ssl_dir,'lib/ppclinux64')
-        zlib_lib_dir_platform = join(zlib_lib_dir, 'ppclinux64') 
+        zlib_lib_dir_platform = join(zlib_lib_dir, 'ppclinux64')
         lz4_lib_dir_platform = join(lz4_lib_dir, 'ppclinux64')
         snappy_lib_dir_platform = join(snappy_lib_dir, 'ppclinux64')
-        # power pc linux little endian     
+        # power pc linux little endian
     elif guess_arch == "ppc64le":
         linux64 = True
         nixLibPrefix = "lib64"
@@ -584,7 +584,8 @@ if guess_os == "linux":
         ssllib_dir = join(ssl_dir,'lib/ppclelinux64')
         zlib_lib_dir_platform = join(zlib_lib_dir, 'ppclelinux64')
         lz4_lib_dir_platform = join(lz4_lib_dir, 'ppclelinux64')
-        snappy_lib_dir_platform = join(snappy_lib_dir, 'ppclelinux64')                  
+        snappy_lib_dir_platform = join(snappy_lib_dir, 'ppclelinux64')
+
     # spider monkey
     if usesm:
         smlib_file = join(smlib_dir, 'libmozjs185.so')
@@ -643,14 +644,14 @@ elif "win32" == guess_os:
             env.Append( EXTRALIBPATH=join(zlib_lib_dir,'win64/debug') )
             env.Append( EXTRALIBPATH=join(lz4_lib_dir,'win64/debug') )
             env.Append( EXTRALIBPATH=join(snappy_lib_dir,'win64/debug') )
-            zlib_lib_dir_platform = join(zlib_lib_dir, 'win64/debug') 
+            zlib_lib_dir_platform = join(zlib_lib_dir, 'win64/debug')
             lz4_lib_dir_platform = join(lz4_lib_dir, 'win64/debug')
             snappy_lib_dir_platform = join(snappy_lib_dir, 'win64/debug')
         else:
             env.Append( EXTRALIBPATH=join(zlib_lib_dir,'win64/release') )
             env.Append( EXTRALIBPATH=join(lz4_lib_dir,'win64/release') )
             env.Append( EXTRALIBPATH=join(snappy_lib_dir,'win64/release') )
-            zlib_lib_dir_platform = join(zlib_lib_dir, 'win64/release') 
+            zlib_lib_dir_platform = join(zlib_lib_dir, 'win64/release')
             lz4_lib_dir_platform = join(lz4_lib_dir, 'win64/release')
             snappy_lib_dir_platform = join(snappy_lib_dir, 'win64/release')
     else:
@@ -676,14 +677,14 @@ elif "win32" == guess_os:
             env.Append( EXTRALIBPATH=join(zlib_lib_dir,'win32/debug') )
             env.Append( EXTRALIBPATH=join(lz4_lib_dir,'win32/debug') )
             env.Append( EXTRALIBPATH=join(snappy_lib_dir,'win32/debug') )
-            zlib_lib_dir_platform = join(zlib_lib_dir, 'win32/debug') 
+            zlib_lib_dir_platform = join(zlib_lib_dir, 'win32/debug')
             lz4_lib_dir_platform = join(lz4_lib_dir, 'win32/debug')
             snappy_lib_dir_platform = join(snappy_lib_dir, 'win32/debug')
         else:
             env.Append( EXTRALIBPATH=join(zlib_lib_dir,'win32/release') )
             env.Append( EXTRALIBPATH=join(lz4_lib_dir,'win32/release') )
             env.Append( EXTRALIBPATH=join(snappy_lib_dir,'win32/release') )
-            zlib_lib_dir_platform = join(zlib_lib_dir, 'win32/release') 
+            zlib_lib_dir_platform = join(zlib_lib_dir, 'win32/release')
             lz4_lib_dir_platform = join(lz4_lib_dir, 'win32/release')
             snappy_lib_dir_platform = join(snappy_lib_dir, 'win32/release')
     if usesm:
@@ -704,7 +705,7 @@ elif "win32" == guess_os:
     zlib_lib = join(zlib_lib_dir_platform, 'libzlib.lib')
     lz4_lib = join(lz4_lib_dir_platform, 'liblz4.lib')
     snappy_lib = join(snappy_lib_dir_platform, 'libsnappy.lib')
-	
+
     # UNICODE
     env.Append( CPPDEFINES=[ "_UNICODE" ] )
     env.Append( CPPDEFINES=[ "UNICODE" ] )
@@ -990,14 +991,37 @@ Export("debugBuild")
 # In github build, we don't have svn info, so we don't run svn or SubWCRev
 # command. Instead the svn fork tool should already generated the right
 # ossVer_Autogen.h file
-if not os.path.isfile ( "gitbuild" ):
+
+if os.path.isfile ( "gitbuild" ):
+    gitVer = os.popen( "git rev-parse HEAD" ).read().replace("\n","")
+    if guess_os == "win32":
+        # For now, it's not easy to get the 'git release' on windows. Keep it as 0.
+        releaseVer = 0
+        ver_file = 'SequoiaDB/engine/include/ossVer_Autogen.h'
+        shutil.copyfile('misc/autogen/ossVer.tmp', ver_file)
+        with open(ver_file, 'r+') as f:
+            data = ''
+            for line in f.readlines():
+                if line.find('$WCREV$') != -1:
+                    line = '#define SDB_ENGINE_RELEASE_CURRENT 0' + '\n'
+                elif line.find('$GITVER$') != -1:
+                    line = '#define SDB_ENGINE_GIT_VERSION "' +  gitVer + '"' + '\n'
+                data += line
+        with open(ver_file, 'r+') as f:
+            f.write(data)
+    else:
+        releaseVer = os.popen( "git rev-list --all | awk -v git_head=`git show-ref --head --hash head` '$0==git_head {i=1;next};i' | wc -l" ).read().replace("\n","")
+        os.system( "sed 's/\$WCREV\$/" + releaseVer + "/g' misc/autogen/ossVer.tmp > SequoiaDB/engine/include/ossVer_Autogen.h" )
+        os.system( "sed -i 's/\$GITVER\$/" + gitVer + "/g' SequoiaDB/engine/include/ossVer_Autogen.h" )
+else:
+    # For svn
    if guess_os == "win32":
       # In windows platform, we take advantage of SubWCRev
       os.system ("SubWCRev . misc/autogen/ossVer.tmp SequoiaDB/engine/include/ossVer_Autogen.h")
    else:
       # In NIX platform, we use svn and sed to send to ossVer_Autogen.h
-      os.system("sed \"s/WCREV/$(svn info | grep Revision | awk '{print $2}')/g\" misc/autogen/ossVer.tmp > oss.tmp")
-      os.system("sed 's/\$//g' oss.tmp > SequoiaDB/engine/include/ossVer_Autogen.h")
+      svnVer = os.popen( "svn info | grep Revision | awk '{print $2}'" ).read().replace("\n","")
+      os.system( "sed 's/\$WCREV\$/" + svnVer + "/g' misc/autogen/ossVer.tmp > SequoiaDB/engine/include/ossVer_Autogen.h" )
 
 language = get_option ( "language" )
 if language is None:
