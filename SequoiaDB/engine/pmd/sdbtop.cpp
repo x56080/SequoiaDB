@@ -3216,12 +3216,9 @@ INT32 Event::getExpression( string& expression, string& result )
       INT32 version = 0 ;
       INT32 subVersion = 0 ;
       INT32 fixedVersion = 0 ;
-      INT32 release = 0 ;
-      const CHAR *pBuild = NULL ;
       CHAR strVersion[BUFFERSIZE] = { 0 } ;
 
-      ossGetVersion( &version, &subVersion,
-                     &fixedVersion, &release, &pBuild ) ;
+      ossGetVersion( &version, &subVersion, &fixedVersion, NULL, NULL, NULL ) ;
 
       ossSnprintf( strVersion, BUFFERSIZE, "version %d.%d.%d",
                    version, subVersion, fixedVersion ) ;
@@ -5939,24 +5936,6 @@ void displayArg ( po::options_description &desc )
    std::cout << desc << std::endl ;
 }
 
-void displayVersion()
-{
-   INT32 version = 0 ;
-   INT32 subVersion = 0 ;
-   INT32 fixedVersion = 0 ;
-   INT32 release = 0 ;
-   const CHAR *pBuild = NULL ;
-   CHAR strVersion[BUFFERSIZE] = { 0 } ;
-
-   ossGetVersion( &version, &subVersion, &fixedVersion, &release, &pBuild ) ;
-
-   ossSnprintf( strVersion, BUFFERSIZE, "SequoiaDB version %d.%d.%d"OSS_NEWLINE
-                "Release: %d"OSS_NEWLINE"%s", version, subVersion,
-                fixedVersion, release, pBuild ) ;
-
-   std::cout << strVersion << std::endl ;
-}
-
 // resolve input argument
 INT32 resolveArgument ( po::options_description &desc,
                         INT32 argc, CHAR **argv )
@@ -5999,7 +5978,7 @@ INT32 resolveArgument ( po::options_description &desc,
 
    if ( vm.count( OPTION_VERSION ) )
    {
-      displayVersion();
+      ossPrintVersion( "sdbtop version" ) ;
       rc = SDB_PMD_HELP_ONLY ;
       goto done ;
    }

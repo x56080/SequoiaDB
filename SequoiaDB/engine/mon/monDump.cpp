@@ -289,20 +289,38 @@ namespace engine
       INT32 fix          = 0 ;
       INT32 release      = 0 ;
       const CHAR *pBuild = NULL ;
+      const CHAR *pGitVer = NULL ;
       PD_TRACE_ENTRY ( SDB_MONAPPENDVERSION ) ;
-      ossGetVersion ( &major, &minor, &fix, &release, &pBuild ) ;
-      PD_TRACE4 ( SDB_MONAPPENDVERSION,
-                  PD_PACK_INT ( major ),
-                  PD_PACK_INT ( minor ),
-                  PD_PACK_INT ( release ),
-                  PD_PACK_STRING ( pBuild ) ) ;
-      BSONObjBuilder obVersion ;
+      ossGetVersion ( &major, &minor, &fix, &release, &pBuild, &pGitVer ) ;
+      if ( pGitVer )
+      {
+         PD_TRACE5 ( SDB_MONAPPENDVERSION,
+                     PD_PACK_INT ( major ),
+                     PD_PACK_INT ( minor ),
+                     PD_PACK_INT ( release ),
+                     PD_PACK_STRING ( pBuild ),
+                     PD_PACK_STRING( pGitVer ) ) ;
+      }
+      else
+      {
+         PD_TRACE4 ( SDB_MONAPPENDVERSION,
+                     PD_PACK_INT ( major ),
+                     PD_PACK_INT ( minor ),
+                     PD_PACK_INT ( release ),
+                     PD_PACK_STRING ( pBuild ) ) ;
+      }
+
       try
       {
+         BSONObjBuilder obVersion( ob.subobjStart( FIELD_NAME_VERSION ) ) ;
          obVersion.append ( FIELD_NAME_MAJOR, major ) ;
          obVersion.append ( FIELD_NAME_MINOR, minor ) ;
          obVersion.append ( FIELD_NAME_FIX, fix ) ;
          obVersion.append ( FIELD_NAME_RELEASE, release ) ;
+         if ( NULL != pGitVer )
+         {
+            obVersion.append ( FIELD_NAME_GITVERSION, pGitVer ) ;
+         }
          obVersion.append ( FIELD_NAME_BUILD, pBuild ) ;
          ob.append ( FIELD_NAME_VERSION, obVersion.obj () ) ;
 #ifdef SDB_ENTERPRISE

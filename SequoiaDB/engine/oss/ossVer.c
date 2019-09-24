@@ -38,11 +38,20 @@
 #include "ossUtil.h"
 #include <iostream>
 
+#define SDB_INVALID_GIT_VERSION  "$GITVER$"
+#define SDB_GIT_VER_MAX_SIZE     40
+
+static BOOLEAN ossGitVerValid()
+{
+   return ( 0 != ossStrcmp( SDB_ENGINE_GIT_VERSION, SDB_INVALID_GIT_VERSION ) ) ;
+}
+
 void ossGetVersion ( INT32 *version,
                      INT32 *subVersion,
                      INT32 *fixVersion,
                      INT32 *release,
-                     const CHAR **ppBuild )
+                     const CHAR **ppBuild,
+                     const CHAR **ppGitVer )
 {
    if ( version )
       *version = SDB_ENGINE_VERISON_CURRENT ;
@@ -60,54 +69,75 @@ void ossGetVersion ( INT32 *version,
    }
    if ( ppBuild )
       *ppBuild = SDB_ENGINE_BUILD_TIME ;
+   if ( ppGitVer )
+   {
+      *ppGitVer = ossGitVerValid() ? SDB_ENGINE_GIT_VERSION : NULL ;
+   }
 }
 
 void ossSprintVersion( const CHAR *prompt, CHAR *pBuff, UINT32 len,
                        BOOLEAN multiLine )
 {
+   const CHAR gitVerFieldName[] = "Git version: " ;
+   // 2 bytes for delimiter( new line or ", "), 1 more byte for '\0'.
+   CHAR gitVer[ sizeof( gitVerFieldName ) + SDB_GIT_VER_MAX_SIZE + 2 + 1 ] = { 0 } ;
+
    if ( 0 == len )
    {
       return ;
    }
    ossMemset( pBuff, 0, len ) ;
 
+   if ( ossGitVerValid() )
+   {
+      ossSnprintf( gitVer, sizeof( gitVerFieldName ) + SDB_GIT_VER_MAX_SIZE + 2,
+                   "%s%s%s", gitVerFieldName, SDB_ENGINE_GIT_VERSION,
+                   multiLine ? OSS_NEWLINE : ", " ) ;
+   }
+
 #ifdef SDB_ENGINE_FIXVERSION_CURRENT
    if ( multiLine )
    {
-      ossSnprintf( pBuff, len - 1, "%s: %d.%d.%d%sRelease: %d%s%s%s",
+      ossSnprintf( pBuff, len - 1,
+                   "%s: %d.%d.%d%sRelease: %d%s%s%s%s",
                    prompt, SDB_ENGINE_VERISON_CURRENT,
                    SDB_ENGINE_SUBVERSION_CURRENT,
                    SDB_ENGINE_FIXVERSION_CURRENT,
                    OSS_NEWLINE, SDB_ENGINE_RELEASE_CURRENT,
-                   OSS_NEWLINE, SDB_ENGINE_BUILD_TIME,
+                   OSS_NEWLINE, gitVer,
+                   SDB_ENGINE_BUILD_TIME,
                    OSS_NEWLINE ) ;
    }
    else
    {
-      ossSnprintf( pBuff, len - 1, "%s: %d.%d.%d, Release: %d, Build: %s",
+      ossSnprintf( pBuff, len - 1,
+                   "%s: %d.%d.%d, Release: %d, %sBuild: %s",
                    prompt, SDB_ENGINE_VERISON_CURRENT,
                    SDB_ENGINE_SUBVERSION_CURRENT,
                    SDB_ENGINE_FIXVERSION_CURRENT,
                    SDB_ENGINE_RELEASE_CURRENT,
-                   SDB_ENGINE_BUILD_TIME ) ;
+                   gitVer, SDB_ENGINE_BUILD_TIME ) ;
    }
 #else
    if ( multiLine )
    {
-      ossSnprintf( pBuff, len - 1, "%s: %d.%d%sRelease: %d%s%s%s",
+      ossSnprintf( pBuff, len - 1,
+                   "%s: %d.%d%sRelease: %d%s%s%s%s",
                    prompt, SDB_ENGINE_VERISON_CURRENT,
                    SDB_ENGINE_SUBVERSION_CURRENT,
                    OSS_NEWLINE, SDB_ENGINE_RELEASE_CURRENT,
-                   OSS_NEWLINE, SDB_ENGINE_BUILD_TIME,
+                   OSS_NEWLINE, gitVer,
+                   SDB_ENGINE_BUILD_TIME,
                    OSS_NEWLINE ) ;
    }
    else
    {
-      ossSnprintf( pBuff, len - 1, "%s: %d.%d, Release: %d, Build: %s",
+      ossSnprintf( pBuff, len - 1,
+                   "%s: %d.%d, Release: %d, %sBuild: %s",
                    prompt, SDB_ENGINE_VERISON_CURRENT,
                    SDB_ENGINE_SUBVERSION_CURRENT,
                    SDB_ENGINE_RELEASE_CURRENT,
-                   SDB_ENGINE_BUILD_TIME ) ;
+                   gitVer, SDB_ENGINE_BUILD_TIME ) ;
    }
 #endif //SDB_ENGINE_FIXVERSION_CURRENT
 }
