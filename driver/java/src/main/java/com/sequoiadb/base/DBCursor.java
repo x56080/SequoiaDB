@@ -319,7 +319,11 @@ public class DBCursor {
             current = null;
             list = null;
             listRaw = null;
+            if (flags != 0) {
+                contextId = -1;
+            }
         } else if (flags != 0) { // in case one of the other errors happen
+            contextId = -1;
             throw new BaseException(flags);
         } else { // in case nornal, get the data
             reqId = rtnSDBMessage.getRequestID();
