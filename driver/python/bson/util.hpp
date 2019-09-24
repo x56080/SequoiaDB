@@ -25,7 +25,7 @@
 #include <Python.h>
 
 #define SDB_OK          0
-#define SDB_OOM         -2 
+#define SDB_OOM         -2
 #define SDB_INVALIDARGS -6
 
 
@@ -41,7 +41,7 @@
 
 #define PARSE_PYTHON_ARGS PyArg_ParseTuple
 
-///< new and delete 
+///< new and delete
 #define NEW_CPPOBJECT( pObject, CLASSNAME ) \
    pObject = new (std::nothrow) CLASSNAME()
 
@@ -53,12 +53,12 @@
    {                                \
       delete pObject ;              \
       pObject = NULL ;              \
-   } 
+   }
 
 #define PY_NULL \
    Py_IncRef( Py_None ), Py_None ;
 /*
- *@brief     macro to cast C++ object to a python object 
+ *@brief     macro to cast C++ object to a python object
  **/
 
 #if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 1
@@ -122,6 +122,9 @@
 
 #define MAKE_RETURN_INT_INT_INT_INT_STRING( verion, sub_verion, fixed, release, build)\
    ( PyObject * )Py_BuildValue( "(i,i,i,i,s)", version, sub_version, fixed, release, build )
+
+#define MAKE_RETURN_INT_INT_INT_INT_STRING_STRING( verion, sub_verion, fixed, release, build, git_ver)\
+   ( PyObject * )Py_BuildValue( "(i,i,i,i,s,s)", version, sub_version, fixed, release, build, git_ver )
 
 #if PY_MAJOR_VERSION >= 3
 #define MAKE_RETURN_INT_PYBYTES_SIZE( ret_value, c_string, c_stringsize ) \
@@ -206,7 +209,7 @@
          vec_bson.push_back( *obj ) ;                                   \
          DELETE_CPPOBJECT( obj ) ;                                      \
       }                                                                 \
-   }while( FALSE ) 
+   }while( FALSE )
 
 #define MAKE_PYLIST_TO_BUFFER( py_list, buffer )                        \
    do                                                                   \
@@ -223,7 +226,7 @@
          SINT64 id = PyLong_AsLongLong(PyList_GetItem( py_list, idx)) ; \
          buffer[idx] = id;                                              \
       }                                                                 \
-   }while( FALSE ) 
+   }while( FALSE )
 
 struct module_state {
     PyObject *error;
@@ -241,34 +244,34 @@ static struct PyModuleDef moduledef = {      \
    NULL,                                     \
    NULL,                                     \
    NULL                                      \
-};                                        
+};
 
-#if PY_MAJOR_VERSION >= 3                        
+#if PY_MAJOR_VERSION >= 3
    #define INITERROR return NULL
    #define DECLARE_MODULE_FUN(modulename, methods)    \
       DEFINE_MODULE(modulename, methods)              \
       PyMODINIT_FUNC PyInit_##modulename(void)
-#else                                       
-   #define INITERROR return                        
+#else
+   #define INITERROR return
    #define DECLARE_MODULE_FUN(modulename, methods) \
       PyMODINIT_FUNC init##modulename(void)
-#endif                                       
+#endif
 
-#if PY_MAJOR_VERSION >= 3                       
+#if PY_MAJOR_VERSION >= 3
    #define MODULE_CREATE(modulename, methods)   \
-      m = PyModule_Create(&moduledef)               
-#else                                      
+      m = PyModule_Create(&moduledef)
+#else
    #define MODULE_CREATE(modulename, methods)   \
-      m = Py_InitModule(modulename, methods)         
-#endif                                  
+      m = Py_InitModule(modulename, methods)
+#endif
 
 
-#if PY_MAJOR_VERSION >= 3                       
+#if PY_MAJOR_VERSION >= 3
    #define RETURN   return m
 #else
    #define RETURN   return
-#endif                                       
-                                    
+#endif
+
 #define CREATE_MODULE( modulename, methods ) \
 DECLARE_MODULE_FUN( modulename, methods )    \
 {                                            \
@@ -280,6 +283,6 @@ DECLARE_MODULE_FUN( modulename, methods )    \
    }                                         \
                                              \
    RETURN ;                                  \
-} 
+}
 
 #endif

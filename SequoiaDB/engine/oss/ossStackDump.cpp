@@ -246,17 +246,11 @@ void ossDumpSystemTime( ossPrimitiveFileOp * trapFile )
 void ossDumpDatabaseInfo ( ossPrimitiveFileOp * trapFile )
 {
    PD_TRACE_ENTRY ( SDB_OSSDUMPDBINFO );
-   INT32 version = 0 ;
-   INT32 subVersion = 0 ;
-   INT32 fix = 0 ;
-   INT32 release = 0 ;
-   const CHAR *pBuild = NULL ;
-   ossGetVersion ( &version, &subVersion, &fix, &release, &pBuild ) ;
    if ( ( NULL != trapFile ) && trapFile->isValid() )
    {
-      trapFile->fWrite( "Version: %d.%d.%d, Release: %d, "
-                        "Build: %s"OSS_NEWLINE,
-                        version, subVersion, fix, release, pBuild ) ;
+      CHAR verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+      ossSprintVersion( "Version: ", verText, OSS_MAX_PATHSIZE, FALSE ) ;
+      trapFile->fWrite( "%s"OSS_NEWLINE, verText ) ;
    }
    PD_TRACE_EXIT ( SDB_OSSDUMPDBINFO );
 }

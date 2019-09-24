@@ -503,7 +503,9 @@ namespace engine
                                                 INT32 &subVer,
                                                 INT32 &fixVer,
                                                 INT32 &release,
-                                                const CHAR **build ) const = 0 ;
+                                                const CHAR **build,
+                                                const CHAR **gitVer = NULL )
+                                                const = 0 ;
 
          virtual BOOLEAN            isRestore() const = 0 ;
 

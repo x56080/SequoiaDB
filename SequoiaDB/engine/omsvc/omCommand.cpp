@@ -5467,7 +5467,6 @@ namespace engine
 
       if ( _isBusinessExistInTask( _businessName ) )
       {
-         //TODO: ´íÎóÂë
          rc = SDB_INVALIDARG ;
          _errorDetail = omGetMyEDUInfoSafe( EDU_INFO_ERROR ) ;
          goto error ;
@@ -10827,17 +10826,22 @@ namespace engine
       INT32 fix          = 0 ;
       INT32 release      = 0 ;
       const CHAR *pBuild = NULL ;
+      const CHAR *pGitVer = NULL ;
       BSONObj ob ;
       BSONObjBuilder systemInfo ;
       BSONObjBuilder obVersion ;
 
-      ossGetVersion ( &major, &minor, &fix, &release, &pBuild ) ;
+      ossGetVersion ( &major, &minor, &fix, &release, &pBuild, &pGitVer ) ;
       try
       {
          obVersion.append ( FIELD_NAME_MAJOR, major ) ;
          obVersion.append ( FIELD_NAME_MINOR, minor ) ;
          obVersion.append ( FIELD_NAME_FIX, fix ) ;
          obVersion.append ( FIELD_NAME_RELEASE, release ) ;
+         if ( pGitVer )
+         {
+            obVersion.append ( FIELD_NAME_GITVERSION, pGitVer ) ;
+         }
          obVersion.append ( FIELD_NAME_BUILD, pBuild ) ;
          systemInfo.append ( FIELD_NAME_VERSION, obVersion.obj () ) ;
 #ifdef SDB_ENTERPRISE

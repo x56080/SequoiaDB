@@ -164,7 +164,8 @@ namespace engine
                                              INT32 &subVer,
                                              INT32 &fixVer,
                                              INT32 &release,
-                                             const CHAR **build ) const ;
+                                             const CHAR **build,
+                                             const CHAR **gitVer = NULL ) const ;
 
       INT32             registerCB( IControlBlock *pCB, void *pOrg ) ;
 

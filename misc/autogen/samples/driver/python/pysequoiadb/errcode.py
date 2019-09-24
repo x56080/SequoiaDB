@@ -45,7 +45,7 @@ class Errcode(object):
         return self.__desc
 
     def __eq__(self, other):
-        """Errcode can euqlas to Errcode and int.
+        """Errcode can equals to Errcode and int.
         """
         if isinstance(other, Errcode):
             return self.code == other.code
@@ -55,7 +55,7 @@ class Errcode(object):
             return False
 
     def __ne__(self, other):
-        """Errcode can not euqlas to Errcode and int.
+        """Errcode can not equals to Errcode and int.
         """
         return not self.__eq__(other)
 
@@ -383,6 +383,10 @@ SDB_DPS_LOG_NOT_ARCHIVED = Errcode("SDB_DPS_LOG_NOT_ARCHIVED", -313, "Replica lo
 SDB_DS_NOT_INIT = Errcode("SDB_DS_NOT_INIT", -314, "Data source has not been initialized")
 SDB_OPERATION_INCOMPATIBLE = Errcode("SDB_OPERATION_INCOMPATIBLE", -315, "Operation is incompatible with the object")
 SDB_CAT_CLUSTER_IS_DEACTIVED = Errcode("SDB_CAT_CLUSTER_IS_DEACTIVED", -316, "This cluster is deactived")
+SDB_LOB_IS_IN_USE = Errcode("SDB_LOB_IS_IN_USE", -317, "LOB is in use")
+SDB_VALUE_OVERFLOW = Errcode("SDB_VALUE_OVERFLOW", -318, "Data operation is overflowed")
+SDB_LOB_PIECESINFO_OVERFLOW = Errcode("SDB_LOB_PIECESINFO_OVERFLOW", -319, "LOB's pieces info is overflowed")
+SDB_LOB_LOCK_CONFLICTED = Errcode("SDB_LOB_LOCK_CONFLICTED", -320, "LOB lock is conflicted")
 
 _errcode_map = {
     -1: SDB_IO,
@@ -700,7 +704,11 @@ _errcode_map = {
     -313: SDB_DPS_LOG_NOT_ARCHIVED,
     -314: SDB_DS_NOT_INIT,
     -315: SDB_OPERATION_INCOMPATIBLE,
-    -316: SDB_CAT_CLUSTER_IS_DEACTIVED
+    -316: SDB_CAT_CLUSTER_IS_DEACTIVED,
+    -317: SDB_LOB_IS_IN_USE,
+    -318: SDB_VALUE_OVERFLOW,
+    -319: SDB_LOB_PIECESINFO_OVERFLOW,
+    -320: SDB_LOB_LOCK_CONFLICTED
 }
 
 

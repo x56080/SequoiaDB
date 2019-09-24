@@ -252,9 +252,10 @@ namespace engine
    }
 
    void _SDB_KRCB::getVersion( INT32 &ver, INT32 &subVer, INT32 &fixVer,
-                               INT32 &release, const CHAR **build ) const
+                               INT32 &release, const CHAR **build,
+                               const CHAR **gitVer ) const
    {
-      ossGetVersion( &ver, &subVer, &fixVer, &release, build ) ;
+      ossGetVersion( &ver, &subVer, &fixVer, &release, build, gitVer ) ;
    }
 
    INT32 _SDB_KRCB::registerCB( IControlBlock *pCB, void *pOrg )

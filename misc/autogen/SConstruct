@@ -3,6 +3,7 @@ EnsureSConsVersion( 1, 1, 0 )
 import platform
 import os
 import re
+import shutil
 from os.path import join, dirname, abspath
 
 import SCons.Builder
@@ -127,6 +128,25 @@ def findVersion( root , choices ):
                 return r + c
     raise RuntimeError("can't find a version of [" + repr(root) + "] choices: " + repr(choices))
 
+def copyDir(src, dst):
+    names = os.listdir(src)
+    if not os.path.exists(dst):
+        os.mkdir(dst)
+    # Traverse all files and directories in the source path.
+    for name in names:
+        srcName = os.path.join(src, name)
+        dstName = os.path.join(dst, name)
+        try:
+            if os.path.isdir(srcName):
+                copyDir(srcName, dstName)
+            else:
+                if not os.path.exists(dstName):
+                    print("Copy file " + srcName + " to " + dstName)
+                    shutil.copy2(srcName, dstName)
+        except:
+            print("Exception when copy " + src + " to " + dst)
+            raise
+
 # installation options
 add_option( "language" , "description language" , 1 , False )
 add_option( "64" , "whether to force 64 bit" , 0 , True , "force64" )
@@ -140,4 +160,12 @@ Export("get_option")
 Export("GuessOS")
 Export("GuessArch")
 Export("findVersion")
+
+# Copy sample files into
+src_dir=join(root_dir, "samples")
+parent_dir = os.path.abspath(os.path.join(root_dir, os.path.pardir))
+dst_dir = os.path.abspath(os.path.join(parent_dir, os.path.pardir))
+
+copyDir(src_dir, dst_dir)
+
 SConscript( 'SConscript', variant_dir='bin', duplicate=False )

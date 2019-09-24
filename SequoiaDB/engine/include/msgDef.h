@@ -110,6 +110,7 @@
 #define FIELD_NAME_MINOR                     "Minor"
 #define FIELD_NAME_FIX                       "Fix"
 #define FIELD_NAME_RELEASE                   "Release"
+#define FIELD_NAME_GITVERSION                "GitVersion"
 #define FIELD_NAME_BUILD                     "Build"
 #define FIELD_NAME_SESSIONID                 "SessionID"
 #define FIELD_NAME_TID                       "TID"

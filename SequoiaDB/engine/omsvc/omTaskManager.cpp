@@ -45,7 +45,7 @@ namespace engine
    static BOOLEAN isInElement( const BSONObj &source, const string eleKey,
                                const BSONObj &find ) ;
    static INT32 queryOneTask( const BSONObj &selector, const BSONObj &matcher,
-                              const BSONObj &orderBy, const BSONObj &hint, 
+                              const BSONObj &orderBy, const BSONObj &hint,
                               BSONObj &oneTask ) ;
    static INT32 queryTasks( const BSONObj &selecor, const BSONObj &matcher,
                             const BSONObj &orderBy, const BSONObj &hint,
@@ -98,8 +98,8 @@ namespace engine
    }
 
    INT32 queryOneTask( const BSONObj &selector, const BSONObj &matcher,
-                       const BSONObj &orderBy, const BSONObj &hint , 
-                       BSONObj &oneTask ) 
+                       const BSONObj &orderBy, const BSONObj &hint ,
+                       BSONObj &oneTask )
    {
       INT32 rc = SDB_OK ;
       pmdEDUCB *cb       = pmdGetThreadEDUCB() ;
@@ -108,11 +108,11 @@ namespace engine
       _SDB_RTNCB *pRtnCB = pKRCB->getRTNCB() ;
       SINT64 contextID = -1 ;
 
-      rc = rtnQuery( OM_CS_DEPLOY_CL_TASKINFO, selector, matcher, orderBy, 
+      rc = rtnQuery( OM_CS_DEPLOY_CL_TASKINFO, selector, matcher, orderBy,
                      hint, 0, cb, 0, 1, pdmsCB, pRtnCB, contextID ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG_MSG( PDERROR, "query table failed:table=%s,rc=%d", 
+         PD_LOG_MSG( PDERROR, "query table failed:table=%s,rc=%d",
                      OM_CS_DEPLOY_CL_TASKINFO, rc ) ;
          goto error ;
       }
@@ -122,7 +122,7 @@ namespace engine
          rc = rtnGetMore ( contextID, 1, buffObj, cb, pRtnCB ) ;
          if ( rc )
          {
-            PD_LOG_MSG( PDERROR, "failed to get record from table:%s,rc=%d", 
+            PD_LOG_MSG( PDERROR, "failed to get record from table:%s,rc=%d",
                         OM_CS_DEPLOY_CL_TASKINFO, rc ) ;
             goto error ;
          }
@@ -153,11 +153,11 @@ namespace engine
       _SDB_RTNCB *pRtnCB = pKRCB->getRTNCB() ;
       SINT64 contextID = -1 ;
 
-      rc = rtnQuery( OM_CS_DEPLOY_CL_TASKINFO, selector, matcher, orderBy, 
+      rc = rtnQuery( OM_CS_DEPLOY_CL_TASKINFO, selector, matcher, orderBy,
                      hint, 0, cb, 0, -1, pdmsCB, pRtnCB, contextID ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG_MSG( PDERROR, "query table failed:table=%s,rc=%d", 
+         PD_LOG_MSG( PDERROR, "query table failed:table=%s,rc=%d",
                      OM_CS_DEPLOY_CL_TASKINFO, rc ) ;
          goto error ;
       }
@@ -173,14 +173,14 @@ namespace engine
          }
          else if ( SDB_OK != rc )
          {
-            PD_LOG_MSG( PDERROR, "failed to get record from table:%s,rc=%d", 
+            PD_LOG_MSG( PDERROR, "failed to get record from table:%s,rc=%d",
                         OM_CS_DEPLOY_CL_TASKINFO, rc ) ;
             goto error ;
          }
          else
          {
             BSONObj record ;
-            _rtnObjBuff rtnObj( contextBuff.data(), contextBuff.size(), 
+            _rtnObjBuff rtnObj( contextBuff.data(), contextBuff.size(),
                                 contextBuff.recordNum() ) ;
             while( TRUE )
             {
@@ -195,7 +195,7 @@ namespace engine
                   PD_LOG ( PDERROR, "Failed to get nextObj:rc=%d", rc ) ;
                   goto error ;
                }
-               
+
                tasks.push_back( record.copy() ) ;
             }
          }
@@ -222,14 +222,14 @@ namespace engine
    INT32 omTaskBase::checkUpdateInfo(const BSONObj & updateInfo)
    {
       INT32 rc = SDB_OK ;
-      if ( !updateInfo.hasField( OM_TASKINFO_FIELD_RESULTINFO ) 
-           || !updateInfo.hasField( OM_TASKINFO_FIELD_PROGRESS ) 
+      if ( !updateInfo.hasField( OM_TASKINFO_FIELD_RESULTINFO )
+           || !updateInfo.hasField( OM_TASKINFO_FIELD_PROGRESS )
            || !updateInfo.hasField( OM_TASKINFO_FIELD_STATUS ) )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "updateinfo miss field:fields=[%s,%s,%s],updateInfo"
-                 "=%s", OM_TASKINFO_FIELD_RESULTINFO, 
-                 OM_TASKINFO_FIELD_PROGRESS, OM_TASKINFO_FIELD_STATUS, 
+                 "=%s", OM_TASKINFO_FIELD_RESULTINFO,
+                 OM_TASKINFO_FIELD_PROGRESS, OM_TASKINFO_FIELD_STATUS,
                  updateInfo.toString().c_str() ) ;
          goto error ;
       }
@@ -251,7 +251,7 @@ namespace engine
 
    }
 
-   INT32 omAddHostTask::_getSuccessHost( BSONObj &resultInfo, 
+   INT32 omAddHostTask::_getSuccessHost( BSONObj &resultInfo,
                                          set<string> &successHostSet )
    {
       INT32 rc = SDB_OK ;
@@ -326,7 +326,7 @@ namespace engine
             {
                if ( SDB_IXM_DUP_KEY != rc )
                {
-                  PD_LOG( PDERROR, "insert into table failed:%s,rc=%d", 
+                  PD_LOG( PDERROR, "insert into table failed:%s,rc=%d",
                           OM_CS_DEPLOY_CL_HOST, rc ) ;
                   goto error ;
                }
@@ -383,7 +383,7 @@ namespace engine
             goto error ;
          }
 
-         localResultInfo = localTask.filterFieldsUndotted( filterResult, 
+         localResultInfo = localTask.filterFieldsUndotted( filterResult,
                                                            true ) ;
       }
 
@@ -391,7 +391,7 @@ namespace engine
       if ( Array != resultInfoEle.type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "%s is not Array type", 
+         PD_LOG( PDERROR, "%s is not Array type",
                  OM_TASKINFO_FIELD_RESULTINFO ) ;
          goto error ;
       }
@@ -407,14 +407,14 @@ namespace engine
             if ( ele.type() != Object )
             {
                rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "%s's element is not Object type", 
+               PD_LOG( PDERROR, "%s's element is not Object type",
                        OM_TASKINFO_FIELD_RESULTINFO ) ;
                goto error ;
             }
 
             oneResult = ele.embeddedObject() ;
             find      = oneResult.filterFieldsUndotted( filter, true ) ;
-            if ( !isInElement( localResultInfo, OM_TASKINFO_FIELD_RESULTINFO, 
+            if ( !isInElement( localResultInfo, OM_TASKINFO_FIELD_RESULTINFO,
                                find ) )
             {
                rc = SDB_INVALIDARG ;
@@ -442,7 +442,7 @@ namespace engine
 
    }
 
-   INT32 omRemoveHostTask::_getSuccessHost( BSONObj &resultInfo, 
+   INT32 omRemoveHostTask::_getSuccessHost( BSONObj &resultInfo,
                                          set<string> &successHostSet )
    {
       INT32 rc = SDB_OK ;
@@ -518,7 +518,7 @@ namespace engine
             if ( rc )
             {
                PD_LOG( PDERROR, "failed to delete record from table:%s,"
-                       "%s=%s,rc=%d", OM_CS_DEPLOY_CL_HOST, 
+                       "%s=%s,rc=%d", OM_CS_DEPLOY_CL_HOST,
                        OM_HOST_FIELD_NAME, hostName.c_str(), rc ) ;
                goto error ;
             }
@@ -575,7 +575,7 @@ namespace engine
             goto error ;
          }
 
-         localResultInfo = localTask.filterFieldsUndotted( filterResult, 
+         localResultInfo = localTask.filterFieldsUndotted( filterResult,
                                                            true ) ;
       }
 
@@ -583,7 +583,7 @@ namespace engine
       if ( Array != resultInfoEle.type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "%s is not Array type", 
+         PD_LOG( PDERROR, "%s is not Array type",
                  OM_TASKINFO_FIELD_RESULTINFO ) ;
          goto error ;
       }
@@ -599,14 +599,14 @@ namespace engine
             if ( ele.type() != Object )
             {
                rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "%s's element is not Object type", 
+               PD_LOG( PDERROR, "%s's element is not Object type",
                        OM_TASKINFO_FIELD_RESULTINFO ) ;
                goto error ;
             }
 
             oneResult = ele.embeddedObject() ;
             find      = oneResult.filterFieldsUndotted( filter, true ) ;
-            if ( !isInElement( localResultInfo, OM_TASKINFO_FIELD_RESULTINFO, 
+            if ( !isInElement( localResultInfo, OM_TASKINFO_FIELD_RESULTINFO,
                                find ) )
             {
                rc = SDB_INVALIDARG ;
@@ -788,14 +788,14 @@ namespace engine
       builder.append( OM_BUSINESS_FIELD_CLUSTERNAME, clusterName ) ;
       builder.appendTimestamp( OM_BUSINESS_FIELD_TIME, now * 1000, 0 ) ;
       builder.append( OM_BUSINESS_FIELD_ADDTYPE, OM_BUSINESS_ADDTYPE_INSTALL ) ;
-      
+
       obj = builder.obj() ;
       rc = rtnInsert( OM_CS_DEPLOY_CL_BUSINESS, obj, 1, 0, cb );
       if ( rc )
       {
          if ( SDB_IXM_DUP_KEY != rc )
          {
-            PD_LOG_MSG( PDERROR, "failed to store business into table:%s,rc=%d", 
+            PD_LOG_MSG( PDERROR, "failed to store business into table:%s,rc=%d",
                         OM_CS_DEPLOY_CL_BUSINESS, rc ) ;
             goto error ;
          }
@@ -835,8 +835,8 @@ namespace engine
                if ( SDB_OK != rc )
                {
                   PD_LOG( PDERROR, "append configure failed:host=%s,"
-                          "business=%s, node=%s, rc=%d", 
-                          hostName.c_str(), businessName.c_str(), 
+                          "business=%s, node=%s, rc=%d",
+                          hostName.c_str(), businessName.c_str(),
                           oneNode.toString().c_str(), rc ) ;
                   goto error ;
                }
@@ -848,8 +848,8 @@ namespace engine
                if ( SDB_OK != rc )
                {
                   PD_LOG( PDERROR, "insert configure failed:host=%s,"
-                          "business=%s, node=%s, rc=%d", 
-                          hostName.c_str(), businessName.c_str(), 
+                          "business=%s, node=%s, rc=%d",
+                          hostName.c_str(), businessName.c_str(),
                           oneNode.toString().c_str(), rc ) ;
                   goto error ;
                }
@@ -1061,7 +1061,7 @@ namespace engine
       if ( rc )
       {
          PD_LOG_MSG( PDERROR, "failed to delete business auth from table:%s,"
-                     "business=%s,rc=%d", OM_CS_DEPLOY_CL_BUSINESS_AUTH, 
+                     "business=%s,rc=%d", OM_CS_DEPLOY_CL_BUSINESS_AUTH,
                      businessName.c_str(), rc ) ;
          goto error ;
       }
@@ -1087,7 +1087,7 @@ namespace engine
       if ( rc )
       {
          PD_LOG_MSG( PDERROR, "failed to delete configure from table:%s,"
-                     "business=%s,rc=%d", OM_CS_DEPLOY_CL_CONFIGURE, 
+                     "business=%s,rc=%d", OM_CS_DEPLOY_CL_CONFIGURE,
                      businessName.c_str(), rc ) ;
          goto error ;
       }
@@ -1272,7 +1272,7 @@ namespace engine
       {
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "updateinfo miss field:fields=[%s],updateInfo"
-                 "=%s", OM_TASKINFO_FIELD_STATUS, 
+                 "=%s", OM_TASKINFO_FIELD_STATUS,
                  updateInfo.toString().c_str() ) ;
          goto error ;
       }
@@ -1310,7 +1310,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "update task failed:table=%s,updateNum=%d,taskID="
                  OSS_LL_PRINT_FORMAT",updator=%s,selector=%s,rc=%d",
-                 OM_CS_DEPLOY_CL_TASKINFO, updateNum, taskID, 
+                 OM_CS_DEPLOY_CL_TASKINFO, updateNum, taskID,
                  updator.toString().c_str(), selector.toString().c_str(), rc ) ;
          goto error ;
       }
@@ -1345,23 +1345,23 @@ namespace engine
       goto done ;
    }
 
-   INT32 omTaskManager::queryTasks( const BSONObj &selector, 
-                                    const BSONObj &matcher, 
-                                    const BSONObj &orderBy, const BSONObj &hint, 
+   INT32 omTaskManager::queryTasks( const BSONObj &selector,
+                                    const BSONObj &matcher,
+                                    const BSONObj &orderBy, const BSONObj &hint,
                                     vector< BSONObj >&tasks )
    {
-      return engine::queryTasks( selector, matcher, orderBy, hint, tasks ) ; 
+      return engine::queryTasks( selector, matcher, orderBy, hint, tasks ) ;
    }
 
-   INT32 omTaskManager::queryOneTask( const BSONObj &selector, 
+   INT32 omTaskManager::queryOneTask( const BSONObj &selector,
                                       const BSONObj &matcher,
                                       const BSONObj &orderBy,
-                                      const BSONObj &hint, BSONObj &oneTask ) 
+                                      const BSONObj &hint, BSONObj &oneTask )
    {
       return engine::queryOneTask( selector, matcher, orderBy, hint, oneTask ) ;
    }
 
-   INT32 omTaskManager::_getTaskFlag( INT64 taskID, BOOLEAN &existFlag, 
+   INT32 omTaskManager::_getTaskFlag( INT64 taskID, BOOLEAN &existFlag,
                                       BOOLEAN &isFinished, INT32 &taskType )
    {
       INT32 rc = SDB_OK ;
@@ -1404,7 +1404,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 omTaskManager::updateTask( INT64 taskID, 
+   INT32 omTaskManager::updateTask( INT64 taskID,
                                     const BSONObj &taskUpdateInfo )
    {
       INT32 rc = SDB_OK ;
@@ -1463,7 +1463,7 @@ namespace engine
       rc = pTask->checkUpdateInfo( taskUpdateInfo ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "check update info failed:updateInfo=%s,rc=%d", 
+         PD_LOG( PDERROR, "check update info failed:updateInfo=%s,rc=%d",
                  taskUpdateInfo.toString().c_str(), rc ) ;
          goto error ;
       }
@@ -1485,7 +1485,7 @@ namespace engine
          {
             BSONObj resultInfo ;
             BSONObj tmpFilter = BSON( OM_TASKINFO_FIELD_RESULTINFO << 1 ) ;
-            resultInfo = taskUpdateInfo.filterFieldsUndotted( tmpFilter, 
+            resultInfo = taskUpdateInfo.filterFieldsUndotted( tmpFilter,
                                                               true ) ;
             rc = pTask->finish( resultInfo ) ;
             if ( SDB_OK != rc )

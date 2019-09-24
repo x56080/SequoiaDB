@@ -133,7 +133,7 @@ namespace engine
       rc = _netAgent.listen( _myNodeID ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG ( PDERROR, "Create listen failed:host=%s,port=%s", 
+         PD_LOG ( PDERROR, "Create listen failed:host=%s,port=%s",
                   _pKrcb->getHostName(), pOptMgr->getOMService() ) ;
          goto error ;
       }
@@ -197,7 +197,7 @@ namespace engine
                      pEDUCB, 0, -1, pDMSCB, pRTNCB, contextID );
       if ( rc )
       {
-         PD_LOG( PDERROR, "fail to query table:%s,rc=%d", 
+         PD_LOG( PDERROR, "fail to query table:%s,rc=%d",
                  OM_CS_DEPLOY_CL_CLUSTER, rc ) ;
          goto error ;
       }
@@ -215,7 +215,7 @@ namespace engine
             }
 
             contextID = -1 ;
-            PD_LOG( PDERROR, "failed to get record from table:%s,rc=%d", 
+            PD_LOG( PDERROR, "failed to get record from table:%s,rc=%d",
                     OM_CS_DEPLOY_CL_CLUSTER, rc ) ;
             goto error ;
          }
@@ -265,26 +265,26 @@ namespace engine
       {
          if ( SDB_EVT_OCCUR_AFTER == occurType )
          {
-            PD_LOG( PDDEBUG, "#########onPrimaryChange---occurType=%d", 
+            PD_LOG( PDDEBUG, "#########onPrimaryChange---occurType=%d",
                     occurType ) ;
             rc = _initOmTables();
-            PD_RC_CHECK ( rc, PDERROR, "Failed to initial the om tables rc = %d", 
+            PD_RC_CHECK ( rc, PDERROR, "Failed to initial the om tables rc = %d",
                           rc ) ;
 
             rc = _updateTable() ;
-            PD_RC_CHECK ( rc, PDERROR, "Failed to update om tables rc = %d", 
+            PD_RC_CHECK ( rc, PDERROR, "Failed to update om tables rc = %d",
                           rc ) ;
 
             rc = omStrategyMgrInst.init( pmdGetThreadEDUCB() ) ;
             PD_RC_CHECK ( rc, PDERROR, "Failed to init strategy manager, rc:%d",
                           rc) ;
- 
+
             rc = _createJobs() ;
-            PD_RC_CHECK ( rc, PDERROR, "Failed to create jobs:rc=%d", 
+            PD_RC_CHECK ( rc, PDERROR, "Failed to create jobs:rc=%d",
                           rc ) ;
 
             rc = refreshVersions() ;
-            PD_RC_CHECK ( rc, PDERROR, "Failed to update cluster version:rc=%d", 
+            PD_RC_CHECK ( rc, PDERROR, "Failed to update cluster version:rc=%d",
                           rc ) ;
 
             _isInitTable = TRUE ;
@@ -430,8 +430,8 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omManager::_getBussinessInfo( const string &businessName, 
-                                        string &businessType, 
+   INT32 _omManager::_getBussinessInfo( const string &businessName,
+                                        string &businessType,
                                         string &clusterName,
                                         string &deployMode )
    {
@@ -445,7 +445,7 @@ namespace engine
       SINT64 contextID   = -1 ;
 
       matcher = BSON( OM_BUSINESS_FIELD_NAME << businessName ) ;
-      rc = rtnQuery( OM_CS_DEPLOY_CL_BUSINESS, empty, matcher, empty, 
+      rc = rtnQuery( OM_CS_DEPLOY_CL_BUSINESS, empty, matcher, empty,
                      empty, 0, cb, 0, 1, pdmsCB, pRtnCB, contextID ) ;
       PD_RC_CHECK( rc, PDERROR, "query table failed:table=%s,rc=%d",
                    OM_CS_DEPLOY_CL_BUSINESS, rc ) ;
@@ -466,7 +466,7 @@ namespace engine
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "business info is invalid:name=%s,type=%s,cluster=%s,"
                  "deployMode=%s",
-                 businessName.c_str(), businessType.c_str(), 
+                 businessName.c_str(), businessType.c_str(),
                  clusterName.c_str(), deployMode.c_str() ) ;
          goto error ;
       }
@@ -481,7 +481,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omManager::getBizHostInfo( const string &businessName, 
+   INT32 _omManager::getBizHostInfo( const string &businessName,
                                      list <string> &hostsList )
    {
       INT32 rc = SDB_OK ;
@@ -494,7 +494,7 @@ namespace engine
       SINT64 contextID   = -1 ;
 
       matcher = BSON( OM_CONFIGURE_FIELD_BUSINESSNAME << businessName ) ;
-      rc = rtnQuery( OM_CS_DEPLOY_CL_CONFIGURE, empty, matcher, empty, 
+      rc = rtnQuery( OM_CS_DEPLOY_CL_CONFIGURE, empty, matcher, empty,
                      empty, 0, cb, 0, -1, pdmsCB, pRtnCB, contextID ) ;
       PD_RC_CHECK( rc, PDERROR, "query table failed:table=%s,rc=%d",
                    OM_CS_DEPLOY_CL_CONFIGURE, rc ) ;
@@ -512,7 +512,7 @@ namespace engine
                       OM_CS_DEPLOY_CL_CONFIGURE, rc ) ;
 
          BSONObj result( buffObj.data() ) ;
-         hostsList.push_back( result.getStringField( 
+         hostsList.push_back( result.getStringField(
                                              OM_CONFIGURE_FIELD_HOSTNAME ) ) ;
       }
 
@@ -534,8 +534,8 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omManager::_appendBusinessInfo( const string &businessName, 
-                                          const string &businessType, 
+   INT32 _omManager::_appendBusinessInfo( const string &businessName,
+                                          const string &businessType,
                                           const string &clusterName,
                                           const string &deployMode )
    {
@@ -561,7 +561,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omManager::appendBizHostInfo( const string &businessName, 
+   INT32 _omManager::appendBizHostInfo( const string &businessName,
                                         list <string> &hostsList )
    {
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
@@ -587,7 +587,7 @@ namespace engine
       rc = rtnUpdate( OM_CS_DEPLOY_CL_BUSINESS, matcher, updator, hint,
                       0, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "update table failed:table=%s,business=%s,"
-                   "updator=%s,rc=%d", OM_CS_DEPLOY_CL_BUSINESS, 
+                   "updator=%s,rc=%d", OM_CS_DEPLOY_CL_BUSINESS,
                    businessName.c_str(), updator.toString().c_str(), rc ) ;
    done:
       return rc ;
@@ -606,10 +606,10 @@ namespace engine
       _SDB_DMSCB *pdmsCB = pKRCB->getDMSCB() ;
       _SDB_RTNCB *pRtnCB = pKRCB->getRTNCB() ;
       SINT64 contextID   = -1 ;
-      
+
       isNull  = BSON( "$isnull" << 1 ) ;
       matcher = BSON( OM_CONFIGURE_FIELD_BUSINESSTYPE << isNull ) ;
-      rc = rtnQuery( OM_CS_DEPLOY_CL_CONFIGURE, empty, matcher, empty, 
+      rc = rtnQuery( OM_CS_DEPLOY_CL_CONFIGURE, empty, matcher, empty,
                      empty, 0, cb, 0, 1, pdmsCB, pRtnCB, contextID ) ;
       PD_RC_CHECK( rc, PDERROR, "query table failed:table=%s,rc=%d",
                    OM_CS_DEPLOY_CL_CONFIGURE, rc ) ;
@@ -667,14 +667,14 @@ namespace engine
       _SDB_RTNCB *pRtnCB = pKRCB->getRTNCB() ;
       SINT64 contextID   = -1 ;
       list <string> hostsList ;
-      
+
       isNull   = BSON( "$isnull" << 1 ) ;
       discover = BSON( OM_BUSINESS_FIELD_ADDTYPE
                        << OM_BUSINESS_ADDTYPE_DISCOVERY ) ;
       arrayBuilder.append( discover ) ;
       matcher  = BSON( OM_BUSINESS_FIELD_LOCATION << isNull
                        << "$not" << arrayBuilder.arr() ) ;
-      rc = rtnQuery( OM_CS_DEPLOY_CL_BUSINESS, empty, matcher, empty, 
+      rc = rtnQuery( OM_CS_DEPLOY_CL_BUSINESS, empty, matcher, empty,
                      empty, 0, cb, 0, 1, pdmsCB, pRtnCB, contextID ) ;
       PD_RC_CHECK( rc, PDERROR, "query table failed:table=%s,rc=%d",
                    OM_CS_DEPLOY_CL_BUSINESS, rc ) ;
@@ -1033,7 +1033,7 @@ namespace engine
             goto done ;
          }
 
-         interruptTask.updateTaskStatus( taskID, OM_TASK_STATUS_CANCEL, 
+         interruptTask.updateTaskStatus( taskID, OM_TASK_STATUS_CANCEL,
                                          SDB_TIMEOUT ) ;
       }
 
@@ -1188,21 +1188,27 @@ namespace engine
          INT32 fix = 0 ;
          INT32 release = 0 ;
          const CHAR *pBuild = NULL ;
-         ossGetVersion( &ver, &subVer, &fix, &release, &pBuild ) ;
+         const CHAR *pGitVer = NULL ;
+         ossGetVersion( &ver, &subVer, &fix, &release, &pBuild, &pGitVer ) ;
          ss << "{\n  version:\"" << ver << "." << subVer ;
          if ( fix > 0 )
          {
             ss << "." << fix ;
          }
          ss << "\",\n  buildTime:\"" << pBuild << "\",\n  release:\""
-            << release << "\"\n}";
+            << release << "\"" ;
+         if ( pGitVer )
+         {
+            ss << ",\n  git version:\"" << pGitVer << "\"" ;
+         }
+         ss << "\n}";
       }
 
       versionInfo = ss.str() ;
       rc = ossWriteN( &pFile, versionInfo.c_str(), versionInfo.length() ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "write file failed:file=%s,content=%s,rc=%d", 
+         PD_LOG( PDERROR, "write file failed:file=%s,content=%s,rc=%d",
                  versionFile, versionInfo.c_str(), rc ) ;
          goto error ;
       }
@@ -1336,7 +1342,7 @@ namespace engine
                              &pFieldSelector, &pOrderByBuffer, &pHintBuffer ) ;
       if ( rc )
       {
-         PD_LOG_MSG( PDERROR, "extract omAgent's command msg failed:rc=%d", 
+         PD_LOG_MSG( PDERROR, "extract omAgent's command msg failed:rc=%d",
                      rc ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -1367,7 +1373,7 @@ namespace engine
          else
          {
             rc = SDB_INVALIDARG ;
-            PD_LOG_MSG( PDERROR, "unreconigzed agent request:command=%s", 
+            PD_LOG_MSG( PDERROR, "unreconigzed agent request:command=%s",
                         pCollectionName ) ;
             goto error ;
          }
@@ -1375,7 +1381,7 @@ namespace engine
       else
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "unreconigzed agent request:command=%s", 
+         PD_LOG_MSG( PDERROR, "unreconigzed agent request:command=%s",
                      pCollectionName ) ;
          goto error ;
       }
