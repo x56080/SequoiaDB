@@ -135,7 +135,7 @@ const CHAR* msgType2String( MSG_TYPE msgType, BOOLEAN isCommand )
       case MSG_BS_LOB_CLOSE_REQ :
          return "LOB CLOSE" ;
    } ;
-   return "UNKNOW" ;
+   return "UNKNOWN" ;
 }
 
 /*
