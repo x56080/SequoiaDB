@@ -212,6 +212,10 @@ namespace SequoiaDB
             rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             
             int flags = rtnSDBMessage.Flags;
+            if (flags != 0)
+            {
+                contextId = -1;
+            }
             if (flags == SequoiadbConstants.SDB_DMS_EOC)
             {
                 hasMore = false;
