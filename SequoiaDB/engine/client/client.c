@@ -630,10 +630,6 @@ static INT32 _extract ( MsgHeader *msg, INT32 size,
       goto error ;
    }
 
-   if ( SDB_OK != replyFlag )
-   {
-      contextID = -1 ;
-   }
    rc = replyFlag ;
    _pErrorBuf = NULL ;
    _errorBufSize = 0 ;
