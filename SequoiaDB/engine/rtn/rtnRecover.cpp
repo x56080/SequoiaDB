@@ -1762,6 +1762,11 @@ namespace engine
             /// node will sync from lsn 0
             expectLSN.offset = ossAlign4( (UINT32)sizeof( dpsLogRecordHeader ) ) ;
          }
+         else
+         {
+            expectLSN.offset += ossAlign4( (UINT32)sizeof( dpsLogRecordHeader ) ) ;
+         }
+
          if ( DPS_INVALID_LSN_VERSION == expectLSN.version )
          {
             expectLSN.version = DPS_INVALID_LSN_VERSION + 1 ;
