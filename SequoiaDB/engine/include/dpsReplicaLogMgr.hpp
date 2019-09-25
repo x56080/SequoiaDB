@@ -125,14 +125,7 @@ namespace engine
       OSS_INLINE void incVersion()
       {
          _mtx.get() ;
-         if ( DPS_INVALID_LSN_VERSION == _lsn.version )
-         {
-            ++_lsn.version ;
-         }
-         else if ( _lsn.offset > 0 )
-         {
-            _incVersion = TRUE ;
-         }
+         _incVersion = TRUE ;
          _mtx.release() ;
       }
 
