@@ -20,10 +20,10 @@
       <delete dir="${release_dir}" failonerror="false"/>
       <mkdir dir="${release_dir}"/>
       
-      <dbversion srccodedir="${srccode_dir}" version="sequoiadb_version"/>
       <getplatform resultProperty="platform" />
       
       <antcall target="compile_src"/>   
+      <dbversion srccodedir="${srccode_dir}" version="sequoiadb_version"/>
       <antcall target="compile_java_driver"/>
       <antcall target="compile_php_driver"/>
       <antcall target="compile_python_driver"/>
@@ -170,7 +170,7 @@
       
       <!--get svn version--> 
       <var name="fdw_svn" unset="true" />
-      <svnversion dir="${src_dir}" version="fdw_svn" />
+      <gitversion dir="${src_dir}" version="fdw_svn" />
       
       <!--get edition (judge changed or original) -->
       <exec executable="bash" dir="${src_dir}" outputproperty="fdw_edition">
@@ -207,7 +207,7 @@
       <if>
          <equals arg1="${IS_DEBUG}" arg2="true"/>
          <then>
-            <svnversion dir="${src_dir}" version="fdw_svn" />
+            <gitversion dir="${src_dir}" version="fdw_svn" />
             <var name="cmd_mvn" value="versions:set -DnewVersion=${sequoiadb_version}-r${fdw_svn}"/>
          </then>
          <else>
@@ -296,7 +296,7 @@
       <if>
          <equals arg1="${IS_DEBUG}" arg2="true"/>
          <then>
-            <svnversion dir="${src_dir}" version="fdw_svn" />
+            <gitversion dir="${src_dir}" version="fdw_svn" />
             <var name="cmd_mvn" value="versions:set -DnewVersion=${sequoiadb_version}-r${fdw_svn}"/>
          </then>
          <else>
@@ -737,15 +737,15 @@
          <exec executable="${tools_dir}/print_version" outputproperty="@{version}" failonerror="true" logError="true" />
       </sequential>
    </macrodef>
-   
-   <macrodef name="svnversion">
+
+   <macrodef name="gitversion">
       <attribute name="dir"/>
       <attribute name="version"/>
       <sequential>
          <var name="@{verison}" unset="true"/>
          <exec executable="bash" dir="@{dir}" outputproperty="@{version}" failonerror="true" logError="true" >
             <arg value="-c" />
-            <arg line="&quot;svn info | grep Revision | awk '{print $2}'&quot;" />
+            <arg line=" &quot;git log -1 --pretty=format:'%h' &quot; " />
          </exec>
       </sequential>
    </macrodef>
