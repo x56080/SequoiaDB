@@ -2124,7 +2124,7 @@ public class Sequoiadb {
      *            The host name
      * @param port
      *            The port
-     * @param dbpath
+     * @param dbPath
      *            The database path
      * @param configure
      *            The configure options
@@ -2149,6 +2149,42 @@ public class Sequoiadb {
         }
         SDBMessage rtn = adminCommand(commandString, 0, 0, -1, -1, obj, null,
                 null, null);
+        int flags = rtn.getFlags();
+        if (flags != 0) {
+            throw new BaseException(flags);
+        }
+    }
+
+    /**
+     * Stop the specified session's current operation and terminate it.
+     *
+     * @param sessionID
+     *            The ID of the session.
+     */
+    public void forceSession(long sessionID){
+        forceSession(sessionID, null);
+    }
+
+    /**
+     * Stop the specified session's current operation and terminate it.
+     *
+     * @param sessionID
+     *            The ID of the session.
+     * @param options
+     *            The control options, Please reference
+     *            {@see <a
+     *            href=http://doc.sequoiadb.com/cn/SequoiaDB-cat_id-1482314609-edition_id-208>here</a>}
+     *            for more detail.
+     */
+    public void forceSession(long sessionID,BSONObject options ){
+
+        BSONObject matcher = new BasicBSONObject();
+        matcher.put(SequoiadbConstants.FIELD_NAME_SESSION_ID, sessionID);
+        if (options != null) {
+            matcher.put(SequoiadbConstants.FIELD_NAME_OPTIONS, options);
+        }
+        SDBMessage rtn = adminCommand(SequoiadbConstants.CMD_NAME_FORCE_SESSION, 0, 0, -1, -1, matcher,
+                null, null, null);
         int flags = rtn.getFlags();
         if (flags != 0) {
             throw new BaseException(flags);
