@@ -780,14 +780,29 @@ static INT32 _readNextBuffer ( sdbCursorHandle cursor )
                   pCursor->_receiveBufferSize,
                   &lcontextID,
                   pCursor->_endianConvert ) ;
+   if ( SDB_OK == rc )
+   {
+      // check return opcode
+      CHECK_RET_MSGHEADER( pCursor->_pSendBuffer, pCursor->_pReceiveBuffer,
+                           pCursor->_connection ) ;
+   }
+   if ( SDB_DMS_EOC == rc )
+   {
+      // check return opcode
+      CHECK_RET_MSGHEADER( pCursor->_pSendBuffer, pCursor->_pReceiveBuffer,
+                           pCursor->_connection ) ;
+      rc = SDB_DMS_EOC ;
+   }
    if ( SDB_OK != rc )
    {
+      MsgOpReply *pReply = (MsgOpReply*)pCursor->_pReceiveBuffer ;
+      if ( SDB_OK != pReply->flags )
+      {
+         lcontextID = -1 ;
+      }
       goto error ;
    }
 
-   // check return opcode
-   CHECK_RET_MSGHEADER( pCursor->_pSendBuffer, pCursor->_pReceiveBuffer,
-                        pCursor->_connection ) ;
 done :
    return rc ;
 error :

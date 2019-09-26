@@ -327,12 +327,29 @@ do                                                            \
       // receive from engine
       rc = _connection->_recvExtract ( &_pReceiveBuffer, &_receiveBufferSize,
                                        contextID, result ) ;
-      if ( rc || contextID != _contextID )
+      if ( SDB_OK == rc )
       {
+         // check return msg header
+         CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
+      }
+      if ( SDB_DMS_EOC == rc )
+      {
+         // check return msg header
+         CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
+         rc = SDB_DMS_EOC ;
+      }
+      // when engine return 0 != replyFlag, the context has been kill,
+      // just set _contextID to -1 to avoid send kill context to engine
+      if ( SDB_OK != rc )
+      {
+         MsgOpReply *pReply = (MsgOpReply*)_pReceiveBuffer ;
+         if ( SDB_OK != pReply->flags )
+         {
+            _contextID = -1 ;
+         }         
          goto error ;
       }
-      // check return msg header
-      CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
+
    done :
       if ( locked )
       {
