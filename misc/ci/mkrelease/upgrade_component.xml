@@ -86,7 +86,7 @@
 
         <setInstallerVariableFromScriptOutput name="old_version">
             <exec>${installdir}/bin/sequoiadb</exec>
-            <execArgs> --version | grep "version" | awk '{print $3}'</execArgs>
+            <execArgs> --version | grep -v "Git" | grep "version" | awk '{print $3}'</execArgs>
         </setInstallerVariableFromScriptOutput>
         <setInstallerVariableFromScriptOutput name="old_svn">
             <exec>${installdir}/bin/sequoiadb</exec>
