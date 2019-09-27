@@ -99,25 +99,25 @@ public class Sdv6667 extends SdbTestBase {
             Sequoiadb dataDB1 = LzwUtils3.getDataDB(db, domainRG1);
             DBCollection scl1 = db.getCollectionSpace(csName).getCollection(sclName1);
             LzwUtils3.waitCreateDict(scl1, domainRG1);
-            insertData(scl1, 1, strLength); 
+            insertData(scl1, 100, strLength); 
             checkCompression(dataDB1, sclName1);
             checkAutoSplit(dataDB1, sclName1);
             
             DBCollection scl2 = db.getCollectionSpace(csName).getCollection(sclName2);
             LzwUtils3.waitCreateDict(scl2, domainRG1);
-            insertData(scl2, 1, strLength);
+            insertData(scl2, 100, strLength);
             checkCompression(dataDB1, sclName2);
             checkAutoSplit(dataDB1, sclName2);
             
             // check automatic split on group2
             Sequoiadb dataDB2 = LzwUtils3.getDataDB(db, domainRG2);
             LzwUtils3.waitCreateDict(scl1, domainRG2);
-            insertData(scl1, 1, strLength);
+            insertData(scl1, 100, strLength);
             checkCompression(dataDB2, sclName1);
             checkAutoSplit(dataDB2, sclName1);
             
             LzwUtils3.waitCreateDict(scl2, domainRG2);
-            insertData(scl2, 1, strLength);
+            insertData(scl2, 100, strLength);
             checkCompression(dataDB2, sclName2);
             checkAutoSplit(dataDB2, sclName2);
         }catch(BaseException e){
