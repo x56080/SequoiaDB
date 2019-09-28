@@ -199,7 +199,7 @@ public class CreateCLAndKillPrimaryCatalog2280 extends SdbTestBase {
         	
         	try {
         		String newclName = preCLName + "_" + count;
-                cs.createCollection(newclName);                                 
+                cs.createCollection(newclName, new BasicBSONObject("ReplSize", 0));                               
             } catch (BaseException e) {                
                 Assert.fail("create new cl fail: "+e.getErrorCode()+e.getMessage());
                
@@ -208,7 +208,7 @@ public class CreateCLAndKillPrimaryCatalog2280 extends SdbTestBase {
         }else{
 			//create cl fail,the count is not equals CL_NUM
         	try {         	
-                cs.createCollection(preCLName + "_" + count);      
+                cs.createCollection(preCLName + "_" + count, new BasicBSONObject("ReplSize", 0));
             } catch (BaseException e) {            	
                 // -22 SDB_DMS_EXIST  
                 if (e.getErrorCode() != -22) {
