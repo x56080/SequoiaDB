@@ -88,7 +88,7 @@ public class SdbForceSession {
     }
 
     @Test
-    public void forceSession_test_with_options() {
+    public void forceSession_test_with_option() {
         long sessionID = -1;
         Map<Long,String> sessionInfoMap = getSessionInfo();
         for (Object obj: sessionInfoMap.keySet()) {

@@ -2170,18 +2170,18 @@ public class Sequoiadb {
      *
      * @param sessionID
      *            The ID of the session.
-     * @param options
+     * @param option
      *            The control options, Please reference
      *            {@see <a
      *            href=http://doc.sequoiadb.com/cn/SequoiaDB-cat_id-1482314609-edition_id-208>here</a>}
      *            for more detail.
      */
-    public void forceSession(long sessionID,BSONObject options ){
+    public void forceSession(long sessionID,BSONObject option ){
 
         BSONObject matcher = new BasicBSONObject();
         matcher.put(SequoiadbConstants.FIELD_NAME_SESSION_ID, sessionID);
-        if (options != null) {
-            matcher.put(SequoiadbConstants.FIELD_NAME_OPTIONS, options);
+        if (option != null) {
+            matcher.put(SequoiadbConstants.FIELD_NAME_OPTIONS, option);
         }
         SDBMessage rtn = adminCommand(SequoiadbConstants.CMD_NAME_FORCE_SESSION, 0, 0, -1, -1, matcher,
                 null, null, null);
