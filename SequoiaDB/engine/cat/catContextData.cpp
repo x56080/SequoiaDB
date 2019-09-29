@@ -2121,7 +2121,7 @@ namespace engine
 
       PD_CHECK( !( CAT_MASK_COMPRESSIONTYPE & mask ),
                 SDB_OPTION_NOT_SUPPORT, error, PDERROR,
-                "can not alter attribute \"Compressed\"" ) ;
+                "can not alter attribute \"CompressionType\"" ) ;
 
       PD_CHECK( !( CAT_MASK_CLNAME & mask ),
                 SDB_OPTION_NOT_SUPPORT, error, PDERROR,
