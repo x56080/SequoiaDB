@@ -30,7 +30,7 @@ public class CacheTurnOnTest16718 extends SdbTestBase{
 	@DataProvider(name = "clientoption-provider")
 	public Object[][] getClientOption(){
 		return new Object[][]{
-				new Object[]{true, 10000},
+				new Object[]{true, 15000},
 				new Object[]{false, 1000},
 		};
 	}
