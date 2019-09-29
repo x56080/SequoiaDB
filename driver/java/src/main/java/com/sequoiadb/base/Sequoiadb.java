@@ -1841,7 +1841,7 @@ public class Sequoiadb {
     /**
      * @param hostName  The host name
      * @param port      The port
-     * @param dbpath    The database path
+     * @param dbPath    The database path
      * @param configure The configure options
      * @throws com.sequoiadb.exception.BaseException
      * @fn void createReplicaCataGroup(String hostName, int port, String dbPath,
@@ -1872,6 +1872,44 @@ public class Sequoiadb {
             throw new BaseException(flags);
         }
     }
+
+    /**
+     * Stop the specified session's current operation and terminate it.
+     *
+     * @param sessionID
+     *            The ID of the session.
+     */
+    public void forceSession(long sessionID){
+        forceSession(sessionID, null);
+    }
+
+    /**
+     * Stop the specified session's current operation and terminate it.
+     *
+     * @param sessionID
+     *            The ID of the session.
+     * @param option
+     *            The control options, Please reference
+     *            {@see <a
+     *            href=http://doc.sequoiadb.com/cn/SequoiaDB-cat_id-1482314609-edition_id-208>here</a>}
+     *            for more detail.
+     */
+    public void forceSession(long sessionID,BSONObject option ){
+
+        BSONObject matcher = new BasicBSONObject();
+        matcher.put(SequoiadbConstants.FIELD_NAME_SESSION_ID, sessionID);
+        if (option != null) {
+            matcher.put(SequoiadbConstants.FIELD_NAME_OPTIONS, option);
+        }
+        SDBMessage rtn = adminCommand(SequoiadbConstants.CMD_NAME_FORCE_SESSION, 0, 0, -1, -1, matcher,
+                null, null, null);
+        int flags = rtn.getFlags();
+        if (flags != 0) {
+            throw new BaseException(flags);
+        }
+    }
+
+
 
     DBCursor getList(int listType, int flag, long reqID, long skipNum,
                      long returnNum, BSONObject query, BSONObject selector,

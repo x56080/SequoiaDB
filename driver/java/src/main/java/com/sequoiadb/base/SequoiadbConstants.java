@@ -119,6 +119,7 @@ public class SequoiadbConstants {
     public final static String CMD_NAME_TRUNCATE = "truncate";
     public final static String CMD_NAME_GET_DCINFO = "get dcinfo";
     public final static String CMD_NAME_ALTER_DC = "alter dc";
+    public final static String CMD_NAME_FORCE_SESSION = "force session";
 
     public final static String CMD_VALUE_NAME_CREATE = "create image";
     public final static String CMD_VALUE_NAME_REMOVE = "remove image";
@@ -176,6 +177,8 @@ public class SequoiadbConstants {
     public final static String FIELD_NAME_IMAGE = "Image";
     public final static String FIELD_NAME_ACTION = "Action";
     public final static String FIELD_NAME_ADDRESS = "Address";
+
+    public final static String FIELD_NAME_SESSION_ID = "SessionID";
 
     public final static int SDB_ALTER_VERSION = 1;
     public final static String SDB_ALTER_DB = "db";
