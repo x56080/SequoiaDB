@@ -98,8 +98,8 @@ public class SdbForceSession {
         options.put("Global",false);
 
         if ( sessionID != -1){
-            options.put("GroupName",sessionInfoMap.get(sessionID));
-            sdb.forceSession(sessionID);
+            options.put("NodeName",sessionInfoMap.get(sessionID));
+            sdb.forceSession(sessionID, options);
         }
         System.out.println("=========================");
         System.out.println("stop sessionID is " + sessionID );
