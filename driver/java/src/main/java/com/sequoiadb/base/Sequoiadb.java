@@ -1899,7 +1899,7 @@ public class Sequoiadb {
         BSONObject matcher = new BasicBSONObject();
         matcher.put(SequoiadbConstants.FIELD_NAME_SESSION_ID, sessionID);
         if (option != null) {
-            matcher.put(SequoiadbConstants.FIELD_NAME_OPTIONS, option);
+            matcher.putAll(option);
         }
         SDBMessage rtn = adminCommand(SequoiadbConstants.CMD_NAME_FORCE_SESSION, 0, 0, -1, -1, matcher,
                 null, null, null);
