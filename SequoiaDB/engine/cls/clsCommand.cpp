@@ -774,7 +774,7 @@ namespace engine
                                  _pAction ) ||
              0 == ossStrcasecmp( CMD_VALUE_NAME_ACTIVATE, _pAction ) ) )
       {
-         pClsCB->getReplCB()->voteMachine()->force( CLS_ELECTION_STATUS_SEC ) ;
+         pClsCB->getReplCB()->getVoteMachine()->force( CLS_ELECTION_STATUS_SEC ) ;
       }
 
    done:

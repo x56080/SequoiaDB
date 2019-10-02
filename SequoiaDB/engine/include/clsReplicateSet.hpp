@@ -42,7 +42,7 @@
 #include "netRouteAgent.hpp"
 #include "msgReplicator.hpp"
 #include "msgCatalog.hpp"
-#include "clsVoteMachine.hpp"
+#include "clsReplAgent.hpp"
 #include "msg.hpp"
 #include "pmdObjBase.hpp"
 #include "clsCatalogCaller.hpp"
@@ -72,8 +72,10 @@ namespace engine
    /*
       _clsReplicateSet define
    */
-   class _clsReplicateSet : public _pmdObjBase, public _dpsEventHandler,
-                            public _ICluster
+   class _clsReplicateSet : public _pmdObjBase,
+                            public _dpsEventHandler,
+                            public _ICluster,
+                            public ICLSReplAgent
    {
       DECLARE_OBJ_MSG_MAP()
 
@@ -95,39 +97,9 @@ namespace engine
          */
          virtual BOOLEAN   primaryLsn( UINT64 &lsn, UINT32 *pVer = NULL ) ;
 
-      public:
-         OSS_INLINE BOOLEAN primaryIsMe()
-         {
-            return _vote.primaryIsMe() ;
-         }
-
          OSS_INLINE clsBucket* getBucket ()
          {
             return &_replBucket ;
-         }
-
-         OSS_INLINE void setLocalID( const MsgRouteID &id )
-         {
-            _info.local = id ;
-            /// _agent was set by clsMgr.
-         }
-
-         OSS_INLINE const UINT32 ailves()
-         {
-            UINT32 num = 0 ;
-            _info.mtx.lock_r() ;
-            num = _info.aliveSize() ;
-            _info.mtx.release_r() ;
-            return num ;
-         }
-
-         OSS_INLINE UINT32 groupSize ()
-         {
-            UINT32 num = 0 ;
-            _info.mtx.lock_r () ;
-            num = _info.groupSize() ;
-            _info.mtx.release_r  () ;
-            return num ;
          }
 
          OSS_INLINE void getDetailInfo( UINT32 &nodeCnt, UINT32 &aliveCnt,
@@ -173,32 +145,6 @@ namespace engine
                   ++ssCnt ;
                }
             }
-         }
-
-         // timeout: ms
-         OSS_INLINE UINT32 getAlivesByTimeout( UINT32 timeout =
-                                               CLS_NODE_KEEPALIVE_TIMEOUT )
-         {
-            UINT32 num = 0 ;
-            _info.mtx.lock_r () ;
-            num = _info.getAlivesByTimeout( timeout ) ;
-            _info.mtx.release_r  () ;
-            return num ;
-         }
-
-         OSS_INLINE BOOLEAN isAlive ( NodeID node )
-         {
-            BOOLEAN bAlive = FALSE ;
-            _info.mtx.lock_r() ;
-            map<UINT64, _clsSharingStatus *>::iterator it =
-               _info.alives.find ( node.value ) ;
-            if ( it != _info.alives.end() )
-            {
-               bAlive = TRUE ;
-            }
-            _info.mtx.release_r() ;
-
-            return bAlive ;
          }
 
          OSS_INLINE _clsSyncManager *syncMgr()
@@ -357,83 +303,85 @@ namespace engine
 
          INT32 callCatalog( MsgHeader *header, UINT32 times = 1 ) ;
 
-         BOOLEAN getPrimaryInfo( _clsSharingStatus &primaryInfo ) ;
-
-         void getGroupInfo( _MsgRouteID &primary,
-                            vector<_netRouteNode > &group ) ;
-
-         MsgRouteID     getPrimary () ;
-         BOOLEAN        isSendNormal( UINT64 nodeID ) ;
-
          ossEvent*      getFaultEvent() ;
          ossEvent*      getSyncEmptyEvent() ;
 
          INT64 netIn() ;
          INT64 netOut() ;
 
-         INT32 reelect( CLS_REELECTION_LEVEL lvl,
-                        UINT32 seconds,
-                        pmdEDUCB *cb,
-                        UINT16 destID = 0 ) ;
-
-         void reelectionDone() ;
-
-         /// this func is used to support command "forceStepUp".
-         INT32 stepUp( UINT32 seconds,
-                       pmdEDUCB *cb ) ;
-
-         INT32 primaryCheck( pmdEDUCB *cb ) ;
          INT32 replSizeCheck( INT16 w, INT16 &finalW, _pmdEDUCB *cb,
                               BOOLEAN isAfterData = FALSE ) ;
-
-         INT32 aliveNode( const MsgRouteID &id ) ;
 
          UINT64   getLastConsultTick() const ;
          void     setLastConsultTick( UINT64 tick ) ;
 
       private:
-         INT32 _setGroupSet( const CLS_GROUP_VERSION &version,
-                             map<UINT64, _netRouteNode> &nodes,
-                             BOOLEAN &changeStatus ) ;
-
-         BOOLEAN _isUDPHandle( NET_HANDLE handle ) ;
-
-         INT32 _alive( const _MsgRouteID &id, BOOLEAN fromUDP ) ;
-
-         INT32 _handleSharingBeat( NET_HANDLE handle, const _MsgClsBeat *msg ) ;
-
-         INT32 _handleSharingBeatRes( NET_HANDLE handle,
-                                      const _MsgClsBeatRes *msg ) ;
-
          INT32 _handleGroupRes( const MsgCatGroupRes *msg ) ;
-
-         void _sharingBeat() ;
-
-         INT32 _sendSharingBeat( _clsSharingStatus &status,
-                                 MsgClsBeat *message ) ;
-
-         void _checkBreak( const UINT32 &millisec ) ;
 
          UINT32 _getThresholdTime( UINT64 diffSize ) ;
 
-         INT32 _handleStepDown() ;
+      public:
+         // vote agent implements
+         virtual BOOLEAN checkVoteLaunch() ;
+         virtual DPS_LSN getLocalExpectLSN() ;
+         virtual DPS_LSN getLocalCurrentLSN() ;
+         virtual void getLSNWindow( DPS_LSN &fileBeginLSN,
+                                    DPS_LSN &memBeginLSN,
+                                    DPS_LSN &endLSN,
+                                    DPS_LSN &expectLSN ) ;
+         virtual BOOLEAN isLocalOK() ;
+         virtual BOOLEAN isLocalSpare() ;
+         virtual UINT8 getVoteWeight() ;
+         virtual UINT32 getSharingBreakTime() ;
+         virtual INT32 getSyncStrategy() ;
+         virtual INT32 onLocalNotFoundInGroup() ;
+         virtual void beforePrimaryActive() ;
+         virtual void onPrimaryActive( const MsgRouteID &newPrimaryRID,
+                                       const MsgRouteID &oldPrimaryRID ) ;
+         virtual void afterPrimaryActive( const MsgRouteID &newPrimaryRID,
+                                          const MsgRouteID &oldPrimaryRID ) ;
+         virtual void beforePrimaryDeactive() ;
+         virtual void onPrimaryDeactive( const MsgRouteID &newPrimaryRID,
+                                         const MsgRouteID &oldPrimaryRID ) ;
+         virtual void afterPrimaryDeactive( const MsgRouteID &newPrimaryRID,
+                                            const MsgRouteID &oldPrimaryRID ) ;
+         virtual void onLocalGroupExpired() ;
+         virtual void onNotifiedPrimaryChange() ;
 
-         INT32 _handleStepUp( UINT32 seconds ) ;
+      protected:
+         OSS_INLINE virtual UINT32 _getConfirmedStat() const
+         {
+            return _pFTMgr->getConfirmedStat() ;
+         }
+
+         OSS_INLINE virtual INT32 _getIndoubtErr() const
+         {
+            return _pFTMgr->getIndoubtErr() ;
+         }
+
+         OSS_INLINE virtual BOOLEAN _isStop()
+         {
+            return _pFTMgr->isStop() ;
+         }
+
+         OSS_INLINE virtual BOOLEAN _isCatchup()
+         {
+            return _pFTMgr->isCatchup() ;
+         }
+
+         OSS_INLINE virtual BOOLEAN _isFTWhole()
+         {
+            return ( ( FT_LEVEL_WHOLE == _pFTMgr->getFTLevel() ) ?
+                     TRUE : FALSE ) ;
+         }
 
       private:
-         _netRouteAgent          *_agent ;
-         _clsGroupInfo           _info ;
-         _clsVoteMachine         _vote ;
          _dpsLogWrapper          *_logger ;
          _pmdFTMgr               *_pFTMgr ;
-         _clsSyncManager         _sync ;
          _clsCatalogCaller       _cata ;
-         _clsReelection          _reelection ;
          clsBucket               _replBucket ;
          _clsMgr                 *_clsCB ;
          UINT64                  _timerID ;
-         UINT32                  _beatTime ;
-         BOOLEAN                 _active ;
          UINT64                  _lastTimerTick ;
 
          UINT64                  _lastConsultTick ;
@@ -459,9 +407,6 @@ namespace engine
          UINT32                  _syncwaitTimeout ;
          UINT32                  _shutdownWaitTimeout ;
          UINT32                  _fusingTimeout ;
-
-         BOOLEAN                 _isAllNodeFatal ;
-         ossEvent                _heartbeatEvent ;
    } ;
 
    typedef class _clsReplicateSet clsReplicateSet ;

@@ -39,7 +39,8 @@
 
 #include "core.hpp"
 #include "oss.hpp"
-#include "clsDef.hpp"
+#include "clsReplDef.hpp"
+#include "netRouteAgent.hpp"
 #include "msgReplicator.hpp"
 
 namespace engine
@@ -49,15 +50,11 @@ namespace engine
 
    const INT32 CLS_INVALID_VOTE_ID = -1 ;
 
-   class _netRouteAgent ;
-   class _dpsLogWrapper ;
-
    class _clsVoteStatus : public SDBObject
    {
    public:
-      _clsVoteStatus( _clsGroupInfo *info,
-                       _netRouteAgent *agent,
-                       INT32 id ) ;
+      _clsVoteStatus( ICLSReplAgent *replAgent,
+                      INT32 id ) ;
 
       virtual ~_clsVoteStatus() ;
 
@@ -138,15 +135,18 @@ namespace engine
                      const _MsgRouteID &id,
                      const CLS_ELECTION_ROUND &round ) ;
       void _broadcastAlives( void *msg ) ;
-   private:
-      _clsGroupInfo *_groupInfo ;
-      _netRouteAgent *_agent ;
-      _dpsLogWrapper *_logger ;
-      INT32 _id ;
-      UINT32 _time ;
-      UINT32 _acceptedNum ;
+
+   protected:
+      ICLSReplAgent *   _replAgent ;
+      clsGroupInfo *    _groupInfo ;
+      netRouteAgent *   _agent ;
+      INT32             _id ;
+      UINT32            _time ;
+      UINT32            _acceptedNum ;
    } ;
+
+   typedef class _clsVoteStatus clsVoteStatus ;
+
 }
 
 #endif
-

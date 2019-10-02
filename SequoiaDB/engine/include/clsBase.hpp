@@ -59,14 +59,6 @@ namespace engine
 
    #define CLS_INVALID_TIMERID         (0)
 
-   enum CLS_SYNC_STRATEGY
-   {
-      CLS_SYNC_NONE        = 0,
-      CLS_SYNC_KEEPNORMAL  = 1,
-      CLS_SYNC_KEEPALL     = 2
-   } ;
-   #define CLS_SYNC_DTF_STRATEGY    CLS_SYNC_KEEPNORMAL
-
    typedef MsgRouteID   NodeID ;
    #define INVALID_NODE_ID       (MSG_INVALID_ROUTEID)
 

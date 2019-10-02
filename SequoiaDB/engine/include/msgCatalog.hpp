@@ -165,7 +165,7 @@ namespace engine
    INT32 msgParseCatGroupRes( const MsgCatGroupRes *msg,
                               CLS_GROUP_VERSION &version,
                               string &groupName,
-                              map<UINT64, _netRouteNode> &group,
+                              NET_ROUTE_MAP &group,
                               UINT32 *pPrimary = NULL,
                               UINT32 *pSecID = NULL ) ;
 
@@ -173,7 +173,7 @@ namespace engine
                               CLS_GROUP_VERSION &version,
                               UINT32 &groupID,
                               string &groupName,
-                              map<UINT64, _netRouteNode> &group,
+                              NET_ROUTE_MAP &group,
                               UINT32 *pPrimary = NULL,
                               UINT32 *pSecID = NULL ) ;
 

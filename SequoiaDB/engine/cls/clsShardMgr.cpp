@@ -1999,7 +1999,7 @@ namespace engine
       MsgRouteID primaryNode ;
       UINT32 primary = 0 ;
       std::string groupName ;
-      map<UINT64, _netRouteNode> mapNodes ;
+      NET_ROUTE_MAP mapNodes ;
       MsgCatCatGroupRes *res = (MsgCatCatGroupRes*)msg ;
 
       // sanity check, make sure the response is OKAY
@@ -2029,13 +2029,13 @@ namespace engine
          string oldCfg, newCfg ;
          // remember the old info
          optCB->toString( oldCfg ) ;
-         MAP_ROUTE_NODE oldCatNodes = _mapNodes ;
+         NET_ROUTE_MAP oldCatNodes = _mapNodes ;
          NodeID oldID ;
 
          _catVerion = version ;
          _mapNodes.clear() ;
          optCB->clearCatAddr() ;
-         map<UINT64, _netRouteNode>::iterator it = mapNodes.begin() ;
+         NET_ROUTE_MAP::iterator it = mapNodes.begin() ;
          // iterate for each nodes in catalog list
          while ( it != mapNodes.end() )
          {
@@ -2548,14 +2548,14 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__FNDCATNODEID, "_clsShardMgr::_findCatNodeID" )
-   INT32 _clsShardMgr::_findCatNodeID ( MAP_ROUTE_NODE &catNodes,
+   INT32 _clsShardMgr::_findCatNodeID ( NET_ROUTE_MAP &catNodes,
                                         const CHAR *hostName,
                                         const std::string & service,
                                         NodeID & id )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR__FNDCATNODEID );
-      MAP_ROUTE_NODE_IT it = catNodes.begin() ;
+      NET_ROUTE_MAP::iterator it = catNodes.begin() ;
       while ( it != catNodes.end() )
       {
          const clsNodeItem &nodeItem = it->second ;

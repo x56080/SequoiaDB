@@ -44,8 +44,7 @@ namespace engine
    class _clsVSSilence : public _clsVoteStatus
    {
    public:
-      _clsVSSilence( _clsGroupInfo *info,
-                     _netRouteAgent *agent ) ;
+      _clsVSSilence( ICLSReplAgent *replAgent ) ;
       virtual ~_clsVSSilence() ;
 
    public:

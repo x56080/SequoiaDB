@@ -34,18 +34,16 @@
 #include "pd.hpp"
 #include "clsTrace.hpp"
 #include "pdTrace.hpp"
-#include "clsSyncManager.hpp"
-#include "clsVoteMachine.hpp"
+#include "clsReplAgent.hpp"
 #include "pmd.hpp"
-#include "dpsLogWrapper.hpp"
 
 namespace engine
 {
-   _clsReelection::_clsReelection( _clsVoteMachine *vote,
-                                   _clsSyncManager *syncMgr )
-   :_vote( vote ),
-    _syncMgr( syncMgr ),
-    _level( CLS_REELECTION_LEVEL_NONE )
+   _clsReelection::_clsReelection( ICLSReplAgent *replAgent )
+   : _replAgent( replAgent ),
+     _vote( replAgent->getVoteMachine() ),
+     _syncMgr( replAgent->getSyncManager() ),
+     _level( CLS_REELECTION_LEVEL_NONE )
    {
       SDB_ASSERT( NULL != _vote &&
                   NULL != _syncMgr, "can not be null" ) ;
@@ -54,7 +52,6 @@ namespace engine
 
    _clsReelection::~_clsReelection()
    {
-
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION_WAIT, "_clsReelection::wait" )
@@ -225,7 +222,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION__WAIT4REPLICA ) ;
-      DPS_LSN lsn = pmdGetKRCB()->getDPSCB()->getCurrentLsn() ;
+      DPS_LSN lsn = _replAgent->getLocalCurrentLSN() ;
       while ( timePassed < timeout )
       {
          if ( cb->isInterrupted() )
@@ -263,7 +260,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION__STEPDOWN ) ;
       pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
-      EDUID eduID = eduMgr->getSystemEDU( EDU_TYPE_CLUSTER ) ;
+      EDUID eduID = _replAgent->getMainEDUID() ;
       rc = eduMgr->postEDUPost( eduID, PMD_EDU_EVENT_STEP_DOWN ) ;
       if ( SDB_OK != rc )
       {

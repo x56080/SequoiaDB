@@ -39,18 +39,17 @@
 
 #include "core.hpp"
 #include "oss.hpp"
-#include "clsDef.hpp"
+#include "clsReplDef.hpp"
 #include "ossLatch.hpp"
 #include "clsSyncMinHeap.hpp"
 #include "msgReplicator.hpp"
 #include "ossAtomic.hpp"
+#include "pmdEDU.hpp"
+#include "netRouteAgent.hpp"
 #include "ossMemPool.hpp"
 
 namespace engine
 {
-   class _netRouteAgent ;
-   class _dpsLogWrapper ;
-   class _pmdEDUCB ;
 
    typedef ossPoolMultiSet<DPS_LSN_OFFSET>   CLS_WAKE_PLAN ;
 
@@ -60,9 +59,9 @@ namespace engine
    class _clsSyncManager : public SDBObject
    {
    public:
-      _clsSyncManager( _netRouteAgent *agent,
-                       _clsGroupInfo *info ) ;
-
+      _clsSyncManager( ICLSReplAgent *replAgent ) ;
+      _clsSyncManager( netRouteAgent *agent,
+                       clsGroupInfo *info ) ;
       ~_clsSyncManager() ;
 
    public:
@@ -115,7 +114,7 @@ namespace engine
                           UINT16 ensureNodeID = 0 ) ;
 
    private:
-      INT32 _wait( _pmdEDUCB *&cb, UINT32 sub, INT64 timeout = -1 ) ;
+      INT32 _wait( pmdEDUCB *&cb, UINT32 sub, INT64 timeout = -1 ) ;
 
       void _createWakePlan( CLS_WAKE_PLAN &plan ) ;
 
@@ -137,8 +136,9 @@ namespace engine
       _ossSpinXLatch _mtxs[CLS_REPLSET_MAX_NODE_SIZE - 1] ;
       _clsSyncStatus _notifyList[CLS_REPLSET_MAX_NODE_SIZE - 1] ;
 
-      _netRouteAgent *_agent ;
-      _clsGroupInfo *_info ;
+      ICLSReplAgent * _replAgent ;
+      netRouteAgent *_agent ;
+      clsGroupInfo *_info ;
       MsgRouteID _syncSrc ;
 
       /// valid _notifyList size
@@ -148,8 +148,10 @@ namespace engine
 
       UINT32   _wakeTimeout ;
       BOOLEAN  _enableSync ;
-
    } ;
+
+   typedef class _clsSyncManager clsSyncManager ;
+
 }
 
 #endif

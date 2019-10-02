@@ -51,7 +51,7 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__CLSSRCSL__CLSSRCSL ) ;
       _nodeMgrAgent = sdbGetShardCB()->getNodeMgrAgent() ;
-      _syncmgr = sdbGetReplCB()->syncMgr() ;
+      _syncmgr = sdbGetReplCB()->getSyncManager() ;
       _src.value = MSG_INVALID_ROUTEID ;
       PD_TRACE_EXIT ( SDB__CLSSRCSL__CLSSRCSL ) ;
    }

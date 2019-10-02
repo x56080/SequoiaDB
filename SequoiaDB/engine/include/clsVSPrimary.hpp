@@ -44,8 +44,7 @@ namespace engine
    class _clsVSPrimary : public _clsVoteStatus
    {
    public:
-      _clsVSPrimary( _clsGroupInfo *info,
-                     _netRouteAgent *agent ) ;
+      _clsVSPrimary( ICLSReplAgent *replAgent ) ;
       virtual ~_clsVSPrimary() ;
 
    public:

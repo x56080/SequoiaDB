@@ -44,8 +44,7 @@ namespace engine
    class _clsVSAnnounce : public _clsVoteStatus
    {
    public:
-      _clsVSAnnounce( _clsGroupInfo *info,
-                      _netRouteAgent *agent) ;
+      _clsVSAnnounce( ICLSReplAgent *replAgent ) ;
 
       virtual ~_clsVSAnnounce() ;
 
