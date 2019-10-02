@@ -33,19 +33,18 @@
 #ifndef CLS_REELECTION_HPP_
 #define CLS_REELECTION_HPP_
 
-#include "clsDef.hpp"
+#include "clsReplDef.hpp"
 #include "ossEvent.hpp"
+#include "clsVoteMachine.hpp"
+#include "clsSyncManager.hpp"
 
 namespace engine
 {
-   class _clsVoteMachine ;
-   class _clsSyncManager ;
 
    class _clsReelection : public SDBObject
    {
    public:
-      _clsReelection( _clsVoteMachine *vote,
-                      _clsSyncManager *syncMgr ) ;
+      _clsReelection( ICLSReplAgent *replAgent ) ;
       ~_clsReelection() ;
 
    public:
@@ -77,9 +76,10 @@ namespace engine
                    pmdEDUCB *cb,
                    BOOLEAN canSetBlock ) ;
 
-   private:
-      _clsVoteMachine *_vote ;
-      _clsSyncManager *_syncMgr ;
+   protected:
+      ICLSReplAgent *   _replAgent ;
+      clsVoteMachine *  _vote ;
+      clsSyncManager *  _syncMgr ;
       volatile UINT32 _level ;
       ossEvent _event ;
    } ;

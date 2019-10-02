@@ -436,6 +436,7 @@ clsFiles = [
       "cls/clsVSSilence.cpp",
       "cls/clsVSVote.cpp",
       "cls/clsVoteStatus.cpp",
+      "cls/clsReplAgent.cpp",
       "cls/clsMgr.cpp",
       "cls/clsMsgHandler.cpp",
       "cls/clsTimerHandler.cpp",

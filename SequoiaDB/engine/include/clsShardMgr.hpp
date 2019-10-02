@@ -234,9 +234,6 @@ namespace engine
       typedef ossPoolMap<UINT64, clsCSEventItem*>        MAP_CS_EVENT ;
       typedef MAP_CS_EVENT::iterator                     MAP_CS_EVENT_IT ;
 
-      typedef std::map<UINT64, _netRouteNode>            MAP_ROUTE_NODE ;
-      typedef MAP_ROUTE_NODE::iterator                   MAP_ROUTE_NODE_IT ;
-
       DECLARE_OBJ_MSG_MAP()
 
       public:
@@ -354,7 +351,7 @@ namespace engine
                                           BOOLEAN bCreate = FALSE ) ;
          clsEventItem *_findNMSyncEvent ( UINT64 requestID ) ;
 
-         INT32 _findCatNodeID ( MAP_ROUTE_NODE &catNodes,
+         INT32 _findCatNodeID ( NET_ROUTE_MAP &catNodes,
                                 const CHAR *hostName,
                                 const std::string &service,
                                 NodeID &id ) ;
@@ -390,7 +387,7 @@ namespace engine
          UINT64                        _requestID ;
 
          clsGroupItem                  _cataGrpItem ;
-         MAP_ROUTE_NODE                _mapNodes ;
+         NET_ROUTE_MAP                 _mapNodes ;
 
          UINT32                        _catVerion ;
          ossEvent                      _upCatEvent ;

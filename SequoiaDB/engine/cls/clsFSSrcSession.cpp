@@ -1692,7 +1692,7 @@ namespace engine
          /// Notify fullsync, So will kick the node from sync control nodes.
          /// In _processValidCLs, need to get lock of collection, If has some
          /// operators hold the lock and in sync control, will occur dead wait
-         _pRepl->syncMgr()->notifyFullSync( header->routeID ) ;
+         _pRepl->getSyncManager()->notifyFullSync( header->routeID ) ;
 
          /// process valid collections
          rc = _processValidCLs( _validCLs ) ;

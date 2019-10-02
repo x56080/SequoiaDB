@@ -35,19 +35,15 @@
 *******************************************************************************/
 
 #include "clsVSPrimary.hpp"
-#include "pmd.hpp"
-#include "pmdCB.hpp"
+#include "clsReplAgent.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
 
 namespace engine
 {
-   #define CLS_PRIMARY_UP_NOTIFY_TIMES          ( 60 )
 
-   _clsVSPrimary::_clsVSPrimary( _clsGroupInfo *info,
-                                  _netRouteAgent *agent ):
-                                 _clsVoteStatus( info, agent,
-                                               CLS_ELECTION_STATUS_PRIMARY)
+   _clsVSPrimary::_clsVSPrimary( ICLSReplAgent *replAgent )
+   : _clsVoteStatus( replAgent, CLS_ELECTION_STATUS_PRIMARY )
    {
 
    }
@@ -94,57 +90,55 @@ namespace engine
 
    void _clsVSPrimary::deactive ()
    {
-      _MsgCatPrimaryChange msg ;
+      MsgRouteID newPrimaryRID, oldPrimaryRID ;
 
-      // primary change before
-      sdbGetClsCB()->ntyPrimaryChange( FALSE, SDB_EVT_OCCUR_BEFORE ) ;
+      _replAgent->beforePrimaryDeactive() ;
 
       _info()->mtx.lock_w() ;
+
+      oldPrimaryRID = _info()->primary ;
       if ( _info()->local.value == _info()->primary.value )
       {
          _info()->primary.value = MSG_INVALID_ROUTEID ;
       }
-      pmdSetPrimary( FALSE ) ; // set global primary
-      msg.newPrimary = _info()->primary ;
-      msg.oldPrimary = _info()->local ;
+      newPrimaryRID = _info()->primary ;
+
+      _replAgent->onPrimaryDeactive( newPrimaryRID, oldPrimaryRID ) ;
+
       _info()->mtx.release_w() ;
 
-      // primary change after
-      sdbGetClsCB()->ntyPrimaryChange( FALSE, SDB_EVT_OCCUR_AFTER ) ;
-
-      sdbGetReplCB()->callCatalog( (MsgHeader *)&msg ) ;
+      _replAgent->afterPrimaryDeactive( newPrimaryRID, oldPrimaryRID ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSVSPMY_ACTIVE, "_clsVSPrimary::active" )
    void _clsVSPrimary::active( INT32 &next )
    {
       PD_TRACE_ENTRY ( SDB__CLSVSPMY_ACTIVE ) ;
+
+      MsgRouteID newPrimaryRID, oldPrimaryRID ;
+
       _timeout() = 0 ;
       next = id() ;
-      _MsgCatPrimaryChange msg ;
 
-      // before primary
-      sdbGetClsCB()->ntyPrimaryChange( TRUE, SDB_EVT_OCCUR_BEFORE ) ;
+      _replAgent->beforePrimaryActive() ;
 
       _info()->mtx.lock_w() ;
-      msg.newPrimary = _info()->local ;
-      msg.oldPrimary = _info()->primary ;
+
+      oldPrimaryRID = _info()->primary ;
       _info()->primary = _info()->local ;
-      pmdSetPrimary( TRUE ) ; // set global primary
+      newPrimaryRID = _info()->primary ;
+
+      _replAgent->onPrimaryActive( newPrimaryRID, oldPrimaryRID ) ;
+
       _info()->mtx.release_w() ;
 
-      sdbGetReplCB()->reelectionDone() ;
+      _replAgent->reelectionDone() ;
 
       PD_LOG ( PDEVENT, "Change to Primary" ) ;
 
-      // after primary
-      sdbGetClsCB()->ntyPrimaryChange( TRUE, SDB_EVT_OCCUR_AFTER ) ;
-
-      sdbGetReplCB()->callCatalog( (MsgHeader *)&msg,
-                                   CLS_PRIMARY_UP_NOTIFY_TIMES ) ;
+      _replAgent->afterPrimaryActive( newPrimaryRID, oldPrimaryRID ) ;
 
       PD_TRACE_EXIT ( SDB__CLSVSPMY_ACTIVE ) ;
-      return ;
    }
 
 }

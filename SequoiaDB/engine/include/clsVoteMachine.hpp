@@ -40,6 +40,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "clsVoteStatus.hpp"
+#include "netRouteAgent.hpp"
 #include <vector>
 
 using namespace std ;
@@ -52,8 +53,7 @@ namespace engine
    class _clsVoteMachine : public SDBObject
    {
    public:
-      _clsVoteMachine( _clsGroupInfo *info,
-                       _netRouteAgent *agent ) ;
+      _clsVoteMachine( ICLSReplAgent *replAgent ) ;
       ~_clsVoteMachine() ;
 
    public:
@@ -98,16 +98,15 @@ namespace engine
 
       void  handleTimeout( const UINT32 &millisec ) ;
 
-      INT32 active() ;
-
       void  force( const INT32 &id, UINT32 mills = 0 ) ;
       BOOLEAN  isStatus( const INT32 &id ) const ;
 
    private:
-      vector<_clsVoteStatus *>   _status ;
-      _netRouteAgent             *_agent ;
-      _clsVoteStatus             *_current ;
-      _clsGroupInfo              *_groupInfo ;
+      vector<clsVoteStatus *>    _status ;
+      ICLSReplAgent *            _replAgent ;
+      netRouteAgent *            _agent ;
+      clsVoteStatus *            _current ;
+      clsGroupInfo *             _groupInfo ;
       UINT8                      _shadowWeight ;
       UINT32                     _shadowTimeout ;  /// ms
       UINT32                     _forceMillis ;

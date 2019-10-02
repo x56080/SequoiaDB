@@ -35,23 +35,21 @@
 *******************************************************************************/
 
 #include "clsVoteStatus.hpp"
-#include "pmd.hpp"
-#include "pmdCB.hpp"
-#include "dpsLogWrapper.hpp"
+#include "clsReplAgent.hpp"
 #include "pd.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
-#include "pmdStartup.hpp"
 
 namespace engine
 {
-   _clsVoteStatus::_clsVoteStatus( _clsGroupInfo *info,
-                                   _netRouteAgent *agent,
-                                   INT32 id ):
-                                   _groupInfo( info ),
-                                   _agent( agent ),
-                                   _logger( NULL ),
-                                   _id( id )
+   _clsVoteStatus::_clsVoteStatus( ICLSReplAgent *replAgent,
+                                   INT32 id )
+   : _replAgent( replAgent ),
+     _groupInfo( replAgent->getGroupInfo() ),
+     _agent( replAgent->getNetAgent() ),
+     _id( id ),
+     _time( 0 ),
+     _acceptedNum( 0 )
    {
       SDB_ASSERT( CLS_INVALID_VOTE_ID != _id,
                   "id should not be invalid" ) ;
@@ -84,7 +82,7 @@ namespace engine
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
       }
-      else if ( !pmdGetStartup().isOK() &&
+      else if ( _replAgent->isLocalAbnormal() &&
                 !_info()->isAllNodeAbnormal( 0 ) )
       {
          PD_LOG ( PDWARNING, "Start type isn't normal, can't initial voting "
@@ -92,42 +90,26 @@ namespace engine
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
       }
-      else if ( !sdbGetReplCB()->getBucket()->isEmpty() )
+      else if ( !_replAgent->checkVoteLaunch() )
       {
-         PD_LOG( PDWARNING, "Repl log is not empty, can't initial voting, "
-                 "repl bucket size: %d",
-                 sdbGetReplCB()->getBucket()->size() ) ;
+         PD_LOG( PDWARNING, "Failed to check vote launch" ) ;
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
-      }
-      else if ( sdbGetTransCB()->isNeedSyncTrans() &&
-                pmdGetStartup().isOK() )
-      {
-         PD_LOG( PDWARNING, "Trans info is not sync, can't initial voting" ) ;
-         rc = SDB_CLS_VOTE_FAILED ;
-         goto error ;
-      }
-
-      if ( NULL == _logger )
-      {
-         _logger = pmdGetKRCB()->getDPSCB() ;
-         SDB_ASSERT( NULL != _logger, "logger should not be NULL" ) ;
       }
 
       // launch
       {
-         DPS_LSN lsn = _logger->expectLsn() ;
+         DPS_LSN lsn = _replAgent->getLocalExpectLSN() ;
          _MsgClsElectionBallot msg ;
          msg.weights = lsn ;
          msg.identity = _groupInfo->local ;
          msg.round = round ;
-         map<UINT64, _clsSharingStatus *>::iterator itr=
-                                       _groupInfo->alives.begin() ;
+         CLS_ALIVE_MAP::iterator itr = _groupInfo->alives.begin() ;
          for ( ; itr != _groupInfo->alives.end(); itr++ )
          {
             // if my bs is ok, but peer is not ok, skip
             if ( SERVICE_ABNORMAL == itr->second->beat.serviceStatus &&
-                 pmdGetStartup().isOK() )
+                 _replAgent->isLocalOK() )
             {
                continue ;
             }
@@ -160,7 +142,7 @@ namespace engine
       _MsgClsElectionRes msg ;
       msg.identity = _groupInfo->local ;
       msg.round = round ;
-      map<UINT64, _clsSharingStatus >::iterator itrInfo ;
+      CLS_NODE_MAP::iterator itrInfo ;
       BOOLEAN peerAbnormal = FALSE ;
       BOOLEAN localAbnormal = FALSE ;
       DPS_LSN local ;
@@ -177,7 +159,7 @@ namespace engine
       {
          peerAbnormal = TRUE ;
       }
-      if ( !pmdGetStartup().isOK() )
+      if ( _replAgent->isLocalAbnormal() )
       {
          localAbnormal = TRUE ;
       }
@@ -197,16 +179,10 @@ namespace engine
          PD_LOG( PDDEBUG, "vote: sharing break whih majority" ) ;
          goto error ;
       }
-      if ( NULL == _logger )
-      {
-         _logger = pmdGetKRCB()->getDPSCB() ;
-         SDB_ASSERT( NULL != _logger, "logger should not be NULL" ) ;
-      }
-      local = _logger->expectLsn() ;
+      local = _replAgent->getLocalExpectLSN() ;
 
       {
-         map<UINT64, _clsSharingStatus *>::iterator itr =
-                                    _groupInfo->alives.begin() ;
+         CLS_ALIVE_MAP::iterator itr = _groupInfo->alives.begin() ;
          for ( ; itr != _groupInfo->alives.end(); itr++ )
          {
             if ( !peerAbnormal &&
@@ -241,9 +217,9 @@ namespace engine
          /// the same, judge weight.
          else
          {
-            UINT8 weight = pmdGetOptionCB()->weight() ;
-            UINT8 shadowWeight = sdbGetReplCB()->voteMachine()->getShadowWeight() ;
-            weight = CLS_GET_WEIGHT( weight, shadowWeight ) ;
+            UINT8 voteWeight = _replAgent->getVoteWeight() ;
+            UINT8 shadowWeight = _replAgent->getVoteMachine()->getShadowWeight() ;
+            UINT8 weight = CLS_GET_WEIGHT( voteWeight, shadowWeight ) ;
             const UINT8 remoteWeight = itrInfo->second.beat.weight ;
             if ( weight < remoteWeight )
             {
@@ -253,7 +229,7 @@ namespace engine
             {
                goto accepterr ;
             }
-            else if ( itrInfo->second.beat.weight < pmdGetOptionCB()->weight() )
+            else if ( remoteWeight < voteWeight )
             {
                goto accepterr ;
             }
@@ -301,8 +277,7 @@ namespace engine
    void _clsVoteStatus::_broadcastAlives( void *msg )
    {
       PD_TRACE_ENTRY ( SDB__CLSVTSTUS__BCALIVES ) ;
-      map<UINT64, _clsSharingStatus *>::iterator itr=
-                                    _groupInfo->alives.begin() ;
+      CLS_ALIVE_MAP::iterator itr = _groupInfo->alives.begin() ;
       for ( ; itr != _groupInfo->alives.end(); itr++ )
       {
          _agent->syncSend( itr->second->beat.identity, msg ) ;

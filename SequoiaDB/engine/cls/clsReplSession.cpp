@@ -72,7 +72,7 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__CLSDSTREPSN__CLSDSTREPSN );
       _logger = pmdGetKRCB()->getDPSCB() ;
-      _sync = sdbGetReplCB()->syncMgr() ;
+      _sync = sdbGetReplCB()->getSyncManager() ;
       _repl = sdbGetReplCB() ;
       _pReplBucket = _repl->getBucket() ;
 
@@ -764,7 +764,7 @@ namespace engine
          _status = CLS_SESSION_STATUS_SYNC ;
          ++_requestID ;
          // force to secondary
-         pClsCB->getReplCB()->voteMachine()->force( CLS_ELECTION_STATUS_SEC ) ;
+         pClsCB->getReplCB()->getVoteMachine()->force( CLS_ELECTION_STATUS_SEC ) ;
       }
       else
       {
@@ -1257,7 +1257,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSRCREPSN__CLSREPSN );
 
       _logger = pmdGetKRCB()->getDPSCB() ;
-      _sync = sdbGetReplCB()->syncMgr() ;
+      _sync = sdbGetReplCB()->getSyncManager() ;
       _repl = sdbGetReplCB() ;
 
       _lastProcRequestID = 0 ;

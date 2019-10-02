@@ -35,17 +35,15 @@
 *******************************************************************************/
 
 #include "clsVSSecondary.hpp"
+#include "clsReplAgent.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
 
 namespace engine
 {
 
-   INT32 g_startShiftTime = 0 ;
-
-   _clsVSSecondary::_clsVSSecondary( _clsGroupInfo *info,
-                                     _netRouteAgent *agent )
-   :_clsVoteStatus( info, agent, CLS_ELECTION_STATUS_SEC )
+   _clsVSSecondary::_clsVSSecondary( ICLSReplAgent *replAgent )
+   :_clsVoteStatus( replAgent, CLS_ELECTION_STATUS_SEC )
    {
       _hasPrint = FALSE ;
    }
@@ -68,7 +66,7 @@ namespace engine
       }
       else if ( MSG_CLS_BALLOT == header->opCode )
       {
-         g_startShiftTime = -1 ; // some node begin vote
+         _replAgent->setStartShiftTime( -1 ) ; // some node begin vote
 
          const _MsgClsElectionBallot *msg = ( const _MsgClsElectionBallot * )
                                               header ;
@@ -106,19 +104,20 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSVSSD_HDTMOUT ) ;
       _timeout() += millisec ;
 
-      if ( g_startShiftTime > 0 && _info()->isAllNodeBeat() )
+      if ( _replAgent->getStartShiftTime() > 0 && _info()->isAllNodeBeat() )
       {
-         g_startShiftTime = -1 ; // recieve all node sharing-beat
+         _replAgent->setStartShiftTime( -1 ) ; // recieve all node sharing-beat
       }
 
-      if ( ( g_startShiftTime < 0 || g_startShiftTime <= (INT32)_timeout() ) &&
+      if ( ( _replAgent->getStartShiftTime() < 0 ||
+             _replAgent->getStartShiftTime() <= (INT32)_timeout() ) &&
            CLS_VOTE_CS_TIME <= _timeout() )
       {
          if ( _hasPrint )
          {
             PD_LOG( PDEVENT, "Begin to vote..." ) ;
          }
-         g_startShiftTime = -1 ;
+         _replAgent->setStartShiftTime( -1 ) ;
          next = CLS_ELECTION_STATUS_VOTE ;
       }
       else
@@ -128,7 +127,8 @@ namespace engine
             _hasPrint = TRUE ;
             PD_LOG( PDEVENT, "With waiting %u seconds or when all nodes beat "
                     "here, then begin to vote",
-                    ( g_startShiftTime - (INT32)_timeout() ) / 1000 ) ;
+                    ( _replAgent->getStartShiftTime() - (INT32)_timeout() ) /
+                      1000 ) ;
          }
          next = id() ;
       }
@@ -145,7 +145,7 @@ namespace engine
 
       if ( _info()->groupSize() == 1 )
       {
-         g_startShiftTime = -1 ;
+         _replAgent->setStartShiftTime( -1 ) ;
          next = CLS_ELECTION_STATUS_VOTE ;
       }
       else

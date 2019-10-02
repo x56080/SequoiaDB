@@ -67,39 +67,19 @@ namespace engine
 
    const UINT32 CLS_REPL_SEC_TIME = 1000 ;
 
-   #define CLS_REPL_ACTIVE_CHECK( rc ) \
-            do { \
-               if ( !_active ) \
-               { \
-                  rc = SDB_REPL_GROUP_NOT_ACTIVE ;\
-                  goto error ;\
-               } \
-            } while( 0 )
-
-#if defined (_WINDOWS)
-   #define CLS_CONNREFUSED    WSAECONNREFUSED
-#else
-   #define CLS_CONNREFUSED    ECONNREFUSED
-#endif //_WINDOWS
-
    #define CLS_SYNCCTRL_BASE_TIME               (10)
    #define CLS_STOP_WAIT_HEARTBEAT_TIMEOUT      (20*OSS_ONE_SEC)
-   #define CLS_FORMART_STR_128                  (128)
+   #define CLS_PRIMARY_UP_NOTIFY_TIMES          (60)
 
    /*
       _clsReplicateSet define
    */
    _clsReplicateSet::_clsReplicateSet( _netRouteAgent *agent )
-   : _agent( agent ),
-     _vote( &_info, _agent),
+   : ICLSReplAgent( agent ),
      _logger( NULL ),
      _pFTMgr( NULL ),
-     _sync( _agent, &_info ),
-     _reelection( &_vote, &_sync ),
      _clsCB( NULL ),
-     _timerID( CLS_INVALID_TIMERID ),
-     _beatTime( 0 ),
-     _active( FALSE )
+     _timerID( CLS_INVALID_TIMERID )
    {
       _srcSessionNum = 0 ;
       _ntyLastOffset = DPS_INVALID_LSN_OFFSET ;
@@ -118,7 +98,6 @@ namespace engine
       _syncwaitTimeout = 0 ;
       _shutdownWaitTimeout = 0 ;
       _fusingTimeout = 0 ;
-      _isAllNodeFatal = FALSE ;
    }
 
    _clsReplicateSet::~_clsReplicateSet()
@@ -270,7 +249,7 @@ namespace engine
       }
 
       // init start shift time
-      g_startShiftTime = (INT32)pmdGetOptionCB()->startShiftTime() ;
+      setStartShiftTime( (INT32)pmdGetOptionCB()->startShiftTime() ) ;
 
       _logger = pmdGetKRCB()->getDPSCB() ;
       _pFTMgr = pmdGetKRCB()->getFTMgr() ;
@@ -398,10 +377,9 @@ namespace engine
             }
          }
          pmdCleanDoing() ;
-
-         /// force secondary
-         _vote.force( CLS_ELECTION_STATUS_SEC, OSS_SINT32_MAX ) ;
       }
+
+      _deactivate() ;
 
       return SDB_OK ;
    }
@@ -429,9 +407,9 @@ namespace engine
          getBucket()->enforceMaxReplSync( pmdGetOptionCB()->maxReplSync() ) ;
          _sync.enableSync( TRUE ) ;
       }
-      if ( g_startShiftTime >= 0 )
+      if ( getStartShiftTime() >= 0 )
       {
-         g_startShiftTime = (INT32)pmdGetOptionCB()->startShiftTime() ;
+         setStartShiftTime( (INT32)pmdGetOptionCB()->startShiftTime() ) ;
       }
       _syncwaitTimeout = pmdGetOptionCB()->syncwaitTimeout() * OSS_ONE_SEC ;
       _fusingTimeout = pmdGetOptionCB()->ftFusingTimeout() * OSS_ONE_SEC ;
@@ -460,7 +438,7 @@ namespace engine
    {
       INT32 rc      = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSREPSET_ACTIVE );
-      if ( _active )
+      if ( isActive() )
       {
          goto done ;
       }
@@ -470,127 +448,13 @@ namespace engine
          id.columns.serviceID = _clsCB->getReplServiceID() ;
          setLocalID( id ) ;
          _MsgCatGroupReq msg ;
-         msg.id = _info.local ;
+         msg.id = id ;
          _cata.call( (MsgHeader *)(&msg) ) ;
          _timerID = _clsCB->setTimer( CLS_REPL, CLS_REPL_SEC_TIME ) ;
       }
    done:
       PD_TRACE_EXITRC ( SDB__CLSREPSET_ACTIVE, rc );
       return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET__SETGPSET, "_clsReplicateSet::_setGroupSet" )
-   INT32 _clsReplicateSet::_setGroupSet( const CLS_GROUP_VERSION &version,
-                                         map<UINT64, _netRouteNode> &nodes,
-                                         BOOLEAN &changeStatus )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSREPSET__SETGPSET ) ;
-      BOOLEAN hasLocal = FALSE ;
-      std::map<UINT64, _netRouteNode>::iterator itr ;
-      std::map<UINT64, _clsSharingStatus>::iterator itr2 ;
-      changeStatus = FALSE ;
-
-      if ( version <= _info.version )
-      {
-         rc = SDB_REPL_REMOTE_G_V_EXPIRED ;
-         goto error ;
-      }
-
-      if ( CLS_REPLSET_MAX_NODE_SIZE  < nodes.size() )
-      {
-         rc = SDB_CLS_INVALID_GROUP_NUM ;
-         PD_LOG( PDWARNING, "invalid group size : %d",
-                 nodes.size() ) ;
-         goto error ;
-      }
-
-      _info.version = version ;
-
-      /// update new nodes, include the node with
-      /// same id but different address
-      if ( SPARE_GROUPID == _info.local.columns.groupID )
-      {
-         hasLocal = TRUE ;
-         nodes.clear() ;
-      }
-
-      itr = nodes.begin() ;
-      for ( ; itr != nodes.end(); itr++ )
-      {
-        if ( itr->first == _info.local.value )
-        {
-           hasLocal = TRUE ;
-           continue ;
-        }
-        else if ( !itr->second._isActive )
-        {
-           if ( g_startShiftTime < 0 )
-           {
-              /// when has overed the start shift time, need ignore
-              /// the nodes there are not actived
-              continue ;
-           }
-           itr->second._isActive = TRUE ;
-           changeStatus = TRUE ;
-        }
-        if ( SDB_OK == _agent->updateRoute( itr->second._id,
-                                            itr->second ) )
-        {
-           _info.mtx.lock_w() ;
-           _clsGroupBeat &beat = (_info.info[itr->first]).beat ;
-           _info.mtx.release_w() ;
-           beat.identity = itr->second._id ;
-           beat.beatID = 0 ;
-           /// we alive the changed node here. if it is unnormal,
-           /// break it out later.
-           _alive( itr->second._id, FALSE ) ;
-           PD_LOG( PDEVENT, "add node [%s:%s]",
-                   itr->second._host, itr->second._service[0].c_str() ) ;
-        }
-      } // for ( ; itr != nodes.end(); itr++ )
-
-      if ( !hasLocal )
-      {
-         PD_LOG( PDERROR, "local node is not in the cluster!" ) ;
-         PMD_RESTART_DB( SDB_SYS ) ;
-         goto done ;
-      }
-
-      /// remove deleted nodes
-      itr2 = _info.info.begin() ;
-      for ( ; itr2 != _info.info.end(); )
-      {
-         itr = nodes.find( itr2->first ) ;
-         if ( nodes.end() == itr || FALSE == itr->second._isActive )
-         {
-            /// if primary is deleted, set primary invalid
-            if ( itr2->first == _info.primary.value )
-            {
-               _info.primary.value = 0 ;
-            }
-            MsgRouteID tmp ;
-            tmp.value = itr2->first ;
-            PD_LOG( PDEVENT, "erase node[%d,%d]",
-                    tmp.columns.groupID, tmp.columns.nodeID ) ;
-            _info.mtx.lock_w() ;
-            _info.alives.erase( itr2->first ) ;
-            _info.info.erase( itr2++ ) ;
-            _info.mtx.release_w() ;
-         }
-         else
-         {
-            ++itr2 ;
-         }
-      } // for ( ; itr2 != _info.info.end(); itr2++ )
-
-      _sync.updateNotifyList( TRUE ) ;
-
-   done:
-      PD_TRACE_EXITRC ( SDB__CLSREPSET__SETGPSET, rc );
-      return rc ;
-   error:
-      goto done ;
    }
 
    INT32 _clsReplicateSet::callCatalog( MsgHeader *header, UINT32 times )
@@ -606,97 +470,6 @@ namespace engine
    ossEvent* _clsReplicateSet::getSyncEmptyEvent()
    {
       return &_syncEmptyEvent ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_GETPRMY, "_clsReplicateSet::getPrimary" )
-   MsgRouteID _clsReplicateSet::getPrimary ()
-   {
-      PD_TRACE_ENTRY ( SDB__CLSREPSET_GETPRMY );
-      _MsgRouteID primary ;
-      _info.mtx.lock_r () ;
-      primary = _info.primary ;
-      _info.mtx.release_r () ;
-
-      PD_TRACE_EXIT ( SDB__CLSREPSET_GETPRMY );
-      return primary ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_ISSENDNORMAL, "_clsReplicateSet::isSendNormal" )
-   BOOLEAN _clsReplicateSet::isSendNormal( UINT64 nodeID )
-   {
-      PD_TRACE_ENTRY ( SDB__CLSREPSET_ISSENDNORMAL );
-      _info.mtx.lock_r() ;
-      BOOLEAN isNormal = _info.getNodeSendFailedTimes( nodeID ) == 0 ?
-                         TRUE : FALSE ;
-      _info.mtx.release_r() ;
-      PD_TRACE_EXIT ( SDB__CLSREPSET_ISSENDNORMAL );
-      return isNormal ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_GETPRIMARYINFO, "_clsReplicateSet::getPrimaryInfo" )
-   BOOLEAN _clsReplicateSet::getPrimaryInfo( _clsSharingStatus &primaryInfo )
-   {
-      PD_TRACE_ENTRY ( SDB__CLSREPSET_GETPRIMARYINFO );
-      BOOLEAN isOk = FALSE ;
-      _MsgRouteID primary ;
-
-      ossScopedRWLock lock( &_info.mtx, SHARED ) ;
-
-      primary = _info.primary ;
-      map<UINT64, _clsSharingStatus>::iterator itr =
-                                             _info.info.find( primary.value ) ;
-      if ( itr != _info.info.end() )
-      {
-         primaryInfo = itr->second ;
-         isOk = TRUE ;
-      }
-
-      PD_TRACE_EXIT ( SDB__CLSREPSET_GETPRIMARYINFO );
-      return isOk ;
-   }
-
-   // The function is caller by any thread, so need to use lock
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_GETGPINFO, "_clsReplicateSet::getGroupInfo" )
-   void _clsReplicateSet::getGroupInfo( _MsgRouteID &primary,
-                                        vector<_netRouteNode> &group )
-   {
-      PD_TRACE_ENTRY ( SDB__CLSREPSET_GETGPINFO ) ;
-
-      ossScopedRWLock lock( &_info.mtx, SHARED ) ;
-
-      map<UINT64, _clsSharingStatus>::const_iterator itr =
-                                          _info.info.begin() ;
-      INT32 rc = SDB_OK ;
-      _netRouteNode node ;
-      _MsgRouteID id ;
-      primary = _info.primary ;
-      for ( ; itr != _info.info.end(); itr++ )
-      {
-         id.value = itr->first ;
-         rc = _agent->route( id, node ) ;
-         SDB_ASSERT( SDB_OK == rc, "impossible" ) ;
-         if ( SDB_OK == rc )
-         {
-            group.push_back( node ) ;
-         }
-         else
-         {
-            PD_LOG( PDERROR, "group info is not match route table." ) ;
-         }
-      }
-      id = _info.local ;
-      rc = _agent->route( id, node ) ;
-      if ( SDB_OK == rc )
-      {
-         group.push_back( node ) ;
-      }
-      else
-      {
-         PD_LOG( PDERROR, "group info is not match route table." ) ;
-         SDB_ASSERT( false, "impossible" ) ;
-      }
-      PD_TRACE_EXIT ( SDB__CLSREPSET_GETGPINFO );
-      return ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_ONTMR, "_clsReplicateSet::onTimer" )
@@ -722,22 +495,8 @@ namespace engine
          _lastTimerTick = pmdGetDBTick() ;
 
          _cata.handleTimeout( interval ) ;
-         if ( !_active )
-         {
-            goto done ;
-         }
 
-         _beatTime += interval ;
-         if ( CLS_SHARING_BETA_INTERVAL <= _beatTime )
-         {
-            _sharingBeat() ;
-            _beatTime = 0 ;
-         }
-
-         _checkBreak( interval ) ;
-
-         _vote.handleTimeout( interval ) ;
-         _sync.handleTimeout( interval ) ;
+         _handleTimeout( interval ) ;
 
          /// When self is primary and NOSPC, should force to secondary
          if ( _vote.primaryIsMe() &&
@@ -764,23 +523,11 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREPSET_HNDEVENT ) ;
-      if ( PMD_EDU_EVENT_STEP_DOWN == event->_eventType )
+      if ( PMD_EDU_EVENT_STEP_UP == event->_eventType ||
+           PMD_EDU_EVENT_STEP_DOWN == event->_eventType )
       {
-         rc = _handleStepDown() ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to step down:%d", rc ) ;
-            goto error ;
-         }
-      }
-      else if ( PMD_EDU_EVENT_STEP_UP == event->_eventType )
-      {
-         rc = _handleStepUp( event->_userData ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to step up:%d", rc ) ;
-            goto error ;
-         }
+         rc = _handleEvent( event ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to handle event, rc: %d",  rc ) ;
       }
       else
       {
@@ -802,15 +549,17 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSREPSET_HNDMSG ) ;
       switch ( msg->opCode )
       {
+         case MSG_CLS_BEAT :
+         case MSG_CLS_BEAT_RES :
+         case MSG_CLS_BALLOT :
+         case MSG_CLS_BALLOT_RES :
+         {
+            rc = _handleMsg( handle, msg ) ;
+            break ;
+         }
          case MSG_CAT_GRP_RES:
          {
             rc = _handleGroupRes( (const MsgCatGroupRes *)msg ) ;
-            break ;
-         }
-         case MSG_CLS_BEAT :
-         {
-            CLS_REPL_ACTIVE_CHECK( rc ) ;
-            rc = _handleSharingBeat( handle, ( const _MsgClsBeat *)msg ) ;
             break ;
          }
          case MSG_CAT_PAIMARY_CHANGE_RES:
@@ -828,25 +577,6 @@ namespace engine
             {
                _cata.remove( msg, result ) ;
             }
-            break ;
-         }
-         case MSG_CLS_BEAT_RES :
-         {
-            CLS_REPL_ACTIVE_CHECK( rc ) ;
-            rc = _handleSharingBeatRes( handle,
-                                        ( const _MsgClsBeatRes *)msg ) ;
-            break ;
-         }
-         case MSG_CLS_BALLOT :
-         {
-            CLS_REPL_ACTIVE_CHECK( rc ) ;
-            rc = _vote.handleInput( msg ) ;
-            break ;
-         }
-         case MSG_CLS_BALLOT_RES :
-         {
-            CLS_REPL_ACTIVE_CHECK( rc ) ;
-            rc = _vote.handleInput( msg ) ;
             break ;
          }
          case MSG_CLS_GINFO_UPDATED :
@@ -870,7 +600,7 @@ namespace engine
          {
             PD_LOG( PDWARNING, "unknown msg: %s", msg2String( msg ).c_str() ) ;
             rc = SDB_CLS_UNKNOW_MSG ;
-            break ;
+            goto error ;
          }
       }
 
@@ -889,7 +619,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSREPSET__HNDGPRES );
 
       CLS_GROUP_VERSION version ;
-      map<UINT64, _netRouteNode> group ;
+      NET_ROUTE_MAP group ;
       string groupName ;
       BOOLEAN changeStatus = FALSE ;
       UINT32 grpHashCode = 0 ;
@@ -920,7 +650,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _setGroupSet( version, group, changeStatus ) ;
+      rc = _setGroupSet( version, group, grpHashCode, TRUE, changeStatus ) ;
       if ( SDB_OK != rc )
       {
          if ( SDB_REPL_REMOTE_G_V_EXPIRED != rc )
@@ -930,8 +660,6 @@ namespace engine
          }
          rc = SDB_OK ;
       }
-      /// set hash code
-      _info.setHashCode( grpHashCode ) ;
 
       if ( !changeStatus )
       {
@@ -939,15 +667,14 @@ namespace engine
       }
 
       pmdGetKRCB()->setGroupName ( groupName.c_str() ) ;
-      if ( !_active )
+      if ( !isActive() )
       {
          PD_LOG( PDEVENT, "download group info successfully" ) ;
 
          //start repl sync session
          _clsCB->startInnerSession ( CLS_REPL, CLS_TID_REPL_SYC ) ;
 
-         _active = TRUE ;
-         _vote.init() ;
+         _activate() ;
       }
 
    done :
@@ -955,403 +682,6 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   }
-
-   // The function is called by cls mgr thread with the same change thread,
-   // so don't need to use lock
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET__SHRBEAT, "_clsReplicateSet::_sharingBeat" )
-   void _clsReplicateSet::_sharingBeat()
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__CLSREPSET__SHRBEAT ) ;
-
-      if ( _info.info.empty() )
-      {
-         goto done ;
-      }
-      else
-      {
-         DPS_LSN fBegin ;
-         DPS_LSN mBegin ;
-         DPS_LSN end ;
-         DPS_LSN expectLSN ;
-         _logger->getLsnWindow( fBegin, mBegin, end, &expectLSN, NULL ) ;
-         _MsgClsBeat msg ;
-         msg.beat.identity = _info.local ;
-         msg.beat.endLsn = expectLSN ;
-         msg.beat.version = _info.version ;
-         *(UINT32*)msg.beat.hashCode = _info.getHashCode() ;
-         msg.beat.role = _vote.primaryIsMe() ?
-                         CLS_GROUP_ROLE_PRIMARY : CLS_GROUP_ROLE_SECONDARY ;
-         msg.beat.beatID = _info.nextBeatID() ;
-         msg.header.requestID = msg.beat.beatID ;
-         msg.beat.serviceStatus = pmdGetStartup().isOK() ?
-                                  SERVICE_NORMAL : SERVICE_ABNORMAL ;
-         UINT8 weight = pmdGetOptionCB()->weight() ;
-         UINT8 shadowWeight = _vote.getShadowWeight() ;
-         msg.beat.weight = CLS_GET_WEIGHT( weight, shadowWeight ) ;
-         msg.beat.ftConfirmStat = _pFTMgr->getConfirmedStat() ;
-         msg.beat.indoubtErr = _pFTMgr->getIndoubtErr() ;
-         if ( _pFTMgr->isStop() )
-         {
-            msg.beat.nodeRunStat = (UINT8)CLS_NODE_STOP ;
-         }
-         else if ( _pFTMgr->isCatchup() )
-         {
-            msg.beat.nodeRunStat = (UINT8)CLS_NODE_CATCHUP ;
-         }
-
-         map<UINT64, _clsSharingStatus>::iterator itr = _info.info.begin() ;
-         for ( ; itr != _info.info.end(); itr++ )
-         {
-            _clsSharingStatus &status = itr->second ;
- 
-            /// decrease dead time for heartbeat
-            if ( status.deadtime >= pmdGetOptionCB()->sharingBreakTime() &&
-                 status.deadtime >= _beatTime )
-            {
-               status.deadtime -= _beatTime ;
-               continue ;
-            }
-            msg.beat.syncStatus = clsSyncWindow( status.beat.endLsn,
-                                                 fBegin, mBegin, expectLSN ) ;
-
-            rc = _sendSharingBeat( status, &msg ) ;
-            if ( SDB_OK == rc )
-            {
-               status.sendFailedTimes = 0 ;
-            }
-            else
-            {
-               INT32 sysErr = SOCKET_GETLASTERROR ;
-
-               if ( sysErr == CLS_CONNREFUSED )
-               {
-                  ++( status.sendFailedTimes ) ;
-               }
-
-               /// if send heartbeat msg failed, and the node is not in active,
-               /// nead to reset dead time to decrease heartbeat msg
-               if ( _info.alives.find( itr->first ) == _info.alives.end() )
-               {
-                  UINT32 resetTimeout = 0 ;
-                  status.deadtime = pmdGetOptionCB()->sharingBreakTime() - 1 ;
-                  if ( sysErr == CLS_CONNREFUSED )
-                  {
-                     resetTimeout = 1800 * OSS_ONE_SEC ;
-                  }
-                  else
-                  {
-                     resetTimeout = 120 * OSS_ONE_SEC ;
-                  }
-                  status.deadtime += resetTimeout ;
-
-                  PD_LOG( PDEVENT, "Reset node[%d] sharing-beat time to %u(sec)",
-                          status.beat.identity.columns.nodeID,
-                          resetTimeout / OSS_ONE_SEC ) ;
-               }
-               /// When the node is alive, but run stat is CLS_NODE_STOP, and
-               /// send heart-beat failed, should set timeout
-               else if ( CLS_NODE_STOP == status.beat.nodeRunStat )
-               {
-                  status.timeout = pmdGetOptionCB()->sharingBreakTime() ;
-               }
-            }
-         }
-      }
-
-   done:
-      _heartbeatEvent.signalAll() ;
-      PD_TRACE_EXIT ( SDB__CLSREPSET__SHRBEAT );
-      return ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET__SENDSHARINGBEAT, "_clsReplicateSet::_sendSharingBeat" )
-   INT32 _clsReplicateSet::_sendSharingBeat( _clsSharingStatus &status,
-                                             MsgClsBeat *message )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSREPSET__SENDSHARINGBEAT ) ;
-
-      /// use UDP to send message, but we need to test whether remote
-      /// supports UDP for backwards compatibility
-      if ( status.isUDPSupported() )
-      {
-         // UDP is marked supported
-         rc = _agent->syncSendUDP( status.beat.identity, message ) ;
-      }
-      else if ( status.isUDPUnavailable() )
-      {
-         // UDP is marked unavailable, use TCP directly
-         rc = _agent->syncSend( status.beat.identity, message ) ;
-      }
-      else
-      {
-         // UDP status is unknown, test UDP first, and then send with TCP
-         INT32 tmpRC = _agent->syncSendUDP( status.beat.identity, message ) ;
-         if ( SDB_OK != tmpRC )
-         {
-            status.setUDPUnavailable() ;
-         }
-         else
-         {
-            status.increaseUDPTest() ;
-         }
-
-         rc = _agent->syncSend( status.beat.identity, message ) ;
-      }
-
-      PD_TRACE_EXITRC( SDB__CLSREPSET__SENDSHARINGBEAT, rc ) ;
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET__CHKBRK, "_clsReplicateSet::_checkBreak" )
-   void _clsReplicateSet::_checkBreak( const UINT32 &millisec )
-   {
-      /// avoid the use of w lock. only find item need to be
-      /// erase, we lock w. here we think that no need to lock
-      /// w when change value
-      PD_TRACE_ENTRY ( SDB__CLSREPSET__CHKBRK );
-
-      BOOLEAN needErase = FALSE ;
-      map<UINT64, _clsSharingStatus *>::iterator itr ;
-      map< UINT64, _clsSharingStatus>::iterator itrInfo ;
-      _clsSharingStatus *pStatus = NULL ;
-      BOOLEAN isAllNodeFatal = TRUE ;
-
-      for ( itr = _info.alives.begin() ; itr != _info.alives.end() ; itr++ )
-      {
-         pStatus = itr->second ;
-         pStatus->timeout += millisec ;
-
-         if ( isAllNodeFatal &&
-              !PMD_FT_IS_FATAL_FAULT( pStatus->beat.ftConfirmStat ) )
-         {
-            isAllNodeFatal = FALSE ;
-         }
-
-         if ( pmdGetOptionCB()->sharingBreakTime() <= pStatus->timeout )
-         {
-            needErase = TRUE ;
-         }
-      }
-
-      /// update _isAllNodeFatal
-      _isAllNodeFatal = isAllNodeFatal ;
-
-      // increase break node's break time
-      for ( itrInfo = _info.info.begin() ; itrInfo != _info.info.end() ;
-            ++itrInfo )
-      {
-         if ( _info.alives.find( itrInfo->first ) != _info.alives.end() )
-         {
-            continue ;
-         }
-         itrInfo->second.breakTime += millisec ;
-      }
-
-      if ( !needErase )
-      {
-         goto done ;
-      }
-
-      _info.mtx.lock_w() ;
-      itr = _info.alives.begin() ;
-      for ( ; itr != _info.alives.end(); )
-      {
-         pStatus = itr->second ;
-         if ( pmdGetOptionCB()->sharingBreakTime() <= pStatus->timeout )
-         {
-            if ( itr->first == _info.primary.value )
-            {
-               PD_LOG( PDERROR, "vote: primary [node:%d] alive break(%s)",
-                       _info.primary.columns.nodeID,
-                       ( CLS_NODE_STOP == pStatus->beat.nodeRunStat ?
-                         "shutdown" : "unknown" ) ) ;
-               _info.primary.value = MSG_INVALID_ROUTEID ;
-            }
-            else
-            {
-               PD_LOG( PDERROR, "vote: [node:%d] alive break(%s)",
-                       pStatus->beat.identity.columns.nodeID,
-                       ( CLS_NODE_STOP == pStatus->beat.nodeRunStat ?
-                         "shutdown" : "unknown" ) ) ;
-            }
-            pStatus->beat.beatID = CLS_BEATID_INVALID ;
-            pStatus->beat.serviceStatus = SERVICE_UNKNOWN ;
-            pStatus->beat.ftConfirmStat = 0 ;
-            pStatus->beat.indoubtErr = SDB_OK ;
-
-            // alive break, reset UDP support
-            pStatus->resetUDP() ;
-
-            _sync.updateNodeStatus( pStatus->beat.identity, FALSE ) ;
-
-            _info.alives.erase( itr++ ) ;
-         }
-         else
-         {
-            ++itr ;
-         }
-      }
-      _info.mtx.release_w() ;
-      /// cutting when down to secandary is in _clsVSPrimary.
-      if ( _vote.primaryIsMe() )
-      {
-         _sync.cut( _info.alives.size(),
-                    FT_LEVEL_WHOLE == _pFTMgr->getFTLevel() ? TRUE : FALSE ) ;
-      }
-
-   done:
-      PD_TRACE_EXIT ( SDB__CLSREPSET__CHKBRK );
-      return ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET__HNDSHRBEAT, "_clsReplicateSet::_handleSharingBeat" )
-   INT32 _clsReplicateSet::_handleSharingBeat( NET_HANDLE handle,
-                                               const _MsgClsBeat *msg )
-   {
-      SDB_ASSERT( NULL != msg, "msg should not be NULL" ) ;
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__CLSREPSET__HNDSHRBEAT ) ;
-
-      const _clsGroupBeat &beat = msg->beat ;
-      map<UINT64, _clsSharingStatus>::iterator itr ;
-
-      itr = _info.info.find( beat.identity.value ) ;
-      if ( *(UINT32*)beat.hashCode != _info.getHashCode() ||
-          ( _info.info.end() == itr && beat.version <= _info.version ) )
-      {
-         PD_LOG( PDINFO, "Beat hashCode[%u] is not the same with self[%u] or "
-                 "node[%s] is not found in group information",
-                 *(UINT32*)beat.hashCode, _info.getHashCode(),
-                 routeID2String( beat.identity ).c_str() ) ;
-         rc = SDB_REPL_INVALID_GROUP_MEMBER ;
-         goto error ;
-      }
-
-      if ( beat.version > _info.version )
-      {
-         rc = SDB_REPL_LOCAL_G_V_EXPIRED ;
-         //download ;
-         _MsgCatGroupReq msg ;
-         msg.id = _info.local ;
-         _cata.call( (MsgHeader *)(&msg) ) ;
-      }
-      else if ( itr != _info.info.end() )
-      {
-         _clsSharingStatus &statusItem = itr->second ;
-
-         /// FT confirm stat changed
-         if ( statusItem.beat.ftConfirmStat != beat.getFTConfirmStat() )
-         {
-            CHAR oldStatStr[ CLS_FORMART_STR_128 + 1 ] = { 0 } ;
-            CHAR newStatStr[ CLS_FORMART_STR_128 + 1 ] = { 0 } ;
-
-            utilFTMaskToStr( statusItem.beat.ftConfirmStat,
-                             oldStatStr, CLS_FORMART_STR_128 ) ;
-            utilFTMaskToStr( beat.getFTConfirmStat(),
-                             newStatStr, CLS_FORMART_STR_128 ) ;
-            PD_LOG( PDEVENT, "Node[%d]'s fault-tolerance confirm stat "
-                    "changed: 0x%08x(%s) => 0x%08x(%s), indoubt error: %d",
-                    beat.identity.columns.nodeID,
-                    statusItem.beat.ftConfirmStat,
-                    oldStatStr,
-                    beat.getFTConfirmStat(),
-                    newStatStr,
-                    beat.getIndoubtErr() ) ;
-         }
-         /// Node start/stop changed
-         if ( statusItem.beat.nodeRunStat != beat.nodeRunStat )
-         {
-            PD_LOG( PDEVENT, "Node[%d]'s run stat changed: %d(%s) => %d(%s)",
-                    beat.identity.columns.nodeID,
-                    statusItem.beat.nodeRunStat,
-                    clsNodeRunStat2String( statusItem.beat.nodeRunStat ),
-                    beat.nodeRunStat,
-                    clsNodeRunStat2String( beat.nodeRunStat ) ) ;
-         }
-
-         statusItem.beat = beat ;
-
-         if ( CLS_GROUP_ROLE_PRIMARY == beat.role )
-         {
-            g_startShiftTime = -1 ; // have primary node
-
-            if ( _vote.primaryIsMe() )
-            {
-               DPS_LSN lsn  = _logger->expectLsn() ;
-               if ( 0 >= lsn.compare( beat.endLsn ) )
-               {
-                  _info.mtx.lock_w() ;
-                  _info.primary = beat.identity ;
-                  _info.mtx.release_w() ;
-                  _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
-                  PD_LOG( PDEVENT, "vote:remote lsn[%d:%lld]"
-                          " higher(or equal) than local lsn[%d:%lld],"
-                          " we change to secondary.",
-                          beat.endLsn.version, beat.endLsn.offset,
-                          lsn.version, lsn.offset ) ;
-               }
-            }
-            else if ( _info.primary.value != beat.identity.value )
-            {
-               PD_LOG( PDEVENT, "vote: the discovery of new primary[%d]",
-                       beat.identity.columns.nodeID ) ;
-               _cata.remove( MSG_CAT_PAIMARY_CHANGE_RES ) ;
-               _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
-               _info.mtx.lock_w() ;
-               _info.primary = beat.identity ;
-               _info.mtx.release_w() ;
-
-               /// when self is in slice, force to secondary
-               if ( _vote.isStatus( CLS_ELECTION_STATUS_SILENCE ) )
-               {
-                  _vote.force( CLS_ELECTION_STATUS_SEC ) ;
-               }
-            }
-
-            // if find new primary node, should to wake up reelection
-            if ( CLS_ELECTION_WEIGHT_USR_MIN != _vote.getShadowWeight() &&
-                 _vote.isShadowTimeout() )
-            {
-               reelectionDone() ;
-            }
-         }
-         else
-         {
-            if ( _info.primary.value == beat.identity.value )
-            {
-               PD_LOG( PDEVENT, "vote: primary node[%d] is down",
-                       beat.identity.columns.nodeID ) ;
-               _cata.remove( MSG_CAT_PAIMARY_CHANGE_RES ) ;
-               _info.mtx.lock_w() ;
-               _info.primary.value = MSG_INVALID_ROUTEID ;
-               _info.mtx.release_w() ;
-            }
-         }
-      }
-      {
-         _alive( beat.identity, _isUDPHandle( handle ) ) ;
-         _MsgClsBeatRes res ;
-         res.header.header.requestID = msg->header.requestID ;
-         res.identity = _info.local ;
-         _agent->syncSend( handle, &res ) ;
-      }
-   done:
-      PD_TRACE_EXITRC ( SDB__CLSREPSET__HNDSHRBEAT, rc );
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _clsReplicateSet::_handleSharingBeatRes( NET_HANDLE handle,
-                                                  const _MsgClsBeatRes *msg )
-   {
-      SDB_ASSERT( NULL != msg, "msg should not be NULL" ) ;
-      return _alive( msg->identity, _isUDPHandle( handle ) ) ;
    }
 
    void _clsReplicateSet::setLastConsultTick( UINT64 tick )
@@ -1362,82 +692,6 @@ namespace engine
    UINT64 _clsReplicateSet::getLastConsultTick() const
    {
       return _lastConsultTick ;
-   }
-
-   INT32 _clsReplicateSet::aliveNode( const MsgRouteID &id )
-   {
-      INT32 rc = SDB_OK ;
-
-      /// wait for 100 mili-secs
-      rc = _info.mtx.lock_r( 100 ) ;
-
-      if ( SDB_OK == rc )
-      {
-         map<UINT64, _clsSharingStatus*>::iterator itr =
-            _info.alives.find( id.value ) ;
-         if ( itr != _info.alives.end() )
-         {
-            itr->second->timeout = 0 ;
-            itr->second->breakTime = 0 ;
-            itr->second->deadtime = 0 ;
-            itr->second->sendFailedTimes = 0 ;
-         }
-         else
-         {
-            rc = SDB_CLS_NODE_BSFAULT ;
-         }
-         _info.mtx.release_r() ;
-      }
-      return rc ;
-   }
-
-   BOOLEAN _clsReplicateSet::_isUDPHandle( NET_HANDLE handle )
-   {
-      return ( NET_EVENT_HANDLER_UDP ==
-                           _agent->getFrame()->getEventHandleType( handle ) ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET__ALIVE, "_clsReplicateSet::_alive" )
-   INT32 _clsReplicateSet::_alive( const _MsgRouteID &id, BOOLEAN fromUDP )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__CLSREPSET__ALIVE );
-      map<UINT64, _clsSharingStatus>::iterator itr ;
-
-      itr = _info.info.find( id.value ) ;
-      if ( _info.info.end() == itr )
-      {
-         rc = SDB_REPL_INVALID_GROUP_MEMBER ;
-         goto error ;
-      }
-      if ( _info.alives.end() == _info.alives.find( itr->first ) )
-      {
-         _clsSharingStatus &status = itr->second ;
-         _info.mtx.lock_w() ;
-         _info.alives.insert( make_pair( itr->first, &status ) ) ;
-         _sync.updateNodeStatus( status.beat.identity, TRUE ) ;
-         _info.mtx.release_w() ;
-
-         PD_LOG( PDEVENT, "vote: [node:%d] aliving from %s",
-                 status.beat.identity.columns.nodeID,
-                 ( CLS_NODE_STOP == status.beat.nodeRunStat ?
-                   "shutdown" : "break" ) ) ;
-      }
-      itr->second.timeout = 0 ;
-      itr->second.breakTime = 0 ;
-      itr->second.deadtime = 0 ;
-      itr->second.sendFailedTimes = 0 ;
-
-      if ( fromUDP )
-      {
-         itr->second.setUDPSupported() ;
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB__CLSREPSET__ALIVE, rc );
-      return rc ;
-   error:
-      goto done ;
    }
 
    UINT32 _clsReplicateSet::_getThresholdTime( UINT64 diffSize )
@@ -1557,135 +811,76 @@ namespace engine
       return _agent->netOut() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET_REELECT, "_clsReplicateSet::reelect" )
-   INT32 _clsReplicateSet::reelect( CLS_REELECTION_LEVEL lvl,
-                                    UINT32 seconds,
-                                    pmdEDUCB *cb,
-                                    UINT16 destID )
+   BOOLEAN _clsReplicateSet::checkVoteLaunch()
    {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSREPSET_REELECT ) ;
-      if ( 1 == groupSize() )
+      BOOLEAN checkResult = TRUE ;
+
+      if ( !sdbGetReplCB()->getBucket()->isEmpty() )
       {
-         goto done ;
+         PD_LOG( PDWARNING, "Repl log is not empty, can't initial voting, "
+                 "repl bucket size: %d",
+                 sdbGetReplCB()->getBucket()->size() ) ;
+         checkResult = FALSE ;
+      }
+      else if ( sdbGetTransCB()->isNeedSyncTrans() &&
+                pmdGetStartup().isOK() )
+      {
+         PD_LOG( PDWARNING, "Trans info is not sync, can't initial voting" ) ;
+         checkResult = FALSE ;
       }
 
-      rc = _reelection.run( lvl, seconds, cb, destID ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to reelect:%d", rc ) ;
-         goto error ;
-      }
-   done:
-      PD_TRACE_EXITRC( SDB__CLSREPSET_REELECT, rc ) ;
-      return rc ;
-   error:
-      goto done ;
+      return checkResult ;
    }
 
-   void _clsReplicateSet::reelectionDone()
+   DPS_LSN _clsReplicateSet::getLocalExpectLSN()
    {
-      _vote.setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
-      _reelection.signal() ;
+      return _logger->expectLsn() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET__HANDLESTEPDOWN, "_clsReplicateSet::_handleStepDown" )
-   INT32 _clsReplicateSet::_handleStepDown()
+   DPS_LSN _clsReplicateSet::getLocalCurrentLSN()
    {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSREPSET__HANDLESTEPDOWN ) ;
-      _vote.setShadowWeight( CLS_ELECTION_WEIGHT_MIN ) ;
-      _vote.force( CLS_ELECTION_STATUS_SEC ) ;
-      PD_TRACE_EXITRC( SDB__CLSREPSET__HANDLESTEPDOWN, rc ) ;
-      return rc ;
+      return _logger->getCurrentLsn() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET__HANDLESTEPUP, "_clsReplicateSet::_handleStepUp" )
-   INT32 _clsReplicateSet::_handleStepUp( UINT32 seconds )
+   void _clsReplicateSet::getLSNWindow( DPS_LSN &fileBeginLSN,
+                                        DPS_LSN &memBeginLSN,
+                                        DPS_LSN &endLSN,
+                                        DPS_LSN &expectLSN )
    {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSREPSET__HANDLESTEPUP ) ;
-      PD_LOG(PDEVENT, "force to step up, seconds:%d", seconds ) ;
-      _vote.force( CLS_ELECTION_STATUS_PRIMARY,
-                   seconds * 1000 ) ;
-      PD_TRACE_EXITRC( SDB__CLSREPSET__HANDLESTEPUP, rc ) ;
-      return rc ;
+      _logger->getLsnWindow( fileBeginLSN, memBeginLSN, endLSN, &expectLSN,
+                             NULL ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET__STEPUP, "_clsReplicateSet::stepUp" )
-   INT32 _clsReplicateSet::stepUp( UINT32 seconds,
-                                   pmdEDUCB *cb )
+   BOOLEAN _clsReplicateSet::isLocalOK()
    {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSREPSET__STEPUP ) ;
-      DPS_LSN lsn ;
-      pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
-      EDUID eduID = eduMgr->getSystemEDU( EDU_TYPE_CLUSTER ) ;
-
-      if ( MSG_INVALID_ROUTEID != getPrimary().value )
-      {
-         PD_LOG( PDERROR, "can not step up when primary node"
-                 " exists" ) ;
-         rc = SDB_CLS_CAN_NOT_STEP_UP ;
-         goto error ;
-      }
-      else if ( !_active )
-      {
-         rc = SDB_CLS_NODE_INFO_EXPIRED ;
-         PD_LOG( PDERROR, "can not step up before local's node download group info" ) ;
-         goto error ;
-      }
-
-      lsn = pmdGetKRCB()->getDPSCB()->expectLsn() ;
-      if ( _sync.atLeastOne( lsn.offset ) )
-      {
-         PD_LOG( PDERROR, "can not step up when other nodes' lsn"
-                 " bigger than local's" ) ;
-         rc = SDB_CLS_CAN_NOT_STEP_UP ;
-         goto error ;
-      }
-
-      rc = eduMgr->postEDUPost( eduID,
-                                PMD_EDU_EVENT_STEP_UP,
-                                PMD_EDU_MEM_NONE,
-                                NULL, seconds ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to post event to repl cb:%d", rc ) ;
-         goto error ;
-      }
-   done:
-      PD_TRACE_EXITRC( SDB__CLSREPSET__STEPUP, rc ) ;
-      return rc ;
-   error:
-      goto done ;
+      return pmdGetStartup().isOK() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET_PRIMARYCHECK, "_clsReplicateSet::primaryCheck" )
-   INT32 _clsReplicateSet::primaryCheck( pmdEDUCB *cb )
+   BOOLEAN _clsReplicateSet::isLocalSpare()
    {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSREPSET_PRIMARYCHECK ) ;
-      rc = _reelection.wait( cb ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to wait:%d", rc ) ;
-         goto error ;
-      }
-      else if ( !primaryIsMe () )
-      {
-         rc = SDB_CLS_NOT_PRIMARY ;
-         goto error ;
-      }
-      else
-      {
-         /// do nothing.
-      }
-   done:
-      PD_TRACE_EXITRC( SDB__CLSREPSET_PRIMARYCHECK, rc ) ;
+      return ( SPARE_GROUPID == _info.local.columns.groupID ) ;
+   }
+
+   UINT8 _clsReplicateSet::getVoteWeight()
+   {
+      return pmdGetOptionCB()->weight() ;
+   }
+
+   UINT32 _clsReplicateSet::getSharingBreakTime()
+   {
+      return pmdGetOptionCB()->sharingBreakTime() ;
+   }
+
+   INT32 _clsReplicateSet::getSyncStrategy()
+   {
+      return pmdGetOptionCB()->syncStrategy() ;
+   }
+
+   INT32 _clsReplicateSet::onLocalNotFoundInGroup()
+   {
+      INT32 rc = SDB_SYS ;
+      PMD_RESTART_DB( rc ) ;
       return rc ;
-   error:
-      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET_REPLSZCHECK, "_clsReplicateSet::replSizeCheck" )
@@ -1895,5 +1090,70 @@ namespace engine
       goto done ;
    }
 
-}
+   void _clsReplicateSet::beforePrimaryActive()
+   {
+      // before primary
+      _clsCB->ntyPrimaryChange( TRUE, SDB_EVT_OCCUR_BEFORE ) ;
+   }
 
+   void _clsReplicateSet::onPrimaryActive( const MsgRouteID &newPrimaryRID,
+                                           const MsgRouteID &oldPrimaryRID )
+   {
+      // set global primary
+      pmdSetPrimary( TRUE ) ;
+   }
+
+   void _clsReplicateSet::afterPrimaryActive( const MsgRouteID &newPrimaryRID,
+                                              const MsgRouteID &oldPrimaryRID )
+   {
+      MsgCatPrimaryChange msg ;
+
+      _clsCB->ntyPrimaryChange( TRUE, SDB_EVT_OCCUR_AFTER ) ;
+
+      // update catalog
+      msg.newPrimary = newPrimaryRID ;
+      msg.oldPrimary = oldPrimaryRID ;
+      callCatalog( (MsgHeader *)&msg, CLS_PRIMARY_UP_NOTIFY_TIMES ) ;
+   }
+
+   void _clsReplicateSet::beforePrimaryDeactive()
+   {
+      // primary change before
+      _clsCB->ntyPrimaryChange( FALSE, SDB_EVT_OCCUR_BEFORE ) ;
+   }
+
+   void _clsReplicateSet::onPrimaryDeactive( const MsgRouteID &newPrimaryRID,
+                                             const MsgRouteID &oldPrimaryRID )
+   {
+      // set global primary
+      pmdSetPrimary( FALSE ) ;
+   }
+
+   void _clsReplicateSet::afterPrimaryDeactive( const MsgRouteID &newPrimaryRID,
+                                                const MsgRouteID &oldPrimaryRID )
+   {
+      MsgCatPrimaryChange msg ;
+
+      // primary change after
+      _clsCB->ntyPrimaryChange( FALSE, SDB_EVT_OCCUR_AFTER ) ;
+
+      // update catalog
+      msg.newPrimary = newPrimaryRID ;
+      msg.oldPrimary = oldPrimaryRID ;
+      callCatalog( (MsgHeader *)&msg, CLS_PRIMARY_UP_NOTIFY_TIMES ) ;
+   }
+
+   void _clsReplicateSet::onLocalGroupExpired()
+   {
+      //download ;
+      MsgCatGroupReq msg ;
+      msg.id = _info.local ;
+      _cata.call( (MsgHeader *)(&msg) ) ;
+   }
+
+   void _clsReplicateSet::onNotifiedPrimaryChange()
+   {
+      _cata.remove( MSG_CAT_PAIMARY_CHANGE_RES ) ;
+   }
+
+}

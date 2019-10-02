@@ -44,8 +44,7 @@ namespace engine
    class _clsVSSecondary : public _clsVoteStatus
    {
    public:
-      _clsVSSecondary( _clsGroupInfo *info,
-                       _netRouteAgent *agent ) ;
+      _clsVSSecondary( ICLSReplAgent *replAgent ) ;
       virtual ~_clsVSSecondary() ;
    public:
       virtual INT32 handleInput( const MsgHeader *header,

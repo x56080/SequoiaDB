@@ -35,7 +35,7 @@
 *******************************************************************************/
 
 #include "clsVoteMachine.hpp"
-#include "netRouteAgent.hpp"
+#include "clsReplAgent.hpp"
 #include "clsVSSilence.hpp"
 #include "clsVSSecondary.hpp"
 #include "clsVSVote.hpp"
@@ -48,8 +48,7 @@ namespace engine
 {
    #define CLS_VOTE_REGISGER_STATUS( status, rc ) \
            do {\
-              _clsVoteStatus *s = SDB_OSS_NEW status( _groupInfo,\
-                                                      _agent ) ;\
+              _clsVoteStatus *s = SDB_OSS_NEW status( _replAgent ) ;\
               if ( NULL == s ) \
               {\
                  clear() ;\
@@ -100,16 +99,15 @@ namespace engine
               }\
            } while ( 0 )
 
-   _clsVoteMachine::_clsVoteMachine( _clsGroupInfo *info,
-                                     _netRouteAgent *agent )
-   :_agent( agent ),
-    _current( NULL ),
-    _groupInfo( info ),
-    _shadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ),
-    _shadowTimeout( 0 ),
-    _forceMillis( 0 )
+   _clsVoteMachine::_clsVoteMachine( ICLSReplAgent *replAgent )
+   : _replAgent( replAgent ),
+     _agent( replAgent->getNetAgent() ),
+     _current( NULL ),
+     _groupInfo( replAgent->getGroupInfo() ),
+     _shadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ),
+     _shadowTimeout( 0 ),
+     _forceMillis( 0 )
    {
-
    }
 
    _clsVoteMachine::~_clsVoteMachine()

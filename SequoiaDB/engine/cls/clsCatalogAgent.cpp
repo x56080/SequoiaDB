@@ -3683,7 +3683,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       UINT32 primary = 0 ;
       UINT32 groupID = 0 ;
-      map<UINT64, _netRouteNode> groups ;
+      NET_ROUTE_MAP groups ;
 
       PD_LOG( PDDEBUG, "Update groupItem[%s]", obj.toString().c_str() ) ;
 
@@ -3917,13 +3917,13 @@ namespace engine
       }
    }
 
-   INT32 _clsGroupItem::updateNodes ( std::map <UINT64, _netRouteNode> & nodes )
+   INT32 _clsGroupItem::updateNodes ( NET_ROUTE_MAP & nodes )
    {
       INT32 rc = SDB_OK ;
 
       _clear() ;
 
-      std::map <UINT64, _netRouteNode>::iterator it = nodes.begin () ;
+      NET_ROUTE_MAP::iterator it = nodes.begin () ;
       UINT8 pos = 0 ;
 
       try
@@ -4377,7 +4377,7 @@ namespace engine
       UINT32 groupVersion = 0 ;
       UINT32 groupID = 0 ;
       string groupName ;
-      map<UINT64, _netRouteNode> group ;
+      NET_ROUTE_MAP group ;
       UINT32 primary = 0 ;
 
       if ( !objdata || 0 == length )

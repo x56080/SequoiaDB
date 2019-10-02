@@ -1017,6 +1017,8 @@ namespace engine
          //Set TimerHandler EDU
          _shdTimerHandler->attach ( pMainCB ) ;
          _replTimerHandler->attach ( pMainCB ) ;
+
+         _replObj->setMainEDUID( pMainCB->getID() ) ;
       }
       else if ( EDU_TYPE_CLUSTERSHARD == pMainCB->getType() )
       {

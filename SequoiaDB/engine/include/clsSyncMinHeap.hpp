@@ -39,7 +39,7 @@
 
 #include "core.hpp"
 #include "oss.hpp"
-#include "clsDef.hpp"
+#include "clsReplDef.hpp"
 #include "ossMem.hpp"
 #include "pd.hpp"
 #include <iostream>

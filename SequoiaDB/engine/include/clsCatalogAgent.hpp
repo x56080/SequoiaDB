@@ -491,7 +491,7 @@ namespace engine
       protected:
          void   setGroupInfo ( const std::string& name, UINT32 version,
                                UINT32 primary ) ;
-         INT32  updateNodes ( std::map<UINT64, _netRouteNode>& nodes ) ;
+         INT32  updateNodes ( NET_ROUTE_MAP &nodes ) ;
       public:
          UINT32 nodeCount () ;
 

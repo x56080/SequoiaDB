@@ -35,14 +35,11 @@
 *******************************************************************************/
 
 #include "clsSyncManager.hpp"
-#include "pmdEDU.hpp"
-#include "dpsLogWrapper.hpp"
-#include "netRouteAgent.hpp"
+#include "clsReplAgent.hpp"
 #include "clsBase.hpp"
 #include <map>
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
-#include "pmd.hpp"
 
 using namespace std ;
 
@@ -57,13 +54,13 @@ namespace engine
    #define CLS_WAKE_W_TIMEOUT             ( 2000 )
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__CLSSYNCMAG, "_clsSyncManager::_clsSyncManager" )
-   _clsSyncManager::_clsSyncManager( _netRouteAgent *agent,
-                                     _clsGroupInfo *info ):
-                                     _agent( agent ),
-                                     _info( info ),
-                                     _validSync( 0 ),
-                                     _timeout( 0 ),
-                                     _aliveCount( 0 )
+   _clsSyncManager::_clsSyncManager( ICLSReplAgent *replAgent )
+   : _replAgent( replAgent ),
+     _agent( replAgent->getNetAgent() ),
+     _info( replAgent->getGroupInfo() ),
+     _validSync( 0 ),
+     _timeout( 0 ),
+     _aliveCount( 0 )
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__CLSSYNCMAG ) ;
       _syncSrc.value = MSG_INVALID_ROUTEID ;
@@ -77,6 +74,26 @@ namespace engine
       _enableSync = TRUE ;
 
       PD_TRACE_EXIT ( SDB__CLSSYNCMAG__CLSSYNCMAG ) ;
+   }
+
+   _clsSyncManager::_clsSyncManager( netRouteAgent *agent,
+                                     clsGroupInfo *info )
+   : _replAgent( NULL ),
+     _agent( agent ),
+     _info( info ),
+     _validSync( 0 ),
+     _timeout( 0 ),
+     _aliveCount( 0 )
+   {
+      _syncSrc.value = MSG_INVALID_ROUTEID ;
+      _wakeTimeout = 0 ;
+
+      for ( UINT32 i = 0 ; i < CLS_REPLSET_MAX_NODE_SIZE - 1 ; i++ )
+      {
+         _checkList[i] = DPS_INVALID_LSN_OFFSET ;
+      }
+
+      _enableSync = TRUE ;
    }
 
    _clsSyncManager::~_clsSyncManager()
@@ -132,9 +149,12 @@ namespace engine
    DPS_LSN_OFFSET _clsSyncManager::getSyncCtrlArbitLSN()
    {
       DPS_LSN_OFFSET offset = DPS_INVALID_LSN_OFFSET ;
-      INT32 syncSty = pmdGetOptionCB()->syncStrategy() ;
 
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG_GETARBITLSN ) ;
+
+      INT32 syncSty = ( NULL != _replAgent ) ?
+                      ( _replAgent->getSyncStrategy() ) :
+                      ( CLS_SYNC_NONE ) ;
 
       if ( 0 == _validSync || CLS_SYNC_NONE == syncSty )
       {
@@ -178,7 +198,7 @@ namespace engine
 
       /// info's changing is handled in one thread.
       /// no need to require lock.
-      map<UINT64, _clsSharingStatus> &group = _info->info ;
+      CLS_NODE_MAP &group = _info->info ;
       UINT32 removed = 0 ;
       UINT32 prevAlives = 0 ;
       UINT32 aliveRemoved = 0 ;
@@ -221,8 +241,7 @@ namespace engine
       }
 
       UINT32 merge = valid ;
-      map<UINT64, _clsSharingStatus>::const_iterator itr =
-                                        group.begin() ;
+      CLS_NODE_MAP::const_iterator itr = group.begin() ;
       /// add new nodes
       for ( ; itr != group.end(); itr++ )
       {
@@ -433,8 +452,7 @@ namespace engine
       res.value = MSG_INVALID_ROUTEID ;
 
       _info->mtx.lock_r() ;
-      map<UINT64, _clsSharingStatus *>::iterator itr =
-                      _info->alives.find( _info->primary.value ) ;
+      CLS_ALIVE_MAP::iterator itr = _info->alives.find( _info->primary.value ) ;
       /// if primary is peer, choose primary.
       /// primary is not be affected by the blacklist.
       if ( _info->alives.end() != itr &&
@@ -501,8 +519,7 @@ namespace engine
       id.value = MSG_INVALID_ROUTEID ;
       _info->mtx.lock_r() ;
       /*MsgRouteID ids[CLS_REPLSET_MAX_NODE_SIZE -1 ] ;
-      map<UINT64, _clsSharingStatus *>::iterator itr =
-                           _info->alives.begin() ;
+      CLS_ALIVE_MAP::iterator itr = _info->alives.begin() ;
       UINT16 sub = 0 ;
       for ( ; itr != _info->alives.end(); itr++ )
       {
