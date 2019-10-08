@@ -264,7 +264,7 @@ namespace engine
          INT64                   _totalRecords ;
          // mutex
          ossRWMutex              _dataLock ;
-         ossRWMutex              _prefetchLock ;
+         ossSpinSLatch           _prefetchLock ;
          UINT32                  _prefetchID ;
          ossAtomic32             _waitPrefetchNum ;
          BOOLEAN                 _isInPrefetch ;
