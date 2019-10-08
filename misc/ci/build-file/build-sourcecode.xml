@@ -80,7 +80,7 @@
       <if>
          <equals arg1="${compile.debug}" arg2="true"/>
          <then>
-            <svnversion dir="${WORKSPACE}/sequoiadb/driver/java" version="fdw_svn" />
+            <gitversion dir="${WORKSPACE}/sequoiadb/driver/java" version="fdw_svn" />
             <var name="cmd_mvn" value="versions:set -DnewVersion=${sequoiadb_version}-r${fdw_svn}"/>
          </then>
          <else>
@@ -656,14 +656,14 @@
       </if>
    </target>
   
-   <macrodef name="svnversion">
+   <macrodef name="gitversion">
       <attribute name="dir"/>
       <attribute name="version"/>
       <sequential>
          <var name="@{verison}" unset="true"/>
          <exec executable="bash" dir="@{dir}" outputproperty="@{version}" failonerror="true" logError="true" >
             <arg value="-c" />
-            <arg line="&quot;svn info | grep Revision | awk '{print $2}'&quot;" />
+            <arg line=" &quot;git log -1 --pretty=format:'%h' &quot; " />
          </exec>
       </sequential>
    </macrodef>
