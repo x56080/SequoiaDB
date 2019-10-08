@@ -1134,10 +1134,22 @@ __METHOD_IMP(sdb_get_version)
    INT32 fixed = 0;
    INT32 release = 0 ;
    const CHAR *build = NULL ;
+   const CHAR *gitVer = NULL ;
 
-   ossGetVersion( &version, &sub_version, &fixed, &release, &build ) ;
+   ossGetVersion( &version, &sub_version, &fixed,
+                  &release, &build, &gitVer ) ;
 
-   return MAKE_RETURN_INT_INT_INT_INT_STRING( version, sub_version, fixed, release, build ) ;
+   if ( gitVer )
+   {
+      return MAKE_RETURN_INT_INT_INT_INT_STRING_STRING( version, sub_version,
+                                                        fixed, release, build,
+                                                        gitVer ) ;
+   }
+   else
+   {
+      return MAKE_RETURN_INT_INT_INT_INT_STRING( version, sub_version,
+                                                 fixed, release, build ) ;
+   }
 }
 
 __METHOD_IMP(sdb_init_client)

@@ -94,6 +94,10 @@
 
 #define MAKE_RETURN_INT_INT_INT_INT_STRING( verion, sub_verion, fixed, release, build)\
    ( PyObject * )Py_BuildValue( "(i,i,i,i,s)", version, sub_version, fixed, release, build )
+
+#define MAKE_RETURN_INT_INT_INT_INT_STRING_STRING( verion, sub_verion, fixed, release, build, git_ver)\
+   ( PyObject * )Py_BuildValue( "(i,i,i,i,s,s)", version, sub_version, fixed, release, build, git_ver )
+
 /*
  *@brief    macro to cast python object to specified class object
  *@py_object object need to cast
