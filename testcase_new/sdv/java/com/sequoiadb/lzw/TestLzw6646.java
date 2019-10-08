@@ -70,7 +70,7 @@ public class TestLzw6646 extends SdbTestBase {
                 cl.alterCollection((BSONObject)JSON.parse("{CompressionType: 'snappy'}"));
                 throw new BaseException(-10000, "Parameter 'CompressionType' shouldn't been altered successfully");
             }catch(BaseException e){
-                Assert.assertEquals(e.getErrorCode(), -6, e.getMessage());
+                Assert.assertEquals(e.getErrorCode(), -32, e.getMessage());
             }
             try{
                 cl.alterCollection((BSONObject)JSON.parse("{Compressed: true, CompressionType: 'snappy'}"));
