@@ -13,6 +13,8 @@ import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -86,6 +88,63 @@ public class TestBSON {
 
         object = obj;
         objBytes = BSON.encode(obj);
+    }
+
+    @Test
+    public void testPutAllUnique(){
+        Map<String,String> map = new HashMap<String,String>();
+        map.put("1","1");
+        map.put("2","2");
+        map.put("3","3");
+
+        // test in BasicBSONObject
+        // test putAllUnique(BSONObject b)
+        BSONObject obj1 = new BasicBSONObject();
+        obj1.put("A",1);
+        obj1.put("B",2);
+        obj1.put("C",3);
+
+        BSONObject obj2 = new BasicBSONObject();
+        obj2.put("A",5);
+        obj2.putAllUnique(obj1);
+        obj1.put("A",5);
+        System.out.println(obj2);
+        assertEquals(obj1, obj2);
+
+        // test putAllUnique(Map m)
+        BSONObject obj3 = new BasicBSONObject();
+        obj3.put("1","5");
+        obj3.putAllUnique(map);
+        map.put("1","5");
+        BSONObject obj4 = new BasicBSONObject();
+        obj4.putAll(map);
+        System.out.println(obj3);
+        assertEquals(obj3, obj4);
+
+        // test in BasicBSONObject
+        // test putAllUnique(BSONObject b)
+        BSONObject objList1 = new BasicBSONList();
+        objList1.put("1",1);
+        objList1.put("2",2);
+        objList1.put("3",3);
+
+        BSONObject objList2 = new BasicBSONList();
+        objList2.put("1",5);
+        objList2.putAllUnique(objList1);
+        objList1.put("1",5);
+        assertEquals(objList1, objList2);
+        System.out.println(objList2);
+
+        // test putAllUnique(Map m)
+        map.put("1","1");
+        BSONObject objList3 = new BasicBSONList();
+        objList3.put("1","5");
+        objList3.putAllUnique(map);
+        map.put("1","5");
+        BSONObject objList4 = new BasicBSONList();
+        objList4.putAll(map);
+        assertEquals(objList3, objList4);
+        System.out.println(objList3);
     }
 
    /* @Test

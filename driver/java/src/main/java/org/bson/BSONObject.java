@@ -59,6 +59,14 @@ public interface BSONObject extends Serializable {
 	public void putAll(BSONObject o);
 
 	/**
+	 * Sets all key/value pairs from an object into this object if the keys don't exist.
+	 *
+	 * @param o
+	 *            the object
+	 */
+	public void putAllUnique(BSONObject o);
+
+	/**
 	 * The current bson object keeps any elements or not
 	 * 
 	 * @return true for empty, false for not
@@ -73,6 +81,14 @@ public interface BSONObject extends Serializable {
 	 */
 	@SuppressWarnings("rawtypes")
 	public void putAll(Map m);
+
+	/**
+	 * Sets all key/value pairs from a map into this object if the keys don't exist.
+	 *
+	 * @param m
+	 *            the map
+	 */
+	public void putAllUnique(Map m);
 
 	/**
 	 * Gets a field from this object by a given name.
