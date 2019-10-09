@@ -112,7 +112,7 @@ OSSPID ossGetParentProcessID();
 OSSPID ossGetCurrentProcessID();
 OSSTID ossGetCurrentThreadID();
 UINT32 ossGetLastError();
-const CHAR* ossGetLastSysErrMsg( UINT32 sysErrno ) ;
+const CHAR* ossGetLastErrorMsg( UINT32 sysErrno ) ;
 void ossSleep(UINT32 milliseconds);
 void ossPanic () ;
 

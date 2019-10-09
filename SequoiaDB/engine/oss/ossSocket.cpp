@@ -199,7 +199,7 @@ INT32 _ossSocket::initSocket ()
    if ( SOCKET_INVALIDSOCKET == _fd )
    {
       PD_LOG ( PDERROR, "Failed to initialize socket, errno: %d( %s )",
-               SOCKET_GETLASTERROR, ossGetLastSysErrMsg( SOCKET_GETLASTERROR ) ) ;
+               SOCKET_GETLASTERROR, ossGetLastErrorMsg( SOCKET_GETLASTERROR ) ) ;
       rc = SDB_NETWORK ;
       goto error ;
    }
@@ -407,7 +407,7 @@ INT32 _ossSocket::send ( const CHAR *pMsg, INT32 len,
             continue ;
          }
          PD_LOG ( PDERROR, "Failed to select from socket, errno: %d( %s )",
-                  rc, ossGetLastSysErrMsg( rc ) ) ;
+                  rc, ossGetLastErrorMsg( rc ) ) ;
          rc = SDB_NETWORK ;
          goto error ;
       }
@@ -473,7 +473,7 @@ INT32 _ossSocket::send ( const CHAR *pMsg, INT32 len,
          }
          PD_LOG ( PDERROR, "Failed to send, errno: %d( %s )",
                   SOCKET_GETLASTERROR,
-                  ossGetLastSysErrMsg( SOCKET_GETLASTERROR ) ) ;
+                  ossGetLastErrorMsg( SOCKET_GETLASTERROR ) ) ;
          rc = SDB_NETWORK ;
          goto error ;
       }
@@ -1249,7 +1249,7 @@ retry:
          goto retry ;
       }
       PD_LOG( PDERROR, "select(2), errno: %d( %s )",
-              rc, ossGetLastSysErrMsg( rc ) ) ;
+              rc, ossGetLastErrorMsg( rc ) ) ;
       rc = SDB_SYS ;
       goto error ;
    }
@@ -1274,7 +1274,7 @@ retry:
    {
       errno = err ;
       PD_LOG( PDERROR, "failed to connect to remote, errno: %d( %s )",
-              err, ossGetLastSysErrMsg( err ) ) ;
+              err, ossGetLastErrorMsg( err ) ) ;
       rc = SDB_NET_CANNOT_CONNECT ;
       goto error ;
    }

@@ -118,7 +118,7 @@ UINT32 ossGetLastError()
 #endif
 }
 
-const CHAR* ossGetLastSysErrMsg ( UINT32 sysErrno )
+const CHAR* ossGetLastErrorMsg( UINT32 sysErrno )
 {
    const static CHAR* errMsgs[] =
    {
