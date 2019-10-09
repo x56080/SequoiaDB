@@ -2,8 +2,7 @@
 *@Description:  seqDB-18943: 底数的整数位和小数位全为0，指数为309（如00.00e+309） 
 *@Author     :  2019-8-8  zhaoxiaoni
 ************************************************************************/
-//SEQUOIADBMAINSTREAM-4800
-//main();
+main();
 function main()
 {
    var clName = "cl_18943";
@@ -21,19 +20,13 @@ function main()
    dataType = "double";
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
-   dataType = "decimal";
-   var expResult = getExpResult( dataType );
-   checkResult( cl, dataType, expResult );
    cl.truncate();
    
    println( "\n---data type double、decimal to import json file." );
    var fields = "a";   
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
-   checkImportRC( rcResults, 800 );
+   checkImportRC( rcResults, 400 );
    dataType = "double";
-   var expResult = getExpResult( dataType );
-   checkResult( cl, dataType, expResult );
-   dataType = "decimal";
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
    
@@ -44,14 +37,21 @@ function prepareDate( typeFile )
 {
    var file = new File( typeFile );
    var left = "";
-   for( var i = 0; i < 620; i++ )
+   for( var i = 0; i < 20; i++ )
    {
       var right = "";
       left = left + "0";
       for( var j = 0; j < 20; j++ )
       {
          right = right + "0";
-         file.write( left + "." + right + "e" + (309-i) + "\n" );
+         if( typeFile.substring(typeFile.indexOf(".")+1, typeFile.length ) == "csv" )
+         {
+            file.write( left + "." + right + "e+" + (300+i) + "\n" );
+         }
+         else
+         {
+            file.write( '{ a:' + left + '.' + right + "e+" + (300+i) + ' }\n' );
+         }
       }
    }
    file.close();
@@ -65,15 +65,7 @@ function getExpResult( dataType )
       var decimalDate = "0.";
       for( var j = 0; j < 20; j++ )
       {
-         decimalDate = decimalDate + "0";
-         if( dataType == "decimal" )
-         {
-            expResult.push({ a: { "$decimal": decimalDate }});
-         }
-         else
-         {
-            expResult.push({ a: 0 });
-         }
+         expResult.push({ a: 0 });
       }
    }
    return expResult;
