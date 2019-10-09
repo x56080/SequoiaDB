@@ -138,7 +138,8 @@ testFiles = [
    [ "./uninited/sdbDomain14038.cpp" ],
    [ "./uninited/sdbLob14039.cpp" ],
    [ "./sessionAttr/instanceid14166.cpp" ], # sync
-   [ "./auth/createusr17958.cpp" ]
+   [ "./auth/createusr17958.cpp" ],
+   [ "./list/listtest_19946.cpp" ]
 ]
 
 def getFileName( filePath ):
