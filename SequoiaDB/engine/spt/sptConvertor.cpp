@@ -800,7 +800,7 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
       if( SPT_OID_STR_LENGTH != strValue.size() )
       {
          std::stringstream ss ;
-         ss << "The length of ObjectId is not equal " << SPT_OID_STR_LENGTH ;
+         ss << "The length of oid str is not equal " << SPT_OID_STR_LENGTH ;
          _setErrorMsg( ss.str().c_str(), FALSE );
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -808,7 +808,7 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
 
       if ( !engine::utilIsValidOID( strValue.c_str() ) )
       {
-         _setErrorMsg( "The ObjectId is invalid", FALSE ) ;
+         _setErrorMsg( "The oid str is invalid", FALSE ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
