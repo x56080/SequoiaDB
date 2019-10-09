@@ -57,6 +57,7 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
    INT32 rightPos = 0 ;
 
    INT32 subscale = 0 ;
+   BOOLEAN hasInteger = FALSE ;
    INT64 n2  = 0 ;
    FLOAT64 n = 0 ;
    const CHAR *pStr = data ;
@@ -90,6 +91,7 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
       //0xxxxx
       ++pStr ;
       ++len ;
+      hasInteger = TRUE ;
    }
 
    //step 3
@@ -125,6 +127,8 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
 
          ++pStr ;
          ++len ;
+
+         hasInteger = TRUE ;
       }
 
       n1 = (INT32)frac * sign ;
@@ -160,7 +164,20 @@ SDB_EXPORT INT32 utilStrToNumber( const CHAR* data, INT32 length,
          if( ( *pStr < '0' || *pStr > '9' ) &&
              ( *pStr != 'e' && *pStr != 'E' ) )
          {
-            goto finish ;
+            if ( hasInteger )
+            {
+               goto finish ;
+            }
+            else
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+         }
+         else if ( FALSE == hasInteger && ( 'e' == *pStr || 'E' == *pStr ) )
+         {
+            rc = SDB_INVALIDARG;
+            goto error;
          }
 
          if( numType != UTIL_NUM_TYPE_DECIMAL )
