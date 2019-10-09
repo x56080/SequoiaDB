@@ -387,7 +387,7 @@ namespace engine
          {
             INT32 sec = 0 ;
             INT64 l   = ( ( INT64 )( e.date().millis ) ) / 1000 ;
-            if ( l > OSS_SINT32_MAX || l < OSS_SINT32_MIN )
+            if ( l > OSS_SINT32_MAX_LL || l < OSS_SINT32_MIN_LL )
             {
                sec = 0 ;
             }
@@ -403,7 +403,7 @@ namespace engine
             INT64 l = ( INT64 )( e.timestampTime().millis ) ;
             l      += ( INT64 )( ((INT32)(e.timestampInc())) / 1000 ) ;
             l       = l / 1000; // seconds
-            if ( l > OSS_SINT32_MAX || l < OSS_SINT32_MIN )
+            if ( l > OSS_SINT32_MAX_LL || l < OSS_SINT32_MIN_LL )
             {
                sec = 0 ;
             }
