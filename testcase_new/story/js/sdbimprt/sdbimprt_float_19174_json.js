@@ -86,7 +86,7 @@ function initExpectData_testPoint( expRecsNum, findType )
          expRecs.push(JSON.stringify( record ));
       }
       
-      for (var i = 800; i < 1201; i++)
+      for (var i = 800; i < 1200; i++)
       {
          var record = {"a": i, "b": 0};
          expRecs.push(JSON.stringify( record ));

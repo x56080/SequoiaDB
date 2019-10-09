@@ -19,7 +19,7 @@ function main()
    // import
    var rc = importData( csName, clName, importFile, type ); 
    // check results
-   var succRecsNum = 307;
+   var succRecsNum = 400;
    var failRecsNum = recsNum - succRecsNum;
    checkImportRC( rc, succRecsNum, succRecsNum, failRecsNum );    
    checkCount( cl, succRecsNum );   
