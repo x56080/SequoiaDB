@@ -2419,12 +2419,6 @@ int decimal_from_str( const char *value, bson_decimal *decimal )
 #else
       exponent = strtoll( cp, &pEndPtr, 10 ) ;
 #endif
-      if ( cp == pEndPtr )
-      {
-         //wrong format
-         rc = -6 ;
-         goto error ;
-      }
 
       cp = pEndPtr ;
       if ( exponent > DECIMAL_MAX_PRECISION ||
