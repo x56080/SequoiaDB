@@ -453,6 +453,21 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 	}
 
 	/**
+	 * Sets all key/value pairs from a map into this object if the keys don't exist.
+	 *
+	 * @param m
+	 *            the map
+	 */
+	public void putAllUnique(Map m){
+		for (Map.Entry entry : (Set<Map.Entry>) m.entrySet()) {
+			if (_objectMap.keySet().contains(entry.getKey().toString())) {
+				continue;
+			}
+			put(entry.getKey().toString(), entry.getValue());
+		}
+	}
+
+	/**
 	 * Sets all key/value pairs from an object into this object
 	 * 
 	 * @param o
@@ -461,6 +476,21 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 	// @Override
 	public void putAll(BSONObject o) {
 		for (String k : o.keySet()) {
+			put(k, o.get(k));
+		}
+	}
+
+	/**
+	 * Sets all key/value pairs from an object into this object if the keys don't exist.
+	 *
+	 * @param o
+	 *            the object
+	 */
+	public void putAllUnique(BSONObject o){
+		for (String k : o.keySet()) {
+			if (_objectMap.keySet().contains(k)) {
+				continue;
+			}
 			put(k, o.get(k));
 		}
 	}
