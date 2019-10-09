@@ -58,6 +58,7 @@ namespace CSharp.Crud.Query
             { 
                 0, 
                 10 /*invalid flag*/, 
+                1024,
                 DBQuery.FLG_QUERY_WITH_RETURNDATA, 
                 DBQuery.FLG_QUERY_PARALLED, 
                 DBQuery.FLG_QUERY_FORCE_HINT 
