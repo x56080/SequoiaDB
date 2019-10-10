@@ -13,7 +13,7 @@ function main()
    
    println( "\n---data type double, decimal to import json file." );
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
-   checkImportRC( rcResults, 20000 );
+   checkImportRC( rcResults, 20 );
    var expResult = getExpResult( "double" );
    checkResult( cl, "double", expResult );
    var expResult = getExpResult( "decimal" );
@@ -25,71 +25,41 @@ function main()
 function prepareDate( typeFile )
 {
    var file = new File( typeFile );
-   var leftR = "";
-   for( var i = 0; i < 10; i++ )
+   var left = "1";
+   var right = "1";
+   for(var i=0; i<10; i++)
    {
-      var leftL = "";
-      leftR = leftR + "0";
-      for( var j = 0; j < 10; j++ )
-      {
-         var rightL = "";
-         leftL = leftL + "0";
-         for( var k = 0; k < 10; k++ )
-         {
-            var rightR = "";
-            rightL = rightL + "0";
-            for( var l = 0; l < 10; l++ )
-            { 
-               rightR = rightR + "0";
-               var left = leftL + "1" + leftR;
-               var right = rightL + "1" + rightR;
-               file.write( '{ a: ' + left + '.' + right + ' }\n' );
-               file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' );
-               
-            }
-         }
-      }
-   }
+      file.write( '{ a: ' + left + '.' + right + ' }\n' );
+      file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' );
+      left = "0" + left + "0"; 
+      right = "0" + right + "0";
+   } 
    file.close();
 }
 
 function getExpResult( dataType )
 {
    var expResult = []; 
-   var leftR = "";
-   for( var i = 0; i < 10; i++ )
+   var expResult = []; 
+   var left = "1";
+   var right = "1";
+   for(var i=0; i<10; i++)
    {
-      var leftL = "";
-      leftR = leftR + "0";
-      for( var j = 0; j < 10; j++ )
+      if( dataType == "double" && i < 7)
       {
-         var rightL = "";
-         leftL = leftL + "0";
-         for( var k = 0; k < 10; k++ )
-         {
-            var rightR = "";
-            rightL = rightL + "0";
-            for( var l = 0; l < 10; l++ )
-            { 
-               rightR = rightR + "0";
-               var left = leftL + "1" + leftR;
-               var right = rightL + "1" + rightR;
-               if( dataType == "decimal" && (i+k) < 12 )
-               {
-                  expResult.push( { a: {"$decimal": "1" + leftR + "." + right } } ); 
-               }
-               else if( dataType == "decimal" && (i+k) >= 12 )
-               {
-                  expResult.push( { a: {"$decimal": "1" + leftR + "." + right } } );
-                  expResult.push( { a: {"$decimal": "1" + leftR + "." + right } } );
-               }
-               else if( dataType =="double" && (i+k) < 12 )
-               {
-                  expResult.push({ a: parseFloat( "1" + leftR + "." + rightL + "1" )});
-               }
-            }
-         }
+         expResult.push({ a: parseFloat( left + "." + right )});
       }
+      else if( dataType == "decimal" && i < 7)
+      {
+         expResult.push( { a: {"$decimal": left + "." + right } } );
+      }
+      else if( dataType == "decimal" && i >= 7)
+      {
+         expResult.push({ a: {"$decimal": left + "." + right }});
+         expResult.push({ a: {"$decimal": left + "." + right }});
+      }
+      left = left + "0"; 
+      right = "0" + right + "0";
    }
    return expResult;
 }
