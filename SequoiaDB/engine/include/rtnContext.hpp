@@ -180,6 +180,8 @@ namespace engine
    class _rtnContextBase : public SDBObject
    {
       friend class _rtnContextParaData ;
+      typedef boost::shared_ptr<ossRWMutex>     ctxMutexPtr ;
+
       public:
          _rtnContextBase ( INT64 contextID, UINT64 eduID ) ;
          virtual ~_rtnContextBase () ;
@@ -295,7 +297,7 @@ namespace engine
          INT64                   _totalRecords ;
          // mutex
          ossRWMutex              _dataLock ;
-         ossSpinSLatch           _prefetchLock ;
+         ctxMutexPtr             _prefetchLock ;
          UINT32                  _prefetchID ;
          ossAtomic32             _waitPrefetchNum ;
          BOOLEAN                 _isInPrefetch ;

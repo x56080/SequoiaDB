@@ -177,8 +177,11 @@ namespace engine
 
       /// wait prefetch complete
       _prefetchID = 0 ;
-      _prefetchLock.get() ;
-      _prefetchLock.release() ;
+      if ( _prefetchLock.get() )
+      {
+         _prefetchLock->lock_w() ;
+         _prefetchLock->release_w() ;
+      }
       _pPrefWatcher = NULL ;
 
       if ( _pResultBuffer )
@@ -459,7 +462,17 @@ namespace engine
          SDB_BPSCB *bpsCB = pmdGetKRCB()->getBPSCB() ;
          if ( bpsCB->isPrefetchEnabled() )
          {
-            _prefetchLock.get_shared() ;
+            if ( !_prefetchLock.get() )
+            {
+               ossRWMutex *pMutex = SDB_OSS_NEW ossRWMutex() ;
+               if ( !pMutex )
+               {
+                  goto done ;
+               }
+               _prefetchLock = ctxMutexPtr( pMutex ) ;
+            }
+
+            _prefetchLock->lock_r() ;
             if ( SDB_OK == bpsCB->sendPrefechReq( bpsDataPref( _prefetchID,
                                                                this ) ) )
             {
@@ -467,7 +480,7 @@ namespace engine
             }
             else
             {
-               _prefetchLock.release_shared() ;
+               _prefetchLock->release_r() ;
             }
          }
       }
@@ -560,7 +573,8 @@ namespace engine
       _waitPrefetchNum.dec() ;
       if ( FALSE == againTry )
       {
-         _prefetchLock.release_shared() ;
+         ctxMutexPtr tmpMutexPtr( _prefetchLock ) ;
+         tmpMutexPtr->release_r() ;
       }
       return rc ;
    error:
