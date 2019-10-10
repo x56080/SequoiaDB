@@ -349,6 +349,9 @@ namespace DriverTest
             // case 3
             cursor = coll.Query(null, null, null, hint, 0, -1, 
                 DBQuery.FLG_QUERY_WITH_RETURNDATA | DBQuery.FLG_QUERY_FORCE_HINT | DBQuery.FLG_QUERY_PARALLED);
+            // case 4
+            cursor = coll.Query(null, null, null, hint, 0, -1,
+                DBQuery.FLG_QUERY_MODIFY | DBQuery.FLG_QUERY_EXPLAIN);
         }
 
         [TestMethod()]
