@@ -25,6 +25,19 @@ function main()
         }			
     }
 	
+    //插入Oid值长度大于24字节
+    try
+    {
+        dbcl.insert( {a : {"$oid" : "123abcd00af12358902300123456"} } );   
+    }
+    catch ( e )
+    {
+        if( -6 !== e )
+        {
+            throw new Error( "insert fail: " + getErr(e) );
+        }			
+    }
+	
     //插入Oid值长度等于24字节但内容不正确
     try
     {
