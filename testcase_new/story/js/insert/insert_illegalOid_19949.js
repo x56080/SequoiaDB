@@ -5,7 +5,19 @@
 *@testlinkCase: seqDB-19949:插入记录，指定oid值非法
 ******************************************************************************/
 
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;
+   }
+   throw e ;
+};
+
 function main()
 {
     var clName = COMMCLNAME + "_insert19949";	
@@ -21,7 +33,7 @@ function main()
     {
         if( -6 !== e )
         {
-            throw new Error( "insert fail: " + getErr(e) );
+            throw buildException("insert()", e, "insert", "-6", e);
         }			
     }
 	
@@ -34,7 +46,7 @@ function main()
     {
         if( -6 !== e )
         {
-            throw new Error( "insert fail: " + getErr(e) );
+            throw buildException("insert()", e, "insert", "-6", e);
         }			
     }
 	
@@ -47,7 +59,7 @@ function main()
     {
         if( -6 !== e )
         {
-            throw new Error( "insert fail: " + getErr(e) );
+            throw buildException("insert()", e, "insert", "-6", e);
         }			
     }
 
