@@ -644,6 +644,7 @@ namespace SequoiaDB
             if (flag != 0)
             {
                 flag = DBQuery.eraseSingleFlag(flag, DBQuery.FLG_QUERY_EXPLAIN);
+                flag = DBQuery.eraseSingleFlag(flag, DBQuery.FLG_QUERY_MODIFY);
             }
             return _Query(query, selector, orderBy, hint, skipRows, returnRows, flag);
         }
@@ -721,9 +722,12 @@ namespace SequoiaDB
                 newHint.Merge(hint);
             }
             newHint.Add(SequoiadbConstants.FIELD_MODIFY, modify);
-
+            if (flag != 0)
+            {
+                flag = DBQuery.eraseSingleFlag(flag, DBQuery.FLG_QUERY_EXPLAIN);
+            }
             flag |= DBQuery.FLG_QUERY_MODIFY;
-            return Query(query, selector, orderBy, newHint, skipRows, returnRows, flag);
+            return _Query(query, selector, orderBy, newHint, skipRows, returnRows, flag);
         }
 
         /** \fn DBCursor QueryAndUpdate(BsonDocument query, BsonDocument selector, BsonDocument orderBy, BsonDocument hint, 
@@ -847,7 +851,10 @@ namespace SequoiaDB
             {
                 newObj.Add(SequoiadbConstants.FIELD_OPTIONS, options);
             }
-
+            if (flag != 0)
+            {
+                flag = DBQuery.eraseSingleFlag(flag, DBQuery.FLG_QUERY_MODIFY);
+            }
             return _Query(query, selector, orderBy, newObj, skipRows, returnRows, flag | DBQuery.FLG_QUERY_EXPLAIN);
         }
 
