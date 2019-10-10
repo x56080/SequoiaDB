@@ -457,6 +457,9 @@ namespace engine
             }
          }
       }
+
+   done:
+      return ;
    }
 
    INT32 _rtnContextBase::prefetch( pmdEDUCB * cb, UINT32 prefetchID )
