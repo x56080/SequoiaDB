@@ -16,7 +16,8 @@ class testBase : public testing::Test
 {
 protected:
    sdb db ;
-
+   const char* commonCS ;
+   sdbCollectionSpace cs ;
    virtual void SetUp() ;
 
    virtual void TearDown() ;
