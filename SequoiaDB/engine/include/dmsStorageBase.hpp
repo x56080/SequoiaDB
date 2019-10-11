@@ -192,6 +192,7 @@ namespace engine
    class _dmsStorageBase : public ossMmapFile
    {
       friend class _dmsExtendSegmentJob ;
+      typedef boost::shared_ptr<ossSpinSLatch>     sharedMutexPtr ;
 
       public:
          _dmsStorageBase( const CHAR *pSuFileName,
@@ -352,7 +353,7 @@ namespace engine
          ossSpinXLatch                 _pagecleanerLatch ;
 
       private:
-         ossSpinSLatch                 _segmentLatch ;
+         sharedMutexPtr                _segmentLatch ;
          dmsSMEMgr                     _smeMgr ;
          UINT32                        _dataSegID ;
          UINT32                        _pageNum ;
