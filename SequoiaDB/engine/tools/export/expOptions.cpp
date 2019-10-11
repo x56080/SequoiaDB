@@ -88,7 +88,8 @@ namespace exprt
    #define OPTION_INCLUDEREGEX      "includeregex"
    #define OPTION_FORCE             "force"
    #define OPTION_KICKNULL          "kicknull"
-     
+   #define OPTION_CHECKDELIMETER    "checkdelimeter"
+
    // conf
    #define OPTION_CONF              "conf"
    #define OPTION_GENCONF           "genconf"
@@ -128,6 +129,7 @@ namespace exprt
    #define EXPLAIN_FORCE            "for csv, force to export collections without field-names being specified, " \
                                     "the fields(except '_id') of first record in collection will be taken by default"
    #define EXPLAIN_KICKNULL         "whether kick null value, default: false"
+   #define EXPLAIN_CHECKDEL         "whether check delimeter strictly, default: true"
 
    // single collection
    #define EXPLAIN_COLLECTSPACE     "collection space name"
@@ -200,7 +202,8 @@ namespace exprt
       ( OPTION_INCLUDEBINARY,          _TYPE(bool),      EXPLAIN_INCLUDEBINARY)\
       ( OPTION_INCLUDEREGEX,           _TYPE(bool),      EXPLAIN_INCLUDEREGEX )\
       ( OPTION_FORCE,                  _TYPE(bool),      EXPLAIN_FORCE ) \
-      ( OPTION_KICKNULL,               _TYPE(bool),      EXPLAIN_KICKNULL ) 
+      ( OPTION_KICKNULL,               _TYPE(bool),      EXPLAIN_KICKNULL ) \
+      ( OPTION_CHECKDELIMETER,         _TYPE(bool),      EXPLAIN_CHECKDEL )
 
    #define EXP_CONF_OPTIONS \
       ( OPTION_CONF,                   _TYPE(string),    EXPLAIN_CONF ) \
@@ -314,6 +317,7 @@ namespace exprt
                               _includeRegex  (FALSE),
                               _force         (FALSE),
                               _kickNull      (FALSE),
+                              _strictCheckDel(TRUE),
                               _genFields     (TRUE)
    {
    }
@@ -395,6 +399,7 @@ namespace exprt
       WRITE_BOOL_OPTION( writeBuf, OPTION_FORCE, _force, FALSE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_KICKNULL, _kickNull, TRUE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_WITHID, _withId, FALSE ) ;
+      WRITE_BOOL_OPTION( writeBuf, OPTION_CHECKDELIMETER, _strictCheckDel, TRUE ) ;
 
       // single collection options
       WRITE_STR_OPTION( writeBuf, OPTION_COLLECTSPACE, _csName, _has(OPTION_COLLECTSPACE) ) ;
@@ -782,6 +787,11 @@ namespace exprt
    {
       INT32 rc = SDB_OK ;
 
+      if ( _has(OPTION_CHECKDELIMETER) )
+      {
+         _strictCheckDel = _get<bool>(OPTION_CHECKDELIMETER) ;
+      }
+
       if ( _has(OPTION_DELCHAR) )
       { 
          string rawStr = _get<string>(OPTION_DELCHAR) ; 
@@ -853,11 +863,68 @@ namespace exprt
          goto error ;
       }
 
+      if ( _strictCheckDel )
+      {
+         if ( !_checkDelimeters( _delChar, _delField, _delRecord ) )
+         {
+            goto error ;
+         }
+      }
+
    done:
       return rc ;
    error:
       rc = SDB_INVALIDARG ;
       goto done ;
+   }
+
+   BOOLEAN expOptions::_checkDelimeters( string &stringDelimiter,
+                                         string &fieldDelimiter,
+                                         string &recordDelimiter )
+   {
+      if ( stringDelimiter.find( fieldDelimiter ) != string::npos )
+      {
+         std::cerr << OPTION_DELCHAR << " can't contain "
+                   << OPTION_DELFIELD << std::endl ;
+         return FALSE ;
+      }
+
+      if ( stringDelimiter.find( recordDelimiter ) != string::npos )
+      {
+         std::cerr << OPTION_DELCHAR << " can't contain "
+                   << OPTION_DELRECORD << std::endl ;
+         return FALSE ;
+      }
+
+      if ( fieldDelimiter.find( stringDelimiter ) != string::npos )
+      {
+         std::cerr << OPTION_DELFIELD << " can't contain "
+                   << OPTION_DELCHAR << std::endl ;
+         return FALSE ;
+      }
+
+      if ( fieldDelimiter.find( recordDelimiter ) != string::npos )
+      {
+         std::cerr << OPTION_DELFIELD << " can't contain "
+                   << OPTION_DELRECORD << std::endl ;
+         return FALSE ;
+      }
+
+      if ( recordDelimiter.find( stringDelimiter ) != string::npos )
+      {
+         std::cerr << OPTION_DELRECORD << " can't contain "
+                   << OPTION_DELCHAR << std::endl ;
+         return FALSE ;
+      }
+
+      if ( recordDelimiter.find( fieldDelimiter ) != string::npos )
+      {
+         std::cerr << OPTION_DELRECORD << " can't contain "
+                   << OPTION_DELFIELD << std::endl ;
+         return FALSE ;
+      }
+
+      return TRUE ;
    }
 
    // check and set the configure-file options

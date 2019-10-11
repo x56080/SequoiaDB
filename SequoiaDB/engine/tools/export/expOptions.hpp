@@ -117,6 +117,9 @@ namespace exprt
       BOOLEAN  _confHas( const CHAR *option ) const ;
       BOOLEAN  _has( const CHAR *option ) const ;
       INT32    _setOptions() ;
+      BOOLEAN  _checkDelimeters( string &stringDelimiter,
+                                 string &fieldDelimiter,
+                                 string &recordDelimiter ) ;
       INT32    _setDelOptions() ;
       INT32    _setConfOptions() ;
       INT32    _setCollectionOptions() ;
@@ -173,6 +176,7 @@ namespace exprt
       BOOLEAN        _includeRegex ;
       BOOLEAN        _force ;
       BOOLEAN        _kickNull ;
+      BOOLEAN        _strictCheckDel ;
 
       /* conf */
       string         _conf ;
