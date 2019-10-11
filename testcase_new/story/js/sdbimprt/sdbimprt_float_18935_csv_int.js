@@ -14,7 +14,7 @@ function main()
    println( "\n---specify data type int32 to import csv file." );
    var fields = "a int";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
-   checkImportRC( rcResults, 29 );
+   checkImportRC( rcResults, 39 );
    var dataType = "int32";
    var expResult = getExpResult();
    checkResult( cl, dataType, expResult );
@@ -24,8 +24,6 @@ function main()
 
 function prepareDate( typeFile )
 {
-   //此用例是指定int32导入集合，当浮点数的整数位有效数字大于int32的最大值时，导入到集合后的数据无规则，
-   //因此控制浮点数的整数位有效数字小于int32的最大值，构造文本用例中前三种数据
    var file = new File( typeFile );
    var left = "10";
    var right = "01000000000000000000";
@@ -52,6 +50,14 @@ function prepareDate( typeFile )
       file.write( left + "." + right + "\n" );
    }    
    
+   left = "010000000000000000000";
+   right = "10";
+   for(var i=0; i<10; i++)
+   {
+      right = right + "0"; 
+      file.write( left + "." + right + "\n" );
+   } 
+   
    file.close();
 }
 
@@ -70,6 +76,12 @@ function getExpResult()
       expResult.push({ a: parseInt( left ) });
    } 
    left = "10";
+   for(var i=0; i<10; i++)
+   {
+      expResult.push({ a: parseInt( left ) });
+   } 
+   //当浮点数的整数部分大于int64的最大值时，指定int32导入集合，显示为0
+   left = "0";
    for(var i=0; i<10; i++)
    {
       expResult.push({ a: parseInt( left ) });
