@@ -576,8 +576,6 @@ class SequoiaDB
     *                                                           SDB_LIST_TASKS
     *                                                           SDB_LIST_TRANSACTIONS
     *                                                           SDB_LIST_TRANSACTIONS_CURRENT
-    *                                                           SDB_LIST_SVCTASKS
-    *                                                           SDB_LIST_SEQUENCES
     *                                                           SDB_LIST_USERS
     *                                                           SDB_LIST_CL_IN_DOMAIN
     *                                                           SDB_LIST_CS_IN_DOMAIN
