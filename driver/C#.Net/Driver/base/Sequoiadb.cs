@@ -789,8 +789,7 @@ namespace SequoiaDB
          *  \param matcher The matching condition or null
          *  \param selector The selective rule or null
          *  \param orderBy The ordered rule or null
-	     *  \param hint The hint rule, the options provided for specific snapshot type
-	     *              format:{ '$Options': { <options> } }
+	     *  \param hint Reserved
 	     *  \param skipRows Reserved
          *  \param returnRows Reserved
          *  \return A DBCursor of all the fitted objects or null

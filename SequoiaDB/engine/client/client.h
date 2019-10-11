@@ -409,8 +409,7 @@ SDB_EXPORT INT32 sdbGetSnapshot ( sdbConnectionHandle cHandle,
     \param [in] condition The matching rule, match all the documents if null.
     \param [in] select The selective rule, return the whole document if null.
     \param [in] orderBy The ordered rule, never sort if null.
-    \param [in] hint The options provided for specific snapshot type.
-                format:{ '$Options': { <options> } }
+    \param [in] hint Reserved.
     \param [in] numToSkip Reserved.
     \param [in] numToReturn Reserved.
     \param [out] handle The cursor handle of current query.

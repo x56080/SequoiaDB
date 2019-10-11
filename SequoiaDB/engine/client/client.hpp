@@ -3499,7 +3499,7 @@ namespace sdbclient
      \param [in] condition The matching rule, match all the documents if not provided.
      \param [in] select The selective rule, return the whole document if not provided.
      \param [in] orderBy The ordered rule, result set is unordered if not provided.
-     \param [in] hint The options provided for specific list type. Reserved.
+     \param [in] hint Reserved.
      \param [in] numToSkip Reserved.
      \param [in] numToReturn Reserved.
      \param [out] cursor The return cursor handle of query.

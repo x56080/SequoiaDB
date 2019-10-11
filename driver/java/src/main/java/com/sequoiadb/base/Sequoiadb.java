@@ -1216,7 +1216,7 @@ public class Sequoiadb {
      * @param matcher  the matching rule, match all the documents if null
      * @param selector the selective rule, return the whole document if null
      * @param orderBy  the ordered rule, never sort if null
-     * @param hint     the hint rule, the options provided for specific snapshot type. format:{ '$Options': { <options> } }
+     * @param hint     Reserved.
      * @param skipRows   Reserved.
      * @param returnRows Reserved.
      * @return the DBCursor instance of the result
