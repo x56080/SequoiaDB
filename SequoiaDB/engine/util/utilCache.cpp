@@ -2444,6 +2444,11 @@ namespace engine
       INT32 rc = SDB_OK ;
       utilCacheBucket* pBucket = NULL ;
 
+      if ( _hasReg )
+      {
+         goto done ;
+      }
+
       if ( !_pMgr || !pFile || 0 == pageSize || 0 == bucketSize )
       {
          rc = SDB_INVALIDARG ;
@@ -2477,6 +2482,7 @@ namespace engine
    done:
       return rc ;
    error:
+      fini( NULL ) ;
       goto done ;
    }
 
