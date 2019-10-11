@@ -160,6 +160,7 @@ CSV（Comma Separated Value）格式以逗号分隔数值。默认情况下记�
 | --extra        |      | 指定导入数据时是否自动添加值，默认值为 false | 
 | --cast         |      | 指定是否允许数值类型转换时丢失精度或数值溢出，默认值为 false | 
 | --strictfieldnum|     | 指定是否严格限制记录的字段数与定义的字段数一致，默认值为 false |
+| --checkdelimeter|     | 是否对分隔符做严格校验，true做严格校验，false不做严格校验，默认为true |
 
 >   **Note:**
 >

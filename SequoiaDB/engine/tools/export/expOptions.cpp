@@ -863,7 +863,7 @@ namespace exprt
          goto error ;
       }
 
-      if ( _strictCheckDel )
+      if ( _strictCheckDel && FORMAT_CSV == _type )
       {
          if ( !_checkDelimeters( _delChar, _delField, _delRecord ) )
          {
