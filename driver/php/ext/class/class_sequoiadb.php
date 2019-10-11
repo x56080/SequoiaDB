@@ -502,8 +502,7 @@ class SequoiaDB
     *
     * @param $orderBy an array or the string argument. The ordered rule, never sort if null.
     *
-    * @param $hint an array or the string argument. The options provided for specific snapshot type.
-    *        format: array( '$Options' => <options> )
+    * @param $hint an array or the string argument. This parameter is reserved.
     *
     * @param $numToSkip an integer argument. This parameter is reserved.
     *
@@ -590,7 +589,7 @@ class SequoiaDB
     *
     * @param $orderBy an array or the string argument. The ordered rule, never sort if null.
     *
-    * @param $hint an array or the string argument. The options provided for specific list type. Reserved.
+    * @param $hint an array or the string argument. This parameter is reserved.
     *
     * @param $numToSkip an integer argument.	Skip the first numToSkip records, never skip if this parameter is 0.
     *
