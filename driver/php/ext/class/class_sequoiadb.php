@@ -118,16 +118,12 @@ class SequoiaDB
    define( "SDB_LIST_TRANSACTIONS",             11 ) ;
    /** Get the transactions information of current session. */
    define( "SDB_LIST_TRANSACTIONS_CURRENT",     12 ) ;
-   /** Get the list of service tasks. */
-   define( "SDB_LIST_SVCTASKS",                 14 ) ;
-   /** Get the list of sequences. */
-   define( "SDB_LIST_SEQUENCES",                15 ) ;
    /** Get the list of users. */
    define( "SDB_LIST_USERS",                    16 ) ;
    /** Get the list of the collections in specified domain. */
-   define( "SDB_LIST_CL_IN_DOMAIN",     129 ) ;
+   define( "SDB_LIST_CL_IN_DOMAIN",             129 ) ;
    /** Get the list of the collection spaces in specified domain. */
-   define( "SDB_LIST_CS_IN_DOMAIN",     130 ) ;
+   define( "SDB_LIST_CS_IN_DOMAIN",             130 ) ;
 
    /**
     * SequoiaDB class constructor.
@@ -509,9 +505,9 @@ class SequoiaDB
     * @param $hint an array or the string argument. The options provided for specific snapshot type.
     *        format: array( '$Options' => <options> )
     *
-    * @param $numToSkip an integer argument.  Skip the first numToSkip records, never skip if this parameter is 0.
+    * @param $numToSkip an integer argument. This parameter is reserved.
     *
-    * @param $numToReturn an integer argument. Only return numToReturn records, return all if this parameter is -1.
+    * @param $numToReturn an integer argument. This parameter is reserved.
     *
     * @return Returns a new SequoiaCursor object.
     *
