@@ -33,6 +33,7 @@
             <antcall target="install"/>
          </else>
       </if>  
+      <antcall target="change_limits"/>
       <antcall target="deploy"/> 
    </target>
    
@@ -45,6 +46,34 @@
                   request="START SHELL COMMAND ${cmd_clear_cluster} WAIT 10m RETURNSTDOUT RETURNSTDERR"
                   throwBuildException=""/>
          </sequential>
+      </for>
+   </target>
+   
+   <target name="change_limits">
+      <for list="${testhost_list}" param="testhost" parallel="true">
+         <sequential> 
+            <staf location="@{testhost}" service="PROCESS"
+                  request="START SHELL COMMAND ${INSTALL_DIR}/bin/sdbcmtop WAIT 5m STDERRTOSTDOUT RETURNSTDOUT"
+                  resultPrefix="cmstop"
+                  throwBuildException="1"/>
+                  
+            <staf location="@{testhost}" service="PROCESS"
+                  request="START SHELL COMMAND sed -i 's/core_file_size=0/core_file_size=-1/g' ${INSTALL_DIR}/conf/limits.conf WAIT 10m STDERRTOSTDOUT RETURNSTDOUT"
+                  resultPrefix="sed"
+                  throwBuildException="1"/>
+            <propertyregex property="sed_rc" input="${sed.result}" regexp="Return\ Code:\ (.*)\n" select="\1"/>
+            <if>
+               <equals arg1="${sed_rc}" arg2="0" />
+               <else>
+                  <fail message="exec: sed 's/core_file_size=0/core_file_size=-1/g' ${INSTALL_DIR}/conf/limits.conf, return code is not 0"/>
+               </else>
+            </if>
+            
+            <staf location="@{testhost}" service="PROCESS"
+                  request="START SHELL COMMAND ${INSTALL_DIR}/bin/sdbcmart WAIT 5m STDERRTOSTDOUT RETURNSTDOUT"
+                  resultPrefix="sdbcmart"
+                  throwBuildException="1"/>
+         </sequential>         
       </for>
    </target>
    
