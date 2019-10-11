@@ -1217,10 +1217,8 @@ public class Sequoiadb {
      * @param selector the selective rule, return the whole document if null
      * @param orderBy  the ordered rule, never sort if null
      * @param hint     the hint rule, the options provided for specific snapshot type. format:{ '$Options': { <options> } }
-     * @param skipRows   skip the first numToSkip documents, never skip if this parameter is 0.
-     * @param returnRows return the specified amount of documents,
-     *                   when returnRows is 0, return nothing,
-     *                   when returnRows is -1, return all the documents.
+     * @param skipRows   Reserved.
+     * @param returnRows Reserved.
      * @return the DBCursor instance of the result
      * @exception com.sequoiadb.exception.BaseException
      */

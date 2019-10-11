@@ -791,10 +791,8 @@ namespace SequoiaDB
          *  \param orderBy The ordered rule or null
 	     *  \param hint The hint rule, the options provided for specific snapshot type
 	     *              format:{ '$Options': { <options> } }
-	     *  \param skipRows Skip the first numToSkip documents, never skip if this parameter is 0
-         *  \param returnRows Return the specified amount of documents,
-         *                    when returnRows is 0, return nothing,
-         *                    when returnRows is -1, return all the documents
+	     *  \param skipRows Reserved
+         *  \param returnRows Reserved
          *  \return A DBCursor of all the fitted objects or null
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception

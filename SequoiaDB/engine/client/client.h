@@ -406,14 +406,14 @@ SDB_EXPORT INT32 sdbGetSnapshot ( sdbConnectionHandle cHandle,
         SDB_SNAP_TRANSACTIONS     : Get snapshot of transactions in current session
         SDB_SNAP_TRANSACTIONS_CURRENT : Get snapshot of all the transactions
 
-    \param [in] condition The matching rule, match all the documents if null
-    \param [in] select The selective rule, return the whole document if null
-    \param [in] orderBy The ordered rule, never sort if null
+    \param [in] condition The matching rule, match all the documents if null.
+    \param [in] select The selective rule, return the whole document if null.
+    \param [in] orderBy The ordered rule, never sort if null.
     \param [in] hint The options provided for specific snapshot type.
                 format:{ '$Options': { <options> } }
-    \param [in] numToSkip Skip the first numToSkip documents, default is 0
-    \param [in] numToReturn Only return numToReturn documents, default is -1 for returning all results
-    \param [out] handle The cursor handle of current query
+    \param [in] numToSkip Reserved.
+    \param [in] numToReturn Reserved.
+    \param [out] handle The cursor handle of current query.
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
