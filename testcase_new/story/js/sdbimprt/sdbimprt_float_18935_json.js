@@ -13,7 +13,7 @@ function main()
    
    println( "\n---data type double, decimal to import json file." );
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
-   checkImportRC( rcResults, 20 );
+   checkImportRC( rcResults, 40 );
    var expResult = getExpResult( "double" );
    checkResult( cl, "double", expResult );
    var expResult = getExpResult( "decimal" );
@@ -25,14 +25,36 @@ function main()
 function prepareDate( typeFile )
 {
    var file = new File( typeFile );
-   var left = "1";
-   var right = "1";
+   var left = "10";
+   var right = "01000000000000000000";
    for(var i=0; i<10; i++)
    {
-      file.write( '{ a: ' + left + '.' + right + ' }\n' );
-      file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' );
-      left = "0" + left + "0"; 
-      right = "0" + right + "0";
+      left = "0" + left; 
+      file.write( "{ a:" + left + "." + right + "}\n" );
+   }
+   
+   left = "01";
+   right = "00000000000000000010";
+   for(var i=0; i<10; i++)
+   {
+      left = left + "0"; 
+      file.write( "{ a:" + left + "." + right + "}\n" );
+   } 
+   
+   left = "00000000000000000010";
+   right = "01";
+   for(var i=0; i<10; i++)
+   {
+      right = right + "0"; 
+      file.write( "{ a:" + left + "." + right + "}\n" );
+   }    
+   
+   left = "010000000000000000000";
+   right = "10";
+   for(var i=0; i<10; i++)
+   {
+      right = right + "0"; 
+      file.write( "{ a:" + left + "." + right + "}\n" );
    } 
    file.close();
 }
@@ -40,26 +62,30 @@ function prepareDate( typeFile )
 function getExpResult( dataType )
 {
    var expResult = []; 
-   var expResult = []; 
-   var left = "1";
-   var right = "1";
-   for(var i=0; i<10; i++)
+   if( dataType === "double" )
    {
-      if( dataType == "double" && i < 7)
+      for(var i = 0; i < 20; i++)
       {
-         expResult.push({ a: parseFloat( left + "." + right )});
+         expResult.push({ a: 10.01 });
       }
-      else if( dataType == "decimal" && i < 7)
+   }
+   else
+   {
+      var left = "1";
+      var right = "00000000000000000010";
+      for(var i=0; i<10; i++)
       {
-         expResult.push( { a: {"$decimal": left + "." + right } } );
-      }
-      else if( dataType == "decimal" && i >= 7)
+         left = left + "0"; 
+         expResult.push({a: { "$decimal": left + "." + right }});
+      } 
+   
+      left = "10000000000000000000";
+      right = "10";
+      for(var i=0; i<10; i++)
       {
-         expResult.push({ a: {"$decimal": left + "." + right }});
-         expResult.push({ a: {"$decimal": left + "." + right }});
-      }
-      left = left + "0"; 
-      right = "0" + right + "0";
+         right = right + "0"; 
+         expResult.push({a: { "$decimal": left + "." + right }});
+      }     
    }
    return expResult;
 }
