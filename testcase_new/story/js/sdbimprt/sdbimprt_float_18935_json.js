@@ -13,11 +13,13 @@ function main()
    
    println( "\n---data type double, decimal to import json file." );
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
-   checkImportRC( rcResults, 40 );
-   var expResult = getExpResult( "double" );
-   checkResult( cl, "double", expResult );
-   var expResult = getExpResult( "decimal" );
-   checkResult( cl, "decimal", expResult );
+   checkImportRC( rcResults, 80 );
+   var cond = {"b": {"$type": 2, "$et": "double"}};
+   var expResult = getExpResult("double");
+   checkCLData( cl, 40, expResult, cond );
+   var cond = {"b": {"$type": 2, "$et": "decimal"}};
+   var expResult = getExpResult("decimal");
+   checkCLData( cl, 40, expResult, cond );
    
    commDropCL( db, COMMCSNAME, clName );
 }
@@ -27,34 +29,34 @@ function prepareDate( typeFile )
    var file = new File( typeFile );
    var left = "10";
    var right = "01000000000000000000";
-   for(var i=0; i<10; i++)
+   for(var i=0; i<20; i++)
    {
       left = "0" + left; 
-      file.write( "{ a:" + left + "." + right + "}\n" );
+      file.write( "{ a:" + i + ", b:" + left + "." + right + "}\n" );
    }
    
    left = "01";
    right = "00000000000000000010";
-   for(var i=0; i<10; i++)
+   for(var i=20; i<40; i++)
    {
       left = left + "0"; 
-      file.write( "{ a:" + left + "." + right + "}\n" );
+      file.write( "{ a:" + i + ", b:" + left + "." + right + "}\n" );
    } 
    
    left = "00000000000000000010";
    right = "01";
-   for(var i=0; i<10; i++)
+   for(var i=40; i<60; i++)
    {
       right = right + "0"; 
-      file.write( "{ a:" + left + "." + right + "}\n" );
+      file.write( "{ a:" + i + ", b:" + left + "." + right + "}\n" );
    }    
    
    left = "010000000000000000000";
    right = "10";
-   for(var i=0; i<10; i++)
+   for(var i=60; i<80; i++)
    {
       right = right + "0"; 
-      file.write( "{ a:" + left + "." + right + "}\n" );
+      file.write( "{ a:" + i + ", b:" + left + "." + right + "}\n" );
    } 
    file.close();
 }
@@ -66,26 +68,30 @@ function getExpResult( dataType )
    {
       for(var i = 0; i < 20; i++)
       {
-         expResult.push({ a: 10.01 });
+         expResult.push({ a: i, b: 10.01 });
+      }
+      for(var i = 40; i < 60; i++)
+      {
+         expResult.push({ a: i, b: 10.01 });
       }
    }
    else
    {
       var left = "1";
       var right = "00000000000000000010";
-      for(var i=0; i<10; i++)
+      for(var i=20; i<40; i++)
       {
          left = left + "0"; 
-         expResult.push({a: { "$decimal": left + "." + right }});
+         expResult.push({a: i, b: { "$decimal": left + "." + right }});
       } 
    
       left = "10000000000000000000";
       right = "10";
-      for(var i=0; i<10; i++)
+      for(var i=60; i<80; i++)
       {
          right = right + "0"; 
-         expResult.push({a: { "$decimal": left + "." + right }});
+         expResult.push({a: i, b: { "$decimal": left + "." + right }});
       }     
    }
-   return expResult;
+   return JSON.stringify(expResult);
 }
