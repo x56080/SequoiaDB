@@ -56,7 +56,7 @@ function exportImportDataRContainA( csName, clName, imprtFile, exprtFile, cl, do
    cl.insert(doc);
    var exportOption = installDir +"bin/sdbexprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
                      +" -c "+ csName +" -l "+ clName 
-                     +" --type csv -r ',Y' -a 'Y' -e 'D' --fields='c ,d'"
+                     +" --checkdelimeter false --type csv -r ',Y' -a 'Y' -e 'D' --fields='c ,d'"
                      +" --file "+ exprtFile;
    println( exportOption );
    try{
@@ -111,7 +111,7 @@ function exportImportDataRContainE( csName, clName, imprtFile, exprtFile, cl, do
    cl.insert(doc);
    var exportOption = installDir +"bin/sdbexprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
                      +" -c "+ csName +" -l "+ clName 
-                     +" --type csv -r ',Y' -e 'Y' --fields='c ,d'"
+                     +" --checkdelimeter false --type csv -r ',Y' -e 'Y' --fields='c ,d'"
                      +" --file "+ exprtFile;
    println( exportOption );
    cmd.run( exportOption );
@@ -119,7 +119,7 @@ function exportImportDataRContainE( csName, clName, imprtFile, exprtFile, cl, do
    //导入
    var imprtOption = installDir +"bin/sdbimprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
                      +" -c "+ csName +" -l "+ clName 
-                     +" --type csv -r ',Y' -e 'Y' --headerline true --fields='c int,d string' --linepriority true"
+                     +" --checkdelimeter false --type csv -r ',Y' -e 'Y' --headerline true --fields='c int,d string' --linepriority true"
                      +" --file "+ exprtFile;
    println( imprtOption );
    testRunCommand(imprtOption);
@@ -135,7 +135,7 @@ function exportImportDataAContainE( csName, clName, imprtFile, exprtFile, cl, do
    cl.insert(doc);
    var exportOption = installDir +"bin/sdbexprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
                      +" -c "+ csName +" -l "+ clName 
-                     +" --type csv -a ',Y'  -e 'Y' --fields='c ,d'"
+                     +" --checkdelimeter false --type csv -a ',Y'  -e 'Y' --fields='c ,d'"
                      +" --file "+ exprtFile;
    println( exportOption );
    cmd.run( exportOption );
@@ -143,7 +143,7 @@ function exportImportDataAContainE( csName, clName, imprtFile, exprtFile, cl, do
    //导入
    var imprtOption = installDir +"bin/sdbimprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
                      +" -c "+ csName +" -l "+ clName 
-                     +" --type csv -a ',Y'  -e 'Y' --headerline true --fields='c int,d string' --linepriority true"
+                     +" --checkdelimeter false --type csv -a ',Y'  -e 'Y' --headerline true --fields='c int,d string' --linepriority true"
                      +" --file "+ exprtFile;
    println( imprtOption );
    testRunCommand(imprtOption);
@@ -159,7 +159,7 @@ function exportImportDataAContainA( csName, clName, imprtFile, exprtFile, cl, do
    cl.insert(doc);
    var exportOption = installDir +"bin/sdbexprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
                      +" -c "+ csName +" -l "+ clName 
-                     +" --type csv -a ',Y' -r 'Y' --fields='c ,d'"
+                     +" --checkdelimeter false --type csv -a ',Y' -r 'Y' --fields='c ,d'"
                      +" --file "+ exprtFile;
    println( exportOption );
    cmd.run( exportOption );
@@ -184,7 +184,7 @@ function exportImportDataEContainR( csName, clName, imprtFile, exprtFile, cl, do
    cl.insert(doc);
    var exportOption = installDir +"bin/sdbexprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
                      +" -c "+ csName +" -l "+ clName 
-                     +" --type csv -e ',Y' -r 'Y' --fields='c ,d'"
+                     +" --checkdelimeter false --type csv -e ',Y' -r 'Y' --fields='c ,d'"
                      +" --file "+ exprtFile;
    println( exportOption );
    cmd.run( exportOption );
@@ -209,7 +209,7 @@ function exportImportDataEContainA( csName, clName, imprtFile, exprtFile, cl, do
    cl.insert(doc);
    var exportOption = installDir +"bin/sdbexprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
                      +" -c "+ csName +" -l "+ clName 
-                     +" --type csv -e ',Y'  -a 'Y' --fields='c ,d'"
+                     +" --checkdelimeter false --type csv -e ',Y'  -a 'Y' --fields='c ,d'"
                      +" --file "+ exprtFile;
    println( exportOption );
    try{
