@@ -52,6 +52,7 @@ function testExprtGenconf1()
                  "includebinary = false\n" +
                  "includeregex = false\n" +
                  "kicknull = false\n" +
+                 "checkdelimeter = true\n"+
                  "csname = " + csname + "\n" +
                  "clname = " + clname + "\n" +
                  "fields = " + csname + "." + clname + ":a,b\n" ;
@@ -98,6 +99,7 @@ function testExprtGenconf2()
                  "includebinary = false\n" +
                  "includeregex = false\n" +
                  "kicknull = false\n" +
+                 "checkdelimeter = true\n"+
                  "csname = " + csname + "\n" +
                  "clname = " + clname + "\n" ;
    checkFileContent( conffile, content ) ;
