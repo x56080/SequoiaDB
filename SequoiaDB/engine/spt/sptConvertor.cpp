@@ -1433,8 +1433,7 @@ INT32 sptConvertor::_appendToBson( const std::string &name,
                   {
                      bson_append_bson( bs, name.c_str(), bsobj ) ;
                   }
-
-                  bson_destroy( bsobj ) ;
+                  bson_dispose( bsobj ) ;
                }
                else if ( SDB_OK != rc )
                {
