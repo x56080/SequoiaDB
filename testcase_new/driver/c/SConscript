@@ -60,7 +60,6 @@ testFiles = [
    [ "./ssl/sslTrue.cpp" ], # conf
    [ "./load/loadUnloadCS.cpp" ],
    [ "./load/rename.cpp" ],
-   [ "./load/reloadConf.cpp" ], # sync
    [ "./load/setPDLevel.cpp" ], # sync
    [ "./crud/queryMeta.cpp" ],
    [ "./crud/specialDecimal_14004.cpp" ],
