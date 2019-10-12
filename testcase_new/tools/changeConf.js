@@ -252,8 +252,9 @@ function checkOneGroupPrimary( db, groupName )
    var hasPrimary = false;
    
    // wait group to select primary for 60000ms
-   for(var i = 0; i < 600; i++ )
+   for(var i = 0; i < 6000; i++ )
    {  
+      hasPrimary = false;
       // check primary at once
       var rc = db.exec( "select NodeName,IsPrimary from $SNAPSHOT_SYSTEM where GroupName='" + groupName + "'" );
       while( rc.next() )
