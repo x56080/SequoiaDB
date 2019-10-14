@@ -2170,8 +2170,7 @@ public class Sequoiadb {
      *            The ID of the session.
      * @param option
      *            The control options, Please reference
-     *            {@see <a
-     *            href=http://doc.sequoiadb.com/cn/SequoiaDB-cat_id-1482314609-edition_id-208>here</a>}
+     *            <a href=http://doc.sequoiadb.com/cn/SequoiaDB-cat_id-1482314609-edition_id-208>here</a>
      *            for more detail.
      */
     public void forceSession(long sessionID,BSONObject option ){
