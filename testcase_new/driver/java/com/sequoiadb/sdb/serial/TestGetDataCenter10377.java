@@ -1,4 +1,4 @@
-package com.sequoiadb.sdbserial;
+package com.sequoiadb.sdb.serial;
 
 import org.bson.BSONObject;
 import org.testng.Assert;
