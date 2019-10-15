@@ -844,7 +844,8 @@
              3.3 "A", "a": any instance.<fig></fig>
              3.4 1-255: the instance with specified instance ID.<fig></fig>
              3.5 If multiple alphabet instances are given, only first one will be used.<fig></fig>
-             4. If matched instance is not found, will choose instance by random.</en>
+             4. If matched instance is not found, will choose instance by random.<fig></fig>
+             5. Use ',' to join multiple values. Maximum lenght of option string is 256.</en>
          <cn>1. 指定执行读请求时优先选择的实例<fig></fig>
              2. 如果不指定，则默认值为M，即选择可读写实例。<fig></fig>
              3. 取值列表：<fig></fig>
@@ -853,7 +854,8 @@
              3.3 "A", "a": 任意实例。<fig></fig>
              3.4 1-255: 通过 --instanceid 指定实例 ID 的实例。<fig></fig>
              3.5 如果指定多个 "M", "m", "S", "s", "A", "a" 实例，则只有第一个生效。<fig></fig>
-             4. 如果没有匹配的实例，将随机选择。</cn>
+             4. 如果没有匹配的实例，将随机选择。<fig></fig>
+             5. 可以使用 ',' 连接多个值。连接多值时字符串最大长度为 256。</cn>
       </detail>
       <typeofweb>str</typeofweb>
       <default>M</default>
