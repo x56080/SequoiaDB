@@ -1360,6 +1360,7 @@ do                                                            \
       if ( 0 != flag )
       {
          flag = eraseSingleFlag( flag, FLG_QUERY_EXPLAIN ) ;
+         flag = eraseSingleFlag( flag, FLG_QUERY_MODIFY ) ;
       }
       return _query( cursor, condition, selected, orderBy, hint,
                      numToSkip, numToReturn, flag ) ;
@@ -1528,11 +1529,13 @@ do                                                            \
          rc = SDB_SYS ;
          goto error ;
       }
-
+      if ( 0 != flag )
+      {
+         flag = eraseSingleFlag( flag, FLG_QUERY_EXPLAIN ) ;
+      }
       flag |= FLG_QUERY_MODIFY ;
-
-      rc = query( cursor, condition, selected, orderBy, newHint,
-                  numToSkip, numToReturn, flag ) ;
+      rc = _query( cursor, condition, selected, orderBy, newHint,
+                   numToSkip, numToReturn, flag ) ;
 
    done:
       return rc ;
@@ -2785,7 +2788,7 @@ error:
                               const bson::BSONObj &hint,
                               INT64 numToSkip,
                               INT64 numToReturn,
-                              INT32 flags,
+                              INT32 flag,
                               const bson::BSONObj &options )
    {
       INT32 rc = SDB_OK ;
@@ -2810,9 +2813,13 @@ error:
          rc = SDB_DRIVER_BSON_ERROR ;
          goto error ;
       }
+      if ( 0 != flag )
+      {
+         flag = eraseSingleFlag( flag, FLG_QUERY_MODIFY ) ;
+      }
       // get query explain
       rc = _query( cursor, condition, select, orderBy, newObj,
-                   numToSkip, numToReturn, flags | FLG_QUERY_EXPLAIN ) ;
+                   numToSkip, numToReturn, flag | FLG_QUERY_EXPLAIN ) ;
       if ( rc )
       {
          goto error ;

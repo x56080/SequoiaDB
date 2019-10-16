@@ -200,6 +200,9 @@
 #define SDB_DEF_COORD_NAME "localhost"
 #define SDB_DEF_COORD_PORT OSS_DFT_SVCPORT
 
+#define SPT_QUERY_AND_MODIFY_OP_UPDATE 1
+#define SPT_QUERY_AND_MODIFY_OP_REMOVE 2
+
 #if defined (SDB_FMP)
 extern CHAR FMP_COORD_SERVICE[OSS_MAX_PATHSIZE+1] ;
 extern CHAR *FMP_COORD_HOST ;
@@ -768,6 +771,124 @@ error :
    goto done ;
 }
 
+static INT32 _getModifyInfo( const bson *hint, INT32 *opType, bson *outHint, 
+                             bson *outRule, BOOLEAN *outReturnNew )
+{
+   INT32 rc = SDB_OK ;
+   bson_iterator it ;
+   bson hintObj ;
+   bson modifyObj ;
+   bson ruleObj ;
+   INT32 modifyType = 0 ;
+   BOOLEAN returnNew = FALSE ;
+   bson_type bsonType = BSON_EOO ;
+
+   bson_init( &hintObj ) ;
+   bson_init( &modifyObj ) ;
+   bson_init( &ruleObj ) ;
+
+   // check
+   if ( !hint || !opType || !outHint )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   // get hint obj
+   bson_iterator_init ( &it, hint ) ;
+   while ( BSON_EOO != bson_iterator_next( &it ) )
+   {
+      const CHAR *key = bson_iterator_key( &it ) ;
+      if ( 0 != ossStrcmp( key, FIELD_NAME_MODIFY ) )
+      {
+         rc = bson_append_element( &hintObj, NULL, &it ) ;
+         if ( SDB_OK != rc )
+         {
+            rc = SDB_DRIVER_BSON_ERROR ;
+            goto error ;
+         }
+      }
+   }
+   bson_finish( &hintObj ) ;
+   // get modify obj
+   bsonType = bson_find( &it, hint, FIELD_NAME_MODIFY ) ;
+   if ( BSON_OBJECT != bsonType )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   bson_iterator_subobject( &it, &modifyObj ) ;
+   // get op type from modify obj
+   bsonType = bson_find( &it, &modifyObj, FIELD_NAME_OP ) ;
+   if ( BSON_STRING != bsonType )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   if ( 0 == ossStrcmp( bson_iterator_string( &it ), FIELD_OP_VALUE_UPDATE ) )
+   {
+      modifyType = SPT_QUERY_AND_MODIFY_OP_UPDATE ;
+   }
+   else if ( 0 == ossStrcmp( bson_iterator_string( &it ), FIELD_OP_VALUE_REMOVE ) )
+   {
+      modifyType = SPT_QUERY_AND_MODIFY_OP_REMOVE ;
+   }
+   else
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   if ( SPT_QUERY_AND_MODIFY_OP_UPDATE == modifyType )
+   {
+      bsonType = bson_find( &it, &modifyObj, FIELD_NAME_OP_UPDATE ) ;
+      if ( BSON_OBJECT != bsonType )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      bson_iterator_subobject( &it, &ruleObj ) ;
+      bsonType = bson_find( &it, &modifyObj, FIELD_NAME_RETURNNEW ) ;
+      if ( BSON_BOOL != bsonType )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;         
+      }
+      returnNew = bson_iterator_bool( &it ) == 0 ? FALSE : TRUE ;
+   }
+   // set output value
+   *opType = modifyType ;
+   rc = bson_copy( outHint, &hintObj ) ;
+   if ( SDB_OK != rc )
+   {
+      rc = SDB_DRIVER_BSON_ERROR ;
+      goto error ;
+   }
+   if ( SPT_QUERY_AND_MODIFY_OP_UPDATE == modifyType )
+   {
+      if ( outRule )
+      {
+         rc = bson_copy( outRule, &ruleObj ) ;
+         if ( SDB_OK != rc )
+         {
+            rc = SDB_DRIVER_BSON_ERROR ;
+            goto error ;
+         }
+      }
+      if ( outReturnNew )
+      {
+         *outReturnNew = returnNew ;
+      }
+   }
+   
+done:
+   bson_destroy( &hintObj ) ;
+   bson_destroy( &modifyObj ) ;
+   bson_destroy( &ruleObj ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
 // PD_TRACE_DECLARE_FUNCTION ( SDB_COLL_RAW_FND, "collection_raw_find" )
 static JSBool collection_raw_find ( JSContext *cx , uintN argc , jsval *vp )
 {
@@ -791,6 +912,10 @@ static JSBool collection_raw_find ( JSContext *cx , uintN argc , jsval *vp )
    JSBool ret                       = JS_TRUE ;
    JSBool hasModify                 = JS_FALSE ;
    jsval *argv                      = JS_ARGV ( cx, vp ) ;
+   bson hintObj ;
+   bson ruleObj ;
+   bson_init( &hintObj ) ;
+   bson_init( &ruleObj ) ;
 
    // get cl handle
    collection  = (sdbCollectionHandle *)
@@ -929,46 +1054,7 @@ static JSBool collection_raw_find ( JSContext *cx , uintN argc , jsval *vp )
    {
       REPORT ( FALSE , "SdbCollection.rawFind(): wrong argument in flags(<num>)" ) ;
    }
-   if ( hasModify )
-   {
-      flags |= FLG_QUERY_MODIFY ;
-   }
 
-/*
-   // get arguments
-   ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) , "/ooooii" ,
-                               &objCond , &objSel , &objOrder , &objHint ,
-                               &numToSkip , &numToRet ) ;
-   REPORT ( ret , "SdbCollection.rawFind(): wrong arguments" ) ;
-
-   if ( objCond )
-   {
-
-      ret = objToBson ( cx , objCond , &bsonCond ) ;
-      VERIFY ( ret ) ;
-   }
-
-   if ( objSel )
-   {
-
-      ret = objToBson ( cx , objSel , &bsonSel ) ;
-      VERIFY ( ret ) ;
-   }
-
-   if ( objOrder )
-   {
-
-      ret = objToBson ( cx , objOrder , &bsonOrder ) ;
-      VERIFY ( ret ) ;
-   }
-
-   if ( objHint )
-   {
-
-      ret = objToBson ( cx , objHint , &bsonHint ) ;
-      VERIFY ( ret ) ;
-   }
-*/
    // cursor is freed in error: or when rc = SDB_DMS_EOC
    cursor = (sdbCursorHandle *) JS_malloc ( cx , sizeof ( sdbCursorHandle ) ) ;
    VERIFY ( cursor ) ;
@@ -979,10 +1065,48 @@ static JSBool collection_raw_find ( JSContext *cx , uintN argc , jsval *vp )
 
    JS_SET_RVAL ( cx , vp , OBJECT_TO_JSVAL ( objCursor ) ) ;
 
-   rc = sdbQuery1( *collection , bsonCond , bsonSel , bsonOrder , bsonHint ,
-                   numToSkip , numToRet , flags , cursor ) ;
-   REPORT_RC ( SDB_OK == rc || SDB_DMS_EOC == rc ,
-               "SdbCollection.find()" , rc ) ;
+   if ( hasModify )
+   {
+      INT32 opType = -1 ;
+      BOOLEAN returnNew = FALSE ;
+
+      rc = _getModifyInfo( bsonHint, &opType, &hintObj,
+                           &ruleObj, &returnNew ) ;
+      if ( SDB_OK != rc )
+      {
+         REPORT_RC ( JS_FALSE,
+                     "Failed to get modify info from hint object", rc ) ;
+      }
+
+      if ( SPT_QUERY_AND_MODIFY_OP_UPDATE == opType )
+      {
+         rc = sdbQueryAndUpdate( *collection, bsonCond, bsonSel, bsonOrder,
+                                 &hintObj, &ruleObj, numToSkip, numToRet,
+                                 flags, returnNew, cursor ) ;
+         REPORT_RC ( SDB_OK == rc || SDB_DMS_EOC == rc,
+                     "SdbCollection.find()", rc ) ;
+      }
+      else if ( SPT_QUERY_AND_MODIFY_OP_REMOVE == opType )
+      {
+         rc = sdbQueryAndRemove( *collection, bsonCond, bsonSel, bsonOrder,
+                                 &hintObj, numToSkip, numToRet,
+                                 flags, cursor ) ;
+         REPORT_RC ( SDB_OK == rc || SDB_DMS_EOC == rc,
+                     "SdbCollection.find()", rc ) ;
+      }
+      else
+      {
+         rc = SDB_INVALIDARG ;
+         REPORT_RC ( JS_FALSE , "Invalid modify type" , rc ) ;
+      }
+   }
+   else
+   {
+      rc = sdbQuery1( *collection , bsonCond , bsonSel , bsonOrder , bsonHint ,
+                      numToSkip , numToRet , flags , cursor ) ;
+      REPORT_RC ( SDB_OK == rc || SDB_DMS_EOC == rc ,
+            "SdbCollection.find()" , rc ) ;
+   }
 
    if ( SDB_DMS_EOC == rc )
    {
@@ -997,6 +1121,8 @@ done :
    SAFE_BSON_DISPOSE ( bsonSel ) ;
    SAFE_BSON_DISPOSE ( bsonOrder ) ;
    SAFE_BSON_DISPOSE ( bsonHint ) ;
+   bson_destroy( &hintObj ) ;
+   bson_destroy( &ruleObj ) ;
    PD_TRACE_EXIT ( SDB_COLL_RAW_FND );
    return ret ;
 error :
