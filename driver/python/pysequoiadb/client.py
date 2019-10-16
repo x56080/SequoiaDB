@@ -46,9 +46,54 @@ SDB_LIST_DOMAINS = 9
 SDB_LIST_TASKS = 10
 SDB_LIST_TRANSACTIONS = 11
 SDB_LIST_TRANSACTIONS_CURRENT = 12
+SDB_LIST_USERS = 16
 SDB_LIST_CL_IN_DOMAIN = 129
 SDB_LIST_CS_IN_DOMAIN = 130
 
+SDB_LIST_TYPE = [
+    SDB_LIST_CONTEXTS,
+    SDB_LIST_CONTEXTS_CURRENT,
+    SDB_LIST_SESSIONS,
+    SDB_LIST_SESSIONS_CURRENT,
+    SDB_LIST_COLLECTIONS,
+    SDB_LIST_COLLECTIONSPACES,
+    SDB_LIST_STORAGEUNITS,
+    SDB_LIST_GROUPS,
+    SDB_LIST_STOREPROCEDURES,
+    SDB_LIST_DOMAINS,
+    SDB_LIST_TASKS,
+    SDB_LIST_TRANSACTIONS,
+    SDB_LIST_TRANSACTIONS_CURRENT,
+    SDB_LIST_USERS,
+    SDB_LIST_CL_IN_DOMAIN,
+    SDB_LIST_CS_IN_DOMAIN
+]
+
+SDB_SNAP_CONTEXTS = 0
+SDB_SNAP_CONTEXTS_CURRENT = 1
+SDB_SNAP_SESSIONS = 2
+SDB_SNAP_SESSIONS_CURRENT = 3
+SDB_SNAP_COLLECTIONS = 4
+SDB_SNAP_COLLECTIONSPACES = 5
+SDB_SNAP_DATABASE = 6
+SDB_SNAP_SYSTEM = 7
+SDB_SNAP_CATALOG = 8
+SDB_SNAP_TRANSACTIONS = 9
+SDB_SNAP_TRANSACTIONS_CURRENT = 10
+
+SDB_SNAP_TYPE = [
+    SDB_SNAP_CONTEXTS,
+    SDB_SNAP_CONTEXTS_CURRENT,
+    SDB_SNAP_SESSIONS,
+    SDB_SNAP_SESSIONS_CURRENT,
+    SDB_SNAP_COLLECTIONS,
+    SDB_SNAP_COLLECTIONSPACES,
+    SDB_SNAP_DATABASE,
+    SDB_SNAP_SYSTEM,
+    SDB_SNAP_CATALOG,
+    SDB_SNAP_TRANSACTIONS,
+    SDB_SNAP_TRANSACTIONS_CURRENT,
+]
 
 class client(object):
     """SequoiaDB Client Driver
@@ -454,41 +499,44 @@ class client(object):
         """Get the snapshots of specified type.
 
         Parameters:
-           Name           Type  Info:
-           snap_type      int   The type of snapshot, see Info as below
-           **kwargs             Useful options are below
-           - condition    dict  The matching rule, match all the documents
-                                      if not provided.
-           - selector     dict  The selective rule, return the whole
-                                      document if not provided.
-           - order_by     dict  The ordered rule, result set is unordered
-                                      if not provided.
+           Name              Type    Info:
+           snap_type         int     The type of snapshot, see Info as below
+           **kwargs                  Useful options are below
+           - condition       dict    The matching rule, match all the documents if not provided.
+           - selector        dict    The selective rule, return the whole document if not provided.
+           - order_by        dict    The ordered rule, result set is unordered if not provided.
+           - hint            dict    Reserved.
+           - num_to_skip     long    Reserved.
+           - num_to_return   long    Reserved.
         Return values:
            a cursor object of query
         Exceptions:
            pysequoiadb.error.SDBBaseError
         Info:
           snapshot type:
-                    0     : Get all contexts' snapshot
-                    1     : Get the current context's snapshot
-                    2     : Get all sessions' snapshot
-                    3     : Get the current session's snapshot
-                    4     : Get the collections' snapshot
-                    5     : Get the collection spaces' snapshot
-                    6     : Get database's snapshot
-                    7     : Get system's snapshot
-                    8     : Get catalog's snapshot
-                    9     : Get transactions' snapshot
-                    10    : Get current session's transaction snapshot
+                    SDB_SNAP_CONTEXTS              : Get all contexts' snapshot
+                    SDB_SNAP_CONTEXTS_CURRENT      : Get the current context's snapshot
+                    SDB_SNAP_SESSIONS              : Get all sessions' snapshot
+                    SDB_SNAP_SESSIONS_CURRENT      : Get the current session's snapshot
+                    SDB_SNAP_COLLECTIONS           : Get the collections' snapshot
+                    SDB_SNAP_COLLECTIONSPACES      : Get the collection spaces' snapshot
+                    SDB_SNAP_DATABASE              : Get database's snapshot
+                    SDB_SNAP_SYSTEM                : Get system's snapshot
+                    SDB_SNAP_CATALOG               : Get catalog's snapshot
+                    SDB_SNAP_TRANSACTIONS          : Get transactions' snapshot
+                    SDB_SNAP_TRANSACTIONS_CURRENT  : Get current session's transaction snapshot
         """
         if not isinstance(snap_type, int):
             raise SDBTypeError("snap type must be an instance of int")
-        if snap_type < 0 or snap_type > 10:
+        if snap_type not in SDB_SNAP_TYPE:
             raise SDBTypeError("snap_type value is invalid")
 
         bson_condition = None
         bson_selector = None
         bson_order_by = None
+        bson_hint = None
+        num_to_skip = 0
+        num_to_return = -1
 
         if "condition" in kwargs:
             if not isinstance(kwargs.get("condition"), dict):
@@ -502,11 +550,24 @@ class client(object):
             if not isinstance(kwargs.get("order_by"), dict):
                 raise SDBTypeError("order_by in kwargs must be an instance of dict")
             bson_order_by = bson.BSON.encode(kwargs.get("order_by"))
+        if "hint" in kwargs:
+            if not isinstance(kwargs.get("hint"), dict):
+                raise SDBTypeError("hint in kwargs must be an instance of dict")
+            bson_hint = bson.BSON.encode(kwargs.get("hint"))
+        if "num_to_skip" in kwargs:
+            if not isinstance(kwargs.get("num_to_skip"), long_type):
+                raise SDBTypeError("num_to_skip must be an instance of int")
+            num_to_skip = kwargs.get("num_to_skip")
+        if "num_to_return" in kwargs:
+            if not isinstance(kwargs.get("num_to_return"), long_type):
+                raise SDBTypeError("num_to_return must be an instance of int")
+            num_to_return = kwargs.get("num_to_return")
 
         result = cursor()
         try:
             rc = sdb.sdb_get_snapshot(self._client, result._cursor, snap_type,
-                                      bson_condition, bson_selector, bson_order_by)
+                                      bson_condition, bson_selector, bson_order_by,
+                                      bson_hint, num_to_skip, num_to_return)
             raise_if_error(rc, "Failed to get snapshot: %d" % snap_type)
         except SDBBaseError:
             del result
@@ -542,57 +603,79 @@ class client(object):
         """Get information of the specified type.
 
         Parameters:
-           Name        Type     Info:
-           list_type   int      Type of list option, see Info as below.
-           **kwargs             Useful options are below
-           - condition dict     The matching rule, match all the documents
-                                      if None.
-           - selector  dict     The selective rule, return the whole
-                                      documents if None.
-           - order_by  dict     The ordered rule, never sort if None.
+           Name              Type     Info:
+           list_type         int      Type of list option, see Info as below.
+           **kwargs                   Useful options are below
+           - condition       dict     The matching rule, match all the documents if None.
+           - selector        dict     The selective rule, return the whole documents if None.
+           - order_by        dict     The ordered rule, never sort if None.
+           - hint            dict     The hint, automatically match the optimal hint if not provided.
+           - num_to_skip     long     Skip the first numToSkip documents, default is 0L.
+           - num_to_return   long     Only return numToReturn documents, default is -1L for returning
+                                              all results.
         Return values:
            a cursor object of query
         Exceptions:
            pysequoiadb.error.SDBBaseError
         Info:
            list type:
-                  0          : Get all contexts list
-                  1          : Get contexts list for the current session
-                  2          : Get all sessions list
-                  3          : Get the current session
-                  4          : Get all collections list
-                  5          : Get all collection spaces' list
-                  6          : Get storage units list
-                  7          : Get replicaGroup list ( only applicable in sharding env )
-                  8          : Get store procedure list
-                  9          : Get domains list
-                  10         : Get tasks list
-                  11         : Get transactions list
-                  12         : Get current session's transaction list
-                  129        : Get collection space list in domain
-                  130        : Get collection list in domain
+                     SDB_LIST_CONTEXTS             : Get all contexts list
+                     SDB_LIST_CONTEXTS_CURRENT     : Get contexts list for the current session
+                     SDB_LIST_SESSIONS             : Get all sessions list
+                     SDB_LIST_SESSIONS_CURRENT     : Get the current session
+                     SDB_LIST_COLLECTIONS          : Get all collections list
+                     SDB_LIST_COLLECTIONSPACES     : Get all collecion spaces' list
+                     SDB_LIST_STORAGEUNITS         : Get storage units list
+                     SDB_LIST_GROUPS               : Get replicaGroup list ( only applicable in sharding env )
+                     SDB_LIST_STOREPROCEDURES      : Get all the stored procedure list
+                     SDB_LIST_DOMAINS              : Get all the domains list
+                     SDB_LIST_TASKS                : Get all the running split tasks ( only applicable in sharding env )
+                     SDB_LIST_TRANSACTIONS         : Get all the transactions information.
+                     SDB_LIST_TRANSACTIONS_CURRENT : Get the transactions information of current session.
+                     SDB_LIST_USERS                : Get all the user informations.
         """
         if not isinstance(list_type, int):
             raise SDBTypeError("list type must be an instance of int")
-        if list_type < 0 or (12 < list_type < 129) or list_type > 130:
-            raise SDBTypeError("list type value %d is not defined" %
-                               list_type)
+        if list_type not in SDB_LIST_TYPE:
+            raise SDBTypeError("list type value %d is not defined" %list_type)
 
         bson_condition = None
         bson_selector = None
         bson_order_by = None
+        bson_hint = None
+        num_to_skip = 0
+        num_to_return = -1
 
         if "condition" in kwargs:
+            if not isinstance(kwargs.get("condition"), dict):
+                raise SDBTypeError("condition must be an instance of dict")
             bson_condition = bson.BSON.encode(kwargs.get("condition"))
         if "selector" in kwargs:
+            if not isinstance(kwargs.get("selector"), dict):
+                raise SDBTypeError("selector must be an instance of dict")
             bson_selector = bson.BSON.encode(kwargs.get("selector"))
         if "order_by" in kwargs:
+            if not isinstance(kwargs.get("order_by"), dict):
+                raise SDBTypeError("order_by must be an instance of dict")
             bson_order_by = bson.BSON.encode(kwargs.get("order_by"))
+        if "hint" in kwargs:
+            if not isinstance(kwargs.get("hint"), dict):
+                raise SDBTypeError("hint must be an instance of dict")
+            bson_hint = bson.BSON.encode(kwargs.get("hint"))
+        if "num_to_skip" in kwargs:
+            if not isinstance(kwargs.get("num_to_skip"), long_type):
+                raise SDBTypeError("num_to_skip must be an instance of long")
+            num_to_skip = kwargs.get("num_to_skip")
+        if "num_to_return" in kwargs:
+            if not isinstance(kwargs.get("num_to_return"), long_type):
+                raise SDBTypeError("num_to_return must be an instance of long")
+            num_to_return = kwargs.get("num_to_return")
 
         result = cursor()
         try:
             rc = sdb.sdb_get_list(self._client, result._cursor, list_type,
-                                  bson_condition, bson_selector, bson_order_by)
+                                  bson_condition, bson_selector, bson_order_by,
+                                  bson_hint, num_to_skip, num_to_return)
             raise_if_error(rc, "Failed to get list: %d" % list_type)
         except SDBBaseError:
             del result
