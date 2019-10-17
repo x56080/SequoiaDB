@@ -15,7 +15,7 @@ SDB_SNAP_DATABASE
 | ServiceName           | 字符串 | svcname 所指定的服务名，与 HostName 共同作为一个逻辑节点的标示                  |
 | GroupName             | 字符串 | 该逻辑节点所属的分区组名，standalone 模式下该字段为空字符串                     |
 | IsPrimary             | 布尔   | 该节点是否为主节点，standalone 模式下该字段为 false                             |
-| ServiceStatus         | 布尔   | 是否为可提供服务状态。<br>一些特殊状态，例如[全量同步](infrastructure/replication/replicate.md)会使该状态为 false |              
+| ServiceStatus         | 布尔   | 是否为可提供服务状态。<br>一些特殊状态，例如[全量同步](infrastructure/replication/replicate.md)会使该状态为 false |
 | Status                | 字符串 | 节点状态，有 "Normal"、"Rebuilding" 、"FullSync"、"OfflineBackup"几种状态  |
 | BeginLSN.Offset       | 长整型 | 起始 LSN 的偏移                                                                 |
 | BeginLSN.Version      | 整型   | 起始 LSN 的版本号                                                               |
@@ -31,7 +31,8 @@ SDB_SNAP_DATABASE
 | Version.Major         | 整型   | 数据库主版本号                                                                  |
 | Version.Minor         | 整型   | 数据库子版本号                                                                  |
 | Version.Fix           | 整型   | 数据库修复版本号                                                                |
-| Version.Release       | 整型   | 数据库发行版本号                                                                |
+| Version.Release       | 整型   | 数据库内部版本号                                                                |
+| Version.GitVersion    | 字符串 | 数据库发行版本号                                                                |
 | Version.Build         | 字符串 | 数据库编译时间                                                                  |
 | Editon                | 字符串 | “Enterprise”表示企业版（备注：社区版中无该字段）                                |
 | CurrentActiveSessions | 整型   | 当前活动会话                                                                |
@@ -152,6 +153,7 @@ SDB_SNAP_DATABASE
     "Minor": 8,
     "Fix": 0,
     "Release": 13971,
+    "GitVersion": "7b21adc4206894102682a621a4b49f17ed96a46f",
     "Build": "2014-08-07-11.04.12(Debug)"
   },
   "CurrentActiveSessions": 18,
