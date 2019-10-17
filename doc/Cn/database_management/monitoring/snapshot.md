@@ -55,7 +55,7 @@ SDB_SNAP_CONTEXTS
 
 返回一条记录，其中 Contexts 数组字段中包含当前会话中所有的上下文。
 
-**Note:** 
+**Note:**
 
 快照操作自身需产生一个上下文，因此结果集中至少包含一个上下文。
 
@@ -536,7 +536,7 @@ SDB_SNAP_COLLECTIONSPACES
   ],
   "PageSize": 65536,
   "LobPageSize": 262144,
-  "MaxCapacitySize": 26388279066624,  
+  "MaxCapacitySize": 26388279066624,
   "MaxDataCapSize": 8796093022208,
   "MaxIndexCapSize": 8796093022208,
   "MaxLobCapSize": 8796093022208,
@@ -559,10 +559,10 @@ SDB_SNAP_COLLECTIONSPACES
 > coord.snapshot(SDB_SNAP_COLLECTIONSPACES)
 {
   "Name": "foo",
-  "PageSize": 4096,  
+  "PageSize": 4096,
   "LobPageSize": 262144,
   "TotalSize": 918945792,
-  "FreeSize": 805183062,  
+  "FreeSize": 805183062,
   "TotalDataSize": 155254784,
   "FreeDataSize": 133627904,
   "TotalIndexSize": 151060480,
@@ -607,7 +607,8 @@ SDB_SNAP_DATABASE
   NodeID                  数组     [ 分区组 ID，节点 ID ]，在 standalone 模式下，该字段为 [ 0，0 ]
   Version.Major           整型     数据库主版本号
   Version.Minor           整型     数据库子版本号
-  Version.Release         整型     数据库发行版本号
+  Version.Release         整型     数据库内部版本号
+  Version.GitVersion      字符串   数据库发行版本号
   Version.Build           字符串   数据库编译时间
   CurrentActiveSessions   整型     当前活动会话，该数量包括用户 EDU 与系统 EDU
   CurrentIdleSessions     整型     当前非活动会话，一般来说非活动会话意味着 EDU 存在线程池中等待分配
@@ -712,6 +713,7 @@ SDB_SNAP_DATABASE
     "Major": 1,
     "Minor": 8,
     "Release": 13971,
+    "GitVersion": "7b21adc4206894102682a621a4b49f17ed96a46f",
     "Build": "2014-08-07-11.04.12(Debug)"
   },
   "CurrentActiveSessions": 18,
