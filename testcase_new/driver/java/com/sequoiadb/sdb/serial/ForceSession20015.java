@@ -32,9 +32,6 @@ public class ForceSession20015 extends SdbTestBase {
         if (CommLib.isStandAlone(sdb)) {
             throw new SkipException("skip standalone.");
         }
-        if (CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("skip only one group.");
-        }
         groupNames = CommLib.getDataGroupNames(sdb);
     }
 
