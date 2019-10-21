@@ -29,7 +29,6 @@ function main()
       exportImportDataAContainE( csName, clName, imprtFile, exprtFile , cl, doc);
       exportImportDataAContainA( csName, clName, imprtFile, exprtFile , cl, doc);
       exportImportDataEContainR( csName, clName, imprtFile, exprtFile , cl, doc);
-      exportImportDataEContainA( csName, clName, imprtFile, exprtFile , cl, doc);
       cleanCL( csName, clName );
    }
    catch(e)
@@ -200,62 +199,6 @@ function exportImportDataEContainR( csName, clName, imprtFile, exprtFile, cl, do
    checkCLData( cl );
    cl.truncate();*/
    cmd.run( "rm -rf " + exprtFile );
-}
-
-//6、指定字段分隔符-e包含字符串分隔符-a执行导出再导入，检查结果
-function exportImportDataEContainA( csName, clName, imprtFile, exprtFile, cl, doc )
-{
-   //导出
-   cl.insert(doc);
-   var exportOption = installDir +"bin/sdbexprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
-                     +" -c "+ csName +" -l "+ clName 
-                     +" --checkdelimeter false --type csv -e ',Y'  -a 'Y' --fields='c ,d'"
-                     +" --file "+ exprtFile;
-   println( exportOption );
-   try{
-     cmd.run( exportOption );
-     throw buildException( "exprtData", null, "[exprt results]", 
-                        "expected thow exception", 
-                        "actual success" );
-   }
-   catch(e)
-   {
-      if( e !== 127 )
-      {
-        throw buildException( "exprtData", null, "[exprt results]", 
-                           "expected thow exception", 
-                           "actual success" );
-      }
-   }
-   finally
-   {
-      cl.truncate();
-      cmd.run( "rm -rf " + exprtFile );
-   }
-   //导入SEQUOIADBMAINSTREAM-4375
-   /*
-   readyData( imprtFile, "cDd,Y1DYexprtTestY,Y2DYexprtTest2Y,Y" );
-   var imprtOption = installDir +"bin/sdbimprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
-                     +" -c "+ csName +" -l "+ clName 
-                     +" --type csv -e ',Y"  -a 'Y' --headerline true --fields='c int,d string' --linepriority true"
-                     +" --file "+ imprtFile;
-   println( imprtOption );
-   try{
-     cmd.run( imprtOption );
-     throw buildException( "importData", null, "[sdbimprt results]", 
-                        "expected thow exception", 
-                        "actual success" );
-   }
-   catch(e)
-   {
-      if( e !== 127 )
-      {
-        throw buildException( "importData", null, "[sdbimprt results]", 
-                           "expected thow exception", 
-                           "actual success" );
-      }
-   }*/
-
 }
 
 function testRunCommand(command)
