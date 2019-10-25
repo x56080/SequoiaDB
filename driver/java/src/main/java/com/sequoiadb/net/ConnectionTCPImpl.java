@@ -333,7 +333,7 @@ public class ConnectionTCPImpl implements IConnection {
             throw new BaseException(SDBError.SDB_SYS, "send ByteBuffer is null");
         }
         if (buffer.hasArray()) {
-            sendMessage(buffer.array());
+            sendMessage(buffer.array(), 0 ,buffer.limit());
         } else {
             throw new BaseException(SDBError.SDB_SYS, "send ByteBuffer is not ok");
         }

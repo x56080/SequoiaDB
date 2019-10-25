@@ -203,6 +203,7 @@ class DBLobConcrete implements DBLob {
      * further reading/writing/close
     */
     private long _contextID;
+    private ByteBuffer _writeBuff =  null;
 
     /**
      * @fn DBLob(DBCollection cl)
@@ -385,6 +386,7 @@ class DBLobConcrete implements DBLob {
         }
 
         _isOpen = false;
+        recycleWriteBuff();
     }
 
     /**
@@ -814,6 +816,23 @@ class DBLobConcrete implements DBLob {
         _size += len;
     }
 
+    private void _getWriteBuff(int len) {
+        if (_writeBuff == null) {
+            _writeBuff = ByteBuffer.allocate(len);
+        }else if (_writeBuff.capacity() < len) {
+            _writeBuff = ByteBuffer.allocate(len);
+        }else if (_writeBuff.capacity() > len) {
+            _writeBuff.clear();
+            _writeBuff.limit(len);
+        }else {
+            _writeBuff.clear();
+        }
+    }
+
+    private void recycleWriteBuff(){
+        _writeBuff = null;
+    }
+
     private ByteBuffer generateWriteLobRequest(byte[] input, int off, int len) {
         if (off + len > input.length) {
             throw new BaseException(SDBError.SDB_SYS, "off + len is more than input.length");
@@ -822,30 +841,30 @@ class DBLobConcrete implements DBLob {
                 + SDBMessageHelper.MESSAGE_LOBTUPLE_LENGTH
                 + Helper.roundToMultipleXLength(len, 4);
         // alloc ByteBuffer
-        ByteBuffer totalBuf = ByteBuffer.allocate(totalLen);
+        _getWriteBuff(totalLen);
         if (_endianConvert) {
-            totalBuf.order(ByteOrder.LITTLE_ENDIAN);
+            _writeBuff.order(ByteOrder.LITTLE_ENDIAN);
         } else {
-            totalBuf.order(ByteOrder.BIG_ENDIAN);
+            _writeBuff.order(ByteOrder.BIG_ENDIAN);
         }
         //*******************MsgHeader*******************
-        SDBMessageHelper.addLobMsgHeader(totalBuf, totalLen,
+        SDBMessageHelper.addLobMsgHeader(_writeBuff, totalLen,
                 Operation.MSG_BS_LOB_WRITE_REQ.getOperationCode(),
                 SequoiadbConstants.ZERO_NODEID, 0);
 
         //*******************_MsgOpLob**********************
-        SDBMessageHelper.addLobOpMsg(totalBuf, SequoiadbConstants.DEFAULT_VERSION,
+        SDBMessageHelper.addLobOpMsg(_writeBuff, SequoiadbConstants.DEFAULT_VERSION,
                 SequoiadbConstants.DEFAULT_W, (short) 0,
                 SequoiadbConstants.DEFAULT_FLAGS, _contextID, 0);
 
         //*******************_MsgLobTuple*******************
-        addMsgTuple(totalBuf, len, SDB_LOB_DEFAULT_SEQ,
+        addMsgTuple(_writeBuff, len, SDB_LOB_DEFAULT_SEQ,
                 SDB_LOB_DEFAULT_OFFSET);
 
         //*******************lob data*******************
-        Helper.addBytesToByteBuffer(totalBuf, input, off, len, 4);
+        Helper.addBytesToByteBuffer(_writeBuff, input, off, len, 4);
 
-        return totalBuf;
+        return _writeBuff;
     }
 
     private void addMsgTuple(ByteBuffer buff, int length, int sequence,
