@@ -36,34 +36,13 @@
 
 namespace exprt
 {
-   CHAR *expConvertor::_getBuf( UINT32 reqSize ) 
-   {
-      SDB_ASSERT( reqSize > 0, "" ) ;
-      if ( !_buf || reqSize > _bufSize )
-      {
-         _buf = (CHAR *)SDB_OSS_REALLOC( _buf, reqSize ) ;
-         _bufSize = reqSize ;
-      }
-
-      return _buf ;
-   }
-
-   void expConvertor::_freeBuf() 
-   {
-      if (_buf)
-      {
-         SDB_OSS_FREE(_buf) ;
-         _buf = NULL ;
-         _bufSize = 0 ;
-      }
-   }
-   
    INT32 expJsonConvertor::init()
    {
       INT32 rc = SDB_OK ;
       INT32 fieldsBufSize = 0 ;
 
-      rc = _decodeBson.init( _options.delChar(), 
+      rc = _decodeBson.init( &_bufferBuilder,
+                             _options.delChar(), 
                              _options.delField(), 
                              _options.includeBinary(), 
                              _options.includeRegex(),
@@ -125,51 +104,19 @@ namespace exprt
    {
       INT32 rc = SDB_OK ;
       INT32 jsonSize = 0 ;
-      CHAR  *jsonBuf = NULL ;
+      CHAR *jsonBuf  = NULL ;
 
-      // the jsonSize returns from parseJSONSize is max estimated value
-      rc = _decodeBson.parseJSONSize( fromRecord.data, &jsonSize ) ;
-      if ( SDB_OK !=  rc )
-      {
-         PD_LOG ( PDERROR, "Failed to get size of json , rc = %d", rc ) ;
-         goto error ;
-      }
-
-      jsonBuf = _getBuf( (UINT32)jsonSize ) ;
-      if ( !jsonBuf )
-      {
-         PD_LOG ( PDERROR, "Failed to alloc buf sized %d ", jsonSize ) ;
-         rc = SDB_OOM ;
-         goto error ;
-      }
-
-      ossMemset( jsonBuf, 0, jsonSize ) ;
-      rc = _decodeBson.bsonCovertJson( fromRecord.data, &jsonBuf, &jsonSize ) ;
-      //because of double, increase th space
-      if (rc == SDB_OOM)
-      {
-         _freeBuf();
-         jsonSize *= 3 ; 
-         jsonBuf = _getBuf( (UINT32)jsonSize );
-         if ( !jsonBuf )
-         {
-             PD_LOG ( PDERROR, "Failed to alloc buf sized %d ", jsonSize ) ;
-             rc = SDB_OOM ;
-             goto error ;
-         }
-         ossMemset( jsonBuf, 0, jsonSize ) ;
-         rc = _decodeBson.bsonCovertJson( fromRecord.data, &jsonBuf, &jsonSize ) ;
-      }
-      if ( SDB_OK !=  rc )
+      rc = _decodeBson.bsonCovertJson( fromRecord.data,
+                                       &jsonBuf, &jsonSize ) ;
+      if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to convert bson to json, rc=%d", rc ) ;
          goto error ;
       }
-      jsonSize = ossStrlen( jsonBuf ) ;
 
       toBuf = jsonBuf ;
       toSize = (UINT32)jsonSize ;
-      
+
    done :
       return rc ;
    error :
@@ -208,7 +155,7 @@ namespace exprt
          } // end for
 
          toSize = fieldList.size() ;
-         toBuf = _getBuf( toSize + 1 ) ;
+         toBuf = _bufferBuilder.getBuff( toSize + 1 ) ;
          if ( !toBuf )
          {
             PD_LOG ( PDERROR, "Failed to alloc buf sized %u ", toSize ) ;
@@ -230,32 +177,14 @@ namespace exprt
       INT32 rc = SDB_OK ;
       INT32 csvSize = 0 ;
       CHAR  *csvBuf = NULL ;
-      INT32 tmpSize = 0 ;
-      CHAR *tmpBuf = NULL ;
 
-      // the csvSize returns from parseCSVSize is max estimated value
-      rc = _decodeBson.parseCSVSize( fromRecord.data, &csvSize ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to get csv size, rc=%d", rc ) ;
-         goto error ;
-      }
-      csvBuf = _getBuf( (UINT32)csvSize ) ;
-      if ( !csvBuf )
-      {
-         PD_LOG ( PDERROR, "Failed to alloc buf sized %d ", csvSize ) ;
-         rc = SDB_OOM ;
-      }
-      tmpBuf = csvBuf ;
-      tmpSize = csvSize ;
-      // tmpSize is the size of buf not used
-      rc = _decodeBson.bsonCovertCSV( fromRecord.data, &tmpBuf, &tmpSize ) ;
+      rc = _decodeBson.bsonCovertCSV( fromRecord.data,
+                                      &csvBuf, &csvSize ) ;
       if ( SDB_OK !=  rc )
       {
          PD_LOG ( PDERROR, "Failed to convert bson to csv, rc=%d", rc ) ;
          goto error ;
       }
-      csvSize = csvSize - tmpSize ;
 
       toBuf = csvBuf ;
       toSize= (UINT32)csvSize ;

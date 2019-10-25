@@ -229,7 +229,7 @@ INT32 _appendNonString( CHAR delChar, bson_iterator *pIt,
 
    if ( !ppCSVBuf )
    {
-      (*pCSVSize) += size ;
+      (*pCSVSize) += ( size + 1 ) ;
       goto done ;
    }
 
