@@ -55,17 +55,37 @@ struct fieldResolve : public SDBObject
    }
 } ;
 
+class utilBuffBuilderBase : public SDBObject
+{
+public:
+   utilBuffBuilderBase() {}
+   virtual ~utilBuffBuilderBase(){}
+
+   virtual CHAR *getBuff( UINT32 size ) = 0 ;
+   virtual UINT32 getBuffSize() = 0 ;
+} ;
+
 class utilDecodeBson : public SDBObject
 {
-private:
-   std::string _delChar ;
-   std::string _delField ;
-   BOOLEAN _includeBinary ;
-   BOOLEAN _includeRegex ;
-   BOOLEAN _kickNull ;
-   BOOLEAN _isStrict ;
 public:
-   std::vector<fieldResolve *> _vFields ;
+   utilDecodeBson() ;
+   ~utilDecodeBson() ;
+
+   INT32 init( utilBuffBuilderBase *buffBuilder,
+               std::string delChar, std::string delField,
+               BOOLEAN includeBinary,
+               BOOLEAN includeRegex,
+               BOOLEAN kickNull,
+               BOOLEAN isStrict,
+               const CHAR *pFloatFmt ) ;
+
+   INT32 parseFields( CHAR *pFields, INT32 size ) ;
+
+   INT32 bsonCovertCSV( CHAR *pbson,
+                        CHAR **ppBuffer, INT32 *pCSVSize ) ;
+
+   INT32 bsonCovertJson( CHAR *pbson,
+                         CHAR **ppBuffer, INT32 *pJSONSize ) ;
 
 private:
    CHAR *_trimLeft( CHAR *pCursor, INT32 &size ) ;
@@ -78,20 +98,21 @@ private:
                              const CHAR *pData ) ;
    INT32 _checkFormat( const CHAR *pFloatFmt ) ;
 
+   INT32 _parseCSVSize( CHAR *pbson, INT32 *pCSVSize ) ;
+   INT32 _parseJSONSize( CHAR *pbson, INT32 *pJSONSize ) ;
+
+private:
+   std::string _delChar ;
+   std::string _delField ;
+   BOOLEAN _includeBinary ;
+   BOOLEAN _includeRegex ;
+   BOOLEAN _kickNull ;
+   BOOLEAN _isStrict ;
+   utilBuffBuilderBase *_buffBuilder ;
+
 public:
-   utilDecodeBson() ;
-   ~utilDecodeBson() ;
-   INT32 init( std::string delChar, std::string delField,
-               BOOLEAN includeBinary,
-               BOOLEAN includeRegex,
-               BOOLEAN kickNull,
-               BOOLEAN isStrict,
-               const CHAR *pFloatFmt ) ;
-   INT32 parseFields( CHAR *pFields, INT32 size ) ;
-   INT32 parseCSVSize( CHAR *pbson, INT32 *pCSVSize ) ;
-   INT32 parseJSONSize( CHAR *pbson, INT32 *pJSONSize ) ;
-   INT32 bsonCovertCSV( CHAR *pbson, CHAR **ppBuffer, INT32 *pCSVSize ) ;
-   INT32 bsonCovertJson( CHAR *pbson, CHAR **ppBuffer, INT32 *pJSONSize ) ;
+   std::vector<fieldResolve *> _vFields ;
 } ;
+
 
 #endif

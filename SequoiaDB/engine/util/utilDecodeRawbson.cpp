@@ -179,7 +179,8 @@ error:
    goto done ;
 }
 
-INT32 utilDecodeBson::init( std::string delChar, std::string delField,
+INT32 utilDecodeBson::init( utilBuffBuilderBase *buffBuilder,
+                            std::string delChar, std::string delField,
                             BOOLEAN includeBinary,
                             BOOLEAN includeRegex,
                             BOOLEAN kickNull,
@@ -187,6 +188,10 @@ INT32 utilDecodeBson::init( std::string delChar, std::string delField,
                             const CHAR *pFloatFmt )
 {
    INT32 rc = SDB_OK ;
+
+   SDB_ASSERT( buffBuilder, "" ) ;
+
+   _buffBuilder = buffBuilder ;
 
    if ( _delChar.size() > 0 && std::string::npos != delField.find( delChar ) )
    {
@@ -229,11 +234,12 @@ error:
 }
 
 utilDecodeBson::utilDecodeBson() : _delChar(),
-                                   _delField(),
-                                   _includeBinary(FALSE),
-                                   _includeRegex(FALSE),
-                                   _kickNull(FALSE),
-                                   _isStrict(FALSE)
+                                  _delField(),
+                                  _includeBinary(FALSE),
+                                  _includeRegex(FALSE),
+                                  _kickNull(FALSE),
+                                  _isStrict(FALSE),
+                                  _buffBuilder( NULL )
 {
 }
 
@@ -430,7 +436,7 @@ error:
    goto done ;
 }
 
-INT32 utilDecodeBson::parseCSVSize( CHAR *pbson, INT32 *pCSVSize )
+INT32 utilDecodeBson::_parseCSVSize( CHAR *pbson, INT32 *pCSVSize )
 {
    INT32 rc = SDB_OK ;
    rc = getCSVSize( _delChar.c_str(), _delField.c_str(), _delField.size(),
@@ -446,7 +452,7 @@ error:
    goto done ;
 }
 
-INT32 utilDecodeBson::parseJSONSize( CHAR *pbson, INT32 *pJSONSize )
+INT32 utilDecodeBson::_parseJSONSize( CHAR *pbson, INT32 *pJSONSize )
 {
    INT32 rc = SDB_OK ;
    bson obj ;
@@ -534,12 +540,20 @@ error:
 }
 
 INT32 utilDecodeBson::bsonCovertCSV( CHAR *pbson,
-                                     CHAR **ppBuffer,
-                                     INT32 *pCSVSize )
+                                     CHAR **ppBuffer, INT32 *pCSVSize )
 {
    INT32 rc = SDB_OK ;
-   INT32 fieldsNum = 0 ;
+   INT32 fieldsNum   = 0 ;
+   INT32 buffSize    = 0 ;
+   INT32 surplusSize = 0 ;
+   CHAR *tmpBuff     = NULL ;
+   CHAR *pBuff       = NULL ;
    fieldResolve *pFieldRc = NULL ;
+
+   SDB_ASSERT( pbson, "" ) ;
+   SDB_ASSERT( ppBuffer, "" ) ;
+   SDB_ASSERT( pCSVSize, "" ) ;
+
    bson obj ;
    bson_init( &obj ) ;
 
@@ -547,6 +561,7 @@ INT32 utilDecodeBson::bsonCovertCSV( CHAR *pbson,
    for ( INT32 i = 0; i < fieldsNum; ++i )
    {
       pFieldRc = _vFields.at( i ) ;
+
       rc = _appendBsonElement( &obj, pFieldRc, pbson ) ;
       if ( rc )
       {
@@ -554,15 +569,45 @@ INT32 utilDecodeBson::bsonCovertCSV( CHAR *pbson,
          goto error ;
       }
    }
+
    bson_finish ( &obj ) ;
+
+   rc = _parseCSVSize( obj.data, &buffSize ) ;
+   if ( rc )
+   {
+      PD_LOG ( PDERROR, "Failed to get csv size, rc=%d", rc ) ;
+      goto error ;
+   }
+   else if ( buffSize < 0 )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Failed to get csv size, rc=%d", rc ) ;
+      goto error ;
+   }
+
+   pBuff = _buffBuilder->getBuff( (UINT32)buffSize ) ;
+   if ( !pBuff )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Failed to alloc buf sized %d ", buffSize ) ;
+      goto error ;
+   }
+
+   tmpBuff = pBuff ;
+   surplusSize = buffSize ;
+
    rc = bson2csv( _delChar.c_str(), _delField.c_str(), _delField.size(),
-                  obj.data, ppBuffer, pCSVSize,
+                  obj.data, &tmpBuff, &surplusSize,
                   _includeBinary, _includeRegex, _kickNull ) ;
    if ( rc )
    {
       PD_LOG ( PDERROR, "Failed to bson convert csv, rc = %d", rc ) ;
       goto error ;
    }
+
+   *ppBuffer = pBuff ;
+   *pCSVSize = buffSize - surplusSize ;
+
 done:
    bson_destroy ( &obj ) ;
    return rc ;
@@ -571,16 +616,23 @@ error:
 }
 
 INT32 utilDecodeBson::bsonCovertJson( CHAR *pbson,
-                                      CHAR **ppBuffer,
-                                      INT32 *pJSONSize )
+                                      CHAR **ppBuffer, INT32 *pJSONSize )
 {
    INT32 rc = SDB_OK ;
    INT32 fieldsNum = 0 ;
+   INT32 tmpSize   = 0 ;
+   CHAR *pBuff     = NULL ;
    fieldResolve *pFieldRc = NULL ;
+
+   SDB_ASSERT( pbson, "" ) ;
+   SDB_ASSERT( ppBuffer, "" ) ;
+   SDB_ASSERT( pJSONSize, "" ) ;
+
    bson obj ;
    bson_init( &obj ) ;
 
    fieldsNum = _vFields.size() ;
+
    if ( fieldsNum > 0 )
    {
       for ( INT32 i = 0; i < fieldsNum; ++i )
@@ -603,13 +655,57 @@ INT32 utilDecodeBson::bsonCovertJson( CHAR *pbson,
          goto error ;
       }
    }
+
    bson_finish ( &obj ) ;
-   if ( !bsonToJson2 ( *ppBuffer, *pJSONSize, &obj, _isStrict ) )
+
+   rc = _parseJSONSize( obj.data, &tmpSize ) ;
+   if ( rc )
    {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Failed to convert bson to json, rc=%d", rc ) ;
+      PD_LOG ( PDERROR, "Failed to get json size, rc=%d", rc ) ;
       goto error ;
    }
+   else if ( tmpSize < 0 )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Failed to get json size, rc=%d", rc ) ;
+      goto error ;
+   }
+
+   pBuff = _buffBuilder->getBuff( (UINT32)tmpSize ) ;
+   if ( !pBuff )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Failed to alloc buf sized %d ", tmpSize ) ;
+      goto error ;
+   }
+
+   ossMemset( pBuff, 0, tmpSize ) ;
+
+   if ( !bsonToJson2 ( pBuff, tmpSize, &obj, _isStrict ) )
+   {
+      tmpSize *= 3 ;
+
+      pBuff = _buffBuilder->getBuff( tmpSize ) ;
+      if ( !pBuff )
+      {
+         rc = SDB_OOM ;
+         PD_LOG ( PDERROR, "Failed to alloc buf sized %d ", tmpSize ) ;
+         goto error ;
+      }
+
+      ossMemset( pBuff, 0, tmpSize ) ;
+
+      if ( !bsonToJson2 ( pBuff, tmpSize, &obj, _isStrict ) )
+      {
+         rc = SDB_OOM ;
+         PD_LOG ( PDERROR, "Failed to convert bson to json, rc=%d", rc ) ;
+         goto error ;
+      }
+   }
+
+   *ppBuffer = pBuff ;
+   *pJSONSize = ossStrlen( pBuff ) ;
+
 done:
    bson_destroy ( &obj ) ;
    return rc ;

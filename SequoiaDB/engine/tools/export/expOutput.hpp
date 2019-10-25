@@ -45,11 +45,54 @@ namespace exprt
 {
    using namespace std ;
 
+   class buffBuilder : public utilBuffBuilderBase
+   {
+   public:
+      buffBuilder() : _size( 0 ),
+                      _buff( NULL )
+      {
+      }
+
+      ~buffBuilder()
+      {
+         if ( _buff )
+         {
+            SAFE_OSS_FREE( _buff ) ;
+            _buff = NULL ;
+            _size = 0 ;
+         }
+      }
+
+      CHAR *getBuff( UINT32 size )
+      {
+         CHAR *tmp = _buff ;
+
+         if ( size > _size )
+         {
+            tmp = (CHAR *)SDB_OSS_REALLOC( _buff, size ) ;
+
+            if ( tmp )
+            {
+               _buff = tmp ;
+               _size = size ;
+            }
+         }
+
+         return tmp ;
+      }
+
+      UINT32 getBuffSize(){ return _size ; }
+
+   private:
+      UINT32 _size ;
+      CHAR  *_buff ;
+   } ;
+
    class expConvertor : public SDBObject
    {
    public :
-      expConvertor() : _buf(NULL), _bufSize(0) {}
-      virtual ~expConvertor() { _freeBuf() ; }
+      expConvertor(){}
+      virtual ~expConvertor(){}
       virtual INT32 init() { return SDB_OK ; }
       virtual INT32 head( const CHAR *&toBuf, UINT32 &toSize ) 
       {
@@ -67,18 +110,22 @@ namespace exprt
                              const CHAR *&toBuf, 
                              UINT32 &toSize ) = 0 ;
    protected :
-      CHAR *_getBuf( UINT32 reqSize ) ;
-      void  _freeBuf() ;
-   protected :
-      CHAR     *_buf ;
-      UINT32    _bufSize ;
+      buffBuilder _bufferBuilder ;
    } ;
 
    class expJsonConvertor : public expConvertor
    {
    public :
       expJsonConvertor( const expOptions &options, const expCL &cl ) :
-         _fieldsBuf(NULL), _options(options), _cl(cl) {}
+         _fieldsBuf(NULL), _options(options), _cl(cl)
+      {
+      }
+
+      virtual ~expJsonConvertor()
+      {
+         _freeFieldsBuf() ;
+      }
+
       virtual INT32 init() ;
       virtual INT32 convert( bson &fromRecord, 
                              const CHAR *&toBuf, 
@@ -86,10 +133,10 @@ namespace exprt
    protected :
       void  _freeFieldsBuf() ;
    protected :
-      utilDecodeBson    _decodeBson ;
       CHAR             *_fieldsBuf ;
       const expOptions &_options ;
       const expCL      &_cl ;
+      utilDecodeBson    _decodeBson ;
    } ;
 
    class expCSVConvertor : public expJsonConvertor

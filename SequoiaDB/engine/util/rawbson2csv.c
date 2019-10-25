@@ -235,7 +235,7 @@ INT32 _appendNonString( const CHAR *delChar, bson_iterator *pIt,
 
    if ( !ppCSVBuf )
    {
-      (*pCSVSize) += size ;
+      (*pCSVSize) += ( size + 1 ) ;
       goto done ;
    }
 
