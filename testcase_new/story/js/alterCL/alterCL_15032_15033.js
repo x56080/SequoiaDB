@@ -1,5 +1,6 @@
 /******************************************************************************
-*@Description : 1. collection altered properties which are not supported
+*@Description : seqDB-15032:alter修改分区类属性
+                seqDB-15033:alter修改压缩类属性
 *@Modify list :
 *               2014-07-10 pusheng Ding  Init
 *               2015-03-28 xiaojun Hu    Changed
