@@ -18,7 +18,7 @@ class TestListCollections20087(testlib.SdbTestBase):
    def test_list_collections_20087(self):
 
       # get list with option
-      expect_result=[{"Name":"type_cs.test_20087_2"}, {"Name":"type_cs.test_20087_3"}, {"Name":"type_cs.test_20087_4"}]
+      expect_result=3
       cursor = self.db.get_list(SDB_LIST_COLLECTIONS, num_to_return=long_type(3), num_to_skip=long_type(2))
       act_result = testlib.get_all_records(cursor)
       
@@ -30,5 +30,4 @@ class TestListCollections20087(testlib.SdbTestBase):
          self.db.drop_collection_space(self.cs_name)
 
    def check_list(self, expect_result, act_result):
-      for i in range(len(expect_result)):
-         self.assertEqual(expect_result[i], act_result[i])
+      self.assertEqual(expect_result, len(act_result))
