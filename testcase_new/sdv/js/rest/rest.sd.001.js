@@ -3,7 +3,8 @@
                对应testlink用例为：seqDB-1981:不并发+单条记录_rest.sd.001
 *@Author:  		TingYU  2015/10/29
 ************************************************************************/
-main();
+//TODO:SEQUOIADBMAINSTREAM-5129 
+//main();
 
 function main()
 {  
