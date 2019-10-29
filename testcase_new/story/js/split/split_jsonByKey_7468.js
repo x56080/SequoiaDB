@@ -97,7 +97,7 @@ function testSplitJsonOne( db )
                throw "split wrong";
             }
 
-            if( json_cnt < json_in.length )
+            if( json_cnt < json_in.length - 1 )
             {
                json_cnt++;
             }
