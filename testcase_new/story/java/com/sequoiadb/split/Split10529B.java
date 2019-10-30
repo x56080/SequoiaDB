@@ -184,7 +184,8 @@ public class Split10529B extends SdbTestBase {
             throws Exception {
         Sequoiadb dataNode = null;
         try {
-            dataNode = ollection cl = dataNode.getCollectionSpace(csName).getCollection(clName);
+            dataNode = sdb.getReplicaGroup(groupName).getMaster().connect();// 获得目标组主节点链接
+            DBCollection cl = dataNode.getCollectionSpace(csName).getCollection(clName);
             long count = cl.getCount(macher);
             if (count != expectedCount) {// 目标组应当含有上述查询数据
                 throw new Exception(
