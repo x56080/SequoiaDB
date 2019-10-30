@@ -16,8 +16,8 @@ function main()
    // init import file and expect records
    var recsNum = initImportFile_testPoint( importFile );
    // import and check results, cover type: int, long, double, decimal
-   var bValTypeArr = ["int", "long", "double"];    // , "decimal"   jira-4891
-   var findTypeArr = ["int32", "int64", "double"]; // , "decimal"
+   var bValTypeArr = ["int", "long", "double", "decimal"];
+   var findTypeArr = ["int32", "int64", "double", "decimal"];
    for (var i = 0; i < bValTypeArr.length; i++)
    {
       println("\n---------------------import data, b value type is "+ bValTypeArr[i]  +", test point "+ (i+1) +"---------------------");
@@ -56,7 +56,7 @@ function initImportFile_testPoint( importFile )
    // 400, b value e.g: ".0E+1" / ".0E+2"......".0E+400"
    for (var i = tmpNum; i < tmpNum * 2; i++)
    {
-      str += i + ",.0E+" + ( i - tmpNum ) + "\n";
+      str += i + ",.0E+" + ( (i + 1) - tmpNum ) + "\n";
    }
 
    file.write( str );
@@ -75,7 +75,7 @@ function initExpectData_testPoint( expRecsNum, bValType )
       if ( bValType === "decimal" )
       {
          record = {"a": i, "b": {"$decimal":"0"}};
-         if ( i >= 400 && i < 800 ) 
+         if ( i < 400 ) 
          {
             record = {"a": i, "b": {"$decimal": bVal}};
             bVal += "0";

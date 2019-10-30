@@ -1,5 +1,5 @@
 /************************************************************************
-*@Description:  seqDB-19174:浮点数特殊值测试（如0. / .0 / . / 00）
+*@Description:  seqDB-19174:浮点数特殊值测试（如0. / .0 / . / .E / 00）
 *@Author     :  2019-8-21  huangxiaoni
 ************************************************************************/
 main(); 
@@ -15,25 +15,29 @@ function main()
    
    // init import file and expect records
    var recsNum = initImportFile_testPoint( importFile ); 
+   var expRecsNum = recsNum - 2;
    // import and check results, cover type: int, long, double, decimal
    var bValTypeArr = ["int", "long", "double", "decimal"]; 
    var findTypeArr = ["int32", "int64", "double", "decimal"];
    for (var i = 0; i < bValTypeArr.length; i++)
    {
       println("\n---------------------import data, b value type is "+ bValTypeArr[i]  +", test point "+ (i+1) +"---------------------");
-      var expRecs = initExpectData_testPoint( recsNum, bValTypeArr[i] );
+      var expRecs = initExpectData_testPoint( expRecsNum, bValTypeArr[i] );
       // import
       var importFields = 'a int, b ' + bValTypeArr[i];
       var rc = importData( csName, clName, importFile, type, importFields, true ); 
       // check results
-      checkImportRC( rc, recsNum ); 
+      var expParseFailureNum = 2;
+      checkImportRC( rc, expRecsNum, expRecsNum, expParseFailureNum ); 
       var findCond = {"b": {"$type": 2, "$et": findTypeArr[i]}};
-      checkCLData( cl, recsNum, expRecs, findCond );       
+      checkCLData( cl, expRecsNum, expRecs, findCond );       
       cl.truncate();     
    }
    // clean data
-   cmd.run( "rm -rf " +  importFile );   
    cleanCL( csName, clName );
+   cmd.run( "rm -rf " +  importFile ); 
+   var tmpRec = csName +"_"+ clName +"*.rec";
+   cmd.run( "rm -rf "+ tmpRec );
 }
 
 function initImportFile_testPoint( importFile )
@@ -41,7 +45,7 @@ function initImportFile_testPoint( importFile )
    println("\n---Begin to ready import file.");
    var file = fileInit( importFile );
    var tmpNum = 400;
-   var recordsNum = tmpNum * 3;
+   var recordsNum = tmpNum * 3 + 2;
    
    // 0, b value e.g: "0." / "00."......
    var str = "";
@@ -68,10 +72,9 @@ function initImportFile_testPoint( importFile )
       bVal += "0";
    }
    
-   /* jira-4891, decimal is fail
    // 1201, b value e.g: "."
    str += (tmpNum * 3) + ",.\n";
-   */
+   str += (tmpNum * 3 + 1) + ",.E\n";
 
    file.write( str );
    file.close();
