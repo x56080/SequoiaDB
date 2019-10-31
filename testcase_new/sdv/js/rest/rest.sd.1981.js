@@ -3,13 +3,12 @@
                对应testlink用例为：seqDB-1981:不并发+单条记录_rest.sd.001
 *@Author:  		TingYU  2015/10/29
 ************************************************************************/
-//TODO:SEQUOIADBMAINSTREAM-5129 
-//main();
+main();
 
 function main()
 {  
-   var csName = COMMCLNAME + "_restsdv";
-   var clName = COMMCLNAME + "_restsdv";
+   var csName = COMMCSNAME + "_restsdv1981";
+   var clName = COMMCLNAME + "_restsdv1981";
     
 	try
 	{

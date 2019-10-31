@@ -7,8 +7,8 @@ main();
 
 function main()
 {  
-   var csName = COMMCSNAME + "_restsdv";
-   var clName = COMMCLNAME + "_restsdv";
+   var csName = COMMCSNAME + "_restsdv1982";
+   var clName = COMMCLNAME + "_restsdv1982";
     
 	try
 	{
