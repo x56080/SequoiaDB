@@ -43,7 +43,6 @@ function main()
    cl.truncate(); 
    cmd.run( "rm -rf " +  importFile ); 
    
-   /*  jira-4893
    println("\n---------------------import data, test point 3---------------------");
    // init import file and expect records
    var recsNum = initImportFile_testPoint3( importFile );
@@ -56,7 +55,7 @@ function main()
    // clean data
    cl.truncate(); 
    cmd.run( "rm -rf " +  importFile ); 
-   */
+   
    cleanCL( csName, clName );
 }
 

@@ -16,7 +16,6 @@ function main()
    var importFields = 'a int, b decimal';
    var findCond = {"b": {"$type": 2, "$et": "decimal"}};   
    
-   /*  jira-4893
    println("\n---------------------import data, test point 1---------------------");
    // init import file and expect records
    var recsNum = initImportFile_testPoint1( importFile );
@@ -29,7 +28,6 @@ function main()
    // clean data
    cl.truncate(); 
    cmd.run( "rm -rf " +  importFile ); 
-   */
    
    println("\n---------------------import data, test point 2---------------------");
    // init import file and expect records
@@ -44,7 +42,6 @@ function main()
    cl.truncate(); 
    cmd.run( "rm -rf " +  importFile ); 
    
-   /*  jira-4893
    println("\n---------------------import data, test point 3---------------------");
    // init import file and expect records
    var recsNum = initImportFile_testPoint3( importFile );
@@ -57,7 +54,7 @@ function main()
    // clean data
    cl.truncate(); 
    cmd.run( "rm -rf " +  importFile ); 
-   */
+   
    cleanCL( csName, clName );
 }
 
@@ -117,9 +114,11 @@ function initExpectData_testPoint1( expRecsNum )
 {   
    println("\n---Begin to ready expect data.");
    var expRecs = [];
+   var bVal = "0.0";
    for (var i = 0; i < expRecsNum; i++)
    {
-      var record = {"a": i, "b": 0};
+      var record = {"a": i, "b": {"$decimal": bVal + "1"}};
+      bVal += "0";
       expRecs.push(JSON.stringify( record ));
    }
    return "[" + expRecs + "]";
@@ -150,12 +149,14 @@ function initExpectData_testPoint2( expRecsNum )
 }
 
 function initExpectData_testPoint3( expRecsNum )
-{   
+{      
    println("\n---Begin to ready expect data.");
    var expRecs = [];
+   var bVal = "0.01";
    for (var i = 0; i < expRecsNum; i++)
    {
-      var record = {"a": i, "b": 0};
+      var record = {"a": i, "b": {"$decimal": bVal}};
+      bVal += "1";
       expRecs.push(JSON.stringify( record ));
    }
    return "[" + expRecs + "]";

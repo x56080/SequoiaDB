@@ -48,7 +48,6 @@ function main()
    cl.truncate(); 
    cmd.run( "rm -rf " +  importFile ); 
    
-   /*  jira-4893
    println("\n---------------------import data, test point 3---------------------");
    // init import file and expect records
    var recsNum = initImportFile_testPoint3( importFile );
@@ -61,7 +60,7 @@ function main()
    // clean data
    cl.truncate(); 
    cmd.run( "rm -rf " +  importFile ); 
-   */
+   
    cleanCL( csName, clName );
 }
 
@@ -135,9 +134,15 @@ function initExpectData_testPoint3( expRecsNum )
 {   
    println("\n---Begin to ready expect data.");
    var expRecs = [];
+   var record;
+   var bVal = "0.01";
    for (var i = 0; i < expRecsNum; i++)
    {
-      var record = {"a": i, "b": 0};
+      record = {"a": i, "b": Number( bVal )};
+      if ( i < 15 )
+      { 
+         bVal += "1";
+      } 
       expRecs.push(JSON.stringify( record ));
    }
    return "[" + expRecs + "]";

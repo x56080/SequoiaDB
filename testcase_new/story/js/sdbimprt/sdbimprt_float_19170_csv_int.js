@@ -16,7 +16,6 @@ function main()
    var importFields = 'a int, b int';
    var findCond = {"b": {"$type": 2, "$et": "int32"}};   
    
-   /* jira-4893
    println("\n---------------------import data, test point 1---------------------");
    // init import file and expect records
    var recsNum = initImportFile_testPoint1( importFile );
@@ -29,7 +28,6 @@ function main()
    // clean data
    cl.truncate(); 
    cmd.run( "rm -rf " +  importFile ); 
-   */
    
    println("\n---------------------import data, test point 2---------------------");
    // init import file and expect records
@@ -85,9 +83,39 @@ function initExpectData_testPoint1( expRecsNum )
 {   
    println("\n---Begin to ready expect data.");
    var expRecs = [];
+   var bVal = "1";
+   var records;
    for (var i = 0; i < expRecsNum; i++)
    {
-      var record = {"a": i, "b": 0};
+      if ( i < 10 ) 
+      {
+         record = {"a": i, "b": Number( bVal )};
+         bVal += "1";
+      } 
+      else if ( i >= 10 && i <= 14 )
+      {
+         record = {"a": i, "b": -2147483648};          
+      }
+      else if ( i === 15 )
+      {
+         record = {"a": i, "b": -1223331385};          
+      }
+      else if ( i === 16 )
+      {
+         record = {"a": i, "b": 651588039};          
+      }
+      else if ( i === 17 )
+      {
+         record = {"a": i, "b": -2074054201};          
+      }
+      else if ( i === 18 )
+      {
+         record = {"a": i, "b": 734294471};          
+      }
+      else 
+      {
+         record = {"a": i, "b": 0};
+      }
       expRecs.push(JSON.stringify( record ));
    }
    return "[" + expRecs + "]";

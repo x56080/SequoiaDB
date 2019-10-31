@@ -16,7 +16,6 @@ function main()
    var importFields = 'a int, b decimal';
    var findCond = {"b": {"$type": 2, "$et": "decimal"}};   
    
-   /* jira-4893
    println("\n---------------------import data, test point 1---------------------");
    // init import file and expect records
    var recsNum = initImportFile_testPoint1( importFile );
@@ -29,7 +28,6 @@ function main()
    // clean data
    cl.truncate(); 
    cmd.run( "rm -rf " +  importFile ); 
-   */
    
    println("\n---------------------import data, test point 2---------------------");
    // init import file and expect records
@@ -85,9 +83,11 @@ function initExpectData_testPoint1( expRecsNum )
 {   
    println("\n---Begin to ready expect data.");
    var expRecs = [];
+   var bVal = "1";
    for (var i = 0; i < expRecsNum; i++)
    {
-      var record = {"a": i, "b": 0};
+      var record = {"a": i, "b": {"$decimal": bVal}};
+      bVal += "1";
       expRecs.push(JSON.stringify( record ));
    }
    return "[" + expRecs + "]";

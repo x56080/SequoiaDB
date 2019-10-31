@@ -29,8 +29,7 @@ function main()
    checkRecords( cl, limitNum, expRecs, findCond );
    // clean data
    cl.truncate(); 
-   cmd.run( "rm -rf " +  importFile ); 
-   
+   cmd.run( "rm -rf " +  importFile );    
    
    println("\n---------------------import data, test point 2---------------------");
    // init import file and expect records
@@ -39,7 +38,7 @@ function main()
    var rc = importData( csName, clName, importFile, type ); 
    // check results
    checkImportRC( rc, recsNum );    
-   checkCount( cl, recsNum );   
+   checkCount( cl, recsNum );
    var findTypeArr = ["int32", "int64", "double", "decimal"];
    var limitNum = 30; // expect data changes, other only ensure normal import
    for (var i = 0; i < findTypeArr.length; i++)
@@ -50,8 +49,10 @@ function main()
       var expRecsNum = JSON.parse( expRecs ).length;
       checkRecords( cl, expRecsNum, expRecs, findCond );
    }
-      
-   /*  jira-4893
+   // clean data
+   cl.truncate(); 
+   cmd.run( "rm -rf " +  importFile );
+   
    println("\n---------------------import data, test point 3---------------------");
    // init import file and expect records
    var recsNum = initImportFile_testPoint3( importFile );
@@ -60,11 +61,19 @@ function main()
    var rc = importData( csName, clName, importFile, type ); 
    // check results
    checkImportRC( rc, recsNum ); 
-   checkCLData( cl, recsNum, expRecs, findCond );
+   var findTypeArr = ["int32", "int64", "double", "decimal"];
+   for (var i = 0; i < findTypeArr.length; i++)
+   {
+      println("\n----------------findType is "+ findTypeArr[i] + "----------------");
+      var expRecs = initExpectData_testPoint3( recsNum, findTypeArr[i] );
+      var findCond = {"b": {"$type": 2, "$et": findTypeArr[i]}};
+      var expRecsNum = JSON.parse( expRecs ).length;
+      checkRecords( cl, expRecsNum, expRecs, findCond );
+   }
    // clean data
    cl.truncate(); 
-   cmd.run( "rm -rf " +  importFile ); 
-   */
+   cmd.run( "rm -rf " +  importFile );
+   
    cleanCL( csName, clName );
 }
 
@@ -112,7 +121,7 @@ function initImportFile_testPoint3( importFile )
    var bVal = "1";
    for (var i = 0; i < recordsNum; i++)
    {
-      str += "{a:" + i + ",b.0" + bVal + "E}\n";
+      str += "{a:" + i + ",b:.0" + bVal + "E}\n";
       bVal += "1";
    }
    file.write( str );
@@ -138,14 +147,33 @@ function initExpectData_testPoint2( expRecsNum, findType )
    return expRecs;
 }
 
-function initExpectData_testPoint3( expRecsNum )
+function initExpectData_testPoint3( expRecsNum, findType )
 {   
    println("\n---Begin to ready expect data.");
    var expRecs = [];
+   var record;
+   var tmpDoubleBVal = "0.01";
+   var tmpDecimalBVal = "0.01111111111111111";
    for (var i = 0; i < expRecsNum; i++)
    {
-      var record = {"a": i, "b": 0};
-      expRecs.push(JSON.stringify( record ));
+      if ( findType === "double" )
+      {
+         if ( i < 15 )
+         {
+            record = {"a": i, "b": Number( tmpDoubleBVal )};
+            tmpDoubleBVal += "1";
+            expRecs.push(JSON.stringify( record ));
+         }
+      }
+      else if ( findType === "decimal" )
+      {
+         if ( i >= 15 && i < 400 ) 
+         {
+            record = {"a": i, "b": {"$decimal": tmpDecimalBVal}};
+            tmpDecimalBVal += "1";
+            expRecs.push(JSON.stringify( record ));
+         }
+      }
    }
    return "[" + expRecs + "]";
 }

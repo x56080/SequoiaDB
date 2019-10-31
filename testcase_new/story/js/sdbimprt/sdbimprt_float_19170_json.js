@@ -13,7 +13,6 @@ function main()
    var cl = readyCL( csName, clName );
    var importFile = tmpFileDir + tmpPrefix +"." + type;
    
-   /* jira-4893
    println("\n---------------------import data, test point 1---------------------");
    // init import file and expect records
    var recsNum = initImportFile_testPoint1( importFile ); 
@@ -33,7 +32,6 @@ function main()
    // clean data
    cmd.run( "rm -rf " +  importFile );
    cl.truncate();
-   */
    
    println("\n---------------------import data, test point 2---------------------");
    // init import file and expect records
@@ -68,7 +66,7 @@ function initImportFile_testPoint1( importFile )
    var bVal = "1.E";
    for (var i = 0; i < recordsNum; i++)
    {
-      str += "{a:" + i + ",b:" + bVal + "}\n";
+      str += "{a:" + i + ",b:" + bVal + "+0}\n";
       bVal = "1" + bVal;
    }
    file.write( str );
@@ -92,14 +90,32 @@ function initImportFile_testPoint2( importFile )
    return recordsNum;
 }
 
-function initExpectData_testPoint1( expRecsNum )
+function initExpectData_testPoint1( expRecsNum, findType )
 {   
    println("\n---Begin to ready expect data.");
    var expRecs = [];
+   var record;
+   var bVal = "1";
    for (var i = 0; i < expRecsNum; i++)
    {
-      var record = {"a": i, "b": 0};
-      expRecs.push(JSON.stringify( record ));
+      if ( findType === "double" )
+      {
+         if ( i < 15 )
+         {
+            record = {"a": i, "b": Number( bVal )};
+            bVal += "1";
+            expRecs.push(JSON.stringify( record ));
+         }
+      } 
+      else if ( findType === "decimal" )
+      {
+         if ( i >= 15 && i < 400 )
+         {
+            record = {"a": i, "b": {"$decimal": "111111111111111" + bVal }};
+            bVal += "1";
+            expRecs.push(JSON.stringify( record ));
+         }
+      } 
    }
    return "[" + expRecs + "]";
 }
