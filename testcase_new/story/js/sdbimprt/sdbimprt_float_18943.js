@@ -40,15 +40,14 @@ function main()
    checkResult( cl, dataType, expResult );
    cl.truncate();
    
-   //SEQUOIADBMAINSTREAM-5074
-   /* println( "\n---data type decimal to import csv file." );
+   println( "\n---data type decimal to import csv file." );
    var fields = "a decimal";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 80 );
    dataType = "decimal";
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
-   cl.truncate();*/
+   cl.truncate();
 
    println( "\n---data type double、decimal to import json file." );
    var fields = "a";   
@@ -91,15 +90,25 @@ function prepareDate( typeFile )
 function getExpResult( dataType )
 {
    var expResult = [];
+   var right = "";
+   for(var i =0; i < 308; i++)
+   {
+      right = right + 0;   
+   }
+
    for( var i = 0; i < 20; i++ )
    {
-      for(var j = 0; j < 4; j++)
+      right = right + 0;
+      if( dataType === "decimal")
       {
-         if( dataType === "decimal")
-         { 
-            expResult.push({ a: {"$decimal": "0" }});
-         }
-         else
+         expResult.push({ a: {"$decimal": "0" }});
+         expResult.push({ a: {"$decimal": "0." + right }});
+         expResult.push({ a: {"$decimal": "0" }});
+         expResult.push({ a: {"$decimal": "0.0" + right }});
+      }
+      else
+      {
+         for(var j = 0; j < 4; j++)
          {
             expResult.push({ a: 0 });
          }
