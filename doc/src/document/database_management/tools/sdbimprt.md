@@ -154,13 +154,13 @@ CSV（Comma Separated Value）格式以逗号分隔数值。默认情况下记�
 | --fields       |      | 指定导入数据的字段名、类型、默认值 | 
 | --datefmt      |      | 指定日期格式，默认为 YYYY-MM-DD | 
 | --timestampfmt |      | 指定时间戳格式，默认为 YYYY-MM-DD-HH.mm.ss.ffffff | 
-| --trim         |      | 删除字符串左右两侧的空格（包括 ASCII 空格和 UTF-8 全角空格），取值可以是 no、right、left 或 both， 默认值为 no | 
+| --trim         |      | 删除字符串左右两侧的空格（包括 ASCII 空格和 UTF-8 全角空格），<br>取值可以是 no、right、left 或 both， 默认值为 no | 
 | --headerline   |      | 指定导入数据首行是否作为字段名，默认值为 false | 
 | --sparse       |      | 指定导入数据时是否自动添加字段名，默认值为 true，字段名按“filed1”、“field2”顺序增加 | 
 | --extra        |      | 指定导入数据时是否自动添加值，默认值为 false | 
 | --cast         |      | 指定是否允许数值类型转换时丢失精度或数值溢出，默认值为 false | 
 | --strictfieldnum|     | 指定是否严格限制记录的字段数与定义的字段数一致，默认值为 false |
-| --checkdelimeter|     | 是否对分隔符做严格校验，true做严格校验，false不做严格校验，默认为true |
+| --checkdelimeter|     | 是否严格校验分隔符，默认为 true。<br>true：禁止字符分隔符、字段分隔符、记录分隔符互相包含；<br>false：允许字符分隔符、字段分隔符、记录分隔符互相包含。|
 
 >   **Note:**
 >

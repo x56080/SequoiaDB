@@ -73,9 +73,9 @@ CSV（Comma Separated Value）导出格式以逗号分隔数值。默认情况�
 | --included      |      | 是否导出字段名到文件首行，默认值为 true |
 | --includebinary |      | 是否导出完整二进制数据，默认值为 false |
 | --includeregex  |      | 是否导出完整的正则表达式，默认值为 false |
-| --force         |      | 对于导出 csv 格式，每个集合必须指定对应的字段，否则不允许导出；--force 选项可以强制导出，未指定字段的集合默认为第一行记录中除了 _id 以外的字段 |
+| --force         |      | 对于导出 csv 格式，每个集合必须指定对应的字段，否则不允许导出；<br>--force 选项可以强制导出，未指定字段的集合默认为第一行记录中除了 _id 以外的字段 |
 | --kicknull      |      | 是否踢掉null值，true输出空字符，false输出null，默认为false | 
-| --checkdelimeter|      | 是否对分隔符做严格校验，true做严格校验，false不做严格校验，默认为true |
+| --checkdelimeter|      | 是否严格校验分隔符，默认为 true。<br>true：禁止字符分隔符、字段分隔符、记录分隔符互相包含；<br>false：允许字符分隔符、字段分隔符、记录分隔符互相包含。|
 
 ###配置文件选项###
 
