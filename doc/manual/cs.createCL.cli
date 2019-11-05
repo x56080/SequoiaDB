@@ -151,19 +151,18 @@ should belong to one and only one collection.
    The length of it should not be greater than 127B, or exception
    will occur.
 .sp 2
-   *  AutoSplit must cooperate with hash partitioning and domain.
-   AutoSplit and Group cannot be set at the same time.
+   *  When creating collection space, user can specify "Domain".
+   When creating collection, using "Group" parameter, the specified
+   replication group must be in the domain; when no using "Group" 
+   parameter, the collection will be created on any replication 
+   group in the domain.
 .sp 2
-   *  AutoSplit and Group cannot be set at the same time.
+   *  "AutoSplit" parameter in createCL() has higher priority than
+   "AutoSplit" attribute in domain.
 .sp 2
-   *  If AutoSplit is not specOKified in a collection, the value
-   of AutoSplit will come from domain.
+   *  "AutoSplit" must cooperate with hash partitioning.
 .sp 2
-   *  Group must exist in a domain, which contains a collection
-   space, which has the group(All replica group belong to
-   SYSDOMAIN, that is to say, a collection space can be
-   distributed into any replica group if no specific group is
-   given)
+   *  "AutoSplit" and "Group" cannot be set at the same time.
 .sp 2
    *  Compression algorithm selection strategy: the snappy algorithm 
    compresses data in units of a single record, and the internal 

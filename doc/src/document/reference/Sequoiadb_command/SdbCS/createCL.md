@@ -56,10 +56,10 @@ createCL() 方法的定义格式包含 name 和 options 两个参数。name 的�
 > * Compressed 为 boolean 类型，为 “true” 时，表示集合中的数据压缩存储，“false” 时表示正常存储数据。开启压缩时，还可通过 CompressionType 指定压缩类型，当前可支持的压缩类型有snappy及lzw。不显式指定C ompressionType 时默认使用 snappy 压缩。snappy 速度较快，而lzw压缩效果较好。
 > * 当 options 内设置了多个参数时，用逗号（,）隔开。
 > * name 的值不能是空串，含点（.）或者美元符号（$），并且长度不能超过127B，否则操作失败。
-> * AutoSplit 必须配合散列分区和域使用，且不能与 Group 同时使用。
-> * AutoSplit 不能与 Group 同时使用。
-> * 如果在集合中没有指定 AutoSplit，则使用所属域中的 AutoSplit 参数。
-> * Group 必须存在于集合空间所属的域中（所有复制组均属于 SYSDOMAIN，即如果集合空间没有指定域，则系统内任意复制组均可）。
+> * 在[创建集合空间](reference/Sequoiadb_command/Sdb/createCS.md)时，可以指定所属的[数据域](infrastructure/domain.md)。创建集合时，使用 Group 参数，指定的复制组必须在域内；不使用 Group 参数，集合将被创建在域的任意一个复制组上。
+> * 创建集合的 AutoSplit 参数比数据域的 AutoSplit 属性优先级更高。
+> * AutoSplit 不能与 Group 参数同时使用。
+> * AutoSplit 必须配合散列分区使用。
 > * 压缩算法选择策略：snappy压缩算法是以单条记录为单位进行压缩，记录内部的数据重复度直接影响到压缩率。因此，当记录内部数据重复度较高，如每条记录的字段名、字段值相似，使用 snappy 算法可获得良好的压缩性能。如果记录内部数据重复度很低，但记录间具有更高的相似性，如不同记录之间有相同的字段名，相近的字段值等，则使用 lzw 算法更优。
 
 ##示例##

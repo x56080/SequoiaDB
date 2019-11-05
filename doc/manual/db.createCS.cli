@@ -44,7 +44,8 @@ Create a collection space in a database instance.
 .sp 2
        \fBDomain\fR
 .br
-              Domain that collection space belongs to.
+              Domain that collection space belongs to. The default
+              value is SYSDOMAIN, which includes all groups.
 .br
               Domain:<string>
 .sp 2
