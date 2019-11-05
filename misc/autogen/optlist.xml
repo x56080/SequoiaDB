@@ -1082,21 +1082,6 @@
    </opt>
 
    <opt>
-      <name>PMD_OPTION_IS_ARBITER</name>
-      <long>arbiter</long>
-      <default>false</default>
-      <description>
-        <en>Set node as an arbiter only. Default is false.</en>
-        <cn>将节点设置成为一个仲裁节点。默认为false。</cn>
-      </description>
-      <detail>
-         <en>Set node as an arbiter only. Default is false.</en>
-         <cn>将节点设置成为一个仲裁节点。默认为false。</cn>
-      </detail>
-      <typeofweb>boolean</typeofweb>
-   </opt>
-
-   <opt>
       <name>PMD_OPTION_PLAN_BUCKETS</name>
       <long>planbuckets</long>
       <default>0</default>
