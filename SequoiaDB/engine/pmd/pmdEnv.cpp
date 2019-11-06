@@ -146,12 +146,21 @@ namespace engine
          PD_LOG ( PDEVENT, "Recieve signal[%d:%s, %s]",
                   sigNum, pmdGetSignalInfo( sigNum )._name,
                   pmdGetSignalInfo( sigNum )._handle ? "QUIT" : "IGNORE" ) ;
-         if ( pmdGetSignalInfo( sigNum )._handle ) // quit
+
+         if ( SIGFPE == sigNum ||
+              pmdGetSignalInfo( sigNum )._handle ) // quit
          {
             pmdGetSysInfo()->_quitFlag = TRUE ;
             if ( pmdGetSysInfo()->_pQuitFunc )
             {
                (*pmdGetSysInfo()->_pQuitFunc)() ;
+            }
+
+            if ( SIGFPE == sigNum )
+            {
+               /// sleep 1 mins
+               ossSleep( 60 * OSS_ONE_SEC ) ;
+               ossPanic() ;
             }
          }
       }
