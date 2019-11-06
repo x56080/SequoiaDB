@@ -2038,7 +2038,7 @@ namespace engine
       clsCataItemKey newItemUpKey = pNewItem->getUpBoundKey( _pOrder->getOrdering() );
       PD_CHECK( newItemLowKey < newItemUpKey, SDB_BOUND_INVALID, error, PDERROR,
                "invalid boundary(low:%s, up:%s)",
-               lowBoundObj.toString().c_str(), lowBoundObj.toString().c_str() );
+               lowBoundObj.toString().c_str(), upBoundObj.toString().c_str() );
 
       // empty: directly insert the new item
       if ( _mapItems.empty() )
