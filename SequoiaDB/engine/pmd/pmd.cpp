@@ -66,7 +66,7 @@ namespace engine
       for ( INT32 i = 0 ; i < SDB_CB_MAX ; ++i )
       {
          _arrayCBs[ i ] = NULL ;
-         _arrayCBs[ i ] = NULL ;
+         _arrayOrgs[ i ] = NULL ;
       }
       _init             = FALSE ;
       _isActive         = FALSE ;
