@@ -173,7 +173,7 @@ namespace engine
 
             /// Not the main thread
             if ( SIGFPE == sigNum &&
-                 ossGetCurrentProcessID() != (UINT32)ossGetCurrentThreadID() )
+                 (UINT32)ossGetCurrentProcessID() != ossGetCurrentThreadID() )
             {
                /// sleep 10 seconds
                ossSleep( 10 * OSS_ONE_SEC ) ;
