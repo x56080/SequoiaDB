@@ -156,10 +156,12 @@ namespace engine
                (*pmdGetSysInfo()->_pQuitFunc)() ;
             }
 
-            if ( SIGFPE == sigNum )
+            /// Not the main thread
+            if ( SIGFPE == sigNum &&
+                 ossGetCurrentProcessID() != ossGetCurrentThreadID() )
             {
-               /// sleep 1 mins
-               ossSleep( 60 * OSS_ONE_SEC ) ;
+               /// sleep 10 seconds
+               ossSleep( 10 * OSS_ONE_SEC ) ;
                ossPanic() ;
             }
          }
