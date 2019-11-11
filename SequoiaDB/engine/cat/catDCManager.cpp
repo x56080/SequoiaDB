@@ -1250,6 +1250,7 @@ namespace engine
          arrayBuild.append( BSON_ARRAY( it->first << it->second ) ) ;
          ++it ;
       }
+      arrayBuild.doneFast() ;
    }
 
    BOOLEAN _catDCManager::_isAddrConflict( const string &addr,
