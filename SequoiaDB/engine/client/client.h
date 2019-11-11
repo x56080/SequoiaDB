@@ -48,6 +48,9 @@ enum _SDB_LOB_OPEN_MODE
    SDB_LOB_READ       = 0x00000004, /**< Open an existing lob to read */
    SDB_LOB_WRITE      = 0x00000008  /**< Open an existing lob to write */
 } ;
+/** \typedef enum _SDB_LOB_OPEN_MODE SDB_LOB_OPEN_MODE
+    \brief The open mode.
+*/
 typedef enum _SDB_LOB_OPEN_MODE SDB_LOB_OPEN_MODE ;
 
 enum _SDB_LOB_SEEK
@@ -56,18 +59,30 @@ enum _SDB_LOB_SEEK
    SDB_LOB_SEEK_CUR,     /**< Seek from the current place */
    SDB_LOB_SEEK_END      /**< Seek from the end of file  */
 } ;
+/** \typedef enum _SDB_LOB_SEEK SDB_LOB_SEEK
+    \brief The whence of seek.
+*/
 typedef enum _SDB_LOB_SEEK SDB_LOB_SEEK ;
 
 /** define sequoiadb invalid handle */
 #define SDB_INVALID_HANDLE       ((ossValuePtr) 0)
+/** sequoiadb database connection handle */
 typedef ossValuePtr sdbConnectionHandle   ;
+/** sequoiadb collection space handle */
 typedef ossValuePtr sdbCSHandle           ;
+/** sequoiadb collection handle */
 typedef ossValuePtr sdbCollectionHandle   ;
+/** sequoiadb cursor handle */
 typedef ossValuePtr sdbCursorHandle       ;
+/** sequoiadb replica group handle */
 typedef ossValuePtr sdbReplicaGroupHandle ;
+/** sequoiadb node handle */
 typedef ossValuePtr sdbNodeHandle  ;
+/** sequoiadb domain handle */
 typedef ossValuePtr sdbDomainHandle ;
+/** sequoiadb large object handle */
 typedef ossValuePtr sdbLobHandle ;
+/** sequoiadb data center handle */
 typedef ossValuePtr sdbDCHandle ;
 
 /** Callback function when the reply message is error **/
@@ -2963,7 +2978,7 @@ SDB_EXPORT INT32 sdbInvalidateCache( sdbConnectionHandle cHandle,
 /** \fn INT32 sdbForceSession( sdbConnectionHandle cHandle,
                                SINT64 sessionID,
                                bson *options )
-    \brief interrupte the session
+    \brief interrupte the session.
     \param [in] cHandle The connection handle
     \param [in] sessionID The id of the session which we want to inerrupt
     \param [in] options The location information, such as NodeID, HostName and svcname
@@ -2975,21 +2990,20 @@ SDB_EXPORT INT32 sdbForceSession( sdbConnectionHandle cHandle,
                                   bson *options ) ;
 
 /** \fn INT32 sdbCreateLobID( sdbCollectionHandle cHandle,
-                              const bson_oid_t *oid )
-    \brief create a large object id
+                              bson_oid_t *oid )
+    \brief create a large object id.
     \param [in] cHandle The collection handle
     \param [out] oid The large object id
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
 SDB_EXPORT INT32 sdbCreateLobID( sdbCollectionHandle cHandle,
-                              bson_oid_t *oid ) ;
-
+                                 bson_oid_t *oid ) ;
 
 /** \fn INT32 sdbCreateLobID1( sdbCollectionHandle cHandle,
-                              const CHAR *pTimeStamp,
-                              const bson_oid_t *oid )
-    \brief create a large object id
+                               const CHAR *pTimeStamp,
+                               bson_oid_t *oid )
+    \brief create a large object id.
     \param [in] cHandle The collection handle
     \param [in] pTimestamp Point of Timestamp(format:YYYY-MM-DD-HH.mm.ss).
                            if Timestamp is NULL the Timestamp will be
@@ -2999,11 +3013,12 @@ SDB_EXPORT INT32 sdbCreateLobID( sdbCollectionHandle cHandle,
     \retval Others Operation Fail
 */
 SDB_EXPORT INT32 sdbCreateLobID1( sdbCollectionHandle cHandle,
-                              const CHAR *pTimeStamp,
-                              bson_oid_t *oid ) ;
+                                  const CHAR *pTimeStamp,
+                                  bson_oid_t *oid ) ;
+
 /** \fn INT32 sdbGetLobId( sdbLobHandle lobHandle,
                            bson_oid_t *oid )
-    \brief use a lobHandle to get a large object id
+    \brief use a lobHandle to get a large object id.
     \param [in] cHandle The lob handle
     \param [out] oid The large object id
     \retval SDB_OK Operation Success
@@ -3011,11 +3026,12 @@ SDB_EXPORT INT32 sdbCreateLobID1( sdbCollectionHandle cHandle,
 */
 SDB_EXPORT INT32 sdbGetLobId( sdbLobHandle lobHandle,
                               bson_oid_t *oid ) ;
+
 /** \fn INT32 sdbOpenLob( sdbCollectionHandle cHandle,
                           const bson_oid_t *oid,
                           INT32 mode,
                           sdbLobHandle *lobHandle )
-    \brief create a large object or open a large object to read or write
+    \brief create a large object or open a large object to read or write.
     \param [in] cHandle The collection handle
     \param [in] oid The large object id, if mode is SDB_LOB_CREATEONLY, the oid can be NULL
     \param [in] mode The open mode: SDB_LOB_CREATEONLY/SDB_LOB_READ/SDB_LOB_WRITE
@@ -3185,10 +3201,14 @@ SDB_EXPORT INT32 sdbSeekLob( sdbLobHandle lobHandle,
 SDB_EXPORT INT32 sdbListLobs( sdbCollectionHandle cHandle,
                               sdbCursorHandle *cursor) ;
 
-
 /** \fn INT32 sdbListLobs1( sdbCollectionHandle cHandle,
-                           INT64 numToReturn,
-                           sdbCursorHandle *cursor )
+                            bson *condition,
+                            bson *selected,
+                            bson *orderBy,
+                            bson *hint,
+                            INT64 numToSkip,
+                            INT64 numToReturn,
+                            sdbCursorHandle *cursor )
     \brief list all the lobs' meta data in current collection
     \param [in] cHandle The collection handle
     \param [in] condition The matching rule, return all the lob if not provided
@@ -3203,14 +3223,13 @@ SDB_EXPORT INT32 sdbListLobs( sdbCollectionHandle cHandle,
     \retval Others Operation Fail
 */
 SDB_EXPORT INT32 sdbListLobs1( sdbCollectionHandle cHandle,
-                              bson *condition,
-                              bson *selected,
-                              bson *orderBy,
-                              bson *hint,
-                              INT64 numToSkip,
-                              INT64 numToReturn,
-                              sdbCursorHandle *cursor) ;
-
+                               bson *condition,
+                               bson *selected,
+                               bson *orderBy,
+                               bson *hint,
+                               INT64 numToSkip,
+                               INT64 numToReturn,
+                               sdbCursorHandle *cursor) ;
 
 /** \fn INT32 sdbListLobPieces( sdbCollectionHandle cHandle,
                                 sdbCursorHandle *cursor )
