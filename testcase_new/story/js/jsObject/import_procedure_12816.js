@@ -55,18 +55,22 @@ function main()
         throw buildException( null, null, "test procedure result", 2, result ) ;
     }
 
-    // remove file   
-    removeFile( importFile ) ;
-    removeFile( importOnceFile ) ;
+    // remove file  
+    var remote = new Remote(COORDHOSTNAME, CMSVCNAME);
+    var cmd = remote.getCmd(); 
+    cmd.run("rm -rf " + importFile);
+    cmd.run("rm -rf " + importOnceFile);
 }
 
 function createImportFile()
 {
     try
     {
-        var cmd = new Cmd() ;
+        var remote = new Remote(COORDHOSTNAME, CMSVCNAME);
+        var cmd = remote.getCmd();
         cmd.run( "rm -rf " + importFile ) ;
-        var file = new File( importFile, 0744 ) ;
+        initWorkDir( cmd, remote );
+        var file = remote.getFile(importFile, 0744, SDB_FILE_CREATE | SDB_FILE_READWRITE);
         file.write( "1+2" ) ;
         file.close() ;
     }
@@ -81,9 +85,11 @@ function createImportOnceFile()
 {
     try
     {
-        var cmd = new Cmd() ;
+        var remote = new Remote(COORDHOSTNAME, CMSVCNAME);
+        var cmd = remote.getCmd();
         cmd.run( "rm -rf " + importOnceFile ) ;
-        var file = new File( importOnceFile, 0744 ) ;
+        initWorkDir( cmd, remote );
+        var file = remote.getFile(importOnceFile, 0744, SDB_FILE_CREATE | SDB_FILE_READWRITE);
         file.write( "1*2" ) ;
         file.close() ;
     }

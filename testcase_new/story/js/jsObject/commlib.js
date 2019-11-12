@@ -606,3 +606,109 @@ function adaptPath( path )
       path += '/' ;
    return path ;
 }
+
+/***********************************************************
+*@Description : common function for import importOnce
+*@auhor       : Liang XueWang
+***********************************************************/
+commMakeDir( COORDHOSTNAME, WORKDIR );
+// js file without return
+var withoutRetFile       = WORKDIR + "/withoutRet_11902.js" ;
+// js file with return
+var withRetFile          = WORKDIR + "/withRet_11903.js" ;
+
+function createWithoutRetFile()
+{
+    try
+    {
+        var file = new File( withoutRetFile ) ;
+        file.write( "function add( a, b ) { return a + b ; }" ) ;
+        file.close() ;
+    }
+    catch( e )
+    {
+        throw buildException( "createFile", null, "create file " + withoutRetFile,
+                              0, e ) ;
+    }
+}
+function createWithRetFile()
+{
+    try
+    {
+        file = new File( withRetFile ) ;
+        file.write( "function mul( a, b ) { return a * b ; } var tmp = 100 ; mul( 1, 2 ) ;"
+                    + " mul( 2, 3 ) ;" ) ;
+        file.close() ;
+    }
+    catch( e )
+    {
+        throw buildException( "createFile", null, "create file " + withRetFile,
+                              0, e ) ;
+    }
+}
+
+function removeFile( filename )
+{
+    try
+    {
+        File.remove( filename ) ;
+    }
+    catch( e )
+    {
+        throw buildException( "removeFile", null, "remove file " + filename, 0, e ) ;
+    }
+}
+function currUser()
+{
+   var cmd = new Cmd() ;
+   var tmp = cmd.run( "whoami" ).split( "\n" ) ;
+   var user = tmp[tmp.length-2] ;
+   return user ;
+}
+
+function getCoordUser()
+{
+   try
+   {
+      var remote = new Remote( COORDHOSTNAME, CMSVCNAME ) ;
+      var system = remote.getSystem() ;
+      var cursor = system.listProcess( { detail: true },
+                                       { cmd: "sequoiadb("+COORDSVCNAME+") S" } ) ;
+      var user = cursor.next().toObj()["user"] ;
+      remote.close() ;
+      return user ;
+   }
+   catch( e )
+   {
+      throw buildException( "getCoordUser", e,
+            "get user of " + COORDHOSTNAME + ":" + COORDSVCNAME, 0, e ) ;
+   }
+}
+     
+function initWorkDir( cmd, remote )
+{
+   // localhost
+   try {
+      cmd.run( "ls " + WORKDIR );
+   }
+   catch(e)
+   {
+      if( 2 === e )   // 2: No such file or directory
+      {
+         cmd.run( "mkdir -p " + WORKDIR );
+      }
+      else
+      {
+         throw e;
+      }
+   }
+
+   // remote host
+   var file = remote.getFile();
+   var dirExist = file.exist( WORKDIR );
+   if( false === dirExist )
+   {
+      commMakeDir( COORDHOSTNAME, WORKDIR );
+   }
+}
+ 

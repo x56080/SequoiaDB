@@ -60,20 +60,23 @@ function main()
    db.removeProcedure( "testImportOnceNoPermFile12816" ) ; 
    
    // remove file
-   File.chmod( noPermFile, 0755 ) ;  
-   removeFile( noPermFile ) ;
+   var remote = new Remote(COORDHOSTNAME, CMSVCNAME);
+   var cmd = remote.getCmd();
+   cmd.run("rm -rf " + noPermFile);
 }
 
 function createNoPermFile()
 {
    try
    {
-      var cmd = new Cmd() ;
+      var remote = new Remote(COORDHOSTNAME, CMSVCNAME);
+      var cmd = remote.getCmd();
       cmd.run( "rm -rf " + noPermFile ) ;
-      var file = new File( noPermFile ) ;
+      initWorkDir( cmd, remote );
+      var file = remote.getFile(noPermFile, 0744, SDB_FILE_CREATE | SDB_FILE_READWRITE);
       file.write( "1+2" ) ;
       file.close() ;
-      File.chmod( noPermFile, 0000 ) ;
+      file.chmod( noPermFile, 0000 ) ;
    }
    catch( e )
    {
