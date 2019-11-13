@@ -102,6 +102,50 @@ function insertAndCheck( cl, num, removeAll, needCheck, message )
    }
 }
 
+
+
+/****************************************************
+@description: check the result of query
+@modify list:
+              2016-3-3 Yan WU init
+****************************************************/
+function checkRec( rc, expRecs )
+{	
+   println("---begin to check data context.");   		
+	//get actual records to array
+	var actRecs = [];
+
+   while( rc.next() )
+   {
+		actRecs.push( rc.current().toObj() );
+   }
+
+   //check count
+	if( actRecs.length !== expRecs.length )
+   {   	
+   	throw buildException("check count", null, "",
+									expRecs.length, actRecs.length);
+   }
+
+   //check every records every fields
+   for( var i in expRecs )
+   {
+   	var actRec = actRecs[i];
+   	var expRec = expRecs[i];
+   	for ( var f in expRec )
+   	{   		
+   		if(!compareObj( actRec[f], expRec[f] ))
+	   	{   	   
+	   		println("\nerror occurs in "+(parseInt(i)+1)+"th record, in field '"+f+"'");
+	   		println("\nactual recs in cl= "+JSON.stringify(actRecs[i])+"\n\nexpect recs= "+JSON.stringify(expRecs[i])); 
+	   		
+	   		throw buildException("checkRec()", "check actRecs fail!");
+	   	}
+   	}
+   } 
+   
+}
+
 //compare two basic data type value or json object.
 function compareObj(lobj, robj) {
    if (typeof(lobj) === "object" && typeof(robj) === "object")
