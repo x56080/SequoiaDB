@@ -74,10 +74,8 @@ public class IdIndexSplit15550 extends SdbTestBase {
 			split = new Split();
 			split.start();
 			
-			if(!split.isSuccess()){
-				split.getExceptions().get(0).printStackTrace();
-				Assert.fail(split.getErrorMsg());
-			}
+			Assert.assertEquals(create.isSuccess(), true);
+			Assert.assertEquals(split.isSuccess(), true);
 			
 			//校验索引
 			cl.getIndexInfo("$id");
