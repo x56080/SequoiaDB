@@ -96,13 +96,12 @@ public class Transaction18599 extends SdbTestBase {
         NodeWrapper node = group.getMaster();
         FaultMakeTask task = DiskFull.getFaultMakeTask(node.hostName(), SdbTestBase.reservedDir, 60, 10);
         taskMgr.addTask(task);
-        TransUtil.setCurrentTask(task);
+        TransUtil.setTimeTask(taskMgr, task);
 
         for (int i = 0; i < 200; i++) {
             taskMgr.addTask(new TransferTh(csName, clName));
         }
         taskMgr.execute();
-        TransUtil.waitCurrentTaskSuccess();
 
         Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
         Assert.assertTrue(groupMgr.checkBusinessWithLSN(300), "GROUP ERROR");

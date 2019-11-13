@@ -20,7 +20,8 @@ public class TransDBCPUtils {
 
     private static void setProperties() {
         connConf.setProperty(driver, "com.mysql.jdbc.Driver");
-        connConf.setProperty(url, "jdbc:mysql://192.168.31.59:3306/bank?useSSL=true");
+        connConf.setProperty(url,
+                "jdbc:mysql://192.168.31.4:3306/bank?useSSL=true&useServerPrepStmts=true&cachePrepStmts=true&rewriteBatchedStatements=true");
         connConf.setProperty(userName, "root");
         connConf.setProperty(password, "");
         connConf.setProperty(initialSize, "10");

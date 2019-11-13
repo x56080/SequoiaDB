@@ -19,14 +19,15 @@ import com.sequoiadb.task.TaskMgr;
 import com.sequoiadb.transaction.common.TransUtil;
 import com.sequoiadb.transaction.jdbc2mysql.common.TransJDBCBase;
 import com.sequoiadb.transaction.jdbc2mysql.common.TransferJDBCTh;
+import com.sequoiadb.transaction.jdbc2mysql.common.TransferLargeJDBCTh;
 
 /**
  * @Description seqDB-18599:hash分区表/主子表，转账过程中数据节点磁盘满
  * @author yinzhen
- * @date 2019-8-14
+ * @date 2019-10-29
  *
  */
-public class TransactionJDBC18599 extends TransJDBCBase {
+public class TransactionLargeJDBC18599 extends TransJDBCBase {
     private String clName = "cl18599";
     private GroupMgr groupMgr;
     private List<String> groupNames;
@@ -70,12 +71,12 @@ public class TransactionJDBC18599 extends TransJDBCBase {
         TransUtil.setTimeTask(taskMgr, task);
 
         for (int i = 0; i < 200; i++) {
-            taskMgr.addTask(new TransferJDBCTh(clName));
+            taskMgr.addTask(new TransferLargeJDBCTh(clName));
         }
         taskMgr.execute();
 
         Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
-        Assert.assertTrue(groupMgr.checkBusinessWithLSN(300), "GROUP ERROR");
+        Assert.assertTrue(groupMgr.checkBusinessWithLSN(600), "GROUP ERROR");
 
         // 待磁盘故障恢复正常后，查询所有账户的金额总和
         TransferJDBCTh.checkTransResult(clName, getInsertNum() * 10000);

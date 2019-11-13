@@ -92,13 +92,12 @@ public class Transaction18522 extends SdbTestBase {
         NodeWrapper coordNode = TransUtil.getCoordNode(sdb);
         FaultMakeTask task = KillNode.getFaultMakeTask(coordNode, 60);
         taskMgr.addTask(task);
-        TransUtil.setCurrentTask(task);
+        TransUtil.setTimeTask(taskMgr, task);
 
         for (int i = 0; i < 200; i++) {
             taskMgr.addTask(new TransferTh(csName, clName, coordUrl, true));
         }
         taskMgr.execute();
-        TransUtil.waitCurrentTaskSuccess();
 
         Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
         Assert.assertTrue(groupMgr.checkBusinessWithLSN(300), "GROUP ERROR");

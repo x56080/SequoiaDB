@@ -33,7 +33,7 @@ public class TransactionJDBC18521 extends TransJDBCBase {
 
     @Override
     protected void beforeSetUp() throws ReliabilityException {
-        setClName(clName);
+        initCL(clName, 10000);
         groupMgr = GroupMgr.getInstance();
         groupNames = CommLib.getDataGroupNames(sdb);
     }
@@ -52,18 +52,17 @@ public class TransactionJDBC18521 extends TransJDBCBase {
         NodeWrapper coordNode = TransUtil.getCoordNode(new Sequoiadb(TransUtil.getCoordUrl(sdb), "", ""));
         FaultMakeTask task = NodeRestart.getFaultMakeTask(coordNode, 60, 10, 20);
         taskMgr.addTask(task);
-        TransUtil.setCurrentTask(task);
+        TransUtil.setTimeTask(taskMgr, task);
 
         for (int i = 0; i < 200; i++) {
             taskMgr.addTask(new TransferJDBCTh(clName));
         }
         taskMgr.execute();
-        TransUtil.waitCurrentTaskSuccess();
 
         Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
         Assert.assertTrue(groupMgr.checkBusinessWithLSN(300), "GROUP ERROR");
 
         // 待集群正常后，查询所有账户的金额总和
-        TransferJDBCTh.checkTransResult(clName);
+        TransferJDBCTh.checkTransResult(clName, getInsertNum() * 10000);
     }
 }

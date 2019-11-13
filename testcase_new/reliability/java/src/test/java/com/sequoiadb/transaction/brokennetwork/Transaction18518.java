@@ -96,25 +96,28 @@ public class Transaction18518 extends SdbTestBase {
             task = BrokenNetwork.getFaultMakeTask(node.hostName(), 60, 10);
             taskMgr.addTask(task);
         }
-        TransUtil.setCurrentTask(task);
+        TransUtil.setTimeTask(taskMgr, task);
 
         for (int i = 0; i < 200; i++) {
             taskMgr.addTask(new TransferTh(csName, clName));
         }
         taskMgr.execute();
-        TransUtil.waitCurrentTaskSuccess();
 
         Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
         Assert.assertTrue(groupMgr.checkBusinessWithLSN(300), "GROUP ERROR");
 
         // 待集群正常后，查询所有账户的金额总和
         int count = 0;
-        while (count++ < 120) {
+        int checkTimes = 300;
+        while (count++ < checkTimes) {
             DBCursor cursor = sdb.exec("select sum(balance) as balance from " + csName + "." + clName);
             double balance = (double) cursor.getNext().get("balance");
             cursor.close();
             if (100000000 != (int) balance) {
-                Assert.assertNotEquals(count, 120);
+                if (count == checkTimes) {
+                    System.out.println("Transaction18518 amount of general ledger: " + balance);
+                    Assert.fail("check amount of general ledger timeout...");
+                }
                 Thread.sleep(1000);
                 continue;
             }

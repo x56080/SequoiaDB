@@ -16,13 +16,19 @@ import com.sequoiadb.exception.ReliabilityException;
 public class TransJDBCBase extends SdbTestBase {
     protected Sequoiadb sdb;
     private String clName;
+    private int insertNum;
 
-    protected void setClName(String clName) {
+    protected void initCL(String clName, int insertNum) {
         this.clName = clName;
+        this.insertNum = insertNum;
     }
 
     public void setSdb(Sequoiadb sdb) {
         this.sdb = sdb;
+    }
+
+    protected int getInsertNum() {
+        return insertNum;
     }
 
     private void init() {
@@ -60,8 +66,8 @@ public class TransJDBCBase extends SdbTestBase {
             throw new SkipException("GROUP ERROR");
         }
 
-        // MySQL 创建表(balance, account) 并插入数据 10000 个账户，每个账户 10000 元
-        TransferJDBCTh.initTrans(clName);
+        // MySQL 创建表(balance, account) 并插入数据 insertNum 个账户，每个账户 10000 元
+        TransferJDBCTh.initTrans(clName, insertNum);
 
         afterSetUp();
     }

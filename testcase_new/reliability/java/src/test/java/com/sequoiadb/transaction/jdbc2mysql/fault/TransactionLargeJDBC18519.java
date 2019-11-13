@@ -10,24 +10,24 @@ import com.sequoiadb.commlib.CommLib;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.NodeWrapper;
-import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.exception.ReliabilityException;
-import com.sequoiadb.fault.DiskFull;
+import com.sequoiadb.fault.BrokenNetwork;
 import com.sequoiadb.fault.NodeRestart;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.TaskMgr;
 import com.sequoiadb.transaction.common.TransUtil;
 import com.sequoiadb.transaction.jdbc2mysql.common.TransJDBCBase;
 import com.sequoiadb.transaction.jdbc2mysql.common.TransferJDBCTh;
+import com.sequoiadb.transaction.jdbc2mysql.common.TransferLargeJDBCTh;
 
 /**
- * @Description seqDB-18599:hash分区表/主子表，转账过程中数据节点磁盘满
+ * @Description seqDB-18519: hash分区表/主子表，转账的过程中部分数据节点主节点断网
  * @author yinzhen
- * @date 2019-8-14
+ * @date 2019-10-29
  *
  */
-public class TransactionJDBC18599 extends TransJDBCBase {
-    private String clName = "cl18599";
+public class TransactionLargeJDBC18519 extends TransJDBCBase {
+    private String clName = "cl18519";
     private GroupMgr groupMgr;
     private List<String> groupNames;
 
@@ -38,46 +38,44 @@ public class TransactionJDBC18599 extends TransJDBCBase {
         groupNames = CommLib.getDataGroupNames(sdb);
     }
 
-    @Override
-    protected void afterSetUp() throws ReliabilityException {
-        // 如果磁盘满的主机不是同时拥有主备节点，就重启其中一个节点
-        String hostName = groupMgr.getGroupByName(groupNames.get(0)).getMaster().hostName();
-        for (int i = 1; i < groupNames.size(); i++) {
+    @Test
+    public void test() throws ReliabilityException, InterruptedException, SQLException {
+        // 如果构造断网的主机是连接的coord节点所在的主机，就重启该主节点
+        for (int i = 0; i < groupNames.size(); i++) {
             GroupWrapper groupWrapper = groupMgr.getGroupByName(groupNames.get(i));
             String host = groupWrapper.getMaster().hostName();
-            if (!hostName.equals(host)) {
-                break;
-            }
-            if (i == groupNames.size() - 1) {
+            if (host.equals(sdb.getHost())) {
                 NodeWrapper nodeWrapper = groupWrapper.getMaster();
                 FaultMakeTask task = NodeRestart.getFaultMakeTask(nodeWrapper, 0, 0);
                 TaskMgr taskMgr = new TaskMgr(task);
                 taskMgr.execute();
+
                 Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
                 Assert.assertTrue(groupMgr.checkBusinessWithLSN(120), "GROUP ERROR");
             }
         }
-    }
 
-    @Test
-    public void test() throws ReliabilityException, InterruptedException, SQLException {
-        // 构造磁盘主节点/备节点磁盘满
+        // 部分数据节点的主节点断网
+        FaultMakeTask task = null;
         TaskMgr taskMgr = new TaskMgr();
-        GroupWrapper group = groupMgr.getGroupByName(groupNames.get(0));
-        NodeWrapper node = group.getMaster();
-        FaultMakeTask task = DiskFull.getFaultMakeTask(node.hostName(), SdbTestBase.reservedDir, 60, 10);
-        taskMgr.addTask(task);
+        for (int i = 0; i < groupNames.size() - 1; i++) {
+            String groupName = groupNames.get(i);
+            GroupWrapper group = groupMgr.getGroupByName(groupName);
+            NodeWrapper node = group.getMaster();
+            task = BrokenNetwork.getFaultMakeTask(node.hostName(), 60, 10);
+            taskMgr.addTask(task);
+        }
         TransUtil.setTimeTask(taskMgr, task);
 
         for (int i = 0; i < 200; i++) {
-            taskMgr.addTask(new TransferJDBCTh(clName));
+            taskMgr.addTask(new TransferLargeJDBCTh(clName));
         }
         taskMgr.execute();
 
         Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
-        Assert.assertTrue(groupMgr.checkBusinessWithLSN(300), "GROUP ERROR");
+        Assert.assertTrue(groupMgr.checkBusinessWithLSN(600), "GROUP ERROR");
 
-        // 待磁盘故障恢复正常后，查询所有账户的金额总和
+        // 待集群正常后，查询所有账户的金额总和
         TransferJDBCTh.checkTransResult(clName, getInsertNum() * 10000);
     }
 }

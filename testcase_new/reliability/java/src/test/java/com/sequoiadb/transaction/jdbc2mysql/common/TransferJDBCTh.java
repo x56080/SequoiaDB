@@ -13,15 +13,25 @@ import com.sequoiadb.transaction.common.TransUtil;
 
 public class TransferJDBCTh extends OperateTask {
     private String clName;
+    private static int insertNum;
     private static final Logger log = Logger.getLogger(TransferJDBCTh.class.getName());
 
     public TransferJDBCTh(String clName) {
         this.clName = clName;
     }
 
-    public static void initTrans(String clName) throws Exception {
+    protected String getClName() {
+        return clName;
+    }
+
+    protected int getInsertNum() {
+        return insertNum;
+    }
+
+    public static void initTrans(String clName, int insertNum) throws Exception {
         Connection conn = null;
         PreparedStatement ps = null;
+        TransferJDBCTh.insertNum = insertNum;
         try {
             conn = TransDBCPUtils.getConnection();
             if (isCLExist(clName)) {
@@ -30,10 +40,10 @@ public class TransferJDBCTh extends OperateTask {
                 ps.close();
             }
 
-            ps = conn.prepareStatement("create table " + clName + "(balance int, account int primary key)");
+            ps = conn.prepareStatement("create table " + clName + "(th_hashcode varchar(100), balance int, account int primary key)");
             ps.execute();
 
-            insertData(clName);
+            insertData(clName, insertNum);
         } finally {
             TransDBCPUtils.release(conn, ps);
         }
@@ -58,7 +68,8 @@ public class TransferJDBCTh extends OperateTask {
         PreparedStatement ps = null;
         try {
             conn = TransDBCPUtils.getConnection();
-            ps = conn.prepareStatement("select count(*) as count from information_schema.tables where table_name=?");
+            ps = conn.prepareStatement(
+                    "select count(*) as count from information_schema.tables where table_name=? and table_schema='bank'");
             ps.setString(1, clName);
             ResultSet set = ps.executeQuery();
 
@@ -76,27 +87,29 @@ public class TransferJDBCTh extends OperateTask {
         return false;
     }
 
-    private static void insertData(String clName) throws Exception {
+    private static void insertData(String clName, int insertNum) throws Exception {
         Connection conn = null;
         PreparedStatement ps = null;
         try {
             conn = TransDBCPUtils.getConnection();
-            ps = conn.prepareStatement("insert into " + clName + " values(?, ?)");
-            for (int i = 0; i < 10000; i++) {
+            conn.setAutoCommit(false);
+            ps = conn.prepareStatement("insert into " + clName + " values(NULL, ?, ?)");
+            for (int i = 0; i < insertNum; i++) {
                 ps.setInt(1, 10000);
                 ps.setInt(2, i);
                 ps.addBatch();
-                if (0 == i % 1000) {
+                if (i != 0 && 0 == i % 1000) {
                     ps.executeBatch();
                     ps.clearBatch();
                 }
             }
             ps.executeBatch();
+            conn.commit();
 
             ResultSet set = ps.executeQuery("select * from " + clName);
             set.last();
-            if (10000 != set.getRow()) {
-                throw new Exception("Insert 10000 records but found [" + set.getRow() + "]");
+            if (insertNum != set.getRow()) {
+                throw new Exception("Insert " + insertNum + " records but found [" + set.getRow() + "]");
             }
         } finally {
             TransDBCPUtils.release(conn, ps);
@@ -104,13 +117,13 @@ public class TransferJDBCTh extends OperateTask {
     }
 
     public static void main(String[] args) throws Exception {
-        TransferJDBCTh.initTrans("test");
+        TransferJDBCTh.initTrans("test", 10000);
         TransferJDBCTh th = new TransferJDBCTh("test");
         th.exec();
         TransferJDBCTh.finiTrans("test");
     }
 
-    public static void checkTransResult(String clName) throws SQLException {
+    public static void checkTransResult(String clName, int expSum) throws SQLException {
         Connection conn = null;
         PreparedStatement ps = null;
         try {
@@ -120,7 +133,7 @@ public class TransferJDBCTh extends OperateTask {
             while (set.next()) {
                 int sum = set.getInt("bals");
                 log.info("checkTransResult balance general ledger [" + sum + "]");
-                Assert.assertEquals(100000000, sum);
+                Assert.assertEquals(sum, expSum);
             }
         } finally {
             TransDBCPUtils.release(conn, ps);
@@ -137,6 +150,11 @@ public class TransferJDBCTh extends OperateTask {
         try {
             int count = 0;
             conn = TransDBCPUtils.getConnection();
+            conn.setAutoCommit(false);
+            String sql1 = "update " + clName + " set balance=balance-? where account=?";
+            String sql2 = "update " + clName + " set balance=balance+? where account=?";
+            ps1 = conn.prepareStatement(sql1);
+            ps2 = conn.prepareStatement(sql2);
             while (count++ < 1800) {
                 try {
                     if (!TransUtil.runFlag) {
@@ -147,24 +165,15 @@ public class TransferJDBCTh extends OperateTask {
                     int accountB = (int) (Math.random() * 10000);
                     int transAmount = (int) (Math.random() * 200);
 
-                    conn.setAutoCommit(false);
-
-                    String sql1 = "update " + clName + " set balance=balance-? where account=?";
-                    String sql2 = "update " + clName + " set balance=balance+? where account=?";
-                    ps1 = conn.prepareStatement(sql1);
                     ps1.setInt(1, transAmount);
                     ps1.setInt(2, accountA);
                     ps1.executeUpdate();
 
-                    ps2 = conn.prepareStatement(sql2);
                     ps2.setInt(1, transAmount);
                     ps2.setInt(2, accountB);
                     ps2.executeUpdate();
 
                     conn.commit();
-//                    System.out.println(
-//                            "Account [" + accountA + "] transfer [$" + transAmount + "] to Account [" + accountB + "]");
-
                 } finally {
                     TransDBCPUtils.release(null, ps1, ps2);
                 }

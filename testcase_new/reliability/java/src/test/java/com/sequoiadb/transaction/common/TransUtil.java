@@ -21,6 +21,8 @@ import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.task.FaultMakeTask;
+import com.sequoiadb.task.OperateTask;
+import com.sequoiadb.task.TaskMgr;
 
 public class TransUtil {
     /**
@@ -38,29 +40,48 @@ public class TransUtil {
      * 
      * @param task
      */
-    public static void setCurrentTask(FaultMakeTask task) {
+    public static void setTimeTask(TaskMgr taskMgr, FaultMakeTask task) {
         runFlag = true;
         currentTask = task;
+        taskMgr.addTask(new TransUtil().new ForceOtherThs());
     }
 
     /**
-     * 等待当前正在构造的异常构造成功，构造成功后，触发10秒钟执行标记为
-     * false，使用这个方法首先要调用setCurrentTask方法，将构造的异常task对象赋值
+     * 等待当前正在构造的异常构造成功，构造成功后，触发10秒钟执行标记为 false
      * 
-     * @return
-     * @throws InterruptedException
+     * @description TransUtil.java
+     * @author yinzhen
+     * @date 2019年10月30日
      */
-    public static void waitCurrentTaskSuccess() throws InterruptedException {
-        int count = 0;
-        while (!currentTask.isMakeSuccess()) {
-            Thread.sleep(1000);
-            if (count++ == 120) {
-                break;
+    private class ForceOtherThs extends OperateTask {
+
+        @Override
+        public void exec() throws Exception {
+            int count = 0;
+            while (!currentTask.isMakeSuccess()) {
+                Thread.sleep(100);
+                if (count++ == 3000) {
+                    break;
+                }
+            }
+            if (currentTask.isMakeSuccess()) {
+                Timer timer = new Timer();
+                timer.schedule(new TaskEndTime(), 10 * 1000);
             }
         }
-        if (currentTask.isMakeSuccess()) {
-            Timer timer = new Timer();
-            timer.schedule(new TaskEndTime(), 10 * 1000);
+
+        /**
+         * 
+         * @description TransUtil.java
+         * @author yinzhen
+         * @date 2019年7月22日
+         */
+        class TaskEndTime extends TimerTask {
+            @Override
+            public void run() {
+                TransUtil.runFlag = false;
+                System.gc();
+            }
         }
     }
 
@@ -260,19 +281,5 @@ public class TransUtil {
                 sdb.close();
             }
         }
-    }
-}
-
-/**
- * 
- * @description TransUtil.java
- * @author yinzhen
- * @date 2019年7月22日
- */
-class TaskEndTime extends TimerTask {
-    @Override
-    public void run() {
-        TransUtil.runFlag = false;
-        System.gc();
     }
 }
