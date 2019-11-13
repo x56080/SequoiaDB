@@ -192,7 +192,8 @@ public class Fulltext12118A extends FullTestBase {
                 DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
                 cl.dropIndex(indexName);
             } catch (BaseException e) {
-                if (e.getErrorCode() != -34 && e.getErrorCode() != -23 && e.getErrorCode() != -248) {
+                if (e.getErrorCode() != -34 && e.getErrorCode() != -23 && e.getErrorCode() != -248
+                        && e.getErrorCode() != -47 && e.getErrorCode() != -147) {
                     e.printStackTrace();
                     Assert.fail(e.getMessage());
                 }
