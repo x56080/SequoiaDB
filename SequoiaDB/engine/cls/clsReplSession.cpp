@@ -186,6 +186,9 @@ namespace engine
             PD_LOG( PDEVENT, "Session[%s]: Move lsn to[%u, %llu]",
                     sessionName(), expectLSN.version, expectLSN.offset ) ;
          }
+         // force to increase request ID
+         // ignore results from earlier requests
+         ++ _requestID ;
       }
 
       if ( CLS_SESSION_STATUS_SYNC == _status )
@@ -942,11 +945,6 @@ namespace engine
          recordHeader = (dpsLogRecordHeader *)log ;
          needRollback = FALSE ;
 
-         PD_LOG( PDDEBUG, "Session[%s]: Replay record [lsn offset: %lld, "
-                 "version: %d, len:%d, preLsn:%lld]", sessionName(),
-                 recordHeader->_lsn, recordHeader->_version,
-                 recordHeader->_length, recordHeader->_preLsn ) ;
-
          expectLSN = _logger->expectLsn() ;
 
          if ( expectLSN.compareOffset( recordHeader->_lsn ) > 0 )
@@ -1010,6 +1008,20 @@ namespace engine
             goto error ;
          }
 #endif
+
+         if ( expectLSN.offset != recordHeader->_lsn )
+         {
+            PD_LOG( PDERROR, "Session[%s]: Row record [%llu] failed to "\
+                    "match expect LSN [%llu]", sessionName(),
+                    recordHeader->_lsn, expectLSN.offset ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         PD_LOG( PDDEBUG, "Session[%s]: Replay record [lsn offset: %lld, "
+                 "version: %d, len:%d, preLsn:%lld]", sessionName(),
+                 recordHeader->_lsn, recordHeader->_version,
+                 recordHeader->_length, recordHeader->_preLsn ) ;
 
          rc = _replay( recordHeader ) ;
          if ( SDB_OK != rc )
