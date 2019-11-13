@@ -39,6 +39,8 @@ namespace engine
       virtual INT32 doit () ;
    private:
       INT32 _checkAndCreateDictForCL( dmsDictJob job, BOOLEAN &retry ) ;
+      BOOLEAN _conditionMatch( dmsStorageUnit *su, dmsMBContext *context,
+                               UINT16 mbID ) ;
       BOOLEAN _conditionMatch( dmsStorageUnit *su, UINT16 mbID ) ;
       INT32 _createDict( dmsStorageData *sd, dmsMBContext *context ) ;
       INT32 _transferDict( dmsStorageData *sd, dmsMBContext *context,

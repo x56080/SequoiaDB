@@ -115,6 +115,18 @@ namespace engine
 
       while ( !PMD_IS_DB_DOWN() && !cb->isForced() )
       {
+         // If the database is being rebuilding, collections may be truncated.
+         // Let's wait until the node is OK.
+         if ( SDB_DB_REBUILDING == PMD_DB_STATUS() )
+         {
+#ifdef _DEBUG
+            PD_LOG( PDDEBUG, "Node is in rebuilding status. Dictionary creator "
+                    "will wait until the node is normal" ) ;
+#endif /* _DEBUG */
+            ossSleepsecs( 1 ) ;
+            continue ;
+         }
+
          BOOLEAN retry = FALSE ;
          /*
           * Before any one is found in the queue, the status of this thread is
@@ -190,6 +202,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTN_DICTCREATORJOB__CONDITIONMATCH, "_rtnDictCreatorJob::_conditionMatch" )
    BOOLEAN _rtnDictCreatorJob::_conditionMatch( dmsStorageUnit *su,
+                                                dmsMBContext *context,
                                                 UINT16 mbID )
    {
       PD_TRACE_ENTRY( SDB__RTN_DICTCREATORJOB__CONDITIONMATCH ) ;
@@ -197,21 +210,26 @@ namespace engine
       UINT64 totalSize = 0 ;
       BOOLEAN rc = FALSE ;
 
-      mbStatInfo = su->data()->getMBStatInfo( mbID ) ;
-      SDB_ASSERT( mbStatInfo, "mbStatInfo should never be null" ) ;
-      totalSize = mbStatInfo->_totalDataPages * su->getPageSize() -
-                         mbStatInfo->_totalDataFreeSpace ;
-
-      if ( mbStatInfo->_totalRecords >= RTN_DICT_CREATE_REC_NUM_THRESHOLD
-           && totalSize >= RTN_DICT_CREATE_REC_DATA_SIZE )
+      if ( DMS_INVALID_EXTENT == context->mb()->_firstExtentID ||
+           DMS_INVALID_EXTENT == context->mb()->_lastExtentID )
       {
-         rc = TRUE ;
+         goto done ;
       }
       else
       {
-         rc = FALSE ;
+         mbStatInfo = su->data()->getMBStatInfo( mbID ) ;
+         SDB_ASSERT( mbStatInfo, "mbStatInfo should never be null" ) ;
+         totalSize = mbStatInfo->_totalDataPages * su->getPageSize() -
+                           mbStatInfo->_totalDataFreeSpace ;
+
+         if ( mbStatInfo->_totalRecords >= RTN_DICT_CREATE_REC_NUM_THRESHOLD
+            && totalSize >= RTN_DICT_CREATE_REC_DATA_SIZE )
+         {
+            rc = TRUE ;
+         }
       }
 
+   done:
       PD_TRACE_EXIT( SDB__RTN_DICTCREATORJOB__CONDITIONMATCH ) ;
       return rc ;
    }
@@ -410,7 +428,7 @@ namespace engine
          goto done ;
       }
 
-      if ( !_conditionMatch( su, job._clID ) )
+      if ( !_conditionMatch( su, mbContext, job._clID ) )
       {
          retry = TRUE ;
          goto done ;
