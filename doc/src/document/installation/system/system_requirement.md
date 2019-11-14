@@ -7,7 +7,7 @@
 | CPU    |  -   x86（Intel Pentium、Intel Xeon 和 AMD）32位 Intel 和 AMD 处理器<br>-   x64（64位 AMD64 和 Intel EM64T 处理器）<br> -   PowerPC 7 或者 PowerPC 7+ 处理器                                                                     | 建议采用 X64（64 位 AMD64 和 Intel EM64T 处理器 ）或者 PowerPC 处理器 |
 | 磁盘   | 至少 10GB 空间                                                       | 建议大于 100GB 磁盘空间                                               |
 | 内存   | 至少 1GB                                                             | 大于 2GB 物理内存                                                     |
-| 网卡   | 配备至少 1 张网卡                                                    | 建议至少配置 1GE 网卡                                                 |
+| 网卡   | 配备至少 1 张网卡                                                    | 建议至少配置 1Gb 网卡                                                 |
 
 
 ##受支持的操作系统##
