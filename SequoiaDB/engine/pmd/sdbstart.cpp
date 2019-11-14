@@ -184,6 +184,12 @@ namespace engine
          CHAR localPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
          CHAR path[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
          string svcname = vm[PMD_OPTION_SVCNAME].as<string>() ;
+         if( svcname.empty() )
+         {
+            std::cout << "Service name can't be empty" << endl ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
          // break service names using ';'
          rc = utilSplitStr( svcname, listServices, ", \t" ) ;
          if ( rc )
