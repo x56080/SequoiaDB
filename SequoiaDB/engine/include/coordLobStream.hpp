@@ -150,18 +150,31 @@ namespace engine
                return 0 < bodyLen ;
             }
 
-            void addData( const MsgLobTuple &tuple,
-                          const void *data )
+            INT32 addData( const MsgLobTuple &tuple, const void *data )
             {
-               body.push_back( netIOV( tuple.data, sizeof( tuple ) ) ) ;
-               bodyLen += sizeof( tuple ) ;
-               tuples.push_back( ( ossValuePtr )( &tuple ) ) ;
-               if ( NULL != data )
+               INT32 rc = SDB_OK ;
+               try
                {
-                  body.push_back( netIOV( data, tuple.columns.len ) ) ;
-                  bodyLen += tuple.columns.len ;
+                  body.push_back( netIOV( tuple.data, sizeof( tuple ) ) ) ;
+                  bodyLen += sizeof( tuple ) ;
+                  tuples.push_back( ( ossValuePtr )( &tuple ) ) ;
+                  if ( NULL != data )
+                  {
+                     body.push_back( netIOV( data, tuple.columns.len ) ) ;
+                     bodyLen += tuple.columns.len ;
+                  }
                }
-               return ;
+               catch ( std::exception &e )
+               {
+                  PD_LOG( PDERROR, "Unexpected err happened:%s", e.what() ) ;
+                  rc = SDB_SYS ;
+                  goto error ;
+               }
+
+            done:
+               return rc ;
+            error:
+               goto done ;
             }
 
             void clearData()
@@ -184,11 +197,10 @@ namespace engine
          typedef ossPoolSet<ossValuePtr>           DONE_LST ;
          typedef ossPoolMap<UINT32, dataGroup>     DATA_GROUPS ;
 
+         typedef ossPoolMap<ossValuePtr, UINT32>   TUPLE_GROUPID_MAP ;
+
       private:
-         INT32 _openSubStreams( const CHAR *fullName,
-                                const bson::OID &oid,
-                                INT32 mode,
-                                _pmdEDUCB *cb ) ;
+         INT32 _openSubStreams( CoordGroupList &gpLst, _pmdEDUCB* cb ) ;
 
          INT32 _openMainStream( const CHAR *fullName,
                                 const bson::OID &oid,
@@ -199,7 +211,13 @@ namespace engine
                                   const bson::OID &oid,
                                   INT32 mode,
                                   _pmdEDUCB *cb,
-                                  UINT32 *pSpecGroupID = NULL ) ;
+                                  CoordGroupList &gpList ) ;
+
+         INT32 _openOtherStream( const CHAR *fullName,
+                                 const bson::OID &oid,
+                                 INT32 mode,
+                                 _pmdEDUCB *cb,
+                                 UINT32 pSpecGroupID ) ;
 
          INT32 _getSubStream( UINT32 groupID,
                               const subStream** sub,
@@ -250,11 +268,11 @@ namespace engine
 
          void _add2Subs( UINT32 groupID, SINT64 contextID, MsgRouteID id ) ;
 
-         void _pushLobHeader( const MsgOpLob *header,
+         INT32 _pushLobHeader( const MsgOpLob *header,
                               const BSONObj &obj,
                               netIOVec &iov ) ;
 
-         void _pushLobData( const void *data,
+         INT32 _pushLobData( const void *data,
                             UINT32 len,
                             netIOVec &iov ) ;
 

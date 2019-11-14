@@ -110,10 +110,10 @@ namespace engine
                                                TRUE : FALSE ) ;
       _groupSession.getGroupCtrl()->setMaxRetryTimes( LOB_MAX_RETRYTIMES ) ;
 
-      rc = _openSubStreams( getFullName(), getOID(), mode(), cb ) ;
+      rc = _openMainStream( getFullName(), getOID(), mode(), cb ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to open sub streams:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to open main streams:%d", rc ) ;
          goto error ;
       }
 
@@ -269,41 +269,52 @@ namespace engine
       goto done ;
    }
 
-   //PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM_OPENSUBSTREAMS, "_coordLobStream::_openSubStreams" )
-   INT32 _coordLobStream::_openSubStreams( const CHAR *fullName,
-                                           const bson::OID &oid,
-                                           INT32 mode,
-                                           _pmdEDUCB *cb )
+   // just open one sub stream which is not main stream
+   INT32 _coordLobStream::_openOtherStream( const CHAR *fullName,
+                                            const bson::OID &oid,
+                                            INT32 mode,
+                                            _pmdEDUCB *cb,
+                                            UINT32 groupID )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( COORD_LOBSTREAM_OPENSUBSTREAMS ) ;
-      rc = _openMainStream( fullName, oid, mode, cb ) ;
-      if ( SDB_OK != rc )
+      CoordGroupList gpList ;
+      try
       {
-         PD_LOG( PDERROR, "failed to open main stream:%d", rc ) ;
+         gpList[ groupID ] = groupID ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "unexpected err happened:%s", e.what() ) ;
+         rc = SDB_SYS ;
          goto error ;
       }
 
+      rc = _openOtherStreams( fullName, oid, mode, cb, gpList ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open stream:groupID=%u,rc=%d",
+                   groupID, rc ) ;
+
    done:
-      PD_TRACE_EXITRC( COORD_LOBSTREAM_OPENSUBSTREAMS, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // open sub streams without main stream
    //PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM_OPENOTHERSTREAMS, "_coordLobStream::_openOtherStreams" )
    INT32 _coordLobStream::_openOtherStreams( const CHAR *fullName,
                                              const bson::OID &oid,
                                              INT32 mode,
                                              _pmdEDUCB *cb,
-                                             UINT32 *pSpecGroupID )
+                                             CoordGroupList &gpLst )
    {
       INT32 rc = SDB_OK ;
       INT32 rcTmp = SDB_OK ;
       PD_TRACE_ENTRY( COORD_LOBSTREAM_OPENOTHERSTREAMS ) ;
 
+      SDB_ASSERT( gpLst.size() > 0, "must be greate than 0" ) ;
+      SDB_ASSERT( gpLst.count( _metaGroup ) == 0, "impossible" ) ;
+
       MsgOpLob header ;
-      CoordGroupList gpLst ;
       BSONObjBuilder builder ;
       BSONObj obj ;
       netIOVec iov ;
@@ -336,24 +347,14 @@ namespace engine
                    MSG_BS_LOB_OPEN_REQ,
                    ossRoundUpToMultipleX( obj.objsize(), 4 ),
                    -1 ) ;
-      _pushLobHeader( &header, obj, iov ) ;
+      rc = _pushLobHeader( &header, obj, iov ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to push lob header:rc=%d", rc ) ;
 
       do
       {
          INT32 tag = RETRY_TAG_NULL ;
          _clearMsgData() ;
          CoordGroupList sendGrpLst ;
-
-         if ( !pSpecGroupID )
-         {
-            _getGroupLst( gpLst ) ;
-            SDB_ASSERT( 1 == gpLst.count( _metaGroup ), "impossible" ) ;
-         }
-         else
-         {
-            gpLst[ *pSpecGroupID ] = *pSpecGroupID ;
-         }
-
          rc = coordGroupList2GroupPtr( _pResource, cb, gpLst,
                                        _mapGroupInfo, FALSE ) ;
          if ( rc )
@@ -370,7 +371,7 @@ namespace engine
          {
             if ( 0 < _subs.count( itr->first ) )
             {
-               PD_LOG( PDDEBUG, "ignore open substream:lobID=%s,groupID=%d",
+               PD_LOG( PDDEBUG, "ignore open substream:lobID=%s,groupID=%u",
                        getOID().toString().c_str(), itr->first ) ;
                continue ;
             }
@@ -497,7 +498,8 @@ namespace engine
       _initHeader( header, MSG_BS_LOB_OPEN_REQ,
                    ossRoundUpToMultipleX( obj.objsize(), 4 ),
                    -1 ) ;
-      _pushLobHeader( &header, obj, iov ) ;
+      rc = _pushLobHeader( &header, obj, iov ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to push lob header:rc=%d", rc ) ;
 
       do
       {
@@ -535,8 +537,8 @@ namespace engine
          }
       } while ( TRUE ) ;
 
-      _add2Subs( reply->header.routeID.columns.groupID,
-                 reply->contextID, reply->header.routeID ) ;
+      _add2Subs( reply->header.routeID.columns.groupID, reply->contextID,
+                 reply->header.routeID ) ;
 
       if ( !_mainStreamOpened )
       {
@@ -580,6 +582,47 @@ namespace engine
       goto done ;
    }
 
+   // open sub streams including main stream
+   //PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM_OPENSUBSTREAMS, "_coordLobStream::_openSubStreams" )
+   INT32 _coordLobStream::_openSubStreams( CoordGroupList &gpLst,
+                                           _pmdEDUCB* cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORD_LOBSTREAM_OPENSUBSTREAMS ) ;
+      CoordGroupList::iterator iter ;
+
+      iter = gpLst.find( _metaGroup ) ;
+      if ( iter != gpLst.end() )
+      {
+         rc = _openMainStream( getFullName(), getOID(), _getMode(), cb ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to open main stream in group[%d], "
+                    "rc: %d", _metaGroup, rc ) ;
+            goto error ;
+         }
+
+         gpLst.erase( iter ) ;
+      }
+
+      if ( gpLst.size() > 0 )
+      {
+         rc = _openOtherStreams( getFullName(), getOID(), _getMode(), cb,
+                                 gpLst ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to open other streams, rc: %d", rc ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_LOBSTREAM_OPENSUBSTREAMS, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    //PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM_GETSUBSTREAM, "_coordLobStream::_getSubStream" )
    INT32 _coordLobStream::_getSubStream( UINT32 groupID, const subStream** sub, _pmdEDUCB* cb )
    {
@@ -606,8 +649,8 @@ namespace engine
          }
          else
          {
-            rc = _openOtherStreams( getFullName(), getOID(),
-                                    _getMode(), cb, &groupID ) ;
+            rc = _openOtherStream( getFullName(), getOID(), _getMode(), cb,
+                                   groupID ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "failed to open other stream in group[%d], "
@@ -832,9 +875,14 @@ namespace engine
                    sizeof( header ) +
                    sizeof( _MsgLobTuple ) +
                    tuple.tuple.columns.len ) ;
-      _pushLobHeader( &header, BSONObj(), iov ) ;
-      _pushLobData( tuple.tuple.data, sizeof( tuple.tuple ), iov ) ;
-      _pushLobData( tuple.data, tuple.tuple.columns.len, iov ) ;
+      rc = _pushLobHeader( &header, BSONObj(), iov ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to push lob header:rc=%d", rc ) ;
+
+      rc = _pushLobData( tuple.tuple.data, sizeof( tuple.tuple ), iov ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to push lob data:rc=%d", rc ) ;
+
+      rc = _pushLobData( tuple.data, tuple.tuple.columns.len, iov ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to push lob data:rc=%d", rc ) ;
 
       if ( orUpdate && MSG_BS_LOB_WRITE_REQ == opCode )
       {
@@ -1444,7 +1492,8 @@ namespace engine
       _initHeader( header, MSG_BS_LOB_LOCK_REQ,
                    ossRoundUpToMultipleX( obj.objsize(), 4 ),
                    -1 ) ;
-      _pushLobHeader( &header, obj, iov ) ;
+      rc = _pushLobHeader( &header, obj, iov ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to push lob header:rc=%d", rc ) ;
 
       do
       {
@@ -1888,8 +1937,7 @@ namespace engine
             continue ;
          }
 
-         _add2Subs( pReply->header.routeID.columns.groupID,
-                    pReply->contextID,
+         _add2Subs( pReply->header.routeID.columns.groupID, pReply->contextID,
                     pReply->header.routeID ) ;
       }
 
@@ -2041,17 +2089,18 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORD_LOBSTREAM_SHARDDATA ) ;
+      TUPLE_GROUPID_MAP tuple2GroupIDMap ;
+      CoordGroupList newGpList ;
+
       _dataGroups.clear() ;
 
       for ( RTN_LOB_TUPLES::const_iterator itr = tuples.begin() ;
-            itr != tuples.end() ;
-            ++itr )
+            itr != tuples.end() ; ++itr )
       {
-         const subStream *sub = NULL ;
          UINT32 groupID = 0 ;
-         dataGroup *dg = NULL ;
+         // _rtnLobTuple and _rtnLobTuple.tuple(MsgLobTuple)
+         // share the same address
          const MsgLobTuple *tuple = ( const MsgLobTuple * )(&( *itr )) ;
-
          if ( 0 < doneLst.count( (ossValuePtr)tuple ) )
          {
             continue ;
@@ -2064,24 +2113,67 @@ namespace engine
             goto error ;
          }
 
-         rc = _getSubStream( groupID, &sub, cb ) ;
-         if ( SDB_OK != rc )
+         try
          {
-            PD_LOG( PDERROR, "failed to get sub stream:%d", rc ) ;
+            if ( _subs.count( groupID ) == 0 )
+            {
+               newGpList[ groupID ] = groupID ;
+            }
+
+            tuple2GroupIDMap[ (ossValuePtr)(&( *itr )) ] = groupID ;
+         }
+         catch ( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Unexpected err happened:%s", e.what() ) ;
+            rc = SDB_SYS ;
             goto error ;
          }
+      }
+
+      if ( newGpList.size() > 0 )
+      {
+         rc = _openSubStreams( newGpList, cb ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to get sub stream:%d", rc ) ;
+            goto error ;
+         }
+      }
+
+      for ( TUPLE_GROUPID_MAP::iterator iterMap = tuple2GroupIDMap.begin();
+            iterMap != tuple2GroupIDMap.end(); ++iterMap )
+      {
+         SUB_STREAMS::iterator itrSubStream ;
+         subStream* sub = NULL ;
+         dataGroup *dg = NULL ;
+
+         _rtnLobTuple *lobTuple = (_rtnLobTuple *)iterMap->first ;
+         UINT32 groupID = iterMap->second ;
+
+         itrSubStream = _subs.find( groupID ) ;
+         if ( _subs.end() == itrSubStream )
+         {
+            PD_LOG( PDERROR, "group:%d is not in sub streams", groupID ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+         sub = &( itrSubStream->second ) ;
 
          dg = &( _dataGroups[groupID] ) ;
          if ( !dg->hasData() )
          {
-            _pushLobHeader( &header, BSONObj(), dg->body ) ;
+            rc = _pushLobHeader( &header, BSONObj(), dg->body ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to push lob header:rc=%d", rc ) ;
             dg->bodyLen += sizeof( MsgOpLob ) - sizeof( MsgHeader ) ;
          }
-         dg->addData( *tuple,
-                      isWrite ? itr->data : NULL ) ;
+
+         rc = dg->addData( lobTuple->tuple, isWrite ? lobTuple->data : NULL ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to push lob header:rc=%d", rc ) ;
+
          dg->contextID = sub->contextID ;
          dg->id = sub->id ;
       }
+
    done:
       PD_TRACE_EXITRC( COORD_LOBSTREAM_SHARDDATA, rc ) ;
       return rc ;
@@ -2123,10 +2215,14 @@ namespace engine
       dg = &( _dataGroups[groupID] ) ;
       if ( !dg->hasData() )
       {
-         _pushLobHeader( &header, BSONObj(), dg->body ) ;
+         rc = _pushLobHeader( &header, BSONObj(), dg->body ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to push lob header:rc=%d", rc ) ;
          dg->bodyLen += sizeof( MsgOpLob ) - sizeof( MsgHeader ) ;
       }
-      dg->addData( t, isWrite ? tuple.data : NULL ) ;
+
+      rc = dg->addData( t, isWrite ? tuple.data : NULL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to push lob header:rc=%d", rc ) ;
+
       dg->contextID = sub->contextID ;
       dg->id = sub->id ;
 
@@ -2280,30 +2376,61 @@ namespace engine
       return rc ;
    }
 
-   void _coordLobStream::_pushLobHeader( const MsgOpLob *header,
-                                         const BSONObj &obj,
-                                         netIOVec &iov )
+   INT32 _coordLobStream::_pushLobHeader( const MsgOpLob *header,
+                                          const BSONObj &obj,
+                                          netIOVec &iov )
    {
-      const CHAR *off = ( const CHAR * )header + sizeof( MsgHeader ) ;
-      UINT32 len = sizeof( MsgOpLob ) - sizeof( MsgHeader ) ;
-      iov.push_back( netIOV( off, len ) ) ;
-
-      if ( !obj.isEmpty() )
+      INT32 rc = SDB_OK ;
+      try
       {
-         iov.push_back( netIOV( obj.objdata(), obj.objsize() ) ) ;
-         UINT32 alignedLen = ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
-         if ( ( UINT32 )obj.objsize() < alignedLen )
+         const CHAR *off = ( const CHAR * )header + sizeof( MsgHeader ) ;
+         UINT32 len = sizeof( MsgOpLob ) - sizeof( MsgHeader ) ;
+         iov.push_back( netIOV( off, len ) ) ;
+
+         if ( !obj.isEmpty() )
          {
-            iov.push_back( netIOV( &_alignBuf, alignedLen - obj.objsize() ) ) ;
+            iov.push_back( netIOV( obj.objdata(), obj.objsize() ) ) ;
+            UINT32 alignedLen = ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
+            if ( ( UINT32 )obj.objsize() < alignedLen )
+            {
+               iov.push_back( netIOV( &_alignBuf,
+                                      alignedLen - obj.objsize() ) ) ;
+            }
          }
       }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "unexpected err happened:%s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
-   void _coordLobStream::_pushLobData( const void *data,
+   INT32 _coordLobStream::_pushLobData( const void *data,
                                        UINT32 len,
                                        netIOVec &iov )
    {
-      iov.push_back( netIOV( data, len ) ) ;
+      INT32 rc = SDB_OK ;
+      try
+      {
+         iov.push_back( netIOV( data, len ) ) ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "unexpected err happened:%s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    void _coordLobStream::_initHeader( MsgOpLob &header,
@@ -2323,16 +2450,16 @@ namespace engine
    }
 
    void _coordLobStream::_add2Subs( UINT32 groupID,
-                                    SINT64 contextID,
-                                    MsgRouteID id )
+                                     SINT64 contextID,
+                                     MsgRouteID id )
    {
       SDB_ASSERT( 0 == _subs.count( groupID ), "impossible" ) ;
+      // throw exception outside to make sure contextID is closed( disconnect )
       _subs[groupID] = subStream( contextID, id ) ;
-      PD_LOG( PDDEBUG, "_add2Subs:lobID=%s,groupIDKey=%d,groupID=%d"
-              "nodeID=%d,contextID=%lld", getOID().toString().c_str(),
-              groupID, id.columns.groupID,
-              id.columns.nodeID, contextID ) ;
-      return ;
+      PD_LOG( PDDEBUG, "_add2Subs:lobID=%s,groupIDKey=%d,groupID=%u"
+           "nodeID=%d,contextID=%lld", getOID().toString().c_str(),
+           groupID, id.columns.groupID,
+           id.columns.nodeID, contextID ) ;
    }
 
    INT32 _coordLobStream::_ensureEmptyPageBuf( INT32 pageSize )

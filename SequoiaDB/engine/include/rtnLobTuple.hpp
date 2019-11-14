@@ -42,6 +42,7 @@ namespace engine
 {
    struct _rtnLobTuple
    {
+      // tuple must be defined in the header. see _coordLobStream::_shardData
       MsgLobTuple tuple ;
       const CHAR *data ;
 
@@ -53,7 +54,7 @@ namespace engine
      {
         tuple.columns.len = len ;
         tuple.columns.sequence = sequence ;
-        tuple.columns.offset = offset ; 
+        tuple.columns.offset = offset ;
      }
 
      _rtnLobTuple()
