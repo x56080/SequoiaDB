@@ -73,7 +73,7 @@ namespace engine
    #define COMMANDS_OPTIONS \
        ( PMD_COMMANDS_STRING( PMD_OPTION_HELP, ",h"), "help" ) \
        ( PMD_OPTION_VERSION, "version" ) \
-       ( PMD_COMMANDS_STRING( PMD_OPTION_CONFPATH, ",c"), po::value<string>(), "configure file path" ) \
+       ( PMD_COMMANDS_STRING( PMD_OPTION_CONFPATH, ",c"), po::value<string>(), "configure file path, \neg: '/opt/sequoiadb/conf/local/20000/'" ) \
        ( PMD_COMMANDS_STRING( PMD_OPTION_SVCNAME, ",p"), po::value<string>(), "service name, separated by comma (',')" ) \
        ( PMD_COMMANDS_STRING( PMD_OPTION_TYPE, ",t"), po::value<string>(), "node type: db/om/all, default: db" ) \
        ( PMD_COMMANDS_STRING( PMD_OPTION_ROLE, ",r" ), po::value<string>(), "role type: coord/data/catalog/om" ) \
@@ -84,7 +84,7 @@ namespace engine
    #define COMMANDS_OPTIONS \
        ( PMD_COMMANDS_STRING( PMD_OPTION_HELP, ",h"), "help" ) \
        ( PMD_OPTION_VERSION, "version" ) \
-       ( PMD_COMMANDS_STRING( PMD_OPTION_CONFPATH, ",c"), po::value<string>(), "configure file path" ) \
+       ( PMD_COMMANDS_STRING( PMD_OPTION_CONFPATH, ",c"), po::value<string>(), "configure file path, \neg: '/opt/sequoiadb/conf/local/20000/'" ) \
        ( PMD_COMMANDS_STRING( PMD_OPTION_SVCNAME, ",p"), po::value<string>(), "service name, separated by comma (',')" ) \
        ( PMD_COMMANDS_STRING( PMD_OPTION_TYPE, ",t"), po::value<string>(), "node type: db/om/all, default: db" ) \
        ( PMD_COMMANDS_STRING( PMD_OPTION_ROLE, ",r" ), po::value<string>(), "role type: coord/data/catalog/om" ) \
@@ -174,6 +174,33 @@ namespace engine
       if ( vm.count ( PMD_OPTION_CONFPATH ) )
       {
          confPath = vm[PMD_OPTION_CONFPATH].as<string>() ;
+         if( confPath.empty() )
+         {
+            std::cout << "Configure file path can't be empty" << std::endl ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         rc = ossAccess( confPath.c_str(),
+                         OSS_MODE_ACCESS | OSS_MODE_READWRITE ) ;
+         if( SDB_OK != rc && !vm.count( PMD_OPTION_FORCE ) )
+         {
+            if( SDB_FNE == rc )
+            {
+               std::cout << "confpath[" << confPath.c_str()
+                         << "] does not exist" << std::endl ;
+            }
+            else if( SDB_PERM == rc )
+            {
+               std::cout << "can't open file[" << confPath.c_str()
+                         << "]. Permission denied" << std::endl ;
+            }
+            else
+            {
+               std::cout << "confpath invalid" << std::endl ;
+            }
+            goto error ;
+         }
          configs.push_back( confPath ) ;
          nodesinfo.push_back( info ) ;
       }
