@@ -465,28 +465,48 @@
                      "en": "Overview"
                   },
                   {
-                     "id": 1521595270,
-                     "file": "install_deploy",
-                     "cn": "安装部署",
-                     "en": "Install and Deploy"
+                     "id": 1574045901,
+                     "dir": "installation",
+                     "cn": "安装",
+                     "en": "Installation",
+                     "contents": [
+                        {
+                           "id": 1521595270,
+                           "file": "install_deploy",
+                           "cn": "安装部署",
+                           "en": "Install and Deploy"
+                        },
+                        {
+                           "id": 1572505575,
+                           "file": "ha",
+                           "cn": "高可用",
+                           "en": "High Availability"
+                        },
+                        {
+                           "id": 1556198260,
+                           "file": "upgrade",
+                           "cn": "升级",
+                           "en": "Upgrade guidance"
+                        },
+                        {
+                           "id": 1557737509,
+                           "file": "uninstall",
+                           "cn": "卸载",
+                           "en": "Develop"
+                        }
+                     ]
+                  },
+                  {
+                     "id": 1574045910,
+                     "file": "data_type",
+                     "cn": "数据类型映射表",
+                     "en": "data type map table"
                   },
                   {
                      "id": 1567070020,
                      "file": "sequoiasql_mysql",
                      "cn": "sequoiasql-mysql服务",
                      "en": "service sequoiasql-mysql"
-                  },
-                  {
-                     "id": 1572505575,
-                     "file": "ha",
-                     "cn": "高可用",
-                     "en": "High Availability"
-                  },
-                  {
-                     "id": 1556198260,
-                     "file": "upgrade",
-                     "cn": "升级",
-                     "en": "Upgrade guidance"
                   },
                   {
                      "id": 1521595283,
@@ -511,12 +531,6 @@
                      "file": "attention",
                      "cn": "注意事项",
                      "en": "attention"
-                  },
-                  {
-                     "id": 1557737509,
-                     "file": "uninstall",
-                     "cn": "卸载",
-                     "en": "Develop"
                   }
                ]
             }            
