@@ -88,7 +88,7 @@ public class Transaction18825 extends SdbTestBase {
 
         // 待集群正常后，查询所有账户的金额总和
         int count = 0;
-        int checkTimes = 300;
+        int checkTimes = 600;
         while (count++ < checkTimes) {
             DBCursor cursor = sdb.exec("select sum(balance) as balance from " + csName + "." + clName);
             double balance = (double) cursor.getNext().get("balance");
