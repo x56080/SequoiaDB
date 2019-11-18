@@ -40,6 +40,7 @@ public class Transaction20214 extends SdbTestBase {
     public void tearDown() {
         if (sdb != null) {
             sdb.commit();
+            sdb.getCollectionSpace(csName).dropCollection(clName);
             sdb.close();
         }
     }
