@@ -3,7 +3,7 @@
 @author:
               2019-6-4 wuyan init
 ****************************************************/
-//main();
+main();
 function main()
 {   
    var csName = CHANGEDPREFIX + "cs4510";   
@@ -26,11 +26,13 @@ function createCSAndCheckResult( csName, pageSize )
    //create cs;
    var dbcs = db.createCS( csName, options );
    
-   //create cl in the cs
+   //create cl in the cs, "ReplSize" need to set, avoid -264
    var clName = "cl4510";
-   dbcs.createCL( clName );
+   dbcs.createCL( clName, {"ReplSize": 0} );
    
    //check the options
+   db.sync({"CollectionSpace": csName});
+   
    var cursor = db.snapshot( 5, { Name : csName});
    var actPageSize = 0;
    while (cursor.next())
