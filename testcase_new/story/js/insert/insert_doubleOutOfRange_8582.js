@@ -8,10 +8,16 @@ function main()
      var clName = "insert8582";
      var cl = readyCL( clName );
      
-     var obj = [ { "a":1.7E+310 }, { "a":-1.7E+310 }, { "a":"test" } ];
+     var obj = [ 
+         {"a": -1.797693134862315e+308},   {"a": 1.797693134862315e+308}, 
+         {"a": -1.7976931348623157e+308 }, {"a": 1.7976931348623157e+308 }, 
+         {"a": -1.78E+309}, {"a": 1.78E+309} ];
      cl.insert( obj );
      
-     var expRecords = [ { "a":Infinity }, { "a":-Infinity }, { "a":"test" } ]     
+     var expRecords = [ 
+         {"a": -1.797693134862315e+308}, {"a": 1.797693134862315e+308}, 
+         {"a": -Infinity }, {"a": Infinity }, 
+         {"a": -Infinity }, {"a": Infinity }]
      var actRecords = cl.find();      
      checkRec( actRecords, expRecords );
           
