@@ -24,6 +24,7 @@ import com.sequoias3.testcommon.s3utils.PartUploadUtils;
  * @Date 2019.07.30
  * @version 1.00
  */
+@Test(groups = "partlistinuseoff")
 public class UploadPart18711 extends S3TestBase {
     private boolean runSuccess = false;
     private String bucketName = "bucket18711";
@@ -52,7 +53,7 @@ public class UploadPart18711 extends S3TestBase {
         CommLib.setBucketVersioning(s3Client, bucketName, "Enabled");
     }
 
-    @Test(groups = "partlistinuseoff")
+    @Test
     public void uploadParts() throws Exception {
         File file1 = new File(filePath1);
         String uploadId1 = PartUploadUtils.initPartUpload(s3Client, bucketName, keyName);

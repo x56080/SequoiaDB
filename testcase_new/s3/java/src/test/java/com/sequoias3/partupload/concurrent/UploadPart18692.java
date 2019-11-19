@@ -30,6 +30,7 @@ import com.sequoias3.testcommon.s3utils.PartUploadUtils;
  * @Date 2019.07.29
  * @version 1.00
  */
+@Test(groups = "partlistinuseoff")
 public class UploadPart18692 extends S3TestBase {
     private boolean runSuccess = false;
     private String keyName = "/aa/object18692";
@@ -50,7 +51,7 @@ public class UploadPart18692 extends S3TestBase {
         s3Client = CommLib.buildS3Client();
     }
 
-    @Test(groups = "partlistinuseoff")
+    @Test
     public void uploadParts() throws Exception {
         File file = new File(filePath);
         String uploadId = PartUploadUtils.initPartUpload(s3Client, S3TestBase.bucketName, keyName);

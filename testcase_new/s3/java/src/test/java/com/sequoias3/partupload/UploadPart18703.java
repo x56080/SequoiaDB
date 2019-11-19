@@ -24,6 +24,7 @@ import com.sequoias3.testcommon.s3utils.PartUploadUtils;
  * @Date 2019.07.30
  * @version 1.00
  */
+@Test(groups = "partlistinuseoff")
 public class UploadPart18703 extends S3TestBase {
     private boolean runSuccess = false;
     private String keyNameA = "/aa/maa/bb/object18703A";
@@ -44,7 +45,7 @@ public class UploadPart18703 extends S3TestBase {
         s3Client = CommLib.buildS3Client();
     }
 
-    @Test(groups = "partlistinuseoff")
+    @Test
     public void uploadParts() throws Exception {
         File file = new File(filePath);
         // test a: the specified partNums is less than the partNums actually

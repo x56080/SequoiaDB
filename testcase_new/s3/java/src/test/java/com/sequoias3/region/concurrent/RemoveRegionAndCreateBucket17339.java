@@ -33,7 +33,7 @@ public class RemoveRegionAndCreateBucket17339 extends S3TestBase {
     private String bucketName = "bucket17339";
     private String key = "key17339";
     private String regionName = "region17339";
-    private String userName = "user15909";
+    private String userName = "user17339";
     private String roleName = "normal";
     private String[] accessKeys;
     private AmazonS3 s3Client = null;
@@ -137,15 +137,15 @@ public class RemoveRegionAndCreateBucket17339 extends S3TestBase {
         boolean curDoesExistRegion = RegionUtils.headRegion(regionName);
         // check that the auto create cs have been deleted
         String metaCSName = RegionUtils.getMetaCSName(regionName);
-        String dataCSName = RegionUtils.getDataCSName(regionName, "quarter", new Date()) + "_1";
+        String dataCSName = RegionUtils.getDataCSName(regionName, "year", new Date()) + "_1";
         if (doesExistRegion) {
             Assert.assertTrue(curDoesExistRegion);
-            Assert.assertTrue(RegionUtils.doesCSExist(metaCSName));
-            Assert.assertTrue(RegionUtils.doesCSExist(dataCSName));
+            Assert.assertTrue(RegionUtils.doesCSExist(metaCSName),metaCSName);
+            Assert.assertTrue(RegionUtils.doesCSExist(dataCSName),dataCSName);
         } else {
             Assert.assertFalse(curDoesExistRegion);
-            Assert.assertFalse(RegionUtils.doesCSExist(metaCSName));
-            Assert.assertFalse(RegionUtils.doesCSExist(dataCSName));
+            Assert.assertFalse(RegionUtils.doesCSExist(metaCSName),metaCSName);
+            Assert.assertFalse(RegionUtils.doesCSExist(dataCSName),dataCSName);
         }
     }
 
