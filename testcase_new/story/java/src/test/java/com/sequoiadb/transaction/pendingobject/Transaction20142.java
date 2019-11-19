@@ -82,7 +82,9 @@ public class Transaction20142 extends SdbTestBase {
             for (int i = 0; i < clNames.size(); i++) {
                 DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clNames.get(i));
                 List<String> groupNames = CommLib.getCLGroups(cl);
-                Assert.assertTrue(TransUtils.getDatabaseSnapshot(sdb, groupNames.get(0)));
+                String groupName = groupNames.get(0);
+                Assert.assertTrue(TransUtils.isLsnConsistency(sdb, groupName));
+                Assert.assertTrue(TransUtils.getDatabaseSnapshot(sdb, groupName));
                 TransUtils.queryAndCheck(cl, "{a:1}", "{a:''}", expDataList);
             }
 

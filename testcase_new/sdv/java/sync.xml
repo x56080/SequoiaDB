@@ -20,6 +20,7 @@
 			<package name="com.sequoiadb.lzwtransactionsync" />
 			<package name="com.sequoiadb.lzw" />
 			<package name="com.sequoiadb.crud.compress.concurrency" />
+			<package name="com.sequoiadb.transactionsync" />
 		</packages>
 	</test>
 </suite>

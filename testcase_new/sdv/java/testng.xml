@@ -23,6 +23,8 @@
             <package name="com.sequoiadb.crud" />
             <package name="com.sequoiadb.crud.compress.snappy" />
             <package name="com.sequoiadb.subcl"/>
+            <package name="com.sequoiadb.lzwtransaction" />
+            <package name="com.sequoiadb.transaction" />
         </packages>
    </test>
  

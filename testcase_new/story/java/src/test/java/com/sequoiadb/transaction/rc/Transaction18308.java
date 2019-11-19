@@ -15,6 +15,7 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
+import com.sequoiadb.transaction.TransUtils;
 
 /**
  * @testcase seqDB-18308:集合空间上存在事务操作，并发创建/删除集合空间
@@ -92,8 +93,9 @@ public class Transaction18308 extends SdbTestBase {
                     cl.delete("{a:10}", "{'':'idx'}");
                     db.commit();
 
-                    // 删除集合空间
-                    db.dropCollectionSpace(csName);
+                    // 删除集合空间,由于后台清理记录的线程会对集合空间加锁，且是异步的，需要规避该错误码，
+                    TransUtils.dropCS(db, csName);
+
                     if (++doTimes == 30) {
                         System.out.println("CSNAME: " + csName + " doTimes: " + doTimes);
                         break;

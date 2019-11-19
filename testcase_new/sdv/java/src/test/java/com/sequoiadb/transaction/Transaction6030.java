@@ -13,7 +13,6 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.testcommon.SdbConfTestBase;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
@@ -24,73 +23,67 @@ import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
  * @date 2019.03.28
  * @review
  */
-public class Transaction6030 extends SdbConfTestBase {
-	private String clName = "cl6030";
-	private Sequoiadb sdb = null;
-	private DBCollection cl = null;
-	private int threadNum = 100;
-	private int insertNum = 1000;
+public class Transaction6030 extends SdbTestBase {
+    private String clName = "cl6030";
+    private Sequoiadb sdb = null;
+    private DBCollection cl = null;
+    private int threadNum = 100;
+    private int insertNum = 1000;
 
-	@Override
-	protected void setNodeConf() {
-		dataConf.put("transactionon", true);
-		stdalnConf.put("transactionon", true);
-	}
+    @BeforeClass
+    private void setup() {
+        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        cl = sdb.getCollectionSpace(SdbTestBase.csName).createCollection(clName);
+    }
 
-	@BeforeClass
-	private void setup() {
-		sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-		cl = sdb.getCollectionSpace(SdbTestBase.csName).createCollection(clName);
-	}
+    @Test
+    public void test() throws Exception {
+        ThreadExecutor es = new ThreadExecutor();
+        for (int i = 0; i < threadNum; i++) {
+            es.addWorker(new Trans6030());
+        }
+        es.run();
+        DBCursor cur = cl.query();
+        Assert.assertFalse(cur.hasNext(), "rollback failed and data still exists in the collection.");
+    }
 
-	@Test
-	public void test() throws Exception {
-		ThreadExecutor es = new ThreadExecutor();
-		for (int i = 0; i < threadNum; i++) {
-			es.addWorker(new Trans6030());
-		}
-		es.run();
-		DBCursor cur = cl.query();
-		Assert.assertFalse(cur.hasNext(), "rollback failed and data still exists in the collection.");
-	}
+    @AfterClass
+    private void teardown() {
+        try {
+            sdb.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
+        } finally {
+            sdb.close();
+        }
+    }
 
-	@AfterClass
-	private void teardown() {
-		try {
-			sdb.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
-		} finally {
-			sdb.close();
-		}
-	}
+    private void insertData(DBCollection cl, int recNum) {
+        List<BSONObject> insertor = new ArrayList<>();
+        for (int i = 0; i < recNum; i++) {
+            BSONObject rec = new BasicBSONObject();
+            rec.put("a", i);
+            insertor.add(rec);
+        }
+        cl.insert(insertor);
+    }
 
-	private void insertData(DBCollection cl, int recNum) {
-		List<BSONObject> insertor = new ArrayList<>();
-		for (int i = 0; i < recNum; i++) {
-			BSONObject rec = new BasicBSONObject();
-			rec.put("a", i);
-			insertor.add(rec);
-		}
-		cl.insert(insertor);
-	}
+    class Trans6030 {
+        private Sequoiadb db = null;
 
-	class Trans6030 {
-		private Sequoiadb db = null;
+        public Trans6030() {
+            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db.beginTransaction();
+            DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+            insertData(cl, insertNum);
+        }
 
-		public Trans6030() {
-			db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-			db.beginTransaction();
-			DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-			insertData(cl, insertNum);
-		}
-
-		@ExecuteOrder(step = 1, desc = "回滚事务")
-		public void rollback() {
-			try {
-				db.rollback();
-			} finally {
-				db.close();
-			}
-		}
-	}
+        @ExecuteOrder(step = 1, desc = "回滚事务")
+        public void rollback() {
+            try {
+                db.rollback();
+            } finally {
+                db.close();
+            }
+        }
+    }
 
 }

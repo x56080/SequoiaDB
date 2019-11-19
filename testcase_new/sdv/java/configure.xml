@@ -15,19 +15,5 @@
    <listeners>
       <listener class-name="com.sequoiadb.testcommon.TimePrinterListener"/>
    </listeners>
-   
-   <!--The testcases of different configure should be placed in different <test> -->
-   <test name="lzwtransaction">
-      <packages>
-          <package name="com.sequoiadb.lzwtransaction"/>
-          <package name="com.sequoiadb.transaction"/>
-      </packages>
-   </test>
-
-   <test name="transaction_sync">
-      <classes>
-          <class name="com.sequoiadb.transactionsync.SplitToDiffDataRG11901"/>
-      </classes>
-   </test>
 </suite>
    
