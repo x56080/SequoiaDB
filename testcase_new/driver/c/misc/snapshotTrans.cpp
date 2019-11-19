@@ -22,6 +22,13 @@ protected:
    void SetUp() 
    {
       testBase::SetUp() ;
+
+      if( isStandalone( db ) ) 
+      {   
+         printf( "Run mode is standalone\n" ) ; 
+         return ;
+      }   
+
       INT32 rc = SDB_OK ;
       csName = "snapshotTransTestCs" ;
       clName = "snapshotTransTestCl" ;
@@ -31,13 +38,13 @@ protected:
    void TearDown()
    {
       INT32 rc = SDB_OK ;
-      if( shouldClear() )
+      if( !isStandalone( db ) && shouldClear() )
       {
          rc = sdbDropCollectionSpace( db, csName ) ;
          ASSERT_EQ( SDB_OK, rc ) << "fail to drop cs " << csName ;
+         sdbReleaseCollection( cl ) ;
+         sdbReleaseCS( cs ) ;
       }
-      sdbReleaseCollection( cl ) ;
-      sdbReleaseCS( cs ) ;
       testBase::TearDown() ;
    }
 } ;
@@ -45,6 +52,12 @@ protected:
 // SDB_SNAP_TRANSACTIONS 9
 TEST_F( snapshotTransTest, SDB_SNAP_TRANSACTIONS )
 {
+   if( isStandalone( db ) )
+   {   
+      printf( "Run mode is standalone\n" ) ;
+      return ;
+   }
+
    INT32 rc = SDB_OK ;
 
    // begin trans
@@ -92,6 +105,12 @@ TEST_F( snapshotTransTest, SDB_SNAP_TRANSACTIONS )
 
 TEST_F( snapshotTransTest, SDB_SNAP_TRANSACTIONS_CURRENT )
 {
+   if( isStandalone( db ) )
+   {   
+      printf( "Run mode is standalone\n" ) ;
+      return ; 
+   } 
+
    INT32 rc = SDB_OK ;
 
    // begin trans
