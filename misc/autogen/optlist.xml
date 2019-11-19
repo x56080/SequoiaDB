@@ -2139,6 +2139,7 @@
         <cn>两个节点之间的最大连接数，取值范围：[1,100]，默认为5。</cn>
       </detail>
       <type>int</type>
+      <typeofweb>num</typeofweb>
       <default>5</default>
       <hidden>false</hidden>
    </opt>
@@ -2159,6 +2160,7 @@
         <cn>一个线程驱动最大连接数，0表示不限制，默认为1。</cn>
       </detail>
       <type>int</type>
+      <typeofweb>num</typeofweb>
       <default>1</default>
       <hidden>false</hidden>
    </opt>
@@ -2179,6 +2181,7 @@
         <cn>通信最大驱动线程数，取值范围[1,100]，默认10。</cn>
       </detail>
       <type>int</type>
+      <typeofweb>num</typeofweb>
       <default>10</default>
       <hidden>false</hidden>
    </opt>
@@ -2239,6 +2242,7 @@
         <cn>单位：ms。默认为200。</cn>
       </detail>
       <type>int</type>
+      <typeofweb>num</typeofweb>
       <default>200</default>
       <hidden>false</hidden>
    </opt>
