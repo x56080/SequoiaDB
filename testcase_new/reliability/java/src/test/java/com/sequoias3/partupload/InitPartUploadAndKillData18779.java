@@ -1,25 +1,7 @@
 package com.sequoias3.partupload;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
-import com.amazonaws.services.s3.model.MultipartUpload;
-import com.amazonaws.services.s3.model.MultipartUploadListing;
-import com.amazonaws.services.s3.model.PartETag;
+import com.amazonaws.services.s3.model.*;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.NodeWrapper;
@@ -32,6 +14,19 @@ import com.sequoias3.commlibs3.CommLibS3;
 import com.sequoias3.commlibs3.S3TestBase;
 import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.PartUploadUtils;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @Description seqDB-18779 :初始化上传对象过程中db端节点故障
@@ -44,14 +39,14 @@ public class InitPartUploadAndKillData18779 extends S3TestBase {
     private AmazonS3 s3Client = null;
     private String bucketName = "bucket18779";
     private String baseKeyName = "/object18779.png";
-    private int objectNums = 20;
+    private int objectNums = 10;
     private int fileSize = 1024 * 5;
     private String filePath = null;
     private File localPath = null;
     private File file = null;
     private List<String> keyNames = new ArrayList<>();
     private List<String> keyNamesByInitedPart = new ArrayList<>();
-    MultiValueMap<String, String> uploads = new LinkedMultiValueMap<String, String>();
+    MultiValueMap<String, String> uploads = new LinkedMultiValueMap<>();
 
     @BeforeClass
     private void setUp() throws IOException {
@@ -68,7 +63,6 @@ public class InitPartUploadAndKillData18779 extends S3TestBase {
             String keyName = "/dir" + i + baseKeyName;
             keyNames.add(keyName);
         }
-
     }
 
     @Test
@@ -84,14 +78,12 @@ public class InitPartUploadAndKillData18779 extends S3TestBase {
             NodeWrapper node = group.getMaster();
             FaultMakeTask faultTask = KillNode.getFaultMakeTask(node, 0);
             mgr.addTask(faultTask);
-            System.out.println("KillNode:i=" + i + "" + node.hostName() + ":" + node.svcName());
         }
-
         mgr.execute();
         Assert.assertTrue(mgr.isAllSuccess(), mgr.getErrorMsg());
         Assert.assertTrue(groupMgr.checkBusinessWithLSN(120), "node start fail!");
 
-        checkResult(s3Client);
+        checkResult();
         runSuccess = true;
     }
 
@@ -103,31 +95,28 @@ public class InitPartUploadAndKillData18779 extends S3TestBase {
                 TestTools.LocalFile.removeFile(localPath);
             }
         } finally {
-            if (s3Client != null)
+            if (s3Client != null) {
                 s3Client.shutdown();
+            }
 
         }
     }
 
     public class InitPartUpload extends OperateTask {
+
         private AmazonS3 s3Client1 = CommLibS3.buildS3Client();
         private String keyName;
 
         @Override
         public void exec() throws Exception {
             try {
-                System.out.println("--- begin to init.");
                 for (int i = 0; i < objectNums; i++) {
                     keyName = keyNames.get(i);
-                    System.out.println("--- begin to " + keyName);
                     String partId = PartUploadUtils.initPartUpload(s3Client1, bucketName, keyName);
-                    System.out.println("--- end to " + keyName);
                     keyNamesByInitedPart.add(keyName);
                     uploads.add(keyName, partId);
                 }
-                System.out.println("---end to init.");
             } catch (AmazonS3Exception e) {
-                System.out.println("---e=" + e.getStatusCode() + e.getErrorMessage());
                 if (e.getStatusCode() != 500) {
                     throw new Exception(keyName, e);
                 }
@@ -139,56 +128,53 @@ public class InitPartUploadAndKillData18779 extends S3TestBase {
         }
     }
 
-    private void completeMultipartUpload(AmazonS3 s3Client, String keyName, String uploadId) {
-        List<PartETag> partEtags = PartUploadUtils.partUpload(s3Client, bucketName, keyName, uploadId, file);
-        PartUploadUtils.completeMultipartUpload(s3Client, bucketName, keyName, uploadId, partEtags);
-    }
-
-    private void checkResult(AmazonS3 s3Client) {
+    private void checkResult() {
         keyNames.removeAll(keyNamesByInitedPart);
-        System.out.println("---keyNames size=" + keyNames.size());
         for (String keyName : keyNames) {
             String uploadId = PartUploadUtils.initPartUpload(s3Client, bucketName, keyName);
-            System.out.println("---keyname=" + keyName + "--uploadId=" + uploadId);
             uploads.add(keyName, uploadId);
         }
 
         // list multipartUploads to check the parts.
-
         ListMultipartUploadsRequest request = new ListMultipartUploadsRequest(bucketName);
         MultipartUploadListing result = s3Client.listMultipartUploads(request);
         List<String> expCommonPrefixes = new ArrayList<>();
         checkListMultipartUploadsResults(result, expCommonPrefixes, uploads);
-        // if initPartUpload success, than compeletMultipartUpload.
-        Object[] successkeyNames = uploads.keySet().toArray();
-        for (int i = 0; i < uploads.size(); i++) {
-            String keyName = successkeyNames[i].toString();
-            String uploadId = uploads.get(keyName).get(0);
-            completeMultipartUpload(s3Client, keyName, uploadId);
-        }
-
     }
 
-    private void checkListMultipartUploadsResults(MultipartUploadListing result, List<String> expCommonPrefixes,
-            MultiValueMap<String, String> expUploads) {
+    private void checkListMultipartUploadsResults(MultipartUploadListing result,
+                                                  List<String> expCommonPrefixes,
+                                                  MultiValueMap<String, String> expUploads) {
         Collections.sort(expCommonPrefixes);
         List<String> actCommonPrefixes = result.getCommonPrefixes();
-        Assert.assertEquals(actCommonPrefixes, expCommonPrefixes, "actCommonPrefixes = " + actCommonPrefixes.toString()
-                + ",expCommonPrefixes = " + expCommonPrefixes.toString());
+        Assert.assertEquals(actCommonPrefixes, expCommonPrefixes,
+                "actCommonPrefixes = " + actCommonPrefixes.toString()
+                        + ",expCommonPrefixes = " + expCommonPrefixes.toString());
         List<MultipartUpload> multipartUploads = result.getMultipartUploads();
-        MultiValueMap<String, String> actUploads = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> actUploads = new LinkedMultiValueMap<>();
         for (MultipartUpload multipartUpload : multipartUploads) {
             String keyName = multipartUpload.getKey();
             String uploadId = multipartUpload.getUploadId();
             actUploads.add(keyName, uploadId);
         }
-
-        Assert.assertEquals(actUploads.size(), expUploads.size(), "actMap = " + actUploads.size() + " -- "
-                + actUploads.toString() + ",expUpload = " + expUploads.size() + "--" + expUploads.toString());
+        Assert.assertEquals(actUploads.size(), expUploads.size(),
+                "actMap = " + actUploads.size() + " -- "
+                        + actUploads.toString() + ",expUpload = " + expUploads.size() + "--" + expUploads
+                        .toString());
         for (Map.Entry<String, List<String>> entry : expUploads.entrySet()) {
-            // System.out.println("---keyName=" + entry.getKey());
-            Assert.assertEquals(actUploads.get(entry.getKey()), expUploads.get(entry.getKey()),
+            Assert.assertTrue(
+                    actUploads.get(entry.getKey()).containsAll(expUploads.get(entry.getKey())),
                     "actMap = " + actUploads.toString() + ",expMap = " + expUploads.toString());
+        }
+        // if initPartUpload success, than compeletMultipartUpload.
+        for (Map.Entry<String, List<String>> entry : actUploads.entrySet()) {
+            List<String> uploadIds = entry.getValue();
+            for (String uploadId : uploadIds) {
+                List<PartETag> partEtags = PartUploadUtils
+                        .partUpload(s3Client, bucketName, entry.getKey(), uploadId, file);
+                PartUploadUtils.completeMultipartUpload(s3Client, bucketName, entry.getKey(),
+                        uploadId, partEtags);
+            }
         }
     }
 }

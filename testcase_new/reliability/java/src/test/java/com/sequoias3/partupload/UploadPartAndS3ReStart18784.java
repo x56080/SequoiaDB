@@ -1,16 +1,6 @@
 package com.sequoias3.partupload;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.PartETag;
@@ -27,6 +17,16 @@ import com.sequoias3.commlibs3.s3utils.ObjectUtils;
 import com.sequoias3.commlibs3.s3utils.PartUploadUtils;
 import com.sequoias3.commlibs3.s3utils.S3NodeRestart;
 import com.sequoias3.commlibs3.s3utils.bean.S3NodeWrapper;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @Description seqDB-18784 :上传分段过程中sequoiaS3故障，故障恢复后再次上传分段
@@ -123,7 +123,7 @@ public class UploadPartAndS3ReStart18784 extends S3TestBase {
                 if (e.getStatusCode() != 500) {
                     throw new Exception(keyName + ":" + partNum, e);
                 }
-            } catch (Exception e) {
+            } catch (SdkClientException e) {
                 if (!e.getMessage().contains("Unable to execute HTTP request")) {
                     throw new Exception(keyName + ":" + partNum, e);
                 }

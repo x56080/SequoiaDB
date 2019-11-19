@@ -135,10 +135,6 @@ public class UploadPartAndKillData18780 extends S3TestBase {
                 if (e.getStatusCode() != 500) {
                     throw new Exception(keyName + ":" + partNum, e);
                 }
-            } catch (Exception e) {
-                if (!e.getMessage().contains("Unable to execute HTTP request")) {
-                    throw new Exception(keyName + ":" + partNum, e);
-                }
             } finally {
                 if (s3Client1 != null) {
                     s3Client1.shutdown();

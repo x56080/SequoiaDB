@@ -1,17 +1,6 @@
 package com.sequoias3.partupload;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
@@ -28,6 +17,17 @@ import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.PartUploadUtils;
 import com.sequoias3.commlibs3.s3utils.S3NodeRestart;
 import com.sequoias3.commlibs3.s3utils.bean.S3NodeWrapper;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * test content: 查询桶分段上传列表过程中sequoiaS3异常 testlink-case: seqDB-18790
@@ -107,7 +107,7 @@ public class ListMultipartUploadsWithReStartS3N18790 extends S3TestBase {
                 if (e.getStatusCode() != 500) {
                     throw e;
                 }
-            } catch (Exception e) {
+            } catch (SdkClientException e) {
                 if (!e.getMessage().contains("Unable to execute HTTP request")) {
                     throw e;
                 }

@@ -1,46 +1,51 @@
 package com.sequoias3.testcommon;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 public class TestResidualData extends S3TestBase {
-    Sequoiadb db = null;
-    int errorCount = 0;
-    String printInfo = "";
-    String printDirInfo = "";
-    String bucketId = "";
-    String enabledBucketId = "";
+    private Sequoiadb db;
+    private int errorCount = 0;
+    private String bucketId;
+    private String enabledBucketId;
+    private String residualdataFilePath;
+    private String residualDirDataFilePath;
 
     @BeforeClass
-    private void setUp() throws InterruptedException {
+    private void setUp() throws InterruptedException, IOException {
         // 打印残留信息前等待一分钟（s3后台清理频率为1次/分钟）
         Thread.sleep(60 * 1024);
+        db = new Sequoiadb(S3TestBase.coordUrl, "", "");
+        residualdataFilePath = S3TestBase.workDir + File.separator + "residualdata.log";
+        residualDirDataFilePath = S3TestBase.workDir + File.separator + "residualDirData.log";
+        TestTools.LocalFile.createFile(residualdataFilePath);
+        TestTools.LocalFile.createFile(residualDirDataFilePath);
     }
 
     @Test
     private void printResidualData() throws Exception {
-        List<String> csNames = new ArrayList<String>();
-        List<String> s3CSNames = new ArrayList<String>();
-        List<String> s3DataCSNames = new ArrayList<String>();
-        db = new Sequoiadb(S3TestBase.coordUrl, "", "");
-        csNames = db.getCollectionSpaceNames();
+        List<String> csNames;
+        List<String> s3CSNames = new ArrayList<>();
+        List<String> s3DataCSNames = new ArrayList<>();
 
+        csNames = db.getCollectionSpaceNames();
+        //get s3 tables
         for (String csName : csNames) {
             if (csName.startsWith("S3_")) {
                 if (csName.contains("Meta")) {
@@ -51,6 +56,7 @@ public class TestResidualData extends S3TestBase {
             }
         }
 
+        // residual meta data and lod  write to local file
         for (String csName : s3CSNames) {
             CollectionSpace cs = db.getCollectionSpace(csName);
             List<DBCollection> clList = new ArrayList<DBCollection>();
@@ -62,10 +68,11 @@ public class TestResidualData extends S3TestBase {
                     clList.add(cs.getCollection(clname));
                 }
             }
-            printResidualMetaData(cs, clList);
-            printObjectDirData(cs);
+            residualMetaDataWriteToLocalFile(cs, clList);
+            residualObjectDirDataWriteToLocalFile(cs);
         }
 
+        // residual meta dir  write to local file
         for (String csName : s3DataCSNames) {
             CollectionSpace cs = db.getCollectionSpace(csName);
             List<DBCollection> clList = new ArrayList<DBCollection>();
@@ -74,64 +81,72 @@ public class TestResidualData extends S3TestBase {
                 String clname = csclName.substring(cs.getName().length() + 1);
                 clList.add(cs.getCollection(clname));
             }
-            printResidualData(cs, clList);
+            residualDataWriteToLocalFile(cs, clList);
         }
-
-        writeToFile();
+        //scp to s3 host
+        residualFileScpToS3Host();
     }
 
-    private void printResidualMetaData(CollectionSpace cs, List<DBCollection> clList) {
+    private void residualMetaDataWriteToLocalFile(CollectionSpace cs, List<DBCollection> clList) throws IOException {
         DBCursor cursor = null;
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy");
         Date date = new Date();
-        String s3SysDataRegionSpaceName = "S3_SYS_Data_" + sdf.format(date);
+        String s3SysDataRegionSpaceName = "S3_SYS_Data_" + sdf.format(date) + "_1";
+        FileOutputStream fileOutputStream = new FileOutputStream(new File(residualdataFilePath), true);
         try {
             for (DBCollection cl : clList) {
-                printInfo += "===============begin print " + cs.getName() + "." + cl.getName() + " data============\n";
                 cursor = cl.query();
-                if (cursor.hasNext()) {
-                    while (cursor.hasNext()) {
-                        if (cursor.getNext().containsField("Name")) {
-                            if (!cursor.getCurrent().get("Name").equals(S3TestBase.s3UserName)
-                                    && !cursor.getCurrent().get("Name").equals(S3TestBase.bucketName)
-                                    && !cursor.getCurrent().get("Name").equals(S3TestBase.enableVerBucketName)
-                                    && !cursor.getCurrent().get("Name").equals(s3SysDataRegionSpaceName)) {
-                                printInfo += cursor.getCurrent().toString() + "\n";
-                                errorCount++;
-                            } else if (cursor.getCurrent().get("Name").equals(S3TestBase.bucketName)) {
-                                bucketId = cursor.getCurrent().get("ID").toString();
-                            } else if (cursor.getCurrent().get("Name").equals(S3TestBase.enableVerBucketName)) {
-                                enabledBucketId = cursor.getCurrent().get("ID").toString();
-                            }
-                        } else {
-                            printInfo += cursor.getCurrent().toString() + "\n";
+                String head = "===============begin print " + cs.getName() + "." + cl.getName() +
+                        " data============\n";
+                fileOutputStream.write(head.getBytes());
+                while (cursor.hasNext()) {
+                    if (cursor.getNext().containsField("Name")) {
+                        if (!cursor.getCurrent().get("Name").equals(S3TestBase.s3UserName)
+                                && !cursor.getCurrent().get("Name").equals(S3TestBase.bucketName)
+                                && !cursor.getCurrent().get("Name").equals(S3TestBase.enableVerBucketName)
+                                && !cursor.getCurrent().get("Name").equals(s3SysDataRegionSpaceName)) {
+                            fileOutputStream.write((cursor.getCurrent().toString() + "\n").getBytes());
                             errorCount++;
+                        } else if (cursor.getCurrent().get("Name").equals(S3TestBase.bucketName)) {
+                            bucketId = cursor.getCurrent().get("ID").toString();
+                        } else if (cursor.getCurrent().get("Name").equals(S3TestBase.enableVerBucketName)) {
+                            enabledBucketId = cursor.getCurrent().get("ID").toString();
                         }
+                    } else {
+                        fileOutputStream.write((cursor.getCurrent().toString() + "\n").getBytes());
+                        errorCount++;
                     }
                 }
-                printInfo += "===============end print " + cs.getName() + "." + cl.getName() + " data==============\n";
+                String tail = "===============end print " + cs.getName() + "." + cl.getName() + " data==============\n";
+                fileOutputStream.write(tail.getBytes());
             }
         } finally {
             if (cursor != null) {
                 cursor.close();
             }
+            if (fileOutputStream != null) {
+                fileOutputStream.close();
+            }
         }
     }
 
-    private void printResidualData(CollectionSpace cs, List<DBCollection> clList) {
+    private void residualDataWriteToLocalFile(CollectionSpace cs, List<DBCollection> clList) throws IOException {
         DBCursor cursor = null;
+        FileOutputStream fileOutputStream = new FileOutputStream(new File(residualdataFilePath), true);
         try {
             for (DBCollection cl : clList) {
-                printInfo += "\n===============begin print " + cs.getName() + "." + cl.getName()
+                String head = "\n===============begin print " + cs.getName() + "." + cl.getName()
                         + " data============\n";
+                fileOutputStream.write(head.getBytes());
                 cursor = cl.listLobs();
                 if (cursor.hasNext()) {
                     while (cursor.hasNext()) {
-                        printInfo += cursor.getNext().toString() + "\n";
+                        fileOutputStream.write((cursor.getNext().toString() + "\n").getBytes());
                         errorCount++;
                     }
                 }
-                printInfo += "===============end print " + cs.getName() + "." + cl.getName() + " data==============\n";
+                String tail = "===============end print " + cs.getName() + "." + cl.getName() + " data==============\n";
+                fileOutputStream.write(tail.getBytes());
             }
         } catch (BaseException e) {
             Assert.assertEquals(e.getErrorCode(), SDBError.SDB_DMS_NOTEXIST.getErrorCode(),
@@ -140,82 +155,74 @@ public class TestResidualData extends S3TestBase {
             if (cursor != null) {
                 cursor.close();
             }
+            if(fileOutputStream != null){
+                fileOutputStream.close();
+            }
         }
     }
 
-    private void printObjectDirData(CollectionSpace cs) {
+    private void  residualObjectDirDataWriteToLocalFile(CollectionSpace cs) throws IOException {
         DBCollection cl = cs.getCollection("S3_ObjectDir");
         DBCursor cursor = null;
+        FileOutputStream fileOutputStream = new FileOutputStream(new File(residualDirDataFilePath),true);
         try {
-            printDirInfo += "===============begin print " + cs.getName() + "." + cl.getName() + " data============\n";
+            String head = "===============begin print " + cs.getName() + "." + cl.getName() + " data============\n";
+            fileOutputStream.write(head.getBytes());
             cursor = cl.query();
             if (cursor.hasNext()) {
                 while (cursor.hasNext()) {
                     if (!cursor.getNext().get("BucketId").equals(bucketId)
                             && !cursor.getCurrent().get("BucketId").equals(enabledBucketId)) {
-                        printDirInfo += cursor.getCurrent().toString() + "\n";
+                        fileOutputStream.write((cursor.getCurrent().toString() + "\n").getBytes());
                         errorCount++;
                     }
                 }
             }
-            printDirInfo += "===============end print " + cs.getName() + "." + cl.getName() + " data==============\n";
+            String tail = "===============end print " + cs.getName() + "." + cl.getName() + " data==============\n";
+            fileOutputStream.write(tail.getBytes());
         } finally {
             if (cursor != null) {
                 cursor.close();
             }
+            if(fileOutputStream != null){
+                fileOutputStream.close();
+            }
         }
     }
 
-    private void writeToFile() throws Exception {
-        String residualdataFile = "residualdata.log";
-        copyLocalFileToRemote(residualdataFile, printInfo);
-        // 打印日志表
-        String residualDirDataFile = "residualDirData.log";
-        copyLocalFileToRemote(residualDirDataFile, printDirInfo);
-
+    private void residualFileScpToS3Host() throws Exception {
         if (errorCount != 0) {
+            String remotPath = S3TestBase.installPath +  "/tools/sequoias3/log";
+            copyLocalFileToRemote(residualdataFilePath, remotPath);
+            copyLocalFileToRemote(residualDirDataFilePath, remotPath);
             throw new Exception("There is data residue problem");
         }
     }
 
-    private void copyLocalFileToRemote(String fileName, String printInfo) throws Exception {
-        // 先将残留数据写到本地路径中
-        String tmpFilePath = S3TestBase.workDir + File.separator + fileName;
-        File file = new File(tmpFilePath);
-        FileOutputStream fos = null;
-        try {
-            fos = new FileOutputStream(file);
-            fos.write(printInfo.getBytes());
-        } finally {
-            if (fos != null) {
-                fos.close();
-            }
-        }
-        String residualdataFileName = S3TestBase.installPath + "/tools/sequoias3/log/" + fileName;
+    private void copyLocalFileToRemote(String localFilePath, String remotePath) throws Exception {
         Ssh ssh = null;
         try {
             ssh = new Ssh(s3HostName, remoteuser, remotepasswd);
-            ssh.scpTo(tmpFilePath, residualdataFileName);
+            ssh.scpTo(localFilePath, remotePath);
             if (ssh.getExitStatus() != 0) {
-                throw new Exception("exec ssh.scpTo(" + tmpFilePath + ", " + residualdataFileName + "); failed, stout= "
+                throw new Exception("exec ssh.scpTo(" + localFilePath + ", " + remotePath + "); failed, stout= "
                         + ssh.getStdout());
             }
         } catch (Exception e) {
             e.printStackTrace();
-            Assert.fail("write " + fileName + " info failed");
+            Assert.fail("write " + remotePath + " info failed");
         } finally {
             if (ssh != null) {
                 ssh.disconnect();
             }
         }
-        // 删除本地临时文件
-        if (file.exists()) {
-            file.delete();
-        }
     }
 
     @AfterClass
     private void tearDown() throws Exception {
+        //delete local file
+        TestTools.LocalFile.removeFile(residualdataFilePath);
+        TestTools.LocalFile.removeFile(residualDirDataFilePath);
         if (db != null) {
             db.close();
         }

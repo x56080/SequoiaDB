@@ -1,6 +1,7 @@
 package com.sequoias3.object;
 
 
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
 import com.sequoiadb.task.FaultMakeTask;
@@ -31,11 +32,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @Date 2019.01.21
  */
 public class UpdateObjectReStartS3N16469 extends S3TestBase {
+
     private boolean runSuccess = false;
     private AmazonS3 s3Client = null;
     private int fileSize = 1024 * new Random().nextInt(1025);
     private int objectNums = 10;
-    private int versionNums = 2;
     private String filePath = null;
     private String updatePath = null;
     private String bucketName = "bucket16469";
@@ -72,34 +73,30 @@ public class UpdateObjectReStartS3N16469 extends S3TestBase {
         }
         mgr.execute();
         mgr.isAllSuccess();
-        List<Exception> eList = mgr.getExceptions();
-        for (Exception e : eList) {
-            if (!e.getMessage().contains("Unable to execute HTTP request")) {
-                throw e;
-            }
-        }
         s3Client = CommLibS3.buildS3Client();
         //检查故障前创建的对象
-        for(String objectName:objectNameList){
+        for (String objectName : objectNameList) {
             String versionId = "1";
             S3Object s3Object = s3Client.getObject(new GetObjectRequest(bucketName, objectName));
-            chectGetResult(s3Object,objectName, versionId, updatePath);
+            chectGetResult(s3Object, objectName, versionId, updatePath);
         }
 
         //故障恢复后，重新创建对象
         objectNames.removeAll(objectNameList);
         for (String objectName : objectNames) {
-            PutObjectResult obj = s3Client.putObject(bucketName, objectName, new File(updatePath));
+            s3Client.putObject(bucketName, objectName, new File(updatePath));
         }
-       //随机检查故障恢复后的创建的对象
+        //随机检查故障恢复后的创建的对象
         if (!objectNames.isEmpty()) {
             int index = new Random().nextInt(objectNames.size());
             String versionId = "1";
-            S3Object s3Object = s3Client.getObject(new GetObjectRequest(bucketName, objectNames.get(index)));
+            S3Object s3Object = s3Client
+                .getObject(new GetObjectRequest(bucketName, objectNames.get(index)));
             chectGetResult(s3Object, objectNames.get(index), versionId, updatePath);
 
             String versionId1 = "0";
-            S3Object s3Object1 = s3Client.getObject(new GetObjectRequest(bucketName, objectNames.get(index), versionId1));
+            S3Object s3Object1 = s3Client
+                .getObject(new GetObjectRequest(bucketName, objectNames.get(index), versionId1));
             chectGetResult(s3Object1, objectNames.get(index), versionId1, filePath);
         }
         runSuccess = true;
@@ -118,6 +115,7 @@ public class UpdateObjectReStartS3N16469 extends S3TestBase {
     }
 
     public class PutObject extends OperateTask {
+
         private String objectName = null;
 
         public PutObject(String objectName) {
@@ -126,13 +124,24 @@ public class UpdateObjectReStartS3N16469 extends S3TestBase {
 
         @Override
         public void exec() throws Exception {
-            PutObjectResult obj = s3Client.putObject(bucketName, this.objectName, new File(updatePath));
-            objectNameList.add(this.objectName);
-
+            try {
+                s3Client.putObject(bucketName, this.objectName, new File(updatePath));
+                objectNameList.add(this.objectName);
+            } catch (AmazonS3Exception e) {
+                if (e.getStatusCode() != 500) {
+                    throw new Exception("bucketName = " + bucketName + ",objectName = "
+                        + objectName, e);
+                }
+            }catch (SdkClientException e){
+                if(!e.getMessage().contains("Unable to execute HTTP request")){
+                    throw e;
+                }
+            }
         }
     }
 
-    private void chectGetResult(S3Object object, String objectName, String versionId, String filePath) throws Exception {
+    private void chectGetResult(S3Object object, String objectName, String versionId,
+        String filePath) throws Exception {
         Assert.assertEquals(object.getKey(), objectName);
         Assert.assertEquals(object.getBucketName(), bucketName);
         ObjectMetadata objectMetadata = object.getObjectMetadata();
@@ -141,7 +150,8 @@ public class UpdateObjectReStartS3N16469 extends S3TestBase {
         S3ObjectInputStream s3InputStream = null;
         try {
             s3InputStream = object.getObjectContent();
-            String downloadPath = TestTools.LocalFile.initDownloadPath(localPath, TestTools.getMethodName(),
+            String downloadPath = TestTools.LocalFile
+                .initDownloadPath(localPath, TestTools.getMethodName(),
                     Thread.currentThread().getId());
             ObjectUtils.inputStream2File(s3InputStream, downloadPath);
             Assert.assertEquals(TestTools.getMD5(downloadPath), TestTools.getMD5(filePath));

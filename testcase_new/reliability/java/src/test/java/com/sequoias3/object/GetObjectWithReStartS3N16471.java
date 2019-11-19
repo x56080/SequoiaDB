@@ -1,6 +1,8 @@
 package com.sequoias3.object;
 
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.S3Object;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
@@ -68,12 +70,6 @@ public class GetObjectWithReStartS3N16471 extends S3TestBase {
         }
         mgr.execute();
         mgr.isAllSuccess();
-        List<Exception> eList = mgr.getExceptions();
-        for (Exception e : eList) {
-            if (!e.getMessage().contains("Unable to execute HTTP request")) {
-                throw e;
-            }
-        }
         s3Client = CommLibS3.buildS3Client();
         //检查故障时获取成功的对象
         for (String objectName : objectNameList) {
@@ -108,8 +104,18 @@ public class GetObjectWithReStartS3N16471 extends S3TestBase {
 
         @Override
         public void exec() throws Exception {
-            s3Client.getObject(bucketName, key);
-            objectNameList.add(key);
+            try {
+                s3Client.getObject(bucketName, key);
+                objectNameList.add(key);
+            }catch (AmazonS3Exception e){
+                if(e.getStatusCode() != 500){
+                    throw e;
+                }
+            }catch (SdkClientException e){
+                if(!e.getMessage().contains("Unable to execute HTTP request")){
+                    throw e;
+                }
+            }
         }
     }
 

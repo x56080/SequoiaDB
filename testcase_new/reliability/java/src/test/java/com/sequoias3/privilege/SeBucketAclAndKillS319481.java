@@ -1,16 +1,7 @@
 package com.sequoias3.privilege;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CanonicalGrantee;
 import com.amazonaws.services.s3.model.Grant;
@@ -23,6 +14,15 @@ import com.sequoias3.commlibs3.S3TestBase;
 import com.sequoias3.commlibs3.s3utils.PrivilegeUtils;
 import com.sequoias3.commlibs3.s3utils.S3NodeRestart;
 import com.sequoias3.commlibs3.s3utils.bean.S3NodeWrapper;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @Description seqDB-19481:更新桶acl过程中s3节点异常
@@ -115,6 +115,10 @@ public class SeBucketAclAndKillS319481 extends S3TestBase {
             } catch (AmazonServiceException e) {
                 setBucketAclFailList.add(bucketName);
                 if (e.getStatusCode() != 500) {
+                    throw e;
+                }
+            } catch (SdkClientException e) {
+                if (!e.getMessage().contains("Unable to execute HTTP request")) {
                     throw e;
                 }
             } finally {

@@ -9,17 +9,16 @@ import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
 import com.sequoias3.commlibs3.S3TestBase;
-import com.sequoias3.commlibs3.s3utils.bean.Region;
 import com.sequoias3.commlibs3.s3utils.RegionUtils;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
+import com.sequoias3.commlibs3.s3utils.bean.Region;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * test content: 删除区域过程中db端节点异常
@@ -102,9 +101,14 @@ public class DeleteRegionWithKillData17344 extends S3TestBase {
 		tobeDeleteRegions.addAll(regionNames);
 		tobeDeleteRegions.removeAll(deletedRegionNameList);
 		for (String regionName : tobeDeleteRegions) {
-			RegionUtils.deleteRegion(regionName);
+			try {
+				RegionUtils.deleteRegion(regionName);
+			} catch (AmazonS3Exception e) {
+				if (e.getStatusCode() != 404) {
+					throw e;
+				}
+			}
 		}
-		
 		for(int i = 0; i < regionNames.size() ; i++){
 			Assert.assertFalse(RegionUtils.headRegion(regionNames.get(i)), "current region name is : " + regionNames);
 		}

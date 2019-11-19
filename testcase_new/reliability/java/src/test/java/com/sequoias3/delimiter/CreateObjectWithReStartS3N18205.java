@@ -1,5 +1,6 @@
 package com.sequoias3.delimiter;
 
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.BucketVersioningConfiguration;
@@ -115,7 +116,11 @@ public class CreateObjectWithReStartS3N18205 extends S3TestBase {
 				if (e.getStatusCode() != 500) {
 					throw new Exception(objectName + ":" + content, e);
 				}
-			} finally {
+			}catch (SdkClientException e){
+				if(!e.getMessage().contains("Unable to execute HTTP request")){
+					throw e;
+				}
+			}finally {
 				if (s3Client != null) {
 					s3Client.shutdown();
 				}

@@ -1,16 +1,6 @@
 package com.sequoias3.privilege;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.Grant;
@@ -26,6 +16,16 @@ import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.PrivilegeUtils;
 import com.sequoias3.commlibs3.s3utils.S3NodeRestart;
 import com.sequoias3.commlibs3.s3utils.bean.S3NodeWrapper;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @Description seqDB-19483 :配置对象acl过程中s3节点异常
@@ -115,7 +115,7 @@ public class SetObjectAclAndS3ReStart19483 extends S3TestBase {
                 if (e.getStatusCode() != 500) {
                     throw new Exception("keyName : " + keyName, e);
                 }
-            } catch (Exception e) {
+            } catch (SdkClientException e) {
                 if (!e.getMessage().contains("Unable to execute HTTP request")) {
                     throw new Exception("keyName : " + keyName, e);
                 }

@@ -1,17 +1,6 @@
 package com.sequoias3.object;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.BucketVersioningConfiguration;
@@ -23,6 +12,16 @@ import com.sequoias3.commlibs3.S3TestBase;
 import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.S3NodeRestart;
 import com.sequoias3.commlibs3.s3utils.bean.S3NodeWrapper;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 /**
  * @Description seqDB-16470 ::开启版本控制，删除对象过程中SequiaS3Client端异常
@@ -41,7 +40,6 @@ public class DeleteObjectWithReStartS3N16470 extends S3TestBase {
     private String bucketName = "16470";
     private String objectNameBase = "object16470";
     private List<String> objectNames = new ArrayList<String>();
-    private List<String> objectNameList = new CopyOnWriteArrayList<String>();
     private File localPath = null;
 
     @BeforeClass
@@ -74,9 +72,7 @@ public class DeleteObjectWithReStartS3N16470 extends S3TestBase {
         }
         mgr.execute();
         mgr.isAllSuccess();
-
         // delete again
-        objectNames.removeAll(objectNameList);
         for (String objectName : objectNames) {
             for (int i = 0; i < versionNums; i++) {
                 s3Client.deleteVersion(bucketName, objectName, String.valueOf(i));
@@ -114,9 +110,12 @@ public class DeleteObjectWithReStartS3N16470 extends S3TestBase {
                     if (e.getStatusCode() != 500) {
                         throw e;
                     }
+                }catch (SdkClientException e){
+                    if(!e.getMessage().contains("Unable to execute HTTP request")){
+                        throw e;
+                    }
                 }
             }
-            objectNameList.add(this.objectName);
         }
     }
 }

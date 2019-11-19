@@ -1,23 +1,8 @@
 package com.sequoias3.partupload;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
-import com.amazonaws.services.s3.model.MultipartUploadListing;
-import com.amazonaws.services.s3.model.UploadPartRequest;
+import com.amazonaws.services.s3.model.*;
 import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
@@ -28,12 +13,23 @@ import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.PartUploadUtils;
 import com.sequoias3.commlibs3.s3utils.S3NodeRestart;
 import com.sequoias3.commlibs3.s3utils.bean.S3NodeWrapper;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @Description seqDB-19138 :取消分段上传过程中SequoiaS3异常
  * @author wuyan
- * @Date 2019.08.13
  * @version 1.00
+ * @Date 2019.08.13
  */
 public class AbortMultipartUploadAndS3ReStart19138 extends S3TestBase {
     private boolean runSuccess = false;
@@ -118,9 +114,9 @@ public class AbortMultipartUploadAndS3ReStart19138 extends S3TestBase {
                 if (e.getStatusCode() != 0) {
                     throw new Exception(keyName, e);
                 }
-            } catch (Exception e) {
+            } catch (SdkClientException e) {
                 if (!e.getMessage().contains("Unable to execute HTTP request")) {
-                    throw new Exception(keyName, e);
+                    throw e;
                 }
             } finally {
                 if (s3Client1 != null) {
@@ -131,8 +127,8 @@ public class AbortMultipartUploadAndS3ReStart19138 extends S3TestBase {
     }
 
     private void uploadParts(String keyName, String uploadId) {
-        int[] partSizes = { 1024 * 1024 * 6, 1024 * 1024 * 5, 1024 * 1024 * 6, 1024 * 1024 * 8, 1024 * 1024 * 9,
-                1024 * 1024 * 6, 1024 * 1024 * 8, 1024 * 1024 * 7, 1024 * 1024 * 5 };
+        int[] partSizes = {1024 * 1024 * 6, 1024 * 1024 * 5, 1024 * 1024 * 6, 1024 * 1024 * 8, 1024 * 1024 * 9,
+                1024 * 1024 * 6, 1024 * 1024 * 8, 1024 * 1024 * 7, 1024 * 1024 * 5};
         int partNumbers = 9;
         int filePosition = 0;
         new ArrayList<>();

@@ -1,6 +1,7 @@
 package com.sequoias3.object;
 
 
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
 import com.sequoiadb.task.FaultMakeTask;
@@ -67,15 +68,10 @@ public class PutObjectWithReStartS3N16468 extends S3TestBase {
         }
         mgr.execute();
         mgr.isAllSuccess();
-        List<Exception> eList = mgr.getExceptions();
-        for (Exception e : eList) {
-            if (!e.getMessage().contains("Unable to execute HTTP request")) {
-                throw e;
-            }
-        }
+
         //检查故障前创建成功的对象
         for (String objectName : objectNameList) {
-            PutObjectResult obj = s3Client.putObject(bucketName, objectName, new File(filePath));
+           s3Client.putObject(bucketName, objectName, new File(filePath));
         }
         //故障恢复后，重新创建对象
         objectNames.removeAll(objectNameList);
@@ -117,8 +113,19 @@ public class PutObjectWithReStartS3N16468 extends S3TestBase {
 
         @Override
         public void exec() throws Exception {
-            s3Client.putObject(bucketName, this.objectName, new File(filePath));
-            objectNameList.add(this.objectName);
+            try {
+                s3Client.putObject(bucketName, this.objectName, new File(filePath));
+                objectNameList.add(this.objectName);
+            } catch (AmazonS3Exception e) {
+                if (e.getStatusCode() != 500) {
+                    throw new Exception("bucketName = " + bucketName + ",objectName = "
+                        + objectName, e);
+                }
+            }catch (SdkClientException e){
+                if(!e.getMessage().contains("Unable to execute HTTP request")){
+                    throw e;
+                }
+            }
         }
     }
 

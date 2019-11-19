@@ -1,6 +1,7 @@
 package com.sequoias3.region;
 
 
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
@@ -142,8 +143,12 @@ public class UpdateRegionWithStopS3N17346 extends S3TestBase {
                 if (e.getStatusCode() != 500) {
                     throw e;
                 }
-            }catch (Exception e){
-                if(!e.getMessage().contains("I/O error on POST request")){
+            } catch (SdkClientException e) {
+                if (!e.getMessage().contains("Unable to execute HTTP request")) {
+                    throw e;
+                }
+            } catch (Exception e) {
+                if (!e.getMessage().contains("I/O error on POST request")) {
                     throw e;
                 }
             }

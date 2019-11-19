@@ -34,7 +34,6 @@ public class UpdateObjectWithBrokenNet16473 extends S3TestBase {
     private AmazonS3 s3Client = null;
     private int fileSize = 1024 * new Random().nextInt(1025);
     private int objectNums = 10;
-    private int versionNums = 2;
     private String filePath = null;
     private String updatePath = null;
     private String bucketName = "16473";
@@ -84,7 +83,7 @@ public class UpdateObjectWithBrokenNet16473 extends S3TestBase {
         //put again
         objectNames.removeAll(objectNameList);
         for(String objectName : objectNames) {
-                PutObjectResult obj = s3Client.putObject(bucketName,objectName, new File(updatePath));
+            s3Client.putObject(bucketName,objectName, new File(updatePath));
         }
         //随机检查故障恢复后，创建的对象
         if(!objectNames.isEmpty()){

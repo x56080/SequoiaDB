@@ -1,6 +1,7 @@
 package com.sequoias3.region;
 
 
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
@@ -106,6 +107,10 @@ public class PutRegionWithStopS3N17345 extends S3TestBase{
             } catch (AmazonS3Exception e) {
                 if (e.getStatusCode() != 500) {
                     throw new Exception("regionName = " + regionName, e);
+                }
+            } catch (SdkClientException e) {
+                if (!e.getMessage().contains("Unable to execute HTTP request")) {
+                    throw e;
                 }
             } catch (Exception e) {
                 if (!e.getMessage().contains("I/O error on POST request")) {
