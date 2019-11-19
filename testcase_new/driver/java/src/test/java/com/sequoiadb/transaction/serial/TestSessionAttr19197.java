@@ -1,4 +1,4 @@
-package com.sequoiadb.transaction;
+package com.sequoiadb.transaction.serial;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -11,11 +11,9 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @TestLink: seqDB-19197
- * @describe: seqDB-19197:无事务操作时，清空会话缓存中的事务配置
- * @author wangkexin
+ * @Description: seqDB-19197:无事务操作时，清空会话缓存中的事务配置
+ * @Author wangkexin
  * @Date 2019.09.04
- * @version 1.00
  */
 
 public class TestSessionAttr19197 extends SdbTestBase {

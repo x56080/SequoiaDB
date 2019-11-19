@@ -1,4 +1,4 @@
-package com.sequoiadb.transaction;
+package com.sequoiadb.transaction.serial;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -11,11 +11,9 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @TestLink: seqDB-19196
- * @describe: 无事务操作时，获取会话缓存中的事务配置
- * @author wangkexin
+ * @Description: seqDB-19196 无事务操作时，获取会话缓存中的事务配置
+ * @Author wangkexin
  * @Date 2019.09.04
- * @version 1.00
  */
 
 public class TestSessionAttr19196 extends SdbTestBase {
@@ -39,7 +37,7 @@ public class TestSessionAttr19196 extends SdbTestBase {
     }
 
     @Test
-    public void test19196() {
+    public void test() {
         Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
         try {
             // 获取会话默认事务属性

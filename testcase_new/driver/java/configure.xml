@@ -16,16 +16,10 @@
       <listener class-name="com.sequoiadb.testcommon.TimePrinterListener"/>
    </listeners>
    <!--The testcases of different configure should be placed in different <test> -->
-   <test name="transaction">
-     <packages> 
-         <package name="com.sequoiadb.transaction"/>
-     </packages>  
-   </test>
    <test name="ssl">
      <packages> 
          <package name="com.sequoiadb.ssl"/>
      </packages>  
    </test>
-
 </suite>
    

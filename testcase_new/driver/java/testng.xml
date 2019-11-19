@@ -33,11 +33,11 @@
          <package name="com.sequoiadb.procedure"/>
          <package name="com.sequoiadb.baseexception"/>
          <package name="com.sequoiadb.baseconfigoption"/>
-        <package name="com.sequoiadb.optimize"/>
-        <package name="com.sequoiadb.index"/>
-      </packages>    
-   </test>
-   
+         <package name="com.sequoiadb.optimize"/>
+         <package name="com.sequoiadb.index"/>
+         <package name="com.sequoiadb.transaction"/>
+      </packages>
+   </test>   
  
 </suite>
    

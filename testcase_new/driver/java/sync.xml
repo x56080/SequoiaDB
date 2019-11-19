@@ -22,6 +22,7 @@
             <package name="com.sequoiadb.basicoperation.analyze"/>
             <package name="com.sequoiadb.metadata.sync" />
             <package name="com.sequoiadb.sdb.serial" />
+            <package name="com.sequoiadb.transaction.serial" />
         </packages>
     </test>
 	
