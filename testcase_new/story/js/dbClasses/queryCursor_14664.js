@@ -10,11 +10,23 @@
 *******************************************************************/
 var clName = COMMCLNAME + "_dbClasses14664" ;
 
-main( db ) ;
-
-function main( db )
+try
 {
-   var cl = commCreateCL( db, COMMCSNAME, clName, 0 ) ;
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}
+ ;
+
+function main( )
+{
+   var cl = commCreateCL( db, COMMCSNAME, clName) ;
    
    cl.insert( { a: 1 } ) ;
    cl.insert( { a: 2 } ) ;
@@ -31,67 +43,86 @@ function main( db )
 
 function cursorArrayAccess( cl )
 {
-   var cursor = cl.find().sort( { a: 1 } ) ;
-   
-   var a1 = JSON.parse( cursor.arrayAccess(0) )["a"] ;
-   var a2 = JSON.parse( cursor.arrayAccess(1) )["a"] ;
-   if( a1 !== 1 || a2 !== 2 )
+   try
    {
-      throw buildException( "cursorArrayAccess", null, "check arrayAccess",
-            "1 2", a1 + " " + a2 ) ;
+      var cursor = cl.find().sort( { a: 1 } ) ;
+   
+      var a1 = JSON.parse( cursor.arrayAccess(0) )["a"] ;
+      var a2 = JSON.parse( cursor.arrayAccess(1) )["a"] ;
+      if( a1 !== 1 || a2 !== 2 )
+      {
+         throw "expect: 1 2, actual: " + a1 + " " + a2;
+      }
+      
+      var illegalIdx = [ 'b', -1, 1.2, 2 ] ;
+      for( var i = 0;i < illegalIdx.length;i++ )
+      { 
+         if( cursor.arrayAccess( illegalIdx[i] ) !== undefined )
+         {
+            throw "check arrayAccess with idx " + illegalIdx[i];
+         }
+      }
+      
+   }catch(e)
+   {
+      throw new Error(e);
    }
    
-   var illegalIdx = [ 'b', -1, 1.2, 2 ] ;
-   for( var i = 0;i < illegalIdx.length;i++ )
-   { 
-      if( cursor.arrayAccess( illegalIdx[i] ) !== undefined )
-      {
-         println( "check arrayAccess with idx " + illegalIdx[i] ) ;
-         throw buildException( "cursorArrayAccess", null ) ;
-      }
-   }
 }
 
 function queryIndex( cl )
 {
-   var a1 = JSON.parse( cl.find().sort( { a: 1 } )[0] )["a"] ;
-   var a2 = JSON.parse( cl.find().sort( { a: 1 } )[1] )["a"] ;
-   if( a1 !== 1 || a2 !== 2 )
+   try
    {
-      throw buildException( "queryIndex", null, "check queryIndex",
-            "1 2", a1 + " " + a2 ) ;
+      var a1 = JSON.parse( cl.find().sort( { a: 1 } )[0] )["a"] ;
+      var a2 = JSON.parse( cl.find().sort( { a: 1 } )[1] )["a"] ;
+      if( a1 !== 1 || a2 !== 2 )
+      {
+         throw "expect: 1 2, actual: " + a1 + " " + a2;
+      }
+      
+      var illegalIdx = [ 'b', -1, 1.2, 2 ] ;
+      for( var i = 0;i < illegalIdx.length;i++ )
+      { 
+         if(  cl.find().sort( { a: 1 } )[ illegalIdx[i] ] !== undefined )
+         {
+            throw "check queryIndex with idx " + illegalIdx[i] ;
+         }
+      }
+      
+   }catch(e)
+   {
+      throw new Error(e);
+      
    }
    
-   var illegalIdx = [ 'b', -1, 1.2, 2 ] ;
-   for( var i = 0;i < illegalIdx.length;i++ )
-   { 
-      if(  cl.find().sort( { a: 1 } )[ illegalIdx[i] ] !== undefined )
-      {
-         println( "check queryIndex with idx " + illegalIdx[i] ) ;
-         throw buildException( "queryIndex", null ) ;
-      }
-   }
 }
 
 function queryArrayAccess( cl )
 {
-   var a1 = JSON.parse( cl.find().sort( { a: 1 } ).arrayAccess( 0 ) )["a"] ;
-   var a2 = JSON.parse( cl.find().sort( { a: 1 } ).arrayAccess( 1 ) )["a"] ;
-   if( a1 !== 1 || a2 !== 2 )
+   try
    {
-      throw buildException( "queryArrayAccess", null, "check queryArrayAccess",
-            "1 2", a1 + " " + a2 ) ;
+      var a1 = JSON.parse( cl.find().sort( { a: 1 } ).arrayAccess( 0 ) )["a"] ;
+      var a2 = JSON.parse( cl.find().sort( { a: 1 } ).arrayAccess( 1 ) )["a"] ;
+      if( a1 !== 1 || a2 !== 2 )
+      {
+         throw "expect: 1 2, actual: " + a1 + " " + a2 ;
+      }
+      
+      var illegalIdx = [ 'b', -1, 1.2, 2 ] ;
+      for( var i = 0;i < illegalIdx.length;i++ )
+      { 
+         if(  cl.find().sort( { a: 1 } ).arrayAccess( illegalIdx[i] ) !== undefined )
+         {
+            throw "check queryArrayAccess with idx " + illegalIdx[i] ;
+         }
+      }
+      
+   }catch(e)
+   {
+      throw new Error(e);
    }
    
-   var illegalIdx = [ 'b', -1, 1.2, 2 ] ;
-   for( var i = 0;i < illegalIdx.length;i++ )
-   { 
-      if(  cl.find().sort( { a: 1 } ).arrayAccess( illegalIdx[i] ) !== undefined )
-      {
-         println( "check queryArrayAccess with idx " + illegalIdx[i] ) ;
-         throw buildException( "queryArrayAccess", null ) ;
-      }
-   }
 }
 
 function queryFlags( cl )
@@ -102,7 +133,7 @@ function queryFlags( cl )
    }
    catch( e )
    {
-      throw buildException( "queryFlags", e, "query with flags 0", 0, e ) ;
+      throw new Error(e) ;
    }
    try
    {
@@ -122,16 +153,23 @@ function queryClose( cl )
    }
    catch( e )
    {
-      throw buildException( "queryClose", e, "close query", 0, e ) ;
+      throw new Error(e) ;
    }
 }
 
 function queryMeta( cl )
 {
-   var scanType = cl.find().getQueryMeta().next().toObj()["ScanType"] ;
-   if( scanType !== "tbscan" )
+   try
    {
-      throw buildException( "queryMeta", null, "check getQueryMeta", 
-            "tbscan", scanType ) ;
+      var scanType = cl.find().getQueryMeta().next().toObj()["ScanType"] ;
+      if( scanType !== "tbscan" )
+      {
+         throw "expect is tbscan, actual is: " + scanType ;
+      }
+      
+   }catch(e)
+   {
+      throw new Error(e);
    }
+   
 } 

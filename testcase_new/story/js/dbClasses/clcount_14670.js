@@ -7,11 +7,23 @@
 *******************************************************************/
 var clName = COMMCLNAME + "_dbClasses14670" ;
 
-main( db ) ;
-
-function main( db )
+try
 {
-   var cl = commCreateCL( db, COMMCSNAME, clName, 0 ) ;
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}
+ ;
+
+function main()
+{
+   var cl = commCreateCL( db, COMMCSNAME, clName) ;
    
    cl.insert( { a: 1 } ) ;
    cl.insert( { a: 2 } ) ;
@@ -19,13 +31,13 @@ function main( db )
    var cnt = cl.count().valueOf() ;
    if( cnt !== 2 )
    {
-      throw buildException( "main", null, "check valueOf", 2, cnt ) ;
+      throw new Error("expect: 2, actual: " + cnt );
    }
    
    cnt = cl.count().hint( { a: "" } ) ;
    if( parseInt( cnt ) !== 2 )
    {
-      throw buildException( "main", null, "check hint", 2, cnt ) ;
+      throw new Error("expect: 2, actual: " + cnt );
    }
    
    try

@@ -9,10 +9,21 @@
 *                2018-03-10
 *******************************************************************/
 var clName = COMMCLNAME + "_dbClasses14662" ;
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}
+ ;
 
-main( db ) ;
-
-function main( db )
+function main()
 {
    if( commIsStandalone( db ) )
    {
@@ -20,7 +31,7 @@ function main( db )
       return ;
    }
 
-   commCreateCL( db, COMMCSNAME, clName, 0 ) ;
+   commCreateCL( db, COMMCSNAME, clName) ;
       
    evalSdb( db ) ;  // can't return Sdb
    evalSdbCS( db ) ;
@@ -45,9 +56,9 @@ function main( db )
 
 function evalSdb( db )
 {
-   db.createProcedure( function getSdb( host, svc ) { 
+   commCreateProcedure( db, function getSdb( host, svc ) { 
                        var sdb = new Sdb( host, svc ) ; 
-                       return sdb ; } ) ;
+                       return sdb ; });
    try
    {
       var sdb = db.eval( "getSdb( \"" + COORDHOSTNAME + "\", \"" + COORDSVCNAME + "\" )" ) ;
@@ -57,17 +68,17 @@ function evalSdb( db )
    {
       if( e !== -10 )
       {
-         throw buildException( "evalSdb", e, "get sdb", -10, e ) ;
+         throw new Error(e) ;
       }
    }
-   db.removeProcedure( "getSdb" ) ;
+   commRemoveProcedure( db, "getSdb" );
 }
 
 function evalSdbCS( db )
 {
-   db.createProcedure( function getSdbCS( host, svc, csname ) {
+   commCreateProcedure( db, function getSdbCS( host, svc, csname ) {
                        var sdb = new Sdb( host, svc ) ; 
-                       return sdb.getCS( csname ) ; } ) ;
+                       return sdb.getCS( csname ) ; });
    try
    {
       var cs = db.eval( "getSdbCS( \"" + COORDHOSTNAME + "\", \"" + COORDSVCNAME +
@@ -78,16 +89,17 @@ function evalSdbCS( db )
    }
    catch( e )
    {
-      throw buildException( "evalSdbCS", e, "get sdbcs", 0, e ) ;
+      throw new Error(e) ;
    }
-   db.removeProcedure( "getSdbCS" ) ;
+   commRemoveProcedure( db, "getSdbCS" );
+   
 }
 
 function evalSdbCollection( db )
 {
-   db.createProcedure( function getSdbCollection( host, svc, csname, clname ) {
+   commCreateProcedure( db, function getSdbCollection( host, svc, csname, clname ) {
                        var sdb = new Sdb( host, svc ) ;
-                       return sdb.getCS( csname ).getCL( clname ) ; } ) ;
+                       return sdb.getCS( csname ).getCL( clname ) ; });
    try
    {
       var cl = db.eval( "getSdbCollection( \"" + COORDHOSTNAME + "\", \"" + COORDSVCNAME + 
@@ -98,17 +110,18 @@ function evalSdbCollection( db )
    }
    catch( e )
    {
-      throw buildException( "evalSdbCollection", e, "get sdbcl", 0, e ) ;
+      throw new Error(e) ;
    }
-   db.removeProcedure( "getSdbCollection" ) ;
+   commRemoveProcedure( db, "getSdbCollection" );
+   
 }
 
 function evalSdbCursor( db )
 {
-   db.createProcedure( function getSdbCursor( host, svc, csname, clname ) {
+   commCreateProcedure( db, function getSdbCursor( host, svc, csname, clname ) {
                        var sdb = new Sdb( host, svc ) ;
                        var collection = db.getCS( csname ).getCL( clname ) ;
-                       return collection.find().explain( { Run: true } ) ; } ) ;
+                       return collection.find().explain( { Run: true } ) ; });
    try
    {
       var cursor = db.eval( "getSdbCursor( \"" + COORDHOSTNAME + "\", " + 
@@ -119,17 +132,18 @@ function evalSdbCursor( db )
    }
    catch( e )
    {
-      throw buildException( "evalSdbCursor", e, "get sdbcursor", 0, e ) ;
+      throw new Error(e);
    }
-   db.removeProcedure( "getSdbCursor" ) ;
+   commRemoveProcedure( db, "getSdbCursor" );
+   
 }
 
 function evalSdbQuery( db )
 {
-   db.createProcedure( function getSdbQuery( host, svc, csname, clname ) {
+   commCreateProcedure( db, function getSdbQuery( host, svc, csname, clname ) {
                        var sdb = new Sdb( host, svc ) ;
                        var collection = db.getCS( csname ).getCL( clname ) ;
-                       return collection.find() ; } ) ;
+                       return collection.find() ; });
    try
    {
       var query = db.eval( "getSdbQuery( \"" + COORDHOSTNAME + "\", " + 
@@ -140,16 +154,17 @@ function evalSdbQuery( db )
    }
    catch( e )
    {
-      throw buildException( "evalSdbQuery", e, "get sdbquery", 0, e ) ;
+      throw new Error(e);
    }
-   db.removeProcedure( "getSdbQuery" ) ;
+   commRemoveProcedure( db, "getSdbQuery" );
+   
 }
 
 function evalSdbReplicaGroup( db )
 {
-   db.createProcedure( function getSdbReplicaGroup( host, svc, rgname ) {
+   commCreateProcedure( db, function getSdbReplicaGroup( host, svc, rgname ) {
                        var sdb = new Sdb( host, svc ) ;
-                       return sdb.getRG( rgname ) ; } ) ;
+                       return sdb.getRG( rgname ) ; } );
    try
    {
       var rg = db.eval( "getSdbReplicaGroup( \"" + COORDHOSTNAME + "\", " + 
@@ -159,17 +174,19 @@ function evalSdbReplicaGroup( db )
    }
    catch( e )
    {
-      throw buildException( "evalSdbReplicaGroup", e, "get sdbReplicaGroup", 0, e ) ;
+      throw new Error(e) ;
    }
-   db.removeProcedure( "getSdbReplicaGroup" ) ;
+   commRemoveProcedure( db, "getSdbReplicaGroup" );
+   
 }
 
 function evalSdbNode( db )
 {
-   db.createProcedure( function getSdbNode( host, svc, rgname ) {
+   commCreateProcedure( db, function getSdbNode( host, svc, rgname ) {
                        var sdb = new Sdb( host, svc ) ;
                        var rg = sdb.getRG( rgname ) ;
-                       return rg.getSlave() ; } ) ;
+                       return rg.getSlave() ; } );
+   
    try
    {
       var node = db.eval( "getSdbNode( \"" + COORDHOSTNAME + "\", " + 
@@ -179,9 +196,10 @@ function evalSdbNode( db )
    }
    catch( e )
    {
-      throw buildException( "evalSdbNode", e, "get sdbNode", 0, e ) ;
+      throw new Error(e) ;
    }
-   db.removeProcedure( "getSdbNode" ) ;
+   commRemoveProcedure( db, "getSdbNode" );
+   
 }
 
 function evalSdbDomain( db )
@@ -191,9 +209,9 @@ function evalSdbDomain( db )
    commDropDomain( db, domainName);
    commCreateDomain( db, domainName, groups); 
    
-   db.createProcedure( function getSdbDomain( host, svc, domainname ) {
+   commCreateProcedure( db, function getSdbDomain( host, svc, domainname ) {
                        var sdb = new Sdb( host, svc ) ;
-                       return sdb.getDomain( domainname ) ; } ) ;
+                       return sdb.getDomain( domainname ) ; } );
    try
    {
       var domain = db.eval( "getSdbDomain( \"" + COORDHOSTNAME + "\", " + 
@@ -201,19 +219,19 @@ function evalSdbDomain( db )
    }
    catch( e )
    {
-      throw buildException( "evalSdbDomain", e, "get sdbDomain", -6, e ) ;
+      throw new Error(e) ;
    }
-   db.removeProcedure( "getSdbDomain" ) ;
-   
+   commRemoveProcedure( db, "getSdbDomain" );
    commDropDomain( db, domainName);
 }
    
 function evalCLCount( db )
 {
-   db.createProcedure( function getCLCount( host, svc, csname, clname ) {
+   commCreateProcedure( db, function getCLCount( host, svc, csname, clname ) {
                        var sdb = new Sdb( host, svc ) ;
                        var cl = sdb.getCS( csname ).getCL( clname ) ;
-                       return cl.count() ; } ) ;
+                       return cl.count() ; });
+   
    try
    {
       var cnt = db.eval( "getCLCount( \"" + COORDHOSTNAME + "\", " + 
@@ -222,121 +240,176 @@ function evalCLCount( db )
    }
    catch( e )
    {
-      throw buildException( "evalCLCount", e, "get CLCount", "success", e ) ;
+      throw new Error(e);
    }
-   db.removeProcedure( "getCLCount" ) ;
+   commRemoveProcedure( db, "getCLCount" );
+   
 }
    
 function evalBinData( db )
 {
-   db.createProcedure( function getBinData( data, type ) {
-                       return BinData( data, type ) ; } ) ;
-   var data = "aGVsbG8gd29ybGQ" ;
-   var type = "1" ;
-   var bindata = db.eval( "getBinData( \"" + data + "\", \"" + type + "\" )" ) ;
-   println( "bindata instanceof BinData: " + ( bindata instanceof BinData ) ) ;
-   var expectval = BinData( data, type ) ;
-   if( bindata.toString() !== expectval.toString() )
+   commCreateProcedure( db, function getBinData( data, type ) {
+                       return BinData( data, type ) ; });
+   try
    {
-      throw buildException( "evalBinData", null, "get BinData",
-            expectval, bindata ) ;
+      var data = "aGVsbG8gd29ybGQ" ;
+      var type = "1" ;
+      var bindata = db.eval( "getBinData( \"" + data + "\", \"" + type + "\" )" ) ;
+      println( "bindata instanceof BinData: " + ( bindata instanceof BinData ) ) ;
+      var expectval = BinData( data, type ) ;
+      if( bindata.toString() !== expectval.toString() )
+      {
+         throw "expect: " + expectval + "actual: " + bindata;
+      }
+   }catch(e)
+   {
+      throw new Error(e);
    }
-   db.removeProcedure( "getBinData" ) ;
+   
+   commRemoveProcedure( db, "getBinData" );
+   
 }
    
 function evalObjectId( db )
 {
-   db.createProcedure( function getObjectId( data ) {
-                       return ObjectId( data ) ; } ) ;
-   var data = "55713f7953e6769804000001" ;
-   var oid = db.eval( "getObjectId( \"" + data + "\" )" ) ;
-   println( "oid instanceof ObjectId: " + ( oid instanceof ObjectId ) ) ;
-   var expectval = ObjectId( data ) ;
-   if( oid.toString() !== expectval.toString() )
+   commCreateProcedure( db, function getObjectId( data ) {
+                       return ObjectId( data ) ; });
+   try
    {
-      throw buildException( "evalObjectId", null, "get ObjectId",
-            expectval, oid ) ;
+      var data = "55713f7953e6769804000001" ;
+      var oid = db.eval( "getObjectId( \"" + data + "\" )" ) ;
+      println( "oid instanceof ObjectId: " + ( oid instanceof ObjectId ) ) ;
+      var expectval = ObjectId( data ) ;
+      if( oid.toString() !== expectval.toString() )
+      {
+         throw "expect: " + expectval + "actual: " + oid;
+      }
+   }catch(e)
+   {
+      throw new Error(e);
    }
-   db.removeProcedure( "getObjectId" ) ;
+   
+   commRemoveProcedure( db, "getObjectId" );
 }
    
 function evalTimestamp( db )
 {
-   db.createProcedure( function getTimestamp( time ) {
-                       return Timestamp( time ) ; } ) ;
-   var time = "2015-06-05-16.10.33.000000" ;
-   var timestamp = db.eval( "getTimestamp( \"" + time + "\" )" ) ;
-   println( "timestamp instanceof Timestamp: " + ( timestamp instanceof Timestamp ) ) ;
-   var expectval = Timestamp( time ) ;
-   if( timestamp.toString() !== expectval.toString() )
+   commCreateProcedure( db, function getTimestamp( time ) {
+                       return Timestamp( time ) ; });
+   
+   try
    {
-      throw buildException( "evalTimestamp", null, "get Timestamp",
-            expectval, timestamp ) ;
+      var time = "2015-06-05-16.10.33.000000" ;
+      var timestamp = db.eval( "getTimestamp( \"" + time + "\" )" ) ;
+      println( "timestamp instanceof Timestamp: " + ( timestamp instanceof Timestamp ) ) ;
+      var expectval = Timestamp( time ) ;
+      if( timestamp.toString() !== expectval.toString() )
+      {
+         throw "expect: " + expectval + "actual: " + timestamp;
+      }
+   }catch(e)
+   {
+      throw new Error(e);
    }
-   db.removeProcedure( "getTimestamp" ) ;
+   
+   commRemoveProcedure( db, "getTimestamp" );
 }
    
 function evalRegex( db )
 {
-   db.createProcedure( function getRegex( pattern, options ) {
-                       return Regex( pattern, options ) ; } ) ;
-   var pattern = "^W" ;
-   var options = "i" ;
-   var regex = db.eval( "getRegex( \"" + pattern + "\", \"" + options + "\" )" ) ;
-   println( "regex instanceof Regex: " + ( regex instanceof Regex ) ) ;
-   var expectval = Regex( pattern, options ) ;
-   if( regex.toString() !== expectval.toString() )
+   commCreateProcedure( db, function getRegex( pattern, options ) {
+                       return Regex( pattern, options ) ; });
+   try
    {
-      throw buildException( "evalRegex", null, "get Regex",
-            expectval, regex ) ;
+      var pattern = "^W" ;
+      var options = "i" ;
+      var regex = db.eval( "getRegex( \"" + pattern + "\", \"" + options + "\" )" ) ;
+      println( "regex instanceof Regex: " + ( regex instanceof Regex ) ) ;
+      var expectval = Regex( pattern, options ) ;
+      if( regex.toString() !== expectval.toString() )
+      {
+         throw "expect: " + expectval + "actual: " + regex;
+      }
+      
+   }catch(e)
+   {
+      throw new Error(e);
    }
-   db.removeProcedure( "getRegex" ) ;
+   
+   commRemoveProcedure( db, "getRegex" ); 
 }
    
 function evalMinKey( db )
 {
-   db.createProcedure( function getMinKey() {
-                       return MinKey() ; } ) ;
-   var minKey = db.eval( "getMinKey()" ) ;
-   println( "minKey instanceof MinKey: " + ( minKey instanceof MinKey ) ) ;
-   db.removeProcedure( "getMinKey" ) ;
+   commCreateProcedure( db, function getMinKey() {
+                       return MinKey() ; });
+   try
+   {
+      var minKey = db.eval( "getMinKey()" ) ;
+      println( "minKey instanceof MinKey: " + ( minKey instanceof MinKey ) ) ;
+   }catch(e)
+   {
+      throw new Error(e);
+   }
+   commRemoveProcedure( db, "getMinKey" );
 }
 
 function evalMaxKey( db )
 {
-   db.createProcedure( function getMaxKey() {
-                       return MaxKey() ; } ) ;
-   var maxKey = db.eval( "getMaxKey()" ) ;
-   println( "maxKey instanceof MaxKey: " + ( maxKey instanceof MaxKey ) ) ;
-   db.removeProcedure( "getMaxKey" ) ;
+   commCreateProcedure( db, function getMaxKey() {
+                       return MaxKey() ; } );
+   try
+   {
+      var maxKey = db.eval( "getMaxKey()" ) ;
+      println( "maxKey instanceof MaxKey: " + ( maxKey instanceof MaxKey ) ) ;
+   }catch(e)
+   {
+      throw new Error(e);
+   }
+   commRemoveProcedure( db, "getMaxKey" );
+   
 }
 
 function evalNumberLong( db )
 {
-   db.createProcedure( function getNumberLong( number ) {
-                       return NumberLong( number ) ; } ) ;
-   var number = 2147483648 ;
-   var numberLong = db.eval( "getNumberLong( " + number + " )" ) ;
-   println( "numberLong instanceof NumberLong: " + ( numberLong instanceof NumberLong ) ) ;
-   var expectval = NumberLong( number ) ;
-   if( numberLong.toString() !== expectval.toString() )
+   commCreateProcedure( db, function getNumberLong( number ) {
+                       return NumberLong( number ) ; });
+   try
    {
-      throw buildException( "evalNumberLong", null, "get NumberLong", expectval, numberLong ) ;
+      var number = 2147483648 ;
+      var numberLong = db.eval( "getNumberLong( " + number + " )" ) ;
+      println( "numberLong instanceof NumberLong: " + ( numberLong instanceof NumberLong ) ) ;
+      var expectval = NumberLong( number ) ;
+      if( numberLong.toString() !== expectval.toString() )
+      {
+         throw "expect: " + expectval + "actual: " + numberLong;
+      }
+   }catch(e)
+   {
+      throw new Error(e);
    }
-   db.removeProcedure( "getNumberLong" ) ;
+   
+   commRemoveProcedure( db, "getNumberLong" );
 }
    
 function evalSdbDate( db )
 {
-   db.createProcedure( function getSdbDate( date ) {
-                       return SdbDate( date ) ; } ) ;
-   var date = "2015-03-13" ;
-   var sdbDate = db.eval( "getSdbDate( \"" + date + "\" )" ) ;
-   println( "sdbDate instanceof SdbDate: " + ( sdbDate instanceof SdbDate ) ) ;
-   var expectval = SdbDate( date ) ;
-   if( sdbDate.toString() !== expectval.toString() )
+   commCreateProcedure( db, function getSdbDate( date ) {
+                       return SdbDate( date ) ; } );
+   try
    {
-      throw buildException( "evalSdbDate", null, "get SdbDate", date, sdbDate ) ;
+      var date = "2015-03-13" ;
+      var sdbDate = db.eval( "getSdbDate( \"" + date + "\" )" ) ;
+      println( "sdbDate instanceof SdbDate: " + ( sdbDate instanceof SdbDate ) ) ;
+      var expectval = SdbDate( date ) ;
+      if( sdbDate.toString() !== expectval.toString() )
+      {
+         throw "expect: " + date + "actual: " + sdbDate;
+      }
+   }catch(e)
+   {
+      throw new Error(e);
    }
-   db.removeProcedure( "getSdbDate" ) ;
+   
+   commRemoveProcedure( db, "getSdbDate" );
 }

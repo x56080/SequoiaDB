@@ -4,15 +4,26 @@
 * @author      : Liang XueWang
 *                2018-03-12
 *******************************************************************/
-main( db ) ;
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}
+ ;
 
-function main( db )
+function main()
 {
    var number = 2147483648 ;
    var numberLong = NumberLong( number ) ;
    if( numberLong.valueOf() !== number )
    {
-      throw buildException( "main", null, "check valueOf", 
-            number, numberLong.valueOf() ) ;
+      throw new Error("check valueOf, expect: " + number + ",actual: " + numberLong.valueOf());
    }
 }

@@ -4,9 +4,21 @@
 * @author      : Liang XueWang
 *                2018-03-12
 *******************************************************************/
-main( db ) ;
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}
+ ;
 
-function main( db )
+function main()
 {
    if( commIsStandalone( db ) )
    {
@@ -31,15 +43,14 @@ function main( db )
    var name = obj["Name"] ;
    if( name !== domainName )
    {
-      throw buildException( "main", null, "check domain name", domainName, name ) ;
+      throw new Error("expect: " + domainName + ", actual: " + name);
    }
    
    // check group num
    var groupArr = obj["Groups"] ;
    if( groupArr.length !== groups.length )
    {
-      throw buildException( "main", null, "check group num", groups.length, 
-            groupArr.length ) ;
+      throw new Error("expect: " + groups.length + ",actual: " + groupArr.length);
    }
    
    // check groups name
@@ -47,8 +58,7 @@ function main( db )
    {
       if( groupArr[i]["GroupName"] !== groups[i] )
       {
-         throw buildException( "main", null, "check group name", groups[i],
-               groupArr[i]["GroupName"] ) ;
+         throw new Error("expect: " + groups[i] + ",actual: " + groupArr[i]["GroupName"]);
       }
    }
    
