@@ -43,6 +43,7 @@ public class LobSubCL19047 extends SdbTestBase {
     private int writeLobSize = 1024 * 1024;
     private byte[] lobBuff;
     private List<ObjectId> lobIds;
+    private int timeout = 600000;
 
     private CollectionSpace cs;
 
@@ -75,7 +76,7 @@ public class LobSubCL19047 extends SdbTestBase {
 
     @Test
     public void test() throws Exception {
-        ThreadExecutor thread = new ThreadExecutor();
+        ThreadExecutor thread = new ThreadExecutor(timeout);
         SplitCLThread splitCL = new SplitCLThread();
         thread.addWorker(new AttachCLThread());
         thread.addWorker(splitCL);

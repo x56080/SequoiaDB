@@ -768,31 +768,32 @@ public class CommLib {
     }
 
     /**
-     * 清理残留在data节点上的session和context
+     * 清理残留在节点上的session和context
      * 
      * @author luweikang
      * @param db
-     * @param csName
-     * @param clName
+     * @param match
+     * @param exceptCata 排除catalog节点，默认不清理
+     * @throws InterruptedException
      * @date 2019-11-08
      * @throws Exception
      */
-    public static void forceSession(Sequoiadb db, String csName, String clName) throws Exception {
-        if (csName == SdbTestBase.csName) {
-            if (clName == null || clName == "") {
-                throw new Exception("when cs name is " + SdbTestBase.csName + ", cl name can't be null");
-            }
+    public static void forceSession(Sequoiadb db, String match, boolean exceptCata) throws InterruptedException {
+        String matcher = "{'$and':[{'GroupName': {'$ne': 'SYSCoord'}}], 'IsPrimary': true, 'RawData': true}";
+        if (exceptCata) {
+            matcher = "{'$and':[{'GroupName': {'$ne': 'SYSCoord'}}, {'GroupName': {'$ne': 'SYSCatalogGroup'}}],"
+                    + " 'IsPrimary': true, 'RawData': true}";
         }
-        String match = "Name\\:" + csName + "\\.";
-        if (clName != null) {
-            match += clName;
-        }
-        DBCursor snapshot = db.getSnapshot(Sequoiadb.SDB_SNAP_DATABASE,
-                "{'$and':[{'GroupName': {'$ne': 'SYSCoord'}}, {'GroupName': {'$ne': 'SYSCatalogGroup'}}], 'IsPrimary': true, 'RawData': true}",
-                "{'NodeName': 1}", null);
+        DBCursor snapshot = db.getSnapshot(Sequoiadb.SDB_SNAP_DATABASE, matcher, "{'NodeName': 1}", null);
         while (snapshot.hasNext()) {
             String nodeUrl = snapshot.getNext().get("NodeName").toString();
             try (Sequoiadb dataConn = new Sequoiadb(nodeUrl, "", "")) {
+                DBCursor snapshots = dataConn.getSnapshot(Sequoiadb.SDB_SNAP_CONTEXTS, "", null, null);
+                while (snapshots.hasNext()) {
+                    System.out.println(snapshots.getNext());
+                }
+                snapshots.close();
+
                 DBCursor cur = dataConn.getSnapshot(Sequoiadb.SDB_SNAP_CONTEXTS,
                         "{'Contexts': {'$elemMatch': {'Description': {'$regex': '" + match + "'}}}}",
                         "{'SessionID': 1}", null);
@@ -810,31 +811,54 @@ public class CommLib {
             }
         }
         snapshot.close();
+        // forceSession之后context不一定立刻被关闭，休眠1s。
+        Thread.sleep(1000);
+    }
+
+    public static void forceSession(Sequoiadb db, String match) throws InterruptedException {
+        forceSession(db, match, true);
     }
 
     public static void cleanCS(Sequoiadb db, String csName) throws Exception {
+        if (csName == SdbTestBase.csName) {
+            throw new Exception("when cs name is " + SdbTestBase.csName + ", must specify the cl name");
+        }
+        String match = "Name\\:" + csName + "\\.";
         if (db.isCollectionSpaceExist(csName)) {
             try {
                 db.dropCollectionSpace(csName);
             } catch (BaseException e) {
                 if (e.getErrorCode() == -147) {
-                    CommLib.forceSession(db, csName, null);
+                    CommLib.forceSession(db, match);
+                    db.dropCollectionSpace(csName);
+                } else {
+                    throw e;
                 }
-                db.dropCollectionSpace(csName);
             }
         }
     }
 
     public static void cleanCL(Sequoiadb db, String csName, String clName) throws Exception {
+        if (csName == SdbTestBase.csName) {
+            if (clName == null || clName == "") {
+                throw new Exception("when cs name is " + SdbTestBase.csName + ", cl name can't be null");
+            }
+        }
+        String match = "Name\\:" + csName + "\\.";
+        if (clName != null) {
+            match += clName;
+        }
         CollectionSpace cs = db.getCollectionSpace(csName);
         if (cs.isCollectionExist(clName)) {
             try {
                 cs.dropCollection(clName);
             } catch (BaseException e) {
                 if (e.getErrorCode() == -147) {
-                    CommLib.forceSession(db, csName, clName);
+                    CommLib.forceSession(db, match);
+                    db.dropCollectionSpace(csName);
+                } else {
+                    throw e;
                 }
-                db.dropCollectionSpace(csName);
             }
         }
     }
