@@ -2091,6 +2091,7 @@ namespace engine
       PD_TRACE_ENTRY( COORD_LOBSTREAM_SHARDDATA ) ;
       TUPLE_GROUPID_MAP tuple2GroupIDMap ;
       CoordGroupList newGpList ;
+      INT32 oldCataVertion = _cataInfo->getVersion() ;
 
       _dataGroups.clear() ;
 
@@ -2149,6 +2150,18 @@ namespace engine
 
          _rtnLobTuple *lobTuple = (_rtnLobTuple *)iterMap->first ;
          UINT32 groupID = iterMap->second ;
+         if ( oldCataVertion != _cataInfo->getVersion() )
+         {
+            // catalog info is changed and saved groupID is not longger
+            // available. let's re-calculate the groupID
+            rc = _getLobGroupID( getOID(), lobTuple->tuple.columns.sequence,
+                                 groupID ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to get destination:%d", rc ) ;
+               goto error ;
+            }
+         }
 
          itrSubStream = _subs.find( groupID ) ;
          if ( _subs.end() == itrSubStream )
@@ -2157,8 +2170,8 @@ namespace engine
             rc = SDB_SYS ;
             goto error ;
          }
-         sub = &( itrSubStream->second ) ;
 
+         sub = &( itrSubStream->second ) ;
          dg = &( _dataGroups[groupID] ) ;
          if ( !dg->hasData() )
          {
