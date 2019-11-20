@@ -310,7 +310,7 @@ namespace engine
                                 const CHAR **fullName ) ;
 
    INT32 dpsAlter2Record ( const CHAR * name,
-                           INT32 objectType,
+                           const INT32 & objectType,
                            const bson::BSONObj & alterObject,
                            dpsLogRecord & record ) ;
 

@@ -358,7 +358,7 @@ namespace engine
 
             objectSchemaName = jobElement.valuestrsafe() ;
             _objectType = _getObjectType( objectSchemaName ) ;
-            PD_CHECK( RTN_ALTER_INVALID_OBJECT != _objectType && objectType == objectType,
+            PD_CHECK( RTN_ALTER_INVALID_OBJECT != _objectType,
                       SDB_INVALIDARG, error, PDERROR,
                       "Invalid alter object : %s", objectSchemaName ) ;
 

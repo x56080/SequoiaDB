@@ -656,7 +656,8 @@ namespace engine
          dpsLogRecord & record = info.getMergeBlock().record() ;
 
          BSONObj alterOptions ;
-         BSONObj alterObject;
+         BSONObj alterObject ;
+         RTN_ALTER_OBJECT_TYPE objType = task->getObjectType() ;
 
          if ( NULL != options )
          {
@@ -664,10 +665,10 @@ namespace engine
          }
          alterObject = task->toBSON( name, alterOptions ) ;
 
-         rc = dpsAlter2Record( name, task->getObjectType(), alterObject, record ) ;
+         rc = dpsAlter2Record( name, objType, alterObject, record ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build alter log, rc: %d", rc ) ;
 
-         rc = dpsCB->prepare(info ) ;
+         rc = dpsCB->prepare( info ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to prepare alter log, "
                       "rc: %d", rc ) ;
 

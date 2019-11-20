@@ -1451,7 +1451,7 @@ namespace engine
                goto done ;
             }
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " FullName : %s"OSS_NEWLINE,
+                                 " FullName  : %s"OSS_NEWLINE,
                                  itr.value() ) ;
 
             itr = this->find( DPS_LOG_ALTER_OBJECT_TYPE ) ;
@@ -1459,7 +1459,7 @@ namespace engine
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
                                     "*ERROR* : %s"OSS_NEWLINE,
-                                    "Failed to find alter object type in record" ) ;
+                                    "Failed to find alter type in record" ) ;
                PD_LOG( PDERROR, "Failed to find alter object type in record" ) ;
                goto done ;
             }
@@ -1467,7 +1467,7 @@ namespace engine
             {
                INT32 type = *( INT32 * )( itr.value() ) ;
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " Type    : %d"OSS_NEWLINE,
+                                    " AlterType : %d"OSS_NEWLINE,
                                     type ) ;
             }
 

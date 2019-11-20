@@ -1621,7 +1621,7 @@ namespace engine
             pAttr = DPS_TS_COMMIT_ATTR_SND_STR ;
             break ;
          default :
-            break ;         
+            break ;
       }
 
       return pAttr ;
@@ -2719,7 +2719,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_ALTER2RECORD, "dpsAlter2Record" )
    INT32 dpsAlter2Record ( const CHAR * name,
-                           INT32 objectType,
+                           const INT32 & objectType,
                            const bson::BSONObj & alterObject,
                            dpsLogRecord & record )
    {
