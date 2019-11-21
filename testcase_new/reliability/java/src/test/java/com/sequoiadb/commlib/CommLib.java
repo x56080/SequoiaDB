@@ -821,7 +821,7 @@ public class CommLib {
 
     public static void cleanCS(Sequoiadb db, String csName) throws Exception {
         if (csName == SdbTestBase.csName) {
-            throw new Exception("when cs name is " + SdbTestBase.csName + ", must specify the cl name");
+            throw new Exception("the cleaned collection space name can't be " + SdbTestBase.csName);
         }
         String match = "Name\\:" + csName + "\\.";
         if (db.isCollectionSpaceExist(csName)) {
@@ -839,15 +839,10 @@ public class CommLib {
     }
 
     public static void cleanCL(Sequoiadb db, String csName, String clName) throws Exception {
-        if (csName == SdbTestBase.csName) {
-            if (clName == null || clName == "") {
-                throw new Exception("when cs name is " + SdbTestBase.csName + ", cl name can't be null");
-            }
+        if (clName == null || clName == "") {
+            throw new Exception("collection name can't be null.");
         }
-        String match = "Name\\:" + csName + "\\.";
-        if (clName != null) {
-            match += clName;
-        }
+        String match = "Name\\:" + csName + "\\." + clName;
         CollectionSpace cs = db.getCollectionSpace(csName);
         if (cs.isCollectionExist(clName)) {
             try {
@@ -855,7 +850,7 @@ public class CommLib {
             } catch (BaseException e) {
                 if (e.getErrorCode() == -147) {
                     CommLib.forceSession(db, match);
-                    db.dropCollectionSpace(csName);
+                    cs.dropCollection(clName);
                 } else {
                     throw e;
                 }
