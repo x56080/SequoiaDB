@@ -169,6 +169,12 @@ public class Transaction17767D extends SdbTestBase {
         @Override
         public void exec() throws BaseException {
             cl2.delete(null, hint);
+            //coord节点是并发线程处理3个并发事务，无法保证事务到数据节点的顺序，因此通过延时500ms来保证数据节点上事务的执行顺序    
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
