@@ -7,7 +7,6 @@
 try
 {
    var filePath = WORKDIR + "/" + "file20261";
-   var tmpPath = WORKDIR + "/" + "tmpFile20261";
    main();
 }
 catch(e)
@@ -23,7 +22,6 @@ finally
    if( !commIsStandalone( db ) )
    {
       File.remove(filePath);
-      File.remove(tmpPath);
    }
 }
 
@@ -83,14 +81,6 @@ function main()
    if(clInfo.hasOwnProperty("ShardingType"))
    {
       throw new Error("check snapshot error, \nexpect: not shardingType, \nbut found: " + JSON.stringify(clInfo));
-   }
-   
-   cl.getLob(lobId, tmpPath);
-   var expMD5 = File.md5(filePath);
-   var actMD5 = File.md5(tmpPath);
-   if( expMD5 != actMD5 )
-   {
-      throw new Error("check lob md5 failed: \nexp: " + expMD5 + ", \nact: " + actMD5);
    }
    
    cl.deleteLob(lobId);
