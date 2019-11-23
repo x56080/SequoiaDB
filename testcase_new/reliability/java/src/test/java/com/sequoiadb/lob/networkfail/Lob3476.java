@@ -85,7 +85,7 @@ public class Lob3476 extends SdbTestBase {
     }
 
     @Test
-    public void test() throws ReliabilityException {
+    public void test() throws ReliabilityException, InterruptedException {
         GroupWrapper dataGroup = groupMgr.getGroupByName(groupName1);
         NodeWrapper dataMaster = dataGroup.getMaster();
 
@@ -102,6 +102,8 @@ public class Lob3476 extends SdbTestBase {
         Assert.assertTrue(mgr.isAllSuccess(), mgr.getErrorMsg());
         Assert.assertTrue(groupMgr.checkBusinessWithLSN(120));
 
+        String match = "Name\\:" + csName + "\\." + clName;
+        CommLib.forceSession(sdb, match, true);
         redoPutLob(cl, lastOid);
 
         List<ObjectId> lobIds1 = new ArrayList<ObjectId>();
