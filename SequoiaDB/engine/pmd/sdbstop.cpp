@@ -162,6 +162,12 @@ namespace engine
       if ( vm.count ( PMD_OPTION_SVCNAME ) )
       {
          string svcname = vm[PMD_OPTION_SVCNAME].as<string>() ;
+         if( svcname.empty() )
+         {
+            std::cout << "Service name can't be empty" << endl ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
          // break service names using ';'
          rc = utilSplitStr( svcname, listServices, ", \t" ) ;
          if ( rc )
