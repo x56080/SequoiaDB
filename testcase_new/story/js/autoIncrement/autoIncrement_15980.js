@@ -53,19 +53,36 @@ function main()
 
 function checkCurrentValue( db, csName, clName, fields )
 {
-   var clID = getCLID( csName, clName );
-   for( var i in fields )
+   try
    {
-      var sequenceName = "SYS_" + clID + "_" + fields[i] + "_SEQ";
-      var cursor = db.snapshot( SDB_SNAP_SEQUENCES, { Name : sequenceName } );
-      var currentValue = cursor.current().toObj().CurrentValue ;
-      var startValue = cursor.current().toObj().StartValue
-      if( currentValue !== startValue )
+      var clID = getCLID( csName, clName );
+      for( var i in fields )
       {
-         throw buildException("checkCurrentValue()", "currentValue is not equals to startValue", "compare", startValue, currentValue);
+         var sequenceName = "SYS_" + clID + "_" + fields[i] + "_SEQ";
+         var cursor = db.snapshot( SDB_SNAP_SEQUENCES, { Name : sequenceName } );
+         var currentValue = cursor.current().toObj().CurrentValue ;
+         var startValue = cursor.current().toObj().StartValue
+         if( currentValue !== startValue )
+         {
+            throw "currentValue is " + currentValue + ", but startValue is " + startValue;
+         }
       }
    }
-   
+   catch(e)
+   {
+      throw new Error(e);
+   }
 }
 
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

@@ -16,23 +16,18 @@ function main()
    
    var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement : { Field : "a1" } } );
    
-   create(dbcl, {Field : "a2", MaxValue : 2000, MinValue : 3000});
-   
-   create(dbcl, {Field : "a3", MaxValue : 2000, MinValue : 2000});
-   
-   dbcl.createAutoIncrement({ Field : "a4", MaxValue : 5000 });
-   
-   create(dbcl, {Field : "a5", MaxValue : { "$numberLong" : "-9223372036854775808" }, MinValue : { "$numberLong" : "-9223372036854775860" }});
-   
-   create(dbcl, {Field : "a6", MaxValue : { "$numberLong" : "-9223372036854775809" }, MinValue : { "$numberLong" : "-9223372036854775860" }});
-   
-   dbcl.createAutoIncrement({ Field : "a7", MaxValue : { "$numberLong" : "9223372036854775807" } });
-   
-   dbcl.createAutoIncrement({ Field : "a8", MaxValue : { "$numberLong" : "9223372036854775808" } });
-   
-   create(dbcl, {Field : "a8", MaxValue : 20.55});
-   
-   create(dbcl, {Field : "a9", MaxValue : { $decimal:"123.456" }});
+   var options = [{Field: "a2", MaxValue: 2000, MinValue: 3000}, 
+                  {Field: "a3", MaxValue: 2000, MinValue: 2000}, 
+                  {Field: "a5", MaxValue: {"$numberLong": "-9223372036854775808"}, MinValue: {"$numberLong": "-9223372036854775860"}},                  {Field: "a6", MaxValue: {"$numberLong": "-9223372036854775809"}, MinValue: {"$numberLong": "-9223372036854775860"}},                  {Field: "a9", MaxValue: 20.55},
+                  {Field: "a10", MaxValue: {"$decimal": "123.456"}}];
+   for(var i = 0; i < options.length; i++)
+   {
+      create(dbcl, options[i], false);
+   }   
+
+   dbcl.createAutoIncrement([{Field: "a4", MaxValue: 5000},
+                             {Field: "a7", MaxValue: {"$numberLong": "9223372036854775807"}},
+                             {Field: "a8", MaxValue: {"$numberLong": "9223372036854775808"}}]);
    
    //check Sequence
    var clID = getCLID( COMMCSNAME, clName );
@@ -62,18 +57,15 @@ function main()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-function create(dbcl, options)
+try
 {
-    try
-    {
-       dbcl.createAutoIncrement(options);
-    }catch(e)
-    {
-       if(e !== -6)
-       {
-           throw "create error!";
-       }
-    }
+   main();
 }
-
-main();
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e;
+}

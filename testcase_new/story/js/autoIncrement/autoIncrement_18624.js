@@ -2,7 +2,18 @@
 *@Description: seqDB-18624:反转自增队列方向，自增字段已使用时，使CurrentValue不在修改后的区间内
 *@Author     : 2019.07.24 yinzhen 
 **************************************/
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;
+   }
+   throw e;
+}
 
 function main(){
    if(commIsStandalone( db ))
@@ -48,15 +59,16 @@ function main(){
    
    // 通过本coord和其它coord插入记录查询，插入记录报错-325
    try{
-      for(var i in coordList){
+      for(var i in coordList)
+      {
          var dbcl = new Sdb(coordList[i]).getCS(COMMCSNAME).getCL(clName);
          var cur = dbcl.find().sort({"id1":1});
-		 expList = insertAndGetExpList(cl, 1, -1, (-100 - insertCount.count + 1), (100 + insertCount.count - 1), expList, insertCount);
+         expList = insertAndGetExpList(cl, 1, -1, (-100 - insertCount.count + 1), (100 + insertCount.count - 1), expList, insertCount);
          checkRec( cur, expList );
       }
    }catch(e){
       if(-325 !== e){
-         throw "INSERT ERROR EXPECT -325";
+         throw new Error( "INSERT ERROR EXPECT -325" );
       }
    }
    
@@ -78,17 +90,4 @@ function main(){
    }
    
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-
-function insertAndGetExpList(cl, increment_1, increment_2, currentValue_1, currentValue_2, expList, insertCount)
-{
-   for(var i = 0; i < 3; i++){
-      cl.insert({a: i});
-	  currentValue_1 = currentValue_1 + increment_1;
-	  currentValue_2 = currentValue_2 + increment_2;
-      expList.push({a: i, id1: currentValue_1, id2: currentValue_2});
-	  insertCount.count++;
-   }
-   expList.sort(compare("id1"));
-   return expList;
 }

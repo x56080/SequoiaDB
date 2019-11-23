@@ -52,12 +52,12 @@ function main()
    try
    {
       cl[0].insert({a : 0});
-      throw "coordA insert error!";
+      throw new Error( "coordA insert error!" );
    }catch(e)
    {
       if(e != -325)
       {
-         throw e;
+         throw new Error(e);
       }
    }
 
@@ -65,12 +65,12 @@ function main()
    try
    {
       cl[1].insert({a : 0});
-      throw "coordB insert error!";
+      throw new Error( "coordB insert error!" );
    }catch(e)
    {
       if(e != -325)
       {
-         throw e;
+         throw new Error(e);
       }
    }
    
@@ -85,12 +85,12 @@ function main()
    try
    {
       cl[2].insert({a : 0});
-      throw "coordC insert error!";
+      throw new Error( "coordC insert error!" );
    }catch(e)
    {
       if(e != -325)
       {
-         throw e;
+         throw new Error(e);
       }
    }
    
@@ -99,4 +99,15 @@ function main()
    
    commDropCL( db, COMMCSNAME, clName );
 }
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

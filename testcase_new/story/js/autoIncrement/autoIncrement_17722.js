@@ -66,12 +66,12 @@ function main()
    try
    {
       cl[0].insert({a:sortField});
-      throw "NEED_ERROR";
+      throw new Error( "NEED_ERROR" );
    }catch(e)
    {
       if(e !== -325)
       {
-         throw e;
+         throw new Error(e);
       }
    }
    println("---coordA get cache success");
@@ -86,12 +86,12 @@ function main()
    try
    {
       cl[1].insert({a:sortField});
-      throw "NEED_ERROR";
+      throw new Error( "NEED_ERROR" );
    }catch(e)
    {
       if(e !== -325)
       {
-         throw e;
+         throw new Error(e);
       }
    }
    println("---coordB get cache success");
@@ -109,12 +109,12 @@ function main()
    try
    {
       cl[2].insert({a:sortField});
-      throw "NEED_ERROR";
+      throw new Error( "NEED_ERROR" );
    }catch(e)
    {
       if(e !== -325)
       {
-         throw e;
+         throw new Error(e);
       }
    }
    println("---coordC get cache success");
@@ -125,4 +125,15 @@ function main()
    
    commDropCL(db, COMMCSNAME, clName, true, true);
 }
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

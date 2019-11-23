@@ -46,33 +46,65 @@ function main()
 
 function getAutoIncrements()
 {
-   var autoIncrements = new Array();
-   for(var i = 0; i < 16; i++)
+   try
    {
-      autoIncrements.push({ Field : "id" + i });
+      var autoIncrements = new Array();
+      for(var i = 0; i < 16; i++)
+      {
+         autoIncrements.push({ Field : "id" + i });
+      }
+      return autoIncrements;
    }
-   return autoIncrements;
+   catch(e)
+   {
+      throw new Error(e);
+   }
 }
 
 function getSequenceNames(csName, clName, autoIncrements)
 {
-   var sequenceNames = new Array();
-   var clID = getCLID(csName, clName);
-   for(var i in autoIncrements)
+   try
    {
-      sequenceNames.push( "SYS_" + clID + "_" + autoIncrements[i].Field + "_SEQ" );   
+      var sequenceNames = new Array();
+      var clID = getCLID(csName, clName);
+      for(var i in autoIncrements)
+      {
+         sequenceNames.push( "SYS_" + clID + "_" + autoIncrements[i].Field + "_SEQ" );   
+      }
+      return sequenceNames;   
    }
-   return sequenceNames;   
+   catch(e)
+   {
+      throw new Error(e);
+   }
 }
 
 function getExpIncrements(sequenceNames, autoIncrements)
 {  
-   var expIncrements = new Array();
-   for(var i in autoIncrements)
+   try
    {
-      expIncrements.push({ Field : autoIncrements[i].Field, SequenceName : sequenceNames[i] });   
+      var expIncrements = new Array();
+      for(var i in autoIncrements)
+      {
+         expIncrements.push({ Field : autoIncrements[i].Field, SequenceName : sequenceNames[i] });   
+      }
+      return expIncrements;
    }
-   return expIncrements;
+   catch(e)
+   {
+      throw new Error(e);
+   }
 }
 
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

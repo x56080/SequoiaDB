@@ -17,12 +17,12 @@ function main()
    try
    {
       db.getCS(COMMCSNAME).createCL(clName, {AutoIncrement : {Field : "a1", CurrentValue : 5}});
-      throw "create error!";
+      throw new Error( "create error!" );
    }catch(e)
    {
       if(e !== -6)
       {
-         throw "create error!";
+         throw new Error(e);
       }
    }
    
@@ -33,7 +33,7 @@ function main()
    var cursor = db.snapshot( SDB_SNAP_SEQUENCES, {Name:sequenceName});
    if( cursor.current().toObj().Initial !== true )
    {
-      throw "need_error!";
+      throw new Error( "need_error!" );
    }
    
    dbcl.setAttributes({AutoIncrement : {Field : "a2", CurrentValue : 50}});
@@ -41,7 +41,7 @@ function main()
    var cursor = db.snapshot( SDB_SNAP_SEQUENCES, {Name:sequenceName});
    if( cursor.current().toObj().Initial !== false || cursor.current().toObj().CurrentValue !== 50)
    {
-      throw "need_error!";
+      throw new Error( "need_error!" );
    }
    
    //insert records
@@ -61,4 +61,15 @@ function main()
    
    commDropCL( db, COMMCSNAME, clName );
 }
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

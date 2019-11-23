@@ -43,7 +43,7 @@ function main()
    var cursor = db.snapshot(SDB_SNAP_SEQUENCES, { Name : sequenceName });
    if( cursor.current().toObj().Cycled !== false)
    {
-      throw "alter failed!";
+      throw new Error("alter failed!");
    }
  
    //insert records and check
@@ -59,7 +59,7 @@ function main()
       {
          if(e !== -325)
          {
-            throw e;
+            throw new Error(e);
          }
       }
       coord.close();
@@ -75,7 +75,7 @@ function main()
    var cursor = db.snapshot(SDB_SNAP_SEQUENCES, { Name : sequenceName });
    if( cursor.current().toObj().Cycled !== true)
    {
-      throw "alter failed!";
+      throw new Error("alter failed!");
    }
    
    //insert records and check
@@ -98,7 +98,7 @@ function main()
    var cursor = db.snapshot(SDB_SNAP_SEQUENCES, { Name : sequenceName });
    if( cursor.current().toObj().Cycled !== false )
    {
-      throw "alter failed!";
+      throw new Error("alter failed!");
    }
    
    //insert records and check
@@ -114,7 +114,7 @@ function main()
       {
          if(e !== -325)
          {
-            throw "insert error!";
+            throw new Error(e);
          }
       }
       coord.close();
@@ -126,4 +126,15 @@ function main()
 
    commDropCL( db, COMMCSNAME, clName );
 }
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

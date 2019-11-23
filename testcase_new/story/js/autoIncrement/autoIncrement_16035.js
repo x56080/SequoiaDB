@@ -17,32 +17,25 @@ function main()
    var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement : { Field : "id1" } } );
    
    //illegal Field value
-   create(dbcl, null);
-   
-   create(dbcl, {Field : "$id2"});
-   
-   create(dbcl, {Field : " id3"});
-   
-   create(dbcl, {Field : 5});
+   var fields = [null, {Field : "$id2"}, {Field : " id3"}, {Field : 5}];
+   for(var i = 0; i < fields.length; i++)
+   {
+      create(dbcl, fields[i], false);
+   }
    
    //legal Field value
-   dbcl.createAutoIncrement({ Field : "id6" });
-   
-   dbcl.createAutoIncrement({ Field : "id$7" });
-   
-   dbcl.createAutoIncrement({ Field : "id 8" });
-   
-   //other
-   dbcl.createAutoIncrement({ Field : "id9" });
-   dbcl.createAutoIncrement({ Field : "id" });
-   dbcl.createAutoIncrement({ Field : "id99" });
-   
+   fields = [{ Field : "id6" }, { Field : "id$7" }, { Field : "id 8" }, { Field : "id9" }, { Field : "id" }, { Field : "id99" }];
+   for(var i = 0; i < fields.length; i++)
+   {  
+      create(dbcl, fields[i], true);
+   }  
+ 
    //check autoIncrement count
    var cursor = db.snapshot(8, { Name : COMMCSNAME + "." + clName });
    var count = cursor.current().toObj().AutoIncrement.length;
    if( count !== 7)
    {
-      throw buildException("main()", "autoIncrement field count is wrong", "compare", 7, count);
+      throw new Error("Expect count is 7, but act count is " + count);
    }
    
    //check autoIncrement value
@@ -73,19 +66,15 @@ function main()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-function create(dbcl, options)
+try
 {
-   try
-   {
-      dbcl.createAutoIncrement(options);
-      throw "need_error";
-   }catch(e)
-   {
-      if(e !== -6)
-      {
-         throw e;
-      }          
-   }   
+   main();
 }
-
-main();
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e;
+}

@@ -1,4 +1,4 @@
-﻿/***************************************************************************
+/***************************************************************************
 @Description :seqDB-16023 :同时修改多个自增字段的属性值 
 @Modify list :
               2018-10-25  zhaoyu  Create
@@ -87,4 +87,15 @@ function main()
    println("---check insert after alter autoIncrement success");
    commDropCL(db, COMMCSNAME, clName, true, true); 
 }
-main()
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

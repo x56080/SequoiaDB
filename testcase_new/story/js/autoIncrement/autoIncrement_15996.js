@@ -45,9 +45,20 @@ function createCL( clName, field )
    {
       if( e !== -6 )
       {
-         throw e;
+         throw new Error(e);
       }          
    }
 }
 
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

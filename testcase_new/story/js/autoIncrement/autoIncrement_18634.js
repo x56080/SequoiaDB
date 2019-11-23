@@ -37,11 +37,22 @@ function main()
    for(var i in clAutoIncreNames){
       var tmpName = clAutoIncreNames[i];
       if(sqlAutoIncreNames.indexOf(tmpName) == -1){
-         throw buildException("main", "SNAPSHOT_SEQUENCES ERROR", "indexOf(tempName) == -1", clAutoIncreNames, sqlAutoIncreNames);
+         throw new Error("Expect indexOf(tempName) is -1,but is" + sqlAutoIncreNames.indexOf(tmpName));
       }
    }
    
    commDropCL( db, COMMCSNAME, clName );
 }
 
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

@@ -120,10 +120,21 @@ function main()
    if( mainclSequenceNum !==0 || subclSequenceNum1 !==0 || subclSequenceNum2 !==0 || subclSequenceNum3 !==0 )
    {
       println("mainclSequenceNum: " + mainclSequenceNum + ",subclSequenceNum1: " + subclSequenceNum1 + ",subclSequenceNum2: " + subclSequenceNum2 + ",subclSequenceNum3: " + subclSequenceNum3);
-      throw "SEQUENCE_NOT_DROP";
-   };
+      throw new Error("SEQUENCE_NOT_DROP");
+   }
    
    commDropCS( db, subcsName);
    commDropCS( db, maincsName);
 }
-main()
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

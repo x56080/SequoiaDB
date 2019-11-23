@@ -1,4 +1,4 @@
-﻿/***************************************************************************
+/***************************************************************************
 @Description :seqDB-16024 :同时修改自增字段及其他属性 
 @Modify list :
               2018-10-26  zhaoyu  Create
@@ -83,27 +83,46 @@ function main()
    try
    {
       dbcl.insert({id:"a"});
-      throw "NEED_INSERT_ERR";  
+      throw ( "NEED_INSERT_ERR" );  
    }catch(e)
    {
       if(-6 !== e)
       {
-         throw e;
+         throw new Error(e);
       }
    }
    println("---check insert after alter generated success");
    commDropCL(db, COMMCSNAME, clName, true, true); 
 }
-main()
+
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}
 
 function checkSnapshot8onCL(csName, clName)
 {
-   var obj = db.snapshot(8,{Name:csName + "." + clName}).next().toObj();
-   var shardingType = obj.ShardingType;
-   var compressionType = obj.CompressionTypeDesc;
-   if(shardingType !== "hash" || compressionType !== "lzw")
+   try
    {
-      println("shardingType:" + shardingType + ",compressionType:" + compressionType + "\n");
-      throw "ALTER_CL_ERR";
+      var obj = db.snapshot(8,{Name:csName + "." + clName}).next().toObj();
+      var shardingType = obj.ShardingType;
+      var compressionType = obj.CompressionTypeDesc;
+      if(shardingType !== "hash" || compressionType !== "lzw")
+      {
+         println("shardingType:" + shardingType + ",compressionType:" + compressionType + "\n");
+         throw "ALTER_CL_ERR";
+      }
+   }
+   catch(e)
+   {
+      throw new Error(e);
    }  
 }

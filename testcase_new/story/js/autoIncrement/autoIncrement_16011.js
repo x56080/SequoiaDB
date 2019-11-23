@@ -177,9 +177,20 @@ function main()
    if( mainclSequenceNum !==0 || subclSequenceNum1 !==0 || clSequenceNum1 !==0 || clSequenceNum2 !==0 )
    {
       println("mainclSequenceNum: " + mainclSequenceNum + ",subclSequenceNum1: " + subclSequenceNum1 + ",clSequenceNum1 " + clSequenceNum1 + ",clSequenceNum2: " + clSequenceNum2);
-      throw "SEQUENCE_NOT_DROP";
-   };
+      throw new Error("SEQUENCE_NOT_DROP");
+   }
    
    commDropCS( db, subcsName);
 }
-main()
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

@@ -32,7 +32,7 @@ function main()
    var cursor = db.snapshot(8, { Name : COMMCSNAME + "." + clName });
    if( cursor.current().toObj().AutoIncrement[0].Generated !== "always")
    {
-      throw "alter failed!";
+      throw new Error("alter failed!");
    }
    
    //insert records and check
@@ -55,7 +55,7 @@ function main()
    var cursor = db.snapshot(8, { Name : COMMCSNAME + "." + clName });
    if( cursor.current().toObj().AutoIncrement[0].Generated !== "strict")
    {
-      throw "alter failed!";
+      throw new Error("alter failed!");
    }
    
    //insert records and check
@@ -71,7 +71,7 @@ function main()
       {
          if(e !== -6)
          {
-            throw e;
+            throw new Error(e);
          }
       }
       coord.close();
@@ -86,7 +86,7 @@ function main()
    var cursor = db.snapshot(8, { Name : COMMCSNAME + "." + clName });
    if( cursor.current().toObj().AutoIncrement[0].Generated !== "default")
    {
-      throw "alter failed!";
+      throw new Error("alter failed!");
    }
    
    dbcl.truncate();
@@ -101,4 +101,15 @@ function main()
    
    commDropCL( db, COMMCSNAME, clName );
 }
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

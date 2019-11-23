@@ -1,4 +1,4 @@
-﻿/***************************************************************************
+/***************************************************************************
 @Description :seqDB-16005 :创建集合时，创建自增字段允许循环
 @Modify list :
               2018-10-25  zhaoyu  Create
@@ -86,4 +86,15 @@ function main()
    
    commDropCL(db, COMMCSNAME, clName, true, true);
 }
-main()
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

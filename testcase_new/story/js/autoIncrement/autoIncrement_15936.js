@@ -1,4 +1,4 @@
-﻿/***************************************************************************
+/***************************************************************************
 @Description :seqDB-15936 :同一个coord不指定自增字段插入记录 
 @Modify list :
               2018-10-15  zhaoyu  Create
@@ -32,4 +32,15 @@ function main()
    
    commDropCL(db, COMMCSNAME, clName, true, true); 
 }
-main()
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

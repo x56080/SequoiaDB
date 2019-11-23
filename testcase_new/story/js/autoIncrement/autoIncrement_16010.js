@@ -123,7 +123,7 @@ function main()
    if(subclSequenceNum1 !==0)
    {
       println("mainclSequenceNum: " + mainclSequenceNum + ",subclSequenceNum1: " + subclSequenceNum1 + ",subclSequenceNum2: " + subclSequenceNum2 + ",subclSequenceNum3: " + subclSequenceNum3);
-      throw "SEQUENCE_NOT_DROP";
+      throw new Error("SEQUENCE_NOT_DROP");
    };
    println("---check subcl1 sequence success");
    checkSequence(subclSequenceName2, {});
@@ -162,4 +162,15 @@ function main()
    commDropCS( db, subcsName);
    commDropCS( db, maincsName);
 }
-main()
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

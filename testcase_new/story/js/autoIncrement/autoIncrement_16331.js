@@ -17,12 +17,12 @@ function main()
    try
    {
       db.getCS(COMMCSNAME).createCL(clName, { AutoIncrement : [{ Field : "a1", Increment : 2 }, {Field : "a1", Increment : 3}, {Field : "a1", Increment : 4}] });
-      throw "create error!";                                       
+      throw new Error( "create error!" );                                       
    }catch(e)
    {
       if(e !== -6)
       {
-         throw "create error!";
+         throw new Error(e);
       }
    }
    
@@ -31,15 +31,26 @@ function main()
    try
    {
       dbcl.createAutoIncrement({ Field : "a1" });
-      throw "create error!";  
+      throw new Error( "create error!" );  
    }catch(e)
    {
       if(e !== -332)
       {
-         throw "drop autoIncrement error!";
+         throw new Error(e);
       }
    }
    
    commDropCL( db, COMMCSNAME, clName );
 }
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

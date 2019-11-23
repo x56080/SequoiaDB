@@ -25,11 +25,22 @@ function main()
    {
       if( e !== -332 )
       {
-         throw e;
+         throw new Error(e);
       }          
    }
    
    commDropCL( db, COMMCSNAME, clName );
 }
 
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

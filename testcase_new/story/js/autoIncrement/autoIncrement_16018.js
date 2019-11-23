@@ -40,7 +40,7 @@ function main()
    var cursor = db.snapshot(SDB_SNAP_SEQUENCES, { Name : sequenceName });
    if( cursor.current().toObj().AcquireSize !== acquireSize)
    {
-      throw "alter failed!";
+      throw new Error("alter failed!");
    }
    
    //insert records and check 
@@ -61,4 +61,15 @@ function main()
    
    commDropCL( db, COMMCSNAME, clName );
 }
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

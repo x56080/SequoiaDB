@@ -39,7 +39,7 @@ function main()
    {
       if(cursor.current().toObj().AutoIncrement.length !== 0)
       {
-         throw "drop failed!";
+         throw new Error("drop failed!");
       }
    }
    
@@ -47,4 +47,15 @@ function main()
    commDropDomain( db, domainName);
 }
  
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

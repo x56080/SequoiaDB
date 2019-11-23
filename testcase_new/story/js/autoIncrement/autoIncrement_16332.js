@@ -19,15 +19,26 @@ function main()
    try
    {
       dbcl.setAttributes({ Field : "a2", Increment : 3 });
-      throw "alter error!";  
+      throw new Error( "alter error!" );  
    }catch(e)
    {
       if(e !== -6)
       {
-         throw e;
+         throw new Error(e);
       }
    }
    
    commDropCL( db, COMMCSNAME, clName );
 }
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

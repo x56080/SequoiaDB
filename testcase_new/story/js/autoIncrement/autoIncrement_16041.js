@@ -44,12 +44,12 @@ function main()
    try
    {
       dbcl.insert({ "a" : i });
-      throw "inert error!";      
+      throw new Error( "inert error!" );      
    }catch(e)
    {
       if(e !== -325)
       {
-         throw e;   
+         throw new Error(e);   
       }
    }
       
@@ -60,16 +60,27 @@ function main()
    try
    {
       dbcl.setAttributes({ Field : "a0", Cycled : "cycled" });
-      throw "create error!";
+      throw new Error( "create error!" );
    }catch(e)
    {
       if(e !== -6)
       {
-         throw e;
+         throw new Error(e);
       }
    }
    
    commDropCL( db, COMMCSNAME, clName );
 }
 
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

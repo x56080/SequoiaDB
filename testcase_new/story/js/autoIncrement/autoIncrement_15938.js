@@ -1,4 +1,4 @@
-﻿/***************************************************************************
+/***************************************************************************
 @Description :seqDB-15938 :不指定自增字段批量插入记录
 @Modify list :
               2018-10-16  zhaoyu  Create
@@ -47,4 +47,15 @@ function main()
    
    commDropCL(db, COMMCSNAME, clName, true, true); 
 }
-main()
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

@@ -20,19 +20,17 @@ function main()
                              { Field : "a1", MinValue : { "$numberLong" : "-9223372036854775809" } },
                              { Field : "a2", MinValue : 5, StartValue : 10 },
                              { Field : "a3", MinValue : { "$numberLong" : "-9223372036854775808" } }]);
-   
-   createAutoIncrement(dbcl, {Field : "a4", MinValue : { "$numberLong" : "9223372036854775809" }, StartValue : { "$numberLong" : "9223372036854775809" }});
-   
-   createAutoIncrement(dbcl, {Field : "a5", MinValue : { "$numberLong" : "9223372036854775807" }, StartValue : { "$numberLong" : "9223372036854775809" }});
-   
-   createAutoIncrement(dbcl, {Field : "a6", MinValue : 20, StartValue : 20, MaxValue : 20});
-   
-   createAutoIncrement(dbcl, {Field : "a7", MinValue : 25, MaxValue : 20});
-   
-   createAutoIncrement(dbcl, {Field : "a8", MinValue : 123.4});
-   
-   createAutoIncrement(dbcl, {Field : "a9", MinValue : { $decimal:"123.456" }});
-   
+
+   var options = [{Field: "a4", MinValue: {"$numberLong": "9223372036854775809"}, StartValue: {"$numberLong": "9223372036854775809"}},
+                  {Field: "a5", MinValue: {"$numberLong": "9223372036854775807"}, StartValue: {"$numberLong": "9223372036854775809"}},
+                  {Field: "a6", MinValue: 20, StartValue: 20, MaxValue: 20},
+                  {Field: "a7", MinValue: 25, MaxValue: 20},
+                  {Field: "a8", MinValue: 123.4},
+                  {Field: "a9", MinValue: {$decimal: "123.456"}}];   
+   for(var i = 0; i < options.length; i++)
+   {
+      create(dbcl, options[i], false);
+   }
    //check Sequence
    var clID = getCLID( COMMCSNAME, clName );
    var sequenceNames = ["SYS_" + clID + "_a_SEQ",
@@ -57,20 +55,15 @@ function main()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-function createAutoIncrement(dbcl, options)
+try
 {
-   try
-   {
-      dbcl.createAutoIncrement(options);
-      throw "create error!";
-   }catch(e)
-   {
-      if(e !== -6)
-      {
-         throw e;
-      }
-   }
-   
+   main();
 }
-
-main();
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

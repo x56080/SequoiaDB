@@ -37,12 +37,12 @@ function main()
    try
    {
       dbcl.insert( { "q" : 2 } );
-      throw "insert ERROR";
+      throw new Error( "insert ERROR" );
    }catch(e)
    {
        if(e !== -325)
        {
-           throw e;
+           throw new Error(e);
        }
    }
    var rc = dbcl.find();
@@ -63,12 +63,12 @@ function main()
    try
    {
       dbcl.insert( { "q" : 2 } );
-      throw "insert ERROR";
+      throw new Error( "insert ERROR" );
    }catch(e)
    {
        if(e !== -325)
        {
-           throw e;
+           throw new Error(e);
        }
    }
    var rc = dbcl.find();
@@ -82,12 +82,12 @@ function main()
    try
    {
       dbcl.insert( { "q" : 2 } );
-      throw "insert ERROR";
+      throw new Error( "insert ERROR" );
    }catch(e)
    {
        if(e !== -325)
        {
-           throw e;
+           throw new Error(e);
        }
    }
    var rc = dbcl.find();
@@ -99,12 +99,12 @@ function main()
    try
    {
       dbcl.insert( { "q" : 2 } );
-      throw "insert ERROR";
+      throw new Error( "insert ERROR" );
    }catch(e)
    {
        if(e !== -325)
        {
-           throw e;
+           throw new Error(e);
        }
    }
    var rc = dbcl.find();
@@ -113,24 +113,24 @@ function main()
    try
    {
       dbcl.setAttributes({ AutoIncrement : { Field : "a", CurrentValue : "a" } });
-      throw "setAttributes error!";
+      throw new Error( "setAttributes error!" );
    }catch(e)
    {
       if(e !== -6)
       {
-         throw e;
+         throw new Error(e);
       }
    }
    
    try
    {
       dbcl.insert( { "q" : 2 } );
-      throw "insert ERROR";
+      throw new Error( "insert ERROR" );
    }catch(e)
    {
       if(e !== -325)
       {
-         throw e;
+         throw new Error(e);
       }
    }
    var rc = dbcl.find();
@@ -138,4 +138,15 @@ function main()
    
    commDropCL( db, COMMCSNAME, clName );
 }
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

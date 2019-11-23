@@ -41,7 +41,7 @@ function main()
    var currentValue = cursor.current().toObj().CurrentValue;
    if( currentValue !== 10)
    {
-      throw buildException("main()", "currentValue is wrong", "compare", 10, currentValue);
+      throw new Error("expect is 10 but currentValue is " + currentValue);
    }
    
    //insert records and check
@@ -66,7 +66,7 @@ function main()
    var currentValue = cursor.current().toObj().CurrentValue;
    if( currentValue !== 4000)
    {
-      throw buildException("main()", "currentValue is wrong", "compare", 4000, currentValue);
+      throw new Error( "Expect is 4000 but currentValue is " + currentValue );
    }
    
    //insert records and check
@@ -90,12 +90,12 @@ function main()
    try
    {
       dbcl.insert( { "q" : 2 } );
-      throw "insert ERROR";
+      throw new Error( "insert ERROR" );
    }catch(e)
    {
        if(e !== -325)
        {
-           throw e;
+           throw new Error(e);
        }
    }
    var rc = dbcl.find().sort( { "id1" : 1 } );
@@ -120,4 +120,15 @@ function main()
    
    commDropCL( db, COMMCSNAME, clName );
 }
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

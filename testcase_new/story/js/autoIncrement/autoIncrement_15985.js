@@ -42,11 +42,12 @@ function main()
    try
    {
       dbcl.insert({a : 1});  
+      throw "insert error!";
    }catch(e)
    {
       if(e !== -6)
       {
-         throw "insert error!";
+         throw new Error(e);
       }
    }
    
@@ -71,9 +72,20 @@ function createAutoIncrement( dbcl, field )
    {
       if( e !== -332 )
       {
-         throw e;
+         throw new Error(e);
       }          
    }
 }
 
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

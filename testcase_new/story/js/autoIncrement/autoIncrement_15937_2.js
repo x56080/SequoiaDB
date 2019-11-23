@@ -1,4 +1,4 @@
-﻿/***************************************************************************
+/***************************************************************************
 @Description :seqDB-15937 :不同coord不指定自增字段插入记录，趋势递增
 @Modify list :
               2018-10-15  zhaoyu  Create
@@ -59,4 +59,15 @@ function main()
    
    commDropCL(db, COMMCSNAME, clName, true, true); 
 }
-main()
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

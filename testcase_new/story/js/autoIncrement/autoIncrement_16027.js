@@ -129,4 +129,15 @@ function main()
    commDropCS( db, subcsName);
    commDropCS( db, maincsName);
 }
-main()
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

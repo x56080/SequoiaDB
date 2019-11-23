@@ -21,18 +21,9 @@ function main()
    dbcl.createAutoIncrement( { Field : "a.aa" } ); 
    
    dbcl.createAutoIncrement( { Field : "b.bb.bbb" } );  
-   
-   try
-   {
-      dbcl.createAutoIncrement( { Field : "c.1" } );
-      throw "create autoIncrement error!";
-   }catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw e;
-      }
-   }
+ 
+   var options = [{ Field : "c.1" }];
+   create(dbcl, options, false);  
    
    //check autoIncrement
    var clID = getCLID( COMMCSNAME, clName );
@@ -52,4 +43,15 @@ function main()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

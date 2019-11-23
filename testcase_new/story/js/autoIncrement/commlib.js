@@ -6,21 +6,33 @@
                 p: object2's key					 
 ******************************************************************/
 function compare(name, minor) {
-   return function (o, p) {
-      var a, b;
-      if (o && p && typeof o === 'object' && typeof p === 'object') {
-         a = o[name];
-         b = p[name];
-         if (a === b) {
-            return typeof minor === 'function' ? minor(o, p) : 0;
+   try
+   {
+      return function (o, p) {
+         var a, b;
+         if (o && p && typeof o === 'object' && typeof p === 'object') {
+            a = o[name];
+            b = p[name];
+            if (a === b) 
+            {
+               return typeof minor === 'function' ? minor(o, p) : 0;
+            }
+            if (typeof a === typeof b) 
+            {
+               return a < b ? -1 : 1;
+            }
+            return typeof a < typeof b ? -1 : 1;
          }
-         if (typeof a === typeof b) {
-            return a < b ? -1 : 1;
+         else 
+         {
+            throw "ERROR";
+
          }
-         return typeof a < typeof b ? -1 : 1;
-      } else {
-         throw("error");
       }
+   }
+   catch(e)
+   {
+      throw new Error(e);
    }
 }
 
@@ -30,8 +42,15 @@ function compare(name, minor) {
 *******************************************************************************/
 function isJson(object) 
 {
-   var isJson =  object && typeof (object) == 'object' && Object.prototype.toString.call(object).toLowerCase() == "[object object]";
-   return isJson;
+   try
+   {
+      var isJson =  object && typeof (object) == 'object' && Object.prototype.toString.call(object).toLowerCase() == "[object object]";
+      return isJson;
+   }
+   catch(e)
+   {
+      throw new Error(e);
+   }
 }
 
 /*******************************************************************************
@@ -40,32 +59,38 @@ function isJson(object)
 *******************************************************************************/
 function isObjEqual(obj1, obj2)
 {
-   if(typeof(obj1) !== typeof(obj2)) return false;
-   if(isJson(obj1) && isJson(obj2))
+   try
    {
-      var props1 = Object.getOwnPropertyNames(obj1);
-      var props2 = Object.getOwnPropertyNames(obj2);
-      if(props1.length !== props2.length)return false;
-      
-      for(var i=0; i<props1.length; i++)
+      if(typeof(obj1) !== typeof(obj2)) return false;
+      if(isJson(obj1) && isJson(obj2))
       {
-         if(props1[i] !== props2[i])return false;
+         var props1 = Object.getOwnPropertyNames(obj1);
+         var props2 = Object.getOwnPropertyNames(obj2);
+         if(props1.length !== props2.length)return false; 
+         for(var i=0; i<props1.length; i++)
+         {
+            if(props1[i] !== props2[i])return false;
+         }
       }
-   }
    
-   for(var key in obj1)
-   {
-      var oA = obj1[key];
-      var oB = obj2[key];
-      if(typeof(oA) !== typeof(oB))return false;
-      if(isJson(oA) && isJson(oB))return isObjEqual(oA, oB);
-      if(oA.hasOwnProperty('$numberLong') && oB.hasOwnProperty('$numberLong') && oA.$numberLong !==oB.$numberLong)return false;
-      if(oA.hasOwnProperty('$decimal') && oB.hasOwnProperty('$decimal') && oA.$decimal !==oB.$decimal)return false;
-      if(!oA.hasOwnProperty('$numberLong') && !oB.hasOwnProperty('$numberLong')
-         && !oA.hasOwnProperty('$decimal') && !oB.hasOwnProperty('$decimal')
-         && oA !== oB)return false;
+      for(var key in obj1)
+      {
+         var oA = obj1[key];
+         var oB = obj2[key];
+         if(typeof(oA) !== typeof(oB))return false;
+         if(isJson(oA) && isJson(oB))return isObjEqual(oA, oB);
+         if(oA.hasOwnProperty('$numberLong') && oB.hasOwnProperty('$numberLong') && oA.$numberLong !==oB.$numberLong)return false;
+         if(oA.hasOwnProperty('$decimal') && oB.hasOwnProperty('$decimal') && oA.$decimal !==oB.$decimal)return false;
+         if(!oA.hasOwnProperty('$numberLong') && !oB.hasOwnProperty('$numberLong')
+            && !oA.hasOwnProperty('$decimal') && !oB.hasOwnProperty('$decimal')
+            && oA !== oB)return false;
+      }
+      return true;
    }
-   return true;
+   catch(e)
+   {
+      throw new Error(e);
+   }
 }
 
 /*******************************************************************************
@@ -74,67 +99,79 @@ function isObjEqual(obj1, obj2)
 *******************************************************************************/
 function sortJsonKeys(obj)
 {
-   var tmp={};
-   Object.keys(obj).sort().forEach(function(k){tmp[k]=obj[k]});
-   return tmp;
-}
+   try
+   {
+      var tmp={};
+      Object.keys(obj).sort().forEach(function(k){tmp[k]=obj[k]});
+      return tmp;
+   }
+   catch(e)
+   {
+      throw new Error(e);
+   }
+}  
 
 /*******************************************************************************
 @Description : 比较查询返回的结果（游标）与预期结果(数组)是否一致
 @Modify list : 2018-10-15 zhaoyu init
 *******************************************************************************/
 function checkRec( rc, expRecs )
-{				
-	//get actual records to array
-	var actRecs = [];
-   while( rc.next() )
-   {
-		actRecs.push( rc.current().toObj() );
-   }
+{
+   try
+   {				
+      //get actual records to array
+      var actRecs = [];
+      while( rc.next() )
+      {
+         actRecs.push( rc.current().toObj() );
+      }
    
-   //check count
-	if( actRecs.length !== expRecs.length )
-   {
-   	//println("\nactual recs in cl= "+JSON.stringify(actRecs)+"\n\nexpect recs= "+JSON.stringify(expRecs));
-   	throw buildException("check count", null, "",
-									expRecs.length, actRecs.length);
-   }
+      //check count
+      if( actRecs.length !== expRecs.length )
+      {
+         throw "expect lenth is " + expRecs.length + ", but act length is " +  actRecs.length;
+      }
    
-   //check every records every fields
-   for( var i in expRecs )
-   {
-   	var actRec = actRecs[i];
-   	var expRec = expRecs[i];
-   	for ( var f in expRec )
-   	{
-   		if( JSON.stringify(actRec[f]) !== JSON.stringify(expRec[f]) )
-	   	{
-	   		println("\nerror occurs in "+(parseInt(i)+1)+"th record, in field '"+f+"'");
-	   		println("\nactual recs in cl= "+JSON.stringify(actRec)+"\n\nexpect recs= "+JSON.stringify(expRec));   		
-	   		throw buildException("checkRec()", "rec ERROR");
-	   	}
-   	}
-   }
+      //check every records every fields
+      for( var i in expRecs )
+      {
+         var actRec = actRecs[i];
+   	 var expRec = expRecs[i];
+   	 for ( var f in expRec )
+   	 {
+            if( JSON.stringify(actRec[f]) !== JSON.stringify(expRec[f]) )
+            {
+               println("\nerror occurs in "+(parseInt(i)+1)+"th record, in field '"+f+"'");
+               println("\nactual recs in cl= "+JSON.stringify(actRec)+"\n\nexpect recs= "+JSON.stringify(expRec));   		
+               throw "rec ERROR";
+            }
+   	 }
+      }  
    
-   //check every records every fields,actRecs as compare source
-   for( var i in actRecs )
-   {
-   	var actRec = actRecs[i];
-   	var expRec = expRecs[i];
+      //check every records every fields,actRecs as compare source
+      for( var i in actRecs )
+      {
+         var actRec = actRecs[i];
+   	 var expRec = expRecs[i];
    	
-   	for ( var f in actRec )
-   	{
-   	   if(f == "_id")
-   	   {
-   	      continue;
-   	   }
-   		if( JSON.stringify(actRec[f]) !== JSON.stringify(expRec[f]) )
-	   	{
-	   		println("\nerror occurs in "+(parseInt(i)+1)+"th record, in field '"+f+"'");
-	   		println("\nactual record= "+JSON.stringify(actRec)+"\n\nexpect record= "+JSON.stringify(expRec)); 		
-	   		throw buildException("checkRec()", "rec ERROR");
-	   	}
+   	 for ( var f in actRec )
+   	 {
+   	    if(f == "_id")
+   	    {
+   	       continue;
+   	    }
+            if( JSON.stringify(actRec[f]) !== JSON.stringify(expRec[f]) )
+            {
+	       println("\nerror occurs in "+(parseInt(i)+1)+"th record, in field '"+f+"'");
+               println("\nactual record= "+JSON.stringify(actRec)+"\n\nexpect record= "+JSON.stringify(expRec)); 		
+               throw "rec ERROR";
+            }
    	}
+      }
+   }
+   catch(e)
+   {
+      throw new Error(e);
    }
 }
 
@@ -155,27 +192,33 @@ function getCoordNodeNames()
          return nodeNames ;
       }
    }
-   
-   var details = rg.getDetail();
-   while(details.next())
+   try
    {
-      var groups = details.current().toObj().Group;
-      for(var i=0; i<groups.length; i++)
+      var details = rg.getDetail();
+      while(details.next())
       {
-         var hostName = groups[i].HostName;
-         var service = groups[i].Service;
-         for(var j=0; j<service.length; j++)
+         var groups = details.current().toObj().Group;
+         for(var i=0; i<groups.length; i++)
          {
-            if(service[j].Type === 0)
+            var hostName = groups[i].HostName;
+            var service = groups[i].Service;
+            for(var j=0; j<service.length; j++)
             {
-               var serviceName = service[j].Name;
-               break;
+               if(service[j].Type === 0)
+               {
+                  var serviceName = service[j].Name;
+                  break;
+               }
             }
+            nodeNames.push(hostName + ":" + serviceName);  
          }
-         nodeNames.push(hostName + ":" + serviceName);  
       }
+      return nodeNames;
    }
-   return nodeNames;
+   catch(e)
+   {
+      throw new Error(e);
+   }
 }
 
 /*******************************************************************************
@@ -197,17 +240,24 @@ function getDataGroupNames()
       }
    }
    
-   for(var i=0; i<tmpInfo.length; i++)
+   try
    {
-      var tmpObj = eval( "(" + tmpInfo[i] + ")" ) ;
-      if(tmpObj.GroupName === "SYSCatalogGroup" || tmpObj.GroupName === "SYSCoord" )
+      for(var i=0; i<tmpInfo.length; i++)
       {
-         continue;
+         var tmpObj = eval( "(" + tmpInfo[i] + ")" ) ;
+         if(tmpObj.GroupName === "SYSCatalogGroup" || tmpObj.GroupName === "SYSCoord" )
+         {
+            continue;
+         }
+         var dataGroupName = tmpObj.GroupName;
+         dataGroupNames.push(dataGroupName);
       }
-      var dataGroupName = tmpObj.GroupName;
-      dataGroupNames.push(dataGroupName);
+      return dataGroupNames;
    }
-   return dataGroupNames;
+   catch(e)
+   {
+      throw new Error(e);
+   }
 }
 
 /*******************************************************************************
@@ -217,8 +267,15 @@ function getDataGroupNames()
 *******************************************************************************/
 function getCLID(csName, clName)
 {
-   var uniqueID = db.snapshot(8,{Name:csName + "." + clName}).next().toObj().UniqueID;
-   return uniqueID;
+   try
+   {
+      var uniqueID = db.snapshot(8,{Name:csName + "." + clName}).next().toObj().UniqueID;
+      return uniqueID;
+   }
+   catch(e)
+   {
+      throw new Error(e);
+   }
 }
 
 
@@ -229,30 +286,35 @@ function getCLID(csName, clName)
 *******************************************************************************/
 function checkAutoIncrementonCL(csName, clName, expArr)
 {
-   for(var i=0; i<expArr.length; i++)
+   try
    {
-      if(expArr[i].Generated == undefined){expArr[i].Generated = "default";}
-   }
-   var autoIncrementArr = db.snapshot(8,{Name:csName + "." + clName}).next().toObj().AutoIncrement;
-   
-   if(autoIncrementArr.length !== expArr.length)
-   {
-      println("act num:" + autoIncrementArr.length + "\nexp num:" + expArr.length);
-      throw "check_autoIncrement_num_err";
-   }
-   autoIncrementArr.sort(compare("Field"));
-   expArr.sort(compare("Field"));
-   for(var i=0; i< autoIncrementArr.length; i++)
-   {
-      var tmpActObj = sortJsonKeys(autoIncrementArr[i]);
-      delete tmpActObj.SequenceID;
-      var tmpExpObj = sortJsonKeys(expArr[i]);
-      if(!isObjEqual(tmpActObj, tmpExpObj))
+      for(var i=0; i<expArr.length; i++)
       {
-         println("autoIncrementObj:" + JSON.stringify(tmpActObj) + "\nexpObj:" + JSON.stringify(tmpExpObj));
-         throw "check_autoIncrement_err";
+         if(expArr[i].Generated == undefined){expArr[i].Generated = "default";}
       }
       
+      var autoIncrementArr = db.snapshot(8,{Name:csName + "." + clName}).next().toObj().AutoIncrement;
+      if(autoIncrementArr.length !== expArr.length)
+      {
+         println("act num:" + autoIncrementArr.length + "\nexp num:" + expArr.length);
+         throw "check_autoIncrement_num_err";
+      }
+      autoIncrementArr.sort(compare("Field"));
+      expArr.sort(compare("Field"));
+      for(var i=0; i< autoIncrementArr.length; i++)
+      {
+         var tmpActObj = sortJsonKeys(autoIncrementArr[i]);
+         delete tmpActObj.SequenceID;
+         var tmpExpObj = sortJsonKeys(expArr[i]);
+         if(!isObjEqual(tmpActObj, tmpExpObj))
+         {
+            println("autoIncrementObj:" + JSON.stringify(tmpActObj) + "\nexpObj:" + JSON.stringify(tmpExpObj));
+            throw "check_autoIncrement_err";
+         }
+      }
+   }catch(e)
+   {
+      throw new Error(e);
    }
 }
 
@@ -263,31 +325,38 @@ function checkAutoIncrementonCL(csName, clName, expArr)
 *******************************************************************************/
 function checkSequence(sequenceName, expObj)
 {
-   if(expObj.Increment == undefined){expObj.Increment = 1;}
-   if(expObj.StartValue == undefined){expObj.StartValue = 1;}
-   if(expObj.MinValue == undefined){expObj.MinValue = 1;}
-   if(expObj.MaxValue == undefined){expObj.MaxValue = {$numberLong:"9223372036854775807"};}
-   if(expObj.CacheSize == undefined){expObj.CacheSize = 1000;}
-   if(expObj.AcquireSize == undefined){expObj.AcquireSize = 1000;}
-   if(expObj.Cycled == undefined){expObj.Cycled = false;}
-   if(expObj.CurrentValue == undefined){expObj.CurrentValue = 1;}
-   
-   var sequenceObj = db.snapshot(SDB_SNAP_SEQUENCES, {Name:sequenceName}).next().toObj();
-   delete sequenceObj._id;
-   delete sequenceObj.Version;
-   delete sequenceObj.Initial;
-   delete sequenceObj.Internal;
-   delete sequenceObj.Name;
-   delete sequenceObj.SequenceID
-   delete sequenceObj.ID
-   
-   var tmpActObj = sortJsonKeys(sequenceObj);
-   var tmpExpObj = sortJsonKeys(expObj);
-   
-   if(!isObjEqual(tmpActObj, tmpExpObj))
+   try
    {
-      println("tmpActObj:" + JSON.stringify(tmpActObj) + "\ntmpExpObj:" + JSON.stringify(tmpExpObj));
-      throw "check_sequence_err";
+      if(expObj.Increment == undefined){expObj.Increment = 1;}
+      if(expObj.StartValue == undefined){expObj.StartValue = 1;}
+      if(expObj.MinValue == undefined){expObj.MinValue = 1;}
+      if(expObj.MaxValue == undefined){expObj.MaxValue = {$numberLong:"9223372036854775807"};}
+      if(expObj.CacheSize == undefined){expObj.CacheSize = 1000;}
+      if(expObj.AcquireSize == undefined){expObj.AcquireSize = 1000;}
+      if(expObj.Cycled == undefined){expObj.Cycled = false;}
+      if(expObj.CurrentValue == undefined){expObj.CurrentValue = 1;}
+   
+      var sequenceObj = db.snapshot(SDB_SNAP_SEQUENCES, {Name:sequenceName}).next().toObj();
+      delete sequenceObj._id;
+      delete sequenceObj.Version;
+      delete sequenceObj.Initial;
+      delete sequenceObj.Internal;
+      delete sequenceObj.Name;
+      delete sequenceObj.SequenceID
+      delete sequenceObj.ID
+   
+      var tmpActObj = sortJsonKeys(sequenceObj);
+      var tmpExpObj = sortJsonKeys(expObj);
+   
+      if(!isObjEqual(tmpActObj, tmpExpObj))
+      {
+         println("tmpActObj:" + JSON.stringify(tmpActObj) + "\ntmpExpObj:" + JSON.stringify(tmpExpObj));
+         throw "check_sequence_err";
+      }
+   }
+   catch(e)
+   {
+      throw new Error(e);
    }
 }
 
@@ -298,14 +367,94 @@ function checkSequence(sequenceName, expObj)
 *******************************************************************************/
 function checkCountFromNode( groupName, csName, clName, expCount )
 {
-   var rg = db.getRG(groupName);
-   var data = rg.getMaster().connect();
-   var dataCL = data.getCS(csName).getCL(clName);
-   var count = dataCL.count();
-   if(parseInt(count) !== expCount )
+   try
    {
-      println("expect count: " + expCount + "\nactual count:" + parseInt(count));
-      throw "data count err";
+      var rg = db.getRG(groupName);
+      var data = rg.getMaster().connect();
+      var dataCL = data.getCS(csName).getCL(clName);
+      var count = dataCL.count();
+      if(parseInt(count) !== expCount )
+      {
+         println("expect count: " + expCount + "\nactual count:" + parseInt(count));
+         throw "data count err";
+      }
    }
-   
+   catch(e)
+   {
+      throw new Error(e);
+   }
 }
+
+/*******************************************************************************
+@Description : 插入其他不支持类型的记录
+@return: 
+@Modify list : 2018-10-17 zhaoyu init
+*******************************************************************************/
+function insertOtherTypeDatas(dbcl, arr)
+{  
+   for(var i=0; i<arr.length; i++ )
+   {  
+      try
+      {  
+         dbcl.insert(arr[i]);
+         throw "NEED_INSERT_ERR";
+      }catch(e)
+      {  
+         if(e !== -6)
+         {  
+            println("err occor the " + i + "th record, record is :" + JSON.stringify(arr[i]));
+            throw new Error(e);
+         }
+      }
+   }
+}
+
+/*******************************************************************************
+@Description : 指定options参数为不支持类型创建自增字段
+@return: 
+@Modify list : 2018-10-17 zhaoyu init
+*******************************************************************************/
+function create(dbcl, options, isLegal)
+{
+   try
+   {
+      dbcl.createAutoIncrement(options);
+      if(!isLegal)
+      {
+         throw "NEED_ERROR";
+      }
+   }
+   catch(e)
+   {
+      if(!isLegal)
+      {
+         if(e !== -6)
+         {
+            throw new Error(e);
+         }
+      }
+      else
+      {
+         throw new Error(e);
+      }
+   }
+}
+
+/*******************************************************************************
+@Description : 插入数据并返回预期结果
+@return: 
+@Modify list : 2018-10-17 zhaoyu init
+*******************************************************************************/
+function insertAndGetExpList(cl, increment_1, increment_2, currentValue_1, currentValue_2, expList, insertCount)
+{
+   for(var i = 0; i < 3; i++){
+      cl.insert({a: i});
+      currentValue_1 = currentValue_1 + increment_1;
+      currentValue_2 = currentValue_2 + increment_2;
+      expList.push({a: i, id1: currentValue_1, id2: currentValue_2});
+      insertCount.count++;
+   }
+   expList.sort(compare("id1"));
+   return expList;
+}
+

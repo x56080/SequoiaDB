@@ -59,12 +59,12 @@ function main()
    try
    {
       cl[1].insert({a : sortField}); 
-      throw "coordB insert error!";
+      throw new Error( "coordB insert error!" );
    }catch(e)
    {
       if(e != -38)
       {
-         throw e;
+         throw new Error(e);
       }
    }
    
@@ -89,4 +89,15 @@ function main()
    
    commDropCL( db, COMMCSNAME, clName );
 }
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

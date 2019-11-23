@@ -36,11 +36,22 @@ function main()
    for(var i in clAutoIncreNames){
       var tmpName = clAutoIncreNames[i];
       if(autoIncreNames.indexOf(tmpName) == -1){
-         throw buildException("main", "LIST_SEQUENCES ERROR", "indexOf(tempName) == -1", clAutoIncreNames, autoIncreNames);
+         throw new Error("indexOf(tempName) is -1 but is " + autoIncreNames.indexOf(tmpName));
       }
    }
    
    commDropCL( db, COMMCSNAME, clName );
 }
 
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

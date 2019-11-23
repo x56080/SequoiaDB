@@ -44,7 +44,7 @@ function main()
    var cursor = db.snapshot( 8, { Name : COMMCSNAME + "." + clName } );
    if( cursor.current().toObj().AutoIncrement.length !== 0 )
    {
-      throw "drop autoIncrement failed!";
+      throw new Error("drop autoIncrement failed!");
    }
    
    rc = dbcl.find();
@@ -54,4 +54,15 @@ function main()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

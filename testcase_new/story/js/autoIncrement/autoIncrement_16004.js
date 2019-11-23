@@ -1,4 +1,4 @@
-﻿/***************************************************************************
+/***************************************************************************
 @Description :seqDB-16004 :创建集合时，创建自增字段不允许循环
 @Modify list :
               2018-10-25  zhaoyu  Create
@@ -50,7 +50,7 @@ function main()
       {
          if(-325 !== e)
          { 
-            throw e;
+            throw new Error(e);
          }
       }
       coord.close();
@@ -85,12 +85,12 @@ function main()
       try
       {
          cl.insert({a:"insert"});
-         throw "NEED_INSERT_ERROR";
+         throw new Error("NEED_INSERT_ERROR");
       }catch(e)
       {
          if(-325 !== e)
          { 
-            throw e;
+            throw new Error(e);
          }
       }
       coord.close();
@@ -101,4 +101,15 @@ function main()
    
    commDropCL(db, COMMCSNAME, clName, true, true);
 }
-main()
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

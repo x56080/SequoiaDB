@@ -19,15 +19,26 @@ function main()
    try
    {
       dbcl.dropAutoIncrement( "b1" );
-      throw "drop error!";  
+      throw new Error( "drop error!" );  
    }catch(e)
    {
       if(e !== -333)
       {
-         throw "drop autoIncrement error!";
+         throw new Error(e);
       }
    }
    
    commDropCL( db, COMMCSNAME, clName );
 }
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}

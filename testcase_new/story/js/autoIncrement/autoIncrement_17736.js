@@ -43,7 +43,7 @@ function main()
    var cursor = db.snapshot(SDB_SNAP_SEQUENCES, { Name : sequenceName });
    if( cursor.current().toObj().CurrentValue !== -2002)
    {
-      throw "failed!";
+      throw new Error( "failed!" );
    }
    
    //coordA不指定自增字段插入记录，耗尽本coord缓存[-100,-1]
@@ -86,4 +86,15 @@ function main()
    
    commDropCL( db, COMMCSNAME, clName );
 }
-main();
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e ;
+}
