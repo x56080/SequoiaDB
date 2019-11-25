@@ -95,7 +95,7 @@ public class SplitRange11558C extends SdbTestBase {
             cl.insert(invDoc);
 
             // percent split
-            ThreadExecutor es = new ThreadExecutor();
+            ThreadExecutor es = new ThreadExecutor(900000);// 15min
             es.addWorker(new rangeSplit(clName, new BasicBSONObject("a", 0), new BasicBSONObject("a", 100)));
             es.addWorker(new deleteInvalidRecs(clName, invDoc));
             es.run();

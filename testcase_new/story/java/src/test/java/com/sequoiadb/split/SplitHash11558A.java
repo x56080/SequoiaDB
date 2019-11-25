@@ -91,7 +91,7 @@ public class SplitHash11558A extends SdbTestBase {
             cl.insert(invDoc);
 
             // percent split
-            ThreadExecutor es = new ThreadExecutor();
+            ThreadExecutor es = new ThreadExecutor(900000);// 15min
             es.addWorker(new percentSplit(clName, 50));
             es.addWorker(new cancelSplitTask(cl.getFullName()));
             es.run();
