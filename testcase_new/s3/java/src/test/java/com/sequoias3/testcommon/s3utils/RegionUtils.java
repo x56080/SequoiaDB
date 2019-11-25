@@ -1,24 +1,5 @@
 package com.sequoias3.testcommon.s3utils;
 
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
-import org.bson.types.BasicBSONList;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.json.XML;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.HttpClientErrorException;
-import org.testng.Assert;
-import org.testng.SkipException;
-
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.util.DateUtils;
@@ -30,6 +11,23 @@ import com.sequoias3.region.Region;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestRest;
 import com.sequoias3.user.UserCommDefind;
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
+import org.bson.types.BasicBSONList;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.json.XML;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
+import org.testng.Assert;
+import org.testng.SkipException;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 public class RegionUtils extends S3TestBase {
     private static MediaType type = MediaType.parseMediaType("text/xml;charset=UTF-8");
@@ -162,28 +160,12 @@ public class RegionUtils extends S3TestBase {
         JSONObject jsonBody = XML.toJSONObject(xmlBody);
         JSONObject subjsonBody = jsonBody.getJSONObject("RegionConfiguration");
         Region region = new Region();
-        region.withName(subjsonBody.getString("Name"));
+        region.withName(String.valueOf(subjsonBody.get("Name")));
         region.withDataCSShardingType(subjsonBody.getString("DataCSShardingType"));
         region.withDataCLShardingType(subjsonBody.getString("DataCLShardingType"));
         region.withDataDomain(subjsonBody.getString("DataDomain"));
-        try {
-            region.withDataLobPageSize(String.valueOf(subjsonBody.getInt("DataLobPageSize")));
-        } catch (JSONException e) {
-            if (e.getMessage().equals("JSONObject[\"DataLobPageSize\"] is not an int.")) {
-                region.withDataLobPageSize("");
-            } else {
-                throw e;
-            }
-        }
-        try {
-            region.withDataReplSize(String.valueOf(subjsonBody.getInt("DataReplSize")));
-        } catch (JSONException e) {
-            if (e.getMessage().equals("JSONObject[\"DataReplSize\"] is not an int.")) {
-                region.withDataReplSize("");
-            } else {
-                throw e;
-            }
-        }
+        region.withDataLobPageSize(String.valueOf(subjsonBody.get("DataLobPageSize")));
+        region.withDataReplSize(String.valueOf(subjsonBody.get("DataReplSize")));
         region.withMetaDomain(subjsonBody.getString("MetaDomain"));
         region.withDataLocation(subjsonBody.getString("DataLocation"));
         region.withMetaLocation(subjsonBody.getString("MetaLocation"));
@@ -199,14 +181,14 @@ public class RegionUtils extends S3TestBase {
                 for (int i = 0; i < jsonArray.length(); i++) {
                     Bucket bucket = new Bucket();
                     JSONObject subjsonObject = jsonArray.getJSONObject(i);
-                    bucket.setName(subjsonObject.getString("Name"));
+                    bucket.setName(String.valueOf(subjsonObject.get("Name")));
                     bucket.setCreationDate(DateUtils.parseISO8601Date(subjsonObject.getString("CreationDate")));
                     buckets.add(bucket);
                 }
             } else {
                 JSONObject json = (JSONObject) jsonObjectBucket;
                 Bucket bucket = new Bucket();
-                bucket.setName(json.getString("Name"));
+                bucket.setName(String.valueOf(json.get("Name")));
                 bucket.setCreationDate(DateUtils.parseISO8601Date(json.getString("CreationDate")));
                 buckets.add(bucket);
             }
