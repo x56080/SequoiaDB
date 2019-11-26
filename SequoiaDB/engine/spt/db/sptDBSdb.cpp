@@ -1363,6 +1363,10 @@ namespace engine
       rc = _sptSdb.isValid( &result ) ;
       if( SDB_OK != rc || FALSE == result )
       {
+         if( FALSE == result )
+         {
+            rc = SDB_NOT_CONNECTED ;   
+         }
          detail = BSON( SPT_ERR << "Sdb.traceResume(): no connection handle" ) ;
          goto error ;
       }

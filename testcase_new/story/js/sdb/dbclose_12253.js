@@ -5,22 +5,21 @@
 ******************************************************************************/
 function main()
 {
-    var tmpdb = new Sdb( COORDHOSTNAME, COORDSVCNAME ) ;
-    tmpdb.close() ;
-    
-    try
-    {
-        tmpdb.traceResume() ;
-    }
-    catch( e )
-    {
-        var errmsg = e.toString() ;
-        if( errmsg.indexOf( "no connection handle" ) === -1 )
-        {
-            throw buildException( "main", e, "test traceResume after close",
-                  "no connection handle", errmsg ) ;
-        }
-    }
+   var tmpdb = new Sdb( COORDHOSTNAME, COORDSVCNAME ) ;
+   tmpdb.close() ;
+   
+   try
+   {
+       tmpdb.traceResume() ;
+   }
+   catch( e )
+   {
+       if( e == 0 )
+       {
+           throw buildException( "main", e, "test traceResume after close",
+                 "no connection handle", errmsg ) ;
+       }
+   }
 }
 
 main() ;
