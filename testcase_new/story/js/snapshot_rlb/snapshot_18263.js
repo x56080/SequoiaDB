@@ -13,8 +13,9 @@ catch(e)
    {
       println(e.stack);
    }
-   throw new Error(e);
+   throw e;
 }
+
 function main()
 {
    if(commIsStandalone( db ))
@@ -85,11 +86,11 @@ function checkResult( option, expResult )
       }
       if(actResult.length !== expResult.length)
       {
-         throw new Error("expectCount is " + actResult.length + ", but actCount is " + expResult.length);
+         throw "expectCount is " + actResult.length + ", but actCount is " + expResult.length;
       }
       if(JSON.stringify(actResult) !== JSON.stringify(expResult))
       {
-         throw new Error("expectResult is " + JSON.stringify(expResult) + ", but actResult is " + JSON.stringify(actResult));
+         throw "expectResult is " + JSON.stringify(expResult) + ", but actResult is " + JSON.stringify(actResult);
       }
    }
    catch(e)

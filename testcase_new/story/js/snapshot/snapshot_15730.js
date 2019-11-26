@@ -6,44 +6,46 @@
 
 function main()
 {
-   if (commGetGroupsNum(db) < 1)
+   if(commIsStandalone(db))
    {
-      return ;
-   }
-   try{
-      commDropCS( db, COMMCSNAME+"15730", true, "drop CS "+COMMCSNAME+"15730" );
-   }catch( e ){}
-   var varCS = commCreateCS( db, COMMCSNAME+"15730", true, "create CS" );
-   var groups = commGetGroups(db);
-   var srcGroupName = groups[0][0].GroupName;
-   var varCL = varCS.createCL(COMMCLNAME+"15730",{ShardingKey:{a:1},ShardingType:"hash",Group:srcGroupName});
-   var clfullname = COMMCSNAME+"15730."+COMMCLNAME+"15730";
-   db.createProcedure(function test15730(clfullname){ return new SdbSnapshotOption().cond({Name:clfullname}).sel({Name:1,UniqueID:1}).sort({Version:1}).options({expand:true}).limit(1).skip(0).flags(1);});
-   
-   var a = db.eval( 'test15730("'+clfullname+'")' );
-   var cur = db.snapshot(SDB_SNAP_CATALOG, a);
-   var size=0;
-   while( cur.next() )
+      println("Deploy is standalone!");
+      return;
+   }  
+ 
+   var clName = "cl_15730";
+   var fullName = COMMCSNAME + "." + clName;
+   var groupName = commGetGroups(db)[0][0].GroupName;
+   db.getCS(COMMCSNAME).createCL(clName, {ShardingKey: {a: 1}, ShardingType: "hash", Group: groupName});
+   db.createProcedure(function test15730(fullName){ return new SdbSnapshotOption().cond({Name: fullName}).sel({Name: 1, archiveon: 1}).sort({Version: 1}).options({expand: false}).limit(1).skip(0).flags(1);});
+   try
    {
-      size++;
-      var ret = cur.current();
-      if( ret.toObj().Name !== clfullname)
+      var sdbSnapshotOption = db.eval( 'test15730("' + fullName + '")' );
+      var cursor = db.snapshot(SDB_SNAP_CATALOG, sdbSnapshotOption);
+      var actResult = [];
+      var expResult = [{"Name": fullName, archiveon: 1}];
+      while( cursor.next() )
       {
-         throw buildException("check count", "", "test SdbSnapshotOption创建存储过程error!", clfullname, ret.toObj().Name);
+         actResult.push(cursor.current().toObj());
       }
+      checkResult(actResult, expResult);
+
+      commDropCL( db, COMMCSNAME, clName );
    }
-   if( size <= 0 )
+   finally
    {
-      throw buildException("check count", "", "snapshot(SDB_SNAP_CONFIGS,new SdbSnapshotOption().options({\"expand\":false}))", ">0", "<=");
-   }
-   try{
-      commDropCS( db, COMMCSNAME+"15730", true, "drop CS "+COMMCSNAME+"15730" );
       db.removeProcedure("test15730");
-   }
-   catch( e )
-   {
-      throw buildException("teardown 15730 fail", e, "clear", "success", e);
    }
 }
 
-main(db) ;
+try
+{
+   main();
+}
+catch(e)
+{
+  if(e.constructor === Error)
+   {
+      println(e.stack);
+   }
+   throw e;
+}

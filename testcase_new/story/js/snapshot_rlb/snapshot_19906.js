@@ -34,10 +34,10 @@ function main()
       var showError = "show";
       var showErrorMode = "aggr";
       var snapshotOption = "/*+use_option(ShowError, " + showError + ") use_option(ShowErrorMode, " + showErrorMode + ")*/";
-      var cursor = db.exec("select * from $SNAPSHOT_DB " + snapshotOption);
-      var errNodes = cursor.current().toObj()["ErrNodes"];
       for(var j = 0; j < nodeAddresses.length; j++)
       {
+         var cursor = db.exec("select * from $SNAPSHOT_DB " + snapshotOption);
+         var errNodes = cursor.current().toObj()["ErrNodes"];
          var hostName = nodeAddresses[j]["hostName"];
          var svcName = nodeAddresses[j]["svcName"];
          for(var k = 0; k < errNodes.length; k++)
@@ -65,9 +65,9 @@ function main()
       showError = "show";
       showErrorMode = "flat";
       snapshotOption = "/*+use_option(ShowError, " + showError + ") use_option(ShowErrorMode, " + showErrorMode + ")*/";
-      cursor = db.exec("select * from $SNAPSHOT_DB " + snapshotOption);
       for(var i = 0; i < nodeAddresses.length; i++)
       {
+         cursor = db.exec("select * from $SNAPSHOT_DB " + snapshotOption);
          var hostName = nodeAddresses[i]["hostName"];
          var svcName = nodeAddresses[i]["svcName"];
          while(cursor.next())

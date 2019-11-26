@@ -20,7 +20,7 @@ function main()
       var ret = cur.current().toObj();  
       if(ret.Name != COMMCSNAME + "." + clName)
       {
-         throw buildException("compare name", "", "snapshot( SDB_SNAP_COLLECTIONS, option)", COMMCSNAME + "." + clName, ret.Name);
+         throw new Error("ExpResult is " + COMMCSNAME + "." + clName + ", but actResult is " + ret.Name);
       }
       recurObj(ret);
    }   
@@ -28,15 +28,32 @@ function main()
 }
 
 function recurObj(obj){
-   for(var item in obj){
-      if(typeof(obj[item]) == "object"){
-         return recurObj(obj[item]);
+   try
+   {
+      for(var item in obj){
+         if(typeof(obj[item]) == "object"){
+            return recurObj(obj[item]);
+         }
+         if (obj[item] == null){
+            throw "expResult is " + obj[item] + ", but actResult is null";
+         }
       }
-      if (obj[item] == null){
-         println(item + ": " + obj[item]);
-         throw buildException("compare item", "", "snapshot( SDB_SNAP_COLLECTIONS, option)", "null", obj[item]);
-      }
+   }
+   catch(e)
+   {
+      throw new Error(e);
    }
 }
 
-main(db) ;
+try
+{
+   main(db) ;
+}
+catch(e)
+{
+   if(e.constructor === Error)
+   {
+      println(e.stack);
+   }
+   throw e;
+}

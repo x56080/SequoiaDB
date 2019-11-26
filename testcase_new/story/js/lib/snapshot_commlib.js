@@ -1,84 +1,80 @@
-try
+/*******************************************************************************
+@Description : 校验集合快照信息
+@Modify list : 2019-11-18 zhao xiaoni init
+*******************************************************************************/
+function checkStatistics(actStatistics, expStatistics)
 {
-   function checkStatistics(clFullName, nodeNameMaster, expStatistics)
+   try
    {
-      var actStatistics = getStatistics(clFullName, nodeNameMaster);
-      for(var i=0; i<expStatistics.length; i++)
-      {
-         if(JSON.stringify(actStatistics).indexOf(JSON.stringify(expStatistics[i])) == -1)
+      println("Start to check statistics");
+      for(var i = 0; i < expStatistics.length; i++)
+      { 
+         for(var j = 0; j < actStatistics.length; j++)
          {
-            println("actStatistics:" + JSON.stringify(actStatistics));
-            println("expStatistics:" + JSON.stringify(expStatistics));
-            throw "ERR";
+            if(expStatistics[i].NodeName === actStatistics[j].NodeName)
+            {
+               for(var key in expStatistics[j])
+               {
+                  if(expStatistics[i][key] !== actStatistics[j][key])
+                  {
+                     throw "expect: " + expStatistics[j][key] + "\nact: " + actStatistics[j][key];
+                  }
+               }
+               break;
+            }
          }
       }
+      println("End to check statistics");
+   }
+   catch(e)
+   {
+      throw new Error(e);
    }
 }
-catch(e)
-{
-   throw new Error(e);
-}
 
-try
+/*******************************************************************************
+@Description : 获取指定节点的集合快照信息
+@Modify list : 2019-11-18 zhao xiaoni init
+*******************************************************************************/
+function getStatistics(fullName, nodeNames)
 {
-   function getStatistics(clFullName, nodeNameMaster)
+   try
    {
-      var cursor = db.snapshot(SDB_SNAP_COLLECTIONS, {Name: clFullName});
+      var cursor = db.snapshot(SDB_SNAP_COLLECTIONS, {Name: fullName});
       var tmpArray = [];
-      while(cursor.next())
+      var details = cursor.current().toObj().Details;
+      for(var i = 0; i < details.length; i++)
       {
-         var details = cursor.current().toObj().Details;
-         for(var k=0; k< details.length; k++)
+         var group = cursor.current().toObj().Details[i].Group;
+         for(var j = 0; j < nodeNames.length; j++)
          {
-            var group = cursor.current().toObj().Details[k].Group;
-            for(var i=0; i<group.length; i++)
+            for(var k = 0; k < group.length; k++)
             {
-               var tmpObj = {};
-               tmpObj.NodeName = group[i].NodeName;
-               tmpObj.TotalDataRead = group[i].TotalDataRead;
-               //事务transuserbs=true时，可能产生额外TotalIndexRead，不对该值进行比较
-               //tmpObj.TotalIndexRead = group[i].TotalIndexRead;
-               tmpObj.TotalDataWrite = group[i].TotalDataWrite;
-               tmpObj.TotalIndexWrite = group[i].TotalIndexWrite;
-               tmpObj.TotalUpdate = group[i].TotalUpdate;
-               tmpObj.TotalDelete = group[i].TotalDelete;
-               tmpObj.TotalInsert = group[i].TotalInsert;
-               tmpObj.TotalSelect = group[i].TotalSelect;
-               tmpObj.TotalRead = group[i].TotalRead;
-               tmpObj.TotalWrite = group[i].TotalWrite;
-               tmpObj.TotalTbScan = group[i].TotalTbScan;
-               tmpObj.TotalIxScan = group[i].TotalIxScan;
-               tmpArray.push(tmpObj);
-            }
-         } 
-      }  
-      var statArray = [];
-      for(var i=0; i<tmpArray.length; i++)
-      {
-         for(var j=0; j<nodeNameMaster.length; j++)
-         {
-            var actObj = {};
-            if(tmpArray[i].NodeName == nodeNameMaster[j])
-            {
-               delete tmpArray[i].NodeName;
-               actObj = tmpArray[i]; 
-               statArray.push(actObj);
+               if(group[k].NodeName === nodeNames[j])
+               {
+                  tmpArray.push(group[k]);
+                  break;
+               }
             }
          }
-      }
-      return statArray;
+      }  
+      return tmpArray;
+   }
+   catch(e)
+   {
+      throw new Error(e);
    }
 }
-catch(e)
-{
-   throw new Error(e);
-}
 
-try
+/*******************************************************************************
+@Description : 获取数据组名
+@Modify list : 2019-11-18 zhao xiaoni init
+*******************************************************************************/
+function getDataGroupNames()
 {
-   function getDataGroupNames()
+   var groups = commGetGroups( db, false, "", false, false, false );
+   try
    {
-      var groups = commGetGroups( db, false, "", false, false, false );
       var dataGroupNames = [];
       for(var i=0 ;i<groups.length;i++)
       {
@@ -90,20 +86,44 @@ try
       }   
       return dataGroupNames; 
    }
+   catch(e)
+   {
+      throw new Error(e);
+   }
 }
-catch(e)
+
+/*******************************************************************************
+@Description : 校验实际结果与预期结果
+@Modify list : 2019-11-18 zhao xiaoni init
+*******************************************************************************/
+function checkResult(actResult, expResult)
 {
-   throw new Error(e);
+   try
+   {
+      if(actResult.length !== expResult.length)
+      {
+         throw "expectResult.length is " + expResult.length + ", but actResult.length is " + actResult.length;
+      }
+      if(JSON.stringify(actResult) !== JSON.stringify(expResult))
+      {
+         throw "expectResult is " + JSON.stringify(expResult) + ", but actResult is " + JSON.stringify(actResult);
+      }
+   }
+   catch(e)
+   {
+      throw new Error(e);
+   }
 }
+
 
 /************************************
 *@Description: get a coord nod, a cata node, a data node
 *@author:      zhaoxiaoni
 *@createDate:  2019/10/21
 **************************************/
-try
+function getNodeAddresses()
 {
-   function getNodeAddresses()
+   try 
    {
       var cata = true;
       var data = true;
@@ -120,7 +140,10 @@ try
             var hostName = groupArray[i]["HostName"];
             var svcName = groupArray[i]["Service"][0]["Name"];
             var json = {"hostName": hostName, "svcName": svcName};
-            if(groupObj["Role"] === 1 && hostName != System.getHostName() && coord == true)
+            var remote = new Remote(COORDHOSTNAME, 11790);
+            var cmd = remote.getCmd();
+            var remoteHostName = cmd.run("hostname").split("\n")[0];
+            if(groupObj["Role"] === 1 && hostName != remoteHostName && coord == true)
             {
                nodeAddresses.push(json);
                coord = false;
@@ -142,17 +165,21 @@ try
       }
       return nodeAddresses;
    }
-}
-catch(e)
-{
-   throw new Error(e);
+   catch(e)
+   {
+      throw new Error(e);
+   }
 }
 
-try
+/*******************************************************************************
+@Description : 停止节点
+@Modify list : 2019-11-18 zhao xiaoni init
+*******************************************************************************/
+function stopNodes( nodeAddresses )
 {
-   function stopNodes( nodeAddresses )
+   var installDir = commGetInstallPath();
+   try
    {
-      var installDir = commGetInstallPath();
       command = installDir + "/bin/sdbstop -p ";
    
       for(var i=0; i<nodeAddresses.length; i++)
@@ -164,17 +191,21 @@ try
          cmd.run(command + svcName);
       } 
    }
-}
-catch(e)
-{
-   throw new Error(e);
+   catch(e)
+   {
+      throw new Error(e);
+   }
 }
 
-try
+/*******************************************************************************
+@Description : 开启节点
+@Modify list : 2019-11-18 zhao xiaoni init
+*******************************************************************************/
+function startNodes( nodeAddresses )
 {
-   function startNodes( nodeAddresses )
+   var installDir = commGetInstallPath();
+   try
    {
-      var installDir = commGetInstallPath();
       command = installDir + "/bin/sdbstart -p ";
       
       for(var i=0; i<nodeAddresses.length; i++)
@@ -186,8 +217,8 @@ try
          cmd.run(command + svcName);
       }
    }
-}
-catch(e) 
-{
-   throw new Error(e);
+   catch(e)
+   {
+      throw new Error(e);
+   }
 }

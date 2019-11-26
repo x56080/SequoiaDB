@@ -34,10 +34,10 @@ function main()
       var showError = "show";
       var showErrorMode = "aggr";
       var sdbsnapshotOption = new SdbSnapshotOption().options({ShowError: showError, ShowErrorMode: showErrorMode});
-      var cursor = db.snapshot(SDB_SNAP_HEALTH, sdbsnapshotOption);
-      var errNodes = cursor.current().toObj()["ErrNodes"];
       for(var i = 0; i < nodeAddresses.length; i++)
       {
+         var cursor = db.snapshot(SDB_SNAP_HEALTH, sdbsnapshotOption);
+         var errNodes = cursor.current().toObj()["ErrNodes"];
          var hostName = nodeAddresses[i]["hostName"];
          var svcName = nodeAddresses[i]["svcName"];
          for(var j = 0; j < errNodes.length; j++)
@@ -65,9 +65,9 @@ function main()
       showError = "show";
       showErrorMode = "flat";
       sdbsnapshotOption = new SdbSnapshotOption().options({ShowError: showError, ShowErrorMode: showErrorMode});
-      cursor = db.snapshot(SDB_SNAP_HEALTH, sdbsnapshotOption);
       for(var i = 0; i < nodeAddresses.length; i++)
       {
+         cursor = db.snapshot(SDB_SNAP_HEALTH, sdbsnapshotOption);
          var hostName = nodeAddresses[i]["hostName"];
          var svcName = nodeAddresses[i]["svcName"];
          while(cursor.next())

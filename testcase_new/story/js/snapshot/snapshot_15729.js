@@ -6,25 +6,39 @@
 
 function main()
 {
-   var option = new SdbOptionBase();
-   option.cond({role:"data"}).sel({role:1,svcname:1}).sort({svcname:1}).hint({$Options:{expand:true}}).limit(5).skip(0).flags(1);
-   var cur = db.snapshot( SDB_SNAP_CONFIGS, option);
-   var size=0;
+   var cond = {"role": "data"};
+   var sel = {"role": 1, "svcname": 1};
+   var sort = {"svcname": 1};
+   var hint = {"$Options": {"expand": false}};
+   var option = new SdbOptionBase().cond(cond).sel(sel).sort(sort).hint(hint).limit(5).skip(0).flags(1);
+   var cursor = db.snapshot( SDB_SNAP_CONFIGS, option);
+   var count = 0;
    var tmp = 0;
-   while( cur.next() )
+   while( cursor.next() )
    {
-      size++;
-      var ret = cur.current();  
-      if(ret.toObj().svcname < tmp)
+      var obj = cursor.current().toObj();
+      if(obj.svcname < tmp)
       {
-         throw buildException("compare svcname", "", "snapshot( SDB_SNAP_CONFIGS,option)", ">=", "<");
+         throw new Error("SORT ERROE!");
       }
-      tmp = ret.toObj().svcname;
+      tmp = obj.svcname;
+      count++;
    }
-   if( size <= 0 )
+   if( count <= 0 )
    {
-      throw buildException("check count", e, "snapshot(SDB_SNAP_CONFIGS,option)", ">0", "<=0");
+      throw new Error("Expect count <=0, but act count is " + count);
    }
 }
 
-main(db) ;
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e;
+}

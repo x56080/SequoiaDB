@@ -4,21 +4,30 @@
 *@author      : wangkexin
 *@Date        : 2019-09-27
 ******************************************************************************/
-main(db) ;
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e;
+}
 function main()
 {
    var fields = ["TaskName", "TaskID", "Time", "TotalContexts", "TotalDataRead", "TotalIndexRead", "TotalDataWrite", "TotalIndexWrite", "TotalUpdate", "TotalDelete", "TotalInsert", "TotalSelect", "TotalRead", "TotalWrite"];
-   var cur = db.snapshot( SDB_SNAP_SVCTASKS );
-   while( cur.next() )
+   var cursor = db.snapshot( SDB_SNAP_SVCTASKS );
+   while( cursor.next() )
    {
-      var ret = cur.current().toObj();
+      var obj = cursor.current().toObj();
       for(var index in fields)
       {
-         var field = fields[index];
-         if (ret[field] == null)
+         if(!obj.hasOwnProperty(fields[index]))
          {
-            println(field + ": " + ret[field]);
-            throw buildException("compare field", "", "snapshot( SDB_SNAP_SVCTASKS)", "not null", "null");
+            throw new Error(fields[index] + "does not exist in own properties!");
          }
       }
    }

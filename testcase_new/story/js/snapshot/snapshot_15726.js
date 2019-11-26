@@ -1,239 +1,209 @@
-/******************************************************************************
-*@Description : test snapshot SDB_SNAP_CONFIGS 
-*               TestLink : seqDB-15726:Ö¸¶¨¿ìÕÕ²éÑ¯²ÎÊı²éÑ¯¿ìÕÕĞÅÏ¢£¨Ò»¸ö²ÎÊı£©
-*@auhor       : CSQ 
-******************************************************************************/
-/*
- 1¡¢Ö¸¶¨¿ìÕÕ²éÑ¯²ÎÊı²éÑ¯¿ìÕÕĞÅÏ¢£¬¿ÉËæ»úÖ¸¶¨Ò»ÖÖ¿ìÕÕÀàĞÍ£¬¿ìÕÕ²ÎÊı²âÊÔÈçÏÂ£º cond£ºÖ¸¶¨Ò»¸öÌõ¼ş¡¢¶à¸öÌõ¼ş¡¢Ö¸¶¨Ìõ¼şÆ¥Åä²»µ½¼ÇÂ¼ sel£ºÖ¸¶¨¶à¸ö×Ö¶ÎÃû¡¢Ö¸¶¨×Ö¶ÎÃûÖĞ°üº¬²»´æÔÚµÄ×Ö¶ÎÃû¡¢Ö¸¶¨×Ö¶ÎÃû²»´æÔÚ sort£ºÖ¸¶¨½µĞò¡¢ÉıĞò skip£ºÖ¸¶¨ÆğÊ¼¼ÇÂ¼¡¢×îºóÒ»Ìõ¼ÇÂ¼¡¢³¬¹ı¼ÇÂ¼Êı limit£ºÖ¸¶¨Ò»Ìõ¡¢ËùÓĞ¼ÇÂ¼¡¢³¬¹ı¼ÇÂ¼Êı options£ºÖ¸¶¨js¶ÔÏó£¬ÈçÖ¸¶¨flagÖµ¡¢ÅäÖÃ¿ìÕÕ²ÎÊı 3¡¢¼ì²é¿ìÕÕ·µ»Ø½á¹û¼¯ 
-*/
+/***************************************************************************
+@Description : seqDB-15726:
+modify list : 2019-11-14  Chen siqin  Create
+****************************************************************************/
 function main()
 {
-   if (commGetGroupsNum(db)<2)
-   {
+   if (commGetGroupsNum(db) < 2)
+   {  
       return ;
    }
-   //cond£ºÖ¸¶¨Ò»¸öÌõ¼ş
-   var cur = db.snapshot( SDB_SNAP_CONFIGS,new SdbSnapshotOption().cond({role:"catalog"}));
-   var size=0;
-   while( cur.next() )
+   
+   //condæŒ‡å®šä¸€ä¸ªæ¡ä»¶
+   var count = 0;
+   var cursor = db.snapshot( SDB_SNAP_CONFIGS, new SdbSnapshotOption().cond({role: "catalog"}));
+   while( cursor.next() )
    {
-      size++;
-      var ret = cur.current();
-      if( ret.toObj().role != "catalog" )
+      var role = cursor.current().toObj().role;
+      if( role !== "catalog" )
       {
-         throw buildException("check record", "", "snapshot( SDB_SNAP_CONFIGS,new SdbSnapshotOption().cond({role:\"catalog\"}))", "catalog", ret.toObj().role);
+         throw new Error("Expect role is catalog, but act role is " +  ret.toObj().role);
       }
+      count++;
    }
-   if( size <= 0 )
+   if( count <= 0 )
    {
-      throw buildException("check count", "", "snapshot( SDB_SNAP_CONFIGS,new SdbSnapshotOption().cond({role:\"catalog\"}))", ">0", "<=0");
-   }
-   //cond¶à¸öÌõ¼ş
-   cur = db.snapshot(SDB_SNAP_HEALTH,new SdbSnapshotOption().cond({$and:[{IsPrimary:true}, {ServiceStatus:true}]}));
-   var size=0;
-   while( cur.next() )
+      throw new Error("count: " + count);
+   }   
+
+   //condæŒ‡å®šå¤šä¸ªæ¡ä»¶
+   count = 0;
+   cursor = db.snapshot(SDB_SNAP_HEALTH,new SdbSnapshotOption().cond({$and:[{IsPrimary: true}, {ServiceStatus: true}]}));
+   while( cursor.next() )
    {
-      size++;
-      var ret = cur.current();
-      if( ret.toObj().IsPrimary != true )
+      var obj = cursor.current().toObj();
+      if(!obj.IsPrimary)
       {
-         throw buildException("check record", "", "snapshot(SDB_SNAP_HEALTH,new SdbSnapshotOption().cond({$and:[{IsPrimary:true}, {ServiceStatus:true}]}))", true, ret.toObj().IsPrimary);
+         throw new Error("IsPrimary is false!");
       }
-      if( ret.toObj().ServiceStatus != true )
+      if(!obj.ServiceStatus)
       {
-         throw buildException("check record", "", "snapshot(SDB_SNAP_HEALTH,new SdbSnapshotOption().cond({$and:[{IsPrimary:true}, {ServiceStatus:true}]}))", true, ret.toObj().ServiceStatus);
+         throw new Error("ServiceStatus is false!");
       }
+      count++;
    }
-   if( size <= 0 )
+   if( count <= 0 )
    {
-      throw buildException("check size", "", "snapshot(SDB_SNAP_HEALTH,new SdbSnapshotOption().cond({$and:[{IsPrimary:true}, {ServiceStatus:true}]}))", ">0", "<=0");
+      throw new Error("count: " + count);
    }
-   //Ö¸¶¨Ìõ¼şÆ¥Åä²»µ½¼ÇÂ¼ 
-   cur = db.snapshot( SDB_SNAP_CONFIGS,new SdbSnapshotOption().cond({IsPrimary:true}));
-   var size=0;
-   while( cur.next() )
+
+   
+   //condæ¡ä»¶åŒ¹é…ä¸åˆ°è®°å½•
+   cursor = db.snapshot( SDB_SNAP_CONFIGS,new SdbSnapshotOption().cond({"key": "value"}));
+   while( cursor.next() )
    {
-      size++;  
+      throw new Error("Matched record!");
    } 
-   if( size !== 0 )
+   
+   //selæŒ‡å®šå¤šä¸ªå­—æ®µåï¼ˆåŒ…å«ä¸å­˜åœ¨çš„å­—æ®µåï¼‰
+   count = 0;
+   cursor= db.snapshot(SDB_SNAP_HEALTH,new SdbSnapshotOption().sel({IsPrimary: 1, ServiceStatus: 1, ZXN: 1}));
+   while( cursor.next() )
    {
-      throw buildException("check count", "", "snapshot( SDB_SNAP_CONFIGS,new SdbSnapshotOption().cond({IsPrimary:true}));", 0, size);
-   }
-   //selÖ¸¶¨¶à¸ö×Ö¶ÎÃû
-   cur = db.snapshot(SDB_SNAP_HEALTH,new SdbSnapshotOption().sel({IsPrimary:1, ServiceStatus:1}));
-   var size=0;
-   while( cur.next() )
-   {
-      size++;
-      var ret = cur.current();
-      if( ret.toObj().IsPrimary == undefined )
+      var obj = cursor.current().toObj();
+      if(!obj.hasOwnProperty("IsPrimary"))
       {
-         throw buildException("check record", "", "snapshot(SDB_SNAP_HEALTH,new SdbSnapshotOption().sel({IsPrimary:1, ServiceStatus:1}))", "not equals undefined", ret.toObj().IsPrimary);
+         throw new Error("IsPrimary does not exist in the own properties!");
       }
-      if( ret.toObj().ServiceStatus == undefined )
+      if(!obj.hasOwnProperty("ServiceStatus"))
       {
-         throw buildException("check record", "", "snapshot(SDB_SNAP_HEALTH,new SdbSnapshotOption().sel({IsPrimary:1, ServiceStatus:1}))", "not equals undefined", ret.toObj().ServiceStatus);
+         throw new Error("ServiceStatus does not exist in the own properties!");
       }
-   }
-   if( size <= 0 )
-   {
-      throw buildException("check count", "", "snapshot(SDB_SNAP_HEALTH,new SdbSnapshotOption().sel({IsPrimary:1, ServiceStatus:1}))", ">0", "<=0");
-   }
-   //selÖ¸¶¨×Ö¶ÎÃûÖĞ°üº¬²»´æÔÚµÄ×Ö¶ÎÃû
-   cur = db.snapshot(SDB_SNAP_HEALTH,new SdbSnapshotOption().sel({"csq":{$include:1},"IsPrimary":{$include:1}}));
-   var size = 0;
-   while( cur.next() )
-   {
-      size++;
-      var ret = cur.current();
-      if( ret.toObj().csq !== undefined )
+      if(!obj.hasOwnProperty("ZXN"))
       {
-         throw buildException("check record", "", "snapshot(SDB_SNAP_HEALTH,new SdbSnapshotOption().sel({IsPrimary:1, ServiceStatus:1}))", "undefined", ret.toObj().csq);
+         throw new Error("ZXN exists in the own properties!");
       }
-      if( ret.toObj().IsPrimary == undefined )
-      {
-         throw buildException("check record", "", "snapshot(SDB_SNAP_HEALTH,new SdbSnapshotOption().sel({IsPrimary:1, ServiceStatus:1}))", "not equals undefined", ret.toObj().IsPrimary);
-      }
+      count++;
    }
-   if( size <= 0 )
+   if( count <= 0 )
    {
-      throw buildException("check count", "", "snapshot(SDB_SNAP_HEALTH,new SdbSnapshotOption().sel({IsPrimary:1, ServiceStatus:1}))", ">0", "<=0");
+      throw new Error("count: " + count);
    }
-   //selÖ¸¶¨×Ö¶ÎÃû²»´æÔÚ
-   cur = db.snapshot(SDB_SNAP_HEALTH,new SdbSnapshotOption().sel({"csq":{$include:1}}));
-   var size=0;
-   while( cur.next() )
-   {
-      size++;
-      var ret = cur.current();
-      if( ret.toString() != "{}" )
-      {
-         throw buildException("check record", "", "snapshot(SDB_SNAP_HEALTH,new SdbSnapshotOption().sel({IsPrimary:1, ServiceStatus:1}));", "{}", ret.toString());
-      }
-   }
-   if( size <= 0 )
-   {
-     throw buildException("check count", "", "snapshot(SDB_SNAP_HEALTH,new SdbSnapshotOption().sel({IsPrimary:1, ServiceStatus:1}));", ">0", "<=0");
-   }
-   //sortÖ¸¶¨½µĞò
-   cur = db.snapshot( SDB_SNAP_CONFIGS,new SdbSnapshotOption().sort({svcname:-1}));
-   var size=0;
+
+   //sortæŒ‡å®šé™åº
+   count = 0;
    var tmp = 66660;
-   while( cur.next() )
+   cursor = db.snapshot( SDB_SNAP_CONFIGS,new SdbSnapshotOption().sort({svcname: -1}));
+   while( cursor.next() )
    {
-      size++;
-      var ret = cur.current();
-      if(ret.toObj().svcname > tmp)
+      var obj = cursor.current().toObj();
+      if(obj.svcname > tmp)
       {
-         throw buildException("check sort ", "SDB_SNAP_CONFIGS,new SdbSnapshotOption().sort({svcname:-1}))", "<=", ">");
+         throw new Error("Sort failed!");
       }
-      tmp = ret.toObj().svcname;
+      tmp = obj.svcname;
+      count++;
    }
-   if( size <= 0 )
+   if( count <= 0 )
    {
-      throw buildException("check count", "", "snapshot( SDB_SNAP_CONFIGS,new SdbSnapshotOption().sort({svcname:-1}))", ">0", "<=0");
+      throw new Error("count: " + count);
    }
-   //sortÉıĞò 
-   cur = db.snapshot( SDB_SNAP_CONFIGS,new SdbSnapshotOption().sort({svcname:1}));
-   var size=0;
-   var tmp = 0;
-   while( cur.next() )
+
+   
+   //sortå‡åº
+   count = 0;
+   tmp = 0;
+   cursor = db.snapshot( SDB_SNAP_CONFIGS,new SdbSnapshotOption().sort({svcname: 1}));
+   while( cursor.next() )
    {
-      size++;
-      var ret = cur.current();
-      if(ret.toObj().svcname < tmp)
+      var obj = cursor.current().toObj();
+      if(obj.svcname < tmp)
       {
-         throw buildException("check sort ", " ", "snapshot( SDB_SNAP_CONFIGS,new SdbSnapshotOption().sort({svcname:1}))", ">=", "<");
+         throw new Error("Sort failed");
       }
-      tmp = ret.toObj().svcname;
+      tmp = obj.svcname;
+      count++;
    }
-   if( size <= 0 )
+   if( count <= 0 )
    {
-      throw buildException("check count", "", "snapshot(SDB_SNAP_CONFIGS,new SdbSnapshotOption().sort({svcname:1}))", ">0", "<=0");
+      throw new Error("count: " + count);
    }
-   //skip£ºÖ¸¶¨ÆğÊ¼¼ÇÂ¼¡¢×îºóÒ»Ìõ¼ÇÂ¼¡¢³¬¹ı¼ÇÂ¼Êı limit£ºÖ¸¶¨Ò»Ìõ¡¢ËùÓĞ¼ÇÂ¼¡¢³¬¹ı¼ÇÂ¼Êı 
-   cur = db.snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().skip(0) );
-   var size=0;
-   while( cur.next() )
+
+   
+   //skipä¸º0
+   count = 0;
+   cursor = db.snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().skip(0) );
+   while( cursor.next() )
    {
-      size++;
-      var ret = cur.current();
+      count++;
    }
-   if( size !== 1 )
+   if( count !== 1 )
    {
-      throw buildException("check count", "", "snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().skip(0))", 1, size);
+      throw new Error("count: " + count);
    }
-   cur = db.snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().skip(1) );
-   var size=0;
-   while( cur.next() )
+   
+   
+   cursor = db.snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().skip(1) );
+   while( cursor.next() )
    {
-      size++;
-      var ret = cur.current();
+      throw new Error("Skip failed!");
    }
-   if( size !== 0 )
+   
+   
+   count = 0;
+   cursor = db.snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().skip(2) );
+   while( cursor.next() )
    {
-      throw buildException("check count", "", "snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().skip(1) )", 0, size);
+      count++;
    }
-   cur = db.snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().skip(2) );
-   var size=0;
-   while( cur.next() )
+   if( count !== 0 )
    {
-      size++;
-      var ret = cur.current();
+      throw new Error("count: " + count);
    }
-   if( size !== 0 )
+   
+   //limit0
+   cursor = db.snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().limit(0) );
+   while( cursor.next() )
    {
-      throw buildException("check count", "", "snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().skip(2) )", 0, size);
+      throw new Error("Limit failed!");
    }
-   cur = db.snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().limit(0) );
-   var size=0;
-   while( cur.next() )
+   
+   //limit1
+   count = 0;
+   cursor = db.snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().limit(1) );
+   while( cursor.next() )
    {
-      size++;
-      var ret = cur.current();
+      count++;
    }
-   if( size !== 0 )
+   if( count !== 1 )
    {
-      throw buildException("check count", "", "snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().limit(0) )", 0, size);
+      throw new Error("count: " + count);
    }
-   cur = db.snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().limit(1) );
-   var size=0;
-   while( cur.next() )
+   
+   //limit2
+   count = 0;
+   cursor = db.snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().limit(2) );
+   while( cursor.next() )
    {
-      size++;
-      var ret = cur.current();
+      count++;
    }
-   if( size !== 1 )
+   if( count !== 1 )
    {
-      throw buildException("check count", "", "snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().limit(1) )", 1, size);
+      throw new Error("count: " + count);
    }
-   cur = db.snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().limit(2) );
-   var size=0;
-   while( cur.next() )
+ 
+   //options
+   cursor = db.snapshot(SDB_SNAP_CONFIGS,new SdbSnapshotOption().options({"expand":false}));
+   while( cursor.next() )
    {
-      size++;
-      var ret = cur.current();
-   }
-   if( size !== 1 )
-   {
-      throw buildException("check count", "", "snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().limit(2) )", 1, size);
-   }
-   //options£ºÖ¸¶¨js¶ÔÏó£¬ÈçÖ¸¶¨flagÖµ¡¢ÅäÖÃ¿ìÕÕ²ÎÊı
-   cur = db.snapshot(SDB_SNAP_CONFIGS,new SdbSnapshotOption().options({"expand":false}));
-   var size=0;
-   while( cur.next() )
-   {
-      size++;
-      var ret = cur.current();
-      if( ret.toObj().archiveon !== undefined)
+      var obj = cursor.current().toObj();
+      if( obj.hasOwnProperty("archiveon"))
       {
-         throw buildException("check count", "", "snapshot(SDB_SNAP_CONFIGS,new SdbSnapshotOption().options({\"expand\":false}))", undefined, ret.toObj().archiveon);
+         throw new Error("archiveon exists in properties!");
       }
-   }
-   if( size <= 0 )
-   {
-      throw buildException("check count", "", "snapshot(SDB_SNAP_CONFIGS,new SdbSnapshotOption().options({\"expand\":false}))", ">", "<=");
    }
 }
 
-//main(db) ;
+try
+{
+   main();
+}
+catch(e)
+{
+   if ( e.constructor === Error )
+   {
+      println(e.stack) ;  
+   }
+   throw e;
+}
+
