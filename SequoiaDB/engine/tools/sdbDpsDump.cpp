@@ -987,7 +987,7 @@ INT32 _dpsDumper::_analysisMeta()
          goto error ;
       }
 
-      rc = _metaFilte( filename, index, meta ) ;
+      rc = _metaFilter( filename, index, meta ) ;
       if( rc && DPS_LOG_FILE_INVALID != rc  )
       {
          LogError( "Failed to parse meta data of file:[%s], rc = %d",
@@ -1034,7 +1034,7 @@ INT32 _dpsDumper::_analysisMeta()
             }
 
             dpsFileMeta meta;
-            rc = _metaFilte( filename, index, meta ) ;
+            rc = _metaFilter( filename, index, meta ) ;
             if( rc && DPS_LOG_FILE_INVALID != rc )
             {
                LogError( "Failed to parse meta data of file:[%s], rc = %d",
@@ -1250,8 +1250,8 @@ INT32 _dpsDumper::sortFiles( dpsMetaData &meta )
    return SDB_OK ;
 }
 
-INT32 _dpsDumper::_metaFilte( const CHAR *filename, INT32 index,
-                              dpsFileMeta &meta )
+INT32 _dpsDumper::_metaFilter( const CHAR *filename, INT32 index,
+                               dpsFileMeta &meta )
 {
    SDB_ASSERT( filename, "filename cannot be NULL ") ;
 
