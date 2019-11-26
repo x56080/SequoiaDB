@@ -3,41 +3,51 @@
 <!--sync testcase, which should be excute serially-->
 
 <suite name="driver" verbose="1" preserve-order="true">  
-   <parameter name="HOSTNAME"       value="${HOSTNAME}" />
-   <parameter name="SVCNAME"        value="${SVCNAME}" />
-   <parameter name="ESHOSTNAME"       value="${ESHOSTNAME}" />
-   <parameter name="ESSVCNAME"        value="${ESSVCNAME}" />
-   <parameter name="FULLTEXTPREFIX"        value="${FULLTEXTPREFIX}" />
-   <parameter name="CHANGEDPREFIX" value="story_java_test" />
-   <parameter name="RSRVPORTBEGIN" value="26000" />
-   <parameter name="RSRVPORTEND" value="27000" />
-   <parameter name="RSRVNODEDIR" value="/opt/sequoiadb/database/" />
-   <parameter name="WORKDIR" value="/tmp/javatest" />
+    <!--主机名，CI默认传入localhost-->
+    <parameter name="HOSTNAME"       value="${HOSTNAME}" />
+    <!--协调节点端口号，CI默认传入11810-->
+    <parameter name="SVCNAME"        value="${SVCNAME}" />
+    <!--全文索引ES端主机名，CI默认传入192.168.28.143-->
+    <parameter name="ESHOSTNAME"     value="${ESHOSTNAME}" />
+    <!--全文索引ES端端口号，CI默认传入9200-->
+    <parameter name="ESSVCNAME"      value="${ESSVCNAME}" />
+    <!--全文索引前缀，CI传入与工程名相关，例如NORMALTESTG3D3-->
+    <parameter name="FULLTEXTPREFIX" value="${FULLTEXTPREFIX}" />
+    <!--公共CS名-->
+    <parameter name="CHANGEDPREFIX"  value="story_java_test" />
+    <!--用例创建节点预留端口号最小值-->
+    <parameter name="RSRVPORTBEGIN"  value="26000" />
+    <!--用例创建节点预留端口号最大值-->
+    <parameter name="RSRVPORTEND"    value="27000" />
+    <!--用例创建节点存放节点数据目录-->
+    <parameter name="RSRVNODEDIR"    value="/opt/sequoiadb/database/" />
+    <!--用例存放临时文件的目录-->
+    <parameter name="WORKDIR"        value="/tmp/javatest" />
 
-   <listeners>
-      <listener class-name="com.sequoiadb.testcommon.TimePrinterListener"/>
-   </listeners>
+    <listeners>
+        <listener class-name="com.sequoiadb.testcommon.TimePrinterListener"/>
+    </listeners>
 
-   <test name="normal" preserve-order="true">
-       <packages>
-           <package name="com.sequoiadb.rename"/>
-       </packages>
-   </test>
-   <test name="normaltest">
-      <packages>
-         <package name="com.sequoiadb.crud.backup" />
-         <package name="com.sequoiadb.serial" />
-         <package name="com.sequoiadb.datasourceserial" />
-         <package name="com.sequoiadb.session.accessisolation" />
-         <package name="com.sequoiadb.metadataconsistency.cluster"/>
-         <package name="com.sequoiadb.alter"/>
-         <package name="com.sequoiadb.sync"/>
-         <package name="com.sequoiadb.dataconsistency"/>
-         <package name="com.sequoiadb.subcl.serial" />
-         <package name="com.sequoiadb.split.serial" />
-         <package name="com.sequoiadb.transaction.session.serial" />
-         <package name="com.sequoiadb.transaction.pendingobject" />
-      </packages>    
-   </test>
+    <test name="normal" preserve-order="true">
+        <packages>
+            <package name="com.sequoiadb.rename"/>
+        </packages>
+    </test>
+    <test name="normaltest">
+        <packages>
+            <package name="com.sequoiadb.crud.backup" />
+            <package name="com.sequoiadb.serial" />
+            <package name="com.sequoiadb.datasourceserial" />
+            <package name="com.sequoiadb.session.accessisolation" />
+            <package name="com.sequoiadb.metadataconsistency.cluster"/>
+            <package name="com.sequoiadb.alter"/>
+            <package name="com.sequoiadb.sync"/>
+            <package name="com.sequoiadb.dataconsistency"/>
+            <package name="com.sequoiadb.subcl.serial" />
+            <package name="com.sequoiadb.split.serial" />
+            <package name="com.sequoiadb.transaction.session.serial" />
+            <package name="com.sequoiadb.transaction.pendingobject" />
+        </packages>    
+    </test>
 </suite>
    

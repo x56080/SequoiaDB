@@ -3,121 +3,131 @@
 <!--testcase which should configure node -->
 
 <suite name="driver" verbose="1">
-   <parameter name="HOSTNAME" value="${HOSTNAME}" />
-   <parameter name="SVCNAME" value="${SVCNAME}" />
-   <parameter name="ESHOSTNAME" value="${ESHOSTNAME}" />
-   <parameter name="ESSVCNAME" value="${ESSVCNAME}" />
-   <parameter name="FULLTEXTPREFIX" value="${FULLTEXTPREFIX}" />
-   <parameter name="CHANGEDPREFIX" value="story_java_test" />
-   <parameter name="RSRVPORTBEGIN" value="26000" />
-   <parameter name="RSRVPORTEND" value="27000" />
-   <parameter name="RSRVNODEDIR"
-      value="/opt/sequoiadb/database/" />
-   <parameter name="WORKDIR" value="/tmp/javatest" />
-   <parameter name="CONFTOOL"
-      value="trunk/misc/ci_new/src/test/exec_testcase/changeConf.js" />
-   <parameter name="ENABLETRANSACTION" value="true" />
+    <!--主机名，CI默认传入localhost-->
+    <parameter name="HOSTNAME"          value="${HOSTNAME}" />
+    <!--协调节点端口号，CI默认传入11810-->
+    <parameter name="SVCNAME"           value="${SVCNAME}" />
+    <!--全文索引ES端主机名，CI默认传入192.168.28.143-->
+    <parameter name="ESHOSTNAME"        value="${ESHOSTNAME}" />
+    <!--全文索引ES端端口号，CI默认传入9200-->
+    <parameter name="ESSVCNAME"         value="${ESSVCNAME}" />
+    <!--全文索引前缀，CI传入与工程名相关，例如NORMALTESTG3D3-->
+    <parameter name="FULLTEXTPREFIX"    value="${FULLTEXTPREFIX}" />
+    <!--公共CS名-->
+    <parameter name="CHANGEDPREFIX"     value="story_java_test" />
+    <!--用例创建节点预留端口号最小值-->
+    <parameter name="RSRVPORTBEGIN"     value="26000" />
+    <!--用例创建节点预留端口号最大值-->
+    <parameter name="RSRVPORTEND"       value="27000" />
+    <!--用例创建节点存放节点数据目录-->
+    <parameter name="RSRVNODEDIR"       value="/opt/sequoiadb/database/" />
+    <!--用例存放临时文件的目录-->
+    <parameter name="WORKDIR"           value="/tmp/javatest" />
+    <!--sdbTestBaseConf用来修改配置的工具位置-->
+    <parameter name="CONFTOOL"          value="trunk/misc/ci_new/src/test/exec_testcase/changeConf.js" />
+    <!--是否开启事务-->
+    <parameter name="ENABLETRANSACTION" value="true" />
 
-   <listeners>
-      <listener
-         class-name="com.sequoiadb.testcommon.TimePrinterListener" />
-   </listeners>
+    <listeners>
+        <listener
+            class-name="com.sequoiadb.testcommon.TimePrinterListener" />
+    </listeners>
 
-   <!--The testcases of different configure should be placed in different 
+    <!--The testcases of different configure should be placed in different 
       <test> -->
-   <test name="rc" parallel="classes" thread-count="5">
-      <groups>
-         <run>
-            <include name="rc" />
-         </run>
-      </groups>
-      <packages>
-         <package name="com.sequoiadb.transaction.rc" />
-         <package name="com.sequoiadb.transaction.uniqueIndex" />
-         <package name="com.sequoiadb.transaction.metadata" />
-         <package name="com.sequoiadb.transaction.unlock" />
-      </packages>
-   </test>
+    <test name="rc" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="rc" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.transaction.rc" />
+            <package name="com.sequoiadb.transaction.uniqueIndex" />
+            <package name="com.sequoiadb.transaction.metadata" />
+            <package name="com.sequoiadb.transaction.unlock" />
+        </packages>
+    </test>
 
-   <test name="ru" parallel="classes" thread-count="5">
-      <groups>
-         <run>
-            <include name="ru" />
-         </run>
-      </groups>
-      <packages>
-         <package name="com.sequoiadb.transaction.ru" />
-         <package name="com.sequoiadb.transaction.uniqueIndex" />
-         <package name="com.sequoiadb.transaction.metadata" />
-         <package name="com.sequoiadb.transaction.unlock" />
-      </packages>
-   </test>
+    <test name="ru" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="ru" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.transaction.ru" />
+            <package name="com.sequoiadb.transaction.uniqueIndex" />
+            <package name="com.sequoiadb.transaction.metadata" />
+            <package name="com.sequoiadb.transaction.unlock" />
+        </packages>
+    </test>
 
-   <test name="rcwaitlock" parallel="classes" thread-count="5">
-      <groups>
-         <run>
-            <include name="rcwaitlock" />
-         </run>
-      </groups>
-      <packages>
-         <package name="com.sequoiadb.transaction.rcwaitlock" />
-      </packages>
-   </test>
+    <test name="rcwaitlock" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="rcwaitlock" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.transaction.rcwaitlock" />
+        </packages>
+    </test>
 
-   <test name="rs" parallel="classes" thread-count="5">
-      <groups>
-         <run>
-            <include name="rs" />
-         </run>
-      </groups>
-      <packages>
-         <package name="com.sequoiadb.transaction.rs" />
-         <package name="com.sequoiadb.transaction.rcwaitlock" />
-         <package name="com.sequoiadb.transaction.unlock" />
-      </packages>
-   </test>
+    <test name="rs" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="rs" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.transaction.rs" />
+            <package name="com.sequoiadb.transaction.rcwaitlock" />
+            <package name="com.sequoiadb.transaction.unlock" />
+        </packages>
+    </test>
 
-   <test name="rusync" parallel="classes" thread-count="1">
-      <groups>
-         <run>
-            <include name="ru" />
-         </run>
-      </groups>
-      <packages>
-         <package name="com.sequoiadb.transaction.rename" />
-      </packages>
-   </test>
+    <test name="rusync" parallel="classes" thread-count="1">
+        <groups>
+            <run>
+                <include name="ru" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.transaction.rename" />
+        </packages>
+    </test>
 
-   <test name="rcauto" parallel="classes" thread-count="5">
-      <groups>
-         <run>
-            <include name="rcauto" />
-         </run>
-      </groups>
-      <packages>
-         <package name="com.sequoiadb.transaction.rcauto" />
-      </packages>
-   </test>
+    <test name="rcauto" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="rcauto" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.transaction.rcauto" />
+        </packages>
+    </test>
 
-   <test name="rcuserbs" parallel="classes" thread-count="5">
-      <groups>
-         <run>
-            <include name="rcuserbs" />
-         </run>
-      </groups>
-      <packages>
-         <package name="com.sequoiadb.transaction.rcuserbs" />
-         <package name="com.sequoiadb.transaction.rcwaitlock" />
-         <package name="com.sequoiadb.transaction.uniqueIndex" />
-         <package name="com.sequoiadb.transaction.metadata" />
-      </packages>
-   </test>
+    <test name="rcuserbs" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="rcuserbs" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.transaction.rcuserbs" />
+            <package name="com.sequoiadb.transaction.rcwaitlock" />
+            <package name="com.sequoiadb.transaction.uniqueIndex" />
+            <package name="com.sequoiadb.transaction.metadata" />
+        </packages>
+    </test>
 
-   <test name="normal" parallel="classes" thread-count="5">
-      <packages>
-         <package name="com.sequoiadb.transaction.session" />
-      </packages>
-   </test>
+    <test name="normal" parallel="classes" thread-count="5">
+        <packages>
+            <package name="com.sequoiadb.transaction.session" />
+        </packages>
+    </test>
 
 </suite>
    

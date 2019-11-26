@@ -2,126 +2,137 @@
 <!--this xml is for ci, please don't modify it -->
 <!--testcase for function test, which can be excuted concurrently -->
 <suite name="driver" verbose="1" preserve-order="true"> 
-  <parameter name="HOSTNAME" value="${HOSTNAME}" />  
-   <parameter name="SVCNAME" value="${SVCNAME}" />
-   <parameter name="S3HOSTNAME" value="${S3HOSTNAME}" />
-   <!-- <parameter name="S3PORT" value="${S3PORT}" /> -->
-   <parameter name="CHANGEDPREFIX" value="newstory_java_test" />
-   <parameter name="RSRVPORTBEGIN" value="26000" />
-   <parameter name="RSRVPORTEND" value="27000" />
-   <parameter name="RSRVNODEDIR" value="/opt/sequoiadb/database/" />
-   <parameter name="WORKDIR" value="/tmp/javatest" />
-   <parameter name="S3USERNAME" value="administrator" />
-   <parameter name="REMOTEUSER" value="root"/>
-   <parameter name="REMOTEPASSWD" value="jenkins"/>
-   <parameter name="S3ACCESSKEYID" value="ABCDEFGHIJKLMNOPQRST" />
+    <!--主机名，CI默认传入localhost-->
+    <parameter name="HOSTNAME"      value="${HOSTNAME}" />  
+    <!--协调节点端口号，CI默认传入11810-->
+    <parameter name="SVCNAME"       value="${SVCNAME}" />
+    <!--s3服务端主机名，CI默认传入localhost-->
+    <parameter name="S3HOSTNAME"    value="${S3HOSTNAME}" />
+    <!--公共CS名-->
+    <parameter name="CHANGEDPREFIX" value="newstory_java_test" />
+    <!--用例创建节点预留端口号最小值-->
+    <parameter name="RSRVPORTBEGIN" value="26000" />
+    <!--用例创建节点预留端口号最大值-->
+    <parameter name="RSRVPORTEND"   value="27000" />
+    <!--用例创建节点存放节点数据目录-->
+    <parameter name="RSRVNODEDIR"   value="/opt/sequoiadb/database/" />
+    <!--用例存放临时文件的目录-->
+    <parameter name="WORKDIR"       value="/tmp/javatest" />
+    <!--s3服务端管理员用户-->
+    <parameter name="S3USERNAME"    value="administrator" />
+    <!--远程机器用户-->
+    <parameter name="REMOTEUSER"    value="root"/>
+    <!--远程机器用户名密码-->
+    <parameter name="REMOTEPASSWD"  value="jenkins"/>
+    <!--访问s3服务端秘钥-->
+    <parameter name="S3ACCESSKEYID" value="ABCDEFGHIJKLMNOPQRST" />
    
-   <listeners> 
-          <listener class-name = "com.sequoias3.testcommon.TimePrinterListener"/>
-   </listeners>
+    <listeners> 
+        <listener class-name = "com.sequoias3.testcommon.TimePrinterListener"/>
+    </listeners>
    
-   <!-- allowreputon:允许重复创建桶：开启；authorizationoff：鉴权校验：关闭；contextlifecycleconf：上下文生命周期：默认设置为2分钟；partlistinuseoff：分段检测：关闭；partsizelimitoff：分段大小检测：关闭 -->
-   <test name="javadriver" parallel="classes" thread-count="5">  
-      <groups>
-         <run>
-            <exclude name="allowreputon" />
-            <exclude name="authorizationoff" />
-            <exclude name="contextlifecycleconf" />
-            <exclude name="partlistinuseoff" />
-            <exclude name="partsizelimitoff" />
-         </run>
-      </groups>
-      <packages>    
-               <package name="com.sequoias3.bucket" /> 
-               <package name="com.sequoias3.object" />
-               <package name="com.sequoias3.object.concurrent" />
-               <package name="com.sequoias3.head" />
-               <package name="com.sequoias3.user" />
-               <package name="com.sequoias3.delimiter" /> 
-               <package name="com.sequoias3.delimiter.concurrent" /> 
-               <package name="com.sequoias3.config" />
-               <package name="com.sequoias3.config.concurrent" />
-               <package name="com.sequoias3.partupload" />
-               <package name="com.sequoias3.partupload.concurrent" />
-               <package name="com.sequoias3.privilege" />
-               <package name="com.sequoias3.privilege.concurrent" />
-      </packages>
-   </test> 
+    <!-- allowreputon:允许重复创建桶：开启；authorizationoff：鉴权校验：关闭；contextlifecycleconf：上下文生命周期：默认设置为2分钟；partlistinuseoff：分段检测：关闭；partsizelimitoff：分段大小检测：关闭 -->
+    <test name="javadriver" parallel="classes" thread-count="5">  
+        <groups>
+            <run>
+                <exclude name="allowreputon" />
+                <exclude name="authorizationoff" />
+                <exclude name="contextlifecycleconf" />
+                <exclude name="partlistinuseoff" />
+                <exclude name="partsizelimitoff" />
+            </run>
+        </groups>
+        <packages>    
+            <package name="com.sequoias3.bucket" /> 
+            <package name="com.sequoias3.object" />
+            <package name="com.sequoias3.object.concurrent" />
+            <package name="com.sequoias3.head" />
+            <package name="com.sequoias3.user" />
+            <package name="com.sequoias3.delimiter" /> 
+            <package name="com.sequoias3.delimiter.concurrent" /> 
+            <package name="com.sequoias3.config" />
+            <package name="com.sequoias3.config.concurrent" />
+            <package name="com.sequoias3.partupload" />
+            <package name="com.sequoias3.partupload.concurrent" />
+            <package name="com.sequoias3.privilege" />
+            <package name="com.sequoias3.privilege.concurrent" />
+        </packages>
+    </test> 
    
    <!-- 串行运行用例 -->
-   <test name="largeobjects">  
-      <packages> 
-         <package name="com.sequoias3.region" />
-         <package name="com.sequoias3.region.concurrent" />
-         <package name="com.sequoias3.object.serial" /> 
-         <package name="com.sequoias3.delimiter.serial" /> 
-         <package name="com.sequoias3.partupload.serial" />
-      </packages>
-   </test>
+    <test name="largeobjects">  
+        <packages> 
+            <package name="com.sequoias3.region" />
+            <package name="com.sequoias3.region.concurrent" />
+            <package name="com.sequoias3.object.serial" /> 
+            <package name="com.sequoias3.delimiter.serial" /> 
+            <package name="com.sequoias3.partupload.serial" />
+        </packages>
+    </test>
    
-   <test name="partlistinuse" parallel="classes" thread-count="5">
-      <groups>
-         <run>
-            <include name="partlistinuseoff" />
-         </run>
-      </groups>
-      <packages>
-         <package name="com.sequoias3.partupload" />
-         <package name="com.sequoias3.partupload.concurrent" />
-      </packages>
-   </test>
+    <test name="partlistinuse" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="partlistinuseoff" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoias3.partupload" />
+            <package name="com.sequoias3.partupload.concurrent" />
+        </packages>
+    </test>
    
-   <test name="partsizelimit" parallel="classes" thread-count="5">
-      <groups>
-         <run>
-            <include name="partsizelimitoff" />
-         </run>
-      </groups>
-      <packages>
-         <package name="com.sequoias3.partupload" />
-         <package name="com.sequoias3.partupload.concurrent" />
-      </packages>
-   </test>
+    <test name="partsizelimit" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="partsizelimitoff" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoias3.partupload" />
+            <package name="com.sequoias3.partupload.concurrent" />
+        </packages>
+    </test>
 
-   <test name="contextlifecycle" parallel="classes" thread-count="5">
-      <groups>
-         <run>
-            <include name="contextlifecycleconf" />
-         </run>
-      </groups>
-      <packages>
-         <package name="com.sequoias3.object" />
-         <package name="com.sequoias3.delimiter" />
-      </packages>
-   </test>
+    <test name="contextlifecycle" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="contextlifecycleconf" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoias3.object" />
+            <package name="com.sequoias3.delimiter" />
+        </packages>
+    </test>
 
-   <test name="allowreput" parallel="classes" thread-count="5">
-      <groups>
-         <run>
-            <include name="allowreputon" />
-         </run>
-      </groups>
-      <packages>
-         <package name="com.sequoias3.config" />
-         <package name="com.sequoias3.config.concurrent" />
-      </packages>
-   </test>
+    <test name="allowreput" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="allowreputon" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoias3.config" />
+            <package name="com.sequoias3.config.concurrent" />
+        </packages>
+    </test>
    
-   <test name="authorization" parallel="classes" thread-count="5">
-      <groups>
-         <run>
-            <include name="authorizationoff" />
-         </run>
-      </groups>
-      <packages>
-         <package name="com.sequoias3.config" />
-      </packages>
-   </test>
+    <test name="authorization" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="authorizationoff" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoias3.config" />
+        </packages>
+    </test>
    
-   <!-- 检测数据残留的用例 -->
-   <test name="check">  
-      <classes> 
-         <class name="com.sequoias3.testcommon.TestResidualData" /> 
-      </classes>
-   </test>  
+    <!-- 检测数据残留的用例 -->
+    <test name="check">  
+        <classes> 
+            <class name="com.sequoias3.testcommon.TestResidualData" /> 
+        </classes>
+    </test>  
 </suite>
