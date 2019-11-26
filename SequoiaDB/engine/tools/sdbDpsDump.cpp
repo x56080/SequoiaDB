@@ -73,11 +73,6 @@ void writeLog( BOOLEAN console, const CHAR *type, const CHAR *func,
    CHAR wContent[4096] = { 0 } ;
    va_list ap ;
 
-   if ( SDB_OK != rc )
-   {
-      goto done ;
-   }
-
    va_start( ap, fmt );
    vsnprintf( buffer, 4096, fmt, ap ) ;
    va_end( ap ) ;
