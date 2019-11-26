@@ -320,8 +320,8 @@ private:
 
    INT32       _analysisMeta() ;
 
-   INT32       _metaFilte( const CHAR *filename, INT32 index,
-                           dpsFileMeta& meta ) ;
+   INT32       _metaFilter( const CHAR *filename, INT32 index,
+                            dpsFileMeta& meta ) ;
    INT64       _dumpMeta( const dpsMetaData& meta,
                           CHAR* pBuffer, const UINT64 bufferSize ) ;
 

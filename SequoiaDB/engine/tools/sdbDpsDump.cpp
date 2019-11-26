@@ -73,8 +73,6 @@ void writeLog( BOOLEAN console, const CHAR *type, const CHAR *func,
    CHAR wContent[4096] = { 0 } ;
    va_list ap ;
 
-   rc = ossOpen( LOG_FILE_NAME, OSS_REPLACE|OSS_READWRITE,
-                 OSS_RU|OSS_WU|OSS_RG|OSS_RO, logFile ) ;
    if ( SDB_OK != rc )
    {
       goto done ;
@@ -108,8 +106,6 @@ void writeLog( BOOLEAN console, const CHAR *type, const CHAR *func,
          writePos += writeSize ;
       }
    }
-
-   ossClose( logFile ) ;
 
 done:
    return;
@@ -989,7 +985,7 @@ INT32 _dpsDumper::_analysisMeta()
       }
 
       dpsFileMeta meta;
-      rc = _metaFilte( filename, idx, meta ) ;
+      rc = _metaFilter( filename, idx, meta ) ;
       if( rc && DPS_LOG_FILE_INVALID != rc )
       {
          LogError( "Failed to parse meta data of file:[%s], rc = %d",
@@ -1186,8 +1182,8 @@ INT32 _dpsDumper::sortFiles( dpsMetaData &meta )
    return SDB_OK ;
 }
 
-INT32 _dpsDumper::_metaFilte( const CHAR *filename, INT32 index,
-                              dpsFileMeta &meta )
+INT32 _dpsDumper::_metaFilter( const CHAR *filename, INT32 index,
+                               dpsFileMeta &meta )
 {
    SDB_ASSERT( filename, "filename cannot be NULL ") ;
 
@@ -1940,6 +1936,21 @@ INT32 main( INT32 argc, CHAR **argv )
    po::options_description desc( "Command options" ) ;
    po::variables_map vm ;
    dpsDumper dumper ;
+   BOOLEAN logOpened = FALSE ;
+
+   rc = ossOpen( LOG_FILE_NAME, OSS_REPLACE|OSS_READWRITE,
+                 OSS_RU|OSS_WU|OSS_RG|OSS_RO, logFile ) ;
+   if ( SDB_OK != rc )
+   {
+      std::cout << "Failed to open the file "LOG_FILE_NAME ;
+      if ( SDB_PERM == rc )
+      {
+         cout << " : permission error" ;
+      }
+      cout << endl ;
+      goto error ;
+   }
+   logOpened = TRUE ;
 
    rc = dumper.initialize( argc, argv, desc, vm ) ;
    if ( SDB_OK != rc )
@@ -1961,6 +1972,10 @@ INT32 main( INT32 argc, CHAR **argv )
    }
 
 done:
+   if ( logOpened )
+   {
+      ossClose( logFile ) ;
+   }
    return rc  ;
 error :
    goto done  ;
