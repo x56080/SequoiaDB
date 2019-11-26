@@ -3,46 +3,58 @@
 <!--Testcases for reliability test, except disk-full testcases. -->
 
 <suite name="reliability" verbose="1" stop-all-when-occur-failure="true" preserve-order="true">
-	<parameter name="HOSTNAME"       value="localhost" />
-	<parameter name="SVCNAME"        value="11810" />
-	<parameter name="CHANGEDPREFIX"  value="reliability_test" />
-	<parameter name="RSRVPORTBEGIN"  value="26000" />
-	<parameter name="RSRVPORTEND"    value="27000" />
-	<parameter name="RSRVNODEDIR"    value="/data/sequoiadb/cidatabase" />
-	<parameter name="WORKDIR"        value="/tmp/ci_reliability" />
-	<parameter name="ROOTPASSWD"     value="jenkins" />
-	<parameter name="REMOTEUSER"     value="sdbadmin" />
-	<parameter name="REMOTEPASSWD"   value="sdbadmin" />
-   <parameter name="SCRIPTDIR"       value="/trunk/testcase_new/reliability/script" />
+
+    <!--主机名，CI默认传入localhost-->
+    <parameter name="HOSTNAME"       value="localhost" />
+    <!--协调节点端口号，CI默认传入11810-->
+    <parameter name="SVCNAME"        value="11810" />
+    <!--公共CS名-->
+    <parameter name="CHANGEDPREFIX"  value="reliability_test" />
+    <!--用例创建节点预留端口号最小值-->
+    <parameter name="RSRVPORTBEGIN"  value="26000" />
+    <!--用例创建节点预留端口号最大值-->
+    <parameter name="RSRVPORTEND"    value="27000" />
+    <!--用例新建节点的存放路径 -->
+    <parameter name="RSRVNODEDIR"    value="/data/sequoiadb/cidatabase" />
+    <!--用例临时文件存放路径 -->
+    <parameter name="WORKDIR"        value="/tmp/ci_reliability" />
+    <!--远程机器root用户密码-->
+    <parameter name="ROOTPASSWD"     value="jenkins" />
+    <!--远程机器用户名-->
+    <parameter name="REMOTEUSER"     value="sdbadmin" />
+    <!--远程机器用户密码-->
+    <parameter name="REMOTEPASSWD"   value="sdbadmin" />
+    <!--可靠性shell脚本位置-->
+    <parameter name="SCRIPTDIR"       value="/trunk/testcase_new/reliability/script" />
    
-	<test name="reliability_normal">
-		<packages>
-			<package name="com.sequoiadb.subcl.brokennetwork" />
-			<package name="com.sequoiadb.subcl.killnode"></package>
-			<package name="com.sequoiadb.subcl.restartnode"></package>
-			<package name="com.sequoiadb.clsmgr.brokennetwork"></package>
-			<package name="com.sequoiadb.split.killnode"></package>
-			<package name="com.sequoiadb.split.restartnode"></package>
-			<package name="com.sequoiadb.split.brokennetwork"/>
-			<package name="com.sequoiadb.metaopr.killnode" />
-			<package name="com.sequoiadb.metaopr.networkfail.cl" />
-			<package name="com.sequoiadb.metaopr.networkfail.cs" />
-			<package name="com.sequoiadb.metaopr.networkfail.domain" />
-			<package name="com.sequoiadb.metaopr.noderestart" />
-			<!--lob用例先不跑，等代码检视后再跑。-->
-			<!--<package name="com.sequoiadb.lob" />-->
-			<package name="com.sequoiadb.cappedCL.killnode" />
+    <test name="reliability_normal">
+        <packages>
+            <package name="com.sequoiadb.subcl.brokennetwork" />
+            <package name="com.sequoiadb.subcl.killnode"></package>
+            <package name="com.sequoiadb.subcl.restartnode"></package>
+            <package name="com.sequoiadb.clsmgr.brokennetwork"></package>
+            <package name="com.sequoiadb.split.killnode"></package>
+            <package name="com.sequoiadb.split.restartnode"></package>
+            <package name="com.sequoiadb.split.brokennetwork"/>
+            <package name="com.sequoiadb.metaopr.killnode" />
+            <package name="com.sequoiadb.metaopr.networkfail.cl" />
+            <package name="com.sequoiadb.metaopr.networkfail.cs" />
+            <package name="com.sequoiadb.metaopr.networkfail.domain" />
+            <package name="com.sequoiadb.metaopr.noderestart" />
+            <!--lob用例先不跑，等代码检视后再跑。-->
+            <!--<package name="com.sequoiadb.lob" />-->
+            <package name="com.sequoiadb.cappedCL.killnode" />
             <package name="com.sequoiadb.cappedCL.restartnode" />
-		</packages>
-	</test>
-	
-	<test name="reliability_fullSync">
-      <packages>
-		  <package name="com.sequoiadb.datasync.brokennetwork" />
-		  <package name="com.sequoiadb.datasync.killnode" />
-		  <package name="com.sequoiadb.datasync.restartnode" />
-      </packages>
-	</test>
+        </packages>
+    </test>
+    
+    <test name="reliability_fullSync">
+        <packages>
+            <package name="com.sequoiadb.datasync.brokennetwork" />
+            <package name="com.sequoiadb.datasync.killnode" />
+            <package name="com.sequoiadb.datasync.restartnode" />
+        </packages>
+    </test>
 
 </suite>
    

@@ -1,29 +1,41 @@
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
 <!--This xml is for ci. -->
 <!--These testcases can be excuted only in sequoiadb release version, eg: 
-	disk-full testcase. -->
+    disk-full testcase. -->
 
 <suite name="reliability" verbose="1" stop-all-when-occur-failure="true">
-	<parameter name="HOSTNAME" value="localhost" />
-	<parameter name="SVCNAME" value="11810" />
-	<parameter name="CHANGEDPREFIX" value="reliability_test" />
-	<parameter name="RSRVPORTBEGIN" value="26000" />
-	<parameter name="RSRVPORTEND" value="27000" />
-	<parameter name="RSRVNODEDIR" value="/data/sequoiadb/cidatabase" />
-	<parameter name="WORKDIR" value="/tmp/ci_reliability" />
-	<parameter name="ROOTPASSWD" value="jenkins" />
-	<parameter name="REMOTEUSER" value="sdbadmin" />
-	<parameter name="REMOTEPASSWD" value="sdbadmin" />
-	<parameter name="SCRIPTDIR" value="/trunk/testcase_new/reliability/script" />
 
-	<test name="reliability">
-		<packages>
-			<package name="com.sequoiadb.subcl.diskfull" />
-			<package name="com.sequoiadb.split.diskfull" />
-			<package name="com.sequoiadb.metaopr.diskfull" />
-			<package name="com.sequoiadb.datasync.diskfull" />
-		</packages>
-	</test>
+    <!--主机名，CI默认传入localhost-->
+    <parameter name="HOSTNAME" value="localhost" />
+    <!--协调节点端口号，CI默认传入11810-->
+    <parameter name="SVCNAME" value="11810" />
+    <!--公共CS名-->
+    <parameter name="CHANGEDPREFIX" value="reliability_test" />
+    <!--用例创建节点预留端口号最小值-->
+    <parameter name="RSRVPORTBEGIN" value="26000" />
+    <!--用例创建节点预留端口号最大值-->
+    <parameter name="RSRVPORTEND" value="27000" />
+    <!--用例新建节点的存放路径 -->
+    <parameter name="RSRVNODEDIR" value="/data/sequoiadb/cidatabase" />
+    <!--用例临时文件存放路径 -->
+    <parameter name="WORKDIR" value="/tmp/ci_reliability" />
+    <!--远程机器root用户密码-->
+    <parameter name="ROOTPASSWD" value="jenkins" />
+    <!--远程机器用户名-->
+    <parameter name="REMOTEUSER" value="sdbadmin" />
+    <!--远程机器用户密码-->
+    <parameter name="REMOTEPASSWD" value="sdbadmin" />
+    <!--可靠性shell脚本位置-->
+    <parameter name="SCRIPTDIR" value="/trunk/testcase_new/reliability/script" />
+
+    <test name="reliability">
+        <packages>
+            <package name="com.sequoiadb.subcl.diskfull" />
+            <package name="com.sequoiadb.split.diskfull" />
+            <package name="com.sequoiadb.metaopr.diskfull" />
+            <package name="com.sequoiadb.datasync.diskfull" />
+        </packages>
+    </test>
 
 </suite>
    

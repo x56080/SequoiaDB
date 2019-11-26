@@ -23,12 +23,19 @@ extern vector<String> g_argvs ;
 #define ETH_NAME "eth0"
 
 // default value
+//协调节点主机名
 char HOSTNAME[100]      = "localhost" ;
+//协调节点端口号
 char SVCNAME[100]       = "11810" ;
+//公共cs
 char CHANGEDPREFIX[100] = "sdv_c_test" ;
+//用例创建节点预留端口号最小值
 char RSRVPORTBEGIN[100] = "26000" ;
+//用例创建节点预留端口号最大值
 char RSRVPORTEND[100]   = "27000" ;
+//用例创建节点存放节点数据目录
 char RSRVNODEDIR[100]   = "/opt/sequoiadb/database/" ;
+//用例存放临时文件的目录
 char WORKDIR[100]       = "/tmp/ctest" ; 
 
 char IPADDR[100]        = "192.168.31.61" ;

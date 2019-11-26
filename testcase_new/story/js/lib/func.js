@@ -7,18 +7,26 @@
 // begin global variable configuration
 // CSPREFIX, COORDSVCNAME, COORDHOSTNAME  is input parameter
 // UUID, UUNAME is input parameter
-//if ( typeof(CSPREFIX) == "undefined" ) { CSPREFIX = "local_test"; }
+//cm端口号，默认11790
 if ( typeof(CMSVCNAME) == "undefined" ) { CMSVCNAME = "11790"; }
+//公共CS CL前缀，默认local_test,CI赋值由Test_主机名不带下划线_end
 if ( typeof(CHANGEDPREFIX) == "undefined" ) { CHANGEDPREFIX = "local_test"; }
+//集群协调阶段端口号，默认50000，CI默认11810
 if ( typeof(COORDSVCNAME) == "undefined" ) { COORDSVCNAME = "50000"; }
+//集群编目节点端口号，默认11800，CI默认11800
 if ( typeof(CATASVCNAME) == "undefined" ) { CATASVCNAME = "11800"; }
+//协调节点主机名，默认localhost，CI默认localhost
 if ( typeof(COORDHOSTNAME) == "undefined" ) { COORDHOSTNAME = 'localhost'; }
 if ( typeof(UUID) == "undefined" ) { UUID = 1 ; }
 if ( typeof(UUNAME) == "undefined" ) { UUNAME = "ID"+UUID+"NAME" ; }
-if ( typeof(RSRVPORTBEGIN) == "undefined" ) 	{ RSRVPORTBEGIN = '26000'; }
-if ( typeof(RSRVPORTEND)   == "undefined" ) 	{ RSRVPORTEND   = '27000'; }
-if ( typeof(RSRVNODEDIR)   == "undefined" ) 	{ RSRVNODEDIR   = "/opt/sequoiadb/database/"; }
-if ( typeof(WORKDIR)   == "undefined" ) 	{ WORKDIR   = "/tmp/jstest"; }
+//给用例预留的端口号开始值
+if ( typeof(RSRVPORTBEGIN) == "undefined" ) { RSRVPORTBEGIN = '26000'; }
+//给用例预留端口号结束值
+if ( typeof(RSRVPORTEND)   == "undefined" ) { RSRVPORTEND   = '27000'; }
+//用例新建节点的数据路径
+if ( typeof(RSRVNODEDIR)   == "undefined" ) { RSRVNODEDIR   = "/opt/sequoiadb/database/"; }
+//用例存放临时文件的目录
+if ( typeof(WORKDIR)   == "undefined" ) { WORKDIR   = "/tmp/jstest"; }
 
 var COMMCSNAME = CHANGEDPREFIX + "_cs" ;
 var COMMCLNAME = CHANGEDPREFIX + "_cl" ;

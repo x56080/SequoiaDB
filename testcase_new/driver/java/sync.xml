@@ -3,30 +3,39 @@
 <!--sync testcase, which should be excute serially-->
 
 <suite name = "driver" verbose="1"> 
-   <parameter name="HOSTNAME"       value="localhost" />
-   <parameter name="SVCNAME"        value="11810" />
-   <parameter name="CHANGEDPREFIX"  value="story_java_test" />
-   <parameter name="RSRVPORTBEGIN"  value="26000" />
-   <parameter name="RSRVPORTEND"    value="27000" />
-   <parameter name="RSRVNODEDIR"    value="/opt/sequoiadb/database/" />
-   <parameter name="WORKDIR"        value="/tmp/javatest" />
-   <parameter name="ROOTPASSWD"     value="jenkins" />
-   
-   <test name="story">  
-      <packages> 
-         <package name="com.sequoiadb.auth"/>
-         <package name="com.sequoiadb.sdb.serial"/>
-         <package name="com.sequoiadb.backup"/>
-         <package name="com.sequoiadb.clustermanager"/>
-      </packages>  
-   </test>
 
-   <!--会话隔离test，其他用例不要放在这个test内-->
-   <test name="sessionaccess">
-      <packages>
-         <package name="com.sequoiadb.sessionaccess"/>
-      </packages>
-   </test>   
+    <!--主机名，CI默认传入localhost-->
+    <parameter name="HOSTNAME"       value="localhost" />
+    <!--协调节点端口号，CI默认传入11810-->
+    <parameter name="SVCNAME"        value="11810" />
+    <!--公共CS名-->
+    <parameter name="CHANGEDPREFIX"  value="story_java_test" />
+    <!--用例创建节点预留端口号最小值-->
+    <parameter name="RSRVPORTBEGIN"  value="26000" />
+    <!--用例创建节点预留端口号最大值-->
+    <parameter name="RSRVPORTEND"    value="27000" />
+    <!--用例创建节点存放节点数据目录-->
+    <parameter name="RSRVNODEDIR"    value="/opt/sequoiadb/database/" />
+    <!--用例存放临时文件的目录-->
+    <parameter name="WORKDIR"        value="/tmp/javatest" />
+    <!--用例远程机器root用户密码-->
+    <parameter name="ROOTPASSWD"     value="jenkins" />
+   
+    <test name="story">  
+        <packages> 
+            <package name="com.sequoiadb.auth"/>
+            <package name="com.sequoiadb.sdb.serial"/>
+            <package name="com.sequoiadb.backup"/>
+            <package name="com.sequoiadb.clustermanager"/>
+        </packages>  
+    </test>
+
+    <!--会话隔离test，其他用例不要放在这个test内-->
+    <test name="sessionaccess">
+        <packages>
+            <package name="com.sequoiadb.sessionaccess"/>
+        </packages>
+    </test>   
 
 </suite>
    

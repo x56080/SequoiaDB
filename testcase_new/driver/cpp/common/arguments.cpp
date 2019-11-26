@@ -23,15 +23,25 @@ arguments* arguments::getInstance()
 arguments::arguments()
 {
    // set default value
+   //协调节点主机名
    strcpy( _hostName, "localhost" ) ;
+   //协调节点端口号
    strcpy( _svcName, "11810" ) ;
+   //db集群用户
    strcpy( _user, "" ) ;
+   //db集群密码
    strcpy( _passwd, "" ) ;
+   //coord连接
    strcpy( _coordUrl, "localhost:11810" ) ;
+   //公共cs
    strcpy( _changedPrefix, "sdv_cpp_test" ) ;
+   //用例创建节点预留端口号最小值
    strcpy( _rsrvPortBegin, "26000" ) ;
+   //用例创建节点预留端口号最大值
    strcpy( _rsrvPortEnd, "27000" ) ;
+   //用例创建节点存放节点数据目录
    strcpy( _rsrvNodeDir, "/opt/sequoiadb/database/" ) ;
+   //用例存放临时文件的目录
    strcpy( _workDir, "/tmp/cpptest" ) ;
    _forceClear = TRUE ;
 
