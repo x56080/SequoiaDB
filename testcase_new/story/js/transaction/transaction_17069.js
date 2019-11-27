@@ -4,61 +4,51 @@
 ******************************************************************************/
 function main()
 {
-   var clName = "tran_basic_1";
-   commDropCL(db, COMMCSNAME, clName, true, true);
+   var clName = COMMCLNAME + "_17069";
+   commDropCL( db, COMMCSNAME, clName, true, true );
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
    
-   db.transBegin() ;
-   dbcl.insert( { transaction: 1 } ) ;
-   db.transCommit() ;
-   verifyDate(dbcl, {transaction : 1}, 1) ;
-
-   db.transBegin() ;
-   dbcl.insert( { transaction: 2 } ) ;
-   db.transRollback() ;
-   verifyDate(dbcl, {transaction : 2}, 0) ;
+   db.transBegin();
+   dbcl.insert( { transaction: 1 } );
+   db.transCommit();
+   checkCount( dbcl, 1, {transaction : 1} );
    
-   db.transBegin() ;
-   dbcl.update({$set:{transaction : -1}}) ;
-   db.transCommit() ;
-   verifyDate(dbcl, {transaction : -1}, 1) ;
+   db.transBegin();
+   dbcl.insert( { transaction: 2 } );
+   db.transRollback();
+   checkCount( dbcl, 0, {transaction : 2} );
    
-   db.transBegin() ;
-   dbcl.update({$set:{transaction : 1}}) ;
-   db.transRollback() ;
-   verifyDate(dbcl, {transaction : 1}, 0) ;
+   db.transBegin();
+   dbcl.update( {$set:{transaction : -1}} );
+   db.transCommit();
+   checkCount( dbcl, 1, {transaction : -1} );
    
-   db.transBegin() ;
-   dbcl.remove() ;
-   db.transRollback() ;
-   verifyDate(dbcl, null, 1) ;
+   db.transBegin();
+   dbcl.update( {$set:{transaction : 1}} );
+   db.transRollback();
+   checkCount( dbcl, 0, {transaction : 1} );
    
-   db.transBegin() ;
-   dbcl.remove() ;
-   db.transCommit() ;
-   verifyDate(dbcl, null, 0) ;
+   db.transBegin();
+   dbcl.remove();
+   db.transRollback();
+   checkCount( dbcl, 1 );
    
-   commDropCL(db, COMMCSNAME, clName, true, true);
+   db.transBegin();
+   dbcl.remove();
+   db.transCommit();
+   checkCount( dbcl, 0 );
+   
+   commDropCL( db, COMMCSNAME, clName, true, true );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
-}
-;
-
-function verifyDate(dbcl, options, expectValue)
-{
-   var rc = dbcl .find(options);
-   if ( rc.size() != expectValue )
-   {
-      throw new Error("expect record count: " + expectValue + ", actual record count: " + rc.size());
-   }
+   throw e;
 }
