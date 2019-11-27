@@ -29,7 +29,7 @@ public class ThreadExecutor {
     // use contStep for map key
     private Map<Integer, MethodGroup> blockFinishStepMap = new HashMap<>();
     private Map<Object, Worker> object2Worker = new HashMap<>();
-    private int runningStep = 0;
+    private volatile int runningStep = 0;
 
     private WorkingContext context;
     private long maxStepRunTime;
@@ -257,7 +257,8 @@ public class ThreadExecutor {
                 workers.add(w);
             }
 
-            //wait up all threads, let them have opportunity to check the running flag
+            // wait up all threads, let them have opportunity to check the
+            // running flag
             notifyAllRelateWorkers(workers);
         }
         catch (Exception e) {

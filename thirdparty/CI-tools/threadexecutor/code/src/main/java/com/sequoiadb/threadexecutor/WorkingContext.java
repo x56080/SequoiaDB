@@ -10,6 +10,7 @@ import com.sequoiadb.threadexecutor.exception.SchException;
 
 class WorkingContext {
     private Lock lock = new ReentrantLock();
+
     private Set<MethodInfo> expectFinishMethods = new HashSet<>();
     private Set<MethodInfo> expectBlockingMethods = new HashSet<>();
     private Set<Worker> notifyWorkers = new HashSet<>();
@@ -21,12 +22,26 @@ class WorkingContext {
         this.step = step;
     }
 
-    public void addExpectFinishMethod(MethodInfo m) {
-        expectFinishMethods.add(m);
+    public synchronized void addExpectFinishMethod(MethodInfo m) {
+        lock.lock();
+        try {
+            expectFinishMethods.add(m);
+        }
+        finally {
+            lock.unlock();
+        }
     }
 
     public Set<MethodInfo> getExpectFinishMethod() {
-        return expectFinishMethods;
+        lock.lock();
+        try {
+            Set<MethodInfo> tmp = new HashSet<>();
+            tmp.addAll(expectFinishMethods);
+            return tmp;
+        }
+        finally {
+            lock.unlock();
+        }
     }
 
     public void addNeedNotifyWorker(Worker w) {
