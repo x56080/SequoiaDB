@@ -38,7 +38,6 @@
             <package name="com.sequoiadb.lob.randomwrite" />
             <package name="com.sequoiadb.lob.subcl"/>
             <package name="com.sequoiadb.numberlong"  />
-            <package name="com.sequoiadb.turnoncache" />
             <package name="com.sequoiadb.datasource" />
             <package name="com.sequoiadb.index"/>
             <package name="com.sequoiadb.crud.numoverflow" />
