@@ -102,7 +102,7 @@ public class LobSubCL19073 extends SdbTestBase {
                 lob.close();
             } catch (BaseException e) {
                 saveResult(e.getErrorCode(), e);
-                if (e.getErrorCode() != -297 && e.getErrorCode() != -317) {
+                if (e.getErrorCode() != -5 && e.getErrorCode() != -297 && e.getErrorCode() != -317) {
                     throw e;
                 }
             }

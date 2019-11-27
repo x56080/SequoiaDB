@@ -1,4 +1,4 @@
-package com.sequoiadb.lob.subcl;
+package com.sequoiadb.lob.serial;
 
 import java.util.List;
 
@@ -25,20 +25,20 @@ import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 
 /**
- * @Description seqDB-19081 :: 版本: 1 :: 并发rename子表集合空间名和读写删lob
+ * @Description seqDB-19082 :: 版本: 1 :: 并发rename子表集合名和读写删lob
  * @author luweikang
  * @Date 2019.8.26
  * @version 1.0
  */
 
-public class LobSubCL19081 extends SdbTestBase {
+public class LobSubCL19082 extends SdbTestBase {
 
     private Sequoiadb sdb = null;
-    private String mainCSName = "mainCS_19081";
-    private String mainCLName = "mainCL_19081";
-    private String oldSubCSName = "subCS_19081old";
-    private String newSubCSName = "subCS_19081new";
-    private String subCLName = "subCL_19081";
+    private String mainCSName = "mainCS_19082";
+    private String subCSName = "subCS_19082";
+    private String mainCLName = "mainCL_19082";
+    private String oldSubCLName = "subCL_19082old";
+    private String newSubCLName = "subCL_19082new";
     private DBCollection mainCL = null;
     private int writeLobSize = 1024 * 1024;
     private byte[] lobBuff;
@@ -52,7 +52,7 @@ public class LobSubCL19081 extends SdbTestBase {
             throw new SkipException("is standalone skip testcase");
         }
         CollectionSpace cs = sdb.createCollectionSpace(mainCSName);
-        CollectionSpace subCS = sdb.createCollectionSpace(oldSubCSName);
+        CollectionSpace subCS = sdb.createCollectionSpace(subCSName);
         BSONObject options = new BasicBSONObject();
         options.put("IsMainCL", true);
         options.put("ShardingKey", new BasicBSONObject("date", 1));
@@ -64,12 +64,12 @@ public class LobSubCL19081 extends SdbTestBase {
         clOptions.put("ShardingKey", new BasicBSONObject("date", 1));
         clOptions.put("ShardingType", "hash");
         clOptions.put("AutoSplit", true);
-        subCS.createCollection(subCLName, clOptions);
+        subCS.createCollection(oldSubCLName, clOptions);
 
         BSONObject bound = new BasicBSONObject();
         bound.put("LowBound", new BasicBSONObject("date", new MinKey()));
         bound.put("UpBound", new BasicBSONObject("date", new MaxKey()));
-        mainCL.attachCollection(oldSubCSName + "." + subCLName, bound);
+        mainCL.attachCollection(subCSName + "." + oldSubCLName, bound);
         lobBuff = RandomWriteLobUtil.getRandomBytes(writeLobSize);
         lobIds1 = LobSubUtils.createAndWriteLob(mainCL, lobBuff);
         lobIds2 = LobSubUtils.createAndWriteLob(mainCL, lobBuff);
@@ -85,7 +85,8 @@ public class LobSubCL19081 extends SdbTestBase {
         thread.run();
 
         LobSubUtils.checkLobMD5(mainCL, lobIds1, lobBuff);
-        Assert.assertFalse(sdb.isCollectionSpaceExist(oldSubCSName), "subCL cs has changed its name.");
+        Assert.assertFalse(sdb.getCollectionSpace(subCSName).isCollectionExist(oldSubCLName),
+                "sub cl has changed its name.");
     }
 
     @AfterClass
@@ -94,11 +95,8 @@ public class LobSubCL19081 extends SdbTestBase {
             if (sdb.isCollectionSpaceExist(mainCSName)) {
                 sdb.dropCollectionSpace(mainCSName);
             }
-            if (sdb.isCollectionSpaceExist(oldSubCSName)) {
-                sdb.dropCollectionSpace(oldSubCSName);
-            }
-            if (sdb.isCollectionSpaceExist(newSubCSName)) {
-                sdb.dropCollectionSpace(newSubCSName);
+            if (sdb.isCollectionSpaceExist(subCSName)) {
+                sdb.dropCollectionSpace(subCSName);
             }
         } finally {
             if (sdb != null) {
@@ -163,7 +161,7 @@ public class LobSubCL19081 extends SdbTestBase {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
                 }
-                db.renameCollectionSpace(oldSubCSName, newSubCSName);
+                db.getCollectionSpace(subCSName).renameCollection(oldSubCLName, newSubCLName);
             }
         }
     }
