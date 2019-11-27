@@ -274,6 +274,7 @@ namespace engine
 
          ossAtomic32                      _curAgentNum ;
          ossAtomic32                      _idleAgentNum ;
+         ossAtomic32                      _waitAgentNum ;
 
          // complete map
          CLS_COMP_MAP                     _completeMap ;
