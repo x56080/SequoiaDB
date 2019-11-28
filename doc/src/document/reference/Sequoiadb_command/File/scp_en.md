@@ -23,9 +23,16 @@ Remote copy file.
 | replace | boolean  | false    | whether replace the source file | not             |
 | mode    | int      | 0644     | set file permissions            | not             |
 
+The specific format of parameters srcFile and dstFile are as follows:
+
+```lang-javascript
+ip:sdbcmPort@filepath
+hostname:sdbcmPort@filepath
+```
+
 >Note:
 
->The specific format of parameters srcFile and dstFile are "ip:sdbcmPort@filepath",for example "192.168.20.71:11790@/opt/sequoiadb/file". The port refers to the port of the sdbcm.
+> The port refers to the port of the sdbcm. If the ip or hostname and sdbcmport in the parameters srcFile and desFile refer to the client's ip or hostname and sdbcmport, you can ignore them. 
 
 ##RETURN VALUE##
 
@@ -39,9 +46,9 @@ when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/g
 
 ##EXAMPLES##
 
-* Remote copy file
+* Copy file from local host to remote host.
 
 ```lang-javascript
-> File.scp( "192.168.20.71:11790@/opt/sequoiadb/srcFile.txt", "192.168.20.71:11790@/opt/sequoiadb/desFile.txt" )
-Success to copy file from 192.168.20.71:11790@/opt/sequoiadb/srcFile.txt to 192.168.20.71:11790@/opt/sequoiadb/desFile.txt
+> File.scp( "/opt/sequoiadb/srcFile.txt", "192.168.20.71:11790@/opt/sequoiadb/desFile.txt" )
+Success to copy file from /opt/sequoiadb/srcFile.txt to 192.168.20.71:11790@/opt/sequoiadb/desFile.txt
 ```

@@ -19,9 +19,16 @@ File
 | isreplace | boolean  | false  | 是否替换目标文件 | 否       |
 | mode      | int      | 0644   | 设置文件权限     | 否       |
 
+参数 srcFile 和 desFile 具体格式如下
+
+```lang-javascript
+ip:sdbcmPort@filepath
+hostname:sdbcmPort@filepath
+```
+
 > Note : 
 
-> 参数 srcFile 和 desFile 具体格式为 “ip:sdbcmPort@filepath”，例如  “192.168.20.71:11790@/opt/sequoiadb/file”。注意端口号是指 sdbcm 的端口号。
+> sdbcmport 是指 sdbcm 的端口号。如果参数 srcFile 和 desFile 中的 ip 或者 hostname 和 sdbcmPort 指的是客户端本地的 ip 或者 hostname 和 sdbcmport，则可以省略，直接填写 filepath 即可。
 
 ##返回值##
 
@@ -36,9 +43,9 @@ File
 
 ##示例##
 
-* 远程拷贝文件。
+* 从本地主机拷贝文件到远程主机上。
 
   ```lang-javascript
-  > File.scp( "192.168.20.71:11790@/opt/sequoiadb/srcFile.txt", "192.168.20.71:11790@/opt/sequoiadb/desFile.txt" )
-  Success to copy file from 192.168.20.71:11790@/opt/sequoiadb/srcFile.txt to 192.168.20.71:11790@/opt/sequoiadb/desFile.txt
+  > File.scp( "/opt/sequoiadb/srcFile.txt", "192.168.20.71:11790@/opt/sequoiadb/desFile.txt" )
+  Success to copy file from /opt/sequoiadb/srcFile.txt to 192.168.20.71:11790@/opt/sequoiadb/desFile.txt
   ```

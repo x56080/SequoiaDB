@@ -95,13 +95,20 @@ T}@T{
 not
 T}
 .TE
+.PP
+The specific format of parameters srcFile and dstFile are as follows:
+
+ip:sdbcmPort\@filepath
+.PP
+hostname:sdbcmPort\@filepath
+.TE
 
 Note:
 .RE
 .PP
-The specific format of parameters srcFile and dstFile are
-"ip:sdbcmPort\@filepath",for example "192.168.20.71:11790\@/opt/sequoiadb/file".
 The port refers to the port of the sdbcm.
+If the ip or hostname and sdbcmport in the parameters srcFile and desFile refer
+to the client\[aq]s ip or hostname and sdbcmport, you can ignore them.
 .RE
 .SH RETURN VALUE
 .PP
@@ -115,11 +122,11 @@ getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
-Remote copy file
+Copy file from local host to remote host.
 .IP
 .nf
 \f[C]
->\ File.scp(\ "192.168.20.71:11790\@/opt/sequoiadb/srcFile.txt",\ "192.168.20.71:11790\@/opt/sequoiadb/desFile.txt"\ )
-Success\ to\ copy\ file\ from\ 192.168.20.71:11790\@/opt/sequoiadb/srcFile.txt\ to\ 192.168.20.71:11790\@/opt/sequoiadb/desFile.txt
+>\ File.scp(\ "/opt/sequoiadb/srcFile.txt",\ "192.168.20.71:11790\@/opt/sequoiadb/desFile.txt"\ )
+Success\ to\ copy\ file\ from\ /opt/sequoiadb/srcFile.txt\ to\ 192.168.20.71:11790\@/opt/sequoiadb/desFile.txt
 \f[]
 .fi
