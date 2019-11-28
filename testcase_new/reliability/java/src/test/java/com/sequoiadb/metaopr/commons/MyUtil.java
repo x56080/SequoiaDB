@@ -1,6 +1,36 @@
 package com.sequoiadb.metaopr.commons;
 
-import com.sequoiadb.base.*;
+import java.io.ByteArrayOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.logging.Logger;
+
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
+import org.bson.types.ObjectId;
+import org.bson.util.JSON;
+import org.testng.Assert;
+import org.testng.SkipException;
+import org.testng.annotations.BeforeSuite;
+
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.DBLob;
+import com.sequoiadb.base.Domain;
+import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.NodeWrapper;
@@ -10,19 +40,6 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.index.IndexBean;
 import com.sequoiadb.lob.LobBean;
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
-import org.bson.types.ObjectId;
-import org.bson.util.JSON;
-import org.testng.SkipException;
-import org.testng.annotations.BeforeSuite;
-
-import java.io.ByteArrayOutputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.logging.Logger;
 
 /**
  * @FileName
@@ -33,7 +50,6 @@ import java.util.logging.Logger;
 public class MyUtil {
 
     private static Logger log = Logger.getLogger(MyUtil.class.getName());
-
 
     /**
      * 批量产生名字
@@ -49,7 +65,6 @@ public class MyUtil {
         }
         return names;
     }
-
 
     /**
      * 打印开始时间
@@ -67,8 +82,8 @@ public class MyUtil {
      * @param obj
      */
     public static void printEndTime(Object obj) {
-        System.out.println(obj.getClass().getName() + " end at:"
-                + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss").format(new Date()));
+        System.out.println(
+                obj.getClass().getName() + " end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss").format(new Date()));
     }
 
     /**
@@ -125,9 +140,7 @@ public class MyUtil {
             for (int i = 0; i < number; i++) {
                 list.add(new BasicBSONObject("a", i));
             }
-            db.getCollectionSpace(csName)
-                    .getCollection(clName)
-                    .insert(list);
+            db.getCollectionSpace(csName).getCollection(clName).insert(list);
         }
     }
 
@@ -140,7 +153,7 @@ public class MyUtil {
     public static NodeWrapper getMasterNodeOfCatalog() throws ReliabilityException {
         GroupMgr mgr = GroupMgr.getInstance();
         NodeWrapper master = mgr.getGroupByName("SYSCatalogGroup").getMaster();
-//        mgr.close();//这里不能close
+        // mgr.close();//这里不能close
         return master;
     }
 
@@ -160,7 +173,6 @@ public class MyUtil {
         return new ArrayList<>(groupNames);
     }
 
-
     /**
      * 获取编目备节点
      *
@@ -170,7 +182,7 @@ public class MyUtil {
     public static NodeWrapper getSlaveNodeOfCatalog() throws ReliabilityException {
         GroupMgr mgr = GroupMgr.getInstance();
         NodeWrapper slave = mgr.getGroupByName("SYSCatalogGroup").getSlave();
-//        mgr.close();这里不能close
+        // mgr.close();这里不能close
         return slave;
     }
 
@@ -212,7 +224,7 @@ public class MyUtil {
                     cs.createCollection(name);
                     count++;
                 } catch (BaseException e) {
-//                    e.printStackTrace();
+                    // e.printStackTrace();
                 }
             }
         }
@@ -228,22 +240,20 @@ public class MyUtil {
      */
     public static int createCl(String csName, String clName) {
         try (MySequoiadb db = getMySdb()) {
-            db.getCollectionSpace(csName)
-                    .createCollection(clName);
+            db.getCollectionSpace(csName).createCollection(clName);
             return 1;
         } catch (BaseException e) {
-//            e.printStackTrace();
+            // e.printStackTrace();
             return 0;
         }
     }
 
     public static int createCl(String csName, String clName, BSONObject option) {
         try (MySequoiadb db = getMySdb()) {
-            db.getCollectionSpace(csName)
-                    .createCollection(clName, option);
+            db.getCollectionSpace(csName).createCollection(clName, option);
             return 1;
         } catch (BaseException e) {
-//            e.printStackTrace();
+            // e.printStackTrace();
             return 0;
         }
     }
@@ -262,13 +272,12 @@ public class MyUtil {
                     db.createCollectionSpace(name);
                     count++;
                 } catch (BaseException e) {
-//                    e.printStackTrace();
+                    // e.printStackTrace();
                 }
             }
         }
         return count;
     }
-
 
     /**
      * 创建cs，并指定domain
@@ -283,18 +292,17 @@ public class MyUtil {
             db.createCollectionSpace(csName, options);
             return 1;
         } catch (BaseException e) {
-//            e.printStackTrace();
+            // e.printStackTrace();
             return 0;
         }
     }
-
 
     public static boolean createCS(String name) {
         try (MySequoiadb db = getMySdb()) {
             db.createCollectionSpace(name);
             return true;
         } catch (BaseException e) {
-//            e.printStackTrace();
+            // e.printStackTrace();
             return false;
         }
     }
@@ -313,7 +321,7 @@ public class MyUtil {
             db.createDomain(domainName, options);
             return 1;
         } catch (BaseException e) {
-//            e.printStackTrace();
+            // e.printStackTrace();
             return 0;
         }
     }
@@ -328,11 +336,12 @@ public class MyUtil {
      */
     public static int createDomainAutoSplit(String domainName, String groupName1, String groupName2) {
         try (MySequoiadb db = getMySdb()) {
-            BSONObject options = (BSONObject) JSON.parse("{'Groups':['" + groupName1 + "','" + groupName2 + "'],'AutoSplit':true})");
+            BSONObject options = (BSONObject) JSON
+                    .parse("{'Groups':['" + groupName1 + "','" + groupName2 + "'],'AutoSplit':true})");
             db.createDomain(domainName, options);
             return 1;
         } catch (BaseException e) {
-//            e.printStackTrace();
+            // e.printStackTrace();
             return 0;
         }
     }
@@ -345,7 +354,8 @@ public class MyUtil {
      * @param groupName2
      */
     public static void alterDomain(Domain domain, String groupName1, String groupName2) {
-        BSONObject options = (BSONObject) JSON.parse("{'Groups':['" + groupName1 + "','" + groupName2 + "'],'AutoSplit':true})");
+        BSONObject options = (BSONObject) JSON
+                .parse("{'Groups':['" + groupName1 + "','" + groupName2 + "'],'AutoSplit':true})");
         domain.alterDomain(options);
     }
 
@@ -359,7 +369,8 @@ public class MyUtil {
     public static boolean alterDomain(String domainName, String groupName1, String groupName2) {
         try (MySequoiadb db = getMySdb()) {
             Domain domain = db.getDomain(domainName);
-            BSONObject options = (BSONObject) JSON.parse("{'Groups':['" + groupName1 + "','" + groupName2 + "'],'AutoSplit':true})");
+            BSONObject options = (BSONObject) JSON
+                    .parse("{'Groups':['" + groupName1 + "','" + groupName2 + "'],'AutoSplit':true})");
             domain.alterDomain(options);
             return true;
         } catch (BaseException e) {
@@ -367,7 +378,6 @@ public class MyUtil {
             return false;
         }
     }
-
 
     /**
      * 批量创建domain
@@ -387,7 +397,7 @@ public class MyUtil {
                     db.createDomain(name, options);
                     count++;
                 } catch (BaseException e) {
-//                    e.printStackTrace();
+                    // e.printStackTrace();
                 }
             }
         } finally {
@@ -405,13 +415,12 @@ public class MyUtil {
     public static int dropSingleClManyCs(List<String> csNames, String clName) {
         int count = 0;
         try (MySequoiadb db = getMySdb()) {
-            for (String name :
-                    csNames) {
+            for (String name : csNames) {
                 try {
                     db.getCollectionSpace(name).dropCollection(clName);
                     count++;
                 } catch (BaseException e) {
-//                    e.printStackTrace();
+                    // e.printStackTrace();
                 }
             }
         }
@@ -429,7 +438,7 @@ public class MyUtil {
             db.dropDomain(domainName);
             return 1;
         } catch (BaseException e) {
-//            e.printStackTrace();
+            // e.printStackTrace();
             return 0;
         }
     }
@@ -442,7 +451,7 @@ public class MyUtil {
                     db.dropDomain(name);
                     count++;
                 } catch (BaseException e) {
-//                    e.printStackTrace();
+                    // e.printStackTrace();
                 }
             }
         }
@@ -458,13 +467,12 @@ public class MyUtil {
     public static int dropCS(List<String> csNames) {
         int count = 0;
         try (MySequoiadb db = getMySdb()) {
-            for (String name :
-                    csNames) {
+            for (String name : csNames) {
                 try {
                     db.dropCollectionSpace(name);
                     count++;
                 } catch (BaseException e) {
-//                    e.printStackTrace();
+                    // e.printStackTrace();
                 }
             }
         }
@@ -501,7 +509,6 @@ public class MyUtil {
         return true;
     }
 
-
     /**
      * 在指定cs上删除一个或多个cl，返回删除的个数
      *
@@ -518,7 +525,7 @@ public class MyUtil {
                     cs.dropCollection(clName);
                     count++;
                 } catch (BaseException e) {
-//                    e.printStackTrace();
+                    // e.printStackTrace();
                 }
             }
         }
@@ -575,7 +582,6 @@ public class MyUtil {
         }
     }
 
-
     /**
      * 检查当前集群环境是否可用
      *
@@ -594,7 +600,7 @@ public class MyUtil {
         } catch (ReliabilityException e) {
             System.out.println("当前环境异常，GroupMgr.checkBusiness()==false，跳过该用例。");
             throw new SkipException("当前环境异常，GroupMgr.checkBusiness()==false，跳过该用例。");
-        } 
+        }
     }
 
     /**
@@ -606,18 +612,16 @@ public class MyUtil {
      */
     public static boolean deleteAllInCl(String csName, String clName) {
         try (MySequoiadb db = getMySdb()) {
-            db.getCollectionSpace(csName)
-                    .getCollection(clName).delete((BSONObject) null);
+            db.getCollectionSpace(csName).getCollection(clName).delete((BSONObject) null);
             return true;
         } catch (BaseException e) {
-//            e.printStackTrace();
+            // e.printStackTrace();
             return false;
         }
     }
 
     /**
-     * 直连指定数据组的主节点，获取指定cl的记录数量。
-     * 当有异常抛出时，返回0。调用时需要注意，这样的处理是否符合你程序的处理逻辑。
+     * 直连指定数据组的主节点，获取指定cl的记录数量。 当有异常抛出时，返回0。调用时需要注意，这样的处理是否符合你程序的处理逻辑。
      *
      * @param groupName
      * @param csName
@@ -800,8 +804,7 @@ public class MyUtil {
 
     public static void deleteAllLobs(String csName, String clName) {
         try (MySequoiadb db = getMySdb()) {
-            DBCollection cl = db.getCollectionSpace(csName)
-                    .getCollection(clName);
+            DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
             DBCursor cursor = cl.listLobs();
             while (cursor.hasNext()) {
                 BSONObject bson = cursor.getNext();
@@ -820,8 +823,7 @@ public class MyUtil {
     public static int getNumOfLobFromDataNode(String csName, String clname, NodeWrapper node) {
         int count = 0;
         try (Sequoiadb db = node.connect()) {
-            DBCollection cl = db.getCollectionSpace(csName)
-                    .getCollection(clname);
+            DBCollection cl = db.getCollectionSpace(csName).getCollection(clname);
             DBCursor cursor = cl.listLobs();
             while (cursor.hasNext()) {
                 cursor.getNext();
@@ -831,7 +833,8 @@ public class MyUtil {
         return count;
     }
 
-    public static boolean isLobNumInspectInGroup(String csName, String clName, String groupName) throws ReliabilityException {
+    public static boolean isLobNumInspectInGroup(String csName, String clName, String groupName)
+            throws ReliabilityException {
         GroupMgr groupMgr = GroupMgr.getInstance();
         groupMgr.checkBusiness();
         GroupWrapper group = groupMgr.getGroupByName(groupName);
@@ -846,7 +849,8 @@ public class MyUtil {
         return true;
     }
 
-    public static boolean isLobMd5InspectInGroup(String csName, String clName, String groupName, List<LobBean> lobs) throws ReliabilityException {
+    public static boolean isLobMd5InspectInGroup(String csName, String clName, String groupName, List<LobBean> lobs)
+            throws ReliabilityException {
         Map<ObjectId, LobBean> targetLob = new HashMap<>();
         Set<String> targetMd5 = new HashSet<>();
 
@@ -860,8 +864,7 @@ public class MyUtil {
 
         for (NodeWrapper node : groupWrapper.getNodes()) {
             try (Sequoiadb db = node.connect()) {
-                DBCollection cl = db.getCollectionSpace(csName)
-                        .getCollection(clName);
+                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
                 DBCursor cursor = cl.listLobs();
                 while (cursor.hasNext()) {
                     BSONObject bson = cursor.getNext();
@@ -879,7 +882,6 @@ public class MyUtil {
         return true;
     }
 
-
     public static boolean isLobsAllDelete(String csName, String clName, List<LobBean> lobs) {
         Set<ObjectId> idSet = new HashSet<>();
         for (LobBean lob : lobs) {
@@ -891,8 +893,7 @@ public class MyUtil {
 
     public static boolean isLobsAllDelete(String csName, String clName, Set<ObjectId> lobsId) {
         try (MySequoiadb db = getMySdb()) {
-            DBCollection cl = db.getCollectionSpace(csName)
-                    .getCollection(clName);
+            DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
             DBCursor cursor = cl.listLobs();
             while (cursor.hasNext()) {
                 ObjectId id = (ObjectId) cursor.getNext().get("Oid");
@@ -927,8 +928,7 @@ public class MyUtil {
 
     private static boolean isLobsAllCreated2(String csName, String clName, List<ObjectId> createdLobIds) {
         try (MySequoiadb db = getMySdb()) {
-            DBCollection cl = db.getCollectionSpace(csName)
-                    .getCollection(clName);
+            DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
             DBCursor cursor = cl.listLobs();
             Map<ObjectId, String> listLobsMap = new HashMap<>();
             while (cursor.hasNext()) {
@@ -953,18 +953,18 @@ public class MyUtil {
 
     @Deprecated
     public static void throwSkipExeWithoutFaultEnv() {
-//        throwSkipException("没遇上异常环境");
+        // throwSkipException("没遇上异常环境");
     }
 
     public static void createIndex(DBCollection cl, IndexBean index) {
-        cl.createIndex(index.getName(), index.getIndexDef(), index.isUnique(), index.isEnforced(), index.getSortBufferSize());
+        cl.createIndex(index.getName(), index.getIndexDef(), index.isUnique(), index.isEnforced(),
+                index.getSortBufferSize());
         index.setCreated(true);
     }
 
     public static void createIndexs(String csName, String clName, List<IndexBean> indexList) {
         try (MySequoiadb db = getMySdb()) {
-            DBCollection cl = db.getCollectionSpace(csName)
-                    .getCollection(clName);
+            DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
             for (IndexBean indexBean : indexList) {
                 createIndex(cl, indexBean);
             }
@@ -982,8 +982,7 @@ public class MyUtil {
 
     public static void removeIndexes(String csName, String clName, List<IndexBean> indexBeans) {
         try (MySequoiadb db = getMySdb()) {
-            DBCollection cl = db.getCollectionSpace(csName)
-                    .getCollection(clName);
+            DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
             for (IndexBean indexBean : indexBeans) {
                 removeIndex(cl, indexBean);
             }
@@ -993,13 +992,11 @@ public class MyUtil {
     public static boolean isIndexAllCreated(String csName, String clName, List<IndexBean> indexBeanList) {
         boolean flag;
         try (MySequoiadb db = getMySdb()) {
-            DBCollection cl = db.getCollectionSpace(csName)
-                    .getCollection(clName);
+            DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
             flag = isIndexAllCreated(cl, indexBeanList);
         }
         return flag;
     }
-
 
     public static boolean isIndexAllCreated(DBCollection cl, List<IndexBean> indexBeanList) {
         Set<String> sdbIndexes = new HashSet<>();
@@ -1020,17 +1017,14 @@ public class MyUtil {
         return true;
     }
 
-
     public static boolean isIndexAllDeleted(String csName, String clName, List<IndexBean> indexBeanList) {
         boolean flag;
         try (MySequoiadb db = getMySdb()) {
-            DBCollection cl = db.getCollectionSpace(csName)
-                    .getCollection(clName);
+            DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
             flag = isIndexAllDeleted(cl, indexBeanList);
         }
         return flag;
     }
-
 
     public static boolean isIndexAllDeleted(DBCollection cl, List<IndexBean> indexBeanList) {
         Set<String> deletedIndex = new HashSet<>();
@@ -1096,5 +1090,79 @@ public class MyUtil {
         }
         return groupList;
     }
-}
 
+    public static void checkListCS(Sequoiadb db, String csNameBase, int csNum) {
+        // get expect cs name list
+        List<BSONObject> expCSNames = new ArrayList<BSONObject>();
+        for (int i = 0; i < csNum; i++) {
+            BSONObject nameBSON = new BasicBSONObject();
+            String csName = csNameBase + "_" + i;
+            nameBSON.put("Name", csName);
+            expCSNames.add(nameBSON);
+        }
+
+        // get actual cs name list
+        DBCursor cursor = db.listCollectionSpaces();
+        List<BSONObject> actCSNames = new ArrayList<BSONObject>();
+        while (cursor.hasNext()) {
+            BSONObject result = cursor.getNext();
+            String csName = (String) result.get("Name");
+            if (csName.indexOf(csNameBase) != -1) {
+                actCSNames.add(result);
+            }
+        }
+        cursor.close();
+
+        // compare them
+        sortByName(actCSNames);
+        sortByName(expCSNames);
+        if (!actCSNames.equals(expCSNames)) {
+            System.out.println("actCSNames: " + actCSNames);
+            System.out.println("expCSNames: " + expCSNames);
+            Assert.fail("listCollectionSpaces() is not the expected. see details on console");
+        }
+    }
+
+    public static void checkListCL(Sequoiadb db, String csName, String clNameBase, int clNum) {
+        // get expect cl name list
+        List<BSONObject> expCLNames = new ArrayList<BSONObject>();
+        for (int i = 0; i < clNum; i++) {
+            BSONObject nameBSON = new BasicBSONObject();
+            String clFullName = csName + "." + clNameBase + "_" + i;
+            nameBSON.put("Name", clFullName);
+            expCLNames.add(nameBSON);
+        }
+
+        // get actual cl name list
+        DBCursor cursor = db.listCollections();
+        List<BSONObject> actCLNames = new ArrayList<BSONObject>();
+        while (cursor.hasNext()) {
+            BSONObject result = cursor.getNext();
+            String fullName = (String) result.get("Name");
+            if (fullName.indexOf(clNameBase) != -1) {
+                actCLNames.add(result);
+            }
+        }
+        cursor.close();
+
+        // compare them
+        sortByName(actCLNames);
+        sortByName(expCLNames);
+        if (!actCLNames.equals(expCLNames)) {
+            System.out.println("actCSNames: " + actCLNames);
+            System.out.println("expCSNames: " + expCLNames);
+            Assert.fail("listCollections() is not the expected. see details on console");
+        }
+    }
+
+    public static void sortByName(List<BSONObject> list) {
+        Collections.sort(list, new Comparator<BSONObject>() {
+            @Override
+            public int compare(BSONObject a, BSONObject b) {
+                String aName = (String) a.get("Name");
+                String bName = (String) b.get("Name");
+                return aName.compareTo(bName);
+            }
+        });
+    }
+}

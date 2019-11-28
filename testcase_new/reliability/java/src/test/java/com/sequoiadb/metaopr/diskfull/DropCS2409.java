@@ -1,7 +1,15 @@
 package com.sequoiadb.metaopr.diskfull;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import org.testng.Assert;
+import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
@@ -10,18 +18,10 @@ import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.DiskFull;
+import com.sequoiadb.metaopr.commons.MyUtil;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
-import org.bson.BSONObject;
-import org.testng.Assert;
-import org.testng.SkipException;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.text.SimpleDateFormat;
-import java.util.*;
 
 /**
  * @FileName seqDB-2409: 删除CS时catalog主节点所在服务器磁盘满
@@ -31,14 +31,9 @@ import java.util.*;
  */
 
 /*
- * 1、创建CS，构造脚本循环执行创建CS操作db.createCS（） 
- * 2、执行删除CS操作（构造脚本循环执行删除CS操作） 
- * 3、删除CS时catalog主节点所在主机磁盘满（构造主机磁盘满故障） 
- * 3、查看CS信息和catalog主节点状态 
- * 4、恢复故障（清理磁盘空间） 
- * 5、再次执行删除CS操作 
- * 6、查看CS信息（执行listCollections（）命令查看CS信息） 
- * 7、查看catalog主备节点是否存在该CS相关信息
+ * 1、创建CS，构造脚本循环执行创建CS操作db.createCS（） 2、执行删除CS操作（构造脚本循环执行删除CS操作）
+ * 3、删除CS时catalog主节点所在主机磁盘满（构造主机磁盘满故障） 3、查看CS信息和catalog主节点状态 4、恢复故障（清理磁盘空间）
+ * 5、再次执行删除CS操作 6、查看CS信息（执行listCollections（）命令查看CS信息） 7、查看catalog主备节点是否存在该CS相关信息
  */
 
 public class DropCS2409 extends SdbTestBase {
@@ -53,12 +48,12 @@ public class DropCS2409 extends SdbTestBase {
         try {
             System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            
+
             groupMgr = GroupMgr.getInstance();
             if (!groupMgr.checkBusiness()) {
                 throw new SkipException("checkBusiness failed");
             }
-            
+
             db = new Sequoiadb(coordUrl, "", "");
             for (int i = 0; i < CS_NUM; i++) {
                 String csName = csNameBase + "_" + i;
@@ -82,20 +77,25 @@ public class DropCS2409 extends SdbTestBase {
             NodeWrapper priNode = cataGroup.getMaster();
             Sequoiadb cataDB = priNode.connect();
             DBCollection sysCataCL = cataDB.getCollectionSpace("SYSCAT").getCollection("SYSCOLLECTIONS");
-            
-            FaultMakeTask faultTask = DiskFull.getFaultMakeTask(priNode.hostName(), SdbTestBase.reservedDir, 0, 10, sysCataCL);
+
+            FaultMakeTask faultTask = DiskFull.getFaultMakeTask(priNode.hostName(), SdbTestBase.reservedDir, 0, 10,
+                    sysCataCL);
             TaskMgr mgr = new TaskMgr(faultTask);
             mgr.addTask(new DropCSTask());
             mgr.execute();
             Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
-            
-            if (!groupMgr.checkBusinessWithLSN(600)) { Assert.fail("checkBusinessWithLSN() occurs timeout"); }
-            
+
+            if (!groupMgr.checkBusinessWithLSN(600)) {
+                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            }
+
             db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
             dropCSAgain(db);
 
-            if (!groupMgr.checkBusinessWithLSN(600)) { Assert.fail("checkBusinessWithLSN() occurs timeout"); }
-            checkListCS(db);
+            if (!groupMgr.checkBusinessWithLSN(600)) {
+                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            }
+            MyUtil.checkListCS(db, csNameBase, 0);
             Utils.checkConsistency(groupMgr);
             runSuccess = true;
         } catch (ReliabilityException e) {
@@ -110,7 +110,9 @@ public class DropCS2409 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (!runSuccess) { throw new SkipException("to save environment"); }
+        if (!runSuccess) {
+            throw new SkipException("to save environment");
+        }
         Sequoiadb db = null;
         try {
         } catch (BaseException e) {
@@ -123,7 +125,7 @@ public class DropCS2409 extends SdbTestBase {
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
         }
     }
-    
+
     private class DropCSTask extends OperateTask {
         @Override
         public void exec() throws Exception {
@@ -142,54 +144,19 @@ public class DropCS2409 extends SdbTestBase {
             }
         }
     }
-    
+
     private void dropCSAgain(Sequoiadb db) {
         for (int i = 0; i < CS_NUM; i++) {
             try {
                 String csName = csNameBase + "_" + i;
                 db.dropCollectionSpace(csName);
             } catch (BaseException e) {
-                // -34 SDB_DMS_CS_NOTEXIST 集合空间不存在 
+                // -34 SDB_DMS_CS_NOTEXIST 集合空间不存在
                 if (e.getErrorCode() != -34) {
                     throw e;
                 }
             }
         }
     }
-    
-    private void checkListCS(Sequoiadb db) {
-        // get expect cs name list
-        List<BSONObject> expCSNames = new ArrayList<BSONObject>();
-        
-        // get actual cs name list
-        DBCursor cursor = db.listCollectionSpaces();
-        List<BSONObject> actCSNames = new ArrayList<BSONObject>();
-        while (cursor.hasNext()) {
-            BSONObject result = cursor.getNext();
-            String csName = (String) result.get("Name");
-            if (-1 != csName.indexOf(csNameBase)) {
-                actCSNames.add(result);
-            }
-        }
-        cursor.close();
-        
-        // compare them
-        sortByName(actCSNames);
-        sortByName(expCSNames);
-        if (!actCSNames.equals(expCSNames)) {
-            System.out.println(actCSNames);
-            System.out.println(expCSNames);
-            Assert.fail("listCollectionSpaces() is not the expected. see details on console");
-        }
-    }
-    
-    private void sortByName(List<BSONObject> list) {
-        Collections.sort(list, new Comparator<BSONObject>() {
-            public int compare(BSONObject a, BSONObject b) {
-                String aName = (String)a.get("Name");
-                String bName = (String)b.get("Name");
-                return aName.compareTo(bName);
-            }
-        });
-    }
+
 }

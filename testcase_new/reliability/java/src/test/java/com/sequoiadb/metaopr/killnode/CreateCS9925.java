@@ -1,8 +1,20 @@
 package com.sequoiadb.metaopr.killnode;
 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import org.bson.BSONObject;
+import org.bson.util.JSON;
+import org.testng.Assert;
+import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
@@ -11,36 +23,22 @@ import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.KillNode;
+import com.sequoiadb.metaopr.commons.MyUtil;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
-import org.bson.util.JSON;
-import org.testng.Assert;
-import org.testng.SkipException;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.text.SimpleDateFormat;
-import java.util.*;
 
 /**
- * @FileName seqDB-9925: 创建CS过程中数据主节点被kill -9 
+ * @FileName seqDB-9925: 创建CS过程中数据主节点被kill -9
  * @Author linsuqiang
  * @Date 2017-03-31
  * @Version 1.00
  */
 
 /*
- * 1、创建CS过程中多次kill -9数据主节点,如执行如下循环语句创建CS过程中kill -9 数据主节点：
- *  for(i=0;i<1000;i++)
- *  {
- *      var csName = "cs"+i;
- *      var cl = db.createCS(csName).createCL("cl",{Group:"group1"});
- *      cl.insert({a:1});
- *  }
+ * 1、创建CS过程中多次kill -9数据主节点,如执行如下循环语句创建CS过程中kill -9 数据主节点： for(i=0;i<1000;i++) {
+ * var csName = "cs"+i; var cl =
+ * db.createCS(csName).createCL("cl",{Group:"group1"}); cl.insert({a:1}); }
  * 2、查看节点是否有被正常拉起，且数据正常
  * 
  * http://jira:8080/browse/SEQUOIADBMAINSTREAM-1934
@@ -60,12 +58,12 @@ public class CreateCS9925 extends SdbTestBase {
         try {
             System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            
+
             groupMgr = GroupMgr.getInstance();
             if (!groupMgr.checkBusiness()) {
                 throw new SkipException("checkBusiness failed");
             }
-            
+
             clGroupName = groupMgr.getAllDataGroupName().get(0);
         } catch (ReliabilityException e) {
             Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
@@ -83,25 +81,30 @@ public class CreateCS9925 extends SdbTestBase {
         try {
             GroupWrapper dataGroup = groupMgr.getGroupByName(clGroupName);
             NodeWrapper priNode = dataGroup.getMaster();
-            
+
             FaultMakeTask faultTask = KillNode.getFaultMakeTask(priNode.hostName(), priNode.svcName(), 0);
             TaskMgr mgr = new TaskMgr(faultTask);
             CreateCSTask cTask = new CreateCSTask();
             mgr.addTask(cTask);
             mgr.execute();
             Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
-            
-            if (!groupMgr.checkBusinessWithLSN(600)) { Assert.fail("checkBusinessWithLSN() occurs timeout"); }
-            
+
+            if (!groupMgr.checkBusinessWithLSN(600)) {
+                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            }
+
             db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
             createCSAgain(db);
             operateOnCS(db);
 
-            if (!groupMgr.checkBusinessWithLSN(600)) { Assert.fail("checkBusinessWithLSN() occurs timeout"); }
-            checkListCS(db);
-//            if (!dataGroup.checkInspect(1)) { // Error: Not found any collection
-//                Assert.fail("data is different on " + dataGroup.getGroupName());
-//            }
+            if (!groupMgr.checkBusinessWithLSN(600)) {
+                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            }
+            MyUtil.checkListCS(db, csNameBase, CS_NUM);
+            // if (!dataGroup.checkInspect(1)) { // Error: Not found any
+            // collection
+            // Assert.fail("data is different on " + dataGroup.getGroupName());
+            // }
             runSuccess = true;
         } catch (ReliabilityException e) {
             e.printStackTrace();
@@ -115,7 +118,9 @@ public class CreateCS9925 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (!runSuccess) { throw new SkipException("to save environment"); }
+        if (!runSuccess) {
+            throw new SkipException("to save environment");
+        }
         Sequoiadb db = null;
         try {
             db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
@@ -130,8 +135,8 @@ public class CreateCS9925 extends SdbTestBase {
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
         }
     }
-    
-    // not only create cs. see details on the head of this file. 
+
+    // not only create cs. see details on the head of this file.
     private class CreateCSTask extends OperateTask {
         @Override
         public void exec() throws Exception {
@@ -142,7 +147,8 @@ public class CreateCS9925 extends SdbTestBase {
                     String csName = csNameBase + "_" + i;
                     String clName = clNameBase + "_" + i;
                     CollectionSpace cs = db.createCollectionSpace(csName);
-                    DBCollection cl = cs.createCollection(clName, (BSONObject)JSON.parse("{ Group: '" + clGroupName + "' }"));
+                    DBCollection cl = cs.createCollection(clName,
+                            (BSONObject) JSON.parse("{ Group: '" + clGroupName + "' }"));
                     cl.insert("{ a: 1 }");
                 }
             } catch (BaseException e) {
@@ -153,7 +159,7 @@ public class CreateCS9925 extends SdbTestBase {
             }
         }
     }
-    
+
     private void createCSAgain(Sequoiadb db) {
         for (int i = 0; i < CS_NUM; i++) {
             String csName = csNameBase + "_" + i;
@@ -164,73 +170,31 @@ public class CreateCS9925 extends SdbTestBase {
             }
         }
     }
-    
+
     private void operateOnCS(Sequoiadb db) {
         List<BSONObject> recs = new ArrayList<BSONObject>();
         int recCnt = 3000;
         for (int i = 0; i < recCnt; i++) {
-            recs.add((BSONObject)JSON.parse("{ a: 1 }"));
+            recs.add((BSONObject) JSON.parse("{ a: 1 }"));
         }
-        
+
         for (int i = 0; i < CS_NUM; i++) {
             String csName = csNameBase + "_" + i;
             CollectionSpace currCS = db.getCollectionSpace(csName);
-            
+
             String clName = clNameBase + "_" + i;
             DBCollection cl = null;
-            if (currCS.isCollectionExist(clName)) { 
+            if (currCS.isCollectionExist(clName)) {
                 cl = currCS.getCollection(clName);
             } else {
                 cl = currCS.createCollection(clName);
             }
             cl.insert(recs, DBCollection.FLG_INSERT_CONTONDUP);
-            
+
             currCS.dropCollection(clName);
         }
     }
-    
-    private void checkListCS(Sequoiadb db) {
-        // get expect cs name list
-        List<BSONObject> expCSNames = new ArrayList<BSONObject>();
-        for (int i = 0; i < CS_NUM; i++) {
-            BSONObject nameBSON = new BasicBSONObject();
-            String csName = csNameBase + "_" + i;
-            nameBSON.put("Name", csName);
-            expCSNames.add(nameBSON);
-        }
-        
-        // get actual cs name list
-        DBCursor cursor = db.listCollectionSpaces();
-        List<BSONObject> actCSNames = new ArrayList<BSONObject>();
-        while (cursor.hasNext()) {
-            BSONObject result = cursor.getNext();
-            String csName = (String) result.get("Name");
-            if (-1 != csName.indexOf(csNameBase)) {
-                actCSNames.add(result);
-            }
-        }
-        cursor.close();
-        
-        // compare them
-        sortByName(actCSNames);
-        sortByName(expCSNames);
-        if (!actCSNames.equals(expCSNames)) {
-            System.out.println(actCSNames);
-            System.out.println(expCSNames);
-            Assert.fail("listCollectionSpaces() is not the expected. see details on console");
-        }
-    }
-    
-    private void sortByName(List<BSONObject> list) {
-        Collections.sort(list, new Comparator<BSONObject>() {
-            public int compare(BSONObject a, BSONObject b) {
-                String aName = (String)a.get("Name");
-                String bName = (String)b.get("Name");
-                return aName.compareTo(bName);
-            }
-        });
-    }
-    
+
     private void dropCS(Sequoiadb db) {
         for (int i = 0; i < CS_NUM; i++) {
             String csName = csNameBase + "_" + i;

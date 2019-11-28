@@ -2,8 +2,6 @@ package com.sequoiadb.metaopr.killnode;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
@@ -21,7 +19,6 @@ import org.testng.annotations.Test;
 
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
@@ -30,6 +27,7 @@ import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.KillNode;
+import com.sequoiadb.metaopr.commons.MyUtil;
 import com.sequoiadb.metaopr.diskfull.Utils;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
@@ -207,7 +205,7 @@ public class CreateCLAndKillPrimaryCatalog2280 extends SdbTestBase {
                 }
             }
         }
-        checkListCL();
+        MyUtil.checkListCL(sdb, csName, preCLName, count + 1);
         insertByCL();
     }
 
@@ -257,47 +255,6 @@ public class CreateCLAndKillPrimaryCatalog2280 extends SdbTestBase {
             }
         }
         Assert.assertEquals(recsNum, insertNum, "incorrect number of the cl,actnum=" + recsNum);
-    }
-
-    private void checkListCL() {
-        // get expect cl name list
-        List<BSONObject> expCLNames = new ArrayList<BSONObject>();
-        int clNums = count + 1;
-        for (int i = 0; i < clNums; i++) {
-            BSONObject nameBSON = new BasicBSONObject();
-            String clFullName = csName + "." + preCLName + "_" + i;
-            nameBSON.put("Name", clFullName);
-            expCLNames.add(nameBSON);
-        }
-
-        // get actual cl name list
-        DBCursor cursor = sdb.listCollections();
-        List<BSONObject> actCLNames = new ArrayList<BSONObject>();
-        while (cursor.hasNext()) {
-            BSONObject result = cursor.getNext();
-            actCLNames.add(result);
-        }
-        cursor.close();
-
-        // compare them
-        sortByName(actCLNames);
-        sortByName(expCLNames);
-        if (!actCLNames.equals(expCLNames)) {
-            System.out.println("actCLNames=" + actCLNames);
-            System.out.println("expCLNames=" + expCLNames);
-            Assert.fail("listCollections() is not the expected.");
-        }
-    }
-
-    private void sortByName(List<BSONObject> list) {
-        Collections.sort(list, new Comparator<BSONObject>() {
-            @Override
-            public int compare(BSONObject a, BSONObject b) {
-                String aName = (String) a.get("Name");
-                String bName = (String) b.get("Name");
-                return aName.compareTo(bName);
-            }
-        });
     }
 
 }

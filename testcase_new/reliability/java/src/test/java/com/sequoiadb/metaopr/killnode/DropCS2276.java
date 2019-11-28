@@ -1,5 +1,14 @@
 package com.sequoiadb.metaopr.killnode;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import org.testng.Assert;
+import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
@@ -8,18 +17,11 @@ import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.KillNode;
-import com.sequoiadb.metaopr.diskfull.Utils ;
+import com.sequoiadb.metaopr.commons.MyUtil;
+import com.sequoiadb.metaopr.diskfull.Utils;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
-import org.testng.Assert;
-import org.testng.SkipException;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.text.SimpleDateFormat;
-import java.util.*;
 
 /**
  * @FileName seqDB-2276: 删除CS时catalog主节点异常重启
@@ -29,13 +31,9 @@ import java.util.*;
  */
 
 /*
- * 1、创建CS，构造脚本循环执行创建CS操作db.createCS（） 
- * 2、执行删除CS操作（构造脚本循环执行删除CS操作） 
- * 3、删除CS时catalog主节点异常重启（如执行kill -9杀掉节点进程，构造节点异常重启） 
- * 3、查看CS信息和catalog主节点状态 
- * 4、节点启动成功后（查看节点进程存在） 
- * 5、再次执行删除CS操作 
- * 6、查看CS信息（执行listCollections（）命令查看CS信息） 
+ * 1、创建CS，构造脚本循环执行创建CS操作db.createCS（） 2、执行删除CS操作（构造脚本循环执行删除CS操作）
+ * 3、删除CS时catalog主节点异常重启（如执行kill -9杀掉节点进程，构造节点异常重启） 3、查看CS信息和catalog主节点状态
+ * 4、节点启动成功后（查看节点进程存在） 5、再次执行删除CS操作 6、查看CS信息（执行listCollections（）命令查看CS信息）
  * 7、查看catalog主备节点是否存在该CS相关信息
  */
 
@@ -51,12 +49,12 @@ public class DropCS2276 extends SdbTestBase {
         try {
             System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            
+
             groupMgr = GroupMgr.getInstance();
             if (!groupMgr.checkBusiness()) {
                 throw new SkipException("checkBusiness failed");
             }
-            
+
             db = new Sequoiadb(coordUrl, "", "");
             for (int i = 0; i < CS_NUM; i++) {
                 String csName = csNameBase + "_" + i;
@@ -85,14 +83,18 @@ public class DropCS2276 extends SdbTestBase {
             mgr.addTask(dTask);
             mgr.execute();
             Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
-            
-            if (!groupMgr.checkBusinessWithLSN(600)) { Assert.fail("checkBusinessWithLSN() occurs timeout"); }
-            
+
+            if (!groupMgr.checkBusinessWithLSN(600)) {
+                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            }
+
             db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
             dropCSAgain(db);
 
-            if (!groupMgr.checkBusinessWithLSN(600)) { Assert.fail("checkBusinessWithLSN() occurs timeout"); }
-            checkListCS(db);
+            if (!groupMgr.checkBusinessWithLSN(600)) {
+                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            }
+            MyUtil.checkListCS(db, csNameBase, 0);
             Utils.checkConsistency(groupMgr);
             runSuccess = true;
         } catch (ReliabilityException e) {
@@ -107,7 +109,9 @@ public class DropCS2276 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (!runSuccess) { throw new SkipException("to save environment"); }
+        if (!runSuccess) {
+            throw new SkipException("to save environment");
+        }
         Sequoiadb db = null;
         try {
         } catch (BaseException e) {
@@ -120,7 +124,7 @@ public class DropCS2276 extends SdbTestBase {
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
         }
     }
-    
+
     private class DropCSTask extends OperateTask {
         @Override
         public void exec() throws Exception {
@@ -139,27 +143,19 @@ public class DropCS2276 extends SdbTestBase {
             }
         }
     }
-    
+
     private void dropCSAgain(Sequoiadb db) {
         for (int i = 0; i < CS_NUM; i++) {
             try {
                 String csName = csNameBase + "_" + i;
                 db.dropCollectionSpace(csName);
             } catch (BaseException e) {
-                // -34 SDB_DMS_CS_NOTEXIST 集合空间不存在 
+                // -34 SDB_DMS_CS_NOTEXIST 集合空间不存在
                 if (e.getErrorCode() != -34) {
                     throw e;
                 }
             }
         }
     }
-    
-    private void checkListCS(Sequoiadb db) {
-    	for (int i = 0; i < CS_NUM; i++) {
-            String csName = csNameBase + "_" + i;
-    		boolean rc = db.isCollectionSpaceExist(csName);
-    		Assert.assertFalse(rc, "expected "+ csName 
-    				+" does not exist, actually exists.");
-    	}
-    }
+
 }

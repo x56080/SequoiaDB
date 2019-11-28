@@ -1,7 +1,15 @@
 package com.sequoiadb.metaopr.killnode;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import org.testng.Assert;
+import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
@@ -10,19 +18,11 @@ import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.KillNode;
-import com.sequoiadb.metaopr.diskfull.Utils ;
+import com.sequoiadb.metaopr.commons.MyUtil;
+import com.sequoiadb.metaopr.diskfull.Utils;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
-import org.bson.BSONObject;
-import org.testng.Assert;
-import org.testng.SkipException;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.text.SimpleDateFormat;
-import java.util.*;
 
 /**
  * @FileName seqDB-2282: 删除CL时catalog主节点异常重启
@@ -32,14 +32,9 @@ import java.util.*;
  */
 
 /*
- * 1、创建CS，在该CS下创建多个CL 
- * 2、执行删除CL操作（构造脚本循环执行删除CL操作） 
- * 3、删除CL时catalog主节点异常重启（如执行kill -9杀掉节点进程，构造节点异常重启） 
- * 3、查看CL信息和catalog主节点状态 
- * 4、节点启动成功后（查看节点进程存在） 
- * 5、再次执行删除CL操作 
- * 6、查看CL信息（执行listCollections（）命令查看CL信息） 
- * 9、查看catalog主备节点是否存在该CL相关信息
+ * 1、创建CS，在该CS下创建多个CL 2、执行删除CL操作（构造脚本循环执行删除CL操作） 3、删除CL时catalog主节点异常重启（如执行kill
+ * -9杀掉节点进程，构造节点异常重启） 3、查看CL信息和catalog主节点状态 4、节点启动成功后（查看节点进程存在） 5、再次执行删除CL操作
+ * 6、查看CL信息（执行listCollections（）命令查看CL信息） 9、查看catalog主备节点是否存在该CL相关信息
  */
 
 public class DropCL2282 extends SdbTestBase {
@@ -54,12 +49,12 @@ public class DropCL2282 extends SdbTestBase {
         try {
             System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            
+
             groupMgr = GroupMgr.getInstance();
             if (!groupMgr.checkBusiness()) {
                 throw new SkipException("checkBusiness failed");
             }
-            
+
             db = new Sequoiadb(coordUrl, "", "");
             CollectionSpace commCS = db.getCollectionSpace(csName);
             for (int i = 0; i < CL_NUM; i++) {
@@ -89,14 +84,18 @@ public class DropCL2282 extends SdbTestBase {
             mgr.addTask(dTask);
             mgr.execute();
             Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
-            
-            if (!groupMgr.checkBusinessWithLSN(600)) { Assert.fail("checkBusinessWithLSN() occurs timeout"); }
-            
+
+            if (!groupMgr.checkBusinessWithLSN(600)) {
+                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            }
+
             db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
             dropCLAgain(db);
-            
-            if (!groupMgr.checkBusinessWithLSN(600)) { Assert.fail("checkBusinessWithLSN() occurs timeout"); }
-            checkListCL(db);
+
+            if (!groupMgr.checkBusinessWithLSN(600)) {
+                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            }
+            MyUtil.checkListCL(db, csName, clNameBase, 0);
             Utils.checkConsistency(groupMgr);
             runSuccess = true;
         } catch (ReliabilityException e) {
@@ -111,7 +110,9 @@ public class DropCL2282 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (!runSuccess) { throw new SkipException("to save environment"); }
+        if (!runSuccess) {
+            throw new SkipException("to save environment");
+        }
         Sequoiadb db = null;
         try {
         } catch (BaseException e) {
@@ -124,7 +125,7 @@ public class DropCL2282 extends SdbTestBase {
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
         }
     }
-    
+
     private class DropCLTask extends OperateTask {
         @Override
         public void exec() throws Exception {
@@ -144,7 +145,7 @@ public class DropCL2282 extends SdbTestBase {
             }
         }
     }
-    
+
     private void dropCLAgain(Sequoiadb db) {
         CollectionSpace commCS = db.getCollectionSpace(csName);
         for (int i = 0; i < CL_NUM; i++) {
@@ -152,44 +153,11 @@ public class DropCL2282 extends SdbTestBase {
             try {
                 commCS.dropCollection(clName);
             } catch (BaseException e) {
-                // -23 SDB_DMS_NOTEXIST 集合不存在 
+                // -23 SDB_DMS_NOTEXIST 集合不存在
                 if (e.getErrorCode() != -23) {
                     throw e;
                 }
             }
         }
-    }
-    
-    private void checkListCL(Sequoiadb db) {
-        // get expect cl name list
-        List<BSONObject> expCSNames = new ArrayList<BSONObject>();
-        
-        // get actual cl name list
-        DBCursor cursor = db.listCollections();
-        List<BSONObject> actCSNames = new ArrayList<BSONObject>();
-        while (cursor.hasNext()) {
-            BSONObject result = cursor.getNext();
-            actCSNames.add(result);
-        }
-        cursor.close();
-        
-        // compare them
-        sortByName(actCSNames);
-        sortByName(expCSNames);
-        if (!actCSNames.equals(expCSNames)) {
-            System.out.println(actCSNames);
-            System.out.println(expCSNames);
-            Assert.fail("listCollections() is not the expected. see details on console");
-        }
-    }
-    
-    private void sortByName(List<BSONObject> list) {
-        Collections.sort(list, new Comparator<BSONObject>() {
-            public int compare(BSONObject a, BSONObject b) {
-                String aName = (String)a.get("Name");
-                String bName = (String)b.get("Name");
-                return aName.compareTo(bName);
-            }
-        });
     }
 }

@@ -1,8 +1,16 @@
 package com.sequoiadb.metaopr.noderestart;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import org.testng.Assert;
+import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
@@ -11,29 +19,19 @@ import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.NodeRestart;
+import com.sequoiadb.metaopr.commons.MyUtil;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
-import org.testng.Assert;
-import org.testng.SkipException;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.text.SimpleDateFormat;
-import java.util.*;
 
 /**
-* FileName: CreateCLAndRestartPrimaryCatalog2294.java
-* test content:when create cl , restart the catalog group master node             
-* testlink case:seqDB-2294
-* @author wuyan
-    * @Date    2017.4.20
-* @version 1.00
-*/
-
+ * FileName: CreateCLAndRestartPrimaryCatalog2294.java test content:when create
+ * cl , restart the catalog group master node testlink case:seqDB-2294
+ * 
+ * @author wuyan
+ * @Date 2017.4.20
+ * @version 1.00
+ */
 
 public class CreateCLAndRestartPrimaryCatalog2294 extends SdbTestBase {
     private GroupMgr groupMgr = null;
@@ -45,26 +43,26 @@ public class CreateCLAndRestartPrimaryCatalog2294 extends SdbTestBase {
     private int count = 0;
 
     @BeforeClass
-    public void setUp() {        
+    public void setUp() {
         try {
             System.out.println(this.getClass().getName() + " begin at:"
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            
+
             groupMgr = GroupMgr.getInstance();
             if (!groupMgr.checkBusiness()) {
                 throw new SkipException("checkBusiness failed");
             }
-            
+
             sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
             cs = sdb.getCollectionSpace(SdbTestBase.csName);
         } catch (ReliabilityException e) {
             Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
                     + Utils.getKeyStack(e, this));
-        } 
+        }
     }
 
     @Test
-    public void test() throws InterruptedException {        
+    public void test() throws InterruptedException {
         try {
             GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
             NodeWrapper priNode = cataGroup.getMaster();
@@ -74,146 +72,103 @@ public class CreateCLAndRestartPrimaryCatalog2294 extends SdbTestBase {
             CreateCLTask cTask = new CreateCLTask();
             mgr.addTask(cTask);
             mgr.execute();
-            
-            //TaskMgr check if there is any exception
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg()); 
-            
-            
+
+            // TaskMgr check if there is any exception
+            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
+
             Assert.assertEquals(groupMgr.checkBusinessWithLSN(600), true, "check LSN consistency fail");
-                        
-            //check result
+
+            // check result
             checkCreateCLResult();
-            Utils.checkConsistency(groupMgr);           
-           
-            //Normal operating environment
+            Utils.checkConsistency(groupMgr);
+
+            // Normal operating environment
             clearFlag = true;
         } catch (ReliabilityException e) {
             e.printStackTrace();
             Assert.fail(e.getMessage());
-        } 
+        }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-        	if (clearFlag) {                
-        		dropCL();
-            }            
-        }catch (BaseException e) {
+            if (clearFlag) {
+                dropCL();
+            }
+        } catch (BaseException e) {
             Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
-        }finally {
-        	if (sdb != null) {
-        		sdb.close();
-        	}
-        	System.out.println(this.getClass().getName() + " end at:"
+        } finally {
+            if (sdb != null) {
+                sdb.close();
+            }
+            System.out.println(this.getClass().getName() + " end at:"
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
         }
     }
 
-    
     private class CreateCLTask extends OperateTask {
         @Override
-        public void exec() throws Exception {       
-            try( Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {                
+        public void exec() throws Exception {
+            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
                 CollectionSpace commCS = db.getCollectionSpace(SdbTestBase.csName);
                 for (int i = 0; i < CL_NUM; i++) {
                     String clName = preCLName + "_" + i;
                     commCS.createCollection(clName);
                     count++;
-                    System.out.println("clName="+clName);
-                }                
+                    System.out.println("clName=" + clName);
+                }
             } catch (BaseException e) {
-            	int successCLnums = count ;
-            	System.out.println("the create cl num is ="+successCLnums);  
-            } 
+                int successCLnums = count;
+                System.out.println("the create cl num is =" + successCLnums);
+            }
         }
     }
-    
+
     /**
-	* check the result of create cl
-	* the result: 1. to create cl success,create the same cl again failed
-	*             2. to create cl fail,create the same cl again successfully
-	*             3. to create cl fail,the actual cl created successfully did not return,
-	*                creating the same cl failed again
-	*/
+     * check the result of create cl the result: 1. to create cl success,create
+     * the same cl again failed 2. to create cl fail,create the same cl again
+     * successfully 3. to create cl fail,the actual cl created successfully did
+     * not return, creating the same cl failed again
+     */
     private void checkCreateCLResult() {
-        if ( CL_NUM == count ) {
-        	try {
-        		String sameCLName = preCLName + "_" + (count - 1);
-                cs.createCollection(sameCLName);               
-                Assert.fail("create the same cl should be fail");                
+        if (CL_NUM == count) {
+            try {
+                String sameCLName = preCLName + "_" + (count - 1);
+                cs.createCollection(sameCLName);
+                Assert.fail("create the same cl should be fail");
             } catch (BaseException e) {
-                // -22 SDB_DMS_EXIST  
+                // -22 SDB_DMS_EXIST
                 if (e.getErrorCode() != -22) {
-                	Assert.fail("the error not -22: "+e.getErrorType());
+                    Assert.fail("the error not -22: " + e.getErrorType());
                 }
-            }  	
-        }else{
-			//create cl fail,the count is not equals CL_NUM
-        	try {           		
-                cs.createCollection(preCLName + "_" + count);                 
+            }
+        } else {
+            // create cl fail,the count is not equals CL_NUM
+            try {
+                cs.createCollection(preCLName + "_" + count);
             } catch (BaseException e) {
-                // -22 SDB_DMS_EXIST  
+                // -22 SDB_DMS_EXIST
                 if (e.getErrorCode() != -22) {
-                	Assert.fail("the error not -22: "+e.getErrorType());
+                    Assert.fail("the error not -22: " + e.getErrorType());
                 }
             }
         }
-        checkListCL();
-    	insertByCL();         
-    }     
-    
-    private void insertByCL() {        
+        MyUtil.checkListCL(sdb, csName, preCLName, count + 1);
+        insertByCL();
+    }
+
+    private void insertByCL() {
         for (int i = 0; i < count; i++) {
             String clName = preCLName + "_" + i;
             DBCollection cl = cs.getCollection(clName);
             cl.insert("{ a: 1 }");
-            Assert.assertEquals(cl.getCount("{a:1}"),1,"the insert data is error");
+            Assert.assertEquals(cl.getCount("{a:1}"), 1, "the insert data is error");
         }
     }
-    
-    private void checkListCL() {
-        // get expect cl name list
-        List<BSONObject> expCLNames = new ArrayList<BSONObject>();
-        int clNums = count + 1;
-        for (int i = 0; i < clNums; i++) {
-            BSONObject nameBSON = new BasicBSONObject();
-            String clFullName = csName + "." + preCLName + "_" + i;
-            nameBSON.put("Name", clFullName);
-            expCLNames.add(nameBSON);
-        }
-        
-        // get actual cl name list
-        DBCursor cursor = sdb.listCollections();
-        List<BSONObject> actCLNames = new ArrayList<BSONObject>();
-        while (cursor.hasNext()) {
-            BSONObject result = cursor.getNext();
-            actCLNames.add(result);
-        }
-        cursor.close();
-        
-        // compare them
-        sortByName(actCLNames);
-        sortByName(expCLNames);
-        if (!actCLNames.equals(expCLNames)) {
-            System.out.println(actCLNames);
-            System.out.println(expCLNames);
-            Assert.fail("listCollections() is not the expected.");
-        }
-    }
-    
-    private void sortByName(List<BSONObject> list) {
-        Collections.sort(list, new Comparator<BSONObject>() {
-            public int compare(BSONObject a, BSONObject b) {
-                String aName = (String)a.get("Name");
-                String bName = (String)b.get("Name");
-                return aName.compareTo(bName);
-            }
-        });
-    }
-    
-    private void dropCL() { 
-    	int clnums = count + 1;
+
+    private void dropCL() {
+        int clnums = count + 1;
         for (int i = 0; i < clnums; i++) {
             String clName = preCLName + "_" + i;
             cs.dropCollection(clName);

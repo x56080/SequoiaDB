@@ -1,8 +1,16 @@
 package com.sequoiadb.metaopr.diskfull;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import org.testng.Assert;
+import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
@@ -11,19 +19,10 @@ import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.DiskFull;
+import com.sequoiadb.metaopr.commons.MyUtil;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
-import org.testng.Assert;
-import org.testng.SkipException;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.text.SimpleDateFormat;
-import java.util.*;
 
 /**
  * @FileName seqDB-2410: 创建CL时catalog主节点所在服务器磁盘满（不指定Domain）
@@ -33,13 +32,9 @@ import java.util.*;
  */
 
 /*
- * 1、创建CS，在该CS下创建CL（执行脚本构造循环执行创建多个CL操作） 
- * 2、创建CL时catalog主节点所在主机磁盘满（构造主机磁盘满故障） 
- * 3、查看CL创建结果和catalog主节点状态 
- * 4、恢复故障（清理磁盘空间） 
- * 5、再次创建相同CL，向该CL中插入数据 
- * 6、查看CL信息（执行db.listCollections（）命令查看CS/CL信息是否和实际一致 
- * 7、查看catalog主备节点是否存在该CL相关信息
+ * 1、创建CS，在该CS下创建CL（执行脚本构造循环执行创建多个CL操作） 2、创建CL时catalog主节点所在主机磁盘满（构造主机磁盘满故障）
+ * 3、查看CL创建结果和catalog主节点状态 4、恢复故障（清理磁盘空间） 5、再次创建相同CL，向该CL中插入数据
+ * 6、查看CL信息（执行db.listCollections（）命令查看CS/CL信息是否和实际一致 7、查看catalog主备节点是否存在该CL相关信息
  */
 
 public class CreateCL2410 extends SdbTestBase {
@@ -54,7 +49,7 @@ public class CreateCL2410 extends SdbTestBase {
         try {
             System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            
+
             groupMgr = GroupMgr.getInstance();
             if (!groupMgr.checkBusiness()) {
                 throw new SkipException("checkBusiness failed");
@@ -77,21 +72,26 @@ public class CreateCL2410 extends SdbTestBase {
             NodeWrapper priNode = cataGroup.getMaster();
             Sequoiadb cataDB = priNode.connect();
             DBCollection sysCataCL = cataDB.getCollectionSpace("SYSCAT").getCollection("SYSCOLLECTIONS");
-            
-            FaultMakeTask faultTask = DiskFull.getFaultMakeTask(priNode.hostName(), SdbTestBase.reservedDir, 0, 10, sysCataCL);
+
+            FaultMakeTask faultTask = DiskFull.getFaultMakeTask(priNode.hostName(), SdbTestBase.reservedDir, 0, 10,
+                    sysCataCL);
             TaskMgr mgr = new TaskMgr(faultTask);
             mgr.addTask(new CreateCLTask());
             mgr.execute();
             Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
-            
-            if (!groupMgr.checkBusinessWithLSN(600)) { Assert.fail("checkBusinessWithLSN() occurs timeout"); }
-            
+
+            if (!groupMgr.checkBusinessWithLSN(600)) {
+                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            }
+
             db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
             createCLAgain(db);
             operateOnCL(db);
 
-            if (!groupMgr.checkBusinessWithLSN(600)) { Assert.fail("checkBusinessWithLSN() occurs timeout"); }
-            checkListCL(db);
+            if (!groupMgr.checkBusinessWithLSN(600)) {
+                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            }
+            MyUtil.checkListCL(db, csName, clNameBase, CL_NUM);
             Utils.checkConsistency(groupMgr);
             runSuccess = true;
         } catch (ReliabilityException e) {
@@ -106,7 +106,9 @@ public class CreateCL2410 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (!runSuccess) { throw new SkipException("to save environment"); }
+        if (!runSuccess) {
+            throw new SkipException("to save environment");
+        }
         Sequoiadb db = null;
         try {
             db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
@@ -121,7 +123,7 @@ public class CreateCL2410 extends SdbTestBase {
                     + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
         }
     }
-    
+
     private class CreateCLTask extends OperateTask {
         @Override
         public void exec() throws Exception {
@@ -141,7 +143,7 @@ public class CreateCL2410 extends SdbTestBase {
             }
         }
     }
-    
+
     private void createCLAgain(Sequoiadb db) {
         CollectionSpace commCS = db.getCollectionSpace(csName);
         for (int i = 0; i < CL_NUM; i++) {
@@ -149,14 +151,14 @@ public class CreateCL2410 extends SdbTestBase {
             try {
                 commCS.createCollection(clName);
             } catch (BaseException e) {
-                // -22 SDB_DMS_EXIST 集合已存在 
+                // -22 SDB_DMS_EXIST 集合已存在
                 if (e.getErrorCode() != -22) {
                     throw e;
                 }
             }
         }
     }
-    
+
     private void operateOnCL(Sequoiadb db) {
         CollectionSpace commCS = db.getCollectionSpace(csName);
         for (int i = 0; i < CL_NUM; i++) {
@@ -165,46 +167,7 @@ public class CreateCL2410 extends SdbTestBase {
             cl.insert("{ a: 1 }");
         }
     }
-    
-    private void checkListCL(Sequoiadb db) {
-        // get expect cl name list
-        List<BSONObject> expCSNames = new ArrayList<BSONObject>();
-        for (int i = 0; i < CL_NUM; i++) {
-            BSONObject nameBSON = new BasicBSONObject();
-            String clFullName = csName + "." + clNameBase + "_" + i;
-            nameBSON.put("Name", clFullName);
-            expCSNames.add(nameBSON);
-        }
-        
-        // get actual cl name list
-        DBCursor cursor = db.listCollections();
-        List<BSONObject> actCSNames = new ArrayList<BSONObject>();
-        while (cursor.hasNext()) {
-            BSONObject result = cursor.getNext();
-            actCSNames.add(result);
-        }
-        cursor.close();
-        
-        // compare them
-        sortByName(actCSNames);
-        sortByName(expCSNames);
-        if (!actCSNames.equals(expCSNames)) {
-            System.out.println(actCSNames);
-            System.out.println(expCSNames);
-            Assert.fail("listCollections() is not the expected. see details on console");
-        }
-    }
-    
-    private void sortByName(List<BSONObject> list) {
-        Collections.sort(list, new Comparator<BSONObject>() {
-            public int compare(BSONObject a, BSONObject b) {
-                String aName = (String)a.get("Name");
-                String bName = (String)b.get("Name");
-                return aName.compareTo(bName);
-            }
-        });
-    }
-    
+
     private void dropCL(Sequoiadb db) {
         CollectionSpace commCS = db.getCollectionSpace(csName);
         for (int i = 0; i < CL_NUM; i++) {

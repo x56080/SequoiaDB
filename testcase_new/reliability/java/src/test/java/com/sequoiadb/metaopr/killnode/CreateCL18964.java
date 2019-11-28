@@ -1,13 +1,9 @@
 package com.sequoiadb.metaopr.killnode;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
-import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
 import org.testng.SkipException;
@@ -17,7 +13,6 @@ import org.testng.annotations.Test;
 
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.commlib.CommLib;
 import com.sequoiadb.commlib.GroupMgr;
@@ -25,6 +20,7 @@ import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.KillNode;
+import com.sequoiadb.metaopr.commons.MyUtil;
 import com.sequoiadb.metaopr.diskfull.Utils;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
@@ -95,7 +91,7 @@ public class CreateCL18964 extends SdbTestBase {
             if (!groupMgr.checkBusinessWithLSN(600)) {
                 Assert.fail("checkBusinessWithLSN() occurs timeout");
             }
-            checkListCL(db);
+            MyUtil.checkListCL(db, csName, clNameBase, CL_NUM);
 
             Utils.checkConsistency(groupMgr);
             runSuccess = true;
@@ -206,46 +202,6 @@ public class CreateCL18964 extends SdbTestBase {
             DBCollection cl = commCS.getCollection(clName);
             cl.insert("{ a: 1 }");
         }
-    }
-
-    private void checkListCL(Sequoiadb db) {
-        // get expect cl name list
-        List<BSONObject> expCSNames = new ArrayList<BSONObject>();
-        for (int i = 0; i < CL_NUM; i++) {
-            BSONObject nameBSON = new BasicBSONObject();
-            String clFullName = csName + "." + clNameBase + "_" + i;
-            nameBSON.put("Name", clFullName);
-            expCSNames.add(nameBSON);
-        }
-
-        // get actual cl name list
-        DBCursor cursor = db.listCollections();
-        List<BSONObject> actCSNames = new ArrayList<BSONObject>();
-        while (cursor.hasNext()) {
-            BSONObject result = cursor.getNext();
-            actCSNames.add(result);
-        }
-        cursor.close();
-
-        // compare them
-        sortByName(actCSNames);
-        sortByName(expCSNames);
-        if (!actCSNames.equals(expCSNames)) {
-            System.out.println(actCSNames);
-            System.out.println(expCSNames);
-            Assert.fail("listCollections() is not the expected. see details on console");
-        }
-    }
-
-    private void sortByName(List<BSONObject> list) {
-        Collections.sort(list, new Comparator<BSONObject>() {
-            @Override
-            public int compare(BSONObject a, BSONObject b) {
-                String aName = (String) a.get("Name");
-                String bName = (String) b.get("Name");
-                return aName.compareTo(bName);
-            }
-        });
     }
 
     private void dropCL(Sequoiadb db) {
