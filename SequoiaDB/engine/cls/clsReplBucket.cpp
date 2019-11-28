@@ -273,7 +273,7 @@ namespace engine
    */
    _clsBucket::_clsBucket ()
    :_totalCount( 0 ), _idleUnitCount( 0 ), _allCount( 0 ),
-    _curAgentNum( 0 ), _idleAgentNum( 0 )
+    _curAgentNum( 0 ), _idleAgentNum( 0 ), _waitAgentNum( 0 )
    {
       _pDPSCB     = NULL ;
       _pMonDBCB   = NULL ;
@@ -434,6 +434,7 @@ namespace engine
          ++index ;
       }
 
+      _waitAgentNum.init( 0 ) ;
       _emptyEvent.signal() ;
       _allEmptyEvent.signal() ;
       _status = CLS_BUCKET_NORMAL ;
@@ -462,6 +463,7 @@ namespace engine
                  toBson().toString().c_str() ) ;
       }
 
+      _waitAgentNum.init( 0 ) ;
       _status = CLS_BUCKET_NORMAL ;
       _submitRC = SDB_OK ;
       if ( setExpect )
@@ -1122,6 +1124,7 @@ namespace engine
       SDB_ASSERT( NULL != header, "record is invalid" ) ;
 
       BOOLEAN canRetry = TRUE ;
+      BOOLEAN isWaiting = FALSE ;
 
       // in record parallel mode, need capture duplicated key issues
       BOOLEAN ignoreDupKey =
@@ -1137,16 +1140,24 @@ namespace engine
                        SDB_NOSPC == rc ||
                        ( SDB_IXM_DUP_KEY == rc && !ignoreDupKey ) ),
                      "Unexpected error occurred" ) ;
+         // NOTE: all running threads could not be waiting
          if ( CLS_BUCKET_NORMAL == _status &&
               SDB_IXM_DUP_KEY == rc &&
               !ignoreDupKey &&
-              canRetry )
+              canRetry &&
+              _waitAgentNum.fetch() >= _curAgentNum.fetch() - 1 )
          {
             PD_LOG( PDDEBUG, "Bucket [%u]: failed to replay lsn [%llu], "
-                    "wait to resolve duplicated key", unitID, header->_lsn ) ;
+                    "wait to resolve duplicated key, %u threads waiting",
+                    unitID, header->_lsn, _waitAgentNum.fetch() ) ;
 
             // found a duplicated key issue
             // wait complete LSN to reach this record, and retry
+            if ( !isWaiting )
+            {
+               _waitAgentNum.inc() ;
+               isWaiting = TRUE ;
+            }
             waitSubmit( CLS_REPL_RETRY_INTERVAL ) ;
             if ( completeLSN().compareOffset( header->_lsn ) >= 0 )
             {
@@ -1174,6 +1185,12 @@ namespace engine
       {
          _submitResult( header->_lsn, header->_version,
                         header->_length, info, unitID, result ) ;
+      }
+
+      if ( isWaiting )
+      {
+         _waitAgentNum.dec() ;
+         isWaiting = FALSE ;
       }
 
       PD_TRACE_EXITRC( SDB__CLSBUCKET__REPLAY, rc ) ;
