@@ -915,7 +915,7 @@ error :
    goto done ;
 }
 
-static INT32 _getModifyInfo( const bson *hint, INT32 *opType, bson *outHint, 
+static INT32 _getModifyInfo( const bson *hint, INT32 *opType, bson *outHint,
                              bson *outRule, BOOLEAN *outReturnNew )
 {
    INT32 rc = SDB_OK ;
@@ -995,7 +995,7 @@ static INT32 _getModifyInfo( const bson *hint, INT32 *opType, bson *outHint,
       if ( BSON_BOOL != bsonType )
       {
          rc = SDB_INVALIDARG ;
-         goto error ;         
+         goto error ;
       }
       returnNew = bson_iterator_bool( &it ) == 0 ? FALSE : TRUE ;
    }
@@ -2755,9 +2755,18 @@ static JSBool collection_crt_id_index ( JSContext *cx , uintN argc , jsval *vp )
    sdbCollectionHandle *clHandle = NULL ;
    JSObject *jsOptions = NULL ;
    bson *obj = NULL ;
+   jsval *argv = JS_ARGV( cx, vp ) ;
 
-   ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
-                               "/o" , &jsOptions ) ;
+   if ( 0 != argc )
+   {
+      if ( !JSVAL_IS_OBJECT( argv[0] ) )
+      {
+         REPORT ( FALSE , "SdbCollection.createIdIndex(): "
+                          "the 1st argument should be an object" ) ;
+      }
+   }
+
+   ret = JS_ConvertArguments ( cx , argc , argv , "/o" , &jsOptions ) ;
    REPORT ( ret , "SdbCollection.createIdIndex(): wrong arguments" ) ;
 
    if ( NULL != jsOptions )
@@ -3638,17 +3647,17 @@ static JSBool rg_detach( JSContext *cx, uintN argc, jsval *vp )
    // check arguments
    if ( !JSVAL_IS_STRING( argv[0] ) )
    {
-      REPORT_RC_MSG( FALSE, "RG.detachNode()", SDB_INVALIDARG, 
+      REPORT_RC_MSG( FALSE, "RG.detachNode()", SDB_INVALIDARG,
                      "the 1st argument should be a string" ) ;
    }
    if ( !JSVAL_IS_STRING( argv[1] ) && !JSVAL_IS_INT( argv[1] ) )
    {
-      REPORT_RC_MSG( FALSE, "RG.detachNode()", SDB_INVALIDARG, 
+      REPORT_RC_MSG( FALSE, "RG.detachNode()", SDB_INVALIDARG,
                      "the 2nd argument should be a string or int value" ) ;
    }
    if ( JSVAL_IS_PRIMITIVE( argv[2] ) )
    {
-      REPORT_RC_MSG( FALSE, "RG.detachNode()", SDB_INVALIDARG, 
+      REPORT_RC_MSG( FALSE, "RG.detachNode()", SDB_INVALIDARG,
                      "the 3rd argument should be an object" ) ;
    }
    // get arguments
@@ -3698,21 +3707,21 @@ static JSBool rg_attach( JSContext *cx, uintN argc, jsval *vp )
    // check arguments
    if ( !JSVAL_IS_STRING( argv[0] ) )
    {
-      REPORT_RC_MSG( FALSE, "RG.attachNode()", SDB_INVALIDARG, 
+      REPORT_RC_MSG( FALSE, "RG.attachNode()", SDB_INVALIDARG,
                      "the 1st argument should be a string" ) ;
    }
    if ( !JSVAL_IS_STRING( argv[1] ) && !JSVAL_IS_INT( argv[1] ) )
    {
-      REPORT_RC_MSG( FALSE, "RG.attachNode()", SDB_INVALIDARG, 
+      REPORT_RC_MSG( FALSE, "RG.attachNode()", SDB_INVALIDARG,
                      "the 2nd argument should be a string or int value" ) ;
    }
    if ( JSVAL_IS_PRIMITIVE( argv[2] ) )
    {
-      REPORT_RC_MSG( FALSE, "RG.attachNode()", SDB_INVALIDARG, 
+      REPORT_RC_MSG( FALSE, "RG.attachNode()", SDB_INVALIDARG,
                      "the 3rd argument should be an object" ) ;
    }
    // get arguments
-   ret = JS_ConvertArguments ( cx , argc , argv, "SSo", 
+   ret = JS_ConvertArguments ( cx , argc , argv, "SSo",
                                &jsHost, &jsSvc, &jsOptions ) ;
    REPORT ( ret, "RG.attachNode(): wrong arguments" ) ;
    // transform argumnts
@@ -6854,7 +6863,7 @@ static JSBool sdb_start_rg ( JSContext *cx , uintN argc , jsval *vp )
    UINT32                  count      = 0 ;
    sdbReplicaGroupHandle * rg         = NULL ;
    sdbConnectionHandle *   connection = NULL ;
-   
+
    if ( argc < 1 )
    {
       REPORT ( FALSE, "Sdb.startRG(<name>): wrong arguments" ) ;
