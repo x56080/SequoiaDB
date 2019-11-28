@@ -24,7 +24,8 @@ public class TestQueryMetadata13061 extends SdbTestBase {
 
     private Sequoiadb sdb;
 
-    private SimpleDateFormat df = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS");
+    private SimpleDateFormat df = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss.SSS" );
     private String coordAddr;
     private String commCSName;
     private String clName = "mycl";
@@ -35,47 +36,49 @@ public class TestQueryMetadata13061 extends SdbTestBase {
     public void setUp() {
         this.coordAddr = SdbTestBase.coordUrl;
         this.commCSName = SdbTestBase.csName;
-        System.out.println("the TestCase: " + this.getClass().getName() +
-                " begin at:" + df.format(new Date().getTime()));
-        sdb = new Sequoiadb(coordAddr, "", "");
-        if (!sdb.isCollectionSpaceExist(commCSName)) {
-            sdb.createCollectionSpace(commCSName);
+        System.out.println( "the TestCase: " + this.getClass().getName()
+                + " begin at:" + df.format( new Date().getTime() ) );
+        sdb = new Sequoiadb( coordAddr, "", "" );
+        if ( !sdb.isCollectionSpaceExist( commCSName ) ) {
+            sdb.createCollectionSpace( commCSName );
         }
-        cs = sdb.getCollectionSpace(commCSName);
+        cs = sdb.getCollectionSpace( commCSName );
 
-        if (cs.isCollectionExist(clName))
-            cl = cs.getCollection(clName);
+        if ( cs.isCollectionExist( clName ) )
+            cl = cs.getCollection( clName );
         else
-            cl = cs.createCollection(clName);
+            cl = cs.createCollection( clName );
     }
 
     @Test
     public void test() {
-        for (int i = 0; i < 100; i++) {
-            cl.insert(new BasicBSONObject("a", 1).append("b", "test"));
+        for ( int i = 0; i < 100; i++ ) {
+            cl.insert( new BasicBSONObject( "a", 1 ).append( "b", "test" ) );
         }
 
-        cl.createIndex("a", "{a:1}", false, false);
+        cl.createIndex( "a", "{a:1}", false, false );
 
-        BSONObject matcher = (BSONObject) JSON.parse("{'a':{'$gt':10,'$lt':20}}");
-        BSONObject orderby = (BSONObject) JSON.parse("{'a':1}");
-        //hint is null
-        DBCursor cursor = cl.getQueryMeta(matcher, orderby, null, 1, 10, 0);
-        Assert.assertEquals(cursor.getNext().get("ScanType"), "ixscan");
-        //hint is empty object
-        cursor = cl.getQueryMeta(matcher, orderby, new BasicBSONObject(), 1, 10, 0);
-        Assert.assertEquals(cursor.getNext().get("ScanType"), "ixscan");
-        //hint is {"":None}
-        cursor = cl.getQueryMeta(matcher, orderby, (BSONObject) JSON.parse("{'':null}"), 1, 10, 0);
-        Assert.assertEquals(cursor.getNext().get("ScanType"), "tbscan");
+        BSONObject matcher = ( BSONObject ) JSON
+                .parse( "{'a':{'$gt':10,'$lt':20}}" );
+        BSONObject orderby = ( BSONObject ) JSON.parse( "{'a':1}" );
+        // hint is null
+        DBCursor cursor = cl.getQueryMeta( matcher, orderby, null, 1, 10, 0 );
+        Assert.assertEquals( cursor.getNext().get( "ScanType" ), "ixscan" );
+        // hint is empty object
+        cursor = cl.getQueryMeta( matcher, orderby, new BasicBSONObject(), 1,
+                10, 0 );
+        Assert.assertEquals( cursor.getNext().get( "ScanType" ), "ixscan" );
+        // hint is {"":None}
+        cursor = cl.getQueryMeta( matcher, orderby,
+                ( BSONObject ) JSON.parse( "{'':null}" ), 1, 10, 0 );
+        Assert.assertEquals( cursor.getNext().get( "ScanType" ), "tbscan" );
     }
-
 
     @AfterClass
     public void tearDown() {
-        System.out.println("the TestCase: " + this.getClass().getName() +
-                " end at:" + df.format(new Date().getTime()));
-        cs.dropCollection(clName);
+        System.out.println( "the TestCase: " + this.getClass().getName()
+                + " end at:" + df.format( new Date().getTime() ) );
+        cs.dropCollection( clName );
         sdb.disconnect();
     }
 }

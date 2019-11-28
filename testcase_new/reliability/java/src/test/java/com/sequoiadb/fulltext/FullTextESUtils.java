@@ -17,8 +17,8 @@ public class FullTextESUtils {
      * @Author liuxiaoxuan
      * @Date 2018-11-15
      */
-    public static int getCountFromES(String esIndexName) throws Exception {
-        return new FullTextRest().getCount(esIndexName);
+    public static int getCountFromES( String esIndexName ) throws Exception {
+        return new FullTextRest().getCount( esIndexName );
     }
 
     /**
@@ -30,8 +30,8 @@ public class FullTextESUtils {
      * @Author liuxiaoxuan
      * @Date 2018-11-15
      */
-    public static int getCommitIDFromES(String esIndexName) throws Exception {
-        return new FullTextRest().getCommitID(esIndexName);
+    public static int getCommitIDFromES( String esIndexName ) throws Exception {
+        return new FullTextRest().getCommitID( esIndexName );
     }
 
     /**
@@ -43,8 +43,9 @@ public class FullTextESUtils {
      * @Author liuxiaoxuan
      * @Date 2019-05-16
      */
-    public static int getCommitCLLIDFromES(String esIndexName) throws Exception {
-        return new FullTextRest().getCommitCLLID(esIndexName);
+    public static int getCommitCLLIDFromES( String esIndexName )
+            throws Exception {
+        return new FullTextRest().getCommitCLLID( esIndexName );
     }
 
     /**
@@ -56,11 +57,12 @@ public class FullTextESUtils {
      * @Author liuxiaoxuan
      * @Date 2019-05-17
      */
-    public static List<Integer> getCommitCLLIDFromES(List<String> esIndexNames) throws Exception {
-        List<Integer> commitCLLIDs = new ArrayList<>();
+    public static List< Integer > getCommitCLLIDFromES(
+            List< String > esIndexNames ) throws Exception {
+        List< Integer > commitCLLIDs = new ArrayList<>();
 
-        for (String esIndexName : esIndexNames) {
-            commitCLLIDs.add(getCommitCLLIDFromES(esIndexName));
+        for ( String esIndexName : esIndexNames ) {
+            commitCLLIDs.add( getCommitCLLIDFromES( esIndexName ) );
         }
 
         return commitCLLIDs;
@@ -75,23 +77,24 @@ public class FullTextESUtils {
      * @Author liuxiaoxuan
      * @Date 2018-11-15
      */
-    public static boolean isIndexCreatedInES(String esIndexName) throws Exception {
+    public static boolean isIndexCreatedInES( String esIndexName )
+            throws Exception {
         int timeout = 600; // 超时时间600s
         int doTimes = 0;
 
-        while (doTimes < timeout) {
-            if (isExistIndexInES(esIndexName)) {
+        while ( doTimes < timeout ) {
+            if ( isExistIndexInES( esIndexName ) ) {
                 return true;
             }
             doTimes++;
             // 每次循环间隔1s
             try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
+                Thread.sleep( 1000 );
+            } catch ( InterruptedException e ) {
                 e.printStackTrace();
             }
         }
-        throw new Exception("es client no such index: " + esIndexName);
+        throw new Exception( "es client no such index: " + esIndexName );
     }
 
     /**
@@ -103,24 +106,24 @@ public class FullTextESUtils {
      * @Author liuxiaoxuan
      * @Date 2018-11-15
      */
-    public boolean isIndexDeletedInES(String esIndexName) throws Exception {
+    public boolean isIndexDeletedInES( String esIndexName ) throws Exception {
         int timeout = 600; // 超时时间600s
         int doTimes = 0;
 
-        while (doTimes < timeout) {
-            if (!isExistIndexInES(esIndexName)) {
+        while ( doTimes < timeout ) {
+            if ( !isExistIndexInES( esIndexName ) ) {
                 return true;
             }
             doTimes++;
             // 每次循环间隔1s
             try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
+                Thread.sleep( 1000 );
+            } catch ( InterruptedException e ) {
                 e.printStackTrace();
             }
         }
 
-        throw new Exception("index is still in the es: " + esIndexName);
+        throw new Exception( "index is still in the es: " + esIndexName );
     }
 
     /**
@@ -132,11 +135,12 @@ public class FullTextESUtils {
      * @Author liuxiaoxuan
      * @Date 2018-11-15
      */
-    public boolean isIndexDeletedInES(List<String> esIndexNames) throws Exception {
+    public boolean isIndexDeletedInES( List< String > esIndexNames )
+            throws Exception {
         boolean isDelete = false;
-        for (String esIndexName : esIndexNames) {
-            isDelete = isIndexDeletedInES(esIndexName);
-            if (!isDelete) {
+        for ( String esIndexName : esIndexNames ) {
+            isDelete = isIndexDeletedInES( esIndexName );
+            if ( !isDelete ) {
                 break;
             }
         }
@@ -152,8 +156,9 @@ public class FullTextESUtils {
      * @Author liuxiaoxuan
      * @Date 2018-11-15
      */
-    private static boolean isExistIndexInES(String esIndexName) throws Exception {
-        return new FullTextRest().isExist(esIndexName);
+    private static boolean isExistIndexInES( String esIndexName )
+            throws Exception {
+        return new FullTextRest().isExist( esIndexName );
     }
 
 }

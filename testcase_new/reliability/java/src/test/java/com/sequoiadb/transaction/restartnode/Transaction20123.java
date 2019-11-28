@@ -34,25 +34,26 @@ public class Transaction20123 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() throws ReliabilityException {
-        sdb = new Sequoiadb(coordUrl, "", "");
+        sdb = new Sequoiadb( coordUrl, "", "" );
         groupMgr = GroupMgr.getInstance();
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        if (!groupMgr.checkBusiness(120)) {
-            throw new SkipException("GROUP ERROR");
+        if ( !groupMgr.checkBusiness( 120 ) ) {
+            throw new SkipException( "GROUP ERROR" );
         }
-        groupName = CommLib.getDataGroupNames(sdb).get(0);
-        DBCollection cl = sdb.getCollectionSpace(csName).createCollection(clName,
-                (BSONObject) JSON.parse("{Group:'" + groupName + "'}"));
-        cl.insert("{a:100, b:1}");
+        groupName = CommLib.getDataGroupNames( sdb ).get( 0 );
+        DBCollection cl = sdb.getCollectionSpace( csName ).createCollection(
+                clName,
+                ( BSONObject ) JSON.parse( "{Group:'" + groupName + "'}" ) );
+        cl.insert( "{a:100, b:1}" );
     }
 
     @AfterClass
     public void tearDown() throws InterruptedException {
-        if (sdb != null) {
-            CollectionSpace cs = sdb.getCollectionSpace(csName);
-            cs.dropCollection(clName);
+        if ( sdb != null ) {
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            cs.dropCollection( clName );
             sdb.close();
         }
     }
@@ -62,17 +63,19 @@ public class Transaction20123 extends SdbTestBase {
 
         // 开启事务更新记录R1，使用{$inc:0}更新记录
         sdb.beginTransaction();
-        DBCollection cl1 = sdb.getCollectionSpace(csName).getCollection(clName);
-        cl1.update("{b:1}", "{$inc:{a:0}}", "");
+        DBCollection cl1 = sdb.getCollectionSpace( csName )
+                .getCollection( clName );
+        cl1.update( "{b:1}", "{$inc:{a:0}}", "" );
 
         // 回滚事务，重启集合所在组的主节点
         sdb.rollback();
-        NodeWrapper node = groupMgr.getGroupByName(groupName).getMaster();
-        FaultMakeTask task = NodeRestart.getFaultMakeTask(node, 1, 3);
-        TaskMgr taskMgr = new TaskMgr(task);
+        NodeWrapper node = groupMgr.getGroupByName( groupName ).getMaster();
+        FaultMakeTask task = NodeRestart.getFaultMakeTask( node, 1, 3 );
+        TaskMgr taskMgr = new TaskMgr( task );
         taskMgr.execute();
 
-        Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
-        Assert.assertTrue(groupMgr.checkBusinessWithLSN(300), "GROUP ERROR");
+        Assert.assertTrue( taskMgr.isAllSuccess(), taskMgr.getErrorMsg() );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 300 ),
+                "GROUP ERROR" );
     }
 }

@@ -19,22 +19,23 @@ public class TransDBCPUtils {
     private static BasicDataSource dataSource;
 
     private static void setProperties() {
-        connConf.setProperty(driver, "com.mysql.jdbc.Driver");
-        connConf.setProperty(url,
-                "jdbc:mysql://192.168.31.4:3306/bank?useSSL=true&useServerPrepStmts=true&cachePrepStmts=true&rewriteBatchedStatements=true");
-        connConf.setProperty(userName, "root");
-        connConf.setProperty(password, "");
-        connConf.setProperty(initialSize, "10");
+        connConf.setProperty( driver, "com.mysql.jdbc.Driver" );
+        connConf.setProperty( url,
+                "jdbc:mysql://192.168.31.4:3306/bank?useSSL=true&useServerPrepStmts=true&cachePrepStmts=true&rewriteBatchedStatements=true" );
+        connConf.setProperty( userName, "root" );
+        connConf.setProperty( password, "" );
+        connConf.setProperty( initialSize, "10" );
     }
 
     private static void init() {
         setProperties();
         dataSource = new BasicDataSource();
-        dataSource.setDriverClassName(connConf.getProperty(driver));
-        dataSource.setUrl(connConf.getProperty(url));
-        dataSource.setUsername(connConf.getProperty(userName));
-        dataSource.setPassword(connConf.getProperty(password));
-        dataSource.setInitialSize(Integer.parseInt(connConf.getProperty(initialSize)));
+        dataSource.setDriverClassName( connConf.getProperty( driver ) );
+        dataSource.setUrl( connConf.getProperty( url ) );
+        dataSource.setUsername( connConf.getProperty( userName ) );
+        dataSource.setPassword( connConf.getProperty( password ) );
+        dataSource.setInitialSize(
+                Integer.parseInt( connConf.getProperty( initialSize ) ) );
     }
 
     static {
@@ -49,13 +50,14 @@ public class TransDBCPUtils {
         return dataSource.getConnection();
     }
 
-    public static void release(Connection conn, PreparedStatement... ps) throws SQLException {
-        for (PreparedStatement statement : ps) {
-            if (statement != null) {
+    public static void release( Connection conn, PreparedStatement... ps )
+            throws SQLException {
+        for ( PreparedStatement statement : ps ) {
+            if ( statement != null ) {
                 statement.close();
             }
         }
-        if (conn != null) {
+        if ( conn != null ) {
             conn.close();
         }
     }

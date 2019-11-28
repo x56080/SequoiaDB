@@ -27,22 +27,17 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
- * @FileName seqDB-3215: 删除索引过程中主节点节点异常重启，该主节点为同步的源节点
- *           seqDB-9337: 删除索引过程中主节点异常重启，选出新主节点，该故障节点为同步的目的节点 
+ * @FileName seqDB-3215: 删除索引过程中主节点节点异常重启，该主节点为同步的源节点 seqDB-9337:
+ *           删除索引过程中主节点异常重启，选出新主节点，该故障节点为同步的目的节点
  * @Author linsuqiang
  * @Date 2017-03-29
  * @Version 1.00
  */
 
 /*
- * 1.创建CS，CL 
- * 2.批量创建索引 
- * 3.批量删除创建的索引 
- * 4.过程中构造节点异常重启(kill -9) 
- * 5.选主成功后，继续删除 
- * 6.过程中故障恢复，验证索引信息
- * 
- * 注：ReplSize = 2,断主节点时，该节点有可能是同步的源节点，也有可能不是。若是，覆盖3215，若不是，覆盖9337
+ * 1.创建CS，CL 2.批量创建索引 3.批量删除创建的索引 4.过程中构造节点异常重启(kill -9) 5.选主成功后，继续删除
+ * 6.过程中故障恢复，验证索引信息 注：ReplSize =
+ * 2,断主节点时，该节点有可能是同步的源节点，也有可能不是。若是，覆盖3215，若不是，覆盖9337
  */
 
 public class DropIndex3215 extends SdbTestBase {
@@ -57,23 +52,26 @@ public class DropIndex3215 extends SdbTestBase {
     public void setUp() {
         Sequoiadb db = null;
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
+
             groupMgr = GroupMgr.getInstance();
-            if (!groupMgr.checkBusiness()) {
-                throw new SkipException("checkBusiness failed");
+            if ( !groupMgr.checkBusiness() ) {
+                throw new SkipException( "checkBusiness failed" );
             }
 
-            db = new Sequoiadb(coordUrl, "", "");
-            clGroupName = groupMgr.getAllDataGroupName().get(0);
-            createCLs(db);
-            createIndexes(db);
-        } catch (ReliabilityException e) {
-            Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
-                    + Utils.getKeyStack(e, this));
+            db = new Sequoiadb( coordUrl, "", "" );
+            clGroupName = groupMgr.getAllDataGroupName().get( 0 );
+            createCLs( db );
+            createIndexes( db );
+        } catch ( ReliabilityException e ) {
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -83,27 +81,30 @@ public class DropIndex3215 extends SdbTestBase {
     public void test() {
         Sequoiadb db = null;
         try {
-            GroupWrapper dataGroup = groupMgr.getGroupByName(clGroupName);
+            GroupWrapper dataGroup = groupMgr.getGroupByName( clGroupName );
             NodeWrapper priNode = dataGroup.getMaster();
 
-            FaultMakeTask faultTask = KillNode.getFaultMakeTask(priNode.hostName(), priNode.svcName(), 1);
-            TaskMgr mgr = new TaskMgr(faultTask);
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask(
+                    priNode.hostName(), priNode.svcName(), 1 );
+            TaskMgr mgr = new TaskMgr( faultTask );
             DropIdxTask dTask = new DropIdxTask();
-            mgr.addTask(dTask);
+            mgr.addTask( dTask );
             mgr.execute();
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
-            if (!groupMgr.checkBusinessWithLSN(600)) { Assert.fail("checkBusinessWithLSN() occurs timeout"); }
+            if ( !groupMgr.checkBusinessWithLSN( 600 ) ) {
+                Assert.fail( "checkBusinessWithLSN() occurs timeout" );
+            }
 
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             // temp comment, for a bug
-            //checkConsistency(dataGroup);
+            // checkConsistency(dataGroup);
             runSuccess = true;
-        } catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -111,92 +112,101 @@ public class DropIndex3215 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (!runSuccess) { throw new SkipException("to save environment"); }
+        if ( !runSuccess ) {
+            throw new SkipException( "to save environment" );
+        }
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            dropCLs(db);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            dropCLs( db );
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    e.getMessage() + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
         }
     }
-    
-    private void createCLs(Sequoiadb db) {
-        CollectionSpace commCS = db.getCollectionSpace(csName);
-        for (int i = 0; i < CL_NUM; i++) {
+
+    private void createCLs( Sequoiadb db ) {
+        CollectionSpace commCS = db.getCollectionSpace( csName );
+        for ( int i = 0; i < CL_NUM; i++ ) {
             String clName = clNameBase + "_" + i;
-            BSONObject option = (BSONObject)JSON.parse("{ Group: '" + clGroupName + "', ReplSize: 2 }");
-            commCS.createCollection(clName, option);
+            BSONObject option = ( BSONObject ) JSON
+                    .parse( "{ Group: '" + clGroupName + "', ReplSize: 2 }" );
+            commCS.createCollection( clName, option );
         }
     }
-    
-    private void createIndexes(Sequoiadb db) {
-        CollectionSpace commCS = db.getCollectionSpace(csName);
-        for (int i = 0; i < CL_NUM; i++) {
+
+    private void createIndexes( Sequoiadb db ) {
+        CollectionSpace commCS = db.getCollectionSpace( csName );
+        for ( int i = 0; i < CL_NUM; i++ ) {
             String clName = clNameBase + "_" + i;
-            DBCollection cl = commCS.getCollection(clName);
-            for (int j = 0; j < IDX_NUM; j++) {
+            DBCollection cl = commCS.getCollection( clName );
+            for ( int j = 0; j < IDX_NUM; j++ ) {
                 String idxName = "idx_" + j;
-                BSONObject key = (BSONObject)JSON.parse("{ a" + j + ": 1 }");
+                BSONObject key = ( BSONObject ) JSON
+                        .parse( "{ a" + j + ": 1 }" );
                 boolean isUnique = j % 2 == 0 ? true : false;
                 boolean enforced = false;
                 int sortBufferSize = j * 2;
-                cl.createIndex(idxName, key, isUnique, enforced, sortBufferSize);
+                cl.createIndex( idxName, key, isUnique, enforced,
+                        sortBufferSize );
             }
         }
     }
-    
-    private void dropCLs(Sequoiadb db) {
-        CollectionSpace commCS = db.getCollectionSpace(csName);
-        for (int i = 0; i < CL_NUM; i++) {
+
+    private void dropCLs( Sequoiadb db ) {
+        CollectionSpace commCS = db.getCollectionSpace( csName );
+        for ( int i = 0; i < CL_NUM; i++ ) {
             String clName = clNameBase + "_" + i;
-            commCS.dropCollection(clName);
+            commCS.dropCollection( clName );
         }
     }
-    
+
     private class DropIdxTask extends OperateTask {
         @Override
         public void exec() throws Exception {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(coordUrl, "", "");
-                CollectionSpace commCS = db.getCollectionSpace(csName);
-                for (int i = 0; i < CL_NUM; i++) {
+                db = new Sequoiadb( coordUrl, "", "" );
+                CollectionSpace commCS = db.getCollectionSpace( csName );
+                for ( int i = 0; i < CL_NUM; i++ ) {
                     String clName = clNameBase + "_" + i;
-                    DBCollection cl = commCS.getCollection(clName);
-                    for (int j = 0; j < IDX_NUM; j++) {
+                    DBCollection cl = commCS.getCollection( clName );
+                    for ( int j = 0; j < IDX_NUM; j++ ) {
                         String idxName = "idx_" + j;
                         try {
-                            cl.dropIndex(idxName);
-                        } catch (BaseException e) {
+                            cl.dropIndex( idxName );
+                        } catch ( BaseException e ) {
                         }
                     }
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.close();
                 }
             }
         }
     }
-    
-    private void checkConsistency(GroupWrapper dataGroup) {
+
+    private void checkConsistency( GroupWrapper dataGroup ) {
         String lastCompareInfo = "";
-        List<String> clNames = new ArrayList<String>();
-       
-        for (int i = 0; i < CL_NUM; i++) {
-            clNames.add( clNameBase + "_" + i);
+        List< String > clNames = new ArrayList< String >();
+
+        for ( int i = 0; i < CL_NUM; i++ ) {
+            clNames.add( clNameBase + "_" + i );
         }
-        if (!Utils.checkIndexConsistency(dataGroup, csName, clNames, lastCompareInfo)){
-            System.out.println(lastCompareInfo);
-            Assert.fail("data is different. see the detail in console");
+        if ( !Utils.checkIndexConsistency( dataGroup, csName, clNames,
+                lastCompareInfo ) ) {
+            System.out.println( lastCompareInfo );
+            Assert.fail( "data is different. see the detail in console" );
         }
     }
 }

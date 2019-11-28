@@ -11,41 +11,40 @@ import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @FileName:TestSdbUser16280  Connecting sequoiadb with incorrect password
+ * @FileName:TestSdbUser16280 Connecting sequoiadb with incorrect password
  * @author wangkexin
  * @Date 2018-10-22
  * @version 1.00
  */
 
-public class TestSdbUser16280 extends SdbTestBase{
+public class TestSdbUser16280 extends SdbTestBase {
     private Sequoiadb sdb;
     private String coordAddr;
     private String userName = "admin16280";
-    
+
     @BeforeClass
     public void setUp() {
         this.coordAddr = SdbTestBase.coordUrl;
-        sdb = new Sequoiadb(this.coordAddr, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("run mode is standalone,test case skip");
+        sdb = new Sequoiadb( this.coordAddr, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "run mode is standalone,test case skip" );
         }
     }
-    
+
     @Test
     public void test() {
-    	try {
-            sdb.createUser(userName, "admin");
-            Sequoiadb sdb = new Sequoiadb(coordAddr, userName, "");
-            Assert.fail("exp fail but act success");
-        }catch (BaseException e) {
-            Assert.assertEquals(e.getErrorCode(), -179);
+        try {
+            sdb.createUser( userName, "admin" );
+            Sequoiadb sdb = new Sequoiadb( coordAddr, userName, "" );
+            Assert.fail( "exp fail but act success" );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( e.getErrorCode(), -179 );
         }
     }
-    
+
     @AfterClass
     public void tearDown() {
-    	sdb.removeUser(userName, "admin");
+        sdb.removeUser( userName, "admin" );
         sdb.close();
-    } 
+    }
 }
- 

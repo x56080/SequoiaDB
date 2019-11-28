@@ -14,13 +14,14 @@ public class TestGetPort13696 extends SdbTestBase {
     public void test() {
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            int begin = SdbTestBase.coordUrl.indexOf(':')+1;
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            int begin = SdbTestBase.coordUrl.indexOf( ':' ) + 1;
             int end = SdbTestBase.coordUrl.length();
-            int expectPort = Integer.parseInt(SdbTestBase.coordUrl.substring(begin, end));
-            Assert.assertEquals(db.getPort(), expectPort);
+            int expectPort = Integer
+                    .parseInt( SdbTestBase.coordUrl.substring( begin, end ) );
+            Assert.assertEquals( db.getPort(), expectPort );
         } finally {
-            if (db != null)
+            if ( db != null )
                 db.disconnect();
         }
     }

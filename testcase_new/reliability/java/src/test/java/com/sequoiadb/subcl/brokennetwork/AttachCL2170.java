@@ -29,10 +29,9 @@ import java.util.Date;
  */
 
 /*
- * 1、创建主表和子表 
- * 2、批量执行db.collectionspace.collection.attachCL( )挂载多个子表 
- * 3、子表挂载过程中将catalog备节点网络断掉（如：使用cutnet.sh工具，命令格式为nohup ./cutnet.sh &），检查主节点attachCL执行结果 
- * 4、将catalog备节点网络恢复，检查备节点CL数据是否完整，跟主节点是否一致 
+ * 1、创建主表和子表 2、批量执行db.collectionspace.collection.attachCL( )挂载多个子表
+ * 3、子表挂载过程中将catalog备节点网络断掉（如：使用cutnet.sh工具，命令格式为nohup ./cutnet.sh
+ * &），检查主节点attachCL执行结果 4、将catalog备节点网络恢复，检查备节点CL数据是否完整，跟主节点是否一致
  * 5、在备节点挂载成功的子表对应的主表做基本操作（如insert)
  */
 
@@ -45,21 +44,24 @@ public class AttachCL2170 extends SdbTestBase {
     public void setUp() {
         Sequoiadb db = null;
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
 
             groupMgr = GroupMgr.getInstance();
-            if (!groupMgr.checkBusiness()) {
-                throw new SkipException("checkBusiness failed");
+            if ( !groupMgr.checkBusiness() ) {
+                throw new SkipException( "checkBusiness failed" );
             }
 
-            db = new Sequoiadb(coordUrl, "", "");
-            Utils.createMclAndScl(db, mclName);
-        } catch (ReliabilityException e) {
-            Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
-                    + Utils.getKeyStack(e, this));
+            db = new Sequoiadb( coordUrl, "", "" );
+            Utils.createMclAndScl( db, mclName );
+        } catch ( ReliabilityException e ) {
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -69,31 +71,33 @@ public class AttachCL2170 extends SdbTestBase {
     public void test() {
         Sequoiadb db = null;
         try {
-            GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
+            GroupWrapper cataGroup = groupMgr
+                    .getGroupByName( "SYSCatalogGroup" );
             String cataSlvHost = cataGroup.getSlave().hostName();
 
-            FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(cataSlvHost, 1, 10);
-            TaskMgr mgr = new TaskMgr(faultTask);
-            String safeUrl = CommLib.getSafeCoordUrl(cataSlvHost);
-            AttachCLTask aTask = new AttachCLTask(mclName, safeUrl);
-            mgr.addTask(aTask);
+            FaultMakeTask faultTask = BrokenNetwork
+                    .getFaultMakeTask( cataSlvHost, 1, 10 );
+            TaskMgr mgr = new TaskMgr( faultTask );
+            String safeUrl = CommLib.getSafeCoordUrl( cataSlvHost );
+            AttachCLTask aTask = new AttachCLTask( mclName, safeUrl );
+            mgr.addTask( aTask );
             mgr.execute();
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
-            if (!groupMgr.checkBusinessWithLSN(600)) {
-                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            if ( !groupMgr.checkBusinessWithLSN( 600 ) ) {
+                Assert.fail( "checkBusinessWithLSN() occurs timeout" );
             }
 
-            Utils.checkConsistency(groupMgr);
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            Utils.checkIntegrated(db, mclName);
-            Utils.checkAttached(db, mclName, aTask.getAttachedSclCnt());
+            Utils.checkConsistency( groupMgr );
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            Utils.checkIntegrated( db, mclName );
+            Utils.checkAttached( db, mclName, aTask.getAttachedSclCnt() );
             runSuccess = true;
-        } catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -101,21 +105,24 @@ public class AttachCL2170 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (!runSuccess) {
-            throw new SkipException("to save environment");
+        if ( !runSuccess ) {
+            throw new SkipException( "to save environment" );
         }
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            Utils.dropMclAndScl(db, mclName);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            Utils.dropMclAndScl( db, mclName );
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    e.getMessage() + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
         }
     }
 }

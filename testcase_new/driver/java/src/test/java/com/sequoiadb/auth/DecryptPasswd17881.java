@@ -23,21 +23,18 @@ public class DecryptPasswd17881 extends SdbTestBase {
 
     @DataProvider(name = "Invalidrange-provider")
     public Object[][] generateInvalidRangData() throws Exception {
-        return new Object[][]{
-                {"123456", "123"},
-                {null, "123"}
-        };
+        return new Object[][] { { "123456", "123" }, { null, "123" } };
     }
 
     @Test(dataProvider = "Invalidrange-provider")
-    private void test(String encryptPasswd, String token) throws Exception {
+    private void test( String encryptPasswd, String token ) throws Exception {
         SdbDecrypt sdbDecrypt = new SdbDecrypt();
         try {
-            sdbDecrypt.decryptPasswd(encryptPasswd, token);
-            Assert.fail("exp fail but act success,encryptPasswd = " + encryptPasswd
-            + ",token = " + token);
-        }catch(BaseException e){
-            if(e.getErrorCode() != -6){
+            sdbDecrypt.decryptPasswd( encryptPasswd, token );
+            Assert.fail( "exp fail but act success,encryptPasswd = "
+                    + encryptPasswd + ",token = " + token );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -6 ) {
                 throw e;
             }
         }
@@ -47,5 +44,3 @@ public class DecryptPasswd17881 extends SdbTestBase {
     private void tearDown() {
     }
 }
-
-

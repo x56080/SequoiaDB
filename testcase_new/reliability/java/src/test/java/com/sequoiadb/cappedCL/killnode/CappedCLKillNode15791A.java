@@ -29,81 +29,86 @@ import com.sequoiadb.cappedCL.CappedCLUtils;
  * @Date 2019-07-23
  */
 
-public class CappedCLKillNode15791A extends SdbTestBase{
+public class CappedCLKillNode15791A extends SdbTestBase {
 
-     private GroupMgr groupMgr = null;
-     private Sequoiadb sdb = null;
-     private DBCollection cl = null;
-     private String clName = "cappedCL_killNode_15791A"; 
-     private String groupName = null;	
-	
-     @BeforeClass
-     public void setUp() throws ReliabilityException {
+    private GroupMgr groupMgr = null;
+    private Sequoiadb sdb = null;
+    private DBCollection cl = null;
+    private String clName = "cappedCL_killNode_15791A";
+    private String groupName = null;
+
+    @BeforeClass
+    public void setUp() throws ReliabilityException {
         groupMgr = GroupMgr.getInstance();
-        if(!groupMgr.checkBusiness()) {
-          	throw new SkipException("checkBusiness failed");
+        if ( !groupMgr.checkBusiness() ) {
+            throw new SkipException( "checkBusiness failed" );
         }
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        groupName = groupMgr.getAllDataGroupName().get(0);
-        System.out.println("group: " + groupName);
-        cl = sdb.getCollectionSpace(cappedCSName)
-                .createCollection(clName, (BSONObject) JSON.parse(
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        groupName = groupMgr.getAllDataGroupName().get( 0 );
+        System.out.println( "group: " + groupName );
+        cl = sdb.getCollectionSpace( cappedCSName ).createCollection( clName,
+                ( BSONObject ) JSON.parse(
                         "{Capped:true,Size:1024,AutoIndexId:false,Group:'"
-                                + groupName + "'}"));  
+                                + groupName + "'}" ) );
     }
-	
+
     @Test
     public void createCLAndKillNodeTest() throws ReliabilityException {
         // 插入数据未扩文件
         int insertNums = 1000;
         int strLength = 16;
-        CappedCLUtils.insertRecords(cl, insertNums, strLength);
-        
+        CappedCLUtils.insertRecords( cl, insertNums, strLength );
+
         // 逆向pop
-        long logicalID = CappedCLUtils.getLogicalID(cl, new Random().nextInt(500));
+        long logicalID = CappedCLUtils.getLogicalID( cl,
+                new Random().nextInt( 500 ) );
         int direction = -1;
-        CappedCLUtils.pop(cl, logicalID, direction);
-     
-       	GroupWrapper dataGroup = groupMgr.getGroupByName(groupName);
+        CappedCLUtils.pop( cl, logicalID, direction );
+
+        GroupWrapper dataGroup = groupMgr.getGroupByName( groupName );
         NodeWrapper slaveNode = dataGroup.getSlave();
-			
-        FaultMakeTask faultMakeTask = KillNode.getFaultMakeTask(slaveNode.hostName(), slaveNode.svcName(), 1);
-        TaskMgr mgr = new TaskMgr(faultMakeTask);
+
+        FaultMakeTask faultMakeTask = KillNode.getFaultMakeTask(
+                slaveNode.hostName(), slaveNode.svcName(), 1 );
+        TaskMgr mgr = new TaskMgr( faultMakeTask );
         for ( int i = 0; i < 10; i++ ) {
-            mgr.addTask(new InsertTask());
-        }   
+            mgr.addTask( new InsertTask() );
+        }
         mgr.execute();
-			         
-        Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
-        Assert.assertEquals(groupMgr.checkBusinessWithLSN(1200), true, "check LSN consistency fail");
-        
+
+        Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
+        Assert.assertEquals( groupMgr.checkBusinessWithLSN( 1200 ), true,
+                "check LSN consistency fail" );
+
         // 环境恢复后，执行insert/pop并检查主备一致
-        CappedCLUtils.insertRecords(cl, 10000, 8);  
-        CappedCLUtils.pop(cl, CappedCLUtils.getLogicalID(cl,100), 1);        
-        Assert.assertEquals(dataGroup.checkInspect(120), true, "data is different on " + dataGroup.getGroupName()); 
+        CappedCLUtils.insertRecords( cl, 10000, 8 );
+        CappedCLUtils.pop( cl, CappedCLUtils.getLogicalID( cl, 100 ), 1 );
+        Assert.assertEquals( dataGroup.checkInspect( 120 ), true,
+                "data is different on " + dataGroup.getGroupName() );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            sdb.getCollectionSpace(cappedCSName).dropCollection(clName);
+            sdb.getCollectionSpace( cappedCSName ).dropCollection( clName );
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
     }
 
-    private class InsertTask extends OperateTask{
+    private class InsertTask extends OperateTask {
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl,"","")) {
-                 CollectionSpace cs = db.getCollectionSpace(cappedCSName);
-                 DBCollection cl = cs.getCollection(clName);
-                 int insertNums = 10000;
-                 int strLength = 32;
-                 CappedCLUtils.insertRecords(cl, insertNums, strLength);
-            } 
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                CollectionSpace cs = db.getCollectionSpace( cappedCSName );
+                DBCollection cl = cs.getCollection( clName );
+                int insertNums = 10000;
+                int strLength = 32;
+                CappedCLUtils.insertRecords( cl, insertNums, strLength );
+            }
         }
-    } 	
+    }
 }

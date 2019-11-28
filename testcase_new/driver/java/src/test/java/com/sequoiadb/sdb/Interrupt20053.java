@@ -33,21 +33,21 @@ public class Interrupt20053 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("skip standalone.");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "skip standalone." );
         }
-        cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
 
-        cl = cs.createCollection(clName);
-        List<BSONObject> insertor = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            insertor.add(new BasicBSONObject("a", i));
+        cl = cs.createCollection( clName );
+        List< BSONObject > insertor = new ArrayList<>();
+        for ( int i = 0; i < 10; i++ ) {
+            insertor.add( new BasicBSONObject( "a", i ) );
         }
-        cl.insert(insertor);
+        cl.insert( insertor );
     }
 
     @Test
@@ -56,20 +56,21 @@ public class Interrupt20053 extends SdbTestBase {
 
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            DBCollection newCL = db.getCollectionSpace(csName).getCollection(clName);
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            DBCollection newCL = db.getCollectionSpace( csName )
+                    .getCollection( clName );
             DBCursor curs = newCL.query();
             db.interrupt();
             try {
                 curs.getNext();
-                Assert.fail("expect fail but success.");
-            } catch (BaseException e) {
-                Assert.assertFalse(curs.hasNext());
-                if (e.getErrorCode() != -36)
+                Assert.fail( "expect fail but success." );
+            } catch ( BaseException e ) {
+                Assert.assertFalse( curs.hasNext() );
+                if ( e.getErrorCode() != -36 )
                     throw e;
             }
 
-            Assert.assertTrue(cursor.hasNext());
+            Assert.assertTrue( cursor.hasNext() );
         } finally {
             db.close();
             cursor.close();
@@ -79,7 +80,7 @@ public class Interrupt20053 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            cs.dropCollection(clName);
+            cs.dropCollection( clName );
         } finally {
             sdb.close();
         }

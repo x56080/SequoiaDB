@@ -35,7 +35,7 @@ import java.util.List;
 
 public class DiskFullSubcl2327 extends SdbTestBase {
     private String mainClName = "testcaseCL2327";
-    private List<String> subClNames = new ArrayList<String>();
+    private List< String > subClNames = new ArrayList< String >();
     private CollectionSpace commCS;
     private DBCollection mainCL;
     private GroupMgr groupMgr = null;
@@ -51,124 +51,129 @@ public class DiskFullSubcl2327 extends SdbTestBase {
     @BeforeClass()
     public void setUp() {
         try {
-            System.out.println(
-                    "the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                            + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
             groupMgr = GroupMgr.getInstance();
-            cataSlave = groupMgr.getGroupByName("SYSCatalogGroup").getSlave();
+            cataSlave = groupMgr.getGroupByName( "SYSCatalogGroup" ).getSlave();
             // CheckBusiness(true),检测当前集群环境，若存在异常返回false，
-            if (!groupMgr.checkBusiness(20)) {
-                throw new SkipException("checkBusiness return false");
+            if ( !groupMgr.checkBusiness( 20 ) ) {
+                throw new SkipException( "checkBusiness return false" );
             }
 
-            commSdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            commCS = commSdb.getCollectionSpace(csName);
-            mainCL = commCS.createCollection(mainClName, (BSONObject) JSON
-                    .parse("{ShardingKey:{'sk':1},ShardingType:'range',IsMainCL:true}"));
+            commSdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            commCS = commSdb.getCollectionSpace( csName );
+            mainCL = commCS.createCollection( mainClName, ( BSONObject ) JSON
+                    .parse( "{ShardingKey:{'sk':1},ShardingType:'range',IsMainCL:true}" ) );
 
-            createSubCL(500);
+            createSubCL( 500 );
 
-            pad_M = Utils.getString(1024 * 1024);
-            pad_HM = Utils.getString(512 * 1024);
-            pad_K = Utils.getString(1024);
-            pad_HK = Utils.getString(512);
+            pad_M = Utils.getString( 1024 * 1024 );
+            pad_HM = Utils.getString( 512 * 1024 );
+            pad_K = Utils.getString( 1024 );
+            pad_HK = Utils.getString( 512 );
 
-        }
-        catch (ReliabilityException e) {
-            if (commSdb != null) {
+        } catch ( ReliabilityException e ) {
+            if ( commSdb != null ) {
                 commSdb.close();
             }
-            Assert.fail(this.getClass().getName() + " setUp error, error description:"
-                    + e.getMessage() + "\r\n" + Utils.getStackString(e));
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getStackString( e ) );
         }
     }
 
-    private void fillUpCatalogSYSCL(String name, String padStr) {
+    private void fillUpCatalogSYSCL( String name, String padStr ) {
         Sequoiadb db = null;
         try {
-            System.out.println("strlen:" + padStr.length());
-            db = new Sequoiadb(cataSlave.hostName() + ":" + cataSlave.svcName(), "", "");
-            DBCollection cl = db.getCollectionSpace("SYSCAT").getCollection("SYSCOLLECTIONS");
+            System.out.println( "strlen:" + padStr.length() );
+            db = new Sequoiadb(
+                    cataSlave.hostName() + ":" + cataSlave.svcName(), "", "" );
+            DBCollection cl = db.getCollectionSpace( "SYSCAT" )
+                    .getCollection( "SYSCOLLECTIONS" );
             int i = 0;
             try {
-                while (true) {
-                    cl.insert("{Name:'" + name + i + "',pad:'" + padStr + i + "',deleteFlag:1}");
+                while ( true ) {
+                    cl.insert( "{Name:'" + name + i + "',pad:'" + padStr + i
+                            + "',deleteFlag:1}" );
                     i++;
                 }
-            }
-            catch (BaseException e) {
-                System.out.println("fillUpCataSYSCL:" + e.getErrorCode());
-                if (e.getErrorCode() != -11) {
+            } catch ( BaseException e ) {
+                System.out.println( "fillUpCataSYSCL:" + e.getErrorCode() );
+                if ( e.getErrorCode() != -11 ) {
                     throw e;
                 }
             }
-        }
-        finally {
-            if (db != null) {
+        } finally {
+            if ( db != null ) {
                 db.close();
             }
         }
     }
 
-    private void createSubCL(int subClCount) {
-        for (int i = 0; i < subClCount; i++) {
-            DBCollection cl = commCS.createCollection(mainClName + "_sub_" + i);
-            subClNames.add(cl.getName());
+    private void createSubCL( int subClCount ) {
+        for ( int i = 0; i < subClCount; i++ ) {
+            DBCollection cl = commCS
+                    .createCollection( mainClName + "_sub_" + i );
+            subClNames.add( cl.getName() );
         }
     }
 
     @Test
     public void test() throws Exception {
         // 磁盘满
-        GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
-        System.out.println("fillUpHost:" + cataSlave.hostName());
-        DiskFull df = new DiskFull(cataSlave.hostName(), SdbTestBase.reservedDir);
+        GroupWrapper cataGroup = groupMgr.getGroupByName( "SYSCatalogGroup" );
+        System.out.println( "fillUpHost:" + cataSlave.hostName() );
+        DiskFull df = new DiskFull( cataSlave.hostName(),
+                SdbTestBase.reservedDir );
         df.init();
         df.make();
 
         // 分别以每条记录1m，512K,1k的大小填充SYSCAT.SYSCOLLECTIONS至-11错误
-        fillUpCatalogSYSCL("pad_M", pad_M);
-        fillUpCatalogSYSCL("pad_HM", pad_HM);
-        fillUpCatalogSYSCL("pad_K", pad_K);
+        fillUpCatalogSYSCL( "pad_M", pad_M );
+        fillUpCatalogSYSCL( "pad_HM", pad_HM );
+        fillUpCatalogSYSCL( "pad_K", pad_K );
 
         // 启动attach的线程，及填充SYSCAT.SYSCOLLECTIONS的线程（每条记录512字节）
         TaskMgr mgr = new TaskMgr();
-        mgr.addTask(new Attach());
-        mgr.addTask(new InsertToCataCL());
+        mgr.addTask( new Attach() );
+        mgr.addTask( new InsertToCataCL() );
         mgr.execute();
 
         // 检测线程执行结果
-        Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
+        Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
         // 磁盘恢复
         df.restore();
         df.fini();
         // cataLog恢复
-        Sequoiadb cataDb = new Sequoiadb(cataSlave.hostName() + ":" + cataSlave.svcName(), "", "");
+        Sequoiadb cataDb = new Sequoiadb(
+                cataSlave.hostName() + ":" + cataSlave.svcName(), "", "" );
         try {
-            DBCollection catacl = cataDb.getCollectionSpace("SYSCAT")
-                    .getCollection("SYSCOLLECTIONS");
-            catacl.delete("{deleteFlag:1}");
-        }
-        catch (BaseException e) {
+            DBCollection catacl = cataDb.getCollectionSpace( "SYSCAT" )
+                    .getCollection( "SYSCOLLECTIONS" );
+            catacl.delete( "{deleteFlag:1}" );
+        } catch ( BaseException e ) {
             cataDb.close();
         }
 
         // 检测CATALOG组数据一致
-        Assert.assertEquals(cataGroup.checkInspect(120), true);
+        Assert.assertEquals( cataGroup.checkInspect( 120 ), true );
 
         // 插入数据
-        for (int i = 0; i < bound; i++) {
-            mainCL.insert("{sk:" + i + "}");
+        for ( int i = 0; i < bound; i++ ) {
+            mainCL.insert( "{sk:" + i + "}" );
         }
-        DBCursor cusor = mainCL.query(null, "{sk:1}", "{sk:1}", null);
+        DBCursor cusor = mainCL.query( null, "{sk:1}", "{sk:1}", null );
         int count = 0;
         // 查询
-        while (cusor.hasNext()) {
-            Assert.assertEquals(cusor.getNext(), (BSONObject) JSON.parse("{sk:" + count + "}"));
+        while ( cusor.hasNext() ) {
+            Assert.assertEquals( cusor.getNext(),
+                    ( BSONObject ) JSON.parse( "{sk:" + count + "}" ) );
             count++;
         }
-        Assert.assertEquals(count, bound);
+        Assert.assertEquals( count, bound );
 
         clearFlag = true;
     }
@@ -176,41 +181,41 @@ public class DiskFullSubcl2327 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            if (clearFlag) {
-                for (String subClName : subClNames) {
-                    commCS.dropCollection(subClName);
+            if ( clearFlag ) {
+                for ( String subClName : subClNames ) {
+                    commCS.dropCollection( subClName );
                 }
-                commCS.dropCollection(mainClName);
+                commCS.dropCollection( mainClName );
             }
-        }
-        catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getStackString(e));
-        }
-        finally {
-            if (commSdb != null) {
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
+        } finally {
+            if ( commSdb != null ) {
                 commSdb.close();
             }
-            System.out.println(
-                    "the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                            + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
         }
     }
 
     class Attach extends OperateTask {
         @Override
         public void exec() throws Exception {
-            Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             bound = 0;
             try {
-                for (String name : subClNames) {
-                    mainCL.attachCollection(csName + "." + name, (BSONObject) JSON.parse(
-                            "{LowBound:{sk:" + bound + "},UpBound:{sk:" + (bound + 100) + "}}"));
+                for ( String name : subClNames ) {
+                    mainCL.attachCollection( csName + "." + name,
+                            ( BSONObject ) JSON.parse(
+                                    "{LowBound:{sk:" + bound + "},UpBound:{sk:"
+                                            + ( bound + 100 ) + "}}" ) );
                     bound += 100;
                 }
-            }
-            finally {
-                System.out.println("attach bound:" + bound);
-                if (sdb != null) {
+            } finally {
+                System.out.println( "attach bound:" + bound );
+                if ( sdb != null ) {
                     sdb.close();
                 }
             }
@@ -220,7 +225,7 @@ public class DiskFullSubcl2327 extends SdbTestBase {
     class InsertToCataCL extends OperateTask {
         @Override
         public void exec() throws Exception {
-            fillUpCatalogSYSCL("PAD", pad_HK);
+            fillUpCatalogSYSCL( "PAD", pad_HK );
         }
 
     }

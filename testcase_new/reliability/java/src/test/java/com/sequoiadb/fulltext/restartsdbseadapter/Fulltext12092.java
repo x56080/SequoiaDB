@@ -39,55 +39,58 @@ public class Fulltext12092 extends SdbTestBase {
 
     @BeforeClass()
     public void setUp() throws ReliabilityException {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         groupMgr = GroupMgr.getInstance();
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("isStandAlone() TRUE, STANDALONE MODE");
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "isStandAlone() TRUE, STANDALONE MODE" );
         }
-        if (!groupMgr.checkBusiness(120)) {
-            throw new SkipException("checkBusiness() FAIL, GROUP ERROR");
+        if ( !groupMgr.checkBusiness( 120 ) ) {
+            throw new SkipException( "checkBusiness() FAIL, GROUP ERROR" );
         }
-        if (!FullTextUtils.checkAdapter()) {
-            throw new SkipException("Check adapter failed");
+        if ( !FullTextUtils.checkAdapter() ) {
+            throw new SkipException( "Check adapter failed" );
         }
-        List<String> groupNames = CommLib.getDataGroupNames(sdb);
-        groupName = groupNames.get(0);
-        for (int i = 0; i < 10; i++) {
+        List< String > groupNames = CommLib.getDataGroupNames( sdb );
+        groupName = groupNames.get( 0 );
+        for ( int i = 0; i < 10; i++ ) {
             String clName = this.clName + "_" + i;
-            DBCollection cl = sdb.getCollectionSpace(SdbTestBase.csName).createCollection(clName,
-                    (BSONObject) JSON.parse("{'Group':'" + groupName + "'}"));
-            FullTextDBUtils.insertData(cl, 10000);
+            DBCollection cl = sdb.getCollectionSpace( SdbTestBase.csName )
+                    .createCollection( clName, ( BSONObject ) JSON
+                            .parse( "{'Group':'" + groupName + "'}" ) );
+            FullTextDBUtils.insertData( cl, 10000 );
         }
     }
 
     @Test
     public void test() throws Exception {
-        Node node = sdb.getReplicaGroup(groupName).getMaster();
+        Node node = sdb.getReplicaGroup( groupName ).getMaster();
         TaskMgr taskMgr = new TaskMgr();
-        FaultMakeTask task = RestartSdbseadapter.geFaultMakeTask(node.getHostName(), String.valueOf(node.getPort()), 1);
-        taskMgr.addTask(task);
-        taskMgr.addTask(new InsertData());
-        taskMgr.addTask(new CreateIndex());
+        FaultMakeTask task = RestartSdbseadapter.geFaultMakeTask(
+                node.getHostName(), String.valueOf( node.getPort() ), 1 );
+        taskMgr.addTask( task );
+        taskMgr.addTask( new InsertData() );
+        taskMgr.addTask( new CreateIndex() );
         taskMgr.execute();
 
-        Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
-        Assert.assertTrue(groupMgr.checkBusinessWithLSN(120));
-        Assert.assertTrue(FullTextUtils.checkAdapter());
+        Assert.assertTrue( taskMgr.isAllSuccess(), taskMgr.getErrorMsg() );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ) );
+        Assert.assertTrue( FullTextUtils.checkAdapter() );
 
-        for (int i = 0; i < 10; i++) {
+        for ( int i = 0; i < 10; i++ ) {
             String clName = this.clName + "_" + i;
-            DBCollection cl = sdb.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-            FullTextUtils.isIndexCreated(cl, fulltextName, 20000);
+            DBCollection cl = sdb.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
+            FullTextUtils.isIndexCreated( cl, fulltextName, 20000 );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            CollectionSpace cs = sdb.getCollectionSpace(SdbTestBase.csName);
-            for (int i = 0; i < 10; i++) {
+            CollectionSpace cs = sdb.getCollectionSpace( SdbTestBase.csName );
+            for ( int i = 0; i < 10; i++ ) {
                 String clName = this.clName + "_" + i;
-                cs.dropCollection(clName);
+                cs.dropCollection( clName );
             }
         } finally {
             sdb.close();
@@ -97,12 +100,14 @@ public class Fulltext12092 extends SdbTestBase {
     private class InsertData extends OperateTask {
         @Override
         public void exec() throws Exception {
-            Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             try {
-                for (int i = 0; i < 10; i++) {
+                for ( int i = 0; i < 10; i++ ) {
                     String clName = Fulltext12092.this.clName + "_" + i;
-                    DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-                    FullTextDBUtils.insertData(cl, 10000);
+                    DBCollection cl = db
+                            .getCollectionSpace( SdbTestBase.csName )
+                            .getCollection( clName );
+                    FullTextDBUtils.insertData( cl, 10000 );
                 }
             } finally {
                 db.close();
@@ -113,12 +118,16 @@ public class Fulltext12092 extends SdbTestBase {
     private class CreateIndex extends OperateTask {
         @Override
         public void exec() throws Exception {
-            Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             try {
-                for (int i = 0; i < 10; i++) {
+                for ( int i = 0; i < 10; i++ ) {
                     String clName = Fulltext12092.this.clName + "_" + i;
-                    DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-                    cl.createIndex(fulltextName, "{'a':'text', 'b':'text', 'c':'text'}", false, false);
+                    DBCollection cl = db
+                            .getCollectionSpace( SdbTestBase.csName )
+                            .getCollection( clName );
+                    cl.createIndex( fulltextName,
+                            "{'a':'text', 'b':'text', 'c':'text'}", false,
+                            false );
                 }
             } finally {
                 db.close();

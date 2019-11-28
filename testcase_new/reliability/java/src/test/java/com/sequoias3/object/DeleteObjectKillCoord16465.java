@@ -23,107 +23,112 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content:  删除对象过程中db端节点异常 
- * testlink-case: seqDB-16465
+ * test content: 删除对象过程中db端节点异常 testlink-case: seqDB-16465
+ * 
  * @author wangkexin
  * @Date 2019.01.14
  * @version 1.00
  */
 public class DeleteObjectKillCoord16465 extends S3TestBase {
-	private GroupMgr groupMgr = null;
-	private String userName = "user16465";
-	private String bucketName = "bucket16465";
-	private String keyName = "key16465";
-	private String roleName = "normal";
-	private List<String> keyNames = new ArrayList<>();
-	private List<String> deletedObjectList = new CopyOnWriteArrayList<String>();
-	private int objectNum = 100;
-	private String[] accessKeys = null;
-	private AmazonS3 s3Client = null;
-	private GroupWrapper coordGroup = null;
-	private boolean runSuccess = false;
+    private GroupMgr groupMgr = null;
+    private String userName = "user16465";
+    private String bucketName = "bucket16465";
+    private String keyName = "key16465";
+    private String roleName = "normal";
+    private List< String > keyNames = new ArrayList<>();
+    private List< String > deletedObjectList = new CopyOnWriteArrayList< String >();
+    private int objectNum = 100;
+    private String[] accessKeys = null;
+    private AmazonS3 s3Client = null;
+    private GroupWrapper coordGroup = null;
+    private boolean runSuccess = false;
 
-	@BeforeClass
-	private void setUp() throws Exception {
-		groupMgr = GroupMgr.getInstance();
-		coordGroup = groupMgr.getGroupByName("SYSCoord");
-		
-		CommLibS3.clearUser(userName);
-		accessKeys = UserUtils.createUser(userName, roleName);
-		s3Client = CommLibS3.buildS3Client(accessKeys[0], accessKeys[1]);
-		s3Client.createBucket(bucketName);
-		
-		for(int i = 0 ; i < objectNum; i++ ){
-			String currentKey = keyName + "_" + i;
-			s3Client.putObject(bucketName, currentKey, currentKey + "_content");
-			keyNames.add(currentKey);
-		}
-	}
+    @BeforeClass
+    private void setUp() throws Exception {
+        groupMgr = GroupMgr.getInstance();
+        coordGroup = groupMgr.getGroupByName( "SYSCoord" );
 
-	@Test
-	public void testDeleteObject() throws Exception {
-		TaskMgr mgr = new TaskMgr();
-        for(NodeWrapper node : coordGroup.getNodes()) {
-            FaultMakeTask faultTask = KillNode.getFaultMakeTask(node, 0);
-            mgr.addTask(faultTask);
+        CommLibS3.clearUser( userName );
+        accessKeys = UserUtils.createUser( userName, roleName );
+        s3Client = CommLibS3.buildS3Client( accessKeys[ 0 ], accessKeys[ 1 ] );
+        s3Client.createBucket( bucketName );
+
+        for ( int i = 0; i < objectNum; i++ ) {
+            String currentKey = keyName + "_" + i;
+            s3Client.putObject( bucketName, currentKey,
+                    currentKey + "_content" );
+            keyNames.add( currentKey );
         }
-		
-        for(int i = 0; i < keyNames.size(); i++){
-        	DeleteObjectTask cTask = new DeleteObjectTask(keyNames.get(i));
-    		mgr.addTask(cTask);
+    }
+
+    @Test
+    public void testDeleteObject() throws Exception {
+        TaskMgr mgr = new TaskMgr();
+        for ( NodeWrapper node : coordGroup.getNodes() ) {
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask( node, 0 );
+            mgr.addTask( faultTask );
         }
-		mgr.execute();
-		Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
 
-		deleteObjectAgainAndCheck();
-		runSuccess = true;
-	}
+        for ( int i = 0; i < keyNames.size(); i++ ) {
+            DeleteObjectTask cTask = new DeleteObjectTask( keyNames.get( i ) );
+            mgr.addTask( cTask );
+        }
+        mgr.execute();
+        Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
-	@AfterClass
-	private void tearDown() throws Exception {
-		try {
-			if (runSuccess) {
-				UserUtils.deleteUser(userName);
-			}
-		}finally {
-			if (s3Client != null) {
-				s3Client.shutdown();
-			}
-		}
-	}
+        deleteObjectAgainAndCheck();
+        runSuccess = true;
+    }
 
-	private class DeleteObjectTask extends OperateTask {
-		private String keyName = "";
-		public DeleteObjectTask(String keyName) {
-			this.keyName = keyName;
-		}
-		@Override
-		public void exec(){
-			AmazonS3 s3Client = CommLibS3.buildS3Client(accessKeys[0], accessKeys[1]);
-			try {
-				s3Client.deleteObject(bucketName, keyName);
-				deletedObjectList.add(keyName);
-			} catch(AmazonServiceException e){
-				if(!e.getErrorCode().equals("GetDBConnectFail")){
-					throw e;
-				}
-			}finally {
-				if (s3Client != null) {
-					s3Client.shutdown();
-				}
-			}
-		}
-	}
+    @AfterClass
+    private void tearDown() throws Exception {
+        try {
+            if ( runSuccess ) {
+                UserUtils.deleteUser( userName );
+            }
+        } finally {
+            if ( s3Client != null ) {
+                s3Client.shutdown();
+            }
+        }
+    }
 
-	private void deleteObjectAgainAndCheck() throws Exception {
-		List<String> remainObjects = new ArrayList<String>();
-		remainObjects.addAll(keyNames);
-		remainObjects.removeAll(deletedObjectList);
-		for (String keyName : remainObjects) {
-			s3Client.deleteObject(bucketName, keyName);
-		}
-		for(int i = 0; i < keyNames.size(); i++){
-			Assert.assertFalse(s3Client.doesObjectExist(bucketName, keyNames.get(i)));
-		}
-	}
+    private class DeleteObjectTask extends OperateTask {
+        private String keyName = "";
+
+        public DeleteObjectTask( String keyName ) {
+            this.keyName = keyName;
+        }
+
+        @Override
+        public void exec() {
+            AmazonS3 s3Client = CommLibS3.buildS3Client( accessKeys[ 0 ],
+                    accessKeys[ 1 ] );
+            try {
+                s3Client.deleteObject( bucketName, keyName );
+                deletedObjectList.add( keyName );
+            } catch ( AmazonServiceException e ) {
+                if ( !e.getErrorCode().equals( "GetDBConnectFail" ) ) {
+                    throw e;
+                }
+            } finally {
+                if ( s3Client != null ) {
+                    s3Client.shutdown();
+                }
+            }
+        }
+    }
+
+    private void deleteObjectAgainAndCheck() throws Exception {
+        List< String > remainObjects = new ArrayList< String >();
+        remainObjects.addAll( keyNames );
+        remainObjects.removeAll( deletedObjectList );
+        for ( String keyName : remainObjects ) {
+            s3Client.deleteObject( bucketName, keyName );
+        }
+        for ( int i = 0; i < keyNames.size(); i++ ) {
+            Assert.assertFalse(
+                    s3Client.doesObjectExist( bucketName, keyNames.get( i ) ) );
+        }
+    }
 }

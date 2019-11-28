@@ -18,10 +18,9 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @FileName:seqDB-6643:指定Compressed:false,CompressionType:"lzw"创建CL
- * 创建CL，指定Compressed:false,CompressionType:"lzw"，覆盖如下场景（掉换参数顺序）：
- * {Compressed:false,CompressionType:"lzw"}
- * {CompressionType:"lzw",Compressed:false}
+ * @FileName:seqDB-6643:指定Compressed:false,CompressionType:"lzw"创建CL 创建CL，指定Compressed:false,CompressionType:"lzw"，覆盖如下场景（掉换参数顺序）：
+ *                                                                   {Compressed:false,CompressionType:"lzw"}
+ *                                                                   {CompressionType:"lzw",Compressed:false}
  * @Author linsuqiang
  * @Date 2016-12-27
  * @Version 1.00
@@ -29,58 +28,63 @@ import com.sequoiadb.testcommon.SdbTestBase;
 public class TestLzw6643 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl_6643";
-    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
-    
+    private SimpleDateFormat sdf = new SimpleDateFormat(
+            "yyyy-MM-dd HH:mm:ss.S" );
+
     @BeforeClass
     public void setUp() {
-        try{
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        }catch(BaseException e){
-            Assert.fail(e.getMessage());
+        try {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         }
-        if (SnappyUilts.isStandAlone(sdb)){
-            throw new SkipException("is standalone skip testcase");
+        if ( SnappyUilts.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
         }
     }
-    
+
     @AfterClass
-    public void tearDown(){
-        try{
-            CollectionSpace cs = sdb.getCollectionSpace(csName);  
-            if(cs.isCollectionExist(clName)){
-                cs.dropCollection(clName);
+    public void tearDown() {
+        try {
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-        }catch(BaseException e){
-            Assert.fail(e.getMessage());
-        }finally{
-            if(sdb != null){
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        } finally {
+            if ( sdb != null ) {
                 sdb.disconnect();
             }
         }
     }
-    
+
     @Test
     public void test() {
         Sequoiadb db = null;
-        try{
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            CollectionSpace cs = db.getCollectionSpace(csName);
-            try{
-                cs.createCollection(clName, (BSONObject)JSON.parse("{Compressed: false, CompressionType: 'lzw'}"));
-                throw new BaseException(-10000, "cl shouldn't been created successfully");
-            }catch(BaseException e){
-                Assert.assertEquals(e.getErrorCode(), -6, e.getMessage());
+        try {
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            CollectionSpace cs = db.getCollectionSpace( csName );
+            try {
+                cs.createCollection( clName, ( BSONObject ) JSON.parse(
+                        "{Compressed: false, CompressionType: 'lzw'}" ) );
+                throw new BaseException( -10000,
+                        "cl shouldn't been created successfully" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -6, e.getMessage() );
             }
-            try{
-                cs.createCollection(clName, (BSONObject)JSON.parse("{Compression: 'lzw', Compressed: false}"));
-                throw new BaseException(-10000, "cl shouldn't been created successfully");
-            }catch(BaseException e){
-                Assert.assertEquals(e.getErrorCode(), -6, e.getMessage());
+            try {
+                cs.createCollection( clName, ( BSONObject ) JSON
+                        .parse( "{Compression: 'lzw', Compressed: false}" ) );
+                throw new BaseException( -10000,
+                        "cl shouldn't been created successfully" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -6, e.getMessage() );
             }
-        }catch(BaseException e){
-            Assert.fail(e.getMessage());
-        }finally{
-            if(db != null){
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        } finally {
+            if ( db != null ) {
                 db.disconnect();
             }
         }

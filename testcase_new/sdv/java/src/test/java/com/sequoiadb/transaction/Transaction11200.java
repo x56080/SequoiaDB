@@ -35,44 +35,51 @@ public class Transaction11200 extends SdbTestBase {
 
     @BeforeClass
     private void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
-        cl = cs.createCollection(CL_NAME);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
+        cl = cs.createCollection( CL_NAME );
     }
 
     @Test()
-    private void test() throws Exception {        
-        cl.insert(new BasicBSONObject("a", 1));        
+    private void test() throws Exception {
+        cl.insert( new BasicBSONObject( "a", 1 ) );
 
         // commit
         ThreadExecutor es = new ThreadExecutor();
-        es.addWorker(new trans1(new BasicBSONObject("$set", 
-                new BasicBSONObject("a", 1)), "commit"));
-        es.addWorker(new trans2(new BasicBSONObject("$set", 
-                new BasicBSONObject("a", 2)), "commit"));
-        es.run();
-        
-        // rollbock
-        es = new ThreadExecutor();
-        es.addWorker(new trans1(new BasicBSONObject("$set", 
-                new BasicBSONObject("a", 2)), "rollback"));
-        es.addWorker(new trans2(new BasicBSONObject("$set", 
-                new BasicBSONObject("a", 3)), "rollback"));
+        es.addWorker( new trans1(
+                new BasicBSONObject( "$set", new BasicBSONObject( "a", 1 ) ),
+                "commit" ) );
+        es.addWorker( new trans2(
+                new BasicBSONObject( "$set", new BasicBSONObject( "a", 2 ) ),
+                "commit" ) );
         es.run();
 
-        Assert.assertEquals(1, cl.getCount());
+        // rollbock
+        es = new ThreadExecutor();
+        es.addWorker( new trans1(
+                new BasicBSONObject( "$set", new BasicBSONObject( "a", 2 ) ),
+                "rollback" ) );
+        es.addWorker( new trans2(
+                new BasicBSONObject( "$set", new BasicBSONObject( "a", 3 ) ),
+                "rollback" ) );
+        es.run();
+
+        Assert.assertEquals( 1, cl.getCount() );
         DBCursor cr = cl.query();
-        Assert.assertEquals(2, cr.getNext().get("a")); 
+        Assert.assertEquals( 2, cr.getNext().get( "a" ) );
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            cs.dropCollection(CL_NAME);
+            cs.dropCollection( CL_NAME );
         } finally {
-            if (sdb != null) sdb.close();
-            if (db1 != null) db1.close();
-            if (db2 != null) db2.close();
+            if ( sdb != null )
+                sdb.close();
+            if ( db1 != null )
+                db1.close();
+            if ( db2 != null )
+                db2.close();
         }
     }
 
@@ -81,32 +88,36 @@ public class Transaction11200 extends SdbTestBase {
         private String transEndFlag;
         private DBCollection cl;
 
-        private trans1(BSONObject modifier, String transEndFlag) {
+        private trans1( BSONObject modifier, String transEndFlag ) {
             this.modifier = modifier;
             this.transEndFlag = transEndFlag;
-            db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            cl = db1.getCollectionSpace(SdbTestBase.csName).getCollection(CL_NAME); 
+            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            cl = db1.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( CL_NAME );
         }
 
         @ExecuteOrder(step = 1)
         private void beginTrans() {
-            db1.beginTransaction(); 
+            db1.beginTransaction();
         }
 
         @ExecuteOrder(step = 2)
         private void update() {
-            System.out.println(new Date() + " " + this.getClass().getName().toString() + " step 2 update"); 
-            cl.update(null, modifier, null);
+            System.out.println( new Date() + " "
+                    + this.getClass().getName().toString() + " step 2 update" );
+            cl.update( null, modifier, null );
         }
 
         @ExecuteOrder(step = 5)
         private void endTrans() {
-            System.out.println(new Date() + " " + this.getClass().getName().toString() + " step 5 " + transEndFlag);     
-            if (transEndFlag == "commit") {
+            System.out.println(
+                    new Date() + " " + this.getClass().getName().toString()
+                            + " step 5 " + transEndFlag );
+            if ( transEndFlag == "commit" ) {
                 db1.commit();
             } else {
                 db1.rollback();
-            } 
+            }
         }
     }
 
@@ -115,33 +126,37 @@ public class Transaction11200 extends SdbTestBase {
         private String transEndFlag;
         private DBCollection cl;
 
-        private trans2(BSONObject modifier, String transEndFlag) {
+        private trans2( BSONObject modifier, String transEndFlag ) {
             this.modifier = modifier;
             this.transEndFlag = transEndFlag;
-            db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            cl = db2.getCollectionSpace(SdbTestBase.csName).getCollection(CL_NAME); 
+            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            cl = db2.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( CL_NAME );
         }
 
         @ExecuteOrder(step = 3)
         private void beginTrans() {
-            db2.beginTransaction(); 
+            db2.beginTransaction();
         }
 
         @ExecuteOrder(step = 4)
         @ExpectBlock(confirmTime = 3, contOnStep = 5)
         private void update() {
-            System.out.println(new Date() + " " + this.getClass().getName().toString() + " step 4 update"); 
-            cl.update(null, modifier, null);
+            System.out.println( new Date() + " "
+                    + this.getClass().getName().toString() + " step 4 update" );
+            cl.update( null, modifier, null );
         }
 
         @ExecuteOrder(step = 6)
         private void endTrans() {
-            System.out.println(new Date() + " " + this.getClass().getName().toString() + " step 6 " + transEndFlag);         
-            if (transEndFlag == "commit") {
+            System.out.println(
+                    new Date() + " " + this.getClass().getName().toString()
+                            + " step 6 " + transEndFlag );
+            if ( transEndFlag == "commit" ) {
                 db2.commit();
             } else {
                 db2.rollback();
-            } 
+            }
         }
     }
 }

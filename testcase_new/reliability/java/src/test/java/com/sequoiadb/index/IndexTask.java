@@ -16,16 +16,17 @@ import static com.sequoiadb.metaopr.commons.MyUtil.*;
  * @Version 1.00
  */
 public abstract class IndexTask extends OperateTask {
-    public IndexTask(String threadName) {
-        super(threadName);
+    public IndexTask( String threadName ) {
+        super( threadName );
     }
 
     Sequoiadb db = null;
     private String coorUrl = null;
 
-    private final static Logger log = Logger.getLogger(IndexTask.class.getName());
+    private final static Logger log = Logger
+            .getLogger( IndexTask.class.getName() );
 
-    public void setCoorUrl(String coorUrl) {
+    public void setCoorUrl( String coorUrl ) {
         this.coorUrl = coorUrl;
     }
 
@@ -35,35 +36,39 @@ public abstract class IndexTask extends OperateTask {
 
     @Override
     public void exec() throws Exception {
-        if (coorUrl == null)
+        if ( coorUrl == null )
             db = getSdb();
         else
-            db = new Sequoiadb(coorUrl, "", "");
+            db = new Sequoiadb( coorUrl, "", "" );
         operate();
         db.close();
     }
 
     abstract void operate();
 
-    public static IndexTask getCreateIndexTask(final String csName, final String clName, final List<IndexBean> indexBeanList) {
-        return new IndexTask("create index task thread") {
+    public static IndexTask getCreateIndexTask( final String csName,
+            final String clName, final List< IndexBean > indexBeanList ) {
+        return new IndexTask( "create index task thread" ) {
             @Override
             void operate() {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                for (IndexBean indexBean : indexBeanList) {
-                    createIndex(cl, indexBean);
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                for ( IndexBean indexBean : indexBeanList ) {
+                    createIndex( cl, indexBean );
                 }
             }
         };
     }
 
-    public static IndexTask getRemoveIndexTask(final String csName, final String clName, final List<IndexBean> indexBeanList) {
-        return new IndexTask("deleted index task thread") {
+    public static IndexTask getRemoveIndexTask( final String csName,
+            final String clName, final List< IndexBean > indexBeanList ) {
+        return new IndexTask( "deleted index task thread" ) {
             @Override
             void operate() {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                for (IndexBean indexBean : indexBeanList) {
-                    removeIndex(cl, indexBean);
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                for ( IndexBean indexBean : indexBeanList ) {
+                    removeIndex( cl, indexBean );
                 }
             }
         };

@@ -45,94 +45,98 @@ public class NetDeleteNode6201 extends SdbTestBase {
 
     @BeforeClass()
     public void setUp() {
-        
+
         try {
-            System.out.println(
-                    "the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                            + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            sdb = new Sequoiadb(coordUrl, "", "");
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
+            sdb = new Sequoiadb( coordUrl, "", "" );
             groupMgr = GroupMgr.getInstance();
 
             // CheckBusiness(true),检测当前集群环境，若存在异常返回false，
-            if (!groupMgr.checkBusiness(60)) {
-                throw new SkipException("checkBusiness fail");
+            if ( !groupMgr.checkBusiness( 60 ) ) {
+                throw new SkipException( "checkBusiness fail" );
             }
 
+        } catch ( ReliabilityException e ) {
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getStackString( e ) );
         }
-        catch (ReliabilityException e) {
-            Assert.fail(this.getClass().getName() + " setUp error, error description:"
-                    + e.getMessage() + "\r\n" + Utils.getStackString(e));
-        }        
     }
 
     @Test
     public void test() throws InterruptedException {
         Sequoiadb db = null;
         try {
-            GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
+            GroupWrapper cataGroup = groupMgr
+                    .getGroupByName( "SYSCatalogGroup" );
             String cataPriHost = cataGroup.getMaster().hostName();
 
             // 得到一个非断网主机的coordurl
-            connectUrl = CommLib.getSafeCoordUrl(cataPriHost);
+            connectUrl = CommLib.getSafeCoordUrl( cataPriHost );
 
-            System.out.println("brokenNetHost:" + cataPriHost + " connectUrl" + connectUrl);
+            System.out.println( "brokenNetHost:" + cataPriHost + " connectUrl"
+                    + connectUrl );
 
             // 建立一个COORD节点
-            db = new Sequoiadb(connectUrl, "", "");
-            ReplicaGroup coordGroup = db.getReplicaGroup("SYSCoord");
-            String hostName = connectUrl.split(":")[0];
-            Node coordNode = coordGroup.createNode(hostName, coordPort,
-                    coordDbPath + "/" + coordPort, new BasicBSONObject());
+            db = new Sequoiadb( connectUrl, "", "" );
+            ReplicaGroup coordGroup = db.getReplicaGroup( "SYSCoord" );
+            String hostName = connectUrl.split( ":" )[ 0 ];
+            Node coordNode = coordGroup.createNode( hostName, coordPort,
+                    coordDbPath + "/" + coordPort, new BasicBSONObject() );
             coordNode.start();
 
             // 建立并行任务
-            FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(cataPriHost, 1, 10, 15);
-            TaskMgr mgr = new TaskMgr(faultTask);
-            mgr.addTask(new RemoveCoord());
+            FaultMakeTask faultTask = BrokenNetwork
+                    .getFaultMakeTask( cataPriHost, 1, 10, 15 );
+            TaskMgr mgr = new TaskMgr( faultTask );
+            mgr.addTask( new RemoveCoord() );
             mgr.execute();
             // TaskMgr检查线程异常
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
             // 最长等待2分钟的集群环境恢复
-            Assert.assertEquals(groupMgr.checkBusiness(600), true, "failed to restore business");
-            
-            if (!groupMgr.checkResidu()) {        
+            Assert.assertEquals( groupMgr.checkBusiness( 600 ), true,
+                    "failed to restore business" );
+
+            if ( !groupMgr.checkResidu() ) {
                 try {
-                    coordGroup.removeNode(connectUrl.split(":")[0], coordPort, null);
-                }catch(BaseException e){
-                	if( e.getErrorCode() == -155 ){ 
-                		clearNode(hostName,coordPort);
-                    }
-                    else if(e.getErrorCode() == -147){
-                        //再次remove前要求上一个remove node context关闭,睡眠五分钟等待context关闭
-                        Thread.sleep(5*60*1000);
+                    coordGroup.removeNode( connectUrl.split( ":" )[ 0 ],
+                            coordPort, null );
+                } catch ( BaseException e ) {
+                    if ( e.getErrorCode() == -155 ) {
+                        clearNode( hostName, coordPort );
+                    } else if ( e.getErrorCode() == -147 ) {
+                        // 再次remove前要求上一个remove node context关闭,睡眠五分钟等待context关闭
+                        Thread.sleep( 5 * 60 * 1000 );
                         try {
-                            coordGroup.removeNode(connectUrl.split(":")[0], coordPort, null);
-                        }catch (BaseException e1)
-                        {
-                            if( e1.getErrorCode() == -155 ){
-                                clearNode(hostName,coordPort);
-                            }else {
+                            coordGroup.removeNode( connectUrl.split( ":" )[ 0 ],
+                                    coordPort, null );
+                        } catch ( BaseException e1 ) {
+                            if ( e1.getErrorCode() == -155 ) {
+                                clearNode( hostName, coordPort );
+                            } else {
                                 throw e1;
                             }
                         }
+                    } else {
+                        Assert.fail( "remove node failed, errMsg:"
+                                + e.getMessage() );
                     }
-                	else{
-                		Assert.fail("remove node failed, errMsg:" + e.getMessage());
-                	}        			
-        		}                
-                
+                }
+
                 // 最长等待2分钟的集群环境恢复
-                Assert.assertEquals(groupMgr.checkBusiness(600), true, "failed to restore business");
-              //Normal operating environment
+                Assert.assertEquals( groupMgr.checkBusiness( 600 ), true,
+                        "failed to restore business" );
+                // Normal operating environment
                 clearFlag = true;
             }
-        }
-        catch (ReliabilityException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getStackString(e));
-        }
-        finally {
-            if (db != null) {
+        } catch ( ReliabilityException e ) {
+            Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
+        } finally {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -140,81 +144,83 @@ public class NetDeleteNode6201 extends SdbTestBase {
     }
 
     @AfterClass
-    public void tearDown() {        
+    public void tearDown() {
         try {
-        	if (clearFlag) {                
-        		System.out.println(
-                        "the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                                + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));        		
-            }     
+            if ( clearFlag ) {
+                System.out.println( "the TestCase Name:"
+                        + this.getClass().getName() + ". the TestCase end at:"
+                        + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                                .format( new Date() ) );
+            }
 
-        }
-        catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getStackString(e));
-        }
-        finally {
-        	if(sdb != null){
-        		sdb.close();
-        	}         
-            
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
+        } finally {
+            if ( sdb != null ) {
+                sdb.close();
+            }
+
         }
     }
 
     class RemoveCoord extends OperateTask {
         @Override
         public void exec() throws Exception {
-			  Sequoiadb db = null;
+            Sequoiadb db = null;
             try {
-                db = new Sequoiadb(connectUrl, "", "");
-                ReplicaGroup coordGroup = db.getReplicaGroup("SYSCoord");
-                coordGroup.removeNode(connectUrl.split(":")[0], coordPort, null);
+                db = new Sequoiadb( connectUrl, "", "" );
+                ReplicaGroup coordGroup = db.getReplicaGroup( "SYSCoord" );
+                coordGroup.removeNode( connectUrl.split( ":" )[ 0 ], coordPort,
+                        null );
                 deleteFlag = true;
                 db.close();
-            }
-            catch (BaseException e) {
-                System.out.println(e.getMessage());
-            }finally {
-               if(db!=null){
-                   db.close();
-               }
+            } catch ( BaseException e ) {
+                System.out.println( e.getMessage() );
+            } finally {
+                if ( db != null ) {
+                    db.close();
+                }
             }
         }
     }
-    
-    public void clearNode(String hostName,int svcName) throws ReliabilityException{    	
+
+    public void clearNode( String hostName, int svcName )
+            throws ReliabilityException {
         String user = "root";
-        String passwd = SdbTestBase.rootPwd;        
-        int port = 22;        
+        String passwd = SdbTestBase.rootPwd;
+        int port = 22;
         try {
-            ssh = new Ssh(hostName, user, passwd, port);               
-            ssh.exec("sed -n '/INSTALL_DIR/,1p' /etc/default/sequoiadb");
-            String installFlag = ssh.getStdout().substring(0, ssh.getStdout().length() - 1);           
-            String[] installPwdStr = installFlag.split("=");
-            String installPwd = installPwdStr[1];
-            
-            ssh.exec("lsof -i:" + svcName + " | sed '1d' | awk '{print $2}'");
-            if (ssh.getStdout().length() > 0) {            	
-            	ssh.exec(installPwd + "/bin/sdbstop -p "+ svcName);
+            ssh = new Ssh( hostName, user, passwd, port );
+            ssh.exec( "sed -n '/INSTALL_DIR/,1p' /etc/default/sequoiadb" );
+            String installFlag = ssh.getStdout().substring( 0,
+                    ssh.getStdout().length() - 1 );
+            String[] installPwdStr = installFlag.split( "=" );
+            String installPwd = installPwdStr[ 1 ];
+
+            ssh.exec( "lsof -i:" + svcName + " | sed '1d' | awk '{print $2}'" );
+            if ( ssh.getStdout().length() > 0 ) {
+                ssh.exec( installPwd + "/bin/sdbstop -p " + svcName );
             }
-            
+
             String actNodePath = coordDbPath + "/" + svcName;
-            File dirname = new File(actNodePath);
-            if(dirname.isDirectory()){
-            	ssh.exec("rm -rf "+ actNodePath);
+            File dirname = new File( actNodePath );
+            if ( dirname.isDirectory() ) {
+                ssh.exec( "rm -rf " + actNodePath );
             }
-            
-            String confDir = installPwd + "/conf/local/"+ svcName;
-            File confDirName = new File(confDir);
-            if(confDirName.isDirectory()){
-            	ssh.exec("rm -rf "+ confDir);
-            }          
-            
-        }catch (BaseException e) {
-        	Assert.fail("clear node fail:  coordDbPath="+coordDbPath+"\n"+e.getMessage() + e.getErrorCode());
-        }finally {
-        	if(ssh != null){
-        		ssh.disconnect();
-        	}
+
+            String confDir = installPwd + "/conf/local/" + svcName;
+            File confDirName = new File( confDir );
+            if ( confDirName.isDirectory() ) {
+                ssh.exec( "rm -rf " + confDir );
+            }
+
+        } catch ( BaseException e ) {
+            Assert.fail( "clear node fail:  coordDbPath=" + coordDbPath + "\n"
+                    + e.getMessage() + e.getErrorCode() );
+        } finally {
+            if ( ssh != null ) {
+                ssh.disconnect();
+            }
         }
     }
 

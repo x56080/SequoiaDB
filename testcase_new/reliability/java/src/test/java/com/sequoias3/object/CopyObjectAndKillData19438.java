@@ -38,8 +38,9 @@ public class CopyObjectAndKillData19438 extends S3TestBase {
     private String bucketName = "bucket19438";
     private String srcKeyName = "/SRC/test19438.tar";
     private String destKeyName = "/DEST/test19438.tar";
-    private List<String> destKeyNames = new ArrayList<>();
-    private List<String> copyFailDestKeyNames = Collections.synchronizedList(new ArrayList<String>());
+    private List< String > destKeyNames = new ArrayList<>();
+    private List< String > copyFailDestKeyNames = Collections
+            .synchronizedList( new ArrayList< String >() );
     private int destKeyNameNum = 10;
     private int fileSize = 1024 * 1024 * 50;
     private String filePath = null;
@@ -47,40 +48,44 @@ public class CopyObjectAndKillData19438 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(SdbTestBase.workDir + File.separator + TestTools.getClassName());
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        localPath = new File( SdbTestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        TestTools.LocalFile.createFile( filePath, fileSize );
         s3Client = CommLibS3.buildS3Client();
-        CommLibS3.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        s3Client.putObject(bucketName, srcKeyName, new File(filePath));
+        CommLibS3.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        s3Client.putObject( bucketName, srcKeyName, new File( filePath ) );
     }
 
     @Test
     public void testCopyObject() throws Exception {
         TaskMgr mgr = new TaskMgr();
 
-        for (int i = 0; i < destKeyNameNum; i++) {
+        for ( int i = 0; i < destKeyNameNum; i++ ) {
             String subDestKeyName = destKeyName + "_" + i + "_png";
-            mgr.addTask(new CopyObject(subDestKeyName));
+            mgr.addTask( new CopyObject( subDestKeyName ) );
         }
 
         GroupMgr groupMgr = GroupMgr.getInstance();
-        List<GroupWrapper> glist = groupMgr.getAllDataGroup();
-        for (int i = 0; i < glist.size(); i++) {
-            String groupName = glist.get(i).getGroupName();
-            GroupWrapper group = groupMgr.getGroupByName(groupName);
+        List< GroupWrapper > glist = groupMgr.getAllDataGroup();
+        for ( int i = 0; i < glist.size(); i++ ) {
+            String groupName = glist.get( i ).getGroupName();
+            GroupWrapper group = groupMgr.getGroupByName( groupName );
             NodeWrapper node = group.getMaster();
-            FaultMakeTask faultTask = KillNode.getFaultMakeTask(node, 1);
-            mgr.addTask(faultTask);
-            System.out.println("KillNode:i=" + i + "" + node.hostName() + ":" + node.svcName());
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask( node, 1 );
+            mgr.addTask( faultTask );
+            System.out.println( "KillNode:i=" + i + "" + node.hostName() + ":"
+                    + node.svcName() );
         }
 
         mgr.execute();
-        Assert.assertTrue(mgr.isAllSuccess(), mgr.getErrorMsg());
-        Assert.assertTrue(groupMgr.checkBusinessWithLSN(120), "node start fail!");
+        Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ),
+                "node start fail!" );
 
         checkResult();
         runSuccess = true;
@@ -89,12 +94,12 @@ public class CopyObjectAndKillData19438 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLibS3.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLibS3.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
-            if (s3Client != null)
+            if ( s3Client != null )
                 s3Client.shutdown();
 
         }
@@ -104,22 +109,23 @@ public class CopyObjectAndKillData19438 extends S3TestBase {
         private String destKeyName;
         private AmazonS3 s3Client1 = CommLibS3.buildS3Client();
 
-        private CopyObject(String destKeyName) {
+        private CopyObject( String destKeyName ) {
             this.destKeyName = destKeyName;
         }
 
         @Override
         public void exec() throws Exception {
             try {
-                s3Client.copyObject(bucketName, srcKeyName, bucketName, destKeyName);
-            } catch (AmazonS3Exception e) {
-                copyFailDestKeyNames.add(destKeyName);
+                s3Client.copyObject( bucketName, srcKeyName, bucketName,
+                        destKeyName );
+            } catch ( AmazonS3Exception e ) {
+                copyFailDestKeyNames.add( destKeyName );
                 // 200:CopyObjectFailed 500:INTERNAL_SERVER_ERROR
-                if (e.getStatusCode() != 200 && e.getStatusCode() != 500) {
-                    throw new Exception(destKeyName, e);
+                if ( e.getStatusCode() != 200 && e.getStatusCode() != 500 ) {
+                    throw new Exception( destKeyName, e );
                 }
             } finally {
-                if (s3Client1 != null) {
+                if ( s3Client1 != null ) {
                     s3Client1.shutdown();
                 }
             }
@@ -127,14 +133,16 @@ public class CopyObjectAndKillData19438 extends S3TestBase {
     }
 
     private void checkResult() throws Exception {
-        for (String destKeyName : copyFailDestKeyNames) {
-            s3Client.copyObject(bucketName, srcKeyName, bucketName, destKeyName);
+        for ( String destKeyName : copyFailDestKeyNames ) {
+            s3Client.copyObject( bucketName, srcKeyName, bucketName,
+                    destKeyName );
         }
 
         // check the copy file
-        for (String destKeyName : destKeyNames) {
-            String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, destKeyName);
-            Assert.assertEquals(downfileMd5, TestTools.getMD5(filePath));
+        for ( String destKeyName : destKeyNames ) {
+            String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client,
+                    localPath, bucketName, destKeyName );
+            Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
         }
 
     }

@@ -17,8 +17,8 @@ import java.io.File;
 import java.io.FileReader;
 
 /**
- * @Description:  seqDB-17878:带token,单个cluster，密码文件包含每个cluster单个和多个用户
- *  本用例只涉及单个集群单个用户，只进行简单的功能验证
+ * @Description: seqDB-17878:带token,单个cluster，密码文件包含每个cluster单个和多个用户
+ *               本用例只涉及单个集群单个用户，只进行简单的功能验证
  * @author fanyu
  * @Date:2019年02月22日
  * @version:1.0
@@ -34,70 +34,74 @@ public class ParseCipherFile17878 extends SdbTestBase {
 
     @BeforeClass(alwaysRun = true)
     private void setUp() throws Exception {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("skip StandAlone");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "skip StandAlone" );
         }
         try {
-            sdb.removeUser(username, password);
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -300) {
+            sdb.removeUser( username, password );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -300 ) {
                 throw e;
             }
         }
-        sdb.createUser(username, password);
+        sdb.createUser( username, password );
         // get sdb tools path
-        Util.createPasswdFile(username, password, passwdFileName, token);
+        Util.createPasswdFile( username, password, passwdFileName, token );
         String toolsPath = Util.getSdbInstallDir() + "/bin/";
-        Util.downLoadFileToLocal(SdbTestBase.workDir, toolsPath + passwdFileName);
+        Util.downLoadFileToLocal( SdbTestBase.workDir,
+                toolsPath + passwdFileName );
         passwordFilePath = SdbTestBase.workDir + passwdFileName;
     }
 
     @Test
     private void testParseCipherFile() throws Exception {
         SdbDecrypt sdbDecrypt = new SdbDecrypt();
-        SdbDecryptUserInfo info = sdbDecrypt.parseCipherFile(username, token, new File(passwordFilePath));
-        //check
-        Assert.assertEquals(info.getUserName(), username, info.toString());
-        Assert.assertEquals(info.getPasswd(), password);
-        Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, info.getUserName(), info.getPasswd());
+        SdbDecryptUserInfo info = sdbDecrypt.parseCipherFile( username, token,
+                new File( passwordFilePath ) );
+        // check
+        Assert.assertEquals( info.getUserName(), username, info.toString() );
+        Assert.assertEquals( info.getPasswd(), password );
+        Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, info.getUserName(),
+                info.getPasswd() );
         db.close();
     }
 
     @Test
     private void testDecrypPasswd() throws Exception {
-        //get encryptPasswd form passwordFile
+        // get encryptPasswd form passwordFile
         BufferedReader br = null;
         String encryptPasswd;
         try {
-            br = new BufferedReader(new FileReader(passwordFilePath));
+            br = new BufferedReader( new FileReader( passwordFilePath ) );
             String info = br.readLine();
-            encryptPasswd = info.substring(info.lastIndexOf(":") + 1, info.length());
+            encryptPasswd = info.substring( info.lastIndexOf( ":" ) + 1,
+                    info.length() );
         } finally {
-            if (br != null) {
+            if ( br != null ) {
                 br.close();
             }
         }
         SdbDecrypt sdbDecrypt = new SdbDecrypt();
-        String actPassword = sdbDecrypt.decryptPasswd(encryptPasswd, token);
-        //check
-        Assert.assertEquals(actPassword, password);
-        Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, username, actPassword);
+        String actPassword = sdbDecrypt.decryptPasswd( encryptPasswd, token );
+        // check
+        Assert.assertEquals( actPassword, password );
+        Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, username,
+                actPassword );
         db.close();
     }
 
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            sdb.removeUser(username, password);
-            new File(passwordFilePath).deleteOnExit();
-            Util.removePasswdFile(Util.getSdbInstallDir() + "/bin"+ passwdFileName);
+            sdb.removeUser( username, password );
+            new File( passwordFilePath ).deleteOnExit();
+            Util.removePasswdFile(
+                    Util.getSdbInstallDir() + "/bin" + passwdFileName );
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
     }
 }
-
-

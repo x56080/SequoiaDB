@@ -47,24 +47,27 @@ public class DropCS2276 extends SdbTestBase {
     public void setUp() {
         Sequoiadb db = null;
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
 
             groupMgr = GroupMgr.getInstance();
-            if (!groupMgr.checkBusiness()) {
-                throw new SkipException("checkBusiness failed");
+            if ( !groupMgr.checkBusiness() ) {
+                throw new SkipException( "checkBusiness failed" );
             }
 
-            db = new Sequoiadb(coordUrl, "", "");
-            for (int i = 0; i < CS_NUM; i++) {
+            db = new Sequoiadb( coordUrl, "", "" );
+            for ( int i = 0; i < CS_NUM; i++ ) {
                 String csName = csNameBase + "_" + i;
-                db.createCollectionSpace(csName);
+                db.createCollectionSpace( csName );
             }
-        } catch (ReliabilityException e) {
-            Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
-                    + Utils.getKeyStack(e, this));
+        } catch ( ReliabilityException e ) {
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -74,34 +77,36 @@ public class DropCS2276 extends SdbTestBase {
     public void test() {
         Sequoiadb db = null;
         try {
-            GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
+            GroupWrapper cataGroup = groupMgr
+                    .getGroupByName( "SYSCatalogGroup" );
             NodeWrapper priNode = cataGroup.getMaster();
 
-            FaultMakeTask faultTask = KillNode.getFaultMakeTask(priNode.hostName(), priNode.svcName(), 0);
-            TaskMgr mgr = new TaskMgr(faultTask);
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask(
+                    priNode.hostName(), priNode.svcName(), 0 );
+            TaskMgr mgr = new TaskMgr( faultTask );
             DropCSTask dTask = new DropCSTask();
-            mgr.addTask(dTask);
+            mgr.addTask( dTask );
             mgr.execute();
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
-            if (!groupMgr.checkBusinessWithLSN(600)) {
-                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            if ( !groupMgr.checkBusinessWithLSN( 600 ) ) {
+                Assert.fail( "checkBusinessWithLSN() occurs timeout" );
             }
 
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            dropCSAgain(db);
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            dropCSAgain( db );
 
-            if (!groupMgr.checkBusinessWithLSN(600)) {
-                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            if ( !groupMgr.checkBusinessWithLSN( 600 ) ) {
+                Assert.fail( "checkBusinessWithLSN() occurs timeout" );
             }
-            MyUtil.checkListCS(db, csNameBase, 0);
-            Utils.checkConsistency(groupMgr);
+            MyUtil.checkListCS( db, csNameBase, 0 );
+            Utils.checkConsistency( groupMgr );
             runSuccess = true;
-        } catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -109,19 +114,22 @@ public class DropCS2276 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (!runSuccess) {
-            throw new SkipException("to save environment");
+        if ( !runSuccess ) {
+            throw new SkipException( "to save environment" );
         }
         Sequoiadb db = null;
         try {
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    e.getMessage() + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
         }
     }
 
@@ -130,28 +138,28 @@ public class DropCS2276 extends SdbTestBase {
         public void exec() throws Exception {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(coordUrl, "", "");
-                for (int i = 0; i < CS_NUM; i++) {
+                db = new Sequoiadb( coordUrl, "", "" );
+                for ( int i = 0; i < CS_NUM; i++ ) {
                     String csName = csNameBase + "_" + i;
-                    db.dropCollectionSpace(csName);
+                    db.dropCollectionSpace( csName );
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.close();
                 }
             }
         }
     }
 
-    private void dropCSAgain(Sequoiadb db) {
-        for (int i = 0; i < CS_NUM; i++) {
+    private void dropCSAgain( Sequoiadb db ) {
+        for ( int i = 0; i < CS_NUM; i++ ) {
             try {
                 String csName = csNameBase + "_" + i;
-                db.dropCollectionSpace(csName);
-            } catch (BaseException e) {
+                db.dropCollectionSpace( csName );
+            } catch ( BaseException e ) {
                 // -34 SDB_DMS_CS_NOTEXIST 集合空间不存在
-                if (e.getErrorCode() != -34) {
+                if ( e.getErrorCode() != -34 ) {
                     throw e;
                 }
             }

@@ -2,7 +2,7 @@ package com.sequoiadb.metaopr.noderestart;
 
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.NodeWrapper;
-import com.sequoiadb.commlib.SdbTestBase ;
+import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.commlib.StandTestInterface;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.NodeRestart;
@@ -30,24 +30,24 @@ import static org.testng.Assert.assertTrue;
  */
 
 /**
- * @FileName
- * seqDB-2293 :: 版本: 1 :: 删除CS时catalog备节点正常重启_rlb.nodeRestart.metaOpr.CS.004
- * seqDB-2292 :: 版本: 1 :: 删除CS时catalog主节点正常重启_rlb.nodeRestart.metaOpr.CS.003
+ * @FileName seqDB-2293 :: 版本: 1 ::
+ *           删除CS时catalog备节点正常重启_rlb.nodeRestart.metaOpr.CS.004 seqDB-2292 ::
+ *           版本: 1 :: 删除CS时catalog主节点正常重启_rlb.nodeRestart.metaOpr.CS.003
  *
  * @Author laojingtang
  * @Date 17-4-21
  * @Version 1.00
  */
 public class DropCs2292 extends SdbTestBase implements StandTestInterface {
-    List<String> csNames = new ArrayList<>(500);
+    List< String > csNames = new ArrayList<>( 500 );
 
     @BeforeClass
     @Override
     public void setup() {
-        MyUtil.printBeginTime(this);
-        for (int i = 0; i < 500; i++) {
+        MyUtil.printBeginTime( this );
+        for ( int i = 0; i < 500; i++ ) {
             String name = "cs2292_" + i;
-            csNames.add(name);
+            csNames.add( name );
         }
     }
 
@@ -55,38 +55,40 @@ public class DropCs2292 extends SdbTestBase implements StandTestInterface {
     @Override
     public void tearDown() {
 
-        MyUtil.printEndTime(this);
+        MyUtil.printEndTime( this );
     }
 
     @Test
     void testMasterRestart() throws ReliabilityException {
-        assertTrue(GroupMgr.getInstance().checkBusiness());
-        MyUtil.createCS(csNames);
-        NodeWrapper masterNode=MyUtil.getMasterNodeOfCatalog();
-        TaskMgr taskMgr = new TaskMgr(NodeRestart.getFaultMakeTask(masterNode,0, 5));
-        DBoperateTask task=DBoperateTask.getTaskDropCs(csNames);
-        taskMgr.addTask(task);
+        assertTrue( GroupMgr.getInstance().checkBusiness() );
+        MyUtil.createCS( csNames );
+        NodeWrapper masterNode = MyUtil.getMasterNodeOfCatalog();
+        TaskMgr taskMgr = new TaskMgr(
+                NodeRestart.getFaultMakeTask( masterNode, 0, 5 ) );
+        DBoperateTask task = DBoperateTask.getTaskDropCs( csNames );
+        taskMgr.addTask( task );
         taskMgr.execute();
-        if(taskMgr.isAllSuccess()==true)
-        {
+        if ( taskMgr.isAllSuccess() == true ) {
             MyUtil.throwSkipExeWithoutFaultEnv();
         }
-        MyUtil.dropCS(csNames.subList(task.getBreakIndex(),csNames.size()));
-        assertTrue(MyUtil.isCsAllDeleted(csNames));
-        assertTrue(MyUtil.isCatalogGroupSync());
+        MyUtil.dropCS(
+                csNames.subList( task.getBreakIndex(), csNames.size() ) );
+        assertTrue( MyUtil.isCsAllDeleted( csNames ) );
+        assertTrue( MyUtil.isCatalogGroupSync() );
     }
 
     @Test
     void testSlaveRestart() throws ReliabilityException {
-        assertTrue(GroupMgr.getInstance().checkBusiness());
-        MyUtil.createCS(csNames);
-        NodeWrapper slaveNode =MyUtil.getSlaveNodeOfCatalog();
-        TaskMgr taskMgr=new TaskMgr(NodeRestart.getFaultMakeTask(slaveNode,0,5));
-        DBoperateTask task=DBoperateTask.getTaskDropCs(csNames);
-        taskMgr.addTask(task);
+        assertTrue( GroupMgr.getInstance().checkBusiness() );
+        MyUtil.createCS( csNames );
+        NodeWrapper slaveNode = MyUtil.getSlaveNodeOfCatalog();
+        TaskMgr taskMgr = new TaskMgr(
+                NodeRestart.getFaultMakeTask( slaveNode, 0, 5 ) );
+        DBoperateTask task = DBoperateTask.getTaskDropCs( csNames );
+        taskMgr.addTask( task );
         taskMgr.execute();
-        assertTrue(taskMgr.isAllSuccess());
-        assertTrue(MyUtil.isCsAllDeleted(csNames));
-        assertTrue(MyUtil.isCatalogGroupSync());
+        assertTrue( taskMgr.isAllSuccess() );
+        assertTrue( MyUtil.isCsAllDeleted( csNames ) );
+        assertTrue( MyUtil.isCatalogGroupSync() );
     }
 }

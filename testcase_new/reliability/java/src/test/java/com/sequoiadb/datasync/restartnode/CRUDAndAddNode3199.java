@@ -32,18 +32,10 @@ import java.util.*;
  */
 
 /*
- * 1.创建CS，CL 
- * 2.循环执行增删改操作 
- * 3.往副本组中新增节点 
- * 4.过程中购造 bin/sdbstop -p port && bin/sdbstart -c conf/local/port 
- * 5.继续写入 
- * 6.过程中恢复 
- * 7.验证结果   
- * 
- * 注：和单独测插入或删除不同，这个用例就是为了覆盖综合的场景
- *    所以特地涉足增删改查和lob操作，没有固定的预期结果，
- *    只要节点间数据一致即可。
- *    ReplSize = 2,随机断一个备节点时，该节点有可能是同步的源节点，也有可能是同步的目的节点。
+ * 1.创建CS，CL 2.循环执行增删改操作 3.往副本组中新增节点 4.过程中购造 bin/sdbstop -p port && bin/sdbstart
+ * -c conf/local/port 5.继续写入 6.过程中恢复 7.验证结果 注：和单独测插入或删除不同，这个用例就是为了覆盖综合的场景
+ * 所以特地涉足增删改查和lob操作，没有固定的预期结果， 只要节点间数据一致即可。 ReplSize =
+ * 2,随机断一个备节点时，该节点有可能是同步的源节点，也有可能是同步的目的节点。
  */
 
 public class CRUDAndAddNode3199 extends SdbTestBase {
@@ -58,31 +50,35 @@ public class CRUDAndAddNode3199 extends SdbTestBase {
     public void setUp() {
         Sequoiadb db = null;
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
 
             groupMgr = GroupMgr.getInstance();
-            if (!groupMgr.checkBusiness()) {
-                throw new SkipException("checkBusiness failed");
+            if ( !groupMgr.checkBusiness() ) {
+                throw new SkipException( "checkBusiness failed" );
             }
 
-            db = new Sequoiadb(coordUrl, "", "");
-            clGroupName = groupMgr.getAllDataGroupName().get(0);
-            DBCollection cl = createCL(db);
-            insertData(cl); // prepare data for sync
+            db = new Sequoiadb( coordUrl, "", "" );
+            clGroupName = groupMgr.getAllDataGroupName().get( 0 );
+            DBCollection cl = createCL( db );
+            insertData( cl ); // prepare data for sync
 
             // node info, which will be used at AddNodeTask and teardown
             Random ran = new Random();
-            List<String> hosts = groupMgr.getAllHosts();
-            randomHost = hosts.get(ran.nextInt(hosts.size()));
-            randomPort = ran.nextInt(reservedPortEnd - reservedPortBegin) + reservedPortBegin;
-            
-            Utils.makeReplicaLogFull(clGroupName);
-        } catch (ReliabilityException e) {
-            Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
-                    + Utils.getKeyStack(e, this));
+            List< String > hosts = groupMgr.getAllHosts();
+            randomHost = hosts.get( ran.nextInt( hosts.size() ) );
+            randomPort = ran.nextInt( reservedPortEnd - reservedPortBegin )
+                    + reservedPortBegin;
+
+            Utils.makeReplicaLogFull( clGroupName );
+        } catch ( ReliabilityException e ) {
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -92,33 +88,35 @@ public class CRUDAndAddNode3199 extends SdbTestBase {
     public void test() {
         Sequoiadb db = null;
         try {
-            GroupWrapper dataGroup = groupMgr.getGroupByName(clGroupName);
+            GroupWrapper dataGroup = groupMgr.getGroupByName( clGroupName );
             NodeWrapper priNode = dataGroup.getMaster();
 
-            FaultMakeTask faultTask = NodeRestart.getFaultMakeTask(priNode, 1, 10);
-            TaskMgr mgr = new TaskMgr(faultTask);
+            FaultMakeTask faultTask = NodeRestart.getFaultMakeTask( priNode, 1,
+                    10 );
+            TaskMgr mgr = new TaskMgr( faultTask );
             CRUDTask cTask = new CRUDTask();
             AddNodeTask aTask = new AddNodeTask();
-            mgr.addTask(cTask);
-            mgr.addTask(aTask);
+            mgr.addTask( cTask );
+            mgr.addTask( aTask );
             mgr.execute();
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
-            
-            if ( !groupMgr.checkBusinessWithLSN( 600 )){
-                Assert.fail("checkBusiness occurs time out");
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
+
+            if ( !groupMgr.checkBusinessWithLSN( 600 ) ) {
+                Assert.fail( "checkBusiness occurs time out" );
             }
 
-            db = new Sequoiadb(coordUrl, "", "");
-            checkLob(db);
-            if (!dataGroup.checkInspect(1)) {
-                Assert.fail("data is different on " + dataGroup.getGroupName());
+            db = new Sequoiadb( coordUrl, "", "" );
+            checkLob( db );
+            if ( !dataGroup.checkInspect( 1 ) ) {
+                Assert.fail(
+                        "data is different on " + dataGroup.getGroupName() );
             }
             runSuccess = true;
-        } catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -126,74 +124,81 @@ public class CRUDAndAddNode3199 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (!runSuccess) {
-            throw new SkipException("to save environment");
+        if ( !runSuccess ) {
+            throw new SkipException( "to save environment" );
         }
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            CollectionSpace commCS = db.getCollectionSpace(csName);
-            commCS.dropCollection(clName);
-            removeNewNode(db);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            CollectionSpace commCS = db.getCollectionSpace( csName );
+            commCS.dropCollection( clName );
+            removeNewNode( db );
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    e.getMessage() + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
         }
     }
 
-    private DBCollection createCL(Sequoiadb db) {
-        CollectionSpace commCS = db.getCollectionSpace(csName);
-        BSONObject option = (BSONObject) JSON.parse("{ Group: '" + clGroupName + "', ReplSize: 0 }");
-        return commCS.createCollection(clName, option);
+    private DBCollection createCL( Sequoiadb db ) {
+        CollectionSpace commCS = db.getCollectionSpace( csName );
+        BSONObject option = ( BSONObject ) JSON
+                .parse( "{ Group: '" + clGroupName + "', ReplSize: 0 }" );
+        return commCS.createCollection( clName, option );
     }
 
-    private void insertData(DBCollection cl) {
-        List<BSONObject> recs = new ArrayList<BSONObject>();
+    private void insertData( DBCollection cl ) {
+        List< BSONObject > recs = new ArrayList< BSONObject >();
         int recNum = 100000;
-        for (int i = 0; i < recNum; i++) {
-            BSONObject rec = (BSONObject) JSON.parse("{ a: 1 }");
-            recs.add(rec);
+        for ( int i = 0; i < recNum; i++ ) {
+            BSONObject rec = ( BSONObject ) JSON.parse( "{ a: 1 }" );
+            recs.add( rec );
         }
-        cl.insert(recs, DBCollection.FLG_INSERT_CONTONDUP);
+        cl.insert( recs, DBCollection.FLG_INSERT_CONTONDUP );
     }
 
-    private void checkLob(Sequoiadb db) {
-        DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
+    private void checkLob( Sequoiadb db ) {
+        DBCollection cl = db.getCollectionSpace( csName )
+                .getCollection( clName );
         int lobSize = 1 * 1024;
-        byte[] lobBytes = new byte[lobSize];
-        new Random().nextBytes(lobBytes);
+        byte[] lobBytes = new byte[ lobSize ];
+        new Random().nextBytes( lobBytes );
 
         DBLob wLob = cl.createLob();
-        wLob.write(lobBytes);
+        wLob.write( lobBytes );
         ObjectId oid = wLob.getID();
         wLob.close();
 
-        DBLob rLob = cl.openLob(oid);
-        byte[] rLobBytes = new byte[lobSize];
-        rLob.read(rLobBytes);
+        DBLob rLob = cl.openLob( oid );
+        byte[] rLobBytes = new byte[ lobSize ];
+        rLob.read( rLobBytes );
         rLob.close();
 
-        if (!Arrays.equals(rLobBytes, lobBytes)) {
-            Assert.fail("lob is different");
+        if ( !Arrays.equals( rLobBytes, lobBytes ) ) {
+            Assert.fail( "lob is different" );
         }
     }
 
-    private void removeNewNode(Sequoiadb db) {
+    private void removeNewNode( Sequoiadb db ) {
         try {
-            GroupWrapper clGroupWrapper = groupMgr.getGroupByName(clGroupName);
-            if (clGroupWrapper.getMaster().svcName().equals("" + randomPort)) { 
+            GroupWrapper clGroupWrapper = groupMgr
+                    .getGroupByName( clGroupName );
+            if ( clGroupWrapper.getMaster().svcName()
+                    .equals( "" + randomPort ) ) {
                 clGroupWrapper.changePrimary();
             }
-        } catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
         }
-        ReplicaGroup clGroup = db.getReplicaGroup(clGroupName);
-        clGroup.removeNode(randomHost, randomPort, (BSONObject) null);
+        ReplicaGroup clGroup = db.getReplicaGroup( clGroupName );
+        clGroup.removeNode( randomHost, randomPort, ( BSONObject ) null );
     }
 
     private class CRUDTask extends OperateTask {
@@ -201,19 +206,22 @@ public class CRUDAndAddNode3199 extends SdbTestBase {
         public void exec() throws Exception {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(coordUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+                db = new Sequoiadb( coordUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
                 int repeatTimes = 5000;
-                for (int i = 0; i < repeatTimes; i++) {
-                    BSONObject rec = (BSONObject) JSON.parse("{ a: " + i + " }");
-                    cl.insert(rec);
-                    BSONObject modifier = (BSONObject) JSON.parse("{ $set: { b: 1 } }");
-                    cl.update(rec, modifier, null);
-                    cl.delete(rec);
+                for ( int i = 0; i < repeatTimes; i++ ) {
+                    BSONObject rec = ( BSONObject ) JSON
+                            .parse( "{ a: " + i + " }" );
+                    cl.insert( rec );
+                    BSONObject modifier = ( BSONObject ) JSON
+                            .parse( "{ $set: { b: 1 } }" );
+                    cl.update( rec, modifier, null );
+                    cl.delete( rec );
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.close();
                 }
             }
@@ -224,10 +232,11 @@ public class CRUDAndAddNode3199 extends SdbTestBase {
         @Override
         public void init() {
             // 为了避免节点启动前就已经断网，在启动任务前启动节点
-            Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            ReplicaGroup randomGroup = db.getReplicaGroup(clGroupName);
+            Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            ReplicaGroup randomGroup = db.getReplicaGroup( clGroupName );
             String nodePath = SdbTestBase.reservedDir + "/data/" + randomPort;
-            Node newNode = randomGroup.createNode(randomHost, randomPort, nodePath, (BSONObject) null);
+            Node newNode = randomGroup.createNode( randomHost, randomPort,
+                    nodePath, ( BSONObject ) null );
             newNode.start();
             db.close();
         }

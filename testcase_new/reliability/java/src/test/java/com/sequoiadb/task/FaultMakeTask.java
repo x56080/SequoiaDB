@@ -14,7 +14,8 @@ import com.sequoiadb.fault.FaultWrapper;
 
 public class FaultMakeTask extends Task {
     @SuppressWarnings("unused")
-    private final static Logger log = Logger.getLogger(FaultMakeTask.class.getName());
+    private final static Logger log = Logger
+            .getLogger( FaultMakeTask.class.getName() );
 
     public static final String MAKE_RESULT = "MakeResult";
     public static final String RESTORE_RESULT = "RestoreResult";
@@ -24,9 +25,10 @@ public class FaultMakeTask extends Task {
     private int _randomStartMaxDuration = 0;
     private volatile boolean isMakeSuccess = false;
 
-    public FaultMakeTask(Fault instance, int maxDlay, int duration, int checkTimes) {
-        super(instance.getName());
-        faultInstance = new FaultWrapper(instance, checkTimes);
+    public FaultMakeTask( Fault instance, int maxDlay, int duration,
+            int checkTimes ) {
+        super( instance.getName() );
+        faultInstance = new FaultWrapper( instance, checkTimes );
         this.duration = duration;
         this._randomStartMaxDuration = maxDlay;
     }
@@ -35,27 +37,27 @@ public class FaultMakeTask extends Task {
     @Override
     public void run() {
         try {
-            if (_randomStartMaxDuration <= 0) {
-                Thread.currentThread().sleep(100);
+            if ( _randomStartMaxDuration <= 0 ) {
+                Thread.currentThread().sleep( 100 );
             } else {
-                Thread.currentThread().sleep(_randomStartMaxDuration * 1000);
+                Thread.currentThread().sleep( _randomStartMaxDuration * 1000 );
             }
-        } catch (Exception e) {
+        } catch ( Exception e ) {
         }
         try {
             faultInstance.make();
             isMakeSuccess = true;
-        } catch (ReliabilityException e) {
-            setException(e);
+        } catch ( ReliabilityException e ) {
+            setException( e );
         }
         try {
-            Thread.currentThread().sleep(duration * 1000);
-        } catch (Exception e) {
+            Thread.currentThread().sleep( duration * 1000 );
+        } catch ( Exception e ) {
         }
         try {
             faultInstance.restore();
-        } catch (ReliabilityException e) {
-            setException(e);
+        } catch ( ReliabilityException e ) {
+            setException( e );
         }
 
     }

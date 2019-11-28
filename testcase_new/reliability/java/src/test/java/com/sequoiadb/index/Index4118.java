@@ -24,44 +24,38 @@ public class Index4118 extends IndexTestBase {
     @Override
     public void setup() {
         super.setup();
-        BSONObject option = (BSONObject) JSON.parse("{ ShardingKey: { \"age\": 1 }," +
-                " ShardingType: \"hash\", " +
-                "Partition: 1024, ReplSize: 1," +
-                " Compressed: true ," +
-                "Group:\"group1\"}");
-        createIndexCl(option);
+        BSONObject option = ( BSONObject ) JSON.parse(
+                "{ ShardingKey: { \"age\": 1 }," + " ShardingType: \"hash\", "
+                        + "Partition: 1024, ReplSize: 1,"
+                        + " Compressed: true ," + "Group:\"group1\"}" );
+        createIndexCl( option );
         insertData();
         split50();
-        createIndexes(indexAlreadlyCreated);
+        createIndexes( indexAlreadlyCreated );
     }
 
     /**
-     * [显示测试用例规格]
-     * 测试用例
-     * seqDB-4118
-     * ::
-     * 版本:
-     * 1
-     * ::
+     * [显示测试用例规格] 测试用例 seqDB-4118 :: 版本: 1 ::
      * 在切分表上，创建/删除索引时，group1备节点异常重启_rlb.nodeAbnoRestart.basicOpe.006
      */
     @Test
     public void test() throws ReliabilityException {
-        NodeWrapper node = GroupMgr.getInstance().getGroupByName("group1").getSlave();
-        TaskMgr taskMgr = new TaskMgr(KillNode.getFaultMakeTask(node.hostName(), node.svcName(), 0));
+        NodeWrapper node = GroupMgr.getInstance().getGroupByName( "group1" )
+                .getSlave();
+        TaskMgr taskMgr = new TaskMgr( KillNode
+                .getFaultMakeTask( node.hostName(), node.svcName(), 0 ) );
         IndexTask createTask = getCreateTask();
         IndexTask deleteTask = getDeleteTask();
 
-        taskMgr.addTask(createTask)
-                .addTask(deleteTask);
+        taskMgr.addTask( createTask ).addTask( deleteTask );
 
         taskMgr.execute();
         MyUtil.checkBusiness();
 
-        Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
+        Assert.assertTrue( taskMgr.isAllSuccess(), taskMgr.getErrorMsg() );
 
-        Assert.assertTrue(isIndexesAllCreatedInNodes("group1", "group2"));
-        Assert.assertTrue(isIndexesAllDeletedInNodes("group1", "group2"));
+        Assert.assertTrue( isIndexesAllCreatedInNodes( "group1", "group2" ) );
+        Assert.assertTrue( isIndexesAllDeletedInNodes( "group1", "group2" ) );
 
     }
 }

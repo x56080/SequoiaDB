@@ -26,25 +26,17 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
- * @FileName seqDB-2946: 文档写入过程中备节点断网，该备节点为同步的源节点
- *           seqDB-2955: 文档写入过程中备节点断网，该备节点为同步的目的节点
+ * @FileName seqDB-2946: 文档写入过程中备节点断网，该备节点为同步的源节点 seqDB-2955:
+ *           文档写入过程中备节点断网，该备节点为同步的目的节点
  * @Author linsuqiang
  * @Date 2017-03-29
  * @Version 1.00
  */
 
 /*
- * 1.创建CS，CL 
- * 2.循环执行增删改操作 
- * 3.过程中构造断网故障(例如：ifdown) 
- * 4.选主成功后，继续写入部分LOB 
- * 5.操作过程中故障恢复 (例如：ifup) 
- * 6.检查操作结果
- *   
- * 注：和单独测插入或删除不同，这个用例就是为了覆盖综合的场景
- *    所以特地涉足增删改查和lob操作，没有固定的预期结果，
- *    只要节点间数据一致即可。
- *    ReplSize = 2,随机断一个备节点时，该节点有可能是同步的源节点，也有可能是同步的目的节点。
+ * 1.创建CS，CL 2.循环执行增删改操作 3.过程中构造断网故障(例如：ifdown) 4.选主成功后，继续写入部分LOB 5.操作过程中故障恢复
+ * (例如：ifup) 6.检查操作结果 注：和单独测插入或删除不同，这个用例就是为了覆盖综合的场景 所以特地涉足增删改查和lob操作，没有固定的预期结果，
+ * 只要节点间数据一致即可。 ReplSize = 2,随机断一个备节点时，该节点有可能是同步的源节点，也有可能是同步的目的节点。
  */
 
 public class CRUD2946 extends SdbTestBase {
@@ -59,30 +51,36 @@ public class CRUD2946 extends SdbTestBase {
     public void setUp() {
         Sequoiadb db = null;
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
 
             groupMgr = GroupMgr.getInstance();
-            if (!groupMgr.checkBusiness()) {
-                throw new SkipException("checkBusiness failed");
+            if ( !groupMgr.checkBusiness() ) {
+                throw new SkipException( "checkBusiness failed" );
             }
 
-            clGroupName = groupMgr.getAllDataGroupName().get(0);
-            GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
+            clGroupName = groupMgr.getAllDataGroupName().get( 0 );
+            GroupWrapper cataGroup = groupMgr
+                    .getGroupByName( "SYSCatalogGroup" );
             String cataPriHost = cataGroup.getMaster().hostName();
-            dataGroup = groupMgr.getGroupByName(clGroupName);
+            dataGroup = groupMgr.getGroupByName( clGroupName );
             dataSlvHost = dataGroup.getSlave().hostName();
-            if (cataPriHost.equals(dataSlvHost) && !cataGroup.changePrimary()) {
-                throw new SkipException(cataGroup.getGroupName() + " reelect fail");
+            if ( cataPriHost.equals( dataSlvHost )
+                    && !cataGroup.changePrimary() ) {
+                throw new SkipException(
+                        cataGroup.getGroupName() + " reelect fail" );
             }
 
-            db = new Sequoiadb(coordUrl, "", "");
-            createCL(db);
-        } catch (ReliabilityException e) {
-            Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
-                    + Utils.getKeyStack(e, this));
+            db = new Sequoiadb( coordUrl, "", "" );
+            createCL( db );
+        } catch ( ReliabilityException e ) {
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -92,29 +90,31 @@ public class CRUD2946 extends SdbTestBase {
     public void test() {
         Sequoiadb db = null;
         try {
-            FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(dataSlvHost, 1, 10);
-            TaskMgr mgr = new TaskMgr(faultTask);
-            String safeUrl = CommLib.getSafeCoordUrl(dataSlvHost);
-            CRUDTask cTask = new CRUDTask(safeUrl);
-            mgr.addTask(cTask);
+            FaultMakeTask faultTask = BrokenNetwork
+                    .getFaultMakeTask( dataSlvHost, 1, 10 );
+            TaskMgr mgr = new TaskMgr( faultTask );
+            String safeUrl = CommLib.getSafeCoordUrl( dataSlvHost );
+            CRUDTask cTask = new CRUDTask( safeUrl );
+            mgr.addTask( cTask );
             mgr.execute();
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
-            if (!groupMgr.checkBusinessWithLSN(600)) {
-                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            if ( !groupMgr.checkBusinessWithLSN( 600 ) ) {
+                Assert.fail( "checkBusinessWithLSN() occurs timeout" );
             }
 
-            db = new Sequoiadb(coordUrl, "", "");
-            Utils.testLob(db, clName);
-            if (!dataGroup.checkInspect(1)) {
-                Assert.fail("data is different on " + dataGroup.getGroupName());
+            db = new Sequoiadb( coordUrl, "", "" );
+            Utils.testLob( db, clName );
+            if ( !dataGroup.checkInspect( 1 ) ) {
+                Assert.fail(
+                        "data is different on " + dataGroup.getGroupName() );
             }
             runSuccess = true;
-        } catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -122,35 +122,39 @@ public class CRUD2946 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (!runSuccess) {
-            throw new SkipException("to save environment");
+        if ( !runSuccess ) {
+            throw new SkipException( "to save environment" );
         }
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            CollectionSpace commCS = db.getCollectionSpace(csName);
-            commCS.dropCollection(clName);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            CollectionSpace commCS = db.getCollectionSpace( csName );
+            commCS.dropCollection( clName );
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    e.getMessage() + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
         }
     }
 
-    private DBCollection createCL(Sequoiadb db) {
-        CollectionSpace commCS = db.getCollectionSpace(csName);
-        BSONObject option = (BSONObject) JSON.parse("{ Group: '" + clGroupName + "', ReplSize: 1 }");
-        return commCS.createCollection(clName, option);
+    private DBCollection createCL( Sequoiadb db ) {
+        CollectionSpace commCS = db.getCollectionSpace( csName );
+        BSONObject option = ( BSONObject ) JSON
+                .parse( "{ Group: '" + clGroupName + "', ReplSize: 1 }" );
+        return commCS.createCollection( clName, option );
     }
 
     public class CRUDTask extends OperateTask {
         private String safeUrl = null;
 
-        public CRUDTask(String safeUrl) {
+        public CRUDTask( String safeUrl ) {
             this.safeUrl = safeUrl;
         }
 
@@ -158,20 +162,23 @@ public class CRUD2946 extends SdbTestBase {
         public void exec() throws Exception {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(safeUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+                db = new Sequoiadb( safeUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
                 int repeatTimes = 10000;
-                for (int i = 0; i < repeatTimes; i++) {
-                    BSONObject rec = (BSONObject) JSON.parse("{ a: " + i + " }");
-                    cl.insert(rec);
-                    BSONObject modifier = (BSONObject) JSON.parse("{ $set: { b: 1 } }");
-                    cl.update(rec, modifier, null);
-                    cl.delete(rec);
+                for ( int i = 0; i < repeatTimes; i++ ) {
+                    BSONObject rec = ( BSONObject ) JSON
+                            .parse( "{ a: " + i + " }" );
+                    cl.insert( rec );
+                    BSONObject modifier = ( BSONObject ) JSON
+                            .parse( "{ $set: { b: 1 } }" );
+                    cl.update( rec, modifier, null );
+                    cl.delete( rec );
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
                 throw e;
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.close();
                 }
             }

@@ -33,50 +33,52 @@ public class Transaction6017_5992 extends SdbTestBase {
 
     @BeforeClass
     private void setup() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(SdbTestBase.csName).createCollection(clName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( SdbTestBase.csName )
+                .createCollection( clName );
     }
 
     @Test
     public void test() throws Exception {
         ThreadExecutor es = new ThreadExecutor();
-        for (int i = 0; i < threadNum; i++) {
-            es.addWorker(new Trans());
+        for ( int i = 0; i < threadNum; i++ ) {
+            es.addWorker( new Trans() );
         }
         es.run();
-        checkResult(threadNum * insertNum);
+        checkResult( threadNum * insertNum );
     }
 
     @AfterClass
     private void teardown() {
         try {
-            sdb.getCollectionSpace(csName).dropCollection(clName);
+            sdb.getCollectionSpace( csName ).dropCollection( clName );
         } finally {
             sdb.close();
         }
     }
 
-    private void checkResult(int expNum) {
-        int actCount = (int) cl.getCount();
+    private void checkResult( int expNum ) {
+        int actCount = ( int ) cl.getCount();
         int count = 0;
         BSONObject orderBy = new BasicBSONObject();
-        orderBy.put("a", 1);
-        DBCursor cur = cl.query(null, null, orderBy, null);
-        while (cur.hasNext()) {
-            for (int j = 0; j < threadNum; j++) {
+        orderBy.put( "a", 1 );
+        DBCursor cur = cl.query( null, null, orderBy, null );
+        while ( cur.hasNext() ) {
+            for ( int j = 0; j < threadNum; j++ ) {
                 BSONObject obj = cur.getNext();
-                Assert.assertEquals((int) obj.get("a"), count, "insert data is wrong");
+                Assert.assertEquals( ( int ) obj.get( "a" ), count,
+                        "insert data is wrong" );
             }
             count++;
         }
-        Assert.assertEquals(actCount, expNum);
+        Assert.assertEquals( actCount, expNum );
     }
 
     class Trans {
         private Sequoiadb db = null;
 
         private Trans() {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         }
 
         @ExecuteOrder(step = 1, desc = "开启事务")
@@ -86,8 +88,9 @@ public class Transaction6017_5992 extends SdbTestBase {
 
         @ExecuteOrder(step = 2, desc = "插入数据")
         private void insertData() {
-            DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-            insertData(cl);
+            DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
+            insertData( cl );
         }
 
         @ExecuteOrder(step = 3, desc = "提交事务")
@@ -99,14 +102,14 @@ public class Transaction6017_5992 extends SdbTestBase {
             }
         }
 
-        private void insertData(DBCollection cl) {
-            List<BSONObject> insertor = new ArrayList<>();
-            for (int i = 0; i < insertNum; i++) {
+        private void insertData( DBCollection cl ) {
+            List< BSONObject > insertor = new ArrayList<>();
+            for ( int i = 0; i < insertNum; i++ ) {
                 BSONObject rec = new BasicBSONObject();
-                rec.put("a", i);
-                insertor.add(rec);
+                rec.put( "a", i );
+                insertor.add( rec );
             }
-            cl.insert(insertor);
+            cl.insert( insertor );
         }
     }
 }

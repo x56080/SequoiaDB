@@ -40,10 +40,10 @@ public class TransUtil {
      * 
      * @param task
      */
-    public static void setTimeTask(TaskMgr taskMgr, FaultMakeTask task) {
+    public static void setTimeTask( TaskMgr taskMgr, FaultMakeTask task ) {
         runFlag = true;
         currentTask = task;
-        taskMgr.addTask(new TransUtil().new ForceOtherThs());
+        taskMgr.addTask( new TransUtil().new ForceOtherThs() );
     }
 
     /**
@@ -58,15 +58,15 @@ public class TransUtil {
         @Override
         public void exec() throws Exception {
             int count = 0;
-            while (!currentTask.isMakeSuccess()) {
-                Thread.sleep(100);
-                if (count++ == 3000) {
+            while ( !currentTask.isMakeSuccess() ) {
+                Thread.sleep( 100 );
+                if ( count++ == 3000 ) {
                     break;
                 }
             }
-            if (currentTask.isMakeSuccess()) {
+            if ( currentTask.isMakeSuccess() ) {
                 Timer timer = new Timer();
-                timer.schedule(new TaskEndTime(), 10 * 1000);
+                timer.schedule( new TaskEndTime(), 10 * 1000 );
             }
         }
 
@@ -90,12 +90,13 @@ public class TransUtil {
      * 
      * @param cl
      */
-    public static void insertTransData(DBCollection cl) {
-        List<BSONObject> reocrds = new ArrayList<>();
-        for (int i = 0; i < 10000; i++) {
-            reocrds.add((BSONObject) JSON.parse("{'balance':10000, 'account':" + i + "}"));
+    public static void insertTransData( DBCollection cl ) {
+        List< BSONObject > reocrds = new ArrayList<>();
+        for ( int i = 0; i < 10000; i++ ) {
+            reocrds.add( ( BSONObject ) JSON
+                    .parse( "{'balance':10000, 'account':" + i + "}" ) );
         }
-        cl.insert(reocrds);
+        cl.insert( reocrds );
     }
 
     /**
@@ -106,15 +107,17 @@ public class TransUtil {
      * @param end
      * @return
      */
-    public static List<BSONObject> insertData(DBCollection cl, int start, int end) {
-        List<BSONObject> records = new ArrayList<>();
-        for (int i = start; i < end; i++) {
-            BSONObject obj = (BSONObject) JSON.parse("{_id:" + i + ", a:" + i + ", b:" + i + "}");
-            records.add(obj);
+    public static List< BSONObject > insertData( DBCollection cl, int start,
+            int end ) {
+        List< BSONObject > records = new ArrayList<>();
+        for ( int i = start; i < end; i++ ) {
+            BSONObject obj = ( BSONObject ) JSON
+                    .parse( "{_id:" + i + ", a:" + i + ", b:" + i + "}" );
+            records.add( obj );
         }
-        List<BSONObject> expList = new ArrayList<>(records);
-        Collections.shuffle(records);
-        cl.insert(records);
+        List< BSONObject > expList = new ArrayList<>( records );
+        Collections.shuffle( records );
+        cl.insert( records );
         return expList;
     }
 
@@ -126,15 +129,17 @@ public class TransUtil {
      * @return
      * @throws ReliabilityException
      */
-    public static NodeWrapper getCoordNode(Sequoiadb sdb) throws ReliabilityException {
+    public static NodeWrapper getCoordNode( Sequoiadb sdb )
+            throws ReliabilityException {
         GroupMgr groupMgr = GroupMgr.getInstance();
-        groupMgr.setSdb(new Sequoiadb(SdbTestBase.coordUrl, "", ""));
-        GroupWrapper group = groupMgr.getGroupByName("SYSCoord");
-        List<NodeWrapper> nodes = group.getNodes();
+        groupMgr.setSdb( new Sequoiadb( SdbTestBase.coordUrl, "", "" ) );
+        GroupWrapper group = groupMgr.getGroupByName( "SYSCoord" );
+        List< NodeWrapper > nodes = group.getNodes();
         String hostName = sdb.getHost();
-        String svcName = String.valueOf(sdb.getPort());
-        for (NodeWrapper node : nodes) {
-            if (hostName.equals(node.hostName()) && svcName.equals(node.svcName())) {
+        String svcName = String.valueOf( sdb.getPort() );
+        for ( NodeWrapper node : nodes ) {
+            if ( hostName.equals( node.hostName() )
+                    && svcName.equals( node.svcName() ) ) {
                 return node;
             }
         }
@@ -147,13 +152,13 @@ public class TransUtil {
      * @param sdb
      * @return
      */
-    public static String getCoordUrl(Sequoiadb sdb) {
+    public static String getCoordUrl( Sequoiadb sdb ) {
         String coordUrl = null;
-        List<String> nodeAddress = CommLib.getNodeAddress(sdb, "SYSCoord");
-        for (String nodeAddr : nodeAddress) {
-            String hostName = nodeAddr.split(":")[0];
-            String svcName = nodeAddr.split(":")[1];
-            if (!hostName.equals(sdb.getHost())) {
+        List< String > nodeAddress = CommLib.getNodeAddress( sdb, "SYSCoord" );
+        for ( String nodeAddr : nodeAddress ) {
+            String hostName = nodeAddr.split( ":" )[ 0 ];
+            String svcName = nodeAddr.split( ":" )[ 1 ];
+            if ( !hostName.equals( sdb.getHost() ) ) {
                 coordUrl = hostName + ":" + svcName;
                 break;
             }
@@ -171,19 +176,23 @@ public class TransUtil {
      * @param subCLName1
      * @param subCLName2
      */
-    public static void createCLs(Sequoiadb sdb, String csName, String hashCLName, String mainCLName, String subCLName1,
-            String subCLName2) {
-        sdb.getCollectionSpace(csName).createCollection(hashCLName, (BSONObject) JSON
-                .parse("{'ShardingKey':{'account':1}, 'ShardingType':'hash', 'AutoSplit':true, 'ReplSize':1}"));
-        DBCollection mainCL = sdb.getCollectionSpace(csName).createCollection(mainCLName, (BSONObject) JSON
-                .parse("{'ShardingKey':{'account':1}, 'ShardingType':'range', 'IsMainCL':true, 'ReplSize':1}"));
-        sdb.getCollectionSpace(csName).createCollection(subCLName1);
-        sdb.getCollectionSpace(csName).createCollection(subCLName2, (BSONObject) JSON
-                .parse("{'ShardingKey':{'account':1}, 'ShardingType':'hash', 'AutoSplit':true, 'ReplSize':1}"));
-        mainCL.attachCollection(csName + "." + subCLName1,
-                (BSONObject) JSON.parse("{LowBound:{'account':{'$minKey':1}}, UpBound:{'account':3000}}"));
-        mainCL.attachCollection(csName + "." + subCLName2,
-                (BSONObject) JSON.parse("{LowBound:{'account':3000}, UpBound:{'account':{'$maxKey':1}}}"));
+    public static void createCLs( Sequoiadb sdb, String csName,
+            String hashCLName, String mainCLName, String subCLName1,
+            String subCLName2 ) {
+        sdb.getCollectionSpace( csName ).createCollection( hashCLName,
+                ( BSONObject ) JSON.parse(
+                        "{'ShardingKey':{'account':1}, 'ShardingType':'hash', 'AutoSplit':true, 'ReplSize':1}" ) );
+        DBCollection mainCL = sdb.getCollectionSpace( csName )
+                .createCollection( mainCLName, ( BSONObject ) JSON.parse(
+                        "{'ShardingKey':{'account':1}, 'ShardingType':'range', 'IsMainCL':true, 'ReplSize':1}" ) );
+        sdb.getCollectionSpace( csName ).createCollection( subCLName1 );
+        sdb.getCollectionSpace( csName ).createCollection( subCLName2,
+                ( BSONObject ) JSON.parse(
+                        "{'ShardingKey':{'account':1}, 'ShardingType':'hash', 'AutoSplit':true, 'ReplSize':1}" ) );
+        mainCL.attachCollection( csName + "." + subCLName1, ( BSONObject ) JSON
+                .parse( "{LowBound:{'account':{'$minKey':1}}, UpBound:{'account':3000}}" ) );
+        mainCL.attachCollection( csName + "." + subCLName2, ( BSONObject ) JSON
+                .parse( "{LowBound:{'account':3000}, UpBound:{'account':{'$maxKey':1}}}" ) );
     }
 
     /**
@@ -196,13 +205,17 @@ public class TransUtil {
      * @param subCLName1
      * @param subCLName2
      */
-    public static void createCLsAndInsertData(Sequoiadb sdb, String csName, String hashCLName, String mainCLName,
-            String subCLName1, String subCLName2) {
-        createCLs(sdb, csName, hashCLName, mainCLName, subCLName1, subCLName2);
-        DBCollection hashCL = sdb.getCollectionSpace(csName).getCollection(hashCLName);
-        DBCollection mainCL = sdb.getCollectionSpace(csName).getCollection(mainCLName);
-        insertTransData(hashCL);
-        insertTransData(mainCL);
+    public static void createCLsAndInsertData( Sequoiadb sdb, String csName,
+            String hashCLName, String mainCLName, String subCLName1,
+            String subCLName2 ) {
+        createCLs( sdb, csName, hashCLName, mainCLName, subCLName1,
+                subCLName2 );
+        DBCollection hashCL = sdb.getCollectionSpace( csName )
+                .getCollection( hashCLName );
+        DBCollection mainCL = sdb.getCollectionSpace( csName )
+                .getCollection( mainCLName );
+        insertTransData( hashCL );
+        insertTransData( mainCL );
     }
 
     /**
@@ -211,11 +224,11 @@ public class TransUtil {
      * @param cursor
      * @return
      */
-    public static ArrayList<BSONObject> getReadActList(DBCursor cursor) {
-        ArrayList<BSONObject> actRList = new ArrayList<BSONObject>();
-        while (cursor.hasNext()) {
+    public static ArrayList< BSONObject > getReadActList( DBCursor cursor ) {
+        ArrayList< BSONObject > actRList = new ArrayList< BSONObject >();
+        while ( cursor.hasNext() ) {
             BSONObject record = cursor.getNext();
-            actRList.add(record);
+            actRList.add( record );
         }
         cursor.close();
         return actRList;
@@ -226,11 +239,13 @@ public class TransUtil {
      * 
      * @param sdb
      * @param csName
-     * @param clNames 集合名，可以填写多个
+     * @param clNames
+     *            集合名，可以填写多个
      * @throws InterruptedException
      */
-    public static void cleanEnv(Sequoiadb sdb, String csName, String... clNames) throws InterruptedException {
-        cleanEnv(sdb, csName, false, clNames);
+    public static void cleanEnv( Sequoiadb sdb, String csName,
+            String... clNames ) throws InterruptedException {
+        cleanEnv( sdb, csName, false, clNames );
     }
 
     /**
@@ -238,45 +253,47 @@ public class TransUtil {
      * 
      * @param sdb
      * @param csName
-     * @param dropCS  为 true 时直接删除 cs
-     * @param clNames 集合名，可以填写多个
+     * @param dropCS
+     *            为 true 时直接删除 cs
+     * @param clNames
+     *            集合名，可以填写多个
      * @throws InterruptedException
      */
-    public static void cleanEnv(Sequoiadb sdb, String csName, boolean dropCS, String... clNames)
-            throws InterruptedException {
+    public static void cleanEnv( Sequoiadb sdb, String csName, boolean dropCS,
+            String... clNames ) throws InterruptedException {
         try {
-            if (dropCS) {
+            if ( dropCS ) {
                 int count = 0;
-                while (count++ < 1000) {
+                while ( count++ < 1000 ) {
                     try {
-                        sdb.dropCollectionSpace(csName);
+                        sdb.dropCollectionSpace( csName );
                         break;
-                    } catch (BaseException e) {
-                        if (-190 != e.getErrorCode()) {
+                    } catch ( BaseException e ) {
+                        if ( -190 != e.getErrorCode() ) {
                             throw e;
                         }
                     }
-                    Thread.sleep(200);
+                    Thread.sleep( 200 );
                 }
             } else {
-                CollectionSpace cs = sdb.getCollectionSpace(csName);
-                for (String clName : clNames) {
+                CollectionSpace cs = sdb.getCollectionSpace( csName );
+                for ( String clName : clNames ) {
                     int count = 0;
-                    while (count++ < 1000) {
+                    while ( count++ < 1000 ) {
                         try {
-                            cs.dropCollection(clName);
+                            cs.dropCollection( clName );
                             break;
-                        } catch (BaseException e) {
-                            if (-190 != e.getErrorCode()) {
+                        } catch ( BaseException e ) {
+                            if ( -190 != e.getErrorCode() ) {
                                 throw e;
                             }
                         }
-                        Thread.sleep(200);
+                        Thread.sleep( 200 );
                     }
                 }
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.closeAllCursors();
                 sdb.close();
             }

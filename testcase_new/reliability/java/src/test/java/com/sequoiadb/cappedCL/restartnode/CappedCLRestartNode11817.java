@@ -29,7 +29,7 @@ import com.sequoiadb.task.TaskMgr;
  * @Author liuxiaoxuan
  * @Date 2017-10-16
  */
-public class CappedCLRestartNode11817 extends SdbTestBase{
+public class CappedCLRestartNode11817 extends SdbTestBase {
 
     private GroupMgr groupMgr = null;
     private Sequoiadb sdb = null;
@@ -38,85 +38,91 @@ public class CappedCLRestartNode11817 extends SdbTestBase{
     private String dataGroupName = null;
     private int insertNums = 10000;
     private final int strLength = 968;
-	
+
     @BeforeClass
     public void setup() throws ReliabilityException {
         groupMgr = GroupMgr.getInstance();
-        if(!groupMgr.checkBusiness(120)) {
-            throw new SkipException("checkBusiness failed");
+        if ( !groupMgr.checkBusiness( 120 ) ) {
+            throw new SkipException( "checkBusiness failed" );
         }
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        dataGroupName = groupMgr.getAllDataGroupName().get(0);
-        System.out.println("group: " + dataGroupName);
-        cl = sdb.getCollectionSpace(cappedCSName)
-                .createCollection(clName, (BSONObject) JSON.parse(
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        dataGroupName = groupMgr.getAllDataGroupName().get( 0 );
+        System.out.println( "group: " + dataGroupName );
+        cl = sdb.getCollectionSpace( cappedCSName ).createCollection( clName,
+                ( BSONObject ) JSON.parse(
                         "{Capped:true,Size:1024,AutoIndexId:false,Group:'"
-                                + dataGroupName + "'}"));  
-        CappedCLUtils.insertRecords(cl, insertNums, strLength);
+                                + dataGroupName + "'}" ) );
+        CappedCLUtils.insertRecords( cl, insertNums, strLength );
     }
-	
+
     @Test
     public void curdAndRestartNodeTest() throws ReliabilityException {
-        GroupWrapper dataGroup = groupMgr.getGroupByName(dataGroupName);
+        GroupWrapper dataGroup = groupMgr.getGroupByName( dataGroupName );
         NodeWrapper slaveNode = dataGroup.getSlave();
-        FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask(slaveNode, 0, 10);
-        TaskMgr taskMgr = new TaskMgr(faultMakeTask);
+        FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask( slaveNode,
+                0, 10 );
+        TaskMgr taskMgr = new TaskMgr( faultMakeTask );
         for ( int i = 0; i < 5; i++ ) {
-             taskMgr.addTask(new InsertTask());
-             taskMgr.addTask(new PopTask());
-        }   
+            taskMgr.addTask( new InsertTask() );
+            taskMgr.addTask( new PopTask() );
+        }
         taskMgr.execute();
-			
-        Assert.assertEquals(taskMgr.isAllSuccess(), true, taskMgr.getErrorMsg());
-        Assert.assertEquals(groupMgr.checkBusinessWithLSN(600), true, "check LSN consistency fail");
-	         
+
+        Assert.assertEquals( taskMgr.isAllSuccess(), true,
+                taskMgr.getErrorMsg() );
+        Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true,
+                "check LSN consistency fail" );
+
         // 环境恢复后，insert/pop并检查主备一致
-        CappedCLUtils.insertRecords(cl, 10000, 8);  
-        CappedCLUtils.pop(cl, CappedCLUtils.getLogicalID(cl,100), 1);        
-        Assert.assertEquals(dataGroup.checkInspect(120), true, "data is different on " + dataGroup.getGroupName()); 
+        CappedCLUtils.insertRecords( cl, 10000, 8 );
+        CappedCLUtils.pop( cl, CappedCLUtils.getLogicalID( cl, 100 ), 1 );
+        Assert.assertEquals( dataGroup.checkInspect( 120 ), true,
+                "data is different on " + dataGroup.getGroupName() );
     }
-	
+
     @AfterClass
     public void tearDown() {
         try {
-            sdb.getCollectionSpace(cappedCSName).dropCollection(clName);
+            sdb.getCollectionSpace( cappedCSName ).dropCollection( clName );
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
     }
-	
-    private class InsertTask extends OperateTask{
+
+    private class InsertTask extends OperateTask {
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl,"","")) {
-                CollectionSpace cs = db.getCollectionSpace(cappedCSName);
-                DBCollection cl = cs.getCollection(clName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                CollectionSpace cs = db.getCollectionSpace( cappedCSName );
+                DBCollection cl = cs.getCollection( clName );
                 insertNums = 32768;
-                CappedCLUtils.insertRecords(cl, insertNums, strLength);
-            } 
+                CappedCLUtils.insertRecords( cl, insertNums, strLength );
+            }
         }
     }
-	
-    private class PopTask extends OperateTask{
+
+    private class PopTask extends OperateTask {
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl,"","")) {
-                CollectionSpace cs = db.getCollectionSpace(cappedCSName);
-                DBCollection cl = cs.getCollection(clName);
-                int skip = new Random().nextInt(9000);
-                long logicalID = CappedCLUtils.getLogicalID(cl, skip);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                CollectionSpace cs = db.getCollectionSpace( cappedCSName );
+                DBCollection cl = cs.getCollection( clName );
+                int skip = new Random().nextInt( 9000 );
+                long logicalID = CappedCLUtils.getLogicalID( cl, skip );
                 int direction = -1;
-                if (skip % 2 != 0) {
+                if ( skip % 2 != 0 ) {
                     direction = 1;
                 }
-                CappedCLUtils.pop(cl, logicalID, direction);
-            } catch (BaseException e) {
+                CappedCLUtils.pop( cl, logicalID, direction );
+            } catch ( BaseException e ) {
                 // SEQUOIADBMAINSTREAM-4499: 暂时避开-10
-                if (e.getErrorCode() != -6 && e.getErrorCode() != -10) {
+                if ( e.getErrorCode() != -6 && e.getErrorCode() != -10 ) {
                     throw e;
-                }                    
+                }
             }
         }
     }

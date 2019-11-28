@@ -31,106 +31,109 @@ import java.util.List;
  */
 
 public class GetRegionListWithReStartS3N17347 extends S3TestBase {
-	private String regionName = "Beijing17347";
-	private String bucketName = "bucket17347";
-	private String metaCSName = "metaCS17347";
-	private String dataCSName = "dataCS17347";
-	private String[] metaClNames = {"metaCL17347", "metaHistoryCL17347"};
-	private String[] dataClName = {"dataCL17347"};
-	private List<String> regionNames = new ArrayList<>();
-	private int regionNum = 10000;
-	private int bucketNum = 80;
-	private AmazonS3 s3Client = null;
-	private boolean runSuccess = false;
+    private String regionName = "Beijing17347";
+    private String bucketName = "bucket17347";
+    private String metaCSName = "metaCS17347";
+    private String dataCSName = "dataCS17347";
+    private String[] metaClNames = { "metaCL17347", "metaHistoryCL17347" };
+    private String[] dataClName = { "dataCL17347" };
+    private List< String > regionNames = new ArrayList<>();
+    private int regionNum = 10000;
+    private int bucketNum = 80;
+    private AmazonS3 s3Client = null;
+    private boolean runSuccess = false;
 
-	@BeforeClass
-	private void setUp() throws Exception {
-		s3Client = CommLibS3.buildS3Client();
-		RegionUtils.createCSAndCL(metaCSName, metaClNames);
-		RegionUtils.createCSAndCL(dataCSName, dataClName);
-		clearBuckets();
-		// create regions
-		for (int i = 0; i < regionNum; i++) {
-			String currRegionName = regionName + "-" + i;
-			regionNames.add(currRegionName.toLowerCase());
-			RegionUtils.clearRegion(currRegionName);
-			
-			Region region = new Region();
-			region.withName(regionNames.get(i)).withMetaLocation(metaCSName + "." + metaClNames[0])
-					.withMetaHisLocation(metaCSName + "." + metaClNames[1])
-					.withDataLocation(dataCSName + "." + dataClName[0]);
-			RegionUtils.putRegion(region);
-			if (i < bucketNum) {
-				s3Client.createBucket(new CreateBucketRequest(bucketName + i, regionNames.get(i).toLowerCase()));
-			}
-		}
-	}
+    @BeforeClass
+    private void setUp() throws Exception {
+        s3Client = CommLibS3.buildS3Client();
+        RegionUtils.createCSAndCL( metaCSName, metaClNames );
+        RegionUtils.createCSAndCL( dataCSName, dataClName );
+        clearBuckets();
+        // create regions
+        for ( int i = 0; i < regionNum; i++ ) {
+            String currRegionName = regionName + "-" + i;
+            regionNames.add( currRegionName.toLowerCase() );
+            RegionUtils.clearRegion( currRegionName );
 
-	@Test
-	public void testCreateRegion() throws Exception {
-		FaultMakeTask faultMakeTask = S3NodeRestart.getFaultMakeTask(new S3NodeWrapper(), 1, 10);
-		TaskMgr mgr = new TaskMgr(faultMakeTask);
-		mgr.addTask(new GetRegionList());
-		mgr.execute();
-		Assert.assertTrue(mgr.isAllSuccess(),mgr.getErrorMsg());
-		// list again
-		List<String> actRegions = RegionUtils.listRegions();
-		checkListResult(actRegions);
-		runSuccess = true;
-	}
+            Region region = new Region();
+            region.withName( regionNames.get( i ) )
+                    .withMetaLocation( metaCSName + "." + metaClNames[ 0 ] )
+                    .withMetaHisLocation( metaCSName + "." + metaClNames[ 1 ] )
+                    .withDataLocation( dataCSName + "." + dataClName[ 0 ] );
+            RegionUtils.putRegion( region );
+            if ( i < bucketNum ) {
+                s3Client.createBucket( new CreateBucketRequest( bucketName + i,
+                        regionNames.get( i ).toLowerCase() ) );
+            }
+        }
+    }
 
-	@AfterClass
-	private void tearDown() throws Exception {
-		try {
-			if (runSuccess) {
-				clearBuckets();
-				RegionUtils.dropCS(metaCSName);
-				RegionUtils.dropCS(dataCSName);
-				deleteRegions(regionNames);
-			}
-		} finally {
-			if (s3Client != null) {
-				s3Client.shutdown();
-			}
-		}
-	}
+    @Test
+    public void testCreateRegion() throws Exception {
+        FaultMakeTask faultMakeTask = S3NodeRestart
+                .getFaultMakeTask( new S3NodeWrapper(), 1, 10 );
+        TaskMgr mgr = new TaskMgr( faultMakeTask );
+        mgr.addTask( new GetRegionList() );
+        mgr.execute();
+        Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
+        // list again
+        List< String > actRegions = RegionUtils.listRegions();
+        checkListResult( actRegions );
+        runSuccess = true;
+    }
 
+    @AfterClass
+    private void tearDown() throws Exception {
+        try {
+            if ( runSuccess ) {
+                clearBuckets();
+                RegionUtils.dropCS( metaCSName );
+                RegionUtils.dropCS( dataCSName );
+                deleteRegions( regionNames );
+            }
+        } finally {
+            if ( s3Client != null ) {
+                s3Client.shutdown();
+            }
+        }
+    }
 
-	private class GetRegionList extends OperateTask {
-		@Override
-		public void exec() throws Exception {
-			try {
-				List<String> actRegions = RegionUtils.listRegions();
-				checkListResult(actRegions);
-			} catch (AmazonS3Exception e) {
-				if (e.getStatusCode() != 500) {
-					throw e;
-				}
-			} catch (SdkClientException e) {
-				if (!e.getMessage().contains("Unable to execute HTTP request")) {
-					throw e;
-				}
-			}
-		}
-	}
+    private class GetRegionList extends OperateTask {
+        @Override
+        public void exec() throws Exception {
+            try {
+                List< String > actRegions = RegionUtils.listRegions();
+                checkListResult( actRegions );
+            } catch ( AmazonS3Exception e ) {
+                if ( e.getStatusCode() != 500 ) {
+                    throw e;
+                }
+            } catch ( SdkClientException e ) {
+                if ( !e.getMessage()
+                        .contains( "Unable to execute HTTP request" ) ) {
+                    throw e;
+                }
+            }
+        }
+    }
 
-	private void checkListResult(List<String> actRegions) {
-		Collections.sort(regionNames);
-		Assert.assertEquals(actRegions.size(), regionNames.size());
-		Assert.assertEquals(actRegions, regionNames);
-	}
+    private void checkListResult( List< String > actRegions ) {
+        Collections.sort( regionNames );
+        Assert.assertEquals( actRegions.size(), regionNames.size() );
+        Assert.assertEquals( actRegions, regionNames );
+    }
 
-	private void clearBuckets() {
-		for (int i = 0; i < bucketNum; i++) {
-			CommLibS3.clearBucket(s3Client, bucketName + i);
-		}
-	}
+    private void clearBuckets() {
+        for ( int i = 0; i < bucketNum; i++ ) {
+            CommLibS3.clearBucket( s3Client, bucketName + i );
+        }
+    }
 
-	private void deleteRegions(List<String> regions) throws Exception {
-		for (int i = 0; i < regions.size(); i++) {
-			if (RegionUtils.headRegion(regions.get(i))) {
-				RegionUtils.deleteRegion(regions.get(i));
-			}
-		}
-	}
+    private void deleteRegions( List< String > regions ) throws Exception {
+        for ( int i = 0; i < regions.size(); i++ ) {
+            if ( RegionUtils.headRegion( regions.get( i ) ) ) {
+                RegionUtils.deleteRegion( regions.get( i ) );
+            }
+        }
+    }
 }

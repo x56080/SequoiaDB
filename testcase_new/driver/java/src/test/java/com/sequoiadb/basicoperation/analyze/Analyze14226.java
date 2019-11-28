@@ -16,7 +16,7 @@ public class Analyze14226 extends SdbTestBase {
 
     @BeforeClass
     public void setup() {
-        db = new SdbWarpper(coordUrl);
+        db = new SdbWarpper( coordUrl );
     }
 
     @AfterClass
@@ -25,19 +25,19 @@ public class Analyze14226 extends SdbTestBase {
     }
 
     /**
-     * 1.指定不存在的cl，执行统计，检查结果
-     * 1.命令行执行失败，提示信息及错误码正确
+     * 1.指定不存在的cl，执行统计，检查结果 1.命令行执行失败，提示信息及错误码正确
      */
     @Test
     public void test() {
         try {
-            db.analyze(new BasicBSONObject("Collection", "Analyze14226.Analyze14226"));
-            Assert.fail("Should throw SDB_DMS_NOTEXIST(-23): Collection does not exist");
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -23) {
+            db.analyze( new BasicBSONObject( "Collection",
+                    "Analyze14226.Analyze14226" ) );
+            Assert.fail(
+                    "Should throw SDB_DMS_NOTEXIST(-23): Collection does not exist" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -23 ) {
                 throw e;
             }
         }
     }
 }
-

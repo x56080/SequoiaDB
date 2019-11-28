@@ -18,12 +18,12 @@ public class Region {
     public static final String META_LOCATION = "MetaLocation";
     public static final String META_HIS_LOCATION = "MetaHisLocation";
 
-//    public static final String DATA_CS_LOCATION     = "DataCSLocation";
-//    public static final String DATA_CL_LOCATION     = "DataCLLocation";
-//    public static final String META_CS_LOCATION     = "MetaCSLocation";
-//    public static final String META_CL_LOCATION     = "MetaCLLocation";
-//    public static final String META_HIS_CS_LOCATION = "MetaHisCSLocation";
-//    public static final String META_HIS_CL_LOCATION = "MetaHisCLLocation";
+    // public static final String DATA_CS_LOCATION = "DataCSLocation";
+    // public static final String DATA_CL_LOCATION = "DataCLLocation";
+    // public static final String META_CS_LOCATION = "MetaCSLocation";
+    // public static final String META_CL_LOCATION = "MetaCLLocation";
+    // public static final String META_HIS_CS_LOCATION = "MetaHisCSLocation";
+    // public static final String META_HIS_CL_LOCATION = "MetaHisCLLocation";
 
     @JsonProperty(REGION_NAME)
     private String name;
@@ -55,7 +55,7 @@ public class Region {
     public Region() {
     }
 
-    public Region(Region region) {
+    public Region( Region region ) {
         this.name = region.getName();
         this.createTime = region.getCreateTime();
         this.dataCSShardingType = region.getDataCSShardingType();
@@ -67,7 +67,7 @@ public class Region {
         this.metaHisLocation = region.getMetaHisLocation();
     }
 
-    public Region withName(String name) {
+    public Region withName( String name ) {
         this.name = name;
         return this;
     }
@@ -76,7 +76,7 @@ public class Region {
         return name;
     }
 
-    public void setCreateTime(long createTime) {
+    public void setCreateTime( long createTime ) {
         this.createTime = createTime;
     }
 
@@ -84,7 +84,7 @@ public class Region {
         return createTime;
     }
 
-    public Region withDataCSShardingType(String dataCSShardingType) {
+    public Region withDataCSShardingType( String dataCSShardingType ) {
         this.dataCSShardingType = dataCSShardingType;
         return this;
     }
@@ -93,7 +93,7 @@ public class Region {
         return dataCSShardingType;
     }
 
-    public Region withDataCLShardingType(String dataCLShardingType) {
+    public Region withDataCLShardingType( String dataCLShardingType ) {
         this.dataCLShardingType = dataCLShardingType;
         return this;
     }
@@ -102,7 +102,7 @@ public class Region {
         return dataCLShardingType;
     }
 
-    public Region withDataDomain(String dataDomain) {
+    public Region withDataDomain( String dataDomain ) {
         this.dataDomain = dataDomain;
         return this;
     }
@@ -111,7 +111,7 @@ public class Region {
         return dataDomain;
     }
 
-    public Region withMetaDomain(String metaDomain) {
+    public Region withMetaDomain( String metaDomain ) {
         this.metaDomain = metaDomain;
         return this;
     }
@@ -120,7 +120,7 @@ public class Region {
         return metaDomain;
     }
 
-    public Region withDataLocation(String dataLocation) {
+    public Region withDataLocation( String dataLocation ) {
         this.dataLocation = dataLocation;
         return this;
     }
@@ -129,7 +129,7 @@ public class Region {
         return dataLocation;
     }
 
-    public Region withMetaLocation(String metaLocation) {
+    public Region withMetaLocation( String metaLocation ) {
         this.metaLocation = metaLocation;
         return this;
     }
@@ -138,7 +138,7 @@ public class Region {
         return metaLocation;
     }
 
-    public Region withMetaHisLocation(String metaHisLocation) {
+    public Region withMetaHisLocation( String metaHisLocation ) {
         this.metaHisLocation = metaHisLocation;
         return this;
     }
@@ -147,31 +147,33 @@ public class Region {
         return metaHisLocation;
     }
 
-
     public BSONObject toBson() {
         BSONObject newRegion = new BasicBSONObject();
-        newRegion.put(Region.REGION_NAME, this.name);
-        newRegion.put(Region.REGION_CREATERTIME, this.createTime);
-        newRegion.put(Region.DATA_CS_SHARDINGTYPE, this.dataCSShardingType);
-        newRegion.put(Region.DATA_CL_SHARDINGTYPE, this.dataCLShardingType);
-        newRegion.put(Region.DATA_DOMAIN, this.dataDomain);
-        newRegion.put(Region.META_DOMAIN, this.metaDomain);
-        newRegion.put(Region.DATA_LOCATION, this.dataLocation);
-        newRegion.put(Region.META_LOCATION, this.metaLocation);
-        newRegion.put(Region.META_HIS_LOCATION, this.metaHisLocation);
+        newRegion.put( Region.REGION_NAME, this.name );
+        newRegion.put( Region.REGION_CREATERTIME, this.createTime );
+        newRegion.put( Region.DATA_CS_SHARDINGTYPE, this.dataCSShardingType );
+        newRegion.put( Region.DATA_CL_SHARDINGTYPE, this.dataCLShardingType );
+        newRegion.put( Region.DATA_DOMAIN, this.dataDomain );
+        newRegion.put( Region.META_DOMAIN, this.metaDomain );
+        newRegion.put( Region.DATA_LOCATION, this.dataLocation );
+        newRegion.put( Region.META_LOCATION, this.metaLocation );
+        newRegion.put( Region.META_HIS_LOCATION, this.metaHisLocation );
         return newRegion;
     }
 
     public String toString() {
         StringBuffer buffer = new StringBuffer();
-        buffer.append("[" + Region.REGION_NAME + "=" + this.name);
-        buffer.append("," + Region.DATA_CS_SHARDINGTYPE + "=" + this.dataCSShardingType);
-        buffer.append("," + Region.DATA_CL_SHARDINGTYPE + "=" + this.dataCLShardingType);
-        buffer.append("," + Region.DATA_DOMAIN + "=" + this.dataDomain);
-        buffer.append("," + Region.META_DOMAIN + "=" + this.metaDomain);
-        buffer.append("," + Region.DATA_LOCATION + "=" + this.dataLocation);
-        buffer.append("," + Region.META_LOCATION + "=" + this.metaLocation);
-        buffer.append("," + Region.META_HIS_LOCATION + "=" + this.metaHisLocation + "]");
+        buffer.append( "[" + Region.REGION_NAME + "=" + this.name );
+        buffer.append( "," + Region.DATA_CS_SHARDINGTYPE + "="
+                + this.dataCSShardingType );
+        buffer.append( "," + Region.DATA_CL_SHARDINGTYPE + "="
+                + this.dataCLShardingType );
+        buffer.append( "," + Region.DATA_DOMAIN + "=" + this.dataDomain );
+        buffer.append( "," + Region.META_DOMAIN + "=" + this.metaDomain );
+        buffer.append( "," + Region.DATA_LOCATION + "=" + this.dataLocation );
+        buffer.append( "," + Region.META_LOCATION + "=" + this.metaLocation );
+        buffer.append( "," + Region.META_HIS_LOCATION + "="
+                + this.metaHisLocation + "]" );
         return buffer.toString();
     }
 }

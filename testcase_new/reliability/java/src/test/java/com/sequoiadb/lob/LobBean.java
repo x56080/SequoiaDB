@@ -15,21 +15,21 @@ public class LobBean {
     private ObjectId id;
     private byte[] content;
     private byte[] contentMd5;
-    private boolean isInSdb=false;
+    private boolean isInSdb = false;
 
     public LobBean() {
     }
 
-    public LobBean(byte[] content) {
+    public LobBean( byte[] content ) {
         this.content = content;
-        contentMd5 = MyUtil.getMd5(content);
+        contentMd5 = MyUtil.getMd5( content );
     }
 
     public byte[] getContent() {
         return content;
     }
 
-    public void setId(ObjectId id) {
+    public void setId( ObjectId id ) {
         this.id = id;
     }
 
@@ -47,19 +47,17 @@ public class LobBean {
 
     /**
      * 该lob是否已经保存到sdb
+     * 
      * @param inSdb
      */
-    public void setInSdb(boolean inSdb) {
+    public void setInSdb( boolean inSdb ) {
         isInSdb = inSdb;
     }
 
     @Override
     public String toString() {
-        return "LobBean{" +
-                "id=" + id +
-                ", content=" + Arrays.toString(content) +
-                ", contentMd5=" + Arrays.toString(contentMd5) +
-                ", isInSdb=" + isInSdb +
-                '}';
+        return "LobBean{" + "id=" + id + ", content="
+                + Arrays.toString( content ) + ", contentMd5="
+                + Arrays.toString( contentMd5 ) + ", isInSdb=" + isInSdb + '}';
     }
 }

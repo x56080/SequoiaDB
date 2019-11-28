@@ -20,103 +20,106 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
-* FileName: BinaryTest10353.java* 
-* test interface:
-* Binary (byte[] data),getDate (),length (),getType ()
-* TestLink: seqDB-10353:
-* @author wuyan
-    * @Date    2016.10.14
-* @version 1.00
-*/
-public class BinaryTest10353 extends SdbTestBase{
-	
-	private String clName = "cl_10353";
-	private static Sequoiadb sdb = null;
-	private CollectionSpace cs = null;
-	private DBCollection cl ;
-	private SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS");
-	
-	
-	@BeforeClass
-	public void setUp(){		
-		System.out.println(this.getClass().getName()+" begin at "+sdf.format(new Date()));
-		try{
-			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-		}catch(BaseException e){			
-			Assert.assertTrue(false,"connect %s failed,"+SdbTestBase.coordUrl+e.getMessage());
-		}	
-		
-		createCL();
-	}
-	
-	private void createCL(){
-		try{
-			if (!sdb.isCollectionSpaceExist(SdbTestBase.csName)){
-				sdb.createCollectionSpace(SdbTestBase.csName);	
-			}
-		}catch(BaseException e){
-			//-33 CS exist,ignore exceptions
-			Assert.assertEquals(-33,e.getErrorCode(),e.getMessage());
-		}
-		
-		String test = "{ReplSize:0,Compressed:true}";
-		BSONObject options =(BSONObject) JSON.parse(test);
-		try
-		{
-			cs = sdb.getCollectionSpace(SdbTestBase.csName);
-			cl = cs.createCollection(clName,options);
-		}catch(BaseException e){
-			Assert.assertTrue(false,"create cl fail "+e.getErrorType()+":"+e.getMessage());
-		}
-	}
+ * FileName: BinaryTest10353.java* test interface: Binary (byte[] data),getDate
+ * (),length (),getType () TestLink: seqDB-10353:
+ * 
+ * @author wuyan
+ * @Date 2016.10.14
+ * @version 1.00
+ */
+public class BinaryTest10353 extends SdbTestBase {
 
-    
-	@Test
-	public void testBinary() {
-		try{
-			BSONObject obj = new BasicBSONObject();
-			String str = "hello world";	
-			
-			byte[] arr = str.getBytes();
-			Binary bindata = new Binary(arr);
-			
-			//test interface length()
-			Assert.assertEquals(bindata.length(),str.length(),"bindata length wrong");
-			
-			//test the bindata type ,is 0
-			Assert.assertEquals(bindata.getType(),0,"bindata type wrong");
-			
-			obj.put("bindata", bindata);	
-			cl.insert(obj);
-			
-			//check the insert result		
-			BSONObject tmp = new BasicBSONObject();
-	        DBCursor tmpCursor = cl.query(tmp, null, null, null);
-	        BasicBSONObject actRecs = null;		       
-	        while(tmpCursor.hasNext()){
-	        	actRecs = (BasicBSONObject)tmpCursor.getNext();	         
-	        }
-	        System.out.println("actRecs="+actRecs.toString());
-	        tmpCursor.close();
-	        Assert.assertEquals(actRecs,obj,"check datas are unequal\n"+"actDatas: "
-	        			+actRecs+"\n"+"expectDatas: "+obj.toString());
-		}catch(BaseException  e){
-			Assert.assertTrue(false,e.getMessage()+e.getStackTrace());
-		}	
-	}	
-	
-	@AfterClass
-	public void tearDown(){
-		try{			
-			if(cs.isCollectionExist(clName)){
-				cs.dropCollection(clName);
-			}		
-			sdb.disconnect();
-			System.out.println("---"+this.getClass().getName()+" end at "+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
-		}catch(BaseException e){			
-			Assert.assertTrue(false,"clean up failed:"+e.getMessage());
-		}
-	}
-	
+    private String clName = "cl_10353";
+    private static Sequoiadb sdb = null;
+    private CollectionSpace cs = null;
+    private DBCollection cl;
+    private SimpleDateFormat sdf = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss.SSS" );
+
+    @BeforeClass
+    public void setUp() {
+        System.out.println( this.getClass().getName() + " begin at "
+                + sdf.format( new Date() ) );
+        try {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "connect %s failed,"
+                    + SdbTestBase.coordUrl + e.getMessage() );
+        }
+
+        createCL();
+    }
+
+    private void createCL() {
+        try {
+            if ( !sdb.isCollectionSpaceExist( SdbTestBase.csName ) ) {
+                sdb.createCollectionSpace( SdbTestBase.csName );
+            }
+        } catch ( BaseException e ) {
+            // -33 CS exist,ignore exceptions
+            Assert.assertEquals( -33, e.getErrorCode(), e.getMessage() );
+        }
+
+        String test = "{ReplSize:0,Compressed:true}";
+        BSONObject options = ( BSONObject ) JSON.parse( test );
+        try {
+            cs = sdb.getCollectionSpace( SdbTestBase.csName );
+            cl = cs.createCollection( clName, options );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "create cl fail " + e.getErrorType() + ":"
+                    + e.getMessage() );
+        }
+    }
+
+    @Test
+    public void testBinary() {
+        try {
+            BSONObject obj = new BasicBSONObject();
+            String str = "hello world";
+
+            byte[] arr = str.getBytes();
+            Binary bindata = new Binary( arr );
+
+            // test interface length()
+            Assert.assertEquals( bindata.length(), str.length(),
+                    "bindata length wrong" );
+
+            // test the bindata type ,is 0
+            Assert.assertEquals( bindata.getType(), 0, "bindata type wrong" );
+
+            obj.put( "bindata", bindata );
+            cl.insert( obj );
+
+            // check the insert result
+            BSONObject tmp = new BasicBSONObject();
+            DBCursor tmpCursor = cl.query( tmp, null, null, null );
+            BasicBSONObject actRecs = null;
+            while ( tmpCursor.hasNext() ) {
+                actRecs = ( BasicBSONObject ) tmpCursor.getNext();
+            }
+            System.out.println( "actRecs=" + actRecs.toString() );
+            tmpCursor.close();
+            Assert.assertEquals( actRecs, obj,
+                    "check datas are unequal\n" + "actDatas: " + actRecs + "\n"
+                            + "expectDatas: " + obj.toString() );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, e.getMessage() + e.getStackTrace() );
+        }
+    }
+
+    @AfterClass
+    public void tearDown() {
+        try {
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
+            }
+            sdb.disconnect();
+            System.out.println( "---" + this.getClass().getName() + " end at "
+                    + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
+                            .format( new Date() ) );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
+        }
+    }
+
 }
-

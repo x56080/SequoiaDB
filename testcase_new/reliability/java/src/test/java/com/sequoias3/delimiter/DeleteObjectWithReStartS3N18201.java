@@ -31,92 +31,100 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 
 public class DeleteObjectWithReStartS3N18201 extends S3TestBase {
-	private String bucketName = "bucket18201";
-	private String userName = "user18201";
-	private int objectNums = 100;
-	private String keyName = "deleteObject18201";
-	private String delimiter = "?";
-	private String roleName = "normal";
-	private List<String> keyNames = new ArrayList<String>();
-    private List<String> keyNameList = new CopyOnWriteArrayList<String>();
-	private String[] accessKeys = null;
-	private AmazonS3 s3Client = null;
-	private boolean runSuccess = false;
+    private String bucketName = "bucket18201";
+    private String userName = "user18201";
+    private int objectNums = 100;
+    private String keyName = "deleteObject18201";
+    private String delimiter = "?";
+    private String roleName = "normal";
+    private List< String > keyNames = new ArrayList< String >();
+    private List< String > keyNameList = new CopyOnWriteArrayList< String >();
+    private String[] accessKeys = null;
+    private AmazonS3 s3Client = null;
+    private boolean runSuccess = false;
 
-	@BeforeClass
-	private void setUp() {
-		CommLibS3.clearUser(userName);
-		accessKeys = UserUtils.createUser(userName, roleName);
-		s3Client = CommLibS3.buildS3Client(accessKeys[0], accessKeys[1]);
-		CommLibS3.clearBucket(s3Client, bucketName);
-		s3Client.createBucket(bucketName);
-		DelimiterUtils.putBucketDelimiter(bucketName, delimiter, accessKeys[0]);
-		for (int i = 0; i < objectNums; i++) {
-			keyNames.add(keyName + "_" + i + delimiter + TestTools.getRandomString(3));
+    @BeforeClass
+    private void setUp() {
+        CommLibS3.clearUser( userName );
+        accessKeys = UserUtils.createUser( userName, roleName );
+        s3Client = CommLibS3.buildS3Client( accessKeys[ 0 ], accessKeys[ 1 ] );
+        CommLibS3.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        DelimiterUtils.putBucketDelimiter( bucketName, delimiter,
+                accessKeys[ 0 ] );
+        for ( int i = 0; i < objectNums; i++ ) {
+            keyNames.add( keyName + "_" + i + delimiter
+                    + TestTools.getRandomString( 3 ) );
         }
-	}
+    }
 
-	@Test
-	public void testCreateRegion() throws Exception {
-		FaultMakeTask faultMakeTask = S3NodeRestart.getFaultMakeTask(new S3NodeWrapper(), 1, 10);
-		TaskMgr mgr = new TaskMgr(faultMakeTask);
-		for (int i = 0; i < objectNums; i++) {
-            mgr.addTask(new DeleteObject(keyNames.get(i)));
+    @Test
+    public void testCreateRegion() throws Exception {
+        FaultMakeTask faultMakeTask = S3NodeRestart
+                .getFaultMakeTask( new S3NodeWrapper(), 1, 10 );
+        TaskMgr mgr = new TaskMgr( faultMakeTask );
+        for ( int i = 0; i < objectNums; i++ ) {
+            mgr.addTask( new DeleteObject( keyNames.get( i ) ) );
         }
-		mgr.execute();
-		Assert.assertTrue(mgr.isAllSuccess(),mgr.getErrorMsg());
-		//delete again
-		keyNames.removeAll(keyNameList);
-        for (String keyName : keyNames) {
-            s3Client.deleteObject(bucketName, keyName);
-            keyNameList.add(keyName);
+        mgr.execute();
+        Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
+        // delete again
+        keyNames.removeAll( keyNameList );
+        for ( String keyName : keyNames ) {
+            s3Client.deleteObject( bucketName, keyName );
+            keyNameList.add( keyName );
         }
-        Assert.assertEquals(keyNameList.size(),objectNums,"keyNameList = " + keyNameList.toString());
-        for (String objectName : keyNameList) {
-            Assert.assertFalse(s3Client.doesObjectExist(bucketName, objectName),"onject : " + objectName + " is still exist");
+        Assert.assertEquals( keyNameList.size(), objectNums,
+                "keyNameList = " + keyNameList.toString() );
+        for ( String objectName : keyNameList ) {
+            Assert.assertFalse(
+                    s3Client.doesObjectExist( bucketName, objectName ),
+                    "onject : " + objectName + " is still exist" );
         }
-		runSuccess = true;
-	}
+        runSuccess = true;
+    }
 
-	@AfterClass
-	private void tearDown() throws Exception {
-		try {
-			if (runSuccess) {
-				UserUtils.deleteUser(userName);
-			}
-		} finally {
-			if (s3Client != null) {
-				s3Client.shutdown();
-			}
-		}
-	}
+    @AfterClass
+    private void tearDown() throws Exception {
+        try {
+            if ( runSuccess ) {
+                UserUtils.deleteUser( userName );
+            }
+        } finally {
+            if ( s3Client != null ) {
+                s3Client.shutdown();
+            }
+        }
+    }
 
-	private class DeleteObject extends OperateTask {
-		private String keyName = null;
+    private class DeleteObject extends OperateTask {
+        private String keyName = null;
 
-		public DeleteObject(String keytName) {
-			this.keyName = keytName;
-		}
+        public DeleteObject( String keytName ) {
+            this.keyName = keytName;
+        }
 
-		@Override
-		public void exec() throws Exception {
-			AmazonS3 s3Client = CommLibS3.buildS3Client(accessKeys[0], accessKeys[1]);
-			try {
-				s3Client.deleteObject(bucketName, keyName);
-				keyNameList.add(this.keyName);
-			} catch (AmazonS3Exception e) {
-				if (e.getStatusCode() != 500) {
-					throw new Exception(bucketName + ":" + keyName, e);
-				}
-			} catch (SdkClientException e){
-				if(!e.getMessage().contains("Unable to execute HTTP request")){
-					throw e;
-				}
-			} finally {
-				if (s3Client != null) {
-					s3Client.shutdown();
-				}
-			}
-		}
-	}
+        @Override
+        public void exec() throws Exception {
+            AmazonS3 s3Client = CommLibS3.buildS3Client( accessKeys[ 0 ],
+                    accessKeys[ 1 ] );
+            try {
+                s3Client.deleteObject( bucketName, keyName );
+                keyNameList.add( this.keyName );
+            } catch ( AmazonS3Exception e ) {
+                if ( e.getStatusCode() != 500 ) {
+                    throw new Exception( bucketName + ":" + keyName, e );
+                }
+            } catch ( SdkClientException e ) {
+                if ( !e.getMessage()
+                        .contains( "Unable to execute HTTP request" ) ) {
+                    throw e;
+                }
+            } finally {
+                if ( s3Client != null ) {
+                    s3Client.shutdown();
+                }
+            }
+        }
+    }
 }

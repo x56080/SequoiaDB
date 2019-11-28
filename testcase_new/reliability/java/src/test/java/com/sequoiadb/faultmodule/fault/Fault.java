@@ -9,7 +9,7 @@ public abstract class Fault {
 
     private FaultStage stage;
 
-    public Fault(String name) {
+    public Fault( String name ) {
         this.name = name;
     }
 
@@ -29,7 +29,7 @@ public abstract class Fault {
         return stage;
     }
 
-    protected void setStage(FaultStage stage) {
+    protected void setStage( FaultStage stage ) {
         this.stage = stage;
     }
 

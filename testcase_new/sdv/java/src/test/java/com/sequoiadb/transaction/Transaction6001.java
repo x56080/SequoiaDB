@@ -34,15 +34,16 @@ public class Transaction6001 extends SdbTestBase {
 
     @BeforeClass
     private void setup() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(SdbTestBase.csName).createCollection(clName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( SdbTestBase.csName )
+                .createCollection( clName );
     }
 
     @Test
     public void test() throws Exception {
         ThreadExecutor es = new ThreadExecutor();
-        es.addWorker(new TransInsert6001());
-        es.addWorker(new TransUpdate6001());
+        es.addWorker( new TransInsert6001() );
+        es.addWorker( new TransUpdate6001() );
         es.run();
 
         CheckResult();
@@ -51,13 +52,14 @@ public class Transaction6001 extends SdbTestBase {
     @AfterClass
     private void teardown() {
         try {
-            sdb.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
+            sdb.getCollectionSpace( SdbTestBase.csName )
+                    .dropCollection( clName );
         } finally {
-            if (sdb != null)
+            if ( sdb != null )
                 sdb.close();
-            if (db1 != null)
+            if ( db1 != null )
                 db1.close();
-            if (db2 != null)
+            if ( db2 != null )
                 db2.close();
         }
     }
@@ -66,8 +68,9 @@ public class Transaction6001 extends SdbTestBase {
         private DBCollection cl = null;
 
         public TransInsert6001() {
-            db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            cl = db1.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            cl = db1.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
         }
 
         @ExecuteOrder(step = 1, desc = "开启事务")
@@ -86,13 +89,13 @@ public class Transaction6001 extends SdbTestBase {
         }
 
         private void insertData() {
-            List<BSONObject> recs = new ArrayList<BSONObject>();
-            for (int i = 0; i < insertNum; i++) {
+            List< BSONObject > recs = new ArrayList< BSONObject >();
+            for ( int i = 0; i < insertNum; i++ ) {
                 BSONObject rec = new BasicBSONObject();
-                rec.put("a", i);
-                recs.add(rec);
+                rec.put( "a", i );
+                recs.add( rec );
             }
-            cl.insert(recs);
+            cl.insert( recs );
         }
     }
 
@@ -100,8 +103,9 @@ public class Transaction6001 extends SdbTestBase {
         private DBCollection cl = null;
 
         public TransUpdate6001() {
-            db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            cl = db2.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            cl = db2.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
         }
 
         @ExecuteOrder(step = 1)
@@ -113,14 +117,14 @@ public class Transaction6001 extends SdbTestBase {
         public void Update() {
             BSONObject modifyObj = new BasicBSONObject();
             BSONObject modifier = new BasicBSONObject();
-            modifyObj.put("a", 1);
-            modifier.put("$inc", modifyObj);
+            modifyObj.put( "a", 1 );
+            modifier.put( "$inc", modifyObj );
             try {
                 // 将集合中所有记录a字段的值增加1
-                cl.update(null, modifier, null);
-                Assert.fail("exp fail but found succ.");
-            } catch (BaseException e) {
-                Assert.assertEquals(e.getErrorCode(), -13);
+                cl.update( null, modifier, null );
+                Assert.fail( "exp fail but found succ." );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -13 );
             }
         }
 
@@ -134,10 +138,11 @@ public class Transaction6001 extends SdbTestBase {
         int startValue = 0;
         long expCount = insertNum;
         long actCount = cl.getCount();
-        Assert.assertEquals(actCount, expCount);
+        Assert.assertEquals( actCount, expCount );
         DBCursor cursor = cl.query();
-        while (cursor.hasNext()) {
-            Assert.assertEquals(cursor.getNext().get("a").toString(), String.valueOf(startValue));
+        while ( cursor.hasNext() ) {
+            Assert.assertEquals( cursor.getNext().get( "a" ).toString(),
+                    String.valueOf( startValue ) );
             startValue++;
         }
     }

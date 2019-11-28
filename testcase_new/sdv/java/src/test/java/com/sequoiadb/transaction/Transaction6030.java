@@ -32,48 +32,52 @@ public class Transaction6030 extends SdbTestBase {
 
     @BeforeClass
     private void setup() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(SdbTestBase.csName).createCollection(clName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( SdbTestBase.csName )
+                .createCollection( clName );
     }
 
     @Test
     public void test() throws Exception {
         ThreadExecutor es = new ThreadExecutor();
-        for (int i = 0; i < threadNum; i++) {
-            es.addWorker(new Trans6030());
+        for ( int i = 0; i < threadNum; i++ ) {
+            es.addWorker( new Trans6030() );
         }
         es.run();
         DBCursor cur = cl.query();
-        Assert.assertFalse(cur.hasNext(), "rollback failed and data still exists in the collection.");
+        Assert.assertFalse( cur.hasNext(),
+                "rollback failed and data still exists in the collection." );
     }
 
     @AfterClass
     private void teardown() {
         try {
-            sdb.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
+            sdb.getCollectionSpace( SdbTestBase.csName )
+                    .dropCollection( clName );
         } finally {
             sdb.close();
         }
     }
 
-    private void insertData(DBCollection cl, int recNum) {
-        List<BSONObject> insertor = new ArrayList<>();
-        for (int i = 0; i < recNum; i++) {
+    private void insertData( DBCollection cl, int recNum ) {
+        List< BSONObject > insertor = new ArrayList<>();
+        for ( int i = 0; i < recNum; i++ ) {
             BSONObject rec = new BasicBSONObject();
-            rec.put("a", i);
-            insertor.add(rec);
+            rec.put( "a", i );
+            insertor.add( rec );
         }
-        cl.insert(insertor);
+        cl.insert( insertor );
     }
 
     class Trans6030 {
         private Sequoiadb db = null;
 
         public Trans6030() {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             db.beginTransaction();
-            DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-            insertData(cl, insertNum);
+            DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
+            insertData( cl, insertNum );
         }
 
         @ExecuteOrder(step = 1, desc = "回滚事务")

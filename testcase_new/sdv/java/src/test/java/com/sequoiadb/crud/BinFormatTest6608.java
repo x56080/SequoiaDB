@@ -1,6 +1,5 @@
 package com.sequoiadb.crud;
 
-
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
@@ -21,52 +20,53 @@ import org.testng.annotations.Test;
  * @Version 1.00
  */
 
-public class BinFormatTest6608 extends SdbTestBase{
+public class BinFormatTest6608 extends SdbTestBase {
 
-	private Sequoiadb sdb = null;
-	private CollectionSpace cs = null;
-	private DBCollection cl = null;
-	private final String clName = "cl6608";
+    private Sequoiadb sdb = null;
+    private CollectionSpace cs = null;
+    private DBCollection cl = null;
+    private final String clName = "cl6608";
 
-	@BeforeClass
-	public void setUp(){
-		try {
-			sdb = new Sequoiadb(SdbTestBase.coordUrl,"","");
-			cs = sdb.getCollectionSpace(SdbTestBase.csName);
-			cl = cs.createCollection(clName);
-		} catch(BaseException e) {
-			e.printStackTrace();
-			Assert.fail(e.getMessage());
-		}
-	}
-	
-	@Test
-	public void test(){
-		try {
-			BSONObject doc2 = (BSONObject) JSON.parse("{ a: { '$binary': 'aGVsbG8gd29ybGQ', '$type': '1' } } ");
-			cl.insert(doc2);
-			Assert.fail(doc2 + " should not be inserted");
-		} catch(JSONParseException e) {
-		}
+    @BeforeClass
+    public void setUp() {
+        try {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            cs = sdb.getCollectionSpace( SdbTestBase.csName );
+            cl = cs.createCollection( clName );
+        } catch ( BaseException e ) {
+            e.printStackTrace();
+            Assert.fail( e.getMessage() );
+        }
+    }
 
-		String doc3 = "{ a: { '$binary': 'aGVsbG8gd29ybGQ', '$type': '1' } } ";
-		try {
-			cl.insert(doc3);
-			Assert.fail(doc3 + " should not be inserted");
-		} catch(JSONParseException e) {
-		}
-	}
+    @Test
+    public void test() {
+        try {
+            BSONObject doc2 = ( BSONObject ) JSON.parse(
+                    "{ a: { '$binary': 'aGVsbG8gd29ybGQ', '$type': '1' } } " );
+            cl.insert( doc2 );
+            Assert.fail( doc2 + " should not be inserted" );
+        } catch ( JSONParseException e ) {
+        }
 
-	@AfterClass
-	public void tearDown(){
-		try{
-			cs.dropCollection(clName);
-		}catch(BaseException e){
-			Assert.assertEquals(e.getErrorCode(), -23, e.getMessage());
-		}finally{
-			if (sdb != null) {
-				sdb.close();
-			}
-		}
-	}
+        String doc3 = "{ a: { '$binary': 'aGVsbG8gd29ybGQ', '$type': '1' } } ";
+        try {
+            cl.insert( doc3 );
+            Assert.fail( doc3 + " should not be inserted" );
+        } catch ( JSONParseException e ) {
+        }
+    }
+
+    @AfterClass
+    public void tearDown() {
+        try {
+            cs.dropCollection( clName );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( e.getErrorCode(), -23, e.getMessage() );
+        } finally {
+            if ( sdb != null ) {
+                sdb.close();
+            }
+        }
+    }
 }

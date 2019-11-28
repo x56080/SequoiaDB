@@ -45,57 +45,61 @@ public class Fulltext14489 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() throws ReliabilityException {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("StandAlone environment!");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "StandAlone environment!" );
         }
         groupMgr = GroupMgr.getInstance();
-        groupName = groupMgr.getAllDataGroupName().get(0);
-        if (!groupMgr.checkBusiness()) {
-            throw new SkipException("checkBusiness failed");
+        groupName = groupMgr.getAllDataGroupName().get( 0 );
+        if ( !groupMgr.checkBusiness() ) {
+            throw new SkipException( "checkBusiness failed" );
         }
-        if (!FullTextUtils.checkAdapter()) {
-            throw new SkipException("Check adapter failed");
+        if ( !FullTextUtils.checkAdapter() ) {
+            throw new SkipException( "Check adapter failed" );
         }
-        cs = sdb.getCollectionSpace(csName);
-        cl = cs.createCollection(clName, (BSONObject) JSON.parse("{Group:'" + groupName + "',ReplSize:0" + "}"));
-        FullTextDBUtils.insertData(cl, insertNum);
-        cl.createIndex(indexName, "{a:'text',b:'text',c:'text',d:'text'}", false, false);
+        cs = sdb.getCollectionSpace( csName );
+        cl = cs.createCollection( clName, ( BSONObject ) JSON
+                .parse( "{Group:'" + groupName + "',ReplSize:0" + "}" ) );
+        FullTextDBUtils.insertData( cl, insertNum );
+        cl.createIndex( indexName, "{a:'text',b:'text',c:'text',d:'text'}",
+                false, false );
     }
 
     @Test
     public void test() throws Exception {
-        GroupWrapper dataGroup = groupMgr.getGroupByName(groupName);
+        GroupWrapper dataGroup = groupMgr.getGroupByName( groupName );
         NodeWrapper slave = dataGroup.getSlave();
 
-        FaultMakeTask faultMakeTask = DiskFull.getFaultMakeTask(slave.hostName(), slave.dbPath(), 0, 600);
-        TaskMgr mgr = new TaskMgr(faultMakeTask);
-        mgr.addTask(new InsertThread());
-        mgr.addTask(new UpdateThread());
+        FaultMakeTask faultMakeTask = DiskFull
+                .getFaultMakeTask( slave.hostName(), slave.dbPath(), 0, 600 );
+        TaskMgr mgr = new TaskMgr( faultMakeTask );
+        mgr.addTask( new InsertThread() );
+        mgr.addTask( new UpdateThread() );
         // 删除记录，无法测试到磁盘满的情况，暂时不添加该线程
         // mgr.addTask(new DeleteThread());
-        mgr.addTask(new QueryThread());
+        mgr.addTask( new QueryThread() );
         mgr.execute();
 
-        Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
-        Assert.assertEquals(groupMgr.checkBusinessWithLSN(600), true);
-        Assert.assertEquals(FullTextUtils.checkAdapter(), true);
+        Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
+        Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true );
+        Assert.assertEquals( FullTextUtils.checkAdapter(), true );
 
-        cl.insert("{a:'text14489'}");
-        int expCount = (int) cl.getCount();
-        Assert.assertTrue(FullTextUtils.isIndexCreated(cl, indexName, expCount));
+        cl.insert( "{a:'text14489'}" );
+        int expCount = ( int ) cl.getCount();
+        Assert.assertTrue(
+                FullTextUtils.isIndexCreated( cl, indexName, expCount ) );
 
         // lsn一致，索引数据可能会不一致，因此这个步骤需要放到最后，避免主节点产生了大量数据，再调用inspect工具导致的用例执行效率问题
-        Assert.assertEquals(dataGroup.checkInspect(1), true);
+        Assert.assertEquals( dataGroup.checkInspect( 1 ), true );
 
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            cs.dropCollection(clName);
+            cs.dropCollection( clName );
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -104,12 +108,14 @@ public class Fulltext14489 extends SdbTestBase {
     private class InsertThread extends OperateTask {
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                for (int i = 0; i < 10; i++) {
-                    FullTextDBUtils.insertData(cl, insertNum);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                for ( int i = 0; i < 10; i++ ) {
+                    FullTextDBUtils.insertData( cl, insertNum );
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
                 throw e;
             }
         }
@@ -118,13 +124,16 @@ public class Fulltext14489 extends SdbTestBase {
     private class UpdateThread extends OperateTask {
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                for (int i = 0; i < 500; i++) {
-                    cl.update(null, "{$set:{a:'update14489" + i + "'}}", null);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                for ( int i = 0; i < 500; i++ ) {
+                    cl.update( null, "{$set:{a:'update14489" + i + "'}}",
+                            null );
                 }
 
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
                 throw e;
             }
         }
@@ -145,13 +154,17 @@ public class Fulltext14489 extends SdbTestBase {
     private class QueryThread extends OperateTask {
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                DBCursor cursor = cl.query("{\"\":{$Text:{query:{match_all:{}}}}}", null, null, null);
-                while (cursor.hasNext()) {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                DBCursor cursor = cl.query(
+                        "{\"\":{$Text:{query:{match_all:{}}}}}", null, null,
+                        null );
+                while ( cursor.hasNext() ) {
                     cursor.getNext();
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
                 throw e;
             }
         }

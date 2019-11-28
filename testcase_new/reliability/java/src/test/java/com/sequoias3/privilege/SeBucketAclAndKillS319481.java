@@ -36,50 +36,54 @@ public class SeBucketAclAndKillS319481 extends S3TestBase {
     private AmazonS3 adminS3 = null;
     private String ownerId;
     private String bucketNameBase = "bucket" + tcId + "a";
-    private List<String> bucketNames = new ArrayList<>();
+    private List< String > bucketNames = new ArrayList<>();
     private Grant grant;
-    private List<String> setBucketAclFailList = new CopyOnWriteArrayList<String>();
+    private List< String > setBucketAclFailList = new CopyOnWriteArrayList< String >();
 
     @BeforeClass
     private void setUp() throws IOException {
         adminS3 = CommLibS3.buildS3Client();
         ownerId = adminS3.getS3AccountOwner().getId();
-        for (int i = 0; i < threadNum; i++) {
+        for ( int i = 0; i < threadNum; i++ ) {
             String bucketName = bucketNameBase + i;
-            CommLibS3.clearBucket(adminS3, bucketName);
-            adminS3.createBucket(bucketName);
-            bucketNames.add(bucketName);
+            CommLibS3.clearBucket( adminS3, bucketName );
+            adminS3.createBucket( bucketName );
+            bucketNames.add( bucketName );
 
-            Grant grantFirst = new Grant(new CanonicalGrantee(ownerId), Permission.Read);
-            PrivilegeUtils.setBucketAclByBody(adminS3, bucketName, grantFirst);
+            Grant grantFirst = new Grant( new CanonicalGrantee( ownerId ),
+                    Permission.Read );
+            PrivilegeUtils.setBucketAclByBody( adminS3, bucketName,
+                    grantFirst );
         }
 
-        grant = new Grant(new CanonicalGrantee(ownerId), Permission.Write);
+        grant = new Grant( new CanonicalGrantee( ownerId ), Permission.Write );
     }
 
     @Test
     public void test() throws Exception {
         TaskMgr mgr = new TaskMgr();
         // set bucket acl
-        for (String bucketName : bucketNames) {
-            mgr.addTask(new ThreadSetBucketAcl(bucketName));
+        for ( String bucketName : bucketNames ) {
+            mgr.addTask( new ThreadSetBucketAcl( bucketName ) );
         }
 
         // kill data node
-        FaultMakeTask faultMakeTask = S3NodeRestart.getFaultMakeTask(new S3NodeWrapper(), 1, 10);
-        mgr.addTask(faultMakeTask);
+        FaultMakeTask faultMakeTask = S3NodeRestart
+                .getFaultMakeTask( new S3NodeWrapper(), 1, 10 );
+        mgr.addTask( faultMakeTask );
 
         mgr.execute();
-        Assert.assertTrue(mgr.isAllSuccess(), mgr.getErrorMsg());
+        Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
 
         // set failed bucket acl again
-        for (String bucketName : setBucketAclFailList) {
-            PrivilegeUtils.setBucketAclByBody(adminS3, bucketName, grant);
+        for ( String bucketName : setBucketAclFailList ) {
+            PrivilegeUtils.setBucketAclByBody( adminS3, bucketName, grant );
         }
 
         // check all bucket restults
-        for (String bucketName : bucketNames) {
-            PrivilegeUtils.checkSetBucketAclResult(adminS3, bucketName, grant);
+        for ( String bucketName : bucketNames ) {
+            PrivilegeUtils.checkSetBucketAclResult( adminS3, bucketName,
+                    grant );
         }
 
         runSuccess = true;
@@ -88,13 +92,13 @@ public class SeBucketAclAndKillS319481 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                for (String bucketName : bucketNames) {
-                    CommLibS3.clearBucket(adminS3, bucketName);
+            if ( runSuccess ) {
+                for ( String bucketName : bucketNames ) {
+                    CommLibS3.clearBucket( adminS3, bucketName );
                 }
             }
         } finally {
-            if (adminS3 != null)
+            if ( adminS3 != null )
                 adminS3.shutdown();
         }
     }
@@ -102,7 +106,7 @@ public class SeBucketAclAndKillS319481 extends S3TestBase {
     private class ThreadSetBucketAcl extends OperateTask {
         private String bucketName;
 
-        private ThreadSetBucketAcl(String bucketName) {
+        private ThreadSetBucketAcl( String bucketName ) {
             this.bucketName = bucketName;
         }
 
@@ -111,18 +115,19 @@ public class SeBucketAclAndKillS319481 extends S3TestBase {
             AmazonS3 s3 = null;
             try {
                 s3 = CommLibS3.buildS3Client();
-                PrivilegeUtils.setBucketAclByBody(s3, bucketName, grant);
-            } catch (AmazonServiceException e) {
-                setBucketAclFailList.add(bucketName);
-                if (e.getStatusCode() != 500) {
+                PrivilegeUtils.setBucketAclByBody( s3, bucketName, grant );
+            } catch ( AmazonServiceException e ) {
+                setBucketAclFailList.add( bucketName );
+                if ( e.getStatusCode() != 500 ) {
                     throw e;
                 }
-            } catch (SdkClientException e) {
-                if (!e.getMessage().contains("Unable to execute HTTP request")) {
+            } catch ( SdkClientException e ) {
+                if ( !e.getMessage()
+                        .contains( "Unable to execute HTTP request" ) ) {
                     throw e;
                 }
             } finally {
-                if (s3 != null) {
+                if ( s3 != null ) {
                     s3.shutdown();
                 }
             }

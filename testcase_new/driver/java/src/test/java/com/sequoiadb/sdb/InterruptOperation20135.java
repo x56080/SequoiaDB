@@ -19,7 +19,7 @@ public class InterruptOperation20135 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
     }
 
     /*
@@ -30,7 +30,7 @@ public class InterruptOperation20135 extends SdbTestBase {
     public void test() {
         DBCursor cursor = sdb.listCollectionSpaces();
         sdb.interruptOperation();
-        while (cursor.hasNext()) { // 已getMore的不影响
+        while ( cursor.hasNext() ) { // 已getMore的不影响
             cursor.getNext();
         }
     }

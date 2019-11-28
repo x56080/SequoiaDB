@@ -29,7 +29,7 @@ import com.sequoiadb.task.TaskMgr;
  * @Author liuxiaoxuan
  * @Date 2017-10-16
  */
-public class CappedCLRestartNode11816 extends SdbTestBase{
+public class CappedCLRestartNode11816 extends SdbTestBase {
 
     private GroupMgr groupMgr = null;
     private Sequoiadb sdb = null;
@@ -38,90 +38,98 @@ public class CappedCLRestartNode11816 extends SdbTestBase{
     private String dataGroupName = null;
     private int insertNums = 100000;
     private final int strLength = 968;
-	
+
     @BeforeClass
     public void setup() throws ReliabilityException {
         groupMgr = GroupMgr.getInstance();
-        if(!groupMgr.checkBusiness(120)) {
-            throw new SkipException("checkBusiness failed");
+        if ( !groupMgr.checkBusiness( 120 ) ) {
+            throw new SkipException( "checkBusiness failed" );
         }
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        dataGroupName = groupMgr.getAllDataGroupName().get(0);
-        System.out.println("group: " + dataGroupName);
-        cl = sdb.getCollectionSpace(cappedCSName)
-                .createCollection(clName, (BSONObject) JSON.parse(
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        dataGroupName = groupMgr.getAllDataGroupName().get( 0 );
+        System.out.println( "group: " + dataGroupName );
+        cl = sdb.getCollectionSpace( cappedCSName ).createCollection( clName,
+                ( BSONObject ) JSON.parse(
                         "{Capped:true,Size:1024,AutoIndexId:false,Group:'"
-                                + dataGroupName + "'}"));  
-        CappedCLUtils.insertRecords(cl, insertNums, strLength);
+                                + dataGroupName + "'}" ) );
+        CappedCLUtils.insertRecords( cl, insertNums, strLength );
     }
-	
+
     @Test
     public void curdAndRestartNodeTest() throws ReliabilityException {
-        GroupWrapper dataGroup = groupMgr.getGroupByName(dataGroupName);
+        GroupWrapper dataGroup = groupMgr.getGroupByName( dataGroupName );
         NodeWrapper priNode = dataGroup.getMaster();
-			     FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask(priNode, 0, 5);
-        TaskMgr taskMgr = new TaskMgr(faultMakeTask);
+        FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask( priNode, 0,
+                5 );
+        TaskMgr taskMgr = new TaskMgr( faultMakeTask );
         for ( int i = 0; i < 5; i++ ) {
-             taskMgr.addTask(new InsertTask());
-             taskMgr.addTask(new PopTask());
-        }         
+            taskMgr.addTask( new InsertTask() );
+            taskMgr.addTask( new PopTask() );
+        }
         taskMgr.execute();
-			
-        Assert.assertEquals(taskMgr.isAllSuccess(), true, taskMgr.getErrorMsg());
-        Assert.assertEquals(groupMgr.checkBusinessWithLSN(600), true, "check LSN consistency fail");
-	         
+
+        Assert.assertEquals( taskMgr.isAllSuccess(), true,
+                taskMgr.getErrorMsg() );
+        Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true,
+                "check LSN consistency fail" );
+
         // 环境恢复后，创建集合并检查主备一致
-        CappedCLUtils.insertRecords(cl, 10000, 8);  
-        CappedCLUtils.pop(cl, CappedCLUtils.getLogicalID(cl,100), 1);        
-        Assert.assertEquals(dataGroup.checkInspect(120), true, "data is different on " + dataGroup.getGroupName()); 
+        CappedCLUtils.insertRecords( cl, 10000, 8 );
+        CappedCLUtils.pop( cl, CappedCLUtils.getLogicalID( cl, 100 ), 1 );
+        Assert.assertEquals( dataGroup.checkInspect( 120 ), true,
+                "data is different on " + dataGroup.getGroupName() );
     }
-	
+
     @AfterClass
     public void tearDown() {
         try {
-            sdb.getCollectionSpace(cappedCSName).dropCollection(clName);
+            sdb.getCollectionSpace( cappedCSName ).dropCollection( clName );
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
     }
-	
-    private class InsertTask extends OperateTask{
+
+    private class InsertTask extends OperateTask {
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl,"","")) {
-                CollectionSpace cs = db.getCollectionSpace(cappedCSName);
-                DBCollection cl = cs.getCollection(clName);
-        	   
-                //insert
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                CollectionSpace cs = db.getCollectionSpace( cappedCSName );
+                DBCollection cl = cs.getCollection( clName );
+
+                // insert
                 insertNums = 32768;
-                CappedCLUtils.insertRecords(cl, insertNums, strLength);
-            } catch (BaseException e) {
+                CappedCLUtils.insertRecords( cl, insertNums, strLength );
+            } catch ( BaseException e ) {
                 e.printStackTrace();
-                System.out.println("kill master node while inserting: " + e.getErrorCode());
+                System.out.println( "kill master node while inserting: "
+                        + e.getErrorCode() );
             }
         }
     }
-	
-    private class PopTask extends OperateTask{
+
+    private class PopTask extends OperateTask {
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl,"","")) {
-                CollectionSpace cs = db.getCollectionSpace(cappedCSName);
-                DBCollection cl = cs.getCollection(clName);
-        	   
-                //pop 
-                int skip = new Random().nextInt(90000);
-                long logicalID = CappedCLUtils.getLogicalID(cl, skip);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                CollectionSpace cs = db.getCollectionSpace( cappedCSName );
+                DBCollection cl = cs.getCollection( clName );
+
+                // pop
+                int skip = new Random().nextInt( 90000 );
+                long logicalID = CappedCLUtils.getLogicalID( cl, skip );
                 int direction = -1;
-                if (skip % 2 != 0) {
+                if ( skip % 2 != 0 ) {
                     direction = 1;
                 }
-                CappedCLUtils.pop(cl, logicalID, direction); 
-            } catch (BaseException e) {
+                CappedCLUtils.pop( cl, logicalID, direction );
+            } catch ( BaseException e ) {
                 e.printStackTrace();
-                System.out.println("kill master node while poping: " + e.getErrorCode());
+                System.out.println(
+                        "kill master node while poping: " + e.getErrorCode() );
             }
         }
     }

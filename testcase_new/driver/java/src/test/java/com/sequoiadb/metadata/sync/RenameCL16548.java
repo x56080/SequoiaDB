@@ -26,12 +26,12 @@ public class RenameCL16548 extends SdbTestBase {
 
     @BeforeClass()
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        cs.createCollection(clName);
+        cs.createCollection( clName );
     }
 
     @Test()
@@ -43,27 +43,32 @@ public class RenameCL16548 extends SdbTestBase {
                         + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1278",
                 "SYStest16548" };
         String newNameA = "";
-        for (int i = 0; i < newCLNamesA.length; i++) {
+        for ( int i = 0; i < newCLNamesA.length; i++ ) {
             try {
-                newNameA = newCLNamesA[i];
-                cs.renameCollection(clName, newNameA);
-                Assert.fail("newCLname is Invalid parameter, rename CL must be fail!");
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -6) {
-                    Assert.fail("rename cl fail!newName:" + newNameA + " " + e.getErrorCode() + e.getMessage());
+                newNameA = newCLNamesA[ i ];
+                cs.renameCollection( clName, newNameA );
+                Assert.fail(
+                        "newCLname is Invalid parameter, rename CL must be fail!" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -6 ) {
+                    Assert.fail( "rename cl fail!newName:" + newNameA + " "
+                            + e.getErrorCode() + e.getMessage() );
                 }
             }
         }
 
         // test rename cl name is valid parameter:special character/127bytes
-        String[] newCLNamesB = { "test$@#%&_a^sb16548", "test16548asdddddaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa127" };
-        for (int i = 0; i < newCLNamesB.length; i++) {
-            newCLName = newCLNamesB[i];
-            cs.renameCollection(clName, newCLName);
+        String[] newCLNamesB = { "test$@#%&_a^sb16548",
+                "test16548asdddddaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                        + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa127" };
+        for ( int i = 0; i < newCLNamesB.length; i++ ) {
+            newCLName = newCLNamesB[ i ];
+            cs.renameCollection( clName, newCLName );
             // check renameCL result
-            Assert.assertTrue(cs.isCollectionExist(newCLName), " the newCLName is " + newCLName);
-            Assert.assertFalse(cs.isCollectionExist(clName), " the oldCLName is " + clName);
+            Assert.assertTrue( cs.isCollectionExist( newCLName ),
+                    " the newCLName is " + newCLName );
+            Assert.assertFalse( cs.isCollectionExist( clName ),
+                    " the oldCLName is " + clName );
             clName = newCLName;
         }
     }
@@ -71,9 +76,9 @@ public class RenameCL16548 extends SdbTestBase {
     @AfterClass()
     public void tearDown() {
         try {
-            cs.dropCollection(newCLName);
+            cs.dropCollection( newCLName );
         } finally {
-            if (sdb != null)
+            if ( sdb != null )
                 sdb.close();
         }
     }

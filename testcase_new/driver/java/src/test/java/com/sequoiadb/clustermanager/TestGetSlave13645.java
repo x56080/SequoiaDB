@@ -25,16 +25,16 @@ import static org.testng.AssertJUnit.assertTrue;
  */
 public class TestGetSlave13645 extends SdbTestBase {
     private Sequoiadb db;
-    private List<String> groupnames = new ArrayList<>(10);
+    private List< String > groupnames = new ArrayList<>( 10 );
 
     @BeforeClass
     public void setup() {
-        db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         DBCursor cursor = db.listReplicaGroups();
-        while (cursor.hasNext()) {
+        while ( cursor.hasNext() ) {
             BSONObject object = cursor.getNext();
-            String name = object.get("GroupName").toString();
-            groupnames.add(name);
+            String name = object.get( "GroupName" ).toString();
+            groupnames.add( name );
         }
     }
 
@@ -45,70 +45,73 @@ public class TestGetSlave13645 extends SdbTestBase {
 
     @Test
     public void test() {
-        for (String groupname : groupnames) {
-            if (groupname.equals("SYSCoord")) continue;
-            ReplicaGroup rg = db.getReplicaGroup(groupname);
+        for ( String groupname : groupnames ) {
+            if ( groupname.equals( "SYSCoord" ) )
+                continue;
+            ReplicaGroup rg = db.getReplicaGroup( groupname );
             boolean isSingleNode = false;
-            if (getRgNodeNum(rg) == 1) {
+            if ( getRgNodeNum( rg ) == 1 ) {
                 isSingleNode = true;
             }
 
-            //test normal
+            // test normal
             Node node = rg.getSlave();
-            if (isSingleNode)
-                assertTrue(isMaster(rg, node));
+            if ( isSingleNode )
+                assertTrue( isMaster( rg, node ) );
             else
-                assertFalse(isMaster(rg, node));
+                assertFalse( isMaster( rg, node ) );
 
-            //test 1~7
-            node = rg.getSlave(1, 2, 3, 4, 5, 6, 7);
-            if (isSingleNode)
-                assertTrue(isMaster(rg, node));
+            // test 1~7
+            node = rg.getSlave( 1, 2, 3, 4, 5, 6, 7 );
+            if ( isSingleNode )
+                assertTrue( isMaster( rg, node ) );
             else
-                assertFalse(isMaster(rg, node));
+                assertFalse( isMaster( rg, node ) );
 
-            //test 1
-            node = rg.getSlave(1);
-            assertNotNull(node);
+            // test 1
+            node = rg.getSlave( 1 );
+            assertNotNull( node );
 
-            //test 1 2 7
-            node = rg.getSlave(1, 2, 7);
-            if (isSingleNode)
-                assertTrue(isMaster(rg, node));
+            // test 1 2 7
+            node = rg.getSlave( 1, 2, 7 );
+            if ( isSingleNode )
+                assertTrue( isMaster( rg, node ) );
             else
-                assertFalse(isMaster(rg, node));
+                assertFalse( isMaster( rg, node ) );
 
-            //test 8
+            // test 8
             try {
-                rg.getSlave(8);
-            } catch (BaseException e) {
-                if (e.getErrorCode() != SDBError.SDB_INVALIDARG.getErrorCode())
+                rg.getSlave( 8 );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_INVALIDARG
+                        .getErrorCode() )
                     throw e;
             }
 
-            //test 1,2,3,4,5,6,7,8
+            // test 1,2,3,4,5,6,7,8
             try {
-                rg.getSlave(1, 2, 3, 4, 5, 6, 7, 8);
-            } catch (BaseException e) {
-                if (e.getErrorCode() != SDBError.SDB_INVALIDARG.getErrorCode())
+                rg.getSlave( 1, 2, 3, 4, 5, 6, 7, 8 );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_INVALIDARG
+                        .getErrorCode() )
                     throw e;
             }
 
         }
     }
 
-    private boolean isMaster(ReplicaGroup rg, Node node) {
+    private boolean isMaster( ReplicaGroup rg, Node node ) {
         Node master = rg.getMaster();
-        return master.getNodeName().equals(node.getNodeName())
-                && master.getHostName().equals(node.getHostName())
+        return master.getNodeName().equals( node.getNodeName() )
+                && master.getHostName().equals( node.getHostName() )
                 && master.getNodeId() == node.getNodeId()
                 && master.getPort() == node.getPort() ? true : false;
 
     }
 
-    private int getRgNodeNum(ReplicaGroup rg) {
+    private int getRgNodeNum( ReplicaGroup rg ) {
         BSONObject object = rg.getDetail();
-        BasicBSONList list = (BasicBSONList) object.get("Group");
+        BasicBSONList list = ( BasicBSONList ) object.get( "Group" );
         return list.size();
     }
 }

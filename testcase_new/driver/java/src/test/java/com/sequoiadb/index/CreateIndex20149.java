@@ -28,65 +28,74 @@ public class CreateIndex20149 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        cl = cs.createCollection(clName);
+        cl = cs.createCollection( clName );
     }
 
     @Test
     public void test() {
         // test: a is not null
-        cl.insert(new BasicBSONObject("a", 1));
-        cl.createIndex(indexName, new BasicBSONObject("a", 1), new BasicBSONObject("NotNull", true));
-        Assert.assertEquals(cl.getCount(), 1);
-        cl.dropIndex(indexName);
+        cl.insert( new BasicBSONObject( "a", 1 ) );
+        cl.createIndex( indexName, new BasicBSONObject( "a", 1 ),
+                new BasicBSONObject( "NotNull", true ) );
+        Assert.assertEquals( cl.getCount(), 1 );
+        cl.dropIndex( indexName );
         cl.truncate();
 
         // test: a is null
-        cl.insert(new BasicBSONObject("a", null));
+        cl.insert( new BasicBSONObject( "a", null ) );
         try {
-            cl.createIndex(indexName, new BasicBSONObject("a", 1), new BasicBSONObject("NotNull", true));
-            Assert.fail("index key is null, create index, expect fail but success.");
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -339) {
+            cl.createIndex( indexName, new BasicBSONObject( "a", 1 ),
+                    new BasicBSONObject( "NotNull", true ) );
+            Assert.fail(
+                    "index key is null, create index, expect fail but success." );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -339 ) {
                 throw e;
             }
         }
-        cl.createIndex(indexName, new BasicBSONObject("a", 1), new BasicBSONObject("NotNull", false));
-        Assert.assertEquals(cl.getCount(), 1);
-        cl.dropIndex(indexName);
+        cl.createIndex( indexName, new BasicBSONObject( "a", 1 ),
+                new BasicBSONObject( "NotNull", false ) );
+        Assert.assertEquals( cl.getCount(), 1 );
+        cl.dropIndex( indexName );
         cl.truncate();
 
         // test: a does not exist
-        cl.insert(new BasicBSONObject("b", 1));
+        cl.insert( new BasicBSONObject( "b", 1 ) );
         try {
-            cl.createIndex(indexName, new BasicBSONObject("a", 1), new BasicBSONObject("NotNull", true));
-            Assert.fail("index key does not exist, create index, expect fail but success.");
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -339) {
+            cl.createIndex( indexName, new BasicBSONObject( "a", 1 ),
+                    new BasicBSONObject( "NotNull", true ) );
+            Assert.fail(
+                    "index key does not exist, create index, expect fail but success." );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -339 ) {
                 throw e;
             }
         }
-        cl.createIndex(indexName, new BasicBSONObject("a", 1), new BasicBSONObject("NotNull", false));
-        Assert.assertEquals(cl.getCount(), 1);
-        cl.dropIndex(indexName);
+        cl.createIndex( indexName, new BasicBSONObject( "a", 1 ),
+                new BasicBSONObject( "NotNull", false ) );
+        Assert.assertEquals( cl.getCount(), 1 );
+        cl.dropIndex( indexName );
         cl.truncate();
 
         // test: old function
-        cl.createIndex(indexName, new BasicBSONObject("a", 1), true, true, 1024);
-        cl.insert(new BasicBSONObject("a", 1));
+        cl.createIndex( indexName, new BasicBSONObject( "a", 1 ), true, true,
+                1024 );
+        cl.insert( new BasicBSONObject( "a", 1 ) );
         try {
-            cl.insert(new BasicBSONObject("a", 1));
-            Assert.fail("enforced index, insert duplicate index key, expect fail but success.");
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -38) {
+            cl.insert( new BasicBSONObject( "a", 1 ) );
+            Assert.fail(
+                    "enforced index, insert duplicate index key, expect fail but success." );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -38 ) {
                 throw e;
             }
         }
-        Assert.assertEquals(cl.getCount(), 1);
+        Assert.assertEquals( cl.getCount(), 1 );
 
         runSuccess = true;
     }
@@ -94,8 +103,8 @@ public class CreateIndex20149 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            if (runSuccess) {
-                cs.dropCollection(clName);
+            if ( runSuccess ) {
+                cs.dropCollection( clName );
             }
         } finally {
             sdb.close();

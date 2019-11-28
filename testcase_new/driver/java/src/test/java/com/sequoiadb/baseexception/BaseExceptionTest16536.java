@@ -31,10 +31,10 @@ public class BaseExceptionTest16536 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         this.coordAddr = SdbTestBase.coordUrl;
-        this.sdb = new Sequoiadb(this.coordAddr, "", "");
-        this.cs = this.sdb.getCollectionSpace(SdbTestBase.csName);
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("run mode is standalone,test case skip");
+        this.sdb = new Sequoiadb( this.coordAddr, "", "" );
+        this.cs = this.sdb.getCollectionSpace( SdbTestBase.csName );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "run mode is standalone,test case skip" );
         }
     }
 
@@ -42,32 +42,41 @@ public class BaseExceptionTest16536 extends SdbTestBase {
     public void test() {
         // getCollection
         try {
-            this.cs.getCollection(clName);
-            Assert.fail("exp fail but act success");
-        } catch (BaseException e) {
-            Assert.assertEquals(SDBError.SDB_DMS_NOTEXIST.getErrorCode(), e.getErrorCode());
+            this.cs.getCollection( clName );
+            Assert.fail( "exp fail but act success" );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( SDBError.SDB_DMS_NOTEXIST.getErrorCode(),
+                    e.getErrorCode() );
             Assert.assertEquals(
-                    "{ \"errno\" : " + SDBError.SDB_DMS_NOTEXIST.getErrorCode() + " , \"description\" : \""
-                            + SDBError.SDB_DMS_NOTEXIST.getErrorDescription() + "\" , \"detail\" : \"\" }",
-                    e.getErrorObject().toString());
+                    "{ \"errno\" : " + SDBError.SDB_DMS_NOTEXIST.getErrorCode()
+                            + " , \"description\" : \""
+                            + SDBError.SDB_DMS_NOTEXIST.getErrorDescription()
+                            + "\" , \"detail\" : \"\" }",
+                    e.getErrorObject().toString() );
         }
 
         // dropCollection
         try {
-            this.cs.dropCollection(clName);
-            Assert.fail("exp fail but act success");
-        } catch (BaseException e) {
+            this.cs.dropCollection( clName );
+            Assert.fail( "exp fail but act success" );
+        } catch ( BaseException e ) {
             BSONObject errObject = e.getErrorObject();
-            Assert.assertEquals(errObject.get("errno"), SDBError.SDB_DMS_NOTEXIST.getErrorCode());
-            Assert.assertEquals(errObject.get("description").toString(),
-                    SDBError.SDB_DMS_NOTEXIST.getErrorDescription());
-            ReplicaGroup rg = this.sdb.getReplicaGroup("SYSCatalogGroup");
-            String expected = "[{ \"NodeName\" : \"" + rg.getMaster().getNodeName()
+            Assert.assertEquals( errObject.get( "errno" ),
+                    SDBError.SDB_DMS_NOTEXIST.getErrorCode() );
+            Assert.assertEquals( errObject.get( "description" ).toString(),
+                    SDBError.SDB_DMS_NOTEXIST.getErrorDescription() );
+            ReplicaGroup rg = this.sdb.getReplicaGroup( "SYSCatalogGroup" );
+            String expected = "[{ \"NodeName\" : \""
+                    + rg.getMaster().getNodeName()
                     + "\" , \"GroupName\" : \"SYSCatalogGroup\" , \"Flag\" : "
-                    + SDBError.SDB_DMS_NOTEXIST.getErrorCode() + " , \"ErrInfo\" : { \"errno\" : "
-                    + SDBError.SDB_DMS_NOTEXIST.getErrorCode() + " , \"description\" : \""
-                    + SDBError.SDB_DMS_NOTEXIST.getErrorDescription() + "\" , \"detail\" : \"\" } }]";
-            Assert.assertEquals(errObject.get("ErrNodes").toString(), expected);
+                    + SDBError.SDB_DMS_NOTEXIST.getErrorCode()
+                    + " , \"ErrInfo\" : { \"errno\" : "
+                    + SDBError.SDB_DMS_NOTEXIST.getErrorCode()
+                    + " , \"description\" : \""
+                    + SDBError.SDB_DMS_NOTEXIST.getErrorDescription()
+                    + "\" , \"detail\" : \"\" } }]";
+            Assert.assertEquals( errObject.get( "ErrNodes" ).toString(),
+                    expected );
         }
     }
 

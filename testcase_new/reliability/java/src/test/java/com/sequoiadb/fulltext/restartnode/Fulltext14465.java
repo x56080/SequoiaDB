@@ -34,62 +34,68 @@ public class Fulltext14465 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private GroupMgr groupMgr = null;
     private String groupName = "";
-    private List<String> cappedClNames = new ArrayList<String>();
-    private List<String> esIndexNames = new ArrayList<String>();
+    private List< String > cappedClNames = new ArrayList< String >();
+    private List< String > esIndexNames = new ArrayList< String >();
     private CollectionSpace cs = null;
 
     @BeforeClass
     public void setUp() throws ReliabilityException {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         groupMgr = GroupMgr.getInstance();
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("isStandAlone() TRUE, STANDALONE MODE");
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "isStandAlone() TRUE, STANDALONE MODE" );
         }
-        if (!groupMgr.checkBusiness(120)) {
-            throw new SkipException("checkBusiness() FAIL, GROUP ERROR");
+        if ( !groupMgr.checkBusiness( 120 ) ) {
+            throw new SkipException( "checkBusiness() FAIL, GROUP ERROR" );
         }
-        if (!FullTextUtils.checkAdapter()) {
-            throw new SkipException("Check adapter failed");
+        if ( !FullTextUtils.checkAdapter() ) {
+            throw new SkipException( "Check adapter failed" );
         }
-        List<String> groupNames = CommLib.getDataGroupNames(sdb);
-        groupName = groupNames.get(0);
-        cs = sdb.getCollectionSpace(csName);
-        for (int i = 0; i < 10; i++) {
-            DBCollection cl = cs.createCollection("cl_14465_" + i,
-                    (BSONObject) JSON.parse("{'Group':'" + groupName + "'}"));
-            cl.createIndex("fullTextIndex_14465_" + i, "{a:'text'}", false, false);
-            FullTextDBUtils.insertData(cl, 10000);
-            cappedClNames.add(FullTextDBUtils.getCappedName(cl, "fullTextIndex_14465_" + i));
-            esIndexNames.add(FullTextDBUtils.getESIndexName(cl, "fullTextIndex_14465_" + i));
+        List< String > groupNames = CommLib.getDataGroupNames( sdb );
+        groupName = groupNames.get( 0 );
+        cs = sdb.getCollectionSpace( csName );
+        for ( int i = 0; i < 10; i++ ) {
+            DBCollection cl = cs.createCollection( "cl_14465_" + i,
+                    ( BSONObject ) JSON
+                            .parse( "{'Group':'" + groupName + "'}" ) );
+            cl.createIndex( "fullTextIndex_14465_" + i, "{a:'text'}", false,
+                    false );
+            FullTextDBUtils.insertData( cl, 10000 );
+            cappedClNames.add( FullTextDBUtils.getCappedName( cl,
+                    "fullTextIndex_14465_" + i ) );
+            esIndexNames.add( FullTextDBUtils.getESIndexName( cl,
+                    "fullTextIndex_14465_" + i ) );
         }
     }
 
     @Test
     public void Test() throws Exception {
-        NodeWrapper node = groupMgr.getGroupByName(groupName).getSlave();
-        FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask(node, 1, 10);
-        TaskMgr taskMgr = new TaskMgr(faultMakeTask);
-        taskMgr.addTask(new InsertTask());
-        taskMgr.addTask(new DropIndexTask());
+        NodeWrapper node = groupMgr.getGroupByName( groupName ).getSlave();
+        FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask( node, 1,
+                10 );
+        TaskMgr taskMgr = new TaskMgr( faultMakeTask );
+        taskMgr.addTask( new InsertTask() );
+        taskMgr.addTask( new DropIndexTask() );
         taskMgr.execute();
 
-        Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
-        Assert.assertTrue(groupMgr.checkBusinessWithLSN(600));
-        Assert.assertTrue(FullTextUtils.checkAdapter());
+        Assert.assertTrue( taskMgr.isAllSuccess(), taskMgr.getErrorMsg() );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 600 ) );
+        Assert.assertTrue( FullTextUtils.checkAdapter() );
 
-        for (int i = 0; i < 10; i++) {
-            DBCollection cl = cs.getCollection("cl_14465_" + i);
-            Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexNames.get(i), cappedClNames.get(i)));
-            Assert.assertTrue(FullTextUtils.isCLConsistency(cl));
-            Assert.assertTrue(FullTextUtils.isCLDataConsistency(cl));
+        for ( int i = 0; i < 10; i++ ) {
+            DBCollection cl = cs.getCollection( "cl_14465_" + i );
+            Assert.assertTrue( FullTextUtils.isIndexDeleted( sdb,
+                    esIndexNames.get( i ), cappedClNames.get( i ) ) );
+            Assert.assertTrue( FullTextUtils.isCLConsistency( cl ) );
+            Assert.assertTrue( FullTextUtils.isCLDataConsistency( cl ) );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            for (int i = 0; i < 10; i++) {
-                cs.dropCollection("cl_14465_" + i);
+            for ( int i = 0; i < 10; i++ ) {
+                cs.dropCollection( "cl_14465_" + i );
             }
         } finally {
             sdb.close();
@@ -101,11 +107,12 @@ public class Fulltext14465 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             try {
-                for (int i = 0; i < 10; i++) {
-                    DBCollection cl = db.getCollectionSpace(csName).getCollection("cl_14465_" + i);
-                    FullTextDBUtils.insertData(cl, 10000);
+                for ( int i = 0; i < 10; i++ ) {
+                    DBCollection cl = db.getCollectionSpace( csName )
+                            .getCollection( "cl_14465_" + i );
+                    FullTextDBUtils.insertData( cl, 10000 );
                 }
             } finally {
                 db.close();
@@ -118,10 +125,12 @@ public class Fulltext14465 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            for (int i = 0; i < 10; i++) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection("cl_14465_" + i);
-                FullTextDBUtils.dropFullTextIndex(cl, "fullTextIndex_14465_" + i);
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            for ( int i = 0; i < 10; i++ ) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( "cl_14465_" + i );
+                FullTextDBUtils.dropFullTextIndex( cl,
+                        "fullTextIndex_14465_" + i );
             }
             db.close();
         }

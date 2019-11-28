@@ -49,53 +49,60 @@ public class LobSubCL19062 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() throws ReliabilityException {
-        System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+        System.out.println( "the TestCase Name:" + this.getClass().getName()
+                + ". the TestCase begin at:"
+                + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                        .format( new Date() ) );
         groupMgr = GroupMgr.getInstance();
 
         // CheckBusiness(true),检测当前集群环境，若存在异常返回false，
-        if (!groupMgr.checkBusinessWithLSN(120)) {
-            throw new SkipException("checkBusinessWithLSN return false");
+        if ( !groupMgr.checkBusinessWithLSN( 120 ) ) {
+            throw new SkipException( "checkBusinessWithLSN return false" );
         }
 
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (sdb.isCollectionSpaceExist(csName)) {
-            sdb.dropCollectionSpace(csName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.dropCollectionSpace( csName );
         }
         mainCL = createMainCL();
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        for (int i = 0; i < clNum; i++) {
-            cs.createCollection(subCLName + "_" + i);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        for ( int i = 0; i < clNum; i++ ) {
+            cs.createCollection( subCLName + "_" + i );
         }
-        lobBuff = LobUtil.getRandomBytes(writeLobSize);
+        lobBuff = LobUtil.getRandomBytes( writeLobSize );
     }
 
     @Test
     public void test() throws ReliabilityException {
-        GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
+        GroupWrapper cataGroup = groupMgr.getGroupByName( "SYSCatalogGroup" );
         NodeWrapper cataMaster = cataGroup.getMaster();
 
-        safeCoordUrl = CommLib.getSafeCoordUrl(cataMaster.hostName());
+        safeCoordUrl = CommLib.getSafeCoordUrl( cataMaster.hostName() );
 
         // 建立并行任务
-        FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(cataMaster.hostName(), 0, 10);
-        TaskMgr mgr = new TaskMgr(faultTask);
+        FaultMakeTask faultTask = BrokenNetwork
+                .getFaultMakeTask( cataMaster.hostName(), 0, 10 );
+        TaskMgr mgr = new TaskMgr( faultTask );
 
         AttachCL attchCLTask = new AttachCL();
-        mgr.addTask(attchCLTask);
+        mgr.addTask( attchCLTask );
         mgr.execute();
 
-        Assert.assertTrue(mgr.isAllSuccess(), mgr.getErrorMsg());
-        Assert.assertTrue(groupMgr.checkBusinessWithLSN(120));
+        Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ) );
 
         redoAttachCL();
-        List<ObjectId> lobIds = new ArrayList<ObjectId>();
+        List< ObjectId > lobIds = new ArrayList< ObjectId >();
         // 插入lob时有可能其他连接会刷新catalogInfo，重试一次插入
-        lobIds.addAll(LobUtil.createAndWriteLob(mainCL, lobBuff, "YYYYMMDD", 25, 1, "20190101"));
-        lobIds.addAll(LobUtil.createAndWriteLob(mainCL, lobBuff, "YYYYMMDD", 25, 1, "20190201"));
-        lobIds.addAll(LobUtil.createAndWriteLob(mainCL, lobBuff, "YYYYMMDD", 25, 1, "20190301"));
-        lobIds.addAll(LobUtil.createAndWriteLob(mainCL, lobBuff, "YYYYMMDD", 25, 1, "20190401"));
-        LobUtil.checkLobMD5(mainCL, lobIds, lobBuff);
+        lobIds.addAll( LobUtil.createAndWriteLob( mainCL, lobBuff, "YYYYMMDD",
+                25, 1, "20190101" ) );
+        lobIds.addAll( LobUtil.createAndWriteLob( mainCL, lobBuff, "YYYYMMDD",
+                25, 1, "20190201" ) );
+        lobIds.addAll( LobUtil.createAndWriteLob( mainCL, lobBuff, "YYYYMMDD",
+                25, 1, "20190301" ) );
+        lobIds.addAll( LobUtil.createAndWriteLob( mainCL, lobBuff, "YYYYMMDD",
+                25, 1, "20190401" ) );
+        LobUtil.checkLobMD5( mainCL, lobIds, lobBuff );
 
         sdb.sync();
     }
@@ -103,9 +110,9 @@ public class LobSubCL19062 extends SdbTestBase {
     @AfterClass
     public void tearDown() throws Exception {
         try {
-            CommLib.cleanCS(sdb, csName);
+            CommLib.cleanCS( sdb, csName );
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -115,35 +122,39 @@ public class LobSubCL19062 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(safeCoordUrl, "", "")) {
-                DBCollection mainCL = db.getCollectionSpace(csName).getCollection(mainCLName);
+            try ( Sequoiadb db = new Sequoiadb( safeCoordUrl, "", "" )) {
+                DBCollection mainCL = db.getCollectionSpace( csName )
+                        .getCollection( mainCLName );
                 int date = 20190101;
                 int k = 0;
-                for (int i = 0; i < clNum; i++) {
-                    if (i != 0 && i % 25 == 0) {
+                for ( int i = 0; i < clNum; i++ ) {
+                    if ( i != 0 && i % 25 == 0 ) {
                         date = date + 100;
                         k = 0;
                     }
                     BSONObject bound = new BasicBSONObject();
-                    bound.put("LowBound", new BasicBSONObject("date", (date + k) + ""));
-                    bound.put("UpBound", new BasicBSONObject("date", (date + 1 + k) + ""));
-                    mainCL.attachCollection(csName + "." + subCLName + "_" + i, bound);
+                    bound.put( "LowBound",
+                            new BasicBSONObject( "date", ( date + k ) + "" ) );
+                    bound.put( "UpBound", new BasicBSONObject( "date",
+                            ( date + 1 + k ) + "" ) );
+                    mainCL.attachCollection( csName + "." + subCLName + "_" + i,
+                            bound );
                     k++;
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
                 e.printStackTrace();
             }
         }
     }
 
     private DBCollection createMainCL() {
-        CollectionSpace cs = sdb.createCollectionSpace(csName);
+        CollectionSpace cs = sdb.createCollectionSpace( csName );
         BSONObject options = new BasicBSONObject();
-        options.put("IsMainCL", true);
-        options.put("ShardingKey", new BasicBSONObject("date", 1));
-        options.put("ShardingType", "range");
-        options.put("LobShardingKeyFormat", "YYYYMMDD");
-        DBCollection mainCL = cs.createCollection(mainCLName, options);
+        options.put( "IsMainCL", true );
+        options.put( "ShardingKey", new BasicBSONObject( "date", 1 ) );
+        options.put( "ShardingType", "range" );
+        options.put( "LobShardingKeyFormat", "YYYYMMDD" );
+        DBCollection mainCL = cs.createCollection( mainCLName, options );
 
         return mainCL;
     }
@@ -151,18 +162,21 @@ public class LobSubCL19062 extends SdbTestBase {
     private void redoAttachCL() {
         int k = 0;
         int date = 20190101;
-        for (int i = 0; i < clNum; i++) {
+        for ( int i = 0; i < clNum; i++ ) {
             try {
-                if (i != 0 && i % 25 == 0) {
+                if ( i != 0 && i % 25 == 0 ) {
                     date = date + 100;
                     k = 0;
                 }
                 BSONObject bound = new BasicBSONObject();
-                bound.put("LowBound", new BasicBSONObject("date", (date + k) + ""));
-                bound.put("UpBound", new BasicBSONObject("date", (date + 1 + k) + ""));
-                mainCL.attachCollection(csName + "." + subCLName + "_" + i, bound);
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -235) {
+                bound.put( "LowBound",
+                        new BasicBSONObject( "date", ( date + k ) + "" ) );
+                bound.put( "UpBound",
+                        new BasicBSONObject( "date", ( date + 1 + k ) + "" ) );
+                mainCL.attachCollection( csName + "." + subCLName + "_" + i,
+                        bound );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -235 ) {
                     e.printStackTrace();
                     throw e;
                 }

@@ -1,6 +1,5 @@
 package com.sequoias3.object;
 
-
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
@@ -34,56 +33,62 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class PutObjectWithReStartS3N16468 extends S3TestBase {
     private boolean runSuccess = false;
     private AmazonS3 s3Client = null;
-    private int fileSize = 1024 * new Random().nextInt(1025);
+    private int fileSize = 1024 * new Random().nextInt( 1025 );
     private int objectNums = 100;
     private String filePath = null;
     private String bucketName = "bucket16468";
     private String objectNameBase = "PutObject16468";
-    private List<String> objectNames = new ArrayList<String>();
-    private List<String> objectNameList = new CopyOnWriteArrayList<String>();
+    private List< String > objectNames = new ArrayList< String >();
+    private List< String > objectNameList = new CopyOnWriteArrayList< String >();
     private File localPath = null;
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        filePath = localPath + File.separator + "localFile_" + (fileSize + 100) + ".txt";
-        TestTools.LocalFile.createFile(filePath);
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        filePath = localPath + File.separator + "localFile_"
+                + ( fileSize + 100 ) + ".txt";
+        TestTools.LocalFile.createFile( filePath );
         s3Client = CommLibS3.buildS3Client();
-        CommLibS3.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        for (int i = 0; i < objectNums; i++) {
-            objectNames.add(objectNameBase + "_" + i + "_" + TestTools.getRandomString(1));
+        CommLibS3.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        for ( int i = 0; i < objectNums; i++ ) {
+            objectNames.add( objectNameBase + "_" + i + "_"
+                    + TestTools.getRandomString( 1 ) );
         }
     }
 
     @Test
     public void test() throws Exception {
-        //restart s3
-        FaultMakeTask faultMakeTask = S3NodeRestart.getFaultMakeTask(new S3NodeWrapper(), 1, 10);
-        TaskMgr mgr = new TaskMgr(faultMakeTask);
-        for (int i = 0; i < objectNums; i++) {
-            mgr.addTask(new PutObject(objectNames.get(i), filePath));
+        // restart s3
+        FaultMakeTask faultMakeTask = S3NodeRestart
+                .getFaultMakeTask( new S3NodeWrapper(), 1, 10 );
+        TaskMgr mgr = new TaskMgr( faultMakeTask );
+        for ( int i = 0; i < objectNums; i++ ) {
+            mgr.addTask( new PutObject( objectNames.get( i ), filePath ) );
         }
         mgr.execute();
         mgr.isAllSuccess();
 
-        //检查故障前创建成功的对象
-        for (String objectName : objectNameList) {
-           s3Client.putObject(bucketName, objectName, new File(filePath));
+        // 检查故障前创建成功的对象
+        for ( String objectName : objectNameList ) {
+            s3Client.putObject( bucketName, objectName, new File( filePath ) );
         }
-        //故障恢复后，重新创建对象
-        objectNames.removeAll(objectNameList);
+        // 故障恢复后，重新创建对象
+        objectNames.removeAll( objectNameList );
         s3Client = CommLibS3.buildS3Client();
-        for (String objectName : objectNames) {
-            PutObjectResult obj = s3Client.putObject(bucketName, objectName, new File(filePath));
+        for ( String objectName : objectNames ) {
+            PutObjectResult obj = s3Client.putObject( bucketName, objectName,
+                    new File( filePath ) );
         }
-        //随机检查故障恢复后创建的对象
-        if (!objectNames.isEmpty()) {
-            int index = new Random().nextInt(objectNames.size());
-            S3Object s3Object = s3Client.getObject(new GetObjectRequest(bucketName, objectNames.get(index)));
-            chectGetResult(s3Object, objectNames.get(index),filePath);
+        // 随机检查故障恢复后创建的对象
+        if ( !objectNames.isEmpty() ) {
+            int index = new Random().nextInt( objectNames.size() );
+            S3Object s3Object = s3Client.getObject( new GetObjectRequest(
+                    bucketName, objectNames.get( index ) ) );
+            chectGetResult( s3Object, objectNames.get( index ), filePath );
         }
         runSuccess = true;
     }
@@ -91,12 +96,12 @@ public class PutObjectWithReStartS3N16468 extends S3TestBase {
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if (runSuccess) {
-                CommLibS3.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLibS3.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }
@@ -106,7 +111,7 @@ public class PutObjectWithReStartS3N16468 extends S3TestBase {
         private String objectName = null;
         private String filePath = null;
 
-        public PutObject(String objectName, String filePath) {
+        public PutObject( String objectName, String filePath ) {
             this.objectName = objectName;
             this.filePath = filePath;
         }
@@ -114,35 +119,41 @@ public class PutObjectWithReStartS3N16468 extends S3TestBase {
         @Override
         public void exec() throws Exception {
             try {
-                s3Client.putObject(bucketName, this.objectName, new File(filePath));
-                objectNameList.add(this.objectName);
-            } catch (AmazonS3Exception e) {
-                if (e.getStatusCode() != 500) {
-                    throw new Exception("bucketName = " + bucketName + ",objectName = "
-                        + objectName, e);
+                s3Client.putObject( bucketName, this.objectName,
+                        new File( filePath ) );
+                objectNameList.add( this.objectName );
+            } catch ( AmazonS3Exception e ) {
+                if ( e.getStatusCode() != 500 ) {
+                    throw new Exception( "bucketName = " + bucketName
+                            + ",objectName = " + objectName, e );
                 }
-            }catch (SdkClientException e){
-                if(!e.getMessage().contains("Unable to execute HTTP request")){
+            } catch ( SdkClientException e ) {
+                if ( !e.getMessage()
+                        .contains( "Unable to execute HTTP request" ) ) {
                     throw e;
                 }
             }
         }
     }
 
-    private void chectGetResult(S3Object object, String objectName, String filePath) throws Exception {
-        Assert.assertEquals(object.getKey(), objectName);
-        Assert.assertEquals(object.getBucketName(), bucketName);
+    private void chectGetResult( S3Object object, String objectName,
+            String filePath ) throws Exception {
+        Assert.assertEquals( object.getKey(), objectName );
+        Assert.assertEquals( object.getBucketName(), bucketName );
         ObjectMetadata objectMetadata = object.getObjectMetadata();
-        Assert.assertEquals(objectMetadata.getETag(), TestTools.getMD5(filePath));
+        Assert.assertEquals( objectMetadata.getETag(),
+                TestTools.getMD5( filePath ) );
         S3ObjectInputStream s3InputStream = null;
         try {
             s3InputStream = object.getObjectContent();
-            String downloadPath = TestTools.LocalFile.initDownloadPath(localPath, TestTools.getMethodName(),
-                    Thread.currentThread().getId());
-            ObjectUtils.inputStream2File(s3InputStream, downloadPath);
-            Assert.assertEquals(TestTools.getMD5(downloadPath), TestTools.getMD5(filePath));
+            String downloadPath = TestTools.LocalFile.initDownloadPath(
+                    localPath, TestTools.getMethodName(),
+                    Thread.currentThread().getId() );
+            ObjectUtils.inputStream2File( s3InputStream, downloadPath );
+            Assert.assertEquals( TestTools.getMD5( downloadPath ),
+                    TestTools.getMD5( filePath ) );
         } finally {
-            if (s3InputStream != null) {
+            if ( s3InputStream != null ) {
                 s3InputStream.close();
             }
         }

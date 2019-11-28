@@ -35,116 +35,123 @@ import com.sequoias3.commlibs3.s3utils.PartUploadUtils;
  * @version 1.00
  */
 public class ListPartsWithKillCoord18789 extends S3TestBase {
-	private GroupMgr groupMgr = null;
-	private String bucketName = "bucket18789";
-	private String keyName = "key18789";
-	private AmazonS3 s3Client = null;
-	private GroupWrapper coordGroup = null;
-	private long fileSize = 400 * 1024 * 1024;
-	private long partSize = 2 * 1024 * 1024;
-	private List<Integer> expPartNumberList = new ArrayList<>();
-	private File localPath = null;
-	private File file = null;
-	private String filePath = null;
-	private String uploadId;
-	private boolean runSuccess = false;
+    private GroupMgr groupMgr = null;
+    private String bucketName = "bucket18789";
+    private String keyName = "key18789";
+    private AmazonS3 s3Client = null;
+    private GroupWrapper coordGroup = null;
+    private long fileSize = 400 * 1024 * 1024;
+    private long partSize = 2 * 1024 * 1024;
+    private List< Integer > expPartNumberList = new ArrayList<>();
+    private File localPath = null;
+    private File file = null;
+    private String filePath = null;
+    private String uploadId;
+    private boolean runSuccess = false;
 
-	@BeforeClass
-	private void setUp() throws Exception {
-		groupMgr = GroupMgr.getInstance();
-		coordGroup = groupMgr.getGroupByName("SYSCoord");
+    @BeforeClass
+    private void setUp() throws Exception {
+        groupMgr = GroupMgr.getInstance();
+        coordGroup = groupMgr.getGroupByName( "SYSCoord" );
 
-		localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-		filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
-		TestTools.LocalFile.removeFile(localPath);
-		TestTools.LocalFile.createDir(localPath.toString());
-		TestTools.LocalFile.createFile(filePath, fileSize);
-		file = new File(filePath);
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
+        file = new File( filePath );
 
-		s3Client = CommLibS3.buildS3Client();
-		CommLibS3.clearBucket(s3Client, bucketName);
-		s3Client.createBucket(new CreateBucketRequest(bucketName));
-	}
+        s3Client = CommLibS3.buildS3Client();
+        CommLibS3.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( new CreateBucketRequest( bucketName ) );
+    }
 
-	@Test
-	public void testUploadPart() throws Exception {
-		uploadId = PartUploadUtils.initPartUpload(s3Client, bucketName, keyName);
-		PartUploadUtils.partUpload(s3Client, bucketName, keyName, uploadId, file, partSize);
-		for (int i = 0; i < fileSize / partSize; i++) {
-			expPartNumberList.add(i + 1);
-		}
+    @Test
+    public void testUploadPart() throws Exception {
+        uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
+        PartUploadUtils.partUpload( s3Client, bucketName, keyName, uploadId,
+                file, partSize );
+        for ( int i = 0; i < fileSize / partSize; i++ ) {
+            expPartNumberList.add( i + 1 );
+        }
 
-		TaskMgr mgr = new TaskMgr();
-		for (NodeWrapper node : coordGroup.getNodes()) {
-			FaultMakeTask faultTask = KillNode.getFaultMakeTask(node, 0);
-			mgr.addTask(faultTask);
-		}
+        TaskMgr mgr = new TaskMgr();
+        for ( NodeWrapper node : coordGroup.getNodes() ) {
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask( node, 0 );
+            mgr.addTask( faultTask );
+        }
 
-		ListPartsTask cTask = new ListPartsTask();
-		mgr.addTask(cTask);
-		mgr.execute();
-		Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
-		Assert.assertEquals(groupMgr.checkBusinessWithLSN(600), true, "checkBusinessWithLSN() occurs timeout");
-		listPartsAgainAndCheck();
-		runSuccess = true;
-	}
+        ListPartsTask cTask = new ListPartsTask();
+        mgr.addTask( cTask );
+        mgr.execute();
+        Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
+        Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true,
+                "checkBusinessWithLSN() occurs timeout" );
+        listPartsAgainAndCheck();
+        runSuccess = true;
+    }
 
-	@AfterClass
-	private void tearDown() throws Exception {
-		try {
-			if (runSuccess) {
-				CommLibS3.clearBucket(s3Client, bucketName);
-				TestTools.LocalFile.removeFile(localPath);
-			}
-		} finally {
-			if (s3Client != null) {
-				s3Client.shutdown();
-			}
-		}
-	}
+    @AfterClass
+    private void tearDown() throws Exception {
+        try {
+            if ( runSuccess ) {
+                CommLibS3.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
+            }
+        } finally {
+            if ( s3Client != null ) {
+                s3Client.shutdown();
+            }
+        }
+    }
 
-	private class ListPartsTask extends OperateTask {
-		@Override
-		public void exec() throws InterruptedException {
-			AmazonS3 s3Client = CommLibS3.buildS3Client();
-			try {
-				ListPartsRequest request = new ListPartsRequest(bucketName, keyName, uploadId);
-				PartListing listResult = s3Client.listParts(request);
-				List<PartSummary> listParts = listResult.getParts();
-				List<Integer> actPartNumbersList = new ArrayList<>();
-				List<String> actEtagList = new ArrayList<>();
-				for (PartSummary partNumbers : listParts) {
-					int partNumber = partNumbers.getPartNumber();
-					String etag = partNumbers.getETag();
-					actPartNumbersList.add(partNumber);
-					actEtagList.add(etag);
-				}
-				Assert.assertEquals(actPartNumbersList, expPartNumberList);
-			} catch (AmazonServiceException e) {
-				if (!e.getErrorCode().equals("GetDBConnectFail")) {
-					throw e;
-				}
-			} finally {
-				if (s3Client != null) {
-					s3Client.shutdown();
-				}
-			}
-		}
-	}
+    private class ListPartsTask extends OperateTask {
+        @Override
+        public void exec() throws InterruptedException {
+            AmazonS3 s3Client = CommLibS3.buildS3Client();
+            try {
+                ListPartsRequest request = new ListPartsRequest( bucketName,
+                        keyName, uploadId );
+                PartListing listResult = s3Client.listParts( request );
+                List< PartSummary > listParts = listResult.getParts();
+                List< Integer > actPartNumbersList = new ArrayList<>();
+                List< String > actEtagList = new ArrayList<>();
+                for ( PartSummary partNumbers : listParts ) {
+                    int partNumber = partNumbers.getPartNumber();
+                    String etag = partNumbers.getETag();
+                    actPartNumbersList.add( partNumber );
+                    actEtagList.add( etag );
+                }
+                Assert.assertEquals( actPartNumbersList, expPartNumberList );
+            } catch ( AmazonServiceException e ) {
+                if ( !e.getErrorCode().equals( "GetDBConnectFail" ) ) {
+                    throw e;
+                }
+            } finally {
+                if ( s3Client != null ) {
+                    s3Client.shutdown();
+                }
+            }
+        }
+    }
 
-	private void listPartsAgainAndCheck() throws Exception {
-		ListPartsRequest request = new ListPartsRequest(bucketName, keyName, uploadId);
-		PartListing listResult = s3Client.listParts(request);
-		List<PartSummary> listParts = listResult.getParts();
-		List<Integer> actPartNumbersList = new ArrayList<>();
-		List<String> actEtagList = new ArrayList<>();
-		for (PartSummary partNumbers : listParts) {
-			int partNumber = partNumbers.getPartNumber();
-			String etag = partNumbers.getETag();
-			actPartNumbersList.add(partNumber);
-			actEtagList.add(etag);
-		}
-		Assert.assertEquals(actPartNumbersList, expPartNumberList);
-	}
+    private void listPartsAgainAndCheck() throws Exception {
+        ListPartsRequest request = new ListPartsRequest( bucketName, keyName,
+                uploadId );
+        PartListing listResult = s3Client.listParts( request );
+        List< PartSummary > listParts = listResult.getParts();
+        List< Integer > actPartNumbersList = new ArrayList<>();
+        List< String > actEtagList = new ArrayList<>();
+        for ( PartSummary partNumbers : listParts ) {
+            int partNumber = partNumbers.getPartNumber();
+            String etag = partNumbers.getETag();
+            actPartNumbersList.add( partNumber );
+            actEtagList.add( etag );
+        }
+        Assert.assertEquals( actPartNumbersList, expPartNumberList );
+    }
 }

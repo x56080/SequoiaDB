@@ -21,65 +21,73 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @FileName:TestGetQueryMeta7092
- * getQueryMeta (BSONObject query, BSONObject orderBy, 
- *                      BSONObject hint, long skipRows, long returnRows, int flag)
+ * @FileName:TestGetQueryMeta7092 getQueryMeta (BSONObject query, BSONObject
+ *                                orderBy, BSONObject hint, long skipRows, long
+ *                                returnRows, int flag)
  * @author chensiqin
  * @version 1.00
  *
  */
 
-public class TestGetQueryMeta7092 extends SdbTestBase{
+public class TestGetQueryMeta7092 extends SdbTestBase {
     private Sequoiadb sdb;
     private CollectionSpace cs;
     private DBCollection cl;
     private String clName = "cl7092";
-    private ArrayList<BSONObject> insertRecods;
+    private ArrayList< BSONObject > insertRecods;
 
     @BeforeClass
     public void setUp() {
         String coordAddr = SdbTestBase.coordUrl;
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                    ". the TestCase begin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            this.sdb = new Sequoiadb(coordAddr, "", "");
-            this.cs = this.sdb.getCollectionSpace(SdbTestBase.csName);
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
+            this.sdb = new Sequoiadb( coordAddr, "", "" );
+            this.cs = this.sdb.getCollectionSpace( SdbTestBase.csName );
             createCL();
-        }catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestGetQueryMeta7092 setUp error, error description:" + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    "Sequoiadb driver TestGetQueryMeta7092 setUp error, error description:"
+                            + e.getMessage() );
         }
     }
-    
+
     public void createCL() {
-        if (this.cs.isCollectionExist(clName)) {
-            this.cs.dropCollection(clName);
+        if ( this.cs.isCollectionExist( clName ) ) {
+            this.cs.dropCollection( clName );
         }
-        this.cl = this.cs.createCollection(clName, (BSONObject) JSON.parse("{ShardingKey:{a:-1}}"));
-        this.cl.createIndex("ageIndex", "{\"age\":-1}", false, false);
+        this.cl = this.cs.createCollection( clName,
+                ( BSONObject ) JSON.parse( "{ShardingKey:{a:-1}}" ) );
+        this.cl.createIndex( "ageIndex", "{\"age\":-1}", false, false );
     }
-    
+
     @Test
     public void test() {
         insertData();
         checkGetQueryMeta();
     }
 
-    public void insertData(){
-        try{
+    public void insertData() {
+        try {
             BSONObject bson;
-            this.insertRecods = new ArrayList<BSONObject>();
-            for (int i = 1; i <= 100; i++) {
+            this.insertRecods = new ArrayList< BSONObject >();
+            for ( int i = 1; i <= 100; i++ ) {
                 bson = new BasicBSONObject();
-                bson.put("_id", i);
-                bson.put("a", i);
-                bson.put("name", "chensiqin" + i);
-                bson.put("age", new Random().nextInt(50));
-                bson.put("num", -i*2);
-                this.insertRecods.add(bson);
-            } 
-            this.cl.bulkInsert(this.insertRecods, DBCollection.FLG_INSERT_CONTONDUP );
-        }catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestGetQueryMeta7092 insertData error, error description:" + e.getMessage());
+                bson.put( "_id", i );
+                bson.put( "a", i );
+                bson.put( "name", "chensiqin" + i );
+                bson.put( "age", new Random().nextInt( 50 ) );
+                bson.put( "num", -i * 2 );
+                this.insertRecods.add( bson );
+            }
+            this.cl.bulkInsert( this.insertRecods,
+                    DBCollection.FLG_INSERT_CONTONDUP );
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    "Sequoiadb driver TestGetQueryMeta7092 insertData error, error description:"
+                            + e.getMessage() );
         }
     }
 
@@ -88,42 +96,50 @@ public class TestGetQueryMeta7092 extends SdbTestBase{
         BSONObject query, orderBy, hint;
         try {
             BSONObject sessionAttrObj = new BasicBSONObject();
-            sessionAttrObj.put("PreferedInstance","M");
-            sdb.setSessionAttr(sessionAttrObj);
-            query = (BSONObject) JSON.parse("{$and:[{age:{$gte:0}},{age:{$lte:100}}]}");
+            sessionAttrObj.put( "PreferedInstance", "M" );
+            sdb.setSessionAttr( sessionAttrObj );
+            query = ( BSONObject ) JSON
+                    .parse( "{$and:[{age:{$gte:0}},{age:{$lte:100}}]}" );
             orderBy = new BasicBSONObject();
-            orderBy.put("Indexblocks", 1);
-            DBCursor cursor = this.cl.getQueryMeta(query, orderBy, empty, 0, -1, 0); 
+            orderBy.put( "Indexblocks", 1 );
+            DBCursor cursor = this.cl.getQueryMeta( query, orderBy, empty, 0,
+                    -1, 0 );
             int i = 0;
-            while( cursor.hasNext() ) {
+            while ( cursor.hasNext() ) {
                 BSONObject object = cursor.getNext();
                 hint = new BasicBSONObject();
-                hint.put("Indexblocks", object.get("Indexblocks"));
-                DBCursor datacursor = cl.query(null, null, null, hint, 0, -1, 0);
-                while(datacursor.hasNext()) {
+                hint.put( "Indexblocks", object.get( "Indexblocks" ) );
+                DBCursor datacursor = cl.query( null, null, null, hint, 0, -1,
+                        0 );
+                while ( datacursor.hasNext() ) {
                     datacursor.getNext();
                     i++;
                 }
                 datacursor.close();
             }
             cursor.close();
-            Assert.assertEquals(i, 100);
-        }catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestGetQueryMeta7092 checkGetQueryMeta error:" + e.getMessage());
+            Assert.assertEquals( i, 100 );
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    "Sequoiadb driver TestGetQueryMeta7092 checkGetQueryMeta error:"
+                            + e.getMessage() );
         }
     }
-    
+
     @AfterClass
     public void tearDown() {
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                    ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            if (this.cs.isCollectionExist(clName)) {
-                this.cs.dropCollection(clName);
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
+            if ( this.cs.isCollectionExist( clName ) ) {
+                this.cs.dropCollection( clName );
             }
             this.sdb.disconnect();
-        } catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestGetQueryMeta7092 tearDown error:" + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail( "Sequoiadb driver TestGetQueryMeta7092 tearDown error:"
+                    + e.getMessage() );
         }
     }
 }

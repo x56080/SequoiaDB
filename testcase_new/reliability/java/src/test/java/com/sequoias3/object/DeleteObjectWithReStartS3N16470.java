@@ -32,62 +32,71 @@ import java.util.Random;
 public class DeleteObjectWithReStartS3N16470 extends S3TestBase {
     private boolean runSuccess = false;
     private AmazonS3 s3Client = null;
-    private int fileSize = 1024 * new Random().nextInt(1025);
+    private int fileSize = 1024 * new Random().nextInt( 1025 );
     private int objectNums = 100;
     private int versionNums = 3;
     private String filePath = null;
     private String updatePath = null;
     private String bucketName = "16470";
     private String objectNameBase = "object16470";
-    private List<String> objectNames = new ArrayList<String>();
+    private List< String > objectNames = new ArrayList< String >();
     private File localPath = null;
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        updatePath = localPath + File.separator + "localFile_" + (fileSize + 1024 * 200) + ".txt";
-        TestTools.LocalFile.createFile(filePath, fileSize);
-        TestTools.LocalFile.createFile(updatePath, fileSize + 1024 * 200);
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        updatePath = localPath + File.separator + "localFile_"
+                + ( fileSize + 1024 * 200 ) + ".txt";
+        TestTools.LocalFile.createFile( filePath, fileSize );
+        TestTools.LocalFile.createFile( updatePath, fileSize + 1024 * 200 );
         s3Client = CommLibS3.buildS3Client();
-        CommLibS3.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        CommLibS3.setBucketVersioning(s3Client, bucketName, BucketVersioningConfiguration.ENABLED);
-        for (int i = 0; i < objectNums; i++) {
-            objectNames.add(objectNameBase + "_" + i + "_" + TestTools.getRandomString(1));
-            for (int j = 0; j < versionNums; j++) {
-                s3Client.putObject(bucketName, objectNames.get(i), new File(filePath));
+        CommLibS3.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        CommLibS3.setBucketVersioning( s3Client, bucketName,
+                BucketVersioningConfiguration.ENABLED );
+        for ( int i = 0; i < objectNums; i++ ) {
+            objectNames.add( objectNameBase + "_" + i + "_"
+                    + TestTools.getRandomString( 1 ) );
+            for ( int j = 0; j < versionNums; j++ ) {
+                s3Client.putObject( bucketName, objectNames.get( i ),
+                        new File( filePath ) );
             }
         }
     }
 
     @Test
     public void test() throws Exception {
-        FaultMakeTask faultMakeTask = S3NodeRestart.getFaultMakeTask(new S3NodeWrapper(), 1, 10);
-        TaskMgr mgr = new TaskMgr(faultMakeTask);
-        for (int i = 0; i < objectNums; i++) {
-            mgr.addTask(new DeleteVersion(objectNames.get(i)));
+        FaultMakeTask faultMakeTask = S3NodeRestart
+                .getFaultMakeTask( new S3NodeWrapper(), 1, 10 );
+        TaskMgr mgr = new TaskMgr( faultMakeTask );
+        for ( int i = 0; i < objectNums; i++ ) {
+            mgr.addTask( new DeleteVersion( objectNames.get( i ) ) );
         }
         mgr.execute();
         mgr.isAllSuccess();
         // delete again
-        for (String objectName : objectNames) {
-            for (int i = 0; i < versionNums; i++) {
-                s3Client.deleteVersion(bucketName, objectName, String.valueOf(i));
+        for ( String objectName : objectNames ) {
+            for ( int i = 0; i < versionNums; i++ ) {
+                s3Client.deleteVersion( bucketName, objectName,
+                        String.valueOf( i ) );
             }
         }
-        Assert.assertEquals(s3Client.listObjectsV2(bucketName).getKeyCount(), 0);
+        Assert.assertEquals( s3Client.listObjectsV2( bucketName ).getKeyCount(),
+                0 );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLibS3.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLibS3.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();
@@ -97,21 +106,23 @@ public class DeleteObjectWithReStartS3N16470 extends S3TestBase {
     private class DeleteVersion extends OperateTask {
         private String objectName = null;
 
-        public DeleteVersion(String objectName) {
+        public DeleteVersion( String objectName ) {
             this.objectName = objectName;
         }
 
         @Override
         public void exec() throws Exception {
-            for (int i = 0; i < versionNums; i++) {
+            for ( int i = 0; i < versionNums; i++ ) {
                 try {
-                    s3Client.deleteVersion(bucketName, objectName, String.valueOf(i));
-                } catch (AmazonS3Exception e) {
-                    if (e.getStatusCode() != 500) {
+                    s3Client.deleteVersion( bucketName, objectName,
+                            String.valueOf( i ) );
+                } catch ( AmazonS3Exception e ) {
+                    if ( e.getStatusCode() != 500 ) {
                         throw e;
                     }
-                }catch (SdkClientException e){
-                    if(!e.getMessage().contains("Unable to execute HTTP request")){
+                } catch ( SdkClientException e ) {
+                    if ( !e.getMessage()
+                            .contains( "Unable to execute HTTP request" ) ) {
                         throw e;
                     }
                 }

@@ -47,41 +47,47 @@ public class SdbTestBase {
     private static final String RCAUTO = "rcauto";
     private static final String RC = "rc";
     private static final String NODENAME = "NodeName";
-    private static final Map<String, BSONObject> group2Conf = new HashMap<String, BSONObject>();
-    private static final Map<String, BSONObject> node2Conf = new HashMap<String, BSONObject>();
-    private static final Map<String, AtomicInteger> groupName2Count = new HashMap<>();
+    private static final Map< String, BSONObject > group2Conf = new HashMap< String, BSONObject >();
+    private static final Map< String, BSONObject > node2Conf = new HashMap< String, BSONObject >();
+    private static final Map< String, AtomicInteger > groupName2Count = new HashMap<>();
     private static BasicBSONObject confObj = new BasicBSONObject();
     public static String testGroupOfCurrent;
 
-    public static void setTestGroup(List<String> testGroup) {
-        if (testGroup == null || testGroup.isEmpty())
+    public static void setTestGroup( List< String > testGroup ) {
+        if ( testGroup == null || testGroup.isEmpty() )
             return;
-        SdbTestBase.testGroupOfCurrent = testGroup.get(0);
+        SdbTestBase.testGroupOfCurrent = testGroup.get( 0 );
     }
 
-    private static void getAllNodeConf(BasicBSONObject selector) {
-        try (Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-            selector.put(NODENAME, "");
+    private static void getAllNodeConf( BasicBSONObject selector ) {
+        try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" )) {
+            selector.put( NODENAME, "" );
 
-            DBCursor cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_CONFIGS, null, selector, null);
-            while (cursor.hasNext()) {
-                BasicBSONObject doc = (BasicBSONObject) cursor.getNext();
-                String key = doc.getString(NODENAME);
-                doc.remove(NODENAME);
-                node2Conf.put(key, doc);
+            DBCursor cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS, null,
+                    selector, null );
+            while ( cursor.hasNext() ) {
+                BasicBSONObject doc = ( BasicBSONObject ) cursor.getNext();
+                String key = doc.getString( NODENAME );
+                doc.remove( NODENAME );
+                node2Conf.put( key, doc );
             }
             cursor.close();
         }
     }
 
-    @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN", "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR",
-            "ROOTPASSWD", "REMOTEUSER", "REMOTEPASSWD", "SCRIPTDIR", "ESHOSTNAME", "ESSVCNAME", "FULLTEXTPREFIX",
-            "SDBSEADAPTERDIR" })
+    @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
+            "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "ROOTPASSWD", "REMOTEUSER",
+            "REMOTEPASSWD", "SCRIPTDIR", "ESHOSTNAME", "ESSVCNAME",
+            "FULLTEXTPREFIX", "SDBSEADAPTERDIR" })
     @BeforeSuite(alwaysRun = true)
-    public static void initSuite(String HOSTNAME, String SVCNAME, String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
-            String RSRVNODEDIR, String WORKDIR, String ROOTPASSWD, String REMOTEUSER, String REMOTEPASSWD,
-            String SCRIPTDIR, @Optional("localhost") String ESHOSTNAME, @Optional("9200") String ESSVCNAME,
-            @Optional("") String FULLTEXTPREFIX, @Optional("/opt/sequoiadb/conf/sdbseadapter") String SDBSEADAPTERDIR) {
+    public static void initSuite( String HOSTNAME, String SVCNAME,
+            String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
+            String RSRVNODEDIR, String WORKDIR, String ROOTPASSWD,
+            String REMOTEUSER, String REMOTEPASSWD, String SCRIPTDIR,
+            @Optional("localhost") String ESHOSTNAME,
+            @Optional("9200") String ESSVCNAME,
+            @Optional("") String FULLTEXTPREFIX,
+            @Optional("/opt/sequoiadb/conf/sdbseadapter") String SDBSEADAPTERDIR ) {
         hostName = HOSTNAME;
         serviceName = SVCNAME;
         csName = COMMCSNAME;
@@ -97,53 +103,53 @@ public class SdbTestBase {
         scriptDir = SCRIPTDIR;
         esHostName = ESHOSTNAME;
         esServiceName = ESSVCNAME;
-        FullTextUtils.setFulltextPrefix(FULLTEXTPREFIX);
+        FullTextUtils.setFulltextPrefix( FULLTEXTPREFIX );
         sdbseadapterDir = SDBSEADAPTERDIR;
 
-        getAllNodeConf(confObj);
+        getAllNodeConf( confObj );
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(coordUrl, "", "");
-            boolean ret = createCommonCS(db);
-            Assert.assertTrue(ret);
+            db = new Sequoiadb( coordUrl, "", "" );
+            boolean ret = createCommonCS( db );
+            Assert.assertTrue( ret );
             createWorkDir();
             createReserveDir();
-        } catch (BaseException e) {
-            Assert.fail("connect " + coordUrl + ": " + e.getErrorCode());
+        } catch ( BaseException e ) {
+            Assert.fail( "connect " + coordUrl + ": " + e.getErrorCode() );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
     }
 
     static {
-        group2Conf.put(RCAUTO, new BasicBSONObject());
-        group2Conf.get(RCAUTO).put(TRANSAUTOCOMMIT, true);
-        group2Conf.get(RCAUTO).put(TRANSAUTOROLLBACK, false);
+        group2Conf.put( RCAUTO, new BasicBSONObject() );
+        group2Conf.get( RCAUTO ).put( TRANSAUTOCOMMIT, true );
+        group2Conf.get( RCAUTO ).put( TRANSAUTOROLLBACK, false );
 
-        group2Conf.put(RC, new BasicBSONObject());
-        group2Conf.get(RC).put(TRANSISOLATION, 1);
-        group2Conf.get(RC).put(TRANSLOCKWAIT, false);
+        group2Conf.put( RC, new BasicBSONObject() );
+        group2Conf.get( RC ).put( TRANSISOLATION, 1 );
+        group2Conf.get( RC ).put( TRANSLOCKWAIT, false );
 
-        for (String key : group2Conf.keySet()) {
-            groupName2Count.put(key, new AtomicInteger(0));
-            for (String conf : group2Conf.get(key).keySet()) {
-                if (!confObj.containsField(conf)) {
-                    confObj.put(conf, "");
+        for ( String key : group2Conf.keySet() ) {
+            groupName2Count.put( key, new AtomicInteger( 0 ) );
+            for ( String conf : group2Conf.get( key ).keySet() ) {
+                if ( !confObj.containsField( conf ) ) {
+                    confObj.put( conf, "" );
                 }
             }
         }
     }
 
-    private static void modifyNodeConf(BSONObject cfg, BSONObject object) {
-        if (object == null) {
-            object = new BasicBSONObject().append("Global", true);
+    private static void modifyNodeConf( BSONObject cfg, BSONObject object ) {
+        if ( object == null ) {
+            object = new BasicBSONObject().append( "Global", true );
         }
 
-        try (Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-            sdb.updateConfig(cfg, object);
-        } catch (BaseException e) {
+        try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" )) {
+            sdb.updateConfig( cfg, object );
+        } catch ( BaseException e ) {
             e.printStackTrace();
             throw e;
         }
@@ -151,50 +157,53 @@ public class SdbTestBase {
 
     @BeforeTest(groups = { RC, RCAUTO })
     public static synchronized void initTestGroups() {
-        if (!groupName2Count.containsKey(testGroupOfCurrent)) {
+        if ( !groupName2Count.containsKey( testGroupOfCurrent ) ) {
             return;
         }
 
-        if (groupName2Count.get(testGroupOfCurrent).getAndIncrement() > 0) {
+        if ( groupName2Count.get( testGroupOfCurrent ).getAndIncrement() > 0 ) {
             return;
         }
-        System.out.println("init " + testGroupOfCurrent + " Groups...........");
-        modifyNodeConf(group2Conf.get(testGroupOfCurrent), null);
+        System.out
+                .println( "init " + testGroupOfCurrent + " Groups..........." );
+        modifyNodeConf( group2Conf.get( testGroupOfCurrent ), null );
     }
 
     @AfterTest(groups = { RC, RCAUTO }, alwaysRun = true)
     public static synchronized void finiTestGroups() {
-        if (!groupName2Count.containsKey(testGroupOfCurrent)) {
+        if ( !groupName2Count.containsKey( testGroupOfCurrent ) ) {
             return;
         }
 
-        if (groupName2Count.get(testGroupOfCurrent).decrementAndGet() < 0) {
+        if ( groupName2Count.get( testGroupOfCurrent ).decrementAndGet() < 0 ) {
             return;
         }
 
-        System.out.println("fini " + testGroupOfCurrent + " Groups...........");
-        for (String key : node2Conf.keySet()) {
+        System.out
+                .println( "fini " + testGroupOfCurrent + " Groups..........." );
+        for ( String key : node2Conf.keySet() ) {
             BasicBSONObject opt = new BasicBSONObject();
-            opt.put(NODENAME, key);
-            modifyNodeConf(node2Conf.get(key), opt);
+            opt.put( NODENAME, key );
+            modifyNodeConf( node2Conf.get( key ), opt );
         }
     }
 
     private static void createReserveDir() {
         try {
             GroupMgr mgr = GroupMgr.getInstance();
-            List<String> hosts = mgr.getAllHosts();
-            for (String host : hosts) {
-                Ssh ssh = new Ssh(host, "root", SdbTestBase.rootPwd);
+            List< String > hosts = mgr.getAllHosts();
+            for ( String host : hosts ) {
+                Ssh ssh = new Ssh( host, "root", SdbTestBase.rootPwd );
                 try {
-                    ssh.exec("mkdir -p " + SdbTestBase.reservedDir);
-                    ssh.exec("chown " + SdbTestBase.remoteUser + " " + SdbTestBase.reservedDir);
+                    ssh.exec( "mkdir -p " + SdbTestBase.reservedDir );
+                    ssh.exec( "chown " + SdbTestBase.remoteUser + " "
+                            + SdbTestBase.reservedDir );
                 } finally {
                     ssh.disconnect();
                 }
             }
-        } catch (ReliabilityException e) {
-            Assert.fail(e.getMessage());
+        } catch ( ReliabilityException e ) {
+            Assert.fail( e.getMessage() );
             e.printStackTrace();
         }
     }
@@ -202,59 +211,60 @@ public class SdbTestBase {
     private static void createWorkDir() {
         try {
             GroupMgr mgr = GroupMgr.getInstance();
-            List<String> hosts = mgr.getAllHosts();
-            for (String host : hosts) {
-                Ssh ssh = new Ssh(host, "root", SdbTestBase.rootPwd);
+            List< String > hosts = mgr.getAllHosts();
+            for ( String host : hosts ) {
+                Ssh ssh = new Ssh( host, "root", SdbTestBase.rootPwd );
                 try {
-                    ssh.exec("mkdir -p " + SdbTestBase.workDir);
+                    ssh.exec( "mkdir -p " + SdbTestBase.workDir );
                 } finally {
                     ssh.disconnect();
                 }
             }
-        } catch (ReliabilityException e) {
-            Assert.fail(e.getMessage());
+        } catch ( ReliabilityException e ) {
+            Assert.fail( e.getMessage() );
             e.printStackTrace();
         }
     }
 
     @AfterSuite(enabled = false)
     public static void finiSuite() {
-        System.out.println("finisuit");
+        System.out.println( "finisuit" );
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(coordUrl, "", "");
-            if (db.isCollectionSpaceExist(csName)) {
-                db.dropCollectionSpace(csName);
+            db = new Sequoiadb( coordUrl, "", "" );
+            if ( db.isCollectionSpaceExist( csName ) ) {
+                db.dropCollectionSpace( csName );
             }
 
-            if (db.isCollectionSpaceExist(cappedCSName)) {
-                db.dropCollectionSpace(cappedCSName);
+            if ( db.isCollectionSpaceExist( cappedCSName ) ) {
+                db.dropCollectionSpace( cappedCSName );
             }
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
             e.printStackTrace();
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
     }
 
-    private static boolean createCommonCS(Sequoiadb sdb) {
+    private static boolean createCommonCS( Sequoiadb sdb ) {
         boolean isCreateSuccess = true;
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
-            sdb.createCollectionSpace(csName);
+            sdb.createCollectionSpace( csName );
 
             // 创建公共的固定集合空间
-            if (sdb.isCollectionSpaceExist(cappedCSName)) {
-                sdb.dropCollectionSpace(cappedCSName);
+            if ( sdb.isCollectionSpaceExist( cappedCSName ) ) {
+                sdb.dropCollectionSpace( cappedCSName );
             }
-            sdb.createCollectionSpace(cappedCSName, (BSONObject) JSON.parse("{Capped:true}"));
-        } catch (BaseException e) {
-            System.out.printf("create CollectionSpace %s failed, errMsg:%s\n", csName + " or " + cappedCSName,
-                    e.getMessage());
+            sdb.createCollectionSpace( cappedCSName,
+                    ( BSONObject ) JSON.parse( "{Capped:true}" ) );
+        } catch ( BaseException e ) {
+            System.out.printf( "create CollectionSpace %s failed, errMsg:%s\n",
+                    csName + " or " + cappedCSName, e.getMessage() );
             isCreateSuccess = false;
         }
         return isCreateSuccess;

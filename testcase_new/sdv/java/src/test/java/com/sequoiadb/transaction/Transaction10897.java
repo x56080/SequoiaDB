@@ -27,8 +27,9 @@ public class Transaction10897 extends SdbTestBase {
 
     @BeforeClass
     private void setup() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(SdbTestBase.csName).createCollection(clName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( SdbTestBase.csName )
+                .createCollection( clName );
     }
 
     @Test
@@ -36,27 +37,29 @@ public class Transaction10897 extends SdbTestBase {
         // test commit
         try {
             sdb.beginTransaction();
-            DBCollection cl1 = sdb.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+            DBCollection cl1 = sdb.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
             BSONObject record = new BasicBSONObject();
-            record.put("a", 1);
-            cl1.insert(record);
+            record.put( "a", 1 );
+            cl1.insert( record );
 
-            for (int i = 0; i < 500; i++) {
+            for ( int i = 0; i < 500; i++ ) {
                 sdb.commit();
             }
-            CheckResult(record);
+            CheckResult( record );
 
             // test rollback
             sdb.beginTransaction();
-            DBCollection cl2 = sdb.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+            DBCollection cl2 = sdb.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
             BSONObject record2 = new BasicBSONObject();
-            record2.put("a", 2);
-            cl2.insert(record2);
+            record2.put( "a", 2 );
+            cl2.insert( record2 );
 
-            for (int i = 0; i < 500; i++) {
+            for ( int i = 0; i < 500; i++ ) {
                 sdb.rollback();
             }
-            CheckResult(record);
+            CheckResult( record );
 
         } finally {
             sdb.commit();
@@ -67,19 +70,20 @@ public class Transaction10897 extends SdbTestBase {
     @AfterClass
     private void teardown() {
         try {
-            sdb.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
+            sdb.getCollectionSpace( SdbTestBase.csName )
+                    .dropCollection( clName );
         } finally {
             sdb.close();
         }
     }
 
-    private void CheckResult(BSONObject record) {
+    private void CheckResult( BSONObject record ) {
         long expCount = 1;
         long actCount = cl.getCount();
-        Assert.assertEquals(actCount, expCount);
+        Assert.assertEquals( actCount, expCount );
         DBCursor cursor = cl.query();
-        while (cursor.hasNext()) {
-            Assert.assertEquals(cursor.getNext(), record);
+        while ( cursor.hasNext() ) {
+            Assert.assertEquals( cursor.getNext(), record );
         }
     }
 }

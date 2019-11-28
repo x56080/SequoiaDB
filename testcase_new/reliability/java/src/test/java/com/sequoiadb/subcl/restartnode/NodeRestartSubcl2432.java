@@ -47,70 +47,72 @@ public class NodeRestartSubcl2432 extends SdbTestBase {
     @BeforeClass()
     public void setUp() {
         try {
-            System.out.println(
-                    "the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                            + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
             groupMgr = GroupMgr.getInstance();
 
             // CheckBusiness(true),检测当前集群环境，若存在异常返回false，
-            if (!groupMgr.checkBusiness(20)) {
-                throw new SkipException("checkBusiness return false");
+            if ( !groupMgr.checkBusiness( 20 ) ) {
+                throw new SkipException( "checkBusiness return false" );
             }
-            subClGroupName = groupMgr.getAllDataGroupName().get(0);
+            subClGroupName = groupMgr.getAllDataGroupName().get( 0 );
 
-            commSdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            commCS = commSdb.getCollectionSpace(csName);
-            mainCL = commCS.createCollection(mainClName, (BSONObject) JSON
-                    .parse("{ShardingKey:{sk:1},ShardingType:'range',IsMainCL:true}"));
-            DBCollection cl = commCS.createCollection(mainClName + "_subcl",
-                    (BSONObject) JSON.parse("{ShardingType:'hash',ReplSize: 3,ShardingKey:{sk:1},Group:'"
-                            + subClGroupName + "'}"));
-            mainCL.attachCollection(cl.getFullName(),
-                    (BSONObject) JSON.parse("{LowBound:{sk:0},UpBound:{sk:5000}}"));
+            commSdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            commCS = commSdb.getCollectionSpace( csName );
+            mainCL = commCS.createCollection( mainClName, ( BSONObject ) JSON
+                    .parse( "{ShardingKey:{sk:1},ShardingType:'range',IsMainCL:true}" ) );
+            DBCollection cl = commCS.createCollection( mainClName + "_subcl",
+                    ( BSONObject ) JSON.parse(
+                            "{ShardingType:'hash',ReplSize: 3,ShardingKey:{sk:1},Group:'"
+                                    + subClGroupName + "'}" ) );
+            mainCL.attachCollection( cl.getFullName(), ( BSONObject ) JSON
+                    .parse( "{LowBound:{sk:0},UpBound:{sk:5000}}" ) );
             insertData();
-				Assert.assertTrue(groupMgr.getGroupByName(subClGroupName).checkInspect(120));
-        }
-        catch (ReliabilityException e) {
-            if (commSdb != null) {
+            Assert.assertTrue( groupMgr.getGroupByName( subClGroupName )
+                    .checkInspect( 120 ) );
+        } catch ( ReliabilityException e ) {
+            if ( commSdb != null ) {
                 commSdb.close();
             }
-            Assert.fail(this.getClass().getName() + " setUp error, error description:"
-                    + e.getMessage() + "\r\n" + Utils.getStackString(e));
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getStackString( e ) );
         }
     }
 
     private void insertData() {
         // 再次向主表插入数据
-        for (int i = 0; i < 5000; i++) {
-            mainCL.insert("{sk:" + i + "}");
+        for ( int i = 0; i < 5000; i++ ) {
+            mainCL.insert( "{sk:" + i + "}" );
         }
     }
 
     @Test
     public void test() {
         try {
-            GroupWrapper subCLGroup = groupMgr.getGroupByName(subClGroupName);
+            GroupWrapper subCLGroup = groupMgr.getGroupByName( subClGroupName );
             NodeWrapper subCLGroupMaster = subCLGroup.getMaster();
-            System.out.println("Restart node:" + subCLGroupMaster.hostName() + ":"
-                    + subCLGroupMaster.svcName());
+            System.out.println( "Restart node:" + subCLGroupMaster.hostName()
+                    + ":" + subCLGroupMaster.svcName() );
 
             // 建立并行任务
-            FaultMakeTask faultTask = NodeRestart.getFaultMakeTask(subCLGroupMaster, 0, 10);
-            TaskMgr mgr = new TaskMgr(faultTask);
-            mgr.addTask(new Aggregate());
+            FaultMakeTask faultTask = NodeRestart
+                    .getFaultMakeTask( subCLGroupMaster, 0, 10 );
+            TaskMgr mgr = new TaskMgr( faultTask );
+            mgr.addTask( new Aggregate() );
             mgr.execute();
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
-            Assert.assertEquals(groupMgr.checkBusinessWithLSN(120), true);
-            Assert.assertEquals(subCLGroup.checkInspect(60), true);
+            Assert.assertEquals( groupMgr.checkBusinessWithLSN( 120 ), true );
+            Assert.assertEquals( subCLGroup.checkInspect( 60 ), true );
 
             clearFlag = true;
-        }
-        catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
-        }
-        finally {
+            Assert.fail( e.getMessage() );
+        } finally {
             commSdb.closeAllCursors();
         }
 
@@ -119,56 +121,58 @@ public class NodeRestartSubcl2432 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            if (clearFlag) {
-                CollectionSpace commCS = commSdb.getCollectionSpace(csName);
-                commCS.dropCollection(mainClName);
+            if ( clearFlag ) {
+                CollectionSpace commCS = commSdb.getCollectionSpace( csName );
+                commCS.dropCollection( mainClName );
             }
-        }
-        catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getStackString(e));
-        }
-        finally {
-            if (commSdb != null) {
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
+        } finally {
+            if ( commSdb != null ) {
                 commSdb.close();
             }
-            System.out.println(
-                    "the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                            + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
         }
     }
 
     class Aggregate extends OperateTask {
         @Override
         public void exec() throws Exception {
-            Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            sdb.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'S'}"));
+            Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            sdb.setSessionAttr(
+                    ( BSONObject ) JSON.parse( "{PreferedInstance:'S'}" ) );
             DBCursor cusor = null;
             try {
-                DBCollection cl = sdb.getCollectionSpace(csName).getCollection(mainClName);
-                List<BSONObject> list = new ArrayList<BSONObject>();
-                list.add((BSONObject) JSON.parse("{$match:{sk:{$gte:1000}}}"));
-                list.add((BSONObject) JSON.parse("{$project:{sk:1}}"));
-                list.add((BSONObject) JSON.parse("{$sort:{sk:1}}"));
-                list.add((BSONObject) JSON.parse("{$limit:4000}"));
-                cusor = cl.aggregate(list);
+                DBCollection cl = sdb.getCollectionSpace( csName )
+                        .getCollection( mainClName );
+                List< BSONObject > list = new ArrayList< BSONObject >();
+                list.add( ( BSONObject ) JSON
+                        .parse( "{$match:{sk:{$gte:1000}}}" ) );
+                list.add( ( BSONObject ) JSON.parse( "{$project:{sk:1}}" ) );
+                list.add( ( BSONObject ) JSON.parse( "{$sort:{sk:1}}" ) );
+                list.add( ( BSONObject ) JSON.parse( "{$limit:4000}" ) );
+                cusor = cl.aggregate( list );
                 int count = 1000;
-                while (cusor.hasNext()) {
+                while ( cusor.hasNext() ) {
                     BSONObject actual = cusor.getNext();
-                    BSONObject expect = (BSONObject) JSON.parse("{sk:" + count + "}");
-                    if (!actual.equals(expect)) {
-                        throw new Exception("actual:" + actual + " expect:" + expect);
+                    BSONObject expect = ( BSONObject ) JSON
+                            .parse( "{sk:" + count + "}" );
+                    if ( !actual.equals( expect ) ) {
+                        throw new Exception(
+                                "actual:" + actual + " expect:" + expect );
                     }
                     count++;
                 }
-                if (count != 5000) {
-                    throw new Exception("count wrong:" + count);
+                if ( count != 5000 ) {
+                    throw new Exception( "count wrong:" + count );
                 }
-            }
-            catch (BaseException e) {
+            } catch ( BaseException e ) {
                 throw e;
-            }
-            finally {
-                if (sdb != null) {
+            } finally {
+                if ( sdb != null ) {
                     sdb.closeAllCursors();
                     sdb.close();
                 }

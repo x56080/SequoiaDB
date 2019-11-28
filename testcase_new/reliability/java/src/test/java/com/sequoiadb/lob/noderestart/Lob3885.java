@@ -47,63 +47,67 @@ public class Lob3885 extends SdbTestBase {
     private DBCollection cl;
     private int writeLobSize = 1024 * 500;
     private byte[] lobBuff;
-    private List<ObjectId> lobIds;
+    private List< ObjectId > lobIds;
 
     @BeforeClass
     public void setUp() throws ReliabilityException {
-        System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+        System.out.println( "the TestCase Name:" + this.getClass().getName()
+                + ". the TestCase begin at:"
+                + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                        .format( new Date() ) );
         groupMgr = GroupMgr.getInstance();
 
         // CheckBusiness(true),检测当前集群环境，若存在异常返回false，
-        if (!groupMgr.checkBusinessWithLSN(120)) {
-            throw new SkipException("checkBusinessWithLSN return false");
+        if ( !groupMgr.checkBusinessWithLSN( 120 ) ) {
+            throw new SkipException( "checkBusinessWithLSN return false" );
         }
-        groupName = groupMgr.getAllDataGroupName().get(0);
+        groupName = groupMgr.getAllDataGroupName().get( 0 );
 
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (sdb.isCollectionSpaceExist(csName)) {
-            sdb.dropCollectionSpace(csName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.dropCollectionSpace( csName );
         }
-        cl = sdb.createCollectionSpace(csName).createCollection(clName, new BasicBSONObject("Group", groupName));
-        lobBuff = LobUtil.getRandomBytes(writeLobSize);
-        lobIds = LobUtil.createAndWriteLob(cl, lobBuff);
+        cl = sdb.createCollectionSpace( csName ).createCollection( clName,
+                new BasicBSONObject( "Group", groupName ) );
+        lobBuff = LobUtil.getRandomBytes( writeLobSize );
+        lobIds = LobUtil.createAndWriteLob( cl, lobBuff );
 
     }
 
     @Test
     public void test() throws ReliabilityException {
-        GroupWrapper dataGroup = groupMgr.getGroupByName(groupName);
+        GroupWrapper dataGroup = groupMgr.getGroupByName( groupName );
         NodeWrapper slaveMaster = dataGroup.getSlave();
 
         // 建立并行任务
-        FaultMakeTask faultTask = NodeRestart.getFaultMakeTask(slaveMaster, 1, 10);
-        TaskMgr mgr = new TaskMgr(faultTask);
+        FaultMakeTask faultTask = NodeRestart.getFaultMakeTask( slaveMaster, 1,
+                10 );
+        TaskMgr mgr = new TaskMgr( faultTask );
 
-        mgr.addTask(new PutLob());
-        mgr.addTask(new PutLob());
-        mgr.addTask(new PutLob());
-        mgr.addTask(new ReadLob());
+        mgr.addTask( new PutLob() );
+        mgr.addTask( new PutLob() );
+        mgr.addTask( new PutLob() );
+        mgr.addTask( new ReadLob() );
         mgr.execute();
 
-        Assert.assertTrue(mgr.isAllSuccess(), mgr.getErrorMsg());
-        Assert.assertTrue(groupMgr.checkBusinessWithLSN(120));
+        Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ) );
 
-        List<ObjectId> lobIds1 = new ArrayList<ObjectId>();
+        List< ObjectId > lobIds1 = new ArrayList< ObjectId >();
         DBCursor cur = cl.listLobs();
-        while (cur.hasNext()) {
+        while ( cur.hasNext() ) {
             BSONObject lobInfo = cur.getNext();
-            ObjectId lobId = (ObjectId) lobInfo.get("Oid");
-            lobIds1.add(lobId);
+            ObjectId lobId = ( ObjectId ) lobInfo.get( "Oid" );
+            lobIds1.add( lobId );
         }
-        LobUtil.checkLobMD5(cl, lobIds1, lobBuff);
+        LobUtil.checkLobMD5( cl, lobIds1, lobBuff );
 
-        Assert.assertEquals(lobIds1.size(), 320, "check lob num");
+        Assert.assertEquals( lobIds1.size(), 320, "check lob num" );
 
-        for (ObjectId lobId : lobIds1) {
-            cl.removeLob(lobId);
+        for ( ObjectId lobId : lobIds1 ) {
+            cl.removeLob( lobId );
         }
-        checkRemoveLobResult(lobIds1);
+        checkRemoveLobResult( lobIds1 );
 
         sdb.sync();
     }
@@ -111,11 +115,11 @@ public class Lob3885 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -125,11 +129,13 @@ public class Lob3885 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection dbcl = db.getCollectionSpace(csName).getCollection(clName);
-                for (int i = 0; i < 100; i++) {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection dbcl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                for ( int i = 0; i < 100; i++ ) {
                     DBLob lob = dbcl.createLob();
-                    lob.write(lobBuff);
+                    lob.write( lobBuff );
                     lob.close();
                 }
             }
@@ -140,14 +146,17 @@ public class Lob3885 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection dbcl = db.getCollectionSpace(csName).getCollection(clName);
-                for (int i = 0; i < 5; i++) {
-                    LobUtil.checkLobMD5(dbcl, lobIds, lobBuff);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection dbcl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                for ( int i = 0; i < 5; i++ ) {
+                    LobUtil.checkLobMD5( dbcl, lobIds, lobBuff );
                 }
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -104 && e.getErrorCode() != -134 && e.getErrorCode() != -79
-                        && e.getErrorCode() != -81) {
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -104 && e.getErrorCode() != -134
+                        && e.getErrorCode() != -79
+                        && e.getErrorCode() != -81 ) {
                     e.printStackTrace();
                     throw e;
                 }
@@ -155,13 +164,14 @@ public class Lob3885 extends SdbTestBase {
         }
     }
 
-    private void checkRemoveLobResult(List<ObjectId> lobIds) {
-        for (ObjectId lobId : lobIds) {
+    private void checkRemoveLobResult( List< ObjectId > lobIds ) {
+        for ( ObjectId lobId : lobIds ) {
             try {
-                cl.openLob(lobId);
-                Assert.fail("the lob: " + lobId + " has been deleted and the read should fail");
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -4) {
+                cl.openLob( lobId );
+                Assert.fail( "the lob: " + lobId
+                        + " has been deleted and the read should fail" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -4 ) {
                     throw e;
                 }
             }

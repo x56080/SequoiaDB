@@ -28,139 +28,145 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @version 1.00
  */
 public class Sdv6662 extends SdbTestBase {
-	private Sequoiadb sdb = null;
-	private String clName = "cl6662";
-	private String dataGroupName = null;
-	private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
+    private Sequoiadb sdb = null;
+    private String clName = "cl6662";
+    private String dataGroupName = null;
+    private SimpleDateFormat sdf = new SimpleDateFormat(
+            "yyyy-MM-dd HH:mm:ss.S" );
 
-	@BeforeClass
-	public void setUp() {
-		try {
-			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage());
-		}
-		if (LzwUtils3.isStandAlone(sdb)) {
-			throw new SkipException("is standalone skip testcase");
-		}
-	}
+    @BeforeClass
+    public void setUp() {
+        try {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        }
+        if ( LzwUtils3.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
+        }
+    }
 
-	@AfterClass
-	public void tearDown() {
-		try {
-			CollectionSpace cs = sdb.getCollectionSpace(csName);
-			if (cs.isCollectionExist(clName)) {
-				cs.dropCollection(clName);
-			}
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage());
-		} finally {
-			sdb.disconnect();
-		}
-	}
+    @AfterClass
+    public void tearDown() {
+        try {
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
+            }
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        } finally {
+            sdb.disconnect();
+        }
+    }
 
-	@Test
-	public void test() {
-		try {
-			DBCollection cl = createCL();
-			boolean isUnique = false;
-			createIndex(isUnique);
-			int dataCount = 1200;
-			int strLength = 128 * 1024;
-			String rec = insertData(cl, dataCount, strLength);
-			LzwUtils3.checkCompressed(cl, dataGroupName);
-			checkQuery(dataCount, rec);
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage());
-		}
-	}
+    @Test
+    public void test() {
+        try {
+            DBCollection cl = createCL();
+            boolean isUnique = false;
+            createIndex( isUnique );
+            int dataCount = 1200;
+            int strLength = 128 * 1024;
+            String rec = insertData( cl, dataCount, strLength );
+            LzwUtils3.checkCompressed( cl, dataGroupName );
+            checkQuery( dataCount, rec );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        }
+    }
 
-	private DBCollection createCL() {
-		DBCollection cl = null;
-		BSONObject option = new BasicBSONObject();
-		try {
-			dataGroupName = LzwUtils3.getDataGroups(sdb).get(0);
-			option.put("Group", dataGroupName);
-			option.put("Compressed", true);
-			option.put("CompressionType", "lzw");
-			CollectionSpace cs = sdb.getCollectionSpace(csName);
-			cl = cs.createCollection(clName, option);
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage());
-		}
-		return cl;
-	}
+    private DBCollection createCL() {
+        DBCollection cl = null;
+        BSONObject option = new BasicBSONObject();
+        try {
+            dataGroupName = LzwUtils3.getDataGroups( sdb ).get( 0 );
+            option.put( "Group", dataGroupName );
+            option.put( "Compressed", true );
+            option.put( "CompressionType", "lzw" );
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            cl = cs.createCollection( clName, option );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        }
+        return cl;
+    }
 
-	public void createIndex(boolean isUnique) {
-		DBCollection cl = null;
-		BSONObject keyBson = new BasicBSONObject();
-		keyBson.put("value", 1);
-		try {
-			CollectionSpace cs = sdb.getCollectionSpace(csName);
-			cl = cs.getCollection(clName);
-			cl.createIndex("Idx", keyBson, isUnique, false);
-		} catch (BaseException e) {
-			Assert.fail("failed to create index");
-		}
-	}
+    public void createIndex( boolean isUnique ) {
+        DBCollection cl = null;
+        BSONObject keyBson = new BasicBSONObject();
+        keyBson.put( "value", 1 );
+        try {
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            cl = cs.getCollection( clName );
+            cl.createIndex( "Idx", keyBson, isUnique, false );
+        } catch ( BaseException e ) {
+            Assert.fail( "failed to create index" );
+        }
+    }
 
-	public String insertData(DBCollection cl, int dataCount, int strLength) {
-		String strRec = getRandomString(strLength);
-		for (int i = 0; i < dataCount / 2; i++) {
-			cl.insert("{_id:" + i + ",key:'" + strRec + i + "',value:" + i + "}");
-		}
+    public String insertData( DBCollection cl, int dataCount, int strLength ) {
+        String strRec = getRandomString( strLength );
+        for ( int i = 0; i < dataCount / 2; i++ ) {
+            cl.insert( "{_id:" + i + ",key:'" + strRec + i + "',value:" + i
+                    + "}" );
+        }
 
-		LzwUtils3.waitCreateDict(cl, dataGroupName); // 等待压缩字典的建立,最多等待60分钟
-		
-		for (int i = dataCount / 2; i < dataCount; i++) {
-			cl.insert("{_id:" + i + ",key:'" + strRec + i + "',value:" + i + "}");
-		}
+        LzwUtils3.waitCreateDict( cl, dataGroupName ); // 等待压缩字典的建立,最多等待60分钟
 
-		return strRec;
-	}
+        for ( int i = dataCount / 2; i < dataCount; i++ ) {
+            cl.insert( "{_id:" + i + ",key:'" + strRec + i + "',value:" + i
+                    + "}" );
+        }
 
-	private String getRandomString(int length) {
-		String base = "abc";
-		Random random = new Random();
-		StringBuffer sb = new StringBuffer();
-		for (int i = 0; i < length; i++) {
-			int index = random.nextInt(base.length());
-			sb.append(base.charAt(index));
-		}
-		return sb.toString();
-	}
+        return strRec;
+    }
 
-	private void checkQuery(int dataCount, String strRec) {
-		DBCursor cursor1 = null;
-		DBCursor cursor2 = null;
-		try {
-			DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-			cursor1 = cl.query(null, null, "{_id:1}", "{'':'value'}", 10, 10);
-			cursor2 = cl.query(null, null, "{_id:1}", null, 10, 10);
-			int i = 10;
-			while (cursor1.hasNext() && cursor2.hasNext()) {
-				String actRec1 = cursor1.getNext().toString();
-				String actRec2 = cursor2.getNext().toString();
-				String exptRec = "{ \"_id\" : " + i + " , \"key\" : \"" + strRec + i + "\" , \"value\" : " + i + " }";
-				// System.out.println(actRec1);
-				// System.out.println(actRec2);
-				// System.out.println(exptRec);
-				if (!exptRec.equals(actRec1) || !exptRec.equals(actRec2)) {
-					Assert.fail("The data is error");
-				}
-				i++;
-			}
-			Assert.assertEquals(i - 10, 10, "The data count is error");
+    private String getRandomString( int length ) {
+        String base = "abc";
+        Random random = new Random();
+        StringBuffer sb = new StringBuffer();
+        for ( int i = 0; i < length; i++ ) {
+            int index = random.nextInt( base.length() );
+            sb.append( base.charAt( index ) );
+        }
+        return sb.toString();
+    }
 
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage());
-		} finally {
-			if (cursor1 != null) {
-				cursor1.close();
-			}
-			if (cursor2 != null) {
-				cursor2.close();
-			}
-		}
-	}
+    private void checkQuery( int dataCount, String strRec ) {
+        DBCursor cursor1 = null;
+        DBCursor cursor2 = null;
+        try {
+            DBCollection cl = sdb.getCollectionSpace( csName )
+                    .getCollection( clName );
+            cursor1 = cl.query( null, null, "{_id:1}", "{'':'value'}", 10, 10 );
+            cursor2 = cl.query( null, null, "{_id:1}", null, 10, 10 );
+            int i = 10;
+            while ( cursor1.hasNext() && cursor2.hasNext() ) {
+                String actRec1 = cursor1.getNext().toString();
+                String actRec2 = cursor2.getNext().toString();
+                String exptRec = "{ \"_id\" : " + i + " , \"key\" : \"" + strRec
+                        + i + "\" , \"value\" : " + i + " }";
+                // System.out.println(actRec1);
+                // System.out.println(actRec2);
+                // System.out.println(exptRec);
+                if ( !exptRec.equals( actRec1 )
+                        || !exptRec.equals( actRec2 ) ) {
+                    Assert.fail( "The data is error" );
+                }
+                i++;
+            }
+            Assert.assertEquals( i - 10, 10, "The data count is error" );
+
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        } finally {
+            if ( cursor1 != null ) {
+                cursor1.close();
+            }
+            if ( cursor2 != null ) {
+                cursor2.close();
+            }
+        }
+    }
 }

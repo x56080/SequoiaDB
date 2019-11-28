@@ -4,7 +4,7 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.NodeWrapper;
-import com.sequoiadb.commlib.SdbTestBase ;
+import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.NodeRestart;
@@ -32,93 +32,101 @@ import static org.testng.Assert.assertTrue;
  */
 
 /**
- * @FileName seqDB-2286 :: 版本: 1 :: 更新domain时catalog主节点正常重启_rlb.nodeRestart.metaOpr.domain.003
- * seqDB-2287 :: 版本: 1 :: 更新domain时catalog备节点正常重启_rlb.nodeRestart.metaOpr.domain.004
+ * @FileName seqDB-2286 :: 版本: 1 ::
+ *           更新domain时catalog主节点正常重启_rlb.nodeRestart.metaOpr.domain.003
+ *           seqDB-2287 :: 版本: 1 ::
+ *           更新domain时catalog备节点正常重启_rlb.nodeRestart.metaOpr.domain.004
  * @Author laojingtang
  * @Date 17-4-20
  * @Version 1.00
  */
-public class UpdateDomain2286 extends SdbTestBase{
+public class UpdateDomain2286 extends SdbTestBase {
     private final String CSNAME = "cs2286";
     private final String CLNAME = "cl2286";
     private final String DOMAINNAME = "domain2286";
-    List<String> groupNames;
+    List< String > groupNames;
     private Sequoiadb db;
 
     @BeforeClass
     public void setup() throws ReliabilityException {
-        MyUtil.printBeginTime(this);
+        MyUtil.printBeginTime( this );
         db = getSdb();
         groupNames = GroupMgr.getInstance().getAllDataGroupName();
     }
 
     @Test
-        //seqDB-2286 :: 版本: 1 :: 更新domain时catalog主节点正常重启_rlb.nodeRestart.metaOpr.domain.003
+    // seqDB-2286 :: 版本: 1 ::
+    // 更新domain时catalog主节点正常重启_rlb.nodeRestart.metaOpr.domain.003
     void testMaster() throws ReliabilityException {
         clearEnv();
 
         NodeWrapper node = getMasterNodeOfCatalog();
-        FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask(node, 0, 7);
-        DBoperateTask task = DBoperateTask.getTaskAlterDomain(DOMAINNAME, 1000, groupNames);
-        TaskMgr taskMgr = TaskMgr.getTaskMgr(faultMakeTask, task);
+        FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask( node, 0,
+                7 );
+        DBoperateTask task = DBoperateTask.getTaskAlterDomain( DOMAINNAME, 1000,
+                groupNames );
+        TaskMgr taskMgr = TaskMgr.getTaskMgr( faultMakeTask, task );
         taskMgr.execute();
 
-        if (!taskMgr.isAllSuccess())
-        {
+        if ( !taskMgr.isAllSuccess() ) {
             MyUtil.throwSkipExeWithoutFaultEnv();
         }
 
-        assertTrue(db.isDomainExist(DOMAINNAME));
-        assertTrue(isCatalogGroupSync());
+        assertTrue( db.isDomainExist( DOMAINNAME ) );
+        assertTrue( isCatalogGroupSync() );
 
-        alterDomain(DOMAINNAME, groupNames.get(0), groupNames.get(1));
-        createCl(CSNAME, CLNAME);
-        deleteAllInCl(CSNAME, CLNAME);
-        insertSimpleDataIntoCl(CSNAME, CLNAME, 100);
+        alterDomain( DOMAINNAME, groupNames.get( 0 ), groupNames.get( 1 ) );
+        createCl( CSNAME, CLNAME );
+        deleteAllInCl( CSNAME, CLNAME );
+        insertSimpleDataIntoCl( CSNAME, CLNAME, 100 );
 
-        long num = getClCountFromNode(groupNames.get(0));
-        num += getClCountFromNode(groupNames.get(1));
-        assertTrue(num == 100);
-        assertTrue(isCatalogGroupSync());
+        long num = getClCountFromNode( groupNames.get( 0 ) );
+        num += getClCountFromNode( groupNames.get( 1 ) );
+        assertTrue( num == 100 );
+        assertTrue( isCatalogGroupSync() );
     }
 
     @Test
-        //seqDB-2287 :: 版本: 1 :: 更新domain时catalog备节点正常重启_rlb.nodeRestart.metaOpr.domain.004
+    // seqDB-2287 :: 版本: 1 ::
+    // 更新domain时catalog备节点正常重启_rlb.nodeRestart.metaOpr.domain.004
     void testSlaver() throws ReliabilityException {
         clearEnv();
 
         NodeWrapper node = getSlaveNodeOfCatalog();
-        FaultMakeTask fault = NodeRestart.getFaultMakeTask(node, 0, 5);
-        DBoperateTask task = DBoperateTask.getTaskAlterDomain(DOMAINNAME, 1000, groupNames);
-        TaskMgr taskMgr = TaskMgr.getTaskMgr(fault, task);
+        FaultMakeTask fault = NodeRestart.getFaultMakeTask( node, 0, 5 );
+        DBoperateTask task = DBoperateTask.getTaskAlterDomain( DOMAINNAME, 1000,
+                groupNames );
+        TaskMgr taskMgr = TaskMgr.getTaskMgr( fault, task );
         taskMgr.execute();
 
-        alterDomain(DOMAINNAME,groupNames.get(0),groupNames.get(2));
-        assertTrue(taskMgr.isAllSuccess());
-        assertTrue(isCatalogGroupSync());
-        createCl(CSNAME, CLNAME);
-        DBCollection cl = db.getCollectionSpace(CSNAME).getCollection(CLNAME);
-        deleteAllInCl(CSNAME, CLNAME);
-        insertSimpleDataIntoCl(CSNAME, CLNAME, 100);
+        alterDomain( DOMAINNAME, groupNames.get( 0 ), groupNames.get( 2 ) );
+        assertTrue( taskMgr.isAllSuccess() );
+        assertTrue( isCatalogGroupSync() );
+        createCl( CSNAME, CLNAME );
+        DBCollection cl = db.getCollectionSpace( CSNAME )
+                .getCollection( CLNAME );
+        deleteAllInCl( CSNAME, CLNAME );
+        insertSimpleDataIntoCl( CSNAME, CLNAME, 100 );
 
-        long num = getClCountFromNode(groupNames.get(0));
-        num += getClCountFromNode(groupNames.get(2));
-        assertTrue(num == 100,String.valueOf(num));
-        assertTrue(isCatalogGroupSync());
+        long num = getClCountFromNode( groupNames.get( 0 ) );
+        num += getClCountFromNode( groupNames.get( 2 ) );
+        assertTrue( num == 100, String.valueOf( num ) );
+        assertTrue( isCatalogGroupSync() );
     }
 
-    //清理环境
+    // 清理环境
     private void clearEnv() {
-        dropCS(CSNAME);
-        dropDomain(DOMAINNAME);
-        createDomain(DOMAINNAME, groupNames.get(0), groupNames.get(1));
-        createCS(CSNAME, DOMAINNAME);
+        dropCS( CSNAME );
+        dropDomain( DOMAINNAME );
+        createDomain( DOMAINNAME, groupNames.get( 0 ), groupNames.get( 1 ) );
+        createCS( CSNAME, DOMAINNAME );
     }
 
-    private long getClCountFromNode(String groupName) throws ReliabilityException {
+    private long getClCountFromNode( String groupName )
+            throws ReliabilityException {
         try {
-            return getClCountFromGroupMaster(groupName, CSNAME, CLNAME);
-        } catch (BaseException e) {
+            return getClCountFromGroupMaster( groupName, CSNAME, CLNAME );
+        } catch ( BaseException e ) {
             return 0;
         }
 
@@ -126,9 +134,9 @@ public class UpdateDomain2286 extends SdbTestBase{
 
     @AfterClass
     public void tearDown() {
-        dropCS(CSNAME);
-        dropDomain(DOMAINNAME);
-        MyUtil.closeDb(db);
-        MyUtil.printEndTime(this);
+        dropCS( CSNAME );
+        dropDomain( DOMAINNAME );
+        MyUtil.closeDb( db );
+        MyUtil.printEndTime( this );
     }
 }

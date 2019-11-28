@@ -19,21 +19,22 @@ public abstract class ClTask extends OperateTask {
      * @param num
      * @return
      */
-    public static ClTask getClTask(final int num, final String csName, final String clName) {
+    public static ClTask getClTask( final int num, final String csName,
+            final String clName ) {
         return new ClTask() {
             @Override
             public void exec() throws Exception {
-                setName("data opration task thread ");
-                try (Sequoiadb db = MyUtil.getSdb()) {
+                setName( "data opration task thread " );
+                try ( Sequoiadb db = MyUtil.getSdb()) {
                     db.beginTransaction();
-                    DBCollection cl = db.getCollectionSpace(csName)
-                            .getCollection(clName);
-                    for (int i = 0; i < num; i++) {
-                        cl.insert(new BasicBSONObject("a", i));
-                        cl.delete(new BasicBSONObject());
+                    DBCollection cl = db.getCollectionSpace( csName )
+                            .getCollection( clName );
+                    for ( int i = 0; i < num; i++ ) {
+                        cl.insert( new BasicBSONObject( "a", i ) );
+                        cl.delete( new BasicBSONObject() );
                     }
-                    for (int i = 0; i < num; i++) {
-                        cl.insert(new BasicBSONObject("a", i));
+                    for ( int i = 0; i < num; i++ ) {
+                        cl.insert( new BasicBSONObject( "a", i ) );
                     }
                     db.commit();
                 }

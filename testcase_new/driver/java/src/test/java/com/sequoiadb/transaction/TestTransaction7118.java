@@ -20,7 +20,7 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @Description seqDB-7118:¶à¸öÊÂÎñ²¢·¢£¬Í¬Ê±¸üÐÂ/É¾³ýclÖÐÏàÍ¬¼ÇÂ¼²¢Ìá½»ÊÂÎñ
+ * @Description seqDB-7118:ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ñ²¢·ï¿½ï¿½ï¿½Í¬Ê±ï¿½ï¿½ï¿½ï¿½/É¾ï¿½ï¿½clï¿½ï¿½ï¿½ï¿½Í¬ï¿½ï¿½Â¼ï¿½ï¿½ï¿½á½»ï¿½ï¿½ï¿½ï¿½
  * @Author chensiqin
  * @Date 2016-09-19
  */
@@ -38,79 +38,93 @@ public class TestTransaction7118 extends SdbTestBase {
         String coordAddr = SdbTestBase.coordUrl;
         this.commCSName = SdbTestBase.csName;
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            this.sdb = new Sequoiadb(coordAddr, "", "");
-            this.sdb2 = new Sequoiadb(coordAddr, "", "");
-            if (!this.sdb.isCollectionSpaceExist(this.commCSName)) {
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
+            this.sdb = new Sequoiadb( coordAddr, "", "" );
+            this.sdb2 = new Sequoiadb( coordAddr, "", "" );
+            if ( !this.sdb.isCollectionSpaceExist( this.commCSName ) ) {
                 try {
-                    this.cs = this.sdb.createCollectionSpace(this.commCSName);
-                } catch (BaseException e) {
-                    Assert.assertEquals(-33, e.getErrorCode(), e.getMessage());
+                    this.cs = this.sdb.createCollectionSpace( this.commCSName );
+                } catch ( BaseException e ) {
+                    Assert.assertEquals( -33, e.getErrorCode(),
+                            e.getMessage() );
                 }
             } else {
-                this.cs = this.sdb.getCollectionSpace(this.commCSName);
+                this.cs = this.sdb.getCollectionSpace( this.commCSName );
             }
-            if (this.cs.isCollectionExist(clName)) {
-                this.cs.dropCollection(clName);
+            if ( this.cs.isCollectionExist( clName ) ) {
+                this.cs.dropCollection( clName );
             }
-            this.cl = this.cs.createCollection(clName, new BasicBSONObject("ReplSize", 0));
-        } catch (BaseException e) {
-            System.out.println("Sequoiadb driver TestTransaction7118 setUp error, error description:" + e.getMessage());
-            Assert.fail("Sequoiadb driver TestTransaction7118 setUp error, error description:" + e.getMessage());
+            this.cl = this.cs.createCollection( clName,
+                    new BasicBSONObject( "ReplSize", 0 ) );
+        } catch ( BaseException e ) {
+            System.out.println(
+                    "Sequoiadb driver TestTransaction7118 setUp error, error description:"
+                            + e.getMessage() );
+            Assert.fail(
+                    "Sequoiadb driver TestTransaction7118 setUp error, error description:"
+                            + e.getMessage() );
         }
     }
 
     @Test
     public void testTrans7118() {
-        if (!Util.isCluster(this.sdb)) {
+        if ( !Util.isCluster( this.sdb ) ) {
             return;
         }
         try {
             BSONObject insertBson = new BasicBSONObject();
-            insertBson.put("_id", 0);
-            insertBson.put("age", 21);
-            insertBson.put("name", "Sequoiadb");
-            this.cl.insert(insertBson);
+            insertBson.put( "_id", 0 );
+            insertBson.put( "age", 21 );
+            insertBson.put( "name", "Sequoiadb" );
+            this.cl.insert( insertBson );
             this.sdb.beginTransaction();
             this.sdb2.beginTransaction();
-            DBCollection cl1 = this.sdb.getCollectionSpace(commCSName).getCollection(clName);
-            DBCollection cl2 = this.sdb2.getCollectionSpace(commCSName).getCollection(clName);
+            DBCollection cl1 = this.sdb.getCollectionSpace( commCSName )
+                    .getCollection( clName );
+            DBCollection cl2 = this.sdb2.getCollectionSpace( commCSName )
+                    .getCollection( clName );
             DBQuery query = new DBQuery();
-            query.setModifier((BSONObject) JSON.parse("{$set:{age:22}}"));
-            cl1.update(query);
+            query.setModifier( ( BSONObject ) JSON.parse( "{$set:{age:22}}" ) );
+            cl1.update( query );
             try {
-                cl2.delete("{_id:{$et:0}}");
+                cl2.delete( "{_id:{$et:0}}" );
                 Assert.fail();
-            } catch (BaseException e) {
-                Assert.assertEquals(e.getErrorCode(), -13);
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -13 );
             }
             this.sdb.commit();
             DBCursor cursor = this.cl.query();
             BSONObject actualBson = new BasicBSONObject();
             BSONObject expectedBson = new BasicBSONObject();
-            while (cursor.hasNext()) {
+            while ( cursor.hasNext() ) {
                 actualBson = cursor.getNext();
             }
             cursor.close();
-            expectedBson.put("_id", 0);
-            expectedBson.put("age", 22);
-            expectedBson.put("name", "Sequoiadb");
-            Assert.assertEquals(actualBson, expectedBson);
-        } catch (BaseException e) {
+            expectedBson.put( "_id", 0 );
+            expectedBson.put( "age", 22 );
+            expectedBson.put( "name", "Sequoiadb" );
+            Assert.assertEquals( actualBson, expectedBson );
+        } catch ( BaseException e ) {
             System.out.println(
-                    "Sequoiadb driver TestTransaction7118 testTrans7118 error, error description:" + e.getMessage());
+                    "Sequoiadb driver TestTransaction7118 testTrans7118 error, error description:"
+                            + e.getMessage() );
             Assert.fail(
-                    "Sequoiadb driver TestTransaction7118 testTrans7118 error, error description:" + e.getMessage());
+                    "Sequoiadb driver TestTransaction7118 testTrans7118 error, error description:"
+                            + e.getMessage() );
         }
     }
 
     @AfterClass
     public void tearDown() {
-        System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-        if (this.cs.isCollectionExist(clName)) {
-            this.cs.dropCollection(clName);
+        System.out.println( "the TestCase Name:" + this.getClass().getName()
+                + ". the TestCase end at:"
+                + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                        .format( new Date() ) );
+        if ( this.cs.isCollectionExist( clName ) ) {
+            this.cs.dropCollection( clName );
         }
         this.sdb.close();
         this.sdb2.close();

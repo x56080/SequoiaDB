@@ -36,7 +36,7 @@ import java.util.List;
 
 public class KillNodeSubcl2433 extends SdbTestBase {
     private String mainClName = "testcaseCL2433";
-    private List<String> subClName = new ArrayList<String>();
+    private List< String > subClName = new ArrayList< String >();
     private CollectionSpace commCS;
     private DBCollection mainCL;
     private GroupMgr groupMgr = null;
@@ -47,35 +47,37 @@ public class KillNodeSubcl2433 extends SdbTestBase {
     @BeforeClass()
     public void setUp() {
         try {
-            System.out.println(
-                    "the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                            + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
             groupMgr = GroupMgr.getInstance();
 
             // CheckBusiness(true),检测当前集群环境，若存在异常返回false，
-            if (!groupMgr.checkBusiness(20)) {
-                throw new SkipException("checkBusiness return false");
+            if ( !groupMgr.checkBusiness( 20 ) ) {
+                throw new SkipException( "checkBusiness return false" );
             }
 
-            commSdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            commCS = commSdb.getCollectionSpace(csName);
-            mainCL = commCS.createCollection(mainClName, (BSONObject) JSON
-                    .parse("{ShardingKey:{'sk':1},ShardingType:'range',IsMainCL:true}"));
-            createSubCL(500);
-        }
-        catch (ReliabilityException e) {
-            if (commSdb != null) {
+            commSdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            commCS = commSdb.getCollectionSpace( csName );
+            mainCL = commCS.createCollection( mainClName, ( BSONObject ) JSON
+                    .parse( "{ShardingKey:{'sk':1},ShardingType:'range',IsMainCL:true}" ) );
+            createSubCL( 500 );
+        } catch ( ReliabilityException e ) {
+            if ( commSdb != null ) {
                 commSdb.close();
             }
-            Assert.fail(this.getClass().getName() + " setUp error, error description:"
-                    + e.getMessage() + "\r\n" + Utils.getStackString(e));
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getStackString( e ) );
         }
     }
 
-    private void createSubCL(int subClCount) {
-        for (int i = 0; i < subClCount; i++) {
-            DBCollection cl = commCS.createCollection(mainClName + "_sub_" + i);
-            subClName.add(cl.getFullName());
+    private void createSubCL( int subClCount ) {
+        for ( int i = 0; i < subClCount; i++ ) {
+            DBCollection cl = commCS
+                    .createCollection( mainClName + "_sub_" + i );
+            subClName.add( cl.getFullName() );
         }
     }
 
@@ -83,39 +85,40 @@ public class KillNodeSubcl2433 extends SdbTestBase {
     public void test() {
         try {
             GroupMgr groupMgr = GroupMgr.getInstance();
-            GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
+            GroupWrapper cataGroup = groupMgr
+                    .getGroupByName( "SYSCatalogGroup" );
             NodeWrapper cataMaster = cataGroup.getMaster();
-            System.out.println("Kill node:" + cataMaster.hostName() + ":" + cataMaster.svcName());
+            System.out.println( "Kill node:" + cataMaster.hostName() + ":"
+                    + cataMaster.svcName() );
 
             // 建立并行任务
-            FaultMakeTask faultTask = KillNode.getFaultMakeTask(cataMaster.hostName(),
-                    cataMaster.svcName(), 0);
-            TaskMgr mgr = new TaskMgr(faultTask);
-            mgr.addTask(new Attach());
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask(
+                    cataMaster.hostName(), cataMaster.svcName(), 0 );
+            TaskMgr mgr = new TaskMgr( faultTask );
+            mgr.addTask( new Attach() );
             mgr.execute();
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
-            Assert.assertEquals(groupMgr.checkBusiness(120), true);
-            Assert.assertEquals(cataGroup.checkInspect(60), true);
+            Assert.assertEquals( groupMgr.checkBusiness( 120 ), true );
+            Assert.assertEquals( cataGroup.checkInspect( 60 ), true );
             // 插入数据
-            for (int i = 0; i < bound; i += 100) {
-                mainCL.insert("{sk:" + i + "}");
+            for ( int i = 0; i < bound; i += 100 ) {
+                mainCL.insert( "{sk:" + i + "}" );
             }
-            DBCursor cusor = mainCL.query(null, "{sk:1}", "{sk:1}", null);
+            DBCursor cusor = mainCL.query( null, "{sk:1}", "{sk:1}", null );
             int count = 0;
             // 查询
-            while (cusor.hasNext()) {
-                Assert.assertEquals(cusor.getNext(), (BSONObject) JSON.parse("{sk:" + count + "}"));
+            while ( cusor.hasNext() ) {
+                Assert.assertEquals( cusor.getNext(),
+                        ( BSONObject ) JSON.parse( "{sk:" + count + "}" ) );
                 count += 100;
             }
-            Assert.assertEquals(count, bound);
+            Assert.assertEquals( count, bound );
             clearFlag = true;
-        }
-        catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
-        }
-        finally {
+            Assert.fail( e.getMessage() );
+        } finally {
             commSdb.closeAllCursors();
         }
 
@@ -124,46 +127,47 @@ public class KillNodeSubcl2433 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            if (clearFlag) {
-                CollectionSpace commCS = commSdb.getCollectionSpace(csName);
-                for (String subCL : subClName) {
-                    commCS.dropCollection(subCL.split("\\.")[1]);
+            if ( clearFlag ) {
+                CollectionSpace commCS = commSdb.getCollectionSpace( csName );
+                for ( String subCL : subClName ) {
+                    commCS.dropCollection( subCL.split( "\\." )[ 1 ] );
                 }
-                commCS.dropCollection(mainClName);
+                commCS.dropCollection( mainClName );
             }
-        }
-        catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getStackString(e));
-        }
-        finally {
-            if (commSdb != null) {
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
+        } finally {
+            if ( commSdb != null ) {
                 commSdb.close();
             }
-            System.out.println(
-                    "the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                            + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
         }
     }
 
     class Attach extends OperateTask {
         @Override
         public void exec() throws Exception {
-            Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             bound = 0;
             try {
-                for (String name : subClName) {
-                    mainCL.attachCollection(name, (BSONObject) JSON.parse(
-                            "{LowBound:{sk:" + bound + "},UpBound:{sk:" + (bound + 100) + "}}"));
+                for ( String name : subClName ) {
+                    mainCL.attachCollection( name,
+                            ( BSONObject ) JSON.parse(
+                                    "{LowBound:{sk:" + bound + "},UpBound:{sk:"
+                                            + ( bound + 100 ) + "}}" ) );
                     bound += 100;
                 }
-            }
-            catch (BaseException e) {
-                System.out.println("Attach Thread Exception:" + e.getErrorCode());
+            } catch ( BaseException e ) {
+                System.out.println(
+                        "Attach Thread Exception:" + e.getErrorCode() );
             }
 
             finally {
-                System.out.println("bound:" + bound);
-                if (sdb != null) {
+                System.out.println( "bound:" + bound );
+                if ( sdb != null ) {
                     sdb.close();
                 }
             }

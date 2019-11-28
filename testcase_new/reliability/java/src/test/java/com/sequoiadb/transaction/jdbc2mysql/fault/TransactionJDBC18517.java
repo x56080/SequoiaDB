@@ -29,38 +29,40 @@ import com.sequoiadb.transaction.jdbc2mysql.common.TransferJDBCTh;
 public class TransactionJDBC18517 extends TransJDBCBase {
     private String clName = "cl18517";
     private GroupMgr groupMgr;
-    private List<String> groupNames;
+    private List< String > groupNames;
 
     @Override
     protected void beforeSetUp() throws ReliabilityException {
-        initCL(clName, 10000);
+        initCL( clName, 10000 );
         groupMgr = GroupMgr.getInstance();
-        groupNames = CommLib.getDataGroupNames(sdb);
+        groupNames = CommLib.getDataGroupNames( sdb );
     }
 
     @Test
-    public void test() throws ReliabilityException, InterruptedException, SQLException {
+    public void test()
+            throws ReliabilityException, InterruptedException, SQLException {
         // 正常重启所有数据节点的主节点
         TaskMgr taskMgr = new TaskMgr();
         FaultMakeTask task = null;
-        for (String groupName : groupNames) {
-            groupMgr.setSdb(new Sequoiadb(SdbTestBase.coordUrl, "", ""));
-            GroupWrapper group = groupMgr.getGroupByName(groupName);
+        for ( String groupName : groupNames ) {
+            groupMgr.setSdb( new Sequoiadb( SdbTestBase.coordUrl, "", "" ) );
+            GroupWrapper group = groupMgr.getGroupByName( groupName );
             NodeWrapper node = group.getMaster();
-            task = NodeRestart.getFaultMakeTask(node, 60, 10);
-            taskMgr.addTask(task);
+            task = NodeRestart.getFaultMakeTask( node, 60, 10 );
+            taskMgr.addTask( task );
         }
-        TransUtil.setTimeTask(taskMgr, task);
+        TransUtil.setTimeTask( taskMgr, task );
 
-        for (int i = 0; i < 200; i++) {
-            taskMgr.addTask(new TransferJDBCTh(clName));
+        for ( int i = 0; i < 200; i++ ) {
+            taskMgr.addTask( new TransferJDBCTh( clName ) );
         }
         taskMgr.execute();
 
-        Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
-        Assert.assertTrue(groupMgr.checkBusinessWithLSN(300), "GROUP ERROR");
+        Assert.assertTrue( taskMgr.isAllSuccess(), taskMgr.getErrorMsg() );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 300 ),
+                "GROUP ERROR" );
 
         // 待集群正常后，查询所有账户的金额总和
-        TransferJDBCTh.checkTransResult(clName, getInsertNum() * 10000);
+        TransferJDBCTh.checkTransResult( clName, getInsertNum() * 10000 );
     }
 }

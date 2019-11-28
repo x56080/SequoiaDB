@@ -22,109 +22,109 @@ public class ClusterManager19297 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
     }
 
     @Test
     public void test() {
-        CollectionSpace cs = sdb.getCollectionSpace(SdbTestBase.csName);
+        CollectionSpace cs = sdb.getCollectionSpace( SdbTestBase.csName );
 
         // 创建 null 集合失败
         try {
-            cs.createCollection(null);
-            Assert.fail("collection name can't be null");
-        } catch (BaseException e) {
-            if (-6 != e.getErrorCode()) {
+            cs.createCollection( null );
+            Assert.fail( "collection name can't be null" );
+        } catch ( BaseException e ) {
+            if ( -6 != e.getErrorCode() ) {
                 throw e;
             }
         }
 
         // 获取 null 集合失败
         try {
-            cs.getCollection(null);
-            Assert.fail("collection name can't be null");
-        } catch (BaseException e) {
-            if (-6 != e.getErrorCode()) {
+            cs.getCollection( null );
+            Assert.fail( "collection name can't be null" );
+        } catch ( BaseException e ) {
+            if ( -6 != e.getErrorCode() ) {
                 throw e;
             }
         }
 
         // 删除 null 集合失败
         try {
-            cs.dropCollection(null);
-            Assert.fail("collection name can't be null");
-        } catch (BaseException e) {
-            if (-6 != e.getErrorCode()) {
+            cs.dropCollection( null );
+            Assert.fail( "collection name can't be null" );
+        } catch ( BaseException e ) {
+            if ( -6 != e.getErrorCode() ) {
                 throw e;
             }
         }
 
         // isCollectionExist null 集合失败
         try {
-            cs.isCollectionExist(null);
-            Assert.fail("collection name can't be null");
-        } catch (BaseException e) {
-            if (-6 != e.getErrorCode()) {
+            cs.isCollectionExist( null );
+            Assert.fail( "collection name can't be null" );
+        } catch ( BaseException e ) {
+            if ( -6 != e.getErrorCode() ) {
                 throw e;
             }
         }
 
         // removeUser null USER 失败
         try {
-            sdb.removeUser(null, "test");
-            Assert.fail("user name can't be null");
-        } catch (BaseException e) {
-            if (-6 != e.getErrorCode()) {
+            sdb.removeUser( null, "test" );
+            Assert.fail( "user name can't be null" );
+        } catch ( BaseException e ) {
+            if ( -6 != e.getErrorCode() ) {
                 throw e;
             }
         }
 
         // createReplicaGroup null rgName 失败
         try {
-            sdb.createReplicaGroup(null);
-            Assert.fail("rgName can't be null");
-        } catch (BaseException e) {
-            if (-6 != e.getErrorCode()) {
+            sdb.createReplicaGroup( null );
+            Assert.fail( "rgName can't be null" );
+        } catch ( BaseException e ) {
+            if ( -6 != e.getErrorCode() ) {
                 throw e;
             }
         }
 
         // activateReplicaGroup null rgName 失败
         try {
-            sdb.activateReplicaGroup(null);
-            Assert.fail("rgName can't be null");
-        } catch (BaseException e) {
-            if (-6 != e.getErrorCode()) {
+            sdb.activateReplicaGroup( null );
+            Assert.fail( "rgName can't be null" );
+        } catch ( BaseException e ) {
+            if ( -6 != e.getErrorCode() ) {
                 throw e;
             }
         }
 
         // isRelicaGroupExist null rgName 失败
         try {
-            sdb.isRelicaGroupExist(null);
-            Assert.fail("rgName can't be null");
-        } catch (BaseException e) {
-            if (-6 != e.getErrorCode()) {
+            sdb.isRelicaGroupExist( null );
+            Assert.fail( "rgName can't be null" );
+        } catch ( BaseException e ) {
+            if ( -6 != e.getErrorCode() ) {
                 throw e;
             }
         }
 
         // getReplicaGroup null rgName 失败
         try {
-            sdb.getReplicaGroup(null);
-            Assert.fail("rgName can't be null");
-        } catch (BaseException e) {
-            if (-6 != e.getErrorCode()) {
+            sdb.getReplicaGroup( null );
+            Assert.fail( "rgName can't be null" );
+        } catch ( BaseException e ) {
+            if ( -6 != e.getErrorCode() ) {
                 throw e;
             }
         }
 
         // removeReplicaGroup null rgName 失败
         try {
-            sdb.removeReplicaGroup(null);
-            Assert.fail("rgName can't be null");
-        } catch (BaseException e) {
-            if (-6 != e.getErrorCode()) {
+            sdb.removeReplicaGroup( null );
+            Assert.fail( "rgName can't be null" );
+        } catch ( BaseException e ) {
+            if ( -6 != e.getErrorCode() ) {
                 throw e;
             }
         }
@@ -132,7 +132,7 @@ public class ClusterManager19297 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (null != sdb) {
+        if ( null != sdb ) {
             sdb.close();
         }
     }

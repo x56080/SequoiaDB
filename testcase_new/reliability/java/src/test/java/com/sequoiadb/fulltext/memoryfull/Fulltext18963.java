@@ -42,60 +42,62 @@ public class Fulltext18963 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() throws ReliabilityException {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("StandAlone environment!");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "StandAlone environment!" );
         }
         groupMgr = GroupMgr.getInstance();
 
-        groupName = groupMgr.getAllDataGroupName().get(0);
-        if (!groupMgr.checkBusiness()) {
-            throw new SkipException("checkBusiness failed");
+        groupName = groupMgr.getAllDataGroupName().get( 0 );
+        if ( !groupMgr.checkBusiness() ) {
+            throw new SkipException( "checkBusiness failed" );
         }
-        if (!FullTextUtils.checkAdapter()) {
-            throw new SkipException("Check adapter failed");
+        if ( !FullTextUtils.checkAdapter() ) {
+            throw new SkipException( "Check adapter failed" );
         }
-        cl = sdb.getCollectionSpace(csName).createCollection(clName,
-                (BSONObject) JSON.parse("{Group:'" + groupName + "'}"));
-        FullTextDBUtils.insertData(cl, insertNum);
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName,
+                ( BSONObject ) JSON.parse( "{Group:'" + groupName + "'}" ) );
+        FullTextDBUtils.insertData( cl, insertNum );
 
     }
 
     @Test
     public void test() throws Exception {
-        GroupWrapper dataGroup = groupMgr.getGroupByName(groupName);
+        GroupWrapper dataGroup = groupMgr.getGroupByName( groupName );
         NodeWrapper master = dataGroup.getMaster();
-        FaultTask task = FaultTask.getFault(FaultName.MEMORYLIMIT);
-        int adaptSvcName = Integer.parseInt(master.svcName()) + 7;
+        FaultTask task = FaultTask.getFault( FaultName.MEMORYLIMIT );
+        int adaptSvcName = Integer.parseInt( master.svcName() ) + 7;
         try {
-            task.make(master.hostName(), String.valueOf(adaptSvcName), "root", SdbTestBase.rootPwd);
+            task.make( master.hostName(), String.valueOf( adaptSvcName ),
+                    "root", SdbTestBase.rootPwd );
             TaskMgr mgr = new TaskMgr();
-            mgr.addTask(new CreateIndexThread());
+            mgr.addTask( new CreateIndexThread() );
             mgr.execute();
-            Thread.sleep(100000);
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
+            Thread.sleep( 100000 );
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
         } finally {
             task.restore();
         }
 
-        Assert.assertEquals(groupMgr.checkBusinessWithLSN(600), true);
-        Assert.assertEquals(dataGroup.checkInspect(1), true);
-        Assert.assertEquals(FullTextUtils.checkAdapter(), true);
+        Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true );
+        Assert.assertEquals( dataGroup.checkInspect( 1 ), true );
+        Assert.assertEquals( FullTextUtils.checkAdapter(), true );
 
-        cl.insert("{a:'text18963'}");
-        int expCount = (int) cl.getCount();
-        Assert.assertEquals(expCount, insertNum + 1);
-        if (cl.isIndexExist(indexName)) {
-            Assert.assertTrue(FullTextUtils.isIndexCreated(cl, indexName, expCount));
+        cl.insert( "{a:'text18963'}" );
+        int expCount = ( int ) cl.getCount();
+        Assert.assertEquals( expCount, insertNum + 1 );
+        if ( cl.isIndexExist( indexName ) ) {
+            Assert.assertTrue(
+                    FullTextUtils.isIndexCreated( cl, indexName, expCount ) );
         }
     }
 
     @AfterClass
     public void tearDown() throws Exception {
         try {
-            sdb.getCollectionSpace(csName).dropCollection(clName);
+            sdb.getCollectionSpace( csName ).dropCollection( clName );
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -104,10 +106,13 @@ public class Fulltext18963 extends SdbTestBase {
     private class CreateIndexThread extends OperateTask {
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                cl.createIndex(indexName, "{a:'text',b:'text',c:'text',d:'text'}", false, false);
-            } catch (BaseException e) {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                cl.createIndex( indexName,
+                        "{a:'text',b:'text',c:'text',d:'text'}", false, false );
+            } catch ( BaseException e ) {
                 e.printStackTrace();
             }
         }

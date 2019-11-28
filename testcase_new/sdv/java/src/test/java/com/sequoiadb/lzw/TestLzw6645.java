@@ -18,9 +18,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * @FileName:seqDB-6645:修改CL为关闭压缩
- * 1、CL压缩类型为lzw，修改CL为关闭压缩，即指定Compressed:false 
- * 2、检查返回结果 
+ * @FileName:seqDB-6645:修改CL为关闭压缩 1、CL压缩类型为lzw，修改CL为关闭压缩，即指定Compressed:false
+ *                                2、检查返回结果
  * @Author linsuqiang
  * @Date 2016-12-27
  * @Version 1.00
@@ -32,65 +31,69 @@ public class TestLzw6645 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        try{
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            dataGroupName = LzwUtils2.getDataGroups(sdb).get(0);
-        }catch(BaseException e){
-            Assert.fail(e.getMessage());
+        try {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            dataGroupName = LzwUtils2.getDataGroups( sdb ).get( 0 );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         }
-        if (SnappyUilts.isStandAlone(sdb)){
-            throw new SkipException("is standalone skip testcase");
+        if ( SnappyUilts.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
         }
     }
-    
+
     @AfterClass
-    public void tearDown(){
-        try{
-            CollectionSpace cs = sdb.getCollectionSpace(csName);  
-            if(cs.isCollectionExist(clName)){
-                cs.dropCollection(clName);
+    public void tearDown() {
+        try {
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-        }catch(BaseException e){
-            Assert.fail(e.getMessage());
-        }finally{
-            if(sdb != null){
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        } finally {
+            if ( sdb != null ) {
                 sdb.disconnect();
             }
         }
     }
-    
+
     @Test(enabled = false)
     public void test() {
         Sequoiadb db = null;
-        try{
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            CollectionSpace cs = db.getCollectionSpace(csName);
-            DBCollection cl = cs.createCollection(clName, (BSONObject)JSON.parse("{Compressed: true, " +
-                    "CompressionType: 'lzw', Group: '" + dataGroupName + "'}"));
-            cl.alterCollection((BSONObject)JSON.parse("{Compressed:false}"));
-            Assert.assertFalse(isCompressed(cl, dataGroupName));
-        }catch(BaseException e){
-            Assert.fail(e.getMessage());
-        }finally{
-            if(db != null){
+        try {
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            CollectionSpace cs = db.getCollectionSpace( csName );
+            DBCollection cl = cs.createCollection( clName,
+                    ( BSONObject ) JSON.parse( "{Compressed: true, "
+                            + "CompressionType: 'lzw', Group: '" + dataGroupName
+                            + "'}" ) );
+            cl.alterCollection(
+                    ( BSONObject ) JSON.parse( "{Compressed:false}" ) );
+            Assert.assertFalse( isCompressed( cl, dataGroupName ) );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        } finally {
+            if ( db != null ) {
                 db.disconnect();
             }
         }
     }
 
-    private boolean isCompressed(DBCollection cl, String dataGroupName) {
+    private boolean isCompressed( DBCollection cl, String dataGroupName ) {
         Sequoiadb db = cl.getSequoiadb();
-        Sequoiadb dataDB = LzwUtils3.getDataDB(db, dataGroupName);
+        Sequoiadb dataDB = LzwUtils3.getDataDB( db, dataGroupName );
 
         BSONObject nameBSON = new BasicBSONObject();
-        nameBSON.put("Name", csName + "." + clName);
-        DBCursor cursor = dataDB.getSnapshot(4, nameBSON, null, null);
-        BasicBSONList details = (BasicBSONList) cursor.getNext().get("Details");
+        nameBSON.put( "Name", csName + "." + clName );
+        DBCursor cursor = dataDB.getSnapshot( 4, nameBSON, null, null );
+        BasicBSONList details = ( BasicBSONList ) cursor.getNext()
+                .get( "Details" );
         cursor.close();
-        BSONObject detail = (BSONObject) details.get(0);
+        BSONObject detail = ( BSONObject ) details.get( 0 );
 
-        String attr = (String) detail.get("Attribute");
-        boolean isCompressed = attr.equals("Compressed");
+        String attr = ( String ) detail.get( "Attribute" );
+        boolean isCompressed = attr.equals( "Compressed" );
         return isCompressed;
     }
 }

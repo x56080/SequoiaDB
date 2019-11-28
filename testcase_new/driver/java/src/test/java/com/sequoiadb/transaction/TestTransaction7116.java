@@ -32,130 +32,147 @@ public class TestTransaction7116 extends SdbTestBase {
     private CollectionSpace cs;
     private DBCollection cl;
     private String clName = "cl7116";
-    private ArrayList<BSONObject> insertRecods;
+    private ArrayList< BSONObject > insertRecods;
 
     @BeforeClass
     public void setUp() {
         String coordAddr = SdbTestBase.coordUrl;
         String commCSName = SdbTestBase.csName;
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            this.sdb = new Sequoiadb(coordAddr, "", "");
-            if (!this.sdb.isCollectionSpaceExist(commCSName)) {
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
+            this.sdb = new Sequoiadb( coordAddr, "", "" );
+            if ( !this.sdb.isCollectionSpaceExist( commCSName ) ) {
                 try {
-                    this.cs = this.sdb.createCollectionSpace(commCSName);
-                } catch (BaseException e) {
-                    Assert.assertEquals(-33, e.getErrorCode(), e.getMessage());
+                    this.cs = this.sdb.createCollectionSpace( commCSName );
+                } catch ( BaseException e ) {
+                    Assert.assertEquals( -33, e.getErrorCode(),
+                            e.getMessage() );
                 }
             } else {
-                this.cs = this.sdb.getCollectionSpace(commCSName);
+                this.cs = this.sdb.getCollectionSpace( commCSName );
             }
-            if (this.cs.isCollectionExist(clName)) {
-                this.cs.dropCollection(clName);
+            if ( this.cs.isCollectionExist( clName ) ) {
+                this.cs.dropCollection( clName );
             }
-            this.cl = this.cs.createCollection(clName);
-        } catch (BaseException e) {
-            System.out.println("Sequoiadb driver TestTransaction7116 setUp error, error description:" + e.getMessage());
-            Assert.fail("Sequoiadb driver TestTransaction7116 setUp error, error description:" + e.getMessage());
+            this.cl = this.cs.createCollection( clName );
+        } catch ( BaseException e ) {
+            System.out.println(
+                    "Sequoiadb driver TestTransaction7116 setUp error, error description:"
+                            + e.getMessage() );
+            Assert.fail(
+                    "Sequoiadb driver TestTransaction7116 setUp error, error description:"
+                            + e.getMessage() );
         }
     }
 
     @Test
     public void testTransactionBeginCommit() {
-        if (!Util.isCluster(this.sdb)) {
+        if ( !Util.isCluster( this.sdb ) ) {
             return;
         }
         try {
             this.sdb.beginTransaction();
             insertData();
             DBCursor cursor = this.cl.query();
-            List<BSONObject> actualList = new ArrayList<BSONObject>();
-            while (cursor.hasNext()) {
-                actualList.add(cursor.getNext());
+            List< BSONObject > actualList = new ArrayList< BSONObject >();
+            while ( cursor.hasNext() ) {
+                actualList.add( cursor.getNext() );
             }
             cursor.close();
-            Assert.assertEquals(actualList, this.insertRecods);// before commit
-                                                               // check insert
+            Assert.assertEquals( actualList, this.insertRecods );// before
+                                                                 // commit
+                                                                 // check insert
 
             DBQuery dbQuery = new DBQuery();
-            dbQuery.setModifier((BSONObject) JSON.parse("{$set:{num:22}}"));
-            List<BSONObject> expectedList = new ArrayList<BSONObject>();
-            this.cl.update(dbQuery);
+            dbQuery.setModifier(
+                    ( BSONObject ) JSON.parse( "{$set:{num:22}}" ) );
+            List< BSONObject > expectedList = new ArrayList< BSONObject >();
+            this.cl.update( dbQuery );
             cursor = this.cl.query();
             actualList.clear();
-            while (cursor.hasNext()) {
-                actualList.add(cursor.getNext());
+            while ( cursor.hasNext() ) {
+                actualList.add( cursor.getNext() );
             }
             cursor.close();
-            for (int i = 0; i < this.insertRecods.size(); i++) {
+            for ( int i = 0; i < this.insertRecods.size(); i++ ) {
                 BSONObject obj = new BasicBSONObject();
-                obj = this.insertRecods.get(i);
-                obj.put("num", 22);
-                expectedList.add(obj);
+                obj = this.insertRecods.get( i );
+                obj.put( "num", 22 );
+                expectedList.add( obj );
             }
-            Assert.assertEquals(actualList, expectedList);// before commit check
-                                                          // update
-            this.cl.delete((BSONObject) JSON.parse("{_id:{$et:0}}"));
+            Assert.assertEquals( actualList, expectedList );// before commit
+                                                            // check
+                                                            // update
+            this.cl.delete( ( BSONObject ) JSON.parse( "{_id:{$et:0}}" ) );
             cursor = this.cl.query();
             actualList.clear();
-            while (cursor.hasNext()) {
-                actualList.add(cursor.getNext());
+            while ( cursor.hasNext() ) {
+                actualList.add( cursor.getNext() );
             }
             cursor.close();
             expectedList.clear();
-            for (int i = 1; i < this.insertRecods.size(); i++) {
+            for ( int i = 1; i < this.insertRecods.size(); i++ ) {
                 BSONObject obj = new BasicBSONObject();
-                obj = this.insertRecods.get(i);
-                expectedList.add(obj);
+                obj = this.insertRecods.get( i );
+                expectedList.add( obj );
             }
-            Assert.assertEquals(actualList, expectedList);// before commit check
-                                                          // delete
+            Assert.assertEquals( actualList, expectedList );// before commit
+                                                            // check
+                                                            // delete
             this.sdb.commit();
             cursor = this.cl.query();
             actualList.clear();
-            while (cursor.hasNext()) {
-                actualList.add(cursor.getNext());
+            while ( cursor.hasNext() ) {
+                actualList.add( cursor.getNext() );
             }
             cursor.close();
-            Assert.assertEquals(actualList, expectedList);// after commit check
-                                                          // result
+            Assert.assertEquals( actualList, expectedList );// after commit
+                                                            // check
+                                                            // result
 
-        } catch (Exception e) {
+        } catch ( Exception e ) {
             System.out.println(
                     "Sequoiadb driver TestTransaction7116 testTransactionBeginInsertCommit error, error description:"
-                            + e.getMessage());
+                            + e.getMessage() );
             Assert.fail(
                     "Sequoiadb driver TestTransaction7116 testTransactionBeginInsertCommit error, error description:"
-                            + e.getMessage());
+                            + e.getMessage() );
         }
     }
 
     public void insertData() {
         try {
             BSONObject bson;
-            this.insertRecods = new ArrayList<BSONObject>();
-            for (int i = 0; i < 5; i++) {
+            this.insertRecods = new ArrayList< BSONObject >();
+            for ( int i = 0; i < 5; i++ ) {
                 bson = new BasicBSONObject();
-                bson.put("_id", i);
-                bson.put("name", "zhangsan" + i);
-                bson.put("num", i);
-                this.insertRecods.add(bson);
+                bson.put( "_id", i );
+                bson.put( "name", "zhangsan" + i );
+                bson.put( "num", i );
+                this.insertRecods.add( bson );
             }
-            this.cl.insert(this.insertRecods, 0);
-        } catch (BaseException e) {
+            this.cl.insert( this.insertRecods, 0 );
+        } catch ( BaseException e ) {
             System.out.println(
-                    "Sequoiadb driver TestTransaction7116 insertData error, error description:" + e.getMessage());
-            Assert.fail("Sequoiadb driver TestTransaction7116 insertData error, error description:" + e.getMessage());
+                    "Sequoiadb driver TestTransaction7116 insertData error, error description:"
+                            + e.getMessage() );
+            Assert.fail(
+                    "Sequoiadb driver TestTransaction7116 insertData error, error description:"
+                            + e.getMessage() );
         }
     }
 
     @AfterClass
     public void tearDown() {
-        System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-        if (this.cs.isCollectionExist(clName)) {
-            this.cs.dropCollection(clName);
+        System.out.println( "the TestCase Name:" + this.getClass().getName()
+                + ". the TestCase end at:"
+                + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                        .format( new Date() ) );
+        if ( this.cs.isCollectionExist( clName ) ) {
+            this.cs.dropCollection( clName );
         }
         this.sdb.close();
     }

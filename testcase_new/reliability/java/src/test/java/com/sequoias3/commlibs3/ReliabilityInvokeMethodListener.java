@@ -17,92 +17,99 @@ import java.util.Date;
  * @Date 17-8-18
  * @Version 1.00
  */
-public class ReliabilityInvokeMethodListener extends TestListenerAdapter implements IInvokedMethodListener{
+public class ReliabilityInvokeMethodListener extends TestListenerAdapter
+        implements IInvokedMethodListener {
     private static final String errorCode = "DBError";
-    private static final Logger logger = Logger.getLogger(ReliabilityInvokeMethodListener.class);
+    private static final Logger logger = Logger
+            .getLogger( ReliabilityInvokeMethodListener.class );
 
     @Override
-    public void beforeInvocation(IInvokedMethod iInvokedMethod, ITestResult iTestResult) {
+    public void beforeInvocation( IInvokedMethod iInvokedMethod,
+            ITestResult iTestResult ) {
     }
 
     @Override
-    public void afterInvocation(IInvokedMethod iInvokedMethod, ITestResult iTestResult) {
-        if(iTestResult.getStatus()==ITestResult.FAILURE){
+    public void afterInvocation( IInvokedMethod iInvokedMethod,
+            ITestResult iTestResult ) {
+        if ( iTestResult.getStatus() == ITestResult.FAILURE ) {
             iTestResult.getTestContext().getSuite().getSuiteState().failed();
         }
     }
 
     @Override
-    public void onConfigurationSuccess(ITestResult itr) {
-        super.onConfigurationSuccess(itr);
-        if (itr.getMethod().isAfterClassConfiguration()) {
-            logger.info("[" + itr.getInstanceName() + "] end");
+    public void onConfigurationSuccess( ITestResult itr ) {
+        super.onConfigurationSuccess( itr );
+        if ( itr.getMethod().isAfterClassConfiguration() ) {
+            logger.info( "[" + itr.getInstanceName() + "] end" );
         }
     }
 
     @Override
-    public void onConfigurationFailure(ITestResult itr) {
-        super.onConfigurationFailure(itr);
+    public void onConfigurationFailure( ITestResult itr ) {
+        super.onConfigurationFailure( itr );
         Throwable throwable = itr.getThrowable();
-        if (throwable != null && throwable.getMessage().contains(errorCode)) {
-            logger.info("[ " + itr.getInstanceName() +
-                    ":transaction snapshot:" + transSnapshot() + "]");
+        if ( throwable != null
+                && throwable.getMessage().contains( errorCode ) ) {
+            logger.info( "[ " + itr.getInstanceName() + ":transaction snapshot:"
+                    + transSnapshot() + "]" );
         }
-        if (itr.getMethod().isAfterClassConfiguration()) {
-            logger.info("[" + itr.getInstanceName() + "] end");
-        }
-    }
-
-    @Override
-    public void onConfigurationSkip(ITestResult itr) {
-        super.onConfigurationSkip(itr);
-        if (itr.getMethod().isAfterClassConfiguration()) {
-            logger.info("[" + itr.getInstanceName() + "] end");
+        if ( itr.getMethod().isAfterClassConfiguration() ) {
+            logger.info( "[" + itr.getInstanceName() + "] end" );
         }
     }
 
     @Override
-    public void beforeConfiguration(ITestResult itr) {
-        super.beforeConfiguration(itr);
-        if (itr.getMethod().isBeforeClassConfiguration()) {
-            logger.info("[" + itr.getInstanceName() + "] start");
+    public void onConfigurationSkip( ITestResult itr ) {
+        super.onConfigurationSkip( itr );
+        if ( itr.getMethod().isAfterClassConfiguration() ) {
+            logger.info( "[" + itr.getInstanceName() + "] end" );
         }
     }
 
     @Override
-    public void onTestFailure(ITestResult tr) {
-        super.onTestFailure(tr);
+    public void beforeConfiguration( ITestResult itr ) {
+        super.beforeConfiguration( itr );
+        if ( itr.getMethod().isBeforeClassConfiguration() ) {
+            logger.info( "[" + itr.getInstanceName() + "] start" );
+        }
+    }
+
+    @Override
+    public void onTestFailure( ITestResult tr ) {
+        super.onTestFailure( tr );
         Throwable throwable = tr.getThrowable();
-        if (throwable != null && throwable.getMessage().contains(errorCode)) {
-            logger.info("[ " + tr.getInstanceName() +
-                    ":transaction snapshot:" + transSnapshot() + "]");
+        if ( throwable != null
+                && throwable.getMessage().contains( errorCode ) ) {
+            logger.info( "[ " + tr.getInstanceName() + ":transaction snapshot:"
+                    + transSnapshot() + "]" );
         }
     }
 
-    //transactions snapshot
+    // transactions snapshot
     private static String transSnapshot() {
         Sequoiadb db = null;
         DBCursor cursor = null;
         StringBuilder builder = new StringBuilder();
-        builder.append("[");
+        builder.append( "[" );
         try {
-            db = new Sequoiadb(S3TestBase.getDefaultCoordUrl(), "", "");
-            cursor = db.getSnapshot(9, "", "", "");
-            while (cursor.hasNext()) {
-                builder.append(cursor.getNext().toString() + ",\n");
+            db = new Sequoiadb( S3TestBase.getDefaultCoordUrl(), "", "" );
+            cursor = db.getSnapshot( 9, "", "", "" );
+            while ( cursor.hasNext() ) {
+                builder.append( cursor.getNext().toString() + ",\n" );
             }
-        } catch (Exception e) {
-            System.out.println("snapshot 9 failed,coord = " + S3TestBase.getDefaultCoordUrl());
+        } catch ( Exception e ) {
+            System.out.println( "snapshot 9 failed,coord = "
+                    + S3TestBase.getDefaultCoordUrl() );
             e.printStackTrace();
         } finally {
-            if (cursor != null) {
+            if ( cursor != null ) {
                 cursor.close();
             }
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
-        builder.append("]");
+        builder.append( "]" );
         return builder.toString();
     }
 }

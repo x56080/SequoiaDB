@@ -27,15 +27,16 @@ import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
 
 /**
- * @FileName seqDB-2181: MainCL insert many much datas when Catalog Primary Node is brokennetwork
+ * @FileName seqDB-2181: MainCL insert many much datas when Catalog Primary Node
+ *           is brokennetwork
  * @Author liuxiaoxuan
  * @Date 2017-08-18
  * @Version 1.00
  */
 
-public class InsertAndCatalogBroken2181 extends SdbTestBase{
-	
-	private GroupMgr groupMgr = null;
+public class InsertAndCatalogBroken2181 extends SdbTestBase {
+
+    private GroupMgr groupMgr = null;
     private boolean clearFlag = false;
     private Sequoiadb sdb = null;
     private CollectionSpace cs = null;
@@ -50,131 +51,147 @@ public class InsertAndCatalogBroken2181 extends SdbTestBase{
 
     @BeforeClass
     public void setUp() {
-        
+
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
 
             groupMgr = GroupMgr.getInstance();
-            if (!groupMgr.checkBusiness()) {
-                throw new SkipException("checkBusiness failed");
+            if ( !groupMgr.checkBusiness() ) {
+                throw new SkipException( "checkBusiness failed" );
             }
-            clGroupName = groupMgr.getAllDataGroupName().get(0);
-            sdb = new Sequoiadb(SdbTestBase.coordUrl,"","");
-            
+            clGroupName = groupMgr.getAllDataGroupName().get( 0 );
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+
             createAndAttachCLs();
-        } catch (ReliabilityException e) {
-            Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage());
-        } 
+        } catch ( ReliabilityException e ) {
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage() );
+        }
     }
 
     @AfterClass
     public void tearDown() {
-    	Sequoiadb db = null;
-    	try {
-    		db = new Sequoiadb(SdbTestBase.coordUrl,"","");
-    		if(clearFlag) {
-    			db.dropCollectionSpace(csName);
-    		}
-    	}catch(BaseException e) {
-            Assert.fail(e.getMessage());
-    	}finally {
-			if(db != null) {
-				db.close();
-				System.out.println(this.getClass().getName() + " end at:"
-	                  + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-			}
-		}
+        Sequoiadb db = null;
+        try {
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            if ( clearFlag ) {
+                db.dropCollectionSpace( csName );
+            }
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        } finally {
+            if ( db != null ) {
+                db.close();
+                System.out.println( this.getClass().getName() + " end at:"
+                        + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                                .format( new Date() ) );
+            }
+        }
     }
-    
+
     @Test
     public void test() {
-        
-        try {
-        	GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
-			NodeWrapper primaryNode = cataGroup.getMaster();
-			connectUrl = CommLib.getSafeCoordUrl(primaryNode.hostName());
-			
-            FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(primaryNode.hostName(), 5, 10);
-            TaskMgr mgr = new TaskMgr(faultTask);
-            InsertTask insertTask = new InsertTask();
-            mgr.addTask(insertTask);
-            mgr.execute();
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
 
-            //check whether the cluster is normal and lsn consistency ,the longest waiting time is 600S
-            Assert.assertEquals(groupMgr.checkBusinessWithLSN(600), true, "check LSN consistency fail");
-            
-            GroupWrapper srcdataGroup = groupMgr.getGroupByName(clGroupName);
-            Assert.assertEquals(srcdataGroup.checkInspect(1), true, "data is different on " + srcdataGroup.getGroupName());
-           
+        try {
+            GroupWrapper cataGroup = groupMgr
+                    .getGroupByName( "SYSCatalogGroup" );
+            NodeWrapper primaryNode = cataGroup.getMaster();
+            connectUrl = CommLib.getSafeCoordUrl( primaryNode.hostName() );
+
+            FaultMakeTask faultTask = BrokenNetwork
+                    .getFaultMakeTask( primaryNode.hostName(), 5, 10 );
+            TaskMgr mgr = new TaskMgr( faultTask );
+            InsertTask insertTask = new InsertTask();
+            mgr.addTask( insertTask );
+            mgr.execute();
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
+
+            // check whether the cluster is normal and lsn consistency ,the
+            // longest waiting time is 600S
+            Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true,
+                    "check LSN consistency fail" );
+
+            GroupWrapper srcdataGroup = groupMgr.getGroupByName( clGroupName );
+            Assert.assertEquals( srcdataGroup.checkInspect( 1 ), true,
+                    "data is different on " + srcdataGroup.getGroupName() );
+
             checkInsertResult();
-            
+
             clearFlag = true;
-        } catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
-        } 
+            Assert.fail( e.getMessage() );
+        }
     }
 
     public void createAndAttachCLs() {
-    	try {
-    		cs = sdb.createCollectionSpace(csName);
-    		DBCollection mainCL = cs.createCollection(mainCLName,
-                    (BSONObject) JSON
-                            .parse("{ShardingKey:{'a':1},ShardingType:'range',IsMainCL:true}"));   
-		for(int i = 0; i < SUBCL_NUMS; i++) {
-			cs.createCollection(subCLName + "_" + i,
-					(BSONObject) JSON
-                    .parse("{ShardingKey:{b:1},ShardingType:'range',"
-        					+ "Group:'" + clGroupName + "'}"));
-			String sclFullName = csName + "." + subCLName + "_" + i;
-			mainCL.attachCollection(sclFullName, (BSONObject) JSON.parse("{ LowBound: { a: " + i * 100000
-                    + " }, " + "UpBound: { a: " + ((i + 1) * 100000) + " } }"));
-		}
-		}catch (BaseException e) {
-			Assert.fail("CreateAndAttach cl failed, errMsg:" + e.getMessage());
-		}   
+        try {
+            cs = sdb.createCollectionSpace( csName );
+            DBCollection mainCL = cs.createCollection( mainCLName,
+                    ( BSONObject ) JSON.parse(
+                            "{ShardingKey:{'a':1},ShardingType:'range',IsMainCL:true}" ) );
+            for ( int i = 0; i < SUBCL_NUMS; i++ ) {
+                cs.createCollection( subCLName + "_" + i,
+                        ( BSONObject ) JSON.parse(
+                                "{ShardingKey:{b:1},ShardingType:'range',"
+                                        + "Group:'" + clGroupName + "'}" ) );
+                String sclFullName = csName + "." + subCLName + "_" + i;
+                mainCL.attachCollection( sclFullName,
+                        ( BSONObject ) JSON.parse( "{ LowBound: { a: "
+                                + i * 100000 + " }, " + "UpBound: { a: "
+                                + ( ( i + 1 ) * 100000 ) + " } }" ) );
+            }
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    "CreateAndAttach cl failed, errMsg:" + e.getMessage() );
+        }
     }
-    
+
     class InsertTask extends OperateTask {
-    	
+
         @Override
         public void exec() throws Exception {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(connectUrl, "", "");
-                CollectionSpace newCS = db.getCollectionSpace(csName);
-                DBCollection mainCL = newCS.getCollection(mainCLName);
-                for (int i = 0; i < INSERT_NUMS * SUBCL_NUMS; i++) {
-                	mainCL.insert("{ a: " + i +  ", b: 'test" + i + "'}");
+                db = new Sequoiadb( connectUrl, "", "" );
+                CollectionSpace newCS = db.getCollectionSpace( csName );
+                DBCollection mainCL = newCS.getCollection( mainCLName );
+                for ( int i = 0; i < INSERT_NUMS * SUBCL_NUMS; i++ ) {
+                    mainCL.insert( "{ a: " + i + ", b: 'test" + i + "'}" );
                     ++successInsertNums;
                 }
-            } catch (BaseException e) {
-            	System.out.println("success insert num is = " + successInsertNums);
+            } catch ( BaseException e ) {
+                System.out.println(
+                        "success insert num is = " + successInsertNums );
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.close();
                 }
             }
         }
-       
+
     }
-    
-    public void checkInsertResult(){
+
+    public void checkInsertResult() {
         try {
-            DBCollection mainCL = sdb.getCollectionSpace(csName).getCollection(mainCLName);
-            for (int i = 0; i < SUBCL_NUMS; i++) {
+            DBCollection mainCL = sdb.getCollectionSpace( csName )
+                    .getCollection( mainCLName );
+            for ( int i = 0; i < SUBCL_NUMS; i++ ) {
                 int lowBound = i * INSERT_NUMS;
-                int upBound = (i + 1) * INSERT_NUMS - 1;
-                mainCL.insert("{ a: " + lowBound +  ", b: 'test" + i + "'" + ", c: " + i + "}");
-                mainCL.insert("{ a: " + upBound +  ", b: 'test" + i + "'" + ", c: " + i + "}");
-                if (2 != mainCL.getCount("{ c: " + i + " }")) {
-                    Assert.fail("subcl_" + i + " is disabled");
+                int upBound = ( i + 1 ) * INSERT_NUMS - 1;
+                mainCL.insert( "{ a: " + lowBound + ", b: 'test" + i + "'"
+                        + ", c: " + i + "}" );
+                mainCL.insert( "{ a: " + upBound + ", b: 'test" + i + "'"
+                        + ", c: " + i + "}" );
+                if ( 2 != mainCL.getCount( "{ c: " + i + " }" ) ) {
+                    Assert.fail( "subcl_" + i + " is disabled" );
                 }
             }
-        } catch (BaseException e) {
-        	 Assert.fail("check insert again failed: " + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail( "check insert again failed: " + e.getMessage() );
         }
     }
 

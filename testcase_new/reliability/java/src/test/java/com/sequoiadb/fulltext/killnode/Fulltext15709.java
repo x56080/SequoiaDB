@@ -46,29 +46,32 @@ public class Fulltext15709 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() throws Exception {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("StandAlone environment!");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "StandAlone environment!" );
         }
         groupMgr = GroupMgr.getInstance();
-        groupName = groupMgr.getAllDataGroupName().get(0);
-        if (!groupMgr.checkBusiness()) {
-            throw new SkipException("checkBusiness failed");
+        groupName = groupMgr.getAllDataGroupName().get( 0 );
+        if ( !groupMgr.checkBusiness() ) {
+            throw new SkipException( "checkBusiness failed" );
         }
-        if (!FullTextUtils.checkAdapter()) {
-            throw new SkipException("Check adapter failed");
+        if ( !FullTextUtils.checkAdapter() ) {
+            throw new SkipException( "Check adapter failed" );
         }
-        for (int i = 0; i < csNames.length; i++) {
-            if (sdb.isCollectionSpaceExist(csNames[i])) {
-                sdb.dropCollectionSpace(csNames[i]);
+        for ( int i = 0; i < csNames.length; i++ ) {
+            if ( sdb.isCollectionSpaceExist( csNames[ i ] ) ) {
+                sdb.dropCollectionSpace( csNames[ i ] );
             }
-            CollectionSpace cs = sdb.createCollectionSpace(csNames[i]);
-            for (int j = 0; j < clNames.length; j++) {
-                DBCollection cl = cs.createCollection(clNames[j],
-                        (BSONObject) JSON.parse("{Group:'" + groupName + "'}"));
-                FullTextDBUtils.insertData(cl, insertNum);
-                cl.createIndex(indexName, "{a:'text',b:'text',c:'text',d:'text'}", false, false);
-                Assert.assertTrue(FullTextUtils.isIndexCreated(cl, indexName, insertNum));
+            CollectionSpace cs = sdb.createCollectionSpace( csNames[ i ] );
+            for ( int j = 0; j < clNames.length; j++ ) {
+                DBCollection cl = cs.createCollection( clNames[ j ],
+                        ( BSONObject ) JSON
+                                .parse( "{Group:'" + groupName + "'}" ) );
+                FullTextDBUtils.insertData( cl, insertNum );
+                cl.createIndex( indexName,
+                        "{a:'text',b:'text',c:'text',d:'text'}", false, false );
+                Assert.assertTrue( FullTextUtils.isIndexCreated( cl, indexName,
+                        insertNum ) );
             }
         }
     }
@@ -77,46 +80,48 @@ public class Fulltext15709 extends SdbTestBase {
     @Test(enabled = false)
     public void test() throws Exception {
         TaskMgr mgr = new TaskMgr();
-        for (int i = 0; i < csNames.length; i++) {
-            mgr.addTask(new InsertThread(csNames[i], clNames[0]));
-            mgr.addTask(new UpdateThread(csNames[i], clNames[0]));
-            mgr.addTask(new DeleteThread(csNames[i], clNames[0]));
-            mgr.addTask(new QueryThread(csNames[i], clNames[0]));
+        for ( int i = 0; i < csNames.length; i++ ) {
+            mgr.addTask( new InsertThread( csNames[ i ], clNames[ 0 ] ) );
+            mgr.addTask( new UpdateThread( csNames[ i ], clNames[ 0 ] ) );
+            mgr.addTask( new DeleteThread( csNames[ i ], clNames[ 0 ] ) );
+            mgr.addTask( new QueryThread( csNames[ i ], clNames[ 0 ] ) );
         }
 
-        GroupWrapper dataGroup = groupMgr.getGroupByName(groupName);
-        List<NodeWrapper> nodes = dataGroup.getNodes();
-        for (int i = 0; i < nodes.size(); i++) {
-            FaultMakeTask faultMakeTask = KillNode.getFaultMakeTask(nodes.get(i), new Random().nextInt(10));
-            mgr.addTask(faultMakeTask);
+        GroupWrapper dataGroup = groupMgr.getGroupByName( groupName );
+        List< NodeWrapper > nodes = dataGroup.getNodes();
+        for ( int i = 0; i < nodes.size(); i++ ) {
+            FaultMakeTask faultMakeTask = KillNode.getFaultMakeTask(
+                    nodes.get( i ), new Random().nextInt( 10 ) );
+            mgr.addTask( faultMakeTask );
         }
         mgr.execute();
 
-        Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
-        Assert.assertEquals(groupMgr.checkBusinessWithLSN(600), true);
-        Assert.assertEquals(FullTextUtils.checkAdapter(), true);
+        Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
+        Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true );
+        Assert.assertEquals( FullTextUtils.checkAdapter(), true );
 
-        for (int i = 0; i < csNames.length; i++) {
-            CollectionSpace cs = sdb.getCollectionSpace(csNames[i]);
-            for (int j = 0; j < clNames.length; j++) {
-                DBCollection cl = cs.getCollection(clNames[j]);
-                cl.insert("{a:'text15709'}");
-                int expCount = (int) cl.getCount();
-                Assert.assertTrue(FullTextUtils.isIndexCreated(cl, indexName, expCount));
+        for ( int i = 0; i < csNames.length; i++ ) {
+            CollectionSpace cs = sdb.getCollectionSpace( csNames[ i ] );
+            for ( int j = 0; j < clNames.length; j++ ) {
+                DBCollection cl = cs.getCollection( clNames[ j ] );
+                cl.insert( "{a:'text15709'}" );
+                int expCount = ( int ) cl.getCount();
+                Assert.assertTrue( FullTextUtils.isIndexCreated( cl, indexName,
+                        expCount ) );
             }
 
         }
-        Assert.assertEquals(dataGroup.checkInspect(1), true);
+        Assert.assertEquals( dataGroup.checkInspect( 1 ), true );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            for (int i = 0; i < csNames.length; i++) {
-                sdb.dropCollectionSpace(csNames[i]);
+            for ( int i = 0; i < csNames.length; i++ ) {
+                sdb.dropCollectionSpace( csNames[ i ] );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -126,19 +131,21 @@ public class Fulltext15709 extends SdbTestBase {
         String csName;
         String clName;
 
-        public InsertThread(String csName, String clName) {
+        public InsertThread( String csName, String clName ) {
             this.csName = csName;
             this.clName = clName;
         }
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                for (int i = 0; i < insertNum; i++) {
-                    cl.insert("{a:'insert15709_" + i + "'}");
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                for ( int i = 0; i < insertNum; i++ ) {
+                    cl.insert( "{a:'insert15709_" + i + "'}" );
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
                 e.printStackTrace();
             }
         }
@@ -148,17 +155,19 @@ public class Fulltext15709 extends SdbTestBase {
         String csName;
         String clName;
 
-        public UpdateThread(String csName, String clName) {
+        public UpdateThread( String csName, String clName ) {
             this.csName = csName;
             this.clName = clName;
         }
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                cl.update(null, "{$set:{a:'update15709'}}", null);
-            } catch (BaseException e) {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                cl.update( null, "{$set:{a:'update15709'}}", null );
+            } catch ( BaseException e ) {
                 e.printStackTrace();
             }
         }
@@ -168,17 +177,19 @@ public class Fulltext15709 extends SdbTestBase {
         String csName;
         String clName;
 
-        public DeleteThread(String csName, String clName) {
+        public DeleteThread( String csName, String clName ) {
             this.csName = csName;
             this.clName = clName;
         }
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                cl.delete("");
-            } catch (BaseException e) {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                cl.delete( "" );
+            } catch ( BaseException e ) {
                 e.printStackTrace();
             }
         }
@@ -188,20 +199,24 @@ public class Fulltext15709 extends SdbTestBase {
         String csName;
         String clName;
 
-        public QueryThread(String csName, String clName) {
+        public QueryThread( String csName, String clName ) {
             this.csName = csName;
             this.clName = clName;
         }
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                DBCursor cursor = cl.query("{\"\":{$Text:{query:{match_all:{}}}}}", null, null, null);
-                while (cursor.hasNext()) {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                DBCursor cursor = cl.query(
+                        "{\"\":{$Text:{query:{match_all:{}}}}}", null, null,
+                        null );
+                while ( cursor.hasNext() ) {
                     cursor.getNext();
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
                 e.printStackTrace();
             }
         }

@@ -20,30 +20,31 @@ class Explain {
     private String result;
 
     public String execute() {
-        DBCursor cur = dbcl.explain(matcher, selector, orderBy, hint, skipRows, returnNum, flag, options);
+        DBCursor cur = dbcl.explain( matcher, selector, orderBy, hint, skipRows,
+                returnNum, flag, options );
         StringBuilder stringBuilder = new StringBuilder();
-        while (cur.hasNext()) {
-            stringBuilder.append(cur.getNext().toString());
+        while ( cur.hasNext() ) {
+            stringBuilder.append( cur.getNext().toString() );
         }
         result = stringBuilder.toString();
         return result;
     }
 
     public boolean isQueryUseTbscan() {
-        if (result == null) {
+        if ( result == null ) {
             execute();
         }
-        return !result.contains("ixscan") && result.contains("tbscan");
+        return !result.contains( "ixscan" ) && result.contains( "tbscan" );
     }
 
     public boolean isQueryUseIxscan() {
-        if (result == null) {
+        if ( result == null ) {
             execute();
         }
-        return result.contains("ixscan") && !result.contains("tbscan");
+        return result.contains( "ixscan" ) && !result.contains( "tbscan" );
     }
 
-    private Explain(Builder builder) {
+    private Explain( Builder builder ) {
         this.dbcl = builder.dbcl;
         this.matcher = builder.matcher;
         this.selector = builder.selector;
@@ -55,7 +56,6 @@ class Explain {
         this.skipRows = builder.skipRows;
     }
 
-
     public String getExplainResult() {
         return result;
     }
@@ -66,183 +66,192 @@ class Explain {
         private long returnNum = -1, skipRows = 0;
         private int flag = 0;
 
-        public Builder(DBCollection dbcl) {
+        public Builder( DBCollection dbcl ) {
             this.dbcl = dbcl;
         }
 
-        public Builder(SdbClWarpper cl) {
+        public Builder( SdbClWarpper cl ) {
             this.dbcl = cl.getRealCl();
         }
 
-        public Builder matcher(BSONObject m) {
+        public Builder matcher( BSONObject m ) {
             this.matcher = m;
             return this;
         }
 
-        public Builder selector(BSONObject o) {
+        public Builder selector( BSONObject o ) {
             this.selector = o;
             return this;
         }
 
-        public Builder hint(BSONObject o) {
+        public Builder hint( BSONObject o ) {
             this.hint = o;
             return this;
         }
 
-        public Builder orderBy(BSONObject o) {
+        public Builder orderBy( BSONObject o ) {
             this.orderBy = o;
             return this;
         }
 
-        public Builder options(BSONObject o) {
+        public Builder options( BSONObject o ) {
             this.options = o;
             return this;
         }
 
-        public Builder returnNum(long num) {
+        public Builder returnNum( long num ) {
             this.returnNum = num;
             return this;
         }
 
-        public Builder skipRows(long num) {
+        public Builder skipRows( long num ) {
             this.skipRows = num;
             return this;
         }
 
-        public Builder flag(int f) {
+        public Builder flag( int f ) {
             this.flag = f;
             return this;
         }
 
         public Explain build() {
-            return new Explain(this);
+            return new Explain( this );
         }
     }
 }
 
 interface SdbWarpperInterface {
-    public SdbCsWarpper createCS(SdbCsProperties cs);
+    public SdbCsWarpper createCS( SdbCsProperties cs );
 
-    public void dropCSIfExist(String csName);
+    public void dropCSIfExist( String csName );
 
     public boolean isStandalone();
 
-    public List<ReplicaGroup> getDataRG();
+    public List< ReplicaGroup > getDataRG();
 
-    public SdbClWarpper createCL(SdbClProperties sdbClProperties);
+    public SdbClWarpper createCL( SdbClProperties sdbClProperties );
 
-    public void dropCL(SdbClWarpper cl);
+    public void dropCL( SdbClWarpper cl );
 }
 
 class SdbWarpper extends Sequoiadb implements SdbWarpperInterface {
 
-    public SdbWarpper(String connString, String username, String password) throws BaseException {
-        super(connString, username, password);
+    public SdbWarpper( String connString, String username, String password )
+            throws BaseException {
+        super( connString, username, password );
     }
 
-    public SdbWarpper(String connString) throws BaseException {
-        super(connString, "", "");
+    public SdbWarpper( String connString ) throws BaseException {
+        super( connString, "", "" );
     }
 
-    public SdbWarpper(String connString, String username, String password, ConfigOptions options) throws BaseException {
-        super(connString, username, password, options);
+    public SdbWarpper( String connString, String username, String password,
+            ConfigOptions options ) throws BaseException {
+        super( connString, username, password, options );
     }
 
-    public SdbWarpper(List<String> connStrings, String username, String password, ConfigOptions options) throws BaseException {
-        super(connStrings, username, password, options);
+    public SdbWarpper( List< String > connStrings, String username,
+            String password, ConfigOptions options ) throws BaseException {
+        super( connStrings, username, password, options );
     }
 
-    public SdbWarpper(String host, int port, String username, String password) throws BaseException {
-        super(host, port, username, password);
+    public SdbWarpper( String host, int port, String username, String password )
+            throws BaseException {
+        super( host, port, username, password );
     }
 
-    public SdbWarpper(String host, int port, String username, String password, ConfigOptions options) throws BaseException {
-        super(host, port, username, password, options);
+    public SdbWarpper( String host, int port, String username, String password,
+            ConfigOptions options ) throws BaseException {
+        super( host, port, username, password, options );
     }
 
-    public void dropCSIfExist(String csName) {
-        if (this.isCollectionSpaceExist(csName)) {
-            this.dropCollectionSpace(csName);
+    public void dropCSIfExist( String csName ) {
+        if ( this.isCollectionSpaceExist( csName ) ) {
+            this.dropCollectionSpace( csName );
         }
     }
 
-    public void dropCSIfExist(SdbCsProperties cs) {
-        dropCSIfExist(cs.getCsName());
+    public void dropCSIfExist( SdbCsProperties cs ) {
+        dropCSIfExist( cs.getCsName() );
     }
 
     public boolean isStandalone() {
-        return CommLib.isStandAlone(this);
+        return CommLib.isStandAlone( this );
     }
 
-    public List<ReplicaGroup> getDataRG() {
-        ArrayList<String> rgNames = CommLib.getDataGroupNames(this);
-        List<ReplicaGroup> rgs = new ArrayList<>(10);
-        for (String rgName : rgNames) {
-            rgs.add(this.getReplicaGroup(rgName));
+    public List< ReplicaGroup > getDataRG() {
+        ArrayList< String > rgNames = CommLib.getDataGroupNames( this );
+        List< ReplicaGroup > rgs = new ArrayList<>( 10 );
+        for ( String rgName : rgNames ) {
+            rgs.add( this.getReplicaGroup( rgName ) );
         }
         return rgs;
     }
 
-    public SdbCsWarpper createCS(SdbCsProperties cs) {
-    	CollectionSpace dbcs = null;
-    	if(cs.getOptions()!=null){
-    		dbcs = this.createCollectionSpace(cs.getCsName(),cs.getOptions());
-    	}else{
-    		dbcs = this.createCollectionSpace(cs.getCsName());
-    	}
-        return new SdbCsWarpper(dbcs);
+    public SdbCsWarpper createCS( SdbCsProperties cs ) {
+        CollectionSpace dbcs = null;
+        if ( cs.getOptions() != null ) {
+            dbcs = this.createCollectionSpace( cs.getCsName(),
+                    cs.getOptions() );
+        } else {
+            dbcs = this.createCollectionSpace( cs.getCsName() );
+        }
+        return new SdbCsWarpper( dbcs );
     }
 
-
-    public SdbClWarpper createCL(SdbClProperties sdbClProperties) {
-        CollectionSpace cs = this.getCollectionSpace(sdbClProperties.getCs().getCsName());
+    public SdbClWarpper createCL( SdbClProperties sdbClProperties ) {
+        CollectionSpace cs = this
+                .getCollectionSpace( sdbClProperties.getCs().getCsName() );
         BSONObject options = new BasicBSONObject();
-        if (sdbClProperties.getShardingKey() != null) {
-            options.put("ShardingKey", sdbClProperties.getShardingKey());
+        if ( sdbClProperties.getShardingKey() != null ) {
+            options.put( "ShardingKey", sdbClProperties.getShardingKey() );
         }
-        if (sdbClProperties.getShardingType() != null) {
-            options.put("ShardingType", sdbClProperties.getShardingType());
+        if ( sdbClProperties.getShardingType() != null ) {
+            options.put( "ShardingType", sdbClProperties.getShardingType() );
         }
-        if (sdbClProperties.getPartition() != null) {
-            options.put("Partition", sdbClProperties.getPartition());
+        if ( sdbClProperties.getPartition() != null ) {
+            options.put( "Partition", sdbClProperties.getPartition() );
         }
-        if (sdbClProperties.isAutoSplit() != null) {
-            options.put("AutoSplit", sdbClProperties.isAutoSplit());
+        if ( sdbClProperties.isAutoSplit() != null ) {
+            options.put( "AutoSplit", sdbClProperties.isAutoSplit() );
         }
-        if (sdbClProperties.isEnsureShardingIndex() != null) {
-            options.put("EnsureShardingIndex", sdbClProperties.isEnsureShardingIndex());
+        if ( sdbClProperties.isEnsureShardingIndex() != null ) {
+            options.put( "EnsureShardingIndex",
+                    sdbClProperties.isEnsureShardingIndex() );
         }
-        if (sdbClProperties.isCompressed() != null) {
-            options.put("Compressed", sdbClProperties.isCompressed());
+        if ( sdbClProperties.isCompressed() != null ) {
+            options.put( "Compressed", sdbClProperties.isCompressed() );
         }
-        if (sdbClProperties.getCompressionType() != null) {
-            options.put("CompressionType", sdbClProperties.getCompressionType());
+        if ( sdbClProperties.getCompressionType() != null ) {
+            options.put( "CompressionType",
+                    sdbClProperties.getCompressionType() );
         }
-        if (sdbClProperties.getGroup() != null) {
-            options.put("Group", sdbClProperties.getGroup());
+        if ( sdbClProperties.getGroup() != null ) {
+            options.put( "Group", sdbClProperties.getGroup() );
         }
-        if (sdbClProperties.isAutoIndexId() != null) {
-            options.put("AutoIndexId", sdbClProperties.isAutoIndexId());
+        if ( sdbClProperties.isAutoIndexId() != null ) {
+            options.put( "AutoIndexId", sdbClProperties.isAutoIndexId() );
         }
-        if (sdbClProperties.isMainCL() != null) {
-            options.put("IsMainCL", sdbClProperties.isMainCL());
+        if ( sdbClProperties.isMainCL() != null ) {
+            options.put( "IsMainCL", sdbClProperties.isMainCL() );
         }
-        if (sdbClProperties.getReplSize() != null) {
-            options.put("ReplSize", sdbClProperties.getReplSize());
+        if ( sdbClProperties.getReplSize() != null ) {
+            options.put( "ReplSize", sdbClProperties.getReplSize() );
         }
-        DBCollection cl = cs.createCollection(sdbClProperties.getClName(), options);
-        return new SdbClWarpper(cl);
+        DBCollection cl = cs.createCollection( sdbClProperties.getClName(),
+                options );
+        return new SdbClWarpper( cl );
     }
 
     @Override
-    public void dropCL(SdbClWarpper cl) {
-        this.getCollectionSpace(cl.getCSName())
-                .dropCollection(cl.getName());
+    public void dropCL( SdbClWarpper cl ) {
+        this.getCollectionSpace( cl.getCSName() )
+                .dropCollection( cl.getName() );
     }
 }
 
 class SdbClWarpper {
-    SdbClWarpper(DBCollection cl) {
+    SdbClWarpper( DBCollection cl ) {
         this._cl = cl;
     }
 
@@ -270,52 +279,57 @@ class SdbClWarpper {
         return _cl.getCollectionSpace();
     }
 
-    public void setMainKeys(String[] keys) throws BaseException {
-        _cl.setMainKeys(keys);
+    public void setMainKeys( String[] keys ) throws BaseException {
+        _cl.setMainKeys( keys );
     }
 
-    public Object insert(BSONObject insertor) throws BaseException {
-        return _cl.insert(insertor);
+    public Object insert( BSONObject insertor ) throws BaseException {
+        return _cl.insert( insertor );
     }
 
-    public Object insert(String insertor) throws BaseException {
-        return _cl.insert(insertor);
+    public Object insert( String insertor ) throws BaseException {
+        return _cl.insert( insertor );
     }
 
-    public void insert(List<BSONObject> insertor, int flag) throws BaseException {
-        _cl.insert(insertor, flag);
+    public void insert( List< BSONObject > insertor, int flag )
+            throws BaseException {
+        _cl.insert( insertor, flag );
     }
 
-    public void insert(List<BSONObject> insertor) throws BaseException {
-        _cl.insert(insertor);
+    public void insert( List< BSONObject > insertor ) throws BaseException {
+        _cl.insert( insertor );
     }
 
-    public <T> void save(T type, Boolean ignoreNullValue, int flag) throws BaseException {
-        _cl.save(type, ignoreNullValue, flag);
+    public < T > void save( T type, Boolean ignoreNullValue, int flag )
+            throws BaseException {
+        _cl.save( type, ignoreNullValue, flag );
     }
 
-    public <T> void save(T type, Boolean ignoreNullValue) throws BaseException {
-        _cl.save(type, ignoreNullValue);
+    public < T > void save( T type, Boolean ignoreNullValue )
+            throws BaseException {
+        _cl.save( type, ignoreNullValue );
     }
 
-    public <T> void save(T type) throws BaseException {
-        _cl.save(type);
+    public < T > void save( T type ) throws BaseException {
+        _cl.save( type );
     }
 
-    public <T> void save(List<T> type, Boolean ignoreNullValue, int flag) throws BaseException {
-        _cl.save(type, ignoreNullValue, flag);
+    public < T > void save( List< T > type, Boolean ignoreNullValue, int flag )
+            throws BaseException {
+        _cl.save( type, ignoreNullValue, flag );
     }
 
-    public <T> void save(List<T> type, Boolean ignoreNullValue) throws BaseException {
-        _cl.save(type, ignoreNullValue);
+    public < T > void save( List< T > type, Boolean ignoreNullValue )
+            throws BaseException {
+        _cl.save( type, ignoreNullValue );
     }
 
-    public <T> void save(List<T> type) throws BaseException {
-        _cl.save(type);
+    public < T > void save( List< T > type ) throws BaseException {
+        _cl.save( type );
     }
 
-    public void ensureOID(boolean flag) {
-        _cl.ensureOID(flag);
+    public void ensureOID( boolean flag ) {
+        _cl.ensureOID( flag );
     }
 
     public boolean isOIDEnsured() {
@@ -323,100 +337,128 @@ class SdbClWarpper {
     }
 
     @Deprecated
-    public void bulkInsert(List<BSONObject> insertor, int flag) throws BaseException {
-        _cl.bulkInsert(insertor, flag);
+    public void bulkInsert( List< BSONObject > insertor, int flag )
+            throws BaseException {
+        _cl.bulkInsert( insertor, flag );
     }
 
-    public void delete(BSONObject matcher) throws BaseException {
-        _cl.delete(matcher);
+    public void delete( BSONObject matcher ) throws BaseException {
+        _cl.delete( matcher );
     }
 
-    public void delete(String matcher) throws BaseException {
-        _cl.delete(matcher);
+    public void delete( String matcher ) throws BaseException {
+        _cl.delete( matcher );
     }
 
-    public void delete(String matcher, String hint) throws BaseException {
-        _cl.delete(matcher, hint);
+    public void delete( String matcher, String hint ) throws BaseException {
+        _cl.delete( matcher, hint );
     }
 
-    public void delete(BSONObject matcher, BSONObject hint) throws BaseException {
-        _cl.delete(matcher, hint);
+    public void delete( BSONObject matcher, BSONObject hint )
+            throws BaseException {
+        _cl.delete( matcher, hint );
     }
 
-    public void update(DBQuery query) throws BaseException {
-        _cl.update(query);
+    public void update( DBQuery query ) throws BaseException {
+        _cl.update( query );
     }
 
-    public void update(BSONObject matcher, BSONObject modifier, BSONObject hint) throws BaseException {
-        _cl.update(matcher, modifier, hint);
+    public void update( BSONObject matcher, BSONObject modifier,
+            BSONObject hint ) throws BaseException {
+        _cl.update( matcher, modifier, hint );
     }
 
-    public void update(BSONObject matcher, BSONObject modifier, BSONObject hint, int flag) throws BaseException {
-        _cl.update(matcher, modifier, hint, flag);
+    public void update( BSONObject matcher, BSONObject modifier,
+            BSONObject hint, int flag ) throws BaseException {
+        _cl.update( matcher, modifier, hint, flag );
     }
 
-    public void update(String matcher, String modifier, String hint) throws BaseException {
-        _cl.update(matcher, modifier, hint);
+    public void update( String matcher, String modifier, String hint )
+            throws BaseException {
+        _cl.update( matcher, modifier, hint );
     }
 
-    public void update(String matcher, String modifier, String hint, int flag) throws BaseException {
-        _cl.update(matcher, modifier, hint, flag);
+    public void update( String matcher, String modifier, String hint, int flag )
+            throws BaseException {
+        _cl.update( matcher, modifier, hint, flag );
     }
 
-    public void upsert(BSONObject matcher, BSONObject modifier, BSONObject hint) throws BaseException {
-        _cl.upsert(matcher, modifier, hint);
+    public void upsert( BSONObject matcher, BSONObject modifier,
+            BSONObject hint ) throws BaseException {
+        _cl.upsert( matcher, modifier, hint );
     }
 
-    public void upsert(BSONObject matcher, BSONObject modifier, BSONObject hint, BSONObject setOnInsert) throws BaseException {
-        _cl.upsert(matcher, modifier, hint, setOnInsert);
+    public void upsert( BSONObject matcher, BSONObject modifier,
+            BSONObject hint, BSONObject setOnInsert ) throws BaseException {
+        _cl.upsert( matcher, modifier, hint, setOnInsert );
     }
 
-    public void upsert(BSONObject matcher, BSONObject modifier, BSONObject hint, BSONObject setOnInsert, int flag) throws BaseException {
-        _cl.upsert(matcher, modifier, hint, setOnInsert, flag);
+    public void upsert( BSONObject matcher, BSONObject modifier,
+            BSONObject hint, BSONObject setOnInsert, int flag )
+            throws BaseException {
+        _cl.upsert( matcher, modifier, hint, setOnInsert, flag );
     }
 
-    public DBCursor explain(BSONObject matcher, BSONObject selector, BSONObject orderBy, BSONObject hint, long skipRows, long returnRows, int flag, BSONObject options) throws BaseException {
-        return _cl.explain(matcher, selector, orderBy, hint, skipRows, returnRows, flag, options);
+    public DBCursor explain( BSONObject matcher, BSONObject selector,
+            BSONObject orderBy, BSONObject hint, long skipRows, long returnRows,
+            int flag, BSONObject options ) throws BaseException {
+        return _cl.explain( matcher, selector, orderBy, hint, skipRows,
+                returnRows, flag, options );
     }
 
     public DBCursor query() throws BaseException {
         return _cl.query();
     }
 
-    public DBCursor query(DBQuery matcher) throws BaseException {
-        return _cl.query(matcher);
+    public DBCursor query( DBQuery matcher ) throws BaseException {
+        return _cl.query( matcher );
     }
 
-    public DBCursor query(BSONObject matcher, BSONObject selector, BSONObject orderBy, BSONObject hint) throws BaseException {
-        return _cl.query(matcher, selector, orderBy, hint);
+    public DBCursor query( BSONObject matcher, BSONObject selector,
+            BSONObject orderBy, BSONObject hint ) throws BaseException {
+        return _cl.query( matcher, selector, orderBy, hint );
     }
 
-    public DBCursor query(BSONObject matcher, BSONObject selector, BSONObject orderBy, BSONObject hint, int flag) throws BaseException {
-        return _cl.query(matcher, selector, orderBy, hint, flag);
+    public DBCursor query( BSONObject matcher, BSONObject selector,
+            BSONObject orderBy, BSONObject hint, int flag )
+            throws BaseException {
+        return _cl.query( matcher, selector, orderBy, hint, flag );
     }
 
-    public DBCursor query(String matcher, String selector, String orderBy, String hint) throws BaseException {
-        return _cl.query(matcher, selector, orderBy, hint);
+    public DBCursor query( String matcher, String selector, String orderBy,
+            String hint ) throws BaseException {
+        return _cl.query( matcher, selector, orderBy, hint );
     }
 
-    public DBCursor query(String matcher, String selector, String orderBy, String hint, int flag) throws BaseException {
-        return _cl.query(matcher, selector, orderBy, hint, flag);
+    public DBCursor query( String matcher, String selector, String orderBy,
+            String hint, int flag ) throws BaseException {
+        return _cl.query( matcher, selector, orderBy, hint, flag );
     }
 
-    public DBCursor query(String matcher, String selector, String orderBy, String hint, long skipRows, long returnRows) throws BaseException {
-        return _cl.query(matcher, selector, orderBy, hint, skipRows, returnRows);
+    public DBCursor query( String matcher, String selector, String orderBy,
+            String hint, long skipRows, long returnRows ) throws BaseException {
+        return _cl.query( matcher, selector, orderBy, hint, skipRows,
+                returnRows );
     }
 
-    public DBCursor query(BSONObject matcher, BSONObject selector, BSONObject orderBy, BSONObject hint, long skipRows, long returnRows) throws BaseException {
-        return _cl.query(matcher, selector, orderBy, hint, skipRows, returnRows);
+    public DBCursor query( BSONObject matcher, BSONObject selector,
+            BSONObject orderBy, BSONObject hint, long skipRows,
+            long returnRows ) throws BaseException {
+        return _cl.query( matcher, selector, orderBy, hint, skipRows,
+                returnRows );
     }
 
-    public DBCursor query(BSONObject matcher, BSONObject selector, BSONObject orderBy, BSONObject hint, long skipRows, long returnRows, int flags) throws BaseException {
-        return _cl.query(matcher, selector, orderBy, hint, skipRows, returnRows, flags);
+    public DBCursor query( BSONObject matcher, BSONObject selector,
+            BSONObject orderBy, BSONObject hint, long skipRows, long returnRows,
+            int flags ) throws BaseException {
+        return _cl.query( matcher, selector, orderBy, hint, skipRows,
+                returnRows, flags );
     }
 
-    public BSONObject queryOne(BSONObject matcher, BSONObject selector, BSONObject orderBy, BSONObject hint, int flag) throws BaseException {
-        return _cl.queryOne(matcher, selector, orderBy, hint, flag);
+    public BSONObject queryOne( BSONObject matcher, BSONObject selector,
+            BSONObject orderBy, BSONObject hint, int flag )
+            throws BaseException {
+        return _cl.queryOne( matcher, selector, orderBy, hint, flag );
     }
 
     public BSONObject queryOne() throws BaseException {
@@ -427,101 +469,128 @@ class SdbClWarpper {
         return _cl.getIndexes();
     }
 
-    public DBCursor queryAndUpdate(BSONObject matcher, BSONObject selector, BSONObject orderBy, BSONObject hint, BSONObject update, long skipRows, long returnRows, int flag, boolean returnNew) throws BaseException {
-        return _cl.queryAndUpdate(matcher, selector, orderBy, hint, update, skipRows, returnRows, flag, returnNew);
+    public DBCursor queryAndUpdate( BSONObject matcher, BSONObject selector,
+            BSONObject orderBy, BSONObject hint, BSONObject update,
+            long skipRows, long returnRows, int flag, boolean returnNew )
+            throws BaseException {
+        return _cl.queryAndUpdate( matcher, selector, orderBy, hint, update,
+                skipRows, returnRows, flag, returnNew );
     }
 
-    public DBCursor queryAndRemove(BSONObject matcher, BSONObject selector, BSONObject orderBy, BSONObject hint, long skipRows, long returnRows, int flag) throws BaseException {
-        return _cl.queryAndRemove(matcher, selector, orderBy, hint, skipRows, returnRows, flag);
+    public DBCursor queryAndRemove( BSONObject matcher, BSONObject selector,
+            BSONObject orderBy, BSONObject hint, long skipRows, long returnRows,
+            int flag ) throws BaseException {
+        return _cl.queryAndRemove( matcher, selector, orderBy, hint, skipRows,
+                returnRows, flag );
     }
 
-    public DBCursor getIndex(String name) throws BaseException {
-        return _cl.getIndex(name);
+    public DBCursor getIndex( String name ) throws BaseException {
+        return _cl.getIndex( name );
     }
 
-    public void createIndex(String name, BSONObject key, boolean isUnique, boolean enforced, int sortBufferSize) throws BaseException {
-        _cl.createIndex(name, key, isUnique, enforced, sortBufferSize);
+    public void createIndex( String name, BSONObject key, boolean isUnique,
+            boolean enforced, int sortBufferSize ) throws BaseException {
+        _cl.createIndex( name, key, isUnique, enforced, sortBufferSize );
     }
 
-    public void createIndex(IndexProperties indexProperties) {
-        _cl.createIndex(indexProperties.getIndexName(), indexProperties.getIndexKey(), indexProperties.isUnique(), indexProperties.isEnforced(), indexProperties.getSortBufferSize());
+    public void createIndex( IndexProperties indexProperties ) {
+        _cl.createIndex( indexProperties.getIndexName(),
+                indexProperties.getIndexKey(), indexProperties.isUnique(),
+                indexProperties.isEnforced(),
+                indexProperties.getSortBufferSize() );
 
     }
 
-    public void createIndex(String name, String key, boolean isUnique, boolean enforced, int sortBufferSize) throws BaseException {
-        _cl.createIndex(name, key, isUnique, enforced, sortBufferSize);
+    public void createIndex( String name, String key, boolean isUnique,
+            boolean enforced, int sortBufferSize ) throws BaseException {
+        _cl.createIndex( name, key, isUnique, enforced, sortBufferSize );
     }
 
-    public void createIndex(String name, BSONObject key, boolean isUnique, boolean enforced) throws BaseException {
-        _cl.createIndex(name, key, isUnique, enforced);
+    public void createIndex( String name, BSONObject key, boolean isUnique,
+            boolean enforced ) throws BaseException {
+        _cl.createIndex( name, key, isUnique, enforced );
     }
 
-    public void createIndex(String name, String key, boolean isUnique, boolean enforced) throws BaseException {
-        _cl.createIndex(name, key, isUnique, enforced);
+    public void createIndex( String name, String key, boolean isUnique,
+            boolean enforced ) throws BaseException {
+        _cl.createIndex( name, key, isUnique, enforced );
     }
 
-    public void createIdIndex(BSONObject options) throws BaseException {
-        _cl.createIdIndex(options);
+    public void createIdIndex( BSONObject options ) throws BaseException {
+        _cl.createIdIndex( options );
     }
 
     public void dropIdIndex() throws BaseException {
         _cl.dropIdIndex();
     }
 
-    public void dropIndex(String name) throws BaseException {
-        _cl.dropIndex(name);
+    public void dropIndex( String name ) throws BaseException {
+        _cl.dropIndex( name );
     }
 
     public long getCount() throws BaseException {
         return _cl.getCount();
     }
 
-    public long getCount(String matcher) throws BaseException {
-        return _cl.getCount(matcher);
+    public long getCount( String matcher ) throws BaseException {
+        return _cl.getCount( matcher );
     }
 
-    public long getCount(BSONObject matcher) throws BaseException {
-        return _cl.getCount(matcher);
+    public long getCount( BSONObject matcher ) throws BaseException {
+        return _cl.getCount( matcher );
     }
 
-    public long getCount(BSONObject matcher, BSONObject hint) throws BaseException {
-        return _cl.getCount(matcher, hint);
+    public long getCount( BSONObject matcher, BSONObject hint )
+            throws BaseException {
+        return _cl.getCount( matcher, hint );
     }
 
-    public void split(String sourceGroupName, String destGroupName, BSONObject splitCondition, BSONObject splitEndCondition) throws BaseException {
-        _cl.split(sourceGroupName, destGroupName, splitCondition, splitEndCondition);
+    public void split( String sourceGroupName, String destGroupName,
+            BSONObject splitCondition, BSONObject splitEndCondition )
+            throws BaseException {
+        _cl.split( sourceGroupName, destGroupName, splitCondition,
+                splitEndCondition );
     }
 
-    public void split(String sourceGroupName, String destGroupName, double percent) throws BaseException {
-        _cl.split(sourceGroupName, destGroupName, percent);
+    public void split( String sourceGroupName, String destGroupName,
+            double percent ) throws BaseException {
+        _cl.split( sourceGroupName, destGroupName, percent );
     }
 
-    public long splitAsync(String sourceGroupName, String destGroupName, BSONObject splitCondition, BSONObject splitEndCondition) throws BaseException {
-        return _cl.splitAsync(sourceGroupName, destGroupName, splitCondition, splitEndCondition);
+    public long splitAsync( String sourceGroupName, String destGroupName,
+            BSONObject splitCondition, BSONObject splitEndCondition )
+            throws BaseException {
+        return _cl.splitAsync( sourceGroupName, destGroupName, splitCondition,
+                splitEndCondition );
     }
 
-    public long splitAsync(String sourceGroupName, String destGroupName, double percent) throws BaseException {
-        return _cl.splitAsync(sourceGroupName, destGroupName, percent);
+    public long splitAsync( String sourceGroupName, String destGroupName,
+            double percent ) throws BaseException {
+        return _cl.splitAsync( sourceGroupName, destGroupName, percent );
     }
 
-    public DBCursor aggregate(List<BSONObject> objs) throws BaseException {
-        return _cl.aggregate(objs);
+    public DBCursor aggregate( List< BSONObject > objs ) throws BaseException {
+        return _cl.aggregate( objs );
     }
 
-    public DBCursor getQueryMeta(BSONObject matcher, BSONObject orderBy, BSONObject hint, long skipRows, long returnRows, int flag) throws BaseException {
-        return _cl.getQueryMeta(matcher, orderBy, hint, skipRows, returnRows, flag);
+    public DBCursor getQueryMeta( BSONObject matcher, BSONObject orderBy,
+            BSONObject hint, long skipRows, long returnRows, int flag )
+            throws BaseException {
+        return _cl.getQueryMeta( matcher, orderBy, hint, skipRows, returnRows,
+                flag );
     }
 
-    public void attachCollection(String subClFullName, BSONObject options) throws BaseException {
-        _cl.attachCollection(subClFullName, options);
+    public void attachCollection( String subClFullName, BSONObject options )
+            throws BaseException {
+        _cl.attachCollection( subClFullName, options );
     }
 
-    public void detachCollection(String subClFullName) throws BaseException {
-        _cl.detachCollection(subClFullName);
+    public void detachCollection( String subClFullName ) throws BaseException {
+        _cl.detachCollection( subClFullName );
     }
 
-    public void alterCollection(BSONObject options) throws BaseException {
-        _cl.alterCollection(options);
+    public void alterCollection( BSONObject options ) throws BaseException {
+        _cl.alterCollection( options );
     }
 
     public DBCursor listLobs() throws BaseException {
@@ -532,32 +601,33 @@ class SdbClWarpper {
         return _cl.createLob();
     }
 
-    public DBLob createLob(ObjectId id) throws BaseException {
-        return _cl.createLob(id);
+    public DBLob createLob( ObjectId id ) throws BaseException {
+        return _cl.createLob( id );
     }
 
-    public DBLob openLob(ObjectId id, int mode) throws BaseException {
-        return _cl.openLob(id, mode);
+    public DBLob openLob( ObjectId id, int mode ) throws BaseException {
+        return _cl.openLob( id, mode );
     }
 
-    public DBLob openLob(ObjectId id) throws BaseException {
-        return _cl.openLob(id);
+    public DBLob openLob( ObjectId id ) throws BaseException {
+        return _cl.openLob( id );
     }
 
-    public void removeLob(ObjectId lobId) throws BaseException {
-        _cl.removeLob(lobId);
+    public void removeLob( ObjectId lobId ) throws BaseException {
+        _cl.removeLob( lobId );
     }
 
-    public void truncateLob(ObjectId lobId, long length) throws BaseException {
-        _cl.truncateLob(lobId, length);
+    public void truncateLob( ObjectId lobId, long length )
+            throws BaseException {
+        _cl.truncateLob( lobId, length );
     }
 
     public void truncate() throws BaseException {
         _cl.truncate();
     }
 
-    public void pop(BSONObject options) throws BaseException {
-        _cl.pop(options);
+    public void pop( BSONObject options ) throws BaseException {
+        _cl.pop( options );
     }
 
     private DBCollection _cl;
@@ -566,7 +636,7 @@ class SdbClWarpper {
 class SdbCsWarpper {
     private CollectionSpace _cs;
 
-    SdbCsWarpper(CollectionSpace cs) {
+    SdbCsWarpper( CollectionSpace cs ) {
         this._cs = cs;
     }
 
@@ -578,32 +648,36 @@ class SdbCsWarpper {
         return _cs.getSequoiadb();
     }
 
-    public DBCollection getCollection(String collectionName) throws BaseException {
-        return _cs.getCollection(collectionName);
+    public DBCollection getCollection( String collectionName )
+            throws BaseException {
+        return _cs.getCollection( collectionName );
     }
 
-    public boolean isCollectionExist(String collectionName) throws BaseException {
-        return _cs.isCollectionExist(collectionName);
+    public boolean isCollectionExist( String collectionName )
+            throws BaseException {
+        return _cs.isCollectionExist( collectionName );
     }
 
-    public List<String> getCollectionNames() throws BaseException {
+    public List< String > getCollectionNames() throws BaseException {
         return _cs.getCollectionNames();
     }
 
-    public DBCollection createCollection(String collectionName) throws BaseException {
-        return _cs.createCollection(collectionName);
+    public DBCollection createCollection( String collectionName )
+            throws BaseException {
+        return _cs.createCollection( collectionName );
     }
 
-    public DBCollection createCollection(String collectionName, BSONObject options) {
-        return _cs.createCollection(collectionName, options);
+    public DBCollection createCollection( String collectionName,
+            BSONObject options ) {
+        return _cs.createCollection( collectionName, options );
     }
 
     public void drop() throws BaseException {
         _cs.drop();
     }
 
-    public void dropCollection(String collectionName) throws BaseException {
-        _cs.dropCollection(collectionName);
+    public void dropCollection( String collectionName ) throws BaseException {
+        _cs.dropCollection( collectionName );
     }
 }
 
@@ -614,17 +688,17 @@ class SdbCsProperties {
     public String getCsName() {
         return csName;
     }
-    
+
     public BSONObject getOptions() {
         return options;
     }
 
-    SdbCsProperties(String csName, BSONObject options) {
+    SdbCsProperties( String csName, BSONObject options ) {
         this.csName = csName;
         this.options = options;
     }
-    
-    SdbCsProperties(String csName) {
+
+    SdbCsProperties( String csName ) {
         this.csName = csName;
     }
 }
@@ -697,7 +771,7 @@ class SdbClProperties {
         return cs;
     }
 
-    private SdbClProperties(Builder builder) {
+    private SdbClProperties( Builder builder ) {
         clName = builder.clName;
         shardingKey = builder.shardingKey;
         shardingType = builder.shardingType;
@@ -713,8 +787,8 @@ class SdbClProperties {
         cs = builder.cs;
     }
 
-    public static Builder newBuilder(SdbCsProperties cs, String clName) {
-        return new Builder(cs, clName);
+    public static Builder newBuilder( SdbCsProperties cs, String clName ) {
+        return new Builder( cs, clName );
     }
 
     public static final class Builder {
@@ -732,73 +806,73 @@ class SdbClProperties {
         private Boolean ensureShardingIndex = null;
         public SdbCsProperties cs;
 
-        private Builder(SdbCsProperties cs, String clName) {
+        private Builder( SdbCsProperties cs, String clName ) {
             this.cs = cs;
             this.clName = clName;
         }
 
-        public Builder clName(String val) {
+        public Builder clName( String val ) {
             clName = val;
             return this;
         }
 
-        public Builder shardingKey(BSONObject val) {
+        public Builder shardingKey( BSONObject val ) {
             shardingKey = val;
             return this;
         }
 
-        public Builder shardingType(String val) {
+        public Builder shardingType( String val ) {
             shardingType = val;
             return this;
         }
 
-        public Builder partition(int val) {
+        public Builder partition( int val ) {
             partition = val;
             return this;
         }
 
-        public Builder replSize(int val) {
+        public Builder replSize( int val ) {
             replSize = val;
             return this;
         }
 
-        public Builder compressed(boolean val) {
+        public Builder compressed( boolean val ) {
             compressed = val;
             return this;
         }
 
-        public Builder compressionType(String val) {
+        public Builder compressionType( String val ) {
             compressionType = val;
             return this;
         }
 
-        public Builder isMainCL(boolean val) {
+        public Builder isMainCL( boolean val ) {
             isMainCL = val;
             return this;
         }
 
-        public Builder autoSplit(boolean val) {
+        public Builder autoSplit( boolean val ) {
             autoSplit = val;
             return this;
         }
 
-        public Builder group(String val) {
+        public Builder group( String val ) {
             group = val;
             return this;
         }
 
-        public Builder autoIndexId(boolean val) {
+        public Builder autoIndexId( boolean val ) {
             autoIndexId = val;
             return this;
         }
 
-        public Builder ensureShardingIndex(boolean val) {
+        public Builder ensureShardingIndex( boolean val ) {
             ensureShardingIndex = val;
             return this;
         }
 
         public SdbClProperties build() {
-            return new SdbClProperties(this);
+            return new SdbClProperties( this );
         }
     }
 }
@@ -830,7 +904,7 @@ class IndexProperties {
         return sortBufferSize;
     }
 
-    private IndexProperties(Builder builder) {
+    private IndexProperties( Builder builder ) {
         indexName = builder.indexName;
         indexKey = builder.indexKey;
         isUnique = builder.isUnique;
@@ -838,8 +912,8 @@ class IndexProperties {
         sortBufferSize = builder.sortBufferSize;
     }
 
-    public static Builder newBuilder(String indexName, BSONObject indexKey) {
-        return new Builder(indexName, indexKey);
+    public static Builder newBuilder( String indexName, BSONObject indexKey ) {
+        return new Builder( indexName, indexKey );
     }
 
     public static final class Builder {
@@ -847,44 +921,44 @@ class IndexProperties {
         private BSONObject indexKey;
         private boolean isUnique = false;
         private boolean enforced = false;
-        //SdbConstants.IXM_SORT_BUFFER_DEFAULT_SIZE;
+        // SdbConstants.IXM_SORT_BUFFER_DEFAULT_SIZE;
         private int sortBufferSize = 64;
 
-        private Builder(String indexName, BSONObject indexKey) {
+        private Builder( String indexName, BSONObject indexKey ) {
             this.indexName = indexName;
             this.indexKey = indexKey;
         }
 
-        public Builder isUnique(boolean val) {
+        public Builder isUnique( boolean val ) {
             isUnique = val;
             return this;
         }
 
-        public Builder enforced(boolean val) {
+        public Builder enforced( boolean val ) {
             enforced = val;
             return this;
         }
 
-        public Builder sortBufferSize(int val) {
+        public Builder sortBufferSize( int val ) {
             sortBufferSize = val;
             return this;
         }
 
         public IndexProperties build() {
-            return new IndexProperties(this);
+            return new IndexProperties( this );
         }
     }
 }
 
-public class AnalyzeUtil{
-	public static String getRandomString(int length) {
-		String str = "adcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-		Random random = new Random();
-		StringBuffer sb = new StringBuffer();
-		for (int i = 0; i < length; i++) {
-			int number = random.nextInt(str.length());
-			sb.append(str.charAt(number));
-		}
-		return sb.toString();
-	}
+public class AnalyzeUtil {
+    public static String getRandomString( int length ) {
+        String str = "adcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        Random random = new Random();
+        StringBuffer sb = new StringBuffer();
+        for ( int i = 0; i < length; i++ ) {
+            int number = random.nextInt( str.length() );
+            sb.append( str.charAt( number ) );
+        }
+        return sb.toString();
+    }
 }

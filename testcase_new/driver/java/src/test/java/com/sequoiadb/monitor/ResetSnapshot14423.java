@@ -38,85 +38,94 @@ public class ResetSnapshot14423 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         try {
-            System.out.println(this.getClass().getName()+" begin at "
-                    +new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
-            
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            if (CommLib.isStandAlone(sdb)) {
-                throw new SkipException("skip standalone");
+            System.out.println( this.getClass().getName() + " begin at "
+                    + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
+                            .format( new Date() ) );
+
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            if ( CommLib.isStandAlone( sdb ) ) {
+                throw new SkipException( "skip standalone" );
             }
-            cs = sdb.getCollectionSpace(SdbTestBase.csName);
-            groupName = CommLib.getDataGroupNames(sdb).get(0);
-            BSONObject opt = new BasicBSONObject("Group", groupName);
-            DBCollection cl = cs.createCollection(clName, opt);
-            List<BSONObject> docs = new ArrayList<BSONObject>();
-            for (int i = 0; i < 100; i++) {
-                docs.add(new BasicBSONObject("a", i));
+            cs = sdb.getCollectionSpace( SdbTestBase.csName );
+            groupName = CommLib.getDataGroupNames( sdb ).get( 0 );
+            BSONObject opt = new BasicBSONObject( "Group", groupName );
+            DBCollection cl = cs.createCollection( clName, opt );
+            List< BSONObject > docs = new ArrayList< BSONObject >();
+            for ( int i = 0; i < 100; i++ ) {
+                docs.add( new BasicBSONObject( "a", i ) );
             }
-            cl.insert(docs);
-        } catch (BaseException e) {
-            Assert.assertTrue(false, "connect  failed," + SdbTestBase.coordUrl + e.getMessage());
+            cl.insert( docs );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "connect  failed," + SdbTestBase.coordUrl
+                    + e.getMessage() );
         }
     }
 
     @Test
     void test() {
         try {
-            Sequoiadb dataDB = sdb.getReplicaGroup(groupName).getMaster().connect();
-            createStatisInfo(dataDB);
-            BSONObject opt = (BSONObject) JSON.parse("{Type: 'sessions'}");
-            sdb.resetSnapshot(opt);
-            Assert.assertFalse(isDataBaseSnapClean(dataDB), "snapshot-database shouldn't be reset");
-            Assert.assertTrue(isSessionSnapClean(dataDB), "snapshot-session has not been reset");
+            Sequoiadb dataDB = sdb.getReplicaGroup( groupName ).getMaster()
+                    .connect();
+            createStatisInfo( dataDB );
+            BSONObject opt = ( BSONObject ) JSON.parse( "{Type: 'sessions'}" );
+            sdb.resetSnapshot( opt );
+            Assert.assertFalse( isDataBaseSnapClean( dataDB ),
+                    "snapshot-database shouldn't be reset" );
+            Assert.assertTrue( isSessionSnapClean( dataDB ),
+                    "snapshot-session has not been reset" );
             dataDB.close();
 
-            opt = (BSONObject) null;
-            sdb.resetSnapshot(null);
+            opt = ( BSONObject ) null;
+            sdb.resetSnapshot( null );
             // as long as no exception
 
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         } finally {
             sdb.close();
-            System.out.println(this.getClass().getName()+" end at "
-                    +new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
+            System.out.println( this.getClass().getName() + " end at "
+                    + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
+                            .format( new Date() ) );
         }
     }
 
-    private void createStatisInfo(Sequoiadb dataDB) {
-        DBCollection cl = dataDB.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+    private void createStatisInfo( Sequoiadb dataDB ) {
+        DBCollection cl = dataDB.getCollectionSpace( SdbTestBase.csName )
+                .getCollection( clName );
         DBCursor cur = cl.query();
-        while (cur.hasNext()) {
+        while ( cur.hasNext() ) {
             cur.getNext();
         }
         cur.close();
     }
 
-    private boolean isDataBaseSnapClean(Sequoiadb dataDB) {
-        DBCursor cur = dataDB.getSnapshot(Sequoiadb.SDB_SNAP_DATABASE, "", "", "");
+    private boolean isDataBaseSnapClean( Sequoiadb dataDB ) {
+        DBCursor cur = dataDB.getSnapshot( Sequoiadb.SDB_SNAP_DATABASE, "", "",
+                "" );
         BSONObject rec = cur.getNext();
-        long totalRead = (long) rec.get("TotalRead");
+        long totalRead = ( long ) rec.get( "TotalRead" );
         cur.close();
-        return (totalRead == 0);
+        return ( totalRead == 0 );
     }
 
-    private boolean isSessionSnapClean(Sequoiadb dataDB) {
-        DBCursor cur = dataDB.getSnapshot(Sequoiadb.SDB_SNAP_SESSIONS, "{Type: 'Agent'}", "", "");
+    private boolean isSessionSnapClean( Sequoiadb dataDB ) {
+        DBCursor cur = dataDB.getSnapshot( Sequoiadb.SDB_SNAP_SESSIONS,
+                "{Type: 'Agent'}", "", "" );
         BSONObject rec = cur.getNext();
-        long totalRead = (long) rec.get("TotalRead");
+        long totalRead = ( long ) rec.get( "TotalRead" );
         cur.close();
-        return (totalRead == 0);
+        return ( totalRead == 0 );
     }
 
 }

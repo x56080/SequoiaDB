@@ -14,10 +14,10 @@ public class TestGetHost13693 extends SdbTestBase {
     public void testGethost() {
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            Assert.assertNotNull(db.getHost());
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            Assert.assertNotNull( db.getHost() );
         } finally {
-            if (db != null)
+            if ( db != null )
                 db.disconnect();
         }
     }

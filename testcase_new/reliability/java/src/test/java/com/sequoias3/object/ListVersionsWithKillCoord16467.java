@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.UUID;
 
 /**
- * @Description  seqDB-16467 ::  获取对象版本列表过程中db端节点异常
+ * @Description seqDB-16467 :: 获取对象版本列表过程中db端节点异常
  * @author fanyu
  * @Date 2019.01.17
  * @version 1.00
@@ -45,30 +45,32 @@ public class ListVersionsWithKillCoord16467 extends S3TestBase {
     @BeforeClass
     private void setUp() throws IOException, ReliabilityException {
         groupMgr = GroupMgr.getInstance();
-        coordGroup = groupMgr.getGroupByName("SYSCoord");
+        coordGroup = groupMgr.getGroupByName( "SYSCoord" );
 
         s3Client = CommLibS3.buildS3Client();
-        CommLibS3.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        CommLibS3.setBucketVersioning(s3Client, bucketName, BucketVersioningConfiguration.ENABLED);
-        for (int i = 0; i < versionNum; i++) {
-            s3Client.putObject(bucketName, objectName, String.valueOf(UUID.randomUUID()));
+        CommLibS3.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        CommLibS3.setBucketVersioning( s3Client, bucketName,
+                BucketVersioningConfiguration.ENABLED );
+        for ( int i = 0; i < versionNum; i++ ) {
+            s3Client.putObject( bucketName, objectName,
+                    String.valueOf( UUID.randomUUID() ) );
         }
     }
 
     @Test
     public void test() throws ReliabilityException, IOException {
-        //kill coord when list objects
+        // kill coord when list objects
         TaskMgr mgr = new TaskMgr();
-        for(NodeWrapper node : coordGroup.getNodes()) {
-            FaultMakeTask faultTask = KillNode.getFaultMakeTask(node, 2);
-            mgr.addTask(faultTask);
+        for ( NodeWrapper node : coordGroup.getNodes() ) {
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask( node, 2 );
+            mgr.addTask( faultTask );
         }
         ListVersions listTask = new ListVersions();
-        mgr.addTask(listTask);
+        mgr.addTask( listTask );
         mgr.execute();
-        Assert.assertTrue(mgr.isAllSuccess(), mgr.getErrorMsg());
-        //list objects again
+        Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
+        // list objects again
         listVersionsAndCheck();
         runSuccess = true;
     }
@@ -76,21 +78,21 @@ public class ListVersionsWithKillCoord16467 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLibS3.clearBucket(s3Client, bucketName);
+            if ( runSuccess ) {
+                CommLibS3.clearBucket( s3Client, bucketName );
             }
         } finally {
             s3Client.shutdown();
         }
     }
 
-    public class ListVersions  extends OperateTask {
+    public class ListVersions extends OperateTask {
         @Override
         public void exec() throws Exception {
-            try{
+            try {
                 listVersionsAndCheck();
-            }catch (AmazonS3Exception e) {
-                if (e.getStatusCode() != 500) {
+            } catch ( AmazonS3Exception e ) {
+                if ( e.getStatusCode() != 500 ) {
                     throw e;
                 }
             }
@@ -99,25 +101,26 @@ public class ListVersionsWithKillCoord16467 extends S3TestBase {
 
     private void listVersionsAndCheck() throws IOException {
         String keyMarker = objectName;
-        String versionIdMarker = String.valueOf(versionNum);
+        String versionIdMarker = String.valueOf( versionNum );
         VersionListing vsList;
         int i = 0;
         do {
-            //list by prefix/keyMarker/versionIdMarker
-            vsList = s3Client.listVersions(new ListVersionsRequest()
-                    .withBucketName(bucketName)
-                    .withKeyMarker(keyMarker)
-                    .withVersionIdMarker(versionIdMarker));
-            //check
-            MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
-            for (int j = versionNum - i*1000 - 1; j >= vsList.getMaxKeys() - i*1000; j--) {
-                expMap.add(objectName, String.valueOf(j));
+            // list by prefix/keyMarker/versionIdMarker
+            vsList = s3Client.listVersions( new ListVersionsRequest()
+                    .withBucketName( bucketName ).withKeyMarker( keyMarker )
+                    .withVersionIdMarker( versionIdMarker ) );
+            // check
+            MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
+            for ( int j = versionNum - i * 1000 - 1; j >= vsList.getMaxKeys()
+                    - i * 1000; j-- ) {
+                expMap.add( objectName, String.valueOf( j ) );
             }
-            ObjectUtils.checkListVSResults(vsList,new ArrayList<String>(),expMap);
+            ObjectUtils.checkListVSResults( vsList, new ArrayList< String >(),
+                    expMap );
             i++;
-            //next keyMark and versionIdMrker
+            // next keyMark and versionIdMrker
             keyMarker = vsList.getNextKeyMarker();
             versionIdMarker = vsList.getNextVersionIdMarker();
-        } while (vsList.isTruncated());
+        } while ( vsList.isTruncated() );
     }
 }

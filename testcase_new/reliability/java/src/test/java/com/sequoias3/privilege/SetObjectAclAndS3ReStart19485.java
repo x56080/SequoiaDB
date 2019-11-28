@@ -44,49 +44,56 @@ public class SetObjectAclAndS3ReStart19485 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(SdbTestBase.workDir + File.separator + TestTools.getClassName());
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        TestTools.LocalFile.createFile(filePath, fileSize);
-        file = new File(filePath);
+        localPath = new File( SdbTestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        TestTools.LocalFile.createFile( filePath, fileSize );
+        file = new File( filePath );
 
         s3Client = CommLibS3.buildS3Client();
-        CommLibS3.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        s3Client.putObject(bucketName, keyName, file);
+        CommLibS3.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        s3Client.putObject( bucketName, keyName, file );
 
         // set object acl
-        expGrants = new Grant(new EmailAddressGrantee("test email adress 19485"), Permission.Write);
-        PrivilegeUtils.setObjectAclByBody(s3Client, bucketName, keyName, expGrants);
+        expGrants = new Grant(
+                new EmailAddressGrantee( "test email adress 19485" ),
+                Permission.Write );
+        PrivilegeUtils.setObjectAclByBody( s3Client, bucketName, keyName,
+                expGrants );
     }
 
     @Test
     public void test() throws Exception {
-        FaultMakeTask faultMakeTask = S3NodeRestart.getFaultMakeTask(new S3NodeWrapper(), 0, 8);
-        TaskMgr mgr = new TaskMgr(faultMakeTask);
+        FaultMakeTask faultMakeTask = S3NodeRestart
+                .getFaultMakeTask( new S3NodeWrapper(), 0, 8 );
+        TaskMgr mgr = new TaskMgr( faultMakeTask );
 
-        for (int i = 0; i < threadNum; i++) {
-            mgr.addTask(new GetObjectAcl(expGrants));
+        for ( int i = 0; i < threadNum; i++ ) {
+            mgr.addTask( new GetObjectAcl( expGrants ) );
         }
 
         mgr.execute();
-        Assert.assertTrue(mgr.isAllSuccess(), mgr.getErrorMsg());
+        Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
 
         // get obeject acl again
-        PrivilegeUtils.checkSetObjectAclResult(s3Client, bucketName, keyName, expGrants);
+        PrivilegeUtils.checkSetObjectAclResult( s3Client, bucketName, keyName,
+                expGrants );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLibS3.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLibS3.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
-            if (s3Client != null)
+            if ( s3Client != null )
                 s3Client.shutdown();
 
         }
@@ -96,24 +103,26 @@ public class SetObjectAclAndS3ReStart19485 extends S3TestBase {
         private Grant[] grants;
         private AmazonS3 s3 = CommLibS3.buildS3Client();
 
-        private GetObjectAcl(Grant... grants) {
+        private GetObjectAcl( Grant... grants ) {
             this.grants = grants;
         }
 
         @Override
         public void exec() throws Exception {
             try {
-                PrivilegeUtils.checkSetObjectAclResult(s3, bucketName, keyName, grants);
-            } catch (AmazonS3Exception e) {
-                if (e.getStatusCode() != 500) {
-                    throw new Exception("keyName : " + keyName, e);
+                PrivilegeUtils.checkSetObjectAclResult( s3, bucketName, keyName,
+                        grants );
+            } catch ( AmazonS3Exception e ) {
+                if ( e.getStatusCode() != 500 ) {
+                    throw new Exception( "keyName : " + keyName, e );
                 }
-            } catch (SdkClientException e) {
-                if (!e.getMessage().contains("Unable to execute HTTP request")) {
-                    throw new Exception("keyName : " + keyName, e);
+            } catch ( SdkClientException e ) {
+                if ( !e.getMessage()
+                        .contains( "Unable to execute HTTP request" ) ) {
+                    throw new Exception( "keyName : " + keyName, e );
                 }
             } finally {
-                if (s3 != null) {
+                if ( s3 != null ) {
                     s3.shutdown();
                 }
             }

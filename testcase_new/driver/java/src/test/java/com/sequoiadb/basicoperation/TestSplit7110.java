@@ -25,155 +25,160 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
-* FileName: TestSplit7110.java
-* test interface:
-* split(String sourceGroupName, String destGroupName, BSONObject splitCondition, BSONObject splitEndCondition)
-* testlink cases:seqDB-7110
-* testing strategy:    1.create hashcl
-* 					   2.insert records
-*                      3.split by range
-*                      4.connect the sourceGroup and targetGroup,check the results count
-* @author wuyan
-    * @Date    2016.9.26
-* @version 1.00
-*/
-public class TestSplit7110 extends SdbTestBase{
-	
-	private String clName = "cl_7110";
-	private static Sequoiadb sdb = null;
-	private CollectionSpace cs = null;
-	private DBCollection cl ;
-	String sourceRGName;
-	String targetRGName;
-	Date now = new Date();	
-	
-	@BeforeClass
-	public void setUp(){
-		System.out.println(this.getClass().getName()+" begin at "+now);
-		try{
-			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-		}catch(BaseException e){			
-			Assert.assertTrue(false,"connect %s failed,"+SdbTestBase.coordUrl+e.getMessage());
-		}
-		
-		if (Commlib.isStandAlone(sdb)){
-			throw new SkipException("is standalone skip testcase");
-		}
-		
-		if (Commlib.OneGroupMode(sdb)){
-			throw new SkipException("less two groups skip testcase");
-		}	
-		
-				
-		createCL();
-	}
-		
-	public void createCL(){
-		try{
-			if (!sdb.isCollectionSpaceExist(SdbTestBase.csName)){
-				sdb.createCollectionSpace(SdbTestBase.csName);	
-			}
-		}catch(BaseException e){
-			//-33 CS exist,ignore exceptions
-			Assert.assertEquals(-33,e.getErrorCode(),e.getMessage());
-		}
-		String test = "{ShardingKey:{a:1},ShardingType:'hash',Partition:1024,"
-						+ "ReplSize:0,Compressed:true}";
-		BSONObject options =(BSONObject) JSON.parse(test);
-		try
-		{
-			cs = sdb.getCollectionSpace(SdbTestBase.csName);
-			cl = cs.createCollection(clName,options);
-		}catch(BaseException e){
-			Assert.assertTrue(false,"create cl fail "+e.getErrorType()+":"+e.getMessage());
-		}
-	}
-	
-	/**
-	* construct expected result values
-	* @return expected result values,rg:["group1","{"":0}","{"":500}"]
-	*/
-	private List<CataInfoItem> buildExpectResult(){
-		List<CataInfoItem> cataInfo = new ArrayList<CataInfoItem>();
-		CataInfoItem item  = new CataInfoItem();
-		item.groupName = sourceRGName;
-		item.lowBound = 0;
-		item.upBound = 500;
-		
-		cataInfo.add(item);
-		item  = new CataInfoItem();
-		item.groupName = targetRGName;
-		item.lowBound = 500;
-		item.upBound = 1024;
-		cataInfo.add(item);		
-		return cataInfo;
-	}
-	
-	public void checkSplitResult(){
-		String cond = String.format("{Name:\"%s.%s\"}", SdbTestBase.csName, clName);	
-		DBCursor collections = sdb.getSnapshot(8, cond, null, null);
-		List<CataInfoItem> cataInfo = buildExpectResult();
-		while(collections.hasNext()){
-			BasicBSONObject doc = (BasicBSONObject)collections.getNext();				 
-			doc.getString("Name");
-			BasicBSONList subdoc = (BasicBSONList)doc.get("CataInfo");
-			for (int i = 0; i < cataInfo.size(); ++i){
-				BasicBSONObject elem = (BasicBSONObject)subdoc.get(i);
-				String groupName = elem.getString("GroupName");
-				BasicBSONObject obj = (BasicBSONObject)elem.get("LowBound");
-				int LowBound;
-				if (obj.containsField("")){
-					LowBound = obj.getInt("");
-				}else{
-					LowBound = obj.getInt("partition");
-				}
-				
-				int UpBound;				
-				obj = (BasicBSONObject)elem.get("UpBound");
-				if (obj.containsField("")){
-					UpBound = obj.getInt("");
-				}else{
-					UpBound = obj.getInt("partition");
-				}			
-				
-				boolean compareResult = cataInfo.get(i).Compare(groupName, LowBound, UpBound);				
-				Assert.assertTrue(compareResult, cataInfo.get(i).toString()+"actResult:"
-						+"groupName:"+groupName+" LowBound:"+LowBound+" UpBound:"+UpBound);				
-			}		
-		}
-	}
-	
-	@Test
-	public void splitCL(){
-		Commlib.bulkInsert(cl);
-		try{
-			BSONObject cond = new BasicBSONObject();
-			BSONObject endCond = new BasicBSONObject();
-			cond.put("Partition", 500);
-			endCond.put("partition", 1024);
-			sourceRGName = Commlib.getSourceRGName(sdb,SdbTestBase.csName,clName);
-			targetRGName = Commlib.getTarRgName(sdb,sourceRGName);
-			cl.split(sourceRGName, targetRGName, cond, endCond);		
-		}catch(BaseException e){
-			Assert.assertTrue(false,"split fail " + e.getErrorCode()+e.getMessage());
-		}
-		checkSplitResult();
-	}
-	
-	@AfterClass
-	public void tearDown(){
-		try{
-			if(cs.isCollectionExist(clName)){
-				cs.dropCollection(clName);
-			}			
-			sdb.disconnect();
-			System.out.println(this.getClass().getName()+" end at "
-					+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
-		}catch(BaseException e){			
-			Assert.assertTrue(false,"clean up failed:"+e.getMessage());
-		}
-	}
-	
-	 
-	 
+ * FileName: TestSplit7110.java test interface: split(String sourceGroupName,
+ * String destGroupName, BSONObject splitCondition, BSONObject
+ * splitEndCondition) testlink cases:seqDB-7110 testing strategy: 1.create
+ * hashcl 2.insert records 3.split by range 4.connect the sourceGroup and
+ * targetGroup,check the results count
+ * 
+ * @author wuyan
+ * @Date 2016.9.26
+ * @version 1.00
+ */
+public class TestSplit7110 extends SdbTestBase {
+
+    private String clName = "cl_7110";
+    private static Sequoiadb sdb = null;
+    private CollectionSpace cs = null;
+    private DBCollection cl;
+    String sourceRGName;
+    String targetRGName;
+    Date now = new Date();
+
+    @BeforeClass
+    public void setUp() {
+        System.out.println( this.getClass().getName() + " begin at " + now );
+        try {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "connect %s failed,"
+                    + SdbTestBase.coordUrl + e.getMessage() );
+        }
+
+        if ( Commlib.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
+        }
+
+        if ( Commlib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "less two groups skip testcase" );
+        }
+
+        createCL();
+    }
+
+    public void createCL() {
+        try {
+            if ( !sdb.isCollectionSpaceExist( SdbTestBase.csName ) ) {
+                sdb.createCollectionSpace( SdbTestBase.csName );
+            }
+        } catch ( BaseException e ) {
+            // -33 CS exist,ignore exceptions
+            Assert.assertEquals( -33, e.getErrorCode(), e.getMessage() );
+        }
+        String test = "{ShardingKey:{a:1},ShardingType:'hash',Partition:1024,"
+                + "ReplSize:0,Compressed:true}";
+        BSONObject options = ( BSONObject ) JSON.parse( test );
+        try {
+            cs = sdb.getCollectionSpace( SdbTestBase.csName );
+            cl = cs.createCollection( clName, options );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "create cl fail " + e.getErrorType() + ":"
+                    + e.getMessage() );
+        }
+    }
+
+    /**
+     * construct expected result values
+     * 
+     * @return expected result values,rg:["group1","{"":0}","{"":500}"]
+     */
+    private List< CataInfoItem > buildExpectResult() {
+        List< CataInfoItem > cataInfo = new ArrayList< CataInfoItem >();
+        CataInfoItem item = new CataInfoItem();
+        item.groupName = sourceRGName;
+        item.lowBound = 0;
+        item.upBound = 500;
+
+        cataInfo.add( item );
+        item = new CataInfoItem();
+        item.groupName = targetRGName;
+        item.lowBound = 500;
+        item.upBound = 1024;
+        cataInfo.add( item );
+        return cataInfo;
+    }
+
+    public void checkSplitResult() {
+        String cond = String.format( "{Name:\"%s.%s\"}", SdbTestBase.csName,
+                clName );
+        DBCursor collections = sdb.getSnapshot( 8, cond, null, null );
+        List< CataInfoItem > cataInfo = buildExpectResult();
+        while ( collections.hasNext() ) {
+            BasicBSONObject doc = ( BasicBSONObject ) collections.getNext();
+            doc.getString( "Name" );
+            BasicBSONList subdoc = ( BasicBSONList ) doc.get( "CataInfo" );
+            for ( int i = 0; i < cataInfo.size(); ++i ) {
+                BasicBSONObject elem = ( BasicBSONObject ) subdoc.get( i );
+                String groupName = elem.getString( "GroupName" );
+                BasicBSONObject obj = ( BasicBSONObject ) elem
+                        .get( "LowBound" );
+                int LowBound;
+                if ( obj.containsField( "" ) ) {
+                    LowBound = obj.getInt( "" );
+                } else {
+                    LowBound = obj.getInt( "partition" );
+                }
+
+                int UpBound;
+                obj = ( BasicBSONObject ) elem.get( "UpBound" );
+                if ( obj.containsField( "" ) ) {
+                    UpBound = obj.getInt( "" );
+                } else {
+                    UpBound = obj.getInt( "partition" );
+                }
+
+                boolean compareResult = cataInfo.get( i ).Compare( groupName,
+                        LowBound, UpBound );
+                Assert.assertTrue( compareResult,
+                        cataInfo.get( i ).toString() + "actResult:"
+                                + "groupName:" + groupName + " LowBound:"
+                                + LowBound + " UpBound:" + UpBound );
+            }
+        }
+    }
+
+    @Test
+    public void splitCL() {
+        Commlib.bulkInsert( cl );
+        try {
+            BSONObject cond = new BasicBSONObject();
+            BSONObject endCond = new BasicBSONObject();
+            cond.put( "Partition", 500 );
+            endCond.put( "partition", 1024 );
+            sourceRGName = Commlib.getSourceRGName( sdb, SdbTestBase.csName,
+                    clName );
+            targetRGName = Commlib.getTarRgName( sdb, sourceRGName );
+            cl.split( sourceRGName, targetRGName, cond, endCond );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false,
+                    "split fail " + e.getErrorCode() + e.getMessage() );
+        }
+        checkSplitResult();
+    }
+
+    @AfterClass
+    public void tearDown() {
+        try {
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
+            }
+            sdb.disconnect();
+            System.out.println( this.getClass().getName() + " end at "
+                    + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
+                            .format( new Date() ) );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
+        }
+    }
+
 }

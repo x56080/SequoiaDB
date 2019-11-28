@@ -13,12 +13,13 @@ import java.util.List;
 import java.util.logging.Logger;
 
 public class TaskMgr {
-    private final static Logger log = Logger.getLogger(TaskMgr.class.getName());
+    private final static Logger log = Logger
+            .getLogger( TaskMgr.class.getName() );
 
-    private List<Task> taskList = new ArrayList<>(10);
+    private List< Task > taskList = new ArrayList<>( 10 );
 
-    public TaskMgr(FaultMakeTask faultMakeTask) {
-        taskList.add(faultMakeTask);
+    public TaskMgr( FaultMakeTask faultMakeTask ) {
+        taskList.add( faultMakeTask );
     }
 
     public TaskMgr() {
@@ -30,10 +31,10 @@ public class TaskMgr {
      * @param faultMakeTask
      * @param operateTasks
      */
-    public TaskMgr(FaultMakeTask faultMakeTask, OperateTask... operateTasks) {
-        this(faultMakeTask);
-        for (OperateTask task : operateTasks) {
-            addTask(task);
+    public TaskMgr( FaultMakeTask faultMakeTask, OperateTask... operateTasks ) {
+        this( faultMakeTask );
+        for ( OperateTask task : operateTasks ) {
+            addTask( task );
         }
     }
 
@@ -44,89 +45,92 @@ public class TaskMgr {
      * @return
      */
 
-    public static TaskMgr getTaskMgr(FaultMakeTask faultMakeTask, OperateTask... operateTasks) {
-        TaskMgr taskMgr = new TaskMgr(faultMakeTask);
-        for (OperateTask task : operateTasks) {
-            taskMgr.addTask(task);
+    public static TaskMgr getTaskMgr( FaultMakeTask faultMakeTask,
+            OperateTask... operateTasks ) {
+        TaskMgr taskMgr = new TaskMgr( faultMakeTask );
+        for ( OperateTask task : operateTasks ) {
+            taskMgr.addTask( task );
         }
         return taskMgr;
     }
 
     @Deprecated
-    public void addTask(String taskClassName) {
-        OperateTask task = OperateTaskFactory.newTask(taskClassName, this);
-        if (task == null) {
+    public void addTask( String taskClassName ) {
+        OperateTask task = OperateTaskFactory.newTask( taskClassName, this );
+        if ( task == null ) {
             return;
         }
-        taskList.add(task);
+        taskList.add( task );
     }
 
-    public TaskMgr addTask(Task task) {
-        taskList.add(task);
+    public TaskMgr addTask( Task task ) {
+        taskList.add( task );
         return this;
     }
 
     /**
-     * @param task 任务
+     * @param task
+     *            任务
      */
-    public void removeTask(Task task) {
-        taskList.remove(task);
+    public void removeTask( Task task ) {
+        taskList.remove( task );
     }
 
     public void init() throws ReliabilityException {
-        for (Task task : taskList) {
+        for ( Task task : taskList ) {
             task.init();
         }
     }
 
     public void start() {
-        for (Task task : taskList) {
+        for ( Task task : taskList ) {
             task.start();
         }
     }
 
     public void join() {
-        for (Task task : taskList) {
+        for ( Task task : taskList ) {
             try {
                 task.join();
-            } catch (InterruptedException e) {
-                log.warning(e.getMessage());
+            } catch ( InterruptedException e ) {
+                log.warning( e.getMessage() );
             }
         }
     }
 
     public void check() throws ReliabilityException {
-        if (!this.isAllSuccess()) {
-            throw new ReliabilityException(this.getErrorMsg());
+        if ( !this.isAllSuccess() ) {
+            throw new ReliabilityException( this.getErrorMsg() );
         }
-        for (Task task : taskList) {
+        for ( Task task : taskList ) {
             task.check();
         }
     }
 
     public void fini() throws ReliabilityException {
-        for (Task task : taskList) {
+        for ( Task task : taskList ) {
             task.fini();
         }
     }
 
     /**
-     * @param name 任务名
+     * @param name
+     *            任务名
      * @return 返回对应任务名的任务，不存在返回null,如果存在多个只返回第一个
      */
-    public Task getTaskByName(String name) {
-        for (Task task : taskList) {
-            if (task.getName().equals(name))
+    public Task getTaskByName( String name ) {
+        for ( Task task : taskList ) {
+            if ( task.getName().equals( name ) )
                 return task;
         }
         return null;
     }
 
-    public List<Exception> getExceptions() {
-        List<Exception> list=new ArrayList<>();
-        for (Task task : taskList) {
-            if (task.getException() != null)
-                list.add(task.getException());
+    public List< Exception > getExceptions() {
+        List< Exception > list = new ArrayList<>();
+        for ( Task task : taskList ) {
+            if ( task.getException() != null )
+                list.add( task.getException() );
         }
         return list;
     }
@@ -137,8 +141,8 @@ public class TaskMgr {
 
     public String getErrorMsg() {
         StringBuffer reStr = new StringBuffer();
-        for (Task task : taskList) {
-            reStr.append(task.getErrorMsg());
+        for ( Task task : taskList ) {
+            reStr.append( task.getErrorMsg() );
         }
         return reStr.toString();
     }

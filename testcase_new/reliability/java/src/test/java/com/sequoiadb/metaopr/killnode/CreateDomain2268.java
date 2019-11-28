@@ -48,26 +48,29 @@ public class CreateDomain2268 extends SdbTestBase {
     private String domNameBase = "domain_2268";
     private String csNameBase = "cs_2268";
     private static final int DOMAIN_NUM = 1000;
-    private List<String> groupNames = null;
+    private List< String > groupNames = null;
 
     @BeforeClass
     public void setUp() {
         Sequoiadb db = null;
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
 
             groupMgr = GroupMgr.getInstance();
-            if (!groupMgr.checkBusiness()) {
-                throw new SkipException("checkBusiness failed");
+            if ( !groupMgr.checkBusiness() ) {
+                throw new SkipException( "checkBusiness failed" );
             }
 
             groupNames = groupMgr.getAllDataGroupName();
-        } catch (ReliabilityException e) {
-            Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
-                    + Utils.getKeyStack(e, this));
+        } catch ( ReliabilityException e ) {
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -77,35 +80,37 @@ public class CreateDomain2268 extends SdbTestBase {
     public void test() {
         Sequoiadb db = null;
         try {
-            GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
+            GroupWrapper cataGroup = groupMgr
+                    .getGroupByName( "SYSCatalogGroup" );
             NodeWrapper priNode = cataGroup.getMaster();
 
-            FaultMakeTask faultTask = KillNode.getFaultMakeTask(priNode.hostName(), priNode.svcName(), 0);
-            TaskMgr mgr = new TaskMgr(faultTask);
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask(
+                    priNode.hostName(), priNode.svcName(), 0 );
+            TaskMgr mgr = new TaskMgr( faultTask );
             CreateDomainTask cTask = new CreateDomainTask();
-            mgr.addTask(cTask);
+            mgr.addTask( cTask );
             mgr.execute();
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
-            if (!groupMgr.checkBusinessWithLSN(600)) {
-                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            if ( !groupMgr.checkBusinessWithLSN( 600 ) ) {
+                Assert.fail( "checkBusinessWithLSN() occurs timeout" );
             }
 
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            createDomainAgain(db);
-            operateOnDomain(db);
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            createDomainAgain( db );
+            operateOnDomain( db );
 
-            if (!groupMgr.checkBusinessWithLSN(600)) {
-                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            if ( !groupMgr.checkBusinessWithLSN( 600 ) ) {
+                Assert.fail( "checkBusinessWithLSN() occurs timeout" );
             }
-            checkListDomain(db);
-            Utils.checkConsistency(groupMgr);
+            checkListDomain( db );
+            Utils.checkConsistency( groupMgr );
             runSuccess = true;
-        } catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -113,21 +118,24 @@ public class CreateDomain2268 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (!runSuccess) {
-            throw new SkipException("to save environment");
+        if ( !runSuccess ) {
+            throw new SkipException( "to save environment" );
         }
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            dropDomain(db);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            dropDomain( db );
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    e.getMessage() + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
         }
     }
 
@@ -136,98 +144,101 @@ public class CreateDomain2268 extends SdbTestBase {
         public void exec() throws Exception {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(coordUrl, "", "");
-                for (int i = 0; i < DOMAIN_NUM; i++) {
+                db = new Sequoiadb( coordUrl, "", "" );
+                for ( int i = 0; i < DOMAIN_NUM; i++ ) {
                     String domainName = domNameBase + "_" + i;
                     BSONObject option = new BasicBSONObject();
                     BSONObject groups = new BasicBSONList();
                     int groupNum = i % groupNames.size() + 1;
-                    for (int j = 0; j < groupNum; j++) {
-                        groups.put("" + j, groupNames.get(j));
+                    for ( int j = 0; j < groupNum; j++ ) {
+                        groups.put( "" + j, groupNames.get( j ) );
                     }
-                    option.put("Groups", groups);
-                    option.put("AutoSplit", (i % 2 == 0));
-                    db.createDomain(domainName, option);
+                    option.put( "Groups", groups );
+                    option.put( "AutoSplit", ( i % 2 == 0 ) );
+                    db.createDomain( domainName, option );
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.close();
                 }
             }
         }
     }
 
-    private void createDomainAgain(Sequoiadb db) {
-        for (int i = 0; i < DOMAIN_NUM; i++) {
+    private void createDomainAgain( Sequoiadb db ) {
+        for ( int i = 0; i < DOMAIN_NUM; i++ ) {
             try {
                 String domainName = domNameBase + "_" + i;
                 BSONObject option = new BasicBSONObject();
                 BSONObject groups = new BasicBSONList();
                 int groupNum = i % groupNames.size() + 1;
-                for (int j = 0; j < groupNum; j++) {
-                    groups.put("" + j, groupNames.get(j));
+                for ( int j = 0; j < groupNum; j++ ) {
+                    groups.put( "" + j, groupNames.get( j ) );
                 }
-                option.put("Groups", groups);
-                option.put("AutoSplit", (i % 2 == 0));
-                db.createDomain(domainName, option);
-            } catch (BaseException e) {
+                option.put( "Groups", groups );
+                option.put( "AutoSplit", ( i % 2 == 0 ) );
+                db.createDomain( domainName, option );
+            } catch ( BaseException e ) {
                 // -215 SDB_CAT_DOMAIN_EXIST 域已存在
-                if (e.getErrorCode() != -215) {
+                if ( e.getErrorCode() != -215 ) {
                     throw e;
                 }
             }
         }
     }
 
-    private void operateOnDomain(Sequoiadb db) {
-        for (int i = 0; i < DOMAIN_NUM; i++) {
+    private void operateOnDomain( Sequoiadb db ) {
+        for ( int i = 0; i < DOMAIN_NUM; i++ ) {
             String csName = csNameBase + "_" + i;
             String domainName = domNameBase + "_" + i;
             BSONObject option = new BasicBSONObject();
-            option.put("Domain", domainName);
-            db.createCollectionSpace(csName, option);
-            db.dropCollectionSpace(csName);
+            option.put( "Domain", domainName );
+            db.createCollectionSpace( csName, option );
+            db.dropCollectionSpace( csName );
         }
     }
 
-    private void checkListDomain(Sequoiadb db) {
+    private void checkListDomain( Sequoiadb db ) {
         // check domain NUM
-        DBCursor cursor = db.listDomains(null, null, null, null);
+        DBCursor cursor = db.listDomains( null, null, null, null );
         int expDomainNum = 0;
-        while (cursor.hasNext()) {
+        while ( cursor.hasNext() ) {
             cursor.getNext();
             expDomainNum++;
         }
-        Assert.assertEquals(DOMAIN_NUM, expDomainNum);
+        Assert.assertEquals( DOMAIN_NUM, expDomainNum );
         cursor.close();
 
         // check domain info
-        for (int i = 0; i < DOMAIN_NUM; i++) {
+        for ( int i = 0; i < DOMAIN_NUM; i++ ) {
             BSONObject cond = new BasicBSONObject();
-            cond.put("Name", domNameBase + "_" + i);
-            cursor = db.listDomains(cond, null, null, null);
+            cond.put( "Name", domNameBase + "_" + i );
+            cursor = db.listDomains( cond, null, null, null );
             BSONObject currDomain = cursor.getCurrent();
 
             // check Groups
             int expGroupNum = i % groupNames.size() + 1;
-            BasicBSONList actGroups = (BasicBSONList) currDomain.get("Groups");
+            BasicBSONList actGroups = ( BasicBSONList ) currDomain
+                    .get( "Groups" );
             int actGroupNum = actGroups.size();
-            Assert.assertEquals(actGroupNum, expGroupNum, currDomain.get("Name") + ": groups count");
+            Assert.assertEquals( actGroupNum, expGroupNum,
+                    currDomain.get( "Name" ) + ": groups count" );
 
             // check AutoSplit
-            boolean expAttr = (i % 2 == 0);
-            boolean actAttr = (boolean) currDomain.get("AutoSplit");
-            Assert.assertEquals(actAttr, expAttr, currDomain.get("Name") + ": AutoSplit");
+            boolean expAttr = ( i % 2 == 0 );
+            boolean actAttr = ( boolean ) currDomain.get( "AutoSplit" );
+            Assert.assertEquals( actAttr, expAttr,
+                    currDomain.get( "Name" ) + ": AutoSplit" );
 
             cursor.close();
         }
     }
 
-    private void dropDomain(Sequoiadb db) {
-        for (int i = 0; i < DOMAIN_NUM; i++) {
+    private void dropDomain( Sequoiadb db ) {
+        for ( int i = 0; i < DOMAIN_NUM; i++ ) {
             String domainName = domNameBase + "_" + i;
-            db.dropDomain(domainName);
+            db.dropDomain( domainName );
         }
     }
 }

@@ -12,19 +12,18 @@ public class S3NodeRestart extends Fault {
 
     private S3NodeWrapper node;
 
-    public S3NodeRestart(S3NodeWrapper node) {
-        super("nodeRestart");
+    public S3NodeRestart( S3NodeWrapper node ) {
+        super( "nodeRestart" );
         this.node = node;
     }
 
     @Override
     public void make() throws FaultException {
-        System.out.println("target node:" + this.node.toString());
+        System.out.println( "target node:" + this.node.toString() );
         try {
             this.node.stop();
-        }
-        catch (Exception e) {
-            throw new FaultException(e);
+        } catch ( Exception e ) {
+            throw new FaultException( e );
         }
     }
 
@@ -32,9 +31,8 @@ public class S3NodeRestart extends Fault {
     public boolean checkMakeResult() throws FaultException {
         try {
             return !this.node.isNodeActive();
-        }
-        catch (Exception e){
-            throw new FaultException(e);
+        } catch ( Exception e ) {
+            throw new FaultException( e );
         }
     }
 
@@ -42,9 +40,8 @@ public class S3NodeRestart extends Fault {
     public void restore() throws FaultException {
         try {
             this.node.start();
-        }
-        catch (Exception e) {
-            throw new FaultException(e);
+        } catch ( Exception e ) {
+            throw new FaultException( e );
         }
     }
 
@@ -52,12 +49,10 @@ public class S3NodeRestart extends Fault {
     public boolean checkRestoreResult() throws FaultException {
         try {
             return this.node.isNodeActive();
-        }
-        catch (Exception e) {
-            throw new FaultException(e);
+        } catch ( Exception e ) {
+            throw new FaultException( e );
         }
     }
-
 
     @Override
     public void init() throws FaultException {
@@ -80,10 +75,10 @@ public class S3NodeRestart extends Fault {
      *            检查构造成功与否的检测次数
      * @return
      */
-    public static FaultMakeTask getFaultMakeTask(S3NodeWrapper node, int maxDelay, int duration,
-                                                 int checkTimes) {
-        S3NodeRestart nr = new S3NodeRestart(node);
-        return  new FaultMakeTask(nr, maxDelay, duration, checkTimes);
+    public static FaultMakeTask getFaultMakeTask( S3NodeWrapper node,
+            int maxDelay, int duration, int checkTimes ) {
+        S3NodeRestart nr = new S3NodeRestart( node );
+        return new FaultMakeTask( nr, maxDelay, duration, checkTimes );
     }
 
     /**
@@ -95,7 +90,9 @@ public class S3NodeRestart extends Fault {
      *            持续时间s
      * @return
      */
-    public static FaultMakeTask getFaultMakeTask(S3NodeWrapper node, int maxDelay, int duration) {
-        return new FaultMakeTask( new S3NodeRestart(node), maxDelay, duration, 10);
+    public static FaultMakeTask getFaultMakeTask( S3NodeWrapper node,
+            int maxDelay, int duration ) {
+        return new FaultMakeTask( new S3NodeRestart( node ), maxDelay, duration,
+                10 );
     }
 }

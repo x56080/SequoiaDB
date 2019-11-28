@@ -43,18 +43,18 @@ public class QueryOne19944 extends SdbTestBase {
 
     @BeforeClass
     private void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("Is standalone.");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "Is standalone." );
         }
 
         // clear cs
         String[] csNames = { mcsName, scsName };
-        for (String csName : csNames) {
+        for ( String csName : csNames ) {
             try {
-                sdb.dropCollectionSpace(csName);
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -34) {
+                sdb.dropCollectionSpace( csName );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -34 ) {
                     throw e;
                 }
             }
@@ -66,18 +66,21 @@ public class QueryOne19944 extends SdbTestBase {
 
     @Test
     private void test() {
-        while (runTimes-- > 0) {
-            BSONObject cond = new BasicBSONObject("a", random.nextInt(recordsNum));
-            BSONObject obj = mcl.queryOne(cond, null, null, null, 1024);
+        while ( runTimes-- > 0 ) {
+            BSONObject cond = new BasicBSONObject( "a",
+                    random.nextInt( recordsNum ) );
+            BSONObject obj = mcl.queryOne( cond, null, null, null, 1024 );
             obj.toString();
         }
 
-        DBCursor cursor = sdb.getList(0, new BasicBSONObject("Global", false), null, null);
-        while (cursor.hasNext()) {
-            BasicBSONList contexts = (BasicBSONList) cursor.getNext().get("Contexts");
-            if (contexts.size() > expTmpContextNum) {
-                Assert.fail("context may not close, current contexts size = " + contexts.size() + ", contexts = "
-                        + contexts + ".");
+        DBCursor cursor = sdb.getList( 0,
+                new BasicBSONObject( "Global", false ), null, null );
+        while ( cursor.hasNext() ) {
+            BasicBSONList contexts = ( BasicBSONList ) cursor.getNext()
+                    .get( "Contexts" );
+            if ( contexts.size() > expTmpContextNum ) {
+                Assert.fail( "context may not close, current contexts size = "
+                        + contexts.size() + ", contexts = " + contexts + "." );
             }
         }
 
@@ -87,9 +90,9 @@ public class QueryOne19944 extends SdbTestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                sdb.dropCollectionSpace(mcsName);
-                sdb.dropCollectionSpace(scsName);
+            if ( runSuccess ) {
+                sdb.dropCollectionSpace( mcsName );
+                sdb.dropCollectionSpace( scsName );
             }
         } finally {
             sdb.disconnect();
@@ -98,37 +101,39 @@ public class QueryOne19944 extends SdbTestBase {
 
     private void readyCSCL() {
         // create main cs/cl
-        CollectionSpace mcs = sdb.createCollectionSpace(mcsName);
+        CollectionSpace mcs = sdb.createCollectionSpace( mcsName );
         BasicBSONObject mclOpt = new BasicBSONObject();
-        mclOpt.put("ShardingType", "range");
-        mclOpt.put("ShardingKey", new BasicBSONObject("a", 1));
-        mclOpt.put("IsMainCL", true);
-        mcl = mcs.createCollection(mclName, mclOpt);
+        mclOpt.put( "ShardingType", "range" );
+        mclOpt.put( "ShardingKey", new BasicBSONObject( "a", 1 ) );
+        mclOpt.put( "IsMainCL", true );
+        mcl = mcs.createCollection( mclName, mclOpt );
 
         // create sub cs/cl, and attach sub cl
-        CollectionSpace scs = sdb.createCollectionSpace(scsName);
+        CollectionSpace scs = sdb.createCollectionSpace( scsName );
         BasicBSONObject sclOpt = new BasicBSONObject();
-        sclOpt.put("ShardingType", "range");
-        sclOpt.put("ShardingKey", new BasicBSONObject("a", 1));
-        for (int i = 0; i < sclNum; i++) {
+        sclOpt.put( "ShardingType", "range" );
+        sclOpt.put( "ShardingKey", new BasicBSONObject( "a", 1 ) );
+        for ( int i = 0; i < sclNum; i++ ) {
             String sclName = sclNameBase + i;
-            scs.createCollection(sclName, sclOpt);
+            scs.createCollection( sclName, sclOpt );
 
             BasicBSONObject attOpt = new BasicBSONObject();
-            attOpt.put("LowBound", new BasicBSONObject("a", (recordsNum / sclNum) * i));
-            attOpt.put("UpBound", new BasicBSONObject("a", (recordsNum / sclNum) * (i + 1)));
-            mcl.attachCollection(scsName + "." + sclName, attOpt);
+            attOpt.put( "LowBound",
+                    new BasicBSONObject( "a", ( recordsNum / sclNum ) * i ) );
+            attOpt.put( "UpBound", new BasicBSONObject( "a",
+                    ( recordsNum / sclNum ) * ( i + 1 ) ) );
+            mcl.attachCollection( scsName + "." + sclName, attOpt );
         }
 
         // attach sub cl
-        for (int i = 0; i < sclNum; i++) {
+        for ( int i = 0; i < sclNum; i++ ) {
         }
 
         // insert records
-        List<BSONObject> insertor = new ArrayList<BSONObject>();
-        for (int i = 0; i < recordsNum; i++) {
-            insertor.add(new BasicBSONObject("a", i));
+        List< BSONObject > insertor = new ArrayList< BSONObject >();
+        for ( int i = 0; i < recordsNum; i++ ) {
+            insertor.add( new BasicBSONObject( "a", i ) );
         }
-        mcl.bulkInsert(insertor, 0);
+        mcl.bulkInsert( insertor, 0 );
     }
 }

@@ -38,49 +38,55 @@ public class Transaction18599 extends SdbTestBase {
     private String subCLName1 = "subcl18599_1";
     private String subCLName2 = "subcl18599_2";
     private GroupMgr groupMgr;
-    private List<String> groupNames;
+    private List< String > groupNames;
 
     @BeforeClass
     public void setUp() throws ReliabilityException {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        groupNames = CommLib.getDataGroupNames(sdb);
-        if (groupNames.size() < 2) {
-            throw new SkipException("ONE GROUP MODE");
+        groupNames = CommLib.getDataGroupNames( sdb );
+        if ( groupNames.size() < 2 ) {
+            throw new SkipException( "ONE GROUP MODE" );
         }
         groupMgr = GroupMgr.getInstance();
-        if (!groupMgr.checkBusiness(120)) {
-            throw new SkipException("GROUP ERROR");
+        if ( !groupMgr.checkBusiness( 120 ) ) {
+            throw new SkipException( "GROUP ERROR" );
         }
 
         // 如果磁盘满的主机不是同时拥有主备节点，就重启其中一个节点
-        String hostName = groupMgr.getGroupByName(groupNames.get(0)).getMaster().hostName();
-        for (int i = 1; i < groupNames.size(); i++) {
-            GroupWrapper groupWrapper = groupMgr.getGroupByName(groupNames.get(i));
+        String hostName = groupMgr.getGroupByName( groupNames.get( 0 ) )
+                .getMaster().hostName();
+        for ( int i = 1; i < groupNames.size(); i++ ) {
+            GroupWrapper groupWrapper = groupMgr
+                    .getGroupByName( groupNames.get( i ) );
             String host = groupWrapper.getMaster().hostName();
-            if (!hostName.equals(host)) {
+            if ( !hostName.equals( host ) ) {
                 break;
             }
-            if (i == groupNames.size() - 1) {
+            if ( i == groupNames.size() - 1 ) {
                 NodeWrapper nodeWrapper = groupWrapper.getMaster();
-                FaultMakeTask task = NodeRestart.getFaultMakeTask(nodeWrapper, 0, 0);
-                TaskMgr taskMgr = new TaskMgr(task);
+                FaultMakeTask task = NodeRestart.getFaultMakeTask( nodeWrapper,
+                        0, 0 );
+                TaskMgr taskMgr = new TaskMgr( task );
                 taskMgr.execute();
-                Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
-                Assert.assertTrue(groupMgr.checkBusinessWithLSN(120), "GROUP ERROR");
+                Assert.assertTrue( taskMgr.isAllSuccess(),
+                        taskMgr.getErrorMsg() );
+                Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ),
+                        "GROUP ERROR" );
             }
         }
 
         // 创建hash分区表/主子表(主表下挂载多个子表，子表覆盖分区表)，replSize设置为1，且已切分到所有组上，切分键为账户字段
         // 并插入数据 10000 个账户，每个账户 10000 元
-        TransUtil.createCLsAndInsertData(sdb, csName, hashCLName, mainCLName, subCLName1, subCLName2);
+        TransUtil.createCLsAndInsertData( sdb, csName, hashCLName, mainCLName,
+                subCLName1, subCLName2 );
     }
 
     @AfterClass
     public void tearDown() throws InterruptedException {
-        TransUtil.cleanEnv(sdb, csName, hashCLName, mainCLName);
+        TransUtil.cleanEnv( sdb, csName, hashCLName, mainCLName );
     }
 
     @DataProvider(name = "getCL")
@@ -89,27 +95,31 @@ public class Transaction18599 extends SdbTestBase {
     }
 
     @Test(dataProvider = "getCL")
-    public void test(String clName) throws ReliabilityException, InterruptedException {
+    public void test( String clName )
+            throws ReliabilityException, InterruptedException {
         // 构造磁盘主节点/备节点磁盘满
         TaskMgr taskMgr = new TaskMgr();
-        GroupWrapper group = groupMgr.getGroupByName(groupNames.get(0));
+        GroupWrapper group = groupMgr.getGroupByName( groupNames.get( 0 ) );
         NodeWrapper node = group.getMaster();
-        FaultMakeTask task = DiskFull.getFaultMakeTask(node.hostName(), SdbTestBase.reservedDir, 60, 10);
-        taskMgr.addTask(task);
-        TransUtil.setTimeTask(taskMgr, task);
+        FaultMakeTask task = DiskFull.getFaultMakeTask( node.hostName(),
+                SdbTestBase.reservedDir, 60, 10 );
+        taskMgr.addTask( task );
+        TransUtil.setTimeTask( taskMgr, task );
 
-        for (int i = 0; i < 200; i++) {
-            taskMgr.addTask(new TransferTh(csName, clName));
+        for ( int i = 0; i < 200; i++ ) {
+            taskMgr.addTask( new TransferTh( csName, clName ) );
         }
         taskMgr.execute();
 
-        Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
-        Assert.assertTrue(groupMgr.checkBusinessWithLSN(300), "GROUP ERROR");
+        Assert.assertTrue( taskMgr.isAllSuccess(), taskMgr.getErrorMsg() );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 300 ),
+                "GROUP ERROR" );
 
         // 待磁盘故障恢复正常后，查询所有账户的金额总和
-        DBCursor cursor = sdb.exec("select sum(balance) as balance from " + csName + "." + clName);
-        double balance = (double) cursor.getNext().get("balance");
+        DBCursor cursor = sdb.exec( "select sum(balance) as balance from "
+                + csName + "." + clName );
+        double balance = ( double ) cursor.getNext().get( "balance" );
         cursor.close();
-        Assert.assertEquals((int) balance, 100000000);
+        Assert.assertEquals( ( int ) balance, 100000000 );
     }
 }

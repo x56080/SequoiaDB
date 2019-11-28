@@ -49,18 +49,21 @@ public class CreateCL2278 extends SdbTestBase {
     public void setUp() {
         Sequoiadb db = null;
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
 
             groupMgr = GroupMgr.getInstance();
-            if (!groupMgr.checkBusiness()) {
-                throw new SkipException("checkBusiness failed");
+            if ( !groupMgr.checkBusiness() ) {
+                throw new SkipException( "checkBusiness failed" );
             }
-        } catch (ReliabilityException e) {
-            Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
-                    + Utils.getKeyStack(e, this));
+        } catch ( ReliabilityException e ) {
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -70,36 +73,38 @@ public class CreateCL2278 extends SdbTestBase {
     public void test() {
         Sequoiadb db = null;
         try {
-            GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
+            GroupWrapper cataGroup = groupMgr
+                    .getGroupByName( "SYSCatalogGroup" );
             NodeWrapper priNode = cataGroup.getMaster();
 
-            FaultMakeTask faultTask = KillNode.getFaultMakeTask(priNode.hostName(), priNode.svcName(), 0);
-            TaskMgr mgr = new TaskMgr(faultTask);
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask(
+                    priNode.hostName(), priNode.svcName(), 0 );
+            TaskMgr mgr = new TaskMgr( faultTask );
             CreateCLTask cTask = new CreateCLTask();
-            mgr.addTask(cTask);
+            mgr.addTask( cTask );
             mgr.execute();
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
-            if (!groupMgr.checkBusinessWithLSN(600)) {
-                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            if ( !groupMgr.checkBusinessWithLSN( 600 ) ) {
+                Assert.fail( "checkBusinessWithLSN() occurs timeout" );
             }
 
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            createCLAgain(db);
-            operateOnCL(db);
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            createCLAgain( db );
+            operateOnCL( db );
 
-            if (!groupMgr.checkBusinessWithLSN(600)) {
-                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            if ( !groupMgr.checkBusinessWithLSN( 600 ) ) {
+                Assert.fail( "checkBusinessWithLSN() occurs timeout" );
             }
-            MyUtil.checkListCL(db, csName, clNameBase, CL_NUM);
+            MyUtil.checkListCL( db, csName, clNameBase, CL_NUM );
 
-            Utils.checkConsistency(groupMgr);
+            Utils.checkConsistency( groupMgr );
             runSuccess = true;
-        } catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -107,21 +112,24 @@ public class CreateCL2278 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (!runSuccess) {
-            throw new SkipException("to save environment");
+        if ( !runSuccess ) {
+            throw new SkipException( "to save environment" );
         }
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            dropCL(db);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            dropCL( db );
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    e.getMessage() + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
         }
     }
 
@@ -130,50 +138,50 @@ public class CreateCL2278 extends SdbTestBase {
         public void exec() throws Exception {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(coordUrl, "", "");
-                CollectionSpace commCS = db.getCollectionSpace(csName);
-                for (int i = 0; i < CL_NUM; i++) {
+                db = new Sequoiadb( coordUrl, "", "" );
+                CollectionSpace commCS = db.getCollectionSpace( csName );
+                for ( int i = 0; i < CL_NUM; i++ ) {
                     String clName = clNameBase + "_" + i;
-                    commCS.createCollection(clName);
+                    commCS.createCollection( clName );
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.close();
                 }
             }
         }
     }
 
-    private void createCLAgain(Sequoiadb db) {
-        CollectionSpace commCS = db.getCollectionSpace(csName);
-        for (int i = 0; i < CL_NUM; i++) {
+    private void createCLAgain( Sequoiadb db ) {
+        CollectionSpace commCS = db.getCollectionSpace( csName );
+        for ( int i = 0; i < CL_NUM; i++ ) {
             String clName = clNameBase + "_" + i;
             try {
-                commCS.createCollection(clName);
-            } catch (BaseException e) {
+                commCS.createCollection( clName );
+            } catch ( BaseException e ) {
                 // -22 SDB_DMS_EXIST 集合已存在
-                if (e.getErrorCode() != -22) {
+                if ( e.getErrorCode() != -22 ) {
                     throw e;
                 }
             }
         }
     }
 
-    private void operateOnCL(Sequoiadb db) {
-        CollectionSpace commCS = db.getCollectionSpace(csName);
-        for (int i = 0; i < CL_NUM; i++) {
+    private void operateOnCL( Sequoiadb db ) {
+        CollectionSpace commCS = db.getCollectionSpace( csName );
+        for ( int i = 0; i < CL_NUM; i++ ) {
             String clName = clNameBase + "_" + i;
-            DBCollection cl = commCS.getCollection(clName);
-            cl.insert("{ a: 1 }");
+            DBCollection cl = commCS.getCollection( clName );
+            cl.insert( "{ a: 1 }" );
         }
     }
 
-    private void dropCL(Sequoiadb db) {
-        CollectionSpace commCS = db.getCollectionSpace(csName);
-        for (int i = 0; i < CL_NUM; i++) {
+    private void dropCL( Sequoiadb db ) {
+        CollectionSpace commCS = db.getCollectionSpace( csName );
+        for ( int i = 0; i < CL_NUM; i++ ) {
             String clName = clNameBase + "_" + i;
-            commCS.dropCollection(clName);
+            commCS.dropCollection( clName );
         }
     }
 }

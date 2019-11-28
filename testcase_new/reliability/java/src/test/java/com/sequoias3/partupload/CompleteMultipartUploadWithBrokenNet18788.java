@@ -35,10 +35,11 @@ import com.sequoias3.commlibs3.s3utils.PartUploadUtils;
 public class CompleteMultipartUploadWithBrokenNet18788 extends S3TestBase {
     private String bucketName = "bucket18788";
     private String keyName = "key18788";
-    private long[] partSizes = { 5 * 1024 * 1024, 5 * 1024 * 1024, 6 * 1024 * 1024, 14 * 1024 * 1024 };
+    private long[] partSizes = { 5 * 1024 * 1024, 5 * 1024 * 1024,
+            6 * 1024 * 1024, 14 * 1024 * 1024 };
     private AmazonS3 s3Client = null;
     private long fileSize = 30 * 1024 * 1024;
-    private List<PartETag> partEtags = new ArrayList<PartETag>();
+    private List< PartETag > partEtags = new ArrayList< PartETag >();
     private File localPath = null;
     private File file = null;
     private String filePath = null;
@@ -47,31 +48,35 @@ public class CompleteMultipartUploadWithBrokenNet18788 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
-        file = new File(filePath);
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
+        file = new File( filePath );
 
         s3Client = CommLibS3.buildS3Client();
-        CommLibS3.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(new CreateBucketRequest(bucketName));
+        CommLibS3.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( new CreateBucketRequest( bucketName ) );
     }
 
     // 将断网用例暂时屏蔽，记录在excel表格中，待优化故障模块后解除
     @Test(enabled = false)
     public void test() throws Exception {
-        uploadId = PartUploadUtils.initPartUpload(s3Client, bucketName, keyName);
+        uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
         uploadParts();
 
-        FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(S3TestBase.hostName, 0, 20);
-        TaskMgr mgr = new TaskMgr(faultTask);
+        FaultMakeTask faultTask = BrokenNetwork
+                .getFaultMakeTask( S3TestBase.hostName, 0, 20 );
+        TaskMgr mgr = new TaskMgr( faultTask );
         CompleteMultipartUploadTask cTask = new CompleteMultipartUploadTask();
-        mgr.addTask(cTask);
+        mgr.addTask( cTask );
         mgr.execute();
-        Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
+        Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
         completeUploadAgainAndCheck();
         runSuccess = true;
@@ -80,9 +85,9 @@ public class CompleteMultipartUploadWithBrokenNet18788 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLibS3.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLibS3.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();
@@ -94,14 +99,17 @@ public class CompleteMultipartUploadWithBrokenNet18788 extends S3TestBase {
         public void exec() {
             AmazonS3 s3Client = CommLibS3.buildS3Client();
             try {
-                PartUploadUtils.completeMultipartUpload(s3Client, bucketName, keyName, uploadId, partEtags);
-            } catch (AmazonS3Exception e) {
-                if (!e.getErrorCode().equals("NoSuchUpload")
-                        && !e.getErrorCode().equals("CompleteMultipartUploadFailed") && e.getStatusCode() != 500) {
+                PartUploadUtils.completeMultipartUpload( s3Client, bucketName,
+                        keyName, uploadId, partEtags );
+            } catch ( AmazonS3Exception e ) {
+                if ( !e.getErrorCode().equals( "NoSuchUpload" )
+                        && !e.getErrorCode()
+                                .equals( "CompleteMultipartUploadFailed" )
+                        && e.getStatusCode() != 500 ) {
                     throw e;
                 }
             } finally {
-                if (s3Client != null) {
+                if ( s3Client != null ) {
                     s3Client.shutdown();
                 }
             }
@@ -112,13 +120,15 @@ public class CompleteMultipartUploadWithBrokenNet18788 extends S3TestBase {
         AmazonS3 s3Client = CommLibS3.buildS3Client();
         try {
             try {
-                PartUploadUtils.completeMultipartUpload(s3Client, bucketName, keyName, uploadId, partEtags);
-            } catch (AmazonS3Exception e) {
-                Assert.assertEquals(e.getErrorCode(), "NoSuchUpload");
+                PartUploadUtils.completeMultipartUpload( s3Client, bucketName,
+                        keyName, uploadId, partEtags );
+            } catch ( AmazonS3Exception e ) {
+                Assert.assertEquals( e.getErrorCode(), "NoSuchUpload" );
             }
-            String expMd5 = TestTools.getMD5(filePath);
-            String downloadMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, keyName);
-            Assert.assertEquals(downloadMd5, expMd5);
+            String expMd5 = TestTools.getMD5( filePath );
+            String downloadMd5 = ObjectUtils.getMd5OfObject( s3Client,
+                    localPath, bucketName, keyName );
+            Assert.assertEquals( downloadMd5, expMd5 );
         } finally {
             s3Client.shutdown();
         }
@@ -126,13 +136,16 @@ public class CompleteMultipartUploadWithBrokenNet18788 extends S3TestBase {
 
     private void uploadParts() {
         long filePosition = 0;
-        for (int i = 0; i < partSizes.length; i++) {
-            UploadPartRequest partRequest = new UploadPartRequest().withFile(file).withFileOffset(filePosition)
-                    .withPartNumber(i + 1).withPartSize(partSizes[i]).withBucketName(bucketName).withKey(keyName)
-                    .withUploadId(uploadId);
-            UploadPartResult uploadPartResult = s3Client.uploadPart(partRequest);
-            partEtags.add(uploadPartResult.getPartETag());
-            filePosition += partSizes[i];
+        for ( int i = 0; i < partSizes.length; i++ ) {
+            UploadPartRequest partRequest = new UploadPartRequest()
+                    .withFile( file ).withFileOffset( filePosition )
+                    .withPartNumber( i + 1 ).withPartSize( partSizes[ i ] )
+                    .withBucketName( bucketName ).withKey( keyName )
+                    .withUploadId( uploadId );
+            UploadPartResult uploadPartResult = s3Client
+                    .uploadPart( partRequest );
+            partEtags.add( uploadPartResult.getPartETag() );
+            filePosition += partSizes[ i ];
         }
     }
 }

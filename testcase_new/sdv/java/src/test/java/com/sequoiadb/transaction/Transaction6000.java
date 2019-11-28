@@ -33,9 +33,10 @@ public class Transaction6000 extends SdbTestBase {
 
     @BeforeClass
     public void setup() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(SdbTestBase.csName).createCollection(clName);
-        insertData(cl);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( SdbTestBase.csName )
+                .createCollection( clName );
+        insertData( cl );
     }
 
     @Test
@@ -44,41 +45,45 @@ public class Transaction6000 extends SdbTestBase {
         UpdateThread updateThread = new UpdateThread();
         DeleteThread deleteThread = new DeleteThread();
 
-        threadExec.addWorker(updateThread);
-        threadExec.addWorker(deleteThread);
+        threadExec.addWorker( updateThread );
+        threadExec.addWorker( deleteThread );
         threadExec.run();
 
         int updateErrorCode = updateThread.getRetCode();
         int deleteErrorCode = deleteThread.getRetCode();
 
-        if (updateErrorCode == 0 && deleteErrorCode != 0) {
-            if (deleteErrorCode != -13) {
-                Assert.fail(
-                        "delete thread fail:" + deleteThread.getThrowable().getMessage() + "  e:" + deleteErrorCode);
+        if ( updateErrorCode == 0 && deleteErrorCode != 0 ) {
+            if ( deleteErrorCode != -13 ) {
+                Assert.fail( "delete thread fail:"
+                        + deleteThread.getThrowable().getMessage() + "  e:"
+                        + deleteErrorCode );
             }
             checkUpdateResult();
-        } else if (updateErrorCode != 0 && deleteErrorCode == 0) {
-            if (updateErrorCode != -13) {
-                Assert.fail(
-                        "update thread fail:" + updateThread.getThrowable().getMessage() + "  e:" + updateErrorCode);
+        } else if ( updateErrorCode != 0 && deleteErrorCode == 0 ) {
+            if ( updateErrorCode != -13 ) {
+                Assert.fail( "update thread fail:"
+                        + updateThread.getThrowable().getMessage() + "  e:"
+                        + updateErrorCode );
             }
             checkDeleteResult();
         } else {
-            Assert.fail("Unexpected results! updateThreadError:" + updateThread.getThrowable().getMessage()
-                    + "deleteThreadError:" + deleteThread.getThrowable().getMessage());
+            Assert.fail( "Unexpected results! updateThreadError:"
+                    + updateThread.getThrowable().getMessage()
+                    + "deleteThreadError:"
+                    + deleteThread.getThrowable().getMessage() );
         }
     }
 
     @AfterClass
     public void teardown() {
         try {
-            sdb.getCollectionSpace(csName).dropCollection(clName);
+            sdb.getCollectionSpace( csName ).dropCollection( clName );
         } finally {
-            if (sdb != null)
+            if ( sdb != null )
                 sdb.close();
-            if (db1 != null)
+            if ( db1 != null )
                 db1.close();
-            if (db2 != null)
+            if ( db2 != null )
                 db2.close();
         }
     }
@@ -90,8 +95,9 @@ public class Transaction6000 extends SdbTestBase {
         private DBCollection cl1;
 
         private UpdateThread() {
-            db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            cl1 = db1.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            cl1 = db1.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
         }
 
         @ExecuteOrder(step = 1)
@@ -102,13 +108,13 @@ public class Transaction6000 extends SdbTestBase {
         @ExecuteOrder(step = 3)
         private void update() throws BaseException {
             try {
-                matcher.put("b", 50);
-                modifyObj.put("b", 6000);
-                modifier.put("$set", modifyObj);
-                cl1.update(matcher, modifier, null);
-            } catch (BaseException e) {
+                matcher.put( "b", 50 );
+                modifyObj.put( "b", 6000 );
+                modifier.put( "$set", modifyObj );
+                cl1.update( matcher, modifier, null );
+            } catch ( BaseException e ) {
                 int errCode = e.getErrorCode();
-                saveResult(errCode, e);
+                saveResult( errCode, e );
             }
         }
 
@@ -122,8 +128,9 @@ public class Transaction6000 extends SdbTestBase {
         private DBCollection cl2;
 
         private DeleteThread() {
-            db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            cl2 = db2.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            cl2 = db2.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
         }
 
         @ExecuteOrder(step = 2)
@@ -134,10 +141,10 @@ public class Transaction6000 extends SdbTestBase {
         @ExecuteOrder(step = 3)
         private void delete() {
             try {
-                cl2.delete("");
-            } catch (BaseException e) {
+                cl2.delete( "" );
+            } catch ( BaseException e ) {
                 int errCode = e.getErrorCode();
-                saveResult(errCode, e);
+                saveResult( errCode, e );
             }
         }
 
@@ -149,25 +156,25 @@ public class Transaction6000 extends SdbTestBase {
 
     private void checkUpdateResult() {
         BSONObject matcher = new BasicBSONObject();
-        matcher.put("b", 6000);
-        long actCount = cl.getCount(matcher);
-        Assert.assertEquals(actCount, 1, "Update data does not exist!");
+        matcher.put( "b", 6000 );
+        long actCount = cl.getCount( matcher );
+        Assert.assertEquals( actCount, 1, "Update data does not exist!" );
     }
 
     private void checkDeleteResult() {
         long actCount = cl.getCount();
-        Assert.assertEquals(actCount, 0, "there still have data");
+        Assert.assertEquals( actCount, 0, "there still have data" );
     }
 
-    private void insertData(DBCollection cl) {
-        List<BSONObject> recs = new ArrayList<BSONObject>();
-        for (int i = 0; i < 100; i++) {
+    private void insertData( DBCollection cl ) {
+        List< BSONObject > recs = new ArrayList< BSONObject >();
+        for ( int i = 0; i < 100; i++ ) {
             BSONObject rec = new BasicBSONObject();
-            rec.put("a", i);
-            rec.put("b", i);
-            rec.put("c", "string6000");
-            recs.add(rec);
+            rec.put( "a", i );
+            rec.put( "b", i );
+            rec.put( "c", "string6000" );
+            recs.add( rec );
         }
-        cl.insert(recs);
+        cl.insert( recs );
     }
 }

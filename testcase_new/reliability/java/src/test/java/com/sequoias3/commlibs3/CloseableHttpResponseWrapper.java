@@ -16,11 +16,13 @@ import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("deprecation")
 public class CloseableHttpResponseWrapper implements CloseableHttpResponse {
-    private static final Logger logger = LoggerFactory.getLogger(CloseableHttpResponseWrapper.class);
+    private static final Logger logger = LoggerFactory
+            .getLogger( CloseableHttpResponseWrapper.class );
     private CloseableHttpResponse resp;
     private CloseableHttpClient tmpHttpClient;
 
-    public CloseableHttpResponseWrapper(CloseableHttpResponse resp, CloseableHttpClient tmpClient) {
+    public CloseableHttpResponseWrapper( CloseableHttpResponse resp,
+            CloseableHttpClient tmpClient ) {
         this.resp = resp;
         this.tmpHttpClient = tmpClient;
     }
@@ -31,28 +33,28 @@ public class CloseableHttpResponseWrapper implements CloseableHttpResponse {
     }
 
     @Override
-    public void setStatusLine(StatusLine statusline) {
-        resp.setStatusLine(statusline);
+    public void setStatusLine( StatusLine statusline ) {
+        resp.setStatusLine( statusline );
     }
 
     @Override
-    public void setStatusLine(ProtocolVersion ver, int code) {
-        resp.setStatusLine(ver, code);
+    public void setStatusLine( ProtocolVersion ver, int code ) {
+        resp.setStatusLine( ver, code );
     }
 
     @Override
-    public void setStatusLine(ProtocolVersion ver, int code, String reason) {
-        resp.setStatusLine(ver, code, reason);
+    public void setStatusLine( ProtocolVersion ver, int code, String reason ) {
+        resp.setStatusLine( ver, code, reason );
     }
 
     @Override
-    public void setStatusCode(int code) throws IllegalStateException {
-        resp.setStatusCode(code);
+    public void setStatusCode( int code ) throws IllegalStateException {
+        resp.setStatusCode( code );
     }
 
     @Override
-    public void setReasonPhrase(String reason) throws IllegalStateException {
-        resp.setReasonPhrase(reason);
+    public void setReasonPhrase( String reason ) throws IllegalStateException {
+        resp.setReasonPhrase( reason );
     }
 
     @Override
@@ -61,8 +63,8 @@ public class CloseableHttpResponseWrapper implements CloseableHttpResponse {
     }
 
     @Override
-    public void setEntity(HttpEntity entity) {
-        resp.setEntity(entity);
+    public void setEntity( HttpEntity entity ) {
+        resp.setEntity( entity );
     }
 
     @Override
@@ -71,8 +73,8 @@ public class CloseableHttpResponseWrapper implements CloseableHttpResponse {
     }
 
     @Override
-    public void setLocale(Locale loc) {
-        resp.setLocale(loc);
+    public void setLocale( Locale loc ) {
+        resp.setLocale( loc );
     }
 
     @Override
@@ -81,23 +83,23 @@ public class CloseableHttpResponseWrapper implements CloseableHttpResponse {
     }
 
     @Override
-    public boolean containsHeader(String name) {
-        return resp.containsHeader(name);
+    public boolean containsHeader( String name ) {
+        return resp.containsHeader( name );
     }
 
     @Override
-    public Header[] getHeaders(String name) {
-        return resp.getHeaders(name);
+    public Header[] getHeaders( String name ) {
+        return resp.getHeaders( name );
     }
 
     @Override
-    public Header getFirstHeader(String name) {
-        return resp.getFirstHeader(name);
+    public Header getFirstHeader( String name ) {
+        return resp.getFirstHeader( name );
     }
 
     @Override
-    public Header getLastHeader(String name) {
-        return resp.getLastHeader(name);
+    public Header getLastHeader( String name ) {
+        return resp.getLastHeader( name );
     }
 
     @Override
@@ -106,39 +108,39 @@ public class CloseableHttpResponseWrapper implements CloseableHttpResponse {
     }
 
     @Override
-    public void addHeader(Header header) {
-        resp.addHeader(header);
+    public void addHeader( Header header ) {
+        resp.addHeader( header );
     }
 
     @Override
-    public void addHeader(String name, String value) {
-        resp.addHeader(name, value);
+    public void addHeader( String name, String value ) {
+        resp.addHeader( name, value );
 
     }
 
     @Override
-    public void setHeader(Header header) {
-        resp.setHeader(header);
+    public void setHeader( Header header ) {
+        resp.setHeader( header );
     }
 
     @Override
-    public void setHeader(String name, String value) {
-        resp.setHeader(name, value);
+    public void setHeader( String name, String value ) {
+        resp.setHeader( name, value );
     }
 
     @Override
-    public void setHeaders(Header[] headers) {
-        resp.setHeaders(headers);
+    public void setHeaders( Header[] headers ) {
+        resp.setHeaders( headers );
     }
 
     @Override
-    public void removeHeader(Header header) {
-        resp.removeHeader(header);
+    public void removeHeader( Header header ) {
+        resp.removeHeader( header );
     }
 
     @Override
-    public void removeHeaders(String name) {
-        resp.removeHeaders(name);
+    public void removeHeaders( String name ) {
+        resp.removeHeaders( name );
     }
 
     @Override
@@ -147,8 +149,8 @@ public class CloseableHttpResponseWrapper implements CloseableHttpResponse {
     }
 
     @Override
-    public HeaderIterator headerIterator(String name) {
-        return resp.headerIterator(name);
+    public HeaderIterator headerIterator( String name ) {
+        return resp.headerIterator( name );
     }
 
     @Override
@@ -157,19 +159,19 @@ public class CloseableHttpResponseWrapper implements CloseableHttpResponse {
     }
 
     @Override
-    public void setParams(HttpParams params) {
-        resp.setParams(params);
+    public void setParams( HttpParams params ) {
+        resp.setParams( params );
     }
 
     @Override
     public void close() throws IOException {
         try {
             resp.close();
-        } catch (Exception e) {
-            logger.warn("close response failed", e);
+        } catch ( Exception e ) {
+            logger.warn( "close response failed", e );
         }
 
         tmpHttpClient.close();
-        logger.debug("close tempHttpClient:" + tmpHttpClient);
+        logger.debug( "close tempHttpClient:" + tmpHttpClient );
     }
 }

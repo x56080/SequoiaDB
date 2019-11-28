@@ -26,7 +26,7 @@ public abstract class LobTask extends OperateTask {
     Sequoiadb db = null;
     String hostName = null;
 
-    public LobTask setHostName(String hostName) {
+    public LobTask setHostName( String hostName ) {
         this.hostName = hostName;
         return this;
     }
@@ -34,9 +34,10 @@ public abstract class LobTask extends OperateTask {
     /**
      * 优先从主获取数据:db.setSessionAttr({PreferedInstance:"M"})
      */
-    private BSONObject setSessionAttrOption=null;
-    public LobTask setSessionAttr(BSONObject option){
-        setSessionAttrOption=new BasicBSONObject(option.toMap());
+    private BSONObject setSessionAttrOption = null;
+
+    public LobTask setSessionAttr( BSONObject option ) {
+        setSessionAttrOption = new BasicBSONObject( option.toMap() );
         return this;
     }
 
@@ -46,23 +47,23 @@ public abstract class LobTask extends OperateTask {
 
     @Override
     public void exec() {
-        if (hostName != null)
-            db = new Sequoiadb(hostName, "", "");
+        if ( hostName != null )
+            db = new Sequoiadb( hostName, "", "" );
         else
             db = getSdb();
 
-        if(setSessionAttrOption!=null)
-            db.setSessionAttr(setSessionAttrOption);
+        if ( setSessionAttrOption != null )
+            db.setSessionAttr( setSessionAttrOption );
 
-        if (csName == null || clName == null)
-            throw new IllegalArgumentException("cs or cl can not be null");
-        collection = db.getCollectionSpace(csName).getCollection(clName);
+        if ( csName == null || clName == null )
+            throw new IllegalArgumentException( "cs or cl can not be null" );
+        collection = db.getCollectionSpace( csName ).getCollection( clName );
         lobOperate();
 
         db.close();
     }
 
-    public LobTask setCsAndClName(String csName, String clName) {
+    public LobTask setCsAndClName( String csName, String clName ) {
         this.clName = clName;
         this.csName = csName;
         return this;
@@ -70,42 +71,42 @@ public abstract class LobTask extends OperateTask {
 
     abstract void lobOperate();
 
-
-    public static LobTask getCreateLobsTask(final List<LobBean> lobs) {
+    public static LobTask getCreateLobsTask( final List< LobBean > lobs ) {
         return new LobTask() {
             @Override
             void lobOperate() {
-                if (lobs == null)
-                    throw new IllegalArgumentException("lobs can not be null");
+                if ( lobs == null )
+                    throw new IllegalArgumentException(
+                            "lobs can not be null" );
 
-                for (LobBean lob : lobs) {
+                for ( LobBean lob : lobs ) {
                     DBLob dbLob = collection.createLob();
-                    dbLob.write(lob.getContent());
-                    lob.setId(dbLob.getID());
+                    dbLob.write( lob.getContent() );
+                    lob.setId( dbLob.getID() );
                     dbLob.close();
                 }
             }
         };
     }
 
-    public static LobTask getDeleteLobsTask(final List<LobBean> lobs) {
+    public static LobTask getDeleteLobsTask( final List< LobBean > lobs ) {
         return new LobTask() {
             @Override
             void lobOperate() {
-                for (LobBean lob : lobs) {
-                    collection.removeLob(lob.getId());
-                    lob.setInSdb(false);
+                for ( LobBean lob : lobs ) {
+                    collection.removeLob( lob.getId() );
+                    lob.setInSdb( false );
                 }
             }
         };
     }
 
-    public static LobTask getReadLobsTask(final List<LobBean> lobs) {
+    public static LobTask getReadLobsTask( final List< LobBean > lobs ) {
         return new LobTask() {
             @Override
             void lobOperate() {
-                for (LobBean lob : lobs) {
-                    MyUtil.readLob(collection, lob.getId());
+                for ( LobBean lob : lobs ) {
+                    MyUtil.readLob( collection, lob.getId() );
                 }
             }
         };

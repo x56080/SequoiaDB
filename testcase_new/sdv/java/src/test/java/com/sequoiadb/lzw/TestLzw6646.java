@@ -21,9 +21,7 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @FileName:seqDB-6646:修改CL的压缩类型为snappy
- * 1、CL压缩类型为lzw，修改CL的压缩类型为snappy
- * 2、检查返回结果 
+ * @FileName:seqDB-6646:修改CL的压缩类型为snappy 1、CL压缩类型为lzw，修改CL的压缩类型为snappy 2、检查返回结果
  * @Author linsuqiang
  * @Date 2016-12-27
  * @Version 1.00
@@ -31,60 +29,65 @@ import com.sequoiadb.testcommon.SdbTestBase;
 public class TestLzw6646 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl_6646";
-    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
-    
+    private SimpleDateFormat sdf = new SimpleDateFormat(
+            "yyyy-MM-dd HH:mm:ss.S" );
+
     @BeforeClass
     public void setUp() {
-        try{
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        }catch(BaseException e){
-            Assert.fail(e.getMessage());
+        try {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         }
-        if (SnappyUilts.isStandAlone(sdb)){
-            throw new SkipException("is standalone skip testcase");
+        if ( SnappyUilts.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
         }
     }
-    
+
     @AfterClass
-    public void tearDown(){
-        try{
-            CollectionSpace cs = sdb.getCollectionSpace(csName);  
-            if(cs.isCollectionExist(clName)){
-                cs.dropCollection(clName);
+    public void tearDown() {
+        try {
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-        }catch(BaseException e){
-            Assert.fail(e.getMessage());
-        }finally{
-            if(sdb != null){
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        } finally {
+            if ( sdb != null ) {
                 sdb.disconnect();
             }
         }
     }
-    
+
     @Test
     public void test() {
         Sequoiadb db = null;
-        try{
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            CollectionSpace cs = sdb.getCollectionSpace(csName);
-            DBCollection cl = cs.createCollection(clName, (BSONObject)JSON.parse("{Compressed: true, "
-                    + "CompressionType: 'lzw'}"));
-            cl.alterCollection((BSONObject)JSON.parse("{CompressionType: 'snappy'}"));
-            Assert.assertEquals("snappy", getCompressType(cl));
-        }catch(BaseException e){
-            Assert.fail(e.getMessage());
-        }finally{
-            if(db != null){
+        try {
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            DBCollection cl = cs.createCollection( clName,
+                    ( BSONObject ) JSON.parse( "{Compressed: true, "
+                            + "CompressionType: 'lzw'}" ) );
+            cl.alterCollection( ( BSONObject ) JSON
+                    .parse( "{CompressionType: 'snappy'}" ) );
+            Assert.assertEquals( "snappy", getCompressType( cl ) );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        } finally {
+            if ( db != null ) {
                 db.disconnect();
             }
         }
     }
-    
-    private String getCompressType(DBCollection cl) {
+
+    private String getCompressType( DBCollection cl ) {
         Sequoiadb db = cl.getSequoiadb();
-        BSONObject cond = new BasicBSONObject("Name", cl.getFullName());
-        DBCursor cursor = db.getSnapshot(Sequoiadb.SDB_SNAP_CATALOG, cond, null, null);
-        String compressType = (String) cursor.getNext().get("CompressionTypeDesc");
+        BSONObject cond = new BasicBSONObject( "Name", cl.getFullName() );
+        DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_CATALOG, cond,
+                null, null );
+        String compressType = ( String ) cursor.getNext()
+                .get( "CompressionTypeDesc" );
         cursor.close();
         return compressType;
     }

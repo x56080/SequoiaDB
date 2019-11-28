@@ -40,17 +40,19 @@ public class CappedCLRestartNode11812 extends SdbTestBase {
     public void setUp() {
         try {
             groupMgr = GroupMgr.getInstance();
-            if (!groupMgr.checkBusiness()) {
-                throw new SkipException("checkBusiness failed");
+            if ( !groupMgr.checkBusiness() ) {
+                throw new SkipException( "checkBusiness failed" );
             }
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            if (sdb.isCollectionSpaceExist(cappedCSName)) {
-                sdb.dropCollectionSpace(cappedCSName);
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            if ( sdb.isCollectionSpaceExist( cappedCSName ) ) {
+                sdb.dropCollectionSpace( cappedCSName );
             }
-            sdb.createCollectionSpace(cappedCSName, (BSONObject) JSON.parse("{Capped:true}"));
-        } catch (ReliabilityException e) {
+            sdb.createCollectionSpace( cappedCSName,
+                    ( BSONObject ) JSON.parse( "{Capped:true}" ) );
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(this.getClass().getName() + "setUp error, error description:" + e.getMessage());
+            Assert.fail( this.getClass().getName()
+                    + "setUp error, error description:" + e.getMessage() );
         }
 
     }
@@ -58,34 +60,39 @@ public class CappedCLRestartNode11812 extends SdbTestBase {
     @Test
     public void test() {
         try {
-            dataGroupName = groupMgr.getAllDataGroupName().get(0);
-            GroupWrapper dataGroup = groupMgr.getGroupByName(dataGroupName);
+            dataGroupName = groupMgr.getAllDataGroupName().get( 0 );
+            GroupWrapper dataGroup = groupMgr.getGroupByName( dataGroupName );
             NodeWrapper slaveNode = dataGroup.getSlave();
 
-            FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask(slaveNode, 1, 10);
-            TaskMgr mgr = new TaskMgr(faultMakeTask);
-            mgr.addTask(new createCappedCLTask());
+            FaultMakeTask faultMakeTask = NodeRestart
+                    .getFaultMakeTask( slaveNode, 1, 10 );
+            TaskMgr mgr = new TaskMgr( faultMakeTask );
+            mgr.addTask( new createCappedCLTask() );
             mgr.execute();
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
-            Assert.assertEquals(groupMgr.checkBusinessWithLSN(600), true, "checkBusinessWithLSN() occurs timeout");
-            Assert.assertEquals(dataGroup.checkInspect(60), true, "data is different on " + dataGroup.getGroupName());
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
+            Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true,
+                    "checkBusinessWithLSN() occurs timeout" );
+            Assert.assertEquals( dataGroup.checkInspect( 60 ), true,
+                    "data is different on " + dataGroup.getGroupName() );
 
-            for (int num = 0; num < successCLCounts; num++) {
-                CollectionSpace cappedCS = sdb.getCollectionSpace(cappedCSName);
-                cappedCS.getCollection(cappedCLName + "_" + num).insert("{a:'Check cl'}");
+            for ( int num = 0; num < successCLCounts; num++ ) {
+                CollectionSpace cappedCS = sdb
+                        .getCollectionSpace( cappedCSName );
+                cappedCS.getCollection( cappedCLName + "_" + num )
+                        .insert( "{a:'Check cl'}" );
             }
-        } catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail("test reliabilityException: " + e.getMessage());
+            Assert.fail( "test reliabilityException: " + e.getMessage() );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            sdb.dropCollectionSpace(cappedCSName);
+            sdb.dropCollectionSpace( cappedCSName );
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -95,17 +102,20 @@ public class CappedCLRestartNode11812 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                CollectionSpace cappedCS = db.getCollectionSpace(cappedCSName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                CollectionSpace cappedCS = db
+                        .getCollectionSpace( cappedCSName );
                 BSONObject options = new BasicBSONObject();
-                options.put("Capped", true);
-                options.put("Size", 1024);
-                options.put("Group", dataGroupName);
-                for (int num = 0; num < 300; num++) {
-                    cappedCS.createCollection(cappedCLName + "_" + num, options);
+                options.put( "Capped", true );
+                options.put( "Size", 1024 );
+                options.put( "Group", dataGroupName );
+                for ( int num = 0; num < 300; num++ ) {
+                    cappedCS.createCollection( cappedCLName + "_" + num,
+                            options );
                     successCLCounts++;
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
                 throw e;
             }
         }

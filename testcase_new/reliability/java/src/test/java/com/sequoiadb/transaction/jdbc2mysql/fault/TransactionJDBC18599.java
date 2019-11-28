@@ -29,55 +29,63 @@ import com.sequoiadb.transaction.jdbc2mysql.common.TransferJDBCTh;
 public class TransactionJDBC18599 extends TransJDBCBase {
     private String clName = "cl18599";
     private GroupMgr groupMgr;
-    private List<String> groupNames;
+    private List< String > groupNames;
 
     @Override
     protected void beforeSetUp() throws ReliabilityException {
-        initCL(clName, 10000);
+        initCL( clName, 10000 );
         groupMgr = GroupMgr.getInstance();
-        groupNames = CommLib.getDataGroupNames(sdb);
+        groupNames = CommLib.getDataGroupNames( sdb );
     }
 
     @Override
     protected void afterSetUp() throws ReliabilityException {
         // 如果磁盘满的主机不是同时拥有主备节点，就重启其中一个节点
-        String hostName = groupMgr.getGroupByName(groupNames.get(0)).getMaster().hostName();
-        for (int i = 1; i < groupNames.size(); i++) {
-            GroupWrapper groupWrapper = groupMgr.getGroupByName(groupNames.get(i));
+        String hostName = groupMgr.getGroupByName( groupNames.get( 0 ) )
+                .getMaster().hostName();
+        for ( int i = 1; i < groupNames.size(); i++ ) {
+            GroupWrapper groupWrapper = groupMgr
+                    .getGroupByName( groupNames.get( i ) );
             String host = groupWrapper.getMaster().hostName();
-            if (!hostName.equals(host)) {
+            if ( !hostName.equals( host ) ) {
                 break;
             }
-            if (i == groupNames.size() - 1) {
+            if ( i == groupNames.size() - 1 ) {
                 NodeWrapper nodeWrapper = groupWrapper.getMaster();
-                FaultMakeTask task = NodeRestart.getFaultMakeTask(nodeWrapper, 0, 0);
-                TaskMgr taskMgr = new TaskMgr(task);
+                FaultMakeTask task = NodeRestart.getFaultMakeTask( nodeWrapper,
+                        0, 0 );
+                TaskMgr taskMgr = new TaskMgr( task );
                 taskMgr.execute();
-                Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
-                Assert.assertTrue(groupMgr.checkBusinessWithLSN(120), "GROUP ERROR");
+                Assert.assertTrue( taskMgr.isAllSuccess(),
+                        taskMgr.getErrorMsg() );
+                Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ),
+                        "GROUP ERROR" );
             }
         }
     }
 
     @Test
-    public void test() throws ReliabilityException, InterruptedException, SQLException {
+    public void test()
+            throws ReliabilityException, InterruptedException, SQLException {
         // 构造磁盘主节点/备节点磁盘满
         TaskMgr taskMgr = new TaskMgr();
-        GroupWrapper group = groupMgr.getGroupByName(groupNames.get(0));
+        GroupWrapper group = groupMgr.getGroupByName( groupNames.get( 0 ) );
         NodeWrapper node = group.getMaster();
-        FaultMakeTask task = DiskFull.getFaultMakeTask(node.hostName(), SdbTestBase.reservedDir, 60, 10);
-        taskMgr.addTask(task);
-        TransUtil.setTimeTask(taskMgr, task);
+        FaultMakeTask task = DiskFull.getFaultMakeTask( node.hostName(),
+                SdbTestBase.reservedDir, 60, 10 );
+        taskMgr.addTask( task );
+        TransUtil.setTimeTask( taskMgr, task );
 
-        for (int i = 0; i < 200; i++) {
-            taskMgr.addTask(new TransferJDBCTh(clName));
+        for ( int i = 0; i < 200; i++ ) {
+            taskMgr.addTask( new TransferJDBCTh( clName ) );
         }
         taskMgr.execute();
 
-        Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
-        Assert.assertTrue(groupMgr.checkBusinessWithLSN(300), "GROUP ERROR");
+        Assert.assertTrue( taskMgr.isAllSuccess(), taskMgr.getErrorMsg() );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 300 ),
+                "GROUP ERROR" );
 
         // 待磁盘故障恢复正常后，查询所有账户的金额总和
-        TransferJDBCTh.checkTransResult(clName, getInsertNum() * 10000);
+        TransferJDBCTh.checkTransResult( clName, getInsertNum() * 10000 );
     }
 }

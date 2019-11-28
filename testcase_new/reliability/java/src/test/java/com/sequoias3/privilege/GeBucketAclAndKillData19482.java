@@ -38,23 +38,23 @@ public class GeBucketAclAndKillData19482 extends S3TestBase {
     private AmazonS3 adminS3 = null;
     private String ownerId;
     private String bucketNameBase = "bucket" + tcId + "a";
-    private List<String> bucketNames = new ArrayList<>();
+    private List< String > bucketNames = new ArrayList<>();
     private Grant grant;
-    private List<String> setBucketAclFailList = new CopyOnWriteArrayList<String>();
+    private List< String > setBucketAclFailList = new CopyOnWriteArrayList< String >();
 
     @BeforeClass
     private void setUp() throws IOException {
         adminS3 = CommLibS3.buildS3Client();
         ownerId = adminS3.getS3AccountOwner().getId();
-        grant = new Grant(new CanonicalGrantee(ownerId), Permission.Read);
-        for (int i = 0; i < threadNum; i++) {
+        grant = new Grant( new CanonicalGrantee( ownerId ), Permission.Read );
+        for ( int i = 0; i < threadNum; i++ ) {
             String bucketName = bucketNameBase + i;
-            CommLibS3.clearBucket(adminS3, bucketName);
-            adminS3.createBucket(bucketName);
-            bucketNames.add(bucketName);
+            CommLibS3.clearBucket( adminS3, bucketName );
+            adminS3.createBucket( bucketName );
+            bucketNames.add( bucketName );
 
-            PrivilegeUtils.setBucketAclByBody(adminS3, bucketName, grant);
-            setBucketAclFailList.add(bucketName);
+            PrivilegeUtils.setBucketAclByBody( adminS3, bucketName, grant );
+            setBucketAclFailList.add( bucketName );
         }
     }
 
@@ -62,30 +62,32 @@ public class GeBucketAclAndKillData19482 extends S3TestBase {
     public void test() throws Exception {
         TaskMgr mgr = new TaskMgr();
         // get bucket acl
-        for (String bucketName : bucketNames) {
-            mgr.addTask(new ThreadGetBucketAcl(bucketName));
+        for ( String bucketName : bucketNames ) {
+            mgr.addTask( new ThreadGetBucketAcl( bucketName ) );
         }
 
         // kill data node
         GroupMgr groupMgr = GroupMgr.getInstance();
-        List<GroupWrapper> dataGroups = groupMgr.getAllDataGroup();
-        for (int i = 0; i < dataGroups.size(); i++) {
-            String groupName = dataGroups.get(i).getGroupName();
-            GroupWrapper group = groupMgr.getGroupByName(groupName);
+        List< GroupWrapper > dataGroups = groupMgr.getAllDataGroup();
+        for ( int i = 0; i < dataGroups.size(); i++ ) {
+            String groupName = dataGroups.get( i ).getGroupName();
+            GroupWrapper group = groupMgr.getGroupByName( groupName );
             NodeWrapper node = group.getMaster();
-            FaultMakeTask faultTask = KillNode.getFaultMakeTask(node, 0);
-            mgr.addTask(faultTask);
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask( node, 0 );
+            mgr.addTask( faultTask );
         }
 
         mgr.execute();
-        Assert.assertTrue(mgr.isAllSuccess(), mgr.getErrorMsg());
+        Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
 
         // wait business recover
-        Assert.assertEquals(groupMgr.checkBusinessWithLSN(600), true, "checkBusinessWithLSN() occurs timeout");
+        Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true,
+                "checkBusinessWithLSN() occurs timeout" );
 
         // get all buckets again
-        for (String bucketName : bucketNames) {
-            PrivilegeUtils.checkSetBucketAclResult(adminS3, bucketName, grant);
+        for ( String bucketName : bucketNames ) {
+            PrivilegeUtils.checkSetBucketAclResult( adminS3, bucketName,
+                    grant );
         }
 
         runSuccess = true;
@@ -94,13 +96,13 @@ public class GeBucketAclAndKillData19482 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                for (String bucketName : bucketNames) {
-                    CommLibS3.clearBucket(adminS3, bucketName);
+            if ( runSuccess ) {
+                for ( String bucketName : bucketNames ) {
+                    CommLibS3.clearBucket( adminS3, bucketName );
                 }
             }
         } finally {
-            if (adminS3 != null)
+            if ( adminS3 != null )
                 adminS3.shutdown();
         }
     }
@@ -108,7 +110,7 @@ public class GeBucketAclAndKillData19482 extends S3TestBase {
     private class ThreadGetBucketAcl extends OperateTask {
         private String bucketName;
 
-        private ThreadGetBucketAcl(String bucketName) {
+        private ThreadGetBucketAcl( String bucketName ) {
             this.bucketName = bucketName;
         }
 
@@ -117,13 +119,13 @@ public class GeBucketAclAndKillData19482 extends S3TestBase {
             AmazonS3 s3 = null;
             try {
                 s3 = CommLibS3.buildS3Client();
-                s3.getBucketAcl(bucketName);
-            } catch (AmazonServiceException e) {
-                if (e.getStatusCode() != 500) {
+                s3.getBucketAcl( bucketName );
+            } catch ( AmazonServiceException e ) {
+                if ( e.getStatusCode() != 500 ) {
                     throw e;
                 }
             } finally {
-                if (s3 != null) {
+                if ( s3 != null ) {
                     s3.shutdown();
                 }
             }

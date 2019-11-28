@@ -11,8 +11,8 @@ public class DetachCLTask extends OperateTask {
     private int detachedSclCnt = 0;
     private String safeUrl = null;
     private String mclName = null;
-    
-    public DetachCLTask(String mclName, String safeUrl) {
+
+    public DetachCLTask( String mclName, String safeUrl ) {
         this.mclName = mclName;
         this.safeUrl = safeUrl;
     }
@@ -21,23 +21,24 @@ public class DetachCLTask extends OperateTask {
     public void exec() throws Exception {
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(safeUrl, "", "");
-            CollectionSpace cs = db.getCollectionSpace(SdbTestBase.csName);
-            DBCollection mcl = cs.getCollection(mclName);
-            for (int i = 0; i < Utils.SCLNUM; i++) {
-                String sclFullName = SdbTestBase.csName + "." + mclName + "_" + i;
-                mcl.detachCollection(sclFullName);
+            db = new Sequoiadb( safeUrl, "", "" );
+            CollectionSpace cs = db.getCollectionSpace( SdbTestBase.csName );
+            DBCollection mcl = cs.getCollection( mclName );
+            for ( int i = 0; i < Utils.SCLNUM; i++ ) {
+                String sclFullName = SdbTestBase.csName + "." + mclName + "_"
+                        + i;
+                mcl.detachCollection( sclFullName );
                 detachedSclCnt++;
             }
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
     }
-    
+
     public int getDetachedSclCnt() {
         return detachedSclCnt;
     }
-}  
+}

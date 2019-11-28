@@ -19,26 +19,26 @@ import static org.testng.Assert.assertTrue;
 public class Analyze14221 extends SdbTestBase {
 
     private SdbWarpper db;
-    private List<SdbClWarpper> dbcls=new ArrayList<>(10);
+    private List< SdbClWarpper > dbcls = new ArrayList<>( 10 );
 
     @BeforeClass
     public void setup() {
-        db = new SdbWarpper(coordUrl);
+        db = new SdbWarpper( coordUrl );
         String pre = this.getClass().getSimpleName();
         BSONObject options = new BasicBSONObject();
-        options.put("PageSize", 4096);
-        for (int i = 0; i < 5; i++) {
-            SdbCsProperties cs = new SdbCsProperties(pre + "cs" + i, options);
-            db.createCS(cs);
-            SdbClProperties cl = SdbClProperties.newBuilder(cs, "cl").build();
-            dbcls.add(db.createCL(cl));
+        options.put( "PageSize", 4096 );
+        for ( int i = 0; i < 5; i++ ) {
+            SdbCsProperties cs = new SdbCsProperties( pre + "cs" + i, options );
+            db.createCS( cs );
+            SdbClProperties cl = SdbClProperties.newBuilder( cs, "cl" ).build();
+            dbcls.add( db.createCL( cl ) );
         }
     }
 
     @AfterClass
     public void teardown() {
-        for (SdbClWarpper dbcl : dbcls) {
-            db.dropCollectionSpace(dbcl.getCSName());
+        for ( SdbClWarpper dbcl : dbcls ) {
+            db.dropCollectionSpace( dbcl.getCSName() );
         }
         db.close();
     }
@@ -52,36 +52,34 @@ public class Analyze14221 extends SdbTestBase {
      */
     @Test
     public void test() {
-        //some records
-        List<BSONObject> records = new ArrayList<BSONObject>();
-        for (int i = 0; i < 25; i++) {
-            records.add(new BasicBSONObject("a", 0).append("b", AnalyzeUtil.getRandomString(4096)));
+        // some records
+        List< BSONObject > records = new ArrayList< BSONObject >();
+        for ( int i = 0; i < 25; i++ ) {
+            records.add( new BasicBSONObject( "a", 0 ).append( "b",
+                    AnalyzeUtil.getRandomString( 4096 ) ) );
         }
-        //create cs cl
-        for (SdbClWarpper cl : dbcls) {
-            cl.insert(records);
-            cl.createIndex("aIndex", "{a:1}", false, false);
+        // create cs cl
+        for ( SdbClWarpper cl : dbcls ) {
+            cl.insert( records );
+            cl.createIndex( "aIndex", "{a:1}", false, false );
         }
 
-        //query should use idxscan
-        for (SdbClWarpper dbcl : dbcls) {
-            Explain e = new Explain.Builder(dbcl)
-                    .matcher(new BasicBSONObject("a", 0))
-                    .options(new BasicBSONObject("Run", true))
-                    .build();
-            assertTrue(e.isQueryUseIxscan(), e.getExplainResult());
+        // query should use idxscan
+        for ( SdbClWarpper dbcl : dbcls ) {
+            Explain e = new Explain.Builder( dbcl )
+                    .matcher( new BasicBSONObject( "a", 0 ) )
+                    .options( new BasicBSONObject( "Run", true ) ).build();
+            assertTrue( e.isQueryUseIxscan(), e.getExplainResult() );
         }
 
         db.analyze();
 
-        //query should use tbscan
-        for (SdbClWarpper dbcl : dbcls) {
-            Explain e = new Explain.Builder(dbcl)
-                    .matcher(new BasicBSONObject("a", 0))
-                    .options(new BasicBSONObject("Run", true))
-                    .build();
-            assertTrue(e.isQueryUseTbscan(), e.getExplainResult());
+        // query should use tbscan
+        for ( SdbClWarpper dbcl : dbcls ) {
+            Explain e = new Explain.Builder( dbcl )
+                    .matcher( new BasicBSONObject( "a", 0 ) )
+                    .options( new BasicBSONObject( "Run", true ) ).build();
+            assertTrue( e.isQueryUseTbscan(), e.getExplainResult() );
         }
     }
 }
-

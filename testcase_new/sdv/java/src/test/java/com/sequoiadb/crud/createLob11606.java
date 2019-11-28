@@ -24,118 +24,112 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  * @Version 1.00
  */
 
-/* 
- * 1、在同一cs下创建多个cl；
- * 2、多个cl中同时创建oid哈希值相同的lob。
+/*
+ * 1、在同一cs下创建多个cl； 2、多个cl中同时创建oid哈希值相同的lob。
  */
 
-public class createLob11606 extends SdbTestBase{
+public class createLob11606 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clNameBase = "cl";
-    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
-    
-    
-    private String[] sameHashOids = {
-        "590a20e584aeebef8aff716d",
-        "590a20e584aeebef8aff724c",
-        "590a20e584aeebef8aff732b",
-        "590a20e584aeebef8aff740a",
-        "590a20e584aeebef8aff75e9",
-        "590a20e584aeebef8aff76c8",
-        "590a20e584aeebef8aff77a7",
-        "590a20e584aeebef8aff7886"
-    };
-    
+    private SimpleDateFormat sdf = new SimpleDateFormat(
+            "yyyy-MM-dd HH:mm:ss.S" );
+
+    private String[] sameHashOids = { "590a20e584aeebef8aff716d",
+            "590a20e584aeebef8aff724c", "590a20e584aeebef8aff732b",
+            "590a20e584aeebef8aff740a", "590a20e584aeebef8aff75e9",
+            "590a20e584aeebef8aff76c8", "590a20e584aeebef8aff77a7",
+            "590a20e584aeebef8aff7886" };
+
     @BeforeClass
     public void setup() {
         try {
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            CollectionSpace cs = sdb.getCollectionSpace(SdbTestBase.csName);
-            for (int i = 0; i < sameHashOids.length; ++i) {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            CollectionSpace cs = sdb.getCollectionSpace( SdbTestBase.csName );
+            for ( int i = 0; i < sameHashOids.length; ++i ) {
                 String clName = clNameBase + i;
-                cs.createCollection(clName);
+                cs.createCollection( clName );
             }
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
             e.printStackTrace();
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.disconnect();
             }
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         }
     }
-    
+
     @Test
     public void test() {
         try {
-            OperateLob[] oprLobThds = new OperateLob[sameHashOids.length];
-            for (int i = 0; i < sameHashOids.length; ++i) {
+            OperateLob[] oprLobThds = new OperateLob[ sameHashOids.length ];
+            for ( int i = 0; i < sameHashOids.length; ++i ) {
                 String clName = clNameBase + i;
-                String oidStr = sameHashOids[i];
-                oprLobThds[i] = new OperateLob(clName, oidStr);
+                String oidStr = sameHashOids[ i ];
+                oprLobThds[ i ] = new OperateLob( clName, oidStr );
             }
-            
-            for (int i = 0; i < oprLobThds.length; ++i) {
-                oprLobThds[i].start();
+
+            for ( int i = 0; i < oprLobThds.length; ++i ) {
+                oprLobThds[ i ].start();
             }
-            
-            for (int i = 0; i < oprLobThds.length; ++i) {
-                if (!oprLobThds[i].isSuccess()) {
-                    Assert.fail(oprLobThds[i].getErrorMsg());
+
+            for ( int i = 0; i < oprLobThds.length; ++i ) {
+                if ( !oprLobThds[ i ].isSuccess() ) {
+                    Assert.fail( oprLobThds[ i ].getErrorMsg() );
                 }
             }
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         }
-        
+
     }
-    
+
     @AfterClass
     public void teardown() {
         try {
-            CollectionSpace cs = sdb.getCollectionSpace(SdbTestBase.csName);
-            for (int i = 0; i < sameHashOids.length; ++i) {
+            CollectionSpace cs = sdb.getCollectionSpace( SdbTestBase.csName );
+            for ( int i = 0; i < sameHashOids.length; ++i ) {
                 String clName = clNameBase + i;
-                cs.dropCollection(clName);
+                cs.dropCollection( clName );
             }
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.disconnect();
             }
         }
     }
 
-    
     /**
      * put and remove a lob repeatedly
      */
     private class OperateLob extends SdbThreadBase {
         private String clName = null;
         private ObjectId oid = null;
-        
-        public OperateLob(String clName, String oidStr) {
+
+        public OperateLob( String clName, String oidStr ) {
             this.clName = clName;
-            oid = new ObjectId(oidStr);
+            oid = new ObjectId( oidStr );
         }
-        
+
         @Override
         public void exec() {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(coordUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                DBLob lob = cl.createLob(oid);
-                lob.write("a test string".getBytes());
+                db = new Sequoiadb( coordUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                DBLob lob = cl.createLob( oid );
+                lob.write( "a test string".getBytes() );
                 lob.close();
-                removeLob(cl);
-            } catch (BaseException e) {
+                removeLob( cl );
+            } catch ( BaseException e ) {
                 e.printStackTrace();
                 throw e;
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.disconnect();
                 }
             }
@@ -143,15 +137,16 @@ public class createLob11606 extends SdbTestBase{
 
         /**
          * try removing lob until success
+         * 
          * @param cl
          */
-        private void removeLob(DBCollection cl) {
-            while (true) {
+        private void removeLob( DBCollection cl ) {
+            while ( true ) {
                 try {
-                    cl.removeLob(oid);
+                    cl.removeLob( oid );
                     break;
-                } catch (BaseException e) {
-                    if (-4 != e.getErrorCode()) {
+                } catch ( BaseException e ) {
+                    if ( -4 != e.getErrorCode() ) {
                         throw e;
                     }
                 }

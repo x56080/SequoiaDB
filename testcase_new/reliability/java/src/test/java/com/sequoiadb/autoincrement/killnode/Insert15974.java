@@ -45,23 +45,25 @@ public class Insert15974 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        try (Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
+        try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" )) {
             groupMgr = GroupMgr.getInstance();
-            if (!groupMgr.checkBusiness()) {
-                throw new SkipException("checkBusiness failed");
+            if ( !groupMgr.checkBusiness() ) {
+                throw new SkipException( "checkBusiness failed" );
             }
-            DBCollection scl = sdb.getCollectionSpace(csName).createCollection(clName);
-            createAutoIncrement(scl, autoIncrementNum);
-        } catch (ReliabilityException e) {
-            Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
-                    + Utils.getKeyStack(e, this));
+            DBCollection scl = sdb.getCollectionSpace( csName )
+                    .createCollection( clName );
+            createAutoIncrement( scl, autoIncrementNum );
+        } catch ( ReliabilityException e ) {
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getKeyStack( e, this ) );
         }
     }
 
     @AfterClass
     public void tearDown() {
-        Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        sdb.getCollectionSpace(csName).dropCollection(clName);
+        Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb.getCollectionSpace( csName ).dropCollection( clName );
         sdb.close();
     }
 
@@ -69,27 +71,29 @@ public class Insert15974 extends SdbTestBase {
     public void test() {
         Sequoiadb db = null;
         try {
-            FaultMakeTask faultTask = KillNode.getFaultMakeTask(SdbTestBase.coordUrl.split(":")[0],
-                    SdbTestBase.coordUrl.split(":")[1], 1);
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask(
+                    SdbTestBase.coordUrl.split( ":" )[ 0 ],
+                    SdbTestBase.coordUrl.split( ":" )[ 1 ], 1 );
             TaskMgr mgr = new TaskMgr();
             InsertDataTask insertTask = new InsertDataTask();
-            mgr.addTask(insertTask);
-            mgr.addTask(faultTask);
+            mgr.addTask( insertTask );
+            mgr.addTask( faultTask );
             mgr.execute();
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
-            if (!groupMgr.checkBusinessWithLSN(600)) {
-                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
+            if ( !groupMgr.checkBusinessWithLSN( 600 ) ) {
+                Assert.fail( "checkBusinessWithLSN() occurs timeout" );
             }
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-            insertData(cl, 100);
-            checkResult(db, expectInsertNum);
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            DBCollection cl = db.getCollectionSpace( csName )
+                    .getCollection( clName );
+            insertData( cl, 100 );
+            checkResult( db, expectInsertNum );
 
-        } catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -101,79 +105,93 @@ public class Insert15974 extends SdbTestBase {
         public void exec() throws Exception {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(coordUrl, "", "");
-                CollectionSpace cs = db.getCollectionSpace(csName);
-                DBCollection cl = cs.getCollection(clName);
-                for (int i = 0; i < 10000; i++) {
-                    BSONObject obj = (BSONObject) JSON.parse("{a:" + i + "}");
-                    cl.insert(obj);
+                db = new Sequoiadb( coordUrl, "", "" );
+                CollectionSpace cs = db.getCollectionSpace( csName );
+                DBCollection cl = cs.getCollection( clName );
+                for ( int i = 0; i < 10000; i++ ) {
+                    BSONObject obj = ( BSONObject ) JSON
+                            .parse( "{a:" + i + "}" );
+                    cl.insert( obj );
                     expectInsertNum++;
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
                 e.printStackTrace();
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.close();
                 }
             }
         }
     }
 
-    public void createAutoIncrement(DBCollection cl, int autoIncrementNum) {
-        for (int i = 0; i < autoIncrementNum; i++) {
-            BSONObject obj = (BSONObject) JSON
-                    .parse("{Field:'id" + i + "',CacheSize:" + cacheSize + ",AcquireSize:" + acquireSize + "}");
-            cl.createAutoIncrement(obj);
+    public void createAutoIncrement( DBCollection cl, int autoIncrementNum ) {
+        for ( int i = 0; i < autoIncrementNum; i++ ) {
+            BSONObject obj = ( BSONObject ) JSON
+                    .parse( "{Field:'id" + i + "',CacheSize:" + cacheSize
+                            + ",AcquireSize:" + acquireSize + "}" );
+            cl.createAutoIncrement( obj );
         }
     }
 
-    public void insertData(DBCollection cl, int insertNum) {
-        ArrayList<BSONObject> arrList = new ArrayList<BSONObject>();
-        for (int i = 0; i < insertNum; i++) {
-            BSONObject obj = (BSONObject) JSON.parse("{mustCheckAutoIncrement:" + i + "}");
-            arrList.add(obj);
+    public void insertData( DBCollection cl, int insertNum ) {
+        ArrayList< BSONObject > arrList = new ArrayList< BSONObject >();
+        for ( int i = 0; i < insertNum; i++ ) {
+            BSONObject obj = ( BSONObject ) JSON
+                    .parse( "{mustCheckAutoIncrement:" + i + "}" );
+            arrList.add( obj );
         }
-        cl.insert(arrList);
+        cl.insert( arrList );
         expectInsertNum += insertNum;
     }
 
-    public void checkResult(Sequoiadb db, int expectNum) {
-        DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
+    public void checkResult( Sequoiadb db, int expectNum ) {
+        DBCollection cl = db.getCollectionSpace( csName )
+                .getCollection( clName );
 
         // 校验记录数
-        int count = (int) cl.getCount();
-        if (count != expectNum && count != expectNum + 1) {
-            Assert.fail("expect:" + expectNum + "or " + expectNum + 1 + ",but actual:" + count);
+        int count = ( int ) cl.getCount();
+        if ( count != expectNum && count != expectNum + 1 ) {
+            Assert.fail( "expect:" + expectNum + "or " + expectNum + 1
+                    + ",but actual:" + count );
         }
 
         // 获取自增字段
-        DBCursor cursorS = db.getSnapshot(8, (BSONObject) JSON.parse("{Name:'" + csName + "." + clName + "'}"), null,
-                null);
-        ArrayList<String> arrList = new ArrayList<String>();
-        while (cursorS.hasNext()) {
+        DBCursor cursorS = db.getSnapshot( 8,
+                ( BSONObject ) JSON
+                        .parse( "{Name:'" + csName + "." + clName + "'}" ),
+                null, null );
+        ArrayList< String > arrList = new ArrayList< String >();
+        while ( cursorS.hasNext() ) {
             BSONObject record = cursorS.getNext();
-            BasicBSONList autoIncrements = (BasicBSONList) record.get("AutoIncrement");
-            for (int i = 0; i < autoIncrements.size(); i++) {
-                BSONObject autoIncrement = (BSONObject) autoIncrements.get(i);
-                arrList.add((String) autoIncrement.get("Field"));
+            BasicBSONList autoIncrements = ( BasicBSONList ) record
+                    .get( "AutoIncrement" );
+            for ( int i = 0; i < autoIncrements.size(); i++ ) {
+                BSONObject autoIncrement = ( BSONObject ) autoIncrements
+                        .get( i );
+                arrList.add( ( String ) autoIncrement.get( "Field" ) );
             }
         }
 
         // 在自增字段上创建唯一索引
-        for (int i = 0; i < arrList.size(); i++) {
-            cl.createIndex("id" + i, "{" + arrList.get(i) + ":1}", true, false);
+        for ( int i = 0; i < arrList.size(); i++ ) {
+            cl.createIndex( "id" + i, "{" + arrList.get( i ) + ":1}", true,
+                    false );
         }
 
         // 比较记录自增字段值的正确性
-        DBCursor cursorR = cl.query("{'mustCheckAutoIncrement':{$exists:1}}", null, "{'id0':1}", null);
+        DBCursor cursorR = cl.query( "{'mustCheckAutoIncrement':{$exists:1}}",
+                null, "{'id0':1}", null );
         int increment = 1;
-        while (cursorR.hasNext()) {
+        while ( cursorR.hasNext() ) {
             BSONObject record = cursorR.getNext();
-            for (int i = 0; i < arrList.size(); i++) {
-                long autoIncrementValue = (long) record.get(arrList.get(i));
+            for ( int i = 0; i < arrList.size(); i++ ) {
+                long autoIncrementValue = ( long ) record
+                        .get( arrList.get( i ) );
                 // 考虑到记录还未插入，coord已经重启的情况，因此自增字段的值可能为从1开始递增
-                if (autoIncrementValue != (acquireSize + increment) && autoIncrementValue != increment) {
-                    Assert.fail("expect:" + acquireSize + increment + "or 1,but actual:" + autoIncrementValue);
+                if ( autoIncrementValue != ( acquireSize + increment )
+                        && autoIncrementValue != increment ) {
+                    Assert.fail( "expect:" + acquireSize + increment
+                            + "or 1,but actual:" + autoIncrementValue );
                 }
             }
             increment++;

@@ -38,48 +38,49 @@ public class InsertAndDropCS11426 extends SdbTestBase {
 
     @BeforeClass
     public void setup() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (sdb.isCollectionSpaceExist(CSNAME)) {
-            sdb.dropCollectionSpace(CSNAME);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( sdb.isCollectionSpaceExist( CSNAME ) ) {
+            sdb.dropCollectionSpace( CSNAME );
         }
-        cs = sdb.createCollectionSpace(CSNAME);
-        dbcl = cs.createCollection(CLNAME);
+        cs = sdb.createCollectionSpace( CSNAME );
+        dbcl = cs.createCollection( CLNAME );
     }
 
     @Test
     public void test() throws InterruptedException {
         InsertTask insertTask = new InsertTask();
-        insertTask.start(insertThNum);
+        insertTask.start( insertThNum );
 
         // sleep random value to drop cs at different stages of insert
-        int time = new Random().nextInt(1000);
-        Thread.sleep(time);
+        int time = new Random().nextInt( 1000 );
+        Thread.sleep( time );
 
         // drop cs fail is -147, repeat drop cs again
         int eachSleepTime = 100;
         int errorNo = 0;
         boolean breakFlag = false;
         do {
-            if (thCount.get() == 20) {
+            if ( thCount.get() == 20 ) {
                 breakFlag = true;
             }
-            Thread.sleep(eachSleepTime);
-            errorNo = dropCS(sdb);
-            if (breakFlag) {
+            Thread.sleep( eachSleepTime );
+            errorNo = dropCS( sdb );
+            if ( breakFlag ) {
                 break;
             }
-        } while (errorNo == -147 || errorNo == -190);
-        Assert.assertTrue(insertTask.isSuccess(), insertTask.getErrorMsg());
+        } while ( errorNo == -147 || errorNo == -190 );
+        Assert.assertTrue( insertTask.isSuccess(), insertTask.getErrorMsg() );
 
         // check the result
-        Assert.assertFalse(sdb.isCollectionSpaceExist(CSNAME), "cs exist!! drop cs error e:" + errorNo);
+        Assert.assertFalse( sdb.isCollectionSpaceExist( CSNAME ),
+                "cs exist!! drop cs error e:" + errorNo );
         // insert fail after drop cs
         try {
-            dbcl.insert("{a:1}");
-            Assert.fail("insert should be fail!");
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -34 && e.getErrorCode() != -23) {
-                Assert.fail("insert should be fail! e:" + e.getErrorCode());
+            dbcl.insert( "{a:1}" );
+            Assert.fail( "insert should be fail!" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -34 && e.getErrorCode() != -23 ) {
+                Assert.fail( "insert should be fail! e:" + e.getErrorCode() );
             }
         }
 
@@ -88,22 +89,22 @@ public class InsertAndDropCS11426 extends SdbTestBase {
     @AfterClass
     public void teardown() {
         try {
-            if (sdb.isCollectionSpaceExist(CSNAME)) {
-                sdb.dropCollectionSpace(CSNAME);
+            if ( sdb.isCollectionSpaceExist( CSNAME ) ) {
+                sdb.dropCollectionSpace( CSNAME );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
 
     }
 
-    private int dropCS(Sequoiadb sdb) {
+    private int dropCS( Sequoiadb sdb ) {
         int errorNo = 0;
         try {
-            sdb.dropCollectionSpace(CSNAME);
-        } catch (BaseException e) {
+            sdb.dropCollectionSpace( CSNAME );
+        } catch ( BaseException e ) {
             errorNo = e.getErrorCode();
         }
         return errorNo;
@@ -114,29 +115,31 @@ public class InsertAndDropCS11426 extends SdbTestBase {
         public void exec() throws Exception {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(CSNAME).getCollection(CLNAME);
-                for (int i = 0; i < 10000; i++) {
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( CSNAME )
+                        .getCollection( CLNAME );
+                for ( int i = 0; i < 10000; i++ ) {
                     BSONObject obj = new BasicBSONObject();
-                    obj.put("a", i);
-                    obj.put("str", "test_" + String.valueOf(i));
+                    obj.put( "a", i );
+                    obj.put( "str", "test_" + String.valueOf( i ) );
                     // insert the decimal type data
                     String str = "32345.067891234567890123456789" + i;
-                    BSONDecimal decimal = new BSONDecimal(str);
-                    obj.put("decimal", decimal);
+                    BSONDecimal decimal = new BSONDecimal( str );
+                    obj.put( "decimal", decimal );
                     // the data type
                     Date now = new Date();
-                    obj.put("date", now);
-                    cl.insert(obj);
+                    obj.put( "date", now );
+                    cl.insert( obj );
 
                 }
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -34 && e.getErrorCode() != -23 && e.getErrorCode() != -248
-                        && e.getErrorCode() != -190 && e.getErrorCode() != -147) {
-                    Assert.fail("insert fail!! e=" + e.getErrorCode());
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -34 && e.getErrorCode() != -23
+                        && e.getErrorCode() != -248 && e.getErrorCode() != -190
+                        && e.getErrorCode() != -147 ) {
+                    Assert.fail( "insert fail!! e=" + e.getErrorCode() );
                 }
             } finally {
-                if (db != null)
+                if ( db != null )
                     db.close();
                 thCount.incrementAndGet();
             }

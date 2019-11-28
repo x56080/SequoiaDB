@@ -44,74 +44,74 @@ public class KillNodeSubcl2441 extends SdbTestBase {
     @BeforeClass()
     public void setUp() {
         try {
-            System.out.println(
-                    "the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                            + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
             groupMgr = GroupMgr.getInstance();
 
             // CheckBusiness(true),检测当前集群环境，若存在异常返回false，
-            if (!groupMgr.checkBusiness(20)) {
-                throw new SkipException("checkBusiness return false");
+            if ( !groupMgr.checkBusiness( 20 ) ) {
+                throw new SkipException( "checkBusiness return false" );
             }
-            subClGroupName = groupMgr.getAllDataGroupName().get(0);
+            subClGroupName = groupMgr.getAllDataGroupName().get( 0 );
 
-            commSdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            commCS = commSdb.getCollectionSpace(csName);
-            mainCL = commCS.createCollection(mainClName, (BSONObject) JSON
-                    .parse("{ShardingKey:{sk1:1,sk2:1},ShardingType:'range',IsMainCL:true}"));
-            DBCollection cl = commCS.createCollection(mainClName + "_subcl",
-                    (BSONObject) JSON.parse("{ShardingType:'hash',ShardingKey:{sk1:1,sk2:1},Group:'"
-                            + subClGroupName + "',AutoSplit:false}"));
-            mainCL.attachCollection(cl.getFullName(), (BSONObject) JSON
-                    .parse("{LowBound:{sk1:0,sk2:0},UpBound:{sk1:5000,sk2:5000}}"));
+            commSdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            commCS = commSdb.getCollectionSpace( csName );
+            mainCL = commCS.createCollection( mainClName, ( BSONObject ) JSON
+                    .parse( "{ShardingKey:{sk1:1,sk2:1},ShardingType:'range',IsMainCL:true}" ) );
+            DBCollection cl = commCS.createCollection( mainClName + "_subcl",
+                    ( BSONObject ) JSON.parse(
+                            "{ShardingType:'hash',ShardingKey:{sk1:1,sk2:1},Group:'"
+                                    + subClGroupName + "',AutoSplit:false}" ) );
+            mainCL.attachCollection( cl.getFullName(), ( BSONObject ) JSON
+                    .parse( "{LowBound:{sk1:0,sk2:0},UpBound:{sk1:5000,sk2:5000}}" ) );
             insertData();
-        }
-        catch (ReliabilityException e) {
-            if (commSdb != null) {
+        } catch ( ReliabilityException e ) {
+            if ( commSdb != null ) {
                 commSdb.close();
             }
-            Assert.fail(this.getClass().getName() + " setUp error, error description:"
-                    + e.getMessage() + "\r\n" + Utils.getStackString(e));
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getStackString( e ) );
         }
     }
 
     private void insertData() {
         // 再次向主表插入数据
-        for (int i = 0; i < 5000; i++) {
-            mainCL.insert("{sk1:" + i + ",sk2:" + i + ",updateFlag:1}");
+        for ( int i = 0; i < 5000; i++ ) {
+            mainCL.insert( "{sk1:" + i + ",sk2:" + i + ",updateFlag:1}" );
         }
     }
 
     @Test
     public void test() {
         try {
-            GroupWrapper subCLGroup = groupMgr.getGroupByName(subClGroupName);
+            GroupWrapper subCLGroup = groupMgr.getGroupByName( subClGroupName );
             NodeWrapper subCLGroupSalve = subCLGroup.getSlave();
-            System.out.println(
-                    "Kill node:" + subCLGroupSalve.hostName() + ":" + subCLGroupSalve.svcName());
+            System.out.println( "Kill node:" + subCLGroupSalve.hostName() + ":"
+                    + subCLGroupSalve.svcName() );
 
             // 建立并行任务
-            FaultMakeTask faultTask = KillNode.getFaultMakeTask(subCLGroupSalve.hostName(),
-                    subCLGroupSalve.svcName(), 0);
-            TaskMgr mgr = new TaskMgr(faultTask);
-            mgr.addTask(new Update());
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask(
+                    subCLGroupSalve.hostName(), subCLGroupSalve.svcName(), 0 );
+            TaskMgr mgr = new TaskMgr( faultTask );
+            mgr.addTask( new Update() );
             mgr.execute();
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
-            Assert.assertEquals(groupMgr.checkBusiness(120), true);
-            Assert.assertEquals(subCLGroup.checkInspect(60), true);
+            Assert.assertEquals( groupMgr.checkBusiness( 120 ), true );
+            Assert.assertEquals( subCLGroup.checkInspect( 60 ), true );
 
             // 查询
-            Assert.assertEquals(mainCL.getCount("{updateFlag:2}"), 5000);
-            Assert.assertEquals(mainCL.getCount(), 5000);
+            Assert.assertEquals( mainCL.getCount( "{updateFlag:2}" ), 5000 );
+            Assert.assertEquals( mainCL.getCount(), 5000 );
 
             clearFlag = true;
-        }
-        catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
-        }
-        finally {
+            Assert.fail( e.getMessage() );
+        } finally {
             commSdb.closeAllCursors();
         }
 
@@ -120,38 +120,37 @@ public class KillNodeSubcl2441 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            if (clearFlag) {
-                CollectionSpace commCS = commSdb.getCollectionSpace(csName);
-                commCS.dropCollection(mainClName);
+            if ( clearFlag ) {
+                CollectionSpace commCS = commSdb.getCollectionSpace( csName );
+                commCS.dropCollection( mainClName );
             }
-        }
-        catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getStackString(e));
-        }
-        finally {
-            if (commSdb != null) {
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
+        } finally {
+            if ( commSdb != null ) {
                 commSdb.close();
             }
-            System.out.println(
-                    "the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                            + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
         }
     }
 
     class Update extends OperateTask {
         @Override
         public void exec() throws Exception {
-            Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             try {
-                DBCollection cl = sdb.getCollectionSpace(csName).getCollection(mainClName);
-                cl.update("{updateFlag:1}", "{$set:{updateFlag:2}}", null);
-            }
-            catch (BaseException e) {
+                DBCollection cl = sdb.getCollectionSpace( csName )
+                        .getCollection( mainClName );
+                cl.update( "{updateFlag:1}", "{$set:{updateFlag:2}}", null );
+            } catch ( BaseException e ) {
                 throw e;
             }
 
             finally {
-                if (sdb != null) {
+                if ( sdb != null ) {
                     sdb.close();
                 }
             }

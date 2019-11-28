@@ -30,42 +30,47 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @FileName:TestQuery7086
- * query (String matcher, String selector, String orderBy, String hint, int flag)
+ * @FileName:TestQuery7086 query (String matcher, String selector, String
+ *                         orderBy, String hint, int flag)
  * @author chensiqin
  * @version 1.00
  *
  */
 
-public class TestQuery7087 extends SdbTestBase{
+public class TestQuery7087 extends SdbTestBase {
     private Sequoiadb sdb;
     private CollectionSpace cs;
     private DBCollection cl;
     private String clName = "cl7087";
-    private ArrayList<BSONObject> insertRecods;
-   
+    private ArrayList< BSONObject > insertRecods;
+
     @BeforeClass
     public void setUp() {
         String coordAddr = SdbTestBase.coordUrl;
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                    ". the TestCase begin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            this.sdb = new Sequoiadb(coordAddr, "", "");
-            this.cs = this.sdb.getCollectionSpace(SdbTestBase.csName);
-            createCL(); 
-        }catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestQuery7087 setUp error, error description:" + e.getMessage());
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
+            this.sdb = new Sequoiadb( coordAddr, "", "" );
+            this.cs = this.sdb.getCollectionSpace( SdbTestBase.csName );
+            createCL();
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    "Sequoiadb driver TestQuery7087 setUp error, error description:"
+                            + e.getMessage() );
         }
     }
-    
+
     public void createCL() {
-        if (this.cs.isCollectionExist(clName)) {
-            this.cs.dropCollection(clName);
+        if ( this.cs.isCollectionExist( clName ) ) {
+            this.cs.dropCollection( clName );
         }
-        this.cl = this.cs.createCollection(clName);
-        this.cl.createIndex("ageIndex", (BSONObject) JSON.parse("{age:1}"), false, false);  
+        this.cl = this.cs.createCollection( clName );
+        this.cl.createIndex( "ageIndex", ( BSONObject ) JSON.parse( "{age:1}" ),
+                false, false );
     }
-    
+
     @Test
     public void test() {
         insertData();
@@ -73,48 +78,52 @@ public class TestQuery7087 extends SdbTestBase{
         checkQueryWithFlag128();
         checkQueryWithFlag256();
     }
-    
+
     public void insertData() {
-        try{
+        try {
             BSONObject bson;
-            this.insertRecods = new ArrayList<BSONObject>();
-            for (int i = 0; i < 25; i++) {
+            this.insertRecods = new ArrayList< BSONObject >();
+            for ( int i = 0; i < 25; i++ ) {
                 bson = new BasicBSONObject();
-                bson.put("_id", i);
-                bson.put("name", "zhangsan" + i);
-                bson.put("age", -1*i);
-                bson.put("num", i);
-                bson.put("height",i);
-                this.insertRecods.add(bson);
-            } 
+                bson.put( "_id", i );
+                bson.put( "name", "zhangsan" + i );
+                bson.put( "age", -1 * i );
+                bson.put( "num", i );
+                bson.put( "height", i );
+                this.insertRecods.add( bson );
+            }
             this.cl.bulkInsert( this.insertRecods, 0 );
-        }catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestQuery7086 insert recods error:" + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail( "Sequoiadb driver TestQuery7086 insert recods error:"
+                    + e.getMessage() );
         }
     }
-    
+
     public void checkQueryWithFlag128() {
-      String matcher, selector, orderBy, hint;
-      try {
-          matcher = "{_id:{$gt:20}}";
-          selector = "{num:{$include:0}}";
-          orderBy = "{_id:-1}";
-          hint = "{\"\":\"ageIndex\"}";
-          DBCursor cursor = this.cl.query(matcher, selector, orderBy, hint, DBQuery.FLG_QUERY_FORCE_HINT);
-          int actual = 0;
-          while (cursor.hasNext()) {
-              cursor.getNext();
-              actual++;
-          }
-          cursor.close();
-          Assert.assertEquals(actual, 4, 
-                  "TestQuery7087 flag = DBQuery.FLG_QUERY_PARALLED actual:" 
-                 +actual + "; expected:" + 4);
-      }catch (BaseException e) {
-          Assert.fail("Sequoiadb driver TestQuery7087 checkQueryWithFlag1 error:" + e.getMessage());
-      }
+        String matcher, selector, orderBy, hint;
+        try {
+            matcher = "{_id:{$gt:20}}";
+            selector = "{num:{$include:0}}";
+            orderBy = "{_id:-1}";
+            hint = "{\"\":\"ageIndex\"}";
+            DBCursor cursor = this.cl.query( matcher, selector, orderBy, hint,
+                    DBQuery.FLG_QUERY_FORCE_HINT );
+            int actual = 0;
+            while ( cursor.hasNext() ) {
+                cursor.getNext();
+                actual++;
+            }
+            cursor.close();
+            Assert.assertEquals( actual, 4,
+                    "TestQuery7087 flag = DBQuery.FLG_QUERY_PARALLED actual:"
+                            + actual + "; expected:" + 4 );
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    "Sequoiadb driver TestQuery7087 checkQueryWithFlag1 error:"
+                            + e.getMessage() );
+        }
     }
-    
+
     public void checkQueryWithFlag1() {
         String matcher, selector, orderBy, hint;
         try {
@@ -122,23 +131,26 @@ public class TestQuery7087 extends SdbTestBase{
             selector = "{num:{$include:1},age:{$include:1}}";
             orderBy = "{age:1}";
             hint = "{\"\":\"ageIndex\"}";
-            DBCursor cursor = this.cl.query(matcher, selector, orderBy, hint, DBQuery.FLG_QUERY_STRINGOUT);
-            BSONObject actual= new BasicBSONObject();
-            BSONObject expected= new BasicBSONObject();
-            while (cursor.hasNextRaw()) {
+            DBCursor cursor = this.cl.query( matcher, selector, orderBy, hint,
+                    DBQuery.FLG_QUERY_STRINGOUT );
+            BSONObject actual = new BasicBSONObject();
+            BSONObject expected = new BasicBSONObject();
+            while ( cursor.hasNextRaw() ) {
                 byte[] bytes = cursor.getNextRaw();
-                actual = byteArrayToBSONObject(bytes);
+                actual = byteArrayToBSONObject( bytes );
             }
             cursor.close();
-            expected.put("","20|-20");
-            Assert.assertEquals(actual, expected, 
-                    "TestQuery7087 flag = DBQuery.FLG_QUERY_PARALLED actual:" 
-                    + actual + "; expected:" + expected);
-        }catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestQuery7087 checkQueryWithFlag128 error:" + e.getMessage());
+            expected.put( "", "20|-20" );
+            Assert.assertEquals( actual, expected,
+                    "TestQuery7087 flag = DBQuery.FLG_QUERY_PARALLED actual:"
+                            + actual + "; expected:" + expected );
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    "Sequoiadb driver TestQuery7087 checkQueryWithFlag128 error:"
+                            + e.getMessage() );
         }
     }
-    
+
     public void checkQueryWithFlag256() {
         String matcher, selector, orderBy, hint;
         try {
@@ -146,49 +158,54 @@ public class TestQuery7087 extends SdbTestBase{
             selector = "{}";
             orderBy = "{}";
             hint = "{}";
-            DBCursor cursor = this.cl.query(matcher, selector, orderBy, hint, DBQuery.FLG_QUERY_PARALLED);
-            List<BSONObject> actualList= new ArrayList<BSONObject>();
-            while (cursor.hasNext()) {
+            DBCursor cursor = this.cl.query( matcher, selector, orderBy, hint,
+                    DBQuery.FLG_QUERY_PARALLED );
+            List< BSONObject > actualList = new ArrayList< BSONObject >();
+            while ( cursor.hasNext() ) {
                 BSONObject obj = cursor.getNext();
-                actualList.add(obj);
+                actualList.add( obj );
             }
             cursor.close();
-            Assert.assertEquals(actualList, this.insertRecods, 
-                    "TestQuery7087 flag = DBQuery.FLG_QUERY_PARALLED actual:" 
-                    + actualList + "; expected:" + this.insertRecods);
-        }catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestQuery7087 checkQueryWithFlag256 error:" + e.getMessage());
+            Assert.assertEquals( actualList, this.insertRecods,
+                    "TestQuery7087 flag = DBQuery.FLG_QUERY_PARALLED actual:"
+                            + actualList + "; expected:" + this.insertRecods );
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    "Sequoiadb driver TestQuery7087 checkQueryWithFlag256 error:"
+                            + e.getMessage() );
         }
     }
-    
-    public BSONObject byteArrayToBSONObject(byte[] array)
+
+    public BSONObject byteArrayToBSONObject( byte[] array )
             throws BaseException {
-        if (array == null || array.length == 0)
+        if ( array == null || array.length == 0 )
             return null;
 
         BSONDecoder d = new BasicBSONDecoder();
         BSONCallback cb = new BasicBSONCallback();
         try {
-            d.decode(new ByteArrayInputStream(array, 0, array.length), cb);
-            BSONObject o1 = (BSONObject) cb.get();
+            d.decode( new ByteArrayInputStream( array, 0, array.length ), cb );
+            BSONObject o1 = ( BSONObject ) cb.get();
             return o1;
-        }
-        catch (IOException e) {
-            throw new BaseException("SDB_INVALIDARG", e);
+        } catch ( IOException e ) {
+            throw new BaseException( "SDB_INVALIDARG", e );
         }
     }
-    
+
     @AfterClass
     public void tearDown() {
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                    ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            if (this.cs.isCollectionExist(clName)) {
-                this.cs.dropCollection(clName);
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
+            if ( this.cs.isCollectionExist( clName ) ) {
+                this.cs.dropCollection( clName );
             }
             this.sdb.disconnect();
-        } catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestQuery7087 tearDown error:" + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail( "Sequoiadb driver TestQuery7087 tearDown error:"
+                    + e.getMessage() );
         }
-    }  
+    }
 }

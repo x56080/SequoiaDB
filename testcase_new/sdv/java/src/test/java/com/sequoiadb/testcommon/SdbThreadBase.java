@@ -8,37 +8,39 @@ import java.util.Iterator;
 import java.util.List;
 
 public abstract class SdbThreadBase implements Runnable {
-    private List<Exception> exceptionList = Collections.synchronizedList(new ArrayList<Exception>());
-    private List<Thread> threadList = new ArrayList<Thread>();
+    private List< Exception > exceptionList = Collections
+            .synchronizedList( new ArrayList< Exception >() );
+    private List< Thread > threadList = new ArrayList< Thread >();
 
     public void start() {
-        start(1);
+        start( 1 );
     }
 
-    public void start(int threadNum) {
-        synchronized (this) {
-            for (int i = 0; i < threadNum; i++) {
-                Thread t = new Thread(this);
-                threadList.add(t);
+    public void start( int threadNum ) {
+        synchronized ( this ) {
+            for ( int i = 0; i < threadNum; i++ ) {
+                Thread t = new Thread( this );
+                threadList.add( t );
                 t.start();
             }
         }
     }
 
     // 返回结果集
-    public List<Exception> getExceptions() {
+    public List< Exception > getExceptions() {
         join();
         return exceptionList;
     }
 
-    private String getErrorMsg(Throwable exception) {
-        if (exception == null)
+    private String getErrorMsg( Throwable exception ) {
+        if ( exception == null )
             return "";
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        PrintStream printStream = new PrintStream(bytes);
+        PrintStream printStream = new PrintStream( bytes );
         printStream.println();
-        printStream.println("Thread name: " + Thread.currentThread().getName() + " err msg start:");
-        exception.printStackTrace(printStream);
+        printStream.println( "Thread name: " + Thread.currentThread().getName()
+                + " err msg start:" );
+        exception.printStackTrace( printStream );
         printStream.flush();
         return bytes.toString();
     }
@@ -46,22 +48,22 @@ public abstract class SdbThreadBase implements Runnable {
     public String getErrorMsg() {
         join();
         StringBuilder reStr = new StringBuilder();
-        for (Exception exception : exceptionList) {
-            reStr.append(getErrorMsg(exception));
+        for ( Exception exception : exceptionList ) {
+            reStr.append( getErrorMsg( exception ) );
         }
         return reStr.toString();
     }
 
     // join所有线程
     public void join() {
-        synchronized (this) {
-            Iterator<Thread> iter = threadList.iterator();
-            while (iter.hasNext()) {
-                Thread t = (Thread) iter.next();
+        synchronized ( this ) {
+            Iterator< Thread > iter = threadList.iterator();
+            while ( iter.hasNext() ) {
+                Thread t = ( Thread ) iter.next();
                 try {
                     t.join();
-                } catch (InterruptedException e) {
-                    exceptionList.add(e);
+                } catch ( InterruptedException e ) {
+                    exceptionList.add( e );
                 }
             }
             threadList.clear();
@@ -70,7 +72,7 @@ public abstract class SdbThreadBase implements Runnable {
 
     public boolean isSuccess() {
         join();
-        if (exceptionList.size() != 0) {
+        if ( exceptionList.size() != 0 ) {
             return false;
         }
         return true;
@@ -79,10 +81,10 @@ public abstract class SdbThreadBase implements Runnable {
     public void run() {
         try {
             exec();
-        } catch (Exception e) {
-            exceptionList.add(e);
-        } catch (Error e) {
-            exceptionList.add(new Exception(e));
+        } catch ( Exception e ) {
+            exceptionList.add( e );
+        } catch ( Error e ) {
+            exceptionList.add( new Exception( e ) );
         }
     }
 

@@ -28,134 +28,143 @@ import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.UserUtils;
 
 /**
- * test content: 开启版本控制，更新对象过程中db端节点异常
- * testlink-case: seqDB-16461
+ * test content: 开启版本控制，更新对象过程中db端节点异常 testlink-case: seqDB-16461
+ * 
  * @author wangkexin
  * @Date 2019.01.09
  * @version 1.00
  */
 public class UpdateObjectWithKillCoord16461 extends S3TestBase {
-	private GroupMgr groupMgr = null;
-	private String userName = "user16461";
-	private String bucketName = "bucket16461";
-	private String keyName = "key16461";
-	private String roleName = "normal";
-	private List<String> keyNames = new ArrayList<>();
-	private List<String> updatedObjectList = new CopyOnWriteArrayList<String>();
-	private int objectNum = 10;
-	private String[] accessKeys = null;
-	private AmazonS3 s3Client = null;
-	private GroupWrapper coordGroup = null;
-	private boolean runSuccess = false;
+    private GroupMgr groupMgr = null;
+    private String userName = "user16461";
+    private String bucketName = "bucket16461";
+    private String keyName = "key16461";
+    private String roleName = "normal";
+    private List< String > keyNames = new ArrayList<>();
+    private List< String > updatedObjectList = new CopyOnWriteArrayList< String >();
+    private int objectNum = 10;
+    private String[] accessKeys = null;
+    private AmazonS3 s3Client = null;
+    private GroupWrapper coordGroup = null;
+    private boolean runSuccess = false;
 
-	@BeforeClass
-	private void setUp() throws Exception {
-		groupMgr = GroupMgr.getInstance();
-		coordGroup = groupMgr.getGroupByName("SYSCoord");
-		
-		CommLibS3.clearUser(userName);
-		accessKeys = UserUtils.createUser(userName, roleName);
-		s3Client = CommLibS3.buildS3Client(accessKeys[0], accessKeys[1]);
-		s3Client.createBucket(bucketName);
-		CommLibS3.setBucketVersioning(s3Client, bucketName, BucketVersioningConfiguration.ENABLED);
-		
-		for(int i = 0 ; i < objectNum; i++ ){
-			String currentKey = keyName + "_" + i;
-			s3Client.putObject(bucketName, currentKey, currentKey + "old");
-			keyNames.add(currentKey);
-		}
-	}
+    @BeforeClass
+    private void setUp() throws Exception {
+        groupMgr = GroupMgr.getInstance();
+        coordGroup = groupMgr.getGroupByName( "SYSCoord" );
 
-	@Test
-	public void testUpdateObject() throws Exception {
-		TaskMgr mgr = new TaskMgr();
-        for(NodeWrapper node : coordGroup.getNodes()) {
-            FaultMakeTask faultTask = KillNode.getFaultMakeTask(node, 0);
-            mgr.addTask(faultTask);
+        CommLibS3.clearUser( userName );
+        accessKeys = UserUtils.createUser( userName, roleName );
+        s3Client = CommLibS3.buildS3Client( accessKeys[ 0 ], accessKeys[ 1 ] );
+        s3Client.createBucket( bucketName );
+        CommLibS3.setBucketVersioning( s3Client, bucketName,
+                BucketVersioningConfiguration.ENABLED );
+
+        for ( int i = 0; i < objectNum; i++ ) {
+            String currentKey = keyName + "_" + i;
+            s3Client.putObject( bucketName, currentKey, currentKey + "old" );
+            keyNames.add( currentKey );
         }
-		
-        for(int i = 0; i < keyNames.size(); i++){
-        	UpdateObjectTask cTask = new UpdateObjectTask(keyNames.get(i));
-    		mgr.addTask(cTask);
+    }
+
+    @Test
+    public void testUpdateObject() throws Exception {
+        TaskMgr mgr = new TaskMgr();
+        for ( NodeWrapper node : coordGroup.getNodes() ) {
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask( node, 0 );
+            mgr.addTask( faultTask );
         }
-		mgr.execute();
-		Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
 
-		updateObjectAgainAndCheck();
-		runSuccess = true;
-	}
+        for ( int i = 0; i < keyNames.size(); i++ ) {
+            UpdateObjectTask cTask = new UpdateObjectTask( keyNames.get( i ) );
+            mgr.addTask( cTask );
+        }
+        mgr.execute();
+        Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
-	@AfterClass
-	private void tearDown() throws Exception {
-		try {
-			if (runSuccess) {
-				UserUtils.deleteUser(userName);
-			}
-		}finally {
-			if (s3Client != null) {
-				s3Client.shutdown();
-			}
-		}
-	}
+        updateObjectAgainAndCheck();
+        runSuccess = true;
+    }
 
-	private class UpdateObjectTask extends OperateTask {
-		private String keyName = "";
-		public UpdateObjectTask(String keyName) {
-			this.keyName = keyName;
-		}
-		@Override
-		public void exec(){
-			AmazonS3 s3Client = CommLibS3.buildS3Client(accessKeys[0], accessKeys[1]);
-			try {
-				String currContent = keyName + "new";
-				s3Client.putObject(bucketName, keyName, currContent);
-				updatedObjectList.add(keyName);
-			} catch(AmazonServiceException e){
-				if(!e.getErrorCode().equals("GetDBConnectFail")){
-					throw e;
-				}
-			}finally {
-				if (s3Client != null) {
-					s3Client.shutdown();
-				}
-			}
-		}
-	}
+    @AfterClass
+    private void tearDown() throws Exception {
+        try {
+            if ( runSuccess ) {
+                UserUtils.deleteUser( userName );
+            }
+        } finally {
+            if ( s3Client != null ) {
+                s3Client.shutdown();
+            }
+        }
+    }
 
-	private void updateObjectAgainAndCheck() throws Exception {
-		List<String> remainOldObjects = new ArrayList<String>();
-		remainOldObjects.addAll(keyNames);
-		remainOldObjects.removeAll(updatedObjectList);
-		for (String keyName : remainOldObjects) {
-			String currContent = keyName + "new";
-			s3Client.putObject(bucketName, keyName, currContent);
-		}
-		
-		 VersionListing versions = s3Client.listVersions(new ListVersionsRequest().withBucketName(bucketName));
-		 List<S3VersionSummary> objects = versions.getVersionSummaries();
-		 Assert.assertEquals(objects.size(), keyNames.size()*2, "updatedObjectList : " + updatedObjectList.toString() + "  ,objects=" + printVersionKeys(objects));
-		 for(int i = 0; i < objects.size(); i+=2){
-			 String key = objects.get(i).getKey();
-			 String expContent = key + "new";
-			 String expEtag = TestTools.getMD5(expContent.getBytes());
-			 String actEtag = objects.get(i).getETag();
-			 Assert.assertEquals(objects.get(i).getVersionId(), "1", "objectName is : " + key);
-			 Assert.assertEquals(actEtag, expEtag, "objectName is : " + key);
-			 
-			 expContent = key + "old";
-			 expEtag = TestTools.getMD5(expContent.getBytes());
-			 actEtag = objects.get(i+1).getETag();
-			 Assert.assertEquals(objects.get(i+1).getVersionId(), "0", "objectName is : " + key);
-			 Assert.assertEquals(actEtag, expEtag, "objectName is : " + key);
-		 }
-	}
-	
-	private String printVersionKeys(List<S3VersionSummary> objects){
-		String str= "";
-		for(S3VersionSummary obj : objects){
-			 str += obj.getKey();
-			 str += " ";
-		}
-		return str;
-	}
+    private class UpdateObjectTask extends OperateTask {
+        private String keyName = "";
+
+        public UpdateObjectTask( String keyName ) {
+            this.keyName = keyName;
+        }
+
+        @Override
+        public void exec() {
+            AmazonS3 s3Client = CommLibS3.buildS3Client( accessKeys[ 0 ],
+                    accessKeys[ 1 ] );
+            try {
+                String currContent = keyName + "new";
+                s3Client.putObject( bucketName, keyName, currContent );
+                updatedObjectList.add( keyName );
+            } catch ( AmazonServiceException e ) {
+                if ( !e.getErrorCode().equals( "GetDBConnectFail" ) ) {
+                    throw e;
+                }
+            } finally {
+                if ( s3Client != null ) {
+                    s3Client.shutdown();
+                }
+            }
+        }
+    }
+
+    private void updateObjectAgainAndCheck() throws Exception {
+        List< String > remainOldObjects = new ArrayList< String >();
+        remainOldObjects.addAll( keyNames );
+        remainOldObjects.removeAll( updatedObjectList );
+        for ( String keyName : remainOldObjects ) {
+            String currContent = keyName + "new";
+            s3Client.putObject( bucketName, keyName, currContent );
+        }
+
+        VersionListing versions = s3Client.listVersions(
+                new ListVersionsRequest().withBucketName( bucketName ) );
+        List< S3VersionSummary > objects = versions.getVersionSummaries();
+        Assert.assertEquals( objects.size(), keyNames.size() * 2,
+                "updatedObjectList : " + updatedObjectList.toString()
+                        + "  ,objects=" + printVersionKeys( objects ) );
+        for ( int i = 0; i < objects.size(); i += 2 ) {
+            String key = objects.get( i ).getKey();
+            String expContent = key + "new";
+            String expEtag = TestTools.getMD5( expContent.getBytes() );
+            String actEtag = objects.get( i ).getETag();
+            Assert.assertEquals( objects.get( i ).getVersionId(), "1",
+                    "objectName is : " + key );
+            Assert.assertEquals( actEtag, expEtag, "objectName is : " + key );
+
+            expContent = key + "old";
+            expEtag = TestTools.getMD5( expContent.getBytes() );
+            actEtag = objects.get( i + 1 ).getETag();
+            Assert.assertEquals( objects.get( i + 1 ).getVersionId(), "0",
+                    "objectName is : " + key );
+            Assert.assertEquals( actEtag, expEtag, "objectName is : " + key );
+        }
+    }
+
+    private String printVersionKeys( List< S3VersionSummary > objects ) {
+        String str = "";
+        for ( S3VersionSummary obj : objects ) {
+            str += obj.getKey();
+            str += " ";
+        }
+        return str;
+    }
 }

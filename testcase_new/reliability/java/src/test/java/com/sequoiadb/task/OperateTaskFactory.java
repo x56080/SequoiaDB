@@ -11,15 +11,14 @@ public final class OperateTaskFactory {
 
     }
 
-    public static OperateTask newTask(String taskClassName, TaskMgr mgr) {
+    public static OperateTask newTask( String taskClassName, TaskMgr mgr ) {
         ClassLoader classLoader = OperateTaskFactory.class.getClassLoader();
         OperateTask ret;
         try {
-            Class<?> taskClass = classLoader.loadClass(taskClassName);
-            ret = (OperateTask) taskClass.newInstance();
-            ret.setMgr(mgr);
-        }
-        catch (Exception e) {
+            Class< ? > taskClass = classLoader.loadClass( taskClassName );
+            ret = ( OperateTask ) taskClass.newInstance();
+            ret.setMgr( mgr );
+        } catch ( Exception e ) {
             e.printStackTrace();
             return null;
         }

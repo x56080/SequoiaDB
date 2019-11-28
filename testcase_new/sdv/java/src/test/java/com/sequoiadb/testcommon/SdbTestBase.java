@@ -20,10 +20,12 @@ public class SdbTestBase {
     protected static String reservedDir;
     protected static String workDir;
 
-    @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN", "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR" })
+    @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
+            "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR" })
     @BeforeSuite
-    public static void initSuite(String HOSTNAME, String SVCNAME, String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
-            String RSRVNODEDIR, String WORKDIR) {
+    public static void initSuite( String HOSTNAME, String SVCNAME,
+            String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
+            String RSRVNODEDIR, String WORKDIR ) {
         hostName = HOSTNAME;
         serviceName = SVCNAME;
         csName = COMMCSNAME;
@@ -35,17 +37,17 @@ public class SdbTestBase {
 
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(coordUrl, "", "");
-            boolean ret = createCommonCS(db);
-            Assert.assertTrue(ret);
-            File workDirFile = new File(workDir);
-            if (!workDirFile.exists()) {
+            db = new Sequoiadb( coordUrl, "", "" );
+            boolean ret = createCommonCS( db );
+            Assert.assertTrue( ret );
+            File workDirFile = new File( workDir );
+            if ( !workDirFile.exists() ) {
                 workDirFile.mkdir();
             }
-        } catch (BaseException e) {
-            Assert.fail("connect " + coordUrl + ": " + e.getErrorCode());
+        } catch ( BaseException e ) {
+            Assert.fail( "connect " + coordUrl + ": " + e.getErrorCode() );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.disconnect();
             }
         }
@@ -55,28 +57,29 @@ public class SdbTestBase {
     public static void finiSuite() {
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(coordUrl, "", "");
-            if (db.isCollectionSpaceExist(csName)) {
-                db.dropCollectionSpace(csName);
+            db = new Sequoiadb( coordUrl, "", "" );
+            if ( db.isCollectionSpaceExist( csName ) ) {
+                db.dropCollectionSpace( csName );
             }
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
             throw e;
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.disconnect();
             }
         }
     }
 
-    private static boolean createCommonCS(Sequoiadb sdb) {
+    private static boolean createCommonCS( Sequoiadb sdb ) {
         boolean isCreateSuccess = true;
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
-            sdb.createCollectionSpace(csName);
-        } catch (BaseException e) {
-            System.out.printf("create CollectionSpace %s failed, errMsg:%s\n", csName, e.getMessage());
+            sdb.createCollectionSpace( csName );
+        } catch ( BaseException e ) {
+            System.out.printf( "create CollectionSpace %s failed, errMsg:%s\n",
+                    csName, e.getMessage() );
             isCreateSuccess = false;
         }
         return isCreateSuccess;

@@ -22,19 +22,20 @@ public class Analyze14224 extends SdbTestBase {
 
     @BeforeClass
     public void setup() {
-        db = new SdbWarpper(coordUrl);
+        db = new SdbWarpper( coordUrl );
         String pre = this.getClass().getSimpleName();
         BSONObject options = new BasicBSONObject();
-        options.put("PageSize", 4096);
-        SdbCsProperties cs = new SdbCsProperties(pre + "cs", options);
-        db.createCS(cs);
-        SdbClProperties clPrope = SdbClProperties.newBuilder(cs, this.getClass().getSimpleName()).build();
-        dbcl = db.createCL(clPrope);
+        options.put( "PageSize", 4096 );
+        SdbCsProperties cs = new SdbCsProperties( pre + "cs", options );
+        db.createCS( cs );
+        SdbClProperties clPrope = SdbClProperties
+                .newBuilder( cs, this.getClass().getSimpleName() ).build();
+        dbcl = db.createCL( clPrope );
     }
 
     @AfterClass
     public void teardown() {
-    	db.dropCollectionSpace(dbcl.getCSName());
+        db.dropCollectionSpace( dbcl.getCSName() );
         db.close();
     }
 
@@ -47,63 +48,67 @@ public class Analyze14224 extends SdbTestBase {
      */
     @Test
     public void test() {
-        //some records
-        List<BSONObject> records = new ArrayList<BSONObject>();
-        for (int i = 0; i < 25; i++) {
-            records.add(new BasicBSONObject("a", 0).append("astr", AnalyzeUtil.getRandomString(4096)));
-            records.add(new BasicBSONObject("b", 0).append("bstr", AnalyzeUtil.getRandomString(4096)));
-            records.add(new BasicBSONObject("c", 0).append("cstr", AnalyzeUtil.getRandomString(4096)));
-            records.add(new BasicBSONObject("d", 0).append("dstr", AnalyzeUtil.getRandomString(4096)));
-            records.add(new BasicBSONObject("e", 0).append("estr", AnalyzeUtil.getRandomString(4096)));
+        // some records
+        List< BSONObject > records = new ArrayList< BSONObject >();
+        for ( int i = 0; i < 25; i++ ) {
+            records.add( new BasicBSONObject( "a", 0 ).append( "astr",
+                    AnalyzeUtil.getRandomString( 4096 ) ) );
+            records.add( new BasicBSONObject( "b", 0 ).append( "bstr",
+                    AnalyzeUtil.getRandomString( 4096 ) ) );
+            records.add( new BasicBSONObject( "c", 0 ).append( "cstr",
+                    AnalyzeUtil.getRandomString( 4096 ) ) );
+            records.add( new BasicBSONObject( "d", 0 ).append( "dstr",
+                    AnalyzeUtil.getRandomString( 4096 ) ) );
+            records.add( new BasicBSONObject( "e", 0 ).append( "estr",
+                    AnalyzeUtil.getRandomString( 4096 ) ) );
         }
-        dbcl.insert(records);
+        dbcl.insert( records );
 
-        String indexkey[] = {"a", "b", "c", "d", "e"};
-        String indexname[] = {"aIndex", "bIndex", "cIndex", "dIndex", "eIndex"};
+        String indexkey[] = { "a", "b", "c", "d", "e" };
+        String indexname[] = { "aIndex", "bIndex", "cIndex", "dIndex",
+                "eIndex" };
 
-        List<IndexProperties> indexPropertiesList = new ArrayList<>(10);
-        for (int i = 0; i < 5; i++) {
-            IndexProperties index = IndexProperties.newBuilder(indexname[i], new BasicBSONObject(indexkey[i], 1))
-                    .enforced(false)
-                    .isUnique(false)
-                    .build();
-            dbcl.createIndex(index);
-            indexPropertiesList.add(index);
+        List< IndexProperties > indexPropertiesList = new ArrayList<>( 10 );
+        for ( int i = 0; i < 5; i++ ) {
+            IndexProperties index = IndexProperties
+                    .newBuilder( indexname[ i ],
+                            new BasicBSONObject( indexkey[ i ], 1 ) )
+                    .enforced( false ).isUnique( false ).build();
+            dbcl.createIndex( index );
+            indexPropertiesList.add( index );
         }
 
-        IndexProperties indexToAnalyze = indexPropertiesList.get(0);
+        IndexProperties indexToAnalyze = indexPropertiesList.get( 0 );
 
-        db.analyze(new BasicBSONObject("Collection", dbcl.getFullName())
-                .append("Index", indexToAnalyze.getIndexName())
-        );
+        db.analyze( new BasicBSONObject( "Collection", dbcl.getFullName() )
+                .append( "Index", indexToAnalyze.getIndexName() ) );
 
-        for (IndexProperties indexProperties : indexPropertiesList) {
-            String key = indexProperties.getIndexKey().keySet().iterator().next();
-            Explain e = new Explain.Builder(dbcl)
-                    .matcher(new BasicBSONObject(key, 0))
-                    .options(new BasicBSONObject("Run", true))
-                    .build();
-            if (indexProperties == indexToAnalyze) {
-                assertTrue(e.isQueryUseTbscan(), e.getExplainResult());
+        for ( IndexProperties indexProperties : indexPropertiesList ) {
+            String key = indexProperties.getIndexKey().keySet().iterator()
+                    .next();
+            Explain e = new Explain.Builder( dbcl )
+                    .matcher( new BasicBSONObject( key, 0 ) )
+                    .options( new BasicBSONObject( "Run", true ) ).build();
+            if ( indexProperties == indexToAnalyze ) {
+                assertTrue( e.isQueryUseTbscan(), e.getExplainResult() );
             } else {
-                assertTrue(e.isQueryUseIxscan(), e.getExplainResult());
+                assertTrue( e.isQueryUseIxscan(), e.getExplainResult() );
             }
         }
 
-        db.analyze(new BasicBSONObject("Collection", dbcl.getFullName())
-                .append("Mode", 3)
-                .append("Index", indexToAnalyze.getIndexName())
-        );
+        db.analyze( new BasicBSONObject( "Collection", dbcl.getFullName() )
+                .append( "Mode", 3 )
+                .append( "Index", indexToAnalyze.getIndexName() ) );
 
-        //query should use idxscan
-        for (IndexProperties indexProperties : indexPropertiesList) {
-            String key = indexProperties.getIndexKey().keySet().iterator().next();
-            Explain e = new Explain.Builder(dbcl)
-                    .matcher(new BasicBSONObject(key, 0))
-                    .options(new BasicBSONObject("Run", true))
-                    .build();
+        // query should use idxscan
+        for ( IndexProperties indexProperties : indexPropertiesList ) {
+            String key = indexProperties.getIndexKey().keySet().iterator()
+                    .next();
+            Explain e = new Explain.Builder( dbcl )
+                    .matcher( new BasicBSONObject( key, 0 ) )
+                    .options( new BasicBSONObject( "Run", true ) ).build();
             e.execute();
-            assertTrue(e.isQueryUseIxscan(), e.getExplainResult());
+            assertTrue( e.isQueryUseIxscan(), e.getExplainResult() );
         }
     }
 }

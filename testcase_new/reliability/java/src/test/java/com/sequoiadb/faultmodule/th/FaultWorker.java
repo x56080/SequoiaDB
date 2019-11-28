@@ -17,7 +17,7 @@ public class FaultWorker extends Thread {
     @Override
     public void run() {
         Thread thisTh = Thread.currentThread();
-        while (workTh == thisTh) {
+        while ( workTh == thisTh ) {
             pop2Work();
         }
     }
@@ -44,43 +44,43 @@ public class FaultWorker extends Thread {
         FaultMsg m = msgMQ.pop();
         Fault f = m.getFault();
         try {
-            if (f.getStage() == Stage.init && f.getStageStatus() == 0) {
+            if ( f.getStage() == Stage.init && f.getStageStatus() == 0 ) {
                 f.init();
             }
 
-            if (f.getStage() == Stage.init && f.getStageStatus() != 0) {
+            if ( f.getStage() == Stage.init && f.getStageStatus() != 0 ) {
                 f.make();
                 f.checkMake();
-                synchronized (m) {
-                    m.setProcessed(true);
+                synchronized ( m ) {
+                    m.setProcessed( true );
                     m.notify();
                 }
                 return;
             }
 
-            if (f.getStage() == Stage.make && f.getStageStatus() != 0) {
+            if ( f.getStage() == Stage.make && f.getStageStatus() != 0 ) {
                 f.restore();
                 f.checkRestore();
-                synchronized (m) {
-                    m.setProcessed(true);
+                synchronized ( m ) {
+                    m.setProcessed( true );
                     m.notify();
                 }
             }
 
             f.fini();
-        } catch (Exception e) {
+        } catch ( Exception e ) {
             try {
-                if (f.getStage() == Stage.restore) {
+                if ( f.getStage() == Stage.restore ) {
                     f.fini();
                 }
-            } catch (FaultException e1) {
+            } catch ( FaultException e1 ) {
                 e1.printStackTrace();
             }
-            synchronized (m) {
-                m.setProcessed(true);
+            synchronized ( m ) {
+                m.setProcessed( true );
                 m.notify();
             }
-            m.setMakeExp(e);
+            m.setMakeExp( e );
         }
     }
 }

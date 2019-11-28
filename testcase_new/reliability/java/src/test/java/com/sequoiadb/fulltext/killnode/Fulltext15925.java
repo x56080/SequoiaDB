@@ -35,52 +35,54 @@ public class Fulltext15925 extends SdbTestBase {
 
     @BeforeClass()
     public void setUp() throws ReliabilityException {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         groupMgr = GroupMgr.getInstance();
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("isStandAlone() TRUE, STANDALONE MODE");
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "isStandAlone() TRUE, STANDALONE MODE" );
         }
-        if (!groupMgr.checkBusiness(120)) {
-            throw new SkipException("checkBusiness() FAIL, GROUP ERROR");
+        if ( !groupMgr.checkBusiness( 120 ) ) {
+            throw new SkipException( "checkBusiness() FAIL, GROUP ERROR" );
         }
-        if (!FullTextUtils.checkAdapter()) {
-            throw new SkipException("Check adapter failed");
+        if ( !FullTextUtils.checkAdapter() ) {
+            throw new SkipException( "Check adapter failed" );
         }
-        List<String> groupNames = CommLib.getDataGroupNames(sdb);
-        groupName = groupNames.get(0);
-        cs = sdb.getCollectionSpace(csName);
-        for (int i = 0; i < 10; i++) {
-            DBCollection cl = cs.createCollection("cl_15925_" + i,
-                    (BSONObject) JSON.parse("{Group: '" + groupName + "'}"));
-            if (i < 5) {
-                cl.createIndex("indexName_15925_" + i, "{a:'text'}", false, false);
+        List< String > groupNames = CommLib.getDataGroupNames( sdb );
+        groupName = groupNames.get( 0 );
+        cs = sdb.getCollectionSpace( csName );
+        for ( int i = 0; i < 10; i++ ) {
+            DBCollection cl = cs.createCollection( "cl_15925_" + i,
+                    ( BSONObject ) JSON
+                            .parse( "{Group: '" + groupName + "'}" ) );
+            if ( i < 5 ) {
+                cl.createIndex( "indexName_15925_" + i, "{a:'text'}", false,
+                        false );
             }
         }
     }
 
     @Test()
     public void Test() throws Exception {
-        Node slave = sdb.getReplicaGroup(groupName).getSlave();
+        Node slave = sdb.getReplicaGroup( groupName ).getSlave();
         String remoteHostName = slave.getHostName();
-        Ssh ssh = new Ssh(remoteHostName, "root", SdbTestBase.rootPwd);
+        Ssh ssh = new Ssh( remoteHostName, "root", SdbTestBase.rootPwd );
         String installDir = ssh.getSdbInstallDir();
         String command = installDir + "/bin/sdbcmtop";
-        ssh.exec(command);
+        ssh.exec( command );
 
         TaskMgr taskMgr1 = new TaskMgr();
-        for (int i = 0; i < 5; i++) {
-            taskMgr1.addTask(new InsertTask("cl_15925_" + i));
+        for ( int i = 0; i < 5; i++ ) {
+            taskMgr1.addTask( new InsertTask( "cl_15925_" + i ) );
         }
         taskMgr1.start();
 
         long count = 0;
         long num = 100000;
         TaskMgr taskMgr2 = new TaskMgr();
-        taskMgr2.addTask(new KillNodeTask(slave, ssh));
-        DBCollection cl = cs.getCollection("cl_15925_1");
-        while (count < num) {
+        taskMgr2.addTask( new KillNodeTask( slave, ssh ) );
+        DBCollection cl = cs.getCollection( "cl_15925_1" );
+        while ( count < num ) {
             count = cl.getCount();
-            Thread.sleep(1000);
+            Thread.sleep( 1000 );
         }
         taskMgr2.start();
         taskMgr2.join();
@@ -88,28 +90,31 @@ public class Fulltext15925 extends SdbTestBase {
         taskMgr1.fini();
         taskMgr2.fini();
 
-        Assert.assertTrue(taskMgr1.isAllSuccess(), taskMgr1.getErrorMsg());
-        Assert.assertTrue(taskMgr2.isAllSuccess(), taskMgr2.getErrorMsg());
-        Assert.assertTrue(FullTextUtils.checkAdapter());
+        Assert.assertTrue( taskMgr1.isAllSuccess(), taskMgr1.getErrorMsg() );
+        Assert.assertTrue( taskMgr2.isAllSuccess(), taskMgr2.getErrorMsg() );
+        Assert.assertTrue( FullTextUtils.checkAdapter() );
 
-        for (int i = 0; i < 5; i++) {
-            FullTextDBUtils.dropCollection(cs, "cl_15925_" + i);
+        for ( int i = 0; i < 5; i++ ) {
+            FullTextDBUtils.dropCollection( cs, "cl_15925_" + i );
         }
 
-        for (int i = 0; i < 5; i++) {
-            cl = cs.createCollection("cl_15925_" + i, (BSONObject) JSON.parse("{Group: '" + groupName + "'}"));
-            cl.createIndex("indexName_15925_" + i, "{a:'text'}", false, false);
-            cl.insert("{a : 'Only one record'}");
+        for ( int i = 0; i < 5; i++ ) {
+            cl = cs.createCollection( "cl_15925_" + i, ( BSONObject ) JSON
+                    .parse( "{Group: '" + groupName + "'}" ) );
+            cl.createIndex( "indexName_15925_" + i, "{a:'text'}", false,
+                    false );
+            cl.insert( "{a : 'Only one record'}" );
         }
 
         command = "service sdbcm start";
-        ssh.exec(command);
+        ssh.exec( command );
 
-        Assert.assertTrue(groupMgr.checkBusinessWithLSN(600));
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 600 ) );
 
-        for (int i = 0; i < 5; i++) {
-            cl = cs.getCollection("cl_15925_" + i);
-            Assert.assertTrue(FullTextUtils.isIndexCreated(cl, "indexName_15925_" + i, 1));
+        for ( int i = 0; i < 5; i++ ) {
+            cl = cs.getCollection( "cl_15925_" + i );
+            Assert.assertTrue( FullTextUtils.isIndexCreated( cl,
+                    "indexName_15925_" + i, 1 ) );
         }
     }
 
@@ -118,17 +123,17 @@ public class Fulltext15925 extends SdbTestBase {
         private DBCollection cl = null;
         private String clName = null;
 
-        public InsertTask(String clName) {
+        public InsertTask( String clName ) {
             this.clName = clName;
         }
 
         @Override
         public void exec() throws Exception {
             // TODO Auto-generated method stub
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            cl = db.getCollectionSpace(csName).getCollection(clName);
-            for (int i = 0; i < 20; i++) {
-                FullTextDBUtils.insertData(cl, 10000);
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            cl = db.getCollectionSpace( csName ).getCollection( clName );
+            for ( int i = 0; i < 20; i++ ) {
+                FullTextDBUtils.insertData( cl, 10000 );
             }
         }
     }
@@ -137,7 +142,7 @@ public class Fulltext15925 extends SdbTestBase {
         private Node slave = null;
         private Ssh ssh = null;
 
-        public KillNodeTask(Node slave, Ssh ssh) {
+        public KillNodeTask( Node slave, Ssh ssh ) {
             // TODO Auto-generated constructor stub
             this.slave = slave;
             this.ssh = ssh;
@@ -147,18 +152,20 @@ public class Fulltext15925 extends SdbTestBase {
         public void exec() throws Exception {
             // TODO Auto-generated method stub
             int remotePort = slave.getPort();
-            String command = "lsof -i TCP:" + remotePort + " -sTCP:LISTEN| sed '1d' | awk '{print $2}'";
-            ssh.exec(command);
-            String pid = ssh.getStdout().substring(0, ssh.getStdout().length() - 1);
+            String command = "lsof -i TCP:" + remotePort
+                    + " -sTCP:LISTEN| sed '1d' | awk '{print $2}'";
+            ssh.exec( command );
+            String pid = ssh.getStdout().substring( 0,
+                    ssh.getStdout().length() - 1 );
             command = "kill -9 " + pid;
-            ssh.exec(command);
+            ssh.exec( command );
         }
     }
 
     @AfterClass()
     public void tearDown() {
-        for (int i = 0; i < 10; i++) {
-            FullTextDBUtils.dropCollection(cs, "cl_15925_" + i);
+        for ( int i = 0; i < 10; i++ ) {
+            FullTextDBUtils.dropCollection( cs, "cl_15925_" + i );
         }
         sdb.close();
     }

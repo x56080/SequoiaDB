@@ -16,10 +16,12 @@ public class FaultInjection extends FaultBase {
     protected String passwd;
     protected String enableName;
     protected String probability;
-    protected final static Logger log = Logger.getLogger(FaultInjection.class.getName());
+    protected final static Logger log = Logger
+            .getLogger( FaultInjection.class.getName() );
 
-    public FaultInjection(String hostName, String svcName, String user, String passwd, String name) {
-        super(name);
+    public FaultInjection( String hostName, String svcName, String user,
+            String passwd, String name ) {
+        super( name );
         this.hostName = hostName;
         this.svcName = svcName;
         this.user = user;
@@ -28,7 +30,7 @@ public class FaultInjection extends FaultBase {
     }
 
     private void setFaultType() {
-        switch (getName()) {
+        switch ( getName() ) {
         case FaultName.MEMORYLIMIT:
             enableName = "posix/mm/mmap"; // libc/mm/mmap will make node dump
             probability = "0.25";
@@ -42,29 +44,32 @@ public class FaultInjection extends FaultBase {
     }
 
     private String getAndCheckPid() throws ReliabilityException {
-        ssh.exec("lsof -nP -iTCP:" + svcName + " -sTCP:LISTEN | sed '1d' | awk '{print $2}'");
+        ssh.exec( "lsof -nP -iTCP:" + svcName
+                + " -sTCP:LISTEN | sed '1d' | awk '{print $2}'" );
         String pid = ssh.getStdout().trim();
-        if (pid.length() > 0) {
+        if ( pid.length() > 0 ) {
             return pid;
         } else {
-            throw new FaultException("Can not match the pid for " + svcName);
+            throw new FaultException( "Can not match the pid for " + svcName );
         }
     }
 
     private boolean checkOutput() throws FaultException {
         String output = ssh.getStdout().trim();
-        if (output.length() == 0) {
+        if ( output.length() == 0 ) {
             return true;
         } else {
-            throw new FaultException(output);
+            throw new FaultException( output );
         }
     }
 
     @Override
     protected void makeFault() throws ReliabilityException {
-        log.info(getName() + " make target node:[" + hostName + ":" + svcName + "]");
+        log.info( getName() + " make target node:[" + hostName + ":" + svcName
+                + "]" );
         String pid = getAndCheckPid();
-        ssh.exec("fiu-ctrl -c 'enable_random name=" + enableName + ",probability=" + probability + "' " + pid);
+        ssh.exec( "fiu-ctrl -c 'enable_random name=" + enableName
+                + ",probability=" + probability + "' " + pid );
     }
 
     @Override
@@ -74,9 +79,10 @@ public class FaultInjection extends FaultBase {
 
     @Override
     protected void restoreFault() throws ReliabilityException {
-        log.info(getName() + " restore target node:[" + hostName + ":" + svcName + "]");
+        log.info( getName() + " restore target node:[" + hostName + ":"
+                + svcName + "]" );
         String pid = getAndCheckPid();
-        ssh.exec("fiu-ctrl -c 'disable name=" + enableName + "' " + pid);
+        ssh.exec( "fiu-ctrl -c 'disable name=" + enableName + "' " + pid );
     }
 
     @Override
@@ -86,7 +92,7 @@ public class FaultInjection extends FaultBase {
 
     @Override
     protected void initFault() throws ReliabilityException {
-        ssh = new Ssh(hostName, user, passwd, port);
+        ssh = new Ssh( hostName, user, passwd, port );
     }
 
     @Override

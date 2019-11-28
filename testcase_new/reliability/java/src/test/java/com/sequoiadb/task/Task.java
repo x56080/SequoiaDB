@@ -14,10 +14,7 @@ import java.io.PrintStream;
 public abstract class Task extends Thread {
 
     public enum TaskStatus {
-        TASKSTART,
-        TASKINTERRUPT,
-        TASKTHROWEXCEPTION,
-        TASKSTOP
+        TASKSTART, TASKINTERRUPT, TASKTHROWEXCEPTION, TASKSTOP
     }
 
     protected TaskStatus status;
@@ -27,15 +24,15 @@ public abstract class Task extends Thread {
         super();
     }
 
-    public Task(String name) {
-        super(name);
+    public Task( String name ) {
+        super( name );
     }
 
     public Exception getException() {
         return exception;
     }
 
-    protected void setException(Exception exception) {
+    protected void setException( Exception exception ) {
         this.exception = exception;
     }
 
@@ -46,7 +43,7 @@ public abstract class Task extends Thread {
 
     public abstract void fini() throws ReliabilityException;
 
-    public void setStatus(TaskStatus status) {
+    public void setStatus( TaskStatus status ) {
         this.status = status;
     }
 
@@ -57,47 +54,48 @@ public abstract class Task extends Thread {
     /**
      * 等待某一阶段的任务完成 注：只能用于线程方法中
      */
-//    public void waitComplete() {
-//        synchronized (this) {
-//            try {
-//                this.wait();
-//            } catch (InterruptedException e) {
-//                status = TaskStatus.TASKINTERRUPT;
-//            }
-//        }
-//    }
+    // public void waitComplete() {
+    // synchronized (this) {
+    // try {
+    // this.wait();
+    // } catch (InterruptedException e) {
+    // status = TaskStatus.TASKINTERRUPT;
+    // }
+    // }
+    // }
 
     /**
      * 通知等待的任务，当前任务某一阶段的任务已经完成 注：只能用于线程方法中
      */
-//    public void notifyComplete() {
-//        synchronized (this) {
-//            this.notify();
-//        }
-//    }
+    // public void notifyComplete() {
+    // synchronized (this) {
+    // this.notify();
+    // }
+    // }
 
     /**
      * 通知所有等待的任务，当前任务某一阶段的任务已经完成 注：只能用于线程方法中
      */
-//    public void notifyAllComplete() {
-//    synchronized (this)
-//    {
-//        this.notifyAll();
-//    }
-//}
+    // public void notifyAllComplete() {
+    // synchronized (this)
+    // {
+    // this.notifyAll();
+    // }
+    // }
     public boolean isSuccess() {
         return this.getException() == null;
     }
 
     public String getErrorMsg() {
-        if (exception == null)
+        if ( exception == null )
             return "";
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        PrintStream printStream = new PrintStream(bytes);
+        PrintStream printStream = new PrintStream( bytes );
         printStream.println();
-        printStream.println("------SDB Task: "+getName()+" err msg start: ");
-        exception.printStackTrace(printStream);
-        printStream.println("------SDB Task: "+getName()+" err msg end.");
+        printStream
+                .println( "------SDB Task: " + getName() + " err msg start: " );
+        exception.printStackTrace( printStream );
+        printStream.println( "------SDB Task: " + getName() + " err msg end." );
         printStream.flush();
         return bytes.toString();
     }

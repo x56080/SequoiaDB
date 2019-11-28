@@ -4,12 +4,12 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class FaultMQ {
 
-    private LinkedBlockingQueue<FaultMsg> msgQueue = new LinkedBlockingQueue<>();
+    private LinkedBlockingQueue< FaultMsg > msgQueue = new LinkedBlockingQueue<>();
 
-    public void push(FaultMsg msg) {
+    public void push( FaultMsg msg ) {
         try {
-            msgQueue.put(msg);
-        } catch (InterruptedException e) {
+            msgQueue.put( msg );
+        } catch ( InterruptedException e ) {
             e.printStackTrace();
         }
     }
@@ -18,7 +18,7 @@ public class FaultMQ {
         FaultMsg m = null;
         try {
             m = msgQueue.take();
-        } catch (InterruptedException e) {
+        } catch ( InterruptedException e ) {
             e.printStackTrace();
         }
         return m;

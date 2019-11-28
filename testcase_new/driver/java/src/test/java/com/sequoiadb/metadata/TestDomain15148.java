@@ -21,98 +21,95 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
-public class TestDomain15148 extends SdbTestBase{
+public class TestDomain15148 extends SdbTestBase {
     /**
-     * description: createDomain
-     *              createdomain and alter domain and check
-     * testcase:    15148
-     * author:      chensiqin
-     * date:        2018/04/28
-    */
+     * description: createDomain createdomain and alter domain and check
+     * testcase: 15148 author: chensiqin date: 2018/04/28
+     */
     private Sequoiadb sdb = null;
-    private String domainName1 = "domain15148_1"; 
+    private String domainName1 = "domain15148_1";
     private String domainName2 = "domain15148_2";
-    private List<String> dataGroupNames = new ArrayList<String>();
-    
+    private List< String > dataGroupNames = new ArrayList< String >();
+
     @BeforeClass
     public void setUp() {
         String coordAddr = SdbTestBase.coordUrl;
-        System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                    ". the TestCase bigin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-        this.sdb = new Sequoiadb(coordAddr, "", "");
+        System.out.println( "the TestCase Name:" + this.getClass().getName()
+                + ". the TestCase bigin at:"
+                + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                        .format( new Date() ) );
+        this.sdb = new Sequoiadb( coordAddr, "", "" );
         CommLib commLib = new CommLib();
-        if (commLib.isStandAlone(sdb))
-        {
-            throw new SkipException("is standalone");
+        if ( commLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone" );
         }
-        dataGroupNames = commLib.getDataGroups(this.sdb);
-        if (dataGroupNames.size() < 3)
-        {
-            throw new SkipException("data group less 3");
+        dataGroupNames = commLib.getDataGroups( this.sdb );
+        if ( dataGroupNames.size() < 3 ) {
+            throw new SkipException( "data group less 3" );
         }
     }
-    
-    @Test
-    public void test15148(){
-        BSONObject option = new BasicBSONObject();
-        String[] arr = new String[]{dataGroupNames.get(0), dataGroupNames.get(1)};
-        option.put("Groups", arr);
-        Domain domain = sdb.createDomain(domainName1, option);
-        //alter  domain attribute
-        option = new BasicBSONObject();
-        arr = new String[]{dataGroupNames.get(1), dataGroupNames.get(2)};
-        option.put("Groups", arr);
-        option.put("Name", domainName2);
-        option.put("AutoSplit", true);
-        try
-        {
-            domain.setAttributes(option);
-        }
-        catch (BaseException e)
-        {
-            Assert.assertEquals(-6, e.getErrorCode());
-        }
-        
-        option = new BasicBSONObject();
-        arr = new String[]{dataGroupNames.get(1), dataGroupNames.get(2)};
-        option.put("Groups", arr);
-        option.put("AutoSplit", true);
-        domain.setAttributes(option);
-        CheckDomainInfo(domainName1, dataGroupNames.get(1), dataGroupNames.get(2));
 
-        sdb.dropDomain(domainName1);
+    @Test
+    public void test15148() {
+        BSONObject option = new BasicBSONObject();
+        String[] arr = new String[] { dataGroupNames.get( 0 ),
+                dataGroupNames.get( 1 ) };
+        option.put( "Groups", arr );
+        Domain domain = sdb.createDomain( domainName1, option );
+        // alter domain attribute
+        option = new BasicBSONObject();
+        arr = new String[] { dataGroupNames.get( 1 ), dataGroupNames.get( 2 ) };
+        option.put( "Groups", arr );
+        option.put( "Name", domainName2 );
+        option.put( "AutoSplit", true );
+        try {
+            domain.setAttributes( option );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( -6, e.getErrorCode() );
+        }
+
+        option = new BasicBSONObject();
+        arr = new String[] { dataGroupNames.get( 1 ), dataGroupNames.get( 2 ) };
+        option.put( "Groups", arr );
+        option.put( "AutoSplit", true );
+        domain.setAttributes( option );
+        CheckDomainInfo( domainName1, dataGroupNames.get( 1 ),
+                dataGroupNames.get( 2 ) );
+
+        sdb.dropDomain( domainName1 );
     }
-    
-    public void CheckDomainInfo(String name, String groupnam1, String groupname2)
-    {
- 
+
+    public void CheckDomainInfo( String name, String groupnam1,
+            String groupname2 ) {
+
         BSONObject matcher = new BasicBSONObject();
-        matcher.put("Name", name);
-        DBCursor cur = sdb.listDomains(matcher, null, null, null);
-        Assert.assertTrue(cur.hasNext());
+        matcher.put( "Name", name );
+        DBCursor cur = sdb.listDomains( matcher, null, null, null );
+        Assert.assertTrue( cur.hasNext() );
         BSONObject obj = cur.getNext();
-        //check name group autosplit
-        Assert.assertEquals(name, obj.get("Name").toString());
-        Assert.assertEquals(true, (boolean)obj.get("AutoSplit"));
-        BasicBSONList groupInfo = (BasicBSONList) obj.get("Groups");
-        for (int i = 0; i < groupInfo.size(); i++)
-        {
-            BSONObject doc = (BSONObject) groupInfo.get(i);
-            if (!groupnam1.equals(doc.get("GroupName").toString()) && !groupname2.equals(doc.get("GroupName").toString()))
-            {
-                Assert.fail("alter domain Groups result is error!");
+        // check name group autosplit
+        Assert.assertEquals( name, obj.get( "Name" ).toString() );
+        Assert.assertEquals( true, ( boolean ) obj.get( "AutoSplit" ) );
+        BasicBSONList groupInfo = ( BasicBSONList ) obj.get( "Groups" );
+        for ( int i = 0; i < groupInfo.size(); i++ ) {
+            BSONObject doc = ( BSONObject ) groupInfo.get( i );
+            if ( !groupnam1.equals( doc.get( "GroupName" ).toString() )
+                    && !groupname2
+                            .equals( doc.get( "GroupName" ).toString() ) ) {
+                Assert.fail( "alter domain Groups result is error!" );
             }
         }
         cur.close();
     }
-    
-    
+
     @AfterClass
     public void tearDown() {
-        if (this.sdb != null){
+        if ( this.sdb != null ) {
             this.sdb.close();
         }
-        System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                    ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+        System.out.println( "the TestCase Name:" + this.getClass().getName()
+                + ". the TestCase end at:"
+                + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                        .format( new Date() ) );
     }
 }

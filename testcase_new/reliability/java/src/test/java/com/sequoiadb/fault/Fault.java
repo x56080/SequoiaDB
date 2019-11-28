@@ -12,7 +12,7 @@ import com.sequoiadb.exception.FaultException;
 public abstract class Fault {
     private String name;
 
-    public Fault(String name) {
+    public Fault( String name ) {
         this.name = name;
     }
 

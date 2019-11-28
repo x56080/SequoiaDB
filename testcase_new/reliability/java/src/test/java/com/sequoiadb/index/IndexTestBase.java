@@ -26,131 +26,131 @@ import static com.sequoiadb.metaopr.commons.MyUtil.*;
  * @Version 1.00
  */
 class IndexTestBase implements StandTestInterface {
-    private final Logger log = Logger.getLogger(this.getClass().getName());
-    //num of inserting json
+    private final Logger log = Logger.getLogger( this.getClass().getName() );
+    // num of inserting json
     private static final int NUM = 500 * 1000;
 
-    //cs name
+    // cs name
     String csName = null;
-    //cl name
+    // cl name
     String clName = null;
-    //array of indexes to be creating
-    List<IndexBean> index2Create = new ArrayList<>(100);
-    //array of indexes must be created in setup
-    List<IndexBean> indexAlreadlyCreated = new ArrayList<>(100);
-    //array of bson to be inserting
-    static List<BSONObject> simpleBSONList = new ArrayList<>(NUM);
+    // array of indexes to be creating
+    List< IndexBean > index2Create = new ArrayList<>( 100 );
+    // array of indexes must be created in setup
+    List< IndexBean > indexAlreadlyCreated = new ArrayList<>( 100 );
+    // array of bson to be inserting
+    static List< BSONObject > simpleBSONList = new ArrayList<>( NUM );
 
     private DBCollection _cl = null;
     private Sequoiadb _db = null;
-
 
     public IndexTestBase() {
         csName = this.getClass().getSimpleName() + "cs";
         clName = this.getClass().getSimpleName() + "_cl";
 
-        String[] fileds = {"A", "B", "C", "D", "E", "F"};
-        for (int i = 0; i < fileds.length; i++) {
-            if (i < fileds.length / 2) {
-                indexAlreadlyCreated.add(new IndexBean()
-                        .setName("index" + i)
-                        .setIndexDef(new BasicBSONObject(fileds[i], 1)));
+        String[] fileds = { "A", "B", "C", "D", "E", "F" };
+        for ( int i = 0; i < fileds.length; i++ ) {
+            if ( i < fileds.length / 2 ) {
+                indexAlreadlyCreated.add( new IndexBean().setName( "index" + i )
+                        .setIndexDef( new BasicBSONObject( fileds[ i ], 1 ) ) );
             } else {
-                index2Create.add(new IndexBean()
-                        .setName("index" + i)
-                        .setIndexDef(new BasicBSONObject(fileds[i], 1)));
+                index2Create.add( new IndexBean().setName( "index" + i )
+                        .setIndexDef( new BasicBSONObject( fileds[ i ], 1 ) ) );
             }
         }
 
-        for (int i = 0; i < NUM; i++) {
+        for ( int i = 0; i < NUM; i++ ) {
             BSONObject bson = new BasicBSONObject();
-            for (String filed : fileds) {
-                bson.put(filed, i);
+            for ( String filed : fileds ) {
+                bson.put( filed, i );
             }
-            simpleBSONList.add(bson);
+            simpleBSONList.add( bson );
         }
     }
 
     void insertData() {
         openCl();
-        _cl.insert(simpleBSONList);
+        _cl.insert( simpleBSONList );
     }
 
     void split50() {
         openCl();
-        _cl.split("group1", "group2", 50);
+        _cl.split( "group1", "group2", 50 );
     }
 
     private void openCl() {
-        if (_cl == null) {
+        if ( _cl == null ) {
             Sequoiadb db = MyUtil.getSdb();
-            _cl = db.getCollectionSpace(csName)
-                    .getCollection(clName);
+            _cl = db.getCollectionSpace( csName ).getCollection( clName );
         }
     }
 
-    void createIndexCl(BSONObject option) {
-        if (isCsExisted(csName) == true) {
-            if (_db.getCollectionSpace(csName).getCollection(clName) != null) {
+    void createIndexCl( BSONObject option ) {
+        if ( isCsExisted( csName ) == true ) {
+            if ( _db.getCollectionSpace( csName )
+                    .getCollection( clName ) != null ) {
                 _db.close();
                 return;
             }
         } else {
-            createCS(csName);
+            createCS( csName );
         }
-        createCl(csName, clName, option);
+        createCl( csName, clName, option );
         openCl();
     }
 
-    void createIndexes(List<IndexBean> indexBeans) {
-        for (IndexBean indexBean : indexBeans) {
-            MyUtil.createIndex(_cl, indexBean);
+    void createIndexes( List< IndexBean > indexBeans ) {
+        for ( IndexBean indexBean : indexBeans ) {
+            MyUtil.createIndex( _cl, indexBean );
         }
     }
 
-    boolean isIndexesAllCreatedInNodes(List<GroupWrapper> groups) {
-        for (NodeWrapper node : getAllNodes(groups)) {
-            DBCollection cl = node.connect().getCollectionSpace(csName).getCollection(clName);
-            if (MyUtil.isIndexAllCreated(cl, index2Create) == false) {
-                log.severe("node check failed :" + node);
+    boolean isIndexesAllCreatedInNodes( List< GroupWrapper > groups ) {
+        for ( NodeWrapper node : getAllNodes( groups ) ) {
+            DBCollection cl = node.connect().getCollectionSpace( csName )
+                    .getCollection( clName );
+            if ( MyUtil.isIndexAllCreated( cl, index2Create ) == false ) {
+                log.severe( "node check failed :" + node );
                 return false;
             }
         }
         return true;
     }
 
-    boolean isIndexesAllCreatedInNodes(String... groups) throws ReliabilityException {
+    boolean isIndexesAllCreatedInNodes( String... groups )
+            throws ReliabilityException {
         GroupMgr mgr = GroupMgr.getInstance();
-        List<GroupWrapper> list = new ArrayList<>();
-        for (String group : groups) {
-            list.add(mgr.getGroupByName(group));
+        List< GroupWrapper > list = new ArrayList<>();
+        for ( String group : groups ) {
+            list.add( mgr.getGroupByName( group ) );
         }
-        return isIndexesAllCreatedInNodes(list);
+        return isIndexesAllCreatedInNodes( list );
     }
 
-    boolean isIndexesAllDeletedInNodes(String... groups) throws ReliabilityException {
+    boolean isIndexesAllDeletedInNodes( String... groups )
+            throws ReliabilityException {
         GroupMgr mgr = GroupMgr.getInstance();
-        List<GroupWrapper> list = new ArrayList<>();
-        for (String group : groups) {
-            list.add(mgr.getGroupByName(group));
+        List< GroupWrapper > list = new ArrayList<>();
+        for ( String group : groups ) {
+            list.add( mgr.getGroupByName( group ) );
         }
-        return isIndexesAllCreatedInNodes(list);
+        return isIndexesAllCreatedInNodes( list );
     }
 
-
-    private List<NodeWrapper> getAllNodes(List<GroupWrapper> groups) {
-        List<NodeWrapper> nodes = new ArrayList<>();
-        for (GroupWrapper group : groups) {
-            nodes.addAll(group.getNodes());
+    private List< NodeWrapper > getAllNodes( List< GroupWrapper > groups ) {
+        List< NodeWrapper > nodes = new ArrayList<>();
+        for ( GroupWrapper group : groups ) {
+            nodes.addAll( group.getNodes() );
         }
         return nodes;
     }
 
-    boolean isIndexesAllDeletedInNodes(List<GroupWrapper> groups) {
-        for (NodeWrapper node : getAllNodes(groups)) {
-            DBCollection cl = node.connect().getCollectionSpace(csName).getCollection(clName);
-            if (MyUtil.isIndexAllDeleted(cl, index2Create) == false) {
-                log.severe("node check failed :" + node);
+    boolean isIndexesAllDeletedInNodes( List< GroupWrapper > groups ) {
+        for ( NodeWrapper node : getAllNodes( groups ) ) {
+            DBCollection cl = node.connect().getCollectionSpace( csName )
+                    .getCollection( clName );
+            if ( MyUtil.isIndexAllDeleted( cl, index2Create ) == false ) {
+                log.severe( "node check failed :" + node );
                 return false;
             }
         }
@@ -158,11 +158,12 @@ class IndexTestBase implements StandTestInterface {
     }
 
     IndexTask getCreateTask() {
-        return IndexTask.getCreateIndexTask(csName, clName, index2Create);
+        return IndexTask.getCreateIndexTask( csName, clName, index2Create );
     }
 
     IndexTask getDeleteTask() {
-        return IndexTask.getRemoveIndexTask(csName, clName, indexAlreadlyCreated);
+        return IndexTask.getRemoveIndexTask( csName, clName,
+                indexAlreadlyCreated );
     }
 
     @BeforeClass
@@ -174,7 +175,7 @@ class IndexTestBase implements StandTestInterface {
     @AfterClass
     @Override
     public void tearDown() {
-        _db.dropCollectionSpace(csName);
+        _db.dropCollectionSpace( csName );
         _db.close();
     }
 }

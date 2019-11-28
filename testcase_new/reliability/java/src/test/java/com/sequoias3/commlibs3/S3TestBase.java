@@ -44,14 +44,17 @@ public class S3TestBase {
     private static String clusterInfo = "";
     private static StorageInterface storage = new SdbStorage();
 
-    @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN", "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR",
-            "S3HOSTNAME", "S3PORT", "S3USERNAME", "S3ACCESSKEYID", "ROOTPASSWD", "REMOTEUSER", "REMOTEPASSWD",
-            "SCRIPTDIR" })
+    @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
+            "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "S3HOSTNAME", "S3PORT",
+            "S3USERNAME", "S3ACCESSKEYID", "ROOTPASSWD", "REMOTEUSER",
+            "REMOTEPASSWD", "SCRIPTDIR" })
     @BeforeSuite
-    public void initSuite(String HOSTNAME, String SVCNAME, String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
-            String RSRVNODEDIR, String WORKDIR, String S3HOSTNAME, @Optional("8002") String S3PORT, String S3USERNAME,
-            String S3ACCESSKEYID, String ROOTPASSWD, String REMOTEUSER, String REMOTEPASSWD, String SCRIPTDIR)
-                    throws Exception {
+    public void initSuite( String HOSTNAME, String SVCNAME, String COMMCSNAME,
+            int RSRVPORTBEGIN, int RSRVPORTEND, String RSRVNODEDIR,
+            String WORKDIR, String S3HOSTNAME, @Optional("8002") String S3PORT,
+            String S3USERNAME, String S3ACCESSKEYID, String ROOTPASSWD,
+            String REMOTEUSER, String REMOTEPASSWD, String SCRIPTDIR )
+            throws Exception {
 
         SdbTestBase.hostName = hostName = HOSTNAME;
         SdbTestBase.serviceName = serviceName = SVCNAME;
@@ -75,11 +78,11 @@ public class S3TestBase {
         enableVerBucketName = "commbucketwithversion";
 
         getInstallPath();
-        storage.envPrePare(coordUrl);
+        storage.envPrePare( coordUrl );
         changeConfAndStartS3();
         // clean file
-        File workDirFile = new File(workDir);
-        if (!workDirFile.exists()) {
+        File workDirFile = new File( workDir );
+        if ( !workDirFile.exists() ) {
             workDirFile.mkdir();
         }
         createCommonCS();
@@ -89,13 +92,13 @@ public class S3TestBase {
     @AfterSuite
     public void finiSuite() throws Exception {
         try {
-            execCmd(Command.S3_RESTORECONF);
+            execCmd( Command.S3_RESTORECONF );
             clusterFileName = installPath + "/tools/sequoias3/log/cluster.log";
-            clusterInfo = storage.getClusterInfo(coordUrl);
-            execCmd(Command.S3_SAVECLUSTERINFO);
-            storage.envRestore(coordUrl);
+            clusterInfo = storage.getClusterInfo( coordUrl );
+            execCmd( Command.S3_SAVECLUSTERINFO );
+            storage.envRestore( coordUrl );
         } finally {
-            execCmd(Command.S3_STOP);
+            execCmd( Command.S3_STOP );
         }
     }
 
@@ -114,40 +117,41 @@ public class S3TestBase {
     public static void changeConfAndStartS3() throws Exception {
         // 更新properties
         try {
-            execCmd(Command.S3_SETCONFBEFORE);
+            execCmd( Command.S3_SETCONFBEFORE );
             // change log level
-            execCmd(Command.S3_CHANGEDIALEVEL);
-        } catch (Exception e) {
+            execCmd( Command.S3_CHANGEDIALEVEL );
+        } catch ( Exception e ) {
             e.printStackTrace();
-            Assert.fail("update application.properties file failed");
+            Assert.fail( "update application.properties file failed" );
         }
-        System.out.println("finish update application.properties");
-        execCmd(Command.S3_CHECKPORTALIVE);
+        System.out.println( "finish update application.properties" );
+        execCmd( Command.S3_CHECKPORTALIVE );
         String output = Command.S3_CHECKPORTALIVE.getOutput();
-        //检查如已存在s3进程，则重启s3服务，不存在的话就直接启动s3
-        if (output.contains("sequoias3")) {
-            System.out.println("restart s3...");
-            execCmd(Command.S3_STOP);
-            execCmd(Command.S3_START);
+        // 检查如已存在s3进程，则重启s3服务，不存在的话就直接启动s3
+        if ( output.contains( "sequoias3" ) ) {
+            System.out.println( "restart s3..." );
+            execCmd( Command.S3_STOP );
+            execCmd( Command.S3_START );
         } else {
-            execCmd(Command.S3_START);
+            execCmd( Command.S3_START );
         }
     }
 
     public static void getInstallPath() throws Exception {
-        Command.S3_GETINSTALLPATH.execCmd(s3HostName, remoteUser, remotePwd, Command.S3_GETINSTALLPATH.cmd);
+        Command.S3_GETINSTALLPATH.execCmd( s3HostName, remoteUser, remotePwd,
+                Command.S3_GETINSTALLPATH.cmd );
         installPath = Command.S3_GETINSTALLPATH.getOutput();
     }
 
     public static void createCommonCS() {
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(coordUrl, "", "");
-            if (!db.isCollectionSpaceExist(csName)) {
-                db.createCollectionSpace(csName);
+            db = new Sequoiadb( coordUrl, "", "" );
+            if ( !db.isCollectionSpaceExist( csName ) ) {
+                db.createCollectionSpace( csName );
             }
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -158,53 +162,62 @@ public class S3TestBase {
         try {
             // clean up existing buckets
             s3Client = CommLibS3.buildS3Client();
-            List<Bucket> buckets = s3Client.listBuckets();
-            for (int i = 0; i < buckets.size(); i++) {
-                String bucketName = buckets.get(i).getName();
-                String bucketVerStatus = s3Client.getBucketVersioningConfiguration(bucketName).getStatus();
-                if (bucketVerStatus == "null") {
-                    CommLibS3.deleteAllObjects(s3Client, bucketName);
+            List< Bucket > buckets = s3Client.listBuckets();
+            for ( int i = 0; i < buckets.size(); i++ ) {
+                String bucketName = buckets.get( i ).getName();
+                String bucketVerStatus = s3Client
+                        .getBucketVersioningConfiguration( bucketName )
+                        .getStatus();
+                if ( bucketVerStatus == "null" ) {
+                    CommLibS3.deleteAllObjects( s3Client, bucketName );
                 } else {
-                    CommLibS3.deleteAllObjectVersions(s3Client, bucketName);
+                    CommLibS3.deleteAllObjectVersions( s3Client, bucketName );
                 }
-                s3Client.deleteBucket(bucketName);
+                s3Client.deleteBucket( bucketName );
             }
             // create bucket
-            s3Client.createBucket(new CreateBucketRequest(bucketName));
+            s3Client.createBucket( new CreateBucketRequest( bucketName ) );
             // create bucket by enable versioning
-            s3Client.createBucket(new CreateBucketRequest(enableVerBucketName));
-            CommLibS3.setBucketVersioning(s3Client, enableVerBucketName, "Enabled");
+            s3Client.createBucket(
+                    new CreateBucketRequest( enableVerBucketName ) );
+            CommLibS3.setBucketVersioning( s3Client, enableVerBucketName,
+                    "Enabled" );
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }
     }
 
-    private static void execCmd(Command cmd) throws Exception {
+    private static void execCmd( Command cmd ) throws Exception {
         String command = "";
-        switch (cmd) {
+        switch ( cmd ) {
         case S3_CHECKPORTALIVE:
         case S3_START:
         case S3_STOP:
-            cmd.exec(s3HostName, remoteUser, remotePwd, installPath);
+            cmd.exec( s3HostName, remoteUser, remotePwd, installPath );
             break;
         case S3_SETCONFBEFORE:
-            propertiesFileName = installPath + "/tools/sequoias3/config/application.properties";
-            replaceFileName = installPath + "/tools/sequoias3/config/ori_application.properties";
-            String coordUrls = storage.getUrls(coordUrl);
-            cmd.exec(s3HostName, remoteUser, remotePwd, propertiesFileName, replaceFileName, coordUrls,
-                    propertiesFileName);
+            propertiesFileName = installPath
+                    + "/tools/sequoias3/config/application.properties";
+            replaceFileName = installPath
+                    + "/tools/sequoias3/config/ori_application.properties";
+            String coordUrls = storage.getUrls( coordUrl );
+            cmd.exec( s3HostName, remoteUser, remotePwd, propertiesFileName,
+                    replaceFileName, coordUrls, propertiesFileName );
             break;
         case S3_CHANGEDIALEVEL:
-            String logBackFileName = installPath + "/tools/sequoias3/config/logback.xml";
-            cmd.exec(s3HostName, remoteUser, remotePwd, logBackFileName);
+            String logBackFileName = installPath
+                    + "/tools/sequoias3/config/logback.xml";
+            cmd.exec( s3HostName, remoteUser, remotePwd, logBackFileName );
             break;
         case S3_RESTORECONF:
-            cmd.exec(s3HostName, remoteUser, remotePwd, propertiesFileName, replaceFileName, propertiesFileName);
+            cmd.exec( s3HostName, remoteUser, remotePwd, propertiesFileName,
+                    replaceFileName, propertiesFileName );
             break;
         case S3_SAVECLUSTERINFO:
-            cmd.exec(s3HostName, remoteUser, remotePwd, clusterInfo, clusterFileName);
+            cmd.exec( s3HostName, remoteUser, remotePwd, clusterInfo,
+                    clusterFileName );
             break;
         default:
             break;
@@ -212,56 +225,60 @@ public class S3TestBase {
 
         Ssh ssh = null;
         try {
-            ssh = new Ssh(s3HostName, remoteUser, remotePwd);
-            ssh.exec(command);
-            if (ssh.getExitStatus() != 0) {
-                throw new Exception("exec command : " + command + " failed, stout= " + ssh.getStdout());
+            ssh = new Ssh( s3HostName, remoteUser, remotePwd );
+            ssh.exec( command );
+            if ( ssh.getExitStatus() != 0 ) {
+                throw new Exception( "exec command : " + command
+                        + " failed, stout= " + ssh.getStdout() );
             }
         } finally {
-            if (ssh != null) {
+            if ( ssh != null ) {
                 ssh.disconnect();
             }
         }
     }
 
     enum Command {
-        S3_CHECKPORTALIVE("%s/tools/sequoias3/sequoias3.sh status"), 
-        S3_START("source /etc/profile;%s/tools/sequoias3/sequoias3.sh start > /tmp/s3start.log"),
-        S3_STOP("%s/tools/sequoias3/sequoias3.sh stop -a"), 
-        S3_SETCONFBEFORE("mv %s %s;echo 'sdbs3.sequoiadb.url=sequoiadb://%s' > %s"), 
-        S3_CHANGEDIALEVEL("sed -i 's/INFO/DEBUG/g' %s"), 
-        S3_RESTORECONF("rm -f %s;mv %s %s"), 
-        S3_CHANGECONF_BEFORETEST("echo '%s' >> %s"), 
-        S3_CHANGECONF_AFTERTEST("sed -i 's/%s/#%s/g' %s"), 
-        S3_SAVECLUSTERINFO("echo %s > %s"), 
-        S3_GETINSTALLPATH("cat /etc/default/sequoiadb | grep 'INSTALL_DIR' | awk -F '=' '{printf(\"%s\",$2)}'");
+        S3_CHECKPORTALIVE("%s/tools/sequoias3/sequoias3.sh status"), S3_START(
+                "source /etc/profile;%s/tools/sequoias3/sequoias3.sh start > /tmp/s3start.log"), S3_STOP(
+                        "%s/tools/sequoias3/sequoias3.sh stop -a"), S3_SETCONFBEFORE(
+                                "mv %s %s;echo 'sdbs3.sequoiadb.url=sequoiadb://%s' > %s"), S3_CHANGEDIALEVEL(
+                                        "sed -i 's/INFO/DEBUG/g' %s"), S3_RESTORECONF(
+                                                "rm -f %s;mv %s %s"), S3_CHANGECONF_BEFORETEST(
+                                                        "echo '%s' >> %s"), S3_CHANGECONF_AFTERTEST(
+                                                                "sed -i 's/%s/#%s/g' %s"), S3_SAVECLUSTERINFO(
+                                                                        "echo %s > %s"), S3_GETINSTALLPATH(
+                                                                                "cat /etc/default/sequoiadb | grep 'INSTALL_DIR' | awk -F '=' '{printf(\"%s\",$2)}'");
 
         private String cmd;
         private String output;
 
-        private Command(String cmd) {
+        private Command( String cmd ) {
             this.cmd = cmd;
         }
 
-        public void execCmd(String remoteHost, String user, String password, String command) throws Exception {
+        public void execCmd( String remoteHost, String user, String password,
+                String command ) throws Exception {
             Ssh ssh = null;
             try {
-                ssh = new Ssh(remoteHost, user, password);
-                ssh.exec(command);
-                if (ssh.getExitStatus() != 0) {
-                    throw new Exception("exec command : " + command + " failed, stout= " + ssh.getStdout());
+                ssh = new Ssh( remoteHost, user, password );
+                ssh.exec( command );
+                if ( ssh.getExitStatus() != 0 ) {
+                    throw new Exception( "exec command : " + command
+                            + " failed, stout= " + ssh.getStdout() );
                 }
                 this.output = ssh.getStdout();
             } finally {
-                if (ssh != null) {
+                if ( ssh != null ) {
                     ssh.disconnect();
                 }
             }
         }
 
-        public void exec(String remoteHost, String user, String password, String... args) throws Exception {
-            String command = String.format(this.cmd, args);
-            execCmd(remoteHost, user, password, command);
+        public void exec( String remoteHost, String user, String password,
+                String... args ) throws Exception {
+            String command = String.format( this.cmd, args );
+            execCmd( remoteHost, user, password, command );
         }
 
         public String getOutput() {

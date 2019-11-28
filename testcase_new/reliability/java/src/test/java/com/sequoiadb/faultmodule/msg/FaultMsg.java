@@ -8,7 +8,7 @@ public class FaultMsg {
     private Exception makeExp;
     private boolean isProcessed;
 
-    public FaultMsg(Fault fault) {
+    public FaultMsg( Fault fault ) {
         this.fault = fault;
         isProcessed = false;
     }
@@ -17,7 +17,7 @@ public class FaultMsg {
         return fault;
     }
 
-    public void setFault(Fault fault) {
+    public void setFault( Fault fault ) {
         this.fault = fault;
     }
 
@@ -25,7 +25,7 @@ public class FaultMsg {
         return makeExp;
     }
 
-    public void setMakeExp(Exception makeExp) {
+    public void setMakeExp( Exception makeExp ) {
         this.makeExp = makeExp;
     }
 
@@ -33,7 +33,7 @@ public class FaultMsg {
         return isProcessed;
     }
 
-    public void setProcessed(boolean isProcessed) {
+    public void setProcessed( boolean isProcessed ) {
         this.isProcessed = isProcessed;
     }
 }

@@ -23,134 +23,137 @@ import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.SdbTestBase;
 
-public class TestCS15149 extends SdbTestBase{
+public class TestCS15149 extends SdbTestBase {
     /**
-     * description: cs.Alter() modify cs's Name、LobPageSize、PageSize attribute, and chek result
-     *              sunch as:
-     *                a. alter（{PageSize:4096，LobPageSize：2048}）
-     *                b. db.newcs.alter({Alter:[ {Name:"set attributes", Args:{PageSize:4096}}, {Name:"set attributes", Args: {Name:“cs”}}, {Name:"set attributes", Args: {PageSize:8192}}], Options:{IgnoreException:true}} )
-     * testcase:    15149
-     * author:      chensiqin
-     * date:        2018/04/26
-    */
+     * description: cs.Alter() modify cs's Name、LobPageSize、PageSize attribute,
+     * and chek result sunch as: a. alter（{PageSize:4096，LobPageSize：2048}） b.
+     * db.newcs.alter({Alter:[ {Name:"set attributes", Args:{PageSize:4096}},
+     * {Name:"set attributes", Args: {Name:“cs”}}, {Name:"set attributes", Args:
+     * {PageSize:8192}}], Options:{IgnoreException:true}} ) testcase: 15149
+     * author: chensiqin date: 2018/04/26
+     */
     private Sequoiadb sdb = null;
     private CollectionSpace cs = null;
     private String localCsName = "cs15149";
     private String domainName = "domain15149";
-    private List<String> dataGroupNames = new ArrayList<String>();
-    
+    private List< String > dataGroupNames = new ArrayList< String >();
+
     @BeforeClass
     public void setUp() {
         String coordAddr = SdbTestBase.coordUrl;
-        System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                    ". the TestCase bigin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-        this.sdb = new Sequoiadb(coordAddr, "", "");
+        System.out.println( "the TestCase Name:" + this.getClass().getName()
+                + ". the TestCase bigin at:"
+                + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                        .format( new Date() ) );
+        this.sdb = new Sequoiadb( coordAddr, "", "" );
         CommLib commLib = new CommLib();
-        if (commLib.isStandAlone(sdb))
-        {
-            throw new SkipException("is standalone");
+        if ( commLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone" );
         }
-        dataGroupNames = commLib.getDataGroups(this.sdb);
-        if (dataGroupNames.size() < 3)
-        {
-            throw new SkipException("data group less 3");
+        dataGroupNames = commLib.getDataGroups( this.sdb );
+        if ( dataGroupNames.size() < 3 ) {
+            throw new SkipException( "data group less 3" );
         }
     }
-    
+
     @Test
-    public void test15149(){
-        cs = sdb.createCollectionSpace(localCsName);
+    public void test15149() {
+        cs = sdb.createCollectionSpace( localCsName );
         BSONObject alterList = new BasicBSONList();
         BSONObject alterBson = new BasicBSONObject();
-        alterBson.put("Name", "set attributes");
-        alterBson.put("Args", new BasicBSONObject("PageSize", 4096));
-        alterList.put(Integer.toString(0), alterBson);
-        
+        alterBson.put( "Name", "set attributes" );
+        alterBson.put( "Args", new BasicBSONObject( "PageSize", 4096 ) );
+        alterList.put( Integer.toString( 0 ), alterBson );
+
         alterBson = new BasicBSONObject();
-        alterBson.put("Name", "set attributes");
-        alterBson.put("Args", new BasicBSONObject("LobPageSize", 4096));
-        alterList.put(Integer.toString(1), alterBson);
-        
+        alterBson.put( "Name", "set attributes" );
+        alterBson.put( "Args", new BasicBSONObject( "LobPageSize", 4096 ) );
+        alterList.put( Integer.toString( 1 ), alterBson );
+
         BSONObject options = new BasicBSONObject();
-        options.put("Alter", alterList);
-        cs.alterCollectionSpace(options);
-        checkCSCataInfo(false);
+        options.put( "Alter", alterList );
+        cs.alterCollectionSpace( options );
+        checkCSCataInfo( false );
 
         BSONObject option = new BasicBSONObject();
-        
-        String[] arr = new String[]{dataGroupNames.get(0),dataGroupNames.get(1)};
-        option.put("Groups", arr);
-        sdb.createDomain(domainName, option);
-        
+
+        String[] arr = new String[] { dataGroupNames.get( 0 ),
+                dataGroupNames.get( 1 ) };
+        option.put( "Groups", arr );
+        sdb.createDomain( domainName, option );
+
         alterList = new BasicBSONList();
         alterBson = new BasicBSONObject();
-        alterBson.put("Name", "set attributes");
-        alterBson.put("Args", new BasicBSONObject("PageSize", 8192));
-        alterList.put(Integer.toString(0), alterBson);
-        
+        alterBson.put( "Name", "set attributes" );
+        alterBson.put( "Args", new BasicBSONObject( "PageSize", 8192 ) );
+        alterList.put( Integer.toString( 0 ), alterBson );
+
         alterBson = new BasicBSONObject();
-        alterBson.put("Name", "set attributes");
-        alterBson.put("Args", new BasicBSONObject("LobPageSize", 8192));
-        alterList.put(Integer.toString(1), alterBson);
-        
+        alterBson.put( "Name", "set attributes" );
+        alterBson.put( "Args", new BasicBSONObject( "LobPageSize", 8192 ) );
+        alterList.put( Integer.toString( 1 ), alterBson );
+
         alterBson = new BasicBSONObject();
-        alterBson.put("Name", "set attributes");
-        alterBson.put("Args", new BasicBSONObject("Name", "cs"));
-        alterList.put(Integer.toString(2), alterBson);
-        
+        alterBson.put( "Name", "set attributes" );
+        alterBson.put( "Args", new BasicBSONObject( "Name", "cs" ) );
+        alterList.put( Integer.toString( 2 ), alterBson );
+
         alterBson = new BasicBSONObject();
-        alterBson.put("Name", "set attributes");
-        alterBson.put("Args", new BasicBSONObject("Domain", domainName));
-        alterList.put(Integer.toString(3), alterBson);
+        alterBson.put( "Name", "set attributes" );
+        alterBson.put( "Args", new BasicBSONObject( "Domain", domainName ) );
+        alterList.put( Integer.toString( 3 ), alterBson );
 
         options = new BasicBSONObject();
-        options.put("Alter", alterList);
-        
-        alterBson = new BasicBSONObject();
-        alterBson.put("IgnoreException", true);
-        options.put("Options", alterBson);
-        cs.alterCollectionSpace(options);
-        checkCSCataInfo(true);
+        options.put( "Alter", alterList );
 
-        sdb.dropCollectionSpace(localCsName);
-        sdb.dropDomain(domainName);
+        alterBson = new BasicBSONObject();
+        alterBson.put( "IgnoreException", true );
+        options.put( "Options", alterBson );
+        cs.alterCollectionSpace( options );
+        checkCSCataInfo( true );
+
+        sdb.dropCollectionSpace( localCsName );
+        sdb.dropDomain( domainName );
     }
-    
-    public void checkCSCataInfo(boolean ignoreException)
-    {
+
+    public void checkCSCataInfo( boolean ignoreException ) {
         DBQuery query = new DBQuery();
         BSONObject matcher = new BasicBSONObject();
         BSONObject actual = new BasicBSONObject();
-        matcher.put("Name", localCsName);
-        ReplicaGroup cataRg = sdb.getReplicaGroup("SYSCatalogGroup");
+        matcher.put( "Name", localCsName );
+        ReplicaGroup cataRg = sdb.getReplicaGroup( "SYSCatalogGroup" );
         Sequoiadb cataDB = cataRg.getMaster().connect();
-        CollectionSpace sysCS = cataDB.getCollectionSpace("SYSCAT");
-        DBCollection sysCL = sysCS.getCollection("SYSCOLLECTIONSPACES");
-        query.setMatcher(matcher);
-        DBCursor cur = sysCL.query(query);
-        if (ignoreException)
-        {
-            Assert.assertTrue(cur.hasNext());
+        CollectionSpace sysCS = cataDB.getCollectionSpace( "SYSCAT" );
+        DBCollection sysCL = sysCS.getCollection( "SYSCOLLECTIONSPACES" );
+        query.setMatcher( matcher );
+        DBCursor cur = sysCL.query( query );
+        if ( ignoreException ) {
+            Assert.assertTrue( cur.hasNext() );
             actual = cur.getNext();
-            Assert.assertEquals(actual.get("PageSize").toString(), 8192 + "");
-            Assert.assertEquals(actual.get("LobPageSize").toString(), 8192 + "");
-            Assert.assertEquals(actual.get("Domain").toString(), domainName);
-        }
-        else
-        {
-            Assert.assertTrue(cur.hasNext());
+            Assert.assertEquals( actual.get( "PageSize" ).toString(),
+                    8192 + "" );
+            Assert.assertEquals( actual.get( "LobPageSize" ).toString(),
+                    8192 + "" );
+            Assert.assertEquals( actual.get( "Domain" ).toString(),
+                    domainName );
+        } else {
+            Assert.assertTrue( cur.hasNext() );
             actual = cur.getNext();
-            Assert.assertEquals(actual.get("PageSize").toString(), 4096+"");
-            Assert.assertEquals(actual.get("LobPageSize").toString(), 4096 + "");
+            Assert.assertEquals( actual.get( "PageSize" ).toString(),
+                    4096 + "" );
+            Assert.assertEquals( actual.get( "LobPageSize" ).toString(),
+                    4096 + "" );
         }
     }
-    
+
     @AfterClass
     public void tearDown() {
-        if (this.sdb != null){
+        if ( this.sdb != null ) {
             this.sdb.close();
         }
-        System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                    ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+        System.out.println( "the TestCase Name:" + this.getClass().getName()
+                + ". the TestCase end at:"
+                + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                        .format( new Date() ) );
     }
 }

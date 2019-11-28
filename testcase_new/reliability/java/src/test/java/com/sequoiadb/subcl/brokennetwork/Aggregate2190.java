@@ -35,11 +35,10 @@ import java.util.List;
  * @Version 1.00
  */
 
-/* 
- * 1、创建主表和子表 
- * 2、在主表使用aggregate查询数据（使用多个聚集符组合查询），
- *    聚集操作过程中将dataRG主节点网络断掉（如：使用cutnet.sh工具，命令格式为nohup ./cutnet.sh &），检查聚集操作结果
- * 3、将dataRG主节点网络恢复，检查dataRG各节点数据是否完整一致，并在此做聚集操作，检查返回结果 
+/*
+ * 1、创建主表和子表 2、在主表使用aggregate查询数据（使用多个聚集符组合查询），
+ * 聚集操作过程中将dataRG主节点网络断掉（如：使用cutnet.sh工具，命令格式为nohup ./cutnet.sh &），检查聚集操作结果
+ * 3、将dataRG主节点网络恢复，检查dataRG各节点数据是否完整一致，并在此做聚集操作，检查返回结果
  */
 
 public class Aggregate2190 extends SdbTestBase {
@@ -57,32 +56,38 @@ public class Aggregate2190 extends SdbTestBase {
     public void setUp() {
         Sequoiadb db = null;
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
 
             groupMgr = GroupMgr.getInstance();
-            if (!groupMgr.checkBusiness()) {
-                throw new SkipException("checkBusiness failed");
+            if ( !groupMgr.checkBusiness() ) {
+                throw new SkipException( "checkBusiness failed" );
             }
 
-            clGroup = groupMgr.getAllDataGroupName().get(0);
-            GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
+            clGroup = groupMgr.getAllDataGroupName().get( 0 );
+            GroupWrapper cataGroup = groupMgr
+                    .getGroupByName( "SYSCatalogGroup" );
             String cataPriHost = cataGroup.getMaster().hostName();
-            dataGroup = groupMgr.getGroupByName(clGroup);
+            dataGroup = groupMgr.getGroupByName( clGroup );
             dataPriHost = dataGroup.getMaster().hostName();
-            if (cataPriHost.equals(dataPriHost) && !cataGroup.changePrimary()) {
-                throw new SkipException(cataGroup.getGroupName() + " reelect fail");
+            if ( cataPriHost.equals( dataPriHost )
+                    && !cataGroup.changePrimary() ) {
+                throw new SkipException(
+                        cataGroup.getGroupName() + " reelect fail" );
             }
 
-            db = new Sequoiadb(coordUrl, "", "");
-            Utils.createMclAndScl(db, mclName, clGroup);
-            Utils.attachAllScl(db, mclName);
-            insertData(db);
-        } catch (ReliabilityException e) {
-            Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
-                    + Utils.getKeyStack(e, this));
+            db = new Sequoiadb( coordUrl, "", "" );
+            Utils.createMclAndScl( db, mclName, clGroup );
+            Utils.attachAllScl( db, mclName );
+            insertData( db );
+        } catch ( ReliabilityException e ) {
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -92,28 +97,30 @@ public class Aggregate2190 extends SdbTestBase {
     public void test() {
         Sequoiadb db = null;
         try {
-            FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(dataPriHost, 0, 10);
-            TaskMgr mgr = new TaskMgr(faultTask);
-            String safeUrl = CommLib.getSafeCoordUrl(dataPriHost);
-            mgr.addTask(new AggregateTask(safeUrl));
+            FaultMakeTask faultTask = BrokenNetwork
+                    .getFaultMakeTask( dataPriHost, 0, 10 );
+            TaskMgr mgr = new TaskMgr( faultTask );
+            String safeUrl = CommLib.getSafeCoordUrl( dataPriHost );
+            mgr.addTask( new AggregateTask( safeUrl ) );
             mgr.execute();
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
-            if (!groupMgr.checkBusinessWithLSN(600)) {
-                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            if ( !groupMgr.checkBusinessWithLSN( 600 ) ) {
+                Assert.fail( "checkBusinessWithLSN() occurs timeout" );
             }
 
-            if (!dataGroup.checkInspect(1)) {
-                Assert.fail("data is different on " + dataGroup.getGroupName());
+            if ( !dataGroup.checkInspect( 1 ) ) {
+                Assert.fail(
+                        "data is different on " + dataGroup.getGroupName() );
             }
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            checkAggregate(db);
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            checkAggregate( db );
             runSuccess = true;
-        } catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -121,28 +128,31 @@ public class Aggregate2190 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (!runSuccess) {
-            throw new SkipException("to save environment");
+        if ( !runSuccess ) {
+            throw new SkipException( "to save environment" );
         }
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            Utils.dropMclAndScl(db, mclName);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            Utils.dropMclAndScl( db, mclName );
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    e.getMessage() + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
         }
     }
 
     private class AggregateTask extends OperateTask {
         private String safeUrl = null;
 
-        public AggregateTask(String safeUrl) {
+        public AggregateTask( String safeUrl ) {
             this.safeUrl = safeUrl;
         }
 
@@ -150,75 +160,83 @@ public class Aggregate2190 extends SdbTestBase {
         public void exec() throws Exception {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(safeUrl, "", "");
-                CollectionSpace cs = db.getCollectionSpace(csName);
-                DBCollection mcl = cs.getCollection(mclName);
-                List<BSONObject> obj = new ArrayList<BSONObject>();
-                BSONObject match = (BSONObject) JSON.parse("{ $match: {} }");
-                obj.add(match);
-                BSONObject groupAndAvg = (BSONObject) JSON
-                        .parse("{ $group: { _id: '$a', avg_val: { $avg: '$i' }, a: { $first: '$a' } } }");
-                obj.add(groupAndAvg);
-                BSONObject sort = (BSONObject) JSON.parse("{ $sort: { a: -1 } }");
-                obj.add(sort);
-                DBCursor cursor = mcl.aggregate(obj);
-                
+                db = new Sequoiadb( safeUrl, "", "" );
+                CollectionSpace cs = db.getCollectionSpace( csName );
+                DBCollection mcl = cs.getCollection( mclName );
+                List< BSONObject > obj = new ArrayList< BSONObject >();
+                BSONObject match = ( BSONObject ) JSON
+                        .parse( "{ $match: {} }" );
+                obj.add( match );
+                BSONObject groupAndAvg = ( BSONObject ) JSON.parse(
+                        "{ $group: { _id: '$a', avg_val: { $avg: '$i' }, a: { $first: '$a' } } }" );
+                obj.add( groupAndAvg );
+                BSONObject sort = ( BSONObject ) JSON
+                        .parse( "{ $sort: { a: -1 } }" );
+                obj.add( sort );
+                DBCursor cursor = mcl.aggregate( obj );
+
                 int expA = MCL_RANGE - 1; // expected value of field "a"
-                double expAvgVal = expA + 475000.00; // expected value of field "avg_val"
-                while (cursor.hasNext()) {
+                double expAvgVal = expA + 475000.00; // expected value of field
+                                                     // "avg_val"
+                while ( cursor.hasNext() ) {
                     BSONObject res = cursor.getNext();
-                    int actA = (int) res.get("a");
-                    double actAvgVal = (double) res.get("avg_val");
-                    if (actA != expA || actAvgVal != expAvgVal) {
-                        throw new ReliabilityException("aggregate failed: "
-                                + "actual: " + actA + " " + actAvgVal + " " 
-                                + "expect: " + expA + " " + expAvgVal);
+                    int actA = ( int ) res.get( "a" );
+                    double actAvgVal = ( double ) res.get( "avg_val" );
+                    if ( actA != expA || actAvgVal != expAvgVal ) {
+                        throw new ReliabilityException( "aggregate failed: "
+                                + "actual: " + actA + " " + actAvgVal + " "
+                                + "expect: " + expA + " " + expAvgVal );
                     }
                     // update expect value
                     --expA;
                     --expAvgVal;
                 }
                 cursor.close();
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.close();
                 }
             }
         }
     }
 
-    private void insertData(Sequoiadb db) {
-        DBCollection mcl = db.getCollectionSpace(csName).getCollection(mclName);
-        List<BSONObject> recs = new ArrayList<BSONObject>();
+    private void insertData( Sequoiadb db ) {
+        DBCollection mcl = db.getCollectionSpace( csName )
+                .getCollection( mclName );
+        List< BSONObject > recs = new ArrayList< BSONObject >();
         int recTotal = 1000000;
-        for (int i = 0; i < recTotal; i++) {
+        for ( int i = 0; i < recTotal; i++ ) {
             int valueInRange = i % MCL_RANGE;
-            recs.add((BSONObject) JSON.parse("{ i: " + i + ", a: " + valueInRange + " }"));
+            recs.add( ( BSONObject ) JSON
+                    .parse( "{ i: " + i + ", a: " + valueInRange + " }" ) );
         }
-        mcl.insert(recs, DBCollection.FLG_INSERT_CONTONDUP);
+        mcl.insert( recs, DBCollection.FLG_INSERT_CONTONDUP );
     }
 
-    private void checkAggregate(Sequoiadb db) {
-        DBCollection mcl = db.getCollectionSpace(csName).getCollection(mclName);
-        List<BSONObject> obj = new ArrayList<BSONObject>();
-        BSONObject match = (BSONObject) JSON.parse("{ $match: {} }");
-        obj.add(match);
-        BSONObject group = (BSONObject) JSON
-                .parse("{ $group: { _id: '$a', avg_val: { $avg: '$i' }, a: { $first: '$a' } } }");
-        obj.add(group);
-        BSONObject sort = (BSONObject) JSON.parse("{ $sort: { a: -1 } }");
-        obj.add(sort);
-        DBCursor cursor = mcl.aggregate(obj);
-        
+    private void checkAggregate( Sequoiadb db ) {
+        DBCollection mcl = db.getCollectionSpace( csName )
+                .getCollection( mclName );
+        List< BSONObject > obj = new ArrayList< BSONObject >();
+        BSONObject match = ( BSONObject ) JSON.parse( "{ $match: {} }" );
+        obj.add( match );
+        BSONObject group = ( BSONObject ) JSON.parse(
+                "{ $group: { _id: '$a', avg_val: { $avg: '$i' }, a: { $first: '$a' } } }" );
+        obj.add( group );
+        BSONObject sort = ( BSONObject ) JSON.parse( "{ $sort: { a: -1 } }" );
+        obj.add( sort );
+        DBCursor cursor = mcl.aggregate( obj );
+
         int expA = MCL_RANGE - 1; // expected value of field "a"
-        double expAvgVal = expA + 475000.00; // expected value of field "avg_val"
-        while (cursor.hasNext()) {
+        double expAvgVal = expA + 475000.00; // expected value of field
+                                             // "avg_val"
+        while ( cursor.hasNext() ) {
             BSONObject res = cursor.getNext();
-            int actA = (int) res.get("a");
-            Assert.assertEquals(actA, expA);;
-            double actAvgVal = (double) res.get("avg_val");
-            Assert.assertEquals(actAvgVal, expAvgVal);
+            int actA = ( int ) res.get( "a" );
+            Assert.assertEquals( actA, expA );
+            ;
+            double actAvgVal = ( double ) res.get( "avg_val" );
+            Assert.assertEquals( actAvgVal, expAvgVal );
             // update expect value
             --expA;
             --expAvgVal;

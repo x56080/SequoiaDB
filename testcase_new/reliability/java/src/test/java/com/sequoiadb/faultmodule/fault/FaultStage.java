@@ -9,7 +9,7 @@ public class FaultStage {
     private Stage stage;
     private int status;
 
-    public FaultStage(Stage stage) {
+    public FaultStage( Stage stage ) {
         this.stage = stage;
         status = 0;
     }
@@ -22,7 +22,7 @@ public class FaultStage {
         return status;
     }
 
-    void setStatus(int status) {
+    void setStatus( int status ) {
         this.status = status;
     }
 }

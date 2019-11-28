@@ -13,8 +13,8 @@ public class AttachCLTask extends OperateTask {
     private int attachedSclCnt = 0;
     private String safeUrl = null;
     private String mclName = null;
-    
-    public AttachCLTask(String mclName, String safeUrl) {
+
+    public AttachCLTask( String mclName, String safeUrl ) {
         this.mclName = mclName;
         this.safeUrl = safeUrl;
     }
@@ -23,27 +23,30 @@ public class AttachCLTask extends OperateTask {
     public void exec() throws Exception {
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(safeUrl, "", "");
-            CollectionSpace cs = db.getCollectionSpace(SdbTestBase.csName);
-            DBCollection mcl = cs.getCollection(mclName);
+            db = new Sequoiadb( safeUrl, "", "" );
+            CollectionSpace cs = db.getCollectionSpace( SdbTestBase.csName );
+            DBCollection mcl = cs.getCollection( mclName );
             int rangeStart = 0;
-            for (int i = 0; i < Utils.SCLNUM; i++) {
+            for ( int i = 0; i < Utils.SCLNUM; i++ ) {
                 int rangeEnd = rangeStart + Utils.RANGE_WIDTH;
-                String sclFullName = SdbTestBase.csName + "." + mclName + "_" + i;
-                mcl.attachCollection(sclFullName, (BSONObject) JSON.parse("{ LowBound: { a: " + rangeStart
-                        + " }, " + "UpBound: { a: " + rangeEnd + " } }"));
+                String sclFullName = SdbTestBase.csName + "." + mclName + "_"
+                        + i;
+                mcl.attachCollection( sclFullName,
+                        ( BSONObject ) JSON.parse( "{ LowBound: { a: "
+                                + rangeStart + " }, " + "UpBound: { a: "
+                                + rangeEnd + " } }" ) );
                 rangeStart += Utils.RANGE_WIDTH;
                 attachedSclCnt++;
             }
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
     }
-    
+
     public int getAttachedSclCnt() {
         return attachedSclCnt;
     }
-}  
+}

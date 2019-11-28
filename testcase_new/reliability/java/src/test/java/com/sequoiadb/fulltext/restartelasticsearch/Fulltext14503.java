@@ -37,71 +37,76 @@ public class Fulltext14503 extends SdbTestBase {
     private Sequoiadb sdb;
     private String groupName;
     private GroupMgr groupMgr;
-    List<String> cappedESNames = new ArrayList<>();
+    List< String > cappedESNames = new ArrayList<>();
 
     @BeforeClass()
     public void setUp() throws ReliabilityException {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         groupMgr = GroupMgr.getInstance();
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("isStandAlone() TRUE, STANDALONE MODE");
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "isStandAlone() TRUE, STANDALONE MODE" );
         }
-        if (!groupMgr.checkBusiness(120)) {
-            throw new SkipException("checkBusiness() FAIL, GROUP ERROR");
+        if ( !groupMgr.checkBusiness( 120 ) ) {
+            throw new SkipException( "checkBusiness() FAIL, GROUP ERROR" );
         }
-        if (!FullTextUtils.checkAdapter()) {
-            throw new SkipException("Check adapter failed");
+        if ( !FullTextUtils.checkAdapter() ) {
+            throw new SkipException( "Check adapter failed" );
         }
-        List<String> groupNames = CommLib.getDataGroupNames(sdb);
-        groupName = groupNames.get(0);
+        List< String > groupNames = CommLib.getDataGroupNames( sdb );
+        groupName = groupNames.get( 0 );
 
-        for (int i = 0; i < 10; i++) {
+        for ( int i = 0; i < 10; i++ ) {
             String csName = this.csName + "_" + i;
             String clName = this.clName + "_" + i;
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
 
-            DBCollection cl = sdb.createCollectionSpace(csName).createCollection(clName,
-                    (BSONObject) JSON.parse("{'Group':'" + groupName + "'}"));
-            FullTextDBUtils.insertData(cl, 10000);
-            cl.createIndex(fulltextName, "{'a':'text', 'b':'text', 'c':'text'}", false, false);
-            String cappedClName = FullTextDBUtils.getCappedName(cl, fulltextName);
-            cappedESNames.add(cappedClName);
-            String esIndexName = FullTextDBUtils.getESIndexName(cl, fulltextName);
-            cappedESNames.add(esIndexName);
+            DBCollection cl = sdb.createCollectionSpace( csName )
+                    .createCollection( clName, ( BSONObject ) JSON
+                            .parse( "{'Group':'" + groupName + "'}" ) );
+            FullTextDBUtils.insertData( cl, 10000 );
+            cl.createIndex( fulltextName,
+                    "{'a':'text', 'b':'text', 'c':'text'}", false, false );
+            String cappedClName = FullTextDBUtils.getCappedName( cl,
+                    fulltextName );
+            cappedESNames.add( cappedClName );
+            String esIndexName = FullTextDBUtils.getESIndexName( cl,
+                    fulltextName );
+            cappedESNames.add( esIndexName );
         }
     }
 
     @Test
     public void test() throws Exception {
         TaskMgr taskMgr = new TaskMgr();
-        FaultMakeTask task = RestartElasticSearch.geFaultMakeTask(SdbTestBase.esHostName, 1);
-        taskMgr.addTask(task);
-        taskMgr.addTask(new DropCS());
+        FaultMakeTask task = RestartElasticSearch
+                .geFaultMakeTask( SdbTestBase.esHostName, 1 );
+        taskMgr.addTask( task );
+        taskMgr.addTask( new DropCS() );
         taskMgr.execute();
 
-        Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
-        Assert.assertTrue(groupMgr.checkBusinessWithLSN(120));
+        Assert.assertTrue( taskMgr.isAllSuccess(), taskMgr.getErrorMsg() );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ) );
 
-        for (int i = 0; i < 10; i++) {
-            String cappedName = cappedESNames.get(i * 2);
-            String esIndexName = cappedESNames.get(i * 2 + 1);
-            FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedName);
+        for ( int i = 0; i < 10; i++ ) {
+            String cappedName = cappedESNames.get( i * 2 );
+            String esIndexName = cappedESNames.get( i * 2 + 1 );
+            FullTextUtils.isIndexDeleted( sdb, esIndexName, cappedName );
 
             String csName = this.csName + "_" + i;
-            Assert.assertFalse(sdb.isCollectionSpaceExist(csName));
+            Assert.assertFalse( sdb.isCollectionSpaceExist( csName ) );
         }
-        Assert.assertTrue(FullTextUtils.checkAdapter());
+        Assert.assertTrue( FullTextUtils.checkAdapter() );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            for (int i = 0; i < 10; i++) {
+            for ( int i = 0; i < 10; i++ ) {
                 String csName = this.csName + "_" + i;
-                if (sdb.isCollectionSpaceExist(csName)) {
-                    FullTextDBUtils.dropCollectionSpace(sdb, csName);
+                if ( sdb.isCollectionSpaceExist( csName ) ) {
+                    FullTextDBUtils.dropCollectionSpace( sdb, csName );
                 }
             }
         } finally {
@@ -112,14 +117,14 @@ public class Fulltext14503 extends SdbTestBase {
     private class DropCS extends OperateTask {
         @Override
         public void exec() throws Exception {
-            Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             try {
-                for (int i = 0; i < 10; i++) {
+                for ( int i = 0; i < 10; i++ ) {
                     String csName = Fulltext14503.this.csName + "_" + i;
-                    db.dropCollectionSpace(csName);
+                    db.dropCollectionSpace( csName );
                 }
-            } catch (BaseException e) {
-                if (-147 != e.getErrorCode()) {
+            } catch ( BaseException e ) {
+                if ( -147 != e.getErrorCode() ) {
                     throw e;
                 }
             } finally {

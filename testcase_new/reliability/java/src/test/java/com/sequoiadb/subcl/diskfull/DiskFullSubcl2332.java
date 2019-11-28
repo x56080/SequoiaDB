@@ -48,110 +48,114 @@ public class DiskFullSubcl2332 extends SdbTestBase {
     @BeforeClass()
     public void setUp() {
         try {
-            System.out.println(
-                    "the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                            + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
             groupMgr = GroupMgr.getInstance();
 
             // CheckBusiness(true),检测当前集群环境，若存在异常返回false，
-            if (!groupMgr.checkBusiness(20)) {
-                throw new SkipException("checkBusiness return false");
+            if ( !groupMgr.checkBusiness( 20 ) ) {
+                throw new SkipException( "checkBusiness return false" );
             }
-            subClGroupName = groupMgr.getAllDataGroup().get(0).getGroupName();
+            subClGroupName = groupMgr.getAllDataGroup().get( 0 ).getGroupName();
 
-            commSdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            commSdb.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
-            commCS = commSdb.createCollectionSpace(csName);
-            mainCL = commCS.createCollection(mainClName, (BSONObject) JSON
-                    .parse("{ShardingKey:{'sk':1},ShardingType:'range',IsMainCL:true}"));
-            subCL = commCS.createCollection(subClName, (BSONObject) JSON.parse(
-                    "{ShardingKey:{sk:1},ShardingType:'range',Group:'" + subClGroupName + "'}"));
-            mainCL.attachCollection(subCL.getFullName(),
-                    (BSONObject) JSON.parse("{LowBound:{sk:0},UpBound:{sk:10000}}"));
+            commSdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            commSdb.setSessionAttr(
+                    ( BSONObject ) JSON.parse( "{PreferedInstance:'M'}" ) );
+            commCS = commSdb.createCollectionSpace( csName );
+            mainCL = commCS.createCollection( mainClName, ( BSONObject ) JSON
+                    .parse( "{ShardingKey:{'sk':1},ShardingType:'range',IsMainCL:true}" ) );
+            subCL = commCS.createCollection( subClName,
+                    ( BSONObject ) JSON.parse(
+                            "{ShardingKey:{sk:1},ShardingType:'range',Group:'"
+                                    + subClGroupName + "'}" ) );
+            mainCL.attachCollection( subCL.getFullName(), ( BSONObject ) JSON
+                    .parse( "{LowBound:{sk:0},UpBound:{sk:10000}}" ) );
 
-        }
-        catch (ReliabilityException e) {
-            if (commSdb != null) {
+        } catch ( ReliabilityException e ) {
+            if ( commSdb != null ) {
                 commSdb.close();
             }
-            Assert.fail(this.getClass().getName() + " setUp error, error description:"
-                    + e.getMessage() + "\r\n" + Utils.getStackString(e));
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getStackString( e ) );
         }
     }
 
     @Test
     public void test() {
         try {
-            GroupWrapper subGroup = groupMgr.getGroupByName(subClGroupName);
+            GroupWrapper subGroup = groupMgr.getGroupByName( subClGroupName );
             NodeWrapper subCLGroupSlave = subGroup.getSlave();
-            System.out.println("diskFullHost:" + subCLGroupSlave.hostName() + " subGroup"
-                    + subGroup.getGroupName());
-            FaultMakeTask faultMakeTask = DiskFull.getFaultMakeTask(subCLGroupSlave.hostName(),
-                    SdbTestBase.reservedDir, 1, 10);
+            System.out.println( "diskFullHost:" + subCLGroupSlave.hostName()
+                    + " subGroup" + subGroup.getGroupName() );
+            FaultMakeTask faultMakeTask = DiskFull.getFaultMakeTask(
+                    subCLGroupSlave.hostName(), SdbTestBase.reservedDir, 1,
+                    10 );
 
-            TaskMgr taskMgr = new TaskMgr(faultMakeTask);
-            taskMgr.addTask(new Insert());
+            TaskMgr taskMgr = new TaskMgr( faultMakeTask );
+            taskMgr.addTask( new Insert() );
             taskMgr.execute();
-            Assert.assertEquals(taskMgr.isAllSuccess(), true, taskMgr.getErrorMsg());
+            Assert.assertEquals( taskMgr.isAllSuccess(), true,
+                    taskMgr.getErrorMsg() );
 
             checkAndInsert();
 
-            Assert.assertEquals(subGroup.checkInspect(60), true);
+            Assert.assertEquals( subGroup.checkInspect( 60 ), true );
             clearFlag = true;
-        }
-        catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         }
 
     }
 
     private void checkAndInsert() {
-        String padStr = Utils.getString(1024 * 1024);
-        for (int i = insertCount; i < insertCount + 2; i++) {
-            mainCL.insert("{sk:" + i + ",pad:'" + padStr + "'}");
+        String padStr = Utils.getString( 1024 * 1024 );
+        for ( int i = insertCount; i < insertCount + 2; i++ ) {
+            mainCL.insert( "{sk:" + i + ",pad:'" + padStr + "'}" );
         }
         insertCount += 2;
 
         DBCursor cursor = null;
-        cursor = mainCL.query(null, "{sk:1,pad:1}", "{sk:1}", null);
+        cursor = mainCL.query( null, "{sk:1,pad:1}", "{sk:1}", null );
         int count = 0;
-        while (cursor.hasNext()) {
+        while ( cursor.hasNext() ) {
             BSONObject obj = cursor.getNext();
-            Assert.assertEquals(obj,
-                    (BSONObject) JSON.parse("{sk:" + count + ",pad:'" + padStr + "'}"));
+            Assert.assertEquals( obj, ( BSONObject ) JSON
+                    .parse( "{sk:" + count + ",pad:'" + padStr + "'}" ) );
             count++;
         }
 
-        Assert.assertEquals(count, insertCount);
+        Assert.assertEquals( count, insertCount );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (clearFlag) {
-                commSdb.dropCollectionSpace(csName);
+            if ( clearFlag ) {
+                commSdb.dropCollectionSpace( csName );
             }
-        }
-        catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getStackString(e));
-        }
-        finally {
-            if (commSdb != null) {
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
+        } finally {
+            if ( commSdb != null ) {
                 commSdb.close();
             }
-            System.out.println(
-                    "the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                            + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
         }
     }
 
     class Insert extends OperateTask {
         @Override
         public void exec() throws Exception {
-            String padStr = Utils.getString(1024 * 1024);
-            for (int i = 0; i < 128; i++) {
-                mainCL.insert("{sk:" + i + ",pad:'" + padStr + "'}");
+            String padStr = Utils.getString( 1024 * 1024 );
+            for ( int i = 0; i < 128; i++ ) {
+                mainCL.insert( "{sk:" + i + ",pad:'" + padStr + "'}" );
                 insertCount++;
             }
         }

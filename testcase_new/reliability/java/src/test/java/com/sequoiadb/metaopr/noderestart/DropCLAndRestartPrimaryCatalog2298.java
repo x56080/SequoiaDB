@@ -22,13 +22,13 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
-* FileName: DropCLAndRestartPrimaryCatalog2298.java
-* test content:when drop cl , restart the catalog group master node             
-* testlink case:seqDB-2298
-* @author wuyan
-    * @Date    2017.4.18
-* @version 1.00
-*/
+ * FileName: DropCLAndRestartPrimaryCatalog2298.java test content:when drop cl ,
+ * restart the catalog group master node testlink case:seqDB-2298
+ * 
+ * @author wuyan
+ * @Date 2017.4.18
+ * @version 1.00
+ */
 
 public class DropCLAndRestartPrimaryCatalog2298 extends SdbTestBase {
     private GroupMgr groupMgr = null;
@@ -40,122 +40,136 @@ public class DropCLAndRestartPrimaryCatalog2298 extends SdbTestBase {
     private int count = 0;
 
     @BeforeClass
-    public void setUp() {        
+    public void setUp() {
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
+
             groupMgr = GroupMgr.getInstance();
-            if (!groupMgr.checkBusiness()) {
-                throw new SkipException("checkBusiness failed");
+            if ( !groupMgr.checkBusiness() ) {
+                throw new SkipException( "checkBusiness failed" );
             }
-            
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             createCL();
-        } catch (ReliabilityException e) {
-            Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
-                    + Utils.getKeyStack(e, this));
-        } 
+        } catch ( ReliabilityException e ) {
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getKeyStack( e, this ) );
+        }
     }
 
     @Test
     public void test() throws InterruptedException {
         try {
-            GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
+            GroupWrapper cataGroup = groupMgr
+                    .getGroupByName( "SYSCatalogGroup" );
             NodeWrapper priNode = cataGroup.getMaster();
 
-            FaultMakeTask faultTask = NodeRestart.getFaultMakeTask(priNode, 1, 10, 10);
-            TaskMgr mgr = new TaskMgr(faultTask);
+            FaultMakeTask faultTask = NodeRestart.getFaultMakeTask( priNode, 1,
+                    10, 10 );
+            TaskMgr mgr = new TaskMgr( faultTask );
             DropCLTask dTask = new DropCLTask();
-            mgr.addTask(dTask);
-            mgr.execute();      
-                        
-            //TaskMgr check if there is any exception
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());            
-            
-            //check whether the cluster is normal and lsn consistency ,the longest waiting time is 120S
-            Assert.assertEquals(groupMgr.checkBusinessWithLSN(600), true, "check LSN consistency fail");
-            
-            //remove cl after fault recovery
+            mgr.addTask( dTask );
+            mgr.execute();
+
+            // TaskMgr check if there is any exception
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
+
+            // check whether the cluster is normal and lsn consistency ,the
+            // longest waiting time is 120S
+            Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true,
+                    "check LSN consistency fail" );
+
+            // remove cl after fault recovery
             dropCL();
-            
-            //check result
+
+            // check result
             checkDropCLResult();
-            Utils.checkConsistency(groupMgr);   
-            
-            //Normal operating environment
+            Utils.checkConsistency( groupMgr );
+
+            // Normal operating environment
             clearFlag = true;
-        } catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
-        } 
+            Assert.fail( e.getMessage() );
+        }
     }
 
     @AfterClass
-    public void tearDown() {    
+    public void tearDown() {
         try {
-        	if (!clearFlag) { 
-        		throw new SkipException("to save environment"); 
-        	}
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
+            if ( !clearFlag ) {
+                throw new SkipException( "to save environment" );
+            }
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    e.getMessage() + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
         }
     }
-    
-    private class DropCLTask extends OperateTask {  
+
+    private class DropCLTask extends OperateTask {
         @Override
-        public void exec() throws Exception {            
-            try (  Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")){                
-                CollectionSpace commCS = db.getCollectionSpace(SdbTestBase.csName);
-                for (int i = 0; i < CL_NUM; i++) {
+        public void exec() throws Exception {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                CollectionSpace commCS = db
+                        .getCollectionSpace( SdbTestBase.csName );
+                for ( int i = 0; i < CL_NUM; i++ ) {
                     String clName = preCLName + "_" + i;
-                    commCS.dropCollection(clName);
+                    commCS.dropCollection( clName );
                     count++;
                 }
-                throw new ReliabilityException("drop cl should be fail");
-            } catch (BaseException e) {
-            	System.out.println("the error i is ="+count);            	
-            } 
+                throw new ReliabilityException( "drop cl should be fail" );
+            } catch ( BaseException e ) {
+                System.out.println( "the error i is =" + count );
+            }
         }
     }
-    
-    public void createCL(){		
-		try
-		{
-			cs = sdb.getCollectionSpace(SdbTestBase.csName);
-			for (int i = 0; i < CL_NUM; i++) {
-	            String clName = preCLName + "_" + i;
-	            cs.createCollection(clName);
-	        }			
-		}catch(BaseException e){
-			Assert.assertTrue(false,"create cl fail "+e.getErrorType()+":"+e.getMessage());
-		}
-	}
-    
-    private void dropCL() {        
-        for (int i = count; i < CL_NUM; i++) {
+
+    public void createCL() {
+        try {
+            cs = sdb.getCollectionSpace( SdbTestBase.csName );
+            for ( int i = 0; i < CL_NUM; i++ ) {
+                String clName = preCLName + "_" + i;
+                cs.createCollection( clName );
+            }
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "create cl fail " + e.getErrorType() + ":"
+                    + e.getMessage() );
+        }
+    }
+
+    private void dropCL() {
+        for ( int i = count; i < CL_NUM; i++ ) {
             String clName = preCLName + "_" + i;
             try {
-                cs.dropCollection(clName);
-            } catch (BaseException e) {                
-                if (e.getErrorCode() != -23) {
-                	Assert.assertTrue(false,"drop cl fail "+e.getErrorType()+":"+e.getMessage());
+                cs.dropCollection( clName );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -23 ) {
+                    Assert.assertTrue( false, "drop cl fail " + e.getErrorType()
+                            + ":" + e.getMessage() );
                 }
             }
         }
     }
-    
+
     private void checkDropCLResult() {
-		for (int i = 0; i < CL_NUM; i++) {
-	        String clName = preCLName + "_" + i;
-	        Assert.assertFalse(cs.isCollectionExist(clName), "expect cl not exist, but cl exist.");                    			
-		}  
-    }    
-   
+        for ( int i = 0; i < CL_NUM; i++ ) {
+            String clName = preCLName + "_" + i;
+            Assert.assertFalse( cs.isCollectionExist( clName ),
+                    "expect cl not exist, but cl exist." );
+        }
+    }
+
 }

@@ -3,7 +3,7 @@ package com.sequoiadb.metaopr.noderestart;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.commlib.GroupMgr;
-import com.sequoiadb.commlib.SdbTestBase ;
+import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.commlib.StandTestInterface;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.metaopr.commons.DBoperateTask;
@@ -40,61 +40,69 @@ import static org.testng.Assert.assertTrue;
  * @Date 17-4-20
  * @Version 1.00
  */
-public class CreateDomain2285 extends SdbTestBase implements StandTestInterface {
-    private List<String> domainNames = new ArrayList<>(100);
+public class CreateDomain2285 extends SdbTestBase
+        implements StandTestInterface {
+    private List< String > domainNames = new ArrayList<>( 100 );
     private Sequoiadb db;
 
     @BeforeClass
     public void setup() {
-        MyUtil.printBeginTime(this);
+        MyUtil.printBeginTime( this );
         db = MyUtil.getSdb();
-        for (int i = 0; i < 100; i++) {
-            domainNames.add("domain" + i);
+        for ( int i = 0; i < 100; i++ ) {
+            domainNames.add( "domain" + i );
         }
     }
 
     @Test
     void test() throws ReliabilityException {
-        FaultMakeTask faultMakeTask = com.sequoiadb.fault.NodeRestart.getFaultMakeTask(GroupMgr.getInstance().getGroupByName("SYSCatalogGroup").getSlave(), 1, 10);
-        TaskMgr taskMgr = new TaskMgr(faultMakeTask);
-        OperateTask task = DBoperateTask.getTaskCreateDomains(domainNames);
-        taskMgr.addTask(task);
-        taskMgr.addTask(new OperateTask() {
+        FaultMakeTask faultMakeTask = com.sequoiadb.fault.NodeRestart
+                .getFaultMakeTask(
+                        GroupMgr.getInstance()
+                                .getGroupByName( "SYSCatalogGroup" ).getSlave(),
+                        1, 10 );
+        TaskMgr taskMgr = new TaskMgr( faultMakeTask );
+        OperateTask task = DBoperateTask.getTaskCreateDomains( domainNames );
+        taskMgr.addTask( task );
+        taskMgr.addTask( new OperateTask() {
             @Override
             public void exec() throws Exception {
 
             }
-        });
+        } );
         taskMgr.execute();
-        //检查并发结果是否正确
+        // 检查并发结果是否正确
 
-        //检查domain是否正确创建
-        assertTrue(MyUtil.isDomainAllCreated(domainNames));
-        assertTrue(MyUtil.isCatalogGroupSync());
+        // 检查domain是否正确创建
+        assertTrue( MyUtil.isDomainAllCreated( domainNames ) );
+        assertTrue( MyUtil.isCatalogGroupSync() );
 
-        //再次创建domian和cs
-        BSONObject options = (BSONObject) JSON.parse("{'Groups':['group1']}");
-        db.createDomain("csdomain", options);
-        db.createCollectionSpace("cs2285", new BasicBSONObject("Domain", "csdomain"));
-        Object obj = db.listDomains(new BasicBSONObject("Name", "csdomain"), null, null, null);
-        assertTrue(obj != null);
+        // 再次创建domian和cs
+        BSONObject options = ( BSONObject ) JSON
+                .parse( "{'Groups':['group1']}" );
+        db.createDomain( "csdomain", options );
+        db.createCollectionSpace( "cs2285",
+                new BasicBSONObject( "Domain", "csdomain" ) );
+        Object obj = db.listDomains( new BasicBSONObject( "Name", "csdomain" ),
+                null, null, null );
+        assertTrue( obj != null );
         DBCursor c = db.listCollectionSpaces();
         boolean flag = false;
-        while (c.hasNext()) {
-            if (c.getNext().get("Name").equals("cs2285"))
+        while ( c.hasNext() ) {
+            if ( c.getNext().get( "Name" ).equals( "cs2285" ) )
                 flag = true;
         }
-        assertTrue(flag);
-        assertTrue(MyUtil.isCatalogGroupSync());
+        assertTrue( flag );
+        assertTrue( MyUtil.isCatalogGroupSync() );
     }
 
     @AfterClass
     public void tearDown() {
-        for (String name : domainNames) {
-            db.dropDomain(name);
+        for ( String name : domainNames ) {
+            db.dropDomain( name );
         }
-        db.dropCollectionSpace("cs2285");
-        db.dropDomain("csdomain");
-        MyUtil.printEndTime(this);
+        db.dropCollectionSpace( "cs2285" );
+        db.dropDomain( "csdomain" );
+        MyUtil.printEndTime( this );
     }
 }

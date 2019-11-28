@@ -47,52 +47,55 @@ public class NetSplit2578 extends SdbTestBase {
     public void setUp() {
         Sequoiadb sdb = null;
         try {
-            System.out.println(
-                    "the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                            + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
             groupMgr = GroupMgr.getInstance();
-            if (!groupMgr.checkBusiness(20)) {
-                throw new SkipException("checkBusiness return false");
+            if ( !groupMgr.checkBusiness( 20 ) ) {
+                throw new SkipException( "checkBusiness return false" );
             }
-            sdb = new Sequoiadb(coordUrl, "", "");
-            List<GroupWrapper> glist = groupMgr.getAllDataGroup();
+            sdb = new Sequoiadb( coordUrl, "", "" );
+            List< GroupWrapper > glist = groupMgr.getAllDataGroup();
 
-            srcGroupName = glist.get(0).getGroupName();
-            destGroupName = glist.get(1).getGroupName();
-            System.out.println("split srcRG:" + srcGroupName + " destRG:" + destGroupName);
+            srcGroupName = glist.get( 0 ).getGroupName();
+            destGroupName = glist.get( 1 ).getGroupName();
+            System.out.println( "split srcRG:" + srcGroupName + " destRG:"
+                    + destGroupName );
 
-            CollectionSpace commCS = sdb.getCollectionSpace(csName);
-            DBCollection cl = commCS.createCollection(clName,
-                    (BSONObject) JSON
-                            .parse("{ShardingKey:{'sk':1},Partition:4096,ShardingType:'hash',Group:'"
-                                    + srcGroupName + "'}"));
-            insertData(cl, 0, 1000);// 写入待切分的记录（1000普通记录）
+            CollectionSpace commCS = sdb.getCollectionSpace( csName );
+            DBCollection cl = commCS.createCollection( clName,
+                    ( BSONObject ) JSON.parse(
+                            "{ShardingKey:{'sk':1},Partition:4096,ShardingType:'hash',Group:'"
+                                    + srcGroupName + "'}" ) );
+            insertData( cl, 0, 1000 );// 写入待切分的记录（1000普通记录）
 
             // 调整主机
-            brokenNetHost = groupMgr.getGroupByName(Utils.CATA_RG_NAME).getSlave().hostName();
-            Utils.reelect(brokenNetHost, destGroupName, srcGroupName);
-            connectUrl = CommLib.getSafeCoordUrl(brokenNetHost);
+            brokenNetHost = groupMgr.getGroupByName( Utils.CATA_RG_NAME )
+                    .getSlave().hostName();
+            Utils.reelect( brokenNetHost, destGroupName, srcGroupName );
+            connectUrl = CommLib.getSafeCoordUrl( brokenNetHost );
             groupMgr.refresh();
-            System.out.println("brokenHost:" + brokenNetHost + " connectUrl:" + connectUrl);
-        }
-        catch (ReliabilityException e) {
-            Assert.fail(this.getClass().getName() + " setUp error, error description:"
-                    + e.getMessage() + "\r\n" + Utils.getStackString(e));
-        }
-        finally {
-            if (sdb != null) {
+            System.out.println( "brokenHost:" + brokenNetHost + " connectUrl:"
+                    + connectUrl );
+        } catch ( ReliabilityException e ) {
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getStackString( e ) );
+        } finally {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
     }
 
-    public void insertData(DBCollection cl, int begin, int end) {
-        for (int i = begin; i < end; i++) {
-            BSONObject obj = (BSONObject) JSON.parse("{sk:" + i + "}");
-            cl.insert(obj);
+    public void insertData( DBCollection cl, int begin, int end ) {
+        for ( int i = begin; i < end; i++ ) {
+            BSONObject obj = ( BSONObject ) JSON.parse( "{sk:" + i + "}" );
+            cl.insert( obj );
 
         }
-        clTotalCount = clTotalCount + (end - begin);
+        clTotalCount = clTotalCount + ( end - begin );
     }
 
     @Test
@@ -100,28 +103,33 @@ public class NetSplit2578 extends SdbTestBase {
         Sequoiadb db = null;
         try {
             // 建立并行任务
-            FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(brokenNetHost, 2, 10, 15);
-            TaskMgr mgr = new TaskMgr(faultTask);
-            mgr.addTask(new Split());
-            mgr.addTask(new Insert());
+            FaultMakeTask faultTask = BrokenNetwork
+                    .getFaultMakeTask( brokenNetHost, 2, 10, 15 );
+            TaskMgr mgr = new TaskMgr( faultTask );
+            mgr.addTask( new Split() );
+            mgr.addTask( new Insert() );
             mgr.execute();
 
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
             // 最长等待2分钟的环境恢复
-            Assert.assertEquals(groupMgr.checkBusiness(600), true, "failed to restore business");
+            Assert.assertEquals( groupMgr.checkBusiness( 600 ), true,
+                    "failed to restore business" );
 
             // 再次插入数据
-            db = new Sequoiadb(connectUrl, "", "");
-            db.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
-            DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-            insertData(cl, 9000, 10000);
+            db = new Sequoiadb( connectUrl, "", "" );
+            db.setSessionAttr(
+                    ( BSONObject ) JSON.parse( "{PreferedInstance:'M'}" ) );
+            DBCollection cl = db.getCollectionSpace( csName )
+                    .getCollection( clName );
+            insertData( cl, 9000, 10000 );
 
             // 结果校验
-            long destCount = checkGroupData(db, destGroupName);
-            long srcCount = checkGroupData(db, srcGroupName);
-            Assert.assertEquals(destCount + srcCount, clTotalCount);
-            Assert.assertEquals(cl.getCount("{sk:{$gte:0,$lt:10000}}"), clTotalCount);
+            long destCount = checkGroupData( db, destGroupName );
+            long srcCount = checkGroupData( db, srcGroupName );
+            Assert.assertEquals( destCount + srcCount, clTotalCount );
+            Assert.assertEquals( cl.getCount( "{sk:{$gte:0,$lt:10000}}" ),
+                    clTotalCount );
 
             // 范围切分覆盖
             // GroupWrapper srcGroup = groupMgr.getGroupByName(srcGroupName);
@@ -135,36 +143,36 @@ public class NetSplit2578 extends SdbTestBase {
         }
 
         finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
 
     }
 
-    private long checkGroupData(Sequoiadb sdb, String groupName) {
+    private long checkGroupData( Sequoiadb sdb, String groupName ) {
         Sequoiadb dataNode = null;
         DBCursor cursor = null;
         try {
-            dataNode = sdb.getReplicaGroup(groupName).getMaster().connect();// 获得目标组主节点链接
-            DBCollection cl = dataNode.getCollectionSpace(csName).getCollection(clName);
+            dataNode = sdb.getReplicaGroup( groupName ).getMaster().connect();// 获得目标组主节点链接
+            DBCollection cl = dataNode.getCollectionSpace( csName )
+                    .getCollection( clName );
             long count = cl.getCount();
             // 组的数据量应该在clTotalCount/2条左右（切分范围2048-4096）
             Assert.assertEquals(
-                    count > clTotalCount / 2 - (clTotalCount / 2 * 0.3)
-                            && count < clTotalCount / 2 + (clTotalCount / 2 * 0.3),
-                    true, "destGroup data count:" + count);
+                    count > clTotalCount / 2 - ( clTotalCount / 2 * 0.3 )
+                            && count < clTotalCount / 2
+                                    + ( clTotalCount / 2 * 0.3 ),
+                    true, "destGroup data count:" + count );
             return count;
-        }
-        catch (BaseException e) {
+        } catch ( BaseException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getStackString(e));
-        }
-        finally {
-            if (cursor != null) {
+            Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
+        } finally {
+            if ( cursor != null ) {
                 cursor.close();
             }
-            if (dataNode != null) {
+            if ( dataNode != null ) {
                 dataNode.close();
             }
         }
@@ -173,30 +181,30 @@ public class NetSplit2578 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         try {
-            if (clearFlag) {
-                CollectionSpace commCS = db.getCollectionSpace(csName);
-                commCS.dropCollection(clName);
+            if ( clearFlag ) {
+                CollectionSpace commCS = db.getCollectionSpace( csName );
+                commCS.dropCollection( clName );
             }
-        }
-        catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getStackString(e));
-        }
-        finally {
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
+        } finally {
             db.close();
-            System.out.println(
-                    "the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                            + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
         }
     }
 
     class Insert extends OperateTask {
         @Override
         public void exec() throws Exception {
-            Sequoiadb db = new Sequoiadb(connectUrl, "", "");
-            DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-            insertData(cl, 1000, 9000);
+            Sequoiadb db = new Sequoiadb( connectUrl, "", "" );
+            DBCollection cl = db.getCollectionSpace( csName )
+                    .getCollection( clName );
+            insertData( cl, 1000, 9000 );
             db.close();
         }
     }
@@ -206,14 +214,15 @@ public class NetSplit2578 extends SdbTestBase {
         public void exec() throws Exception {
             Sequoiadb sdb = null;
             try {
-                sdb = new Sequoiadb(connectUrl, "", "");
-                sdb.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
-                DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-                cl.split(srcGroupName, destGroupName, 50);
+                sdb = new Sequoiadb( connectUrl, "", "" );
+                sdb.setSessionAttr(
+                        ( BSONObject ) JSON.parse( "{PreferedInstance:'M'}" ) );
+                DBCollection cl = sdb.getCollectionSpace( csName )
+                        .getCollection( clName );
+                cl.split( srcGroupName, destGroupName, 50 );
 
-            }
-            finally {
-                if (sdb != null) {
+            } finally {
+                if ( sdb != null ) {
                     sdb.close();
                 }
             }

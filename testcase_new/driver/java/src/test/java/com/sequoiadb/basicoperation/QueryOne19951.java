@@ -29,9 +29,10 @@ import com.sequoiadb.testcommon.SdbTestBase;
 
 public class QueryOne19951 extends SdbTestBase {
     private boolean runSuccess = false;
-    private SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS");
+    private SimpleDateFormat sdf = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss.SSS" );
     private Sequoiadb sdb;
-    private ArrayList<String> groupNames;
+    private ArrayList< String > groupNames;
     private String csName = "cs19951";
     private String clName = "cl";
     private DBCollection cl;
@@ -39,33 +40,34 @@ public class QueryOne19951 extends SdbTestBase {
 
     @BeforeClass
     private void setUp() {
-        System.out.println(this.getClass().getName() + " Begin at " + sdf.format(new Date()));
+        System.out.println( this.getClass().getName() + " Begin at "
+                + sdf.format( new Date() ) );
 
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb) || CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("standalone or only one group.");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "standalone or only one group." );
         }
-        groupNames = CommLib.getDataGroupNames(sdb);
+        groupNames = CommLib.getDataGroupNames( sdb );
 
         // create sharding cl
         try {
-            sdb.dropCollectionSpace(csName);
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -34) {
+            sdb.dropCollectionSpace( csName );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -34 ) {
                 throw e;
             }
         }
         this.readyCL();
 
         // insert
-        List<BSONObject> insertor = new ArrayList<BSONObject>();
-        for (int i = 0; i < recordsNum; i++) {
-            insertor.add(new BasicBSONObject("a", i));
+        List< BSONObject > insertor = new ArrayList< BSONObject >();
+        for ( int i = 0; i < recordsNum; i++ ) {
+            insertor.add( new BasicBSONObject( "a", i ) );
         }
-        cl.bulkInsert(insertor, 0);
+        cl.bulkInsert( insertor, 0 );
 
         // split
-        cl.split(groupNames.get(0), groupNames.get(1), 50);
+        cl.split( groupNames.get( 0 ), groupNames.get( 1 ), 50 );
     }
 
     @Test
@@ -77,15 +79,17 @@ public class QueryOne19951 extends SdbTestBase {
 
         // flag: -1
         flag = -1;
-        num = random.nextInt(recordsNum);
-        obj = cl.queryOne(new BasicBSONObject("a", num), null, null, null, flag);
-        Assert.assertEquals(obj.get("a"), num);
+        num = random.nextInt( recordsNum );
+        obj = cl.queryOne( new BasicBSONObject( "a", num ), null, null, null,
+                flag );
+        Assert.assertEquals( obj.get( "a" ), num );
 
         // flag: 4096
         flag = 4096;
-        num = random.nextInt(recordsNum);
-        obj = cl.queryOne(new BasicBSONObject("a", num), null, null, null, flag);
-        Assert.assertEquals(obj.get("a"), num);
+        num = random.nextInt( recordsNum );
+        obj = cl.queryOne( new BasicBSONObject( "a", num ), null, null, null,
+                flag );
+        Assert.assertEquals( obj.get( "a" ), num );
 
         runSuccess = true;
     }
@@ -93,21 +97,22 @@ public class QueryOne19951 extends SdbTestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                sdb.dropCollectionSpace(csName);
+            if ( runSuccess ) {
+                sdb.dropCollectionSpace( csName );
             }
         } finally {
             sdb.disconnect();
         }
-        System.out.println(this.getClass().getName() + " End   at " + sdf.format(new Date()));
+        System.out.println( this.getClass().getName() + " End   at "
+                + sdf.format( new Date() ) );
     }
 
     private void readyCL() {
-        CollectionSpace cs = sdb.createCollectionSpace(csName);
+        CollectionSpace cs = sdb.createCollectionSpace( csName );
         BasicBSONObject options = new BasicBSONObject();
-        options.put("ShardingType", "range");
-        options.put("ShardingKey", new BasicBSONObject("a", 1));
-        options.put("Group", groupNames.get(0));
-        cl = cs.createCollection(clName, options);
+        options.put( "ShardingType", "range" );
+        options.put( "ShardingKey", new BasicBSONObject( "a", 1 ) );
+        options.put( "Group", groupNames.get( 0 ) );
+        cl = cs.createCollection( clName, options );
     }
 }

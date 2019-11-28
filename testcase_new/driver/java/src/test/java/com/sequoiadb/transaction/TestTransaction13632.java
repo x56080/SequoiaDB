@@ -32,42 +32,45 @@ public class TestTransaction13632 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         commCSName = SdbTestBase.csName;
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
-        if (!sdb.isCollectionSpaceExist(commCSName)) {
+        if ( !sdb.isCollectionSpaceExist( commCSName ) ) {
             try {
-                cs = sdb.createCollectionSpace(commCSName);
-            } catch (BaseException e) {
-                Assert.assertEquals(-33, e.getErrorCode(), e.getMessage());
+                cs = sdb.createCollectionSpace( commCSName );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( -33, e.getErrorCode(), e.getMessage() );
             }
         } else {
-            cs = sdb.getCollectionSpace(commCSName);
+            cs = sdb.getCollectionSpace( commCSName );
         }
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        cl = sdb.getCollectionSpace(SdbTestBase.csName).createCollection(clName);
+        cl = sdb.getCollectionSpace( SdbTestBase.csName )
+                .createCollection( clName );
     }
 
     @Test
     public void testTransactionBeginCommit() {
-        List<BSONObject> transactionList;
+        List< BSONObject > transactionList;
         sdb.beginTransaction();
-        cl.insert("{a:1}");
-        transactionList = getSnap(Sequoiadb.SDB_SNAP_TRANSACTIONS);
-        Assert.assertTrue(transactionList.size() > 0, "actual: " + transactionList);
-        transactionList = getSnap(Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT);
-        Assert.assertTrue(transactionList.size() > 0, "actual: " + transactionList);
+        cl.insert( "{a:1}" );
+        transactionList = getSnap( Sequoiadb.SDB_SNAP_TRANSACTIONS );
+        Assert.assertTrue( transactionList.size() > 0,
+                "actual: " + transactionList );
+        transactionList = getSnap( Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT );
+        Assert.assertTrue( transactionList.size() > 0,
+                "actual: " + transactionList );
         sdb.commit();
     }
 
-    private List<BSONObject> getSnap(int code) {
-        DBCursor cursor = sdb.getSnapshot(code, "", "", "");
-        List<BSONObject> transactionList = new ArrayList<BSONObject>(5);
-        while (cursor.hasNext()) {
+    private List< BSONObject > getSnap( int code ) {
+        DBCursor cursor = sdb.getSnapshot( code, "", "", "" );
+        List< BSONObject > transactionList = new ArrayList< BSONObject >( 5 );
+        while ( cursor.hasNext() ) {
             BSONObject info = cursor.getNext();
-            Assert.assertTrue(info.containsField("TransactionIDSN"));
-            transactionList.add(info);
+            Assert.assertTrue( info.containsField( "TransactionIDSN" ) );
+            transactionList.add( info );
         }
         return transactionList;
     }
@@ -75,12 +78,12 @@ public class TestTransaction13632 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            CollectionSpace cs = sdb.getCollectionSpace(csName);
-            if (cs.isCollectionExist(cl.getName())) {
-                cs.dropCollection(cl.getName());
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            if ( cs.isCollectionExist( cl.getName() ) ) {
+                cs.dropCollection( cl.getName() );
             }
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         } finally {
             sdb.close();
         }

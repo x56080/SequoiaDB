@@ -34,99 +34,107 @@ import com.sequoias3.commlibs3.s3utils.PartUploadUtils;
  * @version 1.00
  */
 public class UploadPartWithKillData18785 extends S3TestBase {
-	private String bucketName = "bucket18785";
-	private String keyName = "key18785";
-	private AmazonS3 s3Client = null;
-	private long fileSize = 38 * 1024 * 1024;
-	private List<PartETag> partEtags = null;
-	private String uploadId = "";
-	private File localPath = null;
-	private File file = null;
-	private String filePath = null;
-	private boolean runSuccess = false;
+    private String bucketName = "bucket18785";
+    private String keyName = "key18785";
+    private AmazonS3 s3Client = null;
+    private long fileSize = 38 * 1024 * 1024;
+    private List< PartETag > partEtags = null;
+    private String uploadId = "";
+    private File localPath = null;
+    private File file = null;
+    private String filePath = null;
+    private boolean runSuccess = false;
 
-	@BeforeClass
-	private void setUp() throws Exception {
-		localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-		filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
+    @BeforeClass
+    private void setUp() throws Exception {
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
-		TestTools.LocalFile.removeFile(localPath);
-		TestTools.LocalFile.createDir(localPath.toString());
-		TestTools.LocalFile.createFile(filePath, fileSize);
-		file = new File(filePath);
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
+        file = new File( filePath );
 
-		s3Client = CommLibS3.buildS3Client();
-		CommLibS3.clearBucket(s3Client, bucketName);
-		s3Client.createBucket(new CreateBucketRequest(bucketName));
-	}
+        s3Client = CommLibS3.buildS3Client();
+        CommLibS3.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( new CreateBucketRequest( bucketName ) );
+    }
 
-	@Test
-	public void testCompleteMultipartUpload() throws Exception {
-		uploadId = PartUploadUtils.initPartUpload(s3Client, bucketName, keyName);
-		partEtags = PartUploadUtils.partUpload(s3Client, bucketName, keyName, uploadId, file);
-		TaskMgr mgr = new TaskMgr();
-		GroupMgr groupMgr = GroupMgr.getInstance();
-		List<GroupWrapper> dataGroups = groupMgr.getAllDataGroup();
+    @Test
+    public void testCompleteMultipartUpload() throws Exception {
+        uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
+        partEtags = PartUploadUtils.partUpload( s3Client, bucketName, keyName,
+                uploadId, file );
+        TaskMgr mgr = new TaskMgr();
+        GroupMgr groupMgr = GroupMgr.getInstance();
+        List< GroupWrapper > dataGroups = groupMgr.getAllDataGroup();
 
-		for (int i = 0; i < dataGroups.size(); i++) {
-			String groupName = dataGroups.get(i).getGroupName();
-			GroupWrapper group = groupMgr.getGroupByName(groupName);
-			NodeWrapper node = group.getMaster();
-			FaultMakeTask faultTask = KillNode.getFaultMakeTask(node, 0);
-			mgr.addTask(faultTask);
-		}
-		mgr.addTask(new UploadpartUploadTask());
-		mgr.execute();
-		Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
-		// check whether the cluster is normal and lsn consistency ,the longest
-		// waiting time is 600S
-		Assert.assertEquals(groupMgr.checkBusinessWithLSN(600), true, "checkBusinessWithLSN() occurs timeout");
-		completeMultipartUploadAgainAndCheck();
-		runSuccess = true;
-	}
+        for ( int i = 0; i < dataGroups.size(); i++ ) {
+            String groupName = dataGroups.get( i ).getGroupName();
+            GroupWrapper group = groupMgr.getGroupByName( groupName );
+            NodeWrapper node = group.getMaster();
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask( node, 0 );
+            mgr.addTask( faultTask );
+        }
+        mgr.addTask( new UploadpartUploadTask() );
+        mgr.execute();
+        Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
+        // check whether the cluster is normal and lsn consistency ,the longest
+        // waiting time is 600S
+        Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true,
+                "checkBusinessWithLSN() occurs timeout" );
+        completeMultipartUploadAgainAndCheck();
+        runSuccess = true;
+    }
 
-	@AfterClass
-	private void tearDown() throws Exception {
-		try {
-			if (runSuccess) {
-				CommLibS3.clearBucket(s3Client, bucketName);
-				TestTools.LocalFile.removeFile(localPath);
-			}
-		} finally {
-			if (s3Client != null) {
-				s3Client.shutdown();
-			}
-		}
-	}
+    @AfterClass
+    private void tearDown() throws Exception {
+        try {
+            if ( runSuccess ) {
+                CommLibS3.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
+            }
+        } finally {
+            if ( s3Client != null ) {
+                s3Client.shutdown();
+            }
+        }
+    }
 
-	private class UploadpartUploadTask extends OperateTask {
-		@Override
-		public void exec() {
-			AmazonS3 s3Client = CommLibS3.buildS3Client();
-			try {
-				PartUploadUtils.completeMultipartUpload(s3Client, bucketName, keyName, uploadId, partEtags);
-			} catch (AmazonServiceException e) {
-				if (e.getStatusCode() != 500) {
-					throw e;
-				}
-			} finally {
-				if (s3Client != null) {
-					s3Client.shutdown();
-				}
-			}
-		}
-	}
+    private class UploadpartUploadTask extends OperateTask {
+        @Override
+        public void exec() {
+            AmazonS3 s3Client = CommLibS3.buildS3Client();
+            try {
+                PartUploadUtils.completeMultipartUpload( s3Client, bucketName,
+                        keyName, uploadId, partEtags );
+            } catch ( AmazonServiceException e ) {
+                if ( e.getStatusCode() != 500 ) {
+                    throw e;
+                }
+            } finally {
+                if ( s3Client != null ) {
+                    s3Client.shutdown();
+                }
+            }
+        }
+    }
 
-	private void completeMultipartUploadAgainAndCheck() throws Exception {
-		try {
-			PartUploadUtils.completeMultipartUpload(s3Client, bucketName, keyName, uploadId, partEtags);
-		} catch (AmazonS3Exception e) {
-			if (!e.getErrorCode().equals("NoSuchUpload")) {
-				throw e;
-			}
-		}
-		String expMd5 = TestTools.getMD5(filePath);
-		String downloadMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, keyName);
-		Assert.assertEquals(downloadMd5, expMd5);
-	}
+    private void completeMultipartUploadAgainAndCheck() throws Exception {
+        try {
+            PartUploadUtils.completeMultipartUpload( s3Client, bucketName,
+                    keyName, uploadId, partEtags );
+        } catch ( AmazonS3Exception e ) {
+            if ( !e.getErrorCode().equals( "NoSuchUpload" ) ) {
+                throw e;
+            }
+        }
+        String expMd5 = TestTools.getMD5( filePath );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
+        Assert.assertEquals( downloadMd5, expMd5 );
+    }
 }

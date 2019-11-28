@@ -1,4 +1,5 @@
 package com.sequoiadb.autoincrement.killnode;
+
 /**
  * @FileName:seqDB-15967：指定自增字段创建集合时catalog主节点异常重启 
  * 测试步骤：指定自增字段创建集合时catalog主节点异常重启2.待集群状态正常后，检查集合信息 
@@ -35,126 +36,133 @@ import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
 
 public class Create15967 extends SdbTestBase {
-	private String clName = "cl_15967";
-	private String fieldName = "id";
-	private GroupMgr groupMgr = null;
-	private List<DBCollection> cls = new ArrayList<DBCollection>();
-	
-	@BeforeClass
+    private String clName = "cl_15967";
+    private String fieldName = "id";
+    private GroupMgr groupMgr = null;
+    private List< DBCollection > cls = new ArrayList< DBCollection >();
+
+    @BeforeClass
     public void setUp() {
-		try(Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-			groupMgr = GroupMgr.getInstance() ;
-			if (!groupMgr.checkBusiness()) {
-	            throw new SkipException("checkBusiness failed");
-	        }
-		}catch (ReliabilityException e) {
-			Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
-                    + Utils.getKeyStack(e, this));
-		}
-	}
-	
-	@Test
-	public void test() {
-		Sequoiadb db = null;
-		try {
-			GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
-			NodeWrapper cataMaster = cataGroup.getMaster();
-			FaultMakeTask faultTask = KillNode.getFaultMakeTask(cataMaster.hostName(), cataMaster.svcName(), 1);
-	        TaskMgr mgr = new TaskMgr();
-	        CreateTask createTask = new CreateTask();
-	        mgr.addTask(createTask);
-	        mgr.addTask(faultTask);
-	        mgr.execute();
-	        
-	       // faultTask.start(); 
-	        Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
-	        if (!groupMgr.checkBusinessWithLSN(600)) {
-	        	Assert.fail("checkBusinessWithLSN() occurs timeout"); 
-	        }
-	        
-	        db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-	        checkCatalogConsistency(cataGroup);
-	        
-		} catch (ReliabilityException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Assert.fail(e.getMessage());
-		}finally {
-			if (db != null){
-				db.close();
-			}
+        try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" )) {
+            groupMgr = GroupMgr.getInstance();
+            if ( !groupMgr.checkBusiness() ) {
+                throw new SkipException( "checkBusiness failed" );
+            }
+        } catch ( ReliabilityException e ) {
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getKeyStack( e, this ) );
         }
-	}
-    
-	private class CreateTask extends OperateTask {
+    }
+
+    @Test
+    public void test() {
+        Sequoiadb db = null;
+        try {
+            GroupWrapper cataGroup = groupMgr
+                    .getGroupByName( "SYSCatalogGroup" );
+            NodeWrapper cataMaster = cataGroup.getMaster();
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask(
+                    cataMaster.hostName(), cataMaster.svcName(), 1 );
+            TaskMgr mgr = new TaskMgr();
+            CreateTask createTask = new CreateTask();
+            mgr.addTask( createTask );
+            mgr.addTask( faultTask );
+            mgr.execute();
+
+            // faultTask.start();
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
+            if ( !groupMgr.checkBusinessWithLSN( 600 ) ) {
+                Assert.fail( "checkBusinessWithLSN() occurs timeout" );
+            }
+
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            checkCatalogConsistency( cataGroup );
+
+        } catch ( ReliabilityException e ) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            Assert.fail( e.getMessage() );
+        } finally {
+            if ( db != null ) {
+                db.close();
+            }
+        }
+    }
+
+    private class CreateTask extends OperateTask {
         @Override
         public void exec() throws Exception {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(coordUrl, "", "");
-                CollectionSpace cs = db.getCollectionSpace(csName);
-                for(int i = 0; i < 50; i++){
-                	cls.add(cs.createCollection(clName+i, (BSONObject)JSON.parse("{AutoIncrement:{Field:'" + fieldName+i + "'}}")));	
-                    }
-                }catch (BaseException e){
-                	e.printStackTrace();
+                db = new Sequoiadb( coordUrl, "", "" );
+                CollectionSpace cs = db.getCollectionSpace( csName );
+                for ( int i = 0; i < 50; i++ ) {
+                    cls.add( cs.createCollection( clName + i,
+                            ( BSONObject ) JSON.parse( "{AutoIncrement:{Field:'"
+                                    + fieldName + i + "'}}" ) ) );
+                }
+            } catch ( BaseException e ) {
+                e.printStackTrace();
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.close();
                 }
             }
         }
     }
-	
-	private void checkCatalogConsistency(GroupWrapper cataGroup){
-        List<String> cataUrls = cataGroup.getAllUrls();
-        List<List<BSONObject>> results = new ArrayList<List<BSONObject>>();
-        for (String cataUrl : cataUrls) {
-            Sequoiadb cataDB = new Sequoiadb(cataUrl, "", "");
-            DBCursor cursor = cataDB.getCollectionSpace("SYSGTS").getCollection("SEQUENCES").query();
-            List<BSONObject> result = new ArrayList<BSONObject>();
-            while (cursor.hasNext()) {
-                result.add(cursor.getNext());
+
+    private void checkCatalogConsistency( GroupWrapper cataGroup ) {
+        List< String > cataUrls = cataGroup.getAllUrls();
+        List< List< BSONObject > > results = new ArrayList< List< BSONObject > >();
+        for ( String cataUrl : cataUrls ) {
+            Sequoiadb cataDB = new Sequoiadb( cataUrl, "", "" );
+            DBCursor cursor = cataDB.getCollectionSpace( "SYSGTS" )
+                    .getCollection( "SEQUENCES" ).query();
+            List< BSONObject > result = new ArrayList< BSONObject >();
+            while ( cursor.hasNext() ) {
+                result.add( cursor.getNext() );
             }
-            results.add(result);
+            results.add( result );
             cursor.close();
             cataDB.close();
         }
-        
-        List<BSONObject> compareA = results.get(0);
-        sortByName(compareA);
-        for (int i = 1; i < results.size(); i++) {
-            List<BSONObject> compareB = results.get(i);
-            sortByName(compareB);
-            if (!compareA.equals(compareB)) {
-                System.out.println(cataUrls.get(0));
-                System.out.println(compareA);
-                System.out.println(cataUrls.get(i));
-                System.out.println(compareB);
-                Assert.fail("data is different. see the detail in console");
+
+        List< BSONObject > compareA = results.get( 0 );
+        sortByName( compareA );
+        for ( int i = 1; i < results.size(); i++ ) {
+            List< BSONObject > compareB = results.get( i );
+            sortByName( compareB );
+            if ( !compareA.equals( compareB ) ) {
+                System.out.println( cataUrls.get( 0 ) );
+                System.out.println( compareA );
+                System.out.println( cataUrls.get( i ) );
+                System.out.println( compareB );
+                Assert.fail( "data is different. see the detail in console" );
             }
         }
     }
-	
-	private void sortByName(List<BSONObject> list) {
-        Collections.sort(list, new Comparator<BSONObject>() {
-            public int compare(BSONObject a, BSONObject b) {
-                String aName = (String)a.get("Name");
-                String bName = (String)b.get("Name");
-                return aName.compareTo(bName);
+
+    private void sortByName( List< BSONObject > list ) {
+        Collections.sort( list, new Comparator< BSONObject >() {
+            public int compare( BSONObject a, BSONObject b ) {
+                String aName = ( String ) a.get( "Name" );
+                String bName = ( String ) b.get( "Name" );
+                return aName.compareTo( bName );
             }
-        });
+        } );
     }
-	
-	@AfterClass
-    public void tearDown(){
-		Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-		for(int i = 0; i < 50; i++){
-			if (sdb.getCollectionSpace(csName).isCollectionExist(clName+i)) {
-				sdb.getCollectionSpace(csName).dropCollection(clName+i);
-	        }
-		}
-		sdb.close();
-	}
-	
+
+    @AfterClass
+    public void tearDown() {
+        Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        for ( int i = 0; i < 50; i++ ) {
+            if ( sdb.getCollectionSpace( csName )
+                    .isCollectionExist( clName + i ) ) {
+                sdb.getCollectionSpace( csName ).dropCollection( clName + i );
+            }
+        }
+        sdb.close();
+    }
+
 }

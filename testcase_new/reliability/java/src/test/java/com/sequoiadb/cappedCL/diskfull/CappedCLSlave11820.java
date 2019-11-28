@@ -38,51 +38,53 @@ public class CappedCLSlave11820 extends SdbTestBase {
     @BeforeClass
     public void setUp() throws ReliabilityException {
         groupMgr = GroupMgr.getInstance();
-        if (!groupMgr.checkBusiness(120)) {
-            throw new SkipException("checkBusiness failed");
+        if ( !groupMgr.checkBusiness( 120 ) ) {
+            throw new SkipException( "checkBusiness failed" );
         }
 
-        db = new Sequoiadb(coordUrl, "", "");
-        dataGroup = groupMgr.getAllDataGroup().get(0);
-        
-        cl = db.getCollectionSpace(cappedCSName)
-                .createCollection(CLNAME, (BSONObject) JSON.parse(
+        db = new Sequoiadb( coordUrl, "", "" );
+        dataGroup = groupMgr.getAllDataGroup().get( 0 );
+
+        cl = db.getCollectionSpace( cappedCSName ).createCollection( CLNAME,
+                ( BSONObject ) JSON.parse(
                         "{Capped:true,Size:1024,AutoIndexId:false,Group:'"
-                                + dataGroup.getGroupName() + "'}"));
+                                + dataGroup.getGroupName() + "'}" ) );
         int insertNums = 300000;
         int strLength = 128;
-        CappedCLUtils.insertRecords(cl, insertNums, strLength);
+        CappedCLUtils.insertRecords( cl, insertNums, strLength );
     }
 
     @Test
     public void test() throws ReliabilityException {
         NodeWrapper slaveNode = dataGroup.getSlave();
-        FaultMakeTask faultTask = DiskFull.getFaultMakeTask(slaveNode.hostName(), SdbTestBase.reservedDir, 1, 10);
-        TaskMgr taskMgr = new TaskMgr(faultTask);
+        FaultMakeTask faultTask = DiskFull.getFaultMakeTask(
+                slaveNode.hostName(), SdbTestBase.reservedDir, 1, 10 );
+        TaskMgr taskMgr = new TaskMgr( faultTask );
         for ( int i = 0; i < 5; i++ ) {
-            taskMgr.addTask(new InsertTask());
-        }       
-        taskMgr.addTask(new PopTask());
+            taskMgr.addTask( new InsertTask() );
+        }
+        taskMgr.addTask( new PopTask() );
         taskMgr.execute();
         // 检查环境
-        Assert.assertEquals(taskMgr.isAllSuccess(), true, taskMgr.getErrorMsg());
-        Assert.assertEquals(groupMgr.checkBusinessWithLSN(600),true);
-        
-        // 环境恢复后，执行insert/pop并检查主备一致
-        CappedCLUtils.insertRecords(cl, 10000, 16);
-        long logicalID = CappedCLUtils.getLogicalID(cl, new Random().nextInt(100));
-        int direction = -1;
-        CappedCLUtils.pop(cl, logicalID, direction);
-        Assert.assertEquals(dataGroup.checkInspect(120),true);    
-    }
+        Assert.assertEquals( taskMgr.isAllSuccess(), true,
+                taskMgr.getErrorMsg() );
+        Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true );
 
+        // 环境恢复后，执行insert/pop并检查主备一致
+        CappedCLUtils.insertRecords( cl, 10000, 16 );
+        long logicalID = CappedCLUtils.getLogicalID( cl,
+                new Random().nextInt( 100 ) );
+        int direction = -1;
+        CappedCLUtils.pop( cl, logicalID, direction );
+        Assert.assertEquals( dataGroup.checkInspect( 120 ), true );
+    }
 
     @AfterClass()
     public void tearDown() {
         try {
-            db.getCollectionSpace(cappedCSName).dropCollection(CLNAME);
+            db.getCollectionSpace( cappedCSName ).dropCollection( CLNAME );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -92,12 +94,14 @@ public class CappedCLSlave11820 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl,"","")) {
-                DBCollection cl = db.getCollectionSpace(cappedCSName).getCollection(CLNAME);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( cappedCSName )
+                        .getCollection( CLNAME );
                 int insertNums = 100000;
                 int strLength = 256;
-                CappedCLUtils.insertRecords(cl, insertNums, strLength);
-            } 
+                CappedCLUtils.insertRecords( cl, insertNums, strLength );
+            }
         }
     }
 
@@ -105,12 +109,15 @@ public class CappedCLSlave11820 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl,"","")) {
-                DBCollection cl = db.getCollectionSpace(cappedCSName).getCollection(CLNAME);
-                long logicalID = CappedCLUtils.getLogicalID(cl, new Random().nextInt(200000));
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( cappedCSName )
+                        .getCollection( CLNAME );
+                long logicalID = CappedCLUtils.getLogicalID( cl,
+                        new Random().nextInt( 200000 ) );
                 int direction = 1;
-                CappedCLUtils.pop(cl, logicalID, direction);
-            } 
+                CappedCLUtils.pop( cl, logicalID, direction );
+            }
         }
     }
 }

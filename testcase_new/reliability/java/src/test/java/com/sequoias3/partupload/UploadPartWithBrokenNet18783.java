@@ -33,117 +33,133 @@ import com.sequoias3.commlibs3.s3utils.PartUploadUtils;
  * @version 1.00
  */
 public class UploadPartWithBrokenNet18783 extends S3TestBase {
-	private String bucketName = "bucket18783";
-	private String keyName = "key18783";
-	private long[] partSizes = { 18 * 1024 * 1024, 19 * 1024 * 1024, 16 * 1024 * 1024, 15 * 1024 * 1024,
-			20 * 1024 * 1024, 12 * 1024 * 1024 };
-	private AmazonS3 s3Client = null;
-	private long fileSize = 100 * 1024 * 1024;
-	private List<PartETag> partEtags = new CopyOnWriteArrayList<PartETag>();
-	private List<Long> putPartList = new CopyOnWriteArrayList<Long>();
-	private File localPath = null;
-	private File file = null;
-	private String filePath = null;
-	private String uploadId;
-	private boolean runSuccess = false;
+    private String bucketName = "bucket18783";
+    private String keyName = "key18783";
+    private long[] partSizes = { 18 * 1024 * 1024, 19 * 1024 * 1024,
+            16 * 1024 * 1024, 15 * 1024 * 1024, 20 * 1024 * 1024,
+            12 * 1024 * 1024 };
+    private AmazonS3 s3Client = null;
+    private long fileSize = 100 * 1024 * 1024;
+    private List< PartETag > partEtags = new CopyOnWriteArrayList< PartETag >();
+    private List< Long > putPartList = new CopyOnWriteArrayList< Long >();
+    private File localPath = null;
+    private File file = null;
+    private String filePath = null;
+    private String uploadId;
+    private boolean runSuccess = false;
 
-	@BeforeClass
-	private void setUp() throws IOException {
-		localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-		filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
+    @BeforeClass
+    private void setUp() throws IOException {
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
-		TestTools.LocalFile.removeFile(localPath);
-		TestTools.LocalFile.createDir(localPath.toString());
-		TestTools.LocalFile.createFile(filePath, fileSize);
-		file = new File(filePath);
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
+        file = new File( filePath );
 
-		s3Client = CommLibS3.buildS3Client();
-		CommLibS3.clearBucket(s3Client, bucketName);
-		s3Client.createBucket(new CreateBucketRequest(bucketName));
-	}
+        s3Client = CommLibS3.buildS3Client();
+        CommLibS3.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( new CreateBucketRequest( bucketName ) );
+    }
 
-	@Test(enabled = false)
-	public void test() throws Exception {
-		FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(S3TestBase.s3HostName, 0, 30);
-		TaskMgr mgr = new TaskMgr(faultTask);
-		uploadId = PartUploadUtils.initPartUpload(s3Client, bucketName, keyName);
+    @Test(enabled = false)
+    public void test() throws Exception {
+        FaultMakeTask faultTask = BrokenNetwork
+                .getFaultMakeTask( S3TestBase.s3HostName, 0, 30 );
+        TaskMgr mgr = new TaskMgr( faultTask );
+        uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
 
-		long filePosition = 0;
-		for (int i = 0; i < partSizes.length; i++) {
-			UploadPartTask cTask = new UploadPartTask(i + 1, filePosition, partSizes[i]);
-			mgr.addTask(cTask);
-			filePosition += partSizes[i];
-		}
-		mgr.execute();
-		Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
-		uploadPartAgainAndCheck();
-		runSuccess = true;
-	}
+        long filePosition = 0;
+        for ( int i = 0; i < partSizes.length; i++ ) {
+            UploadPartTask cTask = new UploadPartTask( i + 1, filePosition,
+                    partSizes[ i ] );
+            mgr.addTask( cTask );
+            filePosition += partSizes[ i ];
+        }
+        mgr.execute();
+        Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
+        uploadPartAgainAndCheck();
+        runSuccess = true;
+    }
 
-	@AfterClass
-	private void tearDown() {
-		try {
-			if (runSuccess) {
-				CommLibS3.clearBucket(s3Client, bucketName);
-				TestTools.LocalFile.removeFile(localPath);
-			}
-		} finally {
-			s3Client.shutdown();
-		}
-	}
+    @AfterClass
+    private void tearDown() {
+        try {
+            if ( runSuccess ) {
+                CommLibS3.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
+            }
+        } finally {
+            s3Client.shutdown();
+        }
+    }
 
-	private class UploadPartTask extends OperateTask {
-		private int partNumber = 0;
-		private long filePosition = 0;
-		private long partSize = 0;
+    private class UploadPartTask extends OperateTask {
+        private int partNumber = 0;
+        private long filePosition = 0;
+        private long partSize = 0;
 
-		public UploadPartTask(int partNumber, long filePosition, long partSize) {
-			this.partNumber = partNumber;
-			this.filePosition = filePosition;
-			this.partSize = partSize;
-		}
+        public UploadPartTask( int partNumber, long filePosition,
+                long partSize ) {
+            this.partNumber = partNumber;
+            this.filePosition = filePosition;
+            this.partSize = partSize;
+        }
 
-		@Override
-		public void exec() {
-			AmazonS3 s3Client = CommLibS3.buildS3Client();
-			try {
-				UploadPartRequest partRequest = new UploadPartRequest().withFile(file).withFileOffset(filePosition)
-						.withPartNumber(partNumber).withPartSize(partSize).withBucketName(bucketName).withKey(keyName)
-						.withUploadId(uploadId);
-				UploadPartResult uploadPartResult = s3Client.uploadPart(partRequest);
-				putPartList.add(partSize);
-				partEtags.add(uploadPartResult.getPartETag());
-			} catch (AmazonS3Exception e) {
-				if (e.getStatusCode() != 500) {
-					throw e;
-				}
-			} catch (Exception e) {
-				if (!e.getMessage().contains("Unable to execute HTTP request")) {
-					throw e;
-				}
-			} finally {
-				if (s3Client != null) {
-					s3Client.shutdown();
-				}
-			}
-		}
-	}
+        @Override
+        public void exec() {
+            AmazonS3 s3Client = CommLibS3.buildS3Client();
+            try {
+                UploadPartRequest partRequest = new UploadPartRequest()
+                        .withFile( file ).withFileOffset( filePosition )
+                        .withPartNumber( partNumber ).withPartSize( partSize )
+                        .withBucketName( bucketName ).withKey( keyName )
+                        .withUploadId( uploadId );
+                UploadPartResult uploadPartResult = s3Client
+                        .uploadPart( partRequest );
+                putPartList.add( partSize );
+                partEtags.add( uploadPartResult.getPartETag() );
+            } catch ( AmazonS3Exception e ) {
+                if ( e.getStatusCode() != 500 ) {
+                    throw e;
+                }
+            } catch ( Exception e ) {
+                if ( !e.getMessage()
+                        .contains( "Unable to execute HTTP request" ) ) {
+                    throw e;
+                }
+            } finally {
+                if ( s3Client != null ) {
+                    s3Client.shutdown();
+                }
+            }
+        }
+    }
 
-	private void uploadPartAgainAndCheck() throws Exception {
-		long filePosition = 0;
-		for (int i = 0; i < partSizes.length; i++) {
-			if (!putPartList.contains(partSizes[i])) {
-				UploadPartRequest partRequest = new UploadPartRequest().withFile(file).withFileOffset(filePosition)
-						.withPartNumber(i + 1).withPartSize(partSizes[i]).withBucketName(bucketName).withKey(keyName)
-						.withUploadId(uploadId);
-				UploadPartResult uploadPartResult = s3Client.uploadPart(partRequest);
-				partEtags.add(uploadPartResult.getPartETag());
-			}
-			filePosition += partSizes[i];
-		}
-		PartUploadUtils.completeMultipartUpload(s3Client, bucketName, keyName, uploadId, partEtags);
-		String expMd5 = TestTools.getMD5(filePath);
-		String downloadMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, keyName);
-		Assert.assertEquals(downloadMd5, expMd5);
-	}
+    private void uploadPartAgainAndCheck() throws Exception {
+        long filePosition = 0;
+        for ( int i = 0; i < partSizes.length; i++ ) {
+            if ( !putPartList.contains( partSizes[ i ] ) ) {
+                UploadPartRequest partRequest = new UploadPartRequest()
+                        .withFile( file ).withFileOffset( filePosition )
+                        .withPartNumber( i + 1 ).withPartSize( partSizes[ i ] )
+                        .withBucketName( bucketName ).withKey( keyName )
+                        .withUploadId( uploadId );
+                UploadPartResult uploadPartResult = s3Client
+                        .uploadPart( partRequest );
+                partEtags.add( uploadPartResult.getPartETag() );
+            }
+            filePosition += partSizes[ i ];
+        }
+        PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyName,
+                uploadId, partEtags );
+        String expMd5 = TestTools.getMD5( filePath );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
+        Assert.assertEquals( downloadMd5, expMd5 );
+    }
 }

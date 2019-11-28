@@ -18,12 +18,12 @@ public class TransJDBCBase extends SdbTestBase {
     private String clName;
     private int insertNum;
 
-    protected void initCL(String clName, int insertNum) {
+    protected void initCL( String clName, int insertNum ) {
         this.clName = clName;
         this.insertNum = insertNum;
     }
 
-    public void setSdb(Sequoiadb sdb) {
+    public void setSdb( Sequoiadb sdb ) {
         this.sdb = sdb;
     }
 
@@ -32,7 +32,7 @@ public class TransJDBCBase extends SdbTestBase {
     }
 
     private void init() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
     }
 
     protected void beforeSetUp() throws ReliabilityException {
@@ -53,21 +53,21 @@ public class TransJDBCBase extends SdbTestBase {
 
         beforeSetUp();
 
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        List<String> groupNames = CommLib.getDataGroupNames(sdb);
-        if (groupNames.size() < 2) {
-            throw new SkipException("ONE GROUP MODE");
+        List< String > groupNames = CommLib.getDataGroupNames( sdb );
+        if ( groupNames.size() < 2 ) {
+            throw new SkipException( "ONE GROUP MODE" );
         }
         GroupMgr groupMgr = GroupMgr.getInstance();
-        if (!groupMgr.checkBusiness(120)) {
-            throw new SkipException("GROUP ERROR");
+        if ( !groupMgr.checkBusiness( 120 ) ) {
+            throw new SkipException( "GROUP ERROR" );
         }
 
         // MySQL 创建表(balance, account) 并插入数据 insertNum 个账户，每个账户 10000 元
-        TransferJDBCTh.initTrans(clName, insertNum);
+        TransferJDBCTh.initTrans( clName, insertNum );
 
         afterSetUp();
     }
@@ -77,7 +77,7 @@ public class TransJDBCBase extends SdbTestBase {
         try {
             beforeTearDown();
 
-            TransferJDBCTh.finiTrans(clName);
+            TransferJDBCTh.finiTrans( clName );
 
             afterTearDown();
         } finally {
@@ -86,7 +86,7 @@ public class TransJDBCBase extends SdbTestBase {
     }
 
     private void fini() {
-        if (sdb != null) {
+        if ( sdb != null ) {
             sdb.close();
         }
     }

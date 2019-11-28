@@ -18,76 +18,77 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
-* FileName: TestLob7101.java
-* test interface:
-*  test lobfile no exist ,then removeLob
-* @author wuyan
-    * @Date    2016.9.22
-* @version 1.00
-*/
+ * FileName: TestLob7101.java test interface: test lobfile no exist ,then
+ * removeLob
+ * 
+ * @author wuyan
+ * @Date 2016.9.22
+ * @version 1.00
+ */
 public class TestLob7101 extends SdbTestBase {
-	
-	private String clName = "cl_7101";
-	private static Sequoiadb sdb = null;
-	private CollectionSpace cs = null;
-	private DBCollection cl ;
-	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");	
-	
-	@BeforeClass
-	public void setUp(){		
-		System.out.println(this.getClass().getName()+" begin at "+sdf.format(new Date()));
-		try{
-			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-		}catch(BaseException e){			
-			Assert.assertTrue(false,"connect %s failed,"+SdbTestBase.coordUrl+e.getMessage());
-		}
-		
-		createCL();		
-	}
-	
-	private void createCL(){
-		try{
-			if (!sdb.isCollectionSpaceExist(SdbTestBase.csName)){
-				sdb.createCollectionSpace(SdbTestBase.csName);	
-			}
-		}catch(BaseException e){
-			//-33 CS exist,ignore exceptions
-			Assert.assertEquals(-33,e.getErrorCode(),e.getMessage());
-		}
-		String test = "{ReplSize:0,Compressed:true}";
-		BSONObject options =(BSONObject) JSON.parse(test);
-		try
-		{
-			cs = sdb.getCollectionSpace(SdbTestBase.csName);			
-			cl = cs.createCollection(clName,options);			
-		}catch(BaseException e){
-			//-33 CS exist,ignore exceptions
-			Assert.assertEquals(-33,e.getErrorCode(),e.getMessage());
-		}
-	}	
-	
-	@Test
-	public void removeLob(){
-		ObjectId oid = new ObjectId();
-		try{
-			cl.removeLob(oid);			
-		}catch(BaseException e){
-			//-4 lobfile not exist,ignore exceptions
-			Assert.assertEquals(-4,e.getErrorCode(),e.getMessage());
-		}		
-	}	
-	
-	@AfterClass
-	public void tearDown(){
-		try{
-			System.out.println(this.getClass().getName()+" end at "+sdf.format(new Date()));
-			if(cs.isCollectionExist(clName)){
-				cs.dropCollection(clName);
-			}			
-			sdb.disconnect();			
-		}catch(BaseException e){			
-			Assert.assertTrue(false,"clean up failed:"+e.getMessage());
-		}
-	}		
-}
 
+    private String clName = "cl_7101";
+    private static Sequoiadb sdb = null;
+    private CollectionSpace cs = null;
+    private DBCollection cl;
+    SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.S" );
+
+    @BeforeClass
+    public void setUp() {
+        System.out.println( this.getClass().getName() + " begin at "
+                + sdf.format( new Date() ) );
+        try {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "connect %s failed,"
+                    + SdbTestBase.coordUrl + e.getMessage() );
+        }
+
+        createCL();
+    }
+
+    private void createCL() {
+        try {
+            if ( !sdb.isCollectionSpaceExist( SdbTestBase.csName ) ) {
+                sdb.createCollectionSpace( SdbTestBase.csName );
+            }
+        } catch ( BaseException e ) {
+            // -33 CS exist,ignore exceptions
+            Assert.assertEquals( -33, e.getErrorCode(), e.getMessage() );
+        }
+        String test = "{ReplSize:0,Compressed:true}";
+        BSONObject options = ( BSONObject ) JSON.parse( test );
+        try {
+            cs = sdb.getCollectionSpace( SdbTestBase.csName );
+            cl = cs.createCollection( clName, options );
+        } catch ( BaseException e ) {
+            // -33 CS exist,ignore exceptions
+            Assert.assertEquals( -33, e.getErrorCode(), e.getMessage() );
+        }
+    }
+
+    @Test
+    public void removeLob() {
+        ObjectId oid = new ObjectId();
+        try {
+            cl.removeLob( oid );
+        } catch ( BaseException e ) {
+            // -4 lobfile not exist,ignore exceptions
+            Assert.assertEquals( -4, e.getErrorCode(), e.getMessage() );
+        }
+    }
+
+    @AfterClass
+    public void tearDown() {
+        try {
+            System.out.println( this.getClass().getName() + " end at "
+                    + sdf.format( new Date() ) );
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
+            }
+            sdb.disconnect();
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
+        }
+    }
+}

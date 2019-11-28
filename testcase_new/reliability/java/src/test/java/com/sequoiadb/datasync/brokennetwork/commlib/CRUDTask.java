@@ -11,8 +11,8 @@ import org.bson.util.JSON;
 public class CRUDTask extends OperateTask {
     private String safeUrl = null;
     private String clName = null;
-    
-    public CRUDTask(String safeUrl, String clName) {
+
+    public CRUDTask( String safeUrl, String clName ) {
         this.safeUrl = safeUrl;
         this.clName = clName;
     }
@@ -21,19 +21,22 @@ public class CRUDTask extends OperateTask {
     public void exec() throws Exception {
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(safeUrl, "", "");
-            DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+            db = new Sequoiadb( safeUrl, "", "" );
+            DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
             int repeatTimes = 5000;
-            for (int i = 0; i < repeatTimes; i++) {
-                BSONObject rec = (BSONObject)JSON.parse("{ a: " + i + " }");
-                cl.insert(rec);
-                BSONObject modifier = (BSONObject)JSON.parse("{ $set: { b: 1 } }");
-                cl.update(rec, modifier, null);
-                cl.delete(rec);
+            for ( int i = 0; i < repeatTimes; i++ ) {
+                BSONObject rec = ( BSONObject ) JSON
+                        .parse( "{ a: " + i + " }" );
+                cl.insert( rec );
+                BSONObject modifier = ( BSONObject ) JSON
+                        .parse( "{ $set: { b: 1 } }" );
+                cl.update( rec, modifier, null );
+                cl.delete( rec );
             }
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }

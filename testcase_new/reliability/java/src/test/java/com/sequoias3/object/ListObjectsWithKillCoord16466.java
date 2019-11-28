@@ -37,9 +37,9 @@ public class ListObjectsWithKillCoord16466 extends S3TestBase {
     private boolean runSuccess = false;
     private String bucketName = "bucket16466";
     private String objectNameBase = "/aa/bb/object16466";
-    private List<String> objectNames = new ArrayList<String>();
+    private List< String > objectNames = new ArrayList< String >();
     private AmazonS3 s3Client = null;
-    private int fileSize = 1024 * new Random().nextInt(1025);
+    private int fileSize = 1024 * new Random().nextInt( 1025 );
     private int objectNums = 1000;
     private File localPath = null;
     private String filePath = null;
@@ -48,36 +48,39 @@ public class ListObjectsWithKillCoord16466 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException, ReliabilityException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
         groupMgr = GroupMgr.getInstance();
-        coordGroup = groupMgr.getGroupByName("SYSCoord");
+        coordGroup = groupMgr.getGroupByName( "SYSCoord" );
         s3Client = CommLibS3.buildS3Client();
-        CommLibS3.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        for (int i = 0; i < objectNums; i++) {
-            String objectName = objectNameBase + "_" + i + "_" + TestTools.getRandomString(1);
-            objectNames.add(objectName);
-            s3Client.putObject(bucketName, objectName, new File(filePath));
+        CommLibS3.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        for ( int i = 0; i < objectNums; i++ ) {
+            String objectName = objectNameBase + "_" + i + "_"
+                    + TestTools.getRandomString( 1 );
+            objectNames.add( objectName );
+            s3Client.putObject( bucketName, objectName, new File( filePath ) );
         }
     }
 
     @Test
     public void test() throws ReliabilityException, IOException {
-        //kill coord when list objects
+        // kill coord when list objects
         TaskMgr mgr = new TaskMgr();
-        for(NodeWrapper node : coordGroup.getNodes()) {
-            FaultMakeTask faultTask = KillNode.getFaultMakeTask(node, 2);
-            mgr.addTask(faultTask);
+        for ( NodeWrapper node : coordGroup.getNodes() ) {
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask( node, 2 );
+            mgr.addTask( faultTask );
         }
         ListObject listTask = new ListObject();
-        mgr.addTask(listTask);
+        mgr.addTask( listTask );
         mgr.execute();
-        Assert.assertTrue(mgr.isAllSuccess(), mgr.getErrorMsg());
-        //list objects again
+        Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
+        // list objects again
         listObjectsAndCheck();
         runSuccess = true;
     }
@@ -85,9 +88,9 @@ public class ListObjectsWithKillCoord16466 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLibS3.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLibS3.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();
@@ -99,8 +102,8 @@ public class ListObjectsWithKillCoord16466 extends S3TestBase {
         public void exec() throws IOException {
             try {
                 listObjectsAndCheck();
-            } catch (AmazonS3Exception e) {
-                if (e.getStatusCode() != 500) {
+            } catch ( AmazonS3Exception e ) {
+                if ( e.getStatusCode() != 500 ) {
                     throw e;
                 }
             }
@@ -109,25 +112,31 @@ public class ListObjectsWithKillCoord16466 extends S3TestBase {
 
     private void listObjectsAndCheck() throws IOException {
         ListObjectsV2Result objectsV2Result;
-        ListObjectsV2Request req = new ListObjectsV2Request().withBucketName(bucketName);
+        ListObjectsV2Request req = new ListObjectsV2Request()
+                .withBucketName( bucketName );
         do {
-            objectsV2Result = s3Client.listObjectsV2(req);
-            req.setContinuationToken(objectsV2Result.getNextContinuationToken());
-            List<S3ObjectSummary> objects = objectsV2Result.getObjectSummaries();
-            //check
-            checkObjectsResult(objects);
-            System.out.println(objectsV2Result.isTruncated());
-        } while (objectsV2Result.isTruncated());
+            objectsV2Result = s3Client.listObjectsV2( req );
+            req.setContinuationToken(
+                    objectsV2Result.getNextContinuationToken() );
+            List< S3ObjectSummary > objects = objectsV2Result
+                    .getObjectSummaries();
+            // check
+            checkObjectsResult( objects );
+            System.out.println( objectsV2Result.isTruncated() );
+        } while ( objectsV2Result.isTruncated() );
     }
 
-    private void checkObjectsResult(List<S3ObjectSummary> objects) throws IOException {
-        for (S3ObjectSummary objectSummary : objects) {
-            Assert.assertEquals(objectSummary.getBucketName(), bucketName);
-            Assert.assertTrue(objectNames.contains(objectSummary.getKey()),
-                    "objectNames=" + objectNames.toString() +
-                            ",objectSummary.getKey() = " + objectSummary.getKey());
-            Assert.assertEquals(objectSummary.getETag(), TestTools.getMD5(filePath));
-            Assert.assertEquals(objectSummary.getSize(), fileSize);
+    private void checkObjectsResult( List< S3ObjectSummary > objects )
+            throws IOException {
+        for ( S3ObjectSummary objectSummary : objects ) {
+            Assert.assertEquals( objectSummary.getBucketName(), bucketName );
+            Assert.assertTrue( objectNames.contains( objectSummary.getKey() ),
+                    "objectNames=" + objectNames.toString()
+                            + ",objectSummary.getKey() = "
+                            + objectSummary.getKey() );
+            Assert.assertEquals( objectSummary.getETag(),
+                    TestTools.getMD5( filePath ) );
+            Assert.assertEquals( objectSummary.getSize(), fileSize );
         }
     }
 }

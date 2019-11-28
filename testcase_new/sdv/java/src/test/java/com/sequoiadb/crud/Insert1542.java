@@ -23,70 +23,72 @@ public class Insert1542 extends SdbTestBase {
 
     @BeforeClass
     public void setup() {
-        db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        CollectionSpace cs = db.getCollectionSpace(SdbTestBase.csName);
-        dbcl=cs.createCollection(CLNAME);
+        db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        CollectionSpace cs = db.getCollectionSpace( SdbTestBase.csName );
+        dbcl = cs.createCollection( CLNAME );
     }
 
     @AfterClass
     public void teardown() {
-        if (db != null) {
-            CollectionSpace cs=db.getCollectionSpace(SdbTestBase.csName);
-            cs.dropCollection(CLNAME);
+        if ( db != null ) {
+            CollectionSpace cs = db.getCollectionSpace( SdbTestBase.csName );
+            cs.dropCollection( CLNAME );
             db.disconnect();
         }
     }
 
     /**
-     * 1.插入一条记录
-     * 2.循环更新该记录10万次
-     * 3.在更新操作未结束前删除该记录
+     * 1.插入一条记录 2.循环更新该记录10万次 3.在更新操作未结束前删除该记录
      */
     @Test
     public void test() throws InterruptedException {
-        dbcl.insert(new BasicBSONObject("a",1));
+        dbcl.insert( new BasicBSONObject( "a", 1 ) );
 
-        SdbThreadBase update=new SdbThreadBase() {
+        SdbThreadBase update = new SdbThreadBase() {
             @Override
             public void exec() throws Exception {
                 Sequoiadb db = null;
                 try {
-                    db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                    DBCollection cl = db.getCollectionSpace(SdbTestBase.csName)
-                            .getCollection(CLNAME);
-                    for (int i = 0; i < 10000; i++) {
-                        cl.update(new BasicBSONObject(), (BSONObject) JSON.parse("{$inc:{a:1}}"), new BasicBSONObject());
+                    db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                    DBCollection cl = db
+                            .getCollectionSpace( SdbTestBase.csName )
+                            .getCollection( CLNAME );
+                    for ( int i = 0; i < 10000; i++ ) {
+                        cl.update( new BasicBSONObject(),
+                                ( BSONObject ) JSON.parse( "{$inc:{a:1}}" ),
+                                new BasicBSONObject() );
                     }
                 } finally {
-                    if (db != null)
+                    if ( db != null )
                         db.disconnect();
                 }
             }
         };
 
-        SdbThreadBase remove=new SdbThreadBase() {
+        SdbThreadBase remove = new SdbThreadBase() {
             @Override
             public void exec() throws Exception {
-                Sequoiadb db=null;
+                Sequoiadb db = null;
                 try {
-                    db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                    DBCollection cl = db.getCollectionSpace(SdbTestBase.csName)
-                            .getCollection(CLNAME);
-                    cl.delete(new BasicBSONObject());
+                    db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                    DBCollection cl = db
+                            .getCollectionSpace( SdbTestBase.csName )
+                            .getCollection( CLNAME );
+                    cl.delete( new BasicBSONObject() );
                 } finally {
-                    if (db != null)
+                    if ( db != null )
                         db.disconnect();
                 }
             }
         };
 
         update.start();
-        Thread.sleep(1000);
+        Thread.sleep( 1000 );
         remove.start();
 
-        Assert.assertTrue(update.isSuccess(),update.getErrorMsg());
-        Assert.assertTrue(remove.isSuccess(),remove.getErrorMsg());
-        int actualCount= (int) dbcl.getCount();
-        Assert.assertEquals(actualCount,0);
+        Assert.assertTrue( update.isSuccess(), update.getErrorMsg() );
+        Assert.assertTrue( remove.isSuccess(), remove.getErrorMsg() );
+        int actualCount = ( int ) dbcl.getCount();
+        Assert.assertEquals( actualCount, 0 );
     }
 }

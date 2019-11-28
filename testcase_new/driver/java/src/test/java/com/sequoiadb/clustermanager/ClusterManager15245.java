@@ -19,86 +19,90 @@ import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
-* @TestLink: seqDB-15245
-* @describe:
-*         updateConfig(BSONObject configs, BSONObject options)
-*         deleteConfig(BSONObject configs, BSONObject options)
-* @author chensiqin
-* @Date   2018.03.28
-* @version 1.00
-*/
-public class ClusterManager15245 extends SdbTestBase{
-    private Sequoiadb sdb ;
-    private SimpleDateFormat df = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS");
+ * @TestLink: seqDB-15245
+ * @describe: updateConfig(BSONObject configs, BSONObject options)
+ *            deleteConfig(BSONObject configs, BSONObject options)
+ * @author chensiqin
+ * @Date 2018.03.28
+ * @version 1.00
+ */
+public class ClusterManager15245 extends SdbTestBase {
+    private Sequoiadb sdb;
+    private SimpleDateFormat df = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss.SSS" );
     private String coordAddr;
     private CommLib commlib = new CommLib();
-    
+
     @BeforeClass
     public void setUp() {
-        this.coordAddr = SdbTestBase.coordUrl;      
-        System.out.println("the TestCase: "+ this.getClass().getName() + 
-                " begin at:" + df.format(new Date().getTime()));
-        sdb = new Sequoiadb(coordAddr,"","");
-        
-        if(CommLib.isStandAlone(sdb)){
-            throw new SkipException("run mode is standalone,test case skip");
+        this.coordAddr = SdbTestBase.coordUrl;
+        System.out.println( "the TestCase: " + this.getClass().getName()
+                + " begin at:" + df.format( new Date().getTime() ) );
+        sdb = new Sequoiadb( coordAddr, "", "" );
+
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "run mode is standalone,test case skip" );
         }
-            
-    } 
-    
+
+    }
+
     @Test
-    public void test15245(){
-        List<String> dataGroupNames = commlib.getDataGroupNames(sdb);
-        List<String> nodeList= commlib.getNodeAddress(sdb, dataGroupNames.get(0));
-        String nodeAddress = nodeList.get(0);
+    public void test15245() {
+        List< String > dataGroupNames = commlib.getDataGroupNames( sdb );
+        List< String > nodeList = commlib.getNodeAddress( sdb,
+                dataGroupNames.get( 0 ) );
+        String nodeAddress = nodeList.get( 0 );
         BSONObject configs = new BasicBSONObject();
         BSONObject options = new BasicBSONObject();
-        configs.put("weight", 20);
-        options.put("GroupName", dataGroupNames.get(0));
-        options.put("HostName", nodeAddress.split(":")[0]);
-        options.put("svcname", nodeAddress.split(":")[1]);
+        configs.put( "weight", 20 );
+        options.put( "GroupName", dataGroupNames.get( 0 ) );
+        options.put( "HostName", nodeAddress.split( ":" )[ 0 ] );
+        options.put( "svcname", nodeAddress.split( ":" )[ 1 ] );
         BSONObject matcher = new BasicBSONObject();
-        matcher.put("GroupName", dataGroupNames.get(0));
-        matcher.put("SvcName", nodeAddress.split(":")[1]);
-        matcher.put("HostName", nodeAddress.split(":")[0]);
+        matcher.put( "GroupName", dataGroupNames.get( 0 ) );
+        matcher.put( "SvcName", nodeAddress.split( ":" )[ 1 ] );
+        matcher.put( "HostName", nodeAddress.split( ":" )[ 0 ] );
         BSONObject selector = new BasicBSONObject();
-        selector.put("weight", 1);
-        DBCursor cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_CONFIGS, matcher, selector, null);
+        selector.put( "weight", 1 );
+        DBCursor cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS, matcher,
+                selector, null );
         BSONObject defValue = new BasicBSONObject();
-        while(cursor.hasNext()) {
+        while ( cursor.hasNext() ) {
             defValue = cursor.getNext();
         }
         cursor.close();
-        
-        sdb.updateConfig(configs, options);
-        cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_CONFIGS, matcher, selector, null);
+
+        sdb.updateConfig( configs, options );
+        cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS, matcher, selector,
+                null );
         BSONObject expected = new BasicBSONObject();
-        expected.put("weight", 20);
-        while(cursor.hasNext()) {
+        expected.put( "weight", 20 );
+        while ( cursor.hasNext() ) {
             BSONObject actual = cursor.getNext();
-            Assert.assertEquals(actual, expected);
+            Assert.assertEquals( actual, expected );
         }
         cursor.close();
-        
-        //deleteconfig
-        sdb.deleteConfig(configs, options);
-        cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_CONFIGS, matcher, selector, null);
-        while(cursor.hasNext()) {
+
+        // deleteconfig
+        sdb.deleteConfig( configs, options );
+        cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS, matcher, selector,
+                null );
+        while ( cursor.hasNext() ) {
             BSONObject actual = cursor.getNext();
-            Assert.assertEquals(actual, defValue);
+            Assert.assertEquals( actual, defValue );
         }
         cursor.close();
     }
-    
+
     @AfterClass
-    public void tearDown(){
-        try{
-            System.out.println("the TestCase: "+ this.getClass().getName() + 
-                    " end at:" + df.format(new Date().getTime()));  
-            
+    public void tearDown() {
+        try {
+            System.out.println( "the TestCase: " + this.getClass().getName()
+                    + " end at:" + df.format( new Date().getTime() ) );
+
             sdb.close();
-        }catch(BaseException e){
-            Assert.fail("clear env failed, errMsg:" + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail( "clear env failed, errMsg:" + e.getMessage() );
         }
     }
 }

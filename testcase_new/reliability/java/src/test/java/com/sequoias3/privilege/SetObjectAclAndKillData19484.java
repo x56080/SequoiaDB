@@ -46,28 +46,31 @@ public class SetObjectAclAndKillData19484 extends S3TestBase {
     private String filePath = null;
     private File localPath = null;
     private File file = null;
-    private List<String> setObjectAclSucceedList = new CopyOnWriteArrayList<String>();
-    private List<String> keyNameList = new ArrayList<>();
+    private List< String > setObjectAclSucceedList = new CopyOnWriteArrayList< String >();
+    private List< String > keyNameList = new ArrayList<>();
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(SdbTestBase.workDir + File.separator + TestTools.getClassName());
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        TestTools.LocalFile.createFile(filePath, fileSize);
-        file = new File(filePath);
+        localPath = new File( SdbTestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        TestTools.LocalFile.createFile( filePath, fileSize );
+        file = new File( filePath );
 
         s3Client = CommLibS3.buildS3Client();
-        CommLibS3.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
+        CommLibS3.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
 
         // put objects and set object acl
-        for (int i = 0; i < keyNum; i++) {
+        for ( int i = 0; i < keyNum; i++ ) {
             String keyName = keyName_base + "_" + i;
-            s3Client.putObject(bucketName, keyName, file);
-            keyNameList.add(keyName);
-            s3Client.setObjectAcl(bucketName, keyName, CannedAccessControlList.PublicRead);
+            s3Client.putObject( bucketName, keyName, file );
+            keyNameList.add( keyName );
+            s3Client.setObjectAcl( bucketName, keyName,
+                    CannedAccessControlList.PublicRead );
         }
     }
 
@@ -76,42 +79,43 @@ public class SetObjectAclAndKillData19484 extends S3TestBase {
         // kill data node
         TaskMgr mgr = new TaskMgr();
         GroupMgr groupMgr = GroupMgr.getInstance();
-        List<GroupWrapper> dataGroups = groupMgr.getAllDataGroup();
+        List< GroupWrapper > dataGroups = groupMgr.getAllDataGroup();
 
-        for (int i = 0; i < dataGroups.size(); i++) {
-            String groupName = dataGroups.get(i).getGroupName();
-            GroupWrapper group = groupMgr.getGroupByName(groupName);
+        for ( int i = 0; i < dataGroups.size(); i++ ) {
+            String groupName = dataGroups.get( i ).getGroupName();
+            GroupWrapper group = groupMgr.getGroupByName( groupName );
             NodeWrapper node = group.getMaster();
-            FaultMakeTask faultTask = KillNode.getFaultMakeTask(node, 0);
-            mgr.addTask(faultTask);
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask( node, 0 );
+            mgr.addTask( faultTask );
         }
 
         // set object acl
-        Grant expGrant = new Grant(GroupGrantee.AllUsers, Permission.ReadAcp);
-        for (String key : keyNameList) {
-            mgr.addTask(new SetObjectAcl(key, expGrant));
+        Grant expGrant = new Grant( GroupGrantee.AllUsers, Permission.ReadAcp );
+        for ( String key : keyNameList ) {
+            mgr.addTask( new SetObjectAcl( key, expGrant ) );
         }
         mgr.execute();
-        Assert.assertTrue(mgr.isAllSuccess(), mgr.getErrorMsg());
+        Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
         // check whether the cluster is normal and lsn consistency ,the longest
         // waiting time is 600S
-        Assert.assertEquals(groupMgr.checkBusinessWithLSN(600), true, "checkBusinessWithLSN() occurs timeout");
+        Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true,
+                "checkBusinessWithLSN() occurs timeout" );
 
         // set obeject acl again
-        setObjectAclAgain(expGrant);
-        checkResult(expGrant);
+        setObjectAclAgain( expGrant );
+        checkResult( expGrant );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLibS3.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLibS3.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
-            if (s3Client != null)
+            if ( s3Client != null )
                 s3Client.shutdown();
 
         }
@@ -122,7 +126,7 @@ public class SetObjectAclAndKillData19484 extends S3TestBase {
         private Grant[] grants;
         private AmazonS3 s3 = CommLibS3.buildS3Client();
 
-        private SetObjectAcl(String keyName, Grant... grants) {
+        private SetObjectAcl( String keyName, Grant... grants ) {
             this.keyName = keyName;
             this.grants = grants;
         }
@@ -130,31 +134,34 @@ public class SetObjectAclAndKillData19484 extends S3TestBase {
         @Override
         public void exec() throws Exception {
             try {
-                PrivilegeUtils.setObjectAclByBody(s3, bucketName, keyName, grants);
-                setObjectAclSucceedList.add(keyName);
-            } catch (AmazonServiceException e) {
-                if (e.getStatusCode() != 500) {
+                PrivilegeUtils.setObjectAclByBody( s3, bucketName, keyName,
+                        grants );
+                setObjectAclSucceedList.add( keyName );
+            } catch ( AmazonServiceException e ) {
+                if ( e.getStatusCode() != 500 ) {
                     throw e;
                 }
             } finally {
-                if (s3 != null) {
+                if ( s3 != null ) {
                     s3.shutdown();
                 }
             }
         }
     }
 
-    private void setObjectAclAgain(Grant... grants) {
-        List<String> setAgainKeyList = new ArrayList<>(keyNameList);
-        setAgainKeyList.removeAll(setObjectAclSucceedList);
-        for (String key : setAgainKeyList) {
-            PrivilegeUtils.setObjectAclByBody(s3Client, bucketName, key, grants);
+    private void setObjectAclAgain( Grant... grants ) {
+        List< String > setAgainKeyList = new ArrayList<>( keyNameList );
+        setAgainKeyList.removeAll( setObjectAclSucceedList );
+        for ( String key : setAgainKeyList ) {
+            PrivilegeUtils.setObjectAclByBody( s3Client, bucketName, key,
+                    grants );
         }
     }
 
-    private void checkResult(Grant... expGrants) throws Exception {
-        for (String key : keyNameList) {
-            PrivilegeUtils.checkSetObjectAclResult(s3Client, bucketName, key, expGrants);
+    private void checkResult( Grant... expGrants ) throws Exception {
+        for ( String key : keyNameList ) {
+            PrivilegeUtils.checkSetObjectAclResult( s3Client, bucketName, key,
+                    expGrants );
         }
     }
 }

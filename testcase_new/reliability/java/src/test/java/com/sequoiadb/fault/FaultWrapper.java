@@ -14,43 +14,44 @@ import java.util.Date;
 import java.util.logging.Logger;
 
 public class FaultWrapper extends Fault {
-    private final static Logger log = Logger.getLogger(FaultWrapper.class.getName());
+    private final static Logger log = Logger
+            .getLogger( FaultWrapper.class.getName() );
 
     private Fault instance;
     private int checkTimes = 3;
     private OperateTask.FaultStatus status;
 
-    private void handleException(FaultException e) {
+    private void handleException( FaultException e ) {
         status = OperateTask.FaultStatus.EXCEPTION;
     }
 
-    public FaultWrapper(Fault instance) {
-        super(instance.getName());
+    public FaultWrapper( Fault instance ) {
+        super( instance.getName() );
         this.instance = instance;
     }
 
-    public FaultWrapper(Fault instance, int checkTimes) {
-        super(instance.getName());
+    public FaultWrapper( Fault instance, int checkTimes ) {
+        super( instance.getName() );
         this.instance = instance;
         this.checkTimes = checkTimes;
     }
 
     public void make() throws FaultException {
-        log.info("make " + instance.getName());
+        log.info( "make " + instance.getName() );
 
         try {
             instance.make();
-            if (status != OperateTask.FaultStatus.EXCEPTION) {
-                if (checkMakeResult()) {
+            if ( status != OperateTask.FaultStatus.EXCEPTION ) {
+                if ( checkMakeResult() ) {
                     status = OperateTask.FaultStatus.MAKESUCCESS;
-                    log.info("make " + instance.getName() + " success");
+                    log.info( "make " + instance.getName() + " success" );
                 } else {
-                    status= OperateTask.FaultStatus.MAKEFAILURE;
-                    log.info("make " + instance.getName() + " failure ");
+                    status = OperateTask.FaultStatus.MAKEFAILURE;
+                    log.info( "make " + instance.getName() + " failure " );
                 }
             }
-        } catch (FaultException e) {
-            handleException(e);
+        } catch ( FaultException e ) {
+            handleException( e );
             throw e;
         }
     }
@@ -58,21 +59,21 @@ public class FaultWrapper extends Fault {
     public boolean checkMakeResult() throws FaultException {
         boolean checkResult = false;
         status = OperateTask.FaultStatus.MAKEFAILURE;
-        for (int i = 0; i < checkTimes; ++i) {
+        for ( int i = 0; i < checkTimes; ++i ) {
             try {
                 checkResult = instance.checkMakeResult();
-            } catch (FaultException e) {
-                if (i >= checkTimes - 1) {
+            } catch ( FaultException e ) {
+                if ( i >= checkTimes - 1 ) {
                     throw e;
                 }
             }
-            if (checkResult) {
+            if ( checkResult ) {
                 status = OperateTask.FaultStatus.MAKESUCCESS;
                 break;
             }
             try {
-                Thread.sleep(500);
-            } catch (Exception e) {
+                Thread.sleep( 500 );
+            } catch ( Exception e ) {
                 // ignore
             }
         }
@@ -80,25 +81,25 @@ public class FaultWrapper extends Fault {
     }
 
     public void restore() throws FaultException {
-        if (status != OperateTask.FaultStatus.MAKESUCCESS) {
+        if ( status != OperateTask.FaultStatus.MAKESUCCESS ) {
             return;
         }
 
         Date date = Calendar.getInstance().getTime();
-        log.info("restore " + instance.getName());
+        log.info( "restore " + instance.getName() );
         try {
             instance.restore();
-            if (status != OperateTask.FaultStatus.EXCEPTION) {
-                if (checkRestoreResult()) {
+            if ( status != OperateTask.FaultStatus.EXCEPTION ) {
+                if ( checkRestoreResult() ) {
                     date = Calendar.getInstance().getTime();
-                    log.info("restore " + instance.getName() + " success.");
+                    log.info( "restore " + instance.getName() + " success." );
                 } else {
-                    log.info("restore " + instance.getName() + " failure.");
+                    log.info( "restore " + instance.getName() + " failure." );
                     status = OperateTask.FaultStatus.RESTOREFAILURE;
                 }
             }
-        } catch (FaultException e) {
-            handleException(e);
+        } catch ( FaultException e ) {
+            handleException( e );
             throw e;
         }
     }
@@ -106,9 +107,9 @@ public class FaultWrapper extends Fault {
     public boolean checkRestoreResult() throws FaultException {
         boolean checkResult = false;
         status = OperateTask.FaultStatus.RESTOREFAILURE;
-        for (int i = 0; i < checkTimes; ++i) {
+        for ( int i = 0; i < checkTimes; ++i ) {
             checkResult = instance.checkRestoreResult();
-            if (checkResult) {
+            if ( checkResult ) {
                 status = OperateTask.FaultStatus.RESTORESUCESS;
                 break;
             }

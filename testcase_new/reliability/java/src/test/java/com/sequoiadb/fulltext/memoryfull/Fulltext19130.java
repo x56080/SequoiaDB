@@ -36,51 +36,57 @@ public class Fulltext19130 extends SdbTestBase {
 
     @BeforeClass()
     public void setUp() throws Exception {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         groupMgr = GroupMgr.getInstance();
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("isStandAlone() TRUE, STANDALONE MODE");
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "isStandAlone() TRUE, STANDALONE MODE" );
         }
-        if (!groupMgr.checkBusiness(120)) {
-            throw new SkipException("checkBusiness() FAIL, GROUP ERROR");
+        if ( !groupMgr.checkBusiness( 120 ) ) {
+            throw new SkipException( "checkBusiness() FAIL, GROUP ERROR" );
         }
-        if (!FullTextUtils.checkAdapter()) {
-            throw new SkipException("Check adapter failed");
+        if ( !FullTextUtils.checkAdapter() ) {
+            throw new SkipException( "Check adapter failed" );
         }
 
-        groupName = CommLib.getDataGroupNames(sdb).get(0);
-        cl = sdb.getCollectionSpace(SdbTestBase.csName).createCollection(clName,
-                (BSONObject) JSON.parse("{Group:'" + groupName + "'}"));
-        cl.createIndex(fulltextName, "{'a':'text', 'b':'text', 'c':'text'}", false, false);
-        FullTextDBUtils.insertData(cl, 10000);
-        Assert.assertTrue(FullTextUtils.isIndexCreated(cl, fulltextName, 10000));
+        groupName = CommLib.getDataGroupNames( sdb ).get( 0 );
+        cl = sdb.getCollectionSpace( SdbTestBase.csName ).createCollection(
+                clName,
+                ( BSONObject ) JSON.parse( "{Group:'" + groupName + "'}" ) );
+        cl.createIndex( fulltextName, "{'a':'text', 'b':'text', 'c':'text'}",
+                false, false );
+        FullTextDBUtils.insertData( cl, 10000 );
+        Assert.assertTrue(
+                FullTextUtils.isIndexCreated( cl, fulltextName, 10000 ) );
     }
 
     @Test
     public void test() throws Exception {
-        String esIndexName = FullTextDBUtils.getESIndexName(cl, fulltextName);
-        String cappedName = FullTextDBUtils.getCappedName(cl, fulltextName);
+        String esIndexName = FullTextDBUtils.getESIndexName( cl, fulltextName );
+        String cappedName = FullTextDBUtils.getCappedName( cl, fulltextName );
 
-        Node node = sdb.getReplicaGroup(groupName).getMaster();
-        FaultTask task = FaultTask.getFault(FaultName.MEMORYLIMIT);
+        Node node = sdb.getReplicaGroup( groupName ).getMaster();
+        FaultTask task = FaultTask.getFault( FaultName.MEMORYLIMIT );
         try {
-            String svcName = String.valueOf(node.getPort());
-            svcName = svcName.substring(0, svcName.length() - 1) + "7";
-            task.make(node.getHostName(), svcName, "root", SdbTestBase.rootPwd);
-            cl.dropIndex(fulltextName);
+            String svcName = String.valueOf( node.getPort() );
+            svcName = svcName.substring( 0, svcName.length() - 1 ) + "7";
+            task.make( node.getHostName(), svcName, "root",
+                    SdbTestBase.rootPwd );
+            cl.dropIndex( fulltextName );
         } finally {
             task.restore();
         }
 
-        Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedName));
-        FullTextDBUtils.insertData(cl, 1000);
-        Assert.assertTrue(FullTextUtils.checkAdapter());
+        Assert.assertTrue(
+                FullTextUtils.isIndexDeleted( sdb, esIndexName, cappedName ) );
+        FullTextDBUtils.insertData( cl, 1000 );
+        Assert.assertTrue( FullTextUtils.checkAdapter() );
 
         try {
-            cl.query("{'':{'$Text':{'query':{'match_all':{}}}}}", null, null, null);
+            cl.query( "{'':{'$Text':{'query':{'match_all':{}}}}}", null, null,
+                    null );
             Assert.fail();
-        } catch (BaseException e) {
-            if (-52 != e.getErrorCode()) {
+        } catch ( BaseException e ) {
+            if ( -52 != e.getErrorCode() ) {
                 throw e;
             }
         }
@@ -89,7 +95,8 @@ public class Fulltext19130 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            sdb.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
+            sdb.getCollectionSpace( SdbTestBase.csName )
+                    .dropCollection( clName );
         } finally {
             sdb.close();
         }

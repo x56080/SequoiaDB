@@ -28,53 +28,59 @@ import com.sequoiadb.transaction.jdbc2mysql.common.TransferJDBCTh;
 public class TransactionJDBC18519 extends TransJDBCBase {
     private String clName = "cl18519";
     private GroupMgr groupMgr;
-    private List<String> groupNames;
+    private List< String > groupNames;
 
     @Override
     protected void beforeSetUp() throws ReliabilityException {
-        initCL(clName, 10000);
+        initCL( clName, 10000 );
         groupMgr = GroupMgr.getInstance();
-        groupNames = CommLib.getDataGroupNames(sdb);
+        groupNames = CommLib.getDataGroupNames( sdb );
     }
 
     @Test
-    public void test() throws ReliabilityException, InterruptedException, SQLException {
+    public void test()
+            throws ReliabilityException, InterruptedException, SQLException {
         // 如果构造断网的主机是连接的coord节点所在的主机，就重启该主节点
-        for (int i = 0; i < groupNames.size(); i++) {
-            GroupWrapper groupWrapper = groupMgr.getGroupByName(groupNames.get(i));
+        for ( int i = 0; i < groupNames.size(); i++ ) {
+            GroupWrapper groupWrapper = groupMgr
+                    .getGroupByName( groupNames.get( i ) );
             String host = groupWrapper.getMaster().hostName();
-            if (host.equals(sdb.getHost())) {
+            if ( host.equals( sdb.getHost() ) ) {
                 NodeWrapper nodeWrapper = groupWrapper.getMaster();
-                FaultMakeTask task = NodeRestart.getFaultMakeTask(nodeWrapper, 0, 0);
-                TaskMgr taskMgr = new TaskMgr(task);
+                FaultMakeTask task = NodeRestart.getFaultMakeTask( nodeWrapper,
+                        0, 0 );
+                TaskMgr taskMgr = new TaskMgr( task );
                 taskMgr.execute();
 
-                Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
-                Assert.assertTrue(groupMgr.checkBusinessWithLSN(120), "GROUP ERROR");
+                Assert.assertTrue( taskMgr.isAllSuccess(),
+                        taskMgr.getErrorMsg() );
+                Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ),
+                        "GROUP ERROR" );
             }
         }
 
         // 部分数据节点的主节点断网
         FaultMakeTask task = null;
         TaskMgr taskMgr = new TaskMgr();
-        for (int i = 0; i < groupNames.size() - 1; i++) {
-            String groupName = groupNames.get(i);
-            GroupWrapper group = groupMgr.getGroupByName(groupName);
+        for ( int i = 0; i < groupNames.size() - 1; i++ ) {
+            String groupName = groupNames.get( i );
+            GroupWrapper group = groupMgr.getGroupByName( groupName );
             NodeWrapper node = group.getMaster();
-            task = BrokenNetwork.getFaultMakeTask(node.hostName(), 60, 10);
-            taskMgr.addTask(task);
+            task = BrokenNetwork.getFaultMakeTask( node.hostName(), 60, 10 );
+            taskMgr.addTask( task );
         }
-        TransUtil.setTimeTask(taskMgr, task);
+        TransUtil.setTimeTask( taskMgr, task );
 
-        for (int i = 0; i < 200; i++) {
-            taskMgr.addTask(new TransferJDBCTh(clName));
+        for ( int i = 0; i < 200; i++ ) {
+            taskMgr.addTask( new TransferJDBCTh( clName ) );
         }
         taskMgr.execute();
 
-        Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
-        Assert.assertTrue(groupMgr.checkBusinessWithLSN(300), "GROUP ERROR");
+        Assert.assertTrue( taskMgr.isAllSuccess(), taskMgr.getErrorMsg() );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 300 ),
+                "GROUP ERROR" );
 
         // 待集群正常后，查询所有账户的金额总和
-        TransferJDBCTh.checkTransResult(clName, getInsertNum() * 10000);
+        TransferJDBCTh.checkTransResult( clName, getInsertNum() * 10000 );
     }
 }

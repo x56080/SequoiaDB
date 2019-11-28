@@ -17,65 +17,68 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
-* FileName: MinKeyTestHashCode10352.java* 
-* test interface:
-* hashCode()
-* TestLink: seqDB-10352:
-* @author wuyan
-    * @Date    2016.10.14
-* @version 1.00
-*/
-public class MinKeyTestHashCode10352 extends SdbTestBase{
-	private static Sequoiadb sdb = null;
-	private SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS");	
-	
-	@BeforeClass
-	public void setUp(){
-		
-		System.out.println(this.getClass().getName()+" begin at "+sdf.format(new Date()));
-		try{
-			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-		}catch(BaseException e){			
-			Assert.assertTrue(false,"connect %s failed,"+SdbTestBase.coordUrl+e.getMessage());
-		}	
-	}
-	
-    @Test
-	public void testHashCode() {
-		try{
-			BSONObject obj = new BasicBSONObject();
-			MinKey minkey = new MinKey();			
-			obj.put("minkey", minkey);	
-			
-			//compare yourself
-			if(minkey.hashCode() != minkey.hashCode()){
-				Assert.assertTrue(false,"compare yourself fail");
-			}
-			
-			//comparison of the same value
-			if(minkey.hashCode() != obj.get("minkey").hashCode()){
-				Assert.assertTrue(false,"compare the same value fail");
-			}
-			
-			//comparison of the other bson type	
-			String expdata = "MinKey()";
-			if(minkey.hashCode() == expdata.hashCode()){
-				Assert.assertTrue(false,"compare the other type fail");
-			}			
-		}catch(BaseException  e){
-			Assert.assertTrue(false,e.getMessage()+e.getStackTrace());
-		}	
-	}	
-	
-	@AfterClass
-	public void tearDown(){
-		try{	
-			sdb.disconnect();
-			System.out.println("---"+this.getClass().getName()+" end at "+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
-		}catch(BaseException e){			
-			Assert.assertTrue(false,"clean up failed:"+e.getMessage());
-		}
-	}
-	
-}
+ * FileName: MinKeyTestHashCode10352.java* test interface: hashCode() TestLink:
+ * seqDB-10352:
+ * 
+ * @author wuyan
+ * @Date 2016.10.14
+ * @version 1.00
+ */
+public class MinKeyTestHashCode10352 extends SdbTestBase {
+    private static Sequoiadb sdb = null;
+    private SimpleDateFormat sdf = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss.SSS" );
 
+    @BeforeClass
+    public void setUp() {
+
+        System.out.println( this.getClass().getName() + " begin at "
+                + sdf.format( new Date() ) );
+        try {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "connect %s failed,"
+                    + SdbTestBase.coordUrl + e.getMessage() );
+        }
+    }
+
+    @Test
+    public void testHashCode() {
+        try {
+            BSONObject obj = new BasicBSONObject();
+            MinKey minkey = new MinKey();
+            obj.put( "minkey", minkey );
+
+            // compare yourself
+            if ( minkey.hashCode() != minkey.hashCode() ) {
+                Assert.assertTrue( false, "compare yourself fail" );
+            }
+
+            // comparison of the same value
+            if ( minkey.hashCode() != obj.get( "minkey" ).hashCode() ) {
+                Assert.assertTrue( false, "compare the same value fail" );
+            }
+
+            // comparison of the other bson type
+            String expdata = "MinKey()";
+            if ( minkey.hashCode() == expdata.hashCode() ) {
+                Assert.assertTrue( false, "compare the other type fail" );
+            }
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, e.getMessage() + e.getStackTrace() );
+        }
+    }
+
+    @AfterClass
+    public void tearDown() {
+        try {
+            sdb.disconnect();
+            System.out.println( "---" + this.getClass().getName() + " end at "
+                    + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
+                            .format( new Date() ) );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
+        }
+    }
+
+}

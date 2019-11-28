@@ -28,29 +28,34 @@ public class TransactionJDBC18825 extends TransJDBCBase {
 
     @Override
     protected void beforeSetUp() throws ReliabilityException {
-        initCL(clName, 10000);
+        initCL( clName, 10000 );
         groupMgr = GroupMgr.getInstance();
     }
 
     @Test
-    public void test() throws ReliabilityException, InterruptedException, SQLException {
+    public void test()
+            throws ReliabilityException, InterruptedException, SQLException {
         // 转账程序连接的coord节点断网
         TaskMgr taskMgr = new TaskMgr();
-        String coordUrl = TransUtil.getCoordUrl(new Sequoiadb(TransUtil.getCoordUrl(sdb), "", ""));
-        NodeWrapper coordNode = TransUtil.getCoordNode(new Sequoiadb(coordUrl, "", ""));
-        FaultMakeTask task = BrokenNetwork.getFaultMakeTask(coordNode.hostName(), 60, 10);
-        taskMgr.addTask(task);
-        TransUtil.setTimeTask(taskMgr, task);
+        String coordUrl = TransUtil.getCoordUrl(
+                new Sequoiadb( TransUtil.getCoordUrl( sdb ), "", "" ) );
+        NodeWrapper coordNode = TransUtil
+                .getCoordNode( new Sequoiadb( coordUrl, "", "" ) );
+        FaultMakeTask task = BrokenNetwork
+                .getFaultMakeTask( coordNode.hostName(), 60, 10 );
+        taskMgr.addTask( task );
+        TransUtil.setTimeTask( taskMgr, task );
 
-        for (int i = 0; i < 200; i++) {
-            taskMgr.addTask(new TransferJDBCTh(clName));
+        for ( int i = 0; i < 200; i++ ) {
+            taskMgr.addTask( new TransferJDBCTh( clName ) );
         }
         taskMgr.execute();
 
-        Assert.assertTrue(taskMgr.isAllSuccess(), taskMgr.getErrorMsg());
-        Assert.assertTrue(groupMgr.checkBusinessWithLSN(300), "GROUP ERROR");
+        Assert.assertTrue( taskMgr.isAllSuccess(), taskMgr.getErrorMsg() );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 300 ),
+                "GROUP ERROR" );
 
         // 待集群正常后，查询所有账户的金额总和
-        TransferJDBCTh.checkTransResult(clName, getInsertNum() * 10000);
+        TransferJDBCTh.checkTransResult( clName, getInsertNum() * 10000 );
     }
 }

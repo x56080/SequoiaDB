@@ -30,13 +30,13 @@ public class GetListOrSnapshot19950 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("skip standalone.");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "skip standalone." );
         }
-        cs = sdb.getCollectionSpace(csName);
-        for (int i = 0; i < clNum; i++) {
-            cs.createCollection(clNameBase + i);
+        cs = sdb.getCollectionSpace( csName );
+        for ( int i = 0; i < clNum; i++ ) {
+            cs.createCollection( clNameBase + i );
         }
     }
 
@@ -44,27 +44,29 @@ public class GetListOrSnapshot19950 extends SdbTestBase {
     public void test_getList() {
         // test hint / skip / limit
         BasicBSONObject queryObj = new BasicBSONObject();
-        queryObj.put("$regex", "^" + csName + "." + clNameBase);
-        queryObj.put("$options", "i");
-        BSONObject query = new BasicBSONObject("Name", queryObj);
-        BSONObject hint = new BasicBSONObject("", "test");
+        queryObj.put( "$regex", "^" + csName + "." + clNameBase );
+        queryObj.put( "$options", "i" );
+        BSONObject query = new BasicBSONObject( "Name", queryObj );
+        BSONObject hint = new BasicBSONObject( "", "test" );
         long skipRows = 1;
         long returnRows = 1;
-        DBCursor cursor = sdb.getList(Sequoiadb.SDB_LIST_COLLECTIONS, query, null, null, hint, skipRows, returnRows);
+        DBCursor cursor = sdb.getList( Sequoiadb.SDB_LIST_COLLECTIONS, query,
+                null, null, hint, skipRows, returnRows );
         int size = 0;
-        while (cursor.hasNext()) {
-            Object name = cursor.getNext().get("Name");
+        while ( cursor.hasNext() ) {
+            Object name = cursor.getNext().get( "Name" );
             // records disorder, the results are not unique
-            Assert.assertTrue(name.toString().contains(csName + "." + clNameBase));
+            Assert.assertTrue(
+                    name.toString().contains( csName + "." + clNameBase ) );
             size++;
         }
-        Assert.assertEquals(size, returnRows);
+        Assert.assertEquals( size, returnRows );
 
         // test listType: SDB_LIST_USERS
-        cursor = sdb.getList(Sequoiadb.SDB_LIST_USERS, null, null, null);
-        while (cursor.hasNext()) {
-            Object user = cursor.getNext().get("User");
-            Assert.assertNotNull(user);
+        cursor = sdb.getList( Sequoiadb.SDB_LIST_USERS, null, null, null );
+        while ( cursor.hasNext() ) {
+            Object user = cursor.getNext().get( "User" );
+            Assert.assertNotNull( user );
         }
 
         runSuccNum++;
@@ -74,28 +76,30 @@ public class GetListOrSnapshot19950 extends SdbTestBase {
     public void test_getSnapshot() {
         // test param: hint / skip / limit
         BasicBSONObject queryObj = new BasicBSONObject();
-        queryObj.put("$regex", "^" + csName + "." + clNameBase);
-        queryObj.put("$options", "i");
-        BSONObject query = new BasicBSONObject("Name", queryObj);
-        BSONObject hint = new BasicBSONObject("", "test");
+        queryObj.put( "$regex", "^" + csName + "." + clNameBase );
+        queryObj.put( "$options", "i" );
+        BSONObject query = new BasicBSONObject( "Name", queryObj );
+        BSONObject hint = new BasicBSONObject( "", "test" );
         long skipRows = 1;
         long returnRows = 1;
-        DBCursor cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_COLLECTIONS, query, null, null, hint, skipRows,
-                returnRows);
+        DBCursor cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_COLLECTIONS,
+                query, null, null, hint, skipRows, returnRows );
         int size = 0;
-        while (cursor.hasNext()) {
-            Object name = cursor.getNext().get("Name");
+        while ( cursor.hasNext() ) {
+            Object name = cursor.getNext().get( "Name" );
             // records disorder, the results are not unique
-            Assert.assertTrue(name.toString().contains(csName + "." + clNameBase));
+            Assert.assertTrue(
+                    name.toString().contains( csName + "." + clNameBase ) );
             size++;
         }
-        Assert.assertEquals(size, returnRows);
+        Assert.assertEquals( size, returnRows );
 
         // test snapType: SDB_SNAP_SVCTASKS
-        cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_SVCTASKS, new BasicBSONObject(), null, null);
-        while (cursor.hasNext()) {
-            Object taskName = cursor.getNext().get("TaskName");
-            Assert.assertNotNull(taskName);
+        cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_SVCTASKS,
+                new BasicBSONObject(), null, null );
+        while ( cursor.hasNext() ) {
+            Object taskName = cursor.getNext().get( "TaskName" );
+            Assert.assertNotNull( taskName );
         }
 
         runSuccNum++;
@@ -104,9 +108,9 @@ public class GetListOrSnapshot19950 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            if (runSuccNum == expRunSuccNum) {
-                for (int i = 0; i < clNum; i++) {
-                    cs.dropCollection(clNameBase + i);
+            if ( runSuccNum == expRunSuccNum ) {
+                for ( int i = 0; i < clNum; i++ ) {
+                    cs.dropCollection( clNameBase + i );
                 }
             }
         } finally {
@@ -114,4 +118,3 @@ public class GetListOrSnapshot19950 extends SdbTestBase {
         }
     }
 }
-

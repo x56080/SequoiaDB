@@ -21,45 +21,46 @@ import java.util.Date;
 import static org.testng.Assert.*;
 
 /**
- * Created by laojingtang on 17-4-8.
- * 覆盖的测试用例：11323
- * 测试点：Symbol(String s) getSymbol() equals(Object o) hashCode() toString()
+ * Created by laojingtang on 17-4-8. 覆盖的测试用例：11323 测试点：Symbol(String s)
+ * getSymbol() equals(Object o) hashCode() toString()
  */
 public class SymbolTest11323 extends SdbTestBase {
     private String clName = "cl_11323";
     private static Sequoiadb sdb = null;
     private CollectionSpace cs = null;
     private DBCollection cl;
-    private SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS");
-
+    private SimpleDateFormat sdf = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss.SSS" );
 
     @BeforeClass
     public void setUp() {
-        System.out.println(this.getClass().getName() + " begin at " + sdf.format(new Date()));
+        System.out.println( this.getClass().getName() + " begin at "
+                + sdf.format( new Date() ) );
     }
-
 
     @Test
     public void testBinary() {
         String str = "Hello World!";
         String str2 = "Hello World Again!";
-        Symbol symbol = new Symbol(str);
-        Symbol symbol1 = new Symbol(str2);
-        Symbol symbol2 = new Symbol(str);
-        assertTrue(str.equals(symbol.getSymbol()));
+        Symbol symbol = new Symbol( str );
+        Symbol symbol1 = new Symbol( str2 );
+        Symbol symbol2 = new Symbol( str );
+        assertTrue( str.equals( symbol.getSymbol() ) );
 
-        assertFalse(symbol.equals(symbol1));
-        assertTrue(symbol.equals(symbol2));
+        assertFalse( symbol.equals( symbol1 ) );
+        assertTrue( symbol.equals( symbol2 ) );
 
-        assertFalse(symbol.hashCode() == symbol1.hashCode());
-        assertTrue(symbol.hashCode() == symbol2.hashCode());
+        assertFalse( symbol.hashCode() == symbol1.hashCode() );
+        assertTrue( symbol.hashCode() == symbol2.hashCode() );
 
-        assertTrue(symbol.toString().equals(str));
+        assertTrue( symbol.toString().equals( str ) );
 
     }
 
     @AfterClass
     public void tearDown() {
-        System.out.println("---" + this.getClass().getName() + " end at " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
+        System.out.println( "---" + this.getClass().getName() + " end at "
+                + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
+                        .format( new Date() ) );
     }
 }
