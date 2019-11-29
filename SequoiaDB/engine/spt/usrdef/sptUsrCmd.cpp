@@ -227,9 +227,19 @@ namespace engine
       rc = _cmdCommon.exec( command, ev, timeout, useShell, err, strOut ) ;
       if( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << err.c_str() ) ;
+         if( err.empty() )
+         {
+            stringstream ss ;
+            ss << "Run command(\"" << command << "\") return code is " << rc ;
+            detail = BSON( SPT_ERR << ss.str() ) ;
+         }
+         else
+         {
+            detail = BSON( SPT_ERR << err.c_str() ) ;
+         }
          goto error ;
       }
+
       rval.getReturnVal().setValue( strOut ) ;
    done:
       return rc ;
