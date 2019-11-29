@@ -14,36 +14,45 @@ import org.testng.annotations.Test;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 public class TestCompareNumberLong13314 extends SdbTestBase {
-	
-	@BeforeClass
-	public void setUp(){
-		System.out.println(this.getClass().getName()+" begin at "
-				+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
-	}
-	
-	@Test
-	public void testCompare(){
-		
-		//比较不相等的数值
-		BSONObject exp1 = new BasicBSONObject("no", new Long(8223372036854775296L)); 
-		BSONObject exp2 = new BasicBSONObject("no", new Long(8223372036854775807L)); 
-		Assert.assertNotEquals(exp1, exp2, "numberLong compare result was wrong");
 
-		//比较相等的数值
-		BSONObject exp3 = new BasicBSONObject("no", new Long(8223372036854775800L));
-		BSONObject exp4 = new BasicBSONObject("no", new Long(8223372036854775800L));
-		Assert.assertEquals(exp3, exp4, "numberLong compare result was wrong");
-		
-		//比较不同类型相等的数值
-		BSONObject exp5 = new BasicBSONObject("no", new Long(1L)); 
-		BSONObject exp6 = new BasicBSONObject("no", new Integer(1)); 
-		Assert.assertNotEquals(exp5, exp6, "numberLong compare result was wrong");
-		
-	}
-	
-	@AfterClass
-	public void tearDown(){
-		System.out.println(this.getClass().getName()+" end at "
-				 +new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
-	}
+    @BeforeClass
+    public void setUp() {
+        System.out.println( this.getClass().getName() + " begin at "
+                + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
+                        .format( new Date() ) );
+    }
+
+    @Test
+    public void testCompare() {
+
+        // 比较不相等的数值
+        BSONObject exp1 = new BasicBSONObject( "no",
+                new Long( 8223372036854775296L ) );
+        BSONObject exp2 = new BasicBSONObject( "no",
+                new Long( 8223372036854775807L ) );
+        Assert.assertNotEquals( exp1, exp2,
+                "numberLong compare result was wrong" );
+
+        // 比较相等的数值
+        BSONObject exp3 = new BasicBSONObject( "no",
+                new Long( 8223372036854775800L ) );
+        BSONObject exp4 = new BasicBSONObject( "no",
+                new Long( 8223372036854775800L ) );
+        Assert.assertEquals( exp3, exp4,
+                "numberLong compare result was wrong" );
+
+        // 比较不同类型相等的数值
+        BSONObject exp5 = new BasicBSONObject( "no", new Long( 1L ) );
+        BSONObject exp6 = new BasicBSONObject( "no", new Integer( 1 ) );
+        Assert.assertNotEquals( exp5, exp6,
+                "numberLong compare result was wrong" );
+
+    }
+
+    @AfterClass
+    public void tearDown() {
+        System.out.println( this.getClass().getName() + " end at "
+                + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
+                        .format( new Date() ) );
+    }
 }

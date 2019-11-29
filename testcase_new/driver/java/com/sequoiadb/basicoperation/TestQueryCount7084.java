@@ -22,148 +22,168 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @FileName:TestQuery7084
- * query(); query (DBQuery matcher); getCount ();
- * getCount (String matcher); getCount (BSONObject condition, BSONObject hint)
- * @author chensiqin
- *  * @Date 2016-09-19
+ * @FileName:TestQuery7084 query(); query (DBQuery matcher); getCount ();
+ *                         getCount (String matcher); getCount (BSONObject
+ *                         condition, BSONObject hint)
+ * @author chensiqin * @Date 2016-09-19
  * @version 1.00
  */
 
-public class TestQueryCount7084 extends SdbTestBase{
+public class TestQueryCount7084 extends SdbTestBase {
     private Sequoiadb sdb;
     private CollectionSpace cs;
     private DBCollection cl;
     private String clName = "cl7084";
-    private ArrayList<BSONObject> insertRecods;
-    
+    private ArrayList< BSONObject > insertRecods;
+
     @BeforeClass
     public void setUp() {
         String coordAddr = SdbTestBase.coordUrl;
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                    ". the TestCase begin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            this.sdb = new Sequoiadb(coordAddr, "", "");
-            this.cs = this.sdb.getCollectionSpace(SdbTestBase.csName);
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
+            this.sdb = new Sequoiadb( coordAddr, "", "" );
+            this.cs = this.sdb.getCollectionSpace( SdbTestBase.csName );
             createCL();
-        }catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestQueryCount7084 setUp error, error description:" + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    "Sequoiadb driver TestQueryCount7084 setUp error, error description:"
+                            + e.getMessage() );
         }
     }
-    
+
     public void createCL() {
-        if (this.cs.isCollectionExist(clName)) {
-            this.cs.dropCollection(clName);
+        if ( this.cs.isCollectionExist( clName ) ) {
+            this.cs.dropCollection( clName );
         }
-        this.cl = this.cs.createCollection(clName);
-        this.cl.createIndex("ageIndex", (BSONObject) JSON.parse("{age:1}"), false, false);
+        this.cl = this.cs.createCollection( clName );
+        this.cl.createIndex( "ageIndex", ( BSONObject ) JSON.parse( "{age:1}" ),
+                false, false );
     }
-    
+
     @Test
     public void test() {
-        try{
-            insertData(); 
+        try {
+            insertData();
             checkQuery();
             DBQuery dbQuery = new DBQuery();
-            dbQuery.setFlag(DBQuery.FLG_QUERY_WITH_RETURNDATA);
-            dbQuery.setHint((BSONObject) JSON.parse("{\"\":\"ageIndex\"}"));
-            dbQuery.setMatcher((BSONObject) JSON.parse("{age:{$gt:5}}"));
-            dbQuery.setOrderBy((BSONObject) JSON.parse("{age:1}"));
-            dbQuery.setReturnRowsCount((long) 5);
-            dbQuery.setSelector((BSONObject) JSON.parse("{name:{$default:\"zhangsan\"},age:{$default:0},num:{$default:0}}"));
-            dbQuery.setSkipRowsCount((long) 2);
-            checkQuery(dbQuery);
+            dbQuery.setFlag( DBQuery.FLG_QUERY_WITH_RETURNDATA );
+            dbQuery.setHint(
+                    ( BSONObject ) JSON.parse( "{\"\":\"ageIndex\"}" ) );
+            dbQuery.setMatcher( ( BSONObject ) JSON.parse( "{age:{$gt:5}}" ) );
+            dbQuery.setOrderBy( ( BSONObject ) JSON.parse( "{age:1}" ) );
+            dbQuery.setReturnRowsCount( ( long ) 5 );
+            dbQuery.setSelector( ( BSONObject ) JSON.parse(
+                    "{name:{$default:\"zhangsan\"},age:{$default:0},num:{$default:0}}" ) );
+            dbQuery.setSkipRowsCount( ( long ) 2 );
+            checkQuery( dbQuery );
             checkCount();
-        }catch (BaseException e) {
-             Assert.fail("Sequoiadb driver TestQueryCount7084 test error, error description:" + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    "Sequoiadb driver TestQueryCount7084 test error, error description:"
+                            + e.getMessage() );
         }
     }
-    
-    public void insertData(){
-        try{
+
+    public void insertData() {
+        try {
             BSONObject bson;
-            this.insertRecods = new ArrayList<BSONObject>();
-            for (int i = 0; i < 10; i++) {
+            this.insertRecods = new ArrayList< BSONObject >();
+            for ( int i = 0; i < 10; i++ ) {
                 bson = new BasicBSONObject();
-                bson.put("name", "zhangsan" + i);
-                bson.put("age", i);
-                bson.put("num", i);
-                this.insertRecods.add(bson);
-            } 
-            this.cl.bulkInsert(this.insertRecods, 0 );
-        }catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestQueryCount7084 insertData error, error description:" + e.getMessage());
+                bson.put( "name", "zhangsan" + i );
+                bson.put( "age", i );
+                bson.put( "num", i );
+                this.insertRecods.add( bson );
+            }
+            this.cl.bulkInsert( this.insertRecods, 0 );
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    "Sequoiadb driver TestQueryCount7084 insertData error, error description:"
+                            + e.getMessage() );
         }
     }
-    
+
     public void checkQuery() {
         try {
             DBCursor cursor = this.cl.query();
-            List<BSONObject> actualList= new ArrayList<BSONObject>();
-            while( cursor.hasNext() ) {
+            List< BSONObject > actualList = new ArrayList< BSONObject >();
+            while ( cursor.hasNext() ) {
                 BSONObject object = cursor.getNext();
-                actualList.add(object);
+                actualList.add( object );
             }
-            if (cursor != null) {
+            if ( cursor != null ) {
                 cursor.close();
             }
-            Assert.assertEquals(actualList, this.insertRecods);
-        } catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestQueryCount7084 checkQuery error :" + e.getMessage());
+            Assert.assertEquals( actualList, this.insertRecods );
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    "Sequoiadb driver TestQueryCount7084 checkQuery error :"
+                            + e.getMessage() );
         }
     }
-    
-    public void checkQuery(DBQuery dbQuery) {
+
+    public void checkQuery( DBQuery dbQuery ) {
         try {
-            DBCursor cursor = this.cl.query(dbQuery);
-            List<BSONObject> actualList= new ArrayList<BSONObject>();
-            while( cursor.hasNext() ) {
+            DBCursor cursor = this.cl.query( dbQuery );
+            List< BSONObject > actualList = new ArrayList< BSONObject >();
+            while ( cursor.hasNext() ) {
                 BSONObject object = cursor.getNext();
-                actualList.add(object);
+                actualList.add( object );
             }
             cursor.close();
-            List<BSONObject> expectedList = new ArrayList<BSONObject>();
+            List< BSONObject > expectedList = new ArrayList< BSONObject >();
             for ( int i = 8; i < 10; i++ ) {
-                BSONObject obj = insertRecods.get(i);
-                obj.removeField("_id");
-                expectedList.add(obj);
+                BSONObject obj = insertRecods.get( i );
+                obj.removeField( "_id" );
+                expectedList.add( obj );
             }
-            Assert.assertEquals(actualList, expectedList);
-        } catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestQueryCount7084 checkQuery(DBQuery dbQuery) error :" + e.getMessage());
+            Assert.assertEquals( actualList, expectedList );
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    "Sequoiadb driver TestQueryCount7084 checkQuery(DBQuery dbQuery) error :"
+                            + e.getMessage() );
         }
     }
-    
+
     public void checkCount() {
         try {
             long count;
             count = cl.getCount();
-            Assert.assertEquals(count, 10);
-            
+            Assert.assertEquals( count, 10 );
+
             String countConditionString = "{age:{$gt:5},name:\"zhangsan8\"}";
-            count = cl.getCount(countConditionString);
-            Assert.assertEquals(count, 1);
-            
-            BSONObject bsonObjectCondition = (BSONObject) JSON.parse("{age:{$lt:5}}");
-            BSONObject bsonObjectHint = (BSONObject) JSON.parse("{\"\":\"ageIndex\"}");
-            count = cl.getCount(bsonObjectCondition, bsonObjectHint);
-            Assert.assertEquals(count, 5);
-        } catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestQueryCount7084 checkCount error:" + e.getMessage());
+            count = cl.getCount( countConditionString );
+            Assert.assertEquals( count, 1 );
+
+            BSONObject bsonObjectCondition = ( BSONObject ) JSON
+                    .parse( "{age:{$lt:5}}" );
+            BSONObject bsonObjectHint = ( BSONObject ) JSON
+                    .parse( "{\"\":\"ageIndex\"}" );
+            count = cl.getCount( bsonObjectCondition, bsonObjectHint );
+            Assert.assertEquals( count, 5 );
+        } catch ( BaseException e ) {
+            Assert.fail( "Sequoiadb driver TestQueryCount7084 checkCount error:"
+                    + e.getMessage() );
         }
     }
-    
+
     @AfterClass
     public void tearDown() {
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                    ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            if (this.cs.isCollectionExist(clName)) {
-                this.cs.dropCollection(clName);
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
+            if ( this.cs.isCollectionExist( clName ) ) {
+                this.cs.dropCollection( clName );
             }
             this.sdb.disconnect();
-        } catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestQueryCount7084 tearDown error:" + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail( "Sequoiadb driver TestQueryCount7084 tearDown error:"
+                    + e.getMessage() );
         }
-    }   
+    }
 }

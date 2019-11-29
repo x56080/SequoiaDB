@@ -19,8 +19,8 @@ import com.sequoiadb.task.FaultMakeTask;
 public class NodeRestart extends Fault {
     private NodeWrapper node;
 
-    public NodeRestart(NodeWrapper node) {
-        super("nodeRestart");
+    public NodeRestart( NodeWrapper node ) {
+        super( "nodeRestart" );
         // TODO Auto-generated constructor stub
 
         this.node = node;
@@ -28,12 +28,12 @@ public class NodeRestart extends Fault {
     }
 
     public void make() throws FaultException {
-        System.out.println("target node:" + this.node.hostName() + " : " + this.node.svcName());
+        System.out.println( "target node:" + this.node.hostName() + " : "
+                + this.node.svcName() );
         try {
             this.node.stop();
-        }
-        catch (ReliabilityException e) {
-            throw new FaultException(e);
+        } catch ( ReliabilityException e ) {
+            throw new FaultException( e );
         }
     }
 
@@ -41,21 +41,19 @@ public class NodeRestart extends Fault {
         Sequoiadb db = null;
         try {
             ConfigOptions conf = new ConfigOptions();
-            conf.setConnectTimeout(1000);
-            conf.setMaxAutoConnectRetryTime(1000);
-            db = new Sequoiadb(node.hostName() + ":" + node.svcName(), "", "", conf);
+            conf.setConnectTimeout( 1000 );
+            conf.setMaxAutoConnectRetryTime( 1000 );
+            db = new Sequoiadb( node.hostName() + ":" + node.svcName(), "", "",
+                    conf );
             return false;
-        }
-        catch (BaseException e) {
-            if (e.getErrorCode() == -15) {
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() == -15 ) {
                 return true;
+            } else {
+                throw new FaultException( e );
             }
-            else {
-                throw new FaultException(e);
-            }
-        }
-        finally {
-            if (db != null) {
+        } finally {
+            if ( db != null ) {
                 db.disconnect();
             }
         }
@@ -64,9 +62,8 @@ public class NodeRestart extends Fault {
     public void restore() throws FaultException {
         try {
             this.node.start();
-        }
-        catch (ReliabilityException e) {
-            throw new FaultException(e);
+        } catch ( ReliabilityException e ) {
+            throw new FaultException( e );
         }
     }
 
@@ -95,11 +92,11 @@ public class NodeRestart extends Fault {
      *            检查构造成功与否的检测次数
      * @return
      */
-    public static FaultMakeTask getFaultMakeTask(NodeWrapper node, int maxDelay, int duration,
-            int checkTimes) {
+    public static FaultMakeTask getFaultMakeTask( NodeWrapper node,
+            int maxDelay, int duration, int checkTimes ) {
         FaultMakeTask task = null;
-        NodeRestart nr = new NodeRestart(node);
-        task = new FaultMakeTask(nr, maxDelay, duration, checkTimes);
+        NodeRestart nr = new NodeRestart( node );
+        task = new FaultMakeTask( nr, maxDelay, duration, checkTimes );
         return task;
     }
 
@@ -112,10 +109,11 @@ public class NodeRestart extends Fault {
      *            持续时间s
      * @return
      */
-    public static FaultMakeTask getFaultMakeTask(NodeWrapper node, int maxDelay, int duration) {
+    public static FaultMakeTask getFaultMakeTask( NodeWrapper node,
+            int maxDelay, int duration ) {
         FaultMakeTask task = null;
-        NodeRestart nr = new NodeRestart(node);
-        task = new FaultMakeTask(nr, maxDelay, duration, 10);
+        NodeRestart nr = new NodeRestart( node );
+        task = new FaultMakeTask( nr, maxDelay, duration, 10 );
         return task;
     }
 }

@@ -40,24 +40,24 @@ public class NetDeleteNode6201 extends SdbTestBase {
 
     @BeforeClass()
     public void setUp() {
-        Sequoiadb sdb = new Sequoiadb(coordUrl, "", "");
+        Sequoiadb sdb = new Sequoiadb( coordUrl, "", "" );
         try {
-            System.out.println(
-                    "the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                            + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
             groupMgr = new GroupMgr();
 
             // CheckBusiness(true),检测当前集群环境，若存在异常返回false，
-            if (!groupMgr.checkBusiness(20)) {
-                throw new SkipException("checkBusiness fail");
+            if ( !groupMgr.checkBusiness( 20 ) ) {
+                throw new SkipException( "checkBusiness fail" );
             }
 
-        }
-        catch (ReliabilityException e) {
-            Assert.fail(this.getClass().getName() + " setUp error, error description:"
-                    + e.getMessage() + "\r\n" + Utils.getStackString(e));
-        }
-        finally {
+        } catch ( ReliabilityException e ) {
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getStackString( e ) );
+        } finally {
             sdb.disconnect();
         }
     }
@@ -66,50 +66,55 @@ public class NetDeleteNode6201 extends SdbTestBase {
     public void test() {
         Sequoiadb db = null;
         try {
-            GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
+            GroupWrapper cataGroup = groupMgr
+                    .getGroupByName( "SYSCatalogGroup" );
             String cataPriHost = cataGroup.getMaster().hostName();
 
             // 得到一个非断网主机的coordurl
-            connectUrl = CommLib.getSafeCoordUrl(cataPriHost);
+            connectUrl = CommLib.getSafeCoordUrl( cataPriHost );
 
-            System.out.println("brokenNetHost:" + cataPriHost + " connectUrl" + connectUrl);
+            System.out.println( "brokenNetHost:" + cataPriHost + " connectUrl"
+                    + connectUrl );
 
             // 建立一个COORD节点
-            db = new Sequoiadb(connectUrl, "", "");
-            ReplicaGroup coordGroup = db.getReplicaGroup("SYSCoord");
-            Node coordNode = coordGroup.createNode(connectUrl.split(":")[0], coordPort,
-                    coordDbPath + "/" + coordPort, new BasicBSONObject());
+            db = new Sequoiadb( connectUrl, "", "" );
+            ReplicaGroup coordGroup = db.getReplicaGroup( "SYSCoord" );
+            Node coordNode = coordGroup.createNode(
+                    connectUrl.split( ":" )[ 0 ], coordPort,
+                    coordDbPath + "/" + coordPort, new BasicBSONObject() );
             coordNode.start();
 
             // 建立并行任务
-            FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(cataPriHost, 1, 10, 15);
-            TaskMgr mgr = new TaskMgr(faultTask);
-            mgr.addTask(new RemoveCoord());
+            FaultMakeTask faultTask = BrokenNetwork
+                    .getFaultMakeTask( cataPriHost, 1, 10, 15 );
+            TaskMgr mgr = new TaskMgr( faultTask );
+            mgr.addTask( new RemoveCoord() );
             mgr.execute();
             // TaskMgr检查线程异常
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
             // 最长等待2分钟的集群环境恢复
-            Assert.assertEquals(groupMgr.checkBusiness(600), true, "failed to restore business");
+            Assert.assertEquals( groupMgr.checkBusiness( 600 ), true,
+                    "failed to restore business" );
 
-            if (!groupMgr.checkResidu()) {
+            if ( !groupMgr.checkResidu() ) {
                 Sequoiadb tmpDb = null;
                 try {
-                    tmpDb = new Sequoiadb(connectUrl.split(":")[0] + ":" + coordPort, "", "");
-                    coordGroup.removeNode(connectUrl.split(":")[0], coordPort, null);
-                }
-                finally {
-                    if (tmpDb != null) {
+                    tmpDb = new Sequoiadb(
+                            connectUrl.split( ":" )[ 0 ] + ":" + coordPort, "",
+                            "" );
+                    coordGroup.removeNode( connectUrl.split( ":" )[ 0 ],
+                            coordPort, null );
+                } finally {
+                    if ( tmpDb != null ) {
                         tmpDb.disconnect();
                     }
                 }
             }
-        }
-        catch (ReliabilityException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getStackString(e));
-        }
-        finally {
-            if (db != null) {
+        } catch ( ReliabilityException e ) {
+            Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
+        } finally {
+            if ( db != null ) {
                 db.disconnect();
             }
         }
@@ -118,38 +123,37 @@ public class NetDeleteNode6201 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         try {
 
-        }
-        catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getStackString(e));
-        }
-        finally {
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
+        } finally {
             sdb.disconnect();
-            System.out.println(
-                    "the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                            + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
         }
     }
 
     class RemoveCoord extends OperateTask {
         @Override
         public void exec() throws Exception {
-			  Sequoiadb db = null;
+            Sequoiadb db = null;
             try {
-                db = new Sequoiadb(connectUrl, "", "");
-                ReplicaGroup coordGroup = db.getReplicaGroup("SYSCoord");
-                coordGroup.removeNode(connectUrl.split(":")[0], coordPort, null);
+                db = new Sequoiadb( connectUrl, "", "" );
+                ReplicaGroup coordGroup = db.getReplicaGroup( "SYSCoord" );
+                coordGroup.removeNode( connectUrl.split( ":" )[ 0 ], coordPort,
+                        null );
                 deleteFlag = true;
                 db.disconnect();
-            }
-            catch (BaseException e) {
-                System.out.println(e.getMessage());
-            }finally {
-               if(db!=null){
-                   db.disconnect();
-               }
+            } catch ( BaseException e ) {
+                System.out.println( e.getMessage() );
+            } finally {
+                if ( db != null ) {
+                    db.disconnect();
+                }
             }
         }
     }

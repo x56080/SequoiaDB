@@ -39,13 +39,8 @@ import com.sequoiadb.task.TaskMgr;
  */
 
 /*
- * 1.创建CS，CL 
- * 2.循环执行增删改操作 
- * 3.往副本组中新增节点 
- * 4.过程中购造节点异常重启(kill -9) 
- * 5.选主成功后，继续写入 
- * 6.过程中故障恢复 
- * 7.验证结果
+ * 1.创建CS，CL 2.循环执行增删改操作 3.往副本组中新增节点 4.过程中购造节点异常重启(kill -9) 5.选主成功后，继续写入
+ * 6.过程中故障恢复 7.验证结果
  */
 
 public class CRUDAndAddNode3218 extends SdbTestBase {
@@ -56,37 +51,41 @@ public class CRUDAndAddNode3218 extends SdbTestBase {
     private String clName = "cl_3218";
     private String clGroupName = null;
     private GroupWrapper clGroupWrapper = null;
-    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
+    private SimpleDateFormat sdf = new SimpleDateFormat(
+            "yyyy-MM-dd HH:mm:ss.S" );
 
     @BeforeClass
     public void setUp() {
         try {
-            System.out.println(this.getClass().getName() + " begin at " + sdf.format(new Date()));
+            System.out.println( this.getClass().getName() + " begin at "
+                    + sdf.format( new Date() ) );
             // 检测集群是否可用
             groupMgr = new GroupMgr();
-            if (!groupMgr.checkBusiness()) {
-                throw new SkipException("checkBusiness failed");
+            if ( !groupMgr.checkBusiness() ) {
+                throw new SkipException( "checkBusiness failed" );
             }
             // 准备用例的公用内容，如cl
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            clGroupName = groupMgr.getAllDataGroupName().get(0);
-            Utils.makeReplicaLogFull(clGroupName);
-            createCLOnGroup(db, clGroupName);
-            clGroupWrapper = groupMgr.getGroupByName(clGroupName);
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            clGroupName = groupMgr.getAllDataGroupName().get( 0 );
+            Utils.makeReplicaLogFull( clGroupName );
+            createCLOnGroup( db, clGroupName );
+            clGroupWrapper = groupMgr.getGroupByName( clGroupName );
             NodeWrapper priNode = clGroupWrapper.getMaster();
             // 设置任务
-            FaultMakeTask faultTask = KillNode.getFaultMakeTask(priNode.hostName(), priNode.svcName(), 1);
-            taskMgr = new TaskMgr(faultTask);
-            taskMgr.addTask(new CRUDTask());
-            taskMgr.addTask(new AddNodeTask());
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask(
+                    priNode.hostName(), priNode.svcName(), 1 );
+            taskMgr = new TaskMgr( faultTask );
+            taskMgr.addTask( new CRUDTask() );
+            taskMgr.addTask( new AddNodeTask() );
             // 各个任务各自初始化
             taskMgr.init();
-        } catch (BaseException | ReliabilityException e) {
-            if (db != null) {
+        } catch ( BaseException | ReliabilityException e ) {
+            if ( db != null ) {
                 db.disconnect();
             }
-            Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
-                    + Utils.getKeyStack(e, this));
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getKeyStack( e, this ) );
         }
     }
 
@@ -97,51 +96,56 @@ public class CRUDAndAddNode3218 extends SdbTestBase {
             taskMgr.start();
             taskMgr.join();
             // 等待集群恢复,本用例中有新增的节点，会被认为集群部署异常，因此自定义了一个检测方法。
-            if (!Utils.checkBusinessWithExNode(groupMgr, 600)) { // in 600s
-                Assert.fail("checkBusinessWithExNode occurs time out(1)");
+            if ( !Utils.checkBusinessWithExNode( groupMgr, 600 ) ) { // in 600s
+                Assert.fail( "checkBusinessWithExNode occurs time out(1)" );
             }
             // 各个任务检查各自结果
-            // Note: 有包含过去的Assert.assertTrue(mgr.isAllSuccess(), mgr.getErrorMsg());
-            taskMgr.check(); 
+            // Note: 有包含过去的Assert.assertTrue(mgr.isAllSuccess(),
+            // mgr.getErrorMsg());
+            taskMgr.check();
             // 公共的结果检查，以下为检查cl所在数据组节点间一致性
             // Note: checkBusinessWithExNode的检测有包括LSN一致
-            if (!Utils.checkBusinessWithExNode(groupMgr, 600)) {
-                Assert.fail("checkBusinessWithExNode occurs time out(2)");
+            if ( !Utils.checkBusinessWithExNode( groupMgr, 600 ) ) {
+                Assert.fail( "checkBusinessWithExNode occurs time out(2)" );
             }
-            if (!clGroupWrapper.checkInspect(1)) {
-                Assert.fail("data is different on " + clGroupWrapper.getGroupName());
+            if ( !clGroupWrapper.checkInspect( 1 ) ) {
+                Assert.fail( "data is different on "
+                        + clGroupWrapper.getGroupName() );
             }
             runSuccess = true;
-        } catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (runSuccess) {
+            if ( runSuccess ) {
                 // 各个任务分别清理自己环境
                 taskMgr.fini();
                 // 公用环境清理
-                CollectionSpace commCS = db.getCollectionSpace(csName);
-                commCS.dropCollection(clName);
+                CollectionSpace commCS = db.getCollectionSpace( csName );
+                commCS.dropCollection( clName );
             }
-        } catch (BaseException | ReliabilityException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
+        } catch ( BaseException | ReliabilityException e ) {
+            Assert.fail(
+                    e.getMessage() + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.disconnect();
             }
-            System.out.println(this.getClass().getName() + " end at " + sdf.format(new Date()));
+            System.out.println( this.getClass().getName() + " end at "
+                    + sdf.format( new Date() ) );
         }
     }
 
-    private DBCollection createCLOnGroup(Sequoiadb db, String clGroupName) {
-        CollectionSpace commCS = db.getCollectionSpace(csName);
-        BSONObject option = (BSONObject) JSON.parse("{ Group: '" + clGroupName + "', ReplSize: 1 }");
-        return commCS.createCollection(clName, option);
+    private DBCollection createCLOnGroup( Sequoiadb db, String clGroupName ) {
+        CollectionSpace commCS = db.getCollectionSpace( csName );
+        BSONObject option = ( BSONObject ) JSON
+                .parse( "{ Group: '" + clGroupName + "', ReplSize: 1 }" );
+        return commCS.createCollection( clName, option );
     }
 
     private class CRUDTask extends OperateTask {
@@ -152,11 +156,13 @@ public class CRUDAndAddNode3218 extends SdbTestBase {
         @Override
         public void init() {
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                db.setSessionAttr((BSONObject) JSON.parse("{ PreferedInstance: 'M' }"));
-                cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-            } catch (BaseException e) {
-                if (db != null) {
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                db.setSessionAttr( ( BSONObject ) JSON
+                        .parse( "{ PreferedInstance: 'M' }" ) );
+                cl = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
+            } catch ( BaseException e ) {
+                if ( db != null ) {
                     db.disconnect();
                 }
                 throw e;
@@ -167,16 +173,18 @@ public class CRUDAndAddNode3218 extends SdbTestBase {
         public void exec() throws Exception {
             try {
                 int repeatTimes = 5000;
-                for (int i = 0; i < repeatTimes; i++) {
-                    BSONObject rec = (BSONObject) JSON.parse("{ a: " + i + " }");
-                    cl.insert(rec);
-                    BSONObject modifier = (BSONObject) JSON.parse("{ $set: { b: 1 } }");
-                    cl.update(rec, modifier, null);
-                    cl.delete(rec);
-                    cl.insert(rec);
+                for ( int i = 0; i < repeatTimes; i++ ) {
+                    BSONObject rec = ( BSONObject ) JSON
+                            .parse( "{ a: " + i + " }" );
+                    cl.insert( rec );
+                    BSONObject modifier = ( BSONObject ) JSON
+                            .parse( "{ $set: { b: 1 } }" );
+                    cl.update( rec, modifier, null );
+                    cl.delete( rec );
+                    cl.insert( rec );
                     insertedCnt++;
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
                 // ignore
             }
         }
@@ -185,23 +193,26 @@ public class CRUDAndAddNode3218 extends SdbTestBase {
         public void check() throws ReliabilityException {
             // 随机检查插入前数据
             // 副本数为1，丢数据为正常，检查插入前的数据无意义，因此注释
-//            if (insertedCnt > 0) {
-//                int randVal = new Random().nextInt(insertedCnt);
-//                BSONObject randRec = (BSONObject) JSON.parse("{ a: " + randVal + " }");
-//                if (1 != cl.getCount(randRec)) {
-//                    throw new ReliabilityException("previous record " + randRec + " not found");
-//                }
-//            }
+            // if (insertedCnt > 0) {
+            // int randVal = new Random().nextInt(insertedCnt);
+            // BSONObject randRec = (BSONObject) JSON.parse("{ a: " + randVal +
+            // " }");
+            // if (1 != cl.getCount(randRec)) {
+            // throw new ReliabilityException("previous record " + randRec + "
+            // not found");
+            // }
+            // }
             // 恢复后插入数据正常
-            BSONObject rec = (BSONObject) JSON.parse("{ c: 'Hello World' }"); 
-            cl.insert(rec);
-            if (1 != cl.getCount(rec)) {
-                throw new ReliabilityException("fail to insert into cl");
+            BSONObject rec = ( BSONObject ) JSON
+                    .parse( "{ c: 'Hello World' }" );
+            cl.insert( rec );
+            if ( 1 != cl.getCount( rec ) ) {
+                throw new ReliabilityException( "fail to insert into cl" );
             }
         }
 
         public void fini() {
-            if (db != null) {
+            if ( db != null ) {
                 db.disconnect();
             }
         }
@@ -211,26 +222,30 @@ public class CRUDAndAddNode3218 extends SdbTestBase {
         Sequoiadb db = null;
         private String randomHost = null;
         private int randomPort = 0;
-        
+
         @Override
         public void init() {
             // 随机生成节点信息
             Random rand = new Random();
-            List<String> hosts = groupMgr.getAllHosts();
-            randomHost = hosts.get(rand.nextInt(hosts.size()));
-            randomPort = rand.nextInt(reservedPortEnd - reservedPortBegin) + reservedPortBegin;
+            List< String > hosts = groupMgr.getAllHosts();
+            randomHost = hosts.get( rand.nextInt( hosts.size() ) );
+            randomPort = rand.nextInt( reservedPortEnd - reservedPortBegin )
+                    + reservedPortBegin;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
                 // 准备待同步的数据
-                DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-                insertData(cl);
+                DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
+                insertData( cl );
                 // 创建并启动新节点
-                ReplicaGroup clGroup = db.getReplicaGroup(clGroupName);
-                String nodePath = SdbTestBase.reservedDir + "/data/" + randomPort;
-                Node newNode = clGroup.createNode(randomHost, randomPort, nodePath, (BSONObject) null);
+                ReplicaGroup clGroup = db.getReplicaGroup( clGroupName );
+                String nodePath = SdbTestBase.reservedDir + "/data/"
+                        + randomPort;
+                Node newNode = clGroup.createNode( randomHost, randomPort,
+                        nodePath, ( BSONObject ) null );
                 newNode.start();
-            } catch (BaseException e) {
-                if (db != null) {
+            } catch ( BaseException e ) {
+                if ( db != null ) {
                     db.disconnect();
                 }
                 throw e;
@@ -245,37 +260,39 @@ public class CRUDAndAddNode3218 extends SdbTestBase {
         @Override
         public void fini() {
             try {
-                removeNewNode(db);
-            } catch (BaseException e) {
+                removeNewNode( db );
+            } catch ( BaseException e ) {
                 throw e;
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.disconnect();
                 }
             }
         }
 
-        private void insertData(DBCollection cl) {
-            List<BSONObject> recs = new ArrayList<BSONObject>();
+        private void insertData( DBCollection cl ) {
+            List< BSONObject > recs = new ArrayList< BSONObject >();
             int recNum = 100000;
-            for (int i = 0; i < recNum; i++) {
-                BSONObject rec = (BSONObject) JSON.parse("{ a: 1 }");
-                recs.add(rec);
+            for ( int i = 0; i < recNum; i++ ) {
+                BSONObject rec = ( BSONObject ) JSON.parse( "{ a: 1 }" );
+                recs.add( rec );
             }
-            cl.bulkInsert(recs, DBCollection.FLG_INSERT_CONTONDUP);
+            cl.bulkInsert( recs, DBCollection.FLG_INSERT_CONTONDUP );
         }
 
-        private void removeNewNode(Sequoiadb db) {
+        private void removeNewNode( Sequoiadb db ) {
             try {
-                GroupWrapper clGroupWrapper = groupMgr.getGroupByName(clGroupName);
-                if (clGroupWrapper.getMaster().svcName().equals("" + randomPort)) { 
+                GroupWrapper clGroupWrapper = groupMgr
+                        .getGroupByName( clGroupName );
+                if ( clGroupWrapper.getMaster().svcName()
+                        .equals( "" + randomPort ) ) {
                     clGroupWrapper.changePrimary();
                 }
-            } catch (ReliabilityException e) {
+            } catch ( ReliabilityException e ) {
                 e.printStackTrace();
             }
-            ReplicaGroup clGroup = db.getReplicaGroup(clGroupName);
-            clGroup.removeNode(randomHost, randomPort, (BSONObject) null);
+            ReplicaGroup clGroup = db.getReplicaGroup( clGroupName );
+            clGroup.removeNode( randomHost, randomPort, ( BSONObject ) null );
         }
     }
 }

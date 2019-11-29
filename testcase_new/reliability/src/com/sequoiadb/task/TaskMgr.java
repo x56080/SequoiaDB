@@ -12,12 +12,12 @@ import java.util.Map;
 import com.sequoiadb.exception.ReliabilityException;
 
 public class TaskMgr {
-    private Map<String, Task> taskSet = new HashMap<String, Task>();
+    private Map< String, Task > taskSet = new HashMap< String, Task >();
     FaultMakeTask faultMakeTask;
 
-    public TaskMgr(FaultMakeTask faultMakeTask) {
+    public TaskMgr( FaultMakeTask faultMakeTask ) {
         this.faultMakeTask = faultMakeTask;
-        taskSet.put(faultMakeTask.getName(), faultMakeTask);
+        taskSet.put( faultMakeTask.getName(), faultMakeTask );
     }
 
     public TaskMgr() {
@@ -26,13 +26,14 @@ public class TaskMgr {
 
     /**
      * add by jt
+     * 
      * @param faultMakeTask
      * @param operateTasks
      */
-    public TaskMgr(FaultMakeTask faultMakeTask, OperateTask... operateTasks) {
-        this(faultMakeTask);
-        for (OperateTask task : operateTasks) {
-            addTask(task);
+    public TaskMgr( FaultMakeTask faultMakeTask, OperateTask... operateTasks ) {
+        this( faultMakeTask );
+        for ( OperateTask task : operateTasks ) {
+            addTask( task );
         }
     }
 
@@ -43,49 +44,52 @@ public class TaskMgr {
      * @return
      */
 
-    public static TaskMgr getTaskMgr(FaultMakeTask faultMakeTask, OperateTask... operateTasks) {
-        TaskMgr taskMgr = new TaskMgr(faultMakeTask);
-        for (OperateTask task : operateTasks) {
-            taskMgr.addTask(task);
+    public static TaskMgr getTaskMgr( FaultMakeTask faultMakeTask,
+            OperateTask... operateTasks ) {
+        TaskMgr taskMgr = new TaskMgr( faultMakeTask );
+        for ( OperateTask task : operateTasks ) {
+            taskMgr.addTask( task );
         }
         return taskMgr;
     }
 
     /**
-     * @param task 任务
+     * @param task
+     *            任务
      */
-    public void addTask(String taskClassName) {
-        OperateTask task = OperateTaskFactory.newTask(taskClassName, this);
-        if (task == null) {
+    public void addTask( String taskClassName ) {
+        OperateTask task = OperateTaskFactory.newTask( taskClassName, this );
+        if ( task == null ) {
             return;
         }
-        if (!taskSet.containsKey(task.getName())) {
-            taskSet.put(task.getName(), task);
+        if ( !taskSet.containsKey( task.getName() ) ) {
+            taskSet.put( task.getName(), task );
         }
-        if (faultMakeTask != null) {
-            faultMakeTask.addDependsTask((OperateTask) task);
+        if ( faultMakeTask != null ) {
+            faultMakeTask.addDependsTask( ( OperateTask ) task );
         }
     }
 
-    public void addTask(Task task) {
-        if (!taskSet.containsKey(task.getName())) {
-            taskSet.put(task.getName(), task);
+    public void addTask( Task task ) {
+        if ( !taskSet.containsKey( task.getName() ) ) {
+            taskSet.put( task.getName(), task );
         }
-        if (faultMakeTask != null) {
-            faultMakeTask.addDependsTask((OperateTask) task);
+        if ( faultMakeTask != null ) {
+            faultMakeTask.addDependsTask( ( OperateTask ) task );
         }
     }
 
     /**
-     * @param task 任务
+     * @param task
+     *            任务
      */
-    public void removeTask(Task task) {
-        if (taskSet.containsKey(task.getName())) {
-            taskSet.remove(task.getName());
+    public void removeTask( Task task ) {
+        if ( taskSet.containsKey( task.getName() ) ) {
+            taskSet.remove( task.getName() );
         }
 
-        if (faultMakeTask != null) {
-            faultMakeTask.removeDependsTask((OperateTask) task);
+        if ( faultMakeTask != null ) {
+            faultMakeTask.removeDependsTask( ( OperateTask ) task );
         }
     }
 
@@ -94,36 +98,36 @@ public class TaskMgr {
      * @throws ReliabilityException
      */
     public void init() throws ReliabilityException {
-        for (Map.Entry<String, Task> entry : taskSet.entrySet()) {
+        for ( Map.Entry< String, Task > entry : taskSet.entrySet() ) {
             entry.getValue().init();
 
         }
     }
 
     public void start() {
-        for (Map.Entry<String, Task> entry : taskSet.entrySet()) {
+        for ( Map.Entry< String, Task > entry : taskSet.entrySet() ) {
             entry.getValue().start();
         }
     }
-    
+
     public void join() {
-        for (Map.Entry<String, Task> entry : taskSet.entrySet()) {
+        for ( Map.Entry< String, Task > entry : taskSet.entrySet() ) {
             try {
                 entry.getValue().join();
-            } catch (InterruptedException e) {
+            } catch ( InterruptedException e ) {
                 // ignore
             }
         }
     }
-    
+
     public void check() throws ReliabilityException {
-        if (!this.isAllSuccess()) {
-            throw new ReliabilityException(this.getErrorMsg());
+        if ( !this.isAllSuccess() ) {
+            throw new ReliabilityException( this.getErrorMsg() );
         }
-        for (Map.Entry<String, Task> entry : taskSet.entrySet()) {
+        for ( Map.Entry< String, Task > entry : taskSet.entrySet() ) {
             try {
                 entry.getValue().check();
-            } catch (ReliabilityException e) {
+            } catch ( ReliabilityException e ) {
                 throw e;
             }
         }
@@ -134,28 +138,30 @@ public class TaskMgr {
      * @throws ReliabilityException
      */
     public boolean fini() throws ReliabilityException {
-        for (Map.Entry<String, Task> entry : taskSet.entrySet()) {
+        for ( Map.Entry< String, Task > entry : taskSet.entrySet() ) {
             entry.getValue().fini();
         }
         return true;
     }
 
     /**
-     * @param name 任务名
+     * @param name
+     *            任务名
      * @return 返回对应任务名的任务，不存在返回null
      */
-    public Task getTaskByName(String name) {
-        if (taskSet.containsKey(name)) {
-            return taskSet.get(name);
+    public Task getTaskByName( String name ) {
+        if ( taskSet.containsKey( name ) ) {
+            return taskSet.get( name );
         }
 
         return null;
     }
 
     /**
-     * @param task 执行完成的任务
+     * @param task
+     *            执行完成的任务
      */
-    public void Done(Task task) {
+    public void Done( Task task ) {
         /*
          * if ( task.getStatus() == Task.TaskStatus.TASKTHROWEXCEPTION ) { for (
          * Entry< String, Task > entry : taskSet.entrySet() ) { if (
@@ -164,11 +170,11 @@ public class TaskMgr {
          */
     }
 
-    public Map<String, ReliabilityException> getExceptions() {
-        HashMap<String, ReliabilityException> map = new HashMap<String, ReliabilityException>();
-        for (Map.Entry<String, Task> entry : taskSet.entrySet()) {
-            if (entry.getValue().getException() != null) {
-                map.put(entry.getKey(), entry.getValue().getException());
+    public Map< String, ReliabilityException > getExceptions() {
+        HashMap< String, ReliabilityException > map = new HashMap< String, ReliabilityException >();
+        for ( Map.Entry< String, Task > entry : taskSet.entrySet() ) {
+            if ( entry.getValue().getException() != null ) {
+                map.put( entry.getKey(), entry.getValue().getException() );
             }
         }
         return map;
@@ -180,7 +186,7 @@ public class TaskMgr {
 
     public String getErrorMsg() {
         String reStr = new String();
-        for (Map.Entry<String, Task> entry : taskSet.entrySet()) {
+        for ( Map.Entry< String, Task > entry : taskSet.entrySet() ) {
             reStr += entry.getValue().getErrorMsg();
         }
         return reStr;

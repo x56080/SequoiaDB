@@ -33,135 +33,149 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class Split8583b extends SdbTestBase {
-	private String clName = "testcaseCL8583b";
-	private String srcGroupName;
-	private String destGroupName;
-	private Sequoiadb commSdb = null;
+    private String clName = "testcaseCL8583b";
+    private String srcGroupName;
+    private String destGroupName;
+    private Sequoiadb commSdb = null;
 
-	@BeforeClass()
-	public void setUp() {
+    @BeforeClass()
+    public void setUp() {
 
-		try {
-			commSdb = new Sequoiadb(coordUrl, "", "");
+        try {
+            commSdb = new Sequoiadb( coordUrl, "", "" );
 
-			// 跳过 standAlone 和数据组不足的环境
-			CommLib commlib = new CommLib();
-			if (commlib.isStandAlone(commSdb)) {
-				throw new SkipException("skip StandAlone");
-			}
-			if (commlib.getDataGroupNames(commSdb).size() < 2) {
-				throw new SkipException("current environment less than tow groups ");
-			}
+            // 跳过 standAlone 和数据组不足的环境
+            CommLib commlib = new CommLib();
+            if ( commlib.isStandAlone( commSdb ) ) {
+                throw new SkipException( "skip StandAlone" );
+            }
+            if ( commlib.getDataGroupNames( commSdb ).size() < 2 ) {
+                throw new SkipException(
+                        "current environment less than tow groups " );
+            }
 
-			CollectionSpace commCS = commSdb.getCollectionSpace(csName);
-			commCS.createCollection(clName, (BSONObject) JSON.parse("{ShardingKey:{\"a\":1},ShardingType:\"range\"}"));
-			// 获取集合所在组名，和切分目标组名
-			ArrayList<String> tmp = SplitUtils.getGroupName(commSdb, csName, clName);
-			srcGroupName = tmp.get(0);
-			destGroupName = tmp.get(1);
-			prepareData(commSdb);// 写入待切分的记录（1000）
-		} catch (BaseException e) {
-			if (commSdb != null) {
-				commSdb.disconnect();
-			}
-			Assert.fail("TestCase8583b setUp error, error description:" + e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		}
-	}
+            CollectionSpace commCS = commSdb.getCollectionSpace( csName );
+            commCS.createCollection( clName, ( BSONObject ) JSON.parse(
+                    "{ShardingKey:{\"a\":1},ShardingType:\"range\"}" ) );
+            // 获取集合所在组名，和切分目标组名
+            ArrayList< String > tmp = SplitUtils.getGroupName( commSdb, csName,
+                    clName );
+            srcGroupName = tmp.get( 0 );
+            destGroupName = tmp.get( 1 );
+            prepareData( commSdb );// 写入待切分的记录（1000）
+        } catch ( BaseException e ) {
+            if ( commSdb != null ) {
+                commSdb.disconnect();
+            }
+            Assert.fail( "TestCase8583b setUp error, error description:"
+                    + e.getMessage() + "\r\n"
+                    + SplitUtils.getKeyStack( e, this ) );
+        }
+    }
 
-	public void prepareData(Sequoiadb db) {
-		try {
-			DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-			ArrayList<BSONObject> arr = new ArrayList<BSONObject>();
-			for (int i = 0; i < 1000; i++) {
-				arr.add((BSONObject) JSON.parse("{a:" + i + "}"));
-			}
-			cl.bulkInsert(arr, SplitUtils.FLG_INSERT_CONTONDUP);
-		} catch (BaseException e) {
-			throw e;
-		}
+    public void prepareData( Sequoiadb db ) {
+        try {
+            DBCollection cl = db.getCollectionSpace( csName )
+                    .getCollection( clName );
+            ArrayList< BSONObject > arr = new ArrayList< BSONObject >();
+            for ( int i = 0; i < 1000; i++ ) {
+                arr.add( ( BSONObject ) JSON.parse( "{a:" + i + "}" ) );
+            }
+            cl.bulkInsert( arr, SplitUtils.FLG_INSERT_CONTONDUP );
+        } catch ( BaseException e ) {
+            throw e;
+        }
 
-	}
+    }
 
-	// 切分同时删除CL，检查删除结果，切分任务
-	@Test
-	public void dropCL() {
-		Sequoiadb sdb = null;
-		DBCursor dbc = null;
-		Split split = new Split();
-		split.start();
-		try {
-			sdb = new Sequoiadb(coordUrl, "", "");
-			sdb.getCollectionSpace(csName).dropCollection(clName);
+    // 切分同时删除CL，检查删除结果，切分任务
+    @Test
+    public void dropCL() {
+        Sequoiadb sdb = null;
+        DBCursor dbc = null;
+        Split split = new Split();
+        split.start();
+        try {
+            sdb = new Sequoiadb( coordUrl, "", "" );
+            sdb.getCollectionSpace( csName ).dropCollection( clName );
 
-			if (!split.isSuccess()) {
-				Assert.fail(split.getErrorMsg());
-			}
+            if ( !split.isSuccess() ) {
+                Assert.fail( split.getErrorMsg() );
+            }
 
-			// 检查删除结果
-			if (sdb.getCollectionSpace(csName).isCollectionExist(clName)) {
-				Assert.fail("CL delete fail");
-			}
+            // 检查删除结果
+            if ( sdb.getCollectionSpace( csName )
+                    .isCollectionExist( clName ) ) {
+                Assert.fail( "CL delete fail" );
+            }
 
-			// 检查切分任务是否存在
-			dbc = sdb.listTasks((BSONObject) JSON.parse("{Name:\"" + csName + "." + clName + "\"}"), null, null, null);
-			if (dbc.hasNext()) {
-				Assert.fail("split task dose not cancel");
-			}
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		} finally {
-			if (dbc != null) {
-				dbc.close();
-			}
-			if (sdb != null) {
-				sdb.disconnect();
-			}
-		}
-	}
+            // 检查切分任务是否存在
+            dbc = sdb.listTasks(
+                    ( BSONObject ) JSON.parse(
+                            "{Name:\"" + csName + "." + clName + "\"}" ),
+                    null, null, null );
+            if ( dbc.hasNext() ) {
+                Assert.fail( "split task dose not cancel" );
+            }
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n"
+                    + SplitUtils.getKeyStack( e, this ) );
+        } finally {
+            if ( dbc != null ) {
+                dbc.close();
+            }
+            if ( sdb != null ) {
+                sdb.disconnect();
+            }
+        }
+    }
 
-	@AfterClass
-	public void tearDown() {
-		try {
-			CollectionSpace commCS = commSdb.getCollectionSpace(csName);
-			if (commCS.isCollectionExist(clName)) {
-				commCS.dropCollection(clName);
-				Assert.fail("cl should not exist");
-			}
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		} finally {
-			if (commSdb != null) {
-				commSdb.disconnect();
-			}
-		}
-	}
+    @AfterClass
+    public void tearDown() {
+        try {
+            CollectionSpace commCS = commSdb.getCollectionSpace( csName );
+            if ( commCS.isCollectionExist( clName ) ) {
+                commCS.dropCollection( clName );
+                Assert.fail( "cl should not exist" );
+            }
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n"
+                    + SplitUtils.getKeyStack( e, this ) );
+        } finally {
+            if ( commSdb != null ) {
+                commSdb.disconnect();
+            }
+        }
+    }
 
-	class Split extends SdbThreadBase {
+    class Split extends SdbThreadBase {
 
-		@Override
-		public void exec() throws Exception {
-			Sequoiadb sdb = null;
-			try {
-				sdb = new Sequoiadb(coordUrl, "", "");
-				DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-				if (cl == null) {// 若cl已被删除，cl为空
-					return;
-				}
-				cl.splitAsync(srcGroupName, destGroupName, (BSONObject) JSON.parse("{a:0}"),
-						(BSONObject) JSON.parse("{a:100}"));
-			} catch (BaseException e) {
-				// 排除集合不存在，锁定失败的异常
-				if (e.getErrorCode() != -23 && e.getErrorCode() != -147) {
-					throw e;
-				}
-			} catch (Exception e) {
-				throw e;
-			} finally {
-				if (sdb != null) {
-					sdb.disconnect();
-				}
-			}
-		}
-	}
+        @Override
+        public void exec() throws Exception {
+            Sequoiadb sdb = null;
+            try {
+                sdb = new Sequoiadb( coordUrl, "", "" );
+                DBCollection cl = sdb.getCollectionSpace( csName )
+                        .getCollection( clName );
+                if ( cl == null ) {// 若cl已被删除，cl为空
+                    return;
+                }
+                cl.splitAsync( srcGroupName, destGroupName,
+                        ( BSONObject ) JSON.parse( "{a:0}" ),
+                        ( BSONObject ) JSON.parse( "{a:100}" ) );
+            } catch ( BaseException e ) {
+                // 排除集合不存在，锁定失败的异常
+                if ( e.getErrorCode() != -23 && e.getErrorCode() != -147 ) {
+                    throw e;
+                }
+            } catch ( Exception e ) {
+                throw e;
+            } finally {
+                if ( sdb != null ) {
+                    sdb.disconnect();
+                }
+            }
+        }
+    }
 
 }

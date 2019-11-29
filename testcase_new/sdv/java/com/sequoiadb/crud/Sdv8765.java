@@ -25,30 +25,30 @@ public class Sdv8765 extends SdbTestBase {
 
     @BeforeClass
     public void setup() {
-        db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        dbcl = db.getCollectionSpace(SdbTestBase.csName)
-                .createCollection(CLNAME);
+        db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        dbcl = db.getCollectionSpace( SdbTestBase.csName )
+                .createCollection( CLNAME );
     }
 
     @AfterClass
     public void teardown() {
-        if (db != null){
-            db.getCollectionSpace(SdbTestBase.csName).dropCollection(CLNAME);
+        if ( db != null ) {
+            db.getCollectionSpace( SdbTestBase.csName )
+                    .dropCollection( CLNAME );
             db.disconnect();
         }
     }
 
-    private BSONObject[] genrateData(int num) {
-        BSONObject[] b = new BSONObject[num];
-        for (int i = 0; i < num; i++) {
-            b[i] = new BasicBSONObject("a", i);
+    private BSONObject[] genrateData( int num ) {
+        BSONObject[] b = new BSONObject[ num ];
+        for ( int i = 0; i < num; i++ ) {
+            b[ i ] = new BasicBSONObject( "a", i );
         }
         return b;
     }
 
     /**
-     * 2、创建cl，持续插入数据
-     * 3、插入数据过程中，并发执行创建/删除CL操作
+     * 2、创建cl，持续插入数据 3、插入数据过程中，并发执行创建/删除CL操作
      */
     @Test
     public void test() {
@@ -57,13 +57,16 @@ public class Sdv8765 extends SdbTestBase {
             public void exec() throws Exception {
                 Sequoiadb db = null;
                 try {
-                    db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                    DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(CLNAME);
-                    for (int i = 0; i < 100; i++) {
-                        cl.bulkInsert(Arrays.asList(genrateData(1000)),0);
+                    db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                    DBCollection cl = db
+                            .getCollectionSpace( SdbTestBase.csName )
+                            .getCollection( CLNAME );
+                    for ( int i = 0; i < 100; i++ ) {
+                        cl.bulkInsert( Arrays.asList( genrateData( 1000 ) ),
+                                0 );
                     }
                 } finally {
-                    if (db != null)
+                    if ( db != null )
                         db.disconnect();
                 }
             }
@@ -74,24 +77,26 @@ public class Sdv8765 extends SdbTestBase {
             public void exec() throws Exception {
                 Sequoiadb db = null;
                 try {
-                    db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+                    db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
                     String clName = CLNAME + Thread.currentThread().getId();
-                    CollectionSpace cs = db.getCollectionSpace(SdbTestBase.csName);
-                    cs.createCollection(clName);
-                    cs.dropCollection(clName);
+                    CollectionSpace cs = db
+                            .getCollectionSpace( SdbTestBase.csName );
+                    cs.createCollection( clName );
+                    cs.dropCollection( clName );
                 } finally {
-                    if (db != null)
+                    if ( db != null )
                         db.disconnect();
                 }
             }
         };
 
         insertData.start();
-        createAndDropCLTask.start(20);
+        createAndDropCLTask.start( 20 );
 
-        assertTrue(insertData.isSuccess(),insertData.getErrorMsg());
-        assertTrue(createAndDropCLTask.isSuccess(),createAndDropCLTask.getErrorMsg());
+        assertTrue( insertData.isSuccess(), insertData.getErrorMsg() );
+        assertTrue( createAndDropCLTask.isSuccess(),
+                createAndDropCLTask.getErrorMsg() );
 
-        assertEquals(dbcl.getCount(),100*1000);
+        assertEquals( dbcl.getCount(), 100 * 1000 );
     }
 }

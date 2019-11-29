@@ -16,128 +16,142 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 public class LzwUtils2 extends SdbTestBase {
-    public static boolean isStandAlone(Sequoiadb sdb) {
+    public static boolean isStandAlone( Sequoiadb sdb ) {
         try {
             sdb.listReplicaGroups();
-        } catch (BaseException e) {
-            if (e.getErrorCode() == -159) {
-                System.out.printf("run mode is standalone");
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() == -159 ) {
+                System.out.printf( "run mode is standalone" );
                 return true;
             }
         }
         return false;
     }
-    
+
     /**
      * judge whether dictionary of lzw is created
+     * 
      * @param cl
      * @param dataGroupName
      * @return boolean
      */
-    public static boolean isDictExist(DBCollection cl, String dataGroupName){
-        // connect to data node of cl 
+    public static boolean isDictExist( DBCollection cl, String dataGroupName ) {
+        // connect to data node of cl
         Sequoiadb db = cl.getSequoiadb();
-        String url = db.getReplicaGroup(dataGroupName).getMaster().getNodeName();
-        Sequoiadb dataDB = new Sequoiadb(url, "", "");
-        
+        String url = db.getReplicaGroup( dataGroupName ).getMaster()
+                .getNodeName();
+        Sequoiadb dataDB = new Sequoiadb( url, "", "" );
+
         // get details of snapshot
         BSONObject nameBSON = new BasicBSONObject();
-        nameBSON.put("Name", cl.getFullName());
-        DBCursor snapshot = dataDB.getSnapshot(4, nameBSON, null, null);
-        if(!snapshot.hasNext()){
-            CollectionSpace cs = dataDB.getCollectionSpace(csName);
-            throw new BaseException(-10000, "snapshot is not exist. cl exists: " + cs.isCollectionExist(cl.getFullName()));
+        nameBSON.put( "Name", cl.getFullName() );
+        DBCursor snapshot = dataDB.getSnapshot( 4, nameBSON, null, null );
+        if ( !snapshot.hasNext() ) {
+            CollectionSpace cs = dataDB.getCollectionSpace( csName );
+            throw new BaseException( -10000,
+                    "snapshot is not exist. cl exists: "
+                            + cs.isCollectionExist( cl.getFullName() ) );
         }
-        BasicBSONList details = (BasicBSONList) snapshot.getNext().get("Details");
-        BSONObject detail = (BSONObject) details.get(0);
-        
+        BasicBSONList details = ( BasicBSONList ) snapshot.getNext()
+                .get( "Details" );
+        BSONObject detail = ( BSONObject ) details.get( 0 );
+
         // judge whether dictionary is created
-        return (boolean)detail.get("DictionaryCreated");
+        return ( boolean ) detail.get( "DictionaryCreated" );
     }
-    
-    public static void waitCreateDict(DBCollection cl, String dataGroupName){
-        try{
-            while(!LzwUtils2.isDictExist(cl, dataGroupName)){
-                Thread.sleep(1000);
+
+    public static void waitCreateDict( DBCollection cl, String dataGroupName ) {
+        try {
+            while ( !LzwUtils2.isDictExist( cl, dataGroupName ) ) {
+                Thread.sleep( 1000 );
             }
-        }catch(BaseException e){
+        } catch ( BaseException e ) {
             throw e;
-        } catch (InterruptedException e) {
+        } catch ( InterruptedException e ) {
             e.printStackTrace();
         }
     }
-    
+
     /**
      * get data groups
+     * 
      * @param db
      * @return groupList
      */
-    public static ArrayList<String> getDataGroups(Sequoiadb db) {
-        ArrayList<String> groupList = null;
+    public static ArrayList< String > getDataGroups( Sequoiadb db ) {
+        ArrayList< String > groupList = null;
         try {
             groupList = db.getReplicaGroupNames();
-            groupList.remove("SYSCatalogGroup");
-            groupList.remove("SYSCoord");
-            groupList.remove("SYSSpare");
-        } catch (BaseException e) {
-            Assert.assertTrue(false, "getDataGroups fail " + e.getMessage());
+            groupList.remove( "SYSCatalogGroup" );
+            groupList.remove( "SYSCoord" );
+            groupList.remove( "SYSSpare" );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "getDataGroups fail " + e.getMessage() );
         }
         return groupList;
     }
-    
+
     /**
      * get a random string
+     * 
      * @param length
-     * @return 
+     * @return
      */
-    public static String getRandomString(int length){
+    public static String getRandomString( int length ) {
         String base = "abc";
         Random random = new Random();
         StringBuffer sb = new StringBuffer();
-        for(int i = 0; i < length; i++){
-            int index = random.nextInt(base.length());
-            sb.append(base.charAt(index));
+        for ( int i = 0; i < length; i++ ) {
+            int index = random.nextInt( base.length() );
+            sb.append( base.charAt( index ) );
         }
         return sb.toString();
     }
-    
+
     /**
      * check whether data is compressed
+     * 
      * @param cl
      * @param dataGroupName
      */
-    public static void checkCompressed(DBCollection cl, String dataGroupName){
+    public static void checkCompressed( DBCollection cl,
+            String dataGroupName ) {
         int tryTimes = 10;
         boolean isCompressed = false;
-        for(int i = 0; i < tryTimes; i++){
-            // connect to data node of cl 
+        for ( int i = 0; i < tryTimes; i++ ) {
+            // connect to data node of cl
             Sequoiadb db = cl.getSequoiadb();
-            String url = db.getReplicaGroup(dataGroupName).getMaster().getNodeName();
-            Sequoiadb dataDB = new Sequoiadb(url, "", "");
+            String url = db.getReplicaGroup( dataGroupName ).getMaster()
+                    .getNodeName();
+            Sequoiadb dataDB = new Sequoiadb( url, "", "" );
             // get details of snapshot
             BSONObject nameBSON = new BasicBSONObject();
-            nameBSON.put("Name", cl.getFullName());
-            DBCursor snapshot = dataDB.getSnapshot(4, nameBSON, null, null);
-            BasicBSONList details = (BasicBSONList) snapshot.getNext().get("Details");
-            BSONObject detail = (BSONObject) details.get(0);
-            
+            nameBSON.put( "Name", cl.getFullName() );
+            DBCursor snapshot = dataDB.getSnapshot( 4, nameBSON, null, null );
+            BasicBSONList details = ( BasicBSONList ) snapshot.getNext()
+                    .get( "Details" );
+            BSONObject detail = ( BSONObject ) details.get( 0 );
+
             // judge whether data is compressed
-            boolean ratioRight = (double)detail.get("CurrentCompressionRatio") < (double)1;
-            boolean attrRight = ((String)detail.get("Attribute")).equals("Compressed");
-            boolean typeRight = ((String)detail.get("CompressionType")).equals("lzw");
-            if(ratioRight && attrRight && typeRight){
+            boolean ratioRight = ( double ) detail
+                    .get( "CurrentCompressionRatio" ) < ( double ) 1;
+            boolean attrRight = ( ( String ) detail.get( "Attribute" ) )
+                    .equals( "Compressed" );
+            boolean typeRight = ( ( String ) detail.get( "CompressionType" ) )
+                    .equals( "lzw" );
+            if ( ratioRight && attrRight && typeRight ) {
                 isCompressed = true;
             }
-            
+
             // try again after 1 second
             try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
+                Thread.sleep( 1000 );
+            } catch ( InterruptedException e ) {
                 e.printStackTrace();
             }
         }
-        if(!isCompressed){
-            throw new BaseException(-10000, "data is not compressed");
+        if ( !isCompressed ) {
+            throw new BaseException( -10000, "data is not compressed" );
         }
     }
 }

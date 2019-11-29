@@ -18,35 +18,35 @@ import static com.sequoiadb.metaopr.commons.MyUtil.*;
  */
 public class LobUtil {
     public static final String csName = "lobcs", clName = "lobcl";
-    private static final Logger log=Logger.getLogger(LobUtil.class.getName());
-
+    private static final Logger log = Logger
+            .getLogger( LobUtil.class.getName() );
 
     public static void createLobCsAndCl() {
         Sequoiadb db = getSdb();
-        if (isCsExisted(csName) == true) {
-            if (db.getCollectionSpace(csName).getCollection(clName) != null)
+        if ( isCsExisted( csName ) == true ) {
+            if ( db.getCollectionSpace( csName )
+                    .getCollection( clName ) != null )
                 return;
         }
-        createCS(csName);
-        BSONObject option = (BSONObject) JSON.parse("{ ShardingKey: { \"age\": 1 }," +
-                " ShardingType: \"hash\", " +
-                "Partition: 1024, ReplSize: 1," +
-                " Compressed: true ," +
-                "Group:\"group1\"}");
-        createCl(csName, clName, option);
-        DBCollection cl = db.getCollectionSpace(csName)
-                .getCollection(clName);
+        createCS( csName );
+        BSONObject option = ( BSONObject ) JSON.parse(
+                "{ ShardingKey: { \"age\": 1 }," + " ShardingType: \"hash\", "
+                        + "Partition: 1024, ReplSize: 1,"
+                        + " Compressed: true ," + "Group:\"group1\"}" );
+        createCl( csName, clName, option );
+        DBCollection cl = db.getCollectionSpace( csName )
+                .getCollection( clName );
 
-        cl.split("group1", "group2", 50);
+        cl.split( "group1", "group2", 50 );
         db.disconnect();
     }
 
-    public static void dropLobCS(){
-        Sequoiadb db=getSdb();
+    public static void dropLobCS() {
+        Sequoiadb db = getSdb();
         try {
-            db.dropCollectionSpace(csName);
-        }catch (BaseException e){
-            log.severe("dropcs fail "+csName);
+            db.dropCollectionSpace( csName );
+        } catch ( BaseException e ) {
+            log.severe( "dropcs fail " + csName );
         }
         db.disconnect();
     }

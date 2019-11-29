@@ -24,227 +24,249 @@ import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
  * 分区键为decimal类型，执行百分比切分
+ * 
  * @author chensiqin
  * @Date 2016-12-20
  *
  */
-public class TestSplit10516 extends SdbTestBase{
+public class TestSplit10516 extends SdbTestBase {
     private Sequoiadb sdb;
     private CollectionSpace cs;
     private DBCollection cl;
     private String clName1 = "cl10516_0";
     private String clName2 = "cl10516_1";
-    private ArrayList<BSONObject> insertRecods;
-    
+    private ArrayList< BSONObject > insertRecods;
+
     @BeforeClass
     public void setUp() {
-        try{
-            this.sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        try {
+            this.sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             // 跳过 standAlone 和数据组不足的环境
             SplitUtils2 util = new SplitUtils2();
-            if (util.isStandAlone(this.sdb)) {
-                throw new SkipException("skip StandAlone");
+            if ( util.isStandAlone( this.sdb ) ) {
+                throw new SkipException( "skip StandAlone" );
             }
-            if (SplitUtils2.getDataRgNames(this.sdb).size() < 2) {
-                throw new SkipException("current environment less than tow groups ");
+            if ( SplitUtils2.getDataRgNames( this.sdb ).size() < 2 ) {
+                throw new SkipException(
+                        "current environment less than tow groups " );
             }
             BSONObject options = new BasicBSONObject();
-            options.put("PreferedInstance", "M");
-            this.sdb.setSessionAttr(options);
-            this.cs = this.sdb.getCollectionSpace(SdbTestBase.csName);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+            options.put( "PreferedInstance", "M" );
+            this.sdb.setSessionAttr( options );
+            this.cs = this.sdb.getCollectionSpace( SdbTestBase.csName );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         }
     }
-    
+
     @Test
     public void test() {
         try {
-            List<String> rgNames = SplitUtils2.getDataRgNames(this.sdb); 
-            BSONObject option = (BSONObject) JSON.parse("{ShardingKey:{bdecimal:1},ShardingType:\"range\",Group:\"" + rgNames.get(0) + "\"}");
-            this.cl = SplitUtils2.createCL(this.cs, this.clName1, option); 
-            this.insertRecods = (ArrayList<BSONObject>) SplitUtils2.insertData(this.cl, 100);
-            BSONDecimal b1 = new BSONDecimal("12345.067891234567890123458100");
-            BSONDecimal b2 = new BSONDecimal("12345.067891234567890123459000");
+            List< String > rgNames = SplitUtils2.getDataRgNames( this.sdb );
+            BSONObject option = ( BSONObject ) JSON.parse(
+                    "{ShardingKey:{bdecimal:1},ShardingType:\"range\",Group:\""
+                            + rgNames.get( 0 ) + "\"}" );
+            this.cl = SplitUtils2.createCL( this.cs, this.clName1, option );
+            this.insertRecods = ( ArrayList< BSONObject > ) SplitUtils2
+                    .insertData( this.cl, 100 );
+            BSONDecimal b1 = new BSONDecimal(
+                    "12345.067891234567890123458100" );
+            BSONDecimal b2 = new BSONDecimal(
+                    "12345.067891234567890123459000" );
             BSONObject startCondition = new BasicBSONObject();
             BSONObject endCondition = new BasicBSONObject();
-            startCondition.put("bdecimal", b1);
-            endCondition.put("bdecimal", b2);
-            this.cl.split(rgNames.get(0), rgNames.get(1), startCondition, endCondition);
-            //连接coord节点验证数据是否正确
-            testCoordSplitResult(rgNames);
+            startCondition.put( "bdecimal", b1 );
+            endCondition.put( "bdecimal", b2 );
+            this.cl.split( rgNames.get( 0 ), rgNames.get( 1 ), startCondition,
+                    endCondition );
+            // 连接coord节点验证数据是否正确
+            testCoordSplitResult( rgNames );
             boolean isReverse = false;
-            //连接源组data验证数据
-            testSrcDataSplitResult(rgNames, isReverse);
-            //连接目标组data验证数据
-            testDestDataSplitResult(rgNames, isReverse);
-        }catch (BaseException e) {
+            // 连接源组data验证数据
+            testSrcDataSplitResult( rgNames, isReverse );
+            // 连接目标组data验证数据
+            testDestDataSplitResult( rgNames, isReverse );
+        } catch ( BaseException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         }
     }
-    
+
     /**
-     * 1. 创建创建cl到指定组
-     * 2. 分区键字段排序为逆序，且切分范围与正序不同
-     * 3. 执行切分
-     * 4. 分别连接coord、源组data、目标组data查询
+     * 1. 创建创建cl到指定组 2. 分区键字段排序为逆序，且切分范围与正序不同 3. 执行切分 4.
+     * 分别连接coord、源组data、目标组data查询
      */
     @Test
     public void testReverse() {
         try {
-            List<String> rgNames = SplitUtils2.getDataRgNames(this.sdb); 
-            BSONObject option = (BSONObject) JSON.parse("{ShardingKey:{bdecimal:-1},ShardingType:\"range\",Group:\"" + rgNames.get(0) + "\"}");
-            this.cl = SplitUtils2.createCL(this.cs, this.clName2, option); 
-            this.insertRecods = (ArrayList<BSONObject>) SplitUtils2.insertData(this.cl, 100);
-            BSONDecimal b1 = new BSONDecimal("12345.067891234567890123451900");
-            BSONDecimal b2 = new BSONDecimal("12345.067891234567890123451100");
+            List< String > rgNames = SplitUtils2.getDataRgNames( this.sdb );
+            BSONObject option = ( BSONObject ) JSON.parse(
+                    "{ShardingKey:{bdecimal:-1},ShardingType:\"range\",Group:\""
+                            + rgNames.get( 0 ) + "\"}" );
+            this.cl = SplitUtils2.createCL( this.cs, this.clName2, option );
+            this.insertRecods = ( ArrayList< BSONObject > ) SplitUtils2
+                    .insertData( this.cl, 100 );
+            BSONDecimal b1 = new BSONDecimal(
+                    "12345.067891234567890123451900" );
+            BSONDecimal b2 = new BSONDecimal(
+                    "12345.067891234567890123451100" );
             BSONObject startCondition = new BasicBSONObject();
             BSONObject endCondition = new BasicBSONObject();
-            startCondition.put("bdecimal", b1);
-            endCondition.put("bdecimal", b2);
-//            BSONObject startCondition = (BSONObject) JSON.parse("{bdecimal:{\"$decimal\":\"12345.067891234567890123451900\"}}");
-//            BSONObject endCondition = (BSONObject) JSON.parse("{bdecimal:{\"$decimal\":\"12345.0678912345678901234511001\"}}");
-            this.cl.split(rgNames.get(0), rgNames.get(1), startCondition, endCondition);
-            //连接coord节点验证数据是否正确
-            testCoordSplitResult(rgNames);
+            startCondition.put( "bdecimal", b1 );
+            endCondition.put( "bdecimal", b2 );
+            // BSONObject startCondition = (BSONObject)
+            // JSON.parse("{bdecimal:{\"$decimal\":\"12345.067891234567890123451900\"}}");
+            // BSONObject endCondition = (BSONObject)
+            // JSON.parse("{bdecimal:{\"$decimal\":\"12345.0678912345678901234511001\"}}");
+            this.cl.split( rgNames.get( 0 ), rgNames.get( 1 ), startCondition,
+                    endCondition );
+            // 连接coord节点验证数据是否正确
+            testCoordSplitResult( rgNames );
             boolean isReverse = true;
-            //连接源组data验证数据
-            testSrcDataSplitResult(rgNames, isReverse);
-            //连接目标组data验证数据
-            testDestDataSplitResult(rgNames, isReverse);
-        }catch (BaseException e) {
+            // 连接源组data验证数据
+            testSrcDataSplitResult( rgNames, isReverse );
+            // 连接目标组data验证数据
+            testDestDataSplitResult( rgNames, isReverse );
+        } catch ( BaseException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         }
     }
 
-    public void testCoordSplitResult(List<String> rgNames) {
+    public void testCoordSplitResult( List< String > rgNames ) {
         try {
-            //连接coord节点验证数据是否正确
-            List<BSONObject> actual = new ArrayList<BSONObject>();
-            DBCursor cursor = this.cl.query(null,null,"{\"age\":1}",null);
-            while( cursor.hasNext() ) {
+            // 连接coord节点验证数据是否正确
+            List< BSONObject > actual = new ArrayList< BSONObject >();
+            DBCursor cursor = this.cl.query( null, null, "{\"age\":1}", null );
+            while ( cursor.hasNext() ) {
                 BSONObject obj = cursor.getNext();
-                actual.add(obj);
+                actual.add( obj );
             }
             cursor.close();
-            Assert.assertEquals(actual, this.insertRecods);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+            Assert.assertEquals( actual, this.insertRecods );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         }
-        
+
     }
-    
+
     /**
      * 连接源数据组检查切分结果
+     * 
      * @param rgNames
      * @param isReverse
      */
-    public void testSrcDataSplitResult(List<String> rgNames, boolean isReverse) {
+    public void testSrcDataSplitResult( List< String > rgNames,
+            boolean isReverse ) {
         Sequoiadb dataDb = null;
         try {
-            //连接源组data验证数据
-            String url = SplitUtils2.getGroupIPByGroupName(this.sdb, rgNames.get(0));
-            dataDb = new Sequoiadb(url, "", "");
-            CollectionSpace cs = dataDb.getCollectionSpace(SdbTestBase.csName);
+            // 连接源组data验证数据
+            String url = SplitUtils2.getGroupIPByGroupName( this.sdb,
+                    rgNames.get( 0 ) );
+            dataDb = new Sequoiadb( url, "", "" );
+            CollectionSpace cs = dataDb
+                    .getCollectionSpace( SdbTestBase.csName );
             DBCollection dbcl = null;
             if ( isReverse ) {
-                dbcl = cs.getCollection(this.clName2);
+                dbcl = cs.getCollection( this.clName2 );
             } else {
-                dbcl = cs.getCollection(this.clName1);
+                dbcl = cs.getCollection( this.clName1 );
             }
-            DBCursor cursor = dbcl.query(null,null,"{\"age\":1}",null);
-            List<BSONObject> actual = new ArrayList<BSONObject>();
-            while( cursor.hasNext() ) {
+            DBCursor cursor = dbcl.query( null, null, "{\"age\":1}", null );
+            List< BSONObject > actual = new ArrayList< BSONObject >();
+            while ( cursor.hasNext() ) {
                 BSONObject obj = cursor.getNext();
-                actual.add(obj);
+                actual.add( obj );
             }
             cursor.close();
-            List<BSONObject> expected = new ArrayList<BSONObject>();
+            List< BSONObject > expected = new ArrayList< BSONObject >();
             if ( isReverse ) {
-                //当切分键[12345.067891234567890123451900,12345.067891234567890123451100)
-                for (int i = 1; i <= 11; i++ ){
-                    expected.add(this.insertRecods.get(i-1));
+                // 当切分键[12345.067891234567890123451900,12345.067891234567890123451100)
+                for ( int i = 1; i <= 11; i++ ) {
+                    expected.add( this.insertRecods.get( i - 1 ) );
                 }
-                for (int i = 20; i <= 99; i++ ){
-                    expected.add(this.insertRecods.get(i-1));
+                for ( int i = 20; i <= 99; i++ ) {
+                    expected.add( this.insertRecods.get( i - 1 ) );
                 }
             } else {
-                //[12345.067891234567890123458100,12345.067891234567890123459000)在组上的期望结果对应的是
-                for (int i = 1; i <= 80; i++ ){
-                    expected.add(this.insertRecods.get(i-1));
+                // [12345.067891234567890123458100,12345.067891234567890123459000)在组上的期望结果对应的是
+                for ( int i = 1; i <= 80; i++ ) {
+                    expected.add( this.insertRecods.get( i - 1 ) );
                 }
-                for (int i = 90; i <= 99; i++ ){
-                    expected.add(this.insertRecods.get(i-1));
+                for ( int i = 90; i <= 99; i++ ) {
+                    expected.add( this.insertRecods.get( i - 1 ) );
                 }
             }
-            Assert.assertEquals(actual, expected);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+            Assert.assertEquals( actual, expected );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         } finally {
             dataDb.disconnect();
         }
-        
+
     }
-    
+
     /**
      * 在目标数组组上查询切分结果
+     * 
      * @param rgNames
      * @param isReverse
      */
-    public void testDestDataSplitResult(List<String> rgNames, boolean isReverse) {
+    public void testDestDataSplitResult( List< String > rgNames,
+            boolean isReverse ) {
         Sequoiadb dataDb = null;
         try {
-            //连接目标组data查询
-            String url = SplitUtils2.getGroupIPByGroupName(this.sdb, rgNames.get(1));
-            dataDb = new Sequoiadb(url, "", "");
-            CollectionSpace cs = dataDb.getCollectionSpace(SdbTestBase.csName);
+            // 连接目标组data查询
+            String url = SplitUtils2.getGroupIPByGroupName( this.sdb,
+                    rgNames.get( 1 ) );
+            dataDb = new Sequoiadb( url, "", "" );
+            CollectionSpace cs = dataDb
+                    .getCollectionSpace( SdbTestBase.csName );
             DBCollection dbcl = null;
             if ( isReverse ) {
-                dbcl = cs.getCollection(this.clName2);
+                dbcl = cs.getCollection( this.clName2 );
             } else {
-                dbcl = cs.getCollection(this.clName1);
+                dbcl = cs.getCollection( this.clName1 );
             }
-            DBCursor cursor = dbcl.query(null,null,"{\"age\":1}",null);
-            List<BSONObject> actual = new ArrayList<BSONObject>();
-            while( cursor.hasNext() ) {
+            DBCursor cursor = dbcl.query( null, null, "{\"age\":1}", null );
+            List< BSONObject > actual = new ArrayList< BSONObject >();
+            while ( cursor.hasNext() ) {
                 BSONObject obj = cursor.getNext();
-                actual.add(obj);
+                actual.add( obj );
             }
             cursor.close();
-            List<BSONObject> expected = new ArrayList<BSONObject>();
+            List< BSONObject > expected = new ArrayList< BSONObject >();
             if ( isReverse ) {
-                //逆序时[12345.067891234567890123451900,12345.067891234567890123451100)
-                for (int i = 12; i <= 19; i++ ){
-                    expected.add(this.insertRecods.get(i-1));
-                }  
-            }else {
-              //[12345.067891234567890123458100,12345.067891234567890123459000)在组上的期望结果对应的是
-                for (int i = 81; i <= 89; i++ ){
-                    expected.add(this.insertRecods.get(i-1));
-                }    
+                // 逆序时[12345.067891234567890123451900,12345.067891234567890123451100)
+                for ( int i = 12; i <= 19; i++ ) {
+                    expected.add( this.insertRecods.get( i - 1 ) );
+                }
+            } else {
+                // [12345.067891234567890123458100,12345.067891234567890123459000)在组上的期望结果对应的是
+                for ( int i = 81; i <= 89; i++ ) {
+                    expected.add( this.insertRecods.get( i - 1 ) );
+                }
             }
-            Assert.assertEquals(actual, expected);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+            Assert.assertEquals( actual, expected );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         } finally {
             dataDb.disconnect();
         }
-        
+
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (this.cs.isCollectionExist(this.clName1)) {
-                this.cs.dropCollection(this.clName1);
+            if ( this.cs.isCollectionExist( this.clName1 ) ) {
+                this.cs.dropCollection( this.clName1 );
             }
-            if (this.cs.isCollectionExist(this.clName2)) {
-                this.cs.dropCollection(this.clName2);
+            if ( this.cs.isCollectionExist( this.clName2 ) ) {
+                this.cs.dropCollection( this.clName2 );
             }
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         } finally {
             this.sdb.disconnect();
         }

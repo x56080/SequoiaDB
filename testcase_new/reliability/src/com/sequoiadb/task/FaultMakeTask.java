@@ -22,10 +22,11 @@ public class FaultMakeTask extends Task {
     private final int MilliSecondsPerSecond = 1000;
     private int duration;
 
-    public FaultMakeTask(Fault instance, int maxDlay, int duration, int checkTimes) {
-        super(instance.getName(), maxDlay);
+    public FaultMakeTask( Fault instance, int maxDlay, int duration,
+            int checkTimes ) {
+        super( instance.getName(), maxDlay );
         // TODO Auto-generated constructor stub
-        faultInstance = new FaultWrapper(instance, checkTimes);
+        faultInstance = new FaultWrapper( instance, checkTimes );
         this.duration = duration;
     }
 
@@ -33,39 +34,35 @@ public class FaultMakeTask extends Task {
     public void run() {
         Random random = new Random();
         try {
-            Thread.currentThread()
-                    .sleep(random.nextInt(super.randomStartMaxDuration * MilliSecondsPerSecond));
-        }
-        catch (Exception e) {
+            Thread.currentThread().sleep( random.nextInt(
+                    super.randomStartMaxDuration * MilliSecondsPerSecond ) );
+        } catch ( Exception e ) {
             // TODO Auto-generated catch block
         }
         try {
             faultInstance.make();
-        }
-        catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             exception = e;
         }
         try {
-            Thread.currentThread().sleep(duration * MilliSecondsPerSecond);
-        }
-        catch (Exception e) {
+            Thread.currentThread().sleep( duration * MilliSecondsPerSecond );
+        } catch ( Exception e ) {
             // TODO Auto-generated catch block
         }
         try {
             faultInstance.restore();
-        }
-        catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             exception = e;
         }
 
     }
 
-    public void addDependsTask(OperateTask task) {
-        faultInstance.addDependsTask(task);
+    public void addDependsTask( OperateTask task ) {
+        faultInstance.addDependsTask( task );
     }
 
-    public void removeDependsTask(OperateTask task) {
-        faultInstance.removeDependsTask(task);
+    public void removeDependsTask( OperateTask task ) {
+        faultInstance.removeDependsTask( task );
     }
 
     @Override

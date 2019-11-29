@@ -27,7 +27,7 @@ import com.sequoiadb.exception.ReliabilityException;
 
 public class GroupWrapper {
     private ReplicaGroup group;
-    private List<NodeWrapper> nodes = new ArrayList<NodeWrapper>();
+    private List< NodeWrapper > nodes = new ArrayList< NodeWrapper >();
     private BasicBSONObject groupInfo;
     private static final String CATA_RG_NAME = "SYSCatalogGroup";
     private static final String SYSCAT = "SYSCAT";
@@ -37,58 +37,60 @@ public class GroupWrapper {
     private static final String SYSNODES = "SYSNODES";
     private GroupMgr mgr;
 
-    public GroupWrapper(BasicBSONObject groupInfo, ReplicaGroup group,GroupMgr mgr) {
+    public GroupWrapper( BasicBSONObject groupInfo, ReplicaGroup group,
+            GroupMgr mgr ) {
         this.groupInfo = groupInfo;
         this.group = group;
         this.mgr = mgr;
     }
 
     public String getGroupName() {
-        return this.groupInfo.getString("GroupName");
+        return this.groupInfo.getString( "GroupName" );
     }
 
     public int getGroupID() {
-        return this.groupInfo.getInt("GroupID");
+        return this.groupInfo.getInt( "GroupID" );
     }
 
-    public void refresh(String coordUrl) throws ReliabilityException {
-        mgr.refresh(coordUrl);
-        this.group = mgr.getGroupByName(getGroupName()).getGroup();
-        this.groupInfo = mgr.getGroupByName(getGroupName()).getGroupInfo();
+    public void refresh( String coordUrl ) throws ReliabilityException {
+        mgr.refresh( coordUrl );
+        this.group = mgr.getGroupByName( getGroupName() ).getGroup();
+        this.groupInfo = mgr.getGroupByName( getGroupName() ).getGroupInfo();
         init();
     }
 
     public void refresh() throws ReliabilityException {
-        refresh(SdbTestBase.coordUrl);
+        refresh( SdbTestBase.coordUrl );
     }
 
     public void init() throws ReliabilityException {
-        String hostName =null;
+        String hostName = null;
         String port = null;
         try {
-            BasicBSONList nodesinfo = (BasicBSONList) groupInfo.get("Group");
-            for (int i = 0; i < nodesinfo.size(); ++i) {
-                BasicBSONObject nodeinfo = (BasicBSONObject) nodesinfo.get(i);
-                hostName = nodeinfo.getString("HostName");
-                port = ((BasicBSONObject) ((BasicBSONList) nodeinfo.get("Service")).get(0))
-                        .getString("Name");
+            BasicBSONList nodesinfo = ( BasicBSONList ) groupInfo
+                    .get( "Group" );
+            for ( int i = 0; i < nodesinfo.size(); ++i ) {
+                BasicBSONObject nodeinfo = ( BasicBSONObject ) nodesinfo
+                        .get( i );
+                hostName = nodeinfo.getString( "HostName" );
+                port = ( ( BasicBSONObject ) ( ( BasicBSONList ) nodeinfo
+                        .get( "Service" ) ).get( 0 ) ).getString( "Name" );
 
-                
-                NodeWrapper node = new NodeWrapper(
-                        this.group.getNode(hostName, Integer.parseInt(port)), nodeinfo);
-                nodes.add(node);
+                NodeWrapper node = new NodeWrapper( this.group.getNode(
+                        hostName, Integer.parseInt( port ) ), nodeinfo );
+                nodes.add( node );
             }
-        }
-        catch (BaseException e) {
-            System.out.println("hostName:"+hostName+" error:"+e.getErrorCode());
-            System.out.println("port:"+port);
-            throw new ReliabilityException(e);
+        } catch ( BaseException e ) {
+            System.out.println(
+                    "hostName:" + hostName + " error:" + e.getErrorCode() );
+            System.out.println( "port:" + port );
+            throw new ReliabilityException( e );
         }
     }
 
     public NodeWrapper getMaster() throws ReliabilityException {
-        for (NodeWrapper node : nodes) {
-            if (node.isMaster()) {
+        for ( NodeWrapper node : nodes ) {
+            if ( node.isMaster() ) {
                 return node;
             }
         }
@@ -98,14 +100,12 @@ public class GroupWrapper {
     public NodeWrapper getSlave() throws ReliabilityException {
         Random random = new Random();
 
-        int pos = random.nextInt(nodes.size());
-        if (!nodes.get(pos).isMaster()) {
-            return nodes.get(pos);
-        }
-        else if (nodes.size() > 1) {
-            return nodes.get((pos + 1) % nodes.size());
-        }
-        else {
+        int pos = random.nextInt( nodes.size() );
+        if ( !nodes.get( pos ).isMaster() ) {
+            return nodes.get( pos );
+        } else if ( nodes.size() > 1 ) {
+            return nodes.get( ( pos + 1 ) % nodes.size() );
+        } else {
             return null;
         }
     }
@@ -122,7 +122,7 @@ public class GroupWrapper {
      * @throws ReliabilityException
      */
     public boolean changePrimary() throws ReliabilityException {
-        return changePrimary(10);
+        return changePrimary( 10 );
     }
 
     /**
@@ -132,66 +132,67 @@ public class GroupWrapper {
      * @return
      * @throws ReliabilityException
      */
-    public boolean changePrimary(int times) throws ReliabilityException {
-        if (getGroupName().equals("SYSCoord")) {
+    public boolean changePrimary( int times ) throws ReliabilityException {
+        if ( getGroupName().equals( "SYSCoord" ) ) {
             return false;
         }
         String groupName = getGroupName();
         int priNode = getMaster().nodeID();
-        Ssh ssh = new Ssh(SdbTestBase.hostName, SdbTestBase.remoteUser, SdbTestBase.remotePwd);
+        Ssh ssh = new Ssh( SdbTestBase.hostName, SdbTestBase.remoteUser,
+                SdbTestBase.remotePwd );
         GroupMgr groupMgr = new GroupMgr();
         try {
-            for (int i = 0; i < times; i++) {
+            for ( int i = 0; i < times; i++ ) {
 
-                ssh.exec(ssh.getSdbInstallDir()
-                        + "/bin/sdb -s \"var db = new Sdb;var rg = db.getRG('" + groupName
-                        + "');rg.reelect({Seconds:300});\"");
-                if (!groupMgr.checkBusiness(120)) {
+                ssh.exec( ssh.getSdbInstallDir()
+                        + "/bin/sdb -s \"var db = new Sdb;var rg = db.getRG('"
+                        + groupName + "');rg.reelect({Seconds:300});\"" );
+                if ( !groupMgr.checkBusiness( 120 ) ) {
                     throw new ReliabilityException(
-                            "After execute reelect,check business have an error");
+                            "After execute reelect,check business have an error" );
                 }
                 refresh();
-                if (priNode != getMaster().nodeID()) {
+                if ( priNode != getMaster().nodeID() ) {
                     return true;
                 }
             }
-        }
-        finally {
+        } finally {
             ssh.disconnect();
         }
         return false;
     }
 
-    public GroupCheckResult checkBusiness(boolean printRes) throws ReliabilityException {
+    public GroupCheckResult checkBusiness( boolean printRes )
+            throws ReliabilityException {
         refresh();
         GroupCheckResult checkRes = new GroupCheckResult();
-        if (getGroupName().equals("SYSCoord")) {
+        if ( getGroupName().equals( "SYSCoord" ) ) {
             return checkRes;
         }
 
         checkRes.groupName = getGroupName();
         checkRes.groupID = getGroupID();
-        checkRes.primaryNode = groupInfo.getInt("PrimaryNode");
+        checkRes.primaryNode = groupInfo.getInt( "PrimaryNode" );
 
-        for (NodeWrapper node : nodes) {
-            NodeCheckResult res = node.checkBusiness(printRes);
-            checkRes.addNodeCheckResult(res);
+        for ( NodeWrapper node : nodes ) {
+            NodeCheckResult res = node.checkBusiness( printRes );
+            checkRes.addNodeCheckResult( res );
         }
         return checkRes;
     }
 
-    public List<String> getAllHosts() {
-        List<String> hosts = new ArrayList<String>();
-        for (NodeWrapper node : nodes) {
-            hosts.add(node.hostName());
+    public List< String > getAllHosts() {
+        List< String > hosts = new ArrayList< String >();
+        for ( NodeWrapper node : nodes ) {
+            hosts.add( node.hostName() );
         }
         return hosts;
     }
 
-    public List<String> getAllUrls() {
-        List<String> urls = new ArrayList<String>();
-        for (NodeWrapper node : nodes) {
-            urls.add(node.hostName() + ":" + node.svcName());
+    public List< String > getAllUrls() {
+        List< String > urls = new ArrayList< String >();
+        for ( NodeWrapper node : nodes ) {
+            urls.add( node.hostName() + ":" + node.svcName() );
         }
         return urls;
     }
@@ -203,8 +204,8 @@ public class GroupWrapper {
      * @return
      * @throws ReliabilityException
      */
-    public boolean checkInspect(int checkTimes) throws ReliabilityException {
-        return checkInspect(checkTimes, 2);
+    public boolean checkInspect( int checkTimes ) throws ReliabilityException {
+        return checkInspect( checkTimes, 2 );
     }
 
     /**
@@ -216,121 +217,123 @@ public class GroupWrapper {
      * @return
      * @throws ReliabilityException
      */
-    public boolean checkInspect(int checktime, int intervelSecond) throws ReliabilityException {
+    public boolean checkInspect( int checktime, int intervelSecond )
+            throws ReliabilityException {
         this.refresh();
-        for (int i = 0; i < checktime; i++) {
-            if (inspect()) {
+        for ( int i = 0; i < checktime; i++ ) {
+            if ( inspect() ) {
                 return true;
             }
             try {
-                Thread.sleep(intervelSecond * 1000);
-            }
-            catch (InterruptedException e) {
+                Thread.sleep( intervelSecond * 1000 );
+            } catch ( InterruptedException e ) {
 
             }
         }
-        if (this.getGroupName().equals(CATA_RG_NAME)) {
-            return inspectCata(true);
-        }
-        else {
-            System.out.println(getInspectStdout());
+        if ( this.getGroupName().equals( CATA_RG_NAME ) ) {
+            return inspectCata( true );
+        } else {
+            System.out.println( getInspectStdout() );
             return false;
         }
     }
 
     private boolean inspect() throws ReliabilityException {
-        if (this.getGroupName().equals(CATA_RG_NAME)) {
-            return inspectCata(false);
+        if ( this.getGroupName().equals( CATA_RG_NAME ) ) {
+            return inspectCata( false );
         }
         String stdout = getInspectStdout();
-        String[] res = stdout.split("\n");
-        if (res.length != 8) {
+        String[] res = stdout.split( "\n" );
+        if ( res.length != 8 ) {
             return false;
         }
-        if (res[7].equals("Reason for exit : exit with no records different")) {
+        if ( res[ 7 ].equals(
+                "Reason for exit : exit with no records different" ) ) {
             return true;
         }
         return false;
     }
 
-    private boolean inspectCata(boolean printIncompatibility) {
-        boolean clFlag = inspectCataCL(SYSCOLLECTIONS, printIncompatibility);
-        boolean csFlag = inspectCataCL(SYSCOLLECTIONSPACES, printIncompatibility);
-        boolean domainFlag = inspectCataCL(SYSDOMAINS, printIncompatibility);
-        boolean nodeFlag = inspectCataCL(SYSNODES, printIncompatibility);
+    private boolean inspectCata( boolean printIncompatibility ) {
+        boolean clFlag = inspectCataCL( SYSCOLLECTIONS, printIncompatibility );
+        boolean csFlag = inspectCataCL( SYSCOLLECTIONSPACES,
+                printIncompatibility );
+        boolean domainFlag = inspectCataCL( SYSDOMAINS, printIncompatibility );
+        boolean nodeFlag = inspectCataCL( SYSNODES, printIncompatibility );
         return nodeFlag && clFlag && csFlag && domainFlag;
     }
 
-    private boolean inspectCataCL(String clName, boolean printIncompatibility) {
-        List<String> urls = this.getAllUrls();
-        Map<String, List<BSONObject>> res = new HashMap<String, List<BSONObject>>();
-        for (String url : urls) {
-            List<BSONObject> tmp = new ArrayList<BSONObject>();
-            Sequoiadb db = new Sequoiadb(url, "", "");
+    private boolean inspectCataCL( String clName,
+            boolean printIncompatibility ) {
+        List< String > urls = this.getAllUrls();
+        Map< String, List< BSONObject > > res = new HashMap< String, List< BSONObject > >();
+        for ( String url : urls ) {
+            List< BSONObject > tmp = new ArrayList< BSONObject >();
+            Sequoiadb db = new Sequoiadb( url, "", "" );
             try {
-                CollectionSpace cs = db.getCollectionSpace(SYSCAT);
-                DBCollection cl = cs.getCollection(clName);
-                if (cl == null) {
-                    if (printIncompatibility) {
-                        System.out.println(SYSCAT + "." + clName + " not exists,host:" + url);
+                CollectionSpace cs = db.getCollectionSpace( SYSCAT );
+                DBCollection cl = cs.getCollection( clName );
+                if ( cl == null ) {
+                    if ( printIncompatibility ) {
+                        System.out.println( SYSCAT + "." + clName
+                                + " not exists,host:" + url );
                     }
                     return false;
                 }
-                DBCursor cursor = cl.query(null, null, "{_id:1}", null);
-                while (cursor.hasNext()) {
-                    tmp.add(cursor.getNext());
+                DBCursor cursor = cl.query( null, null, "{_id:1}", null );
+                while ( cursor.hasNext() ) {
+                    tmp.add( cursor.getNext() );
                 }
-            }
-            catch (BaseException e) {
-                if (e.getErrorCode() == -23 || e.getErrorCode() == -34) {
-                    if (printIncompatibility) {
-                        System.out.println("SYSCAT or SYSCAT." + clName + " not exists,host:" + url
-                                + ", stack on console out put");
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() == -23 || e.getErrorCode() == -34 ) {
+                    if ( printIncompatibility ) {
+                        System.out.println( "SYSCAT or SYSCAT." + clName
+                                + " not exists,host:" + url
+                                + ", stack on console out put" );
                         throw e;
                     }
                     return false;
-                }
-                else {
+                } else {
                     throw e;
                 }
-            }
-            finally {
+            } finally {
                 db.closeAllCursors();
                 db.disconnect();
             }
-            res.put(url + ":" + clName, tmp);
+            res.put( url + ":" + clName, tmp );
         }
-        Map.Entry<String, List<BSONObject>> tmp2 = null;
+        Map.Entry< String, List< BSONObject > > tmp2 = null;
         String forPrint = new String();
         boolean ret = true;
-        for (Map.Entry<String, List<BSONObject>> entry : res.entrySet()) {
-            if (tmp2 != null && !entry.getValue().equals(tmp2.getValue())) {
+        for ( Map.Entry< String, List< BSONObject > > entry : res.entrySet() ) {
+            if ( tmp2 != null && !entry.getValue().equals( tmp2.getValue() ) ) {
                 ret = false;
             }
             tmp2 = entry;
             forPrint = forPrint + tmp2.toString() + "\r\n";
         }
-        if (!ret && printIncompatibility) {
-            System.out.println(clName + " incompatible:\r\n" + forPrint);
+        if ( !ret && printIncompatibility ) {
+            System.out.println( clName + " incompatible:\r\n" + forPrint );
         }
         return ret;
     }
 
     public String getInspectStdout() throws ReliabilityException {
-        Ssh ssh = new Ssh(SdbTestBase.hostName, SdbTestBase.remoteUser, SdbTestBase.remotePwd);
+        Ssh ssh = new Ssh( SdbTestBase.hostName, SdbTestBase.remoteUser,
+                SdbTestBase.remotePwd );
         try {
-            ssh.exec(ssh.getSdbInstallDir() + "/bin/sdbinspect -g " + getGroupName());
-        }
-        finally {
+            ssh.exec( ssh.getSdbInstallDir() + "/bin/sdbinspect -g "
+                    + getGroupName() );
+        } finally {
             ssh.disconnect();
         }
         return ssh.getStdout();
     }
 
-    public List<NodeWrapper> getNodes() {
+    public List< NodeWrapper > getNodes() {
         return nodes;
     }
-    
+
     public ReplicaGroup getGroup() {
         return group;
     }
@@ -338,5 +341,5 @@ public class GroupWrapper {
     public BasicBSONObject getGroupInfo() {
         return groupInfo;
     }
-    
+
 }

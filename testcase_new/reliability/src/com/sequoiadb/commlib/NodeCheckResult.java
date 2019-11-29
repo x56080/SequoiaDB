@@ -19,39 +19,43 @@ public class NodeCheckResult {
     public long freeSpace = -1;
     public boolean isInDeploy = true;
 
-    public void setGroupCheckResult(GroupCheckResult result) {
-        if (!connect) {
+    public void setGroupCheckResult( GroupCheckResult result ) {
+        if ( !connect ) {
             result.connCheck = false;
         }
 
-        if (result.primaryNode == nodeID && !isPrimary) {
+        if ( result.primaryNode == nodeID && !isPrimary ) {
             result.primaryCheck = false;
         }
 
-        if (!serviceStatus) {
+        if ( !serviceStatus ) {
             result.serviceCheck = false;
         }
 
-        if (result.nodesResult.size() > 0 && result.nodesResult.get(0).LSN != LSN) {
+        if ( result.nodesResult.size() > 0
+                && result.nodesResult.get( 0 ).LSN != LSN ) {
             result.LSNCheck = false;
         }
 
-        if (freeSpace < diskThreshold) {
+        if ( freeSpace < diskThreshold ) {
             result.diskCheck = false;
         }
 
-        if (!isInDeploy) {
+        if ( !isInDeploy ) {
             result.deployCheck = false;
         }
     }
 
     public String toString() {
         return String.format(
-                "{\nHostName:\"%s\", " + "\nsvcname:\"%s\", " + "\nNodeID:%d," + "\nConnect:%s,"
-                        + "\nIsPrimary:%s," + "\nLSN:%d," + "\nServiceStatus:%s,"
-                        + "\nFressSpace:%d," + "\nisInDeploy:%s\n}",
-                hostName, svcName, nodeID, Boolean.toString(connect), Boolean.toString(isPrimary),
-                LSN, Boolean.toString(serviceStatus), freeSpace, Boolean.toString(isInDeploy));
+                "{\nHostName:\"%s\", " + "\nsvcname:\"%s\", " + "\nNodeID:%d,"
+                        + "\nConnect:%s," + "\nIsPrimary:%s," + "\nLSN:%d,"
+                        + "\nServiceStatus:%s," + "\nFressSpace:%d,"
+                        + "\nisInDeploy:%s\n}",
+                hostName, svcName, nodeID, Boolean.toString( connect ),
+                Boolean.toString( isPrimary ), LSN,
+                Boolean.toString( serviceStatus ), freeSpace,
+                Boolean.toString( isInDeploy ) );
     }
 
 }

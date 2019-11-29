@@ -18,10 +18,8 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
-
 /**
- * @FileName:seqDB-172:离线备份与truncate的并发
- * 插入数据，一条线程执行离线备份，另一条线程执行truncate
+ * @FileName:seqDB-172:离线备份与truncate的并发 插入数据，一条线程执行离线备份，另一条线程执行truncate
  * @Author linsuqiang
  * @Date 2016-12-06
  * @Version 1.00
@@ -29,93 +27,97 @@ import com.sequoiadb.testcommon.SdbThreadBase;
 public class TestTruncate172 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl_172";
-    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
+    private SimpleDateFormat sdf = new SimpleDateFormat(
+            "yyyy-MM-dd HH:mm:ss.S" );
     BSONObject options = null;
-    
+
     @BeforeClass
     public void setUp() {
-        try{
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", ""); 
-        }catch(BaseException e){
-            Assert.fail(e.getMessage());
+        try {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         }
-        try{
-            DBCollection cl = TruncateUtils.createCL(sdb, csName, clName);
+        try {
+            DBCollection cl = TruncateUtils.createCL( sdb, csName, clName );
             // doing insert
-            TruncateUtils.insertData(cl);
+            TruncateUtils.insertData( cl );
             // prepare data for backup offline
             options = new BasicBSONObject();
-            options.put("Name", "backupName");
-            options.put("Description", "backup for all");   
-        }catch(BaseException e){
-            Assert.fail(e.getMessage());
+            options.put( "Name", "backupName" );
+            options.put( "Description", "backup for all" );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         }
     }
-    
+
     @AfterClass
-    public void tearDown(){
-        try{
-            CollectionSpace cs = sdb.getCollectionSpace(csName);    
-            if(cs.isCollectionExist(clName)){
-                cs.dropCollection(clName);
+    public void tearDown() {
+        try {
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-            sdb.removeBackup(new BasicBSONObject("Name", "backupName"));
-        }catch(BaseException e){
-            Assert.fail(e.getMessage());
-        }finally{
+            sdb.removeBackup( new BasicBSONObject( "Name", "backupName" ) );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        } finally {
             sdb.disconnect();
         }
     }
-    
+
     @Test
-    public void test(){
+    public void test() {
         TruncateThread truncateThread = new TruncateThread();
         BackupThread backupThread = new BackupThread();
-        
+
         backupThread.start();
         truncateThread.start();
-        
-        if(!(truncateThread.isSuccess() && backupThread.isSuccess())){
-            Assert.fail(truncateThread.getErrorMsg() + backupThread.getErrorMsg());
+
+        if ( !( truncateThread.isSuccess() && backupThread.isSuccess() ) ) {
+            Assert.fail(
+                    truncateThread.getErrorMsg() + backupThread.getErrorMsg() );
         }
     }
-    
+
     private class TruncateThread extends SdbThreadBase {
         @Override
-        public void exec() throws BaseException{
+        public void exec() throws BaseException {
             Sequoiadb db = null;
             DBCollection cl = null;
-            try{
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                db.setSessionAttr((BSONObject)JSON.parse("{PreferedInstance:'M'}"));
-                cl = db.getCollectionSpace(csName).getCollection(clName);
+            try {
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                db.setSessionAttr(
+                        ( BSONObject ) JSON.parse( "{PreferedInstance:'M'}" ) );
+                cl = db.getCollectionSpace( csName ).getCollection( clName );
                 // doing truncate
                 cl.truncate();
                 // check truncate
-                TruncateUtils.checkTruncated(db, cl);
-            }catch(BaseException e){
+                TruncateUtils.checkTruncated( db, cl );
+            } catch ( BaseException e ) {
                 e.printStackTrace();
                 throw e;
-            }finally{
+            } finally {
                 db.disconnect();
             }
         }
     }
-    
+
     private class BackupThread extends SdbThreadBase {
         @Override
-        public void exec() throws BaseException{
+        public void exec() throws BaseException {
             Sequoiadb db = null;
-            try{
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                db.setSessionAttr((BSONObject)JSON.parse("{PreferedInstance:'M'}"));
-                // doing backup        
-                db.backupOffline(options);
-            }catch(BaseException e){
-                if(e.getErrorCode() != -23){
+            try {
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                db.setSessionAttr(
+                        ( BSONObject ) JSON.parse( "{PreferedInstance:'M'}" ) );
+                // doing backup
+                db.backupOffline( options );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -23 ) {
                     throw e;
                 }
-            }finally{
+            } finally {
                 db.disconnect();
             }
         }

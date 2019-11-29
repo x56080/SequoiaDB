@@ -24,66 +24,69 @@ import com.sequoiadb.net.ServerAddress;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
-* @TestLink: seqDB-14870
-* @describe:use interfaces as follow:
-* 			1.createNode(String hostName, int port, String dbPath)
-* @author chensiqin
-* @Date   2018.03.28
-* @version 1.00
-*/
-public class ClusterManager14870 extends SdbTestBase{
-	private Sequoiadb sdb ;
-	private String dataRGName = "dataAddGroup14870";
-	private SimpleDateFormat df = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS");
-	private String coordIP;
-	private String coordAddr;
-	private String workDir;
-	private int reservedPortBegin;
-	private int dataPortAdd;
-	private CommLib commlib = new CommLib();
+ * @TestLink: seqDB-14870
+ * @describe:use interfaces as follow: 1.createNode(String hostName, int port,
+ *               String dbPath)
+ * @author chensiqin
+ * @Date 2018.03.28
+ * @version 1.00
+ */
+public class ClusterManager14870 extends SdbTestBase {
+    private Sequoiadb sdb;
+    private String dataRGName = "dataAddGroup14870";
+    private SimpleDateFormat df = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss.SSS" );
+    private String coordIP;
+    private String coordAddr;
+    private String workDir;
+    private int reservedPortBegin;
+    private int dataPortAdd;
+    private CommLib commlib = new CommLib();
 
-	@BeforeClass
-	public void setUp(){
-        System.out.println("the TestCase: "+ this.getClass().getName() + 
-                " begin at:" + df.format(new Date().getTime()));
-		this.coordAddr = SdbTestBase.coordUrl;
-		this.workDir = SdbTestBase.workDir;
-		this.reservedPortBegin = SdbTestBase.reservedPortBegin;
-		sdb = new Sequoiadb(coordAddr,"","");
-        if(commlib.isStandAlone(sdb)){
-            throw new SkipException("run mode is standalone,test case skip");
+    @BeforeClass
+    public void setUp() {
+        System.out.println( "the TestCase: " + this.getClass().getName()
+                + " begin at:" + df.format( new Date().getTime() ) );
+        this.coordAddr = SdbTestBase.coordUrl;
+        this.workDir = SdbTestBase.workDir;
+        this.reservedPortBegin = SdbTestBase.reservedPortBegin;
+        sdb = new Sequoiadb( coordAddr, "", "" );
+        if ( commlib.isStandAlone( sdb ) ) {
+            throw new SkipException( "run mode is standalone,test case skip" );
         }
 
-	}
-		
-	@AfterClass
-	public void tearDown(){
-		try{
-			System.out.println("the TestCase: "+ this.getClass().getName() + 
-					" end at:" + df.format(new Date().getTime()));
-			sdb.removeReplicaGroup(dataRGName);
-			sdb.disconnect();
-		}catch(BaseException e){
-			Assert.fail("clear env failed, errMsg:" + e.getMessage());
-		}
-	}
-	
-	@Test
-	public void test(){
-	    //create datagroup
-	    ReplicaGroup rg = sdb.createReplicaGroup(dataRGName);
-		//create data Node
-		dataPortAdd = reservedPortBegin + 340 ;
-		String dataPathAdd = workDir + "/" + dataPortAdd + "/";
-		String cataMaster = sdb.getReplicaGroup("SYSCatalogGroup").getMaster().getHostName();
-		Node node = rg.createNode(cataMaster, dataPortAdd, dataPathAdd);
+    }
+
+    @AfterClass
+    public void tearDown() {
+        try {
+            System.out.println( "the TestCase: " + this.getClass().getName()
+                    + " end at:" + df.format( new Date().getTime() ) );
+            sdb.removeReplicaGroup( dataRGName );
+            sdb.disconnect();
+        } catch ( BaseException e ) {
+            Assert.fail( "clear env failed, errMsg:" + e.getMessage() );
+        }
+    }
+
+    @Test
+    public void test() {
+        // create datagroup
+        ReplicaGroup rg = sdb.createReplicaGroup( dataRGName );
+        // create data Node
+        dataPortAdd = reservedPortBegin + 340;
+        String dataPathAdd = workDir + "/" + dataPortAdd + "/";
+        String cataMaster = sdb.getReplicaGroup( "SYSCatalogGroup" ).getMaster()
+                .getHostName();
+        Node node = rg.createNode( cataMaster, dataPortAdd, dataPathAdd );
         node.start();
         node.stop();
-		Assert.assertEquals(node.getHostName(), cataMaster);
-		Assert.assertEquals(node.getNodeName(), cataMaster + ":" + dataPortAdd);
-		Assert.assertEquals(node.getPort(), dataPortAdd);
-		BasicBSONList group = (BasicBSONList) rg.getDetail().get("Group");
-		BasicBSONObject groupObj = (BasicBSONObject) group.get(0);
-        Assert.assertEquals((String) groupObj.get("dbpath"), dataPathAdd);
-	}
+        Assert.assertEquals( node.getHostName(), cataMaster );
+        Assert.assertEquals( node.getNodeName(),
+                cataMaster + ":" + dataPortAdd );
+        Assert.assertEquals( node.getPort(), dataPortAdd );
+        BasicBSONList group = ( BasicBSONList ) rg.getDetail().get( "Group" );
+        BasicBSONObject groupObj = ( BasicBSONObject ) group.get( 0 );
+        Assert.assertEquals( ( String ) groupObj.get( "dbpath" ), dataPathAdd );
+    }
 }

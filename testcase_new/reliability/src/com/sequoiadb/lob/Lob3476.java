@@ -29,19 +29,18 @@ import static org.testng.AssertJUnit.assertTrue;
 public class Lob3476 implements StandTestInterface {
     String csName = LobUtil.csName;
     String clName = LobUtil.clName;
-    private byte[] data = createRandomBytes(200 * 1024);
-    private List<ObjectId> ids = new ArrayList<>();
-
+    private byte[] data = createRandomBytes( 200 * 1024 );
+    private List< ObjectId > ids = new ArrayList<>();
 
     @BeforeClass
     @Override
     public void setup() {
-        MyUtil.printBeginTime(this);
+        MyUtil.printBeginTime( this );
         LobUtil.createLobCsAndCl();
-        MyUtil.deleteAllLobs(csName, clName);
+        MyUtil.deleteAllLobs( csName, clName );
 
-        for (int i = 0; i < 100; i++) {
-            ids.add(createLob(csName, clName, data));
+        for ( int i = 0; i < 100; i++ ) {
+            ids.add( createLob( csName, clName, data ) );
         }
     }
 
@@ -49,13 +48,12 @@ public class Lob3476 implements StandTestInterface {
     @Override
     public void tearDown() {
         LobUtil.dropLobCS();
-        MyUtil.printEndTime(this);
+        MyUtil.printEndTime( this );
     }
 
     /**
-     * 1.在集合上并发执行以下操作： (1)不停地写lob，覆盖不同lob大小，例如：200k、500M (2)不停地读lob (3)不停地删除lob，并发的同时主节点断网
-     * 2.成功选出新主后，继续读写删lob
-     * 3.故障恢复后，检查lob数据
+     * 1.在集合上并发执行以下操作： (1)不停地写lob，覆盖不同lob大小，例如：200k、500M (2)不停地读lob
+     * (3)不停地删除lob，并发的同时主节点断网 2.成功选出新主后，继续读写删lob 3.故障恢复后，检查lob数据
      *
      * @throws ReliabilityException
      */
@@ -63,28 +61,32 @@ public class Lob3476 implements StandTestInterface {
     public void test() throws ReliabilityException {
 
         GroupMgr groupMgr = new GroupMgr();
-        String hostName = groupMgr.getGroupByName("group1").getMaster().hostName();
-        FaultMakeTask faultMakeTask = BrokenNetwork.getFaultMakeTask(hostName, 0, 5);
+        String hostName = groupMgr.getGroupByName( "group1" ).getMaster()
+                .hostName();
+        FaultMakeTask faultMakeTask = BrokenNetwork.getFaultMakeTask( hostName,
+                0, 5 );
 
-        List<ObjectId> createdId = new ArrayList<>();
-        HashMap<ObjectId, String> deletedIdMap = new HashMap<>();
-        LobTask createTask = LobTask.getCreateLobsTask(1000, data, createdId);
-        LobTask readTask = LobTask.getReadLobsTask(ids);
-        LobTask deleteTask = LobTask.getDeleteLobsTask(ids, deletedIdMap);
+        List< ObjectId > createdId = new ArrayList<>();
+        HashMap< ObjectId, String > deletedIdMap = new HashMap<>();
+        LobTask createTask = LobTask.getCreateLobsTask( 1000, data, createdId );
+        LobTask readTask = LobTask.getReadLobsTask( ids );
+        LobTask deleteTask = LobTask.getDeleteLobsTask( ids, deletedIdMap );
 
-        TaskMgr taskMgr = new TaskMgr(faultMakeTask);
-        taskMgr.addTask(createTask);
-        taskMgr.addTask(readTask);
-        taskMgr.addTask(deleteTask);
+        TaskMgr taskMgr = new TaskMgr( faultMakeTask );
+        taskMgr.addTask( createTask );
+        taskMgr.addTask( readTask );
+        taskMgr.addTask( deleteTask );
 
         taskMgr.execute();
 
-        byte[] targetMd5Value = MyUtil.getMd5(data);
-        assertTrue(MyUtil.isLobsAllCreated(csName, clName, createdId));
-        assertTrue(MyUtil.isLobsAllDelete(csName, clName, deletedIdMap));
-        assertTrue(MyUtil.isLobNumInspectInGroup(csName, clName, "group1"));
-        assertTrue(MyUtil.isLobNumInspectInGroup(csName, clName, "group2"));
-        assertTrue(MyUtil.isLobMd5InspectInGroup(csName, clName, "group1", targetMd5Value));
-        assertTrue(MyUtil.isLobMd5InspectInGroup(csName, clName, "group2", targetMd5Value));
+        byte[] targetMd5Value = MyUtil.getMd5( data );
+        assertTrue( MyUtil.isLobsAllCreated( csName, clName, createdId ) );
+        assertTrue( MyUtil.isLobsAllDelete( csName, clName, deletedIdMap ) );
+        assertTrue( MyUtil.isLobNumInspectInGroup( csName, clName, "group1" ) );
+        assertTrue( MyUtil.isLobNumInspectInGroup( csName, clName, "group2" ) );
+        assertTrue( MyUtil.isLobMd5InspectInGroup( csName, clName, "group1",
+                targetMd5Value ) );
+        assertTrue( MyUtil.isLobMd5InspectInGroup( csName, clName, "group2",
+                targetMd5Value ) );
     }
 }

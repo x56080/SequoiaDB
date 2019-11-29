@@ -17,12 +17,7 @@ import com.sequoiadb.exception.ReliabilityException;
 
 public abstract class OperateTask extends Task {
     public enum faultStatus {
-        INIT,
-        MAKESUCCESS,
-        MAKEFAILURE,
-        RESTORESUCESS,
-        RESTOREFAILURE,
-        EXCEPTION
+        INIT, MAKESUCCESS, MAKEFAILURE, RESTORESUCESS, RESTOREFAILURE, EXCEPTION
     };
 
     private TaskMgr mgr = null;
@@ -30,15 +25,15 @@ public abstract class OperateTask extends Task {
     // 暂时未使用
     private static final int defaultDuration = 5;
 
-    public OperateTask(String name) {
-        super(name, defaultDuration);
+    public OperateTask( String name ) {
+        super( name, defaultDuration );
     }
 
     public OperateTask() {
-        this.setName(this.getClass().getSimpleName());
+        this.setName( this.getClass().getSimpleName() );
     }
 
-    public void setMgr(TaskMgr mgr) {
+    public void setMgr( TaskMgr mgr ) {
         this.mgr = mgr;
     }
 
@@ -50,47 +45,49 @@ public abstract class OperateTask extends Task {
      *            key:FaultMakeTask.MAKE_RESULT,FaultMakeTask.RESTORE_RESULT
      *            value:OperateTask.status
      */
-    public void faultNotify(BSONObject status) throws FaultException {
-        OperateTask.faultStatus mk = (faultStatus) status.get(FaultMakeTask.MAKE_RESULT);
-        OperateTask.faultStatus rt = (faultStatus) status.get(FaultMakeTask.RESTORE_RESULT);
-        if (mk == OperateTask.faultStatus.MAKEFAILURE) {
-            throw new FaultException(mk.toString());
+    public void faultNotify( BSONObject status ) throws FaultException {
+        OperateTask.faultStatus mk = ( faultStatus ) status
+                .get( FaultMakeTask.MAKE_RESULT );
+        OperateTask.faultStatus rt = ( faultStatus ) status
+                .get( FaultMakeTask.RESTORE_RESULT );
+        if ( mk == OperateTask.faultStatus.MAKEFAILURE ) {
+            throw new FaultException( mk.toString() );
         }
-        if (rt == OperateTask.faultStatus.RESTOREFAILURE) {
-            throw new FaultException(rt.toString());
+        if ( rt == OperateTask.faultStatus.RESTOREFAILURE ) {
+            throw new FaultException( rt.toString() );
         }
     }
 
     public abstract void exec() throws Exception;
 
     public void run() {
-        setStatus(Task.TaskStatus.TASKSTART);
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        setStatus( Task.TaskStatus.TASKSTART );
+        SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss" );
         Date date = Calendar.getInstance().getTime();
-        System.out.println("Thread '" + this.getName() + "' run at " + sdf.format(date));
+        System.out.println( "Thread '" + this.getName() + "' run at "
+                + sdf.format( date ) );
         try {
             exec();
-        }
-        catch (Exception e) {
-            if (e instanceof InterruptedException) {
-                setStatus(Task.TaskStatus.TASKINTERRUPT);
-            }
-            else {
-                setStatus(Task.TaskStatus.TASKTHROWEXCEPTION);
-                exception = new ReliabilityException(e);
-                exception.setStackTrace(e.getStackTrace());
+        } catch ( Exception e ) {
+            if ( e instanceof InterruptedException ) {
+                setStatus( Task.TaskStatus.TASKINTERRUPT );
+            } else {
+                setStatus( Task.TaskStatus.TASKTHROWEXCEPTION );
+                exception = new ReliabilityException( e );
+                exception.setStackTrace( e.getStackTrace() );
             }
         }
-        if (exception == null) {
-            setStatus(Task.TaskStatus.TASKSTOP);
+        if ( exception == null ) {
+            setStatus( Task.TaskStatus.TASKSTOP );
         }
         date = Calendar.getInstance().getTime();
-        System.out.println("Thread '" + this.getName() + "' end at " + sdf.format(date));
+        System.out.println( "Thread '" + this.getName() + "' end at "
+                + sdf.format( date ) );
         // mgr.Done(this);
     }
 
-    public Task getTaskByName(String name) {
-        return mgr.getTaskByName(name);
+    public Task getTaskByName( String name ) {
+        return mgr.getTaskByName( name );
     }
 
 }

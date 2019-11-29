@@ -31,22 +31,22 @@ public class TestLob10425 extends SdbTestBase {
     private String clName = "cl_10425";
     private Sequoiadb sdb = null;
     private CollectionSpace cs = null;
-    private List<ObjectId> readOids = new ArrayList<ObjectId>();
-    private List<ObjectId> removeOids = new ArrayList<ObjectId>();
+    private List< ObjectId > readOids = new ArrayList< ObjectId >();
+    private List< ObjectId > removeOids = new ArrayList< ObjectId >();
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         DBCollection cl = createCL();
-        String[] lobStrs = buildLobStrs(100);
-        putLobs(cl, lobStrs);
+        String[] lobStrs = buildLobStrs( 100 );
+        putLobs( cl, lobStrs );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
             sdb.disconnect();
         } finally {
@@ -57,15 +57,18 @@ public class TestLob10425 extends SdbTestBase {
     @Test
     public void test() {
         PutLobsThread putLobsThread = new PutLobsThread();
-        ReadLobsThread readLobsThread = new ReadLobsThread(readOids);
-        RemoveLobsThread removeLobsThread = new RemoveLobsThread(removeOids);
+        ReadLobsThread readLobsThread = new ReadLobsThread( readOids );
+        RemoveLobsThread removeLobsThread = new RemoveLobsThread( removeOids );
 
-        putLobsThread.start(5);
-        readLobsThread.start(5);
-        removeLobsThread.start(5);
+        putLobsThread.start( 5 );
+        readLobsThread.start( 5 );
+        removeLobsThread.start( 5 );
 
-        if (!(putLobsThread.isSuccess() && readLobsThread.isSuccess() && removeLobsThread.isSuccess())) {
-            Assert.fail(putLobsThread.getErrorMsg() + readLobsThread.getErrorMsg() + removeLobsThread.getErrorMsg());
+        if ( !( putLobsThread.isSuccess() && readLobsThread.isSuccess()
+                && removeLobsThread.isSuccess() ) ) {
+            Assert.fail(
+                    putLobsThread.getErrorMsg() + readLobsThread.getErrorMsg()
+                            + removeLobsThread.getErrorMsg() );
         }
     }
 
@@ -75,19 +78,19 @@ public class TestLob10425 extends SdbTestBase {
             Sequoiadb db = null;
             DBCollection cl = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                cl = db.getCollectionSpace(csName).getCollection(clName);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                cl = db.getCollectionSpace( csName ).getCollection( clName );
                 // do put lobs
-                String[] lobStrs = buildLobStrs(10);
-                for (int i = 0; i < lobStrs.length; i++) {
+                String[] lobStrs = buildLobStrs( 10 );
+                for ( int i = 0; i < lobStrs.length; i++ ) {
                     DBLob lob = null;
                     try {
                         lob = cl.createLob();
-                        lob.write(lobStrs[i].getBytes());
-                    } catch (BaseException e) {
+                        lob.write( lobStrs[ i ].getBytes() );
+                    } catch ( BaseException e ) {
                         throw e;
                     } finally {
-                        if (lob != null) {
+                        if ( lob != null ) {
                             lob.close();
                         }
                     }
@@ -99,9 +102,9 @@ public class TestLob10425 extends SdbTestBase {
     }
 
     private class ReadLobsThread extends SdbThreadBase {
-        private List<ObjectId> oids = null;
+        private List< ObjectId > oids = null;
 
-        public ReadLobsThread(List<ObjectId> oids) {
+        public ReadLobsThread( List< ObjectId > oids ) {
             this.oids = oids;
         }
 
@@ -110,14 +113,15 @@ public class TestLob10425 extends SdbTestBase {
             Sequoiadb db = null;
             DBCollection cl = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                db.setSessionAttr(new BasicBSONObject("PreferedInstance", "M"));
-                cl = db.getCollectionSpace(csName).getCollection(clName);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                db.setSessionAttr(
+                        new BasicBSONObject( "PreferedInstance", "M" ) );
+                cl = db.getCollectionSpace( csName ).getCollection( clName );
                 // do read lobs
-                for (ObjectId oid : oids) {
-                    DBLob lob = cl.openLob(oid);
-                    byte[] buff = new byte[(int) lob.getSize()];
-                    lob.read(buff);
+                for ( ObjectId oid : oids ) {
+                    DBLob lob = cl.openLob( oid );
+                    byte[] buff = new byte[ ( int ) lob.getSize() ];
+                    lob.read( buff );
                     lob.close();
                 }
             } finally {
@@ -127,9 +131,9 @@ public class TestLob10425 extends SdbTestBase {
     }
 
     private class RemoveLobsThread extends SdbThreadBase {
-        private List<ObjectId> oids = null;
+        private List< ObjectId > oids = null;
 
-        public RemoveLobsThread(List<ObjectId> oids) {
+        public RemoveLobsThread( List< ObjectId > oids ) {
             this.oids = oids;
         }
 
@@ -138,11 +142,11 @@ public class TestLob10425 extends SdbTestBase {
             Sequoiadb db = null;
             DBCollection cl = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                cl = db.getCollectionSpace(csName).getCollection(clName);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                cl = db.getCollectionSpace( csName ).getCollection( clName );
                 // do remove lobs
-                for (ObjectId oid : oids) {
-                    cl.removeLob(oid);
+                for ( ObjectId oid : oids ) {
+                    cl.removeLob( oid );
                 }
             } finally {
                 db.disconnect();
@@ -153,40 +157,41 @@ public class TestLob10425 extends SdbTestBase {
 
     private DBCollection createCL() {
         try {
-            if (!sdb.isCollectionSpaceExist(SdbTestBase.csName)) {
-                sdb.createCollectionSpace(SdbTestBase.csName);
+            if ( !sdb.isCollectionSpaceExist( SdbTestBase.csName ) ) {
+                sdb.createCollectionSpace( SdbTestBase.csName );
             }
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
             // -33 CS exist,ignore exceptions
-            Assert.assertEquals(-33, e.getErrorCode(), e.getMessage());
+            Assert.assertEquals( -33, e.getErrorCode(), e.getMessage() );
         }
         DBCollection cl = null;
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
         BSONObject options = new BasicBSONObject();
-        options = (BSONObject) JSON.parse("{ShardingKey:{a:1,b:-1},ShardingType:'hash',Partition:4096, ReplSize:0}");
-        cl = cs.createCollection(clName, options);
+        options = ( BSONObject ) JSON.parse(
+                "{ShardingKey:{a:1,b:-1},ShardingType:'hash',Partition:4096, ReplSize:0}" );
+        cl = cs.createCollection( clName, options );
         return cl;
     }
 
-    private String[] buildLobStrs(int lobSum) {
+    private String[] buildLobStrs( int lobSum ) {
         // build lobs
-        String[] lobStrs = new String[lobSum];
+        String[] lobStrs = new String[ lobSum ];
         Random random = new Random();
-        for (int i = 0; i < lobStrs.length; i++) {
-            int lobsize = random.nextInt(1048576);
-            lobStrs[i] = LobOprUtils.getRandomString(lobsize);
+        for ( int i = 0; i < lobStrs.length; i++ ) {
+            int lobsize = random.nextInt( 1048576 );
+            lobStrs[ i ] = LobOprUtils.getRandomString( lobsize );
         }
         return lobStrs;
     }
 
-    private void putLobs(DBCollection cl, String lobStrs[]) {
-        for (int i = 0; i < lobStrs.length; i++) {
+    private void putLobs( DBCollection cl, String lobStrs[] ) {
+        for ( int i = 0; i < lobStrs.length; i++ ) {
             DBLob lob = null;
             try {
                 lob = cl.createLob();
-                lob.write(lobStrs[i].getBytes());
+                lob.write( lobStrs[ i ].getBytes() );
             } finally {
-                if (lob != null) {
+                if ( lob != null ) {
                     lob.close();
                 }
             }

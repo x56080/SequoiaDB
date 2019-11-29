@@ -7,27 +7,27 @@
  * Date:2017-2-24上午10:43:42
  *  @version 1.00
  */
-package com.sequoiadb.exception ;
+package com.sequoiadb.exception;
 
 public class FaultException extends ReliabilityException {
     /**
      * 
      */
-    private static final long serialVersionUID = -218223203783908559L ;
+    private static final long serialVersionUID = -218223203783908559L;
 
     public FaultException( String message ) {
-        super( message ) ;
+        super( message );
     }
 
     public FaultException() {
-        super() ;
+        super();
     }
 
     public FaultException( String message, Throwable cause ) {
-        super( message, cause ) ;
+        super( message, cause );
     }
 
     public FaultException( Throwable cause ) {
-        super( cause ) ;
+        super( cause );
     }
 }

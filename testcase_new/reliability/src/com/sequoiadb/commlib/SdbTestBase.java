@@ -25,12 +25,14 @@ public class SdbTestBase {
     public static String remotePwd;
     public static String scriptDir;
 
-    @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN", "RSRVPORTEND",
-            "RSRVNODEDIR", "WORKDIR", "ROOTPASSWD", "REMOTEUSER", "REMOTEPASSWD", "SCRIPTDIR" })
+    @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
+            "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "ROOTPASSWD", "REMOTEUSER",
+            "REMOTEPASSWD", "SCRIPTDIR" })
     @BeforeSuite
-    public static void initSuite(String HOSTNAME, String SVCNAME, String COMMCSNAME,
-            int RSRVPORTBEGIN, int RSRVPORTEND, String RSRVNODEDIR, String WORKDIR,
-            String ROOTPASSWD, String REMOTEUSER, String REMOTEPASSWD, String SCRIPTDIR) {
+    public static void initSuite( String HOSTNAME, String SVCNAME,
+            String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
+            String RSRVNODEDIR, String WORKDIR, String ROOTPASSWD,
+            String REMOTEUSER, String REMOTEPASSWD, String SCRIPTDIR ) {
         hostName = HOSTNAME;
         serviceName = SVCNAME;
         csName = COMMCSNAME;
@@ -45,17 +47,15 @@ public class SdbTestBase {
         scriptDir = SCRIPTDIR;
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(coordUrl, "", "");
-            boolean ret = createCommonCS(db);
-            Assert.assertTrue(ret);
+            db = new Sequoiadb( coordUrl, "", "" );
+            boolean ret = createCommonCS( db );
+            Assert.assertTrue( ret );
             createWorkDir();
             createReserveDir();
-        }
-        catch (BaseException e) {
-            Assert.fail("connect " + coordUrl + ": " + e.getErrorCode());
-        }
-        finally {
-            if (db != null) {
+        } catch ( BaseException e ) {
+            Assert.fail( "connect " + coordUrl + ": " + e.getErrorCode() );
+        } finally {
+            if ( db != null ) {
                 db.disconnect();
             }
         }
@@ -64,20 +64,19 @@ public class SdbTestBase {
     private static void createReserveDir() {
         try {
             GroupMgr mgr = new GroupMgr();
-            List<String> hosts = mgr.getAllHosts();
-            for (String host : hosts) {
-                Ssh ssh = new Ssh(host, "root", SdbTestBase.rootPwd);
+            List< String > hosts = mgr.getAllHosts();
+            for ( String host : hosts ) {
+                Ssh ssh = new Ssh( host, "root", SdbTestBase.rootPwd );
                 try {
-                    ssh.exec("mkdir -p " + SdbTestBase.reservedDir);
-                    ssh.exec("chown " + SdbTestBase.remoteUser + " " + SdbTestBase.reservedDir);
-                }
-                finally {
+                    ssh.exec( "mkdir -p " + SdbTestBase.reservedDir );
+                    ssh.exec( "chown " + SdbTestBase.remoteUser + " "
+                            + SdbTestBase.reservedDir );
+                } finally {
                     ssh.disconnect();
                 }
             }
-        }
-        catch (ReliabilityException e) {
-            Assert.fail(e.getMessage());
+        } catch ( ReliabilityException e ) {
+            Assert.fail( e.getMessage() );
             e.printStackTrace();
         }
     }
@@ -85,54 +84,49 @@ public class SdbTestBase {
     private static void createWorkDir() {
         try {
             GroupMgr mgr = new GroupMgr();
-            List<String> hosts = mgr.getAllHosts();
-            for (String host : hosts) {
-                Ssh ssh = new Ssh(host, "root", SdbTestBase.rootPwd);
+            List< String > hosts = mgr.getAllHosts();
+            for ( String host : hosts ) {
+                Ssh ssh = new Ssh( host, "root", SdbTestBase.rootPwd );
                 try {
-                    ssh.exec("mkdir -p " + SdbTestBase.workDir);
-                }
-                finally {
+                    ssh.exec( "mkdir -p " + SdbTestBase.workDir );
+                } finally {
                     ssh.disconnect();
                 }
             }
-        }
-        catch (ReliabilityException e) {
-            Assert.fail(e.getMessage());
+        } catch ( ReliabilityException e ) {
+            Assert.fail( e.getMessage() );
             e.printStackTrace();
         }
     }
 
     @AfterSuite(enabled = false)
     public static void finiSuite() {
-        System.out.println("finisuit");
+        System.out.println( "finisuit" );
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(coordUrl, "", "");
-            if (db.isCollectionSpaceExist(csName)) {
-                db.dropCollectionSpace(csName);
+            db = new Sequoiadb( coordUrl, "", "" );
+            if ( db.isCollectionSpaceExist( csName ) ) {
+                db.dropCollectionSpace( csName );
             }
-        }
-        catch (BaseException e) {
+        } catch ( BaseException e ) {
             e.printStackTrace();
-        }
-        finally {
-            if (db != null) {
+        } finally {
+            if ( db != null ) {
                 db.disconnect();
             }
         }
     }
 
-    private static boolean createCommonCS(Sequoiadb sdb) {
+    private static boolean createCommonCS( Sequoiadb sdb ) {
         boolean isCreateSuccess = true;
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
-            sdb.createCollectionSpace(csName);
-        }
-        catch (BaseException e) {
-            System.out.printf("create CollectionSpace %s failed, errMsg:%s\n", csName,
-                    e.getMessage());
+            sdb.createCollectionSpace( csName );
+        } catch ( BaseException e ) {
+            System.out.printf( "create CollectionSpace %s failed, errMsg:%s\n",
+                    csName, e.getMessage() );
             isCreateSuccess = false;
         }
         return isCreateSuccess;

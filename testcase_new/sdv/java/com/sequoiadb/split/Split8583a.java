@@ -33,135 +33,151 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class Split8583a extends SdbTestBase {
-	private String clName = "testcaseCL8583a";
-	private String srcGroupName;
-	private String destGroupName;
-	private Sequoiadb commSdb = null;
+    private String clName = "testcaseCL8583a";
+    private String srcGroupName;
+    private String destGroupName;
+    private Sequoiadb commSdb = null;
 
-	@BeforeClass(enabled = true)
-	public void setUp() {
+    @BeforeClass(enabled = true)
+    public void setUp() {
 
-		try {
-			commSdb = new Sequoiadb(coordUrl, "", "");
+        try {
+            commSdb = new Sequoiadb( coordUrl, "", "" );
 
-			// 跳过 standAlone 和数据组不足的环境
-			CommLib commlib = new CommLib();
-			if (commlib.isStandAlone(commSdb)) {
-				throw new SkipException("skip StandAlone");
-			}
-			if (commlib.getDataGroupNames(commSdb).size() < 2) {
-				throw new SkipException("current environment less than tow groups ");
-			}
+            // 跳过 standAlone 和数据组不足的环境
+            CommLib commlib = new CommLib();
+            if ( commlib.isStandAlone( commSdb ) ) {
+                throw new SkipException( "skip StandAlone" );
+            }
+            if ( commlib.getDataGroupNames( commSdb ).size() < 2 ) {
+                throw new SkipException(
+                        "current environment less than tow groups " );
+            }
 
-			CollectionSpace commCS = commSdb.getCollectionSpace(csName);
-			commCS.createCollection(clName, (BSONObject) JSON.parse("{ShardingKey:{\"a\":1},ShardingType:\"range\"}"));
-			ArrayList<String> tmp = SplitUtils.getGroupName(commSdb, csName, clName);// 获取目标组名和源组名
-			srcGroupName = tmp.get(0);
-			destGroupName = tmp.get(1);
-			prepareData(commSdb); // 准备数据
-		} catch (BaseException e) {
-			if (commSdb != null) {
-				commSdb.disconnect();
-			}
-			Assert.fail("TestCase8583a setUp error, error description:" + e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		}
-	}
+            CollectionSpace commCS = commSdb.getCollectionSpace( csName );
+            commCS.createCollection( clName, ( BSONObject ) JSON.parse(
+                    "{ShardingKey:{\"a\":1},ShardingType:\"range\"}" ) );
+            ArrayList< String > tmp = SplitUtils.getGroupName( commSdb, csName,
+                    clName );// 获取目标组名和源组名
+            srcGroupName = tmp.get( 0 );
+            destGroupName = tmp.get( 1 );
+            prepareData( commSdb ); // 准备数据
+        } catch ( BaseException e ) {
+            if ( commSdb != null ) {
+                commSdb.disconnect();
+            }
+            Assert.fail( "TestCase8583a setUp error, error description:"
+                    + e.getMessage() + "\r\n"
+                    + SplitUtils.getKeyStack( e, this ) );
+        }
+    }
 
-	public void prepareData(Sequoiadb db) {
-		try {
-			DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-			ArrayList<BSONObject> arr = new ArrayList<BSONObject>();
-			for (int i = 0; i < 1000; i++) {
-				arr.add((BSONObject) JSON.parse("{a:" + i + "}"));
-			}
-			cl.bulkInsert(arr, SplitUtils.FLG_INSERT_CONTONDUP);
-		} catch (BaseException e) {
-			throw e;
-		}
+    public void prepareData( Sequoiadb db ) {
+        try {
+            DBCollection cl = db.getCollectionSpace( csName )
+                    .getCollection( clName );
+            ArrayList< BSONObject > arr = new ArrayList< BSONObject >();
+            for ( int i = 0; i < 1000; i++ ) {
+                arr.add( ( BSONObject ) JSON.parse( "{a:" + i + "}" ) );
+            }
+            cl.bulkInsert( arr, SplitUtils.FLG_INSERT_CONTONDUP );
+        } catch ( BaseException e ) {
+            throw e;
+        }
 
-	}
+    }
 
-	// 切分删除CL
-	@Test
-	public void dropCL() {
-		Sequoiadb sdb = null;
-		DBCursor dbc = null;
-		Split split = new Split();
-		split.start();
-		try {
-			sdb = new Sequoiadb(coordUrl, "", "");
-			// 等待切分任务建立
-			while (true) {
-				dbc = sdb.listTasks((BSONObject) JSON.parse("{Name:\"" + csName + "." + clName + "\"}"), null, null,
-						null);
-				if (dbc.hasNext()) {
-					break;
-				}
-			}
-			// 删除CL
-			sdb.getCollectionSpace(csName).dropCollection(clName);
+    // 切分删除CL
+    @Test
+    public void dropCL() {
+        Sequoiadb sdb = null;
+        DBCursor dbc = null;
+        Split split = new Split();
+        split.start();
+        try {
+            sdb = new Sequoiadb( coordUrl, "", "" );
+            // 等待切分任务建立
+            while ( true ) {
+                dbc = sdb.listTasks(
+                        ( BSONObject ) JSON.parse(
+                                "{Name:\"" + csName + "." + clName + "\"}" ),
+                        null, null, null );
+                if ( dbc.hasNext() ) {
+                    break;
+                }
+            }
+            // 删除CL
+            sdb.getCollectionSpace( csName ).dropCollection( clName );
 
-			// 检查CL是否被删除
-			if (sdb.getCollectionSpace(csName).isCollectionExist(clName)) {
-				Assert.fail("CL delete fail");
-			}
+            // 检查CL是否被删除
+            if ( sdb.getCollectionSpace( csName )
+                    .isCollectionExist( clName ) ) {
+                Assert.fail( "CL delete fail" );
+            }
 
-			// 检查切分任务是否存在
-			dbc = sdb.listTasks((BSONObject) JSON.parse("{Name:\"" + csName + "." + clName + "\"}"), null, null, null);
-			if (dbc.hasNext()) {
-				Assert.fail("split Task dose not cancel");
-			}
+            // 检查切分任务是否存在
+            dbc = sdb.listTasks(
+                    ( BSONObject ) JSON.parse(
+                            "{Name:\"" + csName + "." + clName + "\"}" ),
+                    null, null, null );
+            if ( dbc.hasNext() ) {
+                Assert.fail( "split Task dose not cancel" );
+            }
 
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		} finally {
-			if (dbc != null) {
-				dbc.close();
-			}
-			if (sdb != null) {
-				sdb.disconnect();
-			}
-			split.join();
-		}
-	}
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n"
+                    + SplitUtils.getKeyStack( e, this ) );
+        } finally {
+            if ( dbc != null ) {
+                dbc.close();
+            }
+            if ( sdb != null ) {
+                sdb.disconnect();
+            }
+            split.join();
+        }
+    }
 
-	@AfterClass(enabled = true)
-	public void tearDown() {
-		try {
-			CollectionSpace commCS = commSdb.getCollectionSpace(csName);
-			if (commCS.isCollectionExist(clName)) {
-				commCS.dropCollection(clName);
-				Assert.fail("cl should not exist");
-			}
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		} finally {
-			if (commSdb != null) {
-				commSdb.disconnect();
-			}
-		}
-	}
+    @AfterClass(enabled = true)
+    public void tearDown() {
+        try {
+            CollectionSpace commCS = commSdb.getCollectionSpace( csName );
+            if ( commCS.isCollectionExist( clName ) ) {
+                commCS.dropCollection( clName );
+                Assert.fail( "cl should not exist" );
+            }
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n"
+                    + SplitUtils.getKeyStack( e, this ) );
+        } finally {
+            if ( commSdb != null ) {
+                commSdb.disconnect();
+            }
+        }
+    }
 
-	class Split extends SdbThreadBase {
+    class Split extends SdbThreadBase {
 
-		@Override
-		public void exec() throws Exception {
-			Sequoiadb sdb = null;
-			try {
-				sdb = new Sequoiadb(coordUrl, "", "");
-				DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-				if (cl == null) {
-					return;
-				}
-				cl.splitAsync(srcGroupName, destGroupName, (BSONObject) JSON.parse("{a:0}"),
-						(BSONObject) JSON.parse("{a:100}"));
-			} catch (BaseException e) {
-				throw e;
-			} finally {
-				if (sdb != null)
-					sdb.disconnect();
-			}
-		}
-	}
+        @Override
+        public void exec() throws Exception {
+            Sequoiadb sdb = null;
+            try {
+                sdb = new Sequoiadb( coordUrl, "", "" );
+                DBCollection cl = sdb.getCollectionSpace( csName )
+                        .getCollection( clName );
+                if ( cl == null ) {
+                    return;
+                }
+                cl.splitAsync( srcGroupName, destGroupName,
+                        ( BSONObject ) JSON.parse( "{a:0}" ),
+                        ( BSONObject ) JSON.parse( "{a:100}" ) );
+            } catch ( BaseException e ) {
+                throw e;
+            } finally {
+                if ( sdb != null )
+                    sdb.disconnect();
+            }
+        }
+    }
 
 }

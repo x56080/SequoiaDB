@@ -19,84 +19,88 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
-public class Cursor7095 extends SdbTestBase{
-	private Sequoiadb sdb ;
-	private SimpleDateFormat df = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS");
-	private String coordAddr;
-	private String commCSName;
-	@BeforeClass
-	public void setUp(){
-		this.coordAddr = SdbTestBase.coordUrl;
-		this.commCSName = SdbTestBase.csName;
-		try{
-			System.out.println("the TestCase: "+ this.getClass().getName() + 
-					" begin at:" + df.format(new Date().getTime()));
-			sdb = new Sequoiadb(coordAddr,"","");
-			if(!sdb.isCollectionSpaceExist(commCSName)){
-				sdb.createCollectionSpace(commCSName);
-			}
-		}catch(BaseException e){
-			Assert.fail("prepare env failed" + e.getMessage());
-		}
-	}
-		
-	@AfterClass
-	public void tearDown(){
-		try{
-			System.out.println("the TestCase: "+ this.getClass().getName() + 
-					" end at:" + df.format(new Date().getTime()));
-			sdb.disconnect();
-		}catch(BaseException e){
-			Assert.fail("clear env failed, errMsg:" + e.getMessage());
-		}
-	}
-	
-	@Test
-	public void test(){
-		CollectionSpace cs = sdb.getCollectionSpace(commCSName);
-		DBCollection cl = null;
-		//create cl
-		String clName = "cl7095";
-		try{
-			if(cs.isCollectionExist(clName)){
-				cs.dropCollection(clName);
-			}
-			cl = cs.createCollection(clName);
-		}catch(BaseException e){
-			Assert.fail("create cl:" + clName + " failed, errMsg:" + e.getMessage());
-		}
-		
-		//insert data
-		int dataNum = 10;
-		ArrayList<BSONObject> insertData = new ArrayList<BSONObject>();
-		try{
-			for(int i = 0; i<dataNum; i++){
-				BSONObject dataObj = new BasicBSONObject();
-				dataObj.put("a", i);
-				insertData.add(dataObj);
-			}
-			cl.bulkInsert(insertData, 0);
-		}catch(BaseException e){
-			Assert.fail("insert data:"+ insertData + " failed, errMsg:" + e.getMessage());
-		}
-		
-		//check getCurrent() and getNext() get the same record
-		BSONObject matcher = (BSONObject) JSON.parse("{a:{$lt:10}}");
-		BSONObject orderBy = (BSONObject) JSON.parse("{a:1}");
-		DBCursor queryCursor = cl.query(matcher, null, orderBy, null);
-		ArrayList<BSONObject> actualGetNextData = new ArrayList<BSONObject>();
-		ArrayList<BSONObject> actualGetCurrentData = new ArrayList<BSONObject>();
-		while(queryCursor.hasNext()){
-			actualGetCurrentData.add(queryCursor.getNext());
-			actualGetNextData.add(queryCursor.getCurrent());
-		}
-		queryCursor.close();
-		Assert.assertEquals(actualGetCurrentData,insertData);
-		Assert.assertEquals(actualGetCurrentData,actualGetNextData);
-		
-		//clear env
-		if(cs.isCollectionExist(clName)){
-			cs.dropCollection(clName);
-		}
-	}
+public class Cursor7095 extends SdbTestBase {
+    private Sequoiadb sdb;
+    private SimpleDateFormat df = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss.SSS" );
+    private String coordAddr;
+    private String commCSName;
+
+    @BeforeClass
+    public void setUp() {
+        this.coordAddr = SdbTestBase.coordUrl;
+        this.commCSName = SdbTestBase.csName;
+        try {
+            System.out.println( "the TestCase: " + this.getClass().getName()
+                    + " begin at:" + df.format( new Date().getTime() ) );
+            sdb = new Sequoiadb( coordAddr, "", "" );
+            if ( !sdb.isCollectionSpaceExist( commCSName ) ) {
+                sdb.createCollectionSpace( commCSName );
+            }
+        } catch ( BaseException e ) {
+            Assert.fail( "prepare env failed" + e.getMessage() );
+        }
+    }
+
+    @AfterClass
+    public void tearDown() {
+        try {
+            System.out.println( "the TestCase: " + this.getClass().getName()
+                    + " end at:" + df.format( new Date().getTime() ) );
+            sdb.disconnect();
+        } catch ( BaseException e ) {
+            Assert.fail( "clear env failed, errMsg:" + e.getMessage() );
+        }
+    }
+
+    @Test
+    public void test() {
+        CollectionSpace cs = sdb.getCollectionSpace( commCSName );
+        DBCollection cl = null;
+        // create cl
+        String clName = "cl7095";
+        try {
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
+            }
+            cl = cs.createCollection( clName );
+        } catch ( BaseException e ) {
+            Assert.fail( "create cl:" + clName + " failed, errMsg:"
+                    + e.getMessage() );
+        }
+
+        // insert data
+        int dataNum = 10;
+        ArrayList< BSONObject > insertData = new ArrayList< BSONObject >();
+        try {
+            for ( int i = 0; i < dataNum; i++ ) {
+                BSONObject dataObj = new BasicBSONObject();
+                dataObj.put( "a", i );
+                insertData.add( dataObj );
+            }
+            cl.bulkInsert( insertData, 0 );
+        } catch ( BaseException e ) {
+            Assert.fail( "insert data:" + insertData + " failed, errMsg:"
+                    + e.getMessage() );
+        }
+
+        // check getCurrent() and getNext() get the same record
+        BSONObject matcher = ( BSONObject ) JSON.parse( "{a:{$lt:10}}" );
+        BSONObject orderBy = ( BSONObject ) JSON.parse( "{a:1}" );
+        DBCursor queryCursor = cl.query( matcher, null, orderBy, null );
+        ArrayList< BSONObject > actualGetNextData = new ArrayList< BSONObject >();
+        ArrayList< BSONObject > actualGetCurrentData = new ArrayList< BSONObject >();
+        while ( queryCursor.hasNext() ) {
+            actualGetCurrentData.add( queryCursor.getNext() );
+            actualGetNextData.add( queryCursor.getCurrent() );
+        }
+        queryCursor.close();
+        Assert.assertEquals( actualGetCurrentData, insertData );
+        Assert.assertEquals( actualGetCurrentData, actualGetNextData );
+
+        // clear env
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
+        }
+    }
 }

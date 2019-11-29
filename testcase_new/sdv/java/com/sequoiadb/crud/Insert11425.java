@@ -24,14 +24,14 @@ public class Insert11425 extends SdbTestBase {
 
     @BeforeClass
     public void setup() {
-        db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        CollectionSpace cs = db.getCollectionSpace(SdbTestBase.csName);
-        dbcl = cs.createCollection(CLNAME);
+        db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        CollectionSpace cs = db.getCollectionSpace( SdbTestBase.csName );
+        dbcl = cs.createCollection( CLNAME );
     }
 
     @AfterClass
     public void teardown() {
-        if (db != null) {
+        if ( db != null ) {
             db.disconnect();
         }
     }
@@ -46,28 +46,30 @@ public class Insert11425 extends SdbTestBase {
             public void exec() throws Exception {
                 Sequoiadb db = null;
                 try {
-                    db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                    DBCollection cl = db.getCollectionSpace(SdbTestBase.csName)
-                            .getCollection(CLNAME);
-                    for (int i = 0; i < 10000; i++) {
-                        cl.insert(new BasicBSONObject("b", i));
+                    db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                    DBCollection cl = db
+                            .getCollectionSpace( SdbTestBase.csName )
+                            .getCollection( CLNAME );
+                    for ( int i = 0; i < 10000; i++ ) {
+                        cl.insert( new BasicBSONObject( "b", i ) );
                     }
-                } catch (BaseException e) {
-                    if (e.getErrorCode() != -23) throw e;
+                } catch ( BaseException e ) {
+                    if ( e.getErrorCode() != -23 )
+                        throw e;
                 } finally {
-                    if (db != null)
+                    if ( db != null )
                         db.disconnect();
                 }
             }
         };
 
-        insert.start(20);
+        insert.start( 20 );
 
-        Thread.sleep(300 + new Random().nextInt(200));
-        CollectionSpace cs = db.getCollectionSpace(SdbTestBase.csName);
-        cs.dropCollection(CLNAME);
+        Thread.sleep( 300 + new Random().nextInt( 200 ) );
+        CollectionSpace cs = db.getCollectionSpace( SdbTestBase.csName );
+        cs.dropCollection( CLNAME );
 
-        Assert.assertTrue(insert.isSuccess(), insert.getErrorMsg());
-        Assert.assertFalse(cs.isCollectionExist(CLNAME));
+        Assert.assertTrue( insert.isSuccess(), insert.getErrorMsg() );
+        Assert.assertFalse( cs.isCollectionExist( CLNAME ) );
     }
 }

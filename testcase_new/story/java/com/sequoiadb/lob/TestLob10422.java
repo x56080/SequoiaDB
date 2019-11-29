@@ -21,8 +21,7 @@ import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @FileName:seqDB-10422:读取lob
- * 插入lob数据，读取后比对MD5查看数据是否一致
+ * @FileName:seqDB-10422:读取lob 插入lob数据，读取后比对MD5查看数据是否一致
  * @Author linsuqiang
  * @Date 2016-12-12
  * @Version 1.00
@@ -32,141 +31,150 @@ public class TestLob10422 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private CollectionSpace cs = null;
     private DBCollection cl = null;
-    private ByteBuffer byteBuff = null;   
-    
-    public class Md5Data{
+    private ByteBuffer byteBuff = null;
+
+    public class Md5Data {
         public ObjectId oid = null;
         public String md5 = null;
-        public Md5Data(){}
-        public Md5Data(ObjectId oid, String md5){
+
+        public Md5Data() {
+        }
+
+        public Md5Data( ObjectId oid, String md5 ) {
             this.oid = oid;
             this.md5 = md5;
         }
     }
-    
+
     @BeforeClass
-    public void setUp(){
-        try{
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        }catch(BaseException e){        
-            Assert.assertTrue(false,"connect  failed,"+SdbTestBase.coordUrl+e.getMessage());
+    public void setUp() {
+        try {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "connect  failed," + SdbTestBase.coordUrl
+                    + e.getMessage() );
         }
-        if(CommLib.isStandAlone(sdb)){
-            throw new SkipException("is standalone skip testcase");
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
         }
-        if(CommLib.OneGroupMode(sdb)){
-            throw new SkipException("less two groups skip testcase");
+        if ( CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "less two groups skip testcase" );
         }
         cl = createCL();
     }
-    
+
     @AfterClass
-    public void tearDown(){
-        try{
-            if(cs.isCollectionExist(clName)){
-                cs.dropCollection(clName);
+    public void tearDown() {
+        try {
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-        }catch(BaseException e){            
-            Assert.fail(e.getMessage());
-        }finally{
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        } finally {
             sdb.disconnect();
         }
     }
-     
+
     @Test
-    public void test(){
-    	Md5Data md5Data = null;
+    public void test() {
+        Md5Data md5Data = null;
         // lob sections in the same group
-        md5Data = buildAndPutLob(cl);
-        checkMd5(cl, md5Data);
+        md5Data = buildAndPutLob( cl );
+        checkMd5( cl, md5Data );
         // lob sections in different groups
-        splitCL(cl);
-        md5Data = buildAndPutLob(cl);
-        checkMd5(cl, md5Data);        
+        splitCL( cl );
+        md5Data = buildAndPutLob( cl );
+        checkMd5( cl, md5Data );
     }
 
-    private DBCollection createCL(){
-        try{
-            if(!sdb.isCollectionSpaceExist(SdbTestBase.csName)){
-                sdb.createCollectionSpace(SdbTestBase.csName);    
+    private DBCollection createCL() {
+        try {
+            if ( !sdb.isCollectionSpaceExist( SdbTestBase.csName ) ) {
+                sdb.createCollectionSpace( SdbTestBase.csName );
             }
-        }catch(BaseException e){
-            //-33 CS exist,ignore exceptions
-            Assert.assertEquals(-33,e.getErrorCode(),e.getMessage());
+        } catch ( BaseException e ) {
+            // -33 CS exist,ignore exceptions
+            Assert.assertEquals( -33, e.getErrorCode(), e.getMessage() );
         }
-    
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);    
+
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
         BSONObject options = new BasicBSONObject();
-        options = (BSONObject)JSON.parse("{ShardingKey:{a:1,b:-1},ShardingType:'hash',Partition:4096}");
-        DBCollection cl = cs.createCollection(clName, options);    
-        
+        options = ( BSONObject ) JSON.parse(
+                "{ShardingKey:{a:1,b:-1},ShardingType:'hash',Partition:4096}" );
+        DBCollection cl = cs.createCollection( clName, options );
+
         return cl;
     }
-    
-    private Md5Data buildAndPutLob(DBCollection cl){
+
+    private Md5Data buildAndPutLob( DBCollection cl ) {
         // build a lob
         int lobSize = 130 * 1024 * 1024;
-        byte[] lobBytes = LobOprUtils.getRandomBytes(lobSize);
+        byte[] lobBytes = LobOprUtils.getRandomBytes( lobSize );
         // get it's md5, then insert
         Md5Data prevMd5 = new Md5Data();
         DBLob lob = null;
-        try{
+        try {
             lob = cl.createLob();
-            lob.write(lobBytes);
+            lob.write( lobBytes );
             prevMd5.oid = lob.getID();
-            prevMd5.md5 = LobOprUtils.getMd5(lobBytes);
-        }finally{
-            if(lob != null){
+            prevMd5.md5 = LobOprUtils.getMd5( lobBytes );
+        } finally {
+            if ( lob != null ) {
                 lob.close();
             }
         }
         return prevMd5;
     }
-    
-    private void checkMd5(DBCollection cl, Md5Data prevMd5){
+
+    private void checkMd5( DBCollection cl, Md5Data prevMd5 ) {
         // check the lob by it's md5
         DBLob rLob = null;
         String curMd5 = null;
         // read lob in unit of 1k
-        rLob = cl.openLob(prevMd5.oid);
-        byteBuff = ByteBuffer.allocate((int)rLob.getSize());
-        readLobByUnit(rLob, 1024);
-        curMd5 = LobOprUtils.getMd5(byteBuff);
-        Assert.assertEquals(curMd5, prevMd5.md5, "the lobs md5 different(Unit: 1k)");
+        rLob = cl.openLob( prevMd5.oid );
+        byteBuff = ByteBuffer.allocate( ( int ) rLob.getSize() );
+        readLobByUnit( rLob, 1024 );
+        curMd5 = LobOprUtils.getMd5( byteBuff );
+        Assert.assertEquals( curMd5, prevMd5.md5,
+                "the lobs md5 different(Unit: 1k)" );
         rLob.close();
-            
+
         // read lob in unit of 64M
-        rLob = cl.openLob(prevMd5.oid);
-        readLobByUnit(rLob, 64 * 1024 * 1024);
-        curMd5 = LobOprUtils.getMd5(byteBuff);
-        Assert.assertEquals(curMd5, prevMd5.md5, "the lobs md5 different(Unit: 64M)");
+        rLob = cl.openLob( prevMd5.oid );
+        readLobByUnit( rLob, 64 * 1024 * 1024 );
+        curMd5 = LobOprUtils.getMd5( byteBuff );
+        Assert.assertEquals( curMd5, prevMd5.md5,
+                "the lobs md5 different(Unit: 64M)" );
         rLob.close();
-            
+
         // read lob in unit of 128M
-        rLob = cl.openLob(prevMd5.oid);
-        readLobByUnit(rLob, 128 * 1024 * 1024);
-        curMd5 = LobOprUtils.getMd5(byteBuff);
-        Assert.assertEquals(curMd5, prevMd5.md5, "the lobs md5 different(Unit: 128M)");
-        rLob.close();        
+        rLob = cl.openLob( prevMd5.oid );
+        readLobByUnit( rLob, 128 * 1024 * 1024 );
+        curMd5 = LobOprUtils.getMd5( byteBuff );
+        Assert.assertEquals( curMd5, prevMd5.md5,
+                "the lobs md5 different(Unit: 128M)" );
+        rLob.close();
     }
-    
-    private void readLobByUnit(DBLob lob, int unitSize){
+
+    private void readLobByUnit( DBLob lob, int unitSize ) {
         byteBuff.clear();
-        byte[] byteUnit = new byte[unitSize];
-        int readLen =0;
-        while ((readLen = lob.read(byteUnit)) != -1){
-            byteBuff.put(byteUnit, 0, readLen);        
+        byte[] byteUnit = new byte[ unitSize ];
+        int readLen = 0;
+        while ( ( readLen = lob.read( byteUnit ) ) != -1 ) {
+            byteBuff.put( byteUnit, 0, readLen );
         }
         byteBuff.rewind();
     }
-        
-    private void splitCL(DBCollection cl){
+
+    private void splitCL( DBCollection cl ) {
         BSONObject cond = new BasicBSONObject();
         BSONObject endCond = new BasicBSONObject();
-        cond.put("Partition", 1024);
-        endCond.put("Partition", 3072);
-        String sourceRGName = LobOprUtils.getSrcGroupName(sdb,SdbTestBase.csName,clName);
-        String targetRGName = LobOprUtils.getSplitGroupName(sourceRGName);
-        cl.split(sourceRGName, targetRGName, cond, endCond);        
+        cond.put( "Partition", 1024 );
+        endCond.put( "Partition", 3072 );
+        String sourceRGName = LobOprUtils.getSrcGroupName( sdb,
+                SdbTestBase.csName, clName );
+        String targetRGName = LobOprUtils.getSplitGroupName( sourceRGName );
+        cl.split( sourceRGName, targetRGName, cond, endCond );
     }
 }

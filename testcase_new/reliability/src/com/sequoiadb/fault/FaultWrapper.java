@@ -23,73 +23,72 @@ import com.sequoiadb.task.OperateTask;
 public class FaultWrapper extends Fault {
     private Fault instance;
     private int checkTimes = 3;
-    private List<OperateTask> taskSet = new ArrayList<OperateTask>();
+    private List< OperateTask > taskSet = new ArrayList< OperateTask >();
     OperateTask.faultStatus status;
 
-    private void handleException(FaultException e) {
+    private void handleException( FaultException e ) {
         status = OperateTask.faultStatus.EXCEPTION;
     }
 
-    public FaultWrapper(Fault instance) {
-        super(instance.getName());
+    public FaultWrapper( Fault instance ) {
+        super( instance.getName() );
         this.instance = instance;
     }
 
-    public FaultWrapper(Fault instance, int checkTimes) {
-        super(instance.getName());
+    public FaultWrapper( Fault instance, int checkTimes ) {
+        super( instance.getName() );
         this.instance = instance;
         this.checkTimes = checkTimes;
     }
 
-    public void addDependsTask(OperateTask task) {
-        taskSet.add(task);
+    public void addDependsTask( OperateTask task ) {
+        taskSet.add( task );
     }
 
-    public void removeDependsTask(OperateTask task) {
+    public void removeDependsTask( OperateTask task ) {
         int pos = 0;
-        for (; pos < taskSet.size(); ++pos) {
-            if (task.getName().equals(taskSet.get(pos).getName())) {
+        for ( ; pos < taskSet.size(); ++pos ) {
+            if ( task.getName().equals( taskSet.get( pos ).getName() ) ) {
                 break;
             }
         }
-        taskSet.remove(pos);
+        taskSet.remove( pos );
     }
 
     public void make() throws FaultException {
         FaultException exception = null;
         Date date = Calendar.getInstance().getTime();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        System.out.println("make " + instance.getName() + " at " + sdf.format(date));
+        SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss" );
+        System.out.println(
+                "make " + instance.getName() + " at " + sdf.format( date ) );
 
         try {
             instance.make();
-            if (status != OperateTask.faultStatus.EXCEPTION) {
-                if (checkMakeResult()) {
+            if ( status != OperateTask.faultStatus.EXCEPTION ) {
+                if ( checkMakeResult() ) {
                     date = Calendar.getInstance().getTime();
                     status = OperateTask.faultStatus.MAKESUCCESS;
-                    sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                    System.out.println(
-                            "make " + instance.getName() + " success at " + sdf.format(date));
-                }
-                else {
-                    System.out.println(
-                            "make " + instance.getName() + " failure at " + sdf.format(date));
+                    sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss" );
+                    System.out.println( "make " + instance.getName()
+                            + " success at " + sdf.format( date ) );
+                } else {
+                    System.out.println( "make " + instance.getName()
+                            + " failure at " + sdf.format( date ) );
                 }
             }
-        }
-        catch (FaultException e) {
-            handleException(e);
+        } catch ( FaultException e ) {
+            handleException( e );
             exception = e;
         }
 
         // 通知依赖的任务
-        for (OperateTask task : taskSet) {
+        for ( OperateTask task : taskSet ) {
             BSONObject bson = new BasicBSONObject();
-            bson.put(FaultMakeTask.MAKE_RESULT, status);
-            task.faultNotify(bson);
+            bson.put( FaultMakeTask.MAKE_RESULT, status );
+            task.faultNotify( bson );
         }
 
-        if (exception != null) {
+        if ( exception != null ) {
             throw exception;
         }
 
@@ -98,23 +97,21 @@ public class FaultWrapper extends Fault {
     public boolean checkMakeResult() throws FaultException {
         boolean checkResult = false;
         status = OperateTask.faultStatus.MAKEFAILURE;
-        for (int i = 0; i < checkTimes; ++i) {
+        for ( int i = 0; i < checkTimes; ++i ) {
             try {
                 checkResult = instance.checkMakeResult();
-            }
-            catch (FaultException e) {
-                if (i >= checkTimes - 1) {
+            } catch ( FaultException e ) {
+                if ( i >= checkTimes - 1 ) {
                     throw e;
                 }
             }
-            if (checkResult) {
+            if ( checkResult ) {
                 status = OperateTask.faultStatus.MAKESUCCESS;
                 break;
             }
             try {
-                Thread.sleep(500);
-            }
-            catch (Exception e) {
+                Thread.sleep( 500 );
+            } catch ( Exception e ) {
                 // ignore
             }
         }
@@ -123,42 +120,41 @@ public class FaultWrapper extends Fault {
 
     public void restore() throws FaultException {
         FaultException exception = null;
-        if (status != OperateTask.faultStatus.MAKESUCCESS) {
+        if ( status != OperateTask.faultStatus.MAKESUCCESS ) {
             return;
         }
 
         Date date = Calendar.getInstance().getTime();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        System.out.println("restore " + instance.getName() + " at " + sdf.format(date));
+        SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss" );
+        System.out.println(
+                "restore " + instance.getName() + " at " + sdf.format( date ) );
         try {
             instance.restore();
-            if (status != OperateTask.faultStatus.EXCEPTION) {
-                if (checkRestoreResult()) {
+            if ( status != OperateTask.faultStatus.EXCEPTION ) {
+                if ( checkRestoreResult() ) {
                     date = Calendar.getInstance().getTime();
-                    sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                    System.out.println(
-                            "restore " + instance.getName() + " success at " + sdf.format(date));
-                }
-                else {
-                    System.out.println(
-                            "restore " + instance.getName() + " failure at " + sdf.format(date));
+                    sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss" );
+                    System.out.println( "restore " + instance.getName()
+                            + " success at " + sdf.format( date ) );
+                } else {
+                    System.out.println( "restore " + instance.getName()
+                            + " failure at " + sdf.format( date ) );
                     status = OperateTask.faultStatus.RESTOREFAILURE;
                 }
             }
-        }
-        catch (FaultException e) {
-            handleException(e);
+        } catch ( FaultException e ) {
+            handleException( e );
             exception = e;
         }
 
         // 通知依赖的任务
-        for (OperateTask task : taskSet) {
+        for ( OperateTask task : taskSet ) {
             BSONObject bson = new BasicBSONObject();
-            bson.put(FaultMakeTask.RESTORE_RESULT, status);
-            task.faultNotify(bson);
+            bson.put( FaultMakeTask.RESTORE_RESULT, status );
+            task.faultNotify( bson );
         }
 
-        if (exception != null) {
+        if ( exception != null ) {
             throw exception;
         }
     }
@@ -166,9 +162,9 @@ public class FaultWrapper extends Fault {
     public boolean checkRestoreResult() throws FaultException {
         boolean checkResult = false;
         status = OperateTask.faultStatus.RESTOREFAILURE;
-        for (int i = 0; i < checkTimes; ++i) {
+        for ( int i = 0; i < checkTimes; ++i ) {
             checkResult = instance.checkRestoreResult();
-            if (checkResult) {
+            if ( checkResult ) {
                 status = OperateTask.faultStatus.RESTORESUCESS;
                 break;
             }

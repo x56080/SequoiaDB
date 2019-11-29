@@ -32,160 +32,191 @@ import com.sequoiadb.testcommon.SdbTestBase;
  */
 
 public class Split509 extends SdbTestBase {
-	@DataProvider(name = "rangeProvider", parallel = true)
-	public Object[][] rangeProvider() {
-		return new Object[][] { { 0, 15000 }, { 10000, 20000 } };
-	}
-	
-	private String clName = "testcaseCL509";
-	private CollectionSpace commCS;
-	private String srcGroupName;
-	private String destGroupName;
-	private Vector<Integer> successRange = new Vector<Integer>(); // 保存成功切分的上下限范围
-	private Sequoiadb commSdb = null;
+    @DataProvider(name = "rangeProvider", parallel = true)
+    public Object[][] rangeProvider() {
+        return new Object[][] { { 0, 15000 }, { 10000, 20000 } };
+    }
 
-	@BeforeClass(enabled = true)
-	public void setUp() {
-		commSdb = new Sequoiadb(coordUrl, "", "");
+    private String clName = "testcaseCL509";
+    private CollectionSpace commCS;
+    private String srcGroupName;
+    private String destGroupName;
+    private Vector< Integer > successRange = new Vector< Integer >(); // 保存成功切分的上下限范围
+    private Sequoiadb commSdb = null;
 
-		// 跳过 standAlone 和数据组不足的环境
-		CommLib commlib = new CommLib();
-		if (commlib.isStandAlone(commSdb)) {
-			throw new SkipException("skip StandAlone");
-		}
-		if (commlib.getDataGroupNames(commSdb).size() < 2) {
-			throw new SkipException("current environment less than tow groups ");
-		}
+    @BeforeClass(enabled = true)
+    public void setUp() {
+        commSdb = new Sequoiadb( coordUrl, "", "" );
 
-		commCS = commSdb.getCollectionSpace(csName);
-		DBCollection cl = commCS.createCollection(clName,
-				(BSONObject) JSON.parse("{ShardingKey:{\"a\":1},ShardingType:\"range\"}"));
-		ArrayList<String> tmp = SplitUtils.getGroupName(commSdb, csName, clName);
-		srcGroupName = tmp.get(0);
-		destGroupName = tmp.get(1);
-		// 写入待切分的记录（20000）
-		prepareData(cl);
+        // 跳过 standAlone 和数据组不足的环境
+        CommLib commlib = new CommLib();
+        if ( commlib.isStandAlone( commSdb ) ) {
+            throw new SkipException( "skip StandAlone" );
+        }
+        if ( commlib.getDataGroupNames( commSdb ).size() < 2 ) {
+            throw new SkipException(
+                    "current environment less than tow groups " );
+        }
 
-	}
+        commCS = commSdb.getCollectionSpace( csName );
+        DBCollection cl = commCS.createCollection( clName, ( BSONObject ) JSON
+                .parse( "{ShardingKey:{\"a\":1},ShardingType:\"range\"}" ) );
+        ArrayList< String > tmp = SplitUtils.getGroupName( commSdb, csName,
+                clName );
+        srcGroupName = tmp.get( 0 );
+        destGroupName = tmp.get( 1 );
+        // 写入待切分的记录（20000）
+        prepareData( cl );
 
-	// 切分(a:0,a:15000] (a:10000,a:20000]
-	@Test(enabled = true, dataProvider = "rangeProvider")
-	public void splitCL(int lowBound, int upBound) {
-		Sequoiadb sdb = null;
-		try{			
-			sdb = new Sequoiadb(coordUrl, "", "");
-			DBCollection cl = sdb.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+    }
 
-			// 切分(a:0,a:15000) (a:10000,a:20000)
-			cl.split(srcGroupName, destGroupName, (BSONObject) JSON.parse("{a:" + lowBound + "}"),
-					(BSONObject) JSON.parse("{a:" + upBound + "}"));
-			synchronized (this) {
-				// 两个切分线程不能同时成功
-				if (successRange.size() != 0) {
-					Assert.fail("parallel execute split range(0,100) and range(50,150),successRange.size() = "
-							+ successRange.size());
-				}
-				// 本线程切分成功，记录切分范围
-				successRange.add(lowBound);
-				successRange.add(upBound);
-			}
+    // 切分(a:0,a:15000] (a:10000,a:20000]
+    @Test(enabled = true, dataProvider = "rangeProvider")
+    public void splitCL( int lowBound, int upBound ) {
+        Sequoiadb sdb = null;
+        try {
+            sdb = new Sequoiadb( coordUrl, "", "" );
+            DBCollection cl = sdb.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
 
-			// 检查切分后目标组数据，再次插入数据，检测落入情况
-			checkResult(sdb);
-		} catch (BaseException e) {			
-			Assert.assertEquals(e.getErrorCode() == -175 || e.getErrorCode() == -176, true, e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		} finally {
-			if ( sdb != null ){
-				sdb.disconnect();
-			}
-		}
-	}
+            // 切分(a:0,a:15000) (a:10000,a:20000)
+            cl.split( srcGroupName, destGroupName,
+                    ( BSONObject ) JSON.parse( "{a:" + lowBound + "}" ),
+                    ( BSONObject ) JSON.parse( "{a:" + upBound + "}" ) );
+            synchronized ( this ) {
+                // 两个切分线程不能同时成功
+                if ( successRange.size() != 0 ) {
+                    Assert.fail(
+                            "parallel execute split range(0,100) and range(50,150),successRange.size() = "
+                                    + successRange.size() );
+                }
+                // 本线程切分成功，记录切分范围
+                successRange.add( lowBound );
+                successRange.add( upBound );
+            }
 
-	@AfterClass
-	public void tearDown() {
-		try {			
-			commCS.dropCollection(clName);
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		} finally {
-			if (commSdb != null) {
-				commSdb.disconnect();
-			}
-		}
-	}
+            // 检查切分后目标组数据，再次插入数据，检测落入情况
+            checkResult( sdb );
+        } catch ( BaseException e ) {
+            Assert.assertEquals(
+                    e.getErrorCode() == -175 || e.getErrorCode() == -176, true,
+                    e.getMessage() + "\r\n"
+                            + SplitUtils.getKeyStack( e, this ) );
+        } finally {
+            if ( sdb != null ) {
+                sdb.disconnect();
+            }
+        }
+    }
 
-	// 检查目标组的数据，插入数据，检查落入情况
-	public void checkResult(Sequoiadb sdb) {
-		Sequoiadb destDataNode = null;
-		Sequoiadb srcDataNode = null;
-		try{
-			destDataNode = sdb.getReplicaGroup(destGroupName).getMaster().connect();// 获得目标组主节点链接
-			srcDataNode = sdb.getReplicaGroup(srcGroupName).getMaster().connect();// 获得源组主节点链接
-			// 检查切分后目标组数据正确性
-			checkDestGroupData(sdb, destDataNode);
-			// 插入数据并检查落入情况
-			insertDataAndCheckAgain(sdb, srcDataNode, destDataNode);
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		} finally {			
-			if (destDataNode != null) {
-				destDataNode.disconnect();;
-			}
-			if (srcDataNode != null) {
-				srcDataNode.disconnect();;
-			}
-		}
-	}
+    @AfterClass
+    public void tearDown() {
+        try {
+            commCS.dropCollection( clName );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n"
+                    + SplitUtils.getKeyStack( e, this ) );
+        } finally {
+            if ( commSdb != null ) {
+                commSdb.disconnect();
+            }
+        }
+    }
 
-	//insert 2W records
-	private void prepareData(DBCollection cl) {
-		for ( int i = 0; i < 20000; i+=10000){
-			List<BSONObject>list = new ArrayList<BSONObject>();	
-			for (int j = i + 0; j < i + 10000; j++) {				
-				BSONObject obj = (BSONObject) JSON.parse("{a:" + j +", b:"+j+", test:"+"'testasetatatatt'" + "}");				
-				list.add(obj);					
-			}
-			cl.bulkInsert(list, 0);
-		}		
-	}	
+    // 检查目标组的数据，插入数据，检查落入情况
+    public void checkResult( Sequoiadb sdb ) {
+        Sequoiadb destDataNode = null;
+        Sequoiadb srcDataNode = null;
+        try {
+            destDataNode = sdb.getReplicaGroup( destGroupName ).getMaster()
+                    .connect();// 获得目标组主节点链接
+            srcDataNode = sdb.getReplicaGroup( srcGroupName ).getMaster()
+                    .connect();// 获得源组主节点链接
+            // 检查切分后目标组数据正确性
+            checkDestGroupData( sdb, destDataNode );
+            // 插入数据并检查落入情况
+            insertDataAndCheckAgain( sdb, srcDataNode, destDataNode );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n"
+                    + SplitUtils.getKeyStack( e, this ) );
+        } finally {
+            if ( destDataNode != null ) {
+                destDataNode.disconnect();
+                ;
+            }
+            if ( srcDataNode != null ) {
+                srcDataNode.disconnect();
+                ;
+            }
+        }
+    }
 
-	public void insertDataAndCheckAgain(Sequoiadb sdb, Sequoiadb srcDataNode, Sequoiadb destDataNode) {
-		// 检查切分结果
-		try {
-			// 插入数据，检查落入情况
-			DBCollection cl = sdb.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-			cl.insert((BSONObject) JSON.parse("{b:1,a:" + successRange.get(0) + "}"));// 期望此数据落入目标组
-			cl.insert((BSONObject) JSON.parse("{b:-1,a:" + (successRange.get(0) - 1) + "}"));// 期望此数据落入源数据组
+    // insert 2W records
+    private void prepareData( DBCollection cl ) {
+        for ( int i = 0; i < 20000; i += 10000 ) {
+            List< BSONObject > list = new ArrayList< BSONObject >();
+            for ( int j = i + 0; j < i + 10000; j++ ) {
+                BSONObject obj = ( BSONObject ) JSON.parse( "{a:" + j + ", b:"
+                        + j + ", test:" + "'testasetatatatt'" + "}" );
+                list.add( obj );
+            }
+            cl.bulkInsert( list, 0 );
+        }
+    }
 
-			// 目标组落入情况
-			DBCollection destGroupCL = destDataNode.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-			if (!SplitUtils.isCollectionContainThisJSON(destGroupCL, "{b:1,a:" + successRange.get(0) + "}")) {
-				Assert.fail("check query data not pass(b:1)");
-			}
+    public void insertDataAndCheckAgain( Sequoiadb sdb, Sequoiadb srcDataNode,
+            Sequoiadb destDataNode ) {
+        // 检查切分结果
+        try {
+            // 插入数据，检查落入情况
+            DBCollection cl = sdb.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
+            cl.insert( ( BSONObject ) JSON
+                    .parse( "{b:1,a:" + successRange.get( 0 ) + "}" ) );// 期望此数据落入目标组
+            cl.insert( ( BSONObject ) JSON.parse(
+                    "{b:-1,a:" + ( successRange.get( 0 ) - 1 ) + "}" ) );// 期望此数据落入源数据组
 
-			// 源组落入情况
-			DBCollection srcGroupCL = srcDataNode.getCollectionSpace(csName).getCollection(clName);
-			if (!SplitUtils.isCollectionContainThisJSON(srcGroupCL, "{b:-1,a:" + (successRange.get(0) - 1) + "}")) {
-				Assert.fail("check query data not pass(b:-1)");
-			}
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		}
+            // 目标组落入情况
+            DBCollection destGroupCL = destDataNode
+                    .getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
+            if ( !SplitUtils.isCollectionContainThisJSON( destGroupCL,
+                    "{b:1,a:" + successRange.get( 0 ) + "}" ) ) {
+                Assert.fail( "check query data not pass(b:1)" );
+            }
 
-	}
+            // 源组落入情况
+            DBCollection srcGroupCL = srcDataNode.getCollectionSpace( csName )
+                    .getCollection( clName );
+            if ( !SplitUtils.isCollectionContainThisJSON( srcGroupCL,
+                    "{b:-1,a:" + ( successRange.get( 0 ) - 1 ) + "}" ) ) {
+                Assert.fail( "check query data not pass(b:-1)" );
+            }
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n"
+                    + SplitUtils.getKeyStack( e, this ) );
+        }
 
-	public void checkDestGroupData(Sequoiadb sdb, Sequoiadb destDataNode) {
-		try {
-			long destDataCount = destDataNode.getCollectionSpace(csName).getCollection(clName)
-					.getCount("{$and:[{a:{$gte:" + successRange.get(0) + "}},{a:{$lt:" + successRange.get(1) + "}}]}");
-			// 检查指定范围数据是否均已落入目标组
-			Assert.assertEquals(destDataCount, successRange.get(1) - successRange.get(0));
-			// 检查目标组是否仅含指定范围数据
-			Assert.assertEquals(destDataNode.getCollectionSpace(csName).getCollection(clName).getCount(),
-					successRange.get(1) - successRange.get(0));
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		}
+    }
 
-	}
+    public void checkDestGroupData( Sequoiadb sdb, Sequoiadb destDataNode ) {
+        try {
+            long destDataCount = destDataNode.getCollectionSpace( csName )
+                    .getCollection( clName )
+                    .getCount( "{$and:[{a:{$gte:" + successRange.get( 0 )
+                            + "}},{a:{$lt:" + successRange.get( 1 ) + "}}]}" );
+            // 检查指定范围数据是否均已落入目标组
+            Assert.assertEquals( destDataCount,
+                    successRange.get( 1 ) - successRange.get( 0 ) );
+            // 检查目标组是否仅含指定范围数据
+            Assert.assertEquals(
+                    destDataNode.getCollectionSpace( csName )
+                            .getCollection( clName ).getCount(),
+                    successRange.get( 1 ) - successRange.get( 0 ) );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n"
+                    + SplitUtils.getKeyStack( e, this ) );
+        }
+
+    }
 }

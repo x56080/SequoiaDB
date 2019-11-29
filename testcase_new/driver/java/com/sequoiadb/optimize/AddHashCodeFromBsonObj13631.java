@@ -26,32 +26,34 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @version 1.00
  */
 public class AddHashCodeFromBsonObj13631 {
-    
+
     @BeforeTest
     public void setUp() {
-        System.out.println("Begin TestCase Name:" + this.getClass().getName() + 
-                    "at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+        System.out.println( "Begin TestCase Name:" + this.getClass().getName()
+                + "at:" + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                        .format( new Date() ) );
     }
-    
+
     @Test
     public void test() {
-       
-       BSONObject bsonObj1 = new BasicBSONObject();
-       bsonObj1.put("_id", 1);
-       bsonObj1.put("a", "test1");
-       
-       BSONObject bsonObj2 = new BasicBSONObject();
-       bsonObj2.put("_id", 1);
-       bsonObj2.put("a", "test1");
-       
-       Assert.assertEquals(bsonObj1, bsonObj2);
-       Assert.assertEquals(bsonObj1.hashCode(), bsonObj2.hashCode());
-       
+
+        BSONObject bsonObj1 = new BasicBSONObject();
+        bsonObj1.put( "_id", 1 );
+        bsonObj1.put( "a", "test1" );
+
+        BSONObject bsonObj2 = new BasicBSONObject();
+        bsonObj2.put( "_id", 1 );
+        bsonObj2.put( "a", "test1" );
+
+        Assert.assertEquals( bsonObj1, bsonObj2 );
+        Assert.assertEquals( bsonObj1.hashCode(), bsonObj2.hashCode() );
+
     }
-    
+
     @AfterTest
     public void tearDown() {
-        System.out.println("End TestCase Name:" + this.getClass().getName() + 
-                    "at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-    }  
+        System.out.println( "End TestCase Name:" + this.getClass().getName()
+                + "at:" + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                        .format( new Date() ) );
+    }
 }

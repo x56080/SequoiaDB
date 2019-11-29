@@ -29,101 +29,106 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 public class CreateUniqueIndexsAndUpdate17040 extends SdbTestBase {
 
-	private String clName = "dataConsistency17040";
-	private Sequoiadb sdb = null;
-	private String groupName = "";
-	private CollectionSpace cs = null;
-	private DBCollection dbcl = null;
-	private ArrayList<BSONObject> expRecords = null;
+    private String clName = "dataConsistency17040";
+    private Sequoiadb sdb = null;
+    private String groupName = "";
+    private CollectionSpace cs = null;
+    private DBCollection dbcl = null;
+    private ArrayList< BSONObject > expRecords = null;
 
-	@BeforeClass
-	public void setUp() {
-		sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-		if (CommLib.isStandAlone(sdb)) {
-			throw new SkipException("standAlone skip testcase");
-		}
+    @BeforeClass
+    public void setUp() {
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "standAlone skip testcase" );
+        }
 
-		groupName = DataConsistencyUtil.getGroupName(sdb);
-		String options = "{ShardingKey:{no:1},ReplSize:1,Group:'" + groupName + "'}";
-		cs = sdb.getCollectionSpace(SdbTestBase.csName);
-		dbcl = DataConsistencyUtil.createCL(cs, clName, options);
+        groupName = DataConsistencyUtil.getGroupName( sdb );
+        String options = "{ShardingKey:{no:1},ReplSize:1,Group:'" + groupName
+                + "'}";
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
+        dbcl = DataConsistencyUtil.createCL( cs, clName, options );
 
-		dbcl.createIndex("testa", "{no:1}", true, false);
-		dbcl.createIndex("testb", "{inta:1,no:1}", true, false);
-		dbcl.createIndex("testc", "{str:1,no:1}", true, false);
-		dbcl.createIndex("teste", "{ftest:1,no:-1}", true, false);
-		dbcl.createIndex("testf", "{ftest:-1,no:1}", true, false);
-		dbcl.createIndex("testg", "{str:-1,order:1,no:-1}", true, false);
-		expRecords = DataConsistencyUtil.insertDatas(dbcl, 200000);
-	}
+        dbcl.createIndex( "testa", "{no:1}", true, false );
+        dbcl.createIndex( "testb", "{inta:1,no:1}", true, false );
+        dbcl.createIndex( "testc", "{str:1,no:1}", true, false );
+        dbcl.createIndex( "teste", "{ftest:1,no:-1}", true, false );
+        dbcl.createIndex( "testf", "{ftest:-1,no:1}", true, false );
+        dbcl.createIndex( "testg", "{str:-1,order:1,no:-1}", true, false );
+        expRecords = DataConsistencyUtil.insertDatas( dbcl, 200000 );
+    }
 
-	@Test
-	public void test() {
-		List<UpdateThread> UpdateThreads = new ArrayList<>(10);
-		int beginNo = 0;
-		int endNo = 20000;
-		for (int i = 0; i < 10; i++) {
-			UpdateThreads.add(new UpdateThread(beginNo, endNo));
-			beginNo = endNo;
-			endNo = beginNo + 20000;
-		}
-		for (UpdateThread updateThread : UpdateThreads) {
-			updateThread.start();
-		}
-		for (UpdateThread updateThread : UpdateThreads) {
-			Assert.assertTrue(updateThread.isSuccess(), updateThread.getErrorMsg());
-		}
+    @Test
+    public void test() {
+        List< UpdateThread > UpdateThreads = new ArrayList<>( 10 );
+        int beginNo = 0;
+        int endNo = 20000;
+        for ( int i = 0; i < 10; i++ ) {
+            UpdateThreads.add( new UpdateThread( beginNo, endNo ) );
+            beginNo = endNo;
+            endNo = beginNo + 20000;
+        }
+        for ( UpdateThread updateThread : UpdateThreads ) {
+            updateThread.start();
+        }
+        for ( UpdateThread updateThread : UpdateThreads ) {
+            Assert.assertTrue( updateThread.isSuccess(),
+                    updateThread.getErrorMsg() );
+        }
 
-		updateExpDatas();
-		DataConsistencyUtil.checkDataContent(dbcl, expRecords);
-		String matcherCount = "{'str':'testupdate_idfield17040'}";
-		DataConsistencyUtil.checkDataConsistency(sdb, groupName, SdbTestBase.csName, clName, expRecords, matcherCount);
-	}
+        updateExpDatas();
+        DataConsistencyUtil.checkDataContent( dbcl, expRecords );
+        String matcherCount = "{'str':'testupdate_idfield17040'}";
+        DataConsistencyUtil.checkDataConsistency( sdb, groupName,
+                SdbTestBase.csName, clName, expRecords, matcherCount );
+    }
 
-	@AfterClass
-	public void tearDown() {
-		try {
-			cs.dropCollection(clName);
-		} finally {
-			if (sdb != null)
-				sdb.disconnect();
-		}
-	}
+    @AfterClass
+    public void tearDown() {
+        try {
+            cs.dropCollection( clName );
+        } finally {
+            if ( sdb != null )
+                sdb.disconnect();
+        }
+    }
 
-	public class UpdateThread extends SdbThreadBase {
-		private int beginNo;
-		private int endNo;
+    public class UpdateThread extends SdbThreadBase {
+        private int beginNo;
+        private int endNo;
 
-		public UpdateThread(int beginNo, int endNo) {
-			this.beginNo = beginNo;
-			this.endNo = endNo;
-		}
+        public UpdateThread( int beginNo, int endNo ) {
+            this.beginNo = beginNo;
+            this.endNo = endNo;
+        }
 
-		@Override
-		public void exec() throws BaseException {
-			Sequoiadb db = null;
-			try {
-				db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-				DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-				for (int i = beginNo; i < endNo; i++) {
-					String idValue = "test_id_" + i;
-					String modifier = "{ $set: { '_id': '" + idValue + "','str':'testupdate_idfield17040'} }";
-					String matcher = "{ 'no': " + i + "}";
-					dbcl.update(matcher, modifier, "");
-				}
-			}finally{
-				db.disconnect();
-			}
-		}
-	}
+        @Override
+        public void exec() throws BaseException {
+            Sequoiadb db = null;
+            try {
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCollection dbcl = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
+                for ( int i = beginNo; i < endNo; i++ ) {
+                    String idValue = "test_id_" + i;
+                    String modifier = "{ $set: { '_id': '" + idValue
+                            + "','str':'testupdate_idfield17040'} }";
+                    String matcher = "{ 'no': " + i + "}";
+                    dbcl.update( matcher, modifier, "" );
+                }
+            } finally {
+                db.disconnect();
+            }
+        }
+    }
 
-	// update the same range of elements in the expected list.
-	private void updateExpDatas() {
-		int count = 0;
-		for (BSONObject object : expRecords) {
-			object.put("_id", "test_id_" + count);
-			object.put("str", "testupdate_idfield17040");
-			count++;
-		}
-	}
+    // update the same range of elements in the expected list.
+    private void updateExpDatas() {
+        int count = 0;
+        for ( BSONObject object : expRecords ) {
+            object.put( "_id", "test_id_" + count );
+            object.put( "str", "testupdate_idfield17040" );
+            count++;
+        }
+    }
 }

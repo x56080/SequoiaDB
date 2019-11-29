@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
-
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.ChannelSftp;
@@ -22,7 +21,7 @@ import com.sequoiadb.exception.ReliabilityException;
  * 
  */
 public class Ssh {
-    private final static Logger log=Logger.getLogger(Ssh.class.getName());
+    private final static Logger log = Logger.getLogger( Ssh.class.getName() );
 
     private String host;
     private String username;
@@ -33,7 +32,7 @@ public class Ssh {
     private int exitStatus;
     private Session session = null;
     // ssh建立的后台命令集合（key：Channel id ，value：Channel）
-    private Map<Integer, Channel> backgroundCMD = new HashMap<Integer, Channel>();
+    private Map< Integer, Channel > backgroundCMD = new HashMap< Integer, Channel >();
 
     /**
      * 使用给定参数及22端口创建ssh对象
@@ -43,8 +42,9 @@ public class Ssh {
      * @param password
      * @throws ReliabilityException
      */
-    public Ssh(String host, String username, String password) throws ReliabilityException {
-        this(host, username, password, 22);
+    public Ssh( String host, String username, String password )
+            throws ReliabilityException {
+        this( host, username, password, 22 );
     }
 
     /**
@@ -56,7 +56,7 @@ public class Ssh {
      * @param port
      * @throws ReliabilityException
      */
-    public Ssh(String host, String username, String password, int port)
+    public Ssh( String host, String username, String password, int port )
             throws ReliabilityException {
         super();
         this.host = host;
@@ -65,16 +65,15 @@ public class Ssh {
         this.port = port;
         JSch jsch = new JSch();
         try {
-            session = jsch.getSession(username, host, port);
-            session.setPassword(password);
-            session.setConfig("StrictHostKeyChecking", "no");
-            session.connect(60 * 1000);
-        }
-        catch (JSchException e) {
-            if (session != null) {
+            session = jsch.getSession( username, host, port );
+            session.setPassword( password );
+            session.setConfig( "StrictHostKeyChecking", "no" );
+            session.connect( 60 * 1000 );
+        } catch ( JSchException e ) {
+            if ( session != null ) {
                 session.disconnect();
             }
-            throw new FaultException(e);
+            throw new FaultException( e );
         }
     }
 
@@ -85,18 +84,17 @@ public class Ssh {
      * @param remotePath
      * @throws ReliabilityException
      */
-    public void scpTo(String localPath, String remotePath) throws ReliabilityException {
+    public void scpTo( String localPath, String remotePath )
+            throws ReliabilityException {
         ChannelSftp channel = null;
         try {
-            channel = (ChannelSftp) session.openChannel("sftp");
-            channel.connect(60 * 1000);
-            channel.put(localPath, remotePath);
-        }
-        catch (Exception e) {
-            throw new FaultException(e);
-        }
-        finally {
-            if (channel != null) {
+            channel = ( ChannelSftp ) session.openChannel( "sftp" );
+            channel.connect( 60 * 1000 );
+            channel.put( localPath, remotePath );
+        } catch ( Exception e ) {
+            throw new FaultException( e );
+        } finally {
+            if ( channel != null ) {
                 channel.disconnect();
             }
         }
@@ -109,18 +107,17 @@ public class Ssh {
      * @param remotePath
      * @throws ReliabilityException
      */
-    public void scpFrom(String localPath, String remotePath) throws ReliabilityException {
+    public void scpFrom( String localPath, String remotePath )
+            throws ReliabilityException {
         ChannelSftp channel = null;
         try {
-            channel = (ChannelSftp) session.openChannel("sftp");
-            channel.connect(60 * 1000);
-            channel.get(remotePath, localPath);
-        }
-        catch (Exception e) {
-            throw new FaultException(e);
-        }
-        finally {
-            if (channel != null) {
+            channel = ( ChannelSftp ) session.openChannel( "sftp" );
+            channel.connect( 60 * 1000 );
+            channel.get( remotePath, localPath );
+        } catch ( Exception e ) {
+            throw new FaultException( e );
+        } finally {
+            if ( channel != null ) {
                 channel.disconnect();
             }
         }
@@ -134,24 +131,24 @@ public class Ssh {
      * @return
      * @throws ReliabilityException
      */
-    public void exec(String command) throws ReliabilityException {
+    public void exec( String command ) throws ReliabilityException {
         Channel channel = null;
         try {
-            channel = session.openChannel("exec");
-            ((ChannelExec) channel).setCommand(command);
-            channel.setInputStream( null ) ;
-            getResult(channel, Integer.MAX_VALUE);
-            
-            if (exitStatus != 0) {
-                throw new ReliabilityException("ssh failed to execute commond '" + command
-                        + "',stderr:" + stderr + " ,stdout:" + stdout + ",errcode: " + exitStatus);
+            channel = session.openChannel( "exec" );
+            ( ( ChannelExec ) channel ).setCommand( command );
+            channel.setInputStream( null );
+            getResult( channel, Integer.MAX_VALUE );
+
+            if ( exitStatus != 0 ) {
+                throw new ReliabilityException(
+                        "ssh failed to execute commond '" + command
+                                + "',stderr:" + stderr + " ,stdout:" + stdout
+                                + ",errcode: " + exitStatus );
             }
-        }
-        catch (IOException | JSchException e) {
-            throw new FaultException(e);
-        }
-        finally {
-            if (channel != null) {
+        } catch ( IOException | JSchException e ) {
+            throw new FaultException( e );
+        } finally {
+            if ( channel != null ) {
                 channel.disconnect();
             }
         }
@@ -165,21 +162,20 @@ public class Ssh {
      * @throws JSchException
      * @return channelID
      */
-    public int execBackground(String command) throws ReliabilityException {
+    public int execBackground( String command ) throws ReliabilityException {
         Channel channel = null;
         try {
-            channel = session.openChannel("exec");
-            ((ChannelExec) channel).setCommand(command);
-            channel.setInputStream( null ) ;
-            channel.connect(60 * 1000);
-            backgroundCMD.put(channel.getId(), channel);
+            channel = session.openChannel( "exec" );
+            ( ( ChannelExec ) channel ).setCommand( command );
+            channel.setInputStream( null );
+            channel.connect( 60 * 1000 );
+            backgroundCMD.put( channel.getId(), channel );
             return channel.getId();
-        }
-        catch (JSchException e) {
-            if (channel != null) {
+        } catch ( JSchException e ) {
+            if ( channel != null ) {
                 channel.disconnect();
             }
-            throw new FaultException(e);
+            throw new FaultException( e );
         }
     }
 
@@ -190,8 +186,9 @@ public class Ssh {
      * @return
      * @throws ReliabilityException
      */
-    public void waitBackgroudCMDDown(int channelId) throws ReliabilityException {
-        waitBackgroudCMDDown(channelId, Integer.MAX_VALUE);
+    public void waitBackgroudCMDDown( int channelId )
+            throws ReliabilityException {
+        waitBackgroudCMDDown( channelId, Integer.MAX_VALUE );
     }
 
     /**
@@ -202,20 +199,19 @@ public class Ssh {
      * @return
      * @throws ReliabilityException
      */
-    public void waitBackgroudCMDDown(int channelId, int timeOutSecond) throws ReliabilityException {
-        Channel channel = backgroundCMD.get(channelId);
-        if (channel == null) {
+    public void waitBackgroudCMDDown( int channelId, int timeOutSecond )
+            throws ReliabilityException {
+        Channel channel = backgroundCMD.get( channelId );
+        if ( channel == null ) {
             throw new ReliabilityException(
-                    "ssh can not find this channel id(can not check channel id twice)");
+                    "ssh can not find this channel id(can not check channel id twice)" );
         }
-        backgroundCMD.remove(channelId);
+        backgroundCMD.remove( channelId );
         try {
-            getResult(channel, timeOutSecond);
-        }
-        catch (IOException e) {
-            throw new FaultException(e);
-        }
-        finally {
+            getResult( channel, timeOutSecond );
+        } catch ( IOException e ) {
+            throw new FaultException( e );
+        } finally {
             channel.disconnect();
         }
     }
@@ -224,82 +220,80 @@ public class Ssh {
      * 关闭Session，关闭backgroundCMD中的Channel（但这些未结束的后台命令可能仍会在远程主机正常执行）
      */
     public void disconnect() {
-        for (Channel channel : backgroundCMD.values()) {
+        for ( Channel channel : backgroundCMD.values() ) {
             channel.disconnect();
         }
-        if (this.session != null) {
+        if ( this.session != null ) {
             this.session.disconnect();
         }
     }
 
     public String getSdbInstallDir() throws ReliabilityException {
-        Ssh ssh = new Ssh(host, username, password);
+        Ssh ssh = new Ssh( host, username, password );
         String dir = null;
         try {
-            ssh.exec("cat /etc/default/sequoiadb |grep INSTALL_DIR");
+            ssh.exec( "cat /etc/default/sequoiadb |grep INSTALL_DIR" );
             String str = ssh.getStdout();
-            if (str.length() <= 0) {
+            if ( str.length() <= 0 ) {
                 throw new ReliabilityException(
-                        "exec command:cat /etc/default/sequoiadb |grep INSTALL_DIR can not find sequoiadb install dir");
+                        "exec command:cat /etc/default/sequoiadb |grep INSTALL_DIR can not find sequoiadb install dir" );
             }
-            dir = str.substring(str.indexOf("=") + 1, str.length() - 1);
-        }
-        finally {
+            dir = str.substring( str.indexOf( "=" ) + 1, str.length() - 1 );
+        } finally {
             ssh.disconnect();
         }
         return dir;
 
     }
 
-    private void getResult(Channel channel, long timeOut) throws IOException {
+    private void getResult( Channel channel, long timeOut ) throws IOException {
         StringBuffer stdoutBf = new StringBuffer();
         StringBuffer stderrBf = new StringBuffer();
-        InputStream er = ((ChannelExec) channel).getErrStream();
+        InputStream er = ( ( ChannelExec ) channel ).getErrStream();
         InputStream in = channel.getInputStream();
-        byte[] tmp = new byte[1024];
+        byte[] tmp = new byte[ 1024 ];
         long timer = System.currentTimeMillis();
         try {
-            channel.connect(60*1000);
-        } catch (JSchException e) {
-            log.severe(e.toString());
+            channel.connect( 60 * 1000 );
+        } catch ( JSchException e ) {
+            log.severe( e.toString() );
         }
-        while (true) {
-            while (in.available() > 0) {
-                int i = in.read(tmp, 0, 1024);
-                if (i < 0) {
+        while ( true ) {
+            while ( in.available() > 0 ) {
+                int i = in.read( tmp, 0, 1024 );
+                if ( i < 0 ) {
                     break;
                 }
-                stdoutBf.append(new String(tmp, 0, i));
+                stdoutBf.append( new String( tmp, 0, i ) );
 
-                if (System.currentTimeMillis() - timer > timeOut * 1000) {
+                if ( System.currentTimeMillis() - timer > timeOut * 1000 ) {
                     break;
                 }
             }
-            while (er.available() > 0) {
-                int i = er.read(tmp, 0, 1024);
-                if (i < 0)
+            while ( er.available() > 0 ) {
+                int i = er.read( tmp, 0, 1024 );
+                if ( i < 0 )
                     break;
-                stderrBf.append(new String(tmp, 0, i));
-                if (System.currentTimeMillis() - timer > timeOut * 1000) {
+                stderrBf.append( new String( tmp, 0, i ) );
+                if ( System.currentTimeMillis() - timer > timeOut * 1000 ) {
                     break;
                 }
             }
 
-            if (channel.isClosed()) {
-                if (in.available() > 0 || er.available() > 0) {
+            if ( channel.isClosed() ) {
+                if ( in.available() > 0 || er.available() > 0 ) {
                     continue;
                 }
                 break;
             }
 
             try {
-                Thread.sleep(200);
-            }
-            catch (Exception e) {
+                Thread.sleep( 200 );
+            } catch ( Exception e ) {
                 // ignore
             }
 
-            if (System.currentTimeMillis() - timer > timeOut * 1000) {
+            if ( System.currentTimeMillis() - timer > timeOut * 1000 ) {
                 break;
             }
         }

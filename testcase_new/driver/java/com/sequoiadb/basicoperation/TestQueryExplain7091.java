@@ -23,162 +23,183 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @FileName:TestQueryExplain7091
- *   explain (BSONObject matcher, BSONObject selector, BSONObject orderBy, 
- *                 BSONObject hint, long skipRows, long returnRows, int flag, BSONObject options)
+ * @FileName:TestQueryExplain7091 explain (BSONObject matcher, BSONObject
+ *                                selector, BSONObject orderBy, BSONObject hint,
+ *                                long skipRows, long returnRows, int flag,
+ *                                BSONObject options)
  * @author chensiqin
  * @version 1.00
  *
  */
 
-public class TestQueryExplain7091 extends SdbTestBase{
+public class TestQueryExplain7091 extends SdbTestBase {
     private Sequoiadb sdb;
     private CollectionSpace cs;
     private DBCollection cl;
     private String clName = "cl7091";
-    private ArrayList<BSONObject> insertRecods;
-    
+    private ArrayList< BSONObject > insertRecods;
+
     @BeforeClass
     public void setUp() {
         String coordAddr = SdbTestBase.coordUrl;
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                    ". the TestCase begin at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            this.sdb = new Sequoiadb(coordAddr, "", "");
-            this.cs = this.sdb.getCollectionSpace(SdbTestBase.csName);
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
+            this.sdb = new Sequoiadb( coordAddr, "", "" );
+            this.cs = this.sdb.getCollectionSpace( SdbTestBase.csName );
             createCL();
 
-        }catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestQueryExplain7091 setUp error, error description:" + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    "Sequoiadb driver TestQueryExplain7091 setUp error, error description:"
+                            + e.getMessage() );
         }
     }
-    
+
     public void createCL() {
-        if (this.cs.isCollectionExist(clName)) {
-            this.cs.dropCollection(clName);
+        if ( this.cs.isCollectionExist( clName ) ) {
+            this.cs.dropCollection( clName );
         }
-        this.cl = this.cs.createCollection(clName);
-        this.cl.createIndex("ageIndex", (BSONObject) JSON.parse("{age:1}"), false, false);
+        this.cl = this.cs.createCollection( clName );
+        this.cl.createIndex( "ageIndex", ( BSONObject ) JSON.parse( "{age:1}" ),
+                false, false );
     }
-    
+
     @Test
     public void test() {
         insertData();
         checkExplainHint();
         checkExplainNoHint();
     }
-    
+
     public void checkExplainHint() {
         BSONObject matcher, selector, orderBy, hint;
         long skipRows, returnRows;
         int flag;
         BSONObject options;
         try {
-            matcher = (BSONObject) JSON.parse("{_id:{$gt:20}}");
-            selector = (BSONObject) JSON.parse("{num:{$include:0}}");
-            orderBy = (BSONObject) JSON.parse("{_id:-1}");
-            hint = (BSONObject) JSON.parse("{\"\":\"ageIndex\"}");
+            matcher = ( BSONObject ) JSON.parse( "{_id:{$gt:20}}" );
+            selector = ( BSONObject ) JSON.parse( "{num:{$include:0}}" );
+            orderBy = ( BSONObject ) JSON.parse( "{_id:-1}" );
+            hint = ( BSONObject ) JSON.parse( "{\"\":\"ageIndex\"}" );
             skipRows = 0;
             returnRows = 5;
             flag = DBQuery.FLG_QUERY_FORCE_HINT;
             options = new BasicBSONObject();
-            options.put("Run", true);
-            DBCursor cursor = 
-                    this.cl.explain(matcher, selector, orderBy, hint, skipRows, returnRows, flag, options);
+            options.put( "Run", true );
+            DBCursor cursor = this.cl.explain( matcher, selector, orderBy, hint,
+                    skipRows, returnRows, flag, options );
             BSONObject actualObject = new BasicBSONObject();
             BSONObject expectedObject = new BasicBSONObject();
-            expectedObject.put("ScanType", "ixscan");
-            expectedObject.put("IndexName", "ageIndex");
-            expectedObject.put("IndexRead", 25);
-            expectedObject.put("DataRead", 25);
-            expectedObject.put("ReturnNum", 4);
-            while(cursor.hasNext()) {
+            expectedObject.put( "ScanType", "ixscan" );
+            expectedObject.put( "IndexName", "ageIndex" );
+            expectedObject.put( "IndexRead", 25 );
+            expectedObject.put( "DataRead", 25 );
+            expectedObject.put( "ReturnNum", 4 );
+            while ( cursor.hasNext() ) {
                 BSONObject obj = cursor.getNext();
-                actualObject.put("ScanType", obj.get("ScanType"));
-                actualObject.put("IndexName", obj.get("IndexName"));
-                actualObject.put("IndexRead", obj.get("IndexRead"));
-                actualObject.put("DataRead", obj.get("DataRead"));
-                actualObject.put("ReturnNum", obj.get("ReturnNum"));
+                actualObject.put( "ScanType", obj.get( "ScanType" ) );
+                actualObject.put( "IndexName", obj.get( "IndexName" ) );
+                actualObject.put( "IndexRead", obj.get( "IndexRead" ) );
+                actualObject.put( "DataRead", obj.get( "DataRead" ) );
+                actualObject.put( "ReturnNum", obj.get( "ReturnNum" ) );
             }
             cursor.close();
-            Assert.assertEquals(actualObject, expectedObject, "Sequoiadb driver TestQueryExplain7091 checkExplainHint" +
-                    "actualList:" +actualObject + "; expectedList:" + expectedObject);
-        }catch (BaseException e) {
-            System.out.println("Sequoiadb driver TestQueryExplain7091 checkExplainHint error, error description:" + e.getMessage());
-            Assert.fail("Sequoiadb driver TestQueryExplain7091 checkExplainHint error:" + e.getMessage());
+            Assert.assertEquals( actualObject, expectedObject,
+                    "Sequoiadb driver TestQueryExplain7091 checkExplainHint"
+                            + "actualList:" + actualObject + "; expectedList:"
+                            + expectedObject );
+        } catch ( BaseException e ) {
+            System.out.println(
+                    "Sequoiadb driver TestQueryExplain7091 checkExplainHint error, error description:"
+                            + e.getMessage() );
+            Assert.fail(
+                    "Sequoiadb driver TestQueryExplain7091 checkExplainHint error:"
+                            + e.getMessage() );
         }
     }
-    
-    public void checkExplainNoHint(){
+
+    public void checkExplainNoHint() {
         BSONObject matcher, selector, orderBy, hint;
         long skipRows, returnRows;
         int flag;
         BSONObject options;
         try {
-            matcher = (BSONObject) JSON.parse("{num:{$gt:20}}");
-            selector = (BSONObject) JSON.parse("{num:{$include:0}}");
-            orderBy = (BSONObject) JSON.parse("{num:-1}");
-            hint = (BSONObject) JSON.parse("{\"\":\"\"}");
+            matcher = ( BSONObject ) JSON.parse( "{num:{$gt:20}}" );
+            selector = ( BSONObject ) JSON.parse( "{num:{$include:0}}" );
+            orderBy = ( BSONObject ) JSON.parse( "{num:-1}" );
+            hint = ( BSONObject ) JSON.parse( "{\"\":\"\"}" );
             skipRows = 0;
             returnRows = 5;
             flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
             options = new BasicBSONObject();
-            options.put("Run", true);
-            DBCursor cursor = 
-                    this.cl.explain(matcher, selector, orderBy, hint, skipRows, returnRows, flag, options);
+            options.put( "Run", true );
+            DBCursor cursor = this.cl.explain( matcher, selector, orderBy, hint,
+                    skipRows, returnRows, flag, options );
             BSONObject actualObject = new BasicBSONObject();
             BSONObject expectedObject = new BasicBSONObject();
-            expectedObject.put("ScanType", "tbscan");
-            expectedObject.put("IndexName", "");
-            expectedObject.put("IndexRead", 0);
-            expectedObject.put("DataRead", 25);
-            expectedObject.put("ReturnNum", 4);
-            while(cursor.hasNext()) {
+            expectedObject.put( "ScanType", "tbscan" );
+            expectedObject.put( "IndexName", "" );
+            expectedObject.put( "IndexRead", 0 );
+            expectedObject.put( "DataRead", 25 );
+            expectedObject.put( "ReturnNum", 4 );
+            while ( cursor.hasNext() ) {
                 BSONObject obj = cursor.getNext();
-                actualObject.put("ScanType", obj.get("ScanType"));
-                actualObject.put("IndexName", obj.get("IndexName"));
-                actualObject.put("IndexRead", obj.get("IndexRead"));
-                actualObject.put("DataRead", obj.get("DataRead"));
-                actualObject.put("ReturnNum", obj.get("ReturnNum"));
+                actualObject.put( "ScanType", obj.get( "ScanType" ) );
+                actualObject.put( "IndexName", obj.get( "IndexName" ) );
+                actualObject.put( "IndexRead", obj.get( "IndexRead" ) );
+                actualObject.put( "DataRead", obj.get( "DataRead" ) );
+                actualObject.put( "ReturnNum", obj.get( "ReturnNum" ) );
             }
             cursor.close();
-            Assert.assertEquals(actualObject, expectedObject, "Sequoiadb driver TestQueryExplain7091 checkExplainNoHint" +
-                    "actualList:" +actualObject + "; expectedList:" + expectedObject);
-        }catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestQueryExplain7091 checkExplainNoHint error:" + e.getMessage());
+            Assert.assertEquals( actualObject, expectedObject,
+                    "Sequoiadb driver TestQueryExplain7091 checkExplainNoHint"
+                            + "actualList:" + actualObject + "; expectedList:"
+                            + expectedObject );
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    "Sequoiadb driver TestQueryExplain7091 checkExplainNoHint error:"
+                            + e.getMessage() );
         }
     }
-    
+
     public void insertData() {
-        try{
+        try {
             BSONObject bson;
-            this.insertRecods = new ArrayList<BSONObject>();
-            for (int i = 0; i < 25; i++) {
+            this.insertRecods = new ArrayList< BSONObject >();
+            for ( int i = 0; i < 25; i++ ) {
                 bson = new BasicBSONObject();
-                bson.put("_id", i);
-                bson.put("name", "zhangsan" + i);
-                bson.put("age", -1*i);
-                bson.put("num", i);
-                bson.put("height",i);
-                this.insertRecods.add(bson);
-            } 
+                bson.put( "_id", i );
+                bson.put( "name", "zhangsan" + i );
+                bson.put( "age", -1 * i );
+                bson.put( "num", i );
+                bson.put( "height", i );
+                this.insertRecods.add( bson );
+            }
             this.cl.bulkInsert( this.insertRecods, 0 );
-        }catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestQueryExplain7091 insert recods error:" + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    "Sequoiadb driver TestQueryExplain7091 insert recods error:"
+                            + e.getMessage() );
         }
     }
-    
+
     @AfterClass
     public void tearDown() {
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + 
-                    ". the TestCase end at:" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            if (this.cs.isCollectionExist(clName)) {
-                this.cs.dropCollection(clName);
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
+            if ( this.cs.isCollectionExist( clName ) ) {
+                this.cs.dropCollection( clName );
             }
             this.sdb.disconnect();
-        } catch (BaseException e) {
-            Assert.fail("Sequoiadb driver TestQueryExplain7091 tearDown error:" + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail( "Sequoiadb driver TestQueryExplain7091 tearDown error:"
+                    + e.getMessage() );
         }
-    }  
+    }
 }

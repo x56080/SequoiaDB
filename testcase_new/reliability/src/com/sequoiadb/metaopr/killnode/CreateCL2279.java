@@ -33,12 +33,9 @@ import java.util.*;
  */
 
 /*
- * 1、创建CS，在该CS下创建CL（执行脚本构造循环执行创建多个CL操作） 
- * 2、创建CL时catalog备节点异常重启（如执行kill -9杀掉节点进程，构造节点异常重启） 
- * 3、查看CL创建结果和catalog备节点状态 
- * 4、节点启动成功后（查看节点进程存在） 
- * 5、再次创建相同CL，向该CL中插入数据 
- * 6、查看CL信息（执行db.listCollections（）命令查看CS/CL信息是否和实际一致 
+ * 1、创建CS，在该CS下创建CL（执行脚本构造循环执行创建多个CL操作） 2、创建CL时catalog备节点异常重启（如执行kill
+ * -9杀掉节点进程，构造节点异常重启） 3、查看CL创建结果和catalog备节点状态 4、节点启动成功后（查看节点进程存在）
+ * 5、再次创建相同CL，向该CL中插入数据 6、查看CL信息（执行db.listCollections（）命令查看CS/CL信息是否和实际一致
  * 7、查看catalog主备节点是否存在该CL相关信息
  */
 
@@ -52,18 +49,21 @@ public class CreateCL2279 extends SdbTestBase {
     public void setUp() {
         Sequoiadb db = null;
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
-            
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
+
             groupMgr = new GroupMgr();
-            if (!groupMgr.checkBusiness()) {
-                throw new SkipException("checkBusiness failed");
+            if ( !groupMgr.checkBusiness() ) {
+                throw new SkipException( "checkBusiness failed" );
             }
-        } catch (ReliabilityException e) {
-            Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
-                    + Utils.getKeyStack(e, this));
+        } catch ( ReliabilityException e ) {
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.disconnect();
             }
         }
@@ -73,31 +73,37 @@ public class CreateCL2279 extends SdbTestBase {
     public void test() {
         Sequoiadb db = null;
         try {
-            GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
+            GroupWrapper cataGroup = groupMgr
+                    .getGroupByName( "SYSCatalogGroup" );
             NodeWrapper slvNode = cataGroup.getSlave();
 
-            FaultMakeTask faultTask = KillNode.getFaultMakeTask(slvNode.hostName(), slvNode.svcName(), 0);
-            TaskMgr mgr = new TaskMgr(faultTask);
+            FaultMakeTask faultTask = KillNode.getFaultMakeTask(
+                    slvNode.hostName(), slvNode.svcName(), 0 );
+            TaskMgr mgr = new TaskMgr( faultTask );
             CreateCLTask cTask = new CreateCLTask();
-            mgr.addTask(cTask);
+            mgr.addTask( cTask );
             mgr.execute();
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
-            
-            if (!groupMgr.checkBusinessWithLSN(600)) { Assert.fail("checkBusinessWithLSN() occurs timeout"); }
-            
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            createCLAgain(db);
-            operateOnCL(db);
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
-            if (!groupMgr.checkBusinessWithLSN(600)) { Assert.fail("checkBusinessWithLSN() occurs timeout"); }
-            checkListCL(db);
-            Utils.checkConsistency(cataGroup);
+            if ( !groupMgr.checkBusinessWithLSN( 600 ) ) {
+                Assert.fail( "checkBusinessWithLSN() occurs timeout" );
+            }
+
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            createCLAgain( db );
+            operateOnCL( db );
+
+            if ( !groupMgr.checkBusinessWithLSN( 600 ) ) {
+                Assert.fail( "checkBusinessWithLSN() occurs timeout" );
+            }
+            checkListCL( db );
+            Utils.checkConsistency( cataGroup );
             runSuccess = true;
-        } catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.disconnect();
             }
         }
@@ -105,110 +111,116 @@ public class CreateCL2279 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (!runSuccess) { throw new SkipException("to save environment"); }
+        if ( !runSuccess ) {
+            throw new SkipException( "to save environment" );
+        }
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            dropCL(db);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            dropCL( db );
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    e.getMessage() + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.disconnect();
             }
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
         }
     }
-    
+
     private class CreateCLTask extends OperateTask {
         @Override
         public void exec() throws Exception {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(coordUrl, "", "");
-                CollectionSpace commCS = db.getCollectionSpace(csName);
-                for (int i = 0; i < CL_NUM; i++) {
+                db = new Sequoiadb( coordUrl, "", "" );
+                CollectionSpace commCS = db.getCollectionSpace( csName );
+                for ( int i = 0; i < CL_NUM; i++ ) {
                     String clName = clNameBase + "_" + i;
-                    commCS.createCollection(clName);
+                    commCS.createCollection( clName );
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.disconnect();
                 }
             }
         }
     }
-    
-    private void createCLAgain(Sequoiadb db) {
-        CollectionSpace commCS = db.getCollectionSpace(csName);
-        for (int i = 0; i < CL_NUM; i++) {
+
+    private void createCLAgain( Sequoiadb db ) {
+        CollectionSpace commCS = db.getCollectionSpace( csName );
+        for ( int i = 0; i < CL_NUM; i++ ) {
             String clName = clNameBase + "_" + i;
             try {
-                commCS.createCollection(clName);
-            } catch (BaseException e) {
-                // -22 SDB_DMS_EXIST 集合已存在 
-                if (e.getErrorCode() != -22) {
+                commCS.createCollection( clName );
+            } catch ( BaseException e ) {
+                // -22 SDB_DMS_EXIST 集合已存在
+                if ( e.getErrorCode() != -22 ) {
                     throw e;
                 }
             }
         }
     }
-    
-    private void operateOnCL(Sequoiadb db) {
-        CollectionSpace commCS = db.getCollectionSpace(csName);
-        for (int i = 0; i < CL_NUM; i++) {
+
+    private void operateOnCL( Sequoiadb db ) {
+        CollectionSpace commCS = db.getCollectionSpace( csName );
+        for ( int i = 0; i < CL_NUM; i++ ) {
             String clName = clNameBase + "_" + i;
-            DBCollection cl = commCS.getCollection(clName);
-            cl.insert("{ a: 1 }");
+            DBCollection cl = commCS.getCollection( clName );
+            cl.insert( "{ a: 1 }" );
         }
     }
-    
-    private void checkListCL(Sequoiadb db) {
+
+    private void checkListCL( Sequoiadb db ) {
         // get expect cl name list
-        List<BSONObject> expCSNames = new ArrayList<BSONObject>();
-        for (int i = 0; i < CL_NUM; i++) {
+        List< BSONObject > expCSNames = new ArrayList< BSONObject >();
+        for ( int i = 0; i < CL_NUM; i++ ) {
             BSONObject nameBSON = new BasicBSONObject();
             String clFullName = csName + "." + clNameBase + "_" + i;
-            nameBSON.put("Name", clFullName);
-            expCSNames.add(nameBSON);
+            nameBSON.put( "Name", clFullName );
+            expCSNames.add( nameBSON );
         }
-        
+
         // get actual cl name list
         DBCursor cursor = db.listCollections();
-        List<BSONObject> actCSNames = new ArrayList<BSONObject>();
-        while (cursor.hasNext()) {
+        List< BSONObject > actCSNames = new ArrayList< BSONObject >();
+        while ( cursor.hasNext() ) {
             BSONObject result = cursor.getNext();
-            actCSNames.add(result);
+            actCSNames.add( result );
         }
         cursor.close();
-        
+
         // compare them
-        sortByName(actCSNames);
-        sortByName(expCSNames);
-        if (!actCSNames.equals(expCSNames)) {
-            System.out.println(actCSNames);
-            System.out.println(expCSNames);
-            Assert.fail("listCollections() is not the expected. see details on console");
+        sortByName( actCSNames );
+        sortByName( expCSNames );
+        if ( !actCSNames.equals( expCSNames ) ) {
+            System.out.println( actCSNames );
+            System.out.println( expCSNames );
+            Assert.fail(
+                    "listCollections() is not the expected. see details on console" );
         }
     }
-    
-    private void sortByName(List<BSONObject> list) {
-        Collections.sort(list, new Comparator<BSONObject>() {
-            public int compare(BSONObject a, BSONObject b) {
-                String aName = (String)a.get("Name");
-                String bName = (String)b.get("Name");
-                return aName.compareTo(bName);
+
+    private void sortByName( List< BSONObject > list ) {
+        Collections.sort( list, new Comparator< BSONObject >() {
+            public int compare( BSONObject a, BSONObject b ) {
+                String aName = ( String ) a.get( "Name" );
+                String bName = ( String ) b.get( "Name" );
+                return aName.compareTo( bName );
             }
-        });
+        } );
     }
-    
-    private void dropCL(Sequoiadb db) {
-        CollectionSpace commCS = db.getCollectionSpace(csName);
-        for (int i = 0; i < CL_NUM; i++) {
+
+    private void dropCL( Sequoiadb db ) {
+        CollectionSpace commCS = db.getCollectionSpace( csName );
+        for ( int i = 0; i < CL_NUM; i++ ) {
             String clName = clNameBase + "_" + i;
-            commCS.dropCollection(clName);
+            commCS.dropCollection( clName );
         }
     }
 }

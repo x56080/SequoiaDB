@@ -31,40 +31,39 @@ public class CLOperation implements StandTestInterface {
     final String CSNAME = "cs2295";
     final String DOMAINNAME = "domain2295";
     final long DATASIZE = 1000;
-    List<String> clNames = new ArrayList<>(500);
+    List< String > clNames = new ArrayList<>( 500 );
     String groupName1, groupName2;
 
     @BeforeClass
     @Override
     public void setup() {
-        printBeginTime(this);
+        printBeginTime( this );
         GroupMgr groupMgr = null;
         try {
             groupMgr = new GroupMgr();
-        } catch (ReliabilityException e) {
-            MyUtil.throwSkipException("skip");
+        } catch ( ReliabilityException e ) {
+            MyUtil.throwSkipException( "skip" );
         }
-        List<String> groupNames = groupMgr.getAllDataGroupName();
+        List< String > groupNames = groupMgr.getAllDataGroupName();
         groupMgr.close();
-        groupName1 = groupNames.get(0);
-        groupName2 = groupNames.get(1);
+        groupName1 = groupNames.get( 0 );
+        groupName2 = groupNames.get( 1 );
 
-        MyUtil.createDomain(DOMAINNAME, groupName1, groupName2);
-        MyUtil.createCS(CSNAME, DOMAINNAME);
-        for (int i = 0; i < 500; i++) {
+        MyUtil.createDomain( DOMAINNAME, groupName1, groupName2 );
+        MyUtil.createCS( CSNAME, DOMAINNAME );
+        for ( int i = 0; i < 500; i++ ) {
             String name = "cl" + i;
-            clNames.add(name);
+            clNames.add( name );
         }
     }
 
     @AfterClass
     @Override
     public void tearDown() {
-        dropCS(CSNAME);
-        dropDomain(DOMAINNAME);
-        printEndTime(this);
+        dropCS( CSNAME );
+        dropDomain( DOMAINNAME );
+        printEndTime( this );
     }
-
 
     @Test
     /**
@@ -72,18 +71,19 @@ public class CLOperation implements StandTestInterface {
      */
     public void dropClSlaverCataNodeRestart() throws ReliabilityException {
         checkBusiness();
-        createClInSingleCs(CSNAME, clNames);
+        createClInSingleCs( CSNAME, clNames );
         NodeWrapper slaverNode = getSlaveNodeOfCatalog();
-        FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask(slaverNode, 1, 5);
-        TaskMgr taskMgr = TaskMgr.getTaskMgr(faultMakeTask);
-        OperateTask task = DBoperateTask.getTaskDropCLInOneCs(clNames, CSNAME);
-        taskMgr.addTask(task);
+        FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask( slaverNode,
+                1, 5 );
+        TaskMgr taskMgr = TaskMgr.getTaskMgr( faultMakeTask );
+        OperateTask task = DBoperateTask.getTaskDropCLInOneCs( clNames,
+                CSNAME );
+        taskMgr.addTask( task );
         taskMgr.execute();
-        assertTrue(taskMgr.isAllSuccess());
-        assertTrue(isClAllDeleted(CSNAME, clNames));
-        assertTrue(isCatalogGroupSync());
+        assertTrue( taskMgr.isAllSuccess() );
+        assertTrue( isClAllDeleted( CSNAME, clNames ) );
+        assertTrue( isCatalogGroupSync() );
     }
-
 
     @Test
     /**
@@ -91,28 +91,32 @@ public class CLOperation implements StandTestInterface {
      */
     public void createClWithDomainMasterRestart() throws ReliabilityException {
         checkBusiness();
-        dropCls(CSNAME, clNames);
+        dropCls( CSNAME, clNames );
 
         NodeWrapper master = getMasterNodeOfCatalog();
-        FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask(master, 1, 5);
-        TaskMgr taskMgr = TaskMgr.getTaskMgr(faultMakeTask);
-        DBoperateTask task = (DBoperateTask) DBoperateTask.getTaskCreateCLInOneCs(clNames, CSNAME);
-        taskMgr.addTask(task);
+        FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask( master, 1,
+                5 );
+        TaskMgr taskMgr = TaskMgr.getTaskMgr( faultMakeTask );
+        DBoperateTask task = ( DBoperateTask ) DBoperateTask
+                .getTaskCreateCLInOneCs( clNames, CSNAME );
+        taskMgr.addTask( task );
         taskMgr.execute();
 
-        if (taskMgr.isAllSuccess() == true) {
+        if ( taskMgr.isAllSuccess() == true ) {
             MyUtil.throwSkipExeWithoutFaultEnv();
         }
-        List<String> list = clNames.subList(task.getBreakIndex(), clNames.size());
-        createClInSingleCs(CSNAME, list);
-        assertTrue(isClAllCreated(CSNAME, clNames));
-        assertTrue(isCatalogGroupSync());
-        insertSimpleDataIntoCl(CSNAME, clNames.get(0), 1000);
-        long num = getClCountFromGroupMaster(groupName1, CSNAME, clNames.get(0));
-        num += getClCountFromGroupMaster(groupName2, CSNAME, clNames.get(0));
-        assertTrue(num == 1000);
+        List< String > list = clNames.subList( task.getBreakIndex(),
+                clNames.size() );
+        createClInSingleCs( CSNAME, list );
+        assertTrue( isClAllCreated( CSNAME, clNames ) );
+        assertTrue( isCatalogGroupSync() );
+        insertSimpleDataIntoCl( CSNAME, clNames.get( 0 ), 1000 );
+        long num = getClCountFromGroupMaster( groupName1, CSNAME,
+                clNames.get( 0 ) );
+        num += getClCountFromGroupMaster( groupName2, CSNAME,
+                clNames.get( 0 ) );
+        assertTrue( num == 1000 );
     }
-
 
     @Test
     /**
@@ -120,20 +124,24 @@ public class CLOperation implements StandTestInterface {
      */
     public void createClWithDomainSlaverRestart() throws ReliabilityException {
         checkBusiness();
-        dropCls(CSNAME, clNames);
+        dropCls( CSNAME, clNames );
 
         NodeWrapper slaver = getSlaveNodeOfCatalog();
-        FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask(slaver, 0, 5);
-        TaskMgr taskMg = TaskMgr.getTaskMgr(faultMakeTask);
-        taskMg.addTask(DBoperateTask.getTaskCreateCLInOneCs(clNames, CSNAME));
+        FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask( slaver, 0,
+                5 );
+        TaskMgr taskMg = TaskMgr.getTaskMgr( faultMakeTask );
+        taskMg.addTask(
+                DBoperateTask.getTaskCreateCLInOneCs( clNames, CSNAME ) );
         taskMg.execute();
-        assertTrue(taskMg.isAllSuccess());
-        assertTrue(isClAllCreated(CSNAME, clNames));
-        assertTrue(isCatalogGroupSync());
-        insertSimpleDataIntoCl(CSNAME, clNames.get(0), 1000);
+        assertTrue( taskMg.isAllSuccess() );
+        assertTrue( isClAllCreated( CSNAME, clNames ) );
+        assertTrue( isCatalogGroupSync() );
+        insertSimpleDataIntoCl( CSNAME, clNames.get( 0 ), 1000 );
 
-        long num = getClCountFromGroupMaster(groupName1, CSNAME, clNames.get(0));
-        num += getClCountFromGroupMaster(groupName2, CSNAME, clNames.get(0));
-        assertTrue(num == 1000);
+        long num = getClCountFromGroupMaster( groupName1, CSNAME,
+                clNames.get( 0 ) );
+        num += getClCountFromGroupMaster( groupName2, CSNAME,
+                clNames.get( 0 ) );
+        assertTrue( num == 1000 );
     }
 }

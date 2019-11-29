@@ -32,209 +32,210 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  * @version 1.00
  */
 public class IdIndex6612 extends SdbTestBase {
-	private Sequoiadb sdb;
-	private CollectionSpace cs;
-	private DBCollection cl;
-	private String clName = "c6612";
-	public String srcGroupName;
-	private String destGroupName;
-	private ArrayList<BSONObject> insertRecods;
-	private SimpleDateFormat df = new SimpleDateFormat(
-			"YYYY-MM-dd HH:mm:ss.SSS");
+    private Sequoiadb sdb;
+    private CollectionSpace cs;
+    private DBCollection cl;
+    private String clName = "c6612";
+    public String srcGroupName;
+    private String destGroupName;
+    private ArrayList< BSONObject > insertRecods;
+    private SimpleDateFormat df = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss.SSS" );
 
-	@BeforeClass
-	public void setUp() {
-		try {
-			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-			// 跳过 standAlone 和数据组不足的环境
-			CommLib commlib = new CommLib();
-			if (commlib.isStandAlone(sdb)) {
-				throw new SkipException("skip StandAlone");
-			}
-			// 源组和目标组
-			List<String> groupsName = commlib.getDataGroupNames(sdb);
-			if (groupsName.size() < 2) {
-				throw new SkipException(
-						"current environment less than tow groups ");
-			}
-			srcGroupName = groupsName.get(0);
-			destGroupName = groupsName.get(1);
-		} catch (BaseException e) {
-			Assert.fail(" IdIndex6612 setUp error:" + e.getMessage());
-		}
-		createCL();
-		insertData();
-	}
+    @BeforeClass
+    public void setUp() {
+        try {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            // 跳过 standAlone 和数据组不足的环境
+            CommLib commlib = new CommLib();
+            if ( commlib.isStandAlone( sdb ) ) {
+                throw new SkipException( "skip StandAlone" );
+            }
+            // 源组和目标组
+            List< String > groupsName = commlib.getDataGroupNames( sdb );
+            if ( groupsName.size() < 2 ) {
+                throw new SkipException(
+                        "current environment less than tow groups " );
+            }
+            srcGroupName = groupsName.get( 0 );
+            destGroupName = groupsName.get( 1 );
+        } catch ( BaseException e ) {
+            Assert.fail( " IdIndex6612 setUp error:" + e.getMessage() );
+        }
+        createCL();
+        insertData();
+    }
 
-	// 创建索引
-	@Test
-	public void createIndex() {
-		Split splitThread = new Split();
-		splitThread.start();
-		Sequoiadb db1 = null;
-		try {
-			db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-			DBCollection cl1 = db1.getCollectionSpace(SdbTestBase.csName)
-					.getCollection(clName);
-			cl1.createIdIndex(new BasicBSONObject());
-			checkIndex(cl1);
-			if(!splitThread.isSuccess()){
-				Assert.fail(splitThread.getErrorMsg());
-			}
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage());
-		} finally {
-			if (db1 != null) {
-				db1.disconnect();
-			}
-			splitThread.join();
-		}
-	}
+    // 创建索引
+    @Test
+    public void createIndex() {
+        Split splitThread = new Split();
+        splitThread.start();
+        Sequoiadb db1 = null;
+        try {
+            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            DBCollection cl1 = db1.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
+            cl1.createIdIndex( new BasicBSONObject() );
+            checkIndex( cl1 );
+            if ( !splitThread.isSuccess() ) {
+                Assert.fail( splitThread.getErrorMsg() );
+            }
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        } finally {
+            if ( db1 != null ) {
+                db1.disconnect();
+            }
+            splitThread.join();
+        }
+    }
 
-	/**
-	 * 切分数据
-	 */
-	class Split extends SdbThreadBase {
-		@Override
-		public void exec() throws BaseException {
-			Sequoiadb db2 = null;
-			try {
-				db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-				DBCollection cl2 = db2.getCollectionSpace(csName)
-						.getCollection(clName);
-				cl2.split(srcGroupName, destGroupName, 50);
-				checkSplit();
-			} catch (BaseException e) {
-				throw e;
-			} finally {
-				if (db2 != null) {
-					db2.disconnect();
-				}
-			}
-		}
-	}
+    /**
+     * 切分数据
+     */
+    class Split extends SdbThreadBase {
+        @Override
+        public void exec() throws BaseException {
+            Sequoiadb db2 = null;
+            try {
+                db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCollection cl2 = db2.getCollectionSpace( csName )
+                        .getCollection( clName );
+                cl2.split( srcGroupName, destGroupName, 50 );
+                checkSplit();
+            } catch ( BaseException e ) {
+                throw e;
+            } finally {
+                if ( db2 != null ) {
+                    db2.disconnect();
+                }
+            }
+        }
+    }
 
-	@AfterClass
-	public void tearDown() {
+    @AfterClass
+    public void tearDown() {
 
-		try {
-			if (this.cs.isCollectionExist(clName)) {
-				this.cs.dropCollection(clName);
-			}
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage());
-		} finally {
-			if (sdb != null) {
-				sdb.disconnect();
-			}
-		}
-	}
+        try {
+            if ( this.cs.isCollectionExist( clName ) ) {
+                this.cs.dropCollection( clName );
+            }
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        } finally {
+            if ( sdb != null ) {
+                sdb.disconnect();
+            }
+        }
+    }
 
-	public void createCL() {
-		try {
-			if (!sdb.isCollectionSpaceExist(SdbTestBase.csName)) {
-				sdb.createCollectionSpace(SdbTestBase.csName);
-			}
-		} catch (BaseException e) {
-			// -33 CS exist,ignore exceptions
-			Assert.assertEquals(-33, e.getErrorCode(), e.getMessage());
-		}
-		try {
-			String clOptions = "{ShardingKey:{\"_id\":1},ShardingType:'range',Partition:1024,"
-					+ "ReplSize:0,Compressed:true,AutoIndexId:false,Group:'"
-					+ srcGroupName + "'}";
-			BSONObject options = (BSONObject) JSON.parse(clOptions);
-			cs = sdb.getCollectionSpace(SdbTestBase.csName);
-			cl = cs.createCollection(this.clName, options);
+    public void createCL() {
+        try {
+            if ( !sdb.isCollectionSpaceExist( SdbTestBase.csName ) ) {
+                sdb.createCollectionSpace( SdbTestBase.csName );
+            }
+        } catch ( BaseException e ) {
+            // -33 CS exist,ignore exceptions
+            Assert.assertEquals( -33, e.getErrorCode(), e.getMessage() );
+        }
+        try {
+            String clOptions = "{ShardingKey:{\"_id\":1},ShardingType:'range',Partition:1024,"
+                    + "ReplSize:0,Compressed:true,AutoIndexId:false,Group:'"
+                    + srcGroupName + "'}";
+            BSONObject options = ( BSONObject ) JSON.parse( clOptions );
+            cs = sdb.getCollectionSpace( SdbTestBase.csName );
+            cl = cs.createCollection( this.clName, options );
 
-		} catch (BaseException e) {
-			Assert.assertTrue(false, "create cl fail " + e.getErrorType() + ":"
-					+ e.getMessage());
-		}
-	}
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "create cl fail " + e.getErrorType() + ":"
+                    + e.getMessage() );
+        }
+    }
 
-	public void insertData() {
-		try {
-			this.insertRecods = new ArrayList<BSONObject>();
-			for (int i = 0; i < 1000; i++) {
-				BSONObject bson = new BasicBSONObject();
-				bson.put("_id", i);
-				bson.put("age", i);
-				bson.put("name", "Json" + i);
-				this.cl.insert(bson);
-				this.insertRecods.add(bson);
-			}
-		} catch (BaseException e) {
-			Assert.fail(" insert error:" + e.getMessage());
-		}
-	}
+    public void insertData() {
+        try {
+            this.insertRecods = new ArrayList< BSONObject >();
+            for ( int i = 0; i < 1000; i++ ) {
+                BSONObject bson = new BasicBSONObject();
+                bson.put( "_id", i );
+                bson.put( "age", i );
+                bson.put( "name", "Json" + i );
+                this.cl.insert( bson );
+                this.insertRecods.add( bson );
+            }
+        } catch ( BaseException e ) {
+            Assert.fail( " insert error:" + e.getMessage() );
+        }
+    }
 
-	/**
-	 * 检查索引
-	 */
-	public void checkIndex(DBCollection cl) {
-		DBCursor cursor1 = null;
-		try {
-			// 通过explain，判断是否走索引
-			cursor1 = cl.explain(null, null, null,
-					(BSONObject) JSON.parse("{'':'$id'}"), 0, -1, 0, null);
-			String scanType = null;
-			String IndexName = null;
-			while (cursor1.hasNext()) {
-				BSONObject record = cursor1.getNext();
-				if (record.get("Name")
-						.equals(SdbTestBase.csName + "." + clName)) {
-					scanType = (String) record.get("ScanType");
-					IndexName = (String) record.get("IndexName");
-				}
-			}
-			Assert.assertEquals(scanType, "ixscan");
-			Assert.assertEquals(IndexName, "$id");
-		} catch (BaseException e) {
-			Assert.fail(" IdIndex6612 checkIndex error:" + e.getMessage());
-		} finally {
-			if (cursor1 != null) {
-				cursor1.close();
-			}
-		}
-	}
+    /**
+     * 检查索引
+     */
+    public void checkIndex( DBCollection cl ) {
+        DBCursor cursor1 = null;
+        try {
+            // 通过explain，判断是否走索引
+            cursor1 = cl.explain( null, null, null,
+                    ( BSONObject ) JSON.parse( "{'':'$id'}" ), 0, -1, 0, null );
+            String scanType = null;
+            String IndexName = null;
+            while ( cursor1.hasNext() ) {
+                BSONObject record = cursor1.getNext();
+                if ( record.get( "Name" )
+                        .equals( SdbTestBase.csName + "." + clName ) ) {
+                    scanType = ( String ) record.get( "ScanType" );
+                    IndexName = ( String ) record.get( "IndexName" );
+                }
+            }
+            Assert.assertEquals( scanType, "ixscan" );
+            Assert.assertEquals( IndexName, "$id" );
+        } catch ( BaseException e ) {
+            Assert.fail( " IdIndex6612 checkIndex error:" + e.getMessage() );
+        } finally {
+            if ( cursor1 != null ) {
+                cursor1.close();
+            }
+        }
+    }
 
-	/**
-	 * 检查切分
-	 */
-	public void checkSplit() {
-		Sequoiadb destDataNode = null;
-		Sequoiadb srcDataNode = null;
-		DBCursor cursor = null;
-		try {
-			// 目标组数据量检查
-			destDataNode = sdb.getReplicaGroup(destGroupName).getMaster()
-					.connect();
-			DBCollection destCL = destDataNode.getCollectionSpace(csName)
-					.getCollection(clName);
-			long count = destCL
-					.getCount("{$and:[{_id:{$gte:500}},{_id:{$lt:1000}}]}");
-			Assert.assertEquals(count, 500);// 目标组数据应当含有上述查询数据
-			Assert.assertEquals(destCL.getCount(), 500); // // 目标组数据应当仅含有上述查询数据
-			// 源组数据量检查
-			srcDataNode = sdb.getReplicaGroup(srcGroupName).getMaster()
-					.connect();
-			DBCollection destCL2 = srcDataNode.getCollectionSpace(csName)
-					.getCollection(clName);
-			long count2 = destCL2
-					.getCount("{$and:[{_id:{$gte:0}},{_id:{$lt:500}}]}");
-			Assert.assertEquals(count2, 500);// 源组数据应当含有上述查询数据
-			Assert.assertEquals(destCL.getCount(), 500); // // 源组数据应当仅含有上述查询数据
-			// coord数据查询
-			cursor = this.cl.query(null, null, "{_id:1}", null);
-			List<BSONObject> actual = new ArrayList<BSONObject>();
-			while (cursor.hasNext()) {
-				BSONObject obj = cursor.getNext();
-				actual.add(obj);
-			}
-			Assert.assertEquals(actual, this.insertRecods);
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage());
-		}
-	}
+    /**
+     * 检查切分
+     */
+    public void checkSplit() {
+        Sequoiadb destDataNode = null;
+        Sequoiadb srcDataNode = null;
+        DBCursor cursor = null;
+        try {
+            // 目标组数据量检查
+            destDataNode = sdb.getReplicaGroup( destGroupName ).getMaster()
+                    .connect();
+            DBCollection destCL = destDataNode.getCollectionSpace( csName )
+                    .getCollection( clName );
+            long count = destCL
+                    .getCount( "{$and:[{_id:{$gte:500}},{_id:{$lt:1000}}]}" );
+            Assert.assertEquals( count, 500 );// 目标组数据应当含有上述查询数据
+            Assert.assertEquals( destCL.getCount(), 500 ); // //
+                                                           // 目标组数据应当仅含有上述查询数据
+            // 源组数据量检查
+            srcDataNode = sdb.getReplicaGroup( srcGroupName ).getMaster()
+                    .connect();
+            DBCollection destCL2 = srcDataNode.getCollectionSpace( csName )
+                    .getCollection( clName );
+            long count2 = destCL2
+                    .getCount( "{$and:[{_id:{$gte:0}},{_id:{$lt:500}}]}" );
+            Assert.assertEquals( count2, 500 );// 源组数据应当含有上述查询数据
+            Assert.assertEquals( destCL.getCount(), 500 ); // // 源组数据应当仅含有上述查询数据
+            // coord数据查询
+            cursor = this.cl.query( null, null, "{_id:1}", null );
+            List< BSONObject > actual = new ArrayList< BSONObject >();
+            while ( cursor.hasNext() ) {
+                BSONObject obj = cursor.getNext();
+                actual.add( obj );
+            }
+            Assert.assertEquals( actual, this.insertRecods );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        }
+    }
 }

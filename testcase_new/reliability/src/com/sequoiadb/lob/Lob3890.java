@@ -30,25 +30,25 @@ import static org.testng.AssertJUnit.assertTrue;
 public class Lob3890 implements StandTestInterface {
     String csName = LobUtil.csName;
     String clName = LobUtil.clName;
-    private byte[] data = createRandomBytes(200 * 1024);
-    private List<ObjectId> ids = new ArrayList<>();
+    private byte[] data = createRandomBytes( 200 * 1024 );
+    private List< ObjectId > ids = new ArrayList<>();
     private TaskMgr taskMgr = new TaskMgr();
 
     @BeforeClass
     @Override
     public void setup() {
-        MyUtil.printBeginTime(this);
+        MyUtil.printBeginTime( this );
         LobUtil.createLobCsAndCl();
-        MyUtil.deleteAllLobs(csName, clName);
-        for (int i = 0; i < 100; i++) {
-            ids.add(createLob(csName, clName, data));
+        MyUtil.deleteAllLobs( csName, clName );
+        for ( int i = 0; i < 100; i++ ) {
+            ids.add( createLob( csName, clName, data ) );
         }
     }
 
     @AfterClass
     @Override
     public void tearDown() {
-        MyUtil.printEndTime(this);
+        MyUtil.printEndTime( this );
         LobUtil.dropLobCS();
     }
 
@@ -56,40 +56,46 @@ public class Lob3890 implements StandTestInterface {
     public void test() throws ReliabilityException {
         allNodeRestart();
 
-        List<ObjectId> createdId = new ArrayList<>();
-        HashMap<ObjectId, String> deletedIdMap = new HashMap<>();
+        List< ObjectId > createdId = new ArrayList<>();
+        HashMap< ObjectId, String > deletedIdMap = new HashMap<>();
 
-        LobTask createTask = LobTask.getCreateLobsTask(1000, data, createdId);
-        createTask.setName("create lob task");
-        LobTask readTask = LobTask.getReadLobsTask(ids);
-        readTask.setName("read lob task ");
-        LobTask deleteTask = LobTask.getDeleteLobsTask(ids, deletedIdMap);
-        deleteTask.setName("delete lob task");
+        LobTask createTask = LobTask.getCreateLobsTask( 1000, data, createdId );
+        createTask.setName( "create lob task" );
+        LobTask readTask = LobTask.getReadLobsTask( ids );
+        readTask.setName( "read lob task " );
+        LobTask deleteTask = LobTask.getDeleteLobsTask( ids, deletedIdMap );
+        deleteTask.setName( "delete lob task" );
 
-        taskMgr.addTask(createTask);
-        taskMgr.addTask(readTask);
-        taskMgr.addTask(deleteTask);
+        taskMgr.addTask( createTask );
+        taskMgr.addTask( readTask );
+        taskMgr.addTask( deleteTask );
 
         taskMgr.execute();
 
-        byte[] targetMd5Value = MyUtil.getMd5(data);
-        assertTrue(MyUtil.isLobsAllCreated(csName, clName, createdId));
-        assertTrue(MyUtil.isLobsAllDelete(csName, clName, deletedIdMap));
-        assertTrue(MyUtil.isLobNumInspectInGroup(csName, clName, "group1"));
-        assertTrue(MyUtil.isLobNumInspectInGroup(csName, clName, "group2"));
-        assertTrue(MyUtil.isLobMd5InspectInGroup(csName, clName, "group1", targetMd5Value));
-        assertTrue(MyUtil.isLobMd5InspectInGroup(csName, clName, "group2", targetMd5Value));
+        byte[] targetMd5Value = MyUtil.getMd5( data );
+        assertTrue( MyUtil.isLobsAllCreated( csName, clName, createdId ) );
+        assertTrue( MyUtil.isLobsAllDelete( csName, clName, deletedIdMap ) );
+        assertTrue( MyUtil.isLobNumInspectInGroup( csName, clName, "group1" ) );
+        assertTrue( MyUtil.isLobNumInspectInGroup( csName, clName, "group2" ) );
+        assertTrue( MyUtil.isLobMd5InspectInGroup( csName, clName, "group1",
+                targetMd5Value ) );
+        assertTrue( MyUtil.isLobMd5InspectInGroup( csName, clName, "group2",
+                targetMd5Value ) );
     }
 
     private void allNodeRestart() throws ReliabilityException {
         GroupMgr groupMgr = new GroupMgr();
-        for (NodeWrapper node : groupMgr.getGroupByName("group1").getNodes()) {
-            FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask(node, 0, 3);
-            taskMgr.addTask(faultMakeTask);
+        for ( NodeWrapper node : groupMgr.getGroupByName( "group1" )
+                .getNodes() ) {
+            FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask( node, 0,
+                    3 );
+            taskMgr.addTask( faultMakeTask );
         }
-        for (NodeWrapper node : groupMgr.getGroupByName("group2").getNodes()) {
-            FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask(node, 0, 3);
-            taskMgr.addTask(faultMakeTask);
+        for ( NodeWrapper node : groupMgr.getGroupByName( "group2" )
+                .getNodes() ) {
+            FaultMakeTask faultMakeTask = NodeRestart.getFaultMakeTask( node, 0,
+                    3 );
+            taskMgr.addTask( faultMakeTask );
         }
     }
 }

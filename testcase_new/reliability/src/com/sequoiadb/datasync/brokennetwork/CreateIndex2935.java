@@ -40,11 +40,8 @@ import com.sequoiadb.task.TaskMgr;
  */
 
 /*
- * 1.创建CS，CL 
- * 2.指定所有选项（isUnique/enforced）批量创建索引 
- * 3.过程中构造断网故障(例如:ifdown) 
- * 4.选主成功后，继续创建部分索引 
- * 5.过程中故障恢复(例如：ifup)，验证索引信息 
+ * 1.创建CS，CL 2.指定所有选项（isUnique/enforced）批量创建索引 3.过程中构造断网故障(例如:ifdown)
+ * 4.选主成功后，继续创建部分索引 5.过程中故障恢复(例如：ifup)，验证索引信息
  */
 
 public class CreateIndex2935 extends SdbTestBase {
@@ -59,31 +56,37 @@ public class CreateIndex2935 extends SdbTestBase {
     public void setUp() {
         Sequoiadb db = null;
         try {
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase begin at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase begin at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
 
             groupMgr = new GroupMgr();
-            if (!groupMgr.checkBusiness()) {
-                throw new SkipException("checkBusiness failed");
+            if ( !groupMgr.checkBusiness() ) {
+                throw new SkipException( "checkBusiness failed" );
             }
 
-            clGroupName = groupMgr.getAllDataGroupName().get(0);
-            GroupWrapper cataGroup = groupMgr.getGroupByName("SYSCatalogGroup");
+            clGroupName = groupMgr.getAllDataGroupName().get( 0 );
+            GroupWrapper cataGroup = groupMgr
+                    .getGroupByName( "SYSCatalogGroup" );
             String cataPriHost = cataGroup.getMaster().hostName();
-            dataGroup = groupMgr.getGroupByName(clGroupName);
+            dataGroup = groupMgr.getGroupByName( clGroupName );
             dataPriHost = dataGroup.getMaster().hostName();
-            if (cataPriHost.equals(dataPriHost) && !cataGroup.changePrimary()) {
-                throw new SkipException(cataGroup.getGroupName() + " reelect fail");
+            if ( cataPriHost.equals( dataPriHost )
+                    && !cataGroup.changePrimary() ) {
+                throw new SkipException(
+                        cataGroup.getGroupName() + " reelect fail" );
             }
 
-            db = new Sequoiadb(coordUrl, "", "");
-            createCL(db);
-            insertData(db);
-        } catch (ReliabilityException e) {
-            Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage() + "\r\n"
-                    + Utils.getKeyStack(e, this));
+            db = new Sequoiadb( coordUrl, "", "" );
+            createCL( db );
+            insertData( db );
+        } catch ( ReliabilityException e ) {
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.disconnect();
             }
         }
@@ -93,26 +96,27 @@ public class CreateIndex2935 extends SdbTestBase {
     public void test() {
         Sequoiadb db = null;
         try {
-            FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(dataPriHost, 1, 10);
-            TaskMgr mgr = new TaskMgr(faultTask);
-            String safeUrl = CommLib.getSafeCoordUrl(dataPriHost);
-            CreateIdxTask cTask = new CreateIdxTask(safeUrl);
-            mgr.addTask(cTask);
+            FaultMakeTask faultTask = BrokenNetwork
+                    .getFaultMakeTask( dataPriHost, 1, 10 );
+            TaskMgr mgr = new TaskMgr( faultTask );
+            String safeUrl = CommLib.getSafeCoordUrl( dataPriHost );
+            CreateIdxTask cTask = new CreateIdxTask( safeUrl );
+            mgr.addTask( cTask );
             mgr.execute();
-            Assert.assertEquals(mgr.isAllSuccess(), true, mgr.getErrorMsg());
+            Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
-            if (!groupMgr.checkBusinessWithLSN(600)) {
-                Assert.fail("checkBusinessWithLSN() occurs timeout");
+            if ( !groupMgr.checkBusinessWithLSN( 600 ) ) {
+                Assert.fail( "checkBusinessWithLSN() occurs timeout" );
             }
 
-            checkConsistency(dataGroup);
-            checkExplain(dataGroup);
+            checkConsistency( dataGroup );
+            checkExplain( dataGroup );
             runSuccess = true;
-        } catch (ReliabilityException e) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.disconnect();
             }
         }
@@ -120,46 +124,52 @@ public class CreateIndex2935 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (!runSuccess) {
-            throw new SkipException("to save environment");
+        if ( !runSuccess ) {
+            throw new SkipException( "to save environment" );
         }
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            CollectionSpace commCS = db.getCollectionSpace(csName);
-            commCS.dropCollection(clName);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + Utils.getKeyStack(e, this));
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            CollectionSpace commCS = db.getCollectionSpace( csName );
+            commCS.dropCollection( clName );
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    e.getMessage() + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.disconnect();
             }
-            System.out.println("the TestCase Name:" + this.getClass().getName() + ". the TestCase end at:"
-                    + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS").format(new Date()));
+            System.out.println( "the TestCase Name:" + this.getClass().getName()
+                    + ". the TestCase end at:"
+                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
+                            .format( new Date() ) );
         }
     }
 
-    private void createCL(Sequoiadb db) {
-        CollectionSpace commCS = db.getCollectionSpace(csName);
-        BSONObject option = (BSONObject) JSON.parse("{ Group: '" + clGroupName + "', ReplSize: 1 }");
-        commCS.createCollection(clName, option);
+    private void createCL( Sequoiadb db ) {
+        CollectionSpace commCS = db.getCollectionSpace( csName );
+        BSONObject option = ( BSONObject ) JSON
+                .parse( "{ Group: '" + clGroupName + "', ReplSize: 1 }" );
+        commCS.createCollection( clName, option );
     }
 
-    private void insertData(Sequoiadb db) {
-        DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-        List<BSONObject> recs = new ArrayList<BSONObject>();
+    private void insertData( Sequoiadb db ) {
+        DBCollection cl = db.getCollectionSpace( csName )
+                .getCollection( clName );
+        List< BSONObject > recs = new ArrayList< BSONObject >();
         int total = 10000;
-        for (int i = 0; i < total; i++) {
-            BSONObject rec = (BSONObject) JSON.parse("{ a" + i + ": " + i + " }");
-            recs.add(rec);
+        for ( int i = 0; i < total; i++ ) {
+            BSONObject rec = ( BSONObject ) JSON
+                    .parse( "{ a" + i + ": " + i + " }" );
+            recs.add( rec );
         }
-        cl.bulkInsert(recs, DBCollection.FLG_INSERT_CONTONDUP);
+        cl.bulkInsert( recs, DBCollection.FLG_INSERT_CONTONDUP );
     }
 
     private class CreateIdxTask extends OperateTask {
         private String safeUrl = null;
 
-        public CreateIdxTask(String safeUrl) {
+        public CreateIdxTask( String safeUrl ) {
             this.safeUrl = safeUrl;
         }
 
@@ -167,22 +177,25 @@ public class CreateIndex2935 extends SdbTestBase {
         public void exec() throws Exception {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(safeUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                for (int i = 0; i < 60; i++) {
+                db = new Sequoiadb( safeUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                for ( int i = 0; i < 60; i++ ) {
                     String idxName = "idx_" + i;
-                    BSONObject key = (BSONObject) JSON.parse("{ a" + i + ": 1 }");
+                    BSONObject key = ( BSONObject ) JSON
+                            .parse( "{ a" + i + ": 1 }" );
                     boolean isUnique = i % 2 == 0 ? true : false;
                     boolean enforced = false;
                     int sortBufferSize = i * 2;
                     try {
-                        cl.createIndex(idxName, key, isUnique, enforced, sortBufferSize);
-                    } catch (BaseException e) {
+                        cl.createIndex( idxName, key, isUnique, enforced,
+                                sortBufferSize );
+                    } catch ( BaseException e ) {
                     }
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.disconnect();
                 }
             }
@@ -190,53 +203,57 @@ public class CreateIndex2935 extends SdbTestBase {
     }
 
     private void checkConsistency( GroupWrapper dataGroup ) {
-        String lastCompareInfo = "" ;
-        List< String > clNames = new ArrayList< String >() ;
-        clNames.add( clName ) ;
+        String lastCompareInfo = "";
+        List< String > clNames = new ArrayList< String >();
+        clNames.add( clName );
         if ( !Utils.checkIndexConsistency( dataGroup, csName, clNames,
                 lastCompareInfo ) ) {
-            System.out.println( lastCompareInfo ) ;
-            Assert.fail( "data is different. see the detail in console" ) ;
+            System.out.println( lastCompareInfo );
+            Assert.fail( "data is different. see the detail in console" );
         }
     }
 
     private void checkExplain( GroupWrapper dataGroup ) {
-        List< String > dataUrls = dataGroup.getAllUrls() ;
+        List< String > dataUrls = dataGroup.getAllUrls();
         for ( String dataUrl : dataUrls ) {
-            Sequoiadb dataDB = new Sequoiadb( dataUrl, "", "" ) ;
+            Sequoiadb dataDB = new Sequoiadb( dataUrl, "", "" );
             DBCollection cl = dataDB.getCollectionSpace( csName )
-                    .getCollection( clName ) ;
-            List< String > idxNames = getIdxNames( cl ) ;
+                    .getCollection( clName );
+            List< String > idxNames = getIdxNames( cl );
             for ( String idxName : idxNames ) {
                 if ( !isExplainOk( cl, idxName ) ) {
-                    Assert.fail( idxName + " does not work" ) ;
+                    Assert.fail( idxName + " does not work" );
                 }
             }
             dataDB.disconnect();
         }
     }
 
-    private boolean isExplainOk(DBCollection cl, String idxName) {
-        BSONObject hint = (BSONObject) JSON.parse("{ '': '" + idxName + "' }");
-        BSONObject run = (BSONObject) JSON.parse("{ Run: true }");
-        DBCursor cursor = cl.explain(null, null, null, hint, 0, -1, DBQuery.FLG_QUERY_FORCE_HINT, run);
+    private boolean isExplainOk( DBCollection cl, String idxName ) {
+        BSONObject hint = ( BSONObject ) JSON
+                .parse( "{ '': '" + idxName + "' }" );
+        BSONObject run = ( BSONObject ) JSON.parse( "{ Run: true }" );
+        DBCursor cursor = cl.explain( null, null, null, hint, 0, -1,
+                DBQuery.FLG_QUERY_FORCE_HINT, run );
         BSONObject plan = cursor.getNext();
         cursor.close();
 
-        if (!(plan.get("ScanType")).equals("ixscan") || !(plan.get("IndexName")).equals(idxName)) {
-            System.out.println("index: " + idxName);
-            System.out.println("explain:" + plan);
+        if ( !( plan.get( "ScanType" ) ).equals( "ixscan" )
+                || !( plan.get( "IndexName" ) ).equals( idxName ) ) {
+            System.out.println( "index: " + idxName );
+            System.out.println( "explain:" + plan );
             return false;
         }
         return true;
     }
 
-    private List<String> getIdxNames(DBCollection cl) {
+    private List< String > getIdxNames( DBCollection cl ) {
         DBCursor cursor = cl.getIndexes();
-        List<String> idxNames = new ArrayList<String>();
-        while (cursor.hasNext()) {
-            String idxName = (String) ((BSONObject) cursor.getNext().get("IndexDef")).get("name");
-            idxNames.add(idxName);
+        List< String > idxNames = new ArrayList< String >();
+        while ( cursor.hasNext() ) {
+            String idxName = ( String ) ( ( BSONObject ) cursor.getNext()
+                    .get( "IndexDef" ) ).get( "name" );
+            idxNames.add( idxName );
         }
         cursor.close();
         return idxNames;

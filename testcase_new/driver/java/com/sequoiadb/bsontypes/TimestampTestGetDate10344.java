@@ -20,100 +20,104 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
-* FileName: TimestampTestGetDate10344.java* 
-* test interface:
-* BSONTimestamp (int time, int inc),getDate (),toString()
-* TestLink: seqDB-10344:
-* @author wuyan
-    * @Date    2016.10.13
-* @version 1.00
-*/
-public class TimestampTestGetDate10344 extends SdbTestBase{
-	
-	private String clName = "cl_10344";
-	private static Sequoiadb sdb = null;
-	private CollectionSpace cs = null;
-	private DBCollection cl ;
-	private SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS");
-	
-	
-	@BeforeClass
-	public void setUp(){
-		
-		System.out.println(this.getClass().getName()+" begin at "+sdf.format(new Date()));
-		try{
-			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-		}catch(BaseException e){			
-			Assert.assertTrue(false,"connect %s failed,"+SdbTestBase.coordUrl+e.getMessage());
-		}	
-		
-		createCL();
-	}
-	
-	private void createCL(){
-		try{
-			if (!sdb.isCollectionSpaceExist(SdbTestBase.csName)){
-				sdb.createCollectionSpace(SdbTestBase.csName);	
-			}
-		}catch(BaseException e){
-			//-33 CS exist,ignore exceptions
-			Assert.assertEquals(-33,e.getErrorCode(),e.getMessage());
-		}
-		String test = "{ReplSize:0,Compressed:true}";
-		BSONObject options =(BSONObject) JSON.parse(test);
-		try
-		{
-			cs = sdb.getCollectionSpace(SdbTestBase.csName);			
-			cl = cs.createCollection(clName,options);
-		}catch(BaseException e){
-			Assert.assertTrue(false,"create cl fail "+e.getErrorType()+":"+e.getMessage());
-		}
-	}	
-    
-	@Test
-	public void testGetDateAndToString() {
-		try{
-			BSONObject obj = new BasicBSONObject();
-			int seconds = 23456;
-			int inc = 99988;
-			String expectTime = "{ $timestamp : 1970-01-01-14.30.56.99988 }";
-			BSONTimestamp timestamp = new BSONTimestamp(seconds, inc);
-			
-			//test the toString()
-			String timeString = timestamp.toString();
-			Assert.assertEquals(timeString,expectTime,"check not string data");
-			//test the getDate()
-			Date date = timestamp.getDate();	
-			obj.put("date", date);
-			obj.put("timestamp",timestamp);
-			cl.insert(obj);
-			//check the insert result		
-			BSONObject tmp = new BasicBSONObject();
-	        DBCursor tmpCursor = cl.query(tmp, null, null, null);
-	        BasicBSONObject actRecs = null;		       
-	        while(tmpCursor.hasNext()){
-	        	actRecs = (BasicBSONObject)tmpCursor.getNext();	         
-	        }
-	        tmpCursor.close();
-	        Assert.assertEquals(actRecs,obj,"check datas are unequal\n"+"actDatas: "
-	        			+actRecs+"\n"+"expectDatas: "+timestamp.toString());	        
-		}catch(BaseException  e){
-			Assert.assertTrue(false,e.getMessage()+e.getStackTrace());
-		}	
-	}	
-	
-	@AfterClass
-	public void tearDown(){
-		try{			
-			if(cs.isCollectionExist(clName)){
-				cs.dropCollection(clName);
-			}		
-			sdb.disconnect();
-			System.out.println("---"+this.getClass().getName()+" end at "+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S").format(new Date()));
-		}catch(BaseException e){			
-			Assert.assertTrue(false,"clean up failed:"+e.getMessage());
-		}
-	}
-	
-}
+ * FileName: TimestampTestGetDate10344.java* test interface: BSONTimestamp (int
+ * time, int inc),getDate (),toString() TestLink: seqDB-10344:
+ * 
+ * @author wuyan
+ * @Date 2016.10.13
+ * @version 1.00
+ */
+public class TimestampTestGetDate10344 extends SdbTestBase {
 
+    private String clName = "cl_10344";
+    private static Sequoiadb sdb = null;
+    private CollectionSpace cs = null;
+    private DBCollection cl;
+    private SimpleDateFormat sdf = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss.SSS" );
+
+    @BeforeClass
+    public void setUp() {
+
+        System.out.println( this.getClass().getName() + " begin at "
+                + sdf.format( new Date() ) );
+        try {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "connect %s failed,"
+                    + SdbTestBase.coordUrl + e.getMessage() );
+        }
+
+        createCL();
+    }
+
+    private void createCL() {
+        try {
+            if ( !sdb.isCollectionSpaceExist( SdbTestBase.csName ) ) {
+                sdb.createCollectionSpace( SdbTestBase.csName );
+            }
+        } catch ( BaseException e ) {
+            // -33 CS exist,ignore exceptions
+            Assert.assertEquals( -33, e.getErrorCode(), e.getMessage() );
+        }
+        String test = "{ReplSize:0,Compressed:true}";
+        BSONObject options = ( BSONObject ) JSON.parse( test );
+        try {
+            cs = sdb.getCollectionSpace( SdbTestBase.csName );
+            cl = cs.createCollection( clName, options );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "create cl fail " + e.getErrorType() + ":"
+                    + e.getMessage() );
+        }
+    }
+
+    @Test
+    public void testGetDateAndToString() {
+        try {
+            BSONObject obj = new BasicBSONObject();
+            int seconds = 23456;
+            int inc = 99988;
+            String expectTime = "{ $timestamp : 1970-01-01-14.30.56.99988 }";
+            BSONTimestamp timestamp = new BSONTimestamp( seconds, inc );
+
+            // test the toString()
+            String timeString = timestamp.toString();
+            Assert.assertEquals( timeString, expectTime,
+                    "check not string data" );
+            // test the getDate()
+            Date date = timestamp.getDate();
+            obj.put( "date", date );
+            obj.put( "timestamp", timestamp );
+            cl.insert( obj );
+            // check the insert result
+            BSONObject tmp = new BasicBSONObject();
+            DBCursor tmpCursor = cl.query( tmp, null, null, null );
+            BasicBSONObject actRecs = null;
+            while ( tmpCursor.hasNext() ) {
+                actRecs = ( BasicBSONObject ) tmpCursor.getNext();
+            }
+            tmpCursor.close();
+            Assert.assertEquals( actRecs, obj,
+                    "check datas are unequal\n" + "actDatas: " + actRecs + "\n"
+                            + "expectDatas: " + timestamp.toString() );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, e.getMessage() + e.getStackTrace() );
+        }
+    }
+
+    @AfterClass
+    public void tearDown() {
+        try {
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
+            }
+            sdb.disconnect();
+            System.out.println( "---" + this.getClass().getName() + " end at "
+                    + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
+                            .format( new Date() ) );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
+        }
+    }
+
+}

@@ -16,8 +16,7 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @FileName:seqDB-6644:指定错误压缩类型创建CL
- * 指定Compressed:true,CompressionType:"aaa"创建CL
+ * @FileName:seqDB-6644:指定错误压缩类型创建CL 指定Compressed:true,CompressionType:"aaa"创建CL
  * @Author linsuqiang
  * @Date 2016-12-27
  * @Version 1.00
@@ -25,49 +24,52 @@ import com.sequoiadb.testcommon.SdbTestBase;
 public class TestLzw6644 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl_6644";
-    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
-    
+    private SimpleDateFormat sdf = new SimpleDateFormat(
+            "yyyy-MM-dd HH:mm:ss.S" );
+
     @BeforeClass
     public void setUp() {
-        try{
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        }catch(BaseException e){
-            Assert.fail(e.getMessage());
+        try {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         }
     }
-    
+
     @AfterClass
-    public void tearDown(){
-        try{
-            CollectionSpace cs = sdb.getCollectionSpace(csName);  
-            if(cs.isCollectionExist(clName)){
-                cs.dropCollection(clName);
+    public void tearDown() {
+        try {
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-        }catch(BaseException e){
-            Assert.fail(e.getMessage());
-        }finally{
-            if(sdb != null){
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        } finally {
+            if ( sdb != null ) {
                 sdb.disconnect();
             }
         }
     }
-    
+
     @Test
     public void test() {
         Sequoiadb db = null;
-        try{
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            CollectionSpace cs = sdb.getCollectionSpace(csName);
-            try{
-                cs.createCollection(clName, (BSONObject)JSON.parse("{Compressed: true, CompressionType: 'aaa'}"));
-                throw new BaseException(-10000, "cl shouldn't been created successfully");
-            }catch(BaseException e){
-                Assert.assertEquals(e.getErrorCode(), -6, e.getMessage());
+        try {
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            try {
+                cs.createCollection( clName, ( BSONObject ) JSON.parse(
+                        "{Compressed: true, CompressionType: 'aaa'}" ) );
+                throw new BaseException( -10000,
+                        "cl shouldn't been created successfully" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -6, e.getMessage() );
             }
-        }catch(BaseException e){
-            Assert.fail(e.getMessage());
-        }finally{
-            if(db != null){
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        } finally {
+            if ( db != null ) {
                 db.disconnect();
             }
         }
