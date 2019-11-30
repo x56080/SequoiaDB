@@ -59,7 +59,7 @@ namespace engine
    #define DMS_BUILD_RBS_CL_NAME( clName, cl )             \
                ossSnprintf ( clName, sizeof(clName),       \
                              DMS_RBS_NAME_PATTERN,         \
-                             SDB_DMSRBS_NAME, cl ) 
+                             SDB_DMSRBS_NAME, cl )
 
    // record offset within RBS
    class dmsRBSOffset
@@ -408,6 +408,8 @@ namespace engine
 
       // The max size of each collection
       UINT32  _maxCollectionSize ;
+
+      CHAR _metaCLName[30] ;
 
       // The hash bucket to point to the head of the record. 
       // we may have different implementation of how to store and access
