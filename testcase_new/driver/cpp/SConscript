@@ -162,7 +162,7 @@ testFiles = [
    [ "./monitor/resetSnapshot14455.cpp" ], # sync
    [ "./monitor/getSnapshotPlan14514.cpp" ],
    [ "./date/date11754.cpp" ],
-   [ "./date/dateTime12219_12220.cpp" ],
+   #[ "./date/dateTime12219_12220.cpp" ],
    [ "./numberLong/numberLong7822.cpp" ],
    [ "./lob/lobSeekAndWrite13412_13413.cpp" ],
    [ "./lob/lobWrite13414.cpp" ],
