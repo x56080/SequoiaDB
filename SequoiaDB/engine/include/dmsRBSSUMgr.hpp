@@ -56,6 +56,11 @@ namespace engine
    // number of slots in RBS hash bucket, a prime number less than 32K
    #define  DMS_RBS_HASH_BKT_SLOTS   ( (UINT32) 32749 )
 
+   #define DMS_BUILD_RBS_CL_NAME( clName, cl )             \
+               ossSnprintf ( clName, sizeof(clName),       \
+                             DMS_RBS_NAME_PATTERN,         \
+                             SDB_DMSRBS_NAME, cl ) 
+
    // record offset within RBS
    class dmsRBSOffset
    {
@@ -162,6 +167,9 @@ namespace engine
       }
    } ;
 
+   // FIXME: we might not need this if we decide to use cappedRecord header
+   //        keep it for now until we finalize appendRecord/getRecord
+
    // Define Rollback Segment Record. These records are old version
    // records stored in system capped storage for MVCC feature.
    //   class _dmsRBSRecord : public _dmsCappedRecord
@@ -178,8 +186,10 @@ namespace engine
       // include CSID and RID
       dmsRBSRecordKey  _recordKey ;
 
-      // global transaction ID which generated this version
-      DPS_TRANS_ID     _GlobTransID ;
+      // This is the record transID, which is considered as the version
+      // of the record. It is the transID of the transaction which created
+      // this version.
+      DPS_TRANS_ID     _globTransID ;
       // offset of previous older version in the rollback segment
       // The mulitple version of the same records(base on RID) are
       // chained together using this field.
@@ -196,20 +206,20 @@ namespace engine
       : _recordKey(),
         _preOffset()
       {
-         _GlobTransID = DPS_INVALID_TRANS_ID ;
+         _globTransID = DPS_INVALID_TRANS_ID ;
          _head._flag_and_size = 0 ;
       }
 
       // Note that since we added two more fileds here before the data,
       // any methods accessing data must be implemented for this class
-      void setGlobTransID( DPS_TRANS_ID gtid )
+      void setGlobTransID( DPS_TRANS_ID transid )
       {
-         this->_GlobTransID = gtid;
+         this->_globTransID = DPS_TRANS_GET_SN(transid);
       }
 
       DPS_TRANS_ID getGlobTransID() const
       {
-         return this->_GlobTransID ;
+         return this->_globTransID ;
       }
 
       void setPreOffset( dmsRBSOffset &offset )
@@ -220,6 +230,16 @@ namespace engine
       dmsRBSOffset getPreOffset() const
       {
          return this->_preOffset ;
+      }
+
+      BOOLEAN isDeleting() const
+      {
+         return getAttr() & DMS_RECORD_FLAG_DELETING ? TRUE : FALSE ;
+      }
+
+      void setDeleting()
+      {
+         setAttr( DMS_RECORD_FLAG_DELETING ) ;
       }
 
       void setRecordKey( dmsStorageUnitID  csid,
@@ -291,6 +311,7 @@ namespace engine
       }
 
       /*
+         FIXME: revisit the logic
          Copy the data to disk directly
       */
       void  setData( const dmsRecordData &data )
@@ -315,6 +336,7 @@ namespace engine
       }
 
       /*
+         FIXME: revisit the logic
          Get disk data only, if compressed, not uncompressed
       */
       const CHAR* getData() const
@@ -395,14 +417,13 @@ namespace engine
       // Full size is 32k* (40+12)B = 1.6MB
       _dmsRBSHashValue    _rbsRecordBkt[ DMS_RBS_HASH_BKT_SLOTS ] ;
  
-
    public :
       _dmsRBSSUMgr ( _SDB_DMSCB *dmsCB ) ;
 
       // this function verify whether RBS collection space exist. If it
       // is not exist then create one. And then reset all temp collections
-      SINT32 init() { return SDB_OK ; }
-      void   fini() {}
+      SINT32 init() ;
+      void   fini() ;
 
       SINT32 release ( _dmsMBContext *&context ) ;
 
@@ -411,78 +432,82 @@ namespace engine
       SINT32 appendRecord ( dmsStorageUnitID  csid,
                             UINT16            clid,
                             dmsRecordID       rid,
-                            DPS_TRANS_ID      gtid,
-                            const dmsRecordData  &record)  
-      { return SDB_OK ; }
+                            DPS_TRANS_ID      recordTransid,
+                            DPS_TRANS_ID      ownerTransid,
+                            const dmsRecord  *record) ; 
 
       SINT32 appendRecord ( dmsStorageUnitID  csid,
                             UINT16            clid,
                             dmsRecordID       rid,
-                            DPS_TRANS_ID      gtid,
-                            const BSONObj     &obj )
-      { return SDB_OK ; }
+                            DPS_TRANS_ID      recordTransid,
+                            DPS_TRANS_ID      ownerTransid,
+                            const BSONObj     &obj );
 
       SINT32 getRecord ( dmsStorageUnitID  csid,
                          UINT16            clid,
                          dmsRecordID       rid,
-                         DPS_TRANS_ID      gtid,
+                         DPS_TRANS_ID      transid,
                          BOOLEAN          &found,
-                         dmsRecordData    &record )  
-      { return SDB_OK ; }
-      void gcRBS ( ) {}
+                         dmsRecordData    &record ) ; 
+
+      SINT32 getRecord1 ( dmsStorageUnitID  csid,
+                         UINT16            clid,
+                         dmsRecordID       rid,
+                         DPS_TRANS_ID      transid,
+                         BOOLEAN          &found,
+                         dmsRecordData    &record ) ; 
+      void gcRBS ( ) ;
 
    private:
 
       SINT32 _getMeta ( UINT16 &curCL, 
                         UINT16 &lastFreeCL, 
-                        dmsMBContext *context  ) 
-      { return SDB_OK ; }
+                        dmsMBContext *context  ) ;
 
       // release a collection
-      SINT32 _release ( ) 
-      { return SDB_OK ; }
+      SINT32 _release ( ) ;
 
       // insert the meta record during create
       SINT32 _insertMeta ( UINT16 curCL, 
                            UINT16 lastFreeCL,
                            dmsMBContext *context,
-                           SDB_DPSCB * dpsCB ) 
-      { return SDB_OK ; }
+                           SDB_DPSCB * dpsCB ) ;
 
       // Update the meta record, usually after swtiching RBSCLs
-      SINT32 _updateMeta () 
-      { return SDB_OK ; }
-      SINT32 _updateMeta ( UINT16 curCL, 
-                           UINT16 lastFreeCL,
+      SINT32 _updateMeta () ;
+      SINT32 _updateMeta ( UINT16        curCL, 
+                           UINT16        lastFreeCL,
                            dmsMBContext *context,
-                           SDB_DPSCB  *dpsCB ) 
-      { return SDB_OK ; }
+                           SDB_DPSCB    *dpsCB = NULL ) ;
 
       // based on csId, clID and rid to hash to a bucket
       OSS_INLINE UINT32 _hash ( dmsStorageUnitID  _csID ,
                                 UINT16            _clID ,
                                 dmsRecordID       _rid ) ;
 
-      SINT32 _gcRBS ( UINT16 &position ) 
-      { return SDB_OK ; }
+      SINT32 _gcRBS ( UINT16 &position ) ;
+
+      SINT32 _prepareRBSCLForRecord( UINT32        recordSize,
+                                     pmdEDUCB     *eduCB,
+                                     dmsMBContext *& clContext ) ;
 
       SINT32 _allocRBSRecordSpace( UINT32        size,
                                    dmsRBSOffset &newOffset,
                                    pmdEDUCB     *eduCB,
                                    dmsMBContext *metaContext,
-                                   dmsMBContext *&clContext ) 
-      { return SDB_OK ; }
+                                   dmsMBContext *&clContext ) ;
 
       SINT32 _writeRecToLocation( dmsRBSOffset         location,
                                   dmsStorageUnitID     csid,
                                   UINT16               clid,
                                   dmsRecordID          rid,
-                                  DPS_TRANS_ID         gtid,
-                                  const dmsRecordData &recordData,
+                                  DPS_TRANS_ID         transid,
+                                  const dmsRecord     *record,
                                   UINT32               recSize,
                                   pmdEDUCB            *eduCB,
-                                  dmsMBContext        *context ) 
-      { return SDB_OK ; }
+                                  dmsMBContext        *context ) ;
+
+      SINT32 _gcRBS ( SINT32 &position ) ;
 
    } ;
    typedef class _dmsRBSSUMgr dmsRBSSUMgr ;
@@ -505,7 +530,25 @@ namespace engine
                DMS_RBS_HASH_BKT_SLOTS ;
    }
 
+   /*
+      _dmsRBSGCJob define
+      Class to trigger RBS GC work in the background
+   */
+   class _dmsRBSGCJob : public _utilLightJob
+   {
+      public:
+         _dmsRBSGCJob( _dmsRBSSUMgr  *rbsSUMgr ) ;
+         virtual ~_dmsRBSGCJob() ;
+         virtual const CHAR*     name() const ;
+         virtual INT32        doit( IExecutor *pExe,
+                                       UTIL_LJOB_DO_RESULT &result,
+                                       UINT64 &sleepTime ) ;
+      private:
+         _dmsRBSSUMgr * _rbsSUMgr ;
+   } ;
+   typedef _dmsRBSGCJob dmsRBSGCJob ;
 
+   void  dmsStartAsyncRBSGC() ;
 }
 #endif //DMSRBSSUMGR_HPP__
 

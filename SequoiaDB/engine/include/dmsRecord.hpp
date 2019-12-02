@@ -177,7 +177,9 @@ namespace engine
    #define DMS_RECORD_V1_METADATA_SZ   sizeof(_dmsRecord_v1)
    #define DMS_RECORD_RBS_METADATA_SZ   sizeof(_dmsRBSRecord)
    #define DMS_RECORD_CAP_METADATA_SZ   sizeof(_dmsCappedRecord)
-   #define DMS_RECORD_METADATA_SZ DMS_RECORD_V0_METADATA_SZ
+
+   // FIXME: before final deliver, we should set to V0 in main
+   #define DMS_RECORD_METADATA_SZ DMS_RECORD_V1_METADATA_SZ
    // based on current record version to decide the record metadata size
    #define DMS_RECORD_VERSIONED_METADATA_SZ               \
            ( hasGlobTransID() ? DMS_RECORD_V1_METADATA_SZ : \
@@ -414,7 +416,7 @@ namespace engine
 
       void setGlobTransID ( const DPS_TRANS_ID globtransid )
       {
-         _globTransID = globtransid ;
+         _globTransID = DPS_TRANS_GET_SN(globtransid) ;
          setHasGlobTransID() ;
       }
 
@@ -439,7 +441,8 @@ namespace engine
    typedef _dmsRecord_v1 dmsRecord_v1 ;
 
    // current version is v1 which has GlobTransID for MVCC purpose
-   typedef _dmsRecord_v0 _dmsRecord ;
+   // FIXME: before final deliver, we should set to V0 in main
+   typedef _dmsRecord_v1 _dmsRecord ;
    typedef _dmsRecord dmsRecord ;
 
    // implementations has to put after _dmsRecord_v1 definition
@@ -661,11 +664,11 @@ namespace engine
       }                 _head ;
       dmsOffset         _myOffset ;
       dmsRecordID       _next ;
-      // FIXME: Enable this once we switch default record to V1
-      // DPS_TRANS_ID     _globTransID ;  // the position of GlobTransID is same 
-                                          // as V1 Record. So once a record is
-                                          // deleted under new release, it's 
-                                          // automatically converted to V1 type
+      // FIXME: Enable this in main once we switch default record to V1
+      DPS_TRANS_ID      _globTransID ;  // the position of the GTID is same
+                                        // as v1 record. So once a record is 
+                                        // deleted under new release, it's 
+                                        // automatically converted to v1 type
 
       /*
          Get Functions
@@ -715,7 +718,7 @@ namespace engine
       {
          setFlag( DMS_RECORD_FLAG_DELETED ) ;
       }
-#if 0    // FIXME:enable this later
+//#if 0    // FIXME:enable this in main later
       void setHasGlobTransID()
       {
          _head._recordHead[ 0 ] |= DMS_RECORD_FLAG_HASGLOBTRANSID ;
@@ -725,7 +728,7 @@ namespace engine
          setHasGlobTransID() ;
          _globTransID = DPS_INVALID_TRANS_ID ;
       }
-#endif
+//#endif
    } ;
    typedef _dmsDeletedRecord dmsDeletedRecord ;
    #define DMS_DELETEDRECORD_METADATA_SZ  sizeof(dmsDeletedRecord)

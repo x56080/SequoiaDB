@@ -51,6 +51,7 @@
 #include "utilCompressor.hpp"
 #include "dmsTransLockCallback.hpp"
 #include "dmsLightJob.hpp"
+#include "utilInsertResult.hpp"
 
 using namespace bson ;
 
@@ -3099,7 +3100,7 @@ namespace engine
             insertObj = BSONObj( recordData.data() ) ;
             dmsRecordSize = recordData.len() ;
 
-            // check
+            // make sure record size is valid
             if ( recordData.len() + DMS_RECORD_METADATA_SZ >
                  DMS_RECORD_USER_MAX_SZ )
             {
@@ -3257,6 +3258,12 @@ namespace engine
             pRecord = recordRW.writePtr< dmsRecord >() ;
             pRecord->unsetDeleting() ;
 
+            // We don't need to handle migration in this code path because
+            // markInsert is for rollback purpose. The record version should
+            // be up to date. But let's assert it
+            SDB_ASSERT( pRecord->hasGlobTransID(), "Record is down level version" ) ;
+            
+
             ++( pWRExtent->_recCount ) ;
             _increaseMBStat( context->mb()->_clUniqueID,
                              &( _mbStatInfo[ context->mbID() ] ), cb ) ;
@@ -3333,6 +3340,11 @@ namespace engine
          }
 
          hasInsert = TRUE ;
+         if ( insertResult )
+         {
+            insertResult->setInsertLoc( foundRID._extent, foundRID._offset ) ;
+         }
+
          // update totalInsert monitor counter
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INSERT, 1 ) ;
          _incWriteRecord() ;
@@ -3618,7 +3630,6 @@ namespace engine
                                   "rc: %d", rc ) ;
                   }
                }
-
                // first to reserve dps
                if ( NULL != dpscb )
                {
@@ -3691,6 +3702,19 @@ namespace engine
          // delete really
          if ( !markDeleting )
          {
+// FIXME:  remove
+#ifdef _DEBUG
+            DPS_TRANS_ID lowTran ;
+            if ( pTransCB )
+            {
+               lowTran = pTransCB->getLowTran() ;
+            }
+            PD_LOG( PDDEBUG, "Truely delete record(%d, %d),  "
+                    "lowtran(%llu), recordtransid(%llu), pTransCB(%x)",
+                    recordID._extent, recordID._offset, 
+                    DPS_TRANS_GET_SN(lowTran), 
+                    pRecord->getGlobTransID(), pTransCB ) ;
+#endif
             rc = _extentRemoveRecord( context, extRW, recordRW, cb,
                                       !isDeleting ) ;
             PD_RC_CHECK( rc, PDERROR, "Extent remove record failed, "
@@ -3705,6 +3729,9 @@ namespace engine
          else
          {
             pRecord->setDeleting() ;
+            // delete also need to set the transID
+            pRecord->setGlobTransID( transID ) ;
+
             // need to dec count
             --( pExtent->_recCount ) ;
             _decreaseMBStat( context->mb()->_clUniqueID,
@@ -3802,29 +3829,29 @@ namespace engine
                                               IDmsOprHandler *pHandler,
                                               utilUpdateResult *pResult )
    {
-      INT32 rc                      = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORD ) ;
-      monAppCB * pMonAppCB          = cb ? cb->getMonAppCB() : NULL ;
-      BSONObj oldMatch, oldChg ;
-      BSONObj newMatch, newChg ;
-      BSONObj oldShardingKey, newShardingKey ;
-      UINT32 logRecSize             = 0 ;
-      dpsMergeInfo info ;
-      dpsLogRecord &record = info.getMergeBlock().record() ;
-      UINT32 writeMod = DMS_LOG_WRITE_MOD_INCREMENT ;
-      UINT32 *pWriteMod = NULL ;
-      dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
+      INT32            rc          = SDB_OK ;
+      monAppCB        *pMonAppCB   = cb ? cb->getMonAppCB() : NULL ;
+      BSONObj          oldMatch, oldChg ;
+      BSONObj          newMatch, newChg ;
+      BSONObj          oldShardingKey, newShardingKey ;
+      UINT32           logRecSize  = 0 ;
+      dpsMergeInfo     info ;
+      dpsLogRecord     &record     = info.getMergeBlock().record() ;
+      UINT32           writeMod    = DMS_LOG_WRITE_MOD_INCREMENT ;
+      UINT32          *pWriteMod   = NULL ;
+      dpsTransCB      *pTransCB    = pmdGetKRCB()->getTransCB() ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
-      DPS_TRANS_ID transID = cb->getTransID() ;
-      DPS_LSN_OFFSET preTransLsn = cb->getCurTransLsn() ;
-      DPS_LSN_OFFSET relatedLSN = cb->getRelatedTransLSN() ;
+      DPS_TRANS_ID     transID     = cb->getTransID() ;
+      DPS_LSN_OFFSET   preTransLsn = cb->getCurTransLsn() ;
+      DPS_LSN_OFFSET   relatedLSN  = cb->getRelatedTransLSN() ;
 
-      dmsExtRW extRW ;
-      dmsRecordRW recordRW ;
-      const dmsExtent *pExtent  = NULL ;
-      const dmsRecord *pRecord = NULL ;
-      dmsRecordData recordData ;
-      UINT32 textIdxNum = 0 ;
+      dmsExtRW         extRW ;
+      dmsRecordRW      recordRW ;
+      const dmsExtent *pExtent    = NULL ;
+      const dmsRecord *pRecord    = NULL ;
+      dmsRecordData    recordData ;
+      UINT32           textIdxNum = 0 ;
       IDmsExtDataHandler *handler = NULL ;
 
       rc = _operationPermChk( DMS_ACCESS_TYPE_UPDATE ) ;
@@ -4475,6 +4502,7 @@ namespace engine
          dmsRecordRW ovfRW = record2RW( ovfRID, -1 ) ;
          pRecord = ovfRW.readPtr() ;
       }
+      
       return pRecord->getDataLength() ;
    }
 

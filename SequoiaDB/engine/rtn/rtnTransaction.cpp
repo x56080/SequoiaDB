@@ -60,14 +60,15 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB_RTNTRANSBEGIN ) ;
       SDB_ASSERT( cb, "cb can't be null" ) ;
-      INT32 rc = SDB_OK ;
+      INT32         rc          = SDB_OK ;
+      DPS_TRANS_ID  transID     = cb->getTransID() ;
 
       if ( !sdbGetTransCB()->isTransOn() )
       {
          rc = SDB_DPS_TRANS_DIABLED ;
          goto error;
       }
-      if ( cb->getTransID() == DPS_INVALID_TRANS_ID )
+      if ( DPS_INVALID_TRANS_ID == transID )
       {
          if ( DPS_INVALID_TRANS_ID != specID )
          {
@@ -78,19 +79,23 @@ namespace engine
             cb->setTransID( sdbGetTransCB()->allocTransID( isAutoCommit ) ) ;
          }
          cb->setCurTransLsn( DPS_INVALID_LSN_OFFSET ) ;
+         // refresh local transID after set
+         transID = cb->getTransID() ;
 
-         if ( !sdbGetTransCB()->addTransCB( cb->getTransID(), cb ) )
+         if ( !sdbGetTransCB()->addTransCB( transID, cb ) )
          {
-            PD_LOG( PDERROR, "Transaction(%s) is alredy exist",
-                    dpsTransIDToString( cb->getTransID() ).c_str() ) ;
+            PD_LOG( PDERROR, "Transaction(%s) is already exist",
+                    dpsTransIDToString( transID ).c_str() ) ;
             rc = SDB_SYS ;
             goto error ;
          }
+
       }
 
       PD_LOG( PDINFO, "Begin transaction operations(ID:%s, IDAttr:%s)",
-              dpsTransIDToString( cb->getTransID() ).c_str(),
-              dpsTransIDAttrToString( cb->getTransID() ).c_str() ) ;
+              dpsTransIDToString( transID ).c_str(),
+              dpsTransIDAttrToString( transID ).c_str() ) ;
+
 
    done:
       PD_TRACE_EXIT ( SDB_RTNTRANSBEGIN ) ;

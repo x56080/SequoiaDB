@@ -48,6 +48,7 @@ namespace engine
 
 // Default size threshold of capped collection is 30GB.
 // Default record number threshold is set to 0, which means no limit on that.
+// Default size threshold of Rollback Segment collection is 128MB each.
 #define DMS_DFT_CAPPEDCL_SIZE             (30 * 1024 * 1024 * 1024LL)
 #define DMS_DFT_CAPPEDCL_RECNUM           0
 
@@ -200,6 +201,12 @@ namespace engine
                                 INT8 direction = 1,
                                 BOOLEAN byNumber = FALSE ) ;
 
+      INT32 fetch ( dmsMBContext *context,
+                    const dmsRecordID &recordID,
+                    BSONObj &dataRecord,
+                    _pmdEDUCB *cb,
+                    BOOLEAN dataOwned = FALSE ) ;
+
       virtual INT32 dumpExtOptions( dmsMBContext *context,
                                     BSONObj &extOptions ) ;
 
@@ -211,6 +218,7 @@ namespace engine
       virtual INT32 postDataRestored( dmsMBContext * context ) ;
 
       OSS_INLINE BOOLEAN spaceEnough( dmsMBContext *context, UINT32 newSize ) ;
+      OSS_INLINE BOOLEAN clDataSpaceEnough( dmsMBContext *clContext, UINT32 newSize ) ;
    protected:
       OSS_INLINE void _extLidAndOffset2RecLid( dmsExtentID extID,
                                                dmsOffset offset,
@@ -465,6 +473,17 @@ namespace engine
 
       return (((UINT64)mbStatInfo->_totalDataPages << pageSizeSquareRoot()) + newSize)
              <= (UINT64)_options[context->mbID()]->_maxSize ;
+   }
+
+   OSS_INLINE BOOLEAN _dmsStorageDataCapped::clDataSpaceEnough( dmsMBContext *context,
+                                                          UINT32 newSize )
+   {
+      const dmsMBStatInfo *mbStatInfo = getMBStatInfo( context->mbID() ) ;
+      SDB_ASSERT( mbStatInfo, "mbStatInfo should not be NULL" ) ;
+      // enough data space or has room to grow
+      return ( ( (UINT64)mbStatInfo->_totalDataFreeSpace >= newSize ) ||
+               ( spaceEnough( context, newSize ) &&
+                 !_numExceedLimit(context, 1 ) ) ) ;
    }
 
    OSS_INLINE BOOLEAN _dmsStorageDataCapped::_numExceedLimit( dmsMBContext *context,

@@ -753,6 +753,12 @@ namespace engine
 
    void _pmdEDUCB::setTransID( UINT64 transID )
    {
+      // FIXME: to be removed
+#ifdef _DEBUG
+      PD_LOG( PDDEBUG, "setting edu transID from %llu to %llu",
+              DPS_TRANS_GET_SN(_curTransID),
+              DPS_TRANS_GET_SN( transID ) ) ;
+#endif
 #if defined ( SDB_ENGINE )
       if ( DPS_INVALID_TRANS_ID == _curTransID &&
            DPS_INVALID_TRANS_ID != transID )
@@ -1095,6 +1101,12 @@ namespace engine
    {
       return isTransaction() &&
              _transExecutor.getTransIsolation() == TRANS_ISOLATION_RS ;
+   }
+
+   BOOLEAN _pmdEDUCB::isTransRR () const
+   {
+      return isTransaction() &&
+             _transExecutor.getTransIsolation() == TRANS_ISOLATION_RR ;
    }
 
    BOOLEAN _pmdEDUCB::isAutoCommitTrans() const

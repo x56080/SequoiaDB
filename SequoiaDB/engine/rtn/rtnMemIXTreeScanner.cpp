@@ -72,6 +72,7 @@ namespace engine
       _available = FALSE ;
       _treeLatchHeld = FALSE ;
 
+      _savedTransID = DPS_INVALID_TRANS_ID ;
       reset() ;
    }
 
@@ -281,6 +282,14 @@ namespace engine
       goto done ;
    }
 
+   DPS_TRANS_ID  _rtnMemIXTreeScanner::getCurKeyTransID() 
+   {
+      SDB_ASSERT( _memIdxTree->isPosValid( _curIndexPos ), 
+                  "Current iterator position is invalid" ) ;
+
+      return _memIdxTree->getNodeKey( _curIndexPos ).getNodeTransID() ;
+   }
+
    // Description
    //    advance() is called between resumeScan() and pauseScan() to look
    //    for the next best match index in the in memory search tree.
@@ -305,6 +314,7 @@ namespace engine
 
       INT32 rc             = SDB_OK ;
       monAppCB * pMonAppCB = _cb ? _cb->getMonAppCB() : NULL ;
+      DPS_TRANS_ID lowTran = DPS_INVALID_TRANS_ID ;
 
    begin:
       // first time run, _curIndexPos was set to invalid, we need to
@@ -447,7 +457,37 @@ namespace engine
             // update monitor counters under latch
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_READ, 1 ) ;
 
-            if ( nodeVal.isRecordDeleted() )
+            // if mvcc is enabled, there will be multiple versions in
+            // the tree. All except the latest version's records are
+            // deleted.
+            if ( pmdGetOptionCB()->mvccOn() )
+            {
+               // FIXME:  first add the RID to a global set to prevent
+               // it from being truely deleted. We then check the node transID
+               // with lowtran. If the node transID is older than lowtran, we
+               // can skip it
+
+
+               lowTran = _pTransCB->getLowTran() ;
+               if ( _pTransCB->transIDLessThan( nodeKey.getNodeTransID(),
+                                                lowTran ) )
+               {
+                  // FIXME: remove from set
+#ifdef _DEBUG
+                  PD_LOG( PDDEBUG,
+                          "Skipping rid(%d, %d) in memory tree due to "
+                          "lowtran (%llu), node transid(%llu)",
+                          nodeKey.getRID()._extent,
+                          nodeKey.getRID()._offset, 
+                          DPS_TRANS_GET_SN(lowTran),
+                          nodeKey.getNodeTransID() ) ;
+#endif
+                  _savedRID.reset() ;
+                  goto begin ;
+               }
+               
+            }
+            else if (nodeVal.isRecordDeleted() )
             {
                _savedRID.reset() ;
                goto begin ;
@@ -514,6 +554,12 @@ namespace engine
                }*/
 
                rid = _savedRID ;
+
+               // record the transID from the key when mvcc is enabled
+               if ( pmdGetOptionCB()->mvccOn() ) 
+               {
+                  _savedTransID = getCurKeyTransID() ;
+               }
 
                // if we are write mode, let's record the _savedObj as well
                if ( !isReadonly() )
@@ -763,7 +809,8 @@ namespace engine
       }
       else if ( _treeLatchHeld )
       {
-         INDEX_TREE_CPOS findPos = _memIdxTree->find( &saveObj, saveRID ) ;
+         INDEX_TREE_CPOS findPos = _memIdxTree->find( &saveObj, saveRID,
+                                                      _savedTransID ) ;
          if ( _memIdxTree->isPosValid( findPos ) &&
               _curIndexPos == findPos &&
               !_memIdxTree->getNodeData( _curIndexPos ).isRecordDeleted() )

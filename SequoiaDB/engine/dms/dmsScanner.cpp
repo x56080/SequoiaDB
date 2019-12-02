@@ -345,7 +345,7 @@ namespace engine
       INT32 rc          = SDB_OK ;
       _pTransCB         = pmdGetKRCB()->getTransCB() ;
       SDB_BPSCB *pBPSCB = pmdGetKRCB()->getBPSCB () ;
-      BOOLEAN   bPreLoadEnabled = pBPSCB->isPreLoadEnabled() ;
+      BOOLEAN   bPreLoadEnabled = pBPSCB ? pBPSCB->isPreLoadEnabled() : FALSE ;
       dpsTransExecutor *pExe = cb->getTransExecutor() ;
 
       PD_TRACE_ENTRY ( SDB__DMSEXTSCAN__FIRSTINIT );
@@ -498,7 +498,10 @@ namespace engine
       BOOLEAN result          = TRUE ;
       ossValuePtr recordDataPtr ;
       dmsRecordData recordData ;
-      BOOLEAN ignoredLock     = FALSE ;
+      BOOLEAN   recordDataSet = FALSE ;
+      BOOLEAN   ignoredLock   = FALSE ;
+      BOOLEAN   skipDelete    = FALSE ;
+      DPS_TRANS_ID  transID   = cb->getTransID() ;
 
       _hasLockedRecord        = FALSE ;
 
@@ -519,6 +522,8 @@ namespace engine
 
       while ( DMS_INVALID_OFFSET != _next && 0 != _maxRecords )
       {
+         skipDelete    = FALSE ;
+         recordDataSet = FALSE ;
          _curRID._offset = _next ;
          _recordRW = _pSu->record2RW( _curRID, _context->mbID() ) ;
          _curRecordPtr = _recordRW.readPtr( 0 ) ;
@@ -642,44 +647,171 @@ namespace engine
          // If the X lock was newly acquired/granted, we consider it as a
          // new transaction, because the original one has committed and
          // original lock was released. Pass down newXAcquire.
+
          if ( _curRecordPtr->isDeleting() )
          {
-            if ( _recordLock == DPS_TRANSLOCK_X )
+            INT8  holdMode = DPS_TRANSLOCK_MAX ;
+            // retrieve the lock hold mode
+            _pTransCB->isHolding( cb, holdMode, _pSu->logicalID(),
+                                  _context->mbID(), &_curRID ) ;
+ 
+            // if lock mode is X or lock is held in X(this request could be S),
+            // we should simply skip without looking into RBS
+            if ( ( DPS_TRANSLOCK_X == _recordLock ) || 
+                 ( DPS_TRANSLOCK_X == holdMode) ) 
             {
-               INT32 rc1 = _pSu->deleteRecord( _context, _curRID,
-                                               0, cb, NULL, NULL,
-                                               _callback.getTransRecordInfo() ) ;
-               if ( rc1 )
+               // under MVCC, we should not delete a record if it's above 
+               // lowtran, otherwise query won't be able to find the RID and 
+               // look up the old version. Keep in mind that each time a 
+               // record is touched, the record transID is updated to the
+               // transaction ID. Note that if the record is V0 (no transID),
+               // we must have restarted the db, so safe to delete
+               // FIXME: we need to check the global set to see if the RID
+               // is being used by memIXTreeScanner. This need to be done 
+               // before the lowtran check
+               if ( !pmdGetOptionCB()->mvccOn()   || 
+                    !_curRecordPtr->hasGlobTransID() ||
+                   _pTransCB->transIDLessThan( _curRecordPtr->getGlobTransID(),
+                                           _pTransCB->getLowTran() ) ) 
                {
-                  PD_LOG( PDWARNING, "Failed to delete the deleting record, "
-                          "rc: %d", rc ) ;
+                  INT32 rc1 = _pSu->deleteRecord( _context, _curRID,
+                                                  0, cb, NULL, NULL,
+                                           _callback.getTransRecordInfo() ) ;
+                  if ( rc1 )
+                  {
+                     PD_LOG( PDWARNING, "Failed to delete the deleting record, "
+                             "rc: %d", rc1 ) ;
+                  }
                }
+               if ( _hasLockedRecord )
+               {
+                  _pTransCB->transLockRelease( cb, _pSu->logicalID(),
+                                               _context->mbID(), &_curRID,
+                                               &_callback ) ;
+                  _hasLockedRecord = FALSE ;
+               }
+               PD_LOG( PDDEBUG, "skip deleting record " ) ;
+               continue ;
             }
-
-            if ( _hasLockedRecord )
-            {
-               _pTransCB->transLockRelease( cb, _pSu->logicalID(),
-                                            _context->mbID(), &_curRID,
-                                            &_callback ) ;
-               _hasLockedRecord = FALSE ;
-            }
-            continue ;
+            skipDelete = TRUE ; 
+            // If we get to here, this record could be used to search for 
+            // proper version in RBS
          }
          SDB_ASSERT( !_curRecordPtr->isDeleted(), "record can't be deleted" ) ;
 
          if ( !_matchRuntime && _skipNum > 0 )
          {
-            --_skipNum ;
+            if( !skipDelete )
+            {
+               --_skipNum ;
+            }
          }
          else
          {
-
             recordID = _curRID ;
-            rc = _pSu->extractData( _context, _recordRW, cb, recordData ) ;
-            if ( rc )
+            // if MVCC is enabled, RR transaction tried acquiring S lock 
+            // (meaning in transaction and not RU),  check record version
+            // and decide if we should use older version in RBS
+            if ( pmdGetOptionCB()->mvccOn() && 
+                 _curRecordPtr->hasGlobTransID() &&
+                 ( _transIsolation == TRANS_ISOLATION_RR ) &&
+                 ( _recordLock < DPS_TRANSLOCK_U ) )
             {
-               PD_LOG( PDERROR, "Extract record data failed, rc: %d", rc ) ;
-               goto error ;
+               // FIXME: to be removed
+#ifdef  _DEBUG
+               PD_LOG( PDDEBUG, "compare record version for "
+                    "rid(%d, %d), transid(%llu) vs recordTransid(%llu)"
+                    " skipDelete(%d) ",
+                     _curRID._extent, _curRID._offset, 
+                     DPS_TRANS_GET_SN(transID),
+                     _curRecordPtr->getGlobTransID(), skipDelete ) ;
+#endif
+               // if the current version is NOT visible to the transaction, 
+               // try to read the proper version from RBS 
+               if ( !sdbGetTransCB()->isVersionVisible(
+                    _curRecordPtr->getGlobTransID(), transID ) )
+               {
+                  BOOLEAN      found   = FALSE ;
+
+                  // FIXME: remove one after Shangde's review
+                  rc = pmdGetKRCB()->getDMSCB()->getRBSSUMgr()
+                         ->getRecord1( _pSu->logicalID(),  // use cappedCL fetch 
+                         //->getRecord( _pSu->logicalID(), // use my own
+                                      _context->mbID(),
+                                      _curRID, transID, found, recordData ) ;
+                  if ( SDB_OK != rc )
+                  {
+                     PD_LOG( PDERROR, "Failed to read from RBS, rc: %d", rc ) ;
+                     goto error ;
+                  }
+                  else
+                  {
+
+#ifdef  _DEBUG
+                     PD_LOG( PDDEBUG, "Finished reading record from RBS: "
+                             "found=%d, rid(%d, %d), transid(%llu)",
+                             found, _curRID._extent, _curRID._offset, transID ) ;
+#endif
+                     if ( found )
+                     {
+                        // recordDataSet is only set when found.
+                        recordDataSet = TRUE ;
+                     }
+                     else
+                     {
+                        // Didn't find proper version of record, the record
+                        // is not visible to the transaction, skip
+                        if ( _hasLockedRecord )
+                        {
+                           _pTransCB->transLockRelease( cb, _pSu->logicalID(),
+                                                        _context->mbID(),
+                                                        &_curRID,
+                                                        &_callback ) ;
+                           _hasLockedRecord = FALSE ;
+                        }
+                        continue ;
+                     }
+                  }
+               }
+               else if ( skipDelete )
+               {
+                  // although it's visiable, but it's deleting, we need to skip
+                  // we should not continue looking for older version in
+                  // this case as well
+                  if ( _hasLockedRecord )
+                  {
+                     _pTransCB->transLockRelease( cb, _pSu->logicalID(),
+                                                  _context->mbID(),
+                                                  &_curRID,
+                                                  &_callback ) ;
+                     _hasLockedRecord = FALSE ;
+                  }
+                  continue ;
+               }
+            }
+
+            else if ( skipDelete )
+            {
+               // handle the case when we did not or do not need to find 
+               // older version in RBS for this deleting record
+               if ( _hasLockedRecord )
+               {
+                  _pTransCB->transLockRelease( cb, _pSu->logicalID(),
+                                               _context->mbID(), &_curRID,
+                                               &_callback ) ;
+                  _hasLockedRecord = FALSE ;
+               }
+               continue ;
+            }
+
+            if ( !recordDataSet )
+            {
+               rc = _pSu->extractData( _context, _recordRW, cb, recordData ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Extract record data failed, rc: %d", rc ) ;
+                  goto error ;
+               }
             }
             recordDataPtr = ( ossValuePtr )recordData.data() ;
             generator.setDataPtr( recordDataPtr ) ;
@@ -884,6 +1016,9 @@ namespace engine
       }
 
       _cb = cb ;
+      // set callback info
+      _callback.setBaseInfo( _pTransCB, cb ) ;
+
       _firstRun = FALSE ;
 
    done:
@@ -1707,12 +1842,15 @@ namespace engine
                                     pmdEDUCB * cb,
                                     _mthMatchTreeContext *mthContext )
    {
-      INT32 rc                = SDB_OK ;
-      BOOLEAN result          = TRUE ;
-      ossValuePtr recordDataPtr ;
-      dmsRecordData recordData ;
-      dmsRecordID waitUnlockRID ;
-      BOOLEAN ignoredLock     = FALSE ;
+      INT32          rc              = SDB_OK ;
+      BOOLEAN        result          = TRUE ;
+      ossValuePtr    recordDataPtr ;
+      dmsRecordData  recordData ;
+      BOOLEAN        recordDataSet   = FALSE ;
+      dmsRecordID    waitUnlockRID ;
+      BOOLEAN        ignoredLock     = FALSE ;
+      BOOLEAN        skipDelete      = FALSE ;
+      DPS_TRANS_ID   transID         = DPS_TRANS_GET_SN( cb->getTransID() ) ;
 
       PD_TRACE_ENTRY ( SDB__DMSIXSECSCAN_ADVANCE );
 
@@ -1741,7 +1879,10 @@ namespace engine
       _hasLockedRecord = FALSE ;
       while ( _onceRestNum-- > 0 && 0 != _maxRecords )
       {
-         ignoredLock = FALSE ;
+         ignoredLock   = FALSE ;
+         recordDataSet = FALSE ;
+         skipDelete    = FALSE ;
+
          // advance index tree
          rc = _scanner->advance( _curRID ) ;
          if ( SDB_IXM_EOC == rc )
@@ -1981,18 +2122,168 @@ namespace engine
          // Handle the record being deleted
          if ( _curRecordPtr->isDeleting() )
          {
-            if ( _recordLock == DPS_TRANSLOCK_X )
+            INT8  holdMode = DPS_TRANSLOCK_MAX ;
+            // retrieve the lock hold mode
+            _pTransCB->isHolding( cb, holdMode, _pSu->logicalID(),
+                                  _context->mbID(), &_curRID ) ;
+
+            // if lock mode is X or lock is held in X(this request could be S),
+            // we should simply skip without looking into RBS
+            if ( ( DPS_TRANSLOCK_X == _recordLock ) ||
+                 ( DPS_TRANSLOCK_X == holdMode) )
             {
-               rc = _pSu->deleteRecord( _context, _curRID, 0,
-                                        cb, NULL, NULL,
-                                        _callback.getTransRecordInfo() ) ;
+               // under MVCC, we should not delete a record if it's above 
+               // lowtran, otherwise query won't be able to find the RID and 
+               // look up the old version
+               // NOTE: if the record come from memory, we should check the
+               // ownerTransID instead of record transID. However, since we
+               // have the lock in X here, that means there is no in memory 
+               // version or we did not use the in memory version.
+               // Checking disk record transID for delete is accurate.
+               // Note that we can directly delete V0 record. 
+               // TODO!!: A potential serialization problem can raise. 
+               // clean up of the old index version from index tree is
+               // not synchronized with freeing up of the record on disk.
+               // We may end up with a marked deleting record been truely
+               // deleted and reused after it's older than lowtran(by a 
+               // scanner) while it's old version index in mem tree might
+               // not have been freed by gc. So an index scan might found
+               // the index (scan time was actually above lowtran), but 
+               // when it trys to follow RID to read the record, the record
+               // was just deleted (lowtran magically moved up). However
+               // this is not a problem for now because of mbLatch. Writer
+               // currently hold mbLatch in X so the index scanner can't
+               // come in at the same time. But once the mbLatch optimization
+               // project gets in, writer will only has mbLatch in S, that's
+               // when things could go bad.
+               // Solution:
+               // Use a global set in RBSMgr. We an index scan touch a RID,
+               // it adds the RID into the set. The RID is removed from set
+               // when record lock is acquired or the RID is skipped. Who
+               // ever want to truely remove the record must first check 
+               // if the record is in the set.  This need to be done 
+               // before the lowtran check.
+               if ( !pmdGetOptionCB()->mvccOn() ||
+                    !_curRecordPtr->hasGlobTransID() ||
+                    ( TRUE  && 
+                      _pTransCB->transIDLessThan( 
+                                      _curRecordPtr->getGlobTransID(),
+                                      _pTransCB->getLowTran() ) ) )
+               {
+                  INT32 rc1 = _pSu->deleteRecord( _context, _curRID, 0,
+                                                  cb, NULL, NULL,
+                                           _callback.getTransRecordInfo() ) ;
+                  if ( SDB_OK != rc1 )
+                  {
+                     PD_LOG( PDWARNING, "Failed to delete the deleting record, "
+                             "rc: %d", rc1 ) ;
+                  }
+               }
+
+               if ( _hasLockedRecord )
+               {
+                  _pTransCB->transLockRelease( cb, _pSu->logicalID(),
+                                               _context->mbID(), &_curRID,
+                                               &_callback ) ;
+                  _hasLockedRecord = FALSE ;
+               }
+
+               // remove the duplicate key before continue because the _scanner
+               // has already added it to dup buffer in its advance logic
+               _scanner->removeDuplicatRID( _curRID ) ;
+               PD_LOG( PDDEBUG, "skip deleting record " ) ;
+
+               continue ;
+            }
+            // If we get to here, this record could be used to search for 
+            // proper version in RBS
+            skipDelete = TRUE ;
+         }
+
+         SDB_ASSERT( !_curRecordPtr->isDeleted(),
+                    "record can't be deleted" ) ;
+
+         recordID = _curRID ;
+
+         // if MVCC on and need lock (meaning in transaction and !RU), check
+         // record version and decide if we should use older version in RBS
+         if ( pmdGetOptionCB()->mvccOn() &&
+              _curRecordPtr->hasGlobTransID() &&
+              ( _transIsolation == TRANS_ISOLATION_RR ) &&
+              ( _recordLock < DPS_TRANSLOCK_U ) )
+         {
+            // FIXME: to be removed
+#ifdef  _DEBUG
+            PD_LOG( PDDEBUG, "compare record version for"
+                    "rid(%d, %d), transid(%llu) vs recordTransid(%llu)",
+                     _curRID._extent, _curRID._offset, transID,
+                     _curRecordPtr->getGlobTransID() ) ;
+#endif
+            // if the current version is NOT visible to the transaction, 
+            // try to read the proper version from RBS 
+            if ( !_pTransCB->isVersionVisible(
+                 _curRecordPtr->getGlobTransID(), transID ) ) 
+            {
+               BOOLEAN      found   = FALSE ;
+
+               rc = pmdGetKRCB()->getDMSCB()->getRBSSUMgr()
+                      ->getRecord1( _pSu->logicalID(),
+                                   _context->mbID(),
+                                   _curRID, transID, found, recordData ) ;
                if ( SDB_OK != rc )
                {
-                  PD_LOG( PDWARNING, "Failed to delete the deleting record, "
-                          "rc: %d", rc ) ;
+                  PD_LOG( PDERROR, "Failed to getRecord from RBS, rc: %d",
+                       rc ) ;
+               }
+               else if ( found )
+               {
+                  PD_LOG( PDDEBUG, "Found old record from RBS,"
+                          "rid(%d, %d), transid(%llu)<recordTransid(%llu)",
+                          _curRID._extent, _curRID._offset, transID,
+                          _curRecordPtr->getGlobTransID() ) ;
+                  recordDataSet = TRUE ;
+               }
+               else
+               {
+                  PD_LOG( PDDEBUG, "Didn't found old record from RBS,"
+                          "rid(%d, %d), transid(%llu)<recordTransid(%llu)",
+                          _curRID._extent, _curRID._offset, transID,
+                          _curRecordPtr->getGlobTransID() ) ;
+                  // Didn't find proper version of record, the record
+                  // is not visible to the transaction, skip
+                  if ( _hasLockedRecord )
+                  {
+                     _pTransCB->transLockRelease( cb, _pSu->logicalID(),
+                                                  _context->mbID(),
+                                                  &_curRID,
+                                                  &_callback ) ;
+                     _hasLockedRecord = FALSE ;
+                  }
+                  // record not visiable, no older version found, skip it
+                  continue ;
                }
             }
+            else if ( skipDelete )
+            {
+               // although it's visiable, but it's deleting, we need to skip
+               // we should not continue looking for older version in
+               // this case as well
+               if ( _hasLockedRecord )
+               {
+                  _pTransCB->transLockRelease( cb, _pSu->logicalID(),
+                                               _context->mbID(),
+                                               &_curRID,
+                                               &_callback ) ;
+                  _hasLockedRecord = FALSE ;
+               }
+               continue ;
+            }
 
+         }
+         else if ( skipDelete )
+         {
+            // handle the case when we did not or do not need to find 
+            // older version in RBS for this deleting record
             if ( _hasLockedRecord )
             {
                _pTransCB->transLockRelease( cb, _pSu->logicalID(),
@@ -2000,21 +2291,17 @@ namespace engine
                                             &_callback ) ;
                _hasLockedRecord = FALSE ;
             }
-
-            /// remove the duplicate key
-            _scanner->removeDuplicatRID( _curRID ) ;
-
             continue ;
          }
-         SDB_ASSERT( !_curRecordPtr->isDeleted(),
-                     "record can't be deleted" ) ;
 
-         recordID = _curRID ;
-         rc = _pSu->extractData( _context, _recordRW, cb, recordData ) ;
-         if ( rc )
+         if ( !recordDataSet )
          {
-            PD_LOG( PDERROR, "Extract record data failed, rc: %d", rc ) ;
-            goto error ;
+            rc = _pSu->extractData( _context, _recordRW, cb, recordData ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Extract record data failed, rc: %d", rc ) ;
+               goto error ;
+            }
          }
          recordDataPtr = ( ossValuePtr )recordData.data() ;
          generator.setDataPtr( recordDataPtr ) ;
@@ -2428,7 +2715,6 @@ namespace engine
                                                      INT32 flag )
    {
       dmsExtScannerBase* scanner = NULL ;
-
       if ( OSS_BIT_TEST( DMS_MB_ATTR_CAPPED, context->mb()->_attributes ) )
       {
          scanner = SDB_OSS_NEW dmsCappedExtScanner( su, context,

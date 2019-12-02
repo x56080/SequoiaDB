@@ -104,8 +104,9 @@ namespace engine
             if ( DMS_INVALID_EXTENT != _dmsMME->_mbList[i]._lastExtentID )
             {
                rc = _attachWorkExt( i, _dmsMME->_mbList[i]._lastExtentID ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to attach work extent: %d, "
-                            "rc: %d", rc ) ;
+               PD_RC_CHECK( rc, PDERROR, 
+                            "Failed to attach work extent: %d, rc: %d", 
+                            _dmsMME->_mbList[i]._lastExtentID, rc ) ;
             }
          }
       }
@@ -1161,6 +1162,15 @@ namespace engine
          INT64 *lidPtr = (INT64 *)ele.value() ;
          *lidPtr = workExtInfo->getRecordLogicID() ;
          pRecord->setLogicalID( *lidPtr ) ;
+      // FIXME: remove
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG, 
+                 "insert record (recordsize=%d, Bson obj size=%d) to capped cl"
+                 "which logicalid(%lld), rid(%d, %d)", 
+                 recordSize, recordData.len(), *lidPtr,
+                 recordRW.getRecordID()._extent, 
+                 recordRW.getRecordID()._offset ) ;
+#endif
       }
 
       pRecord->setData( recordData ) ;
@@ -1468,7 +1478,8 @@ namespace engine
          const dmsCappedRecord *record = recordRW.readPtr<dmsCappedRecord>() ;
          if ( !record || !record->isNormal() )
          {
-            PD_LOG( PDERROR, "Invalid record" ) ;
+            PD_LOG( PDERROR, "Invalid record, extID(%d), offset(%d)",
+                    extID, extent->_lastRecordOffset ) ;
             rc = SDB_SYS ;
             goto error ;
          }
@@ -2386,6 +2397,95 @@ namespace engine
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__POPRECORDBYNUMBER, rc ) ;
       return rc ;
    error:
+      goto done ;
+   }
+
+   // given recordID, fetch a record from capped CL, return BSON object
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED_FETCH, "_dmsStorageDataCapped::fetch" )
+   INT32 _dmsStorageDataCapped::fetch ( dmsMBContext *context,
+                                        const dmsRecordID &recordID,
+                                        BSONObj &dataRecord,
+                                        _pmdEDUCB *cb,
+                                        BOOLEAN dataOwned ) 
+   {
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED_FETCH) ;
+      INT32          rc = SDB_OK ;
+      dmsRecordData  recordData;
+      const dmsExtent *pExtent  = NULL ;
+      dmsExtRW         extRW ;
+      dmsRecordRW      recordRW ;
+
+
+      //rc = fetch( context, recordID, recordData, cb ); 
+      if ( !context->isMBLock() )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Caller must hold mb lock[%s]",
+                 context->toString().c_str() ) ;
+         goto error ;
+      }
+
+      try
+      {
+         if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
+                                              DMS_ACCESS_TYPE_FETCH ) )
+         {
+            PD_LOG ( PDERROR, "Incompatible collection mode: %d",
+                     context->mb()->_flag ) ;
+            rc = SDB_DMS_INCOMPATIBLE_MODE ;
+            goto error ;
+         }
+
+         extRW = extent2RW( recordID._extent, context->mbID() ) ;
+         recordRW = record2RW( recordID, context->mbID() ) ;
+         pExtent = extRW.readPtr<dmsExtent>() ;
+
+         // validate extent
+         if ( !pExtent->validate( context->mbID()) )
+         {
+            PD_LOG ( PDERROR, "Invalid extent[%d]", recordID._extent ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+#ifdef _DEBUG
+         {
+            const dmsCappedRecord *pRecord     = NULL ;
+            pRecord = recordRW.readPtr<dmsCappedRecord>() ;
+            // TODO: dump record data for verification
+            PD_LOG( PDDEBUG,
+                    "Read record from capped cl, recNo(%d), logicalid(%ld)",
+                    pRecord->_recNo, 
+                    pRecord->_logicalID ) ;
+         }
+#endif
+
+         rc = extractData( context, recordRW, cb, recordData ) ;
+         PD_RC_CHECK( rc, PDERROR, "Extract record data failed, rc: %d", rc ) ;
+
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception in fetch: %s", e.what() ) ;
+         rc = pdGetLastError() ? pdGetLastError() : SDB_SYS ;
+         goto error ;
+      }
+
+      if ( dataOwned )
+      {
+         dataRecord = BSONObj( recordData.data() ).getOwned() ;
+      }
+      else
+      {
+         dataRecord = BSONObj( recordData.data() ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED_FETCH, rc ) ;
+      return rc ;
+   error:
+      PD_LOG ( PDERROR, "Fetch Failed, rc(%d)", rc ) ;
+
       goto done ;
    }
 

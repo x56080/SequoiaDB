@@ -197,10 +197,10 @@ namespace engine
       INT32 rc                     = SDB_OK ;
       UINT32 dmsRecordSize         = 0 ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA__EXTENTUPDATERECORD ) ;
-      monAppCB * pMonAppCB         = cb ? cb->getMonAppCB() : NULL ;
-      dmsCompressorEntry *compressorEntry = &_compressorEntry[context->mbID()] ;
-      const dmsExtent *pExtent     = NULL ;
-      dmsRecord *pRecord           = NULL ;
+      monAppCB           *pMonAppCB       = cb ? cb->getMonAppCB() : NULL ;
+      dmsCompressorEntry *compressorEntry = &_compressorEntry[context->mbID()];
+      const dmsExtent    *pExtent         = NULL ;
+      dmsRecord          *pRecord         = NULL ;
 
       dmsRecordID ovfRID ;
       dmsExtRW ovfExtRW ;
@@ -232,6 +232,15 @@ namespace engine
       {
          pExtent = extRW.readPtr<dmsExtent>() ;
          pRecord = recordRW.writePtr( 0 ) ;
+
+         // call migrateFromV0 to handle in-flight migration if needed
+         // we don't have versioning. instead, we check for attribute
+         if ( !(pRecord->hasGlobTransID()) )
+         {
+            PD_LOG ( PDDEBUG, "In-flight migration of record during update object(%s) ",
+                     recordRW.toString().c_str() ) ;
+            pRecord->migrateFromV0() ;
+         }
 
          newRecordData.setData( newObj.objdata(), newObj.objsize(),
                                 UTIL_COMPRESSOR_INVALID, TRUE ) ;
@@ -293,6 +302,17 @@ namespace engine
             ovfExtRW = extent2RW( ovfRID._extent, context->mbID() ) ;
             ovfRW = record2RW( ovfRID, context->mbID() ) ;
             pOvfRecord = ovfRW.writePtr( 0 ) ;
+
+            // call migrateFromV0 to handle in-flight migration if needed
+            // we don't have versioning. instead, we check for attribute
+            if ( !(pOvfRecord->hasGlobTransID()) )
+            {
+               PD_LOG ( PDDEBUG, 
+                        "In-flight migration of OVF record during update "
+                        "object(%s) ",
+                        recordRW.toString().c_str() ) ;
+               pOvfRecord->migrateFromV0() ;
+            }
          }
 
          // if the current space is big enough for the whole record,
@@ -300,6 +320,14 @@ namespace engine
          if ( dmsRecordSize <= pRecord->getSize() )
          {
             pRecord->setData( newRecordData ) ;
+            pRecord->setGlobTransID( cb->getTransID() ) ;
+            // FIXME: remove 
+#ifdef _DEBUG
+            PD_LOG ( PDDEBUG, "set record(%d, %d) transid(%llu) ",
+                     recordRW.getRecordID()._extent, 
+                     recordRW.getRecordID()._offset,
+                     DPS_TRANS_GET_SN(cb->getTransID()) ) ;
+#endif
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
 
             if ( ovfRID.isValid() )
@@ -317,6 +345,7 @@ namespace engine
          else if ( pOvfRecord && dmsRecordSize <= pOvfRecord->getSize() )
          {
             pOvfRecord->setData( newRecordData ) ;
+            pOvfRecord->setGlobTransID( cb->getTransID() ) ;
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
             /// sub the remove data info
             context->mbStat()->_totalDataLen -= recordData.orgLen() ;
@@ -480,6 +509,10 @@ namespace engine
 
                // once the extent is valid, let's check the record is deleted
                // and got sufficient size for us
+               // FIXME: we may want to remove the assertion or the check 
+               // when we are certain on the behavior
+               SDB_ASSERT( pRead->isDeleted(), 
+                           "Record on delete list is not delete" ) ;
                if( pRead->isDeleted() && pRead->getSize() >= requiredSize )
                {
                   if ( !isTransSupport() ||
@@ -800,6 +833,13 @@ namespace engine
       // set to normal status
       pRecord->setNormal() ;
       pRecord->resetAttr() ;
+      // setup global transaction id
+      // FIXME: to be removed
+      PD_LOG ( PDDEBUG, "set record(%d, %d) transID: %llu", 
+               recordRW.getRecordID()._extent,
+               recordRW.getRecordID()._offset,
+               DPS_TRANS_GET_SN(cb->getTransID()) ) ;
+      pRecord->setGlobTransID( cb->getTransID() ) ;
 
       // and then need to check if we need to split deleted record
       if ( pRecord->getSize() - needRecordSize > DMS_MIN_RECORD_SZ )
@@ -1007,8 +1047,8 @@ namespace engine
    {
       INT32 rc                = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA_EXTRACTDATA ) ;
-      monAppCB * pMonAppCB    = cb ? cb->getMonAppCB() : NULL ;
-      const dmsRecord *pRecord= recordRW.readPtr( 0 ) ;
+      monAppCB         *pMonAppCB  = cb ? cb->getMonAppCB() : NULL ;
+      const dmsRecord  *pRecord    = recordRW.readPtr( 0 ) ;
 
       recordData.reset() ;
 

@@ -53,9 +53,9 @@ namespace engine
    */
    enum RTN_SUB_SCAN_TYPE
    {
-      SCAN_NONE,
-      SCAN_LEFT,
-      SCAN_RIGHT
+      SCAN_NONE,   // 0
+      SCAN_LEFT,   // 1
+      SCAN_RIGHT   // 2
    } ;
 
    _rtnMergeIXScanner::_rtnMergeIXScanner( ixmIndexCB *pIndexCB,
@@ -554,7 +554,7 @@ namespace engine
          _savedRID = getSavedRIDFromChild() ;
          _savedObj = getSavedObjFromChild()->getOwned() ;
 
-         PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d,%d), From(%s)",
+         PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d, %d), From(%s)",
                  _savedObj.toString().c_str(), _savedRID._extent,
                  _savedRID._offset,
                  ( SCAN_LEFT == _fromDir ? "LEFT" : "RIGHT" ) ) ;

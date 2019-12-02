@@ -115,6 +115,7 @@ namespace engine
 
       virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) ;
 
+
    private:
       //   must be hold the mb EXCLUSIVE lock in this functions :
 

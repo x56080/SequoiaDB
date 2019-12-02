@@ -1902,8 +1902,8 @@
       <name>PMD_OPTION_TRANS_ISOLATION</name>
       <long>transisolation</long>
       <description>
-         <en>Specify the isolation level of transaction, 0 for RU, 1 for RC, 2 for RS. Default is 0</en>
-         <cn>指定事务的隔离级别，0为RU级别，1为RC级别，2为RS级别。默认为0。</cn>
+         <en>Specify the isolation level of transaction, 0 for RU, 1 for RC, 2 for RS, 3 for RR. Default is 0</en>
+         <cn>指定事务的隔离级别，0为RU级别，1为RC级别，2为RS级别，3为RR级别。默认为0。</cn>
       </description>
       <reloadable>
          <en>Take effect immediately</en>
@@ -1914,17 +1914,19 @@
          <cn>下一次事务中生效</cn>
       </reloadstrategy>
       <detail>
-         <en>1. Specify the isolation level of transaction. Value is 0(RU), 1(RC), 2(RS). Default is 0.<fig></fig>
+         <en>1. Specify the isolation level of transaction. Value is 0(RU), 1(RC), 2(RS), 3(RR). Default is 0.<fig></fig>
            2. Value enumeration:<fig></fig>
              ● 0: RU, read uncommited<fig></fig>
              ● 1: RC, read commited.<fig></fig>
              ● 2: RS, read stability.<fig></fig>
+             ● 3: RR, repeatable read.<fig></fig>
          </en>
          <cn>1. 指定事务隔离级别，默认是0。<fig></fig>
            2. 取值列表：<fig></fig>
              ● 0: RU，读未提交。<fig></fig>
              ● 1: RC, 读已提交。<fig></fig>
              ● 2: RS，读稳定性。<fig></fig>
+             ● 3: RR，可重复读。<fig></fig>
          </cn>
       </detail>
       <type>int</type>
@@ -2303,6 +2305,7 @@
       <typeofweb>str</typeofweb>
       <hidden>false</hidden>
    </opt>
+
    <opt>
       <name>PMD_OPTION_MON_HIST_EVENT</name>
       <long>monhistevent</long>
@@ -2322,6 +2325,7 @@
       <default>1000</default>
       <hidden>true</hidden>
    </opt>
+
    <opt>
       <name>PMD_OPTION_FT_MASK</name>
       <long>ftmask</long>
@@ -2507,7 +2511,7 @@
       </reloadable>
       <default>false</default>
       <detail>
-        <en>1. It specifies whether support MVCC or not.<fig></fig>
+         <en>1. It specifies whether support MVCC or not.<fig></fig>
              2. If it is not specifed, the default value is false.<fig></fig>
              3. Only takes effect when transactionon is true.</en>
          <cn>1. 指定是否打开多版本。<fig></fig>

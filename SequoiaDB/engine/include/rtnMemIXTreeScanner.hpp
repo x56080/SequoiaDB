@@ -94,6 +94,7 @@ namespace engine
    protected:
       virtual INT32 relocateRID( BOOLEAN &found )  ;
       virtual rtnPredicateListIterator*   getPredicateListInterator() ;
+      DPS_TRANS_ID  getCurKeyTransID() ;
 
    protected:
       void                    reset() ;
@@ -133,6 +134,7 @@ namespace engine
       // the BSONObj during pause(), otherwise it would affect runtime perf.
       BSONObj                    _savedObj ;
       dmsRecordID                _savedRID ;
+      DPS_TRANS_ID               _savedTransID ;
 
       // pointer to the in memory index tree. It's hanging off dpsTransCB
       preIdxTreePtr              _memIdxTree ;

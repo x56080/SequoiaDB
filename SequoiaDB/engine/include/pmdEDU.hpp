@@ -391,6 +391,7 @@ namespace engine
       BOOLEAN  isTransRU () const ;
       BOOLEAN  isTransRC () const ;
       BOOLEAN  isTransRS () const ;
+      BOOLEAN  isTransRR () const ;
       BOOLEAN  isAutoCommitTrans() const ;
       void     startTransRollback() { _isDoTransRollback = TRUE ; }
       void     stopTransRollback() { _isDoTransRollback = FALSE ; }

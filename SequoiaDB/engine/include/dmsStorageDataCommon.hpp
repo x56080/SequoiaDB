@@ -490,14 +490,17 @@ namespace engine
          }
       }
 
-      // compare and update GlobTransID is the one passed in is newer
+      // compare and update GlobTransID if the one passed in is newer
       // FIXME: need implement automic compare and swap for DPS_TRANS_ID later
+      // Also, we have to use DPS_TRANS_GET_SN for comparison purpose, but 
+      // we should remove it after switching to timestamp
       void updateGlobTransIDWithComp( DPS_TRANS_ID transID )
       {
-         _maxGlobTransID.swapGreaterThan( transID ) ;
+         DPS_TRANS_ID  temp = DPS_TRANS_GET_SN(transID) ;
+         _maxGlobTransID.swapGreaterThan( temp ) ;
       }
 
-      // compare and update GTID is the one passed in is newer
+      // get the max GlobTransID 
       UINT64 getMaxGlobTransID( )
       {
          return _maxGlobTransID.peek() ;
@@ -956,11 +959,11 @@ namespace engine
 
          // the dataRecord is not owned
          // Caller must hold mb exclusive/shared lock
-         INT32 fetch ( dmsMBContext *context,
+         INT32 fetch ( dmsMBContext      *context,
                        const dmsRecordID &recordID,
-                       BSONObj &dataRecord,
-                       _pmdEDUCB *cb,
-                       BOOLEAN dataOwned = FALSE ) ;
+                       BSONObj           &dataRecord,
+                       _pmdEDUCB         *cb,
+                       BOOLEAN            dataOwned = FALSE ) ;
 
          INT32 loadDictionary( dmsMBContext *context, const CHAR *dictionary,
                                UINT32 dictLen, BOOLEAN force ) ;

@@ -1507,7 +1507,6 @@ namespace engine
             rc = SDB_OK ;
             break ;
          }
-
          case LOG_TYPE_TS_ROLLBACK :
          {
             rc = SDB_OK ;

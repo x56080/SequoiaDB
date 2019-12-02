@@ -372,15 +372,20 @@ namespace engine
       /// so use try
       if ( oldVer && oldVer->tryReleaseRecord( idxLID, hasLock ) )
       {
+         // FIXME: remove after stable
+#ifdef _DEBUG
          PD_LOG( PDDEBUG, "Delete old record for rid[%s] from memory",
                  lockId.toString().c_str() ) ;
+#endif
          goto done ;
       }
       else
       {
-         oldVer->setRecordDeleted() ;
+#ifdef _DEBUG
          PD_LOG( PDDEBUG, "Set old record for rid[%s] in memory to deleted",
                  lockId.toString().c_str() ) ;
+#endif
+         oldVer->setRecordDeleted() ;
       }
 
       /// PUT the rid to backgroud task to recycle
@@ -502,6 +507,26 @@ namespace engine
       return &_recordInfo ;
    }
 
+   DPS_TRANS_ID dmsTransLockCallback::getRecordTransID() 
+   {
+      DPS_TRANS_ID rv = DPS_INVALID_TRANS_ID ;
+      if ( _oldVer )
+      {
+         rv = _oldVer->getRecordTransID() ;
+      }
+      return rv ;
+   }
+
+   DPS_TRANS_ID dmsTransLockCallback::getOwnerTransID() 
+   {
+      DPS_TRANS_ID rv = DPS_INVALID_TRANS_ID ;
+      if ( _oldVer )
+      {
+         rv = DPS_TRANS_GET_SN(_oldVer->getOwnerTransID()) ;
+      }
+      return rv ;
+   }
+
    // Description:
    //    Function called after lock acquirement. There are two cases to handle:
    //
@@ -537,6 +562,7 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKACQUIRE ) ;
 
+      DPS_TRANS_ID transID = _eduCB->getTransID() ;
       BOOLEAN notTransOrRollback = FALSE ;
 
       /// when not leaf level, do nothing
@@ -548,7 +574,7 @@ namespace engine
       clearStatus() ;
 
       /// not in transaction
-      if ( DPS_INVALID_TRANS_ID == _eduCB->getTransID() ||
+      if ( DPS_INVALID_TRANS_ID == transID ||
            _eduCB->isInTransRollback() )
       {
          notTransOrRollback = TRUE ;
@@ -587,6 +613,9 @@ namespace engine
 
          if ( _oldVer->isRecordNew() )
          {
+            // Since we guarantee that a record is not physically deleted,
+            // we can guarantee that a new record is not visiable regardless
+            // under RC or RR. so skip the record.
             _skipRecord = TRUE ;
          }
          else if ( _recordPtr.get() && !_oldVer->isRecordDummy() )
@@ -618,6 +647,20 @@ namespace engine
 
             // set the return info if we successfully used old version
             _useOldVersion = TRUE ;
+
+         }
+         else if ( !_recordPtr.get() && pmdGetOptionCB()->mvccOn() )
+         {
+            // under mvcc, if there is no in memory version of the record,
+            // we should consider "using older version". However, we do NOT
+            // change _recordRW. The scanner(index/tbscanner) already point it
+            // to disk version which is likely invisiable. The scanner will use
+            // the RBS to find the proper version. 
+            _useOldVersion = TRUE ;
+#ifdef _DEBUG
+            PD_LOG( PDDEBUG, "Set use old copy for rid[%s] but no memory copy",
+                    lockId.toString().c_str() ) ;
+#endif
          }
       } // end of case 1
 
@@ -667,6 +710,7 @@ namespace engine
                   PD_LOG( PDERROR, "Alloc oldVersionContainer faild" ) ;
                   goto done ;
                }
+               _oldVer->setOwnerTransID( transID ) ;
                pExtData->_data = (UINT64)_oldVer ;
 
                /// set callback
@@ -680,7 +724,7 @@ namespace engine
                   (DPS_EXTDATA_ON_LOCKRELEASE)dmsOnTransLockRelease ) ;
             }
          }
-         else
+         else  // we had the lock and oldVer already setup in callback
          {
             _oldVer = (oldVersionContainer*)pExtData->_data ;
             SDB_ASSERT( _oldVer->getRecordID() ==
@@ -701,7 +745,7 @@ namespace engine
             }
 
             if ( _oldVer->isRecordNew() &&
-                 _oldVer->getOwnnerTID() == _eduCB->getTID() )
+                 _oldVer->getOwnerTID() == _eduCB->getTID() )
             {
                _recordInfo._transInsert = TRUE ;
             }
@@ -722,8 +766,9 @@ namespace engine
 #ifdef _DEBUG
          if ( _oldVer )
          {
-            PD_LOG( PDDEBUG, "Set oldVer[%x] for rid[%s] in memory",
-                    _oldVer, lockId.toString().c_str() ) ;
+            PD_LOG( PDDEBUG, 
+                    "Set oldVer[%x] for rid[%s] in memory, lockmod=%d",
+                    _oldVer, lockId.toString().c_str(), requestLockMode ) ;
          }
 #endif //_DEBUG
       }
@@ -774,13 +819,50 @@ namespace engine
    }
 
    // Description
-   // Dependency: Caller must hold the mbLcok
+   // Dependency: Caller must hold the recordlock and mbLcok
    INT32 dmsTransLockCallback::saveOldVersionRecord( const _dmsRecordRW *pRecordRW,
                                                      const dmsRecordID &rid,
                                                      const BSONObj &obj,
-                                                     UINT32 ownnerTID )
+                                                     UINT32 ownerTID )
    {
-      INT32  rc      = SDB_OK ;
+      INT32        rc      = SDB_OK ;
+      DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
+      // TODO: add/fix the assertion
+      SDB_ASSERT( TRUE, 
+                  "RecordLock is not held " ) ;
+      SDB_ASSERT( _eduCB && pRecordRW,
+                  "eduCB or recordRW is not properly setup " ) ;
+      // get the owner transaction id
+      transID = _eduCB->getTransID() ;
+
+        // FIXME: remove
+#ifdef _DEBUG
+      PD_LOG( PDDEBUG, "saving old record :rid(%d, %d), transd(%llu),"
+              " _oldVer(%x) ",
+              rid._extent, rid._offset, 
+              DPS_TRANS_GET_SN(transID), _oldVer ) ;
+#endif
+      // if mvcc is on, and the TransactionID is different, we will first store
+      // current old version (off _oldVer) to RBS; then store current disk 
+      // version to memory(_oldVer)
+      // if the _oldVer has the same owner transID, we can skip because we 
+      // only need to do it once per transaction
+      if ( pmdGetOptionCB()->mvccOn() && _oldVer && _oldVer->hasRecord() 
+           && _oldVer->getOwnerTransID() != transID )
+      {
+#ifdef _DEBUG
+         // FIXME: remove after stable
+         PD_LOG( PDDEBUG, "removing in memory old record :"
+                 "rid(%d, %d), tid(%llu), obj(%s)",
+                 rid._extent, rid._offset, 
+                 DPS_TRANS_GET_SN(transID), 
+                 _oldVer->getRecordObj().toString().c_str() ) ;
+#endif
+         // delete the current record so that newer olderversion
+         // is put in memory below.  Since we already did appendRecord
+         // in releaseRecord, we can simply call it and handle everything
+         _oldVer->releaseRecord() ;
+      }
 
       // if the oldRecord does not exist, we will create one
       if ( _oldVer && _oldVer->isRecordEmpty() )
@@ -788,11 +870,20 @@ namespace engine
          /// when not use rollback segment
          if ( !_eduCB->getTransExecutor()->useRollbackSegment() )
          {
-            _oldVer->setRecordDummy( ownnerTID ) ;
+            _oldVer->setRecordDummy( ownerTID ) ;
          }
          else
          {
             const dmsRecord *pRecord= pRecordRW->readPtr( 0 ) ;
+        // FIXME: remove
+#ifdef _DEBUG
+      PD_LOG( PDDEBUG, "saving old record to memory:"
+                 "rid(%d, %d), ownertransid(%llu) "
+                 "recordTransID(%llu)",
+                 rid._extent, rid._offset, 
+                 DPS_TRANS_GET_SN(transID),
+                 DPS_TRANS_GET_SN(pRecord->getGlobTransID()) ) ;
+#endif
 
             // 1. get to overflow record if needed
             if ( pRecord->isOvf() )
@@ -802,12 +893,14 @@ namespace engine
                ovfRW.setNothrow( pRecordRW->isNothrow() ) ;
                pRecord = ovfRW.readPtr( 0 ) ;
             }
+
             // 2. save record
-            rc = _oldVer->saveRecord( pRecord, obj, ownnerTID ) ;
+            rc = _oldVer->saveRecord( pRecord, obj, ownerTID, transID ) ;
             if ( rc )
             {
                goto error ;
             }
+
          }
          // 3. hang the old version container to the linked list
          if ( !_unitPtr.get() )
@@ -881,7 +974,7 @@ namespace engine
             //   db.cs.c1.remove() // or delete { a:1, b:1 }
             //   db.cs.c1.insert({a:1, b:1}) ==> fails due to dupblicate key
             //
-            if ( allowSelfDup && idxValue.getOwnnerTID() == cb->getTID() )
+            if ( allowSelfDup && idxValue.getOwnerTID() == cb->getTID() )
             {
                goto done ;
             }
@@ -906,9 +999,11 @@ namespace engine
                }
             }
             PD_LOG ( PDERROR, "Insert index(%s) key(%s) with rid(%d, %d) "
-                     "failed, rc: %d", indexCB->getDef().toString().c_str(),
+                     "found key(%s), failed, rc: %d", 
+                     indexCB->getDef().toString().c_str(),
                      keyObj.toString().c_str(),
-                     rid._extent, rid._offset, rc ) ;
+                     rid._extent, rid._offset, 
+                     idxValue.toString().c_str(), rc ) ;
             goto error ;
          }
       }
@@ -996,6 +1091,8 @@ namespace engine
    done:
       return rc ;
    error:
+      PD_LOG ( PDDEBUG, "onInsertIndex with rid(%d, %d) failed, rc=%d  ",
+               rid._extent, rid._offset, rc ) ;
       goto done ;
    }
 
@@ -1029,8 +1126,8 @@ namespace engine
    done:
       return rc ;
    error:
-      PD_LOG ( PDDEBUG, "onInsertIndex with rid(%d, %d) failed, rc=%d  ",
-               _transCB, rid._extent, rid._offset, rc ) ;
+      PD_LOG ( PDERROR, "onInsertIndex with rid(%d, %d) failed, rc=%d  ",
+               rid._extent, rid._offset, rc ) ;
       goto done ;
    }
 
@@ -1048,7 +1145,8 @@ namespace engine
 
       if ( !_oldVer || cb->isInTransRollback() )
       {
-         /// not in transaction, or in trans rollback
+         /// when not use rollback segment
+         /// or in trans rollback
          goto done ;
       }
       else if ( _oldVer->isRecordNew() )
@@ -1057,7 +1155,6 @@ namespace engine
       }
       else if ( _oldVer->isRecordDummy() && !isUnique )
       {
-         /// when not use rollback segment
          goto done ;
       }
       else if ( _DELETE_NONE == deleteCursor )
@@ -1117,7 +1214,9 @@ namespace engine
          }
       }
 
-      rc = treePtr->insertWithOldVer( &keyObj, rid, _oldVer, hasLocked ) ;
+      // use owner transID to insert into the mem tree
+      rc = treePtr->insertWithOldVer( &keyObj, rid, _oldVer, hasLocked,
+                                      this->getOwnerTransID() ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Insert index keys(%s) with rid(%d, %d) "
@@ -1147,6 +1246,12 @@ namespace engine
       {
          goto done ;
       }
+// FIXME:  remove
+         PD_LOG ( PDDEBUG, 
+                  "Trans(%llu) on delete index(%d) with rid(%d, %d), older(%x) ",
+                  this->getOwnerTransID(), 
+                  indexCB->getLogicalID(),
+                  rid._extent, rid._offset, _oldVer ) ;
 
       /// insert key to mem tree
       for ( BSONObjSet::const_iterator cit = keySet.begin() ;

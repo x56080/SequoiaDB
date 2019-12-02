@@ -296,18 +296,86 @@ namespace engine
       return DPS_TRANS_GET_ID( rollbackID ) ;
    }
 
-   //TODO:  implement
-   // In order to find the system lowTran, we just need to use the smaller
+   //TODO:  guoming implement
+   // In order to find the system lowTran, we just need to use the smaller 
    // head of _TransMap and _hisTransStatus
    DPS_TRANS_ID dpsTransCB::getLowTran( )
    {
-      return DPS_INVALID_TRANS_ID ;
+      BOOLEAN      valid    = FALSE ;
+      DPS_TRANS_ID actBegin = DPS_TRANSID_SN_BIT ;
+      DPS_TRANS_ID hisBegin = DPS_TRANSID_SN_BIT ;
+
+      TRANS_MAP::iterator         ita ;
+      TRANS_ID_2_STATUS::iterator ith ;
+
+      // FIXME: since history map is not cleaned up until the log files are
+      // cycled (see how clearOutDateHisTrans() is called), our lowtran won't
+      // be moved up fast enough. In distributed transaction work, we will 
+      // either have each node exchange its low tran or we have a place for 
+      // every node to periodically report their lowtran. For now, we ingore
+      // the history map, which means we have to limit in one group. 
+      // Guoming to improve.
+      // get from history map
+      _hisMutex.get() ;
+      ith = _hisTransStatus.begin() ;
+      if ( ith != _hisTransStatus.end() )
+      {
+         hisBegin = ith->first ;
+         valid = TRUE ;
+      }
+      _hisMutex.release() ;
+
+      // get from live map
+      _MapMutex.get() ;
+      ita = _TransMap.begin() ;
+      if ( ita != _TransMap.end() )
+      {
+         actBegin = ita->first ;
+         valid = TRUE ;
+      }
+      _MapMutex.release() ;
+      
+      // return invalid trans id if we didn't find any
+      if ( valid )
+      {
+         return transIDLessThan(actBegin, hisBegin) ? actBegin : hisBegin ; 
+      }
+      else
+      {
+         return DPS_INVALID_TRANS_ID ;
+      }
    }
 
    // FIXME: Guomin to implement the proper one
-   BOOLEAN dpsTransCB::transIDLessThan( DPS_TRANS_ID tidL, DPS_TRANS_ID tidR )
+   BOOLEAN dpsTransCB::transIDLessThan( DPS_TRANS_ID tidL, DPS_TRANS_ID tidR ) 
    {
-      return ( DPS_TRANS_GET_SN(tidL) < DPS_TRANS_GET_SN(tidR) ) ;
+      return ( DPS_TRANS_GET_SN(tidL) < DPS_TRANS_GET_SN(tidR) ) ; 
+   }
+
+   // FIXME: Guomin to implement the proper one
+   BOOLEAN dpsTransCB::transIDGreaterThan( DPS_TRANS_ID tidL, DPS_TRANS_ID tidR ) 
+   {
+      return ( DPS_TRANS_GET_SN(tidL) > DPS_TRANS_GET_SN(tidR) ) ; 
+   }
+
+   BOOLEAN dpsTransCB::isHolding( _pmdEDUCB *eduCB, 
+                                  INT8      &owningLockMode, 
+                                  UINT32     logicCSID,
+                                  UINT16     collectionID,
+                                  const dmsRecordID *recordID )
+   {
+      BOOLEAN found = FALSE ;
+      owningLockMode = DPS_TRANSLOCK_MAX ;
+      if ( _isOn )
+      {
+         UINT32 refCount = 0 ;
+         dpsTransLockId lockId( logicCSID, collectionID, recordID );
+         found = _transLockMgr->isHolding( eduCB->getTransExecutor(),
+                                           lockId, owningLockMode, 
+                                           refCount ) ;
+     
+      }
+      return found ;
    }
 
    BOOLEAN dpsTransCB::isRollback( DPS_TRANS_ID transID )

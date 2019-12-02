@@ -859,6 +859,8 @@ namespace engine
                               PD_LOG ( PDWARNING, "Failed to add collection "
                                        "space[%s] because it's already exist",
                                        csName ) ;
+                              // reset the rc
+                              rc = SDB_OK; 
                            }
                            else
                            {

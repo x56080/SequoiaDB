@@ -270,6 +270,7 @@ namespace engine
    class _dmsStorageUnit : public SDBObject
    {
       friend class _dmsTempSUMgr ;
+      friend class _dmsRBSSUMgr ;
       friend class _SDB_DMSCB ;
 
       public:
@@ -351,6 +352,9 @@ namespace engine
          void        getValidFlag( BOOLEAN &dataFlag,
                                    BOOLEAN &idxFlag,
                                    BOOLEAN &lobFlag ) const ;
+         // FIXME: enable this after fully test
+       //  SINT32      getCurRBSCollection() const ;
+       //  SINT32      getLastFreeRBSCollection() const ;
 
       public:
          INT32    dumpInfo ( MON_CL_SIM_LIST &clList,

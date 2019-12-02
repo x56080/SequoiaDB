@@ -377,6 +377,7 @@ unique: true, enforced: true }"
    #define OM_TEMPLATE_CATALOG_NUM           "catalognum"
    #define OM_TEMPLATE_COORD_NUM             "coordnum"
    #define OM_TEMPLATE_TRANSACTION           PMD_OPTION_TRANSACTIONON
+   #define OM_TEMPLATE_MVCCON                PMD_OPTION_MVCCON
 
    // database
    #define OM_DBPATH_PREFIX_DATABASE         "database"
@@ -396,6 +397,7 @@ unique: true, enforced: true }"
    #define OM_CONF_DETAIL_PCINTERVAL         PMD_OPTION_PAGECLEANINTERVAL
    #define OM_CONF_DETAIL_DATAGROUPNAME      "datagroupname"
    #define OM_CONF_DETAIL_TRANSACTIONON      PMD_OPTION_TRANSACTIONON
+   #define OM_CONF_DETAIL_MVCCON             PMD_OPTION_MVCCON
 
    // Zookeeper's template configure
    #define OM_TEMPLATE_ZOO_NUM               "zoonodenum"
