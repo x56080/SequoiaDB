@@ -168,7 +168,7 @@ namespace engine
          BOOLEAN              _firstRun ;
          BOOLEAN              _hasLockedRecord ;
          dpsTransCB           *_pTransCB ;
-         INT32                _recordLock ;
+         INT8                 _recordLock ;
          BOOLEAN              _needUnLock ;
          BOOLEAN              _CSCLLockHeld ;
          BOOLEAN              _selectForUpdate ;

@@ -275,10 +275,19 @@ namespace engine
       BOOLEAN isVersionVisible( DPS_TRANS_ID recTransID, 
                                 DPS_TRANS_ID transID ) 
       {
-         // Simple implementation: if transactionID is older than
-         // record transID, this record is visible to the transaction
-         return transIDLessThan( transID, recTransID ) ;
+         // Simple implementation: if record transID is older than
+         // transactionID, this record is visible to the transaction
+         // Note that when it's equal, means the record is generated in
+         // the same transaction, which is visiable
+         return !transIDGreaterThan( recTransID, transID ) ;
       }
+
+      // Check if EDU hold certain lock and return the holding mode
+      BOOLEAN isHolding( _pmdEDUCB *eduCB,
+                         INT8   & owningLockMode, 
+                         UINT32 logicCSID,
+                         UINT16 collectionID = DMS_INVALID_MBID,
+                         const dmsRecordID *recordID = NULL ) ;
 
       oldVersionCB * getOldVCB () { return _oldVCB ; }
 
@@ -343,6 +352,7 @@ namespace engine
       DPS_LSN_OFFSET getOldestBeginLsn() ;
 
       BOOLEAN  transIDLessThan( DPS_TRANS_ID tidL, DPS_TRANS_ID tidR ) ;
+      BOOLEAN  transIDGreaterThan( DPS_TRANS_ID tidL, DPS_TRANS_ID tidR ) ;
 
       BOOLEAN  isNeedSyncTrans() ;
       void     setIsNeedSyncTrans( BOOLEAN isNeed ) ;

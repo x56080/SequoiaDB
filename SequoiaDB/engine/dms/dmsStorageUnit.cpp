@@ -1968,7 +1968,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to lock dms mb context[%s], rc: %d",
                       context->toString().c_str(), rc ) ;
       }
-      if ( ( cb->isTransRC() || cb->isTransRS() ) &&
+      if ( ( cb->isTransRC() || cb->isTransRS() || cb->isTransRR() ) &&
            cb->getTransExecutor()->isTransRCCount() )
       {
          // NOTE: actually for RC only
@@ -3089,7 +3089,7 @@ namespace engine
          totalSize += ( (INT64)( dataHeader->_storageUnitSize ) <<
                         _pDataSu->pageSizeSquareRoot() ) ;
       }
-      if ( type & DMS_SU_INDEX )
+      if ( type & DMS_SU_INDEX ) 
       {
          dataHeader = _pIndexSu->getHeader() ;
          totalSize += ( (INT64)( dataHeader->_storageUnitSize ) <<
@@ -3319,6 +3319,7 @@ namespace engine
          info._dataCommitLSN = mb->_commitLSN ;
          info._idxCommitLSN = mb->_idxCommitLSN ;
          info._lobCommitLSN = mb->_lobCommitLSN ;
+         info._maxGlobTransID = mbStat->_maxGlobTransID.peek() ;
          info._dataIsValid = mbStat->_commitFlag.peek() ? TRUE : FALSE ;
          info._idxIsValid = mbStat->_idxCommitFlag.peek() ? TRUE : FALSE ;
          info._lobIsValid = mbStat->_lobCommitFlag.peek() ? TRUE : FALSE ;

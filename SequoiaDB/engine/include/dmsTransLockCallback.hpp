@@ -92,6 +92,8 @@ namespace engine
 
       const dmsTransRecordInfo*  getTransRecordInfo() const ;
 
+      DPS_TRANS_ID getRecordTransID() ;
+      DPS_TRANS_ID getOwnerTransID() ;
    public:
 
       /// Interface
@@ -222,7 +224,12 @@ namespace engine
       INT32    saveOldVersionRecord( const _dmsRecordRW *pRecordRW,
                                      const dmsRecordID &rid,
                                      const BSONObj &obj,
-                                     UINT32 ownnerTID ) ;
+                                     UINT32 ownerTID ) ;
+
+      INT32    saveOldVersionRecordToRBS( const _dmsRecordRW *pRecordRW,
+                                     const dmsRecordID &rid,
+                                     const BSONObj &obj,
+                                     UINT32 ownerTID ) ;
 
    private:
       dpsTransCB           *_transCB ;    // use it to access global old copy tree

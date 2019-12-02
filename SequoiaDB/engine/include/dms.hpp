@@ -47,6 +47,11 @@
 
 namespace engine
 {
+
+// Use this to force smaller Capped CL size for testing purpose
+// FIXME set back to 0
+#define SMALL_CAP  0
+
 #define DMS_COLLECTION_SPACE_NAME_SZ      127
 // page length can be 4/8/16/32/64K
 // Note that windows memory allocation granulartiy is 64K, so we need to make
@@ -144,19 +149,27 @@ namespace engine
 
 #define DMS_INDEX_SORT_BUFFER_MIN_SIZE     32
 
-#define DMS_CAP_EXTENT_SZ           (32 * 1024 * 1024)
+// set to smaller number for test
+#if SMALL_CAP
+   #define DMS_CAP_EXTENT_SZ           (8 *  1024)
+   #define DMS_MAX_CL_SIZE_ALIGN_SIZE  ( 8 * 1024 )
+   // Default size of Rollback Segment collection 
+   #define DMS_DFT_RBSCL_SIZE          ( 16 * 1024 )
+#else
+   #define DMS_CAP_EXTENT_SZ           (32 * 1024 * 1024)
+   #define DMS_MAX_CL_SIZE_ALIGN_SIZE  ( 32 * 1024 * 1024 )
+   // Default size of Rollback Segment collection is 128MB each.
+   #define DMS_DFT_RBSCL_SIZE          ( 128 * 1024 * 1024 )
+#endif
+
 #define DMS_CAP_EXTENT_BODY_SZ      ( DMS_CAP_EXTENT_SZ - DMS_EXTENT_METADATA_SZ )
 
 // Unit is MB. This is the upper limit. It should be smaller than the maximum
 // size of the storage unit.
 #define DMS_CAP_CL_SIZE             ( OSS_SINT64_MAX >> 20 )
 
-#define DMS_MAX_CL_SIZE_ALIGN_SIZE  ( 32 * 1024 * 1024 )
-
 #define DMS_MAX_EXT_NAME_SIZE       DMS_COLLECTION_SPACE_NAME_SZ
 
-// Default size of Rollback Segment collection is 128MB each.
-#define DMS_DFT_RBSCL_SIZE          ( 128 * 1024 * 1024 )
 
    /*
       MB FLAG(_flag) values :

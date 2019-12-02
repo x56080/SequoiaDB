@@ -80,11 +80,25 @@ namespace engine
       void                 setReturnIDByObj( const BSONObj &obj ) ;
       BSONObj              getReturnIDObj() const ;
 
+      void setInsertLoc( SINT32 ext, SINT32 offset )
+      {
+         _insertExtent = ext ;
+         _insertOffset = offset ;
+      }
+
+      void getInsertLoc( SINT32 &ext, SINT32 &offset )
+      {
+         ext = _insertExtent ;
+         offset = _insertOffset ;
+      } 
+
    private:
       UINT64               _insertedNum ;
       UINT64               _duplicatedNum ;
       BOOLEAN              _enableReturnID ;
       BSONObj              _returnIDObj ;
+      SINT32               _insertExtent ;  // track the location of insert
+      SINT32               _insertOffset ;
    } ;
 
    /*

@@ -61,6 +61,7 @@ namespace engine
    class dpsTransCB ;
    class dpsTransLRBHeader ;
    class oldVersionContainer ;
+   class _dmsRBSSUMgr ;
 
    // globIdxID uniquely define an index globally
    class globIdxID : public SDBObject
@@ -116,9 +117,9 @@ namespace engine
    typedef _utilPooledAutoPtr dpsOldRecordPtr ;
 
    /** definition of preIdxTreeNodeKey
-    *  preIdxTreeNodeKey is the key for node in preIdxTree, it's child class
-    *  ixmKey. Note that the raw key is stored in _keyData from super class,
-    *  it's also a pointer pointing to a memory block owned by record lock
+    *  preIdxTreeNodeKey is the key for node in preIdxTree.
+    *  Note that the raw key is stored in _keyData.
+    *  
     **/
    class preIdxTreeNodeKey : public SDBObject
    {
@@ -128,7 +129,8 @@ namespace engine
       // use super class to construct key portion
       preIdxTreeNodeKey( const BSONObj* key,
                          const dmsRecordID &rid,
-                         const Ordering *order ) ;
+                         const Ordering *order,
+                         const DPS_TRANS_ID &transID = DPS_INVALID_TRANS_ID ) ;
 
       // copy constructor
       preIdxTreeNodeKey( const preIdxTreeNodeKey &key ) ;
@@ -155,6 +157,12 @@ namespace engine
          return _keyObj ;
       }
 
+
+      const DPS_TRANS_ID getNodeTransID() const
+      {
+         return _transID ;
+      }
+
       INT32 woCompare( const preIdxTreeNodeKey &right ) const
       {
          const Ordering *pOrder = _order ? _order : right._order ;
@@ -177,9 +185,28 @@ namespace engine
             {
                rv = true ;
             }
-            else if( _rid._extent == right._rid._extent )
+            else if ( _rid._extent == right._rid._extent )
             {
-               rv = ( _rid._offset < right._rid._offset ) ;
+               if ( _rid._offset < right._rid._offset )
+               {
+                  rv = true ;
+               }
+               else if ( _rid._offset == right._rid._offset ) 
+               {
+                  if ( DPS_INVALID_TRANS_ID != right._transID &&
+                       DPS_INVALID_TRANS_ID != _transID )
+                  {
+               
+                     // evaluate transID if both have valid transID
+                     // FIXME: do you have proper interface without dpsTransCB 
+                     // ?????
+                     //rv = transIDLessThan( _transID, right._transID ) ;
+                     rv = ( DPS_TRANS_GET_SN(_transID) < 
+                            DPS_TRANS_GET_SN(right._transID) ) ;
+                  }
+                  // if either side has INVALID_TRANS_ID, we treat two key
+                  // equal, which we will return false
+               }
             }
          }
          return rv ;
@@ -187,11 +214,22 @@ namespace engine
 
       bool operator== ( const preIdxTreeNodeKey &right ) const
       {
+         bool rv = false ;
          if ( 0 == woCompare( right ) && _rid == right._rid )
          {
-            return true ;
+            // evaluate transID if both nodes has valid transID
+            if ( ( DPS_INVALID_TRANS_ID == _transID ) ||
+                 ( DPS_INVALID_TRANS_ID == right._transID ) )
+            {
+               rv = true ;
+            }
+            else
+            {
+               rv = ( DPS_TRANS_GET_SN(_transID) ==
+                      DPS_TRANS_GET_SN(right._transID) ) ;
+            }
          }
-         return false ;
+         return rv ;
       }
 
       string toString() const ;
@@ -202,8 +240,17 @@ namespace engine
       // Original rid. This is used to differ duplicated keys when index is 
       // not unique
       dmsRecordID       _rid ;
+      // We use the transID as the version of the index in the tree
+      // This is NOT reflecting the record transID, but the owner transID, 
+      // which is the transaction adding the version into the tree. We will 
+      // use this to decide when to recycle the node from the mem tree, i.e.
+      // we can delete the tree node if the transID is older than lowTran
+      // FIXME: since this is not reflecting the version of the record itself
+      // should we still use it in comparison 
+      DPS_TRANS_ID      _transID ;
       // it's shared from the tree. Check clsCataOrder()
       const Ordering    *_order ;
+      
    } ;
 
    // the index tree node value is the index into the lrbHdr which contain
@@ -238,6 +285,11 @@ namespace engine
          return _pOldVer ? TRUE : FALSE ;
       }
 
+      void  reset()
+      {
+         _pOldVer = NULL ;
+      }
+
       BOOLEAN isRecordDeleted() const ;
 
       BOOLEAN isRecordNew() const ;
@@ -248,14 +300,13 @@ namespace engine
       const dmsRecord*     getRecord() const ;
       const dmsRecordID&   getRecordID() const ;
       BSONObj              getRecordObj() const ;
-      UINT32               getOwnnerTID() const ;
+      UINT32               getOwnerTID() const ;
 
       string toString() const ;
 
    // private member
    private:
-      oldVersionContainer        *_pOldVer ;
-
+      oldVersionContainer    *_pOldVer ;
    } ;
 
    // use map which is implemented using red-black tree to hold
@@ -322,7 +373,9 @@ namespace engine
       // otherwise the iterator can change underneath
       INDEX_TREE_CPOS   find( const preIdxTreeNodeKey &key ) const ;
       INDEX_TREE_CPOS   find ( const BSONObj *key,
-                               const dmsRecordID &rid ) const ;
+                               const dmsRecordID &rid,
+                               const DPS_TRANS_ID &transID = 
+                                                DPS_INVALID_TRANS_ID ) const ;
       BOOLEAN           isPosValid( INDEX_TREE_CPOS pos ) const ;
 
       void              resetPos( INDEX_TREE_CPOS &pos ) const ;
@@ -367,7 +420,9 @@ namespace engine
       INT32 insertWithOldVer( const BSONObj *keyData,
                               const dmsRecordID &rid,
                               oldVersionContainer *oldVer,
-                              BOOLEAN hasLock ) ;
+                              BOOLEAN hasLock,
+                              const DPS_TRANS_ID &transID
+                                       = DPS_INVALID_TRANS_ID ) ;
 
       void lockX()
       {
@@ -410,7 +465,7 @@ namespace engine
       }
 
       // assistant function to print out the whole tree.
-      void printTree() const ;
+      void printTree( BOOLEAN detailed = TRUE) const ;
 
    protected:
       // insert a node to map
@@ -421,7 +476,8 @@ namespace engine
       INT32 insert ( const BSONObj *keyData,
                      const dmsRecordID &rid,
                      const preIdxTreeNodeValue &value,
-                     BOOLEAN hasLock = FALSE ) ;
+                     BOOLEAN hasLock = FALSE,
+                     const DPS_TRANS_ID &transID = DPS_INVALID_TRANS_ID ) ;
 
       // delete a node
       UINT32 remove( const preIdxTreeNodeKey &keyNode,
@@ -433,7 +489,11 @@ namespace engine
                      const oldVersionContainer *pOldVer,
                      BOOLEAN hasLock = FALSE ) ;
 
+      void  resetValue( const preIdxTreeNodeKey &keyNode,
+                        BOOLEAN hasLock = FALSE ) ;
+
       void  clear( BOOLEAN hasLock = FALSE ) ;
+      void  gc( UINT64 lowTran ) ;
 
       BSONObj     _buildPredObj( const BSONObj &prevKey,
                                  INT32 keepFieldsNum,
@@ -446,6 +506,7 @@ namespace engine
    private:
       BOOLEAN              _isValid ;
       SINT32               _idxLID ; // index logic id
+      UINT64               _lastGCTime ; // The lowTran used for last gc
       // Latching protocal
       // 1. preIdxTree latch must be held in X to insert/delete node in the tree
       //    oldVersionCB(_oldVersionCBLatch) need to be held in S before
@@ -663,6 +724,8 @@ namespace engine
       void              delIdxTree( const globIdxID &gid,
                                     BOOLEAN hasLock ) ;
 
+      void              gcIdxTrees( ) ;
+
       void              clearIdxTreeByCSID( UINT32 csID,
                                             BOOLEAN hasLock ) ;
       void              clearIdxTreeByCLID( UINT32 csID,
@@ -698,7 +761,6 @@ namespace engine
       IDXID_TO_TREE_MAP   _idxTrees ;     // in memory trees holding older 
                                           // version of indexes
       MAP_OLDVERION_UNIT  _mapOldVersionUnit ;
- 
    } ;
 
    /*
@@ -790,37 +852,44 @@ namespace engine
 
       BOOLEAN              isRecordEmpty() const ;
 
-      INT32                getCSID() const { return _csID ; }
+      SINT32               getCSID() const { return _csID ; }
       UINT16               getCLID() const { return _clID ; }
       UINT32               getCSLID() const { return _csLID ; }
       UINT32               getCLLID() const { return _clLID ; }
 
       const dmsRecordID&   getRecordID() const { return _rid ; }
       dpsOldRecordPtr      getRecordPtr() const { return _recordPtr ; }
+      DPS_TRANS_ID         getRecordTransID() const { return _recordTransID ; }
+      DPS_TRANS_ID         getOwnerTransID() const { return _ownerTransID; }
       BSONObj              getRecordObj() const ;
       const dmsRecord*     getRecord() const ;
 
       INT32                saveRecord( const dmsRecord *pRecord,
                                        const BSONObj &obj,
-                                       UINT32 ownnerTID ) ;
+                                       UINT32 ownnerTID,
+                                       DPS_TRANS_ID recordTransID ) ;
       void                 releaseRecord( INT32 idxLID = -1,
                                           BOOLEAN hasLock = FALSE ) ;
       BOOLEAN              tryReleaseRecord( INT32 idxLID = -1,
                                              BOOLEAN hasLock = FALSE ) ;
 
       void                 setRecordDeleted() ;
+      void                 setOwnerTransID( DPS_TRANS_ID const & ownerTransID ) 
+                           { _ownerTransID = ownerTransID ; }
+
       BOOLEAN              isRecordDeleted() const ;
+      BOOLEAN              hasRecord() const ;
 
       void                 setDiskDeleting() ;
       BOOLEAN              isDiskDeleting() const ;
 
-      void                 setRecordNew( UINT32 ownnerTID ) ;
+      void                 setRecordNew( UINT32 ownerTID ) ;
       BOOLEAN              isRecordNew() const ;
 
-      void                 setRecordDummy( UINT32 ownnerTID ) ;
+      void                 setRecordDummy( UINT32 ownerTID ) ;
       BOOLEAN              isRecordDummy() const ;
 
-      UINT32               getOwnnerTID() const ;
+      UINT32               getOwnerTID() const ;
 
       BOOLEAN              isIndexObjEmpty() const ;
 
@@ -867,7 +936,9 @@ namespace engine
       UINT32            _clLID ;
       dmsRecordID       _rid ;
       dpsOldRecordPtr   _recordPtr ;   // pointer to copy of old record
-      UINT32            _ownnerTID ;
+      UINT32            _ownerTID ;   // owner thread ID
+      DPS_TRANS_ID      _recordTransID ; // record transID as the version
+      DPS_TRANS_ID      _ownerTransID ; // transaction ID from owner
 
       UINT32            _statMask ;
       // A set of index Lids (up to 64) associated to this record.

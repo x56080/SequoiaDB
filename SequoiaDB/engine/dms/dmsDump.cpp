@@ -1363,6 +1363,12 @@ namespace engine
                               record->getCompressType(),
                               utilCompressType2String( record->getCompressType() ) ) ;
       }
+
+      len += ossSnprintf ( outBuf + len, outSize - len,
+                           "       Has transID  : %s"OSS_NEWLINE,
+                           OSS_BIT_TEST ( flag, DMS_RECORD_FLAG_HASGLOBTRANSID ) ?
+                           "True":"False" ) ;
+
       len += ossSnprintf ( outBuf + len, outSize - len,
                            "       Record Size  : %u"OSS_NEWLINE,
                            recordSize ) ;
@@ -1386,6 +1392,14 @@ namespace engine
          goto exit ;
       }
 
+      // Dump transaction ID for dmsRecord_v0
+      if ( OSS_BIT_TEST( flag, DMS_RECORD_FLAG_HASGLOBTRANSID ) )
+      {
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              "       Trans ID     : 0x%08x (%d)"OSS_NEWLINE,
+                              record->_globTransID, record->_globTransID ) ;
+      }
+
       nextRecord = record->_nextOffset ;
       if ( isDel )
       {
@@ -1395,7 +1409,8 @@ namespace engine
       }
       else if ( isOvf )
       {
-         dmsRecordID rid = record->getOvfRID() ;
+         dmsRecordID rid ;
+         rid = record->getOvfRID() ;
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "       Overflowed To: 0x%08x : 0x%08x ( "
                               "extent %d offset %d )"OSS_NEWLINE,
@@ -1413,7 +1428,8 @@ namespace engine
          {
             ossValuePtr recordPtr = 0 ;
             DMS_RECORD_EXTRACTDATA ( record, recordPtr,
-                                     compressorEntry ) ;
+                                        compressorEntry ) ;
+           
             BSONObj obj ( (CHAR*)recordPtr ) ;
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "       Record: %s"OSS_NEWLINE,

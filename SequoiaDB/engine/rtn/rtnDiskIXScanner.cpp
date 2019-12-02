@@ -139,7 +139,7 @@ namespace engine
          rc = root.locate ( keyObj, rid, _order, _curIndexRID,
                             found, _direction, _indexCB ) ;
          PD_RC_CHECK ( rc, PDERROR, "Failed to locate from new keyobj(%s) "
-                       "and rid(%d,%d), rc: %d", keyObj.toString().c_str(),
+                       "and rid(%d, %d), rc: %d", keyObj.toString().c_str(),
                        rid._extent, rid._offset, rc ) ;
 
          _savedObj = keyObj.getOwned() ;
@@ -187,7 +187,7 @@ namespace engine
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to locate from saved obj(%s) and "
-                  "rid(%d,%d), rc: %d", _savedObj.toString().c_str(),
+                  "rid(%d, %d), rc: %d", _savedObj.toString().c_str(),
                   _savedRID._extent, _savedRID._offset, rc ) ;
          goto error ;
       }
@@ -349,7 +349,7 @@ namespace engine
          const CHAR *dataBuffer = indexExtent.getKeyData( _curIndexRID._slot ) ;
          if ( !dataBuffer )
          {
-            PD_LOG ( PDERROR, "Failed to get buffer from current rid: %d,%d",
+            PD_LOG ( PDERROR, "Failed to get buffer from current rid(%d, %d)",
                      _curIndexRID._extent, _curIndexRID._slot ) ;
             rc = SDB_SYS ;
             goto error ;
@@ -367,7 +367,7 @@ namespace engine
             {
                PD_RC_CHECK ( SDB_SYS, PDERROR,
                              "Failed to convert from buffer "
-                             "to bson, rid: %d,%d: %s",
+                             "to bson, rid:(%d, %d): %s",
                              _curIndexRID._extent,
                              _curIndexRID._slot, e.what() ) ;
             }
@@ -495,7 +495,7 @@ namespace engine
          dataBuffer = indexExtent.getKeyData( _curIndexRID._slot ) ;
          if ( !dataBuffer )
          {
-            PD_LOG ( PDERROR, "Failed to get buffer from current rid: %d,%d",
+            PD_LOG ( PDERROR, "Failed to get buffer from current rid(%d, %d)",
                      _curIndexRID._extent, _curIndexRID._slot ) ;
             rc = SDB_SYS ;
             goto error ;
@@ -507,14 +507,14 @@ namespace engine
          catch ( std::exception &e )
          {
             PD_LOG ( PDERROR, "Failed to convert buffer to bson from current "
-                     "rid: %d,%d: %s", _curIndexRID._extent,
+                     "rid(%d, %d): %s", _curIndexRID._extent,
                      _curIndexRID._slot, e.what() ) ;
             rc = SDB_SYS ;
             goto error ;
          }
          _savedRID = indexExtent.getRID( _curIndexRID._slot ) ;
 
-         PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d,%d)",
+         PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d, %d)",
                  _savedObj.toString().c_str(),
                  _savedRID._extent, _savedRID._offset ) ;
       }
@@ -610,7 +610,7 @@ namespace engine
             goto error ;
          }
 
-         PD_LOG( PDDEBUG, "Relocate in obj(%s) with rid(%d,%d), found(%d)",
+         PD_LOG( PDDEBUG, "Relocate in obj(%s) with rid(%d, %d), found(%d)",
                  _savedObj.toString().c_str(), _savedRID._extent,
                  _savedRID._offset, isSame ) ;
 
@@ -704,7 +704,7 @@ namespace engine
          catch ( std::exception &e )
          {
             PD_LOG ( PDERROR, "Failed to convert buffer to bson from "
-                     "current rid: %d,%d: %s", _curIndexRID._extent,
+                     "current rid(%d, %d): %s", _curIndexRID._extent,
                      _curIndexRID._slot, e.what() ) ;
             rc = SDB_SYS ;
             goto error ;

@@ -1360,12 +1360,21 @@ namespace engine
          goto error ;
       }
 
-      rc = su->open ( pmdGetOptionCB()->getDbPath(),
-                      pmdGetOptionCB()->getIndexPath(),
-                      pmdGetOptionCB()->getLobPath(),
-                      pmdGetOptionCB()->getLobMetaPath(),
-                      pmdGetSyncMgr(),
-                      TRUE ) ;
+      {
+         const CHAR * idxpath = NULL ;
+         // FIXME:  should we skip the index createion for RBS??
+         // We will create it for now
+         //if ( ossStrcasecmp( pCollectionSpace, SDB_DMSRBS_NAME ) )
+         {
+            idxpath = pmdGetOptionCB()->getIndexPath() ;
+         }
+         rc = su->open ( pmdGetOptionCB()->getDbPath(),
+                         idxpath,
+                         pmdGetOptionCB()->getLobPath(),
+                         pmdGetOptionCB()->getLobMetaPath(),
+                         pmdGetSyncMgr(),
+                         TRUE ) ;
+      }
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to create collection space %s at %s, rc: %d",
