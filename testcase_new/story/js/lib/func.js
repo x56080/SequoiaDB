@@ -7,32 +7,34 @@
 // begin global variable configuration
 // CSPREFIX, COORDSVCNAME, COORDHOSTNAME  is input parameter
 // UUID, UUNAME is input parameter
-//cm端口号，默认11790
+//if ( typeof(CSPREFIX) == "undefined" ) { CSPREFIX = "local_test"; }
+//cm端口号
 if ( typeof(CMSVCNAME) == "undefined" ) { CMSVCNAME = "11790"; }
-//公共CS CL前缀，默认local_test,CI赋值由Test_主机名不带下划线_end
+//公共CS前缀
 if ( typeof(CHANGEDPREFIX) == "undefined" ) { CHANGEDPREFIX = "local_test"; }
-//集群协调阶段端口号，默认50000，CI默认11810
+//协调节点端口号，CI默认11810
 if ( typeof(COORDSVCNAME) == "undefined" ) { COORDSVCNAME = "50000"; }
-//集群编目节点端口号，默认11800，CI默认11800
+//编目节点端口号
 if ( typeof(CATASVCNAME) == "undefined" ) { CATASVCNAME = "11800"; }
-//协调节点主机名，默认localhost，CI默认localhost
+//协调节点主机名
 if ( typeof(COORDHOSTNAME) == "undefined" ) { COORDHOSTNAME = 'localhost'; }
 if ( typeof(UUID) == "undefined" ) { UUID = 1 ; }
 if ( typeof(UUNAME) == "undefined" ) { UUNAME = "ID"+UUID+"NAME" ; }
-//给用例预留的端口号开始值
+//用例预留端口最小值
 if ( typeof(RSRVPORTBEGIN) == "undefined" ) { RSRVPORTBEGIN = '26000'; }
-//给用例预留端口号结束值
+//用例预留端口最大值
 if ( typeof(RSRVPORTEND)   == "undefined" ) { RSRVPORTEND   = '27000'; }
-//用例新建节点的数据路径
+//用例创建节点数据目录
 if ( typeof(RSRVNODEDIR)   == "undefined" ) { RSRVNODEDIR   = "/opt/sequoiadb/database/"; }
-//用例存放临时文件的目录
+//用例存放临时文件目录
 if ( typeof(WORKDIR)   == "undefined" ) { WORKDIR   = "/tmp/jstest"; }
-//ES所在主机的hostname，默认localhost，CI默认192.168.28.143
+//ES服务端主机名，CI默认传入192.168.28.143
 if ( typeof(ESHOSTNAME) == "undefined" ) { ESHOSTNAME = 'localhost'; }
-//ES端口号，默认9200，CI默认9200
+//ES服务端端口号，CI默认传入9200
 if ( typeof(ESSVCNAME) == "undefined" ) { ESSVCNAME = '9200'; }
-//全文索引默认前缀，默认为空，CI默认工程名加集群模式(例如：NORMALG3D3)
+//ES全文索引前缀，与工程名相关
 if ( typeof(FULLTEXTPREFIX) == "undefined" ) { FULLTEXTPREFIX = ''; }
+if ( typeof(CLEANFORFAIL) == "undefined" ) { var CLEANFORFAIL = false; }
 
 var COMMCSNAME = CHANGEDPREFIX + "_cs" ;
 var COMMCLNAME = CHANGEDPREFIX + "_cl" ;
@@ -852,6 +854,65 @@ function commGetGroupsNum( db, print, filter, exceptCata, exceptCoord, exceptSpa
    return num ;
 }
 
+/* *****************************************************************************
+@discription: get group name by condition
+@author: luweikang
+@parameter:
+   print: t/f, print the group info
+   filter: group name filter
+   exceptCata : default true
+   exceptCoord: default true
+@return integer
+***************************************************************************** */
+function commGetGroupsNames( db, print, filter, exceptCata, exceptCoord, exceptSpare )
+{
+   var groups = commGetGroups( db, print, filter, exceptCata, exceptCoord, exceptSpare );
+   var groupNames = [];
+   for( var i = 0; i < groups.length; i++ )
+   {
+      groupNames.push( groups[i][0].GroupName );
+   }
+   return groupNames;
+}
+
+/* ****************************************************************************
+@discription: get all node from specified group
+@author: luweikang
+@parameter: 
+   groupName: group name
+@return: array[] ex:
+   array[0] {"HostName": "XXXX", "svcname": "XXXX"}
+   array[1] {"HostName": "XXXX", "svcname": "XXXX"}
+   ...
+**************************************************************************** */
+function commGetGroupNodes( db, groupName )
+{
+   if ( typeof(groupName) != "string" || groupName.length == 0 )
+   {
+      throw new Error( "commGetGroupNodes: Invalid groupName parameter or groupName is empty" );
+   }
+   
+   var tmpArray = [];
+   var snapshotCur = db.list( SDB_LIST_GROUPS, {GroupName: groupName});
+   if( snapshotCur.next() )
+   {
+      var groupObj = snapshotCur.current().toObj();
+   }
+   else
+   {
+      throw new Error( "commGetGroupNodes: failed to get group info, group: " + groupName );
+   }
+   
+   var nodes = groupObj.Group;
+   for( var i = 0; i < nodes.length; i++ )
+   {
+      var nodeObj = nodes[i];
+      tmpArray[i] = {};
+      tmpArray[i].HostName = nodeObj.HostName;
+      tmpArray[i].svcname = nodeObj.Service[0].Name;
+   }
+   return tmpArray;
+}
 
 /* *****************************************************************************
 @discription: get cs and cl
@@ -1244,6 +1305,73 @@ function commCheckBusiness( groups, checkLSN, diskThreshold )
 }
 
 /* *****************************************************************************
+@discription: check whether the lsn of the group is consistent
+@author: luweikang
+@parameter:
+   groupNames: groups name, default is all data group and catalog group name.
+   timeout: check the maximum amount of time each group take, default is 60s.
+***************************************************************************** */
+function commCheckLSN( db, groupNames, timeout )
+{
+   if ( groupNames == undefined ) { groupNames = commGetGroupsNames( db, "", false, false, true, true ) };
+   if ( timeout == undefined ) { timeout = 60 ;}
+   
+   if( typeof(groupNames) == "string" ){ groupNames = [ groupNames ];}
+
+   for( var i = 0; i < groupNames.length; i++ )
+   {
+      var groupName = groupNames[i];
+      var masterSnapshot = commGetSnapshot( db, SDB_SNAP_SYSTEM, {GroupName: groupName, RawData: true, "IsPrimary": true} );
+      if( masterSnapshot.length == 0 )
+      {
+         println(db.snapshot(SDB_SNAP_SYSTEM, {GroupName: groupName, RawData: true}));
+         throw new Error("check group failed: group can't found primary node, the console view detailed snapshot info");
+      }
+   
+      var masterObj = masterSnapshot[0];
+      var masterCompleteLSN = masterObj.CompleteLSN;
+      
+      var time = 0;
+      while( true )
+      {
+         var success = true;
+         var slaveSnapshot = commGetSnapshot( db, SDB_SNAP_SYSTEM, {GroupName: groupName, RawData: true, "IsPrimary": false} );
+         //no need to detect consistency without slave node
+         if( slaveSnapshot.length == 0 )
+         {
+            break;
+         } 
+         
+         for( var j = 0; j < slaveSnapshot.length; j++ )
+         {
+            var slaveObj = slaveSnapshot[j];
+            if( slaveObj.CompleteLSN < masterCompleteLSN )
+            {
+               success = false;
+               break;
+            }
+         }
+         
+         if( success )
+         {
+            break;
+         }
+         else if( time === timeout )
+         {
+            println( "master snapshot: " + JSON.stringify( masterSnapshot ) );
+            println( "slave snapshot: " + JSON.stringify( slaveSnapshot ) );
+            throw new Error("check catalog failed: the standby node is not consistency after " + timeout + "consistency, see console snapshot detailed")
+         }
+         else
+         {
+            time++;
+            sleep( 1000 );
+         }
+      }
+   }
+}
+
+/* *****************************************************************************
 @discription: check business right function
 @author: xiaojun Hu
 @return array[][] ex:
@@ -1342,6 +1470,160 @@ function commInArray( needle, hayStack )
       }
       return false ;
    }
+}
+
+/* ********************************************************************
+@Description: comparison result set
+@parameter:
+         cursor:  DBCursor
+         expRecs: array
+         exceptId: noncomparison of _id, default true
+@author: luweikang
+********************************************************************* */
+function commCompareResults( cursor, expRecs, exceptId )
+{
+   if( exceptId == undefined ){ exceptId = true; }
+   var actRecs = [];
+   var pos = 0;
+   var isSuccess = true;
+   var posOfFailure;
+   var isLong = false;
+   
+   try
+   {
+      while( cursor.next() )
+      {
+         var expRecord = expRecs[pos++];
+         var actRecord = cursor.current().toObj();
+         if( actRecord._id != undefined && exceptId )
+         {
+            delete actRecord._id;
+         }
+         
+         if( isSuccess && !commCompareObject( expRecord, actRecord ) )
+         {
+            isSuccess = false;
+            posOfFailure = pos -1;
+            if( JSON.stringify( expRecord ).length > 1024 )
+            {
+               isLong = true;
+            }
+         }
+         actRecs.push( actRecord );
+      }
+   }
+   catch(e)
+   {
+      throw new Error(e);
+   }
+   finally
+   {
+      if( cursor !== undefined )
+      {
+         cursor.close();
+      }
+   }
+   
+   var recordLocation = posOfFailure + 1;
+   if( !isSuccess )
+   {
+      if( isLong )
+      {
+         throw new Error( "compare the " + recordLocation + "th record failed, "
+                           + "\nexp record count: " + expRecs.length
+                           + "\nact record count: " + actRecs.length 
+                           + "\nexp record: " + JSON.stringify( expRecs[posOfFailure] ) 
+                           + "\nact record: " + JSON.stringify( actRecs[posOfFailure] ) );
+      }
+      else
+      {
+         var bpos = posOfFailure - 10 > 0 ? posOfFailure - 10 : 0;
+         var epos = posOfFailure + 10;
+         var expRecords = expRecs.slice( bpos, epos );
+         var actRecords = actRecs.slice( bpos, epos );
+         throw new Error( "compare the " + recordLocation + "th record failed, " 
+                           + "\nexp record count: " + expRecs.length
+                           + "\nact record count: " + actRecs.length
+                           + "\nexp: " + JSON.stringify(expRecords) 
+                           + "\nact: " + JSON.stringify(actRecords) );
+      }
+   }
+}
+
+/* *******************************************************************
+@Description: comparison two objects are equal
+@author: luweikang
+@return: true/false
+******************************************************************* */
+function commCompareObject( expObj, actObj )
+{
+   if( typeof( expObj ) != typeof( actObj ) )
+   {
+      return false;
+   }
+   if( typeof( actObj ) == "number" || typeof( actObj ) == "string" )
+   {
+      if( expObj != actObj )
+      {
+         return false;
+      }
+   }
+   else
+   {
+      if( Object.keys( expObj ).length != Object.keys( actObj ).length )
+      {
+         return false;
+      }
+      for( var key in expObj )
+      {
+         if( !commCompareObject( expObj[ key ], actObj[ key ] ) )
+         {
+            return false;
+         }
+      }
+   }
+   return true;
+}
+
+/* ********************************************************************
+@Description: get snapshot
+@author: luweikang
+@return array[][] ex:
+        [0]{"xxxx": "xxxx", "xxxx": "xxxx"}
+        [1]{"xxxx": "xxxx", "xxxx": "xxxx"}
+********************************************************************* */
+function commGetSnapshot( db, snapshotType, condObj, selObj, sortObj, skipNum, limitNum, optionsObj )
+{
+   if( condObj == undefined ){ condObj = {}; }
+   if( selObj == undefined ){ selObj = {}; }
+   if( sortObj == undefined ){ sortObj = {}; }
+   if( skipNum == undefined ){ skipNum = 0; }
+   if( limitNum == undefined ){ limitNum = -1; }
+   if( optionsObj == undefined ){ optionsObj = {}; }
+   
+   if( typeof(condObj) != "object" || condObj == null ){ throw new Error("cond must be obj, can't be null"); }
+   if( typeof(selObj) != "object" || selObj == null ){ throw new Error("sel must be obj, can't be null"); }
+   if( typeof(sortObj) != "object" || sortObj == null ){ throw new Error("sort must be obj, can't be null"); }
+   if( typeof(optionsObj) != "object" || optionsObj == null ){ throw new Error("options must be obj, can't be null"); }
+   
+   var snapshotOption = new SdbSnapshotOption();
+   snapshotOption.cond( condObj ).sel( selObj ).options( optionsObj );
+   snapshotOption.sort( sortObj ).skip( skipNum ).limit( limitNum );
+   
+   var tmpArr = [];
+   try
+   {
+      var cursor = db.snapshot( snapshotType, snapshotOption );
+      while( cursor.next() )
+      {
+         tmpArr.push( cursor.current().toObj() );
+      }
+   }
+   catch(e)
+   {
+      throw new Error(e);
+   }
+   return tmpArr;
 }
 
 /**********************************************************************
@@ -1812,3 +2094,5 @@ catch ( e )
    throw buildException( null, null, 
          "connect sdb " + COORDHOSTNAME + ":" + COORDSVCNAME, 0, e ) ;
 }
+
+commCreateCLByOption( db, COMMCSNAME, COMMDUMMYCLNAME, {ShardingType:'hash',ShardingKey:{_id:1}, AutoSplit:true}, true, true ) ;
