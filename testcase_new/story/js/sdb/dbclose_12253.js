@@ -5,21 +5,33 @@
 ******************************************************************************/
 function main()
 {
-   var tmpdb = new Sdb( COORDHOSTNAME, COORDSVCNAME ) ;
-   tmpdb.close() ;
-   
-   try
-   {
-       tmpdb.traceResume() ;
-   }
-   catch( e )
-   {
-       if( e == 0 )
-       {
-           throw buildException( "main", e, "test traceResume after close",
-                 "no connection handle", errmsg ) ;
-       }
-   }
+    var db = new Sdb( COORDHOSTNAME, COORDSVCNAME ) ;
+    db.close() ;
+    
+    try
+    {
+        db.traceResume() ;
+        throw "NEED_ERROR";
+    }
+    catch( e )
+    {
+        if( e === 0 )
+        {
+            throw new Error( e );
+        }
+    }
 }
 
-main() ;
+try
+{
+   //SEQUOIADBMAINSTREAM-5230
+   //main() ;
+}
+catch( e )
+{
+   if(e.constructor === Error)
+   {
+      println(e.stack);
+   }
+   throw e;
+}
