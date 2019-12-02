@@ -6,66 +6,67 @@
 function main()
 {
    if( true === commIsStandalone( db ) )
-	{
-	   println( "Standalone environment!" );
-      return;	
-	}
-	
-	//get groups from sdb
-   var groupNames = getGroupNames();
-   if( ( 2 > groupNames.length ) )
    {
-      println( "Only one group or standalone environment!" );
-      return;
+      println( "Standalone environment!" ); 
+      return; 
    }
    
-	var clName = COMMCLNAME + "_15544";
-	
+   //get groups from sdb
+   var groupNames = getGroupNames(); 
+   if( ( 2 > groupNames.length ) )
+   {
+      println( "Only one group or standalone environment!" ); 
+      return; 
+   }
+   
+   var clName = COMMCLNAME + "_15544"; 
+   
    //clean before
-   commDropCL(db,COMMCSNAME,clName,true,true,"drop CL in the beginning");	
+   commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" ); 
    
    //create CL
-   var varCL = commCreateCLByOption(db,COMMCSNAME,clName,{ShardingKey:{a:1}, ShardingType:"range"},true,false,"create CL");
+   var varCL = commCreateCLByOption( db, COMMCSNAME, clName, {ShardingKey:{a:1}, ShardingType:"range"}, true, false, "create CL" ); 
    
    //insert data
-   for( var i=1; i<=50; i++ )
+   for( var i = 1; i <= 50; i++ )
    {
-      varCL.insert( {a:i} );
+      varCL.insert( {a:i} ); 
    }
    
    //get expRecs
-   var expRecs = varCL.find().sort({a:1}).toArray();
+   var expRecs = varCL.find().sort( {a:1} ).toArray(); 
    
    //delete id index
-   varCL.dropIdIndex();
+   varCL.dropIdIndex(); 
    
    //check id index not existed
-   checkIdIndex( clName, false );
+   checkIdIndex( clName, false ); 
    
    //get srcGroup
-   var srcGroup = getSrcGroup( clName );
+   var srcGroup = getSrcGroup( clName ); 
    
    //get desGroup
-   var desGroup = getDesGroup( groupNames, srcGroup );
+   var desGroup = getDesGroup( groupNames, srcGroup ); 
    
    //split
    try
    {
-      varCL.split( srcGroup, desGroup, {partition:1}, {partition:26} );
+      varCL.split( srcGroup, desGroup, {partition:1}, {partition:26} ); 
       throw "NEED_ERROR"
-   }catch( e )
+   }
+   catch( e )
    {
       if( e !== -279 )
       {
-         throw e;
+         throw e; 
       }
    }
    
    //check catalog information
-   checkCataInfo( clName, srcGroup, 1);
+   checkCataInfo( clName, srcGroup, 1 ); 
    
    //check data
-   checkData( expRecs, clName );
+   checkData( expRecs, clName ); 
 }
 
-main();
+main(); 

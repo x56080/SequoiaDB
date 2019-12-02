@@ -5,69 +5,69 @@
 **************************************/
 try
 {
-   main();
+   main(); 
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack ); 
    }
-   throw e ;
+   throw e; 
 }
 
 function main()
 {
-   if(commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      println("skip standalone mode");
-      return;
+      println( "skip standalone mode" ); 
+      return; 
    }
    
-   var csName = COMMCSNAME;
-   var mainCLName1 = "mainCL_19034_1";
-   var mainCLName2 = "mainCL_19034_2";
+   var csName = COMMCSNAME; 
+   var mainCLName1 = "mainCL_19034_1"; 
+   var mainCLName2 = "mainCL_19034_2"; 
    
-   var subCLName = "subCL_19034";
-   var filePath = WORKDIR + "/lob19034/";
+   var subCLName = "subCL_19034"; 
+   var filePath = WORKDIR + "/lob19034/"; 
    var fileName = "file19034"
-   var fileFullPath = filePath + fileName;
-   var fileMD5 = makeTmpFile( filePath, fileName );
+   var fileFullPath = filePath + fileName; 
+   var fileMD5 = makeTmpFile( filePath, fileName ); 
    
-   commDropCL(db, csName, mainCLName1);
-   commDropCL(db, csName, mainCLName2);
-   commDropCL(db, csName, subCLName);
+   commDropCL( db, csName, mainCLName1 ); 
+   commDropCL( db, csName, mainCLName2 ); 
+   commDropCL( db, csName, subCLName ); 
    
-   var options = {"IsMainCL": true, "ShardingKey": {"date": 1}, "LobShardingKeyFormat": "YYYYMM", "ShardingType": "range"};
-   var mainCL1 = commCreateCLByOption(db, csName, mainCLName1, options, true, false, "create main cl1");
-   var mainCL2 = commCreateCLByOption(db, csName, mainCLName2, options, true, false, "create main cl2");
+   var options = {"IsMainCL": true, "ShardingKey": {"date": 1}, "LobShardingKeyFormat": "YYYYMM", "ShardingType": "range"}; 
+   var mainCL1 = commCreateCLByOption( db, csName, mainCLName1, options, true, false, "create main cl1" ); 
+   var mainCL2 = commCreateCLByOption( db, csName, mainCLName2, options, true, false, "create main cl2" ); 
    
-   var subCL = commCreateCL( db, csName, subCLName );
-   mainCL1.attachCL( csName + "." + subCLName, {"LowBound": {"date": "201908"}, "UpBound": {"date": "201910"}});
+   var subCL = commCreateCL( db, csName, subCLName ); 
+   mainCL1.attachCL( csName + "." + subCLName, {"LowBound": {"date": "201908"}, "UpBound": {"date": "201910"}} ); 
    
-   var lobOids1 = insertLob(subCL, fileFullPath, "YYYYMM", 1, 10, 1, "20190801");
-   var lobOids2 = insertLob(subCL, fileFullPath, "YYYYMM", 1, 10, 1, "20190901");
-   mainCL1.detachCL( csName + "." + subCLName );
-   mainCL2.attachCL( csName + "." + subCLName, {"LowBound": {"date": "201909"}, "UpBound": {"date": "201911"}});
+   var lobOids1 = insertLob( subCL, fileFullPath, "YYYYMM", 1, 10, 1, "20190801" ); 
+   var lobOids2 = insertLob( subCL, fileFullPath, "YYYYMM", 1, 10, 1, "20190901" ); 
+   mainCL1.detachCL( csName + "." + subCLName ); 
+   mainCL2.attachCL( csName + "." + subCLName, {"LowBound": {"date": "201909"}, "UpBound": {"date": "201911"}} ); 
    
-   checkLobMD5(mainCL2, lobOids2, fileMD5);
+   checkLobMD5( mainCL2, lobOids2, fileMD5 ); 
    try
    {
-      checkLobMD5(mainCL2, lobOids1, fileMD5);
-      throw 0;
+      checkLobMD5( mainCL2, lobOids1, fileMD5 ); 
+      throw 0; 
    }
    catch( e )
    {
       if( e !== -135 )
       {
-          throw buildException( "get lob", e, "reads lobs that are not in the partition range: " + lobOids1, -135, e ); 
+         throw buildException( "get lob", e, "reads lobs that are not in the partition range: " + lobOids1, -135, e ); 
       }
    }
    
-   deleteTmpFile( filePath );
-   commDropCL(db, csName, mainCLName1);
-   commDropCL(db, csName, mainCLName2);
-   commDropCL(db, csName, subCLName);
+   deleteTmpFile( filePath ); 
+   commDropCL( db, csName, mainCLName1 ); 
+   commDropCL( db, csName, mainCLName2 ); 
+   commDropCL( db, csName, subCLName ); 
 }
 
 

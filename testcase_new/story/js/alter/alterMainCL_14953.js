@@ -1,44 +1,44 @@
 /* *****************************************************************************
-@discretion: maincl alter shardingKey and shardingType,the test scenario is as follows:
-             test a: alter shardingType 
-             test b: alter shardingKey,no attach subcl
-             test c: alter shardingKey,attach subcl
+@discretion: maincl alter shardingKey and shardingType, the test scenario is as follows:
+test a: alter shardingType
+test b: alter shardingKey, no attach subcl
+test c: alter shardingKey, attach subcl
 @author£º2018-4-25 wuyan  Init
 ***************************************************************************** */
 var mainCLName = CHANGEDPREFIX + "_qalterMaincl_14953"; 
-var subCLName  = CHANGEDPREFIX + "_qalterSubcl_14953"; 
+var subCLName = CHANGEDPREFIX + "_qalterSubcl_14953"; 
 
-main(db);
-function main(db)
-{	  
-	try
-	{   
-	   if( true == commIsStandalone( db ) )
+main( db ); 
+function main( db )
+{
+   try
+   {
+      if( true == commIsStandalone( db ) )
       {
-         println( "run mode is standalone" );
-         return;
-      } 
-	   //clean environment before test      
-      commDropCL( db, COMMCSNAME, mainCLName, true, true,"drop CL in the beginning" ) ;        
-         
-      //create subcl      
-      var mainCL = commCreateCLByOption( db, COMMCSNAME, mainCLName, { ShardingKey: { a:1 }, IsMainCL:true });    
-      var subcl = commCreateCLByOption( db, COMMCSNAME, subCLName, {ShardingKey:{b:1},ShardingType:"range"});      
+         println( "run mode is standalone" ); 
+         return; 
+      }
+      //clean environment before test
+      commDropCL( db, COMMCSNAME, mainCLName, true, true, "drop CL in the beginning" ); 
       
-      //test a: alter shardingType 
-      alterShardingType(mainCL); 
+      //create subcl
+      var mainCL = commCreateCLByOption( db, COMMCSNAME, mainCLName, { ShardingKey: { a:1 }, IsMainCL:true } ); 
+      var subcl = commCreateCLByOption( db, COMMCSNAME, subCLName, {ShardingKey:{b:1}, ShardingType:"range"} ); 
       
-      //test b: alter shardingKey,no attach subcl
-      var shardingKey = {time:1};
-      mainCL.setAttributes({ShardingKey:shardingKey}); 
+      //test a: alter shardingType
+      alterShardingType( mainCL ); 
+      
+      //test b: alter shardingKey, no attach subcl
+      var shardingKey = {time:1}; 
+      mainCL.setAttributes( {ShardingKey:shardingKey} ); 
       checkAlterResult( mainCLName, "ShardingKey", shardingKey ); 
       
-      //test c: alter shardingKey,attach subcl, can not alter shardingKey
-      alterShardingKey(mainCL);     
+      //test c: alter shardingKey, attach subcl, can not alter shardingKey
+      alterShardingKey( mainCL ); 
       
       //clean
-      commDropCL( db, COMMCSNAME, subCLName, true, true,"clear collection in the beginning" ) ;   
-      commDropCL( db, COMMCSNAME, mainCLName, true, true,"clear collection in the beginning" ) ;   
+      commDropCL( db, COMMCSNAME, subCLName, true, true, "clear collection in the beginning" ); 
+      commDropCL( db, COMMCSNAME, mainCLName, true, true, "clear collection in the beginning" ); 
    }
    catch( e )
    {
@@ -50,41 +50,41 @@ function main(db)
       {
          db.close()
       }
-   }   
+   }
 }
 
-function alterShardingType(dbcl)
+function alterShardingType( dbcl )
 {
    try
-	{	   
-      dbcl.setAttributes({ShardingType:"hash"});
-      throw "need throw error";
-	} 
+   {
+      dbcl.setAttributes( {ShardingType:"hash"} ); 
+      throw "need throw error"; 
+   }
    catch( e )
-   {      
+   {
       if( e != -32 )
       {
-         throw buildException( "cannot be alter,fail:", e); 
-      }      
-   }   
+         throw buildException( "cannot be alter, fail:", e ); 
+      }
+   }
 }
 
-function alterShardingKey(dbcl)
+function alterShardingKey( dbcl )
 {
    try
-	{	
-	   var options = { LowBound: {"time":{$minKey:1}}, UpBound: {"time":{$maxKey:1}} } ; 
-      dbcl.attachCL( COMMCSNAME +"."+subCLName, options );   
-      dbcl.setAttributes({ShardingKey:{a:1}});
-      throw "need throw error";
-	} 
+   {
+      var options = { LowBound: {"time":{$minKey:1}}, UpBound: {"time":{$maxKey:1}} }; 
+      dbcl.attachCL( COMMCSNAME + "." + subCLName, options ); 
+      dbcl.setAttributes( {ShardingKey:{a:1}} ); 
+      throw "need throw error"; 
+   }
    catch( e )
-   {      
+   {
       if( e != -32 )
       {
-         throw buildException( "cannot be alter,fail:", e); 
-      }      
-   }   
+         throw buildException( "cannot be alter, fail:", e ); 
+      }
+   }
 }
 
 

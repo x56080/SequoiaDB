@@ -4,118 +4,120 @@
 ******************************************************************************/
 function main()
 {
-	if( true === commIsStandalone( db ) )
-	{
-	   println( "Standalone environment!" );
-      return;	
-	}
-	
-	//get groups from sdb
-   var groupNames = getGroupNames();
-   if( ( 2 > groupNames.length ) )
+   if( true === commIsStandalone( db ) )
    {
-      println( "Only one group or standalone environment!" );
-      return;
+      println( "Standalone environment!" ); 
+      return; 
    }
    
-   var clName = COMMCLNAME + "_15548";
+   //get groups from sdb
+   var groupNames = getGroupNames(); 
+   if( ( 2 > groupNames.length ) )
+   {
+      println( "Only one group or standalone environment!" ); 
+      return; 
+   }
+   
+   var clName = COMMCLNAME + "_15548"; 
    
    //clean before
-   commDropCL( db,COMMCSNAME,clName,true,true,"drop the CL before!" );
+   commDropCL( db, COMMCSNAME, clName, true, true, "drop the CL before!" ); 
    
-   var varCL = commCreateCLByOption( db,COMMCSNAME,clName,{ShardingKey:{a:1},ShardingType:"hash",AutoIndexId:false},true,false,"create CL" );
+   var varCL = commCreateCLByOption( db, COMMCSNAME, clName, {ShardingKey:{a:1}, ShardingType:"hash", AutoIndexId:false}, true, false, "create CL" ); 
    
    //insert data
-   for( var i=0; i<50; i++ )
+   for( var i = 0; i < 50; i++ )
    {
       varCL.insert( {a:i} ); 
    }
    
    //get expRecs
-   var expRecs = varCL.find().toArray();
+   var expRecs = varCL.find().toArray(); 
    
-   //alter CL AutoIndexId:true 
-   varCL.alter({AutoIndexId:true});
+   //alter CL AutoIndexId:true
+   varCL.alter( {AutoIndexId:true} ); 
    
    //get srcGroup
-   var srcGroup = getSrcGroup( clName );
+   var srcGroup = getSrcGroup( clName ); 
    
    //get desGroup
-   var desGroup = getDesGroup( groupNames, srcGroup );
+   var desGroup = getDesGroup( groupNames, srcGroup ); 
    
    //split
-   varCL.split(srcGroup, desGroup, 50);
+   varCL.split( srcGroup, desGroup, 50 ); 
    
    //check the succeed split result
-   checkSplitResult( srcGroup, desGroup, clName );
+   checkSplitResult( srcGroup, desGroup, clName ); 
    
    //alter CL AutoIndexId:false
-   varCL.alter({AutoIndexId:false});
+   varCL.alter( {AutoIndexId:false} ); 
    
    //get expRecs
-   var expRecs = getExpRecs( srcGroup, clName );
+   var expRecs = getExpRecs( srcGroup, clName ); 
    
    //split
    try
    {
-      varCL.split( srcGroup, desGroup, 50 );	
-      throw "NEED_ERROR";
-   }catch( e )
+      varCL.split( srcGroup, desGroup, 50 ); 
+      throw "NEED_ERROR"; 
+   }
+   catch( e )
    {
-      if( e !== -279)
+      if( e !== -279 )
       {
-         throw e;	
-      }	
-   }    
+         throw e; 
+      }
+   }
    
    //check the failed split result
-   checkSplitFailResult( clName, srcGroup, expRecs );
+   checkSplitFailResult( clName, srcGroup, expRecs ); 
    
-   //alter CL AutoIndexId:true 
-   varCL.alter( {AutoIndexId:true} );
-   checkIdIndex( clName, true );
+   //alter CL AutoIndexId:true
+   varCL.alter( {AutoIndexId:true} ); 
+   checkIdIndex( clName, true ); 
    
    //alter CL AutoIndexId:false
-   varCL.alter( {AutoIndexId:false} );
-   checkIdIndex( clName, false );
+   varCL.alter( {AutoIndexId:false} ); 
+   checkIdIndex( clName, false ); 
 }
 
-main();
+main(); 
 
 
 function getExpRecs( srcGroup, clName )
 {
-   var db1 = db.getRG( srcGroup ).getMaster().connect();
-	var cl = db1.getCS( COMMCSNAME ).getCL( clName );	
-	var expRecs = cl.find().sort( {a:1} ).toArray();
-	return expRecs;
+   var db1 = db.getRG( srcGroup ).getMaster().connect(); 
+   var cl = db1.getCS( COMMCSNAME ).getCL( clName ); 
+   var expRecs = cl.find().sort( {a:1} ).toArray(); 
+   return expRecs; 
 }
 
 function checkSplitFailResult( clName, srcGroup, expRecs )
 {
    //get data from primary node
-	var db1 = db.getRG( srcGroup ).getMaster().connect();
-	var cl = db1.getCS( COMMCSNAME ).getCL( clName );
-	var actRecs = cl.find().sort( {a:1} ).toArray();
-	
-	//check the count of collection
-	if( actRecs.length !== expRecs.length)
-	{
-		throw "CL's count is different from that of the previous one!";
-	}
-	
-	//check records
-	for( var i in expRecs )
-	{
-	   var actRec = actRecs[i];
-	   var expRec = expRecs[i];	
-	   for( var j in expRec)
-	   {
-	      if( JSON.stringify(actRec[j]) !== JSON.stringify(expRec[j]) )
-	      {
-	         println( "error occurs in " + (parseInt(i)+1) + "th record,in field '" + j + "';" );	
-	         println("actual record =" + JSON.stringify(actRec) + "\nexpect record =" + JSON.stringify(expRec));
-	         throw buildException("checkRecs()", "recs ERROR");
-	      }	
-	}  }	
-}
+   var db1 = db.getRG( srcGroup ).getMaster().connect(); 
+   var cl = db1.getCS( COMMCSNAME ).getCL( clName ); 
+   var actRecs = cl.find().sort( {a:1} ).toArray(); 
+   
+   //check the count of collection
+   if( actRecs.length !== expRecs.length )
+   {
+      throw "CL's count is different from that of the previous one!"; 
+   }
+   
+   //check records
+   for( var i in expRecs )
+   {
+      var actRec = actRecs[i]; 
+      var expRec = expRecs[i]; 
+      for( var j in expRec )
+      {
+         if( JSON.stringify( actRec[j] )!== JSON.stringify( expRec[j] ) )
+         {
+            println( "error occurs in " +( parseInt( i )+ 1 )+ "th record, in field '" + j + "'; " ); 
+            println( "actual record =" + JSON.stringify( actRec )+ "\nexpect record =" + JSON.stringify( expRec ) ); 
+            throw buildException( "checkRecs()", "recs ERROR" ); 
+         }
+         } 
+      }
+   }

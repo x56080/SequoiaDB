@@ -1,91 +1,91 @@
 /************************************
-*@Description: seqDB-19038 反复挂载/去挂载子表，子表已有lob 
+*@Description: seqDB-19038 反复挂载/去挂载子表，子表已有lob
 *@author:      luweikang
 *@createDate:  2019.8.12
 **************************************/
 try
 {
-   main();
+   main(); 
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack ); 
    }
-   throw e ;
+   throw e; 
 }
 
 function main()
 {
-   if(commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      println("skip standalone mode");
-      return;
+      println( "skip standalone mode" ); 
+      return; 
    }
    
-   var csName = COMMCSNAME;
-   var mainCLName = "mainCL_19038";
-   var subCLName = "subCL_19038";
-   var filePath = WORKDIR + "/lob19038/";
-   var fileName = "file19038";
-   var fileFullPath = filePath + fileName;
-   var fileMD5 = makeTmpFile( filePath, fileName );
+   var csName = COMMCSNAME; 
+   var mainCLName = "mainCL_19038"; 
+   var subCLName = "subCL_19038"; 
+   var filePath = WORKDIR + "/lob19038/"; 
+   var fileName = "file19038"; 
+   var fileFullPath = filePath + fileName; 
+   var fileMD5 = makeTmpFile( filePath, fileName ); 
    
-   commDropCL(db, csName, mainCLName);
-   commDropCL(db, csName, subCLName);
+   commDropCL( db, csName, mainCLName ); 
+   commDropCL( db, csName, subCLName ); 
    
-   var options = {"IsMainCL": true, "ShardingKey": {"date": 1}, "LobShardingKeyFormat": "YYYY", "ShardingType": "range"};
-   var mainCL = commCreateCLByOption(db, csName, mainCLName, options, true, false, "create main cl1");
+   var options = {"IsMainCL": true, "ShardingKey": {"date": 1}, "LobShardingKeyFormat": "YYYY", "ShardingType": "range"}; 
+   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, true, false, "create main cl1" ); 
    
-   commCreateCL( db, csName, subCLName );
-   mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": "2000"}, "UpBound": {"date": "2020"}});
-   var lobOids1 = insertLob(mainCL, fileFullPath, "YYYY", 5, 10, 3, "20000101");
+   commCreateCL( db, csName, subCLName ); 
+   mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": "2000"}, "UpBound": {"date": "2020"}} ); 
+   var lobOids1 = insertLob( mainCL, fileFullPath, "YYYY", 5, 10, 3, "20000101" ); 
    
-   mainCL.detachCL( csName + "." + subCLName );
-   mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": "1990"}, "UpBound": {"date": "2000"}});
+   mainCL.detachCL( csName + "." + subCLName ); 
+   mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": "1990"}, "UpBound": {"date": "2000"}} ); 
    
-   mainCL.detachCL( csName + "." + subCLName );
-   mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": "2020"}, "UpBound": {"date": "2030"}});
+   mainCL.detachCL( csName + "." + subCLName ); 
+   mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": "2020"}, "UpBound": {"date": "2030"}} ); 
    
-   mainCL.detachCL( csName + "." + subCLName );
-   mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": "2010"}, "UpBound": {"date": "2015"}});
+   mainCL.detachCL( csName + "." + subCLName ); 
+   mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": "2010"}, "UpBound": {"date": "2015"}} ); 
    
-   mainCL.detachCL( csName + "." + subCLName );
-   mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": "1990"}, "UpBound": {"date": "2030"}});
+   mainCL.detachCL( csName + "." + subCLName ); 
+   mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": "1990"}, "UpBound": {"date": "2030"}} ); 
    
-   mainCL.detachCL( csName + "." + subCLName );
-   mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": "1990"}, "UpBound": {"date": "2010"}});
+   mainCL.detachCL( csName + "." + subCLName ); 
+   mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": "1990"}, "UpBound": {"date": "2010"}} ); 
    
-   mainCL.detachCL( csName + "." + subCLName );
-   mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": "2010"}, "UpBound": {"date": "2030"}});
+   mainCL.detachCL( csName + "." + subCLName ); 
+   mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": "2010"}, "UpBound": {"date": "2030"}} ); 
    
-   mainCL.detachCL( csName + "." + subCLName );
-   mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": "2000"}, "UpBound": {"date": "2020"}});
+   mainCL.detachCL( csName + "." + subCLName ); 
+   mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": "2000"}, "UpBound": {"date": "2020"}} ); 
    
-   var lobOids2 = insertLob(mainCL, fileFullPath, "YYYY", 4, 10, 3, "20100101");
-   checkLobMD5(mainCL, lobOids1, fileMD5);
-   checkLobMD5(mainCL, lobOids2, fileMD5);
+   var lobOids2 = insertLob( mainCL, fileFullPath, "YYYY", 4, 10, 3, "20100101" ); 
+   checkLobMD5( mainCL, lobOids1, fileMD5 ); 
+   checkLobMD5( mainCL, lobOids2, fileMD5 ); 
    
-   for(i in lobOids1)
+   for( i in lobOids1 )
    {
-      mainCL.deleteLob(lobOids1[i]);
+      mainCL.deleteLob( lobOids1[i] ); 
       try
       {
-         mainCL.getLob(lobOids1[i], WORKDIR + "/checkLob19038_" + i );
-         throw 0;
+         mainCL.getLob( lobOids1[i], WORKDIR + "/checkLob19038_" + i ); 
+         throw 0; 
       }
       catch( e )
       {
          if( e !== -4 )
          {
-             throw buildException( "check delete lob", e, "gets the deleted lob: " + lobOids1[i], -4, e ); 
+            throw buildException( "check delete lob", e, "gets the deleted lob: " + lobOids1[i], -4, e ); 
          }
       }
    }
    
-   deleteTmpFile( filePath );
-   commDropCL(db, csName, mainCLName);
-   commDropCL(db, csName, subCLName);
+   deleteTmpFile( filePath ); 
+   commDropCL( db, csName, mainCLName ); 
+   commDropCL( db, csName, subCLName ); 
 }
 

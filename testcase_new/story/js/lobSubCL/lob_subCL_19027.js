@@ -5,64 +5,64 @@
 **************************************/
 try
 {
-   main();
+   main(); 
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack ); 
    }
-   throw e ;
+   throw e; 
 }
 
 function main()
 {
-   if(commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      println("skip standalone mode");
-      return;
+      println( "skip standalone mode" ); 
+      return; 
    }
-   var mainCSName = "mainCS_19027";
-   var mainCLName = "mainCL_19027";
-   var subCSName = "subCS_19027";
-   var subCLName = "subCL_19027";
-   var filePath = WORKDIR + "/lob19027/";
-   var fileName = "file19027";
-   var fileFullPath = filePath + fileName;
-   var fileMD5 = makeTmpFile( filePath, fileName );
+   var mainCSName = "mainCS_19027"; 
+   var mainCLName = "mainCL_19027"; 
+   var subCSName = "subCS_19027"; 
+   var subCLName = "subCL_19027"; 
+   var filePath = WORKDIR + "/lob19027/"; 
+   var fileName = "file19027"; 
+   var fileFullPath = filePath + fileName; 
+   var fileMD5 = makeTmpFile( filePath, fileName ); 
    
-   commDropCS(db, mainCSName);
-   commDropCS(db, subCSName);
+   commDropCS( db, mainCSName ); 
+   commDropCS( db, subCSName ); 
    
-   var options = {"IsMainCL": true, "ShardingKey": {"date": 1}, "LobShardingKeyFormat": "YYYYMMDD", "ShardingType": "range"};
-   var mainCL = commCreateCLByOption(db, mainCSName, mainCLName, options, true, false, "create main cl");
-   commCreateCL( db, subCSName, subCLName );
+   var options = {"IsMainCL": true, "ShardingKey": {"date": 1}, "LobShardingKeyFormat": "YYYYMMDD", "ShardingType": "range"}; 
+   var mainCL = commCreateCLByOption( db, mainCSName, mainCLName, options, true, false, "create main cl" ); 
+   commCreateCL( db, subCSName, subCLName ); 
    
-   mainCL.attachCL( subCSName + "." + subCLName, {"LowBound": {"date": "20190801"}, "UpBound": {"date": "20190831"}});
-   var lobOids = insertLob(mainCL, fileFullPath, "YYYYMMDD", 0, 10, 1, "20190808");
+   mainCL.attachCL( subCSName + "." + subCLName, {"LowBound": {"date": "20190801"}, "UpBound": {"date": "20190831"}} ); 
+   var lobOids = insertLob( mainCL, fileFullPath, "YYYYMMDD", 0, 10, 1, "20190808" ); 
    
    
-   db.dropCS(mainCSName);
+   db.dropCS( mainCSName ); 
    
    try
    {
-      db.getCS(mainCSName);
-      throw 0;
+      db.getCS( mainCSName ); 
+      throw 0; 
    }
    catch( e )
    {
-      if( e !== -34)
+      if( e !== -34 )
       {
-          throw buildException( "check mainCL cs", e, "drop mainCL cs: " + mainCSName, -34, e );
+         throw buildException( "check mainCL cs", e, "drop mainCL cs: " + mainCSName, -34, e ); 
       }
    }
    
-   var subCL = db.getCS(subCSName).getCL(subCLName);
-   checkLobMD5(subCL, lobOids, fileMD5);
+   var subCL = db.getCS( subCSName ).getCL( subCLName ); 
+   checkLobMD5( subCL, lobOids, fileMD5 ); 
    
-   deleteTmpFile( filePath );
-   commDropCS(db, mainCSName);
-   commDropCS(db, subCSName);
+   deleteTmpFile( filePath ); 
+   commDropCS( db, mainCSName ); 
+   commDropCS( db, subCSName ); 
 }
 

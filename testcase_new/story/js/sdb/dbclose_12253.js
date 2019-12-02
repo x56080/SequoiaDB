@@ -5,33 +5,33 @@
 ******************************************************************************/
 function main()
 {
-    var db = new Sdb( COORDHOSTNAME, COORDSVCNAME ) ;
-    db.close() ;
-    
-    try
-    {
-        db.traceResume() ;
-        throw "NEED_ERROR";
-    }
-    catch( e )
-    {
-        if( e === 0 )
-        {
-            throw new Error( e );
-        }
-    }
+   var db = new Sdb( COORDHOSTNAME , COORDSVCNAME ); 
+   db.close(); 
+   
+   try
+   {
+      db.traceResume(); 
+      throw "NEED_ERROR"; 
+   }
+   catch( e )
+   {
+      if( e === 0 )
+      {
+         throw new Error( e ); 
+      }
+   }
 }
 
 try
 {
    //SEQUOIADBMAINSTREAM-5230
-   //main() ;
+   //main(); 
 }
 catch( e )
 {
-   if(e.constructor === Error)
+   if( e.constructor === Error )
    {
-      println(e.stack);
+      println( e.stack ); 
    }
-   throw e;
+   throw e; 
 }

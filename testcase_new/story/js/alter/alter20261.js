@@ -6,22 +6,22 @@
 ******************************************************************************/
 try
 {
-   var filePath = WORKDIR + "/" + "file20261";
-   main();
+   var filePath = WORKDIR + "/" + "file20261"; 
+   main(); 
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack);  
+      println( e.stack ); 
    }
-   throw e;
+   throw e; 
 }
 finally
 {
    if( !commIsStandalone( db ) )
    {
-      File.remove(filePath);
+      File.remove( filePath ); 
    }
 }
 
@@ -29,65 +29,65 @@ function main()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" ) ;
-      return ;
+      println( "Run mode is standalone" ); 
+      return; 
    }
    
-   var clName = "alter20261";
-   commDropCL( db, COMMCSNAME, clName ) ;
+   var clName = "alter20261"; 
+   commDropCL( db, COMMCSNAME, clName ); 
    
-   var cl = commCreateCL( db, COMMCSNAME, clName );
-   var file = new File(filePath);
-   file.write("test lob alter shardingType range");
-   file.close();
-   var lobId = cl.putLob(filePath);
+   var cl = commCreateCL( db, COMMCSNAME, clName ); 
+   var file = new File( filePath ); 
+   file.write( "test lob alter shardingType range" ); 
+   file.close(); 
+   var lobId = cl.putLob( filePath ); 
    
    //alters ShardingType
    try
    {
-      cl.alter({ShardingKey: {a: 1}, ShardingType:"range"});
-      throw "ERR_ALTER_CL";
+      cl.alter( {ShardingKey: {a: 1}, ShardingType:"range"} ); 
+      throw "ERR_ALTER_CL"; 
    }
-   catch(e)
+   catch( e )
    {
-      if(e != -32)
+      if( e != -32 )
       {
-         throw new Error(e);
+         throw new Error( e ); 
       }
    }
    //check snapshot
-   var snap1 = db.snapshot(8,{Name:COMMCSNAME + "." + clName});
-   var clInfo = snap1.current().toObj();
-   if(clInfo.hasOwnProperty("ShardingType"))
+   var snap1 = db.snapshot( 8, {Name:COMMCSNAME + "." + clName} ); 
+   var clInfo = snap1.current().toObj(); 
+   if( clInfo.hasOwnProperty( "ShardingType" ) )
    {
-      throw new Error("check snapshot error, \nexpect: not shardingType, \nbut found: " + JSON.stringify(clInfo));
+      throw new Error( "check snapshot error, \nexpect: not shardingType, \nbut found: " + JSON.stringify( clInfo ) ); 
    }
    
    try
    {
-      cl.setAttributes({ShardingKey: {a: 1}, ShardingType:"range"});
-      throw "ERR_ALTER_CL";
+      cl.setAttributes( {ShardingKey: {a: 1}, ShardingType:"range"} ); 
+      throw "ERR_ALTER_CL"; 
    }
-   catch(e)
+   catch( e )
    {
-      if(e != -32)
+      if( e != -32 )
       {
-         throw new Error(e);
+         throw new Error( e ); 
       }
    }
    //check snapshot
-   var snap2 = db.snapshot(8,{Name:COMMCSNAME + "." + clName});
-   var clInfo = snap1.current().toObj();
-   if(clInfo.hasOwnProperty("ShardingType"))
+   var snap2 = db.snapshot( 8, {Name:COMMCSNAME + "." + clName} ); 
+   var clInfo = snap1.current().toObj(); 
+   if( clInfo.hasOwnProperty( "ShardingType" ) )
    {
-      throw new Error("check snapshot error, \nexpect: not shardingType, \nbut found: " + JSON.stringify(clInfo));
+      throw new Error( "check snapshot error, \nexpect: not shardingType, \nbut found: " + JSON.stringify( clInfo ) ); 
    }
    
-   cl.deleteLob(lobId);
-   cl.setAttributes({ShardingKey: {a: 1}, ShardingType:"range"});
-   checkSnapshot( db, SDB_SNAP_CATALOG, COMMCSNAME, clName, "ShardingType", "range");
+   cl.deleteLob( lobId ); 
+   cl.setAttributes( {ShardingKey: {a: 1}, ShardingType:"range"} ); 
+   checkSnapshot( db, SDB_SNAP_CATALOG, COMMCSNAME, clName, "ShardingType", "range" ); 
    
    //clean test-env
-   commDropCL( db, COMMCSNAME, clName ) ;
+   commDropCL( db, COMMCSNAME, clName ); 
 }
 

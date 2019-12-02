@@ -5,582 +5,582 @@
 *******************************************************************************/
 
 /*******************************************************************************
-*@Description：测试op为update时, 主子表情况下结合skip,结果不落在单张子表上
-*@Input：find({date:{$gte:20150101}}).skip(5).update({$set:{b:1}})
+*@Description：测试op为update时, 主子表情况下结合skip, 结果不落在单张子表上
+*@Input：find( {date:{$gte:20150101}} ).skip( 5 ).update( {$set:{b:1}} )
 *@Expectation：报-289错误
 ********************************************************************************/
-function test_UsedSkipOfFailed(cl)
+function test_UsedSkipOfFailed( cl )
 {
-   var funname = "test_UsedSkipOfFailed";
+   var funname = "test_UsedSkipOfFailed"; 
    try
    {
-      loadMultipleDoc(cl, 5 * 4);
-      var arrdoc = cl.find({date:{$gte:20150101}}).skip(2).update({$set:{b:1}}).toArray();
+      loadMultipleDoc( cl, 5 * 4 ); 
+      var arrdoc = cl.find( {date:{$gte:20150101}} ).skip( 2 ).update( {$set:{b:1}} ).toArray(); 
       
-      throw -1;
+      throw -1; 
    }
-   catch(e)
+   catch( e )
    {
-      if (errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES != e)
+      if( errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES != e )
       {
-         var oper = "find({date:{$gte:20150101}}).skip(2).update({$set:{b:1}})";
-         throw buildException(funname, e, oper, errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES, e);
+         var oper = "find( {date:{$gte:20150101}} ).skip( 2 ).update( {$set:{b:1}} )"; 
+         throw buildException( funname, e, oper, errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES, e ); 
       }
    }
    finally
    {
-      removeAllDoc(cl);
+      removeAllDoc( cl ); 
    }
 }
 
 /*******************************************************************************
 *@Description：测试op为update时, 主子表情况下结合limit，结果不落在单张子表上
-*@Input：find({date:{$gte:20150101}}).limit(5).update({$set:{b:1}})
+*@Input：find( {date:{$gte:20150101}} ).limit( 5 ).update( {$set:{b:1}} )
 *@Expectation：报-289错误
 ********************************************************************************/
-function test_UsedLimitOfFailed(cl)
+function test_UsedLimitOfFailed( cl )
 {
-   var funname = "test_UsedLimitOfFailed";
+   var funname = "test_UsedLimitOfFailed"; 
    try
    {
-      loadMultipleDoc(cl, 5 * 4);
-      var arrdoc = cl.find({date:{$gte:20150101}}).limit(2).update({$set:{b:1}}).toArray();
+      loadMultipleDoc( cl, 5 * 4 ); 
+      var arrdoc = cl.find( {date:{$gte:20150101}} ).limit( 2 ).update( {$set:{b:1}} ).toArray(); 
       
-      throw -1;
+      throw -1; 
    }
-   catch(e)
+   catch( e )
    {
-      if (errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES != e)
+      if( errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES != e )
       {
-         var oper = "find({date:{$gte:20150101}}).limit(2).update({$set:{b:1}})";
-         throw buildException(funname, e, oper, errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES, e);
+         var oper = "find( {date:{$gte:20150101}} ).limit( 2 ).update( {$set:{b:1}} )"; 
+         throw buildException( funname, e, oper, errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES, e ); 
       }
    }
    finally
    {
-      removeAllDoc(cl);
+      removeAllDoc( cl ); 
    }
 }
 
 /*******************************************************************************
-*@Description：测试op为update时, 主子表情况下结合skip+limit，结果不落在单张子表上
-*@Input：find({date:{$gte:20150101}}).skip(2).limit(5).update({$set:{b:1}})
+*@Description：测试op为update时, 主子表情况下结合skip + limit，结果不落在单张子表上
+*@Input：find( {date:{$gte:20150101}} ).skip( 2 ).limit( 5 ).update( {$set:{b:1}} )
 *@Expectation：报-289错误
 ********************************************************************************/
-function test_UsedSkipAndLimitOfFailed(cl)
+function test_UsedSkipAndLimitOfFailed( cl )
 {
-   var funname = "test_UsedSkipAndLimitOfFailed";
+   var funname = "test_UsedSkipAndLimitOfFailed"; 
    try
    {
-      loadMultipleDoc(cl, 5 * 4);
-      var arrdoc = cl.find({date:{$gte:20150101}}).skip(2).limit(5).update({$set:{b:1}}).toArray();
+      loadMultipleDoc( cl, 5 * 4 ); 
+      var arrdoc = cl.find( {date:{$gte:20150101}} ).skip( 2 ).limit( 5 ).update( {$set:{b:1}} ).toArray(); 
       
-      throw -1;
+      throw -1; 
    }
-   catch(e)
+   catch( e )
    {
-      if (errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES != e)
+      if( errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES != e )
       {
-         var oper = "find({date:{$gte:20150101}}).skip(2).limit(5).update({$set:{b:1}})"
-         throw buildException(funname, e, oper, errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES, e);
+         var oper = "find( {date:{$gte:20150101}} ).skip( 2 ).limit( 5 ).update( {$set:{b:1}} )"
+         throw buildException( funname, e, oper, errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES, e ); 
       }
    }
    finally
    {
-      removeAllDoc(cl);
+      removeAllDoc( cl ); 
    }
 }
 
 
 /*******************************************************************************
-*@Description：测试op为update时, 主子表情况下结合skip,子表切分，结果不落在单分区上
-*@Input：find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}]}).skip(2).update({$set:{b:1}})
+*@Description：测试op为update时, 主子表情况下结合skip, 子表切分，结果不落在单分区上
+*@Input：find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}]} ).skip( 2 ).update( {$set:{b:1}} )
 *@Expectation：报-289错误
 ********************************************************************************/
-function test_UsedSkipOfFailedSplit(cl)
+function test_UsedSkipOfFailedSplit( cl )
 {
-   var funname = "test_UsedSkipOfFailedSplit";
+   var funname = "test_UsedSkipOfFailedSplit"; 
    try
    {
-      var groupNum = getDataGroupNum();
-      if ( groupNum == 1 ) return;
-      loadMultipleDoc(cl, 5 * 4 * groupNum);
-      var arrdoc = cl.find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}]}).skip(2).update({$set:{b:1}}).toArray();
+      var groupNum = getDataGroupNum(); 
+      if( groupNum == 1 ) return; 
+      loadMultipleDoc( cl, 5 * 4 * groupNum ); 
+      var arrdoc = cl.find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}]} ).skip( 2 ).update( {$set:{b:1}} ).toArray(); 
       
-      throw -1;
+      throw -1; 
    }
-   catch(e)
+   catch( e )
    {
-      if (errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES != e)
+      if( errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES != e )
       {
-         var oper = "find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}]}).skip(2).update({$set:{b:1}})";
-         throw buildException(funname, e, oper, errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES, e);
+         var oper = "find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}]} ).skip( 2 ).update( {$set:{b:1}} )"; 
+         throw buildException( funname, e, oper, errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES, e ); 
       }
    }
    finally
    {
-      removeAllDoc(cl);
+      removeAllDoc( cl ); 
    }
 }
 
 /*******************************************************************************
 *@Description：测试op为update时, 主子表情况下结合limit，子表切分，结果不落在单分区上
-*@Input：find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}]}).limit(2).update({$set:{b:1}})
+*@Input：find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}]} ).limit( 2 ).update( {$set:{b:1}} )
 *@Expectation：报-289错误
 ********************************************************************************/
-function test_UsedLimitOfFailedSplit(cl)
+function test_UsedLimitOfFailedSplit( cl )
 {
-   var funname = "test_UsedLimitOfFailedSplit";
+   var funname = "test_UsedLimitOfFailedSplit"; 
    try
    {
-      var groupNum = getDataGroupNum();
-      if ( groupNum == 1 ) return;
-      loadMultipleDoc(cl, 5 * 4 * groupNum);
-      var arrdoc = cl.find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}]}).limit(2).update({$set:{b:1}}).toArray();
+      var groupNum = getDataGroupNum(); 
+      if( groupNum == 1 ) return; 
+      loadMultipleDoc( cl, 5 * 4 * groupNum ); 
+      var arrdoc = cl.find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}]} ).limit( 2 ).update( {$set:{b:1}} ).toArray(); 
       
-      throw -1;
+      throw -1; 
    }
-   catch(e)
+   catch( e )
    {
-      if (errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES != e)
+      if( errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES != e )
       {
-         var oper = "find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}]}).limit(2).update({$set:{b:1}})";
-         throw buildException(funname, e, oper, errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES, e);
+         var oper = "find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}]} ).limit( 2 ).update( {$set:{b:1}} )"; 
+         throw buildException( funname, e, oper, errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES, e ); 
       }
    }
    finally
    {
-      removeAllDoc(cl);
+      removeAllDoc( cl ); 
    }
 }
 
 /*******************************************************************************
-*@Description：测试op为update时, 主子表情况下结合skip+limit，子表切分，结果不落在单分区上
-*@Input：find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}]}).skip(2).limit(5).update({$set:{b:1}})
+*@Description：测试op为update时, 主子表情况下结合skip + limit，子表切分，结果不落在单分区上
+*@Input：find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}]} ).skip( 2 ).limit( 5 ).update( {$set:{b:1}} )
 *@Expectation：报-289错误
 ********************************************************************************/
-function test_UsedSkipAndLimitOfFailedSplit(cl)
+function test_UsedSkipAndLimitOfFailedSplit( cl )
 {
-   var funname = "test_UsedSkipAndLimitOfFailedSplit";
+   var funname = "test_UsedSkipAndLimitOfFailedSplit"; 
    try
    {
-      var groupNum = getDataGroupNum();
-      if ( groupNum == 1 ) return;
-      loadMultipleDoc(cl, 5 * 4 * getDataGroupNum());
-      var arrdoc = cl.find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}]}).skip(2).limit(5).update({$set:{b:1}}).toArray();
+      var groupNum = getDataGroupNum(); 
+      if( groupNum == 1 ) return; 
+      loadMultipleDoc( cl, 5 * 4 * getDataGroupNum() ); 
+      var arrdoc = cl.find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}]} ).skip( 2 ).limit( 5 ).update( {$set:{b:1}} ).toArray(); 
       
-      throw -1;
+      throw -1; 
    }
-   catch(e)
+   catch( e )
    {
-      if (errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES != e)
+      if( errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES != e )
       {
-         var oper = "find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}]}).skip(2).limit(5).update({$set:{b:1}})";
-         throw buildException(funname, e, oper, errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES, e);
+         var oper = "find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}]} ).skip( 2 ).limit( 5 ).update( {$set:{b:1}} )"; 
+         throw buildException( funname, e, oper, errCode.SDB_RTN_QUERYMODIFY_MULTI_NODES, e ); 
       }
    }
    finally
    {
-      removeAllDoc(cl);
+      removeAllDoc( cl ); 
    }
 }
 
-function checkResult(cl, updatenum)
+function checkResult( cl, updatenum )
 {
    try
    {
-      var updatecount = cl.find({b:1}).count();
-      println("find({b:1}) number" + updatecount);
-      if (updatenum != parseInt(updatecount))
+      var updatecount = cl.find( {b:1} ).count(); 
+      println( "find( {b:1} ) number" + updatecount ); 
+      if( updatenum != parseInt( updatecount ) )
       {
-         throw -1;
+         throw -1; 
       }
    }
-   catch(e)
+   catch( e )
    {
-      if (-1 == e)
+      if( -1 == e )
       {
-         var oper = "find({b:1})";
-         throw buildException("checkResult", e, oper, updatenum, updatecount);
+         var oper = "find( {b:1} )"; 
+         throw buildException( "checkResult", e, oper, updatenum, updatecount ); 
       }
       else
       {
-         throw buildException("checkResult", e);
+         throw buildException( "checkResult", e ); 
       }
    }
 }
 
 /*******************************************************************************
-*@Description：测试op为update时,   主子表情况下，子表不切分的情况下使用skip(结果落在单张子表上)
-*@Input：find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}]}).skip(1).update({$set:{b:1}})
+*@Description：测试op为update时, 主子表情况下，子表不切分的情况下使用skip( 结果落在单张子表上 )
+*@Input：find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}]} ).skip( 1 ).update( {$set:{b:1}} )
 *@Expectation：返回的文档能够查询出字段b的值为1
 ********************************************************************************/
-function test_UsedSkipOfSuccessNonSplit(cl)
+function test_UsedSkipOfSuccessNonSplit( cl )
 {
-   var funname = "test_UsedSkipOfSuccessNonSplit";
+   var funname = "test_UsedSkipOfSuccessNonSplit"; 
    try
    {
       
-      loadMultipleDoc(cl, 4 * 5);
-      var arrdoc = cl.find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}]}).skip(1).update({$set:{b:1}}).toArray();
+      loadMultipleDoc( cl, 4 * 5 ); 
+      var arrdoc = cl.find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}]} ).skip( 1 ).update( {$set:{b:1}} ).toArray(); 
       
-      if (!checkUpdateResult(cl, arrdoc))
+      if( !checkUpdateResult( cl, arrdoc ) )
       {
-         throw -1;
+         throw -1; 
       }
       
-      checkResult(cl, 4);
+      checkResult( cl, 4 ); 
    }
-   catch(e)
+   catch( e )
    {
-      if (-1 == e)
+      if( -1 == e )
       {
-         var oper = "find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}]}).skip(1).update({$set:{b:1}})";
-         throw buildException(funname, e, oper, true, false);
+         var oper = "find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}]} ).skip( 1 ).update( {$set:{b:1}} )"; 
+         throw buildException( funname, e, oper, true, false ); 
       }
-      else if ("string" == typeof(e))
+      else if( "string" == typeof( e ) )
       {
-         throw e;
+         throw e; 
       }
       else
       {
-         throw buildException(funname, e);
-      } 
-   }
-   finally
-   {
-      removeAllDoc(cl);
-   }
-}
-
-/*******************************************************************************
-*@Description：测试op为update时, 主子表情况下，子表不切分的情况下使用limit(结果落在单张子表上)
-*@Input：find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}]}).limit(5).update({$set:{b:1}})
-*@Expectation：返回的文档能够查询出字段b的值为1
-********************************************************************************/
-function test_UsedLimitOfSuccessNonSplit(cl)
-{
-   var funname = "test_UsedLimitOfSuccessNonSplit";
-   try
-   {
-      loadMultipleDoc(cl, 5 * 4);
-      var arrdoc = cl.find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}]}).limit(5).update({$set:{b:1}}).toArray();
-      
-      if (!checkUpdateResult(cl, arrdoc))
-      {
-         throw -1;
-      }
-      checkResult(cl, 5);
-   }
-   catch(e)
-   {
-      if (-1 == e)
-      {
-         var oper = "find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}]}).limit(5).update({$set:{b:1}})";
-         throw buildException(funname, e, oper, true, false);
-      }
-      else if ("string" == typeof(e))
-      {
-         throw e;
-      }
-      else
-      {
-         throw buildException(funname, e);
+         throw buildException( funname, e ); 
       }
    }
    finally
    {
-      removeAllDoc(cl);
+      removeAllDoc( cl ); 
    }
 }
 
 /*******************************************************************************
-*@Description：测试op为update时, 主子表情况下，子表不切分的情况下使用limit+skip(结果落在单张子表上)
-*@Input：find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}]}).skip(2).limit(2).update({$set:{b:1}})
+*@Description：测试op为update时, 主子表情况下，子表不切分的情况下使用limit( 结果落在单张子表上 )
+*@Input：find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}]} ).limit( 5 ).update( {$set:{b:1}} )
 *@Expectation：返回的文档能够查询出字段b的值为1
 ********************************************************************************/
-function test_UsedSkipAndLimitOfSuccessNonSplit(cl)
+function test_UsedLimitOfSuccessNonSplit( cl )
 {
-   var funname = "test_UsedSkipAndLimitOfSuccessNonSplit";
+   var funname = "test_UsedLimitOfSuccessNonSplit"; 
    try
    {
-      loadMultipleDoc(cl, 5 * 4);
-      var arrdoc = cl.find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}]}).skip(2).limit(2).update({$set:{b:1}}).toArray();
+      loadMultipleDoc( cl, 5 * 4 ); 
+      var arrdoc = cl.find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}]} ).limit( 5 ).update( {$set:{b:1}} ).toArray(); 
       
-      if (!checkUpdateResult(cl, arrdoc))
+      if( !checkUpdateResult( cl, arrdoc ) )
       {
-         throw -1;
+         throw -1; 
       }
-      checkResult(cl, 2);
+      checkResult( cl, 5 ); 
    }
-   catch(e)
+   catch( e )
    {
-      if (-1 == e)
+      if( -1 == e )
       {
-         var oper = "find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}]}).skip(2).limit(2).update({$set:{b:1}})";
-         throw buildException(funname, e, oper, true, false);
+         var oper = "find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}]} ).limit( 5 ).update( {$set:{b:1}} )"; 
+         throw buildException( funname, e, oper, true, false ); 
       }
-      else if ("string" == typeof(e))
+      else if( "string" == typeof( e ) )
       {
-         throw e;
+         throw e; 
       }
       else
       {
-         throw buildException(funname, e);
+         throw buildException( funname, e ); 
       }
    }
    finally
    {
-      removeAllDoc(cl);
-   }
-}
-
-
-/*******************************************************************************
-*@Description：测试op为update时, 主子表情况下，子表切分的情况下使用skip(结果落在单分区上)
-*@Input：find({$and:[{date:{$gte:20150101}},
-              {date:{$lt:20150201}},{_id:{$gte:0}},{_id:{$lt:5}}]}).
-              skip(1).update({$set:{b:1}})
-*@Expectation：返回的文档能够查询出字段b的值为1
-********************************************************************************/
-function test_UsedSkipOfSuccessSplit(cl)
-{
-   var funname = "test_UsedSkipOfSuccessSplit";
-   try
-   {
-      var totalnum = 5 * 4 * getDataGroupNum();
-      loadMultipleDoc(cl, totalnum);
-      var arrdoc = cl.find({$and:[{date:{$gte:20150101}},
-                           {date:{$lt:20150201}},{_id:{$gte:0}},{_id:{$lt:5}}]}).
-                           skip(1).update({$set:{b:1}}).toArray();
-      
-      if (!checkUpdateResult(cl, arrdoc))
-      {
-         throw -1;
-      }
-      checkResult(cl, 4);
-      
-   }
-   catch(e)
-   {
-      if (-1 == e)
-      {
-         var oper = "find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}},{_id:{$gte:0}}" +
-                    ",{_id:{$lt:5}}]}).skip(1).update({$set:{b:1}})"
-         throw buildException(funname, e, oper, true, false);
-      }
-      else if ("string" == typeof(e))
-      {
-         throw e;
-      }
-      else
-      {
-         throw buildException(funname, e);
-      } 
-   }
-   finally
-   {
-      removeAllDoc(cl);
+      removeAllDoc( cl ); 
    }
 }
 
 /*******************************************************************************
-*@Description：测试op为update时, 主子表情况下，子表切分的情况下使用limit(结果落在单分区上)
-*@Input：find({$and:[{date:{$gte:20150101}},
-              {date:{$lt:20150201}},{_id:{$gte:0}},{_id:{$lt:5}}]}).
-              limit(5).update({$set:{b:1}})
+*@Description：测试op为update时, 主子表情况下，子表不切分的情况下使用limit + skip( 结果落在单张子表上 )
+*@Input：find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}]} ).skip( 2 ).limit( 2 ).update( {$set:{b:1}} )
 *@Expectation：返回的文档能够查询出字段b的值为1
 ********************************************************************************/
-function test_UsedLimitOfSuccessSplit(cl)
+function test_UsedSkipAndLimitOfSuccessNonSplit( cl )
 {
-   var funname = "test_UsedLimitOfSuccessSplit";
+   var funname = "test_UsedSkipAndLimitOfSuccessNonSplit"; 
    try
    {
-      var totalnum = 5 * 4 * getDataGroupNum();
-      loadMultipleDoc(cl, totalnum);
-      var arrdoc = cl.find({$and:[{date:{$gte:20150101}},
-                          {date:{$lt:20150201}},
-                          {_id:{$gte:0}},{_id:{$lt:5}}]}).
-                          limit(5).update({$set:{b:1}}).toArray();
+      loadMultipleDoc( cl, 5 * 4 ); 
+      var arrdoc = cl.find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}]} ).skip( 2 ).limit( 2 ).update( {$set:{b:1}} ).toArray(); 
       
-      if (!checkUpdateResult(cl, arrdoc))
+      if( !checkUpdateResult( cl, arrdoc ) )
       {
-         throw -1;
+         throw -1; 
       }
-      checkResult(cl, 5);
+      checkResult( cl, 2 ); 
    }
-   catch(e)
+   catch( e )
    {
-      if (-1 == e)
+      if( -1 == e )
       {
-         var oper = "find({$and:[{date:{$gte:20150101}}," +
-         "date:{$lt:20150201}},{_id:{$gte:0}},{_id:{$lt:5}}]}).limit(5).update({$set:{b:1}}) " 
-         throw buildException(funname, e, oper, true, false);
+         var oper = "find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}]} ).skip( 2 ).limit( 2 ).update( {$set:{b:1}} )"; 
+         throw buildException( funname, e, oper, true, false ); 
       }
-      else if ("string" == typeof(e))
+      else if( "string" == typeof( e ) )
       {
-         throw e;
+         throw e; 
       }
       else
       {
-         throw buildException(funname, e);
+         throw buildException( funname, e ); 
       }
    }
    finally
    {
-      removeAllDoc(cl);
+      removeAllDoc( cl ); 
    }
 }
 
+
 /*******************************************************************************
-*@Description：测试op为update时, 主子表情况下，子表切分的情况下使用limit+skip(结果落在单分区上)
-*@Input：find({$and:[{date:{$gte:20150101}},
-              {date:{$lt:20150201}},{_id:{$gte:0}},{_id:{$lt:5}}]}).
-              skip(2).limit(2).update({$set:{b:1}})
+*@Description：测试op为update时, 主子表情况下，子表切分的情况下使用skip( 结果落在单分区上 )
+*@Input：find( {$and:[{date:{$gte:20150101}}, 
+{date:{$lt:20150201}}, {_id:{$gte:0}}, {_id:{$lt:5}}]} ).
+skip( 1 ).update( {$set:{b:1}} )
 *@Expectation：返回的文档能够查询出字段b的值为1
 ********************************************************************************/
-function test_UsedSkipAndLimitOfSuccessSplit(cl)
+function test_UsedSkipOfSuccessSplit( cl )
 {
-   var funname = "test_UsedSkipAndLimitOfSuccessSplit";
+   var funname = "test_UsedSkipOfSuccessSplit"; 
    try
    {
       var totalnum = 5 * 4 * getDataGroupNum(); 
-      loadMultipleDoc(cl, totalnum);
-      var arrdoc = cl.find({$and:[{date:{$gte:20150101}},
-                           {date:{$lt:20150201}},{_id:{$gte:0}},{_id:{$lt:5}}]}).
-                           skip(2).limit(2).update({$set:{b:1}}).toArray();
+      loadMultipleDoc( cl, totalnum ); 
+      var arrdoc = cl.find( {$and:[{date:{$gte:20150101}}, 
+      {date:{$lt:20150201}}, {_id:{$gte:0}}, {_id:{$lt:5}}]} ).
+      skip( 1 ).update( {$set:{b:1}} ).toArray(); 
       
-      if (!checkUpdateResult(cl, arrdoc))
+      if( !checkUpdateResult( cl, arrdoc ) )
       {
-         throw -1;
+         throw -1; 
       }
-      checkResult(cl, 2);
+      checkResult( cl, 4 ); 
+      
    }
-   catch(e)
+   catch( e )
    {
-      if (-1 == e)
+      if( -1 == e )
       {
-         var oper = "find({$and:[{date:{$gte:20150101}},{date:{$lt:20150201}}," +
-                     "{_id:{$gte:0}},{_id:{$lt:5}}]}).skip(2).limit(2).update({$set:{b:1}})";
-         throw buildException(funname, e, oper, true, false);
+         var oper = "find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}, {_id:{$gte:0}}" + 
+         ", {_id:{$lt:5}}]} ).skip( 1 ).update( {$set:{b:1}} )"
+         throw buildException( funname, e, oper, true, false ); 
       }
-      else if ("string" == typeof(e))
+      else if( "string" == typeof( e ) )
       {
-         throw e;
+         throw e; 
       }
       else
       {
-         throw buildException(funname, e);
+         throw buildException( funname, e ); 
       }
    }
    finally
    {
-      removeAllDoc(cl);
+      removeAllDoc( cl ); 
    }
 }
 
-
-function test_subclnonsplit(db, maincl)
+/*******************************************************************************
+*@Description：测试op为update时, 主子表情况下，子表切分的情况下使用limit( 结果落在单分区上 )
+*@Input：find( {$and:[{date:{$gte:20150101}}, 
+{date:{$lt:20150201}}, {_id:{$gte:0}}, {_id:{$lt:5}}]} ).
+limit( 5 ).update( {$set:{b:1}} )
+*@Expectation：返回的文档能够查询出字段b的值为1
+********************************************************************************/
+function test_UsedLimitOfSuccessSplit( cl )
 {
+   var funname = "test_UsedLimitOfSuccessSplit"; 
    try
    {
-      init(db, maincl)
-      test_UsedSkipOfFailed(maincl);
-      test_UsedLimitOfFailed(maincl);
-      test_UsedSkipAndLimitOfFailed(maincl);
-      test_UsedSkipOfSuccessNonSplit(maincl);
-      test_UsedLimitOfSuccessNonSplit(maincl);
-      test_UsedSkipAndLimitOfSuccessNonSplit(maincl);
-   }
-   catch(e)
-   {
-      println("subcl non split");
-      throw e;
-   }
-   finally
-   {
-      fini(db);
-   }
-}
-
-function test_subclsplit(db, maincl)
-{
-   try
-   {
-      init(db, maincl, true);
-      if (dataGroupNum > 1)
+      var totalnum = 5 * 4 * getDataGroupNum(); 
+      loadMultipleDoc( cl, totalnum ); 
+      var arrdoc = cl.find( {$and:[{date:{$gte:20150101}}, 
+      {date:{$lt:20150201}}, 
+      {_id:{$gte:0}}, {_id:{$lt:5}}]} ).
+      limit( 5 ).update( {$set:{b:1}} ).toArray(); 
+      
+      if( !checkUpdateResult( cl, arrdoc ) )
       {
-         test_UsedSkipOfFailed(maincl);
-         test_UsedLimitOfFailed(maincl);
-         test_UsedSkipAndLimitOfFailed(maincl);
-         test_UsedSkipOfFailedSplit(maincl);
-         test_UsedLimitOfFailedSplit(maincl);
-         test_UsedSkipAndLimitOfFailedSplit(maincl);
-         test_UsedSkipOfSuccessSplit(maincl);
-         test_UsedLimitOfSuccessSplit(maincl);
-         test_UsedSkipAndLimitOfSuccessSplit(maincl);
+         throw -1; 
       }
+      checkResult( cl, 5 ); 
    }
-   catch(e)
+   catch( e )
    {
-      println("subcl split");
-      throw e;
+      if( -1 == e )
+      {
+         var oper = "find( {$and:[{date:{$gte:20150101}}, " + 
+         "date:{$lt:20150201}}, {_id:{$gte:0}}, {_id:{$lt:5}}]} ).limit( 5 ).update( {$set:{b:1}} )"
+         throw buildException( funname, e, oper, true, false ); 
+      }
+      else if( "string" == typeof( e ) )
+      {
+         throw e; 
+      }
+      else
+      {
+         throw buildException( funname, e ); 
+      }
    }
    finally
    {
-      fini(db);
-   }   
+      removeAllDoc( cl ); 
+   }
 }
 
-function test_subclonsamegroup(db, maincl)
+/*******************************************************************************
+*@Description：测试op为update时, 主子表情况下，子表切分的情况下使用limit + skip( 结果落在单分区上 )
+*@Input：find( {$and:[{date:{$gte:20150101}}, 
+{date:{$lt:20150201}}, {_id:{$gte:0}}, {_id:{$lt:5}}]} ).
+skip( 2 ).limit( 2 ).update( {$set:{b:1}} )
+*@Expectation：返回的文档能够查询出字段b的值为1
+********************************************************************************/
+function test_UsedSkipAndLimitOfSuccessSplit( cl )
+{
+   var funname = "test_UsedSkipAndLimitOfSuccessSplit"; 
+   try
+   {
+      var totalnum = 5 * 4 * getDataGroupNum(); 
+      loadMultipleDoc( cl, totalnum ); 
+      var arrdoc = cl.find( {$and:[{date:{$gte:20150101}}, 
+      {date:{$lt:20150201}}, {_id:{$gte:0}}, {_id:{$lt:5}}]} ).
+      skip( 2 ).limit( 2 ).update( {$set:{b:1}} ).toArray(); 
+      
+      if( !checkUpdateResult( cl, arrdoc ) )
+      {
+         throw -1; 
+      }
+      checkResult( cl, 2 ); 
+   }
+   catch( e )
+   {
+      if( -1 == e )
+      {
+         var oper = "find( {$and:[{date:{$gte:20150101}}, {date:{$lt:20150201}}, " + 
+         "{_id:{$gte:0}}, {_id:{$lt:5}}]} ).skip( 2 ).limit( 2 ).update( {$set:{b:1}} )"; 
+         throw buildException( funname, e, oper, true, false ); 
+      }
+      else if( "string" == typeof( e ) )
+      {
+         throw e; 
+      }
+      else
+      {
+         throw buildException( funname, e ); 
+      }
+   }
+   finally
+   {
+      removeAllDoc( cl ); 
+   }
+}
+
+
+function test_subclnonsplit( db, maincl )
 {
    try
    {
-      var datagroups = commGetGroups(db, true);
-      init(db, maincl, false, datagroups[0][0].GroupName);
-      test_UsedSkipOfFailed(maincl);
-      test_UsedLimitOfFailed(maincl);
-      test_UsedSkipAndLimitOfFailed(maincl);
-      test_UsedSkipOfSuccessNonSplit(maincl);
-      test_UsedLimitOfSuccessNonSplit(maincl);
-      test_UsedSkipAndLimitOfSuccessNonSplit(maincl);
+      init( db, maincl )
+      test_UsedSkipOfFailed( maincl ); 
+      test_UsedLimitOfFailed( maincl ); 
+      test_UsedSkipAndLimitOfFailed( maincl ); 
+      test_UsedSkipOfSuccessNonSplit( maincl ); 
+      test_UsedLimitOfSuccessNonSplit( maincl ); 
+      test_UsedSkipAndLimitOfSuccessNonSplit( maincl ); 
    }
-   catch(e)
+   catch( e )
    {
-      println("subcl on the same group");
-      throw e;
+      println( "subcl non split" ); 
+      throw e; 
    }
    finally
    {
-      fini(db);
-   }       
+      fini( db ); 
+   }
+}
+
+function test_subclsplit( db, maincl )
+{
+   try
+   {
+      init( db, maincl, true ); 
+      if( dataGroupNum > 1 )
+      {
+         test_UsedSkipOfFailed( maincl ); 
+         test_UsedLimitOfFailed( maincl ); 
+         test_UsedSkipAndLimitOfFailed( maincl ); 
+         test_UsedSkipOfFailedSplit( maincl ); 
+         test_UsedLimitOfFailedSplit( maincl ); 
+         test_UsedSkipAndLimitOfFailedSplit( maincl ); 
+         test_UsedSkipOfSuccessSplit( maincl ); 
+         test_UsedLimitOfSuccessSplit( maincl ); 
+         test_UsedSkipAndLimitOfSuccessSplit( maincl ); 
+      }
+   }
+   catch( e )
+   {
+      println( "subcl split" ); 
+      throw e; 
+   }
+   finally
+   {
+      fini( db ); 
+   }
+}
+
+function test_subclonsamegroup( db, maincl )
+{
+   try
+   {
+      var datagroups = commGetGroups( db, true ); 
+      init( db, maincl, false, datagroups[0][0].GroupName ); 
+      test_UsedSkipOfFailed( maincl ); 
+      test_UsedLimitOfFailed( maincl ); 
+      test_UsedSkipAndLimitOfFailed( maincl ); 
+      test_UsedSkipOfSuccessNonSplit( maincl ); 
+      test_UsedLimitOfSuccessNonSplit( maincl ); 
+      test_UsedSkipAndLimitOfSuccessNonSplit( maincl ); 
+   }
+   catch( e )
+   {
+      println( "subcl on the same group" ); 
+      throw e; 
+   }
+   finally
+   {
+      fini( db ); 
+   }
 }
 
 function main()
 {
    try
    {
-      var replsize = 0;
-      var db = setUp(replsize, createMode.vertical);
-      if (commIsStandalone(db))
+      var replsize = 0; 
+      var db = setUp( replsize, createMode.vertical ); 
+      if( commIsStandalone( db ) )
       {
-         return;
+         return; 
       }
-      var maincl = getCL(db);
+      var maincl = getCL( db ); 
       
-      db.setSessionAttr({PreferedInstance:"M"})
-      test_subclnonsplit(db, maincl);
-      test_subclsplit(db, maincl);
-      test_subclonsamegroup(db, maincl);
+      db.setSessionAttr( {PreferedInstance:"M"} )
+      test_subclnonsplit( db, maincl ); 
+      test_subclsplit( db, maincl ); 
+      test_subclonsamegroup( db, maincl ); 
    }
-   catch(e)
+   catch( e )
    {
-      throw e;
+      throw e; 
    }
    finally
    {
-      tearDown(db);
-   }   
+      tearDown( db ); 
+   }
 }
 
-main();
+main(); 

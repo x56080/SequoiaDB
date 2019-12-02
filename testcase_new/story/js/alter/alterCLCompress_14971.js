@@ -1,54 +1,54 @@
 /* *****************************************************************************
-@discretion: cl alter compressionType from snappy to lzw,the test scenario is as follows:
-             test a: cl no records
-             test b: cl exists records
+@discretion: cl alter compressionType from snappy to lzw, the test scenario is as follows:
+test a: cl no records
+test b: cl exists records
 @author£º2018-4-25 wuyan  Init
 ***************************************************************************** */
 var clName1 = CHANGEDPREFIX + "_alterclcompression_14971a"; 
 var clName2 = CHANGEDPREFIX + "_alterclcompression_14971b"; 
 
-main(db);
-function main(db)
-{	  
-	try
-	{  
-	   if( true == commIsStandalone( db ) )
+main( db ); 
+function main( db )
+{
+   try
+   {
+      if( true == commIsStandalone( db ) )
       {
-         println( "run mode is standalone" );
-         return;
-      }  
-	   //clean environment before test
-      commDropCL( db, COMMCSNAME, clName1, true, true,"drop CL in the beginning" ) ; 
-      commDropCL( db, COMMCSNAME, clName2, true, true,"drop CL in the beginning" ) ;       
-         
-      //create cl           
-      var dbcl1 = commCreateCLByOption( db, COMMCSNAME, clName1, {Compressed:true, CompressionType:"snappy"});  
-      var dbcl2 = commCreateCLByOption( db, COMMCSNAME, clName2, {Compressed:true, CompressionType:"snappy"});          
-            
-      //test a: cl no records,alter compressiontype is lzw
-      dbcl1.setAttributes({CompressionType:"lzw"}); 
-      checkAlterResult( clName1, "CompressionType", 1 );
+         println( "run mode is standalone" ); 
+         return; 
+      }
+      //clean environment before test
+      commDropCL( db, COMMCSNAME, clName1, true, true, "drop CL in the beginning" ); 
+      commDropCL( db, COMMCSNAME, clName2, true, true, "drop CL in the beginning" ); 
+      
+      //create cl
+      var dbcl1 = commCreateCLByOption( db, COMMCSNAME, clName1, {Compressed:true, CompressionType:"snappy"} ); 
+      var dbcl2 = commCreateCLByOption( db, COMMCSNAME, clName2, {Compressed:true, CompressionType:"snappy"} ); 
+      
+      //test a: cl no records, alter compressiontype is lzw
+      dbcl1.setAttributes( {CompressionType:"lzw"} ); 
+      checkAlterResult( clName1, "CompressionType", 1 ); 
       checkAlterResult( clName1, "CompressionTypeDesc", "lzw" ); 
       
-      //test b: cl exist records,alter compressiontype is lzw
-      insertRecs( dbcl2 );
-      dbcl2.setAttributes({CompressionType:"lzw"}); 
-           
-      var insertRecsNum = 200000 ;       
-      insertBuildDictionaryRecs( dbcl2, insertRecsNum );
+      //test b: cl exist records, alter compressiontype is lzw
+      insertRecs( dbcl2 ); 
+      dbcl2.setAttributes( {CompressionType:"lzw"} ); 
+      
+      var insertRecsNum = 200000; 
+      insertBuildDictionaryRecs( dbcl2, insertRecsNum ); 
       
       //get random 10 records to check data
-      var checkRecsNum = 10 ; //get random 3 records
-      checkRecords( dbcl2, insertRecsNum, checkRecsNum  );
+      var checkRecsNum = 10; //get random 3 records
+      checkRecords( dbcl2, insertRecsNum, checkRecsNum ); 
       
       //check the compression fields
-      checkAlterResult( clName2, "CompressionType", 1 );
+      checkAlterResult( clName2, "CompressionType", 1 ); 
       checkAlterResult( clName2, "CompressionTypeDesc", "lzw" ); 
-      checkResultByDataNode(clName2);           
+      checkResultByDataNode( clName2 ); 
       
       //clean
-      commDropCL( db, COMMCSNAME, clName1, true, true,"clear collection in the beginning" ) ;  
-      commDropCL( db, COMMCSNAME, clName2, true, true,"clear collection in the beginning" ) ;    
+      commDropCL( db, COMMCSNAME, clName1, true, true, "clear collection in the beginning" ); 
+      commDropCL( db, COMMCSNAME, clName2, true, true, "clear collection in the beginning" ); 
    }
    catch( e )
    {
@@ -60,102 +60,103 @@ function main(db)
       {
          db.close()
       }
-   }   
+   }
 }
 
 function insertBuildDictionaryRecs( cl, insertRecsNum )
 {
-   println("\n---Begin to insert records, insertRecsNum: "+ insertRecsNum );
+   println( "\n---Begin to insert records, insertRecsNum: " + insertRecsNum ); 
    
    for( k = 100; k < insertRecsNum; k += 20000 )
    {
-      var doc = [];
-      for( i = 0+k; i < 20000 + k; i++ )
+      var doc = []; 
+      for( i = 0 + k; i < 20000 + k; i++ )
       {
-         doc.push( {total_account:i,account_id:i,tx_number:"testR"+i,tx_info:"xzposs/565bf18944f4f14fea84341b/image/20160101_1.png.png", "text": "paddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingData"} )
+         doc.push( {total_account:i, account_id:i, tx_number:"testR" + i, tx_info:"xzposs/565bf18944f4f14fea84341b/image/20160101_1.png.png", "text": "paddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingData"} )
          
-      };
-      cl.insert(doc);
+      }
+; 
+      cl.insert( doc ); 
       
-   }  
+   }
 }
 
-function insertRecs( cl)
+function insertRecs( cl )
 {
-	println("\n---begin to insert data before alter compression"  );	
-	var expRecs = [];
-	for(var i = 0; i < 100; i++)
-	{
-		var rec = {total_account:i,account_id:i,tx_number:"test"+i,tx_info:"xzposs/565bf18944f4f14fea84341b/image/2016_1.png"} ;		
-		expRecs.push(rec);
-	}	
-	cl.insert(expRecs);
+   println( "\n---begin to insert data before alter compression" ); 
+   var expRecs = []; 
+   for( var i = 0; i < 100; i++ )
+   {
+      var rec = {total_account:i, account_id:i, tx_number:"test" + i, tx_info:"xzposs/565bf18944f4f14fea84341b/image/2016_1.png"}; 
+      expRecs.push( rec ); 
+   }
+   cl.insert( expRecs ); 
 }
 
-function checkRecords( cl, insertRecsNum, checkRecsNum  )
-{				
-	println("\n---Begin to check Records. checkRecsNum: "+ checkRecsNum );
+function checkRecords( cl, insertRecsNum, checkRecsNum )
+{
+   println( "\n---Begin to check Records. checkRecsNum: " + checkRecsNum ); 
    for( j = 0; j < checkRecsNum; j++ )
    {
-      var i = parseInt( Math.random() * insertRecsNum );
+      var i = parseInt( Math.random()* insertRecsNum ); 
       if( i < 100 )
       {
-         var recsCnt = cl.find( {total_account:i,account_id:i,tx_number:"test"+i,tx_info:"xzposs/565bf18944f4f14fea84341b/image/2016_1.png"} ).count();
+         var recsCnt = cl.find( {total_account:i, account_id:i, tx_number:"test" + i, tx_info:"xzposs/565bf18944f4f14fea84341b/image/2016_1.png"} ).count(); 
       }
       else
       {
-         var recsCnt = cl.find( {total_account:i,account_id:i,tx_number:"testR"+i,tx_info:"xzposs/565bf18944f4f14fea84341b/image/20160101_1.png.png", "text": "paddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingData"} ).count();
+         var recsCnt = cl.find( {total_account:i, account_id:i, tx_number:"testR" + i, tx_info:"xzposs/565bf18944f4f14fea84341b/image/20160101_1.png.png", "text": "paddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingDatapaddingData"} ).count(); 
       }
       
-      var expctCnt = 1 ;
-      if( parseInt(recsCnt) !== expctCnt )
+      var expctCnt = 1; 
+      if( parseInt( recsCnt )!== expctCnt )
       {
-         throw buildException("Failed to check Records.", null, "[checkRecords]", 
-                  "recsCnt: "+ expctCnt, "recsCnt: "+ parseInt(recsCnt) ); 
+         throw buildException( "Failed to check Records.", null, "[checkRecords]", 
+         "recsCnt: " + expctCnt, "recsCnt: " + parseInt( recsCnt ) ); 
       }
       
    }
 }
 
-function checkResultByDataNode(clName)
+function checkResultByDataNode( clName )
 {
-   var clGroup = getSrcGroup( COMMCSNAME, clName );
-   var rg = db.getRG(clGroup);
+   var clGroup = getSrcGroup( COMMCSNAME, clName ); 
+   var rg = db.getRG( clGroup ); 
    
    try
    {
-      var sdb = new Sdb(rg.getMaster());
-      var clFullName = COMMCSNAME + "." + clName;   
-      var cur = sdb.snapshot(4,{"Name":clFullName});
-      var tmpcur = cur.current().toObj()["Details"][0];
+      var sdb = new Sdb( rg.getMaster() ); 
+      var clFullName = COMMCSNAME + "." + clName; 
+      var cur = sdb.snapshot( 4, {"Name":clFullName} ); 
+      var tmpcur = cur.current().toObj()["Details"][0]; 
       
-      var actAttribute = tmpcur.Attribute;
-      var actCompressionType = tmpcur.CompressionType;
-      var actDictionaryCreated = tmpcur.DictionaryCreated;
+      var actAttribute = tmpcur.Attribute; 
+      var actCompressionType = tmpcur.CompressionType; 
+      var actDictionaryCreated = tmpcur.DictionaryCreated; 
       
-      var sleepInteval=10;
-      var sleepDuration=0;
-      var maxSleepDuration=30000; 
+      var sleepInteval = 10; 
+      var sleepDuration = 0; 
+      var maxSleepDuration = 30000; 
       while( actDictionaryCreated != true && sleepDuration < maxSleepDuration )
-         {            
-            sleep( sleepInteval );
-            sleepDuration += sleepInteval; 
-            var cur1 = sdb.snapshot(4,{"Name":clFullName}).current().toObj()["Details"][0];
-            var actDictionaryCreated = cur1.DictionaryCreated;  
-            println("---test="+actDictionaryCreated);          
-         }  
+      {
+         sleep( sleepInteval ); 
+         sleepDuration += sleepInteval; 
+         var cur1 = sdb.snapshot( 4, {"Name":clFullName} ).current().toObj()["Details"][0]; 
+         var actDictionaryCreated = cur1.DictionaryCreated; 
+         println( "---test=" + actDictionaryCreated ); 
+      }
       
-      if (actAttribute  !== "Compressed")
-      {         
-         throw buildException("test Attribute", "check field", "value is wrong", "Compressed", actAttribute);
+      if( actAttribute !== "Compressed" )
+      {
+         throw buildException( "test Attribute", "check field", "value is wrong", "Compressed", actAttribute ); 
       }
-      if (actCompressionType  !== "lzw")
-      {         
-         throw buildException("test CompressionType", "check field", "value is wrong", "lzw", actCompressionType);
+      if( actCompressionType !== "lzw" )
+      {
+         throw buildException( "test CompressionType", "check field", "value is wrong", "lzw", actCompressionType ); 
       }
-      if (actDictionaryCreated  !== true)
-      {         
-         throw buildException("test DictionaryCreated", "check field", "value is wrong", "true", actDictionaryCreated);
+      if( actDictionaryCreated !== true )
+      {
+         throw buildException( "test DictionaryCreated", "check field", "value is wrong", "true", actDictionaryCreated ); 
       }
    }
    catch( e )
@@ -168,27 +169,27 @@ function checkResultByDataNode(clName)
       {
          sdb.close()
       }
-   }   
+   }
 }
 
 function getSrcGroup( csName, clName )
 {
    try
    {
-      var clFullName = csName + "." + clName;
-      var clInfo = db.snapshot( 8, {Name: clFullName} );
+      var clFullName = csName + "." + clName; 
+      var clInfo = db.snapshot( 8, {Name: clFullName} ); 
       while( clInfo.next() )
       {
-         var clInfoObj = clInfo.current().toObj();
-         var srcGroupName = clInfoObj.CataInfo[0].GroupName;
+         var clInfoObj = clInfo.current().toObj(); 
+         var srcGroupName = clInfoObj.CataInfo[0].GroupName; 
       }
-      println( "---"+csName + "." + clName + "'s source group: " + srcGroupName );
-                   
-      return srcGroupName;
+      println( "---" + csName + "." + clName + "'s source group: " + srcGroupName ); 
+      
+      return srcGroupName; 
    }
    catch( e )
    {
-      println( "failed to get source group, cl name: " + clFullName ) ;     
-      throw e ;
+      println( "failed to get source group, cl name: " + clFullName ); 
+      throw e; 
    }
 }

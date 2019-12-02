@@ -1,40 +1,40 @@
 /************************************
-*@Description: 重复开启关闭压缩 
+*@Description: 重复开启关闭压缩
 *@author:      luweikang
 *@createdate:  2018.4.25
 *@testlinkCase:seqDB-14967
 **************************************/
 
-main();
+main(); 
 
 function main()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" ) ;
-      return ;
+      println( "Run mode is standalone" ); 
+      return; 
    }
-   println("---begin test---");
-   var csName = COMMCSNAME;
-   var clName = "cl14967";
+   println( "---begin test---" ); 
+   var csName = COMMCSNAME; 
+   var clName = "cl14967"; 
    
-   var options = {Compressed:false};
-   var cl = commCreateCLByOption( db, csName, clName, options, true, false, "create CL in the begin");
-
-   println("---cl setAttributes CompressionType---");
-   cl.setAttributes({CompressionType: 'snappy'});
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionType", 0);
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionTypeDesc", "snappy");
+   var options = {Compressed:false}; 
+   var cl = commCreateCLByOption( db, csName, clName, options, true, false, "create CL in the begin" ); 
    
-   cl.setAttributes({Compressed:false});
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "Attribute", 0);
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "AttributeDesc", "");
+   println( "---cl setAttributes CompressionType---" ); 
+   cl.setAttributes( {CompressionType: 'snappy'} ); 
+   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionType", 0 ); 
+   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionTypeDesc", "snappy" ); 
    
-   cl.setAttributes({Compressed:true});
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionType", 1);
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionTypeDesc", "lzw");
+   cl.setAttributes( {Compressed:false} ); 
+   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "Attribute", 0 ); 
+   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "AttributeDesc", "" ); 
    
-   commDropCL( db, csName, clName, true, false, "clean cl" );
-   println("---end the test---");
+   cl.setAttributes( {Compressed:true} ); 
+   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionType", 1 ); 
+   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "CompressionTypeDesc", "lzw" ); 
+   
+   commDropCL( db, csName, clName, true, false, "clean cl" ); 
+   println( "---end the test---" ); 
 }
 

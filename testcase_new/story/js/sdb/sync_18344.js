@@ -6,48 +6,48 @@
 **************************************/
 try
 {
-   main();
+   main(); 
 }
 catch( e )
 {
-   if(e.constructor === Error)
+   if( e.constructor === Error )
    {
-      println(e.stack);
+      println( e.stack ); 
    }
-   throw e;
+   throw e; 
 }
 
 function main()
 {
-   if(commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      println( "run mode is standalone");
-      return;
+      println( "run mode is standalone" ); 
+      return; 
    }
-    
-   var maincsName = "maincs18344";
-   var subcsName = "subcs18344";
-   var mainCL_Name = "maincl18344";
-   var subCL_Name = "subcl18344";
-
-   var groups = commGetGroups( db );
-   var dataRGName = groups[0][0]["GroupName"] ;
+   
+   var maincsName = "maincs18344"; 
+   var subcsName = "subcs18344"; 
+   var mainCL_Name = "maincl18344"; 
+   var subCL_Name = "subcl18344"; 
+   
+   var groups = commGetGroups( db ); 
+   var dataRGName = groups[0][0]["GroupName"]; 
    
    //创建主子表
-   var mainCLOption = { ShardingKey:{"a":1}, ReplSize:0, IsMainCL:true};
-   var maincl = commCreateCLByOption( db, maincsName, mainCL_Name, mainCLOption, true, true);
-    
-   var subClOption = {ShardingKey:{"b":1}, Group:dataRGName};
-   var subcl = commCreateCLByOption( db, subcsName, subCL_Name, subClOption, true, true );
-    
+   var mainCLOption = { ShardingKey:{"a":1} , ReplSize:0 , IsMainCL:true}; 
+   var maincl = commCreateCLByOption( db , maincsName , mainCL_Name , mainCLOption , true , true ); 
+   
+   var subClOption = {ShardingKey:{"b":1} , Group:dataRGName}; 
+   var subcl = commCreateCLByOption( db , subcsName , subCL_Name , subClOption , true , true ); 
+   
    //attach子表
-   var options = { LowBound:{ a:0 },UpBound:{ a: 10 } };
-   maincl.attachCL( subcsName + "." + subCL_Name, options );
-    
+   var options = { LowBound:{ a:0 } , UpBound:{ a: 10 } }; 
+   maincl.attachCL( subcsName + "." + subCL_Name , options ); 
+   
    //sync()指定CollectionSpace为主表的集合空间
-   db.sync({CollectionSpace:maincsName});
-    
+   db.sync( {CollectionSpace:maincsName} ); 
+   
    //清除环境
-   commDropCS( db, maincsName, true, "drop mainCS in the end" );  
-   commDropCS( db, subcsName, true, "drop subCS in the end" ); 
+   commDropCS( db , maincsName , true , "drop mainCS in the end" ); 
+   commDropCS( db , subcsName , true , "drop subCS in the end" ); 
 }

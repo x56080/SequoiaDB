@@ -5,59 +5,59 @@
 **************************************/
 try
 {
-   main();
+   main(); 
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack ); 
    }
-   throw e ;
+   throw e; 
 }
 
 function main()
 {
-   if(commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      println("skip standalone mode");
-      return;
+      println( "skip standalone mode" ); 
+      return; 
    }
-   var groups = commGetGroups(db);
-   if ( groups.length < 2)
+   var groups = commGetGroups( db ); 
+   if( groups.length < 2 )
    {
-      println("--least two groups");
-      return ;
+      println( "--least two groups" ); 
+      return; 
    }
    
-   var csName = COMMCSNAME;
-   var mainCLName = "mainCL_19029";
-   var subCLName1 = "subCL_19029_1";
-   var subCLName2 = "subCL_19029_2";
-   var targetGroup = groups[0][0].GroupName;
-   var sourceGroup = groups[1][0].GroupName;
-   var filePath = WORKDIR + "/lob19029/";
-   var fileName = "file19029";
-   var fileFullPath = filePath + fileName;
-   var fileMD5 = makeTmpFile( filePath, fileName );
+   var csName = COMMCSNAME; 
+   var mainCLName = "mainCL_19029"; 
+   var subCLName1 = "subCL_19029_1"; 
+   var subCLName2 = "subCL_19029_2"; 
+   var targetGroup = groups[0][0].GroupName; 
+   var sourceGroup = groups[1][0].GroupName; 
+   var filePath = WORKDIR + "/lob19029/"; 
+   var fileName = "file19029"; 
+   var fileFullPath = filePath + fileName; 
+   var fileMD5 = makeTmpFile( filePath, fileName ); 
    
-   commDropCL(db, csName, mainCLName);
-   commDropCL(db, csName, subCLName1);
-   commDropCL(db, csName, subCLName2);
+   commDropCL( db, csName, mainCLName ); 
+   commDropCL( db, csName, subCLName1 ); 
+   commDropCL( db, csName, subCLName2 ); 
    
-   var options = {"IsMainCL": true, "ShardingKey": {"date": 1}, "LobShardingKeyFormat": "YYYYMMDD", "ShardingType": "range"};
-   var mainCL = commCreateCLByOption(db, csName, mainCLName, options, true, false, "create main cl");
-   commCreateCL( db, csName, subCLName1 );
-   var clOptions = {"ShardingKey": {"a": 1}, ShardingType:"hash", Group: targetGroup};
-   var subcl2 = commCreateCLByOption(db, csName, subCLName2, clOptions, true, false, "create sub cl2");
-   subcl2.split(targetGroup, sourceGroup, 50);
+   var options = {"IsMainCL": true, "ShardingKey": {"date": 1}, "LobShardingKeyFormat": "YYYYMMDD", "ShardingType": "range"}; 
+   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, true, false, "create main cl" ); 
+   commCreateCL( db, csName, subCLName1 ); 
+   var clOptions = {"ShardingKey": {"a": 1}, ShardingType:"hash", Group: targetGroup}; 
+   var subcl2 = commCreateCLByOption( db, csName, subCLName2, clOptions, true, false, "create sub cl2" ); 
+   subcl2.split( targetGroup, sourceGroup, 50 ); 
    
-   mainCL.attachCL( csName + "." + subCLName1, {"LowBound": {"date": "20190801"}, "UpBound": {"date": "20190805"}});
-   mainCL.attachCL( csName + "." + subCLName2, {"LowBound": {"date": "20190805"}, "UpBound": {"date": "20190810"}});
-   var lobOids = insertLob(mainCL, fileFullPath, "YYYYMMDD", 5, 10, 2, "20190801");
-   checkLobMD5(mainCL, lobOids, fileMD5);
+   mainCL.attachCL( csName + "." + subCLName1, {"LowBound": {"date": "20190801"}, "UpBound": {"date": "20190805"}} ); 
+   mainCL.attachCL( csName + "." + subCLName2, {"LowBound": {"date": "20190805"}, "UpBound": {"date": "20190810"}} ); 
+   var lobOids = insertLob( mainCL, fileFullPath, "YYYYMMDD", 5, 10, 2, "20190801" ); 
+   checkLobMD5( mainCL, lobOids, fileMD5 ); 
    
-   deleteTmpFile( filePath );
-   commDropCL(db, csName, mainCLName);
+   deleteTmpFile( filePath ); 
+   commDropCL( db, csName, mainCLName ); 
 }
 

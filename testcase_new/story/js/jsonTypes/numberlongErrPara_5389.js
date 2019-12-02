@@ -4,27 +4,27 @@
 *               2016-07-11   XueWang Liang  Init
 ******************************************************************************/
 
-function main(  )
-{  
+function main()
+{
    // 测试NumberLong函数参数不正确的错误
-   // NumberLong(100)   NumberLong("100")  指定64位整数                   
-   var ErrPara = [ [100,101],["100",101],[], 
-                   [true],["abc"] ] ;
-   var ErrCode = -6 ;
+   // NumberLong( 100 ) NumberLong( "100" )指定64位整数
+   var ErrPara = [ [100, 101], ["100", 101], [], 
+   [true], ["abc"] ]; 
+   var ErrCode = -6; 
    for( var i = 0; i < ErrPara.length; ++i )
    {
       try
       {
-         NumberLong(ErrPara[i]) ;
+         NumberLong( ErrPara[i] ); 
       }
       catch( e )
       {
          if( e == ErrCode )
-            println( ">success to test numberlong with wrong parameters.") ;
+         println( ">success to test numberlong with wrong parameters." ); 
          else
          {
-            println( ">fail to test numberlong with wrong parameters." ) ;
-            throw( e );
+            println( ">fail to test numberlong with wrong parameters." ); 
+            throw( e ); 
          }
       }
    }
@@ -34,9 +34,9 @@ function main(  )
 // Test
 try
 {
-   main( ) ;
+   main(); 
 }
 catch( e )
 {
-   throw e ;
+   throw e; 
 }

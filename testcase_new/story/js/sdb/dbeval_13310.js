@@ -7,35 +7,35 @@ function main()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" ) ;
-      return ;
+      println( "Run mode is standalone" ); 
+      return; 
    }
    
-   var clName = CHANGEDPREFIX + "_cl13310" ;
-   commCreateCL( db, COMMCSNAME, clName ) ;
-    
-   var code = "db." + COMMCSNAME + "." + clName ;
-   var cl = db.eval( code ) ;
-   cl.insert( { a: 1 } ) ;
+   var clName = CHANGEDPREFIX + "_cl13310"; 
+   commCreateCL( db , COMMCSNAME , clName ); 
    
-   var value = cl.find( {}, {a: ""} ).next().toObj()["a"] ;
+   var code = "db." + COMMCSNAME + "." + clName; 
+   var cl = db.eval( code ); 
+   cl.insert( { a: 1 } ); 
+   
+   var value = cl.find( {} , {a: ""} ).next().toObj()["a"]; 
    if( value !== 1 )
    {
-      throw new Error( "expect value is 1, but act value is " + value ) ;
-   } 
-    
-   commDropCL( db, COMMCSNAME, clName ) ;
+      throw new Error( "expect value is 1, but act value is " + value ); 
+   }
+   
+   commDropCL( db , COMMCSNAME , clName ); 
 }
 
 try
 {
-   main() ;
+   main(); 
 }
 catch( e )
 {
-   if(e.constructor === Error)
+   if( e.constructor === Error )
    {
-      println(e.stack);
+      println( e.stack ); 
    }
-   throw e;
+   throw e; 
 }

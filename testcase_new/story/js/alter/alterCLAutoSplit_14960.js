@@ -4,34 +4,34 @@
 ***************************************************************************** */
 var clName = CHANGEDPREFIX + "_alterclautosplit_14960"; 
 
-main(db);
-function main(db)
-{	  
-	try
-	{  
-	   if( true == commIsStandalone( db ) )
+main( db ); 
+function main( db )
+{
+   try
+   {
+      if( true == commIsStandalone( db ) )
       {
-         println( "run mode is standalone" );
-         return;
-      }  
-	   //clean environment before test
-      commDropCL( db, COMMCSNAME, clName, true, true,"drop CL in the beginning" ) ;        
-         
-      //create cl           
-      var dbcl = commCreateCL( db, COMMCSNAME, clName);          
+         println( "run mode is standalone" ); 
+         return; 
+      }
+      //clean environment before test
+      commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" ); 
       
-      //test a :alter autosplit, no shardingKey 
-      alterAutoSplitNoShardingKey(dbcl);
+      //create cl
+      var dbcl = commCreateCL( db, COMMCSNAME, clName ); 
+      
+      //test a :alter autosplit, no shardingKey
+      alterAutoSplitNoShardingKey( dbcl ); 
       
       //test b: alter autosplit and shardingKey
-      var shardingKey = {a:1,b:1};
-      var autoSplit = true;
-      dbcl.setAttributes({ShardingKey:shardingKey,AutoSplit:autoSplit}); 
-      checkAlterResult( clName, "ShardingKey", shardingKey );
-      checkAlterResult( clName, "AutoSplit", autoSplit );      
+      var shardingKey = {a:1, b:1}; 
+      var autoSplit = true; 
+      dbcl.setAttributes( {ShardingKey:shardingKey, AutoSplit:autoSplit} ); 
+      checkAlterResult( clName, "ShardingKey", shardingKey ); 
+      checkAlterResult( clName, "AutoSplit", autoSplit ); 
       
       //clean
-      commDropCL( db, COMMCSNAME, clName, true, true,"clear collection in the beginning" ) ;   
+      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" ); 
    }
    catch( e )
    {
@@ -43,22 +43,22 @@ function main(db)
       {
          db.close()
       }
-   }   
+   }
 }
 
-function alterAutoSplitNoShardingKey(dbcl)
+function alterAutoSplitNoShardingKey( dbcl )
 {
    try
-	{	   
-      dbcl.setAttributes({AutoSplit:true});
-      throw "need throw error";
-	} 
+   {
+      dbcl.setAttributes( {AutoSplit:true} ); 
+      throw "need throw error"; 
+   }
    catch( e )
-   {      
+   {
       if( e != -245 )
       {
-         throw buildException( "cannot be alter,fail:", e); 
-      }      
-   }   
+         throw buildException( "cannot be alter, fail:", e ); 
+      }
+   }
 }
 

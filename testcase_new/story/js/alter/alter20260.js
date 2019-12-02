@@ -6,72 +6,72 @@
 ******************************************************************************/
 try
 {
-   main();
+   main(); 
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack);  
+      println( e.stack ); 
    }
-   throw e;
+   throw e; 
 }
 
 function main()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" ) ;
-      return ;
+      println( "Run mode is standalone" ); 
+      return; 
    }
-   var groupName = commGetGroups(db);
-   if(groupName.length < 2)
+   var groupName = commGetGroups( db ); 
+   if( groupName.length < 2 )
    {
-      println( "group num less 2" ) ;
-      return ;
+      println( "group num less 2" ); 
+      return; 
    }
    
-   var clName = "alter20260";
-   commDropCL( db, COMMCSNAME, clName ) ;
+   var clName = "alter20260"; 
+   commDropCL( db, COMMCSNAME, clName ); 
    
-   var cl = commCreateCLByOption( db, COMMCSNAME, clName, {ShardingKey:{id: 1}, ShardingType: "hash", AutoSplit: true} );
+   var cl = commCreateCLByOption( db, COMMCSNAME, clName, {ShardingKey:{id: 1}, ShardingType: "hash", AutoSplit: true} ); 
    
    //alters AutoSplit
-   cl.alter({AutoSplit: true});
-   checkSnapshot( db, SDB_SNAP_CATALOG, COMMCSNAME, clName, "AutoSplit", true);
+   cl.alter( {AutoSplit: true} ); 
+   checkSnapshot( db, SDB_SNAP_CATALOG, COMMCSNAME, clName, "AutoSplit", true ); 
    
-   cl.setAttributes({AutoSplit: true});
-   checkSnapshot( db, SDB_SNAP_CATALOG, COMMCSNAME, clName, "AutoSplit", true);
-   
-   try
-   {
-      cl.alter({AutoSplit: false});
-      throw "ERR_ALTER_CL";
-   }
-   catch(e)
-   {
-      if(e != -32)
-      {
-         throw new Error(e);
-      }
-   }
-   checkSnapshot( db, SDB_SNAP_CATALOG, COMMCSNAME, clName, "AutoSplit", true);
+   cl.setAttributes( {AutoSplit: true} ); 
+   checkSnapshot( db, SDB_SNAP_CATALOG, COMMCSNAME, clName, "AutoSplit", true ); 
    
    try
    {
-      cl.setAttributes({AutoSplit: false});
-      throw "ERR_ALTER_CL";
+      cl.alter( {AutoSplit: false} ); 
+      throw "ERR_ALTER_CL"; 
    }
-   catch(e)
+   catch( e )
    {
-      if(e != -32)
+      if( e != -32 )
       {
-         throw new Error(e);
+         throw new Error( e ); 
       }
    }
-   checkSnapshot( db, SDB_SNAP_CATALOG, COMMCSNAME, clName, "AutoSplit", true);
+   checkSnapshot( db, SDB_SNAP_CATALOG, COMMCSNAME, clName, "AutoSplit", true ); 
+   
+   try
+   {
+      cl.setAttributes( {AutoSplit: false} ); 
+      throw "ERR_ALTER_CL"; 
+   }
+   catch( e )
+   {
+      if( e != -32 )
+      {
+         throw new Error( e ); 
+      }
+   }
+   checkSnapshot( db, SDB_SNAP_CATALOG, COMMCSNAME, clName, "AutoSplit", true ); 
    
    //clean test-env
-   commDropCL( db, COMMCSNAME, clName ) ;
+   commDropCL( db, COMMCSNAME, clName ); 
 }
 

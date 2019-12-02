@@ -1,53 +1,53 @@
 /***************************************************************************
-@Description : drop the index ,but index don't exist.
+@Description : drop the index, but index don't exist.
 @Modify list :
-               2014-5-16  xiaojun Hu  modify
+2014-5-16  xiaojun Hu  modify
 ***************************************************************************/
 
 try
 {
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop cl in the beginning" ) ;
+   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop cl in the beginning" ); 
 }
-catch ( e )
+catch( e )
 {
-   println( "Failed to clear the collectionspace first :"+e ) ;
-   throw e ;
+   println( "Failed to clear the collectionspace first :" + e ); 
+   throw e; 
 }
 
 try
 {
-   var optionObj = {ReplSize:0,Compressed:true};
-   var varCL = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, optionObj, true,
-                                     false, "create collecton 1 failed" );
+   var optionObj = {ReplSize:0, Compressed:true}; 
+   var varCL = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, optionObj, true, 
+   false, "create collecton 1 failed" ); 
 }
-catch ( e )
+catch( e )
 {
-   println( "failed to create CS and CL rc= " + e );
-   throw e ;
+   println( "failed to create CS and CL rc= " + e ); 
+   throw e; 
 }
 
 
-var res = false ;
+var res = false; 
 try
 {
-   varCL.dropIndex( "testindex" ) ;
+   varCL.dropIndex( "testindex" ); 
 }
-catch ( e )
+catch( e )
 {
-   if ( e != -47 )
+   if( e != -47 )
    {
-      println( "Failed to drop index :"+e ) ;
-      throw e ;
+      println( "Failed to drop index :" + e ); 
+      throw e; 
    }
 }
 
 try
 {
-   commDropCL( db, COMMCSNAME, COMMCLNAME, false, false,
-               "drop colleciton in the end" );
+   commDropCL( db, COMMCSNAME, COMMCLNAME, false, false, 
+   "drop colleciton in the end" ); 
 }
-catch ( e )
+catch( e )
 {
-   println( "failed to clear cs end: " + e ) ;
-   throw e ;
+   println( "failed to clear cs end: " + e ); 
+   throw e; 
 }

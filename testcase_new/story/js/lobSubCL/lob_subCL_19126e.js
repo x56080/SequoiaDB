@@ -1,117 +1,118 @@
 /************************************
-*@Description:  seqDB-19126 主表上执行hint查询，查询数据跨多个子表                   
+*@Description:  seqDB-19126 主表上执行hint查询，查询数据跨多个子表
 *@author:      wuyan
 *@createDate:  2019.8.26
 **************************************/
 try
 {
-   main();
+   main(); 
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack ); 
    }
-   throw e ;
+   throw e; 
 }
 
 function main()
 {
-   if(commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      println("skip standalone mode");
-      return;
+      println( "skip standalone mode" ); 
+      return; 
    }
    
-   var csName = "cs19126";
-   var mainCLName = "mainCL19126";  
-   var subCLName = "subcl19126";
-   var subCLNum = 1;
-   var lobPageSize = 4096;
-   var filePath = WORKDIR + "/subCLLob19126/";    
-   var beginBound = 20190101;  
-   commDropCS( db, csName, true,"drop CS in the beginning" )   
-   commCreateCS( db, csName, false, "", { LobPageSize : lobPageSize} );
-   var mainCL = createMainCLAndAttachCL( db, csName, mainCLName, subCLName, "YYYYMMDD", subCLNum, beginBound);
+   var csName = "cs19126"; 
+   var mainCLName = "mainCL19126"; 
+   var subCLName = "subcl19126"; 
+   var subCLNum = 1; 
+   var lobPageSize = 4096; 
+   var filePath = WORKDIR + "/subCLLob19126/"; 
+   var beginBound = 20190101; 
+   commDropCS( db, csName, true, "drop CS in the beginning" )
+   commCreateCS( db, csName, false, "", { LobPageSize : lobPageSize} ); 
+   var mainCL = createMainCLAndAttachCL( db, csName, mainCLName, subCLName, "YYYYMMDD", subCLNum, beginBound ); 
    
-   //put lob   
-   var lobSize = putLobs(mainCL,filePath);
+   //put lob
+   var lobSize = putLobs( mainCL, filePath ); 
    
-   //listLobs with hint;
-   listLobsWithHintAndCheckResult(mainCL, lobSize, lobPageSize);
+   //listLobs with hint; 
+   listLobsWithHintAndCheckResult( mainCL, lobSize, lobPageSize ); 
    
-   commDropCS( db, csName, true,"drop CS in the ending" )       
-   deleteTmpFile( filePath );
+   commDropCS( db, csName, true, "drop CS in the ending" )
+   deleteTmpFile( filePath ); 
 }
 
-function putLobs(mainCL,filePath)
+function putLobs( mainCL, filePath )
 {
-   println("---begin to putLob");   
-   var maxLobSize = 1024 * 1024;
-   var lobSize = Math.round(Math.random() * maxLobSize ); 
-   var fileName = "lob_" + lobSize;
-   var expListResult = [];
-   makeTmpFile( filePath,fileName,lobSize );
+   println( "---begin to putLob" ); 
+   var maxLobSize = 1024 * 1024; 
+   var lobSize = Math.round( Math.random()* maxLobSize ); 
+   var fileName = "lob_" + lobSize; 
+   var expListResult = []; 
+   makeTmpFile( filePath, fileName, lobSize ); 
    
-   var beginDate = "2019-01-01-00.00.00.000000";
+   var beginDate = "2019-01-01-00.00.00.000000"; 
    var lobOid = mainCL.createLobID( beginDate ); 
-   mainCL.putLob( filePath + fileName, lobOid );  
+   mainCL.putLob( filePath + fileName, lobOid ); 
    
-   return lobSize;
+   return lobSize; 
 }
 
-function listLobsWithHintAndCheckResult(mainCL, lobSize, lobPageSize)
-{   
-   println("---begin to listLob with hint." );
+function listLobsWithHintAndCheckResult( mainCL, lobSize, lobPageSize )
+{
+   println( "---begin to listLob with hint." ); 
    
-   var listResult = mainCL.listLobPieces();    
-   var expListResult = [];
+   var listResult = mainCL.listLobPieces(); 
+   var expListResult = []; 
    while( listResult.next() )
    {
-      var listObj = listResult.current().toObj();         
-      expListResult.push(listObj);         
+      var listObj = listResult.current().toObj(); 
+      expListResult.push( listObj ); 
    }
-   expListResult.sort(
-      function(a,b)
-      {
-          return a.Sequence - b.Sequence;
-      }
-   )
+   expListResult.sort( 
+   function( a, b )
+   {
+      return a.Sequence - b.Sequence; 
+   }
+ )
    
-   var actRecs = [];  
-   var listResult = mainCL.listLobs(SdbQueryOption().sort({"Sequence":1}).hint({"ListPieces": 1}));
+   var actRecs = []; 
+   var listResult = mainCL.listLobs( SdbQueryOption().sort( {"Sequence":1} ).hint( {"ListPieces": 1} ) ); 
    while( listResult.next() )
    {
-      var listObj = listResult.current().toObj();         
-      actRecs.push( listObj );
-   }       
-
-   println("---begin to check result."); 
-   var piecesNum = 0;
-   if ( lobSize%lobPageSize == 0 ){
-      piecesNum = lobSize/lobPageSize + 1;
+      var listObj = listResult.current().toObj(); 
+      actRecs.push( listObj ); 
+   }
+   
+   println( "---begin to check result." ); 
+   var piecesNum = 0; 
+   if( lobSize%lobPageSize == 0 )
+   {
+      piecesNum = lobSize/lobPageSize + 1; 
    }
    //lobmeta size is 1k = 1024
-   else if ( lobSize%lobPageSize <= lobPageSize - 1024 )
+   else if( lobSize%lobPageSize <= lobPageSize - 1024 )
    {
-      piecesNum = Math.ceil(lobSize/lobPageSize);
+      piecesNum = Math.ceil( lobSize/lobPageSize ); 
    }
    else
    {
-      piecesNum = Math.ceil(lobSize/lobPageSize) + 1;
-   }    
-   
-   if( piecesNum !== actRecs.length )
-   {       
-      throw buildException("CheckLobPiecesNums error", "\n expPieces =" + piecesNum + "\n actPieces=" + actRecs.length 
-               + "\nactual value= " + JSON.stringify(actRecs) + "\nexpect value= " + JSON.stringify(expListResult) + "\n lobSize="+lobSize);
+      piecesNum = Math.ceil( lobSize/lobPageSize )+ 1; 
    }
    
-   if( JSON.stringify(actRecs) !== JSON.stringify(expListResult))
-   {       
-      throw buildException("listLobsWithQueryAndCheckResult()", "\nactual value= " + JSON.stringify(actRecs) + "\nexpect value= "
-                               + JSON.stringify(expListResult) );
+   if( piecesNum !== actRecs.length )
+   {
+      throw buildException( "CheckLobPiecesNums error", "\n expPieces =" + piecesNum + "\n actPieces=" + actRecs.length
+       + "\nactual value= " + JSON.stringify( actRecs )+ "\nexpect value= " + JSON.stringify( expListResult )+ "\n lobSize=" + lobSize ); 
+   }
+   
+   if( JSON.stringify( actRecs )!== JSON.stringify( expListResult ) )
+   {
+      throw buildException( "listLobsWithQueryAndCheckResult()", "\nactual value= " + JSON.stringify( actRecs )+ "\nexpect value= "
+       + JSON.stringify( expListResult ) ); 
    }
 }
 

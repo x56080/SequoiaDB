@@ -4,51 +4,51 @@
 ***************************************************************************** */
 try
 {
-   main();
+   main(); 
 }
 catch( e )
 {
    if( e.constructor === Error )
    {
-      println( e.stack );
+      println( e.stack ); 
    }
-   throw e;
+   throw e; 
 }
 function main()
 {
    try
    {
-      var clName = CHANGEDPREFIX + "_renameCL16070";
-      var newCLName = CHANGEDPREFIX + "_newrenameCL16070";
-      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" );
-      commDropCL( db, COMMCSNAME, newCLName, true, true, "clear collection in the beginning" );
-      var dbcl = commCreateCL( db, COMMCSNAME, clName );
+      var clName = CHANGEDPREFIX + "_renameCL16070"; 
+      var newCLName = CHANGEDPREFIX + "_newrenameCL16070"; 
+      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" ); 
+      commDropCL( db, COMMCSNAME, newCLName, true, true, "clear collection in the beginning" ); 
+      var dbcl = commCreateCL( db, COMMCSNAME, clName ); 
       
-      var dataNums = 100;
-      db.transBegin();
-      //var dbcl = db.getCS( COMMCSNAME ).getCL( clName );
-      insertData( dbcl, dataNums );
+      var dataNums = 100; 
+      db.transBegin(); 
+      //var dbcl = db.getCS( COMMCSNAME ).getCL( clName ); 
+      insertData( dbcl, dataNums ); 
       
-      var newdb = new Sdb( COORDHOSTNAME, COORDSVCNAME );
-      renameCLExistTrans( newdb, COMMCSNAME, clName, newCLName );
+      var newdb = new Sdb( COORDHOSTNAME, COORDSVCNAME ); 
+      renameCLExistTrans( newdb, COMMCSNAME, clName, newCLName ); 
       //check the clName is oldName
-      checkRenameCLResult( COMMCSNAME, newCLName, clName );
+      checkRenameCLResult( COMMCSNAME, newCLName, clName ); 
       
-      db.transCommit();
+      db.transCommit(); 
       
-      var dbcs = db.getCS( COMMCSNAME );
-      dbcs.renameCL( clName, newCLName );
-      checkRenameCLResult( COMMCSNAME, clName, newCLName );
-      var newCL = dbcs.getCL( newCLName );
-      checkCount( newCL, dataNums );
+      var dbcs = db.getCS( COMMCSNAME ); 
+      dbcs.renameCL( clName, newCLName ); 
+      checkRenameCLResult( COMMCSNAME, clName, newCLName ); 
+      var newCL = dbcs.getCL( newCLName ); 
+      checkCount( newCL, dataNums ); 
       
-      commDropCL( db, COMMCSNAME, newCLName, true, true, "drop CL in the ending" );
+      commDropCL( db, COMMCSNAME, newCLName, true, true, "drop CL in the ending" ); 
    }
    finally
    {
       if( undefined !== newdb )
       {
-         newdb.close();
+         newdb.close(); 
       }
    }
 }

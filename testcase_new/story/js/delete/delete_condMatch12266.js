@@ -3,112 +3,114 @@ if( false == commIsStandalone( db ) )
 {
    try
    {
-      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-                  "drop cl in the beginning" ) ;
+      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, 
+      "drop cl in the beginning" ); 
    }
-   catch ( e )
+   catch( e )
    {
-      println( "unexpected err happened when clear cs:" + e ) ;
-      throw e ;
+      println( "unexpected err happened when clear cs:" + e ); 
+      throw e; 
    }
-
+   
    try
    {
-      var optionObj = {ReplSize:0,Compressed:true};
-      var cl = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, optionObj, true,
-                                     false, "create collecton 1 failed" );
-   }catch( e ){
-      throw e ;
+      var optionObj = {ReplSize:0, Compressed:true}; 
+      var cl = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, optionObj, true, 
+      false, "create collecton 1 failed" ); 
    }
-
+   catch( e )
+   {
+      throw e; 
+   }
+   
    try
    {
-      var docs = [] ;
-      docs.push({no:1002,score:85,interest:["movie","photo"],major:"计算机软件与理论",dep:"计算机学院",info:{name:"Holiday",age:22,sex:">女"}});
-      docs.push({no:1005,score:70,major:"计算机工程",dep:"计算机学院",info:{name:"Jim",age:24,sex:"女"}});
-      docs.push({no:1000,score:80,interest:["basketball","football"],major:"计算机科学与技术",dep:"计算机学院",info:{name:"Tom",age:25,sex:"男"}});
-      docs.push({no:1001,score:82,major:"计算机科学与技术",dep:"计算机学院",info:{name:"Json",age:20,sex:"男"}});
-      docs.push({no:1003,score:90,major:"计算机软件与理论",dep:"计算机学院",info:{name:"Sam",age:30,sex:"男"}});
-      docs.push({no:1004,score:69,interest:["basketball","football","movie"],major:"计算机工程",dep:"计算机学院",info:{name:"Coll",age:26,sex:"男"}});
-      docs.push({no:1008,score:72,interest:["basketball","football","movie"],major:"物理学",dep:"物电学院",info:{name:"Appie",age:20,sex:"女"}});
-      docs.push({no:1006,score:84,interest:["basketball","football","movie","photo"],major:"物理学",dep:"物电学院",info:{name:"Lily",age:28,sex:"女"}});
-      docs.push({no:1007,score:73,interest:["basketball","football","photo"],major:"物理学",dep:"物电学院",info:{name:"Kiki",age:18,sex:"女"}});
-      docs.push({no:1009,score:80,major:"物理学",dep:"物电学院",info:{name:"Lucy",age:36,sex:"女"}});
-      docs.push({no:1011,score:75,major:"光学",dep:"物电学院",info:{name:"Jack",age:30,sex:"男"}});
-      docs.push({no:1010,score:93,major:"光学",dep:"物电学院",info:{name:"Coco",age:27,sex:"女"}});
-      docs.push({no:1012,score:78,interest:["basketball","movie"],major:"光学",dep:"物电学院",info:{name:"Mike",age:28,sex:"男"}});
-      docs.push({no:1014,score:74,interest:["football","movie","photo"],major:"电学",dep:"物电学院",info:{name:"Iccra",age:19,sex:"男"}});
-      docs.push({no:1013,score:86,interest:["basketball","movie","photo"],major:"电学",dep:"物电学院",info:{name:"Jaden",age:28,sex:"男"}});
-      docs.push({no:1016,score:99,major:"电学",dep:"物电学院",info:{name:"Kate",age:20,sex:"男"}});
-      docs.push({no:1015,score:81,major:"电学",dep:"物电学院",info:{name:"Jay",age:15,sex:"男"}});
-      cl.insert( docs ) ;
+      var docs = []; 
+      docs.push( {no:1002, score:85, interest:["movie", "photo"], major:"计算机软件与理论", dep:"计算机学院", info:{name:"Holiday", age:22, sex:">女"}} ); 
+      docs.push( {no:1005, score:70, major:"计算机工程", dep:"计算机学院", info:{name:"Jim", age:24, sex:"女"}} ); 
+      docs.push( {no:1000, score:80, interest:["basketball", "football"], major:"计算机科学与技术", dep:"计算机学院", info:{name:"Tom", age:25, sex:"男"}} ); 
+      docs.push( {no:1001, score:82, major:"计算机科学与技术", dep:"计算机学院", info:{name:"Json", age:20, sex:"男"}} ); 
+      docs.push( {no:1003, score:90, major:"计算机软件与理论", dep:"计算机学院", info:{name:"Sam", age:30, sex:"男"}} ); 
+      docs.push( {no:1004, score:69, interest:["basketball", "football", "movie"], major:"计算机工程", dep:"计算机学院", info:{name:"Coll", age:26, sex:"男"}} ); 
+      docs.push( {no:1008, score:72, interest:["basketball", "football", "movie"], major:"物理学", dep:"物电学院", info:{name:"Appie", age:20, sex:"女"}} ); 
+      docs.push( {no:1006, score:84, interest:["basketball", "football", "movie", "photo"], major:"物理学", dep:"物电学院", info:{name:"Lily", age:28, sex:"女"}} ); 
+      docs.push( {no:1007, score:73, interest:["basketball", "football", "photo"], major:"物理学", dep:"物电学院", info:{name:"Kiki", age:18, sex:"女"}} ); 
+      docs.push( {no:1009, score:80, major:"物理学", dep:"物电学院", info:{name:"Lucy", age:36, sex:"女"}} ); 
+      docs.push( {no:1011, score:75, major:"光学", dep:"物电学院", info:{name:"Jack", age:30, sex:"男"}} ); 
+      docs.push( {no:1010, score:93, major:"光学", dep:"物电学院", info:{name:"Coco", age:27, sex:"女"}} ); 
+      docs.push( {no:1012, score:78, interest:["basketball", "movie"], major:"光学", dep:"物电学院", info:{name:"Mike", age:28, sex:"男"}} ); 
+      docs.push( {no:1014, score:74, interest:["football", "movie", "photo"], major:"电学", dep:"物电学院", info:{name:"Iccra", age:19, sex:"男"}} ); 
+      docs.push( {no:1013, score:86, interest:["basketball", "movie", "photo"], major:"电学", dep:"物电学院", info:{name:"Jaden", age:28, sex:"男"}} ); 
+      docs.push( {no:1016, score:99, major:"电学", dep:"物电学院", info:{name:"Kate", age:20, sex:"男"}} ); 
+      docs.push( {no:1015, score:81, major:"电学", dep:"物电学院", info:{name:"Jay", age:15, sex:"男"}} ); 
+      cl.insert( docs ); 
    }
-   catch ( e )
+   catch( e )
    {
-      println("Failed to insert record to collection "+e) ;
-      throw e ;
+      println( "Failed to insert record to collection " + e ); 
+      throw e; 
    }
-   println("Success to insert records ") ;
+   println( "Success to insert records " ); 
    try
    {
-      var count = cl.count() ;
-      if( count!=17 )
+      var count = cl.count(); 
+      if( count != 17 )
       {
-         println("Error,insert wrong number of records "+count) ;
-         throw "Error_Insert" ;
+         println( "Error, insert wrong number of records " + count ); 
+         throw "Error_Insert"; 
       }
    }
-   catch ( e )
+   catch( e )
    {
-      println("Failed inspect the records "+e )
-      throw e ;
+      println( "Failed inspect the records " + e )
+      throw e; 
    }
-
+   
    try
    {
-      cl.remove({$or:[{score:{$gte:85,$lte:96,$ne:90}},{"info.age":{$gt:25,$lt:30}},{"info.name":{$nin:["Kate","Tom"]}},{"info.sex":{$in:["女"]}}]}) ;
-      var count = cl.count() ;
+      cl.remove( {$or:[{score:{$gte:85, $lte:96, $ne:90}}, {"info.age":{$gt:25, $lt:30}}, {"info.name":{$nin:["Kate", "Tom"]}}, {"info.sex":{$in:["女"]}}]} ); 
+      var count = cl.count(); 
    }
-   catch ( e )
+   catch( e )
    {
-      println("Failed to remove the records"+e) ;
-      throw e ;
+      println( "Failed to remove the records" + e ); 
+      throw e; 
    }
-
-
+   
+   
    try
    {
-      var count = cl.count() ;
-      if( count!=2 )
+      var count = cl.count(); 
+      if( count != 2 )
       {
-         println("Wrong to remove the records "+count) ;
-         throw "Error_Remove" ;
-      }	
-      println("Success to remove records ($or)") ;
+         println( "Wrong to remove the records " + count ); 
+         throw "Error_Remove"; 
+      }
+      println( "Success to remove records( $or )" ); 
    }
-   catch ( e )
+   catch( e )
    {
-      println("Failed to remove the records "+e ) ;
-      throw e ;
+      println( "Failed to remove the records " + e ); 
+      throw e; 
    }
    
-   var expectRes = [] ;
-   expectRes.push({no:1000,score:80,interest:["basketball","football"],major:"计算机科学与技术",dep:"计算机学院",info:{name:"Tom",age:25,sex:"男"}});
-   expectRes.push({no:1016,score:99,major:"电学",dep:"物电学院",info:{name:"Kate",age:20,sex:"男"}});
+   var expectRes = []; 
+   expectRes.push( {no:1000, score:80, interest:["basketball", "football"], major:"计算机科学与技术", dep:"计算机学院", info:{name:"Tom", age:25, sex:"男"}} ); 
+   expectRes.push( {no:1016, score:99, major:"电学", dep:"物电学院", info:{name:"Kate", age:20, sex:"男"}} ); 
    
-   checkResult( cl, {}, expectRes ) ;
+   checkResult( cl, {}, expectRes ); 
    try
    {
-      commDropCL( db, COMMCSNAME, COMMCLNAME, false, false,
-                  "drop colleciton in the end" );
+      commDropCL( db, COMMCSNAME, COMMCLNAME, false, false, 
+      "drop colleciton in the end" ); 
    }
-   catch ( e )
+   catch( e )
    {
-      println("Failed to drop CS ,end "+e) ;
-      throw e ;
+      println( "Failed to drop CS, end " + e ); 
+      throw e; 
    }
 }
 else
 {
-   println("Standalone,no Groups") ;
+   println( "Standalone, no Groups" ); 
 }

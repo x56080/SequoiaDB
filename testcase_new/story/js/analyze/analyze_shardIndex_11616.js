@@ -8,115 +8,115 @@ function main()
 {
    //独立模式及1组模式不执行该用例
    try
-	{
-	   //判断独立模式
-	   if( true == commIsStandalone( db ) )
+   {
+      //判断独立模式
+      if( true == commIsStandalone( db ) )
       {
-         println( "run mode is standalone" );
-         return;
-      } 
-          
+         println( "run mode is standalone" ); 
+         return; 
+      }
+      
       //判断1组模式
-      var allGroupName = getGroupName( db );       
+      var allGroupName = getGroupName( db ); 
       if( 1 === allGroupName.length )
       {
-         println("only one group");
-         return ;
+         println( "only one group" ); 
+         return; 
       }
    }
    catch( e )
    {
-      throw e;
+      throw e; 
    }
-   var clName = COMMCLNAME + "_11616";
-   var clFullName = COMMCSNAME + "." + clName;
-   var insertNum = 4000;
-	var sameValues1 = 4000;
-	var sameValues2 = 2000;
+   var clName = COMMCLNAME + "_11616"; 
+   var clFullName = COMMCSNAME + "." + clName; 
+   var insertNum = 4000; 
+   var sameValues1 = 4000; 
+   var sameValues2 = 2000; 
    
    //清理环境
-   commDropCL( db, COMMCSNAME, clName, true, true,"drop CL in the beginning" ) ;
+   commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" ); 
    
    //创建切分表
-   var clOption = {ShardingKey: {"a": 1}, ShardingType: "range"};
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, clOption);
+   var clOption = {ShardingKey: {"a": 1}, ShardingType: "range"}; 
+   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, clOption ); 
    
    //执行切分
    var groups = ClSplitOneTimes( COMMCSNAME, clName, {a:2000}, {a:4000} ); 
    
    //创建索引
-   commCreateIndex( dbcl, "a0", {a0:1});
+   commCreateIndex( dbcl, "a0", {a0:1} ); 
    
    //插入记录
-	insertDiffDatas( dbcl, insertNum );
-	insertSameDatas( dbcl, insertNum, sameValues1 );
-	insertSameDatas( dbcl, insertNum, sameValues2 );
-	
-	//获取主备节点
-   var db1 = new Sdb(db);
-   db1.setSessionAttr( { PreferedInstance: "m" } );
-   var dbclPrimary = db1.getCS(COMMCSNAME).getCL(clName);
-   //var db2 = new Sdb(db);
-   //db2.setSessionAttr( { PreferedInstance: "s" } );
-   //var dbclSlave = db2.getCS(COMMCSNAME).getCL(clName);
-	
-	//检查统计信息
-   checkConsistency(db, COMMCSNAME, clName);
-   checkStat( db, COMMCSNAME, clName, "$shard", false, false );
-   checkStat( db, COMMCSNAME, clName, "a0", false, false );
+   insertDiffDatas( dbcl, insertNum ); 
+   insertSameDatas( dbcl, insertNum, sameValues1 ); 
+   insertSameDatas( dbcl, insertNum, sameValues2 ); 
    
-   //执行查询
-   var findConf = {a:{$in:[sameValues1,sameValues2]}};
-   query( dbclPrimary, findConf, null, null, insertNum*2+1 );
-   //query( dbclSlave, findConf, null, null, insertNum*2+1 );
-   
-   var findConf = {a0:sameValues1};
-   query( dbclPrimary, findConf, null, null, insertNum );
-   //query( dbclSlave, findConf, null, null, insertNum );
-   
-   //检查访问计划快照
-   var expAccessPlan = [{ScanType:"ixscan", IndexName:"$shard", GroupName:groups[0].GroupName},
-                        {ScanType:"ixscan", IndexName:"$shard", GroupName:groups[1].GroupName},
-                        {ScanType:"ixscan", IndexName:"a0", GroupName:groups[1].GroupName},
-                        {ScanType:"ixscan", IndexName:"a0", GroupName:groups[0].GroupName}];
-   var actAccessPlan = getSplitAccessPlans( db, {Collection: clFullName} );
-   checkSnapShotAccessPlans( clFullName, expAccessPlan, actAccessPlan );
-   
-   //执行统计
-   analyze( db, {Collection: COMMCSNAME + "." + clName, Index:"$shard"} );
-   analyze( db, {Collection: COMMCSNAME + "." + clName, Index:"a0"} );
+   //获取主备节点
+   var db1 = new Sdb( db ); 
+   db1.setSessionAttr( { PreferedInstance: "m" } ); 
+   var dbclPrimary = db1.getCS( COMMCSNAME ).getCL( clName ); 
+   //var db2 = new Sdb( db ); 
+   //db2.setSessionAttr( { PreferedInstance: "s" } ); 
+   //var dbclSlave = db2.getCS( COMMCSNAME ).getCL( clName ); 
    
    //检查统计信息
-   checkConsistency(db, COMMCSNAME, clName);
-   checkStat( db, COMMCSNAME, clName, "$shard", true, true );
-   checkStat( db, COMMCSNAME, clName, "a0", true, true );
-   
-   //检查检查计划快照
-   var expAccessPlan = [];
-   var actAccessPlan = getSplitAccessPlans( db, {Collection: clFullName} );
-   checkSnapShotAccessPlans( clFullName, expAccessPlan, actAccessPlan );
+   checkConsistency( db, COMMCSNAME, clName ); 
+   checkStat( db, COMMCSNAME, clName, "$shard", false, false ); 
+   checkStat( db, COMMCSNAME, clName, "a0", false, false ); 
    
    //执行查询
-   var findConf = {a:{$in:[sameValues1,sameValues2]}};
-   query( dbclPrimary, findConf, null, null, insertNum*2+1 );
-   //query( dbclSlave, findConf, null, null, insertNum*2+1 );
+   var findConf = {a:{$in:[sameValues1, sameValues2]}}; 
+   query( dbclPrimary, findConf, null, null, insertNum*2 + 1 ); 
+   //query( dbclSlave, findConf, null, null, insertNum*2 + 1 ); 
    
-   var findConf = {a0:sameValues1};
-   query( dbclPrimary, findConf, null, null, insertNum );
-   //query( dbclSlave, findConf, null, null, insertNum );
+   var findConf = {a0:sameValues1}; 
+   query( dbclPrimary, findConf, null, null, insertNum ); 
+   //query( dbclSlave, findConf, null, null, insertNum ); 
    
    //检查访问计划快照
-   var expAccessPlan = [{ScanType:"tbscan", IndexName:"", GroupName:groups[0].GroupName},
-                        {ScanType:"tbscan", IndexName:"", GroupName:groups[1].GroupName},
-                        {ScanType:"ixscan", IndexName:"a0", GroupName:groups[1].GroupName},
-                        {ScanType:"tbscan", IndexName:"", GroupName:groups[0].GroupName}];
-   var actAccessPlan = getSplitAccessPlans( db, {Collection: clFullName} );
-   checkSnapShotAccessPlans( clFullName, expAccessPlan, actAccessPlan );
+   var expAccessPlan = [{ScanType:"ixscan", IndexName:"$shard", GroupName:groups[0].GroupName}, 
+   {ScanType:"ixscan", IndexName:"$shard", GroupName:groups[1].GroupName}, 
+   {ScanType:"ixscan", IndexName:"a0", GroupName:groups[1].GroupName}, 
+   {ScanType:"ixscan", IndexName:"a0", GroupName:groups[0].GroupName}]; 
+   var actAccessPlan = getSplitAccessPlans( db, {Collection: clFullName} ); 
+   checkSnapShotAccessPlans( clFullName, expAccessPlan, actAccessPlan ); 
+   
+   //执行统计
+   analyze( db, {Collection: COMMCSNAME + "." + clName, Index:"$shard"} ); 
+   analyze( db, {Collection: COMMCSNAME + "." + clName, Index:"a0"} ); 
+   
+   //检查统计信息
+   checkConsistency( db, COMMCSNAME, clName ); 
+   checkStat( db, COMMCSNAME, clName, "$shard", true, true ); 
+   checkStat( db, COMMCSNAME, clName, "a0", true, true ); 
+   
+   //检查检查计划快照
+   var expAccessPlan = []; 
+   var actAccessPlan = getSplitAccessPlans( db, {Collection: clFullName} ); 
+   checkSnapShotAccessPlans( clFullName, expAccessPlan, actAccessPlan ); 
+   
+   //执行查询
+   var findConf = {a:{$in:[sameValues1, sameValues2]}}; 
+   query( dbclPrimary, findConf, null, null, insertNum*2 + 1 ); 
+   //query( dbclSlave, findConf, null, null, insertNum*2 + 1 ); 
+   
+   var findConf = {a0:sameValues1}; 
+   query( dbclPrimary, findConf, null, null, insertNum ); 
+   //query( dbclSlave, findConf, null, null, insertNum ); 
+   
+   //检查访问计划快照
+   var expAccessPlan = [{ScanType:"tbscan", IndexName:"", GroupName:groups[0].GroupName}, 
+   {ScanType:"tbscan", IndexName:"", GroupName:groups[1].GroupName}, 
+   {ScanType:"ixscan", IndexName:"a0", GroupName:groups[1].GroupName}, 
+   {ScanType:"tbscan", IndexName:"", GroupName:groups[0].GroupName}]; 
+   var actAccessPlan = getSplitAccessPlans( db, {Collection: clFullName} ); 
+   checkSnapShotAccessPlans( clFullName, expAccessPlan, actAccessPlan ); 
    
    //清理环境
-   commDropCL( db, COMMCSNAME, clName, true, true,"drop CL in the end" );
-   db1.close();
-   //db2.close();
+   commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" ); 
+   db1.close(); 
+   //db2.close(); 
    
- }
- main()
+}
+main()

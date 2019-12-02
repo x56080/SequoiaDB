@@ -4,34 +4,34 @@
 ***************************************************************************** */
 var clName = CHANGEDPREFIX + "_alterclpartition_14955"; 
 
-main(db);
-function main(db)
-{	  
-	try
-	{  
-	   if( true == commIsStandalone( db ) )
+main( db ); 
+function main( db )
+{
+   try
+   {
+      if( true == commIsStandalone( db ) )
       {
-         println( "run mode is standalone" );
-         return;
-      }  
-	   //clean environment before test
-      commDropCL( db, COMMCSNAME, clName, true, true,"drop CL in the beginning" ) ;        
-         
-      //create cl           
-      var dbcl = commCreateCL( db, COMMCSNAME, clName);          
+         println( "run mode is standalone" ); 
+         return; 
+      }
+      //clean environment before test
+      commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" ); 
       
-      //test a :alter parition, no shardingKey 
-      alterParitionNoShardingKey(dbcl);
+      //create cl
+      var dbcl = commCreateCL( db, COMMCSNAME, clName ); 
+      
+      //test a :alter parition, no shardingKey
+      alterParitionNoShardingKey( dbcl ); 
       
       //test b: alter parition and shardingKey
-      var shardingKey = {a:1,b:1};
-      var parition = 2048;
-      dbcl.setAttributes({ShardingKey:shardingKey,Partition:parition}); 
-      checkAlterResult( clName, "ShardingKey", shardingKey );
-      checkAlterResult( clName, "Partition", parition );      
+      var shardingKey = {a:1, b:1}; 
+      var parition = 2048; 
+      dbcl.setAttributes( {ShardingKey:shardingKey, Partition:parition} ); 
+      checkAlterResult( clName, "ShardingKey", shardingKey ); 
+      checkAlterResult( clName, "Partition", parition ); 
       
       //clean
-      commDropCL( db, COMMCSNAME, clName, true, true,"clear collection in the beginning" ) ;   
+      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" ); 
    }
    catch( e )
    {
@@ -43,22 +43,22 @@ function main(db)
       {
          db.close()
       }
-   }   
+   }
 }
 
-function alterParitionNoShardingKey(dbcl)
+function alterParitionNoShardingKey( dbcl )
 {
    try
-	{	   
-      dbcl.setAttributes({Paritition:512});
-      throw "need throw error";
-	} 
+   {
+      dbcl.setAttributes( {Paritition:512} ); 
+      throw "need throw error"; 
+   }
    catch( e )
-   {      
+   {
       if( e != -6 )
       {
-         throw buildException( "cannot be alter,fail:", e); 
-      }      
-   }   
+         throw buildException( "cannot be alter, fail:", e ); 
+      }
+   }
 }
 

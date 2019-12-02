@@ -3,35 +3,35 @@
 @author£º2018-4-25 wuyan  Init
 ***************************************************************************** */
 var clName1 = CHANGEDPREFIX + "_alterclShardingKey_14936a"; 
-var clName2 = CHANGEDPREFIX + "_alterclShardingKey_14936b";  
+var clName2 = CHANGEDPREFIX + "_alterclShardingKey_14936b"; 
 
-main(db);
-function main(db)
-{	  
-	try
-	{
-	   if( true == commIsStandalone( db ) )
+main( db ); 
+function main( db )
+{
+   try
+   {
+      if( true == commIsStandalone( db ) )
       {
-         println( "run mode is standalone" );
-         return;
-      }    
-	   //clean environment before test
-      commDropCL( db, COMMCSNAME, clName1, true, true,"drop CL in the beginning" ) ; 
-      commDropCL( db, COMMCSNAME, clName2, true, true,"drop CL in the beginning" ) ;  
-         
-      //create cl           
-      var dbcl1 = commCreateCL( db, COMMCSNAME, clName1);    
-      var dbcl2 = commCreateCLByOption( db, COMMCSNAME, clName2, {ShardingKey:{a:1}});  ;     
+         println( "run mode is standalone" ); 
+         return; 
+      }
+      //clean environment before test
+      commDropCL( db, COMMCSNAME, clName1, true, true, "drop CL in the beginning" ); 
+      commDropCL( db, COMMCSNAME, clName2, true, true, "drop CL in the beginning" ); 
       
-      //test a :add cl1 shardingKey,unique index no include all shardingKey all fields
-      noParitionCLAlter( dbcl1 )  
+      //create cl
+      var dbcl1 = commCreateCL( db, COMMCSNAME, clName1 ); 
+      var dbcl2 = commCreateCLByOption( db, COMMCSNAME, clName2, {ShardingKey:{a:1}} ); ; 
       
-      //test b: alter cl2 shardingKey ,unique index include all shardingKey fields
-      paritionCLAlter( dbcl2, clName2 )    
+      //test a :add cl1 shardingKey, unique index no include all shardingKey all fields
+      noParitionCLAlter( dbcl1 )
+      
+      //test b: alter cl2 shardingKey, unique index include all shardingKey fields
+      paritionCLAlter( dbcl2, clName2 )
       
       //clean
-      commDropCL( db, COMMCSNAME, clName1, true, true,"clear collection in the beginning" ) ;   
-      commDropCL( db, COMMCSNAME, clName2, true, true,"clear collection in the beginning" ) ;         
+      commDropCL( db, COMMCSNAME, clName1, true, true, "clear collection in the beginning" ); 
+      commDropCL( db, COMMCSNAME, clName2, true, true, "clear collection in the beginning" ); 
    }
    catch( e )
    {
@@ -43,40 +43,40 @@ function main(db)
       {
          db.close()
       }
-   }   
+   }
 }
 
 function noParitionCLAlter( dbcl )
 {
-   dbcl.createIndex( "testindex", {a:1,c:1}, true ) ;   
+   dbcl.createIndex( "testindex", {a:1, c:1}, true ); 
    try
-	{
-	   var shardingKeyField = {a:1,b:1};
-      dbcl.setAttributes({ShardingKey:shardingKeyField});
-      throw "need throw error";
-	} 
+   {
+      var shardingKeyField = {a:1, b:1}; 
+      dbcl.setAttributes( {ShardingKey:shardingKeyField} ); 
+      throw "need throw error"; 
+   }
    catch( e )
    {
       if( e != -177 )
       {
-         throw buildException( "unique index must include all shardingKey field,fail:", e); 
-      }      
-   }    
+         throw buildException( "unique index must include all shardingKey field, fail:", e ); 
+      }
+   }
 }
 
 function paritionCLAlter( dbcl, clName )
-{    
+{
    try
-	{
-	   dbcl.createIndex( "testindex", {a:1,b:-1, c:1}, true ) ;  
-	   var shardingKeyField = { c:1,b:1};
-      dbcl.setAttributes({ShardingKey:shardingKeyField});
+   {
+      dbcl.createIndex( "testindex", {a:1, b:-1, c:1}, true ); 
+      var shardingKeyField = { c:1, b:1}; 
+      dbcl.setAttributes( {ShardingKey:shardingKeyField} ); 
       checkAlterResult( clName, "ShardingKey", shardingKeyField ); 
-	} 
+   }
    catch( e )
    {
-      throw buildException( "alter shardingKey field,fail:", e); 
+      throw buildException( "alter shardingKey field, fail:", e ); 
    }
-    
+   
 }
 
