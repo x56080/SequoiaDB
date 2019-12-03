@@ -41,45 +41,48 @@ public class LobSubCL19073 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("is standalone skip testcase");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
         }
-        mainCL = LobSubUtils.createMainCLAndAttachCL(sdb, csName, mainCLName, subCLName);
-        lobBuff = RandomWriteLobUtil.getRandomBytes(writeLobSize);
+        mainCL = LobSubUtils.createMainCLAndAttachCL( sdb, csName, mainCLName,
+                subCLName );
+        lobBuff = RandomWriteLobUtil.getRandomBytes( writeLobSize );
     }
 
     @Test
     public void test() throws Exception {
         ObjectId lobId = mainCL.createLobID();
         ThreadExecutor thread = new ThreadExecutor();
-        PutLobThread putLob1 = new PutLobThread(lobId);
-        PutLobThread putLob2 = new PutLobThread(lobId);
-        thread.addWorker(putLob1);
-        thread.addWorker(putLob2);
+        PutLobThread putLob1 = new PutLobThread( lobId );
+        PutLobThread putLob2 = new PutLobThread( lobId );
+        thread.addWorker( putLob1 );
+        thread.addWorker( putLob2 );
         thread.run();
 
-        if (putLob1.getRetCode() == putLob2.getRetCode()) {
-            Assert.fail("threads that insert the same lob concurrently have the same results, thread1: "
-                    + putLob1.getRetCode() + ", thread2: " + putLob2.getRetCode());
+        if ( putLob1.getRetCode() == putLob2.getRetCode() ) {
+            Assert.fail(
+                    "threads that insert the same lob concurrently have the same results, thread1: "
+                            + putLob1.getRetCode() + ", thread2: "
+                            + putLob2.getRetCode() );
         }
-        List<ObjectId> lobIds = new ArrayList<ObjectId>();
-        lobIds.add(lobId);
-        LobSubUtils.checkLobMD5(mainCL, lobIds, lobBuff);
+        List< ObjectId > lobIds = new ArrayList< ObjectId >();
+        lobIds.add( lobId );
+        LobSubUtils.checkLobMD5( mainCL, lobIds, lobBuff );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            CollectionSpace cs = sdb.getCollectionSpace(csName);
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
-            if (cs.isCollectionExist(subCLName)) {
-                cs.dropCollection(subCLName);
+            if ( cs.isCollectionExist( subCLName ) ) {
+                cs.dropCollection( subCLName );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -89,20 +92,23 @@ public class LobSubCL19073 extends SdbTestBase {
 
         private ObjectId id;
 
-        public PutLobThread(ObjectId lobId) {
+        public PutLobThread( ObjectId lobId ) {
             this.id = lobId;
         }
 
         @ExecuteOrder(step = 1)
         private void putLob() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection mainCL = db.getCollectionSpace(csName).getCollection(mainCLName);
-                DBLob lob = mainCL.createLob(id);
-                lob.write(lobBuff);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection mainCL = db.getCollectionSpace( csName )
+                        .getCollection( mainCLName );
+                DBLob lob = mainCL.createLob( id );
+                lob.write( lobBuff );
                 lob.close();
-            } catch (BaseException e) {
-                saveResult(e.getErrorCode(), e);
-                if (e.getErrorCode() != -5 && e.getErrorCode() != -297 && e.getErrorCode() != -317) {
+            } catch ( BaseException e ) {
+                saveResult( e.getErrorCode(), e );
+                if ( e.getErrorCode() != -5 && e.getErrorCode() != -297
+                        && e.getErrorCode() != -317 ) {
                     throw e;
                 }
             }

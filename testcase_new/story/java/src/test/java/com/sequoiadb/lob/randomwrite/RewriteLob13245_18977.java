@@ -48,58 +48,63 @@ public class RewriteLob13245_18977 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = db.getCollectionSpace(SdbTestBase.csName);
-        cs.createCollection(clName, (BSONObject) JSON.parse("{ShardingKey:{\"_id\":1},ShardingType:\"hash\"}"));
-        if (!CommLib.isStandAlone(db)) {
-            LobSubUtils.createMainCLAndAttachCL(db, SdbTestBase.csName, mainCLName, subCLName);
+        db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = db.getCollectionSpace( SdbTestBase.csName );
+        cs.createCollection( clName, ( BSONObject ) JSON
+                .parse( "{ShardingKey:{\"_id\":1},ShardingType:\"hash\"}" ) );
+        if ( !CommLib.isStandAlone( db ) ) {
+            LobSubUtils.createMainCLAndAttachCL( db, SdbTestBase.csName,
+                    mainCLName, subCLName );
         }
     }
 
     @Test(dataProvider = "clNameProvider")
-    public void testLob(String clName) {
-        if (CommLib.isStandAlone(db) && clName.equals(mainCLName)) {
-            throw new SkipException("is standalone skip testcase!");
+    public void testLob( String clName ) {
+        if ( CommLib.isStandAlone( db ) && clName.equals( mainCLName ) ) {
+            throw new SkipException( "is standalone skip testcase!" );
         }
-        DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-        ObjectId id = RandomWriteLobUtil.createEmptyLob(dbcl);
+        DBCollection dbcl = db.getCollectionSpace( SdbTestBase.csName )
+                .getCollection( clName );
+        ObjectId id = RandomWriteLobUtil.createEmptyLob( dbcl );
 
         int lobSize = 1024 * 50;
-        byte[] lobBytes = RandomWriteLobUtil.getRandomBytes(lobSize);
+        byte[] lobBytes = RandomWriteLobUtil.getRandomBytes( lobSize );
         long offset = 0;
         long lockLength = lobSize - 1;
-        try (DBLob lob = dbcl.openLob(id, DBLob.SDB_LOB_WRITE)) {
-            lob.lock(offset, lockLength);
+        try ( DBLob lob = dbcl.openLob( id, DBLob.SDB_LOB_WRITE )) {
+            lob.lock( offset, lockLength );
             try {
-                lob.write(lobBytes);
-                Assert.fail("write lob size exceed the lock length should fail!");
-            } catch (BaseException e) {
-                if (e.getErrorCode() != SDBError.SDB_INVALIDARG.getErrorCode())
+                lob.write( lobBytes );
+                Assert.fail(
+                        "write lob size exceed the lock length should fail!" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_INVALIDARG
+                        .getErrorCode() )
                     throw e;
             }
         }
 
         // check lob content,the actual lob size is 0
-        try (DBLob lob = dbcl.openLob(id)) {
-            byte[] actual = RandomWriteLobUtil.readLob(lob);
-            Assert.assertEquals(actual.length, 0);
+        try ( DBLob lob = dbcl.openLob( id )) {
+            byte[] actual = RandomWriteLobUtil.readLob( lob );
+            Assert.assertEquals( actual.length, 0 );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
-            if (cs.isCollectionExist(subCLName)) {
-                cs.dropCollection(subCLName);
+            if ( cs.isCollectionExist( subCLName ) ) {
+                cs.dropCollection( subCLName );
             }
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }

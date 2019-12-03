@@ -30,41 +30,41 @@ public class Transaction18636 extends SdbTestBase {
     private Sequoiadb db1;
     private Sequoiadb db2;
     private String hashCLName = "cl18636_hash";
-    private List<BSONObject> expList;
+    private List< BSONObject > expList;
     private String hintTbScan = "{'':null}";
     private String hintIxScan = "{'':'idx18636'}";
     private DBCollection cl;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        if (CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("ONE GROUP MODE");
+        if ( CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "ONE GROUP MODE" );
         }
 
         // 创建分区表并插入记录R1s
-        TransUtils.createHashCL(sdb, csName, hashCLName);
-        cl = sdb.getCollectionSpace(csName).getCollection(hashCLName);
-        expList = TransUtils.insertRandomDatas(cl, 0, 10000);
-        cl.createIndex("idx18636", "{a:1}", false, false);
+        TransUtils.createHashCL( sdb, csName, hashCLName );
+        cl = sdb.getCollectionSpace( csName ).getCollection( hashCLName );
+        expList = TransUtils.insertRandomDatas( cl, 0, 10000 );
+        cl.createIndex( "idx18636", "{a:1}", false, false );
     }
 
     @AfterClass
     public void tearDown() {
-        if (db1 != null) {
+        if ( db1 != null ) {
             db1.commit();
             db1.close();
         }
-        if (db2 != null) {
+        if ( db2 != null ) {
             db2.commit();
             db2.close();
         }
-        if (sdb != null) {
-            CollectionSpace cs = sdb.getCollectionSpace(csName);
-            cs.dropCollection(hashCLName);
+        if ( sdb != null ) {
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            cs.dropCollection( hashCLName );
             sdb.close();
         }
     }
@@ -72,78 +72,92 @@ public class Transaction18636 extends SdbTestBase {
     @Test
     public void test() {
         // 开启两个并发事务
-        db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         db1.beginTransaction();
         db2.beginTransaction();
-        DBCollection cl1 = db1.getCollectionSpace(csName).getCollection(hashCLName);
-        DBCollection cl2 = db2.getCollectionSpace(csName).getCollection(hashCLName);
+        DBCollection cl1 = db1.getCollectionSpace( csName )
+                .getCollection( hashCLName );
+        DBCollection cl2 = db2.getCollectionSpace( csName )
+                .getCollection( hashCLName );
 
         // 事务1批量插入记录后为R2s
-        List<BSONObject> addList = TransUtils.insertRandomDatas(cl1, 10000, 12000);
+        List< BSONObject > addList = TransUtils.insertRandomDatas( cl1, 10000,
+                12000 );
 
         // 事务2表扫描/索引扫描记录
-        String range = Arrays.toString(getInRange(0, 12010));
-        TransUtils.queryAndCheck(cl2, "{a:{$in:" + range + "}}", null, "{a:1}", hintTbScan, expList);
-        TransUtils.queryAndCheck(cl2, "{a:{$in:" + range + "}}", null, "{a:1}", hintIxScan, expList);
+        String range = Arrays.toString( getInRange( 0, 12010 ) );
+        TransUtils.queryAndCheck( cl2, "{a:{$in:" + range + "}}", null, "{a:1}",
+                hintTbScan, expList );
+        TransUtils.queryAndCheck( cl2, "{a:{$in:" + range + "}}", null, "{a:1}",
+                hintIxScan, expList );
 
         // 非事务表扫描/索引扫描记录
-        List<BSONObject> expRecords = new ArrayList<>(expList);
-        expRecords.addAll(addList);
-        TransUtils.queryAndCheck(cl, "{a:{$in:" + range + "}}", null, "{a:1}", hintTbScan, expRecords);
-        TransUtils.queryAndCheck(cl, "{a:{$in:" + range + "}}", null, "{a:1}", hintIxScan, expRecords);
+        List< BSONObject > expRecords = new ArrayList<>( expList );
+        expRecords.addAll( addList );
+        TransUtils.queryAndCheck( cl, "{a:{$in:" + range + "}}", null, "{a:1}",
+                hintTbScan, expRecords );
+        TransUtils.queryAndCheck( cl, "{a:{$in:" + range + "}}", null, "{a:1}",
+                hintIxScan, expRecords );
 
         // 事务1批量更新记录为R3s
-        cl1.update("{a:{$in:" + range + "}}", "{$inc:{a:10}}", hintIxScan);
+        cl1.update( "{a:{$in:" + range + "}}", "{$inc:{a:10}}", hintIxScan );
 
         // 事务2表扫描/索引扫描记录
-        TransUtils.queryAndCheck(cl2, "{a:{$in:" + range + "}}", null, "{a:1}", hintTbScan, expList);
-        TransUtils.queryAndCheck(cl2, "{a:{$in:" + range + "}}", null, "{a:1}", hintIxScan, expList);
+        TransUtils.queryAndCheck( cl2, "{a:{$in:" + range + "}}", null, "{a:1}",
+                hintTbScan, expList );
+        TransUtils.queryAndCheck( cl2, "{a:{$in:" + range + "}}", null, "{a:1}",
+                hintIxScan, expList );
 
         // 非事务表扫描/索引扫描记录
-        expRecords = TransUtils.getIncDatas(0, 12000, 10);
-        TransUtils.queryAndCheck(cl, "{a:{$in:" + range + "}}", null, "{a:1}", hintTbScan, expRecords);
-        TransUtils.queryAndCheck(cl, "{a:{$in:" + range + "}}", null, "{a:1}", hintIxScan, expRecords);
+        expRecords = TransUtils.getIncDatas( 0, 12000, 10 );
+        TransUtils.queryAndCheck( cl, "{a:{$in:" + range + "}}", null, "{a:1}",
+                hintTbScan, expRecords );
+        TransUtils.queryAndCheck( cl, "{a:{$in:" + range + "}}", null, "{a:1}",
+                hintIxScan, expRecords );
 
         // 事务1批量删除记录为R4s
-        cl1.delete("{a:{$in:" + range + "}}", hintIxScan);
+        cl1.delete( "{a:{$in:" + range + "}}", hintIxScan );
 
         // 事务2表扫描/索引扫描记录
-        TransUtils.queryAndCheck(cl2, "{a:{$in:" + range + "}}", null, "{a:1}", hintTbScan, expList);
-        TransUtils.queryAndCheck(cl2, "{a:{$in:" + range + "}}", null, "{a:1}", hintIxScan, expList);
+        TransUtils.queryAndCheck( cl2, "{a:{$in:" + range + "}}", null, "{a:1}",
+                hintTbScan, expList );
+        TransUtils.queryAndCheck( cl2, "{a:{$in:" + range + "}}", null, "{a:1}",
+                hintIxScan, expList );
 
         // 非事务表扫描/索引扫描记录
-        TransUtils.queryAndCheck(cl, "{a:{$in:" + range + "}}", null, "{a:1}", hintTbScan,
-                new ArrayList<BSONObject>());
-        TransUtils.queryAndCheck(cl, "{a:{$in:" + range + "}}", null, "{a:1}", hintIxScan,
-                new ArrayList<BSONObject>());
+        TransUtils.queryAndCheck( cl, "{a:{$in:" + range + "}}", null, "{a:1}",
+                hintTbScan, new ArrayList< BSONObject >() );
+        TransUtils.queryAndCheck( cl, "{a:{$in:" + range + "}}", null, "{a:1}",
+                hintIxScan, new ArrayList< BSONObject >() );
 
         // 事务1提交
         db1.commit();
 
         // 事务2表扫描/索引扫描记录
-        TransUtils.queryAndCheck(cl2, "{a:{$in:" + range + "}}", null, "{a:1}", hintTbScan,
-                new ArrayList<BSONObject>());
-        TransUtils.queryAndCheck(cl2, "{a:{$in:" + range + "}}", null, "{a:1}", hintIxScan,
-                new ArrayList<BSONObject>());
+        TransUtils.queryAndCheck( cl2, "{a:{$in:" + range + "}}", null, "{a:1}",
+                hintTbScan, new ArrayList< BSONObject >() );
+        TransUtils.queryAndCheck( cl2, "{a:{$in:" + range + "}}", null, "{a:1}",
+                hintIxScan, new ArrayList< BSONObject >() );
 
         // 非事务表扫描/索引扫描记录
-        TransUtils.queryAndCheck(cl, "{a:{$in:" + range + "}}", null, "{a:1}", hintTbScan,
-                new ArrayList<BSONObject>());
-        TransUtils.queryAndCheck(cl, "{a:{$in:" + range + "}}", null, "{a:1}", hintIxScan,
-                new ArrayList<BSONObject>());
+        TransUtils.queryAndCheck( cl, "{a:{$in:" + range + "}}", null, "{a:1}",
+                hintTbScan, new ArrayList< BSONObject >() );
+        TransUtils.queryAndCheck( cl, "{a:{$in:" + range + "}}", null, "{a:1}",
+                hintIxScan, new ArrayList< BSONObject >() );
 
         // 事务2提交
         db2.commit();
     }
 
-    private Integer[] getInRange(int start, int end) {
-        List<Integer> rangeList = new ArrayList<>();
-        for (int i = start; i < end; i++) {
-            rangeList.add(i);
+    private Integer[] getInRange( int start, int end ) {
+        List< Integer > rangeList = new ArrayList<>();
+        for ( int i = start; i < end; i++ ) {
+            rangeList.add( i );
         }
-        Collections.shuffle(rangeList);
-        Integer[] rangeArray = rangeList.toArray(new Integer[rangeList.size()]);
+        Collections.shuffle( rangeList );
+        Integer[] rangeArray = rangeList
+                .toArray( new Integer[ rangeList.size() ] );
         return rangeArray;
     }
 }

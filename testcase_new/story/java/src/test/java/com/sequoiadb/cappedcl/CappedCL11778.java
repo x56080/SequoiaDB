@@ -34,57 +34,62 @@ public class CappedCL11778 extends SdbTestBase {
     private int csNum = 2;
     private int clNum = 2;
     private StringBuffer strBuffer = null;
-    private int stringLength = CappedCLUtils.getRandomStringLength(1, 4000);
+    private int stringLength = CappedCLUtils.getRandomStringLength( 1, 4000 );
     private int threadNum = 5;
-    private ThreadExecutor te = new ThreadExecutor(1800000);
+    private ThreadExecutor te = new ThreadExecutor( 1800000 );
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("skip StandAlone");
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "skip StandAlone" );
         }
 
-        for (int i = 0; i < csNum; i++) {
+        for ( int i = 0; i < csNum; i++ ) {
             String cappedCSNamei = cappedCSName + "_" + i;
-            if (sdb.isCollectionSpaceExist(cappedCSNamei)) {
-                sdb.dropCollectionSpace(cappedCSNamei);
+            if ( sdb.isCollectionSpaceExist( cappedCSNamei ) ) {
+                sdb.dropCollectionSpace( cappedCSNamei );
             }
-            CollectionSpace cappedCS = sdb.createCollectionSpace(cappedCSNamei,
-                    (BSONObject) JSON.parse("{Capped:true}"));
-            for (int j = 0; j < clNum; j++) {
-                cappedCS.createCollection(cappedCLName + "_" + j, (BSONObject) JSON.parse("{Capped:true, Size:10240}"));
+            CollectionSpace cappedCS = sdb.createCollectionSpace( cappedCSNamei,
+                    ( BSONObject ) JSON.parse( "{Capped:true}" ) );
+            for ( int j = 0; j < clNum; j++ ) {
+                cappedCS.createCollection( cappedCLName + "_" + j,
+                        ( BSONObject ) JSON
+                                .parse( "{Capped:true, Size:10240}" ) );
 
             }
         }
 
         // 构造插入的字符串
         strBuffer = new StringBuffer();
-        for (int len = 0; len < stringLength; len++) {
-            strBuffer.append("a");
+        for ( int len = 0; len < stringLength; len++ ) {
+            strBuffer.append( "a" );
         }
     }
 
     @Test
     public void test() throws Exception {
-        for (int i = 0; i < csNum; i++) {
-            for (int j = 0; j < clNum; j++) {
-                for (int k = 0; k < threadNum; k++) {
-                    te.addWorker(new InsertThread(cappedCSName + "_" + i, cappedCLName + "_" + j));
+        for ( int i = 0; i < csNum; i++ ) {
+            for ( int j = 0; j < clNum; j++ ) {
+                for ( int k = 0; k < threadNum; k++ ) {
+                    te.addWorker( new InsertThread( cappedCSName + "_" + i,
+                            cappedCLName + "_" + j ) );
                 }
             }
         }
         te.run();
 
-        for (int i = 0; i < csNum; i++) {
-            for (int j = 0; j < clNum; j++) {
+        for ( int i = 0; i < csNum; i++ ) {
+            for ( int j = 0; j < clNum; j++ ) {
                 // 校验主节点id字段
-                Assert.assertTrue(CappedCLUtils.checkLogicalID(sdb, cappedCSName + "_" + i, cappedCLName + "_" + j,
-                        stringLength));
+                Assert.assertTrue( CappedCLUtils.checkLogicalID( sdb,
+                        cappedCSName + "_" + i, cappedCLName + "_" + j,
+                        stringLength ) );
 
                 // 校验主备一致性
-                Assert.assertTrue(CappedCLUtils.checkRecord(sdb, cappedCSName + "_" + i, cappedCLName + "_" + j));
+                Assert.assertTrue( CappedCLUtils.checkRecord( sdb,
+                        cappedCSName + "_" + i, cappedCLName + "_" + j ) );
             }
         }
     }
@@ -92,8 +97,8 @@ public class CappedCL11778 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            for (int i = 0; i < csNum; i++) {
-                sdb.dropCollectionSpace(cappedCSName + "_" + i);
+            for ( int i = 0; i < csNum; i++ ) {
+                sdb.dropCollectionSpace( cappedCSName + "_" + i );
             }
         } finally {
             sdb.close();
@@ -104,7 +109,7 @@ public class CappedCL11778 extends SdbTestBase {
         String csName = null;
         String clName = null;
 
-        public InsertThread(String csName, String clName) {
+        public InsertThread( String csName, String clName ) {
             this.csName = csName;
             this.clName = clName;
         }
@@ -113,17 +118,22 @@ public class CappedCL11778 extends SdbTestBase {
         public void insert() {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                System.out.println(this.getClass().getName().toString() + " start at:"
-                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S").format(new Date()));
-                for (int i = 0; i < 10000; i++) {
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                System.out.println( this.getClass().getName().toString()
+                        + " start at:"
+                        + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.S" )
+                                .format( new Date() ) );
+                for ( int i = 0; i < 10000; i++ ) {
                     BasicBSONObject insertObj = new BasicBSONObject();
-                    insertObj.put("a", strBuffer.toString());
-                    cl.insert(insertObj);
+                    insertObj.put( "a", strBuffer.toString() );
+                    cl.insert( insertObj );
                 }
-                System.out.println(this.getClass().getName().toString() + " stop at:"
-                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S").format(new Date()));
+                System.out.println( this.getClass().getName().toString()
+                        + " stop at:"
+                        + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.S" )
+                                .format( new Date() ) );
             } finally {
                 db.close();
             }

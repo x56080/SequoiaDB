@@ -30,41 +30,46 @@ public class Fulltext12015 extends FullTestBase {
     private String subCLName1 = "ES_12015_subcl_1";
     private String subCLName2 = "ES_12015_subcl_2";
     private String textIndexName = "fulltext12015";
-    private List<String> cappedNames;
+    private List< String > cappedNames;
 
-    List<String> esIndexNames = new ArrayList<>();
+    List< String > esIndexNames = new ArrayList<>();
 
     @Override
     protected void initTestProp() {
-        caseProp.setProperty(IGNORESTANDALONE, "true");
-        caseProp.setProperty(IGNOREONEGROUP, "true");
+        caseProp.setProperty( IGNORESTANDALONE, "true" );
+        caseProp.setProperty( IGNOREONEGROUP, "true" );
 
-        caseProp.setProperty(CLNAME, mainCLName);
-        caseProp.setProperty(CLOPT, "{ShardingKey:{a:1}, ShardingType:'range', IsMainCL:true}");
+        caseProp.setProperty( CLNAME, mainCLName );
+        caseProp.setProperty( CLOPT,
+                "{ShardingKey:{a:1}, ShardingType:'range', IsMainCL:true}" );
     }
 
     @Override
     protected void caseInit() throws Exception {
         // 创建主子表
-        cs = sdb.getCollectionSpace(csName);
-        maincl = cs.getCollection(mainCLName);
-        cs.createCollection(subCLName1);
-        cs.createCollection(subCLName2, (BSONObject) JSON.parse("{ShardingKey:{a0:1}, ShardingType:'hash'}"));
+        cs = sdb.getCollectionSpace( csName );
+        maincl = cs.getCollection( mainCLName );
+        cs.createCollection( subCLName1 );
+        cs.createCollection( subCLName2, ( BSONObject ) JSON
+                .parse( "{ShardingKey:{a0:1}, ShardingType:'hash'}" ) );
 
         // 挂载子表
-        BSONObject options1 = (BSONObject) JSON.parse("{LowBound:{a:'testa'}, UpBound:{a:'testa 999999'}}");
-        BSONObject options2 = (BSONObject) JSON.parse("{LowBound:{a:'zzza'}, UpBound:{a:'zzza 999999'}}");
-        maincl.attachCollection(csName + "." + subCLName1, options1);
-        maincl.attachCollection(csName + "." + subCLName2, options2);
+        BSONObject options1 = ( BSONObject ) JSON
+                .parse( "{LowBound:{a:'testa'}, UpBound:{a:'testa 999999'}}" );
+        BSONObject options2 = ( BSONObject ) JSON
+                .parse( "{LowBound:{a:'zzza'}, UpBound:{a:'zzza 999999'}}" );
+        maincl.attachCollection( csName + "." + subCLName1, options1 );
+        maincl.attachCollection( csName + "." + subCLName2, options2 );
     }
 
     @Override
     protected void caseFini() throws Exception {
         // 检查全文索引是否残留
-        if (esIndexNames != null) {
-            Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexNames, cappedNames));
+        if ( esIndexNames != null ) {
+            Assert.assertTrue( FullTextUtils.isIndexDeleted( sdb, esIndexNames,
+                    cappedNames ) );
         }
-        if (sdb != null) {
+        if ( sdb != null ) {
             sdb.close();
         }
     }
@@ -73,79 +78,91 @@ public class Fulltext12015 extends FullTestBase {
     public void test() throws Exception {
         // 在主表的分区键和非分区键上创建全文索引
         BSONObject indexObj = new BasicBSONObject();
-        indexObj.put("a", "text");
-        indexObj.put("a0", "text");
-        indexObj.put("b", "text");
-        indexObj.put("c", "text");
-        indexObj.put("d", "text");
-        indexObj.put("e", "text");
-        indexObj.put("f", "text");
-        maincl.createIndex(textIndexName, indexObj, false, false);
+        indexObj.put( "a", "text" );
+        indexObj.put( "a0", "text" );
+        indexObj.put( "b", "text" );
+        indexObj.put( "c", "text" );
+        indexObj.put( "d", "text" );
+        indexObj.put( "e", "text" );
+        indexObj.put( "f", "text" );
+        maincl.createIndex( textIndexName, indexObj, false, false );
 
         // 获取每个子表的全文索引
-        List<String> subCLFullNames = FullTextDBUtils.getSubCLNames(sdb, csName + "." + mainCLName);
-        for (String subCLFullName : subCLFullNames) {
-            String subCSName = subCLFullName.split("\\.")[0];
-            String subCLName = subCLFullName.split("\\.")[1];
-            DBCollection subCL = sdb.getCollectionSpace(subCSName).getCollection(subCLName);
-            esIndexNames.addAll(FullTextDBUtils.getESIndexNames(subCL, textIndexName));
+        List< String > subCLFullNames = FullTextDBUtils.getSubCLNames( sdb,
+                csName + "." + mainCLName );
+        for ( String subCLFullName : subCLFullNames ) {
+            String subCSName = subCLFullName.split( "\\." )[ 0 ];
+            String subCLName = subCLFullName.split( "\\." )[ 1 ];
+            DBCollection subCL = sdb.getCollectionSpace( subCSName )
+                    .getCollection( subCLName );
+            esIndexNames.addAll(
+                    FullTextDBUtils.getESIndexNames( subCL, textIndexName ) );
         }
 
-        insertData(maincl, FullTextUtils.INSERT_NUMS);
+        insertData( maincl, FullTextUtils.INSERT_NUMS );
 
         // 检查ES端索引数据是否完成同步，主备节点上主表的原始集合、固定集合数据是否一致
-        Assert.assertTrue(FullTextUtils.isMainCLIndexCreated(maincl, textIndexName, FullTextUtils.INSERT_NUMS));
+        Assert.assertTrue( FullTextUtils.isMainCLIndexCreated( maincl,
+                textIndexName, FullTextUtils.INSERT_NUMS ) );
 
         // 更新数据，更新后再次插入
-        update(maincl);
-        insertData(maincl, 10000);
+        update( maincl );
+        insertData( maincl, 10000 );
 
         // 检查ES端索引数据是否完成同步，主备节点上主表的原始集合、固定集合数据是否一致
-        Assert.assertTrue(FullTextUtils.isMainCLIndexCreated(maincl, textIndexName, FullTextUtils.INSERT_NUMS + 10000));
-        remove(maincl);
+        Assert.assertTrue( FullTextUtils.isMainCLIndexCreated( maincl,
+                textIndexName, FullTextUtils.INSERT_NUMS + 10000 ) );
+        remove( maincl );
 
         // 检查ES端索引数据是否完成同步，主备节点上主表的原始集合、固定集合数据是否一致
-        Assert.assertTrue(FullTextUtils.isMainCLIndexCreated(maincl, textIndexName, (int) maincl.getCount()));
-        cappedNames = FullTextDBUtils.getESIndexNames(maincl, textIndexName);
+        Assert.assertTrue( FullTextUtils.isMainCLIndexCreated( maincl,
+                textIndexName, ( int ) maincl.getCount() ) );
+        cappedNames = FullTextDBUtils.getESIndexNames( maincl, textIndexName );
     }
 
-    private void insertData(DBCollection cl, int insertNums) {
-        List<BSONObject> insertObjs = new ArrayList<>();
-        for (int i = 0; i < 100; i++) {
-            for (int j = 0; j < insertNums / 2 / 100; j++) {
-                insertObjs.add((BSONObject) JSON.parse("{a: 'testa " + i * j + "', a0:" + "'test_12051 " + i * j
-                        + "', b: '" + StringUtils.getRandomString(32) + "', c: '" + StringUtils.getRandomString(64)
-                        + "', d: '" + StringUtils.getRandomString(64) + "', e: '" + StringUtils.getRandomString(128)
-                        + "', f: '" + StringUtils.getRandomString(128) + "'}"));
+    private void insertData( DBCollection cl, int insertNums ) {
+        List< BSONObject > insertObjs = new ArrayList<>();
+        for ( int i = 0; i < 100; i++ ) {
+            for ( int j = 0; j < insertNums / 2 / 100; j++ ) {
+                insertObjs.add( ( BSONObject ) JSON.parse( "{a: 'testa " + i * j
+                        + "', a0:" + "'test_12051 " + i * j + "', b: '"
+                        + StringUtils.getRandomString( 32 ) + "', c: '"
+                        + StringUtils.getRandomString( 64 ) + "', d: '"
+                        + StringUtils.getRandomString( 64 ) + "', e: '"
+                        + StringUtils.getRandomString( 128 ) + "', f: '"
+                        + StringUtils.getRandomString( 128 ) + "'}" ) );
             }
-            for (int j = 0; j < insertNums / 2 / 100; j++) {
-                insertObjs.add((BSONObject) JSON.parse("{a: 'zzza " + i * j + "', a0:" + "'test_12051 " + i * j
-                        + "', b: '" + StringUtils.getRandomString(32) + "', c: '" + StringUtils.getRandomString(64)
-                        + "', d: '" + StringUtils.getRandomString(64) + "', e: '" + StringUtils.getRandomString(128)
-                        + "', f: '" + StringUtils.getRandomString(128) + "'}"));
+            for ( int j = 0; j < insertNums / 2 / 100; j++ ) {
+                insertObjs.add( ( BSONObject ) JSON.parse( "{a: 'zzza " + i * j
+                        + "', a0:" + "'test_12051 " + i * j + "', b: '"
+                        + StringUtils.getRandomString( 32 ) + "', c: '"
+                        + StringUtils.getRandomString( 64 ) + "', d: '"
+                        + StringUtils.getRandomString( 64 ) + "', e: '"
+                        + StringUtils.getRandomString( 128 ) + "', f: '"
+                        + StringUtils.getRandomString( 128 ) + "'}" ) );
             }
-            cl.insert(insertObjs, 0);
+            cl.insert( insertObjs, 0 );
             insertObjs.clear();
         }
     }
 
-    private void update(DBCollection cl) {
+    private void update( DBCollection cl ) {
         BSONObject modifier = new BasicBSONObject();
         BSONObject value = new BasicBSONObject();
         BSONObject matcher = new BasicBSONObject();
         BSONObject subMatcher = new BasicBSONObject();
-        value.put("a", "testa 99999");
-        modifier.put("$set", value);
-        subMatcher.put("$lt", "testa 10000");
-        matcher.put("a", subMatcher);
-        cl.update(matcher, modifier, null);
+        value.put( "a", "testa 99999" );
+        modifier.put( "$set", value );
+        subMatcher.put( "$lt", "testa 10000" );
+        matcher.put( "a", subMatcher );
+        cl.update( matcher, modifier, null );
     }
 
-    private void remove(DBCollection cl) {
+    private void remove( DBCollection cl ) {
         BSONObject matcher = new BasicBSONObject();
         BSONObject subMatcher = new BasicBSONObject();
-        subMatcher.put("$et", "testa 99999");
-        matcher.put("a", subMatcher);
-        cl.delete(matcher);
+        subMatcher.put( "$et", "testa 99999" );
+        matcher.put( "a", subMatcher );
+        cl.delete( matcher );
     }
 }

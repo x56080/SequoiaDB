@@ -25,7 +25,8 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class CL10202 extends SdbTestBase {
-    private SimpleDateFormat dateFm = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
+    private SimpleDateFormat dateFm = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss" );
     private static Sequoiadb sdb = null;
     private String csName = "cs10202";
     private String clName = "cl10202";
@@ -36,30 +37,33 @@ public class CL10202 extends SdbTestBase {
     public void setUp() {
         // start time
         try {
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             // judge the mode or node number
-            if (MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.oneCataNode(sdb) || MetaDataUtils.oneDataNode(sdb)) {
-                throw new SkipException("The mode is standlone or one node, skip the testCase.");
+            if ( MetaDataUtils.isStandAlone( sdb )
+                    || MetaDataUtils.oneCataNode( sdb )
+                    || MetaDataUtils.oneDataNode( sdb ) ) {
+                throw new SkipException(
+                        "The mode is standlone or one node, skip the testCase." );
             }
-            MetaDataUtils.clearCS(sdb, csName);
+            MetaDataUtils.clearCS( sdb, csName );
 
-            sdb.createCollectionSpace(csName);
-            createMainCL(sdb);
-            createSubCL(sdb);
-            attachCL(sdb);
-            MetaDataUtils.insertData(sdb, csName, mCLName);
-        } catch (BaseException e) {
+            sdb.createCollectionSpace( csName );
+            createMainCL( sdb );
+            createSubCL( sdb );
+            attachCL( sdb );
+            MetaDataUtils.insertData( sdb, csName, mCLName );
+        } catch ( BaseException e ) {
             sdb.disconnect();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            MetaDataUtils.clearCS(sdb, csName);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+            MetaDataUtils.clearCS( sdb, csName );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         } finally {
             sdb.disconnect();
         }
@@ -74,12 +78,12 @@ public class CL10202 extends SdbTestBase {
         DropSubCL dropSubCL = new DropSubCL();
         dropSubCL.start();
 
-        if (!(dropMainCL.isSuccess() && dropSubCL.isSuccess())) {
-            Assert.fail(dropMainCL.getErrorMsg() + dropSubCL.getErrorMsg());
+        if ( !( dropMainCL.isSuccess() && dropSubCL.isSuccess() ) ) {
+            Assert.fail( dropMainCL.getErrorMsg() + dropSubCL.getErrorMsg() );
         }
 
         // check results
-        MetaDataUtils.checkCLResult(csName, clName);
+        MetaDataUtils.checkCLResult( csName, clName );
     }
 
     private class DropMainCL extends SdbThreadBase {
@@ -87,12 +91,13 @@ public class CL10202 extends SdbTestBase {
         public void exec() throws BaseException {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                db.getCollectionSpace(csName).dropCollection(mCLName);
-            } catch (BaseException e) {
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                db.getCollectionSpace( csName ).dropCollection( mCLName );
+            } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if (eCode != -23 && eCode != -147 && eCode != -190) { // -147:Unable
-                                                                      // to lock
+                if ( eCode != -23 && eCode != -147 && eCode != -190 ) { // -147:Unable
+                                                                        // to
+                                                                        // lock
                     throw e;
                 }
             } finally {
@@ -106,14 +111,15 @@ public class CL10202 extends SdbTestBase {
         public void exec() throws BaseException {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                CollectionSpace csDB = db.getCollectionSpace(csName);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                CollectionSpace csDB = db.getCollectionSpace( csName );
 
-                csDB.dropCollection(sCLName);
-            } catch (BaseException e) {
+                csDB.dropCollection( sCLName );
+            } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if (eCode != -23 && eCode != -147 && eCode != -190) { // -147:Unable
-                                                                      // to lock
+                if ( eCode != -23 && eCode != -147 && eCode != -190 ) { // -147:Unable
+                                                                        // to
+                                                                        // lock
                     throw e;
                 }
             } finally {
@@ -122,53 +128,53 @@ public class CL10202 extends SdbTestBase {
         }
     }
 
-    public void createMainCL(Sequoiadb sdb) {
+    public void createMainCL( Sequoiadb sdb ) {
         try {
-            CollectionSpace csDB = sdb.getCollectionSpace(csName);
+            CollectionSpace csDB = sdb.getCollectionSpace( csName );
 
             BSONObject mOpt = new BasicBSONObject();
             BSONObject mSubObj = new BasicBSONObject();
-            mSubObj.put("a", 1);
-            mOpt.put("ShardingKey", mSubObj);
-            mOpt.put("ReplSize", 0);
-            mOpt.put("IsMainCL", true);
-            csDB.createCollection(mCLName, mOpt);
-        } catch (BaseException e) {
+            mSubObj.put( "a", 1 );
+            mOpt.put( "ShardingKey", mSubObj );
+            mOpt.put( "ReplSize", 0 );
+            mOpt.put( "IsMainCL", true );
+            csDB.createCollection( mCLName, mOpt );
+        } catch ( BaseException e ) {
             throw e;
         }
     }
 
-    public void createSubCL(Sequoiadb sdb) {
+    public void createSubCL( Sequoiadb sdb ) {
         try {
-            CollectionSpace csDB = sdb.getCollectionSpace(csName);
+            CollectionSpace csDB = sdb.getCollectionSpace( csName );
 
             BSONObject sOpt = new BasicBSONObject();
             BSONObject sSubObj = new BasicBSONObject();
-            sSubObj.put("a", 1);
-            sOpt.put("ShardingKey", sSubObj);
-            sOpt.put("ReplSize", 0);
-            csDB.createCollection(sCLName, sOpt);
-        } catch (BaseException e) {
+            sSubObj.put( "a", 1 );
+            sOpt.put( "ShardingKey", sSubObj );
+            sOpt.put( "ReplSize", 0 );
+            csDB.createCollection( sCLName, sOpt );
+        } catch ( BaseException e ) {
             throw e;
         }
     }
 
-    public void attachCL(Sequoiadb sdb) {
+    public void attachCL( Sequoiadb sdb ) {
         try {
-            CollectionSpace csDB = sdb.getCollectionSpace(csName);
+            CollectionSpace csDB = sdb.getCollectionSpace( csName );
 
             BSONObject opt = new BasicBSONObject();
             BSONObject lowBound = new BasicBSONObject();
             BSONObject upBound = new BasicBSONObject();
-            lowBound.put("a", 0);
-            upBound.put("a", 200);
-            opt.put("LowBound", lowBound);
-            opt.put("UpBound", upBound);
-            if (csDB.isCollectionExist(sCLName)) {
-                DBCollection clDB = csDB.getCollection(mCLName);
-                clDB.attachCollection(csName + "." + sCLName, opt);
+            lowBound.put( "a", 0 );
+            upBound.put( "a", 200 );
+            opt.put( "LowBound", lowBound );
+            opt.put( "UpBound", upBound );
+            if ( csDB.isCollectionExist( sCLName ) ) {
+                DBCollection clDB = csDB.getCollection( mCLName );
+                clDB.attachCollection( csName + "." + sCLName, opt );
             }
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
             throw e;
         }
     }

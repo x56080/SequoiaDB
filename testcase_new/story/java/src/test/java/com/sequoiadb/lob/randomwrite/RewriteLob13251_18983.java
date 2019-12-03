@@ -56,71 +56,79 @@ public class RewriteLob13251_18983 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         // create cs cl
-        BSONObject csOpt = (BSONObject) JSON.parse("{LobPageSize: " + lobPageSize + "}");
-        cs = sdb.createCollectionSpace(csName, csOpt);
-        BSONObject clOpt = (BSONObject) JSON.parse("{ShardingKey:{a:1},ShardingType:'hash'}");
-        cs.createCollection(clName, clOpt);
-        if (!CommLib.isStandAlone(sdb)) {
-            LobSubUtils.createMainCLAndAttachCL(sdb, csName, mainCLName, subCLName);
+        BSONObject csOpt = ( BSONObject ) JSON
+                .parse( "{LobPageSize: " + lobPageSize + "}" );
+        cs = sdb.createCollectionSpace( csName, csOpt );
+        BSONObject clOpt = ( BSONObject ) JSON
+                .parse( "{ShardingKey:{a:1},ShardingType:'hash'}" );
+        cs.createCollection( clName, clOpt );
+        if ( !CommLib.isStandAlone( sdb ) ) {
+            LobSubUtils.createMainCLAndAttachCL( sdb, csName, mainCLName,
+                    subCLName );
         }
     }
 
     @Test(dataProvider = "clNameProvider")
-    public void testLob(String clName) {
-        if (CommLib.isStandAlone(sdb) && clName.equals(mainCLName)) {
-            throw new SkipException("is standalone skip testcase!");
+    public void testLob( String clName ) {
+        if ( CommLib.isStandAlone( sdb ) && clName.equals( mainCLName ) ) {
+            throw new SkipException( "is standalone skip testcase!" );
         }
         int offset = 10;
-        byte[] expData = new byte[offset];
+        byte[] expData = new byte[ offset ];
 
         // createonly mode
         int lobSize = 16 * 1024;
         ObjectId oid = null;
-        DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-        try (DBLob lob = cl.createLob()) {
-            lob.write(new byte[offset]); // fill zero
-            lob.seek(offset, DBLob.SDB_LOB_SEEK_SET);
-            byte[] data = RandomWriteLobUtil.getRandomBytes(lobSize);
-            lob.write(data);
-            expData = RandomWriteLobUtil.appendBuff(expData, data, offset);
+        DBCollection cl = sdb.getCollectionSpace( csName )
+                .getCollection( clName );
+        try ( DBLob lob = cl.createLob()) {
+            lob.write( new byte[ offset ] ); // fill zero
+            lob.seek( offset, DBLob.SDB_LOB_SEEK_SET );
+            byte[] data = RandomWriteLobUtil.getRandomBytes( lobSize );
+            lob.write( data );
+            expData = RandomWriteLobUtil.appendBuff( expData, data, offset );
             oid = lob.getID();
         }
 
-        byte[] actData = RandomWriteLobUtil.readLob(cl, oid);
-        RandomWriteLobUtil.assertByteArrayEqual(actData, expData, "lob data is wrong");
+        byte[] actData = RandomWriteLobUtil.readLob( cl, oid );
+        RandomWriteLobUtil.assertByteArrayEqual( actData, expData,
+                "lob data is wrong" );
 
         // write mode
-        try (DBLob lob = cl.openLob(oid, DBLob.SDB_LOB_WRITE)) {
-            lob.seek(offset, DBLob.SDB_LOB_SEEK_SET);
-            byte[] data = new byte[lobSize];
-            lob.write(data);
-            expData = RandomWriteLobUtil.appendBuff(expData, data, offset);
+        try ( DBLob lob = cl.openLob( oid, DBLob.SDB_LOB_WRITE )) {
+            lob.seek( offset, DBLob.SDB_LOB_SEEK_SET );
+            byte[] data = new byte[ lobSize ];
+            lob.write( data );
+            expData = RandomWriteLobUtil.appendBuff( expData, data, offset );
         }
-        actData = RandomWriteLobUtil.readLob(cl, oid);
-        RandomWriteLobUtil.assertByteArrayEqual(actData, expData, "lob data is wrong");
+        actData = RandomWriteLobUtil.readLob( cl, oid );
+        RandomWriteLobUtil.assertByteArrayEqual( actData, expData,
+                "lob data is wrong" );
 
         // read mode
-        byte[] seekReadData = new byte[lobSize];
-        try (DBLob lob = cl.openLob(oid, DBLob.SDB_LOB_READ)) {
-            lob.seek(offset, DBLob.SDB_LOB_SEEK_SET);
-            lob.read(seekReadData);
+        byte[] seekReadData = new byte[ lobSize ];
+        try ( DBLob lob = cl.openLob( oid, DBLob.SDB_LOB_READ )) {
+            lob.seek( offset, DBLob.SDB_LOB_SEEK_SET );
+            lob.read( seekReadData );
         }
 
-        byte[] seekExpData = Arrays.copyOfRange(expData, offset, offset + lobSize);
-        RandomWriteLobUtil.assertByteArrayEqual(seekReadData, seekExpData, "lob data is wrong");
+        byte[] seekExpData = Arrays.copyOfRange( expData, offset,
+                offset + lobSize );
+        RandomWriteLobUtil.assertByteArrayEqual( seekReadData, seekExpData,
+                "lob data is wrong" );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }

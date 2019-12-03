@@ -42,34 +42,37 @@ public class Split10529A extends SdbTestBase {
     private String srcGroupName;
     private String destGroupName;
     private Sequoiadb commSdb = null;
-    private List<BSONObject> insertedData = new ArrayList<BSONObject>();
+    private List< BSONObject > insertedData = new ArrayList< BSONObject >();
 
     @BeforeClass()
     public void setUp() {
-        commSdb = new Sequoiadb(coordUrl, "", "");
+        commSdb = new Sequoiadb( coordUrl, "", "" );
 
         // 跳过 standAlone 和数据组不足的环境
-        if (CommLib.isStandAlone(commSdb)) {
-            throw new SkipException("skip StandAlone");
+        if ( CommLib.isStandAlone( commSdb ) ) {
+            throw new SkipException( "skip StandAlone" );
         }
-        List<String> groupsName = CommLib.getDataGroupNames(commSdb);
-        if (groupsName.size() < 2) {
-            throw new SkipException("current environment less than tow groups ");
+        List< String > groupsName = CommLib.getDataGroupNames( commSdb );
+        if ( groupsName.size() < 2 ) {
+            throw new SkipException(
+                    "current environment less than tow groups " );
         }
 
-        srcGroupName = groupsName.get(0);
-        destGroupName = groupsName.get(1);
+        srcGroupName = groupsName.get( 0 );
+        destGroupName = groupsName.get( 1 );
 
         try {
-            commSdb.dropCollectionSpace(csName);
-        } catch (BaseException e) {
-            Assert.assertEquals(e.getErrorCode(), -34);
+            commSdb.dropCollectionSpace( csName );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( e.getErrorCode(), -34 );
         }
-        cs = commSdb.createCollectionSpace(csName);
-        cl = cs.createCollection(clName,
-                (BSONObject) JSON.parse("{ShardingKey:{'sk':1},ShardingType:'range',Group:'" + srcGroupName + "'}"));
+        cs = commSdb.createCollectionSpace( csName );
+        cl = cs.createCollection( clName,
+                ( BSONObject ) JSON.parse(
+                        "{ShardingKey:{'sk':1},ShardingType:'range',Group:'"
+                                + srcGroupName + "'}" ) );
         // 写入待切分的记录（20000）
-        insertData(cl);
+        insertData( cl );
     }
 
     @Test
@@ -84,29 +87,33 @@ public class Split10529A extends SdbTestBase {
 
             // 修改CL
             try {
-                cl.alterCollection((BSONObject) JSON.parse("{ShardingKey:{nsk:1}}"));
-                Assert.fail("alter cl must be fail!");
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -32) {
-                    Assert.fail("the alter cl with sharding must be fail! " + e.getErrorCode() + e.getMessage());
+                cl.alterCollection(
+                        ( BSONObject ) JSON.parse( "{ShardingKey:{nsk:1}}" ) );
+                Assert.fail( "alter cl must be fail!" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -32 ) {
+                    Assert.fail( "the alter cl with sharding must be fail! "
+                            + e.getErrorCode() + e.getMessage() );
                 }
             }
 
-            Assert.assertEquals(splitThread.isSuccess(), true, splitThread.getErrorMsg());
+            Assert.assertEquals( splitThread.isSuccess(), true,
+                    splitThread.getErrorMsg() );
 
-        } catch (Exception e) {
-            Assert.fail("split and alter task failed: " + e);
+        } catch ( Exception e ) {
+            Assert.fail( "split and alter task failed: " + e );
         }
     }
 
     @AfterClass()
     public void tearDown() {
         try {
-            commSdb.dropCollectionSpace(csName);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + SplitUtils.getKeyStack(e, this));
+            commSdb.dropCollectionSpace( csName );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n"
+                    + SplitUtils.getKeyStack( e, this ) );
         } finally {
-            if (commSdb != null) {
+            if ( commSdb != null ) {
                 commSdb.close();
             }
         }
@@ -118,74 +125,80 @@ public class Split10529A extends SdbTestBase {
         public void exec() throws Exception {
             Sequoiadb sdb = null;
             try {
-                sdb = new Sequoiadb(coordUrl, "", "");
-                CollectionSpace cs = sdb.getCollectionSpace(csName);
-                DBCollection cl = cs.getCollection(clName);
-                cl.split(srcGroupName, destGroupName, (BSONObject) JSON.parse("{sk:1000}"),
-                        (BSONObject) JSON.parse("{sk:20000}"));
+                sdb = new Sequoiadb( coordUrl, "", "" );
+                CollectionSpace cs = sdb.getCollectionSpace( csName );
+                DBCollection cl = cs.getCollection( clName );
+                cl.split( srcGroupName, destGroupName,
+                        ( BSONObject ) JSON.parse( "{sk:1000}" ),
+                        ( BSONObject ) JSON.parse( "{sk:20000}" ) );
                 // 期望目标组有19000条符合{sk:{$gte:1000,$lt:20000}}查询条件的数据,期望目标组共有19000条数据
-                checkGroupData(sdb, 19000, "{sk:{$gte:1000,$lt:20000}}", 19000, destGroupName);
+                checkGroupData( sdb, 19000, "{sk:{$gte:1000,$lt:20000}}", 19000,
+                        destGroupName );
                 // 校验源组
-                checkGroupData(sdb, 1000, "{sk:{$gte:0,$lt:1000}}", 1000, srcGroupName);
-            } catch (Exception e) {
+                checkGroupData( sdb, 1000, "{sk:{$gte:0,$lt:1000}}", 1000,
+                        srcGroupName );
+            } catch ( Exception e ) {
                 throw e;
             } finally {
-                if (sdb != null) {
+                if ( sdb != null ) {
                     sdb.close();
                 }
             }
         }
     }
 
-    private void checkGroupData(Sequoiadb sdb, int expectedCount, String macher, int expectTotalCount, String groupName)
+    private void checkGroupData( Sequoiadb sdb, int expectedCount,
+            String macher, int expectTotalCount, String groupName )
             throws Exception {
         Sequoiadb dataNode = null;
         DBCursor cusor = null;
         try {
-            dataNode = sdb.getReplicaGroup(groupName).getMaster().connect();// 获得目标组主节点链接
-            CollectionSpace cs = dataNode.getCollectionSpace(csName);
-            DBCollection cl = cs.getCollection(clName);
+            dataNode = sdb.getReplicaGroup( groupName ).getMaster().connect();// 获得目标组主节点链接
+            CollectionSpace cs = dataNode.getCollectionSpace( csName );
+            DBCollection cl = cs.getCollection( clName );
             cusor = cl.query();
-            while (cusor.hasNext()) {
+            while ( cusor.hasNext() ) {
                 BSONObject obj = cusor.getNext();
-                if (!insertedData.contains(obj)) {
-                    throw new Exception("inserted data can not find this record:" + obj);
+                if ( !insertedData.contains( obj ) ) {
+                    throw new Exception(
+                            "inserted data can not find this record:" + obj );
                 }
-                insertedData.remove(obj);
+                insertedData.remove( obj );
             }
 
-            long count = cl.getCount(macher);
-            if (count != expectedCount) {// 目标组应当含有上述查询数据
+            long count = cl.getCount( macher );
+            if ( count != expectedCount ) {// 目标组应当含有上述查询数据
                 throw new Exception(
-                        groupName + " getCount(" + macher + "):expected " + expectedCount + " but found " + count);
+                        groupName + " getCount(" + macher + "):expected "
+                                + expectedCount + " but found " + count );
             }
-            if (cl.getCount() != expectTotalCount) {// 目标组应当含有的数据量
-                throw new Exception(
-                        groupName + " getCount:expected " + expectTotalCount + " but found " + cl.getCount());
+            if ( cl.getCount() != expectTotalCount ) {// 目标组应当含有的数据量
+                throw new Exception( groupName + " getCount:expected "
+                        + expectTotalCount + " but found " + cl.getCount() );
             }
-        } catch (Exception e) {
+        } catch ( Exception e ) {
             throw e;
         } finally {
-            if (dataNode != null) {
+            if ( dataNode != null ) {
                 dataNode.close();
             }
         }
     }
 
     // insert 2W records
-    private void insertData(DBCollection cl) {
+    private void insertData( DBCollection cl ) {
         int count = 0;
-        for (int i = 0; i < 2; i++) {
-            List<BSONObject> list = new ArrayList<BSONObject>();
-            for (int j = 0; j < 10000; j++) {
+        for ( int i = 0; i < 2; i++ ) {
+            List< BSONObject > list = new ArrayList< BSONObject >();
+            for ( int j = 0; j < 10000; j++ ) {
                 int value = count++;
-                BSONObject obj = (BSONObject) JSON.parse("{sk:" + value + ", test:" + "'testasetatatatatat'" + "}");
-                list.add(obj);
-                insertedData.add(obj);
+                BSONObject obj = ( BSONObject ) JSON.parse( "{sk:" + value
+                        + ", test:" + "'testasetatatatatat'" + "}" );
+                list.add( obj );
+                insertedData.add( obj );
             }
-            cl.insert(list);
+            cl.insert( list );
         }
     }
 
 }
-

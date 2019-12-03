@@ -32,26 +32,27 @@ public class RewriteLob13229 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
-        String clOptions = "{ShardingKey:{no:1},ShardingType:'hash',Partition:1024," + "ReplSize:0,Compressed:true}";
-        cl = RandomWriteLobUtil.createCL(cs, clName, clOptions);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
+        String clOptions = "{ShardingKey:{no:1},ShardingType:'hash',Partition:1024,"
+                + "ReplSize:0,Compressed:true}";
+        cl = RandomWriteLobUtil.createCL( cs, clName, clOptions );
     }
 
     @Test
     public void testLob() {
-        int writeSize = random.nextInt(1024 * 1024);
-        int offset = random.nextInt(1024 * 1024);
+        int writeSize = random.nextInt( 1024 * 1024 );
+        int offset = random.nextInt( 1024 * 1024 );
 
-        ObjectId oid = putLob(writeSize, offset);
-        checkResult(oid, writeSize, offset);
+        ObjectId oid = putLob( writeSize, offset );
+        checkResult( oid, writeSize, offset );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
 
         } finally {
@@ -59,19 +60,20 @@ public class RewriteLob13229 extends SdbTestBase {
         }
     }
 
-    private ObjectId putLob(int writeSize, int offset) {
-        lobBuff = RandomWriteLobUtil.getRandomBytes(writeSize);
-        try (DBLob lob = cl.createLob()) {
+    private ObjectId putLob( int writeSize, int offset ) {
+        lobBuff = RandomWriteLobUtil.getRandomBytes( writeSize );
+        try ( DBLob lob = cl.createLob()) {
             long length = writeSize - 2;
-            lob.lockAndSeek(offset, length);
-            lob.write(lobBuff);
+            lob.lockAndSeek( offset, length );
+            lob.write( lobBuff );
             oid = lob.getID();
         }
         return oid;
     }
 
-    private void checkResult(ObjectId oid, int writeSize, int offset) {
-        byte[] expBuff = RandomWriteLobUtil.seekAndReadLob(cl, oid, writeSize, offset);
-        RandomWriteLobUtil.assertByteArrayEqual(lobBuff, expBuff);
+    private void checkResult( ObjectId oid, int writeSize, int offset ) {
+        byte[] expBuff = RandomWriteLobUtil.seekAndReadLob( cl, oid, writeSize,
+                offset );
+        RandomWriteLobUtil.assertByteArrayEqual( lobBuff, expBuff );
     }
 }

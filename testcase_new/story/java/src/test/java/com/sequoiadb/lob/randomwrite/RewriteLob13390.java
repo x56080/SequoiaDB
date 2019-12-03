@@ -52,70 +52,75 @@ public class RewriteLob13390 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
-        BSONObject clOpt = (BSONObject) JSON.parse("{ShardingKey:{a:1},ShardingType:'hash',ReplSize:0}");
-        cs.createCollection(clName, clOpt);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
+        BSONObject clOpt = ( BSONObject ) JSON
+                .parse( "{ShardingKey:{a:1},ShardingType:'hash',ReplSize:0}" );
+        cs.createCollection( clName, clOpt );
     }
 
     @Test(dataProvider = "truncateLengthProvider")
-    public void truncateLob(long length) {
-        try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");) {
-            DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-            byte[] writeData = RandomWriteLobUtil.getRandomBytes(lobSize);
-            ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, writeData);
+    public void truncateLob( long length ) {
+        try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" ) ;) {
+            DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
+            byte[] writeData = RandomWriteLobUtil.getRandomBytes( lobSize );
+            ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl,
+                    writeData );
 
-            cl.truncateLob(oid, length);
+            cl.truncateLob( oid, length );
 
             // check result,when length > = lobSize,the lob is no truncate
-            byte[] actData = RandomWriteLobUtil.readLob(cl, oid);
+            byte[] actData = RandomWriteLobUtil.readLob( cl, oid );
             byte[] expData = writeData;
             long expLobSize = lobSize;
-            if (length < lobSize) {
-                expData = Arrays.copyOf(writeData, (int) length);
+            if ( length < lobSize ) {
+                expData = Arrays.copyOf( writeData, ( int ) length );
                 expLobSize = length;
             }
-            RandomWriteLobUtil.assertByteArrayEqual(actData, expData, "lob data is wrong");
-            long actSize = getSizeByListLobs(cl, oid);
-            Assert.assertEquals(actSize, expLobSize, "wrong length after truncate lob");
+            RandomWriteLobUtil.assertByteArrayEqual( actData, expData,
+                    "lob data is wrong" );
+            long actSize = getSizeByListLobs( cl, oid );
+            Assert.assertEquals( actSize, expLobSize,
+                    "wrong length after truncate lob" );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }
     }
 
-    private long getSizeByListLobs(DBCollection cl, ObjectId oid) {
+    private long getSizeByListLobs( DBCollection cl, ObjectId oid ) {
         DBCursor cursor = null;
         long lobSize = 0;
         boolean oidFound = false;
         try {
             cursor = cl.listLobs();
-            while (cursor.hasNext()) {
+            while ( cursor.hasNext() ) {
                 BSONObject res = cursor.getNext();
-                ObjectId curOid = (ObjectId) res.get("Oid");
-                if (curOid.equals(oid)) {
-                    lobSize = (long) res.get("Size");
+                ObjectId curOid = ( ObjectId ) res.get( "Oid" );
+                if ( curOid.equals( oid ) ) {
+                    lobSize = ( long ) res.get( "Size" );
                     oidFound = true;
                     break;
                 }
             }
         } finally {
-            if (cursor != null) {
+            if ( cursor != null ) {
                 cursor.close();
             }
         }
-        if (!oidFound) {
-            throw new RuntimeException("no such oid");
+        if ( !oidFound ) {
+            throw new RuntimeException( "no such oid" );
         }
         return lobSize;
     }

@@ -31,11 +31,13 @@ public class RewriteLob13228 extends SdbTestBase {
     public static Object[][] testLob13228DataProvider() {
         return new Object[][] {
                 // 同一个数据页内偏移写
-                { 200 * 1024, 10 * 1024, DBLob.SDB_LOB_SEEK_SET }, { 100 * 1024, 20 * 1024, DBLob.SDB_LOB_SEEK_CUR },
+                { 200 * 1024, 10 * 1024, DBLob.SDB_LOB_SEEK_SET },
+                { 100 * 1024, 20 * 1024, DBLob.SDB_LOB_SEEK_CUR },
                 { 100 * 1024, 50 * 1024, DBLob.SDB_LOB_SEEK_END },
 
                 // 跨多个数据页偏移写
-                { 1024 * 1024, 100 * 1024, DBLob.SDB_LOB_SEEK_SET }, { 1024 * 1024, 50 * 1024, DBLob.SDB_LOB_SEEK_CUR },
+                { 1024 * 1024, 100 * 1024, DBLob.SDB_LOB_SEEK_SET },
+                { 1024 * 1024, 50 * 1024, DBLob.SDB_LOB_SEEK_CUR },
                 { 1024 * 1024, 40 * 1024, DBLob.SDB_LOB_SEEK_END }, };
     }
 
@@ -46,114 +48,122 @@ public class RewriteLob13228 extends SdbTestBase {
 
     @BeforeClass
     public void setup() {
-        db = new Sequoiadb(coordUrl, "", "");
-        cs = db.getCollectionSpace(SdbTestBase.csName);
-        dbcl = cs.createCollection(clName, (BSONObject) JSON.parse("{ShardingKey:{\"_id\":1},ShardingType:\"hash\"}"));
+        db = new Sequoiadb( coordUrl, "", "" );
+        cs = db.getCollectionSpace( SdbTestBase.csName );
+        dbcl = cs.createCollection( clName, ( BSONObject ) JSON
+                .parse( "{ShardingKey:{\"_id\":1},ShardingType:\"hash\"}" ) );
     }
 
     @Test(dataProvider = "testLob13228DataProvider")
-    public void testLob13228(int appendDataSize, int seekSize, int seekType) {
+    public void testLob13228( int appendDataSize, int seekSize, int seekType ) {
         // 第一种情况：创建lob后先向lob中写数据，再进行偏移写操作
-        testLob13228a(appendDataSize, seekSize, seekType);
+        testLob13228a( appendDataSize, seekSize, seekType );
 
         // 第二种情况：创建lob后直接进行偏移写操作
-        testLob13228b(appendDataSize, seekSize, seekType);
+        testLob13228b( appendDataSize, seekSize, seekType );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
     }
 
-    private void testLob13228a(int appendDataSize, int seekSize, int seekType) {
+    private void testLob13228a( int appendDataSize, int seekSize,
+            int seekType ) {
         // 设置初始数据大小100kb
         int initDataSize = 100 * 1024;
 
         ObjectId id = ObjectId.get();
-        DBLob lob = dbcl.createLob(id);
+        DBLob lob = dbcl.createLob( id );
 
-        byte[] initData = RandomWriteLobUtil.getRandomBytes(initDataSize);
-        String initMd5 = RandomWriteLobUtil.getMd5(initData);
+        byte[] initData = RandomWriteLobUtil.getRandomBytes( initDataSize );
+        String initMd5 = RandomWriteLobUtil.getMd5( initData );
 
-        byte[] appendData = RandomWriteLobUtil.getRandomBytes(appendDataSize);
-        String appendMd5 = RandomWriteLobUtil.getMd5(appendData);
+        byte[] appendData = RandomWriteLobUtil.getRandomBytes( appendDataSize );
+        String appendMd5 = RandomWriteLobUtil.getMd5( appendData );
 
-        lob.write(initData);
+        lob.write( initData );
 
-        lob.seek(seekSize, seekType);
-        lob.write(appendData);
+        lob.seek( seekSize, seekType );
+        lob.write( appendData );
         lob.close();
 
         // 偏移写初始位置
         int appendPosition;
-        byte[] actual = RandomWriteLobUtil.readLob(dbcl, id);
+        byte[] actual = RandomWriteLobUtil.readLob( dbcl, id );
 
-        if (seekType == DBLob.SDB_LOB_SEEK_CUR) {
+        if ( seekType == DBLob.SDB_LOB_SEEK_CUR ) {
             appendPosition = seekSize + initDataSize;
-        } else if (seekType == DBLob.SDB_LOB_SEEK_END) {
+        } else if ( seekType == DBLob.SDB_LOB_SEEK_END ) {
             appendPosition = initDataSize - seekSize;
         } else {
             appendPosition = seekSize;
         }
 
-        if (appendPosition > initDataSize) {
-            String previnitMd5 = RandomWriteLobUtil.getMd5(Arrays.copyOfRange(actual, 0, initDataSize));
-            Assert.assertEquals(previnitMd5, initMd5);
+        if ( appendPosition > initDataSize ) {
+            String previnitMd5 = RandomWriteLobUtil
+                    .getMd5( Arrays.copyOfRange( actual, 0, initDataSize ) );
+            Assert.assertEquals( previnitMd5, initMd5 );
 
             String prevappendMd5 = RandomWriteLobUtil
-                    .getMd5(Arrays.copyOfRange(actual, appendPosition, appendPosition + appendDataSize));
-            Assert.assertEquals(prevappendMd5, appendMd5);
+                    .getMd5( Arrays.copyOfRange( actual, appendPosition,
+                            appendPosition + appendDataSize ) );
+            Assert.assertEquals( prevappendMd5, appendMd5 );
 
             // 比较lob size 信息是否正确
-            Assert.assertEquals(lob.getSize(), initDataSize + seekSize + appendDataSize);
+            Assert.assertEquals( lob.getSize(),
+                    initDataSize + seekSize + appendDataSize );
         } else {
             String prevappendMd5 = RandomWriteLobUtil
-                    .getMd5(Arrays.copyOfRange(actual, appendPosition, appendPosition + appendDataSize));
-            Assert.assertEquals(prevappendMd5, appendMd5);
+                    .getMd5( Arrays.copyOfRange( actual, appendPosition,
+                            appendPosition + appendDataSize ) );
+            Assert.assertEquals( prevappendMd5, appendMd5 );
 
             // 比较lob size 信息是否正确
-            if (seekType == DBLob.SDB_LOB_SEEK_SET) {
-                Assert.assertEquals(lob.getSize(), appendDataSize + seekSize);
+            if ( seekType == DBLob.SDB_LOB_SEEK_SET ) {
+                Assert.assertEquals( lob.getSize(), appendDataSize + seekSize );
             } else {
-                Assert.assertEquals(lob.getSize(), initDataSize - seekSize + appendDataSize);
+                Assert.assertEquals( lob.getSize(),
+                        initDataSize - seekSize + appendDataSize );
             }
         }
     }
 
-    private void testLob13228b(int appendDataSize, int seekSize, int seekType) {
+    private void testLob13228b( int appendDataSize, int seekSize,
+            int seekType ) {
         ObjectId id = ObjectId.get();
-        DBLob lob = dbcl.createLob(id);
+        DBLob lob = dbcl.createLob( id );
 
-        byte[] appendData = RandomWriteLobUtil.getRandomBytes(appendDataSize);
-        String appendMd5 = RandomWriteLobUtil.getMd5(appendData);
+        byte[] appendData = RandomWriteLobUtil.getRandomBytes( appendDataSize );
+        String appendMd5 = RandomWriteLobUtil.getMd5( appendData );
 
-        if (seekType == DBLob.SDB_LOB_SEEK_END) {
-            lob.seek(0, seekType);
+        if ( seekType == DBLob.SDB_LOB_SEEK_END ) {
+            lob.seek( 0, seekType );
         } else {
-            lob.seek(seekSize, seekType);
+            lob.seek( seekSize, seekType );
         }
-        lob.write(appendData);
+        lob.write( appendData );
         lob.close();
 
         // check the result
-        byte[] actual = RandomWriteLobUtil.readLob(dbcl, id);
-        if (seekType != DBLob.SDB_LOB_SEEK_END) {
-            String previnitMd5 = RandomWriteLobUtil
-                    .getMd5(Arrays.copyOfRange(actual, seekSize, seekSize + appendDataSize));
-            Assert.assertEquals(appendMd5, previnitMd5);
-            Assert.assertEquals(lob.getSize(), seekSize + appendDataSize);
+        byte[] actual = RandomWriteLobUtil.readLob( dbcl, id );
+        if ( seekType != DBLob.SDB_LOB_SEEK_END ) {
+            String previnitMd5 = RandomWriteLobUtil.getMd5( Arrays.copyOfRange(
+                    actual, seekSize, seekSize + appendDataSize ) );
+            Assert.assertEquals( appendMd5, previnitMd5 );
+            Assert.assertEquals( lob.getSize(), seekSize + appendDataSize );
         } else {
-            String previnitMd5 = RandomWriteLobUtil.getMd5(actual);
-            Assert.assertEquals(appendMd5, previnitMd5);
-            Assert.assertEquals(lob.getSize(), appendDataSize);
+            String previnitMd5 = RandomWriteLobUtil.getMd5( actual );
+            Assert.assertEquals( appendMd5, previnitMd5 );
+            Assert.assertEquals( lob.getSize(), appendDataSize );
         }
     }
 }

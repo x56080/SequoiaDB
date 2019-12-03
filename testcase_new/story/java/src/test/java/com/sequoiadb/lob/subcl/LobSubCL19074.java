@@ -33,24 +33,25 @@ public class LobSubCL19074 extends SdbTestBase {
     private DBCollection mainCL = null;
     private int writeLobSize = 1024 * 1024;
     private byte[] lobBuff;
-    private List<ObjectId> lobIds;
+    private List< ObjectId > lobIds;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("is standalone skip testcase");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
         }
-        mainCL = LobSubUtils.createMainCLAndAttachCL(sdb, csName, mainCLName, subCLName);
-        lobBuff = RandomWriteLobUtil.getRandomBytes(writeLobSize);
-        lobIds = LobSubUtils.createAndWriteLob(mainCL, lobBuff);
+        mainCL = LobSubUtils.createMainCLAndAttachCL( sdb, csName, mainCLName,
+                subCLName );
+        lobBuff = RandomWriteLobUtil.getRandomBytes( writeLobSize );
+        lobIds = LobSubUtils.createAndWriteLob( mainCL, lobBuff );
     }
 
     @Test
     public void test() throws Exception {
         ThreadExecutor thread = new ThreadExecutor();
-        thread.addWorker(new ReadLobThread(lobIds));
-        thread.addWorker(new ReadLobThread(lobIds));
+        thread.addWorker( new ReadLobThread( lobIds ) );
+        thread.addWorker( new ReadLobThread( lobIds ) );
         thread.run();
 
     }
@@ -58,15 +59,15 @@ public class LobSubCL19074 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            CollectionSpace cs = sdb.getCollectionSpace(csName);
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
-            if (cs.isCollectionExist(subCLName)) {
-                cs.dropCollection(subCLName);
+            if ( cs.isCollectionExist( subCLName ) ) {
+                cs.dropCollection( subCLName );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -74,17 +75,19 @@ public class LobSubCL19074 extends SdbTestBase {
 
     private class ReadLobThread {
 
-        private List<ObjectId> ids;
+        private List< ObjectId > ids;
 
-        public ReadLobThread(List<ObjectId> lobIds) {
+        public ReadLobThread( List< ObjectId > lobIds ) {
             this.ids = lobIds;
         }
 
         @ExecuteOrder(step = 1)
         private void readLob() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection mainCL = db.getCollectionSpace(csName).getCollection(mainCLName);
-                LobSubUtils.checkLobMD5(mainCL, ids, lobBuff);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection mainCL = db.getCollectionSpace( csName )
+                        .getCollection( mainCLName );
+                LobSubUtils.checkLobMD5( mainCL, ids, lobBuff );
             }
         }
     }

@@ -27,9 +27,10 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class Split10184 extends SdbTestBase {
-    private SimpleDateFormat dateFm = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
+    private SimpleDateFormat dateFm = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss" );
     private static Sequoiadb sdb = null;
-    private static ArrayList<String> groupNames = null;
+    private static ArrayList< String > groupNames = null;
     private String csName = "cs10184_split";
     private String clName = "cl10184";
     private Random random = new Random();
@@ -39,31 +40,35 @@ public class Split10184 extends SdbTestBase {
     public void setUp() {
         // start time
         try {
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             // judge the mode or group number or node number
-            if (MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.OneGroupMode(sdb) || MetaDataUtils.oneCataNode(sdb)
-                    || MetaDataUtils.oneDataNode(sdb)) {
-                throw new SkipException("The mode is standlone or only one group or one node, " + "skip the testCase.");
+            if ( MetaDataUtils.isStandAlone( sdb )
+                    || MetaDataUtils.OneGroupMode( sdb )
+                    || MetaDataUtils.oneCataNode( sdb )
+                    || MetaDataUtils.oneDataNode( sdb ) ) {
+                throw new SkipException(
+                        "The mode is standlone or only one group or one node, "
+                                + "skip the testCase." );
             }
-            MetaDataUtils.clearCS(sdb, csName);
+            MetaDataUtils.clearCS( sdb, csName );
 
-            groupNames = MetaDataUtils.getDataGroupNames(sdb);
+            groupNames = MetaDataUtils.getDataGroupNames( sdb );
 
-            sdb.createCollectionSpace(csName);
-            createCL(sdb, groupNames.get(0));
-            MetaDataUtils.insertData(sdb, csName, clName);
-        } catch (BaseException e) {
+            sdb.createCollectionSpace( csName );
+            createCL( sdb, groupNames.get( 0 ) );
+            MetaDataUtils.insertData( sdb, csName, clName );
+        } catch ( BaseException e ) {
             sdb.disconnect();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            MetaDataUtils.clearCS(sdb, csName);
-        } catch (BaseException e) {
-            Assert.fail("ErrorMsg:\n" + e.getMessage());
+            MetaDataUtils.clearCS( sdb, csName );
+        } catch ( BaseException e ) {
+            Assert.fail( "ErrorMsg:\n" + e.getMessage() );
         } finally {
             sdb.disconnect();
         }
@@ -75,15 +80,15 @@ public class Split10184 extends SdbTestBase {
         split.start();
 
         DropCS dropCS = new DropCS();
-        MetaDataUtils.sleep(random.nextInt(msec));
+        MetaDataUtils.sleep( random.nextInt( msec ) );
         dropCS.start();
 
-        if (!(split.isSuccess() && dropCS.isSuccess())) {
-            Assert.fail(split.getErrorMsg() + dropCS.getErrorMsg());
+        if ( !( split.isSuccess() && dropCS.isSuccess() ) ) {
+            Assert.fail( split.getErrorMsg() + dropCS.getErrorMsg() );
         }
 
         // check results
-        MetaDataUtils.checkCLResult(csName, clName);
+        MetaDataUtils.checkCLResult( csName, clName );
     }
 
     private class Split extends SdbThreadBase {
@@ -91,25 +96,27 @@ public class Split10184 extends SdbTestBase {
         public void exec() throws BaseException {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
-                CollectionSpace csDB = db.getCollectionSpace(csName);
-                if (csDB != null) {
-                    DBCollection clDB = csDB.getCollection(clName);
-                    if (clDB != null) {
+                CollectionSpace csDB = db.getCollectionSpace( csName );
+                if ( csDB != null ) {
+                    DBCollection clDB = csDB.getCollection( clName );
+                    if ( clDB != null ) {
                         BSONObject strCond = new BasicBSONObject();
                         BSONObject endCond = new BasicBSONObject();
-                        strCond.put("a", 0);
-                        endCond.put("a", 50);
+                        strCond.put( "a", 0 );
+                        endCond.put( "a", 50 );
                         // System.out.println("split condition: " + strCond + ",
                         // " +endCond );
-                        clDB.split(groupNames.get(0), groupNames.get(1), strCond, endCond);
+                        clDB.split( groupNames.get( 0 ), groupNames.get( 1 ),
+                                strCond, endCond );
                     }
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if (eCode != -175 // -175:The mutex task already exist
-                        && eCode != -147 && eCode != -23 && eCode != -34 && eCode != -190) {
+                if ( eCode != -175 // -175:The mutex task already exist
+                        && eCode != -147 && eCode != -23 && eCode != -34
+                        && eCode != -190 ) {
                     throw e;
                 }
             } finally {
@@ -123,11 +130,11 @@ public class Split10184 extends SdbTestBase {
         public void exec() throws BaseException {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                db.dropCollectionSpace(csName);
-            } catch (BaseException e) {
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                db.dropCollectionSpace( csName );
+            } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if (eCode != -147 && eCode != -190) {
+                if ( eCode != -147 && eCode != -190 ) {
                     throw e;
                 }
             } finally {
@@ -136,18 +143,18 @@ public class Split10184 extends SdbTestBase {
         }
     }
 
-    private void createCL(Sequoiadb sdb, String rgName) {
+    private void createCL( Sequoiadb sdb, String rgName ) {
         try {
-            CollectionSpace csDB = sdb.getCollectionSpace(csName);
+            CollectionSpace csDB = sdb.getCollectionSpace( csName );
             BSONObject opt = new BasicBSONObject();
             BSONObject subObj = new BasicBSONObject();
-            subObj.put("a", 1);
-            opt.put("ShardingType", "range");
-            opt.put("ShardingKey", subObj);
-            opt.put("Group", rgName);
-            opt.put("ReplSize", 0);
-            csDB.createCollection(clName, opt);
-        } catch (BaseException e) {
+            subObj.put( "a", 1 );
+            opt.put( "ShardingType", "range" );
+            opt.put( "ShardingKey", subObj );
+            opt.put( "Group", rgName );
+            opt.put( "ReplSize", 0 );
+            csDB.createCollection( clName, opt );
+        } catch ( BaseException e ) {
             throw e;
         }
     }

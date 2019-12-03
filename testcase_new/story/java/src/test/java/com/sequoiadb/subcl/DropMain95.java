@@ -54,7 +54,8 @@ public class DropMain95 extends SdbTestBase {
         Sequoiadb db2 = null;
         try {
             db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            DBCollection cl1 = db2.getCollectionSpace( SdbTestBase.csName ).getCollection( mainclName );
+            DBCollection cl1 = db2.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( mainclName );
             BSONObject bson;
             DropClThread.start();
             if ( cl1 == null ) {
@@ -86,7 +87,8 @@ public class DropMain95 extends SdbTestBase {
             Sequoiadb db1 = null;
             try {
                 db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-                db1.getCollectionSpace( csName ).dropCollection( maincl.getName() );
+                db1.getCollectionSpace( csName )
+                        .dropCollection( maincl.getName() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(), -190 );
             } finally {
@@ -127,16 +129,18 @@ public class DropMain95 extends SdbTestBase {
         }
         try {
             cs = sdb.getCollectionSpace( SdbTestBase.csName );
-            BSONObject mainObj = (BSONObject) JSON.parse( "{IsMainCL:true,ShardingKey:{b:1}}" );
-            BSONObject subObj = (BSONObject) JSON.parse( "{ShardingKey:{b:1},ShardingType:\"hash\"}" );
+            BSONObject mainObj = ( BSONObject ) JSON
+                    .parse( "{IsMainCL:true,ShardingKey:{b:1}}" );
+            BSONObject subObj = ( BSONObject ) JSON
+                    .parse( "{ShardingKey:{b:1},ShardingType:\"hash\"}" );
             maincl = cs.createCollection( mainclName, mainObj );
             subcl = cs.createCollection( subclName, subObj );
         } catch ( BaseException e ) {
             Assert.fail( "create is faild" + e.getMessage() );
         }
         try {
-            maincl.attachCollection( subcl.getFullName(),
-                    (BSONObject) JSON.parse( "{LowBound:{b:1},UpBound:{b:100}}" ) );
+            maincl.attachCollection( subcl.getFullName(), ( BSONObject ) JSON
+                    .parse( "{LowBound:{b:1},UpBound:{b:100}}" ) );
         } catch ( BaseException e ) {
             Assert.fail( "attach error:" + e.getMessage() );
         }

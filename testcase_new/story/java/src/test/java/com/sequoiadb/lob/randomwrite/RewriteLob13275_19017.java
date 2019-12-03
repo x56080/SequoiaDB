@@ -62,49 +62,56 @@ public class RewriteLob13275_19017 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
 
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         // create cs cl
-        BSONObject csOpt = (BSONObject) JSON.parse("{LobPageSize: " + lobPageSize + "}");
-        cs = sdb.createCollectionSpace(csName, csOpt);
-        BSONObject clOpt = (BSONObject) JSON.parse("{ShardingKey:{a:1},ShardingType:'hash',AutoSplit:true}");
-        cs.createCollection(clName, clOpt);
+        BSONObject csOpt = ( BSONObject ) JSON
+                .parse( "{LobPageSize: " + lobPageSize + "}" );
+        cs = sdb.createCollectionSpace( csName, csOpt );
+        BSONObject clOpt = ( BSONObject ) JSON.parse(
+                "{ShardingKey:{a:1},ShardingType:'hash',AutoSplit:true}" );
+        cs.createCollection( clName, clOpt );
 
-        if (!CommLib.isStandAlone(sdb)) {
-            LobSubUtils.createMainCLAndAttachCL(sdb, csName, mainCLName, subCLName);
+        if ( !CommLib.isStandAlone( sdb ) ) {
+            LobSubUtils.createMainCLAndAttachCL( sdb, csName, mainCLName,
+                    subCLName );
         }
 
     }
 
     @Test(dataProvider = "clNameProvider")
-    public void testLob(String clName) {
-        if (CommLib.isStandAlone(sdb) && clName.equals(mainCLName)) {
-            throw new SkipException("is standalone skip testcase!");
+    public void testLob( String clName ) {
+        if ( CommLib.isStandAlone( sdb ) && clName.equals( mainCLName ) ) {
+            throw new SkipException( "is standalone skip testcase!" );
         }
         int lobSize = 1 * 1024 * 1024;
-        byte[] data = RandomWriteLobUtil.getRandomBytes(lobSize);
-        DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, data);
+        byte[] data = RandomWriteLobUtil.getRandomBytes( lobSize );
+        DBCollection cl = sdb.getCollectionSpace( csName )
+                .getCollection( clName );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl, data );
 
-        WriteLobThread wThrd = new WriteLobThread(clName, oid, data);
-        ReadLobThread rThrd = new ReadLobThread(csName, clName, oid, data);
+        WriteLobThread wThrd = new WriteLobThread( clName, oid, data );
+        ReadLobThread rThrd = new ReadLobThread( csName, clName, oid, data );
         wThrd.start();
         rThrd.start();
         boolean writeOk = wThrd.isSuccess();
         boolean readOk = rThrd.isSuccess();
 
-        if (writeOk && !readOk) {
-            int readErrCode = ((BaseException) rThrd.getExceptions().get(0)).getErrorCode();
-            Assert.assertEquals(readErrCode, -317, rThrd.getErrorMsg());
+        if ( writeOk && !readOk ) {
+            int readErrCode = ( ( BaseException ) rThrd.getExceptions()
+                    .get( 0 ) ).getErrorCode();
+            Assert.assertEquals( readErrCode, -317, rThrd.getErrorMsg() );
 
-        } else if (!writeOk && readOk) {
-            int writeErrCode = ((BaseException) wThrd.getExceptions().get(0)).getErrorCode();
-            Assert.assertEquals(writeErrCode, -317, wThrd.getErrorMsg());
+        } else if ( !writeOk && readOk ) {
+            int writeErrCode = ( ( BaseException ) wThrd.getExceptions()
+                    .get( 0 ) ).getErrorCode();
+            Assert.assertEquals( writeErrCode, -317, wThrd.getErrorMsg() );
 
-        } else if (!writeOk && !readOk) {
-            Assert.fail("both write and read lob fail");
+        } else if ( !writeOk && !readOk ) {
+            Assert.fail( "both write and read lob fail" );
 
-        } else if (writeOk && readOk) {
-            System.out.println("writing and reading lob are not concurrently");
+        } else if ( writeOk && readOk ) {
+            System.out
+                    .println( "writing and reading lob are not concurrently" );
         }
 
     }
@@ -112,11 +119,11 @@ public class RewriteLob13275_19017 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }
@@ -128,7 +135,7 @@ public class RewriteLob13275_19017 extends SdbTestBase {
         private ObjectId oid = null;
         private byte[] expData = null;
 
-        public WriteLobThread(String clName, ObjectId oid, byte[] expData) {
+        public WriteLobThread( String clName, ObjectId oid, byte[] expData ) {
             this.clNamet = clName;
             this.oid = oid;
             this.expData = expData;
@@ -137,36 +144,39 @@ public class RewriteLob13275_19017 extends SdbTestBase {
         @Override
         public void exec() throws Exception {
             Random random = new Random();
-            Thread.sleep(random.nextInt(100));
+            Thread.sleep( random.nextInt( 100 ) );
 
             Sequoiadb db = null;
             DBLob lob = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(this.clNamet);
-                lob = cl.openLob(oid, DBLob.SDB_LOB_WRITE);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( this.clNamet );
+                lob = cl.openLob( oid, DBLob.SDB_LOB_WRITE );
 
                 // write lob
                 long offset = 0;
                 long length = lob.getSize() / 2;
-                lob.lockAndSeek(offset, length);
-                byte[] data = new byte[(int) length];
-                random.nextBytes(data);
-                lob.write(data);
-                expData = RandomWriteLobUtil.appendBuff(expData, data, (int) offset);
+                lob.lockAndSeek( offset, length );
+                byte[] data = new byte[ ( int ) length ];
+                random.nextBytes( data );
+                lob.write( data );
+                expData = RandomWriteLobUtil.appendBuff( expData, data,
+                        ( int ) offset );
 
                 // check result
                 lob.close();
-                lob = cl.openLob(oid, DBLob.SDB_LOB_READ);
-                byte[] actData = new byte[(int) lob.getSize()];
-                lob.read(actData);
-                RandomWriteLobUtil.assertByteArrayEqual(actData, expData, "lob data is wrong");
+                lob = cl.openLob( oid, DBLob.SDB_LOB_READ );
+                byte[] actData = new byte[ ( int ) lob.getSize() ];
+                lob.read( actData );
+                RandomWriteLobUtil.assertByteArrayEqual( actData, expData,
+                        "lob data is wrong" );
 
             } finally {
-                if (null != lob) {
+                if ( null != lob ) {
                     lob.close();
                 }
-                if (null != db) {
+                if ( null != db ) {
                     db.close();
                 }
             }
@@ -180,7 +190,8 @@ public class RewriteLob13275_19017 extends SdbTestBase {
         private ObjectId oid = null;
         private byte[] expData = null;
 
-        public ReadLobThread(String csName, String clName, ObjectId oid, byte[] expData) {
+        public ReadLobThread( String csName, String clName, ObjectId oid,
+                byte[] expData ) {
             this.csNamet = csName;
             this.clNamet = clName;
             this.oid = oid;
@@ -189,31 +200,34 @@ public class RewriteLob13275_19017 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            Thread.sleep(new Random().nextInt(100));
+            Thread.sleep( new Random().nextInt( 100 ) );
 
             Sequoiadb db = null;
             DBLob lob = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(this.csNamet).getCollection(this.clNamet);
-                lob = cl.openLob(oid, DBLob.SDB_LOB_READ);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( this.csNamet )
+                        .getCollection( this.clNamet );
+                lob = cl.openLob( oid, DBLob.SDB_LOB_READ );
 
                 // read content
                 long offset = lob.getSize() / 2;
                 long length = lob.getSize() / 2;
-                byte[] readData = new byte[(int) length];
-                lob.lockAndSeek(offset, length);
-                lob.read(readData);
+                byte[] readData = new byte[ ( int ) length ];
+                lob.lockAndSeek( offset, length );
+                lob.read( readData );
 
                 // check result
-                expData = Arrays.copyOfRange(expData, (int) offset, (int) (offset + length));
-                RandomWriteLobUtil.assertByteArrayEqual(readData, expData, "lob data is wrong");
+                expData = Arrays.copyOfRange( expData, ( int ) offset,
+                        ( int ) ( offset + length ) );
+                RandomWriteLobUtil.assertByteArrayEqual( readData, expData,
+                        "lob data is wrong" );
 
             } finally {
-                if (null != lob) {
+                if ( null != lob ) {
                     lob.close();
                 }
-                if (null != db) {
+                if ( null != db ) {
                     db.close();
                 }
             }

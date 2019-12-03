@@ -38,18 +38,18 @@ public class Transaction17960 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         insertData();
     }
 
     @AfterClass
     public void tearDown() {
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        if (!sdb.isClosed()) {
+        if ( !sdb.isClosed() ) {
             sdb.close();
         }
     }
@@ -60,16 +60,16 @@ public class Transaction17960 extends SdbTestBase {
     }
 
     @Test(dataProvider = "index")
-    public void test(String indexKey) {
+    public void test( String indexKey ) {
         try {
-            latch = new CountDownLatch(4);
+            latch = new CountDownLatch( 4 );
             this.indexKey = indexKey;
 
             // 创建索引
-            cl.createIndex("textIndex17960", indexKey, false, false);
+            cl.createIndex( "textIndex17960", indexKey, false, false );
 
             // 开启 4 个并发事务
-            UpdateThread updateThread = new UpdateThread(50, 0);
+            UpdateThread updateThread = new UpdateThread( 50, 0 );
             updateThread.start();
 
             InsertDeleteThread insertDeleteTh = new InsertDeleteThread();
@@ -82,36 +82,41 @@ public class Transaction17960 extends SdbTestBase {
             dropIndexThread.start();
 
             // 判断事务是否正确返回
-            Assert.assertTrue(queryThread.isSuccess(), queryThread.getErrorMsg());
-            Assert.assertTrue(updateThread.isSuccess(), updateThread.getErrorMsg());
-            Assert.assertTrue(insertDeleteTh.isSuccess(), insertDeleteTh.getErrorMsg());
-            Assert.assertTrue(dropIndexThread.isSuccess(), dropIndexThread.getErrorMsg());
+            Assert.assertTrue( queryThread.isSuccess(),
+                    queryThread.getErrorMsg() );
+            Assert.assertTrue( updateThread.isSuccess(),
+                    updateThread.getErrorMsg() );
+            Assert.assertTrue( insertDeleteTh.isSuccess(),
+                    insertDeleteTh.getErrorMsg() );
+            Assert.assertTrue( dropIndexThread.isSuccess(),
+                    dropIndexThread.getErrorMsg() );
 
             latch.await();
-        } catch (InterruptedException e) {
-            Assert.fail(e.getMessage());
+        } catch ( InterruptedException e ) {
+            Assert.fail( e.getMessage() );
         } finally {
 
             // 删除索引
-            cl.dropIndex("textIndex17960");
+            cl.dropIndex( "textIndex17960" );
         }
     }
 
     private void insertData() {
-        List<BSONObject> records = new ArrayList<BSONObject>();
-        for (int i = 0; i < 100; i++) {
-            BSONObject object = (BSONObject) JSON.parse("{_id:" + i + ", a:10000, b:" + i + "}");
-            records.add(object);
+        List< BSONObject > records = new ArrayList< BSONObject >();
+        for ( int i = 0; i < 100; i++ ) {
+            BSONObject object = ( BSONObject ) JSON
+                    .parse( "{_id:" + i + ", a:10000, b:" + i + "}" );
+            records.add( object );
         }
-        cl.insert(records);
+        cl.insert( records );
     }
 
     class UpdateThread extends SdbThreadBase {
-        private Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        private Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         private int mutiNum;
         private int addNum;
 
-        public UpdateThread(int mutiNum, int addNum) {
+        public UpdateThread( int mutiNum, int addNum ) {
             super();
             this.addNum = addNum;
             this.mutiNum = mutiNum;
@@ -122,36 +127,43 @@ public class Transaction17960 extends SdbTestBase {
             try {
                 int count = 1;
                 int endCount = 600;
-                while (true) {
-                    int aid = (int) (Math.random() * mutiNum) + addNum;
-                    int bid = (int) (Math.random() * mutiNum) + addNum;
-                    int value = (int) (Math.random() * 100) + 1;
+                while ( true ) {
+                    int aid = ( int ) ( Math.random() * mutiNum ) + addNum;
+                    int bid = ( int ) ( Math.random() * mutiNum ) + addNum;
+                    int value = ( int ) ( Math.random() * 100 ) + 1;
 
                     // 开启更新事务
                     db.beginTransaction();
-                    DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
+                    DBCollection cl = db.getCollectionSpace( csName )
+                            .getCollection( clName );
 
                     // 由于更新和读存在死锁，因此需要规避此问题
                     try {
-                        cl.update("{b:" + aid + "}", "{$inc:{a:-" + value + "}}", "{'':'textIndex17960'}");
-                        cl.update("{b:" + bid + "}", "{$inc:{a:" + value + "}}", "{'':'textIndex17960'}");
-                    } catch (BaseException e) {
-                        if (e.getErrorCode() == -13 || e.getErrorCode() == -48 || e.getErrorCode() == -52
-                                || e.getErrorCode() == -10 || e.getErrorCode() == -199) {
+                        cl.update( "{b:" + aid + "}",
+                                "{$inc:{a:-" + value + "}}",
+                                "{'':'textIndex17960'}" );
+                        cl.update( "{b:" + bid + "}",
+                                "{$inc:{a:" + value + "}}",
+                                "{'':'textIndex17960'}" );
+                    } catch ( BaseException e ) {
+                        if ( e.getErrorCode() == -13 || e.getErrorCode() == -48
+                                || e.getErrorCode() == -52
+                                || e.getErrorCode() == -10
+                                || e.getErrorCode() == -199 ) {
                             db.rollback();
                             continue;
                         } else {
-                            Assert.fail(e.getMessage());
+                            Assert.fail( e.getMessage() );
                         }
                     }
                     // 提交更新事务
                     db.commit();
-                    if (count == endCount) {
+                    if ( count == endCount ) {
                         break;
                     } else {
                         count++;
                     }
-                    Thread.sleep(1000);
+                    Thread.sleep( 1000 );
                 }
             } finally {
                 db.commit();
@@ -162,52 +174,59 @@ public class Transaction17960 extends SdbTestBase {
     }
 
     class InsertDeleteThread extends SdbThreadBase {
-        private Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        private Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         @Override
         public void exec() throws Exception {
             try {
                 int count = 1;
                 int endCount = 600;
-                while (true) {
-                    int aId = (int) (Math.random() * 100) + 100;
-                    int bId = (int) (Math.random() * 100);
-                    int cId = (int) (Math.random() * 100) - 100;
+                while ( true ) {
+                    int aId = ( int ) ( Math.random() * 100 ) + 100;
+                    int bId = ( int ) ( Math.random() * 100 );
+                    int cId = ( int ) ( Math.random() * 100 ) - 100;
 
                     // 开启更新事务
                     db.beginTransaction();
-                    DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
+                    DBCollection cl = db.getCollectionSpace( csName )
+                            .getCollection( clName );
                     try {
-                        BSONObject object = (BSONObject) JSON.parse("{_id:" + aId + ", a:10000, b:" + aId + "}");
-                        cl.insert(object);
-                        cl.delete("{b:" + aId + "}", "{'':'textIndex17960'}");
+                        BSONObject object = ( BSONObject ) JSON.parse(
+                                "{_id:" + aId + ", a:10000, b:" + aId + "}" );
+                        cl.insert( object );
+                        cl.delete( "{b:" + aId + "}", "{'':'textIndex17960'}" );
 
-                        object = (BSONObject) JSON.parse("{_id:" + (bId + 100) + ", a:10000, b:" + bId + "}");
-                        cl.insert(object);
-                        cl.delete("{_id:" + (bId + 100) + "}", "{'':'$id'}");
+                        object = ( BSONObject ) JSON.parse( "{_id:"
+                                + ( bId + 100 ) + ", a:10000, b:" + bId + "}" );
+                        cl.insert( object );
+                        cl.delete( "{_id:" + ( bId + 100 ) + "}",
+                                "{'':'$id'}" );
 
-                        object = (BSONObject) JSON.parse("{_id:" + cId + ", a:10000, b:" + cId + "}");
-                        cl.insert(object);
-                        cl.delete("{b:" + cId + "}", "{'':'textIndex17960'}");
+                        object = ( BSONObject ) JSON.parse(
+                                "{_id:" + cId + ", a:10000, b:" + cId + "}" );
+                        cl.insert( object );
+                        cl.delete( "{b:" + cId + "}", "{'':'textIndex17960'}" );
 
-                    } catch (BaseException e) {
-                        if (e.getErrorCode() == -13 || e.getErrorCode() == -48 || e.getErrorCode() == -52
-                                || e.getErrorCode() == -10 || e.getErrorCode() == -199) {
+                    } catch ( BaseException e ) {
+                        if ( e.getErrorCode() == -13 || e.getErrorCode() == -48
+                                || e.getErrorCode() == -52
+                                || e.getErrorCode() == -10
+                                || e.getErrorCode() == -199 ) {
                             db.rollback();
                             continue;
                         } else {
-                            Assert.fail(e.getMessage());
+                            Assert.fail( e.getMessage() );
                         }
                     }
 
                     // 提交更新事务
                     db.commit();
-                    if (count == endCount) {
+                    if ( count == endCount ) {
                         break;
                     } else {
                         count++;
                     }
-                    Thread.sleep(1000);
+                    Thread.sleep( 1000 );
                 }
             } finally {
                 db.commit();
@@ -218,47 +237,48 @@ public class Transaction17960 extends SdbTestBase {
     }
 
     class QueryThread extends SdbThreadBase {
-        private Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        private Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         @Override
         public void exec() throws Exception {
             try {
                 int count = 1;
                 int endCount = 3000;
-                while (true) {
+                while ( true ) {
 
                     // 开启查询事务
                     db.beginTransaction();
-                    String sql = "select sum(a) as sum from " + csName + "." + clName;
+                    String sql = "select sum(a) as sum from " + csName + "."
+                            + clName;
                     DBCursor cursor = null;
-                    List<BSONObject> actNums = null;
+                    List< BSONObject > actNums = null;
                     try {
-                        cursor = db.exec(sql);
-                        actNums = TransUtils.getReadActList(cursor);
-                    } catch (BaseException e) {
-                        if (e.getErrorCode() == -13) {
+                        cursor = db.exec( sql );
+                        actNums = TransUtils.getReadActList( cursor );
+                    } catch ( BaseException e ) {
+                        if ( e.getErrorCode() == -13 ) {
                             db.rollback();
                             continue;
                         } else {
-                            Assert.fail(e.getMessage());
+                            Assert.fail( e.getMessage() );
                         }
                     }
-                    Assert.assertEquals(actNums.size(), 1);
-                    double sumValue = (double) actNums.get(0).get("sum");
-                    int sum = (int) sumValue;
+                    Assert.assertEquals( actNums.size(), 1 );
+                    double sumValue = ( double ) actNums.get( 0 ).get( "sum" );
+                    int sum = ( int ) sumValue;
 
                     // 提交查询事务
                     db.commit();
-                    if (sum != 1000000) {
-                        System.out.println("SUM Value: " + sum);
-                        throw new Exception("VALUENUM ERROR");
+                    if ( sum != 1000000 ) {
+                        System.out.println( "SUM Value: " + sum );
+                        throw new Exception( "VALUENUM ERROR" );
                     }
-                    if (count == endCount) {
+                    if ( count == endCount ) {
                         break;
                     } else {
                         count++;
                     }
-                    Thread.sleep(200);
+                    Thread.sleep( 200 );
                 }
             } finally {
                 db.commit();
@@ -270,27 +290,28 @@ public class Transaction17960 extends SdbTestBase {
     }
 
     class DropIndexThread extends SdbThreadBase {
-        private Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        private Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         @Override
         public void exec() throws Exception {
             try {
                 int count = 1;
                 int endCount = 100;
-                while (true) {
+                while ( true ) {
 
-                    DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                    Assert.assertTrue(cl.isIndexExist("textIndex17960"));
-                    cl.dropIndex("textIndex17960");
-                    Assert.assertFalse(cl.isIndexExist("textIndex17960"));
-                    cl.createIndex("textIndex17960", indexKey, false, false);
+                    DBCollection cl = db.getCollectionSpace( csName )
+                            .getCollection( clName );
+                    Assert.assertTrue( cl.isIndexExist( "textIndex17960" ) );
+                    cl.dropIndex( "textIndex17960" );
+                    Assert.assertFalse( cl.isIndexExist( "textIndex17960" ) );
+                    cl.createIndex( "textIndex17960", indexKey, false, false );
 
-                    if (count == endCount) {
+                    if ( count == endCount ) {
                         break;
                     } else {
                         count++;
                     }
-                    Thread.sleep(6000);
+                    Thread.sleep( 6000 );
                 }
             } finally {
                 db.commit();

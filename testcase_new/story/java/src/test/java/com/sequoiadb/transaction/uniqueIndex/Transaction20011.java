@@ -28,56 +28,57 @@ public class Transaction20011 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private DBCollection cl = null;
     private DBCursor recordCur = null;
-    private List<BSONObject> expDataList = null;
-    private List<BSONObject> actDataList = null;
+    private List< BSONObject > expDataList = null;
+    private List< BSONObject > actDataList = null;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl.createIndex("a", "{a:1}", true, false);
-        expDataList = new ArrayList<BSONObject>();
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl.createIndex( "a", "{a:1}", true, false );
+        expDataList = new ArrayList< BSONObject >();
     }
 
     @Test
     public void test() {
-        Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         BasicBSONObject r1 = new BasicBSONObject();
-        r1.put("a", 1);
+        r1.put( "a", 1 );
 
         BasicBSONObject r2 = new BasicBSONObject();
-        r2.put("a", 2);
+        r2.put( "a", 2 );
         try {
             db.beginTransaction();
-            DBCollection cl1 = db.getCollectionSpace(csName).getCollection(clName);
-            cl1.insert(r1);
-            cl1.insert(r2);
-            cl1.delete(r1);
-            expDataList.add(r2);
-            recordCur = cl1.query(null, null, "{a:1}", "{'': null}");
-            actDataList = TransUtils.getReadActList(recordCur);
-            Assert.assertEquals(actDataList, expDataList);
+            DBCollection cl1 = db.getCollectionSpace( csName )
+                    .getCollection( clName );
+            cl1.insert( r1 );
+            cl1.insert( r2 );
+            cl1.delete( r1 );
+            expDataList.add( r2 );
+            recordCur = cl1.query( null, null, "{a:1}", "{'': null}" );
+            actDataList = TransUtils.getReadActList( recordCur );
+            Assert.assertEquals( actDataList, expDataList );
             actDataList.clear();
             expDataList.clear();
 
-            cl.insert(r1);
-            expDataList.add(r1);
-            expDataList.add(r2);
-            recordCur = cl1.query(null, null, "{a:1}", "{'': null}");
-            actDataList = TransUtils.getReadActList(recordCur);
-            Assert.assertEquals(actDataList, expDataList);
+            cl.insert( r1 );
+            expDataList.add( r1 );
+            expDataList.add( r2 );
+            recordCur = cl1.query( null, null, "{a:1}", "{'': null}" );
+            actDataList = TransUtils.getReadActList( recordCur );
+            Assert.assertEquals( actDataList, expDataList );
             actDataList.clear();
             expDataList.clear();
 
             db.rollback();
-            expDataList.add(r1);
-            recordCur = cl1.query(null, null, "{a:1}", "{'': null}");
-            actDataList = TransUtils.getReadActList(recordCur);
-            Assert.assertEquals(actDataList, expDataList);
+            expDataList.add( r1 );
+            recordCur = cl1.query( null, null, "{a:1}", "{'': null}" );
+            actDataList = TransUtils.getReadActList( recordCur );
+            Assert.assertEquals( actDataList, expDataList );
         } finally {
             db.commit();
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -85,11 +86,11 @@ public class Transaction20011 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        sdb.getCollectionSpace(csName).dropCollection(clName);
-        if (recordCur != null) {
+        sdb.getCollectionSpace( csName ).dropCollection( clName );
+        if ( recordCur != null ) {
             recordCur.close();
         }
-        if (sdb != null) {
+        if ( sdb != null ) {
             sdb.close();
         }
     }

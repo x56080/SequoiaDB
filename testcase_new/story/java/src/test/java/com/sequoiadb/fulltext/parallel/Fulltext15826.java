@@ -26,43 +26,47 @@ public class Fulltext15826 extends FullTestBase {
 
     @Override
     protected void initTestProp() {
-        caseProp.setProperty(IGNORESTANDALONE, "true");
-        caseProp.setProperty(CLNAME, clName);
+        caseProp.setProperty( IGNORESTANDALONE, "true" );
+        caseProp.setProperty( CLNAME, clName );
     }
 
     @Override
     protected void caseInit() throws Exception {
-        FullTextDBUtils.insertData(cl, insertNum);
+        FullTextDBUtils.insertData( cl, insertNum );
 
         // 创建索引
-        cl.createIndex(fullIdxName, "{'a':'text','b':'text','c':'text'}", false, false);
-        cl.createIndex("idx1", "{'a':1, 'b':1}", false, false);
-        cl.createIndex("idx2", "{'e':1, 'f':1}", false, false);
-        FullTextUtils.isIndexCreated(cl, fullIdxName, insertNum);
+        cl.createIndex( fullIdxName, "{'a':'text','b':'text','c':'text'}",
+                false, false );
+        cl.createIndex( "idx1", "{'a':1, 'b':1}", false, false );
+        cl.createIndex( "idx2", "{'e':1, 'f':1}", false, false );
+        FullTextUtils.isIndexCreated( cl, fullIdxName, insertNum );
 
-        esIndexName = FullTextDBUtils.getESIndexName(cl, fullIdxName);
-        cappedCLName = FullTextDBUtils.getCappedName(cl, fullIdxName);
+        esIndexName = FullTextDBUtils.getESIndexName( cl, fullIdxName );
+        cappedCLName = FullTextDBUtils.getCappedName( cl, fullIdxName );
     }
 
     @Test
     public void test() throws Exception {
-        ThreadExecutor thExecutor = new ThreadExecutor(FullTextUtils.THREAD_TIMEOUT);
-        thExecutor.addWorker(new DropFullIdx());
-        thExecutor.addWorker(new CreateIdx("idx3", "{'d':1, 'f':1}"));
-        thExecutor.addWorker(new CreateIdx("idx4", "{'b':1, 'c':1}"));
-        thExecutor.addWorker(new DropIdx("idx1"));
-        thExecutor.addWorker(new DropIdx("idx2"));
+        ThreadExecutor thExecutor = new ThreadExecutor(
+                FullTextUtils.THREAD_TIMEOUT );
+        thExecutor.addWorker( new DropFullIdx() );
+        thExecutor.addWorker( new CreateIdx( "idx3", "{'d':1, 'f':1}" ) );
+        thExecutor.addWorker( new CreateIdx( "idx4", "{'b':1, 'c':1}" ) );
+        thExecutor.addWorker( new DropIdx( "idx1" ) );
+        thExecutor.addWorker( new DropIdx( "idx2" ) );
 
         thExecutor.run();
 
         // 主备节点上索引信息及固定集合信息一致，ES同步的索引数据正确
-        Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedCLName));
-        Assert.assertTrue(FullTextUtils.isCLDataConsistency(cl));
+        Assert.assertTrue( FullTextUtils.isIndexDeleted( sdb, esIndexName,
+                cappedCLName ) );
+        Assert.assertTrue( FullTextUtils.isCLDataConsistency( cl ) );
     }
 
     @Override
     protected void caseFini() throws Exception {
-        Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedCLName));
+        Assert.assertTrue( FullTextUtils.isIndexDeleted( sdb, esIndexName,
+                cappedCLName ) );
     }
 
     private class DropFullIdx {
@@ -70,11 +74,12 @@ public class Fulltext15826 extends FullTestBase {
         private void dropFullIdx() {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                cl.dropIndex(fullIdxName);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                cl.dropIndex( fullIdxName );
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.close();
                 }
             }
@@ -85,7 +90,7 @@ public class Fulltext15826 extends FullTestBase {
         private String idxName;
         private String option;
 
-        private CreateIdx(String idxName, String option) {
+        private CreateIdx( String idxName, String option ) {
             this.idxName = idxName;
             this.option = option;
         }
@@ -94,13 +99,14 @@ public class Fulltext15826 extends FullTestBase {
         private void createIdx() {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(coordUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                Assert.assertFalse(cl.isIndexExist(idxName));
-                cl.createIndex(idxName, option, false, false);
-                Assert.assertTrue(cl.isIndexExist(idxName));
+                db = new Sequoiadb( coordUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                Assert.assertFalse( cl.isIndexExist( idxName ) );
+                cl.createIndex( idxName, option, false, false );
+                Assert.assertTrue( cl.isIndexExist( idxName ) );
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.close();
                 }
             }
@@ -111,7 +117,7 @@ public class Fulltext15826 extends FullTestBase {
     private class DropIdx {
         private String idxName;
 
-        private DropIdx(String idxName) {
+        private DropIdx( String idxName ) {
             this.idxName = idxName;
         }
 
@@ -119,13 +125,14 @@ public class Fulltext15826 extends FullTestBase {
         private void dropIdx() {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(coordUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                Assert.assertTrue(cl.isIndexExist(idxName));
-                cl.dropIndex(idxName);
-                Assert.assertFalse(cl.isIndexExist(idxName));
+                db = new Sequoiadb( coordUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                Assert.assertTrue( cl.isIndexExist( idxName ) );
+                cl.dropIndex( idxName );
+                Assert.assertFalse( cl.isIndexExist( idxName ) );
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.close();
                 }
             }

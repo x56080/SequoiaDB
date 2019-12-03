@@ -25,11 +25,11 @@ public class Transaction19195 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        sdb.getCollectionSpace(SdbTestBase.csName).createCollection(clName);
+        sdb.getCollectionSpace( SdbTestBase.csName ).createCollection( clName );
     }
 
     @Test
@@ -39,22 +39,22 @@ public class Transaction19195 extends SdbTestBase {
         try {
 
             // 使用setSessionAttr设置事务属性，覆盖所有可设置的事务属性
-            db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            BSONObject expAttr = (BSONObject) JSON.parse(
-                    "{TransIsolation:1, TransTimeout:30, TransLockWait:true, TransAutoCommit:true, TransAutoRollback:false, TransUseRBS:false, TransRCCount:false}");
-            db1.setSessionAttr(expAttr);
+            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            BSONObject expAttr = ( BSONObject ) JSON.parse(
+                    "{TransIsolation:1, TransTimeout:30, TransLockWait:true, TransAutoCommit:true, TransAutoRollback:false, TransUseRBS:false, TransRCCount:false}" );
+            db1.setSessionAttr( expAttr );
 
             // 使用updateConf更新同样的事务属性为其他值
-            db1.updateConfig((BSONObject) JSON.parse(
-                    "{transisolation:2, transactiontimeout:120, translockwait:false, transautocommit:false, transautorollback:true, transuserbs:true, transrccount:true}"));
+            db1.updateConfig( ( BSONObject ) JSON.parse(
+                    "{transisolation:2, transactiontimeout:120, translockwait:false, transautocommit:false, transautorollback:true, transuserbs:true, transrccount:true}" ) );
 
             // 使用getSessionAttr检查事务属性
             BSONObject attr = db1.getSessionAttr();
-            for (String key : expAttr.keySet()) {
-                Assert.assertEquals(attr.get(key), expAttr.get(key));
+            for ( String key : expAttr.keySet() ) {
+                Assert.assertEquals( attr.get( key ), expAttr.get( key ) );
             }
         } finally {
-            if (null != db1) {
+            if ( null != db1 ) {
                 db1.commit();
                 db1.close();
             }
@@ -63,11 +63,12 @@ public class Transaction19195 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (null != sdb) {
-            sdb.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
-            sdb.deleteConfig((BSONObject) JSON.parse(
-                    "{transisolation:'', transactiontimeout:'', translockwait:'', transautocommit:'', transautorollback:'', transuserbs:'', transrccount:''}"),
-                    (BSONObject) JSON.parse("{Global:true}"));
+        if ( null != sdb ) {
+            sdb.getCollectionSpace( SdbTestBase.csName )
+                    .dropCollection( clName );
+            sdb.deleteConfig( ( BSONObject ) JSON.parse(
+                    "{transisolation:'', transactiontimeout:'', translockwait:'', transautocommit:'', transautorollback:'', transuserbs:'', transrccount:''}" ),
+                    ( BSONObject ) JSON.parse( "{Global:true}" ) );
             sdb.close();
         }
     }

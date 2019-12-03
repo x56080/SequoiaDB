@@ -34,61 +34,61 @@ public class Transaction17134B extends SdbTestBase {
     private BSONObject data = null;
     private BSONObject data2 = null;
     private DBCursor recordCur = null;
-    private List<BSONObject> expDataList = null;
-    private List<BSONObject> actDataList = null;
+    private List< BSONObject > expDataList = null;
+    private List< BSONObject > actDataList = null;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        expDataList = new ArrayList<BSONObject>();
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        expDataList = new ArrayList< BSONObject >();
 
         data = new BasicBSONObject();
-        data.put("a", 1);
-        data.put("b", 1);
-        data.put("c", 13700000000L);
-        data.put("d", "customer transaction type data application.");
-        cl.insert(data);
+        data.put( "a", 1 );
+        data.put( "b", 1 );
+        data.put( "c", 13700000000L );
+        data.put( "d", "customer transaction type data application." );
+        cl.insert( data );
 
         data2 = new BasicBSONObject();
-        data2.put("a", 1);
-        data2.put("b", 2);
-        data2.put("c", 13700000000L);
-        data2.put("d", "customer transaction type data application.");
-        cl.insert(data2);
+        data2.put( "a", 1 );
+        data2.put( "b", 2 );
+        data2.put( "c", 13700000000L );
+        data2.put( "d", "customer transaction type data application." );
+        cl.insert( data2 );
 
     }
 
     @Test
     public void test() {
-        sdb1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        sdb2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl1 = sdb1.getCollectionSpace(csName).getCollection(clName);
-        cl2 = sdb2.getCollectionSpace(csName).getCollection(clName);
+        sdb1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl1 = sdb1.getCollectionSpace( csName ).getCollection( clName );
+        cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
 
         sdb1.beginTransaction();
         sdb2.beginTransaction();
 
         // 1 update R1 to R3
-        cl1.update("{b: 1}", "{$set:{a: 3}}", null);
+        cl1.update( "{b: 1}", "{$set:{a: 3}}", null );
 
         // 2 create unique index
-        TransUtils.createUniIdxErr(cl2, "a", "{a:1}");
+        TransUtils.createUniIdxErr( cl2, "a", "{a:1}" );
 
         sdb1.rollback();
         sdb2.rollback();
 
         expDataList.clear();
-        expDataList.add(data);
-        expDataList.add(data2);
-        recordCur = cl.query(null, null, null, "{'': null}");
-        actDataList = TransUtils.getReadActList(recordCur);
-        Assert.assertEquals(actDataList, expDataList, "check data");
+        expDataList.add( data );
+        expDataList.add( data2 );
+        recordCur = cl.query( null, null, null, "{'': null}" );
+        actDataList = TransUtils.getReadActList( recordCur );
+        Assert.assertEquals( actDataList, expDataList, "check data" );
         actDataList.clear();
 
-        recordCur = cl.query(null, null, null, "{'': 'a'}");
-        actDataList = TransUtils.getReadActList(recordCur);
-        Assert.assertEquals(actDataList, expDataList);
+        recordCur = cl.query( null, null, null, "{'': 'a'}" );
+        actDataList = TransUtils.getReadActList( recordCur );
+        Assert.assertEquals( actDataList, expDataList );
         actDataList.clear();
 
     }
@@ -98,17 +98,17 @@ public class Transaction17134B extends SdbTestBase {
         sdb.commit();
         sdb2.commit();
 
-        sdb.getCollectionSpace(csName).dropCollection(clName);
-        if (recordCur != null) {
+        sdb.getCollectionSpace( csName ).dropCollection( clName );
+        if ( recordCur != null ) {
             recordCur.close();
         }
-        if (sdb != null) {
+        if ( sdb != null ) {
             sdb.close();
         }
-        if (sdb1 != null) {
+        if ( sdb1 != null ) {
             sdb1.close();
         }
-        if (sdb2 != null) {
+        if ( sdb2 != null ) {
             sdb2.close();
         }
     }

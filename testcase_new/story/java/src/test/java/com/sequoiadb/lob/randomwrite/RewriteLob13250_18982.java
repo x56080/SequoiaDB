@@ -49,14 +49,17 @@ public class RewriteLob13250_18982 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         // create cs cl
-        BSONObject csOpt = (BSONObject) JSON.parse("{LobPageSize: " + lobPageSize + "}");
-        cs = sdb.createCollectionSpace(csName, csOpt);
-        BSONObject clOpt = (BSONObject) JSON.parse("{ShardingKey:{a:1},ShardingType:'hash'}");
-        cs.createCollection(clName, clOpt);
-        if (!CommLib.isStandAlone(sdb)) {
-            LobSubUtils.createMainCLAndAttachCL(sdb, csName, mainCLName, subCLName);
+        BSONObject csOpt = ( BSONObject ) JSON
+                .parse( "{LobPageSize: " + lobPageSize + "}" );
+        cs = sdb.createCollectionSpace( csName, csOpt );
+        BSONObject clOpt = ( BSONObject ) JSON
+                .parse( "{ShardingKey:{a:1},ShardingType:'hash'}" );
+        cs.createCollection( clName, clOpt );
+        if ( !CommLib.isStandAlone( sdb ) ) {
+            LobSubUtils.createMainCLAndAttachCL( sdb, csName, mainCLName,
+                    subCLName );
         }
     }
 
@@ -66,74 +69,92 @@ public class RewriteLob13250_18982 extends SdbTestBase {
         int firstDataPagePos = lobPageSize - lobMetaSize;
         result = new Object[][] {
                 // a、元数据片（0片）不带数据，偏移位置从第1片开始
-                new Object[] { clName, new LobPart(firstDataPagePos, lobPageSize) },
+                new Object[] { clName,
+                        new LobPart( firstDataPagePos, lobPageSize ) },
                 // b、元数据和数据之间有空块（如偏移位置从0片中间位置开始锁定）
-                new Object[] { clName, new LobPart(lobPageSize / 2, lobPageSize) },
+                new Object[] { clName,
+                        new LobPart( lobPageSize / 2, lobPageSize ) },
                 // c、数据切片未写满（结尾有空段、起始位置为有空段）
-                new Object[] { clName, new LobPart(firstDataPagePos + 1024, lobPageSize - 1024) },
+                new Object[] { clName,
+                        new LobPart( firstDataPagePos + 1024,
+                                lobPageSize - 1024 ) },
                 // d、数据页结尾1b空块
-                new Object[] { clName, new LobPart(firstDataPagePos, lobPageSize - 1) },
+                new Object[] { clName,
+                        new LobPart( firstDataPagePos, lobPageSize - 1 ) },
                 // e、数据页起始1b空块
-                new Object[] { clName, new LobPart(firstDataPagePos + 1, lobPageSize) },
+                new Object[] { clName,
+                        new LobPart( firstDataPagePos + 1, lobPageSize ) },
                 // f、空块为一完整数据页
-                new Object[] { clName, new LobPart(firstDataPagePos + lobPageSize, lobPageSize) },
+                new Object[] { clName,
+                        new LobPart( firstDataPagePos + lobPageSize,
+                                lobPageSize ) },
 
                 // testcase: 18982
                 // a、元数据片（0片）不带数据，偏移位置从第1片开始
-                new Object[] { mainCLName, new LobPart(firstDataPagePos, lobPageSize) },
+                new Object[] { mainCLName,
+                        new LobPart( firstDataPagePos, lobPageSize ) },
                 // b、元数据和数据之间有空块（如偏移位置从0片中间位置开始锁定）
-                new Object[] { mainCLName, new LobPart(lobPageSize / 2, lobPageSize) },
+                new Object[] { mainCLName,
+                        new LobPart( lobPageSize / 2, lobPageSize ) },
                 // c、数据切片未写满（结尾有空段、起始位置为有空段）
-                new Object[] { mainCLName, new LobPart(firstDataPagePos + 1024, lobPageSize - 1024) },
+                new Object[] { mainCLName,
+                        new LobPart( firstDataPagePos + 1024,
+                                lobPageSize - 1024 ) },
                 // d、数据页结尾1b空块
-                new Object[] { mainCLName, new LobPart(firstDataPagePos, lobPageSize - 1) },
+                new Object[] { mainCLName,
+                        new LobPart( firstDataPagePos, lobPageSize - 1 ) },
                 // e、数据页起始1b空块
-                new Object[] { mainCLName, new LobPart(firstDataPagePos + 1, lobPageSize) },
+                new Object[] { mainCLName,
+                        new LobPart( firstDataPagePos + 1, lobPageSize ) },
                 // f、空块为一完整数据页
-                new Object[] { mainCLName, new LobPart(firstDataPagePos + lobPageSize, lobPageSize) } };
+                new Object[] { mainCLName, new LobPart(
+                        firstDataPagePos + lobPageSize, lobPageSize ) } };
         return result;
     }
 
     @Test(dataProvider = "rangeProvider")
-    public void testLob(String clName, LobPart part) {
-        if (CommLib.isStandAlone(sdb) && clName.equals(mainCLName)) {
-            throw new SkipException("is standalone skip testcase!");
+    public void testLob( String clName, LobPart part ) {
+        if ( CommLib.isStandAlone( sdb ) && clName.equals( mainCLName ) ) {
+            throw new SkipException( "is standalone skip testcase!" );
         }
-        byte[] data = new byte[0];
-        DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, data);
+        byte[] data = new byte[ 0 ];
+        DBCollection cl = sdb.getCollectionSpace( csName )
+                .getCollection( clName );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl, data );
         byte[] expData = data;
 
-        try (DBLob lob = cl.openLob(oid, DBLob.SDB_LOB_WRITE)) {
-            lockAndSeekAndWriteLob(lob, part);
-            expData = updateExpData(expData, part);
+        try ( DBLob lob = cl.openLob( oid, DBLob.SDB_LOB_WRITE )) {
+            lockAndSeekAndWriteLob( lob, part );
+            expData = updateExpData( expData, part );
         }
 
-        byte[] actData = RandomWriteLobUtil.readLob(cl, oid);
-        RandomWriteLobUtil.assertByteArrayEqual(actData, expData, "lob data is wrong");
+        byte[] actData = RandomWriteLobUtil.readLob( cl, oid );
+        RandomWriteLobUtil.assertByteArrayEqual( actData, expData,
+                "lob data is wrong" );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }
     }
 
-    private void lockAndSeekAndWriteLob(DBLob lob, LobPart part) {
-        lob.lock(part.getOffset(), part.getLength());
-        lob.seek(part.getOffset(), DBLob.SDB_LOB_SEEK_SET);
-        lob.write(part.getData());
+    private void lockAndSeekAndWriteLob( DBLob lob, LobPart part ) {
+        lob.lock( part.getOffset(), part.getLength() );
+        lob.seek( part.getOffset(), DBLob.SDB_LOB_SEEK_SET );
+        lob.write( part.getData() );
     }
 
-    private byte[] updateExpData(byte[] expData, LobPart part) {
-        return RandomWriteLobUtil.appendBuff(expData, part.getData(), part.getOffset());
+    private byte[] updateExpData( byte[] expData, LobPart part ) {
+        return RandomWriteLobUtil.appendBuff( expData, part.getData(),
+                part.getOffset() );
     }
 
 }

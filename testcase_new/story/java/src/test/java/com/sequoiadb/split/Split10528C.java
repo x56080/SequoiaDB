@@ -38,54 +38,57 @@ public class Split10528C extends SdbTestBase {
     private String srcGroupName;
     private String destGroupName;
     private Sequoiadb commSdb = null;
-    private AtomicBoolean flag = new AtomicBoolean(false);
+    private AtomicBoolean flag = new AtomicBoolean( false );
 
     @BeforeClass()
     public void setUp() {
-        commSdb = new Sequoiadb(coordUrl, "", "");
+        commSdb = new Sequoiadb( coordUrl, "", "" );
         // 跳过 standAlone 和数据组不足的环境
         CommLib commlib = new CommLib();
-        if (commlib.isStandAlone(commSdb)) {
-            throw new SkipException("skip StandAlone");
+        if ( commlib.isStandAlone( commSdb ) ) {
+            throw new SkipException( "skip StandAlone" );
         }
-        List<String> groupsName = commlib.getDataGroupNames(commSdb);
-        if (groupsName.size() < 2) {
-            throw new SkipException("current environment less than tow groups ");
+        List< String > groupsName = commlib.getDataGroupNames( commSdb );
+        if ( groupsName.size() < 2 ) {
+            throw new SkipException(
+                    "current environment less than tow groups " );
         }
-        srcGroupName = groupsName.get(0);
-        destGroupName = groupsName.get(1);
-        cs = commSdb.getCollectionSpace(SdbTestBase.csName);
-        DBCollection cl = cs.createCollection(clName,
-                (BSONObject) JSON.parse("{ShardingKey:{'sk':1},ShardingType:'range',Group:'" + srcGroupName + "'}"));
+        srcGroupName = groupsName.get( 0 );
+        destGroupName = groupsName.get( 1 );
+        cs = commSdb.getCollectionSpace( SdbTestBase.csName );
+        DBCollection cl = cs.createCollection( clName,
+                ( BSONObject ) JSON.parse(
+                        "{ShardingKey:{'sk':1},ShardingType:'range',Group:'"
+                                + srcGroupName + "'}" ) );
         // 写入待切分的记录（200000）
-        insertData(cl);
+        insertData( cl );
     }
 
     @Test(timeOut = 30 * 60 * 1000)
     public void test() throws InterruptedException {
         int condition = 0;
         int endCondition = 5000;
-        List<SplitTask> splitTasks = new ArrayList<>(5);
+        List< SplitTask > splitTasks = new ArrayList<>( 5 );
         Random random = new Random();
-        for (int i = 0; i < 5; i++) {
-            splitTasks.add(new SplitTask(condition, endCondition));
+        for ( int i = 0; i < 5; i++ ) {
+            splitTasks.add( new SplitTask( condition, endCondition ) );
             condition = endCondition + 5000;
             endCondition = condition + 25000;
         }
 
-        for (SplitTask splitTask : splitTasks) {
+        for ( SplitTask splitTask : splitTasks ) {
             splitTask.start();
         }
 
         // 删除CL,随机覆盖：1、数据迁移完成，编目未更新；2、数据迁移完成，编目已更新
-        Thread.sleep(random.nextInt(2000));
+        Thread.sleep( random.nextInt( 2000 ) );
 
-        cs.dropCollection(clName);
-        Assert.assertEquals(cs.isCollectionExist(clName), false);
+        cs.dropCollection( clName );
+        Assert.assertEquals( cs.isCollectionExist( clName ), false );
 
         // 检测切分线程
-        for (SplitTask splitTask : splitTasks) {
-            Assert.assertTrue(splitTask.isSuccess(), splitTask.getErrorMsg());
+        for ( SplitTask splitTask : splitTasks ) {
+            Assert.assertTrue( splitTask.isSuccess(), splitTask.getErrorMsg() );
         }
 
     }
@@ -93,13 +96,14 @@ public class Split10528C extends SdbTestBase {
     @AfterClass(enabled = true)
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage() + "\r\n" + SplitUtils.getKeyStack(e, this));
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n"
+                    + SplitUtils.getKeyStack( e, this ) );
         } finally {
-            if (commSdb != null) {
+            if ( commSdb != null ) {
                 commSdb.disconnect();
             }
         }
@@ -108,7 +112,7 @@ public class Split10528C extends SdbTestBase {
     class SplitTask extends SdbThreadBase {
         private int beginNo, endNo;
 
-        public SplitTask(int beginNo, int endNo) {
+        public SplitTask( int beginNo, int endNo ) {
             this.beginNo = beginNo;
             this.endNo = endNo;
         }
@@ -117,17 +121,20 @@ public class Split10528C extends SdbTestBase {
         public void exec() throws Exception {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(coordUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-                cl.split(srcGroupName, destGroupName, (BSONObject) JSON.parse("{sk:" + beginNo + "}"),
-                        (BSONObject) JSON.parse("{sk:" + endNo + "}"));
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -23 && e.getErrorCode() != -147 && e.getErrorCode() != -190) {
+                db = new Sequoiadb( coordUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
+                cl.split( srcGroupName, destGroupName,
+                        ( BSONObject ) JSON.parse( "{sk:" + beginNo + "}" ),
+                        ( BSONObject ) JSON.parse( "{sk:" + endNo + "}" ) );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -23 && e.getErrorCode() != -147
+                        && e.getErrorCode() != -190 ) {
                     e.printStackTrace();
                     throw e;
                 }
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.disconnect();
                 }
             }
@@ -136,17 +143,19 @@ public class Split10528C extends SdbTestBase {
     }
 
     // insert 3W records
-    private void insertData(DBCollection cl) {
+    private void insertData( DBCollection cl ) {
         int count = 0;
-        for (int i = 0; i < 20; i++) {
-            List<BSONObject> list = new ArrayList<BSONObject>();
-            for (int j = 0; j < 10000; j++) {
+        for ( int i = 0; i < 20; i++ ) {
+            List< BSONObject > list = new ArrayList< BSONObject >();
+            for ( int j = 0; j < 10000; j++ ) {
                 int value = count++;
-                BSONObject obj = (BSONObject) JSON
-                        .parse("{sk:" + value + ", test:" + "'testasetaASDGAA111111111DGADGADGADGtatatatat'" + "}");
-                list.add(obj);
+                BSONObject obj = ( BSONObject ) JSON.parse( "{sk:" + value
+                        + ", test:"
+                        + "'testasetaASDGAA111111111DGADGADGADGtatatatat'"
+                        + "}" );
+                list.add( obj );
             }
-            cl.insert(list);
+            cl.insert( list );
         }
     }
 

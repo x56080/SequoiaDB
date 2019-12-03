@@ -26,11 +26,11 @@ public class Transaction19185 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        sdb.getCollectionSpace(SdbTestBase.csName).createCollection(clName);
+        sdb.getCollectionSpace( SdbTestBase.csName ).createCollection( clName );
     }
 
     @Test
@@ -41,53 +41,60 @@ public class Transaction19185 extends SdbTestBase {
 
             // 创建一个连接db1，开启事务，设置事务属性，覆盖：Timeout、TransIsolation、TransTimeout、
             // TransUseRBS、TransLockWait、TransAutoCommit、TransAutoRollback、TransRCCount，查询事务属性
-            db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             db1.beginTransaction();
-            db1.setSessionAttr((BSONObject) JSON.parse("{TransTimeout:120}"));
+            db1.setSessionAttr(
+                    ( BSONObject ) JSON.parse( "{TransTimeout:120}" ) );
             try {
-                db1.setSessionAttr((BSONObject) JSON.parse("{TransIsolation:1}"));
+                db1.setSessionAttr(
+                        ( BSONObject ) JSON.parse( "{TransIsolation:1}" ) );
                 Assert.fail();
-            } catch (BaseException e) {
-                Assert.assertEquals(e.getErrorCode(), -6);
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -6 );
             }
             try {
-                db1.setSessionAttr((BSONObject) JSON.parse("{TransUseRBS:false}"));
+                db1.setSessionAttr(
+                        ( BSONObject ) JSON.parse( "{TransUseRBS:false}" ) );
                 Assert.fail();
-            } catch (BaseException e) {
-                Assert.assertEquals(e.getErrorCode(), -6);
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -6 );
             }
             try {
-                db1.setSessionAttr((BSONObject) JSON.parse("{TransLockWait:true}"));
+                db1.setSessionAttr(
+                        ( BSONObject ) JSON.parse( "{TransLockWait:true}" ) );
                 Assert.fail();
-            } catch (BaseException e) {
-                Assert.assertEquals(e.getErrorCode(), -6);
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -6 );
             }
             try {
-                db1.setSessionAttr((BSONObject) JSON.parse("{TransAutoCommit:true}"));
+                db1.setSessionAttr(
+                        ( BSONObject ) JSON.parse( "{TransAutoCommit:true}" ) );
                 Assert.fail();
-            } catch (BaseException e) {
-                Assert.assertEquals(e.getErrorCode(), -6);
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -6 );
             }
             try {
-                db1.setSessionAttr((BSONObject) JSON.parse("{TransAutoRollback:false}"));
+                db1.setSessionAttr( ( BSONObject ) JSON
+                        .parse( "{TransAutoRollback:false}" ) );
                 Assert.fail();
-            } catch (BaseException e) {
-                Assert.assertEquals(e.getErrorCode(), -6);
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -6 );
             }
             try {
-                db1.setSessionAttr((BSONObject) JSON.parse("{TransRCCount:false}"));
+                db1.setSessionAttr(
+                        ( BSONObject ) JSON.parse( "{TransRCCount:false}" ) );
                 Assert.fail();
-            } catch (BaseException e) {
-                Assert.assertEquals(e.getErrorCode(), -6);
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -6 );
             }
             BSONObject attr = db1.getSessionAttr();
-            BSONObject expAttr = (BSONObject) JSON.parse(
-                    "{TransTimeout:120, TransIsolation:0, TransUseRBS:true, TransLockWait:false, TransAutoCommit:false, TransAutoRollback:true, TransRCCount: true}");
-            for (String key : expAttr.keySet()) {
-                Assert.assertEquals(attr.get(key), expAttr.get(key));
+            BSONObject expAttr = ( BSONObject ) JSON.parse(
+                    "{TransTimeout:120, TransIsolation:0, TransUseRBS:true, TransLockWait:false, TransAutoCommit:false, TransAutoRollback:true, TransRCCount: true}" );
+            for ( String key : expAttr.keySet() ) {
+                Assert.assertEquals( attr.get( key ), expAttr.get( key ) );
             }
         } finally {
-            if (null != db1) {
+            if ( null != db1 ) {
                 db1.commit();
                 db1.close();
             }
@@ -96,8 +103,9 @@ public class Transaction19185 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (null != sdb) {
-            sdb.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
+        if ( null != sdb ) {
+            sdb.getCollectionSpace( SdbTestBase.csName )
+                    .dropCollection( clName );
             sdb.close();
         }
     }

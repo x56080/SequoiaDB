@@ -32,17 +32,17 @@ public class Transaction17169 extends SdbTestBase {
     private DBCollection cl = null;
     private DBCollection cl1 = null;
     private DBCursor cursor = null;
-    private List<BSONObject> expList = new ArrayList<BSONObject>();
+    private List< BSONObject > expList = new ArrayList< BSONObject >();
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl1 = db1.getCollectionSpace(csName).getCollection(clName);
-        cl.createIndex("a", "{a:1}", false, false);
-        BSONObject insertR1 = (BSONObject) JSON.parse("{_id:1, a:1, b:1}");
-        cl.insert(insertR1);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
+        cl.createIndex( "a", "{a:1}", false, false );
+        BSONObject insertR1 = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
+        cl.insert( insertR1 );
     }
 
     @Test
@@ -51,44 +51,48 @@ public class Transaction17169 extends SdbTestBase {
         db1.beginTransaction();
 
         // 事务1执行多次更新
-        for (int i = 0; i < 50000; i++) {
+        for ( int i = 0; i < 50000; i++ ) {
             BSONObject modifier = new BasicBSONObject();
-            modifier.put("a", 2);
-            modifier.put("b", 2);
-            cl1.update(null, new BasicBSONObject("$inc", modifier), new BasicBSONObject("", "a"));
+            modifier.put( "a", 2 );
+            modifier.put( "b", 2 );
+            cl1.update( null, new BasicBSONObject( "$inc", modifier ),
+                    new BasicBSONObject( "", "a" ) );
         }
 
         // 事务2表扫描记录
-        Read read1 = new Read("{'':null}");
+        Read read1 = new Read( "{'':null}" );
         read1.start();
-        Assert.assertTrue(read1.matchBlockingMethod(DBCursor.class.getName(), "hasNext"));
+        Assert.assertTrue( read1.matchBlockingMethod( DBCursor.class.getName(),
+                "hasNext" ) );
 
         // 事务2索引扫描记录
-        Read read2 = new Read("{'':'a'}");
+        Read read2 = new Read( "{'':'a'}" );
         read2.start();
-        Assert.assertTrue(read2.matchBlockingMethod(DBCursor.class.getName(), "hasNext"));
+        Assert.assertTrue( read2.matchBlockingMethod( DBCursor.class.getName(),
+                "hasNext" ) );
 
         // 非事务表扫描记录
-        BSONObject updateR1 = (BSONObject) JSON.parse("{_id:1, a:100001, b:100001}");
-        expList.add(updateR1);
-        cursor = cl.query(null, null, null, "{'':null}");
-        Assert.assertEquals(TransUtils.getReadActList(cursor), expList);
+        BSONObject updateR1 = ( BSONObject ) JSON
+                .parse( "{_id:1, a:100001, b:100001}" );
+        expList.add( updateR1 );
+        cursor = cl.query( null, null, null, "{'':null}" );
+        Assert.assertEquals( TransUtils.getReadActList( cursor ), expList );
 
         // 非事务索引扫描记录
-        cursor = cl.query(null, null, null, "{'':'a'}");
-        Assert.assertEquals(TransUtils.getReadActList(cursor), expList);
+        cursor = cl.query( null, null, null, "{'':'a'}" );
+        Assert.assertEquals( TransUtils.getReadActList( cursor ), expList );
 
         db1.commit();
 
         // 校验被阻塞线程返回的记录
-        if (!read1.isSuccess() || !read2.isSuccess()) {
-            Assert.fail(read1.getErrorMsg() + read2.getErrorMsg());
+        if ( !read1.isSuccess() || !read2.isSuccess() ) {
+            Assert.fail( read1.getErrorMsg() + read2.getErrorMsg() );
         }
         try {
-            Assert.assertEquals(read1.getExecResult(), expList);
-            Assert.assertEquals(read2.getExecResult(), expList);
-        } catch (Exception e) {
-            Assert.fail(e.getMessage());
+            Assert.assertEquals( read1.getExecResult(), expList );
+            Assert.assertEquals( read2.getExecResult(), expList );
+        } catch ( Exception e ) {
+            Assert.fail( e.getMessage() );
         }
 
         cursor.close();
@@ -102,32 +106,35 @@ public class Transaction17169 extends SdbTestBase {
         private String hint = null;
         private DBCursor cursor = null;
 
-        public Read(String hint) {
+        public Read( String hint ) {
             this.hint = hint;
         }
 
         @Override
         public void exec() throws Exception {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            cl = db.getCollectionSpace(csName).getCollection(clName);
-            cl2 = db2.getCollectionSpace(csName).getCollection(clName);
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            cl = db.getCollectionSpace( csName ).getCollection( clName );
+            cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
 
             // 开启并发事务2
             db2.beginTransaction();
 
             try {
-                cursor = cl2.query(null, null, null, hint);
-                List<BSONObject> records = TransUtils.getReadActList(cursor);
-                setExecResult(records);
+                cursor = cl2.query( null, null, null, hint );
+                List< BSONObject > records = TransUtils
+                        .getReadActList( cursor );
+                setExecResult( records );
 
                 // 事务2扫描记录
-                cursor = cl2.query(null, null, null, hint);
-                Assert.assertEquals(TransUtils.getReadActList(cursor), expList);
+                cursor = cl2.query( null, null, null, hint );
+                Assert.assertEquals( TransUtils.getReadActList( cursor ),
+                        expList );
 
                 // 非事务扫描记录
-                cursor = cl.query(null, null, null, hint);
-                Assert.assertEquals(TransUtils.getReadActList(cursor), expList);
+                cursor = cl.query( null, null, null, hint );
+                Assert.assertEquals( TransUtils.getReadActList( cursor ),
+                        expList );
 
                 db2.commit();
             } finally {
@@ -142,14 +149,14 @@ public class Transaction17169 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         db1.commit();
-        if (!db1.isClosed()) {
+        if ( !db1.isClosed() ) {
             db1.close();
         }
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        if (!sdb.isClosed()) {
+        if ( !sdb.isClosed() ) {
             sdb.close();
         }
     }

@@ -43,40 +43,43 @@ public class RewriteLob13392 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        BSONObject csOpt = (BSONObject) JSON.parse("{LobPageSize: " + lobPageSize + "}");
-        cs = sdb.createCollectionSpace(csName, csOpt);
-        BSONObject clOpt = (BSONObject) JSON.parse("{ShardingKey:{a:1},ShardingType:'hash'}");
-        cl = cs.createCollection(clName, clOpt);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        BSONObject csOpt = ( BSONObject ) JSON
+                .parse( "{LobPageSize: " + lobPageSize + "}" );
+        cs = sdb.createCollectionSpace( csName, csOpt );
+        BSONObject clOpt = ( BSONObject ) JSON
+                .parse( "{ShardingKey:{a:1},ShardingType:'hash'}" );
+        cl = cs.createCollection( clName, clOpt );
     }
 
     // a、truncate空切片
     @Test
     public void testLob() {
         int lobSize = 1;
-        byte[] data = RandomWriteLobUtil.getRandomBytes(lobSize);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, data);
+        byte[] data = RandomWriteLobUtil.getRandomBytes( lobSize );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl, data );
         byte[] expData = data;
 
         // make the first data piece empty
         long firstDataPagePos = lobPageSize - lobMetaSize;
         long secondDataPagePos = firstDataPagePos + lobPageSize;
-        try (DBLob lob = cl.openLob(oid, DBLob.SDB_LOB_WRITE)) {
-            lob.seek(secondDataPagePos, DBLob.SDB_LOB_SEEK_SET);
-            byte[] data2 = new byte[lobPageSize];
-            lob.write(data2);
-            expData = RandomWriteLobUtil.appendBuff(expData, data2, lobPageSize);
+        try ( DBLob lob = cl.openLob( oid, DBLob.SDB_LOB_WRITE )) {
+            lob.seek( secondDataPagePos, DBLob.SDB_LOB_SEEK_SET );
+            byte[] data2 = new byte[ lobPageSize ];
+            lob.write( data2 );
+            expData = RandomWriteLobUtil.appendBuff( expData, data2,
+                    lobPageSize );
         }
 
         // let empty piece be the last piece
-        cl.truncateLob(oid, secondDataPagePos);
-        expData = Arrays.copyOfRange(expData, 0, (int) secondDataPagePos);
-        checkLobDataAndSize(cl, oid, expData, secondDataPagePos);
+        cl.truncateLob( oid, secondDataPagePos );
+        expData = Arrays.copyOfRange( expData, 0, ( int ) secondDataPagePos );
+        checkLobDataAndSize( cl, oid, expData, secondDataPagePos );
 
         // only truncate empty piece
-        cl.truncateLob(oid, firstDataPagePos);
-        expData = Arrays.copyOfRange(expData, 0, (int) firstDataPagePos);
-        checkLobDataAndSize(cl, oid, expData, firstDataPagePos);
+        cl.truncateLob( oid, firstDataPagePos );
+        expData = Arrays.copyOfRange( expData, 0, ( int ) firstDataPagePos );
+        checkLobDataAndSize( cl, oid, expData, firstDataPagePos );
 
     }
 
@@ -84,69 +87,73 @@ public class RewriteLob13392 extends SdbTestBase {
     @Test
     public void testLob2() {
         int lobSize = 1;
-        byte[] data = RandomWriteLobUtil.getRandomBytes(lobSize);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, data);
+        byte[] data = RandomWriteLobUtil.getRandomBytes( lobSize );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl, data );
         byte[] expData = data;
 
         // make the first data piece empty
         long firstDataPagePos = lobPageSize - lobMetaSize;
         long secondDataPagePos = firstDataPagePos + lobPageSize;
-        try (DBLob lob = cl.openLob(oid, DBLob.SDB_LOB_WRITE)) {
-            lob.seek(secondDataPagePos, DBLob.SDB_LOB_SEEK_SET);
-            byte[] data2 = new byte[lobPageSize];
-            lob.write(data2);
-            expData = RandomWriteLobUtil.appendBuff(expData, data2, lobPageSize);
+        try ( DBLob lob = cl.openLob( oid, DBLob.SDB_LOB_WRITE )) {
+            lob.seek( secondDataPagePos, DBLob.SDB_LOB_SEEK_SET );
+            byte[] data2 = new byte[ lobPageSize ];
+            lob.write( data2 );
+            expData = RandomWriteLobUtil.appendBuff( expData, data2,
+                    lobPageSize );
         }
 
         // truncate data that contains empty piece
-        cl.truncateLob(oid, firstDataPagePos);
-        expData = Arrays.copyOfRange(expData, 0, (int) firstDataPagePos);
-        checkLobDataAndSize(cl, oid, expData, firstDataPagePos);
+        cl.truncateLob( oid, firstDataPagePos );
+        expData = Arrays.copyOfRange( expData, 0, ( int ) firstDataPagePos );
+        checkLobDataAndSize( cl, oid, expData, firstDataPagePos );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }
     }
 
-    private void checkLobDataAndSize(DBCollection cl, ObjectId oid, byte[] expData, long expLen) {
-        byte[] actData = RandomWriteLobUtil.readLob(cl, oid);
-        RandomWriteLobUtil.assertByteArrayEqual(actData, expData, "lob data is wrong");
+    private void checkLobDataAndSize( DBCollection cl, ObjectId oid,
+            byte[] expData, long expLen ) {
+        byte[] actData = RandomWriteLobUtil.readLob( cl, oid );
+        RandomWriteLobUtil.assertByteArrayEqual( actData, expData,
+                "lob data is wrong" );
 
-        long actSize = getSizeByListLobs(cl, oid);
-        Assert.assertEquals(actSize, expLen, "wrong length after truncate lob");
+        long actSize = getSizeByListLobs( cl, oid );
+        Assert.assertEquals( actSize, expLen,
+                "wrong length after truncate lob" );
     }
 
-    private long getSizeByListLobs(DBCollection cl, ObjectId oid) {
+    private long getSizeByListLobs( DBCollection cl, ObjectId oid ) {
         DBCursor cursor = null;
         long lobSize = 0;
         boolean oidFound = false;
         try {
             cursor = cl.listLobs();
-            while (cursor.hasNext()) {
+            while ( cursor.hasNext() ) {
                 BSONObject res = cursor.getNext();
-                ObjectId curOid = (ObjectId) res.get("Oid");
-                if (curOid.equals(oid)) {
-                    lobSize = (long) res.get("Size");
+                ObjectId curOid = ( ObjectId ) res.get( "Oid" );
+                if ( curOid.equals( oid ) ) {
+                    lobSize = ( long ) res.get( "Size" );
                     oidFound = true;
                     break;
                 }
             }
         } finally {
-            if (cursor != null) {
+            if ( cursor != null ) {
                 cursor.close();
             }
         }
-        if (!oidFound) {
-            throw new RuntimeException("no such oid");
+        if ( !oidFound ) {
+            throw new RuntimeException( "no such oid" );
         }
         return lobSize;
     }

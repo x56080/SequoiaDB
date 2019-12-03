@@ -29,16 +29,13 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 /*
- * seqDB-13265
- * 
- * 1、共享模式下，多个连接多线程并发如下操作: (1)打开已存在lob对象，seek指定偏移范围，执行lock锁定数据段， 向锁定数据段写入lob
- * 多个并发线程中锁定数据段为连续范围， 如线程1锁定数据范围为1-3、线程2锁定数据范围为4-5、线程3锁定数据范围为5-9 2、读取lob，检查操作结果
+ * seqDB-13265 1、共享模式下，多个连接多线程并发如下操作: (1)打开已存在lob对象，seek指定偏移范围，执行lock锁定数据段，
+ * 向锁定数据段写入lob 多个并发线程中锁定数据段为连续范围， 如线程1锁定数据范围为1-3、线程2锁定数据范围为4-5、线程3锁定数据范围为5-9
+ * 2、读取lob，检查操作结果
  */
 
 /*
- * seqDB-13272
- * 
- * 1、多个连接多线程并发如下操作: (1)打开已存在lob对象，seek指定偏移范围，执行read读取指定范围内数据 \
+ * seqDB-13272 1、多个连接多线程并发如下操作: (1)打开已存在lob对象，seek指定偏移范围，执行read读取指定范围内数据 \
  * 多个并发线程中指定数据范围不连续，如线程1读数据范围为1-3、线程2读数据范围 为6-15、线程3锁定数据范围为25-29 2、检查操作结果
  */
 
@@ -56,48 +53,52 @@ public class RewriteLob13265_13272 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (sdb.isCollectionSpaceExist(csName)) {
-            sdb.dropCollectionSpace(csName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.dropCollectionSpace( csName );
         }
         // create cs cl
-        BSONObject csOpt = (BSONObject) JSON.parse("{LobPageSize: " + lobPageSize + "}");
-        cs = sdb.createCollectionSpace(csName, csOpt);
-        BSONObject clOpt = (BSONObject) JSON.parse("{ShardingKey:{a:1},ShardingType:'hash'}");
-        cl = cs.createCollection(clName, clOpt);
+        BSONObject csOpt = ( BSONObject ) JSON
+                .parse( "{LobPageSize: " + lobPageSize + "}" );
+        cs = sdb.createCollectionSpace( csName, csOpt );
+        BSONObject clOpt = ( BSONObject ) JSON
+                .parse( "{ShardingKey:{a:1},ShardingType:'hash'}" );
+        cl = cs.createCollection( clName, clOpt );
     }
 
     @Test
     public void testLob() {
         int lobSize = 1 * 1024 * 1024;
-        byte[] data = RandomWriteLobUtil.getRandomBytes(lobSize);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, data);
-        List<LobPart> parts = getDiscontinuousParts(threadNum, writeSizePerThread);
+        byte[] data = RandomWriteLobUtil.getRandomBytes( lobSize );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl, data );
+        List< LobPart > parts = getDiscontinuousParts( threadNum,
+                writeSizePerThread );
 
         // write concurrently
-        List<WriteLobThread> wLobThrds = new ArrayList<WriteLobThread>();
-        for (int i = 0; i < threadNum; ++i) {
-            WriteLobThread wLobThrd = new WriteLobThread(oid, parts.get(i));
-            wLobThrds.add(wLobThrd);
+        List< WriteLobThread > wLobThrds = new ArrayList< WriteLobThread >();
+        for ( int i = 0; i < threadNum; ++i ) {
+            WriteLobThread wLobThrd = new WriteLobThread( oid, parts.get( i ) );
+            wLobThrds.add( wLobThrd );
         }
-        for (WriteLobThread wLobThrd : wLobThrds) {
+        for ( WriteLobThread wLobThrd : wLobThrds ) {
             wLobThrd.start();
         }
-        for (WriteLobThread wLobThrd : wLobThrds) {
-            Assert.assertTrue(wLobThrd.isSuccess(), wLobThrd.getErrorMsg());
+        for ( WriteLobThread wLobThrd : wLobThrds ) {
+            Assert.assertTrue( wLobThrd.isSuccess(), wLobThrd.getErrorMsg() );
         }
 
         // read and check concurrently
-        List<ReadAndCheckLobThread> rLobThrds = new ArrayList<ReadAndCheckLobThread>();
-        for (int i = 0; i < threadNum; ++i) {
-            ReadAndCheckLobThread rLobThrd = new ReadAndCheckLobThread(oid, parts.get(i));
-            rLobThrds.add(rLobThrd);
+        List< ReadAndCheckLobThread > rLobThrds = new ArrayList< ReadAndCheckLobThread >();
+        for ( int i = 0; i < threadNum; ++i ) {
+            ReadAndCheckLobThread rLobThrd = new ReadAndCheckLobThread( oid,
+                    parts.get( i ) );
+            rLobThrds.add( rLobThrd );
         }
-        for (ReadAndCheckLobThread rLobThrd : rLobThrds) {
+        for ( ReadAndCheckLobThread rLobThrd : rLobThrds ) {
             rLobThrd.start();
         }
-        for (ReadAndCheckLobThread rLobThrd : rLobThrds) {
-            Assert.assertTrue(rLobThrd.isSuccess(), rLobThrd.getErrorMsg());
+        for ( ReadAndCheckLobThread rLobThrd : rLobThrds ) {
+            Assert.assertTrue( rLobThrd.isSuccess(), rLobThrd.getErrorMsg() );
         }
 
         runSuccess = true;
@@ -106,11 +107,11 @@ public class RewriteLob13265_13272 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            if (runSuccess) {
-                sdb.dropCollectionSpace(csName);
+            if ( runSuccess ) {
+                sdb.dropCollectionSpace( csName );
             }
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }
@@ -120,18 +121,20 @@ public class RewriteLob13265_13272 extends SdbTestBase {
         private ObjectId oid = null;
         private LobPart part = null;
 
-        public WriteLobThread(ObjectId oid, LobPart part) {
+        public WriteLobThread( ObjectId oid, LobPart part ) {
             this.oid = oid;
             this.part = part;
         }
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                try (DBLob lob = cl.openLob(oid, DBLob.SDB_LOB_WRITE)) {
-                    lob.lockAndSeek(part.getOffset(), part.getLength());
-                    lob.write(part.getData());
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                try ( DBLob lob = cl.openLob( oid, DBLob.SDB_LOB_WRITE )) {
+                    lob.lockAndSeek( part.getOffset(), part.getLength() );
+                    lob.write( part.getData() );
                 }
             }
         }
@@ -142,30 +145,33 @@ public class RewriteLob13265_13272 extends SdbTestBase {
         private byte[] readData = null;
         private LobPart part = null;
 
-        public ReadAndCheckLobThread(ObjectId oid, LobPart part) {
+        public ReadAndCheckLobThread( ObjectId oid, LobPart part ) {
             this.oid = oid;
             this.part = part;
         }
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                try (DBLob lob = cl.openLob(oid, DBLob.SDB_LOB_READ)) {
-                    lob.lockAndSeek(part.getOffset(), part.getLength());
-                    readData = new byte[part.getLength()];
-                    lob.read(readData);
-                    RandomWriteLobUtil.assertByteArrayEqual(readData, part.getData());
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                try ( DBLob lob = cl.openLob( oid, DBLob.SDB_LOB_READ )) {
+                    lob.lockAndSeek( part.getOffset(), part.getLength() );
+                    readData = new byte[ part.getLength() ];
+                    lob.read( readData );
+                    RandomWriteLobUtil.assertByteArrayEqual( readData,
+                            part.getData() );
                 }
             }
         }
     }
 
-    private List<LobPart> getDiscontinuousParts(int partNum, int partSize) {
-        List<LobPart> parts = new ArrayList<LobPart>();
-        for (int i = 0; i < partNum; ++i) {
-            LobPart part = new LobPart(2 * i * partSize, partSize);
-            parts.add(part);
+    private List< LobPart > getDiscontinuousParts( int partNum, int partSize ) {
+        List< LobPart > parts = new ArrayList< LobPart >();
+        for ( int i = 0; i < partNum; ++i ) {
+            LobPart part = new LobPart( 2 * i * partSize, partSize );
+            parts.add( part );
         }
         return parts;
     }

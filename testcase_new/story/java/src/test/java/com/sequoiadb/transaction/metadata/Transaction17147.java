@@ -33,34 +33,34 @@ public class Transaction17147 extends SdbTestBase {
     private CollectionSpace cs;
     private DBCollection cl = null;
     private DBCollection cl2 = null;
-    private List<BSONObject> expList = new ArrayList<BSONObject>();
-    private List<BSONObject> actList = new ArrayList<BSONObject>();
+    private List< BSONObject > expList = new ArrayList< BSONObject >();
+    private List< BSONObject > actList = new ArrayList< BSONObject >();
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = sdb.getCollectionSpace(csName);
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl2 = db2.getCollectionSpace(csName).getCollection(clName);
-        BSONObject record = (BSONObject) JSON.parse("{_id:1, a:1, b:1}");
-        cl.insert(record);
-        record = (BSONObject) JSON.parse("{_id:2, a:2, b:2}");
-        cl.insert(record);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.getCollectionSpace( csName );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
+        BSONObject record = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
+        cl.insert( record );
+        record = ( BSONObject ) JSON.parse( "{_id:2, a:2, b:2}" );
+        cl.insert( record );
     }
 
     @AfterClass
     public void tearDown() {
         sdb.commit();
         db2.commit();
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        if (!sdb.isClosed()) {
+        if ( !sdb.isClosed() ) {
             sdb.close();
         }
-        if (!db2.isClosed()) {
+        if ( !db2.isClosed() ) {
             db2.close();
         }
     }
@@ -69,112 +69,114 @@ public class Transaction17147 extends SdbTestBase {
     public void test() {
         // 开启事务执行增删改操作
         sdb.beginTransaction();
-        BSONObject record = (BSONObject) JSON.parse("{_id:3, a:3, b:3}");
-        cl.insert(record);
-        expList.add(record);
-        cl.delete("{a:1}", "{'':null}");
-        cl.update("{a:2}", "{$set:{a:4}}", "{'':null}");
-        record = (BSONObject) JSON.parse("{_id:2, a:4, b:2}");
-        expList.add(record);
+        BSONObject record = ( BSONObject ) JSON.parse( "{_id:3, a:3, b:3}" );
+        cl.insert( record );
+        expList.add( record );
+        cl.delete( "{a:1}", "{'':null}" );
+        cl.update( "{a:2}", "{$set:{a:4}}", "{'':null}" );
+        record = ( BSONObject ) JSON.parse( "{_id:2, a:4, b:2}" );
+        expList.add( record );
 
         // 执行DDL操作构造失败的场景
         try {
-            cl.createIndex("a", "{a:1}", false, false);
-            cl.createIndex("a", "{b:1}", false, false);
-            throw new BaseException(-999, "CREATEINDEX ERROR");
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -46) {
-                Assert.fail(e.getMessage());
+            cl.createIndex( "a", "{a:1}", false, false );
+            cl.createIndex( "a", "{b:1}", false, false );
+            throw new BaseException( -999, "CREATEINDEX ERROR" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -46 ) {
+                Assert.fail( e.getMessage() );
             }
         }
         try {
-            cl.dropIndex("");
-            throw new BaseException(-999, "DROPINDEX ERROR");
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -47) {
-                Assert.fail(e.getMessage());
+            cl.dropIndex( "" );
+            throw new BaseException( -999, "DROPINDEX ERROR" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -47 ) {
+                Assert.fail( e.getMessage() );
             }
         }
         try {
-            sdb.renameCollectionSpace("cs117147", "cs217147");
-            throw new BaseException(-999, "RENAMECS ERROR");
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -34) {
-                Assert.fail(e.getMessage());
+            sdb.renameCollectionSpace( "cs117147", "cs217147" );
+            throw new BaseException( -999, "RENAMECS ERROR" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -34 ) {
+                Assert.fail( e.getMessage() );
             }
         }
         try {
-            cs.renameCollection("cl1", "cl2");
-            throw new BaseException(-999, "RENAMECL ERROR");
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -23) {
-                Assert.fail(e.getMessage());
+            cs.renameCollection( "cl1", "cl2" );
+            throw new BaseException( -999, "RENAMECL ERROR" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -23 ) {
+                Assert.fail( e.getMessage() );
             }
         }
         try {
-            sdb.dropCollectionSpace("cs17147");
-            throw new BaseException(-999, "DROPCS ERROR");
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -34) {
-                Assert.fail(e.getMessage());
+            sdb.dropCollectionSpace( "cs17147" );
+            throw new BaseException( -999, "DROPCS ERROR" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -34 ) {
+                Assert.fail( e.getMessage() );
             }
         }
         try {
-            cs.dropCollection("cl");
-            throw new BaseException(-999, "DROPCL ERROR");
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -23) {
-                Assert.fail(e.getMessage());
+            cs.dropCollection( "cl" );
+            throw new BaseException( -999, "DROPCL ERROR" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -23 ) {
+                Assert.fail( e.getMessage() );
             }
         }
         try {
-            cs.alterCollectionSpace((BSONObject) JSON.parse("{PageSize:4096}"));
-            throw new BaseException(-999, "ALTERCS ERROR");
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -275) {
-                Assert.fail(e.getMessage());
+            cs.alterCollectionSpace(
+                    ( BSONObject ) JSON.parse( "{PageSize:4096}" ) );
+            throw new BaseException( -999, "ALTERCS ERROR" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -275 ) {
+                Assert.fail( e.getMessage() );
             }
         }
         try {
-            cl.alterCollection((BSONObject) JSON.parse("{AutoSplit:true}"));
-            throw new BaseException(-999, "ALTERCL ERROR");
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -245) {
-                Assert.fail(e.getMessage());
+            cl.alterCollection(
+                    ( BSONObject ) JSON.parse( "{AutoSplit:true}" ) );
+            throw new BaseException( -999, "ALTERCL ERROR" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -245 ) {
+                Assert.fail( e.getMessage() );
             }
         }
         ObjectId oId = new ObjectId();
         try {
-            cl.removeLob(oId);
-            throw new BaseException(-999, "REMOVELOB ERROR");
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -4) {
-                Assert.fail(e.getMessage());
+            cl.removeLob( oId );
+            throw new BaseException( -999, "REMOVELOB ERROR" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -4 ) {
+                Assert.fail( e.getMessage() );
             }
         }
         try {
-            cl.openLob(oId);
-            throw new BaseException(-999, "CREATELOB ERROR");
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -4) {
-                Assert.fail(e.getMessage());
+            cl.openLob( oId );
+            throw new BaseException( -999, "CREATELOB ERROR" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -4 ) {
+                Assert.fail( e.getMessage() );
             }
         }
         try {
-            cl.truncateLob(oId, 12);
-            throw new BaseException(-999, "TRUNCATELOB ERROR");
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -4) {
-                Assert.fail(e.getMessage());
+            cl.truncateLob( oId, 12 );
+            throw new BaseException( -999, "TRUNCATELOB ERROR" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -4 ) {
+                Assert.fail( e.getMessage() );
             }
         }
         try {
             db2.beginTransaction();
             cl2.truncate();
-            throw new BaseException(-999, "TRUNCATE ERROR");
-        } catch (BaseException e) {
-            if (e.getErrorCode() != -190) {
-                Assert.fail(e.getMessage());
+            throw new BaseException( -999, "TRUNCATE ERROR" );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != -190 ) {
+                Assert.fail( e.getMessage() );
             }
         } finally {
             db2.commit();
@@ -184,14 +186,15 @@ public class Transaction17147 extends SdbTestBase {
         sdb.commit();
 
         // 读记录走表扫描
-        DBCursor recordsCursor = cl.query(null, null, "{a:1}", "{'':null}");
-        actList = TransUtils.getReadActList(recordsCursor);
-        Assert.assertEquals(actList, expList);
+        DBCursor recordsCursor = cl.query( null, null, "{a:1}", "{'':null}" );
+        actList = TransUtils.getReadActList( recordsCursor );
+        Assert.assertEquals( actList, expList );
 
         // 读记录走索引扫描
-        recordsCursor = cl.query("{a:{$exists:1}}", null, "{a:1}", "{'':'textIndex17147'}");
-        actList = TransUtils.getReadActList(recordsCursor);
-        Assert.assertEquals(actList, expList);
+        recordsCursor = cl.query( "{a:{$exists:1}}", null, "{a:1}",
+                "{'':'textIndex17147'}" );
+        actList = TransUtils.getReadActList( recordsCursor );
+        Assert.assertEquals( actList, expList );
         recordsCursor.close();
     }
 }

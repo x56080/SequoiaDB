@@ -35,34 +35,34 @@ public class TestTruncate16147 extends SdbTestBase {
     @BeforeClass(alwaysRun = true)
     public void setUp() {
         try {
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         }
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
-            DBCollection cl = TruncateUtils.createCL(sdb, csName, clName);
+            DBCollection cl = TruncateUtils.createCL( sdb, csName, clName );
             // doing insert
-            insertDataBefore(cl);
+            insertDataBefore( cl );
 
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (runSuccess) {
-                CollectionSpace cs = sdb.getCollectionSpace(csName);
-                if (cs.isCollectionExist(clName)) {
-                    cs.dropCollection(clName);
+            if ( runSuccess ) {
+                CollectionSpace cs = sdb.getCollectionSpace( csName );
+                if ( cs.isCollectionExist( clName ) ) {
+                    cs.dropCollection( clName );
                 }
             }
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         } finally {
             sdb.close();
         }
@@ -74,10 +74,11 @@ public class TestTruncate16147 extends SdbTestBase {
         InsertThread insertThread = new InsertThread();
 
         truncateThread.start();
-        insertThread.start(10);
+        insertThread.start( 10 );
 
-        if (!(truncateThread.isSuccess() && insertThread.isSuccess())) {
-            Assert.fail(truncateThread.getErrorMsg() + insertThread.getErrorMsg());
+        if ( !( truncateThread.isSuccess() && insertThread.isSuccess() ) ) {
+            Assert.fail(
+                    truncateThread.getErrorMsg() + insertThread.getErrorMsg() );
         }
         runSuccess = true;
     }
@@ -88,13 +89,14 @@ public class TestTruncate16147 extends SdbTestBase {
             Sequoiadb db = null;
             DBCollection cl = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                db.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
-                cl = db.getCollectionSpace(csName).getCollection(clName);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                db.setSessionAttr(
+                        ( BSONObject ) JSON.parse( "{PreferedInstance:'M'}" ) );
+                cl = db.getCollectionSpace( csName ).getCollection( clName );
                 // doing truncate
                 cl.truncate();
                 cl.truncate();
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
                 e.printStackTrace();
                 throw e;
             } finally {
@@ -109,15 +111,16 @@ public class TestTruncate16147 extends SdbTestBase {
             Sequoiadb db = null;
             DBCollection cl = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                db.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
-                cl = db.getCollectionSpace(csName).getCollection(clName);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                db.setSessionAttr(
+                        ( BSONObject ) JSON.parse( "{PreferedInstance:'M'}" ) );
+                cl = db.getCollectionSpace( csName ).getCollection( clName );
                 // doing insert
-                insertData(cl);
-            } catch (BaseException e) {
-                if (-321 != e.getErrorCode()) {
+                insertData( cl );
+            } catch ( BaseException e ) {
+                if ( -321 != e.getErrorCode() ) {
                     e.printStackTrace();
-                    Assert.fail(e.getMessage());
+                    Assert.fail( e.getMessage() );
                 }
             } finally {
                 db.close();
@@ -125,29 +128,31 @@ public class TestTruncate16147 extends SdbTestBase {
         }
     }
 
-    private void insertDataBefore(DBCollection cl) {
+    private void insertDataBefore( DBCollection cl ) {
         int count = 0;
-        for (int i = 0; i < 100; i++) {
-            List<BSONObject> list = new ArrayList<BSONObject>();
-            for (int j = 0; j < 10000; j++) {
+        for ( int i = 0; i < 100; i++ ) {
+            List< BSONObject > list = new ArrayList< BSONObject >();
+            for ( int j = 0; j < 10000; j++ ) {
                 int value = count++;
-                BSONObject obj = (BSONObject) JSON.parse("{sk:" + value + ", test:" + "'testasetatatatatat'" + "}");
-                list.add(obj);
+                BSONObject obj = ( BSONObject ) JSON.parse( "{sk:" + value
+                        + ", test:" + "'testasetatatatatat'" + "}" );
+                list.add( obj );
             }
-            cl.insert(list);
+            cl.insert( list );
         }
     }
 
-    private void insertData(DBCollection cl) {
+    private void insertData( DBCollection cl ) {
         int count = 0;
-        for (int i = 0; i < 10; i++) {
-            List<BSONObject> list = new ArrayList<BSONObject>();
-            for (int j = 0; j < 10000; j++) {
+        for ( int i = 0; i < 10; i++ ) {
+            List< BSONObject > list = new ArrayList< BSONObject >();
+            for ( int j = 0; j < 10000; j++ ) {
                 int value = count++;
-                BSONObject obj = (BSONObject) JSON.parse("{sk:" + value + ", test:" + "'insert_test'" + "}");
-                list.add(obj);
+                BSONObject obj = ( BSONObject ) JSON.parse(
+                        "{sk:" + value + ", test:" + "'insert_test'" + "}" );
+                list.add( obj );
             }
-            cl.insert(list);
+            cl.insert( list );
         }
     }
 }

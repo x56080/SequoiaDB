@@ -42,51 +42,52 @@ public class LobSubCL19070 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("is standalone skip testcase");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
         }
-        CollectionSpace cs = sdb.getCollectionSpace(SdbTestBase.csName);
+        CollectionSpace cs = sdb.getCollectionSpace( SdbTestBase.csName );
         // create maincl
         BSONObject options = new BasicBSONObject();
-        options.put("IsMainCL", true);
-        options.put("ShardingKey", new BasicBSONObject("date", 1));
-        options.put("ShardingType", "range");
-        options.put("LobShardingKeyFormat", "YYYYMMDD");
-        mainCL = cs.createCollection(mainCLName, options);
+        options.put( "IsMainCL", true );
+        options.put( "ShardingKey", new BasicBSONObject( "date", 1 ) );
+        options.put( "ShardingType", "range" );
+        options.put( "LobShardingKeyFormat", "YYYYMMDD" );
+        mainCL = cs.createCollection( mainCLName, options );
         // create subcl
         BSONObject clOptions = new BasicBSONObject();
-        clOptions.put("ShardingKey", new BasicBSONObject("datetime", 1));
-        clOptions.put("ShardingType", "hash");
-        clOptions.put("AutoSplit", true);
-        cs.createCollection(subCLName, clOptions);
+        clOptions.put( "ShardingKey", new BasicBSONObject( "datetime", 1 ) );
+        clOptions.put( "ShardingType", "hash" );
+        clOptions.put( "AutoSplit", true );
+        cs.createCollection( subCLName, clOptions );
 
-        lobBuff = RandomWriteLobUtil.getRandomBytes(writeLobSize);
+        lobBuff = RandomWriteLobUtil.getRandomBytes( writeLobSize );
     }
 
     @Test
     public void test() throws Exception {
         ThreadExecutor thread = new ThreadExecutor();
-        thread.addWorker(new AttachCLThread());
-        thread.addWorker(new PutLobThread());
+        thread.addWorker( new AttachCLThread() );
+        thread.addWorker( new PutLobThread() );
         thread.run();
 
-        Assert.assertTrue(isAttachMainCL(sdb, csName, subCLName), "check sub cl attach result");
-        readLobFromCL(mainCL, lobOid);
+        Assert.assertTrue( isAttachMainCL( sdb, csName, subCLName ),
+                "check sub cl attach result" );
+        readLobFromCL( mainCL, lobOid );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            CollectionSpace cs = sdb.getCollectionSpace(csName);
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
-            if (cs.isCollectionExist(subCLName)) {
-                cs.dropCollection(subCLName);
+            if ( cs.isCollectionExist( subCLName ) ) {
+                cs.dropCollection( subCLName );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -95,18 +96,24 @@ public class LobSubCL19070 extends SdbTestBase {
     private class AttachCLThread {
         @ExecuteOrder(step = 1)
         private void attachCL() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection mainCL = db.getCollectionSpace(SdbTestBase.csName).getCollection(mainCLName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection mainCL = db
+                        .getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( mainCLName );
                 // 随机等待1000ms，在lob操作不同阶段attachCL
                 try {
-                    Thread.sleep(new Random().nextInt(1000));
-                } catch (InterruptedException e) {
+                    Thread.sleep( new Random().nextInt( 1000 ) );
+                } catch ( InterruptedException e ) {
                 }
 
                 BSONObject bound = new BasicBSONObject();
-                bound.put("LowBound", new BasicBSONObject("date", new MinKey()));
-                bound.put("UpBound", new BasicBSONObject("date", new MaxKey()));
-                mainCL.attachCollection(SdbTestBase.csName + "." + subCLName, bound);
+                bound.put( "LowBound",
+                        new BasicBSONObject( "date", new MinKey() ) );
+                bound.put( "UpBound",
+                        new BasicBSONObject( "date", new MaxKey() ) );
+                mainCL.attachCollection( SdbTestBase.csName + "." + subCLName,
+                        bound );
             }
         }
     }
@@ -114,43 +121,49 @@ public class LobSubCL19070 extends SdbTestBase {
     private class PutLobThread {
         @ExecuteOrder(step = 1)
         private void putLob() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection dbcl = db.getCollectionSpace(csName).getCollection(subCLName);
-                ObjectId lobId = RandomWriteLobUtil.createAndWriteLob(dbcl, lobBuff);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection dbcl = db.getCollectionSpace( csName )
+                        .getCollection( subCLName );
+                ObjectId lobId = RandomWriteLobUtil.createAndWriteLob( dbcl,
+                        lobBuff );
                 // read lob
-                readLobFromCL(dbcl, lobId);
+                readLobFromCL( dbcl, lobId );
                 // delete lob
-                dbcl.removeLob(lobId);
+                dbcl.removeLob( lobId );
             }
         }
 
         // 插入lob，子表挂载成功后该lob可通过主表读取
         @ExecuteOrder(step = 1)
         private void putLob1() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection dbcl = db.getCollectionSpace(csName).getCollection(subCLName);
-                lobOid = RandomWriteLobUtil.createAndWriteLob(dbcl, lobBuff);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection dbcl = db.getCollectionSpace( csName )
+                        .getCollection( subCLName );
+                lobOid = RandomWriteLobUtil.createAndWriteLob( dbcl, lobBuff );
             }
         }
     }
 
-    private boolean isAttachMainCL(Sequoiadb db, String csName, String subCLName) {
+    private boolean isAttachMainCL( Sequoiadb db, String csName,
+            String subCLName ) {
         String clFullName = csName + "." + subCLName;
-        DBCursor cursor = db.getSnapshot(Sequoiadb.SDB_SNAP_CATALOG, new BasicBSONObject("Name", clFullName), null,
-                null);
-        if (cursor.hasNext()) {
-            BasicBSONObject subCLInfo = (BasicBSONObject) cursor.getNext();
-            return subCLInfo.containsField("MainCLName");
+        DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_CATALOG,
+                new BasicBSONObject( "Name", clFullName ), null, null );
+        if ( cursor.hasNext() ) {
+            BasicBSONObject subCLInfo = ( BasicBSONObject ) cursor.getNext();
+            return subCLInfo.containsField( "MainCLName" );
         }
         cursor.close();
         return false;
     }
 
-    private void readLobFromCL(DBCollection dbcl, ObjectId lobId) {
-        try (DBLob lob = dbcl.openLob(lobId)) {
-            byte[] actualBuff = new byte[(int) lob.getSize()];
-            lob.read(actualBuff);
-            RandomWriteLobUtil.assertByteArrayEqual(actualBuff, lobBuff);
+    private void readLobFromCL( DBCollection dbcl, ObjectId lobId ) {
+        try ( DBLob lob = dbcl.openLob( lobId )) {
+            byte[] actualBuff = new byte[ ( int ) lob.getSize() ];
+            lob.read( actualBuff );
+            RandomWriteLobUtil.assertByteArrayEqual( actualBuff, lobBuff );
         }
     }
 }

@@ -32,129 +32,147 @@ import com.sequoiadb.testcommon.SdbTestBase;
  */
 
 public class Split10507 extends SdbTestBase {
-	private String clName = "testcaseCL10507";
-	private String srcGroupName;
-	private String destGroupName;
-	private Sequoiadb commSdbA = null;
-	private Sequoiadb commSdbB = null;
-	private ArrayList<BSONObject> insertedData = new ArrayList<BSONObject>();// 记录所有已插入的数据
+    private String clName = "testcaseCL10507";
+    private String srcGroupName;
+    private String destGroupName;
+    private Sequoiadb commSdbA = null;
+    private Sequoiadb commSdbB = null;
+    private ArrayList< BSONObject > insertedData = new ArrayList< BSONObject >();// 记录所有已插入的数据
 
-	@BeforeClass
-	public void setUp() {
-		Sequoiadb tmpSdb = null;
-		try {
-			tmpSdb = new Sequoiadb(coordUrl, "", "");
+    @BeforeClass
+    public void setUp() {
+        Sequoiadb tmpSdb = null;
+        try {
+            tmpSdb = new Sequoiadb( coordUrl, "", "" );
 
-			// 跳过 standAlone 和数据组不足的环境
-			CommLib commlib = new CommLib();
-			if (commlib.isStandAlone(tmpSdb)) {
-				throw new SkipException("skip StandAlone");
-			}
-			ArrayList<String> groupsName = commlib.getDataGroupNames(tmpSdb);
-			List<String> coordList = commlib.getNodeAddress(tmpSdb, "SYSCoord");
-			if (groupsName.size() < 2) {
-				throw new SkipException("current environment less than tow groups ");
-			}
-			if (coordList.size() < 2) {
-				throw new SkipException("host list less than tow groups:" + coordList);
-			}
+            // 跳过 standAlone 和数据组不足的环境
+            CommLib commlib = new CommLib();
+            if ( commlib.isStandAlone( tmpSdb ) ) {
+                throw new SkipException( "skip StandAlone" );
+            }
+            ArrayList< String > groupsName = commlib
+                    .getDataGroupNames( tmpSdb );
+            List< String > coordList = commlib.getNodeAddress( tmpSdb,
+                    "SYSCoord" );
+            if ( groupsName.size() < 2 ) {
+                throw new SkipException(
+                        "current environment less than tow groups " );
+            }
+            if ( coordList.size() < 2 ) {
+                throw new SkipException(
+                        "host list less than tow groups:" + coordList );
+            }
 
-			commSdbA = new Sequoiadb(coordList.get(0), "", "");
-			commSdbB = new Sequoiadb(coordList.get(1), "", "");
-			srcGroupName = groupsName.get(0);
-			destGroupName = groupsName.get(1);
-		} catch (BaseException e) {
-			if (commSdbA != null) {
-				commSdbA.disconnect();
-			}
-			if (commSdbB != null) {
-				commSdbB.disconnect();
-			}
-			if (tmpSdb != null) {
-				tmpSdb.disconnect();
-			}
-			Assert.fail(this.getClass().getName() + " setUp error, error description:" + e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		}
-	}
+            commSdbA = new Sequoiadb( coordList.get( 0 ), "", "" );
+            commSdbB = new Sequoiadb( coordList.get( 1 ), "", "" );
+            srcGroupName = groupsName.get( 0 );
+            destGroupName = groupsName.get( 1 );
+        } catch ( BaseException e ) {
+            if ( commSdbA != null ) {
+                commSdbA.disconnect();
+            }
+            if ( commSdbB != null ) {
+                commSdbB.disconnect();
+            }
+            if ( tmpSdb != null ) {
+                tmpSdb.disconnect();
+            }
+            Assert.fail( this.getClass().getName()
+                    + " setUp error, error description:" + e.getMessage()
+                    + "\r\n" + SplitUtils.getKeyStack( e, this ) );
+        }
+    }
 
-	@Test
-	public void split() {
-		try {
-			insertData();// 通过commSdbA建表，写入待切分的记录[sk:0,sk:100)
+    @Test
+    public void split() {
+        try {
+            insertData();// 通过commSdbA建表，写入待切分的记录[sk:0,sk:100)
 
-			// 通过commSdbB链接切分
-			DBCollection commCL = commSdbB.getCollectionSpace(csName).getCollection(clName);
-			commCL.split(srcGroupName, destGroupName, (BSONObject) JSON.parse("{sk:30}"),
-					(BSONObject) JSON.parse("{sk:60}"));
+            // 通过commSdbB链接切分
+            DBCollection commCL = commSdbB.getCollectionSpace( csName )
+                    .getCollection( clName );
+            commCL.split( srcGroupName, destGroupName,
+                    ( BSONObject ) JSON.parse( "{sk:30}" ),
+                    ( BSONObject ) JSON.parse( "{sk:60}" ) );
 
-			checkCoordA();// 链接commSdbA查询源组数据目标组数据，并查询切分边界值
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		}
-	}
+            checkCoordA();// 链接commSdbA查询源组数据目标组数据，并查询切分边界值
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n"
+                    + SplitUtils.getKeyStack( e, this ) );
+        }
+    }
 
-	private void checkCoordA() {
-		DBCursor cursor = null;
-		try {
-			// 查询目标，源组数据
-			commSdbA.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
-			DBCollection commCL = commSdbA.getCollectionSpace(csName).getCollection(clName);
-			long destCount = commCL.getCount("{sk:{$gte:30,$lt:60}}");
-			Assert.assertEquals(destCount, 30);
+    private void checkCoordA() {
+        DBCursor cursor = null;
+        try {
+            // 查询目标，源组数据
+            commSdbA.setSessionAttr(
+                    ( BSONObject ) JSON.parse( "{PreferedInstance:'M'}" ) );
+            DBCollection commCL = commSdbA.getCollectionSpace( csName )
+                    .getCollection( clName );
+            long destCount = commCL.getCount( "{sk:{$gte:30,$lt:60}}" );
+            Assert.assertEquals( destCount, 30 );
 
-			// commCL.getCount("{$or:[{sk:{$gte:{$minKey:1},$lt:30}},{sk:{$gte:60,$lt:{$maxKey:1}}}]}");
-			long srcCount1 = commCL.getCount("{sk:{$gte:60}}");
-			long srcCount2 = commCL.getCount("{sk:{$lt:30}}");
-			Assert.assertEquals(srcCount2 + srcCount1, 70);
+            // commCL.getCount("{$or:[{sk:{$gte:{$minKey:1},$lt:30}},{sk:{$gte:60,$lt:{$maxKey:1}}}]}");
+            long srcCount1 = commCL.getCount( "{sk:{$gte:60}}" );
+            long srcCount2 = commCL.getCount( "{sk:{$lt:30}}" );
+            Assert.assertEquals( srcCount2 + srcCount1, 70 );
 
-			// find边界sk:30,sk:60
-			cursor = commCL.query("{$or:[{sk:30},{sk:60}]}", "{sk:''}", "{sk:1}", null);
-			ArrayList<BSONObject> actualResults = new ArrayList<BSONObject>();// 实际结果集
-			while (cursor.hasNext()) {
-				actualResults.add(cursor.getNext());
-			}
-			ArrayList<BSONObject> expectedResults = new ArrayList<BSONObject>();// 期望结果集
-			expectedResults.add((BSONObject) JSON.parse("{sk:30}"));
-			expectedResults.add((BSONObject) JSON.parse("{sk:60}"));
-			Assert.assertEquals(expectedResults.equals(actualResults), true,
-					"query bound expected:" + expectedResults + " actual:" + actualResults);// 比对
+            // find边界sk:30,sk:60
+            cursor = commCL.query( "{$or:[{sk:30},{sk:60}]}", "{sk:''}",
+                    "{sk:1}", null );
+            ArrayList< BSONObject > actualResults = new ArrayList< BSONObject >();// 实际结果集
+            while ( cursor.hasNext() ) {
+                actualResults.add( cursor.getNext() );
+            }
+            ArrayList< BSONObject > expectedResults = new ArrayList< BSONObject >();// 期望结果集
+            expectedResults.add( ( BSONObject ) JSON.parse( "{sk:30}" ) );
+            expectedResults.add( ( BSONObject ) JSON.parse( "{sk:60}" ) );
+            Assert.assertEquals( expectedResults.equals( actualResults ), true,
+                    "query bound expected:" + expectedResults + " actual:"
+                            + actualResults );// 比对
 
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		} finally {
-			if (cursor != null) {
-				cursor.close();
-			}
-		}
-	}
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n"
+                    + SplitUtils.getKeyStack( e, this ) );
+        } finally {
+            if ( cursor != null ) {
+                cursor.close();
+            }
+        }
+    }
 
-	@AfterClass
-	public void tearDown() {
-		try {
-			CollectionSpace commCS = commSdbA.getCollectionSpace(csName);
-			commCS.dropCollection(clName);
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+SplitUtils.getKeyStack(e,this));
-		} finally {
-			if (commSdbA != null) {
-				commSdbA.disconnect();
-			}
-			if (commSdbB != null) {
-				commSdbB.disconnect();
-			}
-		}
-	}
+    @AfterClass
+    public void tearDown() {
+        try {
+            CollectionSpace commCS = commSdbA.getCollectionSpace( csName );
+            commCS.dropCollection( clName );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n"
+                    + SplitUtils.getKeyStack( e, this ) );
+        } finally {
+            if ( commSdbA != null ) {
+                commSdbA.disconnect();
+            }
+            if ( commSdbB != null ) {
+                commSdbB.disconnect();
+            }
+        }
+    }
 
-	public void insertData() {
-		try {
-			DBCollection cl = commSdbA.getCollectionSpace(csName).createCollection(clName,
-					(BSONObject) JSON.parse("{ShardingKey:{sk:1},ShardingType:'range',Group:'" + srcGroupName + "'}"));
-			for (int i = 0; i < 100; i++) {
-				insertedData.add((BSONObject) JSON.parse("{sk:" + i + "}"));
-			}
-			cl.bulkInsert(insertedData, 0);
-		} catch (BaseException e) {
-			throw e;
-		}
-	}
+    public void insertData() {
+        try {
+            DBCollection cl = commSdbA.getCollectionSpace( csName )
+                    .createCollection( clName, ( BSONObject ) JSON.parse(
+                            "{ShardingKey:{sk:1},ShardingType:'range',Group:'"
+                                    + srcGroupName + "'}" ) );
+            for ( int i = 0; i < 100; i++ ) {
+                insertedData
+                        .add( ( BSONObject ) JSON.parse( "{sk:" + i + "}" ) );
+            }
+            cl.bulkInsert( insertedData, 0 );
+        } catch ( BaseException e ) {
+            throw e;
+        }
+    }
 }

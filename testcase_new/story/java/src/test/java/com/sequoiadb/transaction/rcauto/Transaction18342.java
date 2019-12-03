@@ -31,7 +31,7 @@ public class Transaction18342 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl18342";
     private DBCollection cl = null;
-    private List<BSONObject> expList = new ArrayList<>();
+    private List< BSONObject > expList = new ArrayList<>();
     private BSONObject data = null;
 
     @BeforeClass
@@ -41,7 +41,8 @@ public class Transaction18342 extends SdbTestBase {
             throw new SkipException( "STANDALONE MODE" );
         }
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
-        data = (BSONObject) JSON.parse( "{_id: 1, a: 1, b: 'test session attr'}" );
+        data = ( BSONObject ) JSON
+                .parse( "{_id: 1, a: 1, b: 'test session attr'}" );
         expList.add( data );
     }
 
@@ -53,7 +54,7 @@ public class Transaction18342 extends SdbTestBase {
         sdb.setSessionAttr( new BasicBSONObject( "PreferedInstance", "S" ) );
 
         DBCursor cursor = cl.query( null, null, "{'b': 1}", "{'':'a'}" );
-        List<BSONObject> actList = TransUtils.getReadActList( cursor );
+        List< BSONObject > actList = TransUtils.getReadActList( cursor );
         Assert.assertEquals( actList, expList );
         actList.clear();
 

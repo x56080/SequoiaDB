@@ -29,11 +29,11 @@ public class Transaction19180 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        sdb.getCollectionSpace(SdbTestBase.csName).createCollection(clName);
+        sdb.getCollectionSpace( SdbTestBase.csName ).createCollection( clName );
     }
 
     @Test
@@ -44,41 +44,45 @@ public class Transaction19180 extends SdbTestBase {
         try {
 
             // 创建一个连接db1，并插入1条记录R1，设置TransUseRBS属性为false，查询TransUseRBS属性
-            db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            DBCollection cl1 = db1.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-            BSONObject obj = (BSONObject) JSON.parse("{_id:1, a:1, b:1}");
-            cl1.insert(obj);
-            db1.setSessionAttr((BSONObject) JSON.parse("{TransIsolation:1, TransUseRBS:false}"));
+            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            DBCollection cl1 = db1.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
+            BSONObject obj = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
+            cl1.insert( obj );
+            db1.setSessionAttr( ( BSONObject ) JSON
+                    .parse( "{TransIsolation:1, TransUseRBS:false}" ) );
             BSONObject attr = db1.getSessionAttr();
-            Assert.assertEquals(false, attr.get("TransUseRBS"));
+            Assert.assertEquals( false, attr.get( "TransUseRBS" ) );
 
             // 创建一个连接db2，并设置TransUseRBS属性为false，查询TransUseRBS属性
-            db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            db2.setSessionAttr((BSONObject) JSON.parse("{TransIsolation:1, TransUseRBS:false}"));
+            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db2.setSessionAttr( ( BSONObject ) JSON
+                    .parse( "{TransIsolation:1, TransUseRBS:false}" ) );
             attr = db2.getSessionAttr();
-            Assert.assertEquals(false, attr.get("TransUseRBS"));
+            Assert.assertEquals( false, attr.get( "TransUseRBS" ) );
 
             // db1上开启事务，执行update操作
             db1.beginTransaction();
-            cl1.update("{a:1}", "{$set:{b:2}}", null);
+            cl1.update( "{a:1}", "{$set:{b:2}}", null );
 
             // db2上开启事务，执行查询，检查结果
             db2.beginTransaction();
-            DBCollection cl2 = db2.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+            DBCollection cl2 = db2.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
             try {
                 DBCursor cursor = cl2.query();
-                TransUtils.getReadActList(cursor);
+                TransUtils.getReadActList( cursor );
                 Assert.fail();
-            } catch (BaseException e) {
-                Assert.assertEquals(e.getErrorCode(), -13);
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -13 );
             }
 
         } finally {
-            if (null != db1) {
+            if ( null != db1 ) {
                 db1.commit();
                 db1.close();
             }
-            if (null != db2) {
+            if ( null != db2 ) {
                 db2.commit();
                 db2.close();
             }
@@ -87,8 +91,9 @@ public class Transaction19180 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (null != sdb) {
-            sdb.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
+        if ( null != sdb ) {
+            sdb.getCollectionSpace( SdbTestBase.csName )
+                    .dropCollection( clName );
             sdb.close();
         }
     }

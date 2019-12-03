@@ -27,48 +27,51 @@ public class Transaction20140 extends SdbTestBase {
     private String clName = "transCL_20140";
     private Sequoiadb sdb = null;
     private DBCollection cl = null;
-    private List<BSONObject> expDataList = new ArrayList<BSONObject>();
+    private List< BSONObject > expDataList = new ArrayList< BSONObject >();
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl.createIndex("a20140", "{a:1}", true, false);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl.createIndex( "a20140", "{a:1}", true, false );
     }
 
     @Test
     public void test() {
-        Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         try {
             // 事务中插入删除记录
             db.beginTransaction();
-            DBCollection tcl = db.getCollectionSpace(csName).getCollection(clName);
-            ArrayList<BSONObject> insertR1s = new ArrayList<BSONObject>();
-            for (int i = 0; i < 100; i++) {
-                insertR1s.add((BSONObject) JSON.parse("{_id:" + i + ",a:" + i + ",b:" + i + "}"));
+            DBCollection tcl = db.getCollectionSpace( csName )
+                    .getCollection( clName );
+            ArrayList< BSONObject > insertR1s = new ArrayList< BSONObject >();
+            for ( int i = 0; i < 100; i++ ) {
+                insertR1s.add( ( BSONObject ) JSON
+                        .parse( "{_id:" + i + ",a:" + i + ",b:" + i + "}" ) );
             }
-            tcl.insert(insertR1s);
-            tcl.delete("{a:{$lt:" + 99 + "}}");
+            tcl.insert( insertR1s );
+            tcl.delete( "{a:{$lt:" + 99 + "}}" );
 
             // 非事务中插入记录，唯一索引值与插入记录的值相同
-            for (int i = 0; i < 99; i++) {
+            for ( int i = 0; i < 99; i++ ) {
                 String record = "{_id:" + i + ",a:" + i + ",b:'insert20140'}";
-                expDataList.add((BSONObject) JSON.parse(record));
+                expDataList.add( ( BSONObject ) JSON.parse( record ) );
             }
-            cl.insert(expDataList);
+            cl.insert( expDataList );
             db.rollback();
 
             // 校验结果
-            List<String> groupNames = CommLib.getCLGroups(cl);
-            String groupName = groupNames.get(0);
-            Assert.assertTrue(TransUtils.isLsnConsistency(sdb, groupName));
-            Assert.assertTrue(TransUtils.getDatabaseSnapshot(sdb, groupName));
-            TransUtils.queryAndCheck(cl, "{a:1}", "{a:''}", expDataList);
+            List< String > groupNames = CommLib.getCLGroups( cl );
+            String groupName = groupNames.get( 0 );
+            Assert.assertTrue( TransUtils.isLsnConsistency( sdb, groupName ) );
+            Assert.assertTrue(
+                    TransUtils.getDatabaseSnapshot( sdb, groupName ) );
+            TransUtils.queryAndCheck( cl, "{a:1}", "{a:''}", expDataList );
 
         } finally {
             db.commit();
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -76,7 +79,7 @@ public class Transaction20140 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        sdb.getCollectionSpace(csName).dropCollection(clName);
+        sdb.getCollectionSpace( csName ).dropCollection( clName );
         sdb.close();
     }
 

@@ -57,54 +57,59 @@ public class RewriteLob13253_18985 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         // create cs cl
-        BSONObject csOpt = (BSONObject) JSON.parse("{LobPageSize: " + lobPageSize + "}");
-        cs = sdb.createCollectionSpace(csName, csOpt);
-        BSONObject clOpt = (BSONObject) JSON.parse("{ShardingKey:{a:1},ShardingType:'hash'}");
-        cs.createCollection(clName, clOpt);
-        if (!CommLib.isStandAlone(sdb)) {
-            LobSubUtils.createMainCLAndAttachCL(sdb, csName, mainCLName, subCLName);
+        BSONObject csOpt = ( BSONObject ) JSON
+                .parse( "{LobPageSize: " + lobPageSize + "}" );
+        cs = sdb.createCollectionSpace( csName, csOpt );
+        BSONObject clOpt = ( BSONObject ) JSON
+                .parse( "{ShardingKey:{a:1},ShardingType:'hash'}" );
+        cs.createCollection( clName, clOpt );
+        if ( !CommLib.isStandAlone( sdb ) ) {
+            LobSubUtils.createMainCLAndAttachCL( sdb, csName, mainCLName,
+                    subCLName );
         }
     }
 
     @Test(dataProvider = "clNameProvider")
-    public void testLob(String clName) {
-        if (CommLib.isStandAlone(sdb) && clName.equals(mainCLName)) {
-            throw new SkipException("is standalone skip testcase!");
+    public void testLob( String clName ) {
+        if ( CommLib.isStandAlone( sdb ) && clName.equals( mainCLName ) ) {
+            throw new SkipException( "is standalone skip testcase!" );
         }
         int lobSize = 100 * 1024;
-        byte[] data = RandomWriteLobUtil.getRandomBytes(lobSize);
-        DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, data);
+        byte[] data = RandomWriteLobUtil.getRandomBytes( lobSize );
+        DBCollection cl = sdb.getCollectionSpace( csName )
+                .getCollection( clName );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl, data );
         byte[] expData = data;
 
-        try (DBLob wLob = cl.openLob(oid, DBLob.SDB_LOB_WRITE)) {
+        try ( DBLob wLob = cl.openLob( oid, DBLob.SDB_LOB_WRITE )) {
 
             // Note: no matter lock or not, opening again must fail.
-            wLob.lock(0, wLob.getSize());
-            try (DBLob rLob = cl.openLob(oid, DBLob.SDB_LOB_READ)) {
-                Assert.fail("open shouldn't succeed when lob is in use");
-            } catch (BaseException e) {
-                if (-317 != e.getErrorCode()) { // -317: SDB_LOB_IS_IN_USE
+            wLob.lock( 0, wLob.getSize() );
+            try ( DBLob rLob = cl.openLob( oid, DBLob.SDB_LOB_READ )) {
+                Assert.fail( "open shouldn't succeed when lob is in use" );
+            } catch ( BaseException e ) {
+                if ( -317 != e.getErrorCode() ) { // -317: SDB_LOB_IS_IN_USE
                     throw e;
                 }
             }
         }
 
-        byte[] actData = RandomWriteLobUtil.readLob(cl, oid);
-        RandomWriteLobUtil.assertByteArrayEqual(actData, expData, "lob data is wrong");
+        byte[] actData = RandomWriteLobUtil.readLob( cl, oid );
+        RandomWriteLobUtil.assertByteArrayEqual( actData, expData,
+                "lob data is wrong" );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }

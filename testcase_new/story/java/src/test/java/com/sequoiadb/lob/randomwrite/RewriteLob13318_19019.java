@@ -62,70 +62,75 @@ public class RewriteLob13318_19019 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb) || CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("can not support split");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "can not support split" );
         }
 
         // create cs cl
-        BSONObject csOpt = (BSONObject) JSON.parse("{LobPageSize: " + lobPageSize + "}");
-        cs = sdb.createCollectionSpace(csName, csOpt);
-        BSONObject clOpt = (BSONObject) JSON.parse("{ShardingKey:{a:1},ShardingType:'hash'}");
-        cs.createCollection(clName, clOpt);
-        LobSubUtils.createMainCLAndAttachCL(sdb, csName, mainCLName, subCLName);
+        BSONObject csOpt = ( BSONObject ) JSON
+                .parse( "{LobPageSize: " + lobPageSize + "}" );
+        cs = sdb.createCollectionSpace( csName, csOpt );
+        BSONObject clOpt = ( BSONObject ) JSON
+                .parse( "{ShardingKey:{a:1},ShardingType:'hash'}" );
+        cs.createCollection( clName, clOpt );
+        LobSubUtils.createMainCLAndAttachCL( sdb, csName, mainCLName,
+                subCLName );
     }
 
     @Test(dataProvider = "clNameProvider")
-    public void testLob(String mainCLName, String subCLName) {
+    public void testLob( String mainCLName, String subCLName ) {
         int lobSize = 1 * 1024 * 1024;
-        byte[] data = RandomWriteLobUtil.getRandomBytes(lobSize);
-        DBCollection cl = sdb.getCollectionSpace(csName).getCollection(mainCLName);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, data);
-        List<LobPart> parts = getLobParts(threadNum, writeSizePerThread);
+        byte[] data = RandomWriteLobUtil.getRandomBytes( lobSize );
+        DBCollection cl = sdb.getCollectionSpace( csName )
+                .getCollection( mainCLName );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl, data );
+        List< LobPart > parts = getLobParts( threadNum, writeSizePerThread );
 
-        try (DBLob lob = cl.openLob(oid, DBLob.SDB_LOB_WRITE)) {
-            for (LobPart part : parts) {
-                lockAndSeekAndWrite(lob, part);
+        try ( DBLob lob = cl.openLob( oid, DBLob.SDB_LOB_WRITE )) {
+            for ( LobPart part : parts ) {
+                lockAndSeekAndWrite( lob, part );
             }
         }
 
         // init
-        SplitThread splitThrd = new SplitThread(csName, subCLName);
-        List<ReadAndCheckLobThread> rLobThrds = new ArrayList<ReadAndCheckLobThread>();
-        for (int i = 0; i < threadNum; ++i) {
-            ReadAndCheckLobThread rLobThrd = new ReadAndCheckLobThread(csName, mainCLName, oid, parts.get(i));
-            rLobThrds.add(rLobThrd);
+        SplitThread splitThrd = new SplitThread( csName, subCLName );
+        List< ReadAndCheckLobThread > rLobThrds = new ArrayList< ReadAndCheckLobThread >();
+        for ( int i = 0; i < threadNum; ++i ) {
+            ReadAndCheckLobThread rLobThrd = new ReadAndCheckLobThread( csName,
+                    mainCLName, oid, parts.get( i ) );
+            rLobThrds.add( rLobThrd );
         }
 
         // start
         splitThrd.start();
-        for (ReadAndCheckLobThread rLobThrd : rLobThrds) {
+        for ( ReadAndCheckLobThread rLobThrd : rLobThrds ) {
             rLobThrd.start();
         }
 
         // join
-        Assert.assertTrue(splitThrd.isSuccess(), splitThrd.getErrorMsg());
-        for (ReadAndCheckLobThread rLobThrd : rLobThrds) {
-            Assert.assertTrue(rLobThrd.isSuccess(), rLobThrd.getErrorMsg());
+        Assert.assertTrue( splitThrd.isSuccess(), splitThrd.getErrorMsg() );
+        for ( ReadAndCheckLobThread rLobThrd : rLobThrds ) {
+            Assert.assertTrue( rLobThrd.isSuccess(), rLobThrd.getErrorMsg() );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }
     }
 
-    private void lockAndSeekAndWrite(DBLob lob, LobPart part) {
-        lob.lockAndSeek(part.getOffset(), part.getLength());
-        lob.write(part.getData());
+    private void lockAndSeekAndWrite( DBLob lob, LobPart part ) {
+        lob.lockAndSeek( part.getOffset(), part.getLength() );
+        lob.write( part.getData() );
     }
 
     private class SplitThread extends SdbThreadBase {
@@ -136,21 +141,24 @@ public class RewriteLob13318_19019 extends SdbTestBase {
         private String srcGroupName = null;
         private String dstGroupName = null;
 
-        public SplitThread(String csName, String clName) {
+        public SplitThread( String csName, String clName ) {
             this.csNamet = csName;
             this.clNamet = clName;
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            srcGroupName = RandomWriteLobUtil.getSrcGroupName(db, this.csNamet, this.clNamet);
-            dstGroupName = RandomWriteLobUtil.getSplitGroupName(db, srcGroupName);
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            srcGroupName = RandomWriteLobUtil.getSrcGroupName( db, this.csNamet,
+                    this.clNamet );
+            dstGroupName = RandomWriteLobUtil.getSplitGroupName( db,
+                    srcGroupName );
         }
 
         @Override
         public void exec() throws Exception {
             try {
-                DBCollection cl = db.getCollectionSpace(this.csNamet).getCollection(this.clNamet);
-                cl.split(srcGroupName, dstGroupName, 50);
+                DBCollection cl = db.getCollectionSpace( this.csNamet )
+                        .getCollection( this.clNamet );
+                cl.split( srcGroupName, dstGroupName, 50 );
             } finally {
-                if (null != db) {
+                if ( null != db ) {
                     db.close();
                 }
             }
@@ -165,7 +173,8 @@ public class RewriteLob13318_19019 extends SdbTestBase {
         private byte[] readData = null;
         private LobPart part = null;
 
-        public ReadAndCheckLobThread(String csName, String clName, ObjectId oid, LobPart part) {
+        public ReadAndCheckLobThread( String csName, String clName,
+                ObjectId oid, LobPart part ) {
             this.csNamet = csName;
             this.clNamet = clName;
             this.oid = oid;
@@ -174,23 +183,26 @@ public class RewriteLob13318_19019 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(this.csNamet).getCollection(this.clNamet);
-                try (DBLob lob = cl.openLob(oid, DBLob.SDB_LOB_READ)) {
-                    lob.lockAndSeek(part.getOffset(), part.getLength());
-                    readData = new byte[part.getLength()];
-                    lob.read(readData);
-                    RandomWriteLobUtil.assertByteArrayEqual(readData, part.getData());
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( this.csNamet )
+                        .getCollection( this.clNamet );
+                try ( DBLob lob = cl.openLob( oid, DBLob.SDB_LOB_READ )) {
+                    lob.lockAndSeek( part.getOffset(), part.getLength() );
+                    readData = new byte[ part.getLength() ];
+                    lob.read( readData );
+                    RandomWriteLobUtil.assertByteArrayEqual( readData,
+                            part.getData() );
                 }
             }
         }
     }
 
-    private List<LobPart> getLobParts(int partNum, int partSize) {
-        List<LobPart> parts = new ArrayList<LobPart>();
-        for (int i = 0; i < partNum; ++i) {
-            LobPart part = new LobPart(i * partSize, partSize);
-            parts.add(part);
+    private List< LobPart > getLobParts( int partNum, int partSize ) {
+        List< LobPart > parts = new ArrayList< LobPart >();
+        for ( int i = 0; i < partNum; ++i ) {
+            LobPart part = new LobPart( i * partSize, partSize );
+            parts.add( part );
         }
         return parts;
     }

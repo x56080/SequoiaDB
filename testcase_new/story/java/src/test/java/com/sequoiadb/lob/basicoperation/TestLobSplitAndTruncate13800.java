@@ -32,21 +32,22 @@ public class TestLobSplitAndTruncate13800 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("is standalone skip testcase");
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
         }
 
-        if (CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("less two groups skip testcase");
+        if ( CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "less two groups skip testcase" );
         }
 
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
-        BSONObject options = (BSONObject) JSON.parse("{ShardingKey:{a:1},ShardingType:'hash',Partition:4096}");
-        cl = cs.createCollection(clName, options);
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
+        BSONObject options = ( BSONObject ) JSON.parse(
+                "{ShardingKey:{a:1},ShardingType:'hash',Partition:4096}" );
+        cl = cs.createCollection( clName, options );
 
-        putLob(cl);
+        putLob( cl );
     }
 
     @Test
@@ -54,35 +55,35 @@ public class TestLobSplitAndTruncate13800 extends SdbTestBase {
         Split split = new Split();
         split.start();
 
-        Thread.sleep(5000);
+        Thread.sleep( 5000 );
         cl.truncate();
 
-        if (cl.listLobs().hasNext()) {
-            Assert.assertTrue(false, "cl should be empty!");
+        if ( cl.listLobs().hasNext() ) {
+            Assert.assertTrue( false, "cl should be empty!" );
         }
 
-        Assert.assertTrue(split.isSuccess(), split.getErrorMsg());
+        Assert.assertTrue( split.isSuccess(), split.getErrorMsg() );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }
     }
 
-    private void putLob(DBCollection cl) {
+    private void putLob( DBCollection cl ) {
         long lobNums = 30;
-        for (long i = 0; i < lobNums; i++) {
-            String lobSb = LobOprUtils.getRandomString(1024 * 1024 * 20);
-            try (DBLob lob = cl.createLob()) {
-                lob.write(lobSb.getBytes());
+        for ( long i = 0; i < lobNums; i++ ) {
+            String lobSb = LobOprUtils.getRandomString( 1024 * 1024 * 20 );
+            try ( DBLob lob = cl.createLob()) {
+                lob.write( lobSb.getBytes() );
             }
         }
     }
@@ -91,11 +92,15 @@ public class TestLobSplitAndTruncate13800 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-                String sourceRGName = LobOprUtils.getSrcGroupName(db, SdbTestBase.csName, clName);
-                String targetRGName = LobOprUtils.getSplitGroupName(sourceRGName);
-                cl.split(sourceRGName, targetRGName, 50);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
+                String sourceRGName = LobOprUtils.getSrcGroupName( db,
+                        SdbTestBase.csName, clName );
+                String targetRGName = LobOprUtils
+                        .getSplitGroupName( sourceRGName );
+                cl.split( sourceRGName, targetRGName, 50 );
             }
         }
     }

@@ -47,60 +47,65 @@ public class RewriteLob13249_18981 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
         String clOptions = "{ShardingKey:{no:1},ShardingType:'hash',Partition:1024}";
-        RandomWriteLobUtil.createCL(cs, clName, clOptions);
-        if (!CommLib.isStandAlone(sdb)) {
-            LobSubUtils.createMainCLAndAttachCL(sdb, SdbTestBase.csName, mainCLName, subCLName);
+        RandomWriteLobUtil.createCL( cs, clName, clOptions );
+        if ( !CommLib.isStandAlone( sdb ) ) {
+            LobSubUtils.createMainCLAndAttachCL( sdb, SdbTestBase.csName,
+                    mainCLName, subCLName );
         }
     }
 
     @Test(dataProvider = "clNameProvider")
-    public void testLob(String clName) {
-        if (CommLib.isStandAlone(sdb) && clName.equals(mainCLName)) {
-            throw new SkipException("is standalone skip testcase!");
+    public void testLob( String clName ) {
+        if ( CommLib.isStandAlone( sdb ) && clName.equals( mainCLName ) ) {
+            throw new SkipException( "is standalone skip testcase!" );
         }
         int writeSize = 261120;
-        byte[] testLobBuff = RandomWriteLobUtil.getRandomBytes(writeSize);
-        DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, testLobBuff);
-        rewriteLob(cl, oid);
+        byte[] testLobBuff = RandomWriteLobUtil.getRandomBytes( writeSize );
+        DBCollection cl = sdb.getCollectionSpace( csName )
+                .getCollection( clName );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl, testLobBuff );
+        rewriteLob( cl, oid );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
     }
 
-    private void rewriteLob(DBCollection cl, ObjectId oid) {
-        try (DBLob lob = cl.openLob(oid, DBLob.SDB_LOB_WRITE);) {
+    private void rewriteLob( DBCollection cl, ObjectId oid ) {
+        try ( DBLob lob = cl.openLob( oid, DBLob.SDB_LOB_WRITE ) ;) {
             int rewriteLobSize = 262144;
             int maxEmptyPieces = 40;
-            for (int i = 0; i < maxEmptyPieces; i++) {
-                int offset = (i * 2 + 2) * 524288;
-                byte[] rewriteBuff = RandomWriteLobUtil.getRandomBytes(rewriteLobSize);
-                lob.lockAndSeek(offset, rewriteLobSize);
-                lob.write(rewriteBuff);
+            for ( int i = 0; i < maxEmptyPieces; i++ ) {
+                int offset = ( i * 2 + 2 ) * 524288;
+                byte[] rewriteBuff = RandomWriteLobUtil
+                        .getRandomBytes( rewriteLobSize );
+                lob.lockAndSeek( offset, rewriteLobSize );
+                lob.write( rewriteBuff );
             }
-            Assert.fail("the number of empty pieces exceeds the limit to be reported wrong");
-        } catch (BaseException e) {
-            if (-319 != e.getErrorCode()) {
-                Assert.fail("empty pieces num limit check faild!e=" + e.getErrorCode() + e.getMessage());
+            Assert.fail(
+                    "the number of empty pieces exceeds the limit to be reported wrong" );
+        } catch ( BaseException e ) {
+            if ( -319 != e.getErrorCode() ) {
+                Assert.fail( "empty pieces num limit check faild!e="
+                        + e.getErrorCode() + e.getMessage() );
             }
         }
     }

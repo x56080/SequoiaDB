@@ -37,27 +37,28 @@ public class CappedCL11782 extends SdbTestBase {
     private CollectionSpace cappedCS = null;
     private String cappedCLName = "cappedCL_11782";
     private String clName = "cl_11782";
-    private int stringLength = CappedCLUtils.getRandomStringLength(1, 4000);
+    private int stringLength = CappedCLUtils.getRandomStringLength( 1, 4000 );
     private StringBuffer strBuffer = null;
     private int threadNum = 5;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("skip StandAlone");
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "skip StandAlone" );
         }
 
-        cs = sdb.getCollectionSpace(csName);
-        cappedCS = sdb.getCollectionSpace(cappedCSName);
-        cs.createCollection(clName);
-        cappedCS.createCollection(cappedCLName, (BSONObject) JSON.parse("{Capped:true, Size:10240}"));
+        cs = sdb.getCollectionSpace( csName );
+        cappedCS = sdb.getCollectionSpace( cappedCSName );
+        cs.createCollection( clName );
+        cappedCS.createCollection( cappedCLName,
+                ( BSONObject ) JSON.parse( "{Capped:true, Size:10240}" ) );
 
         // 构造插入的字符串
         strBuffer = new StringBuffer();
-        for (int len = 0; len < stringLength; len++) {
-            strBuffer.append("a");
+        for ( int len = 0; len < stringLength; len++ ) {
+            strBuffer.append( "a" );
         }
     }
 
@@ -67,35 +68,39 @@ public class CappedCL11782 extends SdbTestBase {
                                  * { (BSONObject) JSON.parse("{maxreplsync:0}")
                                  * },会导致ci虚拟机重放太慢
                                  */
-                { (BSONObject) JSON.parse("{maxreplsync:200}") }, { (BSONObject) JSON.parse("{maxreplsync:10}") } };
+                { ( BSONObject ) JSON.parse( "{maxreplsync:200}" ) },
+                { ( BSONObject ) JSON.parse( "{maxreplsync:10}" ) } };
     }
 
     @Test(dataProvider = "updateConf")
-    public void test(BSONObject config) throws Exception {
-        sdb.updateConfig(config, new BasicBSONObject());
+    public void test( BSONObject config ) throws Exception {
+        sdb.updateConfig( config, new BasicBSONObject() );
 
-        ThreadExecutor te = new ThreadExecutor(1800000);
-        for (int i = 0; i < threadNum; i++) {
-            te.addWorker(new InsertThread(csName, clName));
-            te.addWorker(new InsertThread(cappedCSName, cappedCLName));
+        ThreadExecutor te = new ThreadExecutor( 1800000 );
+        for ( int i = 0; i < threadNum; i++ ) {
+            te.addWorker( new InsertThread( csName, clName ) );
+            te.addWorker( new InsertThread( cappedCSName, cappedCLName ) );
         }
         te.run();
 
         // 校验主节点id字段
-        Assert.assertTrue(CappedCLUtils.checkLogicalID(sdb, cappedCSName, cappedCLName, stringLength));
+        Assert.assertTrue( CappedCLUtils.checkLogicalID( sdb, cappedCSName,
+                cappedCLName, stringLength ) );
 
         // 校验主备一致性
-        Assert.assertTrue(CappedCLUtils.checkRecord(sdb, cappedCSName, cappedCLName));
-        Assert.assertTrue(CappedCLUtils.checkRecord(sdb, csName, clName));
+        Assert.assertTrue(
+                CappedCLUtils.checkRecord( sdb, cappedCSName, cappedCLName ) );
+        Assert.assertTrue( CappedCLUtils.checkRecord( sdb, csName, clName ) );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            cs.dropCollection(clName);
-            cappedCS.dropCollection(cappedCLName);
+            cs.dropCollection( clName );
+            cappedCS.dropCollection( cappedCLName );
         } finally {
-            sdb.updateConfig((BSONObject) JSON.parse("{maxreplsync:10}"), new BasicBSONObject());
+            sdb.updateConfig( ( BSONObject ) JSON.parse( "{maxreplsync:10}" ),
+                    new BasicBSONObject() );
             sdb.close();
         }
     }
@@ -104,7 +109,7 @@ public class CappedCL11782 extends SdbTestBase {
         String csName = null;
         String clName = null;
 
-        public InsertThread(String csName, String clName) {
+        public InsertThread( String csName, String clName ) {
             this.csName = csName;
             this.clName = clName;
         }
@@ -113,17 +118,22 @@ public class CappedCL11782 extends SdbTestBase {
         public void insert() {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                System.out.println(this.getClass().getName().toString() + " start at:"
-                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S").format(new Date()));
-                for (int i = 0; i < 10000; i++) {
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                System.out.println( this.getClass().getName().toString()
+                        + " start at:"
+                        + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.S" )
+                                .format( new Date() ) );
+                for ( int i = 0; i < 10000; i++ ) {
                     BasicBSONObject insertObj = new BasicBSONObject();
-                    insertObj.put("a", strBuffer.toString());
-                    cl.insert(insertObj);
+                    insertObj.put( "a", strBuffer.toString() );
+                    cl.insert( insertObj );
                 }
-                System.out.println(this.getClass().getName().toString() + " stop at:"
-                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S").format(new Date()));
+                System.out.println( this.getClass().getName().toString()
+                        + " stop at:"
+                        + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.S" )
+                                .format( new Date() ) );
             } finally {
                 db.close();
             }

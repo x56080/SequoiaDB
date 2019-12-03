@@ -33,65 +33,69 @@ public class Transaction20262 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        DBCollection cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl.insert("{_id:1, a:1, b:1}");
-        cl.createIndex("idx20262", "{a:1}", false, false);
+        DBCollection cl = sdb.getCollectionSpace( csName )
+                .createCollection( clName );
+        cl.insert( "{_id:1, a:1, b:1}" );
+        cl.createIndex( "idx20262", "{a:1}", false, false );
     }
 
     @AfterClass
     public void tearDown() {
-        if (db1 != null) {
+        if ( db1 != null ) {
             db1.commit();
             db1.close();
         }
-        if (db2 != null) {
+        if ( db2 != null ) {
             db2.commit();
             db2.close();
         }
-        if (sdb != null) {
+        if ( sdb != null ) {
             sdb.commit();
-            sdb.getCollectionSpace(csName).dropCollection(clName);
+            sdb.getCollectionSpace( csName ).dropCollection( clName );
             sdb.close();
         }
     }
 
     @Test
     public void test() {
-        db1 = new Sequoiadb(coordUrl, "", "");
-        db2 = new Sequoiadb(coordUrl, "", "");
-        DBCollection cl1 = db1.getCollectionSpace(csName).getCollection(clName);
+        db1 = new Sequoiadb( coordUrl, "", "" );
+        db2 = new Sequoiadb( coordUrl, "", "" );
+        DBCollection cl1 = db1.getCollectionSpace( csName )
+                .getCollection( clName );
         db1.beginTransaction();
         db2.beginTransaction();
 
         // 事务1指定_id字段更新记录R1为R2；事务2指定_id字段更新记录R1为R3。
-        cl1.update("{_id:1}", "{$set:{a:2}}", "");
-        List<BSONObject> expList = new ArrayList<>();
-        expList.add((BSONObject) JSON.parse("{_id:1, a:2, b:1}"));
-        TransUtils.queryAndCheck(cl1, "{_id:1}", expList);
+        cl1.update( "{_id:1}", "{$set:{a:2}}", "" );
+        List< BSONObject > expList = new ArrayList<>();
+        expList.add( ( BSONObject ) JSON.parse( "{_id:1, a:2, b:1}" ) );
+        TransUtils.queryAndCheck( cl1, "{_id:1}", expList );
         Trans2Update th2 = new Trans2Update();
         th2.start();
-        Assert.assertTrue(th2.matchBlockingMethod(DBCollection.class.getName(), "update"));
+        Assert.assertTrue( th2.matchBlockingMethod(
+                DBCollection.class.getName(), "update" ) );
 
         // 事务1指定_id删除记录R2，然后回滚；事务2提交。
-        cl1.delete("{_id:1}");
+        cl1.delete( "{_id:1}" );
         db1.rollback();
-        Assert.assertTrue(th2.isSuccess(), th2.getErrorMsg());
+        Assert.assertTrue( th2.isSuccess(), th2.getErrorMsg() );
         db2.commit();
         expList.clear();
-        expList.add((BSONObject) JSON.parse("{_id:1, a:2, b:1}"));
-        TransUtils.queryAndCheck(cl1, "{_id:1}", expList);
+        expList.add( ( BSONObject ) JSON.parse( "{_id:1, a:2, b:1}" ) );
+        TransUtils.queryAndCheck( cl1, "{_id:1}", expList );
     }
 
     class Trans2Update extends SdbThreadBase {
 
         @Override
         public void exec() throws Exception {
-            DBCollection cl2 = db2.getCollectionSpace(csName).getCollection(clName);
-            cl2.update("{_id:1}", "{$set:{a:2}}", "");
+            DBCollection cl2 = db2.getCollectionSpace( csName )
+                    .getCollection( clName );
+            cl2.update( "{_id:1}", "{$set:{a:2}}", "" );
         }
     }
 }

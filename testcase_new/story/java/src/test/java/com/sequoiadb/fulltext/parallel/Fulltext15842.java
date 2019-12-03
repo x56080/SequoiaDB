@@ -34,75 +34,82 @@ public class Fulltext15842 extends FullTestBase {
     private String indexName = "fulltextIndex15842";
     private int insertNum = 100000;
     private long lobSize = 1024 * 1024 * 10;
-    private List<ObjectId> lobTruncateList = new ArrayList<ObjectId>();
-    private List<ObjectId> lobRemoveList = new ArrayList<ObjectId>();
-    private List<ObjectId> lobReadList = new ArrayList<ObjectId>();
-    private List<ObjectId> lobPutList = new ArrayList<ObjectId>();
+    private List< ObjectId > lobTruncateList = new ArrayList< ObjectId >();
+    private List< ObjectId > lobRemoveList = new ArrayList< ObjectId >();
+    private List< ObjectId > lobReadList = new ArrayList< ObjectId >();
+    private List< ObjectId > lobPutList = new ArrayList< ObjectId >();
     private String esIndexName;
     private String cappedName;
 
     @Override
     protected void initTestProp() {
-        caseProp.setProperty(IGNORESTANDALONE, "true");
-        caseProp.setProperty(CLNAME, clName);
+        caseProp.setProperty( IGNORESTANDALONE, "true" );
+        caseProp.setProperty( CLNAME, clName );
     }
 
     @Override
     protected void caseInit() throws Exception {
-        List<ObjectId> lobList = writeLob(cl, 100);
-        lobTruncateList.addAll(lobList.subList(0, 50));
-        lobRemoveList.addAll(lobList.subList(50, 70));
-        lobReadList.addAll(lobList.subList(70, 100));
-        FullTextDBUtils.insertData(cl, insertNum);
+        List< ObjectId > lobList = writeLob( cl, 100 );
+        lobTruncateList.addAll( lobList.subList( 0, 50 ) );
+        lobRemoveList.addAll( lobList.subList( 50, 70 ) );
+        lobReadList.addAll( lobList.subList( 70, 100 ) );
+        FullTextDBUtils.insertData( cl, insertNum );
     }
 
     @Test
     public void test() throws Exception {
 
-        ThreadExecutor thread = new ThreadExecutor(FullTextUtils.THREAD_TIMEOUT);
-        thread.addWorker(new CreateIndexThread());
-        thread.addWorker(new TruncateLobThread());
-        thread.addWorker(new PutLobThread());
-        thread.addWorker(new RemoveLobThread());
-        thread.addWorker(new GetLoBThread());
+        ThreadExecutor thread = new ThreadExecutor(
+                FullTextUtils.THREAD_TIMEOUT );
+        thread.addWorker( new CreateIndexThread() );
+        thread.addWorker( new TruncateLobThread() );
+        thread.addWorker( new PutLobThread() );
+        thread.addWorker( new RemoveLobThread() );
+        thread.addWorker( new GetLoBThread() );
         thread.run();
 
-        Assert.assertTrue(FullTextUtils.isIndexCreated(cl, indexName, insertNum));
+        Assert.assertTrue(
+                FullTextUtils.isIndexCreated( cl, indexName, insertNum ) );
 
         checkLobResult();
 
         int recordNum = 0;
-        DBCursor cur = cl.query("{'': {'$Text': {'query': {'match_all': {}}}}}", null, "{'recordId': 1}",
-                "{'': '" + indexName + "'}");
-        while (cur.hasNext()) {
+        DBCursor cur = cl.query(
+                "{'': {'$Text': {'query': {'match_all': {}}}}}", null,
+                "{'recordId': 1}", "{'': '" + indexName + "'}" );
+        while ( cur.hasNext() ) {
             cur.getNext();
             recordNum++;
         }
         cur.close();
 
-        Assert.assertEquals(recordNum, insertNum, "use fulltext index search record");
-        cappedName = FullTextDBUtils.getCappedName(cl, indexName);
-        esIndexName = FullTextDBUtils.getESIndexName(cl, indexName);
+        Assert.assertEquals( recordNum, insertNum,
+                "use fulltext index search record" );
+        cappedName = FullTextDBUtils.getCappedName( cl, indexName );
+        esIndexName = FullTextDBUtils.getESIndexName( cl, indexName );
     }
 
     @Override
     protected void caseFini() throws Exception {
-        Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedName));
+        Assert.assertTrue(
+                FullTextUtils.isIndexDeleted( sdb, esIndexName, cappedName ) );
     }
 
     private class CreateIndexThread {
 
         @ExecuteOrder(step = 1)
         private void createIndex() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
                 BSONObject indexObj = new BasicBSONObject();
-                indexObj.put("a", "text");
-                indexObj.put("b", "text");
-                indexObj.put("c", "text");
-                indexObj.put("d", "text");
-                indexObj.put("e", "text");
-                cl.createIndex(indexName, indexObj, false, false);
+                indexObj.put( "a", "text" );
+                indexObj.put( "b", "text" );
+                indexObj.put( "c", "text" );
+                indexObj.put( "d", "text" );
+                indexObj.put( "e", "text" );
+                cl.createIndex( indexName, indexObj, false, false );
             }
         }
     }
@@ -111,11 +118,13 @@ public class Fulltext15842 extends FullTestBase {
 
         @ExecuteOrder(step = 1)
         private void truncateLob() throws InterruptedException {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                Thread.sleep(1000 + new Random().nextInt(100));
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                for (ObjectId lobId : lobTruncateList) {
-                    cl.truncateLob(lobId, lobSize);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                Thread.sleep( 1000 + new Random().nextInt( 100 ) );
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                for ( ObjectId lobId : lobTruncateList ) {
+                    cl.truncateLob( lobId, lobSize );
                 }
             }
         }
@@ -125,10 +134,12 @@ public class Fulltext15842 extends FullTestBase {
 
         @ExecuteOrder(step = 1)
         private void putLob() throws InterruptedException {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                Thread.sleep(1000 + new Random().nextInt(100));
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                lobPutList.addAll(writeLob(cl, 100));
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                Thread.sleep( 1000 + new Random().nextInt( 100 ) );
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                lobPutList.addAll( writeLob( cl, 100 ) );
             }
         }
     }
@@ -137,11 +148,13 @@ public class Fulltext15842 extends FullTestBase {
 
         @ExecuteOrder(step = 1)
         private void removeLob() throws InterruptedException {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                Thread.sleep(1000 + new Random().nextInt(100));
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                for (ObjectId lobId : lobRemoveList) {
-                    cl.removeLob(lobId);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                Thread.sleep( 1000 + new Random().nextInt( 100 ) );
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                for ( ObjectId lobId : lobRemoveList ) {
+                    cl.removeLob( lobId );
                 }
             }
         }
@@ -151,65 +164,67 @@ public class Fulltext15842 extends FullTestBase {
 
         @ExecuteOrder(step = 1)
         private void getLob() throws InterruptedException {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                Thread.sleep(1000 + new Random().nextInt(100));
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                for (ObjectId lobId : lobReadList) {
-                    DBLob lob = cl.openLob(lobId);
-                    byte[] data = new byte[(int) lobSize];
-                    lob.read(data);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                Thread.sleep( 1000 + new Random().nextInt( 100 ) );
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                for ( ObjectId lobId : lobReadList ) {
+                    DBLob lob = cl.openLob( lobId );
+                    byte[] data = new byte[ ( int ) lobSize ];
+                    lob.read( data );
                 }
             }
         }
     }
 
-    private List<ObjectId> writeLob(DBCollection cl, int lobNum) {
+    private List< ObjectId > writeLob( DBCollection cl, int lobNum ) {
 
-        List<ObjectId> lobIdList = new ArrayList<ObjectId>();
-        byte[] data = new byte[(int) lobSize];
-        new Random().nextBytes(data);
+        List< ObjectId > lobIdList = new ArrayList< ObjectId >();
+        byte[] data = new byte[ ( int ) lobSize ];
+        new Random().nextBytes( data );
 
-        for (int i = 0; i < lobNum; i++) {
+        for ( int i = 0; i < lobNum; i++ ) {
             DBLob lob = cl.createLob();
-            lob.write(data);
+            lob.write( data );
             lob.close();
-            lobIdList.add(lob.getID());
+            lobIdList.add( lob.getID() );
         }
 
         return lobIdList;
     }
 
     private void checkLobResult() {
-        List<ObjectId> expLobIdList = new ArrayList<ObjectId>();
-        expLobIdList.addAll(lobTruncateList);
-        expLobIdList.addAll(lobReadList);
-        expLobIdList.addAll(lobPutList);
+        List< ObjectId > expLobIdList = new ArrayList< ObjectId >();
+        expLobIdList.addAll( lobTruncateList );
+        expLobIdList.addAll( lobReadList );
+        expLobIdList.addAll( lobPutList );
 
-        List<ObjectId> actLobIdList = new ArrayList<ObjectId>();
+        List< ObjectId > actLobIdList = new ArrayList< ObjectId >();
         DBCursor lobCur = cl.listLobs();
-        while (lobCur.hasNext()) {
-            actLobIdList.add((ObjectId) lobCur.getNext().get("Oid"));
+        while ( lobCur.hasNext() ) {
+            actLobIdList.add( ( ObjectId ) lobCur.getNext().get( "Oid" ) );
         }
 
-        sortLobIdList(expLobIdList);
-        sortLobIdList(actLobIdList);
+        sortLobIdList( expLobIdList );
+        sortLobIdList( actLobIdList );
 
-        Assert.assertEquals(actLobIdList.toString(), expLobIdList.toString());
+        Assert.assertEquals( actLobIdList.toString(), expLobIdList.toString() );
     }
 
-    private void sortLobIdList(List<ObjectId> lobIdList) {
+    private void sortLobIdList( List< ObjectId > lobIdList ) {
 
-        Collections.sort(lobIdList, new Comparator<ObjectId>() {
+        Collections.sort( lobIdList, new Comparator< ObjectId >() {
             @Override
-            public int compare(ObjectId obj1, ObjectId obj2) {
+            public int compare( ObjectId obj1, ObjectId obj2 ) {
                 String str1 = obj1.toString();
                 String str2 = obj2.toString();
-                if (str1.compareToIgnoreCase(str2) < 0) {
+                if ( str1.compareToIgnoreCase( str2 ) < 0 ) {
                     return -1;
                 }
                 return 1;
             }
-        });
+        } );
     }
 
 }

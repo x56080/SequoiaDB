@@ -62,66 +62,75 @@ public class RewriteLob13269_19001 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb) || CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("no groups to split");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "no groups to split" );
         }
 
         // create cs cl
-        BSONObject csOpt = (BSONObject) JSON.parse("{LobPageSize: " + lobPageSize + "}");
-        cs = sdb.createCollectionSpace(csName, csOpt);
-        BSONObject clOpt = (BSONObject) JSON.parse("{ShardingKey:{a:1},ShardingType:'hash'}");
-        DBCollection cl = cs.createCollection(clName, clOpt);
+        BSONObject csOpt = ( BSONObject ) JSON
+                .parse( "{LobPageSize: " + lobPageSize + "}" );
+        cs = sdb.createCollectionSpace( csName, csOpt );
+        BSONObject clOpt = ( BSONObject ) JSON
+                .parse( "{ShardingKey:{a:1},ShardingType:'hash'}" );
+        DBCollection cl = cs.createCollection( clName, clOpt );
 
         // split cl
-        String srcGroupName = RandomWriteLobUtil.getSrcGroupName(sdb, csName, clName);
-        String dstGroupName = RandomWriteLobUtil.getSplitGroupName(sdb, srcGroupName);
-        cl.split(srcGroupName, dstGroupName, 50);
+        String srcGroupName = RandomWriteLobUtil.getSrcGroupName( sdb, csName,
+                clName );
+        String dstGroupName = RandomWriteLobUtil.getSplitGroupName( sdb,
+                srcGroupName );
+        cl.split( srcGroupName, dstGroupName, 50 );
 
-        LobSubUtils.createMainCLAndAttachCL(sdb, csName, mainCLName, subCLName);
+        LobSubUtils.createMainCLAndAttachCL( sdb, csName, mainCLName,
+                subCLName );
     }
 
     // start <threadNum> threads, and every thread put
     // a part of lob, which size is <writeSizePerThread>
     @Test(dataProvider = "clNameProvider")
-    public void testLob(String clName) {
+    public void testLob( String clName ) {
         int lobSize = 512 * 1024;
-        byte[] data = RandomWriteLobUtil.getRandomBytes(lobSize);
-        DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, data);
-        List<LobPart> parts = getContinuousParts(threadNum, writeSizePerThread);
-        List<WriteLobThread> wLobThrds = new ArrayList<WriteLobThread>();
+        byte[] data = RandomWriteLobUtil.getRandomBytes( lobSize );
+        DBCollection cl = sdb.getCollectionSpace( csName )
+                .getCollection( clName );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl, data );
+        List< LobPart > parts = getContinuousParts( threadNum,
+                writeSizePerThread );
+        List< WriteLobThread > wLobThrds = new ArrayList< WriteLobThread >();
 
         // initialize threads and expData
         byte[] expData = data;
-        for (int i = 0; i < threadNum; ++i) {
-            WriteLobThread wLobThrd = new WriteLobThread(clName, oid, parts.get(i));
-            wLobThrds.add(wLobThrd);
-            expData = updateExpData(expData, parts.get(i));
+        for ( int i = 0; i < threadNum; ++i ) {
+            WriteLobThread wLobThrd = new WriteLobThread( clName, oid,
+                    parts.get( i ) );
+            wLobThrds.add( wLobThrd );
+            expData = updateExpData( expData, parts.get( i ) );
         }
 
         // write concurrently
-        for (WriteLobThread wLobThrd : wLobThrds) {
+        for ( WriteLobThread wLobThrd : wLobThrds ) {
             wLobThrd.start();
         }
-        for (WriteLobThread wLobThrd : wLobThrds) {
-            Assert.assertTrue(wLobThrd.isSuccess(), wLobThrd.getErrorMsg());
+        for ( WriteLobThread wLobThrd : wLobThrds ) {
+            Assert.assertTrue( wLobThrd.isSuccess(), wLobThrd.getErrorMsg() );
         }
 
         // check lob data
-        byte[] actData = RandomWriteLobUtil.readLob(cl, oid);
-        RandomWriteLobUtil.assertByteArrayEqual(actData, expData, "lob data is wrong");
+        byte[] actData = RandomWriteLobUtil.readLob( cl, oid );
+        RandomWriteLobUtil.assertByteArrayEqual( actData, expData,
+                "lob data is wrong" );
 
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }
@@ -132,7 +141,7 @@ public class RewriteLob13269_19001 extends SdbTestBase {
         private ObjectId oid = null;
         private LobPart part = null;
 
-        public WriteLobThread(String clName, ObjectId oid, LobPart part) {
+        public WriteLobThread( String clName, ObjectId oid, LobPart part ) {
             this.clNamet = clName;
             this.oid = oid;
             this.part = part;
@@ -143,34 +152,36 @@ public class RewriteLob13269_19001 extends SdbTestBase {
             Sequoiadb db = null;
             DBLob lob = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(this.clNamet);
-                lob = cl.openLob(oid, DBLob.SDB_LOB_WRITE);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( this.clNamet );
+                lob = cl.openLob( oid, DBLob.SDB_LOB_WRITE );
 
-                lob.lockAndSeek(part.getOffset(), part.getLength());
-                lob.write(part.getData());
+                lob.lockAndSeek( part.getOffset(), part.getLength() );
+                lob.write( part.getData() );
             } finally {
-                if (null != lob) {
+                if ( null != lob ) {
                     lob.close();
                 }
-                if (null != db) {
+                if ( null != db ) {
                     db.close();
                 }
             }
         }
     }
 
-    private List<LobPart> getContinuousParts(int partNum, int partSize) {
-        List<LobPart> parts = new ArrayList<LobPart>();
-        for (int i = 0; i < partNum; ++i) {
-            LobPart part = new LobPart(i * partSize, partSize);
-            parts.add(part);
+    private List< LobPart > getContinuousParts( int partNum, int partSize ) {
+        List< LobPart > parts = new ArrayList< LobPart >();
+        for ( int i = 0; i < partNum; ++i ) {
+            LobPart part = new LobPart( i * partSize, partSize );
+            parts.add( part );
         }
         return parts;
     }
 
-    private byte[] updateExpData(byte[] expData, LobPart part) {
-        return RandomWriteLobUtil.appendBuff(expData, part.getData(), part.getOffset());
+    private byte[] updateExpData( byte[] expData, LobPart part ) {
+        return RandomWriteLobUtil.appendBuff( expData, part.getData(),
+                part.getOffset() );
     }
 
 }

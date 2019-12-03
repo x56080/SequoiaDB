@@ -38,21 +38,22 @@ public class Transaction18310 extends SdbTestBase {
 
     @Test
     public void test() {
-        latch = new CountDownLatch(5);
+        latch = new CountDownLatch( 5 );
 
-        List<CreateAndDropCLTh> thList = new ArrayList<>();
-        for (int i = 0; i < 5; i++) {
-            CreateAndDropCLTh th = new CreateAndDropCLTh("cl18310_" + i);
-            thList.add(th);
+        List< CreateAndDropCLTh > thList = new ArrayList<>();
+        for ( int i = 0; i < 5; i++ ) {
+            CreateAndDropCLTh th = new CreateAndDropCLTh( "cl18310_" + i );
+            thList.add( th );
             th.start();
         }
-        for (CreateAndDropCLTh createAndDropCLTh : thList) {
-            Assert.assertTrue(createAndDropCLTh.isSuccess(), createAndDropCLTh.getErrorMsg());
+        for ( CreateAndDropCLTh createAndDropCLTh : thList ) {
+            Assert.assertTrue( createAndDropCLTh.isSuccess(),
+                    createAndDropCLTh.getErrorMsg() );
         }
 
         try {
             latch.await();
-        } catch (InterruptedException e) {
+        } catch ( InterruptedException e ) {
             e.printStackTrace();
         }
     }
@@ -60,7 +61,7 @@ public class Transaction18310 extends SdbTestBase {
     class CreateAndDropCLTh extends SdbThreadBase {
         private String clName;
 
-        private CreateAndDropCLTh(String clName) {
+        private CreateAndDropCLTh( String clName ) {
             this.clName = clName;
         }
 
@@ -69,30 +70,31 @@ public class Transaction18310 extends SdbTestBase {
             Sequoiadb db = null;
             CollectionSpace cs = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                cs = db.getCollectionSpace(csName);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                cs = db.getCollectionSpace( csName );
                 int doTimes = 0;
-                while (true) {
-                    DBCollection cl = cs.createCollection(clName);
-                    cl.createIndex("idx", "{a:1}", false, false);
-                    cl.insert((BSONObject) JSON.parse("{_id:1, a:1, b:1}"));
+                while ( true ) {
+                    DBCollection cl = cs.createCollection( clName );
+                    cl.createIndex( "idx", "{a:1}", false, false );
+                    cl.insert(
+                            ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" ) );
 
                     // 开启事务，对该记录进行更新后删除，提交事务
                     db.beginTransaction();
-                    cl.update("{a:1}", "{$set:{a:10}}", "{'':'idx'}");
-                    cl.delete("{a:10}", "{'':'idx'}");
+                    cl.update( "{a:1}", "{$set:{a:10}}", "{'':'idx'}" );
+                    cl.delete( "{a:10}", "{'':'idx'}" );
                     db.commit();
 
                     // 删除集合
-                    cs.dropCollection(clName);
-                    if (++doTimes == 30) {
+                    cs.dropCollection( clName );
+                    if ( ++doTimes == 30 ) {
                         break;
                     }
                 }
             } finally {
                 db.commit();
-                if (cs.isCollectionExist(clName)) {
-                    cs.dropCollection(clName);
+                if ( cs.isCollectionExist( clName ) ) {
+                    cs.dropCollection( clName );
                 }
                 db.close();
                 latch.countDown();

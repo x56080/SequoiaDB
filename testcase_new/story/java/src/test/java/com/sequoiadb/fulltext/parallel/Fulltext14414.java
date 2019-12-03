@@ -28,52 +28,59 @@ public class Fulltext14414 extends FullTestBase {
 
     @Override
     protected void initTestProp() {
-        caseProp.setProperty(IGNORESTANDALONE, "true");
-        caseProp.setProperty(CLNAME, clName);
+        caseProp.setProperty( IGNORESTANDALONE, "true" );
+        caseProp.setProperty( CLNAME, clName );
     }
 
     @Override
     protected void caseInit() throws Exception {
-        FullTextDBUtils.insertData(cl, insertNum);
+        FullTextDBUtils.insertData( cl, insertNum );
     }
 
     @Test
     public void test() throws Exception {
-        ThreadExecutor thExecutor = new ThreadExecutor(FullTextUtils.THREAD_TIMEOUT);
-        thExecutor.addWorker(new CreateIdx());
-        thExecutor.addWorker(new DropIndex());
+        ThreadExecutor thExecutor = new ThreadExecutor(
+                FullTextUtils.THREAD_TIMEOUT );
+        thExecutor.addWorker( new CreateIdx() );
+        thExecutor.addWorker( new DropIndex() );
         thExecutor.run();
 
         // 主备节点上索引信息一致，固定集合、索引信息、ES端数据一致
-        if (cl.isIndexExist(fullIdxName)) {
-            Assert.assertTrue(FullTextUtils.isIndexCreated(cl, fullIdxName, insertNum));
+        if ( cl.isIndexExist( fullIdxName ) ) {
+            Assert.assertTrue( FullTextUtils.isIndexCreated( cl, fullIdxName,
+                    insertNum ) );
         } else {
-            if (checkFlag) {
-                Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedCLName));
+            if ( checkFlag ) {
+                Assert.assertTrue( FullTextUtils.isIndexDeleted( sdb,
+                        esIndexName, cappedCLName ) );
             }
         }
     }
 
     @Override
     protected void caseFini() throws Exception {
-        if (checkFlag) {
-            Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedCLName));
+        if ( checkFlag ) {
+            Assert.assertTrue( FullTextUtils.isIndexDeleted( sdb, esIndexName,
+                    cappedCLName ) );
         }
     }
 
     private class CreateIdx {
         @ExecuteOrder(step = 1, desc = "多线程创建删除同一个全文索引")
         private void createFullIdx() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                cl.createIndex(fullIdxName, "{'a':'text','b':'text','c':'text', 'd':'text', 'e':'text', 'f':'text'}",
-                        false, false);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                cl.createIndex( fullIdxName,
+                        "{'a':'text','b':'text','c':'text', 'd':'text', 'e':'text', 'f':'text'}",
+                        false, false );
 
-                cappedCLName = FullTextDBUtils.getCappedName(cl, fullIdxName);
-                esIndexName = FullTextDBUtils.getESIndexName(cl, fullIdxName);
+                cappedCLName = FullTextDBUtils.getCappedName( cl, fullIdxName );
+                esIndexName = FullTextDBUtils.getESIndexName( cl, fullIdxName );
                 checkFlag = true;
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -199 && e.getErrorCode() != -47) {
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -199 && e.getErrorCode() != -47 ) {
                     throw e;
                 }
             }
@@ -83,11 +90,13 @@ public class Fulltext14414 extends FullTestBase {
     private class DropIndex {
         @ExecuteOrder(step = 1, desc = "删除全文索引")
         private void dropIndex() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-                cl.dropIndex(fullIdxName);
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -47) {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
+                cl.dropIndex( fullIdxName );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -47 ) {
                     throw e;
                 }
             }

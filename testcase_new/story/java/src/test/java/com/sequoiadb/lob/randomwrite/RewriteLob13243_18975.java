@@ -48,60 +48,63 @@ public class RewriteLob13243_18975 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
         String clOptions = "{ShardingKey:{no:1},ShardingType:'hash',Partition:1024}";
-        RandomWriteLobUtil.createCL(cs, clName, clOptions);
-        if (!CommLib.isStandAlone(sdb)) {
-            LobSubUtils.createMainCLAndAttachCL(sdb, SdbTestBase.csName, mainCLName, subCLName);
+        RandomWriteLobUtil.createCL( cs, clName, clOptions );
+        if ( !CommLib.isStandAlone( sdb ) ) {
+            LobSubUtils.createMainCLAndAttachCL( sdb, SdbTestBase.csName,
+                    mainCLName, subCLName );
         }
     }
 
     @Test(dataProvider = "clNameProvider")
-    public void testLob(String clName) {
-        if (CommLib.isStandAlone(sdb) && clName.equals(mainCLName)) {
-            throw new SkipException("is standalone skip testcase!");
+    public void testLob( String clName ) {
+        if ( CommLib.isStandAlone( sdb ) && clName.equals( mainCLName ) ) {
+            throw new SkipException( "is standalone skip testcase!" );
         }
         int writeSize = 1024 * 2;
-        testLobBuff = RandomWriteLobUtil.getRandomBytes(writeSize);
-        DBCollection cl = sdb.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, testLobBuff);
-        rewriteLob(cl, oid);
-        checkResult(cl, oid);
+        testLobBuff = RandomWriteLobUtil.getRandomBytes( writeSize );
+        DBCollection cl = sdb.getCollectionSpace( SdbTestBase.csName )
+                .getCollection( clName );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl, testLobBuff );
+        rewriteLob( cl, oid );
+        checkResult( cl, oid );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
-            if (cs.isCollectionExist(subCLName)) {
-                cs.dropCollection(subCLName);
+            if ( cs.isCollectionExist( subCLName ) ) {
+                cs.dropCollection( subCLName );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
     }
 
-    private void checkResult(DBCollection cl, ObjectId oid) {
+    private void checkResult( DBCollection cl, ObjectId oid ) {
         // check the all write lob
-        try (DBLob lob = cl.openLob(oid)) {
-            byte[] actAllLob = new byte[(int) lob.getSize()];
-            lob.read(actAllLob);
-            if (!Arrays.equals(actAllLob, testLobBuff)) {
-                RandomWriteLobUtil.writeLobAndExpectData2File(lob, testLobBuff);
-                Assert.fail("check actlob and expbuff different");
+        try ( DBLob lob = cl.openLob( oid )) {
+            byte[] actAllLob = new byte[ ( int ) lob.getSize() ];
+            lob.read( actAllLob );
+            if ( !Arrays.equals( actAllLob, testLobBuff ) ) {
+                RandomWriteLobUtil.writeLobAndExpectData2File( lob,
+                        testLobBuff );
+                Assert.fail( "check actlob and expbuff different" );
             }
         }
     }
 
-    private void rewriteLob(DBCollection cl, ObjectId oid) {
+    private void rewriteLob( DBCollection cl, ObjectId oid ) {
         int offset1 = 1024;
         int lobSize1 = 260096;
         int offset2 = 260096;
@@ -109,17 +112,19 @@ public class RewriteLob13243_18975 extends SdbTestBase {
         int offset3 = 360096;
         int lobSize3 = 262144;
         int rewriteSize = offset3 + lobSize3 - offset1;
-        byte[] rewriteBuff = RandomWriteLobUtil.getRandomBytes(rewriteSize);
-        testLobBuff = RandomWriteLobUtil.appendBuff(testLobBuff, rewriteBuff, offset1);
-        try (DBLob lob = cl.openLob(oid, DBLob.SDB_LOB_WRITE);) {
-            lob.lock(offset1, lobSize1);
-            lob.lock(offset2, lobSize2);
-            lob.lock(offset3, lobSize3);
-            lob.seek(offset1, DBLob.SDB_LOB_SEEK_SET);
-            lob.write(rewriteBuff);
+        byte[] rewriteBuff = RandomWriteLobUtil.getRandomBytes( rewriteSize );
+        testLobBuff = RandomWriteLobUtil.appendBuff( testLobBuff, rewriteBuff,
+                offset1 );
+        try ( DBLob lob = cl.openLob( oid, DBLob.SDB_LOB_WRITE ) ;) {
+            lob.lock( offset1, lobSize1 );
+            lob.lock( offset2, lobSize2 );
+            lob.lock( offset3, lobSize3 );
+            lob.seek( offset1, DBLob.SDB_LOB_SEEK_SET );
+            lob.write( rewriteBuff );
             long actWriteLobSize = lob.getSize();
             long expLobSize = offset1 + rewriteSize;
-            Assert.assertEquals(actWriteLobSize, expLobSize, "the lobsize is different!");
+            Assert.assertEquals( actWriteLobSize, expLobSize,
+                    "the lobsize is different!" );
         }
     }
 }

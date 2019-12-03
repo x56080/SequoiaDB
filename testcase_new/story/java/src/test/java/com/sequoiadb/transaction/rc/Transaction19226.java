@@ -29,28 +29,29 @@ public class Transaction19226 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl1 = db1.getCollectionSpace(csName).getCollection(clName);
-        cl.createIndex(indexName, "{a:1}", false, false);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
+        cl.createIndex( indexName, "{a:1}", false, false );
     }
 
     @Test
     public void test() {
-        ArrayList<BSONObject> records = TransUtils.insertRandomDatas(cl, 0, 10000);
+        ArrayList< BSONObject > records = TransUtils.insertRandomDatas( cl, 0,
+                10000 );
         sdb.beginTransaction();
-        cl.update(null, "{$set:{a:1024}}", null, 0);
+        cl.update( null, "{$set:{a:1024}}", null, 0 );
 
-        cl1.dropIndex(indexName);
+        cl1.dropIndex( indexName );
 
-        cl.delete("{a:{$gte:0}}");
+        cl.delete( "{a:{$gte:0}}" );
 
-        cl1.createIndex(indexName, "{a:1}", false, false);
+        cl1.createIndex( indexName, "{a:1}", false, false );
 
         db1.beginTransaction();
-        TransUtils.queryAndCheck(cl1, "{a:1}", "{'':'a'}", records);
-        TransUtils.queryAndCheck(cl1, "{a:1}", "{'':null}", records);
+        TransUtils.queryAndCheck( cl1, "{a:1}", "{'':'a'}", records );
+        TransUtils.queryAndCheck( cl1, "{a:1}", "{'':null}", records );
 
         sdb.commit();
         db1.commit();
@@ -60,12 +61,12 @@ public class Transaction19226 extends SdbTestBase {
     public void tearDown() {
         sdb.commit();
         db1.commit();
-        if (!db1.isClosed()) {
+        if ( !db1.isClosed() ) {
             db1.close();
         }
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
         sdb.close();
     }

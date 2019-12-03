@@ -35,17 +35,18 @@ public class LobSubCL19075 extends SdbTestBase {
     private DBCollection mainCL = null;
     private int writeLobSize = 1024 * 1024;
     private byte[] lobBuff;
-    private List<ObjectId> lobIds;
+    private List< ObjectId > lobIds;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("is standalone skip testcase");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
         }
-        mainCL = LobSubUtils.createMainCLAndAttachCL(sdb, csName, mainCLName, subCLName);
-        lobBuff = RandomWriteLobUtil.getRandomBytes(writeLobSize);
-        lobIds = LobSubUtils.createAndWriteLob(mainCL, lobBuff);
+        mainCL = LobSubUtils.createMainCLAndAttachCL( sdb, csName, mainCLName,
+                subCLName );
+        lobBuff = RandomWriteLobUtil.getRandomBytes( writeLobSize );
+        lobIds = LobSubUtils.createAndWriteLob( mainCL, lobBuff );
     }
 
     @Test
@@ -53,24 +54,24 @@ public class LobSubCL19075 extends SdbTestBase {
         ThreadExecutor thread = new ThreadExecutor();
         RemoveLobThread removeLob1 = new RemoveLobThread();
         RemoveLobThread removeLob2 = new RemoveLobThread();
-        thread.addWorker(removeLob1);
-        thread.addWorker(removeLob2);
+        thread.addWorker( removeLob1 );
+        thread.addWorker( removeLob2 );
         thread.run();
-        checkRemoveLobResult(lobIds);
+        checkRemoveLobResult( lobIds );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            CollectionSpace cs = sdb.getCollectionSpace(csName);
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
-            if (cs.isCollectionExist(subCLName)) {
-                cs.dropCollection(subCLName);
+            if ( cs.isCollectionExist( subCLName ) ) {
+                cs.dropCollection( subCLName );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -80,13 +81,16 @@ public class LobSubCL19075 extends SdbTestBase {
 
         @ExecuteOrder(step = 1)
         private void readLob() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection mainCL = db.getCollectionSpace(csName).getCollection(mainCLName);
-                for (ObjectId lobId : lobIds) {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection mainCL = db.getCollectionSpace( csName )
+                        .getCollection( mainCLName );
+                for ( ObjectId lobId : lobIds ) {
                     try {
-                        mainCL.removeLob(lobId);
-                    } catch (BaseException e) {
-                        if (e.getErrorCode() != -4 && e.getErrorCode() != -317) {
+                        mainCL.removeLob( lobId );
+                    } catch ( BaseException e ) {
+                        if ( e.getErrorCode() != -4
+                                && e.getErrorCode() != -317 ) {
                             throw e;
                         }
                     }
@@ -95,13 +99,14 @@ public class LobSubCL19075 extends SdbTestBase {
         }
     }
 
-    private void checkRemoveLobResult(List<ObjectId> lobIds) {
-        for (ObjectId lobId : lobIds) {
+    private void checkRemoveLobResult( List< ObjectId > lobIds ) {
+        for ( ObjectId lobId : lobIds ) {
             try {
-                mainCL.openLob(lobId);
-                Assert.fail("the lob: " + lobId + " has been deleted and the read should fail");
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -4) {
+                mainCL.openLob( lobId );
+                Assert.fail( "the lob: " + lobId
+                        + " has been deleted and the read should fail" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -4 ) {
                     throw e;
                 }
             }

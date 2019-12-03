@@ -33,13 +33,15 @@ public class RewriteLob13395 extends SdbTestBase {
     private CollectionSpace cs;
     private DBCollection dbcl;
     private final int lobSize = 1024;
-    private final byte[] _randomDatas = RandomWriteLobUtil.getRandomBytes(lobSize);
+    private final byte[] _randomDatas = RandomWriteLobUtil
+            .getRandomBytes( lobSize );
 
     @BeforeClass
     public void setupClass() {
-        db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = db.getCollectionSpace(csName);
-        dbcl = cs.createCollection(clName, (BSONObject) JSON.parse("{ShardingKey:{\"_id\":1},ShardingType:\"hash\"}"));
+        db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = db.getCollectionSpace( csName );
+        dbcl = cs.createCollection( clName, ( BSONObject ) JSON
+                .parse( "{ShardingKey:{\"_id\":1},ShardingType:\"hash\"}" ) );
     }
 
     /**
@@ -50,29 +52,31 @@ public class RewriteLob13395 extends SdbTestBase {
     @Test
     public void testLob13395() throws InterruptedException {
         final ObjectId id;
-        try (DBLob lob = dbcl.createLob()) {
-            lob.write(_randomDatas);
+        try ( DBLob lob = dbcl.createLob()) {
+            lob.write( _randomDatas );
             id = lob.getID();
         }
 
-        final AtomicBoolean canRead = new AtomicBoolean(false);
+        final AtomicBoolean canRead = new AtomicBoolean( false );
 
-        DbClOperateTask readDbClTask = new DbClOperateTask(SdbTestBase.csName, clName) {
+        DbClOperateTask readDbClTask = new DbClOperateTask( SdbTestBase.csName,
+                clName ) {
             @Override
             protected void exec() throws Exception {
-                while (!canRead.get())
-                    Thread.sleep(100);
-                try (DBLob lob = this.dbcl.openLob(id)) {
-                    RandomWriteLobUtil.readLob(lob, 5);
+                while ( !canRead.get() )
+                    Thread.sleep( 100 );
+                try ( DBLob lob = this.dbcl.openLob( id )) {
+                    RandomWriteLobUtil.readLob( lob, 5 );
                 }
             }
         };
 
-        DbClOperateTask truncateLob = new DbClOperateTask(SdbTestBase.csName, clName) {
+        DbClOperateTask truncateLob = new DbClOperateTask( SdbTestBase.csName,
+                clName ) {
             @Override
             protected void exec() throws Exception {
-                this.dbcl.truncateLob(id, 100);
-                canRead.set(true);
+                this.dbcl.truncateLob( id, 100 );
+                canRead.set( true );
             }
         };
 
@@ -82,21 +86,23 @@ public class RewriteLob13395 extends SdbTestBase {
         readDbClTask.join();
 
         String lobErrMsg = "lob id : " + id.toString();
-        Assert.assertTrue(truncateLob.isTaskSuccess(), lobErrMsg);
-        try (DBLob lob = dbcl.openLob(id)) {
-            Assert.assertEquals(lob.getSize(), 100, lobErrMsg);
-            RandomWriteLobUtil.assertByteArrayEqual(RandomWriteLobUtil.readLob(lob, 5),
-                    Arrays.copyOf(_randomDatas, 100), lobErrMsg);
+        Assert.assertTrue( truncateLob.isTaskSuccess(), lobErrMsg );
+        try ( DBLob lob = dbcl.openLob( id )) {
+            Assert.assertEquals( lob.getSize(), 100, lobErrMsg );
+            RandomWriteLobUtil.assertByteArrayEqual(
+                    RandomWriteLobUtil.readLob( lob, 5 ),
+                    Arrays.copyOf( _randomDatas, 100 ), lobErrMsg );
         }
-        if (!readDbClTask.isTaskSuccess()) {
-            Assert.assertEquals(readDbClTask.getSdbErrCode(), SDBError.SDB_LOB_IS_IN_USE.getErrorCode(),
-                    lobErrMsg + readDbClTask.getErrorMsg());
+        if ( !readDbClTask.isTaskSuccess() ) {
+            Assert.assertEquals( readDbClTask.getSdbErrCode(),
+                    SDBError.SDB_LOB_IS_IN_USE.getErrorCode(),
+                    lobErrMsg + readDbClTask.getErrorMsg() );
         }
     }
 
     @AfterClass
     public void tearDown() {
-        cs.dropCollection(clName);
+        cs.dropCollection( clName );
         db.close();
     }
 

@@ -32,13 +32,16 @@ public class Transaction19189 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        sdb.getCollectionSpace(SdbTestBase.csName).createCollection(clName,
-                (BSONObject) JSON.parse("{ShardingKey:{_id:1}, AutoSplit:true}"));
-        sdb.updateConfig((BSONObject) JSON.parse("{transactiontimeout:30}"), (BSONObject) JSON.parse("{Global:false}"));
+        sdb.getCollectionSpace( SdbTestBase.csName ).createCollection( clName,
+                ( BSONObject ) JSON
+                        .parse( "{ShardingKey:{_id:1}, AutoSplit:true}" ) );
+        sdb.updateConfig(
+                ( BSONObject ) JSON.parse( "{transactiontimeout:30}" ),
+                ( BSONObject ) JSON.parse( "{Global:false}" ) );
     }
 
     @Test
@@ -49,43 +52,45 @@ public class Transaction19189 extends SdbTestBase {
         try {
 
             // 开启事务1，插入记录R1
-            db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             db1.beginTransaction();
-            DBCollection cl1 = db1.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-            BSONObject obj = (BSONObject) JSON.parse("{_id:1, a:1, b:1}");
-            cl1.insert(obj);
-            List<BSONObject> expList = new ArrayList<>();
-            expList.add(obj);
+            DBCollection cl1 = db1.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
+            BSONObject obj = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
+            cl1.insert( obj );
+            List< BSONObject > expList = new ArrayList<>();
+            expList.add( obj );
 
             // 开启事务2，更新记录R1为R2
-            db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             db2.beginTransaction();
-            DBCollection cl2 = db2.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+            DBCollection cl2 = db2.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
             long start = System.currentTimeMillis();
             try {
-                cl2.update("{a:1}", "{$set:{b:2}}", null);
+                cl2.update( "{a:1}", "{$set:{b:2}}", null );
                 Assert.fail();
-            } catch (BaseException e) {
-                Assert.assertEquals(e.getErrorCode(), -13);
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -13 );
             }
             long end = System.currentTimeMillis();
-            int useTime = (int) ((end - start) / 1000);
-            if (useTime > 31 || useTime < 29) {
-                Assert.fail("" + useTime);
+            int useTime = ( int ) ( ( end - start ) / 1000 );
+            if ( useTime > 31 || useTime < 29 ) {
+                Assert.fail( "" + useTime );
             }
 
             // 提交所有事务
             db1.commit();
             db2.commit();
             DBCursor cursor = cl2.query();
-            List<BSONObject> actList = TransUtils.getReadActList(cursor);
-            Assert.assertEquals(actList, expList);
+            List< BSONObject > actList = TransUtils.getReadActList( cursor );
+            Assert.assertEquals( actList, expList );
         } finally {
-            if (null != db1) {
+            if ( null != db1 ) {
                 db1.commit();
                 db1.close();
             }
-            if (null != db2) {
+            if ( null != db2 ) {
                 db2.commit();
                 db2.close();
             }
@@ -94,10 +99,12 @@ public class Transaction19189 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (null != sdb) {
-            sdb.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
-            sdb.deleteConfig((BSONObject) JSON.parse("{transactiontimeout:''}"),
-                    (BSONObject) JSON.parse("{Global:false}"));
+        if ( null != sdb ) {
+            sdb.getCollectionSpace( SdbTestBase.csName )
+                    .dropCollection( clName );
+            sdb.deleteConfig(
+                    ( BSONObject ) JSON.parse( "{transactiontimeout:''}" ),
+                    ( BSONObject ) JSON.parse( "{Global:false}" ) );
             sdb.close();
         }
     }

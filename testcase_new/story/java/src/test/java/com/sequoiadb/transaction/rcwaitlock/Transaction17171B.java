@@ -37,8 +37,8 @@ public class Transaction17171B extends SdbTestBase {
     private DBCollection cl2 = null;
     private DBCollection cl3 = null;
     private DBCollection cl = null;
-    private ArrayList<BSONObject> expList = new ArrayList<BSONObject>();
-    private ArrayList<BSONObject> actList = new ArrayList<BSONObject>();
+    private ArrayList< BSONObject > expList = new ArrayList< BSONObject >();
+    private ArrayList< BSONObject > actList = new ArrayList< BSONObject >();
     private DBCursor cursor = null;
     private String hint = "{\"\":\"a\"}";
     private int startId = 0;
@@ -47,13 +47,14 @@ public class Transaction17171B extends SdbTestBase {
 
     @DataProvider(name = "index")
     public Object[][] createIndex() {
-        return new Object[][] { { "{'a': 1}", "{'a': 1}" }, { "{'a': -1, 'b': 1}", "{'a': -1}" } };
+        return new Object[][] { { "{'a': 1}", "{'a': 1}" },
+                { "{'a': -1, 'b': 1}", "{'a': -1}" } };
     }
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
     }
 
     @AfterClass
@@ -61,170 +62,179 @@ public class Transaction17171B extends SdbTestBase {
         db1.commit();
         db2.commit();
         db3.commit();
-        if (!db1.isClosed()) {
+        if ( !db1.isClosed() ) {
             db1.close();
         }
-        if (!db2.isClosed()) {
+        if ( !db2.isClosed() ) {
             db2.close();
         }
-        if (!db3.isClosed()) {
+        if ( !db3.isClosed() ) {
             db3.close();
         }
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        if (!sdb.isClosed()) {
+        if ( !sdb.isClosed() ) {
             sdb.close();
         }
     }
 
     @SuppressWarnings("unchecked")
     @Test(dataProvider = "index")
-    public void test(String indexKey, String orderBy) {
+    public void test( String indexKey, String orderBy ) {
         try {
-            cl.createIndex("a", indexKey, false, false);
+            cl.createIndex( "a", indexKey, false, false );
 
-            db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            db3 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
             // 开启3个并发事务
             db1.beginTransaction();
             db2.beginTransaction();
             db3.beginTransaction();
-            cl1 = db1.getCollectionSpace(csName).getCollection(clName);
-            cl2 = db2.getCollectionSpace(csName).getCollection(clName);
-            cl3 = db3.getCollectionSpace(csName).getCollection(clName);
+            cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
+            cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
+            cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
 
             // 事务1插入记录R1
-            ArrayList<BSONObject> insertR1s = TransUtils.insertRandomDatas(cl1, startId, stopId);
+            ArrayList< BSONObject > insertR1s = TransUtils
+                    .insertRandomDatas( cl1, startId, stopId );
 
             // 事务2匹配记录R1更新为R2
             UpdateThread updateThread = new UpdateThread();
             updateThread.start();
-            Assert.assertTrue(updateThread.matchBlockingMethod(cl2.getClass().getName(), "update"));
+            Assert.assertTrue( updateThread.matchBlockingMethod(
+                    cl2.getClass().getName(), "update" ) );
 
             // 事务3读
-            TransactionQueryThread tableScanThread = new TransactionQueryThread(cl3, orderBy);
+            TransactionQueryThread tableScanThread = new TransactionQueryThread(
+                    cl3, orderBy );
             tableScanThread.start();
-            Assert.assertTrue(tableScanThread.matchBlockingMethod(DBCursor.class.getName(), "hasNext"));
+            Assert.assertTrue( tableScanThread.matchBlockingMethod(
+                    DBCursor.class.getName(), "hasNext" ) );
 
             // 非事务读
-            expList.addAll(insertR1s);
-            cursor = cl.query(null, null, "{a:1}", hint);
-            actList = TransUtils.getReadActList(cursor);
-            Assert.assertEquals(actList, expList);
+            expList.addAll( insertR1s );
+            cursor = cl.query( null, null, "{a:1}", hint );
+            actList = TransUtils.getReadActList( cursor );
+            Assert.assertEquals( actList, expList );
             actList.clear();
 
             // 非事务逆序读
-            Collections.reverse(expList);
-            cursor = cl.query(null, null, "{a: -1}", hint);
-            actList = TransUtils.getReadActList(cursor);
-            Assert.assertEquals(actList, expList);
+            Collections.reverse( expList );
+            cursor = cl.query( null, null, "{a: -1}", hint );
+            actList = TransUtils.getReadActList( cursor );
+            Assert.assertEquals( actList, expList );
             actList.clear();
 
             // 提交事务1
             db1.commit();
-            Assert.assertTrue(updateThread.isSuccess(), updateThread.getErrorMsg());
-            Assert.assertTrue(tableScanThread.matchBlockingMethod(DBCursor.class.getName(), "hasNext"));
+            Assert.assertTrue( updateThread.isSuccess(),
+                    updateThread.getErrorMsg() );
+            Assert.assertTrue( tableScanThread.matchBlockingMethod(
+                    DBCursor.class.getName(), "hasNext" ) );
 
             // 非事务读
             expList.clear();
-            ArrayList<BSONObject> updateR1s = TransUtils.getIncDatas(startId, stopId, updateValue);
-            expList.addAll(updateR1s);
-            cursor = cl.query(null, null, "{a:1}", hint);
-            actList = TransUtils.getReadActList(cursor);
-            Assert.assertEquals(actList, expList);
+            ArrayList< BSONObject > updateR1s = TransUtils.getIncDatas( startId,
+                    stopId, updateValue );
+            expList.addAll( updateR1s );
+            cursor = cl.query( null, null, "{a:1}", hint );
+            actList = TransUtils.getReadActList( cursor );
+            Assert.assertEquals( actList, expList );
             actList.clear();
 
             // 非事务逆序读
-            Collections.reverse(expList);
-            cursor = cl.query(null, null, "{a: -1}", hint);
-            actList = TransUtils.getReadActList(cursor);
-            Assert.assertEquals(actList, expList);
+            Collections.reverse( expList );
+            cursor = cl.query( null, null, "{a: -1}", hint );
+            actList = TransUtils.getReadActList( cursor );
+            Assert.assertEquals( actList, expList );
             actList.clear();
 
             // 事务2读
-            Collections.reverse(expList);
-            cursor = cl2.query(null, null, "{a:1}", hint);
-            actList = TransUtils.getReadActList(cursor);
-            Assert.assertEquals(actList, expList);
+            Collections.reverse( expList );
+            cursor = cl2.query( null, null, "{a:1}", hint );
+            actList = TransUtils.getReadActList( cursor );
+            Assert.assertEquals( actList, expList );
             actList.clear();
 
             // 事务2逆序读
-            Collections.reverse(expList);
-            cursor = cl2.query(null, null, "{a: -1}", hint);
-            actList = TransUtils.getReadActList(cursor);
-            Assert.assertEquals(actList, expList);
+            Collections.reverse( expList );
+            cursor = cl2.query( null, null, "{a: -1}", hint );
+            actList = TransUtils.getReadActList( cursor );
+            Assert.assertEquals( actList, expList );
             actList.clear();
 
             // 提交事务2
             db2.commit();
-            Assert.assertTrue(tableScanThread.isSuccess(), tableScanThread.getErrorMsg());
+            Assert.assertTrue( tableScanThread.isSuccess(),
+                    tableScanThread.getErrorMsg() );
 
-            System.out.println("record num: " + cl.getCount());
+            System.out.println( "record num: " + cl.getCount() );
 
             // 检查事务3读
             try {
-                Collections.reverse(expList);
-                actList = (ArrayList<BSONObject>) tableScanThread.getExecResult();
-                if (orderBy.equals("{'a': 1}")) {
-                    Assert.assertEquals(actList, expList);
+                Collections.reverse( expList );
+                actList = ( ArrayList< BSONObject > ) tableScanThread
+                        .getExecResult();
+                if ( orderBy.equals( "{'a': 1}" ) ) {
+                    Assert.assertEquals( actList, expList );
                 } else {
-                    Assert.assertEquals(actList.size(), 0);
+                    Assert.assertEquals( actList.size(), 0 );
                 }
                 actList.clear();
-            } catch (InterruptedException e) {
+            } catch ( InterruptedException e ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
 
             // 非事务读
-            cursor = cl.query(null, null, "{a: 1}", hint);
-            actList = TransUtils.getReadActList(cursor);
-            Assert.assertEquals(actList, expList);
+            cursor = cl.query( null, null, "{a: 1}", hint );
+            actList = TransUtils.getReadActList( cursor );
+            Assert.assertEquals( actList, expList );
             actList.clear();
 
             // 非事务逆序读
-            Collections.reverse(expList);
-            cursor = cl.query(null, null, "{a: -1}", hint);
-            actList = TransUtils.getReadActList(cursor);
-            Assert.assertEquals(actList, expList);
+            Collections.reverse( expList );
+            cursor = cl.query( null, null, "{a: -1}", hint );
+            actList = TransUtils.getReadActList( cursor );
+            Assert.assertEquals( actList, expList );
             actList.clear();
 
             // 事务3读
-            Collections.reverse(expList);
-            cursor = cl3.query(null, null, "{a:1}", hint);
-            actList = TransUtils.getReadActList(cursor);
-            Assert.assertEquals(actList, expList);
+            Collections.reverse( expList );
+            cursor = cl3.query( null, null, "{a:1}", hint );
+            actList = TransUtils.getReadActList( cursor );
+            Assert.assertEquals( actList, expList );
             actList.clear();
 
             // 事务3逆序读
-            Collections.reverse(expList);
-            cursor = cl3.query(null, null, "{a: -1}", hint);
-            actList = TransUtils.getReadActList(cursor);
-            Assert.assertEquals(actList, expList);
+            Collections.reverse( expList );
+            cursor = cl3.query( null, null, "{a: -1}", hint );
+            actList = TransUtils.getReadActList( cursor );
+            Assert.assertEquals( actList, expList );
             actList.clear();
 
             // 提交事务3
             db3.commit();
 
             // 删除记录
-            cl.delete((BSONObject) null);
+            cl.delete( ( BSONObject ) null );
 
             // 非事务读
             expList.clear();
-            cursor = cl.query(null, null, null, hint);
-            actList = TransUtils.getReadActList(cursor);
-            Assert.assertEquals(actList, expList);
+            cursor = cl.query( null, null, null, hint );
+            actList = TransUtils.getReadActList( cursor );
+            Assert.assertEquals( actList, expList );
             actList.clear();
         } finally {
             db1.commit();
             db2.commit();
             db3.commit();
-            if (cl.isIndexExist("a")) {
-                cl.dropIndex("a");
+            if ( cl.isIndexExist( "a" ) ) {
+                cl.dropIndex( "a" );
             }
             cl.truncate();
         }
@@ -234,7 +244,8 @@ public class Transaction17171B extends SdbTestBase {
     private class UpdateThread extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
-            cl2.update("{a: {$gte: " + startId + ", $lt: " + stopId + "}}", "{$inc:{a:" + updateValue + "}}", hint);
+            cl2.update( "{a: {$gte: " + startId + ", $lt: " + stopId + "}}",
+                    "{$inc:{a:" + updateValue + "}}", hint );
         }
     }
 
@@ -242,7 +253,7 @@ public class Transaction17171B extends SdbTestBase {
         private DBCollection cl = null;
         private String orderBy = null;
 
-        public TransactionQueryThread(DBCollection cl, String orderBy) {
+        public TransactionQueryThread( DBCollection cl, String orderBy ) {
             super();
             this.cl = cl;
             this.orderBy = orderBy;
@@ -250,12 +261,12 @@ public class Transaction17171B extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
-            List<BSONObject> ret = new ArrayList<BSONObject>();
-            DBCursor indexCursor = cl.query(null, null, orderBy, hint);
-            while (indexCursor.hasNext()) {
-                ret.add(indexCursor.getNext());
+            List< BSONObject > ret = new ArrayList< BSONObject >();
+            DBCursor indexCursor = cl.query( null, null, orderBy, hint );
+            while ( indexCursor.hasNext() ) {
+                ret.add( indexCursor.getNext() );
             }
-            setExecResult(ret);
+            setExecResult( ret );
         }
     }
 

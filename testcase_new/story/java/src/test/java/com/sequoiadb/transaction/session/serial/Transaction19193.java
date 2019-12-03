@@ -29,20 +29,22 @@ public class Transaction19193 extends SdbTestBase {
 
     private Sequoiadb sdb;
     private String clName = "cl_19193";
-    private List<BSONObject> expList = new ArrayList<>();
+    private List< BSONObject > expList = new ArrayList<>();
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        DBCollection cl = sdb.getCollectionSpace(SdbTestBase.csName).createCollection(clName);
-        cl.createIndex("idx_19193", "{a:1}", true, false);
-        cl.insert("{_id:1, a:1, b:1}");
-        expList.add((BSONObject) JSON.parse("{_id:1, a:1, b:1}"));
-        sdb.updateConfig((BSONObject) JSON.parse("{transautorollback:false}"),
-                (BSONObject) JSON.parse("{Global:false}"));
+        DBCollection cl = sdb.getCollectionSpace( SdbTestBase.csName )
+                .createCollection( clName );
+        cl.createIndex( "idx_19193", "{a:1}", true, false );
+        cl.insert( "{_id:1, a:1, b:1}" );
+        expList.add( ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" ) );
+        sdb.updateConfig(
+                ( BSONObject ) JSON.parse( "{transautorollback:false}" ),
+                ( BSONObject ) JSON.parse( "{Global:false}" ) );
     }
 
     @Test
@@ -53,23 +55,24 @@ public class Transaction19193 extends SdbTestBase {
 
             // 开启事务1，插入记录R1与集合中已存在的记录唯一索引重复，
             // 再次插入记录R2，回滚事务，检查结果
-            db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             db1.beginTransaction();
-            DBCollection cl1 = db1.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+            DBCollection cl1 = db1.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
             try {
-                cl1.insert("{_id:2, a:1, b:2}");
+                cl1.insert( "{_id:2, a:1, b:2}" );
                 Assert.fail();
-            } catch (BaseException e) {
-                Assert.assertEquals(e.getErrorCode(), -38);
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -38 );
             }
-            cl1.insert("{_id:3, a:3, b:3}");
+            cl1.insert( "{_id:3, a:3, b:3}" );
 
             db1.rollback();
             DBCursor cursor = cl1.query();
-            List<BSONObject> actList = TransUtils.getReadActList(cursor);
-            Assert.assertEquals(actList, expList);
+            List< BSONObject > actList = TransUtils.getReadActList( cursor );
+            Assert.assertEquals( actList, expList );
         } finally {
-            if (null != db1) {
+            if ( null != db1 ) {
                 db1.commit();
                 db1.close();
             }
@@ -78,10 +81,12 @@ public class Transaction19193 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (null != sdb) {
-            sdb.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
-            sdb.deleteConfig((BSONObject) JSON.parse("{transautorollback:''}"),
-                    (BSONObject) JSON.parse("{Global:false}"));
+        if ( null != sdb ) {
+            sdb.getCollectionSpace( SdbTestBase.csName )
+                    .dropCollection( clName );
+            sdb.deleteConfig(
+                    ( BSONObject ) JSON.parse( "{transautorollback:''}" ),
+                    ( BSONObject ) JSON.parse( "{Global:false}" ) );
             sdb.close();
         }
     }

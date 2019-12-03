@@ -1,4 +1,5 @@
 package com.sequoiadb.transaction;
+
 /**
  * @FileName: seqDB-18392:开启事务的过程中执行切分
  * @author zhaoxiaoni
@@ -30,76 +31,83 @@ public class Split18392 extends SdbTestBase {
     private String clName = "cl_18392";
     private String srcGroup = null;
     private String desGroup = null;
-    
+
     @BeforeClass
-    public void setUp(){
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if(CommLib.isStandAlone(sdb)){
-            throw new SkipException("skip StandAlone!");
+    public void setUp() {
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "skip StandAlone!" );
         }
-        List<String> groupNames = CommLib.getDataGroupNames(sdb);
-        if(groupNames.size() < 2){
-            throw new SkipException("current environment less than tow groups");
+        List< String > groupNames = CommLib.getDataGroupNames( sdb );
+        if ( groupNames.size() < 2 ) {
+            throw new SkipException(
+                    "current environment less than tow groups" );
         }
-        srcGroup = groupNames.get(0);
-        desGroup = groupNames.get(1);
-        DBCollection cl = sdb.getCollectionSpace(csName).createCollection(clName, (BSONObject)JSON
-                .parse("{ShardingKey:{'sk':1}, ShardingType:'range', Group:'"+ groupNames.get(0)+"'}"));
-        insertData(cl);
+        srcGroup = groupNames.get( 0 );
+        desGroup = groupNames.get( 1 );
+        DBCollection cl = sdb.getCollectionSpace( csName )
+                .createCollection( clName, ( BSONObject ) JSON.parse(
+                        "{ShardingKey:{'sk':1}, ShardingType:'range', Group:'"
+                                + groupNames.get( 0 ) + "'}" ) );
+        insertData( cl );
     }
-    
+
     @Test
-    public void Test(){
+    public void Test() {
         Sequoiadb db = null;
         DBCollection cl = null;
-        try{
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            cl = db.getCollectionSpace(csName).getCollection(clName);
+        try {
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            cl = db.getCollectionSpace( csName ).getCollection( clName );
             db.beginTransaction();
-            insertData(cl);
-            cl.split(srcGroup, desGroup, 50);
-            Assert.fail("Split should not success!");
-        }catch(BaseException e){
-            Assert.assertEquals(e.getErrorCode(), -315, e.getMessage());
-        }finally {
+            insertData( cl );
+            cl.split( srcGroup, desGroup, 50 );
+            Assert.fail( "Split should not success!" );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( e.getErrorCode(), -315, e.getMessage() );
+        } finally {
             db.rollback();
         }
-        checkSplit(cl);
+        checkSplit( cl );
     }
-    
+
     @AfterClass
-    public void afterClass(){
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if(cs.isCollectionExist(clName)){
-            cs.dropCollection(clName);
+    public void afterClass() {
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
         sdb.close();
     }
-    
-    public void insertData(DBCollection cl) {
-        List<BSONObject> insertedData = new ArrayList<BSONObject>();
-        for (int i = 0; i < 100000; i++) {
-            BSONObject obj = (BSONObject) JSON.parse("{sk:" + i + ",alpha:" + i + "}");
-            insertedData.add(obj);
+
+    public void insertData( DBCollection cl ) {
+        List< BSONObject > insertedData = new ArrayList< BSONObject >();
+        for ( int i = 0; i < 100000; i++ ) {
+            BSONObject obj = ( BSONObject ) JSON
+                    .parse( "{sk:" + i + ",alpha:" + i + "}" );
+            insertedData.add( obj );
         }
-        cl.insert(insertedData);
+        cl.insert( insertedData );
     }
-    
-    public void checkSplit(DBCollection cl){
-        List<String> groupNames = new ArrayList<>();
-        DBCursor cur = sdb.getSnapshot(Sequoiadb.SDB_SNAP_CATALOG, 
-                (BSONObject)JSON.parse("{Name:'" + csName + "." + clName + "'}"), null, null);
-        while (cur.hasNext()){
-            BasicBSONList bsonLists = (BasicBSONList) cur.getNext().get("CataInfo");
-            for (int i = 0; i < bsonLists.size(); i++) {
-                BasicBSONObject obj = (BasicBSONObject) bsonLists.get(i);
-                groupNames.add(obj.getString("GroupName"));
+
+    public void checkSplit( DBCollection cl ) {
+        List< String > groupNames = new ArrayList<>();
+        DBCursor cur = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CATALOG,
+                ( BSONObject ) JSON
+                        .parse( "{Name:'" + csName + "." + clName + "'}" ),
+                null, null );
+        while ( cur.hasNext() ) {
+            BasicBSONList bsonLists = ( BasicBSONList ) cur.getNext()
+                    .get( "CataInfo" );
+            for ( int i = 0; i < bsonLists.size(); i++ ) {
+                BasicBSONObject obj = ( BasicBSONObject ) bsonLists.get( i );
+                groupNames.add( obj.getString( "GroupName" ) );
             }
-       }
-       Set<String> set = new HashSet<String>(groupNames);
-       groupNames.clear();
-       groupNames.addAll(set);
-       Assert.assertEquals(groupNames.size(), 1);
-       Assert.assertEquals(cl.getCount(), 100000);
+        }
+        Set< String > set = new HashSet< String >( groupNames );
+        groupNames.clear();
+        groupNames.addAll( set );
+        Assert.assertEquals( groupNames.size(), 1 );
+        Assert.assertEquals( cl.getCount(), 100000 );
     }
 }

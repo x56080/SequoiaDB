@@ -45,59 +45,63 @@ public class RewriteLob13248_18980 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
         String clOptions = "{ShardingKey:{no:1},ShardingType:'hash'}";
-        RandomWriteLobUtil.createCL(cs, clName, clOptions);
-        if (!CommLib.isStandAlone(sdb)) {
-            LobSubUtils.createMainCLAndAttachCL(sdb, SdbTestBase.csName, mainCLName, subCLName);
+        RandomWriteLobUtil.createCL( cs, clName, clOptions );
+        if ( !CommLib.isStandAlone( sdb ) ) {
+            LobSubUtils.createMainCLAndAttachCL( sdb, SdbTestBase.csName,
+                    mainCLName, subCLName );
         }
     }
 
     @Test(dataProvider = "clNameProvider")
-    public void testLob(String clName) {
-        if (CommLib.isStandAlone(sdb) && clName.equals(mainCLName)) {
-            throw new SkipException("is standalone skip testcase!");
+    public void testLob( String clName ) {
+        if ( CommLib.isStandAlone( sdb ) && clName.equals( mainCLName ) ) {
+            throw new SkipException( "is standalone skip testcase!" );
         }
         int writeSize = 1024 * 1024 * 1;
-        testLobBuff = RandomWriteLobUtil.getRandomBytes(writeSize);
-        DBCollection cl = sdb.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, testLobBuff);
+        testLobBuff = RandomWriteLobUtil.getRandomBytes( writeSize );
+        DBCollection cl = sdb.getCollectionSpace( SdbTestBase.csName )
+                .getCollection( clName );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl, testLobBuff );
 
         int offset = 1024;
         int reWriteLobSize = 1024 * 256;
-        byte[] lastWriteBuff = rewriteLob(cl, oid, offset, reWriteLobSize);
+        byte[] lastWriteBuff = rewriteLob( cl, oid, offset, reWriteLobSize );
 
-        RandomWriteLobUtil.checkRewriteLobResult(cl, oid, offset, lastWriteBuff, testLobBuff);
+        RandomWriteLobUtil.checkRewriteLobResult( cl, oid, offset,
+                lastWriteBuff, testLobBuff );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
-            if (cs.isCollectionExist(subCLName)) {
-                cs.dropCollection(subCLName);
+            if ( cs.isCollectionExist( subCLName ) ) {
+                cs.dropCollection( subCLName );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
     }
 
-    private byte[] rewriteLob(DBCollection cl, ObjectId oid, int offset, int writeLobSize) {
+    private byte[] rewriteLob( DBCollection cl, ObjectId oid, int offset,
+            int writeLobSize ) {
         int lockCount = 10;
-        byte[] rewriteBuff = new byte[writeLobSize];
-        try (DBLob lob = cl.openLob(oid, DBLob.SDB_LOB_WRITE)) {
-            for (int i = 0; i < lockCount; i++) {
-                rewriteBuff = RandomWriteLobUtil.getRandomBytes(writeLobSize);
-                lob.lockAndSeek(offset, writeLobSize);
-                lob.write(rewriteBuff);
+        byte[] rewriteBuff = new byte[ writeLobSize ];
+        try ( DBLob lob = cl.openLob( oid, DBLob.SDB_LOB_WRITE )) {
+            for ( int i = 0; i < lockCount; i++ ) {
+                rewriteBuff = RandomWriteLobUtil.getRandomBytes( writeLobSize );
+                lob.lockAndSeek( offset, writeLobSize );
+                lob.write( rewriteBuff );
             }
         }
         // get the last written lobBuff

@@ -35,18 +35,20 @@ public class TestRenameCL16088 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("skip StandAlone");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "skip StandAlone" );
         }
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
         createMainCL();
-        cs.createCollection(subCLName, (BSONObject) JSON.parse("{ShardingKey:{\"a\":1},ShardingType:\"hash\"}"));
-        DBCollection maincl = cs.getCollection(mainCLName);
+        cs.createCollection( subCLName, ( BSONObject ) JSON
+                .parse( "{ShardingKey:{\"a\":1},ShardingType:\"hash\"}" ) );
+        DBCollection maincl = cs.getCollection( mainCLName );
         BSONObject options = new BasicBSONObject();
-        options.put("LowBound", JSON.parse("{\"a\":1}"));
-        options.put("UpBound", JSON.parse("{\"a\":100}"));
-        maincl.attachCollection(SdbTestBase.csName + "." + subCLName, options);
+        options.put( "LowBound", JSON.parse( "{\"a\":1}" ) );
+        options.put( "UpBound", JSON.parse( "{\"a\":100}" ) );
+        maincl.attachCollection( SdbTestBase.csName + "." + subCLName,
+                options );
     }
 
     @Test
@@ -55,55 +57,66 @@ public class TestRenameCL16088 extends SdbTestBase {
         RenameSubCLThread subCLThread = new RenameSubCLThread();
         mainCLThread.start();
         subCLThread.start();
-        if (subCLThread.isSuccess() && !mainCLThread.isSuccess()) {
-            RenameUtil.checkRenameCLResult(sdb, SdbTestBase.csName, subCLName, newSubCLName);
-            Assert.assertEquals(cs.isCollectionExist(mainCLName), true);
-            BaseException e = (BaseException) mainCLThread.getExceptions().get(0);
-            if (e.getErrorCode() == -148) {
-                RenameUtil.retryToRenameCL(sdb, csName, mainCLName, newMainCLName);
+        if ( subCLThread.isSuccess() && !mainCLThread.isSuccess() ) {
+            RenameUtil.checkRenameCLResult( sdb, SdbTestBase.csName, subCLName,
+                    newSubCLName );
+            Assert.assertEquals( cs.isCollectionExist( mainCLName ), true );
+            BaseException e = ( BaseException ) mainCLThread.getExceptions()
+                    .get( 0 );
+            if ( e.getErrorCode() == -148 ) {
+                RenameUtil.retryToRenameCL( sdb, csName, mainCLName,
+                        newMainCLName );
             }
-            if (e.getErrorCode() != -147 && e.getErrorCode() != -148 && e.getErrorCode() != -190) {
-                Assert.fail("errcode not expected : " + e.getMessage());
+            if ( e.getErrorCode() != -147 && e.getErrorCode() != -148
+                    && e.getErrorCode() != -190 ) {
+                Assert.fail( "errcode not expected : " + e.getMessage() );
             }
-        } else if (!subCLThread.isSuccess() && mainCLThread.isSuccess()) {
-            RenameUtil.checkRenameCLResult(sdb, SdbTestBase.csName, mainCLName, newMainCLName);
-            Assert.assertEquals(cs.isCollectionExist(subCLName), true);
-            BaseException e = (BaseException) subCLThread.getExceptions().get(0);
-            if (e.getErrorCode() == -148) {
-                RenameUtil.retryToRenameCL(sdb, csName, subCLName, newSubCLName);
+        } else if ( !subCLThread.isSuccess() && mainCLThread.isSuccess() ) {
+            RenameUtil.checkRenameCLResult( sdb, SdbTestBase.csName, mainCLName,
+                    newMainCLName );
+            Assert.assertEquals( cs.isCollectionExist( subCLName ), true );
+            BaseException e = ( BaseException ) subCLThread.getExceptions()
+                    .get( 0 );
+            if ( e.getErrorCode() == -148 ) {
+                RenameUtil.retryToRenameCL( sdb, csName, subCLName,
+                        newSubCLName );
             }
-            if (e.getErrorCode() != -147 && e.getErrorCode() != -148 && e.getErrorCode() != -190) {
-                Assert.fail("errcode not expected : " + e.getMessage());
+            if ( e.getErrorCode() != -147 && e.getErrorCode() != -148
+                    && e.getErrorCode() != -190 ) {
+                Assert.fail( "errcode not expected : " + e.getMessage() );
             }
-        } else if (subCLThread.isSuccess() && mainCLThread.isSuccess()) {
-            RenameUtil.checkRenameCLResult(sdb, SdbTestBase.csName, subCLName, newSubCLName);
-            RenameUtil.checkRenameCLResult(sdb, SdbTestBase.csName, mainCLName, newMainCLName);
-            Assert.assertEquals(cs.isCollectionExist(subCLName), false);
-            Assert.assertEquals(cs.isCollectionExist(mainCLName), false);
+        } else if ( subCLThread.isSuccess() && mainCLThread.isSuccess() ) {
+            RenameUtil.checkRenameCLResult( sdb, SdbTestBase.csName, subCLName,
+                    newSubCLName );
+            RenameUtil.checkRenameCLResult( sdb, SdbTestBase.csName, mainCLName,
+                    newMainCLName );
+            Assert.assertEquals( cs.isCollectionExist( subCLName ), false );
+            Assert.assertEquals( cs.isCollectionExist( mainCLName ), false );
         } else {
-            Assert.fail("subCLThread : " + subCLThread.getErrorMsg() + "\nmainCLThread :" + mainCLThread.getErrorMsg());
+            Assert.fail( "subCLThread : " + subCLThread.getErrorMsg()
+                    + "\nmainCLThread :" + mainCLThread.getErrorMsg() );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(subCLName)) {
-                cs.dropCollection(subCLName);
+            if ( cs.isCollectionExist( subCLName ) ) {
+                cs.dropCollection( subCLName );
             }
-            if (cs.isCollectionExist(newSubCLName)) {
-                cs.dropCollection(newSubCLName);
+            if ( cs.isCollectionExist( newSubCLName ) ) {
+                cs.dropCollection( newSubCLName );
             }
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
-            if (cs.isCollectionExist(newMainCLName)) {
-                cs.dropCollection(newMainCLName);
+            if ( cs.isCollectionExist( newMainCLName ) ) {
+                cs.dropCollection( newMainCLName );
             }
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         } finally {
-            if (this.sdb != null) {
+            if ( this.sdb != null ) {
                 this.sdb.close();
             }
         }
@@ -111,22 +124,23 @@ public class TestRenameCL16088 extends SdbTestBase {
 
     public void createMainCL() {
         BSONObject options = new BasicBSONObject();
-        options.put("IsMainCL", true);
+        options.put( "IsMainCL", true );
         BSONObject opt = new BasicBSONObject();
-        opt.put("a", 1);
-        options.put("ShardingKey", opt);
-        options.put("ShardingType", "range");
-        cs.createCollection(mainCLName, options);
+        opt.put( "a", 1 );
+        options.put( "ShardingKey", opt );
+        options.put( "ShardingType", "range" );
+        cs.createCollection( mainCLName, options );
     }
 
     private class RenameMainCLThread extends SdbThreadBase {
 
         @Override
         public void exec() throws BaseException {
-            Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             try {
-                CollectionSpace localcs = db.getCollectionSpace(SdbTestBase.csName);
-                localcs.renameCollection(mainCLName, newMainCLName);
+                CollectionSpace localcs = db
+                        .getCollectionSpace( SdbTestBase.csName );
+                localcs.renameCollection( mainCLName, newMainCLName );
 
             } finally {
                 db.close();
@@ -138,10 +152,11 @@ public class TestRenameCL16088 extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
-            Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             try {
-                CollectionSpace localcs = db.getCollectionSpace(SdbTestBase.csName);
-                localcs.renameCollection(subCLName, newSubCLName);
+                CollectionSpace localcs = db
+                        .getCollectionSpace( SdbTestBase.csName );
+                localcs.renameCollection( subCLName, newSubCLName );
 
             } finally {
                 db.close();

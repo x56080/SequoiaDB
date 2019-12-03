@@ -28,32 +28,32 @@ import com.sequoiadb.testcommon.SdbThreadBase;
 public class Transaction18212B extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String csName = "cs18212B";
-    private List<String> groupNames;
+    private List< String > groupNames;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        groupNames = CommLib.getDataGroupNames(sdb);
-        if (2 > groupNames.size()) {
-            throw new SkipException("groups less than 2");
+        groupNames = CommLib.getDataGroupNames( sdb );
+        if ( 2 > groupNames.size() ) {
+            throw new SkipException( "groups less than 2" );
         }
 
-        if (sdb.isCollectionSpaceExist(csName)) {
-            sdb.dropCollectionSpace(csName);
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.dropCollectionSpace( csName );
         }
-        sdb.createCollectionSpace(csName);
-        createCL("cl18212A_B");
-        createCL("cl18212B_B");
-        createCL("cl18212C_B");
+        sdb.createCollectionSpace( csName );
+        createCL( "cl18212A_B" );
+        createCL( "cl18212B_B" );
+        createCL( "cl18212C_B" );
     }
 
     @AfterClass
     public void tearDown() {
-        if (sdb.isCollectionSpaceExist(csName)) {
-            sdb.dropCollectionSpace(csName);
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.dropCollectionSpace( csName );
         }
         sdb.close();
     }
@@ -61,51 +61,55 @@ public class Transaction18212B extends SdbTestBase {
     @Test
     public void test() {
         // 开启并发事务
-        OperatorTh operatorTh1 = new OperatorTh("cl18212A_B");
+        OperatorTh operatorTh1 = new OperatorTh( "cl18212A_B" );
         operatorTh1.start();
 
-        OperatorTh operatorTh2 = new OperatorTh("cl18212B_B");
+        OperatorTh operatorTh2 = new OperatorTh( "cl18212B_B" );
         operatorTh2.start();
 
-        OperatorTh operatorTh3 = new OperatorTh("cl18212C_B");
+        OperatorTh operatorTh3 = new OperatorTh( "cl18212C_B" );
         operatorTh3.start();
 
         DropCSTh dropCLTh = new DropCSTh();
         dropCLTh.start();
 
-        Assert.assertTrue(operatorTh1.isSuccess(), operatorTh1.getErrorMsg());
-        Assert.assertTrue(operatorTh2.isSuccess(), operatorTh2.getErrorMsg());
-        Assert.assertTrue(operatorTh3.isSuccess(), operatorTh3.getErrorMsg());
-        Assert.assertTrue(dropCLTh.isSuccess(), dropCLTh.getErrorMsg());
+        Assert.assertTrue( operatorTh1.isSuccess(), operatorTh1.getErrorMsg() );
+        Assert.assertTrue( operatorTh2.isSuccess(), operatorTh2.getErrorMsg() );
+        Assert.assertTrue( operatorTh3.isSuccess(), operatorTh3.getErrorMsg() );
+        Assert.assertTrue( dropCLTh.isSuccess(), dropCLTh.getErrorMsg() );
     }
 
-    private void createCL(String clName) {
-        DBCollection cl = sdb.getCollectionSpace(csName).createCollection(clName,
-                (BSONObject) JSON.parse("{ShardingKey:{b:1}, ShardingType:'hash', AutoSplit: true}"));
-        cl.createIndex("idx18212", "{a:1}", false, false);
-        cl.insert((BSONObject) JSON.parse("{_id:1, a:1, b:1}"));
-        cl.insert((BSONObject) JSON.parse("{_id:2, a:2, b:2}"));
+    private void createCL( String clName ) {
+        DBCollection cl = sdb.getCollectionSpace( csName )
+                .createCollection( clName, ( BSONObject ) JSON.parse(
+                        "{ShardingKey:{b:1}, ShardingType:'hash', AutoSplit: true}" ) );
+        cl.createIndex( "idx18212", "{a:1}", false, false );
+        cl.insert( ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" ) );
+        cl.insert( ( BSONObject ) JSON.parse( "{_id:2, a:2, b:2}" ) );
     }
 
     private class OperatorTh extends SdbThreadBase {
         private String clName;
         private Sequoiadb db;
 
-        private OperatorTh(String clName) {
+        private OperatorTh( String clName ) {
             this.clName = clName;
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         }
 
         @Override
         public void exec() throws Exception {
             try {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
                 db.beginTransaction();
-                insertDatas(cl, 10000, 20000);
-                cl.delete("{$and:[{a:{$gte:0}},{a:{$lt:5000}}]}", "{'':'idx18212'}");
-                cl.update("{$and:[{a:{$gte:5000}},{a:{$lt:15000}}]}", "{$inc:{a:10}}", "{}'':'idx18212'");
-            } catch (BaseException e) {
-                Assert.assertEquals(e.getErrorCode(), -190);
+                insertDatas( cl, 10000, 20000 );
+                cl.delete( "{$and:[{a:{$gte:0}},{a:{$lt:5000}}]}",
+                        "{'':'idx18212'}" );
+                cl.update( "{$and:[{a:{$gte:5000}},{a:{$lt:15000}}]}",
+                        "{$inc:{a:10}}", "{}'':'idx18212'" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -190 );
             } finally {
                 db.commit();
                 db.close();
@@ -118,19 +122,19 @@ public class Transaction18212B extends SdbTestBase {
         private Sequoiadb db;
 
         private DropCSTh() {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         }
 
         @Override
         public void exec() throws Exception {
             try {
-                while (true) {
+                while ( true ) {
                     try {
-                        Thread.sleep(1000);
-                        db.dropCollectionSpace(csName);
+                        Thread.sleep( 1000 );
+                        db.dropCollectionSpace( csName );
                         break;
-                    } catch (BaseException e) {
-                        Assert.assertEquals(e.getErrorCode(), -190);
+                    } catch ( BaseException e ) {
+                        Assert.assertEquals( e.getErrorCode(), -190 );
                     }
                 }
             } finally {
@@ -139,11 +143,12 @@ public class Transaction18212B extends SdbTestBase {
         }
     }
 
-    private void insertDatas(DBCollection cl, int startId, int endId) {
-        List<BSONObject> records = new ArrayList<>();
-        for (int i = startId; i < endId; i++) {
-            records.add((BSONObject) JSON.parse("{_id:" + i + ", a:" + i + ", b:" + i + "}"));
+    private void insertDatas( DBCollection cl, int startId, int endId ) {
+        List< BSONObject > records = new ArrayList<>();
+        for ( int i = startId; i < endId; i++ ) {
+            records.add( ( BSONObject ) JSON
+                    .parse( "{_id:" + i + ", a:" + i + ", b:" + i + "}" ) );
         }
-        cl.insert(records);
+        cl.insert( records );
     }
 }

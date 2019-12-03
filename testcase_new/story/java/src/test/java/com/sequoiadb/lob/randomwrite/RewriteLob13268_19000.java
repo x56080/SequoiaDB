@@ -53,11 +53,13 @@ public class RewriteLob13268_19000 extends SdbTestBase {
 
     @BeforeClass
     public void setupClass() {
-        db = new Sequoiadb(coordUrl, "", "");
-        cs = db.getCollectionSpace(SdbTestBase.csName);
-        cs.createCollection(clName, (BSONObject) JSON.parse("{ShardingKey:{\"_id\":1},ShardingType:\"hash\"}"));
-        if (!CommLib.isStandAlone(db)) {
-            LobSubUtils.createMainCLAndAttachCL(db, SdbTestBase.csName, mainCLName, subCLName);
+        db = new Sequoiadb( coordUrl, "", "" );
+        cs = db.getCollectionSpace( SdbTestBase.csName );
+        cs.createCollection( clName, ( BSONObject ) JSON
+                .parse( "{ShardingKey:{\"_id\":1},ShardingType:\"hash\"}" ) );
+        if ( !CommLib.isStandAlone( db ) ) {
+            LobSubUtils.createMainCLAndAttachCL( db, SdbTestBase.csName,
+                    mainCLName, subCLName );
         }
     }
 
@@ -67,51 +69,55 @@ public class RewriteLob13268_19000 extends SdbTestBase {
      * 1、所有线程写入lob成功，查询lob信息按指定位置写入数据，且写入数据信息正确（比较MD5值）
      */
     @Test(dataProvider = "clNameProvider")
-    public void testLob(String clName) throws InterruptedException {
-        if (CommLib.isStandAlone(db) && clName.equals(mainCLName)) {
-            throw new SkipException("is standalone skip testcase!");
+    public void testLob( String clName ) throws InterruptedException {
+        if ( CommLib.isStandAlone( db ) && clName.equals( mainCLName ) ) {
+            throw new SkipException( "is standalone skip testcase!" );
         }
-        DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-        final ObjectId id = createEmptyLob(cl);
+        DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
+                .getCollection( clName );
+        final ObjectId id = createEmptyLob( cl );
 
-        List<byte[]> datas = new ArrayList<>(10);
-        List<DbLobWriteTask> tasks = new ArrayList<>(10);
+        List< byte[] > datas = new ArrayList<>( 10 );
+        List< DbLobWriteTask > tasks = new ArrayList<>( 10 );
         int step = 1024;
-        for (int i = 0; i < 10; i++) {
-            byte[] data = getRandomBytes(step);
-            datas.add(data);
-            tasks.add(new DbLobWriteTask(SdbTestBase.csName, clName, id, i * step, data));
+        for ( int i = 0; i < 10; i++ ) {
+            byte[] data = getRandomBytes( step );
+            datas.add( data );
+            tasks.add( new DbLobWriteTask( SdbTestBase.csName, clName, id,
+                    i * step, data ) );
         }
 
-        for (DbLobWriteTask task : tasks)
+        for ( DbLobWriteTask task : tasks )
             task.start();
-        for (DbLobWriteTask task : tasks)
+        for ( DbLobWriteTask task : tasks )
             task.join();
-        for (DbLobWriteTask task : tasks)
-            Assert.assertTrue(task.isTaskSuccess(), task.getErrorMsg());
+        for ( DbLobWriteTask task : tasks )
+            Assert.assertTrue( task.isTaskSuccess(), task.getErrorMsg() );
 
-        byte[] actualData = readLob(cl, id);
-        for (int i = 0; i < 10; i++) {
-            assertByteArrayEqual(Arrays.copyOfRange(actualData, i * step, i * step + step), datas.get(i));
+        byte[] actualData = readLob( cl, id );
+        for ( int i = 0; i < 10; i++ ) {
+            assertByteArrayEqual(
+                    Arrays.copyOfRange( actualData, i * step, i * step + step ),
+                    datas.get( i ) );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
-            if (cs.isCollectionExist(subCLName)) {
-                cs.dropCollection(subCLName);
+            if ( cs.isCollectionExist( subCLName ) ) {
+                cs.dropCollection( subCLName );
             }
-        } catch (BaseException e) {
-            Assert.assertTrue(false, "clean up failed:" + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }

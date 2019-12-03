@@ -32,26 +32,26 @@ public class Transaction17945 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl17945";
     private DBCollection cl = null;
-    private List<BSONObject> expList = new ArrayList<BSONObject>();
-    private List<BSONObject> expList2 = null;
+    private List< BSONObject > expList = new ArrayList< BSONObject >();
+    private List< BSONObject > expList2 = null;
     private CountDownLatch latch = null;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         expList = insertData();
-        expList2 = new ArrayList<>(expList);
-        Collections.reverse(expList2);
+        expList2 = new ArrayList<>( expList );
+        Collections.reverse( expList2 );
     }
 
     @AfterClass
     public void tearDown() {
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        if (!sdb.isClosed()) {
+        if ( !sdb.isClosed() ) {
             sdb.close();
         }
     }
@@ -62,50 +62,54 @@ public class Transaction17945 extends SdbTestBase {
     }
 
     @Test(dataProvider = "index")
-    public void test(String indexKey) {
+    public void test( String indexKey ) {
         try {
-            latch = new CountDownLatch(3);
+            latch = new CountDownLatch( 3 );
 
             // 创建索引
-            cl.createIndex("textIndex17945", indexKey, false, false);
+            cl.createIndex( "textIndex17945", indexKey, false, false );
 
             // 开启3个并发事务
-            UpdateThread updateThread1 = new UpdateThread(100);
+            UpdateThread updateThread1 = new UpdateThread( 100 );
             updateThread1.start();
-            UpdateThread updateThread2 = new UpdateThread(200);
+            UpdateThread updateThread2 = new UpdateThread( 200 );
             updateThread2.start();
             QueryThread queryThread = new QueryThread();
             queryThread.start();
 
-            Assert.assertTrue(queryThread.isSuccess(), queryThread.getErrorMsg());
-            Assert.assertTrue(updateThread1.isSuccess(), updateThread1.getErrorMsg());
-            Assert.assertTrue(updateThread2.isSuccess(), updateThread2.getErrorMsg());
+            Assert.assertTrue( queryThread.isSuccess(),
+                    queryThread.getErrorMsg() );
+            Assert.assertTrue( updateThread1.isSuccess(),
+                    updateThread1.getErrorMsg() );
+            Assert.assertTrue( updateThread2.isSuccess(),
+                    updateThread2.getErrorMsg() );
 
             latch.await();
-        } catch (BaseException | InterruptedException e) {
-            Assert.fail(e.getMessage());
+        } catch ( BaseException | InterruptedException e ) {
+            Assert.fail( e.getMessage() );
         } finally {
 
             // 删除索引
-            cl.dropIndex("textIndex17945");
+            cl.dropIndex( "textIndex17945" );
         }
     }
 
-    private List<BSONObject> insertData() {
-        List<BSONObject> records = new ArrayList<BSONObject>();
-        for (int i = 0; i < 100; i++) {
-            BSONObject object = (BSONObject) JSON.parse("{_id:" + i + ", a:10000, b:" + i + "}");
-            records.add(object);
+    private List< BSONObject > insertData() {
+        List< BSONObject > records = new ArrayList< BSONObject >();
+        for ( int i = 0; i < 100; i++ ) {
+            BSONObject object = ( BSONObject ) JSON
+                    .parse( "{_id:" + i + ", a:10000, b:" + i + "}" );
+            records.add( object );
         }
-        cl.insert(records);
+        cl.insert( records );
         return records;
     }
 
     class UpdateThread extends SdbThreadBase {
-        private Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        private Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         private int addNum;
 
-        public UpdateThread(int addNum) {
+        public UpdateThread( int addNum ) {
             super();
             this.addNum = addNum;
         }
@@ -115,30 +119,32 @@ public class Transaction17945 extends SdbTestBase {
             try {
                 int count = 1;
                 int endCount = 6;
-                while (true) {
-                    int value = (int) (Math.random() * 100) + addNum;
+                while ( true ) {
+                    int value = ( int ) ( Math.random() * 100 ) + addNum;
 
                     // 开启更新事务
                     db.beginTransaction();
-                    DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                    BSONObject object = (BSONObject) JSON.parse("{_id:" + value + ", a:10000, b:" + value + "}");
-                    cl.insert(object);
-                    cl.delete("{b:" + value + "}", "{'':'textIndex17945'}");
+                    DBCollection cl = db.getCollectionSpace( csName )
+                            .getCollection( clName );
+                    BSONObject object = ( BSONObject ) JSON.parse(
+                            "{_id:" + value + ", a:10000, b:" + value + "}" );
+                    cl.insert( object );
+                    cl.delete( "{b:" + value + "}", "{'':'textIndex17945'}" );
 
-                    cl.insert(object);
-                    cl.delete("{b:" + value + "}", "{'':'textIndex17945'}");
+                    cl.insert( object );
+                    cl.delete( "{b:" + value + "}", "{'':'textIndex17945'}" );
 
-                    cl.insert(object);
-                    cl.delete("{b:" + value + "}", "{'':'textIndex17945'}");
+                    cl.insert( object );
+                    cl.delete( "{b:" + value + "}", "{'':'textIndex17945'}" );
 
                     // 提交更新事务
                     db.commit();
-                    if (count == endCount) {
+                    if ( count == endCount ) {
                         break;
                     } else {
                         count++;
                     }
-                    Thread.sleep(1000);
+                    Thread.sleep( 1000 );
                 }
             } finally {
                 db.commit();
@@ -149,29 +155,32 @@ public class Transaction17945 extends SdbTestBase {
     }
 
     class QueryThread extends SdbThreadBase {
-        private Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        private Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         @Override
         public void exec() throws Exception {
             try {
                 int count = 1;
                 int endCount = 30;
-                while (true) {
+                while ( true ) {
 
                     // 开启查询事务
                     db.beginTransaction();
-                    DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                    TransUtils.queryAndCheck(cl, "{b:1}", "{'':null}", expList);
-                    TransUtils.queryAndCheck(cl, "{b:-1}", "{'':'textIndex17945'}", expList2);
+                    DBCollection cl = db.getCollectionSpace( csName )
+                            .getCollection( clName );
+                    TransUtils.queryAndCheck( cl, "{b:1}", "{'':null}",
+                            expList );
+                    TransUtils.queryAndCheck( cl, "{b:-1}",
+                            "{'':'textIndex17945'}", expList2 );
 
                     // 提交查询事务
                     db.commit();
-                    if (count == endCount) {
+                    if ( count == endCount ) {
                         break;
                     } else {
                         count++;
                     }
-                    Thread.sleep(150);
+                    Thread.sleep( 150 );
                 }
             } finally {
                 db.commit();

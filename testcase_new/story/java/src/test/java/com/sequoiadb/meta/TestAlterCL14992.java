@@ -39,12 +39,13 @@ public class TestAlterCL14992 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         try {
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        } catch (BaseException e) {
-            Assert.assertTrue(false, "connect %s failed," + SdbTestBase.coordUrl + e.getMessage());
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "connect %s failed,"
+                    + SdbTestBase.coordUrl + e.getMessage() );
         }
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("is standalone");
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone" );
         }
         createCL();
         insertData();
@@ -57,24 +58,24 @@ public class TestAlterCL14992 extends SdbTestBase {
         AlterSameValue alterTask3 = new AlterSameValue();
         alterTask1.start();
         alterTask2.start();
-        alterTask3.start(100);
+        alterTask3.start( 100 );
 
-        Assert.assertTrue(alterTask1.isSuccess(), alterTask1.getErrorMsg());
-        Assert.assertTrue(alterTask2.isSuccess(), alterTask2.getErrorMsg());
-        Assert.assertTrue(alterTask3.isSuccess(), alterTask3.getErrorMsg());
+        Assert.assertTrue( alterTask1.isSuccess(), alterTask1.getErrorMsg() );
+        Assert.assertTrue( alterTask2.isSuccess(), alterTask2.getErrorMsg() );
+        Assert.assertTrue( alterTask3.isSuccess(), alterTask3.getErrorMsg() );
         checkAlterResult();
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-        } catch (BaseException e) {
-            Assert.assertTrue(false, "clean up failed:" + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -83,13 +84,17 @@ public class TestAlterCL14992 extends SdbTestBase {
     private class AlterUseEnable extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
-            try (Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection dbcl = sdb.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-                BSONObject options = (BSONObject) JSON.parse("{ShardingKey:{a:1}}");
-                dbcl.enableSharding(options);
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -147 && e.getErrorCode() != -190) {
-                    Assert.fail("alter shardingKey1 fail!! e:" + e.getErrorCode());
+            try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection dbcl = sdb.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
+                BSONObject options = ( BSONObject ) JSON
+                        .parse( "{ShardingKey:{a:1}}" );
+                dbcl.enableSharding( options );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -147 && e.getErrorCode() != -190 ) {
+                    Assert.fail(
+                            "alter shardingKey1 fail!! e:" + e.getErrorCode() );
                 }
             }
         }
@@ -98,13 +103,17 @@ public class TestAlterCL14992 extends SdbTestBase {
     private class AlterUseSet extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
-            try (Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection dbcl = sdb.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-                BSONObject options = (BSONObject) JSON.parse("{ShardingKey:{b:1}}");
-                dbcl.setAttributes(options);
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -147 && e.getErrorCode() != -190) {
-                    Assert.fail("alter shardingKey2 fail!! e:" + e.getErrorCode());
+            try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection dbcl = sdb.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
+                BSONObject options = ( BSONObject ) JSON
+                        .parse( "{ShardingKey:{b:1}}" );
+                dbcl.setAttributes( options );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -147 && e.getErrorCode() != -190 ) {
+                    Assert.fail(
+                            "alter shardingKey2 fail!! e:" + e.getErrorCode() );
                 }
             }
         }
@@ -113,14 +122,18 @@ public class TestAlterCL14992 extends SdbTestBase {
     private class AlterSameValue extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
-            try (Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection dbcl = sdb.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-                BSONObject options = (BSONObject) JSON.parse("{CompressionType:'lzw'}");
-                dbcl.setAttributes(options);
+            try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection dbcl = sdb.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
+                BSONObject options = ( BSONObject ) JSON
+                        .parse( "{CompressionType:'lzw'}" );
+                dbcl.setAttributes( options );
                 altercompressionTypeSuccess = true;
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -147 && e.getErrorCode() != -190) {
-                    Assert.fail("alter compressionType fail!! e:" + e.getErrorCode());
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -147 && e.getErrorCode() != -190 ) {
+                    Assert.fail( "alter compressionType fail!! e:"
+                            + e.getErrorCode() );
                 }
             }
         }
@@ -128,49 +141,55 @@ public class TestAlterCL14992 extends SdbTestBase {
 
     private void insertData() {
         int count = 0;
-        DBCollection dbcl = sdb.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-        for (int i = 0; i < 2; i++) {
-            List<BSONObject> list = new ArrayList<BSONObject>();
-            for (int j = 0; j < 10000; j++) {
+        DBCollection dbcl = sdb.getCollectionSpace( SdbTestBase.csName )
+                .getCollection( clName );
+        for ( int i = 0; i < 2; i++ ) {
+            List< BSONObject > list = new ArrayList< BSONObject >();
+            for ( int j = 0; j < 10000; j++ ) {
                 int value = count++;
-                BSONObject obj = (BSONObject) JSON.parse("{sk:" + value + ", test:" + "'testasetatatatatat'" + "}");
-                list.add(obj);
+                BSONObject obj = ( BSONObject ) JSON.parse( "{sk:" + value
+                        + ", test:" + "'testasetatatatatat'" + "}" );
+                list.add( obj );
             }
-            dbcl.insert(list);
+            dbcl.insert( list );
         }
     }
 
     private void createCL() {
         try {
-            cs = sdb.getCollectionSpace(SdbTestBase.csName);
-            cs.createCollection(clName);
-        } catch (BaseException e) {
-            Assert.assertTrue(false, "create cl fail " + e.getErrorType() + ":" + e.getMessage());
+            cs = sdb.getCollectionSpace( SdbTestBase.csName );
+            cs.createCollection( clName );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "create cl fail " + e.getErrorType() + ":"
+                    + e.getMessage() );
         }
     }
 
     private void checkAlterResult() {
-        String cond = String.format("{Name:\"%s.%s\"}", SdbTestBase.csName, clName);
-        DBCursor collections = sdb.getSnapshot(8, cond, null, null);
+        String cond = String.format( "{Name:\"%s.%s\"}", SdbTestBase.csName,
+                clName );
+        DBCursor collections = sdb.getSnapshot( 8, cond, null, null );
         String actCompressionType = "";
         String expCompressionType = "lzw";
         Object actShardingKey = null;
-        while (collections.hasNext()) {
-            BasicBSONObject doc = (BasicBSONObject) collections.getNext();
-            actShardingKey = doc.get("ShardingKey");
-            if (altercompressionTypeSuccess) {
-                actCompressionType = (String) doc.get("CompressionTypeDesc");
-                Assert.assertEquals(actCompressionType, expCompressionType);
+        while ( collections.hasNext() ) {
+            BasicBSONObject doc = ( BasicBSONObject ) collections.getNext();
+            actShardingKey = doc.get( "ShardingKey" );
+            if ( altercompressionTypeSuccess ) {
+                actCompressionType = ( String ) doc
+                        .get( "CompressionTypeDesc" );
+                Assert.assertEquals( actCompressionType, expCompressionType );
             }
         }
         collections.close();
-        List<BSONObject> objects = new ArrayList<BSONObject>();
+        List< BSONObject > objects = new ArrayList< BSONObject >();
         BSONObject subObj1 = new BasicBSONObject();
         BSONObject subObj2 = new BasicBSONObject();
-        subObj1.put("a", 1);
-        subObj2.put("b", 1);
-        objects.add(subObj1);
-        objects.add(subObj2);
-        Assert.assertTrue(objects.contains(actShardingKey), "shardingKey for one of the modified values!");
+        subObj1.put( "a", 1 );
+        subObj2.put( "b", 1 );
+        objects.add( subObj1 );
+        objects.add( subObj2 );
+        Assert.assertTrue( objects.contains( actShardingKey ),
+                "shardingKey for one of the modified values!" );
     }
 }

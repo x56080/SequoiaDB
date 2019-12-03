@@ -25,7 +25,8 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class IdIndex10207 extends SdbTestBase {
-    private SimpleDateFormat dateFm = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
+    private SimpleDateFormat dateFm = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss" );
     private static Sequoiadb sdb = null;
     private String csName = "cs10207";
     private String clName = "cl10207";
@@ -34,29 +35,33 @@ public class IdIndex10207 extends SdbTestBase {
     public void setUp() {
         // start time
         try {
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             // judge the mode or group number or node number
-            if (MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.OneGroupMode(sdb) || MetaDataUtils.oneCataNode(sdb)
-                    || MetaDataUtils.oneDataNode(sdb)) {
-                throw new SkipException("The mode is standlone or only one group or one node, " + "skip the testCase.");
+            if ( MetaDataUtils.isStandAlone( sdb )
+                    || MetaDataUtils.OneGroupMode( sdb )
+                    || MetaDataUtils.oneCataNode( sdb )
+                    || MetaDataUtils.oneDataNode( sdb ) ) {
+                throw new SkipException(
+                        "The mode is standlone or only one group or one node, "
+                                + "skip the testCase." );
             }
-            MetaDataUtils.clearCS(sdb, csName);
+            MetaDataUtils.clearCS( sdb, csName );
 
-            sdb.createCollectionSpace(csName);
-            createCL(csName);
-            MetaDataUtils.insertData(sdb, csName, clName);
-        } catch (BaseException e) {
+            sdb.createCollectionSpace( csName );
+            createCL( csName );
+            MetaDataUtils.insertData( sdb, csName, clName );
+        } catch ( BaseException e ) {
             sdb.disconnect();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            MetaDataUtils.clearCS(sdb, csName);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+            MetaDataUtils.clearCS( sdb, csName );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         } finally {
             sdb.disconnect();
         }
@@ -70,13 +75,13 @@ public class IdIndex10207 extends SdbTestBase {
         DropCS dropCS = new DropCS();
         dropCS.start();
 
-        if (!(creadeIdIndex.isSuccess() && dropCS.isSuccess())) {
-            Assert.fail(creadeIdIndex.getErrorMsg() + dropCS.getErrorMsg());
+        if ( !( creadeIdIndex.isSuccess() && dropCS.isSuccess() ) ) {
+            Assert.fail( creadeIdIndex.getErrorMsg() + dropCS.getErrorMsg() );
         }
 
         // check results
-        MetaDataUtils.checkIndex(csName, clName);
-        MetaDataUtils.checkCSOfCatalog(csName);
+        MetaDataUtils.checkIndex( csName, clName );
+        MetaDataUtils.checkCSOfCatalog( csName );
     }
 
     private class CreadeIdIndex extends SdbThreadBase {
@@ -84,21 +89,22 @@ public class IdIndex10207 extends SdbTestBase {
         public void exec() throws BaseException {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
-                CollectionSpace csDB = db.getCollectionSpace(csName);
-                if (csDB != null) {
-                    DBCollection clDB = csDB.getCollection(clName);
+                CollectionSpace csDB = db.getCollectionSpace( csName );
+                if ( csDB != null ) {
+                    DBCollection clDB = csDB.getCollection( clName );
 
                     BSONObject opt = new BasicBSONObject();
-                    opt.put("SortBufferSize", 128);
-                    if (clDB != null) {
-                        clDB.createIdIndex(opt);
+                    opt.put( "SortBufferSize", 128 );
+                    if ( clDB != null ) {
+                        clDB.createIdIndex( opt );
                     }
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if (eCode != -23 && eCode != -34 && eCode != -147 && eCode != -248 && eCode != -190) {
+                if ( eCode != -23 && eCode != -34 && eCode != -147
+                        && eCode != -248 && eCode != -190 ) {
                     throw e;
                 }
             } finally {
@@ -112,11 +118,11 @@ public class IdIndex10207 extends SdbTestBase {
         public void exec() throws BaseException {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                db.dropCollectionSpace(csName);
-            } catch (BaseException e) {
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                db.dropCollectionSpace( csName );
+            } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if (eCode != -147 && eCode != -190) {
+                if ( eCode != -147 && eCode != -190 ) {
                     throw e;
                 }
             } finally {
@@ -125,12 +131,12 @@ public class IdIndex10207 extends SdbTestBase {
         }
     }
 
-    public void createCL(String csName) {
+    public void createCL( String csName ) {
         try {
             BSONObject opt = new BasicBSONObject();
-            opt.put("AutoIndexId", false);
-            sdb.getCollectionSpace(csName).createCollection(clName, opt);
-        } catch (BaseException e) {
+            opt.put( "AutoIndexId", false );
+            sdb.getCollectionSpace( csName ).createCollection( clName, opt );
+        } catch ( BaseException e ) {
             throw e;
         }
     }

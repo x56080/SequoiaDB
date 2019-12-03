@@ -37,18 +37,18 @@ public class TestRenameCS16138 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("skip StandAlone");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "skip StandAlone" );
         }
-        if (sdb.isCollectionSpaceExist(csName)) {
-            sdb.dropCollectionSpace(csName);
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.dropCollectionSpace( csName );
         }
-        if (sdb.isCollectionSpaceExist(newCSName)) {
-            sdb.dropCollectionSpace(newCSName);
+        if ( sdb.isCollectionSpaceExist( newCSName ) ) {
+            sdb.dropCollectionSpace( newCSName );
         }
-        cs = sdb.createCollectionSpace(csName);
-        cs.createCollection(clName);
+        cs = sdb.createCollectionSpace( csName );
+        cs.createCollection( clName );
     }
 
     @Test
@@ -58,26 +58,31 @@ public class TestRenameCS16138 extends SdbTestBase {
         renameCSThread.start();
         alterCSThread.start();
 
-        if (renameCSThread.isSuccess() && !alterCSThread.isSuccess()) {
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            RenameUtil.checkRenameCSResult(sdb, csName, newCSName, 1);
-            BaseException e = (BaseException) alterCSThread.getExceptions().get(0);
-            if (e.getErrorCode() != -34 && e.getErrorCode() != -147 && e.getErrorCode() != -190) {
-                Assert.fail("errcode not expected : " + e.getMessage());
+        if ( renameCSThread.isSuccess() && !alterCSThread.isSuccess() ) {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            RenameUtil.checkRenameCSResult( sdb, csName, newCSName, 1 );
+            BaseException e = ( BaseException ) alterCSThread.getExceptions()
+                    .get( 0 );
+            if ( e.getErrorCode() != -34 && e.getErrorCode() != -147
+                    && e.getErrorCode() != -190 ) {
+                Assert.fail( "errcode not expected : " + e.getMessage() );
             }
-        } else if (!renameCSThread.isSuccess() && alterCSThread.isSuccess()) {
-            checkCSCataInfo(csName);
-            BaseException e = (BaseException) renameCSThread.getExceptions().get(0);
-            if (e.getErrorCode() != -147 && e.getErrorCode() != -190) {
-                Assert.fail("errcode not expected : " + e.getMessage());
+        } else if ( !renameCSThread.isSuccess() && alterCSThread.isSuccess() ) {
+            checkCSCataInfo( csName );
+            BaseException e = ( BaseException ) renameCSThread.getExceptions()
+                    .get( 0 );
+            if ( e.getErrorCode() != -147 && e.getErrorCode() != -190 ) {
+                Assert.fail( "errcode not expected : " + e.getMessage() );
             }
-        } else if (!renameCSThread.isSuccess() && !alterCSThread.isSuccess()) {
-            Assert.fail("renameCSThread and alterCSThread all failed: " + renameCSThread.getErrorMsg()
-                    + alterCSThread.getErrorMsg());
+        } else if ( !renameCSThread.isSuccess()
+                && !alterCSThread.isSuccess() ) {
+            Assert.fail( "renameCSThread and alterCSThread all failed: "
+                    + renameCSThread.getErrorMsg()
+                    + alterCSThread.getErrorMsg() );
         } else { // 未撞到并发时
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            RenameUtil.checkRenameCSResult(sdb, csName, newCSName, 1);
-            checkCSCataInfo(newCSName);
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            RenameUtil.checkRenameCSResult( sdb, csName, newCSName, 1 );
+            checkCSCataInfo( newCSName );
         }
 
     }
@@ -85,35 +90,36 @@ public class TestRenameCS16138 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
-            if (sdb.isCollectionSpaceExist(newCSName)) {
-                sdb.dropCollectionSpace(newCSName);
+            if ( sdb.isCollectionSpaceExist( newCSName ) ) {
+                sdb.dropCollectionSpace( newCSName );
             }
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         } finally {
-            if (this.sdb != null) {
+            if ( this.sdb != null ) {
                 this.sdb.close();
             }
         }
     }
 
-    public void checkCSCataInfo(String localCsName) {
+    public void checkCSCataInfo( String localCsName ) {
         DBQuery query = new DBQuery();
         BSONObject matcher = new BasicBSONObject();
         BSONObject actual = new BasicBSONObject();
-        matcher.put("Name", localCsName);
-        ReplicaGroup cataRg = sdb.getReplicaGroup("SYSCatalogGroup");
+        matcher.put( "Name", localCsName );
+        ReplicaGroup cataRg = sdb.getReplicaGroup( "SYSCatalogGroup" );
         Sequoiadb cataDB = cataRg.getMaster().connect();
-        CollectionSpace sysCS = cataDB.getCollectionSpace("SYSCAT");
-        DBCollection sysCL = sysCS.getCollection("SYSCOLLECTIONSPACES");
-        query.setMatcher(matcher);
-        DBCursor cur = sysCL.query(query);
-        Assert.assertTrue(cur.hasNext());
+        CollectionSpace sysCS = cataDB.getCollectionSpace( "SYSCAT" );
+        DBCollection sysCL = sysCS.getCollection( "SYSCOLLECTIONSPACES" );
+        query.setMatcher( matcher );
+        DBCursor cur = sysCL.query( query );
+        Assert.assertTrue( cur.hasNext() );
         actual = cur.getNext();
-        Assert.assertEquals(actual.get("LobPageSize").toString(), 8192 + "");
+        Assert.assertEquals( actual.get( "LobPageSize" ).toString(),
+                8192 + "" );
         cur.close();
     }
 
@@ -121,9 +127,9 @@ public class TestRenameCS16138 extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
-            Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             try {
-                db.renameCollectionSpace(csName, newCSName);
+                db.renameCollectionSpace( csName, newCSName );
             } finally {
                 db.close();
             }
@@ -134,18 +140,19 @@ public class TestRenameCS16138 extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
-            Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             try {
-                CollectionSpace localcs = db.getCollectionSpace(csName);
+                CollectionSpace localcs = db.getCollectionSpace( csName );
                 BSONObject alterList = new BasicBSONList();
                 BSONObject alterBson = new BasicBSONObject();
-                alterBson.put("Name", "set attributes");
-                alterBson.put("Args", new BasicBSONObject("LobPageSize", 8192));
-                alterList.put(Integer.toString(0), alterBson);
+                alterBson.put( "Name", "set attributes" );
+                alterBson.put( "Args",
+                        new BasicBSONObject( "LobPageSize", 8192 ) );
+                alterList.put( Integer.toString( 0 ), alterBson );
 
                 BSONObject options = new BasicBSONObject();
-                options.put("Alter", alterList);
-                localcs.alterCollectionSpace(options);
+                options.put( "Alter", alterList );
+                localcs.alterCollectionSpace( options );
             } finally {
                 db.close();
             }

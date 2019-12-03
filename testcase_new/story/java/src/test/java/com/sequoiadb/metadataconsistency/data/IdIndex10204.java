@@ -26,7 +26,8 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class IdIndex10204 extends SdbTestBase {
-    private SimpleDateFormat dateFm = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
+    private SimpleDateFormat dateFm = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss" );
     private static Sequoiadb sdb = null;
     private String csName = "cs10204";
     private String clName = "cl10204";
@@ -37,27 +38,29 @@ public class IdIndex10204 extends SdbTestBase {
     public void setUp() {
         // start time
         try {
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             // judge the mode or node number
-            if (MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.oneDataNode(sdb)) {
-                throw new SkipException("The mode is standlone or one node, skip the testCase.");
+            if ( MetaDataUtils.isStandAlone( sdb )
+                    || MetaDataUtils.oneDataNode( sdb ) ) {
+                throw new SkipException(
+                        "The mode is standlone or one node, skip the testCase." );
             }
-            MetaDataUtils.clearCS(sdb, csName);
+            MetaDataUtils.clearCS( sdb, csName );
 
-            createCL(csName);
-            MetaDataUtils.insertData(sdb, csName, clName);
-        } catch (BaseException e) {
+            createCL( csName );
+            MetaDataUtils.insertData( sdb, csName, clName );
+        } catch ( BaseException e ) {
             sdb.disconnect();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            MetaDataUtils.clearCS(sdb, csName);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+            MetaDataUtils.clearCS( sdb, csName );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         } finally {
             sdb.disconnect();
         }
@@ -68,15 +71,15 @@ public class IdIndex10204 extends SdbTestBase {
         CreateIdIndex createIdIndex = new CreateIdIndex();
         createIdIndex.start();
 
-        MetaDataUtils.sleep(random.nextInt(msec));
+        MetaDataUtils.sleep( random.nextInt( msec ) );
         createIdIndex.start();
 
-        if (!createIdIndex.isSuccess()) {
-            Assert.fail(createIdIndex.getErrorMsg());
+        if ( !createIdIndex.isSuccess() ) {
+            Assert.fail( createIdIndex.getErrorMsg() );
         }
 
         // check results
-        MetaDataUtils.checkIndex(csName, clName);
+        MetaDataUtils.checkIndex( csName, clName );
     }
 
     private class CreateIdIndex extends SdbThreadBase {
@@ -84,16 +87,17 @@ public class IdIndex10204 extends SdbTestBase {
         public void exec() throws BaseException {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCollection clDB = db.getCollectionSpace(csName).getCollection(clName);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCollection clDB = db.getCollectionSpace( csName )
+                        .getCollection( clName );
 
                 BSONObject opt = new BasicBSONObject();
-                opt.put("SortBufferSize", 128);
-                clDB.createIdIndex(opt);
-            } catch (BaseException e) {
+                opt.put( "SortBufferSize", 128 );
+                clDB.createIdIndex( opt );
+            } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if (eCode != -147 && eCode != -247 && eCode != -190) {
-                    Assert.fail(e.getMessage());
+                if ( eCode != -147 && eCode != -247 && eCode != -190 ) {
+                    Assert.fail( e.getMessage() );
                 }
             } finally {
                 db.disconnect();
@@ -101,14 +105,14 @@ public class IdIndex10204 extends SdbTestBase {
         }
     }
 
-    public void createCL(String csName) {
+    public void createCL( String csName ) {
         try {
-            CollectionSpace csDB = sdb.createCollectionSpace(csName);
+            CollectionSpace csDB = sdb.createCollectionSpace( csName );
 
             BSONObject opt = new BasicBSONObject();
-            opt.put("AutoIndexId", false);
-            csDB.createCollection(clName, opt);
-        } catch (BaseException e) {
+            opt.put( "AutoIndexId", false );
+            csDB.createCollection( clName, opt );
+        } catch ( BaseException e ) {
             throw e;
         }
     }

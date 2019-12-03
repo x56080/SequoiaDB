@@ -38,53 +38,57 @@ public class Transaction18224 extends SdbTestBase {
     private int startId2 = 1000;
     private int endId2 = 2000;
     private int incValue = 10000;
-    private List<BSONObject> expDataList = null;
+    private List< BSONObject > expDataList = null;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("skip standalone");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "skip standalone" );
         }
-        List<String> groupNameList = CommLib.getDataGroupNames(sdb);
-        if (groupNameList.size() < 2) {
-            throw new SkipException("skip group size less than 2");
+        List< String > groupNameList = CommLib.getDataGroupNames( sdb );
+        if ( groupNameList.size() < 2 ) {
+            throw new SkipException( "skip group size less than 2" );
         }
 
         BSONObject clOptions = new BasicBSONObject();
-        clOptions.put("ShardingKey", new BasicBSONObject("a", 1));
-        clOptions.put("ShardingType", "hash");
-        clOptions.put("AutoSplit", true);
-        cl = sdb.getCollectionSpace(csName).createCollection(clName, clOptions);
-        cl.createIndex("a", "{a:1, b:1}", true, false);
+        clOptions.put( "ShardingKey", new BasicBSONObject( "a", 1 ) );
+        clOptions.put( "ShardingType", "hash" );
+        clOptions.put( "AutoSplit", true );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName,
+                clOptions );
+        cl.createIndex( "a", "{a:1, b:1}", true, false );
 
-        expDataList = TransUtils.insertDatas(cl, startId, endId, 1000);
+        expDataList = TransUtils.insertDatas( cl, startId, endId, 1000 );
     }
 
     @Test
     public void test() {
-        sdb1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        sdb2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl1 = sdb1.getCollectionSpace(csName).getCollection(clName);
-        cl2 = sdb2.getCollectionSpace(csName).getCollection(clName);
+        sdb1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl1 = sdb1.getCollectionSpace( csName ).getCollection( clName );
+        cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
 
         sdb1.beginTransaction();
         sdb2.beginTransaction();
 
         // trans1 update R1 to R2
-        cl1.update("{'a': 1000}", "{'$inc': {'_id': " + incValue + ", 'b': " + incValue + "}}", null);
+        cl1.update( "{'a': 1000}",
+                "{'$inc': {'_id': " + incValue + ", 'b': " + incValue + "}}",
+                null );
 
         try {
             // trans2 insert R3
-            expDataList = TransUtils.insertDatas(cl2, startId2, endId2, 2000);
+            expDataList = TransUtils.insertDatas( cl2, startId2, endId2, 2000 );
 
             // trans2 query.remove R1
-            DBCursor cur = cl2.queryAndRemove(new BasicBSONObject("a", 1000), null, null, null, 0, -1, 0);
-            List<BSONObject> actList = TransUtils.getReadActList(cur);
-            Assert.assertEquals(actList, expDataList);
-            Assert.fail("delete locked records shuold be error.");
-        } catch (BaseException e) {
-            Assert.assertEquals(e.getErrorCode(), -13, e.getMessage());
+            DBCursor cur = cl2.queryAndRemove( new BasicBSONObject( "a", 1000 ),
+                    null, null, null, 0, -1, 0 );
+            List< BSONObject > actList = TransUtils.getReadActList( cur );
+            Assert.assertEquals( actList, expDataList );
+            Assert.fail( "delete locked records shuold be error." );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( e.getErrorCode(), -13, e.getMessage() );
         }
 
         // commit trans
@@ -93,21 +97,22 @@ public class Transaction18224 extends SdbTestBase {
 
         // no trans query
         expDataList.clear();
-        expDataList = TransUtils.getUpdateDatas(startId + 10000, endId + 10000, 1000);
-        
-        TransUtils.queryAndCheck(cl, "{ _id: 1}", "{'': null}", expDataList);
-        TransUtils.queryAndCheck(cl, "{ _id: 1}", "{'': 'a'}", expDataList);
+        expDataList = TransUtils.getUpdateDatas( startId + 10000, endId + 10000,
+                1000 );
+
+        TransUtils.queryAndCheck( cl, "{ _id: 1}", "{'': null}", expDataList );
+        TransUtils.queryAndCheck( cl, "{ _id: 1}", "{'': 'a'}", expDataList );
     }
 
     @AfterClass
     public void tearDown() {
         sdb2.commit();
 
-        sdb.getCollectionSpace(csName).dropCollection(clName);
-        if (sdb != null) {
+        sdb.getCollectionSpace( csName ).dropCollection( clName );
+        if ( sdb != null ) {
             sdb.close();
         }
-        if (sdb2 != null) {
+        if ( sdb2 != null ) {
             sdb2.close();
         }
     }

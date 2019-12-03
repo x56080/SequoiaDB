@@ -43,15 +43,16 @@ public class LobSubCL19078 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("is standalone skip testcase");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
         }
-        mainCL = LobSubUtils.createMainCLAndAttachCL(sdb, csName, mainCLName, subCLName);
-        lobBuff = RandomWriteLobUtil.getRandomBytes(writeLobSize);
-        expMD5 = LobOprUtils.getMd5(lobBuff);
+        mainCL = LobSubUtils.createMainCLAndAttachCL( sdb, csName, mainCLName,
+                subCLName );
+        lobBuff = RandomWriteLobUtil.getRandomBytes( writeLobSize );
+        expMD5 = LobOprUtils.getMd5( lobBuff );
         DBLob lob = mainCL.createLob();
-        lob.write(lobBuff);
+        lob.write( lobBuff );
         lobId = lob.getID();
         lob.close();
     }
@@ -60,31 +61,31 @@ public class LobSubCL19078 extends SdbTestBase {
     public void test() throws Exception {
         ThreadExecutor thread = new ThreadExecutor();
         TruncateLobThread truncate = new TruncateLobThread();
-        thread.addWorker(new ReadLobThread());
-        thread.addWorker(truncate);
+        thread.addWorker( new ReadLobThread() );
+        thread.addWorker( truncate );
         thread.run();
 
-        if (truncate.getRetCode() == 0) {
-            byte[] expBuff = new byte[writeLobSize / 2];
-            System.arraycopy(lobBuff, 0, expBuff, 0, writeLobSize / 2);
-            List<ObjectId> lobIds = new ArrayList<ObjectId>();
-            lobIds.add(lobId);
-            LobSubUtils.checkLobMD5(mainCL, lobIds, expBuff);
+        if ( truncate.getRetCode() == 0 ) {
+            byte[] expBuff = new byte[ writeLobSize / 2 ];
+            System.arraycopy( lobBuff, 0, expBuff, 0, writeLobSize / 2 );
+            List< ObjectId > lobIds = new ArrayList< ObjectId >();
+            lobIds.add( lobId );
+            LobSubUtils.checkLobMD5( mainCL, lobIds, expBuff );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            CollectionSpace cs = sdb.getCollectionSpace(csName);
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
-            if (cs.isCollectionExist(subCLName)) {
-                cs.dropCollection(subCLName);
+            if ( cs.isCollectionExist( subCLName ) ) {
+                cs.dropCollection( subCLName );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -94,19 +95,22 @@ public class LobSubCL19078 extends SdbTestBase {
 
         @ExecuteOrder(step = 1)
         private void readLob() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection mainCL = db.getCollectionSpace(csName).getCollection(mainCLName);
-                byte[] data = new byte[lobBuff.length];
-                DBLob lob = mainCL.openLob(lobId);
-                lob.read(data);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection mainCL = db.getCollectionSpace( csName )
+                        .getCollection( mainCLName );
+                byte[] data = new byte[ lobBuff.length ];
+                DBLob lob = mainCL.openLob( lobId );
+                lob.read( data );
                 lob.close();
-                String actMD5 = LobOprUtils.getMd5(lobBuff);
-                if (!actMD5.equals(expMD5)) {
-                    throw new BaseException(0,
-                            "check lob: " + lobId + " md5 error, exp: " + expMD5 + ", act: " + actMD5);
+                String actMD5 = LobOprUtils.getMd5( lobBuff );
+                if ( !actMD5.equals( expMD5 ) ) {
+                    throw new BaseException( 0,
+                            "check lob: " + lobId + " md5 error, exp: " + expMD5
+                                    + ", act: " + actMD5 );
                 }
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -317) {
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -317 ) {
                     throw e;
                 }
             }
@@ -117,12 +121,14 @@ public class LobSubCL19078 extends SdbTestBase {
 
         @ExecuteOrder(step = 1)
         private void truncateLob() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection mainCL = db.getCollectionSpace(csName).getCollection(mainCLName);
-                mainCL.truncateLob(lobId, writeLobSize / 2);
-            } catch (BaseException e) {
-                saveResult(e.getErrorCode(), e);
-                if (e.getErrorCode() != -317) {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection mainCL = db.getCollectionSpace( csName )
+                        .getCollection( mainCLName );
+                mainCL.truncateLob( lobId, writeLobSize / 2 );
+            } catch ( BaseException e ) {
+                saveResult( e.getErrorCode(), e );
+                if ( e.getErrorCode() != -317 ) {
                     throw e;
                 }
             }

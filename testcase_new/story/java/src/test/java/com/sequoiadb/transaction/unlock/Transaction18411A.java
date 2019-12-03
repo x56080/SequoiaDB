@@ -36,29 +36,30 @@ public class Transaction18411A extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        DBCollection cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl.createIndex(idxName, "{a:1}", false, false);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        DBCollection cl = sdb.getCollectionSpace( csName )
+                .createCollection( clName );
+        cl.createIndex( idxName, "{a:1}", false, false );
     }
 
     @AfterClass
     public void tearDown() {
-        if (db1 != null) {
+        if ( db1 != null ) {
             db1.commit();
             db1.close();
         }
-        if (db2 != null) {
+        if ( db2 != null ) {
             db2.commit();
             db2.close();
         }
-        if (db3 != null) {
+        if ( db3 != null ) {
             db3.commit();
             db3.close();
         }
-        if (sdb != null) {
-            CollectionSpace cs = sdb.getCollectionSpace(csName);
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+        if ( sdb != null ) {
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
             sdb.close();
         }
@@ -66,49 +67,60 @@ public class Transaction18411A extends SdbTestBase {
 
     @Test
     public void test() throws InterruptedException {
-        db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db3 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        DBCollection cl1 = db1.getCollectionSpace(csName).getCollection(clName);
-        DBCollection cl2 = db2.getCollectionSpace(csName).getCollection(clName);
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        DBCollection cl1 = db1.getCollectionSpace( csName )
+                .getCollection( clName );
+        DBCollection cl2 = db2.getCollectionSpace( csName )
+                .getCollection( clName );
 
         // 开启事务1，插入记录R1
         db1.beginTransaction();
-        BSONObject record = (BSONObject) JSON.parse("{_id:1, a:1, b:1}");
-        cl1.insert(record);
+        BSONObject record = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
+        cl1.insert( record );
 
         // 开启事务2，查询记录R1
         db2.beginTransaction();
-        DBCursor cursor = cl2.query("{a:1}", "", "", "{'':'" + idxName + "'}");
-        List<BSONObject> actList = TransUtils.getReadActList(cursor);
-        Assert.assertTrue(actList.size() == 0, "actList: " + actList);
+        DBCursor cursor = cl2.query( "{a:1}", "", "",
+                "{'':'" + idxName + "'}" );
+        List< BSONObject > actList = TransUtils.getReadActList( cursor );
+        Assert.assertTrue( actList.size() == 0, "actList: " + actList );
 
         // 开启事务3，select for update R1
         db3.beginTransaction();
         CL3Query th3 = new CL3Query();
         th3.start();
-        Assert.assertTrue(th3.matchBlockingMethod(DBCursor.class.getName(), "hasNext"));
+        Assert.assertTrue( th3.matchBlockingMethod( DBCursor.class.getName(),
+                "hasNext" ) );
 
         // 待事务3等锁超时后，提交所有事务，再次开启事务，执行查询，检查结果
-        Assert.assertFalse(th3.isSuccess() || (int) th3.getExecResult() != -13, th3.getErrorMsg());
+        Assert.assertFalse(
+                th3.isSuccess() || ( int ) th3.getExecResult() != -13,
+                th3.getErrorMsg() );
         db1.commit();
         db2.commit();
         db3.commit();
         db1.beginTransaction();
         cursor = cl1.query();
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertTrue(actList.size() == 1 && record.equals(actList.get(0)), "actList: " + actList);
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertTrue(
+                actList.size() == 1 && record.equals( actList.get( 0 ) ),
+                "actList: " + actList );
     }
 
     private class CL3Query extends SdbThreadBase {
         @Override
         public void exec() throws Exception {
             try {
-                DBCollection cl3 = db3.getCollectionSpace(csName).getCollection(clName);
-                DBCursor cursor = cl3.query("{a:1}", "", "", "{'':'" + idxName + "'}", DBQuery.FLG_QUERY_FOR_UPDATE);
-                TransUtils.getReadActList(cursor);
-            } catch (BaseException e) {
-                setExecResult(e.getErrorCode());
+                DBCollection cl3 = db3.getCollectionSpace( csName )
+                        .getCollection( clName );
+                DBCursor cursor = cl3.query( "{a:1}", "", "",
+                        "{'':'" + idxName + "'}",
+                        DBQuery.FLG_QUERY_FOR_UPDATE );
+                TransUtils.getReadActList( cursor );
+            } catch ( BaseException e ) {
+                setExecResult( e.getErrorCode() );
                 throw e;
             }
         }

@@ -31,13 +31,15 @@ public class Transaction19188 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        sdb.getCollectionSpace(SdbTestBase.csName).createCollection(clName,
-                (BSONObject) JSON.parse("{ShardingKey:{_id:1}, AutoSplit:true}"));
-        sdb.updateConfig((BSONObject) JSON.parse("{transisolation:1}"), (BSONObject) JSON.parse("{Global:false}"));
+        sdb.getCollectionSpace( SdbTestBase.csName ).createCollection( clName,
+                ( BSONObject ) JSON
+                        .parse( "{ShardingKey:{_id:1}, AutoSplit:true}" ) );
+        sdb.updateConfig( ( BSONObject ) JSON.parse( "{transisolation:1}" ),
+                ( BSONObject ) JSON.parse( "{Global:false}" ) );
     }
 
     @Test
@@ -48,34 +50,36 @@ public class Transaction19188 extends SdbTestBase {
         try {
 
             // 开启事务1，插入记录R1
-            db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             db1.beginTransaction();
-            DBCollection cl1 = db1.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-            BSONObject obj = (BSONObject) JSON.parse("{_id:1, a:1, b:1}");
-            cl1.insert(obj);
-            List<BSONObject> expList = new ArrayList<>();
-            expList.add(obj);
+            DBCollection cl1 = db1.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
+            BSONObject obj = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
+            cl1.insert( obj );
+            List< BSONObject > expList = new ArrayList<>();
+            expList.add( obj );
 
             // 开启事务2，执行查询
-            db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             db2.beginTransaction();
-            DBCollection cl2 = db2.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+            DBCollection cl2 = db2.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
             DBCursor cursor = cl2.query();
-            List<BSONObject> actList = TransUtils.getReadActList(cursor);
-            Assert.assertTrue(actList.isEmpty());
+            List< BSONObject > actList = TransUtils.getReadActList( cursor );
+            Assert.assertTrue( actList.isEmpty() );
 
             // 提交所有事务
             db1.commit();
             db2.commit();
             cursor = cl2.query();
-            actList = TransUtils.getReadActList(cursor);
-            Assert.assertEquals(actList, expList);
+            actList = TransUtils.getReadActList( cursor );
+            Assert.assertEquals( actList, expList );
         } finally {
-            if (null != db1) {
+            if ( null != db1 ) {
                 db1.commit();
                 db1.close();
             }
-            if (null != db2) {
+            if ( null != db2 ) {
                 db2.commit();
                 db2.close();
             }
@@ -84,9 +88,12 @@ public class Transaction19188 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (null != sdb) {
-            sdb.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
-            sdb.deleteConfig((BSONObject) JSON.parse("{transisolation:''}"), (BSONObject) JSON.parse("{Global:false}"));
+        if ( null != sdb ) {
+            sdb.getCollectionSpace( SdbTestBase.csName )
+                    .dropCollection( clName );
+            sdb.deleteConfig(
+                    ( BSONObject ) JSON.parse( "{transisolation:''}" ),
+                    ( BSONObject ) JSON.parse( "{Global:false}" ) );
             sdb.close();
         }
     }

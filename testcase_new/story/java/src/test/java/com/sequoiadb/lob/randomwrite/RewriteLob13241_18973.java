@@ -48,81 +48,90 @@ public class RewriteLob13241_18973 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
         String clOptions = "{ShardingKey:{no:1},ShardingType:'hash'}";
-        RandomWriteLobUtil.createCL(cs, clName, clOptions);
-        if (!CommLib.isStandAlone(sdb)) {
-            LobSubUtils.createMainCLAndAttachCL(sdb, SdbTestBase.csName, mainCLName, subCLName);
+        RandomWriteLobUtil.createCL( cs, clName, clOptions );
+        if ( !CommLib.isStandAlone( sdb ) ) {
+            LobSubUtils.createMainCLAndAttachCL( sdb, SdbTestBase.csName,
+                    mainCLName, subCLName );
         }
     }
 
     @Test(dataProvider = "clNameProvider")
-    public void testLob(String clName) {
-        if (CommLib.isStandAlone(sdb) && clName.equals(mainCLName)) {
-            throw new SkipException("is standalone skip testcase!");
+    public void testLob( String clName ) {
+        if ( CommLib.isStandAlone( sdb ) && clName.equals( mainCLName ) ) {
+            throw new SkipException( "is standalone skip testcase!" );
         }
         int writeSize = 1024 * 1024 * 35;
-        testLobBuff = RandomWriteLobUtil.getRandomBytes(writeSize);
-        DBCollection cl = sdb.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, testLobBuff);
+        testLobBuff = RandomWriteLobUtil.getRandomBytes( writeSize );
+        DBCollection cl = sdb.getCollectionSpace( SdbTestBase.csName )
+                .getCollection( clName );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl, testLobBuff );
 
         int[] offset = { 1024, 524288, 26214400, 46214400 };
         int[] writeLobSize = { 260096, 524289, 262144, 2621440 };
-        long actLobSize = rewriteLob(cl, oid, offset, writeLobSize);
-        checkLobSize(actLobSize);
-        checkLobDataResult(cl, oid, offset, writeLobSize);
+        long actLobSize = rewriteLob( cl, oid, offset, writeLobSize );
+        checkLobSize( actLobSize );
+        checkLobDataResult( cl, oid, offset, writeLobSize );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
-            if (cs.isCollectionExist(subCLName)) {
-                cs.dropCollection(subCLName);
+            if ( cs.isCollectionExist( subCLName ) ) {
+                cs.dropCollection( subCLName );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
     }
 
-    private void checkLobDataResult(DBCollection cl, ObjectId oid, int[] offset, int[] writeLength) {
+    private void checkLobDataResult( DBCollection cl, ObjectId oid,
+            int[] offset, int[] writeLength ) {
         // check the offset write lob
         int lockedSegments = offset.length;
-        try (DBLob lob = cl.openLob(oid)) {
-            for (int i = 0; i < lockedSegments; i++) {
-                byte[] actLobBuff = new byte[writeLength[i]];
-                lob.seek(offset[i], DBLob.SDB_LOB_SEEK_SET);
-                lob.read(actLobBuff);
-                byte[] expBuff = Arrays.copyOfRange(testLobBuff, offset[i], offset[i] + writeLength[i]);
-                Assert.assertEquals(actLobBuff, expBuff, "the lob offset=" + offset[i] + " different");
+        try ( DBLob lob = cl.openLob( oid )) {
+            for ( int i = 0; i < lockedSegments; i++ ) {
+                byte[] actLobBuff = new byte[ writeLength[ i ] ];
+                lob.seek( offset[ i ], DBLob.SDB_LOB_SEEK_SET );
+                lob.read( actLobBuff );
+                byte[] expBuff = Arrays.copyOfRange( testLobBuff, offset[ i ],
+                        offset[ i ] + writeLength[ i ] );
+                Assert.assertEquals( actLobBuff, expBuff,
+                        "the lob offset=" + offset[ i ] + " different" );
             }
         }
 
     }
 
-    private void checkLobSize(long actLobSize) {
+    private void checkLobSize( long actLobSize ) {
         // check the all write lob
         long expLobSize = 48835840;
-        Assert.assertEquals(actLobSize, expLobSize, "the lobsize is different!");
+        Assert.assertEquals( actLobSize, expLobSize,
+                "the lobsize is different!" );
     }
 
-    private long rewriteLob(DBCollection cl, ObjectId oid, int offset[], int writeLobSize[]) {
+    private long rewriteLob( DBCollection cl, ObjectId oid, int offset[],
+            int writeLobSize[] ) {
         long actWriteLobSize = 0;
         int lockedSegments = offset.length;
-        try (DBLob lob = cl.openLob(oid, DBLob.SDB_LOB_WRITE)) {
-            for (int i = 0; i < lockedSegments; i++) {
-                byte[] rewriteBuff = RandomWriteLobUtil.getRandomBytes(writeLobSize[i]);
-                lob.lockAndSeek(offset[i], writeLobSize[i]);
-                lob.write(rewriteBuff);
-                testLobBuff = RandomWriteLobUtil.appendBuff(testLobBuff, rewriteBuff, offset[i]);
+        try ( DBLob lob = cl.openLob( oid, DBLob.SDB_LOB_WRITE )) {
+            for ( int i = 0; i < lockedSegments; i++ ) {
+                byte[] rewriteBuff = RandomWriteLobUtil
+                        .getRandomBytes( writeLobSize[ i ] );
+                lob.lockAndSeek( offset[ i ], writeLobSize[ i ] );
+                lob.write( rewriteBuff );
+                testLobBuff = RandomWriteLobUtil.appendBuff( testLobBuff,
+                        rewriteBuff, offset[ i ] );
             }
 
             actWriteLobSize = lob.getSize();

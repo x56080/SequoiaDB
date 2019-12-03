@@ -26,7 +26,7 @@ public class Transaction17142 extends SdbTestBase {
     private String csName = "cappedCS17142";
     private String clName = "cappedCL17142";
     private DBCollection cappedCL = null;
-    private List<BSONObject> expList = new ArrayList<BSONObject>();
+    private List< BSONObject > expList = new ArrayList< BSONObject >();
     private Sequoiadb db1 = null;
     private Sequoiadb db2 = null;
     private DBCollection cl1 = null;
@@ -35,26 +35,29 @@ public class Transaction17142 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (sdb.isCollectionSpaceExist(csName)) {
-            sdb.dropCollectionSpace(csName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.dropCollectionSpace( csName );
         }
-        cappedCL = sdb.createCollectionSpace(csName, (BSONObject) JSON.parse("{Capped:true}")).createCollection(clName,
-                (BSONObject) JSON.parse("{Capped:true, Size:1024}"));
+        cappedCL = sdb
+                .createCollectionSpace( csName,
+                        ( BSONObject ) JSON.parse( "{Capped:true}" ) )
+                .createCollection( clName, ( BSONObject ) JSON
+                        .parse( "{Capped:true, Size:1024}" ) );
         object = new BasicBSONObject();
         long oid = 0L;
-        object.put("_id", oid);
-        object.put("a", 1);
-        object.put("b", 1);
-        cappedCL.insert(object);
-        expList.add(object);
+        object.put( "_id", oid );
+        object.put( "a", 1 );
+        object.put( "b", 1 );
+        cappedCL.insert( object );
+        expList.add( object );
         object = new BasicBSONObject();
         oid = 64L;
-        object.put("_id", oid);
-        object.put("a", 2);
-        object.put("b", 2);
-        cappedCL.insert(object);
-        expList.add(object);
+        object.put( "_id", oid );
+        object.put( "a", 2 );
+        object.put( "b", 2 );
+        cappedCL.insert( object );
+        expList.add( object );
     }
 
     @AfterClass
@@ -62,14 +65,14 @@ public class Transaction17142 extends SdbTestBase {
         db1.commit();
         db2.commit();
 
-        if (!db1.isClosed()) {
+        if ( !db1.isClosed() ) {
             db1.close();
         }
-        if (!db2.isClosed()) {
+        if ( !db2.isClosed() ) {
             db2.close();
         }
-        if (!sdb.isClosed()) {
-            sdb.dropCollectionSpace(csName);
+        if ( !sdb.isClosed() ) {
+            sdb.dropCollectionSpace( csName );
             sdb.close();
         }
     }
@@ -77,44 +80,45 @@ public class Transaction17142 extends SdbTestBase {
     @Test
     public void test() {
         // 开启并发事务
-        db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl1 = db1.getCollectionSpace(csName).getCollection(clName);
-        cl2 = db2.getCollectionSpace(csName).getCollection(clName);
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
+        cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         db1.beginTransaction();
         db2.beginTransaction();
 
         // 事务1插入记录，并读记录走表扫描
         long oid = 128L;
         BSONObject object = new BasicBSONObject();
-        object.put("_id", oid);
-        object.put("a", 3);
-        object.put("b", 3);
-        cl1.insert(object);
-        expList.add(object);
-        TransUtils.queryAndCheck(cl1, "{a:1}", "{'':null}", expList);
+        object.put( "_id", oid );
+        object.put( "a", 3 );
+        object.put( "b", 3 );
+        cl1.insert( object );
+        expList.add( object );
+        TransUtils.queryAndCheck( cl1, "{a:1}", "{'':null}", expList );
 
         // 事务2读记录走表扫描
-        TransUtils.queryAndCheck(cl2, "{a:1}", "{'':null}", expList);
+        TransUtils.queryAndCheck( cl2, "{a:1}", "{'':null}", expList );
 
         // 事务1执行pop操作
-        cl1.pop((BSONObject) JSON.parse("{LogicalID:0, Direction:1}"));
-        cl1.pop((BSONObject) JSON.parse("{LogicalID:" + oid + ", Direction:-1}"));
+        cl1.pop( ( BSONObject ) JSON.parse( "{LogicalID:0, Direction:1}" ) );
+        cl1.pop( ( BSONObject ) JSON
+                .parse( "{LogicalID:" + oid + ", Direction:-1}" ) );
         expList.clear();
-        expList.add(this.object);
+        expList.add( this.object );
 
         // 事务1读记录走表扫描
-        TransUtils.queryAndCheck(cl1, "{a:1}", "{'':null}", expList);
+        TransUtils.queryAndCheck( cl1, "{a:1}", "{'':null}", expList );
 
         // 事务2读记录走表扫描
-        TransUtils.queryAndCheck(cl2, "{a:1}", "{'':null}", expList);
+        TransUtils.queryAndCheck( cl2, "{a:1}", "{'':null}", expList );
 
         // 回滚事务1，并读记录走表扫描
         db1.rollback();
-        TransUtils.queryAndCheck(cl1, "{a:1}", "{'':null}", expList);
+        TransUtils.queryAndCheck( cl1, "{a:1}", "{'':null}", expList );
 
         // 事务2读记录走表扫描
-        TransUtils.queryAndCheck(cl2, "{a:1}", "{'':null}", expList);
+        TransUtils.queryAndCheck( cl2, "{a:1}", "{'':null}", expList );
 
         // 事务2回滚
         db2.rollback();

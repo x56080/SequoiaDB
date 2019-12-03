@@ -23,8 +23,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
  * 
- * FileName: DetachAndInsert66 test 
- * content: detach子表后，验证数据操作 testlink 
+ * FileName: DetachAndInsert66 test content: detach子表后，验证数据操作 testlink
  * case:seqDB-66
  * 
  * @author zengxianquan
@@ -69,15 +68,15 @@ public class DetachAndInsert66 extends SdbTestBase {
         try {
             tmpdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             cs = tmpdb.getCollectionSpace( SdbTestBase.csName );
-            if(cs.isCollectionExist( mainclName )){
-                cs.dropCollection( mainclName );                
+            if ( cs.isCollectionExist( mainclName ) ) {
+                cs.dropCollection( mainclName );
             }
-            if(cs.isCollectionExist( clName1 )){
-                cs.dropCollection( clName1 );                
+            if ( cs.isCollectionExist( clName1 ) ) {
+                cs.dropCollection( clName1 );
             }
         } catch ( BaseException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         } finally {
             sdb1.disconnect();
             sdb2.disconnect();
@@ -109,7 +108,7 @@ public class DetachAndInsert66 extends SdbTestBase {
         DBCursor queryCur = null;
         DBCursor res = null;
         try {
-            db.setSessionAttr( new BasicBSONObject("PreferedInstance","M") );
+            db.setSessionAttr( new BasicBSONObject( "PreferedInstance", "M" ) );
             cs = db.getCollectionSpace( SdbTestBase.csName );
             maincl = cs.getCollection( mainclName );
             subcl = cs.getCollection( clName1 );
@@ -134,7 +133,7 @@ public class DetachAndInsert66 extends SdbTestBase {
             maincl.update( null, "{$set:{'test':'update'}}", null );
             maincl.delete( "{age:1}" );
             // 经过在主表做增删改查后，检验子表的数据是否有改变
-            List< BSONObject > insertor = new ArrayList< >();
+            List< BSONObject > insertor = new ArrayList<>();
             for ( int i = 0; i < 100; i++ ) {
                 BSONObject bson = new BasicBSONObject();
                 bson.put( "age", i );
@@ -154,7 +153,8 @@ public class DetachAndInsert66 extends SdbTestBase {
                 }
                 i++;
             }
-            Assert.assertEquals( 100, subcl.getCount(), "the data count is error" );
+            Assert.assertEquals( 100, subcl.getCount(),
+                    "the data count is error" );
         } catch ( BaseException e ) {
             e.printStackTrace();
             Assert.fail( e.getMessage() );
@@ -168,7 +168,7 @@ public class DetachAndInsert66 extends SdbTestBase {
             cs = db.getCollectionSpace( SdbTestBase.csName );
             maincl = cs.getCollection( mainclName );
             // 检验插入
-            List< BSONObject > insertor = new ArrayList< >();
+            List< BSONObject > insertor = new ArrayList<>();
             for ( int i = 0; i < 300; i++ ) {
                 BSONObject bson = new BasicBSONObject();
                 bson.put( "age", i );
@@ -241,7 +241,7 @@ public class DetachAndInsert66 extends SdbTestBase {
             cs = db.getCollectionSpace( SdbTestBase.csName );
             maincl = cs.getCollection( mainclName );
             // 检验插入
-            List< BSONObject > insertor = new ArrayList< >();
+            List< BSONObject > insertor = new ArrayList<>();
             for ( int i = lowBound; i < upBound; i++ ) {
                 BSONObject bson = new BasicBSONObject();
                 bson.put( "age", i );
@@ -277,7 +277,7 @@ public class DetachAndInsert66 extends SdbTestBase {
             cs = db.getCollectionSpace( SdbTestBase.csName );
             maincl = cs.getCollection( mainclName );
             // 检验更新
-            List< BSONObject > updateList = new ArrayList< >();
+            List< BSONObject > updateList = new ArrayList<>();
             for ( int i = lowBound; i < upBound; i++ ) {
                 BSONObject bson = new BasicBSONObject();
                 bson.put( "age", i );

@@ -33,12 +33,12 @@ public class DetachSub64 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         try {
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         }
-        if (SubCLUtils.isStandAlone(sdb)) {
-            throw new SkipException("is standalone skip testcase");
+        if ( SubCLUtils.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
         }
         createMainclAndSubcl();
     }
@@ -46,15 +46,16 @@ public class DetachSub64 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            CollectionSpace cs = sdb.getCollectionSpace(SdbTestBase.csName);
-            if (cs.isCollectionExist(mainclName)) {
-                cs.dropCollection(mainclName);
+            CollectionSpace cs = sdb.getCollectionSpace( SdbTestBase.csName );
+            if ( cs.isCollectionExist( mainclName ) ) {
+                cs.dropCollection( mainclName );
             }
-            if (cs.isCollectionExist(subclName)) {
-                cs.dropCollection(subclName);
+            if ( cs.isCollectionExist( subclName ) ) {
+                cs.dropCollection( subclName );
             }
-        } catch (BaseException e) {
-            Assert.fail("failed to drop cl " + "ErrorMsg:\n" + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail(
+                    "failed to drop cl " + "ErrorMsg:\n" + e.getMessage() );
         } finally {
             sdb.disconnect();
         }
@@ -64,13 +65,13 @@ public class DetachSub64 extends SdbTestBase {
     public void test() {
         SdbThreadBase attachThread = new AttachThread();
         SdbThreadBase detachThread = new DetachThread();
-        attachThread.start(10);
-        detachThread.start(10);
-        if (!attachThread.isSuccess()) {
-            Assert.fail(attachThread.getErrorMsg());
+        attachThread.start( 10 );
+        detachThread.start( 10 );
+        if ( !attachThread.isSuccess() ) {
+            Assert.fail( attachThread.getErrorMsg() );
         }
-        if (!detachThread.isSuccess()) {
-            Assert.fail(detachThread.getErrorMsg());
+        if ( !detachThread.isSuccess() ) {
+            Assert.fail( detachThread.getErrorMsg() );
         }
     }
 
@@ -84,20 +85,22 @@ public class DetachSub64 extends SdbTestBase {
             BSONObject attachOpt = new BasicBSONObject();
             BSONObject lowBound = new BasicBSONObject();
             BSONObject upBound = new BasicBSONObject();
-            lowBound.put("time", 0);
-            upBound.put("time", 100);
-            attachOpt.put("LowBound", lowBound);
-            attachOpt.put("UpBound", upBound);
+            lowBound.put( "time", 0 );
+            upBound.put( "time", 100 );
+            attachOpt.put( "LowBound", lowBound );
+            attachOpt.put( "UpBound", upBound );
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                maincl = db.getCollectionSpace(csName).getCollection(mainclName);
-                maincl.attachCollection(SdbTestBase.csName + "." + subclName, attachOpt);
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -235 && e.getErrorCode() != -147) {
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                maincl = db.getCollectionSpace( csName )
+                        .getCollection( mainclName );
+                maincl.attachCollection( SdbTestBase.csName + "." + subclName,
+                        attachOpt );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -235 && e.getErrorCode() != -147 ) {
                     throw e;
                 }
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.disconnect();
                 }
             }
@@ -112,15 +115,17 @@ public class DetachSub64 extends SdbTestBase {
             Sequoiadb db = null;
             DBCollection maincl = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                maincl = db.getCollectionSpace(csName).getCollection(mainclName);
-                maincl.detachCollection(SdbTestBase.csName + "." + subclName);
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -242 && e.getErrorCode() != -147 && e.getErrorCode() != -190) {
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                maincl = db.getCollectionSpace( csName )
+                        .getCollection( mainclName );
+                maincl.detachCollection( SdbTestBase.csName + "." + subclName );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -242 && e.getErrorCode() != -147
+                        && e.getErrorCode() != -190 ) {
                     throw e;
                 }
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.disconnect();
                 }
             }
@@ -131,18 +136,18 @@ public class DetachSub64 extends SdbTestBase {
     public void createMainclAndSubcl() {
         CollectionSpace cs = null;
         BSONObject options = new BasicBSONObject();
-        options.put("IsMainCL", true);
+        options.put( "IsMainCL", true );
         BSONObject opt = new BasicBSONObject();
-        opt.put("time", 1);
-        options.put("ShardingKey", opt);
-        options.put("ShardingType", "range");
+        opt.put( "time", 1 );
+        options.put( "ShardingKey", opt );
+        options.put( "ShardingType", "range" );
         try {
-            cs = sdb.getCollectionSpace(SdbTestBase.csName);
-            cs.createCollection(mainclName, options);
-            cs.createCollection(subclName);
-        } catch (BaseException e) {
+            cs = sdb.getCollectionSpace( SdbTestBase.csName );
+            cs.createCollection( mainclName, options );
+            cs.createCollection( subclName );
+        } catch ( BaseException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         }
     }
 }

@@ -30,33 +30,34 @@ public class Transaction18213A extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl18213A";
     private DBCollection cl = null;
-    private List<String> groupNames;
+    private List< String > groupNames;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        groupNames = CommLib.getDataGroupNames(sdb);
-        if (2 > groupNames.size()) {
-            throw new SkipException("groups less than 2");
+        groupNames = CommLib.getDataGroupNames( sdb );
+        if ( 2 > groupNames.size() ) {
+            throw new SkipException( "groups less than 2" );
         }
 
-        cl = sdb.getCollectionSpace(csName).createCollection(clName,
-                (BSONObject) JSON.parse("{ShardingKey:{b:1}, ShardingType:'hash', AutoSplit: true}"));
-        cl.createIndex("idx18213", "{a:1}", false, false);
-        cl.insert((BSONObject) JSON.parse("{_id:1, a:1, b:1}"));
-        cl.insert((BSONObject) JSON.parse("{_id:2, a:2, b:2}"));
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName,
+                ( BSONObject ) JSON.parse(
+                        "{ShardingKey:{b:1}, ShardingType:'hash', AutoSplit: true}" ) );
+        cl.createIndex( "idx18213", "{a:1}", false, false );
+        cl.insert( ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" ) );
+        cl.insert( ( BSONObject ) JSON.parse( "{_id:2, a:2, b:2}" ) );
     }
 
     @AfterClass
     public void tearDown() {
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        if (!sdb.isClosed()) {
+        if ( !sdb.isClosed() ) {
             sdb.close();
         }
     }
@@ -70,8 +71,8 @@ public class Transaction18213A extends SdbTestBase {
         DropCLTh dropCLTh = new DropCLTh();
         dropCLTh.start();
 
-        Assert.assertTrue(operatorTh.isSuccess(), operatorTh.getErrorMsg());
-        Assert.assertTrue(dropCLTh.isSuccess(), dropCLTh.getErrorMsg());
+        Assert.assertTrue( operatorTh.isSuccess(), operatorTh.getErrorMsg() );
+        Assert.assertTrue( dropCLTh.isSuccess(), dropCLTh.getErrorMsg() );
     }
 
     private class OperatorTh extends SdbThreadBase {
@@ -79,19 +80,21 @@ public class Transaction18213A extends SdbTestBase {
         private DBCollection cl;
 
         private OperatorTh() {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            cl = db.getCollectionSpace(csName).getCollection(clName);
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            cl = db.getCollectionSpace( csName ).getCollection( clName );
         }
 
         @Override
         public void exec() throws Exception {
             try {
                 db.beginTransaction();
-                insertDatas(cl, 10000, 20000);
-                cl.delete("{$and:[{a:{$gte:0}},{a:{$lt:5000}}]}", "{'':'idx18213'}");
-                cl.update("{$and:[{a:{$gte:5000}},{a:{$lt:15000}}]}", "{$inc:{a:10}}", "{}'':'idx18213'");
-            } catch (BaseException e) {
-                if (-321 != e.getErrorCode()) {
+                insertDatas( cl, 10000, 20000 );
+                cl.delete( "{$and:[{a:{$gte:0}},{a:{$lt:5000}}]}",
+                        "{'':'idx18213'}" );
+                cl.update( "{$and:[{a:{$gte:5000}},{a:{$lt:15000}}]}",
+                        "{$inc:{a:10}}", "{}'':'idx18213'" );
+            } catch ( BaseException e ) {
+                if ( -321 != e.getErrorCode() ) {
                     throw e;
                 }
             } finally {
@@ -106,22 +109,23 @@ public class Transaction18213A extends SdbTestBase {
         private Sequoiadb db;
 
         private DropCLTh() {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         }
 
         @Override
         public void exec() throws Exception {
             try {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                while (true) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                while ( true ) {
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep( 1000 );
                         db.beginTransaction();
                         cl.truncate();
                         db.commit();
                         break;
-                    } catch (BaseException e) {
-                        Assert.assertEquals(e.getErrorCode(), -190);
+                    } catch ( BaseException e ) {
+                        Assert.assertEquals( e.getErrorCode(), -190 );
                     }
                 }
             } finally {
@@ -131,11 +135,12 @@ public class Transaction18213A extends SdbTestBase {
         }
     }
 
-    private void insertDatas(DBCollection cl, int startId, int endId) {
-        List<BSONObject> records = new ArrayList<>();
-        for (int i = startId; i < endId; i++) {
-            records.add((BSONObject) JSON.parse("{_id:" + i + ", a:" + i + ", b:" + i + "}"));
+    private void insertDatas( DBCollection cl, int startId, int endId ) {
+        List< BSONObject > records = new ArrayList<>();
+        for ( int i = startId; i < endId; i++ ) {
+            records.add( ( BSONObject ) JSON
+                    .parse( "{_id:" + i + ", a:" + i + ", b:" + i + "}" ) );
         }
-        cl.insert(records);
+        cl.insert( records );
     }
 }

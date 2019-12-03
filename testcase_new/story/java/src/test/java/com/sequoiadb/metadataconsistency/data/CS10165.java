@@ -22,7 +22,8 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class CS10165 extends SdbTestBase {
-    private SimpleDateFormat dateFm = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
+    private SimpleDateFormat dateFm = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss" );
     private static Sequoiadb sdb = null;
     private String csName = "cs10165";
     private Random random = new Random();
@@ -33,24 +34,26 @@ public class CS10165 extends SdbTestBase {
     public void setUp() {
         // start time
         try {
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             // judge the mode or node number
-            if (MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.oneDataNode(sdb)) {
-                throw new SkipException("The mode is standlone or one node, skip the testCase.");
+            if ( MetaDataUtils.isStandAlone( sdb )
+                    || MetaDataUtils.oneDataNode( sdb ) ) {
+                throw new SkipException(
+                        "The mode is standlone or one node, skip the testCase." );
             }
-            MetaDataUtils.clearCS(sdb, csName);
-        } catch (BaseException e) {
+            MetaDataUtils.clearCS( sdb, csName );
+        } catch ( BaseException e ) {
             sdb.disconnect();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            MetaDataUtils.clearCS(sdb, csName);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+            MetaDataUtils.clearCS( sdb, csName );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         } finally {
             sdb.disconnect();
         }
@@ -62,15 +65,15 @@ public class CS10165 extends SdbTestBase {
         createCS.start();
 
         DropCS dropCS = new DropCS();
-        MetaDataUtils.sleep(random.nextInt(msec));
+        MetaDataUtils.sleep( random.nextInt( msec ) );
         dropCS.start();
 
-        if (!(createCS.isSuccess() && dropCS.isSuccess())) {
-            Assert.fail(createCS.getErrorMsg() + dropCS.getErrorMsg());
+        if ( !( createCS.isSuccess() && dropCS.isSuccess() ) ) {
+            Assert.fail( createCS.getErrorMsg() + dropCS.getErrorMsg() );
         }
 
         // check results
-        MetaDataUtils.checkCSOfCatalog(csName);
+        MetaDataUtils.checkCSOfCatalog( csName );
     }
 
     private class CreateCS extends SdbThreadBase {
@@ -78,11 +81,12 @@ public class CS10165 extends SdbTestBase {
         public void exec() throws BaseException {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                db.createCollectionSpace(csName + "_" + random.nextInt(number));
-            } catch (BaseException e) {
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                db.createCollectionSpace(
+                        csName + "_" + random.nextInt( number ) );
+            } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if (eCode != -33 && eCode != -147 && eCode != -190) {
+                if ( eCode != -33 && eCode != -147 && eCode != -190 ) {
                     throw e;
                 }
             } finally {
@@ -96,11 +100,12 @@ public class CS10165 extends SdbTestBase {
         public void exec() throws BaseException {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                db.dropCollectionSpace(csName + "_" + random.nextInt(number));
-            } catch (BaseException e) {
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                db.dropCollectionSpace(
+                        csName + "_" + random.nextInt( number ) );
+            } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if (eCode != -34 && eCode != -147 && eCode != -190) {
+                if ( eCode != -34 && eCode != -147 && eCode != -190 ) {
                     throw e;
                 }
             } finally {

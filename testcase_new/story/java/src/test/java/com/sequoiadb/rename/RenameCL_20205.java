@@ -34,17 +34,19 @@ public class RenameCL_20205 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb) || CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("can not support split");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "can not support split" );
         }
 
         BSONObject options = new BasicBSONObject();
-        options.put("ShardingType", "hash");
-        options.put("ShardingKey", new BasicBSONObject("a", 1));
-        options.put("AutoSplit", true);
-        sdb.createCollectionSpace(csNameA).createCollection(clNameA, options);
-        sdb.createCollectionSpace(csNameB).createCollection(clNameB, options);
+        options.put( "ShardingType", "hash" );
+        options.put( "ShardingKey", new BasicBSONObject( "a", 1 ) );
+        options.put( "AutoSplit", true );
+        sdb.createCollectionSpace( csNameA ).createCollection( clNameA,
+                options );
+        sdb.createCollectionSpace( csNameB ).createCollection( clNameB,
+                options );
     }
 
     @Test
@@ -54,21 +56,23 @@ public class RenameCL_20205 extends SdbTestBase {
         renameCLThread.start();
         dropCLThread.start();
 
-        Assert.assertTrue(renameCLThread.isSuccess(), renameCLThread.getErrorMsg());
-        Assert.assertTrue(dropCLThread.isSuccess(), dropCLThread.getErrorMsg());
+        Assert.assertTrue( renameCLThread.isSuccess(),
+                renameCLThread.getErrorMsg() );
+        Assert.assertTrue( dropCLThread.isSuccess(),
+                dropCLThread.getErrorMsg() );
 
-        RenameUtil.checkRenameCLResult(sdb, csNameA, clNameA, newclName);
-        CollectionSpace cs = sdb.getCollectionSpace(csNameB);
-        Assert.assertEquals(cs.isCollectionExist(clNameB), false);
+        RenameUtil.checkRenameCLResult( sdb, csNameA, clNameA, newclName );
+        CollectionSpace cs = sdb.getCollectionSpace( csNameB );
+        Assert.assertEquals( cs.isCollectionExist( clNameB ), false );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            sdb.dropCollectionSpace(csNameA);
-            sdb.dropCollectionSpace(csNameB);
+            sdb.dropCollectionSpace( csNameA );
+            sdb.dropCollectionSpace( csNameB );
         } finally {
-            if (this.sdb != null) {
+            if ( this.sdb != null ) {
                 this.sdb.close();
             }
         }
@@ -78,9 +82,10 @@ public class RenameCL_20205 extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                CollectionSpace cs = db.getCollectionSpace(csNameA);
-                cs.renameCollection(clNameA, newclName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                CollectionSpace cs = db.getCollectionSpace( csNameA );
+                cs.renameCollection( clNameA, newclName );
             }
         }
     }
@@ -89,9 +94,10 @@ public class RenameCL_20205 extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                CollectionSpace cs = db.getCollectionSpace(csNameB);
-                cs.dropCollection(clNameB);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                CollectionSpace cs = db.getCollectionSpace( csNameB );
+                cs.dropCollection( clNameB );
             }
         }
     }

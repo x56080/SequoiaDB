@@ -32,85 +32,92 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  * @version 1.00
  */
 public class SessionAccessIsolation14107 extends SdbTestBase {
-	private String clName = "session_14107";
-	private static DBCollection cl = null;
-	private static Sequoiadb sdb = null;
-	private CollectionSpace cs = null;
-	private String groupName = "group14107";
-	private ConcurrentHashMap<Object, String> instanceidTosvcName = new ConcurrentHashMap<Object, String>();
-	private Object[] instanceid = { 155, 31, 23, 244 };
+    private String clName = "session_14107";
+    private static DBCollection cl = null;
+    private static Sequoiadb sdb = null;
+    private CollectionSpace cs = null;
+    private String groupName = "group14107";
+    private ConcurrentHashMap< Object, String > instanceidTosvcName = new ConcurrentHashMap< Object, String >();
+    private Object[] instanceid = { 155, 31, 23, 244 };
 
-	@BeforeClass
-	public void setUp() {
-		sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-		if (CommLib.isStandAlone(sdb)) {
-			throw new SkipException("skip StandAlone");
-		}
+    @BeforeClass
+    public void setUp() {
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "skip StandAlone" );
+        }
 
-		int nodeNums = 4;
-		SessionAccessUtils.createRGAndNode(sdb, groupName, instanceid, nodeNums, instanceidTosvcName);
+        int nodeNums = 4;
+        SessionAccessUtils.createRGAndNode( sdb, groupName, instanceid,
+                nodeNums, instanceidTosvcName );
 
-		cs = sdb.getCollectionSpace(SdbTestBase.csName);
-		String clOptions = "{ReplSize:0,Compressed:true,Group:'" + groupName + "'}";
-		cl = cs.createCollection(clName, (BSONObject) JSON.parse(clOptions));
-		SessionAccessUtils.insertData(cl);
-	}
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
+        String clOptions = "{ReplSize:0,Compressed:true,Group:'" + groupName
+                + "'}";
+        cl = cs.createCollection( clName,
+                ( BSONObject ) JSON.parse( clOptions ) );
+        SessionAccessUtils.insertData( cl );
+    }
 
-	@Test
-	public void testSession() {
-		int instanceid = 244;
-		String nodeName = instanceidTosvcName.get(instanceid);
+    @Test
+    public void testSession() {
+        int instanceid = 244;
+        String nodeName = instanceidTosvcName.get( instanceid );
 
-		AccessSession accessSession = new AccessSession(nodeName);
+        AccessSession accessSession = new AccessSession( nodeName );
 
-		accessSession.start(20);
+        accessSession.start( 20 );
 
-		Assert.assertTrue(accessSession.isSuccess(), accessSession.getErrorMsg());
-	}
+        Assert.assertTrue( accessSession.isSuccess(),
+                accessSession.getErrorMsg() );
+    }
 
-	@AfterClass
-	public void tearDown() {
-		try {
-			if (cs.isCollectionExist(clName)) {
-				cs.dropCollection(clName);
-			}
-			sdb.removeReplicaGroup(groupName);
-		} catch (BaseException e) {
-			Assert.assertTrue(false, "clean up failed:" + e.getMessage());
-		} finally {
-			if (sdb != null) {
-				sdb.close();
-			}
-		}
-	}
+    @AfterClass
+    public void tearDown() {
+        try {
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
+            }
+            sdb.removeReplicaGroup( groupName );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
+        } finally {
+            if ( sdb != null ) {
+                sdb.close();
+            }
+        }
+    }
 
-	private class AccessSession extends SdbThreadBase {
-		private String expQueryNodeName;
+    private class AccessSession extends SdbThreadBase {
+        private String expQueryNodeName;
 
-		private AccessSession(String expQueryNodeName) {
-			this.expQueryNodeName = expQueryNodeName;
-		}
+        private AccessSession( String expQueryNodeName ) {
+            this.expQueryNodeName = expQueryNodeName;
+        }
 
-		@Override
-		public void exec() throws Exception {
-			try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-				BSONObject session = new BasicBSONObject();
-				BSONObject arr = new BasicBSONList();
-				arr.put("0", 244);
-				arr.put("1", "S");
-				session.put("PreferedInstance", arr);
-				db.setSessionAttr(session);
-				DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-				BSONObject match = (BSONObject) JSON.parse("{a:{$gt:20}}");
-				DBCursor cursor = dbcl.explain(match, null, null, null, 0, 5, DBQuery.FLG_QUERY_FORCE_HINT, null);
-				while (cursor.hasNext()) {
-					BSONObject obj = cursor.getNext();
-					String nodeName = (String) obj.get("NodeName");
-					Assert.assertEquals(nodeName, expQueryNodeName);
-				}
-				cursor.close();
-			}
-		}
-	}
+        @Override
+        public void exec() throws Exception {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                BSONObject session = new BasicBSONObject();
+                BSONObject arr = new BasicBSONList();
+                arr.put( "0", 244 );
+                arr.put( "1", "S" );
+                session.put( "PreferedInstance", arr );
+                db.setSessionAttr( session );
+                DBCollection dbcl = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
+                BSONObject match = ( BSONObject ) JSON.parse( "{a:{$gt:20}}" );
+                DBCursor cursor = dbcl.explain( match, null, null, null, 0, 5,
+                        DBQuery.FLG_QUERY_FORCE_HINT, null );
+                while ( cursor.hasNext() ) {
+                    BSONObject obj = cursor.getNext();
+                    String nodeName = ( String ) obj.get( "NodeName" );
+                    Assert.assertEquals( nodeName, expQueryNodeName );
+                }
+                cursor.close();
+            }
+        }
+    }
 
 }

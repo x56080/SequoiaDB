@@ -14,71 +14,70 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.crud.truncate.TruncateUtils;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
+
 /**
- * @FileName:seqDB-14417:在CS不指定域下，创建自动切分表CL
- * 1.创建CS不指定域,创建自动切分表
+ * @FileName:seqDB-14417:在CS不指定域下，创建自动切分表CL 1.创建CS不指定域,创建自动切分表
  * @Author fanyu
  * @Date 2018-02-05
  * @Version 1.00
  */
-public class TestCreateCL14417 extends SdbTestBase{
-	private static Sequoiadb sdb = null;
-	private String csName = "cs_14417";
-	private String clName = "cl_14417";
+public class TestCreateCL14417 extends SdbTestBase {
+    private static Sequoiadb sdb = null;
+    private String csName = "cs_14417";
+    private String clName = "cl_14417";
 
-	@BeforeClass
-	public void setUp() {
-		try {
-			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage());
-		}
-		if (TruncateUtils.isStandAlone(sdb)) {
-			throw new SkipException("is standalone, skip testcase");
-		}
-		if (TruncateUtils.getDataGroups(sdb).size() < 3) {
-			throw new SkipException("less then 3 groups, skip testcase");
-		}
-		if (sdb.isCollectionSpaceExist(csName)) {
-			sdb.dropCollectionSpace(csName);
-		}
-		try {
-			sdb.createCollectionSpace(csName);
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage());
-		}
-	}
+    @BeforeClass
+    public void setUp() {
+        try {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        }
+        if ( TruncateUtils.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone, skip testcase" );
+        }
+        if ( TruncateUtils.getDataGroups( sdb ).size() < 3 ) {
+            throw new SkipException( "less then 3 groups, skip testcase" );
+        }
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.dropCollectionSpace( csName );
+        }
+        try {
+            sdb.createCollectionSpace( csName );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        }
+    }
 
-	@AfterClass
-	public void tearDown() {
-		try {
-			if (sdb.isCollectionSpaceExist(csName)) {
-				sdb.dropCollectionSpace(csName);
-			}
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage());
-		} finally {
-			sdb.disconnect();
-		}
-	}
+    @AfterClass
+    public void tearDown() {
+        try {
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
+            }
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        } finally {
+            sdb.disconnect();
+        }
+    }
 
-	@Test
-	public void test() {
-		Sequoiadb db = null;
-		try {
-			db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-			CollectionSpace cs = db.getCollectionSpace(csName);
-			BSONObject option = new BasicBSONObject();
-			option.put("ShardingKey", (BSONObject) JSON.parse("{a:1}"));
-			option.put("ShardingType", "hash");
-			option.put("AutoSplit", true);
-			// create a AutoSplit CL with CS is not specied domain
-			cs.createCollection(clName, option);
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage());
-		} finally {
-			db.disconnect();
-		}
-	}
+    @Test
+    public void test() {
+        Sequoiadb db = null;
+        try {
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            CollectionSpace cs = db.getCollectionSpace( csName );
+            BSONObject option = new BasicBSONObject();
+            option.put( "ShardingKey", ( BSONObject ) JSON.parse( "{a:1}" ) );
+            option.put( "ShardingType", "hash" );
+            option.put( "AutoSplit", true );
+            // create a AutoSplit CL with CS is not specied domain
+            cs.createCollection( clName, option );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
+        } finally {
+            db.disconnect();
+        }
+    }
 }
-

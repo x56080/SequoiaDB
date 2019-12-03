@@ -36,91 +36,93 @@ public class SplitHash11558A extends SdbTestBase {
     private String dstRg;
     private CollectionSpace cs;
     private final static String CL_NAME_BASE = "cl_hash_11558_A";
-    private ArrayList<DBCollection> cls = new ArrayList<>();
-    private ArrayList<String> clNames = new ArrayList<>();
-    private ArrayList<Object> validDataArr = new ArrayList<>();
-    private ArrayList<Object> invalidDataArr = new ArrayList<>();
+    private ArrayList< DBCollection > cls = new ArrayList<>();
+    private ArrayList< String > clNames = new ArrayList<>();
+    private ArrayList< Object > validDataArr = new ArrayList<>();
+    private ArrayList< Object > invalidDataArr = new ArrayList<>();
 
     @BeforeClass
     private void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
-        if (CommLib.isStandAlone(sdb) || CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("The mode is standlone, or only one group, skip the testCase.");
+        if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException(
+                    "The mode is standlone, or only one group, skip the testCase." );
         }
 
-        ArrayList<String> groupNames = CommLib.getDataGroupNames(sdb);
-        srcRg = groupNames.get(0);
-        dstRg = groupNames.get(1);
+        ArrayList< String > groupNames = CommLib.getDataGroupNames( sdb );
+        srcRg = groupNames.get( 0 );
+        dstRg = groupNames.get( 1 );
 
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
 
         this.readySampleData();
 
         BSONObject options = new BasicBSONObject();
-        options.put("ShardingType", "hash");
-        options.put("ShardingKey", new BasicBSONObject("a", 1));
-        options.put("Group", srcRg);
-        for (int i = 0; i < invalidDataArr.size(); i++) {
+        options.put( "ShardingType", "hash" );
+        options.put( "ShardingKey", new BasicBSONObject( "a", 1 ) );
+        options.put( "Group", srcRg );
+        for ( int i = 0; i < invalidDataArr.size(); i++ ) {
             String clName = CL_NAME_BASE + "_" + i;
-            clNames.add(clName);
+            clNames.add( clName );
 
-            DBCollection cl = cs.createCollection(clName, options);
-            cls.add(cl);
+            DBCollection cl = cs.createCollection( clName, options );
+            cls.add( cl );
         }
     }
 
     @Test()
     private void test() throws Exception {
-        for (int i = 0; i < invalidDataArr.size(); i++) {
-            String clName = clNames.get(i);
-            DBCollection cl = cls.get(i);
+        for ( int i = 0; i < invalidDataArr.size(); i++ ) {
+            String clName = clNames.get( i );
+            DBCollection cl = cls.get( i );
 
             // insert multiple valid sharding key
-            for (int j = 0; j < validDataArr.size(); j++) {
+            for ( int j = 0; j < validDataArr.size(); j++ ) {
                 BSONObject vDoc = new BasicBSONObject();
-                vDoc.put("a", validDataArr.get(j));
-                vDoc.put("b", "valid");
-                cl.insert(vDoc);
+                vDoc.put( "a", validDataArr.get( j ) );
+                vDoc.put( "b", "valid" );
+                cl.insert( vDoc );
             }
 
             // insert one invalid sharding key
             BSONObject invDoc = new BasicBSONObject();
-            invDoc.put("a", invalidDataArr.get(i));
-            invDoc.put("b", "invalid");
-            cl.insert(invDoc);
+            invDoc.put( "a", invalidDataArr.get( i ) );
+            invDoc.put( "b", "invalid" );
+            cl.insert( invDoc );
 
             // percent split
-            ThreadExecutor es = new ThreadExecutor(900000);// 15min
-            es.addWorker(new percentSplit(clName, 50));
-            es.addWorker(new cancelSplitTask(cl.getFullName()));
+            ThreadExecutor es = new ThreadExecutor( 900000 );// 15min
+            es.addWorker( new percentSplit( clName, 50 ) );
+            es.addWorker( new cancelSplitTask( cl.getFullName() ) );
             es.run();
 
             // range split
             es = new ThreadExecutor();
-            es.addWorker(
-                    new rangeSplit(clName, new BasicBSONObject("Partition", 0), new BasicBSONObject("Partition", 512)));
-            es.addWorker(new cancelSplitTask(cl.getFullName()));
+            es.addWorker( new rangeSplit( clName,
+                    new BasicBSONObject( "Partition", 0 ),
+                    new BasicBSONObject( "Partition", 512 ) ) );
+            es.addWorker( new cancelSplitTask( cl.getFullName() ) );
             es.run();
 
-            this.checkInvalidSrdRecs(cl, invDoc);
-            this.checkValidSrdRecs(cl);
+            this.checkInvalidSrdRecs( cl, invDoc );
+            this.checkValidSrdRecs( cl );
 
             long totalCnt = cl.getCount();
-            Assert.assertEquals(totalCnt, validDataArr.size() + 1);
+            Assert.assertEquals( totalCnt, validDataArr.size() + 1 );
 
-            this.checkGroups(cl);
+            this.checkGroups( cl );
         }
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            for (int i = 0; i < clNames.size(); i++) {
-                cs.dropCollection(clNames.get(i));
+            for ( int i = 0; i < clNames.size(); i++ ) {
+                cs.dropCollection( clNames.get( i ) );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -130,7 +132,7 @@ public class SplitHash11558A extends SdbTestBase {
         private String clName;
         private int percent;
 
-        private percentSplit(String clName, int percent) {
+        private percentSplit( String clName, int percent ) {
             this.clName = clName;
             this.percent = percent;
         }
@@ -138,20 +140,22 @@ public class SplitHash11558A extends SdbTestBase {
         @ExecuteOrder(step = 1)
         @ExpectBlock(confirmTime = 5, contOnStep = 2)
         private void splitOper() {
-            System.out.println(new Date() + " " + this.getClass().getName().toString());
+            System.out.println(
+                    new Date() + " " + this.getClass().getName().toString() );
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
                 try {
-                    cl.split(srcRg, dstRg, percent);
-                } catch (BaseException e) {
-                    if (-170 != e.getErrorCode()) {
+                    cl.split( srcRg, dstRg, percent );
+                } catch ( BaseException e ) {
+                    if ( -170 != e.getErrorCode() ) {
                         throw e;
                     }
                 }
             } finally {
-                if (db != null)
+                if ( db != null )
                     db.close();
             }
         }
@@ -162,7 +166,8 @@ public class SplitHash11558A extends SdbTestBase {
         private BSONObject startCond;
         private BSONObject endCond;
 
-        private rangeSplit(String clName, BSONObject startCond, BSONObject endCond) {
+        private rangeSplit( String clName, BSONObject startCond,
+                BSONObject endCond ) {
             this.clName = clName;
             this.startCond = startCond;
             this.endCond = endCond;
@@ -171,20 +176,22 @@ public class SplitHash11558A extends SdbTestBase {
         @ExecuteOrder(step = 1)
         @ExpectBlock(confirmTime = 5, contOnStep = 2)
         private void splitOper() {
-            System.out.println(new Date() + " " + this.getClass().getName().toString());
+            System.out.println(
+                    new Date() + " " + this.getClass().getName().toString() );
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
                 try {
-                    cl.split(srcRg, dstRg, startCond, endCond);
-                } catch (BaseException e) {
-                    if (-170 != e.getErrorCode()) {
+                    cl.split( srcRg, dstRg, startCond, endCond );
+                } catch ( BaseException e ) {
+                    if ( -170 != e.getErrorCode() ) {
                         throw e;
                     }
                 }
             } finally {
-                if (db != null)
+                if ( db != null )
                     db.close();
             }
         }
@@ -193,24 +200,27 @@ public class SplitHash11558A extends SdbTestBase {
     private class cancelSplitTask {
         private String clFullName;
 
-        private cancelSplitTask(String clFullName) {
+        private cancelSplitTask( String clFullName ) {
             this.clFullName = clFullName;
         }
 
         @ExecuteOrder(step = 2)
         private void cancelTaskOper() throws InterruptedException {
-            System.out.println(new Date() + " " + this.getClass().getName().toString());
+            System.out.println(
+                    new Date() + " " + this.getClass().getName().toString() );
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCursor rc = db.listTasks(new BasicBSONObject("Name", clFullName), null, null, null);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCursor rc = db.listTasks(
+                        new BasicBSONObject( "Name", clFullName ), null, null,
+                        null );
                 BSONObject info = rc.getCurrent();
-                if (null != info) {
-                    long taskID = (long) info.get("TaskID");
-                    db.cancelTask(taskID, false);
+                if ( null != info ) {
+                    long taskID = ( long ) info.get( "TaskID" );
+                    db.cancelTask( taskID, false );
                 }
             } finally {
-                if (db != null)
+                if ( db != null )
                     db.close();
             }
         }
@@ -219,76 +229,77 @@ public class SplitHash11558A extends SdbTestBase {
     private void readySampleData() {
         // valid shardingKey
         int a = 0;
-        validDataArr.add(a);
+        validDataArr.add( a );
 
-        ArrayList<Integer> arr = new ArrayList<>();
-        validDataArr.add(arr);
-
-        arr = new ArrayList<>();
-        arr.add(1);
-        validDataArr.add(arr);
+        ArrayList< Integer > arr = new ArrayList<>();
+        validDataArr.add( arr );
 
         arr = new ArrayList<>();
-        ArrayList<Object> objArr = new ArrayList<>();
-        ArrayList<Integer> embArr = new ArrayList<>();
-        embArr.add(1);
-        embArr.add(2);
-        embArr.add(9);
-        objArr.add(embArr);
-        validDataArr.add(objArr);
+        arr.add( 1 );
+        validDataArr.add( arr );
+
+        arr = new ArrayList<>();
+        ArrayList< Object > objArr = new ArrayList<>();
+        ArrayList< Integer > embArr = new ArrayList<>();
+        embArr.add( 1 );
+        embArr.add( 2 );
+        embArr.add( 9 );
+        objArr.add( embArr );
+        validDataArr.add( objArr );
 
         // invalid shardingKey
         arr = new ArrayList<>();
-        arr.add(1);
-        arr.add(9);
-        invalidDataArr.add(arr);
+        arr.add( 1 );
+        arr.add( 9 );
+        invalidDataArr.add( arr );
 
         arr = new ArrayList<>();
-        arr.add(9);
-        arr.add(1);
-        invalidDataArr.add(arr);
+        arr.add( 9 );
+        arr.add( 1 );
+        invalidDataArr.add( arr );
 
         arr = new ArrayList<>();
-        arr.add(1);
-        arr.add(2);
-        arr.add(9);
-        invalidDataArr.add(arr);
+        arr.add( 1 );
+        arr.add( 2 );
+        arr.add( 9 );
+        invalidDataArr.add( arr );
     }
 
-    private void checkValidSrdRecs(DBCollection cl) {
-        for (int i = 0; i < validDataArr.size(); i++) {
+    private void checkValidSrdRecs( DBCollection cl ) {
+        for ( int i = 0; i < validDataArr.size(); i++ ) {
             BSONObject doc = new BasicBSONObject();
-            doc.put("a", validDataArr.get(i));
-            doc.put("b", "valid");
-            DBCursor rc = cl.query(doc, null, null, null);
+            doc.put( "a", validDataArr.get( i ) );
+            doc.put( "b", "valid" );
+            DBCursor rc = cl.query( doc, null, null, null );
             int num = 0;
-            while (rc.hasNext()) {
+            while ( rc.hasNext() ) {
                 BSONObject rcDoc = rc.getNext();
-                Assert.assertEquals(rcDoc.get("a"), validDataArr.get(i));
+                Assert.assertEquals( rcDoc.get( "a" ), validDataArr.get( i ) );
                 num++;
             }
-            Assert.assertEquals(num, 1);
+            Assert.assertEquals( num, 1 );
         }
     }
 
-    private void checkInvalidSrdRecs(DBCollection cl, BSONObject doc) {
-        DBCursor rc = cl.query(doc, null, null, null);
+    private void checkInvalidSrdRecs( DBCollection cl, BSONObject doc ) {
+        DBCursor rc = cl.query( doc, null, null, null );
         int num = 0;
-        while (rc.hasNext()) {
+        while ( rc.hasNext() ) {
             BSONObject rcDoc = rc.getNext();
-            Assert.assertEquals(rcDoc.get("a"), doc.get("a"));
+            Assert.assertEquals( rcDoc.get( "a" ), doc.get( "a" ) );
             num++;
         }
-        Assert.assertEquals(num, 1, cl.getFullName());
+        Assert.assertEquals( num, 1, cl.getFullName() );
     }
 
-    private void checkGroups(DBCollection cl) {
-        DBCursor cursor = sdb.getSnapshot(8, new BasicBSONObject("Name", cl.getFullName()), null, null);
-        BasicBSONObject info = (BasicBSONObject) cursor.getNext();
-        BasicBSONList cataInfo = (BasicBSONList) info.get("CataInfo");
-        Assert.assertEquals(cataInfo.size(), 1);
+    private void checkGroups( DBCollection cl ) {
+        DBCursor cursor = sdb.getSnapshot( 8,
+                new BasicBSONObject( "Name", cl.getFullName() ), null, null );
+        BasicBSONObject info = ( BasicBSONObject ) cursor.getNext();
+        BasicBSONList cataInfo = ( BasicBSONList ) info.get( "CataInfo" );
+        Assert.assertEquals( cataInfo.size(), 1 );
 
-        BasicBSONObject groupInfo = (BasicBSONObject) cataInfo.get(0);
-        Assert.assertEquals(groupInfo.get("GroupName"), srcRg);
+        BasicBSONObject groupInfo = ( BasicBSONObject ) cataInfo.get( 0 );
+        Assert.assertEquals( groupInfo.get( "GroupName" ), srcRg );
     }
 }

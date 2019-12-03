@@ -38,26 +38,27 @@ public class TestLobConcurrentOpr10425 extends SdbTestBase {
     private CollectionSpace cs = null;
     private DBCollection cl = null;
     private Random random = new Random();
-    private LinkedBlockingQueue<SaveOidAndMd5> id2md5 = new LinkedBlockingQueue<SaveOidAndMd5>();
+    private LinkedBlockingQueue< SaveOidAndMd5 > id2md5 = new LinkedBlockingQueue< SaveOidAndMd5 >();
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("is standalone skip testcase");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
         }
 
-        if (CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("less two groups skip testcase");
+        if ( CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "less two groups skip testcase" );
         }
 
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
         String clOptions = "{ShardingKey:{no:1},ShardingType:'hash',Partition:4096,ReplSize:0}";
-        cl = cs.createCollection(clName, (BSONObject) JSON.parse(clOptions));
+        cl = cs.createCollection( clName,
+                ( BSONObject ) JSON.parse( clOptions ) );
 
         // write lob
         int lobtimes = 100;
-        writeLobAndGetMd5(cl, lobtimes);
+        writeLobAndGetMd5( cl, lobtimes );
     }
 
     @Test
@@ -66,13 +67,16 @@ public class TestLobConcurrentOpr10425 extends SdbTestBase {
         WriteLobsTask writeLobsTask = new WriteLobsTask();
         RemoveLobsTask removeLobsTask = new RemoveLobsTask();
 
-        readLobsTask.start(100);
-        writeLobsTask.start(50);
-        removeLobsTask.start(80);
+        readLobsTask.start( 100 );
+        writeLobsTask.start( 50 );
+        removeLobsTask.start( 80 );
 
-        Assert.assertTrue(readLobsTask.isSuccess(), readLobsTask.getErrorMsg());
-        Assert.assertTrue(writeLobsTask.isSuccess(), writeLobsTask.getErrorMsg());
-        Assert.assertTrue(removeLobsTask.isSuccess(), removeLobsTask.getErrorMsg());
+        Assert.assertTrue( readLobsTask.isSuccess(),
+                readLobsTask.getErrorMsg() );
+        Assert.assertTrue( writeLobsTask.isSuccess(),
+                writeLobsTask.getErrorMsg() );
+        Assert.assertTrue( removeLobsTask.isSuccess(),
+                removeLobsTask.getErrorMsg() );
 
         // check the write and remove result
         checkLobData();
@@ -81,9 +85,9 @@ public class TestLobConcurrentOpr10425 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            cs.dropCollection(clName);
+            cs.dropCollection( clName );
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }
@@ -92,10 +96,12 @@ public class TestLobConcurrentOpr10425 extends SdbTestBase {
     private class RemoveLobsTask extends SdbThreadBase {
         @Override
         public void exec() throws BaseException, InterruptedException {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection dbcl = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
                 SaveOidAndMd5 oidAndMd5 = id2md5.take();
-                dbcl.removeLob(oidAndMd5.getOid());
+                dbcl.removeLob( oidAndMd5.getOid() );
             }
         }
     }
@@ -103,21 +109,24 @@ public class TestLobConcurrentOpr10425 extends SdbTestBase {
     private class ReadLobsTask extends SdbThreadBase {
         @Override
         public void exec() throws BaseException, InterruptedException {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                db.setSessionAttr((BSONObject) JSON.parse("{'PreferedInstance':'M'}"));
-                DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                db.setSessionAttr( ( BSONObject ) JSON
+                        .parse( "{'PreferedInstance':'M'}" ) );
+                DBCollection dbcl = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
                 SaveOidAndMd5 oidAndMd5 = id2md5.take();
                 ObjectId oid = oidAndMd5.getOid();
 
-                try (DBLob rLob = dbcl.openLob(oid, DBLob.SDB_LOB_READ)) {
-                    byte[] rbuff = new byte[(int) rLob.getSize()];
-                    rLob.read(rbuff);
-                    String curMd5 = LobOprUtils.getMd5(rbuff);
+                try ( DBLob rLob = dbcl.openLob( oid, DBLob.SDB_LOB_READ )) {
+                    byte[] rbuff = new byte[ ( int ) rLob.getSize() ];
+                    rLob.read( rbuff );
+                    String curMd5 = LobOprUtils.getMd5( rbuff );
                     String prevMd5 = oidAndMd5.getMd5();
-                    Assert.assertEquals(curMd5, prevMd5);
+                    Assert.assertEquals( curMd5, prevMd5 );
                 }
 
-                id2md5.offer(oidAndMd5);
+                id2md5.offer( oidAndMd5 );
             }
         }
     }
@@ -125,53 +134,58 @@ public class TestLobConcurrentOpr10425 extends SdbTestBase {
     private class WriteLobsTask extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection dbcl = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
                 int lobtimes = 2;
-                writeLobAndGetMd5(dbcl, lobtimes);
+                writeLobAndGetMd5( dbcl, lobtimes );
 
             }
         }
     }
 
     private void checkLobData() {
-        try (DBCursor listLob = cl.listLobs()) {
-            while (listLob.hasNext()) {
-                BasicBSONObject obj = (BasicBSONObject) listLob.getNext();
-                ObjectId existOid = obj.getObjectId("Oid");
-                try (DBLob rLob = cl.openLob(existOid)) {
-                    byte[] rbuff = new byte[(int) rLob.getSize()];
-                    rLob.read(rbuff);
-                    String curMd5 = LobOprUtils.getMd5(rbuff);
-                    String prevMd5 = getLobMd5ByOid(existOid);
+        try ( DBCursor listLob = cl.listLobs()) {
+            while ( listLob.hasNext() ) {
+                BasicBSONObject obj = ( BasicBSONObject ) listLob.getNext();
+                ObjectId existOid = obj.getObjectId( "Oid" );
+                try ( DBLob rLob = cl.openLob( existOid )) {
+                    byte[] rbuff = new byte[ ( int ) rLob.getSize() ];
+                    rLob.read( rbuff );
+                    String curMd5 = LobOprUtils.getMd5( rbuff );
+                    String prevMd5 = getLobMd5ByOid( existOid );
                     ;
-                    Assert.assertEquals(curMd5, prevMd5, "the list oid:" + existOid.toString());
+                    Assert.assertEquals( curMd5, prevMd5,
+                            "the list oid:" + existOid.toString() );
                 }
             }
         }
-        // the list lobnums must be equal with the nums of the id2mda,if id2md5 is not empty
-        Assert.assertEquals(id2md5.isEmpty(), true, "the remaining " + id2md5.size() + " oids were not found!");
+        // the list lobnums must be equal with the nums of the id2mda,if id2md5
+        // is not empty
+        Assert.assertEquals( id2md5.isEmpty(), true,
+                "the remaining " + id2md5.size() + " oids were not found!" );
     }
 
     // find the md5 from expected queue
-    private String getLobMd5ByOid(ObjectId lobOid) {
-        Iterator<SaveOidAndMd5> iterator = id2md5.iterator();
+    private String getLobMd5ByOid( ObjectId lobOid ) {
+        Iterator< SaveOidAndMd5 > iterator = id2md5.iterator();
         boolean found = false;
         String findMd5 = "";
-        while (iterator.hasNext()) {
+        while ( iterator.hasNext() ) {
             SaveOidAndMd5 current = iterator.next();
             ObjectId oid = current.getOid();
-            if (oid.equals(lobOid)) {
+            if ( oid.equals( lobOid ) ) {
                 findMd5 = current.getMd5();
-                id2md5.remove(current);
+                id2md5.remove( current );
                 found = true;
                 break;
             }
         }
 
         // if oid does not exist in the queue,than error
-        if (!found) {
-            throw new RuntimeException("oid[" + lobOid + "] not found");
+        if ( !found ) {
+            throw new RuntimeException( "oid[" + lobOid + "] not found" );
         }
         return findMd5;
     }
@@ -180,7 +194,7 @@ public class TestLobConcurrentOpr10425 extends SdbTestBase {
         private ObjectId oid;
         private String md5;
 
-        public SaveOidAndMd5(ObjectId oid, String md5) {
+        public SaveOidAndMd5( ObjectId oid, String md5 ) {
             this.oid = oid;
             this.md5 = md5;
         }
@@ -194,16 +208,16 @@ public class TestLobConcurrentOpr10425 extends SdbTestBase {
         }
     }
 
-    private void writeLobAndGetMd5(DBCollection cl, int lobtimes) {
-        for (int i = 0; i < lobtimes; i++) {
-            int writeLobSize = random.nextInt(1024 * 1024);
+    private void writeLobAndGetMd5( DBCollection cl, int lobtimes ) {
+        for ( int i = 0; i < lobtimes; i++ ) {
+            int writeLobSize = random.nextInt( 1024 * 1024 );
             ;
-            byte[] wlobBuff = LobOprUtils.getRandomBytes(writeLobSize);
-            ObjectId oid = LobOprUtils.createAndWriteLob(cl, wlobBuff);
+            byte[] wlobBuff = LobOprUtils.getRandomBytes( writeLobSize );
+            ObjectId oid = LobOprUtils.createAndWriteLob( cl, wlobBuff );
 
             // save oid and md5
-            String prevMd5 = LobOprUtils.getMd5(wlobBuff);
-            id2md5.offer(new SaveOidAndMd5(oid, prevMd5));
+            String prevMd5 = LobOprUtils.getMd5( wlobBuff );
+            id2md5.offer( new SaveOidAndMd5( oid, prevMd5 ) );
         }
     }
 

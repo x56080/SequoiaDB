@@ -51,63 +51,78 @@ public class RewriteLob13252_18984 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         // create cs cl
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
-        BSONObject clOpt = (BSONObject) JSON.parse("{ShardingKey:{a:1},ShardingType:'hash'}");
-        cs.createCollection(clName, clOpt);
-        if (!CommLib.isStandAlone(sdb)) {
-            LobSubUtils.createMainCLAndAttachCL(sdb, SdbTestBase.csName, mainCLName, subCLName);
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
+        BSONObject clOpt = ( BSONObject ) JSON
+                .parse( "{ShardingKey:{a:1},ShardingType:'hash'}" );
+        cs.createCollection( clName, clOpt );
+        if ( !CommLib.isStandAlone( sdb ) ) {
+            LobSubUtils.createMainCLAndAttachCL( sdb, SdbTestBase.csName,
+                    mainCLName, subCLName );
         }
         // write lob
-        lobData = RandomWriteLobUtil.getRandomBytes(lobSize);
+        lobData = RandomWriteLobUtil.getRandomBytes( lobSize );
     }
 
     @Test(dataProvider = "clNameProvider")
-    public void testLob(String clName) {
-        if (CommLib.isStandAlone(sdb) && clName.equals(mainCLName)) {
-            throw new SkipException("is standalone skip testcase!");
+    public void testLob( String clName ) {
+        if ( CommLib.isStandAlone( sdb ) && clName.equals( mainCLName ) ) {
+            throw new SkipException( "is standalone skip testcase!" );
         }
-        DBCollection cl = sdb.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-        ObjectId lobOid = RandomWriteLobUtil.createAndWriteLob(cl, lobData);
+        DBCollection cl = sdb.getCollectionSpace( SdbTestBase.csName )
+                .getCollection( clName );
+        ObjectId lobOid = RandomWriteLobUtil.createAndWriteLob( cl, lobData );
         int offset = 1024 * 1024 * 1;
         int rewriteLobSize = 1024 * 1024 * 3;
-        byte[] lockAndRewriteBuff = RandomWriteLobUtil.getRandomBytes(rewriteLobSize);
-        LockAndRewriteLobTask lockAndRewriteLob = new LockAndRewriteLobTask(clName, lobOid, offset, lockAndRewriteBuff);
-        RemoveLobTask removeLob = new RemoveLobTask(clName, lobOid);
+        byte[] lockAndRewriteBuff = RandomWriteLobUtil
+                .getRandomBytes( rewriteLobSize );
+        LockAndRewriteLobTask lockAndRewriteLob = new LockAndRewriteLobTask(
+                clName, lobOid, offset, lockAndRewriteBuff );
+        RemoveLobTask removeLob = new RemoveLobTask( clName, lobOid );
         lockAndRewriteLob.start();
         removeLob.start();
 
-        if (lockAndRewriteLob.isSuccess()) {
-            if (!removeLob.isSuccess()) {
-                Assert.assertTrue(!removeLob.isSuccess(), removeLob.getErrorMsg());
-                BaseException e = (BaseException) (removeLob.getExceptions().get(0));
-                if (-320 != e.getErrorCode() && -317 != e.getErrorCode()) {
-                    Assert.fail("removeLob must fail:" + e.getErrorCode() + " " + removeLob.getErrorMsg());
+        if ( lockAndRewriteLob.isSuccess() ) {
+            if ( !removeLob.isSuccess() ) {
+                Assert.assertTrue( !removeLob.isSuccess(),
+                        removeLob.getErrorMsg() );
+                BaseException e = ( BaseException ) ( removeLob.getExceptions()
+                        .get( 0 ) );
+                if ( -320 != e.getErrorCode() && -317 != e.getErrorCode() ) {
+                    Assert.fail( "removeLob must fail:" + e.getErrorCode() + " "
+                            + removeLob.getErrorMsg() );
                 }
-                RandomWriteLobUtil.checkRewriteLobResult(cl, lobOid, offset, lockAndRewriteBuff, lobData);
+                RandomWriteLobUtil.checkRewriteLobResult( cl, lobOid, offset,
+                        lockAndRewriteBuff, lobData );
             } else {
                 // can't determine the status of the server, and maybe all
                 // operations are sucessfull,
-                Assert.assertTrue(removeLob.isSuccess());
+                Assert.assertTrue( removeLob.isSuccess() );
                 // check the remove result
                 DBCursor listCursor1 = cl.listLobs();
-                Assert.assertEquals(listCursor1.hasNext(), false, "list lob not null");
+                Assert.assertEquals( listCursor1.hasNext(), false,
+                        "list lob not null" );
                 listCursor1.close();
             }
-        } else if (!lockAndRewriteLob.isSuccess()) {
-            Assert.assertTrue(removeLob.isSuccess(), removeLob.getErrorMsg());
-            BaseException e = (BaseException) (lockAndRewriteLob.getExceptions().get(0));
-            if (-268 != e.getErrorCode() && -4 != e.getErrorCode() && -317 != e.getErrorCode()) {
-                Assert.fail("lockAndRewriteLob must fail:" + e.getErrorCode() + " " + removeLob.getErrorMsg());
+        } else if ( !lockAndRewriteLob.isSuccess() ) {
+            Assert.assertTrue( removeLob.isSuccess(), removeLob.getErrorMsg() );
+            BaseException e = ( BaseException ) ( lockAndRewriteLob
+                    .getExceptions().get( 0 ) );
+            if ( -268 != e.getErrorCode() && -4 != e.getErrorCode()
+                    && -317 != e.getErrorCode() ) {
+                Assert.fail( "lockAndRewriteLob must fail:" + e.getErrorCode()
+                        + " " + removeLob.getErrorMsg() );
             }
             // check the remove result
             DBCursor listCursor1 = cl.listLobs();
-            Assert.assertEquals(listCursor1.hasNext(), false, "list lob not null");
+            Assert.assertEquals( listCursor1.hasNext(), false,
+                    "list lob not null" );
             listCursor1.close();
         } else {
-            Assert.fail("unexpected result! lockAndRewriteLob:" + lockAndRewriteLob.isSuccess() + " removeLob: "
-                    + removeLob.isSuccess());
+            Assert.fail( "unexpected result! lockAndRewriteLob:"
+                    + lockAndRewriteLob.isSuccess() + " removeLob: "
+                    + removeLob.isSuccess() );
         }
 
     }
@@ -115,17 +130,17 @@ public class RewriteLob13252_18984 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
-            if (cs.isCollectionExist(subCLName)) {
-                cs.dropCollection(subCLName);
+            if ( cs.isCollectionExist( subCLName ) ) {
+                cs.dropCollection( subCLName );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -137,7 +152,8 @@ public class RewriteLob13252_18984 extends SdbTestBase {
         private int offset;
         private byte[] rewriteLobBuff;
 
-        public LockAndRewriteLobTask(String clName, ObjectId lobId, int offset, byte[] rewriteLobBuff) {
+        public LockAndRewriteLobTask( String clName, ObjectId lobId, int offset,
+                byte[] rewriteLobBuff ) {
             this.clNamet = clName;
             this.lobOid = lobId;
             this.offset = offset;
@@ -147,11 +163,13 @@ public class RewriteLob13252_18984 extends SdbTestBase {
         @Override
         public void exec() throws Exception {
             DBLob lob = null;
-            try (Sequoiadb sdb1 = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl1 = sdb1.getCollectionSpace(SdbTestBase.csName).getCollection(this.clNamet);
-                lob = cl1.openLob(this.lobOid, DBLob.SDB_LOB_WRITE);
-                lob.lockAndSeek(offset, rewriteLobBuff.length);
-                lob.write(rewriteLobBuff);
+            try ( Sequoiadb sdb1 = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl1 = sdb1.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( this.clNamet );
+                lob = cl1.openLob( this.lobOid, DBLob.SDB_LOB_WRITE );
+                lob.lockAndSeek( offset, rewriteLobBuff.length );
+                lob.write( rewriteLobBuff );
                 lob.close();
             }
         }
@@ -162,16 +180,18 @@ public class RewriteLob13252_18984 extends SdbTestBase {
         private String clNamet;
         private ObjectId lobOid;
 
-        public RemoveLobTask(String clName, ObjectId lobId) {
+        public RemoveLobTask( String clName, ObjectId lobId ) {
             this.clNamet = clName;
             this.lobOid = lobId;
         }
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb sdb2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");) {
-                DBCollection cl2 = sdb2.getCollectionSpace(SdbTestBase.csName).getCollection(this.clNamet);
-                cl2.removeLob(this.lobOid);
+            try ( Sequoiadb sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" ) ;) {
+                DBCollection cl2 = sdb2.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( this.clNamet );
+                cl2.removeLob( this.lobOid );
             }
         }
     }

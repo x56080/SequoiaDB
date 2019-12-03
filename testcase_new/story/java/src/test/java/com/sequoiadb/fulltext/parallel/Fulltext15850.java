@@ -33,53 +33,59 @@ public class Fulltext15850 extends FullTestBase {
 
     @Override
     protected void initTestProp() {
-        caseProp.setProperty(IGNORESTANDALONE, "true");
-        caseProp.setProperty(CSNAME, csName);
-        caseProp.setProperty(CLNAME, clName);
+        caseProp.setProperty( IGNORESTANDALONE, "true" );
+        caseProp.setProperty( CSNAME, csName );
+        caseProp.setProperty( CLNAME, clName );
     }
 
     @Override
     protected void caseInit() throws Exception {
-        FullTextDBUtils.insertData(cl, insertNum);
+        FullTextDBUtils.insertData( cl, insertNum );
 
         BSONObject indexObj = new BasicBSONObject();
-        indexObj.put("a", "text");
-        indexObj.put("b", "text");
-        indexObj.put("c", "text");
-        indexObj.put("d", "text");
-        indexObj.put("e", "text");
-        cl.createIndex(indexName, indexObj, false, false);
+        indexObj.put( "a", "text" );
+        indexObj.put( "b", "text" );
+        indexObj.put( "c", "text" );
+        indexObj.put( "d", "text" );
+        indexObj.put( "e", "text" );
+        cl.createIndex( indexName, indexObj, false, false );
 
-        Assert.assertTrue(FullTextUtils.isIndexCreated(cl, indexName, insertNum));
+        Assert.assertTrue(
+                FullTextUtils.isIndexCreated( cl, indexName, insertNum ) );
 
-        cappedName = FullTextDBUtils.getCappedName(cl, indexName);
-        esIndexName = FullTextDBUtils.getESIndexName(cl, indexName);
+        cappedName = FullTextDBUtils.getCappedName( cl, indexName );
+        esIndexName = FullTextDBUtils.getESIndexName( cl, indexName );
     }
 
     @Test
     public void test() throws Exception {
 
-        ThreadExecutor thread = new ThreadExecutor(FullTextUtils.THREAD_TIMEOUT);
-        thread.addWorker(new DropCSThread());
-        thread.addWorker(new QueryByTextIndexThread());
+        ThreadExecutor thread = new ThreadExecutor(
+                FullTextUtils.THREAD_TIMEOUT );
+        thread.addWorker( new DropCSThread() );
+        thread.addWorker( new QueryByTextIndexThread() );
         thread.run();
 
-        Assert.assertFalse(sdb.isCollectionSpaceExist(csName), "expect cs not exist.");
-        Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedName));
+        Assert.assertFalse( sdb.isCollectionSpaceExist( csName ),
+                "expect cs not exist." );
+        Assert.assertTrue(
+                FullTextUtils.isIndexDeleted( sdb, esIndexName, cappedName ) );
 
     }
 
     @Override
     protected void caseFini() throws Exception {
-        Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedName));
+        Assert.assertTrue(
+                FullTextUtils.isIndexDeleted( sdb, esIndexName, cappedName ) );
     }
 
     private class DropCSThread {
 
         @ExecuteOrder(step = 1)
         private void dropCS() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                db.dropCollectionSpace(csName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                db.dropCollectionSpace( csName );
             }
         }
     }
@@ -88,18 +94,22 @@ public class Fulltext15850 extends FullTestBase {
 
         @ExecuteOrder(step = 1)
         private void queryData() throws InterruptedException {
-            for (int i = 0; i < 10; i++) {
-                try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                    Thread.sleep(1000 + new Random().nextInt(500));
-                    DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                    DBCursor cur = cl.query("{'': {'$Text': {'query': {'match_all': {}}}}}", null, "{'a': 1}",
-                            "{'': '" + indexName + "'}");
-                    while (cur.hasNext()) {
+            for ( int i = 0; i < 10; i++ ) {
+                try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                        "" )) {
+                    Thread.sleep( 1000 + new Random().nextInt( 500 ) );
+                    DBCollection cl = db.getCollectionSpace( csName )
+                            .getCollection( clName );
+                    DBCursor cur = cl.query(
+                            "{'': {'$Text': {'query': {'match_all': {}}}}}",
+                            null, "{'a': 1}", "{'': '" + indexName + "'}" );
+                    while ( cur.hasNext() ) {
                         cur.getNext();
                     }
                     cur.close();
-                } catch (BaseException e) {
-                    if (e.getErrorCode() != -6 && e.getErrorCode() != -52 && e.getErrorCode() != -34) {
+                } catch ( BaseException e ) {
+                    if ( e.getErrorCode() != -6 && e.getErrorCode() != -52
+                            && e.getErrorCode() != -34 ) {
                         throw e;
                     }
                 }

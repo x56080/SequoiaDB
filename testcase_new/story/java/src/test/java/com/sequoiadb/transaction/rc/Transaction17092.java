@@ -30,7 +30,7 @@ public class Transaction17092 extends SdbTestBase {
     private Sequoiadb db2;
     private Sequoiadb db3;
     private DBCollection cl = null;
-    private ArrayList<BSONObject> expList = new ArrayList<BSONObject>();
+    private ArrayList< BSONObject > expList = new ArrayList< BSONObject >();
     private int startId = 0;
     private int stopId = 1000;
     private String hashCLName = "cl17092_hash";
@@ -44,20 +44,22 @@ public class Transaction17092 extends SdbTestBase {
 
     @DataProvider(name = "index")
     public Object[][] createIndex() {
-        return new Object[][] { { "{'a': 1}", hashCLName }, { "{'a': -1, 'b': 1}", mainCLName }, };
+        return new Object[][] { { "{'a': 1}", hashCLName },
+                { "{'a': -1, 'b': 1}", mainCLName }, };
     }
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        if (CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("ONE GROUP MODE");
+        if ( CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "ONE GROUP MODE" );
         }
 
-        TransUtils.createCLs(sdb, csName, hashCLName, mainCLName, subCLName1, subCLName2, 1000);
+        TransUtils.createCLs( sdb, csName, hashCLName, mainCLName, subCLName1,
+                subCLName2, 1000 );
     }
 
     @AfterClass
@@ -69,205 +71,210 @@ public class Transaction17092 extends SdbTestBase {
         db3.closeAllCursors();
 
         // 先关闭事务连接，再删除集合
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (!db1.isClosed()) {
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( !db1.isClosed() ) {
             db1.close();
         }
-        if (!db2.isClosed()) {
+        if ( !db2.isClosed() ) {
             db2.close();
         }
-        if (!db3.isClosed()) {
+        if ( !db3.isClosed() ) {
             db3.close();
         }
-        if (cs.isCollectionExist(hashCLName)) {
-            cs.dropCollection(hashCLName);
+        if ( cs.isCollectionExist( hashCLName ) ) {
+            cs.dropCollection( hashCLName );
         }
-        if (cs.isCollectionExist(mainCLName)) {
-            cs.dropCollection(mainCLName);
+        if ( cs.isCollectionExist( mainCLName ) ) {
+            cs.dropCollection( mainCLName );
         }
-        if (sdb != null) {
+        if ( sdb != null ) {
             sdb.close();
         }
     }
 
     @Test(dataProvider = "index")
-    public void test(String indexKey, String clName) {
+    public void test( String indexKey, String clName ) {
         try {
-            cl = sdb.getCollectionSpace(csName).getCollection(clName);
-            cl.createIndex("a", indexKey, false, false);
+            cl = sdb.getCollectionSpace( csName ).getCollection( clName );
+            cl.createIndex( "a", indexKey, false, false );
 
-            db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            db3 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
             // 1 开启3个并发事务
             db1.beginTransaction();
             db2.beginTransaction();
             db3.beginTransaction();
-            DBCollection cl1 = db1.getCollectionSpace(csName).getCollection(clName);
-            DBCollection cl2 = db2.getCollectionSpace(csName).getCollection(clName);
-            DBCollection cl3 = db3.getCollectionSpace(csName).getCollection(clName);
+            DBCollection cl1 = db1.getCollectionSpace( csName )
+                    .getCollection( clName );
+            DBCollection cl2 = db2.getCollectionSpace( csName )
+                    .getCollection( clName );
+            DBCollection cl3 = db3.getCollectionSpace( csName )
+                    .getCollection( clName );
 
             // 2 事务1插入记录R1
-            ArrayList<BSONObject> insertR1s = TransUtils.insertRandomDatas(cl1, startId, stopId);
+            ArrayList< BSONObject > insertR1s = TransUtils
+                    .insertRandomDatas( cl1, startId, stopId );
 
             // 3 事务2插入记录R2
-            ArrayList<BSONObject> insertR2s = TransUtils.insertRandomDatas(cl2, startId + 1000, stopId + 1000);
+            ArrayList< BSONObject > insertR2s = TransUtils
+                    .insertRandomDatas( cl2, startId + 1000, stopId + 1000 );
 
             // 4 事务1记录读
-            expList.addAll(insertR1s);
-            TransUtils.queryAndCheck(cl1, "{a: 1}", hintTbScan, expList);
+            expList.addAll( insertR1s );
+            TransUtils.queryAndCheck( cl1, "{a: 1}", hintTbScan, expList );
 
             // 事务1索引读
-            TransUtils.queryAndCheck(cl1, "{a: 1}", hintIxScan, expList);
+            TransUtils.queryAndCheck( cl1, "{a: 1}", hintIxScan, expList );
 
             // 事务1记录逆序读
-            Collections.reverse(expList);
-            TransUtils.queryAndCheck(cl1, orderByRev, hintTbScan, expList);
+            Collections.reverse( expList );
+            TransUtils.queryAndCheck( cl1, orderByRev, hintTbScan, expList );
 
             // 事务1索引逆序读
-            TransUtils.queryAndCheck(cl1, orderByRev, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl1, orderByRev, hintIxScan, expList );
 
             // 5 事务2记录读
             expList.clear();
-            expList.addAll(insertR2s);
-            TransUtils.queryAndCheck(cl2, orderByPos, hintTbScan, expList);
+            expList.addAll( insertR2s );
+            TransUtils.queryAndCheck( cl2, orderByPos, hintTbScan, expList );
 
             // 事务2索引读
-            TransUtils.queryAndCheck(cl2, orderByPos, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl2, orderByPos, hintIxScan, expList );
 
             // 事务2记录逆序读
-            Collections.reverse(expList);
-            TransUtils.queryAndCheck(cl2, orderByRev, hintTbScan, expList);
+            Collections.reverse( expList );
+            TransUtils.queryAndCheck( cl2, orderByRev, hintTbScan, expList );
 
             // 事务2索引逆序读
-            TransUtils.queryAndCheck(cl2, orderByRev, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl2, orderByRev, hintIxScan, expList );
 
             // 6 事务3记录读
             expList.clear();
-            TransUtils.queryAndCheck(cl3, orderByPos, hintTbScan, expList);
+            TransUtils.queryAndCheck( cl3, orderByPos, hintTbScan, expList );
 
             // 事务3索引
-            TransUtils.queryAndCheck(cl3, orderByPos, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl3, orderByPos, hintIxScan, expList );
 
             // 事务3记录逆序读
-            TransUtils.queryAndCheck(cl3, orderByRev, hintTbScan, expList);
+            TransUtils.queryAndCheck( cl3, orderByRev, hintTbScan, expList );
 
             // 事务3索引逆序读
-            TransUtils.queryAndCheck(cl3, orderByRev, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl3, orderByRev, hintIxScan, expList );
 
             // 7 非事务记录读
-            expList.addAll(insertR1s);
-            expList.addAll(insertR2s);
-            TransUtils.queryAndCheck(cl, orderByPos, hintTbScan, expList);
+            expList.addAll( insertR1s );
+            expList.addAll( insertR2s );
+            TransUtils.queryAndCheck( cl, orderByPos, hintTbScan, expList );
 
             // 非事务索引读
-            TransUtils.queryAndCheck(cl, orderByPos, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl, orderByPos, hintIxScan, expList );
 
             // 非事务记录逆序读
-            Collections.reverse(expList);
-            TransUtils.queryAndCheck(cl, orderByRev, hintTbScan, expList);
+            Collections.reverse( expList );
+            TransUtils.queryAndCheck( cl, orderByRev, hintTbScan, expList );
 
             // 非事务索引逆序读
-            TransUtils.queryAndCheck(cl, orderByRev, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl, orderByRev, hintIxScan, expList );
 
             // 8 提交事务1
             db1.commit();
 
             // 非事务记录读
-            Collections.reverse(expList);
-            TransUtils.queryAndCheck(cl, orderByPos, hintTbScan, expList);
+            Collections.reverse( expList );
+            TransUtils.queryAndCheck( cl, orderByPos, hintTbScan, expList );
 
             // 非事务索引读
-            TransUtils.queryAndCheck(cl, orderByPos, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl, orderByPos, hintIxScan, expList );
 
             // 非事务记录逆序读
-            Collections.reverse(expList);
-            TransUtils.queryAndCheck(cl, orderByRev, hintTbScan, expList);
+            Collections.reverse( expList );
+            TransUtils.queryAndCheck( cl, orderByRev, hintTbScan, expList );
 
             // 非事务索引逆序读
-            TransUtils.queryAndCheck(cl, orderByRev, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl, orderByRev, hintIxScan, expList );
 
             // 9 事务2记录读
-            Collections.reverse(expList);
-            TransUtils.queryAndCheck(cl2, orderByPos, hintTbScan, expList);
+            Collections.reverse( expList );
+            TransUtils.queryAndCheck( cl2, orderByPos, hintTbScan, expList );
 
             // 事务2索引读
-            TransUtils.queryAndCheck(cl2, orderByPos, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl2, orderByPos, hintIxScan, expList );
 
             // 9 事务2记录逆序读
-            Collections.reverse(expList);
-            TransUtils.queryAndCheck(cl2, orderByRev, hintTbScan, expList);
+            Collections.reverse( expList );
+            TransUtils.queryAndCheck( cl2, orderByRev, hintTbScan, expList );
 
             // 事务2索引逆序读
-            TransUtils.queryAndCheck(cl2, orderByRev, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl2, orderByRev, hintIxScan, expList );
 
             // 10 事务3记录读
             expList.clear();
-            expList.addAll(insertR1s);
-            TransUtils.queryAndCheck(cl3, orderByPos, hintTbScan, expList);
+            expList.addAll( insertR1s );
+            TransUtils.queryAndCheck( cl3, orderByPos, hintTbScan, expList );
 
             // 事务3索引读
-            TransUtils.queryAndCheck(cl3, orderByPos, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl3, orderByPos, hintIxScan, expList );
 
             // 10 事务3记录逆序读
-            Collections.reverse(expList);
-            TransUtils.queryAndCheck(cl3, orderByRev, hintTbScan, expList);
+            Collections.reverse( expList );
+            TransUtils.queryAndCheck( cl3, orderByRev, hintTbScan, expList );
 
             // 事务3索引逆序读
-            TransUtils.queryAndCheck(cl3, orderByRev, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl3, orderByRev, hintIxScan, expList );
 
             // 11 提交事务2
             db2.commit();
             expList.clear();
-            expList.addAll(insertR1s);
-            expList.addAll(insertR2s);
+            expList.addAll( insertR1s );
+            expList.addAll( insertR2s );
 
             // 非事务记录读
-            TransUtils.queryAndCheck(cl, orderByPos, hintTbScan, expList);
+            TransUtils.queryAndCheck( cl, orderByPos, hintTbScan, expList );
 
             // 非事务索引读
-            TransUtils.queryAndCheck(cl, orderByPos, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl, orderByPos, hintIxScan, expList );
 
             // 非事务记录读
-            Collections.reverse(expList);
-            TransUtils.queryAndCheck(cl, orderByRev, hintTbScan, expList);
+            Collections.reverse( expList );
+            TransUtils.queryAndCheck( cl, orderByRev, hintTbScan, expList );
 
             // 非事务索引逆序读
-            TransUtils.queryAndCheck(cl, orderByRev, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl, orderByRev, hintIxScan, expList );
 
             // 12 事务3记录读
-            Collections.reverse(expList);
-            TransUtils.queryAndCheck(cl3, orderByPos, hintTbScan, expList);
+            Collections.reverse( expList );
+            TransUtils.queryAndCheck( cl3, orderByPos, hintTbScan, expList );
 
             // 事务3索引读
-            TransUtils.queryAndCheck(cl3, orderByPos, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl3, orderByPos, hintIxScan, expList );
 
             // 12 事务3记录逆序读
-            Collections.reverse(expList);
-            TransUtils.queryAndCheck(cl3, orderByRev, hintTbScan, expList);
+            Collections.reverse( expList );
+            TransUtils.queryAndCheck( cl3, orderByRev, hintTbScan, expList );
 
             // 事务3索引逆序读
-            TransUtils.queryAndCheck(cl3, orderByRev, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl3, orderByRev, hintIxScan, expList );
 
             // 提交事务3
             db3.commit();
 
             // 删除记录
-            cl.delete((BSONObject) null);
+            cl.delete( ( BSONObject ) null );
 
             // 非事务记录读
             expList.clear();
-            TransUtils.queryAndCheck(cl, hintTbScan, expList);
+            TransUtils.queryAndCheck( cl, hintTbScan, expList );
 
             // 非事务索引读
-            TransUtils.queryAndCheck(cl, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl, hintIxScan, expList );
         } finally {
             db1.commit();
             db2.commit();
             db3.commit();
-            if (cl.isIndexExist("a")) {
-                cl.dropIndex("a");
+            if ( cl.isIndexExist( "a" ) ) {
+                cl.dropIndex( "a" );
             }
             cl.truncate();
         }

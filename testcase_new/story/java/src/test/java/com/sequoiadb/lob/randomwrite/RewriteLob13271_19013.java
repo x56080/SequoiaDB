@@ -43,7 +43,7 @@ public class RewriteLob13271_19013 extends SdbTestBase {
     private String mainCLName = "mainCL_19013";
     private String subCLName = "subCL_19013";
 
-    private static Map<Integer, byte[]> randomBytesMap = new HashMap<>();
+    private static Map< Integer, byte[] > randomBytesMap = new HashMap<>();
 
     @DataProvider(name = "clNameProvider", parallel = false)
     public Object[][] generateCLName() {
@@ -57,12 +57,14 @@ public class RewriteLob13271_19013 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = db.getCollectionSpace(SdbTestBase.csName);
-        cs.createCollection(clName, (BSONObject) JSON.parse("{ShardingKey:{\"_id\":1},ShardingType:\"hash\"}"));
+        db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = db.getCollectionSpace( SdbTestBase.csName );
+        cs.createCollection( clName, ( BSONObject ) JSON
+                .parse( "{ShardingKey:{\"_id\":1},ShardingType:\"hash\"}" ) );
 
-        if (!CommLib.isStandAlone(db)) {
-            LobSubUtils.createMainCLAndAttachCL(db, SdbTestBase.csName, mainCLName, subCLName);
+        if ( !CommLib.isStandAlone( db ) ) {
+            LobSubUtils.createMainCLAndAttachCL( db, SdbTestBase.csName,
+                    mainCLName, subCLName );
         }
     }
 
@@ -72,65 +74,67 @@ public class RewriteLob13271_19013 extends SdbTestBase {
      * 1、所有线程读lob成功，查询对应范围内lob信息和实际写入数据一致（比较MD5值）
      */
     @Test(dataProvider = "clNameProvider")
-    public void testLob(String clName) throws InterruptedException {
-        if (CommLib.isStandAlone(db) && clName.equals(mainCLName)) {
-            throw new SkipException("is standalone skip testcase!");
+    public void testLob( String clName ) throws InterruptedException {
+        if ( CommLib.isStandAlone( db ) && clName.equals( mainCLName ) ) {
+            throw new SkipException( "is standalone skip testcase!" );
         }
         int lobsize = 1024 * 1024 * 20;
-        byte[] expectBytes = getRandomBytes(lobsize);
-        DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+        byte[] expectBytes = getRandomBytes( lobsize );
+        DBCollection dbcl = db.getCollectionSpace( SdbTestBase.csName )
+                .getCollection( clName );
         DBLob lob = dbcl.createLob();
         final ObjectId oid = lob.getID();
-        lob.write(expectBytes);
+        lob.write( expectBytes );
         lob.close();
 
-        List<DbLobReadTask> lobTasks = new ArrayList<>(10);
+        List< DbLobReadTask > lobTasks = new ArrayList<>( 10 );
 
         final int step = lobsize / 10;
-        for (int i = 0; i < 10; i++) {
+        for ( int i = 0; i < 10; i++ ) {
             final int begin = i * step;
-            lobTasks.add(new DbLobReadTask(SdbTestBase.csName, clName, begin, step, oid));
+            lobTasks.add( new DbLobReadTask( SdbTestBase.csName, clName, begin,
+                    step, oid ) );
         }
 
-        for (DbLobReadTask lobTask : lobTasks)
+        for ( DbLobReadTask lobTask : lobTasks )
             lobTask.start();
-        for (DbLobReadTask lobTask : lobTasks)
+        for ( DbLobReadTask lobTask : lobTasks )
             lobTask.join();
-        for (DbLobReadTask lobTask : lobTasks) {
-            Assert.assertTrue(lobTask.isTaskSuccess(), lobTask.getErrorMsg());
+        for ( DbLobReadTask lobTask : lobTasks ) {
+            Assert.assertTrue( lobTask.isTaskSuccess(), lobTask.getErrorMsg() );
             int b = lobTask.getBegin();
             int length = lobTask.getLength();
-            byte[] expect = Arrays.copyOfRange(expectBytes, b, b + length);
+            byte[] expect = Arrays.copyOfRange( expectBytes, b, b + length );
             byte[] actual = lobTask.getResult();
-            assertByteArrayEqual(actual, expect);
+            assertByteArrayEqual( actual, expect );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
-            if (cs.isCollectionExist(subCLName)) {
-                cs.dropCollection(subCLName);
+            if ( cs.isCollectionExist( subCLName ) ) {
+                cs.dropCollection( subCLName );
             }
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
     }
 
-    private byte[] getRandomBytes(int size) {
-        if (randomBytesMap.containsKey(size))
-            return randomBytesMap.get(size);
+    private byte[] getRandomBytes( int size ) {
+        if ( randomBytesMap.containsKey( size ) )
+            return randomBytesMap.get( size );
         else {
-            byte[] b = RandomWriteLobUtil.getRandomBytes(size);
-            randomBytesMap.put(size, b);
+            byte[] b = RandomWriteLobUtil.getRandomBytes( size );
+            randomBytesMap.put( size, b );
             return b;
         }
     }

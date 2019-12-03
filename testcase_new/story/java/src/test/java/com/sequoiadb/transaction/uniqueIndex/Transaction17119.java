@@ -30,66 +30,68 @@ public class Transaction17119 extends SdbTestBase {
     private DBCollection cl = null;
     private BSONObject data = null;
     private DBCursor recordCur = null;
-    private List<BSONObject> expDataList = null;
-    private List<BSONObject> actDataList = null;
+    private List< BSONObject > expDataList = null;
+    private List< BSONObject > actDataList = null;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl.createIndex("a", "{a:1}", true, false);
-        expDataList = new ArrayList<BSONObject>();
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl.createIndex( "a", "{a:1}", true, false );
+        expDataList = new ArrayList< BSONObject >();
 
         data = new BasicBSONObject();
-        data.put("a", 1);
-        data.put("b", "testTrans_17119");
-        data.put("c", 13700000000L);
-        data.put("d", "customer transaction type data application.");
-        cl.insert(data);
-        expDataList.add(data);
+        data.put( "a", 1 );
+        data.put( "b", "testTrans_17119" );
+        data.put( "c", 13700000000L );
+        data.put( "d", "customer transaction type data application." );
+        cl.insert( data );
+        expDataList.add( data );
     }
 
     @Test
     public void test() {
-        Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         try {
             db.beginTransaction();
-            DBCollection cl2 = db.getCollectionSpace(csName).getCollection(clName);
+            DBCollection cl2 = db.getCollectionSpace( csName )
+                    .getCollection( clName );
 
             // 1 trans1 insert already exist record
-            cl2.insert(data);
-            Assert.fail("insert an existing record with an index,should be failed");
-        } catch (BaseException e) {
-            Assert.assertEquals(e.getErrorCode(), -38, e.getMessage());
+            cl2.insert( data );
+            Assert.fail(
+                    "insert an existing record with an index,should be failed" );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( e.getErrorCode(), -38, e.getMessage() );
         } finally {
             db.commit();
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
 
-        recordCur = cl.query(null, null, null, "{'': null}");
-        actDataList = TransUtils.getReadActList(recordCur);
-        Assert.assertEquals(actDataList, expDataList);
+        recordCur = cl.query( null, null, null, "{'': null}" );
+        actDataList = TransUtils.getReadActList( recordCur );
+        Assert.assertEquals( actDataList, expDataList );
         actDataList.clear();
 
-        recordCur = cl.query(null, null, null, "{'': 'a'}");
-        actDataList = TransUtils.getReadActList(recordCur);
-        Assert.assertEquals(actDataList, expDataList);
+        recordCur = cl.query( null, null, null, "{'': 'a'}" );
+        actDataList = TransUtils.getReadActList( recordCur );
+        Assert.assertEquals( actDataList, expDataList );
         actDataList.clear();
 
-        cl.delete("{'a': {'$isnull' :0}}");
-        Assert.assertEquals(cl.getCount(), 0);
+        cl.delete( "{'a': {'$isnull' :0}}" );
+        Assert.assertEquals( cl.getCount(), 0 );
     }
 
     @AfterClass
     public void tearDown() {
 
-        sdb.getCollectionSpace(csName).dropCollection(clName);
-        if (recordCur != null) {
+        sdb.getCollectionSpace( csName ).dropCollection( clName );
+        if ( recordCur != null ) {
             recordCur.close();
         }
-        if (sdb != null) {
+        if ( sdb != null ) {
             sdb.close();
         }
     }

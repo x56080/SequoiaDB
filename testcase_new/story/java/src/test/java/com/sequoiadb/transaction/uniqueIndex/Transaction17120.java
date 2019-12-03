@@ -30,22 +30,22 @@ public class Transaction17120 extends SdbTestBase {
     private DBCollection cl = null;
     private BSONObject data1 = null;
     private DBCursor recordCur = null;
-    private List<BSONObject> expDataList = null;
-    private List<BSONObject> actDataList = null;
+    private List< BSONObject > expDataList = null;
+    private List< BSONObject > actDataList = null;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl.createIndex("a", "{a:1}", true, false);
-        expDataList = new ArrayList<BSONObject>();
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl.createIndex( "a", "{a:1}", true, false );
+        expDataList = new ArrayList< BSONObject >();
 
         data1 = new BasicBSONObject();
-        data1.put("a", 1);
-        data1.put("b", "testTrans_17120");
-        data1.put("c", 13700000000L);
-        data1.put("d", "customer transaction type data application.");
-        cl.insert(data1);
+        data1.put( "a", 1 );
+        data1.put( "b", "testTrans_17120" );
+        data1.put( "c", 13700000000L );
+        data1.put( "d", "customer transaction type data application." );
+        cl.insert( data1 );
     }
 
     @Test
@@ -53,45 +53,47 @@ public class Transaction17120 extends SdbTestBase {
         try {
             sdb.beginTransaction();
             BSONObject data2 = new BasicBSONObject();
-            data2.put("a", 17120);
-            data2.put("b", "testTrans_17120");
-            data2.put("c", 13700017120L);
-            data2.put("d", "customer transaction type data application. :17120");
-            cl.insert(data2);
+            data2.put( "a", 17120 );
+            data2.put( "b", "testTrans_17120" );
+            data2.put( "c", 13700017120L );
+            data2.put( "d",
+                    "customer transaction type data application. :17120" );
+            cl.insert( data2 );
 
             // 1 insert the same record repeatedly
-            cl.insert(data2);
-            Assert.fail("insert an existing record with an index,should be failed");
-        } catch (BaseException e) {
-            Assert.assertEquals(e.getErrorCode(), -38, e.getMessage());
+            cl.insert( data2 );
+            Assert.fail(
+                    "insert an existing record with an index,should be failed" );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( e.getErrorCode(), -38, e.getMessage() );
         } finally {
             sdb.commit();
         }
 
-        expDataList.add(data1);
-        recordCur = cl.query(null, null, null, "{'': null}");
-        actDataList = TransUtils.getReadActList(recordCur);
-        Assert.assertEquals(actDataList, expDataList);
+        expDataList.add( data1 );
+        recordCur = cl.query( null, null, null, "{'': null}" );
+        actDataList = TransUtils.getReadActList( recordCur );
+        Assert.assertEquals( actDataList, expDataList );
         actDataList.clear();
 
-        recordCur = cl.query(null, null, null, "{'': 'a'}");
-        actDataList = TransUtils.getReadActList(recordCur);
-        Assert.assertEquals(actDataList, expDataList);
+        recordCur = cl.query( null, null, null, "{'': 'a'}" );
+        actDataList = TransUtils.getReadActList( recordCur );
+        Assert.assertEquals( actDataList, expDataList );
         actDataList.clear();
 
-        cl.delete("{'a': {'$isnull' :0}}");
-        Assert.assertEquals(cl.getCount(), 0);
+        cl.delete( "{'a': {'$isnull' :0}}" );
+        Assert.assertEquals( cl.getCount(), 0 );
 
     }
 
     @AfterClass
     public void tearDown() {
 
-        sdb.getCollectionSpace(csName).dropCollection(clName);
-        if (recordCur != null) {
+        sdb.getCollectionSpace( csName ).dropCollection( clName );
+        if ( recordCur != null ) {
             recordCur.close();
         }
-        if (sdb != null) {
+        if ( sdb != null ) {
             sdb.close();
         }
     }

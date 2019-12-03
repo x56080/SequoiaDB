@@ -16,8 +16,8 @@ public class StringUtils {
      */
     static {
         StringBuffer sb = new StringBuffer();
-        for (int i = 0; i < size; i++) {
-            sb.append(base);
+        for ( int i = 0; i < size; i++ ) {
+            sb.append( base );
         }
         baseString = sb.toString();
     }
@@ -30,26 +30,26 @@ public class StringUtils {
      * @Author liuxiaoxuan
      * @Date 2019-05-14
      */
-    public static String getRandomString(int length) {
+    public static String getRandomString( int length ) {
         final int baseLen = baseString.length();
-        if (length == baseLen) {
+        if ( length == baseLen ) {
             return baseString;
-        } else if (length < baseLen) {
-            int start = new Random().nextInt(baseLen);
+        } else if ( length < baseLen ) {
+            int start = new Random().nextInt( baseLen );
             int end = start + length;
-            if (end > baseLen - 1) {
+            if ( end > baseLen - 1 ) {
                 start = baseLen - length - 1;
             }
-            return baseString.substring(start, start + length);
+            return baseString.substring( start, start + length );
         } else {
             StringBuffer sb = new StringBuffer();
             int expectLength = length;
-            while (expectLength > 0) {
-                if (expectLength > baseLen) {
-                    sb.append(baseString);
+            while ( expectLength > 0 ) {
+                if ( expectLength > baseLen ) {
+                    sb.append( baseString );
                     expectLength -= baseLen;
                 } else {
-                    sb.append(baseString.substring(0, expectLength));
+                    sb.append( baseString.substring( 0, expectLength ) );
                     expectLength = 0;
                 }
             }

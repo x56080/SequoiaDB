@@ -3,7 +3,6 @@ package com.sequoiadb.crud.numoverflow;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -17,71 +16,82 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
-* FileName: MubtipleValueOperAsSelector12590.java
-* test content:Numeric value overflow for many character using different symbol operation,
-* 				and the symbol is used as a selector.the symbol is $abs/$add/$subtract/$divide/$multiply
-* testlink case:seqDB-12590
-* @author wuyan
-    * @Date    2017.9.13
-* @version 1.00
-*/
+ * FileName: MubtipleValueOperAsSelector12590.java test content:Numeric value
+ * overflow for many character using different symbol operation, and the symbol
+ * is used as a selector.the symbol is $abs/$add/$subtract/$divide/$multiply
+ * testlink case:seqDB-12590
+ * 
+ * @author wuyan
+ * @Date 2017.9.13
+ * @version 1.00
+ */
 
-public class MubtipleValueOperAsSelector12590 extends SdbTestBase{	
-	
-	private String clName = "mubtipleVaule_selector12590";
-	private Sequoiadb sdb = null;
-	private CollectionSpace cs = null;
-	private static DBCollection cl = null;    
-	
-	@BeforeClass
-	public void setUp(){
-		try{
-			sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-		}catch(BaseException e){			
-			Assert.assertTrue(false,"connect %s failed,"+coordUrl+e.getMessage());
-		}		
-		
-		cs = sdb.getCollectionSpace(SdbTestBase.csName);
-		cl = NumOverflowUtils.createCL(cs, clName);
-		
-		String []records = {"{'no':-2147483648,'tlong':{'$numberLong':'9223372036854775807'},"
-								+ "'arr':[1,3],'arr1':[1,[1,{'$numberLong':'92233720368547758'}],2],"
-								+ "obj:{a:{b:[4,{'$numberLong':'-9223372036854775808'}]}},obj1:{a:{b:-2}}}"};
+public class MubtipleValueOperAsSelector12590 extends SdbTestBase {
 
-		NumOverflowUtils.insert(cl, records);
-	}
-	
-	@Test
-	public void testSubtract(){
-		try{			
-			String selector = "{no:{$abs:1},tlong:{$add:1},'arr.$[0]':{$subtract:{'$numberLong':'-9223372036854775807'}},"
-					+ "'arr1.$[1].$[1]':{$multiply:112},'obj.a.b.$[1]':{$divide:-1},"
-					+ "'obj1.a.b':{$subtract:{'$numberLong':'9223372036854775807'}},_id:{$include:0}}"; 
-			//TODO:SEQUOIADBMAINSTREAM-2764,the arr1.$[1].$[1] oper result is error
-			/*String []expRecords = {"{'no':2147483648,'tlong':{'$decimal':'9223372036854775808'},arr:[{'$decimal':'9223372036854775808'}],"
-					+ "'arr1':[],obj:{a:{b:[{'$decimal':'9223372036854775808'}]}},"
-					+ "obj1:{a:{b:{'$decimal':'-9223372036854775809'}}}}"};	 */
-			String []expRecords = {"{'no':2147483648,'tlong':{'$decimal':'9223372036854775808'},arr:[{'$decimal':'9223372036854775808'}],"
-					+ "'arr1':[],obj:{a:{b:[{'$decimal':'9223372036854775808'}]}},"
-					+ "obj1:{a:{b:{'$decimal':'-9223372036854775809'}}}}"};	 
-			NumOverflowUtils.multipleFieldOper(cl, selector, expRecords);
-		}catch(BaseException e){			
-			Assert.assertTrue(false,"subtract is used as selector oper failed,"+e.getMessage()+e.getErrorCode());
-		}		
-	}	
-		
-	@AfterClass
-	public void tearDown(){
-		try{
-			if(sdb.getCollectionSpace(SdbTestBase.csName).isCollectionExist(clName)){
-				cs.dropCollection(clName);
-			}			
-		}catch(BaseException e){
-			Assert.fail("clear env failed, errMsg:" + e.getMessage());
-		}finally{
-			if(sdb != null){
-				sdb.close();
-			}
-		}
-	}	
+    private String clName = "mubtipleVaule_selector12590";
+    private Sequoiadb sdb = null;
+    private CollectionSpace cs = null;
+    private static DBCollection cl = null;
+
+    @BeforeClass
+    public void setUp() {
+        try {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false,
+                    "connect %s failed," + coordUrl + e.getMessage() );
+        }
+
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
+        cl = NumOverflowUtils.createCL( cs, clName );
+
+        String[] records = {
+                "{'no':-2147483648,'tlong':{'$numberLong':'9223372036854775807'},"
+                        + "'arr':[1,3],'arr1':[1,[1,{'$numberLong':'92233720368547758'}],2],"
+                        + "obj:{a:{b:[4,{'$numberLong':'-9223372036854775808'}]}},obj1:{a:{b:-2}}}" };
+
+        NumOverflowUtils.insert( cl, records );
+    }
+
+    @Test
+    public void testSubtract() {
+        try {
+            String selector = "{no:{$abs:1},tlong:{$add:1},'arr.$[0]':{$subtract:{'$numberLong':'-9223372036854775807'}},"
+                    + "'arr1.$[1].$[1]':{$multiply:112},'obj.a.b.$[1]':{$divide:-1},"
+                    + "'obj1.a.b':{$subtract:{'$numberLong':'9223372036854775807'}},_id:{$include:0}}";
+            // TODO:SEQUOIADBMAINSTREAM-2764,the arr1.$[1].$[1] oper result is
+            // error
+            /*
+             * String []expRecords =
+             * {"{'no':2147483648,'tlong':{'$decimal':'9223372036854775808'},arr:[{'$decimal':'9223372036854775808'}],"
+             * + "'arr1':[],obj:{a:{b:[{'$decimal':'9223372036854775808'}]}}," +
+             * "obj1:{a:{b:{'$decimal':'-9223372036854775809'}}}}"};
+             */
+            String[] expRecords = {
+                    "{'no':2147483648,'tlong':{'$decimal':'9223372036854775808'},arr:[{'$decimal':'9223372036854775808'}],"
+                            + "'arr1':[],obj:{a:{b:[{'$decimal':'9223372036854775808'}]}},"
+                            + "obj1:{a:{b:{'$decimal':'-9223372036854775809'}}}}" };
+            NumOverflowUtils.multipleFieldOper( cl, selector, expRecords );
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false,
+                    "subtract is used as selector oper failed," + e.getMessage()
+                            + e.getErrorCode() );
+        }
+    }
+
+    @AfterClass
+    public void tearDown() {
+        try {
+            if ( sdb.getCollectionSpace( SdbTestBase.csName )
+                    .isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
+            }
+        } catch ( BaseException e ) {
+            Assert.fail( "clear env failed, errMsg:" + e.getMessage() );
+        } finally {
+            if ( sdb != null ) {
+                sdb.close();
+            }
+        }
+    }
 }

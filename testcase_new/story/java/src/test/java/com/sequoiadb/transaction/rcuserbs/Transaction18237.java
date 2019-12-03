@@ -40,15 +40,15 @@ public class Transaction18237 extends SdbTestBase {
     private DBCollection cl4 = null;
     private DBCollection cl5 = null;
     private DBCursor recordCur = null;
-    private List<BSONObject> expDataList = null;
-    private List<BSONObject> actDataList = null;
+    private List< BSONObject > expDataList = null;
+    private List< BSONObject > actDataList = null;
 
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl.createIndex( "a", "{a: 1}", false, false );
-        expDataList = new ArrayList<BSONObject>();
+        expDataList = new ArrayList< BSONObject >();
 
         cl.insert( "{'_id': 1, 'a': 1}" );
     }
@@ -76,7 +76,7 @@ public class Transaction18237 extends SdbTestBase {
 
         // 1 trans1 query
         expDataList.clear();
-        expDataList.add( (BSONObject) JSON.parse( "{'_id': 1, 'a': 1}" ) );
+        expDataList.add( ( BSONObject ) JSON.parse( "{'_id': 1, 'a': 1}" ) );
         recordCur = cl1.query( "{a:1}", null, "{a: 1}", "{'': null}" );
         actDataList = TransUtils.getReadActList( recordCur );
         Assert.assertEquals( actDataList, expDataList );
@@ -104,15 +104,17 @@ public class Transaction18237 extends SdbTestBase {
         // trans 4 query
         QueryThread queryThread1 = new QueryThread( cl4, "{'': null}" );
         queryThread1.start();
-        Assert.assertTrue( queryThread1.matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
+        Assert.assertTrue( queryThread1
+                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
 
         QueryThread queryThread2 = new QueryThread( cl5, "{'': 'a'}" );
         queryThread2.start();
-        Assert.assertTrue( queryThread2.matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
+        Assert.assertTrue( queryThread2
+                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
 
         // no trans read
         expDataList.clear();
-        expDataList.add( (BSONObject) JSON.parse( "{'_id': 1, 'a': 2}" ) );
+        expDataList.add( ( BSONObject ) JSON.parse( "{'_id': 1, 'a': 2}" ) );
         recordCur = cl.query( null, null, "{a: 1}", "{'': null}" );
         actDataList = TransUtils.getReadActList( recordCur );
         Assert.assertEquals( actDataList, expDataList );
@@ -127,8 +129,10 @@ public class Transaction18237 extends SdbTestBase {
         sdb2.commit();
         sdb3.commit();
 
-        Assert.assertTrue( queryThread1.isSuccess(), queryThread1.getErrorMsg() );
-        Assert.assertTrue( queryThread2.isSuccess(), queryThread2.getErrorMsg() );
+        Assert.assertTrue( queryThread1.isSuccess(),
+                queryThread1.getErrorMsg() );
+        Assert.assertTrue( queryThread2.isSuccess(),
+                queryThread2.getErrorMsg() );
 
         sdb4.commit();
         sdb5.commit();
@@ -179,11 +183,11 @@ public class Transaction18237 extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
-            List<BSONObject> expList = new ArrayList<BSONObject>();
-            expList.add( (BSONObject) JSON.parse( "{'_id': 1, 'a': 2}" ) );
+            List< BSONObject > expList = new ArrayList< BSONObject >();
+            expList.add( ( BSONObject ) JSON.parse( "{'_id': 1, 'a': 2}" ) );
 
             DBCursor cur = cl.query( null, null, "{a: 1}", hint );
-            List<BSONObject> actList = TransUtils.getReadActList( cur );
+            List< BSONObject > actList = TransUtils.getReadActList( cur );
             Assert.assertEquals( actList, expList );
         }
     }

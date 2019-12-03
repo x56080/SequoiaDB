@@ -35,70 +35,78 @@ public class Fulltext15841 extends FullTestBase {
 
     @Override
     protected void initTestProp() {
-        caseProp.setProperty(IGNORESTANDALONE, "true");
-        caseProp.setProperty(CLNAME, clName);
+        caseProp.setProperty( IGNORESTANDALONE, "true" );
+        caseProp.setProperty( CLNAME, clName );
     }
 
     @Override
     protected void caseInit() throws Exception {
-        FullTextDBUtils.insertData(cl, insertNum);
+        FullTextDBUtils.insertData( cl, insertNum );
 
         indexObj = new BasicBSONObject();
-        indexObj.put("a", "text");
-        indexObj.put("b", "text");
-        indexObj.put("c", "text");
-        indexObj.put("d", "text");
-        indexObj.put("e", "text");
+        indexObj.put( "a", "text" );
+        indexObj.put( "b", "text" );
+        indexObj.put( "c", "text" );
+        indexObj.put( "d", "text" );
+        indexObj.put( "e", "text" );
     }
 
     @Test
     public void test() throws Exception {
-        ThreadExecutor thread = new ThreadExecutor(FullTextUtils.THREAD_TIMEOUT);
+        ThreadExecutor thread = new ThreadExecutor(
+                FullTextUtils.THREAD_TIMEOUT );
         CreateIndexThread createIndexThread = new CreateIndexThread();
         TruncateThread truncateThread = new TruncateThread();
-        thread.addWorker(createIndexThread);
-        thread.addWorker(truncateThread);
+        thread.addWorker( createIndexThread );
+        thread.addWorker( truncateThread );
         thread.run();
-        if (createIndexThread.getRetCode() != 0) {
-            cl.createIndex(indexName, indexObj, false, false);
+        if ( createIndexThread.getRetCode() != 0 ) {
+            cl.createIndex( indexName, indexObj, false, false );
         }
-        if (truncateThread.getRetCode() == 0) {
-            Assert.assertTrue(FullTextUtils.isIndexCreated(cl, indexName, 0));
+        if ( truncateThread.getRetCode() == 0 ) {
+            Assert.assertTrue(
+                    FullTextUtils.isIndexCreated( cl, indexName, 0 ) );
         } else {
-            Assert.assertTrue(FullTextUtils.isIndexCreated(cl, indexName, insertNum));
+            Assert.assertTrue(
+                    FullTextUtils.isIndexCreated( cl, indexName, insertNum ) );
 
             int recordNum = 0;
-            DBCursor cur = cl.query("{'': {'$Text': {'query': {'match_all': {}}}}}", null, "{'recordId': 1}",
-                    "{'': '" + indexName + "'}");
-            while (cur.hasNext()) {
+            DBCursor cur = cl.query(
+                    "{'': {'$Text': {'query': {'match_all': {}}}}}", null,
+                    "{'recordId': 1}", "{'': '" + indexName + "'}" );
+            while ( cur.hasNext() ) {
                 cur.getNext();
                 recordNum++;
             }
             cur.close();
 
-            Assert.assertEquals(recordNum, insertNum, "use fulltext index search record");
+            Assert.assertEquals( recordNum, insertNum,
+                    "use fulltext index search record" );
         }
-        cappedName = FullTextDBUtils.getCappedName(cl, indexName);
-        esIndexName = FullTextDBUtils.getESIndexName(cl, indexName);
+        cappedName = FullTextDBUtils.getCappedName( cl, indexName );
+        esIndexName = FullTextDBUtils.getESIndexName( cl, indexName );
     }
 
     @Override
     protected void caseFini() throws Exception {
-        Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedName));
+        Assert.assertTrue(
+                FullTextUtils.isIndexDeleted( sdb, esIndexName, cappedName ) );
     }
 
     private class CreateIndexThread extends ResultStore {
 
         @ExecuteOrder(step = 1)
         private void createIndex() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                cl.createIndex(indexName, indexObj, false, false);
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -321) {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                cl.createIndex( indexName, indexObj, false, false );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -321 ) {
                     throw e;
                 }
-                saveResult(-1, e);
+                saveResult( -1, e );
             }
         }
     }
@@ -107,15 +115,17 @@ public class Fulltext15841 extends FullTestBase {
 
         @ExecuteOrder(step = 1)
         private void truncate() throws InterruptedException {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                Thread.sleep(1000 + new Random().nextInt(100));
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                Thread.sleep( 1000 + new Random().nextInt( 100 ) );
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
                 cl.truncate();
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -147 && e.getErrorCode() != -190) {
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -147 && e.getErrorCode() != -190 ) {
                     throw e;
                 }
-                saveResult(-1, e);
+                saveResult( -1, e );
             }
         }
     }

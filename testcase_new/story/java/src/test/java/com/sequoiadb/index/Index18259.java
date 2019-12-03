@@ -31,7 +31,8 @@ public class Index18259 extends SdbTestBase {
     private final int THREAD_NUM = 5;
     private final String CL_NAME = "cl_18259";
     private final String IDX_NAME = "cl_18259";
-    private final BSONObject IDX_KEY = (BSONObject) JSON.parse("{a:1,b:-1,c:1,d:-1}");
+    private final BSONObject IDX_KEY = ( BSONObject ) JSON
+            .parse( "{a:1,b:-1,c:1,d:-1}" );
     private final int RECS_NUM = 20000;
 
     private Sequoiadb sdb = null;
@@ -40,37 +41,37 @@ public class Index18259 extends SdbTestBase {
 
     @BeforeClass
     private void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("Skip standAlone mode");
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "Skip standAlone mode" );
         }
 
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
-        cl = cs.createCollection(CL_NAME);
-        IndexUtils.insertData(cl, RECS_NUM, 16);
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
+        cl = cs.createCollection( CL_NAME );
+        IndexUtils.insertData( cl, RECS_NUM, 16 );
     }
 
     @Test
     private void test() throws Exception {
         ThreadExecutor es = new ThreadExecutor();
-        for (int i = 0; i < THREAD_NUM; i++) {
-            es.addWorker(new ThreadCreateIndex());
-            es.addWorker(new ThreadDropIndex());
+        for ( int i = 0; i < THREAD_NUM; i++ ) {
+            es.addWorker( new ThreadCreateIndex() );
+            es.addWorker( new ThreadDropIndex() );
         }
         es.run();
 
         CommLib commlib = new CommLib();
-        commlib.checkIndex(sdb, IDX_NAME, CL_NAME);
+        commlib.checkIndex( sdb, IDX_NAME, CL_NAME );
         this.checkData();
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            cs.dropCollection(CL_NAME);
+            cs.dropCollection( CL_NAME );
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -79,16 +80,21 @@ public class Index18259 extends SdbTestBase {
     private class ThreadCreateIndex {
         @ExecuteOrder(step = 1)
         private void createIndex() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl2 = db.getCollectionSpace(SdbTestBase.csName).getCollection(CL_NAME);
-                System.out.println(new Date() + " begin " + this.getClass().getName().toString());
-                cl2.createIndex(IDX_NAME, IDX_KEY, false, false);
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -247 && e.getErrorCode() != -199 && e.getErrorCode() != -43) {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl2 = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( CL_NAME );
+                System.out.println( new Date() + " begin "
+                        + this.getClass().getName().toString() );
+                cl2.createIndex( IDX_NAME, IDX_KEY, false, false );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -247 && e.getErrorCode() != -199
+                        && e.getErrorCode() != -43 ) {
                     throw e;
                 }
             }
-            System.out.println(new Date() + " end   " + this.getClass().getName().toString());
+            System.out.println( new Date() + " end   "
+                    + this.getClass().getName().toString() );
         }
     }
 
@@ -97,14 +103,18 @@ public class Index18259 extends SdbTestBase {
 
         @ExecuteOrder(step = 1)
         private void dropIndex() throws InterruptedException {
-            Thread.sleep(random.nextInt(200));
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl2 = db.getCollectionSpace(SdbTestBase.csName).getCollection(CL_NAME);
-                System.out.println(new Date() + " begin " + this.getClass().getName().toString());
-                cl2.dropIndex(IDX_NAME);
-                System.out.println(new Date() + " end   " + this.getClass().getName().toString());
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -47 && e.getErrorCode() != -147) {
+            Thread.sleep( random.nextInt( 200 ) );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl2 = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( CL_NAME );
+                System.out.println( new Date() + " begin "
+                        + this.getClass().getName().toString() );
+                cl2.dropIndex( IDX_NAME );
+                System.out.println( new Date() + " end   "
+                        + this.getClass().getName().toString() );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -47 && e.getErrorCode() != -147 ) {
                     throw e;
                 }
             }
@@ -112,45 +122,52 @@ public class Index18259 extends SdbTestBase {
     }
 
     private void checkData() throws InterruptedException {
-        List<String> rgNames = CommLib.getCLGroups(cl);
-        for (String rgName : rgNames) {
+        List< String > rgNames = CommLib.getCLGroups( cl );
+        for ( String rgName : rgNames ) {
             Sequoiadb master = null;
             Sequoiadb slave = null;
             int mCnt;
-            int sCnt;    
-            try {            
+            int sCnt;
+            try {
                 int retryTimes = 0;
-                while (retryTimes >= 600) {
+                while ( retryTimes >= 600 ) {
                     DBCollection mcl;
                     DBCollection scl;
                     try {
-                        master = sdb.getReplicaGroup(rgName).getMaster().connect();
-                        slave = sdb.getReplicaGroup(rgName).getSlave().connect();
-                        mcl = master.getCollectionSpace(SdbTestBase.csName).getCollection(CL_NAME);
-                        scl = slave.getCollectionSpace(SdbTestBase.csName).getCollection(CL_NAME);
-                    } catch (BaseException e) {
-                        if (e.getErrorCode() != -23 && e.getErrorCode() != -34) {
+                        master = sdb.getReplicaGroup( rgName ).getMaster()
+                                .connect();
+                        slave = sdb.getReplicaGroup( rgName ).getSlave()
+                                .connect();
+                        mcl = master.getCollectionSpace( SdbTestBase.csName )
+                                .getCollection( CL_NAME );
+                        scl = slave.getCollectionSpace( SdbTestBase.csName )
+                                .getCollection( CL_NAME );
+                    } catch ( BaseException e ) {
+                        if ( e.getErrorCode() != -23
+                                && e.getErrorCode() != -34 ) {
                             throw e;
                         } else {
-                            Thread.sleep(100);
+                            Thread.sleep( 100 );
                             retryTimes++;
                             continue;
                         }
-                    } 
-                    mCnt = (int) mcl.getCount();
-                    sCnt = (int) scl.getCount();
-                    if (mCnt == sCnt && mCnt == RECS_NUM) {
+                    }
+                    mCnt = ( int ) mcl.getCount();
+                    sCnt = ( int ) scl.getCount();
+                    if ( mCnt == sCnt && mCnt == RECS_NUM ) {
                         break;
                     } else {
-                        Thread.sleep(100);
+                        Thread.sleep( 100 );
                         retryTimes++;
                     }
-                    System.out.println(CL_NAME + " check timeout, mCnt:" + mCnt + ", sCnt:" + sCnt 
-                        + ", expCnt:" + RECS_NUM);
+                    System.out.println( CL_NAME + " check timeout, mCnt:" + mCnt
+                            + ", sCnt:" + sCnt + ", expCnt:" + RECS_NUM );
                 }
             } finally {
-                if (master != null) master.close();
-                if (slave != null) slave.close();
+                if ( master != null )
+                    master.close();
+                if ( slave != null )
+                    slave.close();
             }
         }
     }

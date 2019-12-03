@@ -30,7 +30,7 @@ public class Fulltext15875 extends FullTestBase {
     private Random random = new Random();
     private final String CL_NAME = "cl_es_15875";
     private final String IDX_NAME = "idx_es_15875";
-    private final BSONObject IDX_KEY = new BasicBSONObject("a", "text");
+    private final BSONObject IDX_KEY = new BasicBSONObject( "a", "text" );
     private final int RECS_NUM = 20000;
 
     private String cappedCSName;
@@ -38,51 +38,59 @@ public class Fulltext15875 extends FullTestBase {
 
     @Override
     protected void initTestProp() {
-        caseProp.setProperty(IGNORESTANDALONE, "true");
-        caseProp.setProperty(CLNAME, CL_NAME);
+        caseProp.setProperty( IGNORESTANDALONE, "true" );
+        caseProp.setProperty( CLNAME, CL_NAME );
     }
 
     @Override
     protected void caseInit() throws Exception {
-        cl.createIndex(IDX_NAME, IDX_KEY, false, false);
-        cappedCSName = FullTextDBUtils.getCappedName(cl, IDX_NAME);
-        esIndexName = FullTextDBUtils.getESIndexName(cl, IDX_NAME);
-        FullTextDBUtils.insertData(cl, RECS_NUM);
+        cl.createIndex( IDX_NAME, IDX_KEY, false, false );
+        cappedCSName = FullTextDBUtils.getCappedName( cl, IDX_NAME );
+        esIndexName = FullTextDBUtils.getESIndexName( cl, IDX_NAME );
+        FullTextDBUtils.insertData( cl, RECS_NUM );
     }
 
-    @Test(enabled = false) //jira-4558
+    @Test(enabled = false) // jira-4558
     private void test() throws Exception {
-        ThreadExecutor es = new ThreadExecutor(FullTextUtils.THREAD_TIMEOUT);
+        ThreadExecutor es = new ThreadExecutor( FullTextUtils.THREAD_TIMEOUT );
         ThreadTruncate threadTruncate = new ThreadTruncate();
         ThreadDropCL threadDropCL = new ThreadDropCL();
-        es.addWorker(threadTruncate);
-        es.addWorker(threadDropCL);
+        es.addWorker( threadTruncate );
+        es.addWorker( threadDropCL );
         es.run();
 
         // check results
-        if (threadDropCL.getRetCode() == 0) {
-            Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedCSName));
+        if ( threadDropCL.getRetCode() == 0 ) {
+            Assert.assertTrue( FullTextUtils.isIndexDeleted( sdb, esIndexName,
+                    cappedCSName ) );
         } else {
-            Assert.assertTrue(FullTextUtils.isIndexCreated(cl, IDX_NAME, 0));
+            Assert.assertTrue(
+                    FullTextUtils.isIndexCreated( cl, IDX_NAME, 0 ) );
         }
     }
 
     @Override
     protected void caseFini() throws Exception {
-        Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedCSName));
+        Assert.assertTrue( FullTextUtils.isIndexDeleted( sdb, esIndexName,
+                cappedCSName ) );
     }
 
     private class ThreadTruncate {
         @ExecuteOrder(step = 1)
         private void truncate() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl2 = db.getCollectionSpace(SdbTestBase.csName).getCollection(CL_NAME);
-                System.out.println(new Date() + " begin " + this.getClass().getName().toString());
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl2 = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( CL_NAME );
+                System.out.println( new Date() + " begin "
+                        + this.getClass().getName().toString() );
                 cl2.truncate();
-                System.out.println(new Date() + " end   " + this.getClass().getName().toString());
-            } catch (BaseException e) {
+                System.out.println( new Date() + " end   "
+                        + this.getClass().getName().toString() );
+            } catch ( BaseException e ) {
                 e.printStackTrace();
-                if (e.getErrorCode() != -23 && e.getErrorCode() != -190 && e.getErrorCode() != -147) {
+                if ( e.getErrorCode() != -23 && e.getErrorCode() != -190
+                        && e.getErrorCode() != -147 ) {
                     throw e;
                 }
             }
@@ -92,18 +100,23 @@ public class Fulltext15875 extends FullTestBase {
     private class ThreadDropCL extends ResultStore {
         @ExecuteOrder(step = 1)
         private void alterCL() throws InterruptedException {
-            Thread.sleep(random.nextInt(10));
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                CollectionSpace cs = db.getCollectionSpace(SdbTestBase.csName);
-                System.out.println(new Date() + " begin " + this.getClass().getName().toString());
-                cs.dropCollection(CL_NAME);
-                System.out.println(new Date() + " end   " + this.getClass().getName().toString());
-            } catch (BaseException e) {
+            Thread.sleep( random.nextInt( 10 ) );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                CollectionSpace cs = db
+                        .getCollectionSpace( SdbTestBase.csName );
+                System.out.println( new Date() + " begin "
+                        + this.getClass().getName().toString() );
+                cs.dropCollection( CL_NAME );
+                System.out.println( new Date() + " end   "
+                        + this.getClass().getName().toString() );
+            } catch ( BaseException e ) {
                 e.printStackTrace();
-                if (e.getErrorCode() != -147 && e.getErrorCode() != -190 && e.getErrorCode() != -321) {
+                if ( e.getErrorCode() != -147 && e.getErrorCode() != -190
+                        && e.getErrorCode() != -321 ) {
                     throw e;
                 }
-                saveResult(-1, e);
+                saveResult( -1, e );
             }
         }
     }

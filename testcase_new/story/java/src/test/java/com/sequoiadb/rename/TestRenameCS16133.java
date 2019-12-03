@@ -29,14 +29,14 @@ public class TestRenameCS16133 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (sdb.isCollectionSpaceExist(csName)) {
-            sdb.dropCollectionSpace(csName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.dropCollectionSpace( csName );
         }
-        if (sdb.isCollectionSpaceExist(newCSName)) {
-            sdb.dropCollectionSpace(newCSName);
+        if ( sdb.isCollectionSpaceExist( newCSName ) ) {
+            sdb.dropCollectionSpace( newCSName );
         }
-        cs = sdb.createCollectionSpace(csName);
+        cs = sdb.createCollectionSpace( csName );
     }
 
     @Test
@@ -46,32 +46,38 @@ public class TestRenameCS16133 extends SdbTestBase {
         renameCSThread.start();
         createClThread.start();
 
-        if (renameCSThread.isSuccess() && !createClThread.isSuccess()) {
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");// 驱动端存在缓存
-                                                              // 因此修改cs需要重新new
-                                                              // db
-            RenameUtil.checkRenameCSResult(sdb, csName, newCSName, 0);
-            BaseException e = (BaseException) createClThread.getExceptions().get(0);
-            Assert.assertEquals(e.getErrorCode(), -34, "clThread failed : " + e.getMessage());
-        } else if (!renameCSThread.isSuccess() && createClThread.isSuccess()) {
-            if (clExist) {
-                Assert.assertTrue(cs.isCollectionExist(clName));
+        if ( renameCSThread.isSuccess() && !createClThread.isSuccess() ) {
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );// 驱动端存在缓存
+                                                                // 因此修改cs需要重新new
+                                                                // db
+            RenameUtil.checkRenameCSResult( sdb, csName, newCSName, 0 );
+            BaseException e = ( BaseException ) createClThread.getExceptions()
+                    .get( 0 );
+            Assert.assertEquals( e.getErrorCode(), -34,
+                    "clThread failed : " + e.getMessage() );
+        } else if ( !renameCSThread.isSuccess()
+                && createClThread.isSuccess() ) {
+            if ( clExist ) {
+                Assert.assertTrue( cs.isCollectionExist( clName ) );
             } else {
-                Assert.assertFalse(cs.isCollectionExist(clName));
+                Assert.assertFalse( cs.isCollectionExist( clName ) );
             }
-            BaseException e = (BaseException) renameCSThread.getExceptions().get(0);
-            if (e.getErrorCode() != -147 && e.getErrorCode() != -190) {
-                Assert.fail(e.getMessage());
+            BaseException e = ( BaseException ) renameCSThread.getExceptions()
+                    .get( 0 );
+            if ( e.getErrorCode() != -147 && e.getErrorCode() != -190 ) {
+                Assert.fail( e.getMessage() );
             }
-        } else if (!renameCSThread.isSuccess() && !createClThread.isSuccess()) {
-            Assert.fail("renameCSThread and createClThread all failed: " + renameCSThread.getErrorMsg()
-                    + createClThread.getErrorMsg());
+        } else if ( !renameCSThread.isSuccess()
+                && !createClThread.isSuccess() ) {
+            Assert.fail( "renameCSThread and createClThread all failed: "
+                    + renameCSThread.getErrorMsg()
+                    + createClThread.getErrorMsg() );
         } else {
-            cs = sdb.getCollectionSpace(newCSName);
-            if (clExist) {
-                Assert.assertTrue(cs.isCollectionExist(clName));
+            cs = sdb.getCollectionSpace( newCSName );
+            if ( clExist ) {
+                Assert.assertTrue( cs.isCollectionExist( clName ) );
             } else {
-                Assert.assertFalse(cs.isCollectionExist(clName));
+                Assert.assertFalse( cs.isCollectionExist( clName ) );
             }
         }
 
@@ -80,16 +86,16 @@ public class TestRenameCS16133 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
-            if (sdb.isCollectionSpaceExist(newCSName)) {
-                sdb.dropCollectionSpace(newCSName);
+            if ( sdb.isCollectionSpaceExist( newCSName ) ) {
+                sdb.dropCollectionSpace( newCSName );
             }
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         } finally {
-            if (this.sdb != null) {
+            if ( this.sdb != null ) {
                 this.sdb.close();
             }
         }
@@ -99,9 +105,9 @@ public class TestRenameCS16133 extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
-            Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             try {
-                db.renameCollectionSpace(csName, newCSName);
+                db.renameCollectionSpace( csName, newCSName );
             } finally {
                 db.close();
             }
@@ -112,13 +118,13 @@ public class TestRenameCS16133 extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
-            Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             try {
-                CollectionSpace localcs = db.getCollectionSpace(csName);
-                for (int i = 0; i <= 100; i++) {
-                    localcs.createCollection(clName);
+                CollectionSpace localcs = db.getCollectionSpace( csName );
+                for ( int i = 0; i <= 100; i++ ) {
+                    localcs.createCollection( clName );
                     clExist = true;
-                    localcs.dropCollection(clName);
+                    localcs.dropCollection( clName );
                     clExist = false;
                 }
             } finally {

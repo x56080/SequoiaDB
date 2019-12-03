@@ -32,7 +32,7 @@ public class Transaction18235 extends SdbTestBase {
     private Sequoiadb sdb1;
     private String clName = "cl18235";
     private DBCollection cl = null;
-    private List<BSONObject> expList = new ArrayList<>();
+    private List< BSONObject > expList = new ArrayList<>();
 
     @BeforeClass
     public void setUp() {
@@ -45,7 +45,8 @@ public class Transaction18235 extends SdbTestBase {
         }
 
         cl = sdb.getCollectionSpace( csName ).createCollection( clName,
-                (BSONObject) JSON.parse( "{ShardingKey:{a:1}, ShardingType:'hash', AutoSplit: true}" ) );
+                ( BSONObject ) JSON.parse(
+                        "{ShardingKey:{a:1}, ShardingType:'hash', AutoSplit: true}" ) );
 
         cl.createIndex( "a", "{'a': 1, 'b': 1}", true, false );
     }
@@ -53,28 +54,30 @@ public class Transaction18235 extends SdbTestBase {
     @Test
     public void test() {
         sdb1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        DBCollection cl1 = sdb1.getCollectionSpace( csName ).getCollection( clName );
+        DBCollection cl1 = sdb1.getCollectionSpace( csName )
+                .getCollection( clName );
 
         // 开启事务1，插入记录
         sdb1.beginTransaction();
         TransUtils.insertDatas( cl1, 0, 1000, 1 );
         cl1.update( "{a: 1}", "{$set: {a: 1000}}", null );
         cl1.delete( "{b:{$gte: 0, $lt: 500}}", null );
-        List<BSONObject> datas1 = TransUtils.getUpdateDatas( 500, 1000, 1 );
+        List< BSONObject > datas1 = TransUtils.getUpdateDatas( 500, 1000, 1 );
 
         TransUtils.insertDatas( cl1, 1000, 2000, 2 );
         cl1.update( "{a: 2}", "{$set: {a: 2000}}", null );
         cl1.delete( "{b:{$gte: 1000, $lt: 1500}}", null );
-        List<BSONObject> datas2 = TransUtils.getUpdateDatas( 1500, 2000, 2 );
+        List< BSONObject > datas2 = TransUtils.getUpdateDatas( 1500, 2000, 2 );
 
         TransUtils.insertDatas( cl1, 2000, 3000, 3 );
         cl1.update( "{a: 3}", "{$set: {a: 3000}}", null );
         cl1.delete( "{b:{$gte: 2000, $lt: 2500}}", null );
-        List<BSONObject> datas3 = TransUtils.getUpdateDatas( 2500, 3000, 3 );
+        List< BSONObject > datas3 = TransUtils.getUpdateDatas( 2500, 3000, 3 );
 
         try {
             cl1.update( "{a: 1}", "{$set: {b: 10000}}", "{'': null}" );
-            Assert.fail( "update records as duplicate records should be error" );
+            Assert.fail(
+                    "update records as duplicate records should be error" );
         } catch ( BaseException e ) {
             Assert.assertEquals( e.getErrorCode(), -38, e.getMessage() );
         }
@@ -82,12 +85,12 @@ public class Transaction18235 extends SdbTestBase {
         TransUtils.insertDatas( cl1, 3000, 4000, 4 );
         cl1.update( "{a: 4}", "{$set: {a: 4000}}", null );
         cl1.delete( "{b:{$gte: 3000, $lt: 3500}}", null );
-        List<BSONObject> datas4 = TransUtils.getUpdateDatas( 3500, 4000, 4 );
+        List< BSONObject > datas4 = TransUtils.getUpdateDatas( 3500, 4000, 4 );
 
         TransUtils.insertDatas( cl1, 4000, 5000, 5 );
         cl1.update( "{a: 5}", "{$set: {a: 5000}}", null );
         cl1.delete( "{b:{$gte: 4000, $lt: 4500}}", null );
-        List<BSONObject> datas5 = TransUtils.getUpdateDatas( 4500, 5000, 5 );
+        List< BSONObject > datas5 = TransUtils.getUpdateDatas( 4500, 5000, 5 );
 
         sdb1.commit();
 
@@ -102,9 +105,10 @@ public class Transaction18235 extends SdbTestBase {
         // update不是原子操作,所以更新多条记录为相同记录时,第一条记录是更新成功的,第二条失败,
         // 所以根据排序将更新成功的第一条记录手动修改并排放到预期记录末尾
         expList.remove( 0 );
-        expList.add( (BSONObject) JSON.parse( "{'_id': 500, 'a': 1, 'b': 10000}" ) );
+        expList.add( ( BSONObject ) JSON
+                .parse( "{'_id': 500, 'a': 1, 'b': 10000}" ) );
         DBCursor cursor = cl.query( null, null, "{'b': 1}", "{'':'a'}" );
-        List<BSONObject> actList = TransUtils.getReadActList( cursor );
+        List< BSONObject > actList = TransUtils.getReadActList( cursor );
         Assert.assertEquals( actList, expList );
         actList.clear();
 

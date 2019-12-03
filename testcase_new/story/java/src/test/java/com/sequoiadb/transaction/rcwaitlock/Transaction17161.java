@@ -32,77 +32,84 @@ public class Transaction17161 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl1 = db1.getCollectionSpace(csName).getCollection(clName);
-        cl.createIndex("a", "{a:1}", false, false);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
+        cl.createIndex( "a", "{a:1}", false, false );
     }
 
     @Test
     public void test() {
 
-        StringBuilder b = new StringBuilder(60 * 1000 * 20);
-        for (int i = 0; i < 60 * 1000; i++) {
-            b.append("bbbbbbbbbbbbbbbbbbbb");
+        StringBuilder b = new StringBuilder( 60 * 1000 * 20 );
+        for ( int i = 0; i < 60 * 1000; i++ ) {
+            b.append( "bbbbbbbbbbbbbbbbbbbb" );
         }
 
-        a1 = new StringBuilder(4000);
-        for (int i = 0; i < 200; i++) {
-            a1.append("aaaaaaaaaaaaaaaaaaaa");
+        a1 = new StringBuilder( 4000 );
+        for ( int i = 0; i < 200; i++ ) {
+            a1.append( "aaaaaaaaaaaaaaaaaaaa" );
         }
 
-        for (int i = 0; i < 10; i++) {
-            BSONObject insertR1 = (BSONObject) JSON.parse("{_id:" + i + ", a:'" + a1 + i + "', b:'" + b + "'}");
-            cl.insert(insertR1);
+        for ( int i = 0; i < 10; i++ ) {
+            BSONObject insertR1 = ( BSONObject ) JSON.parse(
+                    "{_id:" + i + ", a:'" + a1 + i + "', b:'" + b + "'}" );
+            cl.insert( insertR1 );
         }
 
         db1.beginTransaction();
 
         // 事务1对同一条记录执行多个操作
-        for (int i = 0; i < 10; i++) {
-            BSONObject insertR2 = (BSONObject) JSON
-                    .parse("{_id:" + (10 + i) + ", a:'" + a1 + (10 + i) + "', b:'" + b + "'}");
+        for ( int i = 0; i < 10; i++ ) {
+            BSONObject insertR2 = ( BSONObject ) JSON
+                    .parse( "{_id:" + ( 10 + i ) + ", a:'" + a1 + ( 10 + i )
+                            + "', b:'" + b + "'}" );
             // 事务1对同一条记录执行多个操作
-            cl1.insert(insertR2);
-            cl1.update("{a:'" + a1 + (10 + i) + "'}", "{$set:{a:'" + a1 + 'a' + (10 + i) + "'}}", "{'':'a'}");
-            cl1.delete("{a:'" + a1 + 'a' + (10 + i) + "'}", "{'':'a'}");
+            cl1.insert( insertR2 );
+            cl1.update( "{a:'" + a1 + ( 10 + i ) + "'}",
+                    "{$set:{a:'" + a1 + 'a' + ( 10 + i ) + "'}}", "{'':'a'}" );
+            cl1.delete( "{a:'" + a1 + 'a' + ( 10 + i ) + "'}", "{'':'a'}" );
             // 事务1对不同记录执行多个操作
-            cl1.delete("{a:'" + a1 + i + "'}", "{'':'a'}");
-            cl1.insert(insertR2);
-            cl1.update("{a:'" + a1 + (10 + i) + "'}", "{$set:{a:'" + a1 + 'a' + (10 + i) + "'}}", "{'':'a'}");
-            cl1.update("{a:'" + a1 + 'a' + (10 + i) + "'}", "{$set:{a:'" + a1 + (10 + i) + "'}}", "{'':'a'}");
+            cl1.delete( "{a:'" + a1 + i + "'}", "{'':'a'}" );
+            cl1.insert( insertR2 );
+            cl1.update( "{a:'" + a1 + ( 10 + i ) + "'}",
+                    "{$set:{a:'" + a1 + 'a' + ( 10 + i ) + "'}}", "{'':'a'}" );
+            cl1.update( "{a:'" + a1 + 'a' + ( 10 + i ) + "'}",
+                    "{$set:{a:'" + a1 + ( 10 + i ) + "'}}", "{'':'a'}" );
         }
 
         // 事务2表扫描记录
-        Read read1 = new Read("{'':null}");
+        Read read1 = new Read( "{'':null}" );
         read1.start();
-        Assert.assertTrue(read1.matchBlockingMethod(DBCursor.class.getName(), "hasNext"));
+        Assert.assertTrue( read1.matchBlockingMethod( DBCursor.class.getName(),
+                "hasNext" ) );
 
         // 事务2索引扫描记录
-        Read read2 = new Read("{'':'a'}");
+        Read read2 = new Read( "{'':'a'}" );
         read2.start();
-        Assert.assertTrue(read2.matchBlockingMethod(DBCursor.class.getName(), "hasNext"));
+        Assert.assertTrue( read2.matchBlockingMethod( DBCursor.class.getName(),
+                "hasNext" ) );
 
         // 非事务表扫描记录
-        cursor = cl.query(null, "{id:1, a:1}", "{a:1}", "{'':null}");
-        Assert.assertTrue(TransUtils.getReadActList(cursor, a1, 10));
+        cursor = cl.query( null, "{id:1, a:1}", "{a:1}", "{'':null}" );
+        Assert.assertTrue( TransUtils.getReadActList( cursor, a1, 10 ) );
 
         // 非事务索引扫描记录
-        cursor = cl.query(null, "{id:1, a:1}", "{a:1}", "{'':'a'}");
-        Assert.assertTrue(TransUtils.getReadActList(cursor, a1, 10));
+        cursor = cl.query( null, "{id:1, a:1}", "{a:1}", "{'':'a'}" );
+        Assert.assertTrue( TransUtils.getReadActList( cursor, a1, 10 ) );
 
         db1.rollback();
 
         // 校验被阻塞线程返回的记录
-        if (!read1.isSuccess() || !read2.isSuccess()) {
-            Assert.fail(read1.getErrorMsg() + read2.getErrorMsg());
+        if ( !read1.isSuccess() || !read2.isSuccess() ) {
+            Assert.fail( read1.getErrorMsg() + read2.getErrorMsg() );
         }
         try {
-            Assert.assertTrue((boolean) read1.getExecResult());
-            Assert.assertTrue((boolean) read2.getExecResult());
-        } catch (Exception e) {
-            Assert.fail(e.getMessage());
+            Assert.assertTrue( ( boolean ) read1.getExecResult() );
+            Assert.assertTrue( ( boolean ) read2.getExecResult() );
+        } catch ( Exception e ) {
+            Assert.fail( e.getMessage() );
         }
 
         cursor.close();
@@ -116,32 +123,32 @@ public class Transaction17161 extends SdbTestBase {
         private String hint = null;
         private DBCursor cursor = null;
 
-        public Read(String hint) {
+        public Read( String hint ) {
             this.hint = hint;
         }
 
         @Override
         public void exec() throws Exception {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            cl = db.getCollectionSpace(csName).getCollection(clName);
-            cl2 = db2.getCollectionSpace(csName).getCollection(clName);
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            cl = db.getCollectionSpace( csName ).getCollection( clName );
+            cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
 
             // 开启并发事务2
             db2.beginTransaction();
 
             try {
-                cursor = cl2.query(null, "{id:1, a:1}", "{a:1}", hint);
-                boolean ret = TransUtils.getReadActList(cursor, a1, 0);
-                setExecResult(ret);
+                cursor = cl2.query( null, "{id:1, a:1}", "{a:1}", hint );
+                boolean ret = TransUtils.getReadActList( cursor, a1, 0 );
+                setExecResult( ret );
 
                 // 事务2扫描记录
-                cursor = cl2.query(null, "{id:1, a:1}", "{a:1}", hint);
-                Assert.assertTrue(TransUtils.getReadActList(cursor, a1, 0));
+                cursor = cl2.query( null, "{id:1, a:1}", "{a:1}", hint );
+                Assert.assertTrue( TransUtils.getReadActList( cursor, a1, 0 ) );
 
                 // 非事务扫描记录
-                cursor = cl.query(null, "{id:1, a:1}", "{a:1}", hint);
-                Assert.assertTrue(TransUtils.getReadActList(cursor, a1, 0));
+                cursor = cl.query( null, "{id:1, a:1}", "{a:1}", hint );
+                Assert.assertTrue( TransUtils.getReadActList( cursor, a1, 0 ) );
 
                 db2.rollback();
             } finally {
@@ -156,14 +163,14 @@ public class Transaction17161 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         db1.commit();
-        if (!db1.isClosed()) {
+        if ( !db1.isClosed() ) {
             db1.close();
         }
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        if (!sdb.isClosed()) {
+        if ( !sdb.isClosed() ) {
             sdb.close();
         }
     }

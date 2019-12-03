@@ -42,19 +42,20 @@ public class RenameCL_16089 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("skip StandAlone");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "skip StandAlone" );
         }
-        List<String> rgNames = CommLib.getDataGroupNames(sdb);
-        if (rgNames.size() <= 1) {
-            throw new SkipException("current environment less than tow groups");
+        List< String > rgNames = CommLib.getDataGroupNames( sdb );
+        if ( rgNames.size() <= 1 ) {
+            throw new SkipException(
+                    "current environment less than tow groups" );
         }
-        sourceGroup = rgNames.get(0);
-        targetGroup = rgNames.get(1);
-        cs = sdb.getCollectionSpace(csName);
+        sourceGroup = rgNames.get( 0 );
+        targetGroup = rgNames.get( 1 );
+        cs = sdb.getCollectionSpace( csName );
         cl = createShardingCL();
-        RenameUtil.insertData(cl, recordNum);
+        RenameUtil.insertData( cl, recordNum );
     }
 
     @Test
@@ -68,43 +69,46 @@ public class RenameCL_16089 extends SdbTestBase {
         boolean rename = renameCLThread.isSuccess();
         boolean split = splitThread.isSuccess();
 
-        if (!rename) {
+        if ( !rename ) {
             Integer[] errnosA = { -147, -334, -190 };
-            BaseException errorA = (BaseException) renameCLThread.getExceptions().get(0);
-            if (!Arrays.asList(errnosA).contains(errorA.getErrorCode())) {
-                Assert.fail(renameCLThread.getErrorMsg());
+            BaseException errorA = ( BaseException ) renameCLThread
+                    .getExceptions().get( 0 );
+            if ( !Arrays.asList( errnosA ).contains( errorA.getErrorCode() ) ) {
+                Assert.fail( renameCLThread.getErrorMsg() );
             }
         }
 
-        if (!split) {
+        if ( !split ) {
             Integer[] errnosB = { -23, -147, -190 };
-            BaseException errorB = (BaseException) splitThread.getExceptions().get(0);
-            if (!Arrays.asList(errnosB).contains(errorB.getErrorCode())) {
-                Assert.fail(splitThread.getErrorMsg());
+            BaseException errorB = ( BaseException ) splitThread.getExceptions()
+                    .get( 0 );
+            if ( !Arrays.asList( errnosB ).contains( errorB.getErrorCode() ) ) {
+                Assert.fail( splitThread.getErrorMsg() );
             }
         }
 
-        try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-            if (rename && !split) {
-                RenameUtil.checkRenameCLResult(db, csName, clName, newCLName);
-                List<String> groups = new ArrayList<String>();
-                groups.add(sourceGroup);
-                checkSplitResult(db, csName, newCLName, groups);
-            } else if (!rename && split) {
-                cs = db.getCollectionSpace(csName);
-                Assert.assertTrue(cs.isCollectionExist(clName), "cl is been rename faild, should exist");
-                List<String> groups = new ArrayList<String>();
-                groups.add(sourceGroup);
-                groups.add(targetGroup);
-                checkSplitResult(db, csName, clName, groups);
-            } else if (rename && split) {
-                RenameUtil.checkRenameCLResult(db, csName, clName, newCLName);
-                List<String> groups = new ArrayList<String>();
-                groups.add(sourceGroup);
-                groups.add(targetGroup);
-                checkSplitResult(db, csName, newCLName, groups);
+        try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" )) {
+            if ( rename && !split ) {
+                RenameUtil.checkRenameCLResult( db, csName, clName, newCLName );
+                List< String > groups = new ArrayList< String >();
+                groups.add( sourceGroup );
+                checkSplitResult( db, csName, newCLName, groups );
+            } else if ( !rename && split ) {
+                cs = db.getCollectionSpace( csName );
+                Assert.assertTrue( cs.isCollectionExist( clName ),
+                        "cl is been rename faild, should exist" );
+                List< String > groups = new ArrayList< String >();
+                groups.add( sourceGroup );
+                groups.add( targetGroup );
+                checkSplitResult( db, csName, clName, groups );
+            } else if ( rename && split ) {
+                RenameUtil.checkRenameCLResult( db, csName, clName, newCLName );
+                List< String > groups = new ArrayList< String >();
+                groups.add( sourceGroup );
+                groups.add( targetGroup );
+                checkSplitResult( db, csName, newCLName, groups );
             } else {
-                Assert.fail("rename cl and split cl all failed");
+                Assert.fail( "rename cl and split cl all failed" );
             }
         }
     }
@@ -112,10 +116,10 @@ public class RenameCL_16089 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            CommLib.clearCL(sdb, csName, clName);
-            CommLib.clearCL(sdb, csName, newCLName);
+            CommLib.clearCL( sdb, csName, clName );
+            CommLib.clearCL( sdb, csName, newCLName );
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -125,9 +129,10 @@ public class RenameCL_16089 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                CollectionSpace cs = db.getCollectionSpace(csName);
-                cs.renameCollection(clName, newCLName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                CollectionSpace cs = db.getCollectionSpace( csName );
+                cs.renameCollection( clName, newCLName );
             }
         }
     }
@@ -136,62 +141,77 @@ public class RenameCL_16089 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                cl.split(sourceGroup, targetGroup, new BasicBSONObject("Partition", 1024),
-                        new BasicBSONObject("Partition", 2048));
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                cl.split( sourceGroup, targetGroup,
+                        new BasicBSONObject( "Partition", 1024 ),
+                        new BasicBSONObject( "Partition", 2048 ) );
             }
         }
     }
 
     private DBCollection createShardingCL() {
         BSONObject options = new BasicBSONObject();
-        options.put("ShardingKey", new BasicBSONObject("a", 1));
-        options.put("ShardingType", "hash");
-        options.put("Group", sourceGroup);
-        return cs.createCollection(clName, options);
+        options.put( "ShardingKey", new BasicBSONObject( "a", 1 ) );
+        options.put( "ShardingType", "hash" );
+        options.put( "Group", sourceGroup );
+        return cs.createCollection( clName, options );
     }
 
-    private void checkSplitResult(Sequoiadb db, String csName, String clName, List<String> groups) {
+    private void checkSplitResult( Sequoiadb db, String csName, String clName,
+            List< String > groups ) {
 
-        DBCursor cur = db.getSnapshot(Sequoiadb.SDB_SNAP_CATALOG, new BasicBSONObject("Name", csName + "." + clName),
-                null, null);
-        if (!cur.hasNext()) {
-            Assert.fail("cl is not exist, " + csName + "." + clName);
+        DBCursor cur = db.getSnapshot( Sequoiadb.SDB_SNAP_CATALOG,
+                new BasicBSONObject( "Name", csName + "." + clName ), null,
+                null );
+        if ( !cur.hasNext() ) {
+            Assert.fail( "cl is not exist, " + csName + "." + clName );
         }
 
-        Set<String> actGroups = new HashSet<String>();
+        Set< String > actGroups = new HashSet< String >();
         BSONObject obj = cur.getNext();
-        BasicBSONList cataInfo = (BasicBSONList) obj.get("CataInfo");
-        for (int i = 0; i < cataInfo.size(); i++) {
-            BSONObject info = (BSONObject) cataInfo.get(i);
-            String groupName = (String) info.get("GroupName");
+        BasicBSONList cataInfo = ( BasicBSONList ) obj.get( "CataInfo" );
+        for ( int i = 0; i < cataInfo.size(); i++ ) {
+            BSONObject info = ( BSONObject ) cataInfo.get( i );
+            String groupName = ( String ) info.get( "GroupName" );
             // 判断groupName是否属于groups
-            if (!groups.contains(groupName)) {
-                Assert.fail("groupName error: exp: " + groups.toString() + " act: " + cataInfo.toString());
+            if ( !groups.contains( groupName ) ) {
+                Assert.fail( "groupName error: exp: " + groups.toString()
+                        + " act: " + cataInfo.toString() );
             }
             // 将groupName存到set中,去重
-            actGroups.add(groupName);
+            actGroups.add( groupName );
 
             // 判断切分范围
-            if (groups.size() == 1) {
-                Assert.assertEquals(info.get("LowBound"), new BasicBSONObject("", 0));
-                Assert.assertEquals(info.get("UpBound"), new BasicBSONObject("", 4096));
-            } else if ((int) info.get("ID") == 0) {
-                Assert.assertEquals(info.get("LowBound"), new BasicBSONObject("", 0));
-                Assert.assertEquals(info.get("UpBound"), new BasicBSONObject("", 1024));
-            } else if ((int) info.get("ID") == 1) {
-                Assert.assertEquals(info.get("LowBound"), new BasicBSONObject("", 1024));
-                Assert.assertEquals(info.get("UpBound"), new BasicBSONObject("", 2048));
+            if ( groups.size() == 1 ) {
+                Assert.assertEquals( info.get( "LowBound" ),
+                        new BasicBSONObject( "", 0 ) );
+                Assert.assertEquals( info.get( "UpBound" ),
+                        new BasicBSONObject( "", 4096 ) );
+            } else if ( ( int ) info.get( "ID" ) == 0 ) {
+                Assert.assertEquals( info.get( "LowBound" ),
+                        new BasicBSONObject( "", 0 ) );
+                Assert.assertEquals( info.get( "UpBound" ),
+                        new BasicBSONObject( "", 1024 ) );
+            } else if ( ( int ) info.get( "ID" ) == 1 ) {
+                Assert.assertEquals( info.get( "LowBound" ),
+                        new BasicBSONObject( "", 1024 ) );
+                Assert.assertEquals( info.get( "UpBound" ),
+                        new BasicBSONObject( "", 2048 ) );
             } else {
-                Assert.assertEquals(info.get("LowBound"), new BasicBSONObject("", 2048));
-                Assert.assertEquals(info.get("UpBound"), new BasicBSONObject("", 4096));
+                Assert.assertEquals( info.get( "LowBound" ),
+                        new BasicBSONObject( "", 2048 ) );
+                Assert.assertEquals( info.get( "UpBound" ),
+                        new BasicBSONObject( "", 4096 ) );
             }
         }
 
         // 检查切分组是否符合预期值
-        if (actGroups.size() != groups.size()) {
-            Assert.fail("cataInfo error: exp: " + groups.toString() + " act: " + actGroups.toString());
+        if ( actGroups.size() != groups.size() ) {
+            Assert.fail( "cataInfo error: exp: " + groups.toString() + " act: "
+                    + actGroups.toString() );
         }
     }
 

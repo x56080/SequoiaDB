@@ -26,128 +26,138 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  * @author luweikang
  * @date 2018年10月17日
  */
-public class RenameCL_16090_2 extends SdbTestBase{
-	
-	private String csName = "renameCS_16090_2";
-	private String clName = "rename_CL_16090_2";
-	private String newCLName= "rename_CL_16090_new_2";
-	private Sequoiadb sdb = null;
-	private CollectionSpace cs = null;
-	private DBCollection cl = null;
-	private int recordNum = 1000;
-	private String indexNameA = "index_16090A_2";
-	private String indexNameB = "index_16090B_2";
-	private int createTimes = 0;
-	
-	@BeforeClass
-	public void setUp(){
-		sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-		cs = sdb.createCollectionSpace(csName);
-		cl = cs.createCollection(clName);
-		for(int i=0; i<10; i++){
-			cl.createIndex(indexNameA+"_"+i, new BasicBSONObject("a"+i, 1), false, false);
-		}
-		RenameUtil.insertData(cl, recordNum);
-	}
-	
-	@Test
-	public void test(){ 
-		RenameCLThread renameCLThread = new RenameCLThread();
-		CreateIndexThread createThread = new CreateIndexThread();
-		
-		renameCLThread.start();
-		createThread.start();
-		
-		boolean rename = renameCLThread.isSuccess();
-		boolean create = createThread.isSuccess();
-		Assert.assertTrue(rename, renameCLThread.getErrorMsg());
-		
-		if(!create){
-			Integer[] errnos = { -23 };
-			BaseException error = (BaseException)createThread.getExceptions().get(0);
-			if( !Arrays.asList(errnos).contains(error.getErrorCode()) ){
-				Assert.fail(createThread.getErrorMsg());
-			}
-		}
-		
-		try( Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")){
-			RenameUtil.checkRenameCLResult(db, csName, clName, newCLName);
-			checkCreateIndex(db, csName, newCLName, create);
-		}
-	}
-	
-	@AfterClass
-	public void tearDown(){
-		try {
-			CommLib.clearCS(sdb, csName);
-		} finally {
-			if(sdb!=null){
-				sdb.close();
-			}
-		}
-	}
-	
-	private class RenameCLThread extends SdbThreadBase{
+public class RenameCL_16090_2 extends SdbTestBase {
 
-		@Override
-		public void exec() throws Exception {
-			Thread.sleep(new Random().nextInt(300));
-			try( Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "") ) {
-				CollectionSpace cs = db.getCollectionSpace(csName);
-				cs.renameCollection(clName, newCLName);
-			}
-		}
-	}
-	
-	private class CreateIndexThread extends SdbThreadBase{
+    private String csName = "renameCS_16090_2";
+    private String clName = "rename_CL_16090_2";
+    private String newCLName = "rename_CL_16090_new_2";
+    private Sequoiadb sdb = null;
+    private CollectionSpace cs = null;
+    private DBCollection cl = null;
+    private int recordNum = 1000;
+    private String indexNameA = "index_16090A_2";
+    private String indexNameB = "index_16090B_2";
+    private int createTimes = 0;
 
-		@Override
-		public void exec() throws Exception {
-			try( Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "") ) {
-				DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-				for(int i=0; i<10; i++){
-					cl.createIndex(indexNameB+"_"+i, new BasicBSONObject("b"+i, 1), false, false);
-					createTimes++;
-				}
-			}
-		}
-	}
-	
-	private void checkCreateIndex(Sequoiadb db, String csName, String clName, boolean success) {
-		DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-		DBCursor cur = cl.getIndexes();
-		List<String> indexNames = new ArrayList<String>();
-		int indexAnum = 0;
-		try {
-		    while (cur.hasNext()) {
-		        BSONObject obj = cur.getNext();
-		        BSONObject indexInfo = (BSONObject) obj.get("IndexDef");
-		        String name = (String) indexInfo.get("name");
-		        indexNames.add(name);
-		        if(name.indexOf(indexNameA) >= 0){
-		            indexAnum++;
-		        }
-		    }
-        } finally {
-           if(cur != null){
-               cur.close();
-           }
+    @BeforeClass
+    public void setUp() {
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.createCollectionSpace( csName );
+        cl = cs.createCollection( clName );
+        for ( int i = 0; i < 10; i++ ) {
+            cl.createIndex( indexNameA + "_" + i,
+                    new BasicBSONObject( "a" + i, 1 ), false, false );
         }
-		Assert.assertEquals(indexAnum, 10, "check indexA num");
-		
-		if(success){
-			Assert.assertEquals(indexNames.size(), 21, "check sum indexA and indexB num");
-		}else{
-			int leftNum = 0;
-			for (int i = 0; i < indexNames.size(); i++) {
-				if(indexNames.get(i).indexOf(indexNameB)!=-1){
-					leftNum++;
-				}
-			}
-			if(leftNum != createTimes ){
-				Assert.fail("check indexB num error, exp: " + createTimes+" act: " + leftNum);
-			}
-		}
-	}
-	
+        RenameUtil.insertData( cl, recordNum );
+    }
+
+    @Test
+    public void test() {
+        RenameCLThread renameCLThread = new RenameCLThread();
+        CreateIndexThread createThread = new CreateIndexThread();
+
+        renameCLThread.start();
+        createThread.start();
+
+        boolean rename = renameCLThread.isSuccess();
+        boolean create = createThread.isSuccess();
+        Assert.assertTrue( rename, renameCLThread.getErrorMsg() );
+
+        if ( !create ) {
+            Integer[] errnos = { -23 };
+            BaseException error = ( BaseException ) createThread.getExceptions()
+                    .get( 0 );
+            if ( !Arrays.asList( errnos ).contains( error.getErrorCode() ) ) {
+                Assert.fail( createThread.getErrorMsg() );
+            }
+        }
+
+        try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" )) {
+            RenameUtil.checkRenameCLResult( db, csName, clName, newCLName );
+            checkCreateIndex( db, csName, newCLName, create );
+        }
+    }
+
+    @AfterClass
+    public void tearDown() {
+        try {
+            CommLib.clearCS( sdb, csName );
+        } finally {
+            if ( sdb != null ) {
+                sdb.close();
+            }
+        }
+    }
+
+    private class RenameCLThread extends SdbThreadBase {
+
+        @Override
+        public void exec() throws Exception {
+            Thread.sleep( new Random().nextInt( 300 ) );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                CollectionSpace cs = db.getCollectionSpace( csName );
+                cs.renameCollection( clName, newCLName );
+            }
+        }
+    }
+
+    private class CreateIndexThread extends SdbThreadBase {
+
+        @Override
+        public void exec() throws Exception {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                for ( int i = 0; i < 10; i++ ) {
+                    cl.createIndex( indexNameB + "_" + i,
+                            new BasicBSONObject( "b" + i, 1 ), false, false );
+                    createTimes++;
+                }
+            }
+        }
+    }
+
+    private void checkCreateIndex( Sequoiadb db, String csName, String clName,
+            boolean success ) {
+        DBCollection cl = db.getCollectionSpace( csName )
+                .getCollection( clName );
+        DBCursor cur = cl.getIndexes();
+        List< String > indexNames = new ArrayList< String >();
+        int indexAnum = 0;
+        try {
+            while ( cur.hasNext() ) {
+                BSONObject obj = cur.getNext();
+                BSONObject indexInfo = ( BSONObject ) obj.get( "IndexDef" );
+                String name = ( String ) indexInfo.get( "name" );
+                indexNames.add( name );
+                if ( name.indexOf( indexNameA ) >= 0 ) {
+                    indexAnum++;
+                }
+            }
+        } finally {
+            if ( cur != null ) {
+                cur.close();
+            }
+        }
+        Assert.assertEquals( indexAnum, 10, "check indexA num" );
+
+        if ( success ) {
+            Assert.assertEquals( indexNames.size(), 21,
+                    "check sum indexA and indexB num" );
+        } else {
+            int leftNum = 0;
+            for ( int i = 0; i < indexNames.size(); i++ ) {
+                if ( indexNames.get( i ).indexOf( indexNameB ) != -1 ) {
+                    leftNum++;
+                }
+            }
+            if ( leftNum != createTimes ) {
+                Assert.fail( "check indexB num error, exp: " + createTimes
+                        + " act: " + leftNum );
+            }
+        }
+    }
+
 }

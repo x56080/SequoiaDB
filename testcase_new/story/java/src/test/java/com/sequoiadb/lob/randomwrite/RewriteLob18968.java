@@ -29,10 +29,11 @@ import com.sequoiadb.testcommon.SdbTestBase;
 public class RewriteLob18968 extends SdbTestBase {
     @DataProvider(name = "pagesizeProvider")
     public Object[][] generatePageSize() {
-        int lobPageSizes[] = { 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288 };
+        int lobPageSizes[] = { 4096, 8192, 16384, 32768, 65536, 131072, 262144,
+                524288 };
         int len = lobPageSizes.length;
         Random random = new Random();
-        int num = lobPageSizes[random.nextInt(len - 1)];
+        int num = lobPageSizes[ random.nextInt( len - 1 ) ];
         return new Object[][] {
                 // the paramter is lobPageSize, write offset,write lob length
                 // sharding after just over 1 pages
@@ -50,53 +51,56 @@ public class RewriteLob18968 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("is standalone skip testcase");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
         }
     }
 
     @Test(dataProvider = "pagesizeProvider")
-    public void testLob(int lobPageSize, int offset, int length) {
-        DBCollection cl = createCSAndCL(sdb, lobPageSize);
+    public void testLob( int lobPageSize, int offset, int length ) {
+        DBCollection cl = createCSAndCL( sdb, lobPageSize );
         int writeSize = 1024 * 1024;
-        byte[] lobBuff = RandomWriteLobUtil.getRandomBytes(writeSize);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, lobBuff);
+        byte[] lobBuff = RandomWriteLobUtil.getRandomBytes( writeSize );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl, lobBuff );
 
-        byte[] rewritelobBuff = RandomWriteLobUtil.getRandomBytes(length);
-        rewriteLob(cl, oid, offset, rewritelobBuff);
-        RandomWriteLobUtil.checkRewriteLobResult(cl, oid, offset, rewritelobBuff, lobBuff);
+        byte[] rewritelobBuff = RandomWriteLobUtil.getRandomBytes( length );
+        rewriteLob( cl, oid, offset, rewritelobBuff );
+        RandomWriteLobUtil.checkRewriteLobResult( cl, oid, offset,
+                rewritelobBuff, lobBuff );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
     }
 
-    private void rewriteLob(DBCollection cl, ObjectId oid, int offset, byte[] rewriteBuff) {
-        try (DBLob lob = cl.openLob(oid, DBLob.SDB_LOB_WRITE)) {
-            lob.lockAndSeek(offset, rewriteBuff.length);
-            lob.write(rewriteBuff);
+    private void rewriteLob( DBCollection cl, ObjectId oid, int offset,
+            byte[] rewriteBuff ) {
+        try ( DBLob lob = cl.openLob( oid, DBLob.SDB_LOB_WRITE )) {
+            lob.lockAndSeek( offset, rewriteBuff.length );
+            lob.write( rewriteBuff );
         }
     }
 
-    private DBCollection createCSAndCL(Sequoiadb sdb, int lobPagesize) {
-        if (sdb.isCollectionSpaceExist(csName)) {
-            sdb.dropCollectionSpace(csName);
+    private DBCollection createCSAndCL( Sequoiadb sdb, int lobPagesize ) {
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.dropCollectionSpace( csName );
         }
 
         BSONObject options = new BasicBSONObject();
-        options.put("LobPageSize", lobPagesize);
-        sdb.createCollectionSpace(csName, options);
-        DBCollection cl = LobSubUtils.createMainCLAndAttachCL(sdb, csName, mainCLName, subCLName);
+        options.put( "LobPageSize", lobPagesize );
+        sdb.createCollectionSpace( csName, options );
+        DBCollection cl = LobSubUtils.createMainCLAndAttachCL( sdb, csName,
+                mainCLName, subCLName );
         return cl;
     }
 }

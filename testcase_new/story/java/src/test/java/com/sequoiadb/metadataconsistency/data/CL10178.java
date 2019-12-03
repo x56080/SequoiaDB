@@ -28,9 +28,10 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class CL10178 extends SdbTestBase {
-    private SimpleDateFormat dateFm = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
+    private SimpleDateFormat dateFm = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss" );
     private static Sequoiadb sdb = null;
-    private static ArrayList<String> dataGroups = null;
+    private static ArrayList< String > dataGroups = null;
     private String domainName = "dm10178";
     private String csName = "cs10178";
     private String clName = "cl10178";
@@ -41,34 +42,38 @@ public class CL10178 extends SdbTestBase {
     public void setUp() {
         // start time
         try {
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             // judge the mode or group number or node number
-            if (MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.OneGroupMode(sdb) || MetaDataUtils.oneCataNode(sdb)
-                    || MetaDataUtils.oneDataNode(sdb)) {
-                throw new SkipException("The mode is standlone or only one group or one node, " + "skip the testCase.");
+            if ( MetaDataUtils.isStandAlone( sdb )
+                    || MetaDataUtils.OneGroupMode( sdb )
+                    || MetaDataUtils.oneCataNode( sdb )
+                    || MetaDataUtils.oneDataNode( sdb ) ) {
+                throw new SkipException(
+                        "The mode is standlone or only one group or one node, "
+                                + "skip the testCase." );
             }
-            MetaDataUtils.clearCS(sdb, csName);
-            MetaDataUtils.clearDomain(sdb, domainName);
+            MetaDataUtils.clearCS( sdb, csName );
+            MetaDataUtils.clearDomain( sdb, domainName );
 
-            dataGroups = MetaDataUtils.getDataGroupNames(sdb);
+            dataGroups = MetaDataUtils.getDataGroupNames( sdb );
 
             createDomain();
             createCS();
             createCL();
-            MetaDataUtils.insertData(sdb, csName, clName);
-        } catch (BaseException e) {
+            MetaDataUtils.insertData( sdb, csName, clName );
+        } catch ( BaseException e ) {
             sdb.disconnect();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            MetaDataUtils.clearCS(sdb, csName);
-            MetaDataUtils.clearDomain(sdb, domainName);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+            MetaDataUtils.clearCS( sdb, csName );
+            MetaDataUtils.clearDomain( sdb, domainName );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         } finally {
             sdb.disconnect();
         }
@@ -80,15 +85,15 @@ public class CL10178 extends SdbTestBase {
         alterCL.start();
 
         DropCL dropCL = new DropCL();
-        MetaDataUtils.sleep(random.nextInt(msec));
+        MetaDataUtils.sleep( random.nextInt( msec ) );
         dropCL.start();
 
-        if (!(alterCL.isSuccess() && dropCL.isSuccess())) {
-            Assert.fail(alterCL.getErrorMsg() + dropCL.getErrorMsg());
+        if ( !( alterCL.isSuccess() && dropCL.isSuccess() ) ) {
+            Assert.fail( alterCL.getErrorMsg() + dropCL.getErrorMsg() );
         }
 
         // check results
-        MetaDataUtils.checkCLResult(csName, clName);
+        MetaDataUtils.checkCLResult( csName, clName );
     }
 
     private class AlterCL extends SdbThreadBase {
@@ -96,18 +101,19 @@ public class CL10178 extends SdbTestBase {
         public void exec() throws BaseException {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                CollectionSpace csDB = db.getCollectionSpace(csName);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                CollectionSpace csDB = db.getCollectionSpace( csName );
 
                 BSONObject opt = new BasicBSONObject();
-                opt.put("ReplSize", 2);
-                DBCollection clDB = csDB.getCollection(clName);
-                if (clDB != null) {
-                    clDB.alterCollection(opt);
+                opt.put( "ReplSize", 2 );
+                DBCollection clDB = csDB.getCollection( clName );
+                if ( clDB != null ) {
+                    clDB.alterCollection( opt );
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if (eCode != -147 && eCode != -23 && eCode != -108 && eCode != -190) {
+                if ( eCode != -147 && eCode != -23 && eCode != -108
+                        && eCode != -190 ) {
                     throw e;
                 }
             } finally {
@@ -121,13 +127,13 @@ public class CL10178 extends SdbTestBase {
         public void exec() throws BaseException {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                CollectionSpace csDB = db.getCollectionSpace(csName);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                CollectionSpace csDB = db.getCollectionSpace( csName );
 
-                csDB.dropCollection(clName);
-            } catch (BaseException e) {
+                csDB.dropCollection( clName );
+            } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if (eCode == -147 && eCode != -190) {
+                if ( eCode == -147 && eCode != -190 ) {
                     throw e;
                 }
             } finally {
@@ -139,10 +145,10 @@ public class CL10178 extends SdbTestBase {
     public void createDomain() {
         try {
             BSONObject opt = new BasicBSONObject();
-            opt.put("Groups", dataGroups);
-            opt.put("AutoSplit", true);
-            sdb.createDomain(domainName, opt);
-        } catch (BaseException e) {
+            opt.put( "Groups", dataGroups );
+            opt.put( "AutoSplit", true );
+            sdb.createDomain( domainName, opt );
+        } catch ( BaseException e ) {
             throw e;
         }
     }
@@ -150,26 +156,26 @@ public class CL10178 extends SdbTestBase {
     public void createCS() {
         try {
             BSONObject opt = new BasicBSONObject();
-            opt.put("Domain", domainName);
-            sdb.createCollectionSpace(csName, opt);
-        } catch (BaseException e) {
+            opt.put( "Domain", domainName );
+            sdb.createCollectionSpace( csName, opt );
+        } catch ( BaseException e ) {
             throw e;
         }
     }
 
     public void createCL() {
         try {
-            CollectionSpace csDB = sdb.getCollectionSpace(csName);
+            CollectionSpace csDB = sdb.getCollectionSpace( csName );
 
             BSONObject opt = new BasicBSONObject();
             BSONObject subObj = new BasicBSONObject();
-            subObj.put("a", 1);
-            opt.put("ShardingType", "hash");
-            opt.put("ShardingKey", subObj);
-            opt.put("ReplSize", 1);
-            opt.put("AutoSplit", true);
-            csDB.createCollection(clName, opt);
-        } catch (BaseException e) {
+            subObj.put( "a", 1 );
+            opt.put( "ShardingType", "hash" );
+            opt.put( "ShardingKey", subObj );
+            opt.put( "ReplSize", 1 );
+            opt.put( "AutoSplit", true );
+            csDB.createCollection( clName, opt );
+        } catch ( BaseException e ) {
             throw e;
         }
     }

@@ -51,12 +51,12 @@ public class TestLobShardingBorderValue7840 extends SdbTestBase {
     }
 
     @Test(dataProvider = "pagesizeProvider")
-    public void putLobinAnyPageSize(int lobPageSize, int length) {
+    public void putLobinAnyPageSize( int lobPageSize, int length ) {
         String currentCSName = csName + "_" + lobPageSize;
-        try (Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-            DBCollection dbcl = createCL(sdb, currentCSName, lobPageSize);
-            putLob(dbcl, length);
-            sdb.dropCollectionSpace(currentCSName);
+        try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" )) {
+            DBCollection dbcl = createCL( sdb, currentCSName, lobPageSize );
+            putLob( dbcl, length );
+            sdb.dropCollectionSpace( currentCSName );
         }
     }
 
@@ -64,15 +64,16 @@ public class TestLobShardingBorderValue7840 extends SdbTestBase {
     public void tearDown() {
     }
 
-    private DBCollection createCL(Sequoiadb sdb, String csName, int lobPagesize) {
-        if (sdb.isCollectionSpaceExist(csName)) {
-            sdb.dropCollectionSpace(csName);
+    private DBCollection createCL( Sequoiadb sdb, String csName,
+            int lobPagesize ) {
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.dropCollectionSpace( csName );
         }
 
         BSONObject options = new BasicBSONObject();
-        options.put("LobPageSize", lobPagesize);
-        CollectionSpace cs = sdb.createCollectionSpace(csName, options);
-        DBCollection cl = cs.createCollection(clName);
+        options.put( "LobPageSize", lobPagesize );
+        CollectionSpace cs = sdb.createCollectionSpace( csName, options );
+        DBCollection cl = cs.createCollection( clName );
         return cl;
     }
 
@@ -82,17 +83,18 @@ public class TestLobShardingBorderValue7840 extends SdbTestBase {
      * @param length
      *            write lob size
      */
-    private void putLob(DBCollection cl, int length) {
+    private void putLob( DBCollection cl, int length ) {
         // write lob
-        byte[] wlobBuff = LobOprUtils.getRandomBytes(length);
-        ObjectId oid = LobOprUtils.createAndWriteLob(cl, wlobBuff);
+        byte[] wlobBuff = LobOprUtils.getRandomBytes( length );
+        ObjectId oid = LobOprUtils.createAndWriteLob( cl, wlobBuff );
 
-        byte[] rbuff = new byte[length];
-        try (DBLob rLob = cl.openLob(oid, DBLob.SDB_LOB_READ)) {
-            rLob.read(rbuff);
+        byte[] rbuff = new byte[ length ];
+        try ( DBLob rLob = cl.openLob( oid, DBLob.SDB_LOB_READ )) {
+            rLob.read( rbuff );
         }
 
-        LobOprUtils.assertByteArrayEqual(rbuff, wlobBuff, "lob data is wrong!");
+        LobOprUtils.assertByteArrayEqual( rbuff, wlobBuff,
+                "lob data is wrong!" );
     }
 
 }

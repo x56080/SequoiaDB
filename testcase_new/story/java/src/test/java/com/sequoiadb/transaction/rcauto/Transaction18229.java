@@ -33,76 +33,81 @@ public class Transaction18229 extends SdbTestBase {
     private Sequoiadb db1;
     private String clName = "cl18229";
     private DBCollection cl = null;
-    private List<BSONObject> expList = new ArrayList<>();
+    private List< BSONObject > expList = new ArrayList<>();
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        if (CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("less than two groups");
+        if ( CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "less than two groups" );
         }
 
-        cl = sdb.getCollectionSpace(csName).createCollection(clName,
-                (BSONObject) JSON.parse("{ShardingKey:{b:1}, ShardingType:'hash', AutoSplit: true}"));
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName,
+                ( BSONObject ) JSON.parse(
+                        "{ShardingKey:{b:1}, ShardingType:'hash', AutoSplit: true}" ) );
     }
 
     @AfterClass
     public void tearDown() {
         db1.commit();
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        if (!sdb.isClosed()) {
+        if ( !sdb.isClosed() ) {
             sdb.close();
         }
     }
 
     @Test
     public void test() {
-        db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        DBCollection cl1 = db1.getCollectionSpace(csName).getCollection(clName);
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        DBCollection cl1 = db1.getCollectionSpace( csName )
+                .getCollection( clName );
 
         // 在集合中创建逆序的唯一索引，比如：a为唯一索引，并插入多条包含索引字段的记录R1s
-        cl.createIndex("idx18229", "{a:-1, b:-1}", true, false);
+        cl.createIndex( "idx18229", "{a:-1, b:-1}", true, false );
         insertData();
 
         // 再插入记录R2，索引字段值R1s大于R2
         db1.beginTransaction();
-        BSONObject record = (BSONObject) JSON.parse("{_id:-10, a:-10, b:-10}");
-        cl1.insert(record);
-        expList.add(0, record);
+        BSONObject record = ( BSONObject ) JSON
+                .parse( "{_id:-10, a:-10, b:-10}" );
+        cl1.insert( record );
+        expList.add( 0, record );
 
-        DBCursor cursor = cl1.query("", "", "{a:1, b:1}", "");
-        List<BSONObject> actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        DBCursor cursor = cl1.query( "", "", "{a:1, b:1}", "" );
+        List< BSONObject > actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
 
         // 非事务内批量删除记录R1s及R2，删除操作走索引
         try {
-            cl.delete("{$and:[{a:{$gte:-10}},{a:{$lt:200}}]}", "{'':'idx18229'}");
-            Assert.fail("Auto Rollback Error");
-        } catch (BaseException e) {
-            Assert.assertEquals(e.getErrorCode(), -13);
+            cl.delete( "{$and:[{a:{$gte:-10}},{a:{$lt:200}}]}",
+                    "{'':'idx18229'}" );
+            Assert.fail( "Auto Rollback Error" );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( e.getErrorCode(), -13 );
         } finally {
             db1.commit();
         }
 
-        cursor = cl.query("", "", "{a:1,b:1}", "");
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl.query( "", "", "{a:1,b:1}", "" );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
     }
 
     private void insertData() {
-        List<BSONObject> records = new ArrayList<>();
-        for (int i = 0; i < 200; i++) {
-            BSONObject record = (BSONObject) JSON.parse("{_id:" + i + ", a:" + i + ", b:" + i + "}");
-            records.add(record);
+        List< BSONObject > records = new ArrayList<>();
+        for ( int i = 0; i < 200; i++ ) {
+            BSONObject record = ( BSONObject ) JSON
+                    .parse( "{_id:" + i + ", a:" + i + ", b:" + i + "}" );
+            records.add( record );
         }
-        expList.addAll(records);
-        Collections.shuffle(records);
-        cl.insert(records);
+        expList.addAll( records );
+        Collections.shuffle( records );
+        cl.insert( records );
     }
 }

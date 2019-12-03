@@ -44,13 +44,15 @@ public class RewriteLob13389 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         // create cs cl
-        BSONObject csOpt = (BSONObject) JSON.parse("{LobPageSize: " + lobPageSize + "}");
-        cs = sdb.createCollectionSpace(csName, csOpt);
-        BSONObject clOpt = (BSONObject) JSON.parse("{ShardingKey:{a:1},ShardingType:'hash',ReplSize:0}");
-        cs.createCollection(clName, clOpt);
+        BSONObject csOpt = ( BSONObject ) JSON
+                .parse( "{LobPageSize: " + lobPageSize + "}" );
+        cs = sdb.createCollectionSpace( csName, csOpt );
+        BSONObject clOpt = ( BSONObject ) JSON
+                .parse( "{ShardingKey:{a:1},ShardingType:'hash',ReplSize:0}" );
+        cs.createCollection( clName, clOpt );
     }
 
     @DataProvider(name = "lengthProvider", parallel = true)
@@ -59,32 +61,35 @@ public class RewriteLob13389 extends SdbTestBase {
         long firstDataPagePos = lobPageSize - lobMetaSize;
         result = new Object[][] {
                 // a、truncate长度在切片起始位置（起始1b）
-                new Object[] { (long) 1 },
+                new Object[] { ( long ) 1 },
                 // b、truncate长度在切片中间位置
-                new Object[] { (long) lobPageSize / 2 },
+                new Object[] { ( long ) lobPageSize / 2 },
                 // c、truncate长度在切片末尾少1b
                 new Object[] { firstDataPagePos - 1 },
                 // d、truncate长度刚好在切片末尾
-                new Object[] { (long) firstDataPagePos } };
+                new Object[] { ( long ) firstDataPagePos } };
         return result;
     }
 
     @Test(dataProvider = "lengthProvider")
-    public void testLob(long length) {
-        try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-            DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
+    public void testLob( long length ) {
+        try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" )) {
+            DBCollection cl = db.getCollectionSpace( csName )
+                    .getCollection( clName );
             int lobSize = 2 * lobPageSize;
-            byte[] data = RandomWriteLobUtil.getRandomBytes(lobSize);
-            ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, data);
+            byte[] data = RandomWriteLobUtil.getRandomBytes( lobSize );
+            ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl, data );
 
-            cl.truncateLob(oid, length);
-            byte[] expData = Arrays.copyOfRange(data, 0, (int) length);
+            cl.truncateLob( oid, length );
+            byte[] expData = Arrays.copyOfRange( data, 0, ( int ) length );
 
-            byte[] actData = RandomWriteLobUtil.readLob(cl, oid);
-            RandomWriteLobUtil.assertByteArrayEqual(actData, expData, "lob data is wrong");
+            byte[] actData = RandomWriteLobUtil.readLob( cl, oid );
+            RandomWriteLobUtil.assertByteArrayEqual( actData, expData,
+                    "lob data is wrong" );
 
-            long actSize = getSizeByListLobs(cl, oid);
-            Assert.assertEquals(actSize, length, "wrong length after truncate lob");
+            long actSize = getSizeByListLobs( cl, oid );
+            Assert.assertEquals( actSize, length,
+                    "wrong length after truncate lob" );
         }
 
     }
@@ -92,41 +97,41 @@ public class RewriteLob13389 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }
     }
 
-    private long getSizeByListLobs(DBCollection cl, ObjectId oid) {
+    private long getSizeByListLobs( DBCollection cl, ObjectId oid ) {
         DBCursor cursor = null;
         long lobSize = 0;
         boolean oidFound = false;
         try {
             cursor = cl.listLobs();
-            while (cursor.hasNext()) {
+            while ( cursor.hasNext() ) {
                 BSONObject res = cursor.getNext();
-                ObjectId curOid = (ObjectId) res.get("Oid");
-                if (curOid.equals(oid)) {
-                    lobSize = (long) res.get("Size");
+                ObjectId curOid = ( ObjectId ) res.get( "Oid" );
+                if ( curOid.equals( oid ) ) {
+                    lobSize = ( long ) res.get( "Size" );
                     oidFound = true;
                     break;
                 }
             }
         } finally {
-            if (cursor != null) {
+            if ( cursor != null ) {
                 cursor.close();
             }
         }
-        if (!oidFound) {
-            throw new RuntimeException("no such oid");
+        if ( !oidFound ) {
+            throw new RuntimeException( "no such oid" );
         }
         return lobSize;
     }

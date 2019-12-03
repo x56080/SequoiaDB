@@ -29,65 +29,76 @@ public class Transaction18215 extends SdbTestBase {
     private Sequoiadb db1 = null;
     private Sequoiadb db2 = null;
     private DBCollection cl = null;
-    private List<BSONObject> expList = new ArrayList<BSONObject>();
-    private List<BSONObject> actList = new ArrayList<BSONObject>();
+    private List< BSONObject > expList = new ArrayList< BSONObject >();
+    private List< BSONObject > actList = new ArrayList< BSONObject >();
     private DBCursor cursor = null;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl.createIndex("a", "{a:1}", false, false);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl.createIndex( "a", "{a:1}", false, false );
     }
 
     @Test
     public void Test() {
-        List<BSONObject> insertR1s = TransUtils.insertRandomDatas(cl, 0, 100);
+        List< BSONObject > insertR1s = TransUtils.insertRandomDatas( cl, 0,
+                100 );
 
         db1.beginTransaction();
         db2.beginTransaction();
 
-        for (int i = 0; i < 100; i++) {
-            db1.execUpdate("insert into " + csName + "." + clName + "(_id, a, b) values (" + (100 + i) + "," + (100 + i)
-                    + "," + (100 + i) + ")");
-            db1.execUpdate("update " + csName + "." + clName + " set _id = " + (200 + i) + ", a = " + (200 + i)
-                    + ", b = " + (200 + i) + " where a = " + i);
-            db1.execUpdate("delete from " + csName + "." + clName + " where a = " + (100 + i));
-            expList.add((BSONObject) JSON.parse("{_id:" + (200 + i) + ", a:" + (200 + i) + ", b:" + (200 + i) + "}"));
+        for ( int i = 0; i < 100; i++ ) {
+            db1.execUpdate( "insert into " + csName + "." + clName
+                    + "(_id, a, b) values (" + ( 100 + i ) + "," + ( 100 + i )
+                    + "," + ( 100 + i ) + ")" );
+            db1.execUpdate( "update " + csName + "." + clName + " set _id = "
+                    + ( 200 + i ) + ", a = " + ( 200 + i ) + ", b = "
+                    + ( 200 + i ) + " where a = " + i );
+            db1.execUpdate( "delete from " + csName + "." + clName
+                    + " where a = " + ( 100 + i ) );
+            expList.add( ( BSONObject ) JSON.parse( "{_id:" + ( 200 + i )
+                    + ", a:" + ( 200 + i ) + ", b:" + ( 200 + i ) + "}" ) );
         }
 
         // 事务2表扫描记录
-        cursor = db2.exec("select * from " + csName + "." + clName + " order by a /*+use_index(NULL)*/");
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, insertR1s);
+        cursor = db2.exec( "select * from " + csName + "." + clName
+                + " order by a /*+use_index(NULL)*/" );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, insertR1s );
 
         // 事务2索引扫描记录
-        cursor = db2.exec("select * from " + csName + "." + clName + " order by a /*+use_index(a)*/");
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, insertR1s);
+        cursor = db2.exec( "select * from " + csName + "." + clName
+                + " order by a /*+use_index(a)*/" );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, insertR1s );
 
         db1.commit();
 
         // 事务2表扫描记录
-        cursor = db2.exec("select * from " + csName + "." + clName + " order by a /*+use_index(NULL)*/");
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = db2.exec( "select * from " + csName + "." + clName
+                + " order by a /*+use_index(NULL)*/" );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
 
         // 事务2索引扫描记录
-        cursor = db2.exec("select * from " + csName + "." + clName + " order by a /*+use_index(a)*/");
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = db2.exec( "select * from " + csName + "." + clName
+                + " order by a /*+use_index(a)*/" );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
 
         db2.commit();
 
-        cursor = db2.exec("select * from " + csName + "." + clName + " order by a /*+use_index(NULL)*/");
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = db2.exec( "select * from " + csName + "." + clName
+                + " order by a /*+use_index(NULL)*/" );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
 
-        cursor = db2.exec("select * from " + csName + "." + clName + " order by a /*+use_index(a)*/");
-        Assert.assertEquals(actList, expList);
+        cursor = db2.exec( "select * from " + csName + "." + clName
+                + " order by a /*+use_index(a)*/" );
+        Assert.assertEquals( actList, expList );
     }
 
     @AfterClass
@@ -96,17 +107,17 @@ public class Transaction18215 extends SdbTestBase {
         db2.commit();
 
         cursor.close();
-        if (!db1.isClosed()) {
+        if ( !db1.isClosed() ) {
             db1.close();
         }
-        if (!db2.isClosed()) {
+        if ( !db2.isClosed() ) {
             db2.close();
         }
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        if (!sdb.isClosed()) {
+        if ( !sdb.isClosed() ) {
             sdb.close();
         }
     }

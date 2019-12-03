@@ -41,12 +41,13 @@ public class LobSubCL19077 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("is standalone skip testcase");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
         }
-        mainCL = LobSubUtils.createMainCLAndAttachCL(sdb, csName, mainCLName, subCLName);
-        lobBuff = RandomWriteLobUtil.getRandomBytes(writeLobSize);
+        mainCL = LobSubUtils.createMainCLAndAttachCL( sdb, csName, mainCLName,
+                subCLName );
+        lobBuff = RandomWriteLobUtil.getRandomBytes( writeLobSize );
         lobId = mainCL.createLobID();
     }
 
@@ -54,18 +55,18 @@ public class LobSubCL19077 extends SdbTestBase {
     public void test() throws Exception {
         ThreadExecutor thread = new ThreadExecutor();
         TruncateLobThread truncateLob = new TruncateLobThread();
-        thread.addWorker(new PutLobThread());
-        thread.addWorker(truncateLob);
+        thread.addWorker( new PutLobThread() );
+        thread.addWorker( truncateLob );
         thread.run();
 
-        List<ObjectId> idList = new ArrayList<ObjectId>();
-        idList.add(lobId);
-        if (truncateLob.getRetCode() == 0) {
-            byte[] expBuff = new byte[writeLobSize / 2];
-            System.arraycopy(lobBuff, 0, expBuff, 0, writeLobSize / 2);
-            LobSubUtils.checkLobMD5(mainCL, idList, expBuff);
+        List< ObjectId > idList = new ArrayList< ObjectId >();
+        idList.add( lobId );
+        if ( truncateLob.getRetCode() == 0 ) {
+            byte[] expBuff = new byte[ writeLobSize / 2 ];
+            System.arraycopy( lobBuff, 0, expBuff, 0, writeLobSize / 2 );
+            LobSubUtils.checkLobMD5( mainCL, idList, expBuff );
         } else {
-            LobSubUtils.checkLobMD5(mainCL, idList, lobBuff);
+            LobSubUtils.checkLobMD5( mainCL, idList, lobBuff );
         }
 
     }
@@ -73,15 +74,15 @@ public class LobSubCL19077 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            CollectionSpace cs = sdb.getCollectionSpace(csName);
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
-            if (cs.isCollectionExist(subCLName)) {
-                cs.dropCollection(subCLName);
+            if ( cs.isCollectionExist( subCLName ) ) {
+                cs.dropCollection( subCLName );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -91,10 +92,12 @@ public class LobSubCL19077 extends SdbTestBase {
 
         @ExecuteOrder(step = 1)
         private void putLob() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection mainCL = db.getCollectionSpace(csName).getCollection(mainCLName);
-                DBLob lob = mainCL.createLob(lobId);
-                lob.write(lobBuff);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection mainCL = db.getCollectionSpace( csName )
+                        .getCollection( mainCLName );
+                DBLob lob = mainCL.createLob( lobId );
+                lob.write( lobBuff );
                 lob.close();
             }
         }
@@ -104,16 +107,18 @@ public class LobSubCL19077 extends SdbTestBase {
 
         @ExecuteOrder(step = 1)
         private void truncateLob() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection mainCL = db.getCollectionSpace(csName).getCollection(mainCLName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection mainCL = db.getCollectionSpace( csName )
+                        .getCollection( mainCLName );
                 try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
+                    Thread.sleep( 2000 );
+                } catch ( InterruptedException e ) {
                 }
-                mainCL.truncateLob(lobId, writeLobSize / 2);
-            } catch (BaseException e) {
-                saveResult(e.getErrorCode(), e);
-                if (e.getErrorCode() != -317) {
+                mainCL.truncateLob( lobId, writeLobSize / 2 );
+            } catch ( BaseException e ) {
+                saveResult( e.getErrorCode(), e );
+                if ( e.getErrorCode() != -317 ) {
                     throw e;
                 }
             }

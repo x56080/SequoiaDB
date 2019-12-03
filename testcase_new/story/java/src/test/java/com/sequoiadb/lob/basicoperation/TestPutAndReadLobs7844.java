@@ -38,51 +38,55 @@ public class TestPutAndReadLobs7844 extends SdbTestBase {
         public String md5;
     }
 
-    private LinkedBlockingDeque<LobInfo> lobInfoQue = new LinkedBlockingDeque<LobInfo>();
+    private LinkedBlockingDeque< LobInfo > lobInfoQue = new LinkedBlockingDeque< LobInfo >();
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
         String clOptions = "{ShardingKey:{no:1},ShardingType:'hash'}";
-        DBCollection cl = cs.createCollection(clName, (BSONObject) JSON.parse(clOptions));
+        DBCollection cl = cs.createCollection( clName,
+                ( BSONObject ) JSON.parse( clOptions ) );
 
         int lobtimes = 30;
-        writeLobAndGetMd5(cl, lobtimes);
+        writeLobAndGetMd5( cl, lobtimes );
     }
 
     @Test
     public void testPutAndReadLob() {
         PutLobsTask putLobsTask = new PutLobsTask();
-        putLobsTask.start(30);
+        putLobsTask.start( 30 );
 
         ReadLobsTask readLobsTask = new ReadLobsTask();
-        readLobsTask.start(60);
+        readLobsTask.start( 60 );
 
-        Assert.assertTrue(putLobsTask.isSuccess(), putLobsTask.getErrorMsg());
-        Assert.assertTrue(readLobsTask.isSuccess(), readLobsTask.getErrorMsg());
+        Assert.assertTrue( putLobsTask.isSuccess(), putLobsTask.getErrorMsg() );
+        Assert.assertTrue( readLobsTask.isSuccess(),
+                readLobsTask.getErrorMsg() );
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
             sdb.close();
-        } catch (BaseException e) {
-            Assert.assertTrue(false, "clean up failed:" + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
         }
     }
 
     private class PutLobsTask extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection dbcl = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
 
                 int lobtimes = 1;
-                writeLobAndGetMd5(dbcl, lobtimes);
+                writeLobAndGetMd5( dbcl, lobtimes );
             }
         }
     }
@@ -90,33 +94,35 @@ public class TestPutAndReadLobs7844 extends SdbTestBase {
     private class ReadLobsTask extends SdbThreadBase {
         @Override
         public void exec() throws BaseException, InterruptedException {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection dbcl = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
                 LobInfo lobinfotmp = lobInfoQue.take();
                 ObjectId oid = lobinfotmp.oid;
-                try (DBLob rLob = dbcl.openLob(oid, DBLob.SDB_LOB_READ)) {
-                    byte[] rbuff = new byte[(int) rLob.getSize()];
-                    rLob.read(rbuff);
-                    String curMd5 = LobOprUtils.getMd5(rbuff);
+                try ( DBLob rLob = dbcl.openLob( oid, DBLob.SDB_LOB_READ )) {
+                    byte[] rbuff = new byte[ ( int ) rLob.getSize() ];
+                    rLob.read( rbuff );
+                    String curMd5 = LobOprUtils.getMd5( rbuff );
                     String prevMd5 = lobinfotmp.md5;
-                    Assert.assertEquals(curMd5, prevMd5);
+                    Assert.assertEquals( curMd5, prevMd5 );
                 }
             }
         }
     }
 
-    private void writeLobAndGetMd5(DBCollection cl, int lobtimes) {
-        for (int i = 0; i < lobtimes; i++) {
-            int writeLobSize = random.nextInt(1024 * 1024);
-            byte[] wlobBuff = LobOprUtils.getRandomBytes(writeLobSize);
-            ObjectId oid = LobOprUtils.createAndWriteLob(cl, wlobBuff);
+    private void writeLobAndGetMd5( DBCollection cl, int lobtimes ) {
+        for ( int i = 0; i < lobtimes; i++ ) {
+            int writeLobSize = random.nextInt( 1024 * 1024 );
+            byte[] wlobBuff = LobOprUtils.getRandomBytes( writeLobSize );
+            ObjectId oid = LobOprUtils.createAndWriteLob( cl, wlobBuff );
 
             // save oid and md5
-            String prevMd5 = LobOprUtils.getMd5(wlobBuff);
+            String prevMd5 = LobOprUtils.getMd5( wlobBuff );
             LobInfo lobInfoTmp = new LobInfo();
             lobInfoTmp.oid = oid;
             lobInfoTmp.md5 = prevMd5;
-            lobInfoQue.offer(lobInfoTmp);
+            lobInfoQue.offer( lobInfoTmp );
         }
     }
 

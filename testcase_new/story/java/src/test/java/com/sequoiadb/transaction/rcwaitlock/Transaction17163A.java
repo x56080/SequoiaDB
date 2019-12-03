@@ -29,8 +29,8 @@ public class Transaction17163A extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "tbscan17163";
     private DBCollection cl = null;
-    private List<BSONObject> expList = new ArrayList<BSONObject>();
-    private List<BSONObject> actList = new ArrayList<BSONObject>();
+    private List< BSONObject > expList = new ArrayList< BSONObject >();
+    private List< BSONObject > actList = new ArrayList< BSONObject >();
     private Sequoiadb db1 = null;
     private Sequoiadb db2 = null;
     private DBCollection cl1 = null;
@@ -38,29 +38,29 @@ public class Transaction17163A extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl.createIndex("textIndex17163", "{a:1}", false, false);
-        BSONObject record = (BSONObject) JSON.parse("{a:1, b:1}");
-        cl.insert(record);
-        expList.add(record);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl.createIndex( "textIndex17163", "{a:1}", false, false );
+        BSONObject record = ( BSONObject ) JSON.parse( "{a:1, b:1}" );
+        cl.insert( record );
+        expList.add( record );
     }
 
     @AfterClass
     public void tearDown() {
         db1.commit();
         db2.commit();
-        if (!db1.isClosed()) {
+        if ( !db1.isClosed() ) {
             db1.close();
         }
-        if (!db2.isClosed()) {
+        if ( !db2.isClosed() ) {
             db2.close();
         }
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        if (!sdb.isClosed()) {
+        if ( !sdb.isClosed() ) {
             sdb.close();
         }
     }
@@ -69,80 +69,85 @@ public class Transaction17163A extends SdbTestBase {
     @Test
     public void test() {
         // 开启2个并发事务
-        db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl1 = db1.getCollectionSpace(csName).getCollection(clName);
-        cl2 = db2.getCollectionSpace(csName).getCollection(clName);
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
+        cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         db1.beginTransaction();
         db2.beginTransaction();
 
         // 事务1删除记录，并插入相同的记录
-        cl1.delete("", "{'':'textIndex17163'}");
-        BSONObject record = (BSONObject) JSON.parse("{a:1, b:1}");
-        cl1.insert(record);
-        List<BSONObject> expRecords = new ArrayList<>();
-        expRecords.add(record);
+        cl1.delete( "", "{'':'textIndex17163'}" );
+        BSONObject record = ( BSONObject ) JSON.parse( "{a:1, b:1}" );
+        cl1.insert( record );
+        List< BSONObject > expRecords = new ArrayList<>();
+        expRecords.add( record );
 
         // 事务2读记录走表扫描阻塞
-        CL2Query cl2Thread = new CL2Query(null, "{'':null}");
+        CL2Query cl2Thread = new CL2Query( null, "{'':null}" );
         cl2Thread.start();
-        Assert.assertTrue(cl2Thread.matchBlockingMethod(DBCursor.class.getName(), "hasNext"));
+        Assert.assertTrue( cl2Thread
+                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
 
         // 非事务表扫描
-        DBCursor recordsCursor = cl.query(null, null, null, "{'':null}");
-        actList = TransUtils.getReadActList(recordsCursor);
-        Assert.assertEquals(actList, expRecords);
+        DBCursor recordsCursor = cl.query( null, null, null, "{'':null}" );
+        actList = TransUtils.getReadActList( recordsCursor );
+        Assert.assertEquals( actList, expRecords );
 
         // 非事务索引扫描
-        recordsCursor = cl.query("{a:{$exists:1}}", null, null, "{'':'textIndex17163'}");
-        actList = TransUtils.getReadActList(recordsCursor);
-        Assert.assertEquals(actList, expRecords);
+        recordsCursor = cl.query( "{a:{$exists:1}}", null, null,
+                "{'':'textIndex17163'}" );
+        actList = TransUtils.getReadActList( recordsCursor );
+        Assert.assertEquals( actList, expRecords );
 
         // 事务1回滚
         db1.rollback();
-        if (!(cl2Thread.isSuccess())) {
-            Assert.fail(cl2Thread.getErrorMsg() + "\n");
+        if ( !( cl2Thread.isSuccess() ) ) {
+            Assert.fail( cl2Thread.getErrorMsg() + "\n" );
         }
         try {
-            actList = (List<BSONObject>) cl2Thread.getExecResult();
-            Assert.assertEquals(actList, expList);
-        } catch (InterruptedException e) {
-            Assert.fail(e.getMessage());
+            actList = ( List< BSONObject > ) cl2Thread.getExecResult();
+            Assert.assertEquals( actList, expList );
+        } catch ( InterruptedException e ) {
+            Assert.fail( e.getMessage() );
         }
 
         // 事务2读记录走表扫描
-        recordsCursor = cl2.query(null, null, null, "{'':null}");
-        actList = TransUtils.getReadActList(recordsCursor);
-        Assert.assertEquals(actList, expList);
+        recordsCursor = cl2.query( null, null, null, "{'':null}" );
+        actList = TransUtils.getReadActList( recordsCursor );
+        Assert.assertEquals( actList, expList );
 
         // 事务2读记录走索引扫描
-        recordsCursor = cl2.query("{a:{$exists:1}}", null, null, "{'':'textIndex17163'}");
-        actList = TransUtils.getReadActList(recordsCursor);
-        Assert.assertEquals(actList, expList);
+        recordsCursor = cl2.query( "{a:{$exists:1}}", null, null,
+                "{'':'textIndex17163'}" );
+        actList = TransUtils.getReadActList( recordsCursor );
+        Assert.assertEquals( actList, expList );
 
         // 非事务表扫描
-        recordsCursor = cl.query(null, null, null, "{'':null}");
-        actList = TransUtils.getReadActList(recordsCursor);
-        Assert.assertEquals(actList, expList);
+        recordsCursor = cl.query( null, null, null, "{'':null}" );
+        actList = TransUtils.getReadActList( recordsCursor );
+        Assert.assertEquals( actList, expList );
 
         // 非事务索引扫描
-        recordsCursor = cl.query("{a:{$exists:1}}", null, null, "{'':'textIndex17163'}");
-        actList = TransUtils.getReadActList(recordsCursor);
-        Assert.assertEquals(actList, expList);
+        recordsCursor = cl.query( "{a:{$exists:1}}", null, null,
+                "{'':'textIndex17163'}" );
+        actList = TransUtils.getReadActList( recordsCursor );
+        Assert.assertEquals( actList, expList );
 
         // 事务2回滚
         db2.rollback();
         recordsCursor.close();
 
         // 非事务表扫描
-        recordsCursor = cl.query(null, null, null, "{'':null}");
-        actList = TransUtils.getReadActList(recordsCursor);
-        Assert.assertEquals(actList, expList);
+        recordsCursor = cl.query( null, null, null, "{'':null}" );
+        actList = TransUtils.getReadActList( recordsCursor );
+        Assert.assertEquals( actList, expList );
 
         // 非事务索引扫描
-        recordsCursor = cl.query("{a:{$exists:1}}", null, null, "{'':'textIndex17163'}");
-        actList = TransUtils.getReadActList(recordsCursor);
-        Assert.assertEquals(actList, expList);
+        recordsCursor = cl.query( "{a:{$exists:1}}", null, null,
+                "{'':'textIndex17163'}" );
+        actList = TransUtils.getReadActList( recordsCursor );
+        Assert.assertEquals( actList, expList );
         recordsCursor.close();
     }
 
@@ -150,7 +155,7 @@ public class Transaction17163A extends SdbTestBase {
         private String hint;
         private String matcher;
 
-        public CL2Query(String matcher, String hint) {
+        public CL2Query( String matcher, String hint ) {
             super();
             this.matcher = matcher;
             this.hint = hint;
@@ -158,11 +163,11 @@ public class Transaction17163A extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            DBCursor cursor = cl2.query(matcher, null, null, hint);
-            List<BSONObject> records = TransUtils.getReadActList(cursor);
+            DBCursor cursor = cl2.query( matcher, null, null, hint );
+            List< BSONObject > records = TransUtils.getReadActList( cursor );
             try {
-                setExecResult(records);
-            } catch (Exception e) {
+                setExecResult( records );
+            } catch ( Exception e ) {
                 e.printStackTrace();
                 throw e;
             }

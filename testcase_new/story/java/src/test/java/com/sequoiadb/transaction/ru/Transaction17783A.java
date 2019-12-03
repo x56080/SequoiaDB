@@ -36,16 +36,16 @@ public class Transaction17783A extends SdbTestBase {
     private DBCollection cl2 = null;
     private DBCollection cl3 = null;
     private DBCollection cl = null;
-    private ArrayList<BSONObject> expList = new ArrayList<BSONObject>();
-    private ArrayList<BSONObject> actList = new ArrayList<BSONObject>();
+    private ArrayList< BSONObject > expList = new ArrayList< BSONObject >();
+    private ArrayList< BSONObject > actList = new ArrayList< BSONObject >();
     private DBCursor cursor = null;
     private String hint;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl.createIndex("a", "{a:1}", false, false);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl.createIndex( "a", "{a:1}", false, false );
     }
 
     @AfterClass
@@ -61,143 +61,145 @@ public class Transaction17783A extends SdbTestBase {
         db3.closeAllCursors();
 
         // 先关闭事务连接，再删除集合
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (!db1.isClosed()) {
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( !db1.isClosed() ) {
             db1.close();
         }
-        if (!db2.isClosed()) {
+        if ( !db2.isClosed() ) {
             db2.close();
         }
-        if (!db3.isClosed()) {
+        if ( !db3.isClosed() ) {
             db3.close();
         }
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        if (!sdb.isClosed()) {
+        if ( !sdb.isClosed() ) {
             sdb.close();
         }
     }
 
     @Test
     public void test() {
-        db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db3 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         // 开启3个并发事务
         db1.beginTransaction();
         db2.beginTransaction();
         db3.beginTransaction();
-        cl1 = db1.getCollectionSpace(csName).getCollection(clName);
-        cl2 = db2.getCollectionSpace(csName).getCollection(clName);
-        cl3 = db3.getCollectionSpace(csName).getCollection(clName);
+        cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
+        cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
+        cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
 
         // 插入记录R1、R2
-        BSONObject insertR1 = (BSONObject) JSON.parse("{_id:1,a:1,b:1}");
-        cl.insert(insertR1);
-        BSONObject insertR2 = (BSONObject) JSON.parse("{_id:2,a:2,b:2}");
-        cl.insert(insertR2);
+        BSONObject insertR1 = ( BSONObject ) JSON.parse( "{_id:1,a:1,b:1}" );
+        cl.insert( insertR1 );
+        BSONObject insertR2 = ( BSONObject ) JSON.parse( "{_id:2,a:2,b:2}" );
+        cl.insert( insertR2 );
 
         // 事务1删除记录R1
         hint = "{\"\":\"a\"}";
-        cl1.delete("{a:1}", hint);
+        cl1.delete( "{a:1}", hint );
 
         // 事务2匹配记录R1、R2更新为R3、R4
         UpdateThread updateThread = new UpdateThread();
         updateThread.start();
-        Assert.assertTrue(updateThread.matchBlockingMethod(cl2.getClass().getName(), "update"));
+        Assert.assertTrue( updateThread
+                .matchBlockingMethod( cl2.getClass().getName(), "update" ) );
 
         // 事务1索引读
-        expList.add(insertR2);
+        expList.add( insertR2 );
         hint = "{\"\":\"a\"}";
-        cursor = cl1.query(null, null, "{_id:1}", hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl1.query( null, null, "{_id:1}", hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 事务1记录读
         hint = "{\"\":null}";
-        cursor = cl1.query(null, null, "{_id:1}", hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl1.query( null, null, "{_id:1}", hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 事务3索引读
         hint = "{\"\":\"a\"}";
-        cursor = cl3.query(null, null, "{_id:1}", hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl3.query( null, null, "{_id:1}", hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 事务3记录读
         hint = "{\"\":null}";
-        cursor = cl3.query(null, null, "{_id:1}", hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl3.query( null, null, "{_id:1}", hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 非事务索引读
         hint = "{\"\":\"a\"}";
-        cursor = cl.query(null, null, "{_id:1}", hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl.query( null, null, "{_id:1}", hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 非事务记录读
         hint = "{\"\":null}";
-        cursor = cl.query(null, null, "{_id:1}", hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl.query( null, null, "{_id:1}", hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 提交事务1
         db1.commit();
-        Assert.assertTrue(updateThread.isSuccess(), updateThread.getErrorMsg());
+        Assert.assertTrue( updateThread.isSuccess(),
+                updateThread.getErrorMsg() );
 
         // 非事务索引读
         expList.clear();
-        BSONObject updateR4 = (BSONObject) JSON.parse("{_id:2,a:3,b:2}");
-        expList.add(updateR4);
+        BSONObject updateR4 = ( BSONObject ) JSON.parse( "{_id:2,a:3,b:2}" );
+        expList.add( updateR4 );
         hint = "{\"\":\"a\"}";
-        cursor = cl.query(null, null, null, hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl.query( null, null, null, hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 非事务记录读
         hint = "{\"\":null}";
-        cursor = cl.query(null, null, null, hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl.query( null, null, null, hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 事务2索引读
         hint = "{\"\":\"a\"}";
-        cursor = cl2.query(null, null, "{_id:1}", hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl2.query( null, null, "{_id:1}", hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 事务2记录读
         hint = "{\"\":null}";
-        cursor = cl2.query(null, null, "{_id:1}", hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl2.query( null, null, "{_id:1}", hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 事务3索引读
         hint = "{\"\":\"a\"}";
-        cursor = cl3.query(null, null, "{_id:1}", hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl3.query( null, null, "{_id:1}", hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 事务3记录读
         hint = "{\"\":null}";
-        cursor = cl3.query(null, null, "{_id:1}", hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl3.query( null, null, "{_id:1}", hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 提交事务2
@@ -205,48 +207,48 @@ public class Transaction17783A extends SdbTestBase {
 
         // 非事务索引读
         hint = "{\"\":\"a\"}";
-        cursor = cl.query(null, null, null, hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl.query( null, null, null, hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 非事务记录读
         hint = "{\"\":null}";
-        cursor = cl.query(null, null, null, hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl.query( null, null, null, hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 事务3索引读
         hint = "{\"\":\"a\"}";
-        cursor = cl3.query(null, null, null, hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl3.query( null, null, null, hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 事务3记录读
         hint = "{\"\":null}";
-        cursor = cl3.query(null, null, null, hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl3.query( null, null, null, hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 删除记录
-        cl.delete((BSONObject) null);
+        cl.delete( ( BSONObject ) null );
 
         // 非事务索引读
         expList.clear();
         hint = "{\"\":\"a\"}";
-        cursor = cl.query(null, null, null, hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl.query( null, null, null, hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 非事务记录读
         hint = "{\"\":null}";
-        cursor = cl.query(null, null, null, hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl.query( null, null, null, hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 提交事务3
@@ -257,7 +259,7 @@ public class Transaction17783A extends SdbTestBase {
         @Override
         public void exec() throws BaseException {
             hint = "{\"\":\"a\"}";
-            cl2.update(null, "{$set:{a:3}}", hint);
+            cl2.update( null, "{$set:{a:3}}", hint );
         }
     }
 }

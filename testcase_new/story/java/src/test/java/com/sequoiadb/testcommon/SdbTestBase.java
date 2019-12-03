@@ -66,115 +66,121 @@ public class SdbTestBase {
     public static String testGroup = null;
     private static final int newIndexScanStep = 100;
     public static final int timeOutLen = 120;
-    private static final Map<String, BSONObject> group2Conf = new HashMap<String, BSONObject>();
-    private static final Map<String, AtomicInteger> group2Count = new HashMap<String, AtomicInteger>();
-    private static final Map<String, BSONObject> node2Conf = new HashMap<String, BSONObject>();
+    private static final Map< String, BSONObject > group2Conf = new HashMap< String, BSONObject >();
+    private static final Map< String, AtomicInteger > group2Count = new HashMap< String, AtomicInteger >();
+    private static final Map< String, BSONObject > node2Conf = new HashMap< String, BSONObject >();
     private static boolean istransactionOn = true;
     private static BasicBSONObject confObj = new BasicBSONObject();
 
     static {
-        group2Conf.put(RU, new BasicBSONObject());
-        group2Conf.get(RU).put(TRANSISOLATION, 0);
-        group2Conf.get(RU).put(TRANSLOCKWAIT, false);
-        group2Conf.get(RU).put(INDEXSCANSTEP, newIndexScanStep);
-        group2Conf.get(RU).put(TRANSTIMEOUT, timeOutLen);
-        group2Conf.get(RU).put(TRANSAUTOCOMMIT, false);
-        group2Conf.get(RU).put(TRANSAUTOROLLBACK, true);
-        group2Conf.get(RU).put(TRANSUSERBS, true);
+        group2Conf.put( RU, new BasicBSONObject() );
+        group2Conf.get( RU ).put( TRANSISOLATION, 0 );
+        group2Conf.get( RU ).put( TRANSLOCKWAIT, false );
+        group2Conf.get( RU ).put( INDEXSCANSTEP, newIndexScanStep );
+        group2Conf.get( RU ).put( TRANSTIMEOUT, timeOutLen );
+        group2Conf.get( RU ).put( TRANSAUTOCOMMIT, false );
+        group2Conf.get( RU ).put( TRANSAUTOROLLBACK, true );
+        group2Conf.get( RU ).put( TRANSUSERBS, true );
 
-        group2Conf.put(RC, new BasicBSONObject());
-        group2Conf.get(RC).put(TRANSISOLATION, 1);
-        group2Conf.get(RC).put(TRANSLOCKWAIT, false);
-        group2Conf.get(RC).put(INDEXSCANSTEP, newIndexScanStep);
-        group2Conf.get(RC).put(TRANSTIMEOUT, timeOutLen);
-        group2Conf.get(RC).put(TRANSAUTOCOMMIT, false);
-        group2Conf.get(RC).put(TRANSAUTOROLLBACK, true);
-        group2Conf.get(RC).put(TRANSUSERBS, true);
+        group2Conf.put( RC, new BasicBSONObject() );
+        group2Conf.get( RC ).put( TRANSISOLATION, 1 );
+        group2Conf.get( RC ).put( TRANSLOCKWAIT, false );
+        group2Conf.get( RC ).put( INDEXSCANSTEP, newIndexScanStep );
+        group2Conf.get( RC ).put( TRANSTIMEOUT, timeOutLen );
+        group2Conf.get( RC ).put( TRANSAUTOCOMMIT, false );
+        group2Conf.get( RC ).put( TRANSAUTOROLLBACK, true );
+        group2Conf.get( RC ).put( TRANSUSERBS, true );
 
-        group2Conf.put(RCWAITLOCK, new BasicBSONObject());
-        group2Conf.get(RCWAITLOCK).put(TRANSISOLATION, 1);
-        group2Conf.get(RCWAITLOCK).put(TRANSLOCKWAIT, true);
-        group2Conf.get(RCWAITLOCK).put(INDEXSCANSTEP, newIndexScanStep);
-        group2Conf.get(RCWAITLOCK).put(TRANSTIMEOUT, timeOutLen);
-        group2Conf.get(RCWAITLOCK).put(TRANSAUTOCOMMIT, false);
-        group2Conf.get(RCWAITLOCK).put(TRANSAUTOROLLBACK, true);
-        group2Conf.get(RCWAITLOCK).put(TRANSUSERBS, true);
+        group2Conf.put( RCWAITLOCK, new BasicBSONObject() );
+        group2Conf.get( RCWAITLOCK ).put( TRANSISOLATION, 1 );
+        group2Conf.get( RCWAITLOCK ).put( TRANSLOCKWAIT, true );
+        group2Conf.get( RCWAITLOCK ).put( INDEXSCANSTEP, newIndexScanStep );
+        group2Conf.get( RCWAITLOCK ).put( TRANSTIMEOUT, timeOutLen );
+        group2Conf.get( RCWAITLOCK ).put( TRANSAUTOCOMMIT, false );
+        group2Conf.get( RCWAITLOCK ).put( TRANSAUTOROLLBACK, true );
+        group2Conf.get( RCWAITLOCK ).put( TRANSUSERBS, true );
 
-        group2Conf.put(RS, new BasicBSONObject());
-        group2Conf.get(RS).put(TRANSISOLATION, 2);
-        group2Conf.get(RS).put(TRANSLOCKWAIT, false);
-        group2Conf.get(RS).put(INDEXSCANSTEP, newIndexScanStep);
-        group2Conf.get(RS).put(TRANSTIMEOUT, timeOutLen);
-        group2Conf.get(RS).put(TRANSAUTOCOMMIT, false);
-        group2Conf.get(RS).put(TRANSAUTOROLLBACK, true);
-        group2Conf.get(RS).put(TRANSUSERBS, true);
+        group2Conf.put( RS, new BasicBSONObject() );
+        group2Conf.get( RS ).put( TRANSISOLATION, 2 );
+        group2Conf.get( RS ).put( TRANSLOCKWAIT, false );
+        group2Conf.get( RS ).put( INDEXSCANSTEP, newIndexScanStep );
+        group2Conf.get( RS ).put( TRANSTIMEOUT, timeOutLen );
+        group2Conf.get( RS ).put( TRANSAUTOCOMMIT, false );
+        group2Conf.get( RS ).put( TRANSAUTOROLLBACK, true );
+        group2Conf.get( RS ).put( TRANSUSERBS, true );
 
-        group2Conf.put(RCAUTO, new BasicBSONObject());
-        group2Conf.get(RCAUTO).put(TRANSISOLATION, 1);
-        group2Conf.get(RCAUTO).put(TRANSLOCKWAIT, false);
-        group2Conf.get(RCAUTO).put(INDEXSCANSTEP, newIndexScanStep);
-        group2Conf.get(RCAUTO).put(TRANSTIMEOUT, timeOutLen);
-        group2Conf.get(RCAUTO).put(TRANSAUTOCOMMIT, true);
-        group2Conf.get(RCAUTO).put(TRANSAUTOROLLBACK, false);
-        group2Conf.get(RCAUTO).put(TRANSUSERBS, true);
+        group2Conf.put( RCAUTO, new BasicBSONObject() );
+        group2Conf.get( RCAUTO ).put( TRANSISOLATION, 1 );
+        group2Conf.get( RCAUTO ).put( TRANSLOCKWAIT, false );
+        group2Conf.get( RCAUTO ).put( INDEXSCANSTEP, newIndexScanStep );
+        group2Conf.get( RCAUTO ).put( TRANSTIMEOUT, timeOutLen );
+        group2Conf.get( RCAUTO ).put( TRANSAUTOCOMMIT, true );
+        group2Conf.get( RCAUTO ).put( TRANSAUTOROLLBACK, false );
+        group2Conf.get( RCAUTO ).put( TRANSUSERBS, true );
 
-        group2Conf.put(RCUSERBS, new BasicBSONObject());
-        group2Conf.get(RCUSERBS).put(TRANSISOLATION, 1);
-        group2Conf.get(RCUSERBS).put(TRANSLOCKWAIT, false);
-        group2Conf.get(RCUSERBS).put(INDEXSCANSTEP, newIndexScanStep);
-        group2Conf.get(RCUSERBS).put(TRANSTIMEOUT, timeOutLen);
-        group2Conf.get(RCUSERBS).put(TRANSAUTOCOMMIT, false);
-        group2Conf.get(RCUSERBS).put(TRANSAUTOROLLBACK, true);
-        group2Conf.get(RCUSERBS).put(TRANSUSERBS, false);
+        group2Conf.put( RCUSERBS, new BasicBSONObject() );
+        group2Conf.get( RCUSERBS ).put( TRANSISOLATION, 1 );
+        group2Conf.get( RCUSERBS ).put( TRANSLOCKWAIT, false );
+        group2Conf.get( RCUSERBS ).put( INDEXSCANSTEP, newIndexScanStep );
+        group2Conf.get( RCUSERBS ).put( TRANSTIMEOUT, timeOutLen );
+        group2Conf.get( RCUSERBS ).put( TRANSAUTOCOMMIT, false );
+        group2Conf.get( RCUSERBS ).put( TRANSAUTOROLLBACK, true );
+        group2Conf.get( RCUSERBS ).put( TRANSUSERBS, false );
 
-        for (String key : group2Conf.keySet()) {
-            group2Count.put(key, new AtomicInteger(0));
-            for (String conf : group2Conf.get(key).keySet()) {
-                if (!confObj.containsField(conf)) {
-                    confObj.put(conf, "");
+        for ( String key : group2Conf.keySet() ) {
+            group2Count.put( key, new AtomicInteger( 0 ) );
+            for ( String conf : group2Conf.get( key ).keySet() ) {
+                if ( !confObj.containsField( conf ) ) {
+                    confObj.put( conf, "" );
                 }
             }
         }
     }
 
-    public static synchronized void setRunGroup(List<String> testGroups) {
-        if (testGroups.size() != 1) {
+    public static synchronized void setRunGroup( List< String > testGroups ) {
+        if ( testGroups.size() != 1 ) {
             return;
         }
-        if (!testGroups.get(0).equals(SdbTestBase.testGroup)) {
-            SdbTestBase.testGroup = testGroups.get(0);
+        if ( !testGroups.get( 0 ).equals( SdbTestBase.testGroup ) ) {
+            SdbTestBase.testGroup = testGroups.get( 0 );
         }
     }
 
-    private static void getAllNodeConf(BasicBSONObject selector) {
-        try (Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "", options)) {
-            selector.put(NODENAME, "");
-            selector.put(TRANSACTIONON, "");
+    private static void getAllNodeConf( BasicBSONObject selector ) {
+        try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "",
+                options )) {
+            selector.put( NODENAME, "" );
+            selector.put( TRANSACTIONON, "" );
 
-            DBCursor cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_CONFIGS, null, selector, null);
-            while (cursor.hasNext()) {
-                BasicBSONObject doc = (BasicBSONObject) cursor.getNext();
-                String key = doc.getString(NODENAME);
-                doc.remove(NODENAME);
-                node2Conf.put(key, doc);
+            DBCursor cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS, null,
+                    selector, null );
+            while ( cursor.hasNext() ) {
+                BasicBSONObject doc = ( BasicBSONObject ) cursor.getNext();
+                String key = doc.getString( NODENAME );
+                doc.remove( NODENAME );
+                node2Conf.put( key, doc );
 
-                if (doc.getString(TRANSACTIONON).equals("FALSE")) {
+                if ( doc.getString( TRANSACTIONON ).equals( "FALSE" ) ) {
                     istransactionOn = false;
                 }
-                doc.remove(TRANSACTIONON);
+                doc.remove( TRANSACTIONON );
             }
             cursor.close();
         }
     }
 
-    @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN", "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR",
-            "CONFTOOL", "ENABLETRANSACTION", "ESHOSTNAME", "ESSVCNAME", "FULLTEXTPREFIX" })
+    @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
+            "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "CONFTOOL",
+            "ENABLETRANSACTION", "ESHOSTNAME", "ESSVCNAME", "FULLTEXTPREFIX" })
     @BeforeSuite(alwaysRun = true)
-    public static void initSuite(String HOSTNAME, String SVCNAME, String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
+    public static void initSuite( String HOSTNAME, String SVCNAME,
+            String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
             String RSRVNODEDIR, String WORKDIR, @Optional("") String CONFTOOL,
-            @Optional("false") String ENABLETRANSACTION, @Optional("localhost") String ESHOSTNAME,
-            @Optional("9200") String ESSVCNAME, @Optional("") String FULLTEXTPREFIX) {
-        System.out.println("initSuite.....");
+            @Optional("false") String ENABLETRANSACTION,
+            @Optional("localhost") String ESHOSTNAME,
+            @Optional("9200") String ESSVCNAME,
+            @Optional("") String FULLTEXTPREFIX ) {
+        System.out.println( "initSuite....." );
         hostName = HOSTNAME;
         serviceName = SVCNAME;
         esHostName = ESHOSTNAME;
@@ -188,97 +194,101 @@ public class SdbTestBase {
         coordUrl = HOSTNAME + ":" + SVCNAME;
         confToolScript = CONFTOOL;
         enableTransaction = ENABLETRANSACTION;
-        FullTextUtils.setFulltextPrefix(FULLTEXTPREFIX);
+        FullTextUtils.setFulltextPrefix( FULLTEXTPREFIX );
 
         try {
-            if (enableTransaction.equals("true")) {
-                getAllNodeConf(confObj);
-                if (!istransactionOn) {
-                    modifyNodeConfAndRestart(true, "before");
+            if ( enableTransaction.equals( "true" ) ) {
+                getAllNodeConf( confObj );
+                if ( !istransactionOn ) {
+                    modifyNodeConfAndRestart( true, "before" );
                 }
             }
 
-            options.setSocketKeepAlive(true);
-            sequoiadb = new Sequoiadb(SdbTestBase.coordUrl, "", "", options);
-            if (sequoiadb.isCollectionSpaceExist(csName)) {
-                sequoiadb.dropCollectionSpace(csName);
+            options.setSocketKeepAlive( true );
+            sequoiadb = new Sequoiadb( SdbTestBase.coordUrl, "", "", options );
+            if ( sequoiadb.isCollectionSpaceExist( csName ) ) {
+                sequoiadb.dropCollectionSpace( csName );
             }
-            sequoiadb.createCollectionSpace(csName);
+            sequoiadb.createCollectionSpace( csName );
 
             // add capped cs;
-            if (sequoiadb.isCollectionSpaceExist(cappedCSName)) {
-                sequoiadb.dropCollectionSpace(cappedCSName);
+            if ( sequoiadb.isCollectionSpaceExist( cappedCSName ) ) {
+                sequoiadb.dropCollectionSpace( cappedCSName );
             }
-            sequoiadb.createCollectionSpace(cappedCSName, (BSONObject) JSON.parse("{Capped:true}"));
+            sequoiadb.createCollectionSpace( cappedCSName,
+                    ( BSONObject ) JSON.parse( "{Capped:true}" ) );
 
-            File workDirFile = new File(workDir);
-            if (!workDirFile.exists()) {
+            File workDirFile = new File( workDir );
+            if ( !workDirFile.exists() ) {
                 workDirFile.mkdir();
             }
 
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
             e.printStackTrace();
-            throw new RuntimeException("initSuite failed");
+            throw new RuntimeException( "initSuite failed" );
         } finally {
-            if (sequoiadb != null) {
+            if ( sequoiadb != null ) {
                 sequoiadb.close();
             }
         }
     }
 
-    private static BSONObject buildNodeConf(boolean transactionon) {
+    private static BSONObject buildNodeConf( boolean transactionon ) {
         BasicBSONObject configs = new BasicBSONObject();
-        configs.append(TRANSACTIONON, transactionon);
+        configs.append( TRANSACTIONON, transactionon );
         return configs;
     }
 
     @SuppressWarnings("unused")
-    private static BSONObject buildNodeConf(Properties prop) {
+    private static BSONObject buildNodeConf( Properties prop ) {
         BasicBSONObject configs = new BasicBSONObject();
-        for (Object key : prop.keySet()) {
-            String value = prop.getProperty((String) key);
+        for ( Object key : prop.keySet() ) {
+            String value = prop.getProperty( ( String ) key );
             int val;
             try {
-                val = Integer.parseInt(value);
-                configs.append((String) key, val);
-            } catch (NumberFormatException e) {
-                configs.append((String) key, Boolean.parseBoolean(value));
+                val = Integer.parseInt( value );
+                configs.append( ( String ) key, val );
+            } catch ( NumberFormatException e ) {
+                configs.append( ( String ) key, Boolean.parseBoolean( value ) );
             }
         }
         return configs;
     }
 
-    private static void modifyNodeConfAndRestart(boolean transactionon, String mode) {
+    private static void modifyNodeConfAndRestart( boolean transactionon,
+            String mode ) {
         BSONObject defaultConf = new BasicBSONObject();
-        BSONObject dataConf = buildNodeConf(transactionon);
-        BSONObject stdalnConf = buildNodeConf(transactionon);
+        BSONObject dataConf = buildNodeConf( transactionon );
+        BSONObject stdalnConf = buildNodeConf( transactionon );
         try {
-            createConfFile(defaultConf, defaultConf, dataConf, defaultConf, dataConf, defaultConf, stdalnConf,
-                    defaultConf);
-        } catch (IOException e1) {
+            createConfFile( defaultConf, defaultConf, dataConf, defaultConf,
+                    dataConf, defaultConf, stdalnConf, defaultConf );
+        } catch ( IOException e1 ) {
             e1.printStackTrace();
-            throw new RuntimeException("initGroups failed!!!");
+            throw new RuntimeException( "initGroups failed!!!" );
         }
 
         String[] cmd;
         try {
-            cmd = getConfCmd(mode, confToolScript);
-            if (!execCmd(cmd)) {
-                throw new RuntimeException("exec script failed, initGroups failed!!!");
+            cmd = getConfCmd( mode, confToolScript );
+            if ( !execCmd( cmd ) ) {
+                throw new RuntimeException(
+                        "exec script failed, initGroups failed!!!" );
             }
-        } catch (IOException | InterruptedException e) {
+        } catch ( IOException | InterruptedException e ) {
             e.printStackTrace();
-            throw new RuntimeException("initGroups failed!!!");
+            throw new RuntimeException( "initGroups failed!!!" );
         }
     }
 
-    private static void modifyNodeConf(BSONObject cfg, BSONObject object) {
-        if (object == null) {
-            object = new BasicBSONObject().append("Global", true);
+    private static void modifyNodeConf( BSONObject cfg, BSONObject object ) {
+        if ( object == null ) {
+            object = new BasicBSONObject().append( "Global", true );
         }
-        try (Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "", options)) {
-            sdb.updateConfig(cfg, object);
-        } catch (BaseException e) {
+        try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "",
+                options )) {
+            sdb.updateConfig( cfg, object );
+        } catch ( BaseException e ) {
             e.printStackTrace();
             throw e;
         }
@@ -286,21 +296,22 @@ public class SdbTestBase {
 
     @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS })
     public static synchronized void initTestGroups() {
-        if (testGroup == null)
+        if ( testGroup == null )
             return;
-        System.out.println("init " + testGroup + " Groups...........");
-        modifyNodeConf(group2Conf.get(testGroup), null);
+        System.out.println( "init " + testGroup + " Groups..........." );
+        modifyNodeConf( group2Conf.get( testGroup ), null );
     }
 
-    @AfterTest(groups = { RC, RU, RCWAITLOCK, RS, RCAUTO, RCUSERBS }, alwaysRun = true)
+    @AfterTest(groups = { RC, RU, RCWAITLOCK, RS, RCAUTO,
+            RCUSERBS }, alwaysRun = true)
     public static synchronized void finiTestGroups() {
-        if (testGroup == null)
+        if ( testGroup == null )
             return;
-        System.out.println("fini " + testGroup + " Groups...........");
-        for (String key : node2Conf.keySet()) {
+        System.out.println( "fini " + testGroup + " Groups..........." );
+        for ( String key : node2Conf.keySet() ) {
             BasicBSONObject opt = new BasicBSONObject();
-            opt.put(NODENAME, key);
-            modifyNodeConf(node2Conf.get(key), opt);
+            opt.put( NODENAME, key );
+            modifyNodeConf( node2Conf.get( key ), opt );
         }
         testGroup = null;
     }
@@ -308,10 +319,10 @@ public class SdbTestBase {
     @AfterSuite(alwaysRun = true)
     public static void finiSuite() {
         try {
-            if (enableTransaction.equals("true") && !istransactionOn) {
-                modifyNodeConfAndRestart(false, "after");
+            if ( enableTransaction.equals( "true" ) && !istransactionOn ) {
+                modifyNodeConfAndRestart( false, "after" );
             }
-            sequoiadb = new Sequoiadb(SdbTestBase.coordUrl, "", "", options);
+            sequoiadb = new Sequoiadb( SdbTestBase.coordUrl, "", "", options );
 
             // if (sequoiadb.isCollectionSpaceExist(csName)) {
             // sequoiadb.dropCollectionSpace(csName);
@@ -322,10 +333,10 @@ public class SdbTestBase {
             // sequoiadb.dropCollectionSpace(cappedCSName);
             // }
             // sdb.close() ;
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
             e.printStackTrace();
         } finally {
-            if (sequoiadb != null) {
+            if ( sequoiadb != null ) {
                 sequoiadb.close();
             }
 
@@ -341,60 +352,71 @@ public class SdbTestBase {
         return workDir;
     }
 
-    private static boolean execCmd(String[] cmd) throws IOException, InterruptedException {
-        System.out.println("cmd:" + Arrays.toString(cmd));
-        Process process = Runtime.getRuntime().exec(cmd);
+    private static boolean execCmd( String[] cmd )
+            throws IOException, InterruptedException {
+        System.out.println( "cmd:" + Arrays.toString( cmd ) );
+        Process process = Runtime.getRuntime().exec( cmd );
 
-        BufferedReader input = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        BufferedReader input = new BufferedReader(
+                new InputStreamReader( process.getInputStream() ) );
         String line = "";
-        while ((line = input.readLine()) != null) {
-            System.out.println(line);
+        while ( ( line = input.readLine() ) != null ) {
+            System.out.println( line );
         }
 
         int exitValue = process.waitFor();
-        if (0 != exitValue) {
-            System.out.println("fail to change node configure beforetest, return code=" + exitValue);
+        if ( 0 != exitValue ) {
+            System.out.println(
+                    "fail to change node configure beforetest, return code="
+                            + exitValue );
             return false;
         } else {
             return true;
         }
     }
 
-    private static String[] getConfCmd(String mode, String confToolScript) throws IOException {
-        String[] cmd = new String[5];
+    private static String[] getConfCmd( String mode, String confToolScript )
+            throws IOException {
+        String[] cmd = new String[ 5 ];
         String confFullName = "";
-        if (mode.equals("before")) {
-            confFullName = getCurrentClass().getResource("") + "/node.conf";
-            confFullName = confFullName.substring(5);
+        if ( mode.equals( "before" ) ) {
+            confFullName = getCurrentClass().getResource( "" ) + "/node.conf";
+            confFullName = confFullName.substring( 5 );
         } else {
-            confFullName = System.getProperty("user.dir") + "/node.conf.ini";
+            confFullName = System.getProperty( "user.dir" ) + "/node.conf.ini";
         }
 
         Properties prop = new Properties();
-        InputStream in = new FileInputStream(new File("/etc/default/sequoiadb"));
-        prop.load(in);
-        String installPath = prop.getProperty("INSTALL_DIR");
+        InputStream in = new FileInputStream(
+                new File( "/etc/default/sequoiadb" ) );
+        prop.load( in );
+        String installPath = prop.getProperty( "INSTALL_DIR" );
         String sdbFullName = installPath + "/bin/sdb";
-        System.out.println(sdbFullName);
-        cmd[0] = sdbFullName;
-        cmd[1] = "-f";
-        cmd[2] = confFullName + "," + confToolScript;
-        cmd[3] = "-e";
-        cmd[4] = "var hostname='" + hostName + "';" + "var svcname=" + serviceName + ";" + "var mode='" + mode + "'";
+        System.out.println( sdbFullName );
+        cmd[ 0 ] = sdbFullName;
+        cmd[ 1 ] = "-f";
+        cmd[ 2 ] = confFullName + "," + confToolScript;
+        cmd[ 3 ] = "-e";
+        cmd[ 4 ] = "var hostname='" + hostName + "';" + "var svcname="
+                + serviceName + ";" + "var mode='" + mode + "'";
 
         return cmd;
     }
 
-    private static void createConfFile(BSONObject cataConf, BSONObject cataDynaConf, BSONObject coordConf,
-            BSONObject coordDynaConf, BSONObject dataConf, BSONObject dataDynaConf, BSONObject stdalnConf,
-            BSONObject stdalnDynaConf) throws IOException {
-        String confPath = getCurrentClass().getResource("").getPath() + "/node.conf";
-        FileWriter confFile = new FileWriter(confPath);
-        addStaticConf(confFile, cataConf, coordConf, dataConf, stdalnConf);
-        addDynConf(confFile, cataDynaConf, coordDynaConf, dataDynaConf, stdalnDynaConf);
+    private static void createConfFile( BSONObject cataConf,
+            BSONObject cataDynaConf, BSONObject coordConf,
+            BSONObject coordDynaConf, BSONObject dataConf,
+            BSONObject dataDynaConf, BSONObject stdalnConf,
+            BSONObject stdalnDynaConf ) throws IOException {
+        String confPath = getCurrentClass().getResource( "" ).getPath()
+                + "/node.conf";
+        FileWriter confFile = new FileWriter( confPath );
+        addStaticConf( confFile, cataConf, coordConf, dataConf, stdalnConf );
+        addDynConf( confFile, cataDynaConf, coordDynaConf, dataDynaConf,
+                stdalnDynaConf );
         confFile.flush();
         confFile.close();
-        System.out.println("create file: " + confPath);
+        System.out.println( "create file: " + confPath );
     }
 
     @SuppressWarnings("rawtypes")
@@ -406,19 +428,22 @@ public class SdbTestBase {
         }.getClassForStatic();
     }
 
-    private static void addStaticConf(FileWriter confFile, BSONObject cataConf, BSONObject coordConf,
-            BSONObject dataConf, BSONObject stdalnConf) throws IOException {
-        confFile.write("catalogConf = " + cataConf + ";\n");
-        confFile.write("coordConf = " + coordConf + ";\n");
-        confFile.write("dataConf = " + dataConf + ";\n");
-        confFile.write("standaloneConf = " + stdalnConf + ";\n");
+    private static void addStaticConf( FileWriter confFile, BSONObject cataConf,
+            BSONObject coordConf, BSONObject dataConf, BSONObject stdalnConf )
+            throws IOException {
+        confFile.write( "catalogConf = " + cataConf + ";\n" );
+        confFile.write( "coordConf = " + coordConf + ";\n" );
+        confFile.write( "dataConf = " + dataConf + ";\n" );
+        confFile.write( "standaloneConf = " + stdalnConf + ";\n" );
     }
 
-    private static void addDynConf(FileWriter confFile, BSONObject cataDynaConf, BSONObject coordDynaConf,
-            BSONObject dataDynaConf, BSONObject stdalnDynaConf) throws IOException {
-        confFile.write("catalogDynaConf = " + cataDynaConf + ";\n");
-        confFile.write("coordDynaConf = " + coordDynaConf + ";\n");
-        confFile.write("dataDynaConf = " + dataDynaConf + ";\n");
-        confFile.write("standaloneConf = " + stdalnDynaConf + ";\n");
+    private static void addDynConf( FileWriter confFile,
+            BSONObject cataDynaConf, BSONObject coordDynaConf,
+            BSONObject dataDynaConf, BSONObject stdalnDynaConf )
+            throws IOException {
+        confFile.write( "catalogDynaConf = " + cataDynaConf + ";\n" );
+        confFile.write( "coordDynaConf = " + coordDynaConf + ";\n" );
+        confFile.write( "dataDynaConf = " + dataDynaConf + ";\n" );
+        confFile.write( "standaloneConf = " + stdalnDynaConf + ";\n" );
     }
 }

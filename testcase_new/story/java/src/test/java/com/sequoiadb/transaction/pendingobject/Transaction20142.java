@@ -26,73 +26,80 @@ import com.sequoiadb.transaction.TransUtils;
 public class Transaction20142 extends SdbTestBase {
 
     private String clNameBase = "transCL_20142";
-    private List<String> clNames = new ArrayList<String>();
+    private List< String > clNames = new ArrayList< String >();
     private Sequoiadb sdb = null;
     private CollectionSpace cs = null;
-    private List<BSONObject> expDataList = new ArrayList<BSONObject>();
+    private List< BSONObject > expDataList = new ArrayList< BSONObject >();
     private int clNum = 5;
     private int insertNum = 100;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = sdb.getCollectionSpace(csName);
-        for (int i = 0; i < clNum; i++) {
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.getCollectionSpace( csName );
+        for ( int i = 0; i < clNum; i++ ) {
             String clName = clNameBase + "_" + i;
-            clNames.add(clName);
-            DBCollection cl = cs.createCollection(clName);
-            cl.createIndex("a20142", "{a:1}", true, false);
+            clNames.add( clName );
+            DBCollection cl = cs.createCollection( clName );
+            cl.createIndex( "a20142", "{a:1}", true, false );
         }
     }
 
     @Test
     public void test() {
-        Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         try {
             // 事务中插入删除记录
             db.beginTransaction();
-            for (int i = 0; i < clNames.size(); i++) {
-                DBCollection tcl = db.getCollectionSpace(csName).getCollection(clNames.get(i));
-                ArrayList<BSONObject> insertR1s = new ArrayList<BSONObject>();
-                for (int j = 0; j < insertNum; j++) {
-                    insertR1s.add((BSONObject) JSON.parse("{_id:" + j + ",a:" + j + ",b:" + j + "}"));
+            for ( int i = 0; i < clNames.size(); i++ ) {
+                DBCollection tcl = db.getCollectionSpace( csName )
+                        .getCollection( clNames.get( i ) );
+                ArrayList< BSONObject > insertR1s = new ArrayList< BSONObject >();
+                for ( int j = 0; j < insertNum; j++ ) {
+                    insertR1s.add( ( BSONObject ) JSON.parse(
+                            "{_id:" + j + ",a:" + j + ",b:" + j + "}" ) );
                 }
-                tcl.insert(insertR1s);
+                tcl.insert( insertR1s );
             }
 
             int recordNum = insertNum - 1;
-            for (int j = 0; j < recordNum; j++) {
+            for ( int j = 0; j < recordNum; j++ ) {
                 String record = "{_id:" + j + ",a:" + j + ",b:'insert20142'}";
-                expDataList.add((BSONObject) JSON.parse(record));
+                expDataList.add( ( BSONObject ) JSON.parse( record ) );
             }
 
-            for (int i = 0; i < clNames.size(); i++) {
-                DBCollection tcl = db.getCollectionSpace(csName).getCollection(clNames.get(i));
-                tcl.delete("{a:{$lt:" + recordNum + "}}");
+            for ( int i = 0; i < clNames.size(); i++ ) {
+                DBCollection tcl = db.getCollectionSpace( csName )
+                        .getCollection( clNames.get( i ) );
+                tcl.delete( "{a:{$lt:" + recordNum + "}}" );
 
                 // 非事务中插入记录，唯一索引值与插入记录的值相同
-                DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clNames.get(i));
-                cl.insert(expDataList);
+                DBCollection cl = sdb.getCollectionSpace( csName )
+                        .getCollection( clNames.get( i ) );
+                cl.insert( expDataList );
             }
 
             db.rollback();
 
             // 校验结果
-            for (int i = 0; i < clNames.size(); i++) {
-                DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clNames.get(i));
-                List<String> groupNames = CommLib.getCLGroups(cl);
-                String groupName = groupNames.get(0);
-                Assert.assertTrue(TransUtils.isLsnConsistency(sdb, groupName));
-                Assert.assertTrue(TransUtils.getDatabaseSnapshot(sdb, groupName));
-                TransUtils.queryAndCheck(cl, "{a:1}", "{a:''}", expDataList);
+            for ( int i = 0; i < clNames.size(); i++ ) {
+                DBCollection cl = sdb.getCollectionSpace( csName )
+                        .getCollection( clNames.get( i ) );
+                List< String > groupNames = CommLib.getCLGroups( cl );
+                String groupName = groupNames.get( 0 );
+                Assert.assertTrue(
+                        TransUtils.isLsnConsistency( sdb, groupName ) );
+                Assert.assertTrue(
+                        TransUtils.getDatabaseSnapshot( sdb, groupName ) );
+                TransUtils.queryAndCheck( cl, "{a:1}", "{a:''}", expDataList );
             }
 
         } finally
 
         {
             db.commit();
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -100,8 +107,8 @@ public class Transaction20142 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        for (int i = 0; i < clNames.size(); i++) {
-            cs.dropCollection(clNames.get(i));
+        for ( int i = 0; i < clNames.size(); i++ ) {
+            cs.dropCollection( clNames.get( i ) );
         }
 
         sdb.close();

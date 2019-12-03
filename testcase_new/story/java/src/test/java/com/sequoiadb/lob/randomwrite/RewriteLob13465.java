@@ -42,52 +42,56 @@ public class RewriteLob13465 extends SdbTestBase {
     public void setUp() {
 
         try {
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
             // create cs cl
-            BSONObject csOpt = (BSONObject) JSON.parse("{LobPageSize: " + lobPageSize + "}");
-            cs = sdb.createCollectionSpace(csName, csOpt);
-            BSONObject clOpt = (BSONObject) JSON.parse("{ShardingKey:{a:1},ShardingType:'hash'}");
-            cl = cs.createCollection(clName, clOpt);
+            BSONObject csOpt = ( BSONObject ) JSON
+                    .parse( "{LobPageSize: " + lobPageSize + "}" );
+            cs = sdb.createCollectionSpace( csName, csOpt );
+            BSONObject clOpt = ( BSONObject ) JSON
+                    .parse( "{ShardingKey:{a:1},ShardingType:'hash'}" );
+            cl = cs.createCollection( clName, clOpt );
 
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         }
     }
 
     @Test
     public void testLob() {
         try {
-            byte[] data = RandomWriteLobUtil.getRandomBytes(lobSize);
-            ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, data);
+            byte[] data = RandomWriteLobUtil.getRandomBytes( lobSize );
+            ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl, data );
 
             TruncateCLThread trunCLThrd = new TruncateCLThread();
-            TruncateLobThread trunLobThrd = new TruncateLobThread(oid);
+            TruncateLobThread trunLobThrd = new TruncateLobThread( oid );
 
             trunCLThrd.start();
             trunLobThrd.start();
 
-            Assert.assertTrue(trunCLThrd.isSuccess(), trunCLThrd.getErrorMsg());
-            Assert.assertTrue(trunLobThrd.isSuccess(), trunLobThrd.getErrorMsg());
+            Assert.assertTrue( trunCLThrd.isSuccess(),
+                    trunCLThrd.getErrorMsg() );
+            Assert.assertTrue( trunLobThrd.isSuccess(),
+                    trunLobThrd.getErrorMsg() );
 
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }
@@ -99,11 +103,12 @@ public class RewriteLob13465 extends SdbTestBase {
         public void exec() throws Exception {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
                 cl.truncate();
             } finally {
-                if (null != db) {
+                if ( null != db ) {
                     db.close();
                 }
             }
@@ -113,7 +118,7 @@ public class RewriteLob13465 extends SdbTestBase {
     private class TruncateLobThread extends SdbThreadBase {
         private ObjectId oid = null;
 
-        public TruncateLobThread(ObjectId oid) {
+        public TruncateLobThread( ObjectId oid ) {
             this.oid = oid;
         }
 
@@ -121,18 +126,19 @@ public class RewriteLob13465 extends SdbTestBase {
         public void exec() throws Exception {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                cl.truncateLob(oid, 0);
-            } catch (BaseException e) {
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                cl.truncateLob( oid, 0 );
+            } catch ( BaseException e ) {
                 int errCode = e.getErrorCode();
-                if (errCode != -4 && errCode != -321) {
+                if ( errCode != -4 && errCode != -321 ) {
                     // -4: file not exist
                     // -321: cl truncate
                     throw e;
                 }
             } finally {
-                if (null != db) {
+                if ( null != db ) {
                     db.close();
                 }
             }

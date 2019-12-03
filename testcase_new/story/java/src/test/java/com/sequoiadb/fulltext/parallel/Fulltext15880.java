@@ -30,7 +30,7 @@ public class Fulltext15880 extends FullTestBase {
     private final String CS_NAME = "cs_es_15880";
     private final String CL_NAME = "cl_es_15880";
     private final String IDX_NAME = "idx_es_15880";
-    private final BSONObject IDX_KEY = new BasicBSONObject("a", "text");
+    private final BSONObject IDX_KEY = new BasicBSONObject( "a", "text" );
     private final int RECS_NUM = 20000;
 
     private String cappedCSName;
@@ -39,47 +39,52 @@ public class Fulltext15880 extends FullTestBase {
 
     @Override
     protected void initTestProp() {
-        caseProp.setProperty(IGNORESTANDALONE, "true");
-        caseProp.setProperty(CSNAME, CS_NAME);
-        caseProp.setProperty(CLNAME, CL_NAME);
+        caseProp.setProperty( IGNORESTANDALONE, "true" );
+        caseProp.setProperty( CSNAME, CS_NAME );
+        caseProp.setProperty( CLNAME, CL_NAME );
     }
 
     @Override
     protected void caseInit() throws Exception {
-        cl.createIndex(IDX_NAME, IDX_KEY, false, false);
-        FullTextDBUtils.insertData(cl, RECS_NUM);
-        cappedCSName = FullTextDBUtils.getCappedName(cl, IDX_NAME);
-        esIndexName = FullTextDBUtils.getESIndexName(cl, IDX_NAME);
+        cl.createIndex( IDX_NAME, IDX_KEY, false, false );
+        FullTextDBUtils.insertData( cl, RECS_NUM );
+        cappedCSName = FullTextDBUtils.getCappedName( cl, IDX_NAME );
+        esIndexName = FullTextDBUtils.getESIndexName( cl, IDX_NAME );
     }
 
     @Test
     private void test() throws Exception {
 
-        ThreadExecutor es = new ThreadExecutor(FullTextUtils.THREAD_TIMEOUT);
+        ThreadExecutor es = new ThreadExecutor( FullTextUtils.THREAD_TIMEOUT );
         ThreadTruncate threadTruncate = new ThreadTruncate();
         ThreadDBSync threadDBSync = new ThreadDBSync();
-        es.addWorker(threadTruncate);
-        es.addWorker(threadDBSync);
+        es.addWorker( threadTruncate );
+        es.addWorker( threadDBSync );
         es.run();
 
         // check results
-        Assert.assertTrue(FullTextUtils.isIndexCreated(cl, IDX_NAME, 0));
+        Assert.assertTrue( FullTextUtils.isIndexCreated( cl, IDX_NAME, 0 ) );
     }
 
     @Override
     protected void caseFini() throws Exception {
-        Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedCSName));
+        Assert.assertTrue( FullTextUtils.isIndexDeleted( sdb, esIndexName,
+                cappedCSName ) );
     }
 
     private class ThreadTruncate extends ResultStore {
         @ExecuteOrder(step = 1)
         private void truncate() throws InterruptedException {
-            Thread.sleep(random.nextInt(100));
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl2 = db.getCollectionSpace(CS_NAME).getCollection(CL_NAME);
-                System.out.println(new Date() + " begin " + this.getClass().getName().toString());
+            Thread.sleep( random.nextInt( 100 ) );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl2 = db.getCollectionSpace( CS_NAME )
+                        .getCollection( CL_NAME );
+                System.out.println( new Date() + " begin "
+                        + this.getClass().getName().toString() );
                 cl2.truncate();
-                System.out.println(new Date() + " end   " + this.getClass().getName().toString());
+                System.out.println( new Date() + " end   "
+                        + this.getClass().getName().toString() );
             }
         }
     }
@@ -87,17 +92,20 @@ public class Fulltext15880 extends FullTestBase {
     private class ThreadDBSync {
         @ExecuteOrder(step = 1)
         private void sync() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 BSONObject options = new BasicBSONObject();
-                options.put("CollectionSpace", CS_NAME);
-                options.put("Block", true);
-                System.out.println(new Date() + " begin " + this.getClass().getName().toString());
-                for (int i = 0; i < 3; i++) {
-                    db.sync(options);
+                options.put( "CollectionSpace", CS_NAME );
+                options.put( "Block", true );
+                System.out.println( new Date() + " begin "
+                        + this.getClass().getName().toString() );
+                for ( int i = 0; i < 3; i++ ) {
+                    db.sync( options );
                 }
-                System.out.println(new Date() + " end   " + this.getClass().getName().toString());
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -321 && e.getErrorCode() != -264) {
+                System.out.println( new Date() + " end   "
+                        + this.getClass().getName().toString() );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -321 && e.getErrorCode() != -264 ) {
                     throw e;
                 }
             }

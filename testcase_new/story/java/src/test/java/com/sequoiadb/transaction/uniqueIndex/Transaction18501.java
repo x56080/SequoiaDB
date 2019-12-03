@@ -33,35 +33,36 @@ public class Transaction18501 extends SdbTestBase {
     private Sequoiadb db;
     private String clName = "cl18501";
     private String idxName = "textIndex18501";
-    private List<BSONObject> expList;
+    private List< BSONObject > expList;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        if (CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("ONE GROUP MODE");
+        if ( CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "ONE GROUP MODE" );
         }
-        DBCollection cl = sdb.getCollectionSpace(csName).createCollection(clName,
-                (BSONObject) JSON.parse("{ShardingKey:{b:1}, ShardingType:'hash', AutoSplit:true}"));
-        cl.createIndex(idxName, "{a:1, b:1}", true, false);
+        DBCollection cl = sdb.getCollectionSpace( csName )
+                .createCollection( clName, ( BSONObject ) JSON.parse(
+                        "{ShardingKey:{b:1}, ShardingType:'hash', AutoSplit:true}" ) );
+        cl.createIndex( idxName, "{a:1, b:1}", true, false );
 
         // 插入多条记录R1s
-        expList = TransUtils.insertRandomDatas(cl, 0, 30000);
+        expList = TransUtils.insertRandomDatas( cl, 0, 30000 );
     }
 
     @AfterClass
     public void tearDown() {
-        if (db != null) {
+        if ( db != null ) {
             db.commit();
             db.close();
         }
-        if (sdb != null) {
-            CollectionSpace cs = sdb.getCollectionSpace(csName);
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+        if ( sdb != null ) {
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
             sdb.close();
         }
@@ -69,55 +70,59 @@ public class Transaction18501 extends SdbTestBase {
 
     @Test
     public void test() throws InterruptedException {
-        db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        DBCollection cl1 = db.getCollectionSpace(csName).getCollection(clName);
+        db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        DBCollection cl1 = db.getCollectionSpace( csName )
+                .getCollection( clName );
 
         // 开启事务，插入多条记录R2s
         db.beginTransaction();
         try {
-            insertData(cl1);
+            insertData( cl1 );
             Assert.fail();
-        } catch (BaseException e) {
-            if (-38 != e.getErrorCode()) {
+        } catch ( BaseException e ) {
+            if ( -38 != e.getErrorCode() ) {
                 throw e;
             }
         }
 
         // 事务回滚，非事务查询，查询到记录R1s
         // 索引扫描
-        DBCollection cl2 = db.getCollectionSpace(csName).getCollection(clName);
-        DBCursor cursor = cl2.query("", "", "{a:1, b:1}", "{'':'" + idxName + "'}");
-        List<BSONObject> actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        DBCollection cl2 = db.getCollectionSpace( csName )
+                .getCollection( clName );
+        DBCursor cursor = cl2.query( "", "", "{a:1, b:1}",
+                "{'':'" + idxName + "'}" );
+        List< BSONObject > actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
 
         // 表扫描
-        cursor = cl2.query("", "", "{a:1, b:1}", "{'':null}");
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl2.query( "", "", "{a:1, b:1}", "{'':null}" );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
 
         // 事务查询表扫描
         db.beginTransaction();
-        cursor = cl2.query("", "", "{a:1, b:1}", "{'':null}");
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl2.query( "", "", "{a:1, b:1}", "{'':null}" );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
 
         // 事务查询索引扫描
-        cursor = cl2.query("", "", "{a:1, b:1}", "{'':'" + idxName + "'}");
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl2.query( "", "", "{a:1, b:1}", "{'':'" + idxName + "'}" );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
 
         db.commit();
     }
 
-    private void insertData(DBCollection cl) {
-        List<BSONObject> records = new ArrayList<BSONObject>();
-        for (int i = 0; i < 29999; i++) {
-            BSONObject obj = (BSONObject) JSON.parse("{_id:" + (i + 50000) + ", a:" + (i + 50000) + ", b:" + i + "}");
-            records.add(obj);
+    private void insertData( DBCollection cl ) {
+        List< BSONObject > records = new ArrayList< BSONObject >();
+        for ( int i = 0; i < 29999; i++ ) {
+            BSONObject obj = ( BSONObject ) JSON.parse( "{_id:" + ( i + 50000 )
+                    + ", a:" + ( i + 50000 ) + ", b:" + i + "}" );
+            records.add( obj );
         }
-        BSONObject obj = (BSONObject) JSON.parse("{a:1000, b:1000}");
-        records.add(obj);
-        Collections.shuffle(records);
-        cl.insert(records);
+        BSONObject obj = ( BSONObject ) JSON.parse( "{a:1000, b:1000}" );
+        records.add( obj );
+        Collections.shuffle( records );
+        cl.insert( records );
     }
 }

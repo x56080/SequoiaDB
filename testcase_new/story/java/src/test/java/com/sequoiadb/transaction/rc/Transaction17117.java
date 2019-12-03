@@ -30,49 +30,50 @@ public class Transaction17117 extends SdbTestBase {
     private Sequoiadb db2 = null;
     private DBCollection cl = null;
     private DBCollection cl2 = null;
-    private List<BSONObject> posExpList = new ArrayList<BSONObject>();
-    private List<BSONObject> invExpList = new ArrayList<BSONObject>();
-    private List<BSONObject> posInsertR1s = new ArrayList<BSONObject>();
-    private List<BSONObject> invInsertR1s = new ArrayList<BSONObject>();
+    private List< BSONObject > posExpList = new ArrayList< BSONObject >();
+    private List< BSONObject > invExpList = new ArrayList< BSONObject >();
+    private List< BSONObject > posInsertR1s = new ArrayList< BSONObject >();
+    private List< BSONObject > invInsertR1s = new ArrayList< BSONObject >();
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl2 = db2.getCollectionSpace(csName).getCollection(clName);
-        cl.createIndex("a", "{a:1}", false, false);
-        cl.createIndex("ab", "{a:-1, b:1}", false, false);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
+        cl.createIndex( "a", "{a:1}", false, false );
+        cl.createIndex( "ab", "{a:-1, b:1}", false, false );
     }
 
     @Test
     public void test() {
         // 获取更新前逆序数据invInsertR1s
-        List<BSONObject> insertR1s = new ArrayList<BSONObject>();
-        insertR1s = TransUtils.getCompositeRecords(0, 2000, 0, 10);
-        cl.insert(insertR1s);
-        TransUtils.sortCompositeRecords(insertR1s, true);
-        posInsertR1s.addAll(insertR1s);
+        List< BSONObject > insertR1s = new ArrayList< BSONObject >();
+        insertR1s = TransUtils.getCompositeRecords( 0, 2000, 0, 10 );
+        cl.insert( insertR1s );
+        TransUtils.sortCompositeRecords( insertR1s, true );
+        posInsertR1s.addAll( insertR1s );
 
-        TransUtils.sortCompositeRecords(insertR1s, false);
-        Collections.reverse(insertR1s);
-        invInsertR1s.addAll(insertR1s);
+        TransUtils.sortCompositeRecords( insertR1s, false );
+        Collections.reverse( insertR1s );
+        invInsertR1s.addAll( insertR1s );
 
         // 获取更新后正序数据posExpList
-        posExpList.addAll(posInsertR1s);
-        for (int i = 0; i < posExpList.size(); i++) {
-            BSONObject record = posExpList.get(i);
-            int id = (int) record.get("_id") + 15000;
-            int a = (int) record.get("a") + 15001;
-            int b = (int) record.get("b") - 10;
-            posExpList.set(i, (BSONObject) JSON.parse("{_id:" + id + ", a:" + a + ", b:" + b + "}"));
+        posExpList.addAll( posInsertR1s );
+        for ( int i = 0; i < posExpList.size(); i++ ) {
+            BSONObject record = posExpList.get( i );
+            int id = ( int ) record.get( "_id" ) + 15000;
+            int a = ( int ) record.get( "a" ) + 15001;
+            int b = ( int ) record.get( "b" ) - 10;
+            posExpList.set( i, ( BSONObject ) JSON
+                    .parse( "{_id:" + id + ", a:" + a + ", b:" + b + "}" ) );
         }
-        TransUtils.sortCompositeRecords(posExpList, true);
+        TransUtils.sortCompositeRecords( posExpList, true );
 
         // 获取更新后逆序数据invExpList
-        invExpList.addAll(posExpList);
-        TransUtils.sortCompositeRecords(invExpList, false);
-        Collections.reverse(invExpList);
+        invExpList.addAll( posExpList );
+        TransUtils.sortCompositeRecords( invExpList, false );
+        Collections.reverse( invExpList );
 
         db2.beginTransaction();
 
@@ -80,38 +81,38 @@ public class Transaction17117 extends SdbTestBase {
         readThread.start();
 
         // 事务1更新全部索引字段
-        UpdateThread updateThread = new UpdateThread(readThread);
+        UpdateThread updateThread = new UpdateThread( readThread );
         updateThread.start();
 
-        if (!updateThread.isSuccess()) {
-            Assert.fail(updateThread.getErrorMsg());
+        if ( !updateThread.isSuccess() ) {
+            Assert.fail( updateThread.getErrorMsg() );
         }
 
         // 非事务表扫描记录
-        TransUtils.queryAndCheck(cl, "{_id:1}", "{'':null}", posExpList);
+        TransUtils.queryAndCheck( cl, "{_id:1}", "{'':null}", posExpList );
 
         // 非事务索引扫描记录
-        TransUtils.queryAndCheck(cl, "{a:1, b:1}", "{'':'a'}", posExpList);
+        TransUtils.queryAndCheck( cl, "{a:1, b:1}", "{'':'a'}", posExpList );
 
         // 事务2表扫描记录、正序
-        TransUtils.queryAndCheck(cl2, "{a:1, b:1}", "{'':null}", posExpList);
+        TransUtils.queryAndCheck( cl2, "{a:1, b:1}", "{'':null}", posExpList );
 
         // 事务2表扫描记录、逆序
-        TransUtils.queryAndCheck(cl2, "{a:-1, b:1}", "{'':null}", invExpList);
+        TransUtils.queryAndCheck( cl2, "{a:-1, b:1}", "{'':null}", invExpList );
 
         // 事务2索引扫描记录、正序
-        TransUtils.queryAndCheck(cl2, "{a:1, b:1}", "{'':'a'}", posExpList);
+        TransUtils.queryAndCheck( cl2, "{a:1, b:1}", "{'':'a'}", posExpList );
 
         // 事务2索引扫描记录、逆序
-        TransUtils.queryAndCheck(cl2, "{a:-1, b:1}", "{'':'ab'}", invExpList);
+        TransUtils.queryAndCheck( cl2, "{a:-1, b:1}", "{'':'ab'}", invExpList );
 
         db2.commit();
 
         // 非事务表扫描记录
-        TransUtils.queryAndCheck(cl, "{a:1, b:1}", "{'':null}", posExpList);
+        TransUtils.queryAndCheck( cl, "{a:1, b:1}", "{'':null}", posExpList );
 
         // 非事务索引扫描记录
-        TransUtils.queryAndCheck(cl, "{a:1, b:1}", "{'':'a'}", posExpList);
+        TransUtils.queryAndCheck( cl, "{a:1, b:1}", "{'':'a'}", posExpList );
     }
 
     private class UpdateThread extends SdbThreadBase {
@@ -119,37 +120,42 @@ public class Transaction17117 extends SdbTestBase {
         private DBCollection cl1 = null;
         private ReadThread readThread = null;
 
-        public UpdateThread(ReadThread readThread) {
+        public UpdateThread( ReadThread readThread ) {
             this.readThread = readThread;
         }
 
         @Override
         public void exec() throws Exception {
             try {
-                db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                cl1 = db1.getCollectionSpace(csName).getCollection(clName);
+                db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
                 db1.beginTransaction();
 
-                cl1.update("{$and:[{a:{$gte:0}},{a:{$lt:2000}}]}", "{$inc:{_id:15000, a:15001, b:-10}}", "{'':'a'}");
+                cl1.update( "{$and:[{a:{$gte:0}},{a:{$lt:2000}}]}",
+                        "{$inc:{_id:15000, a:15001, b:-10}}", "{'':'a'}" );
 
                 // 事务1表扫描记录、正序
-                TransUtils.queryAndCheck(cl1, "{a:1, b:1}", "{'':null}", posExpList);
+                TransUtils.queryAndCheck( cl1, "{a:1, b:1}", "{'':null}",
+                        posExpList );
 
                 // 事务1表扫描记录、逆序
-                TransUtils.queryAndCheck(cl1, "{a:-1, b:1}", "{'':null}", invExpList);
+                TransUtils.queryAndCheck( cl1, "{a:-1, b:1}", "{'':null}",
+                        invExpList );
 
                 // 事务1走"a"索引扫描记录、正序
-                TransUtils.queryAndCheck(cl1, "{a:1, b:1}", "{'':'a'}", posExpList);
+                TransUtils.queryAndCheck( cl1, "{a:1, b:1}", "{'':'a'}",
+                        posExpList );
 
                 // 事务1走"ab"索引扫描记录、逆序
-                TransUtils.queryAndCheck(cl1, "{a:-1, b:1}", "{'':'ab'}", invExpList);
+                TransUtils.queryAndCheck( cl1, "{a:-1, b:1}", "{'':'ab'}",
+                        invExpList );
 
-                if (!readThread.isSuccess()) {
-                    Assert.fail(readThread.getErrorMsg());
+                if ( !readThread.isSuccess() ) {
+                    Assert.fail( readThread.getErrorMsg() );
                 }
                 db1.commit();
-            } catch (BaseException e) {
-                Assert.fail(e.getMessage());
+            } catch ( BaseException e ) {
+                Assert.fail( e.getMessage() );
             } finally {
                 db1.close();
             }
@@ -160,29 +166,33 @@ public class Transaction17117 extends SdbTestBase {
         @Override
         public void exec() throws Exception {
             // 事务2表扫描记录、正序
-            TransUtils.queryAndCheck(cl2, "{a:1, b:1}", "{'':null}", posInsertR1s);
+            TransUtils.queryAndCheck( cl2, "{a:1, b:1}", "{'':null}",
+                    posInsertR1s );
 
             // 事务2表扫描记录、逆序
-            TransUtils.queryAndCheck(cl2, "{a:-1, b:1}", "{'':null}", invInsertR1s);
+            TransUtils.queryAndCheck( cl2, "{a:-1, b:1}", "{'':null}",
+                    invInsertR1s );
 
             // 事务2走"a"索引扫描记录、正序
-            TransUtils.queryAndCheck(cl2, "{a:1, b:1}", "{'':'a'}", posInsertR1s);
+            TransUtils.queryAndCheck( cl2, "{a:1, b:1}", "{'':'a'}",
+                    posInsertR1s );
 
             // 事务2走"ab"索引扫描记录、逆序
-            TransUtils.queryAndCheck(cl2, "{a:-1, b:1}", "{'':'ab'}", invInsertR1s);
+            TransUtils.queryAndCheck( cl2, "{a:-1, b:1}", "{'':'ab'}",
+                    invInsertR1s );
         }
     }
 
     @AfterClass
     public void tearDown() {
-        if (!db2.isClosed()) {
+        if ( !db2.isClosed() ) {
             db2.close();
         }
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        if (!sdb.isClosed()) {
+        if ( !sdb.isClosed() ) {
             sdb.close();
         }
     }

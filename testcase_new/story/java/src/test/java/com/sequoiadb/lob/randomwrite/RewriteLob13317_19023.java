@@ -55,77 +55,86 @@ public class RewriteLob13317_19023 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb) || CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("no groups to split");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "no groups to split" );
         }
 
         // create cs cl
-        BSONObject csOpt = (BSONObject) JSON.parse("{LobPageSize: " + lobPageSize + "}");
-        cs = sdb.createCollectionSpace(csName, csOpt);
-        BSONObject clOpt = (BSONObject) JSON.parse("{ShardingKey:{a:1},ShardingType:'hash'}");
-        cs.createCollection(clName, clOpt);
-        LobSubUtils.createMainCLAndAttachCL(sdb, csName, mainCLName, subCLName);
+        BSONObject csOpt = ( BSONObject ) JSON
+                .parse( "{LobPageSize: " + lobPageSize + "}" );
+        cs = sdb.createCollectionSpace( csName, csOpt );
+        BSONObject clOpt = ( BSONObject ) JSON
+                .parse( "{ShardingKey:{a:1},ShardingType:'hash'}" );
+        cs.createCollection( clName, clOpt );
+        LobSubUtils.createMainCLAndAttachCL( sdb, csName, mainCLName,
+                subCLName );
     }
 
     @Test(dataProvider = "clNameProvider")
-    public void testLob(String mainCLName, String subCLName) {
-        DBCollection mainCL = sdb.getCollectionSpace(csName).getCollection(mainCLName);
-        DBCollection subCL = sdb.getCollectionSpace(csName).getCollection(subCLName);
+    public void testLob( String mainCLName, String subCLName ) {
+        DBCollection mainCL = sdb.getCollectionSpace( csName )
+                .getCollection( mainCLName );
+        DBCollection subCL = sdb.getCollectionSpace( csName )
+                .getCollection( subCLName );
 
         int lobSize = 2 * 1024 * 1024;
-        byte[] data = RandomWriteLobUtil.getRandomBytes(lobSize);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(mainCL, data);
+        byte[] data = RandomWriteLobUtil.getRandomBytes( lobSize );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( mainCL, data );
         byte[] expData = data;
 
-        LobPart partA = new LobPart(0, 256 * 1024);
-        LobPart partB = new LobPart(256 * 1024, 768 * 1024);
-        LobPart partC = new LobPart(1024 * 1024, 512 * 1024);
+        LobPart partA = new LobPart( 0, 256 * 1024 );
+        LobPart partB = new LobPart( 256 * 1024, 768 * 1024 );
+        LobPart partC = new LobPart( 1024 * 1024, 512 * 1024 );
 
-        String srcGroupName = RandomWriteLobUtil.getSrcGroupName(sdb, csName, subCLName);
-        String dstGroupName = RandomWriteLobUtil.getSplitGroupName(sdb, srcGroupName);
+        String srcGroupName = RandomWriteLobUtil.getSrcGroupName( sdb, csName,
+                subCLName );
+        String dstGroupName = RandomWriteLobUtil.getSplitGroupName( sdb,
+                srcGroupName );
         long taskId = 0;
         // TODO:1、切分范围没有检查
-        taskId = subCL.splitAsync(srcGroupName, dstGroupName, 50);
+        taskId = subCL.splitAsync( srcGroupName, dstGroupName, 50 );
 
-        try (DBLob lob = mainCL.openLob(oid, DBLob.SDB_LOB_WRITE)) {
-            lockAndSeekAndWriteLob(lob, partA);
-            lockAndSeekAndWriteLob(lob, partB);
-            lockAndSeekAndWriteLob(lob, partC);
+        try ( DBLob lob = mainCL.openLob( oid, DBLob.SDB_LOB_WRITE )) {
+            lockAndSeekAndWriteLob( lob, partA );
+            lockAndSeekAndWriteLob( lob, partB );
+            lockAndSeekAndWriteLob( lob, partC );
         }
 
-        expData = updateExpData(expData, partA);
-        expData = updateExpData(expData, partB);
-        expData = updateExpData(expData, partC);
+        expData = updateExpData( expData, partA );
+        expData = updateExpData( expData, partB );
+        expData = updateExpData( expData, partC );
 
         long[] taskIdArr = { taskId };
-        sdb.waitTasks(taskIdArr);
+        sdb.waitTasks( taskIdArr );
 
-        byte[] actData = RandomWriteLobUtil.readLob(mainCL, oid);
-        RandomWriteLobUtil.assertByteArrayEqual(actData, expData, "lob data is wrong");
+        byte[] actData = RandomWriteLobUtil.readLob( mainCL, oid );
+        RandomWriteLobUtil.assertByteArrayEqual( actData, expData,
+                "lob data is wrong" );
 
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }
     }
 
-    private void lockAndSeekAndWriteLob(DBLob lob, LobPart part) {
-        lob.lockAndSeek(part.getOffset(), part.getLength());
-        lob.write(part.getData());
+    private void lockAndSeekAndWriteLob( DBLob lob, LobPart part ) {
+        lob.lockAndSeek( part.getOffset(), part.getLength() );
+        lob.write( part.getData() );
     }
 
-    private byte[] updateExpData(byte[] expData, LobPart part) {
-        return RandomWriteLobUtil.appendBuff(expData, part.getData(), part.getOffset());
+    private byte[] updateExpData( byte[] expData, LobPart part ) {
+        return RandomWriteLobUtil.appendBuff( expData, part.getData(),
+                part.getOffset() );
     }
 
 }

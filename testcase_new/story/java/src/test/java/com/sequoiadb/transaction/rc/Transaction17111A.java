@@ -32,8 +32,8 @@ public class Transaction17111A extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "tbscan17111";
     private DBCollection cl = null;
-    private List<BSONObject> expList = new ArrayList<BSONObject>();
-    private List<BSONObject> actList = new ArrayList<BSONObject>();
+    private List< BSONObject > expList = new ArrayList< BSONObject >();
+    private List< BSONObject > actList = new ArrayList< BSONObject >();
     private Sequoiadb db1 = null;
     private Sequoiadb db2 = null;
     private Sequoiadb db3 = null;
@@ -50,148 +50,153 @@ public class Transaction17111A extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
     }
 
     @AfterClass
     public void tearDown() {
-        if (!db1.isClosed()) {
+        if ( !db1.isClosed() ) {
             db1.close();
         }
-        if (!db2.isClosed()) {
+        if ( !db2.isClosed() ) {
             db2.close();
         }
-        if (!db3.isClosed()) {
+        if ( !db3.isClosed() ) {
             db3.close();
         }
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        if (!sdb.isClosed()) {
+        if ( !sdb.isClosed() ) {
             sdb.close();
         }
     }
 
     @SuppressWarnings("unchecked")
     @Test(dataProvider = "index")
-    public void test(String indexKey) {
+    public void test( String indexKey ) {
         try {
-            cl.createIndex("a", indexKey, false, false);
+            cl.createIndex( "a", indexKey, false, false );
 
-            BSONObject R1 = (BSONObject) JSON.parse("{_id:1, a:1, b:1}");
-            cl.insert(R1);
+            BSONObject R1 = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
+            cl.insert( R1 );
             expList.clear();
-            expList.add(R1);
+            expList.add( R1 );
 
             // 开启并发事务
-            db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            db3 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             db1.beginTransaction();
             db2.beginTransaction();
             db3.beginTransaction();
-            cl1 = db1.getCollectionSpace(csName).getCollection(clName);
-            cl2 = db2.getCollectionSpace(csName).getCollection(clName);
-            cl3 = db3.getCollectionSpace(csName).getCollection(clName);
+            cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
+            cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
+            cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
 
             // 事务1 select for update读记录走索引扫描
-            DBCursor recordsCursor = cl1.query(null, null, null, "{'':'a'}", DBQuery.FLG_QUERY_FOR_UPDATE);
-            actList = TransUtils.getReadActList(recordsCursor);
-            Assert.assertEquals(actList, expList);
+            DBCursor recordsCursor = cl1.query( null, null, null, "{'':'a'}",
+                    DBQuery.FLG_QUERY_FOR_UPDATE );
+            actList = TransUtils.getReadActList( recordsCursor );
+            Assert.assertEquals( actList, expList );
 
             // 事务2 select for update 读记录走表扫描阻塞
-            CL2Query cl2Thread = new CL2Query(null, "{'':null}");
+            CL2Query cl2Thread = new CL2Query( null, "{'':null}" );
             cl2Thread.start();
-            Assert.assertTrue(cl2Thread.matchBlockingMethod(DBCursor.class.getName(), "hasNext"));
+            Assert.assertTrue( cl2Thread.matchBlockingMethod(
+                    DBCursor.class.getName(), "hasNext" ) );
 
             // 事务3更新记录阻塞
             CL3Update cl3Update = new CL3Update();
             cl3Update.start();
-            Assert.assertTrue(cl3Update.matchBlockingMethod(cl3.getClass().getName(), "update"));
+            Assert.assertTrue( cl3Update.matchBlockingMethod(
+                    cl3.getClass().getName(), "update" ) );
 
             // 提交事务1
             db1.commit();
-            Assert.assertTrue(cl2Thread.isSuccess(), cl2Thread.getErrorMsg());
+            Assert.assertTrue( cl2Thread.isSuccess(), cl2Thread.getErrorMsg() );
             try {
-                actList = (List<BSONObject>) cl2Thread.getExecResult();
-                Assert.assertEquals(actList, expList);
-            } catch (InterruptedException e) {
-                Assert.fail(e.getMessage());
+                actList = ( List< BSONObject > ) cl2Thread.getExecResult();
+                Assert.assertEquals( actList, expList );
+            } catch ( InterruptedException e ) {
+                Assert.fail( e.getMessage() );
             }
-            Assert.assertTrue(cl3Update.matchBlockingMethod(cl3.getClass().getName(), "update"));
+            Assert.assertTrue( cl3Update.matchBlockingMethod(
+                    cl3.getClass().getName(), "update" ) );
 
             // 非事务表扫描
-            TransUtils.queryAndCheck(cl, hintTbScan, expList);
+            TransUtils.queryAndCheck( cl, hintTbScan, expList );
 
             // 非事务索引扫描
-            TransUtils.queryAndCheck(cl, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl, hintIxScan, expList );
 
             // 非事务逆序表扫描
-            Collections.reverse(expList);
-            TransUtils.queryAndCheck(cl, "{a: -1}", hintTbScan, expList);
+            Collections.reverse( expList );
+            TransUtils.queryAndCheck( cl, "{a: -1}", hintTbScan, expList );
 
             // 非事务逆序索引扫描
-            TransUtils.queryAndCheck(cl, "{a: -1}", hintIxScan, expList);
+            TransUtils.queryAndCheck( cl, "{a: -1}", hintIxScan, expList );
 
             // 提交事务2
             db2.commit();
-            Assert.assertTrue(cl3Update.isSuccess(), cl3Update.getErrorMsg());
+            Assert.assertTrue( cl3Update.isSuccess(), cl3Update.getErrorMsg() );
 
             // 非事务表扫描
-            BSONObject record = (BSONObject) JSON.parse("{_id:1, a:4, b:1}");
+            BSONObject record = ( BSONObject ) JSON
+                    .parse( "{_id:1, a:4, b:1}" );
             expList.clear();
-            expList.add(record);
-            TransUtils.queryAndCheck(cl, hintTbScan, expList);
+            expList.add( record );
+            TransUtils.queryAndCheck( cl, hintTbScan, expList );
 
             // 非事务索引扫描
-            TransUtils.queryAndCheck(cl, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl, hintIxScan, expList );
 
             // 非事务逆序表扫描
-            Collections.reverse(expList);
-            TransUtils.queryAndCheck(cl, "{a: -1}", hintTbScan, expList);
+            Collections.reverse( expList );
+            TransUtils.queryAndCheck( cl, "{a: -1}", hintTbScan, expList );
 
             // 非事务逆序索引扫描
-            TransUtils.queryAndCheck(cl, "{a: -1}", hintIxScan, expList);
+            TransUtils.queryAndCheck( cl, "{a: -1}", hintIxScan, expList );
 
             // 事务3表扫描
-            Collections.reverse(expList);
-            TransUtils.queryAndCheck(cl3, hintTbScan, expList);
+            Collections.reverse( expList );
+            TransUtils.queryAndCheck( cl3, hintTbScan, expList );
 
             // 事务3索引扫描
-            TransUtils.queryAndCheck(cl3, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl3, hintIxScan, expList );
 
             // 事务3逆序表扫描
-            Collections.reverse(expList);
-            TransUtils.queryAndCheck(cl3, "{a: -1}", hintTbScan, expList);
+            Collections.reverse( expList );
+            TransUtils.queryAndCheck( cl3, "{a: -1}", hintTbScan, expList );
 
             // 事务3逆序索引扫描
-            TransUtils.queryAndCheck(cl3, "{a: -1}", hintIxScan, expList);
+            TransUtils.queryAndCheck( cl3, "{a: -1}", hintIxScan, expList );
 
             // 提交事务3
             db3.commit();
 
             // 非事务表扫描
-            Collections.reverse(expList);
-            TransUtils.queryAndCheck(cl, "{a: -1}", hintTbScan, expList);
+            Collections.reverse( expList );
+            TransUtils.queryAndCheck( cl, "{a: -1}", hintTbScan, expList );
 
             // 非事务索引扫描
-            TransUtils.queryAndCheck(cl, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl, hintIxScan, expList );
 
             // 非事务表扫描
-            Collections.reverse(expList);
-            TransUtils.queryAndCheck(cl, "{a: -1}", hintTbScan, expList);
+            Collections.reverse( expList );
+            TransUtils.queryAndCheck( cl, "{a: -1}", hintTbScan, expList );
 
             // 非事务索引扫描
-            TransUtils.queryAndCheck(cl, hintIxScan, expList);
+            TransUtils.queryAndCheck( cl, hintIxScan, expList );
             recordsCursor.close();
         } finally {
             db1.commit();
             db2.commit();
             db3.commit();
-            if (cl.isIndexExist("a")) {
-                cl.dropIndex("a");
+            if ( cl.isIndexExist( "a" ) ) {
+                cl.dropIndex( "a" );
             }
             cl.truncate();
         }
@@ -201,7 +206,7 @@ public class Transaction17111A extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            cl3.update("{a:1}", "{$set:{a:4}}", "{'':'a'}");
+            cl3.update( "{a:1}", "{$set:{a:4}}", "{'':'a'}" );
         }
     }
 
@@ -209,7 +214,7 @@ public class Transaction17111A extends SdbTestBase {
         private String hint;
         private String matcher;
 
-        public CL2Query(String matcher, String hint) {
+        public CL2Query( String matcher, String hint ) {
             super();
             this.matcher = matcher;
             this.hint = hint;
@@ -217,9 +222,10 @@ public class Transaction17111A extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            DBCursor cursor = cl2.query(matcher, null, null, hint, DBQuery.FLG_QUERY_FOR_UPDATE);
-            List<BSONObject> records = TransUtils.getReadActList(cursor);
-            setExecResult(records);
+            DBCursor cursor = cl2.query( matcher, null, null, hint,
+                    DBQuery.FLG_QUERY_FOR_UPDATE );
+            List< BSONObject > records = TransUtils.getReadActList( cursor );
+            setExecResult( records );
         }
     }
 }

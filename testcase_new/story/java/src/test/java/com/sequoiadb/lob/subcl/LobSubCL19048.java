@@ -42,70 +42,73 @@ public class LobSubCL19048 extends SdbTestBase {
     private DBCollection mainCL = null;
     private int writeLobSize = 1024 * 1024;
     private byte[] lobBuff;
-    private List<ObjectId> lobIds;
+    private List< ObjectId > lobIds;
     private int timeout = 600000;
 
     private CollectionSpace cs;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb) || CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("can not support split");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "can not support split" );
         }
 
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
         BSONObject options = new BasicBSONObject();
-        options.put("IsMainCL", true);
-        options.put("ShardingKey", new BasicBSONObject("date", 1));
-        options.put("ShardingType", "range");
-        options.put("LobShardingKeyFormat", "YYYYMMDD");
-        mainCL = cs.createCollection(mainCLName, options);
+        options.put( "IsMainCL", true );
+        options.put( "ShardingKey", new BasicBSONObject( "date", 1 ) );
+        options.put( "ShardingType", "range" );
+        options.put( "LobShardingKeyFormat", "YYYYMMDD" );
+        mainCL = cs.createCollection( mainCLName, options );
 
         BSONObject clOptions = new BasicBSONObject();
-        clOptions.put("ShardingKey", new BasicBSONObject("date", 1));
-        clOptions.put("ShardingType", "hash");
-        clOptions.put("AutoSplit", false);
-        cs.createCollection(subCLName, clOptions);
+        clOptions.put( "ShardingKey", new BasicBSONObject( "date", 1 ) );
+        clOptions.put( "ShardingType", "hash" );
+        clOptions.put( "AutoSplit", false );
+        cs.createCollection( subCLName, clOptions );
 
         BSONObject bound = new BasicBSONObject();
-        bound.put("LowBound", new BasicBSONObject("date", new MinKey()));
-        bound.put("UpBound", new BasicBSONObject("date", new MaxKey()));
-        mainCL.attachCollection(SdbTestBase.csName + "." + subCLName, bound);
+        bound.put( "LowBound", new BasicBSONObject( "date", new MinKey() ) );
+        bound.put( "UpBound", new BasicBSONObject( "date", new MaxKey() ) );
+        mainCL.attachCollection( SdbTestBase.csName + "." + subCLName, bound );
 
-        sourceGroupName = RandomWriteLobUtil.getSrcGroupName(sdb, SdbTestBase.csName, subCLName);
-        destGroupName = RandomWriteLobUtil.getSplitGroupName(sdb, sourceGroupName);
-        lobBuff = RandomWriteLobUtil.getRandomBytes(writeLobSize);
-        lobIds = LobSubUtils.createAndWriteLob(mainCL, lobBuff);
+        sourceGroupName = RandomWriteLobUtil.getSrcGroupName( sdb,
+                SdbTestBase.csName, subCLName );
+        destGroupName = RandomWriteLobUtil.getSplitGroupName( sdb,
+                sourceGroupName );
+        lobBuff = RandomWriteLobUtil.getRandomBytes( writeLobSize );
+        lobIds = LobSubUtils.createAndWriteLob( mainCL, lobBuff );
     }
 
     @Test
     public void test() throws Exception {
-        ThreadExecutor thread = new ThreadExecutor(timeout);
+        ThreadExecutor thread = new ThreadExecutor( timeout );
         SplitCLThread splitCL = new SplitCLThread();
-        thread.addWorker(new DetachCLThread());
-        thread.addWorker(splitCL);
+        thread.addWorker( new DetachCLThread() );
+        thread.addWorker( splitCL );
         thread.run();
 
-        DBCollection subCL = sdb.getCollectionSpace(SdbTestBase.csName).getCollection(subCLName);
-        LobSubUtils.checkLobMD5(subCL, lobIds, lobBuff);
-        if (splitCL.getRetCode() != 0) {
-            subCL.split(sourceGroupName, destGroupName, 50);
+        DBCollection subCL = sdb.getCollectionSpace( SdbTestBase.csName )
+                .getCollection( subCLName );
+        LobSubUtils.checkLobMD5( subCL, lobIds, lobBuff );
+        if ( splitCL.getRetCode() != 0 ) {
+            subCL.split( sourceGroupName, destGroupName, 50 );
         }
-        LobSubUtils.checkLobMD5(subCL, lobIds, lobBuff);
+        LobSubUtils.checkLobMD5( subCL, lobIds, lobBuff );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
-            if (cs.isCollectionExist(subCLName)) {
-                cs.dropCollection(subCLName);
+            if ( cs.isCollectionExist( subCLName ) ) {
+                cs.dropCollection( subCLName );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -115,13 +118,15 @@ public class LobSubCL19048 extends SdbTestBase {
 
         @ExecuteOrder(step = 1)
         private void detachCL() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection mainCL = db.getCollectionSpace(csName).getCollection(mainCLName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection mainCL = db.getCollectionSpace( csName )
+                        .getCollection( mainCLName );
                 try {
-                    Thread.sleep(new Random().nextInt(100));
-                } catch (InterruptedException e) {
+                    Thread.sleep( new Random().nextInt( 100 ) );
+                } catch ( InterruptedException e ) {
                 }
-                mainCL.detachCollection(SdbTestBase.csName + "." + subCLName);
+                mainCL.detachCollection( SdbTestBase.csName + "." + subCLName );
             }
         }
     }
@@ -130,12 +135,14 @@ public class LobSubCL19048 extends SdbTestBase {
 
         @ExecuteOrder(step = 1)
         private void splitCL() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection subCL = db.getCollectionSpace(csName).getCollection(subCLName);
-                subCL.split(sourceGroupName, destGroupName, 50);
-            } catch (BaseException e) {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection subCL = db.getCollectionSpace( csName )
+                        .getCollection( subCLName );
+                subCL.split( sourceGroupName, destGroupName, 50 );
+            } catch ( BaseException e ) {
                 e.printStackTrace();
-                saveResult(e.getErrorCode(), e);
+                saveResult( e.getErrorCode(), e );
             }
         }
     }

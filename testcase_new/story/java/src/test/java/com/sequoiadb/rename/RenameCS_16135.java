@@ -37,13 +37,13 @@ public class RenameCS_16135 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        csA = sdb.createCollectionSpace(csNameA);
-        csB = sdb.createCollectionSpace(csNameB);
-        clA = csA.createCollection(clNameA);
-        clB = csB.createCollection(clNameB);
-        RenameUtil.insertData(clA, recordNum);
-        RenameUtil.insertData(clB, recordNum);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        csA = sdb.createCollectionSpace( csNameA );
+        csB = sdb.createCollectionSpace( csNameB );
+        clA = csA.createCollection( clNameA );
+        clB = csB.createCollection( clNameB );
+        RenameUtil.insertData( clA, recordNum );
+        RenameUtil.insertData( clB, recordNum );
     }
 
     @Test
@@ -57,32 +57,34 @@ public class RenameCS_16135 extends SdbTestBase {
         boolean csARename = reCSANameThread.isSuccess();
         boolean csBRename = reCSBNameThread.isSuccess();
 
-        Assert.assertTrue(csARename, reCSANameThread.getErrorMsg());
+        Assert.assertTrue( csARename, reCSANameThread.getErrorMsg() );
 
-        Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (!csBRename) {
+        Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( !csBRename ) {
             Integer[] errnos = { -33, -147, -148, -190 };
-            BaseException error = (BaseException) reCSBNameThread.getExceptions().get(0);
-            if (!Arrays.asList(errnos).contains(error.getErrorCode())) {
-                Assert.fail(reCSBNameThread.getErrorMsg());
+            BaseException error = ( BaseException ) reCSBNameThread
+                    .getExceptions().get( 0 );
+            if ( !Arrays.asList( errnos ).contains( error.getErrorCode() ) ) {
+                Assert.fail( reCSBNameThread.getErrorMsg() );
             }
-            if (error.getErrorCode() == -148) {
-                RenameUtil.retryToRenameCS(db, csName, tmpCSName);
+            if ( error.getErrorCode() == -148 ) {
+                RenameUtil.retryToRenameCS( db, csName, tmpCSName );
             }
         }
 
         try {
             // TODO:1、如果CSBrename成功，需要检查下对应的cl是否正确，只是校验cl个数不严谨
-            if (csBRename) {
-                RenameUtil.checkRenameCSResult(db, csNameB, csNameA, 1);
+            if ( csBRename ) {
+                RenameUtil.checkRenameCSResult( db, csNameB, csNameA, 1 );
             } else {
-                RenameUtil.checkRenameCSResult(db, csNameA, csNameB, 1);
+                RenameUtil.checkRenameCSResult( db, csNameA, csNameB, 1 );
             }
             // rename csA be bound to success,check rename csA result
-            Assert.assertTrue(db.isCollectionSpaceExist(newCSNameA),
-                    "csA is rename success, but not found, cs name: " + newCSNameA);
+            Assert.assertTrue( db.isCollectionSpaceExist( newCSNameA ),
+                    "csA is rename success, but not found, cs name: "
+                            + newCSNameA );
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
@@ -91,11 +93,11 @@ public class RenameCS_16135 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            CommLib.clearCS(sdb, csNameA);
-            CommLib.clearCS(sdb, csNameB);
-            CommLib.clearCS(sdb, newCSNameA);
+            CommLib.clearCS( sdb, csNameA );
+            CommLib.clearCS( sdb, csNameB );
+            CommLib.clearCS( sdb, newCSNameA );
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -105,9 +107,10 @@ public class RenameCS_16135 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            Thread.sleep(5);
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                db.renameCollectionSpace(csNameA, newCSNameA);
+            Thread.sleep( 5 );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                db.renameCollectionSpace( csNameA, newCSNameA );
             }
         }
     }
@@ -116,8 +119,9 @@ public class RenameCS_16135 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                db.renameCollectionSpace(csNameB, csNameA);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                db.renameCollectionSpace( csNameB, csNameA );
             }
         }
     }

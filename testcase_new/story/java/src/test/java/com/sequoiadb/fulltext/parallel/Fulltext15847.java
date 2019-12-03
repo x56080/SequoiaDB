@@ -40,64 +40,72 @@ public class Fulltext15847 extends FullTestBase {
 
     @Override
     protected void initTestProp() {
-        caseProp.setProperty(IGNORESTANDALONE, "true");
-        caseProp.setProperty(CLNAME, clName);
+        caseProp.setProperty( IGNORESTANDALONE, "true" );
+        caseProp.setProperty( CLNAME, clName );
     }
 
     @Override
     protected void caseInit() throws Exception {
-        FullTextDBUtils.insertData(cl, insertNum);
+        FullTextDBUtils.insertData( cl, insertNum );
 
         BSONObject indexObj = new BasicBSONObject();
-        indexObj.put("a", "text");
-        indexObj.put("b", "text");
-        indexObj.put("c", "text");
-        indexObj.put("d", "text");
-        indexObj.put("e", "text");
-        cl.createIndex(indexName, indexObj, false, false);
+        indexObj.put( "a", "text" );
+        indexObj.put( "b", "text" );
+        indexObj.put( "c", "text" );
+        indexObj.put( "d", "text" );
+        indexObj.put( "e", "text" );
+        cl.createIndex( indexName, indexObj, false, false );
 
-        Assert.assertTrue(FullTextUtils.isIndexCreated(cl, indexName, insertNum));
-        cappedName = FullTextDBUtils.getCappedName(cl, indexName);
-        esIndexName = FullTextDBUtils.getESIndexName(cl, indexName);
+        Assert.assertTrue(
+                FullTextUtils.isIndexCreated( cl, indexName, insertNum ) );
+        cappedName = FullTextDBUtils.getCappedName( cl, indexName );
+        esIndexName = FullTextDBUtils.getESIndexName( cl, indexName );
     }
 
     @Test
     public void test() throws Exception {
-        ThreadExecutor thread = new ThreadExecutor(FullTextUtils.THREAD_TIMEOUT);
-        thread.addWorker(new TextIndexThread());
-        thread.addWorker(new InsertThread());
-        thread.addWorker(new UpdateThread());
-        thread.addWorker(new DeleteThread());
+        ThreadExecutor thread = new ThreadExecutor(
+                FullTextUtils.THREAD_TIMEOUT );
+        thread.addWorker( new TextIndexThread() );
+        thread.addWorker( new InsertThread() );
+        thread.addWorker( new UpdateThread() );
+        thread.addWorker( new DeleteThread() );
         thread.run();
 
-        if (indexExist) {
+        if ( indexExist ) {
             // 先校验索引的逻辑ID是否正常，再校验索引数据、主备节点数据的一致性
-            Assert.assertTrue(FullTextUtils.isIdxLidSyncInES(esIndexName, expectIdxLid));
-            Assert.assertTrue(FullTextUtils.isIndexCreated(cl, indexName, insertNum - deleteNum + testInsertNum));
+            Assert.assertTrue( FullTextUtils.isIdxLidSyncInES( esIndexName,
+                    expectIdxLid ) );
+            Assert.assertTrue( FullTextUtils.isIndexCreated( cl, indexName,
+                    insertNum - deleteNum + testInsertNum ) );
             int recordNum = 0;
-            DBCursor cur = cl.query("{'': {'$Text': {'query': {'match_all': {}}}}}", null, "{'recordId': 1}",
-                    "{'': '" + indexName + "'}");
-            while (cur.hasNext()) {
+            DBCursor cur = cl.query(
+                    "{'': {'$Text': {'query': {'match_all': {}}}}}", null,
+                    "{'recordId': 1}", "{'': '" + indexName + "'}" );
+            while ( cur.hasNext() ) {
                 cur.getNext();
                 recordNum++;
             }
             cur.close();
 
-            Assert.assertEquals(recordNum, updateNum + testInsertNum, "use fulltext index search record");
+            Assert.assertEquals( recordNum, updateNum + testInsertNum,
+                    "use fulltext index search record" );
         } else {
-            Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedName));
+            Assert.assertTrue( FullTextUtils.isIndexDeleted( sdb, esIndexName,
+                    cappedName ) );
             DBCursor cur = null;
             try {
-                cur = cl.query("{'': {'$Text': {'query': {'match_all': {}}}}}", null, "{'recordId': 1}",
-                        "{'': '" + indexName + "'}");
-                if (cur.hasNext()) {
+                cur = cl.query( "{'': {'$Text': {'query': {'match_all': {}}}}}",
+                        null, "{'recordId': 1}", "{'': '" + indexName + "'}" );
+                if ( cur.hasNext() ) {
                     cur.getNext();
                 }
-                Assert.fail("use not exist fulltext search should be failed!");
-            } catch (BaseException e) {
-                Assert.assertEquals(e.getErrorCode(), -52, e.getMessage());
+                Assert.fail(
+                        "use not exist fulltext search should be failed!" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -52, e.getMessage() );
             } finally {
-                if (cur != null) {
+                if ( cur != null ) {
                     cur.close();
                 }
             }
@@ -107,7 +115,8 @@ public class Fulltext15847 extends FullTestBase {
 
     @Override
     protected void caseFini() throws Exception {
-        Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedName));
+        Assert.assertTrue(
+                FullTextUtils.isIndexDeleted( sdb, esIndexName, cappedName ) );
     }
 
     private class TextIndexThread {
@@ -115,24 +124,26 @@ public class Fulltext15847 extends FullTestBase {
         @ExecuteOrder(step = 1)
         private void createAndDropIndex() {
             BSONObject indexObj = new BasicBSONObject();
-            indexObj.put("a", "text");
-            indexObj.put("b", "text");
-            indexObj.put("c", "text");
-            indexObj.put("d", "text");
-            indexObj.put("e", "text");
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                for (int i = 0; i < 5; i++) {
-                    cl.dropIndex(indexName);
+            indexObj.put( "a", "text" );
+            indexObj.put( "b", "text" );
+            indexObj.put( "c", "text" );
+            indexObj.put( "d", "text" );
+            indexObj.put( "e", "text" );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                for ( int i = 0; i < 5; i++ ) {
+                    cl.dropIndex( indexName );
                     indexExist = false;
-                    cl.createIndex(indexName, indexObj, false, false);
+                    cl.createIndex( indexName, indexObj, false, false );
                     indexExist = true;
                     // 当成功创建一次全文索引，次数加1
                     expectIdxLid++;
-                    
+
                 }
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -147 && e.getErrorCode() != -190) {
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -147 && e.getErrorCode() != -190 ) {
                     throw e;
                 }
             }
@@ -143,20 +154,24 @@ public class Fulltext15847 extends FullTestBase {
 
         @ExecuteOrder(step = 1)
         private void insert() throws InterruptedException {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                List<BSONObject> insertObjs = new ArrayList<BSONObject>();
-                String strB = StringUtils.getRandomString(8);
-                String strC = StringUtils.getRandomString(32);
-                String strD = StringUtils.getRandomString(64);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                List< BSONObject > insertObjs = new ArrayList< BSONObject >();
+                String strB = StringUtils.getRandomString( 8 );
+                String strC = StringUtils.getRandomString( 32 );
+                String strD = StringUtils.getRandomString( 64 );
                 int insertNum1 = insertNum + testInsertNum / 10;
-                for (int i = 0; i < 10; i++) {
-                    for (int j = insertNum; j < insertNum1; j++) {
-                        int recordNum = i * (testInsertNum / 10) + j;
-                        insertObjs.add((BSONObject) JSON.parse("{recordId: " + recordNum + ", a: '" + clName + recordNum
-                                + "', b: '" + strB + "', c: '" + strC + "', d: '" + strD + "'}"));
+                for ( int i = 0; i < 10; i++ ) {
+                    for ( int j = insertNum; j < insertNum1; j++ ) {
+                        int recordNum = i * ( testInsertNum / 10 ) + j;
+                        insertObjs.add( ( BSONObject ) JSON.parse( "{recordId: "
+                                + recordNum + ", a: '" + clName + recordNum
+                                + "', b: '" + strB + "', c: '" + strC
+                                + "', d: '" + strD + "'}" ) );
                     }
-                    cl.insert(insertObjs, 0);
+                    cl.insert( insertObjs, 0 );
                     insertObjs.clear();
                 }
             }
@@ -167,9 +182,12 @@ public class Fulltext15847 extends FullTestBase {
 
         @ExecuteOrder(step = 1)
         private void update() throws InterruptedException {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                cl.update("{recordId: {$gte: 0, $lt: " + updateNum + "}}", "{$set: {b: 'text'}}", null);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                cl.update( "{recordId: {$gte: 0, $lt: " + updateNum + "}}",
+                        "{$set: {b: 'text'}}", null );
             }
         }
     }
@@ -178,9 +196,12 @@ public class Fulltext15847 extends FullTestBase {
 
         @ExecuteOrder(step = 1)
         private void delete() throws InterruptedException {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                cl.delete("{recordId: {$gte: " + deleteNum + ", $lt: " + insertNum + "}}");
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                cl.delete( "{recordId: {$gte: " + deleteNum + ", $lt: "
+                        + insertNum + "}}" );
             }
         }
     }

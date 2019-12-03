@@ -1,4 +1,5 @@
 package com.sequoiadb.transaction;
+
 /**
  * @FileName:SEQDB-10537 切分过程中执行事务操作
  * @author huangqiaohui
@@ -30,20 +31,23 @@ public class Split10537 extends SdbTestBase {
 
     @BeforeClass()
     public void setUp() {
-        sdb = new Sequoiadb(coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("skip StandAlone");
+        sdb = new Sequoiadb( coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "skip StandAlone" );
         }
-        List<String> groupsNames = CommLib.getDataGroupNames(sdb);
-        if (groupsNames.size() < 2) {
-            throw new SkipException("current environment less than tow groups ");
+        List< String > groupsNames = CommLib.getDataGroupNames( sdb );
+        if ( groupsNames.size() < 2 ) {
+            throw new SkipException(
+                    "current environment less than tow groups " );
         }
-        srcGroupName = groupsNames.get(0);
-        destGroupName = groupsNames.get(1);
+        srcGroupName = groupsNames.get( 0 );
+        destGroupName = groupsNames.get( 1 );
 
-        DBCollection cl = sdb.getCollectionSpace(csName).createCollection(clName,
-                (BSONObject) JSON.parse("{ShardingKey:{'sk':1},ShardingType:'range',Group:'"+groupsNames.get(0)+"'}"));
-        insertData(cl);
+        DBCollection cl = sdb.getCollectionSpace( csName )
+                .createCollection( clName, ( BSONObject ) JSON.parse(
+                        "{ShardingKey:{'sk':1},ShardingType:'range',Group:'"
+                                + groupsNames.get( 0 ) + "'}" ) );
+        insertData( cl );
     }
 
     @Test()
@@ -51,55 +55,58 @@ public class Split10537 extends SdbTestBase {
         Sequoiadb db = null;
         DBCollection cl = null;
         try {
-            db = new Sequoiadb(coordUrl, "", "");
-            cl = db.getCollectionSpace(csName).getCollection(clName);
+            db = new Sequoiadb( coordUrl, "", "" );
+            cl = db.getCollectionSpace( csName ).getCollection( clName );
 
             TransOperations transOperations = new TransOperations();
             transOperations.start();
 
             Split split = new Split();
             split.start();
-            
-            Assert.assertTrue(split.isSuccess(), split.getErrorMsg());
-            Assert.assertTrue(transOperations.isSuccess(), transOperations.getErrorMsg());
-        
+
+            Assert.assertTrue( split.isSuccess(), split.getErrorMsg() );
+            Assert.assertTrue( transOperations.isSuccess(),
+                    transOperations.getErrorMsg() );
+
             checkDestAndSrcGroup();
-            queryUpdatedAndDeletedData(cl);
+            queryUpdatedAndDeletedData( cl );
         } finally {
             db.close();
         }
     }
-    
+
     @AfterClass()
     public void tearDown() {
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if(cs.isCollectionExist(clName)){
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
         sdb.close();
     }
 
-    private void queryUpdatedAndDeletedData(DBCollection cl) {
+    private void queryUpdatedAndDeletedData( DBCollection cl ) {
         DBCursor cusor = null;
         try {
-            List<BSONObject> expectData = new ArrayList<BSONObject>();
-            for (int i = 40000; i < 60000; i++) {
-                expectData.add((BSONObject) JSON.parse("{sk:" + i + ",beta:2}"));
+            List< BSONObject > expectData = new ArrayList< BSONObject >();
+            for ( int i = 40000; i < 60000; i++ ) {
+                expectData.add(
+                        ( BSONObject ) JSON.parse( "{sk:" + i + ",beta:2}" ) );
             }
 
-            cusor = cl.query("{sk:{$gte:40000,$lt:60000}}", null, null, null);
-            while (cusor.hasNext()) {
+            cusor = cl.query( "{sk:{$gte:40000,$lt:60000}}", null, null, null );
+            while ( cusor.hasNext() ) {
                 BSONObject obj = cusor.getNext();
-                obj.removeField("_id");
-                if (expectData.contains(obj)) {
-                    expectData.remove(obj);
+                obj.removeField( "_id" );
+                if ( expectData.contains( obj ) ) {
+                    expectData.remove( obj );
                 } else {
-                    Assert.fail("should not find this record:" + obj);
+                    Assert.fail( "should not find this record:" + obj );
                 }
             }
-            Assert.assertEquals(expectData.size(), 0, "miss some record:" + expectData);
+            Assert.assertEquals( expectData.size(), 0,
+                    "miss some record:" + expectData );
         } finally {
-            if(cusor != null){
+            if ( cusor != null ) {
                 cusor.close();
             }
         }
@@ -112,11 +119,12 @@ public class Split10537 extends SdbTestBase {
             Sequoiadb db = null;
             DBCollection cl = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                cl = db.getCollectionSpace(csName).getCollection(clName);
-                cl.split(srcGroupName, destGroupName, (BSONObject) JSON.parse("{sk:50000}"),
-                        (BSONObject) JSON.parse("{sk:100000}"));
-            }finally {
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                cl = db.getCollectionSpace( csName ).getCollection( clName );
+                cl.split( srcGroupName, destGroupName,
+                        ( BSONObject ) JSON.parse( "{sk:50000}" ),
+                        ( BSONObject ) JSON.parse( "{sk:100000}" ) );
+            } finally {
                 db.close();
             }
         }
@@ -129,70 +137,78 @@ public class Split10537 extends SdbTestBase {
             Sequoiadb db = null;
             DBCollection cl = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                cl = db.getCollectionSpace(csName).getCollection(clName);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                cl = db.getCollectionSpace( csName ).getCollection( clName );
                 db.beginTransaction();
-                cl.delete("{sk:{$gte:40000,$lt:60000}}");
-                for (int i = 40000; i < 60000; i++) {
-                    cl.insert("{sk:" + i + ",beta:1}");
+                cl.delete( "{sk:{$gte:40000,$lt:60000}}" );
+                for ( int i = 40000; i < 60000; i++ ) {
+                    cl.insert( "{sk:" + i + ",beta:1}" );
                 }
-                cl.update("{sk:{$gte:40000,$lt:60000}}", "{$inc:{beta:1}}", null);
+                cl.update( "{sk:{$gte:40000,$lt:60000}}", "{$inc:{beta:1}}",
+                        null );
             } finally {
                 db.commit();
                 db.close();
             }
         }
     }
-    
-    public void insertData(DBCollection cl) {
-        List<BSONObject> insertedData = new ArrayList<BSONObject>();
-        for (int i = 0; i < 100000; i++) {
-            BSONObject obj = (BSONObject) JSON.parse("{sk:" + i + ",alpha:" + i + "}");
-            insertedData.add(obj);
+
+    public void insertData( DBCollection cl ) {
+        List< BSONObject > insertedData = new ArrayList< BSONObject >();
+        for ( int i = 0; i < 100000; i++ ) {
+            BSONObject obj = ( BSONObject ) JSON
+                    .parse( "{sk:" + i + ",alpha:" + i + "}" );
+            insertedData.add( obj );
         }
-        cl.insert(insertedData);
+        cl.insert( insertedData );
     }
-    
+
     public void checkDestAndSrcGroup() {
-        List<BSONObject> srcExpect = new ArrayList<BSONObject>();
-        for (int i = 0; i < 40000; i++) {
-            srcExpect.add((BSONObject) JSON.parse("{sk:" + i + ",alpha:" + i + "}"));
+        List< BSONObject > srcExpect = new ArrayList< BSONObject >();
+        for ( int i = 0; i < 40000; i++ ) {
+            srcExpect.add( ( BSONObject ) JSON
+                    .parse( "{sk:" + i + ",alpha:" + i + "}" ) );
         }
-        for (int i = 40000; i < 50000; i++) {
-            srcExpect.add((BSONObject) JSON.parse("{sk:" + i + ",beta:2}"));
+        for ( int i = 40000; i < 50000; i++ ) {
+            srcExpect.add(
+                    ( BSONObject ) JSON.parse( "{sk:" + i + ",beta:2}" ) );
         }
-        checkGroupData(sdb, srcGroupName, srcExpect);
+        checkGroupData( sdb, srcGroupName, srcExpect );
 
-        List<BSONObject> destExpect = new ArrayList<BSONObject>();
-        for (int i = 50000; i < 60000; i++) {
-            destExpect.add((BSONObject) JSON.parse("{sk:" + i + ",beta:2}"));
+        List< BSONObject > destExpect = new ArrayList< BSONObject >();
+        for ( int i = 50000; i < 60000; i++ ) {
+            destExpect.add(
+                    ( BSONObject ) JSON.parse( "{sk:" + i + ",beta:2}" ) );
         }
-        for (int i = 60000; i < 100000; i++) {
-            destExpect.add((BSONObject) JSON.parse("{sk:" + i + ",alpha:" + i + "}"));
+        for ( int i = 60000; i < 100000; i++ ) {
+            destExpect.add( ( BSONObject ) JSON
+                    .parse( "{sk:" + i + ",alpha:" + i + "}" ) );
         }
-        checkGroupData(sdb, destGroupName, destExpect);
+        checkGroupData( sdb, destGroupName, destExpect );
     }
 
-    private void checkGroupData(Sequoiadb db, String groupName, List<BSONObject> expect) {
+    private void checkGroupData( Sequoiadb db, String groupName,
+            List< BSONObject > expect ) {
         Sequoiadb dataNode = null;
         DBCollection cl = null;
         DBCursor cursor = null;
         try {
-            dataNode = db.getReplicaGroup(groupName).getMaster().connect();
-            cl = dataNode.getCollectionSpace(csName).getCollection(clName);
-            List<BSONObject> actual = new ArrayList<BSONObject>();
-            cursor = cl.query(null, null, "{sk:1}", null);
-            while (cursor.hasNext()) {
+            dataNode = db.getReplicaGroup( groupName ).getMaster().connect();
+            cl = dataNode.getCollectionSpace( csName ).getCollection( clName );
+            List< BSONObject > actual = new ArrayList< BSONObject >();
+            cursor = cl.query( null, null, "{sk:1}", null );
+            while ( cursor.hasNext() ) {
                 BSONObject obj = cursor.getNext();
-                obj.removeField("_id");
-                actual.add(obj);
+                obj.removeField( "_id" );
+                actual.add( obj );
             }
-            Assert.assertEquals(expect.equals(actual), true, "expect:" + expect + "\r\nactual:" + actual);
+            Assert.assertEquals( expect.equals( actual ), true,
+                    "expect:" + expect + "\r\nactual:" + actual );
         } finally {
-            if (cursor != null) {
+            if ( cursor != null ) {
                 cursor.close();
             }
-            if (dataNode != null) {
+            if ( dataNode != null ) {
                 dataNode.close();
             }
         }

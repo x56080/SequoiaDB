@@ -32,29 +32,30 @@ public class TestWriteLobAndDropCL13889 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
-        cs.createCollection(clName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
+        cs.createCollection( clName );
     }
 
     @Test
     public void testWriteLobAndDropCL() {
         PutLobsTask putLobsTask = new PutLobsTask();
-        putLobsTask.start(20);
+        putLobsTask.start( 20 );
         dropCL();
 
-        Assert.assertTrue(putLobsTask.isSuccess(), putLobsTask.getErrorMsg());
-        Assert.assertEquals(cs.isCollectionExist(clName), false, "the cl must be drop!");
+        Assert.assertTrue( putLobsTask.isSuccess(), putLobsTask.getErrorMsg() );
+        Assert.assertEquals( cs.isCollectionExist( clName ), false,
+                "the cl must be drop!" );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }
@@ -63,20 +64,24 @@ public class TestWriteLobAndDropCL13889 extends SdbTestBase {
     private class PutLobsTask extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-                int writeLobSize = random.nextInt(1024 * 1024);
-                byte[] wlobBuff = LobOprUtils.getRandomBytes(writeLobSize);
-                ObjectId oid = LobOprUtils.createAndWriteLob(dbcl, wlobBuff);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection dbcl = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( clName );
+                int writeLobSize = random.nextInt( 1024 * 1024 );
+                byte[] wlobBuff = LobOprUtils.getRandomBytes( writeLobSize );
+                ObjectId oid = LobOprUtils.createAndWriteLob( dbcl, wlobBuff );
 
                 // read lob and check the lob data
-                try (DBLob rLob = dbcl.openLob(oid, DBLob.SDB_LOB_READ)) {
-                    byte[] rbuff = new byte[(int) rLob.getSize()];
-                    rLob.read(rbuff);
-                    LobOprUtils.assertByteArrayEqual(rbuff, wlobBuff, "lob:" + oid.toString() + " data is wrong!");
+                try ( DBLob rLob = dbcl.openLob( oid, DBLob.SDB_LOB_READ )) {
+                    byte[] rbuff = new byte[ ( int ) rLob.getSize() ];
+                    rLob.read( rbuff );
+                    LobOprUtils.assertByteArrayEqual( rbuff, wlobBuff,
+                            "lob:" + oid.toString() + " data is wrong!" );
                 }
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -317 && e.getErrorCode() != -23 && e.getErrorCode() != -4) {
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -317 && e.getErrorCode() != -23
+                        && e.getErrorCode() != -4 ) {
                     throw e;
                 }
             }
@@ -85,14 +90,14 @@ public class TestWriteLobAndDropCL13889 extends SdbTestBase {
 
     private void dropCL() {
         // random time to delete cl in writing lob
-        long sleeptime = random.nextInt(2000);
+        long sleeptime = random.nextInt( 2000 );
         try {
-            Thread.sleep(sleeptime);
-        } catch (InterruptedException e) {
+            Thread.sleep( sleeptime );
+        } catch ( InterruptedException e ) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        cs.dropCollection(clName);
+        cs.dropCollection( clName );
     }
 
 }

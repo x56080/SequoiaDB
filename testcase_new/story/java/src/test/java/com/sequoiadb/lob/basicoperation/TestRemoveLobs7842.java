@@ -45,28 +45,31 @@ public class TestRemoveLobs7842 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("is standalone skip testcase");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "is standalone skip testcase" );
         }
 
-        createDomain(sdb);
-        cs = sdb.createCollectionSpace(csName,
-                (BSONObject) JSON.parse("{LobPageSize:4096,Domain:'" + domainName + "'}"));
+        createDomain( sdb );
+        cs = sdb.createCollectionSpace( csName, ( BSONObject ) JSON
+                .parse( "{LobPageSize:4096,Domain:'" + domainName + "'}" ) );
         String clOptions = "{ShardingKey:{no:1},ShardingType:'hash',ReplSize:0,AutoSplit:true}";
-        cl = cs.createCollection(clName, (BSONObject) JSON.parse(clOptions));
+        cl = cs.createCollection( clName,
+                ( BSONObject ) JSON.parse( clOptions ) );
     }
 
     @Test(dataProvider = "lobSizeProvider")
-    public void removeLob(int lobSize) {
-        try (Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-            DBCollection dbcl = sdb.getCollectionSpace(csName).getCollection(clName);
-            byte[] wlobBuff = LobOprUtils.getRandomBytes(lobSize);
-            ObjectId oid = LobOprUtils.createAndWriteLob(cl, wlobBuff);
-            dbcl.removeLob(oid);
+    public void removeLob( int lobSize ) {
+        try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" )) {
+            DBCollection dbcl = sdb.getCollectionSpace( csName )
+                    .getCollection( clName );
+            byte[] wlobBuff = LobOprUtils.getRandomBytes( lobSize );
+            ObjectId oid = LobOprUtils.createAndWriteLob( cl, wlobBuff );
+            dbcl.removeLob( oid );
             // check the remove result
             DBCursor listCursor1 = dbcl.listLobs();
-            Assert.assertEquals(listCursor1.hasNext(), false, "list lob not null");
+            Assert.assertEquals( listCursor1.hasNext(), false,
+                    "list lob not null" );
         }
 
     }
@@ -74,27 +77,28 @@ public class TestRemoveLobs7842 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName))
-                sdb.dropCollectionSpace(csName);
-            if (sdb.isDomainExist(domainName)) {
-                sdb.dropDomain(domainName);
+            if ( sdb.isCollectionSpaceExist( csName ) )
+                sdb.dropCollectionSpace( csName );
+            if ( sdb.isDomainExist( domainName ) ) {
+                sdb.dropDomain( domainName );
             }
         } finally {
-            if (null != sdb)
+            if ( null != sdb )
                 sdb.close();
         }
     }
 
-    private void createDomain(Sequoiadb sdb) {
-        if (sdb.isCollectionSpaceExist(csName)) {
-            sdb.dropCollectionSpace(csName);
+    private void createDomain( Sequoiadb sdb ) {
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.dropCollectionSpace( csName );
         }
 
-        if (sdb.isDomainExist(domainName)) {
-            sdb.dropDomain(domainName);
+        if ( sdb.isDomainExist( domainName ) ) {
+            sdb.dropDomain( domainName );
         }
         BSONObject options = new BasicBSONObject();
-        options = (BSONObject) JSON.parse("{'Groups': [" + LobOprUtils.chooseDataGroups(sdb) + "],AutoSplit:true}");
-        sdb.createDomain(domainName, options);
+        options = ( BSONObject ) JSON.parse( "{'Groups': ["
+                + LobOprUtils.chooseDataGroups( sdb ) + "],AutoSplit:true}" );
+        sdb.createDomain( domainName, options );
     }
 }

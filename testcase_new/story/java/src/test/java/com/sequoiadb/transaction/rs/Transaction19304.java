@@ -40,33 +40,33 @@ public class Transaction19304 extends SdbTestBase {
     private String hintTbScan = "{'':null}";
     private String hintIxScan = "{'':'" + idxName + "'}";
     private DBCollection cl;
-    private ArrayList<BSONObject> expList = new ArrayList<>();
+    private ArrayList< BSONObject > expList = new ArrayList<>();
     private String recordR1 = "{_id:'cl19304', a:1}";
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
         // 创建索引，插入记录
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl.createIndex(idxName, "{a:1}", true, true);
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl.createIndex( idxName, "{a:1}", true, true );
     }
 
     @AfterClass
     public void tearDown() {
-        if (db1 != null) {
+        if ( db1 != null ) {
             db1.commit();
             db1.close();
         }
-        if (db2 != null) {
+        if ( db2 != null ) {
             db2.commit();
             db2.close();
         }
-        if (sdb != null) {
-            CollectionSpace cs = sdb.getCollectionSpace(csName);
-            cs.dropCollection(clName);
+        if ( sdb != null ) {
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            cs.dropCollection( clName );
             sdb.close();
         }
     }
@@ -78,58 +78,60 @@ public class Transaction19304 extends SdbTestBase {
     }
 
     @Test(dataProvider = "hint")
-    public void test(String hint) throws Exception {
+    public void test( String hint ) throws Exception {
         try {
             // 插入记录R1
-            cl.insert(recordR1);
+            cl.insert( recordR1 );
             expList.clear();
-            expList.add((BSONObject) JSON.parse(recordR1));
+            expList.add( ( BSONObject ) JSON.parse( recordR1 ) );
 
             // 开启两个并发事务
-            db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             db1.beginTransaction();
             db2.beginTransaction();
-            cl1 = db1.getCollectionSpace(csName).getCollection(clName);
-            cl2 = db2.getCollectionSpace(csName).getCollection(clName);
+            cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
+            cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
 
             // 事务1查询R1
-            TransUtils.queryAndCheck(cl1, hint, expList);
+            TransUtils.queryAndCheck( cl1, hint, expList );
 
             // 事务2查询R1
-            TransUtils.queryAndCheck(cl2, hint, expList);
+            TransUtils.queryAndCheck( cl2, hint, expList );
 
             // 事务1升级s锁为x锁，阻塞等锁
-            Cl1Update cl1Update = new Cl1Update(hint);
+            Cl1Update cl1Update = new Cl1Update( hint );
             cl1Update.start();
-            cl1Update.matchBlockingMethod(cl1.getClass().getName(), "update");
+            cl1Update.matchBlockingMethod( cl1.getClass().getName(), "update" );
 
             // 事务2s锁升级为u锁，升级成功
-            DBCursor cursor = cl2.query("", "", "", hint, DBQuery.FLG_QUERY_FOR_UPDATE);
-            ArrayList<BSONObject> actualList = TransUtils.getReadActList(cursor);
-            Assert.assertEquals(actualList, expList);
-            cl1Update.matchBlockingMethod(cl1.getClass().getName(), "update");
+            DBCursor cursor = cl2.query( "", "", "", hint,
+                    DBQuery.FLG_QUERY_FOR_UPDATE );
+            ArrayList< BSONObject > actualList = TransUtils
+                    .getReadActList( cursor );
+            Assert.assertEquals( actualList, expList );
+            cl1Update.matchBlockingMethod( cl1.getClass().getName(), "update" );
 
             // 事务2 u锁升级为x锁，升级失败，事务回滚
             try {
-                cl2.update("", "{$set:{a:3}}", hint);
-                throw new Exception("need error");
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -190) {
+                cl2.update( "", "{$set:{a:3}}", hint );
+                throw new Exception( "need error" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -190 ) {
                     throw e;
                 }
             }
 
             // 事务1获得x锁
-            Assert.assertTrue(cl1Update.isSuccess(), cl1Update.getErrorMsg());
+            Assert.assertTrue( cl1Update.isSuccess(), cl1Update.getErrorMsg() );
 
             // 提交事务1
             db1.commit();
 
             // 查询记录
             expList.clear();
-            expList.add((BSONObject) JSON.parse("{_id:'cl19304',a:2}"));
-            TransUtils.queryAndCheck(cl, hint, expList);
+            expList.add( ( BSONObject ) JSON.parse( "{_id:'cl19304',a:2}" ) );
+            TransUtils.queryAndCheck( cl, hint, expList );
         } finally {
             db1.commit();
             db2.commit();
@@ -141,13 +143,13 @@ public class Transaction19304 extends SdbTestBase {
     private class Cl1Update extends SdbThreadBase {
         private String hint;
 
-        private Cl1Update(String hint) {
+        private Cl1Update( String hint ) {
             this.hint = hint;
         }
 
         @Override
         public void exec() throws Exception {
-            cl1.update("", "{$set:{a:2}}", hint);
+            cl1.update( "", "{$set:{a:2}}", hint );
         }
     }
 }

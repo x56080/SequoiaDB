@@ -23,42 +23,47 @@ public class Fulltext12128 extends FullTestBase {
     private String fullIdxName = "idx12128";
     private String cappedCLName;
     private String esIndexName;
-    private AtomicInteger atoint = new AtomicInteger(0);
+    private AtomicInteger atoint = new AtomicInteger( 0 );
     private int insertNum = 20000;
 
     @Override
     protected void initTestProp() {
-        caseProp.setProperty(IGNORESTANDALONE, "true");
-        caseProp.setProperty(CLNAME, clName);
+        caseProp.setProperty( IGNORESTANDALONE, "true" );
+        caseProp.setProperty( CLNAME, clName );
     }
 
     @Override
     protected void caseInit() throws Exception {
-        cl.createIndex(fullIdxName, "{'a':'text','b':'text','c':'text', 'd':'text', 'e':'text', 'f':'text'}", false,
-                false);
+        cl.createIndex( fullIdxName,
+                "{'a':'text','b':'text','c':'text', 'd':'text', 'e':'text', 'f':'text'}",
+                false, false );
 
-        esIndexName = FullTextDBUtils.getESIndexName(cl, fullIdxName);
-        cappedCLName = FullTextDBUtils.getCappedName(cl, fullIdxName);
-        FullTextDBUtils.insertData(cl, insertNum);
+        esIndexName = FullTextDBUtils.getESIndexName( cl, fullIdxName );
+        cappedCLName = FullTextDBUtils.getCappedName( cl, fullIdxName );
+        FullTextDBUtils.insertData( cl, insertNum );
     }
 
     @Test
     public void test() throws Exception {
-        ThreadExecutor thExecutor = new ThreadExecutor(FullTextUtils.THREAD_TIMEOUT);
-        for (int i = 0; i < 10; i++) {
-            thExecutor.addWorker(new DropCL());
+        ThreadExecutor thExecutor = new ThreadExecutor(
+                FullTextUtils.THREAD_TIMEOUT );
+        for ( int i = 0; i < 10; i++ ) {
+            thExecutor.addWorker( new DropCL() );
         }
         thExecutor.run();
-        Assert.assertEquals(atoint.get(), 1);
+        Assert.assertEquals( atoint.get(), 1 );
 
         // 集合删除成功
-        Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedCLName));
-        Assert.assertFalse(sdb.getCollectionSpace(csName).isCollectionExist(clName));
+        Assert.assertTrue( FullTextUtils.isIndexDeleted( sdb, esIndexName,
+                cappedCLName ) );
+        Assert.assertFalse(
+                sdb.getCollectionSpace( csName ).isCollectionExist( clName ) );
     }
 
     @Override
     protected void caseFini() throws Exception {
-        Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedCLName));
+        Assert.assertTrue( FullTextUtils.isIndexDeleted( sdb, esIndexName,
+                cappedCLName ) );
     }
 
     private class DropCL {
@@ -66,15 +71,15 @@ public class Fulltext12128 extends FullTestBase {
         private void dropFullIdx() {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(coordUrl, "", "");
-                db.getCollectionSpace(csName).dropCollection(clName);
+                db = new Sequoiadb( coordUrl, "", "" );
+                db.getCollectionSpace( csName ).dropCollection( clName );
                 atoint.incrementAndGet();
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -23 && e.getErrorCode() != -147) {
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -23 && e.getErrorCode() != -147 ) {
                     throw e;
                 }
             } finally {
-                if (db != null) {
+                if ( db != null ) {
                     db.close();
                 }
             }

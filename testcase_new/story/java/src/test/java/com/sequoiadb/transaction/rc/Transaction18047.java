@@ -24,11 +24,12 @@ import com.sequoiadb.transaction.TransUtils;
 
 @Test(groups = "rc")
 public class Transaction18047 extends SdbTestBase {
-    private List<BSONObject> insertR1s = new ArrayList<BSONObject>();
+    private List< BSONObject > insertR1s = new ArrayList< BSONObject >();
 
     @DataProvider(name = "provider_18047", parallel = true)
     public Object[][] dateProvider() {
-        return new Object[][] { { "cl_18047A" }, { "cl_18047B" }, { "cl_18047C" }, { "cl_18047D" }, { "cl_18047E" } };
+        return new Object[][] { { "cl_18047A" }, { "cl_18047B" },
+                { "cl_18047C" }, { "cl_18047D" }, { "cl_18047E" } };
     }
 
     @BeforeClass
@@ -36,53 +37,57 @@ public class Transaction18047 extends SdbTestBase {
     }
 
     @Test(dataProvider = "provider_18047", invocationCount = 5)
-    public void test(String clName) {
-        Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        Sequoiadb db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        Sequoiadb db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+    public void test( String clName ) {
+        Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        Sequoiadb db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        Sequoiadb db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         try {
 
-            DBCollection cl = sdb.getCollectionSpace(csName).createCollection(clName);
-            DBCollection cl1 = db1.getCollectionSpace(csName).getCollection(clName);
-            DBCollection cl2 = db2.getCollectionSpace(csName).getCollection(clName);
-            cl.createIndex("a", "{a:1}", false, false);
-            insertR1s = TransUtils.insertRandomDatas(cl, 0, 10000);
+            DBCollection cl = sdb.getCollectionSpace( csName )
+                    .createCollection( clName );
+            DBCollection cl1 = db1.getCollectionSpace( csName )
+                    .getCollection( clName );
+            DBCollection cl2 = db2.getCollectionSpace( csName )
+                    .getCollection( clName );
+            cl.createIndex( "a", "{a:1}", false, false );
+            insertR1s = TransUtils.insertRandomDatas( cl, 0, 10000 );
 
             db1.beginTransaction();
-            cl1.delete(null, "{'':'a'}");
+            cl1.delete( null, "{'':'a'}" );
 
             db2.beginTransaction();
-            Operation operation2 = new Operation(cl2);
+            Operation operation2 = new Operation( cl2 );
             operation2.start();
-            Assert.assertTrue(operation2.matchBlockingMethod(cl2.getClass().getName(), "delete"));
+            Assert.assertTrue( operation2.matchBlockingMethod(
+                    cl2.getClass().getName(), "delete" ) );
 
             db1.rollback();
-            if (!operation2.isSuccess()) {
-                Assert.fail(operation2.getErrorMsg());
+            if ( !operation2.isSuccess() ) {
+                Assert.fail( operation2.getErrorMsg() );
             }
 
             db2.rollback();
-            Read read1 = new Read(clName, "{'':null}");
+            Read read1 = new Read( clName, "{'':null}" );
             read1.start();
 
-            Read read2 = new Read(clName, "{'':'a'}");
+            Read read2 = new Read( clName, "{'':'a'}" );
             read2.start();
 
-            CollectionSpace cs = sdb.getCollectionSpace(csName);
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
 
         } finally {
             db1.commit();
             db2.commit();
-            if (!db1.isClosed()) {
+            if ( !db1.isClosed() ) {
                 db1.close();
             }
-            if (!db2.isClosed()) {
+            if ( !db2.isClosed() ) {
                 db2.close();
             }
-            if (!sdb.isClosed()) {
+            if ( !sdb.isClosed() ) {
                 sdb.close();
             }
         }
@@ -91,13 +96,13 @@ public class Transaction18047 extends SdbTestBase {
     private class Operation extends SdbThreadBase {
         private DBCollection cl = null;
 
-        public Operation(DBCollection cl) {
+        public Operation( DBCollection cl ) {
             this.cl = cl;
         }
 
         @Override
         public void exec() throws Exception {
-            cl.delete(null, "{'':'a'}");
+            cl.delete( null, "{'':'a'}" );
         }
     }
 
@@ -108,19 +113,20 @@ public class Transaction18047 extends SdbTestBase {
         private DBCollection cl = null;
         private DBCursor cursor = null;
 
-        public Read(String clName, String hint) {
+        public Read( String clName, String hint ) {
             this.clName = clName;
             this.hint = hint;
         }
 
         @Override
         public void exec() throws Exception {
-            db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             try {
                 db.beginTransaction();
-                cl = db.getCollectionSpace(csName).getCollection(clName);
-                cursor = cl.query(null, null, "{a : 1}", hint);
-                Assert.assertEquals(TransUtils.getReadActList(cursor), insertR1s);
+                cl = db.getCollectionSpace( csName ).getCollection( clName );
+                cursor = cl.query( null, null, "{a : 1}", hint );
+                Assert.assertEquals( TransUtils.getReadActList( cursor ),
+                        insertR1s );
                 db.rollback();
                 cursor.close();
             } finally {

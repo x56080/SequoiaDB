@@ -28,20 +28,20 @@ public class Transaction17207 extends SdbTestBase {
     private DBCollection cl = null;
     private DBCollection cl1 = null;
     private DBCollection cl2 = null;
-    private List<BSONObject> expList = new ArrayList<BSONObject>();
+    private List< BSONObject > expList = new ArrayList< BSONObject >();
     private String hintIxScan = "{'':'a'}";
     private String hintTbScan = "{'':null}";
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl1 = db1.getCollectionSpace(csName).getCollection(clName);
-        cl2 = db2.getCollectionSpace(csName).getCollection(clName);
-        cl.createIndex("a", "{a:1}", false, false);
-        TransUtils.insertDatas(cl, 0, 50000, 1);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
+        cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
+        cl.createIndex( "a", "{a:1}", false, false );
+        TransUtils.insertDatas( cl, 0, 50000, 1 );
     }
 
     @Test
@@ -51,34 +51,34 @@ public class Transaction17207 extends SdbTestBase {
         db2.beginTransaction();
 
         // 事务1执行批量更新
-        cl1.update("{a:1}", "{$set:{a:2}}", hintIxScan);
-        expList = TransUtils.getUpdateDatas(0, 50000, 2);
+        cl1.update( "{a:1}", "{$set:{a:2}}", hintIxScan );
+        expList = TransUtils.getUpdateDatas( 0, 50000, 2 );
 
         // 事务2表扫描记录
-        TransUtils.queryAndCheck(cl2, "{_id:1}", hintTbScan, expList);
+        TransUtils.queryAndCheck( cl2, "{_id:1}", hintTbScan, expList );
 
         // 事务2索引扫描记录
-        TransUtils.queryAndCheck(cl2, "{_id:1}", hintIxScan, expList);
+        TransUtils.queryAndCheck( cl2, "{_id:1}", hintIxScan, expList );
 
         // 非事务表扫描记录
-        TransUtils.queryAndCheck(cl, "{_id:1}", hintTbScan, expList);
+        TransUtils.queryAndCheck( cl, "{_id:1}", hintTbScan, expList );
 
         // 非事务索引扫描记录
-        TransUtils.queryAndCheck(cl, "{_id:1}", hintIxScan, expList);
+        TransUtils.queryAndCheck( cl, "{_id:1}", hintIxScan, expList );
 
         db1.commit();
 
         // 事务2表扫描记录
-        TransUtils.queryAndCheck(cl2, "{_id:1}", hintTbScan, expList);
+        TransUtils.queryAndCheck( cl2, "{_id:1}", hintTbScan, expList );
 
         // 事务2索引扫描记录
-        TransUtils.queryAndCheck(cl2, "{_id:1}", hintIxScan, expList);
+        TransUtils.queryAndCheck( cl2, "{_id:1}", hintIxScan, expList );
 
         // 非事务表扫描记录
-        TransUtils.queryAndCheck(cl, "{_id:1}", hintTbScan, expList);
+        TransUtils.queryAndCheck( cl, "{_id:1}", hintTbScan, expList );
 
         // 非事务索引扫描记录
-        TransUtils.queryAndCheck(cl, "{_id:1}", hintIxScan, expList);
+        TransUtils.queryAndCheck( cl, "{_id:1}", hintIxScan, expList );
 
         db2.commit();
     }
@@ -87,17 +87,17 @@ public class Transaction17207 extends SdbTestBase {
     public void tearDown() {
         db1.commit();
         db2.commit();
-        if (!db1.isClosed()) {
+        if ( !db1.isClosed() ) {
             db1.close();
         }
-        if (!db2.isClosed()) {
+        if ( !db2.isClosed() ) {
             db2.close();
         }
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        if (!sdb.isClosed()) {
+        if ( !sdb.isClosed() ) {
             sdb.close();
         }
     }

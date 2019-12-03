@@ -20,8 +20,8 @@ import com.sequoiadb.lob.utils.RandomWriteLobUtil;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @Description seqDB-13235:no lock the data segment to write lob, test the lob pieces size boundary
- *              value. *
+ * @Description seqDB-13235:no lock the data segment to write lob, test the lob
+ *              pieces size boundary value. *
  * @author wuyan
  * @Date 2017.11.2
  * @version 1.00
@@ -29,9 +29,10 @@ import com.sequoiadb.testcommon.SdbTestBase;
 public class RewriteLob13235 extends SdbTestBase {
     @DataProvider(name = "pagesizeProvider")
     public Object[][] generatePageSize() {
-        int lobPageSizes[] = { 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288 };
+        int lobPageSizes[] = { 4096, 8192, 16384, 32768, 65536, 131072, 262144,
+                524288 };
         int len = lobPageSizes.length;
-        int num = lobPageSizes[random.nextInt(len)];
+        int num = lobPageSizes[ random.nextInt( len ) ];
         int lobMetaSize = 1024;
         return new Object[][] {
                 // the paramter is lobPageSize, write offset,write lob length
@@ -51,52 +52,54 @@ public class RewriteLob13235 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
     }
 
     @Test(dataProvider = "pagesizeProvider")
-    public void testLob(int lobPageSize, int offset, int length) {
-        DBCollection cl = createCsAndCl(sdb, lobPageSize);
+    public void testLob( int lobPageSize, int offset, int length ) {
+        DBCollection cl = createCsAndCl( sdb, lobPageSize );
         int writeSize = 1024 * 1024;
-        byte[] lobBuff = RandomWriteLobUtil.getRandomBytes(writeSize);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, lobBuff);
+        byte[] lobBuff = RandomWriteLobUtil.getRandomBytes( writeSize );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl, lobBuff );
 
-        byte[] rewritelobBuff = RandomWriteLobUtil.getRandomBytes(length);
-        rewriteLob(cl, oid, offset, rewritelobBuff);
-        RandomWriteLobUtil.checkRewriteLobResult(cl, oid, offset, rewritelobBuff, lobBuff);
+        byte[] rewritelobBuff = RandomWriteLobUtil.getRandomBytes( length );
+        rewriteLob( cl, oid, offset, rewritelobBuff );
+        RandomWriteLobUtil.checkRewriteLobResult( cl, oid, offset,
+                rewritelobBuff, lobBuff );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
     }
 
-    private void rewriteLob(DBCollection cl, ObjectId oid, int offset, byte[] rewriteLobBuff) {
-        try (DBLob lob = cl.openLob(oid, DBLob.SDB_LOB_WRITE)) {
-            lob.seek(offset, DBLob.SDB_LOB_SEEK_SET);
-            lob.write(rewriteLobBuff);
-        } catch (BaseException e) {
+    private void rewriteLob( DBCollection cl, ObjectId oid, int offset,
+            byte[] rewriteLobBuff ) {
+        try ( DBLob lob = cl.openLob( oid, DBLob.SDB_LOB_WRITE )) {
+            lob.seek( offset, DBLob.SDB_LOB_SEEK_SET );
+            lob.write( rewriteLobBuff );
+        } catch ( BaseException e ) {
             e.printStackTrace();
-            Assert.assertTrue(false, "rewrite lob fail" + e.getMessage());
+            Assert.assertTrue( false, "rewrite lob fail" + e.getMessage() );
         }
     }
 
-    private DBCollection createCsAndCl(Sequoiadb sdb, int lobPagesize) {
-        if (sdb.isCollectionSpaceExist(csName)) {
-            sdb.dropCollectionSpace(csName);
+    private DBCollection createCsAndCl( Sequoiadb sdb, int lobPagesize ) {
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.dropCollectionSpace( csName );
         }
         BSONObject options = new BasicBSONObject();
-        options.put("LobPageSize", lobPagesize);
-        cs = sdb.createCollectionSpace(csName, options);
-        DBCollection cl = cs.createCollection(clName);
+        options.put( "LobPageSize", lobPagesize );
+        cs = sdb.createCollectionSpace( csName, options );
+        DBCollection cl = cs.createCollection( clName );
         return cl;
     }
 

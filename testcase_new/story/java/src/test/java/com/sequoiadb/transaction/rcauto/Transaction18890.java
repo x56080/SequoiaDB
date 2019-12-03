@@ -32,27 +32,28 @@ public class Transaction18890 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        if (CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("less than two groups");
+        if ( CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "less than two groups" );
         }
 
-        cl = sdb.getCollectionSpace(csName).createCollection(clName,
-                (BSONObject) JSON.parse("{ShardingKey:{a:1}, ShardingType:'hash', AutoSplit: true}"));
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName,
+                ( BSONObject ) JSON.parse(
+                        "{ShardingKey:{a:1}, ShardingType:'hash', AutoSplit: true}" ) );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            CollectionSpace cs = sdb.getCollectionSpace(csName);
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
         } finally {
-            if (!sdb.isClosed()) {
+            if ( !sdb.isClosed() ) {
                 sdb.close();
             }
         }
@@ -75,14 +76,15 @@ public class Transaction18890 extends SdbTestBase {
     }
 
     private void insertData() {
-        for (int j = 0; j < 10; j++) {
-            List<BSONObject> records = new ArrayList<>();
-            for (int i = 0; i < 1000; i++) {
-                BSONObject record = (BSONObject) JSON.parse("{a:" + i + ", b:" + i + "}");
-                records.add(record);
+        for ( int j = 0; j < 10; j++ ) {
+            List< BSONObject > records = new ArrayList<>();
+            for ( int i = 0; i < 1000; i++ ) {
+                BSONObject record = ( BSONObject ) JSON
+                        .parse( "{a:" + i + ", b:" + i + "}" );
+                records.add( record );
             }
-            Collections.shuffle(records);
-            cl.insert(records);
+            Collections.shuffle( records );
+            cl.insert( records );
         }
 
     }

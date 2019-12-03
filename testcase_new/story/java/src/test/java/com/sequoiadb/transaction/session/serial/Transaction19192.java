@@ -25,13 +25,15 @@ public class Transaction19192 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        sdb.getCollectionSpace(SdbTestBase.csName).createCollection(clName,
-                (BSONObject) JSON.parse("{ShardingKey:{_id:1}, AutoSplit:true}"));
-        sdb.updateConfig((BSONObject) JSON.parse("{transautocommit:true}"), (BSONObject) JSON.parse("{Global:false}"));
+        sdb.getCollectionSpace( SdbTestBase.csName ).createCollection( clName,
+                ( BSONObject ) JSON
+                        .parse( "{ShardingKey:{_id:1}, AutoSplit:true}" ) );
+        sdb.updateConfig( ( BSONObject ) JSON.parse( "{transautocommit:true}" ),
+                ( BSONObject ) JSON.parse( "{Global:false}" ) );
     }
 
     @Test
@@ -41,13 +43,14 @@ public class Transaction19192 extends SdbTestBase {
         try {
 
             // 执行插入，检查coord节点及数据节点debug日志
-            db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-            DBCollection cl1 = db1.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-            BSONObject obj = (BSONObject) JSON.parse("{_id:1, a:1, b:1}");
-            cl1.insert(obj);
+            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            DBCollection cl1 = db1.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
+            BSONObject obj = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
+            cl1.insert( obj );
 
         } finally {
-            if (null != db1) {
+            if ( null != db1 ) {
                 db1.commit();
                 db1.close();
             }
@@ -56,10 +59,12 @@ public class Transaction19192 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        if (null != sdb) {
-            sdb.getCollectionSpace(SdbTestBase.csName).dropCollection(clName);
-            sdb.deleteConfig((BSONObject) JSON.parse("{transautocommit:''}"),
-                    (BSONObject) JSON.parse("{Global:false}"));
+        if ( null != sdb ) {
+            sdb.getCollectionSpace( SdbTestBase.csName )
+                    .dropCollection( clName );
+            sdb.deleteConfig(
+                    ( BSONObject ) JSON.parse( "{transautocommit:''}" ),
+                    ( BSONObject ) JSON.parse( "{Global:false}" ) );
             sdb.close();
         }
     }

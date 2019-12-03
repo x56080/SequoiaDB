@@ -30,31 +30,31 @@ public class Transaction17122 extends SdbTestBase {
     private BSONObject data1 = null;
     private BSONObject data2 = null;
     private DBCursor recordCur = null;
-    private List<BSONObject> expDataList = null;
-    private List<BSONObject> actDataList = null;
+    private List< BSONObject > expDataList = null;
+    private List< BSONObject > actDataList = null;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl.createIndex("a", "{a:1}", true, false);
-        expDataList = new ArrayList<BSONObject>();
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl.createIndex( "a", "{a:1}", true, false );
+        expDataList = new ArrayList< BSONObject >();
 
         data1 = new BasicBSONObject();
-        data1.put("_id", "testId17122");
-        data1.put("a", 1);
-        data1.put("b", "testTrans_17122");
-        data1.put("c", 13700000000L);
-        data1.put("d", "customer transaction type data application.");
-        cl.insert(data1);
+        data1.put( "_id", "testId17122" );
+        data1.put( "a", 1 );
+        data1.put( "b", "testTrans_17122" );
+        data1.put( "c", 13700000000L );
+        data1.put( "d", "customer transaction type data application." );
+        cl.insert( data1 );
 
         data2 = new BasicBSONObject();
-        data2.put("_id", "testId17122");
-        data2.put("a", 1);
-        data2.put("b", 17122);
-        data2.put("c", 13700000000L);
-        data2.put("flag", "flag17122");
-        data2.put("d", "customer transaction type data application.");
+        data2.put( "_id", "testId17122" );
+        data2.put( "a", 1 );
+        data2.put( "b", 17122 );
+        data2.put( "c", 13700000000L );
+        data2.put( "flag", "flag17122" );
+        data2.put( "d", "customer transaction type data application." );
 
     }
 
@@ -64,39 +64,39 @@ public class Transaction17122 extends SdbTestBase {
         sdb.beginTransaction();
 
         // 1 trans1 delete record R1
-        cl.delete("{'a': 1}");
+        cl.delete( "{'a': 1}" );
 
         // 2 trans1 insert record R2
-        cl.insert(data2);
+        cl.insert( data2 );
 
         expDataList.clear();
-        expDataList.add(data2);
-        recordCur = cl.query(null, null, null, "{'': null}");
-        actDataList = TransUtils.getReadActList(recordCur);
-        Assert.assertEquals(actDataList, expDataList);
+        expDataList.add( data2 );
+        recordCur = cl.query( null, null, null, "{'': null}" );
+        actDataList = TransUtils.getReadActList( recordCur );
+        Assert.assertEquals( actDataList, expDataList );
         actDataList.clear();
 
-        recordCur = cl.query(null, null, null, "{'': 'a'}");
-        actDataList = TransUtils.getReadActList(recordCur);
-        Assert.assertEquals(actDataList, expDataList);
+        recordCur = cl.query( null, null, null, "{'': 'a'}" );
+        actDataList = TransUtils.getReadActList( recordCur );
+        Assert.assertEquals( actDataList, expDataList );
         actDataList.clear();
 
         sdb.rollback();
 
         expDataList.clear();
-        expDataList.add(data1);
-        recordCur = cl.query(null, null, null, "{'': null}");
-        actDataList = TransUtils.getReadActList(recordCur);
-        Assert.assertEquals(actDataList, expDataList);
+        expDataList.add( data1 );
+        recordCur = cl.query( null, null, null, "{'': null}" );
+        actDataList = TransUtils.getReadActList( recordCur );
+        Assert.assertEquals( actDataList, expDataList );
         actDataList.clear();
 
-        recordCur = cl.query(null, null, null, "{'': 'a'}");
-        actDataList = TransUtils.getReadActList(recordCur);
-        Assert.assertEquals(actDataList, expDataList);
+        recordCur = cl.query( null, null, null, "{'': 'a'}" );
+        actDataList = TransUtils.getReadActList( recordCur );
+        Assert.assertEquals( actDataList, expDataList );
         actDataList.clear();
 
-        cl.delete("{'a': {'$isnull' :0}}");
-        Assert.assertEquals(cl.getCount(), 0);
+        cl.delete( "{'a': {'$isnull' :0}}" );
+        Assert.assertEquals( cl.getCount(), 0 );
 
     }
 
@@ -106,37 +106,37 @@ public class Transaction17122 extends SdbTestBase {
         sdb.beginTransaction();
 
         // 1 trans1 delete record R1
-        cl.delete("{'a': 1}");
+        cl.delete( "{'a': 1}" );
 
         // 2 trans1 insert record R2
-        cl.insert(data2);
+        cl.insert( data2 );
 
         expDataList.clear();
-        expDataList.add(data2);
-        recordCur = cl.query(null, null, null, "{'': null}");
-        actDataList = TransUtils.getReadActList(recordCur);
-        Assert.assertEquals(actDataList, expDataList);
+        expDataList.add( data2 );
+        recordCur = cl.query( null, null, null, "{'': null}" );
+        actDataList = TransUtils.getReadActList( recordCur );
+        Assert.assertEquals( actDataList, expDataList );
         actDataList.clear();
 
-        recordCur = cl.query(null, null, null, "{'': 'a'}");
-        actDataList = TransUtils.getReadActList(recordCur);
-        Assert.assertEquals(actDataList, expDataList);
+        recordCur = cl.query( null, null, null, "{'': 'a'}" );
+        actDataList = TransUtils.getReadActList( recordCur );
+        Assert.assertEquals( actDataList, expDataList );
         actDataList.clear();
 
         sdb.commit();
 
-        recordCur = cl.query(null, null, null, "{'': null}");
-        actDataList = TransUtils.getReadActList(recordCur);
-        Assert.assertEquals(actDataList, expDataList);
+        recordCur = cl.query( null, null, null, "{'': null}" );
+        actDataList = TransUtils.getReadActList( recordCur );
+        Assert.assertEquals( actDataList, expDataList );
         actDataList.clear();
 
-        recordCur = cl.query(null, null, null, "{'': 'a'}");
-        actDataList = TransUtils.getReadActList(recordCur);
-        Assert.assertEquals(actDataList, expDataList);
+        recordCur = cl.query( null, null, null, "{'': 'a'}" );
+        actDataList = TransUtils.getReadActList( recordCur );
+        Assert.assertEquals( actDataList, expDataList );
         actDataList.clear();
 
-        cl.delete("{'a': {'$isnull' :0}}");
-        Assert.assertEquals(cl.getCount(), 0);
+        cl.delete( "{'a': {'$isnull' :0}}" );
+        Assert.assertEquals( cl.getCount(), 0 );
 
     }
 
@@ -144,11 +144,11 @@ public class Transaction17122 extends SdbTestBase {
     public void tearDown() {
         sdb.commit();
 
-        sdb.getCollectionSpace(csName).dropCollection(clName);
-        if (recordCur != null) {
+        sdb.getCollectionSpace( csName ).dropCollection( clName );
+        if ( recordCur != null ) {
             recordCur.close();
         }
-        if (sdb != null) {
+        if ( sdb != null ) {
             sdb.close();
         }
     }

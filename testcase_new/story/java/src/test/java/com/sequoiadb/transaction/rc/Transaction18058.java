@@ -26,28 +26,28 @@ public class Transaction18058 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl_18058";
     private DBCollection cl = null;
-    private List<BSONObject> expList = new ArrayList<BSONObject>();
+    private List< BSONObject > expList = new ArrayList< BSONObject >();
     private Sequoiadb db1 = null;
     private DBCollection cl1 = null;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl.createIndex("a", "{a:1}", false, false);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl.createIndex( "a", "{a:1}", false, false );
     }
 
     @AfterClass
     public void tearDown() {
         db1.commit();
-        if (!db1.isClosed()) {
+        if ( !db1.isClosed() ) {
             db1.close();
         }
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        if (!sdb.isClosed()) {
+        if ( !sdb.isClosed() ) {
             sdb.close();
         }
     }
@@ -55,44 +55,44 @@ public class Transaction18058 extends SdbTestBase {
     @Test
     public void test() {
         // 开启事务
-        db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl1 = db1.getCollectionSpace(csName).getCollection(clName);
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         db1.beginTransaction();
 
         // 插入记录R1及R2
-        BSONObject insertR1 = (BSONObject) JSON.parse("{_id:1, a:1, b:1}");
-        BSONObject insertR2 = (BSONObject) JSON.parse("{_id:2, a:2, b:2}");
-        cl.insert(insertR1);
-        cl.insert(insertR2);
+        BSONObject insertR1 = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
+        BSONObject insertR2 = ( BSONObject ) JSON.parse( "{_id:2, a:2, b:2}" );
+        cl.insert( insertR1 );
+        cl.insert( insertR2 );
 
         // 事务中更新记录R1为R3
-        cl1.update("{a:1}", "{$inc:{a:2}}", "{\"\":\"a\"}");
+        cl1.update( "{a:1}", "{$inc:{a:2}}", "{\"\":\"a\"}" );
 
         // 事务中更新记录R1为R4
-        cl1.update("{a:1}", "{$inc:{a:2}}", "{\"\":\"a\"}");
+        cl1.update( "{a:1}", "{$inc:{a:2}}", "{\"\":\"a\"}" );
 
         // 事务中更新记录R3为R5
-        cl1.update("{a:3}", "{$inc:{a:2}}", "{\"\":\"a\"}");
+        cl1.update( "{a:3}", "{$inc:{a:2}}", "{\"\":\"a\"}" );
 
         // 事务中更新记录R3为R5
-        cl1.update("{a:3}", "{$inc:{a:2}}", "{\"\":\"a\"}");
+        cl1.update( "{a:3}", "{$inc:{a:2}}", "{\"\":\"a\"}" );
 
         // 事务中表扫描查询
-        expList.add(insertR2);
-        BSONObject updateR1 = (BSONObject) JSON.parse("{_id:1, a:5, b:1}");
-        expList.add(updateR1);
-        TransUtils.queryAndCheck(cl1, "{a:1}", "{'':null}", expList);
+        expList.add( insertR2 );
+        BSONObject updateR1 = ( BSONObject ) JSON.parse( "{_id:1, a:5, b:1}" );
+        expList.add( updateR1 );
+        TransUtils.queryAndCheck( cl1, "{a:1}", "{'':null}", expList );
 
         // 事务中索引查询
-        TransUtils.queryAndCheck(cl1, "{a:1}", "{'':'a'}", expList);
+        TransUtils.queryAndCheck( cl1, "{a:1}", "{'':'a'}", expList );
 
         // 事务1、2提交
         db1.commit();
 
         // 表扫描查询
-        TransUtils.queryAndCheck(cl, "{a:1}", "{'':null}", expList);
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'':null}", expList );
 
         // 索引查询
-        TransUtils.queryAndCheck(cl, "{a:1}", "{'':'a'}", expList);
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'':'a'}", expList );
     }
 }

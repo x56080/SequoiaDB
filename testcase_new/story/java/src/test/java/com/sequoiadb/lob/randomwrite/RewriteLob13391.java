@@ -34,17 +34,20 @@ public class RewriteLob13391 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = db.getCollectionSpace(SdbTestBase.csName);
-        if (CommLib.isStandAlone(db) || CommLib.OneGroupMode(db)) {
-            throw new SkipException("less than two groups will skip!");
+        db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = db.getCollectionSpace( SdbTestBase.csName );
+        if ( CommLib.isStandAlone( db ) || CommLib.OneGroupMode( db ) ) {
+            throw new SkipException( "less than two groups will skip!" );
         }
 
-        BSONObject clOpt = (BSONObject) JSON.parse("{ShardingKey:{\"_id\":1},ShardingType:\"hash\"}");
-        dbcl = cs.createCollection(clName, clOpt);
-        String srcGroupName = RandomWriteLobUtil.getSrcGroupName(db, SdbTestBase.csName, clName);
-        String dstGroupName = RandomWriteLobUtil.getSplitGroupName(db, srcGroupName);
-        dbcl.split(srcGroupName, dstGroupName, 50);
+        BSONObject clOpt = ( BSONObject ) JSON
+                .parse( "{ShardingKey:{\"_id\":1},ShardingType:\"hash\"}" );
+        dbcl = cs.createCollection( clName, clOpt );
+        String srcGroupName = RandomWriteLobUtil.getSrcGroupName( db,
+                SdbTestBase.csName, clName );
+        String dstGroupName = RandomWriteLobUtil.getSplitGroupName( db,
+                srcGroupName );
+        dbcl.split( srcGroupName, dstGroupName, 50 );
     }
 
     /**
@@ -55,25 +58,26 @@ public class RewriteLob13391 extends SdbTestBase {
      */
     @Test
     public void testLob13391() {
-        byte[] writeData = RandomWriteLobUtil.getRandomBytes(lobSize);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(dbcl, writeData);
+        byte[] writeData = RandomWriteLobUtil.getRandomBytes( lobSize );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( dbcl, writeData );
 
         long length = 1024 * 512;
-        dbcl.truncateLob(oid, length);
+        dbcl.truncateLob( oid, length );
 
-        byte[] expData = Arrays.copyOf(writeData, (int) length);
-        byte[] actData = RandomWriteLobUtil.readLob(dbcl, oid);
-        RandomWriteLobUtil.assertByteArrayEqual(actData, expData, "lob data is wrong");
+        byte[] expData = Arrays.copyOf( writeData, ( int ) length );
+        byte[] actData = RandomWriteLobUtil.readLob( dbcl, oid );
+        RandomWriteLobUtil.assertByteArrayEqual( actData, expData,
+                "lob data is wrong" );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
         } finally {
-            if (null != db) {
+            if ( null != db ) {
                 db.close();
             }
         }

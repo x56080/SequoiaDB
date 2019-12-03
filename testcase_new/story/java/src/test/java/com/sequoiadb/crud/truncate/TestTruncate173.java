@@ -22,79 +22,86 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  * @Version 1.00
  */
 public class TestTruncate173 extends SdbTestBase {
-	private Sequoiadb sdb = null;
-	private String clName = "cl_173";
-	private BSONObject record = null;
+    private Sequoiadb sdb = null;
+    private String clName = "cl_173";
+    private BSONObject record = null;
 
-	@BeforeClass
-	public void setUp() {
-		sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+    @BeforeClass
+    public void setUp() {
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
-		DBCollection cl = TruncateUtils.createCL(sdb, csName, clName);
-		// doing insert
-		TruncateUtils.insertData(cl);
-		// prepare data for insert(below)
-		record = new BasicBSONObject();
-		record.put("key", "123456789");
+        DBCollection cl = TruncateUtils.createCL( sdb, csName, clName );
+        // doing insert
+        TruncateUtils.insertData( cl );
+        // prepare data for insert(below)
+        record = new BasicBSONObject();
+        record.put( "key", "123456789" );
 
-	}
+    }
 
-	@AfterClass
-	public void tearDown() {
-		try {
-			CollectionSpace cs = sdb.getCollectionSpace(csName);
-			if (cs.isCollectionExist(clName)) {
-				cs.dropCollection(clName);
-			}
-		} finally {
-			sdb.close();
-		}
-	}
+    @AfterClass
+    public void tearDown() {
+        try {
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
+            }
+        } finally {
+            sdb.close();
+        }
+    }
 
-	@Test
-	public void test() {
-		TruncateThread truncateThread = new TruncateThread();
-		InsertThread insertThread = new InsertThread();
+    @Test
+    public void test() {
+        TruncateThread truncateThread = new TruncateThread();
+        InsertThread insertThread = new InsertThread();
 
-		insertThread.start();
-		truncateThread.start();
+        insertThread.start();
+        truncateThread.start();
 
-		if (!(truncateThread.isSuccess() && insertThread.isSuccess())) {
-			Assert.fail(truncateThread.getErrorMsg() + insertThread.getErrorMsg());
-		}
-	}
+        if ( !( truncateThread.isSuccess() && insertThread.isSuccess() ) ) {
+            Assert.fail(
+                    truncateThread.getErrorMsg() + insertThread.getErrorMsg() );
+        }
+    }
 
-	private class TruncateThread extends SdbThreadBase {
-		@Override
-		public void exec() throws BaseException {
-			DBCollection cl = null;
-			try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-				db.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
-				cl = db.getCollectionSpace(csName).getCollection(clName);
-				// doing truncate
-				cl.truncate();
-			} catch (BaseException e) {
-				if (e.getErrorCode() != -321 && e.getErrorCode() != -147 && e.getErrorCode() != -190) {
-					Assert.fail(" truncate fail! " + e.getErrorCode());
-				}
-			}
-		}
-	}
+    private class TruncateThread extends SdbThreadBase {
+        @Override
+        public void exec() throws BaseException {
+            DBCollection cl = null;
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                db.setSessionAttr(
+                        ( BSONObject ) JSON.parse( "{PreferedInstance:'M'}" ) );
+                cl = db.getCollectionSpace( csName ).getCollection( clName );
+                // doing truncate
+                cl.truncate();
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -321 && e.getErrorCode() != -147
+                        && e.getErrorCode() != -190 ) {
+                    Assert.fail( " truncate fail! " + e.getErrorCode() );
+                }
+            }
+        }
+    }
 
-	private class InsertThread extends SdbThreadBase {
-		@Override
-		public void exec() throws BaseException {
-			DBCollection cl = null;
-			try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-				db.setSessionAttr((BSONObject) JSON.parse("{PreferedInstance:'M'}"));
-				cl = db.getCollectionSpace(csName).getCollection(clName);
-				// doing insert
-				cl.insert(record);
-			} catch (BaseException e) {
-				if (e.getErrorCode() != -321 && e.getErrorCode() != -147 && e.getErrorCode() != -190) {
-					Assert.fail(" insert fail! " + e.getErrorCode());
-				}
-			}
-		}
-	}
+    private class InsertThread extends SdbThreadBase {
+        @Override
+        public void exec() throws BaseException {
+            DBCollection cl = null;
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                db.setSessionAttr(
+                        ( BSONObject ) JSON.parse( "{PreferedInstance:'M'}" ) );
+                cl = db.getCollectionSpace( csName ).getCollection( clName );
+                // doing insert
+                cl.insert( record );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -321 && e.getErrorCode() != -147
+                        && e.getErrorCode() != -190 ) {
+                    Assert.fail( " insert fail! " + e.getErrorCode() );
+                }
+            }
+        }
+    }
 }

@@ -26,25 +26,25 @@ public class Transaction17071 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl17071";
     private DBCollection cl = null;
-    private List<BSONObject> expList = new ArrayList<BSONObject>();
+    private List< BSONObject > expList = new ArrayList< BSONObject >();
     private String hintTbScan = "{'':null}";
     private String hintIxScan = "{'':'textIndex17071'}";
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl.createIndex("textIndex17071", "{a:1}", false, false);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl.createIndex( "textIndex17071", "{a:1}", false, false );
     }
 
     @AfterClass
     public void tearDown() {
         sdb.commit();
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        if (!sdb.isClosed()) {
+        if ( !sdb.isClosed() ) {
             sdb.close();
         }
     }
@@ -53,33 +53,36 @@ public class Transaction17071 extends SdbTestBase {
     public void test() {
         // 开启事务插入记录R1
         sdb.beginTransaction();
-        BSONObject record = (BSONObject) JSON.parse("{_id:1, a:1, b:1}");
-        cl.insert(record);
-        expList.add(record);
+        BSONObject record = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
+        cl.insert( record );
+        expList.add( record );
 
         // 读记录走表扫描
-        TransUtils.queryAndCheck(cl, hintTbScan, expList);
+        TransUtils.queryAndCheck( cl, hintTbScan, expList );
 
         // 读记录走索引扫描
-        TransUtils.queryAndCheck(cl, "{a:{$exists:1}}", null, null, hintIxScan, expList);
+        TransUtils.queryAndCheck( cl, "{a:{$exists:1}}", null, null, hintIxScan,
+                expList );
 
         // 事务提交
         sdb.commit();
 
         // 读记录走表扫描
-        TransUtils.queryAndCheck(cl, hintTbScan, expList);
+        TransUtils.queryAndCheck( cl, hintTbScan, expList );
 
         // 读记录走索引扫描
-        TransUtils.queryAndCheck(cl, "{a:{$exists:1}}", null, null, hintIxScan, expList);
+        TransUtils.queryAndCheck( cl, "{a:{$exists:1}}", null, null, hintIxScan,
+                expList );
 
         // 删除记录
-        cl.delete("", hintIxScan);
+        cl.delete( "", hintIxScan );
 
         // 读记录走表扫描
         expList.clear();
-        TransUtils.queryAndCheck(cl, hintTbScan, expList);
+        TransUtils.queryAndCheck( cl, hintTbScan, expList );
 
         // 读记录走索引扫描
-        TransUtils.queryAndCheck(cl, "{a:{$exists:1}}", null, null, hintIxScan, expList);
+        TransUtils.queryAndCheck( cl, "{a:{$exists:1}}", null, null, hintIxScan,
+                expList );
     }
 }

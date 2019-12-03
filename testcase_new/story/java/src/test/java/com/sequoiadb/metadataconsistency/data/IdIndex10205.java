@@ -25,7 +25,8 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class IdIndex10205 extends SdbTestBase {
-    private SimpleDateFormat dateFm = new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss" );
+    private SimpleDateFormat dateFm = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss" );
     private static Sequoiadb sdb = null;
     private String csName = "cs10205";
     private String clName = "cs10205";
@@ -40,8 +41,10 @@ public class IdIndex10205 extends SdbTestBase {
         try {
             sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             // judge the mode or node number
-            if ( MetaDataUtils.isStandAlone( sdb ) || MetaDataUtils.oneDataNode( sdb ) ) {
-                throw new SkipException( "The mode is standlone or one node, skip the testCase." );
+            if ( MetaDataUtils.isStandAlone( sdb )
+                    || MetaDataUtils.oneDataNode( sdb ) ) {
+                throw new SkipException(
+                        "The mode is standlone or one node, skip the testCase." );
             }
 
             MetaDataUtils.clearCS( sdb, csName );
@@ -78,7 +81,8 @@ public class IdIndex10205 extends SdbTestBase {
         dropIndex.start( 3 );
 
         if ( !( createIdIndex.isSuccess() && dropIndex.isSuccess() ) ) {
-            Assert.fail( createIdIndex.getErrorMsg() + dropIndex.getErrorMsg() );
+            Assert.fail(
+                    createIdIndex.getErrorMsg() + dropIndex.getErrorMsg() );
         }
 
         // check results
@@ -91,17 +95,19 @@ public class IdIndex10205 extends SdbTestBase {
             Sequoiadb db = null;
             try {
                 db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-                DBCollection clDB = db.getCollectionSpace( csName ).getCollection( mCLName );
+                DBCollection clDB = db.getCollectionSpace( csName )
+                        .getCollection( mCLName );
 
                 BSONObject opt = new BasicBSONObject();
                 opt.put( "SortBufferSize", 128 );
                 clDB.createIdIndex( opt );
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if ( eCode != -43 && eCode != -147 && eCode != -247 && eCode != -199 && eCode != -190 ) { // -43:Failed
-                                                                                                          // to
-                                                                                                          // initialize
-                                                                                                          // index
+                if ( eCode != -43 && eCode != -147 && eCode != -247
+                        && eCode != -199 && eCode != -190 ) { // -43:Failed
+                                                              // to
+                                                              // initialize
+                                                              // index
                     Assert.fail( e.getMessage() );
                 }
             } finally {
@@ -116,7 +122,8 @@ public class IdIndex10205 extends SdbTestBase {
             Sequoiadb db = null;
             try {
                 db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-                DBCollection clDB = db.getCollectionSpace( csName ).getCollection( mCLName );
+                DBCollection clDB = db.getCollectionSpace( csName )
+                        .getCollection( mCLName );
                 clDB.dropIdIndex();
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
@@ -151,7 +158,8 @@ public class IdIndex10205 extends SdbTestBase {
             opt.put( "ShardingKey", subObj );
             opt.put( "ReplSize", 0 );
             for ( int i = 0; i < 10; i++ ) {
-                sdb.getCollectionSpace( csName ).createCollection( sCLName + i, opt );
+                sdb.getCollectionSpace( csName ).createCollection( sCLName + i,
+                        opt );
             }
         } catch ( BaseException e ) {
             throw e;
@@ -170,8 +178,9 @@ public class IdIndex10205 extends SdbTestBase {
                 upBoundObj.put( "a", bound + 100 );
                 options.put( "LowBound", lowBoundObj );
                 options.put( "UpBound", upBoundObj );
-                sdb.getCollectionSpace( csName ).getCollection( mCLName ).attachCollection( csName + "." + sCLName + i,
-                        options );
+                sdb.getCollectionSpace( csName ).getCollection( mCLName )
+                        .attachCollection( csName + "." + sCLName + i,
+                                options );
             }
         } catch ( BaseException e ) {
             throw e;

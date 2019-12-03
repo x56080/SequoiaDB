@@ -35,8 +35,8 @@ public class Transaction17172B extends SdbTestBase {
     private DBCollection cl2 = null;
     private DBCollection cl3 = null;
     private DBCollection cl = null;
-    private ArrayList<BSONObject> expList = new ArrayList<BSONObject>();
-    private ArrayList<BSONObject> actList = new ArrayList<BSONObject>();
+    private ArrayList< BSONObject > expList = new ArrayList< BSONObject >();
+    private ArrayList< BSONObject > actList = new ArrayList< BSONObject >();
     private DBCursor cursor = null;
     private String hint = "{\"\":\"a\"}";
     private int startId = 0;
@@ -45,9 +45,9 @@ public class Transaction17172B extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl.createIndex("a", "{a:1}", false, false);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl.createIndex( "a", "{a:1}", false, false );
     }
 
     @AfterClass
@@ -55,21 +55,21 @@ public class Transaction17172B extends SdbTestBase {
         db1.commit();
         db2.commit();
         db3.commit();
-        if (!db1.isClosed()) {
+        if ( !db1.isClosed() ) {
             db1.close();
         }
-        if (!db2.isClosed()) {
+        if ( !db2.isClosed() ) {
             db2.close();
         }
-        if (!db3.isClosed()) {
+        if ( !db3.isClosed() ) {
             db3.close();
         }
 
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        if (!sdb.isClosed()) {
+        if ( !sdb.isClosed() ) {
             sdb.close();
         }
     }
@@ -77,82 +77,90 @@ public class Transaction17172B extends SdbTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void test() {
-        db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db3 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         // 开启3个并发事务
         db1.beginTransaction();
         db2.beginTransaction();
         db3.beginTransaction();
-        cl1 = db1.getCollectionSpace(csName).getCollection(clName);
-        cl2 = db2.getCollectionSpace(csName).getCollection(clName);
-        cl3 = db3.getCollectionSpace(csName).getCollection(clName);
+        cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
+        cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
+        cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
 
         // 事务1插入记录R1
-        ArrayList<BSONObject> insertR1s = TransUtils.insertDatas(cl1, startId, stopId, insertValue);
+        ArrayList< BSONObject > insertR1s = TransUtils.insertDatas( cl1,
+                startId, stopId, insertValue );
 
         // 事务2删除记录R1
         DeleteThread deleteThread = new DeleteThread();
         deleteThread.start();
-        Assert.assertTrue(deleteThread.matchBlockingMethod(cl2.getClass().getName(), "delete"));
+        Assert.assertTrue( deleteThread
+                .matchBlockingMethod( cl2.getClass().getName(), "delete" ) );
 
         // 事务3读
-        TransactionQueryThread tableScanThread1 = new TransactionQueryThread(cl3);
+        TransactionQueryThread tableScanThread1 = new TransactionQueryThread(
+                cl3 );
         tableScanThread1.start();
-        Assert.assertTrue(tableScanThread1.matchBlockingMethod(DBCursor.class.getName(), "hasNext"));
+        Assert.assertTrue( tableScanThread1
+                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
 
         // 非事务读
-        expList.addAll(insertR1s);
-        cursor = cl.query(null, null, "{_id:1}", hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        expList.addAll( insertR1s );
+        cursor = cl.query( null, null, "{_id:1}", hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 提交事务1
         db1.commit();
-        Assert.assertTrue(deleteThread.isSuccess(), deleteThread.getErrorMsg());
-        Assert.assertTrue(tableScanThread1.matchBlockingMethod(DBCursor.class.getName(), "hasNext"));
+        Assert.assertTrue( deleteThread.isSuccess(),
+                deleteThread.getErrorMsg() );
+        Assert.assertTrue( tableScanThread1
+                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
 
         // 非事务读
         expList.clear();
-        cursor = cl.query(null, null, "{_id:1}", hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl.query( null, null, "{_id:1}", hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 事务2读
-        cursor = cl2.query(null, null, "{_id:1}", hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl2.query( null, null, "{_id:1}", hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 提交事务2
         db2.commit();
-        Assert.assertTrue(tableScanThread1.isSuccess(), tableScanThread1.getErrorMsg());
+        Assert.assertTrue( tableScanThread1.isSuccess(),
+                tableScanThread1.getErrorMsg() );
 
         // 检查事务3读
         try {
-            actList = (ArrayList<BSONObject>) tableScanThread1.getExecResult();
-            Assert.assertEquals(actList, expList);
+            actList = ( ArrayList< BSONObject > ) tableScanThread1
+                    .getExecResult();
+            Assert.assertEquals( actList, expList );
             actList.clear();
 
-        } catch (InterruptedException e) {
+        } catch ( InterruptedException e ) {
             // TODO Auto-generated catch block
             e.printStackTrace();
             Assert.fail();
         }
 
         // 非事务读
-        cursor = cl.query(null, null, "{_id:1}", hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl.query( null, null, "{_id:1}", hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 事务3读
-        cursor = cl3.query(null, null, "{_id:1}", hint);
-        actList = TransUtils.getReadActList(cursor);
-        Assert.assertEquals(actList, expList);
+        cursor = cl3.query( null, null, "{_id:1}", hint );
+        actList = TransUtils.getReadActList( cursor );
+        Assert.assertEquals( actList, expList );
         actList.clear();
 
         // 提交事务3
@@ -162,26 +170,26 @@ public class Transaction17172B extends SdbTestBase {
     private class DeleteThread extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
-            cl2.delete(null, hint);
+            cl2.delete( null, hint );
         }
     }
 
     private class TransactionQueryThread extends SdbThreadBase {
         private DBCollection cl = null;
 
-        public TransactionQueryThread(DBCollection cl) {
+        public TransactionQueryThread( DBCollection cl ) {
             super();
             this.cl = cl;
         }
 
         @Override
         public void exec() throws BaseException {
-            List<BSONObject> ret = new ArrayList<BSONObject>();
-            DBCursor indexCursor = cl.query(null, null, "{_id:1}", hint);
-            while (indexCursor.hasNext()) {
-                ret.add(indexCursor.getNext());
+            List< BSONObject > ret = new ArrayList< BSONObject >();
+            DBCursor indexCursor = cl.query( null, null, "{_id:1}", hint );
+            while ( indexCursor.hasNext() ) {
+                ret.add( indexCursor.getNext() );
             }
-            setExecResult(ret);
+            setExecResult( ret );
         }
     }
 

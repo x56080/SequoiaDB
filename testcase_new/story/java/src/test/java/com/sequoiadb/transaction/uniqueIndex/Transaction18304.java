@@ -26,22 +26,22 @@ public class Transaction18304 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl.createIndex("a", "{a:1}", true, false);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl.createIndex( "a", "{a:1}", true, false );
     }
 
     @Test
     public void test() {
         sdb.beginTransaction();
 
-        BSONObject insertR1 = (BSONObject) JSON.parse("{a:1,b:1,c:1}");
-        cl.insert(insertR1);
+        BSONObject insertR1 = ( BSONObject ) JSON.parse( "{a:1,b:1,c:1}" );
+        cl.insert( insertR1 );
         try {
-            cl.insert(insertR1);
-            Assert.fail("can not insert duplicate key");
-        } catch (BaseException e) {
-            Assert.assertEquals(e.getErrorCode(), -38);
+            cl.insert( insertR1 );
+            Assert.fail( "can not insert duplicate key" );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( e.getErrorCode(), -38 );
         } finally {
             sdb.commit();
         }
@@ -49,8 +49,8 @@ public class Transaction18304 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        sdb.getCollectionSpace(csName).dropCollection(clName);
-        if (sdb != null) {
+        sdb.getCollectionSpace( csName ).dropCollection( clName );
+        if ( sdb != null ) {
             sdb.close();
         }
     }

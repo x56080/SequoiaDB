@@ -24,7 +24,8 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class IdIndex10208 extends SdbTestBase {
-    private SimpleDateFormat dateFm = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
+    private SimpleDateFormat dateFm = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss" );
     private static Sequoiadb sdb = null;
     private String csName = "cs10208";
     private String clName = "cs10208";
@@ -34,31 +35,33 @@ public class IdIndex10208 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         try {
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             // judge the mode or node number
-            if (MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.oneDataNode(sdb)) {
-                throw new SkipException("The mode is standlone or one node, skip the testCase.");
+            if ( MetaDataUtils.isStandAlone( sdb )
+                    || MetaDataUtils.oneDataNode( sdb ) ) {
+                throw new SkipException(
+                        "The mode is standlone or one node, skip the testCase." );
             }
-            MetaDataUtils.clearCS(sdb, csName);
+            MetaDataUtils.clearCS( sdb, csName );
 
-            sdb.createCollectionSpace(csName);
-            createMainCL(sdb);
-            createSubCL(sdb);
-            attachCL(sdb);
-            createIdIndex(sdb);
-            MetaDataUtils.insertData(sdb, csName, mCLName);
-        } catch (BaseException e) {
+            sdb.createCollectionSpace( csName );
+            createMainCL( sdb );
+            createSubCL( sdb );
+            attachCL( sdb );
+            createIdIndex( sdb );
+            MetaDataUtils.insertData( sdb, csName, mCLName );
+        } catch ( BaseException e ) {
             sdb.disconnect();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            MetaDataUtils.clearCS(sdb, csName);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+            MetaDataUtils.clearCS( sdb, csName );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         } finally {
             sdb.disconnect();
         }
@@ -67,14 +70,14 @@ public class IdIndex10208 extends SdbTestBase {
     @Test
     public void test() {
         DropIndex dropIndex = new DropIndex();
-        dropIndex.start(10);
+        dropIndex.start( 10 );
 
-        if (!dropIndex.isSuccess()) {
-            Assert.fail(dropIndex.getErrorMsg());
+        if ( !dropIndex.isSuccess() ) {
+            Assert.fail( dropIndex.getErrorMsg() );
         }
 
         // check results
-        MetaDataUtils.checkIndex(csName, sCLName);
+        MetaDataUtils.checkIndex( csName, sCLName );
     }
 
     private class DropIndex extends SdbThreadBase {
@@ -82,11 +85,13 @@ public class IdIndex10208 extends SdbTestBase {
         public void exec() throws BaseException {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCollection clDB = db.getCollectionSpace(csName).getCollection(mCLName);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCollection clDB = db.getCollectionSpace( csName )
+                        .getCollection( mCLName );
                 clDB.dropIdIndex();
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -247 && e.getErrorCode() != -147 && e.getErrorCode() != -190) {
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -247 && e.getErrorCode() != -147
+                        && e.getErrorCode() != -190 ) {
                     throw e;
                 }
             } finally {
@@ -95,62 +100,65 @@ public class IdIndex10208 extends SdbTestBase {
         }
     }
 
-    public void createMainCL(Sequoiadb sdb) {
+    public void createMainCL( Sequoiadb sdb ) {
         try {
             BSONObject opt = new BasicBSONObject();
             BSONObject subObj = new BasicBSONObject();
-            subObj.put("a", 1);
-            opt.put("ShardingKey", subObj);
-            opt.put("ReplSize", 0);
-            opt.put("IsMainCL", true);
-            sdb.getCollectionSpace(csName).createCollection(mCLName, opt);
-        } catch (BaseException e) {
+            subObj.put( "a", 1 );
+            opt.put( "ShardingKey", subObj );
+            opt.put( "ReplSize", 0 );
+            opt.put( "IsMainCL", true );
+            sdb.getCollectionSpace( csName ).createCollection( mCLName, opt );
+        } catch ( BaseException e ) {
             throw e;
         }
     }
 
-    public void createSubCL(Sequoiadb sdb) {
+    public void createSubCL( Sequoiadb sdb ) {
         try {
             BSONObject opt = new BasicBSONObject();
             BSONObject subObj = new BasicBSONObject();
-            subObj.put("a", 1);
-            opt.put("ShardingKey", subObj);
-            opt.put("ReplSize", 0);
-            for (int i = 0; i < 3; i++) {
-                sdb.getCollectionSpace(csName).createCollection(sCLName + i, opt);
+            subObj.put( "a", 1 );
+            opt.put( "ShardingKey", subObj );
+            opt.put( "ReplSize", 0 );
+            for ( int i = 0; i < 3; i++ ) {
+                sdb.getCollectionSpace( csName ).createCollection( sCLName + i,
+                        opt );
             }
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
             throw e;
         }
     }
 
-    public void attachCL(Sequoiadb sdb) {
+    public void attachCL( Sequoiadb sdb ) {
         try {
-            DBCollection clDB = sdb.getCollectionSpace(csName).getCollection(mCLName);
+            DBCollection clDB = sdb.getCollectionSpace( csName )
+                    .getCollection( mCLName );
 
             BSONObject options = new BasicBSONObject();
             BSONObject lowBoundObj = new BasicBSONObject();
             BSONObject upBoundObj = new BasicBSONObject();
-            for (int i = 0; i < 3; i++) {
+            for ( int i = 0; i < 3; i++ ) {
                 int bound = i * 100;
-                lowBoundObj.put("a", bound);
-                upBoundObj.put("a", bound + 100);
-                options.put("LowBound", lowBoundObj);
-                options.put("UpBound", upBoundObj);
-                clDB.attachCollection(csName + "." + sCLName + i, options);
+                lowBoundObj.put( "a", bound );
+                upBoundObj.put( "a", bound + 100 );
+                options.put( "LowBound", lowBoundObj );
+                options.put( "UpBound", upBoundObj );
+                clDB.attachCollection( csName + "." + sCLName + i, options );
             }
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
             throw e;
         }
     }
 
-    public void createIdIndex(Sequoiadb sdb) {
+    public void createIdIndex( Sequoiadb sdb ) {
         try {
-            DBCollection clDB = sdb.getCollectionSpace(csName).getCollection(mCLName);
+            DBCollection clDB = sdb.getCollectionSpace( csName )
+                    .getCollection( mCLName );
             BSONObject opt2 = new BasicBSONObject();
-            opt2.put("SortBufferSize", 128);
-            clDB.createIdIndex(opt2);
-        } catch (BaseException e) {
+            opt2.put( "SortBufferSize", 128 );
+            clDB.createIdIndex( opt2 );
+        } catch ( BaseException e ) {
             throw e;
         }
     }

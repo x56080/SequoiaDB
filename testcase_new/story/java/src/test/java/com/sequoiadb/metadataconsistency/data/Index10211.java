@@ -26,7 +26,8 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class Index10211 extends SdbTestBase {
-    private SimpleDateFormat dateFm = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
+    private SimpleDateFormat dateFm = new SimpleDateFormat(
+            "YYYY-MM-dd HH:mm:ss" );
     private static Sequoiadb sdb = null;
     private String csName = "cs10211";
     private String clName = "cl10211";
@@ -38,19 +39,21 @@ public class Index10211 extends SdbTestBase {
     public void setUp() {
         // start time
         try {
-            sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             // judge the mode or node number
-            if (MetaDataUtils.isStandAlone(sdb) || MetaDataUtils.oneDataNode(sdb)) {
-                throw new SkipException("The mode is standlone or one node, skip the testCase.");
+            if ( MetaDataUtils.isStandAlone( sdb )
+                    || MetaDataUtils.oneDataNode( sdb ) ) {
+                throw new SkipException(
+                        "The mode is standlone or one node, skip the testCase." );
             }
-            MetaDataUtils.clearCS(sdb, csName);
+            MetaDataUtils.clearCS( sdb, csName );
 
-            CollectionSpace csDB = sdb.createCollectionSpace(csName);
-            csDB.createCollection(clName);
-            MetaDataUtils.insertData(sdb, csName, clName);
-        } catch (BaseException e) {
+            CollectionSpace csDB = sdb.createCollectionSpace( csName );
+            csDB.createCollection( clName );
+            MetaDataUtils.insertData( sdb, csName, clName );
+        } catch ( BaseException e ) {
             sdb.disconnect();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         }
     }
 
@@ -58,12 +61,12 @@ public class Index10211 extends SdbTestBase {
     public void tearDown() {
         try {
             // check results
-            MetaDataUtils.checkIndex(csName, clName);
+            MetaDataUtils.checkIndex( csName, clName );
 
             // clear env
-            MetaDataUtils.clearCS(sdb, csName);
-        } catch (BaseException e) {
-            Assert.fail(e.getMessage());
+            MetaDataUtils.clearCS( sdb, csName );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() );
         } finally {
             sdb.disconnect();
         }
@@ -74,15 +77,15 @@ public class Index10211 extends SdbTestBase {
         CreateIndex createIndex = new CreateIndex();
         createIndex.start();
 
-        MetaDataUtils.sleep(random.nextInt(msec));
+        MetaDataUtils.sleep( random.nextInt( msec ) );
         createIndex.start();
 
-        if (!createIndex.isSuccess()) {
-            Assert.fail(createIndex.getErrorMsg());
+        if ( !createIndex.isSuccess() ) {
+            Assert.fail( createIndex.getErrorMsg() );
         }
 
         // check results
-        MetaDataUtils.checkIndex(csName, clName);
+        MetaDataUtils.checkIndex( csName, clName );
     }
 
     private class CreateIndex extends SdbThreadBase {
@@ -90,17 +93,18 @@ public class Index10211 extends SdbTestBase {
         public void exec() throws BaseException {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCollection clDB = db.getCollectionSpace(csName).getCollection(clName);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCollection clDB = db.getCollectionSpace( csName )
+                        .getCollection( clName );
 
                 BSONObject opt = new BasicBSONObject();
-                opt.put("a", 1);
-                clDB.createIndex(idxName, opt, false, false);
-            } catch (BaseException e) {
+                opt.put( "a", 1 );
+                clDB.createIndex( idxName, opt, false, false );
+            } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if (eCode != -247 && eCode != -147// -247:Redefine index
-                        && eCode != -43 && eCode != -190) { // -43:Failed to
-                                                            // initialize index
+                if ( eCode != -247 && eCode != -147// -247:Redefine index
+                        && eCode != -43 && eCode != -190 ) { // -43:Failed to
+                                                             // initialize index
                     throw e;
                 }
             } finally {

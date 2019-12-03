@@ -26,56 +26,61 @@ import com.sequoiadb.testcommon.SdbTestBase;
  */
 
 public class SubCL44 extends SdbTestBase {
-	private Sequoiadb sdb;
-	private CollectionSpace commCS;
-	private DBCollection mainCL;
-	private DBCollection subCL;
-	private String mainCLName = "mainCL44";
-	private String subCLName = "subCL44";
+    private Sequoiadb sdb;
+    private CollectionSpace commCS;
+    private DBCollection mainCL;
+    private DBCollection subCL;
+    private String mainCLName = "mainCL44";
+    private String subCLName = "subCL44";
 
-	@BeforeClass
-	public void setUp() {
-		try {
-			sdb = new Sequoiadb(coordUrl, "", "");
-			CommLib commlib = new CommLib();
-			if (commlib.isStandAlone(sdb)) {
-				throw new SkipException("StandAlone skip this test:" + this.getClass().getName());
-			}
-			commCS = sdb.getCollectionSpace(csName);
-			mainCL = commCS.createCollection(mainCLName,
-					(BSONObject) JSON.parse("{IsMainCL:true,ShardingKey:{\"alph\":1}}"));
-			subCL = commCS.createCollection(subCLName,
-					(BSONObject) JSON.parse("{ShardingKey:{\"tx_id\":1},ShardingType:\"hash\"}"));
-		} catch (BaseException e) {
-			Assert.fail("TestCase44 setUp error, error description:" + e.getMessage()+"\r\n"+SubCLUtils2.getKeyStack(e,this));
-		}
-	}
+    @BeforeClass
+    public void setUp() {
+        try {
+            sdb = new Sequoiadb( coordUrl, "", "" );
+            CommLib commlib = new CommLib();
+            if ( commlib.isStandAlone( sdb ) ) {
+                throw new SkipException( "StandAlone skip this test:"
+                        + this.getClass().getName() );
+            }
+            commCS = sdb.getCollectionSpace( csName );
+            mainCL = commCS.createCollection( mainCLName, ( BSONObject ) JSON
+                    .parse( "{IsMainCL:true,ShardingKey:{\"alph\":1}}" ) );
+            subCL = commCS.createCollection( subCLName, ( BSONObject ) JSON
+                    .parse( "{ShardingKey:{\"tx_id\":1},ShardingType:\"hash\"}" ) );
+        } catch ( BaseException e ) {
+            Assert.fail( "TestCase44 setUp error, error description:"
+                    + e.getMessage() + "\r\n"
+                    + SubCLUtils2.getKeyStack( e, this ) );
+        }
+    }
 
-	// attach子表时，只写了CL，没写为CS.CL
-	@Test
-	public void test() {
-		try {
-			mainCL.attachCollection(subCL.getName(),
-					(BSONObject) JSON.parse("{LowBound:{\"alph\":100},UpBound:{\"alph\":200}}"));
-		} catch (BaseException e) {
-			Assert.assertEquals(e.getErrorCode(), -23, e.getMessage()+"\r\n"+SubCLUtils2.getKeyStack(e,this));
-			return;
-		}
-		Assert.fail();
+    // attach子表时，只写了CL，没写为CS.CL
+    @Test
+    public void test() {
+        try {
+            mainCL.attachCollection( subCL.getName(), ( BSONObject ) JSON.parse(
+                    "{LowBound:{\"alph\":100},UpBound:{\"alph\":200}}" ) );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( e.getErrorCode(), -23, e.getMessage() + "\r\n"
+                    + SubCLUtils2.getKeyStack( e, this ) );
+            return;
+        }
+        Assert.fail();
 
-	}
+    }
 
-	@AfterClass
-	public void tearDown() {
-		try {
-			commCS.dropCollection(mainCLName);
-			commCS.dropCollection(subCLName);
-		} catch (BaseException e) {
-			Assert.fail(e.getMessage()+"\r\n"+SubCLUtils2.getKeyStack(e,this));
-		} finally {
-			if (sdb != null) {
-				sdb.disconnect();
-			}
-		}
-	}
+    @AfterClass
+    public void tearDown() {
+        try {
+            commCS.dropCollection( mainCLName );
+            commCS.dropCollection( subCLName );
+        } catch ( BaseException e ) {
+            Assert.fail( e.getMessage() + "\r\n"
+                    + SubCLUtils2.getKeyStack( e, this ) );
+        } finally {
+            if ( sdb != null ) {
+                sdb.disconnect();
+            }
+        }
+    }
 }

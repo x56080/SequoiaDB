@@ -34,38 +34,38 @@ public class Transaction18643 extends SdbTestBase {
     private String hintTbScan = "{'':null}";
     private String hintIxScan = "{'':'idx18643'}";
     private DBCollection cl;
-    private List<BSONObject> expList;
+    private List< BSONObject > expList;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        if (CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("ONE GROUP MODE");
+        if ( CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "ONE GROUP MODE" );
         }
 
         // 创建分区表并插入记录R1s
-        TransUtils.createHashCL(sdb, csName, hashCLName);
-        cl = sdb.getCollectionSpace(csName).getCollection(hashCLName);
-        expList = TransUtils.insertRandomDatas(cl, 0, 10000);
-        cl.createIndex("idx18643", "{a:1}", false, false);
+        TransUtils.createHashCL( sdb, csName, hashCLName );
+        cl = sdb.getCollectionSpace( csName ).getCollection( hashCLName );
+        expList = TransUtils.insertRandomDatas( cl, 0, 10000 );
+        cl.createIndex( "idx18643", "{a:1}", false, false );
     }
 
     @AfterClass
     public void tearDown() {
-        if (db1 != null) {
+        if ( db1 != null ) {
             db1.commit();
             db1.close();
         }
-        if (db2 != null) {
+        if ( db2 != null ) {
             db2.commit();
             db2.close();
         }
-        if (sdb != null) {
-            CollectionSpace cs = sdb.getCollectionSpace(csName);
-            cs.dropCollection(hashCLName);
+        if ( sdb != null ) {
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            cs.dropCollection( hashCLName );
             sdb.close();
         }
     }
@@ -73,42 +73,48 @@ public class Transaction18643 extends SdbTestBase {
     @Test
     public void test() {
         // 开启两个并发事务
-        db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         db1.beginTransaction();
         db2.beginTransaction();
-        DBCollection cl1 = db1.getCollectionSpace(csName).getCollection(hashCLName);
-        DBCollection cl2 = db2.getCollectionSpace(csName).getCollection(hashCLName);
+        DBCollection cl1 = db1.getCollectionSpace( csName )
+                .getCollection( hashCLName );
+        DBCollection cl2 = db2.getCollectionSpace( csName )
+                .getCollection( hashCLName );
 
         // 事务1批量删除记录后为R2s
-        cl1.delete(null, hintIxScan);
+        cl1.delete( null, hintIxScan );
 
         // 事务2表扫描/索引扫描记录
-        CL2Query th2_1 = new CL2Query(hintTbScan, expList);
+        CL2Query th2_1 = new CL2Query( hintTbScan, expList );
         th2_1.start();
-        Assert.assertTrue(th2_1.matchBlockingMethod(DBCursor.class.getName(), "hasNext"));
+        Assert.assertTrue( th2_1.matchBlockingMethod( DBCursor.class.getName(),
+                "hasNext" ) );
 
-        CL2Query th2_2 = new CL2Query(hintIxScan, expList);
+        CL2Query th2_2 = new CL2Query( hintIxScan, expList );
         th2_2.start();
-        Assert.assertTrue(th2_2.matchBlockingMethod(DBCursor.class.getName(), "hasNext"));
+        Assert.assertTrue( th2_2.matchBlockingMethod( DBCursor.class.getName(),
+                "hasNext" ) );
 
         // 非事务表扫描/索引扫描记录
-        TransUtils.queryAndCheck(cl, "{a:1}", hintTbScan, new ArrayList<BSONObject>());
-        TransUtils.queryAndCheck(cl, "{a:1}", hintIxScan, new ArrayList<BSONObject>());
+        TransUtils.queryAndCheck( cl, "{a:1}", hintTbScan,
+                new ArrayList< BSONObject >() );
+        TransUtils.queryAndCheck( cl, "{a:1}", hintIxScan,
+                new ArrayList< BSONObject >() );
 
         // 事务1回滚
         db1.rollback();
 
-        Assert.assertTrue(th2_1.isSuccess(), th2_1.getErrorMsg());
-        Assert.assertTrue(th2_2.isSuccess(), th2_2.getErrorMsg());
+        Assert.assertTrue( th2_1.isSuccess(), th2_1.getErrorMsg() );
+        Assert.assertTrue( th2_2.isSuccess(), th2_2.getErrorMsg() );
 
         // 事务2表扫描/索引扫描记录
-        TransUtils.queryAndCheck(cl2, "{a:1}", hintTbScan, expList);
-        TransUtils.queryAndCheck(cl2, "{a:1}", hintIxScan, expList);
+        TransUtils.queryAndCheck( cl2, "{a:1}", hintTbScan, expList );
+        TransUtils.queryAndCheck( cl2, "{a:1}", hintIxScan, expList );
 
         // 非事务表扫描/索引扫描记录
-        TransUtils.queryAndCheck(cl, "{a:1}", hintTbScan, expList);
-        TransUtils.queryAndCheck(cl, "{a:1}", hintIxScan, expList);
+        TransUtils.queryAndCheck( cl, "{a:1}", hintTbScan, expList );
+        TransUtils.queryAndCheck( cl, "{a:1}", hintIxScan, expList );
 
         // 事务2提交
         db2.commit();
@@ -116,9 +122,9 @@ public class Transaction18643 extends SdbTestBase {
 
     private class CL2Query extends SdbThreadBase {
         private String hint;
-        private List<BSONObject> expList;
+        private List< BSONObject > expList;
 
-        private CL2Query(String hint, List<BSONObject> expList) {
+        private CL2Query( String hint, List< BSONObject > expList ) {
             this.hint = hint;
             this.expList = expList;
         }
@@ -127,10 +133,11 @@ public class Transaction18643 extends SdbTestBase {
         public void exec() throws Exception {
             Sequoiadb db2 = null;
             try {
-                db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+                db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
                 db2.beginTransaction();
-                DBCollection cl2 = db2.getCollectionSpace(csName).getCollection(hashCLName);
-                TransUtils.queryAndCheck(cl2, "{a:1}", hint, expList);
+                DBCollection cl2 = db2.getCollectionSpace( csName )
+                        .getCollection( hashCLName );
+                TransUtils.queryAndCheck( cl2, "{a:1}", hint, expList );
                 db2.commit();
             } finally {
                 db2.rollback();

@@ -31,41 +31,43 @@ public class TestSameLobs7841 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
-        cs.createCollection(clName);
-        int writeLobSize = random.nextInt(1024 * 1024);
-        wlobBuff = LobOprUtils.getRandomBytes(writeLobSize);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
+        cs.createCollection( clName );
+        int writeLobSize = random.nextInt( 1024 * 1024 );
+        wlobBuff = LobOprUtils.getRandomBytes( writeLobSize );
     }
 
     // write same lob
     @Test(invocationCount = 100, threadPoolSize = 100)
     private void testSameLob() {
-        try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-            DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+        try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" )) {
+            DBCollection dbcl = db.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
 
             // write lob
-            ObjectId oid = LobOprUtils.createAndWriteLob(dbcl, wlobBuff);
+            ObjectId oid = LobOprUtils.createAndWriteLob( dbcl, wlobBuff );
 
             // read lob and check the lobdata
-            byte[] rbuff = new byte[wlobBuff.length];
-            try (DBLob rLob = dbcl.openLob(oid)) {
-                rLob.read(rbuff);
+            byte[] rbuff = new byte[ wlobBuff.length ];
+            try ( DBLob rLob = dbcl.openLob( oid )) {
+                rLob.read( rbuff );
             }
-            LobOprUtils.assertByteArrayEqual(rbuff, wlobBuff, "lob data is wrong!");
+            LobOprUtils.assertByteArrayEqual( rbuff, wlobBuff,
+                    "lob data is wrong!" );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-        } catch (BaseException e) {
-            Assert.assertTrue(false, "clean up failed:" + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }

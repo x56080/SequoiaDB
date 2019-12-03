@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class FullTestBase extends SdbTestBase {
     protected Sequoiadb sdb = null;
     protected DBCollection cl = null;
-    private AtomicBoolean caseFailed = new AtomicBoolean(false);
+    private AtomicBoolean caseFailed = new AtomicBoolean( false );
     protected Properties caseProp = new Properties();
 
     protected static final String IGNORESTANDALONE = "ignorestandalone";
@@ -51,28 +51,32 @@ public class FullTestBase extends SdbTestBase {
      * 和单组模式 (default:false)
      */
     private void skipTest() {
-        boolean isIgnoreStandAlone = Boolean.parseBoolean(caseProp.getProperty(IGNORESTANDALONE, "true"));
-        if (isIgnoreStandAlone && CommLib.isStandAlone(sdb)) {
-            throw new SkipException("Standalone Mode Skip Testcase");
+        boolean isIgnoreStandAlone = Boolean.parseBoolean(
+                caseProp.getProperty( IGNORESTANDALONE, "true" ) );
+        if ( isIgnoreStandAlone && CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "Standalone Mode Skip Testcase" );
         }
 
-        boolean isIngoreOneGroup = Boolean.parseBoolean(caseProp.getProperty(IGNOREONEGROUP, "false"));
-        if (isIngoreOneGroup && CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("One Group Mode Skip Testcase");
+        boolean isIngoreOneGroup = Boolean.parseBoolean(
+                caseProp.getProperty( IGNOREONEGROUP, "false" ) );
+        if ( isIngoreOneGroup && CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "One Group Mode Skip Testcase" );
         }
     }
 
     /**
-     * 配置 caseProp 中的 DOMAIN|DOMAINOPT 参数，在 caseInit 之前创建 doMain，存在 doMain 则先删除后在创建
+     * 配置 caseProp 中的 DOMAIN|DOMAINOPT 参数，在 caseInit 之前创建 doMain，存在 doMain
+     * 则先删除后在创建
      */
     private void createDoMain() {
-        String doMainName = caseProp.getProperty(DOMAIN);
-        if (doMainName != null) {
-            if (sdb.isDomainExist(doMainName)) {
-                sdb.dropDomain(doMainName);
+        String doMainName = caseProp.getProperty( DOMAIN );
+        if ( doMainName != null ) {
+            if ( sdb.isDomainExist( doMainName ) ) {
+                sdb.dropDomain( doMainName );
             }
-            String domainOpt = caseProp.getProperty(DOMAINOPT);
-            sdb.createDomain(doMainName, (BSONObject) JSON.parse(domainOpt));
+            String domainOpt = caseProp.getProperty( DOMAINOPT );
+            sdb.createDomain( doMainName,
+                    ( BSONObject ) JSON.parse( domainOpt ) );
         }
     }
 
@@ -83,28 +87,30 @@ public class FullTestBase extends SdbTestBase {
      */
     private CollectionSpace createCS() {
         CollectionSpace cs = null;
-        String csName = caseProp.getProperty(CSNAME, SdbTestBase.csName);
-        if (sdb.isCollectionSpaceExist(csName)) {
-            cs = sdb.getCollectionSpace(csName);
+        String csName = caseProp.getProperty( CSNAME, SdbTestBase.csName );
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            cs = sdb.getCollectionSpace( csName );
         } else {
-            String csOpt = caseProp.getProperty(CSOPT);
-            if (csOpt == null) {
-                cs = sdb.createCollectionSpace(csName);
+            String csOpt = caseProp.getProperty( CSOPT );
+            if ( csOpt == null ) {
+                cs = sdb.createCollectionSpace( csName );
             } else {
-                cs = sdb.createCollectionSpace(csName, (BSONObject) JSON.parse(csOpt));
+                cs = sdb.createCollectionSpace( csName,
+                        ( BSONObject ) JSON.parse( csOpt ) );
             }
         }
         return cs;
     }
 
-    private DBCollection createCL(CollectionSpace cs) {
-        String clName = caseProp.getProperty(CLNAME);
-        if (clName != null) {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+    private DBCollection createCL( CollectionSpace cs ) {
+        String clName = caseProp.getProperty( CLNAME );
+        if ( clName != null ) {
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-            String clOpt = caseProp.getProperty(CLOPT);
-            cl = cs.createCollection(clName, (BSONObject) JSON.parse(clOpt));
+            String clOpt = caseProp.getProperty( CLOPT );
+            cl = cs.createCollection( clName,
+                    ( BSONObject ) JSON.parse( clOpt ) );
             return cl;
         } else {
             return null;
@@ -113,50 +119,51 @@ public class FullTestBase extends SdbTestBase {
 
     @BeforeClass
     public void setUp() throws Exception {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         initTestProp();
         skipTest();
         createDoMain();
         CollectionSpace cs = createCS();
-        createCL(cs);
+        createCL( cs );
         caseInit();
     }
 
     @AfterMethod
-    public void clearAfterMethod(ITestResult result) {
-        if (!result.isSuccess()) {
-            caseFailed.set(true);
+    public void clearAfterMethod( ITestResult result ) {
+        if ( !result.isSuccess() ) {
+            caseFailed.set( true );
         }
     }
 
     @AfterClass
     public void tearDown() throws Exception {
         try {
-            if (!caseFailed.get()) {
-                String csName = caseProp.getProperty(CSNAME, SdbTestBase.csName);
-                if (SdbTestBase.csName.equals(csName)) {
-                    CollectionSpace cs = sdb.getCollectionSpace(csName);
-                    String clName = caseProp.getProperty(CLNAME);
-                    if (clName != null) {
-                        if (cs.isCollectionExist(clName)) {
-                            FullTextDBUtils.dropCollection(cs, clName);
+            if ( !caseFailed.get() ) {
+                String csName = caseProp.getProperty( CSNAME,
+                        SdbTestBase.csName );
+                if ( SdbTestBase.csName.equals( csName ) ) {
+                    CollectionSpace cs = sdb.getCollectionSpace( csName );
+                    String clName = caseProp.getProperty( CLNAME );
+                    if ( clName != null ) {
+                        if ( cs.isCollectionExist( clName ) ) {
+                            FullTextDBUtils.dropCollection( cs, clName );
                         }
                     }
                 } else {
-                    if (sdb.isCollectionSpaceExist(csName)) {
-                        FullTextDBUtils.dropCollectionSpace(sdb, csName);
+                    if ( sdb.isCollectionSpaceExist( csName ) ) {
+                        FullTextDBUtils.dropCollectionSpace( sdb, csName );
                     }
                 }
-                String doMainName = caseProp.getProperty(DOMAIN);
-                if (doMainName != null) {
-                    if (sdb.isDomainExist(doMainName)) {
-                        sdb.dropDomain(doMainName);
+                String doMainName = caseProp.getProperty( DOMAIN );
+                if ( doMainName != null ) {
+                    if ( sdb.isDomainExist( doMainName ) ) {
+                        sdb.dropDomain( doMainName );
                     }
                 }
                 caseFini();
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }

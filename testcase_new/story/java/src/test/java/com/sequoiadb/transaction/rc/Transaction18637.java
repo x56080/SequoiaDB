@@ -27,41 +27,42 @@ public class Transaction18637 extends SdbTestBase {
     private Sequoiadb db1;
     private Sequoiadb db2;
     private String mainCLName = "cl18637_main";
-    private List<BSONObject> expList;
+    private List< BSONObject > expList;
     private String hintTbScan = "{'':null}";
     private String hintIxScan = "{'':'idx18637'}";
     private DBCollection cl;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        if (CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("ONE GROUP MODE");
+        if ( CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "ONE GROUP MODE" );
         }
 
         // 创建主子表并插入记录R1s
-        TransUtils.createMainCL(sdb, csName, mainCLName, "subcl18637_1", "subcl18637_2", 3000);
-        cl = sdb.getCollectionSpace(csName).getCollection(mainCLName);
-        expList = TransUtils.insertRandomDatas(cl, 0, 10000);
-        cl.createIndex("idx18637", "{a:1}", false, false);
+        TransUtils.createMainCL( sdb, csName, mainCLName, "subcl18637_1",
+                "subcl18637_2", 3000 );
+        cl = sdb.getCollectionSpace( csName ).getCollection( mainCLName );
+        expList = TransUtils.insertRandomDatas( cl, 0, 10000 );
+        cl.createIndex( "idx18637", "{a:1}", false, false );
     }
 
     @AfterClass
     public void tearDown() {
-        if (db1 != null) {
+        if ( db1 != null ) {
             db1.commit();
             db1.close();
         }
-        if (db2 != null) {
+        if ( db2 != null ) {
             db2.commit();
             db2.close();
         }
-        if (sdb != null) {
-            CollectionSpace cs = sdb.getCollectionSpace(csName);
-            cs.dropCollection(mainCLName);
+        if ( sdb != null ) {
+            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            cs.dropCollection( mainCLName );
             sdb.close();
         }
     }
@@ -69,28 +70,35 @@ public class Transaction18637 extends SdbTestBase {
     @Test
     public void test() {
         // 开启两个并发事务
-        db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         db1.beginTransaction();
         db2.beginTransaction();
-        DBCollection cl1 = db1.getCollectionSpace(csName).getCollection(mainCLName);
-        DBCollection cl2 = db2.getCollectionSpace(csName).getCollection(mainCLName);
+        DBCollection cl1 = db1.getCollectionSpace( csName )
+                .getCollection( mainCLName );
+        DBCollection cl2 = db2.getCollectionSpace( csName )
+                .getCollection( mainCLName );
 
         // 事务1批量插入/更新/删除记录后为R2s
-        TransUtils.insertRandomDatas(cl1, 10000, 12000);
-        cl1.update("{$and:[{a:{$gte:0}}, {a:{$lt:12000}}]}", "{$inc:{a:10}}", hintIxScan);
-        cl1.delete("{$and:[{a:{$gte:0}}, {a:{$lt:12000}}]}", hintIxScan);
+        TransUtils.insertRandomDatas( cl1, 10000, 12000 );
+        cl1.update( "{$and:[{a:{$gte:0}}, {a:{$lt:12000}}]}", "{$inc:{a:10}}",
+                hintIxScan );
+        cl1.delete( "{$and:[{a:{$gte:0}}, {a:{$lt:12000}}]}", hintIxScan );
 
         // 事务1回滚
         db1.rollback();
 
         // 事务2表扫描/索引扫描记录
-        TransUtils.queryAndCheck(cl2, "{$and:[{a:{$gte:0}}, {a:{$lt:12000}}]}", null, "{a:1}", hintTbScan, expList);
-        TransUtils.queryAndCheck(cl2, "{$and:[{a:{$gte:0}}, {a:{$lt:12000}}]}", null, "{a:1}", hintIxScan, expList);
+        TransUtils.queryAndCheck( cl2, "{$and:[{a:{$gte:0}}, {a:{$lt:12000}}]}",
+                null, "{a:1}", hintTbScan, expList );
+        TransUtils.queryAndCheck( cl2, "{$and:[{a:{$gte:0}}, {a:{$lt:12000}}]}",
+                null, "{a:1}", hintIxScan, expList );
 
         // 非事务表扫描/索引扫描记录
-        TransUtils.queryAndCheck(cl, "{$and:[{a:{$gte:0}}, {a:{$lt:12000}}]}", null, "{a:1}", hintTbScan, expList);
-        TransUtils.queryAndCheck(cl, "{$and:[{a:{$gte:0}}, {a:{$lt:12000}}]}", null, "{a:1}", hintIxScan, expList);
+        TransUtils.queryAndCheck( cl, "{$and:[{a:{$gte:0}}, {a:{$lt:12000}}]}",
+                null, "{a:1}", hintTbScan, expList );
+        TransUtils.queryAndCheck( cl, "{$and:[{a:{$gte:0}}, {a:{$lt:12000}}]}",
+                null, "{a:1}", hintIxScan, expList );
 
         // 事务2提交
         db2.commit();

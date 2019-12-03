@@ -34,9 +34,10 @@ public class RewriteLob13388 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = db.getCollectionSpace(SdbTestBase.csName);
-        dbcl = cs.createCollection(clName, (BSONObject) JSON.parse("{ShardingKey:{\"_id\":1}}"));
+        db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = db.getCollectionSpace( SdbTestBase.csName );
+        dbcl = cs.createCollection( clName,
+                ( BSONObject ) JSON.parse( "{ShardingKey:{\"_id\":1}}" ) );
     }
 
     /**
@@ -48,21 +49,21 @@ public class RewriteLob13388 extends SdbTestBase {
     @Test
     public void testLob13388() {
         int writeSize = 1024 * 5;
-        byte[] lobBuff = RandomWriteLobUtil.getRandomBytes(writeSize);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(dbcl, lobBuff);
+        byte[] lobBuff = RandomWriteLobUtil.getRandomBytes( writeSize );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( dbcl, lobBuff );
 
         long length = 100;
-        dbcl.truncateLob(oid, length);
+        dbcl.truncateLob( oid, length );
 
         // check result
-        byte[] actData = RandomWriteLobUtil.readLob(dbcl, oid);
-        byte[] expData = Arrays.copyOf(lobBuff, (int) length);
-        RandomWriteLobUtil.assertByteArrayEqual(actData, expData);
-        try (DBCursor listLob = dbcl.listLobs()) {
-            while (listLob.hasNext()) {
+        byte[] actData = RandomWriteLobUtil.readLob( dbcl, oid );
+        byte[] expData = Arrays.copyOf( lobBuff, ( int ) length );
+        RandomWriteLobUtil.assertByteArrayEqual( actData, expData );
+        try ( DBCursor listLob = dbcl.listLobs()) {
+            while ( listLob.hasNext() ) {
                 BSONObject obj = listLob.getNext();
-                long actLobSize = (Long) obj.get("Size");
-                Assert.assertEquals(actLobSize, length);
+                long actLobSize = ( Long ) obj.get( "Size" );
+                Assert.assertEquals( actLobSize, length );
             }
         }
     }
@@ -70,11 +71,11 @@ public class RewriteLob13388 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }

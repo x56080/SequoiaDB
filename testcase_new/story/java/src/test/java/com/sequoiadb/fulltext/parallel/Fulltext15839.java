@@ -36,65 +36,71 @@ public class Fulltext15839 extends FullTestBase {
 
     @Override
     protected void initTestProp() {
-        caseProp.setProperty(IGNORESTANDALONE, "true");
-        caseProp.setProperty(IGNOREONEGROUP, "true");
+        caseProp.setProperty( IGNORESTANDALONE, "true" );
+        caseProp.setProperty( IGNOREONEGROUP, "true" );
     }
 
     @Override
     protected void caseInit() throws Exception {
-        List<String> groupNames = CommLib.getDataGroupNames(sdb);
-        sourceGruop = groupNames.get(0);
-        targetGruop = groupNames.get(1);
-        cs = sdb.getCollectionSpace(csName);
+        List< String > groupNames = CommLib.getDataGroupNames( sdb );
+        sourceGruop = groupNames.get( 0 );
+        targetGruop = groupNames.get( 1 );
+        cs = sdb.getCollectionSpace( csName );
         BSONObject options = new BasicBSONObject();
-        options.put("ShardingType", "range");
-        options.put("ShardingKey", new BasicBSONObject("recordId", 1));
-        options.put("Group", sourceGruop);
-        cl = cs.createCollection(clName, options);
+        options.put( "ShardingType", "range" );
+        options.put( "ShardingKey", new BasicBSONObject( "recordId", 1 ) );
+        options.put( "Group", sourceGruop );
+        cl = cs.createCollection( clName, options );
 
-        FullTextDBUtils.insertData(cl, insertNum);
+        FullTextDBUtils.insertData( cl, insertNum );
 
         BSONObject indexObj = new BasicBSONObject();
-        indexObj.put("a", "text");
-        indexObj.put("b", "text");
-        indexObj.put("c", "text");
-        indexObj.put("d", "text");
-        indexObj.put("e", "text");
-        cl.createIndex(indexName, indexObj, false, false);
+        indexObj.put( "a", "text" );
+        indexObj.put( "b", "text" );
+        indexObj.put( "c", "text" );
+        indexObj.put( "d", "text" );
+        indexObj.put( "e", "text" );
+        cl.createIndex( indexName, indexObj, false, false );
 
-        Assert.assertTrue(FullTextUtils.isIndexCreated(cl, indexName, insertNum));
+        Assert.assertTrue(
+                FullTextUtils.isIndexCreated( cl, indexName, insertNum ) );
 
-        cappedName = FullTextDBUtils.getCappedName(cl, indexName);
-        esIndexName = FullTextDBUtils.getESIndexName(cl, indexName);
+        cappedName = FullTextDBUtils.getCappedName( cl, indexName );
+        esIndexName = FullTextDBUtils.getESIndexName( cl, indexName );
     }
 
     @Test
     public void test() throws Exception {
 
-        ThreadExecutor thread = new ThreadExecutor(FullTextUtils.THREAD_TIMEOUT);
-        thread.addWorker(new DropIndexThread());
-        thread.addWorker(new SplitThread());
+        ThreadExecutor thread = new ThreadExecutor(
+                FullTextUtils.THREAD_TIMEOUT );
+        thread.addWorker( new DropIndexThread() );
+        thread.addWorker( new SplitThread() );
         thread.run();
 
         checkSplitResult();
 
-        Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedName));
+        Assert.assertTrue(
+                FullTextUtils.isIndexDeleted( sdb, esIndexName, cappedName ) );
 
     }
 
     @Override
     protected void caseFini() throws Exception {
-        FullTextDBUtils.dropCollection(cs, clName);
-        Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedName));
+        FullTextDBUtils.dropCollection( cs, clName );
+        Assert.assertTrue(
+                FullTextUtils.isIndexDeleted( sdb, esIndexName, cappedName ) );
     }
 
     private class DropIndexThread {
 
         @ExecuteOrder(step = 1)
         private void createIndex() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                cl.dropIndex(indexName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                cl.dropIndex( indexName );
             }
         }
     }
@@ -103,23 +109,27 @@ public class Fulltext15839 extends FullTestBase {
 
         @ExecuteOrder(step = 1)
         private void splitTable() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                cl.split(sourceGruop, targetGruop, 50);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                cl.split( sourceGruop, targetGruop, 50 );
             }
         }
     }
 
     private void checkSplitResult() {
-        ReplicaGroup sourceRG = sdb.getReplicaGroup(sourceGruop);
-        ReplicaGroup targetRG = sdb.getReplicaGroup(targetGruop);
+        ReplicaGroup sourceRG = sdb.getReplicaGroup( sourceGruop );
+        ReplicaGroup targetRG = sdb.getReplicaGroup( targetGruop );
         Sequoiadb sdb1 = sourceRG.getMaster().connect();
         Sequoiadb sdb2 = targetRG.getMaster().connect();
-        DBCollection cl1 = sdb1.getCollectionSpace(csName).getCollection(clName);
-        DBCollection cl2 = sdb2.getCollectionSpace(csName).getCollection(clName);
+        DBCollection cl1 = sdb1.getCollectionSpace( csName )
+                .getCollection( clName );
+        DBCollection cl2 = sdb2.getCollectionSpace( csName )
+                .getCollection( clName );
 
-        Assert.assertEquals(cl1.getCount(), insertNum / 2);
-        Assert.assertEquals(cl2.getCount(), insertNum / 2);
+        Assert.assertEquals( cl1.getCount(), insertNum / 2 );
+        Assert.assertEquals( cl2.getCount(), insertNum / 2 );
     }
 
 }

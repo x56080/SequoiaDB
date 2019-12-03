@@ -9,7 +9,6 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Parameters;
 import org.testng.annotations.Test;
 
-
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.base.SequoiadbDatasource;
@@ -19,300 +18,302 @@ import com.sequoiadb.datasource.DatasourceOptions;
 import com.sequoiadb.exception.BaseException;
 
 public class ReleaseConnectionTest extends DataSourceTestBase {
-	private SequoiadbDatasource datasource;
+    private SequoiadbDatasource datasource;
 
-	@BeforeMethod
-	public void createDatasource() {
-		boolean retVal = super.init();
-		Assert.assertTrue(retVal);
-		try{
-			if (datasource == null){
-			   datasource = new SequoiadbDatasource(this.coordAddr, userName, password, null);
-			}
-		}catch(BaseException e){
-			Assert.assertFalse(true, e.getMessage());
-		}	
-	}
-	
-	@AfterMethod
-	public void CloseDatasource() {
-		try{
-			if (datasource != null){
-			   datasource.close();
-			   datasource = null;
-			}
-		}catch(BaseException e){
-			Assert.assertFalse(true, e.getMessage());
-		}
-	}
-	
-	/**
-	 * 归还不属于连接池的连接
-	 */
-	@Test
-	public void releaseNotBelong() {
-		int priorNum = 0;
-		Sequoiadb sdb = null;
-		try{
-			sdb = new Sequoiadb(this.coordAddr, userName,password);
-			priorNum = datasource.getIdleConnNum();
-			datasource.releaseConnection(sdb);
-		}catch(BaseException e){
-			super.judegeErrCode("SDB_INVALIDARG", -6); 
-				
-		}
-		
-		try{
-			int laterNum = datasource.getIdleConnNum();
-			Thread.sleep(10);
-			Assert.assertEquals(laterNum, priorNum);
-			Assert.assertEquals(sdb.isValid(), true);
-		}catch (InterruptedException e){
-		    Assert.assertFalse(true, e.getMessage());
-		}
-	}
-	
-	/**
-	 * 归还使用且超出空闲时间的连接
-	 */
-	@Test
-	public void releaseUsedConn() {
-		try{
-			DatasourceOptions option = new DatasourceOptions();
-			option.setKeepAliveTimeout(50);//ms
-			option.setCheckInterval(20);//ms
-			datasource.updateDatasourceOptions(option);
-			Sequoiadb sdb = datasource.getConnection();
-			
-			//使用sdb超过空闲时间keepAliveTimeout
-			for(int i=0; i<6; i++) {
-				Thread.sleep(10);
-				sdb.listCollections();
-			}
-			/*
-			// 异步扩展连接池，让一次扩展操作完成
-			do{
-				if (datasource.getIdleConnNum() != option.getDeltaIncCount()){
-					Thread.sleep(1);
-				}else break;
-			}while(true);*/
-			int priorNum = datasource.getIdleConnNum();
-			datasource.releaseConnection(sdb);
-			int laterNum = datasource.getIdleConnNum();
+    @BeforeMethod
+    public void createDatasource() {
+        boolean retVal = super.init();
+        Assert.assertTrue( retVal );
+        try {
+            if ( datasource == null ) {
+                datasource = new SequoiadbDatasource( this.coordAddr, userName,
+                        password, null );
+            }
+        } catch ( BaseException e ) {
+            Assert.assertFalse( true, e.getMessage() );
+        }
+    }
 
-			//Assert.assertEquals(laterNum, priorNum+1);
-			Thread.sleep(10);
-			//Assert.assertEquals(sdb.isValid(), false);
-		}catch(BaseException e){
-			Assert.assertFalse(true, e.getMessage());
-		}catch (InterruptedException e) {
-			e.printStackTrace();
-			Assert.assertFalse(true, e.getMessage());
-		}
-	}
-	
-	/**
-	 * 归还闲置且超出空闲时间的连接
-	 */
-	@Test
-	public void releaseUnusedConn() {
-		try{
-			DatasourceOptions option = new DatasourceOptions();
-			option.setKeepAliveTimeout(50);//ms
-			option.setCheckInterval(20);//ms
-			datasource.updateDatasourceOptions(option);
-			Sequoiadb sdb = datasource.getConnection();
-			
-		    Thread.sleep(60);
-		    
-		    /*do{
-		    	if (datasource.getIdleConnNum() != option.getDeltaIncCount()){
-		    		Thread.sleep(1);
-		    	}else break;
-		    }while(true);*/
-			int priorNum = datasource.getIdleConnNum();
-			datasource.releaseConnection(sdb);
-			int laterNum = datasource.getIdleConnNum();
-			//Assert.assertEquals(laterNum, priorNum);
-			
-			Thread.sleep(40);
-			//Assert.assertEquals(sdb.isValid(), false);
-		}catch(BaseException e){
-			Assert.assertFalse(true, e.getMessage());
-		}catch(InterruptedException e){
-			e.printStackTrace();
-			Assert.assertFalse(true, e.getMessage());
-		}
-	}
-	
-	/**
-	 * 空闲连接数大于应保留连接数
-	 */
-	@Test
-	public void checkRerveConn() {
-		try{
-			SequoiadbOption option = new SequoiadbOption();
-			//int checkInterval = option.getCheckInterval();
-			int maxIdleCount = option.getMaxIdleCount();
-			SequoiadbDatasource datasource = new SequoiadbDatasource(this.coordAddr, userName, password, option);
-			Sequoiadb sdb = datasource.getConnection();
-			Assert.assertEquals(sdb.isValid(), true);
-			Thread.sleep(100);
-			int laterMaxIdleCount = datasource.getIdleConnNum();
-			Assert.assertTrue(laterMaxIdleCount<=maxIdleCount);
-			Assert.assertTrue(laterMaxIdleCount>=0);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Assert.assertFalse(true, e.getMessage());
-		}finally{
-			datasource.close();
-		}
-	}
-	
-	/**
-	 * 归还旧版本的连接
-	 */
-	@Test(timeOut=20000)
-	public void releaseOlderVersion() {
-		try{
-			long start = System.currentTimeMillis() ;
-			Sequoiadb sdb = datasource.getConnection();
-			int totalTimeLen = 10000;
-			int alreadySleepTime = 0;
-			do{
-				int incNum = datasource.getDatasourceOptions().getDeltaIncCount();
-				if (datasource.getIdleConnNum() != incNum){
-					Thread.sleep(10);
-					alreadySleepTime += 10;
-				}else break;
-			}while(alreadySleepTime <= totalTimeLen);
-			
-			long end = System.currentTimeMillis() ;
-			start = end ;
-			System.out.println("step 1 findish" + (end - start )) ;
-			int priorNum = datasource.getIdleConnNum();
-			DatasourceOptions option = new DatasourceOptions();
-			option.setCheckInterval(50);
-			//option.setConnectStrategy(ConnectStrategy.SERIAL);
-			option.setConnectStrategy(ConnectStrategy.RANDOM);
-			datasource.updateDatasourceOptions(option);
-			end = System.currentTimeMillis() ;
-			start = end ;
-			System.out.println("step 2 findish" + (end - start )) ;
-			
-			datasource.releaseConnection(sdb);
-			Thread.sleep(100);
-			int laterNum = datasource.getIdleConnNum();
-			Assert.assertEquals(laterNum, priorNum);
-			end = System.currentTimeMillis() ;
-			System.out.println("step 2 findish" + (end - start )) ;
-			//Assert.assertEquals(sdb.isValid(), false);
-		}catch(InterruptedException e){
-			Assert.assertFalse(true, e.getMessage());
-		}catch(BaseException e){
-			Assert.assertFalse(true, e.getMessage());
-		}
-	}
-	
-	/**
-	 * 关闭连接池后归还连接
-	 */
-	@Test
-	public void releaseAfterClose() {
-		try{
-		   Sequoiadb sdb = datasource.getConnection();
-		   datasource.close();
-		   
-		   Assert.assertEquals(sdb.isValid(), false);
-		   datasource.releaseConnection(sdb);
-        }catch(InterruptedException e){
-			Assert.assertFalse(true, e.getMessage());
-		} catch (BaseException e) {
-			// TODO: handle exception
-			super.judegeErrCode("SDB_SYS", e.getErrorCode());
-		}
-	}
-	
-	/**
-	 * 禁用连接池后归还连接
-	 */
-	@Test
-	public void releaseAfterDisable() {
-		try{
-			Sequoiadb sdb = datasource.getConnection();
-			datasource.disableDatasource();
-			datasource.releaseConnection(sdb);
-			Assert.assertEquals(sdb.isValid(), false);
-			Assert.assertEquals(datasource.getUsedConnNum(), 0);
-			
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Assert.assertFalse(true, e.getMessage());
-		}catch(BaseException e){
-			Assert.assertFalse(true, e.getMessage());
-		}
-	}
-	
-	/**
-	 * 重复归还连接
-	 */
-	@Test
-	public void releaseAfterRelease() {
-		Sequoiadb sdb = null;
-		try{
-			DatasourceOptions option = new DatasourceOptions();
-			option.setCheckInterval(50);
-			datasource.updateDatasourceOptions(option);
-			sdb = datasource.getConnection();
-			datasource.releaseConnection(sdb);
-			datasource.releaseConnection(sdb);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Assert.assertFalse(true, e.getMessage());	
-		}catch(BaseException e){
-			super.judegeErrCode("SDB_INVALIDARG", -6);
-		}
-		
-		try
-		{
-			//Thread.sleep(100);
-			//Assert.assertEquals(sdb.isValid(), true);
-			for (int i = 0; i < datasource.getIdleConnNum(); i++){
-				sdb = datasource.getConnection();
-				Assert.assertEquals(sdb.isValid(), true);
-			}
-		} catch (InterruptedException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-		Assert.assertFalse(true, e.getMessage());
-		}catch(BaseException e){
-			Assert.assertFalse(true, e.getMessage());	
-		}
-	}
-	
-	/**
-	 * 归还连接后对连接持有资源的处理
-	 */
-	@Test
-	public void checkResourceAfterRelease() {
-		try{
-			if (isStandAlone()) return;
-			Sequoiadb sdb;
-			sdb = datasource.getConnection();
-			
-			DBCursor cursor = sdb.listReplicaGroups();
-			datasource.releaseConnection(sdb);
-			cursor.getNext();
-	    } catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			//Assert.assertTrue(false, e.getMessage());
-			//judegeErrCode("SDB_RTN_CONTEXT_NOTEXIST", e.getErrorCode());
-		}catch(BaseException e){
-			judegeErrCode("SDB_RTN_CONTEXT_NOTEXIST", e.getErrorCode());
-		}
-	}
+    @AfterMethod
+    public void CloseDatasource() {
+        try {
+            if ( datasource != null ) {
+                datasource.close();
+                datasource = null;
+            }
+        } catch ( BaseException e ) {
+            Assert.assertFalse( true, e.getMessage() );
+        }
+    }
+
+    /**
+     * 归还不属于连接池的连接
+     */
+    @Test
+    public void releaseNotBelong() {
+        int priorNum = 0;
+        Sequoiadb sdb = null;
+        try {
+            sdb = new Sequoiadb( this.coordAddr, userName, password );
+            priorNum = datasource.getIdleConnNum();
+            datasource.releaseConnection( sdb );
+        } catch ( BaseException e ) {
+            super.judegeErrCode( "SDB_INVALIDARG", -6 );
+
+        }
+
+        try {
+            int laterNum = datasource.getIdleConnNum();
+            Thread.sleep( 10 );
+            Assert.assertEquals( laterNum, priorNum );
+            Assert.assertEquals( sdb.isValid(), true );
+        } catch ( InterruptedException e ) {
+            Assert.assertFalse( true, e.getMessage() );
+        }
+    }
+
+    /**
+     * 归还使用且超出空闲时间的连接
+     */
+    @Test
+    public void releaseUsedConn() {
+        try {
+            DatasourceOptions option = new DatasourceOptions();
+            option.setKeepAliveTimeout( 50 );// ms
+            option.setCheckInterval( 20 );// ms
+            datasource.updateDatasourceOptions( option );
+            Sequoiadb sdb = datasource.getConnection();
+
+            // 使用sdb超过空闲时间keepAliveTimeout
+            for ( int i = 0; i < 6; i++ ) {
+                Thread.sleep( 10 );
+                sdb.listCollections();
+            }
+            /*
+             * // 异步扩展连接池，让一次扩展操作完成 do{ if (datasource.getIdleConnNum() !=
+             * option.getDeltaIncCount()){ Thread.sleep(1); }else break;
+             * }while(true);
+             */
+            int priorNum = datasource.getIdleConnNum();
+            datasource.releaseConnection( sdb );
+            int laterNum = datasource.getIdleConnNum();
+
+            // Assert.assertEquals(laterNum, priorNum+1);
+            Thread.sleep( 10 );
+            // Assert.assertEquals(sdb.isValid(), false);
+        } catch ( BaseException e ) {
+            Assert.assertFalse( true, e.getMessage() );
+        } catch ( InterruptedException e ) {
+            e.printStackTrace();
+            Assert.assertFalse( true, e.getMessage() );
+        }
+    }
+
+    /**
+     * 归还闲置且超出空闲时间的连接
+     */
+    @Test
+    public void releaseUnusedConn() {
+        try {
+            DatasourceOptions option = new DatasourceOptions();
+            option.setKeepAliveTimeout( 50 );// ms
+            option.setCheckInterval( 20 );// ms
+            datasource.updateDatasourceOptions( option );
+            Sequoiadb sdb = datasource.getConnection();
+
+            Thread.sleep( 60 );
+
+            /*
+             * do{ if (datasource.getIdleConnNum() !=
+             * option.getDeltaIncCount()){ Thread.sleep(1); }else break;
+             * }while(true);
+             */
+            int priorNum = datasource.getIdleConnNum();
+            datasource.releaseConnection( sdb );
+            int laterNum = datasource.getIdleConnNum();
+            // Assert.assertEquals(laterNum, priorNum);
+
+            Thread.sleep( 40 );
+            // Assert.assertEquals(sdb.isValid(), false);
+        } catch ( BaseException e ) {
+            Assert.assertFalse( true, e.getMessage() );
+        } catch ( InterruptedException e ) {
+            e.printStackTrace();
+            Assert.assertFalse( true, e.getMessage() );
+        }
+    }
+
+    /**
+     * 空闲连接数大于应保留连接数
+     */
+    @Test
+    public void checkRerveConn() {
+        try {
+            SequoiadbOption option = new SequoiadbOption();
+            // int checkInterval = option.getCheckInterval();
+            int maxIdleCount = option.getMaxIdleCount();
+            SequoiadbDatasource datasource = new SequoiadbDatasource(
+                    this.coordAddr, userName, password, option );
+            Sequoiadb sdb = datasource.getConnection();
+            Assert.assertEquals( sdb.isValid(), true );
+            Thread.sleep( 100 );
+            int laterMaxIdleCount = datasource.getIdleConnNum();
+            Assert.assertTrue( laterMaxIdleCount <= maxIdleCount );
+            Assert.assertTrue( laterMaxIdleCount >= 0 );
+        } catch ( InterruptedException e ) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            Assert.assertFalse( true, e.getMessage() );
+        } finally {
+            datasource.close();
+        }
+    }
+
+    /**
+     * 归还旧版本的连接
+     */
+    @Test(timeOut = 20000)
+    public void releaseOlderVersion() {
+        try {
+            long start = System.currentTimeMillis();
+            Sequoiadb sdb = datasource.getConnection();
+            int totalTimeLen = 10000;
+            int alreadySleepTime = 0;
+            do {
+                int incNum = datasource.getDatasourceOptions()
+                        .getDeltaIncCount();
+                if ( datasource.getIdleConnNum() != incNum ) {
+                    Thread.sleep( 10 );
+                    alreadySleepTime += 10;
+                } else
+                    break;
+            } while ( alreadySleepTime <= totalTimeLen );
+
+            long end = System.currentTimeMillis();
+            start = end;
+            System.out.println( "step 1 findish" + ( end - start ) );
+            int priorNum = datasource.getIdleConnNum();
+            DatasourceOptions option = new DatasourceOptions();
+            option.setCheckInterval( 50 );
+            // option.setConnectStrategy(ConnectStrategy.SERIAL);
+            option.setConnectStrategy( ConnectStrategy.RANDOM );
+            datasource.updateDatasourceOptions( option );
+            end = System.currentTimeMillis();
+            start = end;
+            System.out.println( "step 2 findish" + ( end - start ) );
+
+            datasource.releaseConnection( sdb );
+            Thread.sleep( 100 );
+            int laterNum = datasource.getIdleConnNum();
+            Assert.assertEquals( laterNum, priorNum );
+            end = System.currentTimeMillis();
+            System.out.println( "step 2 findish" + ( end - start ) );
+            // Assert.assertEquals(sdb.isValid(), false);
+        } catch ( InterruptedException e ) {
+            Assert.assertFalse( true, e.getMessage() );
+        } catch ( BaseException e ) {
+            Assert.assertFalse( true, e.getMessage() );
+        }
+    }
+
+    /**
+     * 关闭连接池后归还连接
+     */
+    @Test
+    public void releaseAfterClose() {
+        try {
+            Sequoiadb sdb = datasource.getConnection();
+            datasource.close();
+
+            Assert.assertEquals( sdb.isValid(), false );
+            datasource.releaseConnection( sdb );
+        } catch ( InterruptedException e ) {
+            Assert.assertFalse( true, e.getMessage() );
+        } catch ( BaseException e ) {
+            // TODO: handle exception
+            super.judegeErrCode( "SDB_SYS", e.getErrorCode() );
+        }
+    }
+
+    /**
+     * 禁用连接池后归还连接
+     */
+    @Test
+    public void releaseAfterDisable() {
+        try {
+            Sequoiadb sdb = datasource.getConnection();
+            datasource.disableDatasource();
+            datasource.releaseConnection( sdb );
+            Assert.assertEquals( sdb.isValid(), false );
+            Assert.assertEquals( datasource.getUsedConnNum(), 0 );
+
+        } catch ( InterruptedException e ) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            Assert.assertFalse( true, e.getMessage() );
+        } catch ( BaseException e ) {
+            Assert.assertFalse( true, e.getMessage() );
+        }
+    }
+
+    /**
+     * 重复归还连接
+     */
+    @Test
+    public void releaseAfterRelease() {
+        Sequoiadb sdb = null;
+        try {
+            DatasourceOptions option = new DatasourceOptions();
+            option.setCheckInterval( 50 );
+            datasource.updateDatasourceOptions( option );
+            sdb = datasource.getConnection();
+            datasource.releaseConnection( sdb );
+            datasource.releaseConnection( sdb );
+        } catch ( InterruptedException e ) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            Assert.assertFalse( true, e.getMessage() );
+        } catch ( BaseException e ) {
+            super.judegeErrCode( "SDB_INVALIDARG", -6 );
+        }
+
+        try {
+            // Thread.sleep(100);
+            // Assert.assertEquals(sdb.isValid(), true);
+            for ( int i = 0; i < datasource.getIdleConnNum(); i++ ) {
+                sdb = datasource.getConnection();
+                Assert.assertEquals( sdb.isValid(), true );
+            }
+        } catch ( InterruptedException e ) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            Assert.assertFalse( true, e.getMessage() );
+        } catch ( BaseException e ) {
+            Assert.assertFalse( true, e.getMessage() );
+        }
+    }
+
+    /**
+     * 归还连接后对连接持有资源的处理
+     */
+    @Test
+    public void checkResourceAfterRelease() {
+        try {
+            if ( isStandAlone() )
+                return;
+            Sequoiadb sdb;
+            sdb = datasource.getConnection();
+
+            DBCursor cursor = sdb.listReplicaGroups();
+            datasource.releaseConnection( sdb );
+            cursor.getNext();
+        } catch ( InterruptedException e ) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            // Assert.assertTrue(false, e.getMessage());
+            // judegeErrCode("SDB_RTN_CONTEXT_NOTEXIST", e.getErrorCode());
+        } catch ( BaseException e ) {
+            judegeErrCode( "SDB_RTN_CONTEXT_NOTEXIST", e.getErrorCode() );
+        }
+    }
 }

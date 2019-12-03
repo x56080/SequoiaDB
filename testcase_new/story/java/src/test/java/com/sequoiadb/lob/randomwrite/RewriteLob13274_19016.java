@@ -50,61 +50,64 @@ public class RewriteLob13274_19016 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        db = new Sequoiadb(coordUrl, "", "");
-        cs = db.getCollectionSpace(SdbTestBase.csName);
-        cs.createCollection(clName,
-                (BSONObject) JSON.parse("{ShardingKey:{\"_id\":1}, ShardingType:\"hash\", AutoSplit: true}"));
-        if (!CommLib.isStandAlone(db)) {
-            LobSubUtils.createMainCLAndAttachCL(db, SdbTestBase.csName, mainCLName, subCLName);
+        db = new Sequoiadb( coordUrl, "", "" );
+        cs = db.getCollectionSpace( SdbTestBase.csName );
+        cs.createCollection( clName, ( BSONObject ) JSON.parse(
+                "{ShardingKey:{\"_id\":1}, ShardingType:\"hash\", AutoSplit: true}" ) );
+        if ( !CommLib.isStandAlone( db ) ) {
+            LobSubUtils.createMainCLAndAttachCL( db, SdbTestBase.csName,
+                    mainCLName, subCLName );
         }
     }
 
     @Test(dataProvider = "clNameProvider")
-    public void testLob13274(String clName) throws InterruptedException {
-        if (CommLib.isStandAlone(db) && clName.equals(mainCLName)) {
-            throw new SkipException("is standalone skip testcase!");
+    public void testLob13274( String clName ) throws InterruptedException {
+        if ( CommLib.isStandAlone( db ) && clName.equals( mainCLName ) ) {
+            throw new SkipException( "is standalone skip testcase!" );
         }
         int lobsize = 1024 * 1024 * 2;
-        byte[] expectBytes = RandomWriteLobUtil.getRandomBytes(lobsize);
-        DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
+        byte[] expectBytes = RandomWriteLobUtil.getRandomBytes( lobsize );
+        DBCollection dbcl = db.getCollectionSpace( SdbTestBase.csName )
+                .getCollection( clName );
         DBLob lob = dbcl.createLob();
         final ObjectId oid = lob.getID();
-        lob.write(expectBytes);
+        lob.write( expectBytes );
         lob.close();
 
-        List<DbLobReadTask> lobTasks = new ArrayList<>(10);
+        List< DbLobReadTask > lobTasks = new ArrayList<>( 10 );
 
         int begin = 1024 * 10;
         int end = 1024 * 1024;
-        for (int i = 0; i < 10; i++)
-            lobTasks.add(new DbLobReadTask(SdbTestBase.csName, clName, begin, end, oid));
+        for ( int i = 0; i < 10; i++ )
+            lobTasks.add( new DbLobReadTask( SdbTestBase.csName, clName, begin,
+                    end, oid ) );
 
-        for (DbLobReadTask lobTask : lobTasks)
+        for ( DbLobReadTask lobTask : lobTasks )
             lobTask.start();
-        for (DbLobReadTask lobTask : lobTasks)
+        for ( DbLobReadTask lobTask : lobTasks )
             lobTask.join();
 
-        for (DbLobReadTask lobTask : lobTasks) {
-            Assert.assertTrue(lobTask.isTaskSuccess(), lobTask.getErrorMsg());
+        for ( DbLobReadTask lobTask : lobTasks ) {
+            Assert.assertTrue( lobTask.isTaskSuccess(), lobTask.getErrorMsg() );
             int b = lobTask.getBegin();
             int length = lobTask.getLength();
-            byte[] expect = Arrays.copyOfRange(expectBytes, b, b + length);
+            byte[] expect = Arrays.copyOfRange( expectBytes, b, b + length );
             byte[] actual = lobTask.getResult();
-            RandomWriteLobUtil.assertByteArrayEqual(actual, expect);
+            RandomWriteLobUtil.assertByteArrayEqual( actual, expect );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
-            if (cs.isCollectionExist(subCLName)) {
-                cs.dropCollection(subCLName);
+            if ( cs.isCollectionExist( subCLName ) ) {
+                cs.dropCollection( subCLName );
             }
         } finally {
             db.close();

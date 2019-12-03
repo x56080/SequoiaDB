@@ -30,18 +30,24 @@ public class RewriteLob13234_18966 extends SdbTestBase {
                 // the parameter is csName, clName, writeLobSize, rewriteLobSize
                 // testcase:13234
                 // test a: the writeLobSize > rewriteLobSize
-                new Object[] { SdbTestBase.csName, clName, 1024 * 1024 * 2, 1024 * 512 },
+                new Object[] { SdbTestBase.csName, clName, 1024 * 1024 * 2,
+                        1024 * 512 },
                 // test b: the writeLobSize = rewriteLobSize
-                new Object[] { SdbTestBase.csName, clName, 1024 * 1024, 1024 * 1024 },
+                new Object[] { SdbTestBase.csName, clName, 1024 * 1024,
+                        1024 * 1024 },
                 // test c : the writeLobSize < rewriteLobSize
-                new Object[] { SdbTestBase.csName, clName, 1024 * 256, 1024 * 512 },
+                new Object[] { SdbTestBase.csName, clName, 1024 * 256,
+                        1024 * 512 },
                 // testcase:18966
                 // test a: the writeLobSize > rewriteLobSize
-                new Object[] { SdbTestBase.csName, mainCLName, 1024 * 1024 * 2, 1024 * 512 },
+                new Object[] { SdbTestBase.csName, mainCLName, 1024 * 1024 * 2,
+                        1024 * 512 },
                 // test b: the writeLobSize = rewriteLobSize
-                new Object[] { SdbTestBase.csName, mainCLName, 1024 * 1024, 1024 * 1024 },
+                new Object[] { SdbTestBase.csName, mainCLName, 1024 * 1024,
+                        1024 * 1024 },
                 // test c : the writeLobSize < rewriteLobSize
-                new Object[] { SdbTestBase.csName, mainCLName, 1024 * 256, 1024 * 512 } };
+                new Object[] { SdbTestBase.csName, mainCLName, 1024 * 256,
+                        1024 * 512 } };
     }
 
     private String clName = "writelob13234";
@@ -52,49 +58,56 @@ public class RewriteLob13234_18966 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
-        String clOptions = "{ShardingKey:{no:1},ShardingType:'hash',Partition:1024," + "ReplSize:0}";
-        RandomWriteLobUtil.createCL(cs, clName, clOptions);
-        if (!CommLib.isStandAlone(sdb)) {
-            LobSubUtils.createMainCLAndAttachCL(sdb, SdbTestBase.csName, mainCLName, subCLName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
+        String clOptions = "{ShardingKey:{no:1},ShardingType:'hash',Partition:1024,"
+                + "ReplSize:0}";
+        RandomWriteLobUtil.createCL( cs, clName, clOptions );
+        if ( !CommLib.isStandAlone( sdb ) ) {
+            LobSubUtils.createMainCLAndAttachCL( sdb, SdbTestBase.csName,
+                    mainCLName, subCLName );
         }
     }
 
     @Test(dataProvider = "lobsizeProvider")
-    public void testLob(String csName, String clName, int writeLobSize, int rewriteLobSize) {
-        try (Sequoiadb sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-            if (CommLib.isStandAlone(sdb) && clName.equals(mainCLName)) {
-                throw new SkipException("is standalone skip testcase!");
+    public void testLob( String csName, String clName, int writeLobSize,
+            int rewriteLobSize ) {
+        try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" )) {
+            if ( CommLib.isStandAlone( sdb ) && clName.equals( mainCLName ) ) {
+                throw new SkipException( "is standalone skip testcase!" );
             }
-            DBCollection dbcl = sdb.getCollectionSpace(csName).getCollection(clName);
-            byte[] lobBuff = RandomWriteLobUtil.getRandomBytes(writeLobSize);
-            ObjectId oid = RandomWriteLobUtil.createAndWriteLob(dbcl, lobBuff);
+            DBCollection dbcl = sdb.getCollectionSpace( csName )
+                    .getCollection( clName );
+            byte[] lobBuff = RandomWriteLobUtil.getRandomBytes( writeLobSize );
+            ObjectId oid = RandomWriteLobUtil.createAndWriteLob( dbcl,
+                    lobBuff );
 
-            byte[] rewriteBuff = RandomWriteLobUtil.getRandomBytes(rewriteLobSize);
-            writeLob(dbcl, oid, rewriteBuff);
-            RandomWriteLobUtil.checkRewriteLobResult(dbcl, oid, 0, rewriteBuff, lobBuff);
+            byte[] rewriteBuff = RandomWriteLobUtil
+                    .getRandomBytes( rewriteLobSize );
+            writeLob( dbcl, oid, rewriteBuff );
+            RandomWriteLobUtil.checkRewriteLobResult( dbcl, oid, 0, rewriteBuff,
+                    lobBuff );
         }
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
         } finally {
-            if (sdb != null)
+            if ( sdb != null )
                 sdb.close();
         }
     }
 
-    private void writeLob(DBCollection cl, ObjectId oid, byte[] rewriteBuff) {
-        try (DBLob lob = cl.openLob(oid, DBLob.SDB_LOB_WRITE)) {
-            lob.write(rewriteBuff);
+    private void writeLob( DBCollection cl, ObjectId oid, byte[] rewriteBuff ) {
+        try ( DBLob lob = cl.openLob( oid, DBLob.SDB_LOB_WRITE )) {
+            lob.write( rewriteBuff );
         }
     }
 }

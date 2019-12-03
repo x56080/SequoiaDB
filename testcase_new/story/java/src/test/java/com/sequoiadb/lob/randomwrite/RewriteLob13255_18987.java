@@ -47,61 +47,67 @@ public class RewriteLob13255_18987 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = db.getCollectionSpace(SdbTestBase.csName);
-        cs.createCollection(clName);
-        if (!CommLib.isStandAlone(db)) {
-            LobSubUtils.createMainCLAndAttachCL(db, SdbTestBase.csName, mainCLName, subCLName);
+        db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = db.getCollectionSpace( SdbTestBase.csName );
+        cs.createCollection( clName );
+        if ( !CommLib.isStandAlone( db ) ) {
+            LobSubUtils.createMainCLAndAttachCL( db, SdbTestBase.csName,
+                    mainCLName, subCLName );
         }
     }
 
     @Test(dataProvider = "clNameProvider")
-    public void testLob(String clName) {
-        if (CommLib.isStandAlone(db) && clName.equals(mainCLName)) {
-            throw new SkipException("is standalone skip testcase!");
+    public void testLob( String clName ) {
+        if ( CommLib.isStandAlone( db ) && clName.equals( mainCLName ) ) {
+            throw new SkipException( "is standalone skip testcase!" );
         }
-        int writeSize = random.nextInt(1024 * 1024 * 10);
-        lobBuff = RandomWriteLobUtil.getRandomBytes(writeSize);
-        DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(dbcl, lobBuff);
+        int writeSize = random.nextInt( 1024 * 1024 * 10 );
+        lobBuff = RandomWriteLobUtil.getRandomBytes( writeSize );
+        DBCollection dbcl = db.getCollectionSpace( SdbTestBase.csName )
+                .getCollection( clName );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( dbcl, lobBuff );
 
         int offset = 1024;
         int reWriteSize = 1024 * 256;
         int writeCount = 10;
-        byte[] reWriteBuff = new byte[reWriteSize];
-        for (int i = 0; i < writeCount; i++) {
-            reWriteBuff = RandomWriteLobUtil.getRandomBytes(reWriteSize);
-            try (DBLob lob = dbcl.openLob(oid, DBLob.SDB_LOB_WRITE)) {
-                lob.lockAndSeek(offset, reWriteSize);
-                lob.write(reWriteBuff);
+        byte[] reWriteBuff = new byte[ reWriteSize ];
+        for ( int i = 0; i < writeCount; i++ ) {
+            reWriteBuff = RandomWriteLobUtil.getRandomBytes( reWriteSize );
+            try ( DBLob lob = dbcl.openLob( oid, DBLob.SDB_LOB_WRITE )) {
+                lob.lockAndSeek( offset, reWriteSize );
+                lob.write( reWriteBuff );
             }
 
             // check the rewrite lob
-            byte[] actBuff = RandomWriteLobUtil.seekAndReadLob(dbcl, oid, reWriteBuff.length, offset);
-            RandomWriteLobUtil.assertByteArrayEqual(actBuff, reWriteBuff, "write count:" + i + " is content error!");
+            byte[] actBuff = RandomWriteLobUtil.seekAndReadLob( dbcl, oid,
+                    reWriteBuff.length, offset );
+            RandomWriteLobUtil.assertByteArrayEqual( actBuff, reWriteBuff,
+                    "write count:" + i + " is content error!" );
 
         }
 
         // check the all write lob
-        byte[] expBuff = RandomWriteLobUtil.appendBuff(lobBuff, reWriteBuff, offset);
-        byte[] actAllLobBuff = RandomWriteLobUtil.seekAndReadLob(dbcl, oid, expBuff.length, 0);
-        RandomWriteLobUtil.assertByteArrayEqual(actAllLobBuff, expBuff);
+        byte[] expBuff = RandomWriteLobUtil.appendBuff( lobBuff, reWriteBuff,
+                offset );
+        byte[] actAllLobBuff = RandomWriteLobUtil.seekAndReadLob( dbcl, oid,
+                expBuff.length, 0 );
+        RandomWriteLobUtil.assertByteArrayEqual( actAllLobBuff, expBuff );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
-            if (cs.isCollectionExist(mainCLName)) {
-                cs.dropCollection(mainCLName);
+            if ( cs.isCollectionExist( mainCLName ) ) {
+                cs.dropCollection( mainCLName );
             }
-            if (cs.isCollectionExist(subCLName)) {
-                cs.dropCollection(subCLName);
+            if ( cs.isCollectionExist( subCLName ) ) {
+                cs.dropCollection( subCLName );
             }
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }

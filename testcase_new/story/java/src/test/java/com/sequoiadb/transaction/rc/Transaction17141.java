@@ -32,79 +32,80 @@ public class Transaction17141 extends SdbTestBase {
     private BSONObject data = null;
     private BSONObject data2 = null;
     private DBCursor recordCur = null;
-    private List<BSONObject> expDataList = null;
+    private List< BSONObject > expDataList = null;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl.createIndex("a", "{a:1}", false, false);
-        expDataList = new ArrayList<BSONObject>();
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl.createIndex( "a", "{a:1}", false, false );
+        expDataList = new ArrayList< BSONObject >();
 
         data = new BasicBSONObject();
-        data.put("_id", "insertID17141");
-        data.put("a", 1);
-        data.put("b", 1);
-        data.put("c", 13700000000L);
-        data.put("d", "customer transaction type data application.");
-        cl.insert(data);
+        data.put( "_id", "insertID17141" );
+        data.put( "a", 1 );
+        data.put( "b", 1 );
+        data.put( "c", 13700000000L );
+        data.put( "d", "customer transaction type data application." );
+        cl.insert( data );
 
         data2 = new BasicBSONObject();
-        data2.put("_id", "updateID17141");
-        data2.put("a", 2);
-        data2.put("b", "update2");
-        data2.put("c", 13700000000L);
-        data2.put("d", "customer transaction type data application.");
-        cl.insert(data2);
+        data2.put( "_id", "updateID17141" );
+        data2.put( "a", 2 );
+        data2.put( "b", "update2" );
+        data2.put( "c", 13700000000L );
+        data2.put( "d", "customer transaction type data application." );
+        cl.insert( data2 );
 
     }
 
     @Test
     public void test() {
-        sdb2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl2 = sdb2.getCollectionSpace(csName).getCollection(clName);
+        sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
 
         sdb.beginTransaction();
         sdb2.beginTransaction();
 
         // 2 trans1 query and remove
-        DBCursor tbCur = cl.queryAndRemove(new BasicBSONObject("a", 1), null, null, null, -1, -1, 0);
+        DBCursor tbCur = cl.queryAndRemove( new BasicBSONObject( "a", 1 ), null,
+                null, null, -1, -1, 0 );
         BSONObject actData = tbCur.getNext();
         try {
-            Assert.assertEquals(actData, data);
+            Assert.assertEquals( actData, data );
         } finally {
-            if (tbCur != null) {
+            if ( tbCur != null ) {
                 tbCur.close();
             }
         }
 
         // trans1 query
-        expDataList.add(data2);
-        TransUtils.queryAndCheck(cl, "{a:1}", "{'': null}", expDataList);
-        TransUtils.queryAndCheck(cl, "{a:1}", "{'': 'a'}", expDataList);
+        expDataList.add( data2 );
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'': null}", expDataList );
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'': 'a'}", expDataList );
 
         // 3 trans2 query
         expDataList.clear();
-        expDataList.add(data);
-        expDataList.add(data2);
-        TransUtils.queryAndCheck(cl2, "{a:1}", "{'': null}", expDataList);
-        TransUtils.queryAndCheck(cl2, "{a:1}", "{'': 'a'}", expDataList);
+        expDataList.add( data );
+        expDataList.add( data2 );
+        TransUtils.queryAndCheck( cl2, "{a:1}", "{'': null}", expDataList );
+        TransUtils.queryAndCheck( cl2, "{a:1}", "{'': 'a'}", expDataList );
 
         // 4 commit trans1 and query
         sdb.commit();
         expDataList.clear();
-        expDataList.add(data2);
-        TransUtils.queryAndCheck(cl, "{a:1}", "{'': null}", expDataList);
-        TransUtils.queryAndCheck(cl, "{a:1}", "{'': 'a'}", expDataList);
+        expDataList.add( data2 );
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'': null}", expDataList );
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'': 'a'}", expDataList );
 
         // 5 trans2 query
-        TransUtils.queryAndCheck(cl2, "{a:1}", "{'': null}", expDataList);
-        TransUtils.queryAndCheck(cl2, "{a:1}", "{'': 'a'}", expDataList);
+        TransUtils.queryAndCheck( cl2, "{a:1}", "{'': null}", expDataList );
+        TransUtils.queryAndCheck( cl2, "{a:1}", "{'': 'a'}", expDataList );
 
         // 6 commit trans2 and query
         sdb2.commit();
-        TransUtils.queryAndCheck(cl, "{a:1}", "{'': null}", expDataList);
-        TransUtils.queryAndCheck(cl, "{a:1}", "{'': 'a'}", expDataList);
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'': null}", expDataList );
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'': 'a'}", expDataList );
     }
 
     @AfterClass
@@ -112,14 +113,14 @@ public class Transaction17141 extends SdbTestBase {
         sdb.commit();
         sdb2.commit();
 
-        sdb.getCollectionSpace(csName).dropCollection(clName);
-        if (recordCur != null) {
+        sdb.getCollectionSpace( csName ).dropCollection( clName );
+        if ( recordCur != null ) {
             recordCur.close();
         }
-        if (sdb != null) {
+        if ( sdb != null ) {
             sdb.close();
         }
-        if (sdb2 != null) {
+        if ( sdb2 != null ) {
             sdb2.close();
         }
     }

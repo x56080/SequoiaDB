@@ -58,83 +58,90 @@ public class RewriteLob13247_18979 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         // create cs cl
-        BSONObject csOpt = (BSONObject) JSON.parse("{LobPageSize: " + lobPageSize + "}");
-        cs = sdb.createCollectionSpace(csName, csOpt);
-        BSONObject clOpt = (BSONObject) JSON.parse("{ShardingKey:{a:1},ShardingType:'hash'}");
-        cs.createCollection(clName, clOpt);
-        if (!CommLib.isStandAlone(sdb)) {
-            LobSubUtils.createMainCLAndAttachCL(sdb, csName, mainCLName, subCLName);
+        BSONObject csOpt = ( BSONObject ) JSON
+                .parse( "{LobPageSize: " + lobPageSize + "}" );
+        cs = sdb.createCollectionSpace( csName, csOpt );
+        BSONObject clOpt = ( BSONObject ) JSON
+                .parse( "{ShardingKey:{a:1},ShardingType:'hash'}" );
+        cs.createCollection( clName, clOpt );
+        if ( !CommLib.isStandAlone( sdb ) ) {
+            LobSubUtils.createMainCLAndAttachCL( sdb, csName, mainCLName,
+                    subCLName );
         }
     }
 
     @Test(dataProvider = "clNameProvider")
-    public void testLob(String clName) {
-        if (CommLib.isStandAlone(sdb) && clName.equals(mainCLName)) {
-            throw new SkipException("is standalone skip testcase!");
+    public void testLob( String clName ) {
+        if ( CommLib.isStandAlone( sdb ) && clName.equals( mainCLName ) ) {
+            throw new SkipException( "is standalone skip testcase!" );
         }
         int lobSize = 512 * 1024;
-        byte[] data = RandomWriteLobUtil.getRandomBytes(lobSize);
-        DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, data);
+        byte[] data = RandomWriteLobUtil.getRandomBytes( lobSize );
+        DBCollection cl = sdb.getCollectionSpace( csName )
+                .getCollection( clName );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl, data );
         byte[] expData = data;
 
-        LobPart partA = new LobPart(100 * 1024, 28 * 1024);
-        LobPart partB = new LobPart(128 * 1024, 1 * 1024);
-        LobPart partC = new LobPart(129 * 1024, 101 * 1024);
-        LobPart partD = new LobPart(230 * 1024, 120 * 1024);
+        LobPart partA = new LobPart( 100 * 1024, 28 * 1024 );
+        LobPart partB = new LobPart( 128 * 1024, 1 * 1024 );
+        LobPart partC = new LobPart( 129 * 1024, 101 * 1024 );
+        LobPart partD = new LobPart( 230 * 1024, 120 * 1024 );
 
         // merged part covers the range from A to D
         int offset = partA.getOffset();
-        int length = (partD.getOffset() + partD.getLength()) - partA.getOffset();
-        LobPart mergedPart = new LobPart(offset, length);
+        int length = ( partD.getOffset() + partD.getLength() )
+                - partA.getOffset();
+        LobPart mergedPart = new LobPart( offset, length );
 
-        try (DBLob lob = cl.openLob(oid, DBLob.SDB_LOB_WRITE)) {
-            lockLob(lob, partA);
-            lockLob(lob, partC);
-            seekAndWriteLob(lob, partA);
-            seekAndWriteLob(lob, partC);
-            expData = updateExpData(expData, partA);
-            expData = updateExpData(expData, partC);
+        try ( DBLob lob = cl.openLob( oid, DBLob.SDB_LOB_WRITE )) {
+            lockLob( lob, partA );
+            lockLob( lob, partC );
+            seekAndWriteLob( lob, partA );
+            seekAndWriteLob( lob, partC );
+            expData = updateExpData( expData, partA );
+            expData = updateExpData( expData, partC );
 
-            lockLob(lob, partB);
-            lockLob(lob, partD);
-            seekAndWriteLob(lob, mergedPart);
-            expData = updateExpData(expData, mergedPart);
+            lockLob( lob, partB );
+            lockLob( lob, partD );
+            seekAndWriteLob( lob, mergedPart );
+            expData = updateExpData( expData, mergedPart );
         }
 
-        byte[] actData = RandomWriteLobUtil.readLob(cl, oid);
-        RandomWriteLobUtil.assertByteArrayEqual(actData, expData, "lob data is wrong");
+        byte[] actData = RandomWriteLobUtil.readLob( cl, oid );
+        RandomWriteLobUtil.assertByteArrayEqual( actData, expData,
+                "lob data is wrong" );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
-        } catch (BaseException e) {
+        } catch ( BaseException e ) {
             e.printStackTrace();
-            Assert.fail(e.getMessage());
+            Assert.fail( e.getMessage() );
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }
     }
 
-    private byte[] updateExpData(byte[] expData, LobPart part) {
-        return RandomWriteLobUtil.appendBuff(expData, part.getData(), part.getOffset());
+    private byte[] updateExpData( byte[] expData, LobPart part ) {
+        return RandomWriteLobUtil.appendBuff( expData, part.getData(),
+                part.getOffset() );
     }
 
-    private void seekAndWriteLob(DBLob lob, LobPart part) {
-        lob.seek(part.getOffset(), DBLob.SDB_LOB_SEEK_SET);
-        lob.write(part.getData());
+    private void seekAndWriteLob( DBLob lob, LobPart part ) {
+        lob.seek( part.getOffset(), DBLob.SDB_LOB_SEEK_SET );
+        lob.write( part.getData() );
     }
 
-    private void lockLob(DBLob lob, LobPart part) {
-        lob.lock(part.getOffset(), part.getLength());
+    private void lockLob( DBLob lob, LobPart part ) {
+        lob.lock( part.getOffset(), part.getLength() );
     }
 
 }

@@ -30,7 +30,7 @@ public class Transaction17089 extends SdbTestBase {
     private DBCollection cl = null;
     private DBCollection cl1 = null;
     private DBCollection cl2 = null;
-    private List<BSONObject> expList = new ArrayList<BSONObject>();
+    private List< BSONObject > expList = new ArrayList< BSONObject >();
     private String hashCLName = "cl17089_hash";
     private String mainCLName = "cl17089_main";
     private String subCLName1 = "subcl17089_1";
@@ -38,17 +38,18 @@ public class Transaction17089 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        if (CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("ONE GROUP MODE");
+        if ( CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "ONE GROUP MODE" );
         }
 
-        db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        TransUtils.createCLs(sdb, csName, hashCLName, mainCLName, subCLName1, subCLName2, 25000);
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        TransUtils.createCLs( sdb, csName, hashCLName, mainCLName, subCLName1,
+                subCLName2, 25000 );
     }
 
     @DataProvider(name = "getCL")
@@ -57,46 +58,46 @@ public class Transaction17089 extends SdbTestBase {
     }
 
     @Test(dataProvider = "getCL")
-    public void test(String clName) {
-        cl = sdb.getCollectionSpace(csName).getCollection(clName);
-        cl1 = db1.getCollectionSpace(csName).getCollection(clName);
-        cl2 = db2.getCollectionSpace(csName).getCollection(clName);
-        cl.createIndex("a", "{a:1}", false, false);
-        expList = TransUtils.insertDatas(cl, 0, 50000, 1);
+    public void test( String clName ) {
+        cl = sdb.getCollectionSpace( csName ).getCollection( clName );
+        cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
+        cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
+        cl.createIndex( "a", "{a:1}", false, false );
+        expList = TransUtils.insertDatas( cl, 0, 50000, 1 );
 
         db1.beginTransaction();
         db2.beginTransaction();
 
         // 事务1批量更新全部记录
-        cl1.update("{a:1}", "{$set:{a:2}}", "{'':'a'}");
+        cl1.update( "{a:1}", "{$set:{a:2}}", "{'':'a'}" );
 
         // 事务2表扫描记录
-        TransUtils.queryAndCheck(cl2, "{_id:1}", "{'':null}", expList);
+        TransUtils.queryAndCheck( cl2, "{_id:1}", "{'':null}", expList );
 
         // 事务2索引扫描记录
-        TransUtils.queryAndCheck(cl2, "{_id:1}", "{'':'a'}", expList);
+        TransUtils.queryAndCheck( cl2, "{_id:1}", "{'':'a'}", expList );
 
         // 非事务表扫描记录
         expList.clear();
-        expList = TransUtils.getUpdateDatas(0, 50000, 2);
-        TransUtils.queryAndCheck(cl, "{_id:1}", "{'':null}", expList);
+        expList = TransUtils.getUpdateDatas( 0, 50000, 2 );
+        TransUtils.queryAndCheck( cl, "{_id:1}", "{'':null}", expList );
 
         // 非事务索引扫描记录
-        TransUtils.queryAndCheck(cl, "{_id:1}", "{'':'a'}", expList);
+        TransUtils.queryAndCheck( cl, "{_id:1}", "{'':'a'}", expList );
 
         db1.commit();
 
         // 事务2表扫描记录
-        TransUtils.queryAndCheck(cl2, "{_id:1}", "{'':null}", expList);
+        TransUtils.queryAndCheck( cl2, "{_id:1}", "{'':null}", expList );
 
         // 事务2索引扫描记录
-        TransUtils.queryAndCheck(cl2, "{_id:1}", "{'':'a'}", expList);
+        TransUtils.queryAndCheck( cl2, "{_id:1}", "{'':'a'}", expList );
 
         // 非事务表扫描记录
-        TransUtils.queryAndCheck(cl, "{_id:1}", "{'':null}", expList);
+        TransUtils.queryAndCheck( cl, "{_id:1}", "{'':null}", expList );
 
         // 非事务索引扫描记录
-        TransUtils.queryAndCheck(cl, "{_id:1}", "{'':'a'}", expList);
+        TransUtils.queryAndCheck( cl, "{_id:1}", "{'':'a'}", expList );
 
         db2.commit();
     }
@@ -105,20 +106,20 @@ public class Transaction17089 extends SdbTestBase {
     public void tearDown() {
         db1.commit();
         db2.commit();
-        if (!db1.isClosed()) {
+        if ( !db1.isClosed() ) {
             db1.close();
         }
-        if (!db2.isClosed()) {
+        if ( !db2.isClosed() ) {
             db2.close();
         }
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(hashCLName)) {
-            cs.dropCollection(hashCLName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( hashCLName ) ) {
+            cs.dropCollection( hashCLName );
         }
-        if (cs.isCollectionExist(mainCLName)) {
-            cs.dropCollection(mainCLName);
+        if ( cs.isCollectionExist( mainCLName ) ) {
+            cs.dropCollection( mainCLName );
         }
-        if (sdb != null) {
+        if ( sdb != null ) {
             sdb.close();
         }
     }

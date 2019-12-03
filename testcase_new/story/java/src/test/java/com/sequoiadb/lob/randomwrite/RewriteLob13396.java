@@ -48,38 +48,42 @@ public class RewriteLob13396 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb) || CommLib.OneGroupMode(sdb)) {
-            throw new SkipException("no groups to split");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException( "no groups to split" );
         }
 
         // create cs cl
-        BSONObject csOpt = (BSONObject) JSON.parse("{LobPageSize: " + lobPageSize + "}");
-        cs = sdb.createCollectionSpace(csName, csOpt);
-        BSONObject clOpt = (BSONObject) JSON.parse("{ShardingKey:{a:1},ShardingType:'hash'}");
-        cl = cs.createCollection(clName, clOpt);
+        BSONObject csOpt = ( BSONObject ) JSON
+                .parse( "{LobPageSize: " + lobPageSize + "}" );
+        cs = sdb.createCollectionSpace( csName, csOpt );
+        BSONObject clOpt = ( BSONObject ) JSON
+                .parse( "{ShardingKey:{a:1},ShardingType:'hash'}" );
+        cl = cs.createCollection( clName, clOpt );
 
-        srcGroupName = RandomWriteLobUtil.getSrcGroupName(sdb, csName, clName);
-        dstGroupName = RandomWriteLobUtil.getSplitGroupName(sdb, srcGroupName);
+        srcGroupName = RandomWriteLobUtil.getSrcGroupName( sdb, csName,
+                clName );
+        dstGroupName = RandomWriteLobUtil.getSplitGroupName( sdb,
+                srcGroupName );
 
     }
 
     @Test
     public void truncateWhenSplit() {
 
-        byte[] data = RandomWriteLobUtil.getRandomBytes(lobSize);
-        ObjectId oid = RandomWriteLobUtil.createAndWriteLob(cl, data);
+        byte[] data = RandomWriteLobUtil.getRandomBytes( lobSize );
+        ObjectId oid = RandomWriteLobUtil.createAndWriteLob( cl, data );
 
-        SplitThread splitThrd = new SplitThread(srcGroupName, dstGroupName);
-        TruncateThread trunThrd = new TruncateThread(oid);
+        SplitThread splitThrd = new SplitThread( srcGroupName, dstGroupName );
+        TruncateThread trunThrd = new TruncateThread( oid );
 
         splitThrd.start();
         trunThrd.start();
-        Assert.assertTrue(splitThrd.isSuccess(), splitThrd.getErrorMsg());
-        Assert.assertTrue(trunThrd.isSuccess(), trunThrd.getErrorMsg());
+        Assert.assertTrue( splitThrd.isSuccess(), splitThrd.getErrorMsg() );
+        Assert.assertTrue( trunThrd.isSuccess(), trunThrd.getErrorMsg() );
 
-        byte[] actData = RandomWriteLobUtil.readLob(cl, oid);
-        Assert.assertEquals(actData.length, 0, "wrong lob length");
+        byte[] actData = RandomWriteLobUtil.readLob( cl, oid );
+        Assert.assertEquals( actData.length, 0, "wrong lob length" );
 
         checkSplitOk();
     }
@@ -87,11 +91,11 @@ public class RewriteLob13396 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }
@@ -101,7 +105,7 @@ public class RewriteLob13396 extends SdbTestBase {
         private String srcGroupName = null;
         private String dstGroupName = null;
 
-        public SplitThread(String srcGroupName, String dstGroupName) {
+        public SplitThread( String srcGroupName, String dstGroupName ) {
             this.srcGroupName = srcGroupName;
             this.dstGroupName = dstGroupName;
         }
@@ -110,11 +114,12 @@ public class RewriteLob13396 extends SdbTestBase {
         public void exec() throws Exception {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                cl.split(srcGroupName, dstGroupName, 50);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                cl.split( srcGroupName, dstGroupName, 50 );
             } finally {
-                if (null != db) {
+                if ( null != db ) {
                     db.close();
                 }
             }
@@ -124,7 +129,7 @@ public class RewriteLob13396 extends SdbTestBase {
     private class TruncateThread extends SdbThreadBase {
         private ObjectId oid = null;
 
-        public TruncateThread(ObjectId oid) {
+        public TruncateThread( ObjectId oid ) {
             this.oid = oid;
         }
 
@@ -132,11 +137,12 @@ public class RewriteLob13396 extends SdbTestBase {
         public void exec() throws Exception {
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
-                cl.truncateLob(oid, 0);
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
+                cl.truncateLob( oid, 0 );
             } finally {
-                if (null != db) {
+                if ( null != db ) {
                     db.close();
                 }
             }
@@ -144,12 +150,13 @@ public class RewriteLob13396 extends SdbTestBase {
     }
 
     private void checkSplitOk() {
-        DBCursor cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_CATALOG,
-                new BasicBSONObject("Name", csName + "." + clName), null, null);
+        DBCursor cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CATALOG,
+                new BasicBSONObject( "Name", csName + "." + clName ), null,
+                null );
         BSONObject rec = cursor.getNext();
         cursor.close();
 
-        BasicBSONList cataInfo = (BasicBSONList) rec.get("CataInfo");
-        Assert.assertEquals(2, cataInfo.size());
+        BasicBSONList cataInfo = ( BasicBSONList ) rec.get( "CataInfo" );
+        Assert.assertEquals( 2, cataInfo.size() );
     }
 }

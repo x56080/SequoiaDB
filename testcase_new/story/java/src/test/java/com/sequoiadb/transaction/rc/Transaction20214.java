@@ -29,18 +29,18 @@ public class Transaction20214 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (CommLib.isStandAlone(sdb)) {
-            throw new SkipException("STANDALONE MODE");
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "STANDALONE MODE" );
         }
-        sdb.getCollectionSpace(csName).createCollection(clName);
+        sdb.getCollectionSpace( csName ).createCollection( clName );
     }
 
     @AfterClass
     public void tearDown() {
-        if (sdb != null) {
+        if ( sdb != null ) {
             sdb.commit();
-            sdb.getCollectionSpace(csName).dropCollection(clName);
+            sdb.getCollectionSpace( csName ).dropCollection( clName );
             sdb.close();
         }
     }
@@ -48,18 +48,19 @@ public class Transaction20214 extends SdbTestBase {
     @Test
     public void test() {
         sdb.beginTransaction();
-        DBCollection cl1 = sdb.getCollectionSpace(csName).getCollection(clName);
+        DBCollection cl1 = sdb.getCollectionSpace( csName )
+                .getCollection( clName );
 
         // 连接1开启事务，插入记录R1，并调用interrupt接口，使用该连接继续插入记录R2。
-        cl1.insert("{_id:1, a:1, b:1}");
+        cl1.insert( "{_id:1, a:1, b:1}" );
         sdb.interrupt();
-        BSONObject obj = (BSONObject) JSON.parse("{_id:2, a:2, b:2}");
-        cl1.insert(obj);
+        BSONObject obj = ( BSONObject ) JSON.parse( "{_id:2, a:2, b:2}" );
+        cl1.insert( obj );
 
         // 回滚该事务，查询所有记录。
         sdb.rollback();
-        List<BSONObject> expList = new ArrayList<>();
-        expList.add(obj);
-        TransUtils.queryAndCheck(cl1, "{_id:1}", expList);
+        List< BSONObject > expList = new ArrayList<>();
+        expList.add( obj );
+        TransUtils.queryAndCheck( cl1, "{_id:1}", expList );
     }
 }

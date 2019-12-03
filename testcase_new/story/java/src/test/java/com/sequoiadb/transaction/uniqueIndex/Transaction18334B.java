@@ -29,67 +29,68 @@ public class Transaction18334B extends SdbTestBase {
     private Sequoiadb sdb2 = null;
     private DBCollection cl = null;
     private DBCursor recordCur = null;
-    private List<BSONObject> expDataList = null;
-    private List<BSONObject> actDataList = null;
+    private List< BSONObject > expDataList = null;
+    private List< BSONObject > actDataList = null;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl.createIndex("a", "{a: 1}", true, false);
-        expDataList = new ArrayList<BSONObject>();
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl.createIndex( "a", "{a: 1}", true, false );
+        expDataList = new ArrayList< BSONObject >();
 
-        cl.insert("{'_id': 1, 'a': 1}");
+        cl.insert( "{'_id': 1, 'a': 1}" );
     }
 
     @Test
     public void test() {
 
-        sdb2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         sdb.beginTransaction();
 
         // 1 update R1 to R2/R3/R4.../R10
-        cl.update("{_id: 1}", "{'$set': {'a': 2}}", null);
-        cl.update("{_id: 1}", "{'$set': {'a': 3}}", null);
-        cl.update("{_id: 1}", "{'$set': {'a': 5}}", null);
-        cl.update("{_id: 1}", "{'$set': {'a': 6}}", null);
-        cl.update("{_id: 1}", "{'$set': {'a': 7}}", null);
-        cl.update("{_id: 1}", "{'$set': {'a': 8}}", null);
-        cl.update("{_id: 1}", "{'$set': {'a': 9}}", null);
-        cl.update("{_id: 1}", "{'$set': {'a': 10}}", null);
+        cl.update( "{_id: 1}", "{'$set': {'a': 2}}", null );
+        cl.update( "{_id: 1}", "{'$set': {'a': 3}}", null );
+        cl.update( "{_id: 1}", "{'$set': {'a': 5}}", null );
+        cl.update( "{_id: 1}", "{'$set': {'a': 6}}", null );
+        cl.update( "{_id: 1}", "{'$set': {'a': 7}}", null );
+        cl.update( "{_id: 1}", "{'$set': {'a': 8}}", null );
+        cl.update( "{_id: 1}", "{'$set': {'a': 9}}", null );
+        cl.update( "{_id: 1}", "{'$set': {'a': 10}}", null );
 
         // 2 insert data R11 ~ R18
-        DBCollection cl2 = sdb2.getCollectionSpace(csName).getCollection(clName);
-        cl2.insert("{'_id': 2, 'a': 2}");
-        cl2.insert("{'_id': 3, 'a': 3}");
-        cl2.insert("{'_id': 4, 'a': 4}");
-        cl2.insert("{'_id': 5, 'a': 5}");
-        cl2.insert("{'_id': 6, 'a': 6}");
-        cl2.insert("{'_id': 7, 'a': 7}");
-        cl2.insert("{'_id': 8, 'a': 8}");
-        cl2.insert("{'_id': 9, 'a': 9}");
+        DBCollection cl2 = sdb2.getCollectionSpace( csName )
+                .getCollection( clName );
+        cl2.insert( "{'_id': 2, 'a': 2}" );
+        cl2.insert( "{'_id': 3, 'a': 3}" );
+        cl2.insert( "{'_id': 4, 'a': 4}" );
+        cl2.insert( "{'_id': 5, 'a': 5}" );
+        cl2.insert( "{'_id': 6, 'a': 6}" );
+        cl2.insert( "{'_id': 7, 'a': 7}" );
+        cl2.insert( "{'_id': 8, 'a': 8}" );
+        cl2.insert( "{'_id': 9, 'a': 9}" );
 
         sdb.rollback();
 
         expDataList.clear();
-        expDataList.add((BSONObject) JSON.parse("{'_id': 1, 'a': 1}"));
-        expDataList.add((BSONObject) JSON.parse("{'_id': 2, 'a': 2}"));
-        expDataList.add((BSONObject) JSON.parse("{'_id': 3, 'a': 3}"));
-        expDataList.add((BSONObject) JSON.parse("{'_id': 4, 'a': 4}"));
-        expDataList.add((BSONObject) JSON.parse("{'_id': 5, 'a': 5}"));
-        expDataList.add((BSONObject) JSON.parse("{'_id': 6, 'a': 6}"));
-        expDataList.add((BSONObject) JSON.parse("{'_id': 7, 'a': 7}"));
-        expDataList.add((BSONObject) JSON.parse("{'_id': 8, 'a': 8}"));
-        expDataList.add((BSONObject) JSON.parse("{'_id': 9, 'a': 9}"));
-        recordCur = cl.query(null, null, null, "{'': null}");
-        actDataList = TransUtils.getReadActList(recordCur);
-        Assert.assertEquals(actDataList, expDataList, "check data");
+        expDataList.add( ( BSONObject ) JSON.parse( "{'_id': 1, 'a': 1}" ) );
+        expDataList.add( ( BSONObject ) JSON.parse( "{'_id': 2, 'a': 2}" ) );
+        expDataList.add( ( BSONObject ) JSON.parse( "{'_id': 3, 'a': 3}" ) );
+        expDataList.add( ( BSONObject ) JSON.parse( "{'_id': 4, 'a': 4}" ) );
+        expDataList.add( ( BSONObject ) JSON.parse( "{'_id': 5, 'a': 5}" ) );
+        expDataList.add( ( BSONObject ) JSON.parse( "{'_id': 6, 'a': 6}" ) );
+        expDataList.add( ( BSONObject ) JSON.parse( "{'_id': 7, 'a': 7}" ) );
+        expDataList.add( ( BSONObject ) JSON.parse( "{'_id': 8, 'a': 8}" ) );
+        expDataList.add( ( BSONObject ) JSON.parse( "{'_id': 9, 'a': 9}" ) );
+        recordCur = cl.query( null, null, null, "{'': null}" );
+        actDataList = TransUtils.getReadActList( recordCur );
+        Assert.assertEquals( actDataList, expDataList, "check data" );
         actDataList.clear();
 
-        recordCur = cl.query(null, null, null, "{'': 'a'}");
-        actDataList = TransUtils.getReadActList(recordCur);
-        Assert.assertEquals(actDataList, expDataList);
+        recordCur = cl.query( null, null, null, "{'': 'a'}" );
+        actDataList = TransUtils.getReadActList( recordCur );
+        Assert.assertEquals( actDataList, expDataList );
         actDataList.clear();
 
     }
@@ -98,14 +99,14 @@ public class Transaction18334B extends SdbTestBase {
     public void tearDown() {
         sdb.commit();
 
-        sdb.getCollectionSpace(csName).dropCollection(clName);
-        if (recordCur != null) {
+        sdb.getCollectionSpace( csName ).dropCollection( clName );
+        if ( recordCur != null ) {
             recordCur.close();
         }
-        if (sdb != null) {
+        if ( sdb != null ) {
             sdb.close();
         }
-        if (sdb2 != null) {
+        if ( sdb2 != null ) {
             sdb2.close();
         }
     }

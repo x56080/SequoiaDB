@@ -46,26 +46,29 @@ public class TestSeekLob7839 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
-        cl = cs.createCollection(clName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
+        cl = cs.createCollection( clName );
         // write lob
         int writeLobSize = 1024 * 1024 * 2;
-        wlobBuff = LobOprUtils.getRandomBytes(writeLobSize);
-        oid = LobOprUtils.createAndWriteLob(cl, wlobBuff);
+        wlobBuff = LobOprUtils.getRandomBytes( writeLobSize );
+        oid = LobOprUtils.createAndWriteLob( cl, wlobBuff );
     }
 
     @Test(dataProvider = "pagesizeProvider")
-    public void testSeekAndReadLob(int offset, int readsize) {
-        try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-            db.setSessionAttr(new BasicBSONObject("PreferedInstance", "M"));
-            DBCollection dbcl = db.getCollectionSpace(SdbTestBase.csName).getCollection(clName);
-            try (DBLob rLob = dbcl.openLob(oid, DBLob.SDB_LOB_READ)) {
-                byte[] rbuff = new byte[readsize];
-                rLob.seek(offset, DBLob.SDB_LOB_SEEK_SET);
-                rLob.read(rbuff);
-                byte[] expBuff = Arrays.copyOfRange(wlobBuff, offset, offset + readsize);
-                LobOprUtils.assertByteArrayEqual(rbuff, expBuff, "lob data is wrong!");
+    public void testSeekAndReadLob( int offset, int readsize ) {
+        try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" )) {
+            db.setSessionAttr( new BasicBSONObject( "PreferedInstance", "M" ) );
+            DBCollection dbcl = db.getCollectionSpace( SdbTestBase.csName )
+                    .getCollection( clName );
+            try ( DBLob rLob = dbcl.openLob( oid, DBLob.SDB_LOB_READ )) {
+                byte[] rbuff = new byte[ readsize ];
+                rLob.seek( offset, DBLob.SDB_LOB_SEEK_SET );
+                rLob.read( rbuff );
+                byte[] expBuff = Arrays.copyOfRange( wlobBuff, offset,
+                        offset + readsize );
+                LobOprUtils.assertByteArrayEqual( rbuff, expBuff,
+                        "lob data is wrong!" );
             }
         }
     }
@@ -73,11 +76,11 @@ public class TestSeekLob7839 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
         } finally {
-            if (null != sdb) {
+            if ( null != sdb ) {
                 sdb.close();
             }
         }

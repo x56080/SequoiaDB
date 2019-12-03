@@ -33,13 +33,15 @@ public class RewriteLob13394 extends SdbTestBase {
     private CollectionSpace cs;
     private DBCollection dbcl;
     private final int lobSize = 1024;
-    private final byte[] _randomDatas = RandomWriteLobUtil.getRandomBytes(lobSize);
+    private final byte[] _randomDatas = RandomWriteLobUtil
+            .getRandomBytes( lobSize );
 
     @BeforeClass
     public void setUp() {
-        db = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = db.getCollectionSpace(csName);
-        dbcl = cs.createCollection(clName, (BSONObject) JSON.parse("{ShardingKey:{\"_id\":1},ShardingType:\"hash\"}"));
+        db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = db.getCollectionSpace( csName );
+        dbcl = cs.createCollection( clName, ( BSONObject ) JSON
+                .parse( "{ShardingKey:{\"_id\":1},ShardingType:\"hash\"}" ) );
     }
 
     /**
@@ -49,25 +51,27 @@ public class RewriteLob13394 extends SdbTestBase {
     @Test
     public void testLob13394() throws InterruptedException {
         final ObjectId id = ObjectId.get();
-        final AtomicBoolean canTruncate = new AtomicBoolean(false);
+        final AtomicBoolean canTruncate = new AtomicBoolean( false );
 
-        DbClOperateTask createDbClTask = new DbClOperateTask(SdbTestBase.csName, clName) {
+        DbClOperateTask createDbClTask = new DbClOperateTask(
+                SdbTestBase.csName, clName ) {
             @Override
             protected void exec() throws Exception {
-                try (DBLob lob = this.dbcl.createLob(id)) {
-                    canTruncate.set(true);
-                    lob.write(_randomDatas);
+                try ( DBLob lob = this.dbcl.createLob( id )) {
+                    canTruncate.set( true );
+                    lob.write( _randomDatas );
                 }
             }
         };
 
-        DbClOperateTask truncateLob = new DbClOperateTask(SdbTestBase.csName, clName) {
+        DbClOperateTask truncateLob = new DbClOperateTask( SdbTestBase.csName,
+                clName ) {
             @Override
             protected void exec() throws Exception {
-                while (!canTruncate.get()) {
-                    Thread.sleep(100);
+                while ( !canTruncate.get() ) {
+                    Thread.sleep( 100 );
                 }
-                this.dbcl.truncateLob(id, 100);
+                this.dbcl.truncateLob( id, 100 );
             }
         };
 
@@ -77,20 +81,25 @@ public class RewriteLob13394 extends SdbTestBase {
         truncateLob.join();
 
         String lobErrMsg = "lob id: " + id.toString();
-        Assert.assertTrue(createDbClTask.isTaskSuccess(), createDbClTask.getErrorMsg());
+        Assert.assertTrue( createDbClTask.isTaskSuccess(),
+                createDbClTask.getErrorMsg() );
 
-        if (truncateLob.isTaskSuccess())
-            RandomWriteLobUtil.assertByteArrayEqual(RandomWriteLobUtil.readLob(dbcl, id),
-                    Arrays.copyOf(_randomDatas, 100), lobErrMsg);
+        if ( truncateLob.isTaskSuccess() )
+            RandomWriteLobUtil.assertByteArrayEqual(
+                    RandomWriteLobUtil.readLob( dbcl, id ),
+                    Arrays.copyOf( _randomDatas, 100 ), lobErrMsg );
         else {
-            Assert.assertEquals(truncateLob.getSdbErrCode(), SDBError.SDB_LOB_IS_IN_USE.getErrorCode(), lobErrMsg);
-            RandomWriteLobUtil.assertByteArrayEqual(RandomWriteLobUtil.readLob(dbcl, id), _randomDatas, lobErrMsg);
+            Assert.assertEquals( truncateLob.getSdbErrCode(),
+                    SDBError.SDB_LOB_IS_IN_USE.getErrorCode(), lobErrMsg );
+            RandomWriteLobUtil.assertByteArrayEqual(
+                    RandomWriteLobUtil.readLob( dbcl, id ), _randomDatas,
+                    lobErrMsg );
         }
     }
 
     @AfterClass
     public void tearDown() {
-        cs.dropCollection(clName);
+        cs.dropCollection( clName );
         db.close();
     }
 }

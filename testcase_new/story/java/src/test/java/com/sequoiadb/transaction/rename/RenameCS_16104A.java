@@ -34,9 +34,9 @@ public class RenameCS_16104A extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = sdb.createCollectionSpace(csName);
-        cs.createCollection(clName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.createCollectionSpace( csName );
+        cs.createCollection( clName );
     }
 
     @Test
@@ -50,34 +50,36 @@ public class RenameCS_16104A extends SdbTestBase {
         boolean rename = renameCSThread.isSuccess();
         boolean trans = transThread.isSuccess();
 
-        if (!rename) {
+        if ( !rename ) {
             Integer[] errnosA = { -190 };
-            BaseException errorA = (BaseException) renameCSThread.getExceptions().get(0);
-            if (!Arrays.asList(errnosA).contains(errorA.getErrorCode())) {
-                Assert.fail(renameCSThread.getErrorMsg());
+            BaseException errorA = ( BaseException ) renameCSThread
+                    .getExceptions().get( 0 );
+            if ( !Arrays.asList( errnosA ).contains( errorA.getErrorCode() ) ) {
+                Assert.fail( renameCSThread.getErrorMsg() );
             }
         }
 
-        if (!trans) {
+        if ( !trans ) {
             Integer[] errnosB = { -23, -34, -190 };
-            BaseException errorB = (BaseException) transThread.getExceptions().get(0);
-            if (!Arrays.asList(errnosB).contains(errorB.getErrorCode())) {
-                Assert.fail(transThread.getErrorMsg());
+            BaseException errorB = ( BaseException ) transThread.getExceptions()
+                    .get( 0 );
+            if ( !Arrays.asList( errnosB ).contains( errorB.getErrorCode() ) ) {
+                Assert.fail( transThread.getErrorMsg() );
             }
         }
 
-        try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "");) {
-            if (rename && !trans) {
-                RenameUtil.checkRenameCSResult(db, csName, newCSName, 1);
-                checkRecordNum(db, newCSName, clName, 0);
-            } else if (!rename && trans) {
-                RenameUtil.checkRenameCSResult(db, newCSName, csName, 1);
-                checkRecordNum(db, csName, clName, recordNum);
-            } else if (rename && trans) {
-                RenameUtil.checkRenameCSResult(db, csName, newCSName, 1);
-                checkRecordNum(db, newCSName, clName, recordNum);
+        try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" ) ;) {
+            if ( rename && !trans ) {
+                RenameUtil.checkRenameCSResult( db, csName, newCSName, 1 );
+                checkRecordNum( db, newCSName, clName, 0 );
+            } else if ( !rename && trans ) {
+                RenameUtil.checkRenameCSResult( db, newCSName, csName, 1 );
+                checkRecordNum( db, csName, clName, recordNum );
+            } else if ( rename && trans ) {
+                RenameUtil.checkRenameCSResult( db, csName, newCSName, 1 );
+                checkRecordNum( db, newCSName, clName, recordNum );
             } else {
-                Assert.fail("rename cl and trans cl all failed");
+                Assert.fail( "rename cl and trans cl all failed" );
             }
         }
     }
@@ -85,9 +87,9 @@ public class RenameCS_16104A extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            CommLib.clearCS(sdb, csName);
+            CommLib.clearCS( sdb, csName );
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -97,9 +99,10 @@ public class RenameCS_16104A extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                Thread.sleep(new Random().nextInt(50) + 50);
-                db.renameCollectionSpace(csName, newCSName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                Thread.sleep( new Random().nextInt( 50 ) + 50 );
+                db.renameCollectionSpace( csName, newCSName );
             }
         }
     }
@@ -107,19 +110,23 @@ public class RenameCS_16104A extends SdbTestBase {
     private class TransactionThread extends SdbThreadBase {
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
                 db.beginTransaction();
-                RenameUtil.insertData(cl, recordNum);
+                RenameUtil.insertData( cl, recordNum );
                 db.commit();
             }
         }
     }
 
-    private void checkRecordNum(Sequoiadb db, String csName, String clName, int recordNum) {
-        DBCollection cl = db.getCollectionSpace(csName).getCollection(clName);
+    private void checkRecordNum( Sequoiadb db, String csName, String clName,
+            int recordNum ) {
+        DBCollection cl = db.getCollectionSpace( csName )
+                .getCollection( clName );
         long actNum = cl.getCount();
-        Assert.assertEquals(actNum, recordNum, "check record count");
+        Assert.assertEquals( actNum, recordNum, "check record count" );
     }
 
 }

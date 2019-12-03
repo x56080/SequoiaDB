@@ -30,8 +30,8 @@ public class Transaction17238A extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "tbscan17238";
     private DBCollection cl = null;
-    private List<BSONObject> expList = new ArrayList<BSONObject>();
-    private List<BSONObject> actList = new ArrayList<BSONObject>();
+    private List< BSONObject > expList = new ArrayList< BSONObject >();
+    private List< BSONObject > actList = new ArrayList< BSONObject >();
     private Sequoiadb db1 = null;
     private Sequoiadb db2 = null;
     private Sequoiadb db3 = null;
@@ -41,12 +41,12 @@ public class Transaction17238A extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cl = sdb.getCollectionSpace(csName).createCollection(clName);
-        cl.createIndex("textIndex17238", "{a:1}", false, false);
-        BSONObject record = (BSONObject) JSON.parse("{_id:1, a:1, b:1}");
-        cl.insert(record);
-        expList.add(record);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
+        cl.createIndex( "textIndex17238", "{a:1}", false, false );
+        BSONObject record = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
+        cl.insert( record );
+        expList.add( record );
     }
 
     @AfterClass
@@ -55,20 +55,20 @@ public class Transaction17238A extends SdbTestBase {
         db2.commit();
         db3.commit();
 
-        if (!db1.isClosed()) {
+        if ( !db1.isClosed() ) {
             db1.close();
         }
-        if (!db2.isClosed()) {
+        if ( !db2.isClosed() ) {
             db2.close();
         }
-        if (!db3.isClosed()) {
+        if ( !db3.isClosed() ) {
             db3.close();
         }
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        if (cs.isCollectionExist(clName)) {
-            cs.dropCollection(clName);
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
-        if (!sdb.isClosed()) {
+        if ( !sdb.isClosed() ) {
             sdb.close();
         }
     }
@@ -77,96 +77,103 @@ public class Transaction17238A extends SdbTestBase {
     @Test
     public void test() {
         // 开启并发事务
-        db1 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db2 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        db3 = new Sequoiadb(SdbTestBase.coordUrl, "", "");
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         db1.beginTransaction();
         db2.beginTransaction();
         db3.beginTransaction();
-        cl1 = db1.getCollectionSpace(csName).getCollection(clName);
-        cl2 = db2.getCollectionSpace(csName).getCollection(clName);
-        cl3 = db3.getCollectionSpace(csName).getCollection(clName);
+        cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
+        cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
+        cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
 
         // 事务1 select for update读记录走索引扫描
-        DBCursor recordsCursor = cl1.query("{a:{$exists:1}}", null, null, "{'':'textIndex17238'}",
-                DBQuery.FLG_QUERY_FOR_UPDATE);
-        actList = TransUtils.getReadActList(recordsCursor);
-        Assert.assertEquals(actList, expList);
+        DBCursor recordsCursor = cl1.query( "{a:{$exists:1}}", null, null,
+                "{'':'textIndex17238'}", DBQuery.FLG_QUERY_FOR_UPDATE );
+        actList = TransUtils.getReadActList( recordsCursor );
+        Assert.assertEquals( actList, expList );
 
         // 事务2 select for update读记录走表扫描阻塞
-        CL2Query cl2Thread = new CL2Query(null, "{'':null}");
+        CL2Query cl2Thread = new CL2Query( null, "{'':null}" );
         cl2Thread.start();
-        Assert.assertTrue(cl2Thread.matchBlockingMethod(DBCursor.class.getName(), "hasNext"));
+        Assert.assertTrue( cl2Thread
+                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
 
         // 事务3更新记录阻塞
         CL3Update cl3Update = new CL3Update();
         cl3Update.start();
-        Assert.assertTrue(cl3Update.matchBlockingMethod(cl3.getClass().getName(), "update"));
+        Assert.assertTrue( cl3Update
+                .matchBlockingMethod( cl3.getClass().getName(), "update" ) );
 
         // 提交事务1
         db1.commit();
-        if (!(cl2Thread.isSuccess())) {
-            Assert.fail(cl2Thread.getErrorMsg() + "\n");
+        if ( !( cl2Thread.isSuccess() ) ) {
+            Assert.fail( cl2Thread.getErrorMsg() + "\n" );
         }
         try {
-            actList = (List<BSONObject>) cl2Thread.getExecResult();
-            Assert.assertEquals(actList, expList);
-        } catch (InterruptedException e) {
-            Assert.fail(e.getMessage());
+            actList = ( List< BSONObject > ) cl2Thread.getExecResult();
+            Assert.assertEquals( actList, expList );
+        } catch ( InterruptedException e ) {
+            Assert.fail( e.getMessage() );
         }
-        Assert.assertTrue(cl3Update.matchBlockingMethod(cl3.getClass().getName(), "update"));
+        Assert.assertTrue( cl3Update
+                .matchBlockingMethod( cl3.getClass().getName(), "update" ) );
 
         // 非事务表扫描
-        recordsCursor = cl.query(null, null, null, "{'':null}");
-        actList = TransUtils.getReadActList(recordsCursor);
-        Assert.assertEquals(actList, expList);
+        recordsCursor = cl.query( null, null, null, "{'':null}" );
+        actList = TransUtils.getReadActList( recordsCursor );
+        Assert.assertEquals( actList, expList );
 
         // 非事务索引扫描
-        recordsCursor = cl.query("{a:{$exists:1}}", null, null, "{'':'textIndex17238'}");
-        actList = TransUtils.getReadActList(recordsCursor);
-        Assert.assertEquals(actList, expList);
+        recordsCursor = cl.query( "{a:{$exists:1}}", null, null,
+                "{'':'textIndex17238'}" );
+        actList = TransUtils.getReadActList( recordsCursor );
+        Assert.assertEquals( actList, expList );
 
         // 提交事务2
         db2.commit();
-        if (!cl3Update.isSuccess()) {
-            Assert.fail(cl3Update.getErrorMsg());
+        if ( !cl3Update.isSuccess() ) {
+            Assert.fail( cl3Update.getErrorMsg() );
         }
 
         // 非事务表扫描
-        recordsCursor = cl.query(null, null, null, "{'':null}");
-        actList = TransUtils.getReadActList(recordsCursor);
-        BSONObject record = (BSONObject) JSON.parse("{_id:1, a:4, b:1}");
+        recordsCursor = cl.query( null, null, null, "{'':null}" );
+        actList = TransUtils.getReadActList( recordsCursor );
+        BSONObject record = ( BSONObject ) JSON.parse( "{_id:1, a:4, b:1}" );
         expList.clear();
-        expList.add(record);
-        Assert.assertEquals(actList, expList);
+        expList.add( record );
+        Assert.assertEquals( actList, expList );
 
         // 非事务索引扫描
-        recordsCursor = cl.query("{a:{$exists:1}}", null, null, "{'':'textIndex17238'}");
-        actList = TransUtils.getReadActList(recordsCursor);
-        Assert.assertEquals(actList, expList);
+        recordsCursor = cl.query( "{a:{$exists:1}}", null, null,
+                "{'':'textIndex17238'}" );
+        actList = TransUtils.getReadActList( recordsCursor );
+        Assert.assertEquals( actList, expList );
 
         // 事务3读走表扫描
-        recordsCursor = cl3.query(null, null, null, "{'':null}");
-        actList = TransUtils.getReadActList(recordsCursor);
-        Assert.assertEquals(actList, expList);
+        recordsCursor = cl3.query( null, null, null, "{'':null}" );
+        actList = TransUtils.getReadActList( recordsCursor );
+        Assert.assertEquals( actList, expList );
 
         // 事务3读走索引扫描
-        recordsCursor = cl3.query("{a:{$exists:1}}", null, null, "{'':'textIndex17238'}");
-        actList = TransUtils.getReadActList(recordsCursor);
-        Assert.assertEquals(actList, expList);
+        recordsCursor = cl3.query( "{a:{$exists:1}}", null, null,
+                "{'':'textIndex17238'}" );
+        actList = TransUtils.getReadActList( recordsCursor );
+        Assert.assertEquals( actList, expList );
 
         // 提交事务3
         db3.commit();
 
         // 非事务表扫描
-        recordsCursor = cl.query(null, null, null, "{'':null}");
-        actList = TransUtils.getReadActList(recordsCursor);
-        Assert.assertEquals(actList, expList);
+        recordsCursor = cl.query( null, null, null, "{'':null}" );
+        actList = TransUtils.getReadActList( recordsCursor );
+        Assert.assertEquals( actList, expList );
 
         // 非事务索引扫描
-        recordsCursor = cl.query("{a:{$exists:1}}", null, null, "{'':'textIndex17238'}");
-        actList = TransUtils.getReadActList(recordsCursor);
-        Assert.assertEquals(actList, expList);
+        recordsCursor = cl.query( "{a:{$exists:1}}", null, null,
+                "{'':'textIndex17238'}" );
+        actList = TransUtils.getReadActList( recordsCursor );
+        Assert.assertEquals( actList, expList );
         recordsCursor.close();
     }
 
@@ -174,7 +181,7 @@ public class Transaction17238A extends SdbTestBase {
         private String hint;
         private String matcher;
 
-        public CL2Query(String matcher, String hint) {
+        public CL2Query( String matcher, String hint ) {
             super();
             this.matcher = matcher;
             this.hint = hint;
@@ -182,11 +189,12 @@ public class Transaction17238A extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            DBCursor cursor = cl2.query(matcher, null, null, hint, DBQuery.FLG_QUERY_FOR_UPDATE);
-            List<BSONObject> records = TransUtils.getReadActList(cursor);
+            DBCursor cursor = cl2.query( matcher, null, null, hint,
+                    DBQuery.FLG_QUERY_FOR_UPDATE );
+            List< BSONObject > records = TransUtils.getReadActList( cursor );
             try {
-                setExecResult(records);
-            } catch (Exception e) {
+                setExecResult( records );
+            } catch ( Exception e ) {
                 e.printStackTrace();
                 throw e;
             }
@@ -197,7 +205,7 @@ public class Transaction17238A extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            cl3.update("{a:1}", "{$set:{a:4}}", "{'':'textIndex17238'}");
+            cl3.update( "{a:1}", "{$set:{a:4}}", "{'':'textIndex17238'}" );
         }
     }
 }

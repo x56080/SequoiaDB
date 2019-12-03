@@ -33,51 +33,53 @@ public class RewriteLob13227 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        db = new Sequoiadb(coordUrl, "", "");
-        cs = db.getCollectionSpace(SdbTestBase.csName);
-        dbcl = cs.createCollection(clName, (BSONObject) JSON.parse("{ShardingKey:{\"_id\":1},ShardingType:\"hash\"}"));
+        db = new Sequoiadb( coordUrl, "", "" );
+        cs = db.getCollectionSpace( SdbTestBase.csName );
+        dbcl = cs.createCollection( clName, ( BSONObject ) JSON
+                .parse( "{ShardingKey:{\"_id\":1},ShardingType:\"hash\"}" ) );
     }
 
     @Test
     public void testLob() {
         ObjectId oid = ObjectId.get();
         int lobSize = 1024 * 1024 * 10;
-        byte[] expectBytes = RandomWriteLobUtil.getRandomBytes(lobSize);
+        byte[] expectBytes = RandomWriteLobUtil.getRandomBytes( lobSize );
         DBLob lob = null;
-        lob = this.dbcl.createLob(oid);
-        lob.write(expectBytes);
-        readLobInWritingLob(oid, lobSize);
+        lob = this.dbcl.createLob( oid );
+        lob.write( expectBytes );
+        readLobInWritingLob( oid, lobSize );
         lob.close();
 
         // check write lob
-        byte[] actualBytes = RandomWriteLobUtil.readLob(dbcl, oid);
-        RandomWriteLobUtil.assertByteArrayEqual(actualBytes, expectBytes);
+        byte[] actualBytes = RandomWriteLobUtil.readLob( dbcl, oid );
+        RandomWriteLobUtil.assertByteArrayEqual( actualBytes, expectBytes );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
         } finally {
-            if (db != null) {
+            if ( db != null ) {
                 db.close();
             }
         }
     }
 
-    private void readLobInWritingLob(ObjectId oid, int lobSize) {
+    private void readLobInWritingLob( ObjectId oid, int lobSize ) {
         try {
-            byte[] actualBytes = new byte[lobSize];
-            DBLob lob = this.dbcl.openLob(oid);
-            lob.read(actualBytes);
+            byte[] actualBytes = new byte[ lobSize ];
+            DBLob lob = this.dbcl.openLob( oid );
+            lob.read( actualBytes );
             lob.close();
-            Assert.fail("read lob must be fail in writing lob!");
-        } catch (BaseException e) {
+            Assert.fail( "read lob must be fail in writing lob!" );
+        } catch ( BaseException e ) {
             // -317：SDB_LOB_IS_IN_USE
-            if (e.getErrorCode() != -317) {
-                Assert.fail("read lob fail! e=" + e.getErrorCode() + e.getMessage());
+            if ( e.getErrorCode() != -317 ) {
+                Assert.fail( "read lob fail! e=" + e.getErrorCode()
+                        + e.getMessage() );
             }
         }
     }

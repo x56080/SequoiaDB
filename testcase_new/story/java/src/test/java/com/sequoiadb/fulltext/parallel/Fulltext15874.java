@@ -31,7 +31,7 @@ public class Fulltext15874 extends FullTestBase {
     private Random random = new Random();
     private final String CL_NAME = "cl_es_15874";
     private final String IDX_NAME = "idx_es_15874";
-    private final BSONObject IDX_KEY = new BasicBSONObject("a", "text");
+    private final BSONObject IDX_KEY = new BasicBSONObject( "a", "text" );
     private final int INIT_RECS_NUM = 100000;
     private final int INSERT_RECS_NUM = 20000;
 
@@ -41,60 +41,67 @@ public class Fulltext15874 extends FullTestBase {
 
     @Override
     protected void initTestProp() {
-        caseProp.setProperty(IGNORESTANDALONE, "true");
-        caseProp.setProperty(CLNAME, CL_NAME);
+        caseProp.setProperty( IGNORESTANDALONE, "true" );
+        caseProp.setProperty( CLNAME, CL_NAME );
     }
 
     @Override
     protected void caseInit() throws Exception {
-        cl.createIndex(IDX_NAME, IDX_KEY, false, false);
-        cappedCSName = FullTextDBUtils.getCappedName(cl, IDX_NAME);
-        esIndexName = FullTextDBUtils.getESIndexName(cl, IDX_NAME);
+        cl.createIndex( IDX_NAME, IDX_KEY, false, false );
+        cappedCSName = FullTextDBUtils.getCappedName( cl, IDX_NAME );
+        esIndexName = FullTextDBUtils.getESIndexName( cl, IDX_NAME );
 
-        FullTextDBUtils.insertData(cl, INIT_RECS_NUM);
+        FullTextDBUtils.insertData( cl, INIT_RECS_NUM );
 
         // 确保预置的数据同步到es完成，避免test中查询的数据未同步完成导致非预期
-        Assert.assertTrue(FullTextUtils.isIndexCreated(cl, IDX_NAME, INIT_RECS_NUM));
+        Assert.assertTrue(
+                FullTextUtils.isIndexCreated( cl, IDX_NAME, INIT_RECS_NUM ) );
     }
 
     @Test
     private void test() throws Exception {
-        ThreadExecutor es = new ThreadExecutor(FullTextUtils.THREAD_TIMEOUT);
+        ThreadExecutor es = new ThreadExecutor( FullTextUtils.THREAD_TIMEOUT );
         ThreadTruncate threadTruncate = new ThreadTruncate();
-        es.addWorker(threadTruncate);
-        es.addWorker(new ThreadInsert());
-        es.addWorker(new ThreadDelete());
-        es.addWorker(new ThreadUpdate());
-        es.addWorker(new ThreadFullTextSearch());
+        es.addWorker( threadTruncate );
+        es.addWorker( new ThreadInsert() );
+        es.addWorker( new ThreadDelete() );
+        es.addWorker( new ThreadUpdate() );
+        es.addWorker( new ThreadFullTextSearch() );
         es.run();
 
         // check results
-        if (threadTruncate.getRetCode() == 0) {
-            System.out.println(this.getClass().getName() + " rebuild fulltext finished.");
+        if ( threadTruncate.getRetCode() == 0 ) {
+            System.out.println(
+                    this.getClass().getName() + " rebuild fulltext finished." );
         }
-        int cnt = (int) cl.getCount();
-        Assert.assertTrue(FullTextUtils.isIndexCreated(cl, IDX_NAME, cnt));
+        int cnt = ( int ) cl.getCount();
+        Assert.assertTrue( FullTextUtils.isIndexCreated( cl, IDX_NAME, cnt ) );
     }
 
     @Override
     protected void caseFini() throws Exception {
-        Assert.assertTrue(FullTextUtils.isIndexDeleted(sdb, esIndexName, cappedCSName));
+        Assert.assertTrue( FullTextUtils.isIndexDeleted( sdb, esIndexName,
+                cappedCSName ) );
     }
 
     private class ThreadTruncate extends ResultStore {
         @ExecuteOrder(step = 1)
         private void truncate() throws InterruptedException {
-            Thread.sleep(random.nextInt(50));
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl2 = db.getCollectionSpace(SdbTestBase.csName).getCollection(CL_NAME);
-                System.out.println(new Date() + " begin " + this.getClass().getName().toString());
+            Thread.sleep( random.nextInt( 50 ) );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl2 = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( CL_NAME );
+                System.out.println( new Date() + " begin "
+                        + this.getClass().getName().toString() );
                 cl2.truncate();
-                System.out.println(new Date() + " end   " + this.getClass().getName().toString());
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -190 && e.getErrorCode() != -147) {
+                System.out.println( new Date() + " end   "
+                        + this.getClass().getName().toString() );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -190 && e.getErrorCode() != -147 ) {
                     throw e;
                 }
-                saveResult(-1, e);
+                saveResult( -1, e );
             }
         }
     }
@@ -102,13 +109,17 @@ public class Fulltext15874 extends FullTestBase {
     private class ThreadInsert {
         @ExecuteOrder(step = 1)
         private void insert() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl2 = db.getCollectionSpace(SdbTestBase.csName).getCollection(CL_NAME);
-                System.out.println(new Date() + " begin " + this.getClass().getName().toString());
-                FullTextDBUtils.insertData(cl2, INSERT_RECS_NUM);
-                System.out.println(new Date() + " end   " + this.getClass().getName().toString());
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -321) {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl2 = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( CL_NAME );
+                System.out.println( new Date() + " begin "
+                        + this.getClass().getName().toString() );
+                FullTextDBUtils.insertData( cl2, INSERT_RECS_NUM );
+                System.out.println( new Date() + " end   "
+                        + this.getClass().getName().toString() );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -321 ) {
                     throw e;
                 }
             }
@@ -118,14 +129,19 @@ public class Fulltext15874 extends FullTestBase {
     private class ThreadDelete {
         @ExecuteOrder(step = 1)
         private void update() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl2 = db.getCollectionSpace(SdbTestBase.csName).getCollection(CL_NAME);
-                BSONObject matcher = new BasicBSONObject("a", new BasicBSONObject("$exists", 1));
-                System.out.println(new Date() + " begin " + this.getClass().getName().toString());
-                cl2.delete(matcher);
-                System.out.println(new Date() + " end   " + this.getClass().getName().toString());
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -321) {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl2 = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( CL_NAME );
+                BSONObject matcher = new BasicBSONObject( "a",
+                        new BasicBSONObject( "$exists", 1 ) );
+                System.out.println( new Date() + " begin "
+                        + this.getClass().getName().toString() );
+                cl2.delete( matcher );
+                System.out.println( new Date() + " end   "
+                        + this.getClass().getName().toString() );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -321 ) {
                     throw e;
                 }
             }
@@ -135,17 +151,23 @@ public class Fulltext15874 extends FullTestBase {
     private class ThreadUpdate {
         @ExecuteOrder(step = 1)
         private void update() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl2 = db.getCollectionSpace(SdbTestBase.csName).getCollection(CL_NAME);
-                BSONObject matcher = new BasicBSONObject("a", new BasicBSONObject("$exists", 1));
-                BSONObject modifier = new BasicBSONObject("$set",
-                        new BasicBSONObject("a", StringUtils.getRandomString(16)));
-                BSONObject hint = new BasicBSONObject("", IDX_NAME);
-                System.out.println(new Date() + " begin " + this.getClass().getName().toString());
-                cl2.update(matcher, modifier, hint);
-                System.out.println(new Date() + " end   " + this.getClass().getName().toString());
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -321) {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl2 = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( CL_NAME );
+                BSONObject matcher = new BasicBSONObject( "a",
+                        new BasicBSONObject( "$exists", 1 ) );
+                BSONObject modifier = new BasicBSONObject( "$set",
+                        new BasicBSONObject( "a",
+                                StringUtils.getRandomString( 16 ) ) );
+                BSONObject hint = new BasicBSONObject( "", IDX_NAME );
+                System.out.println( new Date() + " begin "
+                        + this.getClass().getName().toString() );
+                cl2.update( matcher, modifier, hint );
+                System.out.println( new Date() + " end   "
+                        + this.getClass().getName().toString() );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -321 ) {
                     throw e;
                 }
             }
@@ -155,25 +177,36 @@ public class Fulltext15874 extends FullTestBase {
     private class ThreadFullTextSearch {
         @ExecuteOrder(step = 1)
         private void fullTextSearch() throws InterruptedException {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                DBCollection cl2 = db.getCollectionSpace(SdbTestBase.csName).getCollection(CL_NAME);
-                BSONObject matcher = new BasicBSONObject("", new BasicBSONObject("$Text",
-                        new BasicBSONObject("query", new BasicBSONObject("match", new BasicBSONObject("a", CL_NAME)))));
-                System.out.println(new Date() + " begin " + this.getClass().getName().toString());
-                for (int i = 0; i < 10; i++) {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                DBCollection cl2 = db.getCollectionSpace( SdbTestBase.csName )
+                        .getCollection( CL_NAME );
+                BSONObject matcher = new BasicBSONObject( "",
+                        new BasicBSONObject( "$Text",
+                                new BasicBSONObject( "query",
+                                        new BasicBSONObject( "match",
+                                                new BasicBSONObject( "a",
+                                                        CL_NAME ) ) ) ) );
+                System.out.println( new Date() + " begin "
+                        + this.getClass().getName().toString() );
+                for ( int i = 0; i < 10; i++ ) {
                     try {
-                        DBCursor cursor = cl2.query(matcher, null, null, null);
-                        while (cursor.hasNext()) {
+                        DBCursor cursor = cl2.query( matcher, null, null,
+                                null );
+                        while ( cursor.hasNext() ) {
                             cursor.getNext();
                         }
-                    } catch (BaseException e) {
-                        if (e.getErrorCode() != -321 && e.getErrorCode() != -52 && e.getErrorCode() != -6 && e.getErrorCode() != -10) {
+                    } catch ( BaseException e ) {
+                        if ( e.getErrorCode() != -321 && e.getErrorCode() != -52
+                                && e.getErrorCode() != -6
+                                && e.getErrorCode() != -10 ) {
                             throw e;
                         }
-                        Thread.sleep(random.nextInt(50));
+                        Thread.sleep( random.nextInt( 50 ) );
                     }
                 }
-                System.out.println(new Date() + " end   " + this.getClass().getName().toString());
+                System.out.println( new Date() + " end   "
+                        + this.getClass().getName().toString() );
             }
         }
     }
