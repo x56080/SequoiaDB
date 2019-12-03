@@ -233,15 +233,6 @@ namespace engine
          pExtent = extRW.readPtr<dmsExtent>() ;
          pRecord = recordRW.writePtr( 0 ) ;
 
-         // call migrateFromV0 to handle in-flight migration if needed
-         // we don't have versioning. instead, we check for attribute
-         if ( !(pRecord->hasGlobTransID()) )
-         {
-            PD_LOG ( PDDEBUG, "In-flight migration of record during update object(%s) ",
-                     recordRW.toString().c_str() ) ;
-            pRecord->migrateFromV0() ;
-         }
-
          newRecordData.setData( newObj.objdata(), newObj.objsize(),
                                 UTIL_COMPRESSOR_INVALID, TRUE ) ;
          dmsRecordSize = newRecordData.len() ;
@@ -295,6 +286,17 @@ namespace engine
             }
          }
 
+         // call migrateFromV0 to handle in-flight migration if needed
+         // we don't have versioning. instead, we check for attribute
+         // FIXME: need to fix the migration logic to support/handle OVF
+         // also need to handle compression case
+         if ( !(pRecord->hasGlobTransID()) )
+         {
+            PD_LOG ( PDDEBUG, "In-flight migration of record during update object(%s) ",
+                     recordRW.toString().c_str() ) ;
+            pRecord->migrateFromV0() ;
+         }
+
          if ( pRecord->isOvf() )
          {
             ovfRID = pRecord->getOvfRID() ;
@@ -317,7 +319,11 @@ namespace engine
 
          // if the current space is big enough for the whole record,
          // let's put it here and return rightaway
-         if ( dmsRecordSize <= pRecord->getSize() )
+         // if the record does not have GlobTransID, it means we failed 
+         // to migrate ealier due to not enough space, we need to allocate
+         // overflow record for the case
+         if ( dmsRecordSize <= pRecord->getSize() && 
+              pRecord->hasGlobTransID() )
          {
             pRecord->setData( newRecordData ) ;
             pRecord->setGlobTransID( cb->getTransID() ) ;
@@ -342,7 +348,8 @@ namespace engine
             context->mbStat()->_totalOrgDataLen += newRecordData.orgLen() ;
             goto done ;
          }
-         else if ( pOvfRecord && dmsRecordSize <= pOvfRecord->getSize() )
+         else if ( pOvfRecord && ( dmsRecordSize <= pOvfRecord->getSize() ) &&
+                   pOvfRecord->hasGlobTransID() )
          {
             pOvfRecord->setData( newRecordData ) ;
             pOvfRecord->setGlobTransID( cb->getTransID() ) ;
@@ -412,6 +419,15 @@ namespace engine
                _extentRemoveRecord( context, ovfExtRW, ovfRW, cb, FALSE ) ;
             }
 
+            // if original record was not migrated, do the migration now
+            if ( !(pRecord->hasGlobTransID()) )
+            {
+               PD_LOG ( PDDEBUG, 
+                        "In-flight migration of record during update object(%s) ",
+                        recordRW.toString().c_str() ) ;
+               pRecord->migrateFromV0() ;
+            }
+ 
             /// sub the remove data info
             context->mbStat()->_totalDataLen -= recordData.orgLen() ;
             context->mbStat()->_totalOrgDataLen -= recordData.len() ;

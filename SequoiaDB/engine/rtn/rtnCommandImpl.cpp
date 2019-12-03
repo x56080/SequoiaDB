@@ -1255,15 +1255,8 @@ namespace engine
       }
 
       {
-         const CHAR * idxpath = NULL ;
-         // FIXME:  should we skip the index createion for RBS??
-         // We will create it for now
-         //if ( ossStrcasecmp( pCollectionSpace, SDB_DMSRBS_NAME ) )
-         {
-            idxpath = pmdGetOptionCB()->getIndexPath() ;
-         }
          rc = su->open ( pmdGetOptionCB()->getDbPath(),
-                         idxpath,
+                         pmdGetOptionCB()->getIndexPath(),
                          pmdGetOptionCB()->getLobPath(),
                          pmdGetOptionCB()->getLobMetaPath(),
                          pmdGetSyncMgr(),
