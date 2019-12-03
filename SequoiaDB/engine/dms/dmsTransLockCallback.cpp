@@ -1439,6 +1439,9 @@ namespace engine
                                     isUnique, *itori, rid, cb ) ;
             if ( rc )
             {
+               PD_LOG ( PDERROR, 
+                        "checkDelete index keys(%s) failed, rc: %d",
+                        itori->toString().c_str(), rc ) ;
                goto error ;
             }
             ++itori ;

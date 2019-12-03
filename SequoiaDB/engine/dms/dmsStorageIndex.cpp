@@ -2224,6 +2224,10 @@ namespace engine
                                          pResult ) ;
          if ( rc )
          {
+            PD_LOG( PDERROR, 
+                    "Failed on index update callback, origobj(%s), newobj(%s)",
+                    originalObj.toString().c_str(), 
+                    newObj.toString().c_str() ) ;
             goto error ;
          }
       }

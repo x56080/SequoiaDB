@@ -426,7 +426,9 @@ namespace engine
       }
       catch( std::exception &e )
       {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         PD_LOG( PDERROR, 
+                 "Occur exception(%s) When inserting index %s", 
+                 e.what(), keyData->toString().c_str() ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -1863,7 +1865,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       UINT32 recSize = 0 ;
       dmsRecord *pNewRecord = NULL ;
-      DPS_TRANS_ID recordTransID ;
+      DPS_TRANS_ID recordTransID = DPS_INVALID_TRANS_ID ;
 
       SDB_ASSERT( !_recordPtr.get(), "Old record is not NULL" ) ;
       SDB_ASSERT( pRecord, "Record is NULL" ) ;
@@ -1873,7 +1875,10 @@ namespace engine
          goto done ;
       }
 
-      recordTransID = pRecord->getGlobTransID() ;
+      if ( pRecord->hasGlobTransID() )
+      {
+         recordTransID = pRecord->getGlobTransID() ;
+      }
 
       recSize = DMS_RECORD_METADATA_SZ + obj.objsize() ;
       _recordPtr = dpsOldRecordPtr::alloc( recSize, __FILE__, __LINE__,
@@ -1889,10 +1894,13 @@ namespace engine
       pNewRecord = ( dmsRecord* )_recordPtr.get() ;
       /// copy header
       ossMemcpy( _recordPtr.get(), (const void*)pRecord,
-                 DMS_RECORD_METADATA_SZ ) ;
+                 pRecord->hasGlobTransID() ? DMS_RECORD_METADATA_SZ : 
+                                             DMS_RECORD_V0_METADATA_SZ ) ;
 
       pNewRecord->unsetCompressed() ;
       pNewRecord->setSize( recSize ) ;
+      pNewRecord->setHasGlobTransID() ;
+      pNewRecord->setGlobTransID( recordTransID ) ;
 
       /// copy data
       ossMemcpy( _recordPtr.get() + DMS_RECORD_METADATA_SZ,

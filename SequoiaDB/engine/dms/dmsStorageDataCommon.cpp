@@ -3793,7 +3793,26 @@ namespace engine
          {
             pRecord->setDeleting() ;
             // delete also need to set the transID
-            pRecord->setGlobTransID( transID ) ;
+            if( !pRecord->hasGlobTransID() )
+            {
+               // migrate to V1 record header before we can set transID
+               PD_LOG ( PDDEBUG, 
+                        "In-flight migration of record during delet object(%s) ",
+                        recordRW.toString().c_str() ) ;
+               pRecord->migrateFromV0() ;
+            }
+
+            if( pRecord->hasGlobTransID() )
+            {
+               pRecord->setGlobTransID( transID ) ;
+            }
+            else
+            {
+               PD_LOG ( PDDEBUG, 
+                        "In-flight migration of record failed during delet"
+                        " object(%s) because out of space in the record on disk",
+                        recordRW.toString().c_str() ) ;
+            }
 
             // need to dec count
             --( pExtent->_recCount ) ;

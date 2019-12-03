@@ -425,15 +425,17 @@ namespace engine
       {
          SDB_ASSERT( !(this->hasGlobTransID()), 
                      "This is not a V0 record" ) ;
-         // FIXME: consider allocating overflow record in the future, 
-         // assume we have enough space(8 Byte) for now
-         SDB_ASSERT( ( ((dmsRecord_v0*)this)->getSize() - ((dmsRecord_v0 *) this)->getDataLength() ) > 8 , 
-                     "Not enough space for migration" ) ;
+         // Only migrate if has enough space for the extra 8 byte
+         if ( ((dmsRecord_v0 *) this)->getSize() - 8 > 
+              ((dmsRecord_v0 *) this)->getDataLength() )
+         {
 
-         ossMemmove( (CHAR*)this + DMS_RECORD_V1_METADATA_SZ, 
-                     (CHAR*)this + DMS_RECORD_V0_METADATA_SZ, 
-                     ((dmsRecord_v0 *) this)->getDataLength() ) ;
-         setHasGlobTransID() ;
+            ossMemmove( (CHAR*)this + DMS_RECORD_V1_METADATA_SZ, 
+                        (CHAR*)this + DMS_RECORD_V0_METADATA_SZ, 
+                        ((dmsRecord_v0 *) this)->getDataLength() ) ;
+            setHasGlobTransID() ;
+         }
+         
          return ;
       }
    
