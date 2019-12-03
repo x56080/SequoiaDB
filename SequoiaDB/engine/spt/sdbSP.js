@@ -1960,7 +1960,15 @@ Cmd.prototype.run = function( cmd, args, timeout, useShell ) {
 
       if ( 0 != this._retCode )
       {
-         setLastErrMsg( this._strOut ) ;
+         if( "" == this._strOut )
+         {
+            setLastErrMsg( "Run command(\"" + cmd +
+                           "\") return code is " + this._retCode ) ;
+         }
+         else
+         {
+            setLastErrMsg( this._strOut ) ;
+         }
          throw this._retCode ;
       }
       else
