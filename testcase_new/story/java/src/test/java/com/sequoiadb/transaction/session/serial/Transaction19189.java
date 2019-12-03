@@ -75,8 +75,9 @@ public class Transaction19189 extends SdbTestBase {
             }
             long end = System.currentTimeMillis();
             int useTime = ( int ) ( ( end - start ) / 1000 );
-            if ( useTime > 31 || useTime < 29 ) {
-                Assert.fail( "" + useTime );
+            if ( useTime > 35 || useTime < 25 ) {
+                Assert.fail( "transaction timeout check failed, actual timeout:"
+                        + useTime );
             }
 
             // 提交所有事务
