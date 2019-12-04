@@ -26,7 +26,7 @@ function main()
       return;
    }
    //var groups = getDataGroups( db );
-   var groups = commGetGroupsNames( db );
+   var groups = commGetDataGroupNames( db );
    if( groups.length <= 1 )
    {
       println( "Groups num too few" );

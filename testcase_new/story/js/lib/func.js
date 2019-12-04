@@ -855,18 +855,13 @@ function commGetGroupsNum( db, print, filter, exceptCata, exceptCoord, exceptSpa
 }
 
 /* *****************************************************************************
-@discription: get group name by condition
+@discription: get data groups name
 @author: luweikang
-@parameter:
-   print: t/f, print the group info
-   filter: group name filter
-   exceptCata : default true
-   exceptCoord: default true
 @return integer
 ***************************************************************************** */
-function commGetGroupsNames( db, print, filter, exceptCata, exceptCoord, exceptSpare )
+function commGetDataGroupNames( db )
 {
-   var groups = commGetGroups( db, print, filter, exceptCata, exceptCoord, exceptSpare );
+   var groups = commGetGroups( db, false, "", true, true, true );
    var groupNames = [];
    for( var i = 0; i < groups.length; i++ )
    {
@@ -1313,7 +1308,11 @@ function commCheckBusiness( groups, checkLSN, diskThreshold )
 ***************************************************************************** */
 function commCheckLSN( db, groupNames, timeout )
 {
-   if ( groupNames == undefined ) { groupNames = commGetGroupsNames( db, "", false, false, true, true ) };
+   if ( groupNames == undefined ) 
+   { 
+      groupNames = commGetDataGroupNames( db );
+      groupNames.push( "SYSCatalogGroup" );
+   }
    if ( timeout == undefined ) { timeout = 60 ;}
    
    if( typeof(groupNames) == "string" ){ groupNames = [ groupNames ];}

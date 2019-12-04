@@ -26,7 +26,7 @@ function main()
       return;
    }
    
-   var groups = commGetGroupsNames( db );
+   var groups = commGetDataGroupNames( db );
    var domainName = "testDomain14669";
    commDropDomain( db, domainName );
    var domain = commCreateDomain( db, domainName, groups );

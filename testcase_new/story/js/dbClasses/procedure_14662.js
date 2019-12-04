@@ -211,7 +211,7 @@ function evalSdb( db )
                      
                      function evalSdbDomain( db )
                      {
-                        var groups = commGetGroupsNames( db );
+                        var groups = commGetDataGroupNames( db );
                         var domainName = "testDomain14662";
                         commDropDomain( db, domainName );
                         commCreateDomain( db, domainName, groups );
