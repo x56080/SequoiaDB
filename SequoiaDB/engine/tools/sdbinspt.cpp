@@ -122,7 +122,7 @@ namespace fs = boost::filesystem ;
        ( COMMANDS_STRING(OPTION_SHOW_CONTENT, ",p"), boost::program_options::value<string>(), "display data/index content(true/false)" ) \
        ( OPTION_ONLY_META, boost::program_options::value<string>(), "inspect only meta(Header, SME, MME), true/false" ) \
        ( OPTION_JUDGE_BALANCE, boost::program_options::value<string>(), "open lob buckets balance judgement" ) \
-       ( OPTION_FORCE, "force dump all invalid mb, delete list and index list and so on" ) 
+       ( OPTION_FORCE, "force dump all invalid mb, delete list and index list and so on" )
 
 //hidden options
 #define HIDDEN_OPTIONS \
@@ -174,7 +174,7 @@ namespace fs = boost::filesystem ;
 
 #define RETRY_COUNT 5
 
-namespace 
+namespace
 {
      // other value
     enum SDB_INSPT_TYPE
@@ -183,7 +183,7 @@ namespace
        SDB_INSPT_INDEX,
        SDB_INSPT_LOB
     };
-    
+
     struct LobFragments
     {
         BYTE oid[DMS_LOB_OID_LEN];
@@ -476,7 +476,7 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
       COMMANDS_OPTIONS
       HIDDEN_OPTIONS
    ADD_PARAM_OPTIONS_END
-         
+
    try
    {
       po::store ( po::parse_command_line ( argc, argv, all ), vm ) ;
@@ -558,7 +558,7 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
    {
       ossStrcpy( gIndexPath, gDatabasePath ) ;
    }
-   
+
    if ( vm.count( OPTION_LOBPATH ) )
    {
       const CHAR *lobPath = vm[OPTION_LOBPATH].as<string>().c_str() ;
@@ -574,7 +574,7 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
    {
       ossStrcpy( gLobPath, gDatabasePath ) ;
    }
-   
+
    if ( vm.count( OPTION_LOBMPATH ) )
    {
       const CHAR *lobmPath = vm[OPTION_LOBMPATH].as<string>().c_str() ;
@@ -789,7 +789,7 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
       ossStrToBoolean( vm[OPTION_JUDGE_BALANCE].as<string>().c_str(),
                        &gBalance) ;
    }
-   
+
    if ( vm.count( OPTION_FORCE ) )
    {
       gForce = TRUE ;
@@ -1035,7 +1035,7 @@ INT32 inspectLobmHeader ( OSSFILE &file, INT64 &fileSize, SINT32 &err )
     {
       dumpPrintf("  Error: Failed to read header, read %lld bytes, "
                    "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
-      
+
       goto error ;
     }
    // attempt to format, note if len is gBufferSize - 1, that means we write to
@@ -1060,7 +1060,7 @@ retry :
     }
     flushOutput ( gBuffer, len ) ;
     err += localErr;
-   
+
 done :
     return rc;
 error :
@@ -1249,7 +1249,7 @@ void inspectSME ( OSSFILE &file, const CHAR *pExpBuf, SINT32 &hwm, SINT32 &err )
    {
       dumpPrintf ( "Error: Failed to read sme, read %lld bytes, "
                    "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
-      
+
       goto error ;
    }
 retry :
@@ -1286,7 +1286,7 @@ void dumpSME ( OSSFILE &file, CHAR *pSmeBuffer)
    SINT64 lenRead = 0 ;
    // free by end of function
    // since SME is too large to be held by stack, we do heap allocation
-   
+
 
    // seek to where SME starts
    rc = ossSeekAndRead ( &file, DMS_SME_OFFSET, pSmeBuffer,
@@ -1976,7 +1976,6 @@ retry :
       }
       flushOutput ( gBuffer, len ) ;
       err += localErr ;
-      dumpPrintf ( OSS_NEWLINE ) ;
       indexRoots[i] = indexRoot ;
    }
 
@@ -2225,7 +2224,7 @@ void inspectDictPageState( CHAR *pExpBuffer, dmsExtentID extentID,
 }
 
 
-INT32 inspectLobdCollection(OSSFILE &file, UINT32 pageId, 
+INT32 inspectLobdCollection(OSSFILE &file, UINT32 pageId,
                             UINT32 sequence, SINT32 &err)
 {
     INT32 rc = SDB_OK;
@@ -2236,7 +2235,7 @@ INT32 inspectLobdCollection(OSSFILE &file, UINT32 pageId,
 
     rc = ossSeekAndRead ( &file, DMS_HEADER_SZ + gLobdPageSize* pageId,
                           (CHAR*)lobMeta, (SINT64) sizeof(dmsLobMeta), &len ) ;
-    
+
     if ( SDB_OK != rc)
     {
        dumpPrintf ( "Error: Failed to read lobd dmsLobMeta , read %lld bytes, "
@@ -2253,7 +2252,7 @@ INT32 inspectLobdCollection(OSSFILE &file, UINT32 pageId,
                               len, sizeof(dmsLobMeta)) ;
          goto error;
     }
-                
+
 retry_dmsLobMeta:
     localErr = 0;
     len = dmsInspect::inspectDmsLobMeta((dmsLobMeta*)lobMeta, gBuffer, gBufferSize,localErr);
@@ -2279,19 +2278,19 @@ error:
 
 }
 
-INT32 inspectLobmMeta(OSSFILE &file, 
-        CHAR *pExpBuffer, UINT32 pageId, 
-        CHAR *pageBuf, UINT32 pageSize, 
+INT32 inspectLobmMeta(OSSFILE &file,
+        CHAR *pExpBuffer, UINT32 pageId,
+        CHAR *pageBuf, UINT32 pageSize,
         UINT16 clID, SINT32 &err)
 {
     INT32 rc = SDB_OK;
     SINT64 len = 0;
     SINT32 localErr = 0;
     dmsLobDataMapBlk *blk = (dmsLobDataMapBlk*)pageBuf;
-    
-    rc = ossSeekAndRead ( &file, DMS_BME_OFFSET+ DMS_BME_SZ + 
+
+    rc = ossSeekAndRead ( &file, DMS_BME_OFFSET+ DMS_BME_SZ +
                    pageSize * pageId, pageBuf, pageSize, &len ) ;
-    
+
     if ( SDB_OK != rc || len < pageSize)
     {
        dumpPrintf ( "Error: Failed to read lobm dmsLobDataMapBlk , read %u bytes, "
@@ -2327,7 +2326,7 @@ retry_dmsLobDataMapBlk:
        }
        pSME->setBitMask( pageId ) ;
     }
-    
+
 done:
     flushOutput( gBuffer, len) ;
     return rc;
@@ -2571,7 +2570,7 @@ void inspectCollectionIndex( OSSFILE &file, UINT32 pageSize, UINT16 id,
    for ( it = indexRoots.begin() ; it != indexRoots.end() ; ++it )
    {
       UINT16 indexID = it->first ;
-      dumpPrintf ( "    Index Inspection for Collection [%02u], Index [%02u]"
+      dumpPrintf ( "Index Inspection for Collection [%02u], Index [%02u]"
                    OSS_NEWLINE, id, indexID ) ;
       dmsExtentID rootID = it->second ;
       if ( DMS_INVALID_EXTENT != rootID )
@@ -2587,10 +2586,10 @@ error :
    goto done ;
 }
 
-void inspectCollectionLob( OSSFILE &lobmFile, UINT32 pageSize, 
-                              UINT16 clId, SINT32 hwm, 
-                              CHAR *pExpBuffer, SINT32 &err, 
-                              UINT32 &pageCount, UINT32 &lobCount)
+void inspectCollectionLob( OSSFILE &lobmFile, UINT32 pageSize,
+                           UINT16 clId, SINT32 hwm,
+                           CHAR *pExpBuffer, SINT32 &err,
+                           UINT32 &pageCount, UINT32 &lobCount )
 {
    pageCount = 0;
    lobCount = 0;
@@ -2598,10 +2597,21 @@ void inspectCollectionLob( OSSFILE &lobmFile, UINT32 pageSize,
    INT32 rc        = SDB_OK ;
    INT32 pageId = DMS_LOB_INVALID_PAGEID;
    vector<LobFragments> &vctFrgmts = gCl2PageMap[clId];
-
+   dmsMB *mb = NULL ;
    CHAR *blkBuf = (CHAR*) SDB_OSS_MALLOC(pageSize);
    PD_CHECK( blkBuf != NULL, SDB_OOM, error, PDERROR, "malloc failed" );
-    
+
+   rc = loadMB ( clId, mb ) ;
+   if ( rc )
+   {
+      dumpPrintf ( "Error: Failed to load metadata block, rc = %d"OSS_NEWLINE,
+                   rc ) ;
+      ++err ;
+   }
+
+   dumpPrintf ( "Inspect Lob for collection [%d : %s]"OSS_NEWLINE,
+                clId, mb->_collectionName ) ;
+
    //dump collection objects
    for(UINT32 i = 0; i < vctFrgmts.size(); i ++, lobCount++)
    {
@@ -2618,9 +2628,9 @@ void inspectCollectionLob( OSSFILE &lobmFile, UINT32 pageSize,
          {
             continue;
          }
-         
+
          // just dump lobmeta in page 0.
-         if (DMS_LOB_META_SEQUENCE == it->first && gShowRecordContent) 
+         if (DMS_LOB_META_SEQUENCE == it->first && gShowRecordContent)
          {
             rc = inspectLobdCollection(gLobdFile, pageId, it->first, err);
             if ( rc ) goto error;
@@ -2640,6 +2650,7 @@ void inspectCollection ( OSSFILE &file, UINT32 pageSize, UINT16 id,
 {
    UINT32 len = 0 ;
    gMBStat.reset() ;
+
    if ( SDB_INSPT_DATA == gCurInsptType )
    {
       UINT64 ovfNum = 0 ;
@@ -2660,6 +2671,7 @@ void inspectCollection ( OSSFILE &file, UINT32 pageSize, UINT16 id,
                          gMBStat._totalDataFreeSpace,
                          ovfNum,
                          compressedNum ) ;
+      len += ossSnprintf(gBuffer + len, gBufferSize - len, OSS_NEWLINE);
       flushOutput( gBuffer, len ) ;
    }
    else if ( SDB_INSPT_INDEX == gCurInsptType )
@@ -2674,6 +2686,7 @@ void inspectCollection ( OSSFILE &file, UINT32 pageSize, UINT16 id,
                          gMBStat._totalIndexPages,
                          gMBStat._totalIndexFreeSpace,
                          gMBStat._uniqueIdxNum ) ;
+      len += ossSnprintf(gBuffer + len, gBufferSize - len, OSS_NEWLINE);
       flushOutput( gBuffer, len ) ;
    }
    else if ( SDB_INSPT_LOB == gCurInsptType )
@@ -2691,7 +2704,6 @@ void inspectCollection ( OSSFILE &file, UINT32 pageSize, UINT16 id,
                          id,
                          lobPageCount,
                          lobCount);
-                         
       len += ossSnprintf(gBuffer + len, gBufferSize - len, OSS_NEWLINE);
       flushOutput( gBuffer, len ) ;
    }
@@ -2936,11 +2948,11 @@ INT32 getBME(OSSFILE &lobmFile, CHAR *pBME)
 {
     INT32 rc = SDB_OK ;
     SINT64 lenRead = 0 ;
-    
+
     // calculate the starting offset of extent, and read extent head
     rc = ossSeekAndRead ( &lobmFile, DMS_BME_OFFSET,
                           pBME, DMS_BME_SZ, &lenRead ) ;
-    
+
     if ( rc || lenRead != DMS_BME_SZ )
     {
        dumpPrintf ( "Error: Failed to read lobm buckets , read %lld bytes, "
@@ -2965,7 +2977,7 @@ void cacheLobDataMapBlk(dmsLobDataMapBlk *blk, UINT32 pageId)
            break;
        }
    }
-   
+
    //did not find oid in pags.
    if (i == pages.size())
    {
@@ -2977,9 +2989,9 @@ void cacheLobDataMapBlk(dmsLobDataMapBlk *blk, UINT32 pageId)
 }
 
 
-INT32 loadLobDataMapBlk(OSSFILE &lobmFile, 
+INT32 loadLobDataMapBlk(OSSFILE &lobmFile,
         CHAR *outBuf, UINT32 outSize,
-        INT32 pageId, dmsLobDataMapBlk *blk, 
+        INT32 pageId, dmsLobDataMapBlk *blk,
         UINT32 pageSize, UINT32 &dep,
         UINT32 &msgLen)
 {
@@ -2988,7 +3000,7 @@ INT32 loadLobDataMapBlk(OSSFILE &lobmFile,
     INT32 nextPageId = pageId;
     pair<set<UINT32>::iterator, bool> ret;
     set<UINT32> pages;
-    
+
     dep = 0;
     static const UINT32 FIRSTPAGEOFFSET = DMS_BME_OFFSET + DMS_BME_SZ;
     do
@@ -2996,7 +3008,7 @@ INT32 loadLobDataMapBlk(OSSFILE &lobmFile,
         ret = pages.insert(nextPageId);
         if(!ret.second)
         {
-            msgLen += ossSnprintf(outBuf + msgLen, outSize - msgLen, 
+            msgLen += ossSnprintf(outBuf + msgLen, outSize - msgLen,
                     "Error: Failed to load lobm buckets , because there was a loop in bucket"
                     "about page(%u)"OSS_NEWLINE, nextPageId);
            return SDB_DMS_RECORD_INVALID;
@@ -3005,14 +3017,14 @@ INT32 loadLobDataMapBlk(OSSFILE &lobmFile,
         // calculate the starting offset of extent, and read extent head
         rc = ossSeekAndRead ( &lobmFile, FIRSTPAGEOFFSET + pageSize * nextPageId,
                               (CHAR*)blk, pageSize, &lenRead ) ;
-        
+
         if ( SDB_OK != rc || lenRead != pageSize )
         {
            dumpPrintf ( "Error: Failed to read lobm buckets , read %lld bytes, "
                         "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
            return rc;
         }
-        
+
         dep++;
         cacheLobDataMapBlk(blk, nextPageId);
 
@@ -3037,11 +3049,11 @@ INT32 parseBME(OSSFILE &lobmFile, UINT32 pageSize, CHAR *pBME)
    for(UINT32 i = 0; i < DMS_BUCKETS_NUM; i++)
    {
       pageId = ((dmsBucketsManagementExtent*)pBME)->_buckets[i];
-      if (pageId == DMS_LOB_INVALID_PAGEID) 
-      { 
+      if (pageId == DMS_LOB_INVALID_PAGEID)
+      {
           continue;
       }
-      
+
    retry_inspectBucketLoop:
       rc = loadLobDataMapBlk(lobmFile, gBuffer, gBufferSize, pageId, blkBuf, pageSize, dep, msgLen);
       if ( msgLen >= gBufferSize - 1 )
@@ -3057,12 +3069,12 @@ INT32 parseBME(OSSFILE &lobmFile, UINT32 pageSize, CHAR *pBME)
       {
          localErr++;
       }
-      else if ( rc != SDB_OK) 
+      else if ( rc != SDB_OK)
       {
          break;
       }
 
-      if(gBucketDep) 
+      if(gBucketDep)
       {
          gBucketDep[i] = dep;
       }
@@ -3091,7 +3103,7 @@ retry_summary:
       len = msgLen = 0;
       goto retry_summary ;
    }
-   
+
    flushOutput ( gBuffer, len ) ;
    SAFE_OSS_FREE(blkBuf);
    return rc;
@@ -3103,10 +3115,10 @@ INT32 dumpLobmMeta(OSSFILE &file, UINT32 pageId, CHAR *pageBuf, UINT32 pageSize)
 {
     INT32 rc = SDB_OK;
     SINT64 len = 0;
-    
-    rc = ossSeekAndRead ( &file, DMS_BME_OFFSET+ DMS_BME_SZ + 
+
+    rc = ossSeekAndRead ( &file, DMS_BME_OFFSET+ DMS_BME_SZ +
                    pageSize* pageId, (CHAR*)pageBuf, pageSize, &len ) ;
-    
+
     if ( SDB_OK != rc || len < pageSize)
     {
        dumpPrintf ( "Error: Failed to read lobm dmsLobDataMapBlk , read %u bytes, "
@@ -3132,7 +3144,7 @@ retry_dmsLobDataMapBlk:
        }
        goto  retry_dmsLobDataMapBlk;
     }
-    
+
 done:
     flushOutput( gBuffer, len) ;
     return rc;
@@ -3147,7 +3159,7 @@ INT32 dumpLobdCollection(OSSFILE &file, UINT32 pageId,
     INT32 rc = SDB_OK;
     SINT64 len = 0;
     UINT32 metaSize = 0;
-     
+
     rc = ossSeekAndRead ( &file, DMS_HEADER_SZ + gLobdPageSize* pageId,
                           (CHAR*)lobdPageBuf, gLobdPageSize, &len ) ;
     if ( SDB_OK != rc)
@@ -3168,13 +3180,13 @@ INT32 dumpLobdCollection(OSSFILE &file, UINT32 pageId,
                                   len, sizeof(dmsLobMeta)) ;
              goto error;
         }
-                
+
         dmsLobMeta *lobMeta = (dmsLobMeta *)lobdPageBuf;
-        metaSize = (lobMeta->hasPiecesInfo()) 
-                                           ? DMS_LOB_META_LENGTH 
+        metaSize = (lobMeta->hasPiecesInfo())
+                                           ? DMS_LOB_META_LENGTH
                                            : sizeof(dmsLobMeta);
-        
-        if(len < metaSize) 
+
+        if(len < metaSize)
         {
              ossSnprintf ( gBuffer, gBufferSize,
                                   "Error: LobMeta size (%d) in lobd file is too small "
@@ -3206,7 +3218,7 @@ INT32 dumpLobdCollection(OSSFILE &file, UINT32 pageId,
     }
 
     if(!gShowRecordContent) goto done;
-    
+
 retry_dmsLobData:
     len = dmsDump::dumpDmsLobData(lobdPageBuf + metaSize, gLobdPageSize - metaSize,
                                              gBuffer , gBufferSize , NULL,
@@ -3226,7 +3238,7 @@ retry_dmsLobData:
        goto  retry_dmsLobData;
     }
     flushOutput( gBuffer, (UINT32)len) ;
-    
+
 done:
     return rc;
 error:
@@ -3278,11 +3290,11 @@ INT32 dumpCollectionLob( OSSFILE &lobmFile,  UINT32 pageSize, UINT16 id)
 
             if (gOnlyMeta)
             {
-               continue;  
+               continue;
             }
-            
+
             // just dump lobmeta in page 0.
-            if (!gShowRecordContent && DMS_LOB_META_SEQUENCE != it->first) 
+            if (!gShowRecordContent && DMS_LOB_META_SEQUENCE != it->first)
             {
                 continue;
             }
@@ -3298,7 +3310,7 @@ done :
     return rc;
 error :
    goto done ;
- 
+
 }
 
 void dumpCollection ( OSSFILE &file, UINT32 pageSize, UINT16 id )
@@ -3339,7 +3351,7 @@ void dumpCollections ( OSSFILE &file, UINT32 pageSize,
    }
 }
 
-// inspect collections, this unction will first inspect MME, and then based on
+// inspect collections, this function will first inspect MME, and then based on
 // the input CLName inspectMME may choose to inspect zero or more collections.
 // Note pExpBuffer is not NULL only in full collectionspace inspection
 void inspectCollections ( OSSFILE &file, UINT32 pageSize, SINT32 hwm,
@@ -3421,14 +3433,14 @@ UINT32 inspectBalance(CHAR *outBuf, INT64 outSize)
         {
             minDep = gBucketDep[i];
         }
-            
-        if (gBucketDep[i] == 0) 
+
+        if (gBucketDep[i] == 0)
         {
             zeroDepCount++;
             continue;
         }
-            
-        if (maxDep < gBucketDep[i]) 
+
+        if (maxDep < gBucketDep[i])
         {
             maxDep = gBucketDep[i];
         }
@@ -3438,31 +3450,31 @@ UINT32 inspectBalance(CHAR *outBuf, INT64 outSize)
     }
 
     variance = (value - (double)(sum *sum /DMS_BUCKETS_NUM)) / DMS_BUCKETS_NUM;
-    
+
     len += ossSnprintf(outBuf + len, outSize -len, "Inspect Lobd Balance:"OSS_NEWLINE);
-    
-    len += ossSnprintf(outBuf+ len, outSize -len, 
+
+    len += ossSnprintf(outBuf+ len, outSize -len,
                                  " Average Bucket Depth   :%.6f"OSS_NEWLINE,
                                  (float)sum/DMS_BUCKETS_NUM);
-                                 
-    len += ossSnprintf(outBuf+ len, outSize -len, 
+
+    len += ossSnprintf(outBuf+ len, outSize -len,
                                  " Max Bucket Depth       :%u"OSS_NEWLINE, maxDep);
-                                 
-    len += ossSnprintf(outBuf+ len, outSize -len, 
+
+    len += ossSnprintf(outBuf+ len, outSize -len,
                                  " Min Bucket Depth       :%u"OSS_NEWLINE,minDep);
-                                 
-    len += ossSnprintf(outBuf+ len, outSize -len, 
+
+    len += ossSnprintf(outBuf+ len, outSize -len,
                                  " Zero-Depth Number      :%u"OSS_NEWLINE, zeroDepCount);
-                                 
-    len += ossSnprintf(outBuf+ len, outSize -len, 
+
+    len += ossSnprintf(outBuf+ len, outSize -len,
                                  " Variance               :%.6f (%s)"OSS_NEWLINE,(float)variance, "Less is Better");
-                                 
+
     len += ossSnprintf(outBuf+ len, outSize -len, OSS_NEWLINE);
     return len;
 }
 
 
-INT32 loadPages(OSSFILE &lobmFile, CHAR *pCache, 
+INT32 loadPages(OSSFILE &lobmFile, CHAR *pCache,
         UINT32 cacheSize, UINT32 pageSize, UINT32 &pageCount)
 {
    INT32 rc = SDB_OK ;
@@ -3487,7 +3499,7 @@ INT32 loadPages(OSSFILE &lobmFile, CHAR *pCache,
    return rc ;
 }
 
-void parsePages(OSSFILE &lobmFile, CHAR *pCache, 
+void parsePages(OSSFILE &lobmFile, CHAR *pCache,
         UINT32 startPage, UINT32 endPage,
         UINT32 pageSize, CHAR *pSME)
 {
@@ -3500,7 +3512,7 @@ void parsePages(OSSFILE &lobmFile, CHAR *pCache,
               && lobDataMapBlk->isNormal() )
       {
          cacheLobDataMapBlk(lobDataMapBlk, startPage);
-      }  
+      }
       pCache += pageSize;
       startPage += 1;
    }
@@ -3516,7 +3528,7 @@ INT32 loadLobMetaData(OSSFILE &lobmFile, UINT32 pageSize, CHAR *pSME)
 
    const static UINT32 MAX_CACHE_PAGE_SZ = DMS_PAGE_SIZE256K /pageSize;
 
-   UINT32 cacheSize = ( ( gPageNum > MAX_CACHE_PAGE_SZ ) 
+   UINT32 cacheSize = ( ( gPageNum > MAX_CACHE_PAGE_SZ )
                                 ? MAX_CACHE_PAGE_SZ  : gPageNum ) * pageSize;
 
    CHAR *pCache = (CHAR*)SDB_OSS_MALLOC(cacheSize);
@@ -3541,7 +3553,7 @@ INT32 loadLobMetaData(OSSFILE &lobmFile, UINT32 pageSize, CHAR *pSME)
       //parse pages & traverse buckets & make up a map<collectionId, vector<pages>
       parsePages(lobmFile, pCache, startPage, startPage + pageCount, pageSize, pSME);
       startPage += pageCount;
-       
+
    }while(startPage < gPageNum);
 
 done :
@@ -3601,7 +3613,7 @@ void inspectLobCollections ( OSSFILE &file, UINT32 pageSize, SINT32 hwm,
    rc = InspectBME(file, pageSize);
    if ( rc ) goto error ;
 
-   if (gBalance) 
+   if (gBalance)
    {
    retry_inspectBalance:
       len = inspectBalance(gBuffer, gBufferSize);
@@ -3918,19 +3930,19 @@ retry :
       flushOutput ( gBuffer, len ) ;
    }
    else if (SDB_INSPT_LOB == gCurInsptType)
-   {    
+   {
         rc = loadLobMetaData(file, pageSize, pSmeBuffer);
-        if ( rc ) 
+        if ( rc )
         {
             goto error ;
         }
 
-        /*if(gBalance) 
+        /*if(gBalance)
         {
             len = inspectBalance(gBuffer, gBufferSize);
             flushOutput(gBuffer,len);
-        }*/         
-        
+        }*/
+
         if (!gOnlyMeta)
         {
             UINT32 unused = 0;
@@ -3947,7 +3959,7 @@ retry :
 
 done :
 
-    
+
    return ;
 error :
    goto done ;
@@ -4004,7 +4016,7 @@ void inspectLob(OSSFILE &file, const CHAR*pFileName)
       }
    }
 
-   if(!gOnlyMeta) 
+   if(!gOnlyMeta)
    {
       (void)ossGetFileSizeByName(gLobdFileName.c_str(), &fileSize);
       rc = inspectLobdHeader(fileSize, totalErr);
@@ -4013,7 +4025,7 @@ void inspectLob(OSSFILE &file, const CHAR*pFileName)
          goto error ;
       }
    }
-   
+
    (void) inspectLobCollections ( file, gLobmPageSize, hwm, inspectSMEBuffer, totalErr ) ;
 
 done:
@@ -4213,10 +4225,10 @@ void actionCSAttempt ( const CHAR *pFileName, vector<const CHAR *> &expectEyeVec
         }
 
         dumpSME ( file, pSmeBuffer ) ;
-        
+
         dumpCollections ( file, csPageSize, pSmeBuffer ) ;
         dumpPrintf ( "Dump collection space is done"OSS_NEWLINE ) ;
-        
+
         SAFE_OSS_FREE ( pSmeBuffer ) ;
       }
       else
@@ -4229,7 +4241,7 @@ void actionCSAttempt ( const CHAR *pFileName, vector<const CHAR *> &expectEyeVec
             dumpPrintf ( " Dump page %d"OSS_NEWLINE, gStartingPage + i ) ;
             dumpRawPage ( file, csPageSize, gStartingPage + i ) ;
          }
-         
+
          if (gCurInsptType == SDB_INSPT_LOB)
          {
             dumpHeader ( gLobdFile, csPageSize ) ;
@@ -4247,11 +4259,11 @@ void actionCSAttempt ( const CHAR *pFileName, vector<const CHAR *> &expectEyeVec
     case SDB_INSPT_ACTION_INSPECT :
     {
         dumpPrintf ( "Inspect collection space %s"OSS_NEWLINE, pFileName ) ;
-        
-        (gCurInsptType == SDB_INSPT_LOB) 
-                ? inspectLob(file, pFileName) 
+
+        (gCurInsptType == SDB_INSPT_LOB)
+                ? inspectLob(file, pFileName)
                 : inspectData(file, pFileName);
-        
+
         break;
     }
    default :
@@ -4320,7 +4332,7 @@ INT32 prepareForDump( const CHAR *csName, UINT32 sequence )
    gLobdPageSize = dataHeader._lobdPageSize;
    gSequence = dataHeader._sequence;
    gExistLobs = dataHeader._createLobs;
-   
+
    // read mme and check
    rc = ossSeekAndRead ( &file, DMS_MME_OFFSET, gMMEBuff,
                          DMS_MME_SZ, &lenRead ) ;
@@ -4409,7 +4421,7 @@ void actionCSAttemptEntry( const CHAR *csName, UINT32 sequence,
            gLobdFileName = rtnFullPathName( gLobPath, csFileName ) ;
 
            UINT32 iMode = ( SDB_INSPT_ACTION_REPARE == action ) ? OSS_READWRITE : OSS_READONLY;
-           
+
            rc = ossOpen (gLobdFileName.c_str(), iMode, OSS_RU | OSS_WU | OSS_RG,   gLobdFile);
            if ( rc != SDB_OK)
            {
@@ -4417,7 +4429,7 @@ void actionCSAttemptEntry( const CHAR *csName, UINT32 sequence,
               return;
            }
         }
-                
+
         csFileName = rtnMakeSUFileName( csName, sequence, DMS_LOB_META_SU_EXT_NAME ) ;
         csFullName = rtnFullPathName( gLobmPath, csFileName ) ;
         gDataOffset = DMS_BME_OFFSET + DMS_BME_SZ;
@@ -4436,7 +4448,7 @@ void actionCSAttemptEntry( const CHAR *csName, UINT32 sequence,
             }
         }
    }
-  
+
 }
 
 void dumpPages ()
@@ -4581,14 +4593,14 @@ INT32 main ( INT32 argc, CHAR **argv )
       }
       goto done ;
    }
-   if (( OSS_BIT_TEST ( gAction, ACTION_DUMP ) 
+   if (( OSS_BIT_TEST ( gAction, ACTION_DUMP )
             || OSS_BIT_TEST ( gAction, ACTION_INSPECT))
         && !gDumpData && !gDumpIndex && !gDumpLob )
    {
       dumpPrintf( "Error: should specific dump data, index or lob" ) ;
       goto done ;
    }
-   if ( gStartingPage >= 0 && ((UINT32)( gDumpData + gDumpIndex + gDumpLob)  > 1 ) )  
+   if ( gStartingPage >= 0 && ((UINT32)( gDumpData + gDumpIndex + gDumpLob)  > 1 ) )
    {
       dumpPrintf( "Error: dump from starting page only for the one of data, index or lob" ) ;
       goto done ;

@@ -181,7 +181,7 @@ namespace engine
 
       return len ;
    }
-   
+
    UINT32 _dmsInspect::inspectLobmHeader( void *inBuf, UINT32 inSize,
                                          CHAR *outBuf, UINT32 outSize, UINT32 sequence,
                                          UINT32 &pageNum , UINT32 &lobmPageSize,
@@ -230,7 +230,7 @@ namespace engine
          ++localErr ;
       }
 
-      if ( header->_pageSize != DMS_PAGE_SIZE256B 
+      if ( header->_pageSize != DMS_PAGE_SIZE256B
           && header->_pageSize != DMS_PAGE_SIZE64B)
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
@@ -315,7 +315,7 @@ namespace engine
 
 
    UINT32 _dmsInspect::inspectLobdHeader( void *inBuf, UINT32 inSize,
-                                         CHAR *outBuf, UINT32 outSize, 
+                                         CHAR *outBuf, UINT32 outSize,
                                          UINT32 sequence, UINT64 secretValue,
                                          INT64 fileSize, INT32 &totalErr)
    {
@@ -560,8 +560,8 @@ namespace engine
 
    exit :
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           " Inspect Metadata Management Extent Done"
-                           OSS_NEWLINE ) ;
+                           " Inspect Metadata Management Extent Done "
+                           "without Error"OSS_NEWLINE ) ;
       len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
       err += localErr ;
 
@@ -1418,7 +1418,7 @@ namespace engine
       }
 
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           " Inspect Index Control Block Extent"
+                           " Inspect Index Control Block Extent:"
                            OSS_NEWLINE ) ;
 
       if ( extent->_eyeCatcher[0] != IXM_EXTENT_CB_EYECATCHER0 ||
@@ -1717,23 +1717,23 @@ namespace engine
       return len ;
    }
 
-   UINT32 _dmsInspect::inspectDmsLobDataMapBlk(dmsLobDataMapBlk *blk, 
-                                 CHAR * outBuf, UINT32 outSize, 
+   UINT32 _dmsInspect::inspectDmsLobDataMapBlk(dmsLobDataMapBlk *blk,
+                                 CHAR * outBuf, UINT32 outSize,
                                  UINT16 clId,  SINT32 &err)
    {
        UINT32 len           = 0 ;
-   
+
        if (  blk->_mbID !=  clId )
        {
             len += ossSnprintf ( outBuf + len, outSize - len,
                          "Error: Invalid mbID, mbId: %c, expected: %d"OSS_NEWLINE, blk->_mbID, clId) ;
             ++err ;
        }
-   
+
        if (blk->_status != DMS_LOB_PAGE_REMOVED
                && DMS_LOB_PAGE_NORMAL != blk->_status)
        {
-            len += ossSnprintf ( outBuf + len, outSize - len, 
+            len += ossSnprintf ( outBuf + len, outSize - len,
                    "Error: Invalid dmsLobDataMapBlk status : %c( UNKOWN STATUS )"OSS_NEWLINE, blk->_status) ;
             ++err ;
        }
@@ -1741,14 +1741,14 @@ namespace engine
       return len ;
    }
 
-   
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_INSPTDMSLOBMETA, "inspectDmsLobMeta" )
    UINT32 _dmsInspect::inspectDmsLobMeta(dmsLobMeta *lobMeta,
-                            CHAR * outBuf, UINT32 outSize, 
+                            CHAR * outBuf, UINT32 outSize,
                             SINT32 &err)
    {
       UINT32 len           = 0 ;
-      CHAR strTime[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;    
+      CHAR strTime[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
       UINT64 curTime = ossGetCurrentMilliseconds() ;
 
       if(lobMeta->_flag > DMS_LOB_META_FLAG_PIECESINFO_INSIDE )
@@ -1792,7 +1792,7 @@ namespace engine
       {
          ossTimestampToString(timestamp, strTime ) ;
          len += ossSnprintf ( outBuf + len , outSize - len,
-                              "Error: LobMeta createTime  %lu (%s)  is not correct"OSS_NEWLINE, 
+                              "Error: LobMeta createTime  %lu (%s)  is not correct"OSS_NEWLINE,
                               lobMeta->_createTime, strTime) ;
          err++;
       }
@@ -1802,7 +1802,7 @@ namespace engine
          timestamp = lobMeta->_modificationTime;
          ossTimestampToString(timestamp, strTime) ;
          len += ossSnprintf(outBuf + len , outSize - len,
-                             "Error: LobMeta modificationTime  %lu (%s)  is not correct"OSS_NEWLINE, 
+                             "Error: LobMeta modificationTime  %lu (%s)  is not correct"OSS_NEWLINE,
                              lobMeta->_modificationTime, strTime) ;
          err++;
       }
