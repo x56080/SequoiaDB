@@ -1,17 +1,45 @@
 ## 连接MySQL实例与数据库分布式存储引擎
 + **配置 SequoiaDB 连接地址**
 
-   默认的 SequoiaDB 连接地址为“localhost:11810”，如需修改可参考以下两种方式
+   默认的 SequoiaDB 连接地址为“localhost:11810”，可通过两种方式修改。例如，设置实例 myinst 连接地址为“sdbserver1:11810”和“sdbserver2:11810”。以下均为默认安装路径，用户根据实际情况修改。
    
    + 通过`bin/sdb_sql_ctl`指定实例名修改
 
-      例如，设置实例 myinst 连接地址为“sdbserver1:11810”和“sdbserver2:11810”
+      1.进入 MySQL 安装目录。
+
+      ```lang-bash
+      $cd /opt/sequoiasql/mysql
+      ```
+
+      2.修改 SequoiaDB 连接地址。修改过程中需要提供该数据库实例 root 用户的密码。
 
       ```lang-bash
       $ bin/sdb_sql_ctl chconf myinst --sdb-conn-addr=sdbserver1:11810,sdbserver2:11810
+      Changing configure of instance myinst ...
+      Enter password:
+      ok
       ```
 
-   + 通过配置文件修改。具体参考[引擎配置](sql_engine/sequoiasql_mysql/config.md#引擎配置)章节。
+   + 通过配置文件修改。
+   
+      进入该实例目录，修改配置文件。
+
+      ```lang-bash
+      $cd /opt/sequoiasql/mysql/database/3306
+      $vim auto.cnf
+      ```
+      
+      修改配置文件如下：
+
+      ```lang-bash
+      ...
+      sequoiadb_conn_addr=sdbserver1:11810,sdbserver2:11810
+      ...
+      ```
+
+       >   **Note:**
+       >    
+       >   目前sdb_sql_ctl工具仅支持一些简单配置项的修改，建议用户采用配置文件的方式修改配置，修改方式同上。具体配置参考[引擎配置](sql_engine/sequoiasql_mysql/config.md#引擎配置)章节。
 
 + **登录 MySQL shell** 
  
