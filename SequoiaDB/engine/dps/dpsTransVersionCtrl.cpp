@@ -426,9 +426,8 @@ namespace engine
       }
       catch( std::exception &e )
       {
-         PD_LOG( PDERROR, 
-                 "Occur exception(%s) When inserting index %s", 
-                 e.what(), keyData->toString().c_str() ) ;
+         PD_LOG( PDERROR, "Occur exception(%s)", 
+                 e.what() ) ;
          rc = SDB_SYS ;
          goto error ;
       }
