@@ -1,53 +1,58 @@
 /*******************************************************************
 * @Description : test case for CLCount
 *                seqDB-14670:使用valueOf获取CLCount值
-*                seqDB-14671:指定hint执行CLCount        
+*                seqDB-14671:指定hint执行CLCount
 * @author      : Liang XueWang
 *                2018-03-12
 *******************************************************************/
-var clName = COMMCLNAME + "_dbClasses14670" ;
+var clName = COMMCLNAME + "_dbClasses14670";
 
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }
- ;
+;
 
 function main()
 {
-   var cl = commCreateCL( db, COMMCSNAME, clName) ;
+   var cl = commCreateCL( db, COMMCSNAME, clName );
    
-   cl.insert( { a: 1 } ) ;
-   cl.insert( { a: 2 } ) ;
+   cl.insert( { a: 1 } );
+   cl.insert( { a: 2 } );
    
-   var cnt = cl.count().valueOf() ;
+   var cnt = cl.count().valueOf();
    if( cnt !== 2 )
    {
-      throw new Error("expect: 2, actual: " + cnt );
+      throw new Error( "expect: 2, actual: " + cnt );
    }
    
-   cnt = cl.count().hint( { a: "" } ) ;
+   cnt = cl.count().hint( { a: "" } );
    if( parseInt( cnt ) !== 2 )
    {
-      throw new Error("expect: 2, actual: " + cnt );
+      throw new Error( "expect: 2, actual: " + cnt );
    }
    
    try
    {
-      cl.count().hint( 1 ) ;  // nothrow
+      var error = cl.count().hint( 1 );
+      println(error);
+      throw "need error";
    }
    catch( e )
    {
-      println( e ) ;
+      if(e !== -6)
+      {
+         throw new Error(e);
+      }
    }
    
-   commDropCL( db, COMMCSNAME, clName ) ;
+   commDropCL( db, COMMCSNAME, clName );
 }

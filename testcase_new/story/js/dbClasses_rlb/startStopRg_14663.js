@@ -1,87 +1,111 @@
 /*******************************************************************
 * @Description : stop and start multi groups
-*                seqDB-14663:停止、启动多个数据组                
+*                seqDB-14663:停止、启动多个数据组
 * @author      : Liang XueWang
 *                2018-03-12
 *******************************************************************/
-import ("../dbClasses/commlib.js");
-main( db ) ;
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+;
 
-function main( db )
+function main()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" ) ;
-      return ;
+      println( "Run mode is standalone" );
+      return;
    }
-   var groups = getDataGroups( db ) ;
+   //var groups = getDataGroups( db );
+   var groups = commGetGroupsNames( db );
    if( groups.length <= 1 )
    {
-      println( "Groups num too few" ) ;
-      return ;
+      println( "Groups num too few" );
+      return;
    }
-   var group1 = groups[0] ;
-   var group2 = groups[1] ;
+   var group1 = groups[0];
+   var group2 = groups[1];
    
    // stop group1 group2
-   db.stopRG( group1, group2 ) ;
+   db.stopRG( group1, group2 );
    
    // check stop
-   checkGroupStatus( db, group1, "stop" ) ;
-   checkGroupStatus( db, group2, "stop" ) ;
+   checkGroupStatus( db, group1, "stop" );
+   checkGroupStatus( db, group2, "stop" );
    
    // start group1 group2
-   db.startRG( group1, group2 ) ;
+   db.startRG( group1, group2 );
    
    // check start
-   checkGroupStatus( db, group1, "start" ) ;
-   checkGroupStatus( db, group2, "start" ) ;
+   checkGroupStatus( db, group1, "start" );
+   checkGroupStatus( db, group2, "start" );
    
    // wait primary choosed
-   waitPrimary( db, group1 ) ;
-   waitPrimary( db, group2 ) ;
+   waitPrimary( db, group1 );
+   waitPrimary( db, group2 );
 }
 
 function checkGroupStatus( db, groupname, status )
 {
-   var nodes = parseGroupNodes( db, groupname ) ;
-   for( var i = 0;i < nodes.length;i++ )
+   var nodes = commGetGroupNodes( db, groupname );
+   for( var i = 0; i < nodes.length; i++)
    {
       try
       {
-         var dataDb = new Sdb( nodes[i] ) ;
-         if( status === "stop" ) throw 0 ;
+         var dataDb = new Sdb( nodes[i].HostName + ":" + nodes[i].svcname );
+         if( status === "stop" ) throw 0;
       }
       catch( e )
       {
-         if( status === "stop" && ( e === -15 || e === -79 ) ) 
-            ;  // when group stopped, connect throw -15 or -79, do nothing
+         if( status === "stop" &&( e === -15 || e === -79 ) )
+         ; // when group stopped, connect throw -15 or -79, do nothing
          else
          {
-            var expectErr = ( status === "stop" ) ? -15 : 0 ;
-            throw buildException( "checkGroupStatus", e, 
-                  "check node " + nodes[i] + " status", expectErr, e ) ;
+            var expectErr =( status === "stop" )? -15 : 0;
+            throw new Error( "check node: " + nodes[i].HostName + ":" + nodes[i].svcname + " status failed, e:" + e );
          }
       }
    }
+   
 }
 
 function waitPrimary( db, groupname )
 {
-   do {
+   //定义最长无主时间，超过600s就抛错
+   var timeOut = 60 * 10;
+   var i=0;
+   var isPrimary = false;
+   do
+   {
       try
       {
-         var rg = db.getRG( groupname ) ;
-         var node = rg.getMaster() ;
-         var dataDb = node.connect() ;
-         var isPrimary = dataDb.snapshot( SDB_SNAP_DATABASE ).next().toObj()["IsPrimary"] ;
-         dataDb.close() ;
+         db.getRG( groupname ).getMaster();
+         isPrimary = true;
+         i++;
       }
       catch( e )
       {
-         println( "waitPrimary throw " + e ) ;
-         sleep( 1000 ) ;
-         continue ;
+         if( i < timeOut )
+         {
+            println( "waitPrimary throw " + e );
+            sleep( 1000 );
+            continue;
+         }
+         else
+         {
+            throw new Error( e );
+         }
+         
       }
-   } while( !isPrimary ) ;
+   }
+   while( !isPrimary );
 }
