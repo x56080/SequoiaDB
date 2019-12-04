@@ -1556,16 +1556,33 @@ function commCompareResults( cursor, expRecs, exceptId )
 ******************************************************************* */
 function commCompareObject( expObj, actObj )
 {
+   function isDirectCompare( value )
+   {
+      if( typeof( value ) !== "object" )
+      {
+         return true;
+      }
+      else if( value === null )
+      {
+         return true;
+      }
+      else if( value.constructor === Date )
+      {
+         return true;
+      }
+      else
+      {
+         return false;
+      }
+   }
+   
    if( typeof( expObj ) != typeof( actObj ) )
    {
       return false;
    }
-   if( typeof( actObj ) == "number" || typeof( actObj ) == "string" )
+   if( isDirectCompare( actObj ) )
    {
-      if( expObj != actObj )
-      {
-         return false;
-      }
+      return expObj === actObj;
    }
    else
    {
@@ -1583,6 +1600,8 @@ function commCompareObject( expObj, actObj )
    }
    return true;
 }
+
+
 
 /* ********************************************************************
 @Description: get snapshot
