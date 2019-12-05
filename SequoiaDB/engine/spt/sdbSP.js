@@ -703,6 +703,33 @@ Oma.prototype.reloadConfigs = function()
 {
    this._runCommand( "reload config" ) ;
 }
+
+Oma.prototype.createTP = function( configs )
+{
+   var options = {} ;
+   if ( undefined != configs )
+   {
+      options = configs ;
+   }
+   this._runCommand( "tp create", options ) ;
+   return this.getTP()
+}
+
+Oma.prototype.removeTP = function()
+{
+   this._runCommand( "tp remove" )
+}
+
+Oma.prototype.startTP = function()
+{
+   this._runCommand( "tp start" )
+}
+
+Oma.prototype.stopTP = function()
+{
+   this._runCommand( "tp stop" )
+}
+
 // end Oma
 
 // Remote member function
@@ -837,6 +864,61 @@ Remote.prototype._runCommand = function( command, optionObj,
    return bsonObj ;
 }
 // end Remote
+
+// SdbTP member function
+SdbTP.prototype.getTime = function() {
+   return this._runCommand( "tp get time" ) ;
+}
+
+SdbTP.prototype.getMeta = function() {
+   return this._runCommand( "tp get meta" ) ;
+}
+
+SdbTP.prototype.getServers = function() {
+   return this._runCommand( "tp get servers" ) ;
+}
+
+SdbTP.prototype.getSyncClients = function() {
+   return this._runCommand( "tp get sync clients" ) ;
+}
+
+SdbTP.prototype.getSyncStatus = function() {
+   return this._runCommand( "tp get sync status" ) ;
+}
+
+SdbTP.prototype.getSyncHistory = function() {
+   return this._runCommand( "tp get sync history" ) ;
+}
+
+SdbTP.prototype.getConfig = function() {
+   return this._runCommand( "tp get config" ) ;
+}
+
+SdbTP.prototype.updateConfig = function( configs ) {
+   if ( undefined === configs )
+   {
+      setLastErrMsg( "configs is not given" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   return this._runCommand( "tp update config", configs ) ;
+}
+
+SdbTP.prototype.setPDLevel = function( diagLevel ) {
+   if ( undefined === diagLevel )
+   {
+      setLastErrMsg( "diagLevel is not given" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   else if ( 'number' != typeof( diagLevel ) )
+   {
+      setLastErrMsg( "diagLevel should be a number" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   var configs = { "diaglevel" : diagLevel } ;
+   this._runCommand( "tp update config", configs ) ;
+}
+
+// end SdbTP
 
 // _Filter member function
 _Filter.prototype.match = function( BSONArrObj ) {
@@ -3829,16 +3911,3 @@ IniFile.prototype.save = function() {
 }
 
 // end IniFile
-
-
-
-
-
-
-
-
-
-
-
-
-

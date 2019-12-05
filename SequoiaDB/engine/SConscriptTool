@@ -317,6 +317,8 @@ sptFiles = [
       "spt/usrdef/sptUsrCmdCommon.cpp",
       "spt/usrdef/sptUsrOmaCommon.cpp",
       "spt/usrdef/sptUsrIniFile.cpp",
+      "spt/usrdef/sptUsrTpAssit.cpp",
+      "spt/usrdef/sptUsrTp.cpp",
       "spt/db/sptDBSdb.cpp",
       "spt/db/sptDBSecureSdb.cpp",
       "spt/db/sptDBRG.cpp",
