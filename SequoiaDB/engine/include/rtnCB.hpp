@@ -56,6 +56,7 @@
 #include "ossMemPool.hpp"
 #include "rtnLocalTaskMgr.hpp"
 #include "rtnRemoteMessenger.hpp"
+#include "tpAgent.hpp"
 
 #define RTN_INIT_TEXT_INDEX_VERSION    -1
 
@@ -86,6 +87,9 @@ namespace engine
       ossAtomicSigned64    _textIdxVersion ;
 
       rtnLocalTaskMgr      *_pLTMgr ;
+
+      // agent for SequoiaDB Time Protocol (SDBTP)
+      tpAgent              _tpAgent ;
 
    public:
       virtual void contextDelete( INT64 contextID, IExecutor *pExe ) ;
