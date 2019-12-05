@@ -242,6 +242,14 @@ sdbtpFiles = [
       "tools/sdbtp/pmdTPMain.cpp"
       ]
 
+sdbtpartFiles = [
+      "tools/sdbtp/sdbtpart.cpp"
+      ]
+
+sdbtptopFiles = [
+      "tools/sdbtp/sdbtptop.cpp"
+      ]
+
 # Runtime
 tpEnv.StaticLibrary('rtnJob', rtnJobFiles)
 # BSON
@@ -276,4 +284,20 @@ sdbtp = tpEnv.Program(
       _LIBDEPS = '$_LIBDEPS_OBJS'
       )
 
+sdbtpart = tpEnv.Program(
+      "sdbtpart",
+      sdbtpartFiles,
+      LIBDEPS = [ "pd", "oss", "pmd", "bson", "util" ],
+      _LIBDEPS = '$_LIBDEPS_OBJS'
+      )
+
+sdbtptop = tpEnv.Program(
+      "sdbtptop",
+      sdbtptopFiles,
+      LIBDEPS = [ "pd", "oss", "bson", "util" ],
+      _LIBDEPS = '$_LIBDEPS_OBJS'
+      )
+
 tpEnv.Install( '#/bin', sdbtp )
+tpEnv.Install( '#/bin', sdbtpart )
+tpEnv.Install( '#/bin', sdbtptop )
