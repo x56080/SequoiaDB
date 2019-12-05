@@ -105,6 +105,9 @@ namespace engine
       INT32 close( const _sptArguments &arg,
                    _sptReturnVal &rval,
                    bson::BSONObj &detail ) ;
+      INT32 getTP( const _sptArguments &arg,
+                   _sptReturnVal &rval,
+                   bson::BSONObj &detail ) ;
 
       /*
          static functions
