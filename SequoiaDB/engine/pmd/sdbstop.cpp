@@ -330,7 +330,8 @@ namespace engine
          utilNodeInfo &info = *itrNode ;
 
          // can't stop oma
-         if ( SDB_TYPE_OMA == info._type )
+         if ( SDB_TYPE_OMA == info._type ||
+              SDB_TYPE_TP == info._type )
          {
             itrNode = listNodes.erase( itrNode ) ;
             continue ;
