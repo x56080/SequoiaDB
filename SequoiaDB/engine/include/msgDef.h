@@ -783,6 +783,30 @@
 #define CMD_VALUE_NAME_CHANGEPASSWD          "change passwd"
 #define CMD_VALUE_NAME_SETATTR               "set attributes"
 
+/*
+   SequoiaDB Time Protocol commands
+ */
+
+// common prefix for tp commands
+#define CMD_NAME_TP_PREFIX             "tp "
+
+// run in omagent
+#define CMD_NAME_TP_CREATE             CMD_NAME_TP_PREFIX "create"
+#define CMD_NAME_TP_REMOVE             CMD_NAME_TP_PREFIX "remove"
+#define CMD_NAME_TP_START              CMD_NAME_TP_PREFIX "start"
+#define CMD_NAME_TP_STOP               CMD_NAME_TP_PREFIX "stop"
+#define CMD_NAME_TP_GET                CMD_NAME_TP_PREFIX "get"
+
+// run in sdbtp
+#define CMD_NAME_TP_GET_TIME           CMD_NAME_TP_PREFIX "get time"
+#define CMD_NAME_TP_GET_META           CMD_NAME_TP_PREFIX "get meta"
+#define CMD_NAME_TP_GET_SERVERS        CMD_NAME_TP_PREFIX "get servers"
+#define CMD_NAME_TP_GET_SYNC_CLIENTS   CMD_NAME_TP_PREFIX "get sync clients"
+#define CMD_NAME_TP_GET_SYNC_STATUS    CMD_NAME_TP_PREFIX "get sync status"
+#define CMD_NAME_TP_GET_SYNC_HISTORY   CMD_NAME_TP_PREFIX "get sync history"
+#define CMD_NAME_TP_GET_CONFIG         CMD_NAME_TP_PREFIX "get config"
+#define CMD_NAME_TP_UPDATE_CONFIG      CMD_NAME_TP_PREFIX "update config"
+
 #define CLS_REPLSET_MAX_NODE_SIZE            7
 #define SDB_MAX_MSG_LENGTH                   ( 512 * 1024 * 1024 )
 
@@ -824,6 +848,7 @@
 #define SDB_ROLE_STANDALONE_STR              "standalone"
 #define SDB_ROLE_OM_STR                      "om"
 #define SDB_ROLE_OMA_STR                     "cm"
+#define SDB_ROLE_TP_STR                      "tp"
 
 #define SDB_AUTH_USER                        "User"
 #define SDB_AUTH_PASSWD                      "Passwd"
@@ -878,6 +903,7 @@ enum SDB_ROLE
    SDB_ROLE_STANDALONE,
    SDB_ROLE_OM,
    SDB_ROLE_OMA,
+   SDB_ROLE_TP,
    SDB_ROLE_MAX
 } ;
 

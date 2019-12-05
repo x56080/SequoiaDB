@@ -788,6 +788,8 @@ namespace engine
                case SDB_TYPE_DB :
                   findNode._role = SDB_ROLE_STANDALONE ;
                   break ;
+               case SDB_TYPE_TP :
+                  findNode._role = SDB_ROLE_TP ;
                default :
                   break ;
             }

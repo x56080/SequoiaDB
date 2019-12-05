@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = msg.hpp
+   Source File Name = tpTrace.hpp
 
    Descriptive Name =
 
@@ -28,26 +28,15 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          11/28/2012  YW  Initial Draft
+          09/01/2019  HGM Initial Draft
 
    Last Changed =
 
 *******************************************************************************/
 
-#ifndef MSG_HPP__
-#define MSG_HPP__
-#include "msg.h"
+#ifndef TP_TRACE_HPP__
+#define TP_TRACE_HPP__
 
-struct _MsgRouteIDComp
-{
-   BOOLEAN operator()( const _MsgRouteID &id1,
-                       const _MsgRouteID &id2 ) const
-   {
-      return id1.value < id2.value ;
-   }
-} ;
+#include "tpTrace.h"
 
-typedef _MsgRouteIDComp MsgRouteIDComp ;
-
-
-#endif
+#endif // TP_TRACE_HPP__

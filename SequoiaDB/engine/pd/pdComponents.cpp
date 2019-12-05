@@ -74,7 +74,8 @@ const CHAR *_pdTraceComponentDir[] = {
    "util",   // PD_TRACE_COMPONENT_UTIL
    "aggr",   // PD_TRACE_COMPONENT_AGGR
    "spd",    // PD_TRACE_COMPONENT_SPD
-   "qgm"     // PD_TRACE_COMPONENT_QGM
+   "qgm",    // PD_TRACE_COMPONENT_QGM
+   "tp"      // PD_TRACE_COMPONENT_TP
 } ;
 
 UINT32 pdGetTraceComponentSize()

@@ -730,6 +730,16 @@ namespace engine
       }
       return FALSE ;
    }
+
+   void pmdRenameProcess( INT32 argc, CHAR **argv, const CHAR *serviceName )
+   {
+#if defined (_LINUX)
+      CHAR processName[ OSS_RENAME_PROCESS_BUFFER_LEN + 1 ] = { 0 } ;
+      ossSnprintf( processName, OSS_RENAME_PROCESS_BUFFER_LEN, "%s(%s)",
+                   utilDBTypeStr( pmdGetDBType() ), serviceName ) ;
+      ossEnableNameChanges( argc, argv ) ;
+      ossRenameProcess( processName ) ;
+#endif // _LINUX
+   }
+
 }
-
-
