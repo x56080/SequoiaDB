@@ -510,7 +510,8 @@ namespace engine
          OSSHANDLE &handle = handles[ j ] ;
          ossCmdRunner *runner = cmdRunners[ j ] ;
          // first check
-         rc = utilGetServiceByConfigPath( configs[ j ], svcname,
+         rc = utilGetServiceByConfigPath( configs[ j ], PMD_DFT_CONF,
+                                          PMD_OPTION_SVCNAME, svcname,
                                           info._svcname ) ;
          if ( SDB_OK == rc && !svcname.empty() &&
               serviceExists( svcname.c_str(), info ) )
