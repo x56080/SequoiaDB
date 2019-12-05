@@ -204,6 +204,11 @@ namespace engine
 
       EDU_TYPE_SUB_NET_AGENT,
 
+      // edu for SequoiaDB Time Protocol
+      EDU_TYPE_TP_NET_AGENT,
+      EDU_TYPE_TP_MODULE,
+      EDU_TYPE_TP_SESSION,
+
       EDU_TYPE_UNKNOWN,
       EDU_TYPE_MAXIMUM = EDU_TYPE_UNKNOWN
    } ;
@@ -258,6 +263,7 @@ namespace engine
    #define SDB_TYPE_DB_STR             "sequoiadb"
    #define SDB_TYPE_OM_STR             "sdbom"
    #define SDB_TYPE_OMA_STR            "sdbcm"
+   #define SDB_TYPE_TP_STR             "sdbtp"
 
    /*
       SDB_DB_STATUS_STR DEFINE
@@ -319,6 +325,10 @@ namespace engine
    #define PMD_OPTION_ALIVE_TIME       "alivetime"       // for om
    #define PMD_OPTION_FORCE            "force"
 
+   #define PMD_OPTION_SERVERLIST       "serverlist"      // for tp
+   #define PMD_OPTION_SYNCINTERVAL     "syncinterval"    // for tp
+   #define PMD_OPTION_MAXTIMEERROR     "maxtimeerror"    // for tp
+
    /*
       SDB_RUN_MODE_TYPE_STR DEFINE
    */
@@ -331,6 +341,7 @@ namespace engine
    #define SDBLIST_TYPE_OMA_STR    "cm"
    #define SDBLIST_TYPE_OM_STR     "om"
    #define SDBLIST_TYPE_DB_STR     "db"
+   #define SDBLIST_TYPE_TP_STR     "tp"
    #define SDBLIST_TYPE_ALL_STR    "all"
 
    /*
@@ -385,6 +396,7 @@ namespace engine
       SDB_TYPE_DB  = 1,    // sequoiadb: data, standalone, coord, catalog
       SDB_TYPE_OM,         // om
       SDB_TYPE_OMA,        // omagent
+      SDB_TYPE_TP,         // sdbtp
 
       SDB_TYPE_MAX
    } ;

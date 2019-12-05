@@ -373,10 +373,12 @@ namespace engine
          _monApplCB.setCRUDCB( NULL ) ;
       }
 
-   #if defined ( SDB_ENGINE )
-
+   #if defined ( SDB_ENGINE ) || defined ( SDB_TP )
       ossEvent & getEvent () { return _event ; }
-
+      void     setOrgReplSize( INT16 replSize ) { _orgReplSize = replSize ; }
+      INT16    getOrgReplSize() const { return _orgReplSize ; }
+   #endif
+   #if defined ( SDB_ENGINE )
       UINT64 getCurRequestID() const { return _curRequestID ; }
       // WANRING: no lock protect, only called by eduCB thread itself
       UINT64 incCurRequestID() { return ++_curRequestID ; }
@@ -421,8 +423,6 @@ namespace engine
          _transExecutor.resetLogSpace();
       }
 
-      void     setOrgReplSize( INT16 replSize ) { _orgReplSize = replSize ; }
-      INT16    getOrgReplSize() const { return _orgReplSize ; }
    #endif // SDB_ENGINE
 
    protected:
@@ -500,8 +500,11 @@ namespace engine
       monAppCB                _monApplCB ;
       monConfigCB             _monCfgCB ;
 
-   #if defined ( SDB_ENGINE )
+   #if defined ( SDB_ENGINE ) || defined ( SDB_TP )
       ossEvent                _event ;   // for cls replSet notify
+      INT16                   _orgReplSize ;
+   #endif
+   #if defined ( SDB_ENGINE )
       UINT64                  _curRequestID ;
 
       // transaction related variables
@@ -511,9 +514,6 @@ namespace engine
 
       pmdTransExecutor        _transExecutor ;
       UINT32                  _confChangeID ;
-
-      INT16                   _orgReplSize ;
-
    #endif // SDB_ENGINE
 
       /*

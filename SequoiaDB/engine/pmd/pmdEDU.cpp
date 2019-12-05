@@ -142,9 +142,11 @@ namespace engine
 
       _curRequestID     = 1 ;
       _confChangeID     = 0 ;
-
-      _orgReplSize      = 1 ;
 #endif // SDB_ENGINE
+
+#if defined ( SDB_ENGINE ) || defined ( SDB_STP )
+      _orgReplSize      = 1 ;
+#endif
 
       _pErrorBuff = (CHAR *)SDB_OSS_MALLOC( EDU_ERROR_BUFF_SIZE + 1 ) ;
       if ( _pErrorBuff )

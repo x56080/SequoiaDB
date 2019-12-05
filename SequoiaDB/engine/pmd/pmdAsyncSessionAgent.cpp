@@ -209,5 +209,9 @@ namespace engine
                           pmdAsyncSessionAgentEntryPoint,
                           "SeAgent" ) ;
 
+   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_TP_SESSION, FALSE,
+                          pmdAsyncSessionAgentEntryPoint,
+                          "TPSesion" ) ;
+
 }
 

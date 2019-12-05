@@ -86,6 +86,8 @@ namespace engine
             return SDB_ROLE_OM_STR ;
          case SDB_ROLE_OMA :
             return SDB_ROLE_OMA_STR ;
+         case SDB_ROLE_TP :
+            return SDB_ROLE_TP_STR ;
          default :
             break ;
       }
@@ -157,6 +159,8 @@ namespace engine
             return SDB_TYPE_OM_STR ;
          case SDB_TYPE_OMA :
             return SDB_TYPE_OMA_STR ;
+         case SDB_TYPE_TP :
+            return SDB_TYPE_TP_STR ;
          default :
             break ;
       }
@@ -176,6 +180,8 @@ namespace engine
             return SDB_TYPE_OM ;
          case SDB_ROLE_OMA :
             return SDB_TYPE_OMA ;
+         case SDB_ROLE_TP :
+            return SDB_TYPE_TP ;
          default :
             break ;
       }

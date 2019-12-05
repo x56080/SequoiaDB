@@ -177,6 +177,8 @@ namespace engine
    void           pmdCleanDoing() ;
    void           pmdGetDoing( CHAR *buff, UINT32 size ) ;
 
+   void pmdRenameProcess( INT32 argc, CHAR **argv, const CHAR *serviceName ) ;
+
    /*
       perf stat
    */

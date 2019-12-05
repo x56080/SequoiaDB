@@ -2794,5 +2794,37 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_TP_NOT_AVAILABLE</name>
+         <description>
+            <en>SequoiaDB Time Protocol node is not available</en>
+            <cn>时间服务不可用</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_TP_SYNC_FAILED</name>
+         <description>
+            <en>SequoiaDB Time Protocol node is failed to synchronize</en>
+            <cn>时间服务同步失败</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_TP_SYNC_FAST</name>
+         <description>
+            <en>SequoiaDB Time Protocol node is synchronized faster than source</en>
+            <cn>时间服务同步后本地时间太快</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_TP_SYNC_BUSY</name>
+         <description>
+            <en>SequoiaDB Time Protocol node is busy for synchronizing</en>
+            <cn>时间服务正在同步</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>
