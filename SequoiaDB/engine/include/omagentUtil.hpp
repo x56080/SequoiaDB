@@ -37,6 +37,7 @@
 #include "core.hpp"
 #include "ossUtil.hpp"
 #include "omagentDef.hpp"
+#include "tpToolCommon.hpp"
 
 #include <string>
 #include <vector>
@@ -88,7 +89,8 @@ namespace engine
 
    INT32          omStopDBNode( const CHAR *pExecName,
                                 const CHAR *pServiceName,
-                                BOOLEAN force = FALSE ) ;
+                                BOOLEAN force = FALSE,
+                                BOOLEAN withService = TRUE ) ;
 
    INT32          omGetSvcListFromConfig( const CHAR *pCfgRootDir,
                                           vector< string > &svcList ) ;
@@ -99,6 +101,12 @@ namespace engine
 
    string         omPickNodeOutString( const string &out,
                                        const CHAR *pSvcname ) ;
+
+   INT32          omGetTPFromConfig( const CHAR *cfgRootDir,
+                                     string &svcName ) ;
+
+   INT32          omGetOptionString( std::stringstream &ss,
+                                     const bson::BSONElement &elemnt ) ;
 
 }
 

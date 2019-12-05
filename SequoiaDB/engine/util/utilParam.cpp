@@ -333,6 +333,8 @@ namespace engine
    }
 
    INT32 utilGetServiceByConfigPath( const string & confPath,
+                                     const CHAR *fileName,
+                                     const CHAR *fieldName,
                                      string & svcname,
                                      const string &defaultName,
                                      BOOLEAN allowFileNotExist )
@@ -341,7 +343,7 @@ namespace engine
       po::options_description desc ;
       po::variables_map vm ;
       desc.add_options()
-         ( PMD_OPTION_SVCNAME, po::value<string>(), "" ) ;
+         ( fieldName, po::value<string>(), "" ) ;
       CHAR conf[OSS_MAX_PATHSIZE + 1] = { 0 } ;
       if ( defaultName.empty() )
       {
@@ -352,8 +354,8 @@ namespace engine
          svcname = defaultName ;
       }
 
-      rc = utilBuildFullPath ( confPath.c_str(), PMD_DFT_CONF,
-                               OSS_MAX_PATHSIZE, conf ) ;
+      rc = utilBuildFullPath ( confPath.c_str(), fileName, OSS_MAX_PATHSIZE,
+                               conf ) ;
       if ( rc )
       {
          std::cerr << "Failed to build full path, rc: " << rc << std::endl ;
@@ -376,9 +378,9 @@ namespace engine
          goto error ;
       }
 
-      if ( vm.count ( PMD_OPTION_SVCNAME ) )
+      if ( vm.count ( fieldName ) )
       {
-         svcname = vm [ PMD_OPTION_SVCNAME ].as<string>() ;
+         svcname = vm [ fieldName ].as<string>() ;
       }
 
    done :

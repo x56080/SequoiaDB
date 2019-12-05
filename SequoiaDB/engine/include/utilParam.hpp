@@ -76,6 +76,8 @@ namespace engine
                               BOOLEAN createOnly = FALSE ) ;
 
    INT32 utilGetServiceByConfigPath( const string& confPath,
+                                     const CHAR *fileName,
+                                     const CHAR *fieldName,
                                      string &svcname,
                                      const string &defaultName,
                                      BOOLEAN allowFileNotExist = TRUE ) ;

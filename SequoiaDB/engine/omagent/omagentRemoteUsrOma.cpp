@@ -249,7 +249,7 @@ namespace engine
 
             if ( isRunJob && isStartNodes )
             {
-               rc = runStartNodeJob( svcname, NODE_START_CLIENT,
+               rc = runStartNodeJob( svcname, SDB_TYPE_DB, NODE_START_CLIENT,
                                      pNodeMgr, &eduID, TRUE ) ;
                if ( rc )
                {
@@ -261,7 +261,7 @@ namespace engine
             }
             else if ( isRunJob && !isStartNodes )
             {
-               rc = runStopNodeJob( svcname, NODE_START_CLIENT,
+               rc = runStopNodeJob( svcname, SDB_TYPE_DB, NODE_START_CLIENT,
                                     pNodeMgr, &eduID, TRUE ) ;
                if ( rc )
                {

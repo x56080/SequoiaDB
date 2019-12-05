@@ -63,11 +63,14 @@ namespace engine
       _enableWatch         = TRUE ;
       _diagLevel           = PDWARNING ;
 
+      ossMemset( _cfgPath, 0, sizeof( _cfgPath ) ) ;
       ossMemset( _cfgFileName, 0, sizeof( _cfgFileName ) ) ;
       ossMemset( _localCfgPath, 0, sizeof( _localCfgPath ) ) ;
       ossMemset( _scriptPath, 0, sizeof( _scriptPath ) ) ;
       ossMemset( _startProcFile, 0, sizeof( _startProcFile ) ) ;
       ossMemset( _stopProcFile, 0, sizeof( _stopProcFile ) ) ;
+      ossMemset( _startTPFile, 0, sizeof( _startTPFile ) ) ;
+      ossMemset( _stopTPFile, 0, sizeof( _stopTPFile ) ) ;
       ossMemset( _omAddress, 0, sizeof( _omAddress ) ) ;
 
       _localPort           = 0 ;
@@ -179,7 +182,33 @@ namespace engine
          goto error ;
       }
 
+      // build sdbtpart program file path
+      rc = utilBuildFullPath ( pRootPath, SDBTPART_EXE_FILE_NAME,
+                               OSS_MAX_PATHSIZE, _startTPFile ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Root path is too long: %s", pRootPath ) ;
+         goto error ;
+      }
+
+      // build sdbstop program file path
+      rc = utilBuildFullPath ( pRootPath, SDBTPTOP_EXE_FILE_NAME,
+                               OSS_MAX_PATHSIZE, _stopTPFile ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Root path is too long: %s", pRootPath ) ;
+         goto error ;
+      }
+
       // build sdbcm config file path
+      rc = utilBuildFullPath( pRootPath, SDB_CM_ROOT_PATH, OSS_MAX_PATHSIZE,
+                              _cfgPath ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Root path is too long: %s", pRootPath ) ;
+         goto error ;
+      }
+
       rc = utilBuildFullPath( pRootPath, SDBCM_CONF_PATH_FILE,
                               OSS_MAX_PATHSIZE, _cfgFileName ) ;
       if ( rc )
@@ -975,6 +1004,7 @@ namespace engine
       else if ( _watchAndCleanTimer == timerID )
       {
          _nodeMgr.watchManualNodes() ;
+         _nodeMgr.watchTPNode() ;
          _nodeMgr.cleanDeadNodes() ;
       }
       else if ( _immediatelyTimer == timerID )
