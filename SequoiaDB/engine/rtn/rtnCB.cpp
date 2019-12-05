@@ -133,7 +133,16 @@ namespace engine
 
    INT32 _SDB_RTNCB::active ()
    {
-      return SDB_OK ;
+      INT32 rc = SDB_OK ;
+
+      rc = _tpAgent.active() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to active TP agent, rc: %d", rc ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    INT32 _SDB_RTNCB::deactive ()
@@ -142,6 +151,9 @@ namespace engine
       {
          _remoteMessenger->deactive() ;
       }
+
+      _tpAgent.deactive() ;
+
       return SDB_OK ;
    }
 
