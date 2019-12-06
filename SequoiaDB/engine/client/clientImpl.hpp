@@ -351,8 +351,6 @@ namespace sdbclient
       // index definition ( required )
       // index name ( required )
       // uniqueness ( required )
-      INT32 createIndex ( const BSONObj &indexDef, const CHAR *pName,
-                          BOOLEAN isUnique, BOOLEAN isEnforced ) ;
       INT32 createIndex ( const BSONObj &indexDef,
                           const CHAR *pName,
                           BOOLEAN isUnique,

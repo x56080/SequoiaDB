@@ -427,7 +427,7 @@ do                                                            \
          if ( SDB_OK != pReply->flags )
          {
             _contextID = -1 ;
-         }         
+         }
          goto error ;
       }
 
@@ -1800,15 +1800,6 @@ do                                                            \
       return rc ;
    error :
       goto done ;
-   }
-
-   INT32 _sdbCollectionImpl::createIndex ( const BSONObj &indexDef,
-                                           const CHAR *pIndexName,
-                                           BOOLEAN isUnique,
-                                           BOOLEAN isEnforced )
-   {
-      return _createIndex ( indexDef, pIndexName, isUnique, isEnforced,
-                            SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE) ;
    }
 
    INT32 _sdbCollectionImpl::createIndex ( const BSONObj &indexDef,

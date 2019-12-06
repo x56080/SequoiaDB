@@ -109,6 +109,8 @@ do                                     \
 /** The flag represent whether update return detail result */
 #define FLG_DELETE_RETURNNUM              0x00000004
 
+#define SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE   64
+
 enum _SDB_LOB_OPEN_MODE
 {
    SDB_LOB_CREATEONLY = 0x00000001, /**< Open a new lob only */
@@ -425,11 +427,6 @@ namespace sdbclient
       // index name ( required )
       // uniqueness ( required )
       // enforceness ( required )
-      virtual INT32 createIndex ( const bson::BSONObj &indexDef,
-                                  const CHAR *pName,
-                                  BOOLEAN isUnique,
-                                  BOOLEAN isEnforced
-                                ) = 0 ;
       virtual INT32 createIndex ( const bson::BSONObj &indexDef,
                                   const CHAR *pName,
                                   BOOLEAN isUnique,
@@ -1357,31 +1354,6 @@ namespace sdbclient
       /** \fn INT32 createIndex ( const bson::BSONObj &indexDef,
                                   const CHAR *pIndexName,
                                   BOOLEAN isUnique,
-                                  BOOLEAN isEnforced
-                                )
-          \brief Create the index in current collection
-          \param [in] indexDef The bson structure of index element, e.g. {name:1, age:-1}
-          \param [in] pIndexName The index name
-          \param [in] isUnique Whether the index elements are unique or not
-          \param [in] isEnforced Whether the index is enforced unique
-                                 This element is meaningful when isUnique is set to true
-          \retval SDB_OK Operation Success
-          \retval Others Operation Fail
-      */
-      INT32 createIndex ( const bson::BSONObj &indexDef,
-                          const CHAR *pIndexName,
-                          BOOLEAN isUnique,
-                          BOOLEAN isEnforced )
-      {
-         if ( !pCollection )
-            return SDB_NOT_CONNECTED ;
-         return pCollection->createIndex ( indexDef, pIndexName, isUnique,
-                                           isEnforced ) ;
-      }
-
-      /** \fn INT32 createIndex ( const bson::BSONObj &indexDef,
-                                  const CHAR *pIndexName,
-                                  BOOLEAN isUnique,
                                   BOOLEAN isEnforced,
                                   INT32 sortBufferSize )
           \brief Create the index in current collection
@@ -1399,7 +1371,8 @@ namespace sdbclient
                           const CHAR *pIndexName,
                           BOOLEAN isUnique,
                           BOOLEAN isEnforced,
-                          INT32 sortBufferSize )
+                          INT32 sortBufferSize =
+                          SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE )
       {
          if ( !pCollection )
             return SDB_NOT_CONNECTED ;
@@ -5755,9 +5728,9 @@ namespace sdbclient
       }
 
       /** \fn INT32 interruptOperation () ;
-          \brief Send "INTERRUPT_SELF" message to engine to stop the current 
-                 operation. When the current operation had finish, nothing 
-                 happend, Otherwise, the current operation will be stop, and 
+          \brief Send "INTERRUPT_SELF" message to engine to stop the current
+                 operation. When the current operation had finish, nothing
+                 happend, Otherwise, the current operation will be stop, and
                  return error.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
@@ -5767,7 +5740,7 @@ namespace sdbclient
          if ( !pSDB )
             return SDB_NOT_CONNECTED ;
          return pSDB->interruptOperation () ;
-      }      
+      }
 
       /** \fn INT32 isValid ( BOOLEAN *result ) ;
           \brief Judge whether the connection is valid.
