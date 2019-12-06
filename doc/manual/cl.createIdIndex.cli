@@ -1,0 +1,53 @@
+.TH COMMAND * 2019-11-27 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.collection.createIdIndex()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+createIdIndex - Create the $id index.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.collection.createIdIndex(\fB<options>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collection
+.SH "DESCRIPTION"
+
+.sp 2
+Create the $id index.
+.sp 2
+\fBoptions (Json Object)\fR
+.br
+       Attributes to be modified.
+.sp 2
+       \fBSortBufferSize\fR
+.br
+              The size of sort buffer used when creating index. 
+              And it means don't use sort buffer when the size is zero. 
+              The unit is MB and default size is 64MB.
+.br
+.br
+              SortBufferSize:<int32>
+.sp 2
+
+.SH "Examples"
+
+.sp 2
+Create the $id index with default parameters.
+.sp 2
+db.foo.bar.createIdIndex()
+.sp 2
+Specify sort cache size when creating the $id index.
+.sp 2
+db.foo.bar.createIdIndex( { SortBufferSize: 128 } )

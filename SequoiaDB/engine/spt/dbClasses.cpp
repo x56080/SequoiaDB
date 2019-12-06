@@ -771,7 +771,7 @@ error :
    goto done ;
 }
 
-static INT32 _getModifyInfo( const bson *hint, INT32 *opType, bson *outHint, 
+static INT32 _getModifyInfo( const bson *hint, INT32 *opType, bson *outHint,
                              bson *outRule, BOOLEAN *outReturnNew )
 {
    INT32 rc = SDB_OK ;
@@ -851,7 +851,7 @@ static INT32 _getModifyInfo( const bson *hint, INT32 *opType, bson *outHint,
       if ( BSON_BOOL != bsonType )
       {
          rc = SDB_INVALIDARG ;
-         goto error ;         
+         goto error ;
       }
       returnNew = bson_iterator_bool( &it ) == 0 ? FALSE : TRUE ;
    }
@@ -879,7 +879,7 @@ static INT32 _getModifyInfo( const bson *hint, INT32 *opType, bson *outHint,
          *outReturnNew = returnNew ;
       }
    }
-   
+
 done:
    bson_destroy( &hintObj ) ;
    bson_destroy( &modifyObj ) ;
@@ -2659,9 +2659,18 @@ static JSBool collection_crt_id_index ( JSContext *cx , uintN argc , jsval *vp )
    sdbCollectionHandle *clHandle = NULL ;
    JSObject *jsOptions = NULL ;
    bson *obj = NULL ;
+   jsval *argv = JS_ARGV( cx, vp ) ;
 
-   ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
-                               "/o" , &jsOptions ) ;
+   if ( 0 != argc )
+   {
+      if ( !JSVAL_IS_OBJECT( argv[0] ) )
+      {
+         REPORT ( FALSE , "SdbCollection.createIdIndex(): "
+                          "the 1st argument should be an object" ) ;
+      }
+   }
+
+   ret = JS_ConvertArguments ( cx , argc , argv, "/o" , &jsOptions ) ;
    REPORT ( ret , "SdbCollection.createIdIndex(): wrong arguments" ) ;
 
    if ( NULL != jsOptions )
