@@ -36,7 +36,7 @@ function main( db )
    Args[ "operation" ] = "export" ;        
    Args[ "collection" ] = expFullCL ;       
    Args[ "file" ] = exportFile ;     
-   Args[ "prefer" ] = "A" ;               //  优先选择的实例
+   Args[ "prefer" ] = "M" ;               //  优先选择的实例
    Args[ "ssl" ] = false ;                //  使用SSL连接，如果不使用SSL连接，shell命令中不应加入该选项参数
    Args[ "ignorefe" ] = false ;           //  大对象已经存在于集合中，忽略
    

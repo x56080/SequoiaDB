@@ -38,7 +38,7 @@ function main( db )
    Args[ "operation" ] = "export" ;        
    Args[ "collection" ] = expFullCL ;       
    Args[ "file" ] = testFile ;       
-   Args[ "prefer" ] = "A" ;
+   Args[ "prefer" ] = "M" ;
    Args[ "ssl" ] = false ;                       //   使用SSL连接，如果不使用SSL连接，shell命令中不应加入该选项参数
    Args[ "ignorefe" ] = false ;                  //   当前大对象已经存在于集合中，忽略这个错误
  
