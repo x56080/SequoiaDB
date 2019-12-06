@@ -174,7 +174,7 @@ function commCreateCL( db, csName, clName, replSize, compressed, autoCreateCS, i
 
    try
    {
-      return eval( 'db.'+csName+'.createCL("' + clName + '", {"ReplSize":' + replSize +', "Compressed":' + compressed +'})' ) ;
+      return db.getCS( csName ).createCL( clNamem, {"ReplSize": replSize, "Compressed": compressed}) ;
    }
    catch( e )
    {
@@ -186,7 +186,7 @@ function commCreateCL( db, csName, clName, replSize, compressed, autoCreateCS, i
    //get collection
    try
    {
-      return eval( 'db.' +csName+'.getCL("' +clName+ '")' ) ;
+      return db.getCS( csName ).getCL( clName ) ;
    }
    catch ( e )
    {
@@ -248,7 +248,7 @@ function commCreateCLByOption( db, csName, clName, optionObj, autoCreateCS, igno
    //get collection
    try
    {
-      return eval( 'db.' +csName+'.getCL("' +clName+ '")' ) ;
+      return db.getCS( csName ).getCL( clName );
    }
    catch ( e )
    {
@@ -303,7 +303,7 @@ function commDropCL( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, mes
 
    try
    {
-      eval( 'db.' +csName+ '.dropCL("' +clName+ '")' ) ;
+      db.getCS( csName ).dropCL( clName );
    }
    catch( e )
    {
@@ -415,7 +415,7 @@ function commCheckIndex( cl, name, exist, timeout )
 
          if ( tmpInfo != undefined )
          {
-            var tmpObj =  eval( "(" + tmpInfo.toString() + ")" ) ;
+            var tmpObj =  tmpInfo.toObj() ;
             if ( tmpObj.IndexDef.name != name )
             {
                println("commCheckIndex: get index name[" + tmpObj.IndexDef.name + "] is not the same with name[" + name + "]" ) ;
@@ -662,20 +662,12 @@ function commGetCSGroups( db, csname )
       return new Array() ;
    }
 
-   var tmpArray = new Array() ;
-   var tmpInfo ;
-   try
-   {
-      tmpInfo = db.snapshot(5).toArray() ;
-   }
-   catch( e )
-   {
-      throw new Error( "commGetCSGroups: snapshot collection space failed: " + e ) ;
-   }
+   var tmpArray = [] ;
+   var tmpInfo = commGetSnapshot( db, SDB_SNAP_COLLECTIONSPACES ) ;
 
    for ( var i = 0 ; i < tmpInfo.length; ++i )
    {
-      var tmpObj = eval( "(" + tmpInfo[i] + ")" ) ;
+      var tmpObj = tmpInfo[i] ;
       if ( tmpObj.Name != csname )
       {
          continue ;
@@ -705,17 +697,16 @@ function commGetCSGroups( db, csname )
 ***************************************************************************** */
 function commGetGroups( db, print, filter, exceptCata, exceptCoord, exceptSpare )
 {
-   if ( filter == undefined ) { filter = "" ; }
    if ( undefined == print ) { print = false ; }
    if ( undefined == exceptCata ) { exceptCata = true ; }
    if ( undefined == exceptCoord ) { exceptCoord = true ;}
    if ( undefined == exceptSpare ) { exceptSpare = true ;}
 
-   var tmpArray = new Array() ;
-   var tmpInfo ;
+   var tmpArray = [];
+   var tmpInfoCur ;
    try
    {
-      tmpInfo = db.listReplicaGroups().toArray() ;
+      tmpInfoCur = db.listReplicaGroups() ;
    }
    catch( e )
    {
@@ -730,15 +721,12 @@ function commGetGroups( db, print, filter, exceptCata, exceptCoord, exceptSpare 
          throw new Error( "commGetGroups failed: " + e ) ;
       }
    }
+   var tmpInfo = commCursor2Array( tmpInfoCur, "GroupName", filter );
 
    var index = 0 ;
    for ( var i = 0 ; i < tmpInfo.length; ++i )
    {
-      var tmpObj = eval( "(" + tmpInfo[i] + ")" ) ;
-      if ( filter.length != 0 && tmpObj.GroupName.indexOf( filter, 0 ) == -1 )
-      {
-         continue ;
-      }
+      var tmpObj = tmpInfo[i] ;
       if ( true == exceptCata && tmpObj.GroupID == CATALOG_GROUPID )
       {
          continue ;
@@ -803,17 +791,16 @@ function commGetGroups( db, print, filter, exceptCata, exceptCoord, exceptSpare 
 ***************************************************************************** */
 function commGetGroupsNum( db, print, filter, exceptCata, exceptCoord, exceptSpare )
 {
-   if ( filter == undefined ) { filter = "" ; }
    if ( undefined == print ) { print = false ; }
    if ( undefined == exceptCata ) { exceptCata = true ; }
    if ( undefined == exceptCoord ) { exceptCoord = true ;}
    if ( undefined == exceptSpare ) { exceptSpare = true ;}
 
-   var tmpInfo ;
+   var tmpInfoCur ;
    var num = 0 ;
    try
    {
-      tmpInfo = db.listReplicaGroups().toArray() ;
+      tmpInfoCur = db.listReplicaGroups() ;
    }
    catch( e )
    {
@@ -828,14 +815,11 @@ function commGetGroupsNum( db, print, filter, exceptCata, exceptCoord, exceptSpa
          throw new Error( "commGetGroups failed: " + e) ;
       }
    }
+   var tmpInfo = commCursor2Array( tmpInfoCur, "GroupName", filter );
 
    for ( var i = 0 ; i < tmpInfo.length; ++i )
    {
-      var tmpObj = eval( "(" + tmpInfo[i] + ")" ) ;
-      if ( filter.length != 0 && tmpObj.GroupName.indexOf( filter, 0 ) == -1 )
-      {
-         continue ;
-      }
+      var tmpObj = tmpInfo[i] ;
       if ( true == exceptCata && tmpObj.GroupID == CATALOG_GROUPID )
       {
          continue ;
@@ -925,21 +909,12 @@ function commGetCSCL( db, csfilter, clfilter )
    if ( clfilter == undefined ) { clfilter = ""; }
 
    var tmpCSCL = new Array() ;
-   var tmpInfo ;
-   try
-   {
-      tmpInfo = db.snapshot( 5 ).toArray() ;
-   }
-   catch( e )
-   {
-      println( "commGetCSCL failed: " + e ) ;
-      return tmpCSCL ;
-   }
+   var tmpInfo = commGetSnapshot( db, SDB_SNAP_COLLECTIONSPACES );
    
    var m = 0 ;
    for ( var i = 0 ; i < tmpInfo.length; ++i )
    {
-      var tmpObj = eval( "(" + tmpInfo[i] + ")" ) ;
+      var tmpObj = tmpInfo[i] ;
       if ( csfilter.length != 0 && tmpObj.Name.indexOf( csfilter, 0 ) == -1 )
       {
          continue ;
@@ -977,7 +952,6 @@ function commGetCSCL( db, csfilter, clfilter )
 ***************************************************************************** */
 function commGetBackups( db, filter, path, isSubDir, cond, grpNameArray )
 {
-   if ( filter == undefined ) { filter = "" ; }
    if ( path == undefined ) { path = "" ; }
    if ( isSubDir == undefined ) { isSubDir = false ; }
    if ( cond == undefined ) { cond = {} ; }
@@ -992,17 +966,17 @@ function commGetBackups( db, filter, path, isSubDir, cond, grpNameArray )
       throw new Error("commGetBackups: grpNameArray is not a array") ;
    }
 
-   var tmpBackup = new Array() ;
-   var tmpInfo ;
+   var tmpBackup = [] ;
+   var tmpInfoCur ;
    try
    {
       if ( path.length == 0 )
       {
-         tmpInfo = db.listBackup({GroupName:grpNameArray}).toArray() ;
+         tmpInfoCur = db.listBackup({GroupName:grpNameArray}) ;
       }
       else
       {
-         tmpInfo = db.listBackup( {Path:path, IsSubDir:isSubDir, GroupName:grpNameArray} ).toArray() ;
+         tmpInfoCur = db.listBackup( {Path:path, IsSubDir:isSubDir, GroupName:grpNameArray} ) ;
       }
    }
    catch( e )
@@ -1010,15 +984,12 @@ function commGetBackups( db, filter, path, isSubDir, cond, grpNameArray )
       println( "commGetBackups failed: " + e ) ;
       return tmpBackup ;
    }
+   var tmpInfo = commCursor2Array( tmpInfoCur, "Name", filter );
 
    for ( var i = 0 ; i < tmpInfo.length; ++i )
    {
-      var tmpBackupObj = eval( "(" + tmpInfo[i] + ")" ) ;
+      var tmpBackupObj = tmpInfo[i] ;
       if ( typeof( tmpBackupObj.Name ) == "undefined" )
-      {
-         continue ;
-      }
-      if ( filter.length != 0 && tmpBackupObj.Name.indexOf( filter, 0 ) == -1 )
       {
          continue ;
       }
@@ -1051,28 +1022,23 @@ function commGetBackups( db, filter, path, isSubDir, cond, grpNameArray )
 ***************************************************************************** */
 function commGetProcedures( db, filter )
 {
-   if ( filter == undefined ) { filter = "" ; }
-
-   var tmpProcedure = new Array() ;
-   var tmpInfo ;
+   var tmpProcedure = [] ;
+   var tmpInfoCur ;
    try
    {
-      tmpInfo = db.listProcedures().toArray() ;
+      tmpInfoCur = db.listProcedures() ;
    }
    catch( e )
    {
       println( "commGetProcedures failed: " + e ) ;
       return tmpProcedure ;
    }
+   var tmpInfo = commCursor2Array( tmpInfoCur, "name", filter );
 
    for ( var i = 0 ; i < tmpInfo.length; ++i )
    {
-      var tmpProcedureObj = eval( "(" + tmpInfo[i] + ")" ) ;
+      var tmpProcedureObj = tmpInfo[i] ;
       if ( typeof( tmpProcedureObj.name ) == "undefined" )
-      {
-         continue ;
-      }
-      if ( filter.length != 0 && tmpProcedureObj.name.indexOf( filter, 0 ) == -1 )
       {
          continue ;
       }
@@ -1092,28 +1058,23 @@ function commGetProcedures( db, filter )
 ***************************************************************************** */
 function commGetDomains( db, filter )
 {
-   if ( filter == undefined ) { filter = "" ; }
-
    var tmpDomain = new Array() ;
-   var tmpInfo ;
+   var tmpInfoCur ;
    try
    {
-      tmpInfo = db.listDomains().toArray() ;
+      tmpInfoCur = db.listDomains() ;
    }
    catch( e )
    {
       println( "commGetDomains failed: " + e ) ;
       return tmpDomain ;
    }
+   var tmpInfo = commCursor2Array( tmpInfoCur, "Name", filter );
 
    for ( var i = 0 ; i < tmpInfo.length; ++i )
    {
-      var tmpDomainObj = eval( "(" + tmpInfo[i] + ")" ) ;
+      var tmpDomainObj = tmpInfo[i] ;
       if ( typeof( tmpDomainObj.Name ) == "undefined" )
-      {
-         continue ;
-      }
-      if ( filter.length != 0 && tmpDomainObj.Name.indexOf( filter, 0 ) == -1 )
       {
          continue ;
       }
@@ -1220,10 +1181,10 @@ function commCheckBusiness( groups, checkLSN, diskThreshold )
             continue ;
          }
          // check primary and lsn
-         var tmpSysInfo ;
+         var tmpSysInfoCur ;
          try
          {
-            tmpSysInfo = tmpDB.snapshot( 6 ).toArray() ;
+            tmpSysInfoCur = tmpDB.snapshot( 6 ) ;
          }
          catch( e )
          {
@@ -1233,9 +1194,11 @@ function commCheckBusiness( groups, checkLSN, diskThreshold )
             tmpDB.close() ;
             continue ;
          }
+         var tmpSysInfo = commCursor2Array( tmpSysInfoCur );
+         
          //delete tmpCheckGrp[grpindex][ndindex].Connect ;
          // check primary
-         var tmpSysInfoObj = eval( "(" + tmpSysInfo[0] + ")" ) ;
+         var tmpSysInfoObj = tmpSysInfo[0] ;
          if ( tmpSysInfoObj.IsPrimary == true )
          {
             tmpCheckGrp[grpindex][ndindex].IsPrimay = true ;
@@ -1629,9 +1592,10 @@ function commGetSnapshot( db, snapshotType, condObj, selObj, sortObj, skipNum, l
    snapshotOption.sort( sortObj ).skip( skipNum ).limit( limitNum );
    
    var tmpArr = [];
+   var cursor = null;
    try
    {
-      var cursor = db.snapshot( snapshotType, snapshotOption );
+      cursor = db.snapshot( snapshotType, snapshotOption );
       while( cursor.next() )
       {
          tmpArr.push( cursor.current().toObj() );
@@ -1641,7 +1605,53 @@ function commGetSnapshot( db, snapshotType, condObj, selObj, sortObj, skipNum, l
    {
       throw new Error(e);
    }
+   finally
+   {
+      if( cursor != null )
+      {
+         cursor.close();   
+      }
+   }
    return tmpArr;
+}
+
+/* ********************************************************************
+@Description: traversal cursor
+@author: luweikang
+@return array[]
+********************************************************************* */
+function commCursor2Array( cursor, fieldName, filter )
+{
+   var tmpArray = [];
+   if( cursor === undefined || cursor === null )
+   {
+      throw new Error("cursor can't be undefined or null."); 
+   }
+   try
+   {
+      while( cursor.next() )
+      {
+         var obj = cursor.current().toObj();
+         if( fieldName !== undefined && filter !== undefined &&
+               obj[fieldName] !== undefined && obj[fieldName].indexOf( filter ) !== -1 )
+         {
+            tmpArray.push( obj );
+         }
+         else{
+            tmpArray.push( obj );
+         }
+      }
+   }
+   catch(e)
+   {
+      throw new Error(e);
+   }
+   finally
+   {
+      cursor.close();
+   }
+   
+   return tmpArray;
 }
 
 /**********************************************************************
