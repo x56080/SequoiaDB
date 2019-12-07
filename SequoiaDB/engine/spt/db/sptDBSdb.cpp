@@ -739,6 +739,13 @@ namespace engine
          goto error ;
       }
 
+      if( arg.argc() > 1 )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "DropCS() can only specify one parameter" ) ;
+         goto error ;   
+      }
+
       rc = _sptSdb.dropCollectionSpace( csName.c_str() ) ;
       if( SDB_OK != rc )
       {
