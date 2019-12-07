@@ -198,7 +198,7 @@ namespace engine
                           pmdAsyncNetSubEntryPoint,
                           "SubNetAgent" ) ;
 
-   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_TP_NET_AGENT, TRUE,
+   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_STP_NET_AGENT, TRUE,
                           pmdAsyncNetEntryPoint,
                           "TPNetAgent" ) ;
 

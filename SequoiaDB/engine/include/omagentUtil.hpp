@@ -37,7 +37,7 @@
 #include "core.hpp"
 #include "ossUtil.hpp"
 #include "omagentDef.hpp"
-#include "tpToolCommon.hpp"
+#include "stpToolCommon.hpp"
 
 #include <string>
 #include <vector>
@@ -102,8 +102,8 @@ namespace engine
    string         omPickNodeOutString( const string &out,
                                        const CHAR *pSvcname ) ;
 
-   INT32          omGetTPFromConfig( const CHAR *cfgRootDir,
-                                     string &svcName ) ;
+   INT32          omGetStpFromConfig( const CHAR *cfgRootDir,
+                                      string &svcName ) ;
 
    INT32          omGetOptionString( std::stringstream &ss,
                                      const bson::BSONElement &elemnt ) ;

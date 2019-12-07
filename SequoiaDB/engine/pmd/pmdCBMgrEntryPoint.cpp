@@ -153,7 +153,7 @@ namespace engine
                           pmdCBMgrEntryPoint,
                           "SeAdapterMgr" ) ;
 
-   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_TP_MODULE, FALSE,
+   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_STP_MODULE, FALSE,
                           pmdCBMgrEntryPoint,
                           "TPModule" ) ;
 

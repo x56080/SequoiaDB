@@ -252,7 +252,7 @@ add_option( "testcase", "build testcases", 0, False)
 add_option( "shell", "build shell", 0, False)
 add_option( "client", "build C/C++ clients", 0, False)
 add_option( "fmp", "build fmp", 0, False)
-add_option( "tp", "build tp", 0, False)
+add_option( "stp", "build stp", 0, False)
 add_option( "doc", "build document(pdf, word)", 0, False)
 add_option( "website", "build web site document", 0, False)
 add_option( "chm", "build chm document", 0, False)
@@ -299,7 +299,7 @@ toolVariantDir = variantDir + "tool"
 fmpVariantDir = variantDir + "fmp"
 driverDir = variantDir + "driver"
 fapVariantDir = variantDir + "fap"
-tpVariantDir = variantDir + "tp"
+stpVariantDir = variantDir + "stp"
 
 def printLocalInfo():
    import sys, SCons
@@ -387,7 +387,7 @@ hasTestcase = has_option( "testcase" )
 hasTool = has_option( "tool" )
 hasShell = has_option( "shell" )
 hasFmp = has_option("fmp")
-hasTp = has_option("tp")
+hasStp = has_option("stp")
 hasAll = has_option( "all" )
 hasDoc = has_option( "doc" )
 hasWebSite = has_option( "website" )
@@ -422,17 +422,17 @@ if hasAll:
       hasFap = False
    else:
       hasFap = True
-   hasTp = True
+   hasStp = True
 # if nothing specified, let's use engine+client+shell by default
 elif not ( hasEngine or hasClient or hasTestcase or hasTool or hasShell or
            hasFmp or hasFap or hasDoc or hasWebSite or hasChm or hasOffline or
-           hasDoxygen or hasTp ):
+           hasDoxygen or hasStp ):
    hasEngine = True
    hasClient = True
    hasShell = True
    hasTool = True
    hasFmp = True
-   hasTp = True
+   hasStp = True
 elif ( hasTestcase and not hasEngine ):
    hasEngine = True
 
@@ -537,7 +537,7 @@ elif guess_os == "win32":
         hdfsJniMdPath = join(java_dir,"jdk_win64/include/win32")
 
 env.Append(
-CPPPATH=[join(engine_dir,'include'),join(engine_dir,'client'),
+CPPPATH=[join(engine_dir,'include'),join(engine_dir,'client'),join(engine_dir,'tools/stp'),
          join(ssl_dir,'include'),join(lz4_dir,'include'),join(zlib_dir,'./'),
          join(snappy_dir,'include'),join(gtest_dir,'include'),
          pcre_dir, boost_dir, ssh2_dir, hdfsJniPath,
@@ -852,8 +852,8 @@ toolEnv = env.Clone() ;
 fmpEnv = None
 fmpEnv = env.Clone() ;
 
-tpEnv = None
-tpEnv = env.Clone();
+stpEnv = None
+stpEnv = env.Clone();
 
 if windows:
     shellEnv.Append( LIBS=["winmm.lib"] )
@@ -883,16 +883,16 @@ fmpEnv.Append( CPPDEFINES=[ "SDB_FMP" ] )
 fmpEnv.Append( CPPDEFINES=[ "SDB_CLIENT" ] )
 fapEnv.Append( CPPDEFINES=["SDB_ENGINE", "SDB_DLL_BUILD"])
 #fapEnv.Append( CPPPATH=[join(engine_dir, "bson")])
-tpEnv.Append( CPPDEFINES=[ "SDB_CLIENT" ] )
-tpEnv.Append( CPPDEFINES=[ "SDB_TOOL" ] )
-tpEnv.Append( CPPDEFINES=[ "SDB_TP" ] )
+stpEnv.Append( CPPDEFINES=[ "SDB_CLIENT" ] )
+stpEnv.Append( CPPDEFINES=[ "SDB_TOOL" ] )
+stpEnv.Append( CPPDEFINES=[ "SDB_STP" ] )
 
 # drivers always set SSL definition
 toolEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
 clientCppEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
 clientCEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
 shellEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
-tpEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
+stpEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
 
 if hasSSL:
     env.Append( CPPDEFINES=[ "SDB_SSL" ] )
@@ -928,19 +928,19 @@ if cov:
    fmpEnv.Append( LINKFLAGS=" -fprofile-arcs " )
    fapEnv.Append( CPPFLAGS=" -fprofile-arcs -ftest-coverage " )
    fapEnv.Append( LINKFLAGS=" -fprofile-arcs " )
-   tpEnv.Append( CPPFLAGS=" -fprofile-arcs -ftest-coverage " )
-   tpEnv.Append( LINKFLAGS=" -fprofile-arcs " )
+   stpEnv.Append( CPPFLAGS=" -fprofile-arcs -ftest-coverage " )
+   stpEnv.Append( LINKFLAGS=" -fprofile-arcs " )
 
 
 if linux64:
     toolEnv.Append( CPPDEFINES="_FILE_OFFSET_BITS=64" )
-    tpEnv.Append( CPPDEFINES="_FILE_OFFSET_BITS=64" )
+    stpEnv.Append( CPPDEFINES="_FILE_OFFSET_BITS=64" )
 if usefuse:
     toolEnv.Append( LIBS=['fuse'] )
     toolEnv.Append( CPPPATH = join(fuse_dir, "include") )
     toolEnv.Append( EXTRALIBPATH=[fuse_lib_dir] )
 toolEnv.Append( LIBPATH=['$EXTRALIBPATH'] )
-tpEnv.Append( LIBPATH=['$EXTRALIBPATH'] )
+stpEnv.Append( LIBPATH=['$EXTRALIBPATH'] )
 
 # The following symbols are exported for use in subordinate SConscript files.
 # Ideally, the SConscript files would be purely declarative.  They would only
@@ -957,7 +957,7 @@ Export("toolEnv")
 Export("testEnv")
 Export("fmpEnv")
 Export("fapEnv")
-Export("tpEnv")
+Export("stpEnv")
 Export("clientCppEnv")
 Export("clientCEnv")
 Export("installSetup getSysInfo")
@@ -979,7 +979,7 @@ if usefuse:
 Export("hasEngine")
 Export("hasTestcase")
 Export("hasTool")
-Export("hasTp")
+Export("hasStp")
 Export("driverDir")
 Export("guess_os")
 Export("guess_arch")
@@ -1090,5 +1090,5 @@ if hasFmp:
 #   env.SConscript( 'SequoiaDB/SConscript', variant_dir=variantDir, duplicate=False )
 if hasFap:
    fapEnv.SConscript ( 'SequoiaDB/SConscriptFap', variant_dir=fapVariantDir, duplicate=False )
-if hasTp:
-   tpEnv.SConscript ( 'SequoiaDB/SConscriptTp', variant_dir=tpVariantDir, duplicate=False )
+if hasStp:
+   stpEnv.SConscript ( 'SequoiaDB/SConscriptStp', variant_dir=stpVariantDir, duplicate=False )

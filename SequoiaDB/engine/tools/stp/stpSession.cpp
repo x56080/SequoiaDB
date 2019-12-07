@@ -1,0 +1,442 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = stpSession.cpp
+
+   Descriptive Name = Serial Time Protocol
+
+   When/how to use: this program may be used on binary and text-formatted
+   versions of STP component. This file contains structure for Serial Time
+   Protocol.
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          07/30/2019  HGM Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
+
+#include "stpSession.hpp"
+#include "stpCB.hpp"
+#include "pdTrace.hpp"
+#include "stpTrace.hpp"
+#include "pmd.hpp"
+#include "msgAuth.hpp"
+#include "msgMessage.hpp"
+#include "stpCommand.hpp"
+#include "../bson/lib/md5.hpp"
+
+using namespace bson ;
+using namespace md5 ;
+
+namespace engine
+{
+
+   /*
+      _stpSession implement
+    */
+   BEGIN_OBJ_MSG_MAP( _stpSession, _pmdAsyncSession )
+      // msg map or event map
+      ON_MSG( MSG_AUTH_VERIFY_REQ, _handleAuthReq )
+      ON_MSG( MSG_BS_QUERY_REQ, _handleQueryReq )
+   END_OBJ_MSG_MAP()
+
+   _stpSession::_stpSession( UINT64 sessionID, STPCB *stpCB )
+   : pmdAsyncSession( sessionID ),
+     _stpCB( stpCB )
+   {
+   }
+
+   _stpSession::~_stpSession()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSESSION__DEFAULTMSGFUNC, "_stpSession::_defaultMsgFunc" )
+   INT32 _stpSession::_defaultMsgFunc( NET_HANDLE handle, MsgHeader *message )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSESSION__DEFAULTMSGFUNC ) ;
+
+      PD_LOG( PDWARNING, "Session[%s] received unknown message[type:[%d]%u, "
+              "len:%u]", sessionName(),
+              IS_REPLY_TYPE( message->opCode ) ? 1 : 0,
+              GET_REQUEST_TYPE( message->opCode ),
+              message->messageLength ) ;
+
+      // send reply
+      rc = _sendReply( message, SDB_UNKNOWN_MESSAGE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to send error reply, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPSESSION__DEFAULTMSGFUNC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSESSION__HANDLEAUTHREQ, "_stpSession::_handleAuthReq" )
+   INT32 _stpSession::_handleAuthReq( NET_HANDLE handle, MsgHeader *message )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSESSION__HANDLEAUTHREQ ) ;
+
+      SDB_ASSERT( NULL != message, "message is invalid" ) ;
+      SDB_ASSERT( MSG_AUTH_VERIFY_REQ == message->opCode,
+                  "opcode of message is invalid" ) ;
+
+      try
+      {
+         BSONObj object ;
+         BSONElement user, password ;
+
+         // extract authentication fields
+         rc = extractAuthMsg( message, object ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to extract authentication request,"
+               "rc: %d", rc ) ;
+
+         // user
+         user = object.getField( SDB_AUTH_USER ) ;
+         // password
+         password = object.getField( SDB_AUTH_PASSWD ) ;
+
+         // check user
+         PD_CHECK( 0 == ossStrcmp( user.valuestrsafe(), STP_USER ),
+                   SDB_AUTH_AUTHORITY_FORBIDDEN, error, PDERROR,
+                   "Failed authenticate, user name[%s] is not suppport",
+                   user.valuestrsafe() ) ;
+
+         // check password
+         PD_CHECK( md5simpledigest( string( STP_USERPASSWD ) ) ==
+                   string( password.valuestrsafe() ),
+                   SDB_AUTH_AUTHORITY_FORBIDDEN, error, PDERROR,
+                   "Failed authenticate, user name[%s] is not correct",
+                   password.valuestrsafe() ) ;
+
+         // save information of user
+         getClient()->authenticate( user.valuestrsafe(),
+                                    password.valuestrsafe() ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to handle authentication request, error: %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      _sendReply( message, rc ) ;
+
+      PD_TRACE_EXITRC( SDB__STPSESSION__HANDLEAUTHREQ, rc ) ;
+
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSESSION__HANDLEQUERYREQ, "_stpSession::_handleQueryReq" )
+   INT32 _stpSession::_handleQueryReq( NET_HANDLE handle, MsgHeader *message )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSESSION__HANDLEQUERYREQ ) ;
+
+      SDB_ASSERT( NULL != message, "message is invalid" ) ;
+      SDB_ASSERT( MSG_BS_QUERY_REQ == message->opCode,
+                  "opcode of message is invalid" ) ;
+
+      CHAR *commandName = NULL ;
+      CHAR *optionBuffer = NULL ;
+      stpCommand *command = NULL ;
+      BSONObj result ;
+
+      // extract field of query, command name and option
+      rc = msgExtractQuery( (CHAR *)message, NULL, &commandName, NULL, NULL,
+                            &optionBuffer, NULL, NULL, NULL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to extract query, rc: %d", rc ) ;
+
+      PD_CHECK( NULL != commandName, SDB_INVALIDARG, error, PDERROR,
+                "Failed to get command name" ) ;
+
+      // get command
+      rc = stpGetCommand( commandName, &command ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get command [%s], rc: %d",
+                   commandName, rc ) ;
+      PD_CHECK( NULL != command, SDB_INVALIDARG, error, PDERROR,
+                "Failed to get command [%s], command is invalid",
+                commandName ) ;
+
+      // initialize command with given option
+      rc = stpInitCommand( command, optionBuffer ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to initialize command [%s], rc: %d",
+                   commandName, rc ) ;
+
+      // run command
+      rc = stpRunCommand( command, result ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to run command [%s], rc: %d",
+                   commandName, rc ) ;
+
+      // send reply with query result
+      rc = _sendReply( message, SDB_OK, result ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to send reply to %s, rc: %d",
+                 routeID2String( message->routeID ).c_str(), rc ) ;
+      }
+
+   done:
+      // release command
+      stpReleaseCommand( command ) ;
+      PD_TRACE_EXITRC( SDB__STPSESSION__HANDLEQUERYREQ, rc ) ;
+      return rc ;
+
+   error:
+      // send error reply
+      _sendReply( message, rc ) ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSESSION__SENDREPLY, "_stpSession::_sendReply" )
+   INT32 _stpSession::_sendReply( MsgOpReply *reply,
+                                  const CHAR *body,
+                                  UINT32 bodySize )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSESSION__SENDREPLY ) ;
+
+      // check length of reply
+      PD_CHECK( (UINT32)( reply->header.messageLength ) ==
+                sizeof( MsgOpReply ) + bodySize,
+                SDB_SYS, error, PDERROR,
+                "Session [%s]: Failed to send reply message, reply message "
+                "length error [%u != %u]", sessionName(),
+                reply->header.messageLength, sizeof( MsgOpReply ) + bodySize ) ;
+
+      if ( NULL != body && bodySize > 0 )
+      {
+         // send with results
+         rc = routeAgent()->syncSend( _netHandle, (MsgHeader *)reply,
+                                      (void *)body, bodySize ) ;
+      }
+      else
+      {
+         // send reply only
+         rc = routeAgent()->syncSend( _netHandle, (void *)reply ) ;
+      }
+
+      PD_RC_CHECK( rc, PDERROR, "Session[%s]: Failed to send reply message, "
+                   "rc: %d", sessionName(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPSESSION__SENDREPLY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSESSION__SENDREPLY_RC, "_stpSession::_sendReply" )
+   INT32 _stpSession::_sendReply( MsgHeader *message, INT32 returnCode )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSESSION__SENDREPLY_RC ) ;
+
+      BSONObj dummy ;
+
+      // send reply with empty object
+      rc = _sendReply( message, returnCode, dummy ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to send reply, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPSESSION__SENDREPLY_RC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSESSION__SENDREPLY_BSON, "_stpSession::_sendReply" )
+   INT32 _stpSession::_sendReply( MsgHeader *message,
+                                  INT32 returnCode,
+                                  const bson::BSONObj &result )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSESSION__SENDREPLY_RC ) ;
+
+      // build reply message
+      MsgOpReply reply ;
+
+      // fill reply
+      reply.header.opCode = MAKE_REPLY_TYPE( message->opCode ) ;
+      reply.header.messageLength = sizeof ( MsgOpReply ) ;
+      reply.header.requestID = message->requestID ;
+      reply.header.TID = message->TID ;
+      reply.header.routeID.value = 0 ;
+      reply.flags = returnCode ;
+      reply.contextID = -1 ;
+      reply.numReturned = 0 ;
+      reply.startFrom = 0 ;
+
+      if ( SDB_OK != returnCode )
+      {
+         BSONObj errorInfo ;
+
+         try
+         {
+            // reply is not OK, fill with error message
+            errorInfo = utilGetErrorBson(
+                           returnCode, _pEDUCB->getInfo( EDU_INFO_ERROR ) ) ;
+         }
+         catch ( exception &e )
+         {
+            // error happened to construct error object, should continue to
+            // send the return code with empty error message
+            PD_LOG( PDWARNING, "Failed to build BSON for error message, "
+                    "error: %s", e.what() ) ;
+         }
+         reply.header.messageLength += errorInfo.objsize() ;
+         reply.numReturned = 1 ;
+
+         // send reply with error message
+         rc = _sendReply( &reply, errorInfo.objdata(), errorInfo.objsize() ) ;
+      }
+      else
+      {
+         // add message length with result
+         reply.header.messageLength += result.objsize() ;
+         reply.numReturned = 1 ;
+
+         // send reply with result
+         rc = _sendReply( &reply, result.objdata(), result.objsize() ) ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to send reply, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPSESSION__SENDREPLY_RC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _stpSessionManager implement
+    */
+   _stpSessionManager::_stpSessionManager( STPCB *stpCB )
+   : _stpCB( stpCB )
+   {
+   }
+
+   _stpSessionManager::~_stpSessionManager()
+   {
+   }
+
+   UINT64 _stpSessionManager::makeSessionID( const NET_HANDLE &handle,
+                                             const MsgHeader *header )
+   {
+      // merge handle and remote TIE into session ID
+      return ossPack32To64( PMD_BASE_HANDLE_ID + handle, header->TID ) ;
+   }
+
+   SDB_SESSION_TYPE _stpSessionManager::_prepareCreate( UINT64 sessionID,
+                                                        INT32 startType,
+                                                        INT32 opCode )
+   {
+      // only create STP session
+      return SDB_SESSION_STP ;
+   }
+
+   BOOLEAN _stpSessionManager::_canReuse( SDB_SESSION_TYPE sessionType )
+   {
+      // no need to reuse session
+      return FALSE ;
+   }
+
+   UINT32 _stpSessionManager::_maxCacheSize() const
+   {
+      // no need to cache idle session
+      return 0 ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSERVICEMANAGER_ONERROR, "_stpSessionManager::onErrorHanding" )
+   INT32 _stpSessionManager::onErrorHanding( INT32 rc,
+                                             const MsgHeader *request,
+                                             const NET_HANDLE &handle,
+                                             UINT64 sessionID,
+                                             pmdAsyncSession *session )
+   {
+      INT32 ret = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__TPSERVICEMANAGER_ONERROR ) ;
+
+      if ( 0 != sessionID )
+      {
+         // if a session is assigned, send reply with error
+         ret = _reply( handle, rc, request ) ;
+      }
+      else
+      {
+         // no session is assigned, no need to reply
+         ret = rc ;
+      }
+
+      PD_TRACE_EXITRC( SDB__TPSERVICEMANAGER_ONERROR, ret ) ;
+
+      return ret ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSERVICEMANAGER__CREATESESS, "_stpSessionManager::_createSession" )
+   pmdAsyncSession *_stpSessionManager::_createSession(
+                                                SDB_SESSION_TYPE sessionType,
+                                                INT32 startType,
+                                                UINT64 sessionID,
+                                                void *data )
+   {
+      pmdAsyncSession *pSession = NULL ;
+
+      PD_TRACE_ENTRY( SDB__TPSERVICEMANAGER__CREATESESS ) ;
+
+      if ( SDB_SESSION_STP == sessionType )
+      {
+         // create STP session
+         pSession = SDB_OSS_NEW stpSession( sessionID, _stpCB ) ;
+      }
+      else
+      {
+         // invalid session type
+         PD_LOG( PDERROR, "Invalid session type [%d]", sessionType ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__TPSERVICEMANAGER__CREATESESS ) ;
+
+      return pSession ;
+   }
+
+}

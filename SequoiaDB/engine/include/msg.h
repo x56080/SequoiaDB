@@ -386,17 +386,17 @@ enum MSG_TYPE
 
    MSG_SEADPT_END                      = 10999,
 
-   MSG_TP_BEGIN                        = 11000,
-   MSG_TP_SERVER_REQ                   = 11001,
-   MSG_TP_SERVER_RSP                   = MAKE_REPLY_TYPE( MSG_TP_SERVER_REQ ),
-   MSG_TP_REG_REQ                      = 11004,
-   MSG_TP_REG_RSP                      = MAKE_REPLY_TYPE( MSG_TP_REG_REQ ),
-   MSG_TP_TIME_SYNC_REQ                = 11005,
-   MSG_TP_TIME_SYNC_RSP                = MAKE_REPLY_TYPE( MSG_TP_TIME_SYNC_REQ ),
-   MSG_TP_META_NOTIFY                  = 11006,
-   MSG_TP_META_SYNC_REQ                = 11007,
-   MSG_TP_META_SYNC_RSP                = MAKE_REPLY_TYPE( MSG_TP_META_SYNC_REQ ),
-   MSG_TP_END                          = 11999,
+   MSG_STP_BEGIN                        = 11000,
+   MSG_STP_SERVER_REQ                   = 11001,
+   MSG_STP_SERVER_RSP                   = MAKE_REPLY_TYPE( MSG_STP_SERVER_REQ ),
+   MSG_STP_REG_REQ                      = 11004,
+   MSG_STP_REG_RSP                      = MAKE_REPLY_TYPE( MSG_STP_REG_REQ ),
+   MSG_STP_TIME_SYNC_REQ                = 11005,
+   MSG_STP_TIME_SYNC_RSP                = MAKE_REPLY_TYPE( MSG_STP_TIME_SYNC_REQ ),
+   MSG_STP_META_NOTIFY                  = 11006,
+   MSG_STP_META_SYNC_REQ                = 11007,
+   MSG_STP_META_SYNC_RSP                = MAKE_REPLY_TYPE( MSG_STP_META_SYNC_REQ ),
+   MSG_STP_END                          = 11999,
 
    MSG_NULL                            = 999999        //reserved
 };

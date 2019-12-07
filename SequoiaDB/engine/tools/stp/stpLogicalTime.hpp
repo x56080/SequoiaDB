@@ -1,0 +1,763 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   Source File Name = stpLogicalTime.hpp
+
+   Descriptive Name = Serial Time Protocol
+
+   When/how to use: this program may be used on binary and text-formatted
+   versions of STP component. This file contains structure for Serial Time
+   Protocol.
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          07/30/2019  HGM Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
+
+#ifndef STP_LOGICAL_TIME_HPP_
+#define STP_LOGICAL_TIME_HPP_
+
+#include "stpCommon.hpp"
+#include "stpToolCommon.hpp"
+#include "utilPooledObject.hpp"
+#include "ossUtil.hpp"
+#include "../bson/bson.h"
+
+namespace engine
+{
+
+   /*
+      STP_GET_TIME_MODE
+    */
+   // Mode to sample ( get ) time from system
+   enum STP_SAMPLE_TIME_MODE
+   {
+      // not to get time ( get 0 )
+      STP_SAMPLE_TIME_NONE,
+      // get real time
+      STP_SAMPLE_TIME_REAL,
+      // get monotonic time ( time after machine boot )
+      STP_SAMPLE_TIME_MONOTONIC
+   } ;
+
+   /*
+      _stpHPTime define
+    */
+   class _stpHPTime ;
+   typedef class _stpHPTime tpHPTime ;
+
+   // _stpHPTime represents for high precision time in nanoseconds
+   class _stpHPTime : public utilPooledObject
+   {
+   public:
+      // constructor and destructor
+      _stpHPTime()
+      : _second( 0LL ),
+        _nanoSecond( 0LL )
+      {
+      }
+
+      // constructor to sample time
+      _stpHPTime( STP_SAMPLE_TIME_MODE mode )
+      : _second( 0LL ),
+        _nanoSecond( 0LL )
+      {
+         sample( mode ) ;
+      }
+
+      _stpHPTime( UINT64 second, UINT64 nanoSecond )
+      : _second( second ),
+        _nanoSecond( nanoSecond )
+      {
+      }
+
+      _stpHPTime( const tpHPTime &time )
+      : _second( time._second ),
+        _nanoSecond( time._nanoSecond )
+      {
+      }
+
+      ~_stpHPTime()
+      {
+      }
+
+   public:
+      // operators
+      OSS_INLINE tpHPTime &operator =( const tpHPTime &time )
+      {
+         _second = time._second ;
+         _nanoSecond = time._nanoSecond ;
+
+         return ( *this ) ;
+      }
+
+      // plus two high precision time
+      friend tpHPTime operator +( const tpHPTime &lhs, const tpHPTime &rhs ) ;
+      // subtract two high precision time
+      friend tpHPTime operator -( const tpHPTime &lhs, const tpHPTime &rhs ) ;
+      // plus high precision time with nanoseconds
+      friend tpHPTime operator +( const tpHPTime &lhs, UINT64 rhs ) ;
+      // subtract high precision time with nanoseconds
+      friend tpHPTime operator -( const tpHPTime &lhs, UINT64 rhs ) ;
+
+      OSS_INLINE BOOLEAN operator ==( const tpHPTime &time ) const
+      {
+         return ( _second == time._second &&
+                  _nanoSecond == time._nanoSecond ) ;
+      }
+
+      OSS_INLINE BOOLEAN operator !=( const tpHPTime &time ) const
+      {
+         return !( operator ==( time ) ) ;
+      }
+
+      OSS_INLINE BOOLEAN operator <( const tpHPTime &time ) const
+      {
+         return ( _second < time._second ||
+                  ( _second == time._second &&
+                    _nanoSecond < time._nanoSecond ) ) ;
+      }
+
+      OSS_INLINE BOOLEAN operator >( const tpHPTime &time ) const
+      {
+         return time.operator <( *this ) ;
+      }
+
+      OSS_INLINE BOOLEAN operator <=( const tpHPTime &time ) const
+      {
+         return !( operator >( time ) ) ;
+      }
+
+      OSS_INLINE BOOLEAN operator >=( const tpHPTime &time ) const
+      {
+         return !( operator <( time ) ) ;
+      }
+
+   public:
+      // get second component
+      OSS_INLINE UINT64 getSecond() const
+      {
+         return _second ;
+      }
+
+      // get nanosecond component
+      OSS_INLINE UINT64 getNanoSecond() const
+      {
+         return _nanoSecond ;
+      }
+
+      // check if it is 0
+      OSS_INLINE BOOLEAN isZero() const
+      {
+         return ( 0LL == _second && 0LL == _nanoSecond ) ;
+      }
+
+      // reset to 0
+      OSS_INLINE void reset()
+      {
+         _second = 0LL ;
+         _nanoSecond = 0LL ;
+      }
+
+      // parse from nanoseconds
+      OSS_INLINE void fromNanoSecond( UINT64 nanoSecond )
+      {
+         _second = 0LL ;
+         _nanoSecond = nanoSecond ;
+         _normalize() ;
+      }
+
+      // convert to microseconds
+      OSS_INLINE UINT64 toMicroSecond() const
+      {
+         return STP_SEC_TO_MICROSEC( _second ) +
+                STP_NANOSEC_TO_MICROSEC( _nanoSecond ) ;
+      }
+
+      // parse from microseconds
+      OSS_INLINE void fromMicroSecond( UINT64 microSecond )
+      {
+         _second = microSecond / OSS_ONE_MILLION ;
+         _nanoSecond = microSecond % OSS_ONE_MILLION * OSS_ONE_THOUSAND ;
+      }
+
+      // format time to BSON object
+      OSS_INLINE INT32 toBSON( bson::BSONObjBuilder &builder ) const
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            // append second component
+            builder.append( STP_FIELD_NAME_SECOND, (INT64)_second ) ;
+            // append nanosecond component
+            builder.append( STP_FIELD_NAME_NANO_SECOND, (INT64)_nanoSecond ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      // format time to BSON with field name
+      OSS_INLINE INT32 toBSON( const CHAR *fieldName,
+                               bson::BSONObjBuilder &builder ) const
+      {
+         INT32 rc = SDB_OK ;
+
+         SDB_ASSERT( NULL != fieldName, "field name is invalid" ) ;
+
+         try
+         {
+            // append with given field name
+            bson::BSONObjBuilder subBuilder(
+                                          builder.subobjStart( fieldName ) ) ;
+            rc = toBSON( subBuilder ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+            subBuilder.doneFast() ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      // sample time from system by different mode
+      OSS_INLINE void sample( STP_SAMPLE_TIME_MODE mode )
+      {
+         switch ( mode )
+         {
+            case STP_SAMPLE_TIME_REAL :
+            {
+               // get real time
+               sampleReal() ;
+               break ;
+            }
+            case STP_SAMPLE_TIME_MONOTONIC :
+            {
+               // get monotonic time ( time since machine boot )
+               sampleMonotonic() ;
+               break ;
+            }
+            default :
+            {
+               // set to 0
+               _second = 0LL ;
+               _nanoSecond = 0LL ;
+               break ;
+            }
+         }
+      }
+
+      // sample real time from system
+      OSS_INLINE void sampleReal()
+      {
+#if defined (_WINDOWS)
+         // get current time from OSS
+         UINT64 value = 0LL ;
+         ossTimestamp tm ;
+         ossGetCurrentTime( tm ) ;
+         _second = (UINT64)( tm.time ) ;
+         _nanoSecond = (UINT64)( tm.microtm * OSS_ONE_THOUSAND ) ;
+#else
+         // get time from clock
+         struct timespec ts ;
+         if ( 0 == clock_gettime( CLOCK_REALTIME, &ts ) )
+         {
+            _second = (UINT64)( ts.tv_sec ) ;
+            _nanoSecond = (UINT64)( ts.tv_nsec ) ;
+         }
+#endif
+      }
+
+      // sample monotonic time from system
+      OSS_INLINE void sampleMonotonic()
+      {
+#if defined (_WINDOWS)
+         LARGE_INTEGER freq ;
+         LARGE_INTEGER count ;
+         // get time from performance frequency and counter
+         if ( QueryPerformanceFrequency( &freq ) &&
+              QueryPerformanceCounter( &count ) &&
+              freq.QuadPart != 0LL )
+         {
+            double scale = (double)OSS_ONE_BILLION / (double)( freq.QuadPart ) ;
+            UINT64 value = (UINT64)( (double)( count.QuadPart ) * scale ) ;
+            _second = value / OSS_ONE_BILLION ;
+            _nanoSecond = value % OSS_ONE_BILLION ;
+         }
+#else
+         // get time by clock
+         struct timespec ts ;
+         if ( 0 == clock_gettime( CLOCK_MONOTONIC_RAW, &ts ) )
+         {
+            _second = (UINT64)( ts.tv_sec ) ;
+            _nanoSecond = (UINT64)( ts.tv_nsec ) ;
+         }
+#endif
+      }
+
+      // scale time by slew rate ( given ratio to default rate )
+      OSS_INLINE void scale( UINT64 slewRate )
+      {
+         // slew rate must larger than 0
+         if ( slewRate > 0 )
+         {
+            // calculate real slew rate
+            double rate = (double)slewRate / (double)STP_DEF_SLEWRATE ;
+            if ( rate > 1.0 )
+            {
+               // rate is larger than 1, multiple directly
+               _second = (UINT64)( (double)_second * rate ) ;
+               _nanoSecond = (UINT64)( (double)_nanoSecond * rate ) ;
+            }
+            else
+            {
+               // rate is smaller than 1, need save fraction of seconds
+               // component to nanosecond component
+               double fraction = (double)_second * rate ;
+               // calculate second component
+               _second = (UINT64)fraction ;
+               // calculate nanosecond component
+               fraction = fraction - (double)_second ;
+               _nanoSecond = (UINT64)( fraction * (double)OSS_ONE_BILLION +
+                                       (double)_nanoSecond * rate ) ;
+            }
+            // normalize time
+            _normalize() ;
+         }
+      }
+
+      // adjust time by offset ( in nanosecond )
+      OSS_INLINE void adjust( INT64 offset )
+      {
+         if ( offset > 0 )
+         {
+            // offset is positive, add to nanosecond
+            _nanoSecond += offset ;
+         }
+         else if ( offset < 0 )
+         {
+            // offset is negative
+            offset = -1 * offset ;
+            UINT64 second = offset / OSS_ONE_BILLION ;
+            UINT64 nanoSecond = offset % OSS_ONE_BILLION ;
+            if ( _nanoSecond > nanoSecond )
+            {
+               // if nanosecond component could cover given nanosecond,
+               // subtract directly
+               _nanoSecond -= nanoSecond ;
+            }
+            else if ( _second > 0LL )
+            {
+               // nanosecond component could not cover given nanosecond
+               // borrow one second to do the subtraction
+               -- _second ;
+               _nanoSecond = _nanoSecond + OSS_ONE_BILLION - nanoSecond ;
+            }
+            else
+            {
+               // given offset is larger than this time, set to zero
+               _nanoSecond = 0LL ;
+            }
+            // subtract second component
+            if ( _second > second )
+            {
+               _second -= second ;
+            }
+         }
+         // normalize time
+         _normalize() ;
+      }
+
+      // get diff by nanoseonds
+      OSS_INLINE INT64 diff( const tpHPTime &time ) const
+      {
+         INT64 result = 0LL ;
+
+         // compare given time, to calculate absolute value
+         if ( operator >( time ) )
+         {
+            // given time is smaller
+            tpHPTime tempTime = ( *this ) - time ;
+            result = tempTime._toNanoSecond() ;
+         }
+         else
+         {
+            // given time is larger
+            tpHPTime tempTime = time - ( *this ) ;
+            result = -1 * (INT64)( tempTime._toNanoSecond() ) ;
+         }
+
+         return result ;
+      }
+
+   protected:
+      // normalize ( nanosecond component should less than 1,000,000,000 )
+      OSS_INLINE void _normalize()
+      {
+         _second += ( _nanoSecond / OSS_ONE_BILLION ) ;
+         _nanoSecond %= OSS_ONE_BILLION ;
+      }
+
+      // format to nanosecond ( will be cut by lose high bits )
+      OSS_INLINE UINT64 _toNanoSecond() const
+      {
+         return STP_SEC_TO_NANOSEC( _second ) + _nanoSecond ;
+      }
+
+   protected:
+      // second component
+      UINT64 _second ;
+      // nanosecond component
+      UINT64 _nanoSecond ;
+   } ;
+
+   // operators of high precision time
+   // plus two high precision time
+   OSS_INLINE tpHPTime operator +( const tpHPTime &lhs, const tpHPTime &rhs )
+   {
+      tpHPTime result ;
+
+      result._second = lhs._second + rhs._second ;
+      result._nanoSecond = lhs._nanoSecond + rhs._nanoSecond ;
+      result._normalize() ;
+
+      return result ;
+   }
+
+   // subtract two high precision time
+   OSS_INLINE tpHPTime operator -( const tpHPTime &lhs, const tpHPTime &rhs )
+   {
+      tpHPTime result ;
+
+      if ( lhs > rhs )
+      {
+         result._second = lhs._second - rhs._second ;
+         if ( rhs._nanoSecond > lhs._nanoSecond )
+         {
+            // not enough nanoseconds in left, borrow 1 second to do the
+            // subtraction
+            -- result._second ;
+            result._nanoSecond = lhs._nanoSecond + OSS_ONE_BILLION -
+                                  rhs._nanoSecond ;
+         }
+         else
+         {
+            // has enough nanoseconds in left, subtract directly
+            result._nanoSecond = lhs._nanoSecond - rhs._nanoSecond ;
+         }
+      }
+
+      return result ;
+   }
+
+   // plus high precision time with nanoseconds
+   OSS_INLINE tpHPTime operator +( const tpHPTime &lhs, UINT64 rhs )
+   {
+      tpHPTime result = lhs ;
+      result.adjust( (INT64)rhs ) ;
+      return result ;
+   }
+
+   // subtract high precision time with nanoseconds
+   OSS_INLINE tpHPTime operator -( const tpHPTime &lhs, UINT64 rhs )
+   {
+      tpHPTime result = lhs ;
+      result.adjust( (INT64)( -1 * rhs ) ) ;
+      return result ;
+   }
+
+   /*
+      _tpLogicalTimeBase define
+    */
+   class _stpLogicalTimeBase ;
+   typedef class _stpLogicalTimeBase stpLogicalTimeBase ;
+
+   // _tpLogicalTimeBase is base class for logical time in different units
+   class _stpLogicalTimeBase : public utilPooledObject
+   {
+   public:
+      // construct and destructor
+      _stpLogicalTimeBase()
+      : _timeError( 0 )
+      {
+      }
+
+      _stpLogicalTimeBase( const stpLogicalTimeBase &time )
+      : _timeError( time._timeError )
+      {
+      }
+
+      _stpLogicalTimeBase( UINT32 timeError )
+      : _timeError( timeError )
+      {
+      }
+
+      ~_stpLogicalTimeBase()
+      {
+      }
+
+      // set time error ( in nanoseconds )
+      OSS_INLINE void setTimeError( UINT32 timeError )
+      {
+         _timeError = timeError ;
+      }
+
+      // get time error ( in nanoseconds )
+      OSS_INLINE UINT32 getTimeError() const
+      {
+         return _timeError ;
+      }
+
+   protected:
+      // get max time error between two logical times ( in nanoseconds )
+      OSS_INLINE UINT64 _getMaxTimeErrorNS(
+                                       const stpLogicalTimeBase &time ) const
+      {
+         return OSS_MAX( _timeError, time._timeError ) ;
+      }
+
+      // get max time error between two logical times ( in microseconds )
+      OSS_INLINE UINT64 _getMaxTimeErrorUS(
+                                       const stpLogicalTimeBase &time ) const
+      {
+         return STP_NANOSEC_TO_MICROSEC(
+                                    OSS_MAX( _timeError, time._timeError ) ) ;
+      }
+
+   protected:
+      // time error in nanoseconds
+      UINT32 _timeError ;
+   } ;
+
+   /*
+      _stpLogicalTimeNS define
+    */
+   class _stpLogicalTimeNS ;
+   typedef class _stpLogicalTimeNS stpLogicalTimeNS ;
+
+   // _stpLogicalTimeNS is logical time measured in nanoseconds
+   class _stpLogicalTimeNS : public stpLogicalTimeBase
+   {
+   public:
+      // constructor and destructor
+      _stpLogicalTimeNS()
+      : stpLogicalTimeBase(),
+        _time()
+      {
+      }
+
+      _stpLogicalTimeNS( const stpLogicalTimeNS &time )
+      : stpLogicalTimeBase( time ),
+        _time( time._time )
+      {
+      }
+
+      _stpLogicalTimeNS( const tpHPTime &time, UINT32 timeError )
+      : stpLogicalTimeBase( timeError ),
+        _time( time )
+      {
+      }
+
+      ~_stpLogicalTimeNS()
+      {
+      }
+
+   public:
+      // operators
+      OSS_INLINE stpLogicalTimeNS &operator =( const stpLogicalTimeNS &time )
+      {
+         _time = time._time ;
+         _timeError = time._timeError ;
+         return (*this) ;
+      }
+
+      // equal with time error
+      OSS_INLINE BOOLEAN operator ==( const stpLogicalTimeNS &time ) const
+      {
+         // compare two logical time
+         // max time error = max( time error of T1, time error of T2 )
+         // if T1 - max time error < T2 < T1 + max time error, they are equal
+         // ( within time error )
+         UINT64 timeError = _getMaxTimeErrorNS( time ) ;
+         return ( ( time._time - timeError ) < _time &&
+                  ( time._time + timeError ) > _time ) ;
+      }
+
+      // less than with time error
+      OSS_INLINE BOOLEAN operator <( const stpLogicalTimeNS &time ) const
+      {
+         // compare two logical time
+         // max time error = max( time error of T1, time error of T2 )
+         // if T1 <= T2 - max time error, then T1 < T2 ( within time error )
+         return _time <= ( time._time - _getMaxTimeErrorNS( time ) ) ;
+      }
+
+      // larger than with time error
+      OSS_INLINE BOOLEAN operator >( const stpLogicalTimeNS &time ) const
+      {
+         return ( time < ( *this ) ) ;
+      }
+
+   public:
+      // set time in high precision time
+      OSS_INLINE void setTime( const tpHPTime &time )
+      {
+         _time = time ;
+      }
+
+      // get time in high precision time
+      OSS_INLINE const tpHPTime &getTime() const
+      {
+         return _time ;
+      }
+
+   protected:
+      // time in high precision time ( nanoseconds )
+      tpHPTime _time ;
+   } ;
+
+   /*
+      _stpLogicalTimeUS define
+    */
+   class _stpLogicalTimeUS ;
+   typedef class _stpLogicalTimeUS stpLogicalTimeUS ;
+
+   // _stpLogicalTimeUS is logical time measured in microseconds
+   class _stpLogicalTimeUS : public stpLogicalTimeBase
+   {
+   public:
+      // constructor and destructor
+      _stpLogicalTimeUS()
+      : stpLogicalTimeBase(),
+        _time( 0LL )
+      {
+      }
+
+      _stpLogicalTimeUS( const stpLogicalTimeUS &time )
+      : stpLogicalTimeBase( time ),
+        _time( time._time )
+      {
+      }
+
+      // convert from nanoseconds
+      _stpLogicalTimeUS( const stpLogicalTimeNS &time )
+      : stpLogicalTimeBase( time ),
+        _time( time.getTime().toMicroSecond() )
+      {
+      }
+
+      _stpLogicalTimeUS( UINT64 time, UINT32 timeError )
+      : stpLogicalTimeBase( timeError ),
+        _time( time )
+      {
+      }
+
+      ~_stpLogicalTimeUS()
+      {
+      }
+
+   public:
+      // operators
+      OSS_INLINE stpLogicalTimeUS &operator =( const stpLogicalTimeUS &time )
+      {
+         _time = time._time ;
+         _timeError = time._timeError ;
+         return (*this) ;
+      }
+
+      // convert from nanoseconds
+      OSS_INLINE stpLogicalTimeUS &operator =( const stpLogicalTimeNS &time )
+      {
+         _time = time.getTime().toMicroSecond() ;
+         _timeError = time.getTimeError() ;
+         return (*this) ;
+      }
+
+      // equal with time error
+      OSS_INLINE BOOLEAN operator ==( const stpLogicalTimeUS &time ) const
+      {
+         // compare two logical time
+         // max time error = max( time error of T1, time error of T2 )
+         // if T1 - max time error < T2 < T1 + max time error, they are equal
+         // ( within time error )
+         UINT32 timeError = _getMaxTimeErrorUS( time ) ;
+         return ( time._time - timeError < _time &&
+                  time._time + timeError > _time ) ;
+      }
+
+      // less than with time error
+      OSS_INLINE BOOLEAN operator <( const stpLogicalTimeUS &time ) const
+      {
+         // compare two logical time
+         // max time error = max( time error of T1, time error of T2 )
+         // if T1 <= T2 - max time error, then T1 < T2 ( within time error )
+         return _time <= time._time - _getMaxTimeErrorUS( time ) ;
+      }
+
+      // larger than with time error
+      OSS_INLINE BOOLEAN operator >( const stpLogicalTimeUS &time ) const
+      {
+         return ( time < ( *this ) ) ;
+      }
+
+   public:
+      // set time in microseconds
+      OSS_INLINE void setTime( UINT64 time )
+      {
+         _time = time ;
+      }
+
+      // get time in microseconds
+      OSS_INLINE UINT64 getTime() const
+      {
+         return _time ;
+      }
+
+   protected:
+      // time in microseconds
+      UINT64 _time ;
+   } ;
+
+}
+
+#endif // STP_LOGICAL_TIME_HPP_

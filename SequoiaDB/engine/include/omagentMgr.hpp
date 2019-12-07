@@ -77,8 +77,8 @@ namespace engine
          const CHAR* getScriptPath() const { return _scriptPath ; }
          const CHAR* getStartProcFile() const { return _startProcFile ; }
          const CHAR* getStopProcFile() const { return _stopProcFile ; }
-         const CHAR* getStartTPFile() const { return _startTPFile ; }
-         const CHAR* getStopTPFile() const { return _stopTPFile ; }
+         const CHAR* getStartStpFile() const { return _startStpFile ; }
+         const CHAR* getStopStpFile() const { return _stopStpFile ; }
 
          const CHAR* getCMServiceName() const { return _cmServiceName ; }
          const CHAR* getOMAddress() const { return _omAddress ; }
@@ -143,8 +143,8 @@ namespace engine
          CHAR                       _scriptPath[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR                       _startProcFile[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR                       _stopProcFile[ OSS_MAX_PATHSIZE + 1 ] ;
-         CHAR                       _startTPFile[ OSS_MAX_PATHSIZE + 1 ] ;
-         CHAR                       _stopTPFile[ OSS_MAX_PATHSIZE + 1 ] ;
+         CHAR                       _startStpFile[ OSS_MAX_PATHSIZE + 1 ] ;
+         CHAR                       _stopStpFile[ OSS_MAX_PATHSIZE + 1 ] ;
 
          UINT16                     _localPort ;
 

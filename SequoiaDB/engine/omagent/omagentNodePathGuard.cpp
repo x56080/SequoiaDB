@@ -104,8 +104,8 @@ namespace engine {
       _type = SDB_TYPE_DB ;
    }
 
-   void _omaNodePathGuard::initTP( const CHAR *nodeName,
-                                   const CHAR *cfgFileName )
+   void _omaNodePathGuard::initStp( const CHAR *nodeName,
+                                    const CHAR *cfgFileName )
    {
       ossStrncpy( _nodeName, nodeName, OSS_MAX_SERVICENAME ) ;
       _nodeName[ OSS_MAX_SERVICENAME ] = 0 ;
@@ -115,7 +115,7 @@ namespace engine {
          _nodePaths.push_back( cfgFileName ) ;
       }
 
-      _type = SDB_TYPE_TP ;
+      _type = SDB_TYPE_STP ;
    }
 
    BOOLEAN _omaNodePathGuard::muteXOn( _omaNodePathGuard *pOther )

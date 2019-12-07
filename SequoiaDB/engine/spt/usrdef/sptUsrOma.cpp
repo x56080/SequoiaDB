@@ -46,7 +46,7 @@
 #include "pmdDef.hpp"
 #include "utilNodeOpr.hpp"
 #include "sptUsrOmaCommon.hpp"
-#include "sptUsrTp.hpp"
+#include "sptUsrStp.hpp"
 #include "sptDBNode.hpp"
 
 using namespace bson ;
@@ -71,7 +71,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE(_sptUsrOma, stopNode)
    JS_MEMBER_FUNC_DEFINE(_sptUsrOma, runCommand)
    JS_MEMBER_FUNC_DEFINE(_sptUsrOma, close)
-   JS_MEMBER_FUNC_DEFINE(_sptUsrOma, getTP)
+   JS_MEMBER_FUNC_DEFINE(_sptUsrOma, getStp)
    JS_STATIC_FUNC_DEFINE(_sptUsrOma, getOmaInstallInfo)
    JS_STATIC_FUNC_DEFINE(_sptUsrOma, getOmaInstallFile)
    JS_STATIC_FUNC_DEFINE(_sptUsrOma, getOmaConfigFile)
@@ -101,7 +101,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC("stopNode", stopNode)
       JS_ADD_MEMBER_FUNC_WITHATTR("_runCommand", runCommand, 0)
       JS_ADD_MEMBER_FUNC("close", close)
-      JS_ADD_MEMBER_FUNC("getTP", getTP)
+      JS_ADD_MEMBER_FUNC("getStp", getStp)
       JS_ADD_STATIC_FUNC("getOmaInstallInfo", getOmaInstallInfo)
       JS_ADD_STATIC_FUNC("getOmaInstallFile", getOmaInstallFile)
       JS_ADD_STATIC_FUNC("getOmaConfigFile", getOmaConfigFile)
@@ -1291,9 +1291,9 @@ namespace engine
       goto done ;
    }
 
-   INT32 _sptUsrOma::getTP( const _sptArguments &arg,
-                            _sptReturnVal &rval,
-                            bson::BSONObj &detail )
+   INT32 _sptUsrOma::getStp( const _sptArguments &arg,
+                             _sptReturnVal &rval,
+                             bson::BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
 
@@ -1302,7 +1302,7 @@ namespace engine
       BSONObj dummy ;
 
       string tpServiceName ;
-      sptUsrTp *sptTP = NULL ;
+      sptUsrStp *sptStp = NULL ;
 
       if ( arg.argc() != 0 )
       {
@@ -1312,13 +1312,13 @@ namespace engine
                       "arguments, rc: %d", rc ) ;
       }
 
-      rc = _assit.runCommand( CMD_NAME_TP_GET, dummy.objdata(),
+      rc = _assit.runCommand( CMD_NAME_STP_GET, dummy.objdata(),
                               &returnBuffer, retCode, TRUE ) ;
       if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "Failed to get TP node" ) ;
+         detail = BSON( SPT_ERR << "Failed to get STP node" ) ;
       }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get TP node, rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get STP node, rc: %d", rc ) ;
 
       try
       {
@@ -1328,7 +1328,7 @@ namespace engine
          if ( SDB_OK != retCode )
          {
             detail = BSON( SPT_ERR << object.getStringField( OP_ERR_DETAIL ) ) ;
-            PD_LOG( PDERROR, "Failed to get TP node from remote sdbcm, "
+            PD_LOG( PDERROR, "Failed to get STP node from remote sdbcm, "
                     "rc: %d", retCode ) ;
             rc = retCode ;
             goto error ;
@@ -1340,8 +1340,8 @@ namespace engine
          {
             rc = SDB_SYS ;
             detail = BSON( SPT_ERR << "Failed to extract service name from "
-                           "TP node" ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get TP node, failed to get "
+                           "STP node" ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get STP node, failed to get "
                          "service name from [%s], rc: %d",
                          object.toString().c_str(), rc ) ;
          }
@@ -1351,28 +1351,28 @@ namespace engine
       {
          rc = SDB_SYS ;
          detail = BSON( SPT_ERR << "Failed to extract information of "
-                        "TP node" ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get TP node, occurred error: %s",
+                        "STP node" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get STP node, occurred error: %s",
                       e.what() ) ;
       }
 
-      sptTP = SDB_OSS_NEW sptUsrTp( _hostname, tpServiceName, _svcname ) ;
-      if ( NULL == sptTP )
+      sptStp = SDB_OSS_NEW sptUsrStp( _hostname, tpServiceName, _svcname ) ;
+      if ( NULL == sptStp )
       {
          rc = SDB_OOM ;
-         detail = BSON( SPT_ERR << "Failed to allocate memory for TP node" ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to allocate memory for TP node, "
+         detail = BSON( SPT_ERR << "Failed to allocate memory for STP node" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to allocate memory for STP node, "
                       "rc: %d", rc ) ;
       }
 
-      rc = rval.setUsrObjectVal< sptUsrTp >( sptTP ) ;
+      rc = rval.setUsrObjectVal< sptUsrStp >( sptStp ) ;
       if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to set return object" ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to set return object, rc: %d",
                       rc ) ;
       }
-      sptTP = NULL ;
+      sptStp = NULL ;
 
       rval.getReturnVal().setAttr( SPT_PROP_READONLY ) ;
       rval.addReturnValProperty( SPT_NODE_HOSTNAME_FIELD )->
@@ -1384,7 +1384,7 @@ namespace engine
       return rc ;
 
    error:
-      SAFE_OSS_DELETE( sptTP ) ;
+      SAFE_OSS_DELETE( sptStp ) ;
       goto done ;
    }
 

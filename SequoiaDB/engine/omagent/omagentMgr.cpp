@@ -69,8 +69,8 @@ namespace engine
       ossMemset( _scriptPath, 0, sizeof( _scriptPath ) ) ;
       ossMemset( _startProcFile, 0, sizeof( _startProcFile ) ) ;
       ossMemset( _stopProcFile, 0, sizeof( _stopProcFile ) ) ;
-      ossMemset( _startTPFile, 0, sizeof( _startTPFile ) ) ;
-      ossMemset( _stopTPFile, 0, sizeof( _stopTPFile ) ) ;
+      ossMemset( _startStpFile, 0, sizeof( _startStpFile ) ) ;
+      ossMemset( _stopStpFile, 0, sizeof( _stopStpFile ) ) ;
       ossMemset( _omAddress, 0, sizeof( _omAddress ) ) ;
 
       _localPort           = 0 ;
@@ -182,18 +182,18 @@ namespace engine
          goto error ;
       }
 
-      // build sdbtpart program file path
-      rc = utilBuildFullPath ( pRootPath, SDBTPART_EXE_FILE_NAME,
-                               OSS_MAX_PATHSIZE, _startTPFile ) ;
+      // build stpstart program file path
+      rc = utilBuildFullPath ( pRootPath, STPSTART_EXE_FILE_NAME,
+                               OSS_MAX_PATHSIZE, _startStpFile ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Root path is too long: %s", pRootPath ) ;
          goto error ;
       }
 
-      // build sdbstop program file path
-      rc = utilBuildFullPath ( pRootPath, SDBTPTOP_EXE_FILE_NAME,
-                               OSS_MAX_PATHSIZE, _stopTPFile ) ;
+      // build stpstop program file path
+      rc = utilBuildFullPath ( pRootPath, STPSTOP_EXE_FILE_NAME,
+                               OSS_MAX_PATHSIZE, _stopStpFile ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Root path is too long: %s", pRootPath ) ;
@@ -1004,7 +1004,7 @@ namespace engine
       else if ( _watchAndCleanTimer == timerID )
       {
          _nodeMgr.watchManualNodes() ;
-         _nodeMgr.watchTPNode() ;
+         _nodeMgr.watchStpNode() ;
          _nodeMgr.cleanDeadNodes() ;
       }
       else if ( _immediatelyTimer == timerID )

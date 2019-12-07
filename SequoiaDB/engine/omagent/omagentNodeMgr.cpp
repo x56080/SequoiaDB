@@ -376,12 +376,12 @@ namespace engine
          addNodeGuard( vecSvc[i] ) ;
       }
 
-      // init TP node
-      rc = omGetTPFromConfig( sdbGetOMAgentOptions()->getCfgPath(),
+      // init STP node
+      rc = omGetStpFromConfig( sdbGetOMAgentOptions()->getCfgPath(),
                                tpServiceName ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDINFO, "Failed to get TP config file from root path %s, "
+         PD_LOG( PDINFO, "Failed to get STP config file from root path %s, "
                  "rc: %d", sdbGetOMAgentOptions()->getCfgPath(), rc ) ;
          rc = SDB_OK ;
          goto done ;
@@ -390,20 +390,20 @@ namespace engine
       _mapLatch.get() ;
 
       dbProcess.reset() ;
-      dbProcess._type = SDB_TYPE_TP ;
+      dbProcess._type = SDB_TYPE_STP ;
       omCheckDBProcessBySvc( tpServiceName.c_str(), isRunning,
                              dbProcess._pid ) ;
       if ( isRunning )
       {
          dbProcess._status = OMNODE_RUNNING ;
-         PD_LOG( PDEVENT, "Detect Sequoiadb TP node[svcname = %s] already "
+         PD_LOG( PDEVENT, "Detect STP node[svcname = %s] already "
                  "started, pid: %d", tpServiceName.c_str(), dbProcess._pid ) ;
       }
       _mapDBProcess[ tpServiceName ] = dbProcess ;
 
       _mapLatch.release() ;
 
-      addTPNodeGuard( tpServiceName ) ;
+      addStpNodeGuard( tpServiceName ) ;
 
    done:
       return rc ;
@@ -543,17 +543,17 @@ namespace engine
       return ;
    }
 
-   void _omAgentNodeMgr::watchTPNode()
+   void _omAgentNodeMgr::watchStpNode()
    {
       INT32 rc = SDB_OK ;
 
       const CHAR *rootPath = sdbGetOMAgentOptions()->getCfgPath() ;
       string svcname ;
 
-      rc = omGetTPFromConfig( rootPath, svcname ) ;
+      rc = omGetStpFromConfig( rootPath, svcname ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDINFO, "Failed to get TP config file from root path %s, "
+         PD_LOG( PDINFO, "Failed to get STP config file from root path %s, "
                  "rc: %d", rootPath, rc ) ;
          rc = SDB_OK ;
          goto done ;
@@ -561,10 +561,10 @@ namespace engine
 
       lockBucket( svcname ) ;
 
-      addTPNodeGuard( svcname ) ;
+      addStpNodeGuard( svcname ) ;
       if ( NULL != _getNodeGuard( svcname.c_str() ) )
       {
-         addNodeProcessInfo( svcname, SDB_TYPE_TP ) ;
+         addNodeProcessInfo( svcname, SDB_TYPE_STP ) ;
       }
 
       releaseBucket( svcname ) ;
@@ -767,12 +767,12 @@ namespace engine
 
             break ;
          }
-         case SDB_TYPE_TP :
+         case SDB_TYPE_STP :
          {
             const CHAR *rootPath = sdbGetOMAgentOptions()->getCfgPath() ;
-            rc = utilBuildFullPath( rootPath, SDBTP_CFG_FILE_NAME,
+            rc = utilBuildFullPath( rootPath, STP_CFG_FILE_NAME,
                                     OSS_MAX_PATHSIZE, cfgFile ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to build TP config path for "
+            PD_RC_CHECK( rc, PDERROR, "Failed to build STP config path for "
                          "root path %s, rc: %d", rootPath, rc ) ;
             break ;
          }
@@ -1061,14 +1061,14 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omAgentNodeMgr::addTPNode( const BSONObj &config )
+   INT32 _omAgentNodeMgr::addStpNode( const BSONObj &config )
    {
       INT32 rc = SDB_OK ;
 
       CHAR configPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR configFileName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
-      string serviceName = TP_DEF_SVCNAME ;
+      string serviceName = STP_DEF_SERVICE_NAME ;
       string configString ;
 
       omaNodePathGuard nodeGuard ;
@@ -1122,12 +1122,12 @@ namespace engine
          goto error ;
       }
 
-      rc = _getCfgPath( serviceName.c_str(), SDB_TYPE_TP, configPath,
+      rc = _getCfgPath( serviceName.c_str(), SDB_TYPE_STP, configPath,
                         OSS_MAX_PATHSIZE + 1, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build config path, rc: %d",
                    rc ) ;
 
-      rc = _getCfgFile( serviceName.c_str(), SDB_TYPE_TP, configFileName,
+      rc = _getCfgFile( serviceName.c_str(), SDB_TYPE_STP, configFileName,
                         OSS_MAX_PATHSIZE + 1, TRUE, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build config file name, rc: %d",
                    rc ) ;
@@ -1151,7 +1151,7 @@ namespace engine
       if ( SDB_FE == rc )
       {
          rc = SDBCM_NODE_EXISTED ;
-         PD_LOG( PDERROR, "TP node exists in config path %s",
+         PD_LOG( PDERROR, "STP node exists in config path %s",
                  configFileName ) ;
          goto error ;
       }
@@ -1160,14 +1160,14 @@ namespace engine
       createCfgFile = TRUE ;
 
       /// check config mutex on others
-      nodeGuard.initTP( serviceName.c_str(), configFileName ) ;
+      nodeGuard.initStp( serviceName.c_str(), configFileName ) ;
       rc = _checkNodeConflict( nodeGuard ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check node conflict, rc: %d", rc ) ;
 
-      addNodeProcessInfo( serviceName, SDB_TYPE_TP ) ;
+      addNodeProcessInfo( serviceName, SDB_TYPE_STP ) ;
       addNodeGuard( nodeGuard ) ;
 
-      PD_LOG( PDEVENT, "Add TP node [%s] succeed", serviceName.c_str() ) ;
+      PD_LOG( PDEVENT, "Add STP node [%s] succeed", serviceName.c_str() ) ;
 
    done:
       if ( hasLock )
@@ -1188,7 +1188,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omAgentNodeMgr::removeTPNode()
+   INT32 _omAgentNodeMgr::removeStpNode()
    {
       INT32 rc = SDB_OK ;
 
@@ -1198,34 +1198,34 @@ namespace engine
       string serviceName ;
       BOOLEAN hasLock = FALSE ;
 
-      // init TP node
-      rc = omGetTPFromConfig( configPath, serviceName ) ;
+      // init STP node
+      rc = omGetStpFromConfig( configPath, serviceName ) ;
       if ( SDB_FNE == rc )
       {
          rc = SDBCM_NODE_NOTEXISTED ;
-         PD_LOG( PDINFO, "Failed to get TP config file from path %s, "
-                 "TP node does not exist", configPath ) ;
+         PD_LOG( PDINFO, "Failed to get STP config file from path %s, "
+                 "STP node does not exist", configPath ) ;
          goto error ;
       }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get TP config file from path %s, "
+      PD_RC_CHECK( rc, PDERROR, "Failed to get STP config file from path %s, "
                    "rc: %d", configPath, rc ) ;
 
       lockBucket( serviceName ) ;
       hasLock = TRUE ;
 
-      rc = _getCfgFile( serviceName.c_str(), SDB_TYPE_TP, cfgFileName,
+      rc = _getCfgFile( serviceName.c_str(), SDB_TYPE_STP, cfgFileName,
                         OSS_MAX_PATHSIZE, TRUE, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get config file name for "
-                   "TP node [%s], rc: %d", serviceName.c_str(), rc ) ;
+                   "STP node [%s], rc: %d", serviceName.c_str(), rc ) ;
 
-      rc = utilBuildFullPath( configPath, SDBTP_META_FILE_NAME,
+      rc = utilBuildFullPath( configPath, STP_META_FILE_NAME,
                               OSS_MAX_PATHSIZE, metaFileName ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build TP meta path for "
+      PD_RC_CHECK( rc, PDERROR, "Failed to build STP meta path for "
                    "root path %s, rc: %d", configPath, rc ) ;
 
       // first to stop the node
-      rc = stopTPNode( serviceName.c_str(), NODE_START_CLIENT, FALSE, TRUE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to stop TP node [%s] before remove, "
+      rc = stopStpNode( serviceName.c_str(), NODE_START_CLIENT, FALSE, TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to stop STP node [%s] before remove, "
                    "rc: %d", rc ) ;
 
       // remove config file
@@ -1250,7 +1250,7 @@ namespace engine
       delNodeProcessInfo( serviceName ) ;
       delNodeGuard( serviceName ) ;
 
-      PD_LOG( PDEVENT, "Remove TP node [%s] succeed", serviceName.c_str() ) ;
+      PD_LOG( PDEVENT, "Remove STP node [%s] succeed", serviceName.c_str() ) ;
 
    done:
       if ( hasLock )
@@ -1263,26 +1263,26 @@ namespace engine
       goto done;
    }
 
-   INT32 _omAgentNodeMgr::startTPNode()
+   INT32 _omAgentNodeMgr::startStpNode()
    {
       INT32 rc = SDB_OK ;
 
       const CHAR *configPath = sdbGetOMAgentOptions()->getCfgPath() ;
       string serviceName ;
 
-      rc = omGetTPFromConfig( configPath, serviceName ) ;
+      rc = omGetStpFromConfig( configPath, serviceName ) ;
       if ( SDB_FNE == rc )
       {
          rc = SDBCM_NODE_NOTEXISTED ;
-         PD_LOG( PDINFO, "Failed to get TP config file from path %s, "
-                 "TP node does not exist", configPath ) ;
+         PD_LOG( PDINFO, "Failed to get STP config file from path %s, "
+                 "STP node does not exist", configPath ) ;
          goto error ;
       }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get TP config file from path %s, "
+      PD_RC_CHECK( rc, PDERROR, "Failed to get STP config file from path %s, "
                    "rc: %d", configPath, rc ) ;
 
-      rc = startTPNode( serviceName.c_str(), NODE_START_CLIENT, TRUE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to start TP node [%s], rc: %d",
+      rc = startStpNode( serviceName.c_str(), NODE_START_CLIENT, TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to start STP node [%s], rc: %d",
                    serviceName.c_str() ) ;
 
    done:
@@ -1292,26 +1292,26 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omAgentNodeMgr::stopTPNode()
+   INT32 _omAgentNodeMgr::stopStpNode()
    {
       INT32 rc = SDB_OK ;
 
       const CHAR *configPath = sdbGetOMAgentOptions()->getCfgPath() ;
       string serviceName ;
 
-      rc = omGetTPFromConfig( configPath, serviceName ) ;
+      rc = omGetStpFromConfig( configPath, serviceName ) ;
       if ( SDB_FNE == rc )
       {
          rc = SDBCM_NODE_NOTEXISTED ;
-         PD_LOG( PDINFO, "Failed to get TP config file from path %s, "
-                 "TP node does not exist", configPath ) ;
+         PD_LOG( PDINFO, "Failed to get STP config file from path %s, "
+                 "STP node does not exist", configPath ) ;
          goto error ;
       }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get TP config file from path %s, "
+      PD_RC_CHECK( rc, PDERROR, "Failed to get STP config file from path %s, "
                    "rc: %d", configPath, rc ) ;
 
-      rc = stopTPNode( serviceName.c_str(), NODE_START_CLIENT, TRUE, FALSE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to stop TP node [%s], rc: %d",
+      rc = stopStpNode( serviceName.c_str(), NODE_START_CLIENT, TRUE, FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to stop STP node [%s], rc: %d",
                    serviceName.c_str() ) ;
 
    done:
@@ -1321,19 +1321,19 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omAgentNodeMgr::startTPNode( const CHAR *svcname,
+   INT32 _omAgentNodeMgr::startStpNode( const CHAR *svcname,
+                                        NODE_START_TYPE type,
+                                        BOOLEAN needLock )
+   {
+      return startANode( svcname, SDB_TYPE_STP, type, needLock ) ;
+   }
+
+   INT32 _omAgentNodeMgr::stopStpNode( const CHAR *svcname,
                                        NODE_START_TYPE type,
-                                       BOOLEAN needLock )
+                                       BOOLEAN needLock,
+                                       BOOLEAN force )
    {
-      return startANode( svcname, SDB_TYPE_TP, type, needLock ) ;
-   }
-
-   INT32 _omAgentNodeMgr::stopTPNode( const CHAR *svcname,
-                                      NODE_START_TYPE type,
-                                      BOOLEAN needLock,
-                                      BOOLEAN force )
-   {
-      return stopANode( svcname, SDB_TYPE_TP, type, needLock, force, FALSE ) ;
+      return stopANode( svcname, SDB_TYPE_STP, type, needLock, force, FALSE ) ;
    }
 
    INT32 _omAgentNodeMgr::addNodeProcessInfo( const string &svcname,
@@ -1430,7 +1430,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omAgentNodeMgr::addTPNodeGuard( const string &svcname )
+   INT32 _omAgentNodeMgr::addStpNodeGuard( const string &svcname )
    {
       INT32 rc = SDB_OK ;
 
@@ -1439,14 +1439,14 @@ namespace engine
 
       omaNodePathGuard nodeGuard ;
 
-      rc = utilBuildFullPath( rootPath, SDBTP_CFG_FILE_NAME, OSS_MAX_PATHSIZE,
+      rc = utilBuildFullPath( rootPath, STP_CFG_FILE_NAME, OSS_MAX_PATHSIZE,
                               cfgFileName ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build TP config path for root "
+      PD_RC_CHECK( rc, PDERROR, "Failed to build STP config path for root "
                    "path %s, rc: %d", rootPath, rc ) ;
 
-      nodeGuard.initTP( svcname.c_str(), cfgFileName ) ;
+      nodeGuard.initStp( svcname.c_str(), cfgFileName ) ;
       rc = addNodeGuard( nodeGuard ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to add TP node [%s] to guard, rc: %d",
+      PD_RC_CHECK( rc, PDERROR, "Failed to add STP node [%s] to guard, rc: %d",
                    svcname.c_str(), rc ) ;
 
    done:
@@ -2330,7 +2330,7 @@ namespace engine
                          "[svcname: %s], rc: %d", svcname, rc ) ;
             break ;
          }
-         case SDB_TYPE_TP :
+         case SDB_TYPE_STP :
          {
             // use the same path as omagent
             const CHAR *tmpConfigPath = sdbGetOMAgentOptions()->getCfgPath() ;
@@ -2378,9 +2378,9 @@ namespace engine
             startTool = sdbGetOMAgentOptions()->getStartProcFile() ;
             break ;
          }
-         case SDB_TYPE_TP :
+         case SDB_TYPE_STP :
          {
-            startTool = sdbGetOMAgentOptions()->getStartTPFile() ;
+            startTool = sdbGetOMAgentOptions()->getStartStpFile() ;
             break ;
          }
          default:
@@ -2405,9 +2405,9 @@ namespace engine
             stopTool = sdbGetOMAgentOptions()->getStopProcFile() ;
             break ;
          }
-         case SDB_TYPE_TP :
+         case SDB_TYPE_STP :
          {
-            stopTool = sdbGetOMAgentOptions()->getStopTPFile() ;
+            stopTool = sdbGetOMAgentOptions()->getStopStpFile() ;
             break ;
          }
          default:

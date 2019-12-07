@@ -331,7 +331,7 @@ namespace engine
 
          // can't stop oma
          if ( SDB_TYPE_OMA == info._type ||
-              SDB_TYPE_TP == info._type )
+              SDB_TYPE_STP == info._type )
          {
             itrNode = listNodes.erase( itrNode ) ;
             continue ;

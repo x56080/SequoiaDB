@@ -237,7 +237,7 @@ namespace engine
             Watch the nodes that create by user created manually
          */
          void     watchManualNodes() ;
-         void     watchTPNode() ;
+         void     watchStpNode() ;
 
          // remote process functions
          INT32    addANode( const CHAR *arg1, const CHAR *arg2,
@@ -262,7 +262,7 @@ namespace engine
 
          INT32    addNodeGuard( _omaNodePathGuard &nodeGuard ) ;
          INT32    addNodeGuard( const string &svcname ) ;
-         INT32    addTPNodeGuard( const string &svcname ) ;
+         INT32    addStpNodeGuard( const string &svcname ) ;
          INT32    delNodeGuard( const string &svcname ) ;
 
          INT32    startANode( const CHAR *svcname,
@@ -276,17 +276,17 @@ namespace engine
                              BOOLEAN force = FALSE,
                              BOOLEAN withService = TRUE ) ;
 
-         INT32    addTPNode( const BSONObj &config ) ;
-         INT32    removeTPNode() ;
-         INT32    startTPNode() ;
-         INT32    stopTPNode() ;
-         INT32    startTPNode( const CHAR *svcname,
+         INT32    addStpNode( const BSONObj &config ) ;
+         INT32    removeStpNode() ;
+         INT32    startStpNode() ;
+         INT32    stopStpNode() ;
+         INT32    startStpNode( const CHAR *svcname,
+                                NODE_START_TYPE type,
+                                BOOLEAN needLock ) ;
+         INT32    stopStpNode( const CHAR *svcname,
                                NODE_START_TYPE type,
-                               BOOLEAN needLock ) ;
-         INT32    stopTPNode( const CHAR *svcname,
-                              NODE_START_TYPE type,
-                              BOOLEAN needLock,
-                              BOOLEAN force = FALSE ) ;
+                               BOOLEAN needLock,
+                               BOOLEAN force = FALSE ) ;
 
       protected:
          void     lockBucket( const string &svcname ) ;

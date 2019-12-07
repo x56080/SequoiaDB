@@ -112,6 +112,10 @@ namespace engine
 
       sdbGetDMSCB()->setIxmKeySorterCreator( creator ) ;
 
+      _stpAgent = SDB_OSS_NEW stpAgent() ;
+      PD_CHECK( NULL != _stpAgent, SDB_OOM, error, PDERROR,
+                "Failed to create STP agent" ) ;
+
       // The error of initialization of APM could be ignore
       // Only data and catalog nodes could initialize plan cache
       _accessPlanManager.init(
@@ -133,16 +137,14 @@ namespace engine
 
    INT32 _SDB_RTNCB::active ()
    {
-      INT32 rc = SDB_OK ;
+      if ( NULL != _stpAgent )
+      {
+         // activate STP agent, no need to be available now, we could
+         // re-check later when we need STP to get logical time
+         _stpAgent->active( FALSE ) ;
+      }
 
-      rc = _tpAgent.active() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to active TP agent, rc: %d", rc ) ;
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
+      return SDB_OK ;
    }
 
    INT32 _SDB_RTNCB::deactive ()
@@ -152,7 +154,10 @@ namespace engine
          _remoteMessenger->deactive() ;
       }
 
-      _tpAgent.deactive() ;
+      if ( NULL != _stpAgent )
+      {
+         _stpAgent->deactive() ;
+      }
 
       return SDB_OK ;
    }
