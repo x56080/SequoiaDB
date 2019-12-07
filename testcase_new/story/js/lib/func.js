@@ -9,100 +9,102 @@
 // UUID, UUNAME is input parameter
 //if ( typeof(CSPREFIX) == "undefined" ) { CSPREFIX = "local_test"; }
 //cm端口号
-if ( typeof(CMSVCNAME) == "undefined" ) { CMSVCNAME = "11790"; }
+if( typeof ( CMSVCNAME ) == "undefined" ) { CMSVCNAME = "11790"; }
 //公共CS前缀
-if ( typeof(CHANGEDPREFIX) == "undefined" ) { CHANGEDPREFIX = "local_test"; }
+if( typeof ( CHANGEDPREFIX ) == "undefined" ) { CHANGEDPREFIX = "local_test"; }
 //协调节点端口号，CI默认11810
-if ( typeof(COORDSVCNAME) == "undefined" ) { COORDSVCNAME = "50000"; }
+if( typeof ( COORDSVCNAME ) == "undefined" ) { COORDSVCNAME = "50000"; }
 //编目节点端口号
-if ( typeof(CATASVCNAME) == "undefined" ) { CATASVCNAME = "11800"; }
+if( typeof ( CATASVCNAME ) == "undefined" ) { CATASVCNAME = "11800"; }
 //协调节点主机名
-if ( typeof(COORDHOSTNAME) == "undefined" ) { COORDHOSTNAME = 'localhost'; }
-if ( typeof(UUID) == "undefined" ) { UUID = 1 ; }
-if ( typeof(UUNAME) == "undefined" ) { UUNAME = "ID"+UUID+"NAME" ; }
+if( typeof ( COORDHOSTNAME ) == "undefined" ) { COORDHOSTNAME = 'localhost'; }
+if( typeof ( UUID ) == "undefined" ) { UUID = 1; }
+if( typeof ( UUNAME ) == "undefined" ) { UUNAME = "ID" + UUID + "NAME"; }
 //用例预留端口最小值
-if ( typeof(RSRVPORTBEGIN) == "undefined" ) { RSRVPORTBEGIN = '26000'; }
+if( typeof ( RSRVPORTBEGIN ) == "undefined" ) { RSRVPORTBEGIN = '26000'; }
 //用例预留端口最大值
-if ( typeof(RSRVPORTEND)   == "undefined" ) { RSRVPORTEND   = '27000'; }
+if( typeof ( RSRVPORTEND ) == "undefined" ) { RSRVPORTEND = '27000'; }
 //用例创建节点数据目录
-if ( typeof(RSRVNODEDIR)   == "undefined" ) { RSRVNODEDIR   = "/opt/sequoiadb/database/"; }
+if( typeof ( RSRVNODEDIR ) == "undefined" ) { RSRVNODEDIR = "/opt/sequoiadb/database/"; }
 //用例存放临时文件目录
-if ( typeof(WORKDIR)   == "undefined" ) { WORKDIR   = "/tmp/jstest"; }
+if( typeof ( WORKDIR ) == "undefined" ) { WORKDIR = "/tmp/jstest"; }
 //ES服务端主机名，CI默认传入192.168.28.143
-if ( typeof(ESHOSTNAME) == "undefined" ) { ESHOSTNAME = 'localhost'; }
+if( typeof ( ESHOSTNAME ) == "undefined" ) { ESHOSTNAME = 'localhost'; }
 //ES服务端端口号，CI默认传入9200
-if ( typeof(ESSVCNAME) == "undefined" ) { ESSVCNAME = '9200'; }
+if( typeof ( ESSVCNAME ) == "undefined" ) { ESSVCNAME = '9200'; }
 //ES全文索引前缀，与工程名相关
-if ( typeof(FULLTEXTPREFIX) == "undefined" ) { FULLTEXTPREFIX = ''; }
-if ( typeof(CLEANFORFAIL) == "undefined" ) { var CLEANFORFAIL = false; }
+if( typeof ( FULLTEXTPREFIX ) == "undefined" ) { FULLTEXTPREFIX = ''; }
+if( typeof ( CLEANFORFAIL ) == "undefined" ) { var CLEANFORFAIL = false; }
 
-var COMMCSNAME = CHANGEDPREFIX + "_cs" ;
-var COMMCLNAME = CHANGEDPREFIX + "_cl" ;
-var COMMDUMMYCLNAME = "test_dummy_cl" ;
+var COMMCSNAME = CHANGEDPREFIX + "_cs";
+var COMMCLNAME = CHANGEDPREFIX + "_cl";
+var COMMDUMMYCLNAME = "test_dummy_cl";
 //public capped cs
 var COMMCAPPEDCSNAME = CHANGEDPREFIX + "_capped_cs";
 var COMMCAPPEDCLNAME = CHANGEDPREFIX + "_capped_cl";
 
-var DATA_GROUP_ID_BEGIN = 1000 ;
-var CATALOG_GROUPNAME = "SYSCatalogGroup" ;
-var COORD_GROUPNAME = "SYSCoord" ;
-var DOMAINNAME = "_SYS_DOMAIN_" ;
+var DATA_GROUP_ID_BEGIN = 1000;
+var CATALOG_GROUPNAME = "SYSCatalogGroup";
+var COORD_GROUPNAME = "SYSCoord";
+var DOMAINNAME = "_SYS_DOMAIN_";
 var SPARE_GROUPNAME = "SYSSpare";
-var CATALOG_GROUPID = 1 ;
-var COORD_GROUPID = 2 ;
-var SPARE_GROUPID = 5 ;
+var CATALOG_GROUPID = 1;
+var COORD_GROUPID = 2;
+var SPARE_GROUPID = 5;
 // end global variable configuration
 
 // control variable
-var funcCommDropCSTimes = 0 ;
-var funcCommCreateCSTimes = 0 ;
-var funcCommCreateCLTimes = 0 ;
-var funcCommCreateCLOptTimes =  0 ;
-var funcCommDropCLTimes = 0 ;
+var funcCommDropCSTimes = 0;
+var funcCommCreateCSTimes = 0;
+var funcCommCreateCLTimes = 0;
+var funcCommCreateCLOptTimes = 0;
+var funcCommDropCLTimes = 0;
 // end control variable
 
-doassert = function(msg) {
-    // eval if msg is a function
-    if (typeof(msg) == "function")
-        msg = msg();
+doassert = function( msg )
+{
+   // eval if msg is a function
+   if( typeof ( msg ) == "function" )
+      msg = msg();
 
-    if (typeof (msg) == "string" && msg.indexOf("assert") == 0)
-        print(msg);
-    else
-        print("assert: " + msg);
+   if( typeof ( msg ) == "string" && msg.indexOf( "assert" ) == 0 )
+      print( msg );
+   else
+      print( "assert: " + msg );
 
-    var ex = Error(msg);
-    print(ex.stack);
-    throw ex;
+   var ex = Error( msg );
+   print( ex.stack );
+   throw ex;
 }
 
-assert = function(b, msg){
-    if (assert._debug && msg) print("in assert for: " + msg);
-    if (b)
-        return;
-    doassert(msg == undefined ? "assert failed" : "assert failed : " + msg);
+assert = function( b, msg )
+{
+   if( assert._debug && msg ) print( "in assert for: " + msg );
+   if( b )
+      return;
+   doassert( msg == undefined ? "assert failed" : "assert failed : " + msg );
 }
 
 /* *****************************************************************************
 @discription: check database mode is standalone
 @author: Jianhui Xu
 ***************************************************************************** */
-function commIsStandalone( db )
+function commIsStandalone ( db ) 
 {
    try
    {
-      db.listReplicaGroups() ;
-      return false ;
+      db.listReplicaGroups();
+      return false;
    }
    catch( e )
    {
       if( e == -159 )
       {
-         return true ;
+         return true;
       }
       else
       {
-         throw new Error( "execute listReplicaGroups happen error , e =" +e ) ;
+         throw new Error( "execute listReplicaGroups happen error , e =" + e );
       }
    }
 }
@@ -117,34 +119,34 @@ function commIsStandalone( db )
            exp : {"Domain":"domName"}
            
 ***************************************************************************** */
-function commCreateCS( db, csName, ignoreExisted, message, options )
+function commCreateCS ( db, csName, ignoreExisted, message, options )
 {
-   ++funcCommCreateCSTimes ;
-   if ( ignoreExisted == undefined ) { ignoreExisted = false ; }
-   if ( message == undefined ) { message = "" ; }
-   if ( options == undefined ) { options = "" ; }
+   ++funcCommCreateCSTimes;
+   if( ignoreExisted == undefined ) { ignoreExisted = false; }
+   if( message == undefined ) { message = ""; }
+   if( options == undefined ) { options = ""; }
    try
    {
       if( "" == options )
-         return db.createCS( csName ) ;
+         return db.createCS( csName );
       else
-         return db.createCS( csName, options ) ;
+         return db.createCS( csName, options );
    }
-   catch ( e )
+   catch( e )
    {
-      if ( e != -33 || !ignoreExisted )
+      if( e != -33 || !ignoreExisted )
       {
-         throw new Error( "commCreateCS[" + funcCommCreateCSTimes + "] Create collection space[" + csName + "] failed: " + e + ", message: " + message ) ;
+         throw new Error( "commCreateCS[" + funcCommCreateCSTimes + "] Create collection space[" + csName + "] failed: " + e + ", message: " + message );
       }
    }
    // get collection space object
    try
    {
-      return db.getCS( csName ) ;
+      return db.getCS( csName );
    }
-   catch ( e )
+   catch( e )
    {
-      throw new Error( "commCreateCS[" + funcCommCreateCSTimes + "] Get existed collection space[" + csName + "] failed: " + e + ",message: " + message ) ;
+      throw new Error( "commCreateCS[" + funcCommCreateCSTimes + "] Get existed collection space[" + csName + "] failed: " + e + ",message: " + message );
    }
 }
 
@@ -158,39 +160,39 @@ function commCreateCS( db, csName, ignoreExisted, message, options )
    ignoreExisted: default = false, value: true/false
    message: default = "", value: user defined message string
 ***************************************************************************** */
-function commCreateCL( db, csName, clName, replSize, compressed, autoCreateCS, ignoreExisted, message )
+function commCreateCL ( db, csName, clName, replSize, compressed, autoCreateCS, ignoreExisted, message )
 {
-   ++funcCommCreateCLTimes ;
-   if ( replSize == undefined || replSize < 0 ) { replSize = 0 ; }
-   if ( compressed == undefined ) { compressed = true ; }
-   if ( autoCreateCS == undefined ) { autoCreateCS = true ; }
-   if ( ignoreExisted == undefined ) { ignoreExisted = false ; }
-   if ( message == undefined ) { message = ""; }
+   ++funcCommCreateCLTimes;
+   if( replSize == undefined || replSize < 0 ) { replSize = 0; }
+   if( compressed == undefined ) { compressed = true; }
+   if( autoCreateCS == undefined ) { autoCreateCS = true; }
+   if( ignoreExisted == undefined ) { ignoreExisted = false; }
+   if( message == undefined ) { message = ""; }
 
-   if ( autoCreateCS )
+   if( autoCreateCS )
    {
-      commCreateCS( db, csName, true, "commCreateCL auto to create collection space" ) ;
+      commCreateCS( db, csName, true, "commCreateCL auto to create collection space" );
    }
 
    try
    {
-      return db.getCS( csName ).createCL( clNamem, {"ReplSize": replSize, "Compressed": compressed}) ;
+      return db.getCS( csName ).createCL( clName, { "ReplSize": replSize, "Compressed": compressed } );
    }
    catch( e )
    {
-      if ( e != -22 || !ignoreExisted )
+      if( e != -22 || !ignoreExisted )
       {
-         throw new Error("commCreateCL[" + funcCommCreateCLTimes + "] create collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message) ;
+         throw new Error( "commCreateCL[" + funcCommCreateCLTimes + "] create collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
       }
    }
    //get collection
    try
    {
-      return db.getCS( csName ).getCL( clName ) ;
+      return db.getCS( csName ).getCL( clName );
    }
-   catch ( e )
+   catch( e )
    {
-      throw new Error( "commCreateCL[" + funcCommCreateCLTimes + "] get collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message ) ;
+      throw new Error( "commCreateCL[" + funcCommCreateCLTimes + "] get collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
    }
 
 }
@@ -205,44 +207,44 @@ function commCreateCL( db, csName, clName, replSize, compressed, autoCreateCS, i
    ignoreExisted: default = false, value: true/false
    message: default = "", value: user defined message string
 ***************************************************************************** */
-function commCreateCLByOption( db, csName, clName, optionObj, autoCreateCS, ignoreExisted, message )
+function commCreateCLByOption ( db, csName, clName, optionObj, autoCreateCS, ignoreExisted, message )
 {
-   ++funcCommCreateCLOptTimes ;
-   if ( optionObj == undefined ) { optionObj = {} ; }
-   if ( autoCreateCS == undefined ) { autoCreateCS = true ; }
-   if ( ignoreExisted == undefined ) { ignoreExisted = false ; }
-   if ( message == undefined ) { message = ""; }
+   ++funcCommCreateCLOptTimes;
+   if( optionObj == undefined ) { optionObj = {}; }
+   if( autoCreateCS == undefined ) { autoCreateCS = true; }
+   if( ignoreExisted == undefined ) { ignoreExisted = false; }
+   if( message == undefined ) { message = ""; }
 
-   if ( typeof( optionObj ) != "object" )
+   if( typeof ( optionObj ) != "object" )
    {
-      throw new Error("commCreateCLByOption: optionObj is not object") ;
+      throw new Error( "commCreateCLByOption: optionObj is not object" );
    }
-   var csObj ;
-   if ( autoCreateCS )
+   var csObj;
+   if( autoCreateCS )
    {
-      csObj = commCreateCS( db, csName, true, "commCreateCLByOption auto to create collection space" ) ;
+      csObj = commCreateCS( db, csName, true, "commCreateCLByOption auto to create collection space" );
    }
    else
    {
       try
       {
-         csObj = db.getCS( csName ) ;
+         csObj = db.getCS( csName );
       }
       catch( e )
       {
-         throw new Error( "commCreateCLByOption[" + funcCommCreateCLOptTimes + "] get collection space[" + csName + "] failed: " + e ) ;
+         throw new Error( "commCreateCLByOption[" + funcCommCreateCLOptTimes + "] get collection space[" + csName + "] failed: " + e );
       }
    }
 
    try
    {
-      return csObj.createCL( clName, optionObj ) ;
+      return csObj.createCL( clName, optionObj );
    }
    catch( e )
    {
-      if ( e != -22 || !ignoreExisted )
+      if( e != -22 || !ignoreExisted )
       {
-         throw new Error( "commCreateCLByOption[" + funcCommCreateCLOptTimes + "] create collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message ) ;
+         throw new Error( "commCreateCLByOption[" + funcCommCreateCLOptTimes + "] create collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
       }
    }
    //get collection
@@ -250,7 +252,7 @@ function commCreateCLByOption( db, csName, clName, optionObj, autoCreateCS, igno
    {
       return db.getCS( csName ).getCL( clName );
    }
-   catch ( e )
+   catch( e )
    {
       throw new Error( "commCreateCLByOption[" + funcCommCreateCLOptTimes + "] get collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
    }
@@ -263,25 +265,25 @@ function commCreateCLByOption( db, csName, clName, optionObj, autoCreateCS, igno
    ignoreNotExist: default = true, value: true/false
    message: default = ""
 ***************************************************************************** */
-function commDropCS( db, csName, ignoreNotExist, message )
+function commDropCS ( db, csName, ignoreNotExist, message )
 {
-   ++funcCommDropCSTimes ;
-   if ( ignoreNotExist == undefined ) { ignoreNotExist = true ; }
-   if ( message == undefined ) { message = "" ; }
+   ++funcCommDropCSTimes;
+   if( ignoreNotExist == undefined ) { ignoreNotExist = true; }
+   if( message == undefined ) { message = ""; }
 
    try
    {
-      db.dropCS( csName ) ;
+      db.dropCS( csName );
    }
    catch( e )
    {
-      if ( e == -34 && ignoreNotExist )
+      if( e == -34 && ignoreNotExist )
       {
          // think right
       }
       else
       {
-         throw new Error( "commDropCS[" + funcCommDropCSTimes + "] Drop collection space[" + csName + "] failed: " + e + ",message: " + message ) ;
+         throw new Error( "commDropCS[" + funcCommDropCSTimes + "] Drop collection space[" + csName + "] failed: " + e + ",message: " + message );
       }
    }
 }
@@ -294,12 +296,12 @@ function commDropCS( db, csName, ignoreNotExist, message )
    ignoreCLNotExist: default = true, value: true/false
    message: default = ""
 ***************************************************************************** */
-function commDropCL( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, message )
+function commDropCL ( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, message )
 {
-   ++funcCommDropCLTimes ;
-   if ( message == undefined ) { message = ""; }
-   if ( ignoreCSNotExist == undefined ) { ignoreCSNotExist = true ; }
-   if ( ignoreCLNotExist == undefined ) { ignoreCLNotExist = true ; }
+   ++funcCommDropCLTimes;
+   if( message == undefined ) { message = ""; }
+   if( ignoreCSNotExist == undefined ) { ignoreCSNotExist = true; }
+   if( ignoreCLNotExist == undefined ) { ignoreCLNotExist = true; }
 
    try
    {
@@ -307,13 +309,13 @@ function commDropCL( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, mes
    }
    catch( e )
    {
-      if ( ( e == -34 && ignoreCSNotExist ) || ( e == -23 && ignoreCLNotExist ) )
+      if( ( e == -34 && ignoreCSNotExist ) || ( e == -23 && ignoreCLNotExist ) )
       {
          // think right
       }
       else
       {
-         throw new Error( "commDropCL[" + funcCommDropCLTimes + "] Drop collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message ) ;
+         throw new Error( "commDropCL[" + funcCommDropCLTimes + "] Drop collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
       }
    }
 }
@@ -326,51 +328,51 @@ function commDropCL( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, mes
    isUnique: true/false, default is false
    ignoreExist: default is false
 ***************************************************************************** */
-function commCreateIndex( cl, name, indexDef, isUnique, ignoreExist )
+function commCreateIndex ( cl, name, indexDef, isUnique, ignoreExist )
 {
-   if ( isUnique == undefined ) { isUnique = false ; }
-   if ( ignoreExist == undefined ) { ignoreExist = false ; }
-   
-   if ( typeof( indexDef ) != "object" )
+   if( isUnique == undefined ) { isUnique = false; }
+   if( ignoreExist == undefined ) { ignoreExist = false; }
+
+   if( typeof ( indexDef ) != "object" )
    {
-      throw new Error("commCreateIndex: indexDef is not object") ;
+      throw new Error( "commCreateIndex: indexDef is not object" );
    }
 
    try
    {
-      cl.createIndex( name, indexDef, isUnique ) ;
+      cl.createIndex( name, indexDef, isUnique );
    }
    catch( e )
    {
-      println( "commCreateIndex: create index[" + name + "] failed: " + e ) ;
-      if ( ignoreExist && ( e == -46 || e == -247 ) )
+      println( "commCreateIndex: create index[" + name + "] failed: " + e );
+      if( ignoreExist && ( e == -46 || e == -247 ) )
       {
          // ok
       }
       else
       {
-         throw new Error("commCreateIndex: create index[" + name + "] failed: " + e) ;
+         throw new Error( "commCreateIndex: create index[" + name + "] failed: " + e );
       }
    }
 }
 
-function commDropIndex( cl, name, ignoreNotExist )
+function commDropIndex ( cl, name, ignoreNotExist )
 {
-   if ( ignoreNotExist == undefined ) { ignoreNotExist = false ; }
-   
+   if( ignoreNotExist == undefined ) { ignoreNotExist = false; }
+
    try
    {
-      cl.dropIndex( name ) ;
+      cl.dropIndex( name );
    }
    catch( e )
-   {      
-      if ( ignoreNotExist && e == -47 )
+   {
+      if( ignoreNotExist && e == -47 )
       {
          // ok
       }
       else
       {
-         throw new Error( "commDropIndex: drop index[" + name + "] failed: " + e ) ;
+         throw new Error( "commDropIndex: drop index[" + name + "] failed: " + e );
       }
    }
 }
@@ -382,48 +384,48 @@ function commDropIndex( cl, name, ignoreNotExist )
    exist: true/false, if true check index exist, else check index not exist, default is true
    timeout: default 10 secs
 ***************************************************************************** */
-function commCheckIndex( cl, name, exist, timeout )
+function commCheckIndex ( cl, name, exist, timeout )
 {
-   if ( exist == undefined ) { exist = true ; }
-   if ( timeout == undefined ) { timeout = 10 ;}
+   if( exist == undefined ) { exist = true; }
+   if( timeout == undefined ) { timeout = 10; }
 
-   var timecount = 0 ;
-   while ( true )
+   var timecount = 0;
+   while( true )
    {
       try
       {
          try
          {
-            var tmpInfo = cl.getIndex( name ) ;
+            var tmpInfo = cl.getIndex( name );
          }
-         catch ( e )
+         catch( e )
          {
-            tmpInfo = undefined ;
+            tmpInfo = undefined;
          }
          //var tmpInfo = cl.getIndex( name ) ;
-         if ( ( exist && tmpInfo == undefined ) ||
-              ( !exist && tmpInfo != undefined ) )
+         if( ( exist && tmpInfo == undefined ) ||
+            ( !exist && tmpInfo != undefined ) )
          {
-            if ( timecount < timeout )
+            if( timecount < timeout )
             {
-               ++timecount ;
-               sleep( 1000 ) ;
-               continue ;
+               ++timecount;
+               sleep( 1000 );
+               continue;
             }
-            throw new Error( "commCheckIndex: check index[" + name + "] time out" ) ;
+            throw new Error( "commCheckIndex: check index[" + name + "] time out" );
          }
 
-         if ( tmpInfo != undefined )
+         if( tmpInfo != undefined )
          {
-            var tmpObj =  tmpInfo.toObj() ;
-            if ( tmpObj.IndexDef.name != name )
+            var tmpObj = tmpInfo.toObj();
+            if( tmpObj.IndexDef.name != name )
             {
-               println("commCheckIndex: get index name[" + tmpObj.IndexDef.name + "] is not the same with name[" + name + "]" ) ;
-               println( tmpInfo ) ;
-               throw new Error("check name error") ;
+               println( "commCheckIndex: get index name[" + tmpObj.IndexDef.name + "] is not the same with name[" + name + "]" );
+               println( tmpInfo );
+               throw new Error( "check name error" );
             }
          }
-         break ;
+         break;
       }
       catch( e )
       {
@@ -436,162 +438,162 @@ function commCheckIndex( cl, name, exist, timeout )
 @discription: check whether enable transaction function
 @author: Jianhui Xu
 ***************************************************************************** */
-function commIsTransEnabled( db )
+function commIsTransEnabled ( db )
 {
-   var isTrans = false ;
-   var COMMTMPCS = COMMCSNAME + "_tmp" ;
-   var COMMTMPCL = COMMCLNAME + "_tmp" ;
-   var tmpCL = commCreateCL( db, COMMTMPCS, COMMTMPCL, 1, false, true, true, "Judge transaction create collection" ) ;
+   var isTrans = false;
+   var COMMTMPCS = COMMCSNAME + "_tmp";
+   var COMMTMPCL = COMMCLNAME + "_tmp";
+   var tmpCL = commCreateCL( db, COMMTMPCS, COMMTMPCL, 1, false, true, true, "Judge transaction create collection" );
    try
    {
-      db.transBegin() ;
+      db.transBegin();
       //tmpCL.update( {$unset:{a:1}}, {a:{$exists:0}} ) ; // do nothing
-      tmpCL.remove() ;   // if transaction don't turn on, will throw error: -253
-      isTrans = true ;
-      db.transCommit() ;
+      tmpCL.remove();   // if transaction don't turn on, will throw error: -253
+      isTrans = true;
+      db.transCommit();
       commDropCS( db, COMMTMPCS, false, "drop CS in transation temp" )
    }
    catch( e )
    {
       commDropCS( db, COMMTMPCS, true, "drop CS in transation temp" )
-      if ( e == -253 )
+      if( e == -253 )
       {
       }
       else
       {
-         println( "execute transBegin happen error, e = " + e ) ;
+         println( "execute transBegin happen error, e = " + e );
       }
    }
    // clear when all use cases finished
-   return isTrans ;
+   return isTrans;
 }
 
 /* *****************************************************************************
 @discription: print object function
 @author: Jianhui Xu
 ***************************************************************************** */
-function commPrintIndent( str, deep, withRN )
+function commPrintIndent ( str, deep, withRN )
 {
-   if ( undefined == deep ) { deep = 0 ; }
-   if ( undefined == withRN ) { withRN = true ; }
-   for ( var i = 0 ; i < 3*deep; ++i )
+   if( undefined == deep ) { deep = 0; }
+   if( undefined == withRN ) { withRN = true; }
+   for( var i = 0; i < 3 * deep; ++i )
    {
-      print( " " ) ;
+      print( " " );
    }
-   if ( withRN )
+   if( withRN )
    {
-      println( str ) ;
+      println( str );
    }
    else
    {
-      print( str ) ;
+      print( str );
    }
 }
 
-function commPrint( obj, deep )
+function commPrint ( obj, deep )
 {
-   var isArray = false ;
-   if ( typeof( obj ) != "object" )
+   var isArray = false;
+   if( typeof ( obj ) != "object" )
    {
-      println( obj ) ;
-      return ;
+      println( obj );
+      return;
    }
-   if ( undefined == deep ) { deep = 0 ; }
-   if ( typeof( obj.length ) == "number" ) { isArray = true ; }
+   if( undefined == deep ) { deep = 0; }
+   if( typeof ( obj.length ) == "number" ) { isArray = true; }
 
-   if ( 0 == deep )
+   if( 0 == deep )
    {
-      if ( !isArray )
+      if( !isArray )
       {
-         commPrintIndent( "{", deep, false ) ;
+         commPrintIndent( "{", deep, false );
       }
       else
       {
-         commPrintIndent( "[", deep, false ) ;
+         commPrintIndent( "[", deep, false );
       }
    }
 
-   var i = 0 ;
-   for ( var p in obj )
+   var i = 0;
+   for( var p in obj )
    {
-      if ( i == 0 ) { commPrintIndent( "", 0, true ); }
-      else if ( i > 0 ) { commPrintIndent( ",", 0, true ) ; }
-      ++i ;
+      if( i == 0 ) { commPrintIndent( "", 0, true ); }
+      else if( i > 0 ) { commPrintIndent( ",", 0, true ); }
+      ++i;
 
-      if ( typeof( obj[p] ) == "object" )
+      if( typeof ( obj[p] ) == "object" )
       {
-         if ( typeof( obj[p].length ) == "undefined" )
+         if( typeof ( obj[p].length ) == "undefined" )
          {
-            if ( !isArray )
+            if( !isArray )
             {
-               commPrintIndent( p + ": {", deep + 1, false ) ;
+               commPrintIndent( p + ": {", deep + 1, false );
             }
             else
             {
-               commPrintIndent( "{", deep + 1, false ) ;
+               commPrintIndent( "{", deep + 1, false );
             }
          }
-         else if ( !isArray )
+         else if( !isArray )
          {
-            commPrintIndent( p + ": [", deep + 1, false ) ;
+            commPrintIndent( p + ": [", deep + 1, false );
          }
          else
          {
-            commPrintIndent( "[", deep + 1, false ) ;
+            commPrintIndent( "[", deep + 1, false );
          }
-         commPrint( obj[p], deep + 1 ) ;
+         commPrint( obj[p], deep + 1 );
       }
-      else if ( typeof( obj[p] ) == "function" )
+      else if( typeof ( obj[p] ) == "function" )
       {
          // not print
       }
-      else if ( typeof( obj[p] ) == "string" )
+      else if( typeof ( obj[p] ) == "string" )
       {
-         if ( !isArray )
+         if( !isArray )
          {
-            commPrintIndent( p + ': "' + obj[p] + '"', deep + 1, false ) ;
+            commPrintIndent( p + ': "' + obj[p] + '"', deep + 1, false );
          }
          else
          {
-            commPrintIndent( '"' + obj[p] + '"', deep + 1, false ) ;
+            commPrintIndent( '"' + obj[p] + '"', deep + 1, false );
          }
       }
       else
       {
-         if ( !isArray )
+         if( !isArray )
          {
-            commPrintIndent( p + ': ' + obj[p], deep + 1, false ) ;
+            commPrintIndent( p + ': ' + obj[p], deep + 1, false );
          }
          else
          {
-            commPrintIndent( obj[p], deep + 1, false ) ;
+            commPrintIndent( obj[p], deep + 1, false );
          }
       }
    }
-   if ( i == 0 )
+   if( i == 0 )
    {
-      if ( !isArray )
+      if( !isArray )
       {
-         commPrintIndent( "}", 0, false ) ;
+         commPrintIndent( "}", 0, false );
       }
       else
       {
-         commPrintIndent( "]", 0, false ) ;
+         commPrintIndent( "]", 0, false );
       }
    }
    else
    {
-      commPrintIndent( "", 0, true ) ;
-      if ( !isArray )
+      commPrintIndent( "", 0, true );
+      if( !isArray )
       {
-         commPrintIndent( "}", deep, false ) ;
+         commPrintIndent( "}", deep, false );
       }
       else
       {
-         commPrintIndent( "]", deep ,false ) ;
+         commPrintIndent( "]", deep, false );
       }
    }
-   if ( deep == 0 ) { commPrintIndent( "", deep, true ) } ;
+   if( deep == 0 ) { commPrintIndent( "", deep, true ) };
 }
 
 /* ******************************************************************************
@@ -603,43 +605,43 @@ function commPrint( obj, deep )
    array[0] group1
    ...
 ***************************************************************************** */
-function commGetCLGroups( db, clName )
+function commGetCLGroups ( db, clName )
 {
-   if ( typeof(clName) != "string" || clName.length == 0 )
+   if( typeof ( clName ) != "string" || clName.length == 0 )
    {
-      throw new Error("commGetCLGroups: Invalid clName parameter or clName is empty") ;
+      throw new Error( "commGetCLGroups: Invalid clName parameter or clName is empty" );
    }
-   if ( commIsStandalone( db ) )
+   if( commIsStandalone( db ) )
    {
-      return new Array() ;
+      return new Array();
    }
-   
-   var tmpArray = new Array() ;
-   var groups = {} ;
-   var cursor ;
+
+   var tmpArray = new Array();
+   var groups = {};
+   var cursor;
    try
    {
-      cursor = db.snapshot(8, {Name:clName}) ;
+      cursor = db.snapshot( 8, { Name: clName } );
    }
    catch( e )
    {
-      throw new Error( "commGetCLGroups: snapshot collection space failed: " + e ) ;
+      throw new Error( "commGetCLGroups: snapshot collection space failed: " + e );
    }
 
-   while ( cursor.next() )
+   while( cursor.next() )
    {
-      var cataInfo = cursor.current().toObj()['CataInfo'] ;
-      for ( var i = 0 ; i < cataInfo.length; ++i )
+      var cataInfo = cursor.current().toObj()['CataInfo'];
+      for( var i = 0; i < cataInfo.length; ++i )
       {
-         if ( groups[ cataInfo[i].GroupName ] === undefined )
+         if( groups[cataInfo[i].GroupName] === undefined )
          {
-            tmpArray.push( cataInfo[i].GroupName ) ;
-            groups[ cataInfo[i].GroupName ] = 1 ;
+            tmpArray.push( cataInfo[i].GroupName );
+            groups[cataInfo[i].GroupName] = 1;
          }
       }
    }
 
-   return tmpArray ;
+   return tmpArray;
 }
 
 /* *****************************************************************************
@@ -651,33 +653,33 @@ function commGetCLGroups( db, clName )
    array[0] group1
    ...
 ***************************************************************************** */
-function commGetCSGroups( db, csname )
+function commGetCSGroups ( db, csname )
 {
-   if ( typeof(csname) != "string" || csname.length == 0 )
+   if( typeof ( csname ) != "string" || csname.length == 0 )
    {
-      throw new Error("commGetCSGroups: Invalid csname parameter or csname is empty") ;
+      throw new Error( "commGetCSGroups: Invalid csname parameter or csname is empty" );
    }
-   if ( commIsStandalone( db ) )
+   if( commIsStandalone( db ) )
    {
-      return new Array() ;
+      return new Array();
    }
 
-   var tmpArray = [] ;
-   var tmpInfo = commGetSnapshot( db, SDB_SNAP_COLLECTIONSPACES ) ;
+   var tmpArray = [];
+   var tmpInfo = commGetSnapshot( db, SDB_SNAP_COLLECTIONSPACES );
 
-   for ( var i = 0 ; i < tmpInfo.length; ++i )
+   for( var i = 0; i < tmpInfo.length; ++i )
    {
-      var tmpObj = tmpInfo[i] ;
-      if ( tmpObj.Name != csname )
+      var tmpObj = tmpInfo[i];
+      if( tmpObj.Name != csname )
       {
-         continue ;
+         continue;
       }
-      for ( var j = 0 ; j < tmpObj.Group.length; ++j )
+      for( var j = 0; j < tmpObj.Group.length; ++j )
       {
-         tmpArray.push( tmpObj.Group[j] ) ;
+         tmpArray.push( tmpObj.Group[j] );
       }
    }
-   return tmpArray ;
+   return tmpArray;
 }
 
 /* *****************************************************************************
@@ -695,88 +697,88 @@ function commGetCSGroups( db, csname )
         [N]
            ...
 ***************************************************************************** */
-function commGetGroups( db, print, filter, exceptCata, exceptCoord, exceptSpare )
+function commGetGroups ( db, print, filter, exceptCata, exceptCoord, exceptSpare )
 {
-   if ( undefined == print ) { print = false ; }
-   if ( undefined == exceptCata ) { exceptCata = true ; }
-   if ( undefined == exceptCoord ) { exceptCoord = true ;}
-   if ( undefined == exceptSpare ) { exceptSpare = true ;}
+   if( undefined == print ) { print = false; }
+   if( undefined == exceptCata ) { exceptCata = true; }
+   if( undefined == exceptCoord ) { exceptCoord = true; }
+   if( undefined == exceptSpare ) { exceptSpare = true; }
 
    var tmpArray = [];
-   var tmpInfoCur ;
+   var tmpInfoCur;
    try
    {
-      tmpInfoCur = db.listReplicaGroups() ;
+      tmpInfoCur = db.listReplicaGroups();
    }
    catch( e )
    {
-      if ( e == -159 )
+      if( e == -159 )
       {
-         return tmpArray ;
+         return tmpArray;
       }
       else
       {
          if( true == print )
-            println( "commGetGroups failed: " + e ) ;
-         throw new Error( "commGetGroups failed: " + e ) ;
+            println( "commGetGroups failed: " + e );
+         throw new Error( "commGetGroups failed: " + e );
       }
    }
    var tmpInfo = commCursor2Array( tmpInfoCur, "GroupName", filter );
 
-   var index = 0 ;
-   for ( var i = 0 ; i < tmpInfo.length; ++i )
+   var index = 0;
+   for( var i = 0; i < tmpInfo.length; ++i )
    {
-      var tmpObj = tmpInfo[i] ;
-      if ( true == exceptCata && tmpObj.GroupID == CATALOG_GROUPID )
+      var tmpObj = tmpInfo[i];
+      if( true == exceptCata && tmpObj.GroupID == CATALOG_GROUPID )
       {
-         continue ;
+         continue;
       }
-      if ( true == exceptCoord && tmpObj.GroupID == COORD_GROUPID )
+      if( true == exceptCoord && tmpObj.GroupID == COORD_GROUPID )
       {
-         continue ;
+         continue;
       }
-      if ( true == exceptSpare && tmpObj.GroupID == SPARE_GROUPID )
+      if( true == exceptSpare && tmpObj.GroupID == SPARE_GROUPID )
       {
-         continue ;
+         continue;
       }
-      tmpArray[index] = Array() ;
-      tmpArray[index][0] = new Object() ;
-      tmpArray[index][0].GroupName = tmpObj.GroupName ;         // GroupName
-      tmpArray[index][0].GroupID = tmpObj.GroupID ;             // GroupID
-      tmpArray[index][0].Status = tmpObj.Status ;               // Status
-      tmpArray[index][0].Version = tmpObj.Version ;             // Version
-      tmpArray[index][0].Role = tmpObj.Role ;                   // Role
-      if ( typeof(tmpObj.PrimaryNode) == "undefined" )
+      tmpArray[index] = Array();
+      tmpArray[index][0] = new Object();
+      tmpArray[index][0].GroupName = tmpObj.GroupName;         // GroupName
+      tmpArray[index][0].GroupID = tmpObj.GroupID;             // GroupID
+      tmpArray[index][0].Status = tmpObj.Status;               // Status
+      tmpArray[index][0].Version = tmpObj.Version;             // Version
+      tmpArray[index][0].Role = tmpObj.Role;                   // Role
+      if( typeof ( tmpObj.PrimaryNode ) == "undefined" )
       {
-         tmpArray[index][0].PrimaryNode = -1 ;
+         tmpArray[index][0].PrimaryNode = -1;
       }
       else
       {
-         tmpArray[index][0].PrimaryNode = tmpObj.PrimaryNode ;     // PrimaryNode
+         tmpArray[index][0].PrimaryNode = tmpObj.PrimaryNode;     // PrimaryNode
       }
-      tmpArray[index][0].PrimaryPos = 0 ;                       // PrimaryPos
+      tmpArray[index][0].PrimaryPos = 0;                       // PrimaryPos
 
-      var tmpGroupObj = tmpObj.Group ;
-      tmpArray[index][0].Length = tmpGroupObj.length ;          // Length
+      var tmpGroupObj = tmpObj.Group;
+      tmpArray[index][0].Length = tmpGroupObj.length;          // Length
 
-      for ( var j = 0 ; j < tmpGroupObj.length; ++j )
+      for( var j = 0; j < tmpGroupObj.length; ++j )
       {
-         var tmpNodeObj = tmpGroupObj[j] ;
-         tmpArray[index][j+1] = new Object() ;
-         tmpArray[index][j+1].HostName = tmpNodeObj.HostName ;           // HostName
-         tmpArray[index][j+1].dbpath = tmpNodeObj.dbpath ;               // dbpath
-         tmpArray[index][j+1].svcname = tmpNodeObj.Service[0].Name ;     // svcname
-         tmpArray[index][j+1].NodeID = tmpNodeObj.NodeID ;
+         var tmpNodeObj = tmpGroupObj[j];
+         tmpArray[index][j + 1] = new Object();
+         tmpArray[index][j + 1].HostName = tmpNodeObj.HostName;           // HostName
+         tmpArray[index][j + 1].dbpath = tmpNodeObj.dbpath;               // dbpath
+         tmpArray[index][j + 1].svcname = tmpNodeObj.Service[0].Name;     // svcname
+         tmpArray[index][j + 1].NodeID = tmpNodeObj.NodeID;
 
-         if ( tmpNodeObj.NodeID == tmpObj.PrimaryNode )
+         if( tmpNodeObj.NodeID == tmpObj.PrimaryNode )
          {
-            tmpArray[index][0].PrimaryPos = j+1 ;                        // PrimaryPos
+            tmpArray[index][0].PrimaryPos = j + 1;                        // PrimaryPos
          }
       }
-      ++index ;
+      ++index;
    }
 
-   return tmpArray ;
+   return tmpArray;
 }
 
 
@@ -789,53 +791,53 @@ function commGetGroups( db, print, filter, exceptCata, exceptCoord, exceptSpare 
    exceptCoord: default true
 @return integer
 ***************************************************************************** */
-function commGetGroupsNum( db, print, filter, exceptCata, exceptCoord, exceptSpare )
+function commGetGroupsNum ( db, print, filter, exceptCata, exceptCoord, exceptSpare )
 {
-   if ( undefined == print ) { print = false ; }
-   if ( undefined == exceptCata ) { exceptCata = true ; }
-   if ( undefined == exceptCoord ) { exceptCoord = true ;}
-   if ( undefined == exceptSpare ) { exceptSpare = true ;}
+   if( undefined == print ) { print = false; }
+   if( undefined == exceptCata ) { exceptCata = true; }
+   if( undefined == exceptCoord ) { exceptCoord = true; }
+   if( undefined == exceptSpare ) { exceptSpare = true; }
 
-   var tmpInfoCur ;
-   var num = 0 ;
+   var tmpInfoCur;
+   var num = 0;
    try
    {
-      tmpInfoCur = db.listReplicaGroups() ;
+      tmpInfoCur = db.listReplicaGroups();
    }
    catch( e )
    {
-      if ( e == -159 )
+      if( e == -159 )
       {
-         return num ;
+         return num;
       }
       else
       {
          if( true == print )
-            println( "commGetGroups failed: " + e ) ;
-         throw new Error( "commGetGroups failed: " + e) ;
+            println( "commGetGroups failed: " + e );
+         throw new Error( "commGetGroups failed: " + e );
       }
    }
    var tmpInfo = commCursor2Array( tmpInfoCur, "GroupName", filter );
 
-   for ( var i = 0 ; i < tmpInfo.length; ++i )
+   for( var i = 0; i < tmpInfo.length; ++i )
    {
-      var tmpObj = tmpInfo[i] ;
-      if ( true == exceptCata && tmpObj.GroupID == CATALOG_GROUPID )
+      var tmpObj = tmpInfo[i];
+      if( true == exceptCata && tmpObj.GroupID == CATALOG_GROUPID )
       {
-         continue ;
+         continue;
       }
-      if ( true == exceptCoord && tmpObj.GroupID == COORD_GROUPID )
+      if( true == exceptCoord && tmpObj.GroupID == COORD_GROUPID )
       {
-         continue ;
+         continue;
       }
-      if ( true == exceptSpare && tmpObj.GroupID == SPARE_GROUPID )
+      if( true == exceptSpare && tmpObj.GroupID == SPARE_GROUPID )
       {
-         continue ;
+         continue;
       }
-      ++num ;
+      ++num;
    }
 
-   return num ;
+   return num;
 }
 
 /* *****************************************************************************
@@ -843,7 +845,7 @@ function commGetGroupsNum( db, print, filter, exceptCata, exceptCoord, exceptSpa
 @author: luweikang
 @return integer
 ***************************************************************************** */
-function commGetDataGroupNames( db )
+function commGetDataGroupNames ( db )
 {
    var groups = commGetGroups( db, false, "", true, true, true );
    var groupNames = [];
@@ -864,15 +866,15 @@ function commGetDataGroupNames( db )
    array[1] {"HostName": "XXXX", "svcname": "XXXX"}
    ...
 **************************************************************************** */
-function commGetGroupNodes( db, groupName )
+function commGetGroupNodes ( db, groupName )
 {
-   if ( typeof(groupName) != "string" || groupName.length == 0 )
+   if( typeof ( groupName ) != "string" || groupName.length == 0 )
    {
       throw new Error( "commGetGroupNodes: Invalid groupName parameter or groupName is empty" );
    }
-   
+
    var tmpArray = [];
-   var snapshotCur = db.list( SDB_LIST_GROUPS, {GroupName: groupName});
+   var snapshotCur = db.list( SDB_LIST_GROUPS, { GroupName: groupName } );
    if( snapshotCur.next() )
    {
       var groupObj = snapshotCur.current().toObj();
@@ -881,7 +883,7 @@ function commGetGroupNodes( db, groupName )
    {
       throw new Error( "commGetGroupNodes: failed to get group info, group: " + groupName );
    }
-   
+
    var nodes = groupObj.Group;
    for( var i = 0; i < nodes.length; i++ )
    {
@@ -903,38 +905,38 @@ function commGetGroupNodes( db, groupName )
         [0] {"cs":"XXXX", "cl":["XXXX", "XXXX",...] }
         [N] ...
 ***************************************************************************** */
-function commGetCSCL( db, csfilter, clfilter )
+function commGetCSCL ( db, csfilter, clfilter )
 {
-   if ( csfilter == undefined ) { csfilter = ""; }
-   if ( clfilter == undefined ) { clfilter = ""; }
+   if( csfilter == undefined ) { csfilter = ""; }
+   if( clfilter == undefined ) { clfilter = ""; }
 
-   var tmpCSCL = new Array() ;
+   var tmpCSCL = new Array();
    var tmpInfo = commGetSnapshot( db, SDB_SNAP_COLLECTIONSPACES );
-   
-   var m = 0 ;
-   for ( var i = 0 ; i < tmpInfo.length; ++i )
+
+   var m = 0;
+   for( var i = 0; i < tmpInfo.length; ++i )
    {
-      var tmpObj = tmpInfo[i] ;
-      if ( csfilter.length != 0 && tmpObj.Name.indexOf( csfilter, 0 ) == -1 )
+      var tmpObj = tmpInfo[i];
+      if( csfilter.length != 0 && tmpObj.Name.indexOf( csfilter, 0 ) == -1 )
       {
-         continue ;
+         continue;
       }
-      tmpCSCL[ m ] = new Object() ;
-      tmpCSCL[ m ].cs = tmpObj.Name ;
-      tmpCSCL[ m ].cl = new Array() ;
-      
-      var tmpCollection = tmpObj.Collection ;
-      for ( var j = 0 ; j < tmpCollection.length; ++j )
+      tmpCSCL[m] = new Object();
+      tmpCSCL[m].cs = tmpObj.Name;
+      tmpCSCL[m].cl = new Array();
+
+      var tmpCollection = tmpObj.Collection;
+      for( var j = 0; j < tmpCollection.length; ++j )
       {
-         if ( clfilter.length != 0 && tmpCollection[ j ].Name.indexOf( clfilter, 0 ) == -1 )
+         if( clfilter.length != 0 && tmpCollection[j].Name.indexOf( clfilter, 0 ) == -1 )
          {
-            continue ;
+            continue;
          }
-         tmpCSCL[ m ].cl.push( tmpCollection[ j ].Name ) ;
+         tmpCSCL[m].cl.push( tmpCollection[j].Name );
       }
-      ++m ;
+      ++m;
    }
-   return tmpCSCL ;
+   return tmpCSCL;
 }
 
 /* *****************************************************************************
@@ -950,65 +952,65 @@ function commGetCSCL( db, csfilter, clfilter )
         [0] "XXXX"
         [N] ...
 ***************************************************************************** */
-function commGetBackups( db, filter, path, isSubDir, cond, grpNameArray )
+function commGetBackups ( db, filter, path, isSubDir, cond, grpNameArray )
 {
-   if ( path == undefined ) { path = "" ; }
-   if ( isSubDir == undefined ) { isSubDir = false ; }
-   if ( cond == undefined ) { cond = {} ; }
-   if ( grpNameArray == undefined ) { grpNameArray = new Array() ; }
+   if( path == undefined ) { path = ""; }
+   if( isSubDir == undefined ) { isSubDir = false; }
+   if( cond == undefined ) { cond = {}; }
+   if( grpNameArray == undefined ) { grpNameArray = new Array(); }
 
-   if ( typeof( cond ) != "object" )
+   if( typeof ( cond ) != "object" )
    {
-      throw new Error("commGetBackups: cond is not a object") ;
+      throw new Error( "commGetBackups: cond is not a object" );
    }
-   if ( typeof( grpNameArray ) != "object" )
+   if( typeof ( grpNameArray ) != "object" )
    {
-      throw new Error("commGetBackups: grpNameArray is not a array") ;
+      throw new Error( "commGetBackups: grpNameArray is not a array" );
    }
 
-   var tmpBackup = [] ;
-   var tmpInfoCur ;
+   var tmpBackup = [];
+   var tmpInfoCur;
    try
    {
-      if ( path.length == 0 )
+      if( path.length == 0 )
       {
-         tmpInfoCur = db.listBackup({GroupName:grpNameArray}) ;
+         tmpInfoCur = db.listBackup( { GroupName: grpNameArray } );
       }
       else
       {
-         tmpInfoCur = db.listBackup( {Path:path, IsSubDir:isSubDir, GroupName:grpNameArray} ) ;
+         tmpInfoCur = db.listBackup( { Path: path, IsSubDir: isSubDir, GroupName: grpNameArray } );
       }
    }
    catch( e )
    {
-      println( "commGetBackups failed: " + e ) ;
-      return tmpBackup ;
+      println( "commGetBackups failed: " + e );
+      return tmpBackup;
    }
    var tmpInfo = commCursor2Array( tmpInfoCur, "Name", filter );
 
-   for ( var i = 0 ; i < tmpInfo.length; ++i )
+   for( var i = 0; i < tmpInfo.length; ++i )
    {
-      var tmpBackupObj = tmpInfo[i] ;
-      if ( typeof( tmpBackupObj.Name ) == "undefined" )
+      var tmpBackupObj = tmpInfo[i];
+      if( typeof ( tmpBackupObj.Name ) == "undefined" )
       {
-         continue ;
+         continue;
       }
-      var exist = false ;
-      for ( var j = 0 ; j < tmpBackup.length; ++j )
+      var exist = false;
+      for( var j = 0; j < tmpBackup.length; ++j )
       {
-         if ( tmpBackupObj.Name == tmpBackup[j] )
+         if( tmpBackupObj.Name == tmpBackup[j] )
          {
-            exist = true ;
-            break ;
+            exist = true;
+            break;
          }
       }
-      if ( exist )
+      if( exist )
       {
-         continue ;
+         continue;
       }
-      tmpBackup.push( tmpBackupObj.Name ) ;
+      tmpBackup.push( tmpBackupObj.Name );
    }
-   return tmpBackup ;
+   return tmpBackup;
 }
 
 /* *****************************************************************************
@@ -1020,31 +1022,31 @@ function commGetBackups( db, filter, path, isSubDir, cond, grpNameArray )
         [0] "XXXX"
         [N] ...
 ***************************************************************************** */
-function commGetProcedures( db, filter )
+function commGetProcedures ( db, filter )
 {
-   var tmpProcedure = [] ;
-   var tmpInfoCur ;
+   var tmpProcedure = [];
+   var tmpInfoCur;
    try
    {
-      tmpInfoCur = db.listProcedures() ;
+      tmpInfoCur = db.listProcedures();
    }
    catch( e )
    {
-      println( "commGetProcedures failed: " + e ) ;
-      return tmpProcedure ;
+      println( "commGetProcedures failed: " + e );
+      return tmpProcedure;
    }
    var tmpInfo = commCursor2Array( tmpInfoCur, "name", filter );
 
-   for ( var i = 0 ; i < tmpInfo.length; ++i )
+   for( var i = 0; i < tmpInfo.length; ++i )
    {
-      var tmpProcedureObj = tmpInfo[i] ;
-      if ( typeof( tmpProcedureObj.name ) == "undefined" )
+      var tmpProcedureObj = tmpInfo[i];
+      if( typeof ( tmpProcedureObj.name ) == "undefined" )
       {
-         continue ;
+         continue;
       }
-      tmpProcedure.push( tmpProcedureObj.name ) ;
+      tmpProcedure.push( tmpProcedureObj.name );
    }
-   return tmpProcedure ;
+   return tmpProcedure;
 }
 
 /* *****************************************************************************
@@ -1056,31 +1058,31 @@ function commGetProcedures( db, filter )
         [0] "XXXX"
         [N] ...
 ***************************************************************************** */
-function commGetDomains( db, filter )
+function commGetDomains ( db, filter )
 {
-   var tmpDomain = new Array() ;
-   var tmpInfoCur ;
+   var tmpDomain = new Array();
+   var tmpInfoCur;
    try
    {
-      tmpInfoCur = db.listDomains() ;
+      tmpInfoCur = db.listDomains();
    }
    catch( e )
    {
-      println( "commGetDomains failed: " + e ) ;
-      return tmpDomain ;
+      println( "commGetDomains failed: " + e );
+      return tmpDomain;
    }
    var tmpInfo = commCursor2Array( tmpInfoCur, "Name", filter );
 
-   for ( var i = 0 ; i < tmpInfo.length; ++i )
+   for( var i = 0; i < tmpInfo.length; ++i )
    {
-      var tmpDomainObj = tmpInfo[i] ;
-      if ( typeof( tmpDomainObj.Name ) == "undefined" )
+      var tmpDomainObj = tmpInfo[i];
+      if( typeof ( tmpDomainObj.Name ) == "undefined" )
       {
-         continue ;
+         continue;
       }
-      tmpDomain.push( tmpDomainObj.Name ) ;
+      tmpDomain.push( tmpDomainObj.Name );
    }
-   return tmpDomain ;
+   return tmpDomain;
 }
 
 /* *****************************************************************************
@@ -1090,26 +1092,26 @@ function commGetDomains( db, filter )
         [0] {"HostName":"XXXX", "dbpath":"XXXX", "svcname":"XXXX", "NodeID":XXXX}
         [N] ...
 ***************************************************************************** */
-function commCheckNodes( groups )
+function commCheckNodes ( groups )
 {
-   var tmpFailedGrp = new Array() ;
-   for ( var i = 0 ; i < groups.length; ++i )
+   var tmpFailedGrp = new Array();
+   for( var i = 0; i < groups.length; ++i )
    {
-      for ( var j = 1; j < groups[i].length; ++j )
+      for( var j = 1; j < groups[i].length; ++j )
       {
-         var tmpDB ;
+         var tmpDB;
          try
          {
-            tmpDB = new Sdb( groups[i][j].HostName, groups[i][j].svcname ) ;
-            tmpDB.close() ;
+            tmpDB = new Sdb( groups[i][j].HostName, groups[i][j].svcname );
+            tmpDB.close();
          }
-         catch ( e )
+         catch( e )
          {
-            tmpFailedGrp.push( groups[i][j] ) ;
+            tmpFailedGrp.push( groups[i][j] );
          }
       }
    }
-   return tmpFailedGrp ;
+   return tmpFailedGrp;
 }
 
 /* *****************************************************************************
@@ -1123,143 +1125,143 @@ function commCheckNodes( groups )
         [N]
            ...
 ***************************************************************************** */
-function commCheckBusiness( groups, checkLSN, diskThreshold )
+function commCheckBusiness ( groups, checkLSN, diskThreshold )
 {
-   if ( checkLSN == undefined ) { checkLSN = false ;}
-   if ( diskThreshold == undefined ) { diskThreshold = 134217728 ; }
-   var tmpCheckGrp = new Array() ;
-   var grpindex = 0 ;
-   var ndindex = 1 ;
-   var error = false ;
+   if( checkLSN == undefined ) { checkLSN = false; }
+   if( diskThreshold == undefined ) { diskThreshold = 134217728; }
+   var tmpCheckGrp = new Array();
+   var grpindex = 0;
+   var ndindex = 1;
+   var error = false;
 
-   for ( var i = 0 ; i < groups.length; ++i )
+   for( var i = 0; i < groups.length; ++i )
    {
-      error = false ;
+      error = false;
 
-      tmpCheckGrp[ grpindex ] = new Array() ;
-      tmpCheckGrp[ grpindex ][0] = new Object() ;
-      tmpCheckGrp[ grpindex ][0].GroupName = groups[i][0].GroupName ;
-      tmpCheckGrp[ grpindex ][0].GroupID = groups[i][0].GroupID ;
-      tmpCheckGrp[ grpindex ][0].PrimaryNode = groups[i][0].PrimaryNode ;
-      tmpCheckGrp[ grpindex ][0].ConnCheck = true ;
-      tmpCheckGrp[ grpindex ][0].PrimaryCheck = true ;
-      tmpCheckGrp[ grpindex ][0].LSNCheck = true ;
-      tmpCheckGrp[ grpindex ][0].ServiceCheck = true ;
-      tmpCheckGrp[ grpindex ][0].DiskCheck = true ;
+      tmpCheckGrp[grpindex] = new Array();
+      tmpCheckGrp[grpindex][0] = new Object();
+      tmpCheckGrp[grpindex][0].GroupName = groups[i][0].GroupName;
+      tmpCheckGrp[grpindex][0].GroupID = groups[i][0].GroupID;
+      tmpCheckGrp[grpindex][0].PrimaryNode = groups[i][0].PrimaryNode;
+      tmpCheckGrp[grpindex][0].ConnCheck = true;
+      tmpCheckGrp[grpindex][0].PrimaryCheck = true;
+      tmpCheckGrp[grpindex][0].LSNCheck = true;
+      tmpCheckGrp[grpindex][0].ServiceCheck = true;
+      tmpCheckGrp[grpindex][0].DiskCheck = true;
 
       // if no primary
-      if ( groups[i][0].PrimaryNode == -1 )
+      if( groups[i][0].PrimaryNode == -1 )
       {
-         error = true ;
-         tmpCheckGrp[ grpindex ][0].PrimaryCheck = false ;
+         error = true;
+         tmpCheckGrp[grpindex][0].PrimaryCheck = false;
       }
-      
-      for ( var j = 1; j < groups[i].length; ++j )
-      {
-         ndindex = j ;
-         tmpCheckGrp[grpindex][ndindex] = new Object() ;
-         tmpCheckGrp[grpindex][ndindex].HostName = groups[i][j].HostName ;
-         tmpCheckGrp[grpindex][ndindex].svcname = groups[i][j].svcname ;
-         tmpCheckGrp[grpindex][ndindex].NodeID = groups[i][j].NodeID ;
-         tmpCheckGrp[grpindex][ndindex].Connect = true ;
-         tmpCheckGrp[grpindex][ndindex].IsPrimay = false ;
-         tmpCheckGrp[grpindex][ndindex].LSN = -1 ;
-         tmpCheckGrp[grpindex][ndindex].ServiceStatus = true ;
-         tmpCheckGrp[grpindex][ndindex].FreeSpace = -1 ;
 
-         var tmpDB ;
+      for( var j = 1; j < groups[i].length; ++j )
+      {
+         ndindex = j;
+         tmpCheckGrp[grpindex][ndindex] = new Object();
+         tmpCheckGrp[grpindex][ndindex].HostName = groups[i][j].HostName;
+         tmpCheckGrp[grpindex][ndindex].svcname = groups[i][j].svcname;
+         tmpCheckGrp[grpindex][ndindex].NodeID = groups[i][j].NodeID;
+         tmpCheckGrp[grpindex][ndindex].Connect = true;
+         tmpCheckGrp[grpindex][ndindex].IsPrimay = false;
+         tmpCheckGrp[grpindex][ndindex].LSN = -1;
+         tmpCheckGrp[grpindex][ndindex].ServiceStatus = true;
+         tmpCheckGrp[grpindex][ndindex].FreeSpace = -1;
+
+         var tmpDB;
          // check connection
          try
          {
-            tmpDB = new Sdb( groups[i][j].HostName, groups[i][j].svcname ) ;
-         }
-         catch ( e )
-         {
-            error = true ;
-            tmpCheckGrp[ grpindex ][0].ConnCheck = false ;
-            tmpCheckGrp[grpindex][ndindex].Connect = false ;
-            continue ;
-         }
-         // check primary and lsn
-         var tmpSysInfoCur ;
-         try
-         {
-            tmpSysInfoCur = tmpDB.snapshot( 6 ) ;
+            tmpDB = new Sdb( groups[i][j].HostName, groups[i][j].svcname );
          }
          catch( e )
          {
-            error = true ;
-            tmpCheckGrp[ grpindex ][0].ConnCheck = false ;
-            tmpCheckGrp[grpindex][ndindex].Connect = false ;
-            tmpDB.close() ;
-            continue ;
+            error = true;
+            tmpCheckGrp[grpindex][0].ConnCheck = false;
+            tmpCheckGrp[grpindex][ndindex].Connect = false;
+            continue;
+         }
+         // check primary and lsn
+         var tmpSysInfoCur;
+         try
+         {
+            tmpSysInfoCur = tmpDB.snapshot( 6 );
+         }
+         catch( e )
+         {
+            error = true;
+            tmpCheckGrp[grpindex][0].ConnCheck = false;
+            tmpCheckGrp[grpindex][ndindex].Connect = false;
+            tmpDB.close();
+            continue;
          }
          var tmpSysInfo = commCursor2Array( tmpSysInfoCur );
-         
+
          //delete tmpCheckGrp[grpindex][ndindex].Connect ;
          // check primary
-         var tmpSysInfoObj = tmpSysInfo[0] ;
-         if ( tmpSysInfoObj.IsPrimary == true )
+         var tmpSysInfoObj = tmpSysInfo[0];
+         if( tmpSysInfoObj.IsPrimary == true )
          {
-            tmpCheckGrp[grpindex][ndindex].IsPrimay = true ;
-            if ( groups[i][0].PrimaryNode != groups[i][j].NodeID )
+            tmpCheckGrp[grpindex][ndindex].IsPrimay = true;
+            if( groups[i][0].PrimaryNode != groups[i][j].NodeID )
             {
-               error = true ;
-               tmpCheckGrp[ grpindex ][0].PrimaryCheck = false ;
+               error = true;
+               tmpCheckGrp[grpindex][0].PrimaryCheck = false;
             }
          }
          else
          {
-            if ( groups[i][0].PrimaryNode == groups[i][j].NodeID )
+            if( groups[i][0].PrimaryNode == groups[i][j].NodeID )
             {
-               error = true ;
-               tmpCheckGrp[ grpindex ][0].PrimaryCheck = false ;
+               error = true;
+               tmpCheckGrp[grpindex][0].PrimaryCheck = false;
             }
             //delete tmpCheckGrp[grpindex][ndindex].IsPrimay ;
          }
          // check ServiceStatus
-         if ( tmpSysInfoObj.ServiceStatus == false )
+         if( tmpSysInfoObj.ServiceStatus == false )
          {
-            error = true ;
-            tmpCheckGrp[ grpindex ][ndindex].ServiceStatus = false ;
-            tmpCheckGrp[ grpindex ][0].ServiceCheck = false ;
+            error = true;
+            tmpCheckGrp[grpindex][ndindex].ServiceStatus = false;
+            tmpCheckGrp[grpindex][0].ServiceCheck = false;
          }
          // check disk
-         tmpCheckGrp[grpindex][ndindex].FreeSpace = tmpSysInfoObj.Disk.FreeSpace ;
-         if ( tmpCheckGrp[grpindex][ndindex].FreeSpace < diskThreshold )
+         tmpCheckGrp[grpindex][ndindex].FreeSpace = tmpSysInfoObj.Disk.FreeSpace;
+         if( tmpCheckGrp[grpindex][ndindex].FreeSpace < diskThreshold )
          {
-            error = true ;
-            tmpCheckGrp[ grpindex ][0].DiskCheck = false ;
+            error = true;
+            tmpCheckGrp[grpindex][0].DiskCheck = false;
          }
          // check LSN
-         tmpCheckGrp[ grpindex ][ndindex].LSN = tmpSysInfoObj.CurrentLSN.Offset ;
-         if ( checkLSN && j > 1 && tmpCheckGrp[ grpindex ][ndindex].LSN != tmpCheckGrp[ grpindex ][1].LSN  )
+         tmpCheckGrp[grpindex][ndindex].LSN = tmpSysInfoObj.CurrentLSN.Offset;
+         if( checkLSN && j > 1 && tmpCheckGrp[grpindex][ndindex].LSN != tmpCheckGrp[grpindex][1].LSN )
          {
-            error = true ;
-            tmpCheckGrp[ grpindex ][0].LSNCheck = false ;
+            error = true;
+            tmpCheckGrp[grpindex][0].LSNCheck = false;
          }
-         
-         tmpDB.close() ;
+
+         tmpDB.close();
       }
-      
-      if ( error == true )
+
+      if( error == true )
       {
-         ++grpindex ;
+         ++grpindex;
       }
    }
    // no error
-   if ( error == false )
+   if( error == false )
    {
-      if ( grpindex == 0 )
+      if( grpindex == 0 )
       {
-         tmpCheckGrp = new Array() ;
+         tmpCheckGrp = new Array();
       }
       else
       {
-         delete tmpCheckGrp[grpindex] ;
+         delete tmpCheckGrp[grpindex];
       }
    }
-   return tmpCheckGrp ;
+   return tmpCheckGrp;
 }
 
 /* *****************************************************************************
@@ -1269,41 +1271,41 @@ function commCheckBusiness( groups, checkLSN, diskThreshold )
    groupNames: groups name, default is all data group and catalog group name.
    timeout: check the maximum amount of time each group take, default is 60s.
 ***************************************************************************** */
-function commCheckLSN( db, groupNames, timeout )
+function commCheckLSN ( db, groupNames, timeout )
 {
-   if ( groupNames == undefined ) 
-   { 
+   if( groupNames == undefined ) 
+   {
       groupNames = commGetDataGroupNames( db );
       groupNames.push( "SYSCatalogGroup" );
    }
-   if ( timeout == undefined ) { timeout = 60 ;}
-   
-   if( typeof(groupNames) == "string" ){ groupNames = [ groupNames ];}
+   if( timeout == undefined ) { timeout = 60; }
+
+   if( typeof ( groupNames ) == "string" ) { groupNames = [groupNames]; }
 
    for( var i = 0; i < groupNames.length; i++ )
    {
       var groupName = groupNames[i];
-      var masterSnapshot = commGetSnapshot( db, SDB_SNAP_SYSTEM, {GroupName: groupName, RawData: true, "IsPrimary": true} );
+      var masterSnapshot = commGetSnapshot( db, SDB_SNAP_SYSTEM, { GroupName: groupName, RawData: true, "IsPrimary": true } );
       if( masterSnapshot.length == 0 )
       {
-         println(db.snapshot(SDB_SNAP_SYSTEM, {GroupName: groupName, RawData: true}));
-         throw new Error("check group failed: group can't found primary node, the console view detailed snapshot info");
+         println( db.snapshot( SDB_SNAP_SYSTEM, { GroupName: groupName, RawData: true } ) );
+         throw new Error( "check group failed: group can't found primary node, the console view detailed snapshot info" );
       }
-   
+
       var masterObj = masterSnapshot[0];
       var masterCompleteLSN = masterObj.CompleteLSN;
-      
+
       var time = 0;
       while( true )
       {
          var success = true;
-         var slaveSnapshot = commGetSnapshot( db, SDB_SNAP_SYSTEM, {GroupName: groupName, RawData: true, "IsPrimary": false} );
+         var slaveSnapshot = commGetSnapshot( db, SDB_SNAP_SYSTEM, { GroupName: groupName, RawData: true, "IsPrimary": false } );
          //no need to detect consistency without slave node
          if( slaveSnapshot.length == 0 )
          {
             break;
-         } 
-         
+         }
+
          for( var j = 0; j < slaveSnapshot.length; j++ )
          {
             var slaveObj = slaveSnapshot[j];
@@ -1313,7 +1315,7 @@ function commCheckLSN( db, groupNames, timeout )
                break;
             }
          }
-         
+
          if( success )
          {
             break;
@@ -1322,7 +1324,7 @@ function commCheckLSN( db, groupNames, timeout )
          {
             println( "master snapshot: " + JSON.stringify( masterSnapshot ) );
             println( "slave snapshot: " + JSON.stringify( slaveSnapshot ) );
-            throw new Error("check catalog failed: the standby node is not consistency after " + timeout + "consistency, see console snapshot detailed")
+            throw new Error( "check catalog failed: the standby node is not consistency after " + timeout + "consistency, see console snapshot detailed" )
          }
          else
          {
@@ -1344,47 +1346,47 @@ function commCheckLSN( db, groupNames, timeout )
         [N]
            ...
 ***************************************************************************** */
-function commGetInstallPath()
+function commGetInstallPath ()
 {
    try
    {
-      var cmd = new Cmd() ;
+      var cmd = new Cmd();
       try
       {
-         var installFile = cmd.run( "sed -n '3p' /etc/default/sequoiadb" ).split( "=" ) ;
-         var installPath = installFile[1].split( "\n" ) ;
-         var InstallPath = installPath[0] ;
+         var installFile = cmd.run( "sed -n '3p' /etc/default/sequoiadb" ).split( "=" );
+         var installPath = installFile[1].split( "\n" );
+         var InstallPath = installPath[0];
       }
       catch( e )
       {
          if( 2 == e )
          {
-            var local = cmd.run( "pwd" ).split( "\n" ) ;
-            var LocalPath = local[0] ;
-            var folder = cmd.run( 'ls ' + LocalPath ).split( '\n' ) ;
-            var fcnt = 0 ;
-            for( var i = 0 ; i < folder.length ; ++i )
+            var local = cmd.run( "pwd" ).split( "\n" );
+            var LocalPath = local[0];
+            var folder = cmd.run( 'ls ' + LocalPath ).split( '\n' );
+            var fcnt = 0;
+            for( var i = 0; i < folder.length; ++i )
             {
                if( "bin" == folder[i] || "SequoiaDB" == folder[i] ||
-                   "testcase" == folder[i] )
+                  "testcase" == folder[i] )
                {
-                  fcnt++ ;
+                  fcnt++;
                }
             }
             if( 2 <= fcnt )
-               InstallPath = LocalPath ;
+               InstallPath = LocalPath;
             else
-               throw new Error("Don'tGetLocalPath") ;
+               throw new Error( "Don'tGetLocalPath" );
          }
          else
-            throw new Error(e) ;
+            throw new Error( e );
       }
    }
    catch( e )
    {
-      throw new Error( "failed to get install path[common]: " + e ) ;
+      throw new Error( "failed to get install path[common]: " + e );
    }
-   return InstallPath ;
+   return InstallPath;
 }
 
 /* *****************************************************************************
@@ -1398,14 +1400,14 @@ function commGetInstallPath()
   realval  : real value
 @return string:exception msg
 ***************************************************************************** */
-function buildException(funname, e, operate, expectval, realval)
+function buildException ( funname, e, operate, expectval, realval )
 {
-   if (undefined != operate &&
-       undefined != expectval &&
-       undefined != realval)
+   if( undefined != operate &&
+      undefined != expectval &&
+      undefined != realval )
    {
       var message = "Exec " + operate + " \nExpect result: " + expectval + " \nReal result: " + realval;
-      return funname + " throw: " + message;      
+      return funname + " throw: " + message;
    }
    else
    {
@@ -1421,16 +1423,16 @@ function buildException(funname, e, operate, expectval, realval)
    hayStack : the array
 @return string:true/false
 ***************************************************************************** */
-function commInArray( needle, hayStack )
+function commInArray ( needle, hayStack )
 {
-   type = typeof needle ;
-   if ( type == 'string' || type == 'number' )
+   type = typeof needle;
+   if( type == 'string' || type == 'number' )
    {
-      for ( var i in hayStack )
+      for( var i in hayStack )
       {
-         if ( hayStack[i] == needle ) return true ;
+         if( hayStack[i] == needle ) return true;
       }
-      return false ;
+      return false;
    }
 }
 
@@ -1442,15 +1444,15 @@ function commInArray( needle, hayStack )
          exceptId: noncomparison of _id, default true
 @author: luweikang
 ********************************************************************* */
-function commCompareResults( cursor, expRecs, exceptId )
+function commCompareResults ( cursor, expRecs, exceptId )
 {
-   if( exceptId == undefined ){ exceptId = true; }
+   if( exceptId == undefined ) { exceptId = true; }
    var actRecs = [];
    var pos = 0;
    var isSuccess = true;
    var posOfFailure;
    var isLong = false;
-   
+
    try
    {
       while( cursor.next() )
@@ -1461,11 +1463,11 @@ function commCompareResults( cursor, expRecs, exceptId )
          {
             delete actRecord._id;
          }
-         
+
          if( isSuccess && !commCompareObject( expRecord, actRecord ) )
          {
             isSuccess = false;
-            posOfFailure = pos -1;
+            posOfFailure = pos - 1;
             if( JSON.stringify( expRecord ).length > 1024 )
             {
                isLong = true;
@@ -1474,9 +1476,9 @@ function commCompareResults( cursor, expRecs, exceptId )
          actRecs.push( actRecord );
       }
    }
-   catch(e)
+   catch( e )
    {
-      throw new Error(e);
+      throw new Error( e );
    }
    finally
    {
@@ -1485,17 +1487,17 @@ function commCompareResults( cursor, expRecs, exceptId )
          cursor.close();
       }
    }
-   
+
    var recordLocation = posOfFailure + 1;
    if( !isSuccess )
    {
       if( isLong )
       {
          throw new Error( "compare the " + recordLocation + "th record failed, "
-                           + "\nexp record count: " + expRecs.length
-                           + "\nact record count: " + actRecs.length 
-                           + "\nexp record: " + JSON.stringify( expRecs[posOfFailure] ) 
-                           + "\nact record: " + JSON.stringify( actRecs[posOfFailure] ) );
+            + "\nexp record count: " + expRecs.length
+            + "\nact record count: " + actRecs.length
+            + "\nexp record: " + JSON.stringify( expRecs[posOfFailure] )
+            + "\nact record: " + JSON.stringify( actRecs[posOfFailure] ) );
       }
       else
       {
@@ -1503,11 +1505,11 @@ function commCompareResults( cursor, expRecs, exceptId )
          var epos = posOfFailure + 10;
          var expRecords = expRecs.slice( bpos, epos );
          var actRecords = actRecs.slice( bpos, epos );
-         throw new Error( "compare the " + recordLocation + "th record failed, " 
-                           + "\nexp record count: " + expRecs.length
-                           + "\nact record count: " + actRecs.length
-                           + "\nexp: " + JSON.stringify(expRecords) 
-                           + "\nact: " + JSON.stringify(actRecords) );
+         throw new Error( "compare the " + recordLocation + "th record failed, "
+            + "\nexp record count: " + expRecs.length
+            + "\nact record count: " + actRecs.length
+            + "\nexp: " + JSON.stringify( expRecords )
+            + "\nact: " + JSON.stringify( actRecords ) );
       }
    }
 }
@@ -1517,11 +1519,11 @@ function commCompareResults( cursor, expRecs, exceptId )
 @author: luweikang
 @return: true/false
 ******************************************************************* */
-function commCompareObject( expObj, actObj )
+function commCompareObject ( expObj, actObj )
 {
-   function isDirectCompare( value )
+   function isDirectCompare ( value )
    {
-      if( typeof( value ) !== "object" )
+      if( typeof ( value ) !== "object" )
       {
          return true;
       }
@@ -1538,8 +1540,8 @@ function commCompareObject( expObj, actObj )
          return false;
       }
    }
-   
-   if( typeof( expObj ) != typeof( actObj ) )
+
+   if( typeof ( expObj ) != typeof ( actObj ) )
    {
       return false;
    }
@@ -1555,7 +1557,7 @@ function commCompareObject( expObj, actObj )
       }
       for( var key in expObj )
       {
-         if( !commCompareObject( expObj[ key ], actObj[ key ] ) )
+         if( !commCompareObject( expObj[key], actObj[key] ) )
          {
             return false;
          }
@@ -1573,24 +1575,24 @@ function commCompareObject( expObj, actObj )
         [0]{"xxxx": "xxxx", "xxxx": "xxxx"}
         [1]{"xxxx": "xxxx", "xxxx": "xxxx"}
 ********************************************************************* */
-function commGetSnapshot( db, snapshotType, condObj, selObj, sortObj, skipNum, limitNum, optionsObj )
+function commGetSnapshot ( db, snapshotType, condObj, selObj, sortObj, skipNum, limitNum, optionsObj )
 {
-   if( condObj == undefined ){ condObj = {}; }
-   if( selObj == undefined ){ selObj = {}; }
-   if( sortObj == undefined ){ sortObj = {}; }
-   if( skipNum == undefined ){ skipNum = 0; }
-   if( limitNum == undefined ){ limitNum = -1; }
-   if( optionsObj == undefined ){ optionsObj = {}; }
-   
-   if( typeof(condObj) != "object" || condObj == null ){ throw new Error("cond must be obj, can't be null"); }
-   if( typeof(selObj) != "object" || selObj == null ){ throw new Error("sel must be obj, can't be null"); }
-   if( typeof(sortObj) != "object" || sortObj == null ){ throw new Error("sort must be obj, can't be null"); }
-   if( typeof(optionsObj) != "object" || optionsObj == null ){ throw new Error("options must be obj, can't be null"); }
-   
+   if( condObj == undefined ) { condObj = {}; }
+   if( selObj == undefined ) { selObj = {}; }
+   if( sortObj == undefined ) { sortObj = {}; }
+   if( skipNum == undefined ) { skipNum = 0; }
+   if( limitNum == undefined ) { limitNum = -1; }
+   if( optionsObj == undefined ) { optionsObj = {}; }
+
+   if( typeof ( condObj ) != "object" || condObj == null ) { throw new Error( "cond must be obj, can't be null" ); }
+   if( typeof ( selObj ) != "object" || selObj == null ) { throw new Error( "sel must be obj, can't be null" ); }
+   if( typeof ( sortObj ) != "object" || sortObj == null ) { throw new Error( "sort must be obj, can't be null" ); }
+   if( typeof ( optionsObj ) != "object" || optionsObj == null ) { throw new Error( "options must be obj, can't be null" ); }
+
    var snapshotOption = new SdbSnapshotOption();
    snapshotOption.cond( condObj ).sel( selObj ).options( optionsObj );
    snapshotOption.sort( sortObj ).skip( skipNum ).limit( limitNum );
-   
+
    var tmpArr = [];
    var cursor = null;
    try
@@ -1601,15 +1603,15 @@ function commGetSnapshot( db, snapshotType, condObj, selObj, sortObj, skipNum, l
          tmpArr.push( cursor.current().toObj() );
       }
    }
-   catch(e)
+   catch( e )
    {
-      throw new Error(e);
+      throw new Error( e );
    }
    finally
    {
       if( cursor != null )
       {
-         cursor.close();   
+         cursor.close();
       }
    }
    return tmpArr;
@@ -1620,12 +1622,12 @@ function commGetSnapshot( db, snapshotType, condObj, selObj, sortObj, skipNum, l
 @author: luweikang
 @return array[]
 ********************************************************************* */
-function commCursor2Array( cursor, fieldName, filter )
+function commCursor2Array ( cursor, fieldName, filter )
 {
    var tmpArray = [];
    if( cursor === undefined || cursor === null )
    {
-      throw new Error("cursor can't be undefined or null."); 
+      throw new Error( "cursor can't be undefined or null." );
    }
    try
    {
@@ -1633,24 +1635,25 @@ function commCursor2Array( cursor, fieldName, filter )
       {
          var obj = cursor.current().toObj();
          if( fieldName !== undefined && filter !== undefined &&
-               obj[fieldName] !== undefined && obj[fieldName].indexOf( filter ) !== -1 )
+            obj[fieldName] !== undefined && obj[fieldName].indexOf( filter ) !== -1 )
          {
             tmpArray.push( obj );
          }
-         else{
+         else
+         {
             tmpArray.push( obj );
          }
       }
    }
-   catch(e)
+   catch( e )
    {
-      throw new Error(e);
+      throw new Error( e );
    }
    finally
    {
       cursor.close();
    }
-   
+
    return tmpArray;
 }
 
@@ -1662,50 +1665,50 @@ function commCursor2Array( cursor, fieldName, filter )
                2.var recs = rd.getRecords( 3, ["int", "string"] );
                3.rd.getValue("string");
 ***********************************************************************/
-function commDataGenerator()
+function commDataGenerator ()
 {
    this.getRecords =
-   function( recNum, dataTypes, fieldNames )
-   {
-      return getRandomRecords( recNum, dataTypes, fieldNames );
-   }
-   
-   this.getValue = 
-   function( dataType )
-   {
-      return getRandomValue( dataType );
-   }
-   
-   function getRandomRecords( recNum, dataTypes, fieldNames )
+      function( recNum, dataTypes, fieldNames )
+      {
+         return getRandomRecords( recNum, dataTypes, fieldNames );
+      }
+
+   this.getValue =
+      function( dataType )
+      {
+         return getRandomValue( dataType );
+      }
+
+   function getRandomRecords ( recNum, dataTypes, fieldNames )
    {
       if( fieldNames === undefined ) { fieldNames = getRandomFieldNames(); }
-      if( dataTypes.constructor !== Array ) { dataTypes = [ dataTypes ]; }
-      
+      if( dataTypes.constructor !== Array ) { dataTypes = [dataTypes]; }
+
       var recs = [];
       for( var i = 0; i < recNum; i++ )
-      {          
+      {
          // generate 1 record
-         var rec = {};      
+         var rec = {};
          for( var j in fieldNames )
-         {  
+         {
             // generate 1 filed
             var filedName = fieldNames[j];
-   
-            var dataType = dataTypes[ parseInt( Math.random() * dataTypes.length ) ];  //randomly get 1 data type
-            var filedVal =  getRandomValue( dataType );
-            
-            if( filedVal !== undefined ) rec[filedName] = filedVal;       
-         } 
-         
+
+            var dataType = dataTypes[parseInt( Math.random() * dataTypes.length )];  //randomly get 1 data type
+            var filedVal = getRandomValue( dataType );
+
+            if( filedVal !== undefined ) rec[filedName] = filedVal;
+         }
+
          recs.push( rec );
-      }   
+      }
       return recs;
    }
-   
-   function getRandomValue( dataType )
+
+   function getRandomValue ( dataType )
    {
       var value = undefined;
-      
+
       switch( dataType )
       {
          case "int":
@@ -1719,49 +1722,49 @@ function commDataGenerator()
             break;
          case "string":
             value = getRandomString( 0, 20 );
-            break; 
+            break;
          case "OID":
             value = ObjectId();
             break;
          case "bool":
             value = getRandomBool();
-            break; 
+            break;
          case "date":
             value = getRandomDate();
             break;
          case "timestamp":
             value = getRandomTimestamp();
-            break; 
+            break;
          case "binary":
             value = getRandomBinary();
             break;
          case "regex":
             value = getRandomRegex();
-            break; 
+            break;
          case "object":
             value = getRandomObject();
             break;
          case "array":
             value = getRandomArray();
-            break; 
+            break;
          case "null":
             value = null;
             break;
          case "non-existed":
-            break;                 
+            break;
       }
-      
+
       return value;
    }
-   
-   function getRandomFieldNames( minNum, maxNum )
+
+   function getRandomFieldNames ( minNum, maxNum )
    {
       if( minNum == undefined ) { minNum = 0; }
       if( maxNum == undefined ) { maxNum = 16; }
-      
+
       var fieldNames = [];
       var fieldNum = getRandomInt( minNum, maxNum );
-      
+
       for( var i = 0; i < fieldNum; i++ )
       {
          //get 1 field name
@@ -1776,36 +1779,36 @@ function commDataGenerator()
          }
          fieldNames.push( fieldName );
       }
-      
+
       return fieldNames;
    }
-   
-   function getRandomInt( min, max ) // [min, max)
+
+   function getRandomInt ( min, max ) // [min, max)
    {
       var range = max - min;
       var value = min + parseInt( Math.random() * range );
       return value;
    }
-   
-   function getRandomLong( min, max )
+
+   function getRandomLong ( min, max )
    {
       var longValue = getRandomInt( min, max );
-	  var value = {"$numberLong":longValue.toString()};
+      var value = { "$numberLong": longValue.toString() };
       return value;
    }
-   
-   function getRandomFloat( min, max )
+
+   function getRandomFloat ( min, max )
    {
       var range = max - min;
       var value = min + Math.random() * range;
       return value;
    }
-   
-   function getRandomString( minLen, maxLen ) //string length value locate in [minLen, maxLen)
+
+   function getRandomString ( minLen, maxLen ) //string length value locate in [minLen, maxLen)
    {
-      var strLen = getRandomInt( minLen, maxLen );   
+      var strLen = getRandomInt( minLen, maxLen );
       var str = "";
-      
+
       for( var i = 0; i < strLen; i++ )
       {
          var ascii = getRandomInt( 48, 127 ); // '0' -- '~'
@@ -1814,124 +1817,124 @@ function commDataGenerator()
       }
       return str;
    }
-   
-   function getRandomBool()
+
+   function getRandomBool ()
    {
-      var Bools = [ true, false ];
-      var index = parseInt( Math.random() * Bools.length );  
-      var value = Bools[ index ]; 
-      
+      var Bools = [true, false];
+      var index = parseInt( Math.random() * Bools.length );
+      var value = Bools[index];
+
       return value;
    }
-    
-   function getRandomDate()
+
+   function getRandomDate ()
    {
       var sec = getRandomInt( -2208902400, 253402128000 ); //1900-01-02 ~ 9999-12-30
-      var dateVal = new Date( sec * 1000 ).Format("yyyy-MM-dd");
-      var value = {"$date":dateVal};
+      var dateVal = new Date( sec * 1000 ).Format( "yyyy-MM-dd" );
+      var value = { "$date": dateVal };
       return value;
    }
-     
-   function getRandomTimestamp()
-   {   
+
+   function getRandomTimestamp ()
+   {
       var sec = getRandomInt( -2147397248, 2147397247 ); //1901-12-14-20.45.52 ~ 2038-01-18-03.14.07
-      var d = new Date( sec * 1000 ).Format("yyyy-MM-dd-hh.mm.ss");
-      
+      var d = new Date( sec * 1000 ).Format( "yyyy-MM-dd-hh.mm.ss" );
+
       var ns = getRandomInt( 0, 1000000 ).toString();
       if( ns.length < 6 )
       {
          var addZero = 6 - ns.length;
-         for(var i = 0; i < addZero; i++ ) { ns = '0' + ns; }   
+         for( var i = 0; i < addZero; i++ ) { ns = '0' + ns; }
       }
-      
+
       var timeVal = d + '.' + ns;
-      
-      var value = {"$timestamp": timeVal};
+
+      var value = { "$timestamp": timeVal };
       return value;
    }
-   
-   function getRandomBinary()
-   {   
+
+   function getRandomBinary ()
+   {
       var str = getRandomString( 1, 50 );
 
       var cmd = new Cmd();
       var binaryVal = cmd.run( "echo -n '" + str + "' | base64 -w 0" );
-      
+
       var typeVal = getRandomInt( 0, 256 );
       typeVal = typeVal.toString();
-      
-      var value = {"$binary":binaryVal, "$type":typeVal};
+
+      var value = { "$binary": binaryVal, "$type": typeVal };
       return value;
    }
-   
-   function getRandomRegex()
+
+   function getRandomRegex ()
    {
-      var opts = [ "i", "m", "x", "s" ];
-      var index = parseInt( Math.random() * opts.length );  
-      var optVal = opts[ index ]; 
-      
+      var opts = ["i", "m", "x", "s"];
+      var index = parseInt( Math.random() * opts.length );
+      var optVal = opts[index];
+
       var regexVal = getRandomString( 1, 10 );
-      
-      var value = {"$regex":regexVal, "$options":optVal};
+
+      var value = { "$regex": regexVal, "$options": optVal };
       return value;
    }
-     
-   function getRandomObject( n )
-   { 
-      var obj = {};   
-      var dataTypes= [ "int", "long", "float", "string", "OID", "bool", "date", 
-                       "timestamp", "binary", "regex", "object", "array", "null" ];
-     
+
+   function getRandomObject ( n )
+   {
+      var obj = {};
+      var dataTypes = ["int", "long", "float", "string", "OID", "bool", "date",
+         "timestamp", "binary", "regex", "object", "array", "null"];
+
       var fieldNames = getRandomFieldNames( 1, 5 );
-      
+
       for( var i in fieldNames )
       {
-         var dataType = dataTypes[ parseInt( Math.random() * dataTypes.length ) ];  //randomly get 1 data type 
-      
+         var dataType = dataTypes[parseInt( Math.random() * dataTypes.length )];  //randomly get 1 data type 
+
          var filedName = fieldNames[i]
          obj[filedName] = getRandomValue( dataType );
       }
-      
+
       return obj;
    }
-   
-   function getRandomArray()
+
+   function getRandomArray ()
    {
-      var arr = [];   
-      var dataTypes= [ "int", "long", "float", "string", "OID", "bool", "date", 
-                       "timestamp", "binary", "regex", "object", "array", "null" ];
-                       
-      var arrLen = getRandomInt( 1, 5 );  
+      var arr = [];
+      var dataTypes = ["int", "long", "float", "string", "OID", "bool", "date",
+         "timestamp", "binary", "regex", "object", "array", "null"];
+
+      var arrLen = getRandomInt( 1, 5 );
       for( var i = 0; i < arrLen; i++ )
       {
-         var dataType = dataTypes[ parseInt( Math.random() * dataTypes.length ) ];  //randomly get 1 data type 
-         
+         var dataType = dataTypes[parseInt( Math.random() * dataTypes.length )];  //randomly get 1 data type 
+
          var elem = getRandomValue( dataType );
          arr.push( elem );
       }
-      
+
       return arr;
    }
 }
 
-Date.prototype.Format = function(fmt)   
-    { //author: meizz   
-      var o = {   
-        "M+" : this.getMonth()+1,                 //month   
-        "d+" : this.getDate(),                    //date  
-        "h+" : this.getHours(),                   //hour  
-        "m+" : this.getMinutes(),                 //minute 
-        "s+" : this.getSeconds(),                 //second   
-        "q+" : Math.floor((this.getMonth()+3)/3), //quarter   
-        "S"  : this.getMilliseconds()             //millisecond   
-      };   
-      if(/(y+)/.test(fmt))   
-        fmt=fmt.replace(RegExp.$1, (this.getFullYear()+"").substr(4 - RegExp.$1.length));   
-      for(var k in o)   
-        if(new RegExp("("+ k +")").test(fmt))   
-      fmt = fmt.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));   
-      return fmt;   
-    }
+Date.prototype.Format = function( fmt )   
+{ //author: meizz   
+   var o = {
+      "M+": this.getMonth() + 1,                 //month   
+      "d+": this.getDate(),                    //date  
+      "h+": this.getHours(),                   //hour  
+      "m+": this.getMinutes(),                 //minute 
+      "s+": this.getSeconds(),                 //second   
+      "q+": Math.floor( ( this.getMonth() + 3 ) / 3 ), //quarter   
+      "S": this.getMilliseconds()             //millisecond   
+   };
+   if( /(y+)/.test( fmt ) )
+      fmt = fmt.replace( RegExp.$1, ( this.getFullYear() + "" ).substr( 4 - RegExp.$1.length ) );
+   for( var k in o )
+      if( new RegExp( "(" + k + ")" ).test( fmt ) )
+         fmt = fmt.replace( RegExp.$1, ( RegExp.$1.length == 1 ) ? ( o[k] ) : ( ( "00" + o[k] ).substr( ( "" + o[k] ).length ) ) );
+   return fmt;
+}
 
 /**********************************************************************
 @Description:  make dir in host( can be used to make WORKDIR )
@@ -1939,22 +1942,22 @@ Date.prototype.Format = function(fmt)
 @usage:        1. commMakeDir( COORDHOSTNAME, WORKDIR )
                2. commMakeDir( "localhost", WORKDIR )
 ***********************************************************************/
-function commMakeDir( host, dir )
+function commMakeDir ( host, dir )
 {
-    try
-    {
-        var remote = new Remote( host, CMSVCNAME ) ;
-        var file = remote.getFile() ;
-        if( file.exist( dir ) )
-        {
-            return ;
-        }
-        file.mkdir( dir ) ;
-    }
-    catch( e )
-    {
-        throw new Error( "commMakeDir make dir " + dir + " in " + host + " error: " + e ) ;
-    } 
+   try
+   {
+      var remote = new Remote( host, CMSVCNAME );
+      var file = remote.getFile();
+      if( file.exist( dir ) )
+      {
+         return;
+      }
+      file.mkdir( dir );
+   }
+   catch( e )
+   {
+      throw new Error( "commMakeDir make dir " + dir + " in " + host + " error: " + e );
+   }
 }
 
 /* *****************************************************************************
@@ -1962,33 +1965,33 @@ function commMakeDir( host, dir )
 @author: zhaoyu
 @parameter
 ***************************************************************************** */
-function commCreateDomain( db, domainName, groupNames, options, ignoreExisted, message)
+function commCreateDomain ( db, domainName, groupNames, options, ignoreExisted, message )
 {
    var outmessage = "";
-   if ( options == undefined ) { options = {} ; }
-   if ( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
-   if ( ignoreExisted == undefined ) { ignoreExisted = false ; }
+   if( options == undefined ) { options = {}; }
+   if( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
+   if( ignoreExisted == undefined ) { ignoreExisted = false; }
    try
    {
-      return db.createDomain(domainName, groupNames, options);
-   }catch(e)
+      return db.createDomain( domainName, groupNames, options );
+   } catch( e )
    {
-      if(e !== -215 || !ignoreExisted)
+      if( e !== -215 || !ignoreExisted )
       {
-         throw new Error( "commCreateDomain, create domain: " + domainName + " failed: " + e + outmessage ) ;
+         throw new Error( "commCreateDomain, create domain: " + domainName + " failed: " + e + outmessage );
       }
    }
-   
+
    try
    {
-      return db.getDomain(domainName);
+      return db.getDomain( domainName );
    }
-   catch ( e )
+   catch( e )
    {
-      throw new Error( "commCreateDomain, get domain: " + domainName + " failed: " + e + outmessage ) ;
+      throw new Error( "commCreateDomain, get domain: " + domainName + " failed: " + e + outmessage );
    }
-   
-   
+
+
 }
 
 /* *****************************************************************************
@@ -1996,29 +1999,29 @@ function commCreateDomain( db, domainName, groupNames, options, ignoreExisted, m
 @author: zhaoyu
 @parameter
 ***************************************************************************** */
-function commDropDomain( db, domainName, ignoreNotExist, message)
+function commDropDomain ( db, domainName, ignoreNotExist, message )
 {
    var outmessage = "";
-   if ( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
-   if ( ignoreNotExist == undefined ) { ignoreNotExist = true ; }
+   if( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
+   if( ignoreNotExist == undefined ) { ignoreNotExist = true; }
    try
    {
-      var domain = db.getDomain(domainName);
+      var domain = db.getDomain( domainName );
       var cursor = domain.listCollectionSpaces();
-      while(cursor.next())
+      while( cursor.next() )
       {
          var csName = cursor.current().toObj().Name;
-         db.dropCS(csName);
+         db.dropCS( csName );
       }
-      db.dropDomain(domainName); 
-   }catch(e)
+      db.dropDomain( domainName );
+   } catch( e )
    {
-      if( e !== -214 || !ignoreNotExist)
+      if( e !== -214 || !ignoreNotExist )
       {
-         throw new Error( "commDropDomain, drop domain: " + domainName + " failed: " + e + outmessage ) ;
+         throw new Error( "commDropDomain, drop domain: " + domainName + " failed: " + e + outmessage );
       }
    }
-   
+
 }
 
 /* *****************************************************************************
@@ -2026,19 +2029,19 @@ function commDropDomain( db, domainName, ignoreNotExist, message)
 @author: zhaoyu
 @parameter
 ***************************************************************************** */
-function commCreateProcedure( db, code, ignoreExisted, message)
+function commCreateProcedure ( db, code, ignoreExisted, message )
 {
    var outmessage = "";
-   if ( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
-   if ( ignoreExisted == undefined ) { ignoreExisted = false ; }
+   if( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
+   if( ignoreExisted == undefined ) { ignoreExisted = false; }
    try
    {
-      db.createProcedure(code);
-   }catch(e)
+      db.createProcedure( code );
+   } catch( e )
    {
-      if(e !== -38 || !ignoreExisted)
+      if( e !== -38 || !ignoreExisted )
       {
-         throw new Error( "commCreateProcedure, create procedure: " + code + " failed: " + e + outmessage ) ;
+         throw new Error( "commCreateProcedure, create procedure: " + code + " failed: " + e + outmessage );
       }
    }
 }
@@ -2048,22 +2051,22 @@ function commCreateProcedure( db, code, ignoreExisted, message)
 @author: zhaoyu
 @parameter
 ***************************************************************************** */
-function commRemoveProcedure( db, functionName, ignoreNotExist, message)
+function commRemoveProcedure ( db, functionName, ignoreNotExist, message )
 {
    var outmessage = "";
-   if ( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
-   if ( ignoreNotExist == undefined ) { ignoreNotExist = true ; }
+   if( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
+   if( ignoreNotExist == undefined ) { ignoreNotExist = true; }
    try
    {
-      db.removeProcedure(functionName); 
-   }catch(e)
+      db.removeProcedure( functionName );
+   } catch( e )
    {
-      if( e !== -233 || !ignoreNotExist)
+      if( e !== -233 || !ignoreNotExist )
       {
-         throw new Error( "commRemoveProcedure, remove procedure: " + functionName + " failed: " + e + outmessage ) ;
+         throw new Error( "commRemoveProcedure, remove procedure: " + functionName + " failed: " + e + outmessage );
       }
    }
-   
+
 }
 
 /* *****************************************************************************
@@ -2071,20 +2074,20 @@ function commRemoveProcedure( db, functionName, ignoreNotExist, message)
 @author: zhaoyu
 @parameter
 ***************************************************************************** */
-function commCreateUsr( db, userName, password, options, ignoreExisted, message)
+function commCreateUsr ( db, userName, password, options, ignoreExisted, message )
 {
    var outmessage = "";
-   if ( options == undefined ) { options = {} ;}
-   if ( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
-   if ( ignoreExisted == undefined ) { ignoreExisted = false ; }
+   if( options == undefined ) { options = {}; }
+   if( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
+   if( ignoreExisted == undefined ) { ignoreExisted = false; }
    try
    {
-      db.createUsr(userName, password, options);
-   }catch(e)
+      db.createUsr( userName, password, options );
+   } catch( e )
    {
-      if(e !== -295 || !ignoreExisted)
+      if( e !== -295 || !ignoreExisted )
       {
-         throw new Error( "commCreateUsr, create userName: " + userName + " failed: " + e + outmessage ) ;
+         throw new Error( "commCreateUsr, create userName: " + userName + " failed: " + e + outmessage );
       }
    }
 }
@@ -2094,22 +2097,22 @@ function commCreateUsr( db, userName, password, options, ignoreExisted, message)
 @author: zhaoyu
 @parameter
 ***************************************************************************** */
-function commDropUsr( db, userName, password, ignoreNotExist, message)
+function commDropUsr ( db, userName, password, ignoreNotExist, message )
 {
    var outmessage = "";
-   if ( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
-   if ( ignoreNotExist == undefined ) { ignoreNotExist = true ; }
+   if( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
+   if( ignoreNotExist == undefined ) { ignoreNotExist = true; }
    try
    {
-      db.dropUsr(userName, password); 
-   }catch(e)
+      db.dropUsr( userName, password );
+   } catch( e )
    {
-      if( e !== -300 || !ignoreNotExist)
+      if( e !== -300 || !ignoreNotExist )
       {
-         throw new Error( "commDropUsr, drop userName: " + userName + " failed: " + e + outmessage ) ;
+         throw new Error( "commDropUsr, drop userName: " + userName + " failed: " + e + outmessage );
       }
    }
-   
+
 }
 
 // common database connection
@@ -2117,10 +2120,10 @@ try
 {
    var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
 }
-catch ( e )
+catch( e )
 {
-   throw buildException( null, null, 
-         "connect sdb " + COORDHOSTNAME + ":" + COORDSVCNAME, 0, e ) ;
+   throw buildException( null, null,
+      "connect sdb " + COORDHOSTNAME + ":" + COORDSVCNAME, 0, e );
 }
 
-commCreateCLByOption( db, COMMCSNAME, COMMDUMMYCLNAME, {ShardingType:'hash',ShardingKey:{_id:1}, AutoSplit:true}, true, true ) ;
+commCreateCLByOption( db, COMMCSNAME, COMMDUMMYCLNAME, { ShardingType: 'hash', ShardingKey: { _id: 1 }, AutoSplit: true }, true, true );
