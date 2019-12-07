@@ -704,30 +704,30 @@ Oma.prototype.reloadConfigs = function()
    this._runCommand( "reload config" ) ;
 }
 
-Oma.prototype.createTP = function( configs )
+Oma.prototype.createStp = function( configs )
 {
    var options = {} ;
    if ( undefined != configs )
    {
       options = configs ;
    }
-   this._runCommand( "tp create", options ) ;
-   return this.getTP()
+   this._runCommand( "stp create", options ) ;
+   return this.getStp()
 }
 
-Oma.prototype.removeTP = function()
+Oma.prototype.removeStp = function()
 {
-   this._runCommand( "tp remove" )
+   this._runCommand( "stp remove" )
 }
 
-Oma.prototype.startTP = function()
+Oma.prototype.startStp = function()
 {
-   this._runCommand( "tp start" )
+   this._runCommand( "stp start" )
 }
 
-Oma.prototype.stopTP = function()
+Oma.prototype.stopStp = function()
 {
-   this._runCommand( "tp stop" )
+   this._runCommand( "stp stop" )
 }
 
 // end Oma
@@ -865,45 +865,45 @@ Remote.prototype._runCommand = function( command, optionObj,
 }
 // end Remote
 
-// SdbTP member function
-SdbTP.prototype.getTime = function() {
-   return this._runCommand( "tp get time" ) ;
+// Stp member function
+Stp.prototype.getTime = function() {
+   return this._runCommand( "stp get time" ) ;
 }
 
-SdbTP.prototype.getMeta = function() {
-   return this._runCommand( "tp get meta" ) ;
+Stp.prototype.getMeta = function() {
+   return this._runCommand( "stp get meta" ) ;
 }
 
-SdbTP.prototype.getServers = function() {
-   return this._runCommand( "tp get servers" ) ;
+Stp.prototype.getServers = function() {
+   return this._runCommand( "stp get servers" ) ;
 }
 
-SdbTP.prototype.getSyncClients = function() {
-   return this._runCommand( "tp get sync clients" ) ;
+Stp.prototype.getSyncClients = function() {
+   return this._runCommand( "stp get sync clients" ) ;
 }
 
-SdbTP.prototype.getSyncStatus = function() {
-   return this._runCommand( "tp get sync status" ) ;
+Stp.prototype.getSyncStatus = function() {
+   return this._runCommand( "stp get sync status" ) ;
 }
 
-SdbTP.prototype.getSyncHistory = function() {
-   return this._runCommand( "tp get sync history" ) ;
+Stp.prototype.getSyncHistory = function() {
+   return this._runCommand( "stp get sync history" ) ;
 }
 
-SdbTP.prototype.getConfig = function() {
-   return this._runCommand( "tp get config" ) ;
+Stp.prototype.getConfig = function() {
+   return this._runCommand( "stp get config" ) ;
 }
 
-SdbTP.prototype.updateConfig = function( configs ) {
+Stp.prototype.updateConfig = function( configs ) {
    if ( undefined === configs )
    {
       setLastErrMsg( "configs is not given" ) ;
       throw SDB_INVALIDARG ;
    }
-   return this._runCommand( "tp update config", configs ) ;
+   return this._runCommand( "stp update config", configs ) ;
 }
 
-SdbTP.prototype.setPDLevel = function( diagLevel ) {
+Stp.prototype.setPDLevel = function( diagLevel ) {
    if ( undefined === diagLevel )
    {
       setLastErrMsg( "diagLevel is not given" ) ;
@@ -915,10 +915,10 @@ SdbTP.prototype.setPDLevel = function( diagLevel ) {
       throw SDB_INVALIDARG ;
    }
    var configs = { "diaglevel" : diagLevel } ;
-   this._runCommand( "tp update config", configs ) ;
+   this._runCommand( "stp update config", configs ) ;
 }
 
-// end SdbTP
+// end Stp
 
 // _Filter member function
 _Filter.prototype.match = function( BSONArrObj ) {

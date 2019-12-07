@@ -373,7 +373,7 @@ namespace engine
          _monApplCB.setCRUDCB( NULL ) ;
       }
 
-   #if defined ( SDB_ENGINE ) || defined ( SDB_TP )
+   #if defined ( SDB_ENGINE ) || defined ( SDB_STP )
       ossEvent & getEvent () { return _event ; }
       void     setOrgReplSize( INT16 replSize ) { _orgReplSize = replSize ; }
       INT16    getOrgReplSize() const { return _orgReplSize ; }
@@ -500,7 +500,7 @@ namespace engine
       monAppCB                _monApplCB ;
       monConfigCB             _monCfgCB ;
 
-   #if defined ( SDB_ENGINE ) || defined ( SDB_TP )
+   #if defined ( SDB_ENGINE ) || defined ( SDB_STP )
       ossEvent                _event ;   // for cls replSet notify
       INT16                   _orgReplSize ;
    #endif

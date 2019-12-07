@@ -455,7 +455,7 @@ accesses) is the same as if
 
         int len() const { return _buf.l; }
 
-#if defined ( SDB_ENGINE ) || defined ( SDB_FMP ) || defined ( SDB_TOOL ) || defined ( SDB_TP )
+#if defined ( SDB_ENGINE ) || defined ( SDB_FMP ) || defined ( SDB_TOOL ) || defined ( SDB_STP )
         ossPoolString poolStr() const { return ossPoolString(_buf.data, _buf.l); }
 #endif //SDB_ENGINE || SDB_FMP || SDB_TOOL
 

@@ -563,7 +563,7 @@ namespace engine
       return utilStrTrim( nodeStr ) ; ;
    }
 
-   INT32 omGetTPFromConfig( const CHAR *cfgRootDir, string &svcName )
+   INT32 omGetStpFromConfig( const CHAR *cfgRootDir, string &svcName )
    {
       INT32 rc = SDB_OK ;
 
@@ -571,9 +571,9 @@ namespace engine
       po::options_description desc( "Command options" ) ;
       po::variables_map vm ;
 
-      rc = utilBuildFullPath( cfgRootDir, SDBTP_CFG_FILE_NAME,
+      rc = utilBuildFullPath( cfgRootDir, STP_CFG_FILE_NAME,
                               OSS_MAX_PATHSIZE, cfgFileName ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build TP config path for root "
+      PD_RC_CHECK( rc, PDERROR, "Failed to build STP config path for root "
                    "path %s, rc: %d", cfgRootDir, rc ) ;
 
       // read port from config file
@@ -582,7 +582,7 @@ namespace engine
       PMD_ADD_PARAM_OPTIONS_END
 
       rc = utilReadConfigureFile( cfgFileName, desc, vm ) ;
-      PD_RC_CHECK( rc, PDWARNING, "Failed to read TP config file [%s], "
+      PD_RC_CHECK( rc, PDWARNING, "Failed to read STP config file [%s], "
                    "rc: %d", cfgFileName, rc ) ;
 
       if ( vm.count( PMD_OPTION_PORT ) )
@@ -591,7 +591,7 @@ namespace engine
       }
       else
       {
-         svcName = TP_DEF_SVCNAME ;
+         svcName = STP_DEF_SERVICE_NAME ;
       }
 
    done:

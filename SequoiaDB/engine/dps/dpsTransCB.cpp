@@ -50,6 +50,7 @@
 #include "dpsTransVersionCtrl.hpp"
 #include "dpsLogWrapper.hpp"
 #include "pmdStartup.hpp"
+#include "rtnCB.hpp"
 
 namespace engine
 {
@@ -240,6 +241,28 @@ namespace engine
       {
          DPS_TRANS_SET_AUTOCOMMIT( temp ) ;
       }
+
+#if defined ( _DEBUG )
+      {
+         // test for logical time
+         // TODO: replace transID with logical time for global transactions
+         stpLogicalTimeUS time ;
+         stpAgent *agent = sdbGetRTNCB()->getSTPAgent() ;
+         if ( NULL != agent )
+         {
+            INT32 rc = agent->getLogicalTimeUS( time ) ;
+            if ( SDB_OK == rc )
+            {
+               PD_LOG( PDDEBUG, "Got logical time [%llu] with timeError [%u]",
+                       time.getTime(), time.getTimeError() ) ;
+            }
+            else
+            {
+               PD_LOG( PDDEBUG, "Failed to get logical time, rc: %d", rc ) ;
+            }
+         }
+      }
+#endif
 
       return temp ;
    }
