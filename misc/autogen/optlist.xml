@@ -161,7 +161,7 @@
       </description>
       <reloadable>
       		<en>Yes</en>
-      		<cn>是</cn>
+      		<cn>动态生效</cn>
       </reloadable>
       <reloadstrategy>
       		<en>takes effect when current file reaches write limit</en>
@@ -186,7 +186,7 @@
       </description>
       <reloadable>
       		<en>Yes</en>
-      		<cn>是</cn>
+      		<cn>动态生效</cn>
       </reloadable>
       <reloadstrategy>
       		<en>takes effect when current file reaches write limit</en>
@@ -246,7 +246,7 @@
       <type>int</type>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>1. It specifies the amount of thread in thread pool.<fig></fig>
@@ -391,7 +391,7 @@
       <type>int</type>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <default>3</default>
       <detail>
@@ -526,7 +526,7 @@
       <type>int</type>
       <reloadable>
       		<en>Yes</en>
-      		<cn>是</cn>
+      		<cn>动态生效</cn>
       </reloadable>
       <reloadstrategy>
       		<en>takes effect upon next transaction</en>
@@ -639,7 +639,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <reloadstrategy>
          <en>takes effect upon next query</en>
@@ -663,7 +663,7 @@
       <type>int</type>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <reloadstrategy>
          <en>takes effect upon next query</en>
@@ -685,7 +685,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>1. The control strategy of data sync in repl group.<fig></fig>
@@ -788,7 +788,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <type>int</type>
       <hidden>true</hidden>
@@ -814,7 +814,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
 	    <type>int</type>
       <hidden>true</hidden>
@@ -829,7 +829,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <reloadstrategy>
          <en>takes effect upon new connection</en>
@@ -870,7 +870,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <reloadstrategy>
          <en>takes effect upon new connection</en>
@@ -951,7 +951,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <reloadstrategy>
          <en>takes effect upon newly created CS</en>
@@ -973,7 +973,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>Extend the file as a sparse file, if it is not specified, the default value is "false"</en>
@@ -1024,7 +1024,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>The weight of election, default is 10, range [1, 100]</en>
@@ -1043,12 +1043,8 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>重启生效</cn>
       </reloadable>
-      <reloadstrategy>
-         <en>takes effect upon new connection</en>
-         <cn>新连接生效</cn>
-      </reloadstrategy>
       <detail>
          <en>Allow client to connect with SSL (enterprise edition only), default false</en>
          <cn>允许客户端使用SSL连接（仅限企业版），默认为false</cn>
@@ -1092,7 +1088,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>The buckets of access plan cache. Sdb will not cache any access plan if it is zero. Value range:[0,10000], Default is 0.</en>
@@ -1110,7 +1106,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>The timeout period for heartbeat in each operation ( in ms ), default:300000, 0 for no-timeout</en>
@@ -1130,7 +1126,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>The overflow ratio(%) of record when inserting, default is 12, value range:[0,10000]</en>
@@ -1150,7 +1146,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>The threshold size( in MB, must be power of 2 or 0 ) of pre extended segment, default is 32, 0 means disable pre-extend, value range:[0, 128]</en>
@@ -1196,7 +1192,7 @@
       </description>
       <reloadable>
       		<en>Yes</en>
-      		<cn>是</cn>
+      		<cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>The node's max cache size, unit is MB, default is 0(currently only applicable for Lob feature)</en>
@@ -1216,7 +1212,7 @@
       </description>
       <reloadable>
       		<en>Yes</en>
-      		<cn>是</cn>
+      		<cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>1.The maximum number of cache threads, default:10, value range:[2, 200].<fig></fig>
@@ -1242,7 +1238,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>The merge block size of collectionspace when use cache, default:0, value range:[0,64], unit:MB(currently only applicable for Lob feature)</en>
@@ -1262,7 +1258,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>The timeout value for allocating page from cache, default:0, value range:[0,3600000], unit:ms</en>
@@ -1283,7 +1279,7 @@
       </description>
       <reloadable>
       		<en>Yes</en>
-      		<cn>是</cn>
+      		<cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>1.The maximum number of data-sync threads, default:10, value range:[2, 200].<fig></fig>
@@ -1307,7 +1303,7 @@
       </description>
       <reloadable>
       		<en>Yes</en>
-      		<cn>是</cn>
+      		<cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>The interval times(unit:ms) of data-sync, default:10000, 0 means disable data-sync by time</en>
@@ -1327,7 +1323,7 @@
       </description>
       <reloadable>
       		<en>Yes</en>
-      		<cn>是</cn>
+      		<cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>The trigger condition of record number of data-sync, default:0, 0 means disable data-sync by record</en>
@@ -1347,7 +1343,7 @@
       </description>
       <reloadable>
       		<en>Yes</en>
-      		<cn>是</cn>
+      		<cn>动态生效</cn>
       </reloadable>
       <default>false</default>
       <detail>
@@ -1383,7 +1379,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <reloadstrategy>
          <en>takes effect upon new archive file</en>
@@ -1422,7 +1418,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>The timeout interval for archiving( in seconds ), default:600, 0 for no-timeout.</en>
@@ -1442,7 +1438,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>The expired time for archive log file ( in hours ), default:240, 0 for no-expired.</en>
@@ -1462,7 +1458,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>The disk quota for archive log directory ( in GB ), default:10, 0 for no limit.</en>
@@ -1482,7 +1478,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <detail>
          <en>1. The node's operation when incremental synchronization can not be done. Value is 0/1/2. Default is 1.<fig></fig>
@@ -1519,7 +1515,7 @@
       </description>
       <reloadable>
          <en>Yes</en>
-         <cn>是</cn>
+         <cn>动态生效</cn>
       </reloadable>
       <reloadstrategy>
          <en></en>

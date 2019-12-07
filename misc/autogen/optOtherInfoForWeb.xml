@@ -23,7 +23,7 @@
       </stentry_type>
       <stentry_reloadable>
          <en>Reloadable</en>
-         <cn>动态生效</cn>
+         <cn>生效类型</cn>
       </stentry_reloadable>
       <stentry_reloadstrategy>
          <en>Reload Strategy</en>
@@ -45,7 +45,7 @@
       </second>
       <third>
          <en>Use [reloadConf()](reference/Sequoiadb_command/Sdb/reloadConf.md) to reload the config file and some of the configs will take effect dynamically, only support those configs that have a "yes" in the "Reloadable" column, others will be ignored. If "Reload Strategy" is left blank, the config will take effect immediately by default.</en>
-         <cn>使用 [reloadConf()](reference/Sequoiadb_command/Sdb/reloadConf.md) 重新加载配置文件，并进行配置动态生效，只支持“动态生效”列为“是”的配置项，其他配置项会被忽略。“生效策略”若无其他说明，则默认为立即生效。</cn>
+         <cn>使用 [reloadConf()](reference/Sequoiadb_command/Sdb/reloadConf.md) 重新加载配置文件，并进行配置动态生效，只支持“生效类型”列为“动态生效”的配置项，其他配置项会被忽略。“生效策略”若无其他说明，则默认为立即生效。</cn>
       </third>
    </note>
 
