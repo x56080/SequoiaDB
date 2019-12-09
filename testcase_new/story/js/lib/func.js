@@ -1634,10 +1634,12 @@ function commCursor2Array ( cursor, fieldName, filter )
       while( cursor.next() )
       {
          var obj = cursor.current().toObj();
-         if( fieldName !== undefined && filter !== undefined &&
-            obj[fieldName] !== undefined && obj[fieldName].indexOf( filter ) !== -1 )
+         if( fieldName !== undefined && filter !== undefined )
          {
-            tmpArray.push( obj );
+            if ( obj[fieldName] !== undefined && obj[fieldName].indexOf( filter ) !== -1 )
+            {
+               tmpArray.push( obj );
+            }
          }
          else
          {
