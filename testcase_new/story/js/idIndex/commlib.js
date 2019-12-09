@@ -5,7 +5,7 @@
 *******************************************************************************/
 function createIdIndex(cl,sortBufferSize,errno)
 {
-   if ( undefined == sortBufferSize ) { sortBufferSize = "" ; }
+   if ( undefined == sortBufferSize ) { sortBufferSize = null ; }
    if ( undefined == errno ) { errno = "" ; }
    try
    {
