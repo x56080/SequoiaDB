@@ -1,6 +1,5 @@
 package com.sequoiadb.basicoperation;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -23,8 +22,6 @@ import com.sequoiadb.testcommon.*;
 
 public class Aggregate7103 extends SdbTestBase {
     private Sequoiadb sdb;
-    private SimpleDateFormat df = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss.SSS" );
     private String coordAddr;
     private String commCSName;
 
@@ -33,9 +30,6 @@ public class Aggregate7103 extends SdbTestBase {
         this.coordAddr = SdbTestBase.coordUrl;
         this.commCSName = SdbTestBase.csName;
         try {
-            System.out.println( "the TestCase: " + this.getClass().getName()
-                    + " begin at:" + df.format( new Date().getTime() ) );
-            System.out.println( "coordAddr:" + coordAddr );
             sdb = new Sequoiadb( coordAddr, "", "" );
             if ( !sdb.isCollectionSpaceExist( commCSName ) ) {
                 sdb.createCollectionSpace( commCSName );
@@ -48,8 +42,6 @@ public class Aggregate7103 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            System.out.println( "the TestCase: " + this.getClass().getName()
-                    + " end at:" + df.format( new Date().getTime() ) );
             sdb.disconnect();
         } catch ( BaseException e ) {
             Assert.fail( "clear env failed, errMsg:" + e.getMessage() );

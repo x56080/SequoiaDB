@@ -1,6 +1,5 @@
 package com.sequoiadb.basicoperation;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Random;
@@ -40,10 +39,6 @@ public class TestGetQueryMeta7092 extends SdbTestBase {
     public void setUp() {
         String coordAddr = SdbTestBase.coordUrl;
         try {
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase begin at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
             this.sdb = new Sequoiadb( coordAddr, "", "" );
             this.cs = this.sdb.getCollectionSpace( SdbTestBase.csName );
             createCL();
@@ -129,10 +124,6 @@ public class TestGetQueryMeta7092 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase end at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
             if ( this.cs.isCollectionExist( clName ) ) {
                 this.cs.dropCollection( clName );
             }

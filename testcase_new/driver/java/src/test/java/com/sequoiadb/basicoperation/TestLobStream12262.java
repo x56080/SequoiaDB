@@ -13,7 +13,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
 
@@ -26,12 +25,8 @@ public class TestLobStream12262 extends SdbTestBase {
     Sequoiadb db = null;
     DBCollection cl = null;
 
-    SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.S" );
-
     @BeforeClass
     public void setup() {
-        System.out.println( this.getClass().getName() + " begin at "
-                + sdf.format( new Date() ) );
         db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl = db.getCollectionSpace( SdbTestBase.csName )
                 .createCollection( "lob12262" );
@@ -41,8 +36,6 @@ public class TestLobStream12262 extends SdbTestBase {
     public void teardown() {
         db.getCollectionSpace( SdbTestBase.csName )
                 .dropCollection( "lob12262" );
-        System.out.println( this.getClass().getName() + " end at "
-                + sdf.format( new Date() ) );
     }
 
     @Test

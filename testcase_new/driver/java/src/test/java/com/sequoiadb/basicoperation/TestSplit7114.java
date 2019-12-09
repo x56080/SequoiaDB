@@ -1,6 +1,5 @@
 package com.sequoiadb.basicoperation;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -41,12 +40,9 @@ public class TestSplit7114 extends SdbTestBase {
     private DBCollection cl;
     String sourceRGName;
     String targetRGName;
-    SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.S" );
 
     @BeforeClass
     public void setUp() {
-        System.out.println( this.getClass().getName() + " begin at "
-                + sdf.format( new Date() ) );
         try {
             sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         } catch ( BaseException e ) {
@@ -182,9 +178,6 @@ public class TestSplit7114 extends SdbTestBase {
                 cs.dropCollection( clName );
             }
             sdb.disconnect();
-            System.out.println( this.getClass().getName() + " end at "
-                    + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
-                            .format( new Date() ) );
         } catch ( BaseException e ) {
             Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
         }

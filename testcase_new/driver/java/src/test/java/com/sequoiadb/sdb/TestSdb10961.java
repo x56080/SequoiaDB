@@ -1,6 +1,5 @@
 package com.sequoiadb.sdb;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.testng.Assert;
@@ -17,10 +16,6 @@ public class TestSdb10961 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         try {
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase begin at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
             this.sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         } catch ( BaseException e ) {
@@ -40,12 +35,6 @@ public class TestSdb10961 extends SdbTestBase {
             this.sdb.closeAllCursors();
         } catch ( BaseException e ) {
             Assert.fail( e.getMessage() );
-        } finally {
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase end at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
-
         }
     }
 }

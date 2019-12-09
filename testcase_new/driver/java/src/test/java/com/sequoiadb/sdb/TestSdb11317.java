@@ -1,6 +1,5 @@
 package com.sequoiadb.sdb;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.testng.Assert;
@@ -25,9 +24,6 @@ public class TestSdb11317 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        System.out.println( this.getClass().getName() + " begin at "
-                + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
-                        .format( new Date() ) );
         try {
             sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         } catch ( BaseException e ) {
@@ -52,9 +48,6 @@ public class TestSdb11317 extends SdbTestBase {
     public void tearDown() {
         try {
             sdb.close();
-            System.out.println( this.getClass().getName() + " end at "
-                    + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
-                            .format( new Date() ) );
         } catch ( BaseException e ) {
             Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
         }

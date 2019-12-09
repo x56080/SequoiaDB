@@ -1,6 +1,5 @@
 package com.sequoiadb.basicoperation;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -40,9 +39,6 @@ public class TestUpsertShardingKey12629 extends SdbTestBase {
 
     @BeforeClass(enabled = false)
     public void setUp() {
-        System.out.println( this.getClass().getName() + " begin at "
-                + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
-                        .format( new Date() ) );
         try {
             sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         } catch ( BaseException e ) {
@@ -114,9 +110,6 @@ public class TestUpsertShardingKey12629 extends SdbTestBase {
                 cs.dropCollection( clName );
             }
             sdb.close();
-            System.out.println( this.getClass().getName() + " end at "
-                    + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
-                            .format( new Date() ) );
         } catch ( BaseException e ) {
             Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
         }

@@ -1,6 +1,5 @@
 package com.sequoiadb.basicoperation;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
 
@@ -35,12 +34,9 @@ public class TestLobInterfaceDependency7099 extends SdbTestBase {
     private CollectionSpace cs = null;
     private DBCollection cl;
     String wMd5 = "";
-    SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.S" );
 
     @BeforeClass
     public void setUp() {
-        System.out.println( this.getClass().getName() + " begin at "
-                + sdf.format( new Date() ) );
         try {
             sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         } catch ( BaseException e ) {
@@ -183,8 +179,6 @@ public class TestLobInterfaceDependency7099 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            System.out.println( this.getClass().getName() + " end at "
-                    + sdf.format( new Date() ) );
             if ( cs.isCollectionExist( clName ) ) {
                 cs.dropCollection( clName );
             }

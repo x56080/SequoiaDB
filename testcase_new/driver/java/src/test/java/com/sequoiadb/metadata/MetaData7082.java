@@ -1,6 +1,5 @@
 package com.sequoiadb.metadata;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.bson.BSONObject;
@@ -30,8 +29,6 @@ public class MetaData7082 extends SdbTestBase {
     private String mainCSName = "mainCS7082";
     private String subCSName = "subCS7082";
 
-    private SimpleDateFormat df = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss.SSS" );
     private String coordAddr;
 
     private CommLib commlib = new CommLib();
@@ -40,8 +37,6 @@ public class MetaData7082 extends SdbTestBase {
     public void setUp() {
         this.coordAddr = SdbTestBase.coordUrl;
         try {
-            System.out.println( "the TestCase: " + this.getClass().getName()
-                    + " begin at:" + df.format( new Date().getTime() ) );
             sdb = new Sequoiadb( coordAddr, "", "" );
             if ( commlib.isStandAlone( sdb ) ) {
                 throw new SkipException(
@@ -67,8 +62,6 @@ public class MetaData7082 extends SdbTestBase {
             if ( sdb.isCollectionSpaceExist( subCSName ) ) {
                 sdb.dropCollectionSpace( subCSName );
             }
-            System.out.println( "the TestCase: " + this.getClass().getName()
-                    + " end at:" + df.format( new Date().getTime() ) );
             sdb.disconnect();
         } catch ( BaseException e ) {
             Assert.fail( "clear env failed, errMsg:" + e.getMessage() );

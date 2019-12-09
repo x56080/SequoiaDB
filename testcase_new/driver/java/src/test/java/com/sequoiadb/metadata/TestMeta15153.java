@@ -1,6 +1,5 @@
 package com.sequoiadb.metadata;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -35,10 +34,6 @@ public class TestMeta15153 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         String coordAddr = SdbTestBase.coordUrl;
-        System.out.println( "the TestCase Name:" + this.getClass().getName()
-                + ". the TestCase bigin at:"
-                + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                        .format( new Date() ) );
         this.sdb = new Sequoiadb( coordAddr, "", "" );
         CommLib commLib = new CommLib();
         if ( commLib.isStandAlone( sdb ) ) {
@@ -97,9 +92,5 @@ public class TestMeta15153 extends SdbTestBase {
         if ( this.sdb != null ) {
             this.sdb.close();
         }
-        System.out.println( "the TestCase Name:" + this.getClass().getName()
-                + ". the TestCase end at:"
-                + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                        .format( new Date() ) );
     }
 }

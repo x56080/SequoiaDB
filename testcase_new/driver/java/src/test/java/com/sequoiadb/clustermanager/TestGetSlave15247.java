@@ -12,7 +12,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -26,8 +25,6 @@ import java.util.Date;
  */
 public class TestGetSlave15247 extends SdbTestBase {
     private Sequoiadb sdb;
-    private SimpleDateFormat df = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss.SSS" );
     private String coordAddr;
     private CommLib commlib = new CommLib();
 
@@ -35,8 +32,6 @@ public class TestGetSlave15247 extends SdbTestBase {
     public void setup() {
         this.coordAddr = SdbTestBase.coordUrl;
         try {
-            System.out.println( "the TestCase: " + this.getClass().getName()
-                    + " begin at:" + df.format( new Date().getTime() ) );
             sdb = new Sequoiadb( coordAddr, "", "" );
 
             if ( commlib.isStandAlone( sdb ) ) {
@@ -51,9 +46,6 @@ public class TestGetSlave15247 extends SdbTestBase {
 
     @AfterClass
     public void teardown() {
-        System.out.println( "the TestCase: " + this.getClass().getName()
-                + " end at:" + df.format( new Date().getTime() ) );
-
         sdb.close();
     }
 

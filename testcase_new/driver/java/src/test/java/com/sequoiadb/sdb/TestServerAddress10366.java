@@ -2,7 +2,6 @@ package com.sequoiadb.sdb;
 
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.testng.Assert;
@@ -23,10 +22,6 @@ public class TestServerAddress10366 extends SdbTestBase {
 
     @Test
     public void testServerAddress() {
-        System.out.println( "the TestCase Name:" + this.getClass().getName()
-                + ". the TestCase start at:"
-                + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                        .format( new Date() ) );
         try {
             InetSocketAddress add = new InetSocketAddress( SdbTestBase.hostName,
                     Integer.parseInt( SdbTestBase.serviceName ) );

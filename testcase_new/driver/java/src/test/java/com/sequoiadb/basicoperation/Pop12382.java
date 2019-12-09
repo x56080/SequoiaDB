@@ -1,7 +1,6 @@
 package com.sequoiadb.basicoperation;
 
 import java.util.List;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
@@ -34,8 +33,6 @@ public class Pop12382 extends SdbTestBase {
     private String cappedCSName = "story_java_cappedCS_12382";
     private String cappedCLName = "cappedCL_12382";
     private List< BSONObject > insrtObjs = new ArrayList<>();
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "yyyy-MM-dd HH:mm:ss.S" );
 
     @BeforeClass
     public void setUp() {

@@ -1,6 +1,5 @@
 package com.sequoiadb.bsontypes;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.bson.BSONObject;
@@ -26,14 +25,9 @@ import com.sequoiadb.testcommon.SdbTestBase;
  */
 public class MinKeyTestHashCode10352 extends SdbTestBase {
     private static Sequoiadb sdb = null;
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss.SSS" );
 
     @BeforeClass
     public void setUp() {
-
-        System.out.println( this.getClass().getName() + " begin at "
-                + sdf.format( new Date() ) );
         try {
             sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         } catch ( BaseException e ) {
@@ -73,9 +67,6 @@ public class MinKeyTestHashCode10352 extends SdbTestBase {
     public void tearDown() {
         try {
             sdb.disconnect();
-            System.out.println( "---" + this.getClass().getName() + " end at "
-                    + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
-                            .format( new Date() ) );
         } catch ( BaseException e ) {
             Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
         }

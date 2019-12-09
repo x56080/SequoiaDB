@@ -14,7 +14,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
@@ -23,9 +22,6 @@ import java.util.Date;
 public class TestQueryMetadata13061 extends SdbTestBase {
 
     private Sequoiadb sdb;
-
-    private SimpleDateFormat df = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss.SSS" );
     private String coordAddr;
     private String commCSName;
     private String clName = "mycl";
@@ -36,8 +32,6 @@ public class TestQueryMetadata13061 extends SdbTestBase {
     public void setUp() {
         this.coordAddr = SdbTestBase.coordUrl;
         this.commCSName = SdbTestBase.csName;
-        System.out.println( "the TestCase: " + this.getClass().getName()
-                + " begin at:" + df.format( new Date().getTime() ) );
         sdb = new Sequoiadb( coordAddr, "", "" );
         if ( !sdb.isCollectionSpaceExist( commCSName ) ) {
             sdb.createCollectionSpace( commCSName );
@@ -76,8 +70,6 @@ public class TestQueryMetadata13061 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        System.out.println( "the TestCase: " + this.getClass().getName()
-                + " end at:" + df.format( new Date().getTime() ) );
         cs.dropCollection( clName );
         sdb.disconnect();
     }

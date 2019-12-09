@@ -1,6 +1,5 @@
 package com.sequoiadb.monitor;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -38,10 +37,6 @@ public class TestSnapshotAccessplan14511 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        System.out.println( "the TestCase Name:" + this.getClass().getName()
-                + ". the TestCase start at:"
-                + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                        .format( new Date() ) );
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cs = sdb.getCollectionSpace( SdbTestBase.csName );
         cl = cs.createCollection( clName );
@@ -95,10 +90,6 @@ public class TestSnapshotAccessplan14511 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        System.out.println( "the TestCase Name:" + this.getClass().getName()
-                + ". the TestCase end at:"
-                + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                        .format( new Date() ) );
         if ( cs.isCollectionExist( clName ) ) {
             cs.dropCollection( clName );
         }

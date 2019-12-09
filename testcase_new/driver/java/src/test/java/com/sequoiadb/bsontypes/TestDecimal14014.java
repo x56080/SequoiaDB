@@ -12,7 +12,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import static org.testng.Assert.assertEquals;
@@ -26,13 +25,9 @@ public class TestDecimal14014 extends SdbTestBase {
     private static Sequoiadb sdb = null;
     private CollectionSpace cs = null;
     private DBCollection dbcl;
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss.SSS" );
 
     @BeforeClass
     public void setUp() {
-        System.out.println( this.getClass().getName() + " begin at "
-                + sdf.format( new Date() ) );
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cs = sdb.getCollectionSpace( SdbTestBase.csName );
         dbcl = cs.createCollection( CLNAME );
@@ -42,8 +37,6 @@ public class TestDecimal14014 extends SdbTestBase {
     public void tearDown() {
         cs.dropCollection( CLNAME );
         sdb.disconnect();
-        System.out.println( this.getClass().getName() + " end at "
-                + sdf.format( new Date() ) );
     }
 
     /**

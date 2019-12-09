@@ -1,6 +1,5 @@
 package com.sequoiadb.basicoperation;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -29,8 +28,6 @@ import com.sequoiadb.testcommon.SdbTestBase;
 
 public class QueryOne19951 extends SdbTestBase {
     private boolean runSuccess = false;
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss.SSS" );
     private Sequoiadb sdb;
     private ArrayList< String > groupNames;
     private String csName = "cs19951";
@@ -40,8 +37,6 @@ public class QueryOne19951 extends SdbTestBase {
 
     @BeforeClass
     private void setUp() {
-        System.out.println( this.getClass().getName() + " Begin at "
-                + sdf.format( new Date() ) );
 
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb ) ) {
@@ -103,8 +98,6 @@ public class QueryOne19951 extends SdbTestBase {
         } finally {
             sdb.disconnect();
         }
-        System.out.println( this.getClass().getName() + " End   at "
-                + sdf.format( new Date() ) );
     }
 
     private void readyCL() {

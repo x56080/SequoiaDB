@@ -1,6 +1,5 @@
 package com.sequoiadb.basicoperation;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.bson.types.ObjectId;
@@ -34,9 +33,6 @@ public class SeekAndWriteLob13403 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         try {
-            System.out.println( this.getClass().getName() + " begin at "
-                    + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
-                            .format( new Date() ) );
             sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             cs = sdb.getCollectionSpace( SdbTestBase.csName );
             cl = cs.createCollection( clName );
@@ -66,9 +62,6 @@ public class SeekAndWriteLob13403 extends SdbTestBase {
                 cs.dropCollection( clName );
             }
             sdb.close();
-            System.out.println( this.getClass().getName() + " end at "
-                    + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
-                            .format( new Date() ) );
         } catch ( BaseException e ) {
             Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
         }

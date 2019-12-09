@@ -1,6 +1,5 @@
 package com.sequoiadb.backup;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.bson.BSONObject;
@@ -19,8 +18,6 @@ import com.sequoiadb.testcommon.SdbTestBase;
 
 public class Backup7174 extends SdbTestBase {
     private Sequoiadb sdb;
-    private SimpleDateFormat df = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss.SSS" );
     private CommLib commlib = new CommLib();
     private String coordAddr;
 
@@ -28,8 +25,6 @@ public class Backup7174 extends SdbTestBase {
     public void setUp() {
         this.coordAddr = SdbTestBase.coordUrl;
         try {
-            System.out.println( "the TestCase: " + this.getClass().getName()
-                    + " begin at:" + df.format( new Date().getTime() ) );
             sdb = new Sequoiadb( coordAddr, "", "" );
             if ( commlib.isStandAlone( sdb ) ) {
                 throw new SkipException(
@@ -43,8 +38,6 @@ public class Backup7174 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            System.out.println( "the TestCase: " + this.getClass().getName()
-                    + " end at:" + df.format( new Date().getTime() ) );
             sdb.removeBackup( null );
             sdb.disconnect();
         } catch ( BaseException e ) {

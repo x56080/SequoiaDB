@@ -1,6 +1,5 @@
 package com.sequoiadb.optimize;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -29,9 +28,6 @@ public class AddHashCodeFromBsonObj13631 {
 
     @BeforeTest
     public void setUp() {
-        System.out.println( "Begin TestCase Name:" + this.getClass().getName()
-                + "at:" + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                        .format( new Date() ) );
     }
 
     @Test
@@ -52,8 +48,5 @@ public class AddHashCodeFromBsonObj13631 {
 
     @AfterTest
     public void tearDown() {
-        System.out.println( "End TestCase Name:" + this.getClass().getName()
-                + "at:" + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                        .format( new Date() ) );
     }
 }

@@ -1,6 +1,5 @@
 package com.sequoiadb.metadata;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
@@ -41,16 +40,12 @@ public class MetaData7074 extends SdbTestBase {
     private String csName2 = "cs70742";
 
     private CommLib commlib = new CommLib();
-
-    private SimpleDateFormat df = new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss" );
     private String coordAddr;
 
     @BeforeClass
     public void setUp() {
         this.coordAddr = SdbTestBase.coordUrl;
         try {
-            System.out.println( "the TestCase: " + this.getClass().getName()
-                    + " begin at:" + df.format( new Date().getTime() ) );
             sdb = new Sequoiadb( coordAddr, "", "" );
             if ( commlib.isStandAlone( sdb ) ) {
                 throw new SkipException(
@@ -72,8 +67,6 @@ public class MetaData7074 extends SdbTestBase {
     public void tearDown() {
         try {
             commlib.dropDomainForClearEnv( sdb, domainName );
-            System.out.println( "the TestCase: " + this.getClass().getName()
-                    + " end at:" + df.format( new Date().getTime() ) );
             sdb.disconnect();
         } catch ( BaseException e ) {
             Assert.fail( "clear env failed" + e.getMessage() );

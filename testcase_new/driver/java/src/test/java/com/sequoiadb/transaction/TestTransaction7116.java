@@ -1,6 +1,5 @@
 package com.sequoiadb.transaction;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -39,10 +38,6 @@ public class TestTransaction7116 extends SdbTestBase {
         String coordAddr = SdbTestBase.coordUrl;
         String commCSName = SdbTestBase.csName;
         try {
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase begin at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
             this.sdb = new Sequoiadb( coordAddr, "", "" );
             if ( !this.sdb.isCollectionSpaceExist( commCSName ) ) {
                 try {
@@ -167,10 +162,6 @@ public class TestTransaction7116 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        System.out.println( "the TestCase Name:" + this.getClass().getName()
-                + ". the TestCase end at:"
-                + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                        .format( new Date() ) );
         if ( this.cs.isCollectionExist( clName ) ) {
             this.cs.dropCollection( clName );
         }

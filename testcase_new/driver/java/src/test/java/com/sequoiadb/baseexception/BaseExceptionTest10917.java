@@ -1,6 +1,5 @@
 package com.sequoiadb.baseexception;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.testng.Assert;
@@ -27,14 +26,10 @@ import com.sequoiadb.testcommon.SdbTestBase;
 
 public class BaseExceptionTest10917 extends SdbTestBase {
     private Sequoiadb sdb;
-    private SimpleDateFormat df = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss.SSS" );
 
     @BeforeClass
     public void setUp() {
         try {
-            System.out.println( "the TestCase: " + this.getClass().getName()
-                    + " begin at:" + df.format( new Date().getTime() ) );
             sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         } catch ( BaseException e ) {
             Assert.fail( "prepare env failed" + e.getMessage() );
@@ -47,9 +42,6 @@ public class BaseExceptionTest10917 extends SdbTestBase {
             sdb.disconnect();
         } catch ( BaseException e ) {
             Assert.fail( "clear env failed" + e.getMessage() );
-        } finally {
-            System.out.println( "the TestCase: " + this.getClass().getName()
-                    + " end at:" + df.format( new Date().getTime() ) );
         }
     }
 

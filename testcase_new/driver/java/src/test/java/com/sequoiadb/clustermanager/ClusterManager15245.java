@@ -1,6 +1,5 @@
 package com.sequoiadb.clustermanager;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
@@ -28,16 +27,12 @@ import com.sequoiadb.testcommon.SdbTestBase;
  */
 public class ClusterManager15245 extends SdbTestBase {
     private Sequoiadb sdb;
-    private SimpleDateFormat df = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss.SSS" );
     private String coordAddr;
     private CommLib commlib = new CommLib();
 
     @BeforeClass
     public void setUp() {
         this.coordAddr = SdbTestBase.coordUrl;
-        System.out.println( "the TestCase: " + this.getClass().getName()
-                + " begin at:" + df.format( new Date().getTime() ) );
         sdb = new Sequoiadb( coordAddr, "", "" );
 
         if ( CommLib.isStandAlone( sdb ) ) {
@@ -97,9 +92,6 @@ public class ClusterManager15245 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            System.out.println( "the TestCase: " + this.getClass().getName()
-                    + " end at:" + df.format( new Date().getTime() ) );
-
             sdb.close();
         } catch ( BaseException e ) {
             Assert.fail( "clear env failed, errMsg:" + e.getMessage() );

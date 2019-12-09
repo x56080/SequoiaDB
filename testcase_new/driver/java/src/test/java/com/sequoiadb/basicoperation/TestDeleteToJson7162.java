@@ -1,6 +1,5 @@
 package com.sequoiadb.basicoperation;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -36,9 +35,6 @@ public class TestDeleteToJson7162 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        System.out.println( this.getClass().getName() + " begin at "
-                + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
-                        .format( new Date() ) );
         try {
             sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         } catch ( BaseException e ) {
@@ -122,9 +118,6 @@ public class TestDeleteToJson7162 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            System.out.println( this.getClass().getName() + " end at "
-                    + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
-                            .format( new Date() ) );
             if ( cs.isCollectionExist( clName ) ) {
                 cs.dropCollection( clName );
             }

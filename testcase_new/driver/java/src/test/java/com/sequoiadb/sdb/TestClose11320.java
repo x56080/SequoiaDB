@@ -1,6 +1,5 @@
 package com.sequoiadb.sdb;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.testng.Assert;
@@ -27,7 +26,6 @@ public class TestClose11320 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-
         try {
             sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         } catch ( BaseException e ) {

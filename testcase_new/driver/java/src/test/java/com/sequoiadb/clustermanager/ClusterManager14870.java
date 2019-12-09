@@ -1,6 +1,5 @@
 package com.sequoiadb.clustermanager;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -34,8 +33,6 @@ import com.sequoiadb.testcommon.SdbTestBase;
 public class ClusterManager14870 extends SdbTestBase {
     private Sequoiadb sdb;
     private String dataRGName = "dataAddGroup14870";
-    private SimpleDateFormat df = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss.SSS" );
     private String coordIP;
     private String coordAddr;
     private String workDir;
@@ -45,8 +42,6 @@ public class ClusterManager14870 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        System.out.println( "the TestCase: " + this.getClass().getName()
-                + " begin at:" + df.format( new Date().getTime() ) );
         this.coordAddr = SdbTestBase.coordUrl;
         this.workDir = SdbTestBase.workDir;
         this.reservedPortBegin = SdbTestBase.reservedPortBegin;
@@ -60,8 +55,6 @@ public class ClusterManager14870 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            System.out.println( "the TestCase: " + this.getClass().getName()
-                    + " end at:" + df.format( new Date().getTime() ) );
             sdb.removeReplicaGroup( dataRGName );
             sdb.disconnect();
         } catch ( BaseException e ) {

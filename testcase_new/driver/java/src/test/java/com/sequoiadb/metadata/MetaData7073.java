@@ -5,7 +5,6 @@ import org.testng.annotations.Test;
 import org.testng.Assert;
 import org.testng.SkipException;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -38,9 +37,6 @@ public class MetaData7073 extends SdbTestBase {
     private String domainName = "domain7073";
 
     private CommLib commlib = new CommLib();
-
-    private SimpleDateFormat df = new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss" );
-
     private String coordAddr;
 
     // connect sdb before test
@@ -48,8 +44,6 @@ public class MetaData7073 extends SdbTestBase {
     public void setUp() {
         this.coordAddr = SdbTestBase.coordUrl;
         try {
-            System.out.println( "the TestCase: " + this.getClass().getName()
-                    + " begin at:" + df.format( new Date().getTime() ) );
             sdb = new Sequoiadb( coordAddr, "", "" );
             if ( commlib.isStandAlone( sdb ) ) {
                 throw new SkipException(
@@ -65,8 +59,6 @@ public class MetaData7073 extends SdbTestBase {
     public void tearDown() {
         try {
             commlib.dropDomainForClearEnv( sdb, domainName );
-            System.out.println( "the TestCase: " + this.getClass().getName()
-                    + " end at:" + df.format( new Date().getTime() ) );
             sdb.disconnect();
         } catch ( BaseException e ) {
             Assert.fail( "clear env failed" + e.getMessage() );

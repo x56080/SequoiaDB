@@ -1,6 +1,5 @@
 package com.sequoiadb.basicoperation;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.bson.BSONObject;
@@ -17,9 +16,6 @@ public class TestCompareNumberLong13314 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        System.out.println( this.getClass().getName() + " begin at "
-                + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
-                        .format( new Date() ) );
     }
 
     @Test
@@ -51,8 +47,5 @@ public class TestCompareNumberLong13314 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        System.out.println( this.getClass().getName() + " end at "
-                + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
-                        .format( new Date() ) );
     }
 }
