@@ -1098,7 +1098,8 @@ namespace engine
 
       PD_TRACE_EXIT( SDB__OPTCLSTAT__EVALRANGEOPTR ) ;
 
-      return OPT_ROUND_SELECTIVITY( selectivity ) ;
+      return OPT_ROUND_SELECTIVITY(
+                  OSS_MAX( selectivity, OPT_PRED_RANGE_MIN_SELECTIVITY ) ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTCLSTAT__EVALGTOPTR, "_optCollectionStat::_evalGTOperator" )
@@ -1178,7 +1179,8 @@ namespace engine
 
       PD_TRACE_EXIT( SDB__OPTCLSTAT__EVALGTOPTR ) ;
 
-      return OPT_ROUND_SELECTIVITY( selectivity ) ;
+      return OPT_ROUND_SELECTIVITY(
+                  OSS_MAX( selectivity, OPT_PRED_GTORLT_MIN_SELECTIVITY ) ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTCLSTAT__EVALLTOPTR, "_optCollectionStat::_evalLTOperator" )
@@ -1258,7 +1260,8 @@ namespace engine
 
       PD_TRACE_EXIT( SDB__OPTCLSTAT__EVALLTOPTR ) ;
 
-      return OPT_ROUND_SELECTIVITY( selectivity ) ;
+      return OPT_ROUND_SELECTIVITY(
+                  OSS_MAX( selectivity, OPT_PRED_GTORLT_MIN_SELECTIVITY ) ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTCLSTAT_GETMATCHEDIDX, "_optCollectionStat::_getMatchedIndex" )

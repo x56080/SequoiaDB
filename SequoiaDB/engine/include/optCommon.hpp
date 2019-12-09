@@ -135,6 +135,11 @@ namespace engine
    // Default selectivity of a $et predicate
    #define OPT_PRED_EQ_DEF_SELECTIVITY       ( 0.005 )
 
+   // Mininum selectivity of a range predicate
+   // NOTE: should be larger than $eq
+   #define OPT_PRED_RANGE_MIN_SELECTIVITY    ( OPT_PRED_EQ_DEF_SELECTIVITY * 2 )
+   #define OPT_PRED_GTORLT_MIN_SELECTIVITY   ( OPT_PRED_EQ_DEF_SELECTIVITY * 3 )
+
    #define OPT_ROUND( x, min, max )          ( OSS_MIN( OSS_MAX( ( x ), ( min ) ), ( max ) ) )
 
    // Selectivity should between 0.0 and 1.0

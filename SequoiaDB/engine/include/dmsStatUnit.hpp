@@ -66,7 +66,7 @@ namespace engine
    #define DMS_STAT_DEF_AVG_NUM_FIELDS         ( 10 )
    #define DMS_STAT_DEF_TOTAL_PAGES            ( 1 )
    #define DMS_STAT_DEF_IDX_LEVELS             ( 1 )
-   #define DMS_STAT_DEF_TOTAL_RECORDS          ( 10 )
+   #define DMS_STAT_DEF_TOTAL_RECORDS          ( 200 )
    #define DMS_STAT_DEF_DATA_SIZE              ( 400 )
 
    // Default selectivity of a range predicate
